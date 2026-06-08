@@ -16,6 +16,7 @@ import type {
   GraphData
 } from "@nodetool-ai/protocol";
 
+// Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
 const log = createLogger("nodetool.kernel.graph");
 import { isControlEdge, isDataEdge, TypeMetadata } from "@nodetool-ai/protocol";
 
@@ -257,6 +258,7 @@ export class Graph {
         }
       }
 
+      // Stryker disable next-line ArrayDeclaration: defensive ?? fallback equivalent — a bogus handle deletes a non-existent property (no-op)
       for (const handle of propertiesWithEdges.get(id) ?? []) {
         delete rawProperties[handle];
       }
@@ -563,6 +565,7 @@ export class Graph {
 
     // BFS from every streaming-output node along data edges
     const streamingSources = this.nodes.filter((n) => n.is_streaming_output);
+    // Stryker disable next-line ArrayDeclaration: a non-empty seed is equivalent — a bogus node id has no outgoing edges, so BFS adds nothing
     const queue: string[] = [];
 
     for (const src of streamingSources) {
@@ -629,6 +632,7 @@ export class Graph {
     }
 
     // Seed with zero-in-degree nodes
+    // Stryker disable next-line ArrayDeclaration: a non-empty seed is equivalent — a bogus id matches no node/edge and is dropped
     let currentLevel: string[] = [];
     for (const [id, deg] of inDeg) {
       if (deg === 0) currentLevel.push(id);
@@ -660,7 +664,9 @@ export class Graph {
       currentLevel = nextLevel;
     }
 
+    // Stryker disable next-line ConditionalExpression,EqualityOperator,BlockStatement: this only emits a diagnostic warning; the returned levels are unaffected
     if (visited.size !== filteredNodes.length) {
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.warn("Graph contains at least one cycle", {
         visited: visited.size,
         total: filteredNodes.length
@@ -736,6 +742,7 @@ export class Graph {
   validateEdgeEndpoints(): void {
     for (const edge of this.edges) {
       if (!this._nodeIndex.has(edge.source)) {
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
         log.error("Edge references unknown source node", {
           source: edge.source
         });
@@ -744,6 +751,7 @@ export class Graph {
         );
       }
       if (!this._nodeIndex.has(edge.target)) {
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
         log.error("Edge references unknown target node", {
           target: edge.target
         });
@@ -812,6 +820,7 @@ export class Graph {
       const targetMeta = TypeMetadata.fromString(targetType);
 
       if (!sourceMeta.isCompatibleWith(targetMeta)) {
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
         log.warn("Type mismatch on edge", {
           source: edge.source,
           target: edge.target,
@@ -857,6 +866,7 @@ export class Graph {
     for (const node of adj.keys()) {
       if ((color.get(node) ?? WHITE) === WHITE) {
         if (dfs(node)) {
+          // Stryker disable next-line StringLiteral: diagnostic log message only
           log.error("Graph contains a cycle in control edges");
           throw new GraphValidationError(
             "Graph contains a cycle in control edges"
