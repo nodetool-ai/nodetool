@@ -91,6 +91,61 @@ describe("VastProvider.provision", () => {
     expect(launchBody.env.NODETOOL_WORKER_TOKEN).toBe("worker-secret");
   });
 
+  it("destroys the launched instance when it never becomes reachable", async () => {
+    // 1) PUT /bundles/ → an offer matching the GPU
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ offers: [{ id: 555, gpu_name: "RTX 4090" }] })
+    );
+    // 2) PUT /asks/555/ → launched, new contract id (billing now active)
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ success: true, new_contract: 9001 })
+    );
+    // 3) GET /instances/9001/ → terminal "exited" makes waitForReady throw
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ instances: { id: 9001, actual_status: "exited" } })
+    );
+    // 4) DELETE /instances/9001/ → cleanup teardown
+    mockFetch.mockResolvedValueOnce(jsonResponse({ success: true }));
+
+    const provider = new VastProvider(API_KEY);
+    await expect(provider.provision(baseSpec())).rejects.toThrow(
+      /terminal status/
+    );
+
+    // The launched instance must be destroyed so it stops billing.
+    const [destroyUrl, destroyInit] = mockFetch.mock.calls[3];
+    expect(destroyUrl).toBe("https://console.vast.ai/api/v0/instances/9001/");
+    expect((destroyInit as RequestInit).method).toBe("DELETE");
+  });
+
+  it("destroys the launched instance when it runs without a reachable port", async () => {
+    // 1) PUT /bundles/ → an offer matching the GPU
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ offers: [{ id: 555, gpu_name: "RTX 4090" }] })
+    );
+    // 2) PUT /asks/555/ → launched
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ success: true, new_contract: 9001 })
+    );
+    // 3) GET /instances/9001/ → running but no port mapping exposed
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({
+        instances: readyInstance({ ports: null }),
+      })
+    );
+    // 4) DELETE /instances/9001/ → cleanup teardown
+    mockFetch.mockResolvedValueOnce(jsonResponse({ success: true }));
+
+    const provider = new VastProvider(API_KEY);
+    await expect(provider.provision(baseSpec())).rejects.toThrow(
+      /port mapping/
+    );
+
+    const [destroyUrl, destroyInit] = mockFetch.mock.calls[3];
+    expect(destroyUrl).toBe("https://console.vast.ai/api/v0/instances/9001/");
+    expect((destroyInit as RequestInit).method).toBe("DELETE");
+  });
+
   it("reports the chosen offer's hourly cost from dph_total", async () => {
     // 1) PUT /bundles/ → the cheapest offer carries its dollars-per-hour total.
     mockFetch.mockResolvedValueOnce(

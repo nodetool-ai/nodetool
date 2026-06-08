@@ -94,24 +94,36 @@ export class VastProvider implements WorkerProvider {
   async provision(spec: WorkerSpec): Promise<ProvisionResult> {
     const offer = await this.findOffer(spec);
     const instanceId = await this.launch(offer.id, spec);
-    const instance = await this.waitForReady(instanceId);
 
-    const ip = instance.public_ipaddr;
-    const port = externalPort(instance);
-    if (!ip || !port) {
-      throw new Error(
-        `Vast instance ${instanceId} became running without a reachable ` +
-          `${WORKER_PORT} port mapping`
-      );
+    // `launch` created a billing instance. Any failure past this point must
+    // tear it down, otherwise the orphaned GPU bills until the reconcile scan
+    // detects it — its `provider_ref` is never persisted, so `stop` can't be
+    // called from the manager.
+    try {
+      const instance = await this.waitForReady(instanceId);
+
+      const ip = instance.public_ipaddr;
+      const port = externalPort(instance);
+      if (!ip || !port) {
+        throw new Error(
+          `Vast instance ${instanceId} became running without a reachable ` +
+            `${WORKER_PORT} port mapping`
+        );
+      }
+
+      return {
+        providerRef: instanceId,
+        wsUrl: `ws://${ip}:${port}`,
+        token: spec.token,
+        status: "running",
+        costUsd: offer.dphTotal,
+      };
+    } catch (err) {
+      await this.stop(instanceId).catch(() => {
+        // Best-effort teardown; surface the original provision failure below.
+      });
+      throw err;
     }
-
-    return {
-      providerRef: instanceId,
-      wsUrl: `ws://${ip}:${port}`,
-      token: spec.token,
-      status: "running",
-      costUsd: offer.dphTotal,
-    };
   }
 
   async status(ref: string): Promise<WorkerStatus> {
