@@ -96,6 +96,22 @@ export type {
   WorkerProfilePatch
 } from "./worker-profiles.js";
 
+export {
+  createWorkerInstance,
+  getWorkerInstance,
+  listWorkerInstances,
+  updateWorkerInstance,
+  touchWorkerInstance,
+  deleteWorkerInstance
+} from "./worker-instances.js";
+export type {
+  WorkerInstance,
+  WorkerStatus,
+  CreateWorkerInstanceInput,
+  WorkerInstancePatch,
+  ListWorkerInstancesOptions
+} from "./worker-instances.js";
+
 export { TimelineSequence } from "./timeline-sequence.js";
 export type { TimelineDocument } from "./timeline-sequence.js";
 
