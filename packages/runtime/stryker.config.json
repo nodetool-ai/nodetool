@@ -16,7 +16,8 @@
     "src/cost-reconciler.ts",
     "src/recommended-models.ts",
     "src/providers/provider-registry.ts",
-    "src/providers/manifest-models.ts"
+    "src/providers/manifest-models.ts",
+    "src/agent-memory.ts"
   ],
   "vitest": {
     "configFile": "vitest.config.ts"
