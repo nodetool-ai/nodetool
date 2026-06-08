@@ -69,7 +69,7 @@ describe("worker tables migration", () => {
         "target",
         "provider_ref",
         "ws_url",
-        "token",
+        "encrypted_token",
         "status",
         "attached_to",
         "created_at",

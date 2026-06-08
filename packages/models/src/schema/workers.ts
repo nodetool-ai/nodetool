@@ -41,7 +41,8 @@ export const workerInstances = sqliteTable(
     target: text("target").notNull(),
     provider_ref: text("provider_ref").notNull(),
     ws_url: text("ws_url").notNull(),
-    token: text("token"),
+    // Bearer token, encrypted at rest with the master key (never plaintext).
+    encrypted_token: text("encrypted_token"),
     status: text("status").notNull(),
     attached_to: text("attached_to"),
     created_at: text("created_at").notNull(),

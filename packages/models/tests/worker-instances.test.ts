@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { ModelObserver } from "../src/base-model.js";
-import { initTestDb } from "../src/db.js";
+import { getRawDb, initTestDb } from "../src/db.js";
+import { setMasterKey } from "@nodetool-ai/security";
 import {
   createWorkerInstance,
   getWorkerInstance,
@@ -10,12 +11,15 @@ import {
   deleteWorkerInstance
 } from "../src/worker-instances.js";
 
+const TEST_MASTER_KEY = "dGVzdC1tYXN0ZXIta2V5LWZvci11bml0LXRlc3Rz"; // base64
+
 /**
  * Task B3 — instance registry accessors over the worker_instances table.
  */
 describe("worker instance registry accessors", () => {
   beforeEach(() => {
     initTestDb();
+    setMasterKey(TEST_MASTER_KEY);
   });
   afterEach(() => ModelObserver.clear());
 
@@ -126,5 +130,62 @@ describe("worker instance registry accessors", () => {
     const created = await createWorkerInstance(makeInput());
     await deleteWorkerInstance(created.id);
     expect(await getWorkerInstance(created.id)).toBeNull();
+  });
+
+  it("never persists the bearer token in plaintext", async () => {
+    const created = await createWorkerInstance(
+      makeInput({ token: "super-secret-token" })
+    );
+
+    const row = getRawDb()
+      .prepare("SELECT encrypted_token FROM worker_instances WHERE id = ?")
+      .get(created.id) as { encrypted_token: string | null };
+
+    expect(row.encrypted_token).toBeTruthy();
+    expect(row.encrypted_token).not.toBe("super-secret-token");
+    expect(row.encrypted_token).not.toContain("super-secret-token");
+  });
+
+  it("getWorkerInstance round-trips the decrypted token", async () => {
+    const created = await createWorkerInstance(
+      makeInput({ token: "super-secret-token" })
+    );
+
+    const found = await getWorkerInstance(created.id);
+    expect(found!.token).toBe("super-secret-token");
+  });
+
+  it("updateWorkerInstance re-encrypts a rotated token", async () => {
+    const created = await createWorkerInstance(makeInput({ token: "tok-old" }));
+
+    await updateWorkerInstance(created.id, { token: "tok-rotated" });
+
+    const row = getRawDb()
+      .prepare("SELECT encrypted_token FROM worker_instances WHERE id = ?")
+      .get(created.id) as { encrypted_token: string | null };
+    expect(row.encrypted_token).not.toContain("tok-rotated");
+
+    const found = await getWorkerInstance(created.id);
+    expect(found!.token).toBe("tok-rotated");
+  });
+
+  it("listWorkerInstances does not leak tokens in bulk", async () => {
+    await createWorkerInstance(makeInput({ token: "leak-me" }));
+
+    const all = await listWorkerInstances();
+    expect(all).toHaveLength(1);
+    expect(all[0]!.token).toBeNull();
+  });
+
+  it("stores a null token without encryption", async () => {
+    const created = await createWorkerInstance(makeInput({ token: null }));
+
+    const row = getRawDb()
+      .prepare("SELECT encrypted_token FROM worker_instances WHERE id = ?")
+      .get(created.id) as { encrypted_token: string | null };
+    expect(row.encrypted_token).toBeNull();
+
+    const found = await getWorkerInstance(created.id);
+    expect(found!.token).toBeNull();
   });
 });

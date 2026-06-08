@@ -1609,7 +1609,7 @@ export const migrations: MigrationDef[] = [
           target TEXT NOT NULL,
           provider_ref TEXT NOT NULL,
           ws_url TEXT NOT NULL,
-          token TEXT,
+          encrypted_token TEXT,
           status TEXT NOT NULL,
           attached_to TEXT,
           created_at TEXT NOT NULL,

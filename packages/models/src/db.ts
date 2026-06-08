@@ -809,7 +809,7 @@ function getCreateSchemaSql(): string {
       "target" text NOT NULL,
       "provider_ref" text NOT NULL,
       "ws_url" text NOT NULL,
-      "token" text,
+      "encrypted_token" text,
       "status" text NOT NULL,
       "attached_to" text,
       "created_at" text NOT NULL,
