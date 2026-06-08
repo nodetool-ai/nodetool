@@ -220,7 +220,7 @@ describe("buildImageRequest mapping (via textToImage)", () => {
   it("omits safetyCheck/strength when the key is present but null", async () => {
     const doApiRequest = vi.fn().mockResolvedValue(okResult);
     const { provider: p } = makeProvider(doApiRequest);
-    await p.imageToImage(new Uint8Array([1]), {
+    await p.imageToImage([new Uint8Array([1])], {
       model: model(),
       prompt: "x",
       safetyCheck: null,
@@ -236,7 +236,7 @@ describe("buildImageRequest mapping (via textToImage)", () => {
       .fn()
       .mockResolvedValue({ success: true, images: [new Uint8Array([9])] });
     const { provider: p } = makeProvider(doApiRequest);
-    await p.imageToImage(new Uint8Array([1, 2, 3]), {
+    await p.imageToImage([new Uint8Array([1, 2, 3])], {
       model: model(),
       prompt: "edit",
       targetWidth: 128,
@@ -321,10 +321,10 @@ describe("prompt / image guards", () => {
   it("imageToImage rejects a blank prompt and an empty image", async () => {
     const { provider: p } = makeProvider(vi.fn());
     await expect(
-      p.imageToImage(new Uint8Array([1]), { model: model(), prompt: " " } as never)
+      p.imageToImage([new Uint8Array([1])], { model: model(), prompt: " " } as never)
     ).rejects.toThrow("Prompt is required");
     await expect(
-      p.imageToImage(new Uint8Array([]), { model: model(), prompt: "ok" } as never)
+      p.imageToImage([new Uint8Array([])], { model: model(), prompt: "ok" } as never)
     ).rejects.toThrow("Image is required");
   });
 });

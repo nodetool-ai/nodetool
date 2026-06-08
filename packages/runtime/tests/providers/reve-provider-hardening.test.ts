@@ -89,13 +89,13 @@ describe("ReveProvider.imageToImage", () => {
   it("rejects an empty image", async () => {
     stub(okJson({ image: "AQID" }));
     await expect(
-      make("tok").imageToImage(new Uint8Array([]), { model: img, prompt: "p" } as never)
+      make("tok").imageToImage([new Uint8Array([])], { model: img, prompt: "p" } as never)
     ).rejects.toThrow("image must not be empty");
   });
 
   it("drops an invalid aspect ratio on edit too", async () => {
     stub(okJson({ image: "AQID" }));
-    await make("tok").imageToImage(new Uint8Array([1]), {
+    await make("tok").imageToImage([new Uint8Array([1])], {
       model: img,
       prompt: "p",
       aspectRatio: "5:1"
@@ -105,7 +105,7 @@ describe("ReveProvider.imageToImage", () => {
 
   it("POSTs to /v1/image/edit with the base64 reference image and edit instruction", async () => {
     stub(okJson({ image: "AQID" }));
-    await make("tok").imageToImage(new Uint8Array([1, 2, 3]), {
+    await make("tok").imageToImage([new Uint8Array([1, 2, 3])], {
       model: img,
       prompt: "make it blue",
       aspectRatio: "1:1"
