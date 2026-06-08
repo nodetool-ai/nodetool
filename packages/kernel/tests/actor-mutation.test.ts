@@ -994,3 +994,69 @@ describe("NodeActor._runCorrelatedImpl – not-ready guards", () => {
     expect(calls).toEqual([]);
   });
 });
+
+describe("NodeActor – more scheduler/lineage coverage", () => {
+  it("does not fire a no-max node while a required empty input is still open", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("cfg", 1);
+    inbox.addUpstream("other", 1);
+    const { executor, calls } = trackingExecutor(() => ({}));
+    const { actor } = createActor(makeNode(), inbox, executor, {
+      correlation: analysis(["r", "s"], {
+        cfg: [["r"], false],
+        other: [["r"], false]
+      })
+    });
+    // cfg arrives, other never arrives (closed empty) -> still fires with cfg
+    // only (empty/prefix defaults are allowed once closed).
+    await inbox.put("cfg", "C", { correlation_lineage: lin({ r: 0 }) });
+    inbox.markSourceDone("cfg");
+    inbox.markSourceDone("other");
+    await actor.run();
+    expect(calls).toEqual([{ cfg: "C" }]);
+  });
+
+  it("emitGroup leaves non-iteration sibling slots on the parent lineage", async () => {
+    const node = makeNode({
+      is_streaming_input: true,
+      output_correlation: {
+        iter: { kind: "iteration", source: "__execution__", group: "g" }
+        // "plain" has no correlation -> inherits parent lineage
+      }
+    });
+    const inbox = new NodeInbox();
+    const executor: NodeExecutor = {
+      async process() {
+        return {};
+      },
+      async run(_inputs, outputs) {
+        await outputs.emitGroup({ iter: 1, plain: 2 });
+      }
+    };
+    const { actor, sentOutputs } = createActor(node, inbox, executor, {
+      correlation: analysis([], {})
+    });
+    await actor.run();
+    const ps = (sentOutputs[0].hints as { perSlotLineage: Record<string, Record<string, { index: number }>> }).perSlotLineage;
+    expect(ps.iter["n1:g"].index).toBe(0); // minted
+    expect(ps.plain).toEqual({}); // parent (empty) lineage, no root
+  });
+
+  it("controlled mode reuses already-cached data without re-waiting", async () => {
+    const node = makeNode({ is_controlled: true });
+    const inbox = new NodeInbox();
+    inbox.addUpstream("__control__", 1);
+    inbox.addUpstream("x", 1);
+    const { executor, calls } = trackingExecutor((i) => ({ out: i.x }));
+    const { actor } = createActor(node, inbox, executor);
+    // data buffered up-front -> fast path (no drain wait); two runs reuse it.
+    await inbox.put("x", 7);
+    await inbox.put("__control__", { event_type: "run", properties: {} });
+    await inbox.put("__control__", { event_type: "run", properties: {} });
+    await inbox.put("__control__", { event_type: "stop" });
+    inbox.markSourceDone("x");
+    inbox.markSourceDone("__control__");
+    await actor.run();
+    expect(calls).toEqual([{ x: 7 }, { x: 7 }]);
+  });
+});
