@@ -370,25 +370,25 @@ export class MinimaxProvider extends OpenAIProvider {
   }
 
   override async imageToImage(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Uint8Array> {
     const [first] = await this._generateImages(
       this._imageToImageAsTextParams(params),
-      image,
+      images[0] ?? null,
       1
     );
     return first;
   }
 
   override async imageToImages(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToImageParams,
     numImages: number
   ): Promise<Uint8Array[]> {
     return this._generateImages(
       this._imageToImageAsTextParams(params),
-      image,
+      images[0] ?? null,
       numImages
     );
   }
@@ -502,14 +502,14 @@ export class MinimaxProvider extends OpenAIProvider {
   }
 
   override async imageToVideo(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToVideoParams
   ): Promise<Uint8Array> {
     return this._generateVideo(params.model.id, {
       prompt: params.prompt ?? undefined,
       durationSeconds: params.durationSeconds,
       resolution: params.resolution,
-      firstFrame: image
+      firstFrame: images[0]
     });
   }
 

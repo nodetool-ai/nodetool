@@ -378,7 +378,7 @@ describe("TogetherProvider", () => {
       guidanceScale: 3.5
     };
 
-    const result = await provider.imageToImage(inputImage, params);
+    const result = await provider.imageToImage([inputImage], params);
     expect(result).toEqual(imageBytes);
 
     const body = JSON.parse(mockFetch.mock.calls[0][1].body as string);
@@ -745,7 +745,7 @@ describe("TogetherProvider", () => {
       prompt: "zoom out"
     };
 
-    const videoPromise = provider.imageToVideo(fakeImage, params);
+    const videoPromise = provider.imageToVideo([fakeImage], params);
     await vi.runAllTimersAsync();
 
     const result = await videoPromise;

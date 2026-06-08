@@ -323,6 +323,20 @@ function isWithinRoot(root: string, target: string): boolean {
   return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
 }
 
+/**
+ * Normalize the image input for image-to-image / image-to-video predictions
+ * into a list of byte buffers. Accepts the modern `images` array as well as
+ * the legacy singular `image` field so older callers keep working.
+ */
+function coerceImageList(params: Record<string, unknown>): Uint8Array[] {
+  const list = params.images;
+  if (Array.isArray(list)) {
+    return list.filter((b): b is Uint8Array => b instanceof Uint8Array);
+  }
+  const single = params.image;
+  return single instanceof Uint8Array ? [single] : [];
+}
+
 function normalizeStorageKey(key: string): string {
   const cleaned = normalize(key.replaceAll("\\", "/")).replace(/^\/+/, "");
   if (
@@ -2175,7 +2189,7 @@ export class ProcessingContext {
           quality: params.quality as string | undefined
         });
       case "image_to_image":
-        return provider.imageToImage(params.image as Uint8Array, {
+        return provider.imageToImage(coerceImageList(params), {
           prompt: String(params.prompt ?? ""),
           model: { id: req.model, name: req.model, provider: req.provider },
           negativePrompt: params.negative_prompt as string | undefined,
@@ -2197,7 +2211,7 @@ export class ProcessingContext {
           resolution: params.resolution as string | undefined
         });
       case "image_to_video":
-        return provider.imageToVideo(params.image as Uint8Array, {
+        return provider.imageToVideo(coerceImageList(params), {
           prompt: params.prompt as string | undefined,
           model: { id: req.model, name: req.model, provider: req.provider },
           negativePrompt: params.negative_prompt as string | undefined,

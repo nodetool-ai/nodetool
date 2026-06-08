@@ -147,9 +147,10 @@ export class ReveProvider extends BaseProvider {
   }
 
   override async imageToImage(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Uint8Array> {
+    const image = images[0];
     if (!image || image.length === 0) {
       throw new Error("image must not be empty");
     }
