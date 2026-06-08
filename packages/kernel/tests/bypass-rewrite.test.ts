@@ -55,6 +55,17 @@ describe("isNodeBypassed", () => {
       isNodeBypassed(makeNode("n1", { ui_properties: { bypassed: true } }))
     ).toBe(true);
   });
+
+  it("returns false when ui_properties is null or not an object", () => {
+    // null is the important case: without the !ui / typeof guard, reading
+    // .bypassed off null would throw.
+    expect(
+      isNodeBypassed(makeNode("n", { ui_properties: null as never }))
+    ).toBe(false);
+    expect(
+      isNodeBypassed(makeNode("n", { ui_properties: "nope" as never }))
+    ).toBe(false);
+  });
 });
 
 describe("rewriteBypassedNodes", () => {
@@ -389,5 +400,212 @@ describe("rewriteBypassedNodes", () => {
       source: "A",
       target: "C"
     });
+  });
+
+  it("handles an incoming edge from a node missing in the graph", () => {
+    // Source S is not in the node list — its output type is unknown (treated
+    // as compatible). The reroute should still come from S.
+    const nodes: NodeDescriptor[] = [
+      bypassed("B", {
+        outputs: { out: "string" },
+        propertyTypes: { in: "string" }
+      }),
+      makeNode("C", { propertyTypes: { in: "string" } })
+    ];
+    const edges: Edge[] = [
+      { source: "S", sourceHandle: "out", target: "B", targetHandle: "in" },
+      { source: "B", sourceHandle: "out", target: "C", targetHandle: "in" }
+    ];
+    const result = rewriteBypassedNodes({ nodes, edges });
+    expect(result.edges).toHaveLength(1);
+    expect(result.edges[0]).toMatchObject({ source: "S", target: "C" });
+  });
+
+  it("handles an outgoing edge to a node missing in the graph", () => {
+    const nodes: NodeDescriptor[] = [
+      makeNode("A", { outputs: { out: "string" } }),
+      bypassed("B", {
+        outputs: { out: "string" },
+        propertyTypes: { in: "string" }
+      })
+    ];
+    const edges: Edge[] = [
+      { source: "A", sourceHandle: "out", target: "B", targetHandle: "in" },
+      { source: "B", sourceHandle: "out", target: "X", targetHandle: "in" }
+    ];
+    const result = rewriteBypassedNodes({ nodes, edges });
+    expect(result.edges).toHaveLength(1);
+    expect(result.edges[0]).toMatchObject({ source: "A", target: "X" });
+  });
+
+  it("derives the downstream input type from properties.type (object form)", () => {
+    // C declares its input type via properties[handle].type = image (no
+    // propertyTypes). The string incoming is incompatible, so the edge drops.
+    const nodes: NodeDescriptor[] = [
+      makeNode("A", { outputs: { out: "string" } }),
+      bypassed("B", {
+        outputs: { out: "image" },
+        propertyTypes: { in: "string" }
+      }),
+      makeNode("C", { properties: { in: { type: "image" } } } as never)
+    ];
+    const edges: Edge[] = [
+      { source: "A", sourceHandle: "out", target: "B", targetHandle: "in" },
+      { source: "B", sourceHandle: "out", target: "C", targetHandle: "in" }
+    ];
+    const result = rewriteBypassedNodes({ nodes, edges });
+    expect(result.edges).toHaveLength(0);
+  });
+
+  it("derives the downstream input type from properties (string form)", () => {
+    // C declares its input type as a bare string "image" in properties.
+    const nodes: NodeDescriptor[] = [
+      makeNode("A", { outputs: { out: "string" } }),
+      bypassed("B", {
+        outputs: { out: "image" },
+        propertyTypes: { in: "string" }
+      }),
+      makeNode("C", { properties: { in: "image" } } as never)
+    ];
+    const edges: Edge[] = [
+      { source: "A", sourceHandle: "out", target: "B", targetHandle: "in" },
+      { source: "B", sourceHandle: "out", target: "C", targetHandle: "in" }
+    ];
+    const result = rewriteBypassedNodes({ nodes, edges });
+    expect(result.edges).toHaveLength(0);
+  });
+
+  it("falls back to a downstream-compatible input when none match the bypass output", () => {
+    // The only incoming (string) is compatible with C's input (string) but not
+    // with B's own output (image). It must still be used as the fallback.
+    const nodes: NodeDescriptor[] = [
+      makeNode("A", { outputs: { out: "string" } }),
+      bypassed("B", {
+        outputs: { out: "image" },
+        propertyTypes: { in: "string" }
+      }),
+      makeNode("C", { propertyTypes: { in: "string" } })
+    ];
+    const edges: Edge[] = [
+      { source: "A", sourceHandle: "out", target: "B", targetHandle: "in" },
+      { source: "B", sourceHandle: "out", target: "C", targetHandle: "in" }
+    ];
+    const result = rewriteBypassedNodes({ nodes, edges });
+    expect(result.edges).toHaveLength(1);
+    expect(result.edges[0]).toMatchObject({ source: "A", target: "C" });
+  });
+
+  it("prefers a name-matched input even when it is not first in edge order", () => {
+    // Edge order lists the non-matching incoming (other) BEFORE the matching
+    // one (text). The reroute must still pick the name-matched source A.
+    const nodes: NodeDescriptor[] = [
+      makeNode("D", { outputs: { out: "any" } }),
+      makeNode("A", { outputs: { out: "any" } }),
+      bypassed("B", {
+        outputs: { text: "any" },
+        propertyTypes: { text: "any", other: "any" }
+      }),
+      makeNode("C", { propertyTypes: { in: "any" } })
+    ];
+    const edges: Edge[] = [
+      { source: "D", sourceHandle: "out", target: "B", targetHandle: "other" },
+      { source: "A", sourceHandle: "out", target: "B", targetHandle: "text" },
+      { source: "B", sourceHandle: "text", target: "C", targetHandle: "in" }
+    ];
+    const result = rewriteBypassedNodes({ nodes, edges });
+    expect(result.edges).toHaveLength(1);
+    expect(result.edges[0].source).toBe("A");
+  });
+
+  it("drops an outgoing control edge from a bypassed node", () => {
+    const nodes: NodeDescriptor[] = [
+      makeNode("A", { outputs: { out: "string" } }),
+      bypassed("B", {
+        outputs: { out: "string" },
+        propertyTypes: { in: "string" }
+      }),
+      makeNode("C", { propertyTypes: { in: "string" } }),
+      makeNode("X")
+    ];
+    const edges: Edge[] = [
+      { source: "A", sourceHandle: "out", target: "B", targetHandle: "in" },
+      { source: "B", sourceHandle: "out", target: "C", targetHandle: "in" },
+      {
+        source: "B",
+        sourceHandle: "ctrl",
+        target: "X",
+        targetHandle: "__control__",
+        edge_type: "control"
+      }
+    ];
+    const result = rewriteBypassedNodes({ nodes, edges });
+    expect(result.edges).toHaveLength(1);
+    expect(result.edges[0]).toMatchObject({ source: "A", target: "C" });
+  });
+
+  it("treats a non-string declared type as compatible (parser-error fallback)", () => {
+    // Raw graph data can carry a non-string in outputs; TypeMetadata.fromString
+    // throws on it and typesCompatible's catch falls back to compatible.
+    const nodes: NodeDescriptor[] = [
+      makeNode("A", { outputs: { out: 123 as never } }),
+      bypassed("B", {
+        outputs: { out: "string" },
+        propertyTypes: { in: "string" }
+      }),
+      makeNode("C", { propertyTypes: { in: "string" } })
+    ];
+    const edges: Edge[] = [
+      { source: "A", sourceHandle: "out", target: "B", targetHandle: "in" },
+      { source: "B", sourceHandle: "out", target: "C", targetHandle: "in" }
+    ];
+    const result = rewriteBypassedNodes({ nodes, edges });
+    expect(result.edges).toHaveLength(1);
+    expect(result.edges[0]).toMatchObject({ source: "A", target: "C" });
+  });
+
+  it("handles a null property value when deriving the input type", () => {
+    // properties[handle] === null must not crash the `"type" in val` check.
+    const nodes: NodeDescriptor[] = [
+      makeNode("A", { outputs: { out: "string" } }),
+      bypassed("B", {
+        outputs: { out: "string" },
+        propertyTypes: { in: "string" }
+      }),
+      makeNode("C", { properties: { in: null } } as never)
+    ];
+    const edges: Edge[] = [
+      { source: "A", sourceHandle: "out", target: "B", targetHandle: "in" },
+      { source: "B", sourceHandle: "out", target: "C", targetHandle: "in" }
+    ];
+    const result = rewriteBypassedNodes({ nodes, edges });
+    expect(result.edges).toHaveLength(1);
+    expect(result.edges[0]).toMatchObject({ source: "A", target: "C" });
+  });
+
+  it("collapses a chain even when nodes are visited out of dependency order", () => {
+    // Node order forces bypassedIds = [C, B] so C (downstream) is visited
+    // before its bypassed upstream B. The chain must still fully collapse to
+    // A -> D in a single edge (requires the second while-pass).
+    const nodes: NodeDescriptor[] = [
+      makeNode("A", { outputs: { out: "string" } }),
+      bypassed("C", {
+        outputs: { out: "string" },
+        propertyTypes: { in: "string" }
+      }),
+      bypassed("B", {
+        outputs: { out: "string" },
+        propertyTypes: { in: "string" }
+      }),
+      makeNode("D", { propertyTypes: { in: "string" } })
+    ];
+    const edges: Edge[] = [
+      { source: "A", sourceHandle: "out", target: "B", targetHandle: "in" },
+      { source: "B", sourceHandle: "out", target: "C", targetHandle: "in" },
+      { source: "C", sourceHandle: "out", target: "D", targetHandle: "in" }
+    ];
+    const result = rewriteBypassedNodes({ nodes, edges });
+    expect(result.nodes.map((n) => n.id).sort()).toEqual(["A", "D"]);
+    expect(result.edges).toHaveLength(1);
+    expect(result.edges[0]).toMatchObject({ source: "A", target: "D" });
   });
 });
