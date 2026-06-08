@@ -17,7 +17,8 @@
     "src/recommended-models.ts",
     "src/providers/provider-registry.ts",
     "src/providers/manifest-models.ts",
-    "src/agent-memory.ts"
+    "src/agent-memory.ts",
+    "src/trace-exporters.ts"
   ],
   "vitest": {
     "configFile": "vitest.config.ts"

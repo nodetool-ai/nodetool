@@ -50,20 +50,34 @@ npx stryker run -m "src/providers/base-provider.ts"
 Every module in the `mutate` glob is at **100%** (every behavioural mutant
 killed; equivalents suppressed at source — see below):
 
-```
-File                 | % score | killed | ignored
----------------------|---------|--------|--------
-cost-calculator.ts   |  100.00 |    129 |     38
-media-ref-bytes.ts   |  100.00 |    141 |     15
-recommended-models.ts|  100.00 |     95 |      0
-context-packer.ts    |  100.00 |     51 |      0
-image-codec.ts       |  100.00 |     16 |      ~
-cost-reconciler.ts   |  100.00 |      2 |      0
-provider-cache.ts    |  100.00 |      3 |      0
-providers/defaults.ts|  100.00 |      2 |      0
-```
+Modules at **100%** (in the gated `mutate` set):
+
+- `providers/cost-calculator.ts`
+- `media-ref-bytes.ts`
+- `recommended-models.ts`
+- `context-packer.ts`
+- `image-codec.ts`
+- `cost-reconciler.ts`
+- `provider-cache.ts`
+- `providers/defaults.ts`
+- `providers/provider-registry.ts`
+- `providers/manifest-models.ts`
+- `agent-memory.ts`
+- `trace-exporters.ts`
 
 The config gate (`stryker.config.json`) **breaks below 100%** on this set.
+
+Recurring techniques used to get a file to 100%:
+
+- **Split pure logic from IO** and export the pure helpers (manifest-models,
+  trace-exporters) so every branch is unit-testable without the IO masking it.
+- **Assert exact output** (formatForPrompt, formatPretty) rather than
+  `toContain`, so separator/format mutants die.
+- **Assert identity, not just count** for filters (which entries, not how many).
+- **Spy on `console.error`** / drive the error path to kill diagnostic-but-
+  observable branches; **mock `isTTY`** to make ANSI coloring behavioural.
+- **Suppress** only genuine equivalents at source: non-Node runtime guards,
+  pure memoization/fast-paths, cosmetic colors, and invariant conditions.
 
 ### How the suite was hardened
 
