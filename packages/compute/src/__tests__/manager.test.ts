@@ -165,18 +165,36 @@ class FakeProvider implements WorkerProvider {
   }
 }
 
+function makeFakeSettings() {
+  const store = new Map<string, string>();
+  return {
+    store,
+    deps: {
+      getSetting: vi.fn(async (key: string) => store.get(key) ?? null),
+      setSetting: vi.fn(async (key: string, value: string) => {
+        store.set(key, value);
+      }),
+      deleteSetting: vi.fn(async (key: string) => {
+        store.delete(key);
+      }),
+    },
+  };
+}
+
 function makeManager(overrides: Partial<WorkerManagerDeps> = {}) {
   const models = makeFakeModels();
+  const settings = makeFakeSettings();
   const provider = new FakeProvider();
   const getSecret = vi.fn(async () => "default-api-key" as string | null);
   const deps: WorkerManagerDeps = {
     ...models.deps,
+    ...settings.deps,
     getSecret,
     providerFactory: (_target, _apiKey) => provider,
     ...overrides,
   };
   const manager = new WorkerManager(deps);
-  return { manager, models, provider, getSecret, deps };
+  return { manager, models, settings, provider, getSecret, deps };
 }
 
 const PROFILE_INPUT = {
@@ -379,5 +397,72 @@ describe("WorkerManager — API key resolution", () => {
         process.env.RUNPOD_API_KEY = prev;
       }
     }
+  });
+});
+
+describe("WorkerManager — attach / detach / getActiveWorker", () => {
+  const ACTIVE_KEY = "active_worker_instance_id";
+
+  it("attach reads the instance, persists the pointer, marks it attached, and returns the connection info", async () => {
+    const { manager, models, settings } = makeManager();
+    await manager.createProfile(PROFILE_INPUT);
+    const instance = await manager.provision("hf-a40");
+
+    const conn = await manager.attach(instance.id);
+
+    // The settings pointer was written to the instance id.
+    expect(settings.deps.setSetting).toHaveBeenCalledWith(
+      ACTIVE_KEY,
+      instance.id
+    );
+    expect(settings.store.get(ACTIVE_KEY)).toBe(instance.id);
+
+    // The instance was marked attached.
+    expect(models.instances.get(instance.id)?.status).toBe("attached");
+
+    // The caller receives the connection info to apply to the bridge.
+    expect(conn).toEqual({ wsUrl: instance.ws_url, token: instance.token });
+  });
+
+  it("attach throws when the instance is unknown", async () => {
+    const { manager } = makeManager();
+    await expect(manager.attach("nope")).rejects.toThrow(/nope/);
+  });
+
+  it("detach clears the pointer and marks the previously-attached instance running", async () => {
+    const { manager, models, settings } = makeManager();
+    await manager.createProfile(PROFILE_INPUT);
+    const instance = await manager.provision("hf-a40");
+    await manager.attach(instance.id);
+
+    await manager.detach();
+
+    expect(settings.deps.deleteSetting).toHaveBeenCalledWith(ACTIVE_KEY);
+    expect(settings.store.has(ACTIVE_KEY)).toBe(false);
+    expect(models.instances.get(instance.id)?.status).toBe("running");
+  });
+
+  it("detach is a no-op when nothing is attached", async () => {
+    const { manager, settings } = makeManager();
+
+    await expect(manager.detach()).resolves.toBeUndefined();
+    expect(settings.deps.deleteSetting).toHaveBeenCalledWith(ACTIVE_KEY);
+  });
+
+  it("getActiveWorker returns the attached instance", async () => {
+    const { manager } = makeManager();
+    await manager.createProfile(PROFILE_INPUT);
+    const instance = await manager.provision("hf-a40");
+    await manager.attach(instance.id);
+
+    const active = await manager.getActiveWorker();
+
+    expect(active?.id).toBe(instance.id);
+    expect(active?.status).toBe("attached");
+  });
+
+  it("getActiveWorker returns null when nothing is attached", async () => {
+    const { manager } = makeManager();
+    expect(await manager.getActiveWorker()).toBeNull();
   });
 });

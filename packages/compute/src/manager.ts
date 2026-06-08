@@ -24,6 +24,7 @@ import {
   listWorkerInstances as realListWorkerInstances,
   listWorkerProfiles as realListWorkerProfiles,
   updateWorkerInstance as realUpdateWorkerInstance,
+  Setting,
   type CreateWorkerInstanceInput,
   type CreateWorkerProfileInput,
   type ListWorkerInstancesOptions,
@@ -43,11 +44,27 @@ import type {
 /** Local desktop user id used for secret-store reads (shared with the CLI). */
 const LOCAL_USER_ID = "1";
 
+/**
+ * Settings key holding the id of the worker instance the local NodeTool
+ * instance has attached to. Singleton for the desktop MVP — any NodeTool
+ * instance reads it to re-point its Python bridge.
+ */
+const ACTIVE_WORKER_KEY = "active_worker_instance_id";
+
 /** Secret-store key holding each target's API key. */
 const API_KEY_SECRET: Record<WorkerTarget, string> = {
   runpod: "RUNPOD_API_KEY",
   vast: "VAST_API_KEY",
 };
+
+/**
+ * The connection info a caller applies to the Python bridge when attaching to
+ * a worker — the worker's WebSocket URL and its bearer token (if any).
+ */
+export interface WorkerConnection {
+  wsUrl: string;
+  token: string | null;
+}
 
 /** Construct the concrete provider for a target. Vast is added in Group F. */
 function defaultProviderFactory(
@@ -90,6 +107,9 @@ export interface WorkerManagerDeps {
     userId?: string,
     defaultValue?: string
   ) => Promise<string | null>;
+  getSetting: (key: string) => Promise<string | null>;
+  setSetting: (key: string, value: string) => Promise<void>;
+  deleteSetting: (key: string) => Promise<void>;
   providerFactory: (target: WorkerTarget, apiKey: string) => WorkerProvider;
 }
 
@@ -104,6 +124,16 @@ function defaultDeps(): WorkerManagerDeps {
     listWorkerInstances: realListWorkerInstances,
     updateWorkerInstance: realUpdateWorkerInstance,
     getSecret: realGetSecret,
+    getSetting: async (key) => {
+      const setting = await Setting.find(LOCAL_USER_ID, key);
+      return setting ? setting.getValue() : null;
+    },
+    setSetting: async (key, value) => {
+      await Setting.upsert({ userId: LOCAL_USER_ID, key, value });
+    },
+    deleteSetting: async (key) => {
+      await Setting.deleteSetting(LOCAL_USER_ID, key);
+    },
     providerFactory: defaultProviderFactory,
   };
 }
@@ -196,6 +226,43 @@ export class WorkerManager {
       instance.target as WorkerTarget
     );
     return provider.status(instance.provider_ref);
+  }
+
+  // --- Attach pointer -----------------------------------------------------
+
+  /**
+   * Adopt an instance as the active worker: persist the singleton pointer,
+   * mark the instance `attached`, and return its connection info for the
+   * caller to apply to the Python bridge (`bridge.setTarget`). The manager
+   * stays free of a runtime dependency — re-pointing is the caller's job.
+   */
+  async attach(instanceId: string): Promise<WorkerConnection> {
+    const instance = await this.requireInstance(instanceId);
+    await this.deps.setSetting(ACTIVE_WORKER_KEY, instance.id);
+    await this.deps.updateWorkerInstance(instance.id, { status: "attached" });
+    return { wsUrl: instance.ws_url, token: instance.token };
+  }
+
+  /**
+   * Release the active worker: clear the pointer and revert the
+   * previously-attached instance to `running`. The caller points the bridge
+   * back at its env/stdio default.
+   */
+  async detach(): Promise<void> {
+    const active = await this.getActiveWorker();
+    await this.deps.deleteSetting(ACTIVE_WORKER_KEY);
+    if (active && active.status === "attached") {
+      await this.deps.updateWorkerInstance(active.id, { status: "running" });
+    }
+  }
+
+  /** Return the currently-attached instance, or null when none is attached. */
+  async getActiveWorker(): Promise<WorkerInstance | null> {
+    const id = await this.deps.getSetting(ACTIVE_WORKER_KEY);
+    if (!id) {
+      return null;
+    }
+    return this.deps.getWorkerInstance(id);
   }
 
   // --- Internals ----------------------------------------------------------
