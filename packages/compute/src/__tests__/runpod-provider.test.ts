@@ -68,6 +68,32 @@ describe("RunpodPodProvider.provision", () => {
     expect(createBody.env.NODETOOL_WORKER_TOKEN).toBe("worker-secret");
   });
 
+  it("deletes the created pod when polling fails before RUNNING (no billing orphan)", async () => {
+    // 1) POST /v1/pods → pod is created (billing starts), still initializing.
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ id: "pod-orphan", desiredStatus: "EXITED" })
+    );
+    // 2) GET /v1/pods/pod-orphan → terminal status, so polling throws.
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ id: "pod-orphan", desiredStatus: "TERMINATED" })
+    );
+    // 3) DELETE /v1/pods/pod-orphan → cleanup teardown succeeds.
+    mockFetch.mockResolvedValueOnce(jsonResponse({}, 204));
+
+    const provider = new RunpodPodProvider(API_KEY);
+    await expect(provider.provision(baseSpec())).rejects.toThrow(
+      /terminal status/
+    );
+
+    // The created pod must be torn down so it stops billing.
+    const deleteCall = mockFetch.mock.calls.find(
+      ([url, init]) =>
+        url === "https://rest.runpod.io/v1/pods/pod-orphan" &&
+        (init as RequestInit | undefined)?.method === "DELETE"
+    );
+    expect(deleteCall).toBeDefined();
+  });
+
   it("reports the pod's hourly cost from costPerHr", async () => {
     mockFetch.mockResolvedValueOnce(
       jsonResponse({ id: "pod-123", desiredStatus: "EXITED" })

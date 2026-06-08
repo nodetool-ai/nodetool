@@ -230,12 +230,20 @@ export async function deployWorkerPod(
   };
 
   const created = await createPod(apiKey, spec);
-  const { pod, wsUrl } = await waitForPodEndpoint(apiKey, created.id, {
-    internalPort,
-    exposure,
-    timeoutMs: opts.timeoutMs ?? 240_000
-  });
-  return { podId: created.id, wsUrl, pod };
+  try {
+    const { pod, wsUrl } = await waitForPodEndpoint(apiKey, created.id, {
+      internalPort,
+      exposure,
+      timeoutMs: opts.timeoutMs ?? 240_000
+    });
+    return { podId: created.id, wsUrl, pod };
+  } catch (err) {
+    // The pod exists and is billing, but polling never reached a usable
+    // endpoint. Tear it down so we don't leak a billing orphan, then surface
+    // the original failure. Cleanup errors must not mask the root cause.
+    await deletePod(apiKey, created.id).catch(() => {});
+    throw err;
+  }
 }
 
 /** Poll GET /v1/pods/{id} until RUNNING with a resolvable endpoint. */
