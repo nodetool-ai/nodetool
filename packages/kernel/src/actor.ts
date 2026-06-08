@@ -518,6 +518,7 @@ export class NodeActor {
           const bucket = maxBuckets.get(h)!.get(key);
           // A missing or empty bucket means this key has not produced a
           // value on this max handle yet, so the node cannot fire.
+          // Stryker disable next-line ConditionalExpression,EqualityOperator: the bucket.length===0 arm is unreachable — collect() deletes emptied buckets, so a present bucket is never empty here
           if (!bucket || bucket.length === 0) return false;
           // Multi-edge list inputs aggregate every envelope: wait for the
           // handle to close so we capture the full set.
@@ -530,6 +531,7 @@ export class NodeActor {
             // envelope routed to this parentKey is captured.
             if (this.inbox.isOpen(h)) return false;
             const bucket = prefixListBuckets.get(h)!.get(parentKey);
+            // Stryker disable next-line ConditionalExpression,EqualityOperator: the bucket.length===0 arm is unreachable — collect() deletes emptied buckets, so a present bucket is never empty here
             if (!bucket || bucket.length === 0) return false;
           } else {
             const stickyMap = prefixSticky.get(h)!;
@@ -562,6 +564,7 @@ export class NodeActor {
         const cls = handleClass.get(h);
         if (cls === "max") {
           const bucket = maxBuckets.get(h)!.get(key);
+          // Stryker disable next-line ConditionalExpression,EqualityOperator: the bucket.length===0 arm is unreachable — collect() deletes emptied buckets, so a present bucket is never empty here
           if (!bucket || bucket.length === 0) continue;
           if (isListInput(h)) {
             // Drain every envelope into a list; pick the last for lineage.
