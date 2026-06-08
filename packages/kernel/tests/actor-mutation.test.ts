@@ -1131,3 +1131,58 @@ describe("NodeActor._maybeMintForSlot – non-iteration", () => {
     expect(hints.perSlotLineage).toBeUndefined();
   });
 });
+
+describe("NodeActor._mintIterationFrameOverrides – edges", () => {
+  it("returns no overrides when an iteration group has no index sibling", async () => {
+    // iteration output WITHOUT an "index" handle -> no override map, but the
+    // output still gets a minted lineage root.
+    const node = makeNode({
+      is_streaming_output: true,
+      output_correlation: {
+        output: { kind: "iteration", source: "__execution__", group: "g" }
+      }
+    });
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1);
+    const executor: NodeExecutor = {
+      async process() { return {}; },
+      async *genProcess() {
+        yield { output: "item" };
+      }
+    };
+    const { actor, sentOutputs } = createActor(node, inbox, executor, {
+      correlation: analysis(["r"], { a: [["r"], true] })
+    });
+    await inbox.put("a", "v", { correlation_lineage: lin({ r: 0 }) });
+    inbox.markSourceDone("a");
+    await actor.run();
+    expect(sentOutputs[0].outputs).toEqual({ output: "item" }); // no index override
+    const ps = (sentOutputs[0].hints as { perSlotLineage: Record<string, Record<string, { index: number }>> }).perSlotLineage;
+    expect(ps.output["n1:g"].index).toBe(0);
+  });
+
+  it("does not override frames for a non-iteration output", async () => {
+    const node = makeNode({
+      is_streaming_output: true,
+      output_correlation: {
+        out: { kind: "single", source: "__execution__" }
+      }
+    });
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1);
+    const executor: NodeExecutor = {
+      async process() { return {}; },
+      async *genProcess() {
+        yield { out: "v", index: 42 }; // index is NOT an iteration sibling here
+      }
+    };
+    const { actor, sentOutputs } = createActor(node, inbox, executor, {
+      correlation: analysis(["r"], { a: [["r"], true] })
+    });
+    await inbox.put("a", "v", { correlation_lineage: lin({ r: 0 }) });
+    inbox.markSourceDone("a");
+    await actor.run();
+    // index is passed through untouched (no iteration group declared).
+    expect(sentOutputs[0].outputs).toEqual({ out: "v", index: 42 });
+  });
+});

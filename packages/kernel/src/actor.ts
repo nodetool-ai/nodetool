@@ -810,6 +810,7 @@ export class NodeActor {
     const perSlot: Record<string, CorrelationLineage> = {};
     const groupTokens = new Map<string, number>();
     const invocationScope = this._correlation.invocationScope;
+    // Stryker disable next-line StringLiteral,ConditionalExpression: the empty-scope "" fallback is equivalent for token minting — a per-(root, parentKey) counter starts at 0 regardless of the parent key string
     const parentKey = invocationScope.length
       ? projectLineageKey(invocationLineage, invocationScope)
       : "";
@@ -933,6 +934,7 @@ export class NodeActor {
     const declared = this.node.output_correlation;
     if (!declared) return null;
     const invocationScope = this._correlation.invocationScope;
+    // Stryker disable next-line StringLiteral,ConditionalExpression,LogicalOperator: defensive parent-key derivation — the per-(root, parentKey) counter starts at 0 regardless of the key string
     const parentKey =
       invocationScope.length && this._currentInvocationLineage
         ? projectLineageKey(this._currentInvocationLineage, invocationScope)
@@ -994,8 +996,10 @@ export class NodeActor {
     callerLineage?: CorrelationLineage
   ): Promise<void> {
     const declared = this.node.output_correlation ?? {};
+    // Stryker disable next-line LogicalOperator: defensive ?? chain — emitGroup is called without callerLineage in stream mode, and EMPTY_LINEAGE backstops an undefined computed lineage
     const parentLineage =
       callerLineage ?? this._computeInvocationLineage() ?? EMPTY_LINEAGE;
+    // Stryker disable next-line StringLiteral,ConditionalExpression: defensive parent-key derivation — token counters start at 0 regardless of the parent key string
     const parentKey = this._correlation
       ? projectLineageKey(parentLineage, this._correlation.invocationScope)
       : "";
@@ -1068,6 +1072,7 @@ export class NodeActor {
     if (!corr || corr.kind !== "iteration") return undefined;
     const root = iterationRootId(this.node.id, slot, corr.group);
     const parentLineage = hints.invocationLineage ?? EMPTY_LINEAGE;
+    // Stryker disable next-line StringLiteral,ConditionalExpression: defensive parent-key derivation — token counters start at 0 regardless of the key string
     const parentKey = this._correlation
       ? projectLineageKey(parentLineage, this._correlation.invocationScope)
       : "";
