@@ -18,9 +18,9 @@
     "configFile": "vitest.config.ts"
   },
   "thresholds": {
-    "high": 90,
-    "low": 80,
-    "break": 80
+    "high": 100,
+    "low": 95,
+    "break": 100
   },
   "timeoutMS": 60000,
   "concurrency": 4

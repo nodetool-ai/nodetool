@@ -69,7 +69,55 @@ describe("scoreNodeMetadata", () => {
   });
 });
 
+describe("scoreNodeMetadata exact weights", () => {
+  it("sums title (with token bonus) and description contributions", () => {
+    // title: 6 + 6*2 = 18 ; description: 1 + 1*2 = 3 ; total 21 (non-core).
+    const node = meta({
+      node_type: "lib.things.Tool",
+      title: "image",
+      description: "an image",
+      namespace: "lib.things"
+    });
+    expect(scoreNodeMetadata(node, ["image"])).toBe(21);
+  });
+
+  it("counts a namespace-only token match (weight 2 + bonus 4)", () => {
+    const node = meta({
+      node_type: "lib.t.Tool",
+      title: "Tool",
+      namespace: "widgets"
+    });
+    expect(scoreNodeMetadata(node, ["widgets"])).toBe(6);
+  });
+
+  it("does not throw and ignores an undefined field", () => {
+    const node = { node_type: "lib.t.Tool", title: "image", namespace: "lib.t", properties: [], outputs: [] };
+    // description is undefined; only the title contributes (6 + 12 = 18).
+    expect(scoreNodeMetadata(node as any, ["image"])).toBe(18);
+  });
+
+  it("requires a whole-token match for the bonus, not a substring", () => {
+    const node = meta({ node_type: "lib.t.Tool", title: "imagery", namespace: "lib.t" });
+    // "imagery" includes "image" (weight 6) but is not the token "image" → no bonus.
+    expect(scoreNodeMetadata(node, ["image"])).toBe(6);
+  });
+
+  it("skips empty terms instead of scoring them", () => {
+    const node = meta({ node_type: "lib.t.Tool", title: "image", namespace: "lib.t" });
+    expect(scoreNodeMetadata(node, ["", "image"])).toBe(
+      scoreNodeMetadata(node, ["image"])
+    );
+  });
+});
+
 describe("rankNodeMetadata", () => {
+  it("orders by score even when that contradicts alphabetical node_type", () => {
+    const high = meta({ node_type: "nodetool.zeta", title: "image" }); // token match
+    const low = meta({ node_type: "nodetool.alpha", title: "imagery" }); // substring only
+    const ranked = rankNodeMetadata([low, high], ["image"]);
+    expect(ranked[0].meta.node_type).toBe("nodetool.zeta");
+  });
+
   it("drops zero-score nodes and sorts by score descending", () => {
     const nodes = [
       meta({ node_type: "nodetool.a", title: "audio thing" }),

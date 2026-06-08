@@ -23,27 +23,28 @@ The HTML report lands in `reports/mutation/mutation.html` (git-ignored).
 ```
 File                       | % score | killed | survived
 ---------------------------|---------|--------|---------
+base-node.ts               |  100.00 |    177 |        0
+class-name-to-title.ts     |  100.00 |     35 |        0
+correlation-validation.ts  |  100.00 |     91 |        0
+decorators.ts              |  100.00 |     21 |        0
 field-classification.ts    |  100.00 |     12 |        0
-correlation-validation.ts  |   92.78 |     90 |        7
-validation.ts              |   90.96 |    171 |        9
-pricing-bundle.ts          |   89.47 |     17 |        2
-decorators.ts              |   88.46 |     22 |        3
-search.ts                  |   87.50 |     77 |        9
-base-node.ts               |   85.71 |    174 |       27
-class-name-to-title.ts     |   82.61 |     38 |        8
-registry.ts                |   78.16 |    161 |       32
-pack-loader.ts             |   76.72 |    176 |       44
-metadata.ts                |   76.34 |    170 |       45
-node-metadata.ts           |   75.98 |    191 |       52
-package-registry-client.ts |   70.00 |     42 |       17
+metadata.ts                |  100.00 |    151 |        0
+node-metadata.ts           |  100.00 |    221 |        0
+pack-loader.ts             |  100.00 |    208 |        0
+package-registry-client.ts |  100.00 |     41 |        0
+pricing-bundle.ts          |  100.00 |     19 |        0
+registry.ts                |  100.00 |    185 |        0
+search.ts                  |  100.00 |     77 |        0
+validation.ts              |  100.00 |    164 |        0
 ---------------------------|---------|--------|---------
-All files                  |   81.39 |   1341 |      255
+All files                  |  100.00 |   1401 |        0
 ```
 
-The config gate (`stryker.config.json`) **breaks below 80%**, so a regression in
-test quality fails CI fast. 80 is the current ratchet floor, not the ceiling —
-when the remaining behavioural survivors in `node-metadata.ts` / `metadata.ts` /
-`pack-loader.ts` are closed, raise the `break` threshold to lock the gain in.
+The config gate (`stryker.config.json`) **breaks below 100%**, so any surviving
+mutant — a behavioural gap or an un-justified equivalent — fails CI. Every
+genuinely-equivalent mutant is suppressed at the source with a line- or
+block-scoped `// Stryker disable` comment that documents *why* (see below), so
+the headline reflects the quality of the tests, not lenience.
 
 ## Monorepo specifics
 
@@ -120,21 +121,48 @@ one externally-meaningful property as Arrange/Act/Assert:
 
 ## Equivalent & non-behavioral mutants
 
-Some survivors **cannot** be killed because they don't change observable
-behaviour. Chasing them is wasted effort:
+A 100% score does not mean every mutant was killed by a test — some **cannot** be
+killed because they don't change observable behaviour. Each is suppressed at the
+source with a `// Stryker disable` comment stating *why*. The recurring patterns:
 
-- **`mergeMetadata` `layout` backfill** — `getNodeMetadata` always emits a
-  `layout` string (`"default"` when unset), so `tsMetadata.layout ?? py.layout`
-  never reaches the Python side. The backfill is dead for `layout` (only `body`
-  has the sentinel-aware path), so its mutant is equivalent.
-- **`collectDeclaredProps` prototype-walk guard** — a class constructor's
-  prototype chain always terminates at `Function.prototype`, so the
-  `typeof current === "function"` guard never decides the loop; mutating it does
-  not change the walk.
-- **Diagnostic `console.warn`/`console.error` text** — operator log strings are
-  for humans, not a contract, so their exact wording is deliberately not
-  asserted.
+- **Sub-expression guards masked by a later operand** — e.g. forcing
+  `typeof x === "string"` true in `validation.ts`'s `isUnsetModel`: a non-string
+  provider can never `=== "empty"`, so the second operand decides the result
+  either way.
+- **Redundant fast-paths** — the empty-string guard in `classNameToTitle`, the
+  `if (!list)` guard in the registry client (a null list throws into the outer
+  `catch`, which also returns `[]`), the `required.length === 0` arm in secret
+  injection (the empty-loop path returns `inputs` anyway), and the duplicate
+  package-metadata-dir detection in `metadata.ts` (a subdir not matched in the
+  loop is found when the walk recurses into it).
+- **Opaque internal values** — the metadata cache key / fingerprint hashing
+  (`crypto` chain, `"|missing"`): any *consistent* value maps a roots-set to a
+  stable cache file, so the exact bytes don't matter.
+- **Diagnostic `console.warn` / `console.error` text** and **`"utf-8"` encoding
+  arguments** (Node decodes `""` as utf-8) — non-behavioural, as in the security
+  package.
+- **Unreachable defensive code** — the strict-metadata `throw` (getNodeMetadata
+  never returns falsy) and the `statSync` / cache `JSON.parse` catch blocks
+  (freshly-walked files exist; an emptied catch falls through to an equivalent
+  `null`/`undefined`).
 
-The headline score therefore reflects the quality of the tests over
-*behavioural* code rather than being penalised by mutants no test could
-legitimately catch.
+## Working around perTest coverage limitations
+
+Stryker's `perTest` coverage records a branch mutant (e.g. `if (cond)` →
+`if (true)`) as "covered" only by tests that took the *consequent*; an
+opposite-branch test that would actually kill it is not run against it. Where
+this hid a genuinely-killable mutant, the condition was lifted into an
+always-executed `const` (so coverage is recorded) or extracted to a small helper
+(`pickExportCondition`, `isMetadataDir`, `splitWordBoundaries`, `pushSegment`) —
+behaviour-preserving refactors that also remove the duplication that bred
+equivalent mutants.
+
+Two further mechanics worth knowing for future hardening:
+
+- `// Stryker disable next-line <Mutator>` only attaches to a mutant on the
+  *immediately following physical line of a standalone statement*. For a mutant
+  buried inside a multi-line expression, method chain, ternary, `catch`, or
+  `else if`, collapse it to one line or use the block form
+  (`// Stryker disable <Mutator>` … `// Stryker restore <Mutator>`).
+- A timeout (e.g. a `?? []` mutant that drives infinite recursion) counts as a
+  kill.

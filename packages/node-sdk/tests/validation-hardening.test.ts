@@ -101,11 +101,59 @@ describe("model field emptiness boundaries", () => {
   it("accepts a fully-selected model", () => {
     expect(validateModel({ provider: "openai", id: "gpt-5" })).toEqual([]);
   });
+
+  it("treats a non-string id (empty array) as set, not empty", () => {
+    // Pins that the id empty-string check is string-guarded: an array id with
+    // length 0 must NOT be flagged as an unselected model.
+    expect(validateModel({ provider: "openai", id: [] })).toEqual([]);
+  });
   it("uses the model-specific message naming the type", () => {
     const issues = validateModel({ provider: "empty", id: "" });
     expect(issues[0].message).toBe(
       'Property "field" requires a language_model to be selected (provider and model id)'
     );
+  });
+});
+
+describe("type guards and emptiness for non-asset fields", () => {
+  it("treats an empty-typed field as neither asset nor model", () => {
+    // isAssetType("") and isModelType("") are false, so an object value is not
+    // flagged (kills the guards' return-true mutants).
+    expect(
+      validateNodeProperties([{ name: "f", options: { type: "", required: true } }], {
+        f: {}
+      })
+    ).toEqual([]);
+  });
+
+  it("flags an empty required array and accepts a non-empty one", () => {
+    const decl = [{ name: "tags", options: { type: "list[str]", required: true } }];
+    expect(validateNodeProperties(decl, { tags: [] })).toHaveLength(1);
+    expect(validateNodeProperties(decl, { tags: ["a"] })).toEqual([]);
+  });
+
+  it("does not treat a non-empty scalar (number) as empty", () => {
+    const decl = [{ name: "n", options: { type: "int", required: true } }];
+    expect(validateNodeProperties(decl, { n: 0 })).toEqual([]);
+    expect(validateNodeProperties(decl, { n: 5 })).toEqual([]);
+  });
+
+  it("accepts an asset whose data is a non-empty base64 string and flags empty", () => {
+    const decl = [{ name: "img", options: { type: "image", required: true } }];
+    expect(validateNodeProperties(decl, { img: { data: "QQ==" } })).toEqual([]);
+    expect(validateNodeProperties(decl, { img: { data: "" } })).toHaveLength(1);
+  });
+
+  it("skips fields named in an array of connected handles", () => {
+    const decl = [{ name: "f", options: { type: "str", required: true } }];
+    // f is missing but connected via an upstream edge (passed as an array).
+    expect(
+      validateNodeProperties(decl, {}, { connectedHandles: ["f"] })
+    ).toEqual([]);
+    // a Set works identically.
+    expect(
+      validateNodeProperties(decl, {}, { connectedHandles: new Set(["f"]) })
+    ).toEqual([]);
   });
 });
 

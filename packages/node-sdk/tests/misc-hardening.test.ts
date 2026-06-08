@@ -66,16 +66,44 @@ describe("fetchAvailablePackages validation", () => {
     expect(await fetchAvailablePackages()).toEqual([{ name: "ok", repo_id: "o/ok" }]);
   });
 
+  it("keeps an entry with a valid string description", async () => {
+    mockJson([{ name: "a", repo_id: "o/a", description: "fine" }]);
+    expect(await fetchAvailablePackages()).toEqual([
+      { name: "a", repo_id: "o/a", description: "fine" }
+    ]);
+  });
+
   it("drops an entry whose description is the wrong type", async () => {
     mockJson([{ name: "a", repo_id: "o/a", description: 42 }]);
     expect(await fetchAvailablePackages()).toEqual([]);
   });
 
-  it("returns [] for a response that is neither an array nor a packages object", async () => {
+  it("drops null, scalar and array entries", async () => {
+    mockJson([null, 42, "str", [1, 2], { name: "ok", repo_id: "o/ok" }]);
+    expect(await fetchAvailablePackages()).toEqual([{ name: "ok", repo_id: "o/ok" }]);
+  });
+
+  it.each([{ nope: true }, null, 42, "string"])(
+    "returns [] for a non-array, non-packages response (%j)",
+    async (body) => {
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      mockJson(body);
+      expect(await fetchAvailablePackages()).toEqual([]);
+      errorSpy.mockRestore();
+    }
+  );
+
+  it("returns [] for a non-2xx response even with a valid array body", async () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    mockJson({ nope: true });
+    globalThis.fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify([{ name: "a", repo_id: "o/a" }]), {
+          status: 500,
+          statusText: "Server Error"
+        })
+    ) as typeof fetch;
     expect(await fetchAvailablePackages()).toEqual([]);
-    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
   });
 });
 
@@ -98,13 +126,18 @@ describe("pricing bundles file output", () => {
     const catalogPath = join(dir, "sub", "catalog.json");
     await writePricingBundles(bundles, { byNodeTypePath, catalogPath });
 
-    const raw = await readFile(byNodeTypePath, "utf8");
-    expect(raw.endsWith("\n")).toBe(true);
-    expect(raw).toBe(JSON.stringify(bundles.byNodeType, null, 2) + "\n");
+    const rawByNodeType = await readFile(byNodeTypePath, "utf8");
+    expect(rawByNodeType).toBe(JSON.stringify(bundles.byNodeType, null, 2) + "\n");
+    const rawCatalog = await readFile(catalogPath, "utf8");
+    expect(rawCatalog).toBe(JSON.stringify(bundles.catalog, null, 2) + "\n");
 
-    const parsed = JSON.parse(raw);
-    expect(parsed.byNodeType["fal.X"]).toEqual({
+    expect(JSON.parse(rawByNodeType).byNodeType["fal.X"]).toEqual({
       endpoint_id: "ep1",
+      unit_price: 0.05,
+      billing_unit: "request",
+      currency: "USD"
+    });
+    expect(JSON.parse(rawCatalog).prices.ep1).toEqual({
       unit_price: 0.05,
       billing_unit: "request",
       currency: "USD"
@@ -115,9 +148,17 @@ describe("pricing bundles file output", () => {
     const byNodeTypePath = join(dir, "by.json");
     const catalogPath = join(dir, "cat.json");
     await writeEmptyPricingBundles({ byNodeTypePath, catalogPath });
-    const parsed = JSON.parse(await readFile(byNodeTypePath, "utf8"));
-    expect(parsed.schemaVersion).toBe(NODE_TYPE_PRICING_SCHEMA_VERSION);
-    expect(parsed.writtenAt).toBe("1970-01-01T00:00:00.000Z");
-    expect(parsed.byNodeType).toEqual({});
+    const byNodeType = JSON.parse(await readFile(byNodeTypePath, "utf8"));
+    expect(byNodeType).toEqual({
+      schemaVersion: NODE_TYPE_PRICING_SCHEMA_VERSION,
+      writtenAt: "1970-01-01T00:00:00.000Z",
+      byNodeType: {}
+    });
+    const catalog = JSON.parse(await readFile(catalogPath, "utf8"));
+    expect(catalog).toEqual({
+      schemaVersion: NODE_TYPE_PRICING_SCHEMA_VERSION,
+      writtenAt: "1970-01-01T00:00:00.000Z",
+      prices: {}
+    });
   });
 });

@@ -122,6 +122,58 @@ describe("assign() identity + defaults", () => {
   });
 });
 
+describe("instance identity defaults", () => {
+  it("initialises __node_id and __node_name to empty strings", () => {
+    const node = new Plain();
+    expect(node.__node_id).toBe("");
+    expect(node.__node_name).toBe("");
+  });
+
+  it("does not wrap a scalar assigned to a non-list field", () => {
+    class StrNode extends BaseNode {
+      static readonly nodeType = "test.Str";
+      @prop({ type: "str", default: "" })
+      declare text: string;
+      async process() {
+        return {};
+      }
+    }
+    const node = new StrNode();
+    node.assign({ text: "hello" });
+    expect(node.text).toBe("hello");
+  });
+
+  it("does not wrap undefined assigned to a list field", () => {
+    class ListNode extends BaseNode {
+      static readonly nodeType = "test.ListUndef";
+      @prop({ type: "list[image]", default: [] })
+      declare images: unknown[];
+      async process() {
+        return {};
+      }
+    }
+    const node = new ListNode();
+    node.assign({ images: undefined });
+    expect(node.images).toBeUndefined();
+  });
+
+  it("keeps an existing id when assign() omits it", () => {
+    const node = new Plain();
+    node.__node_id = "keep-me";
+    node.__node_name = "Keep Me";
+    node.assign({});
+    expect(node.__node_id).toBe("keep-me");
+    expect(node.__node_name).toBe("Keep Me");
+  });
+
+  it("ignores undeclared properties on a non-dynamic node", () => {
+    const node = new Plain();
+    node.assign({ bogus: "x" });
+    expect(node.serialize()).not.toHaveProperty("bogus");
+    expect(node.getDynamic("bogus")).toBeUndefined();
+  });
+});
+
 describe("validate() node id fallback", () => {
   class Req extends BaseNode {
     static readonly nodeType = "test.ReqValidate";
@@ -185,6 +237,37 @@ describe("secret injection via toExecutor().process", () => {
     const out = await new Plain().toExecutor().process({}, { getSecret } as any);
     expect(out).toEqual({ out: 1 });
     expect(getSecret).not.toHaveBeenCalled();
+  });
+
+  it("merges resolved secrets with secrets already on the inputs", async () => {
+    const ctx = { getSecret: async (k: string) => (k === "OPENAI_API_KEY" ? "sk-2" : undefined) } as any;
+    const out = await new NeedsSecret()
+      .toExecutor()
+      .process({ _secrets: { PRE: "x" } }, ctx);
+    expect(out.secrets).toEqual({ PRE: "x", OPENAI_API_KEY: "sk-2" });
+  });
+});
+
+describe("streaming run() executor path", () => {
+  it("exposes run on the executor only when the node defines run()", async () => {
+    const calls: unknown[][] = [];
+    class Streamer extends BaseNode {
+      static readonly nodeType = "test.Streamer";
+      static readonly isStreamingInput = true;
+      async process() {
+        return {};
+      }
+      async run(inputs: any, outputs: any, context: any) {
+        calls.push([inputs, outputs, context]);
+      }
+    }
+    const exec = new Streamer().toExecutor();
+    expect(typeof exec.run).toBe("function");
+    await exec.run!({ a: 1 } as any, { emit: () => {} } as any, undefined);
+    expect(calls).toHaveLength(1);
+    expect(calls[0][0]).toEqual({ a: 1 });
+
+    expect(new Plain().toExecutor().run).toBeUndefined();
   });
 });
 

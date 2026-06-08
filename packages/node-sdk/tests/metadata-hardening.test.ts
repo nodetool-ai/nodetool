@@ -70,6 +70,8 @@ describe("parseMetadataFiles field handling", () => {
   it("falls back name to the filename and drops mistyped fields", () => {
     const root = metaRoot("from_filename", {
       version: 123,
+      description: 456,
+      repo_id: 789,
       authors: "not-an-array",
       nodes: "not-an-array"
     });
@@ -77,8 +79,57 @@ describe("parseMetadataFiles field handling", () => {
     const pkg = result.packages[0];
     expect(pkg.name).toBe("from_filename");
     expect(pkg.version).toBeUndefined();
+    expect(pkg.description).toBeUndefined();
+    expect(pkg.repo_id).toBeUndefined();
     expect(pkg.authors).toBeUndefined();
     expect(pkg.nodes).toBeUndefined();
+  });
+
+  it.each([
+    ["null", "null"],
+    ["a number", "42"]
+  ])("warns and skips a metadata file that is %s", (_label, body) => {
+    const root = metaRoot("weird", body);
+    const result = loadPythonPackageMetadata({ roots: [root] });
+    expect(result.warnings.some((w) => w.includes("Skipping non-object"))).toBe(true);
+    expect(result.packages).toEqual([]);
+  });
+
+  it("normalizes a node that omits its properties/outputs arrays", () => {
+    const root = metaRoot("pkg", {
+      name: "pkg",
+      nodes: [{ node_type: "p.Sparse" }]
+    });
+    const node = loadPythonPackageMetadata({ roots: [root] }).nodesByType.get("p.Sparse");
+    expect(node?.properties).toEqual([]);
+    expect(node?.outputs).toEqual([]);
+  });
+
+  it("reports no duplicates for distinct node types", () => {
+    const root = metaRoot("pkg", {
+      name: "pkg",
+      nodes: [
+        { node_type: "p.A", properties: [], outputs: [] },
+        { node_type: "p.B", properties: [], outputs: [] }
+      ]
+    });
+    expect(loadPythonPackageMetadata({ roots: [root] }).duplicates).toEqual([]);
+  });
+
+  it("returns duplicates sorted", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "nodetool-dups-"));
+    tmpDirs.push(dir);
+    const mdir = path.join(dir, "nodetool", "package_metadata");
+    fs.mkdirSync(mdir, { recursive: true });
+    fs.writeFileSync(
+      path.join(mdir, "a.json"),
+      JSON.stringify({ name: "a", nodes: [{ node_type: "z.Dup", properties: [], outputs: [] }, { node_type: "a.Dup", properties: [], outputs: [] }] })
+    );
+    fs.writeFileSync(
+      path.join(mdir, "b.json"),
+      JSON.stringify({ name: "b", nodes: [{ node_type: "z.Dup", properties: [], outputs: [] }, { node_type: "a.Dup", properties: [], outputs: [] }] })
+    );
+    expect(loadPythonPackageMetadata({ roots: [dir] }).duplicates).toEqual(["a.Dup", "z.Dup"]);
   });
 
   it("infers sourceFolder as the dir above /nodetool/package_metadata", () => {
@@ -125,6 +176,49 @@ describe("parseMetadataFiles field handling", () => {
     const node = result.nodesByType.get("dup.N");
     expect(node?.properties[0].type.type_args).toEqual([]);
     expect(node?.outputs[0].type.type_args).toEqual([]);
+  });
+});
+
+describe("full package parsing", () => {
+  it("maps every package field with the correct types", () => {
+    const root = metaRoot("full", {
+      name: "full-pkg",
+      description: "a package",
+      version: "1.2.3",
+      authors: ["Ada", "Grace"],
+      repo_id: "owner/full",
+      nodes: [{ node_type: "full.N", properties: [], outputs: [] }],
+      examples: [{ id: "ex" }],
+      assets: [{ id: "as" }]
+    });
+    const pkg = loadPythonPackageMetadata({ roots: [root] }).packages[0];
+    expect(pkg).toEqual({
+      name: "full-pkg",
+      description: "a package",
+      version: "1.2.3",
+      authors: ["Ada", "Grace"],
+      repo_id: "owner/full",
+      nodes: [{ node_type: "full.N", properties: [], outputs: [] }],
+      examples: [{ id: "ex" }],
+      assets: [{ id: "as" }],
+      sourceFolder: path.join(root, "src")
+    });
+  });
+
+  it("sorts discovered files and reported duplicates", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "nodetool-sort-"));
+    tmpDirs.push(root);
+    const dir = path.join(root, "nodetool", "package_metadata");
+    fs.mkdirSync(dir, { recursive: true });
+    for (const name of ["z", "a", "m"]) {
+      fs.writeFileSync(
+        path.join(dir, `${name}.json`),
+        JSON.stringify({ name, nodes: [] })
+      );
+    }
+    const files = loadPythonPackageMetadata({ roots: [root] }).files;
+    expect(files).toEqual([...files].sort());
+    expect(files.map((f) => path.basename(f))).toEqual(["a.json", "m.json", "z.json"]);
   });
 });
 
@@ -184,6 +278,63 @@ describe("directory walking", () => {
     expect(
       loadPythonPackageMetadata({ roots: [root], maxDepth: 8 }).packages
     ).toHaveLength(1);
+  });
+
+  it("includes a metadata dir whose parent sits at exactly maxDepth (boundary)", () => {
+    // root(0)/d1(1)/nodetool(2): walk recurses to nodetool at depth 2 and scans
+    // its package_metadata when depth (2) > maxDepth (2) is false — but it would
+    // be excluded if the guard were depth >= maxDepth.
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "nodetool-bound-"));
+    tmpDirs.push(root);
+    const dir = path.join(root, "d1", "nodetool", "package_metadata");
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, "x.json"), JSON.stringify({ name: "x", nodes: [] }));
+    expect(loadPythonPackageMetadata({ roots: [root], maxDepth: 2 }).packages).toHaveLength(1);
+    expect(loadPythonPackageMetadata({ roots: [root], maxDepth: 1 }).packages).toEqual([]);
+  });
+
+  it("scans a root that is itself a package_metadata directory", () => {
+    const root = metaRoot("direct", { name: "direct", nodes: [] });
+    const pmDir = path.join(root, "src", "nodetool", "package_metadata");
+    fs.writeFileSync(path.join(pmDir, "ignore.txt"), "not json");
+    const result = loadPythonPackageMetadata({ roots: [pmDir] });
+    expect(result.packages.map((p) => p.name)).toContain("direct");
+    // the non-json file must not be picked up.
+    expect(result.files.every((f) => f.endsWith(".json"))).toBe(true);
+  });
+
+  it("scans a non-src package_metadata root (just /nodetool/package_metadata)", () => {
+    const base = fs.mkdtempSync(path.join(os.tmpdir(), "nodetool-nonsrc-"));
+    tmpDirs.push(base);
+    const pmDir = path.join(base, "nodetool", "package_metadata");
+    fs.mkdirSync(pmDir, { recursive: true });
+    fs.writeFileSync(path.join(pmDir, "p.json"), JSON.stringify({ name: "nonsrc", nodes: [] }));
+    const result = loadPythonPackageMetadata({ roots: [pmDir] });
+    expect(result.packages.map((p) => p.name)).toContain("nonsrc");
+  });
+
+  it("returns discovered files sorted across roots", () => {
+    const base = fs.mkdtempSync(path.join(os.tmpdir(), "nodetool-fsort-"));
+    tmpDirs.push(base);
+    // Process z_root before a_root, but the result must be path-sorted.
+    const roots: string[] = [];
+    for (const name of ["z_root", "a_root"]) {
+      const pmDir = path.join(base, name, "nodetool", "package_metadata");
+      fs.mkdirSync(pmDir, { recursive: true });
+      fs.writeFileSync(path.join(pmDir, "x.json"), JSON.stringify({ name, nodes: [] }));
+      roots.push(path.join(base, name));
+    }
+    const files = loadPythonPackageMetadata({ roots }).files;
+    expect(files).toEqual([...files].sort());
+    expect(files[0]).toContain(`${path.sep}a_root${path.sep}`);
+  });
+
+  it("does not recurse into regular files in a non-metadata directory", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "nodetool-file-"));
+    tmpDirs.push(root);
+    fs.writeFileSync(path.join(root, "stray.txt"), "hello");
+    const result = loadPythonPackageMetadata({ roots: [root] });
+    expect(result.warnings.some((w) => w.includes("Failed to read directory"))).toBe(false);
   });
 
   it("ignores non-json files in a package_metadata directory", () => {

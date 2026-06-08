@@ -57,6 +57,51 @@ describe("iteration group source conflicts", () => {
     );
     expect(issues).toEqual([]);
   });
+
+  it("does not group-track iteration handles that omit a group", () => {
+    // Kills the && -> || mutant: without a group, differing sources must NOT
+    // be reported as a conflict.
+    const issues = validateOutputCorrelation(
+      "pkg.Node",
+      "stream",
+      {
+        x: { kind: "iteration", source: "in1" },
+        y: { kind: "iteration", source: "in2" }
+      },
+      ["x", "y"]
+    );
+    expect(issues).toEqual([]);
+  });
+
+  it("does not group-track non-iteration handles", () => {
+    // Kills the "always enter the group block" mutant: two single outputs with
+    // different sources must not collide.
+    const issues = validateOutputCorrelation(
+      "pkg.Node",
+      "stream",
+      {
+        x: { kind: "single", source: "in1" },
+        y: { kind: "single", source: "in2" }
+      },
+      ["x", "y"]
+    );
+    expect(issues).toEqual([]);
+  });
+
+  it("does not group-track forward handles that carry a group field", () => {
+    // Kills forcing `corr.kind === "iteration"` true: forward handles sharing a
+    // group with different sources must NOT be reported as a conflict.
+    const issues = validateOutputCorrelation(
+      "pkg.Node",
+      "stream",
+      {
+        x: { kind: "forward", group: "g", source: "in1" },
+        y: { kind: "forward", group: "g", source: "in2" }
+      },
+      ["x", "y"]
+    );
+    expect(issues).toEqual([]);
+  });
 });
 
 describe("declared-output coverage", () => {

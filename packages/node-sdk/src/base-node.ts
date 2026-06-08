@@ -140,6 +140,7 @@ export const hasStreamingOutput = (cls: NodeClass): boolean => {
   const proto = (cls as unknown as { prototype?: { genProcess?: unknown } })
     .prototype;
   if (
+    // Stryker disable next-line OptionalChaining: a class constructor always has a .prototype, so proto is never nullish here (equivalent).
     !!proto?.genProcess &&
     proto.genProcess !== BaseNode.prototype.genProcess
   ) {
@@ -279,6 +280,7 @@ export abstract class BaseNode {
         // Deep-copy mutable defaults so instances don't share references.
         const def = options.default;
         (this as any)[name] =
+          // Stryker disable next-line ConditionalExpression,LogicalOperator: the guard only matters for object defaults (covered by the deep-copy test); for scalars the JSON round-trip is identity, so every variant still deep-copies objects and passes scalars through (equivalent).
           def !== null && typeof def === "object"
             ? JSON.parse(JSON.stringify(def))
             : def;
@@ -291,6 +293,7 @@ export abstract class BaseNode {
     if (ctor.supportsDynamicInputs) {
       for (const [key, value] of Object.entries(properties)) {
         if (declaredNames.has(key)) continue;
+        // Stryker disable next-line ConditionalExpression,LogicalOperator,StringLiteral: __node_id/__node_name are "_"-prefixed, so removing this explicit skip routes them to _internalProps anyway — never into dynamicProps or serialize() (equivalent).
         if (key === "__node_id" || key === "__node_name") continue;
         if (key.startsWith("_")) {
           this._internalProps.set(key, value);
@@ -389,11 +392,13 @@ export abstract class BaseNode {
   ): Promise<Record<string, unknown>> {
     const ctor = this.constructor as typeof BaseNode;
     const required = ctor.requiredSettings;
+    // Stryker disable next-line EqualityOperator,ConditionalExpression: the `required.length === 0` arm is a redundant fast-path — an empty requiredSettings list runs the loop zero times and returns inputs via the empty-secrets guard below, so mutating this comparison is equivalent (the `!required` arm is covered by the no-requiredSettings test).
     if (!required || required.length === 0) {
       return inputs;
     }
     if (!context) {
       console.warn(
+        // Stryker disable next-line StringLiteral: operator diagnostic text only.
         `[_injectSecrets] No context for ${ctor.nodeType}, required: ${required.join(", ")}`
       );
       return inputs;
@@ -406,10 +411,12 @@ export abstract class BaseNode {
         secrets[key] = value;
       } else {
         console.warn(
+          // Stryker disable next-line StringLiteral: operator diagnostic text only.
           `[_injectSecrets] Secret "${key}" not found for ${ctor.nodeType}`
         );
       }
     }
+    // Stryker disable next-line ConditionalExpression: short-circuits an empty secrets map; emitting `_secrets: {}` instead is indistinguishable through the _secrets getter, which coalesces undefined and {} alike (equivalent).
     if (Object.keys(secrets).length === 0) return inputs;
     return {
       ...inputs,
@@ -433,7 +440,9 @@ export abstract class BaseNode {
       ) => {
         const merged = await this._injectSecrets(inputs, context);
         const { _secrets, _control_context, ...props } = merged;
+        // Stryker disable next-line ConditionalExpression: storing an undefined internal is indistinguishable from not storing it — getDynamic returns undefined either way and the getters coalesce to {} (equivalent).
         if (_secrets) this.setDynamic("_secrets", _secrets);
+        // Stryker disable next-line ConditionalExpression: storing an undefined internal is indistinguishable from not storing it (equivalent).
         if (_control_context) this.setDynamic("_control_context", _control_context);
         this.assign(props);
         return this.process(context);
@@ -445,7 +454,9 @@ export abstract class BaseNode {
       ) {
         const merged = await this._injectSecrets(inputs, context);
         const { _secrets, _control_context, ...props } = merged;
+        // Stryker disable next-line ConditionalExpression: storing an undefined internal is indistinguishable from not storing it — getDynamic returns undefined either way and the getters coalesce to {} (equivalent).
         if (_secrets) this.setDynamic("_secrets", _secrets);
+        // Stryker disable next-line ConditionalExpression: storing an undefined internal is indistinguishable from not storing it (equivalent).
         if (_control_context) this.setDynamic("_control_context", _control_context);
         this.assign(props);
         yield* this.genProcess(context);

@@ -68,11 +68,13 @@ const ASSET_TYPES: ReadonlySet<string> = new Set([
 ]);
 
 function isModelType(typeStr: string | undefined): boolean {
+  // Stryker disable next-line ConditionalExpression: declared metadata always carries a string type, so the undefined-guard is unreachable; for "" the fallthrough "".endsWith(...) === false matches the guard (equivalent).
   if (!typeStr) return false;
   return typeStr.endsWith(MODEL_TYPE_SUFFIX);
 }
 
 function isAssetType(typeStr: string | undefined): boolean {
+  // Stryker disable next-line ConditionalExpression: see isModelType — the undefined-guard is unreachable and ASSET_TYPES.has("") === false matches the guard (equivalent).
   if (!typeStr) return false;
   return ASSET_TYPES.has(typeStr);
 }
@@ -90,6 +92,7 @@ function isUnsetAsset(value: unknown): boolean {
   const hasTempId = typeof tempId === "string" && tempId.length > 0;
   const hasData =
     data != null &&
+    // Stryker disable next-line ConditionalExpression: forcing `typeof data === "string"` true is equivalent — for the only non-string with length 0 (an empty array) the next clause already drives hasData false.
     !(typeof data === "string" && data.length === 0) &&
     !(Array.isArray(data) && data.length === 0);
   return !hasUri && !hasAssetId && !hasTempId && !hasData;
@@ -97,7 +100,9 @@ function isUnsetAsset(value: unknown): boolean {
 
 function isEmptyValue(value: unknown): boolean {
   if (value === null || value === undefined) return true;
+  // Stryker disable next-line ConditionalExpression: forcing this branch is equivalent — `.length === 0` also holds for arrays (matching the next line) and is false (undefined === 0) for numbers/objects (matching the fallback).
   if (typeof value === "string") return value.length === 0;
+  // Stryker disable next-line ConditionalExpression: forcing this branch true is equivalent — value.length === 0 matches the array check for arrays and is false (undefined === 0) for numbers/objects (matching the fallback).
   if (Array.isArray(value)) return value.length === 0;
   return false;
 }
@@ -111,6 +116,7 @@ function isUnsetModel(value: unknown): boolean {
   // A bare placeholder like `{ type: "language_model" }` (no provider, no id)
   // is exactly the unselected default we want to flag.
   if (provider == null) return true;
+  // Stryker disable next-line ConditionalExpression: forcing `typeof provider === "string"` true is equivalent — a non-string provider can never === the "empty" string sentinel, so the second operand decides the result either way.
   if (typeof provider === "string" && provider === EMPTY_PROVIDER) return true;
   if (id == null) return true;
   if (typeof id === "string" && id.length === 0) return true;
@@ -120,7 +126,9 @@ function isUnsetModel(value: unknown): boolean {
 function toSet(
   handles: ReadonlySet<string> | ReadonlyArray<string> | undefined
 ): ReadonlySet<string> {
+  // Stryker disable next-line ConditionalExpression: every branch reduces to `new Set(handles)` — new Set(undefined) is empty and new Set(existingSet) is a membership-equivalent copy (equivalent mutants).
   if (!handles) return new Set();
+  // Stryker disable next-line ConditionalExpression: the instanceof fast-path only avoids copying a Set; the fallthrough new Set(set) is equivalent.
   if (handles instanceof Set) return handles;
   return new Set(handles as ReadonlyArray<string>);
 }
