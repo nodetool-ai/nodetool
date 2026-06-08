@@ -759,8 +759,10 @@ export class NodeActor {
    * available.
    */
   private _correlatedInvocationLineage(): CorrelationLineage | undefined {
+    // Stryker disable next-line ConditionalExpression: defensive — only called from the correlated path where _correlation is set
     if (!this._correlation) return undefined;
     const invocationScope = this._correlation.invocationScope;
+    // Stryker disable next-line ConditionalExpression: equivalent — for an empty scope the loop below also yields {}, identical to EMPTY_LINEAGE
     if (invocationScope.length === 0) {
       // For empty-scope nodes the lineage is also empty.
       return EMPTY_LINEAGE;
@@ -788,6 +790,7 @@ export class NodeActor {
     invocationLineage: CorrelationLineage,
     emittedHandles: ReadonlyArray<string>
   ): Record<string, CorrelationLineage> | undefined {
+    // Stryker disable next-line ConditionalExpression: defensive — only called via _currentHints on the correlated path where _correlation is set
     if (!this._correlation) return undefined;
     const declared = this.node.output_correlation ?? {};
     const perSlot: Record<string, CorrelationLineage> = {};

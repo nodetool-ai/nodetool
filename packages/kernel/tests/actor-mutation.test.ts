@@ -812,3 +812,43 @@ describe("NodeActor – multi-root invocation lineage", () => {
     expect(hints.invocationLineage).toEqual({ r: { index: 1 }, s: { index: 2 } });
   });
 });
+
+describe("NodeActor – non-iteration output correlation", () => {
+  it("inherits invocation lineage for single and chunk outputs (no root minted)", async () => {
+    const node = makeNode({
+      output_correlation: {
+        out: { kind: "single", source: "__execution__" },
+        ch: { kind: "chunk", source: "__execution__" }
+      }
+    });
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1);
+    const { executor } = trackingExecutor(() => ({ out: 1, ch: 2 }));
+    const { actor, sentOutputs } = createActor(node, inbox, executor, {
+      correlation: analysis(["r"], { a: [["r"], true] })
+    });
+    await inbox.put("a", "v", { correlation_lineage: lin({ r: 0 }) });
+    inbox.markSourceDone("a");
+    await actor.run();
+    const ps = (sentOutputs[0].hints as { perSlotLineage: Record<string, unknown> }).perSlotLineage;
+    expect(ps.out).toEqual({ r: { index: 0 } }); // no iteration root added
+    expect(ps.ch).toEqual({ r: { index: 0 } });
+  });
+
+  it("omits invocationLineage on emit when no input lineage is available", async () => {
+    const node = makeNode({ is_streaming_input: true });
+    const inbox = new NodeInbox();
+    const executor: NodeExecutor = {
+      async process() {
+        return {};
+      },
+      async run(_inputs, outputs) {
+        await outputs.emit("out", 1); // no consumed input -> no invocation lineage
+      }
+    };
+    const { actor, sentOutputs } = createActor(node, inbox, executor);
+    await actor.run();
+    const hints = sentOutputs[0].hints as Record<string, unknown>;
+    expect("invocationLineage" in hints).toBe(false);
+  });
+});
