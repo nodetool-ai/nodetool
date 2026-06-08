@@ -17,6 +17,8 @@ import TracePanel from "./TracePanel";
 import LogPanel from "./LogPanel";
 import QueuePanel from "./jobs/QueuePanel";
 import SandboxesPanel from "../dashboard/SandboxesPanel";
+import WorkersPanel from "../workers/WorkersPanel";
+import WorkerStatusIndicator from "../workers/WorkerStatusIndicator";
 import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { VersionHistoryPanel } from "../version";
 import PanelHeadline from "../ui/PanelHeadline";
@@ -45,6 +47,7 @@ import DesktopWindowsIcon from "@mui/icons-material/DesktopWindows";
 import HistoryIcon from "@mui/icons-material/History";
 import FolderIcon from "@mui/icons-material/Folder";
 import PlaylistPlayIcon from "@mui/icons-material/PlaylistPlay";
+import MemoryIcon from "@mui/icons-material/Memory";
 
 const workspacesEnabled = !isProduction;
 const sandboxesEnabled = !isProduction;
@@ -130,6 +133,12 @@ const VIEW_SPECS: Record<BottomPanelView, ViewSpec> = {
     label: "Sandboxes",
     icon: <DesktopWindowsIcon />,
     enabled: sandboxesEnabled
+  },
+  workers: {
+    id: "workers",
+    label: "Workers",
+    icon: <MemoryIcon />,
+    enabled: true
   },
   versions: {
     id: "versions",
@@ -456,6 +465,8 @@ const PanelBodyContent = memo(function PanelBodyContent({
       );
     case "sandboxes":
       return sandboxesEnabled ? <SandboxesPanel /> : null;
+    case "workers":
+      return <WorkersPanel />;
     case "versions":
       return currentWorkflowId ? (
         <VersionHistoryPanel
@@ -596,6 +607,7 @@ const PanelBottom: React.FC = () => {
               <span>{isConnected ? "connected" : "offline"}</span>
               <span className="sep" aria-hidden>·</span>
               <span>{workerLabel}</span>
+              <WorkerStatusIndicator />
             </div>
             <div className="tab-rail" role="tablist">
               {enabledViews.map((view) => (

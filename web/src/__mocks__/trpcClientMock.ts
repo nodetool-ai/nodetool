@@ -150,6 +150,23 @@ export const trpcClient = {
     get: { query: emptyQuery() },
     cancel: { mutate: emptyMutate() }
   },
+  worker: {
+    profiles: {
+      list: { query: jest.fn(async () => []) },
+      create: { mutate: emptyMutate() },
+      delete: { mutate: emptyMutate() }
+    },
+    instances: {
+      list: { query: jest.fn(async () => []) }
+    },
+    provision: { mutate: emptyMutate() },
+    stop: { mutate: emptyMutate() },
+    stopAll: { mutate: emptyMutate() },
+    status: { query: emptyQuery() },
+    reconcile: { mutate: emptyMutate() },
+    attach: { mutate: emptyMutate() },
+    detach: { mutate: emptyMutate() }
+  },
   // Workflows namespace — shared mock functions exported for per-test config
   workflows: {
     get: { query: mockWorkflowsGet },

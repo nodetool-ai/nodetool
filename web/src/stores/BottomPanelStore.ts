@@ -16,6 +16,7 @@ export type BottomPanelView =
   | "logs"
   | "queue"
   | "sandboxes"
+  | "workers"
   | "versions"
   | "workspace"
   | "trace";
@@ -27,7 +28,7 @@ export const BOTTOM_PANEL_GROUPS: ReadonlyArray<{
   label: string;
   views: readonly BottomPanelView[];
 }> = [
-  { id: "run", label: "Run", views: ["logs", "queue", "sandboxes"] },
+  { id: "run", label: "Run", views: ["logs", "queue", "sandboxes", "workers"] },
   {
     id: "workflow",
     label: "Workflow",
