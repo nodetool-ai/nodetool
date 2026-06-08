@@ -184,14 +184,14 @@ validation: the `.ts` DSL form documents the graph; the exported `.json` form is
 artifact loaded **into the running TS server** (UI import or the server's run API).
 Fallback node: `FillMask` / `distilbert-base-uncased`.
 
-**Critical wiring fact (verified):** the remote `WebsocketPythonBridge` is created and
-injected **only by the `websocket` server** (`server.ts` / `http-api.ts` /
-`mcp-server.ts`; the runner reads `options.pythonBridge`). The CLI/DSL local path
-(`nodetool run <file>` → `@nodetool-ai/dsl` `run()` → `ProcessingContext` /
-`WorkflowRunner`) does **not** create a Python bridge. Therefore the validation graph
-must execute **through a running server** that has `NODETOOL_WORKER_URL` set — not via
-`nodetool run`. (Adding remote-worker support to the CLI run path is a possible
-follow-up, out of scope here.)
+**Wiring note (updated):** originally the remote `WebsocketPythonBridge` was created
+**only by the `websocket` server**, so the CLI/DSL local path couldn't run Python nodes.
+That gap is now closed — `connectPythonBridgeForGraph` / `resolvePythonNodeExecutor` in
+`@nodetool-ai/runtime` wire the bridge into the in-process runners, so both
+`nodetool workflows run <graph.json>` and `nodetool run <file.ts>` execute Python (incl.
+HuggingFace worker) nodes: remote when `NODETOOL_WORKER_URL` is set, else a local stdio
+worker. The validation graph can therefore be driven by **either** a running server
+(web UI) **or** the CLI directly.
 
 ---
 
@@ -249,12 +249,12 @@ Performed end-to-end on macOS Docker (CPU):
 4. **Bridge attach** — start the TS server with
    `NODETOOL_WORKER_URL=ws://localhost:8787 NODETOOL_WORKER_TOKEN=secret npm run dev:server`;
    server logs a successful `discover` + `worker.status`; HF node metadata is present.
-5. **Graph run (through the server)** — with the smoke workflow loaded into the running
-   server (web UI editor, or the server's run API), execute it. The HF node runs **on the
+5. **Graph run** — execute the smoke workflow either via the CLI
+   (`NODETOOL_WORKER_URL=ws://localhost:8787 NODETOOL_WORKER_TOKEN=secret nodetool workflows run examples/hf-worker-smoke.json`)
+   or by loading it into the running server (web UI). The HF node runs **on the
    container** and returns an **embedding (`np_array`)** — `SentenceSimilarity` is a
    feature-extraction node (one embedding per input string), not a cross-string scorer,
-   so the smoke graph previews the embedding(s). This must go through the server, not
-   `nodetool run` (see §5.5 wiring fact). First run downloads the model into the
+   so the smoke graph previews the embedding(s). First run downloads the model into the
    `hf-cache` volume; subsequent runs reuse it.
 
 CUDA-only nodes (most diffusers/3D) are **expected to fail locally** and are deferred to
@@ -328,7 +328,7 @@ exposure/ops concerns that the deploy iteration must satisfy.
 | First-run model download latency | Healthcheck `start-period`; `hf-cache` volume persists models across restarts. |
 | Token mistakenly left unset in a cloud deploy | Document that unset = open; the cloud iteration must require it (and a tunnel/TLS). |
 | Bridge reconnects to a stale URL after instance change | Known gap; re-resolution is deploy-iteration work, recorded in §8.2. |
-| Validation assumed `nodetool run` would route to the worker (it won't — no bridge on the local CLI path) | Validate **through a running server** (§5.5, §7); CLI remote-worker support is a possible follow-up. |
+| ~~`nodetool run` couldn't route to the worker~~ (resolved) | The CLI/DSL runners now wire the Python bridge (`connectPythonBridgeForGraph`), so `nodetool workflows run` / `nodetool run` execute Python nodes against a remote (or local stdio) worker — §5.5. |
 
 ---
 
