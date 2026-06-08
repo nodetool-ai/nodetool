@@ -326,6 +326,11 @@ describe("prompt / image guards", () => {
     await expect(
       p.imageToImage([new Uint8Array([])], { model: model(), prompt: "ok" } as never)
     ).rejects.toThrow("Image is required");
+    // An empty images array → images[0] is undefined; the optional chain must
+    // short-circuit to "Image is required" rather than throwing a TypeError.
+    await expect(
+      p.imageToImage([], { model: model(), prompt: "ok" } as never)
+    ).rejects.toThrow("Image is required");
   });
 });
 

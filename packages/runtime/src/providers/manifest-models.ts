@@ -273,6 +273,17 @@ export function getModelImageInputs(
     (n) => nodeId(n) === modelId
   );
   if (!entry) return [];
+  return manifestEntryImageInputs(entry);
+}
+
+/**
+ * Pure: resolve the image inputs declared by a single manifest entry. KIE-style
+ * `uploads` (which carry the real API param name) take precedence; otherwise the
+ * FAL/Replicate `inputFields` image / list[image] entries are used.
+ */
+export function manifestEntryImageInputs(
+  entry: ManifestNode
+): ModelImageInput[] {
   if (entry.uploads?.length) {
     return entry.uploads
       .filter((u) => u.kind === "image")
@@ -297,6 +308,7 @@ export function getModelImageInputs(
 // Auxiliary image inputs (mask / control / reference / style / end-frame, …)
 // must never receive the primary source image in a generic request.
 const AUXILIARY_IMAGE_RE =
+  // Stryker disable next-line Regex: heuristic alternation; auxiliary-vs-primary behaviour is pinned by tests, but the optional `[_-]?` separator variants are functionally interchangeable for real field names.
   /mask|control|reference|style|depth|canny|pose|ip[_-]?adapter|redux|face|last_frame|end_image|end_frame/i;
 
 // Primary source-image field names, best first. Covers i2i (`image`,
@@ -329,6 +341,7 @@ export function selectPrimaryImageInput(
 ): ModelImageInput | undefined {
   const primary = inputs.filter((i) => !AUXILIARY_IMAGE_RE.test(i.name));
   const pool = primary.length > 0 ? primary : inputs;
+  // Stryker disable next-line ConditionalExpression: equivalent — pool is empty only when inputs is empty, and the sort+[0] below also yields undefined for an empty pool.
   if (pool.length === 0) return undefined;
   const multiple = imageCount > 1;
   const score = (i: ModelImageInput): number => {

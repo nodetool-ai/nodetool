@@ -19,8 +19,11 @@ import {
   buildVideoModels,
   buildImageModels,
   loadImageModels,
-  loadManifest
+  loadManifest,
+  manifestEntryImageInputs,
+  selectPrimaryImageInput
 } from "../../src/providers/manifest-models.js";
+import type { ModelImageInput } from "../../src/providers/manifest-models.js";
 
 describe("explicitTasks", () => {
   it("returns a declared non-empty task list", () => {
@@ -352,5 +355,165 @@ describe("inferImageTasks", () => {
       "text_to_image",
       "image_to_image"
     ]);
+  });
+});
+
+describe("manifestEntryImageInputs", () => {
+  it("prefers KIE uploads, keeping only image kinds", () => {
+    expect(
+      manifestEntryImageInputs({
+        uploads: [
+          { field: "photo", kind: "image", paramName: "image_url" },
+          { field: "doc", kind: "file" }, // non-image → dropped
+          { field: "frames", kind: "image", isList: true }
+        ]
+      })
+    ).toEqual([
+      { apiName: "image_url", isList: false, name: "photo" },
+      { apiName: "frames_urls", isList: true, name: "frames" }
+    ]);
+  });
+
+  it("derives the upload apiName from field + list-ness when paramName is absent", () => {
+    expect(
+      manifestEntryImageInputs({ uploads: [{ field: "ref", kind: "image" }] })
+    ).toEqual([{ apiName: "ref_url", isList: false, name: "ref" }]);
+    expect(
+      manifestEntryImageInputs({
+        uploads: [{ field: "ref", kind: "image", isList: true }]
+      })
+    ).toEqual([{ apiName: "ref_urls", isList: true, name: "ref" }]);
+  });
+
+  it("falls back to image / list[image] inputFields when there are no uploads", () => {
+    expect(
+      manifestEntryImageInputs({
+        inputFields: [
+          { name: "image", propType: "Image" },
+          { name: "gallery", propType: "list[image]", apiParamName: "images" },
+          { name: "prompt", propType: "str" } // non-image → dropped
+        ]
+      })
+    ).toEqual([
+      { apiName: "image", isList: false, name: "image" },
+      { apiName: "images", isList: true, name: "gallery" }
+    ]);
+  });
+
+  it("ignores inputFields when uploads are present (uploads win)", () => {
+    expect(
+      manifestEntryImageInputs({
+        uploads: [{ field: "u", kind: "image" }],
+        inputFields: [{ name: "image", propType: "image" }]
+      })
+    ).toEqual([{ apiName: "u_url", isList: false, name: "u" }]);
+  });
+
+  it("returns [] for an empty upload list and a no-image entry", () => {
+    expect(manifestEntryImageInputs({ uploads: [] })).toEqual([]);
+    expect(manifestEntryImageInputs({})).toEqual([]);
+    expect(
+      manifestEntryImageInputs({ inputFields: [{ name: "n", propType: "str" }] })
+    ).toEqual([]);
+  });
+});
+
+describe("selectPrimaryImageInput", () => {
+  const inp = (name: string, isList = false): ModelImageInput => ({
+    apiName: name,
+    isList,
+    name
+  });
+
+  it("returns undefined when there are no inputs", () => {
+    expect(selectPrimaryImageInput([], 1)).toBeUndefined();
+    expect(selectPrimaryImageInput([], 3)).toBeUndefined();
+  });
+
+  it("skips auxiliary inputs in favour of a real source image", () => {
+    for (const aux of [
+      "mask",
+      "control_image",
+      "reference",
+      "style_image",
+      "depth",
+      "canny",
+      "pose",
+      "ip_adapter",
+      "redux",
+      "face_image",
+      "last_frame",
+      "end_image",
+      "end_frame"
+    ]) {
+      expect(selectPrimaryImageInput([inp(aux), inp("image")], 1)?.name).toBe(
+        "image"
+      );
+    }
+  });
+
+  it("falls back to auxiliary-only inputs when nothing else exists", () => {
+    expect(selectPrimaryImageInput([inp("mask")], 1)?.name).toBe("mask");
+  });
+
+  it("drops auxiliary inputs from the pool even when the survivor is unknown-ranked", () => {
+    // Both fields are unknown-ranked, so only the auxiliary FILTER distinguishes
+    // them: "mask" must be removed, leaving "custom_field". If the filter is
+    // skipped (or the pool ternary collapses to `inputs`), the stable sort would
+    // return "mask" (first in the array) instead.
+    expect(
+      selectPrimaryImageInput([inp("mask"), inp("custom_field")], 1)?.name
+    ).toBe("custom_field");
+  });
+
+  it("ranks every priority name above an unknown field", () => {
+    // Each known name sits *second* in the array but must still win on priority;
+    // if its priority string breaks it ties the unknown and loses (stable sort).
+    for (const name of [
+      "image",
+      "input_image",
+      "image_input",
+      "images",
+      "input_images",
+      "img",
+      "first_frame_image",
+      "start_image",
+      "source_image",
+      "image_path",
+      "subject_image",
+      "file"
+    ]) {
+      expect(
+        selectPrimaryImageInput([inp("zzz_unknown"), inp(name)], 1)?.name
+      ).toBe(name);
+    }
+  });
+
+  it("orders by priority among multiple known names", () => {
+    expect(
+      selectPrimaryImageInput([inp("img"), inp("input_image"), inp("image")], 1)
+        ?.name
+    ).toBe("image"); // index 0 beats 1 and 5
+    expect(
+      selectPrimaryImageInput([inp("source_image"), inp("input_image")], 1)?.name
+    ).toBe("input_image"); // index 1 beats index 8
+  });
+
+  it("strongly prefers a list-typed field when multiple images are supplied", () => {
+    // Single image: scalar "image" (idx 0) beats list "input_images" (idx 4).
+    expect(
+      selectPrimaryImageInput([inp("image"), inp("input_images", true)], 1)?.name
+    ).toBe("image");
+    // Multiple images: the list field gets a -100 bonus and wins despite worse base rank.
+    expect(
+      selectPrimaryImageInput([inp("image"), inp("input_images", true)], 2)?.name
+    ).toBe("input_images");
+  });
+
+  it("penalises a scalar field when multiple images are supplied", () => {
+    // Two scalars: with multiple images both get +10, so base priority still decides.
+    expect(
+      selectPrimaryImageInput([inp("img"), inp("image")], 2)?.name
+    ).toBe("image");
   });
 });
