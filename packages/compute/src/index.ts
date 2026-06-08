@@ -1,7 +1,8 @@
 // Worker provisioning package (`@nodetool-ai/compute`).
-// Further exports (reaper) are added by subsequent tasks.
 export { WorkerManager } from "./manager.js";
 export type { WorkerConnection, WorkerManagerDeps } from "./manager.js";
+export { runReaperOnce, startReaper } from "./reaper.js";
+export type { ReaperDeps, ReaperHandle, ReaperManager } from "./reaper.js";
 export { RunpodPodProvider } from "./providers/runpod.js";
 export type {
   ProviderInstance,
