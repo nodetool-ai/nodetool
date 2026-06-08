@@ -349,6 +349,7 @@ describe("NodeActor._runCorrelatedImpl – scheduler", () => {
     inbox.markSourceDone("b");
     const result = await actor.run();
     expect(result.error).toMatch(/Inbox for node "n1" exceeded max_pending_keys \(1\) on handle "a"/);
+    expect(result.error).toMatch(/Likely missing upstream close/);
   });
 
   it("throws when max_pending_messages_per_key is exceeded", async () => {
@@ -1184,5 +1185,25 @@ describe("NodeActor._mintIterationFrameOverrides – edges", () => {
     await actor.run();
     // index is passed through untouched (no iteration group declared).
     expect(sentOutputs[0].outputs).toEqual({ out: "v", index: 42 });
+  });
+});
+
+describe("NodeActor._runControlled – stop terminates", () => {
+  it("stops at a stop event and ignores later run events", async () => {
+    const node = makeNode({ is_controlled: true });
+    const inbox = new NodeInbox();
+    inbox.addUpstream("__control__", 1);
+    inbox.addUpstream("x", 1);
+    const { executor, calls } = trackingExecutor((i) => ({ out: i.t }));
+    const { actor } = createActor(node, inbox, executor);
+    await inbox.put("x", 5);
+    await inbox.put("__control__", { event_type: "run", properties: { t: 1 } });
+    await inbox.put("__control__", { event_type: "stop" });
+    await inbox.put("__control__", { event_type: "run", properties: { t: 2 } });
+    inbox.markSourceDone("x");
+    inbox.markSourceDone("__control__");
+    await actor.run();
+    // The stop event breaks the loop before the second run is processed.
+    expect(calls).toEqual([{ x: 5, t: 1 }]);
   });
 });

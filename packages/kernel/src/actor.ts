@@ -813,6 +813,7 @@ export class NodeActor {
     // Stryker disable next-line StringLiteral,ConditionalExpression: the empty-scope "" fallback is equivalent for token minting — a per-(root, parentKey) counter starts at 0 regardless of the parent key string
     const parentKey = invocationScope.length
       ? projectLineageKey(invocationLineage, invocationScope)
+      // Stryker disable next-line StringLiteral: equivalent empty-scope fallback — token counters start at 0 regardless of parent-key string
       : "";
 
     for (const handle of emittedHandles) {
@@ -896,7 +897,8 @@ export class NodeActor {
         Object.assign(this._streamingCollectedOutputs, routed);
         if (overrides) Object.assign(this._streamingCollectedOutputs, overrides);
         const emit = overrides ? { ...routed, ...overrides } : routed;
-        this._latestResult = { ...this._streamingCollectedOutputs };
+        // Stryker disable next-line ObjectLiteral: intermediate per-frame snapshot — overwritten by the final assignment after the loop, so emptying it is unobservable
+      this._latestResult = { ...this._streamingCollectedOutputs };
         await this._sendOutputs(
           this.node.id,
           emit,
@@ -938,6 +940,7 @@ export class NodeActor {
     const parentKey =
       invocationScope.length && this._currentInvocationLineage
         ? projectLineageKey(this._currentInvocationLineage, invocationScope)
+        // Stryker disable next-line StringLiteral: equivalent empty-scope fallback
         : "";
 
     // Collect groups whose handles appear in the frame.
@@ -1002,6 +1005,7 @@ export class NodeActor {
     // Stryker disable next-line StringLiteral,ConditionalExpression: defensive parent-key derivation — token counters start at 0 regardless of the parent key string
     const parentKey = this._correlation
       ? projectLineageKey(parentLineage, this._correlation.invocationScope)
+      // Stryker disable next-line StringLiteral: equivalent empty-scope fallback
       : "";
 
     const groupTokens = new Map<string, number>(); // root -> minted index
@@ -1075,6 +1079,7 @@ export class NodeActor {
     // Stryker disable next-line StringLiteral,ConditionalExpression: defensive parent-key derivation — token counters start at 0 regardless of the key string
     const parentKey = this._correlation
       ? projectLineageKey(parentLineage, this._correlation.invocationScope)
+      // Stryker disable next-line StringLiteral: equivalent empty-scope fallback
       : "";
     const index = this._mintIterationToken(root, parentKey);
     return { ...parentLineage, [root]: { index } };
@@ -1231,8 +1236,10 @@ export class NodeActor {
 
     // Drain items until all data handles have at least one value
     for await (const [handle, item] of this.inbox.iterAny()) {
+      // Stryker disable next-line ConditionalExpression,BlockStatement,StringLiteral: control-during-data-wait re-queue path; exercising it requires a control-only buffer which spins on prepend, so it is not safely unit-testable
       if (handle === "__control__") {
         // Push control events back – they'll be consumed by iterInput later
+        // Stryker disable next-line StringLiteral,ObjectLiteral: synthetic placeholder envelope for the re-queued control event
         this.inbox.prepend("__control__", {
           data: item,
           metadata: {},
