@@ -552,3 +552,52 @@ describe("Graph – controller targeting", () => {
     expect(g.getControlledNodes("c2")).toEqual(["b"]);
   });
 });
+
+describe("Graph – validation edge cases (batch 3)", () => {
+  it("validateEdgeTypes rejects a string-form target type mismatch", () => {
+    const nodes = [
+      n("a", "t", { outputs: { out: "str" } }),
+      n("b", "t", { properties: { in: "int" } }) // string-form type
+    ];
+    const g = new Graph({ nodes, edges: [e("a", "out", "b", "in", { id: "ed" })] });
+    expect(() => g.validateEdgeTypes()).toThrow(/Type mismatch on edge ed/);
+  });
+
+  it("validateEdgeTypes skips a non-string, non-typed target property", () => {
+    const nodes = [
+      n("a", "t", { outputs: { out: "str" } }),
+      n("b", "t", { properties: { in: 123 } } as never) // neither string nor {type}
+    ];
+    const g = new Graph({ nodes, edges: [e("a", "out", "b", "in")] });
+    expect(() => g.validateEdgeTypes()).not.toThrow();
+  });
+
+  it("does not flag a control diamond (BLACK-visited node) as a cycle", () => {
+    const nodes = [n("a", "t"), n("b", "t"), n("c", "t"), n("d", "t")];
+    const edges = [ctrl("a", "b"), ctrl("a", "c"), ctrl("b", "d"), ctrl("c", "d")];
+    const g = new Graph({ nodes, edges });
+    expect(() => g.validateControlEdges()).not.toThrow();
+  });
+
+  it("rejects edges missing each individual required field", () => {
+    const base = { nodes: [{ id: "a", type: "t" }] };
+    const cases = [
+      { source: "a", target: "a", targetHandle: "i" }, // no sourceHandle
+      { source: "a", sourceHandle: "o", targetHandle: "i" }, // no target
+      { source: "a", sourceHandle: "o", target: "a" } // no targetHandle
+    ];
+    for (const edge of cases) {
+      expect(() =>
+        Graph.fromDict({ ...base, edges: [edge] }, { skipErrors: false })
+      ).toThrow(/Each edge must have string/);
+    }
+  });
+
+  it("validateEdgeEndpoints passes when all endpoints exist", () => {
+    const g = new Graph({
+      nodes: [n("a", "t"), n("b", "t")],
+      edges: [e("a", "o", "b", "i")]
+    });
+    expect(() => g.validateEdgeEndpoints()).not.toThrow();
+  });
+});
