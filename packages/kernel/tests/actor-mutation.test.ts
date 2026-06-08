@@ -1207,3 +1207,49 @@ describe("NodeActor._runControlled – stop terminates", () => {
     expect(calls).toEqual([{ x: 5, t: 1 }]);
   });
 });
+
+describe("NodeActor._computeInvocationLineage – streaming-input fallback", () => {
+  it("inherits a single consumed input's lineage on emit", async () => {
+    const node = makeNode({ is_streaming_input: true });
+    const inbox = new NodeInbox();
+    inbox.addUpstream("in", 1);
+    const executor: NodeExecutor = {
+      async process() { return {}; },
+      async run(inputs, outputs) {
+        for await (const _ of inputs.stream("in")) void _;
+        await outputs.emit("out", 1);
+      }
+    };
+    const { actor, sentOutputs } = createActor(node, inbox, executor);
+    const runP = actor.run();
+    await inbox.put("in", "v", { correlation_lineage: lin({ r: 5 }) });
+    inbox.markSourceDone("in");
+    await runP;
+    const hints = sentOutputs[0].hints as { invocationLineage?: unknown };
+    expect(hints.invocationLineage).toEqual({ r: { index: 5 } });
+  });
+
+  it("omits lineage when two inputs are consumed (ambiguous)", async () => {
+    const node = makeNode({ is_streaming_input: true });
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1);
+    inbox.addUpstream("b", 1);
+    const executor: NodeExecutor = {
+      async process() { return {}; },
+      async run(inputs, outputs) {
+        for await (const _ of inputs.stream("a")) void _;
+        for await (const _ of inputs.stream("b")) void _;
+        await outputs.emit("out", 1);
+      }
+    };
+    const { actor, sentOutputs } = createActor(node, inbox, executor);
+    const runP = actor.run();
+    await inbox.put("a", "x", { correlation_lineage: lin({ r: 1 }) });
+    await inbox.put("b", "y", { correlation_lineage: lin({ s: 2 }) });
+    inbox.markSourceDone("a");
+    inbox.markSourceDone("b");
+    await runP;
+    const hints = sentOutputs[0].hints as Record<string, unknown>;
+    expect("invocationLineage" in hints).toBe(false);
+  });
+});
