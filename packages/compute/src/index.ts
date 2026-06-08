@@ -1,4 +1,11 @@
 // Worker provisioning package (`@nodetool-ai/compute`).
-// Exports are added by subsequent tasks (provider types, RunpodPodProvider,
-// WorkerManager, reaper). Empty barrel for the scaffold.
-export {};
+// Further exports (RunpodPodProvider, WorkerManager, reaper) are added by
+// subsequent tasks.
+export type {
+  ProviderInstance,
+  ProvisionResult,
+  WorkerProvider,
+  WorkerSpec,
+  WorkerStatus,
+  WorkerTarget,
+} from "./providers/types.js";
