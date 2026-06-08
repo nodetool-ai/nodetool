@@ -13,7 +13,8 @@
     "src/provider-cache.ts",
     "src/context-packer.ts",
     "src/cost-reconciler.ts",
-    "src/recommended-models.ts"
+    "src/recommended-models.ts",
+    "src/providers/provider-registry.ts"
   ],
   "vitest": {
     "configFile": "vitest.config.ts"
