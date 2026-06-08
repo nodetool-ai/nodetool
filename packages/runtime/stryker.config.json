@@ -28,7 +28,8 @@
     "src/providers/moonshot-provider.ts",
     "src/providers/mistral-provider.ts",
     "src/providers/lmstudio-provider.ts",
-    "src/providers/vllm-provider.ts"
+    "src/providers/vllm-provider.ts",
+    "src/providers/openrouter-provider.ts"
   ],
   "vitest": {
     "configFile": "vitest.config.ts"
