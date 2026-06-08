@@ -601,3 +601,43 @@ describe("Graph – validation edge cases (batch 3)", () => {
     expect(() => g.validateEdgeEndpoints()).not.toThrow();
   });
 });
+
+describe("Graph.topologicalSort – filtering (batch 4)", () => {
+  it("excludes edges that cross the parent-scope boundary", () => {
+    const nodes = [
+      n("g", "GroupNode"),
+      n("child", "t", { parent_id: "g" }),
+      n("top", "t")
+    ];
+    // child -> top crosses out of group "g"; it must not pull top into the level
+    const edges = [e("child", "o", "top", "i")];
+    const levels = new Graph({ nodes, edges }).topologicalSort("g");
+    expect(levels.flat().map((x) => x.id)).toEqual(["child"]);
+  });
+
+  it("detects a dotted .GroupNode type in null parent mode", () => {
+    const nodes = [
+      n("g", "pkg.GroupNode"),
+      n("child", "t", { parent_id: "g" })
+    ];
+    const ids = new Graph({ nodes, edges: [] })
+      .topologicalSort(null)
+      .flat()
+      .map((x) => x.id)
+      .sort();
+    expect(ids).toEqual(["child", "g"]);
+  });
+});
+
+describe("Graph.loadFromDict – streaming flag from saved data only", () => {
+  it("keeps a saved is_streaming_input when the registry does not set it", async () => {
+    const resolver = {
+      resolveNodeType: (nodeType: string) => ({ nodeType })
+    };
+    const g = await Graph.loadFromDict(
+      { nodes: [{ id: "a", type: "t", is_streaming_input: true }], edges: [] },
+      { resolver }
+    );
+    expect(g.findNode("a")!.is_streaming_input).toBe(true);
+  });
+});

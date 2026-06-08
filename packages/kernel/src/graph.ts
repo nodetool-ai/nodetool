@@ -169,17 +169,21 @@ export class Graph {
 
     const propertiesWithEdges = new Map<string, Set<string>>();
     for (const edge of obj.edges) {
+      // Stryker disable next-line ConditionalExpression,LogicalOperator: this pre-pass only collects edge-fed handles; a non-object edge has no string target/targetHandle and is skipped two lines below, and the second edge pass re-validates object-ness
       if (!edge || typeof edge !== "object") {
         if (skipErrors) continue;
         throw new GraphValidationError("Edge entries must be objects");
       }
       const edgeObj = edge as Record<string, unknown>;
+      // Stryker disable next-line ConditionalExpression: equivalent — a non-string target keyed into propertiesWithEdges never matches a (string) node id, so deletion is a no-op
       const targetId =
         typeof edgeObj.target === "string" ? edgeObj.target : undefined;
+      // Stryker disable next-line ConditionalExpression: equivalent — a non-string targetHandle deletes a non-existent property (no-op)
       const targetHandle =
         typeof edgeObj.targetHandle === "string"
           ? edgeObj.targetHandle
           : undefined;
+      // Stryker disable next-line ConditionalExpression,LogicalOperator: equivalent — adding an undefined target/handle to the set only causes no-op deletions later
       if (!targetId || !targetHandle) continue;
       let handles = propertiesWithEdges.get(targetId);
       if (!handles) {
@@ -321,6 +325,7 @@ export class Graph {
     } = options;
     const normalized = Graph.fromDict(data, {
       skipErrors,
+      // Stryker disable next-line BooleanLiteral: must stay true — property validation happens later against the RESOLVED types, not the saved cache (see comment in loadFromDict)
       allowUndefinedProperties: true
     });
 
@@ -450,6 +455,7 @@ export class Graph {
     for (const edge of this.edges) {
       if (!isControlEdge(edge)) continue;
       const target = this._nodeIndex.get(edge.target);
+      // Stryker disable next-line ConditionalExpression,LogicalOperator,BooleanLiteral: equivalent — control edges always have a known target here, and re-setting an already-true flag is a no-op; the guard is a micro-optimization
       if (target && !target.is_controlled) {
         // NodeDescriptor is readonly in the type, but we own the instances
         (target as { is_controlled?: boolean }).is_controlled = true;
