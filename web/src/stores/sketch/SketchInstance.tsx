@@ -58,7 +58,7 @@ export interface SketchInstance {
   canvasRef: SketchCanvasRefStoreApi;
 }
 
-export const createSketchInstance = (): SketchInstance => ({
+const createSketchInstance = (): SketchInstance => ({
   editor: createSketchStore(),
   session: createSketchSessionStore(),
   canvasRef: createSketchCanvasRefStore()
@@ -101,7 +101,7 @@ const __HMR__ =
   process.env.NODE_ENV !== "production" &&
   process.env.NODE_ENV !== "test";
 
-export const SketchContext: React.Context<SketchInstance | null> = (() => {
+const SketchContext: React.Context<SketchInstance | null> = (() => {
   if (__HMR__ && window.__SKETCH_CONTEXT__) {
     return window.__SKETCH_CONTEXT__;
   }
