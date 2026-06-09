@@ -7,9 +7,11 @@ import { mkdtemp, writeFile, rm, realpath } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { buildBrowserAgentToolClasses } from "@nodetool-ai/automation-nodes";
 import {
   ShellAgentNode,
   BrowserAgentNode,
+  LiveBrowserAgentNode,
   SQLiteAgentNode,
   SupabaseAgentNode,
   DocumentAgentNode,
@@ -31,8 +33,8 @@ import {
 } from "@nodetool-ai/code-nodes";
 
 describe("Tool agent node registration", () => {
-  it("exports 19 tool agent nodes", () => {
-    expect(TOOL_AGENT_NODES.length).toBe(19);
+  it("exports 20 tool agent nodes", () => {
+    expect(TOOL_AGENT_NODES.length).toBe(20);
   });
 });
 
@@ -46,6 +48,11 @@ const skillClasses = [
     cls: BrowserAgentNode,
     type: "nodetool.agents.BrowserAgent",
     title: "Browser Agent"
+  },
+  {
+    cls: LiveBrowserAgentNode,
+    type: "nodetool.agents.LiveBrowserAgent",
+    title: "Live Browser Agent"
   },
   {
     cls: SQLiteAgentNode,
@@ -402,6 +409,124 @@ describe("ToolAgentNode agent loop integration", () => {
     expect((result.image as any).type).toBe("image");
     expect((result.image as any).data).toBeTruthy();
 
+    await rm(workspaceDir, { recursive: true, force: true });
+  });
+});
+
+describe("LiveBrowserAgentNode", () => {
+  it("requests exactly the 13 local CDP browser tools that actually exist", () => {
+    const node = new LiveBrowserAgentNode();
+    const requested = node.getTools("/tmp/unused").map((t) => t.name);
+
+    expect(requested).toEqual([
+      "browser_view",
+      "browser_navigate",
+      "browser_restart",
+      "browser_click",
+      "browser_input_text",
+      "browser_move_mouse",
+      "browser_press_key",
+      "browser_select_option",
+      "browser_scroll",
+      "browser_console_exec",
+      "browser_console_view",
+      "browser_capture_media",
+      "browser_upload_asset"
+    ]);
+
+    // The names must match the real local browser tools exactly — a typo would
+    // silently leave the agent with fewer tools. buildBrowserAgentToolClasses
+    // is the source of truth (sandbox.ts registers these same classes).
+    const localToolNames = buildBrowserAgentToolClasses(
+      async () => ({}) as any
+    )
+      .map((ToolClass) => new ToolClass().name)
+      .filter((name) => name.startsWith("browser_"));
+
+    expect(new Set(requested)).toEqual(new Set(localToolNames));
+  });
+
+  it("selects the extension transport during process() and restores it after", async () => {
+    delete process.env.NODETOOL_BROWSER_TRANSPORT;
+    const node = new LiveBrowserAgentNode();
+    const workspaceDir = await mkdtemp(path.join(tmpdir(), "live-browser-"));
+    let transportDuringRun: string | undefined;
+
+    const context = {
+      getProvider: vi.fn().mockResolvedValue({
+        provider: "mock",
+        generateMessages: async function* () {
+          // Captured inside super.process(), proving the transport is active
+          // while the agent loop runs.
+          transportDuringRun = process.env.NODETOOL_BROWSER_TRANSPORT;
+          yield { type: "chunk" as const, content: "Done.", done: true };
+        },
+        async *generateMessagesTraced(...args: any[]) {
+          yield* (this as any).generateMessages(...args);
+        }
+      }),
+      workspaceDir
+    } as any;
+
+    node.assign({
+      prompt: "open example.com",
+      model: { provider: "mock", id: "test-model" }
+    });
+
+    await node.process(context);
+
+    expect(transportDuringRun).toBe("extension");
+    // Restored afterwards so other nodes are unaffected.
+    expect(process.env.NODETOOL_BROWSER_TRANSPORT).toBeUndefined();
+    await rm(workspaceDir, { recursive: true, force: true });
+  });
+
+  it("declares a chunk output and streams text deltas via genProcess", async () => {
+    delete process.env.NODETOOL_BROWSER_TRANSPORT;
+    expect(LiveBrowserAgentNode.metadataOutputTypes).toMatchObject({
+      text: "str",
+      chunk: "chunk"
+    });
+
+    const node = new LiveBrowserAgentNode();
+    const workspaceDir = await mkdtemp(path.join(tmpdir(), "live-stream-"));
+    const context = {
+      getProvider: vi.fn().mockResolvedValue({
+        provider: "mock",
+        generateMessages: async function* () {
+          yield { type: "chunk" as const, content: "Navigating…", done: false };
+          yield { type: "chunk" as const, content: " done.", done: true };
+        },
+        async *generateMessagesTraced(...args: any[]) {
+          yield* (this as any).generateMessages(...args);
+        }
+      }),
+      workspaceDir
+    } as any;
+
+    node.assign({
+      prompt: "open example.com",
+      model: { provider: "mock", id: "test-model" }
+    });
+
+    const outputs: any[] = [];
+    for await (const out of node.genProcess(context)) {
+      outputs.push(out);
+    }
+
+    // Streamed deltas arrived on `chunk` (done:false) before the final value.
+    const streamed = outputs
+      .filter((o) => o.chunk && o.chunk.done === false)
+      .map((o) => o.chunk.content)
+      .join("");
+    expect(streamed).toBe("Navigating… done.");
+
+    // Final yield carries the complete text plus a terminal chunk.
+    const last = outputs[outputs.length - 1];
+    expect(last.text).toBe("Navigating… done.");
+    expect(last.chunk).toMatchObject({ done: true, content_type: "text" });
+
+    expect(process.env.NODETOOL_BROWSER_TRANSPORT).toBeUndefined();
     await rm(workspaceDir, { recursive: true, force: true });
   });
 });

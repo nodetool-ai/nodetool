@@ -2114,13 +2114,16 @@ describe("ProcessingContext – storage retrieve returns null on error", () => {
 });
 
 describe("ProcessingContext – getProvider with no resolver", () => {
+  // Generous timeout: the no-resolver path does a cold dynamic import of the
+  // full provider barrel (./providers/index.js), which can be slow on first
+  // load under full-suite parallel contention.
   it("falls back to the global provider registry", async () => {
     const providerId = `fake-${Date.now()}`;
     registerProvider(providerId, FakeProvider, { textResponse: "hello" });
     const ctx = new ProcessingContext({ jobId: "j1" });
     const provider = await ctx.getProvider(providerId);
     expect(provider).toBeInstanceOf(FakeProvider);
-  });
+  }, 30000);
 
   it("resolves built-in providers from the default registry path", async () => {
     vi.stubEnv("OPENAI_API_KEY", "sk-test-fake-key");
@@ -2131,7 +2134,7 @@ describe("ProcessingContext – getProvider with no resolver", () => {
     } finally {
       vi.unstubAllEnvs();
     }
-  });
+  }, 30000);
 });
 
 describe("ProcessingContext – get with default value", () => {

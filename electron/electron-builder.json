@@ -19,6 +19,10 @@
             "to": "web"
         },
         {
+            "from": "../chrome-extension/dist",
+            "to": "chrome-extension"
+        },
+        {
             "from": "backend-bundle",
             "to": "backend",
             "filter": [

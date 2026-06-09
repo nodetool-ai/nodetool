@@ -23,6 +23,7 @@ import {
 import type { NodeMetadata } from "@nodetool-ai/node-sdk";
 import { registerTransformersJsProvider } from "@nodetool-ai/transformers-js-provider";
 import { bootstrapNodeRegistry } from "./node-registry-setup.js";
+import { zipExtensionDist } from "./lib/extension-dist.js";
 import {
   initTelemetry,
   createPythonBridge,
@@ -916,6 +917,25 @@ if (hasStaticApp && staticFolder) {
     return reply.sendFile("index.html");
   });
 }
+
+// Download the built Chrome extension as a zip, for the install helper UI.
+app.get("/api/extension/download", async (_req, reply) => {
+  try {
+    const zip = await zipExtensionDist();
+    return reply
+      .header("Content-Type", "application/zip")
+      .header(
+        "Content-Disposition",
+        'attachment; filename="nodetool-chrome-extension.zip"'
+      )
+      .send(zip);
+  } catch (err) {
+    log.warn(
+      `Extension download failed: ${err instanceof Error ? err.message : String(err)}`
+    );
+    return reply.status(404).send({ detail: "Extension build not found" });
+  }
+});
 
 // Log all 404s so we can identify missing routes
 app.setNotFoundHandler((req, reply) => {

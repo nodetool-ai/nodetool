@@ -19,7 +19,10 @@ import type {
   ProcessingMessage
 } from "@nodetool-ai/protocol";
 import { Agent, Tool as AgentTool } from "@nodetool-ai/agents";
-import { hydrateBuiltinAgentTool } from "./agent-tool-hydration.js";
+import {
+  hydrateBuiltinAgentTool,
+  hydrateBuiltinAgentTools
+} from "./agent-tool-hydration.js";
 import { tagAsServer, renderTemplate } from "@nodetool-ai/nodes-utils";
 
 type MessagePart = { type?: string; text?: string };
@@ -1021,11 +1024,30 @@ export interface AgentLoopOptions {
   modelId: string;
   systemPrompt: string;
   prompt: string;
+  /**
+   * Tools the model may call. Each may be a fully-formed {@link ToolLike} (has
+   * `process` + `inputSchema`) OR a bare name-stub (`{ name }`) for a builtin
+   * tool registered via `registerBuiltinAgentToolClasses` — runAgentLoop
+   * hydrates stubs by name. Anything that can't be hydrated (no `process`) is
+   * logged and treated as an unknown tool by the model.
+   */
   tools: ToolLike[];
   contentParts?: MessageContent[];
   maxTokens?: number;
   maxIterations?: number;
   threadId?: string;
+  /**
+   * Optional sink for streamed assistant text deltas (non-thinking). Lets a
+   * caller surface incremental output (e.g. a node `chunk` output) without
+   * changing the loop's accumulate-and-return contract.
+   */
+  onText?: (delta: string) => void;
+  /**
+   * Optional sink for each tool call the model makes, formatted as a
+   * `tool_call` {@link Chunk} (same shape the Agent node emits). Fired just
+   * before the tool runs.
+   */
+  onToolCall?: (chunk: Chunk) => void;
 }
 
 export interface AgentLoopResult {
@@ -1033,6 +1055,17 @@ export interface AgentLoopResult {
   messages: Message[];
 }
 
+/**
+ * Run a streaming tool-use loop: the model streams text/tool-calls, tools
+ * execute, results feed back, repeat until no more tool calls or
+ * `maxIterations`. Returns the final assistant text plus the full message
+ * trail. Stream via `onText` / `onToolCall`.
+ *
+ * Tools (`options.tools`) may be real {@link ToolLike}s or bare `{ name }`
+ * stubs for registered builtin tools — they are hydrated here (see the `tools`
+ * field doc). This mirrors the AgentNode's `normalizeTools`; both paths now
+ * hydrate, so a tool reaches the loop the same way regardless of entry point.
+ */
 export async function runAgentLoop(
   options: AgentLoopOptions
 ): Promise<AgentLoopResult> {
@@ -1062,7 +1095,25 @@ export async function runAgentLoop(
     { role: "user", content: userContent }
   ];
 
-  const providerTools = tools.length > 0 ? toProviderTools(tools) : undefined;
+  // Hydrate builtin tools passed as bare name-stubs ({ name }) into real Tool
+  // instances (same as the AgentNode path's normalizeTools). Without this a
+  // stub has no `process`/`inputSchema`, so the model gets a schemaless tool
+  // and every call is rejected as "Unknown tool". A real Tool passes through
+  // unchanged. Warn for anything still unrunnable so it fails loudly, not
+  // silently.
+  const resolvedTools = hydrateBuiltinAgentTools(tools) as ToolLike[];
+  for (const t of resolvedTools) {
+    if (typeof t.process !== "function") {
+      log.warn(
+        `runAgentLoop received tool '${t.name}' with no process() and could ` +
+          "not hydrate it — the model cannot call it. Pass a real Tool or a " +
+          "registered builtin tool name."
+      );
+    }
+  }
+
+  const providerTools =
+    resolvedTools.length > 0 ? toProviderTools(resolvedTools) : undefined;
   const provider = await context.getProvider(providerId);
   let lastAssistantText = "";
 
@@ -1084,8 +1135,14 @@ export async function runAgentLoop(
       threadId: options.threadId
     })) {
       if (isChunkItem(item)) {
-        if (!item.thinking) {
-          assistantText += item.content ?? "";
+        // Only genuine text accumulates into the returned text / onText stream.
+        // Providers may stream tool calls as `tool_call` chunks (and audio,
+        // agent_status, etc.) — those must not leak into the text output.
+        // (Tool execution uses the structured ToolCall items below.)
+        if (!item.thinking && item.content_type === "text") {
+          const delta = item.content ?? "";
+          assistantText += delta;
+          if (delta) options.onText?.(delta);
         }
       }
       if (isToolCallItem(item)) {
@@ -1114,7 +1171,8 @@ export async function runAgentLoop(
     }
 
     for (const toolCall of assistantToolCalls) {
-      const tool = tools.find((t) => t.name === toolCall.name);
+      options.onToolCall?.(toolCallChunk(toolCall));
+      const tool = resolvedTools.find((t) => t.name === toolCall.name);
       if (!tool || typeof tool.process !== "function") {
         messages.push({
           role: "tool",

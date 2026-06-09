@@ -316,6 +316,25 @@ export class CdpPage {
     return out;
   }
 
+  /**
+   * Native file-input injection: resolve the `<input type="file">` matched by
+   * `selector` to a CDP nodeId and hand Chrome real filesystem paths via
+   * `DOM.setFileInputFiles`. The paths must exist on the machine running this
+   * Chrome instance (host process for local Chrome, container for the sandbox);
+   * when no such path is reachable — e.g. the extension transport driving the
+   * user's own machine from the server — callers fall back to an in-page
+   * DataTransfer injection instead.
+   */
+  async setFileInputFiles(selector: string, files: string[]): Promise<void> {
+    const { root } = await this.client.DOM.getDocument({ depth: 0 });
+    const { nodeId } = await this.client.DOM.querySelector({
+      nodeId: root.nodeId,
+      selector
+    });
+    if (!nodeId) throw new Error(`Element not found: ${selector}`);
+    await this.client.DOM.setFileInputFiles({ files, nodeId });
+  }
+
   async screenshot(opts: { fullPage?: boolean } = {}): Promise<Buffer> {
     const { data } = await this.client.Page.captureScreenshot({
       format: "png",

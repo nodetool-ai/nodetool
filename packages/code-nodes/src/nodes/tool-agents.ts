@@ -9,8 +9,10 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ToolLike } from "@nodetool-ai/llm-nodes";
 import { runAgentLoop, resolveBuiltinAgentTool } from "@nodetool-ai/llm-nodes";
+import { createLogger } from "@nodetool-ai/config";
 import { exec } from "node:child_process";
 import { access, mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
@@ -641,6 +643,295 @@ export class BrowserAgentNode extends ToolAgentNode {
     max: 2000000
   })
   declare max_output_chars: any;
+}
+
+// ---------------------------------------------------------------------------
+// LiveBrowserAgent — drives the user's real logged-in Chrome via the extension
+// ---------------------------------------------------------------------------
+
+/**
+ * The 13 CDP browser tools (registered into the builtin agent-tool registry by
+ * `sandbox.ts`). Passed as name-stubs; `runAgentLoop` hydrates them from the
+ * registry. The local `browser_*` tools route through `browser-tools-local`,
+ * which selects the extension transport via `NODETOOL_BROWSER_TRANSPORT`.
+ */
+const LIVE_BROWSER_TOOL_NAMES: readonly string[] = [
+  "browser_view",
+  "browser_navigate",
+  "browser_restart",
+  "browser_click",
+  "browser_input_text",
+  "browser_move_mouse",
+  "browser_press_key",
+  "browser_select_option",
+  "browser_scroll",
+  "browser_console_exec",
+  "browser_console_view",
+  "browser_capture_media",
+  "browser_upload_asset"
+];
+
+const liveBrowserLog = createLogger("nodetool.agents.live-browser");
+
+export class LiveBrowserAgentNode extends ToolAgentNode {
+  static readonly nodeType = "nodetool.agents.LiveBrowserAgent";
+  static readonly title = "Live Browser Agent";
+  static readonly inlineFields = [];
+  static readonly inputFields: string[] = ["prompt"];
+  static readonly description =
+    "Drives your real, logged-in Chrome via the Nodetool browser extension.\n    Automates media-generation UIs, saves generated images/videos as assets, and uploads assets into sites.\n    skills, browser, live, automation, extension, media";
+  static readonly metadataOutputTypes = {
+    text: "str",
+    chunk: "chunk"
+  };
+  // `text` is the final answer; `chunk` streams assistant text deltas as the
+  // agent works. Each yielded chunk is its own iteration so downstream keeps
+  // the full stream rather than collapsing to the last value.
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    text: { kind: "single", source: "__execution__" },
+    chunk: { kind: "iteration", source: "__execution__", group: "stream" }
+  };
+  static readonly _systemPrompt =
+    "You drive the user's REAL, logged-in Chrome through the Nodetool extension (CDP). " +
+    "The user must have clicked 'Attach to this tab' in the extension first. " +
+    "Use `browser_view` to see the page: it returns a screenshot plus interactive elements indexed by `index`. " +
+    "Act with `browser_navigate`, `browser_click` (by `index` or coordinates), `browser_input_text`, " +
+    "`browser_select_option`, `browser_scroll`, and `browser_press_key`. " +
+    "To save a generated image/video/audio as a Nodetool asset, call `browser_capture_media` " +
+    "(by element `index` or `url`); it returns an asset reference. " +
+    "To put an existing Nodetool asset into a site's file input, call `browser_upload_asset` with the input's `index` and the `asset_id`. " +
+    "This is a live browser the user can see — make minimal, deliberate actions, re-`browser_view` after navigation, " +
+    "and never log in or change account settings on the user's behalf.";
+
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "Model used to plan and drive the live browser session."
+  })
+  declare model: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "What to do in the live browser (natural language)."
+  })
+  declare prompt: any;
+
+  @prop({
+    type: "int",
+    default: 300,
+    title: "Timeout Seconds",
+    description: "Maximum runtime for the agent session.",
+    min: 1,
+    max: 3600
+  })
+  declare timeout_seconds: any;
+
+  /**
+   * Only the CDP browser tools — no execute_bash for a live-browser session.
+   * Hydrate the names into real Tool instances: runAgentLoop does NOT resolve
+   * bare name-stubs, so unhydrated tools would have no schema and never run.
+   */
+  override getTools(_workspaceDir: string): ToolLike[] {
+    const tools: ToolLike[] = [];
+    for (const name of LIVE_BROWSER_TOOL_NAMES) {
+      const tool = resolveBuiltinAgentTool(name);
+      if (tool) {
+        tools.push(tool as ToolLike);
+      } else {
+        liveBrowserLog.warn(
+          `Browser tool '${name}' is not registered — the agent will not be ` +
+            "able to call it (is automation-nodes/sandbox loaded?)"
+        );
+      }
+    }
+    return tools;
+  }
+
+  override async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    // Select the extension transport for the host-process browser singleton.
+    // v1 is single-session: one extension connection, one active tab.
+    const prev = process.env.NODETOOL_BROWSER_TRANSPORT;
+    process.env.NODETOOL_BROWSER_TRANSPORT = "extension";
+
+    const model = ((this as { model?: { id?: string; provider?: string } })
+      .model) ?? {};
+    const promptText = String(
+      (this as { prompt?: unknown }).prompt ?? ""
+    ).trim();
+    liveBrowserLog.info("LiveBrowserAgent starting", {
+      transport: "extension",
+      provider: model.provider,
+      model: model.id,
+      promptChars: promptText.length,
+      wsUrl: process.env.NODETOOL_EXTENSION_WS_URL ?? "(in-process bridge)",
+      tools: LIVE_BROWSER_TOOL_NAMES.length
+    });
+
+    const startedAt = Date.now();
+    try {
+      const result = await super.process(context);
+      liveBrowserLog.info("LiveBrowserAgent finished", {
+        elapsedMs: Date.now() - startedAt,
+        textChars: typeof result.text === "string" ? result.text.length : 0
+      });
+      return result;
+    } catch (err) {
+      liveBrowserLog.error(
+        `LiveBrowserAgent failed after ${Date.now() - startedAt}ms`,
+        err instanceof Error ? err : new Error(String(err))
+      );
+      throw err;
+    } finally {
+      if (prev === undefined) {
+        delete process.env.NODETOOL_BROWSER_TRANSPORT;
+      } else {
+        process.env.NODETOOL_BROWSER_TRANSPORT = prev;
+      }
+    }
+  }
+
+  /**
+   * Streaming execution: yield assistant text deltas on the `chunk` output as
+   * the agent works, then the final answer on `text` (same shape as the Agent
+   * node's `chunk`/`text`). The kernel prefers this over `process()` because it
+   * overrides `genProcess`.
+   */
+  override async *genProcess(
+    context?: ProcessingContext
+  ): AsyncGenerator<Record<string, unknown>> {
+    const prev = process.env.NODETOOL_BROWSER_TRANSPORT;
+    process.env.NODETOOL_BROWSER_TRANSPORT = "extension";
+
+    const model =
+      (this as { model?: { id?: string; provider?: string } }).model ?? {};
+    const providerId = String(model.provider || "").toLowerCase();
+    const modelId = String(model.id || "");
+    const promptText = String(
+      (this as { prompt?: unknown }).prompt ?? ""
+    ).trim();
+    const startedAt = Date.now();
+    liveBrowserLog.info("LiveBrowserAgent starting (stream)", {
+      transport: "extension",
+      provider: model.provider,
+      model: model.id,
+      promptChars: promptText.length,
+      wsUrl: process.env.NODETOOL_EXTENSION_WS_URL ?? "(in-process bridge)",
+      tools: LIVE_BROWSER_TOOL_NAMES.length
+    });
+
+    try {
+      if (!promptText) throw new Error("Prompt is required");
+      if (!providerId || !modelId) {
+        throw new Error("Select a model for this skill.");
+      }
+      if (!context || typeof context.getProvider !== "function") {
+        throw new Error("Processing context with provider access is required");
+      }
+
+      // Bridge runAgentLoop's stream callbacks into this generator via a queue
+      // of yield-ready records: the loop pushes text deltas and tool-call
+      // chunks, the generator drains and yields them.
+      const queue: Array<Record<string, unknown>> = [];
+      let notify: (() => void) | null = null;
+      const wake = (): void => {
+        const n = notify;
+        notify = null;
+        n?.();
+      };
+      let finished = false;
+      let finalText = "";
+      let loopError: unknown = null;
+
+      const systemPrompt = (this.constructor as typeof ToolAgentNode)
+        ._systemPrompt;
+      const loop = runAgentLoop({
+        context,
+        providerId,
+        modelId,
+        systemPrompt,
+        prompt: promptText,
+        tools: this.getTools(""),
+        maxTokens: 4096,
+        maxIterations: 10,
+        onText: (delta) => {
+          queue.push({
+            chunk: {
+              type: "chunk",
+              content: delta,
+              content_type: "text",
+              done: false
+            },
+            text: null
+          });
+          wake();
+        },
+        onToolCall: (chunk) => {
+          queue.push({ chunk, text: null });
+          wake();
+        }
+      })
+        .then((r) => {
+          finalText = r.text;
+        })
+        .catch((e) => {
+          loopError = e;
+        })
+        .finally(() => {
+          finished = true;
+          wake();
+        });
+
+      while (true) {
+        while (queue.length > 0) {
+          yield queue.shift() as Record<string, unknown>;
+        }
+        if (finished) break;
+        await new Promise<void>((resolve) => {
+          notify = resolve;
+        });
+      }
+      await loop;
+      if (loopError) {
+        throw loopError instanceof Error
+          ? loopError
+          : new Error(String(loopError));
+      }
+
+      liveBrowserLog.info("LiveBrowserAgent finished (stream)", {
+        elapsedMs: Date.now() - startedAt,
+        textChars: finalText.length
+      });
+
+      yield {
+        chunk: { type: "chunk", content: "", content_type: "text", done: true },
+        text: finalText
+      };
+    } catch (err) {
+      liveBrowserLog.error(
+        `LiveBrowserAgent failed after ${Date.now() - startedAt}ms`,
+        err instanceof Error ? err : new Error(String(err))
+      );
+      throw err;
+    } finally {
+      if (prev === undefined) {
+        delete process.env.NODETOOL_BROWSER_TRANSPORT;
+      } else {
+        process.env.NODETOOL_BROWSER_TRANSPORT = prev;
+      }
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -2035,6 +2326,7 @@ export class YtDlpDownloaderAgentNode extends ToolAgentNode {
 export const TOOL_AGENT_NODES: readonly NodeClass[] = [
   ShellAgentNode,
   BrowserAgentNode,
+  LiveBrowserAgentNode,
   SQLiteAgentNode,
   SupabaseAgentNode,
   DocumentAgentNode,

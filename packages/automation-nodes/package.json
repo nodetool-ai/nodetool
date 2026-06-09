@@ -9,6 +9,7 @@
     "build": "node ../../scripts/build-typescript-workspace.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:integration": "npm --prefix ../../chrome-extension run build && npx -y @puppeteer/browsers install chrome@stable --path ../../chrome && vitest run --config vitest.integration.config.ts",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

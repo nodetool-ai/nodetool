@@ -1,3 +1,20 @@
+/**
+ * Builtin agent-tool registry + hydration.
+ *
+ * Tools can be referenced by name as bare stubs (`{ name }`) and hydrated into
+ * real `Tool` instances on demand. The registry holds the always-available
+ * STATIC_TOOL_CLASSES plus anything other modules append via
+ * {@link registerBuiltinAgentToolClasses} at load time (e.g. `sandbox.ts`
+ * registers the `browser_*` CDP tools).
+ *
+ * CONTRACT: a name-stub is NOT executable until hydrated. `runAgentLoop` and
+ * the AgentNode (`normalizeTools`) both hydrate their `tools` before use, so a
+ * stub or a real Tool reaches the loop equivalently. Any other caller that
+ * builds tools by name and runs them itself MUST call
+ * {@link resolveBuiltinAgentTool} / {@link hydrateBuiltinAgentTool} first — an
+ * unhydrated stub has no `process`/`inputSchema` and silently can't be called.
+ */
+
 import {
   BrowserTool,
   CalculatorTool,
@@ -65,6 +82,7 @@ export function registerBuiltinAgentToolClasses(classes: ToolCtor[]): void {
   builtinAgentTools = null;
 }
 
+/** Resolve a registered builtin tool by name to a runnable `Tool`, or null. */
 export function resolveBuiltinAgentTool(name: string): Tool | null {
   if (!builtinAgentTools) {
     builtinAgentTools = new Map<string, Tool>();
@@ -76,11 +94,17 @@ export function resolveBuiltinAgentTool(name: string): Tool | null {
   return builtinAgentTools.get(name) ?? null;
 }
 
+/**
+ * Hydrate one tool: a real tool (has `process`) passes through unchanged; a
+ * bare name-stub is resolved from the registry (or returned as-is if unknown,
+ * so the caller can detect the still-unrunnable stub).
+ */
 export function hydrateBuiltinAgentTool<T extends MaybeTool>(tool: T): T | Tool {
   if (typeof tool.process === "function") return tool;
   return resolveBuiltinAgentTool(tool.name) ?? tool;
 }
 
+/** Hydrate a list of tools — see {@link hydrateBuiltinAgentTool}. */
 export function hydrateBuiltinAgentTools<T extends MaybeTool>(tools: T[]): Array<T | Tool> {
   return tools.map(hydrateBuiltinAgentTool);
 }

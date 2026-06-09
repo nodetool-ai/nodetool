@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nodetool CDP Proxy</title>
+    <link rel="stylesheet" href="./popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <header class="popup__header">
+        <h1 class="popup__title">Nodetool CDP Proxy</h1>
+        <div class="status">
+          <span id="status-dot" class="status__dot" data-state="disconnected"></span>
+          <span id="status-label" class="status__label">Disconnected</span>
+        </div>
+      </header>
+
+      <section class="field">
+        <label class="field__label" for="server-url">Server WebSocket URL</label>
+        <div class="field__row">
+          <input
+            id="server-url"
+            class="field__input"
+            type="text"
+            spellcheck="false"
+            autocomplete="off"
+            placeholder="ws://localhost:7777/ws/extension"
+          />
+          <button id="save-url" class="button button--secondary" type="button">
+            Save
+          </button>
+        </div>
+      </section>
+
+      <section class="attach">
+        <p id="attach-info" class="attach__info">No tab attached.</p>
+        <div class="attach__actions">
+          <button id="attach-btn" class="button button--primary" type="button">
+            Attach to this tab
+          </button>
+          <button id="detach-btn" class="button button--ghost" type="button" hidden>
+            Detach
+          </button>
+        </div>
+        <p class="attach__hint">
+          Attaching shows Chrome's "Nodetool is debugging this browser" banner
+          and lets the Nodetool server drive this tab. It is mutually exclusive
+          with DevTools on the same tab.
+        </p>
+      </section>
+
+      <p id="error" class="error" hidden></p>
+    </main>
+
+    <script type="module" src="./popup.ts"></script>
+  </body>
+</html>

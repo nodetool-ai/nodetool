@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Nodetool CDP Proxy",
+  "version": "2.0.0",
+  "description": "Bridges your logged-in Chrome to a Nodetool server's live browser agent via the Chrome DevTools Protocol.",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "tabs",
+    "alarms",
+    "scripting",
+    "debugger",
+    "downloads"
+  ],
+  "host_permissions": [
+    "http://localhost:*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "assets/icons/icon16.png",
+      "48": "assets/icons/icon48.png",
+      "128": "assets/icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "assets/icons/icon16.png",
+    "48": "assets/icons/icon48.png",
+    "128": "assets/icons/icon128.png"
+  }
+}
