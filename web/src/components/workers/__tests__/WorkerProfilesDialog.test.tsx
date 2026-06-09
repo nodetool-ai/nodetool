@@ -109,7 +109,7 @@ describe("WorkerProfilesDialog", () => {
     expect(createProfile).toHaveBeenCalledWith({
       name: "my-worker",
       target: "runpod",
-      image: "ghcr.io/nodetool-ai/worker:latest",
+      image: "ghcr.io/nodetool-ai/nodetool-worker:latest",
       token_policy: "generate",
       spec: { gpu: "NVIDIA A40", disk: 100 },
       idle_timeout_minutes: 30
@@ -162,7 +162,7 @@ describe("WorkerProfilesDialog", () => {
     expect(createProfile).toHaveBeenCalledWith({
       name: "plain",
       target: "vast",
-      image: "ghcr.io/nodetool-ai/worker:latest",
+      image: "ghcr.io/nodetool-ai/nodetool-worker:latest",
       token_policy: "generate",
       spec: { disk: 250 },
       idle_timeout_minutes: 30,
@@ -191,7 +191,7 @@ describe("WorkerProfilesDialog", () => {
     expect(createProfile).toHaveBeenCalledWith({
       name: "cpu-box",
       target: "runpod",
-      image: "ghcr.io/nodetool-ai/worker:latest",
+      image: "ghcr.io/nodetool-ai/nodetool-worker:latest",
       token_policy: "generate",
       spec: { vcpu: 8, disk: 100 },
       idle_timeout_minutes: 30

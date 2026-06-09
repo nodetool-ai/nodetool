@@ -33,7 +33,7 @@ const API_KEY = "test-runpod-key";
 function baseSpec(overrides: Partial<WorkerSpec> = {}): WorkerSpec {
   return {
     name: "hf-worker",
-    image: "ghcr.io/nodetool-ai/worker:0.7.3",
+    image: "ghcr.io/nodetool-ai/nodetool-worker:0.7.3",
     target: "runpod",
     token: "worker-secret",
     ...overrides,
@@ -64,7 +64,7 @@ describe("RunpodPodProvider.provision", () => {
     // The create call uses the spec image and passes the token as worker env.
     const [, createInit] = mockFetch.mock.calls[0];
     const createBody = JSON.parse((createInit as RequestInit).body as string);
-    expect(createBody.imageName).toBe("ghcr.io/nodetool-ai/worker:0.7.3");
+    expect(createBody.imageName).toBe("ghcr.io/nodetool-ai/nodetool-worker:0.7.3");
     expect(createBody.env.NODETOOL_WORKER_TOKEN).toBe("worker-secret");
   });
 

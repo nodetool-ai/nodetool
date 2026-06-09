@@ -221,7 +221,7 @@ function makeManager(overrides: Partial<WorkerManagerDeps> = {}) {
 const PROFILE_INPUT = {
   name: "hf-a40",
   target: "runpod" as const,
-  image: "ghcr.io/nodetool-ai/worker:0.7.3",
+  image: "ghcr.io/nodetool-ai/nodetool-worker:0.7.3",
   spec: { gpu: "A40", vcpu: 8, env: { FOO: "bar" } },
   token_policy: "generate" as const,
   idle_timeout_minutes: 30,

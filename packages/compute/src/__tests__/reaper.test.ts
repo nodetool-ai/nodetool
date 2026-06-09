@@ -24,7 +24,7 @@ function makeProfile(
     id: `profile-${name}`,
     name,
     target: "runpod",
-    image: "ghcr.io/nodetool-ai/worker:0.7.3",
+    image: "ghcr.io/nodetool-ai/nodetool-worker:0.7.3",
     spec: {},
     token_policy: "generate",
     idle_timeout_minutes: null,

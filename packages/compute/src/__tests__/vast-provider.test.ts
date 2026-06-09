@@ -33,7 +33,7 @@ const API_KEY = "test-vast-key";
 function baseSpec(overrides: Partial<WorkerSpec> = {}): WorkerSpec {
   return {
     name: "hf-worker",
-    image: "ghcr.io/nodetool-ai/worker:0.7.3",
+    image: "ghcr.io/nodetool-ai/nodetool-worker:0.7.3",
     target: "vast",
     gpu: "RTX_4090",
     token: "worker-secret",
@@ -87,7 +87,7 @@ describe("VastProvider.provision", () => {
     expect(launchUrl).toBe("https://console.vast.ai/api/v0/asks/555/");
     expect((launchInit as RequestInit).method).toBe("PUT");
     const launchBody = JSON.parse((launchInit as RequestInit).body as string);
-    expect(launchBody.image).toBe("ghcr.io/nodetool-ai/worker:0.7.3");
+    expect(launchBody.image).toBe("ghcr.io/nodetool-ai/nodetool-worker:0.7.3");
     expect(launchBody.env.NODETOOL_WORKER_TOKEN).toBe("worker-secret");
   });
 

@@ -36,7 +36,7 @@ describe("WorkerProvider types", () => {
     const provider: WorkerProvider = new FakeProvider();
     const spec: WorkerSpec = {
       name: "hf-a40",
-      image: "ghcr.io/nodetool-ai/worker:0.7.3",
+      image: "ghcr.io/nodetool-ai/nodetool-worker:0.7.3",
       target: "runpod",
       gpu: "A40",
       vcpu: 4,
@@ -70,7 +70,7 @@ describe("WorkerProvider types", () => {
     const provider: WorkerProvider = new FakeProvider();
     const spec: WorkerSpec = {
       name: "minimal",
-      image: "ghcr.io/nodetool-ai/worker:latest",
+      image: "ghcr.io/nodetool-ai/nodetool-worker:latest",
       target: "vast",
     };
 

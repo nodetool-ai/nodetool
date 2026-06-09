@@ -40,7 +40,7 @@ const listProfiles = vi.fn(async () => [
     id: "p1",
     name: "hf-a40",
     target: "runpod",
-    image: "ghcr.io/nodetool-ai/worker:0.7.3",
+    image: "ghcr.io/nodetool-ai/nodetool-worker:0.7.3",
     spec: { gpu: "A40" },
     token_policy: "generate",
     idle_timeout_minutes: 30,
@@ -175,7 +175,7 @@ describe("worker profile add", () => {
       "--target",
       "runpod",
       "--image",
-      "ghcr.io/nodetool-ai/worker:0.7.3",
+      "ghcr.io/nodetool-ai/nodetool-worker:0.7.3",
       "--gpu",
       "A40"
     ]);
@@ -188,7 +188,7 @@ describe("worker profile add", () => {
     };
     expect(input.name).toBe("hf-a40");
     expect(input.target).toBe("runpod");
-    expect(input.image).toBe("ghcr.io/nodetool-ai/worker:0.7.3");
+    expect(input.image).toBe("ghcr.io/nodetool-ai/nodetool-worker:0.7.3");
     expect(input.spec?.gpu).toBe("A40");
   });
 
@@ -266,7 +266,7 @@ describe("worker create", () => {
       "--target",
       "runpod",
       "--image",
-      "ghcr.io/nodetool-ai/worker:0.7.3",
+      "ghcr.io/nodetool-ai/nodetool-worker:0.7.3",
       "--gpu",
       "A40"
     ]);

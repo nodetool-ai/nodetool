@@ -32,7 +32,7 @@ const API_KEY_BY_TARGET: Record<WorkerTarget, string> = {
 
 // The default NodeTool worker image. Editable — only override if you publish
 // your own build of `python -m nodetool.worker`.
-const DEFAULT_WORKER_IMAGE = "ghcr.io/nodetool-ai/worker:latest";
+const DEFAULT_WORKER_IMAGE = "ghcr.io/nodetool-ai/nodetool-worker:latest";
 const DEFAULT_IDLE_TIMEOUT = "30";
 // Persistent volume default — big enough for several HF image models. Models
 // download here and survive a stop/resume.
