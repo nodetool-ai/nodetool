@@ -268,6 +268,14 @@ export class WorkerManager {
     return this.deps.listWorkerInstances();
   }
 
+  /**
+   * Return one instance by id with its bearer token decrypted, or null. Use
+   * this — not `list` — whenever the token is needed: bulk reads withhold it.
+   */
+  getInstance(instanceId: string): Promise<WorkerInstance | null> {
+    return this.deps.getWorkerInstance(instanceId);
+  }
+
   /** Refresh an instance's status from its provider. */
   async status(instanceId: string): Promise<WorkerStatus> {
     const instance = await this.requireInstance(instanceId);

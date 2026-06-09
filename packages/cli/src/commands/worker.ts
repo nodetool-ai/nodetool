@@ -37,6 +37,19 @@ function asJson(data: unknown): void {
   console.log(JSON.stringify(data, null, 2));
 }
 
+/**
+ * Redact a high-entropy bearer token for human-readable output. Shows only the
+ * first 8 characters so the user can confirm a token exists without leaking the
+ * full secret to shell history, CI logs, or terminal transcripts. The full
+ * token is retrievable on demand via `worker token <id>`.
+ */
+function maskToken(token: string | null | undefined): string {
+  if (!token) {
+    return "(none)";
+  }
+  return `${token.slice(0, 8)}… (full token: worker token <id>)`;
+}
+
 /** Print a simple aligned table. Missing values render as empty. */
 function printTable(rows: Record<string, unknown>[], columns?: string[]): void {
   if (rows.length === 0) {
@@ -138,6 +151,7 @@ export function registerWorkerCommands(program: Command): void {
   registerCreate(worker);
   registerList(worker);
   registerStatus(worker);
+  registerToken(worker);
   registerStop(worker);
 }
 
@@ -300,7 +314,7 @@ function registerCreate(worker: Command): void {
           const instance = await manager.provision(profileName);
           console.log(`Provisioned worker '${instance.id}'.`);
           console.log(`  wsUrl: ${instance.ws_url}`);
-          console.log(`  token: ${instance.token ?? "(none)"}`);
+          console.log(`  token: ${maskToken(instance.token)}`);
           console.log(`  status: ${instance.status}`);
 
           if (opts.attach) {
@@ -308,7 +322,13 @@ function registerCreate(worker: Command): void {
             console.log(`Attached. Bridge target: ${conn.wsUrl}`);
             console.log(`export NODETOOL_WORKER_URL=${conn.wsUrl}`);
             if (conn.token) {
-              console.log(`export NODETOOL_WORKER_TOKEN=${conn.token}`);
+              // Never print the raw bearer token to stdout — it would leak into
+              // shell history, CI logs, and terminal transcripts. Give a
+              // pipeable retrieval path instead (token: ${maskToken(conn.token)}).
+              console.log("# NODETOOL_WORKER_TOKEN was redacted; set it with:");
+              console.log(
+                `#   export NODETOOL_WORKER_TOKEN=$(nodetool worker token ${instance.id})`
+              );
             }
           }
         }
@@ -361,6 +381,34 @@ function registerStatus(worker: Command): void {
         const manager = await getWorkerManager();
         const state = await manager.status(id);
         console.log(state);
+      })
+    );
+}
+
+// ---------------------------------------------------------------------------
+// worker token
+// ---------------------------------------------------------------------------
+
+function registerToken(worker: Command): void {
+  worker
+    .command("token <id>")
+    .description(
+      "Print a worker's decrypted bearer token (pipe into NODETOOL_WORKER_TOKEN)"
+    )
+    .action(
+      runAction(async (id: string) => {
+        const manager = await getWorkerManager();
+        // getInstance decrypts on demand; bulk `list` withholds the token.
+        const instance = await manager.getInstance(id);
+        if (!instance) {
+          throw new Error(`Worker instance not found: ${id}`);
+        }
+        if (!instance.token) {
+          throw new Error(`Worker instance '${id}' has no token (open worker).`);
+        }
+        // Print ONLY the token so it pipes cleanly, e.g.
+        //   export NODETOOL_WORKER_TOKEN=$(nodetool worker token i1)
+        console.log(instance.token);
       })
     );
 }

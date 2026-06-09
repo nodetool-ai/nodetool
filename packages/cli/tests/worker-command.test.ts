@@ -51,13 +51,16 @@ const listProfiles = vi.fn(async () => [
 ]);
 const deleteProfile = vi.fn(async (_name: string) => {});
 
+// A realistic high-entropy bearer token (randomBytes(32).toString("hex")).
+const FULL_TOKEN =
+  "deadbeefcafef00d0123456789abcdef0123456789abcdef0123456789abcdef";
 const provisionedInstance = {
   id: "i1",
   profile_name: "hf-a40",
   target: "runpod",
   provider_ref: "pod-123",
   ws_url: "wss://pod-123-7777.proxy.runpod.net",
-  token: "deadbeef",
+  token: FULL_TOKEN,
   status: "running",
   attached_to: null,
   created_at: "2026-06-08T00:00:00.000Z",
@@ -67,9 +70,12 @@ const provisionedInstance = {
 const provision = vi.fn(async (_name: string) => provisionedInstance);
 const attach = vi.fn(async (_id: string) => ({
   wsUrl: "wss://pod-123-7777.proxy.runpod.net",
-  token: "deadbeef"
+  token: FULL_TOKEN
 }));
 const listInstances = vi.fn(async () => [provisionedInstance]);
+const getInstance = vi.fn(async (id: string) =>
+  id === provisionedInstance.id ? provisionedInstance : null
+);
 const status = vi.fn(async (_id: string) => "running");
 const stop = vi.fn(async (_id: string) => ({
   ...provisionedInstance,
@@ -84,6 +90,7 @@ class FakeWorkerManager {
   provision = provision;
   attach = attach;
   list = listInstances;
+  getInstance = getInstance;
   status = status;
   stop = stop;
   stopAll = stopAll;
@@ -143,6 +150,7 @@ beforeEach(() => {
     provision,
     attach,
     listInstances,
+    getInstance,
     status,
     stop,
     stopAll
@@ -227,22 +235,28 @@ describe("worker profile rm", () => {
 });
 
 describe("worker create", () => {
-  it("provisions from a profile and prints id, wsUrl, and token", async () => {
+  it("provisions from a profile and prints id and wsUrl, but never the raw token", async () => {
     await run(["worker", "create", "--profile", "hf-a40"]);
     expect(provision).toHaveBeenCalledWith("hf-a40");
     expect(attach).not.toHaveBeenCalled();
     const { out } = captured();
     expect(out).toContain("i1");
     expect(out).toContain("wss://pod-123-7777.proxy.runpod.net");
-    expect(out).toContain("deadbeef");
+    // The full bearer token must NOT be printed to stdout.
+    expect(out).not.toContain(FULL_TOKEN);
+    // A short, masked preview is acceptable so the user can confirm presence.
+    expect(out).toContain(FULL_TOKEN.slice(0, 8));
   });
 
-  it("attaches when --attach is set and prints the wsUrl", async () => {
+  it("attaches when --attach is set and prints the wsUrl but never the raw token", async () => {
     await run(["worker", "create", "--profile", "hf-a40", "--attach"]);
     expect(provision).toHaveBeenCalledWith("hf-a40");
     expect(attach).toHaveBeenCalledWith("i1");
     const { out } = captured();
     expect(out).toContain("wss://pod-123-7777.proxy.runpod.net");
+    // No copy-pasteable `export NODETOOL_WORKER_TOKEN=<secret>` line.
+    expect(out).not.toContain(FULL_TOKEN);
+    expect(out).not.toContain(`export NODETOOL_WORKER_TOKEN=${FULL_TOKEN}`);
   });
 
   it("supports the inline --target/--gpu/--image form", async () => {
@@ -289,6 +303,23 @@ describe("worker status", () => {
     expect(status).toHaveBeenCalledWith("i1");
     const { out } = captured();
     expect(out).toContain("running");
+  });
+});
+
+describe("worker token", () => {
+  it("prints only the decrypted token so it pipes cleanly", async () => {
+    await run(["worker", "token", "i1"]);
+    expect(getInstance).toHaveBeenCalledWith("i1");
+    const { out } = captured();
+    // The full token IS printed here — this is the one intentional retrieval
+    // path — and nothing else, so `$(nodetool worker token i1)` is exact.
+    expect(out.trim()).toBe(FULL_TOKEN);
+  });
+
+  it("errors for an unknown instance id", async () => {
+    await expect(run(["worker", "token", "nope"])).rejects.toThrow("__exit_1");
+    const { err } = captured();
+    expect(err).toMatch(/not found/i);
   });
 });
 
