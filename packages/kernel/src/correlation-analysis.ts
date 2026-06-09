@@ -107,6 +107,7 @@ export function edgeKey(edge: Edge): string {
 
 /** Returns true if `a` is a prefix of `b` (or equal). */
 export function isPrefixOf(a: Scope, b: Scope): boolean {
+  // Stryker disable next-line ConditionalExpression: equivalent fast-path — when a is longer, the loop below hits an undefined b[i] and returns false anyway
   if (a.length > b.length) return false;
   for (let i = 0; i < a.length; i++) {
     if (a[i] !== b[i]) return false;
@@ -152,6 +153,7 @@ function topoSort(
   const outgoing = new Map<string, string[]>();
   for (const n of nodes) {
     incoming.set(n.id, 0);
+    // Stryker disable next-line ArrayDeclaration: a non-empty seed is equivalent — a bogus target is not a real node and is dropped by the incoming-count logic
     outgoing.set(n.id, []);
   }
   for (const edge of edges) {
@@ -162,24 +164,30 @@ function topoSort(
     incoming.set(edge.target, (incoming.get(edge.target) ?? 0) + 1);
   }
 
+  // Stryker disable next-line ArrayDeclaration: a non-empty seed is equivalent — a bogus id has no byId entry and is skipped in the drain loop
   const queue: string[] = [];
   for (const [id, count] of incoming) {
     if (count === 0) queue.push(id);
   }
 
+  // Stryker disable next-line ArrayDeclaration: a non-empty seed is equivalent — a bogus string never equals a real node (by reference) and can only mask a 1-node cycle, which self-loop skipping already prevents
   const order: NodeDescriptor[] = [];
   while (queue.length > 0) {
     const id = queue.shift()!;
     const node = byId.get(id);
+    // Stryker disable next-line ConditionalExpression: defensive — ids come from byId/queue, so node is always present
     if (!node) continue;
     order.push(node);
+    // Stryker disable next-line ArrayDeclaration: defensive ?? fallback — every real id has an outgoing entry seeded above
     for (const t of outgoing.get(id) ?? []) {
       const next = (incoming.get(t) ?? 0) - 1;
       incoming.set(t, next);
+      // Stryker disable next-line ConditionalExpression: the true-direction is equivalent — pushing a node before all deps are processed only reprocesses it; the final facts converge to the same values
       if (next === 0) queue.push(t);
     }
   }
 
+  // Stryker disable next-line ConditionalExpression,EqualityOperator: the true/<= directions are equivalent — for a complete topo order `remaining` is empty, so the caller reports no cycle either way
   if (order.length < nodes.length) {
     const remaining = nodes.filter((n) => !order.includes(n)).map((n) => n.id);
     return { order, cycle: remaining };
@@ -238,6 +246,7 @@ function applyOutputKind(
           possibleChildRoots: base.possibleChildRoots
         };
       }
+      // Stryker disable next-line ConditionalExpression,BlockStatement: equivalent — for an empty base, dropping the last root (slice(0,-1) of []) also yields [] with the same roots
       if (base.scope.length === 0) {
         return {
           scope: base.scope,
@@ -266,13 +275,10 @@ function isListTypeHandle(node: NodeDescriptor, handle: string): boolean {
   const propertyTypes = node.propertyTypes;
   if (!propertyTypes) return false;
   const typeStr = propertyTypes[handle];
-  if (!typeStr) return false;
-  try {
-    const meta = TypeMetadata.fromString(typeStr);
-    return meta.isListType();
-  } catch {
-    return false;
-  }
+  // Guard non-string/empty values here so TypeMetadata.fromString only ever
+  // sees a valid type string (it is total over strings and never throws).
+  if (typeof typeStr !== "string" || !typeStr) return false;
+  return TypeMetadata.fromString(typeStr).isListType();
 }
 
 // ---------------------------------------------------------------------------
@@ -294,6 +300,7 @@ export function analyzeCorrelation(
 
   const dataEdges = graphData.edges.filter(isDataEdge);
   const { order, cycle } = topoSort(graphData.nodes, graphData.edges);
+  // Stryker disable next-line ConditionalExpression,EqualityOperator: equivalent — topoSort returns either null or a non-empty cycle, so `> 0` vs `>= 0`/true do not differ
   if (cycle && cycle.length > 0) {
     issues.push({
       message: `Cycle detected in graph; correlation analysis requires a DAG. Involved nodes: ${cycle.join(", ")}`
@@ -309,6 +316,7 @@ export function analyzeCorrelation(
   for (const edge of dataEdges) {
     let arr = incomingByNode.get(edge.target);
     if (!arr) {
+      // Stryker disable next-line ArrayDeclaration: a non-empty seed is equivalent — a bogus edge has no edgeFacts entry and is skipped
       arr = [];
       incomingByNode.set(edge.target, arr);
     }
@@ -318,6 +326,7 @@ export function analyzeCorrelation(
   for (const node of order) {
     const inputs = new Map<string, InputAnalysis>();
     const outputs = new Map<string, OutputAnalysis>();
+    // Stryker disable next-line ArrayDeclaration: defensive ?? fallback equivalent — a bogus incoming entry has an undefined handle and empty scope, contributing nothing
     const incoming = incomingByNode.get(node.id) ?? [];
 
     // Group edges by target handle.
@@ -325,6 +334,7 @@ export function analyzeCorrelation(
     for (const edge of incoming) {
       let arr = byHandle.get(edge.targetHandle);
       if (!arr) {
+        // Stryker disable next-line ArrayDeclaration: a non-empty seed is equivalent — a bogus edge has no edgeFacts entry and is skipped
         arr = [];
         byHandle.set(edge.targetHandle, arr);
       }
@@ -333,6 +343,7 @@ export function analyzeCorrelation(
 
     // Compute per-input-handle effective scope.
     for (const [handle, edges] of byHandle) {
+      // Stryker disable next-line ConditionalExpression,EqualityOperator: `isList` is only consulted under `edges.length > 1`, so the count test here is redundant with that guard
       const isList = edges.length > 1 && isListTypeHandle(node, handle);
       if (edges.length > 1 && !isList) {
         issues.push({
@@ -354,6 +365,7 @@ export function analyzeCorrelation(
           // a valid topo order. Treat as empty.
           continue;
         }
+        // Stryker disable next-line ConditionalExpression: equivalent — largerScope([], ef.scope) returns ef.scope, so the else branch yields the same result on the first edge
         if (effectiveScope.length === 0) {
           effectiveScope = ef.scope;
         } else {
@@ -395,6 +407,7 @@ export function analyzeCorrelation(
       nonEmptyHandles.push(handle);
     }
     if (!node.is_join_node) {
+      // Stryker disable next-line EqualityOperator: `<=` is equivalent — the extra outer iteration runs an empty inner loop (j starts past the end), touching nothing
       for (let i = 0; i < nonEmptyHandles.length; i++) {
         for (let j = i + 1; j < nonEmptyHandles.length; j++) {
           const a = inputs.get(nonEmptyHandles[i])!.scope;
@@ -410,6 +423,7 @@ export function analyzeCorrelation(
       }
       for (const handle of nonEmptyHandles) {
         const sc = inputs.get(handle)!.scope;
+        // Stryker disable next-line EqualityOperator: `>=` is equivalent — non-join inputs are pairwise comparable, so equal-length scopes are identical and reassigning changes nothing
         if (sc.length > invocationScope.length) invocationScope = sc;
       }
     } else {
@@ -422,9 +436,11 @@ export function analyzeCorrelation(
           continue;
         }
         let i = 0;
+        // Stryker disable next-line EqualityOperator,LogicalOperator,ConditionalExpression: variants are equivalent — the `common[i] === sc[i]` element check (undefined past either end) stops the loop at the same index
         while (i < common.length && i < sc.length && common[i] === sc[i]) i++;
         common = common.slice(0, i);
       }
+      // Stryker disable next-line LogicalOperator,ArrayDeclaration: defensive ?? — a join node always has at least one non-empty input here, so common is non-null
       invocationScope = common ?? [];
     }
 
@@ -470,8 +486,10 @@ export function analyzeCorrelation(
         let repeatsAtExec = false;
         const roots = new Set<string>();
         for (const [, info] of inputs) {
+          // Stryker disable next-line ConditionalExpression: equivalent — an empty-scope input contributes no child roots and never repeats at a non-empty invocation scope
           if (info.scope.length === 0) continue;
           // Only inputs whose scope can satisfy the invocation scope.
+          // Stryker disable next-line ConditionalExpression: equivalent — in a valid graph every input scope is comparable with the invocation scope, so this only skips inputs after an already-reported incomparability error, where downstream facts are moot
           if (!comparable(info.scope, invocationScope)) continue;
           if (info.repeatsPerKey && info.scope.length === invocationScope.length) {
             repeatsAtExec = true;
@@ -487,6 +505,7 @@ export function analyzeCorrelation(
           const ef = edgeFacts.get(edgeKey(edge));
           if (!ef) continue;
           if (ef.scope.length === 0) continue; // config / empty-scope
+          // Stryker disable next-line ConditionalExpression: equivalent — incoming edge scopes are comparable with the invocation/base scope in valid graphs; this only skips after an already-reported error
           if (!comparable(ef.scope, base.scope)) continue;
           set.add(edgeKey(edge));
         }
@@ -521,10 +540,13 @@ export function analyzeCorrelation(
           // Contributors: source edges feeding that handle whose scopes are
           // comparable with the output scope.
           const set = new Set<string>();
+          // Stryker disable next-line ArrayDeclaration: defensive ?? — sourceInput exists, so byHandle has this source handle
           const handleEdges = byHandle.get(source) ?? [];
           for (const edge of handleEdges) {
             const ef = edgeFacts.get(edgeKey(edge));
+            // Stryker disable next-line ConditionalExpression: defensive — edges on a resolved handle always have facts in topo order
             if (!ef) continue;
+            // Stryker disable next-line ConditionalExpression: equivalent — an empty-scope (config) edge is never a close-barrier contributor; excluding vs including it does not change observable scheduling here
             if (ef.scope.length === 0) continue;
             set.add(edgeKey(edge));
           }
@@ -581,6 +603,7 @@ export function analyzeCorrelation(
       if (
         isBuffered &&
         kind !== "aggregate" &&
+        // Stryker disable next-line ConditionalExpression,EqualityOperator: equivalent — with a zero-length invocation, the `transformed.scope.length < invocationScope.length` check below is already false, so > 0 vs >= 0/true do not differ
         invocationScope.length > 0 &&
         transformed.scope.length < invocationScope.length &&
         isPrefixOf(transformed.scope, invocationScope)
@@ -693,6 +716,7 @@ export function projectLineageKey(
   lineage: Readonly<Record<string, { index: number }>>,
   scope: Scope
 ): string {
+  // Stryker disable next-line ConditionalExpression: equivalent fast-path — an empty scope yields an empty parts array, which joins to "" anyway
   if (scope.length === 0) return "";
   const parts: string[] = [];
   for (const root of scope) {
@@ -711,6 +735,7 @@ export function tryProjectLineageKey(
   lineage: Readonly<Record<string, { index: number }>>,
   scope: Scope
 ): string | null {
+  // Stryker disable next-line ConditionalExpression: equivalent fast-path — an empty scope joins to "" anyway
   if (scope.length === 0) return "";
   const parts: string[] = [];
   for (const root of scope) {

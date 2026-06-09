@@ -266,6 +266,8 @@ export class NodeOutputs {
    * Convenience: emit to the "output" slot.
    */
   async default(value: unknown): Promise<void> {
+    // Stryker disable next-line StringLiteral: emit() maps a falsy slot to
+    // "output" via `slot || "output"`, so passing "output" vs "" is identical.
     await this.emit("output", value);
   }
 

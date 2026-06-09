@@ -104,20 +104,9 @@ describe("SuspendableState", () => {
     expect(s.getSavedState()).toEqual({ a: 1, b: 99, c: 3 });
   });
 
-  it("updateSuspendedState() initializes state if null", () => {
+  it("updateSuspendedState() does not throw when not resuming (warn-only guard)", () => {
     const s = new SuspendableState("node-1");
-    // Not resuming, but still works (creates empty object then merges)
-    s.updateSuspendedState({ key: "value" });
-    // We can't call getSavedState() because _isResuming is false,
-    // but the internal state was set. Verify by setting resuming after.
-    s.setResumingState({}, 0); // This overwrites, so let's test differently.
-
-    // Instead, test that calling updateSuspendedState when _savedState is null
-    // creates the state and assigns updates.
-    const s2 = new SuspendableState("node-2");
-    s2.updateSuspendedState({ x: 10 });
-    // Now set resuming with a different state to confirm update worked
-    // Actually the setResumingState overwrites _savedState, so we can't verify directly.
-    // The test confirms it doesn't throw when _savedState is null.
+    expect(() => s.updateSuspendedState({ key: "value" })).not.toThrow();
   });
+
 });
