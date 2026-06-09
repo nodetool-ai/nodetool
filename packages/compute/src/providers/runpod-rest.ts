@@ -48,7 +48,7 @@ export interface RunpodPodSpec {
 export interface RunpodPod {
   id: string;
   name?: string;
-  desiredStatus?: "RUNNING" | "EXITED" | "TERMINATED" | string;
+  desiredStatus?: "RUNNING" | "READYT" | "EXITED" | "TERMINATED" | string;
   image?: string;
   /** Public IPv4; empty/null while the Pod is initializing. */
   publicIp?: string | null;
@@ -286,7 +286,7 @@ export async function waitForPodEndpoint(
     if (pod.desiredStatus === "TERMINATED" || pod.desiredStatus === "EXITED") {
       throw new Error(`Pod ${id} reached terminal status ${pod.desiredStatus}`);
     }
-    if (pod.desiredStatus === "RUNNING") {
+    if (pod.desiredStatus === "RUNNING" || pod.desiredStatus === "READYT") {
       if (opts.exposure === "http") {
         return { pod, wsUrl: podProxyWsUrl(id, opts.internalPort) };
       }

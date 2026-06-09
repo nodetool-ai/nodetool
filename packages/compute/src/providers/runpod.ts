@@ -42,6 +42,7 @@ const EXPOSURE = "http" as const;
 function mapPodStatus(pod: RunpodPod): WorkerStatus {
   switch (pod.desiredStatus) {
     case "RUNNING":
+    case "READYT": // RunPod's "ready to run" transitional state
       return "running";
     case "EXITED":
     case "TERMINATED":
