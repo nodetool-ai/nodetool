@@ -16,13 +16,25 @@
  * Platform APIs all work in a V8 isolate with zero Node APIs.
  */
 
-import { WorkflowRunner, type NodeExecutor } from "@nodetool-ai/kernel";
+import {
+  WorkflowRunner,
+  type NodeExecutor,
+  type RunResult
+} from "@nodetool-ai/kernel";
 import type {
   Edge,
   NodeDescriptor,
-  ProcessingMessage,
-  RunResult
+  ProcessingMessage
 } from "@nodetool-ai/protocol";
+import {
+  createBrowserRegistry,
+  runBrowserWorkflow
+} from "@nodetool-ai/workflow-runner";
+// Curated pure-browser node groups (the same set the web app registers) —
+// imported via core-nodes' per-file subpaths to skip the native-pulling index.
+import * as constantNodes from "@nodetool-ai/core-nodes/nodes/constant";
+import * as controlNodes from "@nodetool-ai/core-nodes/nodes/control";
+import * as listNodes from "@nodetool-ai/core-nodes/nodes/list";
 
 // ── Inline NodeExecutor map (plain objects, no BaseNode) ───────────────
 
@@ -93,12 +105,21 @@ interface WebApiResult {
   error?: string;
 }
 
+interface BrowserNodesRunResult extends BrowserRunResult {
+  /** True iff every streamed message carried the run's job_id + workflow_id. */
+  allStamped: boolean;
+}
+
 declare global {
   interface Window {
     runWorkflowInBrowser: (
       graph: GraphData,
       params?: Record<string, unknown>
     ) => Promise<BrowserRunResult>;
+    runBrowserNodesInBrowser: (
+      graph: GraphData,
+      params?: Record<string, unknown>
+    ) => Promise<BrowserNodesRunResult>;
     runBrightnessShaderInBrowser: (
       check: BrightnessPixelCheck
     ) => Promise<BrightnessShaderResult>;
@@ -342,6 +363,79 @@ window.runWebApisInBrowser = async (): Promise<WebApiResult> => {
     result.error = err instanceof Error ? err.message : String(err);
   }
   return result;
+};
+
+// ── Production browser path: createBrowserRegistry + runBrowserWorkflow ──────
+
+/** A class is a node executor if it exposes a static `nodeType` string. */
+function collectNodeClasses(mod: Record<string, unknown>): unknown[] {
+  return Object.values(mod).filter(
+    (value) =>
+      typeof value === "function" &&
+      typeof (value as { nodeType?: unknown }).nodeType === "string"
+  );
+}
+
+let browserRegistry: ReturnType<typeof createBrowserRegistry> | null = null;
+function getBrowserRegistry(): ReturnType<typeof createBrowserRegistry> {
+  if (!browserRegistry) {
+    const classes = [constantNodes, controlNodes, listNodes].flatMap((mod) =>
+      collectNodeClasses(mod as Record<string, unknown>)
+    );
+    browserRegistry = createBrowserRegistry(
+      classes as Parameters<typeof createBrowserRegistry>[0]
+    );
+  }
+  return browserRegistry;
+}
+
+/**
+ * Drive the exact API the web app uses for in-browser sub-graph execution:
+ * a NodeRegistry built from the real (decorator-compiled) core node classes,
+ * run through `runBrowserWorkflow`, which emits a job/workflow-stamped
+ * ProcessingMessage stream.
+ */
+window.runBrowserNodesInBrowser = async (
+  graph: GraphData,
+  params: Record<string, unknown> = {}
+): Promise<BrowserNodesRunResult> => {
+  const jobId =
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `job_${Date.now()}`;
+  const workflowId = "e2e-browser-nodes";
+
+  const gen = runBrowserWorkflow({
+    graph,
+    registry: getBrowserRegistry(),
+    params,
+    jobId,
+    workflowId
+  });
+
+  const messageTypes: string[] = [];
+  let allStamped = true;
+  let result: RunResult;
+  while (true) {
+    const next = await gen.next();
+    if (next.done) {
+      result = next.value;
+      break;
+    }
+    const record = next.value as unknown as Record<string, unknown>;
+    messageTypes.push(String(record.type));
+    if (record.job_id !== jobId || record.workflow_id !== workflowId) {
+      allStamped = false;
+    }
+  }
+
+  return {
+    status: result.status,
+    outputs: result.outputs,
+    messageTypes,
+    allStamped,
+    error: result.error
+  };
 };
 
 (window as unknown as { workflowRunnerReady: boolean }).workflowRunnerReady =

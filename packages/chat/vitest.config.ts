@@ -25,6 +25,14 @@ export default defineConfig({
         replacement: resolve(__dirname, "../config/src/index.ts")
       },
       {
+        find: "@nodetool-ai/runtime/tracing",
+        replacement: resolve(__dirname, "../runtime/src/tracing-helpers.ts")
+      },
+      {
+        find: "@nodetool-ai/runtime/context",
+        replacement: resolve(__dirname, "../runtime/src/context.ts")
+      },
+      {
         find: "@nodetool-ai/runtime",
         replacement: resolve(__dirname, "../runtime/src/index.ts")
       }

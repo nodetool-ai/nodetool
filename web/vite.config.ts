@@ -1,4 +1,4 @@
-import { defineConfig, loadEnv, type ProxyOptions, type UserConfig } from "vite";
+import { defineConfig, loadEnv, type Plugin, type ProxyOptions, type UserConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import svgr from "vite-plugin-svgr";
 import { dirname, resolve } from "node:path";
@@ -6,6 +6,57 @@ import { fileURLToPath } from "node:url";
 
 const configDir = dirname(fileURLToPath(import.meta.url));
 const rootNodeModules = resolve(configDir, "../node_modules");
+
+// The in-browser workflow runner (web/src/lib/workflow/browserWorkflowRunner.ts)
+// lazily imports @nodetool-ai/workflow-runner + @nodetool-ai/base-nodes so a
+// pure-browser sub-graph can execute client-side. Those packages (via the
+// kernel/runtime) statically import `node:*` built-ins for their server code
+// paths. Browser-tagged execution never reaches them, but the bundler must
+// still resolve the specifiers — map each to a browser-safe stub. Mirrors the
+// workflow-runner e2e harness config.
+const NODE_STUBS = resolve(configDir, "vite-node-stubs");
+const NODE_BUILTIN_STUBS: Record<string, string> = {
+  "node:fs/promises": `${NODE_STUBS}/fs-promises-stub.js`,
+  "node:fs": `${NODE_STUBS}/fs-stub.js`,
+  "node:path": `${NODE_STUBS}/path-stub.js`,
+  "node:url": `${NODE_STUBS}/url-stub.js`,
+  "node:crypto": `${NODE_STUBS}/crypto-stub.js`,
+  "node:os": `${NODE_STUBS}/os-stub.js`,
+  "node:events": `${NODE_STUBS}/events-stub.js`,
+  "node:child_process": `${NODE_STUBS}/child-process-stub.js`,
+  "node:worker_threads": `${NODE_STUBS}/empty.js`,
+  "node:cluster": `${NODE_STUBS}/empty.js`,
+  "node:dgram": `${NODE_STUBS}/empty.js`,
+  "node:dns": `${NODE_STUBS}/empty.js`,
+  "node:net": `${NODE_STUBS}/empty.js`,
+  "node:tls": `${NODE_STUBS}/empty.js`,
+  "node:zlib": `${NODE_STUBS}/empty.js`,
+  "node:http": `${NODE_STUBS}/empty.js`,
+  "node:https": `${NODE_STUBS}/empty.js`,
+  "node:http2": `${NODE_STUBS}/empty.js`,
+  "node:perf_hooks": `${NODE_STUBS}/empty.js`,
+  "node:vm": `${NODE_STUBS}/empty.js`,
+  "node:stream": `${NODE_STUBS}/empty.js`,
+  "node:async_hooks": `${NODE_STUBS}/empty.js`,
+  "node:util": `${NODE_STUBS}/empty.js`,
+  "node:buffer": `${NODE_STUBS}/empty.js`,
+  "node:assert": `${NODE_STUBS}/empty.js`,
+  "node:process": `${NODE_STUBS}/empty.js`,
+  "node:module": `${NODE_STUBS}/empty.js`
+};
+
+// Vite's `resolve.alias` doesn't intercept the `node:` protocol — these imports
+// bypass the alias plugin and hit the default resolver. Catch them in a `pre`
+// resolveId hook before any other plugin runs.
+function stubNodeProtocolPlugin(): Plugin {
+  return {
+    name: "stub-node-protocol",
+    enforce: "pre",
+    resolveId(source) {
+      return NODE_BUILTIN_STUBS[source] ?? null;
+    }
+  };
+}
 
 export default defineConfig(async ({ mode }) => {
   // Load all env vars (including non-VITE_ prefixed ones) for server-side config
@@ -87,6 +138,7 @@ export default defineConfig(async ({ mode }) => {
       },
     },
     plugins: [
+      stubNodeProtocolPlugin(),
       react({
         jsxImportSource: "@emotion/react",
         babel: {

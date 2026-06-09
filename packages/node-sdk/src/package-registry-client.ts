@@ -5,7 +5,11 @@ export interface AvailablePackage {
 }
 
 export const PACKAGE_REGISTRY_URL =
-  process.env["NODETOOL_PACKAGE_REGISTRY_URL"] ??
+  // `process` is undefined in browser/edge runtimes — guard the env read so
+  // importing node-sdk (e.g. to build a browser NodeRegistry) doesn't throw.
+  (typeof process !== "undefined"
+    ? process.env?.["NODETOOL_PACKAGE_REGISTRY_URL"]
+    : undefined) ??
   "https://raw.githubusercontent.com/nodetool-ai/nodetool-registry/main/index.json";
 
 function isAvailablePackage(value: unknown): value is AvailablePackage {

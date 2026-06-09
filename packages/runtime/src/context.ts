@@ -42,6 +42,14 @@ const randomUUID = nodeCrypto?.randomUUID
         .slice(2, 10)}`;
     };
 
+/**
+ * `process` is undefined in browser/edge runtimes. Reading `process.env`
+ * directly there throws `ReferenceError`, so this context (constructed by the
+ * in-browser workflow runner too) reads env through this guard instead.
+ */
+const safeProcessEnv = (): Record<string, string | undefined> =>
+  typeof process !== "undefined" && process.env ? process.env : {};
+
 // Eager local bindings; unavailable off-Node, throw at call time.
 function notOnNode(api: string): never {
   throw new Error(
@@ -933,7 +941,7 @@ export class ProcessingContext {
     }
     this._variables = { ...(opts.variables ?? {}) };
     const env: Record<string, string> = {};
-    for (const [k, v] of Object.entries(process.env)) {
+    for (const [k, v] of Object.entries(safeProcessEnv())) {
       if (typeof v === "string") env[k] = v;
     }
     this.environment = { ...env, ...(opts.environment ?? {}) };
@@ -1870,7 +1878,7 @@ export class ProcessingContext {
     // HTTP fallback: the server streams bytes at `/api/storage/<key>`.
     let baseUrl =
       this.environment.NODETOOL_API_URL ??
-      process.env.NODETOOL_API_URL ??
+      safeProcessEnv().NODETOOL_API_URL ??
       "http://localhost:7777";
     while (baseUrl.endsWith("/")) {
       baseUrl = baseUrl.slice(0, -1);
