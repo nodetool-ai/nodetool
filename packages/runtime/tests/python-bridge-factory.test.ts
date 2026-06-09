@@ -14,13 +14,17 @@ import { PythonStdioBridge } from "../src/python-stdio-bridge.js";
 import { WebsocketPythonBridge } from "../src/python-websocket-bridge.js";
 
 const ENV_KEY = "NODETOOL_WORKER_URL";
+const TOKEN_ENV_KEY = "NODETOOL_WORKER_TOKEN";
 
 describe("createPythonBridge", () => {
   let savedWorkerUrl: string | undefined;
+  let savedWorkerToken: string | undefined;
 
   beforeEach(() => {
     savedWorkerUrl = process.env[ENV_KEY];
+    savedWorkerToken = process.env[TOKEN_ENV_KEY];
     delete process.env[ENV_KEY];
+    delete process.env[TOKEN_ENV_KEY];
   });
 
   afterEach(() => {
@@ -28,6 +32,11 @@ describe("createPythonBridge", () => {
       delete process.env[ENV_KEY];
     } else {
       process.env[ENV_KEY] = savedWorkerUrl;
+    }
+    if (savedWorkerToken === undefined) {
+      delete process.env[TOKEN_ENV_KEY];
+    } else {
+      process.env[TOKEN_ENV_KEY] = savedWorkerToken;
     }
   });
 

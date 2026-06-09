@@ -18,6 +18,7 @@ export * from "./image-builder.js";
 export * from "./self-hosted.js";
 export * from "./runpod.js";
 export * from "./runpod-api.js";
+export * from "./runpod-rest.js";
 export * from "./deploy-to-runpod.js";
 export * from "./gcp.js";
 export * from "./google-cloud-run-api.js";
