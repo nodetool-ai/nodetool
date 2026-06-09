@@ -431,12 +431,14 @@ async function main() {
   }
   console.log(`  Total: ${stagedManifests.size} manifest(s) staged`);
 
-  // --- Copy example workflows and thumbnail assets ---
+  // --- Copy example workflows and package assets ---
   // server.ts resolves examples relative to import.meta.url, so in the
   // packaged app (resources/backend/server.mjs) it looks for:
   //   resources/backend/examples/nodetool-base/   (workflow JSONs)
-  //   resources/backend/assets/nodetool-base/     (thumbnail JPGs)
-  console.log("\nCopying example workflows and thumbnail assets...");
+  //   resources/backend/assets/nodetool-base/     (thumbnail JPGs + constant
+  //                                                 `package://` assets served
+  //                                                 at /api/assets/packages/...)
+  console.log("\nCopying example workflows and package assets...");
   const BASE_NODES_NODETOOL_DIR = path.join(
     ROOT_DIR,
     "packages",

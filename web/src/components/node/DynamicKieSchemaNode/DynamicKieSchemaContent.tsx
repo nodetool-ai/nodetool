@@ -15,10 +15,7 @@ export interface DynamicKieSchemaContentProps {
   data: NodeData;
   status?: string;
   workflowId: string;
-  showResultOverlay?: boolean;
   result?: unknown;
-  onShowInputs?: () => void;
-  onShowResults?: () => void;
 }
 
 export const DynamicKieSchemaContent: React.FC<DynamicKieSchemaContentProps> =

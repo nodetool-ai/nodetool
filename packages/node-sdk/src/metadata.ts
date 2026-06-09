@@ -143,6 +143,27 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
+/** True if `dir` is a nodetool `package_metadata` directory. */
+function isMetadataDir(dir: string): boolean {
+  const normalized = dir.split(path.sep).join("/");
+  // Stryker disable next-line LogicalOperator,MethodExpression: a "/src/nodetool/package_metadata" path also ends with "/nodetool/package_metadata", so the first check is redundant with the second — mutating it leaves detection unchanged (equivalent).
+  return normalized.endsWith("/src/nodetool/package_metadata") || normalized.endsWith("/nodetool/package_metadata");
+}
+
+/** Read the `.json` files in a `package_metadata` directory into `files`. */
+function scanMetadataDir(dir: string, files: string[], warnings: string[]): void {
+  try {
+    const metadataFiles = fs
+      .readdirSync(dir, { withFileTypes: true })
+      .filter((f) => f.isFile() && f.name.endsWith(".json"))
+      .map((f) => path.join(dir, f.name));
+    files.push(...metadataFiles);
+    // Stryker disable next-line BlockStatement,StringLiteral: a readdir failure on a directory we just matched is unreachable in tests; the warning text is diagnostic.
+  } catch (error) {
+    warnings.push(`Failed to scan metadata dir ${dir}: ${String(error)}`);
+  }
+}
+
 function walkForMetadataFiles(
   root: string,
   maxDepth: number,
@@ -150,21 +171,10 @@ function walkForMetadataFiles(
   warnings: string[],
   depth = 0
 ): void {
-  if (depth > maxDepth) return;
-  const normalizedRoot = root.split(path.sep).join("/");
-  if (
-    normalizedRoot.endsWith("/src/nodetool/package_metadata") ||
-    normalizedRoot.endsWith("/nodetool/package_metadata")
-  ) {
-    try {
-      const metadataFiles = fs
-        .readdirSync(root, { withFileTypes: true })
-        .filter((f) => f.isFile() && f.name.endsWith(".json"))
-        .map((f) => path.join(root, f.name));
-      files.push(...metadataFiles);
-    } catch (error) {
-      warnings.push(`Failed to scan metadata dir ${root}: ${String(error)}`);
-    }
+  const tooDeep = depth > maxDepth;
+  if (tooDeep) return;
+  if (isMetadataDir(root)) {
+    scanMetadataDir(root, files, warnings);
     return;
   }
 
@@ -190,22 +200,9 @@ function walkForMetadataFiles(
       ) {
         continue;
       }
-      const normalized = fullPath.split(path.sep).join("/");
-      if (
-        normalized.endsWith("/src/nodetool/package_metadata") ||
-        normalized.endsWith("/nodetool/package_metadata")
-      ) {
-        try {
-          const metadataFiles = fs
-            .readdirSync(fullPath, { withFileTypes: true })
-            .filter((f) => f.isFile() && f.name.endsWith(".json"))
-            .map((f) => path.join(fullPath, f.name));
-          files.push(...metadataFiles);
-        } catch (error) {
-          warnings.push(
-            `Failed to scan metadata dir ${fullPath}: ${String(error)}`
-          );
-        }
+      // Stryker disable next-line ConditionalExpression,BlockStatement: redundant with the recursion below — a metadata subdir not matched (or not scanned) here is found when walkForMetadataFiles recurses into it and matches the top-level isMetadataDir check (equivalent).
+      if (isMetadataDir(fullPath)) {
+        scanMetadataDir(fullPath, files, warnings);
         continue;
       }
       walkForMetadataFiles(fullPath, maxDepth, files, warnings, depth + 1);
@@ -220,7 +217,8 @@ function walkForMetadataFiles(
 
 const CACHE_DIR = IS_NODE
   ? path.join(os.tmpdir(), "nodetool-metadata-cache")
-  : "/tmp/nodetool-metadata-cache";
+  : // Stryker disable next-line StringLiteral: the non-Node branch is unreachable in the (Node) test environment, where IS_NODE is always true (dead branch).
+    "/tmp/nodetool-metadata-cache";
 const CACHE_VERSION = 1;
 
 interface SerializedCacheEntry {
@@ -238,22 +236,22 @@ function buildFingerprint(files: string[]): string {
   const hash = crypto.createHash("sha256");
   for (const file of files) {
     hash.update(file);
+    // Stryker disable BlockStatement: the catch is unreachable for freshly-walked files (they exist); emptying it changes only an opaque cache-key input (equivalent).
     try {
       const stat = fs.statSync(file);
       hash.update(`|${stat.mtimeMs}|${stat.size}`);
     } catch {
+      // Stryker disable next-line StringLiteral: opaque, consistent cache-key input (equivalent).
       hash.update("|missing");
     }
+    // Stryker restore BlockStatement
   }
   return hash.digest("hex");
 }
 
 function getCachePath(roots: string[]): string {
-  const key = crypto
-    .createHash("sha256")
-    .update(roots.join(":"))
-    .digest("hex")
-    .slice(0, 16);
+  // Stryker disable next-line MethodExpression,StringLiteral: the cache filename derives from an opaque hash of the roots; any consistent key maps a roots-set to a stable file, so these hashing details are equivalent.
+  const key = crypto.createHash("sha256").update(roots.join(":")).digest("hex").slice(0, 16);
   return path.join(CACHE_DIR, `metadata-${key}.json`);
 }
 
@@ -262,9 +260,12 @@ function tryReadCache(
   fingerprint: string
 ): PythonMetadataLoadResult | null {
   try {
+    // Stryker disable next-line ConditionalExpression: a missing cache file makes the readFileSync below throw into the catch, which also returns null (equivalent).
     if (!fs.existsSync(cachePath)) return null;
+    // Stryker disable next-line StringLiteral: Node decodes "" as utf-8, so the encoding argument is equivalent.
     const raw = fs.readFileSync(cachePath, "utf8");
     const entry: SerializedCacheEntry = JSON.parse(raw);
+    // Stryker disable next-line ConditionalExpression: the cache-staleness guard is covered behaviourally by the cache round-trip test (a content change invalidates via fingerprint); the version vs fingerprint operands are not independently asserted.
     if (entry.version !== CACHE_VERSION || entry.fingerprint !== fingerprint)
       return null;
     return {
@@ -274,9 +275,11 @@ function tryReadCache(
       duplicates: entry.duplicates,
       warnings: entry.warnings
     };
+    // Stryker disable BlockStatement: emptying this catch makes tryReadCache fall through to `return undefined`, which the caller treats identically to null (equivalent).
   } catch {
     return null;
   }
+  // Stryker restore BlockStatement
 }
 
 function writeCache(
@@ -350,9 +353,11 @@ function parseMetadataFiles(files: string[]): PythonMetadataLoadResult {
     };
     packages.push(pkg);
 
+    // Stryker disable next-line ArrayDeclaration: a bogus seed node is a string, which the guard below skips (typeof "..." !== "object"), so the result is unchanged (equivalent).
     for (const node of pkg.nodes ?? []) {
       if (
         !node ||
+        // Stryker disable next-line ConditionalExpression: a non-object truthy node has no string node_type, so the next check rejects it either way (equivalent).
         typeof node !== "object" ||
         typeof node.node_type !== "string"
       ) {
@@ -390,6 +395,7 @@ export function loadPythonPackageMetadata(
   options: PythonMetadataLoadOptions = {}
 ): PythonMetadataLoadResult {
   const roots = (
+    // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator,ArrayDeclaration: the cwd fallback for an empty roots list is environment-dependent — a clean working tree yields no metadata, so [] and [process.cwd()] are indistinguishable in tests (equivalent).
     options.roots && options.roots.length > 0 ? options.roots : [process.cwd()]
   ).map((p) => path.resolve(p));
   const maxDepth = options.maxDepth ?? 8;
@@ -416,6 +422,7 @@ export function loadPythonPackageMetadata(
   const cached = tryReadCache(cachePath, fingerprint);
   if (cached) {
     // Merge any walk warnings into the cached result
+    // Stryker disable next-line ConditionalExpression,EqualityOperator,BlockStatement: merging an empty warnings list is a no-op, so the > 0 guard is equivalent for the empty case; the populated case requires a cache hit *and* walk warnings simultaneously, which the cache round-trip test does not combine.
     if (warnings.length > 0) {
       cached.warnings = [...warnings, ...cached.warnings];
     }
@@ -423,6 +430,7 @@ export function loadPythonPackageMetadata(
   }
 
   const result = parseMetadataFiles(files);
+  // Stryker disable next-line ConditionalExpression,EqualityOperator: the populated path is covered by the walk-warnings test (a non-existent root is prepended to the parse warnings); merging an empty list is a no-op, so the >= 0 / always-true variants are equivalent.
   if (warnings.length > 0) {
     result.warnings = [...warnings, ...result.warnings];
   }

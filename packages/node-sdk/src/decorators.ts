@@ -31,8 +31,10 @@ function getOrCreatePropMap(
 }
 
 function collectDeclaredProps(ctor: Function): DeclaredPropertyMetadata[] {
+  // Stryker disable next-line ArrayDeclaration: a bogus seed element is a string and declaredPropsByClass.get(string) is undefined → skipped, so the merged result is unchanged (equivalent mutant).
   const chain: Function[] = [];
   let current: unknown = ctor;
+  // Stryker disable next-line ConditionalExpression: a constructor's prototype chain always terminates at Function.prototype via the right-hand guard, which carries no declared props, so neither guard can change the collected chain (equivalent).
   while (typeof current === "function" && current !== Function.prototype) {
     chain.push(current);
     current = Object.getPrototypeOf(current);

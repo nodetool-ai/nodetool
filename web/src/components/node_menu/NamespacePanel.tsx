@@ -40,12 +40,10 @@ const namespacePanelStyles = (theme: Theme) =>
       boxSizing: "border-box",
       height: "100%",
       maxHeight: "calc(min(750px, 80vh))",
-      paddingRight: "0.75em",
-      paddingLeft: "0.65em",
+      padding: "0.5em",
       borderRadius: "var(--rounded-xl)",
       border: `1px solid ${theme.vars.palette.divider}`,
-      backgroundColor: theme.vars.palette.action.hover,
-      boxShadow: "inset 0 2px 4px rgba(0,0,0,0.1)"
+      backgroundColor: "transparent"
     },
     "& .namespace-list::-webkit-scrollbar": { width: "6px" },
     "& .namespace-list::-webkit-scrollbar-track": { background: "transparent" },
@@ -58,14 +56,16 @@ const namespacePanelStyles = (theme: Theme) =>
     },
     "& .namespace-section-title": {
       fontSize: theme.fontSizeSmaller,
+      fontWeight: 600,
       textTransform: "uppercase",
+      letterSpacing: "0.6px",
       color: theme.vars.palette.text.secondary,
-      padding: "1em 0 .25em .75em",
+      padding: "1.1em 0 .4em .5em",
       margin: 0,
       userSelect: "none"
     },
     "& .namespace-section-title.providers": {
-      marginTop: ".5em"
+      marginTop: ".25em"
     },
     "& .namespace-list-local": {
       flex: "0 0 auto",
@@ -91,7 +91,7 @@ const namespacePanelStyles = (theme: Theme) =>
       color: theme.vars.palette.text.primary,
       display: "flex",
       alignItems: "center",
-      gap: "0.5em",
+      gap: "0.6em",
       whiteSpace: "nowrap",
       overflow: "hidden",
       userSelect: "none"
@@ -106,7 +106,9 @@ const namespacePanelStyles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary
     },
     "& .list-item.selected .namespace-item .namespace-icon": {
-      color: "var(--palette-primary-main)"
+      color: "var(--palette-primary-main)",
+      borderColor: "rgba(var(--palette-primary-mainChannel) / 0.4)",
+      backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.12)"
     },
     "& .disabled .namespace-item": {
       color: theme.vars.palette.text.disabled
@@ -119,15 +121,13 @@ const namespacePanelStyles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall,
       fontWeight: 400,
       lineHeight: 1.2,
-      transition: "all 0.2s ease",
+      transition: "background-color 0.15s ease, color 0.15s ease",
       overflow: "hidden",
-      margin: "1px 2px",
-      borderRadius: "0",
-      borderLeft: "1px solid transparent"
+      margin: "1px 0",
+      borderRadius: "var(--rounded-md)"
     },
     "& .namespaces .list-item.disabled": {
       backgroundColor: "transparent",
-      border: "none !important",
       color: theme.vars.palette.grey[200],
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover
@@ -152,27 +152,26 @@ const namespacePanelStyles = (theme: Theme) =>
       overflow: "hidden"
     },
     "& .namespaces .list-item.selected": {
-      backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.15)",
-      borderLeft: "1px solid var(--palette-primary-main)",
+      backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.12)",
       fontWeight: 600,
-      color: "var(--palette-primary-main)",
-      boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+      color: "var(--palette-primary-main)"
     },
     "& .namespaces .list-item.selected .namespace-item": {
       color: "var(--palette-primary-main)"
     },
     "& .namespaces .list-item.disabled.selected": {
-      backgroundColor: theme.vars.palette.action.selected,
-      border: "none"
+      backgroundColor: theme.vars.palette.action.selected
     },
-    "& .namespaces .list-item.highlighted": {
-      borderLeft: `1px solid ${"var(--palette-primary-main)"}`
+    // Namespaces that contain matches for the active search/filter: tint the
+    // label so the user can see where to drill in, without a hard border.
+    "& .namespaces .list-item.highlighted .namespace-label": {
+      color: "var(--palette-primary-main)"
     },
     "& .namespaces .list-item.highlighted.selected .namespace-item": {
       color: "var(--palette-primary-main)"
     },
     "& .namespaces .sublist": {
-      paddingLeft: "1em"
+      paddingLeft: "0.85em"
     }
   });
 

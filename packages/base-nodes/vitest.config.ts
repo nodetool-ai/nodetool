@@ -8,6 +8,15 @@ export default defineConfig({
       "@nodetool-ai/protocol": resolve(__dirname, "../protocol/src"),
       "@nodetool-ai/node-sdk": resolve(__dirname, "../node-sdk/src/index.ts"),
       "@nodetool-ai/agents": resolve(__dirname, "../agents/src/index.ts"),
+      // Subpaths before the root alias (Vite alias is prefix-based).
+      "@nodetool-ai/runtime/tracing": resolve(
+        __dirname,
+        "../runtime/src/tracing-helpers.ts"
+      ),
+      "@nodetool-ai/runtime/context": resolve(
+        __dirname,
+        "../runtime/src/context.ts"
+      ),
       "@nodetool-ai/runtime": resolve(__dirname, "../runtime/src/index.ts")
     }
   },

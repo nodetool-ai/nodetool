@@ -12,8 +12,12 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import isEqual from "fast-deep-equal";
 import React from "react";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import {
+  exportWorkflowBundle,
+  importWorkflowBundle
+} from "../../utils/workflowBundle";
 import { useNodes } from "../../contexts/NodeContext";
 import { create } from "zustand";
 import { shallow } from "zustand/shallow";
@@ -41,6 +45,7 @@ import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import FolderZipRoundedIcon from "@mui/icons-material/FolderZipRounded";
 
 // Icons — Edit
 import UndoRoundedIcon from "@mui/icons-material/UndoRounded";
@@ -125,6 +130,7 @@ const WorkflowCommands = memo(function WorkflowCommands() {
     (state) => state.addNotification
   );
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
   const saveExample = useWorkflowManager((state) => state.saveExample);
@@ -134,6 +140,7 @@ const WorkflowCommands = memo(function WorkflowCommands() {
   const openWorkflows = useWorkflowManager((state) => state.openWorkflows);
   const createWorkflow = useWorkflowManager((state) => state.create);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bundleInputRef = useRef<HTMLInputElement>(null);
 
   const runWorkflow = useCallback(() => {
     run({}, currentWorkflow, nodes, edges);
@@ -234,6 +241,51 @@ const WorkflowCommands = memo(function WorkflowCommands() {
     [createWorkflow, navigate, addNotification]
   );
 
+  const exportBundle = useCallback(async () => {
+    if (!currentWorkflow?.id) return;
+    try {
+      await exportWorkflowBundle(currentWorkflow.id, currentWorkflow.name);
+    } catch (error) {
+      addNotification({
+        type: "error",
+        alert: true,
+        content: `Failed to export bundle: ${error instanceof Error ? error.message : "Unknown error"}`
+      });
+    }
+  }, [currentWorkflow, addNotification]);
+
+  const handleImportBundle = useCallback(() => {
+    bundleInputRef.current?.click();
+  }, []);
+
+  const handleBundleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const result = await importWorkflowBundle(file);
+        await queryClient.invalidateQueries({ queryKey: ["workflows"] });
+        const first = result.workflows[0];
+        if (first) {
+          navigate(`/editor/${first.id}`);
+        }
+        addNotification({
+          type: "success",
+          alert: true,
+          content: `Imported ${result.workflows.length} workflow(s) from bundle`
+        });
+      } catch (error) {
+        addNotification({
+          type: "error",
+          alert: true,
+          content: `Failed to import bundle: ${error instanceof Error ? error.message : "Unknown error"}`
+        });
+      }
+      if (bundleInputRef.current) bundleInputRef.current.value = "";
+    },
+    [queryClient, navigate, addNotification]
+  );
+
   return (
     <>
       <input
@@ -243,6 +295,14 @@ const WorkflowCommands = memo(function WorkflowCommands() {
         aria-label="Import workflow file"
         style={{ display: "none" }}
         onChange={handleImportFileChange}
+      />
+      <input
+        ref={bundleInputRef}
+        type="file"
+        accept=".nodetool,application/zip"
+        aria-label="Import workflow bundle file"
+        style={{ display: "none" }}
+        onChange={handleBundleFileChange}
       />
     <Command.Group heading="Workflow">
       <Command.Item onSelect={() => executeAndClose(runWorkflow)}>
@@ -262,6 +322,12 @@ const WorkflowCommands = memo(function WorkflowCommands() {
       </Command.Item>
       <Command.Item onSelect={() => executeAndClose(handleImportWorkflow)}>
         <FileUploadRoundedIcon /> Import Workflow from JSON
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(exportBundle)}>
+        <FolderZipRoundedIcon /> Export Workflow as Bundle (.nodetool)
+      </Command.Item>
+      <Command.Item onSelect={() => executeAndClose(handleImportBundle)}>
+        <FolderZipRoundedIcon /> Import Workflow from Bundle (.nodetool)
       </Command.Item>
       <Command.Item onSelect={() => executeAndClose(copyWorkflow)}>
         <ContentCopyRoundedIcon /> Copy Workflow as JSON

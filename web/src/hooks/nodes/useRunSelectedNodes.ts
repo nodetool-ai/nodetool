@@ -2,14 +2,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Node, Edge } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import useResultsStore from "../../stores/ResultsStore";
-import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import {
   getWorkflowRunnerStore,
   useWebsocketRunner
 } from "../../stores/WorkflowRunner";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
+import { getNodeGenerations } from "../../stores/nodeGenerationAccessor";
+import { getCurrentGeneration } from "../../utils/nodeGenerations";
 import { useNodeStoreRef } from "../../contexts/NodeContext";
+import useMetadataStore from "../../stores/MetadataStore";
+import {
+  EdgeOverrideCollector,
+  applyNodeOverrides
+} from "../../utils/edgeOverrides";
 
 export const MIN_RUNS = 1;
 export const MAX_RUNS = 32;
@@ -32,7 +37,6 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
   const isWorkflowRunning = useWebsocketRunner(
     (state) => state.state === "running"
   );
-  const getResult = useResultsStore((state) => state.getResult);
   const addNotification = useNotificationStore((state) => state.addNotification);
 
   const [runProgress, setRunProgress] = useState<RunProgress | null>(null);
@@ -78,28 +82,32 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
           selectedNodeIds.has(edge.target) && !selectedNodeIds.has(edge.source)
       );
 
-      // Seed external inputs from the workflow's focused run; if nothing has run
-      // there's no focused job and the store read yields undefined
-      // (literal-source fallback still applies).
-      const focusedJobId = useWorkflowRunsStore.getState().getFocusedJob(
-        workflow.id
-      );
-      const getResultForFocusedJob = (wf: string, src: string): unknown =>
-        focusedJobId ? getResult(wf, focusedJobId, src) : undefined;
+      // Seed external inputs from each upstream's selected generation (durable
+      // assets merged with the live buffer); resolveExternalEdgeValue unwraps
+      // the returned outputs record by source handle.
+      const getResultForFocusedJob = (
+        wf: string,
+        sourceId: string
+      ): unknown => {
+        const current = getCurrentGeneration(
+          getNodeGenerations(wf, sourceId),
+          findNode(sourceId)?.data?.selected_generation
+        );
+        return current?.outputs;
+      };
 
-      const nodePropertyOverrides = new Map<string, Record<string, unknown>>();
-
+      // Seed each selected node's inputs from its external (non-selected)
+      // upstreams. The collector aggregates multiple edges into one list/collect
+      // handle — see EdgeOverrideCollector — so two images wired to a single
+      // list[image] handle aren't collapsed to one (last-write-wins).
+      const collector = new EdgeOverrideCollector();
       for (const edge of externalInputEdges) {
-        const sourceNodeId = edge.source;
-        const sourceHandle = edge.sourceHandle;
-        const targetNodeId = edge.target;
         const targetHandle = edge.targetHandle;
-
         if (!targetHandle) {
           continue;
         }
 
-        const { value, hasValue, isFallback } = resolveExternalEdgeValue(
+        const { value, hasValue } = resolveExternalEdgeValue(
           edge,
           workflow.id,
           getResultForFocusedJob,
@@ -109,50 +117,17 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
           continue;
         }
 
-        const existing = nodePropertyOverrides.get(targetNodeId) || {};
-        existing[targetHandle] = value;
-        nodePropertyOverrides.set(targetNodeId, existing);
-
-        console.info(
-          `Run selected nodes: Caching property ${targetHandle} on node ${targetNodeId} from upstream node ${sourceNodeId}`,
-          {
-            sourceHandle,
-            valueSource: isFallback ? "node" : "cached_result"
-          }
-        );
+        collector.add(edge.target, targetHandle, value);
       }
 
-      const nodesWithCachedValues = selectedNodes.map((n: Node<NodeData>) => {
-        const overrides = nodePropertyOverrides.get(n.id);
-        if (overrides && Object.keys(overrides).length > 0) {
-          const dynamicProps = n.data?.dynamic_properties || {};
-          const staticProps = n.data?.properties || {};
-          const updatedDynamicProps = { ...dynamicProps };
-          const updatedStaticProps = { ...staticProps };
+      const nodePropertyOverrides = collector.resolve(
+        findNode,
+        useMetadataStore.getState().getMetadata
+      );
 
-          for (const [key, value] of Object.entries(overrides)) {
-            if (Object.prototype.hasOwnProperty.call(dynamicProps, key)) {
-              updatedDynamicProps[key] = value;
-            } else {
-              updatedStaticProps[key] = value;
-            }
-          }
-
-          return {
-            ...n,
-            data: {
-              ...n.data,
-              properties: {
-                ...updatedStaticProps
-              },
-              dynamic_properties: {
-                ...updatedDynamicProps
-              }
-            }
-          };
-        }
-        return n;
-      });
+      const nodesWithCachedValues = selectedNodes.map((n: Node<NodeData>) =>
+        applyNodeOverrides(n, nodePropertyOverrides.get(n.id))
+      );
 
       console.info(
         `Running workflow from ${selectedNodes.length} selected node(s) × ${totalRuns} run(s)`,
@@ -228,7 +203,7 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
         }
       }
     },
-    [isWorkflowRunning, nodeStore, getResult, run, addNotification]
+    [isWorkflowRunning, nodeStore, run, addNotification]
   );
 
   return {

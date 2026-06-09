@@ -119,25 +119,11 @@ describe("Tool agent node defaults", () => {
     expect(node.serialize().timeout_seconds).toBe(180);
   });
 
-  it("FfmpegAgentNode has audio and video", () => {
+  it("FfmpegAgentNode has audio/video list inputs", () => {
     const node = new FfmpegAgentNode();
     const d = node.serialize();
-    expect(d.audio).toEqual({
-      type: "audio",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    });
-    expect(d.video).toEqual({
-      type: "video",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null,
-      duration: null,
-      format: null
-    });
+    expect(d.audio).toEqual([]);
+    expect(d.video).toEqual([]);
   });
 
   it("FilesystemAgentNode base defaults", () => {
@@ -160,39 +146,19 @@ describe("Tool agent node defaults", () => {
     expect(node.serialize().timeout_seconds).toBe(180);
   });
 
-  it("ImageAgentNode has image, timeout, max_output_chars", () => {
+  it("ImageAgentNode has image list input, timeout, max_output_chars", () => {
     const node = new ImageAgentNode();
     const d = node.serialize();
-    expect(d.image).toEqual({
-      type: "image",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    });
+    expect(d.image).toEqual([]);
     expect(d.timeout_seconds).toBe(90);
     expect(d.max_output_chars).toBe(120000);
   });
 
-  it("MediaAgentNode has audio and video", () => {
+  it("MediaAgentNode has audio/video list inputs", () => {
     const node = new MediaAgentNode();
     const d = node.serialize();
-    expect(d.audio).toEqual({
-      type: "audio",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    });
-    expect(d.video).toEqual({
-      type: "video",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null,
-      duration: null,
-      format: null
-    });
+    expect(d.audio).toEqual([]);
+    expect(d.video).toEqual([]);
   });
 
   it("PdfLibAgentNode has document and custom timeout", () => {

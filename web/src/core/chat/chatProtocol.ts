@@ -340,12 +340,6 @@ const applyNodeUpdate = (
         .getState()
         .setStatus(effectiveWorkflowId, jobId, update.node_id, update.status);
     }
-
-    if (update.result && jobId) {
-      useResultsStore
-        .getState()
-        .setResult(effectiveWorkflowId, jobId, update.node_id, update.result);
-    }
   }
 
   if (update.status === "completed") {

@@ -50,8 +50,8 @@ const WorkflowEditorSurface = ({
       if (cancelled || loadedWorkflow) {
         return;
       }
-      closeTab(tabId("workflow", workflowId));
       setMissing(true);
+      closeTab(tabId("workflow", workflowId));
     });
 
     return () => {

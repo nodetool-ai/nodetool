@@ -45,6 +45,7 @@ describe("FAL factory argument building", () => {
     assetToFalUrl.mockClear();
     falSubmit.mockClear();
     imageToDataUrl.mockClear();
+    imageToDataUrl.mockResolvedValue(null);
   });
 
   it("builds nested asset objects from nestedAssetKey fields", async () => {
@@ -245,7 +246,7 @@ describe("FAL factory argument building", () => {
     );
   });
 
-  it("reads legacy mask_url property when mask field is renamed", async () => {
+  it("reads legacy apiParamName property when mask field is renamed", async () => {
     imageToDataUrl.mockResolvedValueOnce("data:image/png;base64,legacy");
     const NodeClass = createFalNodeClass({
       endpointId: "fal-ai/flux-pro/v1/fill",
@@ -266,13 +267,13 @@ describe("FAL factory argument building", () => {
           description: "",
           fieldType: "input",
           required: true,
-          apiParamName: "mask_url"
+          apiParamName: "static_mask_url"
         }
       ]
     });
 
     const instance = new NodeClass({});
-    (instance as unknown as Record<string, unknown>).mask_url = {
+    (instance as unknown as Record<string, unknown>).static_mask_url = {
       type: "image",
       data: "legacy"
     };
@@ -280,7 +281,7 @@ describe("FAL factory argument building", () => {
     await instance.process();
 
     expect(falSubmit).toHaveBeenCalledWith("test-key", "fal-ai/flux-pro/v1/fill", {
-      mask_url: "data:image/png;base64,legacy"
+      static_mask_url: "data:image/png;base64,legacy"
     });
   });
 

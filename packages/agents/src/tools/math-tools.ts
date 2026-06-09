@@ -74,6 +74,9 @@ export class StatisticsTool extends Tool {
         const freq = new Map<number, number>();
         for (const n of nums) freq.set(n, (freq.get(n) ?? 0) + 1);
         let maxFreq = 0;
+        // Stryker disable next-line StringLiteral: the first value (count ≥ 1 > 0)
+        // always overwrites this sentinel for non-empty data — which is
+        // guaranteed here — so it is never returned.
         let mode: number | string = "No unique mode";
         for (const [val, count] of freq) {
           if (count > maxFreq) {

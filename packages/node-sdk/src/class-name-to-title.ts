@@ -23,6 +23,7 @@
  * classNameToTitle("Recraft_20B_SVG")        // "Recraft 20B SVG"
  */
 export function classNameToTitle(className: string): string {
+  // Stryker disable next-line ConditionalExpression,BlockStatement: fast-path for "" — the general path below also yields "" for "" (split → filtered to [] → join → ""), so removing it changes nothing (equivalent).
   if (!className) {
     return "";
   }
@@ -30,14 +31,16 @@ export function classNameToTitle(className: string): string {
   // 1) Split on underscores AND camelCase / acronym boundaries.
   //    The regex passes are applied per underscore-delimited chunk so
   //    purely-numeric tokens stay intact for the merge step below.
+  const splitWordBoundaries = (part: string): string[] => {
+    // "fooBar" → "foo Bar", "foo4" → "foo 4"
+    let spaced = part.replace(/([a-z])([A-Z0-9])/g, "$1 $2");
+    // Stryker disable next-line Regex: collapsing the [A-Z]+ run to a single [A-Z] is equivalent — the space always lands right before the final Cap-lower pair ("XLLightning" → "XL Lightning"), so the leading caps stay glued either way.
+    spaced = spaced.replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2");
+    return spaced.split(" ");
+  };
   const tokens = className
     .split("_")
-    .flatMap((part) =>
-      part
-        .replace(/([a-z])([A-Z0-9])/g, "$1 $2") // "fooBar" → "foo Bar", "foo4" → "foo 4"
-        .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2") // "XLLightning" → "XL Lightning"
-        .split(" ")
-    )
+    .flatMap(splitWordBoundaries)
     .filter((tok) => tok.length > 0);
 
   // 2) Merge consecutive purely-numeric tokens with "." so the version
@@ -45,6 +48,7 @@ export function classNameToTitle(className: string): string {
   const merged: string[] = [];
   for (const tok of tokens) {
     const last = merged[merged.length - 1];
+    // Stryker disable next-line ConditionalExpression: forcing `last !== undefined` true is equivalent — the digit regexes still gate the merge (/^\d+$/.test(undefined) is false), so a non-numeric or first token never merges either way.
     if (last !== undefined && /^\d+$/.test(last) && /^\d+$/.test(tok)) {
       merged[merged.length - 1] = `${last}.${tok}`;
     } else {

@@ -669,6 +669,35 @@ if (_resolvedExamplesDir) {
     apiOptions.examplesAssetsFallbackDir = _bundledAssetsDir;
   }
 }
+
+// Constant package assets (`package://<pkg>/<file>`) are served read-only at
+// `/api/assets/packages/<pkg>/<file>` from `<root>/<pkg>/<file>`. The bundled
+// root sits next to server.mjs (no Python needed); the monorepo root is used
+// in dev/dist runs.
+const _bundledPackageAssetsRoot = resolve(_serverDir, "assets");
+const _monoPackageAssetsRoot = resolve(
+  _serverDir,
+  "..",
+  "..",
+  "..",
+  "packages",
+  "base-nodes",
+  "nodetool",
+  "assets"
+);
+const _packageAssetsRoots = [
+  existsSync(_bundledPackageAssetsRoot) ? _bundledPackageAssetsRoot : null,
+  existsSync(_monoPackageAssetsRoot) ? _monoPackageAssetsRoot : null
+].filter((d): d is string => Boolean(d));
+if (_packageAssetsRoots.length > 0) {
+  apiOptions.packageAssetsRoots = _packageAssetsRoots;
+  // Let in-process workflow execution resolve `package://` refs straight from
+  // disk instead of guessing the loopback port for an HTTP round-trip.
+  if (!process.env["NODETOOL_PACKAGE_ASSETS_DIR"]) {
+    process.env["NODETOOL_PACKAGE_ASSETS_DIR"] = _packageAssetsRoots[0];
+  }
+}
+
 const staticFolder = process.env["STATIC_FOLDER"];
 const hasStaticApp = Boolean(staticFolder && existsSync(staticFolder));
 

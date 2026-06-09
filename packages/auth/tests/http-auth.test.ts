@@ -19,6 +19,13 @@ class MockProvider extends AuthProvider {
   }
 }
 
+/** Accepts any token — used to prove the empty-token short-circuit matters. */
+class AcceptAllProvider extends AuthProvider {
+  async verifyToken(_token: string): Promise<AuthResult> {
+    return { ok: true, userId: "any", tokenType: TokenType.STATIC };
+  }
+}
+
 function makeRequest(
   headers: Record<string, string>,
   path: string = "/api/test"
@@ -58,6 +65,12 @@ describe("extractBearerToken", () => {
     const req = makeRequest({ authorization: "bearer tok" });
     expect(extractBearerToken(req)).toBe("tok");
   });
+
+  it("collapses a run of whitespace between scheme and token", () => {
+    // Two spaces must still split into exactly two parts (kills /\s+/ → /\s/).
+    const req = makeRequest({ authorization: "Bearer  abc123" });
+    expect(extractBearerToken(req)).toBe("abc123");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -81,6 +94,17 @@ describe("authenticateRequest", () => {
     const user = await authenticateRequest(req, defaultOptions());
     expect(user).toBeNull();
   });
+
+  it("returns null without consulting the provider when no token is present", async () => {
+    // Even a provider that accepts everything must not authenticate a request
+    // that carries no token — proving the `if (!token) return null` short-circuit
+    // runs before verifyToken (kills its condition-removal mutant).
+    const req = makeRequest({});
+    const user = await authenticateRequest(req, {
+      provider: new AcceptAllProvider()
+    });
+    expect(user).toBeNull();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -98,6 +122,19 @@ describe("requireAuth", () => {
     const response = await requireAuth(req, defaultOptions());
     expect(response).toBeInstanceOf(Response);
     expect(response!.status).toBe(401);
+  });
+
+  it("the 401 carries the JSON detail body and challenge headers", async () => {
+    // Pins the response payload and headers so the body/header object and string
+    // literals can't be blanked (kills the ObjectLiteral and StringLiteral mutants
+    // on the 401 Response).
+    const req = makeRequest({});
+    const response = await requireAuth(req, defaultOptions());
+    expect(await response!.json()).toEqual({
+      detail: "Authorization required"
+    });
+    expect(response!.headers.get("Content-Type")).toBe("application/json");
+    expect(response!.headers.get("WWW-Authenticate")).toBe("Bearer");
   });
 
   it("returns 401 Response when invalid token", async () => {

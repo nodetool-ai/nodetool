@@ -33,7 +33,7 @@ import useStatusStore from "./StatusStore";
 import useExecutionTimeStore from "./ExecutionTimeStore";
 import usePropertyValidationStore from "./PropertyValidationStore";
 import { useFavoriteWorkflowsStore } from "./FavoriteWorkflowsStore";
-import { hydrateWorkflowResultsFromAssets } from "./workflowResultHydration";
+import { useWorkflowAssetStore } from "./WorkflowAssetStore";
 import { useCurrentWorkspaceStore } from "./CurrentWorkspaceStore";
 
 const isWorkflowNotFoundError = (err: unknown): boolean => {
@@ -197,6 +197,7 @@ const pruneStaleWorkflowReference = (
   const previousOpenIds = storage.getOpenWorkflows();
   const openIds = previousOpenIds.filter((id) => id !== workflowId);
   if (openIds.length !== previousOpenIds.length) {
+    storage.setOpenWorkflows.cancel();
     localStorage.setItem(
       STORAGE_KEYS.OPEN_WORKFLOWS,
       JSON.stringify(openIds)
@@ -224,6 +225,7 @@ const pruneStaleWorkflowReference = (
     if (newCurrentId) {
       storage.setCurrentWorkflow(newCurrentId);
     } else {
+      storage.setCurrentWorkflow.cancel();
       localStorage.removeItem(STORAGE_KEYS.CURRENT_WORKFLOW);
     }
 
@@ -868,7 +870,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         if (cached) {
           get().addWorkflow(cached);
           get().setCurrentWorkflowId(workflowId);
-          await hydrateWorkflowResultsFromAssets(workflowId);
+          await useWorkflowAssetStore.getState().loadWorkflowAssets(workflowId);
           return cached;
         }
 
@@ -886,7 +888,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           }
           get().addWorkflow(data);
           get().setCurrentWorkflowId(data.id);
-          await hydrateWorkflowResultsFromAssets(data.id);
+          await useWorkflowAssetStore.getState().loadWorkflowAssets(data.id);
           return data;
         } catch (e: unknown) {
           if (isWorkflowNotFoundError(e)) {

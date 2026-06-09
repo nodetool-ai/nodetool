@@ -14,6 +14,8 @@ export type NodeData = {
   endpoint_id?: string;
   /** Resolved Kie.ai model id when schema is loaded */
   model_id?: string;
+  /** Persisted id of the generation chosen to feed downstream (asset id for media). */
+  selected_generation?: string;
   workflow_id: string;
   title?: string;
   /** Marks snippet-backed Code nodes so the UI can lock title editing and hide code by default. */

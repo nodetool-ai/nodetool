@@ -27,6 +27,7 @@ export interface GetNodeMetadataOptions {
 }
 
 function mapScalarTypeName(typeName: string): string {
+  // Stryker disable next-line MethodExpression: callers (parseTypeString) already trim, so the inner .trim() here is redundant — dropping it is equivalent.
   const normalized = typeName.trim().toLowerCase();
   if (normalized === "string") return "str";
   if (normalized === "integer") return "int";
@@ -37,6 +38,7 @@ function mapScalarTypeName(typeName: string): string {
 
 function parseTypeString(typeName: string): TypeMetadata {
   const trimmed = typeName.trim();
+  // Stryker disable next-line ConditionalExpression,StringLiteral: an empty trimmed string falls through to mapScalarTypeName("") which returns "any" (and toMetadataType re-maps "" to "any"), so this fast-path and its literal are equivalent.
   if (!trimmed) return { type: "any", type_args: [] };
 
   const firstBracket = trimmed.indexOf("[");
@@ -45,10 +47,16 @@ function parseTypeString(typeName: string): TypeMetadata {
   }
 
   const base = mapScalarTypeName(trimmed.slice(0, firstBracket));
+  // Stryker disable next-line MethodExpression: the inner .trim() only affects the empty-inner guard below; the per-part loop trims each segment and skips empties, so dropping it is equivalent.
   const inner = trimmed.slice(firstBracket + 1, -1).trim();
+  // Stryker disable next-line ConditionalExpression: an empty inner falls through to a loop that pushes no parts, yielding the same type_args: [] (equivalent).
   if (!inner) return { type: base, type_args: [] };
 
   const parts: string[] = [];
+  const pushSegment = (segment: string): void => {
+    const trimmedSegment = segment.trim();
+    if (trimmedSegment) parts.push(trimmedSegment);
+  };
   let depth = 0;
   let current = "";
   for (let i = 0; i < inner.length; i++) {
@@ -64,13 +72,13 @@ function parseTypeString(typeName: string): TypeMetadata {
       continue;
     }
     if (ch === "," && depth === 0) {
-      if (current.trim()) parts.push(current.trim());
+      pushSegment(current);
       current = "";
       continue;
     }
     current += ch;
   }
-  if (current.trim()) parts.push(current.trim());
+  pushSegment(current);
 
   return {
     type: base,
@@ -80,6 +88,7 @@ function parseTypeString(typeName: string): TypeMetadata {
 
 function deriveNamespace(nodeType: string): string {
   const lastDot = nodeType.lastIndexOf(".");
+  // Stryker disable next-line EqualityOperator: at lastDot === 0 both arms yield "" (slice(0,0) === the else ""), so > 0 vs >= 0 are indistinguishable (equivalent).
   return lastDot > 0 ? nodeType.slice(0, lastDot) : "";
 }
 
@@ -87,6 +96,7 @@ function toMetadataType(typeMeta: TypeMetadata): TypeMetadata {
   return {
     ...typeMeta,
     type: mapScalarTypeName(typeMeta.type),
+    // Stryker disable next-line ArrayDeclaration: toMetadataType only runs on parseTypeString output, which always sets type_args, so the ?? [] default is never used (equivalent).
     type_args: (typeMeta.type_args ?? []).map(toMetadataType)
   };
 }
@@ -103,6 +113,7 @@ function clonePropertyMetadata(prop: PropertyMetadata): PropertyMetadata {
     ...prop,
     type: cloneTypeMetadata(prop.type)
   };
+  // Stryker disable next-line ConditionalExpression,BlockStatement,StringLiteral: the spread above already copies an own `default` property, so this re-assignment is redundant (equivalent).
   if (Object.prototype.hasOwnProperty.call(prop, "default")) {
     cloned.default = prop.default;
   }
@@ -156,6 +167,7 @@ function mergeMetadata(
         ? tsMetadata.outputs
         : (pyMetadata.outputs ?? []).map(cloneOutputMetadata),
     // Backfill optional fields from Python when TS doesn't set them
+    // Stryker disable next-line LogicalOperator: getNodeMetadata always emits a layout string ("default" when unset), so tsMetadata.layout is never nullish and the python fallback is unreachable (equivalent).
     layout: tsMetadata.layout ?? pyMetadata.layout,
     // `getNodeMetadata` emits the "default" sentinel when the TS class does not
     // opt in, so treat it as unset — otherwise it would clobber a Python
@@ -213,6 +225,7 @@ function getOutputs(nodeClass: NodeClass): OutputSlotMetadata[] {
   }
 
   const descriptor = nodeClass.toDescriptor();
+  // Stryker disable next-line ConditionalExpression,EqualityOperator: this guard only short-circuits an empty outputs object; iterating an empty object pushes nothing, so length > 0 vs >= 0 vs always-true are indistinguishable (equivalent).
   if (descriptor.outputs && Object.keys(descriptor.outputs).length > 0) {
     for (const [name, typeName] of Object.entries(
       descriptor.outputs as Record<string, string>
@@ -241,6 +254,7 @@ export function getNodeMetadata(
     type: toMetadataType(o.type)
   }));
 
+  // Stryker disable next-line ConditionalExpression: validateOutputCorrelation returns [] immediately for an undefined correlation map, so always calling it is equivalent to this guard (no throw, no change).
   if (nodeClass.outputCorrelation) {
     const issues = validateOutputCorrelation(
       nodeType,
@@ -283,6 +297,7 @@ export function getNodeMetadata(
     replaced_by: nodeClass.replacedBy
   };
 
+  // Stryker disable next-line ConditionalExpression,BlockStatement: when mergePythonBackfill is off, mergeMetadata(tsMetadata, pythonMetadata) is still reached below and returns tsMetadata unchanged once pythonMetadata is absent — so skipping the early return is equivalent.
   if (!options.mergePythonBackfill) {
     return tsMetadata;
   }

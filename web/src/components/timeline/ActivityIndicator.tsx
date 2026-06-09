@@ -91,10 +91,10 @@ const ClipListPopover: React.FC<ClipListPopoverProps> = memo(
       [selectClip, onClose]
     );
 
-    const affectedClips = useMemo(
-      () => clips.filter((c) => clipIds.includes(c.id)),
-      [clips, clipIds]
-    );
+    const affectedClips = useMemo(() => {
+      const idSet = new Set(clipIds);
+      return clips.filter((c) => idSet.has(c.id));
+    }, [clips, clipIds]);
 
     return (
       <Popover

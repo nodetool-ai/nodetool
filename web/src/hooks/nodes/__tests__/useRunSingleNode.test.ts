@@ -22,6 +22,12 @@ jest.mock("../../../utils/edgeValue", () => ({
   resolveExternalEdgeValue: jest.fn()
 }));
 
+const mockGetMetadata = jest.fn();
+jest.mock("../../../stores/MetadataStore", () => ({
+  __esModule: true,
+  default: { getState: () => ({ getMetadata: mockGetMetadata }) }
+}));
+
 import { useNodeStoreRef } from "../../../contexts/NodeContext";
 import { useWebsocketRunner } from "../../../stores/WorkflowRunner";
 import useResultsStore from "../../../stores/ResultsStore";
@@ -60,6 +66,7 @@ describe("useRunSingleNode", () => {
     mockUseNodeStoreRef.mockReturnValue({
       getState: () => ({
         edges: [],
+        nodes: [defaultNode],
         workflow: defaultWorkflow,
         findNode: mockFindNode
       })
@@ -95,6 +102,9 @@ describe("useRunSingleNode", () => {
       hasValue: false,
       isFallback: false
     });
+
+    // Non-generative by default; individual tests opt into auto_save_asset.
+    mockGetMetadata.mockReturnValue(undefined);
   });
 
   it("returns early when workflow is already running", () => {
@@ -138,6 +148,7 @@ describe("useRunSingleNode", () => {
     mockUseNodeStoreRef.mockReturnValue({
       getState: () => ({
         edges: [edge],
+        nodes: [defaultNode],
         workflow: defaultWorkflow,
         findNode: mockFindNode
       })
@@ -175,6 +186,7 @@ describe("useRunSingleNode", () => {
     mockUseNodeStoreRef.mockReturnValue({
       getState: () => ({
         edges: [edge],
+        nodes: [defaultNode],
         workflow: defaultWorkflow,
         findNode: mockFindNode
       })
@@ -212,6 +224,59 @@ describe("useRunSingleNode", () => {
     expect(subgraphNodeIds).toBeInstanceOf(Set);
     expect(subgraphNodeIds.has(nodeId)).toBe(true);
     expect(subgraphNodeIds.size).toBe(1);
+  });
+
+  it("blocks the run and warns when an upstream generative node is uncached", () => {
+    const generator = {
+      id: "gen-1",
+      type: "nodetool.fal.FluxImage",
+      data: { properties: {}, dynamic_properties: {} }
+    };
+    const edge = {
+      id: "e1",
+      source: "gen-1",
+      target: nodeId,
+      sourceHandle: "output",
+      targetHandle: "image"
+    };
+
+    mockUseNodeStoreRef.mockReturnValue({
+      getState: () => ({
+        edges: [edge],
+        nodes: [defaultNode, generator],
+        workflow: defaultWorkflow,
+        findNode: mockFindNode
+      })
+    });
+    mockFindNode.mockImplementation((id: string) =>
+      id === nodeId ? defaultNode : id === "gen-1" ? generator : undefined
+    );
+    // Upstream has no cached result and is flagged as a generative node.
+    mockResolveExternalEdgeValue.mockReturnValue({
+      value: undefined,
+      hasValue: false,
+      isFallback: false
+    });
+    mockGetMetadata.mockImplementation((type: string) =>
+      type === "nodetool.fal.FluxImage"
+        ? { auto_save_asset: true, title: "Flux Image" }
+        : undefined
+    );
+
+    const { result } = renderHook(() => useRunSingleNode(nodeId));
+
+    act(() => {
+      result.current.runSingleNode();
+    });
+
+    expect(mockRun).not.toHaveBeenCalled();
+    expect(mockAddNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "warning",
+        alert: true,
+        content: expect.stringContaining("Flux Image")
+      })
+    );
   });
 
   it("shows notification after triggering run", () => {

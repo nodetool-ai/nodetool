@@ -61,7 +61,14 @@ type StorageLike = {
   retrieve: (uri: string) => Promise<Uint8Array | null> | Uint8Array | null;
 } | null;
 
-type AssetContext = { storage?: StorageLike } | undefined;
+type AssetContext =
+  | {
+      storage?: StorageLike;
+      resolveAssetBytes?: (
+        uri: string
+      ) => Promise<{ bytes: Uint8Array | null }>;
+    }
+  | undefined;
 
 // ---------------------------------------------------------------------------
 // API key
@@ -110,6 +117,14 @@ export async function refToBytes(
   const dataUriMatch = uri.match(/^data:[^;]*;base64,(.+)$/s);
   if (dataUriMatch) {
     return new Uint8Array(Buffer.from(dataUriMatch[1], "base64"));
+  }
+
+  if (
+    (uri.startsWith("asset://") || uri.startsWith("package://")) &&
+    context?.resolveAssetBytes
+  ) {
+    const { bytes } = await context.resolveAssetBytes(uri);
+    if (bytes) return new Uint8Array(bytes);
   }
 
   if (context?.storage) {

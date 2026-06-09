@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { FileUserManager } from "../src/file-user-manager.js";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -58,6 +58,14 @@ describe("FileUserManager.addUser", () => {
     expect(user).not.toBeNull();
     expect(user!.username).toBe("dave");
   });
+
+  it("writes the users file with version '1.0'", async () => {
+    await manager.addUser("ver");
+    const raw = JSON.parse(await readFile(usersFilePath, "utf8")) as {
+      version: string;
+    };
+    expect(raw.version).toBe("1.0");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -107,6 +115,19 @@ describe("FileUserManager.resetToken", () => {
     // We cannot read back the raw token (only hash stored), but the userId must match.
     expect(stored).not.toBeNull();
     expect(newToken).toBeTruthy();
+  });
+
+  it("preserves the stored record's identity fields after reset", async () => {
+    // resetToken rebuilds the record via { ...existing, ... }; assert the spread
+    // is preserved so the stored user keeps its id/username/role (kills the
+    // ObjectLiteral-emptying mutant that would wipe everything but the token).
+    const created = await manager.addUser("iris", "admin");
+    await manager.resetToken("iris");
+    const stored = await manager.getUser("iris");
+    expect(stored).not.toBeNull();
+    expect(stored!.id).toBe(created.userId);
+    expect(stored!.username).toBe("iris");
+    expect(stored!.role).toBe("admin");
   });
 });
 

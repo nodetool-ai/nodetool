@@ -9,6 +9,7 @@
 
 import { createLogger } from "@nodetool-ai/config";
 
+// Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
 const log = createLogger("nodetool.kernel.suspendable");
 
 /**
@@ -104,7 +105,9 @@ export class SuspendableState implements SuspendableNode {
         "getSavedState() can only be called when resuming from suspension"
       );
     }
+    // Stryker disable next-line ConditionalExpression,BlockStatement: unreachable defensive guard — _isResuming only becomes true via setResumingState, which always sets a non-null _savedState (and would throw on null at Object.keys before this is reachable)
     if (this._savedState === null) {
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.warn("No saved state found for suspended node", {
         nodeId: this._nodeId
       });
@@ -118,6 +121,7 @@ export class SuspendableState implements SuspendableNode {
     state: Record<string, unknown>,
     metadata?: Record<string, unknown>
   ): never {
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
     log.info("Suspending workflow at node", {
       nodeId: this._nodeId,
       reason,
@@ -132,13 +136,16 @@ export class SuspendableState implements SuspendableNode {
   }
 
   updateSuspendedState(updates: Record<string, unknown>): void {
+    // Stryker disable next-line BooleanLiteral,ConditionalExpression,BlockStatement: warn-only guard, the assign below runs either way — no observable behaviour
     if (!this._isResuming) {
+      // Stryker disable next-line StringLiteral: diagnostic log message only
       log.warn("updateSuspendedState called on non-suspended node");
     }
     if (this._savedState === null) {
       this._savedState = {};
     }
     Object.assign(this._savedState, updates);
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
     log.info("Updated suspended state", {
       nodeId: this._nodeId,
       keys: Object.keys(updates)
@@ -155,6 +162,7 @@ export class SuspendableState implements SuspendableNode {
     this._isResuming = true;
     this._savedState = savedState;
     this.eventSeq = eventSeq;
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
     log.debug("Node set to resuming mode", {
       nodeId: this._nodeId,
       eventSeq,

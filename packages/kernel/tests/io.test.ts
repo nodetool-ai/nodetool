@@ -4,7 +4,9 @@
 
 import { describe, it, expect } from "vitest";
 import { NodeInbox } from "../src/inbox.js";
+import type { MessageEnvelope } from "../src/inbox.js";
 import { NodeInputs, NodeOutputs } from "../src/io.js";
+import type { NodeAnalysis } from "../src/correlation-analysis.js";
 
 // Helper: collect all items from an async generator
 async function collect<T>(gen: AsyncGenerator<T>): Promise<T[]> {
@@ -173,6 +175,56 @@ describe("NodeInputs – hasBuffered and hasStream", () => {
   });
 });
 
+describe("NodeInputs – scopeFor / invocationScope", () => {
+  const analysisWith = (
+    invocationScope: readonly string[],
+    inputs: Record<string, readonly string[]>
+  ): NodeAnalysis =>
+    ({
+      invocationScope,
+      inputs: new Map(
+        Object.entries(inputs).map(([handle, scope]) => [
+          handle,
+          { scope, repeatsPerKey: false, isMultiEdge: false, possibleChildRoots: new Set() }
+        ])
+      ),
+      outputs: new Map()
+    }) as unknown as NodeAnalysis;
+
+  it("scopeFor returns the analyzed scope of a connected handle", () => {
+    const inputs = new NodeInputs(
+      new NodeInbox(),
+      null,
+      analysisWith(["root"], { a: ["root", "iter"] })
+    );
+    expect(inputs.scopeFor("a")).toEqual(["root", "iter"]);
+  });
+
+  it("scopeFor returns [] for a handle absent from analysis", () => {
+    const inputs = new NodeInputs(new NodeInbox(), null, analysisWith(["root"], {}));
+    expect(inputs.scopeFor("missing")).toEqual([]);
+  });
+
+  it("scopeFor returns [] when analysis is off", () => {
+    const inputs = new NodeInputs(new NodeInbox());
+    expect(inputs.scopeFor("a")).toEqual([]);
+  });
+
+  it("invocationScope returns the analyzed invocation scope", () => {
+    const inputs = new NodeInputs(
+      new NodeInbox(),
+      null,
+      analysisWith(["root", "iter"], {})
+    );
+    expect(inputs.invocationScope()).toEqual(["root", "iter"]);
+  });
+
+  it("invocationScope returns [] when analysis is off", () => {
+    const inputs = new NodeInputs(new NodeInbox());
+    expect(inputs.invocationScope()).toEqual([]);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // NodeOutputs tests
 // ---------------------------------------------------------------------------
@@ -240,6 +292,82 @@ describe("NodeOutputs – complete and eosCallback", () => {
   it("does not throw when eosCallback not provided", () => {
     const outputs = new NodeOutputs();
     expect(() => outputs.complete("x")).not.toThrow();
+  });
+});
+
+describe("NodeOutputs – emitGroup", () => {
+  it("collects every slot in the frame", async () => {
+    const outputs = new NodeOutputs();
+    await outputs.emitGroup({ a: 1, b: 2 });
+    expect(outputs.collected()).toEqual({ a: 1, b: 2 });
+  });
+
+  it("routes via emitGroupFn when provided and does not fall back to sendFn", async () => {
+    const groupCalls: Array<Record<string, unknown>> = [];
+    const sendCalls: Array<[string, unknown]> = [];
+    const outputs = new NodeOutputs({
+      emitGroupFn: async (values) => {
+        groupCalls.push(values);
+      },
+      sendFn: async (slot, value) => {
+        sendCalls.push([slot, value]);
+      }
+    });
+    await outputs.emitGroup({ a: 1, b: 2 });
+    expect(groupCalls).toEqual([{ a: 1, b: 2 }]);
+    expect(sendCalls).toEqual([]);
+  });
+
+  it("falls back to per-slot sendFn when no emitGroupFn is wired", async () => {
+    const sendCalls: Array<[string, unknown]> = [];
+    const outputs = new NodeOutputs({
+      sendFn: async (slot, value) => {
+        sendCalls.push([slot, value]);
+      }
+    });
+    await outputs.emitGroup({ a: 1, b: 2 });
+    expect(sendCalls).toEqual([
+      ["a", 1],
+      ["b", 2]
+    ]);
+  });
+
+  it("collects without routing when neither callback is set", async () => {
+    const outputs = new NodeOutputs();
+    await outputs.emitGroup({ a: 1 }); // must not throw
+    expect(outputs.collected()).toEqual({ a: 1 });
+  });
+});
+
+describe("NodeOutputs – drop", () => {
+  it("routes to dropFn with the slot and envelope", async () => {
+    const calls: Array<[string, MessageEnvelope]> = [];
+    const outputs = new NodeOutputs({
+      dropFn: async (slot, env) => {
+        calls.push([slot, env]);
+      }
+    });
+    const env = { handle: "h", data: 1 } as unknown as MessageEnvelope;
+    await outputs.drop("s", env);
+    expect(calls).toEqual([["s", env]]);
+  });
+
+  it("defaults an empty slot to 'output'", async () => {
+    const seen: string[] = [];
+    const outputs = new NodeOutputs({
+      dropFn: async (slot) => {
+        seen.push(slot);
+      }
+    });
+    await outputs.drop("", {} as MessageEnvelope);
+    expect(seen).toEqual(["output"]);
+  });
+
+  it("is a no-op when no dropFn is wired", async () => {
+    const outputs = new NodeOutputs();
+    await expect(
+      outputs.drop("s", {} as MessageEnvelope)
+    ).resolves.toBeUndefined();
   });
 });
 

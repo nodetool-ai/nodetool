@@ -185,6 +185,11 @@ describe("useNodeContextMenu", () => {
     });
 
     mockGetMetadata.mockReturnValue({ title: "String Constant" });
+    // buildRunSubgraph (used by handleRunFromHere) classifies upstream nodes via
+    // the store's getState accessor, not the hook selector.
+    (
+      useMetadataStore as unknown as { getState: jest.Mock }
+    ).getState.mockReturnValue({ getMetadata: mockGetMetadata });
     mockedConstantToInputType.mockReturnValue("nodetool.input.StringInput");
     mockedInputToConstantType.mockReturnValue("nodetool.constant.String");
   });

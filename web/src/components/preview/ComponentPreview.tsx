@@ -293,31 +293,16 @@ const SAMPLE_DATAFRAME: DataframeRef = {
   ]
 };
 
-const SAMPLE_TEXT = `// Pulse Sequencer - emits beat events on a clock signal
-import { Node } from "@nodetool-ai/node-sdk";
+const SAMPLE_PROMPT = `You are a senior copywriter at {{ company }}.
 
-interface PulseProps {
-  bpm: number;
-  beats_per_bar: number;
-}
+Write a {{ tone }} product description for {{ product_name }}, aimed at {{ audience }}.
+Keep it under {{ max_words }} words and lead with the single most compelling benefit.
 
-export class PulseSequencer extends Node {
-  static category = "audio.timing";
+Highlight these points:
+- {benefit_1}
+- {benefit_2}
 
-  bpm = 120;
-  beats_per_bar = 4;
-
-  async *genProcess() {
-    const interval_ms = 60_000 / this.bpm;
-    let beat = 0;
-    while (true) {
-      yield { type: "beat", index: beat % this.beats_per_bar };
-      await new Promise((r) => setTimeout(r, interval_ms));
-      beat += 1;
-    }
-  }
-}
-`;
+End with a clear, friendly call to action.`;
 
 const SAMPLE_WORKFLOW: Workflow = {
   id: "wf-preview-stub",
@@ -422,12 +407,14 @@ const PreviewTextEditor: React.FC = () => (
   <Box data-preview="text-editor" sx={{ width: "100%", height: "100vh" }}>
     <Suspense fallback={null}>
       <TextEditorModal
-        value={SAMPLE_TEXT}
+        value={SAMPLE_PROMPT}
         onChange={() => undefined}
         onClose={() => undefined}
-        propertyName="code"
-        propertyDescription="TypeScript source for a custom node"
-        language="typescript"
+        propertyName="prompt"
+        propertyDescription="Instruction prompt sent to the language model"
+        propertyType="str"
+        nodeType="nodetool.text.TextGeneration"
+        language="plaintext"
       />
     </Suspense>
   </Box>

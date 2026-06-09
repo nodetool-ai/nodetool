@@ -9,6 +9,7 @@
 
 import { createLogger } from "@nodetool-ai/config";
 
+// Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
 const log = createLogger("nodetool.kernel.trigger-manager");
 
 const DEFAULT_WATCHDOG_INTERVAL = 30_000; // 30 seconds in ms
@@ -104,6 +105,7 @@ export class TriggerWorkflowManager {
     // Check if already running
     const existing = this._runningJobs.get(workflowId);
     if (existing && existing.status === "running") {
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.info("Trigger workflow already running", { workflowId });
       return existing;
     }
@@ -111,10 +113,12 @@ export class TriggerWorkflowManager {
     // Check if workflow has trigger nodes
     const hasTriggers = await this._hasTriggerNodes(workflowId);
     if (!hasTriggers) {
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.warn("Workflow has no trigger nodes, not starting", { workflowId });
       return null;
     }
 
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
     log.info("Starting trigger workflow", { workflowId, workflowName });
 
     const abortController = new AbortController();
@@ -139,16 +143,19 @@ export class TriggerWorkflowManager {
       completion
         .then(() => {
           job.status = "completed";
+          // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
           log.warn("Trigger workflow completed unexpectedly", {
             workflowId,
             jobId
           });
         })
         .catch((err) => {
+          // Stryker disable next-line OptionalChaining: err is always an Error from a rejected completion; the ?. is defensive
           if (err?.name === "AbortError") {
             job.status = "cancelled";
           } else {
             job.status = "failed";
+            // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
             log.error("Trigger workflow failed", {
               workflowId,
               jobId,
@@ -158,10 +165,12 @@ export class TriggerWorkflowManager {
         });
 
       this._runningJobs.set(workflowId, job);
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.info("Started trigger workflow", { workflowId, jobId });
 
       return job;
     } catch (err) {
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.error("Failed to start trigger workflow", {
         workflowId,
         error: String(err)
@@ -175,7 +184,9 @@ export class TriggerWorkflowManager {
    */
   async stopTriggerWorkflow(workflowId: string): Promise<boolean> {
     const job = this._runningJobs.get(workflowId);
+    // Stryker disable next-line ConditionalExpression,BlockStatement: equivalent — when the job is missing, falling through dereferences undefined and the try/catch below also returns false
     if (!job) {
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.warn("Trigger workflow not found", { workflowId });
       return false;
     }
@@ -184,9 +195,11 @@ export class TriggerWorkflowManager {
       job.abortController.abort();
       job.status = "cancelled";
       this._runningJobs.delete(workflowId);
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.info("Stopped trigger workflow", { workflowId });
       return true;
     } catch (err) {
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.error("Error stopping trigger workflow", {
         workflowId,
         error: String(err)
@@ -222,15 +235,19 @@ export class TriggerWorkflowManager {
    */
   startWatchdog(interval?: number): void {
     if (this._watchdogTimer !== null) {
+      // Stryker disable next-line StringLiteral: diagnostic log message only
       log.info("Watchdog already running");
       return;
     }
 
     const ms = interval ?? this._watchdogInterval;
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
     log.info("Starting trigger workflow watchdog", { intervalMs: ms });
 
     this._watchdogTimer = setInterval(() => {
+      // Stryker disable next-line BlockStatement: defensive error handler — _watchdogCheck swallows its own errors, so this catch only logs and is unreachable in practice
       this._watchdogCheck().catch((err) => {
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
         log.error("Error in watchdog check", { error: String(err) });
       });
     }, ms);
@@ -240,9 +257,11 @@ export class TriggerWorkflowManager {
    * Stop the watchdog.
    */
   stopWatchdog(): void {
+    // Stryker disable next-line ConditionalExpression: the true-direction is equivalent — clearInterval(null) and re-nulling are no-ops; the boundary/false cases are covered via the EqualityOperator and BlockStatement mutants
     if (this._watchdogTimer !== null) {
       clearInterval(this._watchdogTimer);
       this._watchdogTimer = null;
+      // Stryker disable next-line StringLiteral: diagnostic log message only
       log.info("Trigger workflow watchdog stopped");
     }
   }
@@ -251,23 +270,28 @@ export class TriggerWorkflowManager {
    * Stop all running trigger workflows and the watchdog.
    */
   async shutdown(): Promise<void> {
+    // Stryker disable next-line StringLiteral: diagnostic log message only
     log.info("Shutting down TriggerWorkflowManager");
     this.stopWatchdog();
 
     const workflowIds = [...this._runningJobs.keys()];
     let stopped = 0;
     for (const wfId of workflowIds) {
+      // Stryker disable next-line UpdateOperator: `stopped` is only used in the diagnostic log below
       if (await this.stopTriggerWorkflow(wfId)) stopped++;
     }
 
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
     log.info("TriggerWorkflowManager shutdown complete", { stopped });
   }
 
   private async _watchdogCheck(): Promise<void> {
+    // Stryker disable next-line ArrayDeclaration: a non-empty seed is equivalent — a bogus workflowId is skipped by the `if (!job) continue` guard below
     const toRestart: string[] = [];
 
     for (const [workflowId, job] of this._runningJobs) {
       if (job.status === "failed" || job.status === "completed") {
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
         log.warn("Trigger workflow needs restart", {
           workflowId,
           jobId: job.jobId,
@@ -279,8 +303,10 @@ export class TriggerWorkflowManager {
 
     for (const workflowId of toRestart) {
       const job = this._runningJobs.get(workflowId);
+      // Stryker disable next-line ConditionalExpression: equivalent — workflowId comes from toRestart built moments earlier from _runningJobs and nothing deletes in between, so job is always present; the guard is defensive
       if (!job) continue;
 
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.info("Attempting restart of trigger workflow", { workflowId });
       this._runningJobs.delete(workflowId);
 

@@ -3,14 +3,11 @@
  * Uses native fetch (Node 18+).
  */
 
+import { loadMediaRefBytes } from "@nodetool-ai/runtime";
+import type { MediaRefValue, ProcessingContext } from "@nodetool-ai/runtime";
+
 const KIE_API_BASE = "https://api.kie.ai";
 const KIE_UPLOAD_URL = "https://kieai.redpandaai.co/api/file-stream-upload";
-
-type UploadContext = {
-  storage?: {
-    retrieve: (uri: string) => Promise<Uint8Array | null> | Uint8Array | null;
-  } | null;
-};
 
 function headers(apiKey: string): Record<string, string> {
   return {
@@ -164,45 +161,28 @@ function isLocalHttpUrl(uri: string): boolean {
   );
 }
 
+/**
+ * Resolve an asset ref to raw bytes for upload. Delegates to the canonical
+ * {@link loadMediaRefBytes}, which handles inline `data`, `data:` URIs,
+ * `asset://<id>` references (via `context.resolveAssetBytes`), package asset
+ * URIs, opaque storage URIs (plus `asset_id` → `/api/storage/<id>.<ext>`
+ * candidates), local file paths, and local http(s) URLs. KIE's earlier bespoke
+ * resolver only handled `data`/`data:`/`storage.retrieve(uri)`, so `asset://`
+ * refs — the format this package's own field descriptions recommend — failed
+ * with "Image has no data or URI".
+ */
 async function resolveUploadBytes(
   ref: Record<string, unknown>,
-  context?: UploadContext
+  context?: ProcessingContext
 ): Promise<Buffer | null> {
-  const data = ref.data as string | undefined;
-  if (data) {
-    return Buffer.from(data, "base64");
-  }
-
-  const uri = ref.uri as string | undefined;
-  if (!uri) return null;
-
-  if (uri.startsWith("data:")) {
-    const commaIndex = uri.indexOf(",");
-    if (commaIndex !== -1) {
-      const encoded = uri.slice(commaIndex + 1);
-      return Buffer.from(encoded, "base64");
-    }
-  }
-
-  const bytes = await context?.storage?.retrieve(uri);
-  if (bytes) {
-    return Buffer.from(bytes);
-  }
-
-  if (isRemoteHttpUrl(uri) && isLocalHttpUrl(uri)) {
-    const response = await fetch(uri);
-    if (response.ok) {
-      return Buffer.from(await response.arrayBuffer());
-    }
-  }
-
-  return null;
+  const bytes = await loadMediaRefBytes(ref as MediaRefValue, context);
+  return bytes ? Buffer.from(bytes) : null;
 }
 
 export async function uploadImageInput(
   apiKey: string,
   image: unknown,
-  context?: UploadContext
+  context?: ProcessingContext
 ): Promise<string> {
   if (!image || typeof image !== "object") throw new Error("Image is required");
   const img = image as Record<string, unknown>;
@@ -223,7 +203,7 @@ export async function uploadImageInput(
 export async function uploadAudioInput(
   apiKey: string,
   audio: unknown,
-  context?: UploadContext
+  context?: ProcessingContext
 ): Promise<string> {
   if (!audio || typeof audio !== "object") throw new Error("Audio is required");
   const a = audio as Record<string, unknown>;
@@ -244,7 +224,7 @@ export async function uploadAudioInput(
 export async function uploadVideoInput(
   apiKey: string,
   video: unknown,
-  context?: UploadContext
+  context?: ProcessingContext
 ): Promise<string> {
   if (!video || typeof video !== "object") throw new Error("Video is required");
   const v = video as Record<string, unknown>;

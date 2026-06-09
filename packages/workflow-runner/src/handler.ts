@@ -26,7 +26,7 @@
 
 import type { Platform, ProcessingMessage } from "@nodetool-ai/protocol";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import { ProcessingContext } from "@nodetool-ai/runtime";
+import { ProcessingContext } from "@nodetool-ai/runtime/context";
 import { runWorkflow, type GraphData, type RunWorkflowOptions } from "./run.js";
 
 export interface CreateWorkflowHandlerOptions {

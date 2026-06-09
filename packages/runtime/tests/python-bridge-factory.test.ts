@@ -14,13 +14,17 @@ import { PythonStdioBridge } from "../src/python-stdio-bridge.js";
 import { WebsocketPythonBridge } from "../src/python-websocket-bridge.js";
 
 const ENV_KEY = "NODETOOL_WORKER_URL";
+const TOKEN_ENV_KEY = "NODETOOL_WORKER_TOKEN";
 
 describe("createPythonBridge", () => {
   let savedWorkerUrl: string | undefined;
+  let savedWorkerToken: string | undefined;
 
   beforeEach(() => {
     savedWorkerUrl = process.env[ENV_KEY];
+    savedWorkerToken = process.env[TOKEN_ENV_KEY];
     delete process.env[ENV_KEY];
+    delete process.env[TOKEN_ENV_KEY];
   });
 
   afterEach(() => {
@@ -28,6 +32,11 @@ describe("createPythonBridge", () => {
       delete process.env[ENV_KEY];
     } else {
       process.env[ENV_KEY] = savedWorkerUrl;
+    }
+    if (savedWorkerToken === undefined) {
+      delete process.env[TOKEN_ENV_KEY];
+    } else {
+      process.env[TOKEN_ENV_KEY] = savedWorkerToken;
     }
   });
 
@@ -40,6 +49,11 @@ describe("createPythonBridge", () => {
     const bridge = createPythonBridge({ wsUrl: "ws://127.0.0.1:7777" });
     expect(bridge).toBeInstanceOf(WebsocketPythonBridge);
     expect(bridge.isAvailable()).toBe(true);
+  });
+
+  it("trims the wsUrl passed to the WebSocket bridge", () => {
+    const bridge = createPythonBridge({ wsUrl: "  ws://127.0.0.1:7777  " });
+    expect((bridge as WebsocketPythonBridge).wsUrl).toBe("ws://127.0.0.1:7777");
   });
 
   it("returns a WebSocket bridge when NODETOOL_WORKER_URL is set", () => {

@@ -14,11 +14,13 @@ import {
   type RunResult
 } from "@nodetool-ai/kernel";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+// Narrow `/context` subpath (not the package root) so the browser bundle of
+// this runner doesn't pull the provider / python-bridge barrel.
 import {
   ProcessingContext,
   type CacheAdapter,
   type StorageAdapter
-} from "@nodetool-ai/runtime";
+} from "@nodetool-ai/runtime/context";
 import type {
   Edge,
   NodeDescriptor,

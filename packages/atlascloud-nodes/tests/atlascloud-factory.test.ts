@@ -60,6 +60,28 @@ describe("resolveAssetForAtlas", () => {
     expect(out).toBe("data:image/png;base64,AQID");
   });
 
+  // Storage adapters return null for asset://<id> reference URIs (they only
+  // know memory://, /api/storage/..., file paths). The canonical resolver
+  // context.resolveAssetBytes handles asset:// (and package://) refs, so the
+  // resolver must consult it before falling through to fetch/throw.
+  it("uses context.resolveAssetBytes for asset:// refs storage can't materialize", async () => {
+    const retrieve = vi.fn().mockResolvedValue(null);
+    const resolveAssetBytes = vi
+      .fn()
+      .mockResolvedValue({ bytes: Uint8Array.from([137, 80, 78, 71]) });
+    const out = await resolveAssetForAtlas(
+      { type: "image", uri: "asset://asset-123" },
+      { storage: { retrieve }, resolveAssetBytes } as unknown as never,
+      "image"
+    );
+    expect(resolveAssetBytes).toHaveBeenCalledWith("asset://asset-123");
+    expect(out).toBe(
+      `data:image/png;base64,${Buffer.from(
+        Uint8Array.from([137, 80, 78, 71])
+      ).toString("base64")}`
+    );
+  });
+
   // SSRF defense: refs whose URIs point at the runtime's own host, RFC1918
   // private space, or cloud-metadata endpoints are never fetched. With no
   // alternative resolution path, resolveAssetForAtlas throws.

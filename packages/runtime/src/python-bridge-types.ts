@@ -38,6 +38,15 @@ export interface ProgressEvent {
 
 export interface PythonBridgeOptions {
   wsUrl?: string;
+  /**
+   * Shared-secret bearer token for the remote WebSocket worker. When set, the
+   * WebSocket bridge sends an `Authorization: Bearer <token>` header on every
+   * handshake (initial connect AND each reconnect); the worker rejects the
+   * handshake with HTTP 401 if it doesn't match. When unset/empty, no header is
+   * sent and the worker accepts all connections (local/dev backward compat).
+   * Threaded from `NODETOOL_WORKER_TOKEN` by {@link createPythonBridge}.
+   */
+  workerToken?: string;
   pythonPath?: string;
   workerArgs?: string[];
   autoRestart?: boolean;

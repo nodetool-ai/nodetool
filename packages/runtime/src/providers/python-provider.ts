@@ -187,12 +187,12 @@ export class PythonProvider extends BaseProvider {
   }
 
   async imageToImage(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Uint8Array> {
     return this._bridge.providerImageToImage(
       this._pythonProviderId,
-      image,
+      images[0] ?? new Uint8Array(),
       params as unknown as Record<string, unknown>,
       this._secrets
     );

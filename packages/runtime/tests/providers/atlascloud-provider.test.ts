@@ -230,7 +230,7 @@ describe("AtlasCloudProvider — imageToImage", () => {
     const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
     // PNG magic bytes so the mime detector picks image/png.
     const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 1, 2]);
-    await p.imageToImage(png, {
+    await p.imageToImage([png], {
       model: imageModel("google/nano-banana-2/edit"),
       prompt: "make it pink",
       aspectRatio: "1:1"
@@ -248,7 +248,7 @@ describe("AtlasCloudProvider — imageToImage", () => {
   it("rejects empty input bytes", async () => {
     const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
     await expect(
-      p.imageToImage(new Uint8Array(), {
+      p.imageToImage([new Uint8Array()], {
         model: imageModel("google/nano-banana-2/edit"),
         prompt: "x"
       })
@@ -297,7 +297,7 @@ describe("AtlasCloudProvider — imageToVideo", () => {
     mockAtlasFetch({ capture });
     const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
     await p.imageToVideo(
-      Uint8Array.from([0xff, 0xd8, 0x01]), // JPEG magic
+      [Uint8Array.from([0xff, 0xd8, 0x01])], // JPEG magic
       {
         model: videoModel("bytedance/seedance-2.0/image-to-video"),
         prompt: "drift forward"
@@ -312,7 +312,7 @@ describe("AtlasCloudProvider — imageToVideo", () => {
   it("rejects models without an input image field (e.g. text-to-video)", async () => {
     const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
     await expect(
-      p.imageToVideo(Uint8Array.from([1]), {
+      p.imageToVideo([Uint8Array.from([1])], {
         model: videoModel("bytedance/seedance-2.0/text-to-video"),
         prompt: "x"
       })
@@ -323,7 +323,7 @@ describe("AtlasCloudProvider — imageToVideo", () => {
     const capture: { submitBody?: Record<string, unknown> } = {};
     mockAtlasFetch({ capture });
     const p = new AtlasCloudProvider({ ATLASCLOUD_API_KEY: "k" });
-    await p.imageToVideo(Uint8Array.from([0x89, 0x50, 0x4e, 0x47]), {
+    await p.imageToVideo([Uint8Array.from([0x89, 0x50, 0x4e, 0x47])], {
       model: videoModel("bytedance/seedance-2.0/reference-to-video"),
       prompt: "spin it"
     });

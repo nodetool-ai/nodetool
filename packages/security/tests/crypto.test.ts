@@ -378,7 +378,21 @@ describe("master-key", () => {
     it("should throw when neither env nor cache is populated", () => {
       delete process.env["SECRETS_MASTER_KEY"];
       clearMasterKeyCache();
-      expect(() => getMasterKey()).toThrow(/not initialized/);
+      const error = (() => {
+        try {
+          getMasterKey();
+          return null;
+        } catch (e) {
+          return e as Error;
+        }
+      })();
+      // The message must both name the fault and tell the dev how to fix it,
+      // naming every key source and the danger it guards against.
+      expect(error?.message).toContain("not initialized");
+      expect(error?.message).toContain("initMasterKey()");
+      expect(error?.message).toContain("SECRETS_MASTER_KEY");
+      expect(error?.message).toContain("synchronous secret access");
+      expect(error?.message).toContain("disappears on process exit");
     });
 
     it("should cache the key across calls (env-sourced)", () => {

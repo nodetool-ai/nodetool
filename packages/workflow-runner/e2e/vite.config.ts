@@ -21,7 +21,7 @@ const NODE_PROTOCOL_STUBS: Record<string, string> = {
   "node:crypto": `${STUBS}/crypto-stub.js`,
   "node:os": `${STUBS}/os-stub.js`,
   "node:events": `${STUBS}/events-stub.js`,
-  "node:child_process": `${STUBS}/empty.js`,
+  "node:child_process": `${STUBS}/child-process-stub.js`,
   "node:worker_threads": `${STUBS}/empty.js`,
   "node:cluster": `${STUBS}/empty.js`,
   "node:dgram": `${STUBS}/empty.js`,
@@ -62,15 +62,9 @@ function stubNodeProtocolPlugin(): Plugin {
 export default defineConfig({
   root: resolve(import.meta.dirname),
   plugins: [stubNodeProtocolPlugin()],
-  define: {
-    // Browser-side modules don't have access to `process`. Shim a minimal
-    // object so top-level references (e.g. `process.env["NODETOOL_ENV"]`)
-    // don't throw on bundle init. Anything that needs real env vars must
-    // gate on IS_NODE / typeof process checks.
-    "process.env": "{}",
-    "process.platform": JSON.stringify("browser"),
-    "process.versions": "{}"
-  },
+  // No `process` define on purpose: the real web app doesn't shim `process`,
+  // so neither should this harness. Browser-portable code must gate on
+  // `typeof process !== "undefined"` (see ProcessingContext's safeProcessEnv).
   resolve: {
     alias: [
       { find: "node:fs/promises", replacement: `${STUBS}/fs-promises-stub.js` },
@@ -80,7 +74,7 @@ export default defineConfig({
       { find: "node:crypto", replacement: `${STUBS}/crypto-stub.js` },
       { find: "node:os", replacement: `${STUBS}/os-stub.js` },
       { find: "node:events", replacement: `${STUBS}/events-stub.js` },
-      { find: "node:child_process", replacement: `${STUBS}/empty.js` },
+      { find: "node:child_process", replacement: `${STUBS}/child-process-stub.js` },
       { find: "node:worker_threads", replacement: `${STUBS}/empty.js` },
       { find: "node:cluster", replacement: `${STUBS}/empty.js` },
       { find: "node:dgram", replacement: `${STUBS}/empty.js` },
@@ -111,6 +105,7 @@ export default defineConfig({
   optimizeDeps: {
     exclude: [
       "@nodetool-ai/base-nodes",
+      "@nodetool-ai/core-nodes",
       "@nodetool-ai/workflow-runner",
       "@nodetool-ai/node-sdk",
       "@nodetool-ai/runtime",

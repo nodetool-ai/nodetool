@@ -154,8 +154,11 @@ const WorkspaceTabItem = ({
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();
+                event.stopPropagation();
                 event.currentTarget.blur();
               } else if (event.key === "Escape") {
+                event.preventDefault();
+                event.stopPropagation();
                 cancelRenameRef.current = true;
                 onCancelRename();
               }

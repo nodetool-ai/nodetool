@@ -28,6 +28,20 @@ class RejectProvider extends AuthProvider {
   }
 }
 
+/** Accepts but omits tokenType, exercising the `?? TokenType.STATIC` default. */
+class NoTypeAcceptProvider extends AuthProvider {
+  async verifyToken(_token: string): Promise<AuthResult> {
+    return { ok: true, userId: "no-type-user" };
+  }
+}
+
+/** Rejects without an error message, exercising the default-message fallback. */
+class NoErrorRejectProvider extends AuthProvider {
+  async verifyToken(_token: string): Promise<AuthResult> {
+    return { ok: false };
+  }
+}
+
 function makeRequest(
   headers: Record<string, string>,
   path = "/api/test"
@@ -165,6 +179,56 @@ describe("createAuthMiddleware", () => {
       expect(user.userId).toBe("1");
       expect(user.tokenType).toBe(TokenType.STATIC);
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// createAuthMiddleware — error messages & tokenType defaults
+// ---------------------------------------------------------------------------
+describe("createAuthMiddleware error messages and tokenType defaults", () => {
+  it("the no-token 401 names the Authorization/Bearer requirement", async () => {
+    const middleware = createAuthMiddleware({
+      staticProvider: new RejectProvider(),
+      enforceAuth: true
+    });
+    // Pins the exact operator-facing message so the no-token branch can't be
+    // collapsed into the generic invalid-token path (kills the condition,
+    // block-removal and message-blanking mutants on the no-token guard).
+    await expect(middleware(makeRequest({}))).rejects.toThrow(
+      "Authorization header required. Use 'Authorization: Bearer <token>'."
+    );
+  });
+
+  it("defaults tokenType to STATIC when the static provider omits it", async () => {
+    const middleware = createAuthMiddleware({
+      staticProvider: new NoTypeAcceptProvider(),
+      enforceAuth: true
+    });
+    const user = await middleware(bearerRequest("tok"));
+    expect(user.userId).toBe("no-type-user");
+    expect(user.tokenType).toBe(TokenType.STATIC);
+  });
+
+  it("surfaces the static provider's error message on rejection", async () => {
+    const middleware = createAuthMiddleware({
+      staticProvider: new RejectProvider("bad static creds"),
+      enforceAuth: true
+    });
+    // `staticResult.error ?? default` must return the provider's error, not the
+    // generic fallback (kills the `??`→`&&` mutant).
+    await expect(middleware(bearerRequest("tok"))).rejects.toThrow(
+      "bad static creds"
+    );
+  });
+
+  it("falls back to the generic message when the provider gives no error", async () => {
+    const middleware = createAuthMiddleware({
+      staticProvider: new NoErrorRejectProvider(),
+      enforceAuth: true
+    });
+    await expect(middleware(bearerRequest("tok"))).rejects.toThrow(
+      "Invalid authentication token."
+    );
   });
 });
 

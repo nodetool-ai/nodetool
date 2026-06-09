@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { TriggerWakeupService } from "../src/trigger-wakeup.js";
+import { MemoryDurableInboxStore } from "../src/durable-inbox.js";
 
 describe("TriggerWakeupService", () => {
   it("deliverTriggerInput() stores input and returns true", async () => {
@@ -139,5 +140,181 @@ describe("TriggerWakeupService", () => {
 
     const pending = svc.getPendingInputs("r1", "n1");
     expect(pending).toHaveLength(1);
+  });
+});
+
+describe("TriggerWakeupService — durable store delivery", () => {
+  it("appends the payload to the provided store under the 'trigger' handle", async () => {
+    const store = new MemoryDurableInboxStore();
+    const svc = new TriggerWakeupService(store);
+
+    await svc.deliverTriggerInput({
+      runId: "r1",
+      nodeId: "n1",
+      inputId: "i1",
+      payload: { e: 1 }
+    });
+
+    const pending = await store.findPending("r1", "n1", "trigger", 100);
+    expect(pending).toHaveLength(1);
+    expect(pending[0].messageId).toBe("trigger-i1");
+    expect(pending[0].payload).toEqual({ e: 1 });
+  });
+});
+
+describe("TriggerWakeupService — getPendingInputs filtering", () => {
+  it("respects the limit", async () => {
+    const svc = new TriggerWakeupService();
+    for (const id of ["a", "b", "c"]) {
+      await svc.deliverTriggerInput({
+        runId: "r1",
+        nodeId: "n1",
+        inputId: id,
+        payload: {}
+      });
+    }
+    expect(svc.getPendingInputs("r1", "n1", 2)).toHaveLength(2);
+  });
+
+  it("filters by runId", async () => {
+    const svc = new TriggerWakeupService();
+    await svc.deliverTriggerInput({
+      runId: "r1",
+      nodeId: "n1",
+      inputId: "i1",
+      payload: {}
+    });
+    await svc.deliverTriggerInput({
+      runId: "r2",
+      nodeId: "n1",
+      inputId: "i2",
+      payload: {}
+    });
+    expect(svc.getPendingInputs("r1", "n1").map((i) => i.inputId)).toEqual([
+      "i1"
+    ]);
+  });
+});
+
+describe("TriggerWakeupService — markProcessed targeting", () => {
+  it("marks only the input with the given id", async () => {
+    const svc = new TriggerWakeupService();
+    await svc.deliverTriggerInput({
+      runId: "r1",
+      nodeId: "n1",
+      inputId: "i1",
+      payload: {}
+    });
+    await svc.deliverTriggerInput({
+      runId: "r1",
+      nodeId: "n1",
+      inputId: "i2",
+      payload: {}
+    });
+    svc.markProcessed("i2");
+    expect(svc.getPendingInputs("r1", "n1").map((i) => i.inputId)).toEqual([
+      "i1"
+    ]);
+  });
+
+  it("is a no-op for an unknown id", async () => {
+    const svc = new TriggerWakeupService();
+    await svc.deliverTriggerInput({
+      runId: "r1",
+      nodeId: "n1",
+      inputId: "i1",
+      payload: {}
+    });
+    expect(() => svc.markProcessed("nope")).not.toThrow();
+    expect(svc.getPendingInputs("r1", "n1")).toHaveLength(1);
+  });
+});
+
+describe("TriggerWakeupService — cleanupProcessed details", () => {
+  it("removes only matching, processed, old inputs", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2024-01-01T00:00:00Z"));
+      const svc = new TriggerWakeupService();
+      await svc.deliverTriggerInput({
+        runId: "r1",
+        nodeId: "n1",
+        inputId: "match",
+        payload: {}
+      });
+      await svc.deliverTriggerInput({
+        runId: "r2",
+        nodeId: "n1",
+        inputId: "otherRun",
+        payload: {}
+      });
+      await svc.deliverTriggerInput({
+        runId: "r1",
+        nodeId: "n2",
+        inputId: "otherNode",
+        payload: {}
+      });
+      await svc.deliverTriggerInput({
+        runId: "r1",
+        nodeId: "n1",
+        inputId: "unprocessed",
+        payload: {}
+      });
+      svc.markProcessed("match");
+      svc.markProcessed("otherRun");
+      svc.markProcessed("otherNode");
+
+      vi.setSystemTime(new Date("2024-01-02T00:00:00Z")); // a day later
+
+      expect(svc.cleanupProcessed("r1", "n1", 1)).toBe(1); // only "match"
+      // The others were untouched, so they are still individually removable.
+      expect(svc.cleanupProcessed("r2", "n1", 1)).toBe(1); // otherRun
+      expect(svc.cleanupProcessed("r1", "n2", 1)).toBe(1); // otherNode
+      expect(svc.getPendingInputs("r1", "n1").map((i) => i.inputId)).toEqual([
+        "unprocessed"
+      ]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps inputs newer than the age threshold", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2024-01-01T00:00:00Z"));
+      const svc = new TriggerWakeupService();
+      await svc.deliverTriggerInput({
+        runId: "r1",
+        nodeId: "n1",
+        inputId: "i1",
+        payload: {}
+      });
+      svc.markProcessed("i1"); // processedAt = 00:00
+      vi.setSystemTime(new Date("2024-01-01T00:30:00Z")); // 30 min later
+      // threshold 2h => cutoff 22:30 yesterday; processed at 00:00 is newer
+      expect(svc.cleanupProcessed("r1", "n1", 2)).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not remove an input processed exactly at the cutoff", async () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2024-01-01T00:00:00Z"));
+      const svc = new TriggerWakeupService();
+      await svc.deliverTriggerInput({
+        runId: "r1",
+        nodeId: "n1",
+        inputId: "i1",
+        payload: {}
+      });
+      svc.markProcessed("i1"); // processedAt = T0
+      vi.setSystemTime(new Date("2024-01-01T01:00:00Z")); // +1h
+      // cutoff = now - 1h = T0 exactly; the comparison is strict `<`
+      expect(svc.cleanupProcessed("r1", "n1", 1)).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

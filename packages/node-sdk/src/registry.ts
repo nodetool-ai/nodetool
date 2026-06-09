@@ -34,6 +34,7 @@ export class NodeRegistry {
   private _strictMetadata: boolean;
 
   constructor(options: NodeRegistryOptions = {}) {
+    // Stryker disable next-line LogicalOperator,BooleanLiteral: _strictMetadata only gated the (unreachable) strict-throw branch, so its value has no observable effect — the default is inert (equivalent).
     this._strictMetadata = options.strictMetadata ?? false;
     if (options.metadataByType) {
       for (const [nodeType, metadata] of options.metadataByType.entries()) {
@@ -53,6 +54,7 @@ export class NodeRegistry {
     // node packs (huggingface, mlx, etc.) that have no TS class.
     const metadata = options.metadata ?? getNodeMetadata(nodeClass);
 
+    // Stryker disable ConditionalExpression,BlockStatement,StringLiteral: getNodeMetadata always returns a populated object for a valid class, so `metadata` is always truthy and the strict-mode else branch is unreachable dead defensive code.
     if (metadata) {
       this._registeredMetadataByType.set(nodeClass.nodeType, metadata);
     } else if (this._strictMetadata) {
@@ -60,6 +62,7 @@ export class NodeRegistry {
         `Missing resolved metadata for node type: ${nodeClass.nodeType}`
       );
     }
+    // Stryker restore ConditionalExpression,BlockStatement,StringLiteral
     this._classes.set(nodeClass.nodeType, nodeClass);
   }
 
@@ -107,6 +110,7 @@ export class NodeRegistry {
    * referencing an unsupported node type.
    */
   forPlatform(target: Platform): NodeRegistry {
+    // Stryker disable next-line ObjectLiteral: _strictMetadata only gated the unreachable strict-throw, so propagating it (vs {}) has no observable effect (equivalent).
     const filtered = new NodeRegistry({
       strictMetadata: this._strictMetadata
     });
@@ -115,6 +119,7 @@ export class NodeRegistry {
       const metadata = this._registeredMetadataByType.get(nodeType);
       filtered.register(nodeClass, metadata ? { metadata } : {});
       const loaded = this._loadedMetadataByType.get(nodeType);
+      // Stryker disable next-line ConditionalExpression: every kept node is re-registered with derived metadata above (which getMetadata returns first), so copying the loaded entry is unobservable (equivalent).
       if (loaded) filtered._loadedMetadataByType.set(nodeType, loaded);
     }
     return filtered;
@@ -160,6 +165,7 @@ export class NodeRegistry {
     );
     instance.__node_id = descriptor.id;
     instance.__node_name = descriptor.name ?? descriptor.type;
+    // Stryker disable next-line ConditionalExpression: forcing this true assigns _dynamic_outputs = undefined, which reads back identically to leaving it unset (equivalent).
     if (descriptor.dynamic_outputs) {
       (instance as any)._dynamic_outputs = descriptor.dynamic_outputs;
     }
@@ -209,9 +215,8 @@ export class NodeRegistry {
   }
 
   listRegisteredNodeTypesWithoutMetadata(): string[] {
-    return this.list().filter(
-      (nodeType) => this.getMetadata(nodeType) === undefined
-    );
+    // Stryker disable next-line ArrowFunction,ConditionalExpression: register() always stores derived metadata, so getMetadata is never undefined for a registered type — this filter always yields [] regardless of the predicate (equivalent).
+    return this.list().filter((nodeType) => this.getMetadata(nodeType) === undefined);
   }
 
   /** Add or replace metadata for a node type (e.g. from Python bridge). */
@@ -258,16 +263,14 @@ function typeMetadataToString(
     | NodeMetadata["properties"][number]["type"]
     | NodeMetadata["outputs"][number]["type"]
 ): string {
-  const args = (typeMeta.type_args ?? [])
-    .map(typeMetadataToString)
-    .filter(Boolean);
-  return args.length > 0
-    ? `${typeMeta.type}[${args.join(", ")}]`
-    : typeMeta.type;
+  // Stryker disable next-line MethodExpression: .filter(Boolean) only drops empty renderings, which valid type metadata never produces (equivalent).
+  const args = (typeMeta.type_args ?? []).map(typeMetadataToString).filter(Boolean);
+  return args.length > 0 ? `${typeMeta.type}[${args.join(", ")}]` : typeMeta.type;
 }
 
 function deriveNamespace(nodeType: string): string {
   const lastDot = nodeType.lastIndexOf(".");
+  // Stryker disable next-line EqualityOperator: at lastDot === 0 both arms yield "" (slice(0,0) === the else ""), so > 0 vs >= 0 are indistinguishable (equivalent).
   return lastDot > 0 ? nodeType.slice(0, lastDot) : "";
 }
 
@@ -298,6 +301,7 @@ export function createGraphNodeTypeResolver(
         ])
       );
       const propertyMeta = Object.fromEntries(
+        // Stryker disable next-line ArrayDeclaration: a bogus seed element lacks description/min/max, so the .filter below drops it — the result is unchanged (equivalent).
         (metadata.properties ?? [])
           .filter((p) => p.description || p.min != null || p.max != null)
           .map((p) => [

@@ -213,6 +213,8 @@ const StringProperty = ({
         <TextEditorModal
           value={stringValue}
           language={codeLanguage}
+          nodeType={nodeType}
+          propertyType={property.type?.type}
           onChange={(next) => onChange(next)}
           onClose={toggleExpand}
           propertyName={property.name}

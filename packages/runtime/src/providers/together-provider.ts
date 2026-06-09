@@ -332,9 +332,10 @@ export class TogetherProvider extends OpenAIProvider {
    * (e.g. FLUX.1-kontext-pro, FLUX.1-kontext-max, FLUX.2-pro/dev/flex).
    */
   override async imageToImage(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Uint8Array> {
+    const image = images[0];
     if (!image || image.length === 0) {
       throw new Error("image must not be empty.");
     }
@@ -715,9 +716,10 @@ export class TogetherProvider extends OpenAIProvider {
    * The first frame is supplied as a base64-encoded image in `frame_images`.
    */
   override async imageToVideo(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToVideoParams
   ): Promise<Uint8Array> {
+    const image = images[0];
     if (!image || image.length === 0) {
       throw new Error("The input image cannot be empty.");
     }

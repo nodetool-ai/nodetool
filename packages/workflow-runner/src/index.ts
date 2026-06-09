@@ -14,3 +14,9 @@ export {
   type WorkflowRequestBody
 } from "./handler.js";
 export { envSecretResolver } from "./env-secret-resolver.js";
+export {
+  createBrowserRegistry,
+  graphRunsInRegistry,
+  runBrowserWorkflow,
+  type RunBrowserWorkflowOptions
+} from "./browser.js";

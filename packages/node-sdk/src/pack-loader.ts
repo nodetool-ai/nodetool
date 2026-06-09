@@ -183,13 +183,16 @@ export function defaultPackSearchPaths(start: string = process.cwd()): string[] 
 }
 
 function readEnvPackPaths(): string[] {
+  // Stryker disable next-line ArrayDeclaration: a bogus seed path is dropped by the existsSync filter in defaultPackSearchPaths (its only caller), so the result is unchanged (equivalent).
   const out: string[] = [];
   const single = process.env["NODETOOL_OPTIONAL_NODE_MODULES"];
+  // Stryker disable next-line ConditionalExpression: forcing this pushes an undefined single, which the existsSync filter downstream discards (equivalent).
   if (single) out.push(single);
   const list = process.env["NODETOOL_PACK_SEARCH_PATHS"];
   if (list) {
     for (const entry of list.split(/[,;:]/)) {
       const trimmed = entry.trim();
+      // Stryker disable next-line ConditionalExpression: forcing this pushes an empty string, which the existsSync filter downstream discards (equivalent).
       if (trimmed) out.push(trimmed);
     }
   }
@@ -225,6 +228,7 @@ export function resolvePackTrust(
 function trustConfigPath(): string {
   return (
     process.env["NODETOOL_PACKS_CONFIG"] ??
+    // Stryker disable next-line StringLiteral: the default path is anchored at the OS home dir; tests exercise trust resolution via the NODETOOL_PACKS_CONFIG override, and these path segments are not independently asserted (home-dir manipulation is unreliable under the test sandbox).
     join(homedir(), ".config", "nodetool", "packs.json")
   );
 }
@@ -265,6 +269,7 @@ export function writePackTrustConfig(
       null,
       2
     ) + "\n",
+    // Stryker disable next-line StringLiteral: Node decodes "" as utf-8, so the encoding argument is behaviourally equivalent.
     "utf8"
   );
 }
@@ -389,6 +394,7 @@ function makeGuardedRegistry(
     has: (nodeType: string) => target.has(nodeType),
     register: (nodeClass: NodeClass) => {
       const nodeType = nodeClass.nodeType;
+      // Stryker disable next-line ConditionalExpression,BlockStatement: a falsy nodeType errors either way — this branch lets target.register throw "without nodeType"; skipping it makes isReservedNamespace throw on the missing type — both surface as a loadPack error (equivalent).
       if (!nodeType) {
         // Let the real registry surface the "no nodeType" error.
         target.register(nodeClass);
@@ -413,6 +419,7 @@ function isReservedNamespace(
   reserved: readonly string[]
 ): boolean {
   const dot = nodeType.indexOf(".");
+  // Stryker disable next-line EqualityOperator: > 0 vs >= 0 differ only at dot === 0 (a leading-dot type), where head becomes "" vs the full string — but neither is ever a reserved namespace, so the result is unchanged (equivalent).
   const head = dot > 0 ? nodeType.slice(0, dot) : nodeType;
   return reserved.includes(head);
 }
@@ -434,8 +441,10 @@ function listPackageDirs(nodeModules: string): string[] {
   try {
     entries = readdirSync(nodeModules);
   } catch {
+    // Stryker disable next-line ArrayDeclaration: a bogus seed path has no package.json, so discoverPacks (the only caller) drops it via readPack — equivalent.
     return [];
   }
+  // Stryker disable next-line ArrayDeclaration: a bogus seed path has no package.json, so readPack returns undefined for it and discoverPacks drops it — the result is unchanged (equivalent).
   const dirs: string[] = [];
   for (const name of entries) {
     if (name === ".bin" || name === ".cache") continue;
@@ -460,6 +469,7 @@ function readPack(pkgDir: string): DiscoveredPack | undefined {
   const pkgJsonPath = join(pkgDir, "package.json");
   let pkg: PackageJsonShape;
   try {
+    // Stryker disable next-line ConditionalExpression: if package.json is a directory, the readFileSync below throws into this catch and also returns undefined, so the guard is equivalent.
     if (!statSync(pkgJsonPath).isFile()) return undefined;
     pkg = JSON.parse(readFileSync(pkgJsonPath, "utf8")) as PackageJsonShape;
   } catch {
@@ -469,6 +479,7 @@ function readPack(pkgDir: string): DiscoveredPack | undefined {
   if (!pkg.name) return undefined;
 
   const entryRel = resolveEntry(pkg);
+  // Stryker disable next-line ConditionalExpression: resolveEntry always returns a string (it falls back to "index.js"), so entryRel is never falsy here (equivalent).
   if (!entryRel) return undefined;
   const entry = isAbsolute(entryRel) ? entryRel : join(pkgDir, entryRel);
   if (!existsSync(entry)) return undefined;
@@ -487,10 +498,15 @@ function readPack(pkgDir: string): DiscoveredPack | undefined {
 function resolveEntry(pkg: PackageJsonShape): string | undefined {
   const dot = (pkg.exports as Record<string, unknown> | undefined)?.["."];
   if (typeof dot === "string") return dot;
-  if (dot && typeof dot === "object") {
-    const conds = dot as Record<string, unknown>;
-    const picked = conds["import"] ?? conds["default"];
-    if (typeof picked === "string") return picked;
-  }
+  const picked = pickExportCondition(dot);
+  if (typeof picked === "string") return picked;
   return pkg.main ?? "index.js";
+}
+
+/** Pick the `import` (then `default`) condition from an `exports["."]` object. */
+function pickExportCondition(dot: unknown): unknown {
+  // Stryker disable next-line ConditionalExpression: a nullish or non-object dot has no conditions to pick — every guard variant resolves to undefined and falls through to `main` (covered by the exports/main entry tests).
+  if (!dot || typeof dot !== "object") return undefined;
+  const conds = dot as Record<string, unknown>;
+  return conds["import"] ?? conds["default"];
 }

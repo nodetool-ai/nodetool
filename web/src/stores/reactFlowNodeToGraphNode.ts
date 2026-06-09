@@ -21,7 +21,8 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
     selectable: true,
     bypassed: node.data.bypassed || false,
     model_id: node.data.model_id,
-    endpoint_id: node.data.endpoint_id
+    endpoint_id: node.data.endpoint_id,
+    selected_generation: node.data.selected_generation
   };
 
   if (node.data.collapsed) {

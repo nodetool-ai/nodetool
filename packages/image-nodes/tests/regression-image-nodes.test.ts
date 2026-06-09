@@ -444,9 +444,9 @@ describe("ImageToImageNode — inline asset prompt mapping", () => {
     await node.process(context as never);
 
     const params = (captured as { params: Record<string, unknown> }).params;
-    expect(Array.from(params.image as Uint8Array)).toEqual(
-      Array.from(assetBytes)
-    );
+    const images = params.images as Uint8Array[];
+    expect(images).toHaveLength(1);
+    expect(Array.from(images[0])).toEqual(Array.from(assetBytes));
     expect(params.prompt).toBe("make it a watercolor image please");
   });
 
@@ -476,7 +476,9 @@ describe("ImageToImageNode — inline asset prompt mapping", () => {
     await node.process(context as never);
 
     const params = (captured as { params: Record<string, unknown> }).params;
-    expect(Array.from(params.image as Uint8Array)).toEqual(Array.from(wired));
+    const images = params.images as Uint8Array[];
+    expect(images).toHaveLength(1);
+    expect(Array.from(images[0])).toEqual(Array.from(wired));
     expect(params.prompt).toBe("enhance now");
   });
 });

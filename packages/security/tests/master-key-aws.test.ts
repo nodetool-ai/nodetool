@@ -68,7 +68,15 @@ describe("initMasterKey — AWS Secrets Manager source", () => {
       deletePassword: vi.fn(async () => true)
     });
 
-    await expect(initMasterKey()).rejects.toThrow(/AWS Secrets Manager/);
+    const error = await initMasterKey().catch((e: unknown) => e);
+    // Distinguish the transient-failure message from the empty-secret one: it
+    // must name the load failure AND state the no-fallback safety guarantee.
+    expect((error as Error).message).toContain(
+      "Failed to load master key from AWS Secrets Manager"
+    );
+    expect((error as Error).message).toContain("throttled");
+    expect((error as Error).message).toContain("refusing to fall back");
+    expect((error as Error).message).toContain("undecryptable");
     // The whole point: no keychain fallback, no new key generated/persisted.
     expect(getPassword).not.toHaveBeenCalled();
     expect(setPassword).not.toHaveBeenCalled();
@@ -83,7 +91,12 @@ describe("initMasterKey — AWS Secrets Manager source", () => {
       deletePassword: vi.fn(async () => true)
     });
 
-    await expect(initMasterKey()).rejects.toThrow(/no value/);
+    const error = await initMasterKey().catch((e: unknown) => e);
+    expect((error as Error).message).toContain("returned no value");
+    expect((error as Error).message).toContain("refusing to fall back");
+    expect((error as Error).message).toContain("undecryptable");
+    // Echoes the specific secret name so operators know which secret was empty.
+    expect((error as Error).message).toContain("nodetool/master-key");
     expect(setPassword).not.toHaveBeenCalled();
   });
 });

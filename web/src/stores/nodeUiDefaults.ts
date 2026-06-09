@@ -15,6 +15,8 @@ export type NodeUIProperties = {
   /** Persisted resolved IDs for dynamic nodes so schema loaders can skip re-fetch on reload */
   model_id?: string;
   endpoint_id?: string;
+  /** Persisted id of the generation chosen to feed downstream (asset id for media). */
+  selected_generation?: string;
 };
 
 export const DEFAULT_NODE_WIDTH = 280;

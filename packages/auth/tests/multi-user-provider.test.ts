@@ -83,6 +83,40 @@ describe("T-SEC-3: MultiUserAuthProvider", () => {
     expect(result.error).toContain("user");
   });
 
+  it("rejects an empty-string user_id claim", async () => {
+    // An empty sub is present-but-falsy: the `|| !userId` arm must reject it.
+    // (Kills the `||`→`&&` and the condition-removal mutants that would let a
+    // blank user id through.)
+    const provider = new MultiUserAuthProvider({ secret: TEST_SECRET });
+    const token = await createTestJwt({ sub: "" });
+    const result = await provider.verifyToken(token);
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("sub");
+  });
+
+  it("rejects a non-string (numeric) user_id claim", async () => {
+    // A numeric claim is truthy, so only the `typeof !== "string"` arm rejects it.
+    // (Kills the mutant that drops that arm and would accept `userId: 12345`.)
+    const provider = new MultiUserAuthProvider({
+      secret: TEST_SECRET,
+      userIdClaim: "uid"
+    });
+    const token = await createTestJwt({ uid: 12345 });
+    const result = await provider.verifyToken(token);
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("uid");
+  });
+
+  it("ignores a non-string role claim", async () => {
+    // role is only surfaced when it is a string; a numeric role must become
+    // undefined (kills the `typeof role === "string" ? …` → always-true mutant).
+    const provider = new MultiUserAuthProvider({ secret: TEST_SECRET });
+    const token = await createTestJwt({ sub: "user-42", role: 123 });
+    const result = await provider.verifyToken(token);
+    expect(result.ok).toBe(true);
+    expect(result.role).toBeUndefined();
+  });
+
   it("extracts role from JWT claims", async () => {
     const provider = new MultiUserAuthProvider({ secret: TEST_SECRET });
     const token = await createTestJwt({ sub: "user-42", role: "admin" });

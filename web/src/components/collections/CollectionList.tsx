@@ -19,8 +19,7 @@ import {
   ListGroup,
   ListItemRow,
   Surface,
-  Text,
-  Box
+  Text
 } from "../ui_primitives";
 import { CollectionResponse } from "../../stores/ApiTypes";
 
@@ -126,14 +125,9 @@ const CollectionList = () => {
               mt: 1
             }}
           >
-            <Box>
-              <Text size="big" weight={600}>
-                Collections
-              </Text>
-              <Text size="small" color="secondary">
-                {totalCount} {totalCount === 1 ? "collection" : "collections"}
-              </Text>
-            </Box>
+            <Text size="small" color="secondary">
+              {totalCount} {totalCount === 1 ? "collection" : "collections"}
+            </Text>
             <CreateFab
               onClick={handleShowForm}
               label="Create Collection"

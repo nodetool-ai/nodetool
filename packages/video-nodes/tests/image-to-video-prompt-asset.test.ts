@@ -24,9 +24,9 @@ describe("ImageToVideoNode — inline asset prompt mapping", () => {
     await node.process(context as never);
 
     const params = (captured.req as { params: Record<string, unknown> }).params;
-    expect(Array.from(params.image as Uint8Array)).toEqual(
-      Array.from(assetBytes)
-    );
+    const images = params.images as Uint8Array[];
+    expect(images).toHaveLength(1);
+    expect(Array.from(images[0])).toEqual(Array.from(assetBytes));
     expect(params.prompt).toBe("animate image slowly");
   });
 
@@ -45,7 +45,9 @@ describe("ImageToVideoNode — inline asset prompt mapping", () => {
     await node.process(context as never);
 
     const params = (captured.req as { params: Record<string, unknown> }).params;
-    expect(Array.from(params.image as Uint8Array)).toEqual([5, 5, 5]);
+    const images = params.images as Uint8Array[];
+    expect(images).toHaveLength(1);
+    expect(Array.from(images[0])).toEqual([5, 5, 5]);
     expect(params.prompt).toBe("loop forever");
   });
 });

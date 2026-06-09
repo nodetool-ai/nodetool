@@ -336,7 +336,7 @@ describe("HuggingFaceProvider", () => {
         { hfClient: mockClient }
       );
 
-      const result = await provider.imageToImage(new Uint8Array([1, 2, 3]), {
+      const result = await provider.imageToImage([new Uint8Array([1, 2, 3])], {
         model: { id: "edit-model", name: "Edit", provider: "huggingface" },
         prompt: "make it night",
         guidanceScale: 5

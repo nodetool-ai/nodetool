@@ -17,10 +17,9 @@ import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import DownloadIcon from "@mui/icons-material/Download";
 
 import AssetViewer from "../assets/AssetViewer";
-import {
-  assetToOutputValue,
-  useNodeResultHistory
-} from "../../hooks/nodes/useNodeResultHistory";
+import { useNodeResultHistory } from "../../hooks/nodes/useNodeResultHistory";
+import { useNodeGenerations } from "../../hooks/nodes/useNodeGenerations";
+import { outputOf } from "../../utils/nodeGenerations";
 import type { Asset } from "../../stores/ApiTypes";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { ToolbarIconButton } from "../ui_primitives";
@@ -171,11 +170,18 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
   renderSingle
 }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
+  // Generation timeline drives selection (oldest→newest, current = selected ?? latest).
+  const { generations, current, select } = useNodeGenerations(
+    workflowId,
+    nodeId
+  );
+  // Parallel read of the durable assets solely for the fullscreen viewer,
+  // download, and the dimensions/duration badge — those need the full Asset.
   const { assetHistory } = useNodeResultHistory(workflowId, nodeId);
   const isRunning = useWebsocketRunner((s) => s.state === "running");
 
   const [mode, setMode] = useState<Mode>("single");
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [imageDims, setImageDims] = useState<{ width: number; height: number } | null>(null);
 
@@ -183,30 +189,34 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
     () => assetHistory.filter(isMediaAsset),
     [assetHistory]
   );
+  const assetById = useMemo(
+    () => new Map(assetHistory.map((a) => [a.id, a])),
+    [assetHistory]
+  );
 
-  const total = mediaAssets.length;
+  const total = generations.length;
   const hasHistory = total > 0;
-  const safeIndex = total === 0 ? 0 : Math.min(currentIndex, total - 1);
-
-  useEffect(() => {
-    if (currentIndex >= total && total > 0) {
-      setCurrentIndex(0);
-    }
-  }, [currentIndex, total]);
+  const currentIndex = Math.max(
+    0,
+    generations.findIndex((g) => g.id === current?.id)
+  );
 
   // While a run is in progress and the live result is non-null, show the
   // live result (the in-flight preview) and freeze pagination. Once the run
-  // completes and history refetches, the new asset becomes index 0 and we
+  // completes and assets persist, the new generation becomes current and we
   // return to history mode.
   const showingLive = isRunning && liveResult != null;
 
-  const currentAsset: Asset | null = hasHistory ? mediaAssets[safeIndex] : null;
+  // Full Asset for the current generation (when persisted), used by the viewer,
+  // download, and the info badge.
+  const currentAsset: Asset | null =
+    (current?.assetId ? assetById.get(current.assetId) : undefined) ?? null;
 
   const valueToRender = useMemo(() => {
     if (showingLive) return liveResult;
-    if (currentAsset) return assetToOutputValue(currentAsset);
+    if (current) return outputOf(current);
     return liveResult;
-  }, [showingLive, liveResult, currentAsset]);
+  }, [showingLive, liveResult, current]);
 
   // Probe image natural dimensions for the bottom-left badge. Falls back to
   // asset metadata when present.
@@ -240,22 +250,28 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
 
   const handlePrev = useCallback(() => {
     if (total <= 1) return;
-    setCurrentIndex((i) => (i - 1 + total) % total);
-  }, [total]);
+    const i = (currentIndex - 1 + total) % total;
+    select(generations[i].id);
+  }, [total, currentIndex, generations, select]);
 
   const handleNext = useCallback(() => {
     if (total <= 1) return;
-    setCurrentIndex((i) => (i + 1) % total);
-  }, [total]);
+    const i = (currentIndex + 1) % total;
+    select(generations[i].id);
+  }, [total, currentIndex, generations, select]);
 
   const handleToggleMode = useCallback(() => {
     setMode((m) => (m === "single" ? "multi" : "single"));
   }, []);
 
+  // The fullscreen AssetViewer only renders media; text generations use the
+  // inline preview only.
+  const canOpenViewer =
+    !!currentAsset && !showingLive && isMediaAsset(currentAsset);
   const handleOpenViewer = useCallback(() => {
-    if (!currentAsset || showingLive) return;
+    if (!canOpenViewer) return;
     setViewerOpen(true);
-  }, [currentAsset, showingLive]);
+  }, [canOpenViewer]);
 
   // Children (ImageView) render under this context: it suppresses their own
   // overlay/viewer and routes "open" here, so the viewer's gallery reflects the
@@ -269,10 +285,36 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
     setViewerOpen(false);
   }, []);
 
-  const handleSelectThumb = useCallback((index: number) => {
-    setCurrentIndex(index);
-    setMode("single");
-  }, []);
+  const handleSelectThumb = useCallback(
+    (index: number) => {
+      select(generations[index].id);
+      setMode("single");
+    },
+    [generations, select]
+  );
+
+  const handleGridClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const thumb = (e.target as HTMLElement).closest<HTMLElement>(".thumb");
+      if (!thumb) return;
+      const idx = Number(thumb.dataset.index);
+      if (!Number.isNaN(idx)) handleSelectThumb(idx);
+    },
+    [handleSelectThumb]
+  );
+
+  const fallbackThumbStyle = useMemo<React.CSSProperties>(
+    () => ({
+      width: "100%",
+      height: "100%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: theme.vars.palette.text.secondary,
+      fontSize: theme.fontSizeTiny
+    }),
+    [theme.vars.palette.text.secondary, theme.fontSizeTiny]
+  );
 
   const handleDownload = useCallback(async () => {
     if (!currentAsset) return;
@@ -325,7 +367,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
   })();
 
   return (
-    <div css={styles(theme)} className="node-history-viewer">
+    <div css={cssStyles} className="node-history-viewer">
       <div className="body">
         {mode === "single" ? (
           <MediaOverlaySuppressProvider value={overlayValue}>
@@ -334,44 +376,41 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
             </div>
           </MediaOverlaySuppressProvider>
         ) : (
-          <div className="grid nodrag nopan" role="list" aria-label="Output history">
-            {mediaAssets.map((asset, i) => {
-              const isImage = asset.content_type?.startsWith("image/");
-              const isVideo = asset.content_type?.startsWith("video/");
-              const imgUrl = asset.thumb_url || asset.get_url || "";
-              const videoUrl = asset.get_url || "";
+          <div className="grid nodrag nopan" role="list" aria-label="Output history" onClick={handleGridClick}>
+            {generations.map((gen, i) => {
+              const value = outputOf(gen) as
+                | { type?: string; uri?: string }
+                | undefined;
+              const asset = gen.assetId ? assetById.get(gen.assetId) : undefined;
+              const kind = value?.type;
+              const label = asset?.name || gen.id;
+              const imgUrl = asset?.thumb_url || asset?.get_url || value?.uri || "";
+              const videoThumb = asset?.thumb_url;
+              const videoUrl = asset?.get_url || value?.uri || "";
               return (
                 <div
-                  key={asset.id}
-                  className={`thumb${i === safeIndex ? " selected" : ""}`}
+                  key={gen.id}
+                  className={`thumb${i === currentIndex ? " selected" : ""}`}
                   role="listitem"
-                  onClick={() => handleSelectThumb(i)}
+                  data-index={i}
                 >
-                  {isImage && imgUrl ? (
-                    <img src={imgUrl} alt={asset.name || asset.id} />
-                  ) : isVideo && (asset.thumb_url || videoUrl) ? (
-                    asset.thumb_url ? (
-                      <img src={asset.thumb_url} alt={asset.name || asset.id} />
+                  {kind === "image" && imgUrl ? (
+                    <img src={imgUrl} alt={label} />
+                  ) : kind === "video" && (videoThumb || videoUrl) ? (
+                    videoThumb ? (
+                      <img src={videoThumb} alt={label} />
                     ) : (
                       <video
                         src={`${videoUrl}#t=0.1`}
                         preload="metadata"
                         muted
                         playsInline
-                        aria-label={asset.name || asset.id}
+                        aria-label={label}
                       />
                     )
                   ) : (
-                    <div style={{
-                      width: "100%",
-                      height: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: theme.vars.palette.text.secondary,
-                      fontSize: theme.fontSizeTiny
-                    }}>
-                      {asset.content_type?.split("/")[0] || "asset"}
+                    <div style={fallbackThumbStyle}>
+                      {kind || "asset"}
                     </div>
                   )}
                   <span className="thumb-label">{i + 1}</span>
@@ -406,7 +445,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
                 <KeyboardArrowLeftIcon />
               </ToolbarIconButton>
               <span className="overlay-count">
-                {`${safeIndex + 1} / ${total}`}
+                {`${currentIndex + 1} / ${total}`}
               </span>
               <ToolbarIconButton
                 title="Next"
@@ -429,7 +468,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
             title="Open in viewer"
             size="small"
             onClick={handleOpenViewer}
-            disabled={!currentAsset || showingLive}
+            disabled={!canOpenViewer}
             className="overlay-icon-btn"
             aria-label="Open in viewer"
           >
@@ -461,7 +500,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
         </div>
       ) : null}
 
-      {currentAsset && currentAsset.get_url ? (
+      {currentAsset && currentAsset.get_url && isMediaAsset(currentAsset) ? (
         <AssetViewer
           asset={currentAsset}
           sortedAssets={mediaAssets}

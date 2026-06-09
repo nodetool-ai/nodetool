@@ -33,7 +33,6 @@ const mockWorkflow = {
 
 beforeEach(() => {
   useResultsStore.setState({
-    results: {},
     outputResults: {},
     providerCosts: {},
     progress: {},
