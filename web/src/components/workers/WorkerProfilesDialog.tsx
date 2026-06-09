@@ -212,20 +212,36 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
             label="Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            fullWidth
             compact
           />
-          <SelectField
-            label="Target"
-            value={target}
-            onChange={(value) => setTarget(value as WorkerTarget)}
-            options={TARGET_OPTIONS}
-            variant="standard"
-            size="small"
-          />
+          <FlexRow gap={2} align="flex-start">
+            <FlexColumn sx={{ flex: 1, minWidth: 0 }}>
+              <SelectField
+                label="Target"
+                value={target}
+                onChange={(value) => setTarget(value as WorkerTarget)}
+                options={TARGET_OPTIONS}
+                variant="outlined"
+                size="small"
+              />
+            </FlexColumn>
+            <FlexColumn sx={{ flex: 1, minWidth: 0 }}>
+              <SelectField
+                label="Token policy"
+                value={tokenPolicy}
+                onChange={(value) => setTokenPolicy(value as TokenPolicy)}
+                options={TOKEN_POLICY_OPTIONS}
+                variant="outlined"
+                size="small"
+              />
+            </FlexColumn>
+          </FlexRow>
           <TextInput
             label="Image"
             value={image}
             onChange={(e) => setImage(e.target.value)}
+            fullWidth
             compact
           />
           <TextInput
@@ -233,32 +249,33 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
             value={gpu}
             onChange={(e) => setGpu(e.target.value)}
             helperText="Optional — e.g. A40, A100. Stored as spec.gpu."
+            fullWidth
             compact
           />
-          <SelectField
-            label="Token policy"
-            value={tokenPolicy}
-            onChange={(value) => setTokenPolicy(value as TokenPolicy)}
-            options={TOKEN_POLICY_OPTIONS}
-            variant="standard"
-            size="small"
-          />
-          <TextInput
-            label="Idle timeout (minutes)"
-            value={idleTimeout}
-            onChange={(e) => setIdleTimeout(e.target.value)}
-            type="number"
-            helperText="Optional — auto-stop after this many idle minutes."
-            compact
-          />
-          <TextInput
-            label="Max lifetime (minutes)"
-            value={maxLifetime}
-            onChange={(e) => setMaxLifetime(e.target.value)}
-            type="number"
-            helperText="Optional — hard cap on total runtime."
-            compact
-          />
+          <FlexRow gap={2} align="flex-start">
+            <FlexColumn sx={{ flex: 1, minWidth: 0 }}>
+              <TextInput
+                label="Idle timeout (minutes)"
+                value={idleTimeout}
+                onChange={(e) => setIdleTimeout(e.target.value)}
+                type="number"
+                helperText="Optional — auto-stop after idle minutes."
+                fullWidth
+                compact
+              />
+            </FlexColumn>
+            <FlexColumn sx={{ flex: 1, minWidth: 0 }}>
+              <TextInput
+                label="Max lifetime (minutes)"
+                value={maxLifetime}
+                onChange={(e) => setMaxLifetime(e.target.value)}
+                type="number"
+                helperText="Optional — hard cap on runtime."
+                fullWidth
+                compact
+              />
+            </FlexColumn>
+          </FlexRow>
         </FlexColumn>
       </FlexColumn>
     </Dialog>
