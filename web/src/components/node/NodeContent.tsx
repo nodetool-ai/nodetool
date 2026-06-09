@@ -105,7 +105,11 @@ const NodeContent: React.FC<NodeContentProps> = ({
         minHeight: 0
       }}
     >
-      <HandleColumn id={id} properties={inputProperties} />
+      <HandleColumn
+        id={id}
+        properties={inputProperties}
+        layout="stacked"
+      />
       <NodeInputs
         id={id}
         nodeMetadata={nodeMetadata}

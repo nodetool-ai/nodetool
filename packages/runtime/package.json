@@ -48,6 +48,18 @@
       "import": "./dist/context.js",
       "default": "./dist/context.js"
     },
+    "./media-ref-bytes": {
+      "nodetool-dev": "./src/media-ref-bytes.ts",
+      "types": "./dist/media-ref-bytes.d.ts",
+      "import": "./dist/media-ref-bytes.js",
+      "default": "./dist/media-ref-bytes.js"
+    },
+    "./prompt-asset-refs": {
+      "nodetool-dev": "./src/prompt-asset-refs.ts",
+      "types": "./dist/prompt-asset-refs.d.ts",
+      "import": "./dist/prompt-asset-refs.js",
+      "default": "./dist/prompt-asset-refs.js"
+    },
     "./tracing": {
       "nodetool-dev": "./src/tracing-helpers.ts",
       "types": "./dist/tracing-helpers.d.ts",

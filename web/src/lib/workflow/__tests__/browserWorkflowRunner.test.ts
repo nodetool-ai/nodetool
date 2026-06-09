@@ -3,6 +3,7 @@ import {
   __setBrowserRunnerLoader,
   canRunGraphInBrowser,
   canRunGraphInBrowserSync,
+  collectNodeClasses,
   runBrowserGraphJob
 } from "../browserWorkflowRunner";
 import type { WorkflowGraph } from "../../../stores/ApiTypes";
@@ -227,5 +228,50 @@ describe("runBrowserGraphJob", () => {
     });
     expect(result.success).toBe(false);
     expect(result.error).toBe("Aborted");
+  });
+});
+
+describe("collectNodeClasses", () => {
+  class IndividualNode {
+    static nodeType = "test.Individual";
+  }
+  class GroupedA {
+    static nodeType = "test.GroupedA";
+  }
+  class GroupedB {
+    static nodeType = "test.GroupedB";
+  }
+
+  it("collects individually-exported classes (core-nodes shape)", () => {
+    const types = collectNodeClasses({ IndividualNode }).map(
+      (c) => (c as { nodeType: string }).nodeType
+    );
+    expect(types).toEqual(["test.Individual"]);
+  });
+
+  it("collects classes from an exported array constant (image-nodes shape)", () => {
+    // Image GPU groups export only `LIB_IMAGE_*_NODES = [...]`, never named
+    // classes — these must still be harvested or they never reach the registry.
+    const types = collectNodeClasses({
+      LIB_TEST_NODES: [GroupedA, GroupedB]
+    }).map((c) => (c as { nodeType: string }).nodeType);
+    expect(types).toEqual(["test.GroupedA", "test.GroupedB"]);
+  });
+
+  it("dedupes a class exported both individually and inside an array", () => {
+    const classes = collectNodeClasses({
+      IndividualNode,
+      NODES: [IndividualNode]
+    });
+    expect(classes).toHaveLength(1);
+  });
+
+  it("ignores non-class exports and non-class array items", () => {
+    const types = collectNodeClasses({
+      helper: () => 1,
+      DESCRIPTORS: [{ id: "x" }, "str", 3],
+      GroupedA
+    }).map((c) => (c as { nodeType: string }).nodeType);
+    expect(types).toEqual(["test.GroupedA"]);
   });
 });

@@ -1,12 +1,12 @@
 import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import sharp from "sharp";
 import * as d from "typegpu/data";
 import { filtersConvolve3x3V1 } from "@nodetool-ai/gpu/pool";
-import { decodeImage, toRef, pickImage } from "./lib-image-utils.js";
-import { runShaderOnPngBuffer } from "./lib-shader-utils.js";
-import { tagAsHybrid } from "@nodetool-ai/nodes-utils";
+import { pickImage } from "./lib-image-utils.js";
+import { runShaderNode } from "./lib-shader-utils.js";
+import { decodeRgba, rawRgbaImageRef } from "./image-io.js";
+import { tagAsHybrid, tagAsContentCard } from "@nodetool-ai/nodes-utils";
 
 type Desc = {
   nodeType: string;
@@ -34,67 +34,57 @@ function createEnhanceNode(desc: Desc): NodeClass {
       const props = this.serialize();
 
       const baseObj = pickImage(this.serialize(), props);
-      const baseBytes = await decodeImage(baseObj, context);
-      if (!baseBytes) {
-        return { output: baseObj ?? {} };
-      }
 
       // GPU-backed path: PIL DETAIL / EDGE_ENHANCE 3×3 convolution kernels.
-      // The remaining ops use sharp for histogram / per-tile / sorted-
-      // neighbourhood work the shader catalog doesn't cover (AutoContrast,
-      // Equalize, AdaptiveContrast, RankFilter).
+      // Samples `baseObj` directly (borrows an upstream GPU texture) and emits
+      // a texture/RGBA ImageRef. The remaining ops run in JS for histogram /
+      // per-tile / sorted-neighbourhood work the shader catalog doesn't cover
+      // (AutoContrast, Equalize, AdaptiveContrast, RankFilter).
       if (t.endsWith(".Detail") || t.endsWith(".EdgeEnhance")) {
         // PIL `ImageFilter.DETAIL`: 3×3 [0 -1 0 / -1 10 -1 / 0 -1 0] / 6,
         // and `EDGE_ENHANCE`: same kernel family, slightly weaker.
         const isDetail = t.endsWith(".Detail");
-        const png = await runShaderOnPngBuffer(
-          filtersConvolve3x3V1,
-          isDetail
-            ? {
-                row0: d.vec4f(0, -1, 0, 0),
-                row1: d.vec4f(-1, 10, -1, 0),
-                row2: d.vec4f(0, -1, 0, 6)
-              }
-            : {
-                row0: d.vec4f(-1, -1, -1, 0),
-                row1: d.vec4f(-1, 10, -1, 0),
-                row2: d.vec4f(-1, -1, -1, 2)
-              },
-          new Uint8Array(baseBytes),
-          {},
-          context
-        );
-        return { output: toRef(Buffer.from(png), baseObj) };
+        return {
+          output: await runShaderNode(
+            filtersConvolve3x3V1,
+            isDetail
+              ? {
+                  row0: d.vec4f(0, -1, 0, 0),
+                  row1: d.vec4f(-1, 10, -1, 0),
+                  row2: d.vec4f(0, -1, 0, 6)
+                }
+              : {
+                  row0: d.vec4f(-1, -1, -1, 0),
+                  row1: d.vec4f(-1, 10, -1, 0),
+                  row2: d.vec4f(-1, -1, -1, 2)
+                },
+            baseObj,
+            {},
+            context
+          )
+        };
       }
 
-      const img = sharp(baseBytes, { failOn: "none" });
+      // Histogram / neighbourhood ops run in pure JS on the decoded
+      // straight-alpha RGBA (4-channel) — no sharp, so they work in the browser
+      // too. RGB channels (0–2) are processed; alpha (3) is preserved.
+      const { rgba, width: w, height: h } = await decodeRgba(baseObj, context);
+      if (!w || !h) return { output: baseObj ?? {} };
+      const channels = 4;
+      const totalPixels = w * h;
 
       if (t.endsWith(".AutoContrast")) {
-        // Proper autocontrast with cutoff
         const cutoff = Number((this as any).cutoff ?? 0);
-        const { data: raw, info } = await img
-          .removeAlpha()
-          .raw()
-          .toBuffer({ resolveWithObject: true });
-        const w = info.width;
-        const h = info.height;
-        const totalPixels = w * h;
-        const channels = 3;
         const cutCount = Math.floor((totalPixels * cutoff) / 100);
-        for (let c = 0; c < channels; c++) {
-          // Build histogram for this channel
+        for (let c = 0; c < 3; c++) {
           const hist = new Uint32Array(256);
-          for (let i = c; i < raw.length; i += channels) {
-            hist[raw[i]]++;
-          }
-          // Find low cutoff
+          for (let i = c; i < rgba.length; i += channels) hist[rgba[i]]++;
           let lo = 0;
           let cumLo = 0;
           while (lo < 255 && cumLo + hist[lo] <= cutCount) {
             cumLo += hist[lo];
             lo++;
           }
-          // Find high cutoff
           let hi = 255;
           let cumHi = 0;
           while (hi > 0 && cumHi + hist[hi] <= cutCount) {
@@ -102,44 +92,21 @@ function createEnhanceNode(desc: Desc): NodeClass {
             hi--;
           }
           if (lo >= hi) continue;
-          // Linear map remaining range to 0-255
           const scale = 255.0 / (hi - lo);
-          for (let i = c; i < raw.length; i += channels) {
-            raw[i] = Math.max(
-              0,
-              Math.min(255, Math.round((raw[i] - lo) * scale))
-            );
+          for (let i = c; i < rgba.length; i += channels) {
+            rgba[i] = Math.max(0, Math.min(255, Math.round((rgba[i] - lo) * scale)));
           }
         }
-        const out = await sharp(raw, {
-          raw: { width: w, height: h, channels: channels as 3 }
-        })
-          .png()
-          .toBuffer();
-        return { output: toRef(out, baseObj) };
-      } else if (t.endsWith(".Equalize")) {
-        // Proper histogram equalization
-        const { data: raw, info } = await img
-          .removeAlpha()
-          .raw()
-          .toBuffer({ resolveWithObject: true });
-        const w = info.width;
-        const h = info.height;
-        const totalPixels = w * h;
-        const channels = 3;
-        for (let c = 0; c < channels; c++) {
-          // Build histogram
+        return { output: rawRgbaImageRef(rgba, w, h) };
+      }
+
+      if (t.endsWith(".Equalize")) {
+        for (let c = 0; c < 3; c++) {
           const hist = new Uint32Array(256);
-          for (let i = c; i < raw.length; i += channels) {
-            hist[raw[i]]++;
-          }
-          // Compute CDF
+          for (let i = c; i < rgba.length; i += channels) hist[rgba[i]]++;
           const cdf = new Uint32Array(256);
           cdf[0] = hist[0];
-          for (let j = 1; j < 256; j++) {
-            cdf[j] = cdf[j - 1] + hist[j];
-          }
-          // Find min non-zero CDF value
+          for (let j = 1; j < 256; j++) cdf[j] = cdf[j - 1] + hist[j];
           let cdfMin = 0;
           for (let j = 0; j < 256; j++) {
             if (cdf[j] > 0) {
@@ -147,7 +114,6 @@ function createEnhanceNode(desc: Desc): NodeClass {
               break;
             }
           }
-          // Build lookup table
           const lut = new Uint8Array(256);
           const denom = totalPixels - cdfMin;
           if (denom > 0) {
@@ -155,35 +121,19 @@ function createEnhanceNode(desc: Desc): NodeClass {
               lut[j] = Math.round(((cdf[j] - cdfMin) / denom) * 255);
             }
           }
-          // Apply LUT
-          for (let i = c; i < raw.length; i += channels) {
-            raw[i] = lut[raw[i]];
-          }
+          for (let i = c; i < rgba.length; i += channels) rgba[i] = lut[rgba[i]];
         }
-        const out = await sharp(raw, {
-          raw: { width: w, height: h, channels: channels as 3 }
-        })
-          .png()
-          .toBuffer();
-        return { output: toRef(out, baseObj) };
-      } else if (t.endsWith(".AdaptiveContrast")) {
-        // CLAHE (Contrast Limited Adaptive Histogram Equalization)
+        return { output: rawRgbaImageRef(rgba, w, h) };
+      }
+
+      if (t.endsWith(".AdaptiveContrast")) {
         const clipLimit = Number((this as any).clip_limit ?? 2);
         const gridSize = Math.max(
           1,
           Math.round(Number((this as any).grid_size ?? 8))
         );
-        const { data: raw, info } = await img
-          .removeAlpha()
-          .raw()
-          .toBuffer({ resolveWithObject: true });
-        const w = info.width;
-        const h = info.height;
-        const channels = 3;
         const tileW = Math.ceil(w / gridSize);
         const tileH = Math.ceil(h / gridSize);
-
-        // Build CDFs for each tile and channel
         const tileCDFs: Float32Array[][][] = [];
         for (let ty = 0; ty < gridSize; ty++) {
           tileCDFs[ty] = [];
@@ -194,14 +144,13 @@ function createEnhanceNode(desc: Desc): NodeClass {
             const x1 = Math.min(x0 + tileW, w);
             const y1 = Math.min(y0 + tileH, h);
             const tilePixels = (x1 - x0) * (y1 - y0);
-            for (let c = 0; c < channels; c++) {
+            for (let c = 0; c < 3; c++) {
               const hist = new Uint32Array(256);
               for (let y = y0; y < y1; y++) {
                 for (let x = x0; x < x1; x++) {
-                  hist[raw[(y * w + x) * channels + c]]++;
+                  hist[rgba[(y * w + x) * channels + c]]++;
                 }
               }
-              // Clip histogram and redistribute
               const limit = Math.max(
                 1,
                 Math.round((clipLimit * tilePixels) / 256)
@@ -214,32 +163,21 @@ function createEnhanceNode(desc: Desc): NodeClass {
                 }
               }
               const increment = Math.floor(excess / 256);
-              for (let j = 0; j < 256; j++) {
-                hist[j] += increment;
-              }
-              // Compute CDF
+              for (let j = 0; j < 256; j++) hist[j] += increment;
               const cdf = new Float32Array(256);
               cdf[0] = hist[0];
-              for (let j = 1; j < 256; j++) {
-                cdf[j] = cdf[j - 1] + hist[j];
-              }
-              // Normalize CDF to 0-255
+              for (let j = 1; j < 256; j++) cdf[j] = cdf[j - 1] + hist[j];
               const cdfMax = cdf[255];
               if (cdfMax > 0) {
-                for (let j = 0; j < 256; j++) {
-                  cdf[j] = (cdf[j] / cdfMax) * 255;
-                }
+                for (let j = 0; j < 256; j++) cdf[j] = (cdf[j] / cdfMax) * 255;
               }
               tileCDFs[ty][tx][c] = cdf;
             }
           }
         }
-
-        // Apply with bilinear interpolation between tile CDFs
-        const result = Buffer.alloc(raw.length);
+        const result = new Uint8Array(rgba); // copy preserves alpha
         for (let y = 0; y < h; y++) {
           for (let x = 0; x < w; x++) {
-            // Find tile coordinates
             const ftx = (x + 0.5) / tileW - 0.5;
             const fty = (y + 0.5) / tileH - 0.5;
             const tx0 = Math.max(0, Math.floor(ftx));
@@ -248,8 +186,8 @@ function createEnhanceNode(desc: Desc): NodeClass {
             const ty1 = Math.min(gridSize - 1, ty0 + 1);
             const fx = Math.max(0, Math.min(1, ftx - tx0));
             const fy = Math.max(0, Math.min(1, fty - ty0));
-            for (let c = 0; c < channels; c++) {
-              const val = raw[(y * w + x) * channels + c];
+            for (let c = 0; c < 3; c++) {
+              const val = rgba[(y * w + x) * channels + c];
               const tl = tileCDFs[ty0][tx0][c][val];
               const tr = tileCDFs[ty0][tx1][c][val];
               const bl = tileCDFs[ty1][tx0][c][val];
@@ -262,34 +200,23 @@ function createEnhanceNode(desc: Desc): NodeClass {
             }
           }
         }
-        const out = await sharp(result, {
-          raw: { width: w, height: h, channels: channels as 3 }
-        })
-          .png()
-          .toBuffer();
-        return { output: toRef(out, baseObj) };
-      } else if (t.endsWith(".RankFilter")) {
-        // Proper rank filter with configurable rank
+        return { output: rawRgbaImageRef(result, w, h) };
+      }
+
+      if (t.endsWith(".RankFilter")) {
         const size = Math.max(1, Number((this as any).size ?? 3));
         const rank = Number((this as any).rank ?? 3);
-        const { data: raw, info } = await img
-          .removeAlpha()
-          .raw()
-          .toBuffer({ resolveWithObject: true });
-        const w = info.width;
-        const h = info.height;
-        const channels = 3;
         const half = Math.floor(size / 2);
-        const result = Buffer.alloc(raw.length);
+        const result = new Uint8Array(rgba); // copy preserves alpha
         for (let y = 0; y < h; y++) {
           for (let x = 0; x < w; x++) {
-            for (let c = 0; c < channels; c++) {
+            for (let c = 0; c < 3; c++) {
               const neighbors: number[] = [];
               for (let ky = -half; ky <= half; ky++) {
                 for (let kx = -half; kx <= half; kx++) {
                   const ny = Math.min(h - 1, Math.max(0, y + ky));
                   const nx = Math.min(w - 1, Math.max(0, x + kx));
-                  neighbors.push(raw[(ny * w + nx) * channels + c]);
+                  neighbors.push(rgba[(ny * w + nx) * channels + c]);
                 }
               }
               neighbors.sort((a, b) => a - b);
@@ -298,16 +225,11 @@ function createEnhanceNode(desc: Desc): NodeClass {
             }
           }
         }
-        const out = await sharp(result, {
-          raw: { width: w, height: h, channels: channels as 3 }
-        })
-          .png()
-          .toBuffer();
-        return { output: toRef(out, baseObj) };
+        return { output: rawRgbaImageRef(result, w, h) };
       }
 
-      const out = await img.png().toBuffer();
-      return { output: toRef(out, baseObj) };
+      // Unknown enhance type — pass the source through unchanged.
+      return { output: rawRgbaImageRef(rgba, w, h) };
     }
   };
 
@@ -545,4 +467,6 @@ const DESCRIPTORS: readonly Desc[] = [
   }
 ];
 
-export const LIB_IMAGE_ENHANCE_NODES: NodeClass[] = tagAsHybrid(DESCRIPTORS.map(createEnhanceNode));
+export const LIB_IMAGE_ENHANCE_NODES: NodeClass[] = tagAsHybrid(
+  tagAsContentCard(DESCRIPTORS.map(createEnhanceNode))
+);

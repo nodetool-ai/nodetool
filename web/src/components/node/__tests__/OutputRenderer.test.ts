@@ -1,4 +1,46 @@
 import { isAudioChunkLike, isTextLikeChunk } from "../outputChunkUtils";
+import { rawRgbaToPngDataUrl } from "../OutputRenderer";
+
+describe("rawRgbaToPngDataUrl", () => {
+  it("sizes the canvas, draws the pixels, and returns the PNG data URL", () => {
+    // jsdom has no real canvas backend, so mock one to assert the encode path.
+    const putImageData = jest.fn();
+    const toDataURL = jest.fn(() => "data:image/png;base64,AAAA");
+    const canvas = {
+      width: 0,
+      height: 0,
+      getContext: () => ({ putImageData }),
+      toDataURL
+    };
+    const spy = jest
+      .spyOn(document, "createElement")
+      .mockReturnValue(canvas as unknown as HTMLCanvasElement);
+    (globalThis as { ImageData?: unknown }).ImageData ??= class {
+      constructor(
+        public data: Uint8ClampedArray,
+        public width: number,
+        public height: number
+      ) {}
+    };
+
+    const url = rawRgbaToPngDataUrl(new Uint8Array(2 * 2 * 4), 2, 2);
+
+    expect(url).toBe("data:image/png;base64,AAAA");
+    expect(canvas.width).toBe(2);
+    expect(canvas.height).toBe(2);
+    expect(putImageData).toHaveBeenCalledTimes(1);
+    spy.mockRestore();
+  });
+
+  it("returns an empty string when the 2D context is unavailable", () => {
+    const canvas = { width: 0, height: 0, getContext: () => null };
+    const spy = jest
+      .spyOn(document, "createElement")
+      .mockReturnValue(canvas as unknown as HTMLCanvasElement);
+    expect(rawRgbaToPngDataUrl(new Uint8Array(4), 1, 1)).toBe("");
+    spy.mockRestore();
+  });
+});
 
 describe("OutputRenderer chunk classification", () => {
   it("detects Whisper-style audio chunks", () => {

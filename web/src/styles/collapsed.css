@@ -247,9 +247,14 @@
  */
 .react-flow__node.collapsed .handle-column,
 .react-flow__node.collapsed .output-handle-column {
+  /* `position` forces the stacked (in-flow) generic-body variant back to
+     absolute so its handle-only children pin to the strip mid-y like the
+     floating variant — collapsed layout is identical for both. */
+  position: absolute !important;
   top: 0 !important;
   height: 0 !important;
   gap: 0 !important;
+  margin: 0 !important;
   overflow: visible !important;
 }
 

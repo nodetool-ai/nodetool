@@ -34,8 +34,8 @@ import {
   runShaderNode,
   type RunShaderOptions
 } from "./lib-shader-utils.js";
-import { decodeRgba } from "./image.js";
-import { tagAsHybrid } from "@nodetool-ai/nodes-utils";
+import { decodeRgba } from "./image-io.js";
+import { tagAsHybrid, tagAsContentCard } from "@nodetool-ai/nodes-utils";
 
 function num(value: unknown, fallback: number): number {
   const n = Number(value);
@@ -361,7 +361,7 @@ registerDeclaredProperty(
   floatProp(0.5, { min: -1, max: 1, label: "Amount", notes: "negative pinches" })
 );
 
-export const LIB_IMAGE_WARP_NODES = tagAsHybrid([
+export const LIB_IMAGE_WARP_NODES = tagAsHybrid(tagAsContentCard([
   OffsetNode,
   PadNode,
   TileNode,
@@ -370,7 +370,7 @@ export const LIB_IMAGE_WARP_NODES = tagAsHybrid([
   PolarRemapNode,
   DisplaceNode,
   SpherizeNode
-]);
+]));
 
 export {
   OffsetNode,

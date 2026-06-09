@@ -35,17 +35,89 @@ interface ImageViewProps {
 
 const ImageView: React.FC<ImageViewProps> = ({ source }) => {
   const [openViewer, setOpenViewer] = React.useState(false);
-  const blobUrlRef = useRef<string | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
   const { suppressed: overlaySuppressed, onRequestOpenViewer } =
     useMediaOverlay();
 
-  const imageUrl = useMemo(() => {
-    const result = createImageUrl(source, blobUrlRef.current);
-    blobUrlRef.current = result.blobUrl;
+  // Double-buffer the displayed image so an output update replaces the old one
+  // smoothly: the visible <img> keeps the current (already-decoded) URL until
+  // the next one has finished loading, then swaps — no blank gap/flicker (the
+  // pattern transform nodes hit when they re-render their live output). Owned
+  // blob URLs are revoked only once they're no longer shown.
+  const displayedBlobRef = useRef<string | null>(null);
+  const nextBlobRef = useRef<string | null>(null);
+  const [displayedUrl, setDisplayedUrl] = useState<string>();
+
+  const nextUrl = useMemo(() => {
+    // A newer source arrived before the previous preload committed — drop the
+    // superseded blob.
+    if (nextBlobRef.current) {
+      URL.revokeObjectURL(nextBlobRef.current);
+      nextBlobRef.current = null;
+    }
+    const result = createImageUrl(source, null);
+    nextBlobRef.current = result.blobUrl;
     return result.url || undefined;
   }, [source]);
+
+  const promote = useCallback((url: string) => {
+    if (
+      displayedBlobRef.current &&
+      displayedBlobRef.current !== nextBlobRef.current
+    ) {
+      URL.revokeObjectURL(displayedBlobRef.current);
+    }
+    displayedBlobRef.current = nextBlobRef.current;
+    nextBlobRef.current = null;
+    setDisplayedUrl(url);
+  }, []);
+
+  useEffect(() => {
+    if (nextUrl === undefined) {
+      if (displayedBlobRef.current) {
+        URL.revokeObjectURL(displayedBlobRef.current);
+        displayedBlobRef.current = null;
+      }
+      setDisplayedUrl(undefined);
+      return;
+    }
+    if (nextUrl === displayedUrl) return;
+    // First image: nothing underneath to keep — commit immediately.
+    if (displayedUrl === undefined) {
+      promote(nextUrl);
+      return;
+    }
+    // Preload the next image off-screen and swap only once it's decoded, so the
+    // current frame stays put until then.
+    let cancelled = false;
+    const preload = new Image();
+    const commit = () => {
+      if (!cancelled) promote(nextUrl);
+    };
+    preload.onload = commit;
+    preload.onerror = commit;
+    preload.src = nextUrl;
+    return () => {
+      cancelled = true;
+    };
+  }, [nextUrl, displayedUrl, promote]);
+
+  useEffect(
+    () => () => {
+      if (displayedBlobRef.current) {
+        URL.revokeObjectURL(displayedBlobRef.current);
+      }
+      if (nextBlobRef.current) {
+        URL.revokeObjectURL(nextBlobRef.current);
+      }
+    },
+    []
+  );
+
+  // Show the committed image, falling back to the freshly-computed one on the
+  // first render so there's no "no image" flash before the effect runs.
+  const imageUrl = displayedUrl ?? nextUrl;
 
   const handleImageLoad = useCallback(() => {
     if (imageRef.current) {

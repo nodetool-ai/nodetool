@@ -18,6 +18,30 @@ const fileURLToPath = (u: string | URL): string => {
   return _nodeUrl.fileURLToPath(u);
 };
 
+/**
+ * Decode base64 → bytes without requiring the `Buffer` global. This module is
+ * shared with the browser bundle (the in-browser runner loads it inside a Web
+ * Worker, which has no `Buffer`), so prefer `Buffer` on Node for speed and fall
+ * back to `atob` everywhere else.
+ */
+function decodeBase64(b64: string): Uint8Array {
+  if (typeof Buffer !== "undefined") {
+    return new Uint8Array(Buffer.from(b64, "base64"));
+  }
+  const binary = atob(b64);
+  const out = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) out[i] = binary.charCodeAt(i);
+  return out;
+}
+
+/** Encode a UTF-8 string → bytes without requiring the `Buffer` global. */
+function encodeUtf8(text: string): Uint8Array {
+  if (typeof Buffer !== "undefined") {
+    return new Uint8Array(Buffer.from(text, "utf-8"));
+  }
+  return new TextEncoder().encode(text);
+}
+
 /** Minimal media ref shape for byte resolution (Python bridge + TS nodes). */
 export type MediaRefValue = {
   uri?: string;
@@ -48,10 +72,9 @@ async function readUriBytes(uri: string): Promise<Uint8Array | null> {
       return null;
     }
     const [header, data] = parts;
-    const bytes = header.includes(";base64")
-      ? Buffer.from(data, "base64")
-      : Buffer.from(decodeURIComponent(data), "utf-8");
-    return new Uint8Array(bytes);
+    return header.includes(";base64")
+      ? decodeBase64(data)
+      : encodeUtf8(decodeURIComponent(data));
   }
 
   if (uri.startsWith("file://")) {
@@ -89,7 +112,7 @@ export async function loadMediaRefBytes(
   if (typeof data === "string" && data.length > 0) {
     const comma = data.startsWith("data:") ? data.indexOf(",") : -1;
     const b64 = comma >= 0 ? data.slice(comma + 1) : data;
-    return new Uint8Array(Buffer.from(b64, "base64"));
+    return decodeBase64(b64);
   }
   if (data instanceof Uint8Array && data.length > 0) {
     return data;

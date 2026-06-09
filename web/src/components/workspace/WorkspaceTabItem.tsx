@@ -11,6 +11,7 @@ import React, {
 import type { WorkspaceTab } from "../../stores/WorkspaceTabsStore";
 import { useIsWorkflowRunning } from "../../hooks/useWorkflowRunnerState";
 import { useWorkflowDirty } from "../../hooks/useWorkflowDirty";
+import { useSettingsStore } from "../../stores/SettingsStore";
 import {
   CloseButton,
   ContextMenu,
@@ -60,6 +61,12 @@ const WorkspaceTabItem = ({
   const workflowId = tab.type === "workflow" ? tab.ref : undefined;
   const isWorkflowDirty = useWorkflowDirty(workflowId);
   const isRunning = useIsWorkflowRunning(workflowId);
+  // Instant-update mode re-runs the graph on every keystroke, so the per-run
+  // tab spinner would strobe on/off continuously — suppress it (and its
+  // animation) while instant update is on.
+  const instantUpdate = useSettingsStore(
+    (state) => state.settings.instantUpdate
+  );
 
   const [contextMenuPosition, setContextMenuPosition] = useState<{
     x: number;
@@ -161,7 +168,7 @@ const WorkspaceTabItem = ({
           />
         ) : (
           <>
-            {isRunning && (
+            {isRunning && !instantUpdate && (
               <LoadingSpinner
                 inline
                 variant="circular"

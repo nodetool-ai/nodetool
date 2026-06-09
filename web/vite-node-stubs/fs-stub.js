@@ -20,6 +20,22 @@ export const createWriteStream = notInBrowser("createWriteStream");
 export const cpSync = notInBrowser("cpSync");
 export const unlinkSync = notInBrowser("unlinkSync");
 
+// `import { promises as fs } from "node:fs"` — async API surface. Methods
+// reject (browser-tagged code must never call them); the object exists so the
+// named import resolves at bundle time.
+const rejectInBrowser = (name) => () =>
+  Promise.reject(new Error(`node:fs.promises.${name} not available in browser`));
+export const promises = {
+  readFile: rejectInBrowser("readFile"),
+  writeFile: rejectInBrowser("writeFile"),
+  mkdir: rejectInBrowser("mkdir"),
+  readdir: rejectInBrowser("readdir"),
+  stat: rejectInBrowser("stat"),
+  unlink: rejectInBrowser("unlink"),
+  cp: rejectInBrowser("cp"),
+  rm: rejectInBrowser("rm")
+};
+
 export default {
   existsSync,
   mkdirSync,
@@ -32,5 +48,6 @@ export default {
   createReadStream,
   createWriteStream,
   cpSync,
-  unlinkSync
+  unlinkSync,
+  promises
 };

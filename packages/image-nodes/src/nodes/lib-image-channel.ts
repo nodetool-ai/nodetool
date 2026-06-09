@@ -10,7 +10,7 @@
 import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
 import type { ImageRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { tagAsHybrid } from "@nodetool-ai/nodes-utils";
+import { tagAsHybrid, tagAsContentCard } from "@nodetool-ai/nodes-utils";
 import {
   colorChannelShuffleV1,
   colorChannelMergeV1
@@ -90,8 +90,8 @@ registerDeclaredProperty(
   intProp(3, { min: 0, max: 4, label: "Alpha channel" })
 );
 
-export const LIB_IMAGE_CHANNEL_NODES = tagAsHybrid([
+export const LIB_IMAGE_CHANNEL_NODES = tagAsHybrid(tagAsContentCard([
   ChannelShuffleNode,
   ChannelMergeNode
-]);
+]));
 export { ChannelShuffleNode, ChannelMergeNode };

@@ -1,16 +1,26 @@
+/// <reference lib="dom" />
 import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import sharp from "sharp";
+import {
+  NODE_AND_BROWSER_PLATFORMS,
+  SERVER_PLATFORMS
+} from "@nodetool-ai/protocol";
+import { IS_NODE } from "@nodetool-ai/config";
 import * as d from "typegpu/data";
-import { sourcesSolidV1 } from "@nodetool-ai/gpu/pool";
-import { decodeImage, toRef, pickImage } from "./lib-image-utils.js";
+import { sourcesSolidV1, sourcesGaussianNoiseV1 } from "@nodetool-ai/gpu/pool";
+import { pickImage } from "./lib-image-utils.js";
 import {
   colorValueToVec4,
   premultiplyVec4,
-  runShaderOnPngBuffer
+  runShaderNode
 } from "./lib-shader-utils.js";
-import { tagAsHybrid } from "@nodetool-ai/nodes-utils";
+import {
+  loadImageBytes,
+  toBase64Ref,
+  toArrayBuffer,
+  loadSharp
+} from "./image-io.js";
 
 type Desc = {
   nodeType: string;
@@ -22,7 +32,15 @@ type Desc = {
   properties: Array<{ name: string; options: PropOptions }>;
 };
 
+// Background (GPU), GaussianNoise (GPU) and RenderText (Canvas in the browser /
+// sharp on Node) all run client-side. The Mask compositor still relies on sharp
+// resize + alpha compositing → Node-only.
+function isServerOnlyDraw(nodeType: string): boolean {
+  return nodeType === "lib.image.Mask";
+}
+
 function createDrawNode(desc: Desc): NodeClass {
+  const serverOnly = isServerOnlyDraw(desc.nodeType);
   const C = class extends BaseNode {
     static readonly nodeType = desc.nodeType;
     static readonly title = desc.title;
@@ -30,6 +48,12 @@ function createDrawNode(desc: Desc): NodeClass {
     static readonly inlineFields = desc.inlineFields;
     static readonly inputFields  = desc.inputFields;
     static readonly metadataOutputTypes = desc.outputs;
+    static readonly platforms = serverOnly
+      ? SERVER_PLATFORMS
+      : NODE_AND_BROWSER_PLATFORMS;
+    static readonly body: string | undefined = serverOnly
+      ? undefined
+      : "content_card";
 
     async process(
       context?: ProcessingContext
@@ -39,21 +63,18 @@ function createDrawNode(desc: Desc): NodeClass {
       if (t === "lib.image.draw.Background") {
         const width = Math.max(1, Number((this as any).width ?? 512));
         const height = Math.max(1, Number((this as any).height ?? 512));
-        // Source modules need explicit output dims and a (possibly null)
-        // source — pass an empty input ref so the shader gets the
-        // host-specified dimensions.
+        // Source module — no input texture, just the host-specified output dims.
         const [r, g, b, a] = premultiplyVec4(
           colorValueToVec4((this as any).color ?? "#FFFFFF", [1, 1, 1, 1])
         );
-        const png = await runShaderOnPngBuffer(
-          sourcesSolidV1,
-          { color: d.vec4f(r, g, b, a) },
-          new Uint8Array(),
-          { outputWidth: width, outputHeight: height },
-          context
-        );
         return {
-          output: { type: "image", data: Buffer.from(png).toString("base64") }
+          output: await runShaderNode(
+            sourcesSolidV1,
+            { color: d.vec4f(r, g, b, a) },
+            null,
+            { outputWidth: width, outputHeight: height },
+            context
+          )
         };
       }
 
@@ -62,22 +83,16 @@ function createDrawNode(desc: Desc): NodeClass {
         const h = Math.max(1, Number((this as any).height ?? 512));
         const mean = Number((this as any).mean ?? 0);
         const stddev = Number((this as any).stddev ?? 1);
-        const noiseRaw = Buffer.alloc(w * h * 3);
-        for (let i = 0; i < noiseRaw.length; i += 1) {
-          // Box-Muller transform for Gaussian distribution
-          const u1 = Math.random() || 1e-10;
-          const u2 = Math.random();
-          const gaussian =
-            Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-          const value = (mean + gaussian * stddev) * 128 + 128;
-          noiseRaw[i] = Math.max(0, Math.min(255, Math.round(value)));
-        }
-        const noiseBuf = await sharp(noiseRaw, {
-          raw: { width: w, height: h, channels: 3 }
-        })
-          .png()
-          .toBuffer();
-        return { output: { type: "image", data: noiseBuf.toString("base64") } };
+        // A fresh seed per run reproduces the old Math.random() variation.
+        return {
+          output: await runShaderNode(
+            sourcesGaussianNoiseV1,
+            { mean, stddev, seed: Math.floor(Math.random() * 100000) },
+            null,
+            { outputWidth: w, outputHeight: h },
+            context
+          )
+        };
       }
 
       const baseObj = pickImage(
@@ -86,15 +101,14 @@ function createDrawNode(desc: Desc): NodeClass {
           this as unknown as { serialize(): Record<string, unknown> }
         ).serialize()
       );
-      const baseBytes = await decodeImage(baseObj, context);
-      if (!baseBytes) {
+      const baseBytes = await loadImageBytes(baseObj, context);
+      if (baseBytes.length === 0) {
         return { output: baseObj ?? {} };
       }
 
-      let img = sharp(baseBytes, { failOn: "none" });
-
       if (t === "lib.image.Mask") {
-        const fg = await decodeImage(
+        const sharp = await loadSharp();
+        const fg = await loadImageBytes(
           (this as any).foreground ??
             (this as unknown as Record<string, unknown>).foreground ??
             (this as any).image2 ??
@@ -103,8 +117,8 @@ function createDrawNode(desc: Desc): NodeClass {
             (this as unknown as Record<string, unknown>).image1,
           context
         );
-        if (fg) {
-          const mask = await decodeImage(
+        if (fg.length) {
+          const mask = await loadImageBytes(
             (this as any).mask ??
               (this as unknown as Record<string, unknown>).mask,
             context
@@ -117,7 +131,7 @@ function createDrawNode(desc: Desc): NodeClass {
             .ensureAlpha()
             .png()
             .toBuffer();
-          if (mask) {
+          if (mask.length) {
             const { data: fgRaw, info } = await sharp(fgInput, {
               failOn: "none"
             })
@@ -143,56 +157,77 @@ function createDrawNode(desc: Desc): NodeClass {
             .composite([{ input: fgInput, blend: "over" }])
             .png()
             .toBuffer();
-          return { output: toRef(mixed, baseObj) };
+          return { output: toBase64Ref(mixed, baseObj) };
         }
       }
 
       if (t.includes(".draw.RenderText")) {
         const text = String((this as any).text ?? "");
-        if (text) {
-          const x = Number((this as any).x ?? 0);
-          const y = Number((this as any).y ?? 0);
-          const size = Number((this as any).size ?? 12);
-          const colorVal = (this as any).color ?? "#000000";
-          const color =
-            colorVal &&
-            typeof colorVal === "object" &&
-            "value" in (colorVal as object)
-              ? String((colorVal as Record<string, unknown>).value)
-              : String(colorVal as string);
-          const fontVal = (this as any).font;
-          const fontFamily =
-            fontVal &&
-            typeof fontVal === "object" &&
-            "name" in (fontVal as object)
-              ? String((fontVal as Record<string, unknown>).name)
-              : "sans-serif";
-          const align = String((this as any).align ?? "left");
-          const textAnchor =
-            align === "center"
-              ? "middle"
-              : align === "right"
-                ? "end"
-                : "start";
-          const escapedText = text
-            .replaceAll("&", "&amp;")
-            .replaceAll("<", "&lt;")
-            .replaceAll(">", "&gt;");
-          const md = await img.metadata();
-          const svgWidth = md.width ?? 512;
-          const svgHeight = md.height ?? 512;
-          const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}"><text x="${x}" y="${y + size}" font-size="${size}" fill="${color}" font-family="${fontFamily}" text-anchor="${textAnchor}">${escapedText}</text></svg>`;
-          img = sharp(
-            await sharp(baseBytes)
-              .composite([{ input: Buffer.from(svg) }])
-              .png()
-              .toBuffer()
-          );
+        if (!text) {
+          return { output: toBase64Ref(baseBytes, baseObj) };
         }
+        const x = Number((this as any).x ?? 0);
+        const y = Number((this as any).y ?? 0);
+        const size = Number((this as any).size ?? 12);
+        const colorVal = (this as any).color ?? "#000000";
+        const color =
+          colorVal &&
+          typeof colorVal === "object" &&
+          "value" in (colorVal as object)
+            ? String((colorVal as Record<string, unknown>).value)
+            : String(colorVal as string);
+        const fontVal = (this as any).font;
+        const fontFamily =
+          fontVal &&
+          typeof fontVal === "object" &&
+          "name" in (fontVal as object)
+            ? String((fontVal as Record<string, unknown>).name)
+            : "sans-serif";
+        const align = String((this as any).align ?? "left");
+
+        if (!IS_NODE) {
+          // Browser: rasterize the text onto the image with OffscreenCanvas.
+          const bitmap = await createImageBitmap(
+            new Blob([toArrayBuffer(baseBytes)])
+          );
+          const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+          const ctx = canvas.getContext("2d");
+          if (!ctx) throw new Error("OffscreenCanvas 2D context unavailable");
+          ctx.drawImage(bitmap, 0, 0);
+          bitmap.close();
+          ctx.font = `${size}px ${fontFamily}`;
+          ctx.fillStyle = color;
+          ctx.textAlign =
+            align === "center" ? "center" : align === "right" ? "right" : "left";
+          ctx.textBaseline = "alphabetic";
+          ctx.fillText(text, x, y + size);
+          const blob = await canvas.convertToBlob({ type: "image/png" });
+          return {
+            output: toBase64Ref(new Uint8Array(await blob.arrayBuffer()), baseObj)
+          };
+        }
+
+        // Node: composite an SVG <text> over the image with sharp.
+        const sharp = await loadSharp();
+        const textAnchor =
+          align === "center" ? "middle" : align === "right" ? "end" : "start";
+        const escapedText = text
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;");
+        const md = await sharp(baseBytes).metadata();
+        const svgWidth = md.width ?? 512;
+        const svgHeight = md.height ?? 512;
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}"><text x="${x}" y="${y + size}" font-size="${size}" fill="${color}" font-family="${fontFamily}" text-anchor="${textAnchor}">${escapedText}</text></svg>`;
+        const out = await sharp(baseBytes)
+          .composite([{ input: Buffer.from(svg) }])
+          .png()
+          .toBuffer();
+        return { output: toBase64Ref(out, baseObj) };
       }
 
-      const out = await img.png().toBuffer();
-      return { output: toRef(out, baseObj) };
+      // Fallthrough (e.g. Mask with no foreground): pass the source through.
+      return { output: toBase64Ref(baseBytes, baseObj) };
     }
   };
 
@@ -460,4 +495,4 @@ const DESCRIPTORS: readonly Desc[] = [
   }
 ] as const;
 
-export const LIB_IMAGE_DRAW_NODES: readonly NodeClass[] = tagAsHybrid(DESCRIPTORS.map(createDrawNode));
+export const LIB_IMAGE_DRAW_NODES: readonly NodeClass[] = DESCRIPTORS.map(createDrawNode);

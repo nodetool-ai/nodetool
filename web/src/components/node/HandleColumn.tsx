@@ -36,6 +36,17 @@ const styles = (theme: Theme) =>
       justifyContent: "flex-start",
       gap: theme.spacing(0.5)
     },
+    // Stacked (in-flow) variant: used by the generic body, where the column
+    // shares the left edge with inline-field rows that carry their own
+    // handles. Absolute positioning would stack both sets of dots at the top;
+    // taking flow space instead reserves a band so the input handles sit
+    // above the editor rows. Zero-width still, so it steals no horizontal room.
+    "&.handle-column.handle-column--stacked": {
+      position: "relative",
+      top: "auto",
+      zIndex: "auto",
+      marginBottom: theme.spacing(1)
+    },
     ".handle-only": {
       position: "relative",
       height: HANDLE_ROW_HEIGHT,
@@ -63,13 +74,22 @@ export interface HandleColumnProps {
   /** Edges connected to this node (used to flag is-connected per property) */
   connectedEdges?: Edge[];
   className?: string;
+  /**
+   * `"floating"` (default) pins the column absolutely to the left edge — used
+   * when the column overlays a preview area (content card, bespoke bodies).
+   * `"stacked"` takes flow space instead, so the input handles reserve a band
+   * above sibling inline-field rows in the generic body and don't crowd their
+   * handles.
+   */
+  layout?: "floating" | "stacked";
 }
 
 const HandleColumnImpl: React.FC<HandleColumnProps> = ({
   id,
   properties,
   connectedEdges,
-  className
+  className,
+  layout = "floating"
 }) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
@@ -86,7 +106,9 @@ const HandleColumnImpl: React.FC<HandleColumnProps> = ({
   return (
     <div
       css={cssStyles}
-      className={`handle-column ${className ?? ""}`}
+      className={`handle-column${
+        layout === "stacked" ? " handle-column--stacked" : ""
+      } ${className ?? ""}`}
     >
       {properties.map((property) => (
         <HandleOnlyField
