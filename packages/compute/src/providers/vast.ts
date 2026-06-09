@@ -2,19 +2,23 @@
 //
 // Launches the NodeTool worker image on a Vast.ai GPU offer over the Vast HTTP
 // API (https://console.vast.ai/api/v0), polls the instance to `running`, and
-// derives the direct `ws://<ip>:<port>` URL the bridge attaches to. `stop` is a
-// REAL instance destroy — GPU instances bill continuously, so teardown is
-// non-negotiable.
+// derives the direct `ws://<ip>:<port>` URL the bridge attaches to.
+//
+// Lifecycle mirrors RunPod: `stop` PAUSES the instance (state→stopped, its disk
+// and model cache are retained), `resume` brings it back (state→running), and
+// `terminate` DELETEs it for good — the real teardown that stops all billing.
 //
 // The API key is injected via the constructor (sourced from the secret store /
 // env by the `WorkerManager`); this provider never reads `process.env`.
 
-import type {
-  ProviderInstance,
-  ProvisionResult,
-  WorkerProvider,
-  WorkerSpec,
-  WorkerStatus,
+import {
+  DEFAULT_VOLUME_GB,
+  WORKER_HF_HOME,
+  type ProviderInstance,
+  type ProvisionResult,
+  type WorkerProvider,
+  type WorkerSpec,
+  type WorkerStatus,
 } from "./types.js";
 
 const VAST_API_BASE_URL = "https://console.vast.ai/api/v0";
@@ -96,9 +100,9 @@ export class VastProvider implements WorkerProvider {
     const instanceId = await this.launch(offer.id, spec);
 
     // `launch` created a billing instance. Any failure past this point must
-    // tear it down, otherwise the orphaned GPU bills until the reconcile scan
-    // detects it — its `provider_ref` is never persisted, so `stop` can't be
-    // called from the manager.
+    // DESTROY it, otherwise the orphaned GPU bills until the reconcile scan
+    // detects it — its `provider_ref` is never persisted, so the manager can't
+    // tear it down.
     try {
       const instance = await this.waitForReady(instanceId);
 
@@ -119,7 +123,7 @@ export class VastProvider implements WorkerProvider {
         costUsd: offer.dphTotal,
       };
     } catch (err) {
-      await this.stop(instanceId).catch(() => {
+      await this.terminate(instanceId).catch(() => {
         // Best-effort teardown; surface the original provision failure below.
       });
       throw err;
@@ -131,7 +135,35 @@ export class VastProvider implements WorkerProvider {
     return mapInstanceStatus(instance.actual_status);
   }
 
+  /** Pause: stop the instance but keep its disk (and model cache). */
   async stop(ref: string): Promise<void> {
+    await vastApi(this.apiKey, `instances/${ref}/`, "PUT", {
+      state: "stopped",
+    });
+  }
+
+  /** Resume a stopped instance and re-derive its (possibly new) endpoint. */
+  async resume(ref: string): Promise<ProvisionResult> {
+    await vastApi(this.apiKey, `instances/${ref}/`, "PUT", {
+      state: "running",
+    });
+    const instance = await this.waitForReady(ref);
+    const ip = instance.public_ipaddr;
+    const port = externalPort(instance);
+    if (!ip || !port) {
+      throw new Error(
+        `Vast instance ${ref} resumed without a reachable ${WORKER_PORT} port`
+      );
+    }
+    return {
+      providerRef: ref,
+      wsUrl: `ws://${ip}:${port}`,
+      status: "running",
+    };
+  }
+
+  /** Destroy the instance and its disk — real teardown, stops all billing. */
+  async terminate(ref: string): Promise<void> {
     await vastApi(this.apiKey, `instances/${ref}/`, "DELETE");
   }
 
@@ -183,10 +215,12 @@ export class VastProvider implements WorkerProvider {
   private async launch(offerId: string, spec: WorkerSpec): Promise<string> {
     const env: Record<string, string> = { ...(spec.env ?? {}) };
     if (spec.token) env.NODETOOL_WORKER_TOKEN = spec.token;
+    // Cache HF models on the instance disk so they survive a stop/resume.
+    env.HF_HOME = WORKER_HF_HOME;
 
     const res = await vastApi(this.apiKey, `asks/${offerId}/`, "PUT", {
       image: spec.image,
-      disk: 20,
+      disk: spec.disk ?? DEFAULT_VOLUME_GB,
       env,
       // Map the worker's internal port out for the direct ws:// attach.
       runtype: "args",

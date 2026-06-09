@@ -20,7 +20,10 @@ export type WorkerStatus =
   | "running"
   | "attached"
   | "stopping"
+  // Paused: compute released, volume + model cache retained. Resumable.
   | "stopped"
+  // Destroyed: pod and volume deleted. Not resumable — a tombstone.
+  | "terminated"
   | "error";
 
 export interface WorkerProfile {
@@ -80,7 +83,8 @@ export interface ReconcileSummary {
 export const workerQueryKeys = {
   all: ["workers"] as const,
   profiles: ["workers", "profiles"] as const,
-  instances: ["workers", "instances"] as const
+  instances: ["workers", "instances"] as const,
+  apiKeyStatus: ["workers", "api-key-status"] as const
 };
 
 const INSTANCES_REFETCH_INTERVAL_MS = 10_000;
@@ -94,10 +98,17 @@ export interface UseWorkersResult {
   activeWorker: WorkerInstance | null;
   profilesQuery: UseQueryResult<WorkerProfile[], Error>;
   instancesQuery: UseQueryResult<WorkerInstance[], Error>;
+  /**
+   * Whether each provider's API key is available (secret store OR env), the
+   * same resolution provisioning uses. `undefined` while loading.
+   */
+  apiKeyStatus: Record<WorkerTarget, boolean> | undefined;
   createProfile: (input: CreateWorkerProfileInput) => Promise<WorkerProfile>;
   deleteProfile: (name: string) => Promise<void>;
   provision: (profileName: string) => Promise<WorkerInstance>;
   stop: (id: string) => Promise<WorkerInstance>;
+  resume: (id: string) => Promise<WorkerInstance>;
+  terminate: (id: string) => Promise<WorkerInstance>;
   stopAll: () => Promise<void>;
   attach: (id: string) => Promise<WorkerConnection>;
   detach: () => Promise<void>;
@@ -118,6 +129,14 @@ export const useWorkers = (): UseWorkersResult => {
     queryFn: () =>
       trpcClient.worker.instances.list.query() as Promise<WorkerInstance[]>,
     refetchInterval: INSTANCES_REFETCH_INTERVAL_MS
+  });
+
+  const apiKeyStatusQuery = useQuery<Record<WorkerTarget, boolean>, Error>({
+    queryKey: workerQueryKeys.apiKeyStatus,
+    queryFn: () =>
+      trpcClient.worker.apiKeyStatus.query() as Promise<
+        Record<WorkerTarget, boolean>
+      >
   });
 
   const invalidateInstances = useCallback(
@@ -177,6 +196,28 @@ export const useWorkers = (): UseWorkersResult => {
     [invalidateInstances]
   );
 
+  const resume = useCallback(
+    async (id: string) => {
+      const instance = (await trpcClient.worker.resume.mutate({
+        id
+      })) as WorkerInstance;
+      await invalidateInstances();
+      return instance;
+    },
+    [invalidateInstances]
+  );
+
+  const terminate = useCallback(
+    async (id: string) => {
+      const instance = (await trpcClient.worker.terminate.mutate({
+        id
+      })) as WorkerInstance;
+      await invalidateInstances();
+      return instance;
+    },
+    [invalidateInstances]
+  );
+
   const stopAll = useCallback(async () => {
     await trpcClient.worker.stopAll.mutate();
     await invalidateInstances();
@@ -215,10 +256,13 @@ export const useWorkers = (): UseWorkersResult => {
     activeWorker,
     profilesQuery,
     instancesQuery,
+    apiKeyStatus: apiKeyStatusQuery.data,
     createProfile,
     deleteProfile,
     provision,
     stop,
+    resume,
+    terminate,
     stopAll,
     attach,
     detach,

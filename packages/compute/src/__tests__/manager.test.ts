@@ -139,10 +139,14 @@ function makeFakeModels() {
 class FakeProvider implements WorkerProvider {
   public readonly provisioned: WorkerSpec[] = [];
   public readonly stopped: string[] = [];
+  public readonly resumed: string[] = [];
+  public readonly terminated: string[] = [];
   public statuses: Record<string, WorkerStatus> = {};
   public liveList: ProviderInstance[] = [];
   /** Hourly cost the provider reports back from provision(), if any. */
   public costUsd: number | undefined;
+  /** ws URL resume() reports back (defaults to a fresh one). */
+  public resumeWsUrl = "wss://pod-resumed-7777.proxy.runpod.net";
 
   async provision(spec: WorkerSpec): Promise<ProvisionResult> {
     this.provisioned.push(spec);
@@ -161,6 +165,20 @@ class FakeProvider implements WorkerProvider {
 
   async stop(ref: string): Promise<void> {
     this.stopped.push(ref);
+  }
+
+  async resume(ref: string): Promise<ProvisionResult> {
+    this.resumed.push(ref);
+    return {
+      providerRef: ref,
+      wsUrl: this.resumeWsUrl,
+      status: "running",
+      costUsd: this.costUsd,
+    };
+  }
+
+  async terminate(ref: string): Promise<void> {
+    this.terminated.push(ref);
   }
 
   async list(): Promise<ProviderInstance[]> {
@@ -302,7 +320,7 @@ describe("WorkerManager — provision", () => {
     await expect(manager.provision("missing")).rejects.toThrow(/missing/);
   });
 
-  it("stops the just-provisioned provider resource when the DB create fails, then re-throws the DB error", async () => {
+  it("terminates the just-provisioned provider resource when the DB create fails, then re-throws the DB error", async () => {
     const dbError = new Error("createWorkerInstance failed: constraint");
     const createWorkerInstance = vi.fn(async () => {
       throw dbError;
@@ -313,11 +331,12 @@ describe("WorkerManager — provision", () => {
     await expect(manager.provision("hf-a40")).rejects.toThrow(dbError);
 
     // The provider made a billable pod; with the DB write failed it would be
-    // untracked, so it must be torn down rather than left orphaned.
-    expect(provider.stopped).toEqual(["pod-1"]);
+    // untracked, so it must be DESTROYED (not merely paused) to stop all cost.
+    expect(provider.terminated).toEqual(["pod-1"]);
+    expect(provider.stopped).toEqual([]);
   });
 
-  it("stops the just-provisioned provider resource when the status update fails, then re-throws", async () => {
+  it("terminates the just-provisioned provider resource when the status update fails, then re-throws", async () => {
     const dbError = new Error("updateWorkerInstance failed");
     const updateWorkerInstance = vi.fn(async () => {
       throw dbError;
@@ -327,21 +346,21 @@ describe("WorkerManager — provision", () => {
 
     await expect(manager.provision("hf-a40")).rejects.toThrow(dbError);
 
-    expect(provider.stopped).toEqual(["pod-1"]);
+    expect(provider.terminated).toEqual(["pod-1"]);
   });
 
-  it("re-throws the original DB error even when the compensating stop() also fails", async () => {
+  it("re-throws the original DB error even when the compensating terminate() also fails", async () => {
     const dbError = new Error("createWorkerInstance failed");
     const createWorkerInstance = vi.fn(async () => {
       throw dbError;
     });
     const { manager, provider } = makeManager({ createWorkerInstance });
-    provider.stop = vi.fn(async () => {
-      throw new Error("stop also failed");
+    provider.terminate = vi.fn(async () => {
+      throw new Error("terminate also failed");
     });
     await manager.createProfile(PROFILE_INPUT);
 
-    // The original DB error is surfaced, not masked by the stop() failure.
+    // The original DB error is surfaced, not masked by the terminate() failure.
     await expect(manager.provision("hf-a40")).rejects.toThrow(dbError);
   });
 });
@@ -371,6 +390,60 @@ describe("WorkerManager — stop / stopAll", () => {
 
     // a was already stopped; only b should be torn down now.
     expect(provider.stopped).toEqual([b.provider_ref]);
+  });
+});
+
+describe("WorkerManager — resume / terminate", () => {
+  it("resume brings a stopped instance back to running with its fresh ws URL", async () => {
+    const { manager, models, provider } = makeManager();
+    provider.resumeWsUrl = "wss://pod-new-7777.proxy.runpod.net";
+    await manager.createProfile(PROFILE_INPUT);
+    const instance = await manager.provision("hf-a40");
+    await manager.stop(instance.id);
+
+    const resumed = await manager.resume(instance.id);
+
+    expect(provider.resumed).toEqual([instance.provider_ref]);
+    expect(resumed.status).toBe("running");
+    expect(resumed.ws_url).toBe("wss://pod-new-7777.proxy.runpod.net");
+    expect(models.instances.get(instance.id)?.ws_url).toBe(
+      "wss://pod-new-7777.proxy.runpod.net"
+    );
+  });
+
+  it("terminate destroys the provider resource and marks the instance terminated", async () => {
+    const { manager, models, provider } = makeManager();
+    await manager.createProfile(PROFILE_INPUT);
+    const instance = await manager.provision("hf-a40");
+
+    const terminated = await manager.terminate(instance.id);
+
+    expect(provider.terminated).toEqual([instance.provider_ref]);
+    expect(provider.stopped).toEqual([]); // not a pause
+    expect(terminated.status).toBe("terminated");
+    expect(models.instances.get(instance.id)?.status).toBe("terminated");
+  });
+
+  it("terminate drops the active-worker pointer when it referenced the instance", async () => {
+    const { manager } = makeManager();
+    await manager.createProfile(PROFILE_INPUT);
+    const instance = await manager.provision("hf-a40");
+    await manager.attach(instance.id);
+
+    await manager.terminate(instance.id);
+
+    expect(await manager.getActiveWorker()).toBeNull();
+  });
+});
+
+describe("WorkerManager — provision spec mapping", () => {
+  it("forwards the profile's spec.disk as the worker volume size", async () => {
+    const { manager, provider } = makeManager();
+    await manager.createProfile({ ...PROFILE_INPUT, spec: { gpu: "A40", disk: 250 } });
+
+    await manager.provision("hf-a40");
+
+    expect(provider.provisioned[0]?.disk).toBe(250);
   });
 });
 
@@ -640,5 +713,36 @@ describe("WorkerManager — reconcile", () => {
 
     // No manual cost injection — reconcile sees the cost stored on provision.
     expect(summary.estimatedCostUsd).toBeCloseTo(1.0);
+  });
+
+  describe("apiKeyStatus", () => {
+    it("reports keys available from the secret store", async () => {
+      const { manager } = makeManager(); // getSecret returns a value for any key
+      await expect(manager.apiKeyStatus()).resolves.toEqual({
+        runpod: true,
+        vast: true,
+      });
+    });
+
+    it("falls back to the environment, so an env-only key is not reported missing", async () => {
+      // The store has nothing; this is the exact case that false-warned in the
+      // UI before — the key lives only in process.env.
+      const getSecret = vi.fn(async () => null as string | null);
+      const { manager } = makeManager({ getSecret });
+      const prevRunpod = process.env.RUNPOD_API_KEY;
+      const prevVast = process.env.VAST_API_KEY;
+      process.env.RUNPOD_API_KEY = "env-key";
+      delete process.env.VAST_API_KEY;
+      try {
+        const status = await manager.apiKeyStatus();
+        expect(status.runpod).toBe(true); // resolved from env
+        expect(status.vast).toBe(false); // neither store nor env
+      } finally {
+        if (prevRunpod === undefined) delete process.env.RUNPOD_API_KEY;
+        else process.env.RUNPOD_API_KEY = prevRunpod;
+        if (prevVast === undefined) delete process.env.VAST_API_KEY;
+        else process.env.VAST_API_KEY = prevVast;
+      }
+    });
   });
 });

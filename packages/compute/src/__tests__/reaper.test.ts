@@ -58,17 +58,23 @@ function makeInstance(
 function makeDeps(
   instances: WorkerInstance[],
   profiles: Record<string, WorkerProfile>
-): { deps: ReaperDeps; stop: ReturnType<typeof vi.fn> } {
+): {
+  deps: ReaperDeps;
+  stop: ReturnType<typeof vi.fn>;
+  terminate: ReturnType<typeof vi.fn>;
+} {
   const stop = vi.fn(async (_id: string) => {});
+  const terminate = vi.fn(async (_id: string) => {});
   const deps: ReaperDeps = {
     manager: {
       list: vi.fn(async () => instances),
       stop,
+      terminate,
     },
     getProfile: vi.fn(async (name: string) => profiles[name] ?? null),
     now: () => NOW_MS,
   };
-  return { deps, stop };
+  return { deps, stop, terminate };
 }
 
 describe("runReaperOnce — idle auto-stop", () => {
@@ -100,31 +106,55 @@ describe("runReaperOnce — idle auto-stop", () => {
 });
 
 describe("runReaperOnce — hard TTL", () => {
-  it("stops an instance older than max_lifetime_minutes regardless of activity", async () => {
+  it("TERMINATES an instance older than max_lifetime_minutes (destroys volume)", async () => {
     const profile = makeProfile("ttl-60", { max_lifetime_minutes: 60 });
     const instance = makeInstance("i1", {
       profile_name: "ttl-60",
       created_at: minutesAgo(90),
       last_activity_at: minutesAgo(0),
     });
-    const { deps, stop } = makeDeps([instance], { "ttl-60": profile });
+    const { deps, stop, terminate } = makeDeps([instance], {
+      "ttl-60": profile,
+    });
 
     await runReaperOnce(deps);
 
-    expect(stop).toHaveBeenCalledWith("i1");
+    expect(terminate).toHaveBeenCalledWith("i1");
+    expect(stop).not.toHaveBeenCalled();
   });
 
-  it("does not stop an instance within its lifetime window", async () => {
+  it("does not touch an instance within its lifetime window", async () => {
     const profile = makeProfile("ttl-60", { max_lifetime_minutes: 60 });
     const instance = makeInstance("i1", {
       profile_name: "ttl-60",
       created_at: minutesAgo(30),
       last_activity_at: minutesAgo(0),
     });
-    const { deps, stop } = makeDeps([instance], { "ttl-60": profile });
+    const { deps, stop, terminate } = makeDeps([instance], {
+      "ttl-60": profile,
+    });
 
     await runReaperOnce(deps);
 
+    expect(stop).not.toHaveBeenCalled();
+    expect(terminate).not.toHaveBeenCalled();
+  });
+
+  it("TERMINATES when both idle and TTL have fired (destroy wins over pause)", async () => {
+    const profile = makeProfile("both", {
+      idle_timeout_minutes: 30,
+      max_lifetime_minutes: 60,
+    });
+    const instance = makeInstance("i1", {
+      profile_name: "both",
+      created_at: minutesAgo(90),
+      last_activity_at: minutesAgo(90),
+    });
+    const { deps, stop, terminate } = makeDeps([instance], { both: profile });
+
+    await runReaperOnce(deps);
+
+    expect(terminate).toHaveBeenCalledWith("i1");
     expect(stop).not.toHaveBeenCalled();
   });
 });
@@ -172,7 +202,7 @@ describe("runReaperOnce — no limits / missing profile", () => {
 });
 
 describe("runReaperOnce — multiple instances", () => {
-  it("stops only the instances past a limit", async () => {
+  it("pauses idle instances and terminates TTL-expired ones, leaving fresh alone", async () => {
     const idleProfile = makeProfile("idle-30", { idle_timeout_minutes: 30 });
     const ttlProfile = makeProfile("ttl-60", { max_lifetime_minutes: 60 });
     const freshIdle = makeInstance("fresh", {
@@ -188,17 +218,18 @@ describe("runReaperOnce — multiple instances", () => {
       created_at: minutesAgo(120),
       last_activity_at: minutesAgo(0),
     });
-    const { deps, stop } = makeDeps([freshIdle, staleIdle, oldTtl], {
+    const { deps, stop, terminate } = makeDeps([freshIdle, staleIdle, oldTtl], {
       "idle-30": idleProfile,
       "ttl-60": ttlProfile,
     });
 
     await runReaperOnce(deps);
 
+    // Idle-but-not-expired → pause; TTL-expired → terminate; fresh → untouched.
     expect(stop).toHaveBeenCalledWith("stale");
-    expect(stop).toHaveBeenCalledWith("old");
-    expect(stop).not.toHaveBeenCalledWith("fresh");
-    expect(stop).toHaveBeenCalledTimes(2);
+    expect(stop).toHaveBeenCalledTimes(1);
+    expect(terminate).toHaveBeenCalledWith("old");
+    expect(terminate).toHaveBeenCalledTimes(1);
   });
 });
 

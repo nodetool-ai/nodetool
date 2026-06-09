@@ -208,7 +208,8 @@ export class WorkerManager {
 
     // The provider now holds a billable resource. If persisting it to the
     // registry fails, the resource would be orphaned — untracked and billing,
-    // recoverable only via reconcile(). Compensate by tearing it down, then
+    // recoverable only via reconcile(). Compensate by DESTROYING it (terminate,
+    // not pause — a paused orphan still bills volume and is never tracked), then
     // re-throw the original DB error so the caller sees the real cause.
     try {
       const instance = await this.deps.createWorkerInstance({
@@ -230,19 +231,23 @@ export class WorkerManager {
         { target, providerRef: result.providerRef, error }
       );
       try {
-        await provider.stop(result.providerRef);
-      } catch (stopError) {
+        await provider.terminate(result.providerRef);
+      } catch (terminateError) {
         log.error(
-          "Compensating stop() of the orphaned provider resource also " +
+          "Compensating terminate() of the orphaned provider resource also " +
             "failed; it may still be billing and require manual teardown",
-          { target, providerRef: result.providerRef, error: stopError }
+          { target, providerRef: result.providerRef, error: terminateError }
         );
       }
       throw error;
     }
   }
 
-  /** Tear down a worker's provider resource and mark its instance stopped. */
+  /**
+   * Pause a worker: release its GPU compute but keep its volume (and cached
+   * models). Marks the instance `stopped` — resumable via `resume`. The volume
+   * still bills a little while paused; `terminate` to stop all cost.
+   */
   async stop(instanceId: string): Promise<WorkerInstance> {
     const instance = await this.requireInstance(instanceId);
     const provider = await this.resolveProvider(
@@ -252,11 +257,53 @@ export class WorkerManager {
     return this.deps.updateWorkerInstance(instance.id, { status: "stopped" });
   }
 
-  /** Stop every instance that is not already stopped. */
+  /**
+   * Resume a paused worker: bring it back to running and adopt its fresh
+   * endpoint/cost (the URL can change across a stop/resume). Does NOT re-attach
+   * the bridge — the caller attaches as a separate step. May throw if the
+   * provider cannot re-allocate a GPU.
+   */
+  async resume(instanceId: string): Promise<WorkerInstance> {
+    const instance = await this.requireInstance(instanceId);
+    const provider = await this.resolveProvider(
+      instance.target as WorkerTarget
+    );
+    const result = await provider.resume(instance.provider_ref);
+    return this.deps.updateWorkerInstance(instance.id, {
+      status: "running",
+      ws_url: result.wsUrl,
+      estimated_cost_usd: result.costUsd ?? instance.estimated_cost_usd,
+      // Resuming is activity — reset the idle clock so the reaper doesn't
+      // immediately re-stop it before any work runs.
+      last_activity_at: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Destroy a worker AND its volume — the real teardown that stops all billing.
+   * The cached models are gone for good. Marks the instance `terminated` (a
+   * tombstone) and drops the active-worker pointer if it referenced it.
+   */
+  async terminate(instanceId: string): Promise<WorkerInstance> {
+    const instance = await this.requireInstance(instanceId);
+    const provider = await this.resolveProvider(
+      instance.target as WorkerTarget
+    );
+    await provider.terminate(instance.provider_ref);
+    const activeId = await this.deps.getSetting(ACTIVE_WORKER_KEY);
+    if (activeId === instance.id) {
+      await this.deps.deleteSetting(ACTIVE_WORKER_KEY);
+    }
+    return this.deps.updateWorkerInstance(instance.id, {
+      status: "terminated",
+    });
+  }
+
+  /** Pause every instance that is still live (not stopped/terminated). */
   async stopAll(): Promise<void> {
     const instances = await this.deps.listWorkerInstances();
     for (const instance of instances) {
-      if (instance.status === "stopped") {
+      if (instance.status === "stopped" || instance.status === "terminated") {
         continue;
       }
       await this.stop(instance.id);
@@ -403,30 +450,54 @@ export class WorkerManager {
   }
 
   /**
+   * Report whether each target's API key is available — store OR environment,
+   * the SAME resolution `provision` uses. The UI must check this rather than the
+   * secrets list alone, which only sees the store and so false-warns on an
+   * env-provided key.
+   */
+  async apiKeyStatus(): Promise<Record<WorkerTarget, boolean>> {
+    const targets = Object.keys(API_KEY_SECRET) as WorkerTarget[];
+    const entries = await Promise.all(
+      targets.map(
+        async (target) =>
+          [target, (await this.resolveApiKey(target)) !== null] as const
+      )
+    );
+    return Object.fromEntries(entries) as Record<WorkerTarget, boolean>;
+  }
+
+  /**
    * Load a target's API key from the secret store, falling back to the
    * environment when the keychain is unreachable (headless/sandboxed). Mirrors
    * the resolution the deleted `runpod-worker.ts` script used.
    */
   private async loadApiKey(target: WorkerTarget): Promise<string> {
+    const key = await this.resolveApiKey(target);
+    if (key !== null) {
+      return key;
+    }
+    const secretName = API_KEY_SECRET[target];
+    throw new Error(
+      `${secretName} not found in the secret store or environment. ` +
+        `Store it with: nodetool secrets store ${secretName}`
+    );
+  }
+
+  /**
+   * Resolve a target's API key from the secret store, then the environment.
+   * Returns `null` when neither has it (no throw) — shared by `loadApiKey` (which
+   * throws) and `apiKeyStatus` (which reports).
+   */
+  private async resolveApiKey(target: WorkerTarget): Promise<string | null> {
     const key = API_KEY_SECRET[target];
     if (!key) {
       throw new Error(`No API key mapping for worker target: ${target}`);
     }
-
     const fromStore = await this.deps.getSecret(key, LOCAL_USER_ID);
     if (fromStore) {
       return fromStore;
     }
-
-    const fromEnv = process.env[key];
-    if (fromEnv) {
-      return fromEnv;
-    }
-
-    throw new Error(
-      `${key} not found in the secret store or environment. ` +
-        `Store it with: nodetool secrets store ${key}`
-    );
+    return process.env[key] ?? null;
   }
 }
 
@@ -443,6 +514,7 @@ function specFromProfile(
     target,
     gpu: typeof spec.gpu === "string" ? spec.gpu : undefined,
     vcpu: typeof spec.vcpu === "number" ? spec.vcpu : undefined,
+    disk: typeof spec.disk === "number" ? spec.disk : undefined,
     env: isStringRecord(spec.env) ? spec.env : undefined,
     token,
   };

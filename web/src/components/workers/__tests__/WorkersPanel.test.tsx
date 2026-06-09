@@ -60,10 +60,13 @@ const makeHookValue = (
   instancesQuery: { isLoading: false } as ReturnType<
     typeof useWorkers
   >["instancesQuery"],
+  apiKeyStatus: { runpod: true, vast: true },
   createProfile: jest.fn(async () => makeProfile()),
   deleteProfile: jest.fn(async () => undefined),
   provision: jest.fn(async () => makeInstance()),
   stop: jest.fn(async () => makeInstance({ status: "stopped" })),
+  resume: jest.fn(async () => makeInstance({ status: "running" })),
+  terminate: jest.fn(async () => makeInstance({ status: "terminated" })),
   stopAll: jest.fn(async () => undefined),
   attach: jest.fn(async () => ({ wsUrl: "wss://x", token: "t" })),
   detach: jest.fn(async () => undefined),
@@ -111,6 +114,63 @@ describe("WorkersPanel", () => {
     );
 
     expect(value.stop).toHaveBeenCalledWith("i-1");
+  });
+
+  it("Terminate button confirms then calls terminate", async () => {
+    const value = makeHookValue();
+    mockUseWorkers.mockReturnValue(value);
+    const confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(true);
+    renderPanel();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /terminate worker i-1/i })
+    );
+
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(value.terminate).toHaveBeenCalledWith("i-1");
+    confirmSpy.mockRestore();
+  });
+
+  it("Terminate does nothing when the confirm is cancelled", async () => {
+    const value = makeHookValue();
+    mockUseWorkers.mockReturnValue(value);
+    const confirmSpy = jest.spyOn(window, "confirm").mockReturnValue(false);
+    renderPanel();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /terminate worker i-1/i })
+    );
+
+    expect(value.terminate).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
+  });
+
+  it("a paused (stopped) worker shows Resume, which calls resume", async () => {
+    const value = makeHookValue({
+      instances: [makeInstance({ status: "stopped" })]
+    });
+    mockUseWorkers.mockReturnValue(value);
+    renderPanel();
+
+    // Paused rows are shown (so they can be resumed) and offer Resume, not Stop.
+    expect(
+      screen.queryByRole("button", { name: /stop worker i-1/i })
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /resume worker i-1/i })
+    );
+
+    expect(value.resume).toHaveBeenCalledWith("i-1");
+  });
+
+  it("hides terminated workers", () => {
+    mockUseWorkers.mockReturnValue(
+      makeHookValue({ instances: [makeInstance({ status: "terminated" })] })
+    );
+    renderPanel();
+
+    expect(screen.getByText(/no workers running/i)).toBeInTheDocument();
   });
 
   it("provision dialog calls provision with the chosen profile", async () => {

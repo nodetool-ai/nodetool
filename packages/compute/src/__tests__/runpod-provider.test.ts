@@ -107,6 +107,42 @@ describe("RunpodPodProvider.provision", () => {
 
     expect(result.costUsd).toBe(0.44);
   });
+
+  it("provisions a persistent volume and points HF_HOME at it", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ id: "pod-123", desiredStatus: "EXITED" })
+    );
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ id: "pod-123", desiredStatus: "RUNNING" })
+    );
+
+    const provider = new RunpodPodProvider(API_KEY);
+    await provider.provision(baseSpec({ disk: 200 }));
+
+    const createBody = JSON.parse(
+      (mockFetch.mock.calls[0][1] as RequestInit).body as string
+    );
+    expect(createBody.volumeInGb).toBe(200);
+    expect(createBody.volumeMountPath).toBe("/workspace");
+    expect(createBody.env.HF_HOME).toBe("/workspace/huggingface");
+  });
+
+  it("defaults the volume size when the spec omits disk", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ id: "pod-123", desiredStatus: "EXITED" })
+    );
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ id: "pod-123", desiredStatus: "RUNNING" })
+    );
+
+    const provider = new RunpodPodProvider(API_KEY);
+    await provider.provision(baseSpec());
+
+    const createBody = JSON.parse(
+      (mockFetch.mock.calls[0][1] as RequestInit).body as string
+    );
+    expect(createBody.volumeInGb).toBe(100); // DEFAULT_VOLUME_GB
+  });
 });
 
 describe("RunpodPodProvider.status", () => {
@@ -131,15 +167,50 @@ describe("RunpodPodProvider.status", () => {
 });
 
 describe("RunpodPodProvider.stop", () => {
-  it("issues the real DELETE to tear the pod down", async () => {
-    mockFetch.mockResolvedValueOnce(jsonResponse({}, 204));
+  it("pauses the pod (POST /stop), keeping the volume", async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse({}));
 
     const provider = new RunpodPodProvider(API_KEY);
     await provider.stop("pod-xyz");
 
     const [url, init] = mockFetch.mock.calls[0];
+    expect(url).toBe("https://rest.runpod.io/v1/pods/pod-xyz/stop");
+    expect((init as RequestInit).method).toBe("POST");
+  });
+});
+
+describe("RunpodPodProvider.terminate", () => {
+  it("issues the real DELETE to destroy the pod and its volume", async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse({}, 204));
+
+    const provider = new RunpodPodProvider(API_KEY);
+    await provider.terminate("pod-xyz");
+
+    const [url, init] = mockFetch.mock.calls[0];
     expect(url).toBe("https://rest.runpod.io/v1/pods/pod-xyz");
     expect((init as RequestInit).method).toBe("DELETE");
+  });
+});
+
+describe("RunpodPodProvider.resume", () => {
+  it("starts the pod (POST /start) and re-derives the proxy ws URL", async () => {
+    // POST /start, then GET /pods/{id} → RUNNING.
+    mockFetch.mockResolvedValueOnce(jsonResponse({}));
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ id: "pod-xyz", desiredStatus: "RUNNING", costPerHr: 0.4 })
+    );
+
+    const provider = new RunpodPodProvider(API_KEY);
+    const result = await provider.resume("pod-xyz");
+
+    expect(mockFetch.mock.calls[0][0]).toBe(
+      "https://rest.runpod.io/v1/pods/pod-xyz/start"
+    );
+    expect((mockFetch.mock.calls[0][1] as RequestInit).method).toBe("POST");
+    expect(result.providerRef).toBe("pod-xyz");
+    expect(result.wsUrl).toBe("wss://pod-xyz-7777.proxy.runpod.net");
+    expect(result.status).toBe("running");
+    expect(result.costUsd).toBe(0.4);
   });
 });
 

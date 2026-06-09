@@ -295,9 +295,16 @@ const PROVIDER_META: ProviderMeta[] = [
   {
     key: "RUNPOD_API_KEY",
     name: "RunPod",
-    description: "Serverless GPU endpoints on RunPod.",
+    description: "Rent GPU pods to run NodeTool workers.",
     category: "other",
     docsUrl: "https://docs.runpod.io/"
+  },
+  {
+    key: "VAST_API_KEY",
+    name: "Vast.ai",
+    description: "Rent marketplace GPUs to run NodeTool workers.",
+    category: "other",
+    docsUrl: "https://docs.vast.ai/"
   },
   {
     key: "NODE_SUPABASE_KEY",

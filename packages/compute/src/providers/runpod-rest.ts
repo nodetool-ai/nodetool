@@ -139,6 +139,15 @@ export async function stopPod(apiKey: string, id: string): Promise<void> {
   await runpodRest(apiKey, `pods/${id}/stop`, "POST");
 }
 
+/**
+ * Resume a stopped Pod (re-allocates compute, keeps the volume).
+ * POST /v1/pods/{id}/start. May fail or return zero GPUs if RunPod capacity has
+ * changed since the Pod was stopped.
+ */
+export async function startPod(apiKey: string, id: string): Promise<void> {
+  await runpodRest(apiKey, `pods/${id}/start`, "POST");
+}
+
 /** Terminate a Pod (deletes it). DELETE /v1/pods/{id}. */
 export async function deletePod(apiKey: string, id: string): Promise<void> {
   await runpodRest(apiKey, `pods/${id}`, "DELETE");
@@ -188,6 +197,10 @@ export interface DeployWorkerPodOptions {
   vcpuCount?: number;
   gpuTypeIds?: string[];
   containerDiskInGb?: number;
+  /** Persistent volume size in GB (mounted at `volumeMountPath`). */
+  volumeInGb?: number;
+  /** Mount path for the persistent volume. Defaults to "/workspace". */
+  volumeMountPath?: string;
   /** Extra env merged into the container. */
   env?: Record<string, string>;
   /** Poll budget for the Pod to reach RUNNING + expose its endpoint. */
@@ -226,7 +239,14 @@ export async function deployWorkerPod(
     gpuTypeIds: opts.gpuTypeIds,
     ports: [`${internalPort}/${exposure}`],
     env,
-    containerDiskInGb: opts.containerDiskInGb ?? 20
+    containerDiskInGb: opts.containerDiskInGb ?? 20,
+    // Persistent volume — survives stop/resume, holds the HF model cache.
+    ...(opts.volumeInGb
+      ? {
+          volumeInGb: opts.volumeInGb,
+          volumeMountPath: opts.volumeMountPath ?? "/workspace"
+        }
+      : {})
   };
 
   const created = await createPod(apiKey, spec);

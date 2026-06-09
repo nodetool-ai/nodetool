@@ -2,17 +2,20 @@
 //
 // GPU pods/Vast instances bill continuously, the laptop sleeps, the app
 // crashes. The reaper enforces two profile-declared limits so a forgotten
-// worker can't quietly bill for hours:
+// worker can't quietly bill for hours, with deliberately different actions:
 //
-//   - idle auto-stop: stop an instance after `idle_timeout_minutes` of bridge
-//     inactivity (the bridge touches `last_activity_at`).
-//   - hard TTL: stop an instance older than `max_lifetime_minutes` regardless
-//     of activity — an absolute kill switch.
+//   - idle auto-stop: PAUSE an instance after `idle_timeout_minutes` of bridge
+//     inactivity (the bridge touches `last_activity_at`). Pausing frees the
+//     expensive GPU but keeps the volume, so resuming is fast and the model
+//     cache survives — the common, recoverable case.
+//   - hard TTL: TERMINATE an instance older than `max_lifetime_minutes`
+//     regardless of activity — an absolute kill switch that destroys the volume
+//     too, so a forgotten pod can't bill volume storage forever.
 //
-// Every teardown goes through `WorkerManager.stop`, so the real provider
-// teardown and the `stopped` status update happen as one. A profile that sets
-// neither limit opts its instances out. The clock and the manager are injected
-// so the windows can be exercised deterministically with a fake clock.
+// Both go through the manager (`stop`/`terminate`), so the real provider work
+// and the status update happen as one. A profile that sets neither limit opts
+// its instances out. The clock and the manager are injected so the windows can
+// be exercised deterministically with a fake clock.
 //
 // Orphan reconcile (diffing the DB against `provider.list()`) is a separate
 // concern handled by `WorkerManager.reconcile()` in Task D4.
@@ -25,7 +28,10 @@ import type { WorkerInstance, WorkerProfile } from "@nodetool-ai/models";
  */
 export interface ReaperManager {
   list(): Promise<WorkerInstance[]>;
+  /** Pause (idle path) — frees the GPU, keeps the volume. */
   stop(instanceId: string): Promise<unknown>;
+  /** Destroy (hard-TTL path) — deletes the pod and its volume. */
+  terminate(instanceId: string): Promise<unknown>;
 }
 
 /**
@@ -54,7 +60,8 @@ export async function runReaperOnce(deps: ReaperDeps): Promise<void> {
   const instances = await deps.manager.list();
 
   for (const instance of instances) {
-    if (instance.status === "stopped") {
+    // Already-paused or already-destroyed instances are done.
+    if (instance.status === "stopped" || instance.status === "terminated") {
       continue;
     }
 
@@ -63,35 +70,44 @@ export async function runReaperOnce(deps: ReaperDeps): Promise<void> {
       continue;
     }
 
-    if (shouldReap(instance, profile, nowMs)) {
+    // Hard TTL wins over idle: if both fire, destroy (the stronger action)
+    // rather than merely pause.
+    const action = reapAction(instance, profile, nowMs);
+    if (action === "terminate") {
+      await deps.manager.terminate(instance.id);
+    } else if (action === "stop") {
       await deps.manager.stop(instance.id);
     }
   }
 }
 
-/** True when the instance is past its idle window or its hard TTL. */
-function shouldReap(
+/**
+ * Which teardown (if any) an instance is due for: `terminate` past its hard TTL
+ * (destroy, incl. volume), `stop` past its idle window (pause, keep volume), or
+ * `null` when neither limit has fired.
+ */
+function reapAction(
   instance: WorkerInstance,
   profile: WorkerProfile,
   nowMs: number
-): boolean {
-  const idle = profile.idle_timeout_minutes;
-  if (idle != null) {
-    const idleMs = nowMs - Date.parse(instance.last_activity_at);
-    if (idleMs > idle * MINUTE_MS) {
-      return true;
-    }
-  }
-
+): "stop" | "terminate" | null {
   const ttl = profile.max_lifetime_minutes;
   if (ttl != null) {
     const ageMs = nowMs - Date.parse(instance.created_at);
     if (ageMs > ttl * MINUTE_MS) {
-      return true;
+      return "terminate";
     }
   }
 
-  return false;
+  const idle = profile.idle_timeout_minutes;
+  if (idle != null) {
+    const idleMs = nowMs - Date.parse(instance.last_activity_at);
+    if (idleMs > idle * MINUTE_MS) {
+      return "stop";
+    }
+  }
+
+  return null;
 }
 
 /**

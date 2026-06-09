@@ -151,6 +151,8 @@ interface InstanceRowProps {
   instance: WorkerInstance;
   now: number;
   onStop: (id: string) => void;
+  onResume: (id: string) => void;
+  onTerminate: (id: string) => void;
   onAttach: (id: string) => void;
   onDetach: () => void;
   stopping: boolean;
@@ -161,12 +163,15 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
   instance,
   now,
   onStop,
+  onResume,
+  onTerminate,
   onAttach,
   onDetach,
   stopping,
   busy
 }) => {
   const isAttached = instance.status === "attached";
+  const isPaused = instance.status === "stopped";
   return (
     <Card variant="outlined" padding="normal">
       <FlexRow align="center" justify="space-between" gap={3}>
@@ -203,6 +208,16 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
             >
               Detach
             </EditorButton>
+          ) : isPaused ? (
+            <EditorButton
+              density="compact"
+              variant="outlined"
+              aria-label={`Resume worker ${instance.id}`}
+              disabled={stopping}
+              onClick={() => onResume(instance.id)}
+            >
+              Resume
+            </EditorButton>
           ) : (
             <EditorButton
               density="compact"
@@ -214,14 +229,27 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
               Attach
             </EditorButton>
           )}
+          {/* Pause (keep the volume) — only meaningful while the pod runs. */}
+          {!isPaused && (
+            <EditorButton
+              density="compact"
+              variant="text"
+              aria-label={`Stop worker ${instance.id}`}
+              disabled={stopping}
+              onClick={() => onStop(instance.id)}
+            >
+              Stop
+            </EditorButton>
+          )}
+          {/* Destroy the pod + volume. The real teardown. */}
           <EditorButton
             density="compact"
             variant="text"
-            aria-label={`Stop worker ${instance.id}`}
-            disabled={stopping || instance.status === "stopped"}
-            onClick={() => onStop(instance.id)}
+            aria-label={`Terminate worker ${instance.id}`}
+            disabled={stopping}
+            onClick={() => onTerminate(instance.id)}
           >
-            Stop
+            Terminate
           </EditorButton>
         </FlexRow>
       </FlexRow>
@@ -229,7 +257,20 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
   );
 };
 
-const LIVE_STATUSES: ReadonlySet<string> = new Set([
+// Statuses worth showing in the panel. `stopped` is included now that it means
+// "paused, resumable" — the user needs to see it to resume it. `terminated`
+// (destroyed) is a tombstone and stays hidden.
+const SHOWN_STATUSES: ReadonlySet<string> = new Set([
+  "provisioning",
+  "running",
+  "attached",
+  "stopping",
+  "stopped"
+]);
+
+// Statuses that incur GPU billing (drive the cost total). A paused `stopped`
+// pod only bills a little volume storage, so it's excluded here.
+const BILLING_STATUSES: ReadonlySet<string> = new Set([
   "provisioning",
   "running",
   "attached",
@@ -248,10 +289,13 @@ const WorkersPanel: React.FC = () => {
     profiles,
     instances,
     instancesQuery,
+    apiKeyStatus,
     createProfile,
     deleteProfile,
     provision,
     stop,
+    resume,
+    terminate,
     stopAll,
     attach,
     detach,
@@ -267,18 +311,17 @@ const WorkersPanel: React.FC = () => {
   const [orphanWarning, setOrphanWarning] = useState<OrphanWarning | null>(null);
   const now = Date.now();
 
-  const liveInstances = useMemo(
-    () => instances.filter((instance) => LIVE_STATUSES.has(instance.status)),
+  const shownInstances = useMemo(
+    () => instances.filter((instance) => SHOWN_STATUSES.has(instance.status)),
     [instances]
   );
 
   const totalCost = useMemo(
     () =>
-      liveInstances.reduce(
-        (sum, instance) => sum + (instance.estimated_cost_usd ?? 0),
-        0
-      ),
-    [liveInstances]
+      shownInstances
+        .filter((instance) => BILLING_STATUSES.has(instance.status))
+        .reduce((sum, instance) => sum + (instance.estimated_cost_usd ?? 0), 0),
+    [shownInstances]
   );
 
   const profileNames = useMemo(
@@ -318,6 +361,33 @@ const WorkersPanel: React.FC = () => {
       setStoppingId(null);
     },
     [stop, runAction]
+  );
+
+  const handleResume = useCallback(
+    async (id: string) => {
+      setStoppingId(id);
+      await runAction(() => resume(id));
+      setStoppingId(null);
+    },
+    [resume, runAction]
+  );
+
+  const handleTerminate = useCallback(
+    async (id: string) => {
+      // Destroying the volume loses the cached models — confirm first.
+      if (
+        !window.confirm(
+          "Terminate this worker? Its volume and all cached models are " +
+            "permanently deleted. This stops all billing."
+        )
+      ) {
+        return;
+      }
+      setStoppingId(id);
+      await runAction(() => terminate(id));
+      setStoppingId(null);
+    },
+    [terminate, runAction]
   );
 
   const handleStopAll = useCallback(() => {
@@ -372,7 +442,7 @@ const WorkersPanel: React.FC = () => {
           <Text size="big" weight={600}>
             Workers
           </Text>
-          {liveInstances.length > 0 && (
+          {shownInstances.length > 0 && (
             <Caption size="small">{formatRate(totalCost)}</Caption>
           )}
         </FlexRow>
@@ -406,7 +476,7 @@ const WorkersPanel: React.FC = () => {
             density="compact"
             variant="text"
             onClick={handleStopAll}
-            disabled={liveInstances.length === 0}
+            disabled={shownInstances.length === 0}
             aria-label="Stop all workers"
           >
             Stop All
@@ -444,17 +514,19 @@ const WorkersPanel: React.FC = () => {
           <FlexRow justify="center" sx={{ py: 4 }}>
             <LoadingSpinner size="small" />
           </FlexRow>
-        ) : liveInstances.length === 0 ? (
+        ) : shownInstances.length === 0 ? (
           <Caption size="small">
             No workers running. Start one to rent a GPU for your graphs.
           </Caption>
         ) : (
-          liveInstances.map((instance) => (
+          shownInstances.map((instance) => (
             <InstanceRow
               key={instance.id}
               instance={instance}
               now={now}
               onStop={handleStop}
+              onResume={handleResume}
+              onTerminate={handleTerminate}
               onAttach={handleAttach}
               onDetach={handleDetach}
               stopping={stoppingId === instance.id}
@@ -478,6 +550,7 @@ const WorkersPanel: React.FC = () => {
         profiles={profiles}
         createProfile={createProfile}
         deleteProfile={deleteProfile}
+        apiKeyStatus={apiKeyStatus}
       />
     </FlexColumn>
   );

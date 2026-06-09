@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import WorkerProfilesDialog from "../WorkerProfilesDialog";
-import type { WorkerProfile } from "../../../hooks/useWorkers";
+import type { WorkerProfile, WorkerTarget } from "../../../hooks/useWorkers";
 
 const makeProfile = (overrides: Partial<WorkerProfile> = {}): WorkerProfile => ({
   id: "p-1",
@@ -24,6 +24,7 @@ interface SetupOverrides {
   profiles?: WorkerProfile[];
   createProfile?: jest.Mock;
   deleteProfile?: jest.Mock;
+  apiKeyStatus?: Record<WorkerTarget, boolean>;
 }
 
 const setup = (overrides: SetupOverrides = {}) => {
@@ -38,6 +39,7 @@ const setup = (overrides: SetupOverrides = {}) => {
         profiles={overrides.profiles ?? [makeProfile()]}
         createProfile={createProfile}
         deleteProfile={deleteProfile}
+        apiKeyStatus={overrides.apiKeyStatus}
       />
     </ThemeProvider>
   );
@@ -64,31 +66,36 @@ describe("WorkerProfilesDialog", () => {
     expect(deleteProfile).toHaveBeenCalledWith("hf-a40");
   });
 
-  it("disables Create until name and image are both filled", async () => {
+  it("warns when the selected provider's API key is unavailable", async () => {
+    setup({ profiles: [], apiKeyStatus: { runpod: false, vast: false } });
+
+    expect(screen.getByText(/No RUNPOD_API_KEY configured/i)).toBeInTheDocument();
+
+    // Switching to Vast updates the warning to that provider's key.
+    await userEvent.click(screen.getByRole("combobox", { name: /provider/i }));
+    await userEvent.click(screen.getByRole("option", { name: /^Vast$/i }));
+    expect(screen.getByText(/No VAST_API_KEY configured/i)).toBeInTheDocument();
+  });
+
+  it("does not warn when the provider key is available (e.g. via env)", () => {
+    setup({ profiles: [], apiKeyStatus: { runpod: true, vast: true } });
+    expect(screen.queryByText(/configured/i)).not.toBeInTheDocument();
+  });
+
+  it("disables Create until a name is given (image/GPU/idle are prefilled)", async () => {
     setup({ profiles: [] });
 
     const create = screen.getByRole("button", { name: /^create profile$/i });
     expect(create).toBeDisabled();
 
     await userEvent.type(screen.getByLabelText(/^name$/i), "my-worker");
-    expect(create).toBeDisabled();
-
-    await userEvent.type(
-      screen.getByLabelText(/^image$/i),
-      "ghcr.io/nodetool/worker:latest"
-    );
     expect(create).toBeEnabled();
   });
 
-  it("create calls createProfile with the right shape including spec.gpu", async () => {
+  it("creates a RunPod profile from the defaults (image, A40 GPU, 30m idle)", async () => {
     const { createProfile } = setup({ profiles: [] });
 
     await userEvent.type(screen.getByLabelText(/^name$/i), "my-worker");
-    await userEvent.type(
-      screen.getByLabelText(/^image$/i),
-      "ghcr.io/nodetool/worker:latest"
-    );
-    await userEvent.type(screen.getByLabelText(/^gpu$/i), "A40");
 
     await userEvent.click(
       screen.getByRole("button", { name: /^create profile$/i })
@@ -97,35 +104,67 @@ describe("WorkerProfilesDialog", () => {
     await waitFor(() => {
       expect(createProfile).toHaveBeenCalledTimes(1);
     });
+    // Image defaults to the canonical worker image; the RunPod GPU defaults to
+    // the full gpuTypeId; disk defaults to 100 GB; idle timeout defaults to 30.
     expect(createProfile).toHaveBeenCalledWith({
       name: "my-worker",
       target: "runpod",
-      image: "ghcr.io/nodetool/worker:latest",
-      spec: { gpu: "A40" },
-      token_policy: "generate"
+      image: "ghcr.io/nodetool-ai/worker:latest",
+      token_policy: "generate",
+      spec: { gpu: "NVIDIA A40", disk: 100 },
+      idle_timeout_minutes: 30
     });
   });
 
-  it("omits spec when no gpu is given and forwards optional timeouts", async () => {
+  it("maps a chosen GPU to its provider-native id", async () => {
+    const { createProfile } = setup({ profiles: [] });
+
+    await userEvent.type(screen.getByLabelText(/^name$/i), "big");
+    await userEvent.click(screen.getByRole("combobox", { name: /gpu/i }));
+    await userEvent.click(
+      screen.getByRole("option", { name: /A100 · 80 GB/i })
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /^create profile$/i })
+    );
+
+    await waitFor(() => expect(createProfile).toHaveBeenCalledTimes(1));
+    expect(createProfile.mock.calls[0][0].spec).toEqual({
+      gpu: "NVIDIA A100 80GB PCIe",
+      disk: 100
+    });
+  });
+
+  it("forwards a custom disk size and a Vast 'Any' GPU (no gpu in spec)", async () => {
     const { createProfile } = setup({ profiles: [] });
 
     await userEvent.type(screen.getByLabelText(/^name$/i), "plain");
-    await userEvent.type(screen.getByLabelText(/^image$/i), "img");
-    await userEvent.type(screen.getByLabelText(/idle timeout/i), "30");
+
+    // Switch provider to Vast — its GPU resets to "Any" (empty id → no gpu).
+    await userEvent.click(screen.getByRole("combobox", { name: /provider/i }));
+    await userEvent.click(screen.getByRole("option", { name: /^Vast$/i }));
+
+    // Override the disk default.
+    const diskField = screen.getByLabelText(/^disk/i);
+    await userEvent.clear(diskField);
+    await userEvent.type(diskField, "250");
+
+    // Max lifetime lives under the collapsed Advanced section.
+    await userEvent.click(screen.getByText(/^Advanced$/i));
     await userEvent.type(screen.getByLabelText(/max lifetime/i), "120");
 
     await userEvent.click(
       screen.getByRole("button", { name: /^create profile$/i })
     );
 
-    await waitFor(() => {
-      expect(createProfile).toHaveBeenCalledTimes(1);
-    });
+    await waitFor(() => expect(createProfile).toHaveBeenCalledTimes(1));
     expect(createProfile).toHaveBeenCalledWith({
       name: "plain",
-      target: "runpod",
-      image: "img",
+      target: "vast",
+      image: "ghcr.io/nodetool-ai/worker:latest",
       token_policy: "generate",
+      spec: { disk: 250 },
       idle_timeout_minutes: 30,
       max_lifetime_minutes: 120
     });

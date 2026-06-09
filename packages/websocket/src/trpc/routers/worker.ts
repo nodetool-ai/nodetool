@@ -99,6 +99,13 @@ export const workerRouter = router({
   profiles: profilesRouter,
   instances: instancesRouter,
 
+  // Whether each provider's API key is available (secret store OR env) — the
+  // same resolution provisioning uses, so the UI doesn't false-warn on an
+  // env-provided key.
+  apiKeyStatus: protectedProcedure.query(({ ctx }) =>
+    requireManager(ctx.workerManager).apiKeyStatus()
+  ),
+
   provision: protectedProcedure
     .input(provisionInput)
     .mutation(({ ctx, input }) =>
@@ -109,6 +116,21 @@ export const workerRouter = router({
     .input(idInput)
     .mutation(({ ctx, input }) =>
       requireManager(ctx.workerManager).stop(input.id)
+    ),
+
+  // Resume a paused worker (re-allocates the GPU, keeps the volume). May fail
+  // if the provider cannot re-allocate a GPU.
+  resume: protectedProcedure
+    .input(idInput)
+    .mutation(({ ctx, input }) =>
+      requireManager(ctx.workerManager).resume(input.id)
+    ),
+
+  // Destroy a worker and its volume — the real teardown that stops all billing.
+  terminate: protectedProcedure
+    .input(idInput)
+    .mutation(({ ctx, input }) =>
+      requireManager(ctx.workerManager).terminate(input.id)
     ),
 
   stopAll: protectedProcedure.mutation(async ({ ctx }) => {

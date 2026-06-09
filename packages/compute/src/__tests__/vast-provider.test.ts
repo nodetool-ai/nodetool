@@ -208,7 +208,7 @@ describe("VastProvider.status", () => {
 });
 
 describe("VastProvider.stop", () => {
-  it("issues the real DELETE to destroy the instance", async () => {
+  it("pauses the instance (PUT state=stopped), keeping its disk", async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ success: true }));
 
     const provider = new VastProvider(API_KEY);
@@ -216,7 +216,51 @@ describe("VastProvider.stop", () => {
 
     const [url, init] = mockFetch.mock.calls[0];
     expect(url).toBe("https://console.vast.ai/api/v0/instances/9001/");
+    expect((init as RequestInit).method).toBe("PUT");
+    expect(JSON.parse((init as RequestInit).body as string)).toEqual({
+      state: "stopped",
+    });
+  });
+});
+
+describe("VastProvider.terminate", () => {
+  it("issues the real DELETE to destroy the instance and its disk", async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse({ success: true }));
+
+    const provider = new VastProvider(API_KEY);
+    await provider.terminate("9001");
+
+    const [url, init] = mockFetch.mock.calls[0];
+    expect(url).toBe("https://console.vast.ai/api/v0/instances/9001/");
     expect((init as RequestInit).method).toBe("DELETE");
+  });
+});
+
+describe("VastProvider.resume", () => {
+  it("starts the instance (PUT state=running) and re-derives the ws URL", async () => {
+    // PUT state=running, then GET → running with ip+port.
+    mockFetch.mockResolvedValueOnce(jsonResponse({ success: true }));
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({
+        instances: {
+          id: 9001,
+          actual_status: "running",
+          public_ipaddr: "1.2.3.4",
+          ports: { "7777/tcp": [{ HostPort: "41021" }] },
+        },
+      })
+    );
+
+    const provider = new VastProvider(API_KEY);
+    const result = await provider.resume("9001");
+
+    expect((mockFetch.mock.calls[0][1] as RequestInit).method).toBe("PUT");
+    expect(
+      JSON.parse((mockFetch.mock.calls[0][1] as RequestInit).body as string)
+    ).toEqual({ state: "running" });
+    expect(result.providerRef).toBe("9001");
+    expect(result.wsUrl).toBe("ws://1.2.3.4:41021");
+    expect(result.status).toBe("running");
   });
 });
 

@@ -18,8 +18,23 @@ export type WorkerStatus =
   | "running"
   | "attached"
   | "stopping"
+  // Paused: compute released, volume (and its model cache) retained. Resumable.
   | "stopped"
+  // Destroyed: pod AND volume deleted. NOT resumable — a tombstone row.
+  | "terminated"
   | "error";
+
+/**
+ * Persistent-volume conventions shared by all providers. The volume survives a
+ * stop/resume (only a terminate deletes it), so HF model downloads cached under
+ * `WORKER_HF_HOME` persist across pauses — that's the whole point of feature.
+ */
+export const WORKER_VOLUME_MOUNT = "/workspace";
+export const WORKER_HF_HOME = `${WORKER_VOLUME_MOUNT}/huggingface`;
+/** Default persistent volume size — big enough for several HF image models. */
+export const DEFAULT_VOLUME_GB = 100;
+/** Default ephemeral container disk (image + temp); not persisted. */
+export const DEFAULT_CONTAINER_DISK_GB = 30;
 
 /**
  * Declarative description of a worker to provision. Derived from a
@@ -36,6 +51,11 @@ export interface WorkerSpec {
   gpu?: string;
   /** vCPU count. */
   vcpu?: number;
+  /**
+   * Persistent volume size in GB, mounted at `WORKER_VOLUME_MOUNT`. Holds the
+   * HF model cache and survives stop/resume. Defaults to `DEFAULT_VOLUME_GB`.
+   */
+  disk?: number;
   /** Extra environment variables for the worker container. */
   env?: Record<string, string>;
   /** Bearer token the worker authenticates with, when generated/fixed. */
@@ -71,15 +91,30 @@ export interface ProviderInstance {
 
 /**
  * Per-target driver the `WorkerManager` delegates to. Implementations do REAL
- * provider work — `stop` MUST tear down billed GPU resources.
+ * provider work — `terminate` MUST destroy billed GPU + volume resources.
  */
 export interface WorkerProvider {
   /** Create the worker and return its attach handoff once running. */
   provision(spec: WorkerSpec): Promise<ProvisionResult>;
   /** Current status of the worker identified by `ref`. */
   status(ref: string): Promise<WorkerStatus>;
-  /** Tear down the worker identified by `ref` (real teardown — non-negotiable). */
+  /**
+   * Pause the worker: release the GPU compute but KEEP its volume (and its
+   * cached models) so it can be `resume`d. The provider still bills a small
+   * amount for retained volume storage while paused.
+   */
   stop(ref: string): Promise<void>;
+  /**
+   * Resume a previously-stopped worker: bring it back to running and return its
+   * fresh attach handoff (the URL/cost may differ). May fail if the provider
+   * cannot re-allocate a GPU (e.g. RunPod capacity changed).
+   */
+  resume(ref: string): Promise<ProvisionResult>;
+  /**
+   * Destroy the worker AND its volume (real teardown — non-negotiable). Stops
+   * all billing; the cached models are gone for good.
+   */
+  terminate(ref: string): Promise<void>;
   /** List the provider's live workers, for orphan reconciliation. */
   list(): Promise<ProviderInstance[]>;
 }
