@@ -87,10 +87,9 @@ const styles = (theme: Theme) =>
           borderColor: theme.vars.palette.primary.main,
           borderWidth: 1
         }
-      },
-      "& .MuiOutlinedInput-input": {
-        padding: theme.spacing(1, 1.5)
       }
+      // Height/padding/font are owned by the TextInput primitive (size="small"
+      // gives the compact height) — no internal padding override here.
     },
     ".model-select": {
       "& button": {

@@ -328,11 +328,6 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     display: "flex",
     flexDirection: "column",
     gap: ".5em",
-    // SelectField wraps its control in a div with a hardcoded 24px bottom
-    // margin; neutralize it here so the row gap controls spacing consistently.
-    "& > div[style]": {
-      marginBottom: "0 !important"
-    },
     ".MuiInputBase-root": {
       maxWidth: "200px !important"
     },

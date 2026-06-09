@@ -120,12 +120,19 @@ const SelectFieldInternal: React.FC<SelectFieldProps> = ({
     <div className={className}>
       <FormControl size={size} disabled={disabled} fullWidth>
         {!hideLabel && label && (
-          <InputLabel htmlFor={selectId} sx={{ fontSize: fieldFontSize }}>
+          <InputLabel
+            id={`${selectId}-label`}
+            htmlFor={selectId}
+            sx={{ fontSize: fieldFontSize }}
+          >
             {label}
           </InputLabel>
         )}
         <Select
           id={selectId}
+          // Associate the label so the control has an accessible name
+          // (getByRole("combobox", { name }) / screen readers).
+          labelId={!hideLabel && label ? `${selectId}-label` : undefined}
           value={value}
           onChange={handleChange}
           variant={variant}
