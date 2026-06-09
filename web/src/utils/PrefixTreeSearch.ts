@@ -262,7 +262,6 @@ export class PrefixTreeSearch {
       // Find the node in the trie corresponding to the query prefix
       let current: TrieNode | null = root;
       for (const char of normalized) {
-        if (!current) {break;}
         const child: TrieNode | undefined = current.children.get(char);
         if (!child) {
           current = null;
