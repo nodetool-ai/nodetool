@@ -59,7 +59,7 @@ const ASSET_ID_EXTENSION_CANDIDATES: Record<string, string[]> = {
   model3d: ["glb", "gltf", "obj", "fbx"]
 };
 
-function isAbsoluteFilePath(uri: string): boolean {
+export function isAbsoluteFilePath(uri: string): boolean {
   return (
     /^[A-Za-z]:[\\/]/.test(uri) || uri.startsWith("\\\\") || uri.startsWith("/")
   );
