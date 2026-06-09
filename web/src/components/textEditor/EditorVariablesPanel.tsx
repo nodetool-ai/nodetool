@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type React from "react";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import DataObjectIcon from "@mui/icons-material/DataObject";
 import { Tooltip } from "../ui_primitives";
@@ -182,9 +182,10 @@ const EditorVariablesPanel = ({
   const [addName, setAddName] = useState("");
   const addInputRef = useRef<HTMLInputElement>(null);
 
-  const unboundCount = variables.filter(
-    (v) => !(values[v.name] ?? "").trim()
-  ).length;
+  const unboundCount = useMemo(
+    () => variables.filter((v) => !(values[v.name] ?? "").trim()).length,
+    [variables, values]
+  );
 
   // "Insert var" toolbar button bumps addSignal — open the inline add input.
   useEffect(() => {
