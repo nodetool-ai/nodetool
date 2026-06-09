@@ -1845,7 +1845,6 @@ export class RotateAndFlipNode extends TransformImageNode {
           context
         );
         curW = outW;
-        curH = outH;
       }
     }
 
