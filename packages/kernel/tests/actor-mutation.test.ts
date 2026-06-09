@@ -5,7 +5,7 @@
  * filtering.
  */
 // @ts-nocheck
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { NodeActor, type NodeExecutor } from "../src/actor.js";
 import { NodeInbox } from "../src/inbox.js";
 import type { NodeAnalysis } from "../src/correlation-analysis.js";
