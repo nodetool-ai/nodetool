@@ -18,7 +18,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import type { WorkerManager } from "@nodetool-ai/compute";
-import type { RepointPythonBridge } from "../context.js";
+import type { RepointPythonBridge, ProbeWorkerHealth } from "../context.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 
@@ -60,6 +60,19 @@ function requireRepoint(
     });
   }
   return repoint;
+}
+
+/** Pull the wired worker health-probe function from context or fail loudly. */
+function requireProbe(
+  probe: ProbeWorkerHealth | undefined
+): ProbeWorkerHealth {
+  if (!probe) {
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Worker health probe is not configured on this server"
+    });
+  }
+  return probe;
 }
 
 const profilesRouter = router({
@@ -149,19 +162,41 @@ export const workerRouter = router({
     requireManager(ctx.workerManager).reconcile()
   ),
 
+  /**
+   * Health-probe a worker that is `running` but not yet attached: open a
+   * transient bridge to its `{wsUrl, token}` (the same handshake attach uses)
+   * and report whether it answered. Lets the panel show true readiness
+   * ("Booting…" → "Ready") before the user attaches.
+   */
+  health: protectedProcedure
+    .input(idInput)
+    .query(async ({ ctx, input }) => {
+      const connection = await requireManager(
+        ctx.workerManager
+      ).connectionInfo(input.id);
+      return requireProbe(ctx.probeWorkerHealth)(connection);
+    }),
+
   attach: protectedProcedure
     .input(idInput)
     .mutation(async ({ ctx, input }) => {
       const connection = await requireManager(ctx.workerManager).attach(
         input.id
       );
-      requireRepoint(ctx.repointPythonBridge)(connection);
+      try {
+        // Connect the bridge to the worker. If it can't be reached, roll the
+        // attach back so the manager doesn't report a worker we can't talk to.
+        await requireRepoint(ctx.repointPythonBridge)(connection);
+      } catch (err) {
+        await requireManager(ctx.workerManager).detach();
+        throw err;
+      }
       return connection;
     }),
 
   detach: protectedProcedure.mutation(async ({ ctx }) => {
     await requireManager(ctx.workerManager).detach();
-    requireRepoint(ctx.repointPythonBridge)(null);
+    await requireRepoint(ctx.repointPythonBridge)(null);
     return { ok: true as const };
   })
 });

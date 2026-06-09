@@ -13,6 +13,11 @@ const log = createLogger("nodetool.websocket.ws");
 
 export interface WebSocketPluginOptions {
   registry: NodeRegistry;
+  /**
+   * Stable Python bridge reference. A SwappableBridge whose target follows an
+   * attached worker, so a worker attached mid-connection automatically reroutes
+   * execution and downloads to it — no live re-read needed.
+   */
   pythonBridge: PythonBridge;
   getPythonBridgeReady: () => boolean;
   ensurePythonBridge: () => Promise<void>;
@@ -163,6 +168,9 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
         if (registry.has(node.type)) {
           return registry.resolve(node);
         }
+        // The bridge is the swappable reference: an attached worker becomes its
+        // target, so Python nodes run on the worker even if this connection
+        // predates the attach.
         if (getPythonBridgeReady() && pythonBridge.hasNodeType(node.type)) {
           const meta = pythonBridge
             .getNodeMetadata()

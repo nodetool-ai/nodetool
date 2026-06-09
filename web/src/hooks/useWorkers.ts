@@ -68,6 +68,14 @@ export interface WorkerConnection {
   token: string | null;
 }
 
+/** Readiness of a `running` worker, from the backend health probe. */
+export interface WorkerHealth {
+  /** True once the worker answered the bridge handshake (truly serving). */
+  healthy: boolean;
+  protocolVersion?: number;
+  error?: string;
+}
+
 export interface WorkerOrphan {
   providerRef: string;
   target: string;
@@ -84,12 +92,37 @@ export const workerQueryKeys = {
   all: ["workers"] as const,
   profiles: ["workers", "profiles"] as const,
   instances: ["workers", "instances"] as const,
-  apiKeyStatus: ["workers", "api-key-status"] as const
+  apiKeyStatus: ["workers", "api-key-status"] as const,
+  health: (id: string) => ["workers", "health", id] as const
 };
 
 const INSTANCES_REFETCH_INTERVAL_MS = 10_000;
+/** Poll a booting worker's readiness this often until it answers. */
+const HEALTH_REFETCH_INTERVAL_MS = 4_000;
 const EMPTY_PROFILES: WorkerProfile[] = [];
 const EMPTY_INSTANCES: WorkerInstance[] = [];
+
+/**
+ * Poll a worker's readiness while it is `running` but not yet attached. The
+ * backend opens a transient bridge to the worker (the same handshake attach
+ * uses), so `healthy` means the worker is genuinely serving — safe to attach.
+ * Pass `enabled: false` to pause polling (e.g. once attached or stopped).
+ */
+export const useWorkerHealth = (
+  id: string,
+  enabled: boolean
+): UseQueryResult<WorkerHealth, Error> =>
+  useQuery<WorkerHealth, Error>({
+    queryKey: workerQueryKeys.health(id),
+    queryFn: () =>
+      trpcClient.worker.health.query({ id }) as Promise<WorkerHealth>,
+    enabled,
+    refetchInterval: enabled ? HEALTH_REFETCH_INTERVAL_MS : false,
+    refetchOnWindowFocus: false,
+    // A failed probe (worker still booting) is an expected state, not an error
+    // to surface — keep retrying on the interval.
+    retry: false
+  });
 
 export interface UseWorkersResult {
   profiles: WorkerProfile[];

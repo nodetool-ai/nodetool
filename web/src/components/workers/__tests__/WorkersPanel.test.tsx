@@ -4,17 +4,28 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import WorkersPanel from "../WorkersPanel";
-import { useWorkers } from "../../../hooks/useWorkers";
+import { useWorkers, useWorkerHealth } from "../../../hooks/useWorkers";
 import type {
   WorkerInstance,
-  WorkerProfile
+  WorkerProfile,
+  WorkerHealth
 } from "../../../hooks/useWorkers";
 
 jest.mock("../../../hooks/useWorkers", () => ({
-  useWorkers: jest.fn()
+  useWorkers: jest.fn(),
+  // Default: workers report healthy so existing lifecycle tests behave as
+  // before (Attach enabled for a `running` worker). Individual tests override.
+  useWorkerHealth: jest.fn(() => ({ data: { healthy: true } }))
 }));
 
 const mockUseWorkers = useWorkers as jest.MockedFunction<typeof useWorkers>;
+const mockUseWorkerHealth = useWorkerHealth as jest.MockedFunction<
+  typeof useWorkerHealth
+>;
+
+/** Build a minimal UseQueryResult-shaped value carrying just the probe data. */
+const healthResult = (health: WorkerHealth | undefined) =>
+  ({ data: health }) as ReturnType<typeof useWorkerHealth>;
 
 const makeProfile = (overrides: Partial<WorkerProfile> = {}): WorkerProfile => ({
   id: "p-1",
@@ -88,6 +99,7 @@ const renderPanel = () =>
 describe("WorkersPanel", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseWorkerHealth.mockReturnValue(healthResult({ healthy: true }));
   });
 
   it("renders an instance row with status, cost, and a Stop button", () => {
@@ -95,13 +107,41 @@ describe("WorkersPanel", () => {
     renderPanel();
 
     expect(screen.getByText("hf-a40")).toBeInTheDocument();
-    expect(screen.getByText(/running/i)).toBeInTheDocument();
+    // A healthy `running` worker is presented as "ready" (probe answered).
+    expect(screen.getByText(/ready/i)).toBeInTheDocument();
     // The row shows the per-instance cost; the header shows the live rate.
     expect(screen.getByText(/Cost: \$0\.50/)).toBeInTheDocument();
     expect(screen.getByText("$0.50/hr")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /stop worker i-1/i })
     ).toBeInTheDocument();
+  });
+
+  it("shows a booting state and disables Attach until the worker is healthy", () => {
+    mockUseWorkerHealth.mockReturnValue(healthResult({ healthy: false }));
+    mockUseWorkers.mockReturnValue(makeHookValue());
+    renderPanel();
+
+    // The running-but-not-answering worker reads as booting, not ready.
+    // ("Booting…" appears on both the status chip and the Attach button.)
+    expect(screen.getAllByText(/booting/i).length).toBeGreaterThan(0);
+    expect(
+      screen.getByText(/worker still loading/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /attach worker i-1/i })
+    ).toBeDisabled();
+  });
+
+  it("enables Attach once the worker reports healthy", () => {
+    mockUseWorkerHealth.mockReturnValue(healthResult({ healthy: true }));
+    mockUseWorkers.mockReturnValue(makeHookValue());
+    renderPanel();
+
+    expect(screen.getByText(/ready/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /attach worker i-1/i })
+    ).toBeEnabled();
   });
 
   it("Stop button calls stop with the instance id", async () => {

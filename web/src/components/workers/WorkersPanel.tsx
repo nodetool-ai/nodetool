@@ -17,7 +17,11 @@ import {
   WarningBanner,
   type StatusType
 } from "../ui_primitives";
-import { useWorkers, type WorkerInstance } from "../../hooks/useWorkers";
+import {
+  useWorkers,
+  useWorkerHealth,
+  type WorkerInstance
+} from "../../hooks/useWorkers";
 import WorkerProfilesDialog from "./WorkerProfilesDialog";
 
 /**
@@ -172,6 +176,33 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
 }) => {
   const isAttached = instance.status === "attached";
   const isPaused = instance.status === "stopped";
+  const isRunning = instance.status === "running";
+
+  // While a worker is `running` but not attached, "running" only means the
+  // pod's port is mapped — not that the worker process is serving. Probe its
+  // real readiness so the user knows when it's safe to attach.
+  const healthQuery = useWorkerHealth(instance.id, isRunning);
+  const isHealthy = healthQuery.data?.healthy === true;
+  const isBooting = isRunning && !isHealthy;
+
+  // Effective status presentation: the raw status, except a `running` worker is
+  // shown as "booting" until it answers the probe, then "ready".
+  const displayLabel = isRunning
+    ? isHealthy
+      ? "ready"
+      : "booting"
+    : instance.status;
+  const displayTone: StatusType = isRunning
+    ? isHealthy
+      ? "success"
+      : "pending"
+    : statusTone(instance.status);
+  const statusHint = isBooting
+    ? "GPU up — worker still loading"
+    : isRunning && isHealthy
+      ? "Worker is answering — safe to attach"
+      : null;
+
   return (
     <Card variant="outlined" padding="normal">
       <FlexRow align="center" justify="space-between" gap={3}>
@@ -181,15 +212,21 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
               {instance.profile_name}
             </Text>
             <StatusIndicator
-              status={statusTone(instance.status)}
-              label={instance.status}
+              status={displayTone}
+              label={displayLabel}
               pulse={
                 instance.status === "provisioning" ||
-                instance.status === "stopping"
+                instance.status === "stopping" ||
+                isBooting
               }
             />
+            {isBooting && <LoadingSpinner size="small" />}
           </FlexRow>
-          <Caption size="small">{instance.id}</Caption>
+          {statusHint ? (
+            <Caption size="small">{statusHint}</Caption>
+          ) : (
+            <Caption size="small">{instance.id}</Caption>
+          )}
         </FlexColumn>
         <FlexRow gap={3} align="center">
           <Caption size="small">
@@ -223,10 +260,12 @@ const InstanceRow: React.FC<InstanceRowProps> = ({
               density="compact"
               variant="outlined"
               aria-label={`Attach worker ${instance.id}`}
-              disabled={busy || instance.status !== "running"}
+              // Only enable once the worker is actually answering — attaching
+              // mid-boot just fails the handshake and rolls back.
+              disabled={busy || !isRunning || !isHealthy}
               onClick={() => onAttach(instance.id)}
             >
-              Attach
+              {isBooting ? "Booting…" : "Attach"}
             </EditorButton>
           )}
           {/* Pause (keep the volume) — only meaningful while the pod runs. */}

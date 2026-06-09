@@ -413,6 +413,16 @@ export class WorkerManager {
   }
 
   /**
+   * Read-only connection target for an instance — the same `{wsUrl, token}`
+   * attach returns, but without mutating the attach pointer or status. Used to
+   * health-probe a worker that is `running` but not yet attached.
+   */
+  async connectionInfo(instanceId: string): Promise<WorkerConnection> {
+    const instance = await this.requireInstance(instanceId);
+    return { wsUrl: instance.ws_url, token: instance.token };
+  }
+
+  /**
    * Release the active worker: clear the pointer and revert the
    * previously-attached instance to `running`. The caller points the bridge
    * back at its env/stdio default.
