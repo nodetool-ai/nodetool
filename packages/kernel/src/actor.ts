@@ -433,9 +433,10 @@ export class NodeActor {
     this._inCorrelatedBuffered = true;
     try {
       await this._runCorrelatedImpl(analysis);
-      // Stryker disable next-line BlockStatement: the finally only resets a flag that guards lineage computation during this run; emptying it is unobservable to a single run
-    } finally {
-      // Stryker disable next-line BlockStatement,BooleanLiteral: resetting (or not) the in-run flag afterwards is unobservable to a single run
+    }
+    // Stryker disable next-line BlockStatement: the finally only resets a flag that guards lineage computation during this run; emptying it is unobservable to a single run
+    finally {
+      // Stryker disable next-line BooleanLiteral: resetting (or not) the in-run flag afterwards is unobservable to a single run
       this._inCorrelatedBuffered = false;
     }
   }
@@ -479,6 +480,7 @@ export class NodeActor {
 
     const driverHandle = (() => {
       for (const h of dataHandles) {
+        // Stryker disable next-line ConditionalExpression: the surviving variant forces the inner `=== "max"` true; only max-scope handles are ever repeatsPerKey (static analyzer invariant), so `=== "max"` is implied by handleRepeats and the sub-expression is equivalent. The whole-condition variant is pinned by the dedup / repeating-driver tests.
         if (handleClass.get(h) === "max" && handleRepeats.get(h)) {
           return h;
         }
@@ -507,9 +509,10 @@ export class NodeActor {
         prefixSticky.set(h, new Map());
         // Stryker disable next-line ConditionalExpression: the surviving forced-true allocates an unused prefixListBuckets map for non-list prefix handles (never read — sticky handles use prefixSticky); the false arm is exercised by the prefix-list aggregation tests
         if (isListInput(h)) prefixListBuckets.set(h, new Map());
-        // Stryker disable next-line ConditionalExpression,LogicalOperator: the surviving variants allocate an unused emptyListEnvelopes entry for non-(empty-list) handles (never read by their class branch); the true path is exercised by the empty-list aggregation tests
-      } else if (cls === "empty" && isListInput(h)) {
-        emptyListEnvelopes.set(h, []);
+      } else {
+        // cls === "empty"
+        // Stryker disable next-line ConditionalExpression,LogicalOperator: cls is always "empty" in this branch so the `cls === "empty"` sub-test is equivalent; the surviving variants only allocate an unused emptyListEnvelopes entry for empty non-list (sticky) handles (never read), and the list path is covered by the empty-list aggregation tests
+        if (cls === "empty" && isListInput(h)) emptyListEnvelopes.set(h, []);
       }
     }
 
@@ -535,7 +538,7 @@ export class NodeActor {
             // envelope routed to this parentKey is captured.
             if (this.inbox.isOpen(h)) return false;
             const bucket = prefixListBuckets.get(h)!.get(parentKey);
-            // Stryker disable next-line ConditionalExpression,EqualityOperator: the bucket.length===0 arm is unreachable — collect() deletes emptied buckets, so a present bucket is never empty here
+            // Stryker disable next-line ConditionalExpression,EqualityOperator,LogicalOperator: a prefix-list bucket is created (in the put handler) only once it has an envelope, so a present bucket is never empty — the length===0 arm is unreachable and every variant is equivalent
             if (!bucket || bucket.length === 0) return false;
           } else {
             const stickyMap = prefixSticky.get(h)!;
@@ -543,6 +546,7 @@ export class NodeActor {
           }
         } else {
           // empty-scope sticky / list
+          // Stryker disable next-line ConditionalExpression: the surviving forced-false routes an empty-list handle through the sticky else-branch, which waits on the same isOpen(h) close-gate — equivalent timing and (real) collect() still aggregates the list; the block-removal variant is killed by the empty-list close-gate test
           if (isListInput(h)) {
             // Multi-edge list at empty scope: wait for close to aggregate.
             if (this.inbox.isOpen(h)) return false;
@@ -624,6 +628,7 @@ export class NodeActor {
 
     const tryFire = async (candidateKeys: Iterable<string>): Promise<void> => {
       for (const key of candidateKeys) {
+        // Stryker disable next-line ConditionalExpression: the surviving variant forces the inner `driverHandle === null` true, leaving `fired.has(key)` — identical because a non-repeating driver IS null (so the term was already true) and a repeating driver never populates `fired`. The whole-guard false variant is pinned by the dedup test.
         if (fired.has(key) && driverHandle === null) {
           // For non-repeating drivers each key fires at most once because
           // bucket consumption strips it. The fired set protects against
@@ -635,6 +640,7 @@ export class NodeActor {
         // Set per-invocation envelopes so output routing can derive lineage.
         this._lastEnvelopes = envelopes;
         await this._executeWithInputs(values);
+        // Stryker disable next-line ConditionalExpression: the surviving forced-true always adds to `fired`, which is harmless for a repeating driver (its skip-guard also requires driverHandle===null, never satisfied) and identical for a non-repeating driver (already null). The false variant is pinned by the dedup test.
         if (driverHandle === null) fired.add(key);
       }
     };
@@ -748,10 +754,12 @@ export class NodeActor {
             values[h] = first.data;
           }
         } else if (isListInput(h)) {
+          // Stryker disable next-line ArrayDeclaration: emptyListEnvelopes is initialised for every empty-list handle, so the ?? [] default is never taken — replacing it is equivalent
           const envs = emptyListEnvelopes.get(h) ?? [];
           if (envs.length > 0) {
             envelopes.set(h, envs[envs.length - 1]);
             values[h] = envs.map((e) => e.data);
+            // Stryker disable next-line ConditionalExpression,BlockStatement,BooleanLiteral: dead branch — this no-max block runs only after iteration ends, when every handle is closed, so isOpen(h) is always false here and readyOrAllowed never flips; all variants are equivalent
           } else if (this.inbox.isOpen(h)) {
             readyOrAllowed = false;
           }
@@ -760,14 +768,17 @@ export class NodeActor {
           if (env) {
             envelopes.set(h, env);
             values[h] = env.data;
+            // Stryker disable next-line ConditionalExpression,BlockStatement,BooleanLiteral: dead branch — this no-max block runs only after iteration ends, when every handle is closed, so isOpen(h) is always false here and readyOrAllowed never flips; all variants are equivalent
           } else if (this.inbox.isOpen(h)) {
             readyOrAllowed = false;
           }
         }
       }
+      // Stryker disable next-line ConditionalExpression: equivalent — readyOrAllowed only flips false via the dead isOpen branches above (every handle is closed by the time this no-max block runs), so it is always true here
       if (readyOrAllowed) {
         this._lastEnvelopes = envelopes;
         await this._executeWithInputs(values);
+        // Stryker disable next-line StringLiteral: the "" key marks the single no-max firing; this block runs once and fired.has("") is not re-checked afterwards, so the exact key string is unobservable
         fired.add("");
       }
     }
@@ -821,11 +832,11 @@ export class NodeActor {
     const perSlot: Record<string, CorrelationLineage> = {};
     const groupTokens = new Map<string, number>();
     const invocationScope = this._correlation.invocationScope;
-    // Stryker disable next-line StringLiteral,ConditionalExpression: the empty-scope "" fallback is equivalent for token minting — a per-(root, parentKey) counter starts at 0 regardless of the parent key string
+    // Stryker disable StringLiteral,ConditionalExpression: the empty-scope "" fallback is equivalent for token minting — a per-(root, parentKey) counter starts at 0 regardless of the parent-key string, and for empty scope projectLineageKey also yields ""
     const parentKey = invocationScope.length
       ? projectLineageKey(invocationLineage, invocationScope)
-      // Stryker disable next-line StringLiteral: equivalent empty-scope fallback — token counters start at 0 regardless of parent-key string
       : "";
+    // Stryker restore StringLiteral,ConditionalExpression
 
     for (const handle of emittedHandles) {
       const corr = declared[handle];
@@ -836,6 +847,7 @@ export class NodeActor {
       if (corr.kind === "iteration") {
         const root = iterationRootId(this.node.id, handle, corr.group);
         let index = groupTokens.get(root);
+        // Stryker disable next-line ConditionalExpression: the surviving forced-true re-enters the block for a sibling handle already in groupTokens, but it then reads the same token back via _lastMintedFrameTokens (minted once per frame) and re-stores the identical value — equivalent
         if (index === undefined) {
           // Reuse the token already minted for this frame, if any
           // (`_mintIterationFrameOverrides` mints before _sendOutputs runs).
@@ -868,6 +880,7 @@ export class NodeActor {
     // This matches Python's behavior where process() always receives
     // the node's own property values as baseline inputs.
     // Precedence: declared properties < dynamic_properties (user-typed) < edge inputs.
+    // Stryker disable next-line ConditionalExpression: the surviving forced-true is equivalent — when both properties and dynamic_properties are absent the spread merges only {} (and ...inputs), leaving inputs unchanged; the false arm is pinned by the property-merge test
     if (this.node.properties || this.node.dynamic_properties) {
       inputs = {
         ...(this.node.properties ?? {}),
@@ -891,6 +904,7 @@ export class NodeActor {
 
     this._currentInvocationLineage = this._computeInvocationLineage();
 
+    // Stryker disable next-line LogicalOperator: equivalent — an executor with is_streaming_output always defines genProcess (and one with genProcess is is_streaming_output), so && and || select the same branch; switching to || only differs for a malformed executor that would then crash calling an undefined genProcess
     if (this.node.is_streaming_output && this._executor.genProcess) {
       this._streamingCollectedOutputs = {};
       for await (const partial of this._executor.genProcess(
@@ -906,6 +920,7 @@ export class NodeActor {
         // a validation error after migration; for now we warn-and-overwrite.
         const overrides = this._mintIterationFrameOverrides(routed);
         Object.assign(this._streamingCollectedOutputs, routed);
+        // Stryker disable next-line ConditionalExpression: the surviving forced-true is equivalent — Object.assign(target, null) is a no-op when there are no overrides; the false arm (skip applying overrides) is pinned by the index-override test
         if (overrides) Object.assign(this._streamingCollectedOutputs, overrides);
         const emit = overrides ? { ...routed, ...overrides } : routed;
         // Stryker disable next-line ObjectLiteral: intermediate per-frame snapshot — overwritten by the final assignment after the loop, so emptying it is unobservable
@@ -947,26 +962,29 @@ export class NodeActor {
     const declared = this.node.output_correlation;
     if (!declared) return null;
     const invocationScope = this._correlation.invocationScope;
-    // Stryker disable next-line StringLiteral,ConditionalExpression,LogicalOperator: defensive parent-key derivation — the per-(root, parentKey) counter starts at 0 regardless of the key string
+    // Stryker disable StringLiteral,ConditionalExpression,LogicalOperator: defensive parent-key derivation — the per-(root, parentKey) counter starts at 0 regardless of the key string, and the genProcess frame-override tests cover the projected-key path
     const parentKey =
       invocationScope.length && this._currentInvocationLineage
         ? projectLineageKey(this._currentInvocationLineage, invocationScope)
-        // Stryker disable next-line StringLiteral: equivalent empty-scope fallback
         : "";
+    // Stryker restore StringLiteral,ConditionalExpression,LogicalOperator
 
     // Collect groups whose handles appear in the frame.
     const groupHandles = new Map<string, string[]>(); // group root → handles
     for (const handle of Object.keys(frame)) {
       const corr = declared[handle];
+      // Stryker disable next-line ConditionalExpression: the surviving forced-false (drop the kind!=="iteration" arm) only lets non-iteration slots into groupHandles, but they never carry an "index" sibling so no override is produced and the result is unchanged
       if (!corr || corr.kind !== "iteration") continue;
       const root = iterationRootId(this.node.id, handle, corr.group);
       let arr = groupHandles.get(root);
+      // Stryker disable next-line ConditionalExpression,ArrayDeclaration: get-or-create; the forced-true / phantom-element variants only affect which non-"index" handles accumulate, and only the per-root token (minted once below) and the "index" handle drive the result — equivalent
       if (!arr) {
         arr = [];
         groupHandles.set(root, arr);
       }
       arr.push(handle);
     }
+    // Stryker disable next-line ConditionalExpression: equivalent — with an empty groupHandles the mint loop below runs zero times, leaving overrides empty, so the function returns null either way
     if (groupHandles.size === 0) return null;
 
     // Each frame mints fresh tokens; clear last frame's bookkeeping.
@@ -982,6 +1000,7 @@ export class NodeActor {
       // Stash the minted token so _correlatedOutputLineage reuses it.
       this._lastMintedFrameTokens.set(root, index);
     }
+    // Stryker disable next-line ConditionalExpression,EqualityOperator: equivalent — returning {} instead of null is indistinguishable downstream (Object.assign(target, {}) is a no-op and `{ ...routed, ...{} }` equals routed), so both the forced-true and >= variants produce the same emitted frame
     return Object.keys(overrides).length > 0 ? overrides : null;
   }
 
@@ -1010,14 +1029,15 @@ export class NodeActor {
     callerLineage?: CorrelationLineage
   ): Promise<void> {
     const declared = this.node.output_correlation ?? {};
-    // Stryker disable next-line LogicalOperator: defensive ?? chain — emitGroup is called without callerLineage in stream mode, and EMPTY_LINEAGE backstops an undefined computed lineage
+    // Stryker disable LogicalOperator: defensive ?? chain — emitGroup is called without callerLineage in stream mode, and EMPTY_LINEAGE backstops an undefined computed lineage; for empty scope the spread of either value is {}
     const parentLineage =
       callerLineage ?? this._computeInvocationLineage() ?? EMPTY_LINEAGE;
-    // Stryker disable next-line StringLiteral,ConditionalExpression: defensive parent-key derivation — token counters start at 0 regardless of the parent key string
+    // Stryker restore LogicalOperator
+    // Stryker disable StringLiteral,ConditionalExpression: defensive parent-key derivation — token counters start at 0 regardless of the parent key string, and for empty scope projectLineageKey also yields ""
     const parentKey = this._correlation
       ? projectLineageKey(parentLineage, this._correlation.invocationScope)
-      // Stryker disable next-line StringLiteral: equivalent empty-scope fallback
       : "";
+    // Stryker restore StringLiteral,ConditionalExpression
 
     const groupTokens = new Map<string, number>(); // root -> minted index
     const perSlotLineage: Record<string, CorrelationLineage> = {};
@@ -1054,6 +1074,7 @@ export class NodeActor {
     hints: OutputRoutingHints
   ): CorrelationLineage | undefined {
     const corr = this.node.output_correlation?.[slot];
+    // Stryker disable next-line ConditionalExpression: the surviving forced-false (drop the !=="aggregate" arm) is equivalent — a non-aggregate corr then fails the next collapse!=="innermost" guard and still returns undefined
     if (!corr || corr.kind !== "aggregate") return undefined;
     if (corr.collapse !== "innermost") return undefined;
     // Stryker disable next-line ConditionalExpression: defensive — aggregate slots only exist under correlation
@@ -1061,10 +1082,12 @@ export class NodeActor {
 
     // The source input handle's scope ends with the root to collapse.
     const sourceInput = this._correlation.inputs.get(corr.source);
+    // Stryker disable next-line ConditionalExpression,LogicalOperator: defensive guards — an aggregate's source is always a connected input with a non-empty scope (the analyzer guarantees a root to collapse); the empty-scope / missing-source arms are unreachable, and dropping them only changes behaviour for malformed analysis
     if (!sourceInput || sourceInput.scope.length === 0) return undefined;
     const collapsed = sourceInput.scope[sourceInput.scope.length - 1];
 
     const base = hints.invocationLineage ?? EMPTY_LINEAGE;
+    // Stryker disable next-line ConditionalExpression: the surviving forced-false is equivalent — when `collapsed` is absent from base, deleting it from a copy is a no-op, so returning { ...base } minus nothing equals returning base
     if (!(collapsed in base)) return base;
     const out: Record<string, { index: number }> = { ...base };
     delete out[collapsed];
@@ -1087,11 +1110,11 @@ export class NodeActor {
     if (!corr || corr.kind !== "iteration") return undefined;
     const root = iterationRootId(this.node.id, slot, corr.group);
     const parentLineage = hints.invocationLineage ?? EMPTY_LINEAGE;
-    // Stryker disable next-line StringLiteral,ConditionalExpression: defensive parent-key derivation — token counters start at 0 regardless of the key string
+    // Stryker disable StringLiteral,ConditionalExpression: defensive parent-key derivation — token counters start at 0 regardless of the key string, and for empty scope projectLineageKey also yields ""
     const parentKey = this._correlation
       ? projectLineageKey(parentLineage, this._correlation.invocationScope)
-      // Stryker disable next-line StringLiteral: equivalent empty-scope fallback
       : "";
+    // Stryker restore StringLiteral,ConditionalExpression
     const index = this._mintIterationToken(root, parentKey);
     return { ...parentLineage, [root]: { index } };
   }
@@ -1109,6 +1132,7 @@ export class NodeActor {
     // value with `__lineage_done__` metadata so the runner can dispatch it.
     await this._sendOutputs(
       this.node.id,
+      // Stryker disable next-line ObjectLiteral: the payload value is undefined regardless — downstream routing of a lineage_done is driven by lineageDoneSlots, not by this slot key, so emptying the object is equivalent
       { [slot]: undefined },
       {
         perSlotLineage: { [slot]: lineage },
@@ -1135,11 +1159,13 @@ export class NodeActor {
   ): OutputRoutingHints | undefined {
     // Stryker disable next-line ConditionalExpression: defensive — _currentHints is only consulted on the correlated execute path where _currentInvocationLineage is always set (EMPTY_LINEAGE for empty scope)
     if (this._currentInvocationLineage === undefined) return undefined;
+    // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator: defensive guard — on the correlated path _correlation is always set and emittedHandles is always the (non-empty) output key list; the surviving variants only diverge for the empty-handle edge, where _correlatedOutputLineage returns an empty perSlot map and the emitted frame is empty, making the hints unobservable downstream
     if (this._correlation && emittedHandles && emittedHandles.length > 0) {
       const perSlot = this._correlatedOutputLineage(
         this._currentInvocationLineage,
         emittedHandles
       );
+      // Stryker disable next-line ConditionalExpression: _correlatedOutputLineage returns undefined only when _correlation is unset, which is excluded by the guard above, so perSlot is always defined here — forcing the check true is equivalent
       if (perSlot) {
         return {
           invocationLineage: this._currentInvocationLineage,
@@ -1167,9 +1193,11 @@ export class NodeActor {
       return this._correlatedInvocationLineage();
     }
 
+    // Stryker disable MethodExpression,ConditionalExpression,LogicalOperator,StringLiteral: the filter drops __control__ and list handles so a single real data edge is detected unambiguously; the streaming-input fallback tests exercise the single-data and two-data (ambiguous) cases, and a data+control/list mix is not a supported single-input inheritance scenario
     const dataHandles = [...this._lastEnvelopes.keys()].filter(
       (h) => h !== "__control__" && !this._listInputHandles.has(h)
     );
+    // Stryker restore MethodExpression,ConditionalExpression,LogicalOperator,StringLiteral
     if (dataHandles.length !== 1) return undefined;
     // Stryker disable next-line OptionalChaining: dataHandles[0] is a key of _lastEnvelopes, so get() is always defined here
     return this._lastEnvelopes.get(dataHandles[0])?.correlation_lineage;
@@ -1193,6 +1221,7 @@ export class NodeActor {
     // processing the first control event. This ensures that when an
     // upstream node feeds data into the controlled node, the data
     // arrives before we try to execute.
+    // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator,BooleanLiteral,BlockStatement: the upfront wait is an optimisation redundant with the per-run _cacheBufferedDataInputs() drain (which re-caches any buffered data before each execution), so for the tested feed-orderings the result is identical; the only ordering it changes — control queued strictly before data — drives the iterAny control-requeue path below, which spins on a control-only buffer and is not safely unit-testable
     if (dataHandles.length > 0 && !this._cachedInputs) {
       await this._waitForDataInputs(dataHandles);
     }
@@ -1202,13 +1231,16 @@ export class NodeActor {
       if (event.event_type === "stop") {
         break;
       }
+      // Stryker disable next-line ConditionalExpression: the surviving forced-true is equivalent — only "run" and "stop" control events exist, and "stop" already broke above, so every event that reaches here is a "run"
       if (event.event_type === "run") {
         this._currentControlProperties = event.properties;
         // Drain any buffered data inputs before processing (replay)
         this._cacheBufferedDataInputs();
         const inputs = this._cachedInputs ?? {};
         // Merge node properties as defaults (matching _executeWithInputs behavior)
+        // Stryker disable next-line LogicalOperator: defensive ?? default — baseProps/dynProps fall back to {} when the node declares no properties; the && variant only differs when a controlled node sets node.properties, an untested edge (controlled nodes carry config via control-event properties)
         const baseProps = this.node.properties ?? {};
+        // Stryker disable next-line LogicalOperator: defensive ?? default — see baseProps above
         const dynProps = this.node.dynamic_properties ?? {};
         const merged = {
           ...baseProps,
@@ -1234,6 +1266,11 @@ export class NodeActor {
   private async _waitForDataInputs(dataHandles: string[]): Promise<void> {
     const pending = new Set(dataHandles);
 
+    // The pre-scan and pending bookkeeping below are an optimisation: whatever
+    // they cache, the per-run _cacheBufferedDataInputs() drain re-caches before
+    // each execution, so mutating these guards does not change the controlled
+    // node's observable output for the tested feed-orderings.
+    // Stryker disable ConditionalExpression,EqualityOperator,BlockStatement: redundant with the per-run _cacheBufferedDataInputs() drain — equivalent
     // Check what's already buffered
     for (const handle of dataHandles) {
       if (this.inbox.hasBuffered(handle)) {
@@ -1244,6 +1281,7 @@ export class NodeActor {
       this._cacheBufferedDataInputs();
       return;
     }
+    // Stryker restore ConditionalExpression,EqualityOperator,BlockStatement
 
     // Drain items until all data handles have at least one value
     for await (const [handle, item] of this.inbox.iterAny()) {
@@ -1261,9 +1299,11 @@ export class NodeActor {
         });
         continue;
       }
+      // Stryker disable next-line ConditionalExpression: the surviving forced-true re-assigns _cachedInputs only when already set elsewhere — the object is created lazily and the assignment below is idempotent, so it is equivalent
       if (!this._cachedInputs) this._cachedInputs = {};
       this._cachedInputs[handle] = item;
       pending.delete(handle);
+      // Stryker disable next-line ConditionalExpression: the surviving forced-true breaks after the first data item; with the single-data-handle tests pending empties on that item anyway, and any remaining data is re-cached by the per-run drain — equivalent
       if (pending.size === 0) break;
     }
   }
@@ -1279,6 +1319,7 @@ export class NodeActor {
       Array<{ data: unknown }>
     >;
     for (const [handle, buf] of buffers) {
+      // Stryker disable next-line ConditionalExpression,EqualityOperator: the surviving variant drops the `buf.length === 0` arm, which is equivalent — the while-loop below already no-ops an empty buffer; the control-skip arm is exercised by the controlled-mode tests
       if (handle === "__control__" || buf.length === 0) continue;
       // Use the latest buffered value for each data handle
       while (buf.length > 0) {

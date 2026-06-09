@@ -215,6 +215,9 @@ describe("NodeActor._filterStreamingPartial", () => {
     inbox.markSourceDone("a");
     await actor.run();
     expect(sentOutputs.map((s) => s.outputs)).toEqual([{ keep: 0 }]);
+    // toEqual ignores undefined-valued keys, so assert the key set explicitly
+    // to pin that BOTH null and undefined are dropped (not just null).
+    expect(Object.keys(sentOutputs[0].outputs)).toEqual(["keep"]);
   });
 });
 
@@ -815,6 +818,106 @@ describe("NodeActor._runCorrelatedImpl – no-max list aggregation", () => {
     inbox.markSourceDone("elist");
     await runP;
     expect(calls).toEqual([{ elist: ["e1", "e2"] }]);
+  });
+
+  it("fires a no-max empty-list node with NO values (handle absent, defaults apply)", async () => {
+    // An empty-list handle that closes without ever receiving a value: the
+    // node still fires once, and the handle is omitted from values (so node
+    // defaults apply) rather than supplied as an empty array.
+    const inbox = new NodeInbox();
+    inbox.addUpstream("elist", 1);
+    const { executor, calls } = trackingExecutor((i) => ({ seen: Object.keys(i) }));
+    const { actor } = createActor(makeNode(), inbox, executor, {
+      correlation: analysis(["r"], { elist: [[], false] }),
+      listInputHandles: new Set(["elist"])
+    });
+    const runP = actor.run();
+    inbox.markSourceDone("elist");
+    await runP;
+    expect(calls).toEqual([{}]); // elist NOT present as []
+  });
+
+  it("fires a no-max prefix-list node with NO items (handle absent)", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("plist", 1);
+    const { executor, calls } = trackingExecutor(() => ({}));
+    const { actor } = createActor(makeNode(), inbox, executor, {
+      correlation: analysis(["r", "s"], { plist: [["r"], false] }),
+      listInputHandles: new Set(["plist"])
+    });
+    const runP = actor.run();
+    inbox.markSourceDone("plist");
+    await runP;
+    expect(calls).toEqual([{}]); // plist NOT present
+  });
+});
+
+describe("NodeActor._runCorrelatedImpl – close-gating & empty defaults", () => {
+  it("waits for an empty-scope list to close before aggregating (no partial fire)", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1);
+    inbox.addUpstream("lst", 1);
+    const { executor, calls } = trackingExecutor(() => ({}));
+    const { actor } = createActor(makeNode(), inbox, executor, {
+      correlation: analysis(["r"], { a: [["r"], true], lst: [[], false] }),
+      listInputHandles: new Set(["lst"])
+    });
+    const runP = actor.run();
+    await inbox.put("lst", "L1", {});
+    await inbox.put("a", "A0", { correlation_lineage: lin({ r: 0 }) });
+    await new Promise((r) => setTimeout(r, 0));
+    // Still open: a partial-list fire here would be a bug.
+    expect(calls).toEqual([]);
+    await inbox.put("lst", "L2", {});
+    await new Promise((r) => setTimeout(r, 0));
+    inbox.markSourceDone("lst");
+    inbox.markSourceDone("a");
+    await runP;
+    expect(calls).toEqual([{ a: "A0", lst: ["L1", "L2"] }]);
+  });
+
+  it("waits for a prefix-scope list to close before aggregating (no partial fire)", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1);
+    inbox.addUpstream("plist", 1);
+    const { executor, calls } = trackingExecutor(() => ({}));
+    const { actor } = createActor(makeNode(), inbox, executor, {
+      correlation: analysis(["r", "s"], {
+        a: [["r", "s"], true],
+        plist: [["r"], false]
+      }),
+      listInputHandles: new Set(["plist"])
+    });
+    const runP = actor.run();
+    await inbox.put("plist", "P1", { correlation_lineage: lin({ r: 0 }) });
+    await inbox.put("a", "A00", { correlation_lineage: lin({ r: 0, s: 0 }) });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(calls).toEqual([]); // plist still open -> no partial fire
+    await inbox.put("plist", "P2", { correlation_lineage: lin({ r: 0 }) });
+    await new Promise((r) => setTimeout(r, 0));
+    inbox.markSourceDone("plist");
+    inbox.markSourceDone("a");
+    await runP;
+    expect(calls).toEqual([{ a: "A00", plist: ["P1", "P2"] }]);
+  });
+
+  it("fires a max key once a closed empty-scope handle yields no value (defaults)", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1);
+    inbox.addUpstream("cfg", 1);
+    const { executor, calls } = trackingExecutor(() => ({}));
+    const { actor } = createActor(makeNode(), inbox, executor, {
+      correlation: analysis(["r"], { a: [["r"], true], cfg: [[], false] })
+    });
+    const runP = actor.run();
+    await inbox.put("a", "A0", { correlation_lineage: lin({ r: 0 }) });
+    await new Promise((r) => setTimeout(r, 0));
+    // cfg never produces a value; once it closes the key becomes ready.
+    expect(calls).toEqual([]);
+    inbox.markSourceDone("cfg");
+    inbox.markSourceDone("a");
+    await runP;
+    expect(calls).toEqual([{ a: "A0" }]);
   });
 });
 
