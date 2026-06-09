@@ -13,9 +13,12 @@ import {
   Dialog,
   SelectField,
   StatusIndicator,
+  AlertBanner,
+  WarningBanner,
   type StatusType
 } from "../ui_primitives";
 import { useWorkers, type WorkerInstance } from "../../hooks/useWorkers";
+import WorkerProfilesDialog from "./WorkerProfilesDialog";
 
 /**
  * Workers panel — the live GPU-worker surface. Lists provisioned instances with
@@ -62,6 +65,10 @@ function formatUptime(createdAt: string, now: number): string {
 function formatCost(cost: number | null): string {
   if (cost === null) return "—";
   return `$${cost.toFixed(2)}`;
+}
+
+function formatRate(cost: number): string {
+  return `$${cost.toFixed(2)}/hr`;
 }
 
 function statusTone(status: string): StatusType {
@@ -123,8 +130,8 @@ const ProvisionDialog: React.FC<ProvisionDialogProps> = ({
       <FlexColumn gap={2} sx={{ pt: 1 }}>
         {profileNames.length === 0 ? (
           <Caption size="small">
-            No worker profiles yet. Create one with the CLI:{" "}
-            <code>nodetool worker profile add</code>.
+            No worker profiles yet. Open <strong>Manage Profiles</strong> to
+            create one.
           </Caption>
         ) : (
           <SelectField
@@ -144,53 +151,83 @@ interface InstanceRowProps {
   instance: WorkerInstance;
   now: number;
   onStop: (id: string) => void;
+  onAttach: (id: string) => void;
+  onDetach: () => void;
   stopping: boolean;
+  busy: boolean;
 }
 
 const InstanceRow: React.FC<InstanceRowProps> = ({
   instance,
   now,
   onStop,
-  stopping
-}) => (
-  <Card variant="outlined" padding="normal">
-    <FlexRow align="center" justify="space-between" gap={3}>
-      <FlexColumn gap={0.5}>
-        <FlexRow gap={2} align="center">
-          <Text size="normal" weight={600}>
-            {instance.profile_name}
-          </Text>
-          <StatusIndicator
-            status={statusTone(instance.status)}
-            label={instance.status}
-            pulse={
-              instance.status === "provisioning" ||
-              instance.status === "stopping"
-            }
-          />
+  onAttach,
+  onDetach,
+  stopping,
+  busy
+}) => {
+  const isAttached = instance.status === "attached";
+  return (
+    <Card variant="outlined" padding="normal">
+      <FlexRow align="center" justify="space-between" gap={3}>
+        <FlexColumn gap={0.5}>
+          <FlexRow gap={2} align="center">
+            <Text size="normal" weight={600}>
+              {instance.profile_name}
+            </Text>
+            <StatusIndicator
+              status={statusTone(instance.status)}
+              label={instance.status}
+              pulse={
+                instance.status === "provisioning" ||
+                instance.status === "stopping"
+              }
+            />
+          </FlexRow>
+          <Caption size="small">{instance.id}</Caption>
+        </FlexColumn>
+        <FlexRow gap={3} align="center">
+          <Caption size="small">
+            Uptime: {formatUptime(instance.created_at, now)}
+          </Caption>
+          <Caption size="small">
+            Cost: {formatCost(instance.estimated_cost_usd)}
+          </Caption>
+          {isAttached ? (
+            <EditorButton
+              density="compact"
+              variant="outlined"
+              aria-label={`Detach worker ${instance.id}`}
+              disabled={busy}
+              onClick={onDetach}
+            >
+              Detach
+            </EditorButton>
+          ) : (
+            <EditorButton
+              density="compact"
+              variant="outlined"
+              aria-label={`Attach worker ${instance.id}`}
+              disabled={busy || instance.status !== "running"}
+              onClick={() => onAttach(instance.id)}
+            >
+              Attach
+            </EditorButton>
+          )}
+          <EditorButton
+            density="compact"
+            variant="text"
+            aria-label={`Stop worker ${instance.id}`}
+            disabled={stopping || instance.status === "stopped"}
+            onClick={() => onStop(instance.id)}
+          >
+            Stop
+          </EditorButton>
         </FlexRow>
-        <Caption size="small">{instance.id}</Caption>
-      </FlexColumn>
-      <FlexRow gap={3} align="center">
-        <Caption size="small">
-          Uptime: {formatUptime(instance.created_at, now)}
-        </Caption>
-        <Caption size="small">
-          Cost: {formatCost(instance.estimated_cost_usd)}
-        </Caption>
-        <EditorButton
-          density="compact"
-          variant="outlined"
-          aria-label={`Stop worker ${instance.id}`}
-          disabled={stopping || instance.status === "stopped"}
-          onClick={() => onStop(instance.id)}
-        >
-          Stop
-        </EditorButton>
       </FlexRow>
-    </FlexRow>
-  </Card>
-);
+    </Card>
+  );
+};
 
 const LIVE_STATUSES: ReadonlySet<string> = new Set([
   "provisioning",
@@ -199,20 +236,35 @@ const LIVE_STATUSES: ReadonlySet<string> = new Set([
   "stopping"
 ]);
 
+interface OrphanWarning {
+  count: number;
+  liveCount: number;
+  estimatedCostUsd: number;
+}
+
 const WorkersPanel: React.FC = () => {
   const theme = useTheme();
   const {
     profiles,
     instances,
     instancesQuery,
+    createProfile,
+    deleteProfile,
     provision,
     stop,
-    stopAll
+    stopAll,
+    attach,
+    detach,
+    reconcile
   } = useWorkers();
 
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [profilesOpen, setProfilesOpen] = useState(false);
   const [isProvisioning, setIsProvisioning] = useState(false);
   const [stoppingId, setStoppingId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [orphanWarning, setOrphanWarning] = useState<OrphanWarning | null>(null);
   const now = Date.now();
 
   const liveInstances = useMemo(
@@ -220,39 +272,93 @@ const WorkersPanel: React.FC = () => {
     [instances]
   );
 
+  const totalCost = useMemo(
+    () =>
+      liveInstances.reduce(
+        (sum, instance) => sum + (instance.estimated_cost_usd ?? 0),
+        0
+      ),
+    [liveInstances]
+  );
+
   const profileNames = useMemo(
     () => profiles.map((profile) => profile.name),
     [profiles]
   );
 
+  /** Run a lifecycle action, surfacing failures in the error banner. */
+  const runAction = useCallback(
+    async (action: () => Promise<unknown>): Promise<boolean> => {
+      try {
+        await action();
+        setError(null);
+        return true;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
+        return false;
+      }
+    },
+    []
+  );
+
   const handleProvision = useCallback(
     async (profileName: string) => {
       setIsProvisioning(true);
-      try {
-        await provision(profileName);
-        setDialogOpen(false);
-      } finally {
-        setIsProvisioning(false);
-      }
+      const ok = await runAction(() => provision(profileName));
+      setIsProvisioning(false);
+      if (ok) setDialogOpen(false);
     },
-    [provision]
+    [provision, runAction]
   );
 
   const handleStop = useCallback(
     async (id: string) => {
       setStoppingId(id);
-      try {
-        await stop(id);
-      } finally {
-        setStoppingId(null);
-      }
+      await runAction(() => stop(id));
+      setStoppingId(null);
     },
-    [stop]
+    [stop, runAction]
   );
 
   const handleStopAll = useCallback(() => {
-    void stopAll();
-  }, [stopAll]);
+    void runAction(() => stopAll());
+  }, [stopAll, runAction]);
+
+  const handleAttach = useCallback(
+    async (id: string) => {
+      setBusy(true);
+      await runAction(() => attach(id));
+      setBusy(false);
+    },
+    [attach, runAction]
+  );
+
+  const handleDetach = useCallback(async () => {
+    setBusy(true);
+    await runAction(() => detach());
+    setBusy(false);
+  }, [detach, runAction]);
+
+  const handleReconcile = useCallback(async () => {
+    setBusy(true);
+    try {
+      const summary = await reconcile();
+      setError(null);
+      setOrphanWarning(
+        summary.orphans.length > 0
+          ? {
+              count: summary.orphans.length,
+              liveCount: summary.liveCount,
+              estimatedCostUsd: summary.estimatedCostUsd
+            }
+          : null
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }, [reconcile]);
 
   return (
     <FlexColumn gap={0} padding={4} fullHeight css={panelStyles(theme)}>
@@ -262,10 +368,23 @@ const WorkersPanel: React.FC = () => {
         justify="space-between"
         className="panel-header"
       >
-        <Text size="big" weight={600}>
-          Workers
-        </Text>
+        <FlexRow gap={2} align="baseline">
+          <Text size="big" weight={600}>
+            Workers
+          </Text>
+          {liveInstances.length > 0 && (
+            <Caption size="small">{formatRate(totalCost)}</Caption>
+          )}
+        </FlexRow>
         <FlexRow gap={2} align="center">
+          <EditorButton
+            density="compact"
+            variant="text"
+            onClick={() => setProfilesOpen(true)}
+            aria-label="Manage profiles"
+          >
+            Manage Profiles
+          </EditorButton>
           <EditorButton
             density="compact"
             variant="outlined"
@@ -273,6 +392,15 @@ const WorkersPanel: React.FC = () => {
             aria-label="Start worker"
           >
             Start Worker
+          </EditorButton>
+          <EditorButton
+            density="compact"
+            variant="text"
+            onClick={handleReconcile}
+            disabled={busy}
+            aria-label="Reconcile workers"
+          >
+            Reconcile
           </EditorButton>
           <EditorButton
             density="compact"
@@ -285,6 +413,31 @@ const WorkersPanel: React.FC = () => {
           </EditorButton>
         </FlexRow>
       </FlexRow>
+
+      {error && (
+        <AlertBanner
+          severity="error"
+          compact
+          onClose={() => setError(null)}
+          sx={{ mt: 2 }}
+        >
+          {error}
+        </AlertBanner>
+      )}
+
+      {orphanWarning && (
+        <WarningBanner
+          variant="warning"
+          message={`${orphanWarning.count} orphaned worker(s) may still be billing — stop them in your provider console`}
+          description={`${orphanWarning.liveCount} live, ~${formatRate(
+            orphanWarning.estimatedCostUsd
+          )}`}
+          dismissible
+          onDismiss={() => setOrphanWarning(null)}
+          className="nodrag"
+          compact
+        />
+      )}
 
       <FlexColumn className="scrollable-content" gap={2} sx={{ mt: 2 }}>
         {instancesQuery.isLoading ? (
@@ -302,7 +455,10 @@ const WorkersPanel: React.FC = () => {
               instance={instance}
               now={now}
               onStop={handleStop}
+              onAttach={handleAttach}
+              onDetach={handleDetach}
               stopping={stoppingId === instance.id}
+              busy={busy}
             />
           ))
         )}
@@ -314,6 +470,14 @@ const WorkersPanel: React.FC = () => {
         onProvision={handleProvision}
         onClose={() => setDialogOpen(false)}
         isProvisioning={isProvisioning}
+      />
+
+      <WorkerProfilesDialog
+        open={profilesOpen}
+        onClose={() => setProfilesOpen(false)}
+        profiles={profiles}
+        createProfile={createProfile}
+        deleteProfile={deleteProfile}
       />
     </FlexColumn>
   );

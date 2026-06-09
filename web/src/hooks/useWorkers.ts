@@ -65,6 +65,17 @@ export interface WorkerConnection {
   token: string | null;
 }
 
+export interface WorkerOrphan {
+  providerRef: string;
+  target: string;
+}
+
+export interface ReconcileSummary {
+  orphans: WorkerOrphan[];
+  liveCount: number;
+  estimatedCostUsd: number;
+}
+
 /** Hierarchical query keys so a single action can target the right cache. */
 export const workerQueryKeys = {
   all: ["workers"] as const,
@@ -90,7 +101,7 @@ export interface UseWorkersResult {
   stopAll: () => Promise<void>;
   attach: (id: string) => Promise<WorkerConnection>;
   detach: () => Promise<void>;
-  reconcile: () => Promise<unknown>;
+  reconcile: () => Promise<ReconcileSummary>;
 }
 
 export const useWorkers = (): UseWorkersResult => {
@@ -188,7 +199,8 @@ export const useWorkers = (): UseWorkersResult => {
   }, [invalidateInstances]);
 
   const reconcile = useCallback(async () => {
-    const summary = await trpcClient.worker.reconcile.mutate();
+    const summary =
+      (await trpcClient.worker.reconcile.mutate()) as ReconcileSummary;
     await invalidateInstances();
     return summary;
   }, [invalidateInstances]);
