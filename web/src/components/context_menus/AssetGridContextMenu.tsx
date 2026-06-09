@@ -22,7 +22,7 @@ const AssetGridContextMenu = () => {
   const setCreateFolderDialogOpen = useAssetGridStore(
     (state) => state.setCreateFolderDialogOpen
   );
-  const settings = useSettingsStore((state) => state.settings);
+  const assetsOrder = useSettingsStore((state) => state.settings.assetsOrder);
   const setAssetsOrder = useSettingsStore((state) => state.setAssetsOrder);
 
   const withMenuClose =
@@ -67,19 +67,19 @@ const AssetGridContextMenu = () => {
       <Divider />
       <ContextMenuItem
         onClick={handleSortByName}
-        label={`Sort by name ${settings.assetsOrder === "name" ? "✓" : ""}`}
+        label={`Sort by name ${assetsOrder === "name" ? "✓" : ""}`}
         IconComponent={<SortByAlphaIcon />}
         tooltip="Sort assets by name"
       />
       <ContextMenuItem
         onClick={handleSortByDate}
-        label={`Sort by date ${settings.assetsOrder === "date" ? "✓" : ""}`}
+        label={`Sort by date ${assetsOrder === "date" ? "✓" : ""}`}
         IconComponent={<AccessTimeIcon />}
         tooltip="Sort assets by creation date"
       />
       <ContextMenuItem
         onClick={handleSortBySize}
-        label={`Sort by size ${settings.assetsOrder === "size" ? "✓" : ""}`}
+        label={`Sort by size ${assetsOrder === "size" ? "✓" : ""}`}
         IconComponent={<StorageIcon />}
         tooltip="Sort assets by file size"
       />

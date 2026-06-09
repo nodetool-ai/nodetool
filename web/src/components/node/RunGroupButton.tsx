@@ -49,6 +49,7 @@ const RunGroupButton: React.FC<RunGroupButtonProps> = ({
 }) => {
   const theme = useTheme();
   const isRunning = state === "running";
+  const cssStyles = useMemo(() => styles(theme, isRunning), [theme, isRunning]);
 
   const handleClick = useCallback(() => {
     if (!isWorkflowRunning) {
@@ -89,7 +90,7 @@ const RunGroupButton: React.FC<RunGroupButtonProps> = ({
         title=""
         size="small"
         tabIndex={-1}
-        css={styles(theme, isRunning)}
+        css={cssStyles}
         className={`run-button ${isWorkflowRunning ? "disabled" : ""}`}
         onClick={handleClick}
       >

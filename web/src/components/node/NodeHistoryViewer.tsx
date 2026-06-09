@@ -170,6 +170,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
   renderSingle
 }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   // Generation timeline drives selection (oldest→newest, current = selected ?? latest).
   const { generations, current, select } = useNodeGenerations(
     workflowId,
@@ -366,7 +367,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
   })();
 
   return (
-    <div css={styles(theme)} className="node-history-viewer">
+    <div css={cssStyles} className="node-history-viewer">
       <div className="body">
         {mode === "single" ? (
           <MediaOverlaySuppressProvider value={overlayValue}>

@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { PlanningUpdate } from "../../stores/ApiTypes";
@@ -62,6 +62,7 @@ const PlanningUpdateDisplay: React.FC<PlanningUpdateDisplayProps> = ({
   planningUpdate
 }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const trimmedContent = planningUpdate?.content?.trim() || "";
   const truncatedContent =
     trimmedContent.length > PLANNING_CONTENT_TRUNCATE_LENGTH
@@ -74,7 +75,7 @@ const PlanningUpdateDisplay: React.FC<PlanningUpdateDisplayProps> = ({
   const isActive = !isComplete && planningUpdate.status !== "Failed";
 
   return (
-    <div className="planning-item" css={styles(theme)}>
+    <div className="planning-item" css={cssStyles}>
       <span className={`planning-icon ${isActive ? "active" : ""}`}>
         {isComplete ? (
           <CheckCircleOutlineIcon />
