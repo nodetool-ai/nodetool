@@ -271,7 +271,7 @@ function parseCSVLine(line: string): string[] {
  * @param file - The Excel file to parse
  * @returns A Promise resolving to a DataframeRef object
  */
-export async function parseExcel(file: File): Promise<DataframeRef> {
+async function parseExcel(file: File): Promise<DataframeRef> {
   const rows: Row[] = await readXlsxFile(file);
 
   if (rows.length === 0) {
