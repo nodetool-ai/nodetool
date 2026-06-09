@@ -111,19 +111,33 @@ const SelectFieldInternal: React.FC<SelectFieldProps> = ({
     [onChange]
   );
 
+  const fieldFontSize = theme.fontSizeNormal || "15px";
+
   return (
-    <div className={className} style={{ marginBottom: hideLabel ? 0 : "24px" }}>
+    // No baked outer margin — spacing is the parent's job (e.g. FlexColumn gap),
+    // like every other primitive. The control's value/label render at the same
+    // 15px body token as TextInput so the two line up in a shared form.
+    <div className={className}>
       <FormControl size={size} disabled={disabled} fullWidth>
-        {!hideLabel && label && <InputLabel htmlFor={selectId}>{label}</InputLabel>}
+        {!hideLabel && label && (
+          <InputLabel htmlFor={selectId} sx={{ fontSize: fieldFontSize }}>
+            {label}
+          </InputLabel>
+        )}
         <Select
           id={selectId}
           value={value}
           onChange={handleChange}
           variant={variant}
           label={variant !== "standard" && !hideLabel ? label : undefined}
+          sx={{ "& .MuiSelect-select": { fontSize: fieldFontSize } }}
         >
           {options.map((option) => (
-            <MenuItem key={option.value} value={option.value}>
+            <MenuItem
+              key={option.value}
+              value={option.value}
+              sx={{ fontSize: fieldFontSize }}
+            >
               {option.label}
             </MenuItem>
           ))}

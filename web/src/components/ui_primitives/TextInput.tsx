@@ -75,15 +75,16 @@ export const TextInput = memo(
           error={hasError}
           helperText={displayHelperText}
           sx={{
-            ...(compact && {
-              "& .MuiInputBase-input": {
-                py: 1,
-                fontSize: theme.fontSizeSmall || "0.875rem",
-              },
-              "& .MuiInputLabel-root": {
-                fontSize: theme.fontSizeSmall || "0.875rem",
-              },
-            }),
+            // One readable form-control size shared with SelectField: the value
+            // and label always render at the body token (15px). `compact` only
+            // tightens height (via MUI `size="small"`), never shrinks the text —
+            // shrinking the font is what made inputs read as "too small".
+            "& .MuiInputBase-input": {
+              fontSize: theme.fontSizeNormal || "15px",
+            },
+            "& .MuiInputLabel-root": {
+              fontSize: theme.fontSizeNormal || "15px",
+            },
             ...sx,
           }}
           {...props}
