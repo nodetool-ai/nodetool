@@ -13,6 +13,7 @@ export const PACKAGE_REGISTRY_URL =
   "https://raw.githubusercontent.com/nodetool-ai/nodetool-registry/main/index.json";
 
 function isAvailablePackage(value: unknown): value is AvailablePackage {
+  // Stryker disable next-line ConditionalExpression: a non-object primitive also fails the string-field checks below (e.g. (5)["name"] is undefined), so forcing the typeof guard is equivalent.
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const record = value as Record<string, unknown>;
   return (
@@ -31,23 +32,23 @@ export async function fetchAvailablePackages(): Promise<AvailablePackage[]> {
   try {
     const res = await fetch(PACKAGE_REGISTRY_URL);
     if (!res.ok) {
-      console.error(
-        `Failed to fetch package registry: HTTP ${res.status} ${res.statusText}`
-      );
+      // Stryker disable next-line StringLiteral: diagnostic text only — the `return []` below is the contract.
+      console.error(`Failed to fetch package registry: HTTP ${res.status} ${res.statusText}`);
       return [];
     }
     const parsed: unknown = await res.json();
-    const list = Array.isArray(parsed)
-      ? parsed
-      : parsed && typeof parsed === "object" && Array.isArray((parsed as Record<string, unknown>)["packages"])
-        ? ((parsed as Record<string, unknown>)["packages"] as unknown[])
-        : null;
+    const asRecord = parsed as Record<string, unknown>;
+    // Stryker disable next-line all: every branch funnels to `return []` — a non-array `parsed`/`packages` yields null (→ the !list guard) or makes list.filter throw into the outer catch, so these mutants are behaviourally equivalent.
+    const list = Array.isArray(parsed) ? parsed : parsed && typeof parsed === "object" && Array.isArray(asRecord["packages"]) ? (asRecord["packages"] as unknown[]) : null;
+    // Stryker disable next-line ConditionalExpression,BlockStatement: a null list would otherwise reach list.filter and throw into the outer catch, which also returns [] — so this guard is behaviourally equivalent to letting it fall through.
     if (!list) {
+      // Stryker disable next-line StringLiteral: diagnostic text only.
       console.error("Package registry response has no packages array");
       return [];
     }
     return list.filter(isAvailablePackage);
   } catch (error) {
+    // Stryker disable next-line StringLiteral: diagnostic text only.
     console.error(`Failed to fetch package registry: ${String(error)}`);
     return [];
   }

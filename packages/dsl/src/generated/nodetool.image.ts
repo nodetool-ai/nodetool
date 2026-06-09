@@ -287,7 +287,7 @@ export function textToImage(inputs: TextToImageInputs): DslNode<TextToImageOutpu
 // Image To Image — nodetool.image.ImageToImage
 export interface ImageToImageInputs {
   model?: Connectable<unknown>;
-  image?: Connectable<ImageRef>;
+  image?: Connectable<ImageRef[]>;
   prompt?: Connectable<string>;
   negative_prompt?: Connectable<string>;
   strength?: Connectable<number>;

@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useRef } from "react";
+import React, { memo, useMemo, useRef } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -131,14 +131,13 @@ const formatToolName = (name?: string) => {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
-const ToolCallsView: React.FC<{ toolCalls?: ToolCall[] | null }> = ({
+const ToolCallsView: React.FC<{ toolCalls?: ToolCall[] | null }> = memo(({
   toolCalls
 }) => {
   if (!toolCalls || toolCalls.length === 0) {return null;}
   return (
     <div className="tool-calls">
       {toolCalls.map((tc, idx) => {
-        // Generate a stable key using tool call properties
         const stableKey = tc.id || `tool-${tc.name}-${idx}`;
         return (
           <div key={stableKey} className="tool-call">
@@ -156,9 +155,9 @@ const ToolCallsView: React.FC<{ toolCalls?: ToolCall[] | null }> = ({
       })}
     </div>
   );
-};
+});
 
-const MessageView = (msg: Message) => {
+const MessageView: React.FC<{ msg: Message }> = memo(({ msg }) => {
   let messageClass = "chat-message";
 
   if (msg.role === "user") {
@@ -169,35 +168,38 @@ const MessageView = (msg: Message) => {
     messageClass += " tool";
   }
   return (
-    <li className={messageClass} key={msg.id}>
+    <li className={messageClass}>
       {msg.role === "assistant" && msg.tool_calls && (
         <ToolCallsView toolCalls={msg.tool_calls as ToolCall[]} />
       )}
       {typeof msg.content === "string" && (
-        <MarkdownRenderer key={msg.id} content={msg.content} />
+        <MarkdownRenderer content={msg.content} />
       )}
       {Array.isArray(msg.content) &&
-        msg.content.map((c) => {
+        msg.content.map((c, i) => {
           if (c.type === "text") {
-            return <MarkdownRenderer key={msg.id} content={c.text || ""} />;
+            return <MarkdownRenderer key={`text-${i}`} content={c.text || ""} />;
           } else if (c.type === "image_url") {
-            return <ImageView key={c.image?.uri} source={c.image?.uri} />;
+            return <ImageView key={c.image?.uri ?? `img-${i}`} source={c.image?.uri} />;
           } else {
-            return <></>;
+            return null;
           }
         })}
     </li>
   );
-};
+});
 
 const ThreadMessageList: React.FC<ChatViewProps> = ({ messages }) => {
   const theme = useTheme();
   const messagesListRef = useRef<HTMLUListElement | null>(null);
+  const cssStyles = useMemo(() => styles(theme), [theme]);
 
   return (
-    <div css={styles(theme)}>
+    <div css={cssStyles}>
       <ul className="messages" ref={messagesListRef}>
-        {messages.map(MessageView)}
+        {messages.map((msg) => (
+          <MessageView key={msg.id} msg={msg} />
+        ))}
       </ul>
     </div>
   );

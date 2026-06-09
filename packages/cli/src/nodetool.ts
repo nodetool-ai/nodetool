@@ -39,7 +39,9 @@ import { registerHuggingFaceNodes } from "@nodetool-ai/huggingface-nodes";
 import {
   ProcessingContext,
   FileStorageAdapter,
-  initTelemetry
+  initTelemetry,
+  connectPythonBridgeForGraph,
+  resolvePythonNodeExecutor
 } from "@nodetool-ai/runtime";
 import { registerPackageCommands } from "./commands/package.js";
 import {
@@ -522,12 +524,21 @@ workflows
           storage: new FileStorageAdapter(getDefaultAssetsPath())
         });
 
+        // Connect a Python worker bridge when the graph has non-TS (Python)
+        // nodes. Transport: NODETOOL_WORKER_URL (+ NODETOOL_WORKER_TOKEN) →
+        // remote worker; unset → local stdio worker. Pure-TS graphs get none.
+        const pythonBridge = await connectPythonBridgeForGraph(
+          graph.nodes,
+          (t) => registry.has(t)
+        );
+
         // Run workflow
         const runner = new WorkflowRunner(jobId, {
           resolveExecutor: (node: { id: string; type: string }) => {
-            if (!registry.has(node.type))
-              throw new Error(`Unknown node type: ${node.type}`);
-            return registry.resolve(node);
+            if (registry.has(node.type)) return registry.resolve(node);
+            const py = resolvePythonNodeExecutor(pythonBridge, node);
+            if (py) return py;
+            throw new Error(`Unknown node type: ${node.type}`);
           },
           executionContext: context
         });
@@ -536,10 +547,20 @@ workflows
           `Running workflow${workflowId ? ` ${workflowId}` : ""}...`
         );
 
-        const result = await runner.run(
-          { job_id: jobId, workflow_id: workflowId ?? undefined, params },
-          graph
-        );
+        const result = await (async () => {
+          try {
+            return await runner.run(
+              {
+                job_id: jobId,
+                workflow_id: workflowId ?? undefined,
+                params
+              },
+              graph
+            );
+          } finally {
+            pythonBridge?.close();
+          }
+        })();
 
         if (opts.json) {
           console.log(JSON.stringify(result, null, 2));

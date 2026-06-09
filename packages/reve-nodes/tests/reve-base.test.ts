@@ -56,6 +56,21 @@ describe("refToBytes / refToBase64", () => {
     expect(storage.retrieve).toHaveBeenCalledWith("asset://x");
   });
 
+  it("resolves an asset:// ref via context.resolveAssetBytes when storage returns null", async () => {
+    const ctx = {
+      storage: { retrieve: vi.fn().mockResolvedValue(null) },
+      resolveAssetBytes: vi
+        .fn()
+        .mockResolvedValue({ bytes: Uint8Array.from([137, 80, 78, 71]) })
+    };
+    const bytes = await refToBytes(
+      { type: "image", uri: "asset://asset-123" },
+      ctx
+    );
+    expect([...bytes]).toEqual([137, 80, 78, 71]);
+    expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://asset-123");
+  });
+
   it("throws without data or uri", async () => {
     await expect(refToBytes({})).rejects.toThrow("Image has no data or URI");
   });

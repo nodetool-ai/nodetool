@@ -59,7 +59,7 @@ let initialized = false;
  * Subscribes to manifest/tool-call events on the agent socket. Idempotent —
  * additional calls are no-ops.
  */
-export function initFrontendToolsBridge(): void {
+function initFrontendToolsBridge(): void {
   if (initialized) return;
   initialized = true;
 

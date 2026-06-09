@@ -1,6 +1,7 @@
 import { createLogger } from "@nodetool-ai/config";
 import type { BaseProvider } from "./base-provider.js";
 
+// Stryker disable next-line StringLiteral: logger name is diagnostic, not a behavioural contract.
 const log = createLogger("nodetool.runtime.provider-registry");
 
 interface ProviderRegistration {
@@ -120,6 +121,7 @@ export async function isProviderConfigured(
 ): Promise<boolean> {
   const reg = _PROVIDER_REGISTRY.get(providerId);
   if (!reg) {
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log, not asserted.
     log.debug("isProviderConfigured: not registered", { providerId });
     return false;
   }
@@ -133,12 +135,14 @@ export async function isProviderConfigured(
     )
     .map(([key]) => key);
 
+  // Stryker disable next-line ConditionalExpression: forcing this false just falls into the empty loop below, which also returns true — equivalent.
   if (required.length === 0) return true;
 
   for (const key of required) {
     let value = await getSecret(key);
     if (!value) value = process.env[key];
     if (!value) {
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log, not asserted.
       log.debug("isProviderConfigured: missing credential", {
         providerId,
         key

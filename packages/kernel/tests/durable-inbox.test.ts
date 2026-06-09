@@ -136,3 +136,109 @@ describe("DurableInbox", () => {
     expect(removed2).toBe(0);
   });
 });
+
+describe("DurableInbox.generateMessageId (FNV-1a)", () => {
+  it("is a deterministic 16-hex hash of the addressing tuple", () => {
+    expect(DurableInbox.generateMessageId("r1", "n1", "in", 1)).toBe(
+      "692af8c151832e04"
+    );
+  });
+
+  it("zero-pads the first 32-bit half to 8 hex digits", () => {
+    const id = DurableInbox.generateMessageId("r", "n", "h", 358);
+    expect(id).toBe("0001298d1115ec6c");
+    expect(id).toHaveLength(16);
+  });
+
+  it("zero-pads the second 32-bit half to 8 hex digits", () => {
+    const id = DurableInbox.generateMessageId("run-1", "node-1", "input", 1000);
+    expect(id).toBe("e62a7d110c77be8c");
+    expect(id).toHaveLength(16);
+  });
+});
+
+describe("MemoryDurableInboxStore — queries", () => {
+  const mk = (over: Partial<import("../src/durable-inbox.js").DurableMessage>) => ({
+    id: over.messageId ?? "x",
+    runId: "r1",
+    nodeId: "n1",
+    handle: "h",
+    messageId: over.messageId ?? "x",
+    seq: 1,
+    payload: null,
+    status: "pending" as const,
+    createdAt: new Date(),
+    ...over
+  });
+
+  it("findPending filters by run/node/handle/status and sorts by seq", async () => {
+    const store = new MemoryDurableInboxStore();
+    await store.save(mk({ messageId: "a", seq: 2 }));
+    await store.save(mk({ messageId: "b", seq: 1 }));
+    await store.save(mk({ messageId: "c", runId: "r2", seq: 1 }));
+    await store.save(mk({ messageId: "d", nodeId: "n2", seq: 1 }));
+    await store.save(mk({ messageId: "e", handle: "other", seq: 1 }));
+    await store.save(mk({ messageId: "f", status: "consumed", seq: 1 }));
+
+    const res = await store.findPending("r1", "n1", "h", 100);
+    expect(res.map((m) => m.messageId)).toEqual(["b", "a"]); // seq-sorted, only matching
+  });
+
+  it("findPending honours minSeq and limit", async () => {
+    const store = new MemoryDurableInboxStore();
+    await store.save(mk({ messageId: "s1", seq: 1 }));
+    await store.save(mk({ messageId: "s2", seq: 2 }));
+    await store.save(mk({ messageId: "s3", seq: 3 }));
+
+    expect(
+      (await store.findPending("r1", "n1", "h", 100, 2)).map((m) => m.messageId)
+    ).toEqual(["s2", "s3"]);
+    expect(
+      (await store.findPending("r1", "n1", "h", 1)).map((m) => m.messageId)
+    ).toEqual(["s1"]);
+  });
+
+  it("getMaxSeq returns the largest matching seq, or 0 when none match", async () => {
+    const store = new MemoryDurableInboxStore();
+    await store.save(mk({ messageId: "a", seq: 5 }));
+    await store.save(mk({ messageId: "b", seq: 3 }));
+    await store.save(mk({ messageId: "c", runId: "r2", seq: 99 }));
+
+    expect(await store.getMaxSeq("r1", "n1", "h")).toBe(5);
+    expect(await store.getMaxSeq("r1", "n1", "missing")).toBe(0); // handle filter
+    expect(await store.getMaxSeq("r1", "missing", "h")).toBe(0); // nodeId filter
+    expect(await store.getMaxSeq("missing", "n1", "h")).toBe(0); // runId filter
+  });
+
+  it("markConsumed targets the matching message and is a no-op for unknown ids", async () => {
+    const store = new MemoryDurableInboxStore();
+    await store.save(mk({ messageId: "a", seq: 1 }));
+    await store.save(mk({ messageId: "b", seq: 2 }));
+
+    await store.markConsumed("b");
+    expect((await store.findByMessageId("b"))!.status).toBe("consumed");
+    expect((await store.findByMessageId("a"))!.status).toBe("pending");
+    await expect(store.markConsumed("nope")).resolves.toBeUndefined();
+  });
+
+  it("deleteConsumed removes only matching consumed messages strictly below the seq", async () => {
+    const store = new MemoryDurableInboxStore();
+    await store.save(mk({ messageId: "a", seq: 1, status: "consumed" })); // removed
+    await store.save(mk({ messageId: "boundary", seq: 3, status: "consumed" })); // kept (not < 3)
+    await store.save(mk({ messageId: "high", seq: 5, status: "consumed" })); // kept (>= 3)
+    await store.save(mk({ messageId: "pend", seq: 1, status: "pending" })); // kept (pending)
+    await store.save(mk({ messageId: "otherRun", runId: "r2", seq: 1, status: "consumed" })); // kept
+    await store.save(mk({ messageId: "otherNode", nodeId: "n2", seq: 1, status: "consumed" })); // kept
+    await store.save(mk({ messageId: "otherHandle", handle: "x", seq: 1, status: "consumed" })); // kept
+
+    const removed = await store.deleteConsumed("r1", "n1", "h", 3);
+    expect(removed).toBe(1);
+    expect(await store.findByMessageId("a")).toBeNull();
+    expect(await store.findByMessageId("boundary")).not.toBeNull();
+    expect(await store.findByMessageId("high")).not.toBeNull();
+    expect(await store.findByMessageId("pend")).not.toBeNull();
+    expect(await store.findByMessageId("otherRun")).not.toBeNull();
+    expect(await store.findByMessageId("otherNode")).not.toBeNull();
+    expect(await store.findByMessageId("otherHandle")).not.toBeNull();
+  });
+});

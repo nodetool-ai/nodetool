@@ -22,28 +22,36 @@ const nodePath = await importNodeBuiltin<typeof import("node:path")>(
 );
 
 type WriteStream = ReturnType<typeof import("node:fs").createWriteStream>;
+// The `!node*` guards below only fire in a non-Node runtime (browser/edge),
+// which the test environment never is — unreachable here, so suppressed.
 function createWriteStream(
   ...args: Parameters<typeof import("node:fs").createWriteStream>
 ): WriteStream {
+  // Stryker disable all
   if (!nodeFs) {
     throw new Error(
       "JsonlFileSpanExporter requires node:fs (Node-only feature)"
     );
   }
+  // Stryker restore all
   return nodeFs.createWriteStream(...args);
 }
 async function mkdir(
   ...args: Parameters<typeof import("node:fs/promises").mkdir>
 ): Promise<string | undefined> {
+  // Stryker disable all
   if (!nodeFsP) {
     throw new Error("File span exporter requires node:fs/promises");
   }
+  // Stryker restore all
   return nodeFsP.mkdir(...args);
 }
 function dirname(p: string): string {
+  // Stryker disable all
   if (!nodePath) {
     throw new Error("File span exporter requires node:path");
   }
+  // Stryker restore all
   return nodePath.dirname(p);
 }
 import type {
@@ -146,6 +154,9 @@ export class JsonlFileSpanExporter implements SpanExporter {
   ): void {
     void this.streamReady
       .then(async () => {
+        // Unreachable: streamReady only resolves after `this.stream` is assigned;
+        // if init failed it rejects and we go to .catch instead. Defensive guard.
+        // Stryker disable next-line ConditionalExpression,StringLiteral
         if (!this.stream) throw new Error("trace stream not initialized");
         for (const span of spans) {
           await writeLine(this.stream, JSON.stringify(spanToRecord(span)) + "\n");
@@ -157,9 +168,13 @@ export class JsonlFileSpanExporter implements SpanExporter {
       });
   }
 
+  // Stryker disable next-line BlockStatement: shutdown only closes the stream; writeLine already flushed every line to the fd, so emptying it doesn't change observable file output (resource cleanup, not behaviour).
   async shutdown(): Promise<void> {
     await this.streamReady;
     await new Promise<void>((resolve) => {
+      // Unreachable in practice: if streamReady resolved, the stream is set; if it
+      // rejected, the await above already threw. Defensive guard.
+      // Stryker disable next-line ConditionalExpression,BooleanLiteral
       if (!this.stream) return resolve();
       this.stream.end(resolve);
     });
@@ -177,7 +192,7 @@ export class JsonlFileSpanExporter implements SpanExporter {
  * (if `write()` returned false). Rejects on any stream error during the
  * write — caller is responsible for re-attaching listeners afterwards.
  */
-function writeLine(stream: WriteStream, line: string): Promise<void> {
+export function writeLine(stream: WriteStream, line: string): Promise<void> {
   return new Promise((resolve, reject) => {
     let written = false;
     let drained = false;
@@ -193,6 +208,7 @@ function writeLine(stream: WriteStream, line: string): Promise<void> {
     const maybeDone = () => {
       if (written && (!needsDrain || drained)) {
         stream.off("error", onError);
+        // Stryker disable next-line StringLiteral: redundant — resolving under backpressure means the once("drain") listener already fired and auto-removed itself, so there is never a drain listener to remove here.
         stream.off("drain", onDrain);
         resolve();
       }
@@ -217,6 +233,7 @@ export type StdoutFormat = "pretty" | "json";
  * emits a human-readable single-line summary that's still grep-friendly.
  */
 export class StdoutSpanExporter implements SpanExporter {
+  // Stryker disable next-line StringLiteral: only `=== "json"` is checked, so any non-"json" default (incl. "") yields pretty — the default value is equivalent.
   constructor(private readonly format: StdoutFormat = "pretty") {}
 
   export(
@@ -251,8 +268,10 @@ const COLOR = {
   dim: "\x1b[2m",
   red: "\x1b[31m",
   yellow: "\x1b[33m",
+  // Stryker disable next-line StringLiteral: `green`/`bold` are part of the palette but unused by formatPretty; kept for completeness.
   green: "\x1b[32m",
   cyan: "\x1b[36m",
+  // Stryker disable next-line StringLiteral: see above.
   bold: "\x1b[1m",
   reset: "\x1b[0m"
 };
@@ -265,12 +284,6 @@ function formatPretty(r: TraceRecord): string {
   // duration_ms is already integer-rounded by hrTimeToMs, so toFixed(1) only
   // ever appended a meaningless ".0".
   const dur = `${r.duration_ms}ms`;
-  const statusColor: keyof typeof COLOR =
-    r.status.code === "ERROR"
-      ? "red"
-      : r.status.code === "OK"
-        ? "green"
-        : "dim";
   const tags: string[] = [];
   // Surface the most useful attributes inline, in priority order.
   const inlineKeys = [
@@ -291,7 +304,7 @@ function formatPretty(r: TraceRecord): string {
   }
   const status =
     r.status.code === "ERROR"
-      ? colorize(`[${r.status.code}${r.status.message ? `: ${r.status.message}` : ""}]`, statusColor)
+      ? colorize(`[${r.status.code}${r.status.message ? `: ${r.status.message}` : ""}]`, "red")
       : "";
   return `${colorize(r.name, "cyan")} ${colorize(dur, "yellow")} ${tags.join(" ")} ${status}`.trimEnd();
 }

@@ -70,6 +70,19 @@ describe("resolveAssetBytes", () => {
     expect(Array.from(out!)).toEqual([9, 9]);
   });
 
+  it("resolves an asset:// uri via context.resolveAssetBytes", async () => {
+    const pngBytes = Uint8Array.from([137, 80, 78, 71]);
+    const storage = { retrieve: vi.fn().mockResolvedValue(null) };
+    const resolve = vi.fn().mockResolvedValue({ bytes: pngBytes });
+    const out = await resolveAssetBytes(
+      { type: "image", uri: "asset://asset-123" },
+      { storage, resolveAssetBytes: resolve } as never,
+      "image"
+    );
+    expect(resolve).toHaveBeenCalledWith("asset://asset-123");
+    expect(Array.from(out!)).toEqual([137, 80, 78, 71]);
+  });
+
   it("fetches a public https url ref", async () => {
     global.fetch = vi.fn(async () => ({
       ok: true,

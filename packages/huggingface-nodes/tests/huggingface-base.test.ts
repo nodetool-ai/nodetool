@@ -68,6 +68,31 @@ describe("media ref helpers", () => {
   it("refToBytes throws on empty ref", async () => {
     await expect(refToBytes({})).rejects.toThrow(/empty/);
   });
+
+  it("refToBytes resolves an asset:// uri via context, not fetch", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch");
+    const ctx = {
+      resolveAssetBytes: vi
+        .fn()
+        .mockResolvedValue({ bytes: Uint8Array.from([137, 80, 78, 71]) })
+    };
+    const bytes = await refToBytes({ type: "image", uri: "asset://asset-123" }, ctx);
+    expect(Array.from(bytes)).toEqual([137, 80, 78, 71]);
+    expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://asset-123");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("refToBase64 resolves an asset:// uri via context", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch");
+    const ctx = {
+      resolveAssetBytes: vi
+        .fn()
+        .mockResolvedValue({ bytes: Uint8Array.from([137, 80, 78, 71]) })
+    };
+    const b64 = await refToBase64({ type: "image", uri: "asset://asset-123" }, ctx);
+    expect(Buffer.from(b64, "base64")).toEqual(Buffer.from([137, 80, 78, 71]));
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("output ref builders", () => {

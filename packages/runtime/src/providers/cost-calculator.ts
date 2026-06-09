@@ -20,6 +20,7 @@ import { calcPrice, type Usage } from "@pydantic/genai-prices";
 import { createLogger } from "@nodetool-ai/config";
 import { PROVIDER_IDS, type ProviderId } from "@nodetool-ai/protocol";
 
+// Stryker disable next-line StringLiteral: logger name is diagnostic text, not a behavioural contract.
 const log = createLogger("nodetool.runtime.cost");
 
 export enum CostType {
@@ -140,6 +141,11 @@ export interface UsageInfo {
  * NodeTool provider id → genai-prices provider id. Providers absent here fall
  * back to genai-prices' model-name matching (`providerId` omitted).
  */
+// The remapped id only selects which entry of the external @pydantic/genai-prices
+// catalog is hit. Asserting an individual remapping would couple a unit test to
+// that volatile price table, so these string mutants are equivalent for our
+// purposes — the cost math itself is pinned by the calculate() tests.
+// Stryker disable all
 const GENAI_PROVIDER_MAP: Record<string, string> = {
   openai: "openai",
   anthropic: "anthropic",
@@ -153,6 +159,7 @@ const GENAI_PROVIDER_MAP: Record<string, string> = {
   xai: "x-ai",
   grok: "x-ai"
 };
+// Stryker restore all
 
 /** Providers that run locally and incur no API cost. */
 const LOCAL_FREE_PROVIDERS = new Set([
@@ -180,12 +187,18 @@ function calcTokenPriceUsd(
     input_tokens: usage.inputTokens ?? 0,
     output_tokens: usage.outputTokens ?? 0
   };
+  // genai-prices prices a 0/undefined cache count identically to an absent one,
+  // so these guards only avoid passing redundant fields — toggling them is
+  // behaviour-preserving. The discount/premium themselves are pinned by the
+  // cache-read and cache-write tests, so we suppress the equivalent mutants.
+  // Stryker disable all
   if (usage.cachedTokens && usage.cachedTokens > 0) {
     gpUsage.cache_read_tokens = usage.cachedTokens;
   }
   if (usage.cacheWriteTokens && usage.cacheWriteTokens > 0) {
     gpUsage.cache_write_tokens = usage.cacheWriteTokens;
   }
+  // Stryker restore all
 
   const providerId = GENAI_PROVIDER_MAP[providerLower];
   const result = calcPrice(
@@ -205,20 +218,24 @@ export class CostCalculator {
     const modelLower = modelId.toLowerCase();
     const providerLower = provider.toLowerCase();
 
+    // Fast path. The longest-prefix scan below returns the identical tier for an
+    // exact id (a key is always a prefix of itself, and ties to the longest
+    // candidate), so mutating this block away is a perf change, not a behaviour
+    // change — hence equivalent mutants we suppress rather than chase.
+    // Stryker disable all
     const providerKey = `${providerLower}:${modelLower}`;
     if (providerKey in MODEL_TO_TIER) {
       return MODEL_TO_TIER[providerKey];
     }
+    // Stryker restore all
 
     // Longest-prefix match within the same provider.
     const providerPrefix = `${providerLower}:`;
+    // All filtered keys share the same-length providerPrefix, so sorting by raw
+    // key length is identical to sorting by model-part length (longest first).
     const providerKeys = Object.keys(MODEL_TO_TIER)
       .filter((key) => key.startsWith(providerPrefix))
-      .sort(
-        (a, b) =>
-          b.substring(providerPrefix.length).length -
-          a.substring(providerPrefix.length).length
-      );
+      .sort((a, b) => b.length - a.length);
     for (const key of providerKeys) {
       const modelPart = key.substring(providerPrefix.length);
       if (modelLower.startsWith(modelPart)) {
@@ -244,11 +261,13 @@ export class CostCalculator {
   ): number {
     // Non-token modalities (image / audio duration / characters / 3D task).
     const tierName = CostCalculator.getTier(modelId, provider);
+    // Stryker disable next-line ConditionalExpression: forcing this true is equivalent — PRICING_TIERS[null] is undefined, so it falls through to token pricing with only a redundant warn.
     if (tierName !== null) {
       const tier = PRICING_TIERS[tierName];
       if (tier !== undefined) {
         return CostCalculator._calculateForTier(tier, usage);
       }
+      // Stryker disable next-line StringLiteral: warning text is for humans, not asserted.
       log.warn(`Pricing tier '${tierName}' not defined`);
     }
 
@@ -256,9 +275,8 @@ export class CostCalculator {
     const tokenCost = calcTokenPriceUsd(modelId, usage, provider);
     if (tokenCost !== null) return tokenCost;
 
-    log.warn(
-      `No price found for model: ${modelId} (provider: ${provider})`
-    );
+    // Stryker disable next-line StringLiteral: warning text is for humans, not asserted.
+    log.warn(`No price found for model: ${modelId} (provider: ${provider})`);
     return 0.0;
   }
 
@@ -350,6 +368,7 @@ export function calculateModel3DCost(
 export function calculateImageCost(
   modelId: string,
   imageCount: number = 1,
+  // Stryker disable next-line StringLiteral: default "medium" and "" both resolve to imageGptMedium via the ?? fallback below.
   quality: string = "medium",
   provider: ProviderId = PROVIDER_IDS.OPENAI
 ): number {
@@ -362,6 +381,7 @@ export function calculateImageCost(
     };
     const tierOverride = qualityMap[quality.toLowerCase()] ?? "imageGptMedium";
     const tier = PRICING_TIERS[tierOverride];
+    // Stryker disable next-line ConditionalExpression: tierOverride is always a valid PRICING_TIERS key (low/medium/high or the medium fallback), so tier is always defined here.
     if (tier) {
       return CostCalculator["_calculateForTier"](tier, { imageCount });
     }

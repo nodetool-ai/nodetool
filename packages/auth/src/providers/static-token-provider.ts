@@ -37,6 +37,9 @@ export class StaticTokenProvider extends AuthProvider {
     }
 
     const multiTokens = process.env["STATIC_AUTH_TOKENS"];
+    // Stryker disable next-line ConditionalExpression: a falsy STATIC_AUTH_TOKENS
+    // ("" or unset) makes JSON.parse throw and be swallowed by the catch, so
+    // forcing the branch true registers no tokens either way (equivalent).
     if (multiTokens) {
       try {
         const parsed = JSON.parse(multiTokens) as Record<string, string>;

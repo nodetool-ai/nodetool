@@ -87,6 +87,10 @@ export {
   encodeRawImageRef
 } from "./image-codec.js";
 export { PythonNodeExecutor } from "./python-node-executor.js";
+export {
+  connectPythonBridgeForGraph,
+  resolvePythonNodeExecutor
+} from "./python-graph-resolver.js";
 export { loadMediaRefBytes, type MediaRefValue } from "./media-ref-bytes.js";
 export {
   classifyAssetToken,

@@ -79,6 +79,17 @@ function imageRefHasSource(image: unknown): boolean {
   return ref.asset_id != null && ref.asset_id !== "";
 }
 
+/**
+ * Normalize an image input that may be a single ImageRef (legacy single-image
+ * wiring) or a list of refs into an array, dropping non-object entries.
+ */
+function normalizeImageList(value: unknown): ImageRefLike[] {
+  const items = Array.isArray(value) ? value : value != null ? [value] : [];
+  return items.filter(
+    (item): item is ImageRefLike => !!item && typeof item === "object"
+  );
+}
+
 function filePath(uriOrPath: string): string {
   if (uriOrPath.startsWith("file://")) {
     try {
@@ -1576,16 +1587,11 @@ export class ImageToImageNode extends BaseNode {
   declare model: any;
 
   @prop({
-    type: "image",
-    default: {
-      type: "image",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Image",
-    description: "Input image to transform"
+    type: "list[image]",
+    default: [],
+    title: "Images",
+    description:
+      "Input image(s) to transform. The first image is the primary subject; additional images are used as references by providers that support multi-image editing."
   })
   declare image: any;
 
@@ -1655,7 +1661,7 @@ export class ImageToImageNode extends BaseNode {
   declare timeout_seconds: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    let image = (this.image ?? {}) as ImageRefLike;
+    let images = normalizeImageList(this.image);
     let prompt = String(this.prompt ?? "");
 
     // Inline asset mentions (e.g. from the Prompt composer's @-mention) carry
@@ -1665,14 +1671,24 @@ export class ImageToImageNode extends BaseNode {
     // wired in, and strip the mention out of the textual instruction.
     const overrides = await mapPromptAssetsToInputs(
       [{ name: "prompt", value: prompt }],
-      [{ name: "image", kind: "image", hasSource: imageRefHasSource(image) }],
+      [
+        {
+          name: "image",
+          kind: "image",
+          hasSource: images.some(imageRefHasSource)
+        }
+      ],
       context
     );
     if (typeof overrides.prompt === "string") prompt = overrides.prompt;
-    if (overrides.image) image = overrides.image as ImageRefLike;
+    if (overrides.image && images.length === 0) {
+      images = [overrides.image as ImageRefLike];
+    }
 
-    const bytes = await imageBytesAsync(image, context);
-    if (bytes.length === 0) {
+    const bytesList = (
+      await Promise.all(images.map((img) => imageBytesAsync(img, context)))
+    ).filter((b) => b.length > 0);
+    if (bytesList.length === 0) {
       throw new Error("The input image is empty.");
     }
     const aspectRatio = String(this.aspect_ratio ?? "1:1");
@@ -1687,7 +1703,7 @@ export class ImageToImageNode extends BaseNode {
       capability: "image_to_image",
       model: modelId,
       params: {
-        image: bytes,
+        images: bytesList,
         prompt,
         negative_prompt: this.negative_prompt,
         target_width: width,
@@ -1699,10 +1715,11 @@ export class ImageToImageNode extends BaseNode {
       }
     })) as Uint8Array;
     const meta = await metadataFor(output);
+    const sourceUri = images[0]?.uri ?? "";
     return {
       output: imageRef(output, {
-        uri: image.uri ?? "",
-        mimeType: inferImageMime(image.uri, output),
+        uri: sourceUri,
+        mimeType: inferImageMime(sourceUri, output),
         width: meta.width,
         height: meta.height
       })

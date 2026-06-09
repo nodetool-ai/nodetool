@@ -104,6 +104,21 @@ describe("StaticTokenProvider", () => {
     });
   });
 
+  describe("empty STATIC_AUTH_TOKEN env var", () => {
+    afterEach(() => {
+      delete process.env["STATIC_AUTH_TOKEN"];
+    });
+
+    it("does not register an empty token (rejects the empty string)", async () => {
+      // An empty STATIC_AUTH_TOKEN must NOT become a credential that accepts the
+      // empty bearer token — kills the `if (singleToken)` → always-true mutant.
+      process.env["STATIC_AUTH_TOKEN"] = "";
+      delete process.env["STATIC_AUTH_TOKENS"];
+      const provider = new StaticTokenProvider();
+      expect((await provider.verifyToken("")).ok).toBe(false);
+    });
+  });
+
   describe("malformed STATIC_AUTH_TOKENS env var", () => {
     beforeEach(() => {
       process.env["STATIC_AUTH_TOKENS"] = "not-valid-json";
@@ -133,5 +148,4 @@ describe("StaticTokenProvider", () => {
       delete process.env["STATIC_AUTH_TOKEN"];
     }
   });
-
 });

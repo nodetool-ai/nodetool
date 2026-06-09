@@ -3732,7 +3732,7 @@ export class UnifiedWebSocketRunner {
           if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
             return;
           const imageBytesList = await provider.imageToImages(
-            sourceBytes,
+            [sourceBytes],
             params,
             variations
           );
@@ -3799,7 +3799,7 @@ export class UnifiedWebSocketRunner {
           durationSeconds: duration,
           numInferenceSteps
         };
-        const bytes = await provider.imageToVideo(sourceBytes, params);
+        const bytes = await provider.imageToVideo([sourceBytes], params);
         const assetId = await storeMediaAsset(bytes, "video/mp4", "mp4");
         await this.sendMessage({
           type: "chunk",
@@ -4655,7 +4655,7 @@ export class UnifiedWebSocketRunner {
         strength: req.strength ?? null,
         numInferenceSteps: req.numInferenceSteps ?? null
       };
-      images = await provider.imageToImages(sourceBytes, params, variations);
+      images = await provider.imageToImages([sourceBytes], params, variations);
     }
 
     const assetIds: string[] = [];

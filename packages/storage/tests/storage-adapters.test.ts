@@ -177,6 +177,41 @@ describe("SupabaseStorageAdapter", () => {
     expect(storage.getPublicUrl("file:///tmp/x")).toBeNull();
   });
 
+  // A fake client exposing a single stable `list` spy (the shared fakeClient's
+  // `from()` returns a fresh object per call, so its spy can't be asserted on).
+  function clientWithListSpy() {
+    const list = vi.fn(async () => ({ data: [], error: null }));
+    const bucket = { list };
+    return { client: { storage: { from: () => bucket } } as any, list };
+  }
+
+  it("list() strips trailing slashes without a polynomial regex", async () => {
+    const { client, list } = clientWithListSpy();
+    const storage = new SupabaseStorageAdapter({
+      url: "https://x.supabase.co",
+      apiKey: "k",
+      bucket: "uploads",
+      client
+    });
+    // A long run of trailing slashes is the ReDoS trigger for /\/+$/; the
+    // normalized prefix must collapse to "foo" and complete promptly.
+    await storage.list(`foo${"/".repeat(50000)}`);
+    expect(list).toHaveBeenCalledWith("foo", expect.anything());
+  });
+
+  it("list() rejects path-traversal prefixes with an empty result", async () => {
+    const { client, list } = clientWithListSpy();
+    const storage = new SupabaseStorageAdapter({
+      url: "https://x.supabase.co",
+      apiKey: "k",
+      bucket: "uploads",
+      client
+    });
+    const result = await storage.list("../../etc");
+    expect(result).toEqual({ entries: [], commonPrefixes: [] });
+    expect(list).not.toHaveBeenCalled();
+  });
+
   it("requires url/serviceKey/bucket", () => {
     expect(
       () =>

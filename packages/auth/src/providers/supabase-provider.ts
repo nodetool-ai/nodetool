@@ -66,6 +66,9 @@ export class SupabaseAuthProvider extends AuthProvider {
   }
 
   private _getCachedUser(token: string): string | null {
+    // Stryker disable next-line ConditionalExpression,EqualityOperator: redundant
+    // with _cacheUser's matching ttl gate — entries are never stored when
+    // cacheTtl<=0, so this guarded cache read is unreachable (equivalent).
     if (this.cacheTtl <= 0) return null;
 
     const key = this._makeCacheKey(token);
@@ -86,6 +89,10 @@ export class SupabaseAuthProvider extends AuthProvider {
   }
 
   private _cacheUser(token: string, userId: string): void {
+    // Stryker disable next-line all: redundant fast-path. cacheTtl<=0 entries are
+    // never read (gated in _getCachedUser), and cacheMax<=0 stores are immediately
+    // removed by the size>cacheMax eviction below, so every mutant here leaves the
+    // observable cache state unchanged (equivalent).
     if (this.cacheTtl <= 0 || this.cacheMax <= 0) return;
 
     const key = this._makeCacheKey(token);
@@ -98,6 +105,9 @@ export class SupabaseAuthProvider extends AuthProvider {
     // Evict oldest (first key) when over capacity
     if (this._cache.size > this.cacheMax) {
       const oldest = this._cache.keys().next().value;
+      // Stryker disable next-line ConditionalExpression: eviction only runs when
+      // size>cacheMax, so the map is non-empty and oldest is always defined here
+      // (the undefined guard can never be false — equivalent).
       if (oldest !== undefined) {
         this._cache.delete(oldest);
       }
@@ -123,8 +133,9 @@ export class SupabaseAuthProvider extends AuthProvider {
       const { data, error } = await client.auth.getUser(token);
 
       if (error) {
+        // `error` is truthy here, so it cannot be null — no null guard needed.
         const errMsg =
-          typeof error === "object" && error !== null && "message" in error
+          typeof error === "object" && "message" in error
             ? String((error as { message: string }).message)
             : String(error);
         return { ok: false, error: errMsg };

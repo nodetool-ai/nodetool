@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -143,6 +143,7 @@ const TaskUpdateDisplay: React.FC<TaskUpdateDisplayProps> = ({
   taskUpdate
 }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const task = taskUpdate.task;
   const currentStep = taskUpdate.step;
   const currentStepInPlan =
@@ -154,7 +155,7 @@ const TaskUpdateDisplay: React.FC<TaskUpdateDisplayProps> = ({
         : step.instructions === currentStep.instructions
     );
   return (
-    <div className="task-update-container noscroll" css={styles(theme)}>
+    <div className="task-update-container noscroll" css={cssStyles}>
       <div className="task-header">
         <Text className="task-animated-heading">
           Agent Task

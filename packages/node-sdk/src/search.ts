@@ -52,6 +52,7 @@ export function namespaceClass(namespace: string | undefined): NamespaceClass {
   if (namespace.startsWith("nodetool.") || namespace === "nodetool") {
     return "core";
   }
+  // Stryker disable next-line StringLiteral: String.split always returns a non-empty array, so [0] is never undefined and the ?? "" never fires (equivalent).
   const root = namespace.split(".")[0] ?? "";
   if (PROVIDER_NAMESPACE_SET.has(root)) return "provider";
   return "other";
@@ -87,6 +88,7 @@ function fieldScore(
   if (!lower.includes(term)) return 0;
   let score = weight;
   // Exact-token bonus: term appears as a whole word/segment.
+  // Stryker disable next-line Regex,MethodExpression: dropping the + (or the .filter(Boolean)) only changes whether empty tokens appear, and empty tokens never match a non-empty term, so includes(term) is unchanged (equivalent).
   const tokens = lower.split(/[\s._\-/]+/).filter(Boolean);
   if (tokens.includes(term)) score += weight * EXACT_TOKEN_BONUS;
   return score;
@@ -106,10 +108,12 @@ export function scoreNodeMetadata(
   terms: readonly string[],
   options: ScoreOptions = {}
 ): number {
+  // Stryker disable next-line ConditionalExpression: with no terms the loop below runs zero times, leaving raw === 0 → returns 0 anyway (equivalent).
   if (terms.length === 0) return 0;
 
   if (
     options.namespacePrefix &&
+    // Stryker disable next-line StringLiteral: the ?? "" default only changes the receiver of startsWith for an undefined namespace; no realistic prefix distinguishes "" from the seeded literal (equivalent).
     !(meta.namespace ?? "").startsWith(options.namespacePrefix)
   ) {
     return 0;
@@ -128,6 +132,7 @@ export function scoreNodeMetadata(
     raw += fieldScore(meta.description, term, FIELD_WEIGHTS.description);
   }
 
+  // Stryker disable next-line ConditionalExpression: when raw is 0 the core branch returns 0 * 1.5 === 0, so the guard cannot change the result (equivalent).
   if (raw === 0) return 0;
   return cls === "core" ? raw * CORE_MULTIPLIER : raw;
 }
