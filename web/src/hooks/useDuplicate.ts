@@ -59,15 +59,15 @@ export const useDuplicateNodes = (
 
     const newNodes: Node<NodeData>[] = [];
     for (const node of selectedNodes) {
-      const newId = oldToNewIds.get(node.id)!;
+      const newId = oldToNewIds.get(node.id);
+      if (!newId) {continue;}
 
-      // Determine if the parent node is also being duplicated
       const parentId = node.parentId;
       const isParentDuplicated = parentId ? oldToNewIds.has(parentId) : false;
 
       const newParentId = parentId
         ? isParentDuplicated
-          ? oldToNewIds.get(parentId)!
+          ? oldToNewIds.get(parentId) ?? parentId
           : parentId
         : undefined;
 
@@ -111,10 +111,10 @@ export const useDuplicateNodes = (
       const sourceInSelection = selectedNodeIds.includes(edge.source);
       const targetInSelection = selectedNodeIds.includes(edge.target);
 
-      // Duplicate edges where both nodes are in selected nodes (internal edges)
       if (sourceInSelection && targetInSelection) {
-        const newSource = oldToNewIds.get(edge.source)!;
-        const newTarget = oldToNewIds.get(edge.target)!;
+        const newSource = oldToNewIds.get(edge.source);
+        const newTarget = oldToNewIds.get(edge.target);
+        if (!newSource || !newTarget) {continue;}
         newEdges.push({
           ...edge,
           id: uuidv4(),
@@ -122,19 +122,18 @@ export const useDuplicateNodes = (
           target: newTarget,
           selected: false
         });
-      }
-      // Preserve upstream connections: edges from non-selected sources to selected targets
-      else if (
+      } else if (
         keepUpstreamConnections &&
         !sourceInSelection &&
         targetInSelection
       ) {
-        const newTarget = oldToNewIds.get(edge.target)!;
+        const newTarget = oldToNewIds.get(edge.target);
+        if (!newTarget) {continue;}
         newEdges.push({
           ...edge,
           id: uuidv4(),
-          source: edge.source, // Keep original source (upstream node)
-          target: newTarget, // Connect to duplicated target
+          source: edge.source,
+          target: newTarget,
           selected: false
         });
       }
