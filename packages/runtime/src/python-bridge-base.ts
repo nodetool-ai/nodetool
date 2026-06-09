@@ -68,7 +68,8 @@ import type {
   PythonWorkerStatus,
   UnifiedModelLike,
   ModelDownloadRequest,
-  ModelDownloadUpdate
+  ModelDownloadUpdate,
+  PythonBridge
 } from "./python-bridge-types.js";
 
 interface PendingRequest {
@@ -96,7 +97,10 @@ const DEFAULT_STATUS_TIMEOUT_MS = Number(
  * {@link _assertCanConnect} hook lets a transport refuse to connect (e.g. in
  * production).
  */
-export abstract class PythonBridgeBase extends EventEmitter {
+export abstract class PythonBridgeBase
+  extends EventEmitter
+  implements PythonBridge
+{
   protected _nodeMetadata: PythonNodeMetadata[] = [];
   protected _loadErrors: PythonWorkerLoadError[] = [];
   protected _workerStatus: PythonWorkerStatus | null = null;

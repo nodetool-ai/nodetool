@@ -1,3 +1,7 @@
+import { EventEmitter } from "node:events";
+
+import type { ASRResult } from "./providers/types.js";
+
 export interface NodeMetadataProperty {
   name: string;
   type: { type: string; type_args?: Array<{ type: string }> };
@@ -134,4 +138,88 @@ export interface PythonWorkerStatus {
   load_errors: PythonWorkerLoadError[];
   transport: string;
   max_frame_size: number;
+}
+
+/**
+ * Transport-agnostic public surface of a Python worker bridge. Both the
+ * concrete {@link PythonBridgeBase} subclasses and the {@link SwappableBridge}
+ * wrapper satisfy this, so consumers hold one stable reference whose behavior
+ * follows the active worker.
+ *
+ * Extends EventEmitter so `on`/`off`/`once`/`emit`/`removeAllListeners` are part
+ * of the contract. The signatures here are copied verbatim from
+ * `PythonBridgeBase` (the source of truth); `setTarget` is intentionally
+ * excluded — it lives only on the WebSocket bridge and is superseded by
+ * SwappableBridge.
+ */
+export interface PythonBridge extends EventEmitter {
+  connect(): Promise<void>;
+  ensureConnected(): Promise<void>;
+  execute(
+    nodeType: string,
+    fields: Record<string, unknown>,
+    secrets: Record<string, string>,
+    blobs: ExecuteInputBlobs,
+    onProgress?: (event: ProgressEvent) => void
+  ): Promise<ExecuteResult>;
+  executeStream(
+    nodeType: string,
+    fields: Record<string, unknown>,
+    secrets: Record<string, string>,
+    blobs: ExecuteInputBlobs,
+    onProgress?: (event: ProgressEvent) => void
+  ): AsyncGenerator<ExecuteResult>;
+  cancel(requestId: string): void;
+  getNodeMetadata(): PythonNodeMetadata[];
+  getLoadErrors(): PythonWorkerLoadError[];
+  getWorkerStatus(): Promise<PythonWorkerStatus>;
+  hasNodeType(nodeType: string): boolean;
+  readonly isConnected: boolean;
+  isAvailable(): boolean;
+  listProviders(): Promise<PythonProviderInfo[]>;
+  getProviderModels(
+    providerId: string,
+    modelType: string,
+    secrets?: Record<string, string>
+  ): Promise<Record<string, unknown>[]>;
+  providerGenerate(
+    providerId: string,
+    messages: Record<string, unknown>[],
+    model: string,
+    options?: Record<string, unknown>
+  ): Promise<Record<string, unknown>>;
+  providerTextToImage(
+    providerId: string,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>
+  ): Promise<Uint8Array>;
+  providerImageToImage(
+    providerId: string,
+    image: Uint8Array,
+    params: Record<string, unknown>,
+    secrets?: Record<string, string>
+  ): Promise<Uint8Array>;
+  providerASR(
+    providerId: string,
+    audio: Uint8Array,
+    model: string,
+    options?: Record<string, unknown>
+  ): Promise<ASRResult>;
+  providerEmbedding(
+    providerId: string,
+    text: string | string[],
+    model: string,
+    dimensions?: number
+  ): Promise<number[][]>;
+  listCachedModels(): Promise<UnifiedModelLike[]>;
+  downloadModel(
+    req: ModelDownloadRequest,
+    onProgress: (update: ModelDownloadUpdate) => void,
+    requestId?: string
+  ): Promise<void>;
+  cancelModelDownload(requestId: string): void;
+  deleteCachedModel(repoId: string): Promise<boolean>;
+  supportsModelManagement(): boolean;
+  getRecentStderrSummary(limit?: number): string | null;
+  close(): void;
 }

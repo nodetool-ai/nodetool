@@ -73,12 +73,14 @@ export {
   type WebsocketPythonBridgeOptions
 } from "./python-websocket-bridge.js";
 export { createPythonBridge } from "./python-bridge-factory.js";
+export { SwappableBridge } from "./swappable-python-bridge.js";
 /**
- * Transport-agnostic public handle for a Python worker bridge. Consumers that
- * only use the shared interface should type against this rather than the
- * concrete stdio implementation, so a future WebSocket transport drops in.
+ * Transport-agnostic public handle for a Python worker bridge. An interface
+ * (not the concrete base) so both the stdio/WebSocket bridges and the
+ * {@link SwappableBridge} wrapper satisfy it — consumers hold one stable
+ * reference whose behavior follows the active worker.
  */
-export type PythonBridge = PythonBridgeBase;
+export type { PythonBridge } from "./python-bridge-types.js";
 // Public API re-export — the source of truth lives in @nodetool-ai/protocol
 // so the Electron main bundle (which can't pull in the runtime barrel) and
 // any other thin consumer can read these constants without dragging the
