@@ -7,7 +7,11 @@ import {
 } from "../../../utils/modelFormatting";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
-import type { ModelSortField, ModelSortDirection } from "../../../stores/ModelManagerStore";
+import type {
+  ModelSortField,
+  ModelSortDirection,
+  ModelScope
+} from "../../../stores/ModelManagerStore";
 import { useQuery } from "@tanstack/react-query";
 import { openInExplorer, openOllamaPath } from "../../../utils/fileExplorer";
 import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
@@ -51,7 +55,7 @@ export interface UseModelsResult {
   handleShowInExplorer: (modelId: string) => Promise<void>;
 }
 
-export const useModels = (): UseModelsResult => {
+export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
   const modelSearchTerm = useModelManagerStore((state) => state.modelSearchTerm);
   const selectedModelType = useModelManagerStore((state) => state.selectedModelType);
   const maxModelSizeGB = useModelManagerStore((state) => state.maxModelSizeGB);
@@ -62,6 +66,11 @@ export const useModels = (): UseModelsResult => {
     (state) => state.addNotification
   );
   const cacheStatuses = useHfCacheStatusStore((state) => state.statuses);
+  // The local HF cache store only reflects the LOCAL filesystem. For the worker
+  // scope the cached-models list already carries authoritative `downloaded`
+  // flags (the worker forces them true), so we must ignore the local cache —
+  // otherwise a worker-cached repo absent locally is mislabeled "not downloaded".
+  const useLocalCache = scope === "local";
 
   const {
     data: allModels,
@@ -69,8 +78,13 @@ export const useModels = (): UseModelsResult => {
     isFetching,
     error
   } = useQuery({
-    queryKey: ["allModels"],
-    queryFn: () => trpc.models.all.query(),
+    queryKey: ["allModels", scope],
+    queryFn: (): Promise<UnifiedModel[]> =>
+      scope === "worker"
+        ? (trpc.models.huggingfaceList.query({
+            scope: "worker"
+          }) as Promise<UnifiedModel[]>)
+        : trpc.models.all.query(),
     refetchOnWindowFocus: false
   });
 
@@ -102,7 +116,7 @@ export const useModels = (): UseModelsResult => {
         {return false;}
 
       const cacheKey = getHfCacheKey(model);
-      const cacheStatus = cacheStatuses[cacheKey];
+      const cacheStatus = useLocalCache ? cacheStatuses[cacheKey] : undefined;
       const isOllama = model.type === "llama_model";
 
       // For Ollama models, they are always considered downloaded if returned by API
@@ -143,6 +157,7 @@ export const useModels = (): UseModelsResult => {
     maxModelSizeGB,
     filterStatus,
     cacheStatuses,
+    useLocalCache,
     sortField,
     sortDirection
   ]);
@@ -183,19 +198,28 @@ export const useModels = (): UseModelsResult => {
           {return false;}
 
         const cacheKey = getHfCacheKey(model);
-        const cacheStatus = cacheStatuses[cacheKey];
+        const cacheStatus = useLocalCache ? cacheStatuses[cacheKey] : undefined;
         const isOllama = model.type === "llama_model";
 
         if (filterStatus === "downloaded") {
           if (isOllama) {
             // Ollama models are always downloaded
-          } else if (cacheStatus !== true) {
+          } else if (useLocalCache) {
+            if (cacheStatus !== true) {
+              return false;
+            }
+          } else if (!model.downloaded) {
+            // Worker scope: trust the list's authoritative downloaded flag.
             return false;
           }
         } else if (filterStatus === "not_downloaded") {
           if (isOllama) {
             return false;
-          } else if (cacheStatus !== false) {
+          } else if (useLocalCache) {
+            if (cacheStatus !== false) {
+              return false;
+            }
+          } else if (model.downloaded) {
             return false;
           }
         }
@@ -210,7 +234,14 @@ export const useModels = (): UseModelsResult => {
     });
 
     return types;
-  }, [allModels, modelSearchTerm, maxModelSizeGB, filterStatus, cacheStatuses]);
+  }, [
+    allModels,
+    modelSearchTerm,
+    maxModelSizeGB,
+    filterStatus,
+    cacheStatuses,
+    useLocalCache
+  ]);
 
   const modelCountsByType = useMemo(() => {
     const counts: Record<string, number> = {};

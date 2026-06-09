@@ -13,6 +13,7 @@ import { useModels } from "./useModels";
 import ModelListHeader from "./ModelListHeader";
 import ModelTypeSidebar from "./ModelTypeSidebar";
 import DeleteModelDialog from "./DeleteModelDialog";
+import { useWorkers } from "../../../hooks/useWorkers";
 import { prettifyModelType } from "../../../utils/modelFormatting";
 import { IconForType } from "../../../config/IconForType";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
@@ -131,9 +132,19 @@ const ModelListIndex: React.FC = () => {
   const theme = useTheme();
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
   const selectedModelType = useModelManagerStore((state) => state.selectedModelType);
+  const setSelectedModelType = useModelManagerStore(
+    (state) => state.setSelectedModelType
+  );
   const modelSearchTerm = useModelManagerStore((state) => state.modelSearchTerm);
+  const setModelSearchTerm = useModelManagerStore(
+    (state) => state.setModelSearchTerm
+  );
   const filterStatus = useModelManagerStore((state) => state.filterStatus);
   const setFilterStatus = useModelManagerStore((state) => state.setFilterStatus);
+  const scope = useModelManagerStore((state) => state.scope);
+  const setScope = useModelManagerStore((state) => state.setScope);
+  const { activeWorker } = useWorkers();
+  const workerName = activeWorker?.profile_name ?? activeWorker?.id ?? null;
   const [visibleRange, setVisibleRange] = useState({ start: 0, stop: -1 });
   const cacheStatuses = useHfCacheStatusStore((state) => state.statuses);
   const cachePending = useHfCacheStatusStore((state) => state.pending);
@@ -148,7 +159,7 @@ const ModelListIndex: React.FC = () => {
     isFetching,
     error,
     handleShowInExplorer
-  } = useModels();
+  } = useModels(scope);
 
   const startDownload = useModelDownloadStore((state) => state.startDownload);
   const openDialog = useModelDownloadStore((state) => state.openDialog);
@@ -173,11 +184,33 @@ const ModelListIndex: React.FC = () => {
         model.type ?? "",
         path ?? undefined,
         allowPatterns,
-        ignorePatterns
+        ignorePatterns,
+        scope
       );
       openDialog();
     },
-    [startDownload, openDialog]
+    [startDownload, openDialog, scope]
+  );
+
+  const handleScopeChange = useCallback(
+    (nextScope: typeof scope) => {
+      if (nextScope === scope) {
+        return;
+      }
+      // Filters and search are scope-specific; reset them so the new view
+      // does not inherit stale cross-scope state.
+      setScope(nextScope);
+      setModelSearchTerm("");
+      setSelectedModelType("All");
+      setFilterStatus("all");
+    },
+    [
+      scope,
+      setScope,
+      setModelSearchTerm,
+      setSelectedModelType,
+      setFilterStatus
+    ]
   );
 
   // Flatten the model list with headers for "All" view
@@ -246,6 +279,11 @@ const ModelListIndex: React.FC = () => {
   }, [flattenedList, visibleRange]);
 
   useEffect(() => {
+    // The HF cache store scans the LOCAL filesystem; for the worker scope the
+    // list already carries authoritative downloaded flags, so skip it.
+    if (scope === "worker") {
+      return;
+    }
     const requests = visibleModels
       .map((model) => buildHfCacheRequest(model))
       .filter(
@@ -257,12 +295,12 @@ const ModelListIndex: React.FC = () => {
     }
 
     void ensureStatuses(requests);
-  }, [ensureStatuses, visibleModels, cacheVersion]);
+  }, [ensureStatuses, visibleModels, cacheVersion, scope]);
 
   // When filtering by download status, pre-fetch cache statuses for ALL models
   // so filtering works correctly even for models not yet visible
   useEffect(() => {
-    if (filterStatus === "all" || !allModels) {
+    if (scope === "worker" || filterStatus === "all" || !allModels) {
       return;
     }
 
@@ -277,7 +315,16 @@ const ModelListIndex: React.FC = () => {
     }
 
     void ensureStatuses(requests);
-  }, [ensureStatuses, allModels, filterStatus, cacheVersion]);
+  }, [ensureStatuses, allModels, filterStatus, cacheVersion, scope]);
+
+  // If the attached worker goes away (detach / instance gone) while the Worker
+  // scope is active, fall back to Local. Otherwise the toggle is hidden and the
+  // worker-scoped query keeps erroring with no in-session way back.
+  useEffect(() => {
+    if (scope === "worker" && workerName == null) {
+      setScope("local");
+    }
+  }, [scope, workerName, setScope]);
 
   if (isLoading) {
     return (
@@ -359,6 +406,10 @@ const ModelListIndex: React.FC = () => {
         <ModelListHeader
           totalCount={allModels?.length || 0}
           filteredCount={filteredModels.length}
+          scope={scope}
+          onScopeChange={handleScopeChange}
+          workerName={workerName}
+          workerSupported={workerName != null}
         />
       </Box>
       <Box className="main">
@@ -470,12 +521,15 @@ const ModelListIndex: React.FC = () => {
                   const compatibility = getModelCompatibility(item.model);
                   const cacheKey = getHfCacheKey(item.model);
                   const isCacheableHf = canCheckHfCache(item.model);
+                  // Worker scope: the local cache store is irrelevant — trust
+                  // the list's downloaded flag and never show a cache spinner.
                   const isCheckingCache =
+                    scope !== "worker" &&
                     isCacheableHf &&
                     (cachePending[cacheKey] ||
                       cacheStatuses[cacheKey] === undefined);
                   const isDownloaded =
-                    item.model.type === "llama_model"
+                    item.model.type === "llama_model" || scope === "worker"
                       ? !!item.model.downloaded
                       : cacheStatuses[cacheKey] !== undefined
                         ? !!cacheStatuses[cacheKey]
@@ -532,6 +586,16 @@ const ModelListIndex: React.FC = () => {
                     Try a different search term or adjust your filters
                   </Text>
                 </>
+              ) : scope === "worker" ? (
+                <>
+                  <DownloadIcon sx={{ fontSize: 48, opacity: 0.5 }} />
+                  <Text size="normal" weight={600} color="secondary">
+                    No models cached on this worker yet
+                  </Text>
+                  <Text size="small" color="secondary">
+                    Download one to its volume.
+                  </Text>
+                </>
               ) : filterStatus === "downloaded" ? (
                 <>
                   <DownloadIcon sx={{ fontSize: 48, opacity: 0.5 }} />
@@ -569,6 +633,7 @@ const ModelListIndex: React.FC = () => {
           <DeleteModelDialog
             modelId={modelToDelete}
             onClose={handleCancelDelete}
+            scope={scope}
           />
         </Box>
 

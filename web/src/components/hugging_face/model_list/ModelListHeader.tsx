@@ -18,13 +18,23 @@ import {
   useModelManagerStore,
   ModelFilterStatus
 } from "../../../stores/ModelManagerStore";
-import type { ModelSortField } from "../../../stores/ModelManagerStore";
+import type {
+  ModelSortField,
+  ModelScope
+} from "../../../stores/ModelManagerStore";
 import { useTheme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
+import { ScopeToggle } from "./ScopeToggle";
 
 interface ModelListHeaderProps {
   totalCount: number;
   filteredCount: number;
+  scope: ModelScope;
+  onScopeChange: (scope: ModelScope) => void;
+  /** Attached worker display name, or null when no worker is attached. */
+  workerName: string | null;
+  /** Whether the attached worker supports model management. */
+  workerSupported: boolean;
 }
 
 const SORT_OPTIONS: { value: ModelSortField; label: string }[] = [
@@ -36,7 +46,11 @@ const SORT_OPTIONS: { value: ModelSortField; label: string }[] = [
 
 const ModelListHeader: React.FC<ModelListHeaderProps> = ({
   totalCount,
-  filteredCount
+  filteredCount,
+  scope,
+  onScopeChange,
+  workerName,
+  workerSupported
 }) => {
   const {
     modelSearchTerm,
@@ -124,6 +138,13 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
             return `${totalCount} models`;
           })()}
         </Text>
+
+        <ScopeToggle
+          scope={scope}
+          onChange={onScopeChange}
+          workerName={workerName}
+          supported={workerSupported}
+        />
 
         <ToggleGroup
           value={filterStatus}

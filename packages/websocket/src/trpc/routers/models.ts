@@ -1,5 +1,8 @@
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
+import { TRPCError } from "@trpc/server";
+import type { Context } from "../context.js";
+import type { PythonBridge } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
 import {
   getProvider,
@@ -185,6 +188,31 @@ const tjsByTypeInput = z.object({
 const hfDeleteInput = z.object({
   repo_id: z.string().min(1)
 });
+
+/** Where a model route operates: the local cache (default) or an attached worker. */
+const modelScope = z.enum(["local", "worker"]).default("local");
+
+/**
+ * Resolve the worker bridge for a `scope: "worker"` request. Requires an
+ * attached worker whose image speaks the `models.*` bridge protocol; throws a
+ * CONFLICT otherwise so the UI can surface a clear reason.
+ */
+async function requireWorkerBridge(
+  ctx: Pick<Context, "pythonBridge" | "workerManager">
+): Promise<PythonBridge> {
+  const active = await ctx.workerManager?.getActiveWorker();
+  if (!active) {
+    throw new TRPCError({ code: "CONFLICT", message: "No worker attached" });
+  }
+  if (!ctx.pythonBridge.supportsModelManagement()) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message:
+        "This worker's image is too old for model management. Upgrade the worker image."
+    });
+  }
+  return ctx.pythonBridge;
+}
 
 const ollamaModelSchema = z.object({
   type: z.string(),
@@ -972,11 +1000,17 @@ export const modelsRouter = router({
     .query(async ({ ctx }) => getAllModels(ctx.userId)),
 
   /**
-   * HuggingFace cached models.
+   * HuggingFace cached models. `scope: "worker"` lists the attached worker's
+   * cache via the Python bridge; the default `"local"` scans the local FS.
    */
   huggingfaceList: protectedProcedure
+    .input(z.object({ scope: modelScope }).optional())
     .output(modelsListOutput)
-    .query(async () => {
+    .query(async ({ ctx, input }) => {
+      if (input?.scope === "worker") {
+        const bridge = await requireWorkerBridge(ctx);
+        return (await bridge.listCachedModels()) as UnifiedModel[];
+      }
       if (isProduction()) return [];
       try {
         return await readCachedHfModels();
@@ -986,12 +1020,17 @@ export const modelsRouter = router({
     }),
 
   /**
-   * Delete a HuggingFace cached model.
+   * Delete a HuggingFace cached model. `scope: "worker"` deletes from the
+   * attached worker's cache via the Python bridge.
    */
   huggingfaceDelete: protectedProcedure
-    .input(hfDeleteInput)
+    .input(hfDeleteInput.extend({ scope: modelScope }))
     .output(z.boolean())
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      if (input.scope === "worker") {
+        const bridge = await requireWorkerBridge(ctx);
+        return bridge.deleteCachedModel(input.repo_id);
+      }
       if (isProduction()) return false;
       try {
         return await deleteCachedHfModel(input.repo_id);

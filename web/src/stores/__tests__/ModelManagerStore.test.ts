@@ -10,7 +10,8 @@ describe("ModelManagerStore", () => {
       maxModelSizeGB: 0,
       filterStatus: "all",
       sortField: "name",
-      sortDirection: "asc"
+      sortDirection: "asc",
+      scope: "local"
     });
   });
 
@@ -169,6 +170,24 @@ describe("ModelManagerStore", () => {
       });
 
       expect(useModelManagerStore.getState().sortDirection).toBe("asc");
+    });
+  });
+
+  describe("scope", () => {
+    test("should default to local", () => {
+      expect(useModelManagerStore.getState().scope).toBe("local");
+    });
+
+    test("setScope switches the active scope", () => {
+      act(() => {
+        useModelManagerStore.getState().setScope("worker");
+      });
+      expect(useModelManagerStore.getState().scope).toBe("worker");
+
+      act(() => {
+        useModelManagerStore.getState().setScope("local");
+      });
+      expect(useModelManagerStore.getState().scope).toBe("local");
     });
   });
 

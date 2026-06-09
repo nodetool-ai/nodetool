@@ -63,6 +63,11 @@ export {
 } from "./python-stdio-bridge.js";
 import { PythonBridgeBase } from "./python-bridge-base.js";
 export { PythonBridgeBase };
+export type {
+  UnifiedModelLike,
+  ModelDownloadRequest,
+  ModelDownloadUpdate
+} from "./python-bridge-types.js";
 export {
   WebsocketPythonBridge,
   type WebsocketPythonBridgeOptions

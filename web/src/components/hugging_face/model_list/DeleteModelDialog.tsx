@@ -16,18 +16,21 @@ import {
 import { trpc } from "../../../lib/trpc";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useModels } from "./useModels";
+import type { ModelScope } from "../../../stores/ModelManagerStore";
 
 interface DeleteModelDialogProps {
   modelId: string | null;
   onClose: () => void;
+  scope?: ModelScope;
 }
 
 const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
   modelId,
-  onClose
+  onClose,
+  scope = "local"
 }) => {
   const theme = useTheme();
-  const { allModels } = useModels();
+  const { allModels } = useModels(scope);
   const queryClient = useQueryClient();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -35,14 +38,14 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
   const fileExplorerAvailable = isFileExplorerAvailable();
 
   const deleteHFModel = async (repoId: string) => {
-    await trpc.models.huggingfaceDelete.mutate({ repo_id: repoId });
+    await trpc.models.huggingfaceDelete.mutate({ repo_id: repoId, scope });
     addNotification({
       type: "success",
       content: `Deleted model ${repoId}`,
       dismissable: true
     });
     queryClient.invalidateQueries({ queryKey: ["huggingFaceModels"] });
-    queryClient.invalidateQueries({ queryKey: ["allModels"] });
+    queryClient.invalidateQueries({ queryKey: ["allModels", scope] });
   };
 
   const deleteOllamaModel = async (modelName: string) => {
@@ -130,7 +133,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
           });
           queryClient.invalidateQueries({ queryKey: ["ollamaModels"] });
           queryClient.invalidateQueries({ queryKey: ["huggingFaceModels"] });
-          queryClient.invalidateQueries({ queryKey: ["allModels"] });
+          queryClient.invalidateQueries({ queryKey: ["allModels", scope] });
           onClose();
         } else {
           // Show error for other failures

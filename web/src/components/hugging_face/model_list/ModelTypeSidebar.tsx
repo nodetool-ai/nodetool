@@ -14,7 +14,9 @@ import { useModelManagerStore } from "../../../stores/ModelManagerStore";
 import { useTheme } from "@mui/material/styles";
 
 const ModelTypeSidebar: React.FC = () => {
-  const { modelTypes, availableModelTypes, modelCountsByType } = useModels();
+  const scope = useModelManagerStore((state) => state.scope);
+  const { modelTypes, availableModelTypes, modelCountsByType } =
+    useModels(scope);
   const selectedModelType = useModelManagerStore((state) => state.selectedModelType);
   const setSelectedModelType = useModelManagerStore((state) => state.setSelectedModelType);
   const theme = useTheme();

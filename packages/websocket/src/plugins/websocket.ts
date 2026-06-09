@@ -5,6 +5,7 @@ import { UnifiedWebSocketRunner } from "../unified-websocket-runner.js";
 import { createGraphNodeTypeResolver, type NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PythonBridge } from "@nodetool-ai/runtime";
 import { PythonNodeExecutor, getProvider } from "@nodetool-ai/runtime";
+import type { WorkerManager } from "@nodetool-ai/compute";
 import { getSecret as getStoredSecret } from "@nodetool-ai/models";
 import type { HttpApiOptions } from "../http-api.js";
 
@@ -17,6 +18,11 @@ export interface WebSocketPluginOptions {
   ensurePythonBridge: () => Promise<void>;
   /** Forwarded to the runner for read-only RPC commands (list_workflows, …). */
   apiOptions: HttpApiOptions;
+  /**
+   * Worker provisioning orchestrator. Present when the server is wired with a
+   * worker subsystem; enables `scope: "worker"` model downloads on /ws/download.
+   */
+  workerManager?: WorkerManager;
 }
 
 async function resolveProvider(providerId: string, userId: string) {
@@ -131,7 +137,8 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
     pythonBridge,
     getPythonBridgeReady,
     ensurePythonBridge,
-    apiOptions
+    apiOptions,
+    workerManager
   } = opts;
   const graphNodeTypeResolver = createGraphNodeTypeResolver(registry);
 
@@ -229,6 +236,11 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
         .then(({ getDownloadManager }) => {
           // TJS downloads are bookkept here so cancel can abort them.
           const tjsAborts = new Map<string, AbortController>();
+          // In-flight worker-scoped downloads, keyed by the same composite id
+          // the web uses for cancel (`path ? repo/path : repo`), so a
+          // cancel_download can be routed to the bridge instead of the local
+          // download manager.
+          const workerDownloads = new Set<string>();
 
           socket.on("message", async (raw: Buffer | ArrayBuffer | Buffer[]) => {
             try {
@@ -236,6 +248,27 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
               if (msg.command === "start_download") {
                 const repoId: string = msg.repo_id ?? "";
                 const modelType: string | null = msg.model_type ?? null;
+                if (msg.scope === "worker") {
+                  const { relayWorkerDownload } = await import(
+                    "../models-api.js"
+                  );
+                  const downloadId = msg.path
+                    ? `${repoId}/${msg.path}`
+                    : repoId;
+                  workerDownloads.add(downloadId);
+                  try {
+                    await relayWorkerDownload(
+                      socket,
+                      pythonBridge,
+                      workerManager,
+                      msg,
+                      downloadId
+                    );
+                  } finally {
+                    workerDownloads.delete(downloadId);
+                  }
+                  return;
+                }
                 if (modelType && modelType.startsWith("tjs.")) {
                   await handleTjsDownload(socket, repoId, modelType, tjsAborts);
                   return;
@@ -261,6 +294,13 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
                 if (tjsAbort) {
                   tjsAbort.abort();
                   tjsAborts.delete(id);
+                  return;
+                }
+                if (workerDownloads.has(id)) {
+                  // Worker-scoped download: signal cancel over the bridge so the
+                  // remote worker stops (the relay's downloadModel promise then
+                  // settles with a cancelled terminal frame and is cleaned up).
+                  pythonBridge?.cancelModelDownload(id);
                   return;
                 }
                 const manager = await getDownloadManager();

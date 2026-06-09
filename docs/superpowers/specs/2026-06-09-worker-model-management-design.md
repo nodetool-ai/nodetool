@@ -113,6 +113,14 @@ Download progress frames match the existing `ModelDownloadStore.Download` shape:
 - Multi-worker management in one view (current model is a single attached worker).
 - Background/queued downloads that outlive the session.
 
-## Open question for review
+## Resolved decisions (post-implementation)
 
-Download progress relay: forward worker `progress` frames onto the **existing** model-download WebSocket (so the current `ModelDownloadStore`/`DownloadProgress` work unchanged — recommended), versus a new tRPC subscription. The spec assumes the former.
+- **Download progress relay (was the open question):** worker `progress` frames are relayed onto the **existing** model-download WebSocket (`/ws/download`), so `ModelDownloadStore`/`DownloadProgress` work unchanged. No new tRPC subscription. Implemented in `relayWorkerDownload` (`packages/websocket/src/models-api.ts`).
+- **Protocol versioning is additive, not a hard break.** `models.*` raises the *advertised* `BRIDGE_PROTOCOL_VERSION` to 2 but leaves the new *hard floor* `MIN_BRIDGE_PROTOCOL_VERSION` at 1. A v1 worker still connects and runs every pre-v2 feature; the Worker model-management scope is gated per-capability via `supportsModelManagement()` (reports `protocol_version >= 2`). This avoids breaking existing installs / the local stdio worker, and means shipping this feature does **not** require cutting a new `nodetool-core` release first.
+- **Worker download cancellation** is wired end-to-end: the relay passes the web's composite download id (`path ? repo/path : repo`) as the bridge `requestId`, the `/ws/download` plugin tracks in-flight worker downloads and routes `cancel_download` for them to `bridge.cancelModelDownload`, and the worker converts the resulting `asyncio.CancelledError` into a terminal `cancelled` frame.
+
+### Known limitations (parked)
+
+- `models.list_cached` `total_bytes` is derived from Hub `files_metadata`; if the Hub omits a file's size, that file contributes 0, so a progress bar dividing `downloaded_bytes / total_bytes` should treat `total_bytes == 0` as indeterminate.
+- The web cannot yet read a per-instance `protocol_version`, so the Worker toggle is enabled whenever a worker is attached; a too-old image surfaces as a server `CONFLICT` rather than the toggle's "image too old" tooltip.
+- `/ws/download` is registered only outside production mode (pre-existing); worker downloads ride that same endpoint. The primary flow (local app attached to a remote worker) is unaffected.

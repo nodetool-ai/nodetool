@@ -36,6 +36,48 @@ export interface ProgressEvent {
   total: number;
 }
 
+/**
+ * Structural subset of the `@nodetool-ai/protocol` UnifiedModel that the bridge
+ * passes through verbatim from the worker's `models.list_cached` response.
+ *
+ * Typed structurally (rather than importing UnifiedModel) so the runtime base
+ * does not drag `@nodetool-ai/protocol`'s heavier graph into its dependency
+ * graph — the worker normalizes the model JSON; the bridge only forwards it.
+ */
+export type UnifiedModelLike = Record<string, unknown> & {
+  id: string;
+  name: string;
+  repo_id?: string | null;
+  downloaded?: boolean | null;
+};
+
+/** Request payload for the worker `models.download` RPC. */
+export interface ModelDownloadRequest {
+  repo_id: string;
+  allow_patterns?: string[] | null;
+  ignore_patterns?: string[] | null;
+  path?: string | null;
+  model_type?: string | null;
+}
+
+/**
+ * A `models.download` progress frame. Mirrors the worker's progress `data`
+ * field AND the local `DownloadUpdate` the web ModelDownloadStore already
+ * consumes, so the same JSON sink works for local and worker downloads.
+ */
+export interface ModelDownloadUpdate {
+  status: "start" | "progress" | "completed" | "error" | "cancelled";
+  repo_id: string;
+  path: string | null;
+  model_type: string | null;
+  downloaded_bytes: number;
+  total_bytes: number;
+  downloaded_files: number;
+  current_files: string[];
+  total_files: number;
+  error?: string;
+}
+
 export interface PythonBridgeOptions {
   wsUrl?: string;
   /**

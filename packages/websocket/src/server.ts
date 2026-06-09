@@ -798,6 +798,7 @@ await app.register(websocketPlugin, {
   registry,
   pythonBridge,
   apiOptions,
+  workerManager,
   getPythonBridgeReady: () => pythonBridgeReady,
   ensurePythonBridge: async () => {
     if (pythonBridgeReady) return;
