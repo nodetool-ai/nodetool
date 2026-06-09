@@ -1794,7 +1794,7 @@ export class RotateAndFlipNode extends TransformImageNode {
 
     let current: unknown = image;
     let curW = srcW;
-    let curH = srcH;
+    const curH = srcH;
 
     // Mirror first (output is same size as source).
     if (flipH || flipV) {
