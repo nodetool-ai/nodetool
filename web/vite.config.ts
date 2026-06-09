@@ -50,7 +50,6 @@ export default defineConfig(async ({ mode }) => {
         "superjson",
         "@trpc/client",
         "@trpc/react-query",
-        "@trpc/server",
         "@tanstack/react-query",
       ],
       exclude: [
