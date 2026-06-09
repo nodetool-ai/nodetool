@@ -1815,8 +1815,6 @@ export class RotateAndFlipNode extends TransformImageNode {
           { outputWidth: outW, outputHeight: outH },
           context
         );
-        curW = outW;
-        curH = outH;
       } else {
         // Arbitrary angle: expand the canvas to the rotated bounding box and
         // feed the affine shader the UV-space inverse matrix (output uv → source
