@@ -13,6 +13,8 @@
 import type React from "react";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
+import AdjustmentBody from "./AdjustmentBody";
+import { ADJUSTMENT_NODE_TYPES } from "./AdjustmentBody.constants";
 import BlurBody, { BLUR_NODE_TYPE } from "./BlurBody";
 import CanvasResizeBody, {
   CANVAS_RESIZE_NODE_TYPE
@@ -21,7 +23,6 @@ import ChannelsBody, { CHANNELS_NODE_TYPE } from "./ChannelsBody";
 import CompositorBody, { COMPOSITOR_NODE_TYPE } from "./CompositorBody";
 import CropBody, { CROP_NODE_TYPE } from "./CropBody";
 import CurvesBody, { CURVES_NODE_TYPE } from "./CurvesBody";
-import ExposureBody, { EXPOSURE_NODE_TYPE } from "./ExposureBody";
 import FitBody, { FIT_NODE_TYPE } from "./FitBody";
 import HSLAdjustBody, { HSL_ADJUST_NODE_TYPE } from "./HSLAdjustBody";
 import LevelsBody, { LEVELS_NODE_TYPE } from "./LevelsBody";
@@ -61,7 +62,6 @@ export const BESPOKE_BODY_REGISTRY: Readonly<
   [COMPOSITOR_NODE_TYPE]: CompositorBody,
   [CROP_NODE_TYPE]: CropBody,
   [CURVES_NODE_TYPE]: CurvesBody,
-  [EXPOSURE_NODE_TYPE]: ExposureBody,
   [FIT_NODE_TYPE]: FitBody,
   [HSL_ADJUST_NODE_TYPE]: HSLAdjustBody,
   [LEVELS_NODE_TYPE]: LevelsBody,
@@ -77,6 +77,9 @@ export const BESPOKE_BODY_REGISTRY: Readonly<
   ),
   ...Object.fromEntries(
     SIMPLE_FILTER_NODE_TYPES.map((t) => [t, SimpleFilterBody] as const)
+  ),
+  ...Object.fromEntries(
+    ADJUSTMENT_NODE_TYPES.map((t) => [t, AdjustmentBody] as const)
   )
 };
 

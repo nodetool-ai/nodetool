@@ -3,10 +3,14 @@
  *
  * A node renders as a `ContentCardBody` (a content-forward
  * image/video/audio/3D/text body) instead of the generic input/output layout
- * iff its metadata declares `body: "content_card"`.
+ * when either:
+ *   1. its metadata declares `body: "content_card"` (explicit opt-in, any
+ *      output type), or
+ *   2. its primary output is an image — every image-producing node gets the
+ *      content-forward image body, even without the backend opt-in.
  *
- * This is the single source of truth — there is no namespace, name-pattern, or
- * allow-list matching. Node authors opt in from the backend:
+ * Backend opt-in (case 1) covers non-image content (video/audio/text/3D
+ * generators):
  *   - Python nodes: set `_body = "content_card"` or override `body()` (often
  *     derived from the primary output type on a shared base class, e.g. the
  *     HuggingFace pipeline / replicate node bases).
@@ -14,8 +18,8 @@
  *     shared base / node factory (e.g. the fal / kie / replicate generators
  *     derive it from the output type).
  *
- * The concrete variant (image/audio/video/text/3D) is still derived from the
- * primary output type by `getContentCardVariant` below.
+ * The concrete variant (image/audio/video/text/3D) is derived from the primary
+ * output type by `getContentCardVariant` below.
  */
 
 import type { NodeMetadata, OutputSlot } from "../../stores/ApiTypes";
@@ -23,11 +27,30 @@ import type { NodeMetadata, OutputSlot } from "../../stores/ApiTypes";
 /**
  * Decide whether a node should render as a content card.
  *
- * Driven entirely by `metadata.body`; there is no node_type matching.
+ * True when the backend opts in via `body: "content_card"`, or when the node's
+ * primary output is an image (image / image_mask). Bespoke editing bodies still
+ * win in `NodeContent` routing — for those this only ensures content-card
+ * sizing and overlay behavior; the rest of the image nodes get the shared
+ * image preview instead of the generic input/output layout.
  */
 export const isContentCardNode = (
   metadata: NodeMetadata | undefined
-): boolean => metadata?.body === "content_card";
+): boolean => {
+  if (!metadata) {
+    return false;
+  }
+  if (metadata.body === "content_card") {
+    return true;
+  }
+  // Constant nodes already render their value via the result overlay
+  // (`isConstantNode` in BaseNode) — e.g. `nodetool.constant.Image` shows its
+  // image without a content card. Don't double up.
+  if ((metadata.node_type ?? "").startsWith("nodetool.constant.")) {
+    return false;
+  }
+  const variant = getContentCardVariant(getPrimaryOutput(metadata));
+  return variant === "image" || variant === "image_mask";
+};
 
 /**
  * Per-variant default card dimensions applied at node creation time

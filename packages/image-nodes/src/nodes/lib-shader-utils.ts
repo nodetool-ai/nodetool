@@ -1,5 +1,11 @@
 /**
- * Shared runner for `@nodetool-ai/gpu/pool` shader nodes (server-side Dawn).
+ * Shared runner for `@nodetool-ai/gpu/pool` shader nodes.
+ *
+ * Environment-aware: acquires a Dawn `GPUContext` on Node and a
+ * `navigator.gpu` context in the browser, so the same shader path runs
+ * client-side (pure-browser sub-graphs) and server-side. Codec work (decode
+ * input / encode PNG) goes through the sharp-free {@link import("./image-io.js")}
+ * seam, which uses Canvas in the browser and `sharp` on Node.
  *
  * One helper per shader category builds a `BaseNode` per published or internal
  * module from the pool. Every node body funnels into {@link runShaderNode}
@@ -17,20 +23,26 @@
 
 import {
   createExecutor,
-  createLabeledTexture,
   createRecipeRunner,
-  type LabeledTexture,
   type RecipeModule,
   type ShaderModule
 } from "@nodetool-ai/gpu/pool";
-import { getNodeGPUDevice, createNodeGPUContext } from "@nodetool-ai/gpu/node";
-import type { GPUContext } from "@nodetool-ai/gpu/pool";
 import type { PropOptions } from "@nodetool-ai/node-sdk";
 import type { ImageRef } from "@nodetool-ai/node-sdk";
+import { isGpuTextureImage } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { decodeRgba, rawRgbaImageRef } from "./image.js";
+import { decodeRgba, rawRgbaImageRef } from "./image-io.js";
+import {
+  GPU_TEXTURES_ENABLED,
+  createLabeledTexture,
+  getGpuContext,
+  gpuTextureImageRef,
+  premultiplyInPlace,
+  readbackStraightAlpha,
+  trackRunTexture,
+  type LabeledTexture
+} from "./gpu-device.js";
 
-let cachedContext: Promise<GPUContext> | null = null;
 // Cache the executor / recipe runner / registry at module scope so the
 // sampler WeakMap inside the executor (and the recipe runner's internal
 // pipeline cache) survives across node invocations. Re-creating them per
@@ -52,16 +64,6 @@ async function getRegistry(): Promise<ShaderRegistry> {
   return cachedRegistry;
 }
 
-async function getContext(): Promise<GPUContext> {
-  if (!cachedContext) {
-    cachedContext = createNodeGPUContext().catch((err) => {
-      cachedContext = null;
-      throw err;
-    });
-  }
-  return cachedContext;
-}
-
 /** Texture usage that lets a labeled texture be sampled and copied from. */
 const INPUT_USAGE =
   0x04 /* TEXTURE_BINDING */ |
@@ -80,34 +82,16 @@ const COMPUTE_OUTPUT_USAGE =
   0x04 /* TEXTURE_BINDING */ |
   0x01; /* COPY_SRC */
 
-/** Premultiply straight-alpha RGBA in place. Mutates and returns `pixels`. */
-function premultiplyInPlace(pixels: Uint8Array): Uint8Array {
-  for (let i = 0; i < pixels.length; i += 4) {
-    const a = pixels[i + 3] / 255;
-    pixels[i] = Math.round(pixels[i] * a);
-    pixels[i + 1] = Math.round(pixels[i + 1] * a);
-    pixels[i + 2] = Math.round(pixels[i + 2] * a);
-  }
-  return pixels;
-}
-
-/** Un-premultiply RGBA in place. Mutates and returns `pixels`. */
-function unpremultiplyInPlace(pixels: Uint8Array): Uint8Array {
-  for (let i = 0; i < pixels.length; i += 4) {
-    const a = pixels[i + 3];
-    if (a === 0) continue;
-    const inv = 255 / a;
-    pixels[i] = Math.min(255, Math.round(pixels[i] * inv));
-    pixels[i + 1] = Math.min(255, Math.round(pixels[i + 1] * inv));
-    pixels[i + 2] = Math.min(255, Math.round(pixels[i + 2] * inv));
-  }
-  return pixels;
-}
-
 interface UploadedSource {
   texture: LabeledTexture;
   width: number;
   height: number;
+  /**
+   * True when the texture is borrowed from a GPU-texture input ref — it's owned
+   * by the run's texture registry, not this node, so the caller must not
+   * destroy it when the shader finishes.
+   */
+  borrowed: boolean;
 }
 
 async function uploadStraightAlpha(
@@ -116,6 +100,17 @@ async function uploadStraightAlpha(
   context?: ProcessingContext,
   label = "shader-input"
 ): Promise<UploadedSource | null> {
+  // A GPU-texture ImageRef is already a texture on this device — sample it
+  // directly, skipping decode + upload (the whole point of GPU chaining).
+  // Borrowed: the run owns it, so this node must not free it.
+  if (isGpuTextureImage(image)) {
+    return {
+      texture: image.texture as LabeledTexture,
+      width: image.width,
+      height: image.height,
+      borrowed: true
+    };
+  }
   const decoded = await decodeRgba(image, context);
   if (decoded.rgba.length === 0) return null;
   const pixels = new Uint8Array(decoded.rgba);
@@ -133,44 +128,12 @@ async function uploadStraightAlpha(
     { bytesPerRow: decoded.width * 4, rowsPerImage: decoded.height },
     { width: decoded.width, height: decoded.height }
   );
-  return { texture, width: decoded.width, height: decoded.height };
-}
-
-/** Read a `rgba8unorm` `LabeledTexture` back to a straight-alpha RGBA buffer. */
-async function readbackStraightAlpha(
-  device: GPUDevice,
-  texture: LabeledTexture
-): Promise<Uint8Array> {
-  const { width, height } = texture;
-  // `copyTextureToBuffer` requires `bytesPerRow` aligned to 256.
-  const rowStride = Math.ceil((width * 4) / 256) * 256;
-  const buffer = device.createBuffer({
-    size: rowStride * height,
-    usage: 0x09 /* COPY_DST | MAP_READ */
-  });
-  try {
-    const encoder = device.createCommandEncoder({ label: "shader-readback" });
-    encoder.copyTextureToBuffer(
-      { texture: texture.texture },
-      { buffer, bytesPerRow: rowStride, rowsPerImage: height },
-      { width, height }
-    );
-    device.queue.submit([encoder.finish()]);
-    await buffer.mapAsync(GPUMapMode.READ);
-    const mapped = new Uint8Array(buffer.getMappedRange());
-    const out = new Uint8Array(width * height * 4);
-    for (let row = 0; row < height; row++) {
-      out.set(
-        mapped.subarray(row * rowStride, row * rowStride + width * 4),
-        row * width * 4
-      );
-    }
-    buffer.unmap();
-    return unpremultiplyInPlace(out);
-  } finally {
-    // Destroy even if mapAsync rejects (device lost / validation error).
-    buffer.destroy();
-  }
+  return {
+    texture,
+    width: decoded.width,
+    height: decoded.height,
+    borrowed: false
+  };
 }
 
 /** Options shared by both single-pass and recipe runners. */
@@ -218,8 +181,8 @@ export async function runShaderNode(
   opts: RunShaderOptions = {},
   context?: ProcessingContext
 ): Promise<ImageRef> {
-  const device = await getNodeGPUDevice();
-  const ctx = await getContext();
+  const ctx = await getGpuContext();
+  const device = ctx.device;
 
   const source = sourceImage
     ? await uploadStraightAlpha(device, sourceImage, context, `${module.id}-source`)
@@ -232,7 +195,10 @@ export async function runShaderNode(
 
   const inputs: Record<string, LabeledTexture> = {};
   if (source) inputs.source = source.texture;
-  const acquiredExtras: LabeledTexture[] = [];
+  // Textures this node OWNS (uploaded here) — freed when it finishes. Borrowed
+  // GPU-texture inputs belong to the run's registry and are never freed here.
+  const owned: LabeledTexture[] = [];
+  if (source && !source.borrowed) owned.push(source.texture);
   for (const [name, ref] of Object.entries(opts.extraInputs ?? {})) {
     const uploaded = await uploadStraightAlpha(
       device,
@@ -242,7 +208,7 @@ export async function runShaderNode(
     );
     if (uploaded) {
       inputs[name] = uploaded.texture;
-      acquiredExtras.push(uploaded.texture);
+      if (!uploaded.borrowed) owned.push(uploaded.texture);
     }
   }
   // Bail out before encoding if any *required* declared input is unbound —
@@ -252,13 +218,20 @@ export async function runShaderNode(
   for (const [name, contract] of Object.entries(module.io.inputs)) {
     if (contract.optional) continue;
     if (!inputs[name]) {
-      source?.texture.destroy();
-      for (const t of acquiredExtras) t.destroy();
+      for (const t of owned) t.destroy();
       return { type: "image", data: "" };
     }
   }
 
+  // Keep the output on the GPU when chaining client-side (browser, inside a
+  // run): the next node samples it directly and the run frees it later. On
+  // Node/Dawn (server) or outside a run, read it back to a CPU RGBA buffer.
+  const runId = context?.jobId;
+  const keepOnGpu =
+    GPU_TEXTURES_ENABLED && typeof runId === "string" && runId.length > 0;
+
   let output: LabeledTexture | undefined;
+  let handedOff = false;
   try {
     const dims = resolveOutputDims(module, source, opts);
     output = createLabeledTexture(device, {
@@ -299,13 +272,18 @@ export async function runShaderNode(
     }
     device.queue.submit([encoder.finish()]);
 
+    if (keepOnGpu) {
+      trackRunTexture(runId as string, output);
+      handedOff = true;
+      return gpuTextureImageRef(output, dims.width, dims.height);
+    }
     const rgba = await readbackStraightAlpha(device, output);
     return rawRgbaImageRef(rgba, dims.width, dims.height);
   } finally {
-    // Always release GPU textures, even if encode/submit/readback throws.
-    source?.texture.destroy();
-    for (const t of acquiredExtras) t.destroy();
-    output?.destroy();
+    // Free this node's own textures (inputs it uploaded, and the output unless
+    // it was handed off to the run as a GPU-texture ref).
+    for (const t of owned) t.destroy();
+    if (output && !handedOff) output.destroy();
   }
 }
 
@@ -317,8 +295,8 @@ export async function runRecipeNode(
   opts: RunShaderOptions = {},
   context?: ProcessingContext
 ): Promise<ImageRef> {
-  const device = await getNodeGPUDevice();
-  const ctx = await getContext();
+  const ctx = await getGpuContext();
+  const device = ctx.device;
   const registry = await getRegistry();
 
   const source = sourceImage
@@ -329,7 +307,8 @@ export async function runRecipeNode(
   }
 
   const inputs: Record<string, LabeledTexture> = { source: source.texture };
-  const acquiredExtras: LabeledTexture[] = [];
+  const owned: LabeledTexture[] = [];
+  if (!source.borrowed) owned.push(source.texture);
   for (const [name, ref] of Object.entries(opts.extraInputs ?? {})) {
     const uploaded = await uploadStraightAlpha(
       device,
@@ -339,19 +318,23 @@ export async function runRecipeNode(
     );
     if (uploaded) {
       inputs[name] = uploaded.texture;
-      acquiredExtras.push(uploaded.texture);
+      if (!uploaded.borrowed) owned.push(uploaded.texture);
     }
   }
   for (const [name, contract] of Object.entries(recipe.io.inputs)) {
     if (contract.optional) continue;
     if (!inputs[name]) {
-      source.texture.destroy();
-      for (const t of acquiredExtras) t.destroy();
+      for (const t of owned) t.destroy();
       return { type: "image", data: "" };
     }
   }
 
+  const runId = context?.jobId;
+  const keepOnGpu =
+    GPU_TEXTURES_ENABLED && typeof runId === "string" && runId.length > 0;
+
   let output: LabeledTexture | undefined;
+  let handedOff = false;
   try {
     const dims = resolveOutputDims(recipe, source, opts);
     output = createLabeledTexture(device, {
@@ -374,87 +357,17 @@ export async function runRecipeNode(
     });
     device.queue.submit([encoder.finish()]);
 
+    if (keepOnGpu) {
+      trackRunTexture(runId as string, output);
+      handedOff = true;
+      return gpuTextureImageRef(output, dims.width, dims.height);
+    }
     const rgba = await readbackStraightAlpha(device, output);
     return rawRgbaImageRef(rgba, dims.width, dims.height);
   } finally {
-    // Always release GPU textures, even if encode/submit/readback throws.
-    source.texture.destroy();
-    for (const t of acquiredExtras) t.destroy();
-    output?.destroy();
+    for (const t of owned) t.destroy();
+    if (output && !handedOff) output.destroy();
   }
-}
-
-/**
- * Run a shader against an in-memory encoded image buffer (PNG / JPEG /
- * WebP / raw RGBA — anything `decodeRgba` accepts) and return a PNG
- * buffer. Used by the legacy sharp-based nodes (lib-image-filter,
- * lib-image-enhance, lib-image-color-grading, lib-image-draw) so their
- * pixel-processing path moves to the GPU while their I/O contract (base64
- * PNG out via `toRef`) stays unchanged. Codec work (decode/encode) stays
- * on sharp; only the pixel pipeline migrates.
- */
-export async function runShaderOnPngBuffer(
-  module: ShaderModule,
-  params: Record<string, unknown>,
-  encodedBuffer: Uint8Array,
-  opts: RunShaderOptions = {},
-  context?: ProcessingContext
-): Promise<Uint8Array> {
-  const ref = { type: "image", data: encodedBuffer };
-  const out = await runShaderNode(module, params, ref, opts, context);
-  return pngFromRawRgbaRef(out);
-}
-
-/** Same as {@link runShaderOnPngBuffer} but for {@link RecipeModule}s. */
-export async function runRecipeOnPngBuffer(
-  recipe: RecipeModule,
-  params: Record<string, unknown>,
-  encodedBuffer: Uint8Array,
-  opts: RunShaderOptions = {},
-  context?: ProcessingContext
-): Promise<Uint8Array> {
-  const ref = { type: "image", data: encodedBuffer };
-  const out = await runRecipeNode(recipe, params, ref, opts, context);
-  return pngFromRawRgbaRef(out);
-}
-
-/**
- * Encode a raw-RGBA `ImageRef` (the format `runShaderNode` returns) into
- * PNG bytes. If the ref isn't a raw-RGBA image (empty output, already
- * encoded, …) returns its `data` as a Uint8Array unchanged when possible.
- *
- * When the alpha plane is uniformly 255 we drop it before encoding so the
- * resulting PNG is 3-channel — matching the channel count that the legacy
- * sharp pipelines (which never explicitly added alpha) produced. Tests that
- * index raw bytes with `* 3` depend on this.
- */
-async function pngFromRawRgbaRef(ref: ImageRef): Promise<Uint8Array> {
-  const data = (ref as { data?: unknown }).data;
-  const width = (ref as { width?: number }).width ?? 0;
-  const height = (ref as { height?: number }).height ?? 0;
-  if (!(data instanceof Uint8Array) || width === 0 || height === 0) {
-    if (data instanceof Uint8Array) return data;
-    return new Uint8Array();
-  }
-  const sharpMod = await import("sharp");
-  const sharp = sharpMod.default ?? sharpMod;
-
-  let allOpaque = true;
-  for (let i = 3; i < data.length; i += 4) {
-    if (data[i] !== 255) {
-      allOpaque = false;
-      break;
-    }
-  }
-
-  let pipeline = sharp(Buffer.from(data), {
-    raw: { width, height, channels: 4 }
-  });
-  if (allOpaque) {
-    pipeline = pipeline.removeAlpha();
-  }
-  const png = await pipeline.png().toBuffer();
-  return new Uint8Array(png.buffer, png.byteOffset, png.byteLength);
 }
 
 /* ------------------------------------------------------------------- *

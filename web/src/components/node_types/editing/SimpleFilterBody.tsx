@@ -25,6 +25,7 @@ import {
 } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageView from "../../node/ImageView";
+import ImageRefPreview from "../../node/ImageRefPreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 
@@ -128,34 +129,20 @@ const ImagePreview: React.FC<{
   value: unknown;
   placeholder: string;
   tab: SimpleFilterTab;
-}> = memo(({ value, placeholder, tab }) => {
-  let content: React.ReactNode;
-  if (typeof value === "string" && value) {
-    content = <ImageView source={value} />;
-  } else {
-    const ref = asImageRef(value);
-    if (ref?.uri) {
-      content = <ImageView source={ref.uri} />;
-    } else if (ref?.data instanceof Uint8Array) {
-      content = <ImageView source={ref.data} />;
-    } else if (Array.isArray(ref?.data)) {
-      content = <ImageView source={new Uint8Array(ref!.data as number[])} />;
-    } else {
-      content = (
+}> = memo(({ value, placeholder, tab }) => (
+  <div className={`image-preview preview-${tab}`} data-preview-tab={tab}>
+    <ImageRefPreview
+      value={value}
+      placeholder={
         <CheckerDropzone
           className="preview-empty"
           message={placeholder}
           icon={<ImageIcon />}
         />
-      );
-    }
-  }
-  return (
-    <div className={`image-preview preview-${tab}`} data-preview-tab={tab}>
-      {content}
-    </div>
-  );
-});
+      }
+    />
+  </div>
+));
 ImagePreview.displayName = "SimpleFilterImagePreview";
 
 export interface SimpleFilterBodyProps {

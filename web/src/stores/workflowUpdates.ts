@@ -32,6 +32,7 @@ import { queryClient } from "../queryClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import { preloadBrowserRunner } from "../lib/workflow/browserWorkflowRunner";
 import useExecutionTimeStore from "./ExecutionTimeStore";
+import { isSilentJob } from "./previewJobs";
 import { NodeStore } from "./NodeStore";
 import { DYNAMIC_KIE_NODE_TYPE } from "../components/node/DynamicKieSchemaNode";
 import { normalizeOutputUpdateValue } from "./outputUpdateValue";
@@ -328,7 +329,9 @@ export const handleUpdate = (
     if (
       currentState !== "cancelled" &&
       currentState !== "error" &&
-      messageJobId
+      messageJobId &&
+      // Silent preview jobs don't animate edges (scrub-frame noise).
+      !isSilentJob(messageJobId)
     ) {
       setEdge(
         workflow.id,
@@ -431,6 +434,11 @@ export const handleUpdate = (
   }
   if (data.type === "job_update") {
     const job = data;
+    // Live-preview scrub jobs must never touch the runner state, queue or job
+    // list — they'd hijack the Stop button (the runner is idle during a scrub,
+    // so they'd otherwise match the "fresh run" branch below) and refetch the
+    // job list on every frame.
+    const silentJob = isSilentJob(job.job_id);
     const runnerJobId = runnerStore.getState().job_id;
     // The per-workflow runner represents the single full run. Concurrent
     // inline/per-node jobs share this workflow_id but have their own job_id, so
@@ -441,10 +449,11 @@ export const handleUpdate = (
     // tracks every job.
     const runnerState = runnerStore.getState().state;
     const isRunnerJob =
-      !job.job_id ||
-      job.job_id === runnerJobId ||
-      (runnerJobId === null &&
-        (runnerState === "idle" || runnerState === "connecting"));
+      !silentJob &&
+      (!job.job_id ||
+        job.job_id === runnerJobId ||
+        (runnerJobId === null &&
+          (runnerState === "idle" || runnerState === "connecting")));
 
     // Whether this run was sitting in the backend's concurrency queue, so we
     // can clear the "Queued…" status once it actually starts running.
@@ -537,22 +546,24 @@ export const handleUpdate = (
 
     // Refresh the Queue panel when a job moves between lifecycle columns.
     // These are per-job (not per-node) updates, so the frequency is low.
+    // Silent preview jobs are skipped — they'd refetch on every scrub frame.
     if (
-      job.status === "queued" ||
-      job.status === "running" ||
-      job.status === "completed" ||
-      job.status === "cancelled" ||
-      job.status === "failed" ||
-      job.status === "suspended" ||
-      job.status === "paused"
+      !silentJob &&
+      (job.status === "queued" ||
+        job.status === "running" ||
+        job.status === "completed" ||
+        job.status === "cancelled" ||
+        job.status === "failed" ||
+        job.status === "suspended" ||
+        job.status === "paused")
     ) {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
     }
 
     // Generative nodes auto-save outputs to assets on completion; refresh
     // the per-node asset cache so history badges/panels update without
-    // waiting for staleTime to elapse.
-    if (job.status === "completed") {
+    // waiting for staleTime to elapse. (Preview runs persist nothing.)
+    if (job.status === "completed" && !silentJob) {
       queryClient.invalidateQueries({ queryKey: ["assets"] });
     }
 
@@ -743,12 +754,19 @@ export const handleUpdate = (
         }
       );
     } else {
-      runnerStore.setState({
-        statusMessage: `${update.node_name} ${update.status}`
-      });
+      // Intentionally no per-node status text: a "<node> running/completed"
+      // line on every node_update is pure churn (and a constant flicker during
+      // live slider scrubs). Job-level statusMessages (starting / queued /
+      // suspended) still drive the canvas StatusMessage.
+
+      // Silent live-preview jobs (slider scrubs) only refresh the picture —
+      // recording per-node status / timing / cost would flash the running
+      // ring, "Completed in …" badge and ambient-liveness ring on every frame.
+      // The live-generation upsert below still runs, so the image updates.
+      const silent = isSilentJob(jobId);
 
       // Track execution timing (per job)
-      if (jobId) {
+      if (jobId && !silent) {
         const previousStatus = getStatus(workflow.id, jobId, update.node_id);
         const isStarting =
           update.status === "running" ||
@@ -781,7 +799,7 @@ export const handleUpdate = (
         setStatus(workflow.id, jobId, update.node_id, update.status);
       }
 
-      if (update.provider_cost && jobId) {
+      if (update.provider_cost && jobId && !silent) {
         setProviderCost(
           workflow.id,
           jobId,

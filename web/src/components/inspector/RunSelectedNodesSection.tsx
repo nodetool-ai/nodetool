@@ -19,6 +19,7 @@ import {
   MIN_RUNS,
   useRunSelectedNodes
 } from "../../hooks/nodes/useRunSelectedNodes";
+import { useSettingsStore } from "../../stores/SettingsStore";
 
 const styles = (theme: Theme) =>
   css({
@@ -93,6 +94,11 @@ const RunSelectedNodesSectionInternal: React.FC = () => {
   const theme = useTheme();
   const { runSelectedNodes, isWorkflowRunning, runProgress } =
     useRunSelectedNodes();
+  // Instant-update mode runs continuously; don't perpetually disable the run
+  // button (you can re-trigger / queue), it would just strobe enabled/disabled.
+  const instantUpdate = useSettingsStore(
+    (state) => state.settings.instantUpdate
+  );
   const [runs, setRuns] = useState(1);
 
   const clamp = (n: number) => Math.max(MIN_RUNS, Math.min(MAX_RUNS, n));
@@ -105,7 +111,7 @@ const RunSelectedNodesSectionInternal: React.FC = () => {
   }, [runSelectedNodes, runs]);
 
   const inSequence = runProgress !== null && runProgress.total > 1;
-  const buttonDisabled = isWorkflowRunning;
+  const buttonDisabled = isWorkflowRunning && !instantUpdate;
 
   return (
     <div css={styles(theme)} className="run-selected-section">

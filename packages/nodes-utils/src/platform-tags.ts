@@ -68,3 +68,25 @@ export function tagAsHybrid<T extends readonly NodeClass[]>(classes: T): T {
 export function tagAsUniversal<T extends readonly NodeClass[]>(classes: T): T {
   return tagWith(classes, ALL_PLATFORMS);
 }
+
+/**
+ * Stamp `static body = "content_card"` on every class in `classes` so the
+ * editor renders them as a media content card (the image/video/audio preview
+ * body) instead of the generic input/output layout. Leaves any class that
+ * already declares its own `static body` alone — per-class overrides win.
+ *
+ * Apply to media-output node groups, composing with a platform tagger:
+ * `tagAsHybrid(tagAsContentCard([...]))`.
+ */
+export function tagAsContentCard<T extends readonly NodeClass[]>(classes: T): T {
+  for (const cls of classes) {
+    if ((cls as { body?: unknown }).body !== undefined) continue;
+    Object.defineProperty(cls, "body", {
+      value: "content_card",
+      writable: false,
+      configurable: true,
+      enumerable: true
+    });
+  }
+  return classes;
+}

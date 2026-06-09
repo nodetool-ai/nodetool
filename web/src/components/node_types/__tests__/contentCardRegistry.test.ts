@@ -22,7 +22,7 @@ describe("isContentCardNode", () => {
     expect(isContentCardNode(undefined)).toBe(false);
   });
 
-  it("returns true iff metadata.body === 'content_card'", () => {
+  it("returns true when metadata.body === 'content_card' (any output type)", () => {
     expect(
       isContentCardNode({
         node_type: "nodetool.image.TextToImage",
@@ -33,10 +33,35 @@ describe("isContentCardNode", () => {
     expect(
       isContentCardNode({ node_type: "fal.SomeModel", body: "content_card" } as any)
     ).toBe(true);
+    // Opt-in carries non-image content too (video/audio/text/3D generators).
+    expect(
+      isContentCardNode({
+        node_type: "fal.SomeVideoModel",
+        body: "content_card",
+        outputs: [{ name: "output", type: { type: "video" } }]
+      } as any)
+    ).toBe(true);
   });
 
-  it("returns false without body, even for previously-matched node types", () => {
-    // The old heuristics (registry / generator-name / namespace+media) are gone.
+  it("returns true for any image-output node, even without the body opt-in", () => {
+    // Every image-producing node gets the content-forward image body.
+    expect(
+      isContentCardNode({
+        node_type: "fal.SomeModel",
+        outputs: [{ name: "output", type: { type: "image" } }]
+      } as any)
+    ).toBe(true);
+    // Masks count as images (rendered on a checker).
+    expect(
+      isContentCardNode({
+        node_type: "some.MaskNode",
+        outputs: [{ name: "output", type: { type: "image_mask" } }]
+      } as any)
+    ).toBe(true);
+  });
+
+  it("returns false for non-image nodes without the body opt-in", () => {
+    // No output type matching beyond image — name/namespace heuristics are gone.
     expect(
       isContentCardNode({ node_type: "nodetool.image.TextToImage" } as any)
     ).toBe(false);
@@ -45,9 +70,12 @@ describe("isContentCardNode", () => {
     );
     expect(
       isContentCardNode({
-        node_type: "fal.SomeModel",
-        outputs: [{ name: "output", type: { type: "image" } }]
+        node_type: "some.VideoModel",
+        outputs: [{ name: "output", type: { type: "video" } }]
       } as any)
+    ).toBe(false);
+    expect(
+      isContentCardNode({ node_type: "nodetool.math.Add", body: "default" } as any)
     ).toBe(false);
   });
 

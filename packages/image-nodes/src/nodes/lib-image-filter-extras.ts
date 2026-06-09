@@ -8,7 +8,7 @@
 import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
 import type { ImageRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { tagAsHybrid } from "@nodetool-ai/nodes-utils";
+import { tagAsHybrid, tagAsContentCard } from "@nodetool-ai/nodes-utils";
 import {
   filtersPixelateV1,
   filtersThresholdV1,
@@ -194,13 +194,13 @@ registerDeclaredProperty(
   floatProp(0.5, { min: 0, max: 1, label: "Softness" })
 );
 
-export const LIB_IMAGE_FILTER_EXTRAS_NODES = tagAsHybrid([
+export const LIB_IMAGE_FILTER_EXTRAS_NODES = tagAsHybrid(tagAsContentCard([
   ThresholdNode,
   PixelateNode,
   GaussianBlurNode,
   UnsharpMaskNode,
   VignetteNode
-]);
+]));
 export {
   ThresholdNode,
   PixelateNode,

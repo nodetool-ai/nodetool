@@ -842,7 +842,13 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         </div>
       )}
 
-      {showAmbientRing && <div css={ambientRingCss} aria-hidden="true" />}
+      {showAmbientRing && (
+        <div
+          className="node-ambient-ring"
+          css={ambientRingCss}
+          aria-hidden="true"
+        />
+      )}
       {showConcurrencyBadge && (
         <div
           style={ambientBadgeStyle}

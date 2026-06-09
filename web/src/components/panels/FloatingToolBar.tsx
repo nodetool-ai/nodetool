@@ -392,7 +392,11 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           onClick={handleRun}
           aria-label="Run workflow"
         >
-          {isWorkflowRunning ? (
+          {/* Instant-update mode runs on every keystroke; the ticking timer
+              (and its setInterval re-render churn via useRunningTime) is pure
+              noise there, so show a static Play icon. The button stays a live
+              run control — clicking still queues another run. */}
+          {isWorkflowRunning && !instantUpdate ? (
             <RunningTime isRunning timerKey={workflow?.id} />
           ) : (
             <PlayArrow />

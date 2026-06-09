@@ -14,9 +14,9 @@ import {
   colorSplitToningV1,
   colorFilmLookV1
 } from "@nodetool-ai/gpu/pool";
-import { decodeImage, toRef, pickImage, hsvToRgb } from "./lib-image-utils.js";
-import { runShaderOnPngBuffer } from "./lib-shader-utils.js";
-import { tagAsHybrid } from "@nodetool-ai/nodes-utils";
+import { pickImage, hsvToRgb } from "./lib-image-utils.js";
+import { runShaderNode } from "./lib-shader-utils.js";
+import { tagAsHybrid, tagAsContentCard } from "@nodetool-ai/nodes-utils";
 
 function num(value: unknown, fallback: number): number {
   const n = Number(value);
@@ -94,21 +94,20 @@ function createColorGradingNode(desc: Desc): NodeClass {
       const props = this.serialize() as Record<string, unknown>;
 
       const baseObj = pickImage(props, props);
-      const baseBytes = await decodeImage(baseObj, context);
-      if (!baseBytes) {
-        return { output: baseObj ?? {} };
-      }
-      const bytes = new Uint8Array(baseBytes);
-      const emit = (png: Uint8Array) => ({
-        output: toRef(Buffer.from(png), baseObj)
-      });
+      // Emit raw-RGBA (`runShaderNode`) instead of re-encoding to PNG at every
+      // node. Chained shader nodes read it via `decodeRgba`'s raw passthrough,
+      // so the pipeline stays in raw pixels — the PNG encode happens once, at
+      // the display/save boundary, not on every hop (the round-trip that made a
+      // Curves→BrightnessContrast drag slow). `runShaderNode` no-ops to an empty
+      // image when the source is missing, so no explicit empty guard is needed.
+      const emit = (output: unknown) => ({ output });
 
       if (t.endsWith(".ColorBalance")) {
         return emit(
-          await runShaderOnPngBuffer(
+          await runShaderNode(
             colorColorBalanceV1,
             { temperature: num(props.temperature, 0), tint: num(props.tint, 0) },
-            bytes,
+            baseObj,
             {},
             context
           )
@@ -120,7 +119,7 @@ function createColorGradingNode(desc: Desc): NodeClass {
       // collapses to a pure `rgb * 2^exposure`.
       if (t.endsWith(".Exposure")) {
         return emit(
-          await runShaderOnPngBuffer(
+          await runShaderNode(
             colorExposureToneV1,
             {
               exposure: num(props.exposure, 0),
@@ -130,7 +129,7 @@ function createColorGradingNode(desc: Desc): NodeClass {
               whites: num(props.whites, 0),
               blacks: num(props.blacks, 0)
             },
-            bytes,
+            baseObj,
             {},
             context
           )
@@ -143,14 +142,14 @@ function createColorGradingNode(desc: Desc): NodeClass {
         const saturation = num(props.saturation, 0);
         const vibrance = num(props.vibrance, 0);
         return emit(
-          await runShaderOnPngBuffer(
+          await runShaderNode(
             colorHsbV1,
             {
               hue: 0,
               saturation: 1 + saturation + vibrance * 0.5,
               brightness: 1
             },
-            bytes,
+            baseObj,
             {},
             context
           )
@@ -159,7 +158,7 @@ function createColorGradingNode(desc: Desc): NodeClass {
 
       if (t.endsWith(".LiftGammaGain")) {
         return emit(
-          await runShaderOnPngBuffer(
+          await runShaderNode(
             colorLiftGammaGainV1,
             {
               liftR: num(props.lift_r, 0),
@@ -175,7 +174,7 @@ function createColorGradingNode(desc: Desc): NodeClass {
               gainB: num(props.gain_b, 1),
               gainMaster: num(props.gain_master, 1)
             },
-            bytes,
+            baseObj,
             {},
             context
           )
@@ -184,7 +183,7 @@ function createColorGradingNode(desc: Desc): NodeClass {
 
       if (t.endsWith(".CDL")) {
         return emit(
-          await runShaderOnPngBuffer(
+          await runShaderNode(
             colorCdlV1,
             {
               slopeR: num(props.slope_r, 1),
@@ -198,7 +197,7 @@ function createColorGradingNode(desc: Desc): NodeClass {
               powerB: num(props.power_b, 1),
               saturation: num(props.saturation, 1)
             },
-            bytes,
+            baseObj,
             {},
             context
           )
@@ -207,7 +206,7 @@ function createColorGradingNode(desc: Desc): NodeClass {
 
       if (t.endsWith(".Curves")) {
         return emit(
-          await runShaderOnPngBuffer(
+          await runShaderNode(
             colorCurvesV1,
             {
               blackPoint: num(props.black_point, 0),
@@ -219,7 +218,7 @@ function createColorGradingNode(desc: Desc): NodeClass {
               greenMidtones: num(props.green_midtones, 0),
               blueMidtones: num(props.blue_midtones, 0)
             },
-            bytes,
+            baseObj,
             {},
             context
           )
@@ -232,7 +231,7 @@ function createColorGradingNode(desc: Desc): NodeClass {
         const colorRange = String(props.color_range ?? "all").toUpperCase();
         const [lo, hi] = HUE_RANGES[colorRange] ?? HUE_RANGES.ALL;
         return emit(
-          await runShaderOnPngBuffer(
+          await runShaderNode(
             colorHslAdjustV1,
             {
               hueShift: num(props.hue_shift, 0),
@@ -242,7 +241,7 @@ function createColorGradingNode(desc: Desc): NodeClass {
               rangeHi: hi,
               useRange: colorRange === "ALL" ? 0 : 1
             },
-            bytes,
+            baseObj,
             {},
             context
           )
@@ -255,7 +254,7 @@ function createColorGradingNode(desc: Desc): NodeClass {
         const [sr, sg, sb] = hsvToRgb(num(props.shadow_hue, 200) / 360, 1, 1);
         const [hr, hg, hb] = hsvToRgb(num(props.highlight_hue, 40) / 360, 1, 1);
         return emit(
-          await runShaderOnPngBuffer(
+          await runShaderNode(
             colorSplitToningV1,
             {
               shadowColor: d.vec3f(sr, sg, sb),
@@ -264,7 +263,7 @@ function createColorGradingNode(desc: Desc): NodeClass {
               highlightSat: num(props.highlight_saturation, 0.3),
               balance: num(props.balance, 0)
             },
-            bytes,
+            baseObj,
             {},
             context
           )
@@ -275,7 +274,7 @@ function createColorGradingNode(desc: Desc): NodeClass {
         const preset = String(props.preset ?? "teal_orange").toUpperCase();
         const p = FILM_PRESETS[preset] ?? FILM_PRESETS.TEAL_ORANGE;
         return emit(
-          await runShaderOnPngBuffer(
+          await runShaderNode(
             colorFilmLookV1,
             {
               shadow: d.vec3f(p.shadow[0], p.shadow[1], p.shadow[2]),
@@ -285,7 +284,7 @@ function createColorGradingNode(desc: Desc): NodeClass {
               fade: p.fade,
               intensity: num(props.intensity, 1)
             },
-            bytes,
+            baseObj,
             {},
             context
           )
@@ -298,14 +297,14 @@ function createColorGradingNode(desc: Desc): NodeClass {
         const midpoint = num(props.midpoint, 0.5);
         const feather = Math.max(0.01, num(props.feather, 0.4));
         return emit(
-          await runShaderOnPngBuffer(
+          await runShaderNode(
             vignetteV1,
             {
               intensity: num(props.amount, 0.5),
               radius: 1 - midpoint,
               softness: feather
             },
-            bytes,
+            baseObj,
             {},
             context
           )
@@ -313,7 +312,7 @@ function createColorGradingNode(desc: Desc): NodeClass {
       }
 
       // Unknown grade type — pass the source through unchanged.
-      return { output: toRef(Buffer.from(bytes), baseObj) };
+      return { output: baseObj ?? {} };
     }
   };
 
@@ -1243,5 +1242,5 @@ const DESCRIPTORS: readonly Desc[] = [
 ];
 
 export const LIB_IMAGE_COLOR_GRADING_NODES: readonly NodeClass[] = tagAsHybrid(
-  DESCRIPTORS.map(createColorGradingNode)
+  tagAsContentCard(DESCRIPTORS.map(createColorGradingNode))
 );
