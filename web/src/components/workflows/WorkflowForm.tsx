@@ -61,22 +61,17 @@ const styles = (theme: Theme) =>
       marginBottom: theme.spacing(2)
     },
     
-    // Form controls — both FormControl and TextField
+    // Form controls — both FormControl and TextField. Spacing only; the input
+    // and its floating label are owned by the ui_primitives (TextInput,
+    // SelectField, AutocompleteTagInput) — don't restyle the label here or it
+    // breaks the resting-label-as-placeholder morph.
     ".MuiFormControl-root, .MuiTextField-root": {
       marginBottom: theme.spacing(2),
       "&:last-child": {
         marginBottom: 0
       }
     },
-    
-    ".MuiFormLabel-root": {
-      fontSize: theme.fontSizeSmall,
-      fontWeight: 500,
-      color: theme.vars.palette.grey[200],
-      marginBottom: theme.spacing(1),
-      display: "block"
-    },
-    
+
     ".MuiOutlinedInput-root": {
       backgroundColor: theme.vars.palette.grey[900],
       borderRadius: "var(--rounded-md)",
@@ -94,11 +89,12 @@ const styles = (theme: Theme) =>
       }
     },
     
+    // Only the dark-section essentials: brand font + light text for contrast on
+    // the grey[900] field. Size and vertical padding stay at the primitive /
+    // MUI defaults so the floating label centres correctly.
     ".MuiOutlinedInput-input": {
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeNormal,
-      color: theme.vars.palette.grey[0],
-      padding: "10px 12px"
+      color: theme.vars.palette.grey[0]
     },
     
     ".MuiFormHelperText-root": {
