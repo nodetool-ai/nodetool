@@ -35,6 +35,7 @@ import {
   JobUpdate,
   LanguageModel,
   LlamaModel,
+  LLMCallUpdate,
   LogUpdate,
   Message as ProtocolMessage,
   MessageAudioContent,
@@ -140,6 +141,7 @@ export type { JobResponse };
 export type { JobUpdate };
 export type { LanguageModel };
 export type { LlamaModel };
+export type { LLMCallUpdate };
 export type { LogUpdate };
 /**
  * Chat permission mode (per-thread). Sent on every outgoing chat message.
