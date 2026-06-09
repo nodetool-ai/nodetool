@@ -292,6 +292,22 @@ describe("WorkerManager — provision", () => {
     expect(instance.token).toBe(spec.token);
   });
 
+  it("normalizes the legacy worker image name at provision time", async () => {
+    const { manager, provider } = makeManager();
+    // A profile saved before the image rename carries the non-existent
+    // ghcr.io/nodetool-ai/worker package, which RunPod can't pull.
+    await manager.createProfile({
+      ...PROFILE_INPUT,
+      image: "ghcr.io/nodetool-ai/worker:latest"
+    });
+
+    await manager.provision("hf-a40");
+
+    expect(provider.provisioned[0].image).toBe(
+      "ghcr.io/nodetool-ai/nodetool-worker:latest"
+    );
+  });
+
   it("does not generate a token when the policy is not 'generate'", async () => {
     const { manager, provider } = makeManager();
     await manager.createProfile({ ...PROFILE_INPUT, token_policy: "fixed" });

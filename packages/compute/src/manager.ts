@@ -511,6 +511,21 @@ export class WorkerManager {
   }
 }
 
+/**
+ * Repair the legacy worker image name. Early profiles were saved with
+ * `ghcr.io/nodetool-ai/worker`, a GHCR package that never existed — RunPod
+ * fails the pull with "denied". The real image (built from nodetool-core) is
+ * `ghcr.io/nodetool-ai/nodetool-worker`. Normalizing at provision time fixes
+ * any already-stored profile without a migration or a UI rebuild. The search
+ * string is NOT a substring of the correct name, so this is idempotent.
+ */
+function normalizeWorkerImage(image: string): string {
+  return image.replace(
+    /^ghcr\.io\/nodetool-ai\/worker(?=[:@]|$)/,
+    "ghcr.io/nodetool-ai/nodetool-worker"
+  );
+}
+
 /** Build a provision spec from a profile's declarative fields. */
 function specFromProfile(
   profile: WorkerProfile,
@@ -520,7 +535,7 @@ function specFromProfile(
   const spec = profile.spec ?? {};
   return {
     name: profile.name,
-    image: profile.image,
+    image: normalizeWorkerImage(profile.image),
     target,
     gpu: typeof spec.gpu === "string" ? spec.gpu : undefined,
     vcpu: typeof spec.vcpu === "number" ? spec.vcpu : undefined,
