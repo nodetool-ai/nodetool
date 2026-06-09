@@ -77,8 +77,8 @@ export interface AgentInputs {
   system?: Connectable<string>;
   prompt?: Connectable<string>;
   tools?: Connectable<unknown[]>;
-  image?: Connectable<ImageRef>;
-  audio?: Connectable<AudioRef>;
+  image?: Connectable<ImageRef[]>;
+  audio?: Connectable<AudioRef[]>;
   history?: Connectable<unknown[]>;
   thread_id?: Connectable<string>;
   max_tokens?: Connectable<number>;
@@ -235,8 +235,8 @@ export function emailAgent(inputs: EmailAgentInputs): DslNode<EmailAgentOutputs,
 // FFmpeg Agent — nodetool.agents.FfmpegAgent
 export interface FfmpegAgentInputs {
   model?: Connectable<unknown>;
-  audio?: Connectable<AudioRef>;
-  video?: Connectable<VideoRef>;
+  audio?: Connectable<AudioRef[]>;
+  video?: Connectable<VideoRef[]>;
   prompt?: Connectable<string>;
   timeout_seconds?: Connectable<number>;
   max_output_chars?: Connectable<number>;
@@ -320,7 +320,7 @@ export function httpApiAgent(inputs: HttpApiAgentInputs): DslNode<HttpApiAgentOu
 // Image Agent — nodetool.agents.ImageAgent
 export interface ImageAgentInputs {
   model?: Connectable<unknown>;
-  image?: Connectable<ImageRef>;
+  image?: Connectable<ImageRef[]>;
   prompt?: Connectable<string>;
   timeout_seconds?: Connectable<number>;
   max_output_chars?: Connectable<number>;
@@ -338,8 +338,8 @@ export function imageAgent(inputs: ImageAgentInputs): DslNode<ImageAgentOutputs>
 // Media Agent — nodetool.agents.MediaAgent
 export interface MediaAgentInputs {
   model?: Connectable<unknown>;
-  audio?: Connectable<AudioRef>;
-  video?: Connectable<VideoRef>;
+  audio?: Connectable<AudioRef[]>;
+  video?: Connectable<VideoRef[]>;
   prompt?: Connectable<string>;
   timeout_seconds?: Connectable<number>;
   max_output_chars?: Connectable<number>;

@@ -54,7 +54,7 @@ export interface TimelineInstance {
   playback: TimelinePlaybackStoreApi;
 }
 
-export const createTimelineInstance = (): TimelineInstance => ({
+const createTimelineInstance = (): TimelineInstance => ({
   doc: createTimelineStore(),
   ui: createTimelineUIStore(),
   playback: createTimelinePlaybackStore()
@@ -93,7 +93,7 @@ const __HMR__ =
   process.env.NODE_ENV !== "production" &&
   process.env.NODE_ENV !== "test";
 
-export const TimelineContext: React.Context<TimelineInstance | null> = (() => {
+const TimelineContext: React.Context<TimelineInstance | null> = (() => {
   if (__HMR__ && window.__TIMELINE_CONTEXT__) {
     return window.__TIMELINE_CONTEXT__;
   }
@@ -105,7 +105,7 @@ export const TimelineContext: React.Context<TimelineInstance | null> = (() => {
 })();
 
 /** The instance for the surrounding provider, or the shared default. */
-export const useTimelineInstance = (): TimelineInstance =>
+const useTimelineInstance = (): TimelineInstance =>
   useContext(TimelineContext) ?? getDefaultInstance();
 
 interface TimelineProviderProps {

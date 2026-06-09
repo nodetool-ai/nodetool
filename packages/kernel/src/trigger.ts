@@ -10,6 +10,7 @@
 import { createLogger } from "@nodetool-ai/config";
 import { SuspendableState } from "./suspendable.js";
 
+// Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
 const log = createLogger("nodetool.kernel.trigger");
 
 const DEFAULT_INACTIVITY_TIMEOUT = 300; // 5 minutes
@@ -39,10 +40,7 @@ export class TriggerState extends SuspendableState {
   private _inactivityTimeoutSeconds: number;
   private _lastActivityTime: number | null = null;
   private _eventQueue: Array<Record<string, unknown>> = [];
-  private _eventWaiters: Array<{
-    resolve: (event: Record<string, unknown>) => void;
-    reject: (error: Error) => void;
-  }> = [];
+  private _eventWaiters: Array<(event: Record<string, unknown>) => void> = [];
 
   constructor(nodeId: string, inactivityTimeout?: number) {
     super(nodeId);
@@ -97,24 +95,18 @@ export class TriggerState extends SuspendableState {
 
     // Wait for an event with timeout
     return new Promise<Record<string, unknown>>((resolve, reject) => {
+      const waiter = (event: Record<string, unknown>) => {
+        clearTimeout(timer);
+        this._updateActivityTime();
+        resolve(event);
+      };
       const timer = setTimeout(() => {
-        // Remove this waiter
-        const idx = this._eventWaiters.findIndex((w) => w.resolve === resolve);
-        if (idx !== -1) this._eventWaiters.splice(idx, 1);
+        // Remove this waiter so a later event is queued, not lost on a dead promise.
+        this._eventWaiters = this._eventWaiters.filter((w) => w !== waiter);
         reject(new TriggerInactivityTimeout(timeout));
       }, timeout * 1000);
 
-      this._eventWaiters.push({
-        resolve: (event) => {
-          clearTimeout(timer);
-          this._updateActivityTime();
-          resolve(event);
-        },
-        reject: (err) => {
-          clearTimeout(timer);
-          reject(err);
-        }
-      });
+      this._eventWaiters.push(waiter);
     });
   }
 
@@ -126,12 +118,13 @@ export class TriggerState extends SuspendableState {
     this._updateActivityTime();
 
     if (this._eventWaiters.length > 0) {
-      const waiter = this._eventWaiters.shift()!;
-      waiter.resolve(eventData);
+      const resolve = this._eventWaiters.shift()!;
+      resolve(eventData);
     } else {
       this._eventQueue.push(eventData);
     }
 
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
     log.info("Trigger node received external event", {
       keys: Object.keys(eventData)
     });
@@ -158,6 +151,7 @@ export class TriggerState extends SuspendableState {
       inactivity_timeout_seconds: this._inactivityTimeoutSeconds
     };
 
+    // Stryker disable next-line ConditionalExpression: forcing the guard true is equivalent — Object.assign(state, undefined) is a no-op, so skipping vs. assigning undefined are indistinguishable
     if (additionalState) {
       Object.assign(state, additionalState);
     }

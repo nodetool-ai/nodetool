@@ -1,5 +1,5 @@
 import useResultsStore, { hashKey } from "../ResultsStore";
-import { PlanningUpdate, Task, ToolCallUpdate } from "../ApiTypes";
+import { PlanningUpdate, ProviderCost, Task, ToolCallUpdate } from "../ApiTypes";
 
 describe("ResultsStore", () => {
   const workflowId1 = "workflow-1";
@@ -11,7 +11,6 @@ describe("ResultsStore", () => {
 
   beforeEach(() => {
     useResultsStore.setState({
-      results: {},
       outputResults: {},
       progress: {},
       edges: {},
@@ -28,83 +27,6 @@ describe("ResultsStore", () => {
       expect(hashKey("workflow-123", "job-9", "node-abc")).toBe(
         "workflow-123:job-9:node-abc"
       );
-    });
-  });
-
-  describe("results", () => {
-    it("should set result for a node", () => {
-      const result = { data: "test result" };
-      useResultsStore.getState().setResult(workflowId1, jobId1, nodeId1, result);
-
-      expect(useResultsStore.getState().getResult(workflowId1, jobId1, nodeId1)).toEqual(result);
-    });
-
-    it("should set result without appending by default", () => {
-      const result1 = { data: "first" };
-      const result2 = { data: "second" };
-
-      useResultsStore.getState().setResult(workflowId1, jobId1, nodeId1, result1);
-      useResultsStore.getState().setResult(workflowId1, jobId1, nodeId1, result2);
-
-      expect(useResultsStore.getState().getResult(workflowId1, jobId1, nodeId1)).toEqual(result2);
-    });
-
-    it("should append result when append is true and existing result is array", () => {
-      const result1 = { data: "first" };
-      const result2 = { data: "second" };
-
-      useResultsStore.getState().setResult(workflowId1, jobId1, nodeId1, result1);
-      useResultsStore.getState().setResult(workflowId1, jobId1, nodeId1, result2, true);
-
-      expect(useResultsStore.getState().getResult(workflowId1, jobId1, nodeId1)).toEqual([result1, result2]);
-    });
-
-    it("should append result when append is true and existing result is object", () => {
-      const result1 = { data: "first" };
-      const result2 = { data: "second" };
-
-      useResultsStore.getState().setResult(workflowId1, jobId1, nodeId1, result1);
-      useResultsStore.getState().setResult(workflowId1, jobId1, nodeId1, result2, true);
-
-      const stored = useResultsStore.getState().getResult(workflowId1, jobId1, nodeId1);
-      expect(Array.isArray(stored)).toBe(true);
-      expect(stored).toHaveLength(2);
-    });
-
-    it("should return undefined for non-existent result", () => {
-      expect(useResultsStore.getState().getResult(workflowId1, jobId1, nodeId1)).toBeUndefined();
-    });
-
-    it("should isolate results between workflows", () => {
-      const result1 = { data: "result1" };
-      const result2 = { data: "result2" };
-
-      useResultsStore.getState().setResult(workflowId1, jobId1, nodeId1, result1);
-      useResultsStore.getState().setResult(workflowId2, jobId1, nodeId1, result2);
-
-      expect(useResultsStore.getState().getResult(workflowId1, jobId1, nodeId1)).toEqual(result1);
-      expect(useResultsStore.getState().getResult(workflowId2, jobId1, nodeId1)).toEqual(result2);
-    });
-
-    it("should delete result for a node", () => {
-      const result = { data: "test" };
-      useResultsStore.getState().setResult(workflowId1, jobId1, nodeId1, result);
-      expect(useResultsStore.getState().getResult(workflowId1, jobId1, nodeId1)).toEqual(result);
-
-      useResultsStore.getState().deleteResult(workflowId1, jobId1, nodeId1);
-      expect(useResultsStore.getState().getResult(workflowId1, jobId1, nodeId1)).toBeUndefined();
-    });
-
-    it("should clear all results for a workflow", () => {
-      useResultsStore.getState().setResult(workflowId1, jobId1, nodeId1, { data: "1" });
-      useResultsStore.getState().setResult(workflowId1, jobId1, nodeId2, { data: "2" });
-      useResultsStore.getState().setResult(workflowId2, jobId1, nodeId1, { data: "3" });
-
-      useResultsStore.getState().clearResults(workflowId1);
-
-      expect(useResultsStore.getState().getResult(workflowId1, jobId1, nodeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getResult(workflowId1, jobId1, nodeId2)).toBeUndefined();
-      expect(useResultsStore.getState().getResult(workflowId2, jobId1, nodeId1)).toEqual({ data: "3" });
     });
   });
 
@@ -316,16 +238,22 @@ describe("ResultsStore", () => {
   });
 
   describe("node-specific clearing", () => {
-    it("should clear results only for specified nodes", () => {
-      useResultsStore.getState().setResult(workflowId1, jobId1, nodeId1, "result-1");
-      useResultsStore.getState().setResult(workflowId1, jobId1, nodeId2, "result-2");
-      useResultsStore.getState().setResult(workflowId2, jobId1, nodeId1, "result-other");
+    const cost = (provider: string): ProviderCost => ({
+      provider,
+      amount: 1,
+      unit: "USD"
+    });
+
+    it("should clear provider costs only for specified nodes", () => {
+      useResultsStore.getState().setProviderCost(workflowId1, jobId1, nodeId1, cost("a"));
+      useResultsStore.getState().setProviderCost(workflowId1, jobId1, nodeId2, cost("b"));
+      useResultsStore.getState().setProviderCost(workflowId2, jobId1, nodeId1, cost("c"));
 
       useResultsStore.getState().clearResults(workflowId1, new Set([nodeId1]));
 
-      expect(useResultsStore.getState().getResult(workflowId1, jobId1, nodeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getResult(workflowId1, jobId1, nodeId2)).toBe("result-2");
-      expect(useResultsStore.getState().getResult(workflowId2, jobId1, nodeId1)).toBe("result-other");
+      expect(useResultsStore.getState().getProviderCost(workflowId1, jobId1, nodeId1)).toBeUndefined();
+      expect(useResultsStore.getState().getProviderCost(workflowId1, jobId1, nodeId2)).toEqual(cost("b"));
+      expect(useResultsStore.getState().getProviderCost(workflowId2, jobId1, nodeId1)).toEqual(cost("c"));
     });
 
     it("should clear output results only for specified nodes", () => {
@@ -368,26 +296,26 @@ describe("ResultsStore", () => {
       expect(useResultsStore.getState().getChunk(workflowId1, jobId1, nodeId2)).toBe("chunk-2");
     });
 
-    it("should clear all workflow data when nodeIds is not provided", () => {
-      useResultsStore.getState().setResult(workflowId1, jobId1, nodeId1, "result-1");
-      useResultsStore.getState().setResult(workflowId1, jobId1, nodeId2, "result-2");
+    it("should clear all provider costs for a workflow when nodeIds is not provided", () => {
+      useResultsStore.getState().setProviderCost(workflowId1, jobId1, nodeId1, cost("a"));
+      useResultsStore.getState().setProviderCost(workflowId1, jobId1, nodeId2, cost("b"));
 
       useResultsStore.getState().clearResults(workflowId1);
 
-      expect(useResultsStore.getState().getResult(workflowId1, jobId1, nodeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getResult(workflowId1, jobId1, nodeId2)).toBeUndefined();
+      expect(useResultsStore.getState().getProviderCost(workflowId1, jobId1, nodeId1)).toBeUndefined();
+      expect(useResultsStore.getState().getProviderCost(workflowId1, jobId1, nodeId2)).toBeUndefined();
     });
 
-    it("should handle clearing with multiple node IDs", () => {
-      useResultsStore.getState().setResult(workflowId1, jobId1, nodeId1, "result-1");
-      useResultsStore.getState().setResult(workflowId1, jobId1, nodeId2, "result-2");
-      useResultsStore.getState().setResult(workflowId1, jobId1, "node-3", "result-3");
+    it("should handle clearing provider costs with multiple node IDs", () => {
+      useResultsStore.getState().setProviderCost(workflowId1, jobId1, nodeId1, cost("a"));
+      useResultsStore.getState().setProviderCost(workflowId1, jobId1, nodeId2, cost("b"));
+      useResultsStore.getState().setProviderCost(workflowId1, jobId1, "node-3", cost("c"));
 
       useResultsStore.getState().clearResults(workflowId1, new Set([nodeId1, nodeId2]));
 
-      expect(useResultsStore.getState().getResult(workflowId1, jobId1, nodeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getResult(workflowId1, jobId1, nodeId2)).toBeUndefined();
-      expect(useResultsStore.getState().getResult(workflowId1, jobId1, "node-3")).toBe("result-3");
+      expect(useResultsStore.getState().getProviderCost(workflowId1, jobId1, nodeId1)).toBeUndefined();
+      expect(useResultsStore.getState().getProviderCost(workflowId1, jobId1, nodeId2)).toBeUndefined();
+      expect(useResultsStore.getState().getProviderCost(workflowId1, jobId1, "node-3")).toEqual(cost("c"));
     });
   });
 });

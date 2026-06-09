@@ -23,6 +23,7 @@ import { registerKieNodes } from "@nodetool-ai/kie-nodes";
 import { registerTopazNodes } from "@nodetool-ai/topaz-nodes";
 import { registerReveNodes } from "@nodetool-ai/reve-nodes";
 import { registerAtlasCloudNodes } from "@nodetool-ai/atlascloud-nodes";
+import { registerTogetherNodes } from "@nodetool-ai/together-nodes";
 import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
 import { registerHuggingFaceNodes } from "@nodetool-ai/huggingface-nodes";
 
@@ -66,6 +67,7 @@ export function registerBuiltInNodes(registry: NodeRegistry): void {
   registerTopazNodes(registry);
   registerReveNodes(registry);
   registerAtlasCloudNodes(registry);
+  registerTogetherNodes(registry);
   registerReplicateNodes(registry);
   registerHuggingFaceNodes(registry);
 }

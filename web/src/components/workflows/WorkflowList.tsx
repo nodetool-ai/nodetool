@@ -138,7 +138,8 @@ const WorkflowList = () => {
     if (selectedTags.length > 0) {
       filtered = filtered.filter((workflow) => {
         const workflowTags = workflow.tags || [];
-        return selectedTags.every((tag) => workflowTags.includes(tag));
+        const workflowTagsSet = new Set(workflowTags);
+        return selectedTags.every((tag) => workflowTagsSet.has(tag));
       });
     }
 
@@ -296,8 +297,9 @@ const WorkflowList = () => {
   }, []);
 
   const handleBulkDelete = useCallback(() => {
+    const selectedWorkflowsSet = new Set(selectedWorkflows);
     setWorkflowsToDelete(
-      workflows.filter((w) => selectedWorkflows.includes(w.id))
+      workflows.filter((w) => selectedWorkflowsSet.has(w.id))
     );
     setIsDeleteDialogOpen(true);
   }, [workflows, selectedWorkflows]);

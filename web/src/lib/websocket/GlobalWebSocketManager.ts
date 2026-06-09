@@ -37,7 +37,7 @@ interface RpcResponse extends WebSocketMessage {
 }
 
 function isRpcResponse(msg: WebSocketMessage): msg is RpcResponse {
-  return msg.type === "rpc_response" && typeof (msg as Record<string, unknown>).request_id === "string";
+  return msg.type === "rpc_response" && "request_id" in msg && typeof msg.request_id === "string";
 }
 
 interface GlobalWebSocketEvents {
@@ -267,6 +267,25 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
         );
       }
     });
+  }
+
+  /**
+   * Inject a locally-produced protocol message into the same routing as
+   * server-streamed messages.
+   *
+   * The in-browser workflow runner (for pure-browser sub-graphs) emits the
+   * exact same `ProcessingMessage` shapes the unified WebSocket server sends.
+   * Routing them through here means every subscriber — the canvas, the
+   * results/status/log stores — handles a client-side run identically to a
+   * server run, with no special-casing. This is the seam that lets browser
+   * execution "hook into the same WebSocket protocol stream".
+   */
+  deliverLocal(message: WebSocketMessage): void {
+    this.routeMessage(message);
+    // Mirror the real socket path (wsManager "message" handler), which routes
+    // and then re-emits, so manager-level "message" listeners also see
+    // locally-produced messages.
+    this.emit("message", message);
   }
 
   /**

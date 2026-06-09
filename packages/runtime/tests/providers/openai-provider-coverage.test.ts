@@ -632,7 +632,7 @@ describe("OpenAIProvider – imageToImage", () => {
       { client: { images: { edit } } as any }
     );
 
-    const result = await provider.imageToImage(new Uint8Array([1, 2, 3]), {
+    const result = await provider.imageToImage([new Uint8Array([1, 2, 3])], {
       prompt: "make it red",
       model: { id: "gpt-image-1", name: "GPT Image 1", provider: "openai" }
     });
@@ -647,7 +647,7 @@ describe("OpenAIProvider – imageToImage", () => {
     );
 
     await expect(
-      provider.imageToImage(new Uint8Array(), {
+      provider.imageToImage([new Uint8Array()], {
         prompt: "test",
         model: { id: "m", name: "m", provider: "openai" }
       })
@@ -661,7 +661,7 @@ describe("OpenAIProvider – imageToImage", () => {
     );
 
     await expect(
-      provider.imageToImage(new Uint8Array([1]), {
+      provider.imageToImage([new Uint8Array([1])], {
         prompt: "",
         model: { id: "m", name: "m", provider: "openai" }
       })
@@ -682,7 +682,7 @@ describe("OpenAIProvider – imageToImage", () => {
       { client: { images: { edit } } as any, fetchFn: fetchFn as any }
     );
 
-    const result = await provider.imageToImage(new Uint8Array([1, 2, 3]), {
+    const result = await provider.imageToImage([new Uint8Array([1, 2, 3])], {
       prompt: "edit",
       model: { id: "m", name: "m", provider: "openai" }
     });
@@ -698,7 +698,7 @@ describe("OpenAIProvider – imageToImage", () => {
     );
 
     await expect(
-      provider.imageToImage(new Uint8Array([1]), {
+      provider.imageToImage([new Uint8Array([1])], {
         prompt: "test",
         model: { id: "m", name: "m", provider: "openai" }
       })
@@ -1157,7 +1157,7 @@ describe("OpenAIProvider – imageToVideo", () => {
       { client: mockClient as any }
     );
 
-    const result = await provider.imageToVideo(png, {
+    const result = await provider.imageToVideo([png], {
       prompt: "make it move",
       model: { id: "sora", name: "sora", provider: "openai" }
     });
@@ -1172,7 +1172,7 @@ describe("OpenAIProvider – imageToVideo", () => {
     );
 
     await expect(
-      provider.imageToVideo(new Uint8Array(), {
+      provider.imageToVideo([new Uint8Array()], {
         prompt: "test",
         model: { id: "sora", name: "sora", provider: "openai" }
       })
@@ -1198,7 +1198,7 @@ describe("OpenAIProvider – imageToVideo", () => {
     );
 
     await expect(
-      provider.imageToVideo(png, {
+      provider.imageToVideo([png], {
         prompt: "test",
         model: { id: "sora", name: "sora", provider: "openai" }
       })
@@ -1229,7 +1229,7 @@ describe("OpenAIProvider – imageToVideo", () => {
     );
 
     await expect(
-      provider.imageToVideo(png, {
+      provider.imageToVideo([png], {
         prompt: "test",
         model: { id: "sora", name: "sora", provider: "openai" }
       })
@@ -1261,7 +1261,7 @@ describe("OpenAIProvider – imageToVideo", () => {
       { client: mockClient as any }
     );
 
-    const result = await provider.imageToVideo(png, {
+    const result = await provider.imageToVideo([png], {
       prompt: "test",
       model: { id: "sora", name: "sora", provider: "openai" }
     });

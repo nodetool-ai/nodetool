@@ -9,6 +9,7 @@
     "build": "node ../../scripts/build-typescript-workspace.mjs && node -e \"require('node:fs').mkdirSync('dist/providers',{recursive:true}); require('node:fs').cpSync('src/providers/aki-manifest.json', 'dist/providers/aki-manifest.json')\"",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:mutation": "stryker run",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
@@ -30,6 +31,8 @@
     "ws": "^8.19.0"
   },
   "devDependencies": {
+    "@stryker-mutator/core": "^9.6.1",
+    "@stryker-mutator/vitest-runner": "^9.6.1",
     "@types/node": "^22.0.0",
     "@types/ws": "^8.18.1",
     "typescript": "^5.7.2",
@@ -41,6 +44,18 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./context": {
+      "nodetool-dev": "./src/context.ts",
+      "types": "./dist/context.d.ts",
+      "import": "./dist/context.js",
+      "default": "./dist/context.js"
+    },
+    "./tracing": {
+      "nodetool-dev": "./src/tracing-helpers.ts",
+      "types": "./dist/tracing-helpers.d.ts",
+      "import": "./dist/tracing-helpers.js",
+      "default": "./dist/tracing-helpers.js"
     }
   },
   "license": "MIT",

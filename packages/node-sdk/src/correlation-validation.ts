@@ -10,10 +10,10 @@ export class CorrelationMetadataError extends Error {
   readonly issues: readonly CorrelationValidationIssue[];
 
   constructor(issues: readonly CorrelationValidationIssue[]) {
-    const first = issues[0];
+    const first = issues[0]!;
     const summary =
       issues.length === 1
-        ? `${first?.nodeType}: ${first?.message}`
+        ? `${first.nodeType}: ${first.message}`
         : `${issues.length} correlation metadata issues:\n` +
           issues
             .map(
@@ -108,6 +108,7 @@ export function validateOutputCorrelation(
   // Every declared output must have a correlation entry. A node may opt out
   // of correlation entirely by leaving output_correlation undefined; once it
   // declares any entry it has committed to the per-output contract.
+  // Stryker disable next-line ConditionalExpression,EqualityOperator: the guard only short-circuits an empty set; the loop body is a no-op for size 0, so size > 0 vs size >= 0 vs always-true are indistinguishable (equivalent).
   if (declaredOutputSet.size > 0) {
     for (const handle of declaredOutputSet) {
       if (!(handle in outputCorrelation)) {

@@ -68,4 +68,65 @@ describe("computeDependencyHash", () => {
 
     expect(computeDependencyHash(baseInput)).toBe(expected);
   });
+
+  it("orders object keys by code unit, not locale", () => {
+    // Code-unit order: "Aa" (A=65) < "Z" (90) < "a" (97). `localeCompare`
+    // would interleave case differently and vary by host locale.
+    const input = {
+      workflowId: "w",
+      workflowUpdatedAt: "t",
+      paramOverrides: { a: 2, Z: 1, Aa: 3 },
+      inputAssetHashes: []
+    };
+    const payload =
+      '{"inputAssetHashes":[],"paramOverrides":{"Aa":3,"Z":1,"a":2},"workflowId":"w","workflowUpdatedAt":"t"}';
+    const expected = createHash("sha256")
+      .update(`v1:${payload}`, "utf8")
+      .digest("hex");
+
+    expect(computeDependencyHash(input)).toBe(expected);
+  });
+
+  it("keeps NaN, Infinity, -Infinity and null distinct", () => {
+    const base = {
+      workflowId: "w",
+      workflowUpdatedAt: "t",
+      inputAssetHashes: [] as string[]
+    };
+    const h = (cfg: unknown) =>
+      computeDependencyHash({ ...base, paramOverrides: { cfg } });
+
+    expect(
+      new Set([h(NaN), h(Infinity), h(-Infinity), h(null), h(0)]).size
+    ).toBe(5);
+  });
+
+  it("keeps an undefined member distinct from null and from an absent key", () => {
+    const base = {
+      workflowId: "w",
+      workflowUpdatedAt: "t",
+      inputAssetHashes: [] as string[]
+    };
+    const hUndef = computeDependencyHash({ ...base, paramOverrides: { a: undefined } });
+    const hNull = computeDependencyHash({ ...base, paramOverrides: { a: null } });
+    const hAbsent = computeDependencyHash({ ...base, paramOverrides: {} });
+
+    expect(new Set([hUndef, hNull, hAbsent]).size).toBe(3);
+  });
+
+  it("folds selectedOutputNodeId into the hash when provided", () => {
+    const base = {
+      workflowId: "w",
+      workflowUpdatedAt: "t",
+      paramOverrides: {},
+      inputAssetHashes: [] as string[]
+    };
+
+    expect(computeDependencyHash(base)).not.toBe(
+      computeDependencyHash({ ...base, selectedOutputNodeId: "node-1" })
+    );
+    expect(
+      computeDependencyHash({ ...base, selectedOutputNodeId: "node-1" })
+    ).not.toBe(computeDependencyHash({ ...base, selectedOutputNodeId: "node-2" }));
+  });
 });

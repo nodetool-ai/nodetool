@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  registerComboCallback,
-  unregisterComboCallback
-} from "../stores/KeyPressedStore";
+import { registerComboCallback } from "../stores/KeyPressedStore";
 import { NODE_EDITOR_SHORTCUTS } from "../config/shortcuts";
 import { getIsElectronDetails, isTextInputActive } from "../utils/browser";
 import { getMousePosition } from "../utils/MousePosition";
@@ -696,7 +693,7 @@ export const useNodeEditorShortcuts = (
       return;
     }
 
-    const registered: string[] = [];
+    const disposers: Array<() => void> = [];
 
     NODE_EDITOR_SHORTCUTS.forEach((sc) => {
       if (!sc.registerCombo) {
@@ -721,17 +718,18 @@ export const useNodeEditorShortcuts = (
           .map((k) => k.toLowerCase())
           .sort()
           .join("+");
-        registerComboCallback(normalized, {
-          callback: meta.callback,
-          preventDefault: meta.preventDefault ?? true,
-          active: meta.active ?? true
-        });
-        registered.push(normalized);
+        disposers.push(
+          registerComboCallback(normalized, {
+            callback: meta.callback,
+            preventDefault: meta.preventDefault ?? true,
+            active: meta.active ?? true
+          })
+        );
       });
     });
 
     return () => {
-      registered.forEach((combo) => unregisterComboCallback(combo));
+      disposers.forEach((dispose) => dispose());
     };
     // selectedNodeCount affects active flags for align shortcuts
   }, [active, selectedNodeCount, electronDetails, shortcutMeta]);

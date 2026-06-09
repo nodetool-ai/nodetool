@@ -6,7 +6,12 @@
 
 import { WorkflowRunner } from "@nodetool-ai/kernel";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
-import { ProcessingContext } from "@nodetool-ai/runtime";
+import {
+  ProcessingContext,
+  connectPythonBridgeForGraph,
+  resolvePythonNodeExecutor,
+  type PythonBridgeOptions
+} from "@nodetool-ai/runtime";
 import type {
   NodeDescriptor as GraphNodeDescriptor,
   Edge,
@@ -330,6 +335,13 @@ export type RunOptions = {
    * secret is missing.
    */
   secretResolver?: SecretResolver;
+  /**
+   * Python worker bridge options forwarded to {@link createPythonBridge} when
+   * the graph contains Python nodes. Omit to rely on the environment
+   * (`NODETOOL_WORKER_URL` / `NODETOOL_WORKER_TOKEN`); set `wsUrl`/`workerToken`
+   * here to target a specific remote worker programmatically.
+   */
+  bridgeOptions?: PythonBridgeOptions;
 };
 
 export type WorkflowResult = Record<string, unknown>;
@@ -401,6 +413,21 @@ export async function run(
     // Some environments do not have the Reve node package in a runnable state.
   }
 
+  const hasTsExecutor = (type: string): boolean =>
+    Boolean(opts?.registry?.has(type)) ||
+    NodeRegistry.global.has(type) ||
+    builtinRegistry.has(type);
+
+  // Connect a Python worker bridge only when the graph has a node type no TS
+  // registry can resolve (a candidate Python node). Transport is chosen by
+  // NODETOOL_WORKER_URL (remote) vs unset (local stdio); see the helper. The
+  // bridge is closed in the finally below.
+  const pythonBridge = await connectPythonBridgeForGraph(
+    wf.nodes,
+    hasTsExecutor,
+    opts?.bridgeOptions
+  );
+
   const resolveExecutor = (node: { id: string; type: string }) => {
     if (opts?.registry?.has(node.type)) {
       return opts.registry.resolve(node);
@@ -411,6 +438,8 @@ export async function run(
     if (builtinRegistry.has(node.type)) {
       return builtinRegistry.resolve(node);
     }
+    const py = resolvePythonNodeExecutor(pythonBridge, node);
+    if (py) return py;
     throw new Error(`Unknown node type: ${node.type}`);
   };
 
@@ -419,7 +448,13 @@ export async function run(
     executionContext: context
   });
 
-  const result = await runner.run({ job_id: jobId }, { nodes, edges });
+  const result = await (async () => {
+    try {
+      return await runner.run({ job_id: jobId }, { nodes, edges });
+    } finally {
+      pythonBridge?.close();
+    }
+  })();
 
   if (result.status === "failed") {
     throw new Error(result.error ?? "Workflow execution failed");

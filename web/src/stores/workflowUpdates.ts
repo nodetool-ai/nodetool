@@ -11,10 +11,13 @@ import {
   OutputUpdate,
   EdgeUpdate,
   LogUpdate,
+  LLMCallUpdate,
   StepResult,
   Message,
   Chunk
 } from "./ApiTypes";
+import useTraceStore, { traceEventId } from "./TraceStore";
+import type { TraceEvent, TraceEventType } from "./TraceStore";
 import useWorkflowRunsStore, { RunState } from "./WorkflowRunsStore";
 import useResultsStore from "./ResultsStore";
 import useStatusStore from "./StatusStore";
@@ -27,6 +30,7 @@ import { useNotificationStore } from "./NotificationStore";
 import { NOTIFICATION_TIMEOUT_JOB_COMPLETED, NOTIFICATION_TIMEOUT_WORKFLOW_SUSPENDED } from "../config/constants";
 import { queryClient } from "../queryClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
+import { preloadBrowserRunner } from "../lib/workflow/browserWorkflowRunner";
 import useExecutionTimeStore from "./ExecutionTimeStore";
 import { NodeStore } from "./NodeStore";
 import { DYNAMIC_KIE_NODE_TYPE } from "../components/node/DynamicKieSchemaNode";
@@ -64,6 +68,38 @@ type WorkflowSubscription = {
 };
 
 const workflowSubscriptions = new Map<string, WorkflowSubscription>();
+
+// The job_id whose run is currently being recorded into the TraceStore. Used to
+// call startRun() exactly once per run (startRun clears prior events), so the
+// trace panel shows a fresh timeline per execution rather than accumulating.
+let traceRunJobId: string | null = null;
+
+/**
+ * Append one event to the global TraceStore (the LLM/agent debug timeline shown
+ * in the bottom "Debug" → Trace panel). No-ops unless a run is being recorded.
+ * relativeMs is measured from the run's start so events line up on a shared axis.
+ */
+const appendTrace = (
+  type: TraceEventType,
+  summary: string,
+  detail: unknown,
+  meta?: Pick<TraceEvent, "nodeId" | "nodeName" | "nodeType">
+): void => {
+  const store = useTraceStore.getState();
+  if (!store.isRecording || !store.runStartTime) {
+    return;
+  }
+  const now = Date.now();
+  store.append({
+    id: traceEventId(),
+    timestamp: new Date(now).toISOString(),
+    relativeMs: now - new Date(store.runStartTime).getTime(),
+    type,
+    summary,
+    detail,
+    ...meta
+  });
+};
 
 export const mergeNodeUpdateProperties = ({
   updateProperties,
@@ -135,6 +171,11 @@ export const subscribeToWorkflowUpdates = (
   if (existing) {
     existing.unsubscribe();
   }
+
+  // Warm the in-browser workflow runner so pure-browser sub-graphs execute
+  // client-side from the first run instead of falling back to the server while
+  // the chunk loads. No-op until a browser sub-graph is actually run.
+  preloadBrowserRunner();
 
   const unsubscribeWorkflow = globalWebSocketManager.subscribe(
     workflowId,
@@ -227,6 +268,7 @@ export type MsgpackData =
   | OutputUpdate
   | StepResult
   | EdgeUpdate
+  | LLMCallUpdate
   | Notification;
 
 export const handleUpdate = (
@@ -236,8 +278,8 @@ export const handleUpdate = (
   getNodeStore: (workflowId: string) => NodeStore | undefined
 ) => {
   const runner = runnerStore.getState();
-  const setResult = useResultsStore.getState().setResult;
   const setProviderCost = useResultsStore.getState().setProviderCost;
+  const upsertLiveGeneration = useResultsStore.getState().upsertLiveGeneration;
   const setOutputResult = useResultsStore.getState().setOutputResult;
   const setStatus = useStatusStore.getState().setStatus;
   const getStatus = useStatusStore.getState().getStatus;
@@ -247,6 +289,7 @@ export const handleUpdate = (
   const addChunk = useResultsStore.getState().addChunk;
   const setTask = useResultsStore.getState().setTask;
   const setToolCall = useResultsStore.getState().setToolCall;
+  const appendToolResult = useResultsStore.getState().appendToolResult;
   const setPlanningUpdate = useResultsStore.getState().setPlanningUpdate;
   const setEdge = useResultsStore.getState().setEdge;
   const addNotification = useNotificationStore.getState().addNotification;
@@ -308,12 +351,24 @@ export const handleUpdate = (
     if (data.node_id && messageJobId) {
       setToolCall(workflow.id, messageJobId, data.node_id, data);
     }
+    appendTrace("tool_call", data.message || `Tool: ${data.name}`, data, {
+      nodeId: data.node_id ?? undefined
+    });
   }
 
   if (data.type === "tool_result_update") {
+    // A tool result is an artifact of an agent's run, not its output value.
+    // It accumulates in the toolResults channel (read by the agent tool log),
+    // never in the output/value paths.
     if (data.node_id && messageJobId) {
-      setOutputResult(workflow.id, messageJobId, data.node_id, data.result, true);
+      appendToolResult(workflow.id, messageJobId, data.node_id, data.result);
     }
+    appendTrace(
+      "tool_result",
+      `${data.name ?? "Tool"} result${data.is_error ? " (error)" : ""}`,
+      data,
+      { nodeId: data.node_id ?? undefined }
+    );
   }
 
   if (data.type === "task_update") {
@@ -324,38 +379,29 @@ export const handleUpdate = (
     }
   }
 
+  if (data.type === "llm_call") {
+    const tokensIn = data.tokens_input ?? 0;
+    const tokensOut = data.tokens_output ?? 0;
+    const duration =
+      data.duration_ms != null ? ` (${data.duration_ms}ms)` : "";
+    appendTrace(
+      "llm_call",
+      `${data.provider}/${data.model}: ${tokensIn}→${tokensOut} tok${duration}${
+        data.error ? " — error" : ""
+      }`,
+      data,
+      { nodeId: data.node_id, nodeName: data.node_name ?? undefined }
+    );
+  }
+
   if (data.type === "output_update") {
     const normalizedValue = normalizeOutputUpdateValue(data);
-    // eslint-disable-next-line no-console
-    console.log(
-      "[debug:gen] output_update",
-      {
-        nodeId: data.node_id,
-        outputName: data.output_name,
-        outputType: data.output_type,
-        valueIsArray: Array.isArray(data.value),
-        normalizedIsArray: Array.isArray(normalizedValue),
-        normalizedPreview:
-          typeof normalizedValue === "object" && normalizedValue !== null
-            ? Object.keys(normalizedValue as Record<string, unknown>)
-            : typeof normalizedValue
-      }
-    );
+    // output_update feeds the output-node stream buffer only. It does NOT
+    // create or modify a live generation — generations are driven solely by
+    // node_update (see the live-generations branch below).
     if (messageJobId) {
       setOutputResult(workflow.id, messageJobId, data.node_id, normalizedValue, true);
     }
-    // eslint-disable-next-line no-console
-    console.log(
-      "[debug:gen] outputResults after append",
-      {
-        nodeId: data.node_id,
-        accumulated: messageJobId
-          ? useResultsStore
-              .getState()
-              .getOutputResult(workflow.id, messageJobId, data.node_id)
-          : undefined
-      }
-    );
 
     appendLog({
       workflowId: workflow.id,
@@ -369,6 +415,13 @@ export const handleUpdate = (
       severity: "info",
       timestamp: Date.now()
     });
+
+    appendTrace(
+      "output",
+      `${data.node_name || data.node_id} → ${data.output_name}`,
+      data,
+      { nodeId: data.node_id, nodeName: data.node_name }
+    );
   }
 
   if (data.type === "chunk") {
@@ -416,6 +469,13 @@ export const handleUpdate = (
       // A new run starts: clear any prior pre-flight validation highlights
       // so stale red outlines don't linger after the user fixes them.
       usePropertyValidationStore.getState().clearWorkflow(workflow.id);
+      // Begin a fresh LLM/agent trace timeline for the runner's own run. Guarded
+      // by job_id so startRun (which clears prior events) fires once per run, not
+      // on every running/queued heartbeat.
+      if (isRunnerJob && job.job_id !== traceRunJobId) {
+        traceRunJobId = job.job_id ?? null;
+        useTraceStore.getState().startRun(new Date().toISOString());
+      }
     } else if (job.status === "suspended") {
       newState = "suspended";
     } else if (job.status === "paused") {
@@ -655,6 +715,13 @@ export const handleUpdate = (
         endExecution(workflow.id, jobId, update.node_id);
         setStatus(workflow.id, jobId, update.node_id, update.status);
         setError(workflow.id, jobId, update.node_id, normalizedNodeError);
+        upsertLiveGeneration(workflow.id, update.node_id, jobId, {
+          status: "error",
+          error:
+            typeof update.error === "string"
+              ? update.error
+              : String(normalizedNodeError)
+        });
       }
       appendLog({
         workflowId: workflow.id,
@@ -665,6 +732,16 @@ export const handleUpdate = (
         severity: "error",
         timestamp: Date.now()
       });
+      appendTrace(
+        "node_error",
+        `${update.node_name || update.node_id} error`,
+        update,
+        {
+          nodeId: update.node_id,
+          nodeName: update.node_name,
+          nodeType: update.node_type
+        }
+      );
     } else {
       runnerStore.setState({
         statusMessage: `${update.node_name} ${update.status}`
@@ -687,6 +764,16 @@ export const handleUpdate = (
           previousStatus !== "booting"
         ) {
           startExecution(workflow.id, jobId, update.node_id);
+          appendTrace(
+            "node_start",
+            `${update.node_name || update.node_id}`,
+            update,
+            {
+              nodeId: update.node_id,
+              nodeName: update.node_name,
+              nodeType: update.node_type
+            }
+          );
         } else if (isFinishing) {
           endExecution(workflow.id, jobId, update.node_id);
         }
@@ -703,9 +790,40 @@ export const handleUpdate = (
         );
       }
 
-      // Store result if present
-      if (update.result && jobId) {
-        setResult(workflow.id, jobId, update.node_id, update.result);
+      if (jobId) {
+        if (
+          update.status === "running" ||
+          update.status === "starting" ||
+          update.status === "booting"
+        ) {
+          upsertLiveGeneration(workflow.id, update.node_id, jobId, {
+            createdAt: Date.now(),
+            status: "running"
+          });
+        } else if (update.status === "completed") {
+          const raw = update.result;
+          const outputs: Record<string, unknown> =
+            typeof raw === "object" && raw !== null && !Array.isArray(raw)
+              ? (raw as Record<string, unknown>)
+              : raw !== undefined && raw !== null
+                ? { output: raw }
+                : {};
+          upsertLiveGeneration(workflow.id, update.node_id, jobId, {
+            status: "completed",
+            outputs,
+            cost: update.provider_cost ?? undefined
+          });
+          appendTrace(
+            "node_complete",
+            `${update.node_name || update.node_id}`,
+            update,
+            {
+              nodeId: update.node_id,
+              nodeName: update.node_name,
+              nodeType: update.node_type
+            }
+          );
+        }
       }
     }
 

@@ -29,6 +29,7 @@ import type {
   MessageContent,
   MessageImageContent,
   MessageTextContent,
+  ProviderId,
   ProviderStreamItem,
   ProviderTool,
   StreamingAudioChunk,
@@ -43,6 +44,13 @@ interface OpenAIProviderOptions {
   client?: OpenAI;
   clientFactory?: (apiKey: string) => OpenAI;
   fetchFn?: typeof fetch;
+  /**
+   * Provider id reported by this instance. Defaults to `"openai"`.
+   * OpenAI-compatible subclasses (gateways pointed at a different base URL)
+   * pass their own id so the readonly `provider` field is set via the base
+   * constructor rather than reassigned afterwards.
+   */
+  providerId?: ProviderId;
 }
 
 interface MutableToolCall {
@@ -137,7 +145,7 @@ export class OpenAIProvider extends BaseProvider {
     secrets: { OPENAI_API_KEY?: string },
     options: OpenAIProviderOptions = {}
   ) {
-    super("openai");
+    super(options.providerId ?? "openai");
 
     const apiKey = secrets.OPENAI_API_KEY;
     if (!apiKey) {
@@ -947,10 +955,11 @@ export class OpenAIProvider extends BaseProvider {
   }
 
   async imageToImage(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Uint8Array> {
-    if (!image || image.length === 0) {
+    const sources = images.filter((b) => b && b.length > 0);
+    if (sources.length === 0) {
       throw new Error("image must not be empty.");
     }
     if (!params.prompt) {
@@ -961,11 +970,17 @@ export class OpenAIProvider extends BaseProvider {
       ? `${params.prompt.trim()}\n\nDo not include: ${params.negativePrompt.trim()}`
       : params.prompt;
 
+    // gpt-image-* accepts multiple reference images as an array; fall back to a
+    // single file for one input so older edit models keep working.
+    const imageFiles = await Promise.all(
+      sources.map((b, i) =>
+        toFile(Buffer.from(b), `image_${i}.png`, { type: "image/png" })
+      )
+    );
+
     const request: Record<string, unknown> = {
       model: params.model.id,
-      image: await toFile(Buffer.from(image), "image.png", {
-        type: "image/png"
-      }),
+      image: imageFiles.length === 1 ? imageFiles[0] : imageFiles,
       prompt
     };
 
@@ -1229,9 +1244,10 @@ export class OpenAIProvider extends BaseProvider {
   }
 
   async imageToVideo(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToVideoParams
   ): Promise<Uint8Array> {
+    const image = images[0];
     if (!image || image.length === 0) {
       throw new Error("The input image cannot be empty.");
     }

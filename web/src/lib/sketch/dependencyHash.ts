@@ -25,17 +25,34 @@ export interface LayerDependencyHashInput {
 
 const HASH_VERSION_PREFIX = "v1c:";
 
+/**
+ * Order strings by UTF-16 code unit. `localeCompare` is locale/ICU-dependent,
+ * which would make the digest differ across hosts for the same input — fatal
+ * for a content hash. Code-unit ordering is deterministic everywhere. Must
+ * match the server canonicalization in `@nodetool-ai/image-editor`.
+ */
+function byCodeUnit(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 function stableSerialize(value: unknown): string {
+  if (value === undefined) {
+    return "undefined";
+  }
   if (Array.isArray(value)) {
     return `[${value.map((item) => stableSerialize(item)).join(",")}]`;
   }
   if (value !== null && typeof value === "object") {
     const entries = Object.entries(value as Record<string, unknown>).sort(
-      ([leftKey], [rightKey]) => leftKey.localeCompare(rightKey)
+      ([leftKey], [rightKey]) => byCodeUnit(leftKey, rightKey)
     );
     return `{${entries
       .map(([key, entryValue]) => `${JSON.stringify(key)}:${stableSerialize(entryValue)}`)
       .join(",")}}`;
+  }
+  if (typeof value === "number" && !Number.isFinite(value)) {
+    // JSON.stringify collapses NaN / ±Infinity to "null"; keep them distinct.
+    return Number.isNaN(value) ? "NaN" : value > 0 ? "Infinity" : "-Infinity";
   }
   return JSON.stringify(value);
 }
@@ -74,17 +91,13 @@ function fnv1a64Hex(payload: string): string {
 export function computeLayerDependencyHash(
   input: LayerDependencyHashInput
 ): string {
+  // Object keys are sorted canonically by `stableSerialize`, so paramOverrides
+  // needs no pre-sort. Array order *is* significant, so asset hashes are sorted.
   const normalized = {
     workflowId: input.workflowId,
     workflowUpdatedAt: input.workflowUpdatedAt,
-    paramOverrides: Object.fromEntries(
-      Object.entries(input.paramOverrides).sort(([left], [right]) =>
-        left.localeCompare(right)
-      )
-    ),
-    inputAssetHashes: [...input.inputAssetHashes].sort((left, right) =>
-      left.localeCompare(right)
-    )
+    paramOverrides: input.paramOverrides,
+    inputAssetHashes: [...input.inputAssetHashes].sort(byCodeUnit)
   };
   const payload = `${HASH_VERSION_PREFIX}${stableSerialize(normalized)}`;
   return fnv1a64Hex(payload);

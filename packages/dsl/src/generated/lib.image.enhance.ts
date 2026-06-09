@@ -32,48 +32,6 @@ export function autoContrast(inputs: AutoContrastInputs): DslNode<AutoContrastOu
   return createNode("lib.image.enhance.AutoContrast", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
-// Brightness — lib.image.enhance.Brightness
-export interface BrightnessInputs {
-  image?: Connectable<ImageRef>;
-  factor?: Connectable<number>;
-}
-
-export interface BrightnessOutputs {
-  output: ImageRef;
-}
-
-export function brightness(inputs: BrightnessInputs): DslNode<BrightnessOutputs, "output"> {
-  return createNode("lib.image.enhance.Brightness", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
-}
-
-// Color — lib.image.enhance.Color
-export interface ColorInputs {
-  image?: Connectable<ImageRef>;
-  factor?: Connectable<number>;
-}
-
-export interface ColorOutputs {
-  output: ImageRef;
-}
-
-export function color(inputs: ColorInputs): DslNode<ColorOutputs, "output"> {
-  return createNode("lib.image.enhance.Color", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
-}
-
-// Contrast — lib.image.enhance.Contrast
-export interface ContrastInputs {
-  image?: Connectable<ImageRef>;
-  factor?: Connectable<number>;
-}
-
-export interface ContrastOutputs {
-  output: ImageRef;
-}
-
-export function contrast(inputs: ContrastInputs): DslNode<ContrastOutputs, "output"> {
-  return createNode("lib.image.enhance.Contrast", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
-}
-
 // Detail — lib.image.enhance.Detail
 export interface DetailInputs {
   image?: Connectable<ImageRef>;
@@ -126,47 +84,4 @@ export interface RankFilterOutputs {
 
 export function rankFilter(inputs: RankFilterInputs): DslNode<RankFilterOutputs, "output"> {
   return createNode("lib.image.enhance.RankFilter", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
-}
-
-// Sharpen — lib.image.enhance.Sharpen
-export interface SharpenInputs {
-  image?: Connectable<ImageRef>;
-}
-
-export interface SharpenOutputs {
-  output: ImageRef;
-}
-
-export function sharpen(inputs: SharpenInputs): DslNode<SharpenOutputs, "output"> {
-  return createNode("lib.image.enhance.Sharpen", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
-}
-
-// Sharpness — lib.image.enhance.Sharpness
-export interface SharpnessInputs {
-  image?: Connectable<ImageRef>;
-  factor?: Connectable<number>;
-}
-
-export interface SharpnessOutputs {
-  output: ImageRef;
-}
-
-export function sharpness(inputs: SharpnessInputs): DslNode<SharpnessOutputs, "output"> {
-  return createNode("lib.image.enhance.Sharpness", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
-}
-
-// Unsharp Mask — lib.image.enhance.UnsharpMask
-export interface UnsharpMaskInputs {
-  image?: Connectable<ImageRef>;
-  radius?: Connectable<number>;
-  percent?: Connectable<number>;
-  threshold?: Connectable<number>;
-}
-
-export interface UnsharpMaskOutputs {
-  output: ImageRef;
-}
-
-export function unsharpMask(inputs: UnsharpMaskInputs): DslNode<UnsharpMaskOutputs, "output"> {
-  return createNode("lib.image.enhance.UnsharpMask", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }

@@ -197,7 +197,7 @@ describe("AkiProvider", () => {
     );
 
     const inputImage = Uint8Array.from([9, 8, 7]);
-    const result = await provider.imageToImage(inputImage, {
+    const result = await provider.imageToImage([inputImage], {
       model: { id: "flux-img2img", name: "FLUX Image to Image", provider: "aki", supportedTasks: ["image_to_image"] },
       prompt: "make it cinematic",
       targetWidth: 512,

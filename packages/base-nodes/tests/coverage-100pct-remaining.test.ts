@@ -1704,16 +1704,15 @@ describe("data.ts uncovered lines", () => {
     expect((result.output as any).rows).toEqual([{ b: 2 }]);
   });
 
-  it("applyFilter catch branch (line 67-68)", async () => {
+  it("applyFilter surfaces invalid conditions instead of silently returning empty", async () => {
     const node = new dataModule.FilterDataframeNode();
-    // A condition that throws inside the Function constructor
+    // An unparseable condition must throw rather than be swallowed to an
+    // empty result (which previously hid filter typos as "no matches").
     node.assign({
       df: [{ a: 1 }, { b: 2 }],
       condition: "throw new Error('boom')"
     });
-    const result = await node.process();
-    // Both rows fail the filter, returning empty
-    expect((result.output as any).rows).toEqual([]);
+    await expect(node.process()).rejects.toThrow();
   });
 
   it("LoadCSVURLNode (lines 211-218)", async () => {

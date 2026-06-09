@@ -35,8 +35,6 @@ interface SearchResultItemProps {
   compact?: boolean;
 }
 
-const MAX_DESCRIPTION_LENGTH = 120;
-
 const searchResultStyles = (theme: Theme, compact: boolean) =>
   css({
     "&.search-result-item": {
@@ -97,6 +95,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         }
       },
       ".result-namespace": {
+        fontFamily: theme.fontFamily2,
         fontSize: "var(--fontSizeSmaller)",
         color: theme.vars.palette.text.secondary,
         textTransform: "uppercase",
@@ -110,6 +109,9 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         color: theme.vars.palette.text.secondary,
         lineHeight: 1.4,
         marginTop: theme.spacing(1),
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
         "& .highlight": {
           color: "var(--palette-primary-main)"
         }
@@ -265,15 +267,6 @@ const SearchResultItem = memo(
         return tags.filter((tag) => tag.toLowerCase().includes(searchLower));
       }, [searchTerm, tags]);
 
-      // Truncate description if too long - memoize
-      const truncatedDescription = useMemo(
-        () =>
-          description.length > MAX_DESCRIPTION_LENGTH
-            ? description.substring(0, MAX_DESCRIPTION_LENGTH) + "..."
-            : description,
-        [description]
-      );
-
       const [isExpanded, setIsExpanded] = useState(false);
 
       const handleClick = useCallback(() => {
@@ -394,22 +387,21 @@ const SearchResultItem = memo(
                 <IconForType
                   iconName={outputType}
                   containerStyle={{
-                    borderRadius: "0 0 3px 0",
                     marginLeft: "0",
                     marginTop: "0"
                   }}
                   bgStyle={{
-                    backgroundColor: theme.vars.palette.grey[900],
+                    backgroundColor: theme.vars.palette.action.hover,
+                    border: `1px solid ${theme.vars.palette.divider}`,
                     margin: "0",
-                    padding: "1px",
-                    borderRadius: "0 0 3px 0",
-                    boxShadow: `inset 1px 1px 2px ${theme.vars.palette.action.disabledBackground}`,
-                    width: "20px",
-                    height: "20px"
+                    padding: "5px",
+                    borderRadius: "var(--rounded-md)",
+                    width: "28px",
+                    height: "28px"
                   }}
                   svgProps={{
-                    width: "15px",
-                    height: "15px"
+                    width: "16px",
+                    height: "16px"
                   }}
                 />
                 <Text className="result-title" component="div">
@@ -473,10 +465,10 @@ const SearchResultItem = memo(
             </div>
           </div>
 
-          {truncatedDescription && (
+          {description && (
             <Text className="result-description" component="div">
               <HighlightText
-                text={truncatedDescription}
+                text={description}
                 query={searchTerm}
                 matchStyle="primary"
               />

@@ -79,6 +79,20 @@ describe("refToBytes", () => {
     expect([...bytes]).toEqual([9, 8, 7]);
   });
 
+  it("resolves an asset:// ref via context.resolveAssetBytes", async () => {
+    const png = Uint8Array.from([137, 80, 78, 71]);
+    const ctx = {
+      storage: { retrieve: vi.fn().mockResolvedValue(null) },
+      resolveAssetBytes: vi.fn().mockResolvedValue({ bytes: png })
+    };
+    const bytes = await refToBytes(
+      { type: "image", uri: "asset://asset-123" },
+      ctx as never
+    );
+    expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://asset-123");
+    expect([...bytes]).toEqual([137, 80, 78, 71]);
+  });
+
   it("throws when neither data nor uri is set", async () => {
     await expect(refToBytes({})).rejects.toThrow("Asset has no data or URI");
   });

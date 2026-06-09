@@ -74,7 +74,10 @@ describe("getNodeInputTypes", () => {
     ];
     const graph = makeGraph(nodes, edges);
     const types = getNodeInputTypes(graph, "dst");
-    expect(types).toEqual({ in: undefined });
+    // toStrictEqual (not toEqual) so the handle key must be PRESENT with an
+    // undefined value — the else branch sets it explicitly.
+    expect(types).toStrictEqual({ in: undefined });
+    expect(Object.prototype.hasOwnProperty.call(types, "in")).toBe(true);
   });
 
   it("returns empty object when node has no incoming edges", () => {
@@ -159,6 +162,44 @@ describe("getDownstreamSubgraph", () => {
 
     // All 4 edges included
     expect(result.edges).toHaveLength(4);
+  });
+
+  it("includes a shared downstream tail edge exactly once", () => {
+    //  A -> B -> D -> E
+    //  A -> C -> D       (D reached by two paths; D -> E must appear once)
+    const nodes: NodeDescriptor[] = [
+      { id: "A", type: "t" },
+      { id: "B", type: "t" },
+      { id: "C", type: "t" },
+      { id: "D", type: "t" },
+      { id: "E", type: "t" }
+    ];
+    const edges: Edge[] = [
+      { source: "A", sourceHandle: "out", target: "B", targetHandle: "in" },
+      { source: "A", sourceHandle: "out", target: "C", targetHandle: "in" },
+      { source: "B", sourceHandle: "out", target: "D", targetHandle: "in" },
+      { source: "C", sourceHandle: "out", target: "D", targetHandle: "in" },
+      { source: "D", sourceHandle: "out", target: "E", targetHandle: "in" }
+    ];
+    const graph = makeGraph(nodes, edges);
+
+    const result = getDownstreamSubgraph(graph, "A", "out");
+    // 5 distinct edges; if D were enqueued twice, D->E would be duplicated.
+    expect(result.edges).toHaveLength(5);
+  });
+
+  it("skips edges pointing at nodes absent from the graph", () => {
+    // Edge to B, but B is not in the node list.
+    const nodes: NodeDescriptor[] = [{ id: "A", type: "t" }];
+    const edges: Edge[] = [
+      { source: "A", sourceHandle: "out", target: "B", targetHandle: "in" }
+    ];
+    const graph = makeGraph(nodes, edges);
+
+    const result = getDownstreamSubgraph(graph, "A", "out");
+    expect(result.nodes).toHaveLength(1);
+    expect(result.nodes[0].id).toBe("A");
+    expect(result.nodes.every((n) => n !== undefined)).toBe(true);
   });
 
   it("only follows specified source handle", () => {

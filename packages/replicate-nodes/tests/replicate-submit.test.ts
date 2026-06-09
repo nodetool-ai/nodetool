@@ -67,6 +67,18 @@ describe("assetToUrl with apiKey (upload paths)", () => {
     );
     expect(result).toBe("https://example.com/missing.png");
   });
+
+  it("returns null for un-fetchable local paths instead of a broken relative URL", async () => {
+    // No storage in context and the local-server fetch fails — Replicate
+    // cannot use a relative path, so the arg should be omitted (null).
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 404 });
+
+    const result = await assetToUrl(
+      { uri: "/api/storage/missing.png", type: "image" },
+      "test-key"
+    );
+    expect(result).toBeNull();
+  });
 });
 
 /* ================================================================== */

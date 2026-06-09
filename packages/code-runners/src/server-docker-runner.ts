@@ -9,6 +9,7 @@
  */
 
 import { createConnection, type Socket as NetSocket } from "node:net";
+import { StringDecoder } from "node:string_decoder";
 import Dockerode from "dockerode";
 import {
   StreamRunnerBase,
@@ -197,11 +198,12 @@ export class ServerDockerRunner extends StreamRunnerBase {
       });
     }
 
-    // Resolve workspace volumes
-    const workspaceDir = options?.workspaceDir;
+    // Resolve workspace volumes. Use the base helper so the host path is made
+    // absolute and created on demand — Docker rejects relative bind sources.
+    const hostWorkspace = this.getWorkspaceHostPath(options?.workspaceDir);
     const binds: string[] = [];
-    if (workspaceDir) {
-      binds.push(`${workspaceDir}:/workspace:rw`);
+    if (hostWorkspace) {
+      binds.push(`${hostWorkspace}:/workspace:rw`);
     }
 
     // Port binding: container port -> ephemeral host port
@@ -226,6 +228,9 @@ export class ServerDockerRunner extends StreamRunnerBase {
       ExposedPorts: { [portKey]: {} },
       HostConfig: hostConfig
     });
+
+    // Register the container so the inherited stop() can force-remove it.
+    this._activeContainerId = container.id;
 
     let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
 
@@ -280,6 +285,10 @@ export class ServerDockerRunner extends StreamRunnerBase {
           let buffer = Buffer.alloc(0);
           let stdoutBuf = "";
           let stderrBuf = "";
+          // Per-slot incremental decoders so multi-byte UTF-8 characters split
+          // across Docker frames aren't corrupted into U+FFFD.
+          const stdoutDecoder = new StringDecoder("utf8");
+          const stderrDecoder = new StringDecoder("utf8");
 
           const chunks: Buffer[] = [];
           let resolveChunk: (() => void) | null = null;
@@ -330,31 +339,22 @@ export class ServerDockerRunner extends StreamRunnerBase {
 
               const payload = buffer.subarray(8, 8 + payloadLength);
               buffer = buffer.subarray(8 + payloadLength);
-              const text = payload.toString("utf-8");
 
               if (streamType === 1) {
-                stdoutBuf += text;
+                stdoutBuf += stdoutDecoder.write(payload);
                 while (stdoutBuf.includes("\n")) {
                   const nlIdx = stdoutBuf.indexOf("\n");
                   const line = stdoutBuf.substring(0, nlIdx);
                   stdoutBuf = stdoutBuf.substring(nlIdx + 1);
-                  pushLog({
-                    type: "line",
-                    slot: "stdout",
-                    value: line.endsWith("\n") ? line : line + "\n"
-                  });
+                  pushLog({ type: "line", slot: "stdout", value: line + "\n" });
                 }
               } else if (streamType === 2) {
-                stderrBuf += text;
+                stderrBuf += stderrDecoder.write(payload);
                 while (stderrBuf.includes("\n")) {
                   const nlIdx = stderrBuf.indexOf("\n");
                   const line = stderrBuf.substring(0, nlIdx);
                   stderrBuf = stderrBuf.substring(nlIdx + 1);
-                  pushLog({
-                    type: "line",
-                    slot: "stderr",
-                    value: line.endsWith("\n") ? line : line + "\n"
-                  });
+                  pushLog({ type: "line", slot: "stderr", value: line + "\n" });
                 }
               }
             }
@@ -362,7 +362,9 @@ export class ServerDockerRunner extends StreamRunnerBase {
             if (streamEnded && chunks.length === 0) break;
           }
 
-          // Flush remaining
+          // Flush decoder remainder, then the line buffers.
+          stdoutBuf += stdoutDecoder.end();
+          stderrBuf += stderrDecoder.end();
           if (stdoutBuf) {
             pushLog({
               type: "line",
@@ -416,6 +418,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
 
       // Stream remaining log lines
       while (!logDone || logQueue.length > 0) {
+        if (this._stopped) break;
         if (logQueue.length === 0 && !logDone) {
           await new Promise<void>((resolve) => {
             resolveLog = resolve;
@@ -447,6 +450,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
       } catch {
         // ignore - may already be removed
       }
+      this._activeContainerId = null;
     }
   }
 
@@ -463,6 +467,9 @@ export class ServerDockerRunner extends StreamRunnerBase {
     const portKey = `${this.containerPort}/tcp`;
 
     while (Date.now() < deadline) {
+      if (this._stopped) {
+        throw new Error("Server start was stopped before port was published");
+      }
       try {
         const info = await container.inspect();
         const state = info.State;
@@ -507,6 +514,7 @@ export class ServerDockerRunner extends StreamRunnerBase {
     const deadline = Date.now() + timeoutSeconds * 1000;
 
     while (Date.now() < deadline) {
+      if (this._stopped) return false;
       const ok = await tcpProbe(host, port, 1000);
       if (ok) return true;
 

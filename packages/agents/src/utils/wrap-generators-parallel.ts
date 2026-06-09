@@ -11,6 +11,9 @@
 export async function* wrapGeneratorsParallel<T>(
   generators: AsyncGenerator<T>[]
 ): AsyncGenerator<T> {
+  // Stryker disable next-line ConditionalExpression: the empty-array guard is a
+  // pure fast-path — falling through runs the loop, which immediately breaks on
+  // zero active slots, so removing it is behaviorally identical.
   if (generators.length === 0) return;
 
   type Slot = {

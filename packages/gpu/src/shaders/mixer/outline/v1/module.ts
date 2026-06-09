@@ -58,19 +58,11 @@ export const mixerOutlineV1 = defineModule({
 fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let src = textureSample(layout.$.source, layout.$.samp, uv);
   let p = layout.$.params;
-  // widthPx <= 0 means "no outline" — pass the source through unchanged,
-  // otherwise the ring samples collapse to a single pixel and the threshold
-  // branch hard-cuts every sub-threshold pixel to transparent black even
-  // when the user asked for zero outline width.
-  if (p.widthPx <= 0.0) {
-    return src;
-  }
-  if (src.a > p.threshold) {
-    return src;
-  }
   let dims = vec2f(textureDimensions(layout.$.source));
   let step = p.widthPx / dims;
-  // Eight ring samples, π/4 apart, at radius = widthPx.
+  // Eight ring samples, π/4 apart, at radius = widthPx. The loop runs
+  // unconditionally so the ring textureSample stays in uniform control flow;
+  // the result is gated by select() below rather than early returns.
   let dirs = array<vec2f, 8>(
     vec2f(1.0, 0.0),
     vec2f(0.70710678, 0.70710678),
@@ -86,11 +78,16 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
     let s = textureSample(layout.$.source, layout.$.samp, uv + dirs[i] * step);
     maxA = max(maxA, s.a);
   }
-  if (maxA <= p.threshold) {
-    return vec4f(0.0);
-  }
   let cov = p.color.a;
-  return vec4f(p.color.rgb * cov, cov);
+  let outline = vec4f(p.color.rgb * cov, cov);
+  // Outside the silhouette with a ring neighbour above threshold → outline;
+  // outside with no neighbour → transparent black.
+  let edge = select(vec4f(0.0), outline, maxA > p.threshold);
+  // widthPx <= 0 ("no outline") or inside the silhouette → pass source through.
+  // widthPx is a uniform, but the source-alpha test is per-pixel, so both
+  // collapse into a single uniform-control-flow select.
+  let passthrough = p.widthPx <= 0.0 || src.a > p.threshold;
+  return select(edge, src, passthrough);
 }
 `,
   io: {

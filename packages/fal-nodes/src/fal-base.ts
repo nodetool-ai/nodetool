@@ -97,6 +97,9 @@ interface UploadContext {
   storage?: {
     retrieve(uri: string): Promise<Uint8Array | null | undefined>;
   } | null;
+  resolveAssetBytes?: (
+    uri: string
+  ) => Promise<{ bytes: Uint8Array | null }>;
 }
 
 export async function assetToFalUrl(
@@ -115,6 +118,19 @@ export async function assetToFalUrl(
   }
   // For non-HTTPS URIs (http://, file://, relative paths, etc.), try to fetch and upload
   if (uri) {
+    // Asset/package reference URIs are resolved via the context's canonical
+    // resolver — storage adapters only understand their own schemes and return
+    // null for `asset://<id>` / `package://<pkg>/<path>` references.
+    if (
+      (uri.startsWith("asset://") || uri.startsWith("package://")) &&
+      context?.resolveAssetBytes
+    ) {
+      const { bytes } = await context.resolveAssetBytes(uri);
+      if (bytes) {
+        return falUpload(apiKey, bytes, inferContentType(ref.type as string));
+      }
+    }
+
     const bytes = await context?.storage?.retrieve(uri);
     if (bytes) {
       return falUpload(apiKey, bytes, inferContentType(ref.type as string));

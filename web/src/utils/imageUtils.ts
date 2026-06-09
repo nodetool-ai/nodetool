@@ -2,6 +2,7 @@
  * Image utility functions for converting various image data formats to displayable URLs.
  */
 
+import { packageAssetHttpPath } from "@nodetool-ai/protocol";
 import { BASE_URL } from "../stores/BASE_URL";
 
 export type ImageData = string | Uint8Array | number[];
@@ -14,6 +15,7 @@ export interface ImageSource {
 /**
  * Resolve a URI string to a fetchable URL.
  * - `asset://{id}` → `${BASE_URL}/api/storage/{id}`.
+ * - `package://{pkg}/{path}` → `${BASE_URL}/api/assets/packages/{pkg}/{path}`.
  * - `/api/...` → prefixed with `BASE_URL`.
  * - Other absolute URIs (`data:`, `blob:`, `http:`, `https:`) returned as-is.
  */
@@ -21,6 +23,10 @@ const resolveUri = (uri: string): string => {
   if (uri.startsWith("asset://")) {
     const assetId = uri.slice("asset://".length);
     return `${BASE_URL}/api/storage/${assetId}`;
+  }
+  const pkgPath = packageAssetHttpPath(uri);
+  if (pkgPath) {
+    return `${BASE_URL}${pkgPath}`;
   }
   if (uri.startsWith("/api/")) {
     return `${BASE_URL}${uri}`;
@@ -83,7 +89,8 @@ export const createImageUrl = (
       data.startsWith("data:") ||
       data.startsWith("blob:") ||
       data.startsWith("http") ||
-      data.startsWith("asset://")
+      data.startsWith("asset://") ||
+      data.startsWith("package://")
     ) {
       return { url: resolveUri(data), blobUrl: null };
     }

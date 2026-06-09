@@ -247,6 +247,32 @@ function extractCloudKey(uri: string): string | null {
 
 const ASSET_MEDIA_TYPES = new Set(["image", "audio", "video"]);
 
+/** Byte cap for inline-preview text stored in a text generation's asset metadata. */
+const TEXT_GENERATION_PREVIEW_CAP = 200_000;
+
+/**
+ * Resolve a node's primary output name when it is a text/str type, so its value
+ * can be persisted as a text generation. Mirrors the frontend's
+ * `getPrimaryOutput` (honor `primary_output`, else first output). Returns
+ * undefined for non-text primaries (media, structured data, …).
+ */
+export function primaryTextOutputName(
+  meta:
+    | {
+        outputs?: Array<{ name: string; type?: { type?: string } }>;
+        primary_output?: string;
+      }
+    | undefined
+): string | undefined {
+  const outputs = meta?.outputs ?? [];
+  if (outputs.length === 0) return undefined;
+  const named = meta?.primary_output;
+  const primary =
+    (named && outputs.find((o) => o.name === named)) || outputs[0];
+  const t = primary?.type?.type;
+  return t === "str" || t === "text" ? primary.name : undefined;
+}
+
 const ASSET_TYPE_MIME: Record<string, string> = {
   image: "image/png",
   audio: "audio/wav",
@@ -322,6 +348,14 @@ async function autoSaveAssets(
     workflowId: string | null;
     jobId: string;
     nodeId: string;
+    /**
+     * Name of the node's primary output when it is a text/str type. When set and
+     * the result carries a non-empty string there, it is persisted as a
+     * `text/plain` asset so text content-card nodes (Agent, Summarizer,
+     * Classifier) get the same reload-surviving, browsable generation history as
+     * media nodes.
+     */
+    textOutputName?: string;
   }
 ): Promise<void> {
   const queue: Record<string, unknown>[] = [];
@@ -412,6 +446,42 @@ async function autoSaveAssets(
         nodeId: opts.nodeId,
         error: String(err)
       });
+    }
+  }
+
+  // Persist the primary text output as a generation (a text/plain asset), so
+  // text content-card nodes get the same reload-surviving, browsable generation
+  // history as media nodes. The text is stored both as the asset bytes and
+  // (capped) inline in metadata so the UI can preview it without a fetch.
+  const textKey = opts.textOutputName;
+  if (textKey) {
+    const textVal = result[textKey];
+    if (typeof textVal === "string" && textVal.length > 0) {
+      const bytes = new TextEncoder().encode(textVal);
+      const previewText = new TextDecoder().decode(
+        bytes.slice(0, TEXT_GENERATION_PREVIEW_CAP)
+      );
+      const asset = new Asset({
+        user_id: opts.userId,
+        workflow_id: opts.workflowId ?? null,
+        node_id: opts.nodeId,
+        job_id: opts.jobId,
+        name: `text_${opts.nodeId.slice(0, 8)}`,
+        content_type: "text/plain",
+        parent_id: null
+      });
+      asset.metadata = { text: previewText };
+      const fileName = `${asset.id}.txt`;
+      try {
+        await storeAssetWithThumbnail(asset.id, fileName, bytes, "text/plain");
+        asset.size = bytes.length;
+        await asset.save();
+      } catch (err) {
+        log.warn("Auto-save text generation failed", {
+          nodeId: opts.nodeId,
+          error: String(err)
+        });
+      }
     }
   }
 }
@@ -1686,6 +1756,7 @@ export class UnifiedWebSocketRunner {
                     workflowId: active.workflowId,
                     jobId: active.jobId,
                     nodeId: String(outbound.node_id ?? ""),
+                    textOutputName: primaryTextOutputName(meta)
                   }
                 );
               } catch (err) {
@@ -1764,9 +1835,10 @@ export class UnifiedWebSocketRunner {
             job.markCancelled();
           }
         }
-        if (active.providerCostTotal != null) {
-          job.cost = active.providerCostTotal;
-        }
+        job.cost =
+          (active.providerCostTotal ?? 0) > 0
+            ? (active.providerCostTotal ?? null)
+            : null;
         await job.save();
       }
     } catch (error) {
@@ -3660,7 +3732,7 @@ export class UnifiedWebSocketRunner {
           if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
             return;
           const imageBytesList = await provider.imageToImages(
-            sourceBytes,
+            [sourceBytes],
             params,
             variations
           );
@@ -3727,7 +3799,7 @@ export class UnifiedWebSocketRunner {
           durationSeconds: duration,
           numInferenceSteps
         };
-        const bytes = await provider.imageToVideo(sourceBytes, params);
+        const bytes = await provider.imageToVideo([sourceBytes], params);
         const assetId = await storeMediaAsset(bytes, "video/mp4", "mp4");
         await this.sendMessage({
           type: "chunk",
@@ -4583,7 +4655,7 @@ export class UnifiedWebSocketRunner {
         strength: req.strength ?? null,
         numInferenceSteps: req.numInferenceSteps ?? null
       };
-      images = await provider.imageToImages(sourceBytes, params, variations);
+      images = await provider.imageToImages([sourceBytes], params, variations);
     }
 
     const assetIds: string[] = [];

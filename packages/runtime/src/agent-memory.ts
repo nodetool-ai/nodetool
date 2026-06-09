@@ -186,6 +186,7 @@ export class AgentMemory {
 
   /** Remove all entries (or those matching a filter). */
   clear(filter?: MemoryFilter): void {
+    // Stryker disable next-line ConditionalExpression,BlockStatement: fast path — the loop below with an undefined filter lists and deletes every entry too, so skipping/emptying this block is equivalent.
     if (!filter) {
       this.entries.clear();
       return;

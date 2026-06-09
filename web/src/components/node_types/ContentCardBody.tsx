@@ -201,6 +201,16 @@ const styles = (theme: Theme) =>
       flex: "0 0 auto",
       paddingTop: theme.spacing(0.5)
     },
+    // Dynamic inputs (user-added) render below inline fields. The inner
+    // NodeInputs supplies its own margins, so reset them to keep the
+    // dynamic rows flush with the rest of the card body.
+    ".dynamic-inputs": {
+      flex: "0 0 auto",
+      "& .node-inputs": {
+        marginTop: 0,
+        marginBottom: 0
+      }
+    },
     ".exposed-labeled-inputs": {
       flex: "0 0 auto",
       paddingTop: theme.spacing(0.5),
@@ -612,8 +622,14 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   }, [result, liveResolvedResult, lastJobAssets]);
 
   const isMediaVariant = MEDIA_VARIANTS.includes(variant);
+  // Text generations are persisted as text/plain assets (autoSaveAsset on
+  // Agent/Summarizer/Classifier), so the text card gets the same browsable,
+  // reload-surviving history navigator as media variants.
+  const usesHistoryNavigator = isMediaVariant || variant === "text";
 
   const isDynamic = !!nodeMetadata.supports_dynamic_inputs;
+  const hasDynamicProps =
+    Object.keys(data.dynamic_properties ?? {}).length > 0;
 
   // Two-pass field classification per field-classification.md:
   // 1. inlineFields: rendered as full editors in normal flow
@@ -686,7 +702,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
       data-content-card-variant={variant}
     >
       <div className="preview-area">
-        {isMediaVariant ? (
+        {usesHistoryNavigator ? (
           <NodeHistoryViewer
             workflowId={workflowId}
             nodeId={id}
@@ -703,7 +719,9 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
       </div>
 
       {/* Inline fields: rendered as full editors in normal flow under preview.
-          Labels are visible here (no display: none). */}
+          Labels are visible here (no display: none). Dynamic inputs are
+          rendered separately below so they always appear — even when this
+          node has no inline fields. */}
       {useNewLayout && inlineProps.length > 0 && (
         <div className="inline-fields">
           <NodeInputs
@@ -715,6 +733,27 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
             data={data}
             editableDynamicInputs={false}
             showFields={true}
+            showDynamicInputs={false}
+          />
+        </div>
+      )}
+
+      {/* Dynamic inputs: user-added inputs (the "+ Add another …" button).
+          Rendered as full rows with a left handle, editable value, and
+          rename/delete icons — independent of inline fields so concat /
+          mixer / agent nodes (empty inlineFields) still get handles. */}
+      {isDynamic && hasDynamicProps && (
+        <div className="dynamic-inputs">
+          <NodeInputs
+            id={id}
+            nodeMetadata={nodeMetadata}
+            layout={nodeMetadata.layout}
+            properties={EMPTY_PROPERTIES}
+            nodeType={nodeType}
+            data={data}
+            editableDynamicInputs={true}
+            showFields={true}
+            defaultDynamicInputType={primaryOutput?.type}
           />
         </div>
       )}

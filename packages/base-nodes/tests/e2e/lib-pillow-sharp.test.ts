@@ -13,7 +13,7 @@ describe("native lib.image via sharp", () => {
     registerBaseNodes(registry);
 
     expect(registry.has("lib.image.filter.Invert")).toBe(true);
-    expect(registry.has("lib.image.enhance.Brightness")).toBe(true);
+    expect(registry.has("lib.image.enhance.Equalize")).toBe(true);
     expect(registry.has("lib.image.color_grading.Exposure")).toBe(true);
     expect(registry.has("lib.image.draw.Background")).toBe(true);
   });

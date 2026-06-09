@@ -19,47 +19,19 @@ import { useQuery } from "@tanstack/react-query";
 import { trpcClient } from "../../trpc/client";
 import type { Asset } from "../../stores/ApiTypes";
 import { normalizeAssetList } from "../../utils/normalizeAsset";
+import { assetToOutputValue } from "../../utils/nodeGenerations";
+
+export { assetToOutputValue };
 
 const EMPTY_ASSETS: Asset[] = [];
 
 const fetchNodeAssets = async (nodeId: string): Promise<Asset[]> => {
   const data = await trpcClient.assets.list.query({ node_id: nodeId });
-  const assets = normalizeAssetList((data.assets as Asset[]) ?? []);
-  // eslint-disable-next-line no-console
-  console.log("[debug:gen] fetchNodeAssets", {
-    nodeId,
-    returned: assets.length,
-    jobIds: assets.map((a) => a.job_id),
-    sample: assets[0]
-      ? {
-          id: assets[0].id,
-          job_id: assets[0].job_id,
-          node_id: assets[0].node_id,
-          created_at: assets[0].created_at
-        }
-      : null
-  });
-  return assets;
+  return normalizeAssetList((data.assets as Asset[]) ?? []);
 };
 
 export const nodeAssetsQueryKey = (nodeId: string | null) =>
   ["assets", { node_id: nodeId }] as const;
-
-/**
- * Convert a saved asset into the value shape the preview components expect
- * (mirrors the `{ type, uri }` records carried over `output_update`).
- */
-export const assetToOutputValue = (asset: Asset): Record<string, unknown> => {
-  const ct = asset.content_type ?? "";
-  const uri = asset.get_url ?? asset.thumb_url ?? "";
-  if (ct.startsWith("image/")) return { type: "image", uri };
-  if (ct.startsWith("video/")) return { type: "video", uri };
-  if (ct.startsWith("audio/")) return { type: "audio", uri };
-  if (ct.includes("model") || asset.name?.toLowerCase().endsWith(".glb")) {
-    return { type: "model_3d", uri, name: asset.name ?? undefined };
-  }
-  return { uri, type: "asset", name: asset.name ?? undefined };
-};
 
 /**
  * Reduce a list of last-job assets to a single preview value (single asset)
@@ -103,25 +75,10 @@ export const useNodeResultHistory = (
   const lastJobAssets = useMemo<Asset[]>(() => {
     if (sortedAssets.length === 0) return EMPTY_ASSETS;
     const jobbed = sortedAssets.filter((a) => a.job_id);
-    if (jobbed.length === 0) {
-      // eslint-disable-next-line no-console
-      console.log("[debug:gen] lastJobAssets: no jobbed assets, returning all", {
-        nodeId,
-        total: sortedAssets.length
-      });
-      return sortedAssets;
-    }
+    if (jobbed.length === 0) return sortedAssets;
     const latestJobId = jobbed[0].job_id;
-    const filtered = sortedAssets.filter((a) => a.job_id === latestJobId);
-    // eslint-disable-next-line no-console
-    console.log("[debug:gen] lastJobAssets: grouped by job_id", {
-      nodeId,
-      total: sortedAssets.length,
-      latestJobId,
-      kept: filtered.length
-    });
-    return filtered;
-  }, [sortedAssets, nodeId]);
+    return sortedAssets.filter((a) => a.job_id === latestJobId);
+  }, [sortedAssets]);
 
   const lastJobId = lastJobAssets[0]?.job_id ?? null;
 

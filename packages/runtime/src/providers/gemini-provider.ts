@@ -297,30 +297,38 @@ export class GeminiProvider extends BaseProvider {
       }
 
       if (msg.role === "tool") {
-        // Tool result → model role with functionResponse part
+        // Tool result → user role with functionResponse part. The name must
+        // match the originating functionCall's name, resolved from the call id.
         const responseText =
           typeof msg.content === "string"
             ? msg.content
             : JSON.stringify(msg.content);
 
         const functionName =
-          (msg.toolCallId
-            ? toolCallNames.get(msg.toolCallId)
-            : undefined) ??
+          (msg.toolCallId ? toolCallNames.get(msg.toolCallId) : undefined) ??
           msg.toolCallId ??
           "unknown";
 
-        contents.push({
-          role: "user",
-          parts: [
-            {
-              functionResponse: {
-                name: functionName,
-                response: { result: responseText }
-              }
-            }
-          ]
-        });
+        const responsePart: GeminiPart = {
+          functionResponse: {
+            name: functionName,
+            response: { result: responseText }
+          }
+        };
+
+        // Merge parallel tool results into a single user turn so the request
+        // keeps alternating user/model roles.
+        const prev = contents[contents.length - 1];
+        if (
+          prev &&
+          prev.role === "user" &&
+          prev.parts.length > 0 &&
+          prev.parts.every((p) => p.functionResponse !== undefined)
+        ) {
+          prev.parts.push(responsePart);
+        } else {
+          contents.push({ role: "user", parts: [responsePart] });
+        }
         continue;
       }
 
@@ -917,7 +925,7 @@ export class GeminiProvider extends BaseProvider {
   // ---------------------------------------------------------------------------
 
   override async imageToImage(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Uint8Array> {
     if (!params.prompt) {
@@ -931,16 +939,20 @@ export class GeminiProvider extends BaseProvider {
       );
     }
 
-    const imageBase64 = Buffer.from(image).toString("base64");
+    const imageParts = images
+      .filter((b) => b && b.length > 0)
+      .map((b) => ({
+        inlineData: {
+          mimeType: "image/png",
+          data: Buffer.from(b).toString("base64")
+        }
+      }));
 
     const body = {
       contents: [
         {
           role: "user" as const,
-          parts: [
-            { text: params.prompt },
-            { inlineData: { mimeType: "image/png", data: imageBase64 } }
-          ]
+          parts: [{ text: params.prompt }, ...imageParts]
         }
       ],
       generationConfig: {
@@ -1206,9 +1218,10 @@ export class GeminiProvider extends BaseProvider {
   // ---------------------------------------------------------------------------
 
   override async imageToVideo(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToVideoParams
   ): Promise<Uint8Array> {
+    const image = images[0];
     if (!image || image.length === 0) {
       throw new Error("Input image cannot be empty.");
     }

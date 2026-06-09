@@ -35,6 +35,12 @@ describe("output/hooks", () => {
       );
     });
 
+    it("converts package:// URIs to the packages route", () => {
+      expect(resolveAssetUri("package://nodetool-base/audio/loop.mp3")).toBe(
+        "http://localhost:7777/api/assets/packages/nodetool-base/audio/loop.mp3"
+      );
+    });
+
     it("passes through absolute http URLs unchanged", () => {
       expect(resolveAssetUri("http://example.com/image.jpg")).toBe(
         "http://example.com/image.jpg"

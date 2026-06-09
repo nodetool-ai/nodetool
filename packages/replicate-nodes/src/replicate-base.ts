@@ -35,13 +35,18 @@ export function getReplicateApiKey(secrets: Record<string, string>): string {
 // Utility helpers
 // ---------------------------------------------------------------------------
 
-/** Recursively delete null/undefined/empty string keys from an object. */
+/**
+ * Delete `null`/`undefined`/empty-string keys from the top level of an object.
+ *
+ * Intentionally NON-recursive: API args are a flat bag of parameters, and the
+ * only nested objects are pass-through `dict[...]` inputs supplied by the user
+ * (json_schema, response_format, …). Recursing would mutate those in place and
+ * silently strip sub-keys the user meant to send. `0` and `false` are kept.
+ */
 export function removeNulls(obj: Record<string, unknown>): void {
   for (const k of Object.keys(obj)) {
     if (obj[k] == null || obj[k] === "") {
       delete obj[k];
-    } else if (typeof obj[k] === "object" && !Array.isArray(obj[k])) {
-      removeNulls(obj[k] as Record<string, unknown>);
     }
   }
 }
@@ -57,6 +62,9 @@ interface UploadContext {
   storage?: {
     retrieve(uri: string): Promise<Uint8Array | null | undefined>;
   } | null;
+  resolveAssetBytes?: (
+    uri: string
+  ) => Promise<{ bytes: Uint8Array | null }>;
 }
 
 /**
@@ -92,6 +100,24 @@ export async function assetToUrl(
         return uri;
       }
     }
+    // Asset/package references: resolve to bytes via the context and upload.
+    // Storage adapters only understand their own URI schemes, so these refs
+    // must go through resolveAssetBytes (asset://<id>, package://<pkg>/<path>).
+    if (
+      apiKey &&
+      context?.resolveAssetBytes &&
+      (uri.startsWith("asset://") || uri.startsWith("package://"))
+    ) {
+      const { bytes } = await context.resolveAssetBytes(uri);
+      if (bytes) {
+        return uploadBytesToReplicate(
+          apiKey,
+          bytes,
+          inferMime(ref),
+          filenameForMime(inferMime(ref))
+        );
+      }
+    }
     // Local/relative paths: resolve via local server and upload
     if (apiKey && uri.startsWith("/")) {
       const bytes = await context?.storage?.retrieve(uri);
@@ -108,7 +134,9 @@ export async function assetToUrl(
       try {
         return await uploadToReplicate(apiKey, localUrl);
       } catch {
-        return uri;
+        // A relative path is useless to Replicate — omit it rather than
+        // handing the model a URL it cannot fetch.
+        return null;
       }
     }
     return uri;
@@ -186,35 +214,56 @@ export async function replicateSubmit(
 // Output converters
 // ---------------------------------------------------------------------------
 
-/** Extract the first URL from Replicate output (may be string, array, FileOutput, or object). */
-function extractUrl(output: unknown): string | null {
-  if (typeof output === "string") return output;
+const URL_LIKE = /^(https?:|data:)/;
 
-  // FileOutput (ReadableStream with .url() method that returns URL object)
-  if (output && typeof output === "object" && "url" in output) {
-    const urlFn = (output as { url: () => unknown }).url;
-    if (typeof urlFn === "function") {
-      const url = urlFn.call(output);
-      if (url) return String(url);
+/**
+ * Extract the first URL from Replicate output. Handles:
+ *   - bare string URLs
+ *   - FileOutput objects (a `.url()` method or a `.url` string property)
+ *   - arrays (recursively, returning the first match)
+ *   - objects that wrap the asset under a named key (e.g. `{ image: ... }`,
+ *     `{ output: <FileOutput> }`), found by scanning values for the first
+ *     URL-like string or nested FileOutput/array/object.
+ */
+function extractUrl(output: unknown): string | null {
+  // A bare string output is itself the URL (the model's contract).
+  if (typeof output === "string") return output;
+  return extractUrlFromValue(output);
+}
+
+function extractUrlFromValue(value: unknown): string | null {
+  if (!value || typeof value !== "object") return null;
+
+  // FileOutput: a `.url()` method or a `.url` string property.
+  if ("url" in value) {
+    const u = (value as { url: unknown }).url;
+    if (typeof u === "function") {
+      const resolved = (u as () => unknown).call(value);
+      if (resolved) return String(resolved);
+    } else if (u) {
+      return String(u);
     }
-    // .url might be a string property instead
-    const urlProp = (output as Record<string, unknown>).url;
-    if (urlProp) return String(urlProp);
   }
 
-  if (Array.isArray(output)) {
-    for (const item of output) {
-      const url = extractUrl(item);
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const url = urlFromAny(item);
       if (url) return url;
     }
     return null;
   }
 
-  if (typeof output === "object" && output !== null) {
-    const o = output as Record<string, unknown>;
-    if (typeof o.output === "string") return o.output;
+  for (const v of Object.values(value as Record<string, unknown>)) {
+    const url = urlFromAny(v);
+    if (url) return url;
   }
   return null;
+}
+
+/** A nested string only counts if it looks like a URL; otherwise recurse. */
+function urlFromAny(value: unknown): string | null {
+  if (typeof value === "string") return URL_LIKE.test(value) ? value : null;
+  return extractUrlFromValue(value);
 }
 
 export function outputToImageRef(output: unknown): Record<string, unknown> {

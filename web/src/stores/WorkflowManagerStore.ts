@@ -33,20 +33,26 @@ import useStatusStore from "./StatusStore";
 import useExecutionTimeStore from "./ExecutionTimeStore";
 import usePropertyValidationStore from "./PropertyValidationStore";
 import { useFavoriteWorkflowsStore } from "./FavoriteWorkflowsStore";
-import { hydrateWorkflowResultsFromAssets } from "./workflowResultHydration";
+import { useWorkflowAssetStore } from "./WorkflowAssetStore";
 import { useCurrentWorkspaceStore } from "./CurrentWorkspaceStore";
 
 const isWorkflowNotFoundError = (err: unknown): boolean => {
   if (!err || typeof err !== "object") return false;
   if ("data" in err) {
     const { data } = err as { data: unknown };
-    if (
-      data &&
-      typeof data === "object" &&
-      "code" in data &&
-      (data as { code: unknown }).code === "NOT_FOUND"
-    ) {
-      return true;
+    if (data && typeof data === "object") {
+      if (
+        "code" in data &&
+        (data as { code: unknown }).code === "NOT_FOUND"
+      ) {
+        return true;
+      }
+      if (
+        "apiCode" in data &&
+        (data as { apiCode: unknown }).apiCode === "WORKFLOW_NOT_FOUND"
+      ) {
+        return true;
+      }
     }
   }
   if ("message" in err) {
@@ -182,6 +188,53 @@ export type WorkflowManagerState = {
 export type WorkflowManagerStore = UseBoundStore<
   StoreApi<WorkflowManagerState>
 >;
+
+/** Drop a restored workflow id when the server no longer has it. */
+const pruneStaleWorkflowReference = (
+  set: StoreApi<WorkflowManagerState>["setState"],
+  workflowId: string
+): void => {
+  const previousOpenIds = storage.getOpenWorkflows();
+  const openIds = previousOpenIds.filter((id) => id !== workflowId);
+  if (openIds.length !== previousOpenIds.length) {
+    storage.setOpenWorkflows.cancel();
+    localStorage.setItem(
+      STORAGE_KEYS.OPEN_WORKFLOWS,
+      JSON.stringify(openIds)
+    );
+  }
+
+  set((state) => {
+    const filtered = state.openWorkflows.filter((w) => w.id !== workflowId);
+    if (
+      filtered.length === state.openWorkflows.length &&
+      state.currentWorkflowId !== workflowId
+    ) {
+      return state;
+    }
+
+    const newCurrentId =
+      state.currentWorkflowId === workflowId
+        ? determineNextWorkflowId(
+            state.openWorkflows,
+            workflowId,
+            state.currentWorkflowId
+          )
+        : state.currentWorkflowId;
+
+    if (newCurrentId) {
+      storage.setCurrentWorkflow(newCurrentId);
+    } else {
+      storage.setCurrentWorkflow.cancel();
+      localStorage.removeItem(STORAGE_KEYS.CURRENT_WORKFLOW);
+    }
+
+    return {
+      openWorkflows: filtered,
+      currentWorkflowId: newCurrentId
+    };
+  });
+};
 
 // -----------------------------------------------------------------
 // ZUSTAND STORE CREATION
@@ -817,7 +870,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         if (cached) {
           get().addWorkflow(cached);
           get().setCurrentWorkflowId(workflowId);
-          await hydrateWorkflowResultsFromAssets(workflowId);
+          await useWorkflowAssetStore.getState().loadWorkflowAssets(workflowId);
           return cached;
         }
 
@@ -835,10 +888,12 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           }
           get().addWorkflow(data);
           get().setCurrentWorkflowId(data.id);
-          await hydrateWorkflowResultsFromAssets(data.id);
+          await useWorkflowAssetStore.getState().loadWorkflowAssets(data.id);
           return data;
         } catch (e: unknown) {
-          if (!isWorkflowNotFoundError(e)) {
+          if (isWorkflowNotFoundError(e)) {
+            pruneStaleWorkflowReference(set, workflowId);
+          } else {
             console.error(
               `[WorkflowManager] fetchWorkflow error for ${workflowId}`,
               e

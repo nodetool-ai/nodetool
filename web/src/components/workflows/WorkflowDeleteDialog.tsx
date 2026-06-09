@@ -1,4 +1,5 @@
 import { FC, useCallback } from "react";
+import { useShallow } from "zustand/react/shallow";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import { WorkflowAttributes } from "../../stores/ApiTypes";
 import { useQueryClient } from "@tanstack/react-query";
@@ -16,10 +17,12 @@ const WorkflowDeleteDialog: FC<WorkflowDeleteDialogProps> = ({
   onClose,
   workflowsToDelete
 }) => {
-  const { removeWorkflow, openWorkflows } = useWorkflowManager((state) => ({
-    removeWorkflow: state.removeWorkflow,
-    openWorkflows: state.openWorkflows
-  }));
+  const { removeWorkflow, openWorkflows } = useWorkflowManager(
+    useShallow((state) => ({
+      removeWorkflow: state.removeWorkflow,
+      openWorkflows: state.openWorkflows
+    }))
+  );
   const currentWorkflowId = useWorkflowManager(
     (state) => state.currentWorkflowId
   );

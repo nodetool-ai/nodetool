@@ -38,6 +38,7 @@ interface SessionState {
 const sessions = new Map<string, SessionState>();
 
 const DONE_PREFIX = "__NODETOOL_DONE_";
+const READY_PREFIX = "__NODETOOL_READY_";
 
 function tmuxNameFor(id: string): string {
   // tmux session names can't contain ':' or '.'. Sanitize.
@@ -55,6 +56,7 @@ export async function shellExec(input: ShellExecInput): Promise<ShellExecOutput>
     await killTmuxSessionIfExists(tmuxName);
     // -d detach, -s session name, -c workdir
     await runTmux(["new-session", "-d", "-s", tmuxName, "-c", workDir]);
+    await waitForShellReady(tmuxName);
     await clearPane(tmuxName);
     sessions.set(input.id, {
       tmuxName,
@@ -247,6 +249,18 @@ async function killTmuxSessionIfExists(tmuxName: string): Promise<void> {
   }
 }
 
+async function waitForShellReady(tmuxName: string): Promise<void> {
+  const marker = `${READY_PREFIX}${randomBytes(6).toString("hex")}__`;
+  await sendKeys(tmuxName, `echo ${marker}`);
+  const deadline = Date.now() + 5_000;
+  while (Date.now() < deadline) {
+    const output = await capturePane(tmuxName);
+    if (output.includes(marker)) return;
+    await sleep(100);
+  }
+  throw new Error(`tmux shell did not become ready: ${tmuxName}`);
+}
+
 async function capturePane(tmuxName: string): Promise<string> {
   // -p print to stdout, -J join wrapped lines, -S -3000 capture scrollback.
   const buf = await runCapture("tmux", [
@@ -295,7 +309,11 @@ function cleanShellOutput(output: string, marker: string | null): string {
 }
 
 function isInternalShellWrapperLine(line: string, marker: string | null): boolean {
-  if (line.includes("__NT_EC") || line.includes(DONE_PREFIX)) {
+  if (
+    line.includes("__NT_EC") ||
+    line.includes(DONE_PREFIX) ||
+    line.includes(READY_PREFIX)
+  ) {
     return true;
   }
   return marker !== null && line.includes(`${DONE_PREFIX}${marker}__:`);

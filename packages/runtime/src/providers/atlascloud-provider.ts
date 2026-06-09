@@ -431,10 +431,11 @@ export class AtlasCloudProvider extends BaseProvider {
   }
 
   override async imageToImage(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Uint8Array> {
-    if (!image || image.length === 0) {
+    const sources = images.filter((b) => b && b.length > 0);
+    if (sources.length === 0) {
       throw new Error("image must not be empty");
     }
     const info = this.resolveModel(params.model.id, "image");
@@ -442,11 +443,11 @@ export class AtlasCloudProvider extends BaseProvider {
     // AtlasCloud `*/edit` endpoints accept the input image(s) as `images: [url]`.
     // Seedance never goes through this method (it's video-only). Other future
     // image-to-image endpoints that use `image` (singular) get that mapping too.
-    const dataUri = imageDataUri(image);
+    const dataUris = sources.map((b) => imageDataUri(b));
     if (info.fields.has("images")) {
-      input.images = [dataUri];
+      input.images = dataUris;
     } else if (info.fields.has("image")) {
-      input.image = dataUri;
+      input.image = dataUris[0];
     } else {
       throw new Error(
         `AtlasCloud model ${params.model.id} does not declare an input image field`
@@ -463,9 +464,10 @@ export class AtlasCloudProvider extends BaseProvider {
   }
 
   override async imageToVideo(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToVideoParams
   ): Promise<Uint8Array> {
+    const image = images[0];
     if (!image || image.length === 0) {
       throw new Error("image must not be empty");
     }

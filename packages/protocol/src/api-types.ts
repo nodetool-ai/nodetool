@@ -739,6 +739,7 @@ export const PROVIDER_IDS = {
   OPENROUTER: "openrouter",
   TOGETHER: "together",
   CEREBRAS: "cerebras",
+  EVOLINK: "evolink",
   // Media / 3D / utility APIs
   REPLICATE: "replicate",
   FAL_AI: "fal_ai",

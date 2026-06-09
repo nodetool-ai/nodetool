@@ -93,7 +93,7 @@ describe("ReveProvider — generation", () => {
     const fetchMock = mockOkImage();
     const p = new ReveProvider({ REVE_API_KEY: "secret" });
     const input = Uint8Array.from([1, 2, 3, 4]);
-    await p.imageToImage(input, { model: EDIT_MODEL, prompt: "make it blue" });
+    await p.imageToImage([input], { model: EDIT_MODEL, prompt: "make it blue" });
 
     const [url, init] = (fetchMock as unknown as ReturnType<typeof vi.fn>).mock
       .calls[0];
@@ -116,7 +116,7 @@ describe("ReveProvider — generation", () => {
   it("imageToImage rejects an empty image", async () => {
     const p = new ReveProvider({ REVE_API_KEY: "k" });
     await expect(
-      p.imageToImage(new Uint8Array(), { model: EDIT_MODEL, prompt: "x" })
+      p.imageToImage([new Uint8Array()], { model: EDIT_MODEL, prompt: "x" })
     ).rejects.toThrow("image must not be empty");
   });
 });

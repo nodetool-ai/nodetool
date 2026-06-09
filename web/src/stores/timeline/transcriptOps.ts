@@ -157,7 +157,7 @@ function byTimeline(a: TimelineClip, b: TimelineClip): number {
 }
 
 /** The paragraph a clip belongs to — its `paragraphId`, or itself when unset. */
-export function paragraphKey(clip: TimelineClip): string {
+function paragraphKey(clip: TimelineClip): string {
   return clip.paragraphId ?? clip.id;
 }
 

@@ -25,6 +25,8 @@ export function extractBearerToken(request: Request): string | null {
   const parts = authHeader.split(/\s+/);
   if (parts.length !== 2 || parts[0].toLowerCase() !== "bearer") return null;
 
+  // Stryker disable next-line MethodExpression: split(/\s+/) yields tokens with
+  // no surrounding whitespace, so trim() is a no-op here (equivalent mutant).
   const token = parts[1].trim();
   return token || null;
 }

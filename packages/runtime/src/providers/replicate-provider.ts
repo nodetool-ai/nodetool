@@ -24,7 +24,12 @@ import type {
   VideoToVideoParams,
   LipSyncParams
 } from "./types.js";
-import { loadImageModels, loadVideoModels } from "./manifest-models.js";
+import {
+  getModelImageInputs,
+  loadImageModels,
+  loadVideoModels,
+  selectPrimaryImageInput
+} from "./manifest-models.js";
 
 const log = createLogger("nodetool.runtime.providers.replicate");
 
@@ -492,13 +497,13 @@ export class ReplicateProvider extends BaseProvider {
   }
 
   async imageToImage(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Uint8Array> {
-    const base64 = Buffer.from(image).toString("base64");
-    const dataUri = `data:image/png;base64,${base64}`;
-
-    const input: Record<string, unknown> = { image: dataUri };
+    const input: Record<string, unknown> = this.imageInput(
+      params.model.id,
+      images
+    );
     if (params.prompt) input.prompt = params.prompt;
     if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
     if (params.guidanceScale != null)
@@ -536,13 +541,13 @@ export class ReplicateProvider extends BaseProvider {
   }
 
   async imageToVideo(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToVideoParams
   ): Promise<Uint8Array> {
-    const base64 = Buffer.from(image).toString("base64");
-    const dataUri = `data:image/png;base64,${base64}`;
-
-    const input: Record<string, unknown> = { image: dataUri };
+    const input: Record<string, unknown> = this.imageInput(
+      params.model.id,
+      images
+    );
     if (params.prompt) input.prompt = params.prompt;
     if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
     if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
@@ -561,6 +566,39 @@ export class ReplicateProvider extends BaseProvider {
 
   private dataUri(bytes: Uint8Array, mimeType: string): string {
     return `data:${mimeType};base64,${Buffer.from(bytes).toString("base64")}`;
+  }
+
+  /**
+   * Build the image portion of a Replicate prediction input from one or more
+   * source images, using the model's declared schema (replicate-manifest) to
+   * pick the correct input field — single (`image`, `input_image`, …) vs list
+   * (`image_input`, `images`, …). Falls back to the common conventions when the
+   * model isn't in the manifest. Empty buffers are dropped.
+   */
+  private imageInput(
+    modelId: string,
+    images: Uint8Array[]
+  ): Record<string, unknown> {
+    const dataUris = images
+      .filter((b) => b && b.length > 0)
+      .map((b) => this.dataUri(b, "image/png"));
+    if (dataUris.length === 0) return {};
+
+    const field = selectPrimaryImageInput(
+      getModelImageInputs(
+        "@nodetool-ai/replicate-nodes",
+        "replicate-manifest.json",
+        modelId
+      ),
+      dataUris.length
+    );
+    if (field) {
+      return { [field.apiName]: field.isList ? dataUris : dataUris[0] };
+    }
+    // Unknown model: fall back to the common conventions.
+    return dataUris.length === 1
+      ? { image: dataUris[0] }
+      : { image_input: dataUris };
   }
 
   private async runWithInput(

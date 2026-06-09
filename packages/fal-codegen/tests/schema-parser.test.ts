@@ -481,6 +481,36 @@ describe("normalizeAssetUrlFields", () => {
     expect(result[0].propType).toBe("audio");
   });
 
+  it("renames mask_url → mask and records apiParamName", () => {
+    const fields = [
+      makeField({
+        name: "mask_url",
+        propType: "str",
+        tsType: "string",
+        default: null
+      })
+    ];
+    const result = p.normalizeAssetUrlFields(fields);
+    expect(result[0].name).toBe("mask");
+    expect(result[0].apiParamName).toBe("mask_url");
+    expect(result[0].propType).toBe("image");
+  });
+
+  it("keeps non-canonical mask url fields distinct", () => {
+    const fields = [
+      makeField({
+        name: "static_mask_url",
+        propType: "str",
+        tsType: "string",
+        default: null
+      })
+    ];
+    const result = p.normalizeAssetUrlFields(fields);
+    expect(result[0].name).toBe("static_mask_url");
+    expect(result[0].apiParamName).toBeUndefined();
+    expect(result[0].propType).toBe("str");
+  });
+
   it("renames compound prefix: input_image_url → input_image", () => {
     const fields = [
       makeField({

@@ -304,10 +304,11 @@ export class CreateImageNode extends BaseNode {
       throw new Error(`OpenAI CreateImage API error ${res.status}: ${err}`);
     }
     const data = (await res.json()) as {
-      data: Array<{ b64_json?: string; url?: string }>;
+      data?: Array<{ b64_json?: string; url?: string }>;
     };
 
-    const item = data.data[0];
+    const item = data.data?.[0];
+    if (!item) throw new Error("No image data in response");
     if (item.b64_json) {
       return { output: imageRefFromB64(item.b64_json) };
     } else if (item.url) {
@@ -420,6 +421,8 @@ export class EditImageNode extends BaseNode {
     formData.append("model", model);
     formData.append("size", size);
     formData.append("quality", quality);
+    // Note: gpt-image-1 always returns base64 and rejects `response_format`
+    // (it's only valid for dall-e-2/3), so we don't send it here.
 
     // Convert image ref to blob
     const imageBlob = await refToBlob(image);
@@ -442,10 +445,11 @@ export class EditImageNode extends BaseNode {
       throw new Error(`OpenAI EditImage API error ${res.status}: ${err}`);
     }
     const data = (await res.json()) as {
-      data: Array<{ b64_json?: string; url?: string }>;
+      data?: Array<{ b64_json?: string; url?: string }>;
     };
 
-    const item = data.data[0];
+    const item = data.data?.[0];
+    if (!item) throw new Error("No image data in response");
     if (item.b64_json) {
       return { output: imageRefFromB64(item.b64_json) };
     } else if (item.url) {
@@ -1165,6 +1169,12 @@ export class RealtimeAgentNode extends BaseNode {
                   sample_rate: 24000,
                   channels: 1
                 }
+              });
+              // Also surface decoded PCM16 on the dedicated `audio` output so
+              // the declared handle isn't dead. PCM frames concatenate cleanly
+              // in arrival order downstream.
+              await outputs.emit("audio", {
+                data: new Uint8Array(Buffer.from(audioB64, "base64"))
               });
             }
           } else if (msgType === "response.audio_transcript.delta") {

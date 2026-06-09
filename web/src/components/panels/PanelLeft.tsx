@@ -7,7 +7,6 @@ import {
 } from "@mui/material";
 import { ToolbarIconButton, FlexColumn, Box } from "../ui_primitives";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
-import { useAuditCuratedCategories } from "../../hooks/useAuditCuratedCategories";
 import isEqual from "fast-deep-equal";
 import { memo, useCallback, useEffect, useMemo } from "react";
 import AssetGrid from "../assets/AssetGrid";
@@ -657,8 +656,6 @@ const PanelLeft: React.FC = () => {
     handleMouseDown,
     handlePanelToggle
   } = useResizePanel("left");
-
-  useAuditCuratedCategories();
 
   const activeView =
     usePanelStore((state) => state.panel.activeView) || "workflows";

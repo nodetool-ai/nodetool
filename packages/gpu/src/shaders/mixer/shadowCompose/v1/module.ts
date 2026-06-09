@@ -64,10 +64,11 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let p = layout.$.params;
   let src = textureSample(layout.$.source, layout.$.samp, uv);
   let shadowUv = uv - vec2f(p.offsetX, p.offsetY);
-  var shadowA: f32 = 0.0;
-  if (shadowUv.x >= 0.0 && shadowUv.x <= 1.0 && shadowUv.y >= 0.0 && shadowUv.y <= 1.0) {
-    shadowA = textureSample(layout.$.shadowMask, layout.$.samp, shadowUv).a;
-  }
+  // Sample the mask unconditionally (textureSample must run in uniform control
+  // flow) and zero its contribution outside the offset mask's bounds.
+  let inBounds = shadowUv.x >= 0.0 && shadowUv.x <= 1.0 && shadowUv.y >= 0.0 && shadowUv.y <= 1.0;
+  let shadowSample = textureSample(layout.$.shadowMask, layout.$.samp, shadowUv);
+  let shadowA = select(0.0, shadowSample.a, inBounds);
   let cov = clamp(shadowA * p.color.a * p.intensity, 0.0, 1.0);
   let shadow = vec4f(p.color.rgb * cov, cov);
   // source over shadow: out = src + shadow * (1 - src.a). Both premultiplied.

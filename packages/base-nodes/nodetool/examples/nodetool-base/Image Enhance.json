@@ -87,8 +87,10 @@
       },
       {
         "id": "9d8850a4-c20f-4698-9cb4-e315c956aee6",
-        "type": "lib.image.enhance.Sharpen",
-        "data": {},
+        "type": "lib.image.filter.UnsharpMask",
+        "data": {
+          "amount": 1
+        },
         "ui_properties": {
           "selected": false,
           "position": {

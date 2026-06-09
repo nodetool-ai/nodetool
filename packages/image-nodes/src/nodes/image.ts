@@ -58,6 +58,17 @@ function imageRefHasSource(image: unknown): boolean {
   return ref.asset_id != null && ref.asset_id !== "";
 }
 
+/**
+ * Normalize an image input that may be a single ImageRef (legacy single-image
+ * wiring) or a list of refs into an array, dropping non-object entries.
+ */
+function normalizeImageList(value: unknown): ImageRefLike[] {
+  const items = Array.isArray(value) ? value : value != null ? [value] : [];
+  return items.filter(
+    (item): item is ImageRefLike => !!item && typeof item === "object"
+  );
+}
+
 function filePath(uriOrPath: string): string {
   if (uriOrPath.startsWith("file://")) {
     try {
@@ -1145,6 +1156,210 @@ export class ResizeNode extends TransformImageNode {
   }
 }
 
+export class CanvasResizeNode extends TransformImageNode {
+  static readonly nodeType = "nodetool.image.CanvasResize";
+  static readonly title = "Canvas Resize";
+  static readonly description =
+    "Expand the canvas around an image without scaling its pixels.\n    canvas, resize, pad, outpaint, expand";
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
+  static readonly inlineFields = [
+    "mode",
+    "width",
+    "height",
+    "scale",
+    "padding_unit",
+    "top",
+    "bottom",
+    "left",
+    "right"
+  ];
+  static readonly inputFields = ["image"];
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The image to place on the expanded canvas."
+  })
+  declare image: any;
+
+  @prop({
+    type: "enum",
+    default: "padding",
+    values: ["fixed", "scale", "padding"],
+    title: "Mode",
+    description: "How to resize the canvas."
+  })
+  declare mode: any;
+
+  @prop({
+    type: "int",
+    default: 512,
+    title: "Width",
+    description: "Target canvas width (fixed mode).",
+    min: 1,
+    max: 8192
+  })
+  declare width: any;
+
+  @prop({
+    type: "int",
+    default: 512,
+    title: "Height",
+    description: "Target canvas height (fixed mode).",
+    min: 1,
+    max: 8192
+  })
+  declare height: any;
+
+  @prop({
+    type: "float",
+    default: 1.25,
+    title: "Scale",
+    description: "Canvas scale factor relative to the source image.",
+    min: 0.01,
+    max: 10
+  })
+  declare scale: any;
+
+  @prop({
+    type: "enum",
+    default: "px",
+    values: ["px", "percent"],
+    title: "Padding unit",
+    description: "Whether padding values are pixels or percent of source size."
+  })
+  declare padding_unit: any;
+
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Top",
+    description: "Padding above the image.",
+    min: 0,
+    max: 4096
+  })
+  declare top: any;
+
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Bottom",
+    description: "Padding below the image.",
+    min: 0,
+    max: 4096
+  })
+  declare bottom: any;
+
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Left",
+    description: "Padding to the left of the image.",
+    min: 0,
+    max: 4096
+  })
+  declare left: any;
+
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Right",
+    description: "Padding to the right of the image.",
+    min: 0,
+    max: 4096
+  })
+  declare right: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const srcBytes = await imageBytesAsync(image, context);
+    if (srcBytes.length === 0) {
+      return {
+        output: imageRef(new Uint8Array(), {
+          uri: image.uri ?? "",
+          ...this.transformMeta()
+        })
+      };
+    }
+
+    const srcMeta = await metadataFor(srcBytes);
+    const srcW = srcMeta.width ?? Number(image.width ?? 1);
+    const srcH = srcMeta.height ?? Number(image.height ?? 1);
+    const mode = String(this.mode ?? "padding");
+
+    let canvasW: number;
+    let canvasH: number;
+    let offsetX: number;
+    let offsetY: number;
+
+    if (mode === "fixed") {
+      canvasW = Math.max(1, Math.floor(Number(this.width ?? srcW)));
+      canvasH = Math.max(1, Math.floor(Number(this.height ?? srcH)));
+      offsetX = Math.floor((canvasW - srcW) / 2);
+      offsetY = Math.floor((canvasH - srcH) / 2);
+    } else if (mode === "scale") {
+      const scale = Number(this.scale ?? 0) > 0 ? Number(this.scale ?? 1) : 1;
+      canvasW = Math.max(1, Math.round(srcW * scale));
+      canvasH = Math.max(1, Math.round(srcH * scale));
+      offsetX = Math.floor((canvasW - srcW) / 2);
+      offsetY = Math.floor((canvasH - srcH) / 2);
+    } else {
+      const unit = String(this.padding_unit ?? "px");
+      const toPx = (val: number, dim: number): number =>
+        unit === "percent"
+          ? Math.max(0, Math.round((dim * val) / 100))
+          : Math.max(0, Math.floor(val));
+      const left = toPx(Number(this.left ?? 0), srcW);
+      const right = toPx(Number(this.right ?? 0), srcW);
+      const top = toPx(Number(this.top ?? 0), srcH);
+      const bottom = toPx(Number(this.bottom ?? 0), srcH);
+      canvasW = Math.max(1, srcW + left + right);
+      canvasH = Math.max(1, srcH + top + bottom);
+      offsetX = left;
+      offsetY = top;
+    }
+
+    try {
+      const outputBytes = await sharp({
+        create: {
+          width: canvasW,
+          height: canvasH,
+          channels: 4,
+          background: { r: 0, g: 0, b: 0, alpha: 0 }
+        }
+      })
+        .composite([{ input: Buffer.from(srcBytes), left: offsetX, top: offsetY }])
+        .png()
+        .toBuffer();
+      const meta = await metadataFor(outputBytes);
+      return {
+        output: imageRef(outputBytes, {
+          uri: image.uri ?? "",
+          mimeType: "image/png",
+          width: meta.width ?? canvasW,
+          height: meta.height ?? canvasH
+        })
+      };
+    } catch {
+      return {
+        output: imageRef(srcBytes, {
+          uri: image.uri ?? "",
+          ...this.transformMeta()
+        })
+      };
+    }
+  }
+}
+
 export class CropNode extends TransformImageNode {
   static readonly nodeType = "nodetool.image.Crop";
   static readonly title = "Crop";
@@ -1436,16 +1651,11 @@ export class ImageToImageNode extends BaseNode {
   declare model: any;
 
   @prop({
-    type: "image",
-    default: {
-      type: "image",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Image",
-    description: "Input image to transform"
+    type: "list[image]",
+    default: [],
+    title: "Images",
+    description:
+      "Input image(s) to transform. The first image is the primary subject; additional images are used as references by providers that support multi-image editing."
   })
   declare image: any;
 
@@ -1515,7 +1725,7 @@ export class ImageToImageNode extends BaseNode {
   declare timeout_seconds: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    let image = (this.image ?? {}) as ImageRefLike;
+    let images = normalizeImageList(this.image);
     let prompt = String(this.prompt ?? "");
 
     // Inline asset mentions (e.g. from the Prompt composer's @-mention) carry
@@ -1525,14 +1735,24 @@ export class ImageToImageNode extends BaseNode {
     // wired in, and strip the mention out of the textual instruction.
     const overrides = await mapPromptAssetsToInputs(
       [{ name: "prompt", value: prompt }],
-      [{ name: "image", kind: "image", hasSource: imageRefHasSource(image) }],
+      [
+        {
+          name: "image",
+          kind: "image",
+          hasSource: images.some(imageRefHasSource)
+        }
+      ],
       context
     );
     if (typeof overrides.prompt === "string") prompt = overrides.prompt;
-    if (overrides.image) image = overrides.image as ImageRefLike;
+    if (overrides.image && images.length === 0) {
+      images = [overrides.image as ImageRefLike];
+    }
 
-    const bytes = await imageBytesAsync(image, context);
-    if (bytes.length === 0) {
+    const bytesList = (
+      await Promise.all(images.map((img) => imageBytesAsync(img, context)))
+    ).filter((b) => b.length > 0);
+    if (bytesList.length === 0) {
       throw new Error("The input image is empty.");
     }
     const aspectRatio = String(this.aspect_ratio ?? "1:1");
@@ -1547,7 +1767,7 @@ export class ImageToImageNode extends BaseNode {
       capability: "image_to_image",
       model: modelId,
       params: {
-        image: bytes,
+        images: bytesList,
         prompt,
         negative_prompt: this.negative_prompt,
         target_width: width,
@@ -1559,10 +1779,11 @@ export class ImageToImageNode extends BaseNode {
       }
     })) as Uint8Array;
     const meta = await metadataFor(output);
+    const sourceUri = images[0]?.uri ?? "";
     return {
       output: imageRef(output, {
-        uri: image.uri ?? "",
-        mimeType: inferImageMime(image.uri, output),
+        uri: sourceUri,
+        mimeType: inferImageMime(sourceUri, output),
         width: meta.width,
         height: meta.height
       })
@@ -2667,6 +2888,7 @@ export const IMAGE_NODES = tagAsHybrid([
   PasteNode,
   ScaleNode,
   ResizeNode,
+  CanvasResizeNode,
   CropNode,
   FitNode,
   RotateAndFlipNode,

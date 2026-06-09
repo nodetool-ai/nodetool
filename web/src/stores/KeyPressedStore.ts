@@ -11,7 +11,7 @@
  */
 
 import { create } from "zustand";
-import { useMemo, useEffect, useContext } from "react";
+import { useMemo, useEffect, useContext, useRef } from "react";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 import { KeyboardContext } from "../components/KeyboardProvider";
@@ -48,7 +48,16 @@ interface ComboOptions {
 }
 
 // Module-level variables and functions
-const comboCallbacks = new Map<string, ComboOptions>();
+type ComboRegistration = ComboOptions & { token: symbol };
+
+// Each combo maps to a STACK of registrations rather than a single slot.
+// Multiple components routinely bind the same combo (e.g. several modals, the
+// node menu, and the toolbar all bind "escape"). With a single slot the last
+// mount overwrote the earlier binding and the first UNMOUNT deleted the binding
+// for everyone — so shortcuts intermittently stopped working. A stack lets the
+// most-recently-registered active binding win (a focused modal shadows the
+// background editor) while unmounting one binding leaves the others intact.
+const comboCallbacks = new Map<string, ComboRegistration[]>();
 let lastPointerDownWasCanvas = false;
 
 const isWorkflowEditorElement = (node: Element | null | undefined): boolean =>
@@ -57,15 +66,74 @@ const isWorkflowEditorElement = (node: Element | null | undefined): boolean =>
     node.closest(".react-flow__renderer") !== null ||
     node.closest("[data-workflow-editor]") !== null);
 
-const registerComboCallback = (combo: string, options: ComboOptions = {}) => {
+/**
+ * Registers a combo handler and returns a disposer that removes exactly that
+ * handler (by identity), regardless of what else registered the same combo in
+ * the meantime. Prefer the returned disposer over {@link unregisterComboCallback}.
+ */
+const registerComboCallback = (
+  combo: string,
+  options: ComboOptions = {}
+): (() => void) => {
   // Normalize 'ctrl' to 'control' for consistency
   const normalizedCombo = combo.replace(/\bctrl\b/g, "control");
-  comboCallbacks.set(normalizedCombo, options);
+  const registration: ComboRegistration = {
+    ...options,
+    token: Symbol(normalizedCombo)
+  };
+  const stack = comboCallbacks.get(normalizedCombo);
+  if (stack) {
+    stack.push(registration);
+  } else {
+    comboCallbacks.set(normalizedCombo, [registration]);
+  }
+
+  return () => {
+    const current = comboCallbacks.get(normalizedCombo);
+    if (!current) {
+      return;
+    }
+    const index = current.findIndex((r) => r.token === registration.token);
+    if (index !== -1) {
+      current.splice(index, 1);
+    }
+    if (current.length === 0) {
+      comboCallbacks.delete(normalizedCombo);
+    }
+  };
 };
 
 const unregisterComboCallback = (combo: string) => {
+  // Back-compat helper: pops the most-recently-registered binding for the
+  // combo. Precise removal should use the disposer from registerComboCallback.
   const normalizedCombo = combo.replace(/\bctrl\b/g, "control");
-  comboCallbacks.delete(normalizedCombo);
+  const stack = comboCallbacks.get(normalizedCombo);
+  if (!stack) {
+    return;
+  }
+  stack.pop();
+  if (stack.length === 0) {
+    comboCallbacks.delete(normalizedCombo);
+  }
+};
+
+// Resolve which binding handles a combo: the topmost (most recently registered)
+// registration that is active and has a callback. Returns undefined when no
+// binding should fire, letting default browser behavior proceed.
+const resolveComboRegistration = (
+  combo: string
+): ComboRegistration | undefined => {
+  const stack = comboCallbacks.get(combo);
+  if (!stack) {
+    return undefined;
+  }
+  for (let i = stack.length - 1; i >= 0; i--) {
+    const registration = stack[i];
+    if (registration.callback && registration.active !== false) {
+      return registration;
+    }
+  }
+  return undefined;
 };
 
 const executeComboCallbacks = (
@@ -77,9 +145,9 @@ const executeComboCallbacks = (
   }
   const pressedKeysString = Array.from(pressedKeys).sort().join("+");
   const activeElement = document.activeElement;
-  const options = comboCallbacks.get(pressedKeysString);
+  const options = resolveComboRegistration(pressedKeysString);
 
-  if (!options?.callback || options.active === false) {
+  if (!options) {
     // No active callback for this combo, or combo is inactive.
     // Default browser behavior (e.g., typing a character) will occur.
     return;
@@ -168,7 +236,7 @@ const executeComboCallbacks = (
   }
   
   // Execute the callback
-  options.callback();
+  options.callback?.();
   
   // After executing a combo, clear non-modifier keys to prevent stuck keys
   // This is important because keyup events may not fire reliably, especially on macOS
@@ -269,13 +337,28 @@ const useKeyPressedStore = create<KeyPressedState>()((set, get) => ({
   }
 }));
 
-// Add this near the top of the file, with other module-level variables
-let listenersInitialized = false;
+// Ref-counted global key listeners. Multiple consumers call initKeyListeners
+// (app bootstrap + every KeyboardProvider). A plain boolean guard let whichever
+// consumer happened to "own" the listeners tear them down on unmount while other
+// live consumers still needed them — globally killing keyboard handling. Ref-
+// counting attaches on the first consumer and detaches only once the last one
+// releases.
+let listenerRefCount = 0;
+let detachKeyListeners: (() => void) | null = null;
+
+const releaseKeyListeners = () => {
+  listenerRefCount = Math.max(0, listenerRefCount - 1);
+  if (listenerRefCount === 0 && detachKeyListeners) {
+    detachKeyListeners();
+    detachKeyListeners = null;
+  }
+};
 
 const initKeyListeners = () => {
-  // Check if listeners are already initialized
-  if (listenersInitialized) {
-    return () => {}; // Return a no-op cleanup function
+  listenerRefCount += 1;
+  // Listeners already attached for an earlier consumer — just hold a reference.
+  if (detachKeyListeners) {
+    return releaseKeyListeners;
   }
 
   const handleKeyChange = (event: KeyboardEvent, isPressed: boolean) => {
@@ -378,19 +461,17 @@ const initKeyListeners = () => {
   window.addEventListener("blur", clearAllKeys);
   window.addEventListener("focus", clearAllKeys);
 
-  // Set the flag to true after adding listeners
-  listenersInitialized = true;
-
-  // Return a cleanup function
-  return () => {
+  detachKeyListeners = () => {
     window.removeEventListener("keydown", handleKeyDown);
     window.removeEventListener("keyup", handleKeyUp);
     window.removeEventListener("pointerdown", handlePointerDown, true);
     window.removeEventListener("blur", clearAllKeys);
     window.removeEventListener("focus", clearAllKeys);
     lastPointerDownWasCanvas = false;
-    listenersInitialized = false;
   };
+
+  // Return a cleanup function that releases this consumer's reference.
+  return releaseKeyListeners;
 };
 
 export const useKeyPressed = <T>(selector: (state: KeyPressedState) => T) =>
@@ -415,18 +496,24 @@ const useCombo = (
     [combo]
   );
 
+  // Keep the latest callback in a ref so an unstable (inline) callback does not
+  // force re-registration on every render. The effect below registers once per
+  // combo/active/scope change and always invokes the current callback.
+  const callbackRef = useRef(callback);
+  callbackRef.current = callback;
+
   useEffect(() => {
     // Only register if both the keyboard context and the hook's active prop are true
-    if (keyboardActive && active) {
-      registerComboCallback(memoizedCombo, {
-        callback,
-        preventDefault,
-        active,
-        scope
-      });
-      return () => unregisterComboCallback(memoizedCombo);
+    if (!(keyboardActive && active)) {
+      return;
     }
-  }, [memoizedCombo, callback, preventDefault, active, keyboardActive, scope]);
+    return registerComboCallback(memoizedCombo, {
+      callback: () => callbackRef.current(),
+      preventDefault,
+      active,
+      scope
+    });
+  }, [memoizedCombo, preventDefault, active, keyboardActive, scope]);
 };
 
 const agentCallback = () => {

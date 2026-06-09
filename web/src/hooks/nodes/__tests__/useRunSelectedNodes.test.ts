@@ -19,8 +19,23 @@ jest.mock("../../../stores/NotificationStore", () => ({
   useNotificationStore: jest.fn()
 }));
 
+jest.mock("../../../stores/MetadataStore", () => ({
+  __esModule: true,
+  default: { getState: jest.fn(() => ({ getMetadata: () => undefined })) }
+}));
+
+jest.mock("../../../utils/edgeValue", () => ({
+  resolveExternalEdgeValue: jest.fn(() => ({
+    value: undefined,
+    hasValue: false,
+    isFallback: false
+  }))
+}));
+
 
 import { useNodeStoreRef } from "../../../contexts/NodeContext";
+import useMetadataStore from "../../../stores/MetadataStore";
+import { resolveExternalEdgeValue } from "../../../utils/edgeValue";
 import {
   useWebsocketRunner,
   getWorkflowRunnerStore
@@ -33,6 +48,8 @@ const mockUseWebsocketRunner = useWebsocketRunner as jest.Mock;
 const mockGetWorkflowRunnerStore = getWorkflowRunnerStore as jest.Mock;
 const mockUseResultsStore = useResultsStore as unknown as jest.Mock;
 const mockUseNotificationStore = useNotificationStore as unknown as jest.Mock;
+const mockMetadataGetState = (useMetadataStore as unknown as { getState: jest.Mock }).getState;
+const mockResolveExternalEdgeValue = resolveExternalEdgeValue as jest.Mock;
 
 type RunnerState = {
   state: "idle" | "running" | "error" | "cancelled" | "connecting";
@@ -311,6 +328,80 @@ describe("useRunSelectedNodes", () => {
 
     // Only the first run was dispatched; the sequence broke on error.
     expect(mockRun).toHaveBeenCalledTimes(1);
+  });
+
+  it("aggregates multiple external edges into a list[image] handle instead of last-write-wins", async () => {
+    const falNode = {
+      id: "node-f",
+      type: "fal.image_to_image.IdeogramV3Edit",
+      data: { properties: { images: [] } },
+      selected: true
+    };
+    const img1 = {
+      id: "img-1",
+      type: "nodetool.constant.Image",
+      data: { properties: {} },
+      selected: false
+    };
+    const img2 = {
+      id: "img-2",
+      type: "nodetool.constant.Image",
+      data: { properties: {} },
+      selected: false
+    };
+    const edges = [
+      { id: "ei1", source: "img-1", target: "node-f", sourceHandle: "output", targetHandle: "images" },
+      { id: "ei2", source: "img-2", target: "node-f", sourceHandle: "output", targetHandle: "images" }
+    ];
+
+    mockGetSelectedNodes.mockReturnValue([falNode]);
+    mockFindNode.mockImplementation((id: string) =>
+      [falNode, img1, img2].find((n) => n.id === id)
+    );
+    mockUseNodeStoreRef.mockReturnValue({
+      getState: () => ({
+        nodes: [falNode, img1, img2],
+        edges,
+        workflow: defaultWorkflow,
+        findNode: mockFindNode,
+        getSelectedNodes: mockGetSelectedNodes
+      })
+    });
+
+    // Each upstream edge resolves to a distinct image ref.
+    mockResolveExternalEdgeValue.mockImplementation((edge: { source: string }) => ({
+      value: { type: "image", uri: edge.source === "img-1" ? "a.png" : "b.png" },
+      hasValue: true,
+      isFallback: false
+    }));
+
+    // `images` is a list[image] (collect) handle.
+    mockMetadataGetState.mockReturnValue({
+      getMetadata: (type: string) =>
+        type === "fal.image_to_image.IdeogramV3Edit"
+          ? {
+              properties: [
+                {
+                  name: "images",
+                  type: { type: "list", type_args: [{ type: "image", type_args: [] }] }
+                }
+              ]
+            }
+          : undefined
+    });
+
+    const { result } = renderHook(() => useRunSelectedNodes());
+    await act(async () => {
+      await result.current.runSelectedNodes();
+    });
+
+    expect(mockRun).toHaveBeenCalledTimes(1);
+    const nodesPassedToRun = mockRun.mock.calls[0][2];
+    const fal = nodesPassedToRun.find((n: { id: string }) => n.id === "node-f");
+    expect(fal.data.properties.images).toEqual([
+      { type: "image", uri: "a.png" },
+      { type: "image", uri: "b.png" }
+    ]);
   });
 
   it("clamps runs to the supported range [1, 32]", async () => {

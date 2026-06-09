@@ -60,9 +60,11 @@ export function getDownstreamSubgraph(
     .filter((e) => e.sourceHandle === sourceHandle);
 
   const includedNodeIds = new Set<string>();
+  // Stryker disable next-line ArrayDeclaration: a non-empty seed is equivalent — a bogus Edge has no source/target in includedNodeIds and is dropped by the endpoint filter below
   const includedEdges: Edge[] = [];
 
   // Seed BFS with targets of initial edges
+  // Stryker disable next-line ArrayDeclaration: a non-empty seed is equivalent — a bogus node id has no outgoing edges, so BFS adds nothing for it
   const queue: string[] = [];
   for (const e of initialEdges) {
     includedEdges.push(e);
@@ -90,8 +92,13 @@ export function getDownstreamSubgraph(
     if (node) nodes.push(node);
   }
 
-  // Filter edges to those with both endpoints in included set
+  // Filter edges to those with both endpoints in included set. This is a
+  // defensive no-op given the BFS above (every pushed edge's source is the
+  // dequeued node and its target is added to the set), so its mutants are
+  // equivalent — kept for safety against future changes to the BFS.
+  // Stryker disable next-line MethodExpression: defensive no-op filter (see above)
   const filteredEdges = includedEdges.filter(
+    // Stryker disable next-line ConditionalExpression,LogicalOperator: defensive no-op filter — both endpoints are always in the set
     (e) => includedNodeIds.has(e.source) && includedNodeIds.has(e.target)
   );
 
@@ -107,6 +114,7 @@ export function getDownstreamSubgraph(
  */
 export function isNodeBypassed(node: NodeDescriptor): boolean {
   const ui = node.ui_properties;
+  // Stryker disable next-line ConditionalExpression: the `typeof ui !== "object"` operand is equivalent to drop — a truthy non-object (string/number) never throws on `.bypassed` and still yields `=== true → false`
   if (!ui || typeof ui !== "object") return false;
   return (ui as Record<string, unknown>).bypassed === true;
 }
@@ -141,9 +149,11 @@ function getInputTypeString(
     const val = props[handle];
     if (typeof val === "object" && val !== null && "type" in val) {
       const t = (val as { type: unknown }).type;
+      // Stryker disable next-line ConditionalExpression: forcing this true is equivalent — returning a non-string `t` vs undefined are indistinguishable downstream (typesCompatible treats both as compatible)
       if (typeof t === "string") return t;
-    } else if (typeof val === "string") {
-      return val;
+    } else {
+      // Stryker disable next-line ConditionalExpression: forcing this true is equivalent — returning a non-string `val` vs undefined are indistinguishable downstream
+      if (typeof val === "string") return val;
     }
   }
   return undefined;
@@ -159,6 +169,7 @@ function typesCompatible(
   sourceType: string | undefined,
   targetType: string | undefined
 ): boolean {
+  // Stryker disable next-line ConditionalExpression,LogicalOperator: equivalent — removing/weakening this guard still returns true for a missing type, because TypeMetadata.fromString(undefined) throws and the catch below returns true
   if (!sourceType || !targetType) return true;
   try {
     const s = TypeMetadata.fromString(sourceType);
@@ -217,9 +228,14 @@ export function rewriteBypassedNodes(data: GraphData): GraphData {
       if (processed.has(bypassId)) continue;
 
       const incoming = currentEdges.filter((e) => e.target === bypassId);
-      const hasUnprocessedBypassedUpstream = incoming.some(
-        (e) => bypassedIds.has(e.source) && !processed.has(e.source)
-      );
+      // This skip only orders processing so a chain collapses in one tidy
+      // pass; the outer `while (didChange)` re-processes, so out-of-order
+      // visits still converge to the same final edge set (see the
+      // "collapses ... out of dependency order" test). The mutants on this
+      // condition therefore don't change observable output.
+      // Stryker disable next-line MethodExpression,ArrowFunction,ConditionalExpression,BooleanLiteral: processing-order optimization — converges to the same final edges either way
+      const hasUnprocessedBypassedUpstream = incoming.some((e) => bypassedIds.has(e.source) && !processed.has(e.source));
+      // Stryker disable next-line ConditionalExpression: see above — skipping only reorders processing; the while-loop converges regardless
       if (hasUnprocessedBypassedUpstream) continue;
 
       const incomingData = incoming.filter((e) => !isControlEdge(e));

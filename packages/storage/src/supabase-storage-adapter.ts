@@ -5,6 +5,7 @@ import type {
   StorageListResult,
   StorageStat
 } from "./storage-adapter.js";
+import { normalizeStorageKey } from "./storage-keys.js";
 
 export interface SupabaseStorageAdapterOptions {
   url: string;
@@ -125,7 +126,24 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     // flat mode we'd have to walk recursively — implement hierarchical only
     // for now and fall back to a single-level listing without commonPrefixes
     // for flat mode (callers wanting recursion should walk themselves).
-    const dir = prefix.replace(/\/+$/, "");
+    // Normalize the (possibly caller-supplied) prefix the way the file and S3
+    // adapters do. normalizeStorageKey rejects path-traversal keys and uses no
+    // polynomial regex, avoiding the ReDoS that `prefix.replace(/\/+$/, "")`
+    // suffered on long `/`-runs reachable from asset refs (CWE-1333). Invalid
+    // keys yield an empty listing rather than escaping the bucket.
+    let dir = "";
+    if (prefix && prefix !== "/") {
+      try {
+        dir = normalizeStorageKey(prefix);
+      } catch {
+        return { entries: [], commonPrefixes: [] };
+      }
+    }
+    // path.normalize can leave a single trailing slash (e.g. "a/"); strip it so
+    // childKey construction below never produces "dir//name".
+    if (dir.endsWith("/")) {
+      dir = dir.slice(0, -1);
+    }
     const { data, error } = await this.getClient()
       .storage.from(this.bucket)
       .list(dir, { limit: 1000 });

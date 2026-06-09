@@ -185,14 +185,28 @@ export function encodeWav(
   return new Uint8Array(buffer);
 }
 
+export interface WavHeader {
+  sampleRate: number;
+  numChannels: number;
+  bitsPerSample: number;
+  /** Byte offset of the start of the `data` chunk payload. */
+  dataOffset: number;
+  /** Length of the `data` chunk payload in bytes (clamped to the buffer). */
+  dataSize: number;
+}
+
 /**
- * Parse already-loaded WAV bytes into Float32 samples.
- * Returns null when the input is not a valid RIFF/WAVE file.
- * Supports 16-bit and 8-bit PCM. Subchunks are traversed, so non-standard
- * layouts with `LIST`/`JUNK`/etc. before the `data` chunk work correctly.
+ * Locate the `fmt ` and `data` chunks in a RIFF/WAVE byte stream and return
+ * the format fields plus the byte range of the PCM payload.
+ *
+ * Chunks are traversed honoring RIFF word-alignment (odd-sized chunks carry a
+ * trailing pad byte), so layouts that interleave `LIST`/`JUNK`/`fact` chunks
+ * — and non-canonical `fmt ` sizes (e.g. WAVE_FORMAT_EXTENSIBLE) — are read
+ * correctly. Returns null when the input is not a RIFF/WAVE file or has no
+ * `data` chunk.
  */
-export function parseWavBytes(bytes: Uint8Array): WavData | null {
-  if (bytes.length < 44) return null;
+export function readWavHeader(bytes: Uint8Array): WavHeader | null {
+  if (bytes.length < 12) return null;
   const buf = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   if (
     buf.toString("ascii", 0, 4) !== "RIFF" ||
@@ -201,24 +215,53 @@ export function parseWavBytes(bytes: Uint8Array): WavData | null {
     return null;
   }
 
-  const sampleRate = buf.readUInt32LE(24);
-  const bitsPerSample = buf.readUInt16LE(34);
-  const numChannels = buf.readUInt16LE(22);
+  let sampleRate = 0;
+  let numChannels = 0;
+  let bitsPerSample = 0;
+  let dataOffset = -1;
+  let dataSize = 0;
 
-  let dataOffset = 36;
-  while (dataOffset < buf.length - 8) {
-    const chunkId = buf.toString("ascii", dataOffset, dataOffset + 4);
-    const chunkSize = buf.readUInt32LE(dataOffset + 4);
-    if (chunkId === "data") {
-      dataOffset += 8;
+  let offset = 12;
+  while (offset + 8 <= buf.length) {
+    const chunkId = buf.toString("ascii", offset, offset + 4);
+    const chunkSize = buf.readUInt32LE(offset + 4);
+    const body = offset + 8;
+    if (chunkId === "fmt " && body + 16 <= buf.length) {
+      numChannels = buf.readUInt16LE(body + 2);
+      sampleRate = buf.readUInt32LE(body + 4);
+      bitsPerSample = buf.readUInt16LE(body + 14);
+    } else if (chunkId === "data") {
+      // `fmt ` always precedes `data` in a well-formed file, so the format
+      // fields are populated by the time we get here.
+      dataOffset = body;
+      dataSize = chunkSize;
       break;
     }
-    dataOffset += 8 + chunkSize;
+    offset = body + chunkSize + (chunkSize & 1);
   }
 
+  if (dataOffset < 0) return null;
+  const available = buf.length - dataOffset;
+  if (dataSize <= 0 || dataSize > available) dataSize = available;
+  return { sampleRate, numChannels, bitsPerSample, dataOffset, dataSize };
+}
+
+/**
+ * Parse already-loaded WAV bytes into Float32 samples (channel-interleaved).
+ * Returns null when the input is not a valid RIFF/WAVE file.
+ * Supports 16-bit and 8-bit PCM. Subchunks are traversed, so non-standard
+ * layouts with `LIST`/`JUNK`/etc. before the `data` chunk work correctly.
+ */
+export function parseWavBytes(bytes: Uint8Array): WavData | null {
+  const header = readWavHeader(bytes);
+  if (!header) return null;
+  const { sampleRate, numChannels, bitsPerSample, dataOffset, dataSize } =
+    header;
   const bytesPerSample = bitsPerSample / 8;
   if (bytesPerSample !== 1 && bytesPerSample !== 2) return null;
-  const totalSamples = Math.floor((buf.length - dataOffset) / bytesPerSample);
+
+  const buf = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const totalSamples = Math.floor(dataSize / bytesPerSample);
   const samples = new Float32Array(totalSamples);
 
   for (let i = 0; i < totalSamples; i++) {
@@ -231,6 +274,35 @@ export function parseWavBytes(bytes: Uint8Array): WavData | null {
   }
 
   return { samples, sampleRate, numChannels };
+}
+
+/** Split channel-interleaved samples into per-channel planes. */
+export function deinterleave(
+  samples: Float32Array,
+  numChannels: number
+): Float32Array[] {
+  const channels = Math.max(1, numChannels);
+  const frames = Math.floor(samples.length / channels);
+  const planes: Float32Array[] = [];
+  for (let ch = 0; ch < channels; ch++) {
+    const plane = new Float32Array(frames);
+    for (let i = 0; i < frames; i++) plane[i] = samples[i * channels + ch];
+    planes.push(plane);
+  }
+  return planes;
+}
+
+/** Interleave per-channel planes back into a single sample buffer. */
+export function interleave(planes: Float32Array[]): Float32Array {
+  const numChannels = planes.length;
+  const frames = numChannels > 0 ? planes[0].length : 0;
+  const out = new Float32Array(frames * numChannels);
+  for (let ch = 0; ch < numChannels; ch++) {
+    for (let i = 0; i < frames; i++) {
+      out[i * numChannels + ch] = planes[ch][i];
+    }
+  }
+  return out;
 }
 
 /**

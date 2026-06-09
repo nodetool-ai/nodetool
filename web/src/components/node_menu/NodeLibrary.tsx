@@ -20,8 +20,10 @@ import NodeInfo from "./NodeInfo";
 import useMetadataStore from "../../stores/MetadataStore";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
+import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import { serializeDragData } from "../../lib/dragdrop";
 import { useDragDropStore } from "../../lib/dragdrop/store";
+import { rankSearchNodes } from "../../utils/nodeSearch";
 import {
   filterNodesForCategory,
   NODE_SUBCATEGORIES,
@@ -300,6 +302,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
     const setDragToCreate = useNodeMenuStore((state) => state.setDragToCreate);
     const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
     const clearDrag = useDragDropStore((s) => s.clearDrag);
+    const recentNodes = useRecentNodesStore((s) => s.recentNodes);
 
     useEffect(() => {
       searchRef.current?.focus();
@@ -318,9 +321,22 @@ const NodeLibrary = memo<NodeLibraryProps>(
       return map;
     }, [allNodes]);
 
+    const recentNodeTypes = useMemo(
+      () => recentNodes.map((node) => node.nodeType),
+      [recentNodes]
+    );
+
+    const categoryNodes = useMemo(
+      () => filterNodesForCategory(category, allNodes),
+      [category, allNodes]
+    );
+
+    // Smart ranking (prefix + BM25 + fuzzy matching, with recency and
+    // quick-action boosts) — used even when the query is empty so the default
+    // browse order surfaces recent and common nodes ahead of a flat list.
     const nodes = useMemo(
-      () => filterNodesForCategory(category, allNodes, query),
-      [category, allNodes, query]
+      () => rankSearchNodes(categoryNodes, query, recentNodeTypes),
+      [categoryNodes, query, recentNodeTypes]
     );
 
     // The info box follows the hovered row; with nothing hovered it shows a

@@ -215,6 +215,23 @@ npm run dev:nodetool -- workflows run <id> --json               # JSON output
 npm run dev:nodetool -- workflows export-dsl <workflow_id>
 npm run dev:nodetool -- workflows export-dsl <id> -o output.ts  # Write to file
 npm run dev:nodetool -- workflows export-dsl workflow.json       # From JSON file
+
+# Export workflow as a shipped template: materialize its referenced assets into
+# the package's constant asset dir (rewriting refs to package://<pkg>/<file>)
+# and write the example JSON. The assets ship with the build and resolve on any
+# install via /api/assets/packages/<pkg>/<file>.
+npm run dev:nodetool -- workflows export-example <workflow_id>
+npm run dev:nodetool -- workflows export-example <id> --package nodetool-base
+npm run dev:nodetool -- workflows export-example workflow.json -o example.json
+
+# Export/import a portable .nodetool bundle (zip): one or more workflow graphs
+# plus the bytes of every asset they reference, sharable as a single file (refs
+# become bundle://<file> inside, rewritten back to asset:// on import). Also
+# exposed over the API (GET /api/workflows/:id/export-bundle, POST
+# /api/workflows/export-bundle {workflow_ids}, POST /api/workflows/import-bundle)
+# and in the editor command menu (Export/Import Workflow as Bundle).
+npm run dev:nodetool -- workflows export-bundle <id> [<id2> ...] -o my-pack.nodetool
+npm run dev:nodetool -- workflows import-bundle my-pack.nodetool   # → local library
 ```
 
 ### nodetool jobs

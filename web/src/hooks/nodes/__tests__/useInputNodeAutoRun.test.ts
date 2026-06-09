@@ -13,15 +13,11 @@ jest.mock("../../../stores/WorkflowRunner", () => ({
   useWebsocketRunner: jest.fn()
 }));
 
-jest.mock("../../../stores/ResultsStore", () => ({
-  __esModule: true,
-  default: jest.fn()
-}));
-// Cached values are collected from the workflow's focused run; provide a stable
-// one so getResult is consulted (otherwise the read short-circuits to undefined).
-jest.mock("../../../stores/WorkflowRunsStore", () => ({
-  __esModule: true,
-  default: { getState: () => ({ getFocusedJob: () => "job-1" }) }
+// Upstream inputs are seeded from each source node's current generation
+// (durable assets merged with the live buffer). Mock the sync accessor so a
+// test can hand a node a cached generation.
+jest.mock("../../../stores/nodeGenerationAccessor", () => ({
+  getNodeGenerations: jest.fn()
 }));
 
 jest.mock("../../../core/graph", () => ({
@@ -34,7 +30,8 @@ jest.mock("../../../stores/SettingsStore", () => ({
 
 import { useNodes, useNodeStoreRef } from "../../../contexts/NodeContext";
 import { useWebsocketRunner } from "../../../stores/WorkflowRunner";
-import useResultsStore from "../../../stores/ResultsStore";
+import { getNodeGenerations } from "../../../stores/nodeGenerationAccessor";
+import type { Generation } from "../../../utils/nodeGenerations";
 import { subgraph } from "../../../core/graph";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 
@@ -42,14 +39,22 @@ const mockUseNodes = useNodes as jest.Mock;
 const mockUseNodeStoreRef = useNodeStoreRef as jest.Mock;
 const mockUseWebsocketRunner = useWebsocketRunner as jest.Mock;
 
-const mockUseResultsStore = useResultsStore as unknown as jest.Mock;
+const mockGetNodeGenerations = getNodeGenerations as jest.Mock;
 const mockSubgraph = subgraph as jest.Mock;
 const mockUseSettingsStore = useSettingsStore as unknown as jest.Mock;
+
+/** Build a completed generation whose outputs feed downstream edges. */
+const completedGeneration = (outputs: Record<string, unknown>): Generation => ({
+  id: "gen-1",
+  jobId: "job-1",
+  createdAt: 1,
+  outputs,
+  status: "completed"
+});
 
 describe("useInputNodeAutoRun", () => {
   const mockRun = jest.fn();
   const mockFindNode = jest.fn();
-  const mockGetResult = jest.fn();
 
   const defaultMockNodes = [
     {
@@ -95,10 +100,8 @@ describe("useInputNodeAutoRun", () => {
       return selector(state);
     });
 
-    mockUseResultsStore.mockImplementation((selector) => {
-      const state = { getResult: mockGetResult };
-      return selector(state);
-    });
+    // Default: no upstream has a cached generation.
+    mockGetNodeGenerations.mockReturnValue([]);
 
     // Default: instantUpdate is disabled
     mockUseSettingsStore.mockImplementation((selector) => {
@@ -356,14 +359,13 @@ describe("useInputNodeAutoRun", () => {
       edges: [complexEdges[0], complexEdges[1], complexEdges[2]]
     });
 
-    // external-1 has a cached result. getResult is now keyed by job, so the
-    // node id is the third argument.
-    mockGetResult.mockImplementation(
-      (_workflowId: string, _jobId: string, nodeId: string) => {
+    // external-1 has a cached generation whose output feeds downstream.
+    mockGetNodeGenerations.mockImplementation(
+      (_workflowId: string, nodeId: string) => {
         if (nodeId === "external-1") {
-          return { output: "cached external value" };
+          return [completedGeneration({ output: "cached external value" })];
         }
-        return undefined;
+        return [];
       }
     );
 
@@ -474,17 +476,16 @@ describe("useInputNodeAutoRun", () => {
       edges: [multiExternalEdges[0], multiExternalEdges[2], multiExternalEdges[3]]
     });
 
-    // Both external nodes have cached results. getResult is now keyed by job,
-    // so the node id is the third argument.
-    mockGetResult.mockImplementation(
-      (_workflowId: string, _jobId: string, nodeId: string) => {
+    // Both external nodes have cached generations.
+    mockGetNodeGenerations.mockImplementation(
+      (_workflowId: string, nodeId: string) => {
         if (nodeId === "external-1") {
-          return { output: "cached from ext1" };
+          return [completedGeneration({ output: "cached from ext1" })];
         }
         if (nodeId === "external-2") {
-          return { output: 100 };
+          return [completedGeneration({ output: 100 })];
         }
-        return undefined;
+        return [];
       }
     );
 

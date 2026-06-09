@@ -552,8 +552,15 @@ export abstract class BaseProvider {
     return results;
   }
 
+  /**
+   * Transform one or more source images into a single output image.
+   *
+   * The first image is the primary subject; providers that accept multiple
+   * reference images (e.g. multi-image editing / composition) use the rest,
+   * while single-image providers operate on `images[0]`.
+   */
   async imageToImage(
-    _image: Uint8Array,
+    _images: Uint8Array[],
     _params: ImageToImageParams
   ): Promise<Uint8Array> {
     throw new Error(`${this.provider} does not support imageToImage`);
@@ -566,13 +573,13 @@ export abstract class BaseProvider {
    * Providers that support native batch generation should override this.
    */
   async imageToImages(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToImageParams,
     numImages: number
   ): Promise<Uint8Array[]> {
     const results: Uint8Array[] = [];
     for (let i = 0; i < numImages; i++) {
-      results.push(await this.imageToImage(image, params));
+      results.push(await this.imageToImage(images, params));
     }
     return results;
   }
@@ -660,8 +667,12 @@ export abstract class BaseProvider {
     throw new Error(`${this.provider} does not support textToVideo`);
   }
 
+  /**
+   * Animate one or more source images into a video. Single-frame providers
+   * use `images[0]`; providers with multi-reference support may use more.
+   */
   async imageToVideo(
-    _image: Uint8Array,
+    _images: Uint8Array[],
     _params: ImageToVideoParams
   ): Promise<Uint8Array> {
     throw new Error(`${this.provider} does not support imageToVideo`);

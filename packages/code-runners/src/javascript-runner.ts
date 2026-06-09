@@ -11,7 +11,7 @@ import {
  */
 export class JavaScriptDockerRunner extends StreamRunnerBase {
   constructor(options?: { image?: string } & StreamRunnerOptions) {
-    super({ image: options?.image ?? "node:22-alpine", ...options });
+    super({ ...options, image: options?.image ?? "node:22-alpine" });
   }
 
   override buildContainerCommand(

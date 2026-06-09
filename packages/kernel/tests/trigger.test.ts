@@ -1,6 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { TriggerState, TriggerInactivityTimeout } from "../src/trigger.js";
 import { WorkflowSuspendedError } from "../src/suspendable.js";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("TriggerInactivityTimeout", () => {
   it("stores timeoutSeconds", () => {
@@ -35,6 +39,78 @@ describe("TriggerState", () => {
     expect(() => {
       ts.inactivityTimeout = -5;
     }).toThrow("at least 1 second");
+  });
+
+  it("inactivityTimeout setter accepts exactly 1 second (boundary)", () => {
+    const ts = new TriggerState("n1");
+    ts.inactivityTimeout = 1;
+    expect(ts.inactivityTimeout).toBe(1);
+  });
+
+  it("lastActivityTime is null until activity, then a timestamp", () => {
+    const ts = new TriggerState("n1");
+    expect(ts.lastActivityTime).toBeNull();
+
+    const now = 1_700_000_000_000;
+    vi.spyOn(Date, "now").mockReturnValue(now);
+    ts.sendTriggerEvent({ a: 1 });
+    expect(ts.lastActivityTime).toBe(now);
+  });
+
+  it("does not time out before the configured delay elapses", async () => {
+    const ts = new TriggerState("n1");
+    const p = ts.waitForTriggerEvent(0.1); // 100ms
+    let rejected = false;
+    p.catch(() => {
+      rejected = true;
+    });
+    await new Promise((r) => setTimeout(r, 30));
+    expect(rejected).toBe(false); // a /1000 mutant would fire almost immediately
+    ts.sendTriggerEvent({ ok: 1 });
+    expect(await p).toEqual({ ok: 1 });
+  });
+
+  it("a timed-out waiter is dropped so the next event is queued, not lost", async () => {
+    const ts = new TriggerState("n1");
+    await expect(ts.waitForTriggerEvent(0.02)).rejects.toThrow(
+      TriggerInactivityTimeout
+    );
+    // The stale waiter must be gone: a fresh event is queued and then read.
+    ts.sendTriggerEvent({ a: 1 });
+    expect(await ts.waitForTriggerEvent(1)).toEqual({ a: 1 });
+  });
+
+  it("dropping a timed-out waiter does not disturb other live waiters", async () => {
+    const ts = new TriggerState("n1");
+    const slow = ts.waitForTriggerEvent(0.03); // times out
+    const fast = ts.waitForTriggerEvent(10); // stays registered
+    await expect(slow).rejects.toThrow(TriggerInactivityTimeout);
+    ts.sendTriggerEvent({ ok: 1 });
+    expect(await fast).toEqual({ ok: 1 });
+  });
+
+  it("shouldSuspendForInactivity stays false with no activity even at zero timeout", () => {
+    // Guards the duration === null branch: without it, null >= 0 would be true.
+    const ts = new TriggerState("n1", 0);
+    expect(ts.shouldSuspendForInactivity()).toBe(false);
+  });
+
+  it("shouldSuspendForInactivity is false below the timeout (pins the * 1000 scaling)", () => {
+    const ts = new TriggerState("n1", 1); // 1000ms threshold
+    const now = 1_700_000_000_000;
+    vi.spyOn(Date, "now").mockReturnValue(now);
+    ts.sendTriggerEvent({});
+    vi.spyOn(Date, "now").mockReturnValue(now + 500); // 500ms < 1000ms
+    expect(ts.shouldSuspendForInactivity()).toBe(false);
+  });
+
+  it("shouldSuspendForInactivity is true exactly at the timeout boundary (>=)", () => {
+    const ts = new TriggerState("n1", 1); // 1000ms
+    const now = 1_700_000_000_000;
+    vi.spyOn(Date, "now").mockReturnValue(now);
+    ts.sendTriggerEvent({}); // lastActivityTime = now
+    vi.spyOn(Date, "now").mockReturnValue(now + 1000); // duration == 1000ms
+    expect(ts.shouldSuspendForInactivity()).toBe(true);
   });
 
   it("sendTriggerEvent() + waitForTriggerEvent() — event delivered immediately when waiter exists", async () => {

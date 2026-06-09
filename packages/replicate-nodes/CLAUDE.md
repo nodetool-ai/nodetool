@@ -47,5 +47,8 @@ All nodes correctly use `metadataOutputTypes` for output type declarations. Dict
 ## Common Pitfalls
 
 - Never default asset inputs to `""` - always use proper AssetRef objects
-- Replicate output can be string, array, FileOutput (with .url() method), or object - `extractUrl()` handles all cases
-- The `removeNulls()` function strips null/empty/zero values - be careful with intentional 0 values
+- `dict[...]` props default to `null`, **not** `""` (an empty string is an invalid empty default for a dict).
+- Replicate output can be string, array, FileOutput (with .url() method), or object (asset wrapped under a named key) - `extractUrl()` handles all cases. It recursively scans object/array shapes but only accepts a **nested** string when it matches `URL_LIKE = /^(https?:|data:)/` — a bare top-level string is still returned verbatim (model contract). Don't assume the URL sits under a fixed key.
+- `assetToUrl()` returns `null` for an asset it can't turn into a publicly reachable URL or data URI (e.g. an upload failure leaving only a relative path). Returning the original relative `uri` hands Replicate a path it can't fetch; returning `null` lets `removeNulls()` drop the arg.
+- The `removeNulls()` function strips only **top-level** `null`/`undefined`/empty-string keys. It does NOT recurse (so pass-through `dict[...]` inputs keep their shape) and does NOT strip `0`/`false`.
+- Numeric enums (e.g. SD `width`/`height`): the manifest stores enum values as strings, so the factory detects all-numeric enums and registers numeric `values`/`default` and coerces the API arg back to a number. A plain `String()` cast would send `"768"` and fail the model's integer schema.

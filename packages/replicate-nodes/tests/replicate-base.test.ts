@@ -1,4 +1,13 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
+
+const mockFilesCreate = vi.fn();
+
+vi.mock("replicate", () => ({
+  default: class {
+    files = { create: mockFilesCreate };
+  }
+}));
+
 import {
   getReplicateApiKey,
   removeNulls,
@@ -80,16 +89,15 @@ describe("removeNulls", () => {
     expect("b" in obj).toBe(false);
   });
 
-  it("removes null values from nested objects", () => {
+  it("does not recurse into nested objects (preserves pass-through dicts)", () => {
     const obj: Record<string, unknown> = {
       a: 1,
-      nested: { x: "keep", y: null, z: undefined }
+      nested: { x: "keep", y: null, z: "" }
     };
     removeNulls(obj);
     expect(obj.a).toBe(1);
-    expect((obj.nested as Record<string, unknown>).x).toBe("keep");
-    expect("y" in (obj.nested as Record<string, unknown>)).toBe(false);
-    expect("z" in (obj.nested as Record<string, unknown>)).toBe(false);
+    // Nested values are left untouched — dict[...] inputs must keep their shape.
+    expect(obj.nested).toEqual({ x: "keep", y: null, z: "" });
   });
 
   it("keeps zero and false values", () => {
@@ -173,6 +181,29 @@ describe("assetToUrl", () => {
     const dataUri = "data:image/png;base64,abc123";
     expect(await assetToUrl({ uri: dataUri })).toBe(dataUri);
   });
+
+  it("resolves asset:// refs via context.resolveAssetBytes and uploads them", async () => {
+    mockFilesCreate.mockResolvedValueOnce({
+      urls: { get: "https://replicate.delivery/uploaded/asset-123.png" }
+    });
+
+    const ctx = {
+      storage: { retrieve: vi.fn().mockResolvedValue(null) },
+      resolveAssetBytes: vi
+        .fn()
+        .mockResolvedValue({ bytes: Uint8Array.from([137, 80, 78, 71]) })
+    };
+
+    const result = await assetToUrl(
+      { type: "image", uri: "asset://asset-123" },
+      "api-key",
+      ctx
+    );
+
+    expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://asset-123");
+    expect(result).toBe("https://replicate.delivery/uploaded/asset-123.png");
+    expect(result).not.toBe("asset://asset-123");
+  });
 });
 
 /* ================================================================== */
@@ -208,6 +239,27 @@ describe("outputToImageRef", () => {
       type: "image",
       uri: "https://replicate.com/img.png"
     });
+  });
+
+  it("extracts URL from object with a named asset field", () => {
+    expect(
+      outputToImageRef({ image: "https://replicate.com/img.png" })
+    ).toEqual({ type: "image", uri: "https://replicate.com/img.png" });
+  });
+
+  it("extracts URL from a nested FileOutput-like object", () => {
+    expect(
+      outputToImageRef({ output: { url: "https://replicate.com/img.png" } })
+    ).toEqual({ type: "image", uri: "https://replicate.com/img.png" });
+  });
+
+  it("ignores non-URL string fields when scanning objects", () => {
+    expect(
+      outputToImageRef({
+        status: "succeeded",
+        image: "https://replicate.com/img.png"
+      })
+    ).toEqual({ type: "image", uri: "https://replicate.com/img.png" });
   });
 });
 

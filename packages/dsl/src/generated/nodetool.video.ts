@@ -24,7 +24,7 @@ export function textToVideo(inputs: TextToVideoInputs): DslNode<TextToVideoOutpu
 
 // Image To Video — nodetool.video.ImageToVideo
 export interface ImageToVideoInputs {
-  image?: Connectable<ImageRef>;
+  image?: Connectable<ImageRef[]>;
   model?: Connectable<unknown>;
   prompt?: Connectable<string>;
   negative_prompt?: Connectable<string>;

@@ -25,7 +25,10 @@ import { TypeMetadata } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.kernel.runner");
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { withWorkflowSpan } from "@nodetool-ai/runtime";
+// Import span helpers from the narrow `/tracing` subpath, not the package root,
+// so thin consumers (e.g. the in-browser workflow runner) don't drag the
+// provider / python-bridge barrel into their bundle.
+import { withWorkflowSpan } from "@nodetool-ai/runtime/tracing";
 import { isControlEdge, isDataEdge } from "@nodetool-ai/protocol";
 import { Graph, GraphValidationError } from "./graph.js";
 import { rewriteBypassedNodes } from "./graph-utils.js";

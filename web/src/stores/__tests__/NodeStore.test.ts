@@ -394,6 +394,96 @@ describe("Edge Validation", () => {
     expect(target?.data.exposedInputs).toEqual(["input1"]);
   });
 
+  test("onConnect allows multiple edges into a list[image] collect handle (fal node)", () => {
+    restoreAddEdge();
+    const imageType = {
+      type: "image",
+      optional: false,
+      values: null,
+      type_args: [],
+      type_name: null
+    };
+    const listImageType = {
+      type: "list",
+      optional: false,
+      values: null,
+      type_args: [imageType],
+      type_name: null
+    };
+    useMetadataStore.setState(
+      {
+        ...useMetadataStore.getState(),
+        metadata: {
+          ...mockMetadata,
+          img_source: {
+            node_type: "img_source",
+            title: "Img",
+            description: "",
+            namespace: "test",
+            layout: "default",
+            outputs: [{ name: "image", type: imageType, stream: false }],
+            properties: [],
+            supports_dynamic_inputs: false,
+            supports_dynamic_outputs: false,
+            recommended_models: [],
+            is_streaming_output: false,
+            required_settings: []
+          } as unknown as NodeMetadata,
+          fal_test: {
+            node_type: "fal_test",
+            title: "Fal",
+            description: "",
+            namespace: "fal",
+            layout: "default",
+            outputs: [{ name: "output", type: imageType, stream: false }],
+            properties: [
+              {
+                name: "images",
+                type: listImageType,
+                default: [],
+                title: "Images",
+                description: "",
+                required: false
+              }
+            ],
+            input_fields: ["images"],
+            supports_dynamic_inputs: false,
+            supports_dynamic_outputs: false,
+            recommended_models: [],
+            is_streaming_output: false,
+            required_settings: []
+          } as unknown as NodeMetadata
+        }
+      },
+      true
+    );
+
+    const src1 = makeNode("s1", store.getState().workflow.id, "img_source");
+    const src2 = makeNode("s2", store.getState().workflow.id, "img_source");
+    const fal = makeNode("f", store.getState().workflow.id, "fal_test");
+    store.getState().addNode(src1);
+    store.getState().addNode(src2);
+    store.getState().addNode(fal);
+
+    store.getState().onConnect({
+      source: "s1",
+      target: "f",
+      sourceHandle: "image",
+      targetHandle: "images"
+    });
+    store.getState().onConnect({
+      source: "s2",
+      target: "f",
+      sourceHandle: "image",
+      targetHandle: "images"
+    });
+
+    const imagesEdges = store
+      .getState()
+      .edges.filter((e) => e.target === "f" && e.targetHandle === "images");
+    expect(imagesEdges).toHaveLength(2);
+  });
+
   test("onConnect does not promote when target is already a metadata-defined input handle", () => {
     restoreAddEdge();
     // Declare input1 in input_fields so its handle is already metadata-driven.

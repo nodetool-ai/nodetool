@@ -25,10 +25,12 @@ export type PanelView = LeftPanelView;
 export type NodeCategoryId =
   | "all"
   | "io"
-  | "tools"
-  | "image-models"
-  | "video-models"
-  | "audio-models"
+  | "image"
+  | "image-ai"
+  | "video"
+  | "video-ai"
+  | "audio"
+  | "audio-ai"
   | "3d-models"
   | "agents"
   | "control-flow";
@@ -78,14 +80,33 @@ const VALID_VIEWS: LeftPanelView[] = [
 const VALID_NODE_CATEGORIES: NodeCategoryId[] = [
   "all",
   "io",
-  "tools",
-  "image-models",
-  "video-models",
-  "audio-models",
+  "image",
+  "image-ai",
+  "video",
+  "video-ai",
+  "audio",
+  "audio-ai",
   "3d-models",
   "agents",
   "control-flow"
 ];
+
+// Pre-split category ids (image/video/audio mixed AI + processing, plus the
+// curated "tools" tab) map onto the closest current tab so a persisted
+// selection survives the rename instead of silently resetting to "All".
+const LEGACY_NODE_CATEGORY_ALIASES: Record<string, NodeCategoryId> = {
+  tools: "image",
+  "image-models": "image-ai",
+  "video-models": "video-ai",
+  "audio-models": "audio-ai"
+};
+
+function normalizeNodeCategoryId(value: string): NodeCategoryId | undefined {
+  if (isNodeCategoryId(value)) {
+    return value;
+  }
+  return LEGACY_NODE_CATEGORY_ALIASES[value];
+}
 
 function isLeftPanelView(value: string): value is LeftPanelView {
   return (VALID_VIEWS as readonly string[]).includes(value);
@@ -233,24 +254,26 @@ export const usePanelStore = create<ResizePanelState>()(
         let migratedSubcategory: NodeCategoryId =
           currentState.panel.activeNodeCategory;
 
+        const rawCategory = raw ? normalizeNodeCategoryId(raw) : undefined;
         if (raw === "workflowGrid") {
           migratedView = "workflows";
         } else if (raw === "search") {
           migratedView = "nodes";
           migratedSubcategory = "all";
-        } else if (raw && isNodeCategoryId(raw)) {
+        } else if (rawCategory) {
           migratedView = "nodes";
-          migratedSubcategory = raw;
+          migratedSubcategory = rawCategory;
         } else if (raw && isLeftPanelView(raw)) {
           migratedView = raw;
         }
 
         const persistedSubcategory = persistedPanel.activeNodeCategory;
-        if (
-          typeof persistedSubcategory === "string" &&
-          isNodeCategoryId(persistedSubcategory)
-        ) {
-          migratedSubcategory = persistedSubcategory;
+        const normalizedSubcategory =
+          typeof persistedSubcategory === "string"
+            ? normalizeNodeCategoryId(persistedSubcategory)
+            : undefined;
+        if (normalizedSubcategory) {
+          migratedSubcategory = normalizedSubcategory;
         }
 
         return {

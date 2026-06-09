@@ -49,8 +49,22 @@ export function isRefSet(ref: MediaRef | undefined | null): ref is MediaRef {
   return !!ref && (!!ref.uri || !!ref.data);
 }
 
+/**
+ * Minimal structural view of the ProcessingContext that a node's `process()`
+ * receives. We only need `resolveAssetBytes` here, which resolves NodeTool's
+ * own reference schemes (`asset://<id>`, `package://<pkg>/<path>`, storage
+ * URIs). Typed structurally to keep this package free of a `@nodetool-ai/runtime`
+ * dependency.
+ */
+export type AssetResolveContext =
+  | { resolveAssetBytes?: (uri: string) => Promise<{ bytes: Uint8Array | null }> }
+  | undefined;
+
 /** Read the raw bytes behind an image/audio/video ref (data URI, base64, or URL). */
-export async function refToBytes(ref: MediaRef): Promise<Uint8Array> {
+export async function refToBytes(
+  ref: MediaRef,
+  context?: AssetResolveContext
+): Promise<Uint8Array> {
   const data = ref.data;
   if (data instanceof Uint8Array) {
     return data;
@@ -67,40 +81,64 @@ export async function refToBytes(ref: MediaRef): Promise<Uint8Array> {
       const base64 = uri.slice(uri.indexOf(",") + 1);
       return new Uint8Array(Buffer.from(base64, "base64"));
     }
-    const res = await fetch(uri);
-    if (!res.ok) {
-      throw new Error(`Failed to fetch media from ${uri}: ${res.status}`);
+    const isHttp = uri.startsWith("http://") || uri.startsWith("https://");
+    // NodeTool reference schemes (asset://, package://) and storage URIs are
+    // not fetchable directly — resolve them through the ProcessingContext.
+    if (!isHttp && context?.resolveAssetBytes) {
+      const { bytes } = await context.resolveAssetBytes(uri);
+      if (bytes) {
+        return bytes;
+      }
+      throw new Error(`Failed to resolve media from ${uri}`);
     }
-    return new Uint8Array(await res.arrayBuffer());
+    if (isHttp) {
+      const res = await fetch(uri);
+      if (!res.ok) {
+        throw new Error(`Failed to fetch media from ${uri}: ${res.status}`);
+      }
+      return new Uint8Array(await res.arrayBuffer());
+    }
   }
   throw new Error("Media input is empty — provide an image/audio/video.");
 }
 
 /** Read a media ref as a base64 string (no `data:` prefix), as the API expects. */
-export async function refToBase64(ref: MediaRef): Promise<string> {
-  const bytes = await refToBytes(ref);
+export async function refToBase64(
+  ref: MediaRef,
+  context?: AssetResolveContext
+): Promise<string> {
+  const bytes = await refToBytes(ref, context);
   return Buffer.from(bytes).toString("base64");
 }
 
-/** Wrap generated image bytes into an ImageRef-shaped output. */
+/**
+ * Wrap generated image bytes into an ImageRef-shaped output.
+ *
+ * `data` is RAW base64 (no `data:` prefix); the MIME type goes in
+ * `content_type`. Asset-saving (`decodeAssetBytes`) and provider forwarding
+ * (`asUint8Array`) decode `data` directly with `Buffer.from(data, "base64")`,
+ * so a `data:` prefix would corrupt the bytes.
+ */
 export function imageRefFromBytes(
   bytes: Uint8Array,
   mimeType = "image/png"
 ): Record<string, unknown> {
   return {
     type: "image",
-    data: `data:${mimeType};base64,${Buffer.from(bytes).toString("base64")}`
+    data: Buffer.from(bytes).toString("base64"),
+    content_type: mimeType
   };
 }
 
-/** Wrap generated video bytes into a VideoRef-shaped output. */
+/** Wrap generated video bytes into a VideoRef-shaped output (raw base64 `data`). */
 export function videoRefFromBytes(
   bytes: Uint8Array,
   mimeType = "video/mp4"
 ): Record<string, unknown> {
   return {
     type: "video",
-    data: `data:${mimeType};base64,${Buffer.from(bytes).toString("base64")}`,
+    data: Buffer.from(bytes).toString("base64"),
+    content_type: mimeType,
     format: mimeType.split("/")[1] ?? "mp4"
   };
 }
@@ -113,7 +151,7 @@ export function imageRefFromBase64(
   const clean = base64.startsWith("data:")
     ? base64.slice(base64.indexOf(",") + 1)
     : base64;
-  return { type: "image", data: `data:${mimeType};base64,${clean}` };
+  return { type: "image", data: clean, content_type: mimeType };
 }
 
 function authHeaders(token: string): Record<string, string> {

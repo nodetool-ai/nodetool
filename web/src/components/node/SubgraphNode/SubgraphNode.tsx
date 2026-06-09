@@ -135,8 +135,6 @@ const SubgraphNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         iconType="workflow"
         iconBaseColor={SUBGRAPH_HEADER_COLOR}
         workflowId={workflow_id}
-        showResultButton={false}
-        showInputsButton={false}
       />
       <NodeErrors id={id} workflow_id={workflow_id} />
       <NodeStatus status={statusValue} />

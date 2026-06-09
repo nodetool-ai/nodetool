@@ -3,7 +3,7 @@
  *
  * Validates that the system is properly configured before accepting requests.
  */
-import { getMasterKey } from "./master-key.js";
+import { initMasterKey } from "./master-key.js";
 
 export interface StartupCheckResult {
   errors: string[];
@@ -31,9 +31,11 @@ export async function runStartupChecks(): Promise<StartupCheckResult> {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  // Check master key
+  // Check master key. initMasterKey() is idempotent (returns the cached key if
+  // already resolved) and, unlike the sync getter, resolves from the keychain
+  // and AWS Secrets Manager too — so this check reflects every key source.
   try {
-    const key = getMasterKey();
+    const key = await initMasterKey();
     if (!key) {
       errors.push("Master encryption key could not be loaded");
     }

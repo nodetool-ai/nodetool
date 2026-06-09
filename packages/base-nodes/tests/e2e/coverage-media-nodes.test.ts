@@ -116,6 +116,28 @@ function audioRef(data?: string): Record<string, unknown> {
   return { type: "audio", uri: "", data: data ?? makeWav() };
 }
 
+// Build a mono 16-bit WAV from explicit Int16 sample values.
+function makeWavFrom(samples: number[], sampleRate = 8000): string {
+  const buf = Buffer.alloc(44 + samples.length * 2);
+  buf.write("RIFF", 0);
+  buf.writeUInt32LE(36 + samples.length * 2, 4);
+  buf.write("WAVE", 8);
+  buf.write("fmt ", 12);
+  buf.writeUInt32LE(16, 16);
+  buf.writeUInt16LE(1, 20);
+  buf.writeUInt16LE(1, 22);
+  buf.writeUInt32LE(sampleRate, 24);
+  buf.writeUInt32LE(sampleRate * 2, 28);
+  buf.writeUInt16LE(2, 32);
+  buf.writeUInt16LE(16, 34);
+  buf.write("data", 36);
+  buf.writeUInt32LE(samples.length * 2, 40);
+  for (let i = 0; i < samples.length; i++) {
+    buf.writeInt16LE(samples[i], 44 + i * 2);
+  }
+  return buf.toString("base64");
+}
+
 function imageRef(data?: string): Record<string, unknown> {
   const d =
     data ?? Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]).toString("base64"); // PNG magic
@@ -432,17 +454,29 @@ describe("audio nodes — full coverage", () => {
     expect((result.output as { data: string }).data.length).toBeGreaterThan(0);
   });
 
-  it("RemoveSilenceNode filters zero bytes", async () => {
-    // Create audio with some zero bytes
-    const data = Buffer.from([0, 1, 0, 2, 0, 3]).toString("base64");
+  it("RemoveSilenceNode removes a silent gap between loud segments", async () => {
+    // 2 loud frames, 8 silent frames, 2 loud frames @ 8 kHz.
+    const data = makeWavFrom(
+      [16000, 16000, 0, 0, 0, 0, 0, 0, 0, 0, 16000, 16000],
+      8000
+    );
     const _n = new RemoveSilenceNode();
-    _n.assign({ audio: { data } });
+    _n.assign({
+      audio: { data },
+      min_length: 0,
+      min_silence_between_parts: 0,
+      crossfade: 0
+    });
     const result = await _n.process();
     const outData = Buffer.from(
       (result.output as { data: string }).data,
       "base64"
     );
-    expect(outData.length).toBe(3); // only 1, 2, 3 remain
+    // A valid WAV with only the 4 loud frames remaining.
+    expect(outData.toString("ascii", 0, 4)).toBe("RIFF");
+    expect(outData.length).toBe(44 + 4 * 2);
+    expect(outData.readInt16LE(44)).toBe(16000);
+    expect(outData.readInt16LE(50)).toBe(16000);
   });
 
   it("SliceAudioNode slices by byte range", async () => {
@@ -506,30 +540,31 @@ describe("audio nodes — full coverage", () => {
   });
 
   it("FadeInAudioNode applies linear fade-in", async () => {
-    const data = Buffer.from([100, 100, 100, 100]).toString("base64");
+    // 4 frames @ 8 kHz; duration 0.5 ms == 4 frames, so the ramp covers all.
+    const data = makeWavFrom([16000, 16000, 16000, 16000], 8000);
     const _n = new FadeInAudioNode();
-    _n.assign({ audio: { data }, duration: 4 });
+    _n.assign({ audio: { data }, duration: 4 / 8000 });
     const result = await _n.process();
     const outData = Buffer.from(
       (result.output as { data: string }).data,
       "base64"
     );
-    // first byte should be attenuated (0/4 * 100 = 0)
-    expect(outData[0]).toBe(0);
-    expect(outData[3]).toBe(75); // floor(100 * 3/4) = 75
+    // First frame fully attenuated (gain 0/4), fourth frame at gain 3/4.
+    expect(outData.readInt16LE(44)).toBe(0);
+    expect(Math.abs(outData.readInt16LE(50) - 12000)).toBeLessThanOrEqual(2);
   });
 
   it("FadeOutAudioNode applies linear fade-out", async () => {
-    const data = Buffer.from([100, 100, 100, 100]).toString("base64");
+    const data = makeWavFrom([16000, 16000, 16000, 16000], 8000);
     const _n = new FadeOutAudioNode();
-    _n.assign({ audio: { data }, duration: 4 });
+    _n.assign({ audio: { data }, duration: 4 / 8000 });
     const result = await _n.process();
     const outData = Buffer.from(
       (result.output as { data: string }).data,
       "base64"
     );
-    // last byte should be heavily attenuated
-    expect(outData[3]).toBeLessThan(outData[0]);
+    // Last frame heavily attenuated relative to the first.
+    expect(outData.readInt16LE(50)).toBeLessThan(outData.readInt16LE(44));
   });
 
   it("RepeatAudioNode repeats bytes", async () => {
@@ -647,16 +682,20 @@ describe("audio nodes — full coverage", () => {
     expect(outBytes.readInt16LE(48)).toBe(4000);
   });
 
-  it("TrimAudioNode trims from start and end", async () => {
-    const data = Buffer.from([1, 2, 3, 4, 5]).toString("base64");
+  it("TrimAudioNode keeps the [start, end] window in seconds", async () => {
+    // 5 frames @ 1 kHz so 1 frame == 1 ms; keep [0.001s, 0.004s) -> frames 1..3.
+    const data = makeWavFrom([1000, 2000, 3000, 4000, 5000], 1000);
     const _n = new TrimAudioNode();
-    _n.assign({ audio: { data }, start: 1, end: 1 });
+    _n.assign({ audio: { data }, start: 0.001, end: 0.004 });
     const result = await _n.process();
     const outData = Buffer.from(
       (result.output as { data: string }).data,
       "base64"
     );
-    expect(Array.from(outData)).toEqual([2, 3, 4]);
+    expect(outData.length).toBe(44 + 3 * 2);
+    expect(outData.readInt16LE(44)).toBe(2000);
+    expect(outData.readInt16LE(46)).toBe(3000);
+    expect(outData.readInt16LE(48)).toBe(4000);
   });
 
   it("ConcatAudioListNode concatenates list of audios", async () => {
@@ -672,12 +711,14 @@ describe("audio nodes — full coverage", () => {
     expect(Array.from(outData)).toEqual([1, 2, 3, 4]);
   });
 
-  it("TextToSpeechNode converts text to bytes", async () => {
+  it("TextToSpeechNode emits on the declared `audio` port", async () => {
     const _n = new TextToSpeechNode();
     _n.assign({ text: "hello" });
     const result = await _n.process();
+    // Output is keyed `audio` (matching metadataOutputTypes), not `output`.
+    expect(result.output).toBeUndefined();
     const outData = Buffer.from(
-      (result.output as { data: string }).data,
+      (result.audio as { data: string }).data,
       "base64"
     );
     expect(outData.toString("utf8")).toBe("hello");
@@ -789,19 +830,36 @@ describe("audio nodes — full coverage", () => {
     expect(names).not.toContain("c.txt");
   });
 
-  it("LoadAudioFolderNode delegates to LoadAudioAssetsNode", async () => {
+  it("LoadAudioFolderNode lists files and honors extensions/subdirs", async () => {
     const dir = `${tmpDir}/load-audio-folder`;
-    await fs.mkdir(dir, { recursive: true });
+    await fs.mkdir(path.join(dir, "nested"), { recursive: true });
     await fs.writeFile(path.join(dir, "x.flac"), Buffer.from([1, 2]));
+    await fs.writeFile(path.join(dir, "y.txt"), Buffer.from([3, 4]));
+    await fs.writeFile(path.join(dir, "nested", "z.flac"), Buffer.from([5, 6]));
 
-    const node = new LoadAudioFolderNode();
-    const items: Array<Record<string, unknown>> = [];
-    node.assign({ folder: dir });
-    for await (const item of node.genProcess()) {
-      items.push(item);
+    // Non-recursive, .flac only: finds x.flac, not y.txt or nested/z.flac.
+    const flat = new LoadAudioFolderNode();
+    flat.assign({ folder: dir, extensions: [".flac"] });
+    const flatPaths: string[] = [];
+    for await (const item of flat.genProcess()) {
+      if (typeof item.path === "string") flatPaths.push(item.path);
     }
-    const names = items.map((i) => i.name).filter((n) => typeof n === "string");
-    expect(names).toContain("x.flac");
+    expect(flatPaths.some((p) => p.endsWith("x.flac"))).toBe(true);
+    expect(flatPaths.some((p) => p.endsWith("z.flac"))).toBe(false);
+    expect(flatPaths.some((p) => p.endsWith("y.txt"))).toBe(false);
+
+    // Recursive: also finds nested/z.flac.
+    const deep = new LoadAudioFolderNode();
+    deep.assign({
+      folder: dir,
+      extensions: [".flac"],
+      include_subdirectories: true
+    });
+    const deepPaths: string[] = [];
+    for await (const item of deep.genProcess()) {
+      if (typeof item.path === "string") deepPaths.push(item.path);
+    }
+    expect(deepPaths.some((p) => p.endsWith("z.flac"))).toBe(true);
   });
 
   it("LoadAudioAssetsNode process returns empty", async () => {
@@ -811,7 +869,7 @@ describe("audio nodes — full coverage", () => {
 
   it("LoadAudioFolderNode process returns empty", async () => {
     const result = await new LoadAudioFolderNode().process();
-    expect(result).toEqual({ audio: {}, name: "", audios: [] });
+    expect(result).toEqual({ audio: {}, path: "", audios: [] });
   });
 
   it("audioBytes handles non-object input", async () => {
@@ -853,7 +911,7 @@ describe("audio nodes — full coverage", () => {
     expect(new SaveAudioNode().serialize()).toMatchObject({
       audio: { type: "audio", uri: "" },
       folder: { type: "folder", uri: "" },
-      name: "%Y-%m-%d-%H-%M-%S.opus"
+      name: "%Y-%m-%d-%H-%M-%S.wav"
     });
     expect(new SaveAudioFileNode().serialize()).toMatchObject({
       audio: { type: "audio", uri: "" },
@@ -908,7 +966,10 @@ describe("audio nodes — full coverage", () => {
       start: 0,
       end: 0
     });
-    expect(new CreateSilenceNode().serialize()).toEqual({ duration: 1 });
+    expect(new CreateSilenceNode().serialize()).toEqual({
+      duration: 1,
+      sample_rate: 44100
+    });
     expect(new ConcatAudioNode().serialize()).toEqual({});
     expect(new ConcatAudioListNode().serialize()).toEqual({ audio_files: [] });
     expect(new TextToSpeechNode().serialize()).toMatchObject({
@@ -955,15 +1016,19 @@ describe("audio nodes — full coverage", () => {
     expect(outData.length).toBe(0);
   });
 
-  it("CreateSilenceNode creates zero-filled buffer", async () => {
+  it("CreateSilenceNode creates a zero-filled WAV of the given duration", async () => {
     const _n = new CreateSilenceNode();
-    _n.assign({ duration: 5 });
+    _n.assign({ duration: 5 / 1000, sample_rate: 1000 });
     const result = await _n.process();
     const outData = Buffer.from(
       (result.output as { data: string }).data,
       "base64"
     );
-    expect(Array.from(outData)).toEqual([0, 0, 0, 0, 0]);
+    // Valid WAV: 44-byte header + 5 silent 16-bit frames.
+    expect(outData.toString("ascii", 0, 4)).toBe("RIFF");
+    expect(outData.length).toBe(44 + 5 * 2);
+    expect(outData.readInt16LE(44)).toBe(0);
+    expect(outData.readInt16LE(52)).toBe(0);
   });
 
   it("ConcatAudioNode concatenates two refs", async () => {

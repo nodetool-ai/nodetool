@@ -68,24 +68,55 @@ describe("media ref helpers", () => {
   it("refToBytes throws on empty ref", async () => {
     await expect(refToBytes({})).rejects.toThrow(/empty/);
   });
+
+  it("refToBytes resolves an asset:// uri via context, not fetch", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch");
+    const ctx = {
+      resolveAssetBytes: vi
+        .fn()
+        .mockResolvedValue({ bytes: Uint8Array.from([137, 80, 78, 71]) })
+    };
+    const bytes = await refToBytes({ type: "image", uri: "asset://asset-123" }, ctx);
+    expect(Array.from(bytes)).toEqual([137, 80, 78, 71]);
+    expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://asset-123");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("refToBase64 resolves an asset:// uri via context", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch");
+    const ctx = {
+      resolveAssetBytes: vi
+        .fn()
+        .mockResolvedValue({ bytes: Uint8Array.from([137, 80, 78, 71]) })
+    };
+    const b64 = await refToBase64({ type: "image", uri: "asset://asset-123" }, ctx);
+    expect(Buffer.from(b64, "base64")).toEqual(Buffer.from([137, 80, 78, 71]));
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("output ref builders", () => {
-  it("imageRefFromBytes builds a data URI", () => {
+  it("imageRefFromBytes emits raw base64 with content_type (no data: prefix)", () => {
     const ref = imageRefFromBytes(new Uint8Array([1, 2, 3]), "image/jpeg");
     expect(ref.type).toBe("image");
-    expect(String(ref.data)).toMatch(/^data:image\/jpeg;base64,/);
+    expect(ref.content_type).toBe("image/jpeg");
+    expect(String(ref.data)).not.toMatch(/^data:/);
+    expect(ref.data).toBe(Buffer.from([1, 2, 3]).toString("base64"));
   });
 
-  it("videoRefFromBytes sets a format", () => {
+  it("videoRefFromBytes emits raw base64 with content_type and format", () => {
     const ref = videoRefFromBytes(new Uint8Array([1]), "video/webm");
     expect(ref.type).toBe("video");
+    expect(ref.content_type).toBe("video/webm");
     expect(ref.format).toBe("webm");
+    expect(String(ref.data)).not.toMatch(/^data:/);
+    expect(ref.data).toBe(Buffer.from([1]).toString("base64"));
   });
 
-  it("imageRefFromBase64 strips an existing data prefix", () => {
+  it("imageRefFromBase64 strips an existing data prefix and stores raw base64", () => {
     const ref = imageRefFromBase64("data:image/png;base64,QUJD");
-    expect(ref.data).toBe("data:image/png;base64,QUJD");
+    expect(ref.data).toBe("QUJD");
+    expect(ref.content_type).toBe("image/png");
   });
 });
 

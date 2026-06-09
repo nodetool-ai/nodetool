@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { OpenAIProvider } from "./openai-provider.js";
+import { loadImageModels, loadVideoModels } from "./manifest-models.js";
 import type {
   ASRModel,
   EmbeddingModel,
@@ -21,101 +22,10 @@ interface TogetherProviderOptions {
   fetchFn?: typeof fetch;
 }
 
-// ─── Static model catalogs ────────────────────────────────────────────────────
-// Sources: https://github.com/togethercomputer/skills
+// ─── Model catalogs ───────────────────────────────────────────────────────────
 
-const TOGETHER_IMAGE_MODELS: ImageModel[] = [
-  {
-    id: "black-forest-labs/FLUX.1-schnell",
-    name: "FLUX.1 Schnell",
-    provider: "together",
-    supportedTasks: ["text_to_image"]
-  },
-  {
-    id: "black-forest-labs/FLUX.1.1-pro",
-    name: "FLUX.1.1 Pro",
-    provider: "together",
-    supportedTasks: ["text_to_image"]
-  },
-  {
-    id: "black-forest-labs/FLUX.2-pro",
-    name: "FLUX.2 Pro",
-    provider: "together",
-    supportedTasks: ["text_to_image", "image_to_image"]
-  },
-  {
-    id: "black-forest-labs/FLUX.2-dev",
-    name: "FLUX.2 Dev",
-    provider: "together",
-    supportedTasks: ["text_to_image", "image_to_image"]
-  },
-  {
-    id: "black-forest-labs/FLUX.2-flex",
-    name: "FLUX.2 Flex",
-    provider: "together",
-    supportedTasks: ["text_to_image", "image_to_image"]
-  },
-  {
-    id: "black-forest-labs/FLUX.1-kontext-pro",
-    name: "FLUX.1 Kontext Pro",
-    provider: "together",
-    supportedTasks: ["text_to_image", "image_to_image"]
-  },
-  {
-    id: "black-forest-labs/FLUX.1-kontext-max",
-    name: "FLUX.1 Kontext Max",
-    provider: "together",
-    supportedTasks: ["text_to_image", "image_to_image"]
-  },
-  {
-    id: "google/imagen-4.0-preview",
-    name: "Imagen 4.0 Preview",
-    provider: "together",
-    supportedTasks: ["text_to_image"]
-  },
-  {
-    id: "google/imagen-4.0-fast",
-    name: "Imagen 4.0 Fast",
-    provider: "together",
-    supportedTasks: ["text_to_image"]
-  },
-  {
-    id: "google/flash-image-2.5",
-    name: "Flash Image 2.5",
-    provider: "together",
-    supportedTasks: ["text_to_image"]
-  },
-  {
-    id: "google/gemini-3-pro-image",
-    name: "Gemini 3 Pro Image",
-    provider: "together",
-    supportedTasks: ["text_to_image", "image_to_image"]
-  },
-  {
-    id: "ideogram/ideogram-3.0",
-    name: "Ideogram 3.0",
-    provider: "together",
-    supportedTasks: ["text_to_image"]
-  },
-  {
-    id: "ByteDance-Seed/Seedream-4.0",
-    name: "Seedream 4.0",
-    provider: "together",
-    supportedTasks: ["text_to_image"]
-  },
-  {
-    id: "ByteDance-Seed/Seedream-3.0",
-    name: "Seedream 3.0",
-    provider: "together",
-    supportedTasks: ["text_to_image"]
-  },
-  {
-    id: "stabilityai/stable-diffusion-3-medium",
-    name: "Stable Diffusion 3 Medium",
-    provider: "together",
-    supportedTasks: ["text_to_image"]
-  }
-];
+const TOGETHER_MANIFEST_PKG = "@nodetool-ai/together-nodes";
+const TOGETHER_MANIFEST_PATH = "together-manifest.json";
 
 const TOGETHER_TTS_MODELS: TTSModel[] = [
   {
@@ -200,99 +110,6 @@ const TOGETHER_EMBEDDING_MODELS: EmbeddingModel[] = [
     name: "Multilingual E5 Large",
     provider: "together",
     dimensions: 1024
-  }
-];
-
-const TOGETHER_VIDEO_MODELS: VideoModel[] = [
-  {
-    id: "minimax/hailuo-02",
-    name: "MiniMax Hailuo 02",
-    provider: "together",
-    supportedTasks: ["text_to_video", "image_to_video"]
-  },
-  {
-    id: "minimax/video-01-director",
-    name: "MiniMax Video 01 Director",
-    provider: "together",
-    supportedTasks: ["text_to_video", "image_to_video"]
-  },
-  {
-    id: "google/veo-3.0",
-    name: "Veo 3.0",
-    provider: "together",
-    supportedTasks: ["text_to_video", "image_to_video"]
-  },
-  {
-    id: "google/veo-3.0-audio",
-    name: "Veo 3.0 + Audio",
-    provider: "together",
-    supportedTasks: ["text_to_video"]
-  },
-  {
-    id: "google/veo-2.0",
-    name: "Veo 2.0",
-    provider: "together",
-    supportedTasks: ["text_to_video", "image_to_video"]
-  },
-  {
-    id: "openai/sora-2",
-    name: "Sora 2",
-    provider: "together",
-    supportedTasks: ["text_to_video", "image_to_video"]
-  },
-  {
-    id: "openai/sora-2-pro",
-    name: "Sora 2 Pro",
-    provider: "together",
-    supportedTasks: ["text_to_video", "image_to_video"]
-  },
-  {
-    id: "kwaivgI/kling-2.1-master",
-    name: "Kling 2.1 Master",
-    provider: "together",
-    supportedTasks: ["text_to_video", "image_to_video"]
-  },
-  {
-    id: "kwaivgI/kling-2.1-standard",
-    name: "Kling 2.1 Standard",
-    provider: "together",
-    supportedTasks: ["text_to_video", "image_to_video"]
-  },
-  {
-    id: "kwaivgI/kling-2.1-pro",
-    name: "Kling 2.1 Pro",
-    provider: "together",
-    supportedTasks: ["text_to_video", "image_to_video"]
-  },
-  {
-    id: "ByteDance/Seedance-1.0-pro",
-    name: "Seedance 1.0 Pro",
-    provider: "together",
-    supportedTasks: ["text_to_video", "image_to_video"]
-  },
-  {
-    id: "ByteDance/Seedance-1.0-lite",
-    name: "Seedance 1.0 Lite",
-    provider: "together",
-    supportedTasks: ["text_to_video", "image_to_video"]
-  },
-  {
-    id: "pixverse/pixverse-v5",
-    name: "PixVerse v5",
-    provider: "together",
-    supportedTasks: ["text_to_video", "image_to_video"]
-  },
-  {
-    id: "vidu/vidu-2.0",
-    name: "Vidu 2.0",
-    provider: "together",
-    supportedTasks: ["text_to_video", "image_to_video"]
-  },
-  {
-    id: "vidu/vidu-q1",
-    name: "Vidu Q1",
-    provider: "together",
-    supportedTasks: ["text_to_video", "image_to_video"]
   }
 ];
 
@@ -437,7 +254,11 @@ export class TogetherProvider extends OpenAIProvider {
   // ─── Image models ───────────────────────────────────────────────────────────
 
   override async getAvailableImageModels(): Promise<ImageModel[]> {
-    return TOGETHER_IMAGE_MODELS;
+    return loadImageModels(
+      TOGETHER_MANIFEST_PKG,
+      TOGETHER_MANIFEST_PATH,
+      "together"
+    );
   }
 
   /**
@@ -511,9 +332,10 @@ export class TogetherProvider extends OpenAIProvider {
    * (e.g. FLUX.1-kontext-pro, FLUX.1-kontext-max, FLUX.2-pro/dev/flex).
    */
   override async imageToImage(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Uint8Array> {
+    const image = images[0];
     if (!image || image.length === 0) {
       throw new Error("image must not be empty.");
     }
@@ -709,7 +531,11 @@ export class TogetherProvider extends OpenAIProvider {
   // ─── Video models ───────────────────────────────────────────────────────────
 
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
-    return TOGETHER_VIDEO_MODELS;
+    return loadVideoModels(
+      TOGETHER_MANIFEST_PKG,
+      TOGETHER_MANIFEST_PATH,
+      "together"
+    );
   }
 
   /**
@@ -890,9 +716,10 @@ export class TogetherProvider extends OpenAIProvider {
    * The first frame is supplied as a base64-encoded image in `frame_images`.
    */
   override async imageToVideo(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToVideoParams
   ): Promise<Uint8Array> {
+    const image = images[0];
     if (!image || image.length === 0) {
       throw new Error("The input image cannot be empty.");
     }

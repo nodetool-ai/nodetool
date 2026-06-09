@@ -339,9 +339,10 @@
       },
       {
         "id": "7",
-        "type": "lib.image.enhance.Contrast",
+        "type": "lib.image.color.BrightnessContrast",
         "data": {
-          "factor": 1.1
+          "brightness": 0,
+          "contrast": 1.1
         },
         "ui_properties": {
           "position": {

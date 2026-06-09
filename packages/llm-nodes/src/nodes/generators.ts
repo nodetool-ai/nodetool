@@ -36,7 +36,8 @@ function asText(value: unknown): string {
 }
 
 function parseRequestedCount(prompt: string, fallback: number): number {
-  const m = prompt.match(/\b(\d{1,3})\b/);
+  // Match any integer; large requests are clamped below rather than ignored.
+  const m = prompt.match(/\b(\d{1,9})\b/);
   if (!m) return fallback;
   const n = Number(m[1]);
   if (!Number.isFinite(n)) return fallback;
@@ -148,17 +149,32 @@ function normalizeBinaryRef(value: unknown): BinaryRef | null {
   return out.uri || out.data ? out : null;
 }
 
+/**
+ * Normalize a list-typed media input to an array. Accepts an array (the
+ * declared `list[image]`/`list[audio]` shape), a lone ref (defensive, in case
+ * coercion didn't run), or null/undefined.
+ */
+function toRefArray(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  if (value === null || value === undefined) return [];
+  return [value];
+}
+
 function buildMessageContent(
   text: string,
-  image: unknown,
-  audio: unknown
+  images: unknown,
+  audios: unknown
 ): string | MessageContent[] {
-  const imageRef = normalizeBinaryRef(image);
-  const audioRef = normalizeBinaryRef(audio);
-  if (!imageRef && !audioRef) return text;
+  const imageRefs = toRefArray(images)
+    .map(normalizeBinaryRef)
+    .filter((ref): ref is BinaryRef => ref !== null);
+  const audioRefs = toRefArray(audios)
+    .map(normalizeBinaryRef)
+    .filter((ref): ref is BinaryRef => ref !== null);
+  if (imageRefs.length === 0 && audioRefs.length === 0) return text;
   const parts: MessageContent[] = [{ type: "text", text }];
-  if (imageRef) parts.push({ type: "image", image: imageRef });
-  if (audioRef) parts.push({ type: "audio", audio: audioRef });
+  for (const image of imageRefs) parts.push({ type: "image", image });
+  for (const audio of audioRefs) parts.push({ type: "audio", audio });
   return parts;
 }
 
@@ -438,30 +454,20 @@ export class StructuredOutputGeneratorNode extends BaseNode {
   declare max_tokens: any;
 
   @prop({
-    type: "image",
-    default: {
-      type: "image",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Image",
-    description: "Optional image to include in the generation request."
+    type: "list[image]",
+    default: [],
+    title: "Images",
+    description:
+      "Optional images to include in the generation request. Accepts a list, or a single Image (auto-wrapped). Each becomes a separate block in the message sent to the provider."
   })
   declare image: any;
 
   @prop({
-    type: "audio",
-    default: {
-      type: "audio",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
+    type: "list[audio]",
+    default: [],
     title: "Audio",
-    description: "Optional audio to include in the generation request."
+    description:
+      "Optional audio to include in the generation request. Accepts a list, or a single Audio (auto-wrapped). Each becomes a separate block in the message sent to the provider."
   })
   declare audio: any;
 
@@ -1025,30 +1031,20 @@ export class SVGGeneratorNode extends BaseNode {
   declare prompt: any;
 
   @prop({
-    type: "image",
-    default: {
-      type: "image",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Image",
-    description: "Image to use for generation"
+    type: "list[image]",
+    default: [],
+    title: "Images",
+    description:
+      "Images to use for generation. Accepts a list, or a single Image (auto-wrapped). Each becomes a separate block in the message sent to the provider."
   })
   declare image: any;
 
   @prop({
-    type: "audio",
-    default: {
-      type: "audio",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
+    type: "list[audio]",
+    default: [],
     title: "Audio",
-    description: "Audio to use for generation"
+    description:
+      "Audio to use for generation. Accepts a list, or a single Audio (auto-wrapped). Each becomes a separate block in the message sent to the provider."
   })
   declare audio: any;
 

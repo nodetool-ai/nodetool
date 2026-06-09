@@ -27,6 +27,7 @@ import type {
   TextToImageParams
 } from "./types.js";
 
+// Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.reve");
 
 const REVE_API_BASE = "https://api.reve.com";
@@ -140,14 +141,16 @@ export class ReveProvider extends BaseProvider {
     if (params.aspectRatio && VALID_ASPECT_RATIOS.has(params.aspectRatio)) {
       body.aspect_ratio = params.aspectRatio;
     }
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log, not asserted.
     log.debug("Reve textToImage", { model: params.model.id });
     return this.post("create", body);
   }
 
   override async imageToImage(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Uint8Array> {
+    const image = images[0];
     if (!image || image.length === 0) {
       throw new Error("image must not be empty");
     }
@@ -158,6 +161,7 @@ export class ReveProvider extends BaseProvider {
     if (params.aspectRatio && VALID_ASPECT_RATIOS.has(params.aspectRatio)) {
       body.aspect_ratio = params.aspectRatio;
     }
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log, not asserted.
     log.debug("Reve imageToImage", { model: params.model.id });
     return this.post("edit", body);
   }

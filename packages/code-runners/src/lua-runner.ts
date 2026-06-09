@@ -92,8 +92,8 @@ export class LuaRunner extends StreamRunnerBase {
 
   constructor(options?: LuaRunnerOptions) {
     super({
-      image: options?.image ?? "nickblah/lua:5.2.4-luarocks-ubuntu",
-      ...options
+      ...options,
+      image: options?.image ?? "nickblah/lua:5.2.4-luarocks-ubuntu"
     });
     this.executable = options?.executable ?? "lua";
   }
@@ -146,9 +146,12 @@ export class LuaRunner extends StreamRunnerBase {
 export class LuaSubprocessRunner extends LuaRunner {
   constructor(options?: LuaRunnerOptions) {
     super({
+      ...options,
       executable: options?.executable ?? "lua",
-      mode: "subprocess",
-      ...options
+      // Force subprocess mode regardless of what `options` carries (including
+      // an explicit `mode: undefined`, which would otherwise fall back to
+      // the base "docker" default).
+      mode: options?.mode ?? "subprocess"
     });
   }
 }

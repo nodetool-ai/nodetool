@@ -27,7 +27,7 @@ type ExposedPlacementMetadata = Pick<
 >;
 
 /** Metadata default before per-node overrides. */
-export const getDefaultExposedPlacement = (
+const getDefaultExposedPlacement = (
   metadata: ExposedPlacementMetadata,
   propertyName: string
 ): ExposedInputPlacement | null => {

@@ -18,6 +18,7 @@ import {
 } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
 
+// Stryker disable next-line StringLiteral: logger name is diagnostic, not behavior
 const log = createLogger("nodetool.security.crypto");
 
 // Fernet token version byte
@@ -48,6 +49,7 @@ export function generateMasterKey(): string {
  * @returns A 32-byte derived key as a Buffer.
  */
 export function deriveKey(masterKey: string, userId: string): Buffer {
+  // Stryker disable next-line StringLiteral: encoding arg — Node decodes "" as utf-8, so this mutant is behaviorally equivalent
   const salt = Buffer.from(userId, "utf-8");
   return pbkdf2Sync(masterKey, salt, PBKDF2_ITERATIONS, KEY_LENGTH, "sha256");
 }
@@ -72,6 +74,7 @@ export function encrypt(
   const cipher = createCipheriv("aes-256-gcm", key, iv);
 
   const encrypted = Buffer.concat([
+    // Stryker disable next-line StringLiteral: encoding arg — Node decodes "" as utf-8, so this mutant is behaviorally equivalent
     cipher.update(plaintext, "utf-8"),
     cipher.final()
   ]);
@@ -120,6 +123,7 @@ export function decrypt(
     ]);
     return decrypted.toString("utf-8");
   } catch (err) {
+    // Stryker disable next-line all: diagnostic log, not behavior
     log.debug("AES-GCM decryption failed (may fall back to Fernet)", {
       error: String(err)
     });
@@ -143,7 +147,9 @@ export function decryptFernet(
   encryptedValue: string
 ): string {
   // Python uses master_key.encode() — the UTF-8 bytes of the base64 string itself as PBKDF2 password
+  // Stryker disable next-line StringLiteral: encoding arg — Node decodes "" as utf-8, so this mutant is behaviorally equivalent
   const masterKeyBytes = Buffer.from(masterKey, "utf-8");
+  // Stryker disable next-line StringLiteral: encoding arg — Node decodes "" as utf-8, so this mutant is behaviorally equivalent
   const salt = Buffer.from(userId, "utf-8");
   const derived = pbkdf2Sync(
     masterKeyBytes,
@@ -160,6 +166,7 @@ export function decryptFernet(
   // Decode Fernet token from base64url
   const b64token = encryptedValue.replace(/-/g, "+").replace(/_/g, "/");
   const token = Buffer.from(
+    // Stryker disable next-line StringLiteral,ArithmeticOperator: re-padding is a no-op — Node's base64 decoder ignores +/- padding, so these mutants are equivalent
     b64token + "=".repeat((4 - (b64token.length % 4)) % 4),
     "base64"
   );
@@ -207,7 +214,9 @@ export function encryptFernet(
   userId: string,
   plaintext: string
 ): string {
+  // Stryker disable next-line StringLiteral: encoding arg — Node decodes "" as utf-8, so this mutant is behaviorally equivalent
   const masterKeyBytes = Buffer.from(masterKey, "utf-8");
+  // Stryker disable next-line StringLiteral: encoding arg — Node decodes "" as utf-8, so this mutant is behaviorally equivalent
   const salt = Buffer.from(userId, "utf-8");
   const derived = pbkdf2Sync(
     masterKeyBytes,
@@ -227,6 +236,7 @@ export function encryptFernet(
   tsBuf.writeBigUInt64BE(timestamp);
 
   // Pad plaintext to 16-byte boundary (PKCS7)
+  // Stryker disable next-line StringLiteral: encoding arg — Node decodes "" as utf-8, so this mutant is behaviorally equivalent
   const plaintextBuf = Buffer.from(plaintext, "utf-8");
   const padLen = 16 - (plaintextBuf.length % 16);
   const padded = Buffer.concat([plaintextBuf, Buffer.alloc(padLen, padLen)]);
@@ -247,12 +257,11 @@ export function encryptFernet(
   const hmac = createHmac("sha256", hmacKey).update(body).digest();
 
   const token = Buffer.concat([body, hmac]);
-  // Encode as base64url (no padding)
-  return token
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=/g, "");
+  // Encode as base64url *with* padding. Python's cryptography.Fernet decodes
+  // tokens with base64.urlsafe_b64decode, which rejects unpadded input
+  // ("Incorrect padding" -> InvalidToken), so the "=" padding must be kept for
+  // cross-runtime compatibility.
+  return token.toString("base64").replace(/\+/g, "-").replace(/\//g, "_");
 }
 
 /**

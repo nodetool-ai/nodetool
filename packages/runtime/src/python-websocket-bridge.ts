@@ -117,6 +117,7 @@ function crashSafeTerminate(ws: WebSocket): void {
 export class WebsocketPythonBridge extends PythonBridgeBase {
   private _ws: WebSocket | null = null;
   private readonly _wsUrl: string;
+  private readonly _workerToken: string | undefined;
   private readonly _maxReconnectDelayMs: number;
   private readonly _reconnectRpcTimeoutMs: number;
   private readonly _autoReconnect: boolean;
@@ -157,6 +158,10 @@ export class WebsocketPythonBridge extends PythonBridgeBase {
       );
     }
     this._wsUrl = options.wsUrl;
+    // Shared-secret bearer token: when present, every handshake (connect AND
+    // reconnect, both via _openSocket) carries `Authorization: Bearer <token>`.
+    // An empty string is treated as unset (no header → worker accepts all).
+    this._workerToken = options.workerToken || undefined;
     this._maxReconnectDelayMs =
       options.maxReconnectDelayMs ?? DEFAULT_MAX_RECONNECT_DELAY_MS;
     this._reconnectRpcTimeoutMs =
@@ -260,15 +265,29 @@ export class WebsocketPythonBridge extends PythonBridgeBase {
 
   // ── Transport: open the remote socket ───────────────────────────────
 
+  /**
+   * Construct the `ws` WebSocket. The SINGLE place a socket is created — used by
+   * both the initial connect and every reconnect (both run through
+   * {@link _openTransport}), so the auth header is applied uniformly. When a
+   * worker token is configured, send `Authorization: Bearer <token>` on the
+   * handshake; otherwise send no header (worker accepts all).
+   */
+  private _openSocket(): WebSocket {
+    return new WebSocket(this._wsUrl, {
+      maxPayload: MAX_BRIDGE_FRAME_SIZE,
+      headers: this._workerToken
+        ? { Authorization: `Bearer ${this._workerToken}` }
+        : undefined
+    });
+  }
+
   protected override async _openTransport(): Promise<void> {
     const startupTimeoutMs =
       this._options.startupTimeoutMs ?? DEFAULT_STARTUP_TIMEOUT_MS;
 
     await new Promise<void>((resolve, reject) => {
       let settled = false;
-      const ws = new WebSocket(this._wsUrl, {
-        maxPayload: MAX_BRIDGE_FRAME_SIZE
-      });
+      const ws = this._openSocket();
       ws.binaryType = "nodebuffer";
 
       const startupTimer = setTimeout(() => {

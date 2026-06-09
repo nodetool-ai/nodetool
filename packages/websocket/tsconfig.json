@@ -39,6 +39,9 @@
       "path": "../fal-nodes"
     },
     {
+      "path": "../together-nodes"
+    },
+    {
       "path": "../huggingface"
     },
     {

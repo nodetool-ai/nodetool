@@ -27,10 +27,7 @@ const NodeContent: React.FC<NodeContentProps> = ({
   isOutputNode,
   data,
   status,
-  workflowId,
-  showResultOverlay,
-  result,
-  onShowInputs
+  workflowId
 }) => {
   const { handleAddProperty } = useDynamicProperty(
     id,

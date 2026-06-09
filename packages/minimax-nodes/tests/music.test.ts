@@ -40,8 +40,12 @@ describe("MinimaxMusicNode", () => {
 
     expect(result.output).toMatchObject({
       type: "audio",
-      data: expect.stringContaining("data:audio/mpeg;base64,")
+      content_type: "audio/mpeg",
+      data: Buffer.from("fake-song").toString("base64")
     });
+    expect(
+      String((result.output as Record<string, unknown>).data)
+    ).not.toMatch(/^data:/);
   });
 
   it("requires a prompt", async () => {

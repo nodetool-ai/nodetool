@@ -94,9 +94,7 @@ export const useLanguageModelsByProvider = (options?: {
   const error = queries.find((q) => q.error)?.error;
 
   const allModels = useMemo(() => {
-    const aggregated = queries
-      .filter((q) => q.data)
-      .flatMap((q) => q.data!.models);
+    const aggregated = queries.flatMap((q) => q.data?.models ?? []);
     return options?.requireToolSupport
       ? aggregated.filter((m) => m.supports_tools !== false)
       : aggregated;
@@ -185,15 +183,11 @@ const modelMatchesTask = (
   supportedTasks: string[] | null | undefined,
   task: string
 ): boolean => {
-  const has = (supportedTasks?.length ?? 0) > 0;
-  if (STRICT_MODEL_TASKS.has(task)) {
-    return has && supportedTasks!.includes(task);
+  if (!supportedTasks || supportedTasks.length === 0) {
+    // No tasks declared — strict tasks never match, generation tasks pass through
+    return !STRICT_MODEL_TASKS.has(task);
   }
-  // Generation tasks (text_to_*/image_to_*): FAL/Replicate generators are
-  // tagged with both, so they filter strictly. The untagged-passes branch is a
-  // fallback only for providers that emit no tasks (e.g. HuggingFace models
-  // without a pipeline tag), so they don't vanish from the generation pickers.
-  return !has || supportedTasks!.includes(task);
+  return supportedTasks.includes(task);
 };
 
 export const useImageModelsByProvider = (opts?: { task?: ImageModelTask }): ModelsByProviderResult<ImageModel> => {
@@ -230,9 +224,7 @@ export const useImageModelsByProvider = (opts?: { task?: ImageModelTask }): Mode
 
   const task = opts?.task;
   const allModels = useMemo(() => {
-    const aggregated = queries
-      .filter((q) => q.data)
-      .flatMap((q) => q.data!.models);
+    const aggregated = queries.flatMap((q) => q.data?.models ?? []);
     return task
       ? aggregated.filter((m) => modelMatchesTask(m.supported_tasks, task))
       : aggregated;
@@ -289,7 +281,7 @@ export const useTTSModelsByProvider = (): ModelsByProviderResult<TTSModel> => {
   const error = queries.find((q) => q.error)?.error;
 
   const allModels = useMemo(
-    () => queries.filter((q) => q.data).flatMap((q) => q.data!.models),
+    () => queries.filter((q) => q.data).flatMap((q) => q.data?.models ?? []),
     [queries]
   );
 
@@ -344,7 +336,7 @@ export const useASRModelsByProvider = (): ModelsByProviderResult<ASRModel> => {
   const error = queries.find((q) => q.error)?.error;
 
   const allModels = useMemo(
-    () => queries.filter((q) => q.data).flatMap((q) => q.data!.models),
+    () => queries.filter((q) => q.data).flatMap((q) => q.data?.models ?? []),
     [queries]
   );
 
@@ -400,9 +392,7 @@ export const useVideoModelsByProvider = (opts?: { task?: VideoModelTask }): Mode
 
   const videoTask = opts?.task;
   const allModels = useMemo(() => {
-    const aggregated = queries
-      .filter((q) => q.data)
-      .flatMap((q) => q.data!.models);
+    const aggregated = queries.flatMap((q) => q.data?.models ?? []);
     return videoTask
       ? aggregated.filter((m) => modelMatchesTask(m.supported_tasks, videoTask))
       : aggregated;

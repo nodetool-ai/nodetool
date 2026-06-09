@@ -122,13 +122,18 @@ describe("ConcatAudioListNode — uses audio_files property", () => {
 });
 
 describe("CreateSilenceNode — uses duration property (not length)", () => {
-  it("creates silence of specified duration", async () => {
+  it("creates a valid WAV of the specified duration", async () => {
     const node = new CreateSilenceNode();
-    node.assign({ duration: 100 });
+    node.assign({ duration: 0.01, sample_rate: 8000 });
     const result = await node.process();
     const output = result.output as { data: string };
     const bytes = Buffer.from(output.data, "base64");
-    expect(bytes.length).toBe(100);
+    // Emits a real RIFF/WAVE file, not a bare byte buffer.
+    expect(bytes.toString("ascii", 0, 4)).toBe("RIFF");
+    expect(bytes.toString("ascii", 8, 12)).toBe("WAVE");
+    // 44-byte header + frames * 2 bytes (16-bit mono); frames = duration * rate.
+    const frames = Math.round(0.01 * 8000);
+    expect(bytes.length).toBe(44 + frames * 2);
   });
 });
 

@@ -9,10 +9,19 @@ import CodeIcon from "@mui/icons-material/Code";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
+import CloseFullscreenIcon from "@mui/icons-material/CloseFullscreen";
+import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import DownloadIcon from "@mui/icons-material/Download";
-import FindInPageIcon from "@mui/icons-material/FindInPage";
+import HistoryIcon from "@mui/icons-material/History";
+import SearchIcon from "@mui/icons-material/Search";
 import WrapTextIcon from "@mui/icons-material/WrapText";
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
+import DataObjectIcon from "@mui/icons-material/DataObject";
+import AddIcon from "@mui/icons-material/Add";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import TextDecreaseIcon from "@mui/icons-material/TextDecrease";
+import TextIncreaseIcon from "@mui/icons-material/TextIncrease";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
 import { Tooltip, LoadingSpinner } from "../ui_primitives";
@@ -22,9 +31,9 @@ import { ListItemNode, ListNode } from "@lexical/list";
 import { AutoLinkNode, LinkNode } from "@lexical/link";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { EditorState, $getRoot } from "lexical";
+import type { editor as MonacoEditorNS } from "monaco-editor";
 import { debounce } from "../../utils/lodashAlternatives";
 import isEqual from "fast-deep-equal";
-import Markdown from "react-markdown";
 
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useCombo } from "../../stores/KeyPressedStore";
@@ -35,14 +44,13 @@ import type { Theme } from "@mui/material/styles";
 import LexicalPlugins from "../textEditor/LexicalEditor";
 import EditorController from "../textEditor/EditorController";
 import EditorStatusBar from "../textEditor/EditorStatusBar";
-import EditorToolbar from "../textEditor/EditorToolbar";
+import EditorVariablesPanel from "../textEditor/EditorVariablesPanel";
+import AssistantQuickStarts from "../textEditor/AssistantQuickStarts";
 import FindReplaceBar from "../textEditor/FindReplaceBar";
 import ChatView from "../chat/containers/ChatView";
-import SnippetSidebar from "./SnippetSidebar";
-import DataObjectIcon from "@mui/icons-material/DataObject";
 import { DEFAULT_MODEL } from "../../config/constants";
 import { EditorInsertionProvider } from "../../contexts/EditorInsertionContext";
-import type { LanguageModel } from "../../stores/ApiTypes";
+import type { LanguageModel, Message } from "../../stores/ApiTypes";
 import { useEditorMode } from "../../hooks/editor/useEditorMode";
 import { useFullscreenMode } from "../../hooks/editor/useFullscreenMode";
 import { useAssistantVisibility } from "../../hooks/editor/useAssistantVisibility";
@@ -51,11 +59,17 @@ import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
 import { useEditorActions } from "../../hooks/editor/useEditorActions";
 import { useEditorKeyboardShortcuts } from "../../hooks/editor/useEditorKeyboardShortcuts";
 import { useChatIntegration } from "../../hooks/editor/useChatIntegration";
+import {
+  allowsSingleBraceVariables,
+  findTemplateVariables,
+  formatVariableToken,
+  uniqueTemplateVariables,
+  type VariableSyntax
+} from "../textEditor/templateVariables";
 
 /* code-highlight */
 import { codeHighlightTheme } from "../textEditor/codeHighlightTheme";
 import { codeHighlightTokenStyles } from "../textEditor/codeHighlightStyles";
-import { NewChatButton } from "../chat";
 
 const initialConfigTemplate = {
   namespace: "TextEditorModal",
@@ -80,12 +94,92 @@ const initialConfigTemplate = {
   }
 };
 
+const LANGUAGES = [
+  "plaintext",
+  "markdown",
+  "javascript",
+  "typescript",
+  "python",
+  "json",
+  "lua",
+  "yaml",
+  "html",
+  "css",
+  "sql",
+  "bash",
+  "ruby"
+] as const;
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  "": "Plain Text",
+  plaintext: "Plain Text",
+  text: "Plain Text",
+  markdown: "Markdown",
+  javascript: "JavaScript",
+  typescript: "TypeScript",
+  python: "Python",
+  json: "JSON",
+  lua: "Lua",
+  yaml: "YAML",
+  html: "HTML",
+  css: "CSS",
+  sql: "SQL",
+  bash: "Bash",
+  ruby: "Ruby"
+};
+
+const TYPE_LABELS: Record<string, string> = {
+  str: "string",
+  int: "integer",
+  float: "float",
+  bool: "boolean",
+  list: "list",
+  dict: "dict",
+  any: "any",
+  text: "text"
+};
+
+const FILE_EXTENSIONS: Record<string, string> = {
+  plaintext: "txt",
+  text: "txt",
+  markdown: "md",
+  javascript: "js",
+  typescript: "ts",
+  python: "py",
+  json: "json",
+  yaml: "yml",
+  html: "html",
+  css: "css",
+  sql: "sql",
+  shell: "sh",
+  bash: "sh",
+  ruby: "rb",
+  lua: "lua"
+};
+
+const FONT_SIZE_MIN = 8;
+const FONT_SIZE_MAX = 32;
+
+/** Turn "nodetool.text.TextGeneration" into "Text Generation". */
+const humanizeNodeType = (nodeType: string): string => {
+  if (!nodeType) {
+    return "";
+  }
+  const last = nodeType.split(".").pop() ?? nodeType;
+  return last
+    .replace(/[_-]/g, " ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
 interface TextEditorModalProps {
   value: string;
   onChange?: (value: string) => void;
   onClose: () => void;
   propertyName: string;
   propertyDescription?: string;
+  propertyType?: string;
   language?: string;
   nodeType?: string;
   readOnly?: boolean;
@@ -131,14 +225,13 @@ const styles = (theme: Theme) =>
       top: 0,
       left: 0,
       width: "100vw",
-      // dvh: avoid the gap iOS Safari leaves when the URL bar collapses.
       height: "100dvh",
       padding: 0,
       backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.85)`
     },
     ".modal-content": {
-      background: `linear-gradient(160deg, 
-        rgba(${theme.vars.palette.background.paperChannel} / 0.96), 
+      background: `linear-gradient(160deg,
+        rgba(${theme.vars.palette.background.paperChannel} / 0.96),
         rgba(${theme.vars.palette.background.defaultChannel} / 0.99))`,
       backdropFilter: "blur(24px) saturate(180%)",
       WebkitBackdropFilter: "blur(24px) saturate(180%)",
@@ -174,13 +267,13 @@ const styles = (theme: Theme) =>
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      padding: "0.6em 1.25em",
-      minHeight: "3.2em",
+      gap: "1em",
+      padding: "0.6em 1.1em",
+      minHeight: "3.4em",
       position: "relative",
-      background: `linear-gradient(90deg, 
-        rgba(${theme.vars.palette.background.defaultChannel} / 0.5) 0%, 
+      background: `linear-gradient(90deg,
+        rgba(${theme.vars.palette.background.defaultChannel} / 0.5) 0%,
         rgba(${theme.vars.palette.background.defaultChannel} / 0.15) 100%)`,
-      borderBottom: "none",
       zIndex: 5,
       "&::after": {
         content: "''",
@@ -188,98 +281,194 @@ const styles = (theme: Theme) =>
         bottom: 0,
         left: 0,
         right: 0,
-        height: "2px",
-        background: `linear-gradient(90deg, 
-          ${theme.vars.palette.primary.main}60, 
-          ${theme.vars.palette.primary.main}10 60%, 
-          transparent 100%)`,
-        opacity: 0.7
+        height: "1px",
+        background: `linear-gradient(90deg,
+          rgba(${theme.vars.palette.common.whiteChannel} / 0.08),
+          rgba(${theme.vars.palette.common.whiteChannel} / 0.02) 60%,
+          transparent 100%)`
+      }
+    },
+    ".header-left": {
+      display: "flex",
+      alignItems: "center",
+      gap: "0.8em",
+      minWidth: 0,
+      flex: 1
+    },
+    ".editor-icon-badge": {
+      flexShrink: 0,
+      width: "2.4em",
+      height: "2.4em",
+      borderRadius: "var(--rounded-lg)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: theme.vars.palette.primary.main,
+      background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`,
+      border: `1px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.25)`,
+      svg: { fontSize: "var(--fontSizeBigger)" }
+    },
+    ".title-and-description": {
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.1em",
+      minWidth: 0,
+      overflow: "hidden"
+    },
+    ".breadcrumb": {
+      display: "flex",
+      alignItems: "center",
+      gap: "0.3em",
+      fontSize: "var(--fontSizeSmaller)",
+      color: theme.vars.palette.text.disabled,
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      ".crumb-sep": {
+        margin: "0 0.2em",
+        opacity: 0.5
       },
+      ".crumb-current": {
+        color: theme.vars.palette.text.secondary
+      }
+    },
+    ".title-row": {
+      display: "flex",
+      alignItems: "center",
+      gap: "0.6em",
+      minWidth: 0,
       h4: {
         cursor: "default",
         fontWeight: 600,
-        margin: "0",
-        fontSize: "var(--fontSizeNormal)",
+        margin: 0,
+        fontSize: "var(--fontSizeBig)",
         letterSpacing: "-0.01em",
         color: theme.vars.palette.text.primary,
-        textShadow: "0 1px 3px rgba(0,0,0,0.2)"
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
       }
     },
-    ".title-and-description": {
-      flex: 1,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "flex-start",
-      gap: "0.15em",
-      overflow: "hidden"
-    },
-    ".toolbar-group": {
-      display: "flex",
-      alignItems: "center",
-      gap: "0.35em",
-      backgroundColor: `rgba(${theme.vars.palette.background.paperChannel} / 0.35)`,
-      padding: "3px 7px",
-      borderRadius: "var(--rounded-xl)",
-      border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.05)`,
-      boxShadow: `inset 0 1px 2px rgba(0,0,0,0.15), 0 1px 0 rgba(255,255,255,0.03)`,
-      "& + .toolbar-group": {
-        marginLeft: "0.4em"
-      }
-    },
-    ".code-tools": {
-      display: "flex",
-      alignItems: "center",
-      gap: "0.35em",
-      marginRight: "0.4em"
-    },
-    ".language-select": {
-      background: "transparent",
+    ".type-badge": {
+      flexShrink: 0,
+      padding: "0.1em 0.6em",
+      borderRadius: "var(--rounded-pill, 999px)",
+      fontSize: "var(--fontSizeTiny)",
+      fontFamily: theme.fontFamily2,
+      letterSpacing: "0.03em",
       color: theme.vars.palette.text.secondary,
-      border: "none",
+      backgroundColor: `rgba(${theme.vars.palette.common.whiteChannel} / 0.07)`,
+      border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.08)`
+    },
+    ".actions": {
+      display: "flex",
+      gap: "0.25em",
+      alignItems: "center",
+      flexWrap: "nowrap"
+    },
+    /* ---- unified toolbar ---- */
+    ".modal-toolbar": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: "0.5em",
+      padding: "0.35em 1.1em",
+      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.3)`,
+      borderBottom: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.04)`,
+      flexWrap: "wrap",
+      ".toolbar-side": {
+        display: "flex",
+        alignItems: "center",
+        gap: "0.35em"
+      },
+      ".toolbar-divider": {
+        width: "1px",
+        height: "1.4em",
+        margin: "0 0.25em",
+        background: `rgba(${theme.vars.palette.common.whiteChannel} / 0.1)`
+      }
+    },
+    ".lang-select": {
+      appearance: "none",
+      WebkitAppearance: "none",
+      background: `rgba(${theme.vars.palette.background.paperChannel} / 0.5)`,
+      color: theme.vars.palette.text.secondary,
+      border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.08)`,
       borderRadius: "var(--rounded-md)",
-      padding: "3px 6px",
-      fontSize: "var(--fontSizeSmall)",
+      padding: "0.3em 1.6em 0.3em 0.7em",
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       outline: "none",
       cursor: "pointer",
       textTransform: "uppercase",
       letterSpacing: "0.06em",
+      backgroundImage:
+        "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>\")",
+      backgroundRepeat: "no-repeat",
+      backgroundPosition: "right 0.55em center",
       transition: "all 0.2s ease",
       "&:hover": {
         color: theme.vars.palette.text.primary,
-        background: `rgba(${theme.vars.palette.action.activeChannel} / 0.1)`
-      },
-      "&:focus": {
-        color: theme.vars.palette.primary.main,
-        background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.08)`
+        borderColor: `rgba(${theme.vars.palette.common.whiteChannel} / 0.18)`
       }
     },
-    ".description": {
-      width: "100%",
-      maxWidth: "550px",
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap",
-      padding: "0",
-      margin: "0",
-      fontSize: "var(--fontSizeSmall)",
+    ".tool-btn": {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "0.4em",
+      padding: "0.32em 0.6em",
+      cursor: "pointer",
       color: theme.vars.palette.text.secondary,
-      fontWeight: 400,
-      opacity: 0.8
+      borderRadius: "var(--rounded-md)",
+      fontSize: "var(--fontSizeSmaller)",
+      fontWeight: 500,
+      background: "transparent",
+      border: "1px solid transparent",
+      transition: "all 0.18s ease",
+      whiteSpace: "nowrap",
+      svg: { fontSize: "var(--fontSizeNormal)" },
+      "&:hover": {
+        color: theme.vars.palette.text.primary,
+        background: `rgba(${theme.vars.palette.common.whiteChannel} / 0.06)`
+      },
+      "&.active": {
+        color: theme.vars.palette.primary.main,
+        background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.14)`,
+        borderColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.35)`
+      },
+      "&.icon-only": {
+        padding: "0.32em"
+      }
+    },
+    ".font-controls": {
+      display: "flex",
+      alignItems: "center",
+      gap: "0.15em",
+      padding: "0.1em 0.25em",
+      borderRadius: "var(--rounded-md)",
+      border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.07)`,
+      background: `rgba(${theme.vars.palette.background.paperChannel} / 0.35)`,
+      ".font-size-value": {
+        minWidth: "2.6em",
+        textAlign: "center",
+        fontSize: "var(--fontSizeSmaller)",
+        fontFamily: theme.fontFamily2,
+        color: theme.vars.palette.text.secondary
+      }
     },
     ".modal-body": {
       position: "relative",
       flex: 1,
       display: "flex",
       flexDirection: "row",
-      padding: "0",
+      padding: 0,
       background: "transparent",
       height: "100%",
       overflow: "hidden",
       ".editor": {
         flex: 1,
         width: "100%",
-        fontSize: "var(--fontSizeNormal)",
+        fontSize: "var(--editor-font-size, var(--fontSizeNormal))",
         lineHeight: "1.7",
         color: theme.vars.palette.text.secondary,
         outline: "none",
@@ -301,23 +490,22 @@ const styles = (theme: Theme) =>
         },
         "&.word-wrap": {
           whiteSpace: "pre-wrap",
-          pre: {
-            whiteSpace: "pre-wrap !important"
-          },
-          textarea: {
-            whiteSpace: "pre-wrap !important"
-          }
+          pre: { whiteSpace: "pre-wrap !important" },
+          textarea: { whiteSpace: "pre-wrap !important" }
         },
         "&.no-wrap": {
           whiteSpace: "pre",
-          pre: {
-            whiteSpace: "pre !important"
-          },
-          textarea: {
-            whiteSpace: "pre !important"
-          }
+          pre: { whiteSpace: "pre !important" },
+          textarea: { whiteSpace: "pre !important" }
         },
         ...codeHighlightTokenStyles(theme)
+      },
+      /* highlighted {{ variable }} tokens inside Monaco */
+      ".editor-variable-token": {
+        color: `${theme.vars.palette.primary.light} !important`,
+        backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`,
+        borderRadius: "3px",
+        fontWeight: 600
       },
       ".editor-pane": {
         flex: 1,
@@ -334,7 +522,6 @@ const styles = (theme: Theme) =>
         width: "35%",
         minWidth: "320px",
         maxWidth: "500px",
-        borderLeft: "none",
         background: `linear-gradient(180deg,
           rgba(${theme.vars.palette.background.paperChannel} / 0.6) 0%,
           rgba(${theme.vars.palette.background.paperChannel} / 0.4) 100%)`,
@@ -345,27 +532,53 @@ const styles = (theme: Theme) =>
         boxShadow: `-1px 0 0 rgba(${theme.vars.palette.common.whiteChannel} / 0.06),
           -12px 0 32px -8px rgba(0,0,0,0.12)`,
         position: "relative",
-        "&::before": {
-          content: "''",
-          position: "absolute",
-          top: 0,
-          left: 0,
-          bottom: 0,
-          width: "1px",
-          background: `linear-gradient(180deg,
-            ${theme.vars.palette.primary.main}30,
-            rgba(${theme.vars.palette.common.whiteChannel} / 0.06) 30%,
-            rgba(${theme.vars.palette.common.whiteChannel} / 0.03) 70%,
-            transparent 100%)`,
-          zIndex: 1
-        },
-        // --- Layout overrides for chat components in narrow panel ---
-        ".new-chat-section": {
-          padding: "0.4em 0.6em",
+        ".assistant-header": {
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "0.5em",
+          padding: "0.7em 0.85em",
           flexShrink: 0,
-          ".new-chat-button": {
-            height: "2.2em !important",
-            fontSize: "var(--fontSizeTiny) !important"
+          borderBottom: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.05)`,
+          ".assistant-id": {
+            display: "flex",
+            alignItems: "center",
+            gap: "0.6em",
+            minWidth: 0
+          },
+          ".assistant-avatar": {
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "1.9em",
+            height: "1.9em",
+            borderRadius: "var(--rounded-md)",
+            color: theme.vars.palette.primary.main,
+            background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.14)`,
+            svg: { fontSize: "var(--fontSizeNormal)" }
+          },
+          ".assistant-meta": {
+            display: "flex",
+            flexDirection: "column",
+            lineHeight: 1.2,
+            minWidth: 0
+          },
+          ".assistant-name": {
+            fontSize: "var(--fontSizeSmall)",
+            fontWeight: 600,
+            color: theme.vars.palette.text.primary
+          },
+          ".assistant-sub": {
+            fontSize: "var(--fontSizeTiny)",
+            color: theme.vars.palette.text.disabled,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap"
+          },
+          ".assistant-head-actions": {
+            display: "flex",
+            gap: "0.15em",
+            flexShrink: 0
           }
         },
         ".chat-view": {
@@ -387,18 +600,6 @@ const styles = (theme: Theme) =>
         }
       }
     },
-    ".actions": {
-      display: "flex",
-      gap: "0.6em",
-      alignItems: "center",
-      flexWrap: "nowrap"
-    },
-    ".copy-to-clipboard-button": {
-      position: "absolute",
-      right: "2em",
-      top: "1.5em",
-      zIndex: 10
-    },
     ".button": {
       padding: "5px",
       minWidth: "32px",
@@ -419,6 +620,10 @@ const styles = (theme: Theme) =>
         boxShadow: `0 0 12px rgba(${theme.vars.palette.primary.mainChannel} / 0.15)`,
         transform: "scale(1.05)"
       },
+      "&.active": {
+        color: theme.vars.palette.primary.main,
+        background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.16)`
+      },
       "&:active": {
         transform: "scale(0.97)"
       }
@@ -435,45 +640,23 @@ const styles = (theme: Theme) =>
       }
     },
     ".button-ghost": {
-      padding: "6px",
+      padding: "4px",
       cursor: "pointer",
       color: theme.vars.palette.grey[400],
       fontSize: "var(--fontSizeNormal)",
-      borderRadius: "10px",
+      borderRadius: "8px",
       background: "transparent",
       border: "1px solid transparent",
-      minWidth: "30px",
-      minHeight: "30px",
+      minWidth: "28px",
+      minHeight: "28px",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+      svg: { fontSize: "var(--fontSizeNormal)" },
       "&:hover": {
         color: theme.vars.palette.primary.light,
-        background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.1)`,
-        boxShadow: `0 0 10px rgba(${theme.vars.palette.primary.mainChannel} / 0.1)`
-      },
-      "&.active": {
-        color: theme.vars.palette.primary.main,
-        background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.18)`,
-        boxShadow: `inset 0 1px 2px rgba(0,0,0,0.15)`
-      },
-      "&.snippet-toggle": {
-        color: theme.vars.palette.primary.light,
-        border: `1px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.4)`,
-        background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.08)`,
-        "&:hover": {
-          color: theme.vars.palette.primary.main,
-          background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.18)`,
-          border: `1px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.7)`,
-          boxShadow: `0 0 10px rgba(${theme.vars.palette.primary.mainChannel} / 0.2)`
-        },
-        "&.active": {
-          color: theme.vars.palette.primary.main,
-          background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.22)`,
-          border: `1px solid ${theme.vars.palette.primary.main}`,
-          boxShadow: `0 0 8px rgba(${theme.vars.palette.primary.mainChannel} / 0.3)`
-        }
+        background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.1)`
       }
     },
     ".resize-handle": {
@@ -489,10 +672,6 @@ const styles = (theme: Theme) =>
       transition: "all 0.25s ease",
       "&:hover": {
         backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.05)`
-      },
-      "&:hover .resize-handle-dots": {
-        opacity: 1,
-        gap: "3px"
       },
       "&:hover .resize-handle-thumb": {
         backgroundColor: theme.vars.palette.primary.main,
@@ -520,44 +699,20 @@ const styles = (theme: Theme) =>
       animation: "pulseGlow 2s ease-in-out infinite"
     },
     "@media (max-width: 1200px)": {
-      ".modal-content": {
-        width: "96%"
-      },
-      ".assistant-pane": {
-        width: "36%",
-        minWidth: "280px"
-      }
+      ".modal-content": { width: "96%" },
+      ".assistant-pane": { width: "36%", minWidth: "280px" }
     },
     "@media (max-width: 900px)": {
-      ".title-and-description": {
-        gap: "0.15em"
-      },
-      ".description": {
-        display: "block",
-        fontSize: "var(--fontSizeSmaller)"
-      },
-      ".modal-body": {
-        flexDirection: "column"
-      },
+      ".modal-body": { flexDirection: "column" },
       ".assistant-pane": {
-        width: "100%",
-        minWidth: "unset",
-        maxWidth: "unset",
-        marginLeft: 0,
-        marginTop: "0",
+        width: "100% !important",
+        minWidth: "unset !important",
+        maxWidth: "unset !important",
         borderLeft: "none",
         borderTop: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.06)`,
-        height: "40%",
-        "&::before": {
-          display: "none"
-        }
-      },
-      ".button": {
-        minWidth: "34px",
-        minHeight: "34px"
+        height: "40%"
       }
     },
-    // Phones: edge-to-edge — desktop layout leaves a 51px dead band on the left.
     "@media (max-width: 599.95px)": {
       ".modal-overlay": {
         top: 0,
@@ -578,27 +733,8 @@ const styles = (theme: Theme) =>
         border: "none",
         animation: "none"
       },
-      ".resize-handle": {
-        display: "none"
-      },
-      ".language-select": {
-        display: "none"
-      },
-      ".modal-header": {
-        padding: "0.4em 0.6em",
-        minHeight: "2.6em"
-      },
-      ".description": {
-        display: "none"
-      },
-      ".toolbar-group": {
-        padding: "2px 4px"
-      },
-      ".button": {
-        minWidth: "32px",
-        minHeight: "32px",
-        padding: "4px"
-      }
+      ".resize-handle": { display: "none" },
+      ".breadcrumb": { display: "none" }
     }
   });
 
@@ -608,6 +744,7 @@ const TextEditorModal = ({
   onClose,
   propertyName,
   propertyDescription,
+  propertyType,
   language: defaultLanguage = "",
   nodeType = "",
   readOnly = false,
@@ -619,7 +756,6 @@ const TextEditorModal = ({
   const theme = useTheme();
   const modalOverlayRef = useRef<HTMLDivElement>(null);
 
-  // Monaco dynamic import and actions (hook)
   const {
     MonacoEditor,
     monacoLoadError,
@@ -630,7 +766,6 @@ const TextEditorModal = ({
     handleMonacoFormat
   } = useMonacoEditor();
 
-  // Editor mode toggle (extracted hook)
   const { isCodeEditor, toggleEditorMode } = useEditorMode({
     defaultEnabled: !!defaultLanguage,
     onCodeEnabled: () => {
@@ -638,12 +773,10 @@ const TextEditorModal = ({
     }
   });
 
-  // Fullscreen toggle (hook)
   const { isFullscreen, toggleFullscreen } = useFullscreenMode({
     storageKey: "textEditorModal_fullscreen"
   });
 
-  // Assistant pane visibility (hook)
   const { assistantVisible, toggleAssistantVisible } = useAssistantVisibility({
     storageKey: "textEditorModal_assistantVisible",
     defaultVisible: true
@@ -653,32 +786,56 @@ const TextEditorModal = ({
     toggleEditorMode();
   }, [toggleEditorMode]);
 
-  // If we start in code mode, ensure Monaco loads immediately
   useEffect(() => {
     if (isCodeEditor) {
       void loadMonacoIfNeeded();
     }
   }, [isCodeEditor, loadMonacoIfNeeded]);
 
-  // Resizable modal height state (hook)
   const { modalHeight, handleResizeMouseDown } = useModalResize({
     storageKey: "textEditorModal_height"
   });
 
-  // Editor state management
-  const [canUndo, setCanUndo] = useState(false);
-  const [canRedo, setCanRedo] = useState(false);
+  // EditorController requires these callbacks; the values themselves are no
+  // longer surfaced in the redesigned toolbar (undo/redo stay on the keyboard).
+  const [, setCanUndo] = useState(false);
+  const [, setCanRedo] = useState(false);
+  const [, setIsCodeBlock] = useState(false);
   const [wordWrapEnabled, setWordWrapEnabled] = useState(true);
-  const [isCodeBlock, setIsCodeBlock] = useState(false);
   const [findReplaceVisible, setFindReplaceVisible] = useState(false);
   const [currentText, setCurrentText] = useState(value || "");
-  const [language, setLanguage] = useState(defaultLanguage || "");
+  const [language, setLanguage] = useState(
+    defaultLanguage === "text" ? "plaintext" : defaultLanguage || "plaintext"
+  );
 
-  // Snippet sidebar state
-  const [snippetSidebarVisible, setSnippetSidebarVisible] = useState(false);
+  // Panels / view chrome
+  const [variablesVisible, setVariablesVisible] = useState(true);
+  const [focusMode, setFocusMode] = useState(false);
+  const [addVarSignal, setAddVarSignal] = useState(0);
 
-  // Editor command function refs – using refs avoids re-renders when the
-  // underlying functions are recreated in the child component on every mount.
+  // Per-variable preview values (local, not persisted to the graph).
+  const [variableValues, setVariableValues] = useState<Record<string, string>>(
+    {}
+  );
+
+  // Font size (shared by both editors), persisted across sessions.
+  const [fontSize, setFontSize] = useState<number>(() => {
+    const stored = Number(localStorage.getItem("textEditorModal_fontSize"));
+    return stored >= FONT_SIZE_MIN && stored <= FONT_SIZE_MAX ? stored : 14;
+  });
+
+  // Monaco instance lifecycle / cursor tracking.
+  const [editorReady, setEditorReady] = useState(false);
+  const [cursor, setCursor] = useState<{ line: number; column: number } | null>(
+    null
+  );
+  const cursorDisposeRef = useRef<{ dispose: () => void } | null>(null);
+  const decorationIdsRef = useRef<string[]>([]);
+
+  // The value the modal opened with — used by "Revert".
+  const originalValueRef = useRef(value);
+
+  // Editor command function refs.
   const undoFnRef = useRef<(() => void) | null>(null);
   const redoFnRef = useRef<(() => void) | null>(null);
   const findFnRef = useRef<
@@ -702,7 +859,6 @@ const TextEditorModal = ({
   const setAllTextFnRef = useRef<((text: string) => void) | null>(null);
   const getSelectedTextFnRef = useRef<(() => string) | null>(null);
 
-  // Chat integration
   const {
     status,
     progress,
@@ -726,28 +882,19 @@ const TextEditorModal = ({
     currentText
   });
 
-  // Search state
   const [searchResults, setSearchResults] = useState({
     currentMatch: 0,
     totalMatches: 0
   });
 
   const editorConfig = useMemo(
-    () => ({
-      ...initialConfigTemplate,
-      readOnly: readOnly
-    }),
+    () => ({ ...initialConfigTemplate, readOnly }),
     [readOnly]
   );
-
-  // Debounce onChange to avoid excessive re-renders which also interferes with
-  // the HistoryPlugin state inside Lexical. A short delay greatly reduces the
-  // number of times the whole modal needs to update while typing.
 
   const debouncedExternalOnChange = useMemo(
     () =>
       debounce((text: string) => {
-        // Propagate to parent only after the debounce interval
         if (onChange) {
           onChange(text);
         }
@@ -760,21 +907,23 @@ const TextEditorModal = ({
       if (readOnly) {
         return;
       }
-
-      const textContent = editorState.read(() => {
-        return $getRoot().getTextContent();
-      });
-
-      // Update local statistics every change – this is cheap.
+      const textContent = editorState.read(() => $getRoot().getTextContent());
       setCurrentText(textContent);
-
-      // Update the external consumer in a debounced manner to minimise
-      // rerenders of the parent component tree.
       debouncedExternalOnChange(textContent);
     },
     [debouncedExternalOnChange, readOnly]
   );
-  // Insertion handlers for both editors
+
+  // ---- template variables ----
+  const includeSingle = allowsSingleBraceVariables(language);
+  const parsedVariables = useMemo(
+    () => uniqueTemplateVariables(currentText, includeSingle),
+    [currentText, includeSingle]
+  );
+
+  const handleSetVariableValue = useCallback((name: string, value: string) => {
+    setVariableValues((prev) => ({ ...prev, [name]: value }));
+  }, []);
 
   const handleDownload = useCallback(() => {
     const blob = new Blob([currentText || ""], {
@@ -782,21 +931,7 @@ const TextEditorModal = ({
     });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    const extMap: Record<string, string> = {
-      plaintext: "txt",
-      markdown: "md",
-      javascript: "js",
-      typescript: "ts",
-      python: "py",
-      json: "json",
-      yaml: "yml",
-      html: "html",
-      css: "css",
-      sql: "sql",
-      shell: "sh",
-      bash: "sh"
-    };
-    const ext = (extMap[language] || "txt").replace(/^\./, "");
+    const ext = (FILE_EXTENSIONS[language] || "txt").replace(/^\./, "");
     const safeName = (propertyName || "document")
       .toString()
       .replace(/[^a-z0-9-_]+/gi, "_");
@@ -840,35 +975,157 @@ const TextEditorModal = ({
     [isCodeEditor, insertIntoLexical, monacoRef]
   );
 
-  // Clean-up the debounced function when the component unmounts
+  const insertVariableToken = useCallback(
+    (name: string, syntax: VariableSyntax) => {
+      insertIntoEditor(formatVariableToken(name, syntax));
+    },
+    [insertIntoEditor]
+  );
+
+  const handleInsertVarClick = useCallback(() => {
+    setVariablesVisible(true);
+    setFocusMode(false);
+    setAddVarSignal((n) => n + 1);
+  }, []);
+
+  const toggleVariables = useCallback(() => {
+    setVariablesVisible((v) => {
+      const next = !v;
+      if (next) {
+        setFocusMode(false);
+      }
+      return next;
+    });
+  }, []);
+
+  const changeFontSize = useCallback((delta: number) => {
+    setFontSize((prev) => {
+      const next = Math.min(
+        FONT_SIZE_MAX,
+        Math.max(FONT_SIZE_MIN, Math.round((prev + delta) * 10) / 10)
+      );
+      localStorage.setItem("textEditorModal_fontSize", String(next));
+      return next;
+    });
+  }, []);
+
+  const handleRevert = useCallback(() => {
+    const original = originalValueRef.current;
+    setCurrentText(original);
+    setAllTextFnRef.current?.(original);
+    monacoRef.current?.setValue(original);
+    debouncedExternalOnChange(original);
+  }, [debouncedExternalOnChange, monacoRef]);
+
+  const handleQuickStart = useCallback(
+    (prompt: string) => {
+      const message: Message = {
+        type: "message",
+        role: "user",
+        name: "",
+        content: [{ type: "text", text: prompt }],
+        provider: selectedModel?.provider,
+        model: selectedModel?.id
+      };
+      void sendMessage(message);
+    },
+    [sendMessage, selectedModel]
+  );
+
+  // Find/format dispatch to the active editor.
+  const handleFindClick = useCallback(() => {
+    if (isCodeEditor) {
+      handleMonacoFind();
+    } else {
+      setFindReplaceVisible((v) => !v);
+    }
+  }, [isCodeEditor, handleMonacoFind]);
+
+  const handleFormatClick = useCallback(() => {
+    if (isCodeEditor) {
+      handleMonacoFormat();
+    } else {
+      formatCodeBlockFnRef.current?.();
+    }
+  }, [isCodeEditor, handleMonacoFormat]);
+
+  // Monaco mount: track cursor + signal readiness for decorations.
+  const handleMonacoMount = useCallback(
+    (editor: MonacoEditorNS.IStandaloneCodeEditor) => {
+      monacoOnMount(editor);
+      decorationIdsRef.current = [];
+      cursorDisposeRef.current?.dispose();
+      cursorDisposeRef.current = editor.onDidChangeCursorPosition((e) => {
+        setCursor({ line: e.position.lineNumber, column: e.position.column });
+      });
+      const pos = editor.getPosition();
+      if (pos) {
+        setCursor({ line: pos.lineNumber, column: pos.column });
+      }
+      setEditorReady(true);
+    },
+    [monacoOnMount]
+  );
+
+  useEffect(() => () => cursorDisposeRef.current?.dispose(), []);
+
+  // Highlight {{ variable }} tokens in Monaco.
+  useEffect(() => {
+    if (!isCodeEditor || !editorReady) {
+      return;
+    }
+    const editor = monacoRef.current;
+    const model = editor?.getModel();
+    if (!editor || !model) {
+      return;
+    }
+    const decorations = findTemplateVariables(currentText, includeSingle).map(
+      (match) => {
+        const start = model.getPositionAt(match.start);
+        const end = model.getPositionAt(match.end);
+        return {
+          range: {
+            startLineNumber: start.lineNumber,
+            startColumn: start.column,
+            endLineNumber: end.lineNumber,
+            endColumn: end.column
+          },
+          options: { inlineClassName: "editor-variable-token" }
+        };
+      }
+    );
+    decorationIdsRef.current = editor.deltaDecorations(
+      decorationIdsRef.current,
+      decorations
+    );
+  }, [isCodeEditor, editorReady, currentText, includeSingle, language, monacoRef]);
+
   useEffect(() => {
     return () => {
       debouncedExternalOnChange.cancel();
     };
   }, [debouncedExternalOnChange]);
 
-  // Toolbar handlers (hook)
-  const {
-    handleUndo,
-    handleRedo,
-    handleToggleWordWrap,
-    handleFormatCodeBlock,
-    handleToggleFind,
-    handleFind,
-    handleReplace,
-    handleNavigateNext,
-    handleNavigatePrevious
-  } = useEditorActions({
-    setWordWrapEnabled,
-    setFindReplaceVisible,
-    setSearchResults,
-    undoFnRef,
-    redoFnRef,
-    formatCodeBlockFnRef,
-    findFnRef,
-    replaceFnRef,
-    navigateFnRef
-  });
+  const { handleFind, handleReplace, handleNavigateNext, handleNavigatePrevious } =
+    useEditorActions({
+      setWordWrapEnabled,
+      setFindReplaceVisible,
+      setSearchResults,
+      undoFnRef,
+      redoFnRef,
+      formatCodeBlockFnRef,
+      findFnRef,
+      replaceFnRef,
+      navigateFnRef
+    });
+
+  const handleToggleWordWrap = useCallback(() => {
+    setWordWrapEnabled((v) => !v);
+  }, []);
+
+  const handleToggleFind = useCallback(() => {
+    setFindReplaceVisible((v) => !v);
+  }, []);
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === modalOverlayRef.current) {
@@ -878,7 +1135,6 @@ const TextEditorModal = ({
 
   useCombo(["escape"], onClose);
 
-  // Direct keydown listener for Escape - more reliable than useCombo when Monaco is focused
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -887,25 +1143,33 @@ const TextEditorModal = ({
         onClose();
       }
     };
-    window.addEventListener("keydown", handleKeyDown, true); // Use capture phase
+    window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [onClose]);
 
-  // Shortcuts: fullscreen, assistant pane, editor mode (hook)
   useEditorKeyboardShortcuts({
     onToggleFullscreen: toggleFullscreen,
     onToggleAssistant: toggleAssistantVisible,
     onToggleEditorMode: handleToggleEditorMode
   });
 
-  // Close signal from other properties so only one modal active
   useEffect(() => {
-    const handler = () => {
-      onClose();
-    };
+    const handler = () => onClose();
     window.addEventListener("close-text-editor-modal", handler);
     return () => window.removeEventListener("close-text-editor-modal", handler);
   }, [onClose]);
+
+  const breadcrumbItems = useMemo(() => {
+    const nodeLabel = humanizeNodeType(nodeType);
+    return [nodeLabel, "inputs", propertyName].filter(Boolean) as string[];
+  }, [nodeType, propertyName]);
+
+  const typeLabel = propertyType
+    ? TYPE_LABELS[propertyType] ?? propertyType
+    : null;
+  const languageLabel = LANGUAGE_LABELS[language] ?? language;
+  const showVariablesPanel = variablesVisible && !focusMode;
+  const showAssistant = assistantVisible && !focusMode;
 
   const content = (
     <div
@@ -922,105 +1186,136 @@ const TextEditorModal = ({
           className={`modal-content ${isFullscreen ? "fullscreen" : ""}`}
           role="dialog"
           aria-modal="true"
-          style={{ height: isFullscreen ? "100vh" : modalHeight }}
+          style={
+            {
+              height: isFullscreen ? "100vh" : modalHeight,
+              "--editor-font-size": `${fontSize}px`
+            } as React.CSSProperties
+          }
         >
+          {/* ---- header ---- */}
           <div className="modal-header">
-            <div className="title-and-description">
-              <h4 className="title">{propertyName}</h4>
-              {propertyDescription && (
-                <div
-                  className="description"
-                  style={{
-                    color: readOnly
-                      ? theme.vars.palette.warning.main
-                      : theme.vars.palette.grey[0]
-                  }}
-                >
-                  <Markdown>{propertyDescription}</Markdown>
-                </div>
-              )}
-            </div>
-            <div className="actions">
-              {isCodeEditor && (
-                <div className="toolbar-group code-tools">
-                  <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Find">
-                    <button
-                      type="button"
-                      className="button-ghost"
-                      onClick={handleMonacoFind}
-                      aria-label="Find"
-                    >
-                      <FindInPageIcon />
-                    </button>
-                  </Tooltip>
-                  {!readOnly && (
-                    <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Format">
-                      <button
-                        type="button"
-                        className="button-ghost"
-                        onClick={handleMonacoFormat}
-                        aria-label="Format"
+            <div className="header-left">
+              <div className="editor-icon-badge">
+                <DataObjectIcon />
+              </div>
+              <div className="title-and-description">
+                <div className="breadcrumb">
+                  {breadcrumbItems.map((seg, i) => (
+                    <span key={`${seg}-${i}`} className="crumb">
+                      {i > 0 && <span className="crumb-sep">/</span>}
+                      <span
+                        className={
+                          i === breadcrumbItems.length - 1
+                            ? "crumb-current"
+                            : ""
+                        }
                       >
-                        <FormatAlignLeftIcon />
-                      </button>
-                    </Tooltip>
-                  )}
-                  {!readOnly && (
+                        {seg}
+                      </span>
+                    </span>
+                  ))}
+                </div>
+                <div className="title-row">
+                  {propertyDescription ? (
                     <Tooltip
                       delay={TOOLTIP_ENTER_DELAY}
-                      title={snippetSidebarVisible ? "Hide Snippets" : "Show Snippets"}
+                      title={propertyDescription}
                     >
-                      <button
-                        type="button"
-                        className={`button-ghost snippet-toggle ${snippetSidebarVisible ? "active" : ""}`}
-                        onClick={() => setSnippetSidebarVisible((v) => !v)}
-                        aria-label={snippetSidebarVisible ? "Hide Snippets" : "Show Snippets"}
-                      >
-                        <DataObjectIcon />
-                      </button>
+                      <h4 className="title">{propertyName}</h4>
                     </Tooltip>
+                  ) : (
+                    <h4 className="title">{propertyName}</h4>
                   )}
-                  <Tooltip
-                    delay={TOOLTIP_ENTER_DELAY}
-                    title={wordWrapEnabled ? "Disable wrap" : "Enable wrap"}
-                  >
-                    <button
-                      type="button"
-                      className="button-ghost"
-                      onClick={handleToggleWordWrap}
-                      aria-label={wordWrapEnabled ? "Disable wrap" : "Enable wrap"}
-                    >
-                      <WrapTextIcon />
-                    </button>
-                  </Tooltip>
-                  <select
-                    className="language-select"
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                  >
-                    {[
-                      "plaintext",
-                      "markdown",
-                      "javascript",
-                      "typescript",
-                      "python",
-                      "json",
-                      "lua",
-                      "yaml",
-                      "html",
-                      "css",
-                      "sql",
-                      "bash",
-                      "ruby"
-                    ].map((lang) => (
-                      <option key={lang} value={lang}>
-                        {lang}
-                      </option>
-                    ))}
-                  </select>
+                  {typeLabel && <span className="type-badge">{typeLabel}</span>}
                 </div>
+              </div>
+            </div>
+            <div className="actions">
+              {!readOnly && (
+                <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Revert to original">
+                  <button
+                    type="button"
+                    className="button"
+                    onClick={handleRevert}
+                    aria-label="Revert to original"
+                  >
+                    <HistoryIcon />
+                  </button>
+                </Tooltip>
               )}
-              <div className="toolbar-group">
+              <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Download">
+                <button
+                  type="button"
+                  className="button"
+                  onClick={handleDownload}
+                  aria-label="Download"
+                >
+                  <DownloadIcon />
+                </button>
+              </Tooltip>
+              <Tooltip
+                delay={TOOLTIP_ENTER_DELAY}
+                title={assistantVisible ? "Hide Assistant" : "Show Assistant"}
+              >
+                <button
+                  type="button"
+                  className={`button ${assistantVisible ? "active" : ""}`}
+                  onClick={toggleAssistantVisible}
+                  aria-label={
+                    assistantVisible ? "Hide Assistant" : "Show Assistant"
+                  }
+                >
+                  {assistantVisible ? (
+                    <ChatBubbleIcon />
+                  ) : (
+                    <ChatBubbleOutlineIcon />
+                  )}
+                </button>
+              </Tooltip>
+              <Tooltip
+                delay={TOOLTIP_ENTER_DELAY}
+                title={focusMode ? "Exit focus mode" : "Focus mode (hide panels)"}
+              >
+                <button
+                  type="button"
+                  className={`button ${focusMode ? "active" : ""}`}
+                  onClick={() => setFocusMode((v) => !v)}
+                  aria-label={focusMode ? "Exit focus mode" : "Focus mode"}
+                >
+                  {focusMode ? <OpenInFullIcon /> : <CloseFullscreenIcon />}
+                </button>
+              </Tooltip>
+              <Tooltip
+                delay={TOOLTIP_ENTER_DELAY}
+                title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+              >
+                <button
+                  type="button"
+                  className="button"
+                  onClick={toggleFullscreen}
+                  aria-label={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                >
+                  {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+                </button>
+              </Tooltip>
+              <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Close Editor | Esc">
+                <button
+                  type="button"
+                  className="button button-close"
+                  onClick={onClose}
+                  aria-label="Close Editor"
+                >
+                  <CloseIcon />
+                </button>
+              </Tooltip>
+            </div>
+          </div>
+
+          {/* ---- toolbar ---- */}
+          {showToolbar && (
+            <div className="modal-toolbar">
+              <div className="toolbar-side">
                 {!readOnly && (
                   <Tooltip
                     delay={TOOLTIP_ENTER_DELAY}
@@ -1032,85 +1327,104 @@ const TextEditorModal = ({
                   >
                     <button
                       type="button"
-                      className="button"
+                      className="tool-btn icon-only"
                       onClick={handleToggleEditorMode}
-                      aria-label={isCodeEditor ? "Switch to Rich Text" : "Switch to Code Editor"}
+                      aria-label={
+                        isCodeEditor
+                          ? "Switch to Rich Text"
+                          : "Switch to Code Editor"
+                      }
                     >
                       {isCodeEditor ? <TextFieldsIcon /> : <CodeIcon />}
                     </button>
                   </Tooltip>
                 )}
+                <select
+                  className="lang-select"
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  aria-label="Language"
+                >
+                  {LANGUAGES.map((lang) => (
+                    <option key={lang} value={lang}>
+                      {lang}
+                    </option>
+                  ))}
+                </select>
+                <span className="toolbar-divider" />
+                <button
+                  type="button"
+                  className="tool-btn"
+                  onClick={handleFindClick}
+                >
+                  <SearchIcon />
+                  Find
+                </button>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    className="tool-btn"
+                    onClick={handleFormatClick}
+                  >
+                    <FormatAlignLeftIcon />
+                    Format
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className={`tool-btn ${wordWrapEnabled ? "active" : ""}`}
+                  onClick={handleToggleWordWrap}
+                >
+                  <WrapTextIcon />
+                  Wrap
+                </button>
+                <span className="toolbar-divider" />
+                <button
+                  type="button"
+                  className={`tool-btn ${showVariablesPanel ? "active" : ""}`}
+                  onClick={toggleVariables}
+                >
+                  <DataObjectIcon />
+                  Variables
+                </button>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    className="tool-btn"
+                    onClick={handleInsertVarClick}
+                  >
+                    <AddIcon />
+                    Insert var
+                  </button>
+                )}
               </div>
-              <div className="toolbar-group">
-                <Tooltip
-                  delay={TOOLTIP_ENTER_DELAY}
-                  title={assistantVisible ? "Hide Assistant" : "Show Assistant"}
-                >
-                  <button
-                    type="button"
-                    className="button"
-                    onClick={toggleAssistantVisible}
-                    aria-label={assistantVisible ? "Hide Assistant" : "Show Assistant"}
-                  >
-                    {assistantVisible ? (
-                      <ChatBubbleIcon />
-                    ) : (
-                      <ChatBubbleOutlineIcon />
-                    )}
-                  </button>
-                </Tooltip>
-                <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Download">
-                  <button
-                    type="button"
-                    className="button"
-                    onClick={handleDownload}
-                    aria-label="Download"
-                  >
-                    <DownloadIcon />
-                  </button>
-                </Tooltip>
-                <Tooltip
-                  delay={TOOLTIP_ENTER_DELAY}
-                  title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-                >
-                  <button
-                    type="button"
-                    className="button"
-                    onClick={toggleFullscreen}
-                    aria-label={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-                  >
-                    {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
-                  </button>
-                </Tooltip>
-                <Tooltip
-                  delay={TOOLTIP_ENTER_DELAY}
-                  title="Close Editor | Esc"
-                >
-                  <button
-                    type="button"
-                    className="button button-close"
-                    onClick={onClose}
-                    aria-label="Close Editor"
-                  >
-                    <CloseIcon />
-                  </button>
-                </Tooltip>
+              <div className="toolbar-side">
+                <div className="font-controls">
+                  <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Decrease font size">
+                    <button
+                      type="button"
+                      className="button-ghost"
+                      onClick={() => changeFontSize(-1)}
+                      aria-label="Decrease font size"
+                    >
+                      <TextDecreaseIcon />
+                    </button>
+                  </Tooltip>
+                  <span className="font-size-value">{fontSize}</span>
+                  <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Increase font size">
+                    <button
+                      type="button"
+                      className="button-ghost"
+                      onClick={() => changeFontSize(1)}
+                      aria-label="Increase font size"
+                    >
+                      <TextIncreaseIcon />
+                    </button>
+                  </Tooltip>
+                </div>
+                <CopyButton value={currentText} buttonSize="small" />
               </div>
             </div>
-          </div>
-          {showToolbar && !isCodeEditor && (
-            <EditorToolbar
-              onUndo={handleUndo}
-              onRedo={handleRedo}
-              onToggleWordWrap={handleToggleWordWrap}
-              onToggleFind={handleToggleFind}
-              onFormatCodeBlock={handleFormatCodeBlock}
-              canUndo={canUndo}
-              canRedo={canRedo}
-              wordWrapEnabled={wordWrapEnabled}
-              isCodeBlock={isCodeBlock}
-              readOnly={readOnly}
-            />
           )}
 
           {showFindReplace && !isCodeEditor && findReplaceVisible && (
@@ -1134,10 +1448,6 @@ const TextEditorModal = ({
             ) : (
               <EditorInsertionProvider value={insertIntoEditor}>
                 <div className="editor-pane">
-                  <CopyButton
-                    value={value}
-                    className="copy-to-clipboard-button"
-                  />
                   {isCodeEditor ? (
                     <div style={{ height: "100%" }}>
                       {MonacoEditor ? (
@@ -1152,9 +1462,10 @@ const TextEditorModal = ({
                           theme={"vs-dark"}
                           width="100%"
                           height="100%"
-                          onMount={monacoOnMount}
+                          onMount={handleMonacoMount}
                           options={{
                             readOnly,
+                            fontSize,
                             wordWrap: wordWrapEnabled ? "on" : "off",
                             minimap: { enabled: false },
                             automaticLayout: true,
@@ -1221,7 +1532,6 @@ const TextEditorModal = ({
                           onIsCodeBlockChange={setIsCodeBlock}
                           initialContent={value}
                           onInsertTextCommand={(fn) => {
-                            // Save the inserter for Lexical
                             insertTextFnRef.current = fn;
                           }}
                           onReplaceSelectionCommand={(fn) => {
@@ -1242,17 +1552,48 @@ const TextEditorModal = ({
                     </LexicalComposer>
                   )}
                 </div>
-                <SnippetSidebar
-                  monacoRef={monacoRef}
-                  visible={isCodeEditor && snippetSidebarVisible}
-                />
-                {assistantVisible && (
+                {showAssistant && (
                   <div className="assistant-pane">
-                    <NewChatButton onNewThread={() => void createNewThread()} />
+                    <div className="assistant-header">
+                      <div className="assistant-id">
+                        <span className="assistant-avatar">
+                          <AutoAwesomeIcon />
+                        </span>
+                        <div className="assistant-meta">
+                          <span className="assistant-name">Assistant</span>
+                          <span className="assistant-sub">
+                            writes &amp; edits this prompt
+                          </span>
+                        </div>
+                      </div>
+                      <div className="assistant-head-actions">
+                        <Tooltip delay={TOOLTIP_ENTER_DELAY} title="New chat">
+                          <button
+                            type="button"
+                            className="button-ghost"
+                            onClick={() => void createNewThread()}
+                            aria-label="New chat"
+                          >
+                            <AddIcon />
+                          </button>
+                        </Tooltip>
+                        <Tooltip
+                          delay={TOOLTIP_ENTER_DELAY}
+                          title="Hide Assistant"
+                        >
+                          <button
+                            type="button"
+                            className="button-ghost"
+                            onClick={toggleAssistantVisible}
+                            aria-label="Hide Assistant"
+                          >
+                            <ChevronRightIcon />
+                          </button>
+                        </Tooltip>
+                      </div>
+                    </div>
                     <ChatView
-                      status={
-                        status === "stopping" ? "loading" : status
-                      }
+                      status={status === "stopping" ? "loading" : status}
                       progress={progress.current}
                       total={progress.total}
                       messages={getCurrentMessagesSync()}
@@ -1272,6 +1613,13 @@ const TextEditorModal = ({
                       onStop={stopGeneration}
                       onNewChat={() => void createNewThread()}
                       onInsertCode={(text) => insertIntoEditor(text)}
+                      composerPlaceholder="Ask the assistant to write or edit…"
+                      noMessagesPlaceholder={
+                        <AssistantQuickStarts
+                          propertyName={propertyName}
+                          onQuickStart={handleQuickStart}
+                        />
+                      }
                     />
                   </div>
                 )}
@@ -1279,8 +1627,25 @@ const TextEditorModal = ({
             )}
           </div>
 
+          {showVariablesPanel && (
+            <EditorVariablesPanel
+              variables={parsedVariables}
+              values={variableValues}
+              onSetValue={handleSetVariableValue}
+              onInsert={insertVariableToken}
+              addSignal={addVarSignal}
+              readOnly={readOnly}
+            />
+          )}
+
           {showStatusBar && (
-            <EditorStatusBar text={currentText} readOnly={readOnly} />
+            <EditorStatusBar
+              text={currentText}
+              readOnly={readOnly}
+              varCount={parsedVariables.length}
+              languageLabel={languageLabel}
+              cursor={isCodeEditor ? cursor : null}
+            />
           )}
           <div className="resize-handle" onMouseDown={handleResizeMouseDown}>
             <span className="resize-handle-thumb"></span>

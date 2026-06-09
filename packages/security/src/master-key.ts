@@ -23,12 +23,16 @@ import {
 import { generateMasterKey } from "./crypto.js";
 import { createLogger } from "@nodetool-ai/config";
 
+// Stryker disable next-line StringLiteral: logger name is diagnostic, not behavior
 const log = createLogger("nodetool.security.master-key");
 
 const KEYRING_SERVICE = "nodetool";
 const KEYRING_ACCOUNT = "secrets_master_key";
 
 let cachedMasterKey: string | null = null;
+
+/** In-flight resolution promise, used to de-duplicate concurrent first-run inits. */
+let initInFlight: Promise<string> | null = null;
 
 /** Minimal keytar interface for the methods we use. */
 interface KeytarModule {
@@ -62,6 +66,7 @@ function keychainAccessError(message: string): KeychainAccessError {
 /** Lazy-load keytar. Keychain failures are fatal: no generated fallback key. */
 let _keytarResolved: KeytarModule | null = null;
 async function loadKeytar(): Promise<KeytarModule> {
+  // Stryker disable next-line ConditionalExpression,BlockStatement: cache fast-path — re-importing yields the same module, so this mutant is behaviorally equivalent
   if (_keytarResolved) {
     return _keytarResolved;
   }
@@ -71,6 +76,7 @@ async function loadKeytar(): Promise<KeytarModule> {
     return _keytarResolved;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
+    // Stryker disable all: diagnostic log, not behavior
     log.error(
       "keytar native module failed to load. For headless deployments " +
         "(Docker, CI, Linux servers without libsecret) set the SECRETS_MASTER_KEY " +
@@ -78,6 +84,7 @@ async function loadKeytar(): Promise<KeytarModule> {
         "AWS_SECRETS_MASTER_KEY_NAME to source the key from AWS Secrets Manager.",
       { error: message }
     );
+    // Stryker restore all
     throw keychainAccessError(`Unable to load system keychain backend: ${message}`);
   }
 }
@@ -105,31 +112,27 @@ export function resetKeytarLoader(): void {
  * Retrieve master key from AWS Secrets Manager.
  *
  * Only attempted if AWS_SECRETS_MASTER_KEY_NAME environment variable is set.
+ *
+ * Errors are NOT swallowed here: when AWS is the configured key source, a
+ * transient failure must surface to the caller rather than silently falling
+ * back to a generated key (which would orphan every existing secret). Returns
+ * null only when the secret exists but carries no value.
  */
 async function getFromAwsSecrets(secretName: string): Promise<string | null> {
-  try {
-    const region = process.env["AWS_REGION"] ?? "us-east-1";
-    const client = new SecretsManagerClient({ region });
+  const region = process.env["AWS_REGION"] ?? "us-east-1";
+  const client = new SecretsManagerClient({ region });
 
-    const response = await client.send(
-      new GetSecretValueCommand({ SecretId: secretName })
-    );
+  const response = await client.send(
+    new GetSecretValueCommand({ SecretId: secretName })
+  );
 
-    if (response.SecretString) {
-      return response.SecretString;
-    }
-    if (response.SecretBinary) {
-      return Buffer.from(response.SecretBinary).toString("utf-8");
-    }
-    return null;
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    log.warn("Master key source failed, trying next", {
-      source: "aws",
-      error: message
-    });
-    return null;
+  if (response.SecretString) {
+    return response.SecretString;
   }
+  if (response.SecretBinary) {
+    return Buffer.from(response.SecretBinary).toString("utf-8");
+  }
+  return null;
 }
 
 /**
@@ -157,6 +160,7 @@ export function getMasterKey(): string {
 
   const envKey = process.env["SECRETS_MASTER_KEY"];
   if (envKey) {
+    // Stryker disable next-line all: diagnostic log, not behavior
     log.debug("Master key source", { source: "env" });
     cachedMasterKey = envKey;
     return envKey;
@@ -191,34 +195,74 @@ export async function initMasterKey(): Promise<string> {
     return cachedMasterKey;
   }
 
+  // Single-flight: concurrent first-run callers share one resolution. Without
+  // this, each would independently generate a *different* key and race to
+  // persist it, leaving the cache and keychain inconsistent and orphaning any
+  // secrets encrypted under the losing key.
+  if (initInFlight !== null) {
+    return initInFlight;
+  }
+
+  initInFlight = resolveMasterKey();
+  try {
+    return await initInFlight;
+  } finally {
+    initInFlight = null;
+  }
+}
+
+/** Resolve the master key from all sources. See {@link initMasterKey}. */
+async function resolveMasterKey(): Promise<string> {
   // 1. Check environment variable
   const envKey = process.env["SECRETS_MASTER_KEY"];
   if (envKey) {
+    // Stryker disable next-line all: diagnostic log, not behavior
     log.debug("Master key source", { source: "env" });
     cachedMasterKey = envKey;
     return envKey;
   }
 
-  // 2. Check AWS Secrets Manager if configured
+  // 2. AWS Secrets Manager, if configured. When AWS is the declared source,
+  // any failure (or an empty secret) is fatal: falling through to a freshly
+  // generated keychain key would silently orphan every existing secret.
   const awsSecretName = process.env["AWS_SECRETS_MASTER_KEY_NAME"];
   if (awsSecretName) {
-    const awsKey = await getFromAwsSecrets(awsSecretName);
-    if (awsKey) {
-      log.debug("Master key source", { source: "aws" });
-      cachedMasterKey = awsKey;
-      return awsKey;
+    let awsKey: string | null;
+    try {
+      awsKey = await getFromAwsSecrets(awsSecretName);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(
+        `Failed to load master key from AWS Secrets Manager (secret ` +
+          `"${awsSecretName}"): ${message}. AWS is the configured master key ` +
+          `source; refusing to fall back to a generated key that would make ` +
+          `existing secrets undecryptable.`
+      );
     }
+    if (!awsKey) {
+      throw new Error(
+        `AWS Secrets Manager returned no value for master key secret ` +
+          `"${awsSecretName}". AWS is the configured master key source; ` +
+          `refusing to fall back to a generated key that would make existing ` +
+          `secrets undecryptable.`
+      );
+    }
+    // Stryker disable next-line all: diagnostic log, not behavior
+    log.debug("Master key source", { source: "aws" });
+    cachedMasterKey = awsKey;
+    return awsKey;
   }
 
   // 3. Try system keychain via keytar
-  const keytar = _keytar ?? await loadKeytar();
+  const keytar = _keytar ?? (await loadKeytar());
   try {
     const storedKey = await keytar.getPassword(
       KEYRING_SERVICE,
       KEYRING_ACCOUNT
     );
     if (storedKey) {
-      log.debug("Master key source", { source: "keychain" });
+      // Stryker disable next-line all: diagnostic log, not behavior
+    log.debug("Master key source", { source: "keychain" });
       cachedMasterKey = storedKey;
       return storedKey;
     }
@@ -233,6 +277,7 @@ export async function initMasterKey(): Promise<string> {
   const newKey = generateMasterKey();
   try {
     await keytar.setPassword(KEYRING_SERVICE, KEYRING_ACCOUNT, newKey);
+    // Stryker disable next-line all: diagnostic log, not behavior
     log.info("Master key generated and stored");
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
