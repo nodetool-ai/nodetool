@@ -11,10 +11,13 @@ import {
   OutputUpdate,
   EdgeUpdate,
   LogUpdate,
+  LLMCallUpdate,
   StepResult,
   Message,
   Chunk
 } from "./ApiTypes";
+import useTraceStore, { traceEventId } from "./TraceStore";
+import type { TraceEvent, TraceEventType } from "./TraceStore";
 import useWorkflowRunsStore, { RunState } from "./WorkflowRunsStore";
 import useResultsStore from "./ResultsStore";
 import useStatusStore from "./StatusStore";
@@ -64,6 +67,38 @@ type WorkflowSubscription = {
 };
 
 const workflowSubscriptions = new Map<string, WorkflowSubscription>();
+
+// The job_id whose run is currently being recorded into the TraceStore. Used to
+// call startRun() exactly once per run (startRun clears prior events), so the
+// trace panel shows a fresh timeline per execution rather than accumulating.
+let traceRunJobId: string | null = null;
+
+/**
+ * Append one event to the global TraceStore (the LLM/agent debug timeline shown
+ * in the bottom "Debug" → Trace panel). No-ops unless a run is being recorded.
+ * relativeMs is measured from the run's start so events line up on a shared axis.
+ */
+const appendTrace = (
+  type: TraceEventType,
+  summary: string,
+  detail: unknown,
+  meta?: Pick<TraceEvent, "nodeId" | "nodeName" | "nodeType">
+): void => {
+  const store = useTraceStore.getState();
+  if (!store.isRecording || !store.runStartTime) {
+    return;
+  }
+  const now = Date.now();
+  store.append({
+    id: traceEventId(),
+    timestamp: new Date(now).toISOString(),
+    relativeMs: now - new Date(store.runStartTime).getTime(),
+    type,
+    summary,
+    detail,
+    ...meta
+  });
+};
 
 export const mergeNodeUpdateProperties = ({
   updateProperties,
@@ -227,6 +262,7 @@ export type MsgpackData =
   | OutputUpdate
   | StepResult
   | EdgeUpdate
+  | LLMCallUpdate
   | Notification;
 
 export const handleUpdate = (
@@ -309,6 +345,9 @@ export const handleUpdate = (
     if (data.node_id && messageJobId) {
       setToolCall(workflow.id, messageJobId, data.node_id, data);
     }
+    appendTrace("tool_call", data.message || `Tool: ${data.name}`, data, {
+      nodeId: data.node_id ?? undefined
+    });
   }
 
   if (data.type === "tool_result_update") {
@@ -318,6 +357,12 @@ export const handleUpdate = (
     if (data.node_id && messageJobId) {
       appendToolResult(workflow.id, messageJobId, data.node_id, data.result);
     }
+    appendTrace(
+      "tool_result",
+      `${data.name ?? "Tool"} result${data.is_error ? " (error)" : ""}`,
+      data,
+      { nodeId: data.node_id ?? undefined }
+    );
   }
 
   if (data.type === "task_update") {
@@ -326,6 +371,21 @@ export const handleUpdate = (
     } else if (!data.node_id) {
       console.error("TaskUpdate has no node_id");
     }
+  }
+
+  if (data.type === "llm_call") {
+    const tokensIn = data.tokens_input ?? 0;
+    const tokensOut = data.tokens_output ?? 0;
+    const duration =
+      data.duration_ms != null ? ` (${data.duration_ms}ms)` : "";
+    appendTrace(
+      "llm_call",
+      `${data.provider}/${data.model}: ${tokensIn}→${tokensOut} tok${duration}${
+        data.error ? " — error" : ""
+      }`,
+      data,
+      { nodeId: data.node_id, nodeName: data.node_name ?? undefined }
+    );
   }
 
   if (data.type === "output_update") {
@@ -349,6 +409,13 @@ export const handleUpdate = (
       severity: "info",
       timestamp: Date.now()
     });
+
+    appendTrace(
+      "output",
+      `${data.node_name || data.node_id} → ${data.output_name}`,
+      data,
+      { nodeId: data.node_id, nodeName: data.node_name }
+    );
   }
 
   if (data.type === "chunk") {
@@ -396,6 +463,13 @@ export const handleUpdate = (
       // A new run starts: clear any prior pre-flight validation highlights
       // so stale red outlines don't linger after the user fixes them.
       usePropertyValidationStore.getState().clearWorkflow(workflow.id);
+      // Begin a fresh LLM/agent trace timeline for the runner's own run. Guarded
+      // by job_id so startRun (which clears prior events) fires once per run, not
+      // on every running/queued heartbeat.
+      if (isRunnerJob && job.job_id !== traceRunJobId) {
+        traceRunJobId = job.job_id ?? null;
+        useTraceStore.getState().startRun(new Date().toISOString());
+      }
     } else if (job.status === "suspended") {
       newState = "suspended";
     } else if (job.status === "paused") {
@@ -652,6 +726,16 @@ export const handleUpdate = (
         severity: "error",
         timestamp: Date.now()
       });
+      appendTrace(
+        "node_error",
+        `${update.node_name || update.node_id} error`,
+        update,
+        {
+          nodeId: update.node_id,
+          nodeName: update.node_name,
+          nodeType: update.node_type
+        }
+      );
     } else {
       runnerStore.setState({
         statusMessage: `${update.node_name} ${update.status}`
@@ -674,6 +758,16 @@ export const handleUpdate = (
           previousStatus !== "booting"
         ) {
           startExecution(workflow.id, jobId, update.node_id);
+          appendTrace(
+            "node_start",
+            `${update.node_name || update.node_id}`,
+            update,
+            {
+              nodeId: update.node_id,
+              nodeName: update.node_name,
+              nodeType: update.node_type
+            }
+          );
         } else if (isFinishing) {
           endExecution(workflow.id, jobId, update.node_id);
         }
@@ -713,6 +807,16 @@ export const handleUpdate = (
             outputs,
             cost: update.provider_cost ?? undefined
           });
+          appendTrace(
+            "node_complete",
+            `${update.node_name || update.node_id}`,
+            update,
+            {
+              nodeId: update.node_id,
+              nodeName: update.node_name,
+              nodeType: update.node_type
+            }
+          );
         }
       }
     }
