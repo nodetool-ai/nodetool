@@ -143,6 +143,8 @@ const ModelListIndex: React.FC = () => {
   const setFilterStatus = useModelManagerStore((state) => state.setFilterStatus);
   const scope = useModelManagerStore((state) => state.scope);
   const setScope = useModelManagerStore((state) => state.setScope);
+  const source = useModelManagerStore((state) => state.source);
+  const setSource = useModelManagerStore((state) => state.setSource);
   const { activeWorker } = useWorkers();
   const workerName = activeWorker?.profile_name ?? activeWorker?.id ?? null;
   const [visibleRange, setVisibleRange] = useState({ start: 0, stop: -1 });
@@ -179,17 +181,21 @@ const ModelListIndex: React.FC = () => {
       const path = model.path ?? null;
       const allowPatterns = path ? null : model.allow_patterns ?? null;
       const ignorePatterns = path ? null : model.ignore_patterns ?? null;
+      // Route to the attached worker whenever one is attached — that's where
+      // the model is needed (execution runs there). The Local/Worker view
+      // toggle only changes what you SEE, not where downloads land.
+      const downloadScope = activeWorker ? "worker" : "local";
       startDownload(
         repoId,
         model.type ?? "",
         path ?? undefined,
         allowPatterns,
         ignorePatterns,
-        scope
+        downloadScope
       );
       openDialog();
     },
-    [startDownload, openDialog, scope]
+    [startDownload, openDialog, activeWorker]
   );
 
   const handleScopeChange = useCallback(
@@ -211,6 +217,22 @@ const ModelListIndex: React.FC = () => {
       setSelectedModelType,
       setFilterStatus
     ]
+  );
+
+  const handleSourceChange = useCallback(
+    (nextSource: typeof source) => {
+      if (nextSource === source) {
+        return;
+      }
+      // The installed and recommended catalogs are different datasets; reset the
+      // view filters so the new one starts clean instead of inheriting stale
+      // type/status selections.
+      setSource(nextSource);
+      setModelSearchTerm("");
+      setSelectedModelType("All");
+      setFilterStatus("all");
+    },
+    [source, setSource, setModelSearchTerm, setSelectedModelType, setFilterStatus]
   );
 
   // Flatten the model list with headers for "All" view
@@ -408,6 +430,8 @@ const ModelListIndex: React.FC = () => {
           filteredCount={filteredModels.length}
           scope={scope}
           onScopeChange={handleScopeChange}
+          source={source}
+          onSourceChange={handleSourceChange}
           workerName={workerName}
           workerSupported={workerName != null}
         />
@@ -586,6 +610,28 @@ const ModelListIndex: React.FC = () => {
                     Try a different search term or adjust your filters
                   </Text>
                 </>
+              ) : source === "hub" ? (
+                <>
+                  <DownloadIcon sx={{ fontSize: 48, opacity: 0.5 }} />
+                  <Text size="normal" weight={600} color="secondary">
+                    Search the HuggingFace Hub
+                  </Text>
+                  <Text size="small" color="secondary">
+                    Type a name above, or pick a category, to browse and download
+                    any public model from huggingface.co.
+                  </Text>
+                </>
+              ) : source === "recommended" ? (
+                <>
+                  <DownloadIcon sx={{ fontSize: 48, opacity: 0.5 }} />
+                  <Text size="normal" weight={600} color="secondary">
+                    No recommended models
+                  </Text>
+                  <Text size="small" color="secondary">
+                    Recommended models are gathered from the nodes you have
+                    installed. Add nodes that run models to see suggestions here.
+                  </Text>
+                </>
               ) : scope === "worker" ? (
                 <>
                   <DownloadIcon sx={{ fontSize: 48, opacity: 0.5 }} />
@@ -593,7 +639,8 @@ const ModelListIndex: React.FC = () => {
                     No models cached on this worker yet
                   </Text>
                   <Text size="small" color="secondary">
-                    Download one to its volume.
+                    While this worker is attached, any model you download lands
+                    on its volume.
                   </Text>
                 </>
               ) : filterStatus === "downloaded" ? (

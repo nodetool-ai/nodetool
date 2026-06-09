@@ -6,6 +6,7 @@ import ModelPackCard from "../../hugging_face/ModelPackCard";
 import type { ModelPack, UnifiedModel } from "../../../stores/ApiTypes";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
+import { useWorkers } from "../../../hooks/useWorkers";
 import {
   buildHfCacheRequest,
   canCheckHfCache,
@@ -29,19 +30,24 @@ const RecommendedModelsView: React.FC<RecommendedModelsViewProps> = ({
   const cachePending = useHfCacheStatusStore((s) => s.pending);
   const cacheVersion = useHfCacheStatusStore((s) => s.version);
   const ensureStatuses = useHfCacheStatusStore((s) => s.ensureStatuses);
+  const { activeWorker } = useWorkers();
 
   const handleStartDownload = useCallback(
     (model: UnifiedModel) => {
       const repoId = model.repo_id || model.id;
+      // When a worker is attached, the node will run on it, so its model must
+      // live on the worker — route the download there.
+      const downloadScope = activeWorker ? "worker" : "local";
       startDownload(
         repoId,
         model.type ?? "",
         model.path ?? undefined,
         model.path ? undefined : (model.allow_patterns ?? undefined),
-        model.path ? undefined : (model.ignore_patterns ?? undefined)
+        model.path ? undefined : (model.ignore_patterns ?? undefined),
+        downloadScope
       );
     },
-    [startDownload]
+    [startDownload, activeWorker]
   );
 
   const handleDownloadAllFromPack = useCallback(

@@ -3,6 +3,7 @@
  */
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import mockTheme from "../../../../__mocks__/themeMock";
@@ -80,6 +81,7 @@ beforeEach(() => {
   mockUseWorkers.mockReset().mockReturnValue({ activeWorker: null });
   useModelManagerStore.setState({
     scope: "local",
+    source: "installed",
     modelSearchTerm: "",
     selectedModelType: "All",
     filterStatus: "all"
@@ -114,7 +116,46 @@ describe("ModelListIndex scope toggle", () => {
       screen.getByText(/No models cached on this worker yet/i)
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Download one to its volume\./i)
+      screen.getByText(/any model you download lands on its volume/i)
+    ).toBeInTheDocument();
+  });
+
+  it("always shows the Installed/Recommended source toggle", () => {
+    mockUseWorkers.mockReturnValue({ activeWorker: null });
+    renderIndex();
+    expect(
+      screen.getByRole("button", { name: /installed models/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /recommended models/i })
+    ).toBeInTheDocument();
+  });
+
+  it("switching to Recommended sets the source and resets filters", async () => {
+    useModelManagerStore.setState({
+      selectedModelType: "hf.text_generation",
+      filterStatus: "downloaded"
+    });
+    renderIndex();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /recommended models/i })
+    );
+
+    const state = useModelManagerStore.getState();
+    expect(state.source).toBe("recommended");
+    expect(state.selectedModelType).toBe("All");
+    expect(state.filterStatus).toBe("all");
+  });
+
+  it("renders the recommended empty-state when source=recommended and the catalog is empty", () => {
+    useModelManagerStore.setState({ source: "recommended" });
+    renderIndex();
+    expect(
+      screen.getByText(/No recommended models/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/gathered from the nodes you have installed/i)
     ).toBeInTheDocument();
   });
 

@@ -177,6 +177,15 @@ const hfSearchInput = z.object({
   type: z.string().optional()
 });
 
+const hfHubSearchInput = z.object({
+  /** Free-text search passed to the Hub's `search` param. */
+  query: z.string().optional(),
+  /** HF pipeline tag filter, e.g. "audio-text-to-text". */
+  pipeline_tag: z.string().optional(),
+  /** Max results (Hub caps high; we keep it modest for the UI). */
+  limit: z.number().int().min(1).max(100).optional()
+});
+
 const hfByTypeInput = z.object({
   model_type: z.string().min(1)
 });
@@ -581,6 +590,84 @@ async function getRecommendedModels(
     }
   }
   return filtered;
+}
+
+interface HfHubModel {
+  id?: string;
+  modelId?: string;
+  pipeline_tag?: string | null;
+  tags?: string[];
+  downloads?: number;
+  likes?: number;
+  trendingScore?: number;
+  gated?: boolean | string;
+}
+
+/** Map a HF Hub API model record onto our UnifiedModel shape. */
+function hubModelToUnified(
+  m: HfHubModel,
+  fallbackTag?: string
+): UnifiedModel | null {
+  const repoId = m.id ?? m.modelId;
+  if (!repoId) return null;
+  const tag = m.pipeline_tag ?? fallbackTag ?? undefined;
+  // Hub pipeline tags are dash-cased ("audio-text-to-text"); our model types
+  // are the same task underscore-cased and prefixed "hf.".
+  const type = tag ? `hf.${tag.replace(/-/g, "_")}` : "hf.model";
+  return {
+    id: repoId,
+    type,
+    name: repoId,
+    repo_id: repoId,
+    provider: "huggingface",
+    downloaded: false,
+    pipeline_tag: m.pipeline_tag ?? null,
+    tags: m.tags ?? null,
+    downloads: m.downloads ?? null,
+    likes: m.likes ?? null,
+    trending_score: m.trendingScore ?? null
+  };
+}
+
+/**
+ * Search the live HuggingFace Hub (https://huggingface.co/api/models) by
+ * free-text and/or pipeline tag. Returns downloadable repos sorted by
+ * popularity. Network/HTTP failures degrade to an empty list.
+ */
+async function searchHuggingFaceHub(
+  query: string | undefined,
+  pipelineTag: string | undefined,
+  limit: number
+): Promise<UnifiedModel[]> {
+  if (!query && !pipelineTag) return [];
+  const params = new URLSearchParams();
+  if (query) params.set("search", query);
+  if (pipelineTag) params.set("pipeline_tag", pipelineTag);
+  params.set("limit", String(limit));
+  params.set("sort", "downloads");
+  params.set("direction", "-1");
+
+  const headers: Record<string, string> = { Accept: "application/json" };
+  const token = process.env.HF_TOKEN || process.env.HUGGING_FACE_HUB_TOKEN;
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  try {
+    const res = await fetch(
+      `https://huggingface.co/api/models?${params.toString()}`,
+      { headers }
+    );
+    if (!res.ok) {
+      log.warn("HF Hub search failed: %d %s", res.status, res.statusText);
+      return [];
+    }
+    const data = (await res.json()) as HfHubModel[];
+    return data
+      .map((m) => hubModelToUnified(m, pipelineTag))
+      .filter((m): m is UnifiedModel => m !== null);
+  } catch (err) {
+    log.warn("HF Hub search error: %s", (err as Error).message);
+    return [];
+  }
 }
 
 function selectRecommended(
@@ -1059,6 +1146,22 @@ export const modelsRouter = router({
       } catch {
         return [];
       }
+    }),
+
+  /**
+   * Search the live HuggingFace Hub by free-text and/or pipeline tag.
+   * Unlike `huggingfaceSearch` (which only scans the local cache), this hits
+   * the online Hub so the Model Manager can browse & download any public repo.
+   */
+  huggingfaceHubSearch: protectedProcedure
+    .input(hfHubSearchInput)
+    .output(modelsListOutput)
+    .query(async ({ input }) => {
+      return await searchHuggingFaceHub(
+        input.query,
+        input.pipeline_tag,
+        input.limit ?? 50
+      );
     }),
 
   /**

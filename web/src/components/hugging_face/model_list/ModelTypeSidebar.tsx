@@ -32,6 +32,19 @@ const ModelTypeSidebar: React.FC = () => {
     return () => onModelTypeChange(type);
   }, [onModelTypeChange]);
 
+  // Plain-text label for the hover title (prettifyModelType returns JSX with a
+  // leading icon, which can't be used as a title attribute).
+  const plainLabel = useCallback((type: string) => {
+    if (type === "All") {
+      return "All";
+    }
+    return type
+      .replace(/^(hf|tjs)\./, "")
+      .split(/[._]/)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  }, []);
+
   const getHuggingFaceLink = useCallback((type: string) => {
     if (!type.startsWith("hf.")) {
       return undefined;
@@ -73,8 +86,8 @@ const ModelTypeSidebar: React.FC = () => {
             <ListItem
               disablePadding
               key={type}
-              sx={{ 
-                mb: 0.5,
+              sx={{
+                mb: 0.25,
                 borderRadius: "var(--rounded-lg)",
                 overflow: "hidden"
               }}
@@ -105,7 +118,9 @@ const ModelTypeSidebar: React.FC = () => {
               onClick={createModelTypeChangeHandler(type)}
               sx={{
                   borderRadius: "var(--rounded-lg)",
-                  padding: "8px 12px",
+                  padding: "5px 10px",
+                  minWidth: 0,
+                  gap: 1,
                   transition: "background-color 0.15s ease, color 0.15s ease",
                   "&.Mui-selected": {
                     backgroundColor:
@@ -121,24 +136,36 @@ const ModelTypeSidebar: React.FC = () => {
                   }
                 }}
               >
-                <IconForType
-                  iconName={type === "All" ? "model" : type.replace(/^hf\./, "") || "model"}
-                  containerStyle={{ marginRight: "0.75em", display: "flex" }}
-                  svgProps={{
-                    style: {
-                      width: "20px",
-                      height: "20px",
-                      opacity: isSelected ? 1 : 0.6,
-                      color: isSelected
-                        ? theme.vars.palette.primary.main
-                        : theme.vars.palette.text.secondary
-                    }
-                  }}
-                  showTooltip={false}
-                />
+                {/* "All" has no inline icon from prettifyModelType, so give it
+                    one here. Every other category already renders a meaningful
+                    leading icon (HF logo / Ollama / model) via the label, so a
+                    second data-type icon would just be redundant clutter. */}
+                {type === "All" && (
+                  <IconForType
+                    iconName="model"
+                    containerStyle={{ marginRight: "0.5em", display: "flex" }}
+                    svgProps={{
+                      style: {
+                        width: "20px",
+                        height: "20px",
+                        opacity: isSelected ? 1 : 0.6,
+                        color: isSelected
+                          ? theme.vars.palette.primary.main
+                          : theme.vars.palette.text.secondary
+                      }
+                    }}
+                    showTooltip={false}
+                  />
+                )}
                 <ListItemText
                   primary={prettifyModelType(type)}
+                  title={plainLabel(type)}
+                  sx={{ minWidth: 0, my: 0 }}
                   primaryTypographyProps={{
+                    noWrap: true,
+                    sx: {
+                      "& img": { verticalAlign: "middle" }
+                    },
                     fontSize: "var(--fontSizeNormal)",
                     fontWeight: isSelected ? 600 : 400,
                     color: isSelected

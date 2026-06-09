@@ -42,8 +42,7 @@ const ScopeToggleInternal: React.FC<ScopeToggleProps> = ({
     <ToggleGroup
       value={scope}
       exclusive
-      size="small"
-      compact
+      segmented
       onChange={handleChange}
       aria-label="model scope"
     >
