@@ -51,7 +51,13 @@ const TARGET_OPTIONS = [
 // `gpuTypeId` ("NVIDIA A40"), Vast wants its short `gpu_name` ("A40"). The
 // dropdowns map a friendly "name · VRAM" label to the exact id each API needs,
 // so the user never has to know the raw string. Ordered by VRAM.
+// RunPod can also provision a CPU-only pod (no GPU). An empty id means "no
+// GPU" — the provider maps that to `computeType: "CPU"`. Vast's empty id, by
+// contrast, means "any GPU", so this option is RunPod-only.
+const CPU_MACHINE = "";
+
 const RUNPOD_GPU_OPTIONS = [
+  { value: CPU_MACHINE, label: "CPU only (no GPU)" },
   { value: "NVIDIA RTX A5000", label: "RTX A5000 · 24 GB" },
   { value: "NVIDIA GeForce RTX 4090", label: "RTX 4090 · 24 GB" },
   { value: "NVIDIA L4", label: "L4 · 24 GB" },
@@ -78,12 +84,23 @@ const VAST_GPU_OPTIONS = [
   { value: CUSTOM_GPU, label: "Other (enter GPU id)…" }
 ] as const;
 
-// Default GPU per target: a solid mid-range card for RunPod (required), and
-// "Any cheapest" for Vast.
+// Default GPU per target: a solid mid-range card for RunPod, and "Any cheapest"
+// for Vast.
 const DEFAULT_GPU: Record<WorkerTarget, string> = {
   runpod: "NVIDIA A40",
   vast: ""
 };
+
+// vCPU choices for a CPU-only RunPod pod. The provider passes this as the pod's
+// vCPU count; RunPod selects a matching CPU flavor.
+const VCPU_OPTIONS = [
+  { value: "2", label: "2 vCPU" },
+  { value: "4", label: "4 vCPU" },
+  { value: "8", label: "8 vCPU" },
+  { value: "16", label: "16 vCPU" },
+  { value: "32", label: "32 vCPU" }
+] as const;
+const DEFAULT_VCPU = "4";
 
 const TOKEN_POLICY_OPTIONS = [
   { value: "generate", label: "Generate (recommended)" },
@@ -125,6 +142,7 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
   // `customGpu` holds the free-text id when CUSTOM_GPU is picked.
   const [gpu, setGpu] = useState(DEFAULT_GPU.runpod);
   const [customGpu, setCustomGpu] = useState("");
+  const [vcpu, setVcpu] = useState(DEFAULT_VCPU);
   const [disk, setDisk] = useState(DEFAULT_DISK_GB);
   const [tokenPolicy, setTokenPolicy] = useState<TokenPolicy>("generate");
   const [idleTimeout, setIdleTimeout] = useState(DEFAULT_IDLE_TIMEOUT);
@@ -142,8 +160,12 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
   const gpuOptions = target === "runpod" ? RUNPOD_GPU_OPTIONS : VAST_GPU_OPTIONS;
   // The provider-native GPU id we'll actually submit ("" means "any/none").
   const resolvedGpu = gpu === CUSTOM_GPU ? customGpu.trim() : gpu;
-  // RunPod must provision a specific GPU pod; Vast can take "Any".
-  const gpuOk = target === "vast" || resolvedGpu.length > 0;
+  // RunPod CPU-only pod: the curated "CPU only" entry (empty id) on RunPod.
+  // (Vast's empty id means "any GPU", so it is not a CPU machine.)
+  const isCpuMachine = target === "runpod" && gpu === CPU_MACHINE;
+  // Valid unless the user picked "Other" but left the id blank. RunPod "CPU
+  // only" and Vast "Any" (both empty) are valid selections.
+  const gpuOk = gpu !== CUSTOM_GPU || resolvedGpu.length > 0;
 
   const canCreate =
     name.trim().length > 0 && image.trim().length > 0 && gpuOk && !busy;
@@ -162,6 +184,7 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
     setImage(DEFAULT_WORKER_IMAGE);
     setGpu(DEFAULT_GPU.runpod);
     setCustomGpu("");
+    setVcpu(DEFAULT_VCPU);
     setDisk(DEFAULT_DISK_GB);
     setTokenPolicy("generate");
     setIdleTimeout(DEFAULT_IDLE_TIMEOUT);
@@ -179,6 +202,13 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
     const spec: Record<string, unknown> = {};
     if (resolvedGpu) {
       spec.gpu = resolvedGpu;
+    }
+    if (isCpuMachine) {
+      // CPU-only pod: no GPU id, carry the vCPU count instead.
+      const vcpuCount = parseMinutes(vcpu);
+      if (vcpuCount !== undefined) {
+        spec.vcpu = vcpuCount;
+      }
     }
     const diskGb = parseMinutes(disk); // reused positive-integer parse
     if (diskGb !== undefined) {
@@ -212,6 +242,8 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
     target,
     image,
     resolvedGpu,
+    isCpuMachine,
+    vcpu,
     disk,
     tokenPolicy,
     idleTimeout,
@@ -351,7 +383,11 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
             options={gpuOptions}
             variant="outlined"
             size="small"
-            description="Which GPU to rent. More VRAM runs larger models; pick the smallest that fits to save money."
+            description={
+              target === "runpod"
+                ? "Which machine to rent. Pick a GPU for model inference, or “CPU only” for a cheaper CPU pod (e.g. data/text nodes). More VRAM runs larger models."
+                : "Which GPU to rent. More VRAM runs larger models; pick the smallest that fits to save money."
+            }
           />
           {gpu === CUSTOM_GPU && (
             <TextInput
@@ -369,6 +405,17 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
               }
               fullWidth
               compact
+            />
+          )}
+          {isCpuMachine && (
+            <SelectField
+              label="vCPU"
+              value={vcpu}
+              onChange={setVcpu}
+              options={VCPU_OPTIONS}
+              variant="outlined"
+              size="small"
+              description="Number of virtual CPUs for the CPU-only pod. RunPod picks a matching CPU flavor."
             />
           )}
 

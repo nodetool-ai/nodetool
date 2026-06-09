@@ -169,4 +169,32 @@ describe("WorkerProfilesDialog", () => {
       max_lifetime_minutes: 120
     });
   });
+
+  it("creates a CPU-only RunPod profile (no gpu, carries the vCPU count)", async () => {
+    const { createProfile } = setup({ profiles: [] });
+
+    await userEvent.type(screen.getByLabelText(/^name$/i), "cpu-box");
+
+    // Pick the CPU-only machine type; a vCPU selector then appears.
+    await userEvent.click(screen.getByRole("combobox", { name: /gpu/i }));
+    await userEvent.click(screen.getByRole("option", { name: /CPU only/i }));
+    await userEvent.click(screen.getByRole("combobox", { name: /vcpu/i }));
+    await userEvent.click(screen.getByRole("option", { name: /^8 vCPU$/i }));
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /^create profile$/i })
+    );
+
+    await waitFor(() => expect(createProfile).toHaveBeenCalledTimes(1));
+    // No GPU id; the spec carries the vCPU count instead so the provider
+    // provisions a CPU pod (computeType: "CPU").
+    expect(createProfile).toHaveBeenCalledWith({
+      name: "cpu-box",
+      target: "runpod",
+      image: "ghcr.io/nodetool-ai/worker:latest",
+      token_policy: "generate",
+      spec: { vcpu: 8, disk: 100 },
+      idle_timeout_minutes: 30
+    });
+  });
 });
