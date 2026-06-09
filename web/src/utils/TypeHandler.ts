@@ -141,12 +141,10 @@ export const valueMatchesType = (
       }
       case "tuple": {
         if (!Array.isArray(v)) {return false;}
-        const argCount = t.type_args?.length ?? 0;
-        if (argCount === 0) {return true;} // treat as any[]
-        if (v.length !== argCount) {return false;}
-        for (let i = 0; i < argCount; i++) {
-          const argType = t.type_args![i];
-          if (!matches(v[i], argType)) {return false;}
+        if (!t.type_args || t.type_args.length === 0) {return true;}
+        if (v.length !== t.type_args.length) {return false;}
+        for (let i = 0; i < t.type_args.length; i++) {
+          if (!matches(v[i], t.type_args[i])) {return false;}
         }
         return true;
       }

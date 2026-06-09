@@ -214,10 +214,12 @@ export class PrefixTreeSearch {
 
     // Insert each character
     for (const char of normalized) {
-      if (!current.children.has(char)) {
-        current.children.set(char, new TrieNode());
+      let child = current.children.get(char);
+      if (!child) {
+        child = new TrieNode();
+        current.children.set(char, child);
       }
-      current = current.children.get(char)!;
+      current = child;
 
       // Store node reference at each position with a position-based score
       const nodeKey = node.node_type;
@@ -260,11 +262,13 @@ export class PrefixTreeSearch {
       // Find the node in the trie corresponding to the query prefix
       let current: TrieNode | null = root;
       for (const char of normalized) {
-        if (!current.children.has(char)) {
+        if (!current) {break;}
+        const child: TrieNode | undefined = current.children.get(char);
+        if (!child) {
           current = null;
           break;
         }
-        current = current.children.get(char)!;
+        current = child;
       }
 
       // If prefix found, collect all nodes under this prefix
