@@ -8,7 +8,9 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { NodeInbox } from "../src/inbox.js";
+import { NodeInbox, fallbackUuidV4 } from "../src/inbox.js";
+import { EMPTY_LINEAGE } from "@nodetool-ai/protocol";
+import type { LineageDone, LineageScopeClosed } from "@nodetool-ai/protocol";
 
 async function collect<T>(gen: AsyncGenerator<T>): Promise<T[]> {
   const items: T[] = [];
@@ -314,5 +316,144 @@ describe("NodeInbox – tryPopAnyWithEnvelope stale entries", () => {
     expect(popped2).toEqual(["b", "b1"]);
 
     expect(inbox.tryPopAny()).toBeNull();
+  });
+});
+
+describe("NodeInbox – addUpstream re-registration", () => {
+  it("re-registering upstream does not clear an existing buffer", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("h", 1);
+    await inbox.put("h", "x");
+    inbox.addUpstream("h", 1); // must NOT reset the buffer to []
+    expect(inbox.hasBuffered("h")).toBe(true);
+    expect(inbox.tryPopAny()).toEqual(["h", "x"]);
+  });
+});
+
+describe("NodeInbox – close during backpressure", () => {
+  it("does not enqueue a value after the inbox closes mid-backpressure", async () => {
+    const inbox = new NodeInbox(1); // bufferLimit 1
+    inbox.addUpstream("h", 1);
+    await inbox.put("h", "a"); // buffer now full: [a]
+    const blocked = inbox.put("h", "b"); // blocks on backpressure
+    await inbox.closeAll();
+    await blocked; // resolves without enqueuing "b"
+    expect(inbox.tryPopAny()).toEqual(["h", "a"]);
+    expect(inbox.tryPopAny()).toBeNull(); // "b" was dropped
+  });
+});
+
+describe("NodeInbox – markSourceDone lower bound", () => {
+  it("does not drive the open count below zero", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("h", 1);
+    inbox.markSourceDone("h"); // -> 0
+    inbox.markSourceDone("h"); // extra: must stay at 0, not -1
+    // If the count went negative the handle would never reach EOS and the
+    // iterator would hang; bound the wait so a regression fails fast.
+    const drained = (async () => {
+      for await (const item of inbox.iterInput("h")) {
+        void item;
+      }
+      return "done";
+    })();
+    const result = await Promise.race([
+      drained,
+      new Promise((r) => setTimeout(() => r("timeout"), 100))
+    ]);
+    expect(result).toBe("done");
+  });
+});
+
+describe("NodeInbox – arrival-queue cleanup", () => {
+  it("drops a consumed handle from the arrival queue, preserving order", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("h", 2);
+    inbox.addUpstream("g", 1);
+    await inbox.put("h", "a");
+    await inbox.put("g", "b");
+
+    const gen = inbox.iterInputWithEnvelope("h");
+    await gen.next(); // consumes "a" -> h removed from arrival
+
+    await inbox.put("h", "c"); // h re-enqueued at the tail
+    const order: string[] = [];
+    order.push(inbox.tryPopAny()![0]);
+    order.push(inbox.tryPopAny()![0]);
+    expect(order).toEqual(["g", "h"]);
+  });
+});
+
+describe("NodeInbox – lineage signals", () => {
+  it("projects an unprojectable lineage_done to the empty key", () => {
+    const inbox = new NodeInbox();
+    const signal: LineageDone = {
+      type: "lineage_done",
+      source_edge_id: "e1",
+      output: "out",
+      lineage: EMPTY_LINEAGE
+    };
+    // scope needs root "r" but the lineage lacks it -> projects to "".
+    inbox.signalLineageDone("h", signal, ["r"]);
+    expect(inbox.isEdgeDoneFor("e1", "")).toBe(true);
+  });
+
+  it("projects an unprojectable lineage_scope_closed to the empty parent key", () => {
+    const inbox = new NodeInbox();
+    const signal: LineageScopeClosed = {
+      type: "lineage_scope_closed",
+      source_edge_id: "e1",
+      output: "out",
+      parent_lineage: EMPTY_LINEAGE,
+      closed_root: "root1"
+    };
+    inbox.signalLineageScopeClosed("h", signal, ["p"]);
+    expect(inbox.isScopeClosedFor("e1", "", "root1")).toBe(true);
+  });
+
+  it("records multiple closed roots for the same edge and key", () => {
+    const inbox = new NodeInbox();
+    const mk = (root: string): LineageScopeClosed => ({
+      type: "lineage_scope_closed",
+      source_edge_id: "e1",
+      output: "out",
+      parent_lineage: EMPTY_LINEAGE,
+      closed_root: root
+    });
+    inbox.signalLineageScopeClosed("h", mk("r1"), []);
+    inbox.signalLineageScopeClosed("h", mk("r2"), []);
+    expect(inbox.isScopeClosedFor("e1", "", "r1")).toBe(true);
+    expect(inbox.isScopeClosedFor("e1", "", "r2")).toBe(true);
+  });
+
+  it("isScopeClosedFor returns false for an unknown edge", () => {
+    const inbox = new NodeInbox();
+    expect(inbox.isScopeClosedFor("nope", "k", "r")).toBe(false);
+  });
+});
+
+describe("fallbackUuidV4", () => {
+  it("builds an RFC4122 v4 string from the random source", () => {
+    // r = (0.1 * 16) | 0 = 1: x-slots -> 1, the y-slot -> (1 & 0x3) | 0x8 = 9.
+    expect(fallbackUuidV4(() => 0.1)).toBe(
+      "11111111-1111-4111-9111-111111111111"
+    );
+    // r = (0.7 * 16) | 0 = 11: every slot -> hex "b" (pins toString(16)).
+    expect(fallbackUuidV4(() => 0.7)).toBe(
+      "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb"
+    );
+  });
+
+  it("stamps a unique UUID event_id on each put", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("h", 1);
+    await inbox.put("h", "x");
+    await inbox.put("h", "y");
+    const e1 = inbox.tryPopAnyWithEnvelope()!;
+    const e2 = inbox.tryPopAnyWithEnvelope()!;
+    const uuidRe =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    expect(e1[1].event_id).toMatch(uuidRe);
+    expect(e2[1].event_id).not.toBe(e1[1].event_id);
   });
 });

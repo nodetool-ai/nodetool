@@ -114,6 +114,31 @@ describe("Channel – getStats", () => {
   });
 });
 
+describe("Channel – messageType getter", () => {
+  it("returns the configured constructor, or undefined when untyped", () => {
+    class MyMsg {}
+    const typed = new Channel<MyMsg>("t", 100, MyMsg);
+    const untyped = new Channel("u");
+    expect(typed.messageType).toBe(MyMsg);
+    expect(untyped.messageType).toBeUndefined();
+  });
+});
+
+describe("Channel – subscriber cleanup", () => {
+  it("removes the subscriber once its generator completes", async () => {
+    const ch = new Channel<number>("cleanup");
+    const done = collect(ch.subscribe("s1"));
+    await new Promise((r) => setTimeout(r, 5));
+    expect(ch.getStats().subscriberCount).toBe(1);
+
+    await ch.publish(1);
+    await ch.close();
+    await done;
+
+    expect(ch.getStats().subscriberCount).toBe(0);
+  });
+});
+
 describe("Channel – type checking", () => {
   it("rejects messages of wrong type when messageType is set", async () => {
     class Msg {
@@ -124,6 +149,16 @@ describe("Channel – type checking", () => {
     await expect(ch.publish("not a Msg" as unknown as Msg)).rejects.toThrow(
       TypeError
     );
+  });
+
+  it("type mismatch error names the channel and the expected type", async () => {
+    class Msg {
+      constructor(public val: number) {}
+    }
+    const ch = new Channel<Msg>("typed-msg", 100, Msg);
+    await expect(
+      ch.publish("nope" as unknown as Msg)
+    ).rejects.toThrow(/Channel 'typed-msg' expects messages of type Msg/);
   });
 
   it("accepts messages of correct type", async () => {
@@ -201,6 +236,50 @@ describe("ChannelManager – getOrCreateChannel", () => {
     await expect(mgr.getOrCreateChannel("typed", 100, TypeB)).rejects.toThrow(
       TypeError
     );
+  });
+
+  it("type mismatch error names the channel and both types", async () => {
+    class TypeA {
+      a = 1;
+    }
+    class TypeB {
+      b = 2;
+    }
+    const mgr = new ChannelManager();
+    await mgr.getOrCreateChannel("tch", 100, TypeA);
+    await expect(
+      mgr.getOrCreateChannel("tch", 100, TypeB)
+    ).rejects.toThrow(/Channel 'tch' has type TypeA, but TypeB was requested/);
+  });
+
+  it("re-requesting an existing channel with the SAME type does not throw", async () => {
+    class TypeA {
+      a = 1;
+    }
+    const mgr = new ChannelManager();
+    const c1 = await mgr.getOrCreateChannel("same", 100, TypeA);
+    const c2 = await mgr.getOrCreateChannel("same", 100, TypeA);
+    expect(c1).toBe(c2);
+  });
+
+  it("adding a type to a previously untyped channel does not throw", async () => {
+    class TypeA {
+      a = 1;
+    }
+    const mgr = new ChannelManager();
+    const c1 = await mgr.getOrCreateChannel("untyped-first");
+    const c2 = await mgr.getOrCreateChannel("untyped-first", 100, TypeA);
+    expect(c1).toBe(c2);
+  });
+
+  it("requesting an existing typed channel without a type does not throw", async () => {
+    class TypeA {
+      a = 1;
+    }
+    const mgr = new ChannelManager();
+    const c1 = await mgr.getOrCreateChannel("typed-first", 100, TypeA);
+    const c2 = await mgr.getOrCreateChannel("typed-first");
+    expect(c1).toBe(c2);
   });
 });
 
@@ -308,5 +387,54 @@ describe("ChannelManager – getChannelType", () => {
     await mgr.createChannel("plain");
 
     expect(mgr.getChannelType("plain")).toBeUndefined();
+  });
+
+  it("replacing a typed channel with an untyped one clears the type", async () => {
+    class Evt {
+      type = "event";
+    }
+    const mgr = new ChannelManager();
+    await mgr.createChannel("evt", 100, false, Evt);
+    expect(mgr.getChannelType("evt")).toBe(Evt);
+
+    await mgr.createChannel("evt", 100, true); // replace, no type
+    expect(mgr.getChannelType("evt")).toBeUndefined();
+  });
+});
+
+describe("ChannelManager – typed publish/subscribe", () => {
+  it("publishTyped + subscribeTyped delivers correctly typed messages", async () => {
+    class Msg {
+      constructor(public val: number) {}
+    }
+    const mgr = new ChannelManager();
+    const received: Msg[] = [];
+    const consume = (async () => {
+      for await (const m of mgr.subscribeTyped<Msg>("tps", "s1", Msg)) {
+        received.push(m);
+      }
+    })();
+    await new Promise((r) => setTimeout(r, 5));
+
+    await mgr.publishTyped("tps", new Msg(7), Msg);
+    await mgr.closeChannel("tps");
+    await consume;
+
+    expect(received).toHaveLength(1);
+    expect(received[0].val).toBe(7);
+  });
+});
+
+describe("ChannelManager – closeAll closes channels", () => {
+  it("closes every channel before clearing them", async () => {
+    const mgr = new ChannelManager();
+    const a = await mgr.createChannel("a");
+    const b = await mgr.createChannel("b");
+
+    await mgr.closeAll();
+
+    expect(a.isClosed).toBe(true);
+    expect(b.isClosed).toBe(true);
+    expect(mgr.listChannels()).toEqual([]);
   });
 });

@@ -111,8 +111,6 @@ const DynamicComfySchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           iconType={metadata?.outputs?.[0]?.type?.type}
           iconBaseColor={COMFY_HEADER_COLOR}
           workflowId={workflow_id}
-          showResultButton={false}
-          showInputsButton={false}
         />
         <Box
           sx={{

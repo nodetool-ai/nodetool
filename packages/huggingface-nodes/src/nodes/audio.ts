@@ -58,14 +58,16 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
   })
   declare return_timestamps: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<Record<string, unknown>> {
     const token = getHfToken(this._secrets);
     const audio = this.audio as MediaRef | undefined;
     if (!audio || (!audio.uri && !audio.data)) {
       throw new Error("Input audio is required");
     }
 
-    const base64 = await refToBase64(audio);
+    const base64 = await refToBase64(audio, context);
     const returnTimestamps = Boolean(this.return_timestamps ?? false);
 
     const result = await hfPipelineJson<{
@@ -128,14 +130,16 @@ export class AudioClassificationNode extends BaseNode {
   })
   declare top_k: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<Record<string, unknown>> {
     const token = getHfToken(this._secrets);
     const audio = this.audio as MediaRef | undefined;
     if (!audio || (!audio.uri && !audio.data)) {
       throw new Error("Input audio is required");
     }
 
-    const base64 = await refToBase64(audio);
+    const base64 = await refToBase64(audio, context);
     const result = await hfPipelineJson<
       Array<{ label?: string; score?: number }>
     >(token, String(this.model ?? "superb/hubert-base-superb-er"), {

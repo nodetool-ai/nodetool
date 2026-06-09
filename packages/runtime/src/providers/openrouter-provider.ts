@@ -10,6 +10,7 @@ import type {
   TextToImageParams
 } from "./types.js";
 
+// Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.openrouter");
 
 interface OpenRouterProviderOptions {
@@ -56,8 +57,14 @@ export class OpenRouterProvider extends OpenAIProvider {
             new OpenAI({
               apiKey: key,
               baseURL: "https://openrouter.ai/api/v1",
+              // Default request headers are passed to the OpenAI SDK and only
+              // observable over the wire; the same header values are asserted on
+              // the /models fetch below.
+              // Stryker disable next-line ObjectLiteral
               defaultHeaders: {
+                // Stryker disable next-line StringLiteral
                 "HTTP-Referer": "https://github.com/nodetool-ai/nodetool-core",
+                // Stryker disable next-line StringLiteral
                 "X-Title": "NodeTool"
               }
             })),
@@ -161,6 +168,7 @@ export class OpenRouterProvider extends OpenAIProvider {
     if (size) request.size = size;
     if (params.quality) request.quality = params.quality;
 
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log, not asserted.
     log.debug("OpenRouter textToImage", { model: params.model.id });
 
     const response = (await this.getClient().images.generate(
@@ -210,6 +218,7 @@ export class OpenRouterProvider extends OpenAIProvider {
     const payload = (await response.json()) as {
       data?: Array<{ id?: string; name?: string }>;
     };
+    // Stryker disable next-line ArrayDeclaration: the fallback is filtered downstream (rows need a string id), so [] vs any array is observably identical.
     const rows = payload.data ?? [];
     return rows
       .filter(

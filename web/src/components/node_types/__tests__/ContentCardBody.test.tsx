@@ -6,11 +6,18 @@ import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../__mocks__/themeMock";
 import useResultsStore from "../../../stores/ResultsStore";
-import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
+import { useWorkflowAssetStore } from "../../../stores/WorkflowAssetStore";
 import type { Asset, NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import ContentCardBody from "../ContentCardBody";
 
+const workflowId = "workflow-1";
+const nodeId = "node-1";
+
+// `useNodeResultHistory` feeds NodeHistoryViewer's durable asset reads (the
+// fullscreen viewer, grid thumbnails, info badge). The generation timeline that
+// drives selection/pagination is fed via the real WorkflowAssetStore +
+// ResultsStore.liveGenerations below.
 let mockAssetHistory: Asset[] = [];
 let mockLastJobAssets: Asset[] = [];
 
@@ -30,9 +37,21 @@ jest.mock("../../../hooks/nodes/useNodeResultHistory", () => {
   };
 });
 
+// The generation hook reads the node's persisted `selected_generation` via
+// `findNode`; the body also calls `updateNodeData`. Provide both. No selection
+// is persisted, so `findNode` returns a bare node and selection defaults to the
+// latest generation.
 jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: (selector: (state: { updateNodeData: () => void }) => unknown) =>
-    selector({ updateNodeData: jest.fn() })
+  useNodes: (
+    selector: (state: {
+      updateNodeData: () => void;
+      findNode: (id: string) => unknown;
+    }) => unknown
+  ) =>
+    selector({
+      updateNodeData: jest.fn(),
+      findNode: (id: string) => ({ id, data: {} })
+    })
 }));
 
 jest.mock("../../node/OutputRenderer", () => {
@@ -100,10 +119,6 @@ jest.mock("../../node/NodeInputs", () => {
   };
 });
 
-const workflowId = "workflow-1";
-const jobId = "job-current";
-const nodeId = "node-1";
-
 const nodeData = {
   workflow_id: workflowId,
   properties: {},
@@ -137,10 +152,7 @@ const renderContentCard = (nodeMetadata: NodeMetadata) =>
     </ThemeProvider>
   );
 
-const fakeAsset = (
-  id: string,
-  jobId: string = "job-current"
-): Asset =>
+const fakeAsset = (id: string, jobId: string = "job-current"): Asset =>
   ({
     id,
     content_type: "image/png",
@@ -148,100 +160,82 @@ const fakeAsset = (
     get_url: `http://localhost/api/storage/${id}`,
     thumb_url: `http://localhost/api/storage/${id}?thumb=1`,
     created_at: new Date().toISOString(),
+    node_id: nodeId,
     job_id: jobId
   }) as unknown as Asset;
+
+/** Seed durable generations into the asset store (drives the timeline). */
+const seedAssets = (assets: Asset[]) => {
+  useWorkflowAssetStore.setState({
+    assetsByWorkflow: { [workflowId]: assets }
+  } as never);
+};
+
+/** Seed one live generation into ResultsStore (a mid-flight or in-memory run). */
+const seedLiveGeneration = (
+  jobId: string,
+  outputs: Record<string, unknown>,
+  createdAt = Date.now()
+) =>
+  useResultsStore.getState().upsertLiveGeneration(workflowId, nodeId, jobId, {
+    createdAt,
+    status: "completed",
+    outputs
+  });
 
 describe("ContentCardBody results", () => {
   beforeEach(() => {
     mockAssetHistory = [];
     mockLastJobAssets = [];
     mockRunnerState = "idle";
-    useResultsStore.setState({
-      results: {},
-      outputResults: {},
-      progress: {},
-      edges: {},
-      chunks: {},
-      tasks: {},
-      toolCalls: {},
-      planningUpdates: {}
-    });
-    // Results are keyed per run; the node bodies read the workflow's focused
-    // run. Record one so reads resolve to it.
-    useWorkflowRunsStore.setState({ runs: {}, focusedJob: {}, pinned: {} });
-    useWorkflowRunsStore.getState().recordRun({
-      jobId,
-      workflowId,
-      state: "running",
-      startedAt: 1
-    });
+    useResultsStore.setState({ liveGenerations: {} } as never);
+    useWorkflowAssetStore.setState({ assetsByWorkflow: {} } as never);
   });
 
-  it("renders every streamed output from the current run, not the stale node_update result", () => {
-    useResultsStore.getState().setResult(workflowId, jobId, nodeId, {
-      output: { type: "image", uri: "stale-final.png" }
-    });
-    useResultsStore.getState().setOutputResult(workflowId, jobId, nodeId, {
-      type: "image",
-      uri: "stream-1.png"
-    });
-    useResultsStore.getState().setOutputResult(
-      workflowId,
-      jobId,
-      nodeId,
-      { type: "image", uri: "stream-2.png" },
-      true
-    );
+  it("renders the current (latest) generation's output", () => {
+    seedLiveGeneration("j1", { output: { type: "image", uri: "stream-1.png" } }, 1);
+    seedLiveGeneration("j2", { output: { type: "image", uri: "stream-2.png" } }, 2);
+
+    renderContentCard(metadataForOutput("image"));
+
+    // Single-view current-generation model: the latest generation renders.
+    const rendered = screen.getAllByTestId("image-view");
+    expect(rendered).toHaveLength(1);
+    expect(rendered[0]).toHaveTextContent("stream-2.png");
+  });
+
+  it("unwraps a per-output result record for the current generation", () => {
+    seedLiveGeneration("j1", { output: { type: "image", uri: "wrapped-1.png" } });
 
     renderContentCard(metadataForOutput("image"));
 
     const rendered = screen.getAllByTestId("image-view");
-    expect(rendered).toHaveLength(2);
-    expect(rendered[0]).toHaveTextContent("stream-1.png");
-    expect(rendered[1]).toHaveTextContent("stream-2.png");
-    expect(screen.queryByText("stale-final.png")).not.toBeInTheDocument();
-  });
-
-  it("unwraps per-output result records and renders each generation", () => {
-    useResultsStore.getState().setOutputResult(workflowId, jobId, nodeId, {
-      output: { type: "image", uri: "wrapped-1.png" }
-    });
-    useResultsStore.getState().setOutputResult(
-      workflowId,
-      jobId,
-      nodeId,
-      { output: { type: "image", uri: "wrapped-2.png" } },
-      true
-    );
-
-    renderContentCard(metadataForOutput("image"));
-
-    const rendered = screen.getAllByTestId("image-view");
-    expect(rendered).toHaveLength(2);
+    expect(rendered).toHaveLength(1);
     expect(rendered[0]).toHaveTextContent("wrapped-1.png");
-    expect(rendered[1]).toHaveTextContent("wrapped-2.png");
   });
 
-  it("shows pagination controls when history has multiple saved assets", async () => {
-    mockAssetHistory = [
+  it("shows pagination controls when the timeline has multiple generations", async () => {
+    const assets = [
       fakeAsset("history-asset-1", "job-1"),
       fakeAsset("history-asset-2", "job-2"),
       fakeAsset("history-asset-3", "job-3")
     ];
+    seedAssets(assets);
+    mockAssetHistory = assets;
 
     renderContentCard(metadataForOutput("image"));
 
-    expect(screen.getByText("1 / 3")).toBeInTheDocument();
-    await userEvent.click(screen.getByLabelText("Next output"));
-    expect(screen.getByText("2 / 3")).toBeInTheDocument();
+    // Defaults to the latest (3rd) generation.
+    expect(screen.getByText("3 / 3")).toBeInTheDocument();
+    expect(screen.getByLabelText("Next output")).toBeInTheDocument();
+    expect(screen.getByLabelText("Previous output")).toBeInTheDocument();
   });
 
-  it("switches to grid mode and shows every history asset as a thumbnail", async () => {
-    mockAssetHistory = [
-      fakeAsset("first", "job-99"),
-      fakeAsset("second", "job-99")
-    ];
-    mockLastJobAssets = mockAssetHistory;
+  it("switches to grid mode and shows every generation as a thumbnail", async () => {
+    const assets = [fakeAsset("first", "job-99"), fakeAsset("second", "job-99")];
+    seedAssets(assets);
+    mockAssetHistory = assets;
+    mockLastJobAssets = assets;
 
     renderContentCard(metadataForOutput("image"));
 
@@ -252,12 +246,13 @@ describe("ContentCardBody results", () => {
 
   it("shows the live streaming result during a run, even when prior history exists", () => {
     // DB still holds the previous run, but a new run is mid-flight.
-    mockLastJobAssets = [fakeAsset("old-run", "job-1")];
-    mockAssetHistory = mockLastJobAssets;
+    const old = [fakeAsset("old-run", "job-1")];
+    seedAssets(old);
+    mockLastJobAssets = old;
+    mockAssetHistory = old;
     mockRunnerState = "running";
-    useResultsStore.getState().setOutputResult(workflowId, jobId, nodeId, {
-      type: "image",
-      uri: "live-run.png"
+    seedLiveGeneration("job-current", {
+      output: { type: "image", uri: "live-run.png" }
     });
 
     renderContentCard(metadataForOutput("image"));
@@ -266,17 +261,47 @@ describe("ContentCardBody results", () => {
     expect(rendered[0]).toHaveTextContent("live-run.png");
   });
 
-  it("joins streamed text values from the current run in a text content card", () => {
-    useResultsStore.getState().setOutputResult(workflowId, jobId, nodeId, "first");
-    useResultsStore
-      .getState()
-      .setOutputResult(workflowId, jobId, nodeId, "second", true);
+  it("renders the current generation's text in a text content card", () => {
+    seedLiveGeneration("j1", { output: "first second" });
 
     renderContentCard(metadataForOutput("str"));
 
     const container = screen.getByLabelText("Generated text");
-    expect(container).toHaveTextContent("first");
-    expect(container).toHaveTextContent("second");
+    expect(container).toHaveTextContent("first second");
+  });
+
+  it("shows a history navigator over persisted text generations", () => {
+    const textAsset = (
+      id: string,
+      jobId: string,
+      text: string,
+      createdAt: string
+    ): Asset =>
+      ({
+        id,
+        content_type: "text/plain",
+        name: id,
+        get_url: `http://localhost/api/storage/${id}.txt`,
+        metadata: { text },
+        created_at: createdAt,
+        node_id: nodeId,
+        job_id: jobId
+      }) as unknown as Asset;
+    const assets = [
+      textAsset("t1", "job-1", "first gen", "2026-01-01T00:00:00Z"),
+      textAsset("t2", "job-2", "second gen", "2026-01-02T00:00:00Z")
+    ];
+    seedAssets(assets);
+    mockAssetHistory = assets;
+
+    renderContentCard(metadataForOutput("str"));
+
+    // The text card now gets the same navigator as media: pagination over the
+    // persisted generations, defaulting to the latest, rendering its inline text.
+    expect(screen.getByText("2 / 2")).toBeInTheDocument();
+    expect(screen.getByLabelText("Generated text")).toHaveTextContent(
+      "second gen"
+    );
   });
 });
 

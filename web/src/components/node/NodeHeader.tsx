@@ -10,7 +10,7 @@ import { getCollapseTogglePatches } from "../../stores/collapseNodeLayout";
 import { useNodes } from "../../contexts/NodeContext";
 import { IconForType } from "../../config/IconForType";
 import ListAltIcon from "@mui/icons-material/ListAlt";
-import { Visibility, InputOutlined, OpenInNew } from "@mui/icons-material";
+import { OpenInNew } from "@mui/icons-material";
 import { NodeLogsDialog } from "./NodeLogs";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { BORDER_RADIUS, FlexRow, Tooltip, ToolbarIconButton } from "../ui_primitives";
@@ -29,11 +29,6 @@ export interface NodeHeaderProps {
   showIcon?: boolean;
   workflowId?: string;
   hideLogs?: boolean;
-  // Toggle buttons for result/inputs view
-  showResultButton?: boolean;
-  showInputsButton?: boolean;
-  onShowResults?: () => void;
-  onShowInputs?: () => void;
   externalLink?: string;
   externalLinkTitle?: string;
   isTitleEditable?: boolean;
@@ -46,20 +41,6 @@ export interface NodeHeaderProps {
 // from triggering unnecessary re-renders.
 const EMPTY_NODE_LOGS: ReturnType<typeof useLogsStore.getState>["logsByNode"][string] =
   [];
-
-// Constant sx styles for header toggle buttons — defined outside the component
-// so the same object reference is reused across renders.
-const toggleIconButtonStyles = {
-  padding: "4px",
-  backgroundColor: "rgba(255, 255, 255, 0.05)",
-  color: "var(--palette-text-primary)",
-  border: "1px solid rgba(255, 255, 255, 0.1)",
-  borderRadius: "var(--rounded-circle)",
-  "&:hover": {
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderColor: "var(--palette-primary-main)"
-  }
-};
 
 export const NodeHeader: React.FC<NodeHeaderProps> = ({
   id,
@@ -74,10 +55,6 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   data,
   workflowId,
   hideLogs = false,
-  showResultButton = false,
-  showInputsButton = false,
-  onShowResults,
-  onShowInputs,
   externalLink,
   externalLinkTitle,
   isTitleEditable = false,
@@ -257,16 +234,6 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     setLogsDialogOpen(true);
   }, []);
 
-  const handleShowResultsClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    onShowResults?.();
-  }, [onShowResults]);
-
-  const handleShowInputsClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    onShowInputs?.();
-  }, [onShowInputs]);
-
   const handleCloseLogsDialog = useCallback(() => {
     setLogsDialogOpen(false);
   }, []);
@@ -418,36 +385,6 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           </ToolbarIconButton>
         )}
       </FlexRow>
-
-      {/* Right side toggle buttons */}
-      {(showResultButton || showInputsButton) && (
-        <div className="header-right">
-          {/* Show Result button */}
-          {showResultButton && onShowResults && (
-            <ToolbarIconButton
-              title="Show Result"
-              delay={TOOLTIP_ENTER_DELAY}
-              size="small"
-              onClick={handleShowResultsClick}
-              sx={toggleIconButtonStyles}
-            >
-              <Visibility sx={{ fontSize: 16 }} />
-            </ToolbarIconButton>
-          )}
-          {/* Show Inputs button */}
-          {showInputsButton && onShowInputs && (
-            <ToolbarIconButton
-              title="Show Inputs"
-              delay={TOOLTIP_ENTER_DELAY}
-              size="small"
-              onClick={handleShowInputsClick}
-              sx={toggleIconButtonStyles}
-            >
-              <InputOutlined sx={{ fontSize: 16 }} />
-            </ToolbarIconButton>
-          )}
-        </div>
-      )}
 
       <NodeLogsDialog
         id={id}

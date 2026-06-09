@@ -125,6 +125,32 @@ describe("SpeechToTextNode", () => {
     expect(result.text).toBe("fetched audio");
   });
 
+  it("resolves an asset:// uri via the processing context", async () => {
+    // Only the STT API call should hit fetch; the audio bytes come from the
+    // context resolver, not from fetch("asset://...").
+    const resolvedBytes = new Uint8Array(
+      Buffer.from(WAV_BASE64, "base64")
+    );
+    const resolveAssetBytes = vi.fn(async () => ({
+      bytes: resolvedBytes,
+      attempts: []
+    }));
+    const context = { resolveAssetBytes } as unknown as Parameters<
+      SpeechToTextNode["process"]
+    >[0];
+
+    const node = makeNode({ audio: { type: "audio", uri: "asset://asset-123" } });
+    const result = await node.process(context);
+
+    expect(resolveAssetBytes).toHaveBeenCalledWith("asset://asset-123");
+    // fetch is used ONLY for the ElevenLabs API, never for the asset:// ref.
+    expect(mockFetch).toHaveBeenCalledOnce();
+    expect(mockFetch.mock.calls[0][0]).toBe(
+      "https://api.elevenlabs.io/v1/speech-to-text"
+    );
+    expect(result.text).toBe("Hello world");
+  });
+
   it("throws when ElevenLabs API returns an error", async () => {
     mockFetch.mockResolvedValue({
       ok: false,

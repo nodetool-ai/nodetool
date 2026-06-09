@@ -164,6 +164,15 @@ export interface AssetStorageLike {
 
 export interface AssetResolveContext {
   storage?: AssetStorageLike | null;
+  /**
+   * Canonical ProcessingContext resolver for reference URIs (`asset://<id>`,
+   * `package://<pkg>/<path>`). Storage adapters return null for these, so this
+   * is the only path that resolves them. SSRF-safe (resolves from storage / the
+   * configured server, never an attacker-controlled host).
+   */
+  resolveAssetBytes?: (
+    uri: string
+  ) => Promise<{ bytes: Uint8Array | null }>;
 }
 
 function decodeBase64(data: string): Uint8Array {
@@ -208,6 +217,16 @@ export async function resolveAssetBytes(
   // Empty placeholder ref (no uri, no data) → treat as "no asset provided" so
   // the caller can surface a clear "<field> is required" error instead.
   if (uri.length === 0) return null;
+
+  // Reference URIs (`asset://<id>`, `package://<pkg>/<path>`) are not known to
+  // storage adapters — only the ProcessingContext resolver handles them.
+  if (
+    (uri.startsWith("asset://") || uri.startsWith("package://")) &&
+    context?.resolveAssetBytes
+  ) {
+    const { bytes } = await context.resolveAssetBytes(uri);
+    if (bytes) return new Uint8Array(bytes);
+  }
 
   if (context?.storage) {
     try {

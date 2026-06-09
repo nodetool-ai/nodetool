@@ -51,6 +51,11 @@ describe("createPythonBridge", () => {
     expect(bridge.isAvailable()).toBe(true);
   });
 
+  it("trims the wsUrl passed to the WebSocket bridge", () => {
+    const bridge = createPythonBridge({ wsUrl: "  ws://127.0.0.1:7777  " });
+    expect((bridge as WebsocketPythonBridge).wsUrl).toBe("ws://127.0.0.1:7777");
+  });
+
   it("returns a WebSocket bridge when NODETOOL_WORKER_URL is set", () => {
     process.env[ENV_KEY] = "ws://127.0.0.1:7777";
     const bridge = createPythonBridge();

@@ -17,6 +17,8 @@ function nodetoolStubPlugin(): Plugin {
   // Packages that have no compiled dist/ in this repo checkout
   const unbuilt = new Set([
     "@nodetool-ai/runtime",
+    "@nodetool-ai/runtime/tracing",
+    "@nodetool-ai/runtime/context",
     "@nodetool-ai/security",
     "@nodetool-ai/models",
     "@nodetool-ai/chat",

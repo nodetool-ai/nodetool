@@ -220,14 +220,16 @@ export class ImageToImageNode extends BaseNode {
   })
   declare num_inference_steps: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<Record<string, unknown>> {
     const token = getHfToken(this._secrets);
     const image = this.image as MediaRef | undefined;
     if (!image || (!image.uri && !image.data)) {
       throw new Error("Input image is required");
     }
 
-    const base64 = await refToBase64(image);
+    const base64 = await refToBase64(image, context);
     const guidance = Number(this.guidance_scale ?? 0);
     const steps = Number(this.num_inference_steps ?? 0);
 
@@ -294,14 +296,16 @@ export class ImageClassificationNode extends BaseNode {
   })
   declare top_k: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<Record<string, unknown>> {
     const token = getHfToken(this._secrets);
     const image = this.image as MediaRef | undefined;
     if (!image || (!image.uri && !image.data)) {
       throw new Error("Input image is required");
     }
 
-    const base64 = await refToBase64(image);
+    const base64 = await refToBase64(image, context);
     const result = await hfPipelineJson<
       Array<{ label?: string; score?: number }>
     >(token, String(this.model ?? "google/vit-base-patch16-224"), {
@@ -347,14 +351,16 @@ export class ImageSegmentationNode extends BaseNode {
   })
   declare image: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<Record<string, unknown>> {
     const token = getHfToken(this._secrets);
     const image = this.image as MediaRef | undefined;
     if (!image || (!image.uri && !image.data)) {
       throw new Error("Input image is required");
     }
 
-    const base64 = await refToBase64(image);
+    const base64 = await refToBase64(image, context);
     const result = await hfPipelineJson<
       Array<{ label?: string; score?: number; mask?: string }>
     >(token, String(this.model ?? "nvidia/segformer-b0-finetuned-ade-512-512"), {
@@ -415,14 +421,16 @@ export class ObjectDetectionNode extends BaseNode {
   })
   declare threshold: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<Record<string, unknown>> {
     const token = getHfToken(this._secrets);
     const image = this.image as MediaRef | undefined;
     if (!image || (!image.uri && !image.data)) {
       throw new Error("Input image is required");
     }
 
-    const base64 = await refToBase64(image);
+    const base64 = await refToBase64(image, context);
     const result = await hfPipelineJson<
       Array<{
         label?: string;

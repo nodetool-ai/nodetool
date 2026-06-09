@@ -59,7 +59,14 @@ import type { Edge } from "@xyflow/react";
 import useSelect from "../../../hooks/nodes/useSelect";
 import { useDelayedVisibility } from "../../../hooks/useDelayedVisibility";
 import useResultsStore from "../../../stores/ResultsStore";
-import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
+import { useWorkflowAssetStore } from "../../../stores/WorkflowAssetStore";
+import {
+  assetToGeneration,
+  getCurrentGeneration,
+  mergeGenerations,
+  outputOf
+} from "../../../utils/nodeGenerations";
+import type { Asset } from "../../../stores/ApiTypes";
 import { useShallow } from "zustand/react/shallow";
 import { useNodeFocusStore } from "../../../stores/NodeFocusStore";
 import { useSettingsStore } from "../../../stores/SettingsStore";
@@ -268,6 +275,8 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
   });
 
 const TOOLBAR_SHOW_DELAY = 200;
+
+const EMPTY_ASSETS: Asset[] = [];
 
 const Toolbar = memo(function Toolbar({
   id,
@@ -551,33 +560,46 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     return connections;
   }, [edges, props.id, exposedInputLayers]);
 
-  // Layer-source outputs are scoped to the workflow's focused run; subscribe so
-  // they re-resolve when focus switches between concurrent runs.
-  const focusedJobId = useWorkflowRunsStore(
-    (s) => s.focusedJob[props.data.workflow_id]
+  // Resolve each layer source's current generation output. Layer values live on
+  // the SOURCE node's generation timeline (durable assets + live buffer), so we
+  // subscribe to both backings once and resolve per connection — a single
+  // subscription covers any number of sources, keeping the hook count constant.
+  const workflowAssets = useWorkflowAssetStore(
+    useShallow(
+      (s) => s.assetsByWorkflow[props.data.workflow_id] ?? EMPTY_ASSETS
+    )
   );
-  const layerInputResults = useResultsStore(
-    useShallow((state) => {
-      const out: Record<string, unknown> = {};
-      if (!focusedJobId) {
-        return out;
-      }
-      for (const [layerId, connection] of Object.entries(layerInputConnections)) {
-        out[layerId] =
-          state.getOutputResult(
-            props.data.workflow_id,
-            focusedJobId,
-            connection.sourceId
-          ) ??
-          state.getResult(
-            props.data.workflow_id,
-            focusedJobId,
-            connection.sourceId
-          );
-      }
-      return out;
-    })
+  const liveGenerations = useResultsStore(
+    useShallow((s) => s.liveGenerations)
   );
+  const layerInputResults = useMemo(() => {
+    const out: Record<string, unknown> = {};
+    for (const [layerId, connection] of Object.entries(
+      layerInputConnections
+    )) {
+      const persisted = workflowAssets
+        .filter((a) => a.node_id === connection.sourceId)
+        .map(assetToGeneration);
+      const live =
+        liveGenerations[
+          `${props.data.workflow_id}:${connection.sourceId}`
+        ] ?? [];
+      const generations = mergeGenerations(persisted, live);
+      const selectedId = findNode(connection.sourceId)?.data
+        ?.selected_generation;
+      const current = getCurrentGeneration(generations, selectedId);
+      out[layerId] = current
+        ? outputOf(current, connection.sourceHandle ?? undefined)
+        : undefined;
+    }
+    return out;
+  }, [
+    layerInputConnections,
+    workflowAssets,
+    liveGenerations,
+    props.data.workflow_id,
+    findNode
+  ]);
 
   useSyncEdgeSelection(props.id, Boolean(props.selected));
 

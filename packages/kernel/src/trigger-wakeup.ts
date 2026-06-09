@@ -14,6 +14,7 @@ import {
   MemoryDurableInboxStore
 } from "./durable-inbox.js";
 
+// Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
 const log = createLogger("nodetool.kernel.trigger-wakeup");
 
 export interface TriggerInput {
@@ -32,6 +33,7 @@ export interface TriggerInput {
  * Stores trigger inputs durably and coordinates wakeup.
  */
 export class TriggerWakeupService {
+  // Stryker disable next-line ArrayDeclaration: a non-empty seed is equivalent — a bogus entry matches no runId/nodeId/inputId and is excluded by every query/filter
   private _inputs: TriggerInput[] = [];
   private _inboxStore: DurableInboxStore;
 
@@ -55,6 +57,7 @@ export class TriggerWakeupService {
     // Idempotency check
     const existing = this._inputs.find((i) => i.inputId === opts.inputId);
     if (existing) {
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.debug("Trigger input already exists (idempotent)", {
         inputId: opts.inputId
       });
@@ -72,10 +75,12 @@ export class TriggerWakeupService {
     };
     this._inputs.push(input);
 
+    // Stryker disable next-line StringLiteral,ObjectLiteral,ConditionalExpression: diagnostic log args only (the cursor spread only affects log fields)
     log.info("Stored trigger input", {
       inputId: opts.inputId,
       runId: opts.runId,
       nodeId: opts.nodeId,
+      // Stryker disable next-line ObjectLiteral,ConditionalExpression: diagnostic log field only
       ...(opts.cursor ? { cursor: opts.cursor } : {})
     });
 
@@ -103,6 +108,7 @@ export class TriggerWakeupService {
     if (input) {
       input.processed = true;
       input.processedAt = new Date();
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.debug("Marked trigger input as processed", { inputId });
     }
   }
@@ -124,7 +130,9 @@ export class TriggerWakeupService {
         )
     );
     const removed = before - this._inputs.length;
+    // Stryker disable next-line ConditionalExpression,EqualityOperator,BlockStatement: the guard only gates a diagnostic log; `removed` is returned regardless
     if (removed > 0) {
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.info("Cleaned up processed trigger inputs", {
         count: removed,
         runId,

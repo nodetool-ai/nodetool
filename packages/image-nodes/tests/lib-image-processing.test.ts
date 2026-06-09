@@ -18,9 +18,6 @@ import {
   LIB_IMAGE_FILTER_NODES
 } from "@nodetool-ai/image-nodes";
 
-const RGB_CHANNEL_NEAR_ZERO_THRESHOLD = 5;
-const RGB_CHANNEL_NEAR_MAX_THRESHOLD = 250;
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -396,41 +393,6 @@ describe("lib-image-enhance nodes", () => {
     await assertPixelsChanged(img, output);
   });
 
-  it("Brightness — factor 2.0 brightens image", async () => {
-    const img = await makeTestImage();
-    const output = await runNode(LIB_IMAGE_ENHANCE_NODES, ".Brightness", {
-      image: img,
-      factor: 2.0
-    });
-    assertValidImage(output);
-    await assertPixelsChanged(img, output);
-    // Verify pixels are brighter
-    const { raw: inRaw } = await decodeOutput(img as Record<string, unknown>);
-    const { raw: outRaw } = await decodeOutput(output);
-    // First pixel R channel should be brighter
-    expect(outRaw[0]).toBeGreaterThan(inRaw[0]);
-  });
-
-  it("Color — factor 2.0 increases saturation", async () => {
-    const img = await makeTestImage();
-    const output = await runNode(LIB_IMAGE_ENHANCE_NODES, ".Color", {
-      image: img,
-      factor: 2.0
-    });
-    assertValidImage(output);
-    await assertPixelsChanged(img, output);
-  });
-
-  it("Contrast — factor 2.0 increases contrast", async () => {
-    const img = await makeTestImage();
-    const output = await runNode(LIB_IMAGE_ENHANCE_NODES, ".Contrast", {
-      image: img,
-      factor: 2.0
-    });
-    assertValidImage(output);
-    await assertPixelsChanged(img, output);
-  });
-
   it("Detail — enhances fine details", async () => {
     // Need at least 3x3 for convolution
     const img = await makeTestImage(8, 8);
@@ -463,34 +425,6 @@ describe("lib-image-enhance nodes", () => {
       image: img,
       size: 3,
       rank: 3
-    });
-    assertValidImage(output);
-  });
-
-  it("Sharpen — sharpens image via convolution", async () => {
-    const img = await makeTestImage(8, 8);
-    const output = await runNode(LIB_IMAGE_ENHANCE_NODES, ".Sharpen", {
-      image: img
-    });
-    assertValidImage(output);
-  });
-
-  it("Sharpness — adjustable sharpness factor", async () => {
-    const img = await makeTestImage(8, 8);
-    const output = await runNode(LIB_IMAGE_ENHANCE_NODES, ".Sharpness", {
-      image: img,
-      factor: 2.0
-    });
-    assertValidImage(output);
-  });
-
-  it("UnsharpMask — sharpens with unsharp mask technique", async () => {
-    const img = await makeTestImage(8, 8);
-    const output = await runNode(LIB_IMAGE_ENHANCE_NODES, ".UnsharpMask", {
-      image: img,
-      radius: 2,
-      percent: 150,
-      threshold: 3
     });
     assertValidImage(output);
   });

@@ -62,6 +62,9 @@ interface UploadContext {
   storage?: {
     retrieve(uri: string): Promise<Uint8Array | null | undefined>;
   } | null;
+  resolveAssetBytes?: (
+    uri: string
+  ) => Promise<{ bytes: Uint8Array | null }>;
 }
 
 /**
@@ -95,6 +98,24 @@ export async function assetToUrl(
         return await uploadToReplicate(apiKey, uri);
       } catch {
         return uri;
+      }
+    }
+    // Asset/package references: resolve to bytes via the context and upload.
+    // Storage adapters only understand their own URI schemes, so these refs
+    // must go through resolveAssetBytes (asset://<id>, package://<pkg>/<path>).
+    if (
+      apiKey &&
+      context?.resolveAssetBytes &&
+      (uri.startsWith("asset://") || uri.startsWith("package://"))
+    ) {
+      const { bytes } = await context.resolveAssetBytes(uri);
+      if (bytes) {
+        return uploadBytesToReplicate(
+          apiKey,
+          bytes,
+          inferMime(ref),
+          filenameForMime(inferMime(ref))
+        );
       }
     }
     // Local/relative paths: resolve via local server and upload

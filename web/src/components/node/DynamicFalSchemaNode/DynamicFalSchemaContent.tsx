@@ -15,10 +15,7 @@ export interface DynamicFalSchemaContentProps {
   data: NodeData;
   status?: string;
   workflowId: string;
-  showResultOverlay?: boolean;
   result?: unknown;
-  onShowInputs?: () => void;
-  onShowResults?: () => void;
 }
 
 /**

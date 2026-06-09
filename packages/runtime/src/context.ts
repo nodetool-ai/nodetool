@@ -42,6 +42,14 @@ const randomUUID = nodeCrypto?.randomUUID
         .slice(2, 10)}`;
     };
 
+/**
+ * `process` is undefined in browser/edge runtimes. Reading `process.env`
+ * directly there throws `ReferenceError`, so this context (constructed by the
+ * in-browser workflow runner too) reads env through this guard instead.
+ */
+const safeProcessEnv = (): Record<string, string | undefined> =>
+  typeof process !== "undefined" && process.env ? process.env : {};
+
 // Eager local bindings; unavailable off-Node, throw at call time.
 function notOnNode(api: string): never {
   throw new Error(
@@ -321,6 +329,20 @@ export interface ProcessingContextModelInterfaces {
 function isWithinRoot(root: string, target: string): boolean {
   const rel = relative(root, target);
   return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+}
+
+/**
+ * Normalize the image input for image-to-image / image-to-video predictions
+ * into a list of byte buffers. Accepts the modern `images` array as well as
+ * the legacy singular `image` field so older callers keep working.
+ */
+function coerceImageList(params: Record<string, unknown>): Uint8Array[] {
+  const list = params.images;
+  if (Array.isArray(list)) {
+    return list.filter((b): b is Uint8Array => b instanceof Uint8Array);
+  }
+  const single = params.image;
+  return single instanceof Uint8Array ? [single] : [];
 }
 
 function normalizeStorageKey(key: string): string {
@@ -919,7 +941,7 @@ export class ProcessingContext {
     }
     this._variables = { ...(opts.variables ?? {}) };
     const env: Record<string, string> = {};
-    for (const [k, v] of Object.entries(process.env)) {
+    for (const [k, v] of Object.entries(safeProcessEnv())) {
       if (typeof v === "string") env[k] = v;
     }
     this.environment = { ...env, ...(opts.environment ?? {}) };
@@ -1856,7 +1878,7 @@ export class ProcessingContext {
     // HTTP fallback: the server streams bytes at `/api/storage/<key>`.
     let baseUrl =
       this.environment.NODETOOL_API_URL ??
-      process.env.NODETOOL_API_URL ??
+      safeProcessEnv().NODETOOL_API_URL ??
       "http://localhost:7777";
     while (baseUrl.endsWith("/")) {
       baseUrl = baseUrl.slice(0, -1);
@@ -2175,7 +2197,7 @@ export class ProcessingContext {
           quality: params.quality as string | undefined
         });
       case "image_to_image":
-        return provider.imageToImage(params.image as Uint8Array, {
+        return provider.imageToImage(coerceImageList(params), {
           prompt: String(params.prompt ?? ""),
           model: { id: req.model, name: req.model, provider: req.provider },
           negativePrompt: params.negative_prompt as string | undefined,
@@ -2197,7 +2219,7 @@ export class ProcessingContext {
           resolution: params.resolution as string | undefined
         });
       case "image_to_video":
-        return provider.imageToVideo(params.image as Uint8Array, {
+        return provider.imageToVideo(coerceImageList(params), {
           prompt: params.prompt as string | undefined,
           model: { id: req.model, name: req.model, provider: req.provider },
           negativePrompt: params.negative_prompt as string | undefined,

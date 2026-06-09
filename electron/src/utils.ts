@@ -28,14 +28,14 @@ async function checkPermissions(
     await fs.access(path, mode);
     return { accessible: true, error: null };
   } catch (error: unknown) {
-    const nodeErr = error as NodeJS.ErrnoException;
     let errorMsg = `Cannot access ${path}: `;
-    if (nodeErr.code === "ENOENT") {
+    const code = error instanceof Error && "code" in error ? (error as NodeJS.ErrnoException).code : undefined;
+    if (code === "ENOENT") {
       errorMsg += "File/directory does not exist";
-    } else if (nodeErr.code === "EACCES") {
+    } else if (code === "EACCES") {
       errorMsg += "Permission denied";
     } else {
-      errorMsg += nodeErr.message ?? String(error);
+      errorMsg += error instanceof Error ? error.message : String(error);
     }
     return { accessible: false, error: errorMsg };
   }

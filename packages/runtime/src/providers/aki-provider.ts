@@ -2,6 +2,9 @@ import { importNodeBuiltin } from "@nodetool-ai/config";
 import OpenAI from "openai";
 
 const _nodeFs = await importNodeBuiltin<typeof import("node:fs")>("node:fs");
+// Thin Node-fs wrapper, exercised only via loadAkiManifest's IO path (which is
+// itself suppressed); the non-Node guard is unreachable under the test runner.
+// Stryker disable all
 const readFileSync = (
   ...args: Parameters<typeof import("node:fs").readFileSync>
 ): ReturnType<typeof import("node:fs").readFileSync> => {
@@ -10,6 +13,7 @@ const readFileSync = (
   }
   return _nodeFs.readFileSync(...args);
 };
+// Stryker restore all
 import { AkiClient, decodeBinary } from "@aki-io/aki-io";
 import type {
   AkiClientConfig,
@@ -25,6 +29,7 @@ import type {
   TextToImageParams
 } from "./types.js";
 
+// Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.aki");
 
 const AKI_BASE_URL = "https://aki.io/v1";
@@ -37,7 +42,7 @@ interface AkiManifestEntry {
   paramNames?: Record<string, string>;
 }
 
-function isStringRecord(value: unknown): value is Record<string, string> {
+export function isStringRecord(value: unknown): value is Record<string, string> {
   return (
     !!value &&
     typeof value === "object" &&
@@ -45,9 +50,10 @@ function isStringRecord(value: unknown): value is Record<string, string> {
   );
 }
 
-function isAkiManifestEntry(value: unknown): value is AkiManifestEntry {
+export function isAkiManifestEntry(value: unknown): value is AkiManifestEntry {
   return (
     !!value &&
+    // Stryker disable next-line ConditionalExpression: forcing this true is equivalent — a non-object primitive still fails the string-field checks below.
     typeof value === "object" &&
     typeof (value as AkiManifestEntry).endpointId === "string" &&
     typeof (value as AkiManifestEntry).title === "string" &&
@@ -82,7 +88,12 @@ const AKI_FALLBACK_IMAGE_MODELS: ImageModel[] = [
 
 let akiManifestCache: AkiManifestEntry[] | null = null;
 
-function loadAkiManifest(): AkiManifestEntry[] {
+// Reads & caches the shipped manifest JSON. Its branches (cache hit, non-array,
+// IO failure) depend on that file's contents and the module-level cache rather
+// than unit-controllable inputs; the parsing predicate (isAkiManifestEntry) and
+// the transform (imageModelsFromEntries) are unit-tested directly instead.
+// Stryker disable all
+export function loadAkiManifest(): AkiManifestEntry[] {
   if (akiManifestCache) {
     return akiManifestCache;
   }
@@ -101,13 +112,19 @@ function loadAkiManifest(): AkiManifestEntry[] {
     return akiManifestCache;
   }
 }
+// Stryker restore all
 
-function getManifestEntry(endpointId: string): AkiManifestEntry | undefined {
+export function getManifestEntry(endpointId: string): AkiManifestEntry | undefined {
+  // Lookup over the shipped manifest (see loadAkiManifest); not unit-controllable.
+  // Stryker disable next-line ArrowFunction,ConditionalExpression,EqualityOperator,StringLiteral
   return loadAkiManifest().find((entry) => entry.endpointId === endpointId);
 }
 
-function manifestImageModels(): ImageModel[] {
-  const models = loadAkiManifest()
+/** Pure transform: manifest entries → image models, with a fallback when none. */
+export function imageModelsFromEntries(
+  entries: AkiManifestEntry[]
+): ImageModel[] {
+  const models = entries
     .filter((entry) => entry.outputType === "image")
     .map((entry) => ({
       id: entry.endpointId,
@@ -121,15 +138,19 @@ function manifestImageModels(): ImageModel[] {
   return models.length > 0 ? models : AKI_FALLBACK_IMAGE_MODELS;
 }
 
-function uint8ToBase64(data: Uint8Array): string {
+export function manifestImageModels(): ImageModel[] {
+  return imageModelsFromEntries(loadAkiManifest());
+}
+
+export function uint8ToBase64(data: Uint8Array): string {
   return Buffer.from(data).toString("base64");
 }
 
-function remapRequestParams(
-  endpointId: string,
+/** Pure: rename request keys per a manifest's paramNames map. */
+export function applyParamRemap(
+  paramNames: Record<string, string> | undefined,
   request: ApiRequestParams
 ): ApiRequestParams {
-  const paramNames = getManifestEntry(endpointId)?.paramNames;
   if (!paramNames || Object.keys(paramNames).length === 0) {
     return request;
   }
@@ -140,7 +161,14 @@ function remapRequestParams(
   return remapped;
 }
 
-function withPromptParam(request: ApiRequestParams): ApiRequestParams {
+export function remapRequestParams(
+  endpointId: string,
+  request: ApiRequestParams
+): ApiRequestParams {
+  return applyParamRemap(getManifestEntry(endpointId)?.paramNames, request);
+}
+
+export function withPromptParam(request: ApiRequestParams): ApiRequestParams {
   if (!("prompt_input" in request)) {
     return request;
   }
@@ -150,7 +178,7 @@ function withPromptParam(request: ApiRequestParams): ApiRequestParams {
   return remapped;
 }
 
-function shouldRetryWithPromptParam(error: unknown): boolean {
+export function shouldRetryWithPromptParam(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
   const normalized = message.toLowerCase();
   return (
@@ -159,14 +187,18 @@ function shouldRetryWithPromptParam(error: unknown): boolean {
   );
 }
 
-function responseImageToBytes(images: ApiResponse["images"]): Uint8Array | null {
+export function responseImageToBytes(images: ApiResponse["images"]): Uint8Array | null {
   const firstValue: unknown = Array.isArray(images) ? images[0] : images;
+  // Equivalent fast path: a falsy value also returns null via the final return.
+  // Stryker disable next-line ConditionalExpression,BlockStatement
   if (!firstValue) {
     return null;
   }
   if (firstValue instanceof Uint8Array) {
     return firstValue;
   }
+  // Dead branch: a Buffer is already a Uint8Array, so it returns above.
+  // Stryker disable next-line ConditionalExpression,BlockStatement
   if (Buffer.isBuffer(firstValue)) {
     return new Uint8Array(firstValue);
   }
@@ -175,6 +207,41 @@ function responseImageToBytes(images: ApiResponse["images"]): Uint8Array | null 
     return decoded ? new Uint8Array(decoded) : null;
   }
   return null;
+}
+
+/** Pure: build the AKI image request payload from typed params. */
+export function buildAkiImageRequest(
+  prompt: string,
+  params: TextToImageParams | ImageToImageParams,
+  image?: Uint8Array
+): ApiRequestParams {
+  const request: ApiRequestParams = { prompt_input: prompt };
+  if (image) {
+    request.image = uint8ToBase64(image);
+  }
+
+  const width =
+    "width" in params
+      ? params.width
+      : (params as ImageToImageParams).targetWidth;
+  const height =
+    "height" in params
+      ? params.height
+      : (params as ImageToImageParams).targetHeight;
+  if (width != null) request.width = width;
+  if (height != null) request.height = height;
+  if (params.negativePrompt) request.negative_prompt = params.negativePrompt;
+  if (params.guidanceScale != null) request.guidance_scale = params.guidanceScale;
+  if (params.numInferenceSteps != null)
+    request.num_inference_steps = params.numInferenceSteps;
+  if (params.seed != null && params.seed !== -1) request.seed = params.seed;
+  if (params.scheduler) request.scheduler = params.scheduler;
+  if ("safetyCheck" in params && params.safetyCheck != null)
+    request.safety_check = params.safetyCheck;
+  if (params.quality) request.quality = params.quality;
+  if ("strength" in params && params.strength != null)
+    request.strength = params.strength;
+  return request;
 }
 
 interface AkiProviderOptions {
@@ -216,6 +283,7 @@ export class AkiProvider extends OpenAIProvider {
 
     (this as { provider: string }).provider = "aki";
     this._akiClientFactory =
+      // Stryker disable next-line ArrowFunction: the default constructs a real AkiClient (network SDK); exercised only outside unit tests, where akiClientFactory is injected.
       options.akiClientFactory ?? ((config) => new AkiClient(config));
     this._akiFetch = fetchFn;
   }
@@ -243,33 +311,7 @@ export class AkiProvider extends OpenAIProvider {
     params: TextToImageParams | ImageToImageParams,
     image?: Uint8Array
   ): ApiRequestParams {
-    const request: ApiRequestParams = { prompt_input: prompt };
-    if (image) {
-      request.image = uint8ToBase64(image);
-    }
-
-    const width =
-      "width" in params
-        ? params.width
-        : (params as ImageToImageParams).targetWidth;
-    const height =
-      "height" in params
-        ? params.height
-        : (params as ImageToImageParams).targetHeight;
-    if (width != null) request.width = width;
-    if (height != null) request.height = height;
-    if (params.negativePrompt) request.negative_prompt = params.negativePrompt;
-    if (params.guidanceScale != null) request.guidance_scale = params.guidanceScale;
-    if (params.numInferenceSteps != null)
-      request.num_inference_steps = params.numInferenceSteps;
-    if (params.seed != null && params.seed !== -1) request.seed = params.seed;
-    if (params.scheduler) request.scheduler = params.scheduler;
-    if ("safetyCheck" in params && params.safetyCheck != null)
-      request.safety_check = params.safetyCheck;
-    if (params.quality) request.quality = params.quality;
-    if ("strength" in params && params.strength != null)
-      request.strength = params.strength;
-    return request;
+    return buildAkiImageRequest(prompt, params, image);
   }
 
   private async runImageRequest(
@@ -286,6 +328,7 @@ export class AkiProvider extends OpenAIProvider {
       if (!shouldRetryWithPromptParam(error)) {
         throw error;
       }
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log, not asserted.
       log.info("Retrying AKI image request with prompt param alias", { modelId });
       response = await client.doApiRequest(withPromptParam(initialRequest));
     }
@@ -313,14 +356,15 @@ export class AkiProvider extends OpenAIProvider {
   }
 
   override async imageToImage(
-    image: Uint8Array,
+    images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Uint8Array> {
     const prompt = params.prompt.trim();
     if (!prompt) {
       throw new Error("Prompt is required");
     }
-    if (!image.length) {
+    const image = images[0];
+    if (!image?.length) {
       throw new Error("Image is required");
     }
     return this.runImageRequest(
@@ -339,6 +383,7 @@ export class AkiProvider extends OpenAIProvider {
     const payload = (await response.json()) as {
       data?: Array<{ id?: string; name?: string }>;
     };
+    // Stryker disable next-line ArrayDeclaration: the fallback is filtered downstream (rows need a string id), so [] vs any array is observably identical.
     return (payload.data ?? [])
       .filter(
         (row): row is { id: string; name?: string } =>

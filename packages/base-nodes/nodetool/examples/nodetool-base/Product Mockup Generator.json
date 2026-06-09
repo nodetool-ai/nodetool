@@ -160,9 +160,10 @@
       },
       {
         "id": "2",
-        "type": "lib.image.enhance.Contrast",
+        "type": "lib.image.color.BrightnessContrast",
         "data": {
-          "factor": 1.1
+          "brightness": 0,
+          "contrast": 1.1
         },
         "ui_properties": {
           "position": {
@@ -180,9 +181,10 @@
       },
       {
         "id": "3",
-        "type": "lib.image.enhance.Brightness",
+        "type": "lib.image.color.BrightnessContrast",
         "data": {
-          "factor": 1.05
+          "brightness": 0.025,
+          "contrast": 1.05
         },
         "ui_properties": {
           "position": {

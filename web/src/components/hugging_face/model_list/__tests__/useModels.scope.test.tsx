@@ -37,7 +37,13 @@ const wrapper = ({ children }: { children: React.ReactNode }) => {
 beforeEach(() => {
   mockAll.mockReset().mockResolvedValue([]);
   mockHuggingfaceList.mockReset().mockResolvedValue([
-    { id: "org/m", name: "org/m", repo_id: "org/m", downloaded: true }
+    {
+      id: "org/m",
+      name: "org/m",
+      repo_id: "org/m",
+      type: "hf.text_generation",
+      downloaded: true
+    }
   ]);
   useHfCacheStatusStore.setState({ statuses: {} });
   useModelManagerStore.setState({
@@ -71,6 +77,7 @@ describe("useModels scope", () => {
       id: "org/m",
       name: "org/m",
       repo_id: "org/m",
+      type: "hf.text_generation",
       downloaded: true
     };
     mockHuggingfaceList.mockResolvedValue([model]);
@@ -94,6 +101,7 @@ describe("useModels scope", () => {
       id: "org/m",
       name: "org/m",
       repo_id: "org/m",
+      type: "hf.text_generation",
       downloaded: true
     };
     mockAll.mockResolvedValue([model]);

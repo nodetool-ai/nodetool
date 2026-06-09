@@ -1,4 +1,13 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
+
+const mockFilesCreate = vi.fn();
+
+vi.mock("replicate", () => ({
+  default: class {
+    files = { create: mockFilesCreate };
+  }
+}));
+
 import {
   getReplicateApiKey,
   removeNulls,
@@ -171,6 +180,29 @@ describe("assetToUrl", () => {
   it("passes through data URIs", async () => {
     const dataUri = "data:image/png;base64,abc123";
     expect(await assetToUrl({ uri: dataUri })).toBe(dataUri);
+  });
+
+  it("resolves asset:// refs via context.resolveAssetBytes and uploads them", async () => {
+    mockFilesCreate.mockResolvedValueOnce({
+      urls: { get: "https://replicate.delivery/uploaded/asset-123.png" }
+    });
+
+    const ctx = {
+      storage: { retrieve: vi.fn().mockResolvedValue(null) },
+      resolveAssetBytes: vi
+        .fn()
+        .mockResolvedValue({ bytes: Uint8Array.from([137, 80, 78, 71]) })
+    };
+
+    const result = await assetToUrl(
+      { type: "image", uri: "asset://asset-123" },
+      "api-key",
+      ctx
+    );
+
+    expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://asset-123");
+    expect(result).toBe("https://replicate.delivery/uploaded/asset-123.png");
+    expect(result).not.toBe("asset://asset-123");
   });
 });
 

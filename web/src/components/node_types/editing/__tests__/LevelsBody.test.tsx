@@ -34,14 +34,12 @@ jest.mock("../../../../hooks/nodes/useBespokePropertyWriter", () => ({
   }))
 }));
 
-jest.mock("../../../../stores/ResultsStore", () => ({
+// The node body reads its own settled output via `useNodeOutput`, which resolves
+// the node's current generation. Mock that boundary directly.
+let mockNodeOutput: unknown = undefined;
+jest.mock("../../../../hooks/nodes/useNodeIO", () => ({
   __esModule: true,
-  default: jest.fn((selector: any) =>
-    selector({
-      getOutputResult: () => undefined,
-      getResult: () => undefined
-    })
-  )
+  useNodeOutput: () => mockNodeOutput
 }));
 
 jest.mock("../../../../utils/histogram/histogramAsync", () => ({
@@ -85,6 +83,7 @@ const renderWithTheme = (ui: React.ReactElement) =>
 describe("LevelsBody", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockNodeOutput = undefined;
   });
 
   it("renders dropzone when no image is connected", () => {
@@ -93,16 +92,7 @@ describe("LevelsBody", () => {
   });
 
   it("renders with an image result", () => {
-    const mockGetResult = jest.fn(() => ({
-      output: { uri: "http://example.com/image.png" }
-    }));
-    require("../../../../stores/ResultsStore").default.mockImplementation(
-      (selector: any) =>
-        selector({
-          getOutputResult: () => undefined,
-          getResult: mockGetResult
-        })
-    );
+    mockNodeOutput = { uri: "http://example.com/image.png" };
 
     renderWithTheme(<LevelsBody {...defaultProps} />);
     expect(document.querySelector(".levels-body")).toBeInTheDocument();

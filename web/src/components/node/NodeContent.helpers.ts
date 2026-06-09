@@ -9,10 +9,6 @@ export interface NodeContentProps {
   data: NodeData;
   status?: string;
   workflowId: string;
-  showResultOverlay: boolean;
-  result: unknown;
-  onShowInputs: () => void;
-  onShowResults?: () => void;
 }
 
 /**
@@ -29,8 +25,7 @@ export const arePropsEqual = (
     prevProps.nodeType !== nextProps.nodeType ||
     prevProps.isOutputNode !== nextProps.isOutputNode ||
     prevProps.status !== nextProps.status ||
-    prevProps.workflowId !== nextProps.workflowId ||
-    prevProps.showResultOverlay !== nextProps.showResultOverlay
+    prevProps.workflowId !== nextProps.workflowId
   ) {
     return false;
   }
@@ -147,20 +142,6 @@ export const arePropsEqual = (
     nextProps.data.dynamic_outputs || {}
   );
   if (prevDynamicOutputsKeys.length !== nextDynamicOutputsKeys.length) {
-    return false;
-  }
-
-  // Results from the store are always a new reference when they change,
-  // so reference equality is both correct and avoids O(n) key enumeration.
-  if (prevProps.result !== nextProps.result) {
-    return false;
-  }
-
-  // Functions should be stable references, but check them anyway
-  if (
-    prevProps.onShowInputs !== nextProps.onShowInputs ||
-    prevProps.onShowResults !== nextProps.onShowResults
-  ) {
     return false;
   }
 

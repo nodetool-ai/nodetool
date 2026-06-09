@@ -22,9 +22,12 @@ import type {
 } from "@nodetool-ai/protocol";
 import { EMPTY_LINEAGE } from "@nodetool-ai/protocol";
 
+// Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
 const log = createLogger("nodetool.kernel.actor");
 import type { ProcessingContext, NodeExecutor } from "@nodetool-ai/runtime";
-import { withNodeSpan } from "@nodetool-ai/runtime";
+// Span helpers via the narrow `/tracing` subpath — keeps the runtime
+// provider / python-bridge barrel out of thin (browser) bundles.
+import { withNodeSpan } from "@nodetool-ai/runtime/tracing";
 import { NodeInbox, type MessageEnvelope } from "./inbox.js";
 import { NodeInputs, NodeOutputs } from "./io.js";
 import type { NodeAnalysis } from "./correlation-analysis.js";
@@ -55,7 +58,7 @@ export type { NodeExecutor };
  * Canonical lineage keys join `root=index` pairs with `,`. To compute the
  * parent key for a shorter scope, take the first `prefixLength` pairs.
  */
-function trimKey(key: string, prefixLength: number): string {
+export function trimKey(key: string, prefixLength: number): string {
   if (prefixLength === 0) return "";
   if (key === "") return "";
   const parts = key.split(",");
@@ -68,7 +71,7 @@ function trimKey(key: string, prefixLength: number): string {
  * `parentLength`) equals `parentKey`. Used when a strict-prefix sticky
  * arrival can unblock pending child firings.
  */
-function enumerateCandidateKeysForParent(
+export function enumerateCandidateKeysForParent(
   maxBuckets: ReadonlyMap<string, ReadonlyMap<string, ReadonlyArray<unknown>>>,
   _dataHandles: ReadonlyArray<string>,
   _handleClass: ReadonlyMap<string, "max" | "prefix" | "empty">,
@@ -91,7 +94,7 @@ function enumerateCandidateKeysForParent(
   return out;
 }
 
-function enumerateAllPendingKeys(
+export function enumerateAllPendingKeys(
   maxBuckets: ReadonlyMap<string, ReadonlyMap<string, ReadonlyArray<unknown>>>
 ): string[] {
   const seen = new Set<string>();
@@ -216,6 +219,7 @@ export class NodeActor {
    */
   async run(): Promise<ActorResult> {
     return withNodeSpan(
+      // Stryker disable next-line ObjectLiteral: OpenTelemetry span attributes are observability, not a behavioural contract
       { nodeId: this.node.id, nodeType: this.node.type },
       () => this._runImpl()
     );
@@ -225,6 +229,7 @@ export class NodeActor {
     let errorMessage: string | undefined;
     this._executionContext?.clearProviderCost?.();
     try {
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.debug("Actor started", {
         nodeId: this.node.id,
         type: this.node.type
@@ -325,6 +330,7 @@ export class NodeActor {
       }
     } catch (err) {
       errorMessage = err instanceof Error ? err.message : String(err);
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.error("Actor failed", {
         nodeId: this.node.id,
         type: this.node.type,
@@ -346,6 +352,7 @@ export class NodeActor {
       return { outputs: {}, error: errorMessage };
     }
 
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
     log.debug("Actor completed", {
       nodeId: this.node.id,
       type: this.node.type
@@ -855,6 +862,7 @@ export class NodeActor {
       inputs = { ...inputs, _control_context: this._controlContext };
     }
 
+    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
     log.info("Executing node", {
       nodeId: this.node.id,
       type: this.node.type,

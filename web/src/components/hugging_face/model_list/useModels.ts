@@ -15,7 +15,25 @@ import type {
 import { useQuery } from "@tanstack/react-query";
 import { openInExplorer, openOllamaPath } from "../../../utils/fileExplorer";
 import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
-import { getHfCacheKey } from "../../../utils/hfCache";
+import { getHfCacheKey, isHfModel } from "../../../utils/hfCache";
+import { isLocalProvider } from "../../../utils/providerDisplay";
+
+/**
+ * The Models Manager only lists models that live on disk: downloadable
+ * HuggingFace / transformers.js repos and local runtimes (Ollama, llama.cpp,
+ * MLX). Cloud API models (OpenAI, Anthropic, …) are configured via API keys
+ * rather than downloaded, so they don't belong here.
+ */
+export const isManageableModel = (model: UnifiedModel): boolean => {
+  if (isHfModel(model)) {
+    return true;
+  }
+  const type = model.type ?? "";
+  if (type === "llama_model" || type.startsWith("tjs")) {
+    return true;
+  }
+  return isLocalProvider(model.provider ?? undefined);
+};
 
 const sortModels = (
   models: UnifiedModel[],
@@ -73,7 +91,7 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
   const useLocalCache = scope === "local";
 
   const {
-    data: allModels,
+    data: rawModels,
     isLoading,
     isFetching,
     error
@@ -87,6 +105,11 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
         : trpc.models.all.query(),
     refetchOnWindowFocus: false
   });
+
+  const allModels = useMemo(
+    () => rawModels?.filter(isManageableModel),
+    [rawModels]
+  );
 
   const groupedModels = useMemo(
     () => groupModelsByType(allModels || []),

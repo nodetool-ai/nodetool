@@ -25,7 +25,11 @@ const namespaceToSecretKey: Record<string, string> = {
   reve: "REVE_API_KEY",
   fal: "FAL_API_KEY",
   elevenlabs: "ELEVENLABS_API_KEY",
-  search: "SERPAPI_API_KEY"
+  search: "SERPAPI_API_KEY",
+  atlascloud: "ATLASCLOUD_API_KEY",
+  xai: "XAI_API_KEY",
+  together: "TOGETHER_API_KEY",
+  minimax: "MINIMAX_API_KEY"
 };
 
 // API-backed namespaces that currently do not require a dedicated key in this map.
@@ -57,7 +61,11 @@ const secretKeyToDisplayName: Record<string, string> = {
   REVE_API_KEY: "Reve API Key",
   FAL_API_KEY: "FAL API Key",
   ELEVENLABS_API_KEY: "ElevenLabs API Key",
-  SERPAPI_API_KEY: "SerpAPI Key"
+  SERPAPI_API_KEY: "SerpAPI Key",
+  ATLASCLOUD_API_KEY: "AtlasCloud API Key",
+  XAI_API_KEY: "xAI API Key",
+  TOGETHER_API_KEY: "Together API Key",
+  MINIMAX_API_KEY: "MiniMax API Key"
 };
 
 export const getRootNamespace = (namespace: string): string =>

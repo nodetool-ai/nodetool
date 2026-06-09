@@ -1012,6 +1012,9 @@ export class EmailAgentNode extends ToolAgentNode {
 
 export class FfmpegAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.FfmpegAgent";
+  // Produces real audio/video assets via set_output_audio/video; persist them
+  // on job completion like other generative media nodes.
+  static readonly autoSaveAsset = true;
   static readonly requiredRuntimes = ["ffmpeg"];
   static readonly title = "FFmpeg Agent";
   static readonly inlineFields = [];
@@ -1072,32 +1075,20 @@ export class FfmpegAgentNode extends ToolAgentNode {
   declare model: any;
 
   @prop({
-    type: "audio",
-    default: {
-      type: "audio",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
+    type: "list[audio]",
+    default: [],
     title: "Audio",
-    description: "Optional audio input for media reasoning tasks."
+    description:
+      "Optional audio inputs for media reasoning tasks. Accepts a list, or a single Audio (auto-wrapped)."
   })
   declare audio: any;
 
   @prop({
-    type: "video",
-    default: {
-      type: "video",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null,
-      duration: null,
-      format: null
-    },
+    type: "list[video]",
+    default: [],
     title: "Video",
-    description: "Optional video input for media reasoning tasks."
+    description:
+      "Optional video inputs for media reasoning tasks. Accepts a list, or a single Video (auto-wrapped)."
   })
   declare video: any;
 
@@ -1411,6 +1402,10 @@ export class HttpApiAgentNode extends ToolAgentNode {
 
 export class ImageAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.ImageAgent";
+  // Produces a real image asset via set_output_image; persist it on job
+  // completion (assets table, tagged node_id+job_id) like other generative
+  // media nodes, so it survives reload and appears in node history.
+  static readonly autoSaveAsset = true;
   static readonly title = "Image Agent";
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt", "image"];
@@ -1441,16 +1436,11 @@ export class ImageAgentNode extends ToolAgentNode {
   declare model: any;
 
   @prop({
-    type: "image",
-    default: {
-      type: "image",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Image",
-    description: "Optional image input for image reasoning tasks."
+    type: "list[image]",
+    default: [],
+    title: "Images",
+    description:
+      "Optional image inputs for image reasoning tasks. Accepts a list, or a single Image (auto-wrapped)."
   })
   declare image: any;
 
@@ -1489,6 +1479,9 @@ export class ImageAgentNode extends ToolAgentNode {
 
 export class MediaAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.MediaAgent";
+  // Produces real audio/video assets via set_output_audio/video; persist them
+  // on job completion like other generative media nodes.
+  static readonly autoSaveAsset = true;
   static readonly title = "Media Agent";
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt", "audio", "video"];
@@ -1525,32 +1518,20 @@ export class MediaAgentNode extends ToolAgentNode {
   declare model: any;
 
   @prop({
-    type: "audio",
-    default: {
-      type: "audio",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
+    type: "list[audio]",
+    default: [],
     title: "Audio",
-    description: "Optional audio input for media reasoning tasks."
+    description:
+      "Optional audio inputs for media reasoning tasks. Accepts a list, or a single Audio (auto-wrapped)."
   })
   declare audio: any;
 
   @prop({
-    type: "video",
-    default: {
-      type: "video",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null,
-      duration: null,
-      format: null
-    },
+    type: "list[video]",
+    default: [],
     title: "Video",
-    description: "Optional video input for media reasoning tasks."
+    description:
+      "Optional video inputs for media reasoning tasks. Accepts a list, or a single Video (auto-wrapped)."
   })
   declare video: any;
 
@@ -1942,6 +1923,9 @@ export class VectorStoreAgentNode extends ToolAgentNode {
 
 export class YtDlpDownloaderAgentNode extends ToolAgentNode {
   static readonly nodeType = "nodetool.agents.YtDlpDownloaderAgent";
+  // Produces a real downloaded video asset via set_output_video; persist it on
+  // job completion like other generative media nodes.
+  static readonly autoSaveAsset = true;
   static readonly title = "yt-dlp Downloader Agent";
   static readonly inlineFields = ["url"];
   static readonly inputFields: string[] = ["prompt"];

@@ -55,6 +55,12 @@ type CreateAssetFileOptions = {
   maxTextChars?: number;
 };
 
+function isDataFrame(value: unknown): value is DataFrame {
+  if (value === null || typeof value !== "object") return false;
+  const obj = value as Record<string, unknown>;
+  return Array.isArray(obj.columns) && Array.isArray(obj.data);
+}
+
 function isTypedOutput(output: unknown): output is TypedOutput {
   return (
     output !== null &&
@@ -89,7 +95,7 @@ const MIME_EXTENSION_MAP: Record<string, string> = {
 
 const convertDataFrameToCSV = (dataframe: DataFrame): string => {
   const headers = dataframe.columns.map((col) => col.name).join(",");
-  const rows = dataframe.data.map((row) => (row as string[]).join(",")).join("\n");
+  const rows = dataframe.data.map((row) => row.map(String).join(",")).join("\n");
   return `${headers}\n${rows}`;
 };
 
@@ -466,7 +472,7 @@ const createSingleAssetFile = async (
     typeof data === "string" &&
     (data.startsWith("http://") || data.startsWith("https://"));
 
-  const typedOutput = output && typeof output === "object" ? output as TypedOutput : null;
+  const typedOutput = isTypedOutput(output) ? output : null;
   const outputUri = typeof typedOutput?.uri === "string" ? typedOutput.uri : undefined;
   const isAssetUri = typeof outputUri === "string" && outputUri.startsWith("asset://");
   let desiredFilename = typedOutput?.filename;
@@ -526,8 +532,8 @@ const createSingleAssetFile = async (
       const bytes = toUint8Array(data);
       if (bytes.length === 0) {
         console.warn("[createAssetFile] image bytes empty — uploaded file will be 0 bytes", {
-          uri: (output as TypedOutput | null)?.uri ?? null,
-          asset_id: (output as TypedOutput | null)?.asset_id ?? null
+          uri: isTypedOutput(output) ? (output.uri ?? null) : null,
+          asset_id: isTypedOutput(output) ? (output.asset_id ?? null) : null
         });
       }
       content = toArrayBuffer(bytes);
@@ -549,7 +555,11 @@ const createSingleAssetFile = async (
       break;
     }
     case "dataframe":
-      content = convertDataFrameToCSV(data as DataFrame);
+      if (isDataFrame(data)) {
+        content = convertDataFrameToCSV(data);
+      } else {
+        content = JSON.stringify(data, null, 2);
+      }
       mimeType = "text/csv";
       filename = buildFilename(desiredFilename, id, suffix, "csv", index);
       break;
@@ -611,10 +621,10 @@ const unwrapNamedOutputs = (output: AssetOutput): AssetOutput | AssetOutput[] =>
     return output;
   }
   const typedValues = values.filter(
-    (v) => v !== null && typeof v === "object" && !Array.isArray(v) && "type" in (v as object)
+    (v): v is TypedOutput => v !== null && typeof v === "object" && !Array.isArray(v) && "type" in v
   );
   if (typedValues.length === values.length) {
-    return typedValues as AssetOutput[];
+    return typedValues;
   }
   return output;
 };

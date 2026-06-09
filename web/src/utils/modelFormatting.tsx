@@ -1,8 +1,9 @@
+import type { JSX } from "react";
 import { UnifiedModel } from "../stores/ApiTypes";
 import ModelIcon from "../icons/data_types/nodetool/model.svg";
 import PetsIcon from "@mui/icons-material/Pets";
 
-export const prettifyModelType = (type: string) => {
+export const prettifyModelType = (type: string): JSX.Element | string => {
   if (type === "All") {return type;}
 
   if (type === "llama_model") {
@@ -84,18 +85,19 @@ export const formatBytes = (bytes?: number): string => {
   return parseFloat((bytes / Math.pow(bytesPerKilobyte, sizeIndex)).toFixed(decimalPlaces)) + " " + sizes[sizeIndex];
 };
 
-export const groupModelsByType = (models: UnifiedModel[]) => {
-  return models.reduce((acc, model) => {
+export const groupModelsByType = (models: UnifiedModel[]): Record<string, UnifiedModel[]> => {
+  const grouped: Record<string, UnifiedModel[]> = {};
+  for (const model of models) {
     const type = model.type || "Other";
-    if (!acc[type]) {
-      acc[type] = [];
+    if (!grouped[type]) {
+      grouped[type] = [];
     }
-    acc[type].push(model);
-    return acc;
-  }, {} as Record<string, UnifiedModel[]>);
+    grouped[type].push(model);
+  }
+  return grouped;
 };
 
-export const sortModelTypes = (types: string[]) => {
+export const sortModelTypes = (types: string[]): string[] => {
   const getOrder = (type: string) => {
     switch (type) {
       case "All":

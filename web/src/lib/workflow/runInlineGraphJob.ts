@@ -5,6 +5,10 @@ import { uuidv4 } from "../../stores/uuidv4";
 import { BASE_URL } from "../../stores/BASE_URL";
 import useMetadataStore from "../../stores/MetadataStore";
 import type { Edge, Node, WorkflowGraph } from "../../stores/ApiTypes";
+import {
+  canRunGraphInBrowserSync,
+  runBrowserGraphJob
+} from "./browserWorkflowRunner";
 
 export type GraphNode = Node;
 export type GraphEdge = Edge;
@@ -64,6 +68,15 @@ export async function runInlineGraphJob(
 
   if (signal?.aborted) {
     return { success: false, outputs: {}, error: "Aborted" };
+  }
+
+  // Pure-browser sub-graphs run client-side with the same kernel runner and
+  // stream through the same protocol pipeline — no server round-trip. Anything
+  // referencing a server/Python node (or before the browser runner has warmed)
+  // falls through to the WebSocket path below unchanged — the sync check adds
+  // no latency to the server path.
+  if (canRunGraphInBrowserSync(graph)) {
+    return runBrowserGraphJob({ graph, params, signal, workflowId });
   }
 
   await globalWebSocketManager.ensureConnection();

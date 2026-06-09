@@ -20,7 +20,7 @@ interface WebSocketMessage {
 }
 
 function isWebSocketMessage(value: unknown): value is WebSocketMessage {
-  return typeof value === "object" && value !== null && typeof (value as Record<string, unknown>).type === "string";
+  return typeof value === "object" && value !== null && "type" in value && typeof value.type === "string";
 }
 
 interface WorkflowRunnerState {

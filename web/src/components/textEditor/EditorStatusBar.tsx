@@ -9,6 +9,16 @@ import LockIcon from "@mui/icons-material/Lock";
 interface EditorStatusBarProps {
   text: string;
   readOnly?: boolean;
+  /** Number of template variables detected in the document. */
+  varCount?: number;
+  /** Active editor language label (e.g. "Plain Text"). */
+  languageLabel?: string;
+  /** Current cursor position (1-based). Shown when available. */
+  cursor?: { line: number; column: number } | null;
+  /** Indent size in spaces, shown as "Spaces: n". */
+  indentSize?: number;
+  /** Character encoding label. */
+  encoding?: string;
 }
 
 const styles = (theme: Theme) =>
@@ -39,37 +49,40 @@ const styles = (theme: Theme) =>
     ".stats": {
       display: "flex",
       gap: "0.5em",
+      alignItems: "center"
+    },
+    ".stat-item": {
+      display: "flex",
       alignItems: "center",
-      ".stat-item": {
-        display: "flex",
-        alignItems: "center",
-        gap: "0.25em",
-        fontSize: theme.fontSizeSmaller,
-        textTransform: "uppercase",
-        letterSpacing: "0.04em",
-        ".label": {
-          fontWeight: 400,
-          opacity: 0.7
-        },
-        ".value": {
-          color: theme.vars.palette.grey[100],
-          fontWeight: 600
-        }
+      gap: "0.25em",
+      fontSize: theme.fontSizeSmaller,
+      textTransform: "uppercase",
+      letterSpacing: "0.04em",
+      ".label": {
+        fontWeight: 400,
+        opacity: 0.7
       },
-      ".stat-dot": {
-        width: "3px",
-        height: "3px",
-        borderRadius: "var(--rounded-circle)",
-        backgroundColor: `rgba(${theme.vars.palette.common.whiteChannel} / 0.15)`,
-        flexShrink: 0
+      ".value": {
+        color: theme.vars.palette.grey[100],
+        fontWeight: 600
       }
+    },
+    ".stat-dot": {
+      width: "3px",
+      height: "3px",
+      borderRadius: "var(--rounded-circle)",
+      backgroundColor: `rgba(${theme.vars.palette.common.whiteChannel} / 0.15)`,
+      flexShrink: 0
     },
     ".status-info": {
       display: "flex",
       alignItems: "center",
-      gap: "0.35em",
+      gap: "0.85em",
       color: theme.vars.palette.grey[400],
-      fontSize: theme.fontSizeTiny
+      fontSize: theme.fontSizeTiny,
+      ".info-item": {
+        whiteSpace: "nowrap"
+      }
     },
     ".read-only-badge": {
       display: "inline-flex",
@@ -84,16 +97,23 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.warning.main,
       backgroundColor: `rgba(${theme.vars.palette.warning.mainChannel} / 0.08)`,
       border: `1px solid rgba(${theme.vars.palette.warning.mainChannel} / 0.15)`,
-      "svg": {
+      svg: {
         fontSize: "var(--fontSizeSmaller)"
       }
     }
   });
 
-const EditorStatusBar = ({ text, readOnly = false }: EditorStatusBarProps) => {
+const EditorStatusBar = ({
+  text,
+  readOnly = false,
+  varCount,
+  languageLabel,
+  cursor,
+  indentSize = 2,
+  encoding = "UTF-8"
+}: EditorStatusBarProps) => {
   const theme = useTheme();
 
-  // Calculate text statistics
   const wordCount = text.trim() === "" ? 0 : text.trim().split(/\s+/).length;
   const charCount = text.length;
   const lineCount = text === "" ? 1 : text.split("\n").length;
@@ -115,6 +135,15 @@ const EditorStatusBar = ({ text, readOnly = false }: EditorStatusBarProps) => {
           <span className="label">Lines:</span>
           <span className="value">{lineCount.toLocaleString()}</span>
         </div>
+        {varCount !== undefined && (
+          <>
+            <span className="stat-dot" />
+            <div className="stat-item">
+              <span className="label">Vars:</span>
+              <span className="value">{varCount.toLocaleString()}</span>
+            </div>
+          </>
+        )}
       </div>
       <div className="status-info">
         {readOnly && (
@@ -123,6 +152,14 @@ const EditorStatusBar = ({ text, readOnly = false }: EditorStatusBarProps) => {
             Read-only
           </span>
         )}
+        {cursor && (
+          <span className="info-item">
+            Ln {cursor.line}, Col {cursor.column}
+          </span>
+        )}
+        {languageLabel && <span className="info-item">{languageLabel}</span>}
+        <span className="info-item">Spaces: {indentSize}</span>
+        <span className="info-item">{encoding}</span>
       </div>
     </Box>
   );

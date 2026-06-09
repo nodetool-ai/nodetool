@@ -23,6 +23,8 @@ import useWorkflowRunsStore, {
   type RunState
 } from "../../stores/WorkflowRunsStore";
 import { nodeKey } from "../../stores/nodeKey";
+import { useNodeGenerations } from "./useNodeGenerations";
+import { outputOf } from "../../utils/nodeGenerations";
 import type { PlanningUpdate, ProviderCost, Task, ToolCallUpdate } from "../../stores/ApiTypes";
 
 // ── Type re-exports (keep consumers from reaching into individual stores) ────
@@ -152,23 +154,17 @@ export function useNodeProviderCost(
 // ── Result value ─────────────────────────────────────────────────────────────
 
 /**
- * Reactive hook that returns the node result, preferring the output result
- * (from OutputUpdate messages) and falling back to the generic result, resolved
- * against the workflow's focused run.
- * This mirrors the `outputResults[key] ?? results[key]` pattern used in
- * BaseNode.tsx.
+ * Reactive hook that returns the node's own latest output value, resolved from
+ * its generation timeline (durable assets merged with the live buffer, honoring
+ * the node's persisted selection). Returns `undefined` when no generation has
+ * been produced yet.
  */
 export function useNodeResultValue(
   workflowId: string,
   nodeId: string
 ): unknown {
-  const jobId = useWorkflowRunsStore((s) => s.focusedJob[workflowId]);
-  return useResultsStore((s) =>
-    jobId
-      ? s.getOutputResult(workflowId, jobId, nodeId) ??
-        s.getResult(workflowId, jobId, nodeId)
-      : undefined
-  );
+  const { current } = useNodeGenerations(workflowId, nodeId);
+  return current ? outputOf(current) : undefined;
 }
 
 // ── Ambient liveness (other concurrent runs) ─────────────────────────────────
@@ -241,8 +237,8 @@ export function useNodeActiveRunCount(
  * that BaseNode.tsx uses to subscribe to these six maps in one subscription.
  *
  * Fields:
- *  - `result`         — `outputResults[key] ?? results[key]` (same as `useNodeResultValue`)
- *  - `output`         — raw `outputResults[key]`
+ *  - `result`         — the current generation's resolved value (same as `useNodeResultValue`)
+ *  - `output`         — the current generation's full `outputs` record
  *  - `chunk`          — accumulated text chunks
  *  - `task`           — latest Task object from the agent planner
  *  - `toolCall`       — latest ToolCallUpdate
@@ -259,28 +255,27 @@ export function useNodeArtifacts(
   toolCall: ToolCallUpdate | undefined;
   planningUpdate: PlanningUpdate | undefined;
 } {
+  // `result`/`output` resolve from the node's generation timeline (durable
+  // assets merged with the live buffer, honoring its selection) so previews
+  // don't blank when focus moves to a per-node run.
+  const { current } = useNodeGenerations(workflowId, nodeId);
+  // The live signals (chunk/task/toolCall/planning) stay scoped to the focused
+  // run — they only mean something for the run in progress.
   const jobId = useWorkflowRunsStore((s) => s.focusedJob[workflowId]);
-  return useResultsStore(
+  const transient = useResultsStore(
     useShallow((s) => {
-      if (!jobId) {
-        return {
-          result: undefined,
-          output: undefined,
-          chunk: undefined,
-          task: undefined,
-          toolCall: undefined,
-          planningUpdate: undefined
-        };
-      }
-      const key = nodeKey(workflowId, jobId, nodeId);
+      const key = jobId ? nodeKey(workflowId, jobId, nodeId) : undefined;
       return {
-        result: s.outputResults[key] ?? s.results[key],
-        output: s.outputResults[key],
-        chunk: s.chunks[key] as string | undefined,
-        task: s.tasks[key],
-        toolCall: s.toolCalls[key],
-        planningUpdate: s.planningUpdates[key]
+        chunk: key ? (s.chunks[key] as string | undefined) : undefined,
+        task: key ? s.tasks[key] : undefined,
+        toolCall: key ? s.toolCalls[key] : undefined,
+        planningUpdate: key ? s.planningUpdates[key] : undefined
       };
     })
   );
+  return {
+    result: current ? outputOf(current) : undefined,
+    output: current?.outputs,
+    ...transient
+  };
 }

@@ -14,6 +14,7 @@ import type {
   ProviderStreamItem
 } from "./types.js";
 
+// Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.voyage");
 
 const VOYAGE_API_BASE_URL = "https://api.voyageai.com/v1";
@@ -90,7 +91,9 @@ export class VoyageProvider extends BaseProvider {
     this.apiKey = secrets.VOYAGE_API_KEY ?? "";
     this._fetch = options.fetchFn ?? globalThis.fetch.bind(globalThis);
     this.inputType = options.inputType ?? "document";
+    // Stryker disable next-line ConditionalExpression,BlockStatement,BooleanLiteral,StringLiteral: diagnostic warn; missing-key is enforced at call time.
     if (!this.apiKey) {
+      // Stryker disable next-line StringLiteral
       log.warn("Voyage API key not configured");
     }
   }
@@ -139,6 +142,7 @@ export class VoyageProvider extends BaseProvider {
     if (this.inputType) {
       body.input_type = this.inputType;
     }
+    // Stryker disable next-line ConditionalExpression: true-branch is equivalent (JSON.stringify drops the undefined value); request shapes asserted in tests.
     if (args.dimensions) {
       body.output_dimension = args.dimensions;
     }
@@ -161,10 +165,17 @@ export class VoyageProvider extends BaseProvider {
       data?: Array<{ embedding: number[]; index?: number }>;
     };
 
-    const rows = data.data ?? [];
-    return rows
-      .slice()
-      .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
-      .map((row) => row.embedding);
+    return sortEmbeddingsByIndex(data.data ?? []);
   }
+}
+
+/** Pure: order embedding rows by their `index` (default 0) and project them. */
+export function sortEmbeddingsByIndex(
+  rows: Array<{ embedding: number[]; index?: number }>
+): number[][] {
+  // Stryker disable next-line MethodExpression: defensive copy; removing it sorts in place but returns the same order.
+  const ordered = rows.slice();
+  return ordered
+    .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
+    .map((row) => row.embedding);
 }

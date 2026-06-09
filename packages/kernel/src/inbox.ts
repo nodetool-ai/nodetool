@@ -18,19 +18,28 @@ import type {
   LineageScopeClosed
 } from "@nodetool-ai/protocol";
 
-const _nodeCrypto = await importNodeBuiltin<typeof import("node:crypto")>(
-  "node:crypto"
-);
+// Stryker disable next-line StringLiteral: module name; on failure importNodeBuiltin returns null and randomUUID falls back, so the literal is not behaviourally observable
+const _nodeCrypto = await importNodeBuiltin<typeof import("node:crypto")>("node:crypto");
 
-function randomUUID(): string {
-  if (_nodeCrypto?.randomUUID) return _nodeCrypto.randomUUID();
-  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
-  // Fallback for older browsers: RFC4122 v4 via Math.random
+/**
+ * RFC4122 v4 UUID derived from a `[0, 1)` random source. This is the fallback
+ * for runtimes without a native `crypto.randomUUID`. Exported so the bit-twiddling
+ * can be verified deterministically with a fixed `rand`.
+ */
+export function fallbackUuidV4(rand: () => number = Math.random): string {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
+    const r = (rand() * 16) | 0;
     const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
+}
+
+function randomUUID(): string {
+  // Stryker disable next-line ConditionalExpression,OptionalChaining: equivalent — _nodeCrypto and globalThis.crypto both yield a valid UUID, so which native source provides it is unobservable
+  if (_nodeCrypto?.randomUUID) return _nodeCrypto.randomUUID();
+  // Stryker disable next-line ConditionalExpression,OptionalChaining: equivalent — see above; in Node this branch is never reached because the line above returns
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return fallbackUuidV4();
 }
 import { EMPTY_LINEAGE } from "@nodetool-ai/protocol";
 import { tryProjectLineageKey, type Scope } from "./correlation-analysis.js";
@@ -100,6 +109,7 @@ export class NodeInbox {
   private _openCounts = new Map<string, number>();
 
   /** Global arrival order queue of handle names. */
+  // Stryker disable next-line ArrayDeclaration: a non-empty seed is equivalent — a bogus handle has no matching buffer entry and is skipped by tryPopAny's stale guard
   private _arrival: string[] = [];
 
   /** Optional per-handle buffer capacity. */
@@ -201,6 +211,7 @@ export class NodeInbox {
     if (this._bufferLimit !== null) {
       while (
         !this._closed &&
+        // Stryker disable next-line OptionalChaining: the buffer was auto-created above, so get(handle) is always defined here — the ?. is defensive
         (this._buffers.get(handle)?.length ?? 0) >= this._bufferLimit
       ) {
         const d = deferred<void>();
@@ -444,6 +455,7 @@ export class NodeInbox {
     while (this._arrival.length > 0) {
       const handle = this._arrival[0];
       const buf = this._buffers.get(handle);
+      // Stryker disable next-line ConditionalExpression,LogicalOperator,EqualityOperator: defensive stale guard — _removeFromArrival keeps the arrival queue in lock-step with buffers, so the head is always backed by a non-empty buffer; the empty/undefined case is unreachable
       if (buf && buf.length > 0) {
         this._arrival.shift();
         const envelope = buf.shift()!;
@@ -513,6 +525,7 @@ export class NodeInbox {
 
   private _isHandleDone(handle: string): boolean {
     const buf = this._buffers.get(handle);
+    // Stryker disable next-line ConditionalExpression,BooleanLiteral: equivalent — _isHandleDone is only consulted after the iterator's buffered-data branch, so `buf` is always empty here; forcing `empty` true changes nothing
     const empty = !buf || buf.length === 0;
     const noUpstream = (this._openCounts.get(handle) ?? 0) === 0;
     return empty && noUpstream;
@@ -547,6 +560,7 @@ export class NodeInbox {
    */
   private _removeFromArrival(handle: string): void {
     const idx = this._arrival.indexOf(handle);
+    // Stryker disable next-line ConditionalExpression: forcing this true is equivalent — _removeFromArrival is only called right after consuming a buffered item, so the handle is always present (idx >= 0); the guard is defensive against an idx === -1 that cannot occur
     if (idx >= 0) {
       this._arrival.splice(idx, 1);
     }

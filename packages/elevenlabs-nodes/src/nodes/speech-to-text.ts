@@ -97,7 +97,9 @@ export class SpeechToTextNode extends BaseNode {
   })
   declare file_format: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(
+    context?: Parameters<BaseNode["process"]>[0]
+  ): Promise<Record<string, unknown>> {
     const apiKey = getElevenLabsApiKey(this._secrets);
 
     const audio = this.audio as Record<string, unknown> | undefined;
@@ -117,7 +119,8 @@ export class SpeechToTextNode extends BaseNode {
     const diarize = Boolean(this.diarize ?? this.diarize ?? false);
     const fileFormat = String(this.file_format ?? this.file_format ?? "other");
 
-    // Get audio bytes from data URI or fetch from URI
+    // Get audio bytes from inline data, an asset/package ref resolved via the
+    // processing context, or a direct HTTP(S) fetch as a fallback.
     let audioBytes: Buffer;
     if (audio.data && typeof audio.data === "string") {
       const match = (audio.data as string).match(/^data:[^;]+;base64,(.+)$/);
@@ -127,10 +130,21 @@ export class SpeechToTextNode extends BaseNode {
         throw new Error("Invalid audio data URI");
       }
     } else if (audio.uri && typeof audio.uri === "string") {
-      const resp = await fetch(audio.uri as string);
-      if (!resp.ok)
-        throw new Error(`Failed to fetch audio: ${resp.statusText}`);
-      audioBytes = Buffer.from(await resp.arrayBuffer());
+      const uri = audio.uri;
+      if (/^https?:\/\//i.test(uri)) {
+        const resp = await fetch(uri);
+        if (!resp.ok)
+          throw new Error(`Failed to fetch audio: ${resp.statusText}`);
+        audioBytes = Buffer.from(await resp.arrayBuffer());
+      } else {
+        // asset://, package://, or any storage/relative URI — must be resolved
+        // through the processing context, not fetched directly.
+        const resolved = await context?.resolveAssetBytes?.(uri);
+        if (!resolved?.bytes) {
+          throw new Error(`Failed to resolve audio reference: ${uri}`);
+        }
+        audioBytes = Buffer.from(resolved.bytes);
+      }
     } else {
       throw new Error("Audio must have a data URI or uri field");
     }

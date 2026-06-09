@@ -25,11 +25,13 @@ function isPipPackageArray(value: unknown): value is PipPackage[] {
   return (
     Array.isArray(value) &&
     value.every(
-      (item) =>
+      (item): item is PipPackage =>
         typeof item === "object" &&
         item !== null &&
-        typeof (item as Record<string, unknown>).name === "string" &&
-        typeof (item as Record<string, unknown>).version === "string"
+        "name" in item &&
+        typeof item.name === "string" &&
+        "version" in item &&
+        typeof item.version === "string"
     )
   );
 }

@@ -253,7 +253,7 @@ function dedupeModels(models: UnifiedModel[]): UnifiedModel[] {
   const seen = new Set<string>();
   const deduped: UnifiedModel[] = [];
   for (const model of models) {
-    const key = `${model.repo_id ?? ""}::${model.path ?? ""}`;
+    const key = `${model.provider ?? ""}::${model.repo_id ?? model.id ?? ""}::${model.path ?? ""}`;
     if (!seen.has(key)) {
       seen.add(key);
       deduped.push(model);
@@ -640,7 +640,7 @@ function toUnifiedLanguageModel(
     name: model.name,
     provider: model.provider,
     repo_id: null,
-    path: model.id,
+    path: null,
     downloaded: model.provider === "ollama" || model.provider === "llama_cpp",
     tags: [model.provider],
     supports_tools: supportsTools ?? null
@@ -666,7 +666,7 @@ function toUnifiedModel(
     name: model.name,
     provider: model.provider,
     repo_id: null,
-    path: model.id,
+    path: null,
     downloaded: model.provider === "ollama" || model.provider === "llama_cpp",
     tags: [model.provider],
     voices: model.voices ?? null,

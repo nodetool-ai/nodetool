@@ -4,8 +4,10 @@
  *
  *  - `LEFT_PANEL_TOP_LEVEL`: one icon per top-level view shown in
  *    the vertical rail.
- *  - `NODE_SUBCATEGORIES` (8 entries): tile-grid sub-tabs nested inside the
- *    "Nodes" view. Each filters MetadataStore down to a node family.
+ *  - `NODE_SUBCATEGORIES`: tile-grid sub-tabs nested inside the
+ *    "Nodes" view. Each filters MetadataStore down to a node family. Media
+ *    families are split into non-AI (processing/editing) and AI (model)
+ *    variants — e.g. "Image" vs "Image AI".
  *
  * Order in each array drives display order.
  */
@@ -21,7 +23,7 @@ import MovieIcon from "@mui/icons-material/Movie";
 import BrushOutlinedIcon from "@mui/icons-material/BrushOutlined";
 import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import ViewInArIcon from "@mui/icons-material/ViewInAr";
-import BuildIcon from "@mui/icons-material/Build";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import LoginIcon from "@mui/icons-material/Login";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
@@ -33,6 +35,7 @@ import {
   getContentCardVariant,
   getPrimaryOutput
 } from "../components/node_types/contentCardRegistry";
+import { getRequiredSecretKeyForNamespace } from "../utils/nodeProvider";
 import type { LeftPanelView, NodeCategoryId } from "../stores/PanelStore";
 
 export interface LeftPanelTopLevelCategory {
@@ -55,62 +58,22 @@ const primaryVariantIs =
     return variants.includes(v);
   };
 
+const isImageOutput = primaryVariantIs("image", "image_mask");
+const isVideoOutput = primaryVariantIs("video");
+const isAudioOutput = primaryVariantIs("audio");
+const is3dOutput = primaryVariantIs("model_3d");
+
 /**
- * Tools sub-category: editing primitives (Levels, Crop, Channels, Blur,
- * Compositor, Painter, etc.) mapped to existing base-nodes.
+ * Treat a node as "AI" when it runs a model: either the backend marked it
+ * generative (`auto_save_asset` — set on TextToImage/ImageToImage/Upscale/
+ * RemoveBackground/Relight and the fal/kie/replicate factories) or it lives
+ * under a provider namespace that requires an API key (fal, replicate, openai,
+ * huggingface, elevenlabs, …). Everything else (Resize, Blur, Trim, Normalize,
+ * color grading, mesh repair, …) is local, deterministic processing.
  */
-const TOOLS_NODE_TYPES = new Set<string>([
-  "nodetool.image.Resize",
-  "nodetool.image.Crop",
-  "nodetool.image.Scale",
-  "nodetool.image.Fit",
-  "nodetool.image.Paste",
-  "nodetool.image.Blur",
-  "nodetool.image.Channels",
-  "nodetool.image.RotateAndFlip",
-  "nodetool.image.Levels",
-  "nodetool.image.Compositor",
-  "nodetool.image.Painter",
-  "nodetool.image.Upscale",
-  "nodetool.image.RemoveBackground",
-  "nodetool.image.Relight",
-  "nodetool.image.Vectorize",
-  "lib.image.filter.Invert",
-  "lib.image.filter.ConvertToGrayscale",
-  "lib.image.color_grading.Curves",
-  "lib.image.color_grading.Exposure",
-  "lib.image.color_grading.HSLAdjust",
-  "lib.image.Mask"
-]);
-
-const POPULAR_MODELS_2026: readonly string[] = [
-  // Image
-  "fal.text_to_image.NanoBananaPro",
-  "fal.text_to_image.GptImage2",
-  "fal.text_to_image.Imagen4PreviewUltra",
-  "fal.text_to_image.FluxV1Pro",
-  "fal.text_to_image.FluxDev",
-  "fal.text_to_image.BytedanceSeedreamV45TextToImage",
-  "fal.text_to_image.QwenImage",
-  "fal.text_to_image.RecraftV3",
-  "fal.text_to_image.StableDiffusionV35Large",
-  "fal.image_to_image.NanoBananaProEdit",
-  // Video
-  "fal.text_to_video.Veo31",
-  "fal.text_to_video.Sora2TextToVideo",
-  "fal.text_to_video.KlingVideoV26ProTextToVideo",
-  "fal.text_to_video.SeeDanceV15ProTextToVideo",
-  "fal.text_to_video.MinimaxHailuo23ProTextToVideo",
-  "fal.text_to_video.WanV26TextToVideo",
-  // Audio
-  "fal.text_to_speech.ElevenlabsTtsTurboV25",
-  "fal.text_to_speech.MinimaxSpeech26Hd",
-  "fal.text_to_speech.MinimaxSpeech26Turbo"
-];
-
-const POPULAR_MODEL_RANK: ReadonlyMap<string, number> = new Map(
-  POPULAR_MODELS_2026.map((nodeType, index) => [nodeType, index])
-);
+const isAiNode = (m: NodeMetadata): boolean =>
+  m.auto_save_asset === true ||
+  getRequiredSecretKeyForNamespace(m.namespace) !== null;
 
 /**
  * Top-level sidebar icons. Reduced from 12 → 5 by collapsing all node
@@ -152,34 +115,46 @@ export const NODE_SUBCATEGORIES: readonly NodeSubcategory[] = [
       m.node_type.startsWith("nodetool.output.")
   },
   {
-    id: "tools",
-    label: "Tools",
-    icon: <BuildIcon />,
-    filter: (m) => TOOLS_NODE_TYPES.has(m.node_type)
-  },
-  {
-    id: "image-models",
+    id: "image",
     label: "Image",
     icon: <ImageIcon />,
-    filter: primaryVariantIs("image", "image_mask")
+    filter: (m) => isImageOutput(m) && !isAiNode(m)
   },
   {
-    id: "video-models",
+    id: "image-ai",
+    label: "Image AI",
+    icon: <AutoAwesomeIcon />,
+    filter: (m) => isImageOutput(m) && isAiNode(m)
+  },
+  {
+    id: "video",
     label: "Video",
     icon: <MovieIcon />,
-    filter: primaryVariantIs("video")
+    filter: (m) => isVideoOutput(m) && !isAiNode(m)
   },
   {
-    id: "audio-models",
+    id: "video-ai",
+    label: "Video AI",
+    icon: <AutoAwesomeIcon />,
+    filter: (m) => isVideoOutput(m) && isAiNode(m)
+  },
+  {
+    id: "audio",
     label: "Audio",
     icon: <AudiotrackIcon />,
-    filter: primaryVariantIs("audio")
+    filter: (m) => isAudioOutput(m) && !isAiNode(m)
+  },
+  {
+    id: "audio-ai",
+    label: "Audio AI",
+    icon: <AutoAwesomeIcon />,
+    filter: (m) => isAudioOutput(m) && isAiNode(m)
   },
   {
     id: "3d-models",
     label: "3D",
     icon: <ViewInArIcon />,
-    filter: primaryVariantIs("model_3d")
+    filter: is3dOutput
   },
   {
     id: "agents",
@@ -206,72 +181,11 @@ export const getNodeSubcategory = (
   NODE_SUBCATEGORIES.find((c) => c.id === id);
 
 /**
- * Combined view of all curated `node_type` strings referenced by
- * sub-categories — used by `useAuditCuratedCategories` to flag drift
- * between this config and the live node registry.
- */
-export const CURATED_NODE_TYPES: ReadonlyMap<string, NodeCategoryId[]> =
-  (() => {
-    const m = new Map<string, NodeCategoryId[]>();
-    const add = (set: ReadonlySet<string>, id: NodeCategoryId) => {
-      for (const t of set) {
-        const arr = m.get(t) ?? [];
-        arr.push(id);
-        m.set(t, arr);
-      }
-    };
-    add(TOOLS_NODE_TYPES, "tools");
-    return m;
-  })();
-
-/**
- * Filter all metadata to the entries that should appear under this
- * sub-category. Returns the list sorted with first-party nodes first,
- * then curated popular models, then alphabetical.
+ * Filter all metadata down to the entries that belong to this sub-category.
+ * Ordering and query matching are handled by the smart node ranker
+ * (`rankSearchNodes`), so this only resolves category membership.
  */
 export const filterNodesForCategory = (
   category: NodeSubcategory,
-  all: NodeMetadata[],
-  query: string = ""
-): NodeMetadata[] => {
-  const q = query.trim().toLowerCase();
-  const matches = all.filter((m) => {
-    if (!category.filter(m)) {
-      return false;
-    }
-    if (!q) {
-      return true;
-    }
-    return (
-      m.title.toLowerCase().includes(q) ||
-      m.node_type.toLowerCase().includes(q) ||
-      m.namespace.toLowerCase().includes(q)
-    );
-  });
-
-  if (q) {
-    matches.sort((a, b) => a.title.localeCompare(b.title));
-    return matches;
-  }
-
-  const tierOf = (m: NodeMetadata): number => {
-    if (m.node_type.startsWith("nodetool.")) {
-      return 0;
-    }
-    return POPULAR_MODEL_RANK.has(m.node_type) ? 1 : 2;
-  };
-
-  matches.sort((a, b) => {
-    const tierA = tierOf(a);
-    const tierB = tierOf(b);
-    if (tierA !== tierB) {
-      return tierA - tierB;
-    }
-    if (tierA === 1) {
-      return POPULAR_MODEL_RANK.get(a.node_type)! -
-        POPULAR_MODEL_RANK.get(b.node_type)!;
-    }
-    return a.title.localeCompare(b.title);
-  });
-  return matches;
-};
+  all: NodeMetadata[]
+): NodeMetadata[] => all.filter(category.filter);
