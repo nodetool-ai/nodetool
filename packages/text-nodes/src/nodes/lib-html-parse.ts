@@ -5,6 +5,16 @@ import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
 import { tagAsUniversal } from "@nodetool-ai/nodes-utils";
 
+// Resolve src against an optional base URL; relative URLs without a base (or
+// otherwise unparseable values) pass through unchanged instead of throwing.
+function resolveUrl(src: string, baseUrl: string): string {
+  try {
+    return new URL(src, baseUrl || undefined).href;
+  } catch {
+    return src;
+  }
+}
+
 export class BaseUrlLibNode extends BaseNode {
   static readonly nodeType = "lib.html.BaseUrl";
   static readonly title = "Base Url";
@@ -71,14 +81,28 @@ export class ExtractLinksLibNode extends BaseNode {
     const $ = cheerio.load(html);
     const results: Array<{ href: string; text: string; type: string }> = [];
 
+    const isInternal = (href: string): boolean => {
+      if (!href || href.startsWith("#")) return true;
+      if (/^(mailto|tel|javascript):/i.test(href)) return false;
+      if (baseUrl) {
+        try {
+          return new URL(href, baseUrl).origin === new URL(baseUrl).origin;
+        } catch {
+          // Unparseable href/base — fall through to the scheme heuristic.
+        }
+      }
+      // Without a base URL, relative links are internal by definition.
+      return !/^[a-z][a-z0-9+.-]*:|^\/\//i.test(href);
+    };
+
     $("a[href]").each((_, el) => {
       const href = $(el).attr("href") ?? "";
       const text = $(el).text().trim();
-      const linkType =
-        (baseUrl && href.startsWith(baseUrl)) || href.startsWith("/")
-          ? "internal"
-          : "external";
-      results.push({ href, text, type: linkType });
+      results.push({
+        href,
+        text,
+        type: isInternal(href) ? "internal" : "external"
+      });
     });
 
     return results;
@@ -142,8 +166,7 @@ export class ExtractImagesLibNode extends BaseNode {
 
     $("img[src]").each((_, el) => {
       const src = $(el).attr("src") ?? "";
-      const fullUrl = new URL(src, baseUrl || undefined).href;
-      images.push({ uri: fullUrl, type: "image" });
+      images.push({ uri: resolveUrl(src, baseUrl), type: "image" });
     });
 
     return images;
@@ -206,8 +229,7 @@ export class ExtractAudioLibNode extends BaseNode {
     $("audio, audio source").each((_, el) => {
       const src = $(el).attr("src");
       if (src) {
-        const fullUrl = new URL(src, baseUrl || undefined).href;
-        audioList.push({ uri: fullUrl, type: "audio" });
+        audioList.push({ uri: resolveUrl(src, baseUrl), type: "audio" });
       }
     });
 
@@ -271,8 +293,7 @@ export class ExtractVideosLibNode extends BaseNode {
     $("video, video source, iframe").each((_, el) => {
       const src = $(el).attr("src");
       if (src) {
-        const fullUrl = new URL(src, baseUrl || undefined).href;
-        videos.push({ uri: fullUrl, type: "video" });
+        videos.push({ uri: resolveUrl(src, baseUrl), type: "video" });
       }
     });
 
