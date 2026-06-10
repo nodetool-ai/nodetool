@@ -103,6 +103,18 @@ describe("ProcessingContext – message queue", () => {
     });
   });
 
+  it("resolves concurrent popMessageAsync waiters one message each", async () => {
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    const first = ctx.popMessageAsync();
+    const second = ctx.popMessageAsync();
+    ctx.emit({ type: "job_update", status: "running" });
+    ctx.emit({ type: "job_update", status: "completed" });
+    const [a, b] = await Promise.all([first, second]);
+    expect(a).toMatchObject({ type: "job_update", status: "running" });
+    expect(b).toMatchObject({ type: "job_update", status: "completed" });
+    expect(ctx.hasMessages()).toBe(false);
+  });
+
   it("tracks latest node and edge statuses", () => {
     const ctx = new ProcessingContext({ jobId: "j1" });
     ctx.emit({

@@ -39,12 +39,12 @@ export function encodeBase64(bytes: Uint8Array): string {
   if (typeof Buffer !== "undefined") {
     return Buffer.from(bytes).toString("base64");
   }
-  let binary = "";
+  const chunks: string[] = [];
   const CHUNK = 0x8000;
   for (let i = 0; i < bytes.length; i += CHUNK) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+    chunks.push(String.fromCharCode(...bytes.subarray(i, i + CHUNK)));
   }
-  return btoa(binary);
+  return btoa(chunks.join(""));
 }
 
 /** Encode a UTF-8 string → bytes without requiring the `Buffer` global. */
