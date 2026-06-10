@@ -241,7 +241,8 @@ export class VecHybridSearchTool extends Tool {
       const combined: Record<string, { doc: string; score: number }> = {};
       const fuse = (matches: VectorMatch[]) => {
         matches.forEach((m, rank) => {
-          const score = 1 / (rank + kConstant);
+          // RRF uses 1-based ranks: first result scores 1/(k+1).
+          const score = 1 / (rank + 1 + kConstant);
           if (m.document == null) return;
           if (combined[m.id]) combined[m.id].score += score;
           else combined[m.id] = { doc: m.document, score };

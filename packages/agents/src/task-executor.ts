@@ -420,6 +420,7 @@ async function* mergeAsyncGenerators<T>(
   let activeCount = generators.length;
   let resolve: (() => void) | null = null;
   let firstError: unknown = undefined;
+  let hasError = false;
 
   function notify() {
     if (resolve) {
@@ -437,7 +438,10 @@ async function* mergeAsyncGenerators<T>(
         notify();
       }
     } catch (e) {
-      if (firstError === undefined) firstError = e;
+      if (!hasError) {
+        hasError = true;
+        firstError = e;
+      }
     } finally {
       activeCount--;
       notify();
@@ -467,7 +471,9 @@ async function* mergeAsyncGenerators<T>(
   // Wait for all producer promises to settle
   await Promise.allSettled(tasks);
 
-  if (firstError !== undefined) {
-    throw firstError;
+  if (hasError) {
+    throw firstError instanceof Error
+      ? firstError
+      : new Error(String(firstError));
   }
 }
