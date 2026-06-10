@@ -1,6 +1,8 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import {
+  audioBytesAsync,
   audioRefFromWav,
   decodeWav,
   encodeWav,
@@ -85,14 +87,15 @@ export class BitcrushNode extends BaseNode {
   })
   declare sample_rate_reduction: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const bitDepth = Number(this.bit_depth ?? 8);
     const srrFactor = Number(this.sample_rate_reduction ?? 1);
 
-    if (!audio.data) return { output: audio };
+    const bytes = await audioBytesAsync(audio, context);
+    if (bytes.length === 0) return { output: audio };
 
-    const wav = decodeWav(audio);
+    const wav = decodeWav({ data: bytes });
     const result = processPerChannel(wav, (ch) => {
       // Number of quantization steps for the target bit depth. Guard against
       // bitDepth === 1 (the prop minimum), which would otherwise yield 0 and
@@ -182,16 +185,17 @@ export class CompressNode extends BaseNode {
   })
   declare release: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const thresholdDb = Number(this.threshold ?? -20);
     const ratio = Number(this.ratio ?? 4);
     const attackMs = Number(this.attack ?? 5);
     const releaseMs = Number(this.release ?? 50);
 
-    if (!audio.data) return { output: audio };
+    const bytes = await audioBytesAsync(audio, context);
+    if (bytes.length === 0) return { output: audio };
 
-    const wav = decodeWav(audio);
+    const wav = decodeWav({ data: bytes });
     const result = processPerChannel(wav, (ch, sr) => {
       const out = new Float32Array(ch.length);
       const attackCoeff = Math.exp(-1 / ((sr * attackMs) / 1000));
@@ -264,13 +268,14 @@ export class DistortionNode extends BaseNode {
   })
   declare drive_db: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const driveDb = Number(this.drive_db ?? 25);
 
-    if (!audio.data) return { output: audio };
+    const bytes = await audioBytesAsync(audio, context);
+    if (bytes.length === 0) return { output: audio };
 
-    const wav = decodeWav(audio);
+    const wav = decodeWav({ data: bytes });
     const drive = Math.pow(10, driveDb / 20);
     const result = processPerChannel(wav, (ch) => {
       const out = new Float32Array(ch.length);
@@ -336,14 +341,15 @@ export class LimiterNode extends BaseNode {
   })
   declare release_ms: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const thresholdDb = Number(this.threshold_db ?? -2);
     const releaseMs = Number(this.release_ms ?? 250);
 
-    if (!audio.data) return { output: audio };
+    const bytes = await audioBytesAsync(audio, context);
+    if (bytes.length === 0) return { output: audio };
 
-    const wav = decodeWav(audio);
+    const wav = decodeWav({ data: bytes });
     const threshold = Math.pow(10, thresholdDb / 20);
     const result = processPerChannel(wav, (ch, sr) => {
       const out = new Float32Array(ch.length);
@@ -443,16 +449,17 @@ export class ReverbNode extends BaseNode {
   })
   declare dry_level: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const roomScale = Number(this.room_scale ?? 0.5);
     const damping = Number(this.damping ?? 0.5);
     const wetLevel = Number(this.wet_level ?? 0.15);
     const dryLevel = Number(this.dry_level ?? 0.5);
 
-    if (!audio.data) return { output: audio };
+    const bytes = await audioBytesAsync(audio, context);
+    if (bytes.length === 0) return { output: audio };
 
-    const wav = decodeWav(audio);
+    const wav = decodeWav({ data: bytes });
     const result = processPerChannel(wav, (ch, sr) => {
       // Schroeder reverb: 4 parallel comb filters -> 2 series allpass filters
       const baseCombDelays = [1557, 1617, 1491, 1422];
@@ -573,19 +580,20 @@ export class PitchShiftNode extends BaseNode {
   })
   declare semitones: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const semitones = Number(this.semitones ?? 0);
 
-    if (!audio.data) return { output: audio };
     if (semitones === 0) {
       return { output: audio };
     }
+    const bytes = await audioBytesAsync(audio, context);
+    if (bytes.length === 0) return { output: audio };
 
     const { createRubberbandWrapper } = await import(
       "@k13engineering/rubberband"
     );
-    const wav = decodeWav(audio);
+    const wav = decodeWav({ data: bytes });
     const { samples, sampleRate, numChannels } = wav;
     const frameSamples = Math.floor(samples.length / numChannels);
 
@@ -706,19 +714,20 @@ export class TimeStretchNode extends BaseNode {
   })
   declare rate: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const rate = Number(this.rate ?? 1.0);
 
-    if (!audio.data) return { output: audio };
     if (rate === 1.0) {
       return { output: audio };
     }
+    const bytes = await audioBytesAsync(audio, context);
+    if (bytes.length === 0) return { output: audio };
 
     const { createRubberbandWrapper } = await import(
       "@k13engineering/rubberband"
     );
-    const wav = decodeWav(audio);
+    const wav = decodeWav({ data: bytes });
     const { samples, sampleRate, numChannels } = wav;
     const frameSamples = Math.floor(samples.length / numChannels);
 
@@ -861,15 +870,16 @@ export class NoiseGateNode extends BaseNode {
   })
   declare release_ms: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const thresholdDb = Number(this.threshold_db ?? -50);
     const attackMs = Math.max(0.1, Number(this.attack_ms ?? 1));
     const releaseMs = Math.max(1, Number(this.release_ms ?? 100));
 
-    if (!audio.data) return { output: audio };
+    const bytes = await audioBytesAsync(audio, context);
+    if (bytes.length === 0) return { output: audio };
 
-    const wav = decodeWav(audio);
+    const wav = decodeWav({ data: bytes });
     const thresholdLin = Math.pow(10, thresholdDb / 20);
 
     const result = processPerChannel(wav, (ch, sr) => {
@@ -984,7 +994,7 @@ export class PhaserNode extends BaseNode {
   })
   declare mix: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const rateHz = Number(this.rate_hz ?? 1);
     const depth = Number(this.depth ?? 0.5);
@@ -992,9 +1002,10 @@ export class PhaserNode extends BaseNode {
     const feedback = Number(this.feedback ?? 0);
     const mix = Number(this.mix ?? 0.5);
 
-    if (!audio.data) return { output: audio };
+    const bytes = await audioBytesAsync(audio, context);
+    if (bytes.length === 0) return { output: audio };
 
-    const wav = decodeWav(audio);
+    const wav = decodeWav({ data: bytes });
     const result = processPerChannel(wav, (ch, sr) => {
       const out = new Float32Array(ch.length);
       // 4-stage first-order all-pass phaser
