@@ -140,7 +140,8 @@ export const WorkflowLoader: React.FC<WorkflowLoaderProps> = memo(
         setLoading(true);
         try {
           const workflow =
-            getWorkflow(option.id) ?? (await fetchWorkflow(option.id));
+            getWorkflow(option.id) ??
+            (await fetchWorkflow(option.id, { makeCurrent: false }));
           if (!workflow) {
             throw new Error("Failed to load workflow");
           }
@@ -167,7 +168,7 @@ export const WorkflowLoader: React.FC<WorkflowLoaderProps> = memo(
         const currentWorkflow =
           selectedWorkflowStore?.getState().getWorkflow() ??
           getWorkflow(selectedWorkflowId) ??
-          (await fetchWorkflow(selectedWorkflowId));
+          (await fetchWorkflow(selectedWorkflowId, { makeCurrent: false }));
 
         if (!currentWorkflow || isCancelled) {
           return;

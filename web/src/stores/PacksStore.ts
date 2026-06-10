@@ -53,6 +53,16 @@ interface PacksStore {
   reload: () => Promise<void>;
 }
 
+/**
+ * Serializes trust mutations. `setTrusted` does a read-modify-write of the
+ * allowlist; if two rapid toggles each read the pre-await state, the second
+ * overwrites the first server-side. Each mutation is chained onto this
+ * promise and reads `get().trust` only once the previous one has settled.
+ * Tasks never reject (errors are captured into store state), so plain
+ * `.then` chaining is safe.
+ */
+let trustMutation: Promise<unknown> = Promise.resolve();
+
 const usePacksStore = create<PacksStore>((set, get) => ({
   packs: [],
   trust: { allowlist: [], allowUnlisted: false },
@@ -75,33 +85,47 @@ const usePacksStore = create<PacksStore>((set, get) => ({
     }
   },
 
-  setTrusted: async (packName, trusted) => {
-    const { trust } = get();
-    const current = new Set(trust.allowlist);
-    if (trusted) current.add(packName);
-    else current.delete(packName);
-    const allowlist = [...current];
-    try {
-      const next = await trpcClient.packs.setTrust.mutate({ allowlist });
-      set({ trust: next });
-      const refreshed = await trpcClient.packs.reload.mutate();
-      set({ packs: refreshed.packs });
-    } catch (err: unknown) {
-      set({ error: createErrorMessage(err, "Failed to update pack trust").message });
-    }
+  setTrusted: (packName, trusted) => {
+    const task = async (): Promise<void> => {
+      // Read trust INSIDE the chained task so it sees the previous
+      // mutation's result instead of a stale pre-await snapshot.
+      const { trust } = get();
+      const current = new Set(trust.allowlist);
+      if (trusted) current.add(packName);
+      else current.delete(packName);
+      const allowlist = [...current];
+      try {
+        const next = await trpcClient.packs.setTrust.mutate({ allowlist });
+        set({ trust: next });
+        const refreshed = await trpcClient.packs.reload.mutate();
+        set({ packs: refreshed.packs });
+      } catch (err: unknown) {
+        set({ error: createErrorMessage(err, "Failed to update pack trust").message });
+      }
+    };
+    const run = trustMutation.then(task);
+    trustMutation = run;
+    return run;
   },
 
-  setAllowUnlisted: async (allowUnlisted) => {
-    try {
-      const next = await trpcClient.packs.setTrust.mutate({ allowUnlisted });
-      set({ trust: next });
-      const refreshed = await trpcClient.packs.reload.mutate();
-      set({ packs: refreshed.packs });
-    } catch (err: unknown) {
-      set({
-        error: createErrorMessage(err, "Failed to update allowUnlisted setting").message
-      });
-    }
+  setAllowUnlisted: (allowUnlisted) => {
+    const task = async (): Promise<void> => {
+      try {
+        const next = await trpcClient.packs.setTrust.mutate({ allowUnlisted });
+        set({ trust: next });
+        const refreshed = await trpcClient.packs.reload.mutate();
+        set({ packs: refreshed.packs });
+      } catch (err: unknown) {
+        set({
+          error: createErrorMessage(err, "Failed to update allowUnlisted setting").message
+        });
+      }
+    };
+    // Chained on the same queue so allowUnlisted updates don't interleave
+    // with allowlist read-modify-writes on the shared trust object.
+    const run = trustMutation.then(task);
+    trustMutation = run;
+    return run;
   },
 
   reload: async () => {

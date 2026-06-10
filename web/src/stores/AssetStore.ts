@@ -105,8 +105,11 @@ const uploadAsset = async (
   }
 };
 
+// Note: the tRPC `assets.list` procedure takes no cursor — it returns up to
+// `page_size` (default 10000) assets in one page, so there is no client-side
+// cursor pagination. Recursive listing goes through the separate
+// `assets.recursive` procedure (see `load`).
 type AssetQuery = {
-  cursor?: string;
   workflow_id?: string | null;
   parent_id?: string | null;
   content_type?: string | null;
@@ -148,7 +151,7 @@ export interface AssetStore {
   ) => Promise<Asset>;
   load: (query: AssetQuery) => Promise<AssetList>;
   loadFolderTree: (sortBy?: string) => Promise<FolderTree>;
-  loadCurrentFolder: (cursor?: string) => Promise<AssetList>;
+  loadCurrentFolder: () => Promise<AssetList>;
   search: (query: AssetSearchQuery) => Promise<AssetSearchResult>;
   update: (asset: AssetUpdate) => Promise<Asset>;
   delete: (id: string) => Promise<string[]>;
@@ -255,11 +258,27 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
   /**
    * Load assets from the server.
    *
+   * Recursive queries are served by the dedicated `assets.recursive`
+   * procedure (the `assets.list` procedure has no recursive flag) and
+   * require a `parent_id` to recurse from.
+   *
    * @param query The asset query to use to load assets.
    * @returns A promise that resolves to the loaded assets.
    */
-  // Adjusting the load function to correctly handle the query
   load: async (query: AssetQuery) => {
+    if (query.recursive) {
+      if (!query.parent_id) {
+        throw new Error("Recursive asset queries require a parent_id");
+      }
+      const data = await trpcClient.assets.recursive.query({
+        id: query.parent_id
+      });
+      const normalized = normalizeAssetList(data.assets ?? []);
+      for (const asset of normalized) {
+        get().add(asset);
+      }
+      return { next: null, assets: normalized };
+    }
     const data = await trpcClient.assets.list.query({
       ...(query.parent_id !== undefined && query.parent_id !== null
         ? { parent_id: query.parent_id }
@@ -292,7 +311,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
   /**
    * Load the current folder and its parent folder.
    */
-  loadCurrentFolder: async (cursor?: string) => {
+  loadCurrentFolder: async () => {
     const currentFolderId = useAssetGridStore.getState().currentFolderId;
     const setCurrentFolder = useAssetGridStore.getState().setCurrentFolder;
     const setParentFolder = useAssetGridStore.getState().setParentFolder;
@@ -319,7 +338,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
           });
       }
     }
-    return get().load({ parent_id: requestedFolderId, cursor: cursor || "" });
+    return get().load({ parent_id: requestedFolderId });
   },
 
   /**

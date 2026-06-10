@@ -19,7 +19,10 @@ function compareNode(a: Node<NodeData>, b: Node<NodeData>): boolean {
     a.type === b.type &&
     a.data.collapsed === b.data.collapsed &&
     a.data.bypassed === b.data.bypassed &&
+    a.data.title === b.data.title &&
     shallow(a.data.properties, b.data.properties) &&
+    shallow(a.data.dynamic_properties, b.data.dynamic_properties) &&
+    shallow(a.data.dynamic_outputs, b.data.dynamic_outputs) &&
     a.position.x === b.position.x &&
     a.position.y === b.position.y
   );
