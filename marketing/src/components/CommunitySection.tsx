@@ -42,16 +42,14 @@ export default function CommunitySection({ stars }: { stars?: number | null }) {
               >
                 <Github className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
                 <span>Star on GitHub</span>
-                <div className="ml-3 pl-3 border-l border-slate-200 text-sm font-normal text-slate-500 flex items-center">
-                  <Star className="w-3 h-3 mr-1 text-yellow-500 fill-yellow-500" />
-                  <span>
-                    {stars
-                      ? stars > 1000
-                        ? `${(stars / 1000).toFixed(1)}k`
-                        : stars
-                      : "2.4k"}
-                  </span>
-                </div>
+                {typeof stars === "number" && (
+                  <div className="ml-3 pl-3 border-l border-slate-200 text-sm font-normal text-slate-500 flex items-center">
+                    <Star className="w-3 h-3 mr-1 text-yellow-500 fill-yellow-500" />
+                    <span>
+                      {stars > 1000 ? `${(stars / 1000).toFixed(1)}k` : stars}
+                    </span>
+                  </div>
+                )}
               </a>
 
               <a

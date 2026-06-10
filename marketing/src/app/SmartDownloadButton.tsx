@@ -8,13 +8,14 @@ type SmartDownloadButtonProps = {
 };
 
 const FALLBACK_VERSION = "0.6.3-rc.11";
+const RELEASES_URL = "https://github.com/nodetool-ai/nodetool/releases/latest";
 
 export const SmartDownloadButton = ({
   classNameOverride,
   icon,
-  labelPrefix = "Download Nodetool",
+  labelPrefix = "Download NodeTool",
 }: SmartDownloadButtonProps) => {
-  const [downloadUrl, setDownloadUrl] = useState("");
+  const [downloadUrl, setDownloadUrl] = useState(RELEASES_URL);
   const [osName, setOsName] = useState("");
 
   useEffect(() => {
@@ -50,9 +51,7 @@ export const SmartDownloadButton = ({
         );
       } else {
         setOsName("");
-        setDownloadUrl(
-          "https://github.com/nodetool-ai/nodetool/releases/latest"
-        );
+        setDownloadUrl(RELEASES_URL);
       }
     };
 
