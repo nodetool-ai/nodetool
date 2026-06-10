@@ -9,6 +9,7 @@ import {
   canRunGraphInBrowserSync,
   runBrowserGraphJob
 } from "./browserWorkflowRunner";
+import { materializeBitmapRefs } from "./materializeBrowserOutputs";
 
 export type GraphNode = Node;
 export type GraphEdge = Edge;
@@ -80,6 +81,15 @@ export async function runInlineGraphJob(
   }
 
   await globalWebSocketManager.ensureConnection();
+
+  // Preview-bitmap refs can't cross msgpack to the server. Run-from-here /
+  // single-node runs seed cached browser-run outputs into node property
+  // overrides (graph) and params — encode those to portable data-URL refs.
+  const portableGraph = materializeBitmapRefs(graph) as InlineGraph;
+  const portableParams = materializeBitmapRefs(params) as Record<
+    string,
+    unknown
+  >;
 
   const jobId = uuidv4();
 
@@ -226,12 +236,12 @@ export async function runInlineGraphJob(
         user_id,
         auth_token,
         api_url: BASE_URL,
-        params,
+        params: portableParams,
         explicit_types: false,
         // Explicit single-node / run-from-here runs are concurrent like the
         // other canvas run paths, so they don't serialize behind one another.
         concurrent: true,
-        graph
+        graph: portableGraph
       }
     });
   } catch (err) {

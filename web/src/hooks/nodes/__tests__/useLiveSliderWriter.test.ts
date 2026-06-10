@@ -18,7 +18,10 @@ const storeState = {
 
 jest.mock("../../../contexts/NodeContext", () => ({
   useNodes: (selector: (s: unknown) => unknown) =>
-    selector({ updateNodeProperties: mockUpdateNodeProperties }),
+    selector({
+      updateNodeProperties: mockUpdateNodeProperties,
+      edges: storeState.edges
+    }),
   useNodeStoreRef: () => ({ getState: () => storeState })
 }));
 

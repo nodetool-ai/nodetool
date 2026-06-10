@@ -16,8 +16,15 @@
  *
  * Materialization is leak-free: raw-RGBA is encoded to a PNG data URL via a
  * canvas and base64 is wrapped as a data URL — no blob URLs to revoke.
+ *
+ * Preview-bitmap refs (the worker's transferable `ImageBitmap` transport
+ * format, see `attachPreviewBitmaps`) deliberately pass through untouched:
+ * they are already directly displayable (painted onto a canvas) and encoding
+ * them here would reintroduce the main-thread PNG encode this fast path
+ * exists to avoid. Consumers that need a URL derive one lazily via
+ * {@link bitmapToPngDataUrl} or an async blob encode.
  */
-import { RAW_RGBA_MIME } from "@nodetool-ai/protocol";
+import { RAW_RGBA_MIME, isBitmapImage } from "@nodetool-ai/protocol";
 
 /**
  * Encode a raw-RGBA image ref (straight-alpha RGBA8 pixels, no container) to a
@@ -46,6 +53,25 @@ export function rawRgbaToPngDataUrl(
   }
 }
 
+/**
+ * Synchronously encode a preview `ImageBitmap` to a PNG data URL. Off the live
+ * path — only for consumers that genuinely need a URL string right now (e.g.
+ * thumbnail grids); interactive consumers should prefer an async blob encode.
+ */
+export function bitmapToPngDataUrl(bitmap: ImageBitmap): string {
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return "";
+    ctx.drawImage(bitmap, 0, 0);
+    return canvas.toDataURL("image/png");
+  } catch {
+    return "";
+  }
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -62,6 +88,9 @@ const isImageRef = (value: unknown): value is Record<string, unknown> =>
 function materializeImageRef(
   ref: Record<string, unknown>
 ): Record<string, unknown> {
+  // Preview bitmap from the worker — already displayable, pass through.
+  if (isBitmapImage(ref)) return ref;
+
   // Raw in-flight RGBA → PNG data URL. An <img> decodes the data URL off the
   // main thread (browser-optimized), which is faster than painting the buffer
   // onto a DOM <canvas> + re-encoding it for download. The resulting uri is
@@ -88,6 +117,34 @@ function materializeImageRef(
   }
 
   return ref;
+}
+
+/**
+ * Recursively convert preview-bitmap refs to portable PNG data-URL refs.
+ * For serialization boundaries an `ImageBitmap` can't cross — e.g.
+ * run-from-here seeding a *server*-run subgraph with a browser-run upstream's
+ * cached output (params travel as msgpack). Pays the sync PNG encode, so keep
+ * it to one-off run starts, never the streaming display path.
+ */
+export function materializeBitmapRefs(value: unknown): unknown {
+  if (value === null || value === undefined) return value;
+  if (Array.isArray(value)) return value.map(materializeBitmapRefs);
+  if (isBitmapImage(value)) {
+    const uri = bitmapToPngDataUrl(value.bitmap as ImageBitmap);
+    if (!uri) return value;
+    const rest: Record<string, unknown> = { ...value };
+    delete rest.bitmap;
+    delete rest.bitmapVersion;
+    return { ...rest, uri, data: undefined, mimeType: "image/png" };
+  }
+  if (typeof value === "object" && !ArrayBuffer.isView(value)) {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      out[k] = materializeBitmapRefs(v);
+    }
+    return out;
+  }
+  return value;
 }
 
 /**

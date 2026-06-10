@@ -15,9 +15,11 @@
  *   → { type: "run", jobId, graph, params, workflowId }
  *   → { type: "cancel", jobId }
  *
- * Messages are streamed raw (in-flight asset formats intact). The main thread
- * materializes them (raw-RGBA → PNG) before delivery — stage 1 keeps the canvas
- * encode on main; a later pass can move it here with OffscreenCanvas + transfer.
+ * Messages are streamed with image outputs resolved for transport: GPU textures
+ * are read back to CPU, then converted to transferable ImageBitmaps
+ * (`attachPreviewBitmaps`) so the main thread paints previews directly — no
+ * PNG encode/decode in the live path. Refs the bitmap pass can't handle fall
+ * through to the main thread's materialization (raw-RGBA → PNG data URL).
  */
 import {
   loadBrowserModules,
@@ -25,6 +27,7 @@ import {
   normalizeGraphForKernel,
   type LoadedBrowserRunner
 } from "./browserRunnerCore";
+import { attachPreviewBitmaps } from "./attachPreviewBitmaps";
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -108,18 +111,26 @@ async function runJob(msg: RunMessage): Promise<void> {
       // Read any GPU-texture refs in this message back to CPU buffers before it
       // crosses postMessage (textures aren't cloneable). The kernel keeps the
       // texture for downstream edges; only this transported copy is read back.
+      // The readback copy is then turned into a transferable ImageBitmap so the
+      // main thread can paint it without any PNG encode/decode round-trip; the
+      // kernel's own buffers are untouched, so transferring is safe here.
       const message = next.value as Record<string, unknown>;
       const resolve = runner.resolveImageRefForTransport;
+      const transfer: Transferable[] = [];
       if (resolve) {
         if (message.type === "node_update" && message.result != null) {
-          message.result = await resolve(message.result);
+          message.result = await attachPreviewBitmaps(
+            await resolve(message.result),
+            transfer
+          );
         } else if (message.type === "output_update" && message.value != null) {
-          message.value = await resolve(message.value);
+          message.value = await attachPreviewBitmaps(
+            await resolve(message.value),
+            transfer
+          );
         }
       }
-      // Structured-clone copy (no transfer): the kernel may still reference the
-      // same buffer for downstream edges, so transferring would corrupt inputs.
-      self.postMessage({ type: "message", jobId, message });
+      self.postMessage({ type: "message", jobId, message }, transfer);
     }
   } catch (error) {
     self.postMessage({

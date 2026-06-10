@@ -1,25 +1,17 @@
 /** @jsxImportSource @emotion/react */
 /**
- * AdjustmentBody — generic bespoke body for slider-only image adjustment nodes
- * (Brightness/Contrast, HSB, Saturation/Vibrance, Color Balance, Vignette,
- * Exposure, …).
+ * OffsetBody — bespoke body for `lib.image.warp.Offset`.
  *
- * Preview on top, one slider per numeric property below. Unlike the per-node
- * bodies (Curves, Levels, …) nothing here is hardcoded: the image/mask handles
- * and every slider's range, default and step are derived from
- * `nodeMetadata.properties`. Registered for the node types in
- * `ADJUSTMENT_NODE_TYPES`.
- *
- * Bipolar sliders (range straddling 0, neutral at 0 — temperature, tint,
- * exposure, …) fill outward from the centre so the control reads as a signed
- * adjustment, not a 0–100% level. The preview reflects whatever the server
- * most recently produced — no client-side approximation.
+ * Preview on top, two bipolar sliders (dx, dy) and a compact wrap-mode
+ * toggle group (Clamp / Repeat / Mirror) below.
  */
 
 import React, { memo, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import ImageIcon from "@mui/icons-material/Image";
 
 import { CheckerDropzone } from "../../ui_primitives";
@@ -28,7 +20,7 @@ import ImageRefPreview from "../../node/ImageRefPreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 
-import type { NodeMetadata, Property } from "../../../stores/ApiTypes";
+import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import { useLiveSliderWriter } from "../../../hooks/nodes/useLiveSliderWriter";
 import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
@@ -39,9 +31,18 @@ import {
   type SliderSpec
 } from "./AdjustmentSlider";
 
+export const OFFSET_NODE_TYPE = "lib.image.warp.Offset";
+
+const SLIDERS: ReadonlyArray<SliderSpec> = [
+  { name: "dx", label: "Offset X", min: -1, max: 1, step: 0.01, default: 0, bipolar: true },
+  { name: "dy", label: "Offset Y", min: -1, max: 1, step: 0.01, default: 0, bipolar: true }
+];
+
+const WRAP_LABELS = ["Clamp", "Repeat", "Mirror"] as const;
+
 const styles = (theme: Theme) =>
   css({
-    "&.adjustment-body": {
+    "&.offset-body": {
       position: "relative",
       width: "100%",
       height: "100%",
@@ -77,47 +78,48 @@ const styles = (theme: Theme) =>
       flex: "0 0 auto",
       display: "grid",
       gridTemplateColumns: "minmax(52px, auto) 1fr auto",
+      columnGap: theme.spacing(1),
+      rowGap: theme.spacing(0.5),
       alignItems: "center",
-      columnGap: theme.spacing(1.25),
-      rowGap: theme.spacing(0.75),
-      padding: `${theme.spacing(0.75)} ${theme.spacing(1)} ${theme.spacing(1)}`
+      padding: `${theme.spacing(0.5)} ${theme.spacing(1)} ${theme.spacing(0.5)}`
+    },
+    ".wrap-row": {
+      gridColumn: "1 / -1",
+      display: "flex",
+      alignItems: "center",
+      gap: theme.spacing(1),
+      paddingTop: theme.spacing(0.25)
+    },
+    ".wrap-label": {
+      fontSize: theme.fontSizeSmaller,
+      fontWeight: 500,
+      color: theme.vars.palette.text.secondary,
+      textTransform: "uppercase",
+      letterSpacing: "0.045em",
+      lineHeight: 1,
+      whiteSpace: "nowrap",
+      minWidth: "minmax(52px, auto)"
+    },
+    ".wrap-row .MuiToggleButton-root": {
+      fontSize: theme.fontSizeSmaller,
+      padding: "2px 8px",
+      textTransform: "none"
     },
     ".outputs-row": {
       flex: "0 0 auto"
     }
   });
 
-const humanize = (name: string): string =>
-  name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-
-const isNumber = (v: unknown): v is number =>
-  typeof v === "number" && Number.isFinite(v);
-
-/**
- * Derive the slider specs from the node's numeric (`float` / `int`) properties.
- * Image-typed properties become handles instead (see `imageProps`).
- */
-const toSliderSpecs = (properties: Property[]): SliderSpec[] =>
-  properties.reduce<SliderSpec[]>((specs, p) => {
-    const kind = (p.type as { type?: string } | undefined)?.type;
-    if ((kind !== "float" && kind !== "int") || !isNumber(p.min) || !isNumber(p.max)) {
-      return specs;
+const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
+  <ImageRefPreview
+    value={value}
+    placeholder={
+      <CheckerDropzone message="Connect an image, then run" icon={<ImageIcon />} />
     }
-    const isInt = kind === "int";
-    specs.push({
-      name: p.name,
-      label: p.title ?? humanize(p.name),
-      min: p.min,
-      max: p.max,
-      step: isInt ? 1 : 0.01,
-      default: isNumber(p.default) ? p.default : 0,
-      // Neutral-at-zero with headroom both ways — the signed adjustments.
-      bipolar: p.min < 0 && p.max > 0
-    });
-    return specs;
-  }, []);
+  />
+);
 
-export interface AdjustmentBodyProps {
+export interface OffsetBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;
@@ -127,7 +129,7 @@ export interface AdjustmentBodyProps {
   isOutputNode: boolean;
 }
 
-const AdjustmentBodyInner: React.FC<AdjustmentBodyProps> = ({
+const OffsetBodyInner: React.FC<OffsetBodyProps> = ({
   id,
   nodeType,
   nodeMetadata,
@@ -143,14 +145,10 @@ const AdjustmentBodyInner: React.FC<AdjustmentBodyProps> = ({
   );
 
   const properties = nodeMetadata.properties ?? [];
-  const imageProps = useMemo(
-    () =>
-      properties.filter(
-        (p) => (p.type as { type?: string } | undefined)?.type === "image"
-      ),
+  const imageProperty = useMemo(
+    () => properties.filter((p) => p.name === "image"),
     [properties]
   );
-  const sliders = useMemo(() => toSliderSpecs(properties), [properties]);
 
   const props = data.properties ?? {};
   const previewValue = useNodeOutput(workflowId, id);
@@ -160,44 +158,65 @@ const AdjustmentBodyInner: React.FC<AdjustmentBodyProps> = ({
     nodeType
   });
 
-  const handleChange = useCallback(
+  const handleSliderChange = useCallback(
     (name: string, v: number) => {
-      const spec = sliders.find((s) => s.name === name);
+      const spec = SLIDERS.find((s) => s.name === name);
       if (!spec) return;
       setProperty(name, clamp(v, spec.min, spec.max));
     },
-    [setProperty, sliders]
+    [setProperty]
+  );
+
+  const wrapValue = clamp(Number(props.wrap ?? 1), 0, 2);
+
+  const handleWrapChange = useCallback(
+    (_: React.MouseEvent<HTMLElement>, v: string | null) => {
+      if (v !== null) {
+        setProperty("wrap", Number(v));
+        setPropertyComplete();
+      }
+    },
+    [setProperty, setPropertyComplete]
   );
 
   return (
-    <div css={cssStyles} className="adjustment-body" data-bespoke-body="Adjustment">
-      <HandleColumn id={id} properties={imageProps} />
+    <div css={cssStyles} className="offset-body" data-bespoke-body="Offset">
+      <HandleColumn id={id} properties={imageProperty} />
       <div className="preview-area">
-        <ImageRefPreview
-          value={previewValue}
-          placeholder={
-            <CheckerDropzone
-              message="Connect an image, then run"
-              icon={<ImageIcon />}
-            />
-          }
-        />
+        <ImagePreview value={previewValue} />
       </div>
 
       <div className="controls">
-        {sliders.map((spec) => {
+        {SLIDERS.map((spec) => {
           const raw = Number(props[spec.name] ?? spec.default);
-          const value = clamp(isNumber(raw) ? raw : spec.default, spec.min, spec.max);
+          const value = clamp(raw, spec.min, spec.max);
           return (
             <AdjustmentSlider
               key={spec.name}
               spec={spec}
               value={value}
-              onChange={handleChange}
+              onChange={handleSliderChange}
               onCommit={setPropertyComplete}
             />
           );
         })}
+
+        <div className="wrap-row">
+          <span className="wrap-label">Wrap</span>
+          <ToggleButtonGroup
+            value={String(Math.round(wrapValue))}
+            exclusive
+            onChange={handleWrapChange}
+            size="small"
+            aria-label="Wrap mode"
+          >
+            {WRAP_LABELS.map((label, i) => (
+              <ToggleButton key={i} value={String(i)} aria-label={label}>
+                {label}
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </div>
       </div>
 
       {!isOutputNode && (
@@ -211,7 +230,7 @@ const AdjustmentBodyInner: React.FC<AdjustmentBodyProps> = ({
   );
 };
 
-export const AdjustmentBody = memo(AdjustmentBodyInner);
-AdjustmentBody.displayName = "AdjustmentBody";
+export const OffsetBody = memo(OffsetBodyInner);
+OffsetBody.displayName = "OffsetBody";
 
-export default AdjustmentBody;
+export default OffsetBody;

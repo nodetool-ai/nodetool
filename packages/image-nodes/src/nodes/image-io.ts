@@ -17,6 +17,7 @@
 import {
   isRawRgbaImage,
   isGpuTextureImage,
+  isBitmapImage,
   RAW_RGBA_MIME,
   type ImageRef
 } from "@nodetool-ai/protocol";
@@ -115,6 +116,12 @@ export async function loadImageBytes(
   if (isRawRgbaImage(r)) {
     return encodeRgbaToPng(r.data, r.width, r.height);
   }
+  // A preview-bitmap ref (the worker's transport format) — read the pixels
+  // back off the bitmap, then encode.
+  if (isBitmapImage(r)) {
+    const { rgba, width, height } = await bitmapToRgba(r.bitmap as ImageBitmap);
+    return encodeRgbaToPng(rgba, width, height);
+  }
   if (r.data instanceof Uint8Array && r.data.length > 0) return r.data;
   if (typeof r.data === "string" && r.data.length > 0) {
     return base64ToBytes(stripDataUrlPrefix(r.data));
@@ -150,6 +157,21 @@ export function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   const buffer = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(buffer).set(bytes);
   return buffer;
+}
+
+/**
+ * Read the pixels of a preview `ImageBitmap` back to straight-alpha RGBA via
+ * an OffscreenCanvas (browser only — bitmap refs never exist on Node). The
+ * bitmap is left open: the UI may still be painting the same instance.
+ */
+export async function bitmapToRgba(bitmap: ImageBitmap): Promise<RawRgba> {
+  const { width, height } = bitmap;
+  const canvas = new OffscreenCanvas(width, height);
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) throw new Error("OffscreenCanvas 2D context unavailable");
+  ctx.drawImage(bitmap, 0, 0);
+  const { data } = ctx.getImageData(0, 0, width, height);
+  return { rgba: new Uint8Array(data.buffer.slice(0)), width, height };
 }
 
 /** Decode encoded image bytes to straight-alpha RGBA via Canvas (browser). */
@@ -195,6 +217,11 @@ export async function decodeRgba(
   // An in-flight GPU-texture ref — read its pixels back off the device.
   if (isGpuTextureImage(image)) {
     return readbackTextureRef(image);
+  }
+  // A preview-bitmap ref (e.g. a cached result re-injected into a single-node
+  // run) — read the pixels off the bitmap, no codec work.
+  if (isBitmapImage(image)) {
+    return bitmapToRgba(image.bitmap as ImageBitmap);
   }
   const bytes = await loadImageBytes(image, context);
   if (bytes.length === 0) return { rgba: new Uint8Array(), width: 0, height: 0 };
@@ -264,6 +291,11 @@ export async function encodePngFromRef(ref: unknown): Promise<Uint8Array> {
   // In-flight GPU texture — read its pixels back, then encode.
   if (isGpuTextureImage(ref)) {
     const { rgba, width, height } = await readbackTextureRef(ref);
+    return encodeRgbaToPng(rgba, width, height);
+  }
+  // Preview-bitmap ref — read the pixels off the bitmap, then encode.
+  if (isBitmapImage(ref)) {
+    const { rgba, width, height } = await bitmapToRgba(ref.bitmap as ImageBitmap);
     return encodeRgbaToPng(rgba, width, height);
   }
   const data = (ref as { data?: unknown }).data;

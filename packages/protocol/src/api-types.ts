@@ -34,6 +34,18 @@ export const RAW_RGBA_MIME = "image/x-raw-rgba";
  */
 export const GPU_TEXTURE_MIME = "image/x-gpu-texture";
 
+/**
+ * Preview-bitmap image (browser only). `bitmap` holds a decoded `ImageBitmap`
+ * (typed `unknown` here so protocol stays DOM-free). The in-browser runner's
+ * worker emits this as its transport format for GPU/raw image outputs: an
+ * `ImageBitmap` is transferable across `postMessage` (zero-copy) and paints
+ * straight onto a canvas, so the live preview skips the PNG encode → base64 →
+ * `<img>` decode round-trip entirely. Like the other in-flight formats it never
+ * reaches the server or persists; boundaries that need portable bytes derive
+ * them from the bitmap via the shared image codec helpers.
+ */
+export const BITMAP_IMAGE_MIME = "image/x-imagebitmap";
+
 export interface ImageRef {
   type: "image";
   uri?: string;
@@ -50,6 +62,17 @@ export interface ImageRef {
    * WebGPU-free.
    */
   texture?: unknown;
+  /**
+   * Decoded `ImageBitmap` for the {@link BITMAP_IMAGE_MIME} backing (browser
+   * only, never serialized). Typed `unknown` to keep protocol DOM-free.
+   */
+  bitmap?: unknown;
+  /**
+   * Monotonic per-bitmap counter. Two distinct `ImageBitmap`s are
+   * indistinguishable to structural equality (no enumerable own properties), so
+   * memoized consumers compare this to detect a new frame.
+   */
+  bitmapVersion?: number;
 }
 
 /**
@@ -96,9 +119,31 @@ export function isGpuTextureImage(
   );
 }
 
-/** True when `value` is any in-flight image (raw-RGBA CPU buffer or GPU texture). */
+/**
+ * True when `value` is a preview-bitmap image (see {@link BITMAP_IMAGE_MIME}):
+ * a live `ImageBitmap` plus its dimensions. Structural check only (no
+ * `instanceof ImageBitmap`) so it works in DOM-free environments and tests.
+ */
+export function isBitmapImage(
+  value: unknown
+): value is ImageRef & { bitmap: object; width: number; height: number } {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return (
+    v.type === "image" &&
+    v.mimeType === BITMAP_IMAGE_MIME &&
+    typeof v.bitmap === "object" &&
+    v.bitmap !== null &&
+    typeof v.width === "number" &&
+    typeof v.height === "number" &&
+    v.width > 0 &&
+    v.height > 0
+  );
+}
+
+/** True when `value` is any in-flight image (raw-RGBA CPU buffer, GPU texture, or preview bitmap). */
 export function isInFlightImage(value: unknown): boolean {
-  return isRawRgbaImage(value) || isGpuTextureImage(value);
+  return isRawRgbaImage(value) || isGpuTextureImage(value) || isBitmapImage(value);
 }
 
 export interface AudioRef {

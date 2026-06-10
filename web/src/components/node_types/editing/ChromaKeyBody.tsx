@@ -1,19 +1,9 @@
 /** @jsxImportSource @emotion/react */
 /**
- * AdjustmentBody — generic bespoke body for slider-only image adjustment nodes
- * (Brightness/Contrast, HSB, Saturation/Vibrance, Color Balance, Vignette,
- * Exposure, …).
+ * ChromaKeyBody — bespoke body for `lib.image.keyer.ChromaKey`.
  *
- * Preview on top, one slider per numeric property below. Unlike the per-node
- * bodies (Curves, Levels, …) nothing here is hardcoded: the image/mask handles
- * and every slider's range, default and step are derived from
- * `nodeMetadata.properties`. Registered for the node types in
- * `ADJUSTMENT_NODE_TYPES`.
- *
- * Bipolar sliders (range straddling 0, neutral at 0 — temperature, tint,
- * exposure, …) fill outward from the centre so the control reads as a signed
- * adjustment, not a 0–100% level. The preview reflects whatever the server
- * most recently produced — no client-side approximation.
+ * Preview on top, key-color picker, then three unipolar sliders:
+ *   Tolerance, Softness, Spill suppression.
  */
 
 import React, { memo, useCallback, useMemo } from "react";
@@ -27,8 +17,9 @@ import HandleColumn from "../../node/HandleColumn";
 import ImageRefPreview from "../../node/ImageRefPreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
+import ColorPicker from "../../inputs/ColorPicker";
 
-import type { NodeMetadata, Property } from "../../../stores/ApiTypes";
+import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import { useLiveSliderWriter } from "../../../hooks/nodes/useLiveSliderWriter";
 import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
@@ -39,9 +30,17 @@ import {
   type SliderSpec
 } from "./AdjustmentSlider";
 
+export const CHROMA_KEY_NODE_TYPE = "lib.image.keyer.ChromaKey";
+
+const SLIDERS: ReadonlyArray<SliderSpec> = [
+  { name: "tolerance", label: "Tolerance", min: 0, max: 1, step: 0.01, default: 0.1,  bipolar: false },
+  { name: "softness",  label: "Softness",  min: 0, max: 1, step: 0.01, default: 0.05, bipolar: false },
+  { name: "spill",     label: "Spill",     min: 0, max: 1, step: 0.01, default: 0.5,  bipolar: false }
+];
+
 const styles = (theme: Theme) =>
   css({
-    "&.adjustment-body": {
+    "&.chroma-key-body": {
       position: "relative",
       width: "100%",
       height: "100%",
@@ -74,50 +73,31 @@ const styles = (theme: Theme) =>
       }
     },
     ".controls": {
-      flex: "0 0 auto",
       display: "grid",
-      gridTemplateColumns: "minmax(52px, auto) 1fr auto",
+      gridTemplateColumns: "auto 1fr auto",
+      columnGap: theme.spacing(1),
+      rowGap: theme.spacing(0.5),
       alignItems: "center",
-      columnGap: theme.spacing(1.25),
-      rowGap: theme.spacing(0.75),
-      padding: `${theme.spacing(0.75)} ${theme.spacing(1)} ${theme.spacing(1)}`
+      padding: `${theme.spacing(0.5)} ${theme.spacing(1)} ${theme.spacing(0.5)}`
+    },
+    ".color-row": {
+      display: "contents"
     },
     ".outputs-row": {
       flex: "0 0 auto"
     }
   });
 
-const humanize = (name: string): string =>
-  name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-
-const isNumber = (v: unknown): v is number =>
-  typeof v === "number" && Number.isFinite(v);
-
-/**
- * Derive the slider specs from the node's numeric (`float` / `int`) properties.
- * Image-typed properties become handles instead (see `imageProps`).
- */
-const toSliderSpecs = (properties: Property[]): SliderSpec[] =>
-  properties.reduce<SliderSpec[]>((specs, p) => {
-    const kind = (p.type as { type?: string } | undefined)?.type;
-    if ((kind !== "float" && kind !== "int") || !isNumber(p.min) || !isNumber(p.max)) {
-      return specs;
+const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
+  <ImageRefPreview
+    value={value}
+    placeholder={
+      <CheckerDropzone message="Connect an image, then run" icon={<ImageIcon />} />
     }
-    const isInt = kind === "int";
-    specs.push({
-      name: p.name,
-      label: p.title ?? humanize(p.name),
-      min: p.min,
-      max: p.max,
-      step: isInt ? 1 : 0.01,
-      default: isNumber(p.default) ? p.default : 0,
-      // Neutral-at-zero with headroom both ways — the signed adjustments.
-      bipolar: p.min < 0 && p.max > 0
-    });
-    return specs;
-  }, []);
+  />
+);
 
-export interface AdjustmentBodyProps {
+export interface ChromaKeyBodyProps {
   id: string;
   nodeType: string;
   nodeMetadata: NodeMetadata;
@@ -127,7 +107,7 @@ export interface AdjustmentBodyProps {
   isOutputNode: boolean;
 }
 
-const AdjustmentBodyInner: React.FC<AdjustmentBodyProps> = ({
+const ChromaKeyBodyInner: React.FC<ChromaKeyBodyProps> = ({
   id,
   nodeType,
   nodeMetadata,
@@ -143,14 +123,10 @@ const AdjustmentBodyInner: React.FC<AdjustmentBodyProps> = ({
   );
 
   const properties = nodeMetadata.properties ?? [];
-  const imageProps = useMemo(
-    () =>
-      properties.filter(
-        (p) => (p.type as { type?: string } | undefined)?.type === "image"
-      ),
+  const imageProperty = useMemo(
+    () => properties.filter((p) => p.name === "image"),
     [properties]
   );
-  const sliders = useMemo(() => toSliderSpecs(properties), [properties]);
 
   const props = data.properties ?? {};
   const previewValue = useNodeOutput(workflowId, id);
@@ -160,40 +136,56 @@ const AdjustmentBodyInner: React.FC<AdjustmentBodyProps> = ({
     nodeType
   });
 
-  const handleChange = useCallback(
+  const handleSliderChange = useCallback(
     (name: string, v: number) => {
-      const spec = sliders.find((s) => s.name === name);
+      const spec = SLIDERS.find((s) => s.name === name);
       if (!spec) return;
       setProperty(name, clamp(v, spec.min, spec.max));
     },
-    [setProperty, sliders]
+    [setProperty]
+  );
+
+  const hexColor = String(
+    (props["key_color"] as { value?: string } | undefined)?.value ?? "#00ff00"
+  );
+
+  const handleColorChange = useCallback(
+    (newColor: string | null) => {
+      setProperty("key_color", { type: "color", value: newColor ?? "#00ff00" });
+      setPropertyComplete();
+    },
+    [setProperty, setPropertyComplete]
   );
 
   return (
-    <div css={cssStyles} className="adjustment-body" data-bespoke-body="Adjustment">
-      <HandleColumn id={id} properties={imageProps} />
+    <div css={cssStyles} className="chroma-key-body" data-bespoke-body="ChromaKey">
+      <HandleColumn id={id} properties={imageProperty} />
       <div className="preview-area">
-        <ImageRefPreview
-          value={previewValue}
-          placeholder={
-            <CheckerDropzone
-              message="Connect an image, then run"
-              icon={<ImageIcon />}
-            />
-          }
-        />
+        <ImagePreview value={previewValue} />
       </div>
 
       <div className="controls">
-        {sliders.map((spec) => {
+        {/* Color picker row */}
+        <span className="ctrl-label">Key Color</span>
+        <span style={{ gridColumn: "2 / 4", display: "flex", alignItems: "center" }}>
+          <ColorPicker
+            color={hexColor}
+            onColorChange={handleColorChange}
+            showCustom={true}
+            isNodeProperty={true}
+          />
+        </span>
+
+        {/* Slider rows */}
+        {SLIDERS.map((spec) => {
           const raw = Number(props[spec.name] ?? spec.default);
-          const value = clamp(isNumber(raw) ? raw : spec.default, spec.min, spec.max);
+          const value = clamp(raw, spec.min, spec.max);
           return (
             <AdjustmentSlider
               key={spec.name}
               spec={spec}
               value={value}
-              onChange={handleChange}
+              onChange={handleSliderChange}
               onCommit={setPropertyComplete}
             />
           );
@@ -211,7 +203,7 @@ const AdjustmentBodyInner: React.FC<AdjustmentBodyProps> = ({
   );
 };
 
-export const AdjustmentBody = memo(AdjustmentBodyInner);
-AdjustmentBody.displayName = "AdjustmentBody";
+export const ChromaKeyBody = memo(ChromaKeyBodyInner);
+ChromaKeyBody.displayName = "ChromaKeyBody";
 
-export default AdjustmentBody;
+export default ChromaKeyBody;
