@@ -358,6 +358,23 @@ const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
     [onResizeEnd]
   );
 
+  const handlePointerCancel = useCallback(
+    (e: React.PointerEvent) => {
+      if (!dragStartRef.current) {
+        return;
+      }
+      const target = e.target as HTMLElement;
+      if (typeof target.releasePointerCapture === "function") {
+        target.releasePointerCapture(e.pointerId);
+      }
+      dragStartRef.current = null;
+      lastSizeRef.current = null;
+      setActiveEdge(null);
+      onResizeEnd?.();
+    },
+    [onResizeEnd]
+  );
+
   const gap = SCREEN_OUTSIDE_GAP_PX / zoom;
   const hs = SCREEN_HANDLE_PX / zoom;
 
@@ -481,6 +498,7 @@ const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
           onPointerDown={(e) => handlePointerDown(e, edge)}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
         />
       ))}
     </div>

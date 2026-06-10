@@ -808,10 +808,15 @@ export async function saveSketchDocument(
   onSaved?: (response: SketchDocumentResponse) => void
 ): Promise<void> {
   const store = instance.session.getState();
-  if (!store.documentId) {
+  if (!store.documentId || instance.saveInFlight.current) {
     return;
   }
-  await saveSnapshot(instance, store.documentId, store.name, onSaved);
+  instance.saveInFlight.current = true;
+  try {
+    await saveSnapshot(instance, store.documentId, store.name, onSaved);
+  } finally {
+    instance.saveInFlight.current = false;
+  }
 }
 
 export function useStandaloneSketchDocument(
@@ -823,7 +828,6 @@ export function useStandaloneSketchDocument(
   const sessionStore = instance.session;
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingHashRef = useRef<string | null>(null);
-  const inFlightRef = useRef(false);
   // Keep the latest trpc utils available to the autosave callback. Reassign
   // on every render so the closure inside `saveSnapshot` sees the current
   // utils object even though it lives outside any React effect.
@@ -865,6 +869,10 @@ export function useStandaloneSketchDocument(
       return;
     }
 
+    let alive = true;
+    // Use the instance-level flag so manual saves (saveSketchDocument) share the same guard.
+    const inFlightRef = instance.saveInFlight;
+
     const flush = () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -872,6 +880,17 @@ export function useStandaloneSketchDocument(
       }
       const store = sessionStore.getState();
       if (inFlightRef.current || !store.documentId) {
+        // A manual save may be in flight (shared guard). Re-arm the debounce
+        // so a pending hash isn't dropped if that save fails — but never
+        // after unmount (cleanup also calls flush()).
+        if (
+          alive &&
+          inFlightRef.current &&
+          pendingHashRef.current &&
+          pendingHashRef.current !== store.lastServerHash
+        ) {
+          schedule();
+        }
         return;
       }
       const nextHash = pendingHashRef.current;
@@ -885,6 +904,9 @@ export function useStandaloneSketchDocument(
         utilsRef.current.sketch.get.setData({ id: documentId }, saved);
       }).finally(() => {
         inFlightRef.current = false;
+        if (!alive) {
+          return;
+        }
         const currentStore = sessionStore.getState();
         if (
           pendingHashRef.current &&
@@ -965,6 +987,7 @@ export function useStandaloneSketchDocument(
     });
 
     return () => {
+      alive = false;
       unsubscribeSketch();
       unsubscribeSession();
       flush();
