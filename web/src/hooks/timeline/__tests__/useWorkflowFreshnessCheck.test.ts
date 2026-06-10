@@ -6,12 +6,18 @@
  */
 
 import { describe, it, expect, beforeEach } from "@jest/globals";
+import React from "react";
 import { renderHook, act, waitFor } from "@testing-library/react";
 
 import { makeTrack, makeClip } from "@nodetool-ai/timeline";
 import { mockWorkflowsGet } from "../../../__mocks__/trpcClientMock";
 
-import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import {
+  useTimelineStore,
+  useTimelineStoreApi
+} from "../../../stores/timeline/TimelineStore";
+import type { TimelineStoreApi } from "../../../stores/timeline/TimelineStore";
+import { TimelineProvider } from "../../../stores/timeline/TimelineInstance";
 import { useWorkflowFreshnessCheck } from "../useWorkflowFreshnessCheck";
 
 const BASE_UPDATED_AT = "2026-01-01T10:00:00.000Z";
@@ -302,6 +308,59 @@ describe("useWorkflowFreshnessCheck", () => {
         .clips.find((c) => c.id === clip.id);
       expect(current?.status).toBe("stale");
     });
+  });
+
+  it("subscribes to the surrounding provider's instance, not the active/static one", async () => {
+    // A provider with active={false} never pushes its instance onto the
+    // activation stack, so the static `useTimelineStore.getState()` keeps
+    // resolving the default instance. The hook must still observe the
+    // provider's instance via context.
+    const apiRef: { current: TimelineStoreApi | null } = { current: null };
+    const Capture: React.FC<{ children?: React.ReactNode }> = ({
+      children
+    }) => {
+      apiRef.current = useTimelineStoreApi();
+      return React.createElement(React.Fragment, null, children);
+    };
+    const wrapper: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
+      React.createElement(TimelineProvider, {
+        active: false,
+        children: React.createElement(Capture, null, children)
+      });
+
+    mockWorkflowsGet.mockResolvedValue(
+      buildWorkflow({ id: "wf-1", updatedAt: NEWER_UPDATED_AT })
+    );
+
+    renderHook(() => useWorkflowFreshnessCheck("seq-1"), { wrapper });
+    expect(apiRef.current).not.toBeNull();
+
+    // Populate the PROVIDER instance (async, like useLoadTimelineIntoStore).
+    const track = makeTrack({ type: "video" });
+    const clip = makeClip({
+      trackId: track.id,
+      workflowId: "wf-1",
+      sourceType: "generated",
+      status: "generated",
+      versions: [makeSuccessVersion(BASE_UPDATED_AT)]
+    });
+    act(() => {
+      apiRef.current?.setState({
+        sequenceId: "seq-1",
+        tracks: [track],
+        clips: [clip]
+      });
+    });
+
+    await waitFor(() => {
+      const current = apiRef.current
+        ?.getState()
+        .clips.find((c) => c.id === clip.id);
+      expect(current?.status).toBe("stale");
+    });
+
+    // The default/static instance was never touched.
+    expect(useTimelineStore.getState().clips).toHaveLength(0);
   });
 
   it("auto-resolves a missing selectedOutputNodeId to the first available output and marks the clip stale", async () => {

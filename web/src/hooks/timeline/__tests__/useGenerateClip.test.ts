@@ -184,6 +184,244 @@ describe("useGenerateClip", () => {
     fetchQuerySpy.mockRestore();
   });
 
+  it("applies the completed job's output asset to the clip", async () => {
+    const clip = {
+      id: "clip-done",
+      trackId: "track-1",
+      name: "Clip",
+      startMs: 0,
+      durationMs: 1000,
+      mediaType: "video" as const,
+      workflowId: "wf-1",
+      sourceType: "generated" as const,
+      status: "draft" as const,
+      selectedOutputNodeId: "output-1",
+      dependencyHash: "hash-1",
+      paramOverrides: { prompt: "hello" },
+      locked: false,
+      versions: []
+    };
+    useTimelineStore.setState({
+      sequenceId: "seq-1",
+      tracks: [{ id: "track-1", name: "Track", type: "video", index: 0, visible: true, locked: false }],
+      clips: [clip],
+      markers: []
+    });
+
+    const fetchQuerySpy = jest
+      .spyOn(queryClient, "fetchQuery")
+      .mockResolvedValue({
+        id: "wf-1",
+        name: "WF",
+        access: "private",
+        graph: { nodes: [], edges: [] }
+      } as never);
+    getWorkflowRunnerStoreMock.mockReturnValue({
+      getState: () => ({ run: jest.fn(async () => "job-done") })
+    });
+    subscribeMock.mockImplementation(
+      ((jobId: string, handler: (message: Record<string, unknown>) => void) => {
+        jobHandlers.set(jobId, handler);
+        return () => {
+          jobHandlers.delete(jobId);
+        };
+      }) as any
+    );
+
+    const { result } = renderHook(() => useGenerateClip(clip.id));
+
+    await act(async () => {
+      await result.current.generateClip();
+    });
+
+    await act(async () => {
+      jobHandlers.get("job-done")?.({
+        type: "output_update",
+        node_id: "output-1",
+        value: { asset_id: "asset-99" },
+        job_id: "job-done"
+      });
+      jobHandlers.get("job-done")?.({
+        type: "job_update",
+        status: "completed",
+        job_id: "job-done"
+      });
+    });
+
+    const updated = useTimelineStore
+      .getState()
+      .clips.find((c) => c.id === clip.id);
+    expect(updated?.currentAssetId).toBe("asset-99");
+    expect(updated?.status).toBe("generated");
+    expect(updated?.lastGeneratedHash).toBe("hash-1");
+    expect(updated?.versions).toHaveLength(1);
+    expect(updated?.versions?.[0]).toMatchObject({
+      jobId: "job-done",
+      assetId: "asset-99",
+      dependencyHash: "hash-1",
+      paramOverridesSnapshot: { prompt: "hello" }
+    });
+    // Job entry is cleared once the asset is applied.
+    expect(
+      useTimelineGenerationStore.getState().clipJobs[clip.id]
+    ).toBeUndefined();
+
+    fetchQuerySpy.mockRestore();
+  });
+
+  it("treats a completed job without an output asset as a failure", async () => {
+    const clip = {
+      id: "clip-noasset",
+      trackId: "track-1",
+      name: "Clip",
+      startMs: 0,
+      durationMs: 1000,
+      mediaType: "video" as const,
+      workflowId: "wf-1",
+      sourceType: "generated" as const,
+      status: "draft" as const,
+      selectedOutputNodeId: "output-1",
+      locked: false,
+      versions: []
+    };
+    useTimelineStore.setState({
+      sequenceId: "seq-1",
+      tracks: [{ id: "track-1", name: "Track", type: "video", index: 0, visible: true, locked: false }],
+      clips: [clip],
+      markers: []
+    });
+    useTimelineGenerationStore
+      .getState()
+      .registerJob(clip.id, "job-noasset", "wf-1");
+
+    subscribeMock.mockImplementation(
+      ((jobId: string, handler: (message: Record<string, unknown>) => void) => {
+        jobHandlers.set(jobId, handler);
+        return () => {
+          jobHandlers.delete(jobId);
+        };
+      }) as any
+    );
+
+    renderHook(() => useGenerateClip(clip.id));
+
+    // No output_update arrives before the terminal job_update.
+    const { handleJobMessage, __setJobContextForTests } = await import(
+      "../useGenerateClip"
+    );
+    __setJobContextForTests("job-noasset", {
+      clipId: clip.id,
+      workflowId: "wf-1",
+      selectedOutputNodeId: "output-1"
+    });
+    await act(async () => {
+      await handleJobMessage("job-noasset", {
+        type: "job_update",
+        status: "completed",
+        job_id: "job-noasset"
+      } as never);
+    });
+
+    expect(
+      useTimelineGenerationStore.getState().clipJobs[clip.id]?.status
+    ).toBe("failed");
+    expect(
+      useTimelineStore.getState().clips.find((c) => c.id === clip.id)?.status
+    ).toBe("failed");
+    expect(
+      useErrorStore.getState().getError("wf-1", "job-noasset", "output-1")
+    ).toBeTruthy();
+  });
+
+  it("starts only one job for a rapid double-click (async start window)", async () => {
+    const clip = {
+      id: "clip-double",
+      trackId: "track-1",
+      name: "Clip",
+      startMs: 0,
+      durationMs: 1000,
+      mediaType: "video" as const,
+      workflowId: "wf-1",
+      sourceType: "generated" as const,
+      status: "draft" as const,
+      locked: false,
+      versions: []
+    };
+    useTimelineStore.setState({
+      sequenceId: "seq-1",
+      tracks: [{ id: "track-1", name: "Track", type: "video", index: 0, visible: true, locked: false }],
+      clips: [clip],
+      markers: []
+    });
+
+    const fetchQuerySpy = jest
+      .spyOn(queryClient, "fetchQuery")
+      .mockResolvedValue({
+        id: "wf-1",
+        name: "WF",
+        access: "private",
+        graph: { nodes: [], edges: [] }
+      } as never);
+    const run = jest.fn(async () => "job-double");
+    getWorkflowRunnerStoreMock.mockReturnValue({ getState: () => ({ run }) });
+    subscribeMock.mockImplementation((() => () => {}) as any);
+
+    const { result } = renderHook(() => useGenerateClip(clip.id));
+
+    await act(async () => {
+      // Fire twice without awaiting in between — the second call lands while
+      // the first is still inside its pre-registerJob awaits.
+      await Promise.all([
+        result.current.generateClip(),
+        result.current.generateClip()
+      ]);
+    });
+
+    expect(run).toHaveBeenCalledTimes(1);
+
+    fetchQuerySpy.mockRestore();
+  });
+
+  it("rolls back the optimistic queued status when the start fails", async () => {
+    const clip = {
+      id: "clip-failstart",
+      trackId: "track-1",
+      name: "Clip",
+      startMs: 0,
+      durationMs: 1000,
+      mediaType: "video" as const,
+      workflowId: "wf-1",
+      sourceType: "generated" as const,
+      status: "draft" as const,
+      locked: false,
+      versions: []
+    };
+    useTimelineStore.setState({
+      sequenceId: "seq-1",
+      tracks: [{ id: "track-1", name: "Track", type: "video", index: 0, visible: true, locked: false }],
+      clips: [clip],
+      markers: []
+    });
+
+    const fetchQuerySpy = jest
+      .spyOn(queryClient, "fetchQuery")
+      .mockRejectedValue(new Error("fetch failed"));
+
+    const { result } = renderHook(() => useGenerateClip(clip.id));
+
+    await act(async () => {
+      await expect(result.current.generateClip()).rejects.toThrow(
+        "fetch failed"
+      );
+    });
+
+    expect(
+      useTimelineStore.getState().clips.find((c) => c.id === clip.id)?.status
+    ).toBe("draft");
+
+    fetchQuerySpy.mockRestore();
+  });
+
   it("cancels an active clip generation job", async () => {
     const clip = {
       id: "clip-2",

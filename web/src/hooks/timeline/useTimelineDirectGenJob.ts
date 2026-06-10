@@ -14,7 +14,8 @@ import {
   globalWebSocketManager,
   type WebSocketMessage
 } from "../../lib/websocket/GlobalWebSocketManager";
-import { useTimelineStore } from "../../stores/timeline/TimelineStore";
+import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
+import type { TimelineStoreApi } from "../../stores/timeline/TimelineStore";
 import { makeClipVersion } from "@nodetool-ai/timeline";
 import type { TimelineClip } from "@nodetool-ai/timeline";
 import { deriveIdleClipStatus } from "./useGenerateClip";
@@ -53,13 +54,18 @@ const clearInFlight = (clipId: string): void => {
   }
 };
 
-function fail(clipId: string): void {
-  useTimelineStore.getState().patchClip(clipId, { status: "failed" });
+function fail(timeline: TimelineStoreApi, clipId: string): void {
+  timeline.getState().patchClip(clipId, { status: "failed" });
 }
 
 export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
+  // Capture the surrounding instance's document store once; all reads and
+  // writes in the async flow below go through this same handle so a focus
+  // switch to another timeline instance mid-generation can't redirect them.
+  const timeline = useTimelineStoreApi();
+
   const start = useCallback(async (clipId: string): Promise<string | null> => {
-    const clip = useTimelineStore
+    const clip = timeline
       .getState()
       .clips.find((c) => c.id === clipId);
     if (!clip) return null;
@@ -76,12 +82,12 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
       return null;
     }
     if (!clip.provider || !clip.model) {
-      fail(clipId);
+      fail(timeline, clipId);
       return null;
     }
     const prompt = (clip.prompt ?? "").trim();
     if (!prompt) {
-      fail(clipId);
+      fail(timeline, clipId);
       return null;
     }
 
@@ -89,14 +95,14 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
     let sourceAssetId: string | undefined;
     if (kind === "image-to-image") {
       if (!clip.sourceClipId) {
-        fail(clipId);
+        fail(timeline, clipId);
         return null;
       }
-      const sourceClip = useTimelineStore
+      const sourceClip = timeline
         .getState()
         .clips.find((c) => c.id === clip.sourceClipId);
       if (!sourceClip?.currentAssetId) {
-        fail(clipId);
+        fail(timeline, clipId);
         return null;
       }
       sourceAssetId = sourceClip.currentAssetId;
@@ -106,7 +112,7 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
     clearInFlight(clipId);
 
     const requestId = randomId();
-    useTimelineStore.getState().patchClip(clipId, { status: "generating" });
+    timeline.getState().patchClip(clipId, { status: "generating" });
 
     let unsubscribe: (() => void) | undefined;
     const cleanup = () => {
@@ -119,7 +125,7 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
 
     const settle = (msg: DirectGenRpcResponse) => {
       cleanup();
-      const store = useTimelineStore.getState();
+      const store = timeline.getState();
       if (msg.error) {
         store.patchClip(clipId, { status: "failed" });
         return;
@@ -200,12 +206,12 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
       });
     } catch {
       cleanup();
-      fail(clipId);
+      fail(timeline, clipId);
       return null;
     }
 
     return requestId;
-  }, []);
+  }, [timeline]);
 
   const cancel = useCallback((clipId: string) => {
     clearInFlight(clipId);
@@ -213,14 +219,14 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
     // generated/stale clip should not regress to "Draft" just because the
     // user cancelled a re-roll. `deriveIdleClipStatus` produces draft only
     // when the clip has no rendered asset.
-    const clip = useTimelineStore
+    const clip = timeline
       .getState()
       .clips.find((c) => c.id === clipId);
     if (!clip) return;
-    useTimelineStore
+    timeline
       .getState()
       .patchClip(clipId, { status: deriveIdleClipStatus(clip) });
-  }, []);
+  }, [timeline]);
 
   return { start, cancel };
 }

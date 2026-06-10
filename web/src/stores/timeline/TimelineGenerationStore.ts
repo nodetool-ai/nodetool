@@ -19,6 +19,8 @@
 
 import { create } from "zustand";
 import { useShallow } from "zustand/react/shallow";
+import { makeClipVersion } from "@nodetool-ai/timeline";
+import type { TimelineClip } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "./TimelineStore";
 import useResultsStore from "../ResultsStore";
 import { extractAssetId } from "../outputAssetId";
@@ -170,9 +172,16 @@ export const useTimelineGenerationStore =
         set((state) => {
           const nextClipJobs = { ...state.clipJobs, [clipId]: jobState };
           persistClipJobs(nextClipJobs);
+          const nextJobToClip = { ...state.jobToClip, [jobId]: clipId };
+          // Drop the previous job's reverse mapping: a replayed event for the
+          // superseded job must not mutate the new job's state.
+          const previous = state.clipJobs[clipId];
+          if (previous && previous.jobId !== jobId) {
+            delete nextJobToClip[previous.jobId];
+          }
           return {
             clipJobs: nextClipJobs,
-            jobToClip: { ...state.jobToClip, [jobId]: clipId }
+            jobToClip: nextJobToClip
           };
         });
 
@@ -192,7 +201,25 @@ export const useTimelineGenerationStore =
           return;
         }
 
-        const updated: ClipJobState = { ...existing, status, ...extra };
+        // The documented "completed" contract requires an output asset;
+        // a job that completes without one is surfaced as a failure
+        // (mirrors the sketch editor's useGenerateLayer).
+        const completedWithoutAsset = status === "completed" && !extra?.assetId;
+        const effectiveStatus: ClipGenerationStatus = completedWithoutAsset
+          ? "failed"
+          : status;
+        const updated: ClipJobState = {
+          ...existing,
+          status: effectiveStatus,
+          ...extra,
+          ...(completedWithoutAsset
+            ? {
+                errorMessage:
+                  extra?.errorMessage ??
+                  "Job completed without producing an output asset."
+              }
+            : {})
+        };
 
         set((state) => {
           const nextClipJobs = { ...state.clipJobs, [clipId]: updated };
@@ -204,13 +231,46 @@ export const useTimelineGenerationStore =
 
         // ── Mirror status into TimelineStore ──────────────────────────────
 
-        if (status === "running") {
+        if (effectiveStatus === "running") {
           useTimelineStore.getState().patchClip(clipId, { status: "generating" });
           return;
         }
 
-        if (status === "failed") {
+        if (effectiveStatus === "failed") {
           useTimelineStore.getState().patchClip(clipId, { status: "failed" });
+          return;
+        }
+
+        if (effectiveStatus === "completed" && extra?.assetId) {
+          const assetId = extra.assetId;
+          const timeline = useTimelineStore.getState();
+          const clip = timeline.clips.find(
+            (candidate) => candidate.id === clipId
+          );
+          if (!clip) {
+            return;
+          }
+          // Apply the completed contract: append a ClipVersion, set
+          // currentAssetId and lastGeneratedHash (unless the clip is locked),
+          // and settle the clip's status.
+          const patch: Partial<TimelineClip> = {
+            status: "generated",
+            versions: [
+              ...(clip.versions ?? []),
+              makeClipVersion({
+                jobId,
+                assetId,
+                workflowUpdatedAt: new Date().toISOString(),
+                dependencyHash: clip.dependencyHash ?? "",
+                paramOverridesSnapshot: clip.paramOverrides ?? {}
+              })
+            ]
+          };
+          if (!clip.locked) {
+            patch.currentAssetId = assetId;
+            patch.lastGeneratedHash = clip.dependencyHash;
+          }
+          timeline.patchClip(clipId, patch);
         }
       },
 

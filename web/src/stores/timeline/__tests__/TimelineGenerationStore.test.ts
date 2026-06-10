@@ -1,14 +1,35 @@
 import { describe, it, expect, beforeEach } from "@jest/globals";
 import { act } from "@testing-library/react";
+import type { TimelineClip } from "@nodetool-ai/timeline";
 import { useTimelineGenerationStore } from "../TimelineGenerationStore";
+import ResultsStore from "../../ResultsStore";
+
+const mockPatchClip = jest.fn();
+let mockClips: TimelineClip[] = [];
 
 jest.mock("../TimelineStore", () => ({
   useTimelineStore: {
     getState: () => ({
-      patchClip: jest.fn()
+      clips: mockClips,
+      patchClip: mockPatchClip
     })
   }
 }));
+
+const makeMockClip = (overrides: Partial<TimelineClip> = {}): TimelineClip =>
+  ({
+    id: "clip-1",
+    trackId: "track-1",
+    name: "Clip",
+    startMs: 0,
+    durationMs: 1000,
+    mediaType: "video",
+    sourceType: "generated",
+    status: "generating",
+    locked: false,
+    versions: [],
+    ...overrides
+  }) as TimelineClip;
 
 jest.mock("../../ResultsStore", () => ({
   __esModule: true,
@@ -29,6 +50,8 @@ function resetStore() {
 describe("TimelineGenerationStore", () => {
   beforeEach(() => {
     resetStore();
+    mockPatchClip.mockReset();
+    mockClips = [];
   });
 
   describe("initial state", () => {
@@ -65,6 +88,25 @@ describe("TimelineGenerationStore", () => {
       const { clipJobs, jobToClip } = useTimelineGenerationStore.getState();
       expect(clipJobs["clip-1"].jobId).toBe("job-2");
       expect(jobToClip["job-2"]).toBe("clip-1");
+    });
+
+    it("removes the superseded job's reverse mapping so its replayed events no-op", () => {
+      act(() => {
+        useTimelineGenerationStore.getState().registerJob("clip-1", "job-1", "wf-1");
+        useTimelineGenerationStore.getState().registerJob("clip-1", "job-2", "wf-1");
+      });
+
+      expect(
+        useTimelineGenerationStore.getState().jobToClip["job-1"]
+      ).toBeUndefined();
+
+      // A late event for the old job must not mutate the new job.
+      act(() => {
+        useTimelineGenerationStore.getState().updateJobStatus("job-1", "running");
+      });
+      expect(
+        useTimelineGenerationStore.getState().clipJobs["clip-1"].status
+      ).toBe("queued");
     });
 
     it("tracks multiple clips independently", () => {
@@ -112,6 +154,73 @@ describe("TimelineGenerationStore", () => {
       const job = useTimelineGenerationStore.getState().clipJobs["clip-1"];
       expect(job.status).toBe("completed");
       expect(job.assetId).toBe("asset-42");
+    });
+
+    it("applies the completed asset to the clip: version, currentAssetId, lastGeneratedHash", () => {
+      mockClips = [
+        makeMockClip({
+          dependencyHash: "hash-1",
+          paramOverrides: { prompt: "hello" }
+        })
+      ];
+
+      act(() => {
+        useTimelineGenerationStore.getState().registerJob("clip-1", "job-1", "wf-1");
+        mockPatchClip.mockClear();
+        useTimelineGenerationStore.getState().updateJobStatus("job-1", "completed", {
+          assetId: "asset-42"
+        });
+      });
+
+      expect(mockPatchClip).toHaveBeenCalledWith(
+        "clip-1",
+        expect.objectContaining({
+          status: "generated",
+          currentAssetId: "asset-42",
+          lastGeneratedHash: "hash-1",
+          versions: [
+            expect.objectContaining({
+              jobId: "job-1",
+              assetId: "asset-42",
+              dependencyHash: "hash-1",
+              paramOverridesSnapshot: { prompt: "hello" },
+              status: "success"
+            })
+          ]
+        })
+      );
+    });
+
+    it("records the version but keeps currentAssetId on a locked clip", () => {
+      mockClips = [makeMockClip({ locked: true, currentAssetId: "asset-old" })];
+
+      act(() => {
+        useTimelineGenerationStore.getState().registerJob("clip-1", "job-1", "wf-1");
+        mockPatchClip.mockClear();
+        useTimelineGenerationStore.getState().updateJobStatus("job-1", "completed", {
+          assetId: "asset-new"
+        });
+      });
+
+      const patch = mockPatchClip.mock.calls[0]?.[1] as Partial<TimelineClip>;
+      expect(patch.currentAssetId).toBeUndefined();
+      expect(patch.lastGeneratedHash).toBeUndefined();
+      expect(patch.versions).toHaveLength(1);
+    });
+
+    it("treats completed without an assetId as a failure", () => {
+      mockClips = [makeMockClip()];
+
+      act(() => {
+        useTimelineGenerationStore.getState().registerJob("clip-1", "job-1", "wf-1");
+        mockPatchClip.mockClear();
+        useTimelineGenerationStore.getState().updateJobStatus("job-1", "completed");
+      });
+
+      const job = useTimelineGenerationStore.getState().clipJobs["clip-1"];
+      expect(job.status).toBe("failed");
+      expect(job.errorMessage).toBeTruthy();
+      expect(mockPatchClip).toHaveBeenCalledWith("clip-1", { status: "failed" });
     });
 
     it("no-ops for an unknown jobId", () => {
@@ -206,9 +315,9 @@ describe("TimelineGenerationStore", () => {
 
     it("returns asset_id from an object result", () => {
       const mockGetOutputResult = jest.fn().mockReturnValue({ asset_id: "asset-42" });
-      jest.spyOn(
-        require("../../ResultsStore").default, "getState"
-      ).mockReturnValue({ getOutputResult: mockGetOutputResult });
+      jest
+        .spyOn(ResultsStore, "getState")
+        .mockReturnValue({ getOutputResult: mockGetOutputResult } as never);
 
       const result = useTimelineGenerationStore.getState().resolveOutputAssetId("wf-1", "job-1", "node-1");
       expect(result).toBe("asset-42");
@@ -216,9 +325,9 @@ describe("TimelineGenerationStore", () => {
 
     it("returns a string result directly", () => {
       const mockGetOutputResult = jest.fn().mockReturnValue("direct-id");
-      jest.spyOn(
-        require("../../ResultsStore").default, "getState"
-      ).mockReturnValue({ getOutputResult: mockGetOutputResult });
+      jest
+        .spyOn(ResultsStore, "getState")
+        .mockReturnValue({ getOutputResult: mockGetOutputResult } as never);
 
       const result = useTimelineGenerationStore.getState().resolveOutputAssetId("wf-1", "job-1", "node-1");
       expect(result).toBe("direct-id");
