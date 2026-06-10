@@ -213,8 +213,11 @@ const TracePanel: React.FC = () => {
   const exportJSON = useTraceStore((s) => s.exportJSON);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
-  // Collapse consecutive output events from the same node into one row,
-  // keeping the latest (which has the most complete streamed text).
+  // Collapse consecutive output events from the same node+output into one
+  // row. Streaming output_update values are deltas (ResultsStore accumulates
+  // them with append=true), so concatenate string values to show the full
+  // streamed text. Keep the first event's id/relativeMs so an expanded row
+  // survives new chunks and is anchored at the stream's start.
   const groupedEvents = useMemo(() => {
     const result: TraceEvent[] = [];
     for (const event of events) {
@@ -222,9 +225,24 @@ const TracePanel: React.FC = () => {
       if (
         event.type === "output" &&
         prev?.type === "output" &&
-        prev.nodeId === event.nodeId
+        prev.nodeId === event.nodeId &&
+        prev.summary === event.summary
       ) {
-        result[result.length - 1] = event;
+        const prevText = getOutputText(prev.detail);
+        const text = getOutputText(event.detail);
+        result[result.length - 1] = {
+          ...event,
+          id: prev.id,
+          relativeMs: prev.relativeMs,
+          timestamp: prev.timestamp,
+          detail:
+            prevText !== null && text !== null
+              ? {
+                  ...(event.detail as Record<string, unknown>),
+                  value: prevText + text
+                }
+              : event.detail
+        };
       } else {
         result.push(event);
       }
