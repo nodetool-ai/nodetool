@@ -320,14 +320,15 @@ describe("useWorkflowFreshnessCheck", () => {
       children
     }) => {
       apiRef.current = useTimelineStoreApi();
-      return React.createElement(React.Fragment, null, children);
+      return <>{children}</>;
     };
-    const wrapper: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
-      React.createElement(
-        TimelineProvider,
-        { active: false },
-        React.createElement(Capture, null, children)
-      );
+    const wrapper: React.FC<{ children?: React.ReactNode }> = ({
+      children
+    }) => (
+      <TimelineProvider active={false}>
+        <Capture>{children}</Capture>
+      </TimelineProvider>
+    );
 
     mockWorkflowsGet.mockResolvedValue(
       buildWorkflow({ id: "wf-1", updatedAt: NEWER_UPDATED_AT })
