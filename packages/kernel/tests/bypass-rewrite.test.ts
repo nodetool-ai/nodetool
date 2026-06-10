@@ -457,8 +457,27 @@ describe("rewriteBypassedNodes", () => {
     expect(result.edges).toHaveLength(0);
   });
 
-  it("derives the downstream input type from properties (string form)", () => {
-    // C declares its input type as a bare string "image" in properties.
+  it("derives the downstream input type from a {type} descriptor in properties", () => {
+    // C declares its input type via an explicit descriptor value.
+    const nodes: NodeDescriptor[] = [
+      makeNode("A", { outputs: { out: "string" } }),
+      bypassed("B", {
+        outputs: { out: "image" },
+        propertyTypes: { in: "string" }
+      }),
+      makeNode("C", { properties: { in: { type: "image" } } } as never)
+    ];
+    const edges: Edge[] = [
+      { source: "A", sourceHandle: "out", target: "B", targetHandle: "in" },
+      { source: "B", sourceHandle: "out", target: "C", targetHandle: "in" }
+    ];
+    const result = rewriteBypassedNodes({ nodes, edges });
+    expect(result.edges).toHaveLength(0);
+  });
+
+  it("treats plain string property values as data, not type names", () => {
+    // C holds a saved literal on the handle; it must not be parsed as a
+    // type name (which would make the rewire look incompatible and drop it).
     const nodes: NodeDescriptor[] = [
       makeNode("A", { outputs: { out: "string" } }),
       bypassed("B", {
@@ -472,7 +491,9 @@ describe("rewriteBypassedNodes", () => {
       { source: "B", sourceHandle: "out", target: "C", targetHandle: "in" }
     ];
     const result = rewriteBypassedNodes({ nodes, edges });
-    expect(result.edges).toHaveLength(0);
+    // No type info for C's input -> treated as compatible -> rewired A -> C.
+    expect(result.edges).toHaveLength(1);
+    expect(result.edges[0]).toMatchObject({ source: "A", target: "C" });
   });
 
   it("falls back to a downstream-compatible input when none match the bypass output", () => {
