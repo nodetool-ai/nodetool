@@ -192,7 +192,12 @@ function classifyError(message: string | undefined): string {
   if (!message) return "none";
   const m = message.toLowerCase();
   if (m.includes("graph validation failed")) return "graph-validation";
+  if (m.includes("select a model")) return "missing-model";
   if (m.includes("requires a") && m.includes("model")) return "missing-model";
+  if (m.includes("is not configured") || m.includes("must be configured"))
+    return "not-configured";
+  if (m.includes("webgpu")) return "unsupported-capability";
+  if (m.includes("unexpected character")) return "invalid-expression";
   if (m.includes("required property")) return "missing-required-property";
   if (m.includes("no provider available")) return "no-provider";
   if (m.includes("does not support")) return "unsupported-capability";
@@ -200,6 +205,8 @@ function classifyError(message: string | undefined): string {
   if (m.includes("not found") || m.includes("enoent")) return "not-found";
   if (m.includes("network") || m.includes("fetch")) return "network";
   if (m.includes("input") && m.includes("required")) return "missing-input";
+  if (m.includes("required")) return "missing-input";
+  if (m.includes("no tiles provided")) return "missing-input";
   return "other";
 }
 

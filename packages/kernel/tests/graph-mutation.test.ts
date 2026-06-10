@@ -554,13 +554,36 @@ describe("Graph – controller targeting", () => {
 });
 
 describe("Graph – validation edge cases (batch 3)", () => {
-  it("validateEdgeTypes rejects a string-form target type mismatch", () => {
+  it("validateEdgeTypes rejects a propertyTypes target type mismatch", () => {
     const nodes = [
       n("a", "t", { outputs: { out: "str" } }),
-      n("b", "t", { properties: { in: "int" } }) // string-form type
+      n("b", "t", { propertyTypes: { in: "int" } })
     ];
     const g = new Graph({ nodes, edges: [e("a", "out", "b", "in", { id: "ed" })] });
     expect(() => g.validateEdgeTypes()).toThrow(/Type mismatch on edge ed/);
+  });
+
+  it("validateEdgeTypes treats plain string property values as data, not types", () => {
+    // Regression: a saved literal like "hello world" on a connected handle
+    // must not be parsed as a type name and fail a valid graph.
+    const nodes = [
+      n("a", "t", { outputs: { out: "str" } }),
+      n("b", "t", { properties: { in: "hello world" } })
+    ];
+    const g = new Graph({ nodes, edges: [e("a", "out", "b", "in")] });
+    expect(() => g.validateEdgeTypes()).not.toThrow();
+  });
+
+  it("validateEdgeTypes prefers propertyTypes over a stale value descriptor", () => {
+    const nodes = [
+      n("a", "t", { outputs: { out: "str" } }),
+      n("b", "t", {
+        propertyTypes: { in: "str" },
+        properties: { in: { type: "int" } }
+      })
+    ];
+    const g = new Graph({ nodes, edges: [e("a", "out", "b", "in")] });
+    expect(() => g.validateEdgeTypes()).not.toThrow();
   });
 
   it("validateEdgeTypes skips a non-string, non-typed target property", () => {

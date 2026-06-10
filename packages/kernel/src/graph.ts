@@ -777,6 +777,23 @@ export class Graph {
    */
   validateEdgeEndpoints(): void {
     for (const edge of this.edges) {
+      // Self-loops pass control-cycle detection and deadlock at runtime:
+      // the node waits on an input handle that only the node itself can
+      // close. The correlation analyzer reports data self-loops as cycles;
+      // this guard also covers direct validate() callers and control edges.
+      if (edge.source === edge.target) {
+        throw new GraphValidationError(
+          `Edge ${edge.id ?? `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`} ` +
+            `connects node "${edge.source}" to itself; self-loop edges are not supported`,
+          [
+            {
+              nodeId: edge.source,
+              property: edge.targetHandle,
+              message: "Self-loop edges are not supported"
+            }
+          ]
+        );
+      }
       if (!this._nodeIndex.has(edge.source)) {
         // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
         log.error("Edge references unknown source node", {
@@ -838,17 +855,22 @@ export class Graph {
       const sourceType = sourceNode.outputs?.[edge.sourceHandle];
       if (!sourceType) continue; // no type info, skip
 
-      // Get target input type from node.properties[targetHandle].type
-      const targetProp = targetNode.properties?.[edge.targetHandle];
-      let targetType: string | undefined;
-      if (
-        typeof targetProp === "object" &&
-        targetProp !== null &&
-        "type" in targetProp
-      ) {
-        targetType = (targetProp as { type: string }).type;
-      } else if (typeof targetProp === "string") {
-        targetType = targetProp;
+      // Get target input type: propertyTypes is the authoritative map after
+      // graph load. Fall back to a property value carrying an explicit
+      // `type` descriptor for raw payloads. Plain string property values
+      // are runtime data (e.g. saved literals), never type names.
+      let targetType: string | undefined =
+        targetNode.propertyTypes?.[edge.targetHandle];
+      if (!targetType) {
+        const targetProp = targetNode.properties?.[edge.targetHandle];
+        if (
+          typeof targetProp === "object" &&
+          targetProp !== null &&
+          "type" in targetProp &&
+          typeof (targetProp as { type: unknown }).type === "string"
+        ) {
+          targetType = (targetProp as { type: string }).type;
+        }
       }
       if (!targetType) continue; // no type info, skip
 
@@ -856,7 +878,17 @@ export class Graph {
       const sourceMeta = TypeMetadata.fromString(sourceType);
       const targetMeta = TypeMetadata.fromString(targetType);
 
-      if (!sourceMeta.isCompatibleWith(targetMeta)) {
+      // Scalar-into-list aggregation: a value edge may feed a list-typed
+      // input (multi-edge list inputs collect items into a list, and a
+      // single item edge wraps). Accept when the source is compatible with
+      // the list's element type.
+      const elementCompatible =
+        targetMeta.isListType() &&
+        !sourceMeta.isListType() &&
+        (targetMeta.args.length === 0 ||
+          sourceMeta.isCompatibleWith(targetMeta.args[0]));
+
+      if (!sourceMeta.isCompatibleWith(targetMeta) && !elementCompatible) {
         // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
         log.warn("Type mismatch on edge", {
           source: edge.source,

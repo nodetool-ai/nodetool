@@ -311,9 +311,14 @@ export class NodeActor {
           );
           this._latestResult = nodeOutputs.collected();
         } else {
-          // Legacy fallback: call process() once with empty inputs.
+          // Legacy fallback: call process() once with the node's own
+          // property values, matching the defaults merge every other
+          // execution path applies.
           const outputs = await this._executor.process(
-            {},
+            {
+              ...(this.node.properties ?? {}),
+              ...(this.node.dynamic_properties ?? {})
+            },
             this._executionContext
           );
           this._latestResult = outputs;
