@@ -315,7 +315,6 @@ describe("lib-image-color-grading nodes", () => {
       image: img,
       amount: 0.8,
       midpoint: 0.3,
-      roundness: 0,
       feather: 0.5
     });
     assertValidImage(output);

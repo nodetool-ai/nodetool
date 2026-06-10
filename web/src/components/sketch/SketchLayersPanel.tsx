@@ -1175,7 +1175,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         className="sketch-layers-panel__layer-ops"
         align="center"
         wrap
-        gap={0.25}
+        gap={0.5}
         sx={{ rowGap: 0.5, minHeight: 30, py: 0.5 }}
       >
         {/* Mask */}
@@ -1252,7 +1252,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         </Tooltip>
 
         {/* Lifecycle, right-aligned: Duplicate · Delete */}
-        <FlexRow align="center" gap={0.25} sx={{ ml: "auto" }}>
+        <FlexRow align="center" gap={0.5} sx={{ ml: "auto" }}>
           <Tooltip
             title="Duplicate Layer"
             enterDelay={SKETCH_TOOLTIP_DELAY_MS}

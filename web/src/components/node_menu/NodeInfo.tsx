@@ -266,18 +266,18 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
           delay={TOOLTIP_ENTER_DELAY}
           placement="top-start"
           title={
-            <Text sx={{ whiteSpace: "pre-line", fontSize: "inherit" }}>
+            <Text sx={{ whiteSpace: "pre-line" }}>
               {formatFalUnitPricingTooltip(nodeMetadata.fal_unit_pricing)}
             </Text>
           }
         >
           <Text
+            size="small"
+            weight={600}
             sx={{
-              fontSize: theme.fontSizeSmall,
               color: isFalVagueBillingSummary(nodeMetadata.fal_unit_pricing)
                 ? theme.vars.palette.warning.main
                 : theme.vars.palette.success.main,
-              fontWeight: 600,
               cursor: "default"
             }}
           >
@@ -291,19 +291,19 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
           delay={TOOLTIP_ENTER_DELAY}
           placement="top-start"
           title={
-            <Text sx={{ whiteSpace: "pre-line", fontSize: "inherit" }}>
+            <Text sx={{ whiteSpace: "pre-line" }}>
               {formatKieUnitPricingTooltip(nodeMetadata.kie_unit_pricing)}
             </Text>
           }
         >
           <Text
+            size="small"
+            weight={600}
             sx={{
-              fontSize: theme.fontSizeSmall,
               color: isKieVagueBillingSummary(nodeMetadata.kie_unit_pricing)
                 ? theme.vars.palette.warning.main
                 : theme.vars.palette.success.main,
-              fontWeight: 600,
-              cursor: "default",
+              cursor: "default"
             }}
           >
             KIE: {formatKieUnitPricingShort(nodeMetadata.kie_unit_pricing)}

@@ -107,8 +107,8 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
 
   return (
     <>
-      <FlexColumn gap={0.75}>
-        <FlexRow gap={0.75} align="center">
+      <FlexColumn gap={1}>
+        <FlexRow gap={1} align="center">
           <InputOutlinedIcon
             sx={{ fontSize: 14, color: theme.vars.palette.secondary.main }}
           />

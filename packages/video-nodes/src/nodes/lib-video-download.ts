@@ -21,9 +21,12 @@ async function runCommand(
     let stderr = "";
     let timedOut = false;
 
+    let killTimer: NodeJS.Timeout | undefined;
     const timer = setTimeout(() => {
       timedOut = true;
       child.kill("SIGTERM");
+      // Escalate if the process ignores SIGTERM.
+      killTimer = setTimeout(() => child.kill("SIGKILL"), 5000);
     }, timeoutMs);
 
     child.stdout.on("data", (d) => {
@@ -34,10 +37,12 @@ async function runCommand(
     });
     child.on("error", (err) => {
       clearTimeout(timer);
+      clearTimeout(killTimer);
       reject(err);
     });
     child.on("close", (code) => {
       clearTimeout(timer);
+      clearTimeout(killTimer);
       if (timedOut) {
         resolve({
           stdout,
@@ -226,6 +231,9 @@ export class YtDlpDownloadLibNode extends BaseNode {
     const overwrite = Boolean(this.overwrite ?? false);
     const rateLimitKbps = Number(this.rate_limit_kbps ?? 0);
 
+    // One deadline for the whole node run: the metadata probe and the
+    // download share the budget instead of each getting the full timeout.
+    const deadline = Date.now() + timeoutMs;
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ytdlp-"));
 
     try {
@@ -304,7 +312,13 @@ export class YtDlpDownloadLibNode extends BaseNode {
         }
         dlArgs.push(url);
 
-        const dlRes = await runCommand("yt-dlp", dlArgs, timeoutMs);
+        const remainingMs = deadline - Date.now();
+        if (remainingMs <= 0) {
+          throw new Error(
+            `yt-dlp timed out after ${Math.round(timeoutMs / 1000)}s before the download started`
+          );
+        }
+        const dlRes = await runCommand("yt-dlp", dlArgs, remainingMs);
         if (dlRes.exitCode !== 0) {
           throw new Error(
             `yt-dlp download failed: ${dlRes.stderr || dlRes.stdout}`

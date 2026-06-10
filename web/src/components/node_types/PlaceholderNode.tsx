@@ -297,7 +297,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
         </Text>
       </Tooltip>
 
-      <FlexColumn gap={0.75} align="center" className="node-actions" sx={{ margin: "8px 0" }}>
+      <FlexColumn gap={1} align="center" className="node-actions" sx={{ margin: "8px 0" }}>
         <Tooltip title={`Search for ${resolvedType} in Package Manager`}>
           <EditorButton
             variant="contained"

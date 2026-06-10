@@ -154,7 +154,7 @@ const ExecutionRows: React.FC<{ rows: Execution[] }> = ({ rows }) => {
           </Text>
 
           {/* status */}
-          <FlexRow gap={0.75} align="center">
+          <FlexRow gap={1} align="center">
             <Box
               sx={{
                 width: 7,

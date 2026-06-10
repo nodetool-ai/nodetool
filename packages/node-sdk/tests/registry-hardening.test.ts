@@ -5,7 +5,7 @@
  * resolution, and the full descriptorDefaults / propertyMeta shape emitted by
  * createGraphNodeTypeResolver.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   NodeRegistry,
   createGraphNodeTypeResolver
@@ -51,6 +51,27 @@ describe("register", () => {
       }
     }
     expect(() => registry.register(NoType)).toThrow(/without nodeType/);
+  });
+
+  it("warns when a different class replaces an existing node type", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    class Shadow extends BaseNode {
+      static readonly nodeType = "test.A";
+      async process() {
+        return {};
+      }
+    }
+    const registry = new NodeRegistry();
+    registry.register(A);
+    registry.register(Shadow);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("test.A"));
+    expect(registry.getClass("test.A")).toBe(Shadow); // last write still wins
+
+    // Re-registering the same class (hot reload) stays silent.
+    warn.mockClear();
+    registry.register(Shadow);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 });
 

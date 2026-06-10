@@ -8,16 +8,17 @@ beforeEach(() => {
 });
 
 describe("fetchLiveFalPricing", () => {
-  it("returns false for empty endpointIds", async () => {
+  it("returns null for empty endpointIds", async () => {
     const result = await fetchLiveFalPricing({}, []);
-    expect(result).toBe(false);
+    expect(result).toBeNull();
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it("fetches with correct URL and updates metadata", async () => {
+  it("fetches with correct URL and returns updated pricing without mutating input", async () => {
+    const originalPricing = { endpoint_id: "fal-ai/fast-sdxl" };
     const metadataByType: Record<string, any> = {
       "fal.FastSDXL": {
-        fal_unit_pricing: { endpoint_id: "fal-ai/fast-sdxl" }
+        fal_unit_pricing: originalPricing
       }
     };
 
@@ -41,21 +42,30 @@ describe("fetchLiveFalPricing", () => {
       "fal-ai/fast-sdxl"
     ]);
 
-    expect(result).toBe(true);
     expect(mockFetch).toHaveBeenCalledWith(
       `${window.location.origin}/api/fal/pricing?endpoint_id=fal-ai%2Ffast-sdxl`
     );
+    expect(result).toEqual({
+      "fal.FastSDXL": {
+        endpoint_id: "fal-ai/fast-sdxl",
+        unit_price: 0.02,
+        billing_unit: "image",
+        currency: "usd",
+        source: "live",
+        checked_at: "2026-01-20T00:00:00Z"
+      }
+    });
+    // The input metadata is left untouched — callers merge the returned
+    // pricing into NEW metadata objects so per-node selectors re-render.
+    expect(metadataByType["fal.FastSDXL"].fal_unit_pricing).toBe(
+      originalPricing
+    );
     expect(metadataByType["fal.FastSDXL"].fal_unit_pricing).toEqual({
-      endpoint_id: "fal-ai/fast-sdxl",
-      unit_price: 0.02,
-      billing_unit: "image",
-      currency: "usd",
-      source: "live",
-      checked_at: "2026-01-20T00:00:00Z"
+      endpoint_id: "fal-ai/fast-sdxl"
     });
   });
 
-  it("returns false when no matching entries", async () => {
+  it("returns null when no matching entries", async () => {
     const metadataByType: Record<string, any> = {
       "fal.FastSDXL": {
         fal_unit_pricing: { endpoint_id: "fal-ai/fast-sdxl" }
@@ -81,33 +91,33 @@ describe("fetchLiveFalPricing", () => {
     const result = await fetchLiveFalPricing(metadataByType, [
       "fal-ai/fast-sdxl"
     ]);
-    expect(result).toBe(false);
+    expect(result).toBeNull();
   });
 
-  it("returns false on fetch error", async () => {
+  it("returns null on fetch error", async () => {
     mockFetch.mockRejectedValue(new Error("Network error"));
 
     const result = await fetchLiveFalPricing({}, ["fal-ai/fast-sdxl"]);
-    expect(result).toBe(false);
+    expect(result).toBeNull();
   });
 
-  it("returns false on non-ok response", async () => {
+  it("returns null on non-ok response", async () => {
     mockFetch.mockResolvedValue({
       ok: false,
       status: 500
     });
 
     const result = await fetchLiveFalPricing({}, ["fal-ai/fast-sdxl"]);
-    expect(result).toBe(false);
+    expect(result).toBeNull();
   });
 
-  it("returns false on 204 response", async () => {
+  it("returns null on 204 response", async () => {
     mockFetch.mockResolvedValue({
       ok: true,
       status: 204
     });
 
     const result = await fetchLiveFalPricing({}, ["fal-ai/fast-sdxl"]);
-    expect(result).toBe(false);
+    expect(result).toBeNull();
   });
 });

@@ -218,7 +218,7 @@ const ToolCallCard: React.FC<{
       <Collapse in={open} timeout="auto" unmountOnExit>
         <FlexColumn gap={0.5} sx={{ marginTop: "4px" }}>
           {isSubtask && subtaskInstructions && (
-            <FlexColumn gap={0.25}>
+            <FlexColumn gap={0.5}>
               <Caption className="tool-section-title">Instructions</Caption>
               <Text size="small" className="subtask-instructions">
                 {subtaskInstructions}
@@ -226,7 +226,7 @@ const ToolCallCard: React.FC<{
             </FlexColumn>
           )}
           {hasArgs && (
-            <FlexColumn gap={0.25}>
+            <FlexColumn gap={0.5}>
               <Caption className="tool-section-title">
                 {isSubtask ? "Other arguments" : "Arguments"}
               </Caption>
@@ -234,7 +234,7 @@ const ToolCallCard: React.FC<{
             </FlexColumn>
           )}
           {hasResult && (
-            <FlexColumn gap={0.25}>
+            <FlexColumn gap={0.5}>
               <Caption className="tool-section-title">Result</Caption>
               <ToolResult toolName={tc.name} content={resultContent} />
             </FlexColumn>

@@ -211,8 +211,16 @@ function walkForMetadataFiles(
 // when the underlying metadata files haven't changed.
 // ---------------------------------------------------------------------------
 
+// Per-user cache dir — the shared system tmpdir is world-writable, so a
+// predictable path there would let another local user pre-seed poisoned
+// metadata or plant symlinks.
 const CACHE_DIR = IS_NODE
-  ? path.join(os.tmpdir(), "nodetool-metadata-cache")
+  ? path.join(
+      // Stryker disable next-line ConditionalExpression,LogicalOperator: XDG_CACHE_HOME is unset in the test environment, so the homedir fallback always applies (equivalent).
+      process.env["XDG_CACHE_HOME"] || path.join(os.homedir(), ".cache"),
+      "nodetool",
+      "metadata-cache"
+    )
   : // Stryker disable next-line StringLiteral: the non-Node branch is unreachable in the (Node) test environment, where IS_NODE is always true (dead branch).
     "/tmp/nodetool-metadata-cache";
 const CACHE_VERSION = 1;
@@ -300,6 +308,54 @@ function writeCache(
   }
 }
 
+/**
+ * Python's json module emits bare `NaN`/`Infinity`/`-Infinity` tokens, which
+ * are not valid JSON. Replace them with `null` — but only outside string
+ * literals, so descriptions or defaults containing the words "NaN" or
+ * "Infinity" survive intact.
+ */
+export function sanitizePythonJson(raw: string): string {
+  let out = "";
+  let inString = false;
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i]!;
+    if (inString) {
+      out += ch;
+      if (ch === "\\") {
+        // Copy the escaped character verbatim so an escaped quote (\")
+        // doesn't terminate the string early.
+        out += raw[i + 1] ?? "";
+        i++;
+      } else if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inString = true;
+      out += ch;
+      continue;
+    }
+    if (raw.startsWith("NaN", i)) {
+      out += "null";
+      i += 2;
+      continue;
+    }
+    if (raw.startsWith("-Infinity", i)) {
+      out += "null";
+      i += 8;
+      continue;
+    }
+    if (raw.startsWith("Infinity", i)) {
+      out += "null";
+      i += 7;
+      continue;
+    }
+    out += ch;
+  }
+  return out;
+}
+
 function parseMetadataFiles(files: string[]): PythonMetadataLoadResult {
   const packages: PackageMetadata[] = [];
   const nodesByType = new Map<string, NodeMetadata>();
@@ -309,11 +365,14 @@ function parseMetadataFiles(files: string[]): PythonMetadataLoadResult {
   for (const file of files) {
     let parsed: unknown;
     try {
-      // Python's json module allows NaN/Infinity which are not valid JSON; replace them with null.
-      const raw = fs
-        .readFileSync(file, "utf8")
-        .replace(/\bNaN\b|-?Infinity\b/g, "null");
-      parsed = JSON.parse(raw);
+      const raw = fs.readFileSync(file, "utf8");
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        // Python's json module allows NaN/Infinity which are not valid JSON;
+        // retry with those tokens (outside string literals) nulled out.
+        parsed = JSON.parse(sanitizePythonJson(raw));
+      }
     } catch (error) {
       warnings.push(`Failed to parse JSON ${file}: ${String(error)}`);
       continue;

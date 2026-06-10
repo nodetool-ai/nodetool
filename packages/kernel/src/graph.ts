@@ -44,6 +44,13 @@ export interface GraphFromDictOptions {
   skipErrors?: boolean;
   allowUndefinedProperties?: boolean;
   validateNodeType?: (nodeType: string) => boolean;
+  /**
+   * When true (default), delete each node's saved property default for every
+   * handle fed by a surviving edge (the edge value wins at runtime).
+   * loadFromDict disables this and prunes itself after node-type resolution,
+   * since resolution can drop further nodes — and with them, edges.
+   */
+  pruneEdgeProperties?: boolean;
 }
 
 export interface ResolvedNodeType {
@@ -150,7 +157,8 @@ export class Graph {
     const {
       skipErrors = true,
       allowUndefinedProperties = true,
-      validateNodeType
+      validateNodeType,
+      pruneEdgeProperties = true
     } = options;
     if (!data || typeof data !== "object") {
       throw new GraphValidationError("Graph data must be an object");
@@ -166,25 +174,6 @@ export class Graph {
     }
     if (!Array.isArray(obj.edges)) {
       throw new GraphValidationError("'edges' must be an array");
-    }
-
-    const propertiesWithEdges = new Map<string, Set<string>>();
-    for (const edge of obj.edges) {
-      // Stryker disable next-line all: this pre-pass only collects edge-fed handles; non-object edges and non-string target/handle values yield no-op deletions, and the second edge pass below re-validates everything that matters
-      if (!edge || typeof edge !== "object") { if (skipErrors) continue; throw new GraphValidationError("Edge entries must be objects"); }
-      const edgeObj = edge as Record<string, unknown>;
-      // Stryker disable next-line all: equivalent — a non-string target/handle yields a no-op deletion later
-      const targetId = typeof edgeObj.target === "string" ? edgeObj.target : undefined;
-      // Stryker disable next-line all: equivalent — a non-string targetHandle yields a no-op deletion later
-      const targetHandle = typeof edgeObj.targetHandle === "string" ? edgeObj.targetHandle : undefined;
-      // Stryker disable next-line all: equivalent — an undefined target/handle only causes no-op deletions later
-      if (!targetId || !targetHandle) continue;
-      let handles = propertiesWithEdges.get(targetId);
-      if (!handles) {
-        handles = new Set<string>();
-        propertiesWithEdges.set(targetId, handles);
-      }
-      handles.add(targetHandle);
     }
 
     const validNodes: NodeDescriptor[] = [];
@@ -256,11 +245,6 @@ export class Graph {
         }
       }
 
-      // Stryker disable next-line ArrayDeclaration: defensive ?? fallback equivalent — a bogus handle deletes a non-existent property (no-op)
-      for (const handle of propertiesWithEdges.get(id) ?? []) {
-        delete rawProperties[handle];
-      }
-
       nodeObj.properties = rawProperties;
       delete nodeObj.data;
 
@@ -270,11 +254,8 @@ export class Graph {
 
     const validEdges: Edge[] = [];
     for (const edge of obj.edges) {
-      // Stryker disable next-line all: fully redundant with the identical check in the first edge pass above
       if (!edge || typeof edge !== "object") {
-        // Stryker disable next-line all: unreachable/redundant — the first edge pass already rejected non-object edges
         if (skipErrors) continue;
-        // Stryker disable next-line all: unreachable — the first edge pass already threw for non-object edges
         throw new GraphValidationError("Edge entries must be objects");
       }
 
@@ -304,7 +285,44 @@ export class Graph {
       validEdges.push(edgeObj as unknown as Edge);
     }
 
+    // Delete property defaults only for handles fed by edges that survived
+    // validation. Pruning from the raw edge list would strip a node's saved
+    // default for a malformed or dangling edge that is then dropped, leaving
+    // the node with neither its default nor an incoming value.
+    if (pruneEdgeProperties) {
+      Graph._pruneEdgeFedProperties(validNodes, validEdges);
+    }
+
     return new Graph({ nodes: validNodes, edges: validEdges });
+  }
+
+  /**
+   * Delete each node's saved property default for every handle that has an
+   * incoming edge — the runtime edge value wins, and stale defaults would
+   * shadow it in `_executeWithInputs`'s property merge.
+   */
+  private static _pruneEdgeFedProperties(
+    nodes: ReadonlyArray<NodeDescriptor>,
+    edges: ReadonlyArray<Edge>
+  ): void {
+    const handlesByTarget = new Map<string, Set<string>>();
+    for (const edge of edges) {
+      let handles = handlesByTarget.get(edge.target);
+      if (!handles) {
+        handles = new Set<string>();
+        handlesByTarget.set(edge.target, handles);
+      }
+      handles.add(edge.targetHandle);
+    }
+    for (const node of nodes) {
+      const handles = handlesByTarget.get(node.id);
+      if (!handles) continue;
+      const props = node.properties as Record<string, unknown> | undefined;
+      if (!props) continue;
+      for (const handle of handles) {
+        delete props[handle];
+      }
+    }
   }
 
   static async loadFromDict(
@@ -319,7 +337,11 @@ export class Graph {
     const normalized = Graph.fromDict(data, {
       skipErrors,
       // Stryker disable next-line BooleanLiteral: must stay true — property validation happens later against the RESOLVED types, not the saved cache (see comment in loadFromDict)
-      allowUndefinedProperties: true
+      allowUndefinedProperties: true,
+      // Resolution below can drop further nodes (unknown types) and their
+      // edges; prune edge-fed defaults only after the final edge set is known
+      // so a node downstream of a dropped node keeps its saved default.
+      pruneEdgeProperties: false
     });
 
     const resolvedNodes: NodeDescriptor[] = [];
@@ -401,6 +423,7 @@ export class Graph {
     const validEdges = normalized.edges.filter(
       (edge) => validNodeIds.has(edge.source) && validNodeIds.has(edge.target)
     );
+    Graph._pruneEdgeFedProperties(resolvedNodes, validEdges);
     return new Graph({ nodes: resolvedNodes, edges: validEdges });
   }
 
@@ -620,9 +643,15 @@ export class Graph {
     };
     const filteredNodes = this.nodes.filter(isInScope);
     const filteredNodeIds = new Set(filteredNodes.map((node) => node.id));
+    // Only data edges define the ordering (see docstring). Including control
+    // edges would turn a legal data-A→B + control-B→A controller feedback
+    // pattern into a mixed cycle, silently dropping both nodes from the
+    // returned levels.
     const filteredEdges = this.edges.filter(
       (edge) =>
-        filteredNodeIds.has(edge.source) && filteredNodeIds.has(edge.target)
+        isDataEdge(edge) &&
+        filteredNodeIds.has(edge.source) &&
+        filteredNodeIds.has(edge.target)
     );
 
     // In-degree count across filtered edges.

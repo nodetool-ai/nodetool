@@ -131,6 +131,13 @@ export type WorkflowRunner = {
   edges: Edge[];
   job_id: string | null;
   /**
+   * True while the active run executes in-browser (kernel runner) rather than
+   * on the server. Browser runs don't hold a WebSocket connection, so the
+   * stuck-state recovery heuristic must not treat a closed socket as a sign
+   * the run died.
+   */
+  isBrowserRun: boolean;
+  /**
    * 1-based position in the backend's run queue while a run waits for a
    * concurrency slot, or null when not queued. Queued runs reuse the "running"
    * state (so existing busy/disabled logic applies); this field lets the UI
@@ -198,6 +205,7 @@ export const createWorkflowRunnerStore = (
     nodes: [],
     edges: [],
     job_id: null,
+    isBrowserRun: false,
     queuePosition: null,
     unsubscribe: null,
     state: "idle",
@@ -237,6 +245,7 @@ export const createWorkflowRunnerStore = (
         unsubscribe: null,
         state: "idle",
         job_id: null,
+        isBrowserRun: false,
         queuePosition: null,
         statusMessage: null,
         notifications: [],
@@ -381,24 +390,73 @@ export const createWorkflowRunnerStore = (
       // never received a terminal job_update (e.g. WS dropped, worker crashed).
       // Reset so the user can retry instead of getting permanently blocked.
       // "connecting" is mid-handshake, not stuck — only treat the
-      // post-handshake states as stuck candidates.
+      // post-handshake states as stuck candidates. Pure in-browser runs never
+      // hold a WS connection, so a closed socket is only a stuck signal for
+      // server runs.
       const stuck =
         busy &&
         currentState !== "connecting" &&
-        (!currentJobId || !wsConnected);
+        (!currentJobId || (!wsConnected && !get().isBrowserRun));
 
-      // Resolve auth once; both the active run and a queued submission need it.
+      const jobId = uuidv4();
+      const queueRun = busy && !stuck;
+
+      if (!queueRun) {
+        if (stuck) {
+          console.warn(
+            `WorkflowRunner[${workflowId}]: Recovering from stuck state`,
+            { currentState, currentJobId, wsConnected }
+          );
+        }
+
+        console.info(`WorkflowRunner[${workflowId}]: Starting workflow run`);
+
+        // Claim the run synchronously — before any `await` (auth/session
+        // resolution included) — so a concurrent run() sees us as busy (and
+        // queues), and the UI reflects the start immediately. Per-run state is
+        // keyed by jobId, so a fresh run starts on an empty slice; don't clear
+        // prior runs' node state (per-job keys mean a clear would erase a
+        // concurrently running sibling of this workflow).
+        set({
+          workflow,
+          nodes,
+          edges,
+          job_id: jobId,
+          isBrowserRun: false,
+          queuePosition: null,
+          statusMessage: "Workflow starting...",
+          notifications: [],
+          state: "connecting"
+        });
+      }
+
+      // Resolve auth after the claim; both the active run and a queued
+      // submission need it. On failure, release the claim so the runner
+      // doesn't stay stuck in "connecting" with a phantom job_id.
       let auth_token = "local_token";
       let user = "1";
       if (!isLocalhost) {
-        const {
-          data: { session }
-        } = await supabase.auth.getSession();
-        auth_token = session?.access_token || "";
-        user = session?.user?.id || "";
+        try {
+          const {
+            data: { session }
+          } = await supabase.auth.getSession();
+          auth_token = session?.access_token || "";
+          user = session?.user?.id || "";
+        } catch (error) {
+          if (!queueRun) {
+            set({
+              state: "error",
+              job_id: null,
+              statusMessage:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to resolve auth session"
+            });
+          }
+          throw error instanceof Error ? error : new Error(String(error));
+        }
       }
 
-      const jobId = uuidv4();
       const req = buildRunJobData({
         jobId,
         jobName: deriveJobTitle(workflow, nodes, subgraphNodeIds),
@@ -412,7 +470,7 @@ export const createWorkflowRunnerStore = (
         concurrent
       });
 
-      if (busy && !stuck) {
+      if (queueRun) {
         // A run is already in progress for this workflow. Submit this one to
         // the backend, which persists it as a "queued" job and starts it when
         // the current run finishes (one run per workflow). Leave the active
@@ -439,31 +497,6 @@ export const createWorkflowRunnerStore = (
         }
         return jobId;
       }
-      if (stuck) {
-        console.warn(
-          `WorkflowRunner[${workflowId}]: Recovering from stuck state`,
-          { currentState, currentJobId, wsConnected }
-        );
-        set({ state: "idle", job_id: null });
-      }
-
-      console.info(`WorkflowRunner[${workflowId}]: Starting workflow run`);
-
-      // Claim the run synchronously — before any `await` — so a concurrent
-      // run() sees us as busy (and queues), and the UI reflects the start
-      // immediately. Per-run state is keyed by jobId, so a fresh run starts on
-      // an empty slice; don't clear prior runs' node state (per-job keys mean a
-      // clear would erase a concurrently running sibling of this workflow).
-      set({
-        workflow,
-        nodes,
-        edges,
-        job_id: jobId,
-        queuePosition: null,
-        statusMessage: "Workflow starting...",
-        notifications: [],
-        state: "connecting"
-      });
 
       // Pure-browser graphs (every node declares browser-platform support) run
       // client-side with the kernel runner — no server round-trip. Their
@@ -507,7 +540,7 @@ export const createWorkflowRunnerStore = (
       }
 
       if (runsInBrowser) {
-        set({ state: "running" });
+        set({ state: "running", isBrowserRun: true });
         console.info(
           `WorkflowRunner[${workflowId}]: Running graph in-browser`,
           { jobId }
@@ -716,6 +749,7 @@ const defaultWorkflowRunner: WorkflowRunner = {
   nodes: [],
   edges: [],
   job_id: null,
+  isBrowserRun: false,
   queuePosition: null,
   unsubscribe: null,
   state: "idle",

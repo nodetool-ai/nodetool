@@ -1,4 +1,4 @@
-import type { NodeMetadata } from "../stores/ApiTypes";
+import type { KieUnitPricing, NodeMetadata } from "../stores/ApiTypes";
 
 interface LiveKiePricingResponse {
   byModelId: Record<
@@ -17,14 +17,18 @@ interface LiveKiePricingResponse {
 }
 
 /**
- * Fetches live kie.ai list prices for specific model IDs and merges into metadata.
+ * Fetches live kie.ai list prices for specific model IDs.
+ * Does NOT mutate `metadataByType`; instead returns a map of node type →
+ * fresh `kie_unit_pricing` (marked source: "live") for the entries that were
+ * updated, or null when nothing changed. The caller merges these into new
+ * metadata objects so per-node selectors re-render.
  */
 export async function fetchLiveKiePricing(
   metadataByType: Record<string, NodeMetadata>,
   modelIds: string[],
-): Promise<boolean> {
+): Promise<Record<string, KieUnitPricing> | null> {
   if (modelIds.length === 0) {
-    return false;
+    return null;
   }
 
   const url = new URL("/api/kie/pricing", window.location.origin);
@@ -36,19 +40,20 @@ export async function fetchLiveKiePricing(
   try {
     const res = await fetch(url.toString());
     if (!res.ok) {
-      return false;
+      return null;
     }
     data = (await res.json()) as LiveKiePricingResponse;
     if (!data.byModelId) {
-      return false;
+      return null;
     }
   } catch (err) {
     console.error("[kie-pricing] fetch error:", err);
-    return false;
+    return null;
   }
 
-  let updated = 0;
-  for (const md of Object.values(metadataByType)) {
+  const updated: Record<string, KieUnitPricing> = {};
+  let updatedCount = 0;
+  for (const [nodeType, md] of Object.entries(metadataByType)) {
     const existing = md.kie_unit_pricing;
     if (!existing) {
       continue;
@@ -57,7 +62,7 @@ export async function fetchLiveKiePricing(
     if (!fresh) {
       continue;
     }
-    md.kie_unit_pricing = {
+    updated[nodeType] = {
       model_id: fresh.model_id,
       unit_price: fresh.unit_price,
       billing_unit: fresh.billing_unit,
@@ -68,7 +73,7 @@ export async function fetchLiveKiePricing(
       source: "live",
       checked_at: data.fetched_at,
     };
-    updated++;
+    updatedCount++;
   }
-  return updated > 0;
+  return updatedCount > 0 ? updated : null;
 }

@@ -3,6 +3,7 @@ import { memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { MOTION } from "./tokens";
 
 const skipLinkStyles = (theme: Theme) =>
   css({
@@ -18,7 +19,7 @@ const skipLinkStyles = (theme: Theme) =>
       fontSize: "var(--fontSizeNormal)",
       fontWeight: 500,
       textDecoration: "none",
-      transition: "top 0.2s ease",
+      transition: `top ${MOTION.normal}`,
       "&:focus": {
         top: "0",
         outline: `2px solid ${theme.vars.palette.primary.light}`,

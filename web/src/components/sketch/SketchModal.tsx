@@ -229,7 +229,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
             className="sketch-modal-pen-inline"
             align="center"
             wrap
-            gap={0.75}
+            gap={1}
             sx={{
               rowGap: "4px"
             }}

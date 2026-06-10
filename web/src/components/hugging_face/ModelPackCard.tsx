@@ -145,7 +145,8 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
             </Box>
             <Text
               size="small"
-              sx={{ color: "var(--palette-grey-300)", mb: 1 }}
+              color="secondary"
+              sx={{ mb: 1 }}
             >
               {pack.description}
             </Text>
@@ -195,7 +196,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
                 backgroundColor: "var(--palette-grey-700)"
               }}
             />
-            <Caption sx={{ color: "var(--palette-grey-400)" }}>
+            <Caption color="secondary">
               Downloading {activeDownloads.length} of {pack.models.length} models…
             </Caption>
           </Box>
@@ -237,7 +238,8 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
         <Box px={2} pb={2}>
           <Text
             size="small" weight={500}
-            sx={{ color: "var(--palette-grey-400)", mb: 1 }}
+            color="secondary"
+            sx={{ mb: 1 }}
           >
             Included Models:
           </Text>

@@ -97,7 +97,7 @@ const SpendOverTimeChartInternal: React.FC<SpendOverTimeChartProps> = ({
           {providers.map((p) => (
             <FlexRow
               key={p.id}
-              gap={0.75}
+              gap={1}
               align="center"
               sx={{ opacity: isActive(p.id) ? 1 : 0.35 }}
             >
@@ -306,13 +306,13 @@ const BarTooltip: React.FC<{
       <Text size="small" weight={600} sx={{ display: "block", mb: 0.75 }}>
         {formatAxisDate(day.date)}
       </Text>
-      <FlexColumn gap={0.25}>
+      <FlexColumn gap={0.5}>
         {[...stackOrder]
           .reverse()
           .filter((id) => isActive(id) && (day.values[id] ?? 0) > 0)
           .map((id) => (
             <FlexRow key={id} justify="space-between" align="center" gap={1.5}>
-              <FlexRow gap={0.75} align="center">
+              <FlexRow gap={1} align="center">
                 <Box
                   sx={{
                     width: 8,

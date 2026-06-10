@@ -18,6 +18,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
+import { MOTION } from "./tokens";
 
 export interface DeleteButtonProps {
   /**
@@ -117,10 +118,10 @@ export const DeleteButton = memo(
 
       const buttonSx = useMemo(() => ({
         color: "inherit",
-        transition: "all 0.15s ease-in-out",
+        transition: MOTION.fast,
         "&:hover": {
           color: theme.vars?.palette?.error?.main ?? theme.palette.error.main,
-          backgroundColor: "rgba(244, 67, 54, 0.08)",
+          backgroundColor: `rgba(${theme.vars.palette.error.mainChannel} / 0.08)`,
           transform: "scale(1.1)"
         },
         ...sx

@@ -57,10 +57,15 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   // The displacement map is premultiplied like everything in the pool, but its
   // R/G are a straight signed control signal (0.5 = no offset). Un-premultiply
   // to recover the true control values — otherwise a translucent displacement
-  // texel biases the offset (a transparent texel would read (0,0) → full
-  // negative offset instead of zero).
+  // texel biases the offset. Fully transparent texels carry no signal at all
+  // (rgb = 0, so the divide would recover 0 → full negative offset);
+  // substitute the neutral 0.5 so uncovered map regions leave pixels in place.
   let dispP = textureSample(layout.$.displacement, layout.$.samp, uv);
-  let disp = dispP.rgb / max(dispP.a, 1.0 / 255.0);
+  let disp = select(
+    vec3f(0.5),
+    dispP.rgb / max(dispP.a, 1.0 / 255.0),
+    dispP.a > 0.0
+  );
   let offset = vec2f((disp.r - 0.5) * 2.0 * p.amountX, (disp.g - 0.5) * 2.0 * p.amountY);
   let s = uv + offset;
   // Sample unconditionally (textureSample must run in uniform control flow);

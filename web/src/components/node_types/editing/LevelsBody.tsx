@@ -494,7 +494,7 @@ const LevelsBodyInner: React.FC<LevelsBodyProps> = ({
       </div>
 
       <FlexColumn className="controls" gap={0.5}>
-        <FlexRow align="center" gap={0.25}>
+        <FlexRow align="center" gap={0.5}>
           <ToggleGroup
             className="channel-toggle"
             size="small"

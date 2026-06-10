@@ -106,7 +106,7 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
             if (isConnected) {
               return (
                 <FlexColumn key={prop.name} gap={0.5}>
-                  <FlexRow gap={0.75} align="center">
+                  <FlexRow gap={1} align="center">
                     <Text size="small" weight={600}>
                       {prop.title ?? prop.name}
                     </Text>

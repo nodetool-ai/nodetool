@@ -462,10 +462,10 @@ const PreviewRecommendedModels: React.FC = () => {
         bgcolor: theme.palette.background.paper
       }}
     >
-      <Text size="big" weight={600} sx={{ mb: 1 }}>
+      <Text size="big" weight={600} sx={{ mb: 1, display: "block" }}>
         Recommended Models
       </Text>
-      <Text size="small" color="secondary" sx={{ mb: 3 }}>
+      <Text size="small" color="secondary" sx={{ mb: 3, display: "block" }}>
         These models are recommended for the selected node.
       </Text>
       <Suspense fallback={<LoadingSpinner />}>
@@ -606,10 +606,10 @@ const PreviewIndex: React.FC = () => {
         minHeight: "100vh"
       }}
     >
-      <Text size="big" weight={600} sx={{ mb: 1 }}>
+      <Text size="big" weight={600} sx={{ mb: 1, display: "block" }}>
         Component Previews
       </Text>
-      <Text size="small" color="secondary" sx={{ mb: 4 }}>
+      <Text size="small" color="secondary" sx={{ mb: 4, display: "block" }}>
         Isolated component views for documentation screenshots. Navigate to{" "}
         <code>/preview/:id</code> to render a component in isolation.
       </Text>
@@ -639,10 +639,10 @@ const PreviewIndex: React.FC = () => {
                 transition: "border-color 0.15s, box-shadow 0.15s"
               }}
             >
-              <Text size="normal" weight={600} sx={{ mb: 0.5 }}>
+              <Text size="normal" weight={600} sx={{ mb: 0.5, display: "block" }}>
                 {p.label}
               </Text>
-              <Text size="small" color="secondary" sx={{ mb: 1 }}>
+              <Text size="small" color="secondary" sx={{ mb: 1, display: "block" }}>
                 {p.description}
               </Text>
               {p.viewport && (
@@ -710,11 +710,11 @@ const ComponentPreview: React.FC = () => {
           minHeight: "100vh"
         }}
       >
-        <Text size="normal" weight={600} color="error" sx={{ mb: 2 }}>
+        <Text size="normal" weight={600} color="error" sx={{ mb: 2, display: "block" }}>
           Unknown preview: &ldquo;{component}&rdquo;
         </Text>
-        <Link to="/preview" style={{ color: theme.palette.primary.main, textDecoration: "none" }}>
-          <Text size="small">
+        <Link to="/preview" style={{ textDecoration: "none" }}>
+          <Text size="small" color="primary">
             ← Back to preview index
           </Text>
         </Link>

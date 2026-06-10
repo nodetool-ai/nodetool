@@ -51,12 +51,13 @@ fn fs_main(in: Out) -> @location(0) vec4f {
   let cell = max(1.0, p.cellSize);
   let coord = vec2i(in.position.xy / cell);
   let parity = (coord.x + coord.y) % 2;
-  // Straight colour params → premultiplied output: premultiply the picked
-  // colour so a translucent cell colour keeps rgb <= a.
+  // The colour params arrive premultiplied (hosts premultiply at the colour
+  // picker boundary), so return them as-is. Re-multiplying by alpha here
+  // would darken translucent cell colours to rgb*a².
   if (parity == 0) {
-    return vec4f(p.colorA.rgb * p.colorA.a, p.colorA.a);
+    return p.colorA;
   }
-  return vec4f(p.colorB.rgb * p.colorB.a, p.colorB.a);
+  return p.colorB;
 }
 `,
   io: {

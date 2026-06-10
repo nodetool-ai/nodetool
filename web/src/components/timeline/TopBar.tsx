@@ -91,7 +91,7 @@ export const TopBar: React.FC<TopBarProps> = memo(
         <FlexRow gap={1} align="center">
           <FlexRow
             align="center"
-            gap={0.25}
+            gap={0.5}
             className="project-name"
             onClick={onProjectNameClick}
             role="button"

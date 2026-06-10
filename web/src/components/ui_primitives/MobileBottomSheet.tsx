@@ -49,7 +49,7 @@ const getSx = (theme: Theme, maxHeight: string): SxProps<Theme> => ({
     overflow: "hidden",
     display: "flex",
     flexDirection: "column",
-    boxShadow: "0 -8px 32px rgba(0, 0, 0, 0.25)"
+    boxShadow: `0 -8px 32px rgba(${theme.vars.palette.common.blackChannel ?? '0 0 0'} / 0.25)`
   },
   "& .sheet-drag-handle": {
     display: "flex",

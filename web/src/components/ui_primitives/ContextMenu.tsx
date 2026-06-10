@@ -94,7 +94,7 @@ const ContextMenuInternal: React.FC<ContextMenuProps> = ({
               "& .MuiMenuItem-root": {
                 minHeight: "auto",
                 py: 0.5,
-                fontSize: theme.fontSizeSmall || "0.875rem",
+                fontSize: theme.fontSizeSmall,
               },
             }),
             ...(paperSx as object),

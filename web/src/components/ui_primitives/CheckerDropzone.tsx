@@ -14,6 +14,7 @@ import React, { memo, useCallback, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { MOTION } from "./tokens";
 
 const DEFAULT_CHECKER_SIZE = 12;
 
@@ -49,7 +50,7 @@ const styles = (theme: Theme, checkerSize: number, isOver: boolean) =>
       `${checkerSize}px -${checkerSize}px`,
       `-${checkerSize}px 0px`
     ].join(", "),
-    transition: "box-shadow 0.15s ease, border-color 0.15s ease",
+    transition: `${MOTION.shadow}, border-color 150ms ease`,
     outline: isOver
       ? `2px dashed ${theme.vars.palette.primary.main}`
       : "1px solid transparent",

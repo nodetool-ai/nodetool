@@ -63,7 +63,9 @@ export interface ScoreOptions {
   includeProviderNodes?: boolean;
   /**
    * Restrict to nodes whose namespace starts with this prefix.
-   * Applied as a hard filter before scoring.
+   * Applied as a hard filter before scoring. An explicit prefix also lifts
+   * the provider-node exclusion — asking for `openai.` implies the caller
+   * wants provider nodes.
    */
   namespacePrefix?: string;
 }
@@ -120,7 +122,15 @@ export function scoreNodeMetadata(
   }
 
   const cls = namespaceClass(meta.namespace);
-  if (cls === "provider" && !options.includeProviderNodes) return 0;
+  // A namespacePrefix is an explicit request for whatever lives under that
+  // prefix, so it overrides the default provider-node exclusion.
+  if (
+    cls === "provider" &&
+    !options.includeProviderNodes &&
+    !options.namespacePrefix
+  ) {
+    return 0;
+  }
 
   let raw = 0;
   for (const rawTerm of terms) {

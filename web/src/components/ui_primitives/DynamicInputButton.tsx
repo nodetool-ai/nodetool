@@ -15,6 +15,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import { Button } from "@mui/material";
+import { MOTION } from "./tokens";
 
 const styles = (theme: Theme) =>
   css({
@@ -31,8 +32,7 @@ const styles = (theme: Theme) =>
       padding: "4px 10px",
       minWidth: 0,
       gap: 6,
-      transition:
-        "color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease",
+      transition: `color ${MOTION.fast}, border-color ${MOTION.fast}, background-color ${MOTION.fast}`,
       "&:hover": {
         color: theme.vars.palette.primary.main,
         borderColor: theme.vars.palette.primary.main,

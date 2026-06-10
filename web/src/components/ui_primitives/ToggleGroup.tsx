@@ -63,7 +63,7 @@ const ToggleGroupInternal: React.FC<ToggleGroupProps> = ({
           "& .MuiToggleButton-root": {
             py: 0.5,
             px: 1,
-            fontSize: theme.fontSizeSmall || "0.875rem",
+            fontSize: theme.fontSizeSmall,
           },
         }),
         ...sx,

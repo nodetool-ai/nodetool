@@ -297,7 +297,7 @@ export const DownloadProgress: React.FC<{
   }
 
   return (
-    <FlexColumn css={styles(theme)} fullWidth gap={0.75}>
+    <FlexColumn css={styles(theme)} fullWidth gap={1}>
       <FlexRow className="header-row" align="center" justify="space-between" gap={1} fullWidth>
         <Text className="repo-name" size="small" weight={500}>
           {name}
