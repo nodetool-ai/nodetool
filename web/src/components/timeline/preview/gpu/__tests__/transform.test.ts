@@ -108,4 +108,86 @@ describe("buildTransformMatrix", () => {
       expect(Number.isNaN(m[i])).toBe(false);
     }
   });
+
+  describe("aspect-corrected rotation", () => {
+    /** Map a quad corner through the matrix and convert NDC → pixels. */
+    const cornerPx = (
+      m: Float32Array,
+      qx: number,
+      qy: number,
+      w: number,
+      h: number
+    ) => ({
+      x: (m[0] * qx + m[4] * qy + m[12]) * (w / 2),
+      y: (m[1] * qx + m[5] * qy + m[13]) * (h / 2),
+    });
+
+    it("keeps a square clip square under 90° rotation on a 16:9 canvas", () => {
+      const W = 1920;
+      const H = 1080;
+      // Square source contain-fit on 16:9: 540px half-extent on both axes.
+      const base = containBaseScale(1080, 1080, W, H);
+      const transform: ClipTransform = {
+        ...IDENTITY_TRANSFORM,
+        rotation: Math.PI / 2,
+      };
+      const m = buildTransformMatrix(transform, base, W, H);
+      const c = cornerPx(m, 1, 1, W, H);
+      // 90° rotation in pixel space: (540, 540) → (-540, 540).
+      expect(Math.abs(c.x)).toBeCloseTo(540, 3);
+      expect(Math.abs(c.y)).toBeCloseTo(540, 3);
+    });
+
+    it("swaps pixel extents of a non-square clip under 90° rotation", () => {
+      const W = 1920;
+      const H = 1080;
+      // Full-frame 16:9 source: base scale {1,1} → half-extents (960, 540).
+      const transform: ClipTransform = {
+        ...IDENTITY_TRANSFORM,
+        rotation: Math.PI / 2,
+      };
+      const m = buildTransformMatrix(transform, { x: 1, y: 1 }, W, H);
+      const right = cornerPx(m, 1, 0, W, H);
+      const top = cornerPx(m, 0, 1, W, H);
+      // The 960px half-width now spans 960px vertically, and vice versa.
+      expect(Math.hypot(right.x, right.y)).toBeCloseTo(960, 3);
+      expect(Math.abs(right.y)).toBeCloseTo(960, 3);
+      expect(Math.hypot(top.x, top.y)).toBeCloseTo(540, 3);
+      expect(Math.abs(top.x)).toBeCloseTo(540, 3);
+    });
+
+    it("normalizes position by the provided reference resolution", () => {
+      const transform: ClipTransform = {
+        ...IDENTITY_TRANSFORM,
+        position: { x: 960, y: -540 },
+      };
+      const m = buildTransformMatrix(transform, { x: 1, y: 1 }, 1920, 1080);
+      expect(m[12]).toBeCloseTo(1.0);
+      expect(m[13]).toBeCloseTo(1.0);
+    });
+
+    it("keeps the anchor point fixed under rotation on a non-square canvas", () => {
+      const W = 1920;
+      const H = 1080;
+      const anchor = { x: 0.25, y: 0.75 };
+      const ax = (anchor.x - 0.5) * 2;
+      const ay = (anchor.y - 0.5) * 2;
+      const still = buildTransformMatrix(
+        { ...IDENTITY_TRANSFORM, anchor },
+        { x: 1, y: 1 },
+        W,
+        H
+      );
+      const rotated = buildTransformMatrix(
+        { ...IDENTITY_TRANSFORM, anchor, rotation: 0.7 },
+        { x: 1, y: 1 },
+        W,
+        H
+      );
+      const before = cornerPx(still, ax, ay, W, H);
+      const after = cornerPx(rotated, ax, ay, W, H);
+      expect(after.x).toBeCloseTo(before.x, 3);
+      expect(after.y).toBeCloseTo(before.y, 3);
+    });
+  });
 });

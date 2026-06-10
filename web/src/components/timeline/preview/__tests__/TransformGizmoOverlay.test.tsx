@@ -21,15 +21,15 @@ Element.prototype.setPointerCapture = () => {};
 Element.prototype.releasePointerCapture = () => {};
 Element.prototype.hasPointerCapture = () => false;
 
-// Square source on a 2:1 canvas/frame. containBaseScale → {x:0.5, y:1}, so the
-// identity box spans x 50..150, y 0..100 with center (100,50).
+// Square source on a 2:1 sequence/frame. containBaseScale → {x:0.5, y:1}, so
+// the identity box spans x 50..150, y 0..100 with center (100,50).
 const baseProps = {
   clipId: "clip-1",
   transform: undefined as ClipTransform | undefined,
   sourceWidth: 100,
   sourceHeight: 100,
-  canvasWidth: 200,
-  canvasHeight: 100,
+  sequenceWidth: 200,
+  sequenceHeight: 100,
   frameWidth: 200,
   frameHeight: 100
 };
@@ -69,7 +69,7 @@ describe("TransformGizmoOverlay", () => {
 
     expect(onChange).toHaveBeenCalled();
     const [, next] = onChange.mock.calls.at(-1)!;
-    // canvas/frame are equal so 1 CSS px == 1 position px here.
+    // sequence/frame are equal so 1 CSS px == 1 position px here.
     expect(next.position.x).toBeCloseTo(30, 3);
     expect(next.position.y).toBeCloseTo(20, 3);
   });
