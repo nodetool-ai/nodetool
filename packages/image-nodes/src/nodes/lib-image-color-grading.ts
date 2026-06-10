@@ -295,7 +295,7 @@ function createColorGradingNode(desc: Desc): NodeClass {
       // onto the shader's `radius` (where the vignette begins) and `softness`.
       if (t.endsWith(".Vignette")) {
         const midpoint = num(props.midpoint, 0.5);
-        const feather = Math.max(0.01, num(props.feather, 0.4));
+        const feather = Math.max(0.01, num(props.feather, 0.5));
         return emit(
           await runShaderNode(
             vignetteV1,
@@ -1211,18 +1211,6 @@ const DESCRIPTORS: readonly Desc[] = [
           description:
             "Distance from center where vignette begins (0=center, 1=edges).",
           min: 0,
-          max: 1
-        }
-      },
-      {
-        name: "roundness",
-        options: {
-          type: "float",
-          default: 0,
-          title: "Roundness",
-          description:
-            "Shape of vignette. 0=oval matching image aspect, 1=circular, -1=rectangular.",
-          min: -1,
           max: 1
         }
       },

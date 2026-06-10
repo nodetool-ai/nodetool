@@ -458,8 +458,9 @@ const DESCRIPTORS: readonly Desc[] = [
           type: "int",
           default: 3,
           title: "Rank",
-          description: "Rank filter rank.",
-          min: 1,
+          description:
+            "Index into the sorted neighbourhood (0 = minimum, size*size-1 = maximum).",
+          min: 0,
           max: 512
         }
       }
