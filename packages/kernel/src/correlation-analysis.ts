@@ -156,10 +156,18 @@ function topoSort(
     // Stryker disable next-line ArrayDeclaration: a non-empty seed is equivalent — a bogus target is not a real node and is dropped by the incoming-count logic
     outgoing.set(n.id, []);
   }
+  // A data edge from a node to itself is a one-node cycle. It must be
+  // reported like any other cycle: at runtime the self-edge counts as an
+  // upstream that is only marked done after the node's own actor completes,
+  // so the actor waits on itself and the whole run hangs.
+  const selfLoopNodes = new Set<string>();
   for (const edge of edges) {
     if (!isDataEdge(edge)) continue;
     if (!byId.has(edge.source) || !byId.has(edge.target)) continue;
-    if (edge.source === edge.target) continue; // self-loops ignored
+    if (edge.source === edge.target) {
+      selfLoopNodes.add(edge.source);
+      continue;
+    }
     outgoing.get(edge.source)!.push(edge.target);
     incoming.set(edge.target, (incoming.get(edge.target) ?? 0) + 1);
   }
@@ -187,9 +195,11 @@ function topoSort(
     }
   }
 
-  // Stryker disable next-line ConditionalExpression,EqualityOperator: the true/<= directions are equivalent — for a complete topo order `remaining` is empty, so the caller reports no cycle either way
-  if (order.length < nodes.length) {
+  if (order.length < nodes.length || selfLoopNodes.size > 0) {
     const remaining = nodes.filter((n) => !order.includes(n)).map((n) => n.id);
+    for (const id of selfLoopNodes) {
+      if (!remaining.includes(id)) remaining.push(id);
+    }
     return { order, cycle: remaining };
   }
   return { order, cycle: null };

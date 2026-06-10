@@ -22,13 +22,21 @@ const log = createLogger("nodetool.kernel.durable-inbox");
  * a polyfill.
  */
 function fnv1a64Hex(input: string): string {
-  // 64-bit FNV-1a via two 32-bit halves.
+  // 64-bit hash via two independently seeded 32-bit FNV-1a streams. Both
+  // halves consume both bytes of every UTF-16 code unit; the differing
+  // offset bases keep the streams independent. (Feeding only the high byte
+  // to one half would make it depend solely on string length for ASCII
+  // input, collapsing this to an effectively 32-bit hash.)
   let h1 = 0x811c9dc5 | 0;
   let h2 = 0xcbf29ce4 | 0;
   for (let i = 0; i < input.length; i++) {
     const ch = input.charCodeAt(i);
-    h1 = Math.imul(h1 ^ (ch & 0xff), 16777619);
-    h2 = Math.imul(h2 ^ ((ch >>> 8) & 0xff), 16777619);
+    const lo = ch & 0xff;
+    const hi = (ch >>> 8) & 0xff;
+    h1 = Math.imul(h1 ^ lo, 16777619);
+    h1 = Math.imul(h1 ^ hi, 16777619);
+    h2 = Math.imul(h2 ^ lo, 16777619);
+    h2 = Math.imul(h2 ^ hi, 16777619);
   }
   const u1 = (h1 >>> 0).toString(16).padStart(8, "0");
   const u2 = (h2 >>> 0).toString(16).padStart(8, "0");
@@ -186,10 +194,34 @@ export class DurableInbox {
   }
 
   /**
+   * Chain serializing append() calls. getMaxSeq → findByMessageId → save is
+   * a read-modify-write; concurrent appends would otherwise both read the
+   * same maxSeq and persist duplicate seq/messageId rows (or silently drop
+   * one payload via the idempotency check).
+   */
+  private _appendChain: Promise<unknown> = Promise.resolve();
+
+  /**
    * Append a message to the inbox (idempotent).
    * If messageId already exists, returns existing without error.
+   * Appends on the same inbox are serialized.
    */
   async append(
+    handle: string,
+    payload: unknown,
+    messageId?: string,
+    payloadRef?: string
+  ): Promise<DurableMessage> {
+    const prev = this._appendChain;
+    const result = (async () => {
+      await prev.catch(() => undefined);
+      return this._appendImpl(handle, payload, messageId, payloadRef);
+    })();
+    this._appendChain = result.catch(() => undefined);
+    return result;
+  }
+
+  private async _appendImpl(
     handle: string,
     payload: unknown,
     messageId?: string,
