@@ -78,10 +78,10 @@ export const TextInput = memo(
             ...(compact && {
               "& .MuiInputBase-input": {
                 py: 1,
-                fontSize: theme.fontSizeSmall || "0.875rem",
+                fontSize: theme.fontSizeSmall,
               },
               "& .MuiInputLabel-root": {
-                fontSize: theme.fontSizeSmall || "0.875rem",
+                fontSize: theme.fontSizeSmall,
               },
             }),
             ...sx,

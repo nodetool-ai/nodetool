@@ -8,6 +8,7 @@ import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { MOTION } from "./tokens";
 
 const styles = (theme: Theme) =>
   css({
@@ -18,7 +19,7 @@ const styles = (theme: Theme) =>
       borderRadius: theme.rounded.lg,
       backgroundColor: "transparent",
       color: theme.vars.palette.text.secondary,
-      transition: "all 0.15s ease",
+      transition: MOTION.fast,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
         color: theme.vars.palette.text.primary

@@ -36,6 +36,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
+import { MOTION } from "./tokens";
 
 export interface LabeledToggleProps {
   /**
@@ -147,7 +148,7 @@ const LabeledToggleInternal: React.FC<LabeledToggleProps> = ({
   // Memoize expand icon button styles
   const expandButtonSx: SxProps<Theme> = useMemo(() => ({
     transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-    transition: "transform 0.2s",
+    transition: MOTION.transform,
     padding: size === "small" ? 0.5 : 1
   }), [isOpen, size]);
 
@@ -159,7 +160,7 @@ const LabeledToggleInternal: React.FC<LabeledToggleProps> = ({
     color: isOpen
       ? theme.vars.palette.text.primary
       : theme.vars.palette.text.secondary,
-    transition: "color 0.2s"
+    transition: `color ${MOTION.normal}`
   }), [isOpen, theme]);
 
   // Memoize container styles
@@ -173,7 +174,7 @@ const LabeledToggleInternal: React.FC<LabeledToggleProps> = ({
     cursor: disabled ? "default" : "pointer",
     userSelect: "none",
     opacity: disabled ? 0.5 : 1,
-    transition: "opacity 0.2s",
+    transition: MOTION.opacity,
     ...sx
   }), [disabled, sx]);
 

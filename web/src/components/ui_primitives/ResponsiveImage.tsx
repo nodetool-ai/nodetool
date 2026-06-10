@@ -9,6 +9,7 @@ import React, { useState } from "react";
 import { Box, BoxProps, Skeleton } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import BrokenImageIcon from "@mui/icons-material/BrokenImage";
+import { MOTION } from "./tokens";
 
 export interface ResponsiveImageProps extends Omit<BoxProps, 'onError'> {
   /** Image source URL */
@@ -135,7 +136,7 @@ export const ResponsiveImage: React.FC<ResponsiveImageProps> = ({
           objectFit: fit,
           display: "block",
           opacity: showSkeleton && loading ? 0 : 1,
-          transition: "opacity 0.2s ease",
+          transition: MOTION.opacity,
         }}
       />
     </Box>

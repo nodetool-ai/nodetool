@@ -234,7 +234,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
         {onCropCanvasToSelection ? (
           <FlexRow
             align="center"
-            gap={0.75}
+            gap={1}
             sx={{
               flexShrink: 0,
               ml: "auto"

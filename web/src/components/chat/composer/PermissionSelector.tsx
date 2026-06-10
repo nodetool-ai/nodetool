@@ -173,7 +173,7 @@ const PermissionSelector: React.FC = () => {
                   className="permission-menu-dot"
                   css={dotCss(dotColor(theme, m.tone))}
                 />
-                <FlexColumn gap={0.25} sx={{ flex: 1, minWidth: 0 }}>
+                <FlexColumn gap={0.5} sx={{ flex: 1, minWidth: 0 }}>
                   <Text
                     size="small"
                     weight={600}

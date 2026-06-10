@@ -153,7 +153,7 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
   return (
     <div css={styles(theme)} className="media-output-group">
       <div className="media-output-header">
-        <FlexColumn gap={0.25} sx={{ minWidth: 0 }}>
+        <FlexColumn gap={0.5} sx={{ minWidth: 0 }}>
           <Text size="normal" weight={600} truncate>
             {title}
           </Text>

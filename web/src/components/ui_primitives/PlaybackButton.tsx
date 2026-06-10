@@ -25,6 +25,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
+import { MOTION } from "./tokens";
 
 export type PlaybackState = "stopped" | "playing" | "paused";
 
@@ -196,19 +197,19 @@ export const PlaybackButton = memo(
           return {
             color: errorMain,
             "&:hover": {
-              backgroundColor: `${errorMain}20`,
+              backgroundColor: `rgba(${theme.vars.palette.error.mainChannel} / 0.12)`,
               color: errorLight
             }
           };
         }
         return {
-          color: "var(--palette-primary-main)",
+          color: theme.vars.palette.primary.main,
           "&:hover": {
-            backgroundColor: "rgba(var(--palette-primaryChannel), 0.12)",
-            color: "var(--palette-primary-light)"
+            backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`,
+            color: theme.vars.palette.primary.light
           }
         };
-      }, [playbackAction, state, errorMain, errorLight]);
+      }, [playbackAction, state, errorMain, errorLight, theme]);
 
       return (
         <Tooltip
@@ -233,7 +234,7 @@ export const PlaybackButton = memo(
               ...sizeStyles,
               ...colorStyles,
               borderRadius: "var(--rounded-circle)",
-              transition: "all 0.2s ease-in-out",
+              transition: MOTION.all,
               ...sx
             }}
             {...props}

@@ -146,7 +146,7 @@ const DataTableInternal: React.FC<DataTableProps> = ({
                   width: col.width,
                   fontWeight: 600,
                   fontSize: compact
-                    ? theme.fontSizeSmall || "0.875rem"
+                    ? theme.fontSizeSmall
                     : undefined,
                 }}
               >

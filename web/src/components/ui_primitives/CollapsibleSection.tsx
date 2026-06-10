@@ -9,6 +9,7 @@ import React, { memo, useState, useCallback } from "react";
 import { Box, BoxProps, Collapse } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { MOTION } from "./tokens";
 
 export interface CollapsibleSectionProps extends Omit<BoxProps, "title" | "onToggle"> {
   /** Section title or header content */
@@ -106,7 +107,7 @@ const CollapsibleSectionInternal: React.FC<CollapsibleSectionProps> = ({
           <ExpandMoreIcon
             sx={{
               fontSize: compact ? 18 : 22,
-              transition: "transform 0.2s ease",
+              transition: MOTION.transform,
               transform: isOpen ? "rotate(0deg)" : "rotate(-90deg)",
               color: theme.vars.palette.text.secondary
             }}

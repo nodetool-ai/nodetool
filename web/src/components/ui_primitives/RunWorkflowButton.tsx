@@ -24,6 +24,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
+import { MOTION } from "./tokens";
 
 export interface RunWorkflowButtonProps {
   /**
@@ -170,10 +171,10 @@ export const RunWorkflowButton = memo(
           };
         }
         return {
-          backgroundColor: "var(--palette-primary-main)",
+          backgroundColor: theme.vars.palette.primary.main,
           color: theme.vars.palette.grey[0],
           "&:hover": {
-            backgroundColor: "var(--palette-primary-dark)"
+            backgroundColor: theme.vars.palette.primary.dark
           }
         };
       }, [isRunning, theme]);
@@ -205,7 +206,7 @@ export const RunWorkflowButton = memo(
       const sharedSx = {
         ...getSizeStyles,
         ...getColorStyles,
-        transition: "all 0.2s ease-in-out",
+        transition: MOTION.all,
         ...sx
       };
 

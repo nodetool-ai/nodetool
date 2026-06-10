@@ -12,6 +12,7 @@
 
 import React, { memo } from "react";
 import { Box, BoxProps } from "@mui/material";
+import { MOTION } from "./tokens";
 
 export interface ShortcutHintProps extends BoxProps {
   /**
@@ -86,7 +87,7 @@ export const ShortcutHint: React.FC<ShortcutHintProps> = memo(
       // Add plus separator between keys (except before first key)
       if (index > 0) {
         elements.push(
-          <span key={`plus-${key}-${index}`} style={{ margin: "0 1px", opacity: 0.7, fontWeight: 600 }}>
+          <span key={`plus-${key}-${index}`} style={{ margin: "0 1px", opacity: 0.7, fontWeight: 600, transition: MOTION.normal }}>
             +
           </span>
         );
@@ -106,6 +107,7 @@ export const ShortcutHint: React.FC<ShortcutHintProps> = memo(
             borderRadius: "var(--rounded-xs)",
             backgroundColor: "rgba(0, 0, 0, 0.08)",
             color: "inherit",
+            transition: MOTION.normal,
             fontWeight: 600,
             fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace",
           }}
@@ -127,7 +129,7 @@ export const ShortcutHint: React.FC<ShortcutHintProps> = memo(
           fontSize: "var(--fontSizeSmaller)",
           fontWeight: 500,
           letterSpacing: "0.5px",
-          transition: "all 0.2s ease",
+          transition: MOTION.all,
           opacity: 0.8,
 
           // Hover effect

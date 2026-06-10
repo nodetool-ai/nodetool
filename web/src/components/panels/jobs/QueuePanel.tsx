@@ -47,7 +47,7 @@ const JobColumn = memo(function JobColumn({
       <FlexRow
         align="center"
         justify="space-between"
-        gap={0.75}
+        gap={1}
         sx={{
           flex: "0 0 auto",
           px: 1.5,

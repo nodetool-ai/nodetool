@@ -5,13 +5,14 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Button, Chip, Tooltip } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { MOTION } from "./tokens";
 
 const styles = (theme: Theme, isSelected: boolean) =>
   css({
     borderRadius: theme.rounded.xxl,
     textTransform: "none",
     fontWeight: isSelected ? 600 : 400,
-    transition: "all 0.2s ease",
+    transition: MOTION.all,
     backgroundColor: isSelected
       ? theme.vars.palette.primary.main
       : "transparent",

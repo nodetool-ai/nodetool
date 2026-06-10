@@ -86,7 +86,7 @@ export const BottomStatusBar: React.FC<BottomStatusBarProps> = memo(
       >
         {/* Left: local/cloud + counts */}
         <FlexRow gap={2} align="center">
-          <FlexRow gap={0.75} align="center">
+          <FlexRow gap={1} align="center">
             <ModeIcon
               sx={{ fontSize: 14, color: theme.vars.palette.text.secondary }}
               aria-hidden={true}

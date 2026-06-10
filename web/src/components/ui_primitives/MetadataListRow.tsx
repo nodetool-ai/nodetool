@@ -158,7 +158,7 @@ export const MetadataListRow: React.FC<MetadataListRowProps> = memo(
           {secondary && (
             <TruncatedText
               component="div"
-              sx={{ color: "text.secondary", fontSize: "0.8em" }}
+              sx={{ color: "text.secondary", fontSize: (theme) => theme.fontSizeSmaller }}
             >
               {secondary}
             </TruncatedText>

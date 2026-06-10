@@ -202,7 +202,7 @@ const ChatMarkdownTest: React.FC = () => {
         <Text size="bigger" weight={600} sx={{ mb: 2 }}>
           Chat Markdown Test
         </Text>
-        <Text size="small" sx={{ color: "text.secondary", mb: 2 }}>
+        <Text size="small" color="secondary" sx={{ mb: 2 }}>
           This page tests how different markdown content types render inside the
           chat view. Tables should scroll horizontally and never push the chat
           container wider. The layout should stay consistent like ChatGPT.
