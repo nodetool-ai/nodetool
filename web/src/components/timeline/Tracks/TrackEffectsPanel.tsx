@@ -11,7 +11,14 @@
  * Only enabled effects are wired into the live audio graph.
  */
 
-import React, { memo, useCallback, useMemo, useRef, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -575,9 +582,14 @@ const Eq3Curve: React.FC<Eq3CurveProps> = ({ effect, onPatch, disabled }) => {
     [dragBand]
   );
 
-  // Scroll-wheel on mid handle adjusts Q.
-  const handleMidWheel = useCallback(
-    (e: React.WheelEvent<SVGElement>) => {
+  // Scroll-wheel on mid handle adjusts Q. Attached as a native non-passive
+  // listener: React's onWheel is passive, so preventDefault() there can't
+  // stop the page from scrolling.
+  const midHandleRef = useRef<SVGCircleElement | null>(null);
+  useEffect(() => {
+    const el = midHandleRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
       if (disabled) return;
       e.preventDefault();
       const next = clamp(
@@ -586,9 +598,10 @@ const Eq3Curve: React.FC<Eq3CurveProps> = ({ effect, onPatch, disabled }) => {
         10
       );
       onPatch({ midQ: parseFloat(next.toFixed(2)) });
-    },
-    [effect.midQ, onPatch, disabled]
-  );
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [effect.midQ, onPatch, disabled]);
 
   // Static grid: log decade lines + dB lines.
   const gridFreqs = [50, 100, 200, 500, 1000, 2000, 5000, 10000];
@@ -712,7 +725,7 @@ const Eq3Curve: React.FC<Eq3CurveProps> = ({ effect, onPatch, disabled }) => {
               strokeWidth={2}
               style={{ cursor: disabled ? "default" : "grab" }}
               onPointerDown={handlePointerDown(band)}
-              onWheel={isMid ? handleMidWheel : undefined}
+              ref={isMid ? midHandleRef : undefined}
             />
             <text
               x={x}
@@ -1049,9 +1062,13 @@ const CompressorCurve: React.FC<CompressorCurveProps> = ({
     [drag]
   );
 
-  // Threshold-line wheel changes knee width.
-  const onThreshWheel = useCallback(
-    (e: React.WheelEvent<SVGElement>) => {
+  // Threshold-line wheel changes knee width. Native non-passive listener so
+  // preventDefault() actually blocks scrolling (React's onWheel is passive).
+  const threshHandleRef = useRef<SVGCircleElement | null>(null);
+  useEffect(() => {
+    const el = threshHandleRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
       if (disabled) return;
       e.preventDefault();
       const next = clamp(
@@ -1060,9 +1077,10 @@ const CompressorCurve: React.FC<CompressorCurveProps> = ({
         40
       );
       onPatch({ kneeDb: parseFloat(next.toFixed(1)) });
-    },
-    [effect.kneeDb, onPatch, disabled]
-  );
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [effect.kneeDb, onPatch, disabled]);
 
   const gridDbs = [-48, -36, -24, -12];
   const gridColor = theme.vars.palette.divider;
@@ -1175,7 +1193,7 @@ const CompressorCurve: React.FC<CompressorCurveProps> = ({
         strokeWidth={2}
         style={{ cursor: disabled ? "default" : "ew-resize" }}
         onPointerDown={onDown("threshold")}
-        onWheel={onThreshWheel}
+        ref={threshHandleRef}
       />
       <text
         x={thrX}

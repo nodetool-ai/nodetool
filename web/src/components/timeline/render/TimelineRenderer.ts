@@ -247,8 +247,10 @@ export async function renderTimeline(
 
         if (layer.kind === "video") {
           const el = await videoPool.seek(
+            layer.clipId,
             url,
-            clipSourceTimeSec(layer.clip, timeMs)
+            clipSourceTimeSec(layer.clip, timeMs),
+            signal
           );
           if (el.videoWidth === 0) continue;
           composite.push({

@@ -245,17 +245,23 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     );
 
     // ── Zoom (wheel) ────────────────────────────────────────────────────────
+    //
+    // Attached as a native non-passive listener: React's onWheel is passive,
+    // so preventDefault() inside it can't stop the browser's pinch-zoom.
 
-    const handleWheel = useCallback(
-      (e: React.WheelEvent<HTMLDivElement>) => {
+    useEffect(() => {
+      const el = scrollableRef.current;
+      if (!el) return;
+      const onWheel = (e: WheelEvent) => {
         if (e.ctrlKey || e.metaKey) {
           e.preventDefault();
           const factor = 1 + e.deltaY * ZOOM_SENSITIVITY;
           setZoom(msPerPx * factor);
         }
-      },
-      [msPerPx, setZoom]
-    );
+      };
+      el.addEventListener("wheel", onWheel, { passive: false });
+      return () => el.removeEventListener("wheel", onWheel);
+    }, [msPerPx, setZoom]);
 
     // ── Keyboard shortcuts ─────────────────────────────────────────────────
     //
@@ -457,7 +463,6 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             ref={scrollableRef}
             css={scrollableAreaStyles}
             onScroll={handleScroll}
-            onWheel={handleWheel}
           >
             <div
               css={lanesContainerStyles}

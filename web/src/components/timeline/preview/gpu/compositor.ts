@@ -54,7 +54,12 @@ function sourceDimensions(source: CompositeSource): {
 
 function uploadKey(source: CompositeSource): string {
   if (source instanceof HTMLVideoElement) {
-    return `v:${source.currentTime}:${source.videoWidth}x${source.videoHeight}`;
+    // `currentTime` updates as soon as a seek starts, before the target frame
+    // is decoded. Stamping the new time while `seeking` is true would mark a
+    // stale frame as current and skip the real upload on `seeked` — so use a
+    // distinct key during the seek; the post-`seeked` render re-uploads.
+    const time = source.seeking ? "seeking" : String(source.currentTime);
+    return `v:${time}:${source.videoWidth}x${source.videoHeight}`;
   }
   if (source instanceof HTMLImageElement) {
     return `i:${source.src}:${source.naturalWidth}x${source.naturalHeight}`;
@@ -81,6 +86,11 @@ export class WebGPUCompositor {
 
   private canvasWidth = 0;
   private canvasHeight = 0;
+  /** Reference (sequence) resolution that `transform.position` is stored in.
+   *  Falls back to the canvas size when unset — the offline renderer's canvas
+   *  is the sequence resolution, so it never needs to set this explicitly. */
+  private refWidth = 0;
+  private refHeight = 0;
 
   private sourceTextures = new Map<string, SourceTexture>();
   private layers: CompositeLayer[] = [];
@@ -124,6 +134,16 @@ export class WebGPUCompositor {
     this.effects = new WebGPUEffectsProcessor(device);
 
     return { ok: true };
+  }
+
+  /**
+   * Set the sequence resolution used to interpret `transform.position` (and
+   * rotation aspect). The live preview calls this because its canvas backing
+   * size tracks the viewport/DPR, not the sequence.
+   */
+  setReferenceSize(width: number, height: number): void {
+    this.refWidth = width;
+    this.refHeight = height;
   }
 
   resize(width: number, height: number): void {
@@ -258,8 +278,8 @@ export class WebGPUCompositor {
       const matrix = buildTransformMatrix(
         transform,
         base,
-        this.canvasWidth,
-        this.canvasHeight
+        this.refWidth || this.canvasWidth,
+        this.refHeight || this.canvasHeight
       );
       const invAffine = forwardClipMatrixToInverseAffine(
         matrix,

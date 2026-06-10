@@ -40,9 +40,12 @@ import { getAssetUrl } from "../../../utils/assetHelpers";
 import { useCombo } from "../../../stores/KeyPressedStore";
 
 function formatTimecode(timeMs: number, fps: number): string {
+  // Integer frame math: fractional rates (29.97, 23.976) would otherwise
+  // leak fractions into the frame field. Non-drop-frame timecode.
+  const fpsInt = Math.max(1, Math.round(fps));
   const totalFrames = Math.floor((timeMs / 1000) * fps);
-  const framePart = totalFrames % fps;
-  const totalSeconds = Math.floor(totalFrames / fps);
+  const framePart = totalFrames % fpsInt;
+  const totalSeconds = Math.floor(totalFrames / fpsInt);
   const seconds = totalSeconds % 60;
   const totalMinutes = Math.floor(totalSeconds / 60);
   const minutes = totalMinutes % 60;
@@ -162,6 +165,10 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
     const clockRef = useRef<PlaybackClock>(new PlaybackClock());
     const graphRef = useRef<AudioGraph>(new AudioGraph());
+    /** Bumped by every play/pause/stop/seek gesture. Async continuations in
+     *  handlePlay compare against their captured value and bail when a later
+     *  gesture has superseded them, so stale audio is never scheduled. */
+    const playGenRef = useRef(0);
 
     useEffect(() => {
       const clock = clockRef.current;
@@ -181,15 +188,25 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     }, [tracks]);
 
     const handlePlay = useCallback(async () => {
-      play();
+      const generation = ++playGenRef.current;
+      const isStale = () => playGenRef.current !== generation;
+
       const graph = graphRef.current;
       const clock = clockRef.current;
 
       // Read fresh to avoid stale closure when the user scrubs before pressing play.
-      const startMs = useTimelinePlaybackStore.getState().currentTimeMs;
+      let startMs = useTimelinePlaybackStore.getState().currentTimeMs;
+      // Pressing Play while parked at the end restarts from the top.
+      if (durationMs > 0 && startMs >= durationMs - frameDeltaMs(fps)) {
+        startMs = 0;
+        setCurrentTimeMs(0);
+      }
+
+      play();
 
       const ctx = graph.getContext();
       await ctx.resume();
+      if (isStale()) return;
 
       const activeAudioClips = clips.filter(
         (c) =>
@@ -220,8 +237,13 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       const validClips = scheduledClips.filter(
         (c): c is NonNullable<typeof c> => c !== null
       );
+      if (isStale()) return;
 
-      await graph.scheduleClips(validClips, tracks, startMs);
+      // Clear any sources an older gesture registered, right before
+      // scheduling the new ones — so the latest gesture always wins.
+      graph.stopAll();
+      await graph.scheduleClips(validClips, tracks, startMs, isStale);
+      if (isStale()) return;
 
       clock.start(
         startMs,
@@ -229,9 +251,10 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         validClips.length > 0 ? ctx : null,
         durationMs || Infinity
       );
-    }, [play, clips, tracks, durationMs, getAsset]);
+    }, [play, clips, tracks, durationMs, fps, getAsset, setCurrentTimeMs]);
 
     const handlePause = useCallback(() => {
+      playGenRef.current++;
       pause();
       clockRef.current.stop();
       graphRef.current.stopAll();
@@ -239,11 +262,23 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     }, [pause]);
 
     const handleStop = useCallback(() => {
+      playGenRef.current++;
       stop();
       clockRef.current.stop();
       graphRef.current.stopAll();
       graphRef.current.suspend();
     }, [stop]);
+
+    // The clock auto-pauses via the store when it hits the timeline end —
+    // a path that bypasses handlePause. Mirror its teardown here so audio
+    // sources are released and the AudioContext suspends.
+    useEffect(() => {
+      if (isPlaying) return;
+      playGenRef.current++;
+      clockRef.current.stop();
+      graphRef.current.stopAll();
+      graphRef.current.suspend();
+    }, [isPlaying]);
 
     // On external seek while playing, restart audio scheduling + clock at the
     // new position so audio re-aligns with the playhead. We key on seekNonce

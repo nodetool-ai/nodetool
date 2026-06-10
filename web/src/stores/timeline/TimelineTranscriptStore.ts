@@ -26,6 +26,7 @@ import { makeClip, makeClipVersion, createTimeOrderedUuid } from "@nodetool-ai/t
 import type { CaptionWord, TimelineClip } from "@nodetool-ai/timeline";
 
 import { useTimelineStore } from "./TimelineStore";
+import type { TimelineStoreState } from "./TimelineStore";
 import { useTimelinePlaybackStore } from "./TimelinePlaybackStore";
 import * as ops from "./transcriptOps";
 import type { TokenRef } from "./transcriptOps";
@@ -150,6 +151,29 @@ function parseCaptionWords(result: Record<string, unknown>): CaptionWord[] {
     }
   }
   return words;
+}
+
+// ── Active-instance pinning ──────────────────────────────────────────────────
+
+interface PinnedTimelineStore {
+  getState: () => TimelineStoreState;
+  release: () => void;
+}
+
+/**
+ * Pin the *currently active* timeline instance's document store for the
+ * duration of an async flow. `useTimelineStore.getState()` re-resolves the
+ * active instance on every call, so a flow that awaits in between would write
+ * into whichever timeline gained focus meanwhile. The pin captures the
+ * instance once (via `subscribe`, which binds at call time) and serves
+ * consistent reads/writes until released.
+ */
+function pinActiveTimelineStore(): PinnedTimelineStore {
+  let latest = useTimelineStore.getState();
+  const release = useTimelineStore.subscribe((state: TimelineStoreState) => {
+    latest = state;
+  });
+  return { getState: () => latest, release };
 }
 
 // ── Track helpers ────────────────────────────────────────────────────────────
@@ -369,9 +393,13 @@ export const useTimelineTranscriptStore = create<TimelineTranscriptStoreState>(
 
       generateBeat: async (clipId) => {
         const { config } = get();
+        // Pin the instance whose beat is being voiced: every read/write in
+        // this multi-await flow must target the same timeline document even
+        // if another instance becomes active mid-generation.
+        const timeline = pinActiveTimelineStore();
         setClipStatus(clipId, "generating");
         try {
-          const clip = useTimelineStore
+          const clip = timeline
             .getState()
             .clips.find((c) => c.id === clipId);
           if (!clip) throw new Error(`Transcript beat ${clipId} not found`);
@@ -394,8 +422,8 @@ export const useTimelineTranscriptStore = create<TimelineTranscriptStoreState>(
           const audioAssetId = assetIds[0];
           if (!audioAssetId) throw new Error("No audio asset produced");
 
-          const patchClip = useTimelineStore.getState().patchClip;
-          const existing = useTimelineStore
+          const patchClip = timeline.getState().patchClip;
+          const existing = timeline
             .getState()
             .clips.find((c) => c.id === clipId);
           patchClip(clipId, {
@@ -437,13 +465,21 @@ export const useTimelineTranscriptStore = create<TimelineTranscriptStoreState>(
           patchClip(clipId, { caption: { words } });
 
           // 4. Re-flow so the real durations lay the beats out end-to-end.
-          const after = useTimelineStore.getState();
+          //    Bail if the clip was deleted while generation was in flight —
+          //    re-flowing then would reshuffle unrelated clips for nothing.
+          const after = timeline.getState();
+          if (!after.clips.some((c) => c.id === clipId)) {
+            setClipStatus(clipId, "idle");
+            return;
+          }
           after.setTranscriptAndClips(ops.reflowGenerated(after.clips));
 
           setClipStatus(clipId, "idle");
         } catch (err) {
           setClipStatus(clipId, "failed");
           throw err instanceof Error ? err : new Error(String(err));
+        } finally {
+          timeline.release();
         }
       },
 
@@ -452,35 +488,43 @@ export const useTimelineTranscriptStore = create<TimelineTranscriptStoreState>(
         if (mediaType !== "audio" && mediaType !== "video") {
           throw new Error("Only audio or video can be transcribed");
         }
-        const trackId =
-          mediaType === "audio" ? ensureVoiceoverTrack() : ensureVideoTrack();
-
-        // An empty caption marks the clip as a (recorded) transcript clip up
-        // front, so it shows a "transcribing…" paragraph before words arrive.
-        const base = assetToClip(asset, trackId, timelineEndMs());
-        const clip = {
-          ...base,
-          paragraphId: base.id,
-          caption: { words: [] as CaptionWord[] }
-        };
-        useTimelineStore.getState().addClip(clip);
-
-        setClipStatus(clip.id, "generating");
+        // Pin the instance receiving the import so the post-transcription
+        // caption write can't land in another timeline that gained focus
+        // while the RPC was in flight.
+        const timeline = pinActiveTimelineStore();
         try {
-          const { config } = get();
-          const asrResult = await rpcRequest("transcribe_audio", {
-            provider: config.asrProvider,
-            model: config.asrModel,
-            asset_id: asset.id
-          });
-          const words = parseCaptionWords(asrResult);
-          useTimelineStore.getState().patchClip(clip.id, { caption: { words } });
-          setClipStatus(clip.id, "idle");
-        } catch (err) {
-          setClipStatus(clip.id, "failed");
-          throw err instanceof Error ? err : new Error(String(err));
+          const trackId =
+            mediaType === "audio" ? ensureVoiceoverTrack() : ensureVideoTrack();
+
+          // An empty caption marks the clip as a (recorded) transcript clip up
+          // front, so it shows a "transcribing…" paragraph before words arrive.
+          const base = assetToClip(asset, trackId, timelineEndMs());
+          const clip = {
+            ...base,
+            paragraphId: base.id,
+            caption: { words: [] as CaptionWord[] }
+          };
+          timeline.getState().addClip(clip);
+
+          setClipStatus(clip.id, "generating");
+          try {
+            const { config } = get();
+            const asrResult = await rpcRequest("transcribe_audio", {
+              provider: config.asrProvider,
+              model: config.asrModel,
+              asset_id: asset.id
+            });
+            const words = parseCaptionWords(asrResult);
+            timeline.getState().patchClip(clip.id, { caption: { words } });
+            setClipStatus(clip.id, "idle");
+          } catch (err) {
+            setClipStatus(clip.id, "failed");
+            throw err instanceof Error ? err : new Error(String(err));
+          }
+          return clip.id;
+        } finally {
+          timeline.release();
         }
-        return clip.id;
       }
     };
   }

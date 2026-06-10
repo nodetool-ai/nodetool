@@ -18,6 +18,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useGenerateClip } from "../../../hooks/timeline/useGenerateClip";
 import ImageModelSelect from "../../properties/ImageModelSelect";
 import VideoModelSelect from "../../properties/VideoModelSelect";
@@ -76,6 +77,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
     (s) => s.setClipDirectGenModel
   );
   const patchClipBinding = useTimelineStore((s) => s.patchClipBinding);
+  const addNotification = useNotificationStore((s) => s.addNotification);
 
   const {
     generateClip,
@@ -159,12 +161,19 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
   );
 
   const handleGenerateClick = useCallback(() => {
-    if (isActive) {
-      void cancelClipGeneration();
-    } else {
-      void generateClip();
-    }
-  }, [isActive, cancelClipGeneration, generateClip]);
+    const action = isActive ? cancelClipGeneration() : generateClip();
+    action.catch((err: unknown) => {
+      addNotification({
+        content: `Clip generation failed: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+        type: "error",
+        alert: true,
+        dedupeKey: "timeline-clip-generate-failed",
+        replaceExisting: true
+      });
+    });
+  }, [isActive, cancelClipGeneration, generateClip, addNotification]);
 
   if (!clip) {
     return null;

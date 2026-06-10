@@ -80,10 +80,10 @@ export interface TransformGizmoOverlayProps {
   sourceWidth: number;
   /** Source pixel height of the clip's decoded media. */
   sourceHeight: number;
-  /** GPU canvas backing width (px) — matches the compositor. */
-  canvasWidth: number;
-  /** GPU canvas backing height (px) — matches the compositor. */
-  canvasHeight: number;
+  /** Sequence pixel width — `transform.position` is stored in this space. */
+  sequenceWidth: number;
+  /** Sequence pixel height — `transform.position` is stored in this space. */
+  sequenceHeight: number;
   /** Frame element CSS width (px). */
   frameWidth: number;
   /** Frame element CSS height (px). */
@@ -114,13 +114,13 @@ function computeGeometry(
   t: ClipTransform,
   srcW: number,
   srcH: number,
-  canvasW: number,
-  canvasH: number,
+  seqW: number,
+  seqH: number,
   frameW: number,
   frameH: number
 ): BoxGeometry {
-  const base = containBaseScale(srcW, srcH, canvasW, canvasH);
-  const m = buildTransformMatrix(t, base, canvasW, canvasH);
+  const base = containBaseScale(srcW, srcH, seqW, seqH);
+  const m = buildTransformMatrix(t, base, seqW, seqH);
   const at = (qx: number, qy: number): Point =>
     clipToCss(
       m[0] * qx + m[4] * qy + m[12],
@@ -227,8 +227,8 @@ export function TransformGizmoOverlay({
   transform,
   sourceWidth,
   sourceHeight,
-  canvasWidth,
-  canvasHeight,
+  sequenceWidth,
+  sequenceHeight,
   frameWidth,
   frameHeight,
   onChange
@@ -239,8 +239,8 @@ export function TransformGizmoOverlay({
   if (
     sourceWidth <= 0 ||
     sourceHeight <= 0 ||
-    canvasWidth <= 0 ||
-    canvasHeight <= 0 ||
+    sequenceWidth <= 0 ||
+    sequenceHeight <= 0 ||
     frameWidth <= 0 ||
     frameHeight <= 0
   ) {
@@ -252,8 +252,8 @@ export function TransformGizmoOverlay({
     t,
     sourceWidth,
     sourceHeight,
-    canvasWidth,
-    canvasHeight,
+    sequenceWidth,
+    sequenceHeight,
     frameWidth,
     frameHeight
   );
@@ -271,10 +271,11 @@ export function TransformGizmoOverlay({
     y: topMid.y + outward.y * ROTATION_HANDLE_OFFSET
   };
 
-  /** CSS px → position px delta along each canvas axis. */
-  const cssToPosX = (dxCss: number): number => (dxCss * canvasWidth) / frameWidth;
+  /** CSS px → sequence-px position delta along each axis. */
+  const cssToPosX = (dxCss: number): number =>
+    (dxCss * sequenceWidth) / frameWidth;
   const cssToPosY = (dyCss: number): number =>
-    (dyCss * canvasHeight) / frameHeight;
+    (dyCss * sequenceHeight) / frameHeight;
 
   const fixedPointFor = (target: ScaleHandle): Point => {
     switch (target) {
@@ -486,8 +487,8 @@ export function TransformGizmoOverlay({
       candidate,
       sourceWidth,
       sourceHeight,
-      canvasWidth,
-      canvasHeight,
+      sequenceWidth,
+      sequenceHeight,
       frameWidth,
       frameHeight
     );
@@ -514,8 +515,8 @@ export function TransformGizmoOverlay({
       candidate,
       sourceWidth,
       sourceHeight,
-      canvasWidth,
-      canvasHeight,
+      sequenceWidth,
+      sequenceHeight,
       frameWidth,
       frameHeight
     );
