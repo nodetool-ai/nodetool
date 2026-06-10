@@ -50,14 +50,31 @@ export function isIPv4(value: string): boolean {
 }
 
 export function isIPv6(value: string): boolean {
-  if (typeof value !== "string") return false;
-  // Accept fully-written, "::"-compressed, and IPv4-suffixed forms.
-  if (value.length < 2 || value.indexOf(":") === -1) return false;
-  const groups = value.split("::");
-  if (groups.length > 2) return false;
-  const parts = value.replace("::", ":x:").split(":");
-  // each chunk must be 1-4 hex chars (or our placeholder)
-  return parts.every((p) => p === "" || p === "x" || /^[0-9a-fA-F]{1,4}$/.test(p));
+  if (typeof value !== "string" || value.indexOf(":") === -1) return false;
+  let v = value;
+
+  // IPv4-suffixed form (e.g. ::ffff:192.168.1.1): validate the dotted quad,
+  // then substitute it with the two hex groups it occupies.
+  const ipv4Match = /^(.*:)(\d{1,3}(?:\.\d{1,3}){3})$/.exec(v);
+  if (ipv4Match) {
+    if (!isIPv4(ipv4Match[2])) return false;
+    v = `${ipv4Match[1]}0:0`;
+  }
+
+  const isHexGroup = (p: string) => /^[0-9a-fA-F]{1,4}$/.test(p);
+  const halves = v.split("::");
+  if (halves.length > 2) return false;
+
+  if (halves.length === 2) {
+    const left = halves[0] === "" ? [] : halves[0].split(":");
+    const right = halves[1] === "" ? [] : halves[1].split(":");
+    if (![...left, ...right].every(isHexGroup)) return false;
+    // "::" must stand in for at least one zero group.
+    return left.length + right.length <= 7;
+  }
+
+  const parts = v.split(":");
+  return parts.length === 8 && parts.every(isHexGroup);
 }
 
 export function isIP(value: string): boolean {

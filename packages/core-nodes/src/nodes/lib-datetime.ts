@@ -46,8 +46,15 @@ const MS = {
 
 /** Parse an input into a Date. Throws with a friendly error on failure. */
 export function parseDate(input: unknown): Date {
-  if (input instanceof Date) return new Date(input.getTime());
-  if (typeof input === "number") return new Date(input);
+  if (input instanceof Date) {
+    if (!Number.isNaN(input.getTime())) return new Date(input.getTime());
+    throw new Error("Could not parse date: Invalid Date");
+  }
+  if (typeof input === "number") {
+    const d = new Date(input);
+    if (!Number.isNaN(d.getTime())) return d;
+    throw new Error(`Could not parse date: ${String(input)}`);
+  }
   if (typeof input === "string" && input.trim()) {
     const d = new Date(input);
     if (!Number.isNaN(d.getTime())) return d;

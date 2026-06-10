@@ -115,7 +115,9 @@ describe("CollectionNode", () => {
     const node = new CollectionNode();
     node.assign({ name: "test-collection" });
     const result = await node.process();
-    expect(result).toEqual({ output: { name: "test-collection" } });
+    expect(result).toEqual({
+      output: { type: "collection", name: "test-collection" }
+    });
     expect(mockProvider.getOrCreateCollection).toHaveBeenCalledWith({
       name: "test-collection",
       metadata: { embedding_model: "" }
@@ -168,11 +170,15 @@ describe("GetDocumentsNode", () => {
     expect(mockCollection.get).toHaveBeenCalledWith({ ids: ["a", "b"], limit: 50, offset: 10 });
   });
 
-  it("passes empty ids array when ids list is empty", async () => {
+  it("omits the ids filter when ids list is empty", async () => {
     const node = new GetDocumentsNode();
     node.assign({ collection: { name: "my-col" }, ids: [] });
     await node.process();
-    expect(mockCollection.get).toHaveBeenCalledWith({ ids: [], limit: 100, offset: 0 });
+    expect(mockCollection.get).toHaveBeenCalledWith({
+      ids: undefined,
+      limit: 100,
+      offset: 0
+    });
   });
 });
 
@@ -463,10 +469,9 @@ describe("QueryImageNode", () => {
       n_results: 2
     });
     const result = await node.process();
-    const output = result.output as Record<string, unknown>;
-    expect(output.ids).toEqual(["id1", "id2"]);
-    expect(output.documents).toEqual(["doc1", "doc2"]);
-    expect(output.distances).toEqual([0.1, 0.5]);
+    expect(result.ids).toEqual(["id1", "id2"]);
+    expect(result.documents).toEqual(["doc1", "doc2"]);
+    expect(result.distances).toEqual([0.1, 0.5]);
 
     expect(mockCollection.query).toHaveBeenCalledWith({
       uri: "http://x.com/img.png",
@@ -509,9 +514,8 @@ describe("QueryTextNode", () => {
       n_results: 2
     });
     const result = await node.process();
-    const output = result.output as Record<string, unknown>;
-    expect(output.ids).toEqual(["a-id", "z-id"]);
-    expect(output.documents).toEqual(["a-doc", "z-doc"]);
+    expect(result.ids).toEqual(["a-id", "z-id"]);
+    expect(result.documents).toEqual(["a-doc", "z-doc"]);
 
     expect(mockCollection.query).toHaveBeenCalledWith({
       text: "search query",

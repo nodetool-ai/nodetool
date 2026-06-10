@@ -34,6 +34,22 @@ describe("list nodes", () => {
     await expect(node.process()).rejects.toThrow(/max_output_length/i);
   });
 
+  it("RangeNode supports descending ranges to a negative stop", async () => {
+    const node = new RangeNode();
+    node.assign({ start: 0, stop: -10, step: -2 });
+    await expect(node.process()).resolves.toEqual({
+      output: [0, -2, -4, -6, -8]
+    });
+  });
+
+  it("RangeNode falls back to the default cap for non-numeric max_output_length", async () => {
+    const node = new RangeNode();
+    node.assign({ count: 5, max_output_length: "not-a-number" });
+    await expect(node.process()).resolves.toEqual({
+      output: [0, 1, 2, 3, 4]
+    });
+  });
+
   it("TileNode repeats the full list N times", async () => {
     const node = new TileNode();
     node.assign({ input_list: ["A", "B", "C"], times: 3 });

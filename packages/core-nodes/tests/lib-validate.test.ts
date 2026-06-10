@@ -81,6 +81,16 @@ describe("isIPv4/isIPv6/isIP", () => {
     expect(isIPv6("gggg::1")).toBe(false);
     expect(isIPv6("1::2::3")).toBe(false);
     expect(isIPv6("")).toBe(false);
+    expect(isIPv6(":::")).toBe(false);
+    expect(isIPv6("1:2:3:4:5:6:7:8:9")).toBe(false);
+    expect(isIPv6("1:2:3:4:5:6:7")).toBe(false);
+    expect(isIPv6("1:2:3:4:5:6:7:8::")).toBe(false);
+  });
+  it("accepts full and IPv4-suffixed IPv6 forms", () => {
+    expect(isIPv6("1:2:3:4:5:6:7:8")).toBe(true);
+    expect(isIPv6("2001:0db8:85a3:0000:0000:8a2e:0370:7334")).toBe(true);
+    expect(isIPv6("::ffff:192.168.1.1")).toBe(true);
+    expect(isIPv6("::ffff:999.168.1.1")).toBe(false);
   });
   it("isIP is the union", () => {
     expect(isIP("1.2.3.4")).toBe(true);
