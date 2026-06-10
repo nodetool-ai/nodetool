@@ -39,7 +39,9 @@ export const filtersGlowV1 = defineRecipe({
   paramUi: {
     threshold: { min: 0, max: 1, step: 0.01, label: "Threshold" },
     softness: { min: 0, max: 0.5, step: 0.01, label: "Softness" },
-    radius: { min: 0, max: 40, step: 0.5, label: "Radius", notes: "blur radius, px" },
+    // Capped at 20 to match `filters.blur.gaussian@1`'s hard
+    // `kernelRadius = min(radius, 20)` clamp; a higher max silently truncates.
+    radius: { min: 0, max: 20, step: 0.5, label: "Radius", notes: "blur radius, px" },
     intensity: { min: 0, max: 4, step: 0.01, label: "Intensity" }
   },
   io: {

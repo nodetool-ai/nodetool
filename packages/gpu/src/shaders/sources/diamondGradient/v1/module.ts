@@ -45,11 +45,10 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let d = abs(uv - vec2f(0.5, 0.5));
   let r = max(p.radius, 0.0001);
   let t = clamp((d.x + d.y) / r, 0.0, 1.0);
-  // Straight colour params → premultiplied output: interpolate in premultiplied
-  // space so a translucent inner/outer colour keeps rgb <= a.
-  let ci = vec4f(p.colorInner.rgb * p.colorInner.a, p.colorInner.a);
-  let co = vec4f(p.colorOuter.rgb * p.colorOuter.a, p.colorOuter.a);
-  return mix(ci, co, t);
+  // The colour params arrive premultiplied (hosts premultiply at the colour
+  // picker boundary); a mix of premultiplied endpoints stays premultiplied.
+  // Re-multiplying by alpha here would darken translucent colours to rgb*a².
+  return mix(p.colorInner, p.colorOuter, t);
 }
 `,
   io: {
