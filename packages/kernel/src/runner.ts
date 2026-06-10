@@ -741,21 +741,22 @@ export class WorkflowRunner {
       // DocumentFileInput building a DocumentRef, StringInput applying
       // max_length, MessageDeconstructor splitting a message) emit their
       // declared per-handle outputs instead of leaking the raw value to
-      // every edge. Nodes whose executor cannot run here (e.g. test doubles
-      // without a registered implementation) fall back to raw-value dispatch.
-      let nodeOutputs: Record<string, unknown> | undefined;
+      // every edge. Uses the cached executor instance initialized in
+      // _initializeGraph. Test doubles whose process() returns an empty
+      // record fall back to raw-value dispatch per handle below; a real
+      // process() failure fails the run rather than leaking the raw value.
+      const executor = this._resolveExecutor(node);
+      let nodeOutputs: Record<string, unknown>;
       try {
-        const executor = this._options.resolveExecutor(node);
         nodeOutputs = await executor.process(
           { value },
           this._options.executionContext
         );
       } catch (err) {
-        log.debug("_dispatchInputs: process() failed, using raw value", {
-          nodeId: node.id,
-          nodeType: node.type,
-          error: err instanceof Error ? err.message : String(err)
-        });
+        const message = err instanceof Error ? err.message : String(err);
+        throw new Error(
+          `Input node "${node.name ?? node.id}" (${node.type}) failed: ${message}`
+        );
       }
 
       const outgoing = this._graph
@@ -765,7 +766,7 @@ export class WorkflowRunner {
         const targetInbox = this._inboxes.get(edge.target);
         if (targetInbox) {
           const handleValue =
-            nodeOutputs && nodeOutputs[edge.sourceHandle] !== undefined
+            nodeOutputs[edge.sourceHandle] !== undefined
               ? nodeOutputs[edge.sourceHandle]
               : value;
           await targetInbox.put(edge.targetHandle, handleValue, {

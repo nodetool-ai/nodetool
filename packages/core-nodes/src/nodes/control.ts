@@ -1165,7 +1165,7 @@ export class ZipNode extends BaseNode {
         throw new Error(
           `Zip received a duplicate item for bucket "${key}" on handle ` +
             `"${handle}" — upstream emitted two values with the same ` +
-            `iteration index. §7.`
+            `iteration index.`
         );
       }
       side.set(key, pending);
