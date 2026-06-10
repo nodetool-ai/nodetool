@@ -117,7 +117,7 @@ describe("input/output/workspace nodes", () => {
   it("StringInputNode enforces max length", async () => {
     const node = new StringInputNode();
     node.assign({ value: "abcdef", max_length: 3 });
-    await expect(node.process({})).resolves.toEqual({ value: "abc" });
+    await expect(node.process({})).resolves.toEqual({ output: "abc" });
   });
 
   it("MessageDeconstructorNode extracts text and metadata", async () => {
@@ -713,7 +713,6 @@ describe("constant nodes", () => {
     const _cis = new ConstantImageSizeNode();
     _cis.assign({ value: { width: 640, height: 480 } });
     await expect(_cis.process()).resolves.toEqual({
-      output: { width: 640, height: 480 },
       image_size: { width: 640, height: 480 },
       width: 640,
       height: 480

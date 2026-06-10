@@ -710,13 +710,39 @@ export class WorkflowRunner {
       }
 
       const value = hasRuntimeParam ? params[inputName] : properties.value;
+
+      // Run the node's own process() so transforming input nodes (e.g.
+      // DocumentFileInput building a DocumentRef, StringInput applying
+      // max_length, MessageDeconstructor splitting a message) emit their
+      // declared per-handle outputs instead of leaking the raw value to
+      // every edge. Nodes whose executor cannot run here (e.g. test doubles
+      // without a registered implementation) fall back to raw-value dispatch.
+      let nodeOutputs: Record<string, unknown> | undefined;
+      try {
+        const executor = this._options.resolveExecutor(node);
+        nodeOutputs = await executor.process(
+          { value },
+          this._options.executionContext
+        );
+      } catch (err) {
+        log.debug("_dispatchInputs: process() failed, using raw value", {
+          nodeId: node.id,
+          nodeType: node.type,
+          error: err instanceof Error ? err.message : String(err)
+        });
+      }
+
       const outgoing = this._graph
         .findOutgoingEdges(node.id)
         .filter(isDataEdge);
       for (const edge of outgoing) {
         const targetInbox = this._inboxes.get(edge.target);
         if (targetInbox) {
-          await targetInbox.put(edge.targetHandle, value, {
+          const handleValue =
+            nodeOutputs && nodeOutputs[edge.sourceHandle] !== undefined
+              ? nodeOutputs[edge.sourceHandle]
+              : value;
+          await targetInbox.put(edge.targetHandle, handleValue, {
             source_edge_id:
               edge.id ??
               syntheticEdgeId(

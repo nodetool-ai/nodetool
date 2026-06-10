@@ -16,6 +16,13 @@ export function clampTimes(raw: unknown, fallback = 1): number {
   return n;
 }
 
+export function resolveMaxOutputLength(raw: unknown): number {
+  const n = Number(raw ?? DEFAULT_MAX_LIST_LENGTH);
+  // Non-numeric input must fall back to the default instead of yielding NaN,
+  // which would silently disable the length guard (`length > NaN` is false).
+  return Number.isFinite(n) ? Math.max(1, n) : DEFAULT_MAX_LIST_LENGTH;
+}
+
 export function assertOutputLength(
   length: number,
   max: number,
@@ -112,13 +119,12 @@ export class RangeNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const rawStop = Number(this.stop ?? -1);
     const step = Number(this.step ?? 1);
-    const maxLen = Math.max(
-      1,
-      Number(this.max_output_length ?? DEFAULT_MAX_LIST_LENGTH)
-    );
+    const maxLen = resolveMaxOutputLength(this.max_output_length);
 
     let values: number[];
-    if (Number.isFinite(rawStop) && rawStop >= 0) {
+    // Only the documented sentinel -1 switches to count mode; other negative
+    // stops are legitimate (e.g. descending ranges like 0..-10 step -1).
+    if (Number.isFinite(rawStop) && rawStop !== -1) {
       const start = Number(this.start ?? 0);
       values = buildRange(start, rawStop, step);
     } else {
@@ -170,10 +176,7 @@ export class TileNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const list = asList(this.input_list);
     const times = clampTimes(this.times ?? 1, 1);
-    const maxLen = Math.max(
-      1,
-      Number(this.max_output_length ?? DEFAULT_MAX_LIST_LENGTH)
-    );
+    const maxLen = resolveMaxOutputLength(this.max_output_length);
     const outLength = list.length * times;
 
     assertOutputLength(outLength, maxLen, "Tile");
@@ -229,10 +232,7 @@ export class RepeatEachNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const list = asList(this.input_list);
     const times = clampTimes(this.times ?? 1, 1);
-    const maxLen = Math.max(
-      1,
-      Number(this.max_output_length ?? DEFAULT_MAX_LIST_LENGTH)
-    );
+    const maxLen = resolveMaxOutputLength(this.max_output_length);
     const outLength = list.length * times;
 
     assertOutputLength(outLength, maxLen, "RepeatEach");
@@ -290,10 +290,7 @@ export class RepeatValueNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const value = this.value ?? null;
     const times = clampTimes(this.times ?? 1, 1);
-    const maxLen = Math.max(
-      1,
-      Number(this.max_output_length ?? DEFAULT_MAX_LIST_LENGTH)
-    );
+    const maxLen = resolveMaxOutputLength(this.max_output_length);
 
     assertOutputLength(times, maxLen, "RepeatValue");
     return { output: buildRepeatedValues(value, times) };

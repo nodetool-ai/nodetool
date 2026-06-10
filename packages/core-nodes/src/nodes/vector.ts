@@ -105,7 +105,7 @@ export class CollectionNode extends BaseNode {
       metadata: { embedding_model: embeddingModel.repo_id ?? "" }
     });
 
-    return { output: { name } };
+    return { output: { type: "collection", name } };
   }
 }
 
@@ -203,9 +203,10 @@ export class GetDocumentsNode extends BaseNode {
     const offset = Number(this.offset ?? 0);
 
     const collection = await getCollectionByName(name);
-    // Empty ids list returns nothing — matches Python's empty-list semantics.
+    // Empty ids means "no id filter": return all documents honoring
+    // limit/offset (the provider treats a missing ids option as unfiltered).
     const records = await collection.get({
-      ids: ids.length > 0 ? ids : [],
+      ids: ids.length > 0 ? ids : undefined,
       limit,
       offset
     });
@@ -280,9 +281,15 @@ export class IndexImageNode extends BaseNode {
 
   @prop({
     type: "image",
-    default: [],
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
     title: "Image",
-    description: "List of image assets to index"
+    description: "The image asset to index"
   })
   declare image: any;
 
@@ -412,7 +419,7 @@ export class IndexEmbeddingNode extends BaseNode {
       }
     } else if (embeddingRaw && typeof embeddingRaw === "object") {
       const obj = embeddingRaw as Record<string, unknown>;
-      const data = obj.data ?? obj.array ?? obj.embedding;
+      const data = obj.data ?? obj.array ?? obj.embedding ?? obj.value;
       if (Array.isArray(data)) {
         if (typeof data[0] === "number") {
           embeddings = [data as number[]];
@@ -808,12 +815,10 @@ export class QueryImageNode extends BaseNode {
     );
 
     return {
-      output: {
-        ids: matches.map((m) => m.id),
-        documents: matches.map((m) => m.document ?? ""),
-        metadatas: matches.map((m) => m.metadata),
-        distances: matches.map((m) => m.distance)
-      }
+      ids: matches.map((m) => m.id),
+      documents: matches.map((m) => m.document ?? ""),
+      metadatas: matches.map((m) => m.metadata),
+      distances: matches.map((m) => m.distance)
     };
   }
 }
@@ -874,12 +879,10 @@ export class QueryTextNode extends BaseNode {
     );
 
     return {
-      output: {
-        ids: matches.map((m) => m.id),
-        documents: matches.map((m) => m.document ?? ""),
-        metadatas: matches.map((m) => m.metadata),
-        distances: matches.map((m) => m.distance)
-      }
+      ids: matches.map((m) => m.id),
+      documents: matches.map((m) => m.document ?? ""),
+      metadatas: matches.map((m) => m.metadata),
+      distances: matches.map((m) => m.distance)
     };
   }
 }
@@ -1069,15 +1072,16 @@ export class HybridSearchNode extends BaseNode {
       topK: nResults * 2
     });
 
+    // Without a keyword filter there is no second ranking to fuse — fusing
+    // the semantic list against itself would only double every score.
     const keywordFilter = this._getKeywordFilter(text, minKeywordLength);
-    let keywordMatches = semanticMatches;
-    if (keywordFilter) {
-      keywordMatches = await collection.query({
-        text,
-        topK: nResults * 2,
-        filter: keywordFilter
-      });
-    }
+    const keywordMatches: VectorMatch[] = keywordFilter
+      ? await collection.query({
+          text,
+          topK: nResults * 2,
+          filter: keywordFilter
+        })
+      : [];
 
     const combinedScores = new Map<
       string,
