@@ -121,6 +121,17 @@ export type NodeProps<T extends BaseNode> = Partial<
 >;
 
 /**
+ * Marks the BaseNode root class. The explicit-flag walk below must stop at
+ * BaseNode, but an identity check (`current !== BaseNode`) breaks when two
+ * copies of this module are loaded in one process (vitest's vite graph +
+ * node's ESM cache for workspace symlinks): a node class may extend the
+ * *other* copy's BaseNode, whose own `isStreamingOutput = false` default
+ * would then read as an explicit opt-out. `Symbol.for` is process-global,
+ * so every copy of BaseNode carries the same recognizable marker.
+ */
+const BASE_NODE_MARKER = Symbol.for("nodetool.node-sdk.base-node");
+
+/**
  * Find an `isStreamingOutput` declared explicitly on `cls` or one of its
  * ancestors below BaseNode. BaseNode's own `false` default is "unset" —
  * only a subclass's own declaration counts, so `static isStreamingOutput =
@@ -128,7 +139,10 @@ export type NodeProps<T extends BaseNode> = Partial<
  */
 const explicitStreamingOutputFlag = (cls: NodeClass): boolean | undefined => {
   let current: unknown = cls;
-  while (typeof current === "function" && current !== BaseNode) {
+  while (
+    typeof current === "function" &&
+    !Object.prototype.hasOwnProperty.call(current, BASE_NODE_MARKER)
+  ) {
     if (Object.prototype.hasOwnProperty.call(current, "isStreamingOutput")) {
       return (current as NodeClass).isStreamingOutput;
     }
@@ -547,3 +561,9 @@ export abstract class BaseNode {
     return desc;
   }
 }
+
+// Own (non-inherited) property on the BaseNode root only — subclasses see it
+// through the chain but never carry it themselves, so the explicit-flag walk
+// stops exactly here. Assigned outside the class body because TS declaration
+// emit rejects computed statics keyed by non-unique symbols.
+Object.defineProperty(BaseNode, BASE_NODE_MARKER, { value: true });

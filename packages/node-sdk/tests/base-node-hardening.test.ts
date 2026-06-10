@@ -107,6 +107,30 @@ describe("hasStreamingOutput resolution order", () => {
     }
     expect(hasStreamingOutput(StreamChild)).toBe(true);
   });
+
+  it("does not treat another module copy's BaseNode default as an opt-out", () => {
+    // vitest can load two copies of base-node.js (vite graph + node ESM
+    // cache). Simulate a class extending the *other* copy's BaseNode root:
+    // same global marker, same own isStreamingOutput=false default.
+    class ForeignBaseNode {
+      static readonly isStreamingOutput = false;
+      async *genProcess() {
+        yield {};
+      }
+    }
+    Object.defineProperty(
+      ForeignBaseNode,
+      Symbol.for("nodetool.node-sdk.base-node"),
+      { value: true }
+    );
+    class ForeignStreamer extends ForeignBaseNode {
+      static readonly nodeType = "test.ForeignStreamer";
+      async *genProcess() {
+        yield { a: 1 };
+      }
+    }
+    expect(hasStreamingOutput(ForeignStreamer as any)).toBe(true);
+  });
 });
 
 describe("assign() identity + defaults", () => {
