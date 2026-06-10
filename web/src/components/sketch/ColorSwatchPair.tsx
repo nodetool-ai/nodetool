@@ -146,7 +146,7 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
         className="color-swatch-pair__actions"
         align="center"
         justify="center"
-        gap={0.25}
+        gap={0.5}
         sx={{ width: `${STACK}px` }}
       >
         <Tooltip

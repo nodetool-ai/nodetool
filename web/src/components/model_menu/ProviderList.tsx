@@ -651,7 +651,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
             title="All providers"
             placement="right"
           >
-            <FlexColumn align="center" gap={0.25} sx={{ py: 0.5 }}>
+            <FlexColumn align="center" gap={0.5} sx={{ py: 0.5 }}>
               <FormatListBulletedIcon className="model-menu__all-providers-icon" />
               <Caption
                 sx={{
@@ -781,7 +781,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                     title={providerLabel}
                     placement="right"
                   >
-                    <FlexColumn align="center" gap={0.25} sx={{ py: 0.5 }}>
+                    <FlexColumn align="center" gap={0.5} sx={{ py: 0.5 }}>
                       <FlexRow
                         className="model-menu__provider-icon-circle"
                         align="center"

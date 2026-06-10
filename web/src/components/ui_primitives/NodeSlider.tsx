@@ -15,6 +15,7 @@ import { Slider, SliderProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "../editor_ui";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
+import { MOTION } from "./tokens";
 
 export interface NodeSliderProps extends Omit<SliderProps, "size"> {
   /**
@@ -73,19 +74,20 @@ export const NodeSlider = forwardRef<HTMLSpanElement, NodeSliderProps>(
         backgroundColor: changed
           ? theme.vars.palette.primary.main
           : theme.vars.palette.grey[200],
-        boxShadow: "0px 0px 5px 1px rgba(0, 0, 0, 0.25)",
+        boxShadow: `0px 0px 5px 1px rgba(${theme.vars.palette.common.blackChannel ?? '0 0 0'} / 0.25)`,
         borderRadius: 0,
         width: density === "compact" ? 8 : 10,
         height: density === "compact" ? 8 : 10,
+        transition: MOTION.background,
         "&:hover, &:focus, &:active": {
-          boxShadow: "0px 0px 5px 1px rgba(0, 0, 0, 0.25)",
+          boxShadow: `0px 0px 5px 1px rgba(${theme.vars.palette.common.blackChannel ?? '0 0 0'} / 0.25)`,
           backgroundColor: theme.vars.palette.primary.main
         },
         "&.Mui-focusVisible": {
-          boxShadow: "0px 0px 5px 1px rgba(0, 0, 0, 0.25)"
+          boxShadow: `0px 0px 5px 1px rgba(${theme.vars.palette.common.blackChannel ?? '0 0 0'} / 0.25)`
         },
         "&.Mui-active": {
-          boxShadow: "0px 0px 5px 1px rgba(0, 0, 0, 0.25)"
+          boxShadow: `0px 0px 5px 1px rgba(${theme.vars.palette.common.blackChannel ?? '0 0 0'} / 0.25)`
         },
         "&::before, &::after": {
           width: density === "compact" ? 12 : 14,

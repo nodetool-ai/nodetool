@@ -153,7 +153,7 @@ export const DownloadButton = memo(
                 color: theme.vars.palette.grey[300],
                 "&:hover": {
                   color: theme.vars.palette.primary.main,
-                  backgroundColor: "rgba(33, 150, 243, 0.08)"
+                  backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.08)`
                 },
                 ...sx
               }}
@@ -189,7 +189,7 @@ export const DownloadButton = memo(
               color: theme.vars.palette.grey[300],
               "&:hover": {
                 color: theme.vars.palette.primary.main,
-                backgroundColor: "rgba(33, 150, 243, 0.08)"
+                backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.08)`
               },
               ...sx
             }}

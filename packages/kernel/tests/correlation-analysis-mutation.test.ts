@@ -124,11 +124,16 @@ describe("analyzeCorrelation – topological sort", () => {
     expect(issueWith(result, "Cycle detected")).toBeUndefined();
   });
 
-  it("ignores self-loops (no false cycle)", () => {
+  it("reports a self-loop data edge as a cycle", () => {
+    // A self-loop deadlocks at runtime: the node's inbox handle is only
+    // marked done after the node's own actor completes, so the actor waits
+    // on itself forever. It must be rejected like any other cycle.
     const nodes = [node("A", "t", { outputs: { value: "any" } })];
     const edges = [dataEdge("A", "value", "A", "in", "e1")];
     const result = analyzeCorrelation({ nodes, edges });
-    expect(issueWith(result, "Cycle detected")).toBeUndefined();
+    const issue = issueWith(result, "Cycle detected");
+    expect(issue).toBeDefined();
+    expect(issue!.message).toContain("A");
   });
 });
 

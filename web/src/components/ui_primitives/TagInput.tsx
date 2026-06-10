@@ -35,6 +35,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
+import { MOTION } from "./tokens";
 
 const styles = (theme: Theme) =>
   css({
@@ -51,7 +52,7 @@ const styles = (theme: Theme) =>
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: theme.shape.borderRadius,
       backgroundColor: theme.vars.palette.background.paper,
-      transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+      transition: `${MOTION.border}, ${MOTION.shadow}`,
       "&:focus-within": {
         borderColor: theme.vars.palette.primary.main,
         boxShadow: `0 0 0 2px ${theme.vars.palette.primary.main}33`,
@@ -72,7 +73,7 @@ const styles = (theme: Theme) =>
       },
     },
     ".tag-chip": {
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
       "&:hover": {
         transform: "scale(1.02)",
       },

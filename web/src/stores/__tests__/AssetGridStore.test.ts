@@ -134,7 +134,7 @@ describe("AssetGridStore", () => {
       expect(useAssetGridStore.getState().selectedAssets).toEqual(assets);
     });
 
-    it("selects all filtered assets", () => {
+    it("selects all filtered assets and keeps selectedAssets in sync", () => {
       const assets = [
         createMockAsset("1"),
         createMockAsset("2"),
@@ -147,15 +147,51 @@ describe("AssetGridStore", () => {
       });
 
       expect(useAssetGridStore.getState().selectedAssetIds).toEqual(["1", "2", "3"]);
+      expect(useAssetGridStore.getState().selectedAssets).toEqual(assets);
     });
 
-    it("deselects all assets", () => {
+    it("deselects all assets and clears selectedAssets", () => {
+      const assets = [createMockAsset("1"), createMockAsset("2")];
+
       act(() => {
-        useAssetGridStore.getState().setSelectedAssetIds(["1", "2", "3"]);
+        useAssetGridStore.getState().setFilteredAssets(assets);
+        useAssetGridStore.getState().handleSelectAllAssets();
         useAssetGridStore.getState().handleDeselectAssets();
       });
 
       expect(useAssetGridStore.getState().selectedAssetIds).toEqual([]);
+      expect(useAssetGridStore.getState().selectedAssets).toEqual([]);
+    });
+
+    it("derives selectedAssets from filteredAssets in setSelectedAssetIds", () => {
+      const assets = [
+        createMockAsset("1"),
+        createMockAsset("2"),
+        createMockAsset("3")
+      ];
+
+      act(() => {
+        useAssetGridStore.getState().setFilteredAssets(assets);
+        useAssetGridStore.getState().setSelectedAssetIds(["1", "3"]);
+      });
+
+      expect(useAssetGridStore.getState().selectedAssets).toEqual([
+        assets[0],
+        assets[2]
+      ]);
+    });
+
+    it("clears selectedAssets when setSelectedAssetIds receives an empty list", () => {
+      const assets = [createMockAsset("1")];
+
+      act(() => {
+        useAssetGridStore.getState().setFilteredAssets(assets);
+        useAssetGridStore.getState().setSelectedAssetIds(["1"]);
+        useAssetGridStore.getState().setSelectedAssetIds([]);
+      });
+
+      expect(useAssetGridStore.getState().selectedAssetIds).toEqual([]);
+      expect(useAssetGridStore.getState().selectedAssets).toEqual([]);
     });
   });
 
@@ -180,7 +216,8 @@ describe("AssetGridStore", () => {
 
       const state = useAssetGridStore.getState();
       expect(state.currentFolder).toBeNull();
-      expect(state.currentFolderId).toBeUndefined();
+      expect(state.currentFolderId).toBeNull();
+      expect(state.parentFolder).toBeNull();
     });
 
     it("sets current folder by ID", () => {

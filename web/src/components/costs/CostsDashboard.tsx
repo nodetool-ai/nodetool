@@ -456,7 +456,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
           badge={
             delta === null ? undefined : (
               <FlexRow
-                gap={0.25}
+                gap={0.5}
                 align="center"
                 sx={{
                   padding: "1px 6px",
@@ -718,7 +718,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
               checked={selected.has(o.key)}
               onChange={() => onToggle(o.key)}
               label={
-                <FlexRow gap={0.75} align="center">
+                <FlexRow gap={1} align="center">
                   {o.color && (
                     <Box
                       sx={{

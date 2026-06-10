@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach } from "@jest/globals";
-import { createTimelineStore } from "../TimelineStore";
+import { createTimelineStore, timelineTemporalOf } from "../TimelineStore";
 import { makeTrack, makeClip } from "@nodetool-ai/timeline";
 import type { Asset } from "../../ApiTypes";
 // Import mock helpers directly from the mock file so TypeScript resolves the
@@ -246,6 +246,61 @@ describe("TimelineStore — moveClip", () => {
   });
 });
 
+describe("TimelineStore — moveSelectedClips", () => {
+  let store: ReturnType<typeof mkStore>;
+
+  beforeEach(() => {
+    store = mkStore();
+  });
+
+  it("preserves relative spacing when the group is dragged against t=0", () => {
+    const track = makeTrack({ type: "video" });
+    const c1 = makeClip({ trackId: track.id, startMs: 200, durationMs: 500 });
+    const c2 = makeClip({ trackId: track.id, startMs: 1000, durationMs: 500 });
+    store.setState({ tracks: [track], clips: [c1, c2] });
+
+    store
+      .getState()
+      .moveSelectedClips(c1.id, new Set([c1.id, c2.id]), -1000);
+
+    const clips = store.getState().clips;
+    expect(clips.find((c) => c.id === c1.id)!.startMs).toBe(0);
+    // The 800ms gap must survive the clamp (not collapse to 0/0).
+    expect(clips.find((c) => c.id === c2.id)!.startMs).toBe(800);
+  });
+
+  it("clamps against the earliest selected clip even when it is not primary", () => {
+    const track = makeTrack({ type: "video" });
+    const c1 = makeClip({ trackId: track.id, startMs: 200, durationMs: 500 });
+    const c2 = makeClip({ trackId: track.id, startMs: 1000, durationMs: 500 });
+    store.setState({ tracks: [track], clips: [c1, c2] });
+
+    // Primary is the later clip; the earlier one still bounds the move.
+    store
+      .getState()
+      .moveSelectedClips(c2.id, new Set([c1.id, c2.id]), -600);
+
+    const clips = store.getState().clips;
+    expect(clips.find((c) => c.id === c1.id)!.startMs).toBe(0);
+    expect(clips.find((c) => c.id === c2.id)!.startMs).toBe(800);
+  });
+
+  it("moves the group unclamped when the delta keeps everything >= 0", () => {
+    const track = makeTrack({ type: "video" });
+    const c1 = makeClip({ trackId: track.id, startMs: 200, durationMs: 500 });
+    const c2 = makeClip({ trackId: track.id, startMs: 1000, durationMs: 500 });
+    store.setState({ tracks: [track], clips: [c1, c2] });
+
+    store
+      .getState()
+      .moveSelectedClips(c1.id, new Set([c1.id, c2.id]), 300);
+
+    const clips = store.getState().clips;
+    expect(clips.find((c) => c.id === c1.id)!.startMs).toBe(500);
+    expect(clips.find((c) => c.id === c2.id)!.startMs).toBe(1300);
+  });
+});
+
 describe("TimelineStore — trimClipStart / trimClipEnd", () => {
   let store: ReturnType<typeof mkStore>;
 
@@ -268,6 +323,30 @@ describe("TimelineStore — trimClipStart / trimClipEnd", () => {
     const { clip } = addTrackAndClip(store, { startMs: 0, durationMs: 3000 });
     store.getState().trimClipEnd(clip.id, 1000);
     expect(store.getState().clips[0].durationMs).toBe(4000);
+  });
+
+  it("trimClipEnd clamps grow so outPoint cannot exceed source duration", () => {
+    const { clip } = addTrackAndClip(store, {
+      startMs: 0,
+      durationMs: 3000,
+      inPointMs: 0,
+      outPointMs: 3000
+    });
+    store.getState().trimClipEnd(clip.id, 5000, 4000); // source is only 4s
+    expect(store.getState().clips[0].durationMs).toBe(4000);
+  });
+
+  it("trimClipEnd still shrinks an over-extended clip", () => {
+    // outPointMs (5000) already exceeds the source duration (4000) — a
+    // shrink must never be clamped/replaced by the grow guard.
+    const { clip } = addTrackAndClip(store, {
+      startMs: 0,
+      durationMs: 5000,
+      inPointMs: 0,
+      outPointMs: 5000
+    });
+    store.getState().trimClipEnd(clip.id, -500, 4000);
+    expect(store.getState().clips[0].durationMs).toBe(4500);
   });
 
   it("trimClipStart no-ops when it would produce zero/negative duration", () => {
@@ -431,6 +510,40 @@ describe("TimelineStore — undo/redo (temporal)", () => {
 
     temporal.getState().redo();
     expect(store.getState().clips[0].startMs).toBe(1000);
+  });
+
+  it("records exactly one undo entry per effective change", () => {
+    const store = mkStore();
+    const { clip } = addTrackAndClip(store, { startMs: 0, durationMs: 2000 });
+    const before = timelineTemporalOf(store).pastStates.length;
+
+    store.getState().moveClip(clip.id, 1000);
+
+    expect(timelineTemporalOf(store).pastStates.length).toBe(before + 1);
+  });
+
+  it("does not record an undo entry for guard-return no-ops", () => {
+    const store = mkStore();
+    const { clip } = addTrackAndClip(store, { startMs: 0, durationMs: 2000 });
+    const before = timelineTemporalOf(store).pastStates.length;
+
+    store.getState().moveClip("nonexistent", 500); // guard return
+    store.getState().splitClipAtTime(clip.id, 99999); // outside bounds
+    store.getState().trimClipStart(clip.id, -5000); // invalid trim
+    store.getState().mergeClipsAt(12345); // nothing to merge → {}
+
+    expect(timelineTemporalOf(store).pastStates.length).toBe(before);
+  });
+
+  it("does not record an undo entry for a value-identical remap", () => {
+    const store = mkStore();
+    const { clip } = addTrackAndClip(store, { startMs: 1000, durationMs: 2000 });
+    const before = timelineTemporalOf(store).pastStates.length;
+
+    // map() produces a new clip object with identical values.
+    store.getState().moveClip(clip.id, 0);
+
+    expect(timelineTemporalOf(store).pastStates.length).toBe(before);
   });
 });
 

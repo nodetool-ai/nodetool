@@ -324,11 +324,39 @@ export class AudioGraph {
     prevOutput.connect(this.masterGain!);
   }
 
+  /**
+   * Tear down chains for tracks not in `trackIds`, releasing their audio
+   * nodes. Called whenever the authoritative track list flows through
+   * `updateTracks` so deleted tracks don't leak GainNodes/effect chains.
+   */
+  retainTracks(trackIds: Iterable<string>): void {
+    const keep = new Set(trackIds);
+    for (const [id, chain] of this.trackChains) {
+      if (keep.has(id)) continue;
+      try {
+        chain.trackGain.disconnect();
+      } catch {
+        /* not connected */
+      }
+      for (const unit of chain.units) {
+        for (const n of unit.nodes) {
+          try {
+            n.disconnect();
+          } catch {
+            /* not connected */
+          }
+        }
+      }
+      this.trackChains.delete(id);
+    }
+  }
+
   /** Solo rule: if any audio track is soloed, non-solo tracks are silenced. */
   updateTracks(tracks: TimelineTrack[]): void {
     if (!this.ctx) {
       return;
     }
+    this.retainTracks(tracks.map((t) => t.id));
     const audioTracks = tracks.filter((t) => t.type === "audio");
     const hasSolo = audioTracks.some((t) => t.solo);
     const now = this.ctx.currentTime;
@@ -345,7 +373,8 @@ export class AudioGraph {
   async scheduleClips(
     clips: ScheduledAudioClip[],
     tracks: TimelineTrack[],
-    currentTimeMs: number
+    currentTimeMs: number,
+    shouldCancel?: () => boolean
   ): Promise<void> {
     const ctx = this.getContext();
     const activeIds = new Set(clips.map((c) => c.clip.id));
@@ -356,6 +385,12 @@ export class AudioGraph {
           src.stop();
         } catch {
           // source may already have stopped at its natural end
+        }
+        const gain = this.clipGains.get(id);
+        try {
+          gain?.disconnect();
+        } catch {
+          /* not connected */
         }
         this.clipSources.delete(id);
         this.clipGains.delete(id);
@@ -373,6 +408,11 @@ export class AudioGraph {
     });
 
     const loadedBuffers = await Promise.all(bufferPromises);
+    // A newer play/pause/seek gesture superseded this call while buffers were
+    // loading — registering now would schedule audio at a stale offset.
+    if (shouldCancel?.()) {
+      return;
+    }
     const bufferMap = new Map(loadedBuffers.map((b) => [b.clipId, b.buffer]));
 
     for (const { clip, assetUrl } of clips) {
@@ -466,6 +506,18 @@ export class AudioGraph {
         src.stop();
       } catch {
         // already stopped
+      }
+      try {
+        src.disconnect();
+      } catch {
+        /* not connected */
+      }
+    }
+    for (const [, gain] of this.clipGains) {
+      try {
+        gain.disconnect();
+      } catch {
+        /* not connected */
       }
     }
     this.clipSources.clear();

@@ -12,7 +12,10 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { trpcClient } from "../../trpc/client";
-import { useTimelineStore } from "../../stores/timeline/TimelineStore";
+import {
+  useTimelineStore,
+  useTimelineStoreApi
+} from "../../stores/timeline/TimelineStore";
 
 interface ClipVersion {
   id: string;
@@ -47,6 +50,11 @@ function latestSuccessfulWorkflowUpdatedAt(
 export function useWorkflowFreshnessCheck(
   sequenceId: string | null | undefined
 ): void {
+  // Resolve the surrounding instance's store via context rather than the
+  // active-instance statics: this hook's effect runs before the parent
+  // TimelineProvider pushes its instance (child effects run first), so the
+  // statics would subscribe to whichever instance was active previously.
+  const store = useTimelineStoreApi();
   const markClipsStaleForWorkflow = useTimelineStore(
     (s) => s.markClipsStaleForWorkflow
   );
@@ -58,7 +66,7 @@ export function useWorkflowFreshnessCheck(
   const runCheck = useCallback(async () => {
     if (!sequenceId) return;
 
-    const clips = useTimelineStore.getState().clips;
+    const clips = store.getState().clips;
 
     const workflowIds = new Set<string>();
     for (const clip of clips) {
@@ -150,6 +158,7 @@ export function useWorkflowFreshnessCheck(
     );
   }, [
     sequenceId,
+    store,
     markClipsStaleForWorkflow,
     applyInputDrift,
     setClipsOutputNode
@@ -164,7 +173,7 @@ export function useWorkflowFreshnessCheck(
     // `lastCheckedSequenceId` against an empty store.
     const tryRun = (): boolean => {
       if (lastCheckedSequenceId.current === sequenceId) return true;
-      const state = useTimelineStore.getState();
+      const state = store.getState();
       if (state.sequenceId !== sequenceId) return false;
       if (state.clips.length === 0) return false;
       lastCheckedSequenceId.current = sequenceId;
@@ -174,11 +183,11 @@ export function useWorkflowFreshnessCheck(
 
     if (tryRun()) return;
 
-    const unsubscribe = useTimelineStore.subscribe(() => {
+    const unsubscribe = store.subscribe(() => {
       if (tryRun()) {
         unsubscribe();
       }
     });
     return unsubscribe;
-  }, [sequenceId, runCheck]);
+  }, [sequenceId, store, runCheck]);
 }

@@ -19,6 +19,7 @@ import { Button, ButtonProps } from "@mui/material";
 import { LoadingSpinner } from "./LoadingSpinner";
 import DialogActions from "@mui/material/DialogActions";
 import { useTheme } from "@mui/material/styles";
+import { MOTION } from "./tokens";
 
 export interface DialogActionButtonsProps {
   /**
@@ -114,7 +115,7 @@ export const DialogActionButtons = memo(
           ref={ref}
           className={`dialog-actions ${className ?? ""}`}
           sx={{
-            padding: "0.5em 1em",
+            padding: "8px 16px",
             gap: 1
           }}
         >
@@ -124,6 +125,7 @@ export const DialogActionButtons = memo(
             disabled={isLoading || cancelDisabled}
             sx={{
               color: theme.vars.palette.grey[100],
+              transition: MOTION.all,
               "&:hover": {
                 backgroundColor: theme.vars.palette.grey[800]
               }
@@ -142,6 +144,7 @@ export const DialogActionButtons = memo(
             sx={{
               color: destructive ? undefined : "var(--palette-primary-main)",
               fontWeight: 600,
+              transition: MOTION.all,
               "&:hover": {
                 backgroundColor: destructive
                   ? theme.vars.palette.error.dark

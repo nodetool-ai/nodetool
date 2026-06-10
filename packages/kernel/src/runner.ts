@@ -217,14 +217,28 @@ export class WorkflowRunner {
   /** Cancellation flag. */
   private _cancelled = false;
 
-  /** Pending response resolvers for sendControlEvent. nodeId → resolver */
+  /**
+   * Pending response resolvers for sendControlEvent, FIFO per node. The
+   * controlled actor processes control events in order and emits outputs in
+   * order, so the oldest waiter matches the next output. A single slot per
+   * node would let a burst of concurrent control events (e.g. parallel agent
+   * tool calls) overwrite an earlier resolver, leaving its promise unsettled
+   * forever.
+   */
   private _pendingControlResponses = new Map<
     string,
-    {
+    Array<{
       resolve: (outputs: Record<string, unknown>) => void;
       reject: (err: Error) => void;
-    }
+    }>
   >();
+
+  /**
+   * Executor instance per node. Resolved once and reused so that the
+   * instance initialized in _initializeGraph is the same one that executes
+   * (NodeRegistry.resolve constructs a fresh instance per call).
+   */
+  private _executors = new Map<string, NodeExecutor>();
 
   /**
    * Nodes whose actor has finished running. A control event sent to such a
@@ -476,6 +490,8 @@ export class WorkflowRunner {
     this._messages = [];
     this._cancelled = false;
     this._pendingControlResponses = new Map();
+    this._completedNodes = new Set();
+    this._executors = new Map();
     this._correlation = undefined;
   }
 
@@ -579,11 +595,21 @@ export class WorkflowRunner {
 
   private async _initializeGraph(): Promise<void> {
     for (const node of this._graph.nodes) {
-      const executor = this._options.resolveExecutor(node);
+      const executor = this._resolveExecutor(node);
       if (executor.initialize) {
         await executor.initialize();
       }
     }
+  }
+
+  /** Resolve (and cache) the executor instance for a node. */
+  private _resolveExecutor(node: NodeDescriptor): NodeExecutor {
+    let executor = this._executors.get(node.id);
+    if (!executor) {
+      executor = this._options.resolveExecutor(node);
+      this._executors.set(node.id, executor);
+    }
+    return executor;
   }
 
   // -----------------------------------------------------------------------
@@ -802,7 +828,7 @@ export class WorkflowRunner {
       }
 
       const inbox = this._inboxes.get(node.id)!;
-      const executor = this._options.resolveExecutor(node);
+      const executor = this._resolveExecutor(node);
 
       // Build control context for controller nodes (Python parity:
       // _is_controller / _build_control_context). This tells the node
@@ -836,15 +862,17 @@ export class WorkflowRunner {
           // (the actor finished without producing the awaited output, e.g.
           // it errored mid-burst).
           this._completedNodes.add(node.id);
-          const pending = this._pendingControlResponses.get(node.id);
-          if (pending) {
+          const pendingQueue = this._pendingControlResponses.get(node.id);
+          if (pendingQueue) {
             this._pendingControlResponses.delete(node.id);
-            pending.reject(
-              new Error(
-                result.error ??
-                  `Controlled node ${node.id} completed without responding`
-              )
-            );
+            for (const pending of pendingQueue) {
+              pending.reject(
+                new Error(
+                  result.error ??
+                    `Controlled node ${node.id} completed without responding`
+                )
+              );
+            }
           }
 
           // If this is an output node, collect the result
@@ -1080,10 +1108,13 @@ export class WorkflowRunner {
       }
     }
 
-    // Resolve pending sendControlEvent promise if one exists for this node
-    const pending = this._pendingControlResponses.get(sourceNodeId);
-    if (pending) {
-      this._pendingControlResponses.delete(sourceNodeId);
+    // Resolve the oldest pending sendControlEvent promise for this node.
+    const pendingQueue = this._pendingControlResponses.get(sourceNodeId);
+    if (pendingQueue && pendingQueue.length > 0) {
+      const pending = pendingQueue.shift()!;
+      if (pendingQueue.length === 0) {
+        this._pendingControlResponses.delete(sourceNodeId);
+      }
       pending.resolve(outputs);
     }
   }
@@ -1095,6 +1126,11 @@ export class WorkflowRunner {
    */
   private async _sendEOS(nodeId: string): Promise<void> {
     const outgoing = this._graph.findOutgoingEdges(nodeId);
+    // _initializeInboxes counts one __control__ upstream per unique
+    // controller, so decrement once per target — not once per control edge.
+    // Parallel control edges to the same target would otherwise drive the
+    // count to zero while other controllers are still running.
+    const controlTargetsDone = new Set<string>();
     for (const edge of outgoing) {
       if (isControlEdge(edge)) {
         // Always mark __control__ source done when the controller finishes,
@@ -1102,6 +1138,8 @@ export class WorkflowRunner {
         // controlled nodes waiting on iterInput("__control__") regardless
         // of whether events were routed through the edge or via the manual
         // sendControlEvent() / dispatchControlEvent() APIs.
+        if (controlTargetsDone.has(edge.target)) continue;
+        controlTargetsDone.add(edge.target);
         const targetInbox = this._inboxes.get(edge.target);
         if (targetInbox) {
           targetInbox.markSourceDone("__control__");
@@ -1243,7 +1281,12 @@ export class WorkflowRunner {
     }
 
     const promise = new Promise<Record<string, unknown>>((resolve, reject) => {
-      this._pendingControlResponses.set(targetNodeId, { resolve, reject });
+      let queue = this._pendingControlResponses.get(targetNodeId);
+      if (!queue) {
+        queue = [];
+        this._pendingControlResponses.set(targetNodeId, queue);
+      }
+      queue.push({ resolve, reject });
     });
 
     const event: ControlEvent = {

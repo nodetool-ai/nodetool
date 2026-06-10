@@ -162,7 +162,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         borderBottom: "none"
                     }}
                 >
-                    <FlexRow align="baseline" gap={0.75} sx={{ pl: 0.5, minWidth: 0 }}>
+                    <FlexRow align="baseline" gap={1} sx={{ pl: 0.5, minWidth: 0 }}>
                         <Text
                             size="tiny"
                             weight={500}

@@ -413,7 +413,7 @@ const InfoBox = memo(function InfoBox({
 
   return (
     <Box className="info-box">
-      <Text className="result-info" sx={{ fontSize: "var(--fontSizeSmall)" }}>
+      <Text size="small" className="result-info">
         {buildContextMessage()}
       </Text>
     </Box>

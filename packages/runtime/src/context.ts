@@ -2216,7 +2216,8 @@ export class ProcessingContext {
           numFrames: params.num_frames as number | undefined,
           durationSeconds: params.duration_seconds as number | undefined,
           aspectRatio: params.aspect_ratio as string | undefined,
-          resolution: params.resolution as string | undefined
+          resolution: params.resolution as string | undefined,
+          timeoutSeconds: params.timeout_seconds as number | undefined
         });
       case "image_to_video":
         return provider.imageToVideo(coerceImageList(params), {
@@ -2226,7 +2227,8 @@ export class ProcessingContext {
           numFrames: params.num_frames as number | undefined,
           durationSeconds: params.duration_seconds as number | undefined,
           aspectRatio: params.aspect_ratio as string | undefined,
-          resolution: params.resolution as string | undefined
+          resolution: params.resolution as string | undefined,
+          timeoutSeconds: params.timeout_seconds as number | undefined
         });
       case "upscale_image":
         return provider.upscaleImage(params.image as Uint8Array, {

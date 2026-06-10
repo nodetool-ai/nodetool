@@ -132,7 +132,7 @@ export const CloseButton = memo(
               color: theme.vars.palette.grey[300],
               "&:hover": {
                 color: theme.vars.palette.grey[100],
-                backgroundColor: "rgba(255, 255, 255, 0.08)"
+                backgroundColor: `rgba(${theme.vars.palette.common.whiteChannel ?? '255 255 255'} / 0.08)`
               },
               ...sx
             }}

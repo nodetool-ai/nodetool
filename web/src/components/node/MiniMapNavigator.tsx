@@ -166,7 +166,7 @@ const MiniMapNavigator: React.FC = () => {
 
           {/* Settings and Legend Buttons */}
           <FlexRow
-            gap={0.25}
+            gap={0.5}
             sx={{
               position: "absolute",
               top: "-28px",

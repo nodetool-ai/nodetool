@@ -3,7 +3,10 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { existsSync } from "node:fs";
 
-import { scanPythonPackage } from "../src/python-package-scan.js";
+import {
+  findWrittenMetadataPath,
+  scanPythonPackage
+} from "../src/python-package-scan.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FIXTURE = join(
@@ -63,4 +66,33 @@ describeMaybe("scanPythonPackage", () => {
       })
     ).rejects.toThrow();
   }, 30000);
+});
+
+describe("findWrittenMetadataPath", () => {
+  it("returns the reported POSIX path verbatim", () => {
+    const stderr =
+      "SCAN start\nSCAN write path=/home/u/pkg/src/nodetool/package_metadata/my-pack.json\nSCAN done\n";
+    expect(findWrittenMetadataPath(stderr)).toBe(
+      "/home/u/pkg/src/nodetool/package_metadata/my-pack.json"
+    );
+  });
+
+  it("accepts Windows backslash paths", () => {
+    const stderr =
+      "SCAN write path=C:\\Users\\u\\pkg\\src\\nodetool\\package_metadata\\my-pack.json\r\n";
+    expect(findWrittenMetadataPath(stderr)).toBe(
+      "C:\\Users\\u\\pkg\\src\\nodetool\\package_metadata\\my-pack.json"
+    );
+  });
+
+  it("accepts flat (non-src) package layouts", () => {
+    const stderr = "SCAN write path=/p/nodetool/package_metadata/base.json\n";
+    expect(findWrittenMetadataPath(stderr)).toBe(
+      "/p/nodetool/package_metadata/base.json"
+    );
+  });
+
+  it("returns null when no write line is present", () => {
+    expect(findWrittenMetadataPath("SCAN start\nSCAN done\n")).toBeNull();
+  });
 });

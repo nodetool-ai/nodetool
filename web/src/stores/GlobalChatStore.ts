@@ -257,6 +257,17 @@ function extractMessageText(message: Message | ChatOutgoingMessage): string {
   return "";
 }
 
+// Concurrency guards (module-level so they never end up in persisted state):
+// - `connectPromise` dedupes overlapping connect() calls; without it each call
+//   registers its own event handlers on the GlobalWebSocketManager singleton
+//   and later `set({ wsEventUnsubscribes })` calls overwrite earlier arrays,
+//   leaking handlers. Cleared in `finally` so a failed connect can be retried.
+let connectPromise: Promise<void> | null = null;
+// - `inFlightMessageLoads` dedupes loadMessages() per thread: concurrent calls
+//   for the SAME thread await one request, while loads for different threads
+//   proceed independently.
+const inFlightMessageLoads = new Map<string, Promise<Message[]>>();
+
 const useGlobalChatStore = create<GlobalChatState>()(
   persist<GlobalChatState>(
     (set, get) => ({
@@ -386,6 +397,13 @@ const useGlobalChatStore = create<GlobalChatState>()(
       loadMessagesTimeoutId: null,
 
       connect: async () => {
+        // Overlapping connect() calls share one in-flight attempt; otherwise
+        // each call would register its own event handlers on the singleton
+        // manager and the loser's unsubscribe handles would be lost.
+        if (connectPromise) {
+          return connectPromise;
+        }
+        connectPromise = (async () => {
         console.info("Connecting to global chat");
 
         const state = get();
@@ -394,6 +412,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
         Object.values(state.wsThreadSubscriptions).forEach((unsubscribe) =>
           unsubscribe()
         );
+        // Drop the now-dead handles immediately: if anything below throws,
+        // state must not keep truthy-but-unsubscribed entries, or sendMessage
+        // would skip re-subscribing and streamed replies would have no handler.
+        set({ wsEventUnsubscribes: [], wsThreadSubscriptions: {} });
 
         // Load threads if not already loaded
         if (!state.threadsLoaded) {
@@ -531,6 +553,14 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // Connection is automatic via globalWebSocketManager
         // Subscriptions will trigger connection if not already connected
         console.info("Global chat subscriptions set up");
+        })();
+        try {
+          await connectPromise;
+        } finally {
+          // Always clear the guard — a FAILED connect must not block the
+          // retry button from starting a fresh attempt.
+          connectPromise = null;
+        }
       },
 
       disconnect: () => {
@@ -697,7 +727,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         try {
           await globalWebSocketManager.send(commandMessage);
 
-          // Safety timeout - reset status if no response after 60 seconds
+          // Safety timeout - reset status if no response after 5 minutes
           const timeoutId = setTimeout(() => {
             const currentState = get();
             if (
@@ -755,7 +785,14 @@ const useGlobalChatStore = create<GlobalChatState>()(
             threadsRecord[thread.id] = thread;
           });
 
-          set({ threads: threadsRecord, threadsLoaded: true, error: null });
+          // Merge with existing threads so locally-created/optimistic threads
+          // that haven't reached the server yet don't get wiped (the server
+          // response wins for ids present in both).
+          set((state) => ({
+            threads: { ...state.threads, ...threadsRecord },
+            threadsLoaded: true,
+            error: null
+          }));
         } catch (error) {
           console.error("Failed to fetch threads:", error);
           set({
@@ -979,60 +1016,70 @@ const useGlobalChatStore = create<GlobalChatState>()(
       },
 
       loadMessages: async (threadId: string, cursor?: string) => {
-        const { messageCache, isLoadingMessages } = get();
-
-        if (isLoadingMessages) {
-          return messageCache[threadId] || [];
+        // Dedupe per thread: concurrent calls for the SAME thread await the
+        // one in-flight request, while loads for other threads proceed
+        // independently (a store-wide guard used to silently drop them).
+        const inFlight = inFlightMessageLoads.get(threadId);
+        if (inFlight) {
+          return inFlight;
         }
 
+        const load = (async (): Promise<Message[]> => {
+          try {
+            const data = await trpcClient.messages.list.query({
+              thread_id: threadId,
+              ...(cursor ? { cursor } : {}),
+              limit: 100
+            });
+
+            // The tRPC response shape is a strict subset of the web-side
+            // `Message` openapi type (which includes agent-specific fields
+            // that this endpoint never emits). Cast to the broader type so
+            // downstream store operations compile.
+            const messages = (data.messages ?? []) as unknown as Message[];
+            const nextCursor = data.next;
+
+            set((state) => {
+              const existingMessages = state.messageCache[threadId] || [];
+              const updatedMessages = cursor
+                ? [...existingMessages, ...messages]
+                : messages;
+
+              return {
+                messageCache: {
+                  ...state.messageCache,
+                  [threadId]: updatedMessages
+                },
+                messageCursors: {
+                  ...state.messageCursors,
+                  [threadId]: nextCursor
+                }
+              };
+            });
+
+            return get().messageCache[threadId] || [];
+          } catch (error) {
+            console.error("Failed to load messages:", error);
+            set({
+              error:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to load messages"
+            });
+            return get().messageCache[threadId] || [];
+          }
+        })();
+
+        // `isLoadingMessages` stays a store-wide "any load in flight" flag.
+        inFlightMessageLoads.set(threadId, load);
         set({ isLoadingMessages: true, error: null });
-
         try {
-          const data = await trpcClient.messages.list.query({
-            thread_id: threadId,
-            ...(cursor ? { cursor } : {}),
-            limit: 100
-          });
-
-          // The tRPC response shape is a strict subset of the web-side
-          // `Message` openapi type (which includes agent-specific fields
-          // that this endpoint never emits). Cast to the broader type so
-          // downstream store operations compile.
-          const messages = (data.messages ?? []) as unknown as Message[];
-          const nextCursor = data.next;
-
-          set((state) => {
-            const existingMessages = state.messageCache[threadId] || [];
-            const updatedMessages = cursor
-              ? [...existingMessages, ...messages]
-              : messages;
-
-            return {
-              messageCache: {
-                ...state.messageCache,
-                [threadId]: updatedMessages
-              },
-              messageCursors: {
-                ...state.messageCursors,
-                [threadId]: nextCursor
-              },
-              isLoadingMessages: false
-            };
-          });
-
-          return cursor
-            ? [...(messageCache[threadId] || []), ...messages]
-            : messages;
-        } catch (error) {
-          console.error("Failed to load messages:", error);
-          set({
-            error:
-              error instanceof Error
-                ? error.message
-                : "Failed to load messages",
-            isLoadingMessages: false
-          });
-          return messageCache[threadId] || [];
+          return await load;
+        } finally {
+          inFlightMessageLoads.delete(threadId);
+          if (inFlightMessageLoads.size === 0) {
+            set({ isLoadingMessages: false });
+          }
         }
       },
 

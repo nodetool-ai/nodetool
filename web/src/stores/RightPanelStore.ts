@@ -93,7 +93,17 @@ export const useRightPanelStore = create<ResizePanelState>()(
 
       setVisibility: (isVisible: boolean) =>
         set((state: ResizePanelState) => ({
-          panel: { ...state.panel, isVisible }
+          panel: {
+            ...state.panel,
+            isVisible,
+            // A drag-collapse can persist a sliver-sized panel (MIN_DRAG_SIZE).
+            // When reopening, restore at least the usable minimum so the panel
+            // doesn't come back as a 60px sliver.
+            panelSize:
+              isVisible && state.panel.panelSize < MIN_PANEL_SIZE
+                ? MIN_PANEL_SIZE
+                : state.panel.panelSize
+          }
         })),
 
       handleViewChange: (view: RightPanelView) => {

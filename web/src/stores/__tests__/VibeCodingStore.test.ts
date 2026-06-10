@@ -67,6 +67,81 @@ describe("VibeCodingStore", () => {
       expect(session.savedHtml).toBeNull();
       expect(session.currentHtml).toBeNull();
     });
+
+    it("preserves unsaved currentHtml and messages on re-init (rehydrated session)", () => {
+      const message: Message = {
+        type: "message",
+        role: "user",
+        name: "",
+        content: [{ type: "text", text: "Make it blue" }],
+        created_at: new Date().toISOString()
+      };
+
+      act(() => {
+        useVibeCodingStore.getState().initSession("workflow1", "<html>saved</html>");
+        useVibeCodingStore.getState().addMessage("workflow1", message);
+        useVibeCodingStore.getState().setCurrentHtml("workflow1", "<html>unsaved</html>");
+        // Panel remounts and re-inits with the workflow's html_app.
+        useVibeCodingStore.getState().initSession("workflow1", "<html>saved</html>");
+      });
+
+      const session = useVibeCodingStore.getState().getSession("workflow1");
+      expect(session.currentHtml).toBe("<html>unsaved</html>");
+      expect(session.savedHtml).toBe("<html>saved</html>");
+      expect(session.messages).toHaveLength(1);
+      expect(useVibeCodingStore.getState().isDirty("workflow1")).toBe(true);
+    });
+
+    it("keeps chat history after a save (html_app catches up to currentHtml)", () => {
+      const message: Message = {
+        type: "message",
+        role: "assistant",
+        name: "",
+        content: [{ type: "text", text: "Done" }],
+        created_at: new Date().toISOString()
+      };
+
+      act(() => {
+        useVibeCodingStore.getState().initSession("workflow1", "<html>v1</html>");
+        useVibeCodingStore.getState().addMessage("workflow1", message);
+        useVibeCodingStore.getState().setCurrentHtml("workflow1", "<html>v2</html>");
+        // Save: setSavedHtml syncs both, then the workflow refetch triggers
+        // initSession with the new html_app.
+        useVibeCodingStore.getState().setSavedHtml("workflow1", "<html>v2</html>");
+        useVibeCodingStore.getState().initSession("workflow1", "<html>v2</html>");
+      });
+
+      const session = useVibeCodingStore.getState().getSession("workflow1");
+      expect(session.messages).toHaveLength(1);
+      expect(session.currentHtml).toBe("<html>v2</html>");
+      expect(session.savedHtml).toBe("<html>v2</html>");
+      expect(useVibeCodingStore.getState().isDirty("workflow1")).toBe(false);
+    });
+
+    it("syncs currentHtml to a changed savedHtml when the session is clean", () => {
+      act(() => {
+        useVibeCodingStore.getState().initSession("workflow1", "<html>old</html>");
+        // html_app changed externally; no local edits.
+        useVibeCodingStore.getState().initSession("workflow1", "<html>new</html>");
+      });
+
+      const session = useVibeCodingStore.getState().getSession("workflow1");
+      expect(session.savedHtml).toBe("<html>new</html>");
+      expect(session.currentHtml).toBe("<html>new</html>");
+    });
+
+    it("resets stale transient status/error on re-init", () => {
+      act(() => {
+        useVibeCodingStore.getState().initSession("workflow1", "<html>v1</html>");
+        useVibeCodingStore.getState().setStatus("workflow1", "streaming");
+        useVibeCodingStore.getState().setError("workflow1", "boom");
+        useVibeCodingStore.getState().initSession("workflow1", "<html>v1</html>");
+      });
+
+      const session = useVibeCodingStore.getState().getSession("workflow1");
+      expect(session.status).toBe("idle");
+      expect(session.error).toBeNull();
+    });
   });
 
   describe("clearSession", () => {

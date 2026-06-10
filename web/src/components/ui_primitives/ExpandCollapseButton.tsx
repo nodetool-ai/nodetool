@@ -22,6 +22,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
+import { MOTION } from "./tokens";
 
 export interface ExpandCollapseButtonProps
   extends Omit<IconButtonProps, "children"> {
@@ -149,7 +150,7 @@ export const ExpandCollapseButton = memo(
               ...getSizeStyles(),
               color: theme.vars.palette.grey[300],
               padding: 0,
-              transition: "transform 0.2s ease-in-out, color 0.2s ease-in-out",
+              transition: `${MOTION.transform}, color ${MOTION.normal}`,
               transform:
                 iconVariant === "rotate" && expanded
                   ? "rotate(180deg)"

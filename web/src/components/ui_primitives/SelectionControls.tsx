@@ -26,6 +26,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
+import { MOTION } from "./tokens";
 
 export interface SelectionControlsProps {
   /**
@@ -138,6 +139,7 @@ export const SelectionControls = memo(
         fontSize: size === "small" ? theme.fontSizeSmaller : theme.fontSizeSmall,
         padding: size === "small" ? "2px 8px" : "4px 12px",
         color: theme.vars.palette.grey[300],
+        transition: MOTION.all,
         "&:hover": {
           backgroundColor: theme.vars.palette.grey[800],
           color: theme.vars.palette.grey[100]
@@ -215,7 +217,7 @@ export const SelectionControls = memo(
               sx={{
                 color: "var(--palette-primary-main)",
                 fontSize: size === "small" ? theme.fontSizeSmaller : theme.fontSizeSmall,
-                marginRight: 1
+                marginRight: theme.spacing(1)
               }}
             >
               {selectedCount} selected

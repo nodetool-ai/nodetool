@@ -125,6 +125,20 @@ describe("scoreNodeMetadata", () => {
       scoreNodeMetadata(m, ["image"], { namespacePrefix: "nodetool.image" })
     ).toBeGreaterThan(0);
   });
+
+  it("includes provider nodes when an explicit namespacePrefix targets them", () => {
+    const m = meta({
+      node_type: "openai.image.TextToImage",
+      namespace: "openai.image",
+      title: "Text To Image"
+    });
+    // Hidden by default…
+    expect(scoreNodeMetadata(m, ["image"])).toBe(0);
+    // …but an explicit prefix is a request for that provider's nodes.
+    expect(
+      scoreNodeMetadata(m, ["image"], { namespacePrefix: "openai." })
+    ).toBeGreaterThan(0);
+  });
 });
 
 describe("rankNodeMetadata", () => {

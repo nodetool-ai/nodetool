@@ -43,9 +43,20 @@ interface TimelineClipLike {
 const jobSubscriptions = new Map<string, () => void>();
 const jobContexts = new Map<string, JobSubscriptionContext>();
 const jobOutputs = new Map<string, unknown>();
+// Clips whose generateClip() is past the single-flight guard but hasn't
+// registered its job yet (the start path awaits a workflow fetch and the
+// runner before registerJob). A synchronous marker closes the double-click
+// hole where two calls both pass the store-based guard.
+const startingClips = new Set<string>();
 
 const isActiveStatus = (status: string): boolean =>
   status === "queued" || status === "running";
+
+const isDirectGenKind = (kind: string | undefined): boolean =>
+  kind === "text-to-image" ||
+  kind === "image-to-image" ||
+  kind === "text-to-video" ||
+  kind === "text-to-audio";
 
 /**
  * Compute the non-generating clip status from current clip fields. Used by
@@ -88,6 +99,7 @@ export const __resetGenerateClipSubscriptionsForTests = (): void => {
   jobSubscriptions.clear();
   jobContexts.clear();
   jobOutputs.clear();
+  startingClips.clear();
 };
 
 export const __setJobContextForTests = (
@@ -217,17 +229,30 @@ export const handleJobMessage = async (jobId: string, message: WebSocketMessage)
       ? extractAssetId(jobOutputs.get(jobId))
       : undefined;
 
+    // A run can report "completed" without producing the selected output
+    // asset (e.g. a node errored mid-flight). Surface that as a failure
+    // instead of silently reverting the clip to draft.
+    if (!assetId) {
+      const errorMessage =
+        "Workflow finished without producing an output asset.";
+      useErrorStore
+        .getState()
+        .setError(
+          context.workflowId,
+          jobId,
+          context.selectedOutputNodeId ?? "__job__",
+          errorMessage
+        );
+      generationStore.updateJobStatus(jobId, "failed", { errorMessage });
+      unsubscribeJob(jobId);
+      return;
+    }
+
+    // The store's completed handler applies the asset to the clip: it
+    // appends a ClipVersion, sets currentAssetId / lastGeneratedHash
+    // (unless locked) and settles clip.status.
     generationStore.updateJobStatus(jobId, "completed", { assetId });
     generationStore.clearJob(context.clipId);
-
-    const clip = useTimelineStore
-      .getState()
-      .clips.find((candidate) => candidate.id === context.clipId);
-    if (clip) {
-      useTimelineStore
-        .getState()
-        .patchClip(context.clipId, { status: deriveIdleClipStatus(clip) });
-    }
     unsubscribeJob(jobId);
     return;
   }
@@ -352,10 +377,9 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
 
   // Direct-gen clips skip the workflow runner and `TimelineGenerationStore`
   // entirely — status is driven straight from the RPC response and reflected
-  // on `clip.status`.
-  const isDirectGen =
-    clip?.bindingKind === "text-to-image" ||
-    clip?.bindingKind === "image-to-image";
+  // on `clip.status` (which also covers jobs started elsewhere, e.g. the
+  // AddClipMenu, since they patch the same clip status).
+  const isDirectGen = isDirectGenKind(clip?.bindingKind);
   const isDirectGenActive =
     isDirectGen && (clip?.status === "queued" || clip?.status === "generating");
   const isDirectGenFailed = isDirectGen && clip?.status === "failed";
@@ -365,10 +389,7 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
       throw new Error("Clip not found");
     }
 
-    if (
-      clip.bindingKind === "text-to-image" ||
-      clip.bindingKind === "image-to-image"
-    ) {
+    if (isDirectGenKind(clip.bindingKind)) {
       await directGen.start(clip.id);
       return;
     }
@@ -382,48 +403,65 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
     // clip, do nothing. Without this guard a rapid double-click registers a
     // second job that overwrites the first in the store, orphans the local
     // subscription, and leaves the original job running on the server.
+    // `startingClips` covers the async window before registerJob runs.
+    if (startingClips.has(clip.id)) {
+      return;
+    }
     const existing = useTimelineGenerationStore.getState().clipJobs[clip.id];
     if (existing && (existing.status === "queued" || existing.status === "running")) {
       return;
     }
 
-    const workflow = await queryClient.fetchQuery({
-      queryKey: workflowQueryKey(workflowId),
-      queryFn: () => fetchWorkflowById(workflowId),
-      staleTime: 0
-    });
+    startingClips.add(clip.id);
+    patchClip(clip.id, { status: "queued" });
+    try {
+      const workflow = await queryClient.fetchQuery({
+        queryKey: workflowQueryKey(workflowId),
+        queryFn: () => fetchWorkflowById(workflowId),
+        staleTime: 0
+      });
 
-    const graphNodes = workflow.graph?.nodes ?? [];
-    const graphEdges = workflow.graph?.edges ?? [];
-    const nodes = graphNodes.map((node: WorkflowGraphNode) =>
-      graphNodeToReactFlowNode(workflow, node)
-    );
-    const edges = graphEdges.map(graphEdgeToReactFlowEdge);
+      const graphNodes = workflow.graph?.nodes ?? [];
+      const graphEdges = workflow.graph?.edges ?? [];
+      const nodes = graphNodes.map((node: WorkflowGraphNode) =>
+        graphNodeToReactFlowNode(workflow, node)
+      );
+      const edges = graphEdges.map(graphEdgeToReactFlowEdge);
 
-    const runnerStore = getWorkflowRunnerStore(workflowId);
-    // Use the id run() returns, not runnerStore.job_id: when the runner is
-    // already busy the run is queued under a fresh id while the store keeps
-    // pointing at the active run, so reading it back would subscribe this
-    // clip to the wrong job and strand its updates.
-    const jobId = await runnerStore
-      .getState()
-      .run(clip.paramOverrides ?? {}, workflow, nodes, edges, undefined, undefined, true);
+      const runnerStore = getWorkflowRunnerStore(workflowId);
+      // Use the id run() returns, not runnerStore.job_id: when the runner is
+      // already busy the run is queued under a fresh id while the store keeps
+      // pointing at the active run, so reading it back would subscribe this
+      // clip to the wrong job and strand its updates.
+      const jobId = await runnerStore
+        .getState()
+        .run(clip.paramOverrides ?? {}, workflow, nodes, edges, undefined, undefined, true);
 
-    if (!jobId) {
-      throw new Error("Workflow runner did not return a job id");
+      if (!jobId) {
+        throw new Error("Workflow runner did not return a job id");
+      }
+
+      registerJob(clip.id, jobId, workflowId);
+      await subscribeJob(
+        jobId,
+        {
+          clipId: clip.id,
+          workflowId,
+          selectedOutputNodeId: clip.selectedOutputNodeId
+        },
+        false
+      );
+    } catch (error) {
+      // Roll back the optimistic "queued" status unless a job actually got
+      // registered (then its own lifecycle owns the status).
+      if (!useTimelineGenerationStore.getState().clipJobs[clip.id]) {
+        patchClip(clip.id, { status: deriveIdleClipStatus(clip) });
+      }
+      throw error;
+    } finally {
+      startingClips.delete(clip.id);
     }
-
-    registerJob(clip.id, jobId, workflowId);
-    await subscribeJob(
-      jobId,
-      {
-        clipId: clip.id,
-        workflowId,
-        selectedOutputNodeId: clip.selectedOutputNodeId
-      },
-      false
-    );
-  }, [clip, registerJob, directGen]);
+  }, [clip, registerJob, directGen, patchClip]);
 
   const cancelClipGeneration = useCallback(async () => {
     if (isDirectGen) {

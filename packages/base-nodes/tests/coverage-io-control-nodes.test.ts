@@ -519,9 +519,15 @@ describe("output nodes — full coverage", () => {
     node.assign({ value: { a: 1 } });
     expect(await node.process()).toEqual({ output: { a: 1 } });
 
-    // undefined (fallback to null)
-    node.assign({ value: undefined });
-    expect(await node.process()).toEqual({ output: null });
+    // undefined → assign() treats it as absent, so a fresh node keeps its
+    // declared default (null); process() normalizes that to null output.
+    const fresh = new OutputNode();
+    fresh.assign({ value: undefined });
+    expect(await fresh.process()).toEqual({ output: null });
+
+    // a raw undefined reaching process() directly still falls back to null
+    fresh.value = undefined;
+    expect(await fresh.process()).toEqual({ output: null });
   });
 
   it("OutputNode output_name defaults to 'output' when name prop empty", async () => {

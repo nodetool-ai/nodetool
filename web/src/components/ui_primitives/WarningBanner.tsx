@@ -9,6 +9,7 @@ import ErrorIcon from "@mui/icons-material/Error";
 import InfoIcon from "@mui/icons-material/Info";
 import CloseIcon from "@mui/icons-material/Close";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { MOTION } from "./tokens";
 
 export type BannerVariant = "warning" | "error" | "info";
 
@@ -113,7 +114,8 @@ const styles = (theme: Theme, variant: BannerVariant, animate: boolean) => {
     .dismiss-button {
       color: ${theme.vars.palette.text.secondary};
       padding: 4px;
-      
+      transition: ${MOTION.all};
+
       &:hover {
         color: ${theme.vars.palette.text.primary};
         background-color: ${theme.vars.palette.action.hover};

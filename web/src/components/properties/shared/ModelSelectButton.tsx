@@ -90,7 +90,7 @@ const ModelSelectButton = memo(forwardRef<HTMLButtonElement, ModelSelectButtonPr
         >
           <FlexRow
             className="model-select-button-label"
-            gap={0.75}
+            gap={1}
             align="center"
             sx={{
               textAlign: "left",
