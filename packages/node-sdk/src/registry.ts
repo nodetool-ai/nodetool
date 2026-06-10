@@ -49,6 +49,15 @@ export class NodeRegistry {
         `Cannot register node class without nodeType: ${nodeClass.name}`
       );
     }
+    // Last write wins (needed for hot reload), but warn so accidental node
+    // type collisions between packages don't go unnoticed.
+    const existing = this._classes.get(nodeClass.nodeType);
+    if (existing && existing !== nodeClass) {
+      console.warn(
+        // Stryker disable next-line StringLiteral: operator diagnostic text only.
+        `[NodeRegistry] Replacing existing registration for node type: ${nodeClass.nodeType}`
+      );
+    }
     // TS class definitions are the source of truth for TS nodes.
     // Python metadata is NOT merged — it is only used for Python-only
     // node packs (huggingface, mlx, etc.) that have no TS class.

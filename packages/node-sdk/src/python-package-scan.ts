@@ -9,7 +9,7 @@
 import { spawn } from "node:child_process";
 import { homedir } from "node:os";
 import { existsSync, readFileSync } from "node:fs";
-import { basename, join } from "node:path";
+import { basename, isAbsolute, join } from "node:path";
 
 import type { PackageMetadata } from "./metadata.js";
 
@@ -107,6 +107,13 @@ export async function scanPythonPackage(
     child.once("close", (code) => {
       const stderr = Buffer.concat(stderrChunks).toString("utf8");
 
+      // Flush a final progress line that arrived without a trailing newline.
+      if (opts.onProgress && stderrBuffer) {
+        const line = stderrBuffer.trimEnd();
+        stderrBuffer = "";
+        if (line.startsWith("SCAN")) opts.onProgress(line);
+      }
+
       if (code !== 0) {
         reject(
           new PythonScanError(
@@ -122,19 +129,15 @@ export async function scanPythonPackage(
         let metadata: PackageMetadata;
         if (opts.write) {
           // --write: no JSON on stdout; read the file the scanner wrote.
-          const name = findWrittenMetadataName(stderr);
-          if (!name) {
+          const reported = findWrittenMetadataPath(stderr);
+          if (!reported) {
             throw new Error(
               "scanner did not report a SCAN write path line"
             );
           }
-          const metadataPath = join(
-            opts.packageDir,
-            "src",
-            "nodetool",
-            "package_metadata",
-            `${name}.json`
-          );
+          const metadataPath = isAbsolute(reported)
+            ? reported
+            : join(opts.packageDir, reported);
           metadata = JSON.parse(
             readFileSync(metadataPath, "utf8")
           ) as PackageMetadata;
@@ -157,11 +160,15 @@ export async function scanPythonPackage(
 }
 
 /**
- * Parse "SCAN write path=/.../<name>.json" and return "<name>".
+ * Parse "SCAN write path=<path>.json" and return the reported path.
+ *
+ * The path is used verbatim (it may use / or \ separators and any package
+ * layout — `src/nodetool/package_metadata` or the flat `nodetool/...`).
+ * Exported for testing.
  */
-function findWrittenMetadataName(stderr: string): string | null {
-  const match = stderr.match(/SCAN write path=(.+\/([^/\\]+)\.json)\s*$/m);
-  return match?.[2] ?? null;
+export function findWrittenMetadataPath(stderr: string): string | null {
+  const match = stderr.match(/^SCAN write path=(.+\.json)\s*$/m);
+  return match?.[1] ?? null;
 }
 
 /**
