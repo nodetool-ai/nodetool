@@ -1,3 +1,4 @@
+/** @jsxImportSource @emotion/react */
 /**
  * Workflow Graph Preview Component
  *
@@ -7,6 +8,14 @@
  */
 
 import React, { useEffect, useMemo } from "react";
+import { useTheme } from "@mui/material/styles";
+import { generateCSS } from "../themes/GenerateCSS";
+// Editor node styles — same set NodeEditor.tsx imports, so the preview
+// renders identically even if the editor itself was never mounted.
+import "../../styles/base.css";
+import "../../styles/nodes.css";
+import "../../styles/properties.css";
+import "../../styles/special_nodes.css";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -101,6 +110,7 @@ const GraphPreviewInner: React.FC<{
 }> = ({ nodes, edges }) => {
   const { fitView } = useReactFlow();
   const nodesInitialized = useNodesInitialized();
+  const theme = useTheme();
 
   const baseNodeTypes = useMetadataStore((state) => state.nodeTypes);
   const nodeTypes = useMemo(
@@ -146,7 +156,7 @@ const GraphPreviewInner: React.FC<{
         gap={100}
         offset={4}
         size={8}
-        color="rgba(255,255,255,0.04)"
+        color={theme.palette.divider}
         lineWidth={1}
         variant={BackgroundVariant.Cross}
       />
@@ -208,11 +218,16 @@ export const WorkflowGraphPreview: React.FC<WorkflowGraphPreviewProps> = ({
         "& .react-flow__edge": { pointerEvents: "none !important" }
       }}
     >
-      <NodeContext.Provider value={data.store as unknown as NodeStore}>
-        <ReactFlowProvider>
-          <GraphPreviewInner nodes={data.nodes} edges={data.edges} />
-        </ReactFlowProvider>
-      </NodeContext.Provider>
+      {/* Same class + generated data-type CSS as NodeEditor's wrapper, so
+          node/handle/edge colors resolve identically in the preview. The
+          .node-editor rules force 100% sizing, hence the sized Box above. */}
+      <div className="node-editor" css={generateCSS}>
+        <NodeContext.Provider value={data.store as unknown as NodeStore}>
+          <ReactFlowProvider>
+            <GraphPreviewInner nodes={data.nodes} edges={data.edges} />
+          </ReactFlowProvider>
+        </NodeContext.Provider>
+      </div>
     </Box>
   );
 };
