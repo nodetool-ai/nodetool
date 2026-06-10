@@ -60,8 +60,8 @@ export default function FeaturesSection({
             className="text-lg text-slate-400 leading-relaxed"
           >
             Image, video, audio, and text on a single node-based canvas — with
-            the editing tools you rely on: masks, inpaint, outpaint, relight,
-            upscale, layers, compositing.
+            the editing tools you rely on wired in right next to the model
+            calls.
           </motion.p>
         </div>
 
@@ -132,7 +132,7 @@ export default function FeaturesSection({
             {
               title: "Your keys, provider prices",
               description:
-                "BYOK for FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, and the rest. No credits, no markup, no curated roster.",
+                "Bring your own keys for FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, and the rest. The bill comes from the provider, not from us.",
               icon: Database,
               color: "text-emerald-400",
               bg: "bg-emerald-500/10",
@@ -141,7 +141,7 @@ export default function FeaturesSection({
             {
               title: "Image, video, audio, text",
               description:
-                "Flux, Seedance, Wan, ControlNet, Whisper, ElevenLabs, Suno — every modality on one canvas, named by their real names.",
+                "Flux, Seedance, Wan, ControlNet, Whisper, ElevenLabs, Suno — every modality on one canvas, under their real names. No white-label mystery models.",
               icon: Layers,
               color: "text-orange-400",
               bg: "bg-orange-500/10",
