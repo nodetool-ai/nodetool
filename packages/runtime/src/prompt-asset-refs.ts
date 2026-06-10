@@ -22,7 +22,7 @@
  */
 
 import type { ProcessingContext } from "./context.js";
-import { loadMediaRefBytes } from "./media-ref-bytes.js";
+import { encodeBase64, loadMediaRefBytes } from "./media-ref-bytes.js";
 
 export type AssetMediaKind = "image" | "audio" | "video";
 
@@ -483,7 +483,7 @@ export async function mapPromptAssetsToInputs(
       context
     );
     if (bytes && bytes.length > 0) {
-      injected.data = Buffer.from(bytes).toString("base64");
+      injected.data = encodeBase64(bytes);
     }
     return injected;
   };
