@@ -24,6 +24,7 @@ import type { Theme } from "@mui/material/styles";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
 import { IconButton } from "@mui/material";
+import { MOTION } from "./tokens";
 
 const SPEED_OPTIONS = [0.5, 1, 1.5, 2] as const;
 const CONTROLS_HIDE_DELAY_MS = 1800;
@@ -62,7 +63,7 @@ const styles = (theme: Theme, controlsVisible: boolean) =>
         "linear-gradient(to top, rgba(0,0,0,0.65), rgba(0,0,0,0))",
       color: theme.vars.palette.common.white,
       opacity: controlsVisible ? 1 : 0,
-      transition: "opacity 0.2s ease",
+      transition: MOTION.opacity,
       pointerEvents: controlsVisible ? "auto" : "none",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall
@@ -74,7 +75,8 @@ const styles = (theme: Theme, controlsVisible: boolean) =>
       color: theme.vars.palette.common.white,
       "& svg": { fontSize: 20 },
       "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.14)"
+        backgroundColor: "rgba(255, 255, 255, 0.14)",
+        transition: MOTION.background
       }
     },
     ".seek": {
@@ -90,7 +92,8 @@ const styles = (theme: Theme, controlsVisible: boolean) =>
         height: 10,
         borderRadius: "50%",
         backgroundColor: theme.vars.palette.primary.main,
-        cursor: "pointer"
+        cursor: "pointer",
+        transition: MOTION.transform
       },
       "&::-moz-range-thumb": {
         width: 10,
@@ -98,7 +101,8 @@ const styles = (theme: Theme, controlsVisible: boolean) =>
         borderRadius: "50%",
         backgroundColor: theme.vars.palette.primary.main,
         border: "none",
-        cursor: "pointer"
+        cursor: "pointer",
+        transition: MOTION.transform
       }
     },
     ".timestamp": {
@@ -117,6 +121,7 @@ const styles = (theme: Theme, controlsVisible: boolean) =>
       fontSize: theme.fontSizeSmall,
       fontFamily: theme.fontFamily1,
       cursor: "pointer",
+      transition: MOTION.background,
       "&:hover": {
         background: "rgba(255, 255, 255, 0.18)"
       }

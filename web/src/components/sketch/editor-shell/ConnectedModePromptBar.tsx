@@ -253,7 +253,7 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
         }}
       >
         {/* Document name + dimensions */}
-        <FlexRow align="center" gap={0.75} sx={{ flexShrink: 0, minWidth: 0 }}>
+        <FlexRow align="center" gap={1} sx={{ flexShrink: 0, minWidth: 0 }}>
           <Text
             size="small"
             sx={{

@@ -8,6 +8,7 @@
 import React from "react";
 import { Box, BoxProps, Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { MOTION } from "./tokens";
 
 export interface ColorSwatchProps extends Omit<BoxProps, 'color' | 'onClick'> {
   /** Color value (any valid CSS color) */
@@ -89,10 +90,10 @@ export const ColorSwatch: React.FC<ColorSwatchProps> = React.memo(({
           ? `2px solid ${theme.vars.palette.primary.main}`
           : `1px solid ${theme.vars.palette.grey[700]}`,
         boxShadow: selected ? `0 0 0 1px ${theme.vars.palette.background.default}` : undefined,
-        transition: "transform 0.15s, box-shadow 0.15s",
+        transition: `${MOTION.transform}, ${MOTION.shadow}`,
         "&:hover": onClick ? {
           transform: "scale(1.1)",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+          boxShadow: (theme) => `0 2px 8px rgba(${theme.vars.palette.common.blackChannel ?? '0 0 0'} / 0.3)`,
           zIndex: 1,
         } : undefined,
         ...sx,

@@ -105,7 +105,7 @@ function AutocompleteInternal<
         sx={{
           ...(compact && {
             "& .MuiInputBase-input": {
-              fontSize: theme.fontSizeSmall || "0.875rem",
+              fontSize: theme.fontSizeSmall,
             },
           }),
         }}

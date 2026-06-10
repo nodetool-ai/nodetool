@@ -8,6 +8,7 @@
 import React from "react";
 import { Tabs, Tab, TabsProps, Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { MOTION } from "./tokens";
 
 export interface TabItem {
   /** Unique value for the tab */
@@ -107,6 +108,7 @@ export const TabGroup: React.FC<TabGroupProps> = ({
             fontWeight: 600,
             textTransform: "none",
             color: theme.vars.palette.text.secondary,
+            transition: MOTION.all,
             "&.Mui-selected": {
               color: theme.vars.palette.primary.main,
             },

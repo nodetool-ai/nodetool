@@ -214,7 +214,7 @@ const SimpleFilterBodyInner: React.FC<SimpleFilterBodyProps> = ({
       </div>
 
       <FlexColumn className="preview-tab-bar" gap={0.5}>
-        <FlexRow className="tab-toggle-row" align="center" gap={0.25}>
+        <FlexRow className="tab-toggle-row" align="center" gap={0.5}>
           <ToggleGroup
             className="tab-toggle"
             size="small"

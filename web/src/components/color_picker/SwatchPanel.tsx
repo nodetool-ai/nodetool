@@ -317,7 +317,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
             <MenuItem key={palette.id} onClick={handleLoadPresetPalette(palette)}>
               <FlexRow gap={1} align="center">
                 <Text size="small">{palette.name}</Text>
-                <FlexRow gap={0.25}>
+                <FlexRow gap={0.5}>
                   {palette.colors.slice(0, 6).map((color, i) => (
                     <Box
                       key={`${palette.id}-${color}-${i}`}

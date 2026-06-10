@@ -742,7 +742,7 @@ const Eq3Editor: React.FC<EffectEditorProps<TrackEq3Effect>> = ({
 }) => {
   const theme = useTheme();
   return (
-    <FlexColumn gap={0.75}>
+    <FlexColumn gap={1}>
       <Eq3Curve effect={effect} onPatch={onPatch} disabled={disabled} />
       <FlexRow gap={0.5}>
         <div css={bandReadoutStyles(theme, BAND_COLORS.low)}>
@@ -1233,7 +1233,7 @@ const CompressorEditor: React.FC<EffectEditorProps<TrackCompressorEffect>> = ({
 }) => {
   const theme = useTheme();
   return (
-    <FlexColumn gap={0.75}>
+    <FlexColumn gap={1}>
       <FlexRow gap={1} align="stretch">
         <CompressorCurve
           effect={effect}
@@ -1267,7 +1267,7 @@ const CompressorEditor: React.FC<EffectEditorProps<TrackCompressorEffect>> = ({
           </div>
         </div>
       </FlexRow>
-      <FlexColumn gap={0.25}>
+      <FlexColumn gap={0.5}>
         <ParamRow
           label="Attack"
           value={effect.attackMs}
@@ -1314,7 +1314,7 @@ const CompressorEditor: React.FC<EffectEditorProps<TrackCompressorEffect>> = ({
 const ColorCorrectionEditor: React.FC<
   EffectEditorProps<TrackColorCorrectionEffect>
 > = ({ effect, onPatch, disabled }) => (
-  <FlexColumn gap={0.25}>
+  <FlexColumn gap={0.5}>
     <ParamRow
       label="Brightness"
       value={effect.brightness}
@@ -1446,7 +1446,7 @@ const VideoBlurEditor: React.FC<
 const SharpenEditor: React.FC<
   EffectEditorProps<TrackSharpenEffect>
 > = ({ effect, onPatch, disabled }) => (
-  <FlexColumn gap={0.25}>
+  <FlexColumn gap={0.5}>
     <ParamRow
       label="Amount"
       value={effect.amount}
@@ -1550,7 +1550,7 @@ const ChromaKeyEditor: React.FC<
   const theme = useTheme();
   return (
     <FlexColumn gap={0.5}>
-      <FlexRow gap={0.75} align="center">
+      <FlexRow gap={1} align="center">
         <span
           css={{
             fontSize: theme.typography.caption.fontSize,
@@ -1735,7 +1735,7 @@ const EffectCard: React.FC<EffectCardProps> = memo(
               size="small"
             />
           </FlexRow>
-          <FlexRow gap={0.25}>
+          <FlexRow gap={0.5}>
             <Tooltip title="Remove effect">
               <button
                 type="button"

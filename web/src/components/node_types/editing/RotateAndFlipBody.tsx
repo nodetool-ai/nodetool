@@ -219,7 +219,7 @@ const RotateAndFlipBodyInner: React.FC<RotateAndFlipBodyProps> = ({
           <span className="angle-readout">{Math.round(angle)}°</span>
         </FlexRow>
         <FlexRow className="action-row" align="center" justify="space-between" gap={0.5}>
-          <FlexRow align="center" gap={0.25}>
+          <FlexRow align="center" gap={0.5}>
             <StateIconButton
               size="small"
               isActive={flipH}
