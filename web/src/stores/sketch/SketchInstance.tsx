@@ -56,12 +56,15 @@ export interface SketchInstance {
   editor: SketchStoreApi;
   session: SketchSessionStoreApi;
   canvasRef: SketchCanvasRefStoreApi;
+  /** Shared save-in-flight guard: prevents autosave and manual save from racing. */
+  saveInFlight: { current: boolean };
 }
 
 const createSketchInstance = (): SketchInstance => ({
   editor: createSketchStore(),
   session: createSketchSessionStore(),
-  canvasRef: createSketchCanvasRefStore()
+  canvasRef: createSketchCanvasRefStore(),
+  saveInFlight: { current: false }
 });
 
 // A lazily-built default instance backs hooks used outside any provider

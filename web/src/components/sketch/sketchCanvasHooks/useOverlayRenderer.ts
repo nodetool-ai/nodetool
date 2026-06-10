@@ -178,11 +178,13 @@ export function useOverlayRenderer({
       const cw = container.clientWidth;
       const ch = container.clientHeight;
       if (cursorCanvas) {
-        if (cursorCanvas.width !== cw) {
-          cursorCanvas.width = cw;
+        const ccw = Math.round(cw * dpr);
+        const cch = Math.round(ch * dpr);
+        if (cursorCanvas.width !== ccw) {
+          cursorCanvas.width = ccw;
         }
-        if (cursorCanvas.height !== ch) {
-          cursorCanvas.height = ch;
+        if (cursorCanvas.height !== cch) {
+          cursorCanvas.height = cch;
         }
       }
       if (gizmoCanvas) {
@@ -391,7 +393,9 @@ export function useOverlayRenderer({
 
       gc.setTransform(1, 0, 0, 1, 0, 0);
       gc.clearRect(0, 0, gizmoCanvas.width, gizmoCanvas.height);
+      gc.save();
       callback(gc, dpr, containerW, containerH);
+      gc.restore();
     },
     [gizmoCanvasRef, containerRef]
   );
@@ -527,6 +531,8 @@ export function useOverlayRenderer({
         return;
       }
 
+      // Reset transform before clearing so stale DPR scale doesn't affect the clear region.
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height);
 
       // Only show brush cursor for tools that declare showsBrushCursor capability
@@ -543,6 +549,8 @@ export function useOverlayRenderer({
       }
       const scaleX = cursorCanvas.width / rw;
       const scaleY = cursorCanvas.height / rh;
+      // Map CSS-pixel drawing coordinates to physical canvas pixels for HiDPI sharpness.
+      ctx.setTransform(scaleX, 0, 0, scaleY, 0, 0);
 
       const container = containerRef.current;
       const contRect = container?.getBoundingClientRect();
@@ -642,12 +650,12 @@ export function useOverlayRenderer({
         anchorClientX = ac.x;
         anchorClientY = ac.y;
       }
-      const localX = (anchorClientX - cRect.left) * scaleX;
-      const localY = (anchorClientY - cRect.top) * scaleY;
+      const localX = anchorClientX - cRect.left;
+      const localY = anchorClientY - cRect.top;
 
       /** Raw pointer on cursor canvas (sub-pixel); snapped dab preview uses anchorClient*. */
-      const rawLocalX = (clientX - cRect.left) * scaleX;
-      const rawLocalY = (clientY - cRect.top) * scaleY;
+      const rawLocalX = clientX - cRect.left;
+      const rawLocalY = clientY - cRect.top;
 
       let size: number;
       let roundness = 1;
@@ -756,8 +764,8 @@ export function useOverlayRenderer({
             docW,
             docH
           );
-          const rectScreenX = (tlClient.x - cRect.left) * scaleX;
-          const rectScreenY = (tlClient.y - cRect.top) * scaleY;
+          const rectScreenX = tlClient.x - cRect.left;
+          const rectScreenY = tlClient.y - cRect.top;
           const rectScreenSize = zoom * n;
 
           ctx.save();
@@ -810,8 +818,8 @@ export function useOverlayRenderer({
             docW,
             docH
           );
-          const pixelScreenX = (tlClient.x - cRect.left) * scaleX;
-          const pixelScreenY = (tlClient.y - cRect.top) * scaleY;
+          const pixelScreenX = tlClient.x - cRect.left;
+          const pixelScreenY = tlClient.y - cRect.top;
           const pixelSize = zoom;
 
           ctx.save();
@@ -955,8 +963,8 @@ export function useOverlayRenderer({
               doc.canvas.width,
               doc.canvas.height
             );
-            const srcX = (srcClient.x - cRect.left) * scaleX;
-            const srcY = (srcClient.y - cRect.top) * scaleY;
+            const srcX = srcClient.x - cRect.left;
+            const srcY = srcClient.y - cRect.top;
             const crossLen = 8;
             ctx.save();
             // Outer white stroke for contrast

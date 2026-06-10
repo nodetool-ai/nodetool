@@ -174,17 +174,16 @@ export const createHistorySlice: StateCreator<
     // Trim to max size — merge dropped entry's data into the new oldest
     if (newHistory.length > MAX_HISTORY_SIZE) {
       const dropped = newHistory.shift()!;
-      const newOldest = newHistory[0];
+      const oldest = newHistory[0];
       // Always merge dropped data forward to maintain the baseline invariant.
       // The dropped entry (former baseline) may have data for layers not in
       // the new oldest — e.g. layers that were removed between the two entries.
-      for (const [layerId, data] of Object.entries(dropped.layerSnapshots)) {
-        if (!(layerId in newOldest.layerSnapshots)) {
-          newOldest.layerSnapshots[layerId] = data;
-        }
-      }
-      // Mark as full snapshot since it's now the baseline
-      newOldest.changedLayerIds = undefined;
+      // Spread to avoid mutating the existing entry (Zustand state must be immutable).
+      newHistory[0] = {
+        ...oldest,
+        layerSnapshots: { ...dropped.layerSnapshots, ...oldest.layerSnapshots },
+        changedLayerIds: undefined
+      };
     }
 
     set({
