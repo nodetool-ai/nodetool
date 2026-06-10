@@ -90,7 +90,8 @@ export class DownloadFileTool extends Tool {
 
       const contentType = response.headers.get("Content-Type") ?? "unknown";
       const contentLength = response.headers.get("Content-Length");
-      const fileSizeBytes = contentLength ? parseInt(contentLength, 10) : null;
+      const parsedLength = contentLength ? parseInt(contentLength, 10) : NaN;
+      const fileSizeBytes = Number.isFinite(parsedLength) ? parsedLength : null;
 
       const bytes = new Uint8Array(await response.arrayBuffer());
       const persisted = await persistBinaryOutput(context, bytes, {
