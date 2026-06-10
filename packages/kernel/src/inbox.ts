@@ -472,6 +472,27 @@ export class NodeInbox {
   // State queries
   // -----------------------------------------------------------------------
 
+  /** Handles registered on this inbox (via addUpstream or put). */
+  registeredHandles(): string[] {
+    return [...this._buffers.keys()];
+  }
+
+  /**
+   * Synchronously drain every buffered envelope for a handle.
+   * Keeps the arrival queue in lock-step with the buffer and releases any
+   * backpressured producers, unlike direct buffer mutation.
+   */
+  drainHandle(handle: string): MessageEnvelope[] {
+    const buf = this._buffers.get(handle);
+    if (!buf || buf.length === 0) return [];
+    const drained = buf.splice(0);
+    for (let i = 0; i < drained.length; i++) {
+      this._removeFromArrival(handle);
+    }
+    this._notifyPutWaiters();
+    return drained;
+  }
+
   /** Whether any handle has buffered data. */
   hasAny(): boolean {
     for (const buf of this._buffers.values()) {

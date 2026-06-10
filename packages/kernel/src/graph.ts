@@ -44,6 +44,13 @@ export interface GraphFromDictOptions {
   skipErrors?: boolean;
   allowUndefinedProperties?: boolean;
   validateNodeType?: (nodeType: string) => boolean;
+  /**
+   * Remove saved property values for handles fed by a surviving edge
+   * (edge inputs override saved literals). Defaults to true. loadFromDict
+   * disables this and prunes itself after node-type resolution, so that
+   * edges dropped for unresolvable nodes don't destroy saved fallbacks.
+   */
+  pruneEdgeFedProperties?: boolean;
 }
 
 export interface ResolvedNodeType {
@@ -150,7 +157,8 @@ export class Graph {
     const {
       skipErrors = true,
       allowUndefinedProperties = true,
-      validateNodeType
+      validateNodeType,
+      pruneEdgeFedProperties = true
     } = options;
     if (!data || typeof data !== "object") {
       throw new GraphValidationError("Graph data must be an object");
@@ -166,25 +174,6 @@ export class Graph {
     }
     if (!Array.isArray(obj.edges)) {
       throw new GraphValidationError("'edges' must be an array");
-    }
-
-    const propertiesWithEdges = new Map<string, Set<string>>();
-    for (const edge of obj.edges) {
-      // Stryker disable next-line all: this pre-pass only collects edge-fed handles; non-object edges and non-string target/handle values yield no-op deletions, and the second edge pass below re-validates everything that matters
-      if (!edge || typeof edge !== "object") { if (skipErrors) continue; throw new GraphValidationError("Edge entries must be objects"); }
-      const edgeObj = edge as Record<string, unknown>;
-      // Stryker disable next-line all: equivalent — a non-string target/handle yields a no-op deletion later
-      const targetId = typeof edgeObj.target === "string" ? edgeObj.target : undefined;
-      // Stryker disable next-line all: equivalent — a non-string targetHandle yields a no-op deletion later
-      const targetHandle = typeof edgeObj.targetHandle === "string" ? edgeObj.targetHandle : undefined;
-      // Stryker disable next-line all: equivalent — an undefined target/handle only causes no-op deletions later
-      if (!targetId || !targetHandle) continue;
-      let handles = propertiesWithEdges.get(targetId);
-      if (!handles) {
-        handles = new Set<string>();
-        propertiesWithEdges.set(targetId, handles);
-      }
-      handles.add(targetHandle);
     }
 
     const validNodes: NodeDescriptor[] = [];
@@ -256,11 +245,6 @@ export class Graph {
         }
       }
 
-      // Stryker disable next-line ArrayDeclaration: defensive ?? fallback equivalent — a bogus handle deletes a non-existent property (no-op)
-      for (const handle of propertiesWithEdges.get(id) ?? []) {
-        delete rawProperties[handle];
-      }
-
       nodeObj.properties = rawProperties;
       delete nodeObj.data;
 
@@ -270,11 +254,8 @@ export class Graph {
 
     const validEdges: Edge[] = [];
     for (const edge of obj.edges) {
-      // Stryker disable next-line all: fully redundant with the identical check in the first edge pass above
       if (!edge || typeof edge !== "object") {
-        // Stryker disable next-line all: unreachable/redundant — the first edge pass already rejected non-object edges
         if (skipErrors) continue;
-        // Stryker disable next-line all: unreachable — the first edge pass already threw for non-object edges
         throw new GraphValidationError("Edge entries must be objects");
       }
 
@@ -304,7 +285,43 @@ export class Graph {
       validEdges.push(edgeObj as unknown as Edge);
     }
 
+    // Edge inputs override saved property values, so drop the saved literal
+    // for every edge-fed handle. Only edges that survived validation count:
+    // a dangling edge (e.g. from a dropped node) must not destroy the
+    // target's saved fallback value.
+    if (pruneEdgeFedProperties) {
+      Graph._pruneEdgeFedProperties(validNodes, validEdges);
+    }
+
     return new Graph({ nodes: validNodes, edges: validEdges });
+  }
+
+  /**
+   * Delete saved property values for handles that receive an edge.
+   * Mutates each node's `properties` object in place.
+   */
+  private static _pruneEdgeFedProperties(
+    nodes: ReadonlyArray<NodeDescriptor>,
+    edges: ReadonlyArray<Edge>
+  ): void {
+    const handlesByTarget = new Map<string, Set<string>>();
+    for (const edge of edges) {
+      let handles = handlesByTarget.get(edge.target);
+      if (!handles) {
+        handles = new Set<string>();
+        handlesByTarget.set(edge.target, handles);
+      }
+      handles.add(edge.targetHandle);
+    }
+    for (const node of nodes) {
+      const handles = handlesByTarget.get(node.id);
+      if (!handles) continue;
+      const props = node.properties as Record<string, unknown> | undefined;
+      if (!props) continue;
+      for (const handle of handles) {
+        delete props[handle];
+      }
+    }
   }
 
   static async loadFromDict(
@@ -319,7 +336,10 @@ export class Graph {
     const normalized = Graph.fromDict(data, {
       skipErrors,
       // Stryker disable next-line BooleanLiteral: must stay true — property validation happens later against the RESOLVED types, not the saved cache (see comment in loadFromDict)
-      allowUndefinedProperties: true
+      allowUndefinedProperties: true,
+      // Pruning happens below, after the resolver decides which nodes (and
+      // therefore which edges) survive — see GraphFromDictOptions.
+      pruneEdgeFedProperties: false
     });
 
     const resolvedNodes: NodeDescriptor[] = [];
@@ -401,6 +421,7 @@ export class Graph {
     const validEdges = normalized.edges.filter(
       (edge) => validNodeIds.has(edge.source) && validNodeIds.has(edge.target)
     );
+    Graph._pruneEdgeFedProperties(resolvedNodes, validEdges);
     return new Graph({ nodes: resolvedNodes, edges: validEdges });
   }
 
@@ -622,7 +643,9 @@ export class Graph {
     const filteredNodeIds = new Set(filteredNodes.map((node) => node.id));
     const filteredEdges = this.edges.filter(
       (edge) =>
-        filteredNodeIds.has(edge.source) && filteredNodeIds.has(edge.target)
+        isDataEdge(edge) &&
+        filteredNodeIds.has(edge.source) &&
+        filteredNodeIds.has(edge.target)
     );
 
     // In-degree count across filtered edges.
@@ -748,6 +771,22 @@ export class Graph {
    */
   validateEdgeEndpoints(): void {
     for (const edge of this.edges) {
+      // Self-loops pass cycle detection (the correlation analyzer's topo
+      // sort skips them) but deadlock at runtime: the node waits on an
+      // input handle that only the node itself can close. Reject upfront.
+      if (edge.source === edge.target) {
+        throw new GraphValidationError(
+          `Edge ${edge.id ?? `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`} ` +
+            `connects node "${edge.source}" to itself; self-loop edges are not supported`,
+          [
+            {
+              nodeId: edge.source,
+              property: edge.targetHandle,
+              message: "Self-loop edges are not supported"
+            }
+          ]
+        );
+      }
       if (!this._nodeIndex.has(edge.source)) {
         // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
         log.error("Edge references unknown source node", {
@@ -809,17 +848,22 @@ export class Graph {
       const sourceType = sourceNode.outputs?.[edge.sourceHandle];
       if (!sourceType) continue; // no type info, skip
 
-      // Get target input type from node.properties[targetHandle].type
-      const targetProp = targetNode.properties?.[edge.targetHandle];
-      let targetType: string | undefined;
-      if (
-        typeof targetProp === "object" &&
-        targetProp !== null &&
-        "type" in targetProp
-      ) {
-        targetType = (targetProp as { type: string }).type;
-      } else if (typeof targetProp === "string") {
-        targetType = targetProp;
+      // Get target input type: propertyTypes is the authoritative map after
+      // graph load. Fall back to a property value carrying an explicit
+      // `type` descriptor for raw payloads. Plain string property values
+      // are runtime data (e.g. saved literals), never type names.
+      let targetType: string | undefined =
+        targetNode.propertyTypes?.[edge.targetHandle];
+      if (!targetType) {
+        const targetProp = targetNode.properties?.[edge.targetHandle];
+        if (
+          typeof targetProp === "object" &&
+          targetProp !== null &&
+          "type" in targetProp &&
+          typeof (targetProp as { type: unknown }).type === "string"
+        ) {
+          targetType = (targetProp as { type: string }).type;
+        }
       }
       if (!targetType) continue; // no type info, skip
 
@@ -827,7 +871,17 @@ export class Graph {
       const sourceMeta = TypeMetadata.fromString(sourceType);
       const targetMeta = TypeMetadata.fromString(targetType);
 
-      if (!sourceMeta.isCompatibleWith(targetMeta)) {
+      // Scalar-into-list aggregation: a value edge may feed a list-typed
+      // input (multi-edge list inputs collect items into a list, and a
+      // single item edge wraps). Accept when the source is compatible with
+      // the list's element type.
+      const elementCompatible =
+        targetMeta.isListType() &&
+        !sourceMeta.isListType() &&
+        (targetMeta.args.length === 0 ||
+          sourceMeta.isCompatibleWith(targetMeta.args[0]));
+
+      if (!sourceMeta.isCompatibleWith(targetMeta) && !elementCompatible) {
         // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
         log.warn("Type mismatch on edge", {
           source: edge.source,

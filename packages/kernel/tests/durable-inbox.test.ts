@@ -140,20 +140,28 @@ describe("DurableInbox", () => {
 describe("DurableInbox.generateMessageId (FNV-1a)", () => {
   it("is a deterministic 16-hex hash of the addressing tuple", () => {
     expect(DurableInbox.generateMessageId("r1", "n1", "in", 1)).toBe(
-      "692af8c151832e04"
+      "c3cf677587e8ffb4"
     );
   });
 
   it("zero-pads the first 32-bit half to 8 hex digits", () => {
-    const id = DurableInbox.generateMessageId("r", "n", "h", 358);
-    expect(id).toBe("0001298d1115ec6c");
+    const id = DurableInbox.generateMessageId("r", "n", "h", 3);
+    expect(id).toBe("0b48aa68a683a153");
     expect(id).toHaveLength(16);
   });
 
   it("zero-pads the second 32-bit half to 8 hex digits", () => {
-    const id = DurableInbox.generateMessageId("run-1", "node-1", "input", 1000);
-    expect(id).toBe("e62a7d110c77be8c");
+    const id = DurableInbox.generateMessageId("run-1", "node-1", "input", 28);
+    expect(id).toBe("d14ecf0a0ce9efa9");
     expect(id).toHaveLength(16);
+  });
+
+  it("second half depends on content, not just length (ASCII input)", () => {
+    // Regression: the old two-half FNV only fed the high byte (always 0
+    // for ASCII) into the second state, collapsing it to a length tag.
+    const a = DurableInbox.generateMessageId("r1", "n1", "in", 1);
+    const b = DurableInbox.generateMessageId("r1", "n1", "in", 2);
+    expect(a.slice(8)).not.toBe(b.slice(8));
   });
 });
 

@@ -270,8 +270,9 @@ describe("CTRL-017: Error in controlled node propagates via node_update", () => 
 
     const result = await runner.run({ job_id: "ctrl-017" }, { nodes, edges });
 
-    // Runner still completes (actor catches error internally)
-    expect(result.status).toBe("completed");
+    // The actor catches the error internally, but the run reports failed.
+    expect(result.status).toBe("failed");
+    expect(result.error).toMatch(/controlled error/);
     const nodeErrors = result.messages.filter(
       (m) =>
         m.type === "node_update" &&

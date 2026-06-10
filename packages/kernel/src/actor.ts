@@ -311,9 +311,14 @@ export class NodeActor {
           );
           this._latestResult = nodeOutputs.collected();
         } else {
-          // Legacy fallback: call process() once with empty inputs.
+          // Legacy fallback: call process() once with the node's own
+          // property values, matching the defaults merge every other
+          // execution path applies.
           const outputs = await this._executor.process(
-            {},
+            {
+              ...(this.node.properties ?? {}),
+              ...(this.node.dynamic_properties ?? {})
+            },
             this._executionContext
           );
           this._latestResult = outputs;
@@ -435,9 +440,9 @@ export class NodeActor {
   }
 
   private async _runCorrelatedImpl(analysis: NodeAnalysis): Promise<void> {
-    const dataHandles = [...this.inbox["_buffers"].keys()].filter(
-      (h) => h !== "__control__"
-    );
+    const dataHandles = this.inbox
+      .registeredHandles()
+      .filter((h) => h !== "__control__");
 
     if (dataHandles.length === 0) {
       // Source node: fire once with empty inputs at empty scope.
@@ -1153,9 +1158,9 @@ export class NodeActor {
    */
   private async _runControlled(): Promise<void> {
     // Identify data handles (non-control) that need to be populated
-    const dataHandles = [...this.inbox["_buffers"].keys()].filter(
-      (h) => h !== "__control__"
-    );
+    const dataHandles = this.inbox
+      .registeredHandles()
+      .filter((h) => h !== "__control__");
 
     // Wait for all data handles to have at least one value before
     // processing the first control event. This ensures that when an
@@ -1213,24 +1218,25 @@ export class NodeActor {
       return;
     }
 
-    // Drain items until all data handles have at least one value
-    for await (const [handle, item] of this.inbox.iterAny()) {
+    // Drain items until all data handles have at least one value.
+    // Control events are held aside locally: prepending them back inside
+    // this loop would make the very next iterAny() pop the same event
+    // again, spinning the microtask queue forever and starving the data
+    // producer we are waiting for.
+    const heldControl: MessageEnvelope[] = [];
+    for await (const [handle, envelope] of this.inbox.iterAnyWithEnvelope()) {
       if (handle === "__control__") {
-        // Push control events back – they'll be consumed by iterInput later
-        this.inbox.prepend("__control__", {
-          data: item,
-          metadata: {},
-          timestamp: Date.now(),
-          event_id: "",
-          correlation_lineage: EMPTY_LINEAGE,
-          source_edge_id: ""
-        });
+        heldControl.push(envelope);
         continue;
       }
       if (!this._cachedInputs) this._cachedInputs = {};
-      this._cachedInputs[handle] = item;
+      this._cachedInputs[handle] = envelope.data;
       pending.delete(handle);
       if (pending.size === 0) break;
+    }
+    // Re-queue held control events in arrival order for iterInput.
+    for (let i = heldControl.length - 1; i >= 0; i--) {
+      this.inbox.prepend("__control__", heldControl[i]);
     }
   }
 
@@ -1240,18 +1246,13 @@ export class NodeActor {
    * arrived while waiting for the next control event.
    */
   private _cacheBufferedDataInputs(): void {
-    const buffers = this.inbox["_buffers"] as Map<
-      string,
-      Array<{ data: unknown }>
-    >;
-    for (const [handle, buf] of buffers) {
-      if (handle === "__control__" || buf.length === 0) continue;
+    for (const handle of this.inbox.registeredHandles()) {
+      if (handle === "__control__") continue;
       // Use the latest buffered value for each data handle
-      while (buf.length > 0) {
-        const envelope = buf.shift()!;
-        if (!this._cachedInputs) this._cachedInputs = {};
-        this._cachedInputs[handle] = envelope.data;
-      }
+      const drained = this.inbox.drainHandle(handle);
+      if (drained.length === 0) continue;
+      if (!this._cachedInputs) this._cachedInputs = {};
+      this._cachedInputs[handle] = drained[drained.length - 1].data;
     }
   }
 

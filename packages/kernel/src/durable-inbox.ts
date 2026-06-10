@@ -22,13 +22,18 @@ const log = createLogger("nodetool.kernel.durable-inbox");
  * a polyfill.
  */
 function fnv1a64Hex(input: string): string {
-  // 64-bit FNV-1a via two 32-bit halves.
+  // 64-bit-equivalent hash via two independently seeded 32-bit FNV-1a
+  // states. Both states absorb both bytes of every UTF-16 code unit (in
+  // opposite order) so each half stays content-dependent even for pure
+  // ASCII input, where the high byte is always zero.
   let h1 = 0x811c9dc5 | 0;
   let h2 = 0xcbf29ce4 | 0;
   for (let i = 0; i < input.length; i++) {
     const ch = input.charCodeAt(i);
     h1 = Math.imul(h1 ^ (ch & 0xff), 16777619);
+    h1 = Math.imul(h1 ^ ((ch >>> 8) & 0xff), 16777619);
     h2 = Math.imul(h2 ^ ((ch >>> 8) & 0xff), 16777619);
+    h2 = Math.imul(h2 ^ (ch & 0xff), 16777619);
   }
   const u1 = (h1 >>> 0).toString(16).padStart(8, "0");
   const u2 = (h2 >>> 0).toString(16).padStart(8, "0");
@@ -166,6 +171,13 @@ export class DurableInbox {
   readonly nodeId: string;
   private store: DurableInboxStore;
 
+  /**
+   * Per-handle append serialization. append() reads maxSeq and saves across
+   * several awaits; without this lock two concurrent appends on the same
+   * handle would mint the same seq (and, with auto IDs, the same messageId).
+   */
+  private _appendLocks = new Map<string, Promise<unknown>>();
+
   constructor(runId: string, nodeId: string, store?: DurableInboxStore) {
     this.runId = runId;
     this.nodeId = nodeId;
@@ -190,6 +202,24 @@ export class DurableInbox {
    * If messageId already exists, returns existing without error.
    */
   async append(
+    handle: string,
+    payload: unknown,
+    messageId?: string,
+    payloadRef?: string
+  ): Promise<DurableMessage> {
+    const prev = this._appendLocks.get(handle) ?? Promise.resolve();
+    const run = prev.then(() =>
+      this._appendImpl(handle, payload, messageId, payloadRef)
+    );
+    // Keep the chain alive even when this append rejects.
+    this._appendLocks.set(
+      handle,
+      run.catch(() => undefined)
+    );
+    return run;
+  }
+
+  private async _appendImpl(
     handle: string,
     payload: unknown,
     messageId?: string,

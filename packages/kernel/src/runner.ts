@@ -217,14 +217,21 @@ export class WorkflowRunner {
   /** Cancellation flag. */
   private _cancelled = false;
 
-  /** Pending response resolvers for sendControlEvent. nodeId → resolver */
+  /**
+   * Pending response resolvers for sendControlEvent. nodeId → FIFO queue of
+   * resolvers, one per in-flight control event. Control events are delivered
+   * and answered in order, so each node output resolves the oldest waiter.
+   */
   private _pendingControlResponses = new Map<
     string,
-    {
+    Array<{
       resolve: (outputs: Record<string, unknown>) => void;
       reject: (err: Error) => void;
-    }
+    }>
   >();
+
+  /** Errors reported by node actors, keyed by node id. */
+  private _nodeErrors = new Map<string, string>();
 
   /**
    * Nodes whose actor has finished running. A control event sent to such a
@@ -418,6 +425,29 @@ export class WorkflowRunner {
       // Post-completion: drain any edges that still have pending/open state
       this._drainActiveEdges();
 
+      // A node failure fails the whole job (Python parity). Actors swallow
+      // their own errors so sibling branches can finish, but the final
+      // status must not report success when any node errored.
+      if (!this._cancelled && this._nodeErrors.size > 0) {
+        const error = [...this._nodeErrors]
+          .map(([nodeId, msg]) => `Node "${nodeId}" failed: ${msg}`)
+          .join("; ");
+        log.error("Workflow failed", { jobId: request.job_id, error });
+        this._emit({
+          type: "job_update",
+          status: "failed",
+          job_id: request.job_id,
+          workflow_id: request.workflow_id ?? null,
+          error
+        });
+        return {
+          outputs: Object.fromEntries(this._outputs),
+          messages: this._messages,
+          status: "failed",
+          error
+        };
+      }
+
       const status = this._cancelled ? "cancelled" : "completed";
       log.info("Workflow completed", { jobId: request.job_id, status });
 
@@ -476,6 +506,8 @@ export class WorkflowRunner {
     this._messages = [];
     this._cancelled = false;
     this._pendingControlResponses = new Map();
+    this._completedNodes = new Set();
+    this._nodeErrors = new Map();
     this._correlation = undefined;
   }
 
@@ -705,38 +737,42 @@ export class WorkflowRunner {
       // push empty defaults — real data will arrive later via pushInputValue().
       // Non-streaming inputs must push their default so downstream nodes can run.
       // (Python parity: checks is_streaming_output.)
-      if (!hasRuntimeParam && (node.is_streaming_output || !hasDefaultValue)) {
-        continue;
-      }
+      const shouldPush =
+        hasRuntimeParam || (!node.is_streaming_output && hasDefaultValue);
 
       const value = hasRuntimeParam ? params[inputName] : properties.value;
       const outgoing = this._graph
         .findOutgoingEdges(node.id)
         .filter(isDataEdge);
-      for (const edge of outgoing) {
-        const targetInbox = this._inboxes.get(edge.target);
-        if (targetInbox) {
-          await targetInbox.put(edge.targetHandle, value, {
-            source_edge_id:
-              edge.id ??
-              syntheticEdgeId(
-                edge.source,
-                edge.sourceHandle,
-                edge.target,
-                edge.targetHandle
-              )
-          });
+      if (shouldPush) {
+        for (const edge of outgoing) {
+          const targetInbox = this._inboxes.get(edge.target);
+          if (targetInbox) {
+            await targetInbox.put(edge.targetHandle, value, {
+              source_edge_id:
+                edge.id ??
+                syntheticEdgeId(
+                  edge.source,
+                  edge.sourceHandle,
+                  edge.target,
+                  edge.targetHandle
+                )
+            });
+          }
+          this._incrementEdgeCounter(edge);
         }
-        this._incrementEdgeCounter(edge);
       }
 
       // Streaming output input nodes (e.g. RealtimeAudioInput) keep their
       // downstream inboxes open so that future pushInputValue() calls can
       // deliver more data.  Non-streaming input nodes signal EOS immediately
-      // since they produce exactly one value.
+      // since they produce exactly one value.  When nothing was pushed (no
+      // param, no default) the handle also stays open: the caller is
+      // expected to deliver values via pushInputValue() and close with
+      // finishInputStream().
       // (Python parity: _dispatch_inputs checks is_streaming_output, not
       // is_streaming_input.)
-      if (!node.is_streaming_output) {
+      if (shouldPush && !node.is_streaming_output) {
         for (const edge of outgoing) {
           const targetInbox = this._inboxes.get(edge.target);
           if (targetInbox) {
@@ -801,24 +837,30 @@ export class WorkflowRunner {
 
       actorPromises.push(
         actor.run().then(async (result) => {
+          if (result.error !== undefined) {
+            this._nodeErrors.set(node.id, result.error);
+          }
+
           // After actor completes, send EOS to all downstream inboxes
           await this._sendEOS(node.id);
 
           // The actor's run loop is gone — it can no longer answer control
           // events. Mark it so future sendControlEvent calls reject fast
-          // rather than hang, and reject any response still waiting on it
+          // rather than hang, and reject any responses still waiting on it
           // (the actor finished without producing the awaited output, e.g.
           // it errored mid-burst).
           this._completedNodes.add(node.id);
           const pending = this._pendingControlResponses.get(node.id);
           if (pending) {
             this._pendingControlResponses.delete(node.id);
-            pending.reject(
-              new Error(
-                result.error ??
-                  `Controlled node ${node.id} completed without responding`
-              )
-            );
+            for (const waiter of pending) {
+              waiter.reject(
+                new Error(
+                  result.error ??
+                    `Controlled node ${node.id} completed without responding`
+                )
+              );
+            }
           }
 
           // If this is an output node, collect the result
@@ -1054,11 +1096,15 @@ export class WorkflowRunner {
       }
     }
 
-    // Resolve pending sendControlEvent promise if one exists for this node
+    // Resolve the oldest pending sendControlEvent promise for this node.
+    // Control events are processed FIFO, so outputs pair with waiters in order.
     const pending = this._pendingControlResponses.get(sourceNodeId);
-    if (pending) {
-      this._pendingControlResponses.delete(sourceNodeId);
-      pending.resolve(outputs);
+    if (pending && pending.length > 0) {
+      const waiter = pending.shift()!;
+      if (pending.length === 0) {
+        this._pendingControlResponses.delete(sourceNodeId);
+      }
+      waiter.resolve(outputs);
     }
   }
 
@@ -1069,6 +1115,10 @@ export class WorkflowRunner {
    */
   private async _sendEOS(nodeId: string): Promise<void> {
     const outgoing = this._graph.findOutgoingEdges(nodeId);
+    // _initializeInboxes counts ONE __control__ upstream per unique
+    // controller, so a controller with several control edges to the same
+    // target must decrement that target only once.
+    const controlTargetsMarked = new Set<string>();
     for (const edge of outgoing) {
       if (isControlEdge(edge)) {
         // Always mark __control__ source done when the controller finishes,
@@ -1076,9 +1126,12 @@ export class WorkflowRunner {
         // controlled nodes waiting on iterInput("__control__") regardless
         // of whether events were routed through the edge or via the manual
         // sendControlEvent() / dispatchControlEvent() APIs.
-        const targetInbox = this._inboxes.get(edge.target);
-        if (targetInbox) {
-          targetInbox.markSourceDone("__control__");
+        if (!controlTargetsMarked.has(edge.target)) {
+          controlTargetsMarked.add(edge.target);
+          const targetInbox = this._inboxes.get(edge.target);
+          if (targetInbox) {
+            targetInbox.markSourceDone("__control__");
+          }
         }
         continue;
       }
@@ -1217,7 +1270,12 @@ export class WorkflowRunner {
     }
 
     const promise = new Promise<Record<string, unknown>>((resolve, reject) => {
-      this._pendingControlResponses.set(targetNodeId, { resolve, reject });
+      let queue = this._pendingControlResponses.get(targetNodeId);
+      if (!queue) {
+        queue = [];
+        this._pendingControlResponses.set(targetNodeId, queue);
+      }
+      queue.push({ resolve, reject });
     });
 
     const event: ControlEvent = {
