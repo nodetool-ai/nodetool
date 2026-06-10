@@ -511,9 +511,9 @@ export abstract class BaseNode {
         // secrets can't ride along on the inputs — store them on the
         // instance so this._secrets works inside run() like in process().
         const secrets = await this._resolveSecrets(context);
-        if (Object.keys(secrets).length > 0) {
-          this.setDynamic("_secrets", { ...this._secrets, ...secrets });
-        }
+        // Always overwrite so secrets from a previous execution can't leak into
+        // a later run() call on the same instance.
+        this.setDynamic("_secrets", secrets);
         return this.run!(inputs, outputs, context);
       };
     }
