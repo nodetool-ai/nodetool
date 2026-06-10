@@ -62,6 +62,7 @@ export async function audioBytesAsync(
       }
       if (ref.uri.startsWith("http://") || ref.uri.startsWith("https://")) {
         const response = await fetch(ref.uri);
+        if (!response.ok) return new Uint8Array();
         return new Uint8Array(await response.arrayBuffer());
       }
     } catch {

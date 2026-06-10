@@ -11,10 +11,11 @@ import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import BookmarkIcon from "@mui/icons-material/Bookmark";
 import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { MOTION } from "./tokens";
 
 const styles = (theme: Theme, isFavorite: boolean, variant: string) =>
   css({
-    transition: "all 0.2s ease-in-out",
+    transition: MOTION.all,
     color: isFavorite
       ? variant === "star"
         ? theme.vars.palette.warning.main

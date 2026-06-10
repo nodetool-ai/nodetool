@@ -307,7 +307,6 @@ export function textToSpeech(inputs: TextToSpeechInputs): DslNode<TextToSpeechOu
 // Chunk To Audio — nodetool.audio.ChunkToAudio
 export interface ChunkToAudioInputs {
   chunk?: Connectable<unknown>;
-  batch_size?: Connectable<number>;
 }
 
 export interface ChunkToAudioOutputs {

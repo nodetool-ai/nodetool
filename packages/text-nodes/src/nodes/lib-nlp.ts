@@ -43,8 +43,21 @@ export class SentimentAnalysisLibNode extends BaseNode {
 
     const tokenizer = new natural.WordTokenizer();
     const tokens = tokenizer.tokenize(text) ?? [];
-    const stemmer = natural.PorterStemmer;
-    const analyzer = new natural.SentimentAnalyzer(language, stemmer, "afinn");
+    // natural only ships "afinn" vocabularies for English/Spanish; French
+    // sentiment requires the "pattern" vocabulary. Stemmers must match the
+    // language because the analyzer stems its vocabulary at construction.
+    const stemmer =
+      language === "Spanish"
+        ? natural.PorterStemmerEs
+        : language === "French"
+          ? natural.PorterStemmerFr
+          : natural.PorterStemmer;
+    const vocabularyType = language === "French" ? "pattern" : "afinn";
+    const analyzer = new natural.SentimentAnalyzer(
+      language,
+      stemmer,
+      vocabularyType
+    );
 
     const comparative = analyzer.getSentiment(tokens);
     const vocabulary = (analyzer as unknown as { vocabulary: Record<string, number> }).vocabulary;
@@ -54,9 +67,12 @@ export class SentimentAnalysisLibNode extends BaseNode {
     let totalScore = 0;
 
     for (const token of tokens) {
-      const stemmed = stemmer.stem(token);
-      const wordScore = vocabulary[stemmed];
-      if (wordScore !== undefined) {
+      // Mirror getSentiment's lookup: lowercased token first, then its stem.
+      // The "pattern" vocabulary stores polarities as strings, so coerce.
+      const lower = token.toLowerCase();
+      const raw = vocabulary[lower] ?? vocabulary[stemmer.stem(lower)];
+      const wordScore = raw === undefined ? undefined : Number(raw);
+      if (wordScore !== undefined && !Number.isNaN(wordScore)) {
         totalScore += wordScore;
         if (wordScore > 0) {
           positiveWords.push(token);

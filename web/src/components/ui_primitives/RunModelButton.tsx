@@ -18,6 +18,7 @@ import type { Theme } from "@mui/material/styles";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import { Button } from "@mui/material";
 import { LoadingSpinner } from "./LoadingSpinner";
+import { MOTION } from "./tokens";
 
 const styles = (theme: Theme) =>
   css({
@@ -33,11 +34,11 @@ const styles = (theme: Theme) =>
       padding: "4px 12px",
       minWidth: 0,
       gap: 6,
-      boxShadow: "0 1px 3px rgba(0, 0, 0, 0.25)",
-      transition: "background-color 0.15s ease, box-shadow 0.15s ease",
+      boxShadow: `0 1px 3px rgba(${theme.vars.palette.common.blackChannel ?? '0 0 0'} / 0.25)`,
+      transition: `${MOTION.background}, ${MOTION.shadow}`,
       "&:hover": {
         backgroundColor: theme.vars.palette.primary.light,
-        boxShadow: "0 2px 6px rgba(0, 0, 0, 0.35)"
+        boxShadow: `0 2px 6px rgba(${theme.vars.palette.common.blackChannel ?? '0 0 0'} / 0.35)`
       },
       "&.Mui-disabled": {
         opacity: 0.55,

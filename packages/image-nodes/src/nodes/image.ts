@@ -1515,16 +1515,6 @@ export class TextToImageNode extends BaseNode {
   })
   declare resolution: any;
 
-  @prop({
-    type: "int",
-    default: 0,
-    title: "Timeout Seconds",
-    description: "Timeout in seconds for API calls (0 = use provider default)",
-    min: 0,
-    max: 3600
-  })
-  declare timeout_seconds: any;
-
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const prompt = String(this.prompt ?? "");
     const aspectRatio = String(this.aspect_ratio ?? "1:1");
@@ -1649,16 +1639,6 @@ export class ImageToImageNode extends BaseNode {
     description: "Scheduler to use (provider-specific)"
   })
   declare scheduler: any;
-
-  @prop({
-    type: "int",
-    default: 0,
-    title: "Timeout Seconds",
-    description: "Timeout in seconds for API calls (0 = use provider default)",
-    min: 0,
-    max: 3600
-  })
-  declare timeout_seconds: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     let images = normalizeImageList(this.image);

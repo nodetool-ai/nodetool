@@ -266,6 +266,18 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
               });
             }
           }
+        } else if (data.status === "error") {
+          // Server-side failure before the download manager attached a
+          // repo_id (e.g. the manager failed to start). There's nothing to
+          // attribute it to, so fail every entry still awaiting its first
+          // progress message so rows don't spin forever.
+          const message = data.error || data.message || "Download failed";
+          console.error("[ModelDownloadStore] Server error:", message);
+          Object.entries(get().downloads).forEach(([id, download]) => {
+            if (download.status === "pending") {
+              get().updateDownload(id, { status: "error", message });
+            }
+          });
         }
       };
 
@@ -430,18 +442,32 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
         get().updateDownload(id, { status: "error" });
       }
     } else {
-      const ws = await get().connectWebSocket();
-      ws.send(
-        JSON.stringify({
-          command: "start_download",
-          repo_id: repoId,
-          path: path,
-          allow_patterns: allowPatterns,
-          ignore_patterns: ignorePatterns,
-          model_type: modelType,
-          scope
-        })
-      );
+      try {
+        const ws = await get().connectWebSocket();
+        ws.send(
+          JSON.stringify({
+            command: "start_download",
+            repo_id: repoId,
+            path: path,
+            allow_patterns: allowPatterns,
+            ignore_patterns: ignorePatterns,
+            model_type: modelType,
+            scope
+          })
+        );
+      } catch (error) {
+        console.error(
+          "[ModelDownloadStore] Failed to connect for download:",
+          error
+        );
+        get().updateDownload(id, {
+          status: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to connect to download service"
+        });
+      }
     }
   },
 
@@ -453,9 +479,23 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
       return;
     }
 
-    const ws = await get().connectWebSocket();
-    ws.send(JSON.stringify({ command: "cancel_download", id: id }));
-    get().updateDownload(id, { status: "cancelled" });
+    try {
+      const ws = await get().connectWebSocket();
+      ws.send(JSON.stringify({ command: "cancel_download", id: id }));
+      get().updateDownload(id, { status: "cancelled" });
+    } catch (error) {
+      console.error(
+        "[ModelDownloadStore] Failed to connect for cancel:",
+        error
+      );
+      // We couldn't reach the server to cancel, but the user asked for the
+      // row to stop — mark it cancelled locally ("cancelled" is not an
+      // active status in hasActiveDownloads, so the spinner stops).
+      get().updateDownload(id, {
+        status: "cancelled",
+        message: "Could not reach server to cancel; download may still be running on server."
+      });
+    }
   },
 
   isDialogOpen: false,

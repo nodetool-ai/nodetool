@@ -122,10 +122,13 @@ export const WorkflowManagerProvider: FC<{
   });
 
   useEffect(() => {
-    // Restore workflows that were previously open from localStorage
+    // Restore workflows that were previously open from localStorage.
+    // makeCurrent: false — the store already restored `currentWorkflowId`
+    // from localStorage at creation; letting these parallel fetches each set
+    // it would make the last-resolved fetch win and scramble the active tab.
     const openWorkflows = getOpenWorkflowsFromStorage();
     openWorkflows.forEach((workflowId: string) => {
-      store.getState().fetchWorkflow(workflowId);
+      store.getState().fetchWorkflow(workflowId, { makeCurrent: false });
     });
   }, [store]);
 

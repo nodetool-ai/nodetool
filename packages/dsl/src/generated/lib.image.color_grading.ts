@@ -176,7 +176,6 @@ export interface VignetteInputs {
   image?: Connectable<ImageRef>;
   amount?: Connectable<number>;
   midpoint?: Connectable<number>;
-  roundness?: Connectable<number>;
   feather?: Connectable<number>;
 }
 

@@ -325,13 +325,23 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     return get().tasks[nodeKey(workflowId, jobId, nodeId)];
   },
   /**
-   * Clear the provider costs for a workflow.
+   * Clear all per-node results for a workflow (or for specific nodes of it):
+   * provider costs, live generations, tool results, output results, progress,
+   * chunks, tasks, tool calls and planning updates. Edge status is keyed by
+   * edge id, not node id, so it is cleared separately via `clearEdges`.
    */
   clearResults: (workflowId: string, nodeIds?: Set<string>) => {
     set((state) => ({
       providerCosts: filterRecord(state.providerCosts, workflowId, nodeIds),
       liveGenerations: filterRecord(state.liveGenerations, workflowId, nodeIds),
-      toolResults: filterRecord(state.toolResults, workflowId, nodeIds)
+      toolResults: filterRecord(state.toolResults, workflowId, nodeIds),
+      outputResults: filterRecord(state.outputResults, workflowId, nodeIds),
+      progress: filterRecord(state.progress, workflowId, nodeIds),
+      chunks: filterRecord(state.chunks, workflowId, nodeIds),
+      tasks: filterRecord(state.tasks, workflowId, nodeIds),
+      toolCalls: filterRecord(state.toolCalls, workflowId, nodeIds),
+      planningUpdates: filterRecord(state.planningUpdates, workflowId, nodeIds),
+      resultsVersion: state.resultsVersion + 1
     }));
   },
   clearOutputResults: (workflowId: string, nodeIds?: Set<string>) => {

@@ -43,6 +43,26 @@ describe("useLoadTimelineIntoStore", () => {
     expect(state.durationMs).toBe(5000);
   });
 
+  it("does NOT reload on a same-id refetch (preserves local edits)", () => {
+    const seq = makeSeq();
+    const { rerender } = renderHook(
+      ({ s }: { s: TimelineSequence | undefined }) =>
+        useLoadTimelineIntoStore(s),
+      { initialProps: { s: seq as TimelineSequence | undefined } }
+    );
+    expect(useTimelineStore.getState().sequenceId).toBe("seq-1");
+
+    // Local edit after load.
+    useTimelineStore.getState().addTrack("video");
+    expect(useTimelineStore.getState().tracks).toHaveLength(1);
+
+    // Background refetch: a fresh object for the same sequence id.
+    rerender({ s: makeSeq() });
+
+    // The local edit survives — the store was not reloaded.
+    expect(useTimelineStore.getState().tracks).toHaveLength(1);
+  });
+
   it("reloads when the sequence id changes", () => {
     const a = makeSeq({ id: "a", durationMs: 1000 });
     const b = makeSeq({ id: "b", durationMs: 2000 });

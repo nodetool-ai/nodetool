@@ -118,8 +118,8 @@ export class SplitTextNode extends BaseNode {
   declare delimiter: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    const delimiter = String(this.delimiter ?? this.delimiter ?? ",");
+    const text = String(this.text ?? "");
+    const delimiter = String(this.delimiter ?? ",");
     return { output: text.split(delimiter) };
   }
 }
@@ -145,10 +145,11 @@ export class ExtractTextNode extends BaseNode {
   declare end: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    const start = Number(this.start ?? this.start ?? 0);
-    const end = Number(this.end ?? this.end ?? 0);
-    return { output: text.slice(start, end) };
+    const text = String(this.text ?? "");
+    const start = Number(this.start ?? 0);
+    const end = Number(this.end ?? 0);
+    // end=0 means "unset" (props default to 0): slice to the end of the text.
+    return { output: text.slice(start, end === 0 ? undefined : end) };
   }
 }
 
@@ -176,10 +177,10 @@ export class ChunkTextNode extends BaseNode {
   declare separator: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    const length = Number(this.length ?? this.length ?? 100);
-    const overlap = Number(this.overlap ?? this.overlap ?? 0);
-    const separator = String(this.separator ?? this.separator ?? " ");
+    const text = String(this.text ?? "");
+    const length = Number(this.length ?? 100);
+    const overlap = Number(this.overlap ?? 0);
+    const separator = String(this.separator ?? " ");
 
     const step = length - overlap;
     if (length < 1 || step <= 0) {
@@ -222,12 +223,12 @@ export class ExtractRegexNode extends BaseNode {
   declare multiline: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    const pattern = String(this.regex ?? this.regex ?? "");
+    const text = String(this.text ?? "");
+    const pattern = String(this.regex ?? "");
     const flags = flagsFromOpts({
-      dotall: this.dotall ?? this.dotall,
-      ignorecase: this.ignorecase ?? this.ignorecase,
-      multiline: this.multiline ?? this.multiline
+      dotall: this.dotall,
+      ignorecase: this.ignorecase,
+      multiline: this.multiline
     });
 
     const match = new RegExp(pattern, flags).exec(text);
@@ -265,12 +266,12 @@ export class FindAllRegexNode extends BaseNode {
   declare multiline: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    const pattern = String(this.regex ?? this.regex ?? "");
+    const text = String(this.text ?? "");
+    const pattern = String(this.regex ?? "");
     const flags = `${flagsFromOpts({
-      dotall: this.dotall ?? this.dotall,
-      ignorecase: this.ignorecase ?? this.ignorecase,
-      multiline: this.multiline ?? this.multiline
+      dotall: this.dotall,
+      ignorecase: this.ignorecase,
+      multiline: this.multiline
     })}g`;
 
     const matches = [...text.matchAll(new RegExp(pattern, flags))].map(
@@ -295,7 +296,7 @@ export class TextParseJSONNode extends BaseNode {
   declare text: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
+    const text = String(this.text ?? "");
     return { output: JSON.parse(text) };
   }
 }
@@ -304,8 +305,11 @@ function jsonPathFind(path: string, root: unknown): unknown[] {
   if (!path.startsWith("$")) {
     return [];
   }
+  // Strip the leading "$" (and optional ".") so a bare "$" resolves to the
+  // root value instead of matching nothing.
   const tokens = path
-    .replace(/^\$\./, "")
+    .slice(1)
+    .replace(/^\./, "")
     .replace(/\[(\d+)\]/g, ".$1")
     .split(".")
     .filter(Boolean);
@@ -362,9 +366,9 @@ export class ExtractJSONNode extends BaseNode {
   declare find_all: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    const jsonPath = String(this.json_path ?? this.json_path ?? "$.*");
-    const findAll = Boolean(this.find_all ?? this.find_all ?? false);
+    const text = String(this.text ?? "");
+    const jsonPath = String(this.json_path ?? "$.*");
+    const findAll = Boolean(this.find_all ?? false);
 
     const parsed = JSON.parse(text) as unknown;
     const matches = jsonPathFind(jsonPath, parsed);
@@ -414,9 +418,9 @@ export class RegexMatchNode extends BaseNode {
   declare group: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    const pattern = String(this.pattern ?? this.pattern ?? "");
-    const group = this.group ?? this.group;
+    const text = String(this.text ?? "");
+    const pattern = String(this.pattern ?? "");
+    const group = this.group;
 
     if (group === null || group === undefined) {
       return {
@@ -542,9 +546,9 @@ export class RegexSplitNode extends BaseNode {
   declare maxsplit: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    const pattern = String(this.pattern ?? this.pattern ?? "");
-    const maxsplit = Number(this.maxsplit ?? this.maxsplit ?? 0);
+    const text = String(this.text ?? "");
+    const pattern = String(this.pattern ?? "");
+    const maxsplit = Number(this.maxsplit ?? 0);
 
     if (maxsplit <= 0) {
       return { output: text.split(new RegExp(pattern)) };
@@ -594,8 +598,8 @@ export class RegexValidateNode extends BaseNode {
   declare pattern: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    const pattern = String(this.pattern ?? this.pattern ?? "");
+    const text = String(this.text ?? "");
+    const pattern = String(this.pattern ?? "");
     // Anchor at start to match Python's re.match() behavior
     const anchored = pattern.startsWith("^") ? pattern : `^(?:${pattern})`;
     return { output: new RegExp(anchored).test(text) };
@@ -636,13 +640,13 @@ export class CompareTextNode extends BaseNode {
   declare trim_whitespace: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const textA = String(this.text_a ?? this.text_a ?? "");
-    const textB = String(this.text_b ?? this.text_b ?? "");
+    const textA = String(this.text_a ?? "");
+    const textB = String(this.text_b ?? "");
     const caseSensitive = Boolean(
-      this.case_sensitive ?? this.case_sensitive ?? true
+      this.case_sensitive ?? true
     );
     const trimWhitespace = Boolean(
-      this.trim_whitespace ?? this.trim_whitespace ?? false
+      this.trim_whitespace ?? false
     );
 
     const normalize = (value: string) => {
@@ -697,10 +701,13 @@ export class EqualsTextNode extends BaseNode {
   declare trim_whitespace: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const cmp = new CompareTextNode();
-    cmp.assign(this.serialize());
-    const result = await cmp.process();
-    return { output: result.output === "equal" };
+    const caseSensitive = Boolean(this.case_sensitive ?? true);
+    const trimWhitespace = Boolean(this.trim_whitespace ?? false);
+    const normalize = (value: unknown) => {
+      const trimmed = trimWhitespace ? String(value ?? "").trim() : String(value ?? "");
+      return caseSensitive ? trimmed : trimmed.toLowerCase();
+    };
+    return { output: normalize(this.text_a) === normalize(this.text_b) };
   }
 }
 
@@ -719,7 +726,7 @@ export class ToUppercaseNode extends BaseNode {
   declare text: any;
 
   async process(): Promise<Record<string, unknown>> {
-    return { output: String(this.text ?? this.text ?? "").toUpperCase() };
+    return { output: String(this.text ?? "").toUpperCase() };
   }
 }
 
@@ -738,7 +745,7 @@ export class ToLowercaseNode extends BaseNode {
   declare text: any;
 
   async process(): Promise<Record<string, unknown>> {
-    return { output: String(this.text ?? this.text ?? "").toLowerCase() };
+    return { output: String(this.text ?? "").toLowerCase() };
   }
 }
 
@@ -757,7 +764,7 @@ export class ToTitlecaseNode extends BaseNode {
   declare text: any;
 
   async process(): Promise<Record<string, unknown>> {
-    return { output: toTitleCase(String(this.text ?? this.text ?? "")) };
+    return { output: toTitleCase(String(this.text ?? "")) };
   }
 }
 
@@ -776,7 +783,7 @@ export class CapitalizeTextNode extends BaseNode {
   declare text: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
+    const text = String(this.text ?? "");
     if (!text) {
       return { output: "" };
     }
@@ -810,21 +817,24 @@ export class SliceTextNode extends BaseNode {
   declare step: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    const start = Number(this.start ?? this.start ?? 0);
-    const stop = Number(this.stop ?? this.stop ?? 0);
-    const step = Number(this.step ?? this.step ?? 1);
+    const text = String(this.text ?? "");
+    const start = Number(this.start ?? 0);
+    const stop = Number(this.stop ?? 0);
+    const step = Number(this.step ?? 1);
 
     if (step === 0) {
       throw new Error("slice step cannot be zero");
     }
 
+    // Slice on code points (not UTF-16 code units) so all step values treat
+    // characters like emoji consistently.
+    const chars = [...text];
+
     if (step === 1) {
       const effectiveStop = stop === 0 ? undefined : stop;
-      return { output: text.slice(start, effectiveStop) };
+      return { output: chars.slice(start, effectiveStop).join("") };
     }
 
-    const chars = [...text];
     const result: string[] = [];
     const len = chars.length;
 
@@ -879,8 +889,8 @@ export class StartsWithTextNode extends BaseNode {
   declare prefix: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    const prefix = String(this.prefix ?? this.prefix ?? "");
+    const text = String(this.text ?? "");
+    const prefix = String(this.prefix ?? "");
     return { output: text.startsWith(prefix) };
   }
 }
@@ -903,8 +913,8 @@ export class EndsWithTextNode extends BaseNode {
   declare suffix: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    const suffix = String(this.suffix ?? this.suffix ?? "");
+    const text = String(this.text ?? "");
+    const suffix = String(this.suffix ?? "");
     return { output: text.endsWith(suffix) };
   }
 }
@@ -948,17 +958,17 @@ export class ContainsTextNode extends BaseNode {
   declare match_mode: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    const substring = String(this.substring ?? this.substring ?? "");
-    const searchValues = Array.isArray(this.search_values ?? this.search_values)
-      ? ((this.search_values ?? this.search_values) as unknown[]).map((v) =>
+    const text = String(this.text ?? "");
+    const substring = String(this.substring ?? "");
+    const searchValues = Array.isArray(this.search_values)
+      ? ((this.search_values) as unknown[]).map((v) =>
           String(v)
         )
       : [];
     const caseSensitive = Boolean(
-      this.case_sensitive ?? this.case_sensitive ?? true
+      this.case_sensitive ?? true
     );
-    const matchMode = String(this.match_mode ?? this.match_mode ?? "any");
+    const matchMode = String(this.match_mode ?? "any");
 
     const targets =
       searchValues.length > 0 ? searchValues : substring ? [substring] : [];
@@ -1002,9 +1012,9 @@ export class TrimWhitespaceNode extends BaseNode {
   declare trim_end: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    const trimStart = Boolean(this.trim_start ?? this.trim_start ?? true);
-    const trimEnd = Boolean(this.trim_end ?? this.trim_end ?? true);
+    const text = String(this.text ?? "");
+    const trimStart = Boolean(this.trim_start ?? true);
+    const trimEnd = Boolean(this.trim_end ?? true);
 
     if (trimStart && trimEnd) {
       return { output: text.trim() };
@@ -1058,12 +1068,12 @@ export class CollapseWhitespaceNode extends BaseNode {
   declare trim_edges: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
+    const text = String(this.text ?? "");
     const preserveNewlines = Boolean(
-      this.preserve_newlines ?? this.preserve_newlines ?? false
+      this.preserve_newlines ?? false
     );
-    const replacement = String(this.replacement ?? this.replacement ?? " ");
-    const trimEdges = Boolean(this.trim_edges ?? this.trim_edges ?? true);
+    const replacement = String(this.replacement ?? " ");
+    const trimEdges = Boolean(this.trim_edges ?? true);
 
     const value = trimEdges ? text.trim() : text;
     if (preserveNewlines) {
@@ -1091,9 +1101,9 @@ export class IsEmptyTextNode extends BaseNode {
   declare trim_whitespace: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
+    const text = String(this.text ?? "");
     const trimWhitespace = Boolean(
-      this.trim_whitespace ?? this.trim_whitespace ?? true
+      this.trim_whitespace ?? true
     );
     return { output: (trimWhitespace ? text.trim() : text).length === 0 };
   }
@@ -1130,14 +1140,15 @@ export class RemovePunctuationNode extends BaseNode {
   declare punctuation: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    const replacement = String(this.replacement ?? this.replacement ?? "");
+    const text = String(this.text ?? "");
+    const replacement = String(this.replacement ?? "");
     const punctuation = String(
-      this.punctuation ??
-        `!"#$%&'()*+,\\-./:;<=>?@[\\]^_{|}~`
+      this.punctuation ?? "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
     );
 
-    const escaped = punctuation.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // Also escape "-" so user-supplied characters can't form ranges inside
+    // the character class (e.g. punctuation "a-z" must not match b..y).
+    const escaped = punctuation.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&");
     return {
       output: text.replace(new RegExp(`[${escaped}]`, "g"), replacement)
     };
@@ -1167,9 +1178,9 @@ export class StripAccentsNode extends BaseNode {
   declare preserve_non_ascii: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
+    const text = String(this.text ?? "");
     const preserveNonAscii = Boolean(
-      this.preserve_non_ascii ?? this.preserve_non_ascii ?? true
+      this.preserve_non_ascii ?? true
     );
 
     const normalized = text.normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
@@ -1210,11 +1221,11 @@ export class SlugifyNode extends BaseNode {
   declare allow_unicode: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    const separator = String(this.separator ?? this.separator ?? "-");
-    const lowercase = Boolean(this.lowercase ?? this.lowercase ?? true);
+    const text = String(this.text ?? "");
+    const separator = String(this.separator ?? "-");
+    const lowercase = Boolean(this.lowercase ?? true);
     const allowUnicode = Boolean(
-      this.allow_unicode ?? this.allow_unicode ?? false
+      this.allow_unicode ?? false
     );
 
     let value = text.normalize("NFKD");
@@ -1255,10 +1266,10 @@ export class HasLengthTextNode extends BaseNode {
   declare exact_length: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    const minLength = Number(this.min_length ?? this.min_length ?? 0);
-    const maxLength = Number(this.max_length ?? this.max_length ?? 0);
-    const exactLength = Number(this.exact_length ?? this.exact_length ?? 0);
+    const text = String(this.text ?? "");
+    const minLength = Number(this.min_length ?? 0);
+    const maxLength = Number(this.max_length ?? 0);
+    const exactLength = Number(this.exact_length ?? 0);
 
     const length = text.length;
 
@@ -1302,17 +1313,20 @@ export class TruncateTextNode extends BaseNode {
   declare ellipsis: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    const maxLength = Number(this.max_length ?? this.max_length ?? 100);
-    const ellipsis = String(this.ellipsis ?? this.ellipsis ?? "");
+    const text = String(this.text ?? "");
+    const maxLength = Number(this.max_length ?? 100);
+    const ellipsis = String(this.ellipsis ?? "");
 
     if (maxLength <= 0) {
-      return { output: ellipsis || "" };
+      return { output: "" };
     }
     if (text.length <= maxLength) {
       return { output: text };
     }
-    if (ellipsis && ellipsis.length < maxLength) {
+    if (ellipsis) {
+      if (ellipsis.length >= maxLength) {
+        return { output: ellipsis.slice(0, maxLength) };
+      }
       const cut = maxLength - ellipsis.length;
       return { output: `${text.slice(0, cut)}${ellipsis}` };
     }
@@ -1355,12 +1369,12 @@ export class PadTextNode extends BaseNode {
   declare direction: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    const length = Number(this.length ?? this.length ?? 0);
+    const text = String(this.text ?? "");
+    const length = Number(this.length ?? 0);
     const padCharacter = String(
-      this.pad_character ?? this.pad_character ?? " "
+      this.pad_character ?? " "
     );
-    const direction = String(this.direction ?? this.direction ?? "right");
+    const direction = String(this.direction ?? "right");
 
     if (padCharacter.length !== 1) {
       throw new Error("pad_character must be a single character");
@@ -1416,10 +1430,10 @@ export class LengthTextNode extends BaseNode {
   declare trim_whitespace: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    const measure = String(this.measure ?? this.measure ?? "characters");
+    const text = String(this.text ?? "");
+    const measure = String(this.measure ?? "characters");
     const trimWhitespace = Boolean(
-      this.trim_whitespace ?? this.trim_whitespace ?? false
+      this.trim_whitespace ?? false
     );
 
     const value = trimWhitespace ? text.trim() : text;
@@ -1486,15 +1500,15 @@ export class IndexOfTextNode extends BaseNode {
   declare search_from_end: any;
 
   async process(): Promise<Record<string, unknown>> {
-    let haystack = String(this.text ?? this.text ?? "");
-    let needle = String(this.substring ?? this.substring ?? "");
+    let haystack = String(this.text ?? "");
+    let needle = String(this.substring ?? "");
     const caseSensitive = Boolean(
-      this.case_sensitive ?? this.case_sensitive ?? true
+      this.case_sensitive ?? true
     );
-    const startIndex = Number(this.start_index ?? this.start_index ?? 0);
-    const endIndex = Number(this.end_index ?? this.end_index ?? 0);
+    const startIndex = Number(this.start_index ?? 0);
+    const endIndex = Number(this.end_index ?? 0);
     const searchFromEnd = Boolean(
-      this.search_from_end ?? this.search_from_end ?? false
+      this.search_from_end ?? false
     );
 
     if (!caseSensitive) {
@@ -1505,10 +1519,11 @@ export class IndexOfTextNode extends BaseNode {
     const effectiveEnd = endIndex > 0 ? endIndex : haystack.length;
 
     if (searchFromEnd) {
-      // lastIndexOf's second arg is the position to search backward from.
-      // We want to find the last occurrence within [startIndex, effectiveEnd).
-      // Search backward from effectiveEnd - 1, then verify >= startIndex.
-      const idx = haystack.lastIndexOf(needle, effectiveEnd - 1);
+      // lastIndexOf's second arg is the highest index a match may *start* at.
+      // For the match to fit within [startIndex, effectiveEnd) it must start
+      // no later than effectiveEnd - needle.length.
+      const fromIndex = effectiveEnd - needle.length;
+      const idx = fromIndex < 0 ? -1 : haystack.lastIndexOf(needle, fromIndex);
       return { output: idx >= startIndex ? idx : -1 };
     }
 
@@ -1547,11 +1562,11 @@ export class SurroundWithTextNode extends BaseNode {
   declare skip_if_wrapped: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    const prefix = String(this.prefix ?? this.prefix ?? "");
-    const suffix = String(this.suffix ?? this.suffix ?? "");
+    const text = String(this.text ?? "");
+    const prefix = String(this.prefix ?? "");
+    const suffix = String(this.suffix ?? "");
     const skipIfWrapped = Boolean(
-      this.skip_if_wrapped ?? this.skip_if_wrapped ?? true
+      this.skip_if_wrapped ?? true
     );
 
     if (skipIfWrapped && text.startsWith(prefix) && text.endsWith(suffix)) {
@@ -1585,12 +1600,17 @@ export class CountTokensNode extends BaseNode {
   declare encoding: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const text = String(this.text ?? this.text ?? "");
-    if (!text.trim()) {
+    const text = String(this.text ?? "");
+    if (!text) {
       return { output: 0 };
     }
-    const tokens = text.match(/[A-Za-z0-9_]+|[^\s]/g) ?? [];
-    return { output: tokens.length };
+    const encodingName = String(this.encoding ?? "cl100k_base") as
+      | "cl100k_base"
+      | "p50k_base"
+      | "r50k_base";
+    const { getEncoding } = await import("js-tiktoken");
+    const encoder = getEncoding(encodingName);
+    return { output: encoder.encode(text).length };
   }
 }
 
@@ -1644,14 +1664,27 @@ export class HtmlToTextNode extends BaseNode {
   declare ignore_mailto_links: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const html = String(this.html ?? this.html ?? "");
-    const baseUrl = String(this.base_url ?? this.base_url ?? "");
-    const bodyWidth = Number(this.body_width ?? this.body_width ?? 1000);
+    const html = String(this.html ?? "");
+    const baseUrl = String(this.base_url ?? "");
+    const bodyWidth = Number(this.body_width ?? 1000);
+    const ignoreImages = Boolean(this.ignore_images ?? true);
+    const ignoreMailtoLinks = Boolean(this.ignore_mailto_links ?? true);
 
     let text = html;
     // Remove scripts and styles
     text = text.replace(/<script[\s\S]*?<\/script>/gi, "");
     text = text.replace(/<style[\s\S]*?<\/style>/gi, "");
+
+    // Images: drop entirely, or render as markdown when not ignored
+    if (ignoreImages) {
+      text = text.replace(/<img[^>]*>/gi, "");
+    } else {
+      text = text.replace(/<img[^>]*>/gi, (tag: string) => {
+        const src = tag.match(/src=["']([^"']*)["']/i)?.[1] ?? "";
+        const alt = tag.match(/alt=["']([^"']*)["']/i)?.[1] ?? "";
+        return src ? `![${alt}](${src})` : alt;
+      });
+    }
 
     // Convert headers to markdown-style
     text = text.replace(/<h([1-6])[^>]*>([\s\S]*?)<\/h\1>/gi, (_m, level: string, content: string) => {
@@ -1663,12 +1696,15 @@ export class HtmlToTextNode extends BaseNode {
     // Convert links: <a href="url">text</a> -> text (url)
     text = text.replace(/<a\s+[^>]*href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi, (_m, href: string, linkText: string) => {
       const clean = linkText.replace(/<[^>]+>/g, "").trim();
+      if (ignoreMailtoLinks && /^mailto:/i.test(href)) {
+        return clean;
+      }
       let resolvedUrl = href;
-      if (baseUrl && href && !href.match(/^https?:\/\//)) {
+      if (baseUrl && href && !/^[a-z][a-z0-9+.-]*:/i.test(href)) {
         const base = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
         resolvedUrl = href.startsWith("/") ? baseUrl.replace(/\/$/, "") + href : base + href;
       }
-      if (baseUrl && resolvedUrl && resolvedUrl !== clean) {
+      if (resolvedUrl && resolvedUrl !== clean) {
         return `${clean} (${resolvedUrl})`;
       }
       return clean;
@@ -1709,8 +1745,8 @@ export class HtmlToTextNode extends BaseNode {
       .replace(/&#39;/g, "'")
       .replace(/&apos;/g, "'")
       .replace(/&quot;/g, '"')
-      .replace(/&#(\d+);/g, (_m, code: string) => String.fromCharCode(Number(code)))
-      .replace(/&#x([0-9a-fA-F]+);/g, (_m, code: string) => String.fromCharCode(parseInt(code, 16)));
+      .replace(/&#(\d+);/g, (_m, code: string) => String.fromCodePoint(Number(code)))
+      .replace(/&#x([0-9a-fA-F]+);/g, (_m, code: string) => String.fromCodePoint(parseInt(code, 16)));
 
     // Normalize whitespace: collapse multiple blank lines
     text = text.replace(/\n{3,}/g, "\n\n");
@@ -1738,17 +1774,6 @@ export class HtmlToTextNode extends BaseNode {
 
     return { output: text.trim() };
   }
-}
-
-function seededEmbedding(input: string, dims: number = 64): number[] {
-  const out = new Array<number>(dims).fill(0);
-  for (let i = 0; i < input.length; i++) {
-    const code = input.charCodeAt(i);
-    const idx = i % dims;
-    out[idx] += (code % 97) / 97;
-  }
-  const norm = Math.sqrt(out.reduce((a, b) => a + b * b, 0)) || 1;
-  return out.map((v) => v / norm);
 }
 
 export class AutomaticSpeechRecognitionNode extends BaseNode {
@@ -1792,9 +1817,35 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
   })
   declare audio: any;
 
+  @prop({
+    type: "str",
+    default: "",
+    title: "Language",
+    description: "Language of the audio (ISO 639-1 code, empty for auto-detect)"
+  })
+  declare language: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "Optional prompt to guide the transcription"
+  })
+  declare prompt: any;
+
+  @prop({
+    type: "float",
+    default: 0,
+    title: "Temperature",
+    description: "Sampling temperature for the transcription model",
+    min: 0,
+    max: 1
+  })
+  declare temperature: any;
+
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const { providerId, modelId } = modelConfig(this.serialize());
-    const audio = (this.audio ?? this.audio ?? {}) as Record<string, unknown>;
+    const audio = (this.audio ?? {}) as Record<string, unknown>;
     let bytes = new Uint8Array();
     if (typeof audio.data === "string") {
       bytes = Uint8Array.from(Buffer.from(audio.data, "base64"));
@@ -1826,9 +1877,9 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
         model: modelId,
         params: {
           audio: bytes,
-          language: (this as any).language,
-          prompt: (this as any).prompt,
-          temperature: (this as any).temperature
+          language: String(this.language ?? "") || undefined,
+          prompt: String(this.prompt ?? "") || undefined,
+          temperature: Number(this.temperature ?? 0) || undefined
         }
       })) as string;
       return { text, output: text };
@@ -1884,9 +1935,30 @@ export class EmbeddingTextNode extends BaseNode {
   })
   declare chunk_size: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const text = String(this.input ?? this.input ?? "");
-    return { output: seededEmbedding(text) };
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const text = String(this.input ?? "");
+    if (!text) {
+      throw new Error("input text must not be empty");
+    }
+    const { providerId, modelId } = modelConfig(this.serialize());
+    if (!context || typeof context.runProviderPrediction !== "function") {
+      throw new Error("Embedding requires a processing context with provider access");
+    }
+    if (!providerId || !modelId) {
+      throw new Error("Embedding requires an embedding model with provider and id");
+    }
+    const model = (this.model ?? {}) as Record<string, unknown>;
+    const dimensions = Number(model.dimensions ?? 0);
+    const vectors = (await context.runProviderPrediction({
+      provider: providerId,
+      capability: "generate_embedding",
+      model: modelId,
+      params: {
+        text,
+        ...(dimensions > 0 ? { dimensions } : {})
+      }
+    })) as number[][];
+    return { output: vectors[0] ?? [] };
   }
 }
 
@@ -2059,12 +2131,12 @@ export class LoadTextFolderNode extends BaseNode {
     text: string;
     path: string;
   }> {
-    const folder = String(this.folder ?? this.folder ?? "");
+    const folder = String(this.folder ?? "");
     const includeSubdirs = Boolean(
-      this.include_subdirectories ?? this.include_subdirectories ?? false
+      this.include_subdirectories ?? false
     );
-    const extensions = Array.isArray(this.extensions ?? this.extensions)
-      ? ((this.extensions ?? this.extensions) as unknown[]).map((v) =>
+    const extensions = Array.isArray(this.extensions)
+      ? ((this.extensions) as unknown[]).map((v) =>
           String(v).toLowerCase()
         )
       : [".txt"];

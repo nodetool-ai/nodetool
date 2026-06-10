@@ -42,6 +42,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
+import { MOTION } from "./tokens";
 
 export interface StateIconButtonProps {
   /**
@@ -205,7 +206,7 @@ export const StateIconButton = memo(
           size={size}
           color={isActive && color !== "default" ? color : "default"}
           sx={{
-            transition: "all 0.15s ease",
+            transition: MOTION.fast,
             ...(isActive && {
               color:
                 (color !== "default" ? theme.vars.palette[color]?.main : undefined) ||

@@ -79,8 +79,14 @@ export function fromPersistedSketchEditorState(
   const history = Array.isArray(persisted.history)
     ? cloneValue(persisted.history)
     : [];
-  const historyIndex =
-    typeof persisted.historyIndex === "number" ? persisted.historyIndex : -1;
+  const rawIndex =
+    typeof persisted.historyIndex === "number" &&
+    Number.isFinite(persisted.historyIndex)
+      ? Math.trunc(persisted.historyIndex)
+      : -1;
+  // Clamp to valid range so a corrupted/hand-edited save can't cause
+  // undo/redo to walk off the array.
+  const historyIndex = Math.max(-1, Math.min(rawIndex, history.length - 1));
 
   return {
     document,

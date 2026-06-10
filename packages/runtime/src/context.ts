@@ -1315,21 +1315,19 @@ export class ProcessingContext {
     return this._messages.shift();
   }
 
-  private _messageResolve: (() => void) | null = null;
+  private _messageWaiters: Array<() => void> = [];
 
   /** Notify that a new message has been pushed. */
   private _notifyMessage(): void {
-    if (this._messageResolve) {
-      const resolve = this._messageResolve;
-      this._messageResolve = null;
-      resolve();
-    }
+    const waiters = this._messageWaiters;
+    this._messageWaiters = [];
+    for (const resolve of waiters) resolve();
   }
 
   async popMessageAsync(): Promise<ProcessingMessage> {
     while (this._messages.length === 0) {
       await new Promise<void>((r) => {
-        this._messageResolve = r;
+        this._messageWaiters.push(r);
       });
     }
     return this._messages.shift() as ProcessingMessage;
@@ -2216,7 +2214,8 @@ export class ProcessingContext {
           numFrames: params.num_frames as number | undefined,
           durationSeconds: params.duration_seconds as number | undefined,
           aspectRatio: params.aspect_ratio as string | undefined,
-          resolution: params.resolution as string | undefined
+          resolution: params.resolution as string | undefined,
+          timeoutSeconds: params.timeout_seconds as number | undefined
         });
       case "image_to_video":
         return provider.imageToVideo(coerceImageList(params), {
@@ -2226,7 +2225,8 @@ export class ProcessingContext {
           numFrames: params.num_frames as number | undefined,
           durationSeconds: params.duration_seconds as number | undefined,
           aspectRatio: params.aspect_ratio as string | undefined,
-          resolution: params.resolution as string | undefined
+          resolution: params.resolution as string | undefined,
+          timeoutSeconds: params.timeout_seconds as number | undefined
         });
       case "upscale_image":
         return provider.upscaleImage(params.image as Uint8Array, {

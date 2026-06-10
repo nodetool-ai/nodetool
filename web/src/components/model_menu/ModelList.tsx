@@ -228,7 +228,7 @@ function ModelList<TModel extends ModelSelectorModel>({
               <ListItemText
                 primary={
                   <FlexRow
-                    gap={0.75}
+                    gap={1}
                     align="center"
                     justify="space-between"
                     fullWidth

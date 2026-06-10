@@ -379,12 +379,46 @@ describe("AssetStore", () => {
 
       const { load } = useAssetStore.getState();
       const result = await load({
-        workflow_id: "test-workflow",
-        cursor: "test-cursor"
+        workflow_id: "test-workflow"
       });
 
       expect(listQuery).toHaveBeenCalledWith({ workflow_id: "test-workflow" });
       expect(result).toEqual(mockAssetList);
+    });
+
+    it("should route recursive queries to the recursive tRPC procedure", async () => {
+      const mockAssets = [
+        {
+          id: "asset1",
+          name: "nested.jpg",
+          content_type: "image/jpeg",
+          size: 1024,
+          created_at: "2023-01-01T00:00:00Z",
+          parent_id: "folder1",
+          user_id: "test-user",
+          get_url: "/assets/asset1",
+          workflow_id: null,
+          thumb_url: null,
+          metadata: {}
+        }
+      ];
+      recursiveQuery.mockResolvedValueOnce({ assets: mockAssets });
+
+      const { load } = useAssetStore.getState();
+      const result = await load({ parent_id: "folder1", recursive: true });
+
+      expect(recursiveQuery).toHaveBeenCalledWith({ id: "folder1" });
+      expect(listQuery).not.toHaveBeenCalled();
+      expect(result).toEqual({ next: null, assets: mockAssets });
+    });
+
+    it("should reject recursive queries without a parent_id", async () => {
+      const { load } = useAssetStore.getState();
+      await expect(load({ recursive: true })).rejects.toThrow(
+        "Recursive asset queries require a parent_id"
+      );
+      expect(recursiveQuery).not.toHaveBeenCalled();
+      expect(listQuery).not.toHaveBeenCalled();
     });
   });
 

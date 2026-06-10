@@ -598,4 +598,24 @@ describe("migrateTranscriptToClips", () => {
     const clips = [audioClip("a-aud")];
     expect(migrateTranscriptToClips([], clips, "audio")).toBe(clips);
   });
+
+  it("keeps the voiceover clip when it carries the caption itself", () => {
+    // The audio clip already has caption words (clip-sourced model). It must
+    // not be mistaken for a redundant caption clip and removed.
+    const aud: TimelineClip = {
+      ...audioClip("a-aud", "hello"),
+      caption: { words: words(["hello", 0, 300]) }
+    };
+    const line: TranscriptLine = {
+      id: "l",
+      text: "hello",
+      beatStartMs: 0,
+      clipIds: ["a-aud"]
+    };
+    const out = migrateTranscriptToClips([line], [aud], "audio");
+    expect(out).toHaveLength(1);
+    const kept = out.find((c) => c.id === "a-aud")!;
+    expect(kept.mediaType).toBe("audio");
+    expect(kept.caption?.words).toEqual(words(["hello", 0, 300]));
+  });
 });

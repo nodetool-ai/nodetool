@@ -16,8 +16,16 @@ interface PoolEntry {
   url: string;
 }
 
+function abortError(): DOMException {
+  return new DOMException("Video seek aborted", "AbortError");
+}
+
 export class OffscreenVideoPool {
   private readonly container: HTMLDivElement;
+  /** Keyed by clip id — two clips of the same asset must hold separate
+   *  elements, since the export loop seeks every layer of a frame before any
+   *  upload happens (a shared element would show the last-seeked time on all
+   *  layers). Elements are still reused across frames for the same clip. */
   private readonly entries = new Map<string, PoolEntry>();
 
   constructor() {
@@ -28,14 +36,21 @@ export class OffscreenVideoPool {
   }
 
   /**
-   * Return a video element decoded to `timeSec` of `url`. Resolves once the
-   * exact frame is available. Subsequent calls for the same url reuse the
+   * Return a video element for `clipId` decoded to `timeSec` of `url`.
+   * Resolves once the exact frame is available; rejects on media error or
+   * when `signal` aborts. Subsequent calls for the same clip reuse the
    * element. The returned element must be uploaded synchronously by the
-   * caller before the next `seek` on the same element.
+   * caller before the next `seek` for the same clip.
    */
-  async seek(url: string, timeSec: number): Promise<HTMLVideoElement> {
-    const el = this.ensureElement(url);
-    await this.whenMetadata(el);
+  async seek(
+    clipId: string,
+    url: string,
+    timeSec: number,
+    signal?: AbortSignal
+  ): Promise<HTMLVideoElement> {
+    if (signal?.aborted) throw abortError();
+    const el = this.ensureElement(clipId, url);
+    await this.whenMetadata(el, signal);
 
     const duration = Number.isFinite(el.duration) ? el.duration : Infinity;
     const target = Math.max(
@@ -48,20 +63,42 @@ export class OffscreenVideoPool {
       return el;
     }
 
-    await new Promise<void>((resolve) => {
-      const onSeeked = () => {
+    await new Promise<void>((resolve, reject) => {
+      const cleanup = () => {
         el.removeEventListener("seeked", onSeeked);
+        el.removeEventListener("error", onError);
+        signal?.removeEventListener("abort", onAbort);
+      };
+      const onSeeked = () => {
+        cleanup();
         resolve();
       };
+      const onError = () => {
+        cleanup();
+        reject(new Error(`Video error while seeking: ${el.src}`));
+      };
+      const onAbort = () => {
+        cleanup();
+        reject(abortError());
+      };
       el.addEventListener("seeked", onSeeked);
+      el.addEventListener("error", onError);
+      signal?.addEventListener("abort", onAbort);
       el.currentTime = target;
     });
     return el;
   }
 
-  private ensureElement(url: string): HTMLVideoElement {
-    const existing = this.entries.get(url);
-    if (existing) return existing.el;
+  private ensureElement(clipId: string, url: string): HTMLVideoElement {
+    const existing = this.entries.get(clipId);
+    if (existing) {
+      if (existing.url === url) return existing.el;
+      // Clip resolved to a new asset mid-render — point the element at it.
+      existing.el.src = url;
+      existing.el.load();
+      existing.url = url;
+      return existing.el;
+    }
 
     const el = document.createElement("video");
     el.preload = "auto";
@@ -71,11 +108,14 @@ export class OffscreenVideoPool {
     el.src = url;
     el.load();
     this.container.appendChild(el);
-    this.entries.set(url, { el, url });
+    this.entries.set(clipId, { el, url });
     return el;
   }
 
-  private whenMetadata(el: HTMLVideoElement): Promise<void> {
+  private whenMetadata(
+    el: HTMLVideoElement,
+    signal?: AbortSignal
+  ): Promise<void> {
     // readyState >= HAVE_METADATA means duration + dimensions are known.
     if (el.readyState >= 1 && el.videoWidth > 0) return Promise.resolve();
     return new Promise<void>((resolve, reject) => {
@@ -87,12 +127,18 @@ export class OffscreenVideoPool {
         cleanup();
         reject(new Error(`Failed to load video: ${el.src}`));
       };
+      const onAbort = () => {
+        cleanup();
+        reject(abortError());
+      };
       const cleanup = () => {
         el.removeEventListener("loadedmetadata", onLoaded);
         el.removeEventListener("error", onError);
+        signal?.removeEventListener("abort", onAbort);
       };
       el.addEventListener("loadedmetadata", onLoaded);
       el.addEventListener("error", onError);
+      signal?.addEventListener("abort", onAbort);
     });
   }
 

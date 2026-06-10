@@ -1,20 +1,22 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import {
+  audioBytesAsync,
   audioRefFromWav,
   decodeWav,
-  encodeWav
+  encodeWav,
+  type WavData
 } from "../lib/audio-wav.js";
 
 // ── Part B: Audio filter/effect nodes (node-web-audio-api) ─────────
 
 async function processAudioWithEffect(
-  audio: Record<string, unknown>,
+  wav: WavData,
   setupEffect: (ctx: any, source: any) => void,
   extraLength = 0
 ): Promise<Record<string, unknown>> {
   const { OfflineAudioContext } = await import("node-web-audio-api");
-  const wav = decodeWav(audio);
   const frameSamples = Math.floor(wav.samples.length / wav.numChannels);
   const totalFrames = frameSamples + extraLength;
 
@@ -96,14 +98,15 @@ export class GainNode_ extends BaseNode {
   })
   declare gain_db: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const gainDb = Number(this.gain_db ?? 0);
 
-    if (!audio.data) return { output: audio };
+    const bytes = await audioBytesAsync(audio, context);
+    if (bytes.length === 0) return { output: audio };
 
     const output = await processAudioWithEffect(
-      audio,
+      decodeWav({ data: bytes }),
       (ctx: any, source: any) => {
         const gainNode = ctx.createGain();
         gainNode.gain.value = Math.pow(10, gainDb / 20);
@@ -171,15 +174,16 @@ export class DelayNode_ extends BaseNode {
   })
   declare mix: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const delaySec = Number(this.delay_seconds ?? 0.5);
     const feedback = Number(this.feedback ?? 0.3);
     const mix = Number(this.mix ?? 0.5);
 
-    if (!audio.data) return { output: audio };
+    const bytes = await audioBytesAsync(audio, context);
+    if (bytes.length === 0) return { output: audio };
 
-    const wav = decodeWav(audio);
+    const wav = decodeWav({ data: bytes });
     const frameSamples = Math.floor(wav.samples.length / wav.numChannels);
     const delaySamples = Math.floor(delaySec * wav.sampleRate);
 
@@ -196,18 +200,16 @@ export class DelayNode_ extends BaseNode {
         dry[i] = wav.samples[i * wav.numChannels + ch];
       }
 
-      // Apply delay with feedback
-      for (let i = 0; i < outLength; i++) {
-        const dryVal = i < frameSamples ? dry[i] : 0;
-        const delayedVal = i >= delaySamples ? wet[i - delaySamples] : 0;
-        wet[i] = dryVal + delayedVal * feedback;
+      // Wet = echoes only (delayed dry plus feedback of the delay line), so
+      // `mix` truly blends dry against wet instead of always passing dry.
+      for (let i = delaySamples; i < outLength; i++) {
+        wet[i] = dry[i - delaySamples] + wet[i - delaySamples] * feedback;
       }
 
       // Mix dry and wet
       for (let i = 0; i < outLength; i++) {
-        const dryVal = i < frameSamples ? dry[i] : 0;
         outSamples[i * wav.numChannels + ch] =
-          dryVal * (1 - mix) + wet[i] * mix;
+          dry[i] * (1 - mix) + wet[i] * mix;
       }
     }
 
@@ -254,14 +256,15 @@ export class HighPassFilterNode extends BaseNode {
   })
   declare cutoff_frequency_hz: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const cutoff = Number(this.cutoff_frequency_hz ?? 80);
 
-    if (!audio.data) return { output: audio };
+    const bytes = await audioBytesAsync(audio, context);
+    if (bytes.length === 0) return { output: audio };
 
     const output = await processAudioWithEffect(
-      audio,
+      decodeWav({ data: bytes }),
       (ctx: any, source: any) => {
         const filter = ctx.createBiquadFilter();
         filter.type = "highpass";
@@ -310,14 +313,15 @@ export class LowPassFilterNode extends BaseNode {
   })
   declare cutoff_frequency_hz: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const cutoff = Number(this.cutoff_frequency_hz ?? 5000);
 
-    if (!audio.data) return { output: audio };
+    const bytes = await audioBytesAsync(audio, context);
+    if (bytes.length === 0) return { output: audio };
 
     const output = await processAudioWithEffect(
-      audio,
+      decodeWav({ data: bytes }),
       (ctx: any, source: any) => {
         const filter = ctx.createBiquadFilter();
         filter.type = "lowpass";
@@ -377,15 +381,16 @@ export class HighShelfFilterNode extends BaseNode {
   })
   declare gain_db: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const cutoff = Number(this.cutoff_frequency_hz ?? 5000);
     const gainDb = Number(this.gain_db ?? 0);
 
-    if (!audio.data) return { output: audio };
+    const bytes = await audioBytesAsync(audio, context);
+    if (bytes.length === 0) return { output: audio };
 
     const output = await processAudioWithEffect(
-      audio,
+      decodeWav({ data: bytes }),
       (ctx: any, source: any) => {
         const filter = ctx.createBiquadFilter();
         filter.type = "highshelf";
@@ -446,15 +451,16 @@ export class LowShelfFilterNode extends BaseNode {
   })
   declare gain_db: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const cutoff = Number(this.cutoff_frequency_hz ?? 200);
     const gainDb = Number(this.gain_db ?? 0);
 
-    if (!audio.data) return { output: audio };
+    const bytes = await audioBytesAsync(audio, context);
+    if (bytes.length === 0) return { output: audio };
 
     const output = await processAudioWithEffect(
-      audio,
+      decodeWav({ data: bytes }),
       (ctx: any, source: any) => {
         const filter = ctx.createBiquadFilter();
         filter.type = "lowshelf";
@@ -526,16 +532,17 @@ export class PeakFilterNode extends BaseNode {
   })
   declare gain_db: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const cutoff = Number(this.cutoff_frequency_hz ?? 1000);
     const q = Number(this.q_factor ?? 1.0);
     const gainDb = Number(this.gain_db ?? 0);
 
-    if (!audio.data) return { output: audio };
+    const bytes = await audioBytesAsync(audio, context);
+    if (bytes.length === 0) return { output: audio };
 
     const output = await processAudioWithEffect(
-      audio,
+      decodeWav({ data: bytes }),
       (ctx: any, source: any) => {
         const filter = ctx.createBiquadFilter();
         filter.type = "peaking";

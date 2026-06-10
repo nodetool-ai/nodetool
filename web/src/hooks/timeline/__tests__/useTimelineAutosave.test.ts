@@ -2,7 +2,10 @@ import { describe, expect, it, beforeEach, jest } from "@jest/globals";
 import { act, renderHook, waitFor } from "@testing-library/react";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
-import { useTimelineAutosave } from "../useTimelineAutosave";
+import {
+  useTimelineAutosave,
+  markTimelineLoadMigrated
+} from "../useTimelineAutosave";
 import { trpcClient } from "../../../__mocks__/trpcClientMock";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 
@@ -265,6 +268,121 @@ describe("useTimelineAutosave", () => {
 
     // The second save fires without waiting for the debounce timer.
     await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(2));
+  });
+
+  it("sends the freshest baseUpdatedAt for a save queued behind an in-flight one", async () => {
+    seedSequence();
+    let resolveFirst: (v: unknown) => void = () => {};
+    (updateMutate as any).mockImplementationOnce(
+      () =>
+        new Promise((resolve: (v: unknown) => void) => {
+          resolveFirst = resolve;
+        })
+    );
+
+    renderHook(() => useTimelineAutosave({ debounceMs: 50 }));
+
+    act(() => {
+      useTimelineStore.getState().addTrack("video");
+    });
+    act(() => {
+      jest.advanceTimersByTime(60);
+    });
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
+
+    // An edit captured while the first save is still in flight snapshots the
+    // PRE-response token — the follow-up save must not send it.
+    act(() => {
+      useTimelineStore.getState().addTrack("audio");
+    });
+    await act(async () => {
+      resolveFirst({
+        id: "seq-1",
+        updatedAt: "2026-01-01T00:10:00Z"
+      });
+    });
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(2));
+
+    expect(
+      (updateMutate.mock.calls[1][0] as { baseUpdatedAt?: string })
+        .baseUpdatedAt
+    ).toBe("2026-01-01T00:10:00Z");
+  });
+
+  it("retries a failed save on the unmount flush", async () => {
+    seedSequence();
+    (updateMutate as any).mockRejectedValueOnce(new Error("boom"));
+    const { unmount } = renderHook(() =>
+      useTimelineAutosave({ debounceMs: 50 })
+    );
+
+    act(() => {
+      useTimelineStore.getState().addTrack("video");
+    });
+    act(() => {
+      jest.advanceTimersByTime(60);
+    });
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
+    // Wait for the failure handler to restore the snapshot.
+    await waitFor(() => {
+      const notifications = useNotificationStore.getState().notifications;
+      expect(notifications.some((n) => n.content.includes("autosave"))).toBe(
+        true
+      );
+    });
+
+    // No hot retry loop while idle.
+    act(() => {
+      jest.advanceTimersByTime(500);
+    });
+    expect(updateMutate).toHaveBeenCalledTimes(1);
+
+    // The unmount flush retries the restored snapshot.
+    unmount();
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(2));
+    const retryArg = updateMutate.mock.calls[1][0] as {
+      document: { tracks: unknown[] };
+    };
+    expect(retryArg.document.tracks).toHaveLength(1);
+  });
+
+  it("does not schedule a save when a sequence is loaded after mount", async () => {
+    renderHook(() => useTimelineAutosave({ debounceMs: 50 }));
+
+    act(() => {
+      seedSequence();
+    });
+    act(() => {
+      jest.advanceTimersByTime(500);
+    });
+    expect(updateMutate).not.toHaveBeenCalled();
+
+    // A real edit after the load still saves.
+    act(() => {
+      useTimelineStore.getState().addTrack("video");
+    });
+    act(() => {
+      jest.advanceTimersByTime(60);
+    });
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
+  });
+
+  it("persists a load that migrated a legacy transcript exactly once", async () => {
+    renderHook(() => useTimelineAutosave({ debounceMs: 50 }));
+
+    act(() => {
+      markTimelineLoadMigrated("seq-1");
+      seedSequence();
+    });
+    act(() => {
+      jest.advanceTimersByTime(60);
+    });
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
+
+    act(() => {
+      jest.advanceTimersByTime(500);
+    });
+    expect(updateMutate).toHaveBeenCalledTimes(1);
   });
 
   it("notifies on save failure", async () => {

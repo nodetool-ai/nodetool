@@ -30,7 +30,7 @@ const SearchResultsBase: React.FC<SearchResultsProps> = ({ items }) => (
         >
           {String(index + 1).padStart(2, "0")}
         </Text>
-        <FlexColumn gap={0.25} sx={{ minWidth: 0, flex: 1 }}>
+        <FlexColumn gap={0.5} sx={{ minWidth: 0, flex: 1 }}>
           <FlexRow gap={1} justify="space-between" align="baseline" sx={{ minWidth: 0 }}>
             {item.url ? (
               <Text

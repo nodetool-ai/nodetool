@@ -317,5 +317,54 @@ describe("ResultsStore", () => {
       expect(useResultsStore.getState().getProviderCost(workflowId1, jobId1, nodeId2)).toBeUndefined();
       expect(useResultsStore.getState().getProviderCost(workflowId1, jobId1, "node-3")).toEqual(cost("c"));
     });
+
+    it("clearResults purges every per-node map for the node", () => {
+      const store = useResultsStore.getState();
+      const task: Task = {
+        type: "task",
+        id: "t1",
+        title: "task",
+        description: "",
+        steps: []
+      };
+      const toolCall: ToolCallUpdate = {
+        type: "tool_call_update",
+        name: "tool",
+        args: {},
+        message: "calling"
+      };
+      const planningUpdate: PlanningUpdate = {
+        type: "planning_update",
+        phase: "planning",
+        status: "in_progress",
+        content: "plan"
+      };
+
+      store.setProviderCost(workflowId1, jobId1, nodeId1, cost("a"));
+      store.setOutputResult(workflowId1, jobId1, nodeId1, "out");
+      store.setProgress(workflowId1, jobId1, nodeId1, 50, 100);
+      store.addChunk(workflowId1, jobId1, nodeId1, "chunk");
+      store.setTask(workflowId1, jobId1, nodeId1, task);
+      store.setToolCall(workflowId1, jobId1, nodeId1, toolCall);
+      store.appendToolResult(workflowId1, jobId1, nodeId1, "tool-out");
+      store.setPlanningUpdate(workflowId1, jobId1, nodeId1, planningUpdate);
+      store.upsertLiveGeneration(workflowId1, nodeId1, jobId1, { status: "running" });
+      // Same node id in another workflow must survive.
+      store.setOutputResult(workflowId2, jobId1, nodeId1, "other-out");
+
+      useResultsStore.getState().clearResults(workflowId1, new Set([nodeId1]));
+
+      const state = useResultsStore.getState();
+      expect(state.getProviderCost(workflowId1, jobId1, nodeId1)).toBeUndefined();
+      expect(state.getOutputResult(workflowId1, jobId1, nodeId1)).toBeUndefined();
+      expect(state.getProgress(workflowId1, jobId1, nodeId1)).toBeUndefined();
+      expect(state.getChunk(workflowId1, jobId1, nodeId1)).toBeUndefined();
+      expect(state.getTask(workflowId1, jobId1, nodeId1)).toBeUndefined();
+      expect(state.getToolCall(workflowId1, jobId1, nodeId1)).toBeUndefined();
+      expect(state.getToolResults(workflowId1, jobId1, nodeId1)).toEqual([]);
+      expect(state.getPlanningUpdate(workflowId1, jobId1, nodeId1)).toBeUndefined();
+      expect(state.getLiveGenerations(workflowId1, nodeId1)).toEqual([]);
+      expect(state.getOutputResult(workflowId2, jobId1, nodeId1)).toBe("other-out");
+    });
   });
 });

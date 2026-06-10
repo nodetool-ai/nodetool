@@ -24,6 +24,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
+import { MOTION } from "./tokens";
 
 const FEEDBACK_TIMEOUT = 2000;
 
@@ -194,7 +195,7 @@ export const CopyButton = memo(
               color: theme.vars.palette.grey[300],
               "&:hover": {
                 color: theme.vars.palette.grey[100],
-                backgroundColor: "rgba(255, 255, 255, 0.08)"
+                backgroundColor: `rgba(${theme.vars.palette.common.whiteChannel ?? '255 255 255'} / 0.08)`
               },
               ...(sx ?? {})
             }}

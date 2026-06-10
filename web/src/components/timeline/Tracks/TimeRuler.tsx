@@ -13,7 +13,8 @@ import React, {
   memo,
   useCallback,
   useEffect,
-  useRef
+  useRef,
+  useState
 } from "react";
 import { css } from "@emotion/react";
 import { useColorScheme, useTheme } from "@mui/material/styles";
@@ -183,6 +184,23 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
     const markers = useTimelineStore((s) => s.markers);
     const removeScene = useTimelineStore((s) => s.removeScene);
 
+    // ── Resize → redraw ─────────────────────────────────────────────────────
+    //
+    // The canvas backing store is sized from offsetWidth/offsetHeight inside
+    // the draw effect; bump a tick on container resize so the effect reruns
+    // and the ruler redraws at the new size.
+
+    const [resizeTick, setResizeTick] = useState(0);
+    useEffect(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        return;
+      }
+      const ro = new ResizeObserver(() => setResizeTick((t) => t + 1));
+      ro.observe(canvas);
+      return () => ro.disconnect();
+    }, []);
+
     // ── Draw ────────────────────────────────────────────────────────────────
 
     useEffect(() => {
@@ -273,7 +291,7 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
         ctx.lineTo(px + 0.5, h);
         ctx.stroke();
       }
-    }, [msPerPx, scrollLeftPx, totalWidthPx, theme, headerWidthPx, activeMode, markers]);
+    }, [msPerPx, scrollLeftPx, totalWidthPx, theme, headerWidthPx, activeMode, markers, resizeTick]);
 
     // ── Pointer interaction ─────────────────────────────────────────────────
 

@@ -468,6 +468,10 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     [theme, props.selected, isFocused, inputAccentColor]
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const isModalOpenRef = useRef(false);
+  useEffect(() => {
+    isModalOpenRef.current = isModalOpen;
+  }, [isModalOpen]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [editorDocument, setEditorDocument] = useState<SketchDocument | null>(
     null
@@ -932,7 +936,8 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
 
           // Push the updated layer into the live editor store when open, or
           // prepare editorDocument for the next open when the modal is closed.
-          if (isModalOpen) {
+          // Read the ref so we get the current modal state, not the stale closure value.
+          if (isModalOpenRef.current) {
             const storeState = useSketchStore.getState();
             const currentDoc = storeState.document;
             const storeLayerIdx = currentDoc.layers.findIndex(
@@ -975,8 +980,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     layerInputResults,
     sketchDoc,
     props.id,
-    updateNodeProperties,
-    isModalOpen
+    updateNodeProperties
   ]);
 
   // ─── Generate preview and update output properties ────────────────

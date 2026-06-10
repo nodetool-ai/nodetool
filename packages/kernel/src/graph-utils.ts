@@ -141,8 +141,11 @@ function getOutputTypeString(
  * Look up the declared type string of a node's input (property) handle.
  *
  * Checks propertyTypes first (the authoritative map after graph load),
- * then falls back to the property value's `type` field for backwards
- * compatibility with raw graph payloads.
+ * then falls back to a property value carrying an explicit `type` field for
+ * backwards compatibility with raw graph payloads. Plain string property
+ * values are runtime data (saved literals), never type names — treating
+ * them as types made bypass rewrites drop edges as "incompatible"
+ * (mirrors Graph.validateEdgeTypes).
  */
 function getInputTypeString(
   node: NodeDescriptor | undefined,
@@ -158,9 +161,6 @@ function getInputTypeString(
       const t = (val as { type: unknown }).type;
       // Stryker disable next-line ConditionalExpression: forcing this true is equivalent — returning a non-string `t` vs undefined are indistinguishable downstream (typesCompatible treats both as compatible)
       if (typeof t === "string") return t;
-    } else {
-      // Stryker disable next-line ConditionalExpression: forcing this true is equivalent — returning a non-string `val` vs undefined are indistinguishable downstream
-      if (typeof val === "string") return val;
     }
   }
   return undefined;

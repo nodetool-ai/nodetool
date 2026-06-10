@@ -107,6 +107,13 @@ function formatRelativeTime(ms: number): string {
   return `+${(ms / 1000).toFixed(1)}s`;
 }
 
+function getOutputText(detail: unknown): string | null {
+  if (!detail || typeof detail !== "object") return null;
+  const value = (detail as Record<string, unknown>).value;
+  if (typeof value === "string") return value;
+  return null;
+}
+
 function LLMDetail({ detail }: { detail: Record<string, unknown> }) {
   return (
     <div>
@@ -160,6 +167,12 @@ const TraceRow = memo(function TraceRow({
   onToggle: (id: string) => void;
 }) {
   const handleClick = useCallback(() => onToggle(event.id), [onToggle, event.id]);
+  const outputText = event.type === "output" ? getOutputText(event.detail) : null;
+  const displaySummary =
+    outputText !== null
+      ? `${event.summary}: ${outputText.length > 80 ? outputText.slice(0, 80) + "…" : outputText}`
+      : event.summary;
+
   return (
     <>
       <div
@@ -171,7 +184,7 @@ const TraceRow = memo(function TraceRow({
       >
         <span className="trace-time">{formatRelativeTime(event.relativeMs)}</span>
         <span className="trace-icon">{EVENT_ICONS[event.type]}</span>
-        <span className="trace-summary">{event.summary}</span>
+        <span className="trace-summary">{displaySummary}</span>
         {expanded ? (
           <ExpandLessIcon sx={{ fontSize: 14, color: "text.disabled" }} />
         ) : (
@@ -182,6 +195,8 @@ const TraceRow = memo(function TraceRow({
         <div className="trace-detail">
           {event.type === "llm_call" ? (
             <LLMDetail detail={event.detail as Record<string, unknown>} />
+          ) : outputText !== null ? (
+            <pre>{outputText}</pre>
           ) : (
             <pre>{JSON.stringify(event.detail, null, 2)}</pre>
           )}
@@ -197,6 +212,43 @@ const TracePanel: React.FC = () => {
   const clear = useTraceStore((s) => s.clear);
   const exportJSON = useTraceStore((s) => s.exportJSON);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  // Collapse consecutive output events from the same node+output into one
+  // row. Streaming output_update values are deltas (ResultsStore accumulates
+  // them with append=true), so concatenate string values to show the full
+  // streamed text. Keep the first event's id/relativeMs so an expanded row
+  // survives new chunks and is anchored at the stream's start.
+  const groupedEvents = useMemo(() => {
+    const result: TraceEvent[] = [];
+    for (const event of events) {
+      const prev = result[result.length - 1];
+      if (
+        event.type === "output" &&
+        prev?.type === "output" &&
+        prev.nodeId === event.nodeId &&
+        prev.summary === event.summary
+      ) {
+        const prevText = getOutputText(prev.detail);
+        const text = getOutputText(event.detail);
+        result[result.length - 1] = {
+          ...event,
+          id: prev.id,
+          relativeMs: prev.relativeMs,
+          timestamp: prev.timestamp,
+          detail:
+            prevText !== null && text !== null
+              ? {
+                  ...(event.detail as Record<string, unknown>),
+                  value: prevText + text
+                }
+              : event.detail
+        };
+      } else {
+        result.push(event);
+      }
+    }
+    return result;
+  }, [events]);
 
   const handleToggle = useCallback((id: string) => {
     setExpandedIds((prev) => {
@@ -264,7 +316,7 @@ const TracePanel: React.FC = () => {
             size="small"
           />
         ) : (
-          events.map((event) => (
+          groupedEvents.map((event) => (
             <TraceRow
               key={event.id}
               event={event}

@@ -8,6 +8,7 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import NorthEastIcon from "@mui/icons-material/NorthEast";
 import LaunchIcon from "@mui/icons-material/Launch";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { MOTION } from "./tokens";
 
 const styles = (theme: Theme) =>
   css({
@@ -16,7 +17,7 @@ const styles = (theme: Theme) =>
     display: "inline-flex",
     alignItems: "center",
     gap: theme.spacing(0.5),
-    transition: "color 0.2s ease",
+    transition: `color ${MOTION.normal}`,
     "&:hover": {
       textDecoration: "underline",
       color: theme.vars.palette.primary.light
@@ -58,10 +59,10 @@ const ExternalLinkInternal: React.FC<ExternalLinkProps> = ({
   // Use theme typography scale for consistent sizing
   const fontSize =
     size === "small"
-      ? "0.75rem"
+      ? theme.fontSizeSmaller
       : size === "large"
-      ? "1rem"
-      : "0.875rem";
+      ? theme.fontSizeNormal
+      : theme.fontSizeSmall;
 
   const getIcon = () => {
     switch (iconVariant) {

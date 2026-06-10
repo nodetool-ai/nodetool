@@ -1,4 +1,4 @@
-import type { NodeMetadata } from "../stores/ApiTypes";
+import type { FalUnitPricing, NodeMetadata } from "../stores/ApiTypes";
 
 interface LivePricingResponse {
   byEndpointId: Record<string, { unit_price: number; billing_unit: string; currency: string }>;
@@ -7,14 +7,16 @@ interface LivePricingResponse {
 
 /**
  * Fetches live FAL unit prices for a specific set of endpoint IDs.
- * Merges results into metadataByType in place, marking them source: "live".
- * Returns true if any entries were updated (caller should re-set store state).
+ * Does NOT mutate `metadataByType`; instead returns a map of node type →
+ * fresh `fal_unit_pricing` (marked source: "live") for the entries that were
+ * updated, or null when nothing changed. The caller merges these into new
+ * metadata objects so per-node selectors re-render.
  */
 export async function fetchLiveFalPricing(
   metadataByType: Record<string, NodeMetadata>,
   endpointIds: string[],
-): Promise<boolean> {
-  if (endpointIds.length === 0) return false;
+): Promise<Record<string, FalUnitPricing> | null> {
+  if (endpointIds.length === 0) return null;
 
   const url = new URL("/api/fal/pricing", window.location.origin);
   for (const id of endpointIds) url.searchParams.append("endpoint_id", id);
@@ -22,21 +24,22 @@ export async function fetchLiveFalPricing(
   let data: LivePricingResponse;
   try {
     const res = await fetch(url.toString());
-    if (!res.ok || res.status === 204) return false;
+    if (!res.ok || res.status === 204) return null;
     data = (await res.json()) as LivePricingResponse;
-    if (!data.byEndpointId) return false;
+    if (!data.byEndpointId) return null;
   } catch (err) {
     console.error("[fal-pricing] fetch error:", err);
-    return false;
+    return null;
   }
 
-  let updated = 0;
-  for (const md of Object.values(metadataByType)) {
+  const updated: Record<string, FalUnitPricing> = {};
+  let updatedCount = 0;
+  for (const [nodeType, md] of Object.entries(metadataByType)) {
     const existing = md.fal_unit_pricing;
     if (!existing) continue;
     const fresh = data.byEndpointId[existing.endpoint_id];
     if (!fresh) continue;
-    md.fal_unit_pricing = {
+    updated[nodeType] = {
       endpoint_id: existing.endpoint_id,
       unit_price: fresh.unit_price,
       billing_unit: fresh.billing_unit,
@@ -44,7 +47,7 @@ export async function fetchLiveFalPricing(
       source: "live",
       checked_at: data.fetched_at,
     };
-    updated++;
+    updatedCount++;
   }
-  return updated > 0;
+  return updatedCount > 0 ? updated : null;
 }

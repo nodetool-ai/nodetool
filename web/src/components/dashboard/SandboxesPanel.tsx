@@ -346,7 +346,7 @@ const SandboxesPanel: React.FC = () => {
                           p: 1
                         }}
                       >
-                        <FlexColumn gap={0.75}>
+                        <FlexColumn gap={1}>
                           {toolCalls.map((call) => (
                             <Caption key={call.id} size="small">
                               {call.timestamp ? `[${call.timestamp}] ` : ""}

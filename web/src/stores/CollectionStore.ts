@@ -54,6 +54,12 @@ interface CollectionStore {
   handleDrop: (collectionName: string) => (event: React.DragEvent<HTMLDivElement>) => Promise<void>;
 }
 
+// Monotonic token identifying the latest drop. Overlapping drops each capture
+// their own token; only the latest drop is allowed to write the shared
+// indexProgress/indexErrors state, so an older in-flight drop can't clobber
+// the progress UI of a newer one.
+let dropCounter = 0;
+
 export const useCollectionStore = create<CollectionStore>()(
   devtools(
     (set, get) => ({
@@ -126,12 +132,16 @@ export const useCollectionStore = create<CollectionStore>()(
 
       handleDrop: (collectionName: string) => async (event: React.DragEvent<HTMLDivElement>) => {
         event.preventDefault();
-        set({ dragOverCollection: null, indexErrors: [] });
+        set({ dragOverCollection: null });
 
         const files = Array.from(event.dataTransfer.files);
         if (files.length === 0) {return;}
 
+        const dropId = ++dropCounter;
+        const isLatestDrop = () => dropId === dropCounter;
+
         set({
+          indexErrors: [],
           indexProgress: {
             collection: collectionName,
             current: 0,
@@ -178,21 +188,25 @@ export const useCollectionStore = create<CollectionStore>()(
             });
           } finally {
             completed++;
-            set((state) => ({
-              indexProgress: state.indexProgress
-                ? {
-                    ...state.indexProgress,
-                    current: completed
-                  }
-                : null
-            }));
+            if (isLatestDrop()) {
+              set((state) => ({
+                indexProgress: state.indexProgress
+                  ? {
+                      ...state.indexProgress,
+                      current: completed
+                    }
+                  : null
+              }));
+            }
           }
         }
 
         await get().fetchCollections();
         // Indexing changes the collection's document count; refresh consumers.
         queryClient.invalidateQueries({ queryKey: ["collections"] });
-        set({ indexProgress: null, indexErrors: errors });
+        if (isLatestDrop()) {
+          set({ indexProgress: null, indexErrors: errors });
+        }
       }
     }),
     {

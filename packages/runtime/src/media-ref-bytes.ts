@@ -34,6 +34,19 @@ function decodeBase64(b64: string): Uint8Array {
   return out;
 }
 
+/** Encode bytes → base64 without requiring the `Buffer` global. */
+export function encodeBase64(bytes: Uint8Array): string {
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(bytes).toString("base64");
+  }
+  const chunks: string[] = [];
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    chunks.push(String.fromCharCode(...bytes.subarray(i, i + CHUNK)));
+  }
+  return btoa(chunks.join(""));
+}
+
 /** Encode a UTF-8 string → bytes without requiring the `Buffer` global. */
 function encodeUtf8(text: string): Uint8Array {
   if (typeof Buffer !== "undefined") {
@@ -65,16 +78,21 @@ export function isAbsoluteFilePath(uri: string): boolean {
   );
 }
 
+/** Decode a `data:` URI's payload, honoring the `;base64` header flag. */
+function decodeDataUri(uri: string): Uint8Array | null {
+  const parts = uri.split(",", 2);
+  if (parts.length !== 2) {
+    return null;
+  }
+  const [header, data] = parts;
+  return header.includes(";base64")
+    ? decodeBase64(data)
+    : encodeUtf8(decodeURIComponent(data));
+}
+
 async function readUriBytes(uri: string): Promise<Uint8Array | null> {
   if (uri.startsWith("data:")) {
-    const parts = uri.split(",", 2);
-    if (parts.length !== 2) {
-      return null;
-    }
-    const [header, data] = parts;
-    return header.includes(";base64")
-      ? decodeBase64(data)
-      : encodeUtf8(decodeURIComponent(data));
+    return decodeDataUri(uri);
   }
 
   if (uri.startsWith("file://")) {
@@ -110,9 +128,7 @@ export async function loadMediaRefBytes(
 
   const data = value.data;
   if (typeof data === "string" && data.length > 0) {
-    const comma = data.startsWith("data:") ? data.indexOf(",") : -1;
-    const b64 = comma >= 0 ? data.slice(comma + 1) : data;
-    return decodeBase64(b64);
+    return data.startsWith("data:") ? decodeDataUri(data) : decodeBase64(data);
   }
   if (data instanceof Uint8Array && data.length > 0) {
     return data;

@@ -43,6 +43,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
+import { MOTION } from "./tokens";
 
 export interface CircularActionButtonProps {
   /**
@@ -271,7 +272,7 @@ export const CircularActionButton = memo(
         borderRadius: theme.rounded.circle,
         backgroundColor: bgColor,
         color: iconColor,
-        transition: "all 0.15s ease",
+        transition: MOTION.all,
         position,
         ...(top !== undefined && { top }),
         ...(bottom !== undefined && { bottom }),

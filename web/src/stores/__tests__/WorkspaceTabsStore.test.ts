@@ -82,6 +82,18 @@ describe("openTab", () => {
       title: "Flow 1" // preserved when reopened without a title
     });
   });
+
+  it("preserves an existing tab's mode when reopened without a mode", () => {
+    const store = useWorkspaceTabsStore.getState();
+    store.openTab({ type: "workflow", ref: "wf1", mode: "view" });
+    store.openTab({ type: "image", ref: "img1" });
+    // Refocus without specifying a mode — must NOT flip back to "edit".
+    store.openTab({ type: "workflow", ref: "wf1" });
+
+    const state = useWorkspaceTabsStore.getState();
+    expect(state.activeTabId).toBe("workflow:wf1");
+    expect(state.getActiveTab()).toMatchObject({ mode: "view" });
+  });
 });
 
 describe("mode", () => {

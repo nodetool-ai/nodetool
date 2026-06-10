@@ -344,8 +344,8 @@ const JobItem = ({ job }: { job: Job }) => {
       }}
     >
       <StatusTile job={job} cancelling={cancelling} />
-      <FlexColumn gap={0.25} sx={{ flex: "0 1 240px", minWidth: 0 }}>
-        <FlexRow align="baseline" gap={0.75} sx={{ minWidth: 0 }}>
+      <FlexColumn gap={0.5} sx={{ flex: "0 1 240px", minWidth: 0 }}>
+        <FlexRow align="baseline" gap={1} sx={{ minWidth: 0 }}>
           <Text size="small" weight={500} truncate sx={{ minWidth: 0 }}>
             {workflowName}
           </Text>

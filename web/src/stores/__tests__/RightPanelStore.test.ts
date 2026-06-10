@@ -108,6 +108,49 @@ describe("RightPanelStore", () => {
     });
   });
 
+  describe("setVisibility", () => {
+    it("restores the panel to the usable minimum when reopening from a collapsed sliver", () => {
+      const { closePanel, setVisibility } = useRightPanelStore.getState();
+
+      act(() => {
+        // Drag-collapse persists panelSize: 60 (MIN_DRAG_SIZE) and hides.
+        closePanel();
+        setVisibility(true);
+      });
+
+      const { panel } = useRightPanelStore.getState();
+      expect(panel.isVisible).toBe(true);
+      expect(panel.panelSize).toBe(250);
+    });
+
+    it("keeps the current size when reopening with a usable size", () => {
+      const { setSize, setVisibility } = useRightPanelStore.getState();
+
+      act(() => {
+        setSize(400);
+        setVisibility(false);
+        setVisibility(true);
+      });
+
+      const { panel } = useRightPanelStore.getState();
+      expect(panel.isVisible).toBe(true);
+      expect(panel.panelSize).toBe(400);
+    });
+
+    it("does not resize when hiding the panel", () => {
+      const { setSize, setVisibility } = useRightPanelStore.getState();
+
+      act(() => {
+        setSize(60);
+        setVisibility(false);
+      });
+
+      const { panel } = useRightPanelStore.getState();
+      expect(panel.isVisible).toBe(false);
+      expect(panel.panelSize).toBe(60);
+    });
+  });
+
   describe("closePanel", () => {
     it("closes panel and sets size to minimum", () => {
       const { closePanel, setVisibility, setSize } = useRightPanelStore.getState();

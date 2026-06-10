@@ -70,10 +70,13 @@ type WorkflowSubscription = {
 
 const workflowSubscriptions = new Map<string, WorkflowSubscription>();
 
-// The job_id whose run is currently being recorded into the TraceStore. Used to
-// call startRun() exactly once per run (startRun clears prior events), so the
-// trace panel shows a fresh timeline per execution rather than accumulating.
-let traceRunJobId: string | null = null;
+// Per-workflow job_id whose run is currently being recorded into the
+// TraceStore. Used to call startRun() exactly once per run (startRun clears
+// prior events), so the trace panel shows a fresh timeline per execution
+// rather than accumulating. Keyed by workflow id so concurrent runs of
+// different workflows don't ping-pong a shared id and repeatedly wipe the
+// trace timeline.
+const traceRunJobIds = new Map<string, string | null>();
 
 /**
  * Append one event to the global TraceStore (the LLM/agent debug timeline shown
@@ -230,6 +233,7 @@ export const subscribeToWorkflowUpdates = (
         unsubscribeJob = null;
       }
       workflowSubscriptions.delete(workflowId);
+      traceRunJobIds.delete(workflowId);
     }
   });
 
@@ -481,8 +485,12 @@ export const handleUpdate = (
       // Begin a fresh LLM/agent trace timeline for the runner's own run. Guarded
       // by job_id so startRun (which clears prior events) fires once per run, not
       // on every running/queued heartbeat.
-      if (isRunnerJob && job.job_id !== traceRunJobId) {
-        traceRunJobId = job.job_id ?? null;
+      const incomingTraceJobId = job.job_id ?? null;
+      if (
+        isRunnerJob &&
+        incomingTraceJobId !== traceRunJobIds.get(workflow.id)
+      ) {
+        traceRunJobIds.set(workflow.id, incomingTraceJobId);
         useTraceStore.getState().startRun(new Date().toISOString());
       }
     } else if (job.status === "suspended") {

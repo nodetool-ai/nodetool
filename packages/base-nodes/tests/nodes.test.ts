@@ -117,7 +117,7 @@ describe("input/output/workspace nodes", () => {
   it("StringInputNode enforces max length", async () => {
     const node = new StringInputNode();
     node.assign({ value: "abcdef", max_length: 3 });
-    await expect(node.process({})).resolves.toEqual({ value: "abc" });
+    await expect(node.process({})).resolves.toEqual({ output: "abc" });
   });
 
   it("MessageDeconstructorNode extracts text and metadata", async () => {
@@ -686,11 +686,29 @@ describe("text nodes", () => {
     expect(items.length).toBe(1);
     expect(items[0].text).toBe("abc");
 
+    // Embedding requires a provider-backed context — no more fake fallback.
+    const _embNoCtx = new EmbeddingTextNode();
+    _embNoCtx.assign({ input: "hello world" });
+    await expect(_embNoCtx.process()).rejects.toThrow(
+      /provider/i
+    );
+
     const _emb = new EmbeddingTextNode();
     _emb.assign({ input: "hello world" });
-    const emb = await _emb.process();
-    expect(Array.isArray(emb.output)).toBe(true);
-    expect((emb.output as number[]).length).toBe(64);
+    const runProviderPrediction = vi
+      .fn()
+      .mockResolvedValue([[0.1, 0.2, 0.3]]);
+    const emb = await _emb.process({
+      runProviderPrediction
+    } as never);
+    expect(emb.output).toEqual([0.1, 0.2, 0.3]);
+    expect(runProviderPrediction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        capability: "generate_embedding",
+        provider: "openai",
+        model: "text-embedding-3-small"
+      })
+    );
   });
 });
 
@@ -713,7 +731,6 @@ describe("constant nodes", () => {
     const _cis = new ConstantImageSizeNode();
     _cis.assign({ value: { width: 640, height: 480 } });
     await expect(_cis.process()).resolves.toEqual({
-      output: { width: 640, height: 480 },
       image_size: { width: 640, height: 480 },
       width: 640,
       height: 480

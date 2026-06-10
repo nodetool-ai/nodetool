@@ -250,6 +250,9 @@ export class WorkflowRunner {
    */
   private _completedNodes = new Set<string>();
 
+  /** Errors reported by node actors, keyed by node id. */
+  private _nodeErrors = new Map<string, string>();
+
   constructor(jobId: string, options: WorkflowRunnerOptions) {
     this.jobId = jobId;
     this._options = options;
@@ -432,6 +435,29 @@ export class WorkflowRunner {
       // Post-completion: drain any edges that still have pending/open state
       this._drainActiveEdges();
 
+      // A node failure fails the whole job (Python parity). Actors swallow
+      // their own errors so sibling branches can finish, but the final
+      // status must not report success when any node errored.
+      if (!this._cancelled && this._nodeErrors.size > 0) {
+        const error = [...this._nodeErrors]
+          .map(([nodeId, msg]) => `Node "${nodeId}" failed: ${msg}`)
+          .join("; ");
+        log.error("Workflow failed", { jobId: request.job_id, error });
+        this._emit({
+          type: "job_update",
+          status: "failed",
+          job_id: request.job_id,
+          workflow_id: request.workflow_id ?? null,
+          error
+        });
+        return {
+          outputs: Object.fromEntries(this._outputs),
+          messages: this._messages,
+          status: "failed",
+          error
+        };
+      }
+
       const status = this._cancelled ? "cancelled" : "completed";
       log.info("Workflow completed", { jobId: request.job_id, status });
 
@@ -492,6 +518,7 @@ export class WorkflowRunner {
     this._pendingControlResponses = new Map();
     this._completedNodes = new Set();
     this._executors = new Map();
+    this._nodeErrors = new Map();
     this._correlation = undefined;
   }
 
@@ -736,13 +763,40 @@ export class WorkflowRunner {
       }
 
       const value = hasRuntimeParam ? params[inputName] : properties.value;
+
+      // Run the node's own process() so transforming input nodes (e.g.
+      // DocumentFileInput building a DocumentRef, StringInput applying
+      // max_length, MessageDeconstructor splitting a message) emit their
+      // declared per-handle outputs instead of leaking the raw value to
+      // every edge. Uses the cached executor instance initialized in
+      // _initializeGraph. Test doubles whose process() returns an empty
+      // record fall back to raw-value dispatch per handle below; a real
+      // process() failure fails the run rather than leaking the raw value.
+      const executor = this._resolveExecutor(node);
+      let nodeOutputs: Record<string, unknown>;
+      try {
+        nodeOutputs = await executor.process(
+          { value },
+          this._options.executionContext
+        );
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        throw new Error(
+          `Input node "${node.name ?? node.id}" (${node.type}) failed: ${message}`
+        );
+      }
+
       const outgoing = this._graph
         .findOutgoingEdges(node.id)
         .filter(isDataEdge);
       for (const edge of outgoing) {
         const targetInbox = this._inboxes.get(edge.target);
         if (targetInbox) {
-          await targetInbox.put(edge.targetHandle, value, {
+          const handleValue =
+            nodeOutputs[edge.sourceHandle] !== undefined
+              ? nodeOutputs[edge.sourceHandle]
+              : value;
+          await targetInbox.put(edge.targetHandle, handleValue, {
             source_edge_id:
               edge.id ??
               syntheticEdgeId(
@@ -827,6 +881,10 @@ export class WorkflowRunner {
 
       actorPromises.push(
         actor.run().then(async (result) => {
+          if (result.error !== undefined) {
+            this._nodeErrors.set(node.id, result.error);
+          }
+
           // After actor completes, send EOS to all downstream inboxes
           await this._sendEOS(node.id);
 

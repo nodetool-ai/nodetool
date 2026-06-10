@@ -82,7 +82,7 @@ describe("AudioQueueStore", () => {
   });
 
   describe("dequeue", () => {
-    it("clears current playing item without auto-playing next", () => {
+    it("promotes the next queued item when the playing item is dequeued", () => {
       const onPlay1 = jest.fn();
       const onStop1 = jest.fn();
       const item1 = { id: "audio1", onPlay: onPlay1, onStop: onStop1 };
@@ -97,11 +97,26 @@ describe("AudioQueueStore", () => {
         useAudioQueue.getState().dequeue("audio1");
       });
 
-      // Dequeue clears current without auto-playing next
+      // The next queued item is promoted and starts playing
+      expect(onPlay2).toHaveBeenCalledTimes(1);
+      expect(useAudioQueue.getState().currentPlayingId).toBe("audio2");
+      expect(useAudioQueue.getState().currentItem?.id).toBe("audio2");
+      expect(useAudioQueue.getState().queue).toHaveLength(0);
+    });
+
+    it("clears current playback when dequeueing the playing item with empty queue", () => {
+      const onPlay1 = jest.fn();
+      const onStop1 = jest.fn();
+      const item1 = { id: "audio1", onPlay: onPlay1, onStop: onStop1 };
+
+      act(() => {
+        useAudioQueue.getState().enqueue(item1);
+        useAudioQueue.getState().dequeue("audio1");
+      });
+
       expect(useAudioQueue.getState().currentPlayingId).toBeNull();
-      // The queue still contains the next item
-      expect(useAudioQueue.getState().queue).toHaveLength(1);
-      expect(useAudioQueue.getState().queue[0].id).toBe("audio2");
+      expect(useAudioQueue.getState().currentItem).toBeNull();
+      expect(useAudioQueue.getState().queue).toHaveLength(0);
     });
 
     it("removes item from queue without affecting current playback", () => {
@@ -182,7 +197,12 @@ describe("AudioQueueStore", () => {
         useAudioQueue.getState().stopAll();
       });
 
+      // The currently playing item is actually stopped
+      expect(onStop1).toHaveBeenCalledTimes(1);
+      // Queued (never-played) items don't get onStop
+      expect(onStop2).not.toHaveBeenCalled();
       expect(useAudioQueue.getState().currentPlayingId).toBeNull();
+      expect(useAudioQueue.getState().currentItem).toBeNull();
       expect(useAudioQueue.getState().queue).toHaveLength(0);
     });
 

@@ -63,7 +63,7 @@ export const Chip: React.FC<ChipProps> = ({
         fontWeight: active ? 600 : 400,
         ...(compact && {
           height: "22px",
-          fontSize: theme.fontSizeTinyer || "0.7rem",
+          fontSize: theme.fontSizeSmaller,
           "& .MuiChip-label": {
             px: 1,
           },
