@@ -121,9 +121,7 @@ export const ScriptLaneHeader: React.FC = () => (
 
 // ── Lane (for the scrollable lanes area) ──────────────────────────────────────
 
-export const ScriptLane: React.FC<{ totalWidthPx: number }> = ({
-  totalWidthPx
-}) => {
+export const ScriptLane: React.FC = () => {
   const clips = useTimelineStore((s) => s.clips);
   const msPerPx = useTimelineUIStore((s) => s.msPerPx);
   const selectedClipIds = useTimelineUIStore((s) => s.selectedClipIds);
@@ -137,7 +135,7 @@ export const ScriptLane: React.FC<{ totalWidthPx: number }> = ({
   );
 
   return (
-    <LaneRoot style={{ width: totalWidthPx }} data-testid="script-lane">
+    <LaneRoot style={{ width: "100%" }} data-testid="script-lane">
       {segments.map((seg, i) => {
         const prev = segments[i - 1];
         const gapMs = prev ? seg.startMs - prev.endMs : 0;

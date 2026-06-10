@@ -466,12 +466,12 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           >
             <div
               css={lanesContainerStyles}
-              style={{ width: totalWidthPx, height: totalTracksHeight }}
+              style={{ minWidth: totalWidthPx, width: "100%", height: totalTracksHeight }}
             >
               {tracks.map((track) => (
                 <React.Fragment key={track.id}>
                   {track.id === scriptBeforeTrackId && (
-                    <ScriptLane totalWidthPx={totalWidthPx} />
+                    <ScriptLane />
                   )}
                   <TrackLane track={track} />
                   {expandedFxTrackId === track.id && (
@@ -490,7 +490,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                 </React.Fragment>
               ))}
               {scriptBeforeTrackId === null && (
-                <ScriptLane totalWidthPx={totalWidthPx} />
+                <ScriptLane />
               )}
             </div>
           </div>
