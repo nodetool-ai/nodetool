@@ -38,7 +38,10 @@ export interface WorkspaceTab {
 export interface OpenTabInput {
   type: WorkspaceTabType;
   ref: string;
-  /** Defaults to "edit". */
+  /**
+   * New tabs default to "edit". For an existing tab the mode is only
+   * updated when one is explicitly given.
+   */
   mode?: WorkspaceTabMode;
   title?: string;
 }
@@ -143,7 +146,7 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
     (set, get) => ({
       ...seedTabsFromLegacy(),
 
-      openTab: ({ type, ref, mode = "edit", title }) => {
+      openTab: ({ type, ref, mode, title }) => {
         const id = tabId(type, ref);
         const existing = get().tabs.find((t) => t.id === id);
         if (existing) {
@@ -151,7 +154,7 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
             activeTabId: id,
             tabs: state.tabs.map((t) =>
               t.id === id
-                ? { ...t, mode, title: title ?? t.title }
+                ? { ...t, mode: mode ?? t.mode, title: title ?? t.title }
                 : t
             )
           }));
@@ -161,7 +164,7 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
           id,
           type,
           ref,
-          mode,
+          mode: mode ?? "edit",
           title: title ?? "Untitled"
         };
         set((state) => ({

@@ -26,6 +26,7 @@ const useRemoteSettingsStore = create<RemoteSettingsStore>((set, get) => ({
   error: null,
 
   fetchSettings: async () => {
+    set({ isLoading: true, error: null });
     try {
       const data = await trpcClient.settings.list.query();
       const settings = data.settings as SettingWithValue[];
@@ -43,13 +44,16 @@ const useRemoteSettingsStore = create<RemoteSettingsStore>((set, get) => ({
       set({
         settings,
         settingsByGroup,
-        isLoading: false
+        isLoading: false,
+        error: null
       });
 
       return settings;
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error(String(err));
-      throw createErrorMessage(error, "Failed to load settings");
+      const message = createErrorMessage(error, "Failed to load settings");
+      set({ isLoading: false, error: message.message });
+      throw message;
     }
   },
 

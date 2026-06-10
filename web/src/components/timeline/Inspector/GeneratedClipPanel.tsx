@@ -8,7 +8,7 @@
  * "Open in Node Editor" from the actions row.
  */
 
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useEffect, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -96,6 +96,15 @@ export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
       }
       return createNodeStore(workflow);
     }, [managerNodeStore, workflow]);
+    // Release the transient store's metadata subscription when it is
+    // replaced (workflow refetch) or the panel unmounts — otherwise every
+    // refetch leaks a NodeStore. cleanup() is idempotent.
+    useEffect(() => {
+      if (!transientNodeStore) {
+        return undefined;
+      }
+      return () => transientNodeStore.getState().cleanup();
+    }, [transientNodeStore]);
     const nodeStoreForForm = managerNodeStore ?? transientNodeStore;
 
     const inputDefinitions = useMemo<MiniAppInputDefinition[]>(() => {

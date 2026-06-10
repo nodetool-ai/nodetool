@@ -32,8 +32,10 @@ import useErrorStore from "./ErrorStore";
 import useStatusStore from "./StatusStore";
 import useExecutionTimeStore from "./ExecutionTimeStore";
 import usePropertyValidationStore from "./PropertyValidationStore";
+import useWorkflowRunsStore from "./WorkflowRunsStore";
 import { useFavoriteWorkflowsStore } from "./FavoriteWorkflowsStore";
 import { useWorkflowAssetStore } from "./WorkflowAssetStore";
+import { useSubgraphTabsStore } from "./SubgraphTabsStore";
 import { useCurrentWorkspaceStore } from "./CurrentWorkspaceStore";
 
 const isWorkflowNotFoundError = (err: unknown): boolean => {
@@ -166,7 +168,10 @@ export type WorkflowManagerState = {
   saveWorkflow: (workflow: Workflow) => Promise<void>;
   getCurrentWorkflow: () => Workflow | undefined;
   setCurrentWorkflowId: (workflowId: string) => void;
-  fetchWorkflow: (workflowId: string) => Promise<Workflow | undefined>;
+  fetchWorkflow: (
+    workflowId: string,
+    options?: { makeCurrent?: boolean }
+  ) => Promise<Workflow | undefined>;
   newWorkflow: () => Workflow;
   createNew: () => Promise<Workflow>;
   create: (
@@ -236,6 +241,30 @@ const pruneStaleWorkflowReference = (
   });
 };
 
+// Per-workflow MetadataStore subscriptions waiting for metadata to load so
+// live fal/kie pricing can be fetched. Tracked so removeWorkflow can release
+// them if metadata never loads while the workflow is open.
+const pricingMetadataUnsubs = new Map<string, Array<() => void>>();
+
+const registerPricingUnsub = (
+  workflowId: string,
+  unsub: () => void
+): void => {
+  const list = pricingMetadataUnsubs.get(workflowId) ?? [];
+  list.push(unsub);
+  pricingMetadataUnsubs.set(workflowId, list);
+};
+
+const releasePricingUnsubs = (workflowId: string): void => {
+  const list = pricingMetadataUnsubs.get(workflowId);
+  if (list) {
+    for (const unsub of list) {
+      unsub();
+    }
+    pricingMetadataUnsubs.delete(workflowId);
+  }
+};
+
 // -----------------------------------------------------------------
 // ZUSTAND STORE CREATION
 // -----------------------------------------------------------------
@@ -297,6 +326,12 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
          * @throws {Error} If the save operation fails
          */
         saveWorkflow: async (workflow: Workflow) => {
+          // Snapshot the node store's state references before the awaited
+          // mutation. Every NodeStore mutation produces new `nodes`/`edges`/
+          // `workflow` references, so reference equality after the await tells
+          // us whether the user edited the graph while the save was in flight.
+          const nodeStoreBefore = get().nodeStores[workflow.id];
+          const stateBefore = nodeStoreBefore?.getState();
 
           let data: Workflow;
           try {
@@ -347,10 +382,23 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           set((state) => {
             const nodeStore = state.nodeStores[persistedWorkflow.id];
             if (nodeStore) {
-              nodeStore.setState({
-                workflow: persistedWorkflow
-              });
-              nodeStore.getState().setWorkflowDirty(false);
+              const current = nodeStore.getState();
+              const editedDuringSave =
+                nodeStore !== nodeStoreBefore ||
+                !stateBefore ||
+                current.nodes !== stateBefore.nodes ||
+                current.edges !== stateBefore.edges ||
+                current.workflow !== stateBefore.workflow;
+              // Only mark the store clean (and adopt the server's workflow
+              // attributes) when nothing changed during the save. If the user
+              // edited meanwhile, keep the dirty flag and their attribute
+              // edits — the next autosave persists them.
+              if (!editedDuringSave) {
+                nodeStore.setState({
+                  workflow: persistedWorkflow
+                });
+                nodeStore.getState().setWorkflowDirty(false);
+              }
             }
 
             const index = state.openWorkflows.findIndex((w) => w.id === persistedWorkflow.id);
@@ -649,21 +697,40 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         ].filter((t) => t.startsWith("fal."));
 
         if (falNodeTypes.length > 0) {
+          // Returns true once metadata has loaded (the map is populated in one
+          // bulk setMetadata), whether or not any pricing was found — so the
+          // fallback subscription below always terminates after one real
+          // attempt instead of living forever when pricing never appears.
           const doFetch = (): boolean => {
             const meta = useMetadataStore.getState().metadata;
+            if (Object.keys(meta).length === 0) return false;
             const endpointIds = falNodeTypes
               .map((t) => meta[t]?.fal_unit_pricing?.endpoint_id)
               .filter((id): id is string => Boolean(id));
-            if (endpointIds.length === 0) return false;
-            fetchLiveFalPricing(meta, endpointIds)
-              .then((updated) => {
-                if (updated) {
-                  useMetadataStore.getState().setMetadata({ ...meta });
-                }
-              })
-              .catch(() => {
-                // surfaced as console.error inside fetchLiveFalPricing
-              });
+            if (endpointIds.length > 0) {
+              fetchLiveFalPricing(meta, endpointIds)
+                .then((updatedPricing) => {
+                  if (!updatedPricing) return;
+                  // Re-read the live map — metadata may have been reloaded
+                  // while the fetch was in flight; merge the fresh pricing
+                  // into cloned entries so per-node selectors re-render.
+                  const store = useMetadataStore.getState();
+                  const merged = { ...store.metadata };
+                  let changed = false;
+                  for (const [nodeType, pricing] of Object.entries(
+                    updatedPricing
+                  )) {
+                    const base = merged[nodeType];
+                    if (!base) continue;
+                    merged[nodeType] = { ...base, fal_unit_pricing: pricing };
+                    changed = true;
+                  }
+                  if (changed) store.setMetadata(merged);
+                })
+                .catch(() => {
+                  // surfaced as console.error inside fetchLiveFalPricing
+                });
+            }
             return true;
           };
 
@@ -671,6 +738,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             const unsub = useMetadataStore.subscribe(() => {
               if (doFetch()) unsub();
             });
+            registerPricingUnsub(workflow.id, unsub);
           }
         }
 
@@ -681,23 +749,37 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         ].filter((t) => t.startsWith("kie."));
 
         if (kieNodeTypes.length > 0) {
+          // Same termination contract as the FAL block above: true once
+          // metadata is loaded, regardless of whether pricing was found.
           const doFetchKie = (): boolean => {
             const meta = useMetadataStore.getState().metadata;
+            if (Object.keys(meta).length === 0) {
+              return false;
+            }
             const modelIds = kieNodeTypes
               .map((t) => meta[t]?.kie_unit_pricing?.model_id)
               .filter((id): id is string => Boolean(id));
-            if (modelIds.length === 0) {
-              return false;
+            if (modelIds.length > 0) {
+              fetchLiveKiePricing(meta, modelIds)
+                .then((updatedPricing) => {
+                  if (!updatedPricing) return;
+                  const store = useMetadataStore.getState();
+                  const merged = { ...store.metadata };
+                  let changed = false;
+                  for (const [nodeType, pricing] of Object.entries(
+                    updatedPricing
+                  )) {
+                    const base = merged[nodeType];
+                    if (!base) continue;
+                    merged[nodeType] = { ...base, kie_unit_pricing: pricing };
+                    changed = true;
+                  }
+                  if (changed) store.setMetadata(merged);
+                })
+                .catch(() => {
+                  // surfaced as console.error inside fetchLiveKiePricing
+                });
             }
-            fetchLiveKiePricing(meta, modelIds)
-              .then((updated) => {
-                if (updated) {
-                  useMetadataStore.getState().setMetadata({ ...meta });
-                }
-              })
-              .catch(() => {
-                // surfaced as console.error inside fetchLiveKiePricing
-              });
             return true;
           };
 
@@ -705,6 +787,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             const unsub = useMetadataStore.subscribe(() => {
               if (doFetchKie()) unsub();
             });
+            registerPricingUnsub(workflow.id, unsub);
           }
         }
       },
@@ -715,6 +798,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         */
        removeWorkflow: (workflowId: string) => {
          unsubscribeFromWorkflowUpdates(workflowId);
+         releasePricingUnsubs(workflowId);
 
          const { nodeStores, openWorkflows, currentWorkflowId, notifiedAutosaveVersions } = get();
 
@@ -748,12 +832,22 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
          useStatusStore.getState().clearStatuses(workflowId);
          useExecutionTimeStore.getState().clearTimings(workflowId);
          usePropertyValidationStore.getState().clearWorkflow(workflowId);
+         useWorkflowRunsStore.getState().clearWorkflow(workflowId);
+         useWorkflowAssetStore.getState().clearWorkflowAssets(workflowId);
+         // Close the workflow's subgraph tabs (cleans up their NodeStores).
+         useSubgraphTabsStore.getState().closeForWorkflow(workflowId);
 
          const newOpenWorkflows = openWorkflows.filter(
            (w) => w.id !== workflowId
          );
          const newStores = { ...nodeStores };
          delete newStores[workflowId];
+         // Subgraph tab stores are registered under `${workflowId}:${nodeId}`.
+         for (const key of Object.keys(newStores)) {
+           if (key.startsWith(`${workflowId}:`)) {
+             delete newStores[key];
+           }
+         }
 
          const newNotified = { ...notifiedAutosaveVersions };
          delete newNotified[workflowId];
@@ -851,7 +945,27 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       },
 
       // Fetches the workflow data by its ID, using QueryClient cache and adds the workflow store.
-      fetchWorkflow: async (workflowId: string) => {
+      // Pass { makeCurrent: false } for background loads (startup tab restore,
+      // sub-workflow lookups) so parallel fetches can't race to scramble the
+      // active tab.
+      fetchWorkflow: async (
+        workflowId: string,
+        options?: { makeCurrent?: boolean }
+      ) => {
+        const makeCurrent = options?.makeCurrent ?? true;
+        // Assets are non-critical to opening the workflow: log and continue
+        // instead of misreporting an asset failure as a workflow-load failure.
+        const loadAssetsNonFatal = async (id: string): Promise<void> => {
+          try {
+            await useWorkflowAssetStore.getState().loadWorkflowAssets(id);
+          } catch (err) {
+            console.warn(
+              `[WorkflowManager] Failed to load assets for workflow ${id}`,
+              err
+            );
+          }
+        };
+
         // If already have a NodeStore, just set current and ensure query cache is populated.
         const existing = get().getWorkflow(workflowId);
         if (existing) {
@@ -859,7 +973,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             workflowQueryKey(workflowId),
             existing
           );
-          get().setCurrentWorkflowId(workflowId);
+          if (makeCurrent) {
+            get().setCurrentWorkflowId(workflowId);
+          }
           return existing;
         }
 
@@ -869,8 +985,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         );
         if (cached) {
           get().addWorkflow(cached);
-          get().setCurrentWorkflowId(workflowId);
-          await useWorkflowAssetStore.getState().loadWorkflowAssets(workflowId);
+          if (makeCurrent) {
+            get().setCurrentWorkflowId(workflowId);
+          }
+          await loadAssetsNonFatal(workflowId);
           return cached;
         }
 
@@ -887,8 +1005,10 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             return undefined;
           }
           get().addWorkflow(data);
-          get().setCurrentWorkflowId(data.id);
-          await useWorkflowAssetStore.getState().loadWorkflowAssets(data.id);
+          if (makeCurrent) {
+            get().setCurrentWorkflowId(data.id);
+          }
+          await loadAssetsNonFatal(data.id);
           return data;
         } catch (e: unknown) {
           if (isWorkflowNotFoundError(e)) {
