@@ -711,9 +711,16 @@ describe("audio nodes — full coverage", () => {
     expect(Array.from(outData)).toEqual([1, 2, 3, 4]);
   });
 
-  it("TextToSpeechNode emits on the declared `audio` port", async () => {
+  it("TextToSpeechNode throws without a TTS-capable provider context", async () => {
     const _n = new TextToSpeechNode();
     _n.assign({ text: "hello" });
+    await expect(_n.process()).rejects.toThrow(/TTS provider/);
+  });
+
+  it("ChunkToAudioNode converts chunk with data on the `audio` port", async () => {
+    const data = Buffer.from([10, 20, 30]).toString("base64");
+    const _n = new ChunkToAudioNode();
+    _n.assign({ chunk: { data } });
     const result = await _n.process();
     // Output is keyed `audio` (matching metadataOutputTypes), not `output`.
     expect(result.output).toBeUndefined();
@@ -721,26 +728,37 @@ describe("audio nodes — full coverage", () => {
       (result.audio as { data: string }).data,
       "base64"
     );
-    expect(outData.toString("utf8")).toBe("hello");
+    expect(Array.from(outData)).toEqual([10, 20, 30]);
   });
 
-  it("ChunkToAudioNode converts chunk with data", async () => {
-    const data = Buffer.from([10, 20, 30]).toString("base64");
+  it("ChunkToAudioNode converts audio chunk content (base64)", async () => {
+    const content = Buffer.from([1, 2, 3, 4]).toString("base64");
     const _n = new ChunkToAudioNode();
-    _n.assign({ chunk: { data } });
+    _n.assign({ chunk: { type: "chunk", content_type: "audio", content } });
     const result = await _n.process();
     const outData = Buffer.from(
-      (result.output as { data: string }).data,
+      (result.audio as { data: string }).data,
       "base64"
     );
-    expect(Array.from(outData)).toEqual([10, 20, 30]);
+    expect(Array.from(outData)).toEqual([1, 2, 3, 4]);
+  });
+
+  it("ChunkToAudioNode does not treat text chunk content as audio", async () => {
+    const _n = new ChunkToAudioNode();
+    _n.assign({ chunk: { type: "chunk", content_type: "text", content: "hi" } });
+    const result = await _n.process();
+    const outData = Buffer.from(
+      (result.audio as { data: string }).data,
+      "base64"
+    );
+    expect(outData.length).toBe(0);
   });
 
   it("ChunkToAudioNode handles chunk with uri", async () => {
     const _n = new ChunkToAudioNode();
     _n.assign({ chunk: { uri: "file://test.wav" } });
     const result = await _n.process();
-    expect((result.output as { data: string }).data).toBeDefined();
+    expect((result.audio as { uri: string }).uri).toBe("file://test.wav");
   });
 
   it("ChunkToAudioNode handles null chunk", async () => {
@@ -748,7 +766,7 @@ describe("audio nodes — full coverage", () => {
     _n.assign({ chunk: null });
     const result = await _n.process();
     const outData = Buffer.from(
-      (result.output as { data: string }).data,
+      (result.audio as { data: string }).data,
       "base64"
     );
     expect(outData.length).toBe(0);
@@ -977,8 +995,7 @@ describe("audio nodes — full coverage", () => {
       speed: 1
     });
     expect(new ChunkToAudioNode().serialize()).toMatchObject({
-      chunk: { type: "chunk", content: "", content_type: "text" },
-      batch_size: 50
+      chunk: { type: "chunk", content: "", content_type: "text" }
     });
   });
 
