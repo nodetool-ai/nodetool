@@ -44,7 +44,9 @@ export const mixerDropShadowV1 = defineRecipe({
     color: { label: "Shadow color", notes: "RGBA, straight alpha" },
     offsetX: { min: -0.5, max: 0.5, step: 0.005, label: "Offset X" },
     offsetY: { min: -0.5, max: 0.5, step: 0.005, label: "Offset Y" },
-    radius: { min: 0, max: 40, step: 0.5, label: "Radius", notes: "blur radius, px" },
+    // Capped at 20 to match `filters.blur.gaussian@1`'s hard
+    // `kernelRadius = min(radius, 20)` clamp; a higher max silently truncates.
+    radius: { min: 0, max: 20, step: 0.5, label: "Radius", notes: "blur radius, px" },
     intensity: { min: 0, max: 4, step: 0.01, label: "Intensity" }
   },
   io: {
