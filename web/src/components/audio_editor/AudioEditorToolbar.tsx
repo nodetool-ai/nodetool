@@ -183,7 +183,7 @@ const AudioEditorToolbar = memo(function AudioEditorToolbar({
         tooltip="Fit to window"
         onClick={onZoomFit}
       />
-      <FlexRow align="center" gap={0.75} sx={{ width: 160, mx: 0.5 }}>
+      <FlexRow align="center" gap={1} sx={{ width: 160, mx: 0.5 }}>
         <NodeSlider
           aria-label="Waveform zoom"
           value={zoomSliderValue}

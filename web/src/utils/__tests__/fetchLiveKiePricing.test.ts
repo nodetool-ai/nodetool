@@ -8,16 +8,17 @@ beforeEach(() => {
 });
 
 describe("fetchLiveKiePricing", () => {
-  it("returns false for empty modelIds", async () => {
+  it("returns null for empty modelIds", async () => {
     const result = await fetchLiveKiePricing({}, []);
-    expect(result).toBe(false);
+    expect(result).toBeNull();
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it("fetches with correct URL and updates metadata", async () => {
+  it("fetches with correct URL and returns updated pricing without mutating input", async () => {
+    const originalPricing = { model_id: "kie-ai/fast-gen" };
     const metadataByType: Record<string, any> = {
       "kie.FastGen": {
-        kie_unit_pricing: { model_id: "kie-ai/fast-gen" }
+        kie_unit_pricing: originalPricing
       }
     };
 
@@ -44,24 +45,33 @@ describe("fetchLiveKiePricing", () => {
       "kie-ai/fast-gen"
     ]);
 
-    expect(result).toBe(true);
     expect(mockFetch).toHaveBeenCalledWith(
       `${window.location.origin}/api/kie/pricing?model_id=kie-ai%2Ffast-gen`
     );
+    expect(result).toEqual({
+      "kie.FastGen": {
+        model_id: "kie-ai/fast-gen",
+        unit_price: 8,
+        billing_unit: "image",
+        currency: "credits",
+        usd_price: 0.08,
+        tier_count: 3,
+        pricing_url: "https://kie.ai/pricing",
+        source: "live",
+        checked_at: "2026-02-20T00:00:00Z"
+      }
+    });
+    // The input metadata is left untouched — callers merge the returned
+    // pricing into NEW metadata objects so per-node selectors re-render.
+    expect(metadataByType["kie.FastGen"].kie_unit_pricing).toBe(
+      originalPricing
+    );
     expect(metadataByType["kie.FastGen"].kie_unit_pricing).toEqual({
-      model_id: "kie-ai/fast-gen",
-      unit_price: 8,
-      billing_unit: "image",
-      currency: "credits",
-      usd_price: 0.08,
-      tier_count: 3,
-      pricing_url: "https://kie.ai/pricing",
-      source: "live",
-      checked_at: "2026-02-20T00:00:00Z"
+      model_id: "kie-ai/fast-gen"
     });
   });
 
-  it("returns false when no matching entries in response", async () => {
+  it("returns null when no matching entries in response", async () => {
     const metadataByType: Record<string, any> = {
       "kie.FastGen": {
         kie_unit_pricing: { model_id: "kie-ai/fast-gen" }
@@ -87,36 +97,36 @@ describe("fetchLiveKiePricing", () => {
     const result = await fetchLiveKiePricing(metadataByType, [
       "kie-ai/fast-gen"
     ]);
-    expect(result).toBe(false);
+    expect(result).toBeNull();
   });
 
-  it("returns false on fetch error", async () => {
+  it("returns null on fetch error", async () => {
     const spy = jest.spyOn(console, "error").mockImplementation(() => {});
     mockFetch.mockRejectedValue(new Error("Network error"));
 
     const result = await fetchLiveKiePricing({}, ["kie-ai/fast-gen"]);
-    expect(result).toBe(false);
+    expect(result).toBeNull();
     spy.mockRestore();
   });
 
-  it("returns false on non-ok response", async () => {
+  it("returns null on non-ok response", async () => {
     mockFetch.mockResolvedValue({
       ok: false,
       status: 500
     });
 
     const result = await fetchLiveKiePricing({}, ["kie-ai/fast-gen"]);
-    expect(result).toBe(false);
+    expect(result).toBeNull();
   });
 
-  it("returns false when response has no byModelId", async () => {
+  it("returns null when response has no byModelId", async () => {
     mockFetch.mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ fetched_at: "2026-02-20T00:00:00Z" })
     });
 
     const result = await fetchLiveKiePricing({}, ["kie-ai/fast-gen"]);
-    expect(result).toBe(false);
+    expect(result).toBeNull();
   });
 
   it("skips metadata entries without existing kie_unit_pricing", async () => {
@@ -143,7 +153,7 @@ describe("fetchLiveKiePricing", () => {
     const result = await fetchLiveKiePricing(metadataByType, [
       "kie-ai/fast-gen"
     ]);
-    expect(result).toBe(false);
+    expect(result).toBeNull();
     expect(metadataByType["kie.NoPricing"].kie_unit_pricing).toBeUndefined();
   });
 

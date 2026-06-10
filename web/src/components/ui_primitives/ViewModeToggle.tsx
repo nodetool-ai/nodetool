@@ -29,6 +29,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
+import { MOTION } from "./tokens";
 
 export interface ViewModeOption {
   /**
@@ -126,15 +127,15 @@ export const ViewModeToggle = memo(
       const sizeStyles = useMemo(() => {
         if (buttonSize === "medium") {
           return {
-            padding: "6px 12px",
+            padding: theme.spacing(1.5, 3),
             "& svg": { fontSize: 22 }
           };
         }
         return {
-          padding: "4px 8px",
+          padding: theme.spacing(1, 2),
           "& svg": { fontSize: 18 }
         };
-      }, [buttonSize]);
+      }, [buttonSize, theme]);
 
       return (
         <ToggleButtonGroup
@@ -153,7 +154,7 @@ export const ViewModeToggle = memo(
             "& .MuiToggleButton-root": {
               border: "none",
               color: theme.vars.palette.grey[400],
-              transition: "all 0.2s ease-in-out",
+              transition: MOTION.all,
               ...sizeStyles,
               "&:hover": {
                 backgroundColor: theme.vars.palette.grey[700],

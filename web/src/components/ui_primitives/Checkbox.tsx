@@ -74,7 +74,7 @@ const CheckboxInternal: React.FC<CheckboxProps> = ({
           ...(compact && {
             marginLeft: -0.5,
             "& .MuiFormControlLabel-label": {
-              fontSize: theme.fontSizeSmall || "0.875rem",
+              fontSize: theme.fontSizeSmall,
             },
           }),
           ...labelProps?.sx,

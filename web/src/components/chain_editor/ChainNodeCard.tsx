@@ -173,7 +173,7 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
           {index + 1}
         </Box>
 
-        <FlexColumn gap={0.25} sx={{ flex: 1, minWidth: 0 }}>
+        <FlexColumn gap={0.5} sx={{ flex: 1, minWidth: 0 }}>
           <Text size="small" weight={600} truncate>{node.metadata.title}</Text>
           {node.expanded && (
             <Text size="tiny" weight={600} sx={{ color: nsColor }}>

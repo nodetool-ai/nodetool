@@ -6,6 +6,7 @@ import type { Theme } from "@mui/material/styles";
 import { MenuItem, ListItemIcon, ListItemText, Tooltip, Divider } from "@mui/material";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { MOTION } from "./tokens";
 
 export interface MenuItemPrimitiveProps {
   /** Label text */
@@ -45,7 +46,7 @@ const styles = (theme: Theme) => css`
     border-radius: 4px;
     margin: 2px 4px;
     padding: 8px 12px;
-    transition: all 0.15s ease;
+    transition: ${MOTION.all};
     
     &:hover {
       background-color: ${theme.vars.palette.action.hover};
@@ -89,11 +90,11 @@ const styles = (theme: Theme) => css`
     }
     
     .MuiListItemText-primary {
-      font-size: 14px;
+      font-size: var(--fontSizeSmall);
     }
-    
+
     .MuiListItemText-secondary {
-      font-size: 12px;
+      font-size: var(--fontSizeSmaller);
     }
     
     .menu-item-end {
@@ -103,9 +104,9 @@ const styles = (theme: Theme) => css`
       margin-left: auto;
       padding-left: 16px;
     }
-    
+
     .shortcut {
-      font-size: 12px;
+      font-size: var(--fontSizeSmaller);
       color: ${theme.vars.palette.text.disabled};
       font-family: monospace;
       background: ${theme.vars.palette.action.hover};
@@ -120,7 +121,7 @@ const styles = (theme: Theme) => css`
     
       &.dense {
         padding: 6px 12px;
-        
+
         .MuiListItemText-primary {
           font-size: var(--fontSizeSmall);
         }
@@ -128,7 +129,7 @@ const styles = (theme: Theme) => css`
 
       &.compact {
         min-height: 32px;
-        padding: 5px 12px;
+        padding: 4px 12px;
 
         .MuiListItemIcon-root {
           min-width: 28px;
@@ -139,7 +140,7 @@ const styles = (theme: Theme) => css`
         }
 
         .shortcut {
-          font-size: 10px;
+          font-size: var(--fontSizeSmaller);
         }
       }
     }

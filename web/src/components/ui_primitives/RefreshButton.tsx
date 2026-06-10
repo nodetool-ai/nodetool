@@ -24,6 +24,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
+import { MOTION } from "./tokens";
 
 export interface RefreshButtonProps
   extends Omit<IconButtonProps, "children"> {
@@ -165,7 +166,7 @@ export const RefreshButton = memo(
               sx={{
                 ...getSizeStyles(),
                 color: theme.vars.palette.grey[300],
-                transition: "all 0.2s ease-in-out",
+                transition: MOTION.all,
                 ...(animateOnHover &&
                   !isLoading && {
                     "&:hover": {
@@ -176,7 +177,7 @@ export const RefreshButton = memo(
                       }
                     },
                     "& svg": {
-                      transition: "transform 0.3s ease-in-out"
+                      transition: MOTION.transform
                     }
                   }),
                 ...(!animateOnHover && {

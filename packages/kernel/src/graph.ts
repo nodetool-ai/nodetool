@@ -45,12 +45,12 @@ export interface GraphFromDictOptions {
   allowUndefinedProperties?: boolean;
   validateNodeType?: (nodeType: string) => boolean;
   /**
-   * Remove saved property values for handles fed by a surviving edge
-   * (edge inputs override saved literals). Defaults to true. loadFromDict
-   * disables this and prunes itself after node-type resolution, so that
-   * edges dropped for unresolvable nodes don't destroy saved fallbacks.
+   * When true (default), delete each node's saved property default for every
+   * handle fed by a surviving edge (the edge value wins at runtime).
+   * loadFromDict disables this and prunes itself after node-type resolution,
+   * since resolution can drop further nodes — and with them, edges.
    */
-  pruneEdgeFedProperties?: boolean;
+  pruneEdgeProperties?: boolean;
 }
 
 export interface ResolvedNodeType {
@@ -158,7 +158,7 @@ export class Graph {
       skipErrors = true,
       allowUndefinedProperties = true,
       validateNodeType,
-      pruneEdgeFedProperties = true
+      pruneEdgeProperties = true
     } = options;
     if (!data || typeof data !== "object") {
       throw new GraphValidationError("Graph data must be an object");
@@ -285,11 +285,11 @@ export class Graph {
       validEdges.push(edgeObj as unknown as Edge);
     }
 
-    // Edge inputs override saved property values, so drop the saved literal
-    // for every edge-fed handle. Only edges that survived validation count:
-    // a dangling edge (e.g. from a dropped node) must not destroy the
-    // target's saved fallback value.
-    if (pruneEdgeFedProperties) {
+    // Delete property defaults only for handles fed by edges that survived
+    // validation. Pruning from the raw edge list would strip a node's saved
+    // default for a malformed or dangling edge that is then dropped, leaving
+    // the node with neither its default nor an incoming value.
+    if (pruneEdgeProperties) {
       Graph._pruneEdgeFedProperties(validNodes, validEdges);
     }
 
@@ -297,8 +297,9 @@ export class Graph {
   }
 
   /**
-   * Delete saved property values for handles that receive an edge.
-   * Mutates each node's `properties` object in place.
+   * Delete each node's saved property default for every handle that has an
+   * incoming edge — the runtime edge value wins, and stale defaults would
+   * shadow it in `_executeWithInputs`'s property merge.
    */
   private static _pruneEdgeFedProperties(
     nodes: ReadonlyArray<NodeDescriptor>,
@@ -337,9 +338,10 @@ export class Graph {
       skipErrors,
       // Stryker disable next-line BooleanLiteral: must stay true — property validation happens later against the RESOLVED types, not the saved cache (see comment in loadFromDict)
       allowUndefinedProperties: true,
-      // Pruning happens below, after the resolver decides which nodes (and
-      // therefore which edges) survive — see GraphFromDictOptions.
-      pruneEdgeFedProperties: false
+      // Resolution below can drop further nodes (unknown types) and their
+      // edges; prune edge-fed defaults only after the final edge set is known
+      // so a node downstream of a dropped node keeps its saved default.
+      pruneEdgeProperties: false
     });
 
     const resolvedNodes: NodeDescriptor[] = [];
@@ -641,6 +643,10 @@ export class Graph {
     };
     const filteredNodes = this.nodes.filter(isInScope);
     const filteredNodeIds = new Set(filteredNodes.map((node) => node.id));
+    // Only data edges define the ordering (see docstring). Including control
+    // edges would turn a legal data-A→B + control-B→A controller feedback
+    // pattern into a mixed cycle, silently dropping both nodes from the
+    // returned levels.
     const filteredEdges = this.edges.filter(
       (edge) =>
         isDataEdge(edge) &&
@@ -771,9 +777,10 @@ export class Graph {
    */
   validateEdgeEndpoints(): void {
     for (const edge of this.edges) {
-      // Self-loops pass cycle detection (the correlation analyzer's topo
-      // sort skips them) but deadlock at runtime: the node waits on an
-      // input handle that only the node itself can close. Reject upfront.
+      // Self-loops pass control-cycle detection and deadlock at runtime:
+      // the node waits on an input handle that only the node itself can
+      // close. The correlation analyzer reports data self-loops as cycles;
+      // this guard also covers direct validate() callers and control edges.
       if (edge.source === edge.target) {
         throw new GraphValidationError(
           `Edge ${edge.id ?? `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`} ` +

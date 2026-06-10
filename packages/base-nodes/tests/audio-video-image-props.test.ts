@@ -190,7 +190,7 @@ describe("TrimVideoNode — uses ffmpeg for trimming", () => {
 });
 
 describe("FrameToVideoNode — uses frame property (not frames)", () => {
-  it("combines frames into video", async () => {
+  it("reads frames from the frame property", async () => {
     const node = new FrameToVideoNode();
     node.assign({
       frame: [
@@ -198,10 +198,13 @@ describe("FrameToVideoNode — uses frame property (not frames)", () => {
         { data: Buffer.from([3, 4]).toString("base64") }
       ]
     });
-    const result = await node.process();
-    const output = result.output as { data: string };
-    const bytes = Buffer.from(output.data, "base64");
-    expect(Array.from(bytes)).toEqual([1, 2, 3, 4]);
+    // Both frames are read from `frame` and written to disk, after which
+    // ffmpeg fails on the fake PNG bytes (or is missing) and the node
+    // throws. If the property were misread, the node would resolve with an
+    // empty video instead.
+    await expect(node.process()).rejects.toThrow(
+      "Combining frames into a video failed"
+    );
   });
 });
 

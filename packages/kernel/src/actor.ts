@@ -441,7 +441,7 @@ export class NodeActor {
 
   private async _runCorrelatedImpl(analysis: NodeAnalysis): Promise<void> {
     const dataHandles = this.inbox
-      .registeredHandles()
+      .handles()
       .filter((h) => h !== "__control__");
 
     if (dataHandles.length === 0) {
@@ -462,10 +462,18 @@ export class NodeActor {
       const scope = info?.scope ?? [];
       handleScope.set(h, scope);
       handleRepeats.set(h, info?.repeatsPerKey ?? false);
-      if (scope.length === 0) {
-        handleClass.set(h, "empty");
-      } else if (scope.length === invocationScope.length) {
+      // A repeating handle at the invocation scope is always "max" so the
+      // driver machinery fires once per envelope — including at root scope
+      // (both lengths 0, e.g. a chunk stream consumed at top level), where
+      // classifying it "empty" would make every chunk overwrite a single
+      // sticky slot and the node fire once with only the last chunk.
+      if (
+        scope.length === invocationScope.length &&
+        (scope.length > 0 || handleRepeats.get(h))
+      ) {
         handleClass.set(h, "max");
+      } else if (scope.length === 0) {
+        handleClass.set(h, "empty");
       } else {
         handleClass.set(h, "prefix");
       }
@@ -616,18 +624,31 @@ export class NodeActor {
 
     const tryFire = async (candidateKeys: Iterable<string>): Promise<void> => {
       for (const key of candidateKeys) {
-        if (fired.has(key) && driverHandle === null) {
-          // For non-repeating drivers each key fires at most once because
-          // bucket consumption strips it. The fired set protects against
-          // double-fire when the same key comes from multiple notifications.
-          continue;
+        if (driverHandle === null) {
+          if (fired.has(key)) {
+            // For non-repeating drivers each key fires at most once because
+            // bucket consumption strips it. The fired set protects against
+            // double-fire when the same key comes from multiple notifications.
+            continue;
+          }
+          if (!isReady(key)) continue;
+          const { values, envelopes } = collect(key);
+          // Set per-invocation envelopes so output routing can derive lineage.
+          this._lastEnvelopes = envelopes;
+          await this._executeWithInputs(values);
+          fired.add(key);
+        } else {
+          // Repeating driver: drain the whole backlog for this key, not just
+          // one envelope. Envelopes can pile up while a sticky input blocks
+          // readiness; firing once per notification would strand the rest in
+          // the actor-local bucket (silent data loss). collect() consumes one
+          // driver envelope per pass, so this loop terminates.
+          while (isReady(key)) {
+            const { values, envelopes } = collect(key);
+            this._lastEnvelopes = envelopes;
+            await this._executeWithInputs(values);
+          }
         }
-        if (!isReady(key)) continue;
-        const { values, envelopes } = collect(key);
-        // Set per-invocation envelopes so output routing can derive lineage.
-        this._lastEnvelopes = envelopes;
-        await this._executeWithInputs(values);
-        if (driverHandle === null) fired.add(key);
       }
     };
 
@@ -1159,7 +1180,7 @@ export class NodeActor {
   private async _runControlled(): Promise<void> {
     // Identify data handles (non-control) that need to be populated
     const dataHandles = this.inbox
-      .registeredHandles()
+      .handles()
       .filter((h) => h !== "__control__");
 
     // Wait for all data handles to have at least one value before
@@ -1219,14 +1240,15 @@ export class NodeActor {
     }
 
     // Drain items until all data handles have at least one value.
-    // Control events are held aside locally: prepending them back inside
-    // this loop would make the very next iterAny() pop the same event
-    // again, spinning the microtask queue forever and starving the data
-    // producer we are waiting for.
-    const heldControl: MessageEnvelope[] = [];
+    // Control events that arrive first are held aside and re-queued after
+    // the wait: prepending them back while still iterating would make the
+    // very next tryPopAny() pop the same event again — an unbounded
+    // microtask spin that starves the event loop and blocks the upstream
+    // data put() forever.
+    const heldControlEvents: MessageEnvelope[] = [];
     for await (const [handle, envelope] of this.inbox.iterAnyWithEnvelope()) {
       if (handle === "__control__") {
-        heldControl.push(envelope);
+        heldControlEvents.push(envelope);
         continue;
       }
       if (!this._cachedInputs) this._cachedInputs = {};
@@ -1234,9 +1256,10 @@ export class NodeActor {
       pending.delete(handle);
       if (pending.size === 0) break;
     }
-    // Re-queue held control events in arrival order for iterInput.
-    for (let i = heldControl.length - 1; i >= 0; i--) {
-      this.inbox.prepend("__control__", heldControl[i]);
+    // Re-queue held control events at the front, preserving arrival order,
+    // so iterInput("__control__") consumes them next.
+    for (let i = heldControlEvents.length - 1; i >= 0; i--) {
+      this.inbox.prepend("__control__", heldControlEvents[i]);
     }
   }
 
@@ -1246,9 +1269,11 @@ export class NodeActor {
    * arrived while waiting for the next control event.
    */
   private _cacheBufferedDataInputs(): void {
-    for (const handle of this.inbox.registeredHandles()) {
+    for (const handle of this.inbox.handles()) {
       if (handle === "__control__") continue;
-      // Use the latest buffered value for each data handle
+      // Use the latest buffered value for each data handle. drainHandle()
+      // (unlike popping the raw buffer) releases backpressure on producers
+      // blocked in put() and keeps the arrival queue consistent.
       const drained = this.inbox.drainHandle(handle);
       if (drained.length === 0) continue;
       if (!this._cachedInputs) this._cachedInputs = {};

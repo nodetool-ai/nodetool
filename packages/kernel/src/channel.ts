@@ -55,10 +55,8 @@ export interface ChannelStats {
 interface SubscriberQueue<T> {
   buffer: (T | typeof STOP_SIGNAL)[];
   waiters: Array<Deferred<void>>;
-  /** Publishers blocked on this subscriber's full buffer. */
-  spaceWaiters: Array<Deferred<void>>;
-  /** Set when the subscriber stops consuming (unsubscribed or replaced). */
-  done: boolean;
+  /** Items dropped because the buffer was at capacity. */
+  dropped: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -70,11 +68,11 @@ export class Channel<T = unknown> {
   private _subscribers = new Map<string, SubscriberQueue<T>>();
   private _closed = false;
   private _messageType?: new (...args: unknown[]) => T;
-  private _bufferLimit: number | null;
+  private _bufferLimit: number;
 
   constructor(
     name: string,
-    bufferLimit: number | null = 100,
+    bufferLimit = 100,
     messageType?: new (...args: unknown[]) => T
   ) {
     this.name = name;
@@ -106,21 +104,21 @@ export class Channel<T = unknown> {
       );
     }
 
-    for (const sub of this._subscribers.values()) {
-      if (sub.done) continue;
-      // Backpressure: wait for the subscriber to drain before enqueueing.
-      if (this._bufferLimit !== null) {
-        while (
-          !this._closed &&
-          !sub.done &&
-          sub.buffer.length >= this._bufferLimit
-        ) {
-          const d = deferred<void>();
-          sub.spaceWaiters.push(d);
-          await d.promise;
+    for (const [subscriberId, sub] of this._subscribers) {
+      // Bounded queue: a stalled subscriber must not grow its buffer without
+      // bound for the channel's lifetime. Drop the oldest item to make room
+      // (broadcast semantics — one slow consumer must not stall the others).
+      if (sub.buffer.length >= this._bufferLimit) {
+        sub.buffer.shift();
+        sub.dropped++;
+        if (sub.dropped === 1) {
+          // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+          log.warn("Subscriber buffer full — dropping oldest items", {
+            channel: this.name,
+            subscriberId,
+            bufferLimit: this._bufferLimit
+          });
         }
-        if (this._closed) return;
-        if (sub.done) continue;
       }
       sub.buffer.push(item);
       // Wake any waiting consumer
@@ -134,29 +132,22 @@ export class Channel<T = unknown> {
     // Stryker disable next-line ConditionalExpression: equivalent — without this early return the closed check at the wait branch yields the same empty result (the subscriber registers then immediately breaks)
     if (this._closed) return;
 
-    // Re-subscribing under an existing id terminates the previous
-    // subscriber instead of silently orphaning it mid-wait.
-    const prev = this._subscribers.get(subscriberId);
-    if (prev) {
-      this._terminateSubscriber(prev);
+    // Replacing a live subscriber's queue would strand the old generator
+    // forever (publish/close never touch the evicted queue, so a consumer
+    // awaiting it never even receives the stop signal).
+    if (this._subscribers.has(subscriberId)) {
+      throw new Error(
+        `Channel '${this.name}' already has an active subscriber '${subscriberId}'`
+      );
     }
 
-    const sub: SubscriberQueue<T> = {
-      buffer: [],
-      waiters: [],
-      spaceWaiters: [],
-      done: false
-    };
+    const sub: SubscriberQueue<T> = { buffer: [], waiters: [], dropped: 0 };
     this._subscribers.set(subscriberId, sub);
 
     try {
       while (true) {
         if (sub.buffer.length > 0) {
           const item = sub.buffer.shift()!;
-          // Wake blocked publishers; they re-check capacity before pushing.
-          for (const w of sub.spaceWaiters.splice(0)) {
-            w.resolve();
-          }
           if (item === STOP_SIGNAL) break;
           yield item as T;
           continue;
@@ -169,24 +160,7 @@ export class Channel<T = unknown> {
         await d.promise;
       }
     } finally {
-      this._terminateSubscriber(sub);
-      // Only deregister our own queue — a replacement subscriber may have
-      // re-registered under the same id while we were suspended.
-      if (this._subscribers.get(subscriberId) === sub) {
-        this._subscribers.delete(subscriberId);
-      }
-    }
-  }
-
-  /** Mark a subscriber dead and release everyone blocked on it. */
-  private _terminateSubscriber(sub: SubscriberQueue<T>): void {
-    sub.done = true;
-    sub.buffer.push(STOP_SIGNAL);
-    for (const w of sub.waiters.splice(0)) {
-      w.resolve();
-    }
-    for (const w of sub.spaceWaiters.splice(0)) {
-      w.resolve();
+      this._subscribers.delete(subscriberId);
     }
   }
 
@@ -195,10 +169,6 @@ export class Channel<T = unknown> {
     for (const sub of this._subscribers.values()) {
       sub.buffer.push(STOP_SIGNAL);
       for (const w of sub.waiters.splice(0)) {
-        w.resolve();
-      }
-      // Release publishers blocked on a full buffer so they observe the close.
-      for (const w of sub.spaceWaiters.splice(0)) {
         w.resolve();
       }
     }

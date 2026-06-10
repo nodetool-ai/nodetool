@@ -132,7 +132,7 @@ const PackRow = memo(function PackRow({
             </AlertBanner>
           )}
           {pack.registered.length > 0 && (
-            <FlexColumn gap={0.25}>
+            <FlexColumn gap={0.5}>
               <Text size="small" weight={600}>
                 Registered ({pack.registered.length})
               </Text>
@@ -144,7 +144,7 @@ const PackRow = memo(function PackRow({
             </FlexColumn>
           )}
           {pack.skippedNodes.length > 0 && (
-            <FlexColumn gap={0.25}>
+            <FlexColumn gap={0.5}>
               <Text size="small" weight={600}>
                 Skipped ({pack.skippedNodes.length})
               </Text>

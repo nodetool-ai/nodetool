@@ -117,7 +117,7 @@ const SketchListItem = memo(function SketchListItem({
     >
       <FlexRow align="center" gap={1} fullWidth>
         <BrushOutlinedIcon className="sketch-icon" />
-        <FlexColumn gap={0.25} sx={{ minWidth: 0, flex: 1 }}>
+        <FlexColumn gap={0.5} sx={{ minWidth: 0, flex: 1 }}>
           <TruncatedText
             component="span"
             sx={{ fontSize: "var(--fontSizeSmall)", fontWeight: 600 }}

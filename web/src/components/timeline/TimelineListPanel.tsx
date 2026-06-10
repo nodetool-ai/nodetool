@@ -117,7 +117,7 @@ const TimelineListItem = memo(function TimelineListItem({
     >
       <FlexRow align="center" gap={1} fullWidth>
         <MovieOutlinedIcon className="timeline-icon" />
-        <FlexColumn gap={0.25} sx={{ minWidth: 0, flex: 1 }}>
+        <FlexColumn gap={0.5} sx={{ minWidth: 0, flex: 1 }}>
           <TruncatedText
             component="span"
             sx={{ fontSize: "var(--fontSizeSmall)", fontWeight: 600 }}

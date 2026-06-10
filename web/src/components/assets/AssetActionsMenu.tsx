@@ -155,7 +155,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
       <FlexRow
         className="asset-menu-toolbar"
         align="center"
-        gap={0.25}
+        gap={0.5}
         sx={{
           px: 0.5,
           py: 0.5,

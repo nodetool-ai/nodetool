@@ -179,8 +179,10 @@ const executeComboCallbacks = (
 
     // 1. Always allow "shift+enter", "control+enter", and "meta+enter" to proceed to execution.
     //    These are commonly used for multiline input and running actions.
+    //    Note: pressedKeysString is sorted alphabetically, so the literals
+    //    below must be in sorted form (e.g. "enter+shift", not "shift+enter").
     if (
-      pressedKeysString === "shift+enter" ||
+      pressedKeysString === "enter+shift" ||
       pressedKeysString === "control+enter" ||
       pressedKeysString === "enter+meta"
     ) {

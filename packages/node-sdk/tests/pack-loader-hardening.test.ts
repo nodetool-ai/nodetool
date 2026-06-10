@@ -308,6 +308,21 @@ describe("discoverPacks error and edge paths", () => {
     expect(discoverPacks([nodeModules])[0].entry.endsWith("/m.js")).toBe(true);
   });
 
+  it("resolves a nested import condition object to its default target", () => {
+    writeManifest(
+      "nestedexp",
+      {
+        name: "nestedexp",
+        exports: { ".": { import: { types: "./t.d.ts", default: "./nested.js" } } },
+        nodetool: {}
+      },
+      "nested.js"
+    );
+    const found = discoverPacks([nodeModules]);
+    expect(found).toHaveLength(1);
+    expect(found[0].entry.endsWith("/nested.js")).toBe(true);
+  });
+
   it("resolves main when exports['.'] is null", () => {
     // Pins `!dot || ...`: a null dot must short-circuit to undefined (→ main),
     // not proceed into the object branch (which would throw on null["import"]).

@@ -54,19 +54,19 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
 
   const sizeStyles = {
     small: {
-      fontSize: "var(--fontSizeSmaller)",
+      fontSize: theme.fontSizeSmaller,
       fontWeight: 600,
-      padding: "4px 0",
+      padding: theme.spacing(1, 0),
     },
     medium: {
-      fontSize: theme.fontSizeSmall || "var(--fontSizeSmall)",
+      fontSize: theme.fontSizeSmall,
       fontWeight: 600,
-      padding: "6px 0",
+      padding: theme.spacing(1.5, 0),
     },
     large: {
-      fontSize: theme.fontSizeNormal || "14px",
+      fontSize: theme.fontSizeNormal,
       fontWeight: 600,
-      padding: "8px 0",
+      padding: theme.spacing(2, 0),
     },
   };
 

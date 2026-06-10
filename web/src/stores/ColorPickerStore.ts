@@ -198,7 +198,9 @@ export const useColorPickerStore = create<ColorPickerState>()(
  * Convert gradient to CSS string
  */
 export function gradientToCss(gradient: GradientValue): string {
-  const stopsStr = gradient.stops
+  // Copy before sorting — `.sort()` mutates in place and `gradient` may be a
+  // persisted store object that must not be modified.
+  const stopsStr = [...gradient.stops]
     .sort((a, b) => a.position - b.position)
     .map((stop) => `${stop.color} ${stop.position}%`)
     .join(", ");

@@ -104,7 +104,7 @@ const ColorFieldPickerInner: React.FC<ColorFieldPickerProps> = ({
   const hueLeftPct = (localHue / 360) * 100;
 
   return (
-    <FlexColumn gap={0.75} sx={{ width: "100%", userSelect: "none" }}>
+    <FlexColumn gap={1} sx={{ width: "100%", userSelect: "none" }}>
       {/* Saturation (x) × value (y) square */}
       <Box
         ref={svRef}

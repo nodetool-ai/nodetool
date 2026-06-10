@@ -142,7 +142,7 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
         >
           {title || "Conversation"}
         </Text>
-        <FlexRow gap={0.25} align="center" sx={{ ml: "auto" }}>
+        <FlexRow gap={0.5} align="center" sx={{ ml: "auto" }}>
           <Tooltip title="New conversation" delay={TOOLTIP_ENTER_DELAY}>
             <button
               type="button"

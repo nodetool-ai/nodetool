@@ -76,6 +76,61 @@ describe("hasStreamingOutput resolution order", () => {
       expect(hasStreamingOutput(Corr)).toBe(false);
     }
   );
+
+  it("lets an explicit false opt out of genProcess/correlation inference", () => {
+    class OptOut extends BaseNode {
+      static readonly nodeType = "test.OptOut";
+      static readonly isStreamingOutput = false;
+      static readonly outputCorrelation = {
+        out: { kind: "forward", source: "in" }
+      };
+      async process() {
+        return {};
+      }
+      async *genProcess() {
+        yield { a: 1 };
+      }
+    }
+    expect(hasStreamingOutput(OptOut)).toBe(false);
+  });
+
+  it("inherits an explicit flag declared on an ancestor below BaseNode", () => {
+    class StreamBase extends BaseNode {
+      static readonly nodeType = "test.StreamBase";
+      static readonly isStreamingOutput = true;
+      async process() {
+        return {};
+      }
+    }
+    class StreamChild extends StreamBase {
+      static readonly nodeType = "test.StreamChild";
+    }
+    expect(hasStreamingOutput(StreamChild)).toBe(true);
+  });
+
+  it("does not treat another module copy's BaseNode default as an opt-out", () => {
+    // vitest can load two copies of base-node.js (vite graph + node ESM
+    // cache). Simulate a class extending the *other* copy's BaseNode root:
+    // same global marker, same own isStreamingOutput=false default.
+    class ForeignBaseNode {
+      static readonly isStreamingOutput = false;
+      async *genProcess() {
+        yield {};
+      }
+    }
+    Object.defineProperty(
+      ForeignBaseNode,
+      Symbol.for("nodetool.node-sdk.base-node"),
+      { value: true }
+    );
+    class ForeignStreamer extends ForeignBaseNode {
+      static readonly nodeType = "test.ForeignStreamer";
+      async *genProcess() {
+        yield { a: 1 };
+      }
+    }
+    expect(hasStreamingOutput(ForeignStreamer as any)).toBe(true);
+  });
 });
 
 describe("assign() identity + defaults", () => {
@@ -154,7 +209,9 @@ describe("instance identity defaults", () => {
     }
     const node = new ListNode();
     node.assign({ images: undefined });
-    expect(node.images).toBeUndefined();
+    // Explicit undefined is treated as absent: the default sticks, and the
+    // value is never wrapped into [undefined].
+    expect(node.images).toEqual([]);
   });
 
   it("keeps an existing id when assign() omits it", () => {
@@ -249,6 +306,71 @@ describe("secret injection via toExecutor().process", () => {
 });
 
 describe("streaming run() executor path", () => {
+  it("resolves requiredSettings into _secrets before run()", async () => {
+    const seen: Record<string, string>[] = [];
+    class StreamingSecret extends BaseNode {
+      static readonly nodeType = "test.StreamingSecret";
+      static readonly isStreamingInput = true;
+      static readonly requiredSettings = ["ELEVENLABS_API_KEY"];
+      async process() {
+        return {};
+      }
+      async run() {
+        seen.push(this._secrets);
+      }
+    }
+    const ctx = {
+      getSecret: async (k: string) =>
+        k === "ELEVENLABS_API_KEY" ? "el-1" : undefined
+    } as any;
+    await new StreamingSecret().toExecutor().run!({} as any, {} as any, ctx);
+    expect(seen).toEqual([{ ELEVENLABS_API_KEY: "el-1" }]);
+  });
+
+  it("leaves _secrets empty and warns when run() has no context", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const seen: Record<string, string>[] = [];
+    class StreamingNoCtx extends BaseNode {
+      static readonly nodeType = "test.StreamingNoCtx";
+      static readonly isStreamingInput = true;
+      static readonly requiredSettings = ["OPENAI_API_KEY"];
+      async process() {
+        return {};
+      }
+      async run() {
+        seen.push(this._secrets);
+      }
+    }
+    await new StreamingNoCtx()
+      .toExecutor()
+      .run!({} as any, {} as any, undefined);
+    expect(seen).toEqual([{}]);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("does not leak secrets from a previous context into a later run()", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const seen: Record<string, string>[] = [];
+    class StreamingReuse extends BaseNode {
+      static readonly nodeType = "test.StreamingReuse";
+      static readonly isStreamingInput = true;
+      static readonly requiredSettings = ["OPENAI_API_KEY"];
+      async process() {
+        return {};
+      }
+      async run() {
+        seen.push(this._secrets);
+      }
+    }
+    const exec = new StreamingReuse().toExecutor();
+    const ctx = { getSecret: async () => "sk-1" } as any;
+    await exec.run!({} as any, {} as any, ctx);
+    await exec.run!({} as any, {} as any, undefined);
+    expect(seen).toEqual([{ OPENAI_API_KEY: "sk-1" }, {}]);
+    warn.mockRestore();
+  });
+
   it("exposes run on the executor only when the node defines run()", async () => {
     const calls: unknown[][] = [];
     class Streamer extends BaseNode {

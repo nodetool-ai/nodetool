@@ -98,6 +98,43 @@ describe("handleUpdate → TraceStore wiring", () => {
     });
   });
 
+  it("tracks trace runs per workflow so concurrent runs don't restart each other's trace", () => {
+    const wfA = { id: "wf-a", name: "A" } as WorkflowAttributes;
+    const wfB = { id: "wf-b", name: "B" } as WorkflowAttributes;
+    const runnerA = makeRunner("job-a");
+    const runnerB = makeRunner("job-b");
+
+    const runningUpdate = (jobId: string) =>
+      ({ type: "job_update", status: "running", job_id: jobId }) as never;
+
+    handleUpdate(wfA, runningUpdate("job-a"), runnerA as never, () => undefined);
+    handleUpdate(wfB, runningUpdate("job-b"), runnerB as never, () => undefined);
+
+    // Record an event, then deliver more running heartbeats for both jobs.
+    // With a shared (non-per-workflow) trace job id, each alternating
+    // heartbeat would call startRun again and wipe the recorded events.
+    handleUpdate(
+      wfA,
+      {
+        type: "llm_call",
+        node_id: "agent-1",
+        provider: "anthropic",
+        model: "claude-sonnet-4-6",
+        messages: [],
+        response: "",
+        duration_ms: 1,
+        timestamp: new Date().toISOString()
+      } as never,
+      runnerA as never,
+      () => undefined
+    );
+    handleUpdate(wfA, runningUpdate("job-a"), runnerA as never, () => undefined);
+    handleUpdate(wfB, runningUpdate("job-b"), runnerB as never, () => undefined);
+
+    expect(useTraceStore.getState().events).toHaveLength(1);
+    expect(useTraceStore.getState().isRecording).toBe(true);
+  });
+
   it("does not record events when no run is active", () => {
     // store cleared in beforeEach → isRecording is false
     const runner = makeRunner("job-1");

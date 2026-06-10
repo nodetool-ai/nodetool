@@ -316,6 +316,54 @@ describe("CollectionStore", () => {
       ]);
     });
 
+    it("stale overlapping drop does not clobber the newer drop's progress", async () => {
+      const eventA = {
+        preventDefault: jest.fn(),
+        dataTransfer: {
+          files: [new File(["a"], "a.txt", { type: "text/plain" })]
+        }
+      } as unknown as React.DragEvent<HTMLDivElement>;
+      const eventB = {
+        preventDefault: jest.fn(),
+        dataTransfer: {
+          files: [new File(["b"], "b.txt", { type: "text/plain" })]
+        }
+      } as unknown as React.DragEvent<HTMLDivElement>;
+
+      const okResponse = {
+        ok: true,
+        json: jest.fn().mockResolvedValue({ path: "/ok" })
+      };
+      let resolveUploadA: (value: typeof okResponse) => void = () => {};
+      mockRestFetch
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              resolveUploadA = resolve;
+            })
+        )
+        .mockResolvedValue(okResponse);
+      listQuery.mockResolvedValue({ collections: [], count: 0 });
+
+      // Drop A starts and hangs on its upload.
+      const dropA = useCollectionStore.getState().handleDrop("colA")(eventA);
+      // Drop B starts later and finishes first — it owns the progress state.
+      await act(async () => {
+        await useCollectionStore.getState().handleDrop("colB")(eventB);
+      });
+
+      expect(useCollectionStore.getState().indexProgress).toBeNull();
+
+      // The stale drop A finishes afterwards; it must not write progress.
+      await act(async () => {
+        resolveUploadA(okResponse);
+        await dropA;
+      });
+
+      expect(useCollectionStore.getState().indexProgress).toBeNull();
+      expect(useCollectionStore.getState().indexErrors).toEqual([]);
+    });
+
     it("returns early when no files dropped", async () => {
       const event = {
         preventDefault: jest.fn(),

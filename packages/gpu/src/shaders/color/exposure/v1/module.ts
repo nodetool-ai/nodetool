@@ -48,7 +48,11 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   let src = textureSample(layout.$.source, layout.$.samp, uv);
   let coverage = textureSample(layout.$.mask, layout.$.samp, uv).a;
   let gain = pow(2.0, layout.$.params.stops);
-  let processed = clamp(src.rgb * gain, vec3f(0.0), vec3f(1.0));
+  // SDR clamp on the *straight* colour means clamping at alpha in premul
+  // space: straight C clamps at 1.0 ⇒ premul a*C clamps at a. Clamping at a
+  // literal 1.0 here let partial-alpha pixels escape with rgb > a (a 2×
+  // over-bright fringe once composited).
+  let processed = clamp(src.rgb * gain, vec3f(0.0), vec3f(src.a));
   let mixed = mix(src.rgb, processed, coverage);
   return vec4f(mixed, src.a);
 }

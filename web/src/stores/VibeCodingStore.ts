@@ -62,17 +62,42 @@ export const useVibeCodingStore = create<VibeCodingState>()(
       },
 
       initSession: (workflowId, savedHtml) => {
-        set((state) => ({
-          sessions: {
-            ...state.sessions,
-            [workflowId]: {
-              ...defaultSession,
-              workflowId,
-              savedHtml,
-              currentHtml: savedHtml
-            }
+        set((state) => {
+          const existing = state.sessions[workflowId];
+          if (existing) {
+            // Preserve the session (rehydrated unsaved work, chat history)
+            // instead of resetting on every panel mount / html_app change.
+            // Sync savedHtml from the workflow; only follow it with
+            // currentHtml when there are no unsaved edits. After a save,
+            // html_app === currentHtml, so syncing savedHtml while keeping
+            // messages intact is exactly right. Stale transient status/error
+            // (e.g. a persisted "streaming") is reset.
+            const hasUnsaved = existing.currentHtml !== existing.savedHtml;
+            return {
+              sessions: {
+                ...state.sessions,
+                [workflowId]: {
+                  ...existing,
+                  savedHtml,
+                  currentHtml: hasUnsaved ? existing.currentHtml : savedHtml,
+                  status: "idle" as const,
+                  error: null
+                }
+              }
+            };
           }
-        }));
+          return {
+            sessions: {
+              ...state.sessions,
+              [workflowId]: {
+                ...defaultSession,
+                workflowId,
+                savedHtml,
+                currentHtml: savedHtml
+              }
+            }
+          };
+        });
       },
 
       clearSession: (workflowId) => {

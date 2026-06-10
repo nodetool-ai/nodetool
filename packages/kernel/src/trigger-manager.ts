@@ -62,10 +62,19 @@ export class TriggerWorkflowManager {
   private static _instance: TriggerWorkflowManager | null = null;
 
   private _runningJobs = new Map<string, TriggerJob>();
-  /** In-flight start attempts, used to dedupe concurrent starts. */
-  private _startingJobs = new Map<string, Promise<TriggerJob | null>>();
+  /**
+   * In-flight start per workflow. startTriggerWorkflow's running-check and
+   * its _runningJobs.set are separated by awaits; without this, two
+   * concurrent starts (e.g. server-startup auto-start racing a user toggle)
+   * would both pass the check and leave one job running but untracked —
+   * unreachable by stop/shutdown.
+   */
+  private _pendingStarts = new Map<string, Promise<TriggerJob | null>>();
   private _watchdogTimer: ReturnType<typeof setInterval> | null = null;
   private _watchdogInterval: number;
+  /** Latest watchdog check, awaited by shutdown so a mid-flight restart cannot revive a job. */
+  private _watchdogCheckInFlight: Promise<void> | null = null;
+  private _shuttingDown = false;
   private _startJob: StartJobFn;
   private _hasTriggerNodes: HasTriggerNodesFn;
 
@@ -112,25 +121,24 @@ export class TriggerWorkflowManager {
       return existing;
     }
 
-    // Dedupe concurrent starts: the running-check above and the job
-    // registration below are separated by awaits, so two overlapping calls
-    // would otherwise both start a job and leak the first one untracked.
-    const inFlight = this._startingJobs.get(workflowId);
-    if (inFlight) {
-      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
-      log.info("Trigger workflow start already in flight", { workflowId });
-      return inFlight;
+    // A start for this workflow is already in flight — join it instead of
+    // starting a second job.
+    const pending = this._pendingStarts.get(workflowId);
+    if (pending) {
+      return pending;
     }
 
     const startPromise = this._startTriggerWorkflowImpl(
       workflowId,
       userId,
       workflowName
-    ).finally(() => {
-      this._startingJobs.delete(workflowId);
-    });
-    this._startingJobs.set(workflowId, startPromise);
-    return startPromise;
+    );
+    this._pendingStarts.set(workflowId, startPromise);
+    try {
+      return await startPromise;
+    } finally {
+      this._pendingStarts.delete(workflowId);
+    }
   }
 
   private async _startTriggerWorkflowImpl(
@@ -143,12 +151,6 @@ export class TriggerWorkflowManager {
     if (!hasTriggers) {
       // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.warn("Workflow has no trigger nodes, not starting", { workflowId });
-      // Drop any stale finished entry so the watchdog stops retrying a
-      // workflow that no longer has triggers.
-      const stale = this._runningJobs.get(workflowId);
-      if (stale && stale.status !== "running") {
-        this._runningJobs.delete(workflowId);
-      }
       return null;
     }
 
@@ -280,7 +282,7 @@ export class TriggerWorkflowManager {
 
     this._watchdogTimer = setInterval(() => {
       // Stryker disable next-line BlockStatement: defensive error handler — _watchdogCheck swallows its own errors, so this catch only logs and is unreachable in practice
-      this._watchdogCheck().catch((err) => {
+      this._watchdogCheckInFlight = this._watchdogCheck().catch((err) => {
         // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
         log.error("Error in watchdog check", { error: String(err) });
       });
@@ -306,20 +308,33 @@ export class TriggerWorkflowManager {
   async shutdown(): Promise<void> {
     // Stryker disable next-line StringLiteral: diagnostic log message only
     log.info("Shutting down TriggerWorkflowManager");
-    this.stopWatchdog();
+    this._shuttingDown = true;
+    try {
+      this.stopWatchdog();
+      // A check fired from the interval may still be mid-restart; wait for
+      // it so it cannot re-insert a freshly started job after we snapshot
+      // the running set below.
+      if (this._watchdogCheckInFlight) {
+        await this._watchdogCheckInFlight;
+        this._watchdogCheckInFlight = null;
+      }
 
-    const workflowIds = [...this._runningJobs.keys()];
-    let stopped = 0;
-    for (const wfId of workflowIds) {
-      // Stryker disable next-line UpdateOperator: `stopped` is only used in the diagnostic log below
-      if (await this.stopTriggerWorkflow(wfId)) stopped++;
+      const workflowIds = [...this._runningJobs.keys()];
+      let stopped = 0;
+      for (const wfId of workflowIds) {
+        // Stryker disable next-line UpdateOperator: `stopped` is only used in the diagnostic log below
+        if (await this.stopTriggerWorkflow(wfId)) stopped++;
+      }
+
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+      log.info("TriggerWorkflowManager shutdown complete", { stopped });
+    } finally {
+      this._shuttingDown = false;
     }
-
-    // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
-    log.info("TriggerWorkflowManager shutdown complete", { stopped });
   }
 
   private async _watchdogCheck(): Promise<void> {
+    if (this._shuttingDown) return;
     // Stryker disable next-line ArrayDeclaration: a non-empty seed is equivalent — a bogus workflowId is skipped by the `if (!job) continue` guard below
     const toRestart: string[] = [];
 
@@ -336,6 +351,7 @@ export class TriggerWorkflowManager {
     }
 
     for (const workflowId of toRestart) {
+      if (this._shuttingDown) return;
       const job = this._runningJobs.get(workflowId);
       // Stryker disable next-line ConditionalExpression: equivalent — workflowId comes from toRestart built moments earlier from _runningJobs and nothing deletes in between, so job is always present; the guard is defensive
       if (!job) continue;
@@ -343,9 +359,11 @@ export class TriggerWorkflowManager {
       // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.info("Attempting restart of trigger workflow", { workflowId });
 
-      // Keep the stale entry until the restart succeeds: a successful start
-      // overwrites it, while a transient failure leaves it in place so the
-      // next watchdog tick retries instead of dropping the workflow forever.
+      // Don't delete the entry first: startTriggerWorkflow restarts
+      // non-running jobs and overwrites the map on success. If the restart
+      // fails (transient startJob error → null) the failed entry must stay
+      // tracked so the next watchdog tick retries — deleting up-front would
+      // permanently drop the workflow after one failed restart.
       await this.startTriggerWorkflow(
         workflowId,
         job.metadata.userId,
