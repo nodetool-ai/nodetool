@@ -1183,7 +1183,10 @@ export class GeminiProvider extends BaseProvider {
     };
 
     // Poll for completion
-    const maxWait = 600_000; // 10 minutes
+    const maxWait =
+      params.timeoutSeconds && params.timeoutSeconds > 0
+        ? params.timeoutSeconds * 1000
+        : 600_000; // default 10 minutes
     const pollInterval = 10_000;
     let elapsed = 0;
     let current = operation;
@@ -1274,7 +1277,10 @@ export class GeminiProvider extends BaseProvider {
     };
 
     // Poll for completion
-    const maxWait = 600_000;
+    const maxWait =
+      params.timeoutSeconds && params.timeoutSeconds > 0
+        ? params.timeoutSeconds * 1000
+        : 600_000; // default 10 minutes
     const pollInterval = 10_000;
     let elapsed = 0;
     let current = operation;

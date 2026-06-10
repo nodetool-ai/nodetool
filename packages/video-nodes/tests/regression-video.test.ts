@@ -394,7 +394,9 @@ describe("TransitionVideoNode — uses transition_type, not hardcoded fade", () 
       transition_type: "wipeleft",
       duration: 1.0
     });
-    await node.process();
+    // The mocked ffmpeg always fails, so the node throws — the assertions
+    // below only inspect the captured ffmpeg arguments.
+    await node.process().catch(() => undefined);
 
     const args = ffmpegArgString();
     expect(args).toContain("transition=wipeleft");
@@ -410,7 +412,7 @@ describe("TransitionVideoNode — uses transition_type, not hardcoded fade", () 
       transition_type: "fade",
       duration: 1.0
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     // The mock returns duration=10.5 for ffprobeDuration
     // offset should be 10.5 - 1.0 = 9.5
@@ -427,7 +429,7 @@ describe("TransitionVideoNode — uses transition_type, not hardcoded fade", () 
       transition_type: "dissolve",
       duration: 2.0
     });
-    await node.process();
+    await node.process().catch(() => undefined);
 
     // Should have called ffprobe to get duration
     const probes = ffprobeCalls();
@@ -788,7 +790,11 @@ describe("FrameToVideoNode — numbers frames contiguously despite gaps", () => 
         frame: [img([1, 2, 3]), { type: "image", data: "" }, img([4, 5, 6])],
         fps: 24
       });
-      await node.process();
+      // The mocked ffmpeg always fails, so the node throws — the assertions
+      // below only inspect the frame files written beforehand.
+      await expect(node.process()).rejects.toThrow(
+        "Combining frames into a video failed"
+      );
 
       const frameWrites = writeSpy.mock.calls
         .map((c) => String(c[0]))
