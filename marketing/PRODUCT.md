@@ -1,8 +1,22 @@
 # Product
 
-## Register
+## Brand Platform
 
-brand
+**Positioning (one sentence, canonical):** NodeTool is the open creative AI workspace — every AI model is a node, wired into one canvas with your own keys.
+
+**The name is the positioning.** *Node* — every AI model (image, video, music, words) becomes a node on the canvas. *Tool* — the open, BYOK tool that wires those nodes together. Wherever the brand introduces itself (hero, metadata, SEO copy, FAQ), say both halves: the category ("creative AI workspace") and the mechanism ("every AI model is a node"). Never let "workspace" float free of "node" — the node idea is what makes the category claim concrete and ownable.
+
+**Brand pillars** (in order; every page should hit all three, in this hierarchy):
+
+1. **Creative AI workspace** (category) — one canvas; image, video, music, and words on the same surface; studio-grade.
+2. **AI nodes** (mechanism) — every model is a node. Swap one node and you're on the next model the same day. This is why the workspace stays current and vendor-neutral.
+3. **Open & BYOK** (character) — open source, your keys, provider prices, no credits, no markup. Stated as quiet fact, not as a pitch.
+
+**Tagline:** Every model. Your keys. Your canvas.
+
+**Vocabulary**
+- Always: *canvas, node, wire, workspace, your keys, provider prices, open source.*
+- Never: *platform* (as self-description), *solution, revolutionary, supercharge, unleash, game-changing*; *credits* only to negate ("no credits").
 
 ## Users
 

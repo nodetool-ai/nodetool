@@ -18,7 +18,7 @@ const jetBrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "NodeTool — The open creative AI workspace",
   description:
-    "NodeTool is the open-source creative AI workspace — every major model from every major provider, called with your own keys, wired into one node-based canvas you run on your machine or in the browser. Pay providers directly. No credits, no markup, no vendor lock-in.",
+    "NodeTool is the open-source creative AI workspace where every AI model is a node — image, video, music, and words from every major provider, called with your own keys, wired into one canvas you run on your machine or in the browser. Pay providers directly. No credits, no markup, no vendor lock-in.",
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/",
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "NodeTool — The open creative AI workspace",
     description:
-      "Every major model from every major provider, called with your own keys, wired into one node-based canvas. Image, video, audio, and text on one surface. Open source. BYOK. Provider prices.",
+      "Every AI model is a node. Image, video, music, and words from every major provider, called with your own keys, wired into one canvas. Open source. BYOK. Provider prices.",
     url: "https://nodetool.ai",
     siteName: "NodeTool",
     images: [
@@ -65,7 +65,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "NodeTool — The open creative AI workspace",
     description:
-      "Every model. Your keys. Your canvas. The open-source creative AI workspace, with BYOK to every major provider and provider-price billing.",
+      "Every model. Your keys. Your canvas. The open-source creative AI workspace where every AI model is a node, with BYOK to every major provider and provider-price billing.",
     images: ["/preview.png"],
   },
 };
@@ -92,7 +92,7 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "SoftwareApplication",
               "name": "NodeTool",
-              "description": "NodeTool is the open-source creative AI workspace — every major model from every major provider, called with your own keys, wired into one node-based canvas. Image, video, audio, and text on one surface, with masks, inpaint, outpaint, relight, upscale, and compositing built in. Runs as a desktop app on macOS, Windows, and Linux, or in the browser via NodeTool Cloud.",
+              "description": "NodeTool is the open-source creative AI workspace where every AI model is a node — every major model from every major provider, called with your own keys, wired into one canvas. Image, video, audio, and text on one surface, with masks, inpaint, outpaint, relight, upscale, and compositing built in. Runs as a desktop app on macOS, Windows, and Linux, or in the browser via NodeTool Cloud.",
               "applicationCategory": "MultimediaApplication",
               "applicationSubCategory": "Creative AI Workspace",
               "operatingSystem": "macOS, Windows, Linux",
@@ -164,7 +164,15 @@ export default function RootLayout({
                   "name": "What is NodeTool?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "NodeTool is the open-source creative AI workspace. Every major model from every major provider — FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, and more — is called with your own keys and wired into one node-based canvas. Image, video, audio, and text live on the same surface, with editing tools like masks, inpaint, outpaint, relight, upscale, layers, and compositing built in. Runs as a desktop app on macOS, Windows, and Linux, or in the browser via NodeTool Cloud."
+                    "text": "NodeTool is the open-source creative AI workspace where every AI model is a node. Every major model from every major provider — FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, and more — is called with your own keys and wired into one node-based canvas. Image, video, audio, and text live on the same surface, with editing tools like masks, inpaint, outpaint, relight, upscale, layers, and compositing built in. Runs as a desktop app on macOS, Windows, and Linux, or in the browser via NodeTool Cloud."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "What does the name NodeTool mean?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Node + Tool. Node: every AI model — image, video, music, or words — becomes a node on the canvas. Tool: the open, bring-your-own-keys tool that wires those nodes into workflows. The name is the positioning: a creative AI workspace built from AI nodes."
                   }
                 },
                 {

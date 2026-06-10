@@ -40,10 +40,13 @@ export default function NodeToolHero() {
           </h1>
 
           <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-400 md:text-lg">
-            One canvas. Every major model from every major provider, called
-            with your own keys. Pay providers what they charge — no credits, no
-            markup, no curated roster. When the next model ships, swap one node
-            and you&apos;re on it the same day.
+            <span className="font-semibold text-slate-200">
+              Every AI model is a node.
+            </span>{" "}
+            Image, video, music, and words from every major provider, wired
+            into one canvas with your own keys. Pay providers what they charge
+            — no credits, no markup, no curated roster. When the next model
+            ships, swap one node and you&apos;re on it the same day.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">

@@ -14,13 +14,30 @@ export default function SeoHeroContent() {
           NodeTool: The Open Creative AI Workspace
         </h1>
         <p className="text-lg text-slate-300 mb-8 leading-relaxed">
-          NodeTool is the open-source creative AI workspace — every major model
-          from every major provider, wired into one node-based canvas you run
-          on your own machine. Bring your own keys to FAL, KIE, OpenAI,
-          Anthropic, Gemini, Replicate, and the rest. Pay providers what they
-          charge — no credits, no markup, no curated roster. When the next
+          NodeTool is the open-source creative AI workspace — every AI model
+          is a node, wired into one canvas you run on your own machine. Image,
+          video, music, and words from every major provider live on the same
+          surface. Bring your own keys to FAL, KIE, OpenAI, Anthropic, Gemini,
+          Replicate, and the rest. Pay providers what they charge — no
+          credits, no markup, no curated roster. When the next
           state-of-the-art model ships, you swap one node and you&apos;re on it
           the same day.
+        </p>
+      </section>
+
+      {/* The Name Story */}
+      <section aria-labelledby="name" className="text-left max-w-2xl mx-auto mb-8">
+        <h2 id="name" className="text-xl font-semibold text-white mb-3">
+          What Does the Name NodeTool Mean?
+        </h2>
+        <p className="text-slate-300 leading-relaxed">
+          The name is the product. <strong className="text-white">Node:</strong>{" "}
+          every AI model — Flux for images, Seedance for video, Suno for music,
+          Claude for words — becomes a node on the canvas.{" "}
+          <strong className="text-white">Tool:</strong> the open, bring-your-own-keys
+          tool that wires those nodes into workflows. A creative AI workspace
+          built from AI nodes: that&apos;s the whole positioning, and it&apos;s
+          in the name.
         </p>
       </section>
 
