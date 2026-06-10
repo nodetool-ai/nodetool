@@ -66,11 +66,18 @@ export function getDownstreamSubgraph(
   // Seed BFS with targets of initial edges
   // Stryker disable next-line ArrayDeclaration: a non-empty seed is equivalent — a bogus node id has no outgoing edges, so BFS adds nothing for it
   const queue: string[] = [];
+  const enqueued = new Set<string>();
   for (const e of initialEdges) {
     includedEdges.push(e);
     includedNodeIds.add(e.target);
     includedNodeIds.add(e.source);
-    queue.push(e.target);
+    // Two initial edges can share a target (one output feeding two handles
+    // of the same node); enqueueing it twice would duplicate all of its
+    // outgoing edges in the result.
+    if (!enqueued.has(e.target)) {
+      enqueued.add(e.target);
+      queue.push(e.target);
+    }
   }
 
   // BFS over outgoing edges
