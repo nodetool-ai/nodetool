@@ -151,6 +151,12 @@ describe("BaseNode — constructor with properties", () => {
     expect(node.width).toBe(768);
     expect(node.scale).toBe(0.7); // default
   });
+
+  it("treats an explicit undefined like an absent key (default applies)", () => {
+    const node = new PropsNode({ prompt: undefined, width: 768 });
+    expect(node.prompt).toBe("hello"); // default, not undefined
+    expect(node.width).toBe(768);
+  });
 });
 
 describe("BaseNode — list-type coercion", () => {

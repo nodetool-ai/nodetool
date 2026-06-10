@@ -190,7 +190,10 @@ function readEnvPackPaths(): string[] {
   if (single) out.push(single);
   const list = process.env["NODETOOL_PACK_SEARCH_PATHS"];
   if (list) {
-    for (const entry of list.split(/[,;:]/)) {
+    // Comma, semicolon, or the platform PATH separator. ":" must not split
+    // on Windows — it would shear drive letters off absolute paths (C:\…).
+    const separators = process.platform === "win32" ? /[,;]/ : /[,;:]/;
+    for (const entry of list.split(separators)) {
       const trimmed = entry.trim();
       // Stryker disable next-line ConditionalExpression: forcing this pushes an empty string, which the existsSync filter downstream discards (equivalent).
       if (trimmed) out.push(trimmed);
@@ -503,10 +506,16 @@ function resolveEntry(pkg: PackageJsonShape): string | undefined {
   return pkg.main ?? "index.js";
 }
 
-/** Pick the `import` (then `default`) condition from an `exports["."]` object. */
-function pickExportCondition(dot: unknown): unknown {
+/**
+ * Pick the `import` (then `default`) condition from an `exports["."]` object.
+ * Conditions may nest (e.g. `{ import: { types: "...", default: "x.js" } }`),
+ * so recurse until a string target is found. Depth-capped against cycles.
+ */
+function pickExportCondition(dot: unknown, depth = 0): unknown {
   // Stryker disable next-line ConditionalExpression: a nullish or non-object dot has no conditions to pick — every guard variant resolves to undefined and falls through to `main` (covered by the exports/main entry tests).
-  if (!dot || typeof dot !== "object") return undefined;
+  if (!dot || typeof dot !== "object" || depth > 4) return undefined;
   const conds = dot as Record<string, unknown>;
-  return conds["import"] ?? conds["default"];
+  const picked = conds["import"] ?? conds["default"];
+  if (typeof picked === "string") return picked;
+  return pickExportCondition(picked, depth + 1);
 }

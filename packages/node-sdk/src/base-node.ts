@@ -121,9 +121,28 @@ export type NodeProps<T extends BaseNode> = Partial<
 >;
 
 /**
+ * Find an `isStreamingOutput` declared explicitly on `cls` or one of its
+ * ancestors below BaseNode. BaseNode's own `false` default is "unset" —
+ * only a subclass's own declaration counts, so `static isStreamingOutput =
+ * false` is a real opt-out rather than indistinguishable from the default.
+ */
+const explicitStreamingOutputFlag = (cls: NodeClass): boolean | undefined => {
+  let current: unknown = cls;
+  while (typeof current === "function" && current !== BaseNode) {
+    if (Object.prototype.hasOwnProperty.call(current, "isStreamingOutput")) {
+      return (current as NodeClass).isStreamingOutput;
+    }
+    current = Object.getPrototypeOf(current);
+  }
+  return undefined;
+};
+
+/**
  * True if a class is a streaming-output node. Resolution order:
  *
  *   1. Explicit static `isStreamingOutput` flag wins (rare opt-in/out).
+ *      Only a flag declared on the class (or an ancestor below BaseNode)
+ *      counts — `false` declared explicitly suppresses the inference below.
  *   2. Subclass overrides `genProcess` → it yields multiple values.
  *   3. Any output handle declares `forward`, `iteration`, or `chunk`
  *      correlation → the node emits per-input or per-iteration. `single`
@@ -134,8 +153,9 @@ export type NodeProps<T extends BaseNode> = Partial<
  * generator needed.
  */
 export const hasStreamingOutput = (cls: NodeClass): boolean => {
-  if (cls.isStreamingOutput) {
-    return true;
+  const explicit = explicitStreamingOutputFlag(cls);
+  if (explicit !== undefined) {
+    return explicit;
   }
   const proto = (cls as unknown as { prototype?: { genProcess?: unknown } })
     .prototype;
@@ -266,7 +286,12 @@ export abstract class BaseNode {
     }
     const declaredNames = new Set(declared.map((p) => p.name));
     for (const { name, options } of declared) {
-      if (Object.prototype.hasOwnProperty.call(properties, name)) {
+      if (
+        Object.prototype.hasOwnProperty.call(properties, name) &&
+        // An explicit `undefined` means "absent", same as omitting the key —
+        // it must not suppress the declared default below.
+        properties[name] !== undefined
+      ) {
         // Explicit value provided — use it (auto-wrap scalars into list[T]).
         (this as any)[name] = coerceToDeclaredType(
           properties[name],
@@ -383,25 +408,24 @@ export abstract class BaseNode {
   ): Promise<void>;
 
   /**
-   * Resolve requiredSettings from the context's secret store and inject
-   * them as `inputs._secrets` so node process() can access API keys.
+   * Resolve requiredSettings from the context's secret store. Returns an
+   * empty record when nothing is required or nothing resolves.
    */
-  private async _injectSecrets(
-    inputs: Record<string, unknown>,
+  private async _resolveSecrets(
     context?: ProcessingContext
-  ): Promise<Record<string, unknown>> {
+  ): Promise<Record<string, string>> {
     const ctor = this.constructor as typeof BaseNode;
     const required = ctor.requiredSettings;
-    // Stryker disable next-line EqualityOperator,ConditionalExpression: the `required.length === 0` arm is a redundant fast-path — an empty requiredSettings list runs the loop zero times and returns inputs via the empty-secrets guard below, so mutating this comparison is equivalent (the `!required` arm is covered by the no-requiredSettings test).
+    // Stryker disable next-line EqualityOperator,ConditionalExpression: the `required.length === 0` arm is a redundant fast-path — an empty requiredSettings list runs the loop zero times and returns an empty map, so mutating this comparison is equivalent (the `!required` arm is covered by the no-requiredSettings test).
     if (!required || required.length === 0) {
-      return inputs;
+      return {};
     }
     if (!context) {
       console.warn(
         // Stryker disable next-line StringLiteral: operator diagnostic text only.
         `[_injectSecrets] No context for ${ctor.nodeType}, required: ${required.join(", ")}`
       );
-      return inputs;
+      return {};
     }
 
     const secrets: Record<string, string> = {};
@@ -416,6 +440,18 @@ export abstract class BaseNode {
         );
       }
     }
+    return secrets;
+  }
+
+  /**
+   * Resolve requiredSettings from the context's secret store and inject
+   * them as `inputs._secrets` so node process() can access API keys.
+   */
+  private async _injectSecrets(
+    inputs: Record<string, unknown>,
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    const secrets = await this._resolveSecrets(context);
     // Stryker disable next-line ConditionalExpression: short-circuits an empty secrets map; emitting `_secrets: {}` instead is indistinguishable through the _secrets getter, which coalesces undefined and {} alike (equivalent).
     if (Object.keys(secrets).length === 0) return inputs;
     return {
@@ -470,7 +506,16 @@ export abstract class BaseNode {
         inputs: StreamingInputs,
         outputs: StreamingOutputs,
         context?: ProcessingContext
-      ) => this.run!(inputs, outputs, context);
+      ) => {
+        // run() receives StreamingInputs rather than a property bag, so
+        // secrets can't ride along on the inputs — store them on the
+        // instance so this._secrets works inside run() like in process().
+        const secrets = await this._resolveSecrets(context);
+        if (Object.keys(secrets).length > 0) {
+          this.setDynamic("_secrets", { ...this._secrets, ...secrets });
+        }
+        return this.run!(inputs, outputs, context);
+      };
     }
     return executor;
   }
