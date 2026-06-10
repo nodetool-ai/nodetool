@@ -880,6 +880,17 @@ export function useStandaloneSketchDocument(
       }
       const store = sessionStore.getState();
       if (inFlightRef.current || !store.documentId) {
+        // A manual save may be in flight (shared guard). Re-arm the debounce
+        // so a pending hash isn't dropped if that save fails — but never
+        // after unmount (cleanup also calls flush()).
+        if (
+          alive &&
+          inFlightRef.current &&
+          pendingHashRef.current &&
+          pendingHashRef.current !== store.lastServerHash
+        ) {
+          schedule();
+        }
         return;
       }
       const nextHash = pendingHashRef.current;

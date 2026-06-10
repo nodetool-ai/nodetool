@@ -469,7 +469,9 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const isModalOpenRef = useRef(false);
-  isModalOpenRef.current = isModalOpen;
+  useEffect(() => {
+    isModalOpenRef.current = isModalOpen;
+  }, [isModalOpen]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [editorDocument, setEditorDocument] = useState<SketchDocument | null>(
     null
