@@ -16,7 +16,9 @@ import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import DownloadIcon from "@mui/icons-material/Download";
 
+import { isBitmapImage } from "@nodetool-ai/protocol";
 import AssetViewer from "../assets/AssetViewer";
+import BitmapCanvas from "./BitmapCanvas";
 import { useNodeResultHistory } from "../../hooks/nodes/useNodeResultHistory";
 import { useNodeGenerations } from "../../hooks/nodes/useNodeGenerations";
 import { outputOf } from "../../utils/nodeGenerations";
@@ -144,7 +146,7 @@ const styles = (theme: Theme) =>
         borderColor: theme.vars.palette.primary.main
       }
     },
-    ".thumb img, .thumb video": {
+    ".thumb img, .thumb video, .thumb canvas": {
       width: "100%",
       height: "100%",
       objectFit: "cover",
@@ -385,6 +387,9 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
               const kind = value?.type;
               const label = asset?.name || gen.id;
               const imgUrl = asset?.thumb_url || asset?.get_url || value?.uri || "";
+              const previewBitmap = isBitmapImage(value)
+                ? (value.bitmap as ImageBitmap)
+                : undefined;
               const videoThumb = asset?.thumb_url;
               const videoUrl = asset?.get_url || value?.uri || "";
               return (
@@ -396,6 +401,8 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
                 >
                   {kind === "image" && imgUrl ? (
                     <img src={imgUrl} alt={label} />
+                  ) : kind === "image" && previewBitmap ? (
+                    <BitmapCanvas bitmap={previewBitmap} aria-label={label} />
                   ) : kind === "video" && (videoThumb || videoUrl) ? (
                     videoThumb ? (
                       <img src={videoThumb} alt={label} />

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef } from "react";
-import { packageAssetHttpPath } from "@nodetool-ai/protocol";
+import { packageAssetHttpPath, isBitmapImage } from "@nodetool-ai/protocol";
 import { Asset, AssetRef } from "../../../stores/ApiTypes";
 import { BASE_URL } from "../../../stores/BASE_URL";
 import { trpc } from "../../../trpc/client";
+import { bitmapToPngDataUrl } from "../../../lib/workflow/materializeBrowserOutputs";
 
 /**
  * Base type for typed output values with a type discriminator
@@ -231,6 +232,11 @@ export function useImageAssets(value: unknown): { assets: Asset[]; urls: string[
         let url = "";
         if (imageItem.uri) {
           url = resolveAssetUri(imageItem.uri);
+        } else if (isBitmapImage(imageItem)) {
+          // Preview-bitmap ref from the in-browser runner (no uri/data) —
+          // encode it for the grid. Memoized with the value, so this runs
+          // once per output, not per render.
+          url = bitmapToPngDataUrl(imageItem.bitmap as ImageBitmap);
         } else if (imageItem.data) {
           try {
             // Ensure the typed array is backed by a non-shared ArrayBuffer (BlobPart typing)

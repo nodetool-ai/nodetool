@@ -38,6 +38,8 @@ import TaskView from "./TaskView";
 /** In-flight raw straight-alpha RGBA image format (see protocol RAW_RGBA_MIME). */
 const RAW_RGBA_MIME = "image/x-raw-rgba";
 
+import { isBitmapImage } from "@nodetool-ai/protocol";
+
 // Encodes the raw-RGBA in-flight format to a PNG data URL. Shared with the
 // in-browser run path (`materializeBrowserOutputs`), which normalizes the same
 // format at the run boundary; re-exported here for existing callers/tests.
@@ -425,6 +427,11 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       case "image_comparison":
         return <ImageComparisonRenderer value={value as ImageComparisonData} />;
       case "image":
+        // Preview bitmap from the in-browser runner — paint it directly
+        // (zero-copy fast path; no PNG encode/decode).
+        if (isBitmapImage(v)) {
+          return <ImageView bitmap={v.bitmap as ImageBitmap} />;
+        }
         if (Array.isArray(v.data)) {
           const seen = new Map<string, number>();
           return (v.data as (string | Uint8Array)[]).map((item) => (

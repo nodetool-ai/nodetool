@@ -35,6 +35,7 @@ import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 import { createRunnerMessageHandler } from "../core/workflow/runnerProtocol";
+import { materializeBitmapRefs } from "../lib/workflow/materializeBrowserOutputs";
 import { getNodeStore, MsgpackData } from "./workflowUpdates";
 import { queryClient } from "../queryClient";
 
@@ -424,7 +425,7 @@ export const createWorkflowRunnerStore = (
           await globalWebSocketManager.send({
             type: "run_job",
             command: "run_job",
-            data: req
+            data: materializeBitmapRefs(req) as Record<string, unknown>
           });
           queryClient.invalidateQueries({ queryKey: ["jobs"] });
         } catch (error) {
@@ -535,10 +536,13 @@ export const createWorkflowRunnerStore = (
       console.info(`WorkflowRunner[${workflowId}]: Sending run_job command`, req);
 
       try {
+        // Preview-bitmap refs (cached browser-run outputs seeded into single-
+        // node / run-from-here subgraph properties) can't cross msgpack —
+        // encode them to portable data-URL refs for the server.
         await globalWebSocketManager.send({
           type: "run_job",
           command: "run_job",
-          data: req
+          data: materializeBitmapRefs(req) as Record<string, unknown>
         });
       } catch (error) {
         // Rollback so the store doesn't get stuck in "running" with a phantom

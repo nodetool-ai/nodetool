@@ -9,6 +9,11 @@
  */
 
 import { describe, it, expect } from "vitest";
+import {
+  BITMAP_IMAGE_MIME,
+  isBitmapImage,
+  isInFlightImage
+} from "../src/api-types.js";
 import type {
   ImageRef,
   AudioRef,
@@ -82,6 +87,24 @@ describe("Media Refs", () => {
     expect(ref.type).toBe("image");
     expect(ref.uri).toBe("https://example.com/img.png");
     expect(ref.asset_id).toBeUndefined();
+  });
+
+  it("isBitmapImage narrows preview-bitmap refs structurally", () => {
+    const ref: ImageRef = {
+      type: "image",
+      mimeType: BITMAP_IMAGE_MIME,
+      bitmap: { width: 2, height: 2 },
+      bitmapVersion: 1,
+      width: 2,
+      height: 2
+    };
+    expect(isBitmapImage(ref)).toBe(true);
+    expect(isInFlightImage(ref)).toBe(true);
+    // Missing bitmap, wrong mime, or missing dimensions all reject.
+    expect(isBitmapImage({ ...ref, bitmap: undefined })).toBe(false);
+    expect(isBitmapImage({ ...ref, mimeType: "image/png" })).toBe(false);
+    expect(isBitmapImage({ ...ref, width: 0 })).toBe(false);
+    expect(isBitmapImage(null)).toBe(false);
   });
 
   it("AudioRef has optional duration", () => {
