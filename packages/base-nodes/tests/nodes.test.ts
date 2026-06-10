@@ -686,11 +686,29 @@ describe("text nodes", () => {
     expect(items.length).toBe(1);
     expect(items[0].text).toBe("abc");
 
+    // Embedding requires a provider-backed context — no more fake fallback.
+    const _embNoCtx = new EmbeddingTextNode();
+    _embNoCtx.assign({ input: "hello world" });
+    await expect(_embNoCtx.process()).rejects.toThrow(
+      /provider/i
+    );
+
     const _emb = new EmbeddingTextNode();
     _emb.assign({ input: "hello world" });
-    const emb = await _emb.process();
-    expect(Array.isArray(emb.output)).toBe(true);
-    expect((emb.output as number[]).length).toBe(64);
+    const runProviderPrediction = vi
+      .fn()
+      .mockResolvedValue([[0.1, 0.2, 0.3]]);
+    const emb = await _emb.process({
+      runProviderPrediction
+    } as never);
+    expect(emb.output).toEqual([0.1, 0.2, 0.3]);
+    expect(runProviderPrediction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        capability: "generate_embedding",
+        provider: "openai",
+        model: "text-embedding-3-small"
+      })
+    );
   });
 });
 

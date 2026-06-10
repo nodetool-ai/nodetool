@@ -1354,7 +1354,8 @@ describe("text-extra nodes full coverage", () => {
   it("TruncateTextNode max_length <= 0", async () => {
     const node = new TruncateTextNode();
     node.assign({ text: "hello", max_length: 0, ellipsis: "..." });
-    expect((await node.process()).output).toBe("...");
+    // max_length is a hard cap: nothing fits in 0 characters.
+    expect((await node.process()).output).toBe("");
   });
 
   it("TruncateTextNode no ellipsis, truncate", async () => {
@@ -1366,7 +1367,8 @@ describe("text-extra nodes full coverage", () => {
   it("TruncateTextNode ellipsis longer than max_length", async () => {
     const node = new TruncateTextNode();
     node.assign({ text: "hello world", max_length: 2, ellipsis: "..." });
-    expect((await node.process()).output).toBe("he");
+    // The ellipsis itself is truncated to fit the cap.
+    expect((await node.process()).output).toBe("..");
   });
 
   it("PadTextNode right", async () => {
