@@ -423,7 +423,7 @@ export abstract class BaseNode {
     if (!context) {
       console.warn(
         // Stryker disable next-line StringLiteral: operator diagnostic text only.
-        `[_injectSecrets] No context for ${ctor.nodeType}, required: ${required.join(", ")}`
+        `[_resolveSecrets] No context for ${ctor.nodeType}, required: ${required.join(", ")}`
       );
       return {};
     }
