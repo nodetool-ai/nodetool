@@ -55,6 +55,8 @@ export interface ChannelStats {
 interface SubscriberQueue<T> {
   buffer: (T | typeof STOP_SIGNAL)[];
   waiters: Array<Deferred<void>>;
+  /** Items dropped because the buffer was at capacity. */
+  dropped: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -66,13 +68,15 @@ export class Channel<T = unknown> {
   private _subscribers = new Map<string, SubscriberQueue<T>>();
   private _closed = false;
   private _messageType?: new (...args: unknown[]) => T;
+  private _bufferLimit: number;
 
   constructor(
     name: string,
-    _bufferLimit = 100,
+    bufferLimit = 100,
     messageType?: new (...args: unknown[]) => T
   ) {
     this.name = name;
+    this._bufferLimit = bufferLimit;
     this._messageType = messageType;
   }
 
@@ -100,7 +104,22 @@ export class Channel<T = unknown> {
       );
     }
 
-    for (const sub of this._subscribers.values()) {
+    for (const [subscriberId, sub] of this._subscribers) {
+      // Bounded queue: a stalled subscriber must not grow its buffer without
+      // bound for the channel's lifetime. Drop the oldest item to make room
+      // (broadcast semantics — one slow consumer must not stall the others).
+      if (sub.buffer.length >= this._bufferLimit) {
+        sub.buffer.shift();
+        sub.dropped++;
+        if (sub.dropped === 1) {
+          // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+          log.warn("Subscriber buffer full — dropping oldest items", {
+            channel: this.name,
+            subscriberId,
+            bufferLimit: this._bufferLimit
+          });
+        }
+      }
       sub.buffer.push(item);
       // Wake any waiting consumer
       for (const w of sub.waiters.splice(0)) {
@@ -113,7 +132,16 @@ export class Channel<T = unknown> {
     // Stryker disable next-line ConditionalExpression: equivalent — without this early return the closed check at the wait branch yields the same empty result (the subscriber registers then immediately breaks)
     if (this._closed) return;
 
-    const sub: SubscriberQueue<T> = { buffer: [], waiters: [] };
+    // Replacing a live subscriber's queue would strand the old generator
+    // forever (publish/close never touch the evicted queue, so a consumer
+    // awaiting it never even receives the stop signal).
+    if (this._subscribers.has(subscriberId)) {
+      throw new Error(
+        `Channel '${this.name}' already has an active subscriber '${subscriberId}'`
+      );
+    }
+
+    const sub: SubscriberQueue<T> = { buffer: [], waiters: [], dropped: 0 };
     this._subscribers.set(subscriberId, sub);
 
     try {

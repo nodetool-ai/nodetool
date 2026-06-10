@@ -211,6 +211,14 @@ export function createRecipeRunner(): RecipeRunner {
         const fullSpec: ScratchSpec = {
           width: spec.width ?? source.width,
           height: spec.height ?? source.height,
+          // Exact size, not bucketed: passes derive dispatch size and texel
+          // bounds from the texture's physical dimensions, and fragment
+          // passes always cover the whole attachment. A bucketed intermediate
+          // therefore either leaves an unwritten margin that the next pass's
+          // clamped taps blend in (compute) or stretches the image to the
+          // bucket and back, rescaling pixel-unit params like blur radius
+          // (fragment). Physical size must equal logical size.
+          exact: true,
           format: spec.format,
           usage: spec.usage,
           label: spec.label ?? `${key}-${name}`

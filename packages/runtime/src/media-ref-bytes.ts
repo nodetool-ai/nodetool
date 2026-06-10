@@ -7,10 +7,6 @@ const _nodeFsP = await importNodeBuiltin<typeof import("node:fs/promises")>(
   "node:fs/promises"
 );
 const _nodeUrl = await importNodeBuiltin<typeof import("node:url")>("node:url");
-// These guards only fire in a non-Node runtime (browser/edge), which the test
-// environment never is — so their fallback branches and messages are
-// unreachable here and their mutants equivalent.
-// Stryker disable all
 const readFile = (
   ...args: Parameters<typeof import("node:fs/promises").readFile>
 ): Promise<Buffer> =>
@@ -21,7 +17,30 @@ const fileURLToPath = (u: string | URL): string => {
   if (!_nodeUrl) throw new Error("node:url.fileURLToPath requires Node");
   return _nodeUrl.fileURLToPath(u);
 };
-// Stryker restore all
+
+/**
+ * Decode base64 → bytes without requiring the `Buffer` global. This module is
+ * shared with the browser bundle (the in-browser runner loads it inside a Web
+ * Worker, which has no `Buffer`), so prefer `Buffer` on Node for speed and fall
+ * back to `atob` everywhere else.
+ */
+function decodeBase64(b64: string): Uint8Array {
+  if (typeof Buffer !== "undefined") {
+    return new Uint8Array(Buffer.from(b64, "base64"));
+  }
+  const binary = atob(b64);
+  const out = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) out[i] = binary.charCodeAt(i);
+  return out;
+}
+
+/** Encode a UTF-8 string → bytes without requiring the `Buffer` global. */
+function encodeUtf8(text: string): Uint8Array {
+  if (typeof Buffer !== "undefined") {
+    return new Uint8Array(Buffer.from(text, "utf-8"));
+  }
+  return new TextEncoder().encode(text);
+}
 
 /** Minimal media ref shape for byte resolution (Python bridge + TS nodes). */
 export type MediaRefValue = {
@@ -46,14 +65,6 @@ export function isAbsoluteFilePath(uri: string): boolean {
   );
 }
 
-async function tryReadFile(path: string): Promise<Uint8Array | null> {
-  try {
-    return await readFile(path);
-  } catch {
-    return null;
-  }
-}
-
 async function readUriBytes(uri: string): Promise<Uint8Array | null> {
   if (uri.startsWith("data:")) {
     const parts = uri.split(",", 2);
@@ -61,20 +72,25 @@ async function readUriBytes(uri: string): Promise<Uint8Array | null> {
       return null;
     }
     const [header, data] = parts;
-    const bytes = header.includes(";base64")
-      ? Buffer.from(data, "base64")
-      : // Stryker disable next-line StringLiteral: Node decodes "" as utf-8, so "utf-8" vs "" is byte-identical.
-        Buffer.from(decodeURIComponent(data), "utf-8");
-    return new Uint8Array(bytes);
+    return header.includes(";base64")
+      ? decodeBase64(data)
+      : encodeUtf8(decodeURIComponent(data));
   }
 
   if (uri.startsWith("file://")) {
-    return tryReadFile(fileURLToPath(uri));
+    try {
+      return await readFile(fileURLToPath(uri));
+    } catch {
+      return null;
+    }
   }
 
-  // Stryker disable next-line ConditionalExpression: forcing this true only makes tryReadFile attempt a non-absolute path, which ENOENTs to null — same as skipping.
   if (isAbsoluteFilePath(uri)) {
-    return tryReadFile(uri);
+    try {
+      return await readFile(uri);
+    } catch {
+      return null;
+    }
   }
 
   return null;
@@ -94,14 +110,9 @@ export async function loadMediaRefBytes(
 
   const data = value.data;
   if (typeof data === "string" && data.length > 0) {
-    // base64 never contains a comma, so for a bare payload `indexOf(",")` is
-    // always -1 and the slice is a no-op; the prefix/`>= 0` guards therefore
-    // only matter for an actual `data:...,` URI, which the data: tests pin.
-    // Stryker disable ConditionalExpression,EqualityOperator,StringLiteral
     const comma = data.startsWith("data:") ? data.indexOf(",") : -1;
     const b64 = comma >= 0 ? data.slice(comma + 1) : data;
-    // Stryker restore ConditionalExpression,EqualityOperator,StringLiteral
-    return new Uint8Array(Buffer.from(b64, "base64"));
+    return decodeBase64(b64);
   }
   if (data instanceof Uint8Array && data.length > 0) {
     return data;
@@ -124,7 +135,6 @@ export async function loadMediaRefBytes(
     candidates.add(uri);
 
     if (value.asset_id) {
-      // Stryker disable next-line StringLiteral: an undefined type and any other unknown string both miss ASSET_ID_EXTENSION_CANDIDATES and fall to ["bin"].
       const refType = (value.type ?? "").toLowerCase();
       const extensions = ASSET_ID_EXTENSION_CANDIDATES[refType] ?? ["bin"];
       for (const extension of extensions) {

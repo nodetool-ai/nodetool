@@ -32,6 +32,7 @@ import { colorCurvesV1 } from "./color/curves/v1/module.js";
 import { colorHslAdjustV1 } from "./color/hslAdjust/v1/module.js";
 import { colorSplitToningV1 } from "./color/splitToning/v1/module.js";
 import { colorFilmLookV1 } from "./color/filmLook/v1/module.js";
+import { colorLevelsV1 } from "./color/levels/v1/module.js";
 
 import { blurGaussianV1 } from "./filters/blur/gaussian/v1/module.js";
 import { sharpenUnsharpMaskV1 } from "./filters/sharpen/unsharpMask/v1/module.js";
@@ -55,12 +56,14 @@ import { sourcesCheckerboardV1 } from "./sources/checkerboard/v1/module.js";
 import { sourcesRadialGradientV1 } from "./sources/radialGradient/v1/module.js";
 import { sourcesAngularGradientV1 } from "./sources/angularGradient/v1/module.js";
 import { sourcesDiamondGradientV1 } from "./sources/diamondGradient/v1/module.js";
+import { sourcesGaussianNoiseV1 } from "./sources/gaussianNoise/v1/module.js";
 
 import { mixerAddV1 } from "./mixer/add/v1/module.js";
 import { mixerColorOverlayV1 } from "./mixer/colorOverlay/v1/module.js";
 import { mixerOutlineV1 } from "./mixer/outline/v1/module.js";
 import { mixerShadowComposeV1 } from "./mixer/shadowCompose/v1/module.js";
 import { mixerDropShadowV1 } from "./mixer/dropShadow/v1/module.js";
+import { mixerOverV1 } from "./mixer/over/v1/module.js";
 
 import { transformMirrorV1 } from "./transform/mirror/v1/module.js";
 import { transformOffsetV1 } from "./transform/offset/v1/module.js";
@@ -99,6 +102,7 @@ export {
   colorHslAdjustV1,
   colorSplitToningV1,
   colorFilmLookV1,
+  colorLevelsV1,
   blurGaussianV1,
   sharpenUnsharpMaskV1,
   vignetteV1,
@@ -118,11 +122,13 @@ export {
   sourcesRadialGradientV1,
   sourcesAngularGradientV1,
   sourcesDiamondGradientV1,
+  sourcesGaussianNoiseV1,
   mixerAddV1,
   mixerColorOverlayV1,
   mixerOutlineV1,
   mixerShadowComposeV1,
   mixerDropShadowV1,
+  mixerOverV1,
   transformMirrorV1,
   transformOffsetV1,
   transformCropV1,
@@ -165,6 +171,7 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
   colorHslAdjustV1,
   colorSplitToningV1,
   colorFilmLookV1,
+  colorLevelsV1,
   // filters
   blurGaussianV1,
   sharpenUnsharpMaskV1,
@@ -186,11 +193,13 @@ export const ALL_SHADERS: readonly ShaderModule[] = [
   sourcesRadialGradientV1,
   sourcesAngularGradientV1,
   sourcesDiamondGradientV1,
+  sourcesGaussianNoiseV1,
   // mixer
   mixerAddV1,
   mixerColorOverlayV1,
   mixerOutlineV1,
   mixerShadowComposeV1,
+  mixerOverV1,
   // transform
   transformMirrorV1,
   transformOffsetV1,

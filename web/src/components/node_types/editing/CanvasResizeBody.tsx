@@ -22,6 +22,7 @@ import {
 } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageView from "../../node/ImageView";
+import ImageRefPreview from "../../node/ImageRefPreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 import NumberInput from "../../inputs/NumberInput";
@@ -154,24 +155,14 @@ function computeLayout(
   };
 }
 
-const PreviewImage: React.FC<{ value: unknown }> = ({ value }) => {
-  if (typeof value === "string" && value) {
-    return <ImageView source={value} />;
-  }
-  const ref = asImageRef(value);
-  if (ref?.uri) {
-    return <ImageView source={ref.uri} />;
-  }
-  if (ref?.data instanceof Uint8Array) {
-    return <ImageView source={ref.data} />;
-  }
-  if (Array.isArray(ref?.data)) {
-    return <ImageView source={new Uint8Array(ref.data as number[])} />;
-  }
-  return (
-    <CheckerDropzone message="Connect an image, then run" icon={<ImageIcon />} />
-  );
-};
+const PreviewImage: React.FC<{ value: unknown }> = ({ value }) => (
+  <ImageRefPreview
+    value={value}
+    placeholder={
+      <CheckerDropzone message="Connect an image, then run" icon={<ImageIcon />} />
+    }
+  />
+);
 
 export interface CanvasResizeBodyProps {
   id: string;

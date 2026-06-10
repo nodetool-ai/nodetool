@@ -17,10 +17,33 @@ import {
   LIB_IMAGE_ENHANCE_NODES,
   LIB_IMAGE_FILTER_NODES
 } from "@nodetool-ai/image-nodes";
+import { RAW_RGBA_MIME } from "@nodetool-ai/protocol";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Resolve a node output ImageRef to straight-alpha RGBA bytes. GPU shader nodes
+ * emit a raw-RGBA buffer (no codec); other nodes still emit base64 PNG.
+ */
+async function refToRgba(
+  ref: Record<string, unknown>
+): Promise<{ rgba: Buffer; width: number; height: number }> {
+  if (ref.data instanceof Uint8Array && ref.mimeType === RAW_RGBA_MIME) {
+    return {
+      rgba: Buffer.from(ref.data),
+      width: ref.width as number,
+      height: ref.height as number
+    };
+  }
+  const buf = Buffer.from(ref.data as string, "base64");
+  const { data, info } = await sharp(buf)
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  return { rgba: data, width: info.width, height: info.height };
+}
 
 /** Create a small test image as a base64 image ref. */
 async function makeTestImage(
@@ -62,14 +85,10 @@ async function makeGradientImage(
   return { type: "image", data: buf.toString("base64"), uri: "" };
 }
 
-/** Decode a base64 image ref to raw pixel buffer and metadata. */
+/** Decode an output image ref (raw-RGBA or base64 PNG) to raw pixels + meta. */
 async function decodeOutput(output: Record<string, unknown>) {
-  const data = output.data as string;
-  const buf = Buffer.from(data, "base64");
-  const { data: raw, info } = await sharp(buf)
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  return { raw, info, buf };
+  const { rgba, width, height } = await refToRgba(output);
+  return { raw: rgba, info: { width, height, channels: 4 }, buf: rgba };
 }
 
 /** Find a node class by its static nodeType. */
@@ -104,9 +123,15 @@ async function runNode(
   return (result.output ?? result) as Record<string, unknown>;
 }
 
-/** Assert output is a valid image ref with non-empty base64 data. */
+/** Assert output is a valid image ref (raw-RGBA buffer or base64 PNG). */
 function assertValidImage(output: Record<string, unknown>) {
   expect(output).toBeDefined();
+  if (output.data instanceof Uint8Array && output.mimeType === RAW_RGBA_MIME) {
+    expect(output.data.length).toBeGreaterThan(0);
+    expect(output.width as number).toBeGreaterThan(0);
+    expect(output.height as number).toBeGreaterThan(0);
+    return;
+  }
   expect(typeof output.data).toBe("string");
   expect((output.data as string).length).toBeGreaterThan(0);
 }
@@ -116,14 +141,8 @@ async function assertPixelsChanged(
   inputRef: Record<string, unknown>,
   outputRef: Record<string, unknown>
 ) {
-  const inBuf = Buffer.from(inputRef.data as string, "base64");
-  const outBuf = Buffer.from(outputRef.data as string, "base64");
-  const { data: inRaw } = await sharp(inBuf)
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  const { data: outRaw } = await sharp(outBuf)
-    .raw()
-    .toBuffer({ resolveWithObject: true });
+  const { rgba: inRaw } = await refToRgba(inputRef);
+  const { rgba: outRaw } = await refToRgba(outputRef);
   // At least one pixel should differ
   let differs = false;
   const len = Math.min(inRaw.length, outRaw.length);
@@ -321,10 +340,9 @@ describe("lib-image-draw nodes", () => {
     const output = result.output as Record<string, unknown>;
     assertValidImage(output);
     // Verify dimensions
-    const buf = Buffer.from(output.data as string, "base64");
-    const meta = await sharp(buf).metadata();
-    expect(meta.width).toBe(8);
-    expect(meta.height).toBe(6);
+    const { width, height } = await refToRgba(output);
+    expect(width).toBe(8);
+    expect(height).toBe(6);
   });
 
   it("GaussianNoise — with no image input returns empty output gracefully", async () => {
@@ -483,10 +501,9 @@ describe("lib-image-filter nodes", () => {
     });
     assertValidImage(output);
     // Verify dimensions increased by 2*border on each side
-    const buf = Buffer.from(output.data as string, "base64");
-    const meta = await sharp(buf).metadata();
-    expect(meta.width).toBe(8); // 4 + 2*2
-    expect(meta.height).toBe(8);
+    const { width, height } = await refToRgba(output);
+    expect(width).toBe(8); // 4 + 2*2
+    expect(height).toBe(8);
   });
 
   it("FindEdges — detects edges via convolution", async () => {

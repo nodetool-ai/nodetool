@@ -1,5 +1,21 @@
-import sharp from "sharp";
+import { importHidden } from "@nodetool-ai/config";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+
+// `sharp` is a native Node addon. Load it lazily via a bundler-hidden import so
+// this module stays browser-bundle-safe (the GPU color-grading node imports the
+// pure helpers below); only the two Node-only float-RGB helpers touch it.
+type SharpFn = typeof import("sharp");
+let _sharpPromise: Promise<SharpFn> | null = null;
+async function loadSharp(): Promise<SharpFn> {
+  if (!_sharpPromise) {
+    _sharpPromise = (async () => {
+      const mod = await importHidden<SharpFn | { default: SharpFn }>("sharp");
+      if (!mod) throw new Error("sharp requires Node (not available in browser)");
+      return (mod as { default?: SharpFn }).default ?? (mod as SharpFn);
+    })();
+  }
+  return _sharpPromise;
+}
 
 export type ImageRefLike = {
   data?: string | Uint8Array;
@@ -144,6 +160,7 @@ export function hsvToRgb(
 }
 
 export async function toFloatRGB(buf: Buffer): Promise<FloatRGBResult> {
+  const sharp = await loadSharp();
   const img = sharp(buf, { failOn: "none" });
   const meta = await img.metadata();
   const hasAlpha = meta.channels === 4 || meta.hasAlpha;
@@ -183,5 +200,6 @@ export async function fromFloatRGB(
     out[i * channels + 2] = Math.round(clamp(data[i * 3 + 2], 0, 1) * 255);
     if (alpha) out[i * channels + 3] = alpha[i];
   }
+  const sharp = await loadSharp();
   return sharp(out, { raw: { width, height, channels } }).png().toBuffer();
 }

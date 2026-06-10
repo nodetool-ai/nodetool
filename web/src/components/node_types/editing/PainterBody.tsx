@@ -67,7 +67,8 @@ import { useAssetUpload } from "../../../serverState/useAssetUpload";
 import { useAsset } from "../../../serverState/useAsset";
 import type { Asset } from "../../../stores/ApiTypes";
 import { resolveExposedInputNames } from "../../../utils/exposedInputs";
-import { asImageRef } from "../../../utils/imageRef";
+import { asImageRef, isRawRgbaRef } from "../../../utils/imageRef";
+import { rawRgbaToPngDataUrl } from "../../../lib/workflow/materializeBrowserOutputs";
 import { createImageUrl } from "../../../utils/imageUtils";
 import { resolveAssetUri } from "../../node/output/hooks";
 import { PAINTER_NODE_TYPE } from "../../../constants/nodeTypes";
@@ -367,6 +368,17 @@ const PainterBodyInner: React.FC<PainterBodyProps> = ({
   const sourceSrc = useMemo(() => {
     if (!sourceImage && !assetUri) {
       return undefined;
+    }
+    // Raw-RGBA upstream → encode via canvas; createImageUrl below would treat
+    // the bytes as an encoded image and produce an undecodable blob.
+    if (isRawRgbaRef(sourceImage)) {
+      return (
+        rawRgbaToPngDataUrl(
+          sourceImage.data,
+          sourceImage.width,
+          sourceImage.height
+        ) || undefined
+      );
     }
     const uriCandidate =
       sourceImage?.uri && sourceImage.uri.length > 0

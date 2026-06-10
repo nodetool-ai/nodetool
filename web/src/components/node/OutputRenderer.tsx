@@ -34,6 +34,15 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import isEqual from "fast-deep-equal";
 import { Chunk } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
+
+/** In-flight raw straight-alpha RGBA image format (see protocol RAW_RGBA_MIME). */
+const RAW_RGBA_MIME = "image/x-raw-rgba";
+
+// Encodes the raw-RGBA in-flight format to a PNG data URL. Shared with the
+// in-browser run path (`materializeBrowserOutputs`), which normalizes the same
+// format at the run boundary; re-exported here for existing callers/tests.
+import { rawRgbaToPngDataUrl } from "../../lib/workflow/materializeBrowserOutputs";
+export { rawRgbaToPngDataUrl };
 import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
 import {
   typeFor,
@@ -426,7 +435,19 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           ));
         } else {
           let imageSource: string | Uint8Array;
-          if (typeof v.uri === "string" && v.uri !== "" && !v.uri.startsWith("memory://")) {
+          if (
+            v.mimeType === RAW_RGBA_MIME &&
+            v.data instanceof Uint8Array &&
+            typeof v.width === "number" &&
+            typeof v.height === "number"
+          ) {
+            // Raw RGBA can't be decoded by <img>; encode to a PNG data URL.
+            imageSource = rawRgbaToPngDataUrl(
+              v.data,
+              v.width as number,
+              v.height as number
+            );
+          } else if (typeof v.uri === "string" && v.uri !== "" && !v.uri.startsWith("memory://")) {
             imageSource = signedValueUrl;
           } else if (v.data instanceof Uint8Array) {
             imageSource = v.data;

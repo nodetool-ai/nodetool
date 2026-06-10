@@ -22,6 +22,7 @@ import {
 } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageView from "../../node/ImageView";
+import ImageRefPreview from "../../node/ImageRefPreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 
@@ -97,22 +98,12 @@ const styles = (theme: Theme) =>
   });
 
 const ImagePreview: React.FC<{ value: unknown; placeholder: string }> = memo(
-  ({ value, placeholder }) => {
-    if (typeof value === "string" && value) {
-      return <ImageView source={value} />;
-    }
-    const ref = asImageRef(value);
-    if (ref?.uri) {
-      return <ImageView source={ref.uri} />;
-    }
-    if (ref?.data instanceof Uint8Array) {
-      return <ImageView source={ref.data} />;
-    }
-    if (Array.isArray(ref?.data)) {
-      return <ImageView source={new Uint8Array(ref!.data as number[])} />;
-    }
-    return <CheckerDropzone message={placeholder} icon={<ImageIcon />} />;
-  }
+  ({ value, placeholder }) => (
+    <ImageRefPreview
+      value={value}
+      placeholder={<CheckerDropzone message={placeholder} icon={<ImageIcon />} />}
+    />
+  )
 );
 ImagePreview.displayName = "MaskImagePreview";
 

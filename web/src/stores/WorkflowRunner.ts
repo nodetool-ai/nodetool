@@ -17,8 +17,13 @@ import { BASE_URL } from "./BASE_URL";
 import { Edge, Node } from "@xyflow/react";
 import {
   RunJobRequest,
-  WorkflowAttributes
+  WorkflowAttributes,
+  WorkflowGraph
 } from "./ApiTypes";
+import {
+  reportBrowserEligibility,
+  runBrowserGraphJob
+} from "../lib/workflow/browserWorkflowRunner";
 import { uuidv4 } from "./uuidv4";
 import { useNotificationStore, Notification } from "./NotificationStore";
 import useMetadataStore from "./MetadataStore";
@@ -350,6 +355,19 @@ export const createWorkflowRunnerStore = (
       subgraphNodeIds?: Set<string>,
       concurrent?: boolean
     ) => {
+      const activeNodeTypes = nodes
+        .filter((node) => !node.data?.bypassed)
+        .map((node) => node.type)
+        .filter((type): type is string => typeof type === "string");
+      console.info(
+        `WorkflowRunner[${workflowId}]: run() called — ${activeNodeTypes.length} active node(s)`,
+        {
+          nodeTypes: activeNodeTypes,
+          resourceLimited: !!resource_limits,
+          concurrent: !!concurrent
+        }
+      );
+
       const currentState = get().state;
       const currentJobId = get().job_id;
       const wsConnected = globalWebSocketManager.isConnectionOpen();
@@ -430,22 +448,89 @@ export const createWorkflowRunnerStore = (
 
       console.info(`WorkflowRunner[${workflowId}]: Starting workflow run`);
 
+      // Claim the run synchronously — before any `await` — so a concurrent
+      // run() sees us as busy (and queues), and the UI reflects the start
+      // immediately. Per-run state is keyed by jobId, so a fresh run starts on
+      // an empty slice; don't clear prior runs' node state (per-job keys mean a
+      // clear would erase a concurrently running sibling of this workflow).
+      set({
+        workflow,
+        nodes,
+        edges,
+        job_id: jobId,
+        queuePosition: null,
+        statusMessage: "Workflow starting...",
+        notifications: [],
+        state: "connecting"
+      });
+
+      // Pure-browser graphs (every node declares browser-platform support) run
+      // client-side with the kernel runner — no server round-trip. Their
+      // ProcessingMessages flow through the same subscriber pipeline
+      // (`deliverLocal`) so the canvas/results/status stores update identically
+      // to a server run. Explicitly resource-limited (subprocess) runs stay on
+      // the server.
+      let runsInBrowser = false;
+      if (resource_limits) {
+        console.info(
+          `WorkflowRunner[${workflowId}]: ↪ server run (resource limits requested)`
+        );
+      } else {
+        try {
+          const report = await reportBrowserEligibility(
+            req.graph as unknown as WorkflowGraph
+          );
+          runsInBrowser = report.eligible;
+          if (report.eligible) {
+            console.info(
+              `WorkflowRunner[${workflowId}]: ▶ in-browser run — all ${report.total} node type(s) browser-capable`,
+              report.browserNodeTypes
+            );
+          } else if (!report.runnerAvailable) {
+            console.info(
+              `WorkflowRunner[${workflowId}]: ↪ server run — browser runner unavailable (not loaded / load failed)`
+            );
+          } else {
+            console.info(
+              `WorkflowRunner[${workflowId}]: ↪ server run — ${report.serverNodeTypes.length}/${report.total} node type(s) not browser-capable`,
+              { serverOnly: report.serverNodeTypes, browser: report.browserNodeTypes }
+            );
+          }
+        } catch (error) {
+          runsInBrowser = false;
+          console.warn(
+            `WorkflowRunner[${workflowId}]: browser-eligibility check failed; using server`,
+            error
+          );
+        }
+      }
+
+      if (runsInBrowser) {
+        set({ state: "running" });
+        console.info(
+          `WorkflowRunner[${workflowId}]: Running graph in-browser`,
+          { jobId }
+        );
+        void runBrowserGraphJob({
+          graph: req.graph as unknown as WorkflowGraph,
+          params,
+          workflowId,
+          jobId
+        }).catch((error) => {
+          set({
+            state: "error",
+            statusMessage:
+              error instanceof Error
+                ? error.message
+                : "Browser execution failed"
+          });
+        });
+        return jobId;
+      }
+
       await get().ensureConnection();
 
-      set({ workflow, nodes, edges, job_id: jobId, queuePosition: null });
-
-      // Per-run state is keyed by jobId, so a fresh run starts on an empty
-      // slice that auto-focus surfaces. Don't clear prior runs' node state here:
-      // with per-job keys those clears would erase a concurrently running
-      // sibling of this workflow.
-      set({
-        statusMessage: "Workflow starting..."
-      });
-
-      set({
-        state: "running",
-        notifications: []
-      });
+      set({ state: "running" });
 
       console.info(`WorkflowRunner[${workflowId}]: Sending run_job command`, req);
 

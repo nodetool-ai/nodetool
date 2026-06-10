@@ -1,0 +1,18 @@
+{
+  "name": "nodetool-chrome-extension",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Nodetool CDP proxy Chrome extension (MV3). Thin relay between the user's logged-in Chrome and a Nodetool server's live browser agent.",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@types/chrome": "0.0.287",
+    "typescript": "5.9.3",
+    "vite": "6.4.1"
+  }
+}

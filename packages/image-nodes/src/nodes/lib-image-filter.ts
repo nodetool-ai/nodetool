@@ -1,18 +1,19 @@
 import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
 import type { NodeClass, PropOptions } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import sharp from "sharp";
 import * as d from "typegpu/data";
 import {
   colorInvertV1,
   colorPosterizeV1,
   colorGrayscaleV1,
   colorSolarizeV1,
-  filtersConvolve3x3V1
+  filtersConvolve3x3V1,
+  transformPadV1
 } from "@nodetool-ai/gpu/pool";
-import { decodeImage, toRef, pickImage } from "./lib-image-utils.js";
-import { runShaderOnPngBuffer } from "./lib-shader-utils.js";
-import { tagAsHybrid } from "@nodetool-ai/nodes-utils";
+import { pickImage } from "./lib-image-utils.js";
+import { runShaderNode } from "./lib-shader-utils.js";
+import { decodeRgba, rawRgbaImageRef } from "./image-io.js";
+import { tagAsHybrid, tagAsContentCard } from "@nodetool-ai/nodes-utils";
 
 type Desc = {
   nodeType: string;
@@ -39,138 +40,164 @@ function createFilterNode(desc: Desc): NodeClass {
       const t = desc.nodeType;
 
       const baseObj = pickImage(this.serialize(), this.serialize());
-      const baseBytes = await decodeImage(baseObj, context);
-      if (!baseBytes) {
-        return { output: baseObj ?? {} };
-      }
 
-      // GPU-backed paths first — see lib-image-enhance.ts for the same
-      // pattern. Sharp stays for `Canny` (multi-stage with hysteresis) and
-      // `Expand` (sharp's `extend` adds an out-of-canvas border with a
-      // background colour — not a pixel op).
+      // GPU-backed paths first — each samples `baseObj` directly so a GPU
+      // texture from an upstream node is borrowed (no PNG round-trip) and the
+      // output stays a texture/RGBA ImageRef for the next filter. `Canny` runs
+      // a multi-stage CPU pass; `Expand` borders the canvas via transform.pad.
       if (t.endsWith(".Solarize")) {
         const threshold = Number((this as any).threshold ?? 128) / 255;
-        const png = await runShaderOnPngBuffer(
-          colorSolarizeV1,
-          { threshold },
-          new Uint8Array(baseBytes),
-          {},
-          context
-        );
-        return { output: toRef(Buffer.from(png), baseObj) };
+        return {
+          output: await runShaderNode(
+            colorSolarizeV1,
+            { threshold },
+            baseObj,
+            {},
+            context
+          )
+        };
       }
       if (t.endsWith(".Posterize")) {
         const bits = Math.max(
           1,
           Math.min(8, Math.round(Number((this as any).bits ?? 4)))
         );
-        const png = await runShaderOnPngBuffer(
-          colorPosterizeV1,
-          { levels: Math.pow(2, bits) },
-          new Uint8Array(baseBytes),
-          {},
-          context
-        );
-        return { output: toRef(Buffer.from(png), baseObj) };
+        return {
+          output: await runShaderNode(
+            colorPosterizeV1,
+            { levels: Math.pow(2, bits) },
+            baseObj,
+            {},
+            context
+          )
+        };
       }
       if (t.endsWith(".Invert")) {
-        const png = await runShaderOnPngBuffer(
-          colorInvertV1,
-          { amount: 1 },
-          new Uint8Array(baseBytes),
-          {},
-          context
-        );
-        return { output: toRef(Buffer.from(png), baseObj) };
+        return {
+          output: await runShaderNode(
+            colorInvertV1,
+            { amount: 1 },
+            baseObj,
+            {},
+            context
+          )
+        };
       }
       if (t.endsWith(".ConvertToGrayscale")) {
-        const png = await runShaderOnPngBuffer(
-          colorGrayscaleV1,
-          { amount: 1 },
-          new Uint8Array(baseBytes),
-          {},
-          context
-        );
-        return { output: toRef(Buffer.from(png), baseObj) };
+        return {
+          output: await runShaderNode(
+            colorGrayscaleV1,
+            { amount: 1 },
+            baseObj,
+            {},
+            context
+          )
+        };
       }
       if (t.endsWith(".Emboss")) {
         // PIL `ImageFilter.EMBOSS` kernel: [-1 0 0 / 0 1 0 / 0 0 0] + 128.
-        const png = await runShaderOnPngBuffer(
-          filtersConvolve3x3V1,
-          {
-            row0: d.vec4f(-1, 0, 0, 128 / 255),
-            row1: d.vec4f(0, 1, 0, 0),
-            row2: d.vec4f(0, 0, 0, 1)
-          },
-          new Uint8Array(baseBytes),
-          {},
-          context
-        );
-        return { output: toRef(Buffer.from(png), baseObj) };
+        return {
+          output: await runShaderNode(
+            filtersConvolve3x3V1,
+            {
+              row0: d.vec4f(-1, 0, 0, 128 / 255),
+              row1: d.vec4f(0, 1, 0, 0),
+              row2: d.vec4f(0, 0, 0, 1)
+            },
+            baseObj,
+            {},
+            context
+          )
+        };
       }
       if (t.endsWith(".FindEdges")) {
-        const png = await runShaderOnPngBuffer(
-          filtersConvolve3x3V1,
-          {
-            row0: d.vec4f(-1, -1, -1, 0),
-            row1: d.vec4f(-1, 8, -1, 0),
-            row2: d.vec4f(-1, -1, -1, 1)
-          },
-          new Uint8Array(baseBytes),
-          {},
-          context
-        );
-        return { output: toRef(Buffer.from(png), baseObj) };
+        return {
+          output: await runShaderNode(
+            filtersConvolve3x3V1,
+            {
+              row0: d.vec4f(-1, -1, -1, 0),
+              row1: d.vec4f(-1, 8, -1, 0),
+              row2: d.vec4f(-1, -1, -1, 1)
+            },
+            baseObj,
+            {},
+            context
+          )
+        };
       }
       if (t.endsWith(".Contour")) {
         // PIL CONTOUR: Laplacian kernel [-1×8, centre 8] (sum 0) with a
         // full-white offset (255/255). Flat regions cancel to 0 → white
         // background; edges survive as dark contour lines. A centre weight
         // of 9 (sum 1) would sharpen and then blow out to white.
-        const png = await runShaderOnPngBuffer(
-          filtersConvolve3x3V1,
-          {
-            row0: d.vec4f(-1, -1, -1, 1),
-            row1: d.vec4f(-1, 8, -1, 0),
-            row2: d.vec4f(-1, -1, -1, 1)
-          },
-          new Uint8Array(baseBytes),
-          {},
-          context
-        );
-        return { output: toRef(Buffer.from(png), baseObj) };
+        return {
+          output: await runShaderNode(
+            filtersConvolve3x3V1,
+            {
+              row0: d.vec4f(-1, -1, -1, 1),
+              row1: d.vec4f(-1, 8, -1, 0),
+              row2: d.vec4f(-1, -1, -1, 1)
+            },
+            baseObj,
+            {},
+            context
+          )
+        };
       }
       if (t.endsWith(".Smooth")) {
         // PIL SMOOTH kernel: [1,1,1, 1,5,1, 1,1,1] with scale=13.
-        const png = await runShaderOnPngBuffer(
-          filtersConvolve3x3V1,
-          {
-            row0: d.vec4f(1, 1, 1, 0),
-            row1: d.vec4f(1, 5, 1, 0),
-            row2: d.vec4f(1, 1, 1, 13)
-          },
-          new Uint8Array(baseBytes),
-          {},
-          context
-        );
-        return { output: toRef(Buffer.from(png), baseObj) };
+        return {
+          output: await runShaderNode(
+            filtersConvolve3x3V1,
+            {
+              row0: d.vec4f(1, 1, 1, 0),
+              row1: d.vec4f(1, 5, 1, 0),
+              row2: d.vec4f(1, 1, 1, 13)
+            },
+            baseObj,
+            {},
+            context
+          )
+        };
       }
 
-      // Sharp-only paths follow — multi-stage algorithms not yet covered
-      // by the shader catalog.
-      let img = sharp(baseBytes, { failOn: "none" });
+      // Expand: add a coloured border via transform.pad (GPU, browser-capable).
+      if (t.endsWith(".Expand")) {
+        const border = Number((this as any).border ?? 0);
+        const fill = Number((this as any).fill ?? 0) / 255;
+        const { width: srcW, height: srcH } = await decodeRgba(baseObj, context);
+        if (!srcW || !srcH) return { output: baseObj ?? {} };
+        return {
+          output: await runShaderNode(
+            transformPadV1,
+            {
+              left: border / srcW,
+              top: border / srcH,
+              right: border / srcW,
+              bottom: border / srcH,
+              color: d.vec4f(fill, fill, fill, 1)
+            },
+            baseObj,
+            { outputWidth: srcW + 2 * border, outputHeight: srcH + 2 * border },
+            context
+          )
+        };
+      }
 
+      // Canny — multi-stage CPU edge detection on the decoded luminance. Pure
+      // JS (no sharp), so it runs in the browser too.
       if (t.endsWith(".Canny")) {
-        // Proper Canny edge detection
         const lowThreshold = Number((this as any).low_threshold ?? 100);
         const highThreshold = Number((this as any).high_threshold ?? 200);
-        // Convert to grayscale
-        const grayImg = sharp(baseBytes, { failOn: "none" }).grayscale();
-        const { data: grayData, info: grayInfo } = await grayImg
-          .raw()
-          .toBuffer({ resolveWithObject: true });
-        const w = grayInfo.width;
-        const h = grayInfo.height;
+        const { rgba, width: w, height: h } = await decodeRgba(baseObj, context);
+        if (!w || !h) return { output: baseObj ?? {} };
+        // Rec.601 luminance.
+        const grayData = new Uint8Array(w * h);
+        for (let i = 0; i < w * h; i++) {
+          grayData[i] = Math.round(
+            0.299 * rgba[i * 4] + 0.587 * rgba[i * 4 + 1] + 0.114 * rgba[i * 4 + 2]
+          );
+        }
         // Apply Gaussian blur (sigma=1.4, kernel size=5)
         const blurred = new Float32Array(w * h);
         const gaussKernel = [
@@ -241,7 +268,7 @@ function createFilterNode(desc: Desc): NodeClass {
           }
         }
         // Hysteresis thresholding
-        const result = Buffer.alloc(w * h);
+        const result = new Uint8Array(w * h);
         const STRONG = 255;
         const WEAK = 128;
         for (let y = 1; y < h - 1; y++) {
@@ -277,27 +304,20 @@ function createFilterNode(desc: Desc): NodeClass {
         for (let i = 0; i < result.length; i++) {
           if (result[i] !== STRONG) result[i] = 0;
         }
-        const out = await sharp(result, {
-          raw: { width: w, height: h, channels: 1 }
-        })
-          .png()
-          .toBuffer();
-        return { output: toRef(out, baseObj) };
-      } else if (t.endsWith(".Expand")) {
-        const border = Number((this as any).border ?? 10);
-        const fillVal = Number((this as any).fill ?? 0);
-        const color = `rgb(${fillVal},${fillVal},${fillVal})`;
-        img = img.extend({
-          top: border,
-          left: border,
-          right: border,
-          bottom: border,
-          background: color
-        });
+        // Expand the single-channel edge map to opaque RGBA for encoding.
+        const outRgba = new Uint8Array(w * h * 4);
+        for (let i = 0; i < w * h; i++) {
+          const v = result[i];
+          outRgba[i * 4] = v;
+          outRgba[i * 4 + 1] = v;
+          outRgba[i * 4 + 2] = v;
+          outRgba[i * 4 + 3] = 255;
+        }
+        return { output: rawRgbaImageRef(outRgba, w, h) };
       }
 
-      const out = await img.png().toBuffer();
-      return { output: toRef(out, baseObj) };
+      // Unknown filter type — pass the source through unchanged.
+      return { output: baseObj ?? {} };
     }
   };
 
@@ -657,4 +677,6 @@ const DESCRIPTORS: readonly Desc[] = [
   }
 ];
 
-export const LIB_IMAGE_FILTER_NODES: readonly NodeClass[] = tagAsHybrid(DESCRIPTORS.map(createFilterNode));
+export const LIB_IMAGE_FILTER_NODES: readonly NodeClass[] = tagAsHybrid(
+  tagAsContentCard(DESCRIPTORS.map(createFilterNode))
+);

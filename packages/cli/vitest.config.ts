@@ -19,6 +19,8 @@ function nodetoolStubPlugin(): Plugin {
     "@nodetool-ai/runtime",
     "@nodetool-ai/runtime/tracing",
     "@nodetool-ai/runtime/context",
+    "@nodetool-ai/runtime/media-ref-bytes",
+    "@nodetool-ai/runtime/prompt-asset-refs",
     "@nodetool-ai/security",
     "@nodetool-ai/models",
     "@nodetool-ai/chat",

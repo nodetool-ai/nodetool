@@ -17,7 +17,8 @@
 export {
   tagAsServer,
   tagAsHybrid,
-  tagAsUniversal
+  tagAsUniversal,
+  tagAsContentCard
 } from "./platform-tags.js";
 
 export {

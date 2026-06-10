@@ -8,7 +8,7 @@ import ChannelsBody from "./ChannelsBody";
 import CompositorBody from "./CompositorBody";
 import CropBody from "./CropBody";
 import CurvesBody from "./CurvesBody";
-import ExposureBody from "./ExposureBody";
+import AdjustmentBody from "./AdjustmentBody";
 import FitBody from "./FitBody";
 import HSLAdjustBody from "./HSLAdjustBody";
 import LevelsBody from "./LevelsBody";
@@ -118,12 +118,12 @@ describe("bespokeRegistry", () => {
     expect(BESPOKE_BODY_REGISTRY["nodetool.image.Scale"]).toBe(ScaleBody);
   });
 
-  it("maps lib.image.color_grading.Exposure → ExposureBody", () => {
+  it("maps lib.image.color_grading.Exposure → AdjustmentBody", () => {
     const m = meta("lib.image.color_grading.Exposure");
     expect(isBespokeNode(m)).toBe(true);
-    expect(getBespokeBody(m)).toBe(ExposureBody);
+    expect(getBespokeBody(m)).toBe(AdjustmentBody);
     expect(BESPOKE_BODY_REGISTRY["lib.image.color_grading.Exposure"]).toBe(
-      ExposureBody
+      AdjustmentBody
     );
   });
 

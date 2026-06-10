@@ -16,6 +16,7 @@ import {
   PlayArrow
 } from "@mui/icons-material";
 import { useNodes } from "../../contexts/NodeContext";
+import { useSettingsStore } from "../../stores/SettingsStore";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
 import { useRunSelectedNodes } from "../../hooks/nodes/useRunSelectedNodes";
 import { getShortcutTooltip } from "../../config/shortcuts";
@@ -85,6 +86,11 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(({
   const selectedCount = useNodes((state) => state.getSelectedNodeCount());
   const selectionActions = useSelectionActions();
   const { runSelectedNodes, isWorkflowRunning } = useRunSelectedNodes();
+  // Instant-update mode runs continuously; keep "Run Selected" enabled (you can
+  // re-trigger) instead of strobing disabled on every keystroke-run.
+  const instantUpdate = useSettingsStore(
+    (state) => state.settings.instantUpdate
+  );
 
   const canAlign = selectedCount >= 2;
   const canDistribute = selectedCount >= 2;
@@ -175,7 +181,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(({
         label: "Run Selected",
         slug: "runSelected",
         action: runSelectedNodes,
-        disabled: selectedCount === 0 || isWorkflowRunning
+        disabled: selectedCount === 0 || (isWorkflowRunning && !instantUpdate)
       },
       {
         icon: <ContentCopy fontSize="small" />,
@@ -204,7 +210,14 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(({
         action: selectionActions.deleteSelected
       }
     ],
-    [canGroup, selectionActions, runSelectedNodes, isWorkflowRunning, selectedCount]
+    [
+      canGroup,
+      selectionActions,
+      runSelectedNodes,
+      isWorkflowRunning,
+      instantUpdate,
+      selectedCount
+    ]
   );
 
   // Memoize the combined button array to avoid creating new references on every render

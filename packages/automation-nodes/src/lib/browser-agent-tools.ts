@@ -29,8 +29,14 @@ import {
   browserSelectOption as localSelectOption,
   browserScroll as localScroll,
   browserConsoleExec as localConsoleExec,
-  browserConsoleView as localConsoleView
+  browserConsoleView as localConsoleView,
+  browserCaptureMedia as localCaptureMedia,
+  browserUploadAsset as localUploadAsset
 } from "./browser-tools-local.js";
+import type {
+  BrowserCaptureMediaRaw,
+  BrowserUploadAssetRaw
+} from "@nodetool-ai/sandbox/schemas";
 
 const ELEMENT_REF_PROPS = {
   index: {
@@ -226,6 +232,70 @@ export const BROWSER_ACTION_SPECS: readonly BrowserActionSpec[] = [
       c.browserConsoleView(
         p as Parameters<ToolClient["browserConsoleView"]>[0]
       )
+  },
+  {
+    key: "capture_media",
+    description:
+      "Capture generated media (image, video, or audio) from the current page into a NodeTool asset. Address it by element index (a <video>/<audio>/<img> from browser_view), by an absolute or blob: URL, or by a resource_url the page already fetched. Returns an asset reference.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        index: {
+          type: "integer",
+          description:
+            "Element index from the most recent browser_view (a media element)."
+        },
+        url: {
+          type: "string",
+          description: "Absolute or blob: URL of the media to capture."
+        },
+        resource_url: {
+          type: "string",
+          description:
+            "URL of a media resource the page already loaded; captured from the network response when available."
+        },
+        media_type: {
+          type: "string",
+          enum: ["image", "video", "audio"],
+          description:
+            "Optional hint biasing element resolution and the inferred MIME type."
+        }
+      }
+    },
+    local: (p) => localCaptureMedia(p as Parameters<typeof localCaptureMedia>[0]),
+    sandbox: (c, p) =>
+      c.browserCaptureMedia(
+        p as Parameters<ToolClient["browserCaptureMedia"]>[0]
+      )
+  },
+  {
+    key: "upload_asset",
+    description:
+      "Inject an existing NodeTool asset into a page <input type=\"file\"> (file picker). Address the file input by element index (from browser_view) or viewport coordinates, and name the asset to upload by asset_id or uri. Optionally override the file_name the website sees. Tries a native filesystem injection first and falls back to an in-page DataTransfer injection when the browser runs on a different machine.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...ELEMENT_REF_PROPS,
+        asset_id: {
+          type: "string",
+          description: "Id of the NodeTool asset to upload."
+        },
+        uri: {
+          type: "string",
+          description:
+            "asset:// uri (or storage/http URL) of the asset to upload, as an alternative to asset_id."
+        },
+        file_name: {
+          type: "string",
+          description:
+            "Optional file name the website sees; defaults to the asset's name."
+        }
+      }
+    },
+    // params are pre-enriched to BrowserUploadAssetRaw by the tool wrappers,
+    // which resolve the asset bytes from the ProcessingContext.
+    local: (p) => localUploadAsset(p as BrowserUploadAssetRaw),
+    sandbox: (c, p) => c.browserUploadAsset(p as BrowserUploadAssetRaw)
   }
 ];
 
@@ -268,6 +338,121 @@ async function persistViewScreenshot(
   return { ...rest, screenshot };
 }
 
+/**
+ * Persist the raw bytes from a `capture_media` result and replace them with an
+ * AssetRef. Uses the SAME `persistOutput` path as screenshots: when the context
+ * exposes `createAsset` the ref carries `asset_id` + `asset_uri`; otherwise a
+ * workspace file `path` is returned. The base64 payload is always dropped so
+ * downstream consumers see one shape.
+ */
+async function persistCaptureMedia(
+  ctx: ProcessingContext,
+  result: unknown,
+  namePrefix: string
+): Promise<unknown> {
+  if (!result || typeof result !== "object") return result;
+  const raw = result as Partial<BrowserCaptureMediaRaw>;
+  if (typeof raw.media_b64 !== "string" || raw.media_b64.length === 0) {
+    // An error object (or already-transformed) — pass through unchanged.
+    return result;
+  }
+  const mime = raw.mime_type || "application/octet-stream";
+  const bytes = new Uint8Array(Buffer.from(raw.media_b64, "base64"));
+  const saved = await persistOutput(ctx, bytes, { namePrefix, mime });
+  const kind = mime.startsWith("video/")
+    ? ("video" as const)
+    : mime.startsWith("audio/")
+      ? ("audio" as const)
+      : ("image" as const);
+  return {
+    type: kind,
+    asset_id: saved.asset_id,
+    asset_uri: saved.asset_uri,
+    uri: saved.asset_uri ?? saved.path ?? null,
+    path: saved.path,
+    mime_type: saved.mime_type,
+    bytes: saved.bytes,
+    source_url: raw.source_url ?? null
+  };
+}
+
+/** Minimal extension → MIME map for naming the injected upload File. */
+const UPLOAD_EXT_TO_MIME: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  gif: "image/gif",
+  svg: "image/svg+xml",
+  mp4: "video/mp4",
+  webm: "video/webm",
+  mov: "video/quicktime",
+  mp3: "audio/mpeg",
+  wav: "audio/wav",
+  ogg: "audio/ogg",
+  flac: "audio/flac",
+  pdf: "application/pdf",
+  json: "application/json",
+  txt: "text/plain",
+  csv: "text/csv"
+};
+
+function extOf(name: string): string {
+  const dot = name.lastIndexOf(".");
+  return dot >= 0 ? name.slice(dot + 1).toLowerCase() : "";
+}
+
+/**
+ * Resolve an `upload_asset` tool call into the {@link BrowserUploadAssetRaw}
+ * the action consumes: read the asset's bytes from the context (the same
+ * asset-read path other nodes use, covering asset ids, `asset://` uris, and
+ * storage/http URLs) and derive the file name + MIME the website should see.
+ */
+async function resolveUploadParams(
+  ctx: ProcessingContext,
+  params: Record<string, unknown>
+): Promise<BrowserUploadAssetRaw> {
+  const assetId = params.asset_id;
+  const uri = params.uri;
+  const handle =
+    typeof assetId === "string" && assetId.length > 0
+      ? assetId
+      : typeof uri === "string" && uri.length > 0
+        ? uri
+        : null;
+  if (!handle) {
+    throw new Error("upload_asset requires asset_id or uri");
+  }
+
+  const { bytes, attempts } = await ctx.resolveAssetBytes(handle);
+  if (!bytes) {
+    const details = attempts.length > 0 ? ` Attempts: ${attempts.join("; ")}` : "";
+    throw new Error(`Unable to resolve asset '${handle}' to bytes.${details}`);
+  }
+
+  const explicitName =
+    typeof params.file_name === "string" && params.file_name.length > 0
+      ? params.file_name
+      : null;
+  // Derive a name from the handle's last path segment when none was supplied.
+  const fromHandle = handle.split(/[/?#]/).filter(Boolean).pop() ?? "";
+  const fileName = explicitName ?? (extOf(fromHandle) ? fromHandle : "upload.bin");
+  const mimeType =
+    UPLOAD_EXT_TO_MIME[extOf(fileName)] ?? "application/octet-stream";
+
+  const raw: BrowserUploadAssetRaw = {
+    file_b64: Buffer.from(bytes).toString("base64"),
+    file_name: fileName,
+    mime_type: mimeType
+  };
+  if (typeof params.index === "number") raw.index = params.index;
+  if (typeof params.coordinate_x === "number")
+    raw.coordinate_x = params.coordinate_x;
+  if (typeof params.coordinate_y === "number")
+    raw.coordinate_y = params.coordinate_y;
+  return raw;
+}
+
 function makeLocalToolClass(spec: BrowserActionSpec): ToolCtor {
   return class extends Tool {
     readonly name = `browser_${spec.key}`;
@@ -279,9 +464,19 @@ function makeLocalToolClass(spec: BrowserActionSpec): ToolCtor {
       params: Record<string, unknown>
     ): Promise<unknown> {
       try {
-        const out = await spec.local(params ?? {});
+        const callParams =
+          spec.key === "upload_asset"
+            ? ((await resolveUploadParams(ctx, params ?? {})) as unknown as Record<
+                string,
+                unknown
+              >)
+            : (params ?? {});
+        const out = await spec.local(callParams);
         if (spec.key === "view") {
           return await persistViewScreenshot(ctx, out, "browser-screenshot");
+        }
+        if (spec.key === "capture_media") {
+          return await persistCaptureMedia(ctx, out, "browser-capture");
         }
         return out;
       } catch (e) {
@@ -306,12 +501,26 @@ function makeSandboxToolClass(
     ): Promise<unknown> {
       try {
         const client = await acquireClient(ctx);
-        const out = await spec.sandbox(client, params ?? {});
+        const callParams =
+          spec.key === "upload_asset"
+            ? ((await resolveUploadParams(ctx, params ?? {})) as unknown as Record<
+                string,
+                unknown
+              >)
+            : (params ?? {});
+        const out = await spec.sandbox(client, callParams);
         if (spec.key === "view") {
           return await persistViewScreenshot(
             ctx,
             out,
             "sandbox-browser-screenshot"
+          );
+        }
+        if (spec.key === "capture_media") {
+          return await persistCaptureMedia(
+            ctx,
+            out,
+            "sandbox-browser-capture"
           );
         }
         return out;
@@ -323,7 +532,7 @@ function makeSandboxToolClass(
 }
 
 /**
- * Build the 22 browser tool classes (11 local + 11 sandbox).
+ * Build the 26 browser tool classes (13 local + 13 sandbox).
  * The sandbox classes need a function that knows how to acquire a ToolClient
  * for a given ProcessingContext; that lives in nodes/sandbox.ts to avoid a
  * cross-package dependency loop.

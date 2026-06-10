@@ -3,6 +3,7 @@ import { getNodeMetadata } from "@nodetool-ai/node-sdk";
 import {
   ShellAgentNode,
   BrowserAgentNode,
+  LiveBrowserAgentNode,
   SQLiteAgentNode,
   SupabaseAgentNode,
   DocumentAgentNode,
@@ -68,8 +69,8 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 describe("TOOL_AGENT_NODES export", () => {
-  it("exports 19 tool agent node classes", () => {
-    expect(TOOL_AGENT_NODES).toHaveLength(19);
+  it("exports 20 tool agent node classes", () => {
+    expect(TOOL_AGENT_NODES).toHaveLength(20);
   });
 });
 
@@ -85,6 +86,11 @@ describe("Tool agent node defaults", () => {
     const d = node.serialize();
     expect(d.timeout_seconds).toBe(150);
     expect(d.max_output_chars).toBe(180000);
+  });
+
+  it("LiveBrowserAgentNode has timeout 300", () => {
+    const node = new LiveBrowserAgentNode();
+    expect(node.serialize().timeout_seconds).toBe(300);
   });
 
   it("SQLiteAgentNode has db_path and allow_mutation", () => {
@@ -215,6 +221,7 @@ describe("Tool agent node types", () => {
   const expected: [string, typeof ShellAgentNode][] = [
     ["nodetool.agents.ShellAgent", ShellAgentNode],
     ["nodetool.agents.BrowserAgent", BrowserAgentNode],
+    ["nodetool.agents.LiveBrowserAgent", LiveBrowserAgentNode],
     ["nodetool.agents.SQLiteAgent", SQLiteAgentNode],
     ["nodetool.agents.SupabaseAgent", SupabaseAgentNode],
     ["nodetool.agents.DocumentAgent", DocumentAgentNode],

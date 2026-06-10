@@ -9,7 +9,7 @@ import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
 import type { ImageRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import * as d from "typegpu/data";
-import { tagAsHybrid } from "@nodetool-ai/nodes-utils";
+import { tagAsHybrid, tagAsContentCard } from "@nodetool-ai/nodes-utils";
 import {
   mixerAddV1,
   mixerColorOverlayV1,
@@ -197,11 +197,11 @@ registerDeclaredProperty(AddBlendNode, "image", IMAGE_PROP);
 registerDeclaredProperty(AddBlendNode, "over", extraImageProp("Over", "Image added on top of the source"));
 registerDeclaredProperty(AddBlendNode, "gain", floatProp(1, { min: 0, max: 4, label: "Gain" }));
 
-export const LIB_IMAGE_EFFECTS_NODES = tagAsHybrid([
+export const LIB_IMAGE_EFFECTS_NODES = tagAsHybrid(tagAsContentCard([
   ColorOverlayNode,
   OutlineNode,
   DropShadowNode,
   GlowNode,
   AddBlendNode
-]);
+]));
 export { ColorOverlayNode, OutlineNode, DropShadowNode, GlowNode, AddBlendNode };

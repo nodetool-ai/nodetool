@@ -9,7 +9,6 @@
     "build": "node ../../scripts/build-typescript-workspace.mjs && node -e \"require('node:fs').mkdirSync('dist/providers',{recursive:true}); require('node:fs').cpSync('src/providers/aki-manifest.json', 'dist/providers/aki-manifest.json')\"",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:mutation": "stryker run",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
@@ -31,8 +30,6 @@
     "ws": "^8.19.0"
   },
   "devDependencies": {
-    "@stryker-mutator/core": "^9.6.1",
-    "@stryker-mutator/vitest-runner": "^9.6.1",
     "@types/node": "^22.0.0",
     "@types/ws": "^8.18.1",
     "typescript": "^5.7.2",
@@ -50,6 +47,18 @@
       "types": "./dist/context.d.ts",
       "import": "./dist/context.js",
       "default": "./dist/context.js"
+    },
+    "./media-ref-bytes": {
+      "nodetool-dev": "./src/media-ref-bytes.ts",
+      "types": "./dist/media-ref-bytes.d.ts",
+      "import": "./dist/media-ref-bytes.js",
+      "default": "./dist/media-ref-bytes.js"
+    },
+    "./prompt-asset-refs": {
+      "nodetool-dev": "./src/prompt-asset-refs.ts",
+      "types": "./dist/prompt-asset-refs.d.ts",
+      "import": "./dist/prompt-asset-refs.js",
+      "default": "./dist/prompt-asset-refs.js"
     },
     "./tracing": {
       "nodetool-dev": "./src/tracing-helpers.ts",

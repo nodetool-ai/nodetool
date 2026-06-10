@@ -1,3 +1,6 @@
+// CanvasResize now pads on the GPU shader pool — load the SwiftShader ICD so a
+// CPU WebGPU device is available in CI.
+import "../../gpu/tests/setup/swiftshaderIcd.js";
 import { describe, it, expect } from "vitest";
 import sharp from "sharp";
 import { CanvasResizeNode } from "../src/nodes/image.js";
@@ -67,12 +70,11 @@ describe("CanvasResizeNode", () => {
     expect(output.width).toBe(8);
     expect(output.height).toBe(8);
 
-    const buf = Buffer.from(output.data as string, "base64");
-    const { data, info } = await sharp(buf)
-      .raw()
-      .toBuffer({ resolveWithObject: true });
-    const centerIdx = (4 * info.width + 4) * info.channels;
-    expect(data[centerIdx]).toBeGreaterThan(200);
-    expect(data[0]).toBe(0);
+    // Raw straight-alpha RGBA, 8×8×4. Source red (4×4) centred at offset (2,2).
+    expect(output.mimeType).toBe("image/x-raw-rgba");
+    const data = output.data as Uint8Array;
+    const centerIdx = (4 * 8 + 4) * 4;
+    expect(data[centerIdx]).toBeGreaterThan(200); // centre is red
+    expect(data[3]).toBe(0); // top-left corner is transparent padding
   });
 });

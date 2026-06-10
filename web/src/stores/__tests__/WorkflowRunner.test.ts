@@ -337,6 +337,11 @@ describe("WorkflowRunner", () => {
       expect(store.getState().state).toBe("connecting");
       const secondRunPromise = store.getState().run({}, testWorkflow, [], []);
 
+      // run() awaits an async browser-eligibility check before opening the
+      // socket; flush microtasks so the (server-bound) active run reaches
+      // ensureConnection and exposes its resolver.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
       resolveConnection();
       await Promise.all([firstRunPromise, secondRunPromise]);
 

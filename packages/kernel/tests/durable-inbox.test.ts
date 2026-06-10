@@ -140,20 +140,28 @@ describe("DurableInbox", () => {
 describe("DurableInbox.generateMessageId (FNV-1a)", () => {
   it("is a deterministic 16-hex hash of the addressing tuple", () => {
     expect(DurableInbox.generateMessageId("r1", "n1", "in", 1)).toBe(
-      "692af8c151832e04"
+      "c3cf6775d5843014"
     );
   });
 
   it("zero-pads the first 32-bit half to 8 hex digits", () => {
-    const id = DurableInbox.generateMessageId("r", "n", "h", 358);
-    expect(id).toBe("0001298d1115ec6c");
+    const id = DurableInbox.generateMessageId("r", "n", "h", 3);
+    expect(id).toBe("0b48aa687d6a54f1");
     expect(id).toHaveLength(16);
   });
 
   it("zero-pads the second 32-bit half to 8 hex digits", () => {
-    const id = DurableInbox.generateMessageId("run-1", "node-1", "input", 1000);
-    expect(id).toBe("e62a7d110c77be8c");
+    const id = DurableInbox.generateMessageId("run-1", "node-1", "input", 23);
+    expect(id).toBe("7b388159015a38d0");
     expect(id).toHaveLength(16);
+  });
+
+  it("equal-length keys produce distinct second halves (full 64-bit spread)", () => {
+    // The old hash fed only the high byte of each UTF-16 unit to the second
+    // half, making it depend solely on string length for ASCII keys.
+    const a = DurableInbox.generateMessageId("ra", "na", "ha", 1);
+    const b = DurableInbox.generateMessageId("rb", "nb", "hb", 2);
+    expect(a.slice(8)).not.toBe(b.slice(8));
   });
 });
 

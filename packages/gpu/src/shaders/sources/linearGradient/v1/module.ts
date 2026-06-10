@@ -55,12 +55,11 @@ fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
   } else {
     t = 0.5 + ((t01 - mid) / (1.0 - mid)) * 0.5;
   }
-  // The colour params are straight RGBA; the output contract is premultiplied.
-  // Interpolate in premultiplied space so the result satisfies rgb <= a for any
-  // translucent colour (returning the straight mix directly violated it).
-  let ca = vec4f(p.colorA.rgb * p.colorA.a, p.colorA.a);
-  let cb = vec4f(p.colorB.rgb * p.colorB.a, p.colorB.a);
-  return mix(ca, cb, t);
+  // The colour params arrive premultiplied (hosts premultiply at the colour
+  // picker boundary, matching the pool's between-modules invariant), and a mix
+  // of premultiplied endpoints is itself premultiplied. Re-multiplying by
+  // alpha here would darken translucent stops to rgb*a².
+  return mix(p.colorA, p.colorB, t);
 }
 `,
   io: {

@@ -18,6 +18,7 @@ import ImageIcon from "@mui/icons-material/Image";
 import { CheckerDropzone, FlexRow, StateIconButton } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageView from "../../node/ImageView";
+import ImageRefPreview from "../../node/ImageRefPreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 import NumberInput from "../../inputs/NumberInput";
@@ -104,24 +105,14 @@ const extractDims = (
   };
 };
 
-const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => {
-  if (typeof value === "string" && value) {
-    return <ImageView source={value} />;
-  }
-  const v = extractDims(value);
-  if (v.uri) {
-    return <ImageView source={v.uri} />;
-  }
-  if (v.data instanceof Uint8Array) {
-    return <ImageView source={v.data} />;
-  }
-  if (Array.isArray(v.data)) {
-    return <ImageView source={new Uint8Array(v.data as number[])} />;
-  }
-  return (
-    <CheckerDropzone message="Connect an image, then run" icon={<ImageIcon />} />
-  );
-};
+const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
+  <ImageRefPreview
+    value={value}
+    placeholder={
+      <CheckerDropzone message="Connect an image, then run" icon={<ImageIcon />} />
+    }
+  />
+);
 
 export interface ResizeBodyProps {
   id: string;

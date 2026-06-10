@@ -16,44 +16,54 @@ const toStringSafe = (value: unknown): string => {
   }
 };
 
-const sendToMain = (level: FrontendLogLevel, source: string, args: unknown[]) => {
-  // Only forward errors and warnings to the main process — info/debug/log are
-  // noisy and the IPC round-trip is a real bottleneck during normal operation.
-  if (level !== "error" && level !== "warn") {
+// Browser-styled devtools loggers (tRPC's loggerLink, react-query, etc.) format
+// with `%c` CSS directives and dump objects with `%O`. As plain text that's
+// unreadable noise (the CSS strings + giant JSON payloads), so we drop any call
+// whose format string uses `%c`.
+const STYLED_LOG_MARKER = "%c";
+const MAX_FORWARDED_LENGTH = 2000;
+
+const forward = (level: FrontendLogLevel, args: unknown[]) => {
+  const log = window.api?.logging?.log;
+  if (!log) {
+    return;
+  }
+  const first = args[0];
+  if (typeof first === "string" && first.includes(STYLED_LOG_MARKER)) {
+    return;
+  }
+  let message = args.map((arg) => toStringSafe(arg)).join(" ");
+  if (!message) {
+    return;
+  }
+  if (message.length > MAX_FORWARDED_LENGTH) {
+    message = `${message.slice(0, MAX_FORWARDED_LENGTH)}…`;
+  }
+  void log(level, message, "web/console");
+};
+
+/**
+ * Forward renderer console output to the main process (Electron terminal / log
+ * file) WITHOUT echoing it to the browser devtools console. Logs are read from
+ * the main-process logs, keeping the browser console clean — useful when
+ * debugging where the renderer output would otherwise drown out the terminal.
+ *
+ * No-op outside Electron (no `window.api.logging.log`): the native console is
+ * left intact so plain-web logs aren't silently dropped.
+ */
+export const installIpcLogBridge = () => {
+  if (installed) {
     return;
   }
   if (!window.api?.logging?.log) {
     return;
   }
-  const message = args.map((arg) => toStringSafe(arg)).join(" ");
-  if (!message) {
-    return;
-  }
-  void window.api.logging.log(level, message, source);
-};
-
-export const installIpcLogBridge = () => {
-  if (installed) {
-    return;
-  }
   installed = true;
 
-  const originalConsole = {
-    log: console.log.bind(console),
-    warn: console.warn.bind(console),
-    error: console.error.bind(console),
-  };
-
-  console.log = (...args: unknown[]) => {
-    originalConsole.log(...args);
-    sendToMain("info", "web/console", args);
-  };
-  console.warn = (...args: unknown[]) => {
-    originalConsole.warn(...args);
-    sendToMain("warn", "web/console", args);
-  };
-  console.error = (...args: unknown[]) => {
-    originalConsole.error(...args);
-    sendToMain("error", "web/console", args);
-  };
+  // Replace, don't wrap: we intentionally do not call the original console, so
+  // nothing reaches the browser console. console.debug is left untouched.
+  console.log = (...args: unknown[]) => forward("info", args);
+  console.info = (...args: unknown[]) => forward("info", args);
+  console.warn = (...args: unknown[]) => forward("warn", args);
+  console.error = (...args: unknown[]) => forward("error", args);
 };
