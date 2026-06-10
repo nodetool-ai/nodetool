@@ -32,3 +32,35 @@ describe("ExtractLinksLibNode", () => {
     ]);
   });
 });
+
+describe("ExtractImagesLibNode relative URLs", () => {
+  it("passes relative srcs through when no base_url is set", async () => {
+    const { ExtractImagesLibNode } = await import("@nodetool-ai/text-nodes");
+    const node = new ExtractImagesLibNode();
+    node.assign({ html: '<img src="img/cat.png">' });
+    const result = await node.process();
+    expect((result.images as Array<{ uri: string }>)[0].uri).toBe(
+      "img/cat.png"
+    );
+  });
+});
+
+describe("ExtractLinksLibNode classification", () => {
+  it("treats relative and same-origin links as internal", async () => {
+    const { ExtractLinksLibNode } = await import("@nodetool-ai/text-nodes");
+    const node = new ExtractLinksLibNode();
+    node.assign({
+      html:
+        '<a href="page.html">a</a>' +
+        '<a href="https://example.com/x">b</a>' +
+        '<a href="https://other.com/x">c</a>' +
+        '<a href="mailto:a@b.com">d</a>',
+      base_url: "https://example.com"
+    });
+    const result = await node.process();
+    const types = (result.links as Array<{ type: string }>).map(
+      (l) => l.type
+    );
+    expect(types).toEqual(["internal", "internal", "external", "external"]);
+  });
+});

@@ -223,7 +223,7 @@ describe("GaussianBlurLibNode", () => {
 
     const result = await node.process();
     expect(result.output.name).toBe("filter");
-    expect(result.output.attributes?.id).toBe("filter_gaussian_blur");
+    expect(result.output.attributes?.id).toMatch(/^filter_gaussian_blur_\d+$/);
     expect(result.output.children).toHaveLength(1);
     expect(result.output.children![0].name).toBe("feGaussianBlur");
     expect(result.output.children![0].attributes?.stdDeviation).toBe("5");
@@ -242,7 +242,7 @@ describe("DropShadowLibNode", () => {
 
     const result = await node.process();
     expect(result.output.name).toBe("filter");
-    expect(result.output.attributes?.id).toBe("filter_drop_shadow");
+    expect(result.output.attributes?.id).toMatch(/^filter_drop_shadow_\d+$/);
 
     const children = result.output.children!;
     expect(children).toHaveLength(5);
@@ -321,7 +321,7 @@ describe("GradientLibNode", () => {
 
     const result = await node.process();
     expect(result.output.name).toBe("linearGradient");
-    expect(result.output.attributes?.id).toBe("gradient_linearGradient");
+    expect(result.output.attributes?.id).toMatch(/^gradient_linearGradient_\d+$/);
     expect(result.output.attributes?.x1).toBe("0%");
     expect(result.output.attributes?.y1).toBe("0%");
     expect(result.output.attributes?.x2).toBe("100%");
@@ -450,5 +450,34 @@ describe("ClipPathLibNode", () => {
     const result = await node.process();
     expect(result.output.name).toBe("g");
     expect(result.output.children).toEqual([]);
+  });
+});
+
+describe("XML escaping", () => {
+  it("escapes special characters in text content and attributes", async () => {
+    const { TextLibNode, DocumentLibNode } = await import(
+      "@nodetool-ai/text-nodes"
+    );
+    const textNode = new TextLibNode();
+    textNode.assign({ text: "Tom & Jerry <3", x: 0, y: 0 });
+    const el = (await textNode.process()).output;
+
+    const doc = new DocumentLibNode();
+    doc.assign({ elements: [el] });
+    const out = (await doc.process()).output as { data: string };
+    const xml = Buffer.from(out.data, "base64").toString("utf-8");
+    expect(xml).toContain("Tom &amp; Jerry &lt;3");
+    expect(xml).not.toContain("& Jerry <3");
+  });
+
+  it("generates unique filter ids across instances", async () => {
+    const { GaussianBlurLibNode } = await import("@nodetool-ai/text-nodes");
+    const a = (await new GaussianBlurLibNode().process()).output as {
+      attributes?: Record<string, string>;
+    };
+    const b = (await new GaussianBlurLibNode().process()).output as {
+      attributes?: Record<string, string>;
+    };
+    expect(a.attributes?.id).not.toBe(b.attributes?.id);
   });
 });

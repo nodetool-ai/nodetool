@@ -32,7 +32,9 @@ export class ExtractLinksMarkdownLibNode extends BaseNode {
     const markdown = String(this.markdown ?? "");
     const includeTitles = Boolean(this.include_titles ?? true);
     const links: Array<Record<string, string>> = [];
-    const pattern = /\[([^\]]+)\]\(([^)]+)\)|<([^>]+)>/g;
+    // Autolinks (<...>) must carry a scheme so inline HTML tags like <div>
+    // are not mistaken for links.
+    const pattern = /\[([^\]]+)\]\(([^)]+)\)|<([a-zA-Z][a-zA-Z0-9+.-]*:[^>\s]+)>/g;
     for (const match of markdown.matchAll(pattern)) {
       if (match[1] && match[2]) {
         links.push({ url: match[2], title: includeTitles ? match[1] : "" });
@@ -97,7 +99,7 @@ export class ExtractBulletListsMarkdownLibNode extends BaseNode {
   static readonly inlineFields = ["markdown"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
-    output: "list[dict[str, any]]"
+    output: "list[list[dict[str, str]]]"
   };
 
   @prop({
@@ -135,7 +137,7 @@ export class ExtractNumberedListsMarkdownLibNode extends BaseNode {
   static readonly inlineFields = ["markdown"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
-    output: "list[str]"
+    output: "list[list[str]]"
   };
 
   @prop({
@@ -233,9 +235,14 @@ export class ExtractTablesMarkdownLibNode extends BaseNode {
       }
     }
 
-    if (currentTable.length > 2) {
+    if (currentTable.length >= 2) {
       const headers = currentTable[0];
-      const data = currentTable.slice(2);
+      // Only skip the second row when it actually is the |---|---| separator;
+      // tables written without one keep all their data rows.
+      const isSeparator = currentTable[1].every((cell) =>
+        /^:?-+:?$/.test(cell)
+      );
+      const data = currentTable.slice(isSeparator ? 2 : 1);
       const rows = data.map((row) =>
         Object.fromEntries(headers.map((h, i) => [h, row[i] ?? ""]))
       );
