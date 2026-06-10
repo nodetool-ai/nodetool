@@ -16,7 +16,7 @@ import {
 import VersionListItem from "./VersionListItem";
 import { VersionDiff } from "./VersionDiff";
 import { GraphVisualDiff } from "./GraphVisualDiff";
-import { WorkflowMiniPreview } from "./WorkflowMiniPreview";
+import { WorkflowGraphPreview } from "./WorkflowGraphPreview";
 import { useVersionHistoryStore, SaveType } from "../../stores/VersionHistoryStore";
 import { useWorkflowVersions } from "../../serverState/useWorkflowVersions";
 import { computeGraphDiff, GraphDiff } from "../../utils/graphDiff";
@@ -513,20 +513,12 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
                 </FlexColumn>
               )}
 
-              <div
-                style={{
-                  border: "1px solid var(--palette-divider)",
-                  borderRadius: "var(--rounded-md)",
-                  padding: 8,
-                  backgroundColor: "var(--palette-background-default)"
-                }}
-              >
-                <WorkflowMiniPreview
-                  workflow={selectedVersion}
-                  width="100%"
-                  height={320}
-                />
-              </div>
+              <WorkflowGraphPreview
+                graph={selectedVersion.graph as unknown as Graph}
+                workflowId={workflowId}
+                width="100%"
+                height={320}
+              />
 
               <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                 <EditorButton
