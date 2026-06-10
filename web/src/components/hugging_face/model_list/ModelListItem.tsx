@@ -15,7 +15,6 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../../config/constants";
 import { formatBytes } from "../../../utils/modelFormatting";
-import { getModelUrl } from "../../../utils/providerDisplay";
 import type { ModelCompatibilityResult } from "./useModelCompatibility";
 import ModelCompatibilityDialog from "./ModelCompatibilityDialog";
 
@@ -29,6 +28,7 @@ const ModelListItem: React.FC<
 > = ({
   model,
   onDownload,
+  onSelect,
   handleModelDelete,
   handleShowInExplorer,
   compactView = false,
@@ -78,7 +78,8 @@ const ModelListItem: React.FC<
       css={modelListItemStyles(theme)}
       className={`model-list-item ${compactView ? "compact " : ""} ${
         model.downloaded ? "downloaded" : ""
-      }`}
+      } ${onSelect ? "selectable" : ""}`}
+      onClick={onSelect}
     >
       <div className="model-content">
         <div className="model-top-row">
@@ -90,14 +91,9 @@ const ModelListItem: React.FC<
                 const owner = lastSlash !== -1 ? full?.slice(0, lastSlash) : "";
                 const repo =
                   lastSlash !== -1 ? full?.slice(lastSlash + 1) : full;
-                const modelUrl = getModelUrl(
-                  model.provider ?? undefined,
-                  model.id,
-                  model.type || undefined
-                );
 
-                const content = (
-                  <>
+                return (
+                  <div className="model-name-link no-link" title={full}>
                     {owner ? (
                       <Text component="div" className="model-owner">
                         {owner}
@@ -117,27 +113,7 @@ const ModelListItem: React.FC<
                         {repo}
                       </Text>
                     )}
-                  </>
-                );
-
-                if (!modelUrl) {
-                  return (
-                    <div className="model-name-link no-link" title={full}>
-                      {content}
-                    </div>
-                  );
-                }
-
-                return (
-                  <Link
-                    href={modelUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="model-name-link"
-                    title={full}
-                  >
-                    {content}
-                  </Link>
+                  </div>
                 );
               })()}
             </div>

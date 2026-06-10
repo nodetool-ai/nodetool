@@ -152,9 +152,23 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     }
   }, [selectedProvider, customView]);
 
-  // Auto-switch to downloads when dialog opens, loading finishes, and there are no models
+  // Auto-switch to downloads once per dialog open when loading finishes and
+  // there are no models. Must not re-fire afterwards, or the user can never
+  // navigate away from the downloads view while the model list is empty.
+  const autoSwitchedRef = React.useRef(false);
   React.useEffect(() => {
-    if (open && !isLoading && totalCount === 0 && hasDownloads && customView !== "downloads") {
+    if (!open) {
+      autoSwitchedRef.current = false;
+      return;
+    }
+    if (
+      !autoSwitchedRef.current &&
+      !isLoading &&
+      totalCount === 0 &&
+      hasDownloads &&
+      customView !== "downloads"
+    ) {
+      autoSwitchedRef.current = true;
       setCustomView("downloads");
       setSelectedProvider(null);
     }
@@ -620,6 +634,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                 recommendedModels={recommendedModels}
                 modelPacks={modelPacks}
                 searchQuery={search}
+                onSelect={(m) => onModelChange?.(m as unknown as TModel)}
               />
             ) : (
               <ModelList<TModel>

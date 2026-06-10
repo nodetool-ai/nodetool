@@ -27,6 +27,7 @@ import {
   readCachedHfModels,
   searchCachedHfModels,
   getModelsByHfType,
+  filterModelsByHfType,
   deleteCachedHfModel,
   getHuggingfaceFileInfos
 } from "@nodetool-ai/huggingface";
@@ -1168,9 +1169,20 @@ export const modelsRouter = router({
    * HuggingFace models by type.
    */
   huggingfaceByType: protectedProcedure
-    .input(hfByTypeInput)
+    .input(hfByTypeInput.extend({ scope: modelScope }))
     .output(modelsListOutput)
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
+      if (input.scope === "worker") {
+        const bridge = await requireWorkerBridge(ctx);
+        // The worker sends full UnifiedModel JSON; the bridge types it loosely.
+        const cached = (await bridge.listCachedModels()) as unknown as Parameters<
+          typeof filterModelsByHfType
+        >[0];
+        return filterModelsByHfType(
+          cached,
+          input.model_type
+        ) as UnifiedModel[];
+      }
       try {
         return await getModelsByHfType(input.model_type);
       } catch {

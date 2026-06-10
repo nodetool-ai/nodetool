@@ -68,7 +68,7 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
   }, [handleModelDelete, model.id]);
 
   return (
-    <div className="actions-container">
+    <div className="actions-container" onClick={(e) => e.stopPropagation()}>
       {isCheckingCache && !downloaded && (
         <Box
           sx={{

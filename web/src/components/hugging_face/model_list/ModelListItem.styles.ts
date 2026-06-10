@@ -18,8 +18,22 @@ const modelListItemStyles = (theme: Theme) =>
 
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
-        borderColor:
-          "rgba(var(--palette-primary-main-channel) / 0.35)"
+        borderColor: "rgba(var(--palette-primary-main-channel) / 0.35)"
+      },
+
+      "&.selectable": {
+        cursor: "pointer"
+      },
+      "&.selectable:hover": {
+        backgroundColor: "rgba(var(--palette-primary-main-channel) / 0.06)",
+        borderColor: "rgba(var(--palette-primary-main-channel) / 0.55)"
+      },
+      "&.selectable.downloaded": {
+        borderColor: "rgba(var(--palette-success-main-channel) / 0.3)"
+      },
+      "&.selectable.downloaded:hover": {
+        backgroundColor: "rgba(var(--palette-success-main-channel) / 0.06)",
+        borderColor: "rgba(var(--palette-success-main-channel) / 0.6)"
       },
 
       "&.compact": {

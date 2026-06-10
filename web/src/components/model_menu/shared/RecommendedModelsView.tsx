@@ -7,6 +7,7 @@ import type { ModelPack, UnifiedModel } from "../../../stores/ApiTypes";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
 import { useWorkers } from "../../../hooks/useWorkers";
+import { useWorkerCachedModels } from "../../../hooks/useWorkerCachedModels";
 import {
   buildHfCacheRequest,
   canCheckHfCache,
@@ -17,12 +18,14 @@ interface RecommendedModelsViewProps {
   recommendedModels: UnifiedModel[];
   modelPacks: ModelPack[];
   searchQuery?: string;
+  onSelect?: (model: UnifiedModel) => void;
 }
 
 const RecommendedModelsView: React.FC<RecommendedModelsViewProps> = ({
   recommendedModels,
   modelPacks,
-  searchQuery = ""
+  searchQuery = "",
+  onSelect
 }) => {
 
   const startDownload = useModelDownloadStore((s) => s.startDownload);
@@ -31,6 +34,8 @@ const RecommendedModelsView: React.FC<RecommendedModelsViewProps> = ({
   const cacheVersion = useHfCacheStatusStore((s) => s.version);
   const ensureStatuses = useHfCacheStatusStore((s) => s.ensureStatuses);
   const { activeWorker } = useWorkers();
+  const { ids: workerCachedIds, isLoading: workerCacheLoading } =
+    useWorkerCachedModels();
 
   const handleStartDownload = useCallback(
     (model: UnifiedModel) => {
@@ -70,25 +75,30 @@ const RecommendedModelsView: React.FC<RecommendedModelsViewProps> = ({
   }, [recommendedModels, searchQuery]);
 
   useEffect(() => {
+    // When a worker is attached, downloaded state comes from the worker's
+    // cache list — local FS cache is irrelevant.
+    if (activeWorker) return;
     const requests = filteredModels
       .map(buildHfCacheRequest)
       .filter((r): r is NonNullable<typeof r> => r !== null);
     if (requests.length === 0) return;
     void ensureStatuses(requests);
-  }, [ensureStatuses, filteredModels, cacheVersion]);
+  }, [ensureStatuses, filteredModels, cacheVersion, activeWorker]);
 
   const displayModels = useMemo(() => {
     return filteredModels.map((model) => {
-      // Trust an explicit `downloaded` flag from the backend (used by
-      // Transformers.js, where cache state is resolved server-side and the
-      // HF cache lookup below would always miss).
+      const cacheKey = getHfCacheKey(model);
+      // When a worker is attached, authoritative downloaded state comes from
+      // the worker's cache list.  Fall back to local HF cache otherwise.
       const downloaded =
         model.downloaded === true ||
         model.type === "llama_model" ||
-        !!cacheStatuses[getHfCacheKey(model)];
+        (activeWorker
+          ? workerCachedIds.has(cacheKey)
+          : !!cacheStatuses[cacheKey]);
       return { ...model, downloaded } as UnifiedModel & { downloaded: boolean };
     });
-  }, [cacheStatuses, filteredModels]);
+  }, [cacheStatuses, filteredModels, activeWorker, workerCachedIds]);
 
   return (
     <FlexColumn
@@ -145,16 +155,20 @@ const RecommendedModelsView: React.FC<RecommendedModelsViewProps> = ({
                 {displayModels.map((model) => {
                   const cacheKey = getHfCacheKey(model);
                   const isCacheable = canCheckHfCache(model);
-                  const isCheckingCache =
-                    isCacheable &&
-                    (cachePending[cacheKey] ||
-                      cacheStatuses[cacheKey] === undefined);
+                  // Downloaded state resolves from the worker cache list when
+                  // a worker is attached, from the local FS check otherwise.
+                  const isCheckingCache = activeWorker
+                    ? workerCacheLoading
+                    : isCacheable &&
+                      (cachePending[cacheKey] ||
+                        cacheStatuses[cacheKey] === undefined);
                   return (
                     <ModelListItem
                       compactView
                       key={`${model.provider ?? ""}:${model.id}:${model.path ?? ""}`}
                       model={model}
                       onDownload={() => handleStartDownload(model)}
+                      onSelect={onSelect ? () => onSelect(model) : undefined}
                       isCheckingCache={isCheckingCache}
                     />
                   );
