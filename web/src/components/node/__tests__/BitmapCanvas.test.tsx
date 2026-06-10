@@ -3,11 +3,16 @@ import { render, screen } from "@testing-library/react";
 import BitmapCanvas from "../BitmapCanvas";
 
 describe("BitmapCanvas", () => {
+  const mockGetContext = (drawImage: jest.Mock) =>
+    jest
+      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .mockImplementation(((() => ({
+        drawImage
+      })) as unknown) as HTMLCanvasElement["getContext"]);
+
   it("paints the bitmap onto a canvas sized to its dimensions", () => {
     const drawImage = jest.fn();
-    const getContext = jest
-      .spyOn(HTMLCanvasElement.prototype, "getContext")
-      .mockReturnValue({ drawImage } as unknown as CanvasRenderingContext2D);
+    const getContext = mockGetContext(drawImage);
 
     const bitmap = { width: 4, height: 2 } as unknown as ImageBitmap;
     render(<BitmapCanvas bitmap={bitmap} aria-label="preview" />);
@@ -23,9 +28,7 @@ describe("BitmapCanvas", () => {
 
   it("repaints when a new bitmap frame arrives", () => {
     const drawImage = jest.fn();
-    const getContext = jest
-      .spyOn(HTMLCanvasElement.prototype, "getContext")
-      .mockReturnValue({ drawImage } as unknown as CanvasRenderingContext2D);
+    const getContext = mockGetContext(drawImage);
 
     const first = { width: 2, height: 2 } as unknown as ImageBitmap;
     const second = { width: 8, height: 4 } as unknown as ImageBitmap;
