@@ -35,7 +35,7 @@ const renderLane = () =>
   render(
     <ThemeProvider theme={mockTheme}>
       <TimelineProvider>
-        <ScriptLane totalWidthPx={2000} />
+        <ScriptLane />
       </TimelineProvider>
     </ThemeProvider>
   );
