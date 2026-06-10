@@ -11,6 +11,7 @@ import {
   COMMENT_NODE_TYPE,
   PREVIEW_NODE_TYPE
 } from "../constants/nodeTypes";
+import { BESPOKE_DEFAULT_HEIGHTS } from "../components/node_types/editing/bespokeRegistry";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -53,6 +54,9 @@ export function graphNodeToReactFlowNode(
   }
   if (isCompareImagesNode && !ui_properties?.height) {
     defaultHeight = 350;
+  }
+  if (!ui_properties?.height && node.type && node.type in BESPOKE_DEFAULT_HEIGHTS) {
+    defaultHeight = BESPOKE_DEFAULT_HEIGHTS[node.type];
   }
 
   const strip = NODE_COLLAPSED_STRIP_HEIGHT_PX;

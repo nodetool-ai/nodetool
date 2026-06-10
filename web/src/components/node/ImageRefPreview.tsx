@@ -1,4 +1,5 @@
 import React from "react";
+import { isBitmapImage } from "@nodetool-ai/protocol";
 import ImageView from "./ImageView";
 import { asImageRef, isRawRgbaRef } from "../../utils/imageRef";
 import { rawRgbaToPngDataUrl } from "../../lib/workflow/materializeBrowserOutputs";
@@ -25,6 +26,12 @@ const ImageRefPreview: React.FC<ImageRefPreviewProps> = ({
 }) => {
   if (typeof value === "string" && value) {
     return <ImageView source={value} />;
+  }
+  // Preview-bitmap ref from the in-browser runner (zero-copy transport) —
+  // paint it directly. Checked on the raw value: `asImageRef` keeps only the
+  // uri/data fields, so the bitmap would be dropped below.
+  if (isBitmapImage(value)) {
+    return <ImageView bitmap={value.bitmap as ImageBitmap} />;
   }
   const ref = asImageRef(value);
   if (isRawRgbaRef(ref)) {

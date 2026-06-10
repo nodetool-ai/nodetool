@@ -170,6 +170,45 @@ export const useLiveSliderWriter = ({
     runPreviewRef.current = runBrowserPreview;
   }, [runBrowserPreview]);
 
+  // Fire a live preview whenever this node's incoming wiring changes (a new
+  // edge, or an existing handle re-wired to a different source). Uses the same
+  // browser-preview path as a slider scrub so the preview comes to life
+  // immediately without a manual run. The signature captures source identity —
+  // a plain edge count would miss onConnect's replace-existing-edge case and
+  // onEdgeUpdate reconnections, where the count stays flat. On initial mount
+  // the baseline is recorded without triggering, and pure disconnects are
+  // skipped — only a genuinely new inbound edge previews.
+  const incomingEdgeSignature = useNodes((state) =>
+    state.edges
+      .filter((e) => e.target === nodeId)
+      .map((e) => `${e.source}/${e.sourceHandle ?? ""}>${e.targetHandle ?? ""}`)
+      .sort()
+      .join("|")
+  );
+  const prevIncomingSignatureRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (prevIncomingSignatureRef.current === null) {
+      prevIncomingSignatureRef.current = incomingEdgeSignature;
+      return;
+    }
+    if (incomingEdgeSignature === prevIncomingSignatureRef.current) {
+      return;
+    }
+    const prev = new Set(
+      prevIncomingSignatureRef.current.split("|").filter(Boolean)
+    );
+    const next = incomingEdgeSignature.split("|").filter(Boolean);
+    prevIncomingSignatureRef.current = incomingEdgeSignature;
+    // Skip pure disconnects (every remaining edge was already there) — nothing
+    // new flows in, so there's nothing fresh to preview.
+    if (!next.some((sig) => !prev.has(sig))) {
+      return;
+    }
+    if (!runBrowserPreview()) {
+      onPropertyChange();
+    }
+  }, [incomingEdgeSignature, runBrowserPreview, onPropertyChange]);
+
   const setProperty = useCallback(
     (name: string, value: unknown) => {
       updateNodeProperties(nodeId, { [name]: value });

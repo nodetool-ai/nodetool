@@ -201,13 +201,20 @@ export const buildDownstreamRunGraph = ({
 
   // Seed inputs from each upstream's selected generation (durable assets
   // merged with the live buffer); resolveExternalEdgeValue unwraps the
-  // returned outputs record by source handle.
+  // returned outputs record by source handle. Empty outputs (a node whose
+  // node_update carried no result — e.g. a constant) must read as "no cached
+  // value" so resolveExternalEdgeValue falls back to the literal source
+  // node's property instead of seeding `{}` into the target's input.
   const getResultFromGeneration = (wf: string, src: string): unknown => {
     const current = getCurrentGeneration(
       getNodeGenerations(wf, src),
       findNode(src)?.data?.selected_generation
     );
-    return current?.outputs;
+    const outputs = current?.outputs;
+    if (!outputs || Object.keys(outputs).length === 0) {
+      return undefined;
+    }
+    return outputs;
   };
 
   const propertyOverrides = collectCachedValuesForSubgraph(

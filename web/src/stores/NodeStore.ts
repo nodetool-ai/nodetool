@@ -49,6 +49,7 @@ import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
 import { isValidEdge, sanitizeGraph } from "../core/workflow/graphMapping";
 import { GROUP_NODE_TYPE } from "../utils/nodeUtils";
 import { PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
+import { BESPOKE_DEFAULT_HEIGHTS } from "../components/node_types/editing/bespokeRegistry";
 import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
 import { reactFlowNodeChromeClassName } from "../utils/reactFlowNodeChromeClassName";
@@ -1282,6 +1283,11 @@ export const createNodeStore = (
               defaultStyle = { width: 320, height: 320 };
             } else if (isAgentStyle) {
               defaultStyle = { width: DEFAULT_NODE_WIDTH };
+            } else if (metadata.node_type in BESPOKE_DEFAULT_HEIGHTS) {
+              defaultStyle = {
+                width: DEFAULT_NODE_WIDTH,
+                height: BESPOKE_DEFAULT_HEIGHTS[metadata.node_type]
+              };
             } else if (isContentCard) {
               defaultStyle = getContentCardDefaultSize(metadata);
             } else {
