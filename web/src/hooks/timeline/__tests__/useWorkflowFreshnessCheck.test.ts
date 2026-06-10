@@ -323,10 +323,11 @@ describe("useWorkflowFreshnessCheck", () => {
       return React.createElement(React.Fragment, null, children);
     };
     const wrapper: React.FC<{ children?: React.ReactNode }> = ({ children }) =>
-      React.createElement(TimelineProvider, {
-        active: false,
-        children: React.createElement(Capture, null, children)
-      });
+      React.createElement(
+        TimelineProvider,
+        { active: false },
+        React.createElement(Capture, null, children)
+      );
 
     mockWorkflowsGet.mockResolvedValue(
       buildWorkflow({ id: "wf-1", updatedAt: NEWER_UPDATED_AT })
