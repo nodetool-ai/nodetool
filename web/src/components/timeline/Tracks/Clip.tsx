@@ -23,7 +23,11 @@ import type { Theme } from "@mui/material/styles";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 
 import type { TimelineClip, TimelineTrack, ClipStatus } from "@nodetool-ai/timeline";
-import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import {
+  useTimelineStore,
+  useTimelineStoreApi,
+  timelineTemporalOf
+} from "../../../stores/timeline/TimelineStore";
 import {
   useTimelineUIStore,
   useIsClipSelected
@@ -374,7 +378,6 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
 
   const isSelected = useIsClipSelected(clipId);
   const msPerPx = useTimelineUIStore((s) => s.msPerPx);
-  const scrollLeftPx = useTimelineUIStore((s) => s.scrollLeftPx);
 
   const selectClip = useTimelineUIStore((s) => s.selectClip);
   const addToSelection = useTimelineUIStore((s) => s.addToSelection);
@@ -470,6 +473,36 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     }
     return deriveClipStatus(clip, generationState, errorState, true);
   }, [clip, generationState, errorState]);
+
+  // ── Undo batching ───────────────────────────────────────────────────────
+  //
+  // Drag/trim gestures mutate the store on every pointermove. To collapse a
+  // whole gesture into a single undo entry we let the *first* mutation of the
+  // gesture be recorded normally (zundo pushes the pre-gesture state onto the
+  // undo stack inside that set call), then pause history tracking for the
+  // rest of the gesture and resume on gesture end. While paused, zundo
+  // records nothing — so one undo step reverts the entire drag.
+
+  const timelineStoreApi = useTimelineStoreApi();
+  const historyPausedRef = useRef(false);
+
+  const pauseHistoryAfterFirstMutation = useCallback(() => {
+    if (!historyPausedRef.current) {
+      timelineTemporalOf(timelineStoreApi).pause();
+      historyPausedRef.current = true;
+    }
+  }, [timelineStoreApi]);
+
+  const resumeHistory = useCallback(() => {
+    if (historyPausedRef.current) {
+      historyPausedRef.current = false;
+      timelineTemporalOf(timelineStoreApi).resume();
+    }
+  }, [timelineStoreApi]);
+
+  // Safety net: never leave history tracking paused if the clip unmounts
+  // mid-gesture (e.g. the store changes underneath us).
+  useEffect(() => resumeHistory, [resumeHistory]);
 
   // ── Drag (move) ─────────────────────────────────────────────────────────
 
@@ -596,12 +629,15 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
             disableSnap
           );
         }
+        // First mutation recorded the pre-drag state; batch the rest.
+        pauseHistoryAfterFirstMutation();
       };
 
       const onUpOrCancel = () => {
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUpOrCancel);
         window.removeEventListener("pointercancel", onUpOrCancel);
+        resumeHistory();
         // Defer dragging flag reset so the synthetic click that follows
         // pointerup is still suppressed by handleClick.
         const wasDragging = isDraggingRef.current;
@@ -625,7 +661,9 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       splitClipAtTime,
       clipId,
       moveClip,
-      moveSelectedClips
+      moveSelectedClips,
+      pauseHistoryAfterFirstMutation,
+      resumeHistory
     ]
   );
 
@@ -660,6 +698,13 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
 
   // ── Trim start ──────────────────────────────────────────────────────────
 
+  // Gesture-ownership flags: each trim handle's move handler only runs when
+  // *its own* pointerdown started the gesture. Without this, dragging another
+  // clip across the handle (with the primary button held) would fire the move
+  // handler and corrupt this clip's geometry.
+  const isTrimmingStartRef = useRef(false);
+  const isTrimmingEndRef = useRef(false);
+
   const trimStartRef = useRef({ startX: 0, startMs: 0 });
 
   const handleTrimStartPointerDown = useCallback(
@@ -675,13 +720,19 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       e.stopPropagation();
       e.currentTarget.setPointerCapture(e.pointerId);
       trimStartRef.current = { startX: e.clientX, startMs: clip.startMs };
+      isTrimmingStartRef.current = true;
     },
     [clip, activeTool]
   );
 
   const handleTrimStartPointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      if (!clip || clip.locked || e.buttons !== 1) {
+      if (
+        !isTrimmingStartRef.current ||
+        !clip ||
+        clip.locked ||
+        e.buttons !== 1
+      ) {
         return;
       }
       // Stop bubbling so the parent clip body's drag-pointermove handler
@@ -696,9 +747,10 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       // So: pointer moving right (+deltaPx) should shrink the clip from the start.
       // We negate so that dragging the handle right correctly shrinks the clip start.
       trimClipStart(clip.id, -deltaMs);
+      pauseHistoryAfterFirstMutation();
       trimStartRef.current.startX = e.clientX;
     },
-    [clip, msPerPx, trimClipStart]
+    [clip, msPerPx, trimClipStart, pauseHistoryAfterFirstMutation]
   );
 
   // ── Trim end ────────────────────────────────────────────────────────────
@@ -722,13 +774,19 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         startMs: clip.startMs,
         startDuration: clip.durationMs
       };
+      isTrimmingEndRef.current = true;
     },
     [clip, activeTool]
   );
 
   const handleTrimEndPointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      if (!clip || clip.locked || e.buttons !== 1) {
+      if (
+        !isTrimmingEndRef.current ||
+        !clip ||
+        clip.locked ||
+        e.buttons !== 1
+      ) {
         return;
       }
       // Stop bubbling so the parent clip body's drag-pointermove handler
@@ -738,16 +796,27 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       const deltaPx = e.clientX - trimEndRef.current.startX;
       const deltaMs = deltaPx * msPerPx;
       trimClipEnd(clip.id, deltaMs, audioSourceDurationMs);
+      pauseHistoryAfterFirstMutation();
       trimEndRef.current.startX = e.clientX;
     },
-    [clip, msPerPx, trimClipEnd, audioSourceDurationMs]
+    [clip, msPerPx, trimClipEnd, audioSourceDurationMs, pauseHistoryAfterFirstMutation]
   );
+
+  // Shared end-of-trim handler (pointerup AND pointercancel): release the
+  // gesture flags and resume undo tracking.
+  const handleTrimPointerEnd = useCallback(() => {
+    isTrimmingStartRef.current = false;
+    isTrimmingEndRef.current = false;
+    resumeHistory();
+  }, [resumeHistory]);
 
   if (!clip) {
     return null;
   }
 
-  const leftPx = clip.startMs / msPerPx - scrollLeftPx;
+  // The clip renders inside the natively scrolling lanes container, so
+  // lane-local coordinates are already content-space — no scroll offset.
+  const leftPx = clip.startMs / msPerPx;
   const widthPx = Math.max(MIN_CLIP_WIDTH_PX, clip.durationMs / msPerPx);
 
   const statusInfo = CLIP_STATUS_MAP[derivedStatus];
@@ -767,6 +836,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       handleTrimStartPointerMove={handleTrimStartPointerMove}
       handleTrimEndPointerDown={handleTrimEndPointerDown}
       handleTrimEndPointerMove={handleTrimEndPointerMove}
+      handleTrimPointerEnd={handleTrimPointerEnd}
       cutMode={activeTool === "cut"}
     />
   );
@@ -786,6 +856,7 @@ interface ClipBodyProps {
   handleTrimStartPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTrimEndPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTrimEndPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
+  handleTrimPointerEnd: () => void;
   cutMode: boolean;
 }
 
@@ -803,6 +874,7 @@ const ClipBody: React.FC<ClipBodyProps> = ({
   handleTrimStartPointerMove,
   handleTrimEndPointerDown,
   handleTrimEndPointerMove,
+  handleTrimPointerEnd,
   cutMode
 }) => {
   const theme = useTheme();
@@ -967,6 +1039,8 @@ const ClipBody: React.FC<ClipBodyProps> = ({
         css={trimHandleStyles(theme, "start", clip.locked)}
         onPointerDown={handleTrimStartPointerDown}
         onPointerMove={handleTrimStartPointerMove}
+        onPointerUp={handleTrimPointerEnd}
+        onPointerCancel={handleTrimPointerEnd}
         aria-label="Trim clip start"
         data-testid={`clip-trim-start-${clipId}`}
       />
@@ -975,6 +1049,8 @@ const ClipBody: React.FC<ClipBodyProps> = ({
         css={trimHandleStyles(theme, "end", clip.locked)}
         onPointerDown={handleTrimEndPointerDown}
         onPointerMove={handleTrimEndPointerMove}
+        onPointerUp={handleTrimPointerEnd}
+        onPointerCancel={handleTrimPointerEnd}
         aria-label="Trim clip end"
         data-testid={`clip-trim-end-${clipId}`}
       />

@@ -139,6 +139,9 @@ export const Playhead: React.FC<PlayheadProps> = memo(
 
     const handlePointerMove = useCallback(
       (e: React.PointerEvent<HTMLDivElement>) => {
+        // Only react while this playhead owns the gesture — otherwise a clip
+        // dragged across the hit area (buttons === 1) would scrub the playhead.
+        if (!dragging) return;
         if (e.buttons !== 1) return;
         const deltaPx = e.clientX - dragStartXRef.current;
         const deltaMs = deltaPx * msPerPx;
@@ -147,7 +150,7 @@ export const Playhead: React.FC<PlayheadProps> = memo(
           Math.max(0, Math.min(cap, dragStartMsRef.current + deltaMs))
         );
       },
-      [msPerPx, durationMs, setCurrentTimeMs]
+      [dragging, msPerPx, durationMs, setCurrentTimeMs]
     );
 
     const handlePointerUp = useCallback(() => {
