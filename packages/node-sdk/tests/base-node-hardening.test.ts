@@ -325,6 +325,28 @@ describe("streaming run() executor path", () => {
     warn.mockRestore();
   });
 
+  it("does not leak secrets from a previous context into a later run()", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const seen: Record<string, string>[] = [];
+    class StreamingReuse extends BaseNode {
+      static readonly nodeType = "test.StreamingReuse";
+      static readonly isStreamingInput = true;
+      static readonly requiredSettings = ["OPENAI_API_KEY"];
+      async process() {
+        return {};
+      }
+      async run() {
+        seen.push(this._secrets);
+      }
+    }
+    const exec = new StreamingReuse().toExecutor();
+    const ctx = { getSecret: async () => "sk-1" } as any;
+    await exec.run!({} as any, {} as any, ctx);
+    await exec.run!({} as any, {} as any, undefined);
+    expect(seen).toEqual([{ OPENAI_API_KEY: "sk-1" }, {}]);
+    warn.mockRestore();
+  });
+
   it("exposes run on the executor only when the node defines run()", async () => {
     const calls: unknown[][] = [];
     class Streamer extends BaseNode {

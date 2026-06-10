@@ -4,7 +4,10 @@ import { ToStringNode } from "@nodetool-ai/text-nodes";
 describe("ToStringNode generic conversion", () => {
   it("returns empty string for undefined in repr mode", async () => {
     const node = new ToStringNode();
-    node.assign({ value: undefined, mode: "repr" });
+    node.assign({ mode: "repr" });
+    // assign() treats an explicit undefined as absent (keeps the default),
+    // so set the field directly to exercise process() on a raw undefined.
+    node.value = undefined;
     const result = await node.process();
     expect(result.output).toBe("");
   });

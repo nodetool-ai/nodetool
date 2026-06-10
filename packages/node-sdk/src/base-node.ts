@@ -436,7 +436,7 @@ export abstract class BaseNode {
       } else {
         console.warn(
           // Stryker disable next-line StringLiteral: operator diagnostic text only.
-          `[_injectSecrets] Secret "${key}" not found for ${ctor.nodeType}`
+          `[_resolveSecrets] Secret "${key}" not found for ${ctor.nodeType}`
         );
       }
     }
@@ -510,10 +510,9 @@ export abstract class BaseNode {
         // run() receives StreamingInputs rather than a property bag, so
         // secrets can't ride along on the inputs — store them on the
         // instance so this._secrets works inside run() like in process().
-        const secrets = await this._resolveSecrets(context);
         // Always overwrite so secrets from a previous execution can't leak into
         // a later run() call on the same instance.
-        this.setDynamic("_secrets", secrets);
+        this.setDynamic("_secrets", await this._resolveSecrets(context));
         return this.run!(inputs, outputs, context);
       };
     }
