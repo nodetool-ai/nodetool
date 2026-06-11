@@ -6,7 +6,7 @@ import { NodeData } from "../../stores/NodeData";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import isEqual from "fast-deep-equal";
-import { Tooltip, Container } from "../ui_primitives";
+import { Tooltip, Container, MOTION } from "../ui_primitives";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { DATA_TYPES } from "../../config/data_types";
@@ -36,7 +36,7 @@ const styles = (theme: Theme) =>
     WebkitBackdropFilter: theme.vars.palette.glass.blur,
     borderRadius: "var(--rounded-circle)",
     cursor: "grab",
-    transition: "all 0.2s ease",
+    transition: MOTION.all,
 
     "&:hover": {
       // transform: "scale(1.05)"

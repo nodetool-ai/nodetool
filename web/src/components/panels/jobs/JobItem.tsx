@@ -8,7 +8,8 @@ import {
   LoadingSpinner,
   Tooltip,
   ToolbarIconButton,
-  Box
+  Box,
+  MOTION
 } from "../../ui_primitives";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import BoltIcon from "@mui/icons-material/Bolt";
@@ -339,7 +340,7 @@ const JobItem = ({ job }: { job: Job }) => {
         borderRadius: "6px",
         cursor: "pointer",
         backgroundColor: isActive ? "action.selected" : "transparent",
-        transition: "background-color 120ms ease-out",
+        transition: `background-color ${MOTION.fast}`,
         "&:hover": { backgroundColor: "action.hover" }
       }}
     >

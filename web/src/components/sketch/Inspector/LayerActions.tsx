@@ -22,7 +22,7 @@ import {
 } from "../../../stores/sketch/SketchSessionStore";
 import { useSketchStore } from "../state/useSketchStore";
 import { useGenerateLayer } from "../../../hooks/sketch/useGenerateLayer";
-import { ToolbarIconButton, FlexRow, Toast, Tooltip } from "../../ui_primitives";
+import { ToolbarIconButton, FlexRow, Toast, Tooltip, MOTION } from "../../ui_primitives";
 import { cn } from "../../editor_ui/editorUtils";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
@@ -61,7 +61,7 @@ const runButtonStyles = (theme: Theme) =>
     boxShadow: `0 3px 12px ${theme.vars.palette.success.main}40, 0 0 14px ${theme.vars.palette.success.main}25`,
     backgroundColor: theme.vars.palette.primary.main,
     color: theme.vars.palette.primary.contrastText,
-    transition: "all 0.3s ease",
+    transition: `all ${MOTION.slow}`,
 
     "& svg": {
       fontSize: 18

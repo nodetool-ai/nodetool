@@ -1,7 +1,7 @@
 //mui
 import type { MouseEvent } from "react";
-import { Menu, MenuItem } from "@mui/material";
-import { Text, Divider } from "../ui_primitives";
+import { MenuItem } from "@mui/material";
+import { Text, Divider, ContextMenu } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 //icons
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
@@ -41,16 +41,13 @@ const AssetGridContextMenu = () => {
   if (!menuPosition) {return null;}
 
   return (
-    <Menu
+    <ContextMenu
       className="context-menu asset-grid-context-menu"
       open={menuPosition !== null}
       onContextMenu={(event) => event.preventDefault()}
-      anchorReference="anchorPosition"
       onClose={closeContextMenu}
       style={{ padding: "1em" }}
-      anchorPosition={
-        menuPosition ? { top: menuPosition.y, left: menuPosition.x } : undefined
-      }
+      position={menuPosition}
     >
       <MenuItem disabled>
         <Text className="title">
@@ -83,7 +80,7 @@ const AssetGridContextMenu = () => {
         IconComponent={<StorageIcon />}
         tooltip="Sort assets by file size"
       />
-    </Menu>
+    </ContextMenu>
   );
 };
 

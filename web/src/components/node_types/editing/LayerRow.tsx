@@ -20,7 +20,7 @@ import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ImageIcon from "@mui/icons-material/Image";
 
-import { SelectField, StateIconButton } from "../../ui_primitives";
+import { SelectField, StateIconButton, MOTION } from "../../ui_primitives";
 import NumberInput from "../../inputs/NumberInput";
 
 import {
@@ -45,7 +45,7 @@ const styles = (theme: Theme) =>
       borderRadius: "var(--rounded-sm)",
       background: theme.vars.palette.grey[800],
       border: `1px solid ${theme.vars.palette.divider}`,
-      transition: "background 0.12s ease, border-color 0.12s ease",
+      transition: `background ${MOTION.fast}, border-color ${MOTION.fast}`,
       "&:hover": {
         background: theme.vars.palette.action.hover
       },

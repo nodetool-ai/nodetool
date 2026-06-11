@@ -1,7 +1,7 @@
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
-import { Box, FlexRow, FlexColumn, Text } from "../ui_primitives";
+import { Box, FlexRow, FlexColumn, Text, MOTION } from "../ui_primitives";
 import { CostNodeIcon } from "./CostNodeIcon";
 import {
   groupExecutions,
@@ -58,7 +58,7 @@ const ProviderModel: React.FC<{
         sx={{
           width: 9,
           height: 9,
-          borderRadius: "3px",
+          borderRadius: "var(--rounded-sm)",
           flexShrink: 0,
           backgroundColor: providerColor(providerId)
         }}
@@ -87,7 +87,7 @@ const ExecutionRows: React.FC<{ rows: Execution[] }> = ({ rows }) => {
             columnGap: "16px",
             padding: "12px 24px",
             borderTop: `1px solid ${theme.vars.palette.divider}`,
-            transition: "background-color 120ms ease",
+            transition: MOTION.background,
             "&:hover": { backgroundColor: theme.vars.palette.action.hover }
           }}
         >
@@ -224,7 +224,7 @@ const GroupRows: React.FC<{ rows: GroupRow[]; groupBy: GroupByKey }> = ({
             columnGap: "16px",
             padding: "12px 24px",
             borderTop: `1px solid ${theme.vars.palette.divider}`,
-            transition: "background-color 120ms ease",
+            transition: MOTION.background,
             "&:hover": { backgroundColor: theme.vars.palette.action.hover }
           }}
         >
@@ -235,7 +235,7 @@ const GroupRows: React.FC<{ rows: GroupRow[]; groupBy: GroupByKey }> = ({
                 sx={{
                   width: 9,
                   height: 9,
-                  borderRadius: "3px",
+                  borderRadius: "var(--rounded-sm)",
                   flexShrink: 0,
                   backgroundColor: providerColor(r.providerId)
                 }}
@@ -268,7 +268,7 @@ const GroupRows: React.FC<{ rows: GroupRow[]; groupBy: GroupByKey }> = ({
               sx={{
                 flex: 1,
                 height: 6,
-                borderRadius: "3px",
+                borderRadius: "var(--rounded-sm)",
                 backgroundColor: theme.vars.palette.action.hover,
                 overflow: "hidden"
               }}
@@ -277,7 +277,7 @@ const GroupRows: React.FC<{ rows: GroupRow[]; groupBy: GroupByKey }> = ({
                 sx={{
                   width: `${Math.max(r.share * 100, 1.5)}%`,
                   height: "100%",
-                  borderRadius: "3px",
+                  borderRadius: "var(--rounded-sm)",
                   backgroundColor: r.providerId
                     ? providerColor(r.providerId)
                     : theme.vars.palette.primary.main

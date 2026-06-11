@@ -398,7 +398,7 @@ describe("SpeedDisplay", () => {
       );
 
       const display = container.querySelector("div");
-      expect(display?.style.transition).toBe("opacity 0.1s ease-in-out");
+      expect(display?.style.transition).toBe("opacity 120ms ease");
     });
 
     it("should have max-width of 200px", () => {

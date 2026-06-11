@@ -1,6 +1,5 @@
 import React, { memo, useCallback } from "react";
-import { Menu } from "@mui/material";
-import { Divider } from "../ui_primitives";
+import { Divider, ContextMenu } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
 import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
@@ -184,25 +183,16 @@ const NodeContextMenu: React.FC = () => {
   ];
 
   return (
-    <Menu
+    <ContextMenu
       className="context-menu node-context-menu"
       open={menuPosition !== null}
       onClose={closeContextMenu}
       onContextMenu={(event) => event.preventDefault()}
-      anchorReference="anchorPosition"
-      anchorPosition={
-        menuPosition ? { top: menuPosition.y, left: menuPosition.x } : undefined
-      }
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: "var(--rounded-lg)"
-          }
-        }
-      }}
+      position={menuPosition}
+      paperSx={{ borderRadius: "var(--rounded-lg)" }}
     >
       {menuItems.filter(Boolean)}
-    </Menu>
+    </ContextMenu>
   );
 };
 

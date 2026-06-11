@@ -24,14 +24,11 @@ import {
   IconButton,
   Menu,
   Slider,
-  Tooltip,
-  Typography,
-  Divider,
   Select,
   MenuItem,
   FormControl
 } from "@mui/material";
-import { FlexColumn, FlexRow, Box } from "../ui_primitives";
+import { FlexColumn, FlexRow, Box, Tooltip, Divider, Text, MOTION } from "../ui_primitives";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
@@ -155,7 +152,7 @@ const OPS_ICON_SX = {
   padding: "4px",
   borderRadius: "8px",
   color: "grey.400",
-  transition: "background-color 0.12s ease, color 0.12s ease",
+  transition: `${MOTION.background}, color ${MOTION.fast}`,
   "&:hover": { backgroundColor: "grey.800", color: "grey.100" },
   "&.Mui-disabled": { color: "grey.700" }
 };
@@ -171,7 +168,7 @@ const ADD_ACTION_ICON_SX = {
   padding: 0,
   borderRadius: "6px",
   color: "grey.400",
-  transition: "background-color 0.12s ease, color 0.12s ease",
+  transition: `${MOTION.background}, color ${MOTION.fast}`,
   "&:hover": { backgroundColor: "grey.800", color: "grey.100" }
 };
 
@@ -1299,9 +1296,9 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
       {activeLayer && (
         <>
           <Box className="opacity-row sketch-layers-panel__opacity-row">
-            <Typography sx={{ fontSize: SKETCH_FONT.md, color: SKETCH_COLORS.textMuted }}>
+            <Text sx={{ fontSize: SKETCH_FONT.md, color: SKETCH_COLORS.textMuted }}>
               Opacity
-            </Typography>
+            </Text>
             <Slider
               sx={sketchSliderSx}
               size="small"
@@ -1313,11 +1310,11 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                 onLayerOpacityChange(activeLayerId, v as number)
               }
             />
-            <Typography
+            <Text
               sx={{ fontSize: SKETCH_FONT.md, minWidth: "30px", textAlign: "right" }}
             >
               {Math.round(activeLayer.opacity * 100)}%
-            </Typography>
+            </Text>
           </Box>
           <FormControl
             className="sketch-layers-panel__blend-mode"
@@ -1355,7 +1352,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               className="sketch-layers-panel__active-layer-ref"
               sx={{ px: "6px", pt: "4px" }}
             >
-              <Typography
+              <Text
                 sx={{
                   fontSize: SKETCH_FONT.xs,
                   color: SKETCH_COLORS.textFaint,
@@ -1365,7 +1362,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                 }}
               >
                 {summarizeLayerImageReference(activeLayer.imageReference)}
-              </Typography>
+              </Text>
             </Box>
           ) : null}
         </>

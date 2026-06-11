@@ -1,4 +1,3 @@
-import { List, ListItem } from "@mui/material";
 import { Text, FlexColumn, Divider, Box } from "../ui_primitives";
 
 const EmptyCollectionState = () => {
@@ -25,20 +24,12 @@ const EmptyCollectionState = () => {
         </Text>
 
         <Text>With a collection, you can:</Text>
-        <List sx={{ pl: 2, mb: 1 }}>
-          <ListItem sx={{ display: "list-item" }}>
-            Index text and images as vector embeddings
-          </ListItem>
-          <ListItem sx={{ display: "list-item" }}>
-            Perform semantic similarity searches
-          </ListItem>
-          <ListItem sx={{ display: "list-item" }}>
-            Filter search results using metadata
-          </ListItem>
-          <ListItem sx={{ display: "list-item" }}>
-            Batch process large sets of documents
-          </ListItem>
-        </List>
+        <ul style={{ paddingLeft: 16, marginBottom: 4, listStyle: "disc" }}>
+          <li>Index text and images as vector embeddings</li>
+          <li>Perform semantic similarity searches</li>
+          <li>Filter search results using metadata</li>
+          <li>Batch process large sets of documents</li>
+        </ul>
         <Text>
           Key nodes include <strong>Index Image</strong> and{" "}
           <strong>Index Text Chunk</strong> for populating data, and{" "}

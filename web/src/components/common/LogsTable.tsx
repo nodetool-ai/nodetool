@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Text, Tooltip, ToolbarIconButton, Card, Popover, FlexColumn, FlexRow } from "../ui_primitives";
+import { Text, Tooltip, ToolbarIconButton, Card, Popover, FlexColumn, FlexRow, MOTION } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -87,7 +87,7 @@ const tableStyles = (theme: Theme) =>
       padding: "0 12px",
       borderBottom: `1px solid ${theme.vars.palette.grey[850] || theme.vars.palette.grey[900]}`,
       backgroundColor: "transparent",
-      transition: "background-color 0.15s ease",
+      transition: MOTION.background,
       cursor: "pointer",
       borderLeft: "3px solid transparent",
       "&:hover": {
@@ -104,7 +104,7 @@ const tableStyles = (theme: Theme) =>
       // Hide copy button by default, show on hover
       "& .copy-btn": {
         opacity: 0,
-        transition: "opacity 0.15s ease"
+        transition: MOTION.opacity
       },
       "&:hover .copy-btn": {
         opacity: 1
@@ -161,7 +161,7 @@ const tableStyles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.grey[500],
       opacity: 0,
-      transition: "opacity 0.2s ease"
+      transition: `opacity ${MOTION.normal}`
     },
 
     ".empty": {

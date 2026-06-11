@@ -10,7 +10,7 @@ import DataObjectIcon from "@mui/icons-material/DataObject";
 import TableChartIcon from "@mui/icons-material/TableChart";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import { Asset } from "../../stores/ApiTypes";
-import { DeleteButton, Text } from "../ui_primitives";
+import { DeleteButton, Text, MOTION } from "../ui_primitives";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { formatFileSize } from "../../utils/formatUtils";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -48,7 +48,7 @@ const styles = (theme: Theme) =>
       contain: "layout style paint",
       border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`,
       boxShadow: "0 8px 18px rgb(0 0 0 / 0.18)",
-      transition: "box-shadow 0.18s ease, border-color 0.18s ease"
+      transition: `${MOTION.shadow}, ${MOTION.border}`
     },
     "&.selected .asset": {
       border: `2px solid ${theme.vars.palette.primary.main}`,
@@ -86,7 +86,7 @@ const styles = (theme: Theme) =>
       backgroundSize: "cover",
       backgroundPosition: "center",
       backgroundRepeat: "no-repeat",
-      transition: "opacity 0.3s, transform 0.35s ease"
+      transition: `opacity ${MOTION.slow}, transform ${MOTION.slow}`
     },
     ".asset .image-aspect-ratio": {
       opacity: 0,
@@ -227,7 +227,7 @@ const styles = (theme: Theme) =>
     ".asset-delete": {
       pointerEvents: "none",
       opacity: 0,
-      transition: "opacity 0.2s ease"
+      transition: MOTION.opacity
     },
     "&.selected:hover .asset-delete": {
       pointerEvents: "all",

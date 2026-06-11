@@ -5,10 +5,6 @@
  */
 
 import React, { useCallback, useMemo, useState, memo } from "react";
-import {
-  List,
-  DialogContentText
-} from "@mui/material";
 import { Compare as CompareIcon } from "@mui/icons-material";
 import VersionListItem from "./VersionListItem";
 import { VersionDiff } from "./VersionDiff";
@@ -27,6 +23,7 @@ import {
   Dialog,
   EditorButton,
   FlexColumn,
+  ListGroup,
   LoadingSpinner,
   Text,
   ToggleGroup,
@@ -384,7 +381,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
               </Caption>
             </div>
           ) : (
-            <List dense sx={{ py: 0 }}>
+            <ListGroup compact flush sx={{ py: 0 }}>
               {versions.map((version) => (
                 <VersionListItem
                   key={version.id}
@@ -399,7 +396,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
                   isRestoring={isRestoringVersion}
                 />
               ))}
-            </List>
+            </ListGroup>
           )}
         </div>
 
@@ -552,10 +549,10 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         confirmText="Delete"
         destructive
       >
-        <DialogContentText>
+        <Text color="secondary">
           Are you sure you want to delete this version? This action cannot be
           undone.
-        </DialogContentText>
+        </Text>
       </Dialog>
     </div>
   );
