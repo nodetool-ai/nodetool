@@ -142,30 +142,34 @@ describe("packs router", () => {
     await expect(caller.setTrust({})).rejects.toThrow();
   });
 
-  it("listBuiltins reports every built-in pack as enabled by default", async () => {
+  it("listBuiltins enables only required and default-enabled packs out of the box", async () => {
     const caller = createCaller(makeCtx());
     const result = await caller.listBuiltins();
-    expect(result.packs.length).toBeGreaterThan(0);
-    expect(result.packs.every((p) => p.enabled)).toBe(true);
-    expect(result.packs.find((p) => p.id === "base")?.required).toBe(true);
+    const byId = new Map(result.packs.map((p) => [p.id, p]));
+    expect(byId.get("base")).toMatchObject({ enabled: true, required: true });
+    expect(byId.get("fal")?.enabled).toBe(true);
+    // Opt-in packs start disabled.
+    expect(byId.get("elevenlabs")?.enabled).toBe(false);
+    expect(byId.get("kie")?.enabled).toBe(false);
   });
 
-  it("setBuiltinEnabled persists the disabled list and round-trips", async () => {
+  it("setBuiltinEnabled persists overrides in both directions", async () => {
     const caller = createCaller(makeCtx());
+    const enabled = await caller.setBuiltinEnabled({
+      id: "kie",
+      enabled: true
+    });
+    expect(enabled.packs.find((p) => p.id === "kie")?.enabled).toBe(true);
+
     const disabled = await caller.setBuiltinEnabled({
       id: "fal",
       enabled: false
     });
     expect(disabled.packs.find((p) => p.id === "fal")?.enabled).toBe(false);
-    expect(
-      JSON.parse(readFileSync(configPath, "utf8")).disabledBuiltins
-    ).toEqual(["fal"]);
 
-    const reEnabled = await caller.setBuiltinEnabled({
-      id: "fal",
-      enabled: true
-    });
-    expect(reEnabled.packs.every((p) => p.enabled)).toBe(true);
+    const config = JSON.parse(readFileSync(configPath, "utf8"));
+    expect(config.enabledBuiltins).toEqual(["kie"]);
+    expect(config.disabledBuiltins).toEqual(["fal"]);
   });
 
   it("setBuiltinEnabled rejects unknown ids and required packs", async () => {

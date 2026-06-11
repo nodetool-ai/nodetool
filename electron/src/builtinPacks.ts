@@ -1,17 +1,21 @@
 /**
  * Enable/disable the built-in node packs that ship with NodeTool.
  *
- * The user's choices are persisted as `disabledBuiltins` in the packs config
- * file the backend already reads at bootstrap
- * (`~/.config/nodetool/packs.json`, override via `NODETOOL_PACKS_CONFIG`).
- * The server skips disabled packs on its next start, so callers should
- * prompt for a server restart after toggling.
+ * Packs are opt-in: only those marked `defaultEnabled` (or `required`) in the
+ * catalog load on a fresh install. The user's explicit choices are persisted
+ * as `enabledBuiltins` / `disabledBuiltins` in the packs config file the
+ * backend already reads at bootstrap (`~/.config/nodetool/packs.json`,
+ * override via `NODETOOL_PACKS_CONFIG`). Changes apply on the next server
+ * start, so callers should prompt for a restart after toggling.
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { BUILTIN_NODE_PACKS } from "@nodetool-ai/protocol/builtin-packs";
+import {
+  BUILTIN_NODE_PACKS,
+  resolveBuiltinPackEnabled,
+} from "@nodetool-ai/protocol/builtin-packs";
 import type { BuiltinPackStatus } from "./types.d";
 
 /** Must match the path used by `@nodetool-ai/node-sdk`'s pack loader. */
@@ -35,33 +39,46 @@ function readPacksConfig(): Record<string, unknown> {
   }
 }
 
-function readDisabledBuiltins(): Set<string> {
-  const raw = readPacksConfig().disabledBuiltins;
-  return new Set(
-    Array.isArray(raw) ? raw.filter((v): v is string => typeof v === "string") : [],
-  );
+function idList(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((v): v is string => typeof v === "string")
+    : [];
 }
 
-function writeDisabledBuiltins(ids: Set<string>): void {
+/** Explicit user overrides keyed by pack id; absent packs keep their default. */
+function readOverrides(): Record<string, boolean> {
+  const config = readPacksConfig();
+  const overrides: Record<string, boolean> = {};
+  for (const id of idList(config.disabledBuiltins)) overrides[id] = false;
+  for (const id of idList(config.enabledBuiltins)) overrides[id] = true;
+  return overrides;
+}
+
+function writeOverrides(overrides: Record<string, boolean>): void {
   const path = packsConfigPath();
-  const config = { ...readPacksConfig(), disabledBuiltins: [...ids].sort() };
+  const config = {
+    ...readPacksConfig(),
+    enabledBuiltins: Object.keys(overrides)
+      .filter((id) => overrides[id])
+      .sort(),
+    disabledBuiltins: Object.keys(overrides)
+      .filter((id) => !overrides[id])
+      .sort(),
+  };
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, JSON.stringify(config, null, 2) + "\n", "utf8");
 }
 
 /** All built-in packs with their current enabled state. */
 export function listBuiltinPacks(): BuiltinPackStatus[] {
-  const disabled = readDisabledBuiltins();
-  return BUILTIN_NODE_PACKS.map((pack) => {
-    const required = pack.required ?? false;
-    return {
-      id: pack.id,
-      name: pack.name,
-      description: pack.description,
-      required,
-      enabled: required || !disabled.has(pack.id),
-    };
-  });
+  const overrides = readOverrides();
+  return BUILTIN_NODE_PACKS.map((pack) => ({
+    id: pack.id,
+    name: pack.name,
+    description: pack.description,
+    required: pack.required ?? false,
+    enabled: resolveBuiltinPackEnabled(pack, overrides[pack.id]),
+  }));
 }
 
 /**
@@ -79,12 +96,6 @@ export function setBuiltinPackEnabled(
   if (pack.required && !enabled) {
     throw new Error(`Built-in pack "${id}" cannot be disabled`);
   }
-  const disabled = readDisabledBuiltins();
-  if (enabled) {
-    disabled.delete(id);
-  } else {
-    disabled.add(id);
-  }
-  writeDisabledBuiltins(disabled);
+  writeOverrides({ ...readOverrides(), [id]: enabled });
   return listBuiltinPacks();
 }

@@ -420,8 +420,9 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
               className="section-description"
               style={{ color: "#999", margin: "4px 0 12px", fontSize: "13px" }}
             >
-              These node packs ship with NodeTool. Disable the ones you don't
-              use to keep the node menu focused.
+              These node packs ship with NodeTool, but only the essentials are
+              enabled out of the box. Enable the providers you use to add
+              their nodes to the editor.
             </p>
 
             {builtinRestartNeeded && (

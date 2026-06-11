@@ -12,13 +12,16 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { getPackSnapshot, reloadPacks } from "../../pack-snapshot.js";
 import {
-  readDisabledBuiltinPacks,
+  readBuiltinPackOverrides,
   resolvePackTrust,
-  writeDisabledBuiltinPacks,
+  writeBuiltinPackOverrides,
   writePackTrustConfig,
   type LoadedPackResult
 } from "@nodetool-ai/node-sdk";
-import { BUILTIN_NODE_PACKS } from "@nodetool-ai/protocol";
+import {
+  BUILTIN_NODE_PACKS,
+  resolveBuiltinPackEnabled
+} from "@nodetool-ai/protocol";
 
 // ── Schemas ──────────────────────────────────────────────────────────────
 
@@ -83,17 +86,14 @@ function toDto(r: LoadedPackResult): z.infer<typeof packResultSchema> {
 }
 
 function builtinPackDtos(): z.infer<typeof builtinPackSchema>[] {
-  const disabled = new Set(readDisabledBuiltinPacks());
-  return BUILTIN_NODE_PACKS.map((pack) => {
-    const required = pack.required ?? false;
-    return {
-      id: pack.id,
-      name: pack.name,
-      description: pack.description,
-      required,
-      enabled: required || !disabled.has(pack.id)
-    };
-  });
+  const overrides = readBuiltinPackOverrides();
+  return BUILTIN_NODE_PACKS.map((pack) => ({
+    id: pack.id,
+    name: pack.name,
+    description: pack.description,
+    required: pack.required ?? false,
+    enabled: resolveBuiltinPackEnabled(pack, overrides[pack.id])
+  }));
 }
 
 // ── Router ───────────────────────────────────────────────────────────────
@@ -147,13 +147,10 @@ export const packsRouter = router({
       if (pack.required && !input.enabled) {
         throw new Error(`Built-in pack "${input.id}" cannot be disabled`);
       }
-      const disabled = new Set(readDisabledBuiltinPacks());
-      if (input.enabled) {
-        disabled.delete(input.id);
-      } else {
-        disabled.add(input.id);
-      }
-      writeDisabledBuiltinPacks([...disabled]);
+      writeBuiltinPackOverrides({
+        ...readBuiltinPackOverrides(),
+        [input.id]: input.enabled
+      });
       return { packs: builtinPackDtos() };
     }),
 

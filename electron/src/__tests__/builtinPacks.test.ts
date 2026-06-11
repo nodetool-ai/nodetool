@@ -1,10 +1,12 @@
 /**
  * Built-in pack enable/disable persistence.
  *
- * The module reads/writes `disabledBuiltins` in the packs config file shared
- * with the backend pack loader, so these tests pin: defaults (everything
- * enabled), round-tripping a toggle, preservation of unrelated config keys,
- * and the guards (unknown id, required pack).
+ * Built-in packs are opt-in: only `required` / `defaultEnabled` packs are on
+ * after a fresh install. The module reads/writes `enabledBuiltins` /
+ * `disabledBuiltins` in the packs config file shared with the backend pack
+ * loader, so these tests pin: install defaults, round-tripping overrides in
+ * both directions, preservation of unrelated config keys, and the guards
+ * (unknown id, required pack).
  */
 
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -28,24 +30,36 @@ describe("builtinPacks", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  test("all packs enabled by default when no config file exists", () => {
+  test("only required and default-enabled packs are on after a fresh install", () => {
     const packs = listBuiltinPacks();
-    expect(packs.length).toBeGreaterThan(0);
-    expect(packs.every((p) => p.enabled)).toBe(true);
-    const base = packs.find((p) => p.id === "base");
-    expect(base?.required).toBe(true);
+    const byId = new Map(packs.map((p) => [p.id, p]));
+
+    expect(byId.get("base")).toMatchObject({ enabled: true, required: true });
+    // The essentials ship enabled…
+    for (const id of ["fal", "replicate", "huggingface"]) {
+      expect(byId.get(id)?.enabled).toBe(true);
+    }
+    // …everything else is opt-in.
+    for (const id of ["elevenlabs", "minimax", "kie", "topaz", "reve"]) {
+      expect(byId.get(id)?.enabled).toBe(false);
+    }
   });
 
-  test("disabling a pack persists and round-trips", () => {
-    const updated = setBuiltinPackEnabled("fal", false);
-    expect(updated.find((p) => p.id === "fal")?.enabled).toBe(false);
+  test("enabling an opt-in pack persists and round-trips", () => {
+    const updated = setBuiltinPackEnabled("kie", true);
+    expect(updated.find((p) => p.id === "kie")?.enabled).toBe(true);
 
     // Fresh read sees the same state.
-    expect(listBuiltinPacks().find((p) => p.id === "fal")?.enabled).toBe(false);
+    expect(listBuiltinPacks().find((p) => p.id === "kie")?.enabled).toBe(true);
 
-    const reEnabled = setBuiltinPackEnabled("fal", true);
-    expect(reEnabled.find((p) => p.id === "fal")?.enabled).toBe(true);
-    expect(listBuiltinPacks().every((p) => p.enabled)).toBe(true);
+    const reverted = setBuiltinPackEnabled("kie", false);
+    expect(reverted.find((p) => p.id === "kie")?.enabled).toBe(false);
+  });
+
+  test("disabling a default-enabled pack persists", () => {
+    const updated = setBuiltinPackEnabled("fal", false);
+    expect(updated.find((p) => p.id === "fal")?.enabled).toBe(false);
+    expect(listBuiltinPacks().find((p) => p.id === "fal")?.enabled).toBe(false);
   });
 
   test("preserves unrelated keys in the shared packs config file", () => {
@@ -56,11 +70,13 @@ describe("builtinPacks", () => {
     );
 
     setBuiltinPackEnabled("replicate", false);
+    setBuiltinPackEnabled("kie", true);
 
     const config = JSON.parse(readFileSync(configPath, "utf8"));
     expect(config.allow).toEqual(["@acme/cool-nodes"]);
     expect(config.allowUnlisted).toBe(false);
     expect(config.disabledBuiltins).toEqual(["replicate"]);
+    expect(config.enabledBuiltins).toEqual(["kie"]);
   });
 
   test("rejects unknown pack ids", () => {
@@ -77,8 +93,8 @@ describe("builtinPacks", () => {
 
   test("tolerates a corrupt config file", () => {
     writeFileSync(configPath, "not json", "utf8");
-    expect(listBuiltinPacks().every((p) => p.enabled)).toBe(true);
-    const updated = setBuiltinPackEnabled("kie", false);
-    expect(updated.find((p) => p.id === "kie")?.enabled).toBe(false);
+    expect(listBuiltinPacks().find((p) => p.id === "base")?.enabled).toBe(true);
+    const updated = setBuiltinPackEnabled("kie", true);
+    expect(updated.find((p) => p.id === "kie")?.enabled).toBe(true);
   });
 });

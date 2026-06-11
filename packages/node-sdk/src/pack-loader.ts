@@ -239,7 +239,14 @@ function trustConfigPath(): string {
 interface PacksConfigFile {
   allow?: string[];
   allowUnlisted?: boolean;
+  enabledBuiltins?: string[];
   disabledBuiltins?: string[];
+}
+
+function stringArray(value: unknown): string[] | undefined {
+  return Array.isArray(value)
+    ? value.filter((v): v is string => typeof v === "string")
+    : undefined;
 }
 
 function readPacksConfigFile(path: string = trustConfigPath()): PacksConfigFile {
@@ -247,21 +254,17 @@ function readPacksConfigFile(path: string = trustConfigPath()): PacksConfigFile 
     const parsed = JSON.parse(readFileSync(path, "utf8")) as {
       allow?: unknown;
       allowUnlisted?: unknown;
+      enabledBuiltins?: unknown;
       disabledBuiltins?: unknown;
     };
     return {
-      allow: Array.isArray(parsed.allow)
-        ? parsed.allow.filter((v): v is string => typeof v === "string")
-        : undefined,
+      allow: stringArray(parsed.allow),
       allowUnlisted:
         typeof parsed.allowUnlisted === "boolean"
           ? parsed.allowUnlisted
           : undefined,
-      disabledBuiltins: Array.isArray(parsed.disabledBuiltins)
-        ? parsed.disabledBuiltins.filter(
-            (v): v is string => typeof v === "string"
-          )
-        : undefined
+      enabledBuiltins: stringArray(parsed.enabledBuiltins),
+      disabledBuiltins: stringArray(parsed.disabledBuiltins)
     };
   } catch {
     return {};
@@ -269,27 +272,37 @@ function readPacksConfigFile(path: string = trustConfigPath()): PacksConfigFile 
 }
 
 /**
- * Built-in pack ids the user disabled in the package manager. The server
- * skips registering these packs at bootstrap; changes take effect on restart.
+ * Explicit user overrides for built-in packs, keyed by pack id. Packs absent
+ * from the map keep their install default (`defaultEnabled` in the catalog).
+ * The server applies this at bootstrap; changes take effect on restart.
  */
-export function readDisabledBuiltinPacks(): string[] {
-  return readPacksConfigFile().disabledBuiltins ?? [];
+export function readBuiltinPackOverrides(): Record<string, boolean> {
+  const config = readPacksConfigFile();
+  const overrides: Record<string, boolean> = {};
+  for (const id of config.disabledBuiltins ?? []) overrides[id] = false;
+  for (const id of config.enabledBuiltins ?? []) overrides[id] = true;
+  return overrides;
 }
 
 /**
- * Persist the disabled built-in pack ids, preserving the trust fields already
- * in the config file. Creates parent directories as needed.
+ * Persist built-in pack overrides as `enabledBuiltins` / `disabledBuiltins`
+ * lists, preserving the trust fields already in the config file. Creates
+ * parent directories as needed.
  */
-export function writeDisabledBuiltinPacks(
-  ids: string[],
+export function writeBuiltinPackOverrides(
+  overrides: Record<string, boolean>,
   path: string = trustConfigPath()
 ): void {
   const current = readPacksConfigFile(path);
+  const enabled = Object.keys(overrides).filter((id) => overrides[id]).sort();
+  const disabled = Object.keys(overrides)
+    .filter((id) => !overrides[id])
+    .sort();
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(
     path,
     JSON.stringify(
-      { ...current, disabledBuiltins: [...new Set(ids)].sort() },
+      { ...current, enabledBuiltins: enabled, disabledBuiltins: disabled },
       null,
       2
     ) + "\n",
