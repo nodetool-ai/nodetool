@@ -25,6 +25,7 @@ import { WorkerManager } from "@nodetool-ai/compute";
 import { initDb } from "@nodetool-ai/models";
 import { initMasterKey } from "@nodetool-ai/security";
 import { getDefaultDbPath } from "@nodetool-ai/config";
+import { registerWorkerModelsCommands } from "./worker-models.js";
 
 const SUPPORTED_TARGETS = ["runpod", "vast"] as const;
 type SupportedTarget = (typeof SUPPORTED_TARGETS)[number];
@@ -153,6 +154,7 @@ export function registerWorkerCommands(program: Command): void {
   registerStatus(worker);
   registerToken(worker);
   registerStop(worker);
+  registerWorkerModelsCommands(worker, getWorkerManager);
 }
 
 // ---------------------------------------------------------------------------
