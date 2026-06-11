@@ -21,22 +21,22 @@ import type {
 } from "@nodetool-ai/node-sdk";
 import type { OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import {
-  base64ToBytes,
-  bytesToBase64,
-  tagAsHybrid
-} from "@nodetool-ai/nodes-utils";
+import { tagAsHybrid } from "@nodetool-ai/nodes-utils";
 import {
   audioBytesAsync,
   audioRefFromWav,
-  concatBytes,
   deinterleave,
-  encodePcm16Wav,
-  float32ToPcm16,
+  encodeWav,
   interleave,
-  parseWavBytes,
-  pcm16ToFloat32
+  parseWavBytes
 } from "../lib/audio-wav.js";
+import {
+  CHUNK_PROP_DEFAULT,
+  makeDoneSignalChunk,
+  makeSignalChunk,
+  readSignalChunk,
+  SYNTH_SAMPLE_RATE
+} from "../lib/cv.js";
 import {
   biquadCoeffs,
   createBiquadState,
@@ -47,81 +47,11 @@ import {
 } from "../lib/biquad.js";
 
 // ── Chunk helpers ──────────────────────────────────────────────────
+// Signal chunks (parse + build, both pcm16le and f32le CV encodings) live in
+// ../lib/cv.ts — shared with the synthesis nodes so CV streams can be patched
+// into any of these audio inputs.
 
-const DEFAULT_SAMPLE_RATE = 24000;
-
-interface AudioChunkMetadata {
-  encoding: "pcm16le";
-  sample_rate: number;
-  channels: number;
-  format: string;
-  duration_seconds: number;
-}
-
-function makeAudioChunk(
-  content: string,
-  meta: AudioChunkMetadata,
-  done: boolean
-): Record<string, unknown> {
-  return {
-    type: "chunk",
-    content,
-    done,
-    content_type: "audio",
-    content_metadata: meta
-  };
-}
-
-interface ParsedAudioChunk {
-  bytes: Uint8Array;
-  sampleRate: number;
-  channels: number;
-  done: boolean;
-}
-
-/**
- * Parse a streamed item as an audio chunk. Returns null for non-audio chunks
- * (e.g. text) and non-chunk values, which callers skip.
- */
-function readChunk(item: unknown): ParsedAudioChunk | null {
-  if (!item || typeof item !== "object") return null;
-  const c = item as {
-    content?: unknown;
-    content_type?: unknown;
-    content_metadata?: unknown;
-    done?: unknown;
-  };
-  if (c.content_type !== undefined && c.content_type !== "audio") return null;
-  const meta = (c.content_metadata ?? {}) as {
-    sample_rate?: unknown;
-    channels?: unknown;
-  };
-  const sampleRate =
-    typeof meta.sample_rate === "number" && meta.sample_rate > 0
-      ? meta.sample_rate
-      : DEFAULT_SAMPLE_RATE;
-  const channels =
-    typeof meta.channels === "number" && meta.channels > 0 ? meta.channels : 1;
-  const content = typeof c.content === "string" ? c.content : "";
-  return {
-    bytes: content ? base64ToBytes(content) : new Uint8Array(),
-    sampleRate,
-    channels,
-    done: Boolean(c.done ?? false)
-  };
-}
-
-const CHUNK_PROP_DEFAULT = {
-  type: "chunk",
-  node_id: null,
-  thread_id: null,
-  workflow_id: null,
-  content_type: "audio",
-  content: "",
-  content_metadata: {},
-  done: false,
-  thinking: false
-};
+const DEFAULT_SAMPLE_RATE = SYNTH_SAMPLE_RATE;
 
 // ── AudioToChunks ──────────────────────────────────────────────────
 
@@ -186,35 +116,12 @@ export class AudioToChunksNode extends BaseNode {
     for (let start = 0; start < totalFrames; start += framesPerChunk) {
       const end = Math.min(start + framesPerChunk, totalFrames);
       const slice = samples.subarray(start * channels, end * channels);
-      const meta: AudioChunkMetadata = {
-        encoding: "pcm16le",
-        sample_rate: sampleRate,
-        channels,
-        format: "pcm",
-        duration_seconds: (end - start) / sampleRate
-      };
       yield {
-        chunk: makeAudioChunk(
-          bytesToBase64(float32ToPcm16(slice)),
-          meta,
-          false
-        )
+        chunk: makeSignalChunk(slice, sampleRate, channels, false, "pcm16le")
       };
     }
 
-    yield {
-      chunk: makeAudioChunk(
-        "",
-        {
-          encoding: "pcm16le",
-          sample_rate: sampleRate,
-          channels,
-          format: "pcm",
-          duration_seconds: 0
-        },
-        true
-      )
-    };
+    yield { chunk: makeDoneSignalChunk(sampleRate, channels, "pcm16le") };
   }
 }
 
@@ -246,26 +153,36 @@ export class ChunksToAudioNode extends BaseNode {
   }
 
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
-    const parts: Uint8Array[] = [];
+    const parts: Float32Array[] = [];
+    let total = 0;
     let sampleRate = DEFAULT_SAMPLE_RATE;
     let channels = 1;
     let formatSeen = false;
 
     for await (const item of inputs.stream("chunk")) {
-      const chunk = readChunk(item);
+      const chunk = readSignalChunk(item);
       if (!chunk) continue;
-      if (!formatSeen && chunk.bytes.length > 0) {
+      if (!formatSeen && chunk.samples.length > 0) {
         sampleRate = chunk.sampleRate;
         channels = chunk.channels;
         formatSeen = true;
       }
-      if (chunk.bytes.length > 0) parts.push(chunk.bytes);
+      if (chunk.samples.length > 0) {
+        parts.push(chunk.samples);
+        total += chunk.samples.length;
+      }
       if (chunk.done) break;
     }
 
+    const samples = new Float32Array(total);
+    let offset = 0;
+    for (const part of parts) {
+      samples.set(part, offset);
+      offset += part.length;
+    }
     await outputs.emit(
       "audio",
-      audioRefFromWav(encodePcm16Wav(concatBytes(parts), sampleRate, channels))
+      audioRefFromWav(encodeWav(samples, sampleRate, channels))
     );
   }
 }
@@ -313,32 +230,29 @@ export class StreamingGainNode extends BaseNode {
     const factor = Math.pow(10, gainDb / 20);
 
     for await (const item of inputs.stream("chunk")) {
-      const chunk = readChunk(item);
+      const chunk = readSignalChunk(item);
       if (!chunk) continue;
-
-      const meta: AudioChunkMetadata = {
-        encoding: "pcm16le",
-        sample_rate: chunk.sampleRate,
-        channels: chunk.channels,
-        format: "pcm",
-        duration_seconds:
-          chunk.bytes.length / 2 / chunk.channels / chunk.sampleRate
-      };
 
       if (chunk.done) {
         await outputs.emit(
           "chunk",
-          makeAudioChunk("", { ...meta, duration_seconds: 0 }, true)
+          makeDoneSignalChunk(chunk.sampleRate, chunk.channels, "pcm16le")
         );
         break;
       }
-      if (chunk.bytes.length === 0) continue;
+      if (chunk.samples.length === 0) continue;
 
-      const samples = pcm16ToFloat32(chunk.bytes);
+      const samples = chunk.samples;
       for (let i = 0; i < samples.length; i++) samples[i] *= factor;
       await outputs.emit(
         "chunk",
-        makeAudioChunk(bytesToBase64(float32ToPcm16(samples)), meta, false)
+        makeSignalChunk(
+          samples,
+          chunk.sampleRate,
+          chunk.channels,
+          false,
+          "pcm16le"
+        )
       );
     }
   }
@@ -362,42 +276,35 @@ async function runStreamingFilter(
   let states: BiquadState[] = [];
 
   for await (const item of inputs.stream("chunk")) {
-    const chunk = readChunk(item);
+    const chunk = readSignalChunk(item);
     if (!chunk) continue;
-
-    const meta: AudioChunkMetadata = {
-      encoding: "pcm16le",
-      sample_rate: chunk.sampleRate,
-      channels: chunk.channels,
-      format: "pcm",
-      duration_seconds:
-        chunk.bytes.length / 2 / chunk.channels / chunk.sampleRate
-    };
 
     if (chunk.done) {
       await outputs.emit(
         "chunk",
-        makeAudioChunk("", { ...meta, duration_seconds: 0 }, true)
+        makeDoneSignalChunk(chunk.sampleRate, chunk.channels, "pcm16le")
       );
       break;
     }
-    if (chunk.bytes.length === 0) continue;
+    if (chunk.samples.length === 0) continue;
 
     if (!coeffs) {
       coeffs = biquadCoeffs(type, chunk.sampleRate, frequency, q, 0);
       states = Array.from({ length: chunk.channels }, createBiquadState);
     }
 
-    const planes = deinterleave(pcm16ToFloat32(chunk.bytes), chunk.channels);
+    const planes = deinterleave(chunk.samples, chunk.channels);
     const filtered = planes.map((plane, ch) =>
       processBiquad(coeffs!, states[ch] ?? createBiquadState(), plane)
     );
     await outputs.emit(
       "chunk",
-      makeAudioChunk(
-        bytesToBase64(float32ToPcm16(interleave(filtered))),
-        meta,
-        false
+      makeSignalChunk(
+        interleave(filtered),
+        chunk.sampleRate,
+        chunk.channels,
+        false,
+        "pcm16le"
       )
     );
   }

@@ -49,6 +49,21 @@ export interface StreamingInputs {
    * join nodes (§7). `[]` when analysis is off or the node has no inputs.
    */
   invocationScope(): ReadonlyArray<string>;
+
+  /**
+   * True if the handle has at least one open upstream source. Distinguishes
+   * patched from unpatched optional streaming inputs (upstream counts are
+   * registered before actors start, so this is race-free at the top of
+   * `run()`).
+   */
+  hasStream(name: string): boolean;
+
+  /**
+   * Aborted when the run is cancelled. Producers that emit without waiting
+   * on inputs (generators, wall-clock pacers) must observe it — inbox
+   * closure only unblocks consumers, it does not stop a producing loop.
+   */
+  readonly signal: AbortSignal;
 }
 
 /**

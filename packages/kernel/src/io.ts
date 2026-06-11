@@ -17,6 +17,7 @@ export class NodeInputs {
   private _inbox: NodeInbox;
   private _envelopeTracker: Map<string, MessageEnvelope> | null;
   private _analysis: NodeAnalysis | undefined;
+  private _signal: AbortSignal;
 
   /**
    * `envelopeTracker`, when provided, records the most recently consumed
@@ -28,15 +29,29 @@ export class NodeInputs {
    * `analysis` is the per-node static correlation analysis; nodes that need
    * scope information at runtime (Zip/Cross) read it via `scopeFor()` and
    * `invocationScope()`.
+   *
+   * `signal` is the run's cancellation signal (aborted by
+   * `WorkflowRunner.cancel()`). Defaults to a never-aborted signal so test
+   * fixtures that construct NodeInputs directly stay terse.
    */
   constructor(
     inbox: NodeInbox,
     envelopeTracker?: Map<string, MessageEnvelope> | null,
-    analysis?: NodeAnalysis
+    analysis?: NodeAnalysis,
+    signal?: AbortSignal
   ) {
     this._inbox = inbox;
     this._envelopeTracker = envelopeTracker ?? null;
     this._analysis = analysis;
+    this._signal = signal ?? new AbortController().signal;
+  }
+
+  /**
+   * Aborted when the run is cancelled. Inbox closure only unblocks
+   * consumers; producing loops (generators, pacers) must observe this.
+   */
+  get signal(): AbortSignal {
+    return this._signal;
   }
 
   /**

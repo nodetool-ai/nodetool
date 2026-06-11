@@ -217,6 +217,9 @@ export class WorkflowRunner {
   /** Cancellation flag. */
   private _cancelled = false;
 
+  /** Run-level cancellation signal source; aborted by `cancel()`. */
+  private _abortController = new AbortController();
+
   /**
    * Pending response resolvers for sendControlEvent, FIFO per node. The
    * controlled actor processes control events in order and emits outputs in
@@ -515,6 +518,7 @@ export class WorkflowRunner {
     this._outputs = new Map();
     this._messages = [];
     this._cancelled = false;
+    this._abortController = new AbortController();
     this._pendingControlResponses = new Map();
     this._completedNodes = new Set();
     this._executors = new Map();
@@ -528,6 +532,10 @@ export class WorkflowRunner {
   cancel(): void {
     log.info("Job cancelled", { jobId: this.jobId });
     this._cancelled = true;
+    // Stop producing loops (generators, pacers) that never wait on inputs —
+    // closing inboxes only unblocks consumers. Nodes observe this via
+    // `inputs.signal`.
+    this._abortController.abort();
     // Close all inboxes to unblock waiting actors
     for (const inbox of this._inboxes.values()) {
       void inbox.closeAll();
@@ -876,7 +884,8 @@ export class WorkflowRunner {
         executionContext: this._options.executionContext,
         listInputHandles: this._multiEdgeListInputs.get(node.id),
         controlContext,
-        correlation: this._correlation?.nodes.get(node.id)
+        correlation: this._correlation?.nodes.get(node.id),
+        cancelSignal: this._abortController.signal
       });
 
       actorPromises.push(

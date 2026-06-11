@@ -291,6 +291,18 @@ export {
   REALTIME_AUDIO_NODES
 } from "@nodetool-ai/audio-nodes/nodes/realtime-audio";
 export {
+  OscillatorNode,
+  LfoNode,
+  AdsrNode,
+  GateNode,
+  VcaNode,
+  VcfNode,
+  AttenuverterNode,
+  SampleHoldNode,
+  MixerNode,
+  SYNTHESIS_NODES
+} from "@nodetool-ai/audio-nodes/nodes/synthesis";
+export {
   WaitNode,
   ManualTriggerNode,
   IntervalTriggerNode,
@@ -724,6 +736,7 @@ import { CODE_NODES } from "@nodetool-ai/code-nodes/nodes/code";
 import { CodeNode } from "@nodetool-ai/code-nodes/nodes/code-node";
 import { AUDIO_NODES } from "@nodetool-ai/audio-nodes/nodes/audio";
 import { REALTIME_AUDIO_NODES } from "@nodetool-ai/audio-nodes/nodes/realtime-audio";
+import { SYNTHESIS_NODES } from "@nodetool-ai/audio-nodes/nodes/synthesis";
 import { TRIGGER_NODES } from "@nodetool-ai/automation-nodes/nodes/triggers";
 import { IMAGE_NODES } from "@nodetool-ai/image-nodes/nodes/image";
 import { VIDEO_NODES } from "@nodetool-ai/video-nodes/nodes/video";
@@ -807,6 +820,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_VALIDATE_NODES,
   ...AUDIO_NODES,
   ...REALTIME_AUDIO_NODES,
+  ...SYNTHESIS_NODES,
   ...TRIGGER_NODES,
   ...IMAGE_NODES,
   ...VIDEO_NODES,

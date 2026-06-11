@@ -43,6 +43,7 @@ export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
           base64={chunk.content as string}
           sampleRate={(meta?.sample_rate as number | undefined) ?? 22000}
           channels={(meta?.channels as number | undefined) ?? 1}
+          encoding={meta?.encoding === "f32le" ? "f32le" : "pcm16le"}
         />
       );
     }

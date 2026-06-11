@@ -18,6 +18,7 @@ import {
   LIB_AUDIO_EFFECTS_HYBRID_NODES,
   LIB_AUDIO_EFFECTS_SERVER_NODES,
   REALTIME_AUDIO_NODES,
+  SYNTHESIS_NODES,
   AudioToChunksNode,
   ChunksToAudioNode,
   StreamingGainNode,
@@ -34,7 +35,8 @@ type NodeClassLike = {
 const HYBRID_GROUPS: Record<string, readonly unknown[]> = {
   "lib.audio (dsp)": LIB_AUDIO_DSP_NODES,
   "lib.audio (effects)": LIB_AUDIO_EFFECTS_HYBRID_NODES,
-  "nodetool.audio.realtime": REALTIME_AUDIO_NODES
+  "nodetool.audio.realtime": REALTIME_AUDIO_NODES,
+  "nodetool.audio.synth": SYNTHESIS_NODES
 };
 
 const HYBRID_AUDIO_TYPES = [
@@ -130,5 +132,17 @@ describe("realtime audio node streaming flags", () => {
   it("AudioToChunks streams output via a genProcess override", () => {
     expect(typeof AudioToChunksNode.prototype.genProcess).toBe("function");
     expect(AudioToChunksNode.isStreamingInput).not.toBe(true);
+  });
+
+  it("every synthesis node is streaming-input (generators included)", () => {
+    expect(SYNTHESIS_NODES.length).toBe(9);
+    for (const cls of SYNTHESIS_NODES as Array<
+      NodeClassLike & { isStreamingInput?: boolean }
+    >) {
+      expect(
+        cls.isStreamingInput,
+        `${cls.nodeType} must declare isStreamingInput`
+      ).toBe(true);
+    }
   });
 });

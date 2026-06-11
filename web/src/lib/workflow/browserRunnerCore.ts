@@ -135,7 +135,8 @@ export async function loadBrowserModules(): Promise<LoadedModules> {
     audioCore,
     audioDsp,
     audioEffects,
-    audioRealtime
+    audioRealtime,
+    audioSynthesis
   ] = await Promise.all([
     import("@nodetool-ai/workflow-runner/browser"),
     import("@nodetool-ai/core-nodes/nodes/constant"),
@@ -178,7 +179,8 @@ export async function loadBrowserModules(): Promise<LoadedModules> {
     import("@nodetool-ai/audio-nodes/nodes/audio"),
     import("@nodetool-ai/audio-nodes/nodes/lib-audio-dsp"),
     import("@nodetool-ai/audio-nodes/nodes/lib-audio-effects"),
-    import("@nodetool-ai/audio-nodes/nodes/realtime-audio")
+    import("@nodetool-ai/audio-nodes/nodes/realtime-audio"),
+    import("@nodetool-ai/audio-nodes/nodes/synthesis")
   ]);
 
   const groups: Array<[string, unknown]> = [
@@ -209,7 +211,8 @@ export async function loadBrowserModules(): Promise<LoadedModules> {
     ["audio", audioCore],
     ["lib-audio-dsp", audioDsp],
     ["lib-audio-effects", audioEffects],
-    ["realtime-audio", audioRealtime]
+    ["realtime-audio", audioRealtime],
+    ["synthesis", audioSynthesis]
   ];
   const nodeClasses: unknown[] = [];
   const perGroup: Record<string, number> = {};

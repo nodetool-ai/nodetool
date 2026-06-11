@@ -210,6 +210,17 @@ export const isConnectable = (
     return true;
   }
 
+  // CV ↔ chunk interop (Eurorack semantics): control-voltage streams ride
+  // the same chunk wire shape, so cv patches into chunk sockets and vice
+  // versa — an LFO can drive any streaming audio input, and audio can be
+  // used as a modulation source.
+  if (
+    (source.type === "cv" && target.type === "chunk") ||
+    (source.type === "chunk" && target.type === "cv")
+  ) {
+    return true;
+  }
+
   // COLLECT HANDLE LOGIC: Allow connecting T -> list[T]
   // This enables "collect" handles where multiple outputs of type T can connect
   // to a single input of type list[T].
