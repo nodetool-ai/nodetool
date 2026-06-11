@@ -731,10 +731,18 @@ export const PreviewCompositor: React.FC = memo(() => {
     compositor.render();
   }, [gpuReady, buildLayers]);
 
+  // Latest-frame builder for the rAF loop below, so the loop effect doesn't
+  // depend on buildLayers (which changes identity on every clock tick — that
+  // would tear down and restart the loop every frame).
+  const buildLayersRef = useRef(buildLayers);
+  buildLayersRef.current = buildLayers;
+
   // One-shot render whenever scene state changes (paused mode + scrubbing).
+  // While playing the rAF loop owns rendering — skip the redundant pass.
   useEffect(() => {
+    if (isPlaying) return;
     renderFrame();
-  }, [renderFrame]);
+  }, [renderFrame, isPlaying]);
 
   // A paused scrub sets el.currentTime, which decodes the target frame
   // asynchronously — so the one-shot render above runs before the frame is
@@ -759,13 +767,13 @@ export const PreviewCompositor: React.FC = memo(() => {
 
     let raf = 0;
     const tick = () => {
-      compositor.setLayers(buildLayers());
+      compositor.setLayers(buildLayersRef.current());
       compositor.render();
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [gpuReady, isPlaying, buildLayers]);
+  }, [gpuReady, isPlaying]);
 
   const hasAnything =
     activeVideoSlots.length > 0 ||

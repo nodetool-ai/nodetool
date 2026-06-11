@@ -109,8 +109,8 @@ export interface TimelineUIState {
   toggleExpandedFx: (trackId: string) => void;
 }
 
-const MIN_MS_PER_PX = 0.5;
-const MAX_MS_PER_PX = 500;
+export const MIN_MS_PER_PX = 0.5;
+export const MAX_MS_PER_PX = 500;
 
 export type TimelineUIStoreApi = UseBoundStore<StoreApi<TimelineUIState>>;
 
