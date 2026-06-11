@@ -3,9 +3,10 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
-import { memo, useState, useCallback } from "react";
+import { memo, useState, useCallback, useMemo } from "react";
 import { TextInput, EditorButton, LoadingSpinner } from "../ui_primitives";
 import useSecretsStore from "../../stores/SecretsStore";
+import type { WelcomeTrackId } from "./welcomeTracks";
 
 const styles = (theme: Theme) =>
   css({
@@ -52,6 +53,19 @@ const styles = (theme: Theme) =>
     ".portal-setup-provider-name": {
       fontSize: 13,
       color: theme.vars.palette.c_white,
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+    },
+    ".portal-setup-recommended": {
+      fontSize: 10,
+      fontWeight: 600,
+      textTransform: "uppercase" as const,
+      letterSpacing: "0.05em",
+      padding: "1px 6px",
+      borderRadius: 9999,
+      background: `color-mix(in srgb, ${theme.palette.primary.main} 18%, transparent)`,
+      color: theme.palette.primary.main,
     },
     ".portal-setup-provider-desc": {
       fontSize: 11,
@@ -119,9 +133,15 @@ type Provider = {
   description: string;
   secretKey: string;
   color: string;
-  defaultModel: string;
+  /** Chat model selected after setup; null when the provider has no
+   *  sensible chat default (e.g. Hugging Face for image generation). */
+  defaultModel: string | null;
   /** Where to create an API key for this provider. */
   keyUrl: string;
+  /** Starter tracks whose default model runs on this provider. */
+  recommendedFor?: WelcomeTrackId[];
+  /** Only shown when recommended for the pending track. */
+  trackOnly?: boolean;
 };
 
 const PROVIDERS: Provider[] = [
@@ -133,6 +153,7 @@ const PROVIDERS: Provider[] = [
     color: "#10a37f",
     defaultModel: "openai:gpt-4o",
     keyUrl: "https://platform.openai.com/api-keys",
+    recommendedFor: ["audio", "agent"],
   },
   {
     id: "anthropic",
@@ -142,21 +163,47 @@ const PROVIDERS: Provider[] = [
     color: "#d97706",
     defaultModel: "anthropic:claude-sonnet-4-20250514",
     keyUrl: "https://console.anthropic.com/settings/keys",
+    recommendedFor: ["agent"],
+  },
+  {
+    id: "gemini",
+    name: "Google Gemini",
+    description: "Gemini, Veo video",
+    secretKey: "GEMINI_API_KEY",
+    color: "#4285f4",
+    defaultModel: "gemini:gemini-2.5-flash",
+    keyUrl: "https://aistudio.google.com/apikey",
+    recommendedFor: ["video"],
+    trackOnly: true,
+  },
+  {
+    id: "huggingface",
+    name: "Hugging Face",
+    description: "FLUX, SDXL via Inference Providers",
+    secretKey: "HF_TOKEN",
+    color: "#ff9d00",
+    defaultModel: null,
+    keyUrl: "https://huggingface.co/settings/tokens",
+    recommendedFor: ["image"],
+    trackOnly: true,
   },
 ];
 
 type PortalSetupFlowProps = {
-  onComplete: (defaultModel: string) => void;
+  onComplete: (defaultModel: string | null) => void;
   /** Return to the dashboard without configuring a provider. */
   onBack?: () => void;
   /** Contextual intro line; defaults to the generic chat prompt. */
   message?: string;
+  /** Pending starter track; surfaces providers that can run its model. */
+  trackId?: WelcomeTrackId | null;
 };
 
 const PortalSetupFlow: React.FC<PortalSetupFlowProps> = ({
   onComplete,
   onBack,
   message = "I'd love to help with that! To get started, connect an AI provider:",
+  trackId = null,
 }) => {
   const theme = useTheme();
   const updateSecret = useSecretsStore((s) => s.updateSecret);
@@ -167,6 +214,19 @@ const PortalSetupFlow: React.FC<PortalSetupFlowProps> = ({
   const [ollamaStatus, setOllamaStatus] = useState<
     "unchecked" | "checking" | "running" | "not-running"
   >("unchecked");
+
+  const isRecommended = useCallback(
+    (provider: Provider) =>
+      trackId !== null && (provider.recommendedFor?.includes(trackId) ?? false),
+    [trackId]
+  );
+
+  const visibleProviders = useMemo(() => {
+    const visible = PROVIDERS.filter((p) => !p.trackOnly || isRecommended(p));
+    return [...visible].sort(
+      (a, b) => Number(isRecommended(b)) - Number(isRecommended(a))
+    );
+  }, [isRecommended]);
 
   const handleProviderClick = useCallback(
     (provider: Provider) => {
@@ -214,7 +274,7 @@ const PortalSetupFlow: React.FC<PortalSetupFlowProps> = ({
       <div className="portal-setup-text">{message}</div>
 
       <div className="portal-setup-providers">
-        {PROVIDERS.map((provider) => (
+        {visibleProviders.map((provider) => (
           <div key={provider.id}>
             <div
               className="portal-setup-provider"
@@ -232,6 +292,11 @@ const PortalSetupFlow: React.FC<PortalSetupFlowProps> = ({
               <div className="portal-setup-provider-info">
                 <div className="portal-setup-provider-name">
                   {provider.name}
+                  {isRecommended(provider) && (
+                    <span className="portal-setup-recommended">
+                      Recommended
+                    </span>
+                  )}
                 </div>
                 <div className="portal-setup-provider-desc">
                   {provider.description}

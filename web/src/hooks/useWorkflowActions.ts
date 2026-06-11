@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Workflow } from "../stores/ApiTypes";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
+import useOnboardingStore from "../stores/OnboardingStore";
 import {
   examplePackageName,
   exampleSeedRef
@@ -42,6 +43,7 @@ export const useWorkflowActions = (): WorkflowActions => {
   const [loadingExampleId, setLoadingExampleId] = useState<string | null>(null);
 
   const handleCreateNewWorkflow = useCallback(async () => {
+    useOnboardingStore.getState().markStep("create-workflow");
     const workflow = await createNewWorkflow();
     navigate(`/editor/${workflow.id}`);
   }, [createNewWorkflow, navigate]);
@@ -57,6 +59,7 @@ export const useWorkflowActions = (): WorkflowActions => {
     async (example: Workflow) => {
       if (loadingExampleId) {return;}
 
+      useOnboardingStore.getState().markStep("open-template");
       setLoadingExampleId(example.id);
       try {
         const tags = example.tags || [];

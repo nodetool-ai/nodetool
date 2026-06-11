@@ -15,6 +15,8 @@ import { Message, MessageContent, LanguageModel } from "../../stores/ApiTypes";
 import ComposerSlot from "../chat/composer/ComposerSlot";
 import PortalSetupFlow from "./PortalSetupFlow";
 import DashboardHero from "./DashboardHero";
+import DashboardDownloads from "./DashboardDownloads";
+import GettingStartedChecklist from "./GettingStartedChecklist";
 import DashboardTemplates from "./DashboardTemplates";
 import DashboardWorkflows from "./DashboardWorkflows";
 import DashboardFooter from "./DashboardFooter";
@@ -22,12 +24,15 @@ import { useCreateStarterWorkflow } from "../../hooks/useCreateStarterWorkflow";
 import { WELCOME_TRACKS, type WelcomeTrackId } from "./welcomeTracks";
 import { Box } from "../ui_primitives";
 
+// Secret keys the runtime providers actually read (see
+// packages/runtime/src/providers — e.g. GeminiProvider requires
+// GEMINI_API_KEY, HuggingFaceProvider requires HF_TOKEN).
 const KNOWN_PROVIDER_KEYS = [
   "OPENAI_API_KEY",
   "ANTHROPIC_API_KEY",
-  "GOOGLE_API_KEY",
+  "GEMINI_API_KEY",
   "OPENROUTER_API_KEY",
-  "HUGGINGFACE_API_KEY"
+  "HF_TOKEN"
 ];
 
 type PortalState = "idle" | "setup";
@@ -162,16 +167,18 @@ const Portal: React.FC = () => {
   );
 
   const handleSetupComplete = useCallback(
-    async (defaultModel: string) => {
-      const [provider, ...idParts] = defaultModel.split(":");
-      const id = idParts.join(":");
-      const model: LanguageModel = {
-        type: "language_model",
-        provider,
-        id,
-        name: id
-      };
-      setSelectedModel(model);
+    async (defaultModel: string | null) => {
+      if (defaultModel) {
+        const [provider, ...idParts] = defaultModel.split(":");
+        const id = idParts.join(":");
+        const model: LanguageModel = {
+          type: "language_model",
+          provider,
+          id,
+          name: id
+        };
+        setSelectedModel(model);
+      }
       setPortalState("idle");
 
       if (pendingTrack) {
@@ -201,6 +208,10 @@ const Portal: React.FC = () => {
     setPortalState("idle");
   }, []);
 
+  const handleConnectProvider = useCallback(() => {
+    setPortalState("setup");
+  }, []);
+
   if (portalState === "setup") {
     const pendingTrackLabel = pendingTrack
       ? WELCOME_TRACKS.find((t) => t.id === pendingTrack)?.label
@@ -212,6 +223,7 @@ const Portal: React.FC = () => {
             <PortalSetupFlow
               onComplete={handleSetupComplete}
               onBack={handleSetupBack}
+              trackId={pendingTrack}
               message={
                 pendingTrackLabel
                   ? `Almost there — your ${pendingTrackLabel} starter needs a model to run. Connect an AI provider:`
@@ -228,6 +240,7 @@ const Portal: React.FC = () => {
     <Box css={styles(theme)}>
       <div className="dashboard-scroll">
         <main>
+          <DashboardDownloads />
           <DashboardHero
             onPickTrack={handlePickTrack}
             onOpenEmptyCanvas={handleCreateNewWorkflow}
@@ -238,6 +251,12 @@ const Portal: React.FC = () => {
                 onSend={handleSendMessage}
               />
             }
+          />
+          <GettingStartedChecklist
+            hasConfiguredProvider={hasConfiguredProvider}
+            onConnectProvider={handleConnectProvider}
+            onOpenTemplates={handleGettingStarted}
+            onCreateWorkflow={handleCreateNewWorkflow}
           />
           <DashboardTemplates />
           <DashboardWorkflows

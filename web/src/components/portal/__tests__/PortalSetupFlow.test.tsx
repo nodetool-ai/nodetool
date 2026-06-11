@@ -114,4 +114,37 @@ describe("PortalSetupFlow", () => {
       screen.queryByRole("button", { name: /back to dashboard/i })
     ).not.toBeInTheDocument();
   });
+
+  it("hides track-only providers when no track is pending", () => {
+    renderSetup();
+    expect(screen.queryByText("Google Gemini")).not.toBeInTheDocument();
+    expect(screen.queryByText("Hugging Face")).not.toBeInTheDocument();
+  });
+
+  it("recommends Gemini first for the video track", () => {
+    renderSetup({ trackId: "video" });
+    const providerRows = screen
+      .getAllByRole("button")
+      .filter((row) => row.textContent?.includes("Connect →"));
+    expect(providerRows[0]).toHaveTextContent("Google Gemini");
+    expect(providerRows[0]).toHaveTextContent("Recommended");
+  });
+
+  it("offers Hugging Face for the image track and completes without a chat model", async () => {
+    mockUpdateSecret.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    const { onComplete } = renderSetup({ trackId: "image" });
+
+    await user.click(screen.getByText("Hugging Face"));
+    await user.type(
+      screen.getByPlaceholderText("Hugging Face API Key"),
+      "hf_test"
+    );
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(mockUpdateSecret).toHaveBeenCalledWith("HF_TOKEN", "hf_test");
+      expect(onComplete).toHaveBeenCalledWith(null);
+    });
+  });
 });
