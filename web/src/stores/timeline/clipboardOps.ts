@@ -62,7 +62,7 @@ export function buildPastedClips(
     }
     pasted.push(
       makeClip({
-        ...structuredClone(c),
+        ...c,
         id: createTimeOrderedUuid(),
         trackId,
         startMs: Math.max(0, Math.round(atMs + (c.startMs - minStartMs)))
