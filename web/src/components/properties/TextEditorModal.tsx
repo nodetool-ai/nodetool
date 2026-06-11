@@ -504,7 +504,7 @@ const styles = (theme: Theme) =>
       ".editor-variable-token": {
         color: `${theme.vars.palette.primary.light} !important`,
         backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`,
-        borderRadius: "3px",
+        borderRadius: "var(--rounded-sm)",
         fontWeight: 600
       },
       ".editor-pane": {
@@ -606,7 +606,7 @@ const styles = (theme: Theme) =>
       minHeight: "32px",
       cursor: "pointer",
       color: theme.vars.palette.text.secondary,
-      borderRadius: "10px",
+      borderRadius: "var(--rounded-lg)",
       fontSize: "var(--fontSizeNormal)",
       display: "flex",
       alignItems: "center",

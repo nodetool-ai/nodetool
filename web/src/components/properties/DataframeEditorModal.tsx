@@ -136,7 +136,7 @@ const styles = (theme: Theme) =>
       gap: "0.5em",
       backgroundColor: `rgba(${theme.vars.palette.background.paperChannel} / 0.4)`,
       padding: "4px 8px",
-      borderRadius: "10px",
+      borderRadius: "var(--rounded-lg)",
       border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.04)`,
       "& + .toolbar-group": {
         marginLeft: "0.5em"

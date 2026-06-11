@@ -109,7 +109,7 @@ export const numberInputStyles = (theme: Theme) =>
       justifyContent: "center",
       backgroundColor: "transparent",
       border: `1px solid ${theme.vars.palette.grey[600]}`,
-      borderRadius: "3px",
+      borderRadius: "var(--rounded-sm)",
       color: theme.vars.palette.grey[100],
       cursor: "pointer",
       padding: 0,

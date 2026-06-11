@@ -170,7 +170,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
         height: "28px !important",
         boxShadow: "0 1px 3px rgba(0, 0, 0, 0.3)",
         "& svg": {
-          fontSize: "18px !important"
+          fontSize: "var(--fontSizeBig) !important"
         }
       }
     },

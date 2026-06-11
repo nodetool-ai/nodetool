@@ -197,7 +197,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
       },
       ".io-item": {
         padding: theme.spacing(0.5, 1),
-        borderRadius: "3px",
+        borderRadius: "var(--rounded-sm)",
         fontSize: "var(--fontSizeSmaller)",
         borderLeft: "2px solid",
         backgroundColor: theme.vars.palette.action.hover

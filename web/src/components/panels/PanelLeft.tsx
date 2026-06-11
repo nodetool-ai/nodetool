@@ -462,7 +462,7 @@ const mobileLauncherStyles = (theme: Theme, hasHeader: boolean) =>
     border: `1px solid ${theme.vars.palette.divider}`,
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
     padding: "8px",
-    borderRadius: "10px",
+    borderRadius: "var(--rounded-lg)",
     "&:hover": {
       backgroundColor: theme.vars.palette.action.hover
     },

@@ -151,7 +151,7 @@ const styles = (theme: Theme) =>
       marginRight: "0.75em",
       width: "32px",
       height: "32px",
-      borderRadius: "3px",
+      borderRadius: "var(--rounded-sm)",
       backgroundSize: "cover",
       backgroundPosition: "center",
       backgroundRepeat: "no-repeat",
@@ -171,7 +171,7 @@ const styles = (theme: Theme) =>
         right: 0,
         bottom: 0,
         border: `1px solid ${theme.vars.palette.grey[500]}22`,
-        borderRadius: "3px",
+        borderRadius: "var(--rounded-sm)",
         pointerEvents: "none"
       }
     },

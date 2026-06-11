@@ -124,7 +124,7 @@ const workspaceTreeStyles = (theme: Theme) =>
     ".breadcrumb-segment": {
       cursor: "pointer",
       padding: "1px 4px",
-      borderRadius: "3px",
+      borderRadius: "var(--rounded-sm)",
       transition: "color 0.15s, background-color 0.15s",
       overflow: "hidden",
       textOverflow: "ellipsis",

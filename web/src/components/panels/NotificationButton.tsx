@@ -120,7 +120,7 @@ const NotificationButton: React.FC = React.memo(() => {
             },
             "&::-webkit-scrollbar-thumb": {
               backgroundColor: theme.vars.palette.grey[600],
-              borderRadius: "3px"
+              borderRadius: "var(--rounded-sm)"
             }
           }}
         >

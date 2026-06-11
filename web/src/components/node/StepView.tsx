@@ -12,7 +12,7 @@ const styles = (theme: Theme) =>
   css({
     ".step-item": {
       padding: "0.85rem 1rem",
-      borderRadius: "10px",
+      borderRadius: "var(--rounded-lg)",
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.grey[800]}44`,
       transition: "all 0.2s ease",
