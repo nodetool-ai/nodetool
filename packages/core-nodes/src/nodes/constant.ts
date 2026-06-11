@@ -269,6 +269,60 @@ export class ConstantDocumentNode extends BaseNode {
   }
 }
 
+export class ConstantSketchNode extends BaseNode {
+  static readonly nodeType = "nodetool.constant.Sketch";
+  static readonly title = "Sketch";
+  static readonly description =
+    "References a sketch document in the workflow.\n    sketch, drawing, canvas, paint, image editor\n\n    Use cases:\n    - Pass a sketch between nodes for image generation or editing\n    - Open and edit the referenced sketch in the sketch editor\n    - Provide a fixed sketch input for downstream nodes";
+  static readonly metadataOutputTypes = {
+    output: "sketch"
+  };
+  static readonly inlineFields = ["value"];
+  static readonly inputFields = [];
+
+  @prop({
+    type: "sketch",
+    default: {
+      type: "sketch",
+      id: null,
+      data: null
+    },
+    title: "Value"
+  })
+  declare value: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return { output: this.value ?? {} };
+  }
+}
+
+export class ConstantTimelineNode extends BaseNode {
+  static readonly nodeType = "nodetool.constant.Timeline";
+  static readonly title = "Timeline";
+  static readonly description =
+    "References a timeline sequence in the workflow.\n    timeline, video editor, sequence, clips, tracks\n\n    Use cases:\n    - Pass a timeline between nodes for video rendering or editing\n    - Open and edit the referenced timeline in the timeline editor\n    - Provide a fixed timeline input for downstream nodes";
+  static readonly metadataOutputTypes = {
+    output: "timeline"
+  };
+  static readonly inlineFields = ["value"];
+  static readonly inputFields = [];
+
+  @prop({
+    type: "timeline",
+    default: {
+      type: "timeline",
+      id: null,
+      data: null
+    },
+    title: "Value"
+  })
+  declare value: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return { output: this.value ?? {} };
+  }
+}
+
 export class ConstantJSONNode extends BaseNode {
   static readonly nodeType = "nodetool.constant.JSON";
   static readonly title = "JSON";
@@ -809,6 +863,8 @@ export const CONSTANT_NODES = tagAsUniversal([
   ConstantImageNode,
   ConstantVideoNode,
   ConstantDocumentNode,
+  ConstantSketchNode,
+  ConstantTimelineNode,
   ConstantJSONNode,
   ConstantModel3DNode,
   ConstantDataFrameNode,
