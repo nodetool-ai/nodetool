@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import SaveIcon from "@mui/icons-material/Save";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import { AlertBanner, CloseButton, Dialog, EditorButton, Text, Tooltip, Box, Toast } from "../ui_primitives";
+import { CloseButton, Dialog, EditorButton, Text, Tooltip, Box, Toast } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useVibeCodingStore } from "../../stores/VibeCodingStore";
 import { trpcClient } from "../../trpc/client";
