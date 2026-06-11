@@ -9,7 +9,7 @@
  */
 
 import { create } from "zustand";
-import { apiService, type WorkflowGraphInput } from "../services/api";
+import { apiService, normalizeWorkflow } from "../services/api";
 import type { NodeMetadata, Workflow } from "../types/ApiTypes";
 import type {
   ChainNode,
@@ -502,20 +502,20 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
           id: workflowId,
           name: workflowName,
           description: "",
-          graph: graph as unknown as WorkflowGraphInput,
+          graph,
           access: "private",
         });
-        return result as unknown as Workflow;
+        return normalizeWorkflow(result);
       } else {
         const result = await apiService.createWorkflow({
           name: workflowName,
           description: "",
-          graph: graph as unknown as WorkflowGraphInput,
+          graph,
           access: "private",
         });
-        const newId = (result as unknown as Workflow).id;
-        set({ workflowId: newId });
-        return result as unknown as Workflow;
+        const normalized = normalizeWorkflow(result);
+        set({ workflowId: normalized.id });
+        return normalized;
       }
     } catch (err) {
       console.error("Failed to save workflow:", err);

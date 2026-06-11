@@ -178,19 +178,16 @@ export const createWorkflowRunnerStore = (
       const edges = workflow.graph?.edges || [];
       const bypassedIds = new Set<string>();
       for (const node of nodes) {
-        const nodeAny = node as unknown as Record<string, unknown>;
-        if (nodeAny.data && (nodeAny.data as Record<string, unknown>).bypassed) {
-          bypassedIds.add(nodeAny.id as string);
+        const data = node.data;
+        if (data && typeof data === 'object' && 'bypassed' in data && (data as Record<string, unknown>).bypassed) {
+          bypassedIds.add(node.id);
         }
       }
       const activeNodes = bypassedIds.size > 0
-        ? nodes.filter((n) => !bypassedIds.has((n as unknown as Record<string, unknown>).id as string))
+        ? nodes.filter((n) => !bypassedIds.has(n.id))
         : nodes;
       const activeEdges = bypassedIds.size > 0
-        ? edges.filter((e) => {
-            const ea = e as unknown as Record<string, unknown>;
-            return !bypassedIds.has(ea.source as string) && !bypassedIds.has(ea.target as string);
-          })
+        ? edges.filter((e) => !bypassedIds.has(e.source) && !bypassedIds.has(e.target))
         : edges;
 
       const req: RunJobRequest = {
@@ -274,7 +271,7 @@ function handleMessage(
   switch (type) {
     // ── Job-level updates ──────────────────────────────────────────
     case "job_update": {
-      const job = message as unknown as JobUpdate;
+      const job = message as JobUpdate;
       // Don't overwrite error state with stale "running"
       if (state.state === "error" && job.status === "running") {return;}
 
@@ -323,7 +320,7 @@ function handleMessage(
 
     // ── Node progress (progress/total) ─────────────────────────────
     case "node_progress": {
-      const progress = message as unknown as NodeProgress;
+      const progress = message as NodeProgress;
       set({
         nodeProgress: {
           ...state.nodeProgress,
@@ -338,7 +335,7 @@ function handleMessage(
 
     // ── Node status, results, errors ───────────────────────────────
     case "node_update": {
-      const update = message as unknown as NodeUpdate;
+      const update = message as NodeUpdate;
       // Don't process updates after cancellation
       if (state.state === "cancelled") {return;}
 

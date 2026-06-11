@@ -93,9 +93,7 @@ const GraphEditorScreen: React.FC<Props> = ({ route, navigation }) => {
     }
     const wf = workflowQuery.data;
     if (wf && allMetadata.length > 0) {
-      const normalized = normalizeWorkflow(
-        wf as unknown as Record<string, unknown>
-      );
+      const normalized = normalizeWorkflow(wf);
       setWorkflow(normalized);
       loadWorkflowToStore(normalized, allMetadata);
       setLoading(false);
