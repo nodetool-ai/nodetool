@@ -31,7 +31,7 @@
     "@nodetool-ai/workflow-runner": "*",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
-    "@supabase/supabase-js": "^2.107.0",
+    "@supabase/supabase-js": "^2.108.0",
     "@tanstack/react-query": "^5.101.0",
     "@tanstack/react-virtual": "^3.14.2",
     "@trpc/client": "^11.17.0",
