@@ -33,6 +33,7 @@ import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager"
 import { preloadBrowserRunner } from "../lib/workflow/browserWorkflowRunner";
 import useExecutionTimeStore from "./ExecutionTimeStore";
 import { isSilentJob } from "./previewJobs";
+import { useWorkflowAssetStore } from "./WorkflowAssetStore";
 import { NodeStore } from "./NodeStore";
 import { DYNAMIC_KIE_NODE_TYPE } from "../components/node/DynamicKieSchemaNode";
 import { normalizeOutputUpdateValue } from "./outputUpdateValue";
@@ -573,6 +574,17 @@ export const handleUpdate = (
     // waiting for staleTime to elapse. (Preview runs persist nothing.)
     if (job.status === "completed" && !silentJob) {
       queryClient.invalidateQueries({ queryKey: ["assets"] });
+      // The generation timeline (useNodeGenerations) reads persisted assets
+      // from WorkflowAssetStore, which is otherwise only loaded when the
+      // workflow is fetched. Reload it so the finished run's live generation
+      // is superseded by its persisted asset — download / open-in-viewer in
+      // NodeHistoryViewer need the full Asset to enable.
+      useWorkflowAssetStore
+        .getState()
+        .loadWorkflowAssets(workflow.id)
+        .catch(() => {
+          // already logged inside loadWorkflowAssets
+        });
     }
 
     switch (job.status) {
