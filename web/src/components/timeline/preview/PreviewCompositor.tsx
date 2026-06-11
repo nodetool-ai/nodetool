@@ -727,13 +727,13 @@ export const PreviewCompositor: React.FC = memo(() => {
     if (!gpuReady) return;
     const compositor = compositorRef.current;
     if (!compositor) return;
-    compositor.setLayers(buildLayers());
+    compositor.setLayers(buildLayersRef.current());
     compositor.render();
-  }, [gpuReady, buildLayers]);
+  }, [gpuReady]);
 
-  // Latest-frame builder for the rAF loop below, so the loop effect doesn't
-  // depend on buildLayers (which changes identity on every clock tick — that
-  // would tear down and restart the loop every frame).
+  // Latest-frame builder ref so renderFrame and the rAF loop can always call
+  // the current buildLayers without listing it as a dep (it changes identity
+  // every clock tick, which would tear down effects every frame).
   const buildLayersRef = useRef(buildLayers);
   buildLayersRef.current = buildLayers;
 
