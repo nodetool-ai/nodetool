@@ -148,28 +148,38 @@ describe("packs router", () => {
     const byId = new Map(result.packs.map((p) => [p.id, p]));
     expect(byId.get("base")).toMatchObject({ enabled: true, required: true });
     expect(byId.get("fal")?.enabled).toBe(true);
+    expect(byId.get("kie")?.enabled).toBe(true);
     // Opt-in packs start disabled.
     expect(byId.get("elevenlabs")?.enabled).toBe(false);
-    expect(byId.get("kie")?.enabled).toBe(false);
+    expect(byId.get("minimax")?.enabled).toBe(false);
   });
 
-  it("setBuiltinEnabled persists overrides in both directions", async () => {
-    const caller = createCaller(makeCtx());
+  it("setBuiltinEnabled persists overrides and applies them to the live registry", async () => {
+    const ctx = makeCtx();
+    const caller = createCaller(ctx);
+
     const enabled = await caller.setBuiltinEnabled({
-      id: "kie",
+      id: "minimax",
       enabled: true
     });
-    expect(enabled.packs.find((p) => p.id === "kie")?.enabled).toBe(true);
+    expect(enabled.packs.find((p) => p.id === "minimax")?.enabled).toBe(true);
+    // Applied live: the pack's nodes are registered without a restart.
+    expect(
+      ctx.registry.list().some((t) => t.startsWith("minimax."))
+    ).toBe(true);
 
     const disabled = await caller.setBuiltinEnabled({
-      id: "fal",
+      id: "minimax",
       enabled: false
     });
-    expect(disabled.packs.find((p) => p.id === "fal")?.enabled).toBe(false);
+    expect(disabled.packs.find((p) => p.id === "minimax")?.enabled).toBe(false);
+    expect(
+      ctx.registry.list().some((t) => t.startsWith("minimax."))
+    ).toBe(false);
 
     const config = JSON.parse(readFileSync(configPath, "utf8"));
-    expect(config.enabledBuiltins).toEqual(["kie"]);
-    expect(config.disabledBuiltins).toEqual(["fal"]);
+    expect(config.enabledBuiltins).toEqual([]);
+    expect(config.disabledBuiltins).toEqual(["minimax"]);
   });
 
   it("setBuiltinEnabled rejects unknown ids and required packs", async () => {

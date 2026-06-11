@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { BUILTIN_NODE_PACKS } from "@nodetool-ai/protocol";
-import { registerBuiltInNodes } from "../src/node-registry-setup.js";
+import {
+  applyBuiltinPackEnabled,
+  registerBuiltInNodes
+} from "../src/node-registry-setup.js";
 
 function allEnabled(): Record<string, boolean> {
   return Object.fromEntries(BUILTIN_NODE_PACKS.map((p) => [p.id, true]));
@@ -56,5 +59,56 @@ describe("registerBuiltInNodes", () => {
     expect(
       BUILTIN_NODE_PACKS.find((p) => p.id === "base")?.required
     ).toBe(true);
+  });
+});
+
+describe("applyBuiltinPackEnabled", () => {
+  it("registers and unregisters exactly the pack's node types", () => {
+    const registry = new NodeRegistry();
+    registerBuiltInNodes(registry, { enabledOverrides: {} });
+    const before = registry.list().length;
+
+    applyBuiltinPackEnabled(registry, "elevenlabs", true);
+    const elevenlabsTypes = registry
+      .list()
+      .filter((t) => t.startsWith("elevenlabs."));
+    expect(elevenlabsTypes.length).toBeGreaterThan(0);
+
+    applyBuiltinPackEnabled(registry, "elevenlabs", false);
+    expect(
+      registry.list().some((t) => t.startsWith("elevenlabs."))
+    ).toBe(false);
+    expect(registry.list().length).toBe(before);
+  });
+
+  it("disabling kie leaves base's kie.* nodes intact", () => {
+    // base-nodes also registers types under the `kie.` namespace; live
+    // disable must remove only what kie-nodes itself registers.
+    const registry = new NodeRegistry();
+    registerBuiltInNodes(registry, { enabledOverrides: { kie: false } });
+    const baseKieTypes = registry
+      .list()
+      .filter((t) => t.startsWith("kie."));
+
+    applyBuiltinPackEnabled(registry, "kie", true);
+    applyBuiltinPackEnabled(registry, "kie", false);
+    expect(registry.list().filter((t) => t.startsWith("kie."))).toEqual(
+      baseKieTypes
+    );
+  });
+
+  it("enabling is idempotent", () => {
+    const registry = new NodeRegistry();
+    registerBuiltInNodes(registry, { enabledOverrides: {} });
+    applyBuiltinPackEnabled(registry, "minimax", true);
+    const count = registry.list().length;
+    applyBuiltinPackEnabled(registry, "minimax", true);
+    expect(registry.list().length).toBe(count);
+  });
+
+  it("throws for unknown pack ids", () => {
+    expect(() =>
+      applyBuiltinPackEnabled(new NodeRegistry(), "nope", true)
+    ).toThrow(/No registrar/);
   });
 });

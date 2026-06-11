@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useMemo, useCallback } from "react";
+import { memo, useMemo, useCallback, useEffect, useState } from "react";
 import { Node, NodeProps } from "@xyflow/react";
 import isEqual from "fast-deep-equal";
 import { Container } from "@mui/material";
@@ -13,8 +13,11 @@ import { useNodes } from "../../contexts/NodeContext";
 import { NodeInputs } from "../node/NodeInputs";
 import { NodeOutputs } from "../node/NodeOutputs";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
+import ExtensionIcon from "@mui/icons-material/Extension";
 import type { Edge } from "@xyflow/react";
 import type { NodeStoreState } from "../../stores/NodeStore";
+import { findBuiltinPackForNodeType } from "@nodetool-ai/protocol";
+import usePacksStore from "../../stores/PacksStore";
 import {
   EditorButton,
   FlexColumn,
@@ -181,6 +184,41 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
     return resolvedType.split(".").slice(0, -1).join(".") || "unknown";
   }, [resolvedType]);
 
+  // If the missing type belongs to a built-in pack that's merely disabled,
+  // offer to enable it in place instead of sending the user to the package
+  // manager. The server applies the toggle live; refetched metadata swaps
+  // this placeholder for the real node.
+  const candidatePack = useMemo(
+    () => findBuiltinPackForNodeType(resolvedType),
+    [resolvedType]
+  );
+  const builtins = usePacksStore((state) => state.builtins);
+  const fetchBuiltins = usePacksStore((state) => state.fetchBuiltins);
+  const setBuiltinEnabled = usePacksStore((state) => state.setBuiltinEnabled);
+  const [enabling, setEnabling] = useState(false);
+
+  useEffect(() => {
+    if (candidatePack && builtins.length === 0) {
+      void fetchBuiltins();
+    }
+  }, [candidatePack, builtins.length, fetchBuiltins]);
+
+  const disabledPack = useMemo(() => {
+    if (!candidatePack) return undefined;
+    const status = builtins.find((p) => p.id === candidatePack.id);
+    return status && !status.enabled ? candidatePack : undefined;
+  }, [candidatePack, builtins]);
+
+  const enablePack = useCallback(async () => {
+    if (!disabledPack) return;
+    setEnabling(true);
+    try {
+      await setBuiltinEnabled(disabledPack.id, true);
+    } finally {
+      setEnabling(false);
+    }
+  }, [disabledPack, setBuiltinEnabled]);
+
   const installPackage = useCallback(() => {
     // Pass the node type to the package manager to pre-fill the search
     const nodeTypeToSearch = nodeData?.originalType || nodeType || "";
@@ -298,17 +336,36 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       </Tooltip>
 
       <FlexColumn gap={1} align="center" className="node-actions" sx={{ margin: "8px 0" }}>
-        <Tooltip title={`Search for ${resolvedType} in Package Manager`}>
-          <EditorButton
-            variant="contained"
-            density="compact"
-            className="install-button"
-            onClick={installPackage}
-            startIcon={<CloudDownloadIcon />}
+        {disabledPack ? (
+          <Tooltip
+            title={`This node is part of the ${disabledPack.name} pack, which is currently disabled. Enable it to load the node.`}
           >
-            Search Package Manager
-          </EditorButton>
-        </Tooltip>
+            <EditorButton
+              variant="contained"
+              density="compact"
+              className="install-button"
+              onClick={enablePack}
+              disabled={enabling}
+              startIcon={<ExtensionIcon />}
+            >
+              {enabling
+                ? "Enabling…"
+                : `Enable ${disabledPack.name} Nodes`}
+            </EditorButton>
+          </Tooltip>
+        ) : (
+          <Tooltip title={`Search for ${resolvedType} in Package Manager`}>
+            <EditorButton
+              variant="contained"
+              density="compact"
+              className="install-button"
+              onClick={installPackage}
+              startIcon={<CloudDownloadIcon />}
+            >
+              Search Package Manager
+            </EditorButton>
+          </Tooltip>
+        )}
       </FlexColumn>
 
       {mockProperties.length > 0 && (

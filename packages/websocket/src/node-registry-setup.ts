@@ -117,6 +117,33 @@ export function registerBuiltInNodes(
   }
 }
 
+/**
+ * Apply a built-in pack toggle to a live registry so the change takes effect
+ * without a server restart. Enabling re-runs the registrar (idempotent —
+ * `register` is last-write-wins); disabling unregisters exactly the node
+ * types the pack's registrar produces, so packs sharing a namespace prefix
+ * with other packs are untouched.
+ */
+export function applyBuiltinPackEnabled(
+  registry: NodeRegistry,
+  id: string,
+  enabled: boolean
+): void {
+  const register = BUILTIN_PACK_REGISTRARS[id];
+  if (!register) {
+    throw new Error(`No registrar for built-in node pack "${id}"`);
+  }
+  if (enabled) {
+    register(registry);
+    return;
+  }
+  const packOnly = new NodeRegistry();
+  register(packOnly);
+  for (const nodeType of packOnly.list()) {
+    registry.unregister(nodeType);
+  }
+}
+
 /** Drop optional node types that aren't available in cloud/production builds. */
 export function applyProductionNodePolicy(
   registry: NodeRegistry,

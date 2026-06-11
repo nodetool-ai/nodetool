@@ -36,24 +36,24 @@ describe("builtinPacks", () => {
 
     expect(byId.get("base")).toMatchObject({ enabled: true, required: true });
     // The essentials ship enabled…
-    for (const id of ["fal", "replicate", "huggingface"]) {
+    for (const id of ["fal", "replicate", "huggingface", "kie"]) {
       expect(byId.get(id)?.enabled).toBe(true);
     }
     // …everything else is opt-in.
-    for (const id of ["elevenlabs", "minimax", "kie", "topaz", "reve"]) {
+    for (const id of ["elevenlabs", "minimax", "topaz", "reve"]) {
       expect(byId.get(id)?.enabled).toBe(false);
     }
   });
 
   test("enabling an opt-in pack persists and round-trips", () => {
-    const updated = setBuiltinPackEnabled("kie", true);
-    expect(updated.find((p) => p.id === "kie")?.enabled).toBe(true);
+    const updated = setBuiltinPackEnabled("minimax", true);
+    expect(updated.find((p) => p.id === "minimax")?.enabled).toBe(true);
 
     // Fresh read sees the same state.
-    expect(listBuiltinPacks().find((p) => p.id === "kie")?.enabled).toBe(true);
+    expect(listBuiltinPacks().find((p) => p.id === "minimax")?.enabled).toBe(true);
 
-    const reverted = setBuiltinPackEnabled("kie", false);
-    expect(reverted.find((p) => p.id === "kie")?.enabled).toBe(false);
+    const reverted = setBuiltinPackEnabled("minimax", false);
+    expect(reverted.find((p) => p.id === "minimax")?.enabled).toBe(false);
   });
 
   test("disabling a default-enabled pack persists", () => {
@@ -70,13 +70,13 @@ describe("builtinPacks", () => {
     );
 
     setBuiltinPackEnabled("replicate", false);
-    setBuiltinPackEnabled("kie", true);
+    setBuiltinPackEnabled("minimax", true);
 
     const config = JSON.parse(readFileSync(configPath, "utf8"));
     expect(config.allow).toEqual(["@acme/cool-nodes"]);
     expect(config.allowUnlisted).toBe(false);
     expect(config.disabledBuiltins).toEqual(["replicate"]);
-    expect(config.enabledBuiltins).toEqual(["kie"]);
+    expect(config.enabledBuiltins).toEqual(["minimax"]);
   });
 
   test("rejects unknown pack ids", () => {
@@ -94,7 +94,7 @@ describe("builtinPacks", () => {
   test("tolerates a corrupt config file", () => {
     writeFileSync(configPath, "not json", "utf8");
     expect(listBuiltinPacks().find((p) => p.id === "base")?.enabled).toBe(true);
-    const updated = setBuiltinPackEnabled("kie", true);
-    expect(updated.find((p) => p.id === "kie")?.enabled).toBe(true);
+    const updated = setBuiltinPackEnabled("minimax", true);
+    expect(updated.find((p) => p.id === "minimax")?.enabled).toBe(true);
   });
 });

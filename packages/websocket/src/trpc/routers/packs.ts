@@ -134,12 +134,13 @@ export const packsRouter = router({
 
   /**
    * Enable or disable a built-in pack. Persisted to
-   * `~/.config/nodetool/packs.json`; takes effect on the next server start.
+   * `~/.config/nodetool/packs.json` and applied to the live registry
+   * immediately, so clients only need to refetch node metadata.
    */
   setBuiltinEnabled: protectedProcedure
     .input(z.object({ id: z.string(), enabled: z.boolean() }))
     .output(builtinsOutput)
-    .mutation(({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const pack = BUILTIN_NODE_PACKS.find((p) => p.id === input.id);
       if (!pack) {
         throw new Error(`Unknown built-in pack "${input.id}"`);
@@ -151,6 +152,12 @@ export const packsRouter = router({
         ...readBuiltinPackOverrides(),
         [input.id]: input.enabled
       });
+      // Lazy import: node-registry-setup pulls in every built-in pack, which
+      // must not load just because the router module is imported.
+      const { applyBuiltinPackEnabled } = await import(
+        "../../node-registry-setup.js"
+      );
+      applyBuiltinPackEnabled(ctx.registry, input.id, input.enabled);
       return { packs: builtinPackDtos() };
     }),
 
