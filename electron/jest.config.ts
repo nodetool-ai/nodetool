@@ -13,6 +13,7 @@ export default {
     '\\.(jpg|jpeg|png|gif|webp|svg)$': '<rootDir>/src/__mocks__/fileMock.ts',
     '^@nodetool-ai/protocol$': '<rootDir>/src/__mocks__/protocol.ts',
     '^@nodetool-ai/protocol/bridge-protocol$': '<rootDir>/../packages/protocol/src/bridge-protocol.ts',
+    '^@nodetool-ai/protocol/builtin-packs$': '<rootDir>/../packages/protocol/src/builtin-packs.ts',
     '^@nodetool-ai/websocket/trpc$': '<rootDir>/src/__mocks__/websocket-trpc.ts',
     '^superjson$': '<rootDir>/src/__mocks__/superjson.ts',
     '^@nodetool-ai/config$': '<rootDir>/../packages/config/src/index.ts',

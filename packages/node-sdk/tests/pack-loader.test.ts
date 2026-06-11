@@ -8,7 +8,9 @@ import {
   defaultPackSearchPaths,
   discoverPacks,
   loadInstalledPacks,
+  readDisabledBuiltinPacks,
   resolvePackTrust,
+  writeDisabledBuiltinPacks,
   writePackTrustConfig,
   PACK_API_VERSION
 } from "../src/pack-loader.js";
@@ -329,6 +331,53 @@ describe("writePackTrustConfig", () => {
       allow: [],
       allowUnlisted: true
     });
+  });
+
+  it("preserves disabledBuiltins already in the file", () => {
+    const path = joinPath(root, "packs.json");
+    process.env["NODETOOL_PACKS_CONFIG"] = path;
+    writeFileSync(path, JSON.stringify({ disabledBuiltins: ["fal"] }));
+    writePackTrustConfig({ allowlist: ["@acme/a"], allowUnlisted: false }, path);
+    expect(JSON.parse(readFileSync(path, "utf8"))).toEqual({
+      disabledBuiltins: ["fal"],
+      allow: ["@acme/a"],
+      allowUnlisted: false
+    });
+  });
+});
+
+describe("disabled built-in packs", () => {
+  it("defaults to an empty list", () => {
+    expect(readDisabledBuiltinPacks()).toEqual([]);
+  });
+
+  it("round-trips, dedupes, and sorts ids", () => {
+    const path = joinPath(root, "packs.json");
+    process.env["NODETOOL_PACKS_CONFIG"] = path;
+    writeDisabledBuiltinPacks(["replicate", "fal", "fal"], path);
+    expect(readDisabledBuiltinPacks()).toEqual(["fal", "replicate"]);
+  });
+
+  it("preserves trust fields already in the file", () => {
+    const path = joinPath(root, "packs.json");
+    process.env["NODETOOL_PACKS_CONFIG"] = path;
+    writePackTrustConfig({ allowlist: ["@acme/a"], allowUnlisted: true }, path);
+    writeDisabledBuiltinPacks(["kie"], path);
+    expect(JSON.parse(readFileSync(path, "utf8"))).toEqual({
+      allow: ["@acme/a"],
+      allowUnlisted: true,
+      disabledBuiltins: ["kie"]
+    });
+    const resolved = resolvePackTrust();
+    expect(resolved.allowlist).toEqual(["@acme/a"]);
+    expect(resolved.allowUnlisted).toBe(true);
+  });
+
+  it("ignores non-string entries in the config file", () => {
+    const path = joinPath(root, "packs.json");
+    process.env["NODETOOL_PACKS_CONFIG"] = path;
+    writeFileSync(path, JSON.stringify({ disabledBuiltins: ["fal", 3, null] }));
+    expect(readDisabledBuiltinPacks()).toEqual(["fal"]);
   });
 });
 

@@ -142,6 +142,42 @@ describe("packs router", () => {
     await expect(caller.setTrust({})).rejects.toThrow();
   });
 
+  it("listBuiltins reports every built-in pack as enabled by default", async () => {
+    const caller = createCaller(makeCtx());
+    const result = await caller.listBuiltins();
+    expect(result.packs.length).toBeGreaterThan(0);
+    expect(result.packs.every((p) => p.enabled)).toBe(true);
+    expect(result.packs.find((p) => p.id === "base")?.required).toBe(true);
+  });
+
+  it("setBuiltinEnabled persists the disabled list and round-trips", async () => {
+    const caller = createCaller(makeCtx());
+    const disabled = await caller.setBuiltinEnabled({
+      id: "fal",
+      enabled: false
+    });
+    expect(disabled.packs.find((p) => p.id === "fal")?.enabled).toBe(false);
+    expect(
+      JSON.parse(readFileSync(configPath, "utf8")).disabledBuiltins
+    ).toEqual(["fal"]);
+
+    const reEnabled = await caller.setBuiltinEnabled({
+      id: "fal",
+      enabled: true
+    });
+    expect(reEnabled.packs.every((p) => p.enabled)).toBe(true);
+  });
+
+  it("setBuiltinEnabled rejects unknown ids and required packs", async () => {
+    const caller = createCaller(makeCtx());
+    await expect(
+      caller.setBuiltinEnabled({ id: "nope", enabled: false })
+    ).rejects.toThrow(/Unknown built-in pack/);
+    await expect(
+      caller.setBuiltinEnabled({ id: "base", enabled: false })
+    ).rejects.toThrow(/cannot be disabled/);
+  });
+
   it("reload re-runs the loader against the registry and refreshes the snapshot", async () => {
     // Empty searchPaths → loader finds nothing, snapshot becomes [].
     setPackSnapshot([fakePack("@acme/cool")]);

@@ -209,7 +209,7 @@ function readEnvPackPaths(): string[] {
 export function resolvePackTrust(
   options: PackTrustOptions = {}
 ): Required<PackTrustOptions> {
-  const fromFile = readTrustConfigFile();
+  const fromFile = readPacksConfigFile();
   const envAllow = process.env["NODETOOL_PACKS_ALLOWLIST"];
   const envList = envAllow
     ? envAllow
@@ -236,11 +236,18 @@ function trustConfigPath(): string {
   );
 }
 
-function readTrustConfigFile(): { allow?: string[]; allowUnlisted?: boolean } {
+interface PacksConfigFile {
+  allow?: string[];
+  allowUnlisted?: boolean;
+  disabledBuiltins?: string[];
+}
+
+function readPacksConfigFile(path: string = trustConfigPath()): PacksConfigFile {
   try {
-    const parsed = JSON.parse(readFileSync(trustConfigPath(), "utf8")) as {
+    const parsed = JSON.parse(readFileSync(path, "utf8")) as {
       allow?: unknown;
       allowUnlisted?: unknown;
+      disabledBuiltins?: unknown;
     };
     return {
       allow: Array.isArray(parsed.allow)
@@ -249,11 +256,45 @@ function readTrustConfigFile(): { allow?: string[]; allowUnlisted?: boolean } {
       allowUnlisted:
         typeof parsed.allowUnlisted === "boolean"
           ? parsed.allowUnlisted
-          : undefined
+          : undefined,
+      disabledBuiltins: Array.isArray(parsed.disabledBuiltins)
+        ? parsed.disabledBuiltins.filter(
+            (v): v is string => typeof v === "string"
+          )
+        : undefined
     };
   } catch {
     return {};
   }
+}
+
+/**
+ * Built-in pack ids the user disabled in the package manager. The server
+ * skips registering these packs at bootstrap; changes take effect on restart.
+ */
+export function readDisabledBuiltinPacks(): string[] {
+  return readPacksConfigFile().disabledBuiltins ?? [];
+}
+
+/**
+ * Persist the disabled built-in pack ids, preserving the trust fields already
+ * in the config file. Creates parent directories as needed.
+ */
+export function writeDisabledBuiltinPacks(
+  ids: string[],
+  path: string = trustConfigPath()
+): void {
+  const current = readPacksConfigFile(path);
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(
+    path,
+    JSON.stringify(
+      { ...current, disabledBuiltins: [...new Set(ids)].sort() },
+      null,
+      2
+    ) + "\n",
+    "utf8"
+  );
 }
 
 /**
@@ -264,11 +305,17 @@ export function writePackTrustConfig(
   trust: { allowlist: string[]; allowUnlisted: boolean },
   path: string = trustConfigPath()
 ): void {
+  // Preserve unrelated fields (e.g. disabledBuiltins) already in the file.
+  const current = readPacksConfigFile(path);
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(
     path,
     JSON.stringify(
-      { allow: trust.allowlist, allowUnlisted: trust.allowUnlisted },
+      {
+        ...current,
+        allow: trust.allowlist,
+        allowUnlisted: trust.allowUnlisted
+      },
       null,
       2
     ) + "\n",

@@ -91,6 +91,19 @@ declare global {
         selectInstallLocation: () => Promise<string | null>;
       };
 
+      // Third-party TypeScript node packs + built-in pack toggles
+      nodePacks: {
+        listInstalled: () => Promise<NodePackInfo[]>;
+        install: (spec: string) => Promise<NodePackActionResult>;
+        uninstall: (name: string) => Promise<NodePackActionResult>;
+        getInstallDir: () => Promise<string>;
+        listBuiltin: () => Promise<BuiltinPackStatus[]>;
+        setBuiltinEnabled: (
+          id: string,
+          enabled: boolean,
+        ) => Promise<BuiltinPackStatus[]>;
+      };
+
       // Window controls
       window: {
         close: () => void;
@@ -529,6 +542,9 @@ export enum IpcChannels {
   NODE_PACK_INSTALL = "node-pack-install",
   NODE_PACK_UNINSTALL = "node-pack-uninstall",
   NODE_PACK_GET_INSTALL_DIR = "node-pack-get-install-dir",
+  // Built-in node pack channels (first-party packs shipped with NodeTool)
+  BUILTIN_PACK_LIST = "builtin-pack-list",
+  BUILTIN_PACK_SET_ENABLED = "builtin-pack-set-enabled",
   // Runtime package channels
   RUNTIME_PACKAGE_STATUSES = "runtime-package-statuses",
   RUNTIME_PACKAGE_INSTALL = "runtime-package-install",
@@ -680,6 +696,8 @@ export interface IpcRequest {
   [IpcChannels.NODE_PACK_INSTALL]: { spec: string };
   [IpcChannels.NODE_PACK_UNINSTALL]: { name: string };
   [IpcChannels.NODE_PACK_GET_INSTALL_DIR]: void;
+  [IpcChannels.BUILTIN_PACK_LIST]: void;
+  [IpcChannels.BUILTIN_PACK_SET_ENABLED]: { id: string; enabled: boolean };
   [IpcChannels.RUNTIME_PACKAGE_STATUSES]: void;
   [IpcChannels.RUNTIME_PACKAGE_INSTALL]: { packageId: string; installLocation?: string };
   [IpcChannels.RUNTIME_PACKAGE_UNINSTALL]: { packageId: string };
@@ -794,6 +812,8 @@ export interface IpcResponse {
   [IpcChannels.NODE_PACK_INSTALL]: NodePackActionResult;
   [IpcChannels.NODE_PACK_UNINSTALL]: NodePackActionResult;
   [IpcChannels.NODE_PACK_GET_INSTALL_DIR]: string;
+  [IpcChannels.BUILTIN_PACK_LIST]: BuiltinPackStatus[];
+  [IpcChannels.BUILTIN_PACK_SET_ENABLED]: BuiltinPackStatus[];
   [IpcChannels.RUNTIME_PACKAGE_STATUSES]: RuntimePackageStatus[];
   [IpcChannels.RUNTIME_PACKAGE_INSTALL]: { success: boolean; message: string };
   [IpcChannels.RUNTIME_PACKAGE_UNINSTALL]: { success: boolean; message: string };
@@ -946,6 +966,16 @@ export interface NodePackInfo {
 export interface NodePackActionResult {
   success: boolean;
   message: string;
+}
+
+/** A first-party node pack shipped with NodeTool, plus its enabled state. */
+export interface BuiltinPackStatus {
+  id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  /** Required packs (core nodes) cannot be disabled. */
+  required: boolean;
 }
 
 export type RuntimePackageId =

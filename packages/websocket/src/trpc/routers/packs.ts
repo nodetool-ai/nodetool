@@ -12,10 +12,13 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { getPackSnapshot, reloadPacks } from "../../pack-snapshot.js";
 import {
+  readDisabledBuiltinPacks,
   resolvePackTrust,
+  writeDisabledBuiltinPacks,
   writePackTrustConfig,
   type LoadedPackResult
 } from "@nodetool-ai/node-sdk";
+import { BUILTIN_NODE_PACKS } from "@nodetool-ai/protocol";
 
 // ── Schemas ──────────────────────────────────────────────────────────────
 
@@ -55,6 +58,16 @@ const trustUpdateInput = z
     message: "at least one of allowlist or allowUnlisted must be set"
   });
 
+const builtinPackSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  enabled: z.boolean(),
+  required: z.boolean()
+});
+
+const builtinsOutput = z.object({ packs: z.array(builtinPackSchema) });
+
 // ── DTO mapping ──────────────────────────────────────────────────────────
 
 function toDto(r: LoadedPackResult): z.infer<typeof packResultSchema> {
@@ -67,6 +80,20 @@ function toDto(r: LoadedPackResult): z.infer<typeof packResultSchema> {
     skippedNodes: r.skippedNodes,
     ...(r.error ? { error: r.error.message } : {})
   };
+}
+
+function builtinPackDtos(): z.infer<typeof builtinPackSchema>[] {
+  const disabled = new Set(readDisabledBuiltinPacks());
+  return BUILTIN_NODE_PACKS.map((pack) => {
+    const required = pack.required ?? false;
+    return {
+      id: pack.id,
+      name: pack.name,
+      description: pack.description,
+      required,
+      enabled: required || !disabled.has(pack.id)
+    };
+  });
 }
 
 // ── Router ───────────────────────────────────────────────────────────────
@@ -98,6 +125,36 @@ export const packsRouter = router({
       };
       writePackTrustConfig(next);
       return next;
+    }),
+
+  /** Built-in packs that ship with NodeTool and whether each is enabled. */
+  listBuiltins: protectedProcedure
+    .output(builtinsOutput)
+    .query(() => ({ packs: builtinPackDtos() })),
+
+  /**
+   * Enable or disable a built-in pack. Persisted to
+   * `~/.config/nodetool/packs.json`; takes effect on the next server start.
+   */
+  setBuiltinEnabled: protectedProcedure
+    .input(z.object({ id: z.string(), enabled: z.boolean() }))
+    .output(builtinsOutput)
+    .mutation(({ input }) => {
+      const pack = BUILTIN_NODE_PACKS.find((p) => p.id === input.id);
+      if (!pack) {
+        throw new Error(`Unknown built-in pack "${input.id}"`);
+      }
+      if (pack.required && !input.enabled) {
+        throw new Error(`Built-in pack "${input.id}" cannot be disabled`);
+      }
+      const disabled = new Set(readDisabledBuiltinPacks());
+      if (input.enabled) {
+        disabled.delete(input.id);
+      } else {
+        disabled.add(input.id);
+      }
+      writeDisabledBuiltinPacks([...disabled]);
+      return { packs: builtinPackDtos() };
     }),
 
   /**
