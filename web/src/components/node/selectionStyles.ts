@@ -1,5 +1,6 @@
 import type { Theme } from "@mui/material/styles";
 import { NODE_COLLAPSED_BASE_NODE_SX } from "../../styles/collapsedNodeTokens";
+import { MOTION } from "../ui_primitives";
 
 type BaseNodeSelectionStyleArgs = {
   selected: boolean;
@@ -109,8 +110,7 @@ export const getBaseNodeSelectionStyles = ({
     backgroundImage:
       "linear-gradient(180deg, rgb(255 255 255 / 0.025) 0%, rgb(255 255 255 / 0.008) 18%, transparent 52%)",
     borderRadius: "var(--rounded-node)",
-    transition:
-      "box-shadow 0.18s ease, outline-color 0.18s ease, border-color 0.18s ease",
+    transition: `${MOTION.shadow}, outline-color ${MOTION.normal}, ${MOTION.border}`,
     "--node-primary-color": resolvedBaseColor,
     ...(hasToggleableResult
       ? {
@@ -119,7 +119,7 @@ export const getBaseNodeSelectionStyles = ({
             position: "absolute" as const,
             right: "-8px",
             bottom: "-9px",
-            transition: "opacity 0.2s"
+            transition: `opacity ${MOTION.normal}`
           },
           "&:hover .react-flow__resize-control.nodrag.bottom.right.handle": {
             opacity: 1

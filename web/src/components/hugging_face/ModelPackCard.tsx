@@ -5,16 +5,11 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
-  Card,
-  CardContent,
-  CardActions,
-  Collapse,
-  LinearProgress,
   List,
   ListItem,
   ListItemText
 } from "@mui/material";
-import { Text, Caption, EditorButton, ToolbarIconButton, Chip, Box } from "../ui_primitives";
+import { Text, Caption, EditorButton, ToolbarIconButton, Chip, Box, ProgressBar, Collapse, MOTION, Card } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DownloadIcon from "@mui/icons-material/Download";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -110,18 +105,19 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
 
   return (
     <Card
+      padding="none"
       sx={{
         mb: 2,
         backgroundColor: "var(--palette-grey-900)",
         border: "1px solid var(--palette-grey-700)",
         borderRadius: 2,
-        transition: "border-color 0.2s",
+        transition: MOTION.border,
         "&:hover": {
           borderColor: "var(--palette-grey-500)"
         }
       }}
     >
-      <CardContent sx={{ pb: 1 }}>
+      <Box sx={{ p: 2, pb: 1 }}>
         <Box display="flex" alignItems="flex-start" gap={2}>
           <InventoryIcon
             sx={{
@@ -187,11 +183,10 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
 
         {isDownloading && (
           <Box mt={2}>
-            <LinearProgress
-              variant="determinate"
+            <ProgressBar
               value={downloadProgress}
+              showValue={false}
               sx={{
-                height: 6,
                 borderRadius: 3,
                 backgroundColor: "var(--palette-grey-700)"
               }}
@@ -201,9 +196,9 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
             </Caption>
           </Box>
         )}
-      </CardContent>
+      </Box>
 
-      <CardActions sx={{ px: 2, pb: 2, pt: 0, justifyContent: "space-between" }}>
+      <Box sx={{ px: 2, pb: 2, pt: 0, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <EditorButton
           variant={allDownloaded ? "outlined" : "contained"}
           size="small"
@@ -228,11 +223,11 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
           onClick={handleToggleExpanded}
           sx={{
             transform: expanded ? "rotate(180deg)" : "rotate(0deg)",
-            transition: "transform 0.3s"
+            transition: MOTION.transform
           }}
           size="small"
         />
-      </CardActions>
+      </Box>
 
       <Collapse in={expanded}>
         <Box px={2} pb={2}>

@@ -2,10 +2,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import {
-  LinearProgress
-} from "@mui/material";
-import { LoadingSpinner, Text, Box } from "../ui_primitives";
+import { LoadingSpinner, Text, Box, ProgressBar } from "../ui_primitives";
 import { useParams } from "react-router-dom";
 
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
@@ -271,8 +268,9 @@ const StandaloneMiniApp: React.FC = () => {
                   </Text>
                 )}
                 {progress ? (
-                  <LinearProgress
+                  <ProgressBar
                     value={(progress.current * 100.0) / progress.total}
+                    showValue={false}
                   />
                 ) : null}
                 <Box flex={1} minHeight={0} sx={{ height: 0 }}>

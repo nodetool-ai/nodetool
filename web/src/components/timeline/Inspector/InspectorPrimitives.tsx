@@ -21,7 +21,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import Switch from "@mui/material/Switch";
 
-import { NodeSlider, Tooltip } from "../../ui_primitives";
+import { NodeSlider, Tooltip, MOTION } from "../../ui_primitives";
 
 // ── Header ─────────────────────────────────────────────────────────────────
 
@@ -62,7 +62,7 @@ const headerIconButtonStyles = (theme: Theme) =>
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 6,
-    transition: "background-color 120ms, color 120ms, border-color 120ms",
+    transition: `background-color ${MOTION.fast}, color ${MOTION.fast}, border-color ${MOTION.fast}`,
     "&:hover": {
       backgroundColor: theme.vars.palette.action.hover,
       color: theme.vars.palette.text.primary,
@@ -295,7 +295,7 @@ const pillWrapStyles = (theme: Theme, disabled: boolean, focused: boolean) =>
     minWidth: 92,
     justifyContent: "flex-end",
     opacity: disabled ? 0.5 : 1,
-    transition: "border-color 120ms",
+    transition: `border-color ${MOTION.fast}`,
     "&:hover": {
       borderColor: focused
         ? theme.vars.palette.primary.main

@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { EditorButton, FlexColumn, FlexRow, Box } from "../../ui_primitives";
+import { EditorButton, FlexColumn, FlexRow, Box, MOTION } from "../../ui_primitives";
 import { LoadingSpinner, Text } from "../../ui_primitives";
 import SearchOffIcon from "@mui/icons-material/SearchOff";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -89,14 +89,14 @@ const styles = (theme: Theme) =>
     },
     ".model-type-button.Mui-selected": {
       color: theme.vars.palette.text.primary,
-      transition: "background-color 0.2s ease-in",
+      transition: `background-color ${MOTION.normal}`,
       borderRadius: 8,
       backgroundColor: theme.vars.palette.action.selected
     },
     ".model-type-button span": {
       display: "flex",
       alignItems: "center",
-      transition: "color 0.2s ease-in"
+      transition: `color ${MOTION.normal}`
     },
     ".model-type-button img": {
       filter: "saturate(0)"

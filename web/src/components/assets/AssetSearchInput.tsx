@@ -8,7 +8,7 @@ import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSearch } from "../../serverState/useAssetSearch";
-import { Tooltip } from "../ui_primitives";
+import { Tooltip, MOTION } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -46,7 +46,7 @@ const styles = (theme: Theme) =>
       color: "var(--palette-text-primary)",
       backgroundColor: "var(--palette-grey-800)",
       borderRadius: "var(--rounded-lg)",
-      transition: "all 0.2s"
+      transition: MOTION.all
     },
     "input[type='text']:focus": {
       backgroundColor: "var(--palette-grey-700)",
@@ -66,7 +66,7 @@ const styles = (theme: Theme) =>
       border: 0,
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[400],
-      transition: "color 0.2s, opacity 0.2s",
+      transition: `color ${MOTION.normal}, ${MOTION.opacity}`,
       padding: 0,
       "& svg": {
         fontSize: "var(--fontSizeBig)"
@@ -119,7 +119,7 @@ const styles = (theme: Theme) =>
       border: 0,
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[400],
-      transition: "color 0.2s",
+      transition: `color ${MOTION.normal}`,
       padding: 0,
       "& svg": {
         fontSize: "var(--fontSizeBig)"

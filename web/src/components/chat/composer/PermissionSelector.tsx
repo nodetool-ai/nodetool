@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import CheckIcon from "@mui/icons-material/Check";
-import { Caption, FlexColumn, Popover, Text } from "../../ui_primitives";
+import { Caption, FlexColumn, Popover, Text, MOTION } from "../../ui_primitives";
 import MediaControlChip from "./MediaControlChip";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import type { PermissionMode } from "../../../stores/ApiTypes";
@@ -61,7 +61,7 @@ const menuStyles = (theme: Theme) =>
       padding: "9px 16px",
       cursor: "pointer",
       color: theme.vars.palette.grey[100],
-      transition: "background-color 120ms ease",
+      transition: MOTION.background,
       "&:hover": {
         backgroundColor: "rgba(255,255,255,0.06)"
       },

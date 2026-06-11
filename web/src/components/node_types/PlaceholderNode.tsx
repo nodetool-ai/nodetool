@@ -5,7 +5,6 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useCallback, useEffect, useState } from "react";
 import { Node, NodeProps } from "@xyflow/react";
 import isEqual from "fast-deep-equal";
-import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "../node/NodeHeader";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -19,8 +18,10 @@ import type { NodeStoreState } from "../../stores/NodeStore";
 import { findBuiltinPackForNodeType } from "@nodetool-ai/protocol";
 import usePacksStore from "../../stores/PacksStore";
 import {
+  Box,
   EditorButton,
   FlexColumn,
+  MOTION,
   Text,
   Tooltip
 } from "../ui_primitives";
@@ -86,8 +87,7 @@ const styles = (theme: Theme) =>
       backgroundSize: "200% 200%",
       border: `1px solid ${theme.vars.palette.action.selected}`,
       boxShadow: "0 6px 18px rgba(0,0,0,0.25)",
-      transition:
-        "transform 200ms ease, box-shadow 200ms ease, background-position 300ms ease",
+      transition: `transform ${MOTION.normal}, ${MOTION.shadow}, background-position ${MOTION.slow}`,
       overflow: "hidden",
       "&::before": {
         content: "''",
@@ -314,7 +314,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
     [props.data.collapsed, hasParent]
   );
   return (
-    <Container
+    <Box
       css={styles(theme)}
       className={className}
       sx={{
@@ -378,7 +378,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
         />
       )}
       <NodeOutputs id={props.id} outputs={mockMetadata.outputs} />
-    </Container>
+    </Box>
   );
 };
 

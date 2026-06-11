@@ -11,7 +11,7 @@ import isEqual from "fast-deep-equal";
 import Close from "@mui/icons-material/Close";
 import Edit from "@mui/icons-material/Edit";
 import SettingsBackupRestoreIcon from "@mui/icons-material/SettingsBackupRestore";
-import { Tooltip, ToolbarIconButton } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, MOTION } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useNodes } from "../../contexts/NodeContext";
@@ -73,7 +73,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
       alignItems: "center",
       gap: 4,
       opacity: 0,
-      transition: "opacity 0.15s ease",
+      transition: MOTION.opacity,
       zIndex: 1,
       background: theme.vars.palette.background.paper,
       borderRadius: "var(--rounded-sm)",
@@ -91,7 +91,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
       padding: 4,
       borderRadius: "var(--rounded-sm)",
       color: theme.vars.palette.text.secondary,
-      transition: "color 0.15s ease, background 0.15s ease",
+      transition: `color ${MOTION.fast}, background ${MOTION.fast}`,
       "&:hover": {
         color: theme.vars.palette.text.primary,
         background: theme.vars.palette.action.hover,
@@ -112,7 +112,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       opacity: 0,
-      transition: "opacity 0.15s ease",
+      transition: MOTION.opacity,
       zIndex: 2,
       cursor: "pointer",
       padding: "1px",

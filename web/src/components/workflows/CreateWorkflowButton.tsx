@@ -6,7 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Tooltip, ToolbarIconButton } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, MOTION } from "../ui_primitives";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 
 const styles = (theme: Theme) =>
@@ -18,7 +18,7 @@ const styles = (theme: Theme) =>
     borderRadius: "6px",
     border: "none",
     backgroundColor: theme.vars.palette.primary.main,
-    transition: "background-color 140ms ease-out",
+    transition: `background-color ${MOTION.fast}`,
     "& svg": {
       fontSize: "var(--fontSizeNormal)",
       color: theme.vars.palette.primary.contrastText

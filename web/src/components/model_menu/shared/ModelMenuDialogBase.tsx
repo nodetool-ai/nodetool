@@ -8,10 +8,9 @@ import {
   ListItemText,
   ListItemIcon,
   List,
-  ListItemButton,
-  Collapse
+  ListItemButton
 } from "@mui/material";
-import { Tooltip, Caption, Divider, LoadingSpinner, ToolbarIconButton, FlexRow, FlexColumn, Box } from "../../ui_primitives";
+import { Tooltip, Caption, Divider, LoadingSpinner, ToolbarIconButton, FlexRow, FlexColumn, Box, Collapse } from "../../ui_primitives";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import RefreshIcon from "@mui/icons-material/Refresh";
 

@@ -96,7 +96,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
       opacity: 0.55
     },
     ".media-compose-card .media-chip-row": {
-      transition: "opacity 0.2s ease"
+      transition: `opacity ${MOTION.normal}`
     },
 
     ".media-chip-row .divider-dot": {

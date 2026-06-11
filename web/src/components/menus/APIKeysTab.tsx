@@ -1135,7 +1135,7 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
                 padding: theme.spacing(2, 2),
                 borderRadius: "var(--rounded-md)",
                 cursor: "pointer",
-                transition: "background-color 0.15s ease",
+                transition: MOTION.background,
                 "&:hover": {
                   backgroundColor: theme.vars.palette.action.hover
                 }

@@ -4,13 +4,9 @@ import { sketchToolSettingsContainerSx, SKETCH_FONT } from "./sketchStyles";
 import { alpha, useTheme } from "@mui/material/styles";
 import {
   ButtonBase,
-  Divider,
-  IconButton,
   Popover,
-  Stack,
-  Typography
 } from "@mui/material";
-import { FlexColumn, FlexRow, Box } from "../ui_primitives";
+import { FlexColumn, FlexRow, Box, Text, Divider, ToolbarIconButton, MOTION } from "../ui_primitives";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import DeselectIcon from "@mui/icons-material/Deselect";
 import RestoreIcon from "@mui/icons-material/Restore";
@@ -47,7 +43,7 @@ import { ToolSettingsPanel } from "./ToolSettingsPanels";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <Typography
+    <Text
       sx={{
         mb: 1,
         fontSize: SKETCH_FONT.section,
@@ -58,13 +54,13 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
       }}
     >
       {children}
-    </Typography>
+    </Text>
   );
 }
 
 function ColorPreview({ label, color }: { label: string; color: string }) {
   return (
-    <Stack spacing={0.4} alignItems="center">
+    <FlexColumn align="center" gap={0.4}>
       <Box
         sx={{
           width: 22,
@@ -75,10 +71,10 @@ function ColorPreview({ label, color }: { label: string; color: string }) {
           background: color
         }}
       />
-      <Typography sx={{ fontSize: SKETCH_FONT.xs, fontWeight: 600, color: "text.secondary" }}>
+      <Text sx={{ fontSize: SKETCH_FONT.xs, fontWeight: 600, color: "text.secondary" }}>
         {label}
-      </Typography>
-    </Stack>
+      </Text>
+    </FlexColumn>
   );
 }
 
@@ -123,13 +119,13 @@ function SelectionMenuItem({
       <FlexRow sx={{ flex: "0 0 auto", color: "text.secondary" }}>
         {icon}
       </FlexRow>
-      <Typography sx={{ flex: 1, fontSize: SKETCH_FONT.md, fontWeight: 500, color: "text.primary" }}>
+      <Text sx={{ flex: 1, fontSize: SKETCH_FONT.md, fontWeight: 500, color: "text.primary" }}>
         {label}
-      </Typography>
+      </Text>
       {shortcut && (
-        <Typography sx={{ fontSize: SKETCH_FONT.xs, fontWeight: 600, color: "text.secondary", whiteSpace: "nowrap" }}>
+        <Text sx={{ fontSize: SKETCH_FONT.xs, fontWeight: 600, color: "text.secondary", whiteSpace: "nowrap" }}>
           {shortcut}
-        </Typography>
+        </Text>
       )}
       {!shortcut && endAdornment}
     </ButtonBase>
@@ -180,7 +176,7 @@ const ToolGridButton = memo(function ToolGridButton({
         display: "flex",
         flexDirection: "column",
         textAlign: "center",
-        transition: "all 120ms ease",
+        transition: `all ${MOTION.fast}`,
         width: "100%",
         "&:hover": {
           backgroundColor: selected
@@ -390,28 +386,28 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
   const renderColorContext = () => {
     if (isShapeTool(activeTool)) {
       return (
-        <Stack direction="row" spacing={1}>
+        <FlexRow gap={1}>
           <ColorPreview label="Stroke" color={shapeSettings.strokeColor} />
           <ColorPreview label="Fill" color={shapeSettings.fillColor} />
-        </Stack>
+        </FlexRow>
       );
     }
 
     if (activeTool === "gradient") {
       return (
-        <Stack direction="row" spacing={1}>
+        <FlexRow gap={1}>
           <ColorPreview label="Start" color={gradientSettings.startColor} />
           <ColorPreview label="End" color={gradientSettings.endColor} />
-        </Stack>
+        </FlexRow>
       );
     }
 
     return (
-      <Stack direction="row" spacing={1} alignItems="center">
+      <FlexRow gap={1} align="center">
         <ColorPreview label="FG" color={foregroundColor} />
         <ColorPreview label="BG" color={backgroundColor} />
-        <IconButton
-          size="small"
+        <ToolbarIconButton
+          icon={<SwapHorizIcon sx={{ fontSize: 18 }} />}
           onClick={onSwapColors}
           aria-label="Swap foreground and background colors"
           sx={{
@@ -424,10 +420,8 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
               backgroundColor: alpha(theme.palette.primary.main, 0.14)
             }
           }}
-        >
-          <SwapHorizIcon sx={{ fontSize: 18 }} />
-        </IconButton>
-      </Stack>
+        />
+      </FlexRow>
     );
   };
 
@@ -485,7 +479,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             overflow: "hidden",
             "& .sketch-context-menu__header-shortcut": {
               opacity: 0,
-              transition: "opacity 120ms ease"
+              transition: MOTION.opacity
             },
             "&:hover .sketch-context-menu__header-shortcut, &:focus-within .sketch-context-menu__header-shortcut":
               {
@@ -561,9 +555,9 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             }
           }}
         >
-          <Stack
+          <FlexColumn
             className="sketch-context-menu__quick"
-            spacing={1.1}
+            gap={1.1}
             sx={{
               minWidth: 0,
               minHeight: 360,
@@ -638,7 +632,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                 }}
               >
                 <SectionLabel>Selection</SectionLabel>
-                <Stack spacing={0.3}>
+                <FlexColumn gap={0.3}>
                   <SelectionMenuItem
                     icon={<DeselectIcon sx={{ fontSize: 16 }} />}
                     label="Deselect"
@@ -686,10 +680,10 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                     disabled={!hasActiveSelection}
                     onClick={() => { onStrokeSelectionWithForeground(); onClose(); }}
                   />
-                </Stack>
+                </FlexColumn>
               </Box>
             )}
-          </Stack>
+          </FlexColumn>
 
           <FlexColumn
             className="sketch-context-menu__tools-column"
@@ -702,8 +696,8 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             }}
           >
             <SectionLabel>Tools</SectionLabel>
-            <Stack
-              spacing={0.75}
+            <FlexColumn
+              gap={0.75}
               className="sketch-context-menu__tools-groups"
               sx={{ flex: 1, alignContent: "start", width: "100%" }}
             >
@@ -740,7 +734,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                   ) : null}
                 </React.Fragment>
               ))}
-            </Stack>
+            </FlexColumn>
           </FlexColumn>
         </Box>
       </FlexColumn>

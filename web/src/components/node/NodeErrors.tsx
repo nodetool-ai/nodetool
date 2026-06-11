@@ -11,7 +11,7 @@ import {
 import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
 import { useNodeError } from "../../hooks/nodes/useNodeExecState";
 import isEqual from "fast-deep-equal";
-import { CopyButton, ExternalLink, Tooltip } from "../ui_primitives";
+import { CopyButton, ExternalLink, Tooltip, MOTION } from "../ui_primitives";
 import { VERSION } from "../../config/constants";
 import { extractKieTaskId, KIE_LOGS_URL } from "../../utils/kieTaskId";
 
@@ -86,9 +86,9 @@ const errorStyles = (theme: Theme) =>
   css({
     position: "relative",
     backgroundColor: theme.vars.palette.error.main,
-    borderRadius: "1px",
+    borderRadius: "var(--rounded-xs)",
     padding: "10px",
-    transition: "background-color 0.2s",
+    transition: `background-color ${MOTION.normal}`,
     display: "flex",
     flexDirection: "column",
     width: "100%",

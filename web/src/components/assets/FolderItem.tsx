@@ -6,7 +6,7 @@ import FolderIcon from "@mui/icons-material/Folder";
 import NorthWest from "@mui/icons-material/NorthWest";
 import { Asset } from "../../stores/ApiTypes";
 import { useAssetActions } from "./useAssetActions";
-import { DeleteButton, Text } from "../ui_primitives";
+import { DeleteButton, Text, MOTION } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -25,7 +25,7 @@ const styles = (theme: Theme) =>
       boxSizing: "border-box",
       backgroundColor: "transparent",
       borderRadius: "var(--rounded-md, 6px)",
-      transition: "background-color 0.15s ease, color 0.15s ease"
+      transition: `${MOTION.background}, color ${MOTION.fast}`
     },
     "&:hover": {
       backgroundColor: theme.vars.palette.action.hover

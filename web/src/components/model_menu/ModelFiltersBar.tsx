@@ -2,11 +2,9 @@
 import { css } from "@emotion/react";
 import React from "react";
 import {
-  Menu,
-  MenuItem,
   ListItemText
 } from "@mui/material";
-import { ToolbarIconButton, Checkbox, Box } from "../ui_primitives";
+import { ToolbarIconButton, Checkbox, Box, EditorMenu, EditorMenuItem } from "../ui_primitives";
 import CategoryIcon from "@mui/icons-material/Category";
 import StraightenIcon from "@mui/icons-material/Straighten";
 import useModelFiltersStore, {
@@ -69,14 +67,14 @@ const ModelFiltersBar: React.FC<ModelFiltersBarProps> = () => {
         active={selectedTypes.length > 0 || openType}
         nodrag={false}
       />
-      <Menu
+      <EditorMenu
         anchorEl={typeAnchor}
         open={openType}
         onClose={() => setTypeAnchor(null)}
         keepMounted
       >
         {typeOptions.map((t) => (
-          <MenuItem
+          <EditorMenuItem
             key={t}
             onClick={(e) => {
               e.stopPropagation();
@@ -85,9 +83,9 @@ const ModelFiltersBar: React.FC<ModelFiltersBarProps> = () => {
           >
             <Checkbox size="small" checked={selectedTypes.includes(t)} />
             <ListItemText primary={t} />
-          </MenuItem>
+          </EditorMenuItem>
         ))}
-      </Menu>
+      </EditorMenu>
 
       {/* Size dropdown (single) */}
       <ToolbarIconButton
@@ -98,22 +96,22 @@ const ModelFiltersBar: React.FC<ModelFiltersBarProps> = () => {
         active={!!sizeBucket || openSize}
         nodrag={false}
       />
-      <Menu
+      <EditorMenu
         anchorEl={sizeAnchor}
         open={openSize}
         onClose={() => setSizeAnchor(null)}
         keepMounted
       >
-        <MenuItem
+        <EditorMenuItem
           onClick={(e) => {
             e.stopPropagation();
             setSizeBucket(null);
           }}
         >
           <ListItemText primary="Any size" />
-        </MenuItem>
+        </EditorMenuItem>
         {sizeOptions.map((s) => (
-          <MenuItem
+          <EditorMenuItem
             key={s}
             onClick={(e) => {
               e.stopPropagation();
@@ -122,9 +120,9 @@ const ModelFiltersBar: React.FC<ModelFiltersBarProps> = () => {
             selected={sizeBucket === s}
           >
             <ListItemText primary={s} />
-          </MenuItem>
+          </EditorMenuItem>
         ))}
-      </Menu>
+      </EditorMenu>
 
     </Box>
   );

@@ -1,6 +1,6 @@
 import React, { forwardRef } from "react";
 import StopIcon from "@mui/icons-material/Stop";
-import { ToolbarIconButton } from "../../ui_primitives";
+import { ToolbarIconButton, MOTION } from "../../ui_primitives";
 
 interface StopGenerationButtonProps {
   onClick: () => void;
@@ -23,7 +23,7 @@ export const StopGenerationButton = forwardRef<
         padding: 0,
         backgroundColor: theme.vars.palette.grey[600],
         color: theme.vars.palette.text.primary,
-        transition: "background-color 0.15s ease, transform 0.1s ease",
+        transition: `${MOTION.background}, ${MOTION.transform}`,
         boxShadow: "none",
         "&:hover": {
           backgroundColor: theme.vars.palette.grey[600]
