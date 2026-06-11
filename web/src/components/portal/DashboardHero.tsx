@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, type ReactNode } from "react";
+import { MOTION } from "../ui_primitives";
 import WelcomeFlow from "./WelcomeFlow";
 import { wrapStyles } from "./dashboardChrome";
 import type { WelcomeTrackId } from "./welcomeTracks";
@@ -58,7 +59,7 @@ const heroStyles = (theme: Theme) =>
       border: `1px solid ${theme.vars.palette.divider}`,
       fontSize: 13.5,
       cursor: "pointer",
-      transition: "border-color 0.15s ease, background 0.15s ease",
+      transition: `border-color ${MOTION.fast}, background ${MOTION.fast}`,
       "&:hover": {
         borderColor: theme.vars.palette.action.focus,
         background: theme.vars.palette.c_node_bg

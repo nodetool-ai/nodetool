@@ -13,16 +13,13 @@
 import React, { memo, useState, useRef, useCallback, useEffect } from "react";
 import {
   Popover,
-  Typography,
   ToggleButtonGroup,
   ToggleButton,
   TextField,
   Slider,
-  Button,
   IconButton,
-  Tooltip
 } from "@mui/material";
-import { FlexColumn, FlexRow, Box } from "../ui_primitives";
+import { FlexColumn, FlexRow, Box, Text, EditorButton, Tooltip } from "../ui_primitives";
 import CloseIcon from "@mui/icons-material/Close";
 import {
   ColorMode,
@@ -282,7 +279,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
       {/* Opacity slider */}
       <Box className="color-picker__opacity" sx={{ px: SKETCH_SPACING.sm }}>
         <FlexRow align="center" sx={{ gap: SKETCH_SPACING.md }}>
-          <Typography sx={{ fontSize: SKETCH_FONT.xs, color: SKETCH_COLORS.textSecondary, minWidth: "24px" }}>A</Typography>
+          <Text sx={{ fontSize: SKETCH_FONT.xs, color: SKETCH_COLORS.textSecondary, minWidth: "24px" }}>A</Text>
           <Slider
             value={Math.round(a * 100)}
             min={0}
@@ -310,9 +307,9 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
               }
             }}
           />
-          <Typography sx={{ fontSize: SKETCH_FONT.xs, color: SKETCH_COLORS.textSecondary, minWidth: "28px", textAlign: "right" }}>
+          <Text sx={{ fontSize: SKETCH_FONT.xs, color: SKETCH_COLORS.textSecondary, minWidth: "28px", textAlign: "right" }}>
             {Math.round(a * 100)}%
-          </Typography>
+          </Text>
         </FlexRow>
       </Box>
 
@@ -353,7 +350,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
         <FlexRow className="color-picker__rgb-inputs" sx={{ gap: SKETCH_SPACING.xs }}>
           {(["r", "g", "b"] as const).map((ch) => (
             <FlexColumn key={ch} align="center" sx={{ flex: 1 }}>
-              <Typography sx={{ fontSize: SKETCH_FONT.xxs, color: SKETCH_COLORS.textMuted }}>{ch.toUpperCase()}</Typography>
+              <Text sx={{ fontSize: SKETCH_FONT.xxs, color: SKETCH_COLORS.textMuted }}>{ch.toUpperCase()}</Text>
               <TextField
                 size="small"
                 type="number"
@@ -371,9 +368,9 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
         <FlexRow className="color-picker__hsl-inputs" sx={{ gap: SKETCH_SPACING.xs }}>
           {(["h", "s", "l"] as const).map((ch) => (
             <FlexColumn key={ch} align="center" sx={{ flex: 1 }}>
-              <Typography sx={{ fontSize: SKETCH_FONT.xxs, color: SKETCH_COLORS.textMuted }}>
+              <Text sx={{ fontSize: SKETCH_FONT.xxs, color: SKETCH_COLORS.textMuted }}>
                 {ch === "h" ? "H°" : ch === "s" ? "S%" : "L%"}
-              </Typography>
+              </Text>
               <TextField
                 size="small"
                 type="number"
@@ -387,7 +384,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
         </FlexRow>
       )}
 
-      <Button
+      <EditorButton
         size="small"
         variant="contained"
         onClick={handleDismiss}
@@ -403,7 +400,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
         }}
       >
         OK
-      </Button>
+      </EditorButton>
 
     </Popover>
   );

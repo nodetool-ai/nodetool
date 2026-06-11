@@ -1,10 +1,9 @@
 import React, { useCallback, memo } from "react";
 import {
-  Menu,
   MenuItem,
   ListItemText
 } from "@mui/material";
-import { Caption, Divider, Text, Box } from "../ui_primitives";
+import { Caption, Divider, Text, Box, ContextMenu } from "../ui_primitives";
 import { Connection } from "@xyflow/react";
 import useContextMenu from "../../stores/ContextMenuStore";
 
@@ -52,7 +51,7 @@ const ConnectionMatchMenu: React.FC = () => {
   }
 
   return (
-    <Menu
+    <ContextMenu
       className="context-menu connection-match-menu"
       open
       onClose={closeContextMenu}
@@ -62,8 +61,7 @@ const ConnectionMatchMenu: React.FC = () => {
         }
       }}
       onContextMenu={(event) => event.preventDefault()}
-      anchorReference="anchorPosition"
-      anchorPosition={{ top: menuPosition.y, left: menuPosition.x }}
+      position={menuPosition}
     >
       <MenuItem disabled>
         <Text size="small" weight={600}>
@@ -116,7 +114,7 @@ const ConnectionMatchMenu: React.FC = () => {
           />
         </MenuItem>
       ])}
-    </Menu>
+    </ContextMenu>
   );
 };
 

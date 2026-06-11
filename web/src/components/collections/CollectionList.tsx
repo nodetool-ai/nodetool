@@ -1,6 +1,3 @@
-import {
-  List
-} from "@mui/material";
 import { memo, useEffect, useCallback, useMemo } from "react";
 import CollectionForm from "./CollectionForm";
 import AddIcon from "@mui/icons-material/Add";
@@ -157,7 +154,7 @@ const CollectionList = () => {
                 border: `1px solid ${theme.vars.palette.divider}`
               })}
             >
-              <List>
+              <ListGroup>
                 {collections?.collections.map((collection: CollectionResponse) => (
                   <CollectionItem
                     key={collection.name}
@@ -190,7 +187,7 @@ const CollectionList = () => {
                     }
                   />
                 ))}
-              </List>
+              </ListGroup>
             </Surface>
           )}
         </>

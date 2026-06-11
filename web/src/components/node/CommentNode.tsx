@@ -4,7 +4,7 @@ import { memo, useState, useCallback, useRef, useMemo } from "react";
 import { NodeProps, Node } from "@xyflow/react";
 import { debounce } from "../../utils/lodashAlternatives";
 import isEqual from "fast-deep-equal";
-import { Container } from "../ui_primitives";
+import { Container, MOTION } from "../ui_primitives";
 import { NodeData } from "../../stores/NodeData";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { useTheme } from "@mui/material/styles";
@@ -65,7 +65,7 @@ const styles = (theme: Theme) =>
     width: "100%",
     height: "100%",
     margin: 0,
-    borderRadius: "3px",
+    borderRadius: "var(--rounded-sm)",
     padding: "1em .5em",
     boxSizing: "border-box",
     boxShadow: "inset 0 0 5px 1px rgba(0, 0, 0, 0.067)",
@@ -97,7 +97,7 @@ const styles = (theme: Theme) =>
       justifyContent: "center",
       alignItems: "center",
       backgroundColor: "rgba(240, 240, 240, 0.08)",
-      borderRadius: "3px",
+      borderRadius: "var(--rounded-sm)",
       padding: "0.25em 0.5em",
       zIndex: 1,
       opacity: 0,
@@ -122,14 +122,14 @@ const styles = (theme: Theme) =>
       top: ".5em",
       right: ".5em",
       opacity: 0,
-      transition: "opacity 0.2s ease",
+      transition: `opacity ${MOTION.normal}`,
       "&:hover": {
         opacity: 1
       }
     },
     ".node-resize-handle": {
       opacity: 0.6,
-      transition: "opacity 0.2s ease",
+      transition: `opacity ${MOTION.normal}`,
       "&:hover": {
         opacity: 1
       }

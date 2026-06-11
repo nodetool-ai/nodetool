@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Box, FlexRow, FlexColumn, Text } from "../ui_primitives";
+import { Box, FlexRow, FlexColumn, Text, MOTION } from "../ui_primitives";
 import {
   providerColor,
   providerLabel,
@@ -105,7 +105,7 @@ const SpendOverTimeChartInternal: React.FC<SpendOverTimeChartProps> = ({
                 sx={{
                   width: 9,
                   height: 9,
-                  borderRadius: "3px",
+                  borderRadius: "var(--rounded-sm)",
                   backgroundColor: p.color,
                   flexShrink: 0
                 }}
@@ -201,7 +201,7 @@ const SpendOverTimeChartInternal: React.FC<SpendOverTimeChartProps> = ({
                     overflow: "hidden",
                     display: "flex",
                     flexDirection: "column-reverse",
-                    transition: "filter 120ms ease",
+                    transition: `filter ${MOTION.fast}`,
                     filter: isHovered ? "brightness(1.12)" : "none",
                     outline: isHovered
                       ? `1px solid ${theme.vars.palette.divider}`

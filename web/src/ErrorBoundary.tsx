@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import React, { useState } from "react";
 import { useRouteError } from "react-router-dom";
 import { ThemeProvider } from "@mui/material";
-import { CopyButton, Text, EditorButton, Box } from "./components/ui_primitives";
+import { CopyButton, Text, EditorButton, Box, MOTION } from "./components/ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -110,7 +110,7 @@ const errorBoundaryStyles = (theme: Theme) =>
       padding: "0.45em 1em",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       borderRadius: "var(--rounded-md)",
-      transition: "all 0.15s ease",
+      transition: MOTION.all,
       "&:hover": {
         borderColor: theme.vars.palette.c_link,
         color: theme.vars.palette.c_link,

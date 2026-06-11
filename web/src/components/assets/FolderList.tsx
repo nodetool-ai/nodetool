@@ -5,7 +5,7 @@ import {
   AccordionSummary,
   AccordionDetails
 } from "@mui/material";
-import { Box } from "../ui_primitives";
+import { Box, MOTION } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import React, { useCallback, useState, memo, useMemo, useEffect } from "react";
 import FolderItem from "./FolderItem";
@@ -110,7 +110,7 @@ const styles = (theme: Theme) =>
       width: EXPAND_ICON_SIZE_PX + "px",
       height: EXPAND_ICON_SIZE_PX + "px",
       transform: "rotate(-90deg)",
-      transition: "transform 0.25s ease"
+      transition: `transform ${MOTION.normal}`
     },
     // Rotate icon only when the corresponding summary is expanded
     ".accordion .accordion-summary.Mui-expanded .expand-gutter svg": {

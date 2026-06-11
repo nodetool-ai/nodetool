@@ -7,7 +7,7 @@
  */
 
 import React, { useMemo } from "react";
-import { Caption, FlexColumn, Surface, Box } from "../ui_primitives";
+import { Caption, FlexColumn, Surface, Box, MOTION } from "../ui_primitives";
 import { Graph } from "../../stores/ApiTypes";
 
 // Data structure that has graph - can be WorkflowVersion or Workflow
@@ -247,7 +247,7 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
           border: "1px solid",
           borderColor: "rgba(255,255,255,0.08)",
           borderRadius: 2,
-          transition: "all 0.2s ease-in-out",
+          transition: MOTION.all,
           "&:hover": {
             borderColor: "rgba(255,255,255,0.15)",
             boxShadow: "0 4px 12px rgba(0,0,0,0.3)"
@@ -289,7 +289,7 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
         borderRadius: 2,
         overflow: "hidden",
         position: "relative",
-        transition: "all 0.2s ease-in-out",
+        transition: MOTION.all,
         "&:hover": {
           borderColor: "rgba(96,165,250,0.3)",
           boxShadow: "0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(96,165,250,0.1)"

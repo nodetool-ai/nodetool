@@ -3,7 +3,7 @@ import type { SxProps, Theme } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useEditorScope } from "../../editor_ui";
-import { FlexColumn, FlexRow, Text, Caption, Tooltip, EditorButton } from "../../ui_primitives";
+import { FlexColumn, FlexRow, Text, Caption, Tooltip, EditorButton, MOTION } from "../../ui_primitives";
 
 interface ModelSelectButtonProps {
   label: React.ReactNode;
@@ -78,7 +78,7 @@ const ModelSelectButton = memo(forwardRef<HTMLButtonElement, ModelSelectButtonPr
             height: "auto",
             padding: "4px 8px",
             width: "100%",
-            transition: "all 0.2s ease-in-out",
+            transition: MOTION.all,
             "&:hover": {
               backgroundColor: "var(--palette-action-hover)",
               borderColor: "var(--palette-text-secondary)"

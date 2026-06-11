@@ -101,7 +101,7 @@ const NodeItem = memo(
                       color: "grey.300",
                       px: 1,
                       py: 0.5,
-                      borderRadius: "3px"
+                      borderRadius: "var(--rounded-sm)"
                     }}
                   >
                     {tag}
@@ -351,7 +351,7 @@ const NodeItem = memo(
                     color: theme.vars.palette.warning.main,
                     px: 0.5,
                     py: 0.5,
-                    borderRadius: "3px",
+                    borderRadius: "var(--rounded-sm)",
                     whiteSpace: "nowrap",
                     flexShrink: 0
                   }}
@@ -372,7 +372,7 @@ const NodeItem = memo(
                   color: theme.vars.palette.info.main,
                   px: 0.5,
                   py: 0.5,
-                  borderRadius: "3px",
+                  borderRadius: "var(--rounded-sm)",
                   whiteSpace: "nowrap",
                   flexShrink: 0
                 }}

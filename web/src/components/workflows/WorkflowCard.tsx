@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { Fade } from "@mui/material";
-import { Text, Tooltip, LoadingSpinner, Box } from "../ui_primitives";
+import { Text, Tooltip, LoadingSpinner, Box, MOTION } from "../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
@@ -52,8 +52,7 @@ const cardStyles = (theme: Theme) =>
     cursor: "pointer",
     background: theme.vars.palette.grey[900],
     border: `1px solid ${theme.vars.palette.grey[800]}`,
-    transition:
-      "transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease",
+    transition: `transform 0.2s ease, ${MOTION.border}, ${MOTION.shadow}`,
     "&:hover": {
       transform: "translateY(-2px)",
       borderColor: theme.vars.palette.primary.main,
@@ -97,7 +96,7 @@ const cardStyles = (theme: Theme) =>
       width: "100%",
       height: "100%",
       objectFit: "cover",
-      transition: "transform 0.3s ease"
+      transition: `transform ${MOTION.slow}`
     },
     "&:hover .card-image": {
       transform: "scale(1.03)"
@@ -106,7 +105,7 @@ const cardStyles = (theme: Theme) =>
       position: "absolute",
       inset: 0,
       pointerEvents: "none",
-      transition: "opacity 0.2s ease"
+      transition: MOTION.opacity
     },
     "&:hover .card-tint": {
       opacity: 0.85

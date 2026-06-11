@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, type ReactNode } from "react";
+import { MOTION } from "../ui_primitives";
 
 /** Shared horizontal rhythm for the dashboard: a centered column that the hero
  *  background and section borders bleed past, while content stays aligned. */
@@ -83,7 +84,7 @@ const searchStyles = (theme: Theme) =>
     borderRadius: 7,
     color: theme.vars.palette.text.secondary,
     minWidth: 240,
-    transition: "border-color 0.15s ease",
+    transition: `border-color ${MOTION.fast}`,
     "&:focus-within": {
       borderColor: theme.vars.palette.primary.main
     },

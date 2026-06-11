@@ -5,7 +5,7 @@ import isEqual from "fast-deep-equal";
 import PropertyLabel from "../../node/PropertyLabel";
 import { PropertyProps } from "../../node/PropertyInput";
 import { useTheme } from "@mui/material/styles";
-import { Text } from "../../ui_primitives";
+import { Text, MOTION } from "../../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import FileBrowserDialog from "../../dialogs/FileBrowserDialog";
 
@@ -55,7 +55,7 @@ const createPathPropertyStyles = (theme: Theme) =>
       cursor: "pointer",
       padding: "2px 4px",
       height: "100%",
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[500]
       }
@@ -84,7 +84,7 @@ const createPathPropertyStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
       "&:hover": {
         color: "var(--palette-primary-main)"
       }

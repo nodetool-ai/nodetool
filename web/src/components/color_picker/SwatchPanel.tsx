@@ -5,16 +5,14 @@ import { useShallow } from "zustand/react/shallow";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
-  Menu,
-  MenuItem
-} from "@mui/material";
-import {
   Text,
   Tooltip,
   FlexRow,
   FlexColumn,
   EditorButton,
-  Box
+  Box,
+  EditorMenu,
+  EditorMenuItem
 } from "../ui_primitives";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -308,13 +306,13 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
             Load
           </EditorButton>
         </FlexRow>
-        <Menu
+        <EditorMenu
           anchorEl={presetsMenuAnchor}
           open={Boolean(presetsMenuAnchor)}
           onClose={handlePresetsMenuClose}
         >
           {PRESET_PALETTES.map((palette) => (
-            <MenuItem key={palette.id} onClick={handleLoadPresetPalette(palette)}>
+            <EditorMenuItem key={palette.id} onClick={handleLoadPresetPalette(palette)}>
               <FlexRow gap={1} align="center">
                 <Text size="small">{palette.name}</Text>
                 <FlexRow gap={0.5}>
@@ -331,21 +329,21 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
                   ))}
                 </FlexRow>
               </FlexRow>
-            </MenuItem>
+            </EditorMenuItem>
           ))}
-        </Menu>
+        </EditorMenu>
       </FlexColumn>
 
       {/* Swatch Context Menu */}
-      <Menu
+      <EditorMenu
         anchorEl={swatchMenuAnchor?.element}
         open={Boolean(swatchMenuAnchor)}
         onClose={handleSwatchMenuClose}
       >
-        <MenuItem onClick={handleDeleteSwatch}>
+        <EditorMenuItem onClick={handleDeleteSwatch}>
           <DeleteIcon sx={{ fontSize: 16, mr: 1 }} /> Delete
-        </MenuItem>
-      </Menu>
+        </EditorMenuItem>
+      </EditorMenu>
     </FlexColumn>
   );
 };

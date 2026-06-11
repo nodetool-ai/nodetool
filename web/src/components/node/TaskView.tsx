@@ -3,8 +3,7 @@ import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { List } from "@mui/material";
-import { Text, Card } from "../ui_primitives";
+import { Text, Card, ListGroup } from "../ui_primitives";
 import { Task } from "../../stores/ApiTypes";
 import StepView from "./StepView";
 
@@ -46,11 +45,11 @@ const TaskView: React.FC<TaskViewProps> = memo(({ task }) => {
         )}
         {task.steps && task.steps.length > 0 && (
           <>
-            <List disablePadding>
+            <ListGroup flush>
               {task.steps?.map((step) => (
                 <StepView key={step.id} step={step} />
               ))}
-            </List>
+            </ListGroup>
           </>
         )}
       </Card>

@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { ReactElement, ReactNode, memo } from "react";
 import { MenuItem } from "@mui/material";
-import { EditorButton, Tooltip } from "../ui_primitives";
+import { EditorButton, Tooltip, MOTION } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 interface ContextMenuItemProps {
@@ -20,7 +20,7 @@ const styles = (theme: Theme) =>
   css({
     "&": {
       color: theme.vars.palette.grey[0],
-      transition: "all 0.2s ease-in-out"
+      transition: MOTION.all
     },
     "&:hover": {
       backgroundColor: "var(--palette-grey-800)"
@@ -30,7 +30,7 @@ const styles = (theme: Theme) =>
     },
     svg: {
       fontSize: theme.fontSizeNormal,
-      transition: "transform 0.2s ease"
+      transition: MOTION.transform
     },
     ul: {
       paddingLeft: 0,
@@ -60,12 +60,12 @@ const styles = (theme: Theme) =>
       textAlign: "left",
       justifyContent: "start",
       position: "relative",
-      transition: "all 0.15s ease-out"
+      transition: MOTION.fast
     },
     ".label": {
       display: "block",
       paddingLeft: "0.8em",
-      transition: "all 0.15s ease"
+      transition: MOTION.fast
     },
     "button.action:hover svg": {
       transform: "scale(1.2)"

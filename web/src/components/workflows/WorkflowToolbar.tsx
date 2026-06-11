@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { FC, useCallback, memo, useState, useMemo } from "react";
-import { Menu, MenuItem } from "@mui/material";
-import { ToolbarIconButton, DeleteButton, Chip, Box } from "../ui_primitives";
+import { ToolbarIconButton, DeleteButton, Chip, Box, EditorMenu, EditorMenuItem } from "../ui_primitives";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
@@ -237,7 +236,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
                 className={`tool-button ${selectedTags.length > 0 ? "active" : ""}`}
                 nodrag={false}
               />
-              <Menu
+              <EditorMenu
                 anchorEl={tagsMenuAnchor}
                 open={Boolean(tagsMenuAnchor)}
                 onClose={handleTagsMenuClose}
@@ -251,7 +250,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
                 }}
               >
                 {availableTags.map((tag) => (
-                  <MenuItem
+                  <EditorMenuItem
                     key={tag}
                     onClick={tagHandlers[tag]}
                     className="tag-menu-item"
@@ -262,9 +261,9 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
                       <span className="empty-icon" />
                     )}
                     {tag}
-                  </MenuItem>
+                  </EditorMenuItem>
                 ))}
-              </Menu>
+              </EditorMenu>
             </>
           )}
           {selectedWorkflowsCount > 0 && (
@@ -315,7 +314,7 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
             className="tool-button"
             nodrag={false}
           />
-          <Menu
+          <EditorMenu
             anchorEl={sortMenuAnchor}
             open={Boolean(sortMenuAnchor)}
             onClose={handleSortMenuClose}
@@ -328,19 +327,19 @@ const WorkflowToolbar: FC<WorkflowToolbarProps> = ({
               horizontal: "left",
             }}
           >
-            <MenuItem
+            <EditorMenuItem
               onClick={handleSortByDate}
               selected={sortBy === "date"}
             >
               Sort by Date
-            </MenuItem>
-            <MenuItem
+            </EditorMenuItem>
+            <EditorMenuItem
               onClick={handleSortByName}
               selected={sortBy === "name"}
             >
               Sort by Name
-            </MenuItem>
-          </Menu>
+            </EditorMenuItem>
+          </EditorMenu>
 
         </div>
 

@@ -48,7 +48,8 @@ import {
   Tooltip,
   LabeledSwitch,
   SelectField,
-  NodeMenuItem
+  NodeMenuItem,
+  MOTION
 } from "../../ui_primitives";
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 
@@ -116,7 +117,7 @@ const effectCardStyles = (
     overflowY: "auto",
     overflowX: "hidden",
     opacity: dragging ? 0.4 : 1,
-    transition: "opacity 0.12s",
+    transition: `opacity ${MOTION.fast}`,
     "&::before": dragOver
       ? {
           content: '""',

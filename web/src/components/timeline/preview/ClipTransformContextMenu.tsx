@@ -79,7 +79,7 @@ const ClipTransformContextMenu: React.FC<ClipTransformContextMenuProps> = ({
       minWidth={200}
       paperSx={{
         maxWidth: 280,
-        borderRadius: "10px",
+        borderRadius: "var(--rounded-lg)",
         backgroundImage: "none",
         backgroundColor: theme.vars.palette.grey[900],
         backdropFilter: "blur(16px)",

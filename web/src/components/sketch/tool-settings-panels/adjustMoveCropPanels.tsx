@@ -1,12 +1,10 @@
 import React, { memo } from "react";
 import {
-  Button,
   Checkbox,
   FormControlLabel,
-  Slider,
-  IconButton
+  Slider
 } from "@mui/material";
-import { FlexRow, Box, Text, Tooltip } from "../../ui_primitives";
+import { FlexRow, Box, Text, Tooltip, EditorButton, ToolbarIconButton } from "../../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
@@ -82,7 +80,7 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
         <Text className="setting-value">{saturation}</Text>
       </Box>
       <FlexRow gap={0.5}>
-        <Button
+        <EditorButton
           size="small"
           variant="outlined"
           color="primary"
@@ -91,8 +89,8 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
           sx={{ ...sketchButtonSmallSx, flex: 1 }}
         >
           Apply
-        </Button>
-        <Button
+        </EditorButton>
+        <EditorButton
           size="small"
           variant="outlined"
           disabled={!hasChanges}
@@ -100,7 +98,7 @@ export const AdjustmentsSettingsPanel = memo(function AdjustmentsSettingsPanel({
           sx={{ ...sketchButtonSmallSx, flex: 1 }}
         >
           Cancel
-        </Button>
+        </EditorButton>
       </FlexRow>
     </>
   );
@@ -226,38 +224,27 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
         <Text className="setting-value">{rotDeg}°</Text>
       </Box>
       <FlexRow sx={{ gap: "2px", ml: 1 }}>
-        <Tooltip title="Commit (Enter)" placement="bottom">
-          <IconButton
-            size="small"
-            color="success"
-            onClick={onCommit}
-            sx={{ padding: "3px" }}
-          >
-            <CheckIcon sx={{ fontSize: 18 }} />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Cancel (Esc)" placement="bottom">
-          <IconButton
-            size="small"
-            color="error"
-            onClick={onCancel}
-            sx={{ padding: "3px" }}
-          >
-            <CloseIcon sx={{ fontSize: 18 }} />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Reset" placement="bottom">
-          <IconButton
-            size="small"
-            onClick={onReset}
-            sx={{
-              color: SKETCH_COLORS.textSecondary,
-              padding: "3px"
-            }}
-          >
-            <RestartAltIcon sx={{ fontSize: 18 }} />
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          icon={<CheckIcon sx={{ fontSize: 18 }} />}
+          tooltip="Commit (Enter)"
+          tooltipPlacement="bottom"
+          onClick={onCommit}
+          sx={{ padding: "3px", color: "success.main" }}
+        />
+        <ToolbarIconButton
+          icon={<CloseIcon sx={{ fontSize: 18 }} />}
+          tooltip="Cancel (Esc)"
+          tooltipPlacement="bottom"
+          onClick={onCancel}
+          sx={{ padding: "3px", color: "error.main" }}
+        />
+        <ToolbarIconButton
+          icon={<RestartAltIcon sx={{ fontSize: 18 }} />}
+          tooltip="Reset"
+          tooltipPlacement="bottom"
+          onClick={onReset}
+          sx={{ padding: "3px", color: SKETCH_COLORS.textSecondary }}
+        />
       </FlexRow>
     </>
   );
@@ -287,28 +274,22 @@ export const CropSettingsPanel = memo(function CropSettingsPanel({
         or Apply to crop the canvas.
       </Text>
       <FlexRow sx={{ gap: "2px", ml: 1 }}>
-        <Tooltip title="Apply crop (Enter)" placement="bottom">
-          <IconButton
-            size="small"
-            color="success"
-            disabled={!hasPendingCrop}
-            onClick={onApply}
-            sx={{ padding: "3px" }}
-          >
-            <CheckIcon sx={{ fontSize: 18 }} />
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Cancel crop preview (Esc)" placement="bottom">
-          <IconButton
-            size="small"
-            color="error"
-            disabled={!hasPendingCrop}
-            onClick={onCancel}
-            sx={{ padding: "3px" }}
-          >
-            <CloseIcon sx={{ fontSize: 18 }} />
-          </IconButton>
-        </Tooltip>
+        <ToolbarIconButton
+          icon={<CheckIcon sx={{ fontSize: 18 }} />}
+          tooltip="Apply crop (Enter)"
+          tooltipPlacement="bottom"
+          disabled={!hasPendingCrop}
+          onClick={onApply}
+          sx={{ padding: "3px", color: "success.main" }}
+        />
+        <ToolbarIconButton
+          icon={<CloseIcon sx={{ fontSize: 18 }} />}
+          tooltip="Cancel crop preview (Esc)"
+          tooltipPlacement="bottom"
+          disabled={!hasPendingCrop}
+          onClick={onCancel}
+          sx={{ padding: "3px", color: "error.main" }}
+        />
       </FlexRow>
     </>
   );

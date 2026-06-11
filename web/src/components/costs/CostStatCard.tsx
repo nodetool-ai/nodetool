@@ -73,7 +73,7 @@ const CostStatCardInternal: React.FC<CostStatCardProps> = ({
             sx={{
               width: 11,
               height: 11,
-              borderRadius: "3px",
+              borderRadius: "var(--rounded-sm)",
               backgroundColor: valueDotColor,
               flexShrink: 0
             }}

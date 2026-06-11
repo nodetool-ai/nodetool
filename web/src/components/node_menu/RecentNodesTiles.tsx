@@ -6,7 +6,7 @@ import { memo, useCallback, useMemo } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type { DragEvent as ReactDragEvent } from "react";
-import { Tooltip, Text, ToolbarIconButton, thinScrollbarStyles } from "../ui_primitives";
+import { Tooltip, Text, ToolbarIconButton, thinScrollbarStyles, MOTION } from "../ui_primitives";
 import ClearIcon from "@mui/icons-material/Clear";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -85,7 +85,7 @@ const tileStyles = (theme: Theme) =>
         background:
           "linear-gradient(180deg, rgba(255,255,255,0.06), transparent 80%)",
         opacity: 0,
-        transition: "opacity 0.3s ease",
+        transition: `opacity ${MOTION.slow}`,
         pointerEvents: "none"
       },
       "&:hover": {
@@ -113,7 +113,7 @@ const tileStyles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       marginBottom: "6px",
-      transition: "transform 0.3s ease",
+      transition: `transform ${MOTION.slow}`,
       "& svg": {
         fontSize: "var(--fontSizeBig)",
         filter: theme.palette.mode === "dark"
@@ -128,7 +128,7 @@ const tileStyles = (theme: Theme) =>
       lineHeight: 1.3,
       color: theme.vars.palette.text.primary,
       opacity: 0.9,
-      transition: "opacity 0.3s ease",
+      transition: `opacity ${MOTION.slow}`,
       maxWidth: "100%",
       overflow: "hidden",
       textOverflow: "ellipsis",
