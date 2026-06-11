@@ -56,7 +56,7 @@ const tableStyles = (theme: Theme) =>
     ".table": {
       flex: 1,
       minHeight: 0,
-      borderRadius: 6,
+      borderRadius: theme.rounded.md,
       overflow: "hidden",
       backgroundColor: theme.vars.palette.background.paper,
       border: `1px solid ${theme.vars.palette.grey[800]}`
