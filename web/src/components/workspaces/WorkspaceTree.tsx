@@ -6,8 +6,7 @@ import isEqual from "fast-deep-equal";
 import { useQuery } from "@tanstack/react-query";
 import { FileInfo } from "../../stores/ApiTypes";
 import { trpcClient } from "../../trpc/client";
-import { Skeleton } from "@mui/material";
-import { Text, Caption, Box, EditorButton } from "../ui_primitives";
+import { Text, Caption, Box, EditorButton, Skeleton, MOTION } from "../ui_primitives";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import type { TreeViewBaseItem } from "@mui/x-tree-view/models";
 import { useTheme } from "@mui/material/styles";
@@ -77,7 +76,7 @@ const workspaceTreeStyles = (theme: Theme) =>
 
     ".settings-button": {
       color: theme.vars.palette.grey[400],
-      transition: "color 0.2s ease",
+      transition: `color ${MOTION.normal}`,
       "&:hover": {
         color: theme.vars.palette.primary.main
       }
@@ -125,7 +124,7 @@ const workspaceTreeStyles = (theme: Theme) =>
       cursor: "pointer",
       padding: "1px 4px",
       borderRadius: "var(--rounded-sm)",
-      transition: "color 0.15s, background-color 0.15s",
+      transition: `color ${MOTION.fast}, background-color ${MOTION.fast}`,
       overflow: "hidden",
       textOverflow: "ellipsis",
       "&:hover": {

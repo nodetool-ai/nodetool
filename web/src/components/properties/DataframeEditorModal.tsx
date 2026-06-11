@@ -10,7 +10,7 @@ import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import TableRowsIcon from "@mui/icons-material/TableRows";
 import SearchIcon from "@mui/icons-material/Search";
 import { InputAdornment } from "@mui/material";
-import { Tooltip } from "../ui_primitives";
+import { Tooltip, MOTION } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
 import Markdown from "react-markdown";
 
@@ -49,7 +49,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       justifyContent: "center",
       alignItems: "flex-start",
-      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)" // intentional cubic-bezier
     },
     ".modal-overlay.fullscreen": {
       top: 0,
@@ -79,7 +79,7 @@ const styles = (theme: Theme) =>
       boxShadow:
         "0 40px 80px -20px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255,255,255,0.05) inset",
       overflow: "hidden",
-      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)" // intentional cubic-bezier
     },
     ".modal-content.fullscreen": {
       width: "100%",
@@ -160,7 +160,7 @@ const styles = (theme: Theme) =>
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[300],
       cursor: "pointer",
-      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)", // intentional cubic-bezier
       "&:hover": {
         backgroundColor: `rgba(${theme.vars.palette.common.whiteChannel} / 0.1)`,
         color: theme.vars.palette.common.white,
@@ -346,7 +346,7 @@ const styles = (theme: Theme) =>
       gap: "0.35em",
       padding: "0.5em 1.25em 0.5em 0.75em",
       borderRadius: "var(--rounded-md)",
-      transition: "all 0.2s",
+      transition: MOTION.all,
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[600],
         color: theme.vars.palette.grey[0] + " !important"
@@ -367,7 +367,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
-      transition: "background-color 0.2s",
+      transition: MOTION.background,
       "&:hover": {
         backgroundColor: `rgba(${theme.vars.palette.common.whiteChannel} / 0.05)`
       },
@@ -382,7 +382,7 @@ const styles = (theme: Theme) =>
       opacity: 0.5,
       backgroundColor: theme.vars.palette.grey[600],
       borderRadius: "100px",
-      transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)"
+      transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)" // intentional spring cubic-bezier
     },
     "@media (max-width: 1200px)": {
       ".modal-content": {

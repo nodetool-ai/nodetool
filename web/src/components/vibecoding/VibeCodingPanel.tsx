@@ -2,13 +2,9 @@
 import React, { useCallback, useEffect, useMemo, memo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import {
-  DialogContentText,
-  Snackbar
-} from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import { AlertBanner, CloseButton, Dialog, EditorButton, Text, Tooltip, Box } from "../ui_primitives";
+import { AlertBanner, CloseButton, Dialog, EditorButton, Text, Tooltip, Box, Toast } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useVibeCodingStore } from "../../stores/VibeCodingStore";
 import { trpcClient } from "../../trpc/client";
@@ -298,10 +294,10 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
           </>
         }
       >
-        <DialogContentText>
+        <Text>
           You have unsaved changes. Are you sure you want to close without
           saving?
-        </DialogContentText>
+        </Text>
       </Dialog>
 
       {/* Clear App Dialog */}
@@ -318,23 +314,22 @@ const VibeCodingPanel: React.FC<VibeCodingPanelProps> = ({
           </>
         }
       >
-        <DialogContentText>
+        <Text>
           This will remove the custom app and the workflow will use the
           default MiniApp UI. This action cannot be undone.
-        </DialogContentText>
+        </Text>
       </Dialog>
 
-      {/* Snackbar */}
-      <Snackbar
+      {/* Toast notification */}
+      <Toast
         open={snackbar.open}
-        autoHideDuration={4000}
+        message={snackbar.message}
+        severity={snackbar.severity}
+        duration={4000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <AlertBanner severity={snackbar.severity} variant="filled">
-          {snackbar.message}
-        </AlertBanner>
-      </Snackbar>
+        vertical="bottom"
+        horizontal="center"
+      />
     </Box>
   );
 };

@@ -25,7 +25,8 @@ import {
   SearchInput,
   Checkbox,
   Popover,
-  LoadingSpinner
+  LoadingSpinner,
+  MOTION
 } from "../ui_primitives";
 import { CostStatCard } from "./CostStatCard";
 import { SpendOverTimeChart } from "./SpendOverTimeChart";
@@ -226,7 +227,7 @@ const CostsDashboard: React.FC = () => {
             fontSize: "var(--fontSizeSmall)",
             fontWeight: 500,
             color: theme.vars.palette.text.secondary,
-            transition: "color 120ms ease",
+            transition: `color ${MOTION.fast}`,
             "&:hover": { color: theme.vars.palette.text.primary }
           }}
         >
@@ -356,7 +357,7 @@ const CostsDashboard: React.FC = () => {
                     fontWeight: 600,
                     color: theme.vars.palette.primary.contrastText,
                     backgroundColor: theme.vars.palette.primary.main,
-                    transition: "background-color 120ms ease",
+                    transition: MOTION.background,
                     "&:hover": {
                       backgroundColor: theme.vars.palette.primary.dark
                     }
@@ -640,7 +641,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
           color: theme.vars.palette.text.primary,
           backgroundColor: theme.vars.palette.action.hover,
           border: `1px solid ${theme.vars.palette.divider}`,
-          transition: "background-color 120ms ease",
+          transition: MOTION.background,
           "&:hover": {
             backgroundColor: theme.vars.palette.action.selected
           }
@@ -668,7 +669,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
           sx={{
             fontSize: 16,
             color: theme.vars.palette.text.secondary,
-            transition: "transform 120ms ease",
+            transition: MOTION.transform,
             transform: open ? "rotate(180deg)" : "none"
           }}
         />

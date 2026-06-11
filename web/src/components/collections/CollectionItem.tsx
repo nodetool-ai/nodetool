@@ -1,10 +1,6 @@
 import React, { memo, useCallback, useMemo } from "react";
-import {
-  ListItem,
-  LinearProgress
-} from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import { DeleteButton, FlexRow, Text, Caption, Tooltip, LoadingSpinner, EditorButton } from "../ui_primitives";
+import { DeleteButton, FlexRow, FlexColumn, Text, Caption, Tooltip, LoadingSpinner, EditorButton, ProgressBar, MOTION } from "../ui_primitives";
 import { CollectionResponse } from "../../stores/ApiTypes";
 import {
   UseMutationResult,
@@ -41,15 +37,15 @@ const IndexingProgress = memo(function IndexingProgress({
 
   return (
     <>
-      <LinearProgress
+      <ProgressBar
+        value={(indexProgress.current / indexProgress.total) * 100}
+        showValue={false}
         sx={{
           ml: 2,
           width: 100,
           display: "inline-block",
           verticalAlign: "middle"
         }}
-        variant="determinate"
-        value={(indexProgress.current / indexProgress.total) * 100}
       />
       <br />
       <LoadingSpinner size={16} inline />
@@ -163,10 +159,7 @@ const CollectionItem = ({
     "&:hover": {
       backgroundColor: "action.hover"
     },
-    transition: "all 0.2s ease-in-out",
-    display: "flex",
-    flexDirection: "column",
-    gap: 2,
+    transition: MOTION.all,
     py: 3,
     px: 3,
     position: "relative"
@@ -180,14 +173,15 @@ const CollectionItem = ({
   }), []);
 
   return (
-    <ListItem
-      component="div"
+    <FlexColumn
       onDrop={onDrop}
       onDragOver={handleDragOver}
       onDragLeave={onDragLeave}
       sx={listItemSx}
-      secondaryAction={
-        deleteMutation.isPending &&
+      gap={2}
+    >
+      <FlexRow justify="flex-end" sx={{ position: "absolute", top: 8, right: 8 }}>
+        {deleteMutation.isPending &&
           deleteMutation.variables === collection.name ? (
           <LoadingSpinner size={20} inline />
         ) : (
@@ -198,9 +192,8 @@ const CollectionItem = ({
             sx={{ mt: -10 }}
             nodrag={false}
           />
-        )
-      }
-    >
+        )}
+      </FlexRow>
       {dragOverCollection === collection.name && (
         <FlexRow
           className="drop-zone-overlay"
@@ -320,7 +313,7 @@ const CollectionItem = ({
           </Tooltip>
         )}
       </div>
-    </ListItem>
+    </FlexColumn>
   );
 };
 

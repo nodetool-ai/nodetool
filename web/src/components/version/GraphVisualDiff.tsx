@@ -7,7 +7,7 @@
  */
 
 import React, { useMemo, memo } from "react";
-import { useTheme } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { GraphDiff } from "../../utils/graphDiff";
 import { Graph, Node } from "../../stores/ApiTypes";
 import { Caption, FlexColumn, FlexRow, Surface, Tooltip } from "../ui_primitives";

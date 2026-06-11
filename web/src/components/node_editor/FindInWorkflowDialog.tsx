@@ -3,8 +3,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useEffect, useRef, useCallback } from "react";
-import { List, ListItem, ListItemButton } from "@mui/material";
-import { Text, Caption, Box } from "../ui_primitives";
+import { ListItem, ListItemButton } from "@mui/material";
+import { Text, Caption, Box, ListGroup } from "../ui_primitives";
 import SearchIcon from "@mui/icons-material/Search";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
@@ -396,7 +396,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
         </Box>
 
         {results.length > 0 ? (
-          <List className="results-list" ref={listRef}>
+          <ListGroup className="results-list" ref={listRef}>
             {results.map((result, index) => (
               <ListItem
                 key={result.node.id}
@@ -419,7 +419,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
                 </ListItemButton>
               </ListItem>
             ))}
-          </List>
+          </ListGroup>
         ) : searchTerm ? (
           <Box className="empty-state">
             <SearchIcon className="empty-icon" />

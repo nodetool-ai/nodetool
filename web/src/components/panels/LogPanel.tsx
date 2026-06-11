@@ -9,7 +9,7 @@ import {
   Select,
   SelectChangeEvent
 } from "@mui/material";
-import { Chip, ToolbarIconButton, Box } from "../ui_primitives";
+import { Chip, ToolbarIconButton, Box, MOTION } from "../ui_primitives";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import { useTheme } from "@mui/material/styles";
@@ -86,7 +86,7 @@ const containerStyles = (theme: Theme) =>
       padding: "0 10px",
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       backgroundColor: theme.vars.palette.background.default,
-      transition: "background-color 0.2s ease",
+      transition: MOTION.background,
       ":nth-of-type(even)": {
         backgroundColor: `${theme.vars.palette.grey[600]}22`
       },

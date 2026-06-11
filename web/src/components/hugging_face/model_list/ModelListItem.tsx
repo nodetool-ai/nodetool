@@ -1,8 +1,7 @@
 /** @jsxImportSource @emotion/react */
 
 import React, { useMemo, useState, useCallback, memo } from "react";
-import { Link } from "@mui/material";
-import { Chip, FlexRow, Tooltip, Text, Box } from "../../ui_primitives";
+import { Chip, FlexRow, Tooltip, Text, Box, TextLink } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { ModelComponentProps } from "../ModelUtils";
@@ -129,15 +128,14 @@ const ModelListItem: React.FC<
                 }
 
                 return (
-                  <Link
+                  <TextLink
                     href={modelUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    external
                     className="model-name-link"
                     title={full}
                   >
                     {content}
-                  </Link>
+                  </TextLink>
                 );
               })()}
             </div>
@@ -183,10 +181,9 @@ const ModelListItem: React.FC<
                   delay={TOOLTIP_ENTER_DELAY * 2}
                   nextDelay={TOOLTIP_ENTER_NEXT_DELAY * 2}
                 >
-                  <Link
+                  <TextLink
                     href={`https://huggingface.co/models?pipeline_tag=${model.pipeline_tag}&sort=trending`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    external
                     className="pipeline-tag-link"
                   >
                     <Chip
@@ -195,7 +192,7 @@ const ModelListItem: React.FC<
                       className="pipeline-tag"
                       component="span"
                     />
-                  </Link>
+                  </TextLink>
                 </Tooltip>
               )}
               {compatibility && compatibilityCounts.total > 0 && (

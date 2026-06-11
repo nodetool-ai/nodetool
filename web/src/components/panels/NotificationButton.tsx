@@ -2,13 +2,11 @@
 import { css } from "@emotion/react";
 
 import React, { useCallback, useMemo, useState } from "react";
-import {
-  Popover
-} from "@mui/material";
+import { Popover } from "../ui_primitives";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
-import { CopyButton, Text, Caption, NotificationBadge, ToolbarIconButton, Box } from "../ui_primitives";
+import { CopyButton, Text, Caption, NotificationBadge, ToolbarIconButton, Box, MOTION } from "../ui_primitives";
 import { useShallow } from "zustand/react/shallow";
 
 const popoverStyles = css({
@@ -89,21 +87,12 @@ const NotificationButton: React.FC = React.memo(() => {
         open={Boolean(notificationAnchor)}
         anchorEl={notificationAnchor}
         onClose={handleNotificationClose}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "right"
-        }}
-        transformOrigin={{
-          vertical: "top",
-          horizontal: "right"
-        }}
-        sx={{
-          "& .MuiPopover-paper": {
-            backdropFilter: "blur(8px)",
-            backgroundColor: `${theme.vars.palette.grey[900]}E6`,
-            boxShadow: "0 16px 64px rgba(0, 0, 0, 0.4)",
-            border: `1px solid ${theme.vars.palette.grey[800]}`
-          }
+        placement="bottom-right"
+        paperSx={{
+          backdropFilter: "blur(8px)",
+          backgroundColor: `${theme.vars.palette.grey[900]}E6`,
+          boxShadow: "0 16px 64px rgba(0, 0, 0, 0.4)",
+          border: `1px solid ${theme.vars.palette.grey[800]}`
         }}
       >
         <Box
@@ -161,7 +150,7 @@ const NotificationButton: React.FC = React.memo(() => {
                         ? theme.vars.palette.info.main
                         : theme.vars.palette.grey[600]
                     }`,
-                    transition: "all 0.2s ease",
+                    transition: MOTION.all,
                     position: "relative",
                     "&:hover": {
                       backgroundColor: theme.vars.palette.grey[800]

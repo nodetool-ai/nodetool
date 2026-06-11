@@ -6,7 +6,6 @@ import {
   Tabs,
   Tab,
   Switch,
-  Stack,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -67,9 +66,11 @@ import {
   ConfirmButton,
   HelpButton,
   Box,
+  FlexRow,
   Text,
   Surface,
-  Chip
+  Chip,
+  MOTION
 } from "./ui_primitives";
 
 // Additional icons
@@ -138,7 +139,7 @@ const styles = (theme: Theme) => css`
   .component-card {
     border-radius: 12px;
     overflow: hidden;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: ${MOTION.transform}, ${MOTION.shadow};
     border: 1px solid ${theme.vars.palette.divider};
     background: ${theme.vars.palette.background.paper};
     
@@ -1166,7 +1167,7 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
               </Text>
             </div>
           </div>
-          <Stack direction="row" alignItems="center" spacing={2}>
+          <FlexRow gap={2} align="center">
             <FormControlLabel
               control={
                 <Switch
@@ -1178,7 +1179,7 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
               }
               label={mode === "dark" ? "Dark" : "Light"}
             />
-          </Stack>
+          </FlexRow>
         </div>
       </div>
 
@@ -1197,10 +1198,10 @@ const LayoutTest: React.FC = memo(function LayoutTest() {
               <Tab
                 key={cat.id}
                 label={
-                  <Stack direction="row" spacing={1} alignItems="center">
+                  <FlexRow gap={1} align="center">
                     <span>{cat.label}</span>
                     <Chip label={cat.count} size="small" />
-                  </Stack>
+                  </FlexRow>
                 }
                 value={cat.id}
               />

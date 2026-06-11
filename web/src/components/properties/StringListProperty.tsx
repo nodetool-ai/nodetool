@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo } from "react";
-import { Autocomplete, useTheme } from "@mui/material";
-import { Chip, Box } from "../ui_primitives";
+import { useTheme } from "@mui/material/styles";
+import { Autocomplete, Chip, Box, MOTION } from "../ui_primitives";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "fast-deep-equal";
@@ -29,7 +29,7 @@ const StringListProperty = (props: PropertyProps) => {
       border: "1px solid var(--palette-grey-700)",
       color: "var(--palette-grey-100)",
       fontSize: "var(--fontSizeSmall)",
-      transition: "all 0.2s",
+      transition: MOTION.all,
       "&:hover": {
         borderColor: "var(--palette-grey-600)",
         backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.3)`

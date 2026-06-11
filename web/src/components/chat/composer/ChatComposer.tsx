@@ -7,7 +7,7 @@ import React, {
   memo
 } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Collapse } from "@mui/material";
+import { Collapse } from "../../ui_primitives";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { Caption, FlexRow, ToolbarIconButton } from "../../ui_primitives";
 import SendIcon from "@mui/icons-material/Send";
