@@ -209,7 +209,7 @@ function readEnvPackPaths(): string[] {
 export function resolvePackTrust(
   options: PackTrustOptions = {}
 ): Required<PackTrustOptions> {
-  const fromFile = readTrustConfigFile();
+  const fromFile = readPacksConfigFile();
   const envAllow = process.env["NODETOOL_PACKS_ALLOWLIST"];
   const envList = envAllow
     ? envAllow
@@ -236,24 +236,78 @@ function trustConfigPath(): string {
   );
 }
 
-function readTrustConfigFile(): { allow?: string[]; allowUnlisted?: boolean } {
+interface PacksConfigFile {
+  allow?: string[];
+  allowUnlisted?: boolean;
+  enabledBuiltins?: string[];
+  disabledBuiltins?: string[];
+}
+
+function stringArray(value: unknown): string[] | undefined {
+  return Array.isArray(value)
+    ? value.filter((v): v is string => typeof v === "string")
+    : undefined;
+}
+
+function readPacksConfigFile(path: string = trustConfigPath()): PacksConfigFile {
   try {
-    const parsed = JSON.parse(readFileSync(trustConfigPath(), "utf8")) as {
+    const parsed = JSON.parse(readFileSync(path, "utf8")) as {
       allow?: unknown;
       allowUnlisted?: unknown;
+      enabledBuiltins?: unknown;
+      disabledBuiltins?: unknown;
     };
     return {
-      allow: Array.isArray(parsed.allow)
-        ? parsed.allow.filter((v): v is string => typeof v === "string")
-        : undefined,
+      allow: stringArray(parsed.allow),
       allowUnlisted:
         typeof parsed.allowUnlisted === "boolean"
           ? parsed.allowUnlisted
-          : undefined
+          : undefined,
+      enabledBuiltins: stringArray(parsed.enabledBuiltins),
+      disabledBuiltins: stringArray(parsed.disabledBuiltins)
     };
   } catch {
     return {};
   }
+}
+
+/**
+ * Explicit user overrides for built-in packs, keyed by pack id. Packs absent
+ * from the map keep their install default (`defaultEnabled` in the catalog).
+ * The server applies this at bootstrap; changes take effect on restart.
+ */
+export function readBuiltinPackOverrides(): Record<string, boolean> {
+  const config = readPacksConfigFile();
+  const overrides: Record<string, boolean> = {};
+  for (const id of config.disabledBuiltins ?? []) overrides[id] = false;
+  for (const id of config.enabledBuiltins ?? []) overrides[id] = true;
+  return overrides;
+}
+
+/**
+ * Persist built-in pack overrides as `enabledBuiltins` / `disabledBuiltins`
+ * lists, preserving the trust fields already in the config file. Creates
+ * parent directories as needed.
+ */
+export function writeBuiltinPackOverrides(
+  overrides: Record<string, boolean>,
+  path: string = trustConfigPath()
+): void {
+  const current = readPacksConfigFile(path);
+  const enabled = Object.keys(overrides).filter((id) => overrides[id]).sort();
+  const disabled = Object.keys(overrides)
+    .filter((id) => !overrides[id])
+    .sort();
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(
+    path,
+    JSON.stringify(
+      { ...current, enabledBuiltins: enabled, disabledBuiltins: disabled },
+      null,
+      2
+    ) + "\n",
+    "utf8"
+  );
 }
 
 /**
@@ -264,11 +318,17 @@ export function writePackTrustConfig(
   trust: { allowlist: string[]; allowUnlisted: boolean },
   path: string = trustConfigPath()
 ): void {
+  // Preserve unrelated fields (e.g. disabledBuiltins) already in the file.
+  const current = readPacksConfigFile(path);
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(
     path,
     JSON.stringify(
-      { allow: trust.allowlist, allowUnlisted: trust.allowUnlisted },
+      {
+        ...current,
+        allow: trust.allowlist,
+        allowUnlisted: trust.allowUnlisted
+      },
       null,
       2
     ) + "\n",

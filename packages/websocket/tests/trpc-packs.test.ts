@@ -142,6 +142,56 @@ describe("packs router", () => {
     await expect(caller.setTrust({})).rejects.toThrow();
   });
 
+  it("listBuiltins enables only required and default-enabled packs out of the box", async () => {
+    const caller = createCaller(makeCtx());
+    const result = await caller.listBuiltins();
+    const byId = new Map(result.packs.map((p) => [p.id, p]));
+    expect(byId.get("base")).toMatchObject({ enabled: true, required: true });
+    expect(byId.get("fal")?.enabled).toBe(true);
+    expect(byId.get("kie")?.enabled).toBe(true);
+    // Opt-in packs start disabled.
+    expect(byId.get("elevenlabs")?.enabled).toBe(false);
+    expect(byId.get("minimax")?.enabled).toBe(false);
+  });
+
+  it("setBuiltinEnabled persists overrides and applies them to the live registry", async () => {
+    const ctx = makeCtx();
+    const caller = createCaller(ctx);
+
+    const enabled = await caller.setBuiltinEnabled({
+      id: "minimax",
+      enabled: true
+    });
+    expect(enabled.packs.find((p) => p.id === "minimax")?.enabled).toBe(true);
+    // Applied live: the pack's nodes are registered without a restart.
+    expect(
+      ctx.registry.list().some((t) => t.startsWith("minimax."))
+    ).toBe(true);
+
+    const disabled = await caller.setBuiltinEnabled({
+      id: "minimax",
+      enabled: false
+    });
+    expect(disabled.packs.find((p) => p.id === "minimax")?.enabled).toBe(false);
+    expect(
+      ctx.registry.list().some((t) => t.startsWith("minimax."))
+    ).toBe(false);
+
+    const config = JSON.parse(readFileSync(configPath, "utf8"));
+    expect(config.enabledBuiltins).toEqual([]);
+    expect(config.disabledBuiltins).toEqual(["minimax"]);
+  });
+
+  it("setBuiltinEnabled rejects unknown ids and required packs", async () => {
+    const caller = createCaller(makeCtx());
+    await expect(
+      caller.setBuiltinEnabled({ id: "nope", enabled: false })
+    ).rejects.toThrow(/Unknown built-in pack/);
+    await expect(
+      caller.setBuiltinEnabled({ id: "base", enabled: false })
+    ).rejects.toThrow(/cannot be disabled/);
+  });
+
   it("reload re-runs the loader against the registry and refreshes the snapshot", async () => {
     // Empty searchPaths → loader finds nothing, snapshot becomes [].
     setPackSnapshot([fakePack("@acme/cool")]);

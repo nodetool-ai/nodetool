@@ -368,6 +368,16 @@ const api = {
     /** Path of the install root (so the UI can show it). */
     getInstallDir: () =>
       ipcRenderer.invoke(IpcChannels.NODE_PACK_GET_INSTALL_DIR),
+
+    /** List the built-in packs that ship with NodeTool and their enabled state. */
+    listBuiltin: () => ipcRenderer.invoke(IpcChannels.BUILTIN_PACK_LIST),
+
+    /** Enable or disable a built-in pack. Takes effect on the next server restart. */
+    setBuiltinEnabled: (id: string, enabled: boolean) =>
+      ipcRenderer.invoke(IpcChannels.BUILTIN_PACK_SET_ENABLED, {
+        id,
+        enabled,
+      }),
   },
 
   // ============================================================================

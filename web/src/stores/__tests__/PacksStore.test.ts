@@ -5,18 +5,26 @@ jest.mock("../../trpc/client", () => {
   const getTrust = jest.fn();
   const setTrust = jest.fn();
   const reload = jest.fn();
+  const listBuiltins = jest.fn();
+  const setBuiltinEnabled = jest.fn();
   return {
     trpcClient: {
       packs: {
         list: { query: list },
         getTrust: { query: getTrust },
         setTrust: { mutate: setTrust },
-        reload: { mutate: reload }
+        reload: { mutate: reload },
+        listBuiltins: { query: listBuiltins },
+        setBuiltinEnabled: { mutate: setBuiltinEnabled }
       }
     },
-    __mocks: { list, getTrust, setTrust, reload }
+    __mocks: { list, getTrust, setTrust, reload, listBuiltins, setBuiltinEnabled }
   };
 });
+
+jest.mock("../../serverState/useMetadata", () => ({
+  loadMetadata: jest.fn().mockResolvedValue("success")
+}));
 
 const { __mocks } = require("../../trpc/client") as {
   __mocks: {
@@ -24,7 +32,13 @@ const { __mocks } = require("../../trpc/client") as {
     getTrust: jest.Mock;
     setTrust: jest.Mock;
     reload: jest.Mock;
+    listBuiltins: jest.Mock;
+    setBuiltinEnabled: jest.Mock;
   };
+};
+
+const { loadMetadata } = require("../../serverState/useMetadata") as {
+  loadMetadata: jest.Mock;
 };
 
 import usePacksStore from "../PacksStore";
@@ -35,9 +49,12 @@ describe("PacksStore", () => {
     usePacksStore.setState({
       packs: [],
       trust: { allowlist: [], allowUnlisted: false },
+      builtins: [],
       isLoading: false,
       error: null
     });
+    // fetch() always queries builtins alongside packs/trust.
+    __mocks.listBuiltins.mockResolvedValue({ packs: [] });
   });
 
   describe("initial state", () => {
@@ -196,6 +213,57 @@ describe("PacksStore", () => {
 
       expect(usePacksStore.getState().isLoading).toBe(false);
       expect(usePacksStore.getState().error).toBeTruthy();
+    });
+  });
+
+  describe("builtins", () => {
+    const mockBuiltins = [
+      { id: "base", name: "Base Nodes", description: "", enabled: true, required: true },
+      { id: "minimax", name: "MiniMax", description: "", enabled: false, required: false }
+    ];
+
+    it("fetchBuiltins loads the built-in pack list", async () => {
+      __mocks.listBuiltins.mockResolvedValue({ packs: mockBuiltins });
+
+      await act(async () => {
+        await usePacksStore.getState().fetchBuiltins();
+      });
+
+      expect(usePacksStore.getState().builtins).toEqual(mockBuiltins);
+    });
+
+    it("setBuiltinEnabled updates builtins and refreshes node metadata", async () => {
+      const updated = [
+        mockBuiltins[0],
+        { ...mockBuiltins[1], enabled: true }
+      ];
+      __mocks.setBuiltinEnabled.mockResolvedValue({ packs: updated });
+
+      let result: boolean | undefined;
+      await act(async () => {
+        result = await usePacksStore.getState().setBuiltinEnabled("minimax", true);
+      });
+
+      expect(result).toBe(true);
+      expect(__mocks.setBuiltinEnabled).toHaveBeenCalledWith({
+        id: "minimax",
+        enabled: true
+      });
+      expect(usePacksStore.getState().builtins).toEqual(updated);
+      expect(loadMetadata).toHaveBeenCalled();
+    });
+
+    it("setBuiltinEnabled returns false and sets error on failure", async () => {
+      __mocks.setBuiltinEnabled.mockRejectedValue(new Error("nope"));
+
+      let result: boolean | undefined;
+      await act(async () => {
+        result = await usePacksStore.getState().setBuiltinEnabled("minimax", true);
+      });
+
+      expect(result).toBe(false);
+      expect(usePacksStore.getState().error).toBeTruthy();
+      expect(loadMetadata).not.toHaveBeenCalled();
     });
   });
 });
