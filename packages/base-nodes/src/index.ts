@@ -338,6 +338,12 @@ export {
   IMAGE_NODES
 } from "@nodetool-ai/image-nodes/nodes/image";
 export {
+  RenderSketchNode,
+  SketchLayersNode,
+  CreateSketchNode,
+  SKETCH_NODES
+} from "@nodetool-ai/image-nodes/nodes/sketch";
+export {
   TextToVideoNode,
   ImageToVideoNode,
   LoadVideoFileNode,
@@ -371,6 +377,12 @@ export {
   LipSyncNode,
   VIDEO_NODES
 } from "@nodetool-ai/video-nodes/nodes/video";
+export {
+  RenderTimelineNode,
+  TimelineTranscriptNode,
+  AddClipsToTimelineNode,
+  TIMELINE_NODES
+} from "@nodetool-ai/video-nodes/nodes/timeline";
 export {
   SummarizerNode,
   CreateThreadNode,
@@ -739,7 +751,9 @@ import { REALTIME_AUDIO_NODES } from "@nodetool-ai/audio-nodes/nodes/realtime-au
 import { SYNTHESIS_NODES } from "@nodetool-ai/audio-nodes/nodes/synthesis";
 import { TRIGGER_NODES } from "@nodetool-ai/automation-nodes/nodes/triggers";
 import { IMAGE_NODES } from "@nodetool-ai/image-nodes/nodes/image";
+import { SKETCH_NODES } from "@nodetool-ai/image-nodes/nodes/sketch";
 import { VIDEO_NODES } from "@nodetool-ai/video-nodes/nodes/video";
+import { TIMELINE_NODES } from "@nodetool-ai/video-nodes/nodes/timeline";
 import { AGENT_NODES } from "@nodetool-ai/llm-nodes/nodes/agents";
 import { GENERATOR_NODES } from "@nodetool-ai/llm-nodes/nodes/generators";
 import { MODEL3D_NODES } from "@nodetool-ai/video-nodes/nodes/model3d";
@@ -823,7 +837,9 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...SYNTHESIS_NODES,
   ...TRIGGER_NODES,
   ...IMAGE_NODES,
+  ...SKETCH_NODES,
   ...VIDEO_NODES,
+  ...TIMELINE_NODES,
   ...AGENT_NODES,
   ...GENERATOR_NODES,
   ...MODEL3D_NODES,

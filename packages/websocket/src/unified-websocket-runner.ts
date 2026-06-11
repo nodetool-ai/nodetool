@@ -25,12 +25,14 @@ import {
 } from "@nodetool-ai/kernel";
 import {
   Asset,
+  ImageDocument,
   Job,
   Message,
   ModelChangeEvent,
   ModelObserver,
   Prediction,
   Thread,
+  TimelineSequence,
   Workflow,
   type DBModel
 } from "@nodetool-ai/models";
@@ -584,6 +586,60 @@ function createRuntimeContext(opts: {
       await visit(folderId);
       out.sort((a, b) => a.name.localeCompare(b.name));
       return out;
+    },
+    getImageDocument: async ({ userId, id }) => {
+      const doc = await ImageDocument.findById(id);
+      if (!doc || doc.user_id !== userId) return null;
+      return doc.toResponse();
+    },
+    createImageDocument: async ({
+      userId,
+      name,
+      projectId,
+      width,
+      height,
+      document
+    }) => {
+      const doc = new ImageDocument({
+        user_id: userId,
+        project_id: projectId ?? "default",
+        name,
+        width,
+        height,
+        document: JSON.stringify(document)
+      });
+      await doc.save();
+      return doc.toResponse();
+    },
+    getTimelineSequence: async ({ userId, id }) => {
+      const seq = await TimelineSequence.findById(id);
+      if (!seq || seq.user_id !== userId) return null;
+      return seq.toTimelineSequence();
+    },
+    createTimelineSequence: async ({ userId, sequence }) => {
+      const seq = TimelineSequence.fromTimelineSequence(
+        userId,
+        sequence as Parameters<typeof TimelineSequence.fromTimelineSequence>[1]
+      );
+      await seq.save();
+      return seq.toTimelineSequence();
+    },
+    updateTimelineSequence: async ({ userId, id, sequence }) => {
+      const existing = await TimelineSequence.findById(id);
+      if (!existing || existing.user_id !== userId) return null;
+      const next = TimelineSequence.fromTimelineSequence(
+        userId,
+        sequence as Parameters<typeof TimelineSequence.fromTimelineSequence>[1]
+      );
+      const updated = await TimelineSequence.update(id, {
+        name: next.name,
+        fps: next.fps,
+        width: next.width,
+        height: next.height,
+        duration_ms: next.duration_ms,
+        document: next.document
+      });
+      return updated ? updated.toTimelineSequence() : null;
     }
   });
 
