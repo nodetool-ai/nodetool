@@ -105,6 +105,8 @@ export default function DeveloperFeaturesSection({
             className="mt-4 text-lg text-slate-400 max-w-2xl mx-auto"
           >
             The same workflows you build on the canvas, callable from a TypeScript SDK and CLI.
+            The @nodetool-ai packages aren&apos;t published to npm yet — these
+            examples run from a source checkout today.
           </motion.p>
         </div>
 

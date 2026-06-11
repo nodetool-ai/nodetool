@@ -71,7 +71,7 @@ const rows: Row[] = [
   {
     label: "Cost",
     studio: { value: "Free — pay only for the cloud APIs you use", ok: true },
-    cloud: { value: "Subscription + your own API spend (BYOK)", ok: false },
+    cloud: { value: "Free during alpha — you pay only your own API spend (BYOK)", ok: true },
   },
 ];
 

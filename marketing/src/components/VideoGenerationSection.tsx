@@ -51,8 +51,8 @@ export default function VideoGenerationSection({
             transition={{ duration: 0.5, delay: 0.1 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Generate videos from text or images using state-of-the-art models.
-            Support for Google Veo, Kling, Hailuo, Wan, and local open-weight generation.
+            Generate video from text or images with Google Veo, Kling, Hailuo,
+            and Wan — or run open-weight models on your own hardware.
           </motion.p>
 
           <motion.div

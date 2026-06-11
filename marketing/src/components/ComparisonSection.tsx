@@ -103,15 +103,15 @@ export default function ComparisonSection({
                 Every model. Your keys. Your canvas.
               </h3>
               <p className="text-slate-300 leading-relaxed mb-4 text-[1.025rem]">
-                Seedance is the best video model right now. It&apos;s available
-                on FAL, Replicate, and KIE at different price points. NodeTool
-                lets you pick the cheapest. When Veo 4 ships, you swap one node
-                and you&apos;re on it the same day.
+                Take Seedance, one of today&apos;s top video models. It&apos;s
+                available on FAL, Replicate, and KIE at different price points.
+                NodeTool lets you pick the cheapest. When the next Veo or Kling
+                ships, you swap one node and you&apos;re on it the same day.
               </p>
               <p className="text-slate-400 leading-relaxed text-[1.025rem]">
-                That&apos;s what vendor neutrality actually buys you. No credit
-                markup, no curated roster, no roadmap risk if your favourite
-                tool gets acquired.
+                That&apos;s what vendor neutrality actually buys you: the best
+                model at the best price, every week — and no roadmap risk if
+                your favourite tool gets acquired.
               </p>
             </div>
           </div>

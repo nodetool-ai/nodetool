@@ -19,19 +19,19 @@ const integrations = [
     category: "Language Models",
     icon: Bot,
     color: "text-blue-400",
-    items: ["OpenAI GPT-5.4", "Anthropic Claude", "Ollama", "Llama", "Mistral", "Qwen"],
+    items: ["OpenAI GPT-5.5", "Claude Opus 4.8", "Gemini 3 Pro", "Ollama", "Llama", "Mistral", "Qwen"],
   },
   {
     category: "Image Generation",
     icon: Image,
     color: "text-pink-400",
-    items: ["FLUX", "gpt-image-1.5", "Ideogram", "Stable Diffusion"],
+    items: ["FLUX", "gpt-image-2.0", "Qwen Image", "Ideogram", "Stable Diffusion"],
   },
   {
     category: "Video & Audio",
     icon: Video,
     color: "text-amber-400",
-    items: ["Seedance 2.0", "Kling 3.0", "Runway", "Sora", "ElevenLabs", "Suno", "Whisper"],
+    items: ["Veo 3.1", "Kling 3", "Seedance 3", "Wan 2.5", "Runway", "ElevenLabs", "Suno", "Whisper"],
   },
   {
     category: "Data & Search",

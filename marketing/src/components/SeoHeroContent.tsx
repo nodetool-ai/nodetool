@@ -60,10 +60,10 @@ export default function SeoHeroContent() {
           What Vendor Neutrality Actually Buys You
         </h2>
         <p className="text-slate-300 leading-relaxed">
-          Seedance is the best video model right now. It runs on FAL, Replicate,
+          Take Seedance, one of today&apos;s top video models. It runs on FAL, Replicate,
           and KIE at three different prices — NodeTool lets you pick the
-          cheapest, no contract, no markup. When Veo 4 ships next month, the
-          same canvas runs it the day the endpoint goes live. The best model
+          cheapest, no contract, no markup. When the next Veo or Kling ships,
+          the same canvas runs it the day the endpoint goes live. The best model
           for the job changes every few weeks. Your tool shouldn&apos;t be the
           thing that slows that down.
         </p>

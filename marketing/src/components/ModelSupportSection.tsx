@@ -44,17 +44,20 @@ const cloudProviders = [
     { title: "HuggingFace", url: "https://huggingface.co", LogoComponent: HuggingFaceLogo, icon: null, color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20" },
 ];
 
+// Perishable by design: stale names here directly undercut the
+// "swap models the day they launch" pitch — review on every release cycle.
 const frontierModels = [
-    { name: "Claude Opus 4.7", color: "text-amber-400" },
+    { name: "Claude Opus 4.8", color: "text-amber-400" },
     { name: "Claude Sonnet 4.6", color: "text-amber-400" },
     { name: "Claude Haiku 4.5", color: "text-amber-400" },
-    { name: "Gemini 2.5 Pro", color: "text-blue-400" },
-    { name: "Gemini 2.5 Flash", color: "text-blue-400" },
+    { name: "Gemini 3 Pro", color: "text-blue-400" },
+    { name: "Gemini 3 Flash", color: "text-blue-400" },
     { name: "Qwen Image", color: "text-sky-400" },
     { name: "Veo 3.1", color: "text-blue-400" },
-    { name: "Kling v2.1", color: "text-cyan-400" },
-    { name: "Hailuo 02", color: "text-red-400" },
-    { name: "Wan 2.2", color: "text-orange-400" },
+    { name: "Kling 3", color: "text-cyan-400" },
+    { name: "Seedance 3", color: "text-rose-400" },
+    { name: "Hailuo 2.3", color: "text-red-400" },
+    { name: "Wan 2.5", color: "text-orange-400" },
     { name: "FLUX", color: "text-pink-400" },
     { name: "Whisper", color: "text-emerald-400" },
     { name: "ElevenLabs", color: "text-violet-400" },
