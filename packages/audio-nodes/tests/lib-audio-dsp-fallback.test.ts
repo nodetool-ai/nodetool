@@ -43,19 +43,31 @@ async function runLowPass(): Promise<Float32Array> {
   return wav.samples;
 }
 
-describe("applyFilter seam", () => {
-  it("WebAudio branch (Node): low-pass attenuates a Nyquist square wave", async () => {
-    const out = await runLowPass();
-    expect(out.length).toBe(2048);
-    expect(tailRms(out)).toBeLessThan(0.05);
-  });
+// Generous timeout: node-web-audio-api's OfflineAudioContext render can blow
+// the 5 s default when the whole workspace's test suites run in parallel.
+const RENDER_TIMEOUT_MS = 30_000;
 
-  it("fallback branch: biquad path used when OfflineAudioContext is unavailable", async () => {
-    vi.doMock("@nodetool-ai/audio-nodes/lib/audio-context", () => ({
-      loadOfflineAudioContext: async () => null
-    }));
-    const out = await runLowPass();
-    expect(out.length).toBe(2048);
-    expect(tailRms(out)).toBeLessThan(0.05);
-  });
+describe("applyFilter seam", () => {
+  it(
+    "WebAudio branch (Node): low-pass attenuates a Nyquist square wave",
+    { timeout: RENDER_TIMEOUT_MS },
+    async () => {
+      const out = await runLowPass();
+      expect(out.length).toBe(2048);
+      expect(tailRms(out)).toBeLessThan(0.05);
+    }
+  );
+
+  it(
+    "fallback branch: biquad path used when OfflineAudioContext is unavailable",
+    { timeout: RENDER_TIMEOUT_MS },
+    async () => {
+      vi.doMock("@nodetool-ai/audio-nodes/lib/audio-context", () => ({
+        loadOfflineAudioContext: async () => null
+      }));
+      const out = await runLowPass();
+      expect(out.length).toBe(2048);
+      expect(tailRms(out)).toBeLessThan(0.05);
+    }
+  );
 });
