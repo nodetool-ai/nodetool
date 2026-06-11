@@ -67,6 +67,36 @@ const styles = (theme: Theme) =>
       gap: 8,
       alignItems: "center",
     },
+    ".portal-setup-key-help": {
+      fontSize: 11,
+      color: theme.vars.palette.c_gray4,
+      marginTop: 6,
+      "& a": {
+        color: theme.palette.primary.main,
+        textDecoration: "none",
+        "&:hover": { textDecoration: "underline" },
+      },
+    },
+    ".portal-setup-error": {
+      fontSize: 11,
+      color: theme.vars.palette.error.main,
+      marginTop: 6,
+    },
+    ".portal-setup-back": {
+      display: "block",
+      margin: "16px auto 0",
+      background: "none",
+      border: "none",
+      padding: "6px 10px",
+      borderRadius: 6,
+      fontSize: 12,
+      color: theme.vars.palette.c_gray5,
+      cursor: "pointer",
+      "&:hover": {
+        color: theme.vars.palette.c_white,
+        background: theme.vars.palette.c_gray1,
+      },
+    },
     ".portal-setup-note": {
       fontSize: 11,
       color: theme.vars.palette.c_gray4,
@@ -90,6 +120,8 @@ type Provider = {
   secretKey: string;
   color: string;
   defaultModel: string;
+  /** Where to create an API key for this provider. */
+  keyUrl: string;
 };
 
 const PROVIDERS: Provider[] = [
@@ -100,6 +132,7 @@ const PROVIDERS: Provider[] = [
     secretKey: "OPENAI_API_KEY",
     color: "#10a37f",
     defaultModel: "openai:gpt-4o",
+    keyUrl: "https://platform.openai.com/api-keys",
   },
   {
     id: "anthropic",
@@ -108,19 +141,29 @@ const PROVIDERS: Provider[] = [
     secretKey: "ANTHROPIC_API_KEY",
     color: "#d97706",
     defaultModel: "anthropic:claude-sonnet-4-20250514",
+    keyUrl: "https://console.anthropic.com/settings/keys",
   },
 ];
 
 type PortalSetupFlowProps = {
   onComplete: (defaultModel: string) => void;
+  /** Return to the dashboard without configuring a provider. */
+  onBack?: () => void;
+  /** Contextual intro line; defaults to the generic chat prompt. */
+  message?: string;
 };
 
-const PortalSetupFlow: React.FC<PortalSetupFlowProps> = ({ onComplete }) => {
+const PortalSetupFlow: React.FC<PortalSetupFlowProps> = ({
+  onComplete,
+  onBack,
+  message = "I'd love to help with that! To get started, connect an AI provider:",
+}) => {
   const theme = useTheme();
   const updateSecret = useSecretsStore((s) => s.updateSecret);
   const [expandedProvider, setExpandedProvider] = useState<string | null>(null);
   const [keyValue, setKeyValue] = useState("");
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [ollamaStatus, setOllamaStatus] = useState<
     "unchecked" | "checking" | "running" | "not-running"
   >("unchecked");
@@ -129,6 +172,7 @@ const PortalSetupFlow: React.FC<PortalSetupFlowProps> = ({ onComplete }) => {
     (provider: Provider) => {
       setExpandedProvider(provider.id);
       setKeyValue("");
+      setSaveError(null);
     },
     []
   );
@@ -152,11 +196,12 @@ const PortalSetupFlow: React.FC<PortalSetupFlowProps> = ({ onComplete }) => {
     async (provider: Provider) => {
       if (!keyValue.trim()) {return;}
       setSaving(true);
+      setSaveError(null);
       try {
         await updateSecret(provider.secretKey, keyValue.trim());
         onComplete(provider.defaultModel);
       } catch {
-        // Error handled by SecretsStore
+        setSaveError("Couldn't save the key. Check your connection and try again.");
       } finally {
         setSaving(false);
       }
@@ -166,9 +211,7 @@ const PortalSetupFlow: React.FC<PortalSetupFlowProps> = ({ onComplete }) => {
 
   return (
     <div css={styles(theme)}>
-      <div className="portal-setup-text">
-        {"I'd love to help with that! To get started, connect an AI provider:"}
-      </div>
+      <div className="portal-setup-text">{message}</div>
 
       <div className="portal-setup-providers">
         {PROVIDERS.map((provider) => (
@@ -198,28 +241,43 @@ const PortalSetupFlow: React.FC<PortalSetupFlowProps> = ({ onComplete }) => {
             </div>
 
             {expandedProvider === provider.id && (
-              <div className="portal-setup-key-input">
-                <TextInput
-                  size="small"
-                  type="password"
-                  placeholder={`${provider.name} API Key`}
-                  value={keyValue}
-                  onChange={(e) => setKeyValue(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {handleSaveKey(provider);}
-                  }}
-                  fullWidth
-                  autoFocus
-                />
-                <EditorButton
-                  variant="contained"
-                  density="compact"
-                  onClick={() => handleSaveKey(provider)}
-                  disabled={saving || !keyValue.trim()}
-                >
-                  {saving ? <LoadingSpinner size="small" inline /> : "Save"}
-                </EditorButton>
-              </div>
+              <>
+                <div className="portal-setup-key-input">
+                  <TextInput
+                    size="small"
+                    type="password"
+                    placeholder={`${provider.name} API Key`}
+                    value={keyValue}
+                    onChange={(e) => setKeyValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {handleSaveKey(provider);}
+                    }}
+                    fullWidth
+                    autoFocus
+                  />
+                  <EditorButton
+                    variant="contained"
+                    density="compact"
+                    onClick={() => handleSaveKey(provider)}
+                    disabled={saving || !keyValue.trim()}
+                  >
+                    {saving ? <LoadingSpinner size="small" inline /> : "Save"}
+                  </EditorButton>
+                </div>
+                <div className="portal-setup-key-help">
+                  No key yet?{" "}
+                  <a
+                    href={provider.keyUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Get a {provider.name} API key ↗
+                  </a>
+                </div>
+                {saveError && (
+                  <div className="portal-setup-error">{saveError}</div>
+                )}
+              </>
             )}
           </div>
         ))}
@@ -275,6 +333,12 @@ const PortalSetupFlow: React.FC<PortalSetupFlowProps> = ({ onComplete }) => {
       <div className="portal-setup-note">
         You can add more providers later in settings
       </div>
+
+      {onBack && (
+        <button type="button" className="portal-setup-back" onClick={onBack}>
+          ← Back to dashboard
+        </button>
+      )}
     </div>
   );
 };

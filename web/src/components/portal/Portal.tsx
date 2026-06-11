@@ -19,7 +19,7 @@ import DashboardTemplates from "./DashboardTemplates";
 import DashboardWorkflows from "./DashboardWorkflows";
 import DashboardFooter from "./DashboardFooter";
 import { useCreateStarterWorkflow } from "../../hooks/useCreateStarterWorkflow";
-import type { WelcomeTrackId } from "./welcomeTracks";
+import { WELCOME_TRACKS, type WelcomeTrackId } from "./welcomeTracks";
 import { Box } from "../ui_primitives";
 
 const KNOWN_PROVIDER_KEYS = [
@@ -72,6 +72,7 @@ const Portal: React.FC = () => {
   const navigate = useNavigate();
   const [portalState, setPortalState] = useState<PortalState>("idle");
   const [pendingMessage, setPendingMessage] = useState<string | null>(null);
+  const [pendingTrack, setPendingTrack] = useState<WelcomeTrackId | null>(null);
 
   useEnsureChatConnected({ disconnectOnUnmount: false });
 
@@ -103,9 +104,16 @@ const Portal: React.FC = () => {
 
   const handlePickTrack = useCallback(
     (trackId: WelcomeTrackId) => {
+      // A starter workflow needs a model to run; route key-less users through
+      // provider setup first so their first Run doesn't fail.
+      if (!hasConfiguredProvider) {
+        setPendingTrack(trackId);
+        setPortalState("setup");
+        return;
+      }
       createStarterWorkflow(trackId);
     },
-    [createStarterWorkflow]
+    [hasConfiguredProvider, createStarterWorkflow]
   );
 
   const handleOpenWorkflow = useCallback(
@@ -164,22 +172,52 @@ const Portal: React.FC = () => {
         name: id
       };
       setSelectedModel(model);
+      setPortalState("idle");
 
+      if (pendingTrack) {
+        const trackId = pendingTrack;
+        setPendingTrack(null);
+        createStarterWorkflow(trackId);
+        return;
+      }
       if (pendingMessage) {
         const text = pendingMessage;
         setPendingMessage(null);
         await sendAndNavigate([{ type: "text", text }], text);
       }
     },
-    [pendingMessage, setSelectedModel, sendAndNavigate]
+    [
+      pendingTrack,
+      pendingMessage,
+      setSelectedModel,
+      createStarterWorkflow,
+      sendAndNavigate
+    ]
   );
 
+  const handleSetupBack = useCallback(() => {
+    setPendingTrack(null);
+    setPendingMessage(null);
+    setPortalState("idle");
+  }, []);
+
   if (portalState === "setup") {
+    const pendingTrackLabel = pendingTrack
+      ? WELCOME_TRACKS.find((t) => t.id === pendingTrack)?.label
+      : undefined;
     return (
       <Box css={styles(theme)}>
         <div className="portal-setup-container">
           <div className="portal-setup-message">
-            <PortalSetupFlow onComplete={handleSetupComplete} />
+            <PortalSetupFlow
+              onComplete={handleSetupComplete}
+              onBack={handleSetupBack}
+              message={
+                pendingTrackLabel
+                  ? `Almost there — your ${pendingTrackLabel} starter needs a model to run. Connect an AI provider:`
+                  : undefined
+              }
+            />
           </div>
         </div>
       </Box>
