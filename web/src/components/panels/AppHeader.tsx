@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { Toolbar, useMediaQuery } from "@mui/material";
+import { Toolbar } from "@mui/material";
 import { EditorButton } from "../editor_ui";
 import AutoAwesomeMosaicIcon from "@mui/icons-material/AutoAwesomeMosaic";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -15,10 +15,6 @@ import Logo from "../Logo";
 import { FlexRow, Tooltip, Box, Text } from "../ui_primitives";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
 import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
-import { isProduction } from "../../lib/env";
-
-const workspacesEnabled = !isProduction;
-
 const styles = (theme: Theme) =>
   css({
     "&": {
@@ -276,8 +272,6 @@ const AppHeader: React.FC = memo(function AppHeader() {
   const path = useLocation().pathname;
   const headerStyles = useMemo(() => styles(theme), [theme]);
   const navigate = useNavigate();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-
   const isEditorRoute = path.startsWith("/editor/");
   const sketchDocumentId = path.match(/^\/sketch\/([^/]+)/)?.[1];
 
