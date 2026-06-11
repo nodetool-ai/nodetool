@@ -302,24 +302,25 @@ export function abortableSleep(
 
 /**
  * Drift-compensated wall-clock pacer for `realtime: true` generators: chunk
- * k is released no earlier than `start + k·chunkMs` (same scheme as
- * IntervalTriggerNode). Pacing never alters chunk contents — a realtime
- * render is bit-identical to a free run.
+ * k is released no earlier than the cumulative duration of chunks 0..k-1
+ * after start (absolute target times, same scheme as IntervalTriggerNode).
+ * Tracking the target cumulatively keeps variable-length chunks — e.g. the
+ * shorter final chunk of a bounded render — correctly paced. Pacing never
+ * alters chunk contents — a realtime render is bit-identical to a free run.
  */
 export class RealtimePacer {
-  private readonly _startMs = Date.now();
-  private _emitted = 0;
+  private _nextTargetMs = Date.now();
 
   constructor(private readonly _signal?: AbortSignal) {}
 
   /**
-   * Wait for the next emission slot. Returns false when the run was
+   * Wait for the chunk's emission slot, then advance the next slot by
+   * `chunkMs` (this chunk's duration). Returns false when the run was
    * cancelled — the caller must stop producing.
    */
   async waitNext(chunkMs: number): Promise<boolean> {
-    const targetMs = this._startMs + this._emitted * chunkMs;
-    this._emitted++;
-    const waitMs = targetMs - Date.now();
+    const waitMs = this._nextTargetMs - Date.now();
+    this._nextTargetMs += chunkMs;
     if (waitMs > 0) await abortableSleep(waitMs, this._signal);
     return !(this._signal?.aborted ?? false);
   }

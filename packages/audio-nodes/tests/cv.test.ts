@@ -4,6 +4,7 @@ import {
   float32ToF32le,
   makeSignalChunk,
   readSignalChunk,
+  RealtimePacer,
   SampleFifo,
   float32ToPcm16
 } from "@nodetool-ai/audio-nodes";
@@ -113,5 +114,26 @@ describe("SampleFifo", () => {
     const fifo = new SampleFifo();
     fifo.push(new Float32Array([5]));
     expect([...fifo.pull(3, "zero")]).toEqual([5, 0, 0]);
+  });
+});
+
+describe("RealtimePacer", () => {
+  it("paces variable-length chunks by cumulative duration", async () => {
+    const pacer = new RealtimePacer();
+    const start = Date.now();
+    // Chunk 0 (80 ms) is released immediately; its duration sets the next slot.
+    await pacer.waitNext(80);
+    expect(Date.now() - start).toBeLessThan(40);
+    // A short final chunk must still wait out chunk 0's duration — pacing by
+    // `emitted * chunkMs` would release it ~70 ms early here.
+    await pacer.waitNext(10);
+    expect(Date.now() - start).toBeGreaterThanOrEqual(70);
+  });
+
+  it("returns false once the signal aborts", async () => {
+    const controller = new AbortController();
+    const pacer = new RealtimePacer(controller.signal);
+    controller.abort();
+    expect(await pacer.waitNext(1000)).toBe(false);
   });
 });
