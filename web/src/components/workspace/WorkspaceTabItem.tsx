@@ -23,7 +23,7 @@ export interface WorkspaceTabItemProps {
   tab: WorkspaceTab;
   isActive: boolean;
   isEditing: boolean;
-  dropTarget: { id: string; position: "left" | "right" } | null;
+  dropPosition: "left" | "right" | null;
   typeColor: string;
   typeGlyph: string;
   onActivate: (tabId: string) => void;
@@ -43,7 +43,7 @@ const WorkspaceTabItem = ({
   tab,
   isActive,
   isEditing,
-  dropTarget,
+  dropPosition,
   typeColor,
   typeGlyph,
   onActivate,
@@ -75,11 +75,11 @@ const WorkspaceTabItem = ({
   const skipBlurCommitRef = useRef(false);
 
   const dropClass =
-    dropTarget?.id === tab.id
-      ? dropTarget.position === "left"
-        ? " drop-target-left"
-        : " drop-target-right"
-      : "";
+    dropPosition === "left"
+      ? " drop-target-left"
+      : dropPosition === "right"
+        ? " drop-target-right"
+        : "";
 
   const closeContextMenu = useCallback(() => {
     setContextMenuPosition(null);
