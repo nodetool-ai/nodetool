@@ -1,8 +1,13 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
+  audioRefFromBytes,
   encodePcm16Wav,
+  encodeWav,
+  float32ToPcm16,
   parseWavBytes,
-  readWavHeader
+  pcm16ToFloat32,
+  readWavHeader,
+  toBytes
 } from "@nodetool-ai/audio-nodes";
 
 describe("encodePcm16Wav", () => {
@@ -90,5 +95,58 @@ describe("parseWavBytes chunk traversal", () => {
   it("returns null for non-RIFF input", () => {
     expect(readWavHeader(new Uint8Array([1, 2, 3, 4]))).toBeNull();
     expect(parseWavBytes(new Uint8Array([1, 2, 3, 4]))).toBeNull();
+  });
+});
+
+describe("Buffer-free operation (browser environment)", () => {
+  // The browser bundle stubs `node:buffer`, so every codec path must work
+  // with `Buffer` absent. Simulate that by removing the global.
+  beforeEach(() => {
+    vi.stubGlobal("Buffer", undefined);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("encodeWav → parseWavBytes round-trips without Buffer", () => {
+    const samples = new Float32Array([0, 0.5, -0.5, 1, -1, 0.25]);
+    const wav = encodeWav(samples, 24000, 2);
+    const decoded = parseWavBytes(wav);
+    expect(decoded).not.toBeNull();
+    expect(decoded?.sampleRate).toBe(24000);
+    expect(decoded?.numChannels).toBe(2);
+    for (let i = 0; i < samples.length; i++) {
+      expect(decoded!.samples[i]).toBeCloseTo(samples[i], 4);
+    }
+  });
+
+  it("encodePcm16Wav → readWavHeader round-trips without Buffer", () => {
+    const pcm = new Uint8Array([0, 0, 232, 3, 24, 252]);
+    const wav = encodePcm16Wav(pcm, 16000, 1);
+    const header = readWavHeader(wav);
+    expect(header?.sampleRate).toBe(16000);
+    expect(header?.numChannels).toBe(1);
+    expect(header?.bitsPerSample).toBe(16);
+    expect(header?.dataSize).toBe(pcm.length);
+    expect(wav.slice(44)).toEqual(pcm);
+  });
+
+  it("audioRefFromBytes → toBytes base64 round-trips without Buffer", () => {
+    const bytes = new Uint8Array([0, 1, 2, 250, 251, 252, 253, 254, 255]);
+    const ref = audioRefFromBytes(bytes);
+    expect(typeof ref.data).toBe("string");
+    expect(toBytes(ref.data as string)).toEqual(bytes);
+  });
+
+  it("pcm16ToFloat32 / float32ToPcm16 round-trip and clip", () => {
+    const samples = new Float32Array([0, 0.5, -0.5, 1, -1]);
+    const back = pcm16ToFloat32(float32ToPcm16(samples));
+    for (let i = 0; i < samples.length; i++) {
+      expect(back[i]).toBeCloseTo(samples[i], 4);
+    }
+    // Out-of-range input clips instead of wrapping.
+    const clipped = pcm16ToFloat32(float32ToPcm16(new Float32Array([2, -2])));
+    expect(clipped[0]).toBeCloseTo(1, 4);
+    expect(clipped[1]).toBeCloseTo(-1, 4);
   });
 });
