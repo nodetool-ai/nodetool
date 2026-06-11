@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
+import { MOTION } from "../ui_primitives";
 
 export const assetGridStyles = (theme: Theme) => {
   return css({
@@ -149,7 +150,7 @@ export const assetGridStyles = (theme: Theme) => {
     "& .dv-split-view-container > .dv-sash-container > .dv-sash": {
       position: "relative",
       backgroundColor: "transparent",
-      transition: "background-color 0.15s ease",
+      transition: MOTION.background,
       borderRadius: "var(--rounded-xs)"
     },
     "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash":
@@ -171,7 +172,7 @@ export const assetGridStyles = (theme: Theme) => {
         backgroundColor: theme.vars.palette.grey[300],
         borderRadius: "1px",
         opacity: 0.6,
-        transition: "background-color 0.15s ease, opacity 0.15s ease"
+        transition: `${MOTION.background}, ${MOTION.opacity}`
       },
     "& .dv-split-view-container.dv-vertical > .dv-sash-container > .dv-sash": {
       height: "10px",
@@ -191,7 +192,7 @@ export const assetGridStyles = (theme: Theme) => {
         backgroundColor: theme.vars.palette.grey[300],
         borderRadius: "1px",
         opacity: 0.6,
-        transition: "background-color 0.15s ease, opacity 0.15s ease"
+        transition: `${MOTION.background}, ${MOTION.opacity}`
       },
     "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash:hover::after":
       {

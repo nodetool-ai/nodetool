@@ -4,7 +4,7 @@ import { memo, useState, useCallback, useRef, useMemo } from "react";
 import { NodeProps, Node } from "@xyflow/react";
 import { debounce } from "../../utils/lodashAlternatives";
 import isEqual from "fast-deep-equal";
-import { Container } from "../ui_primitives";
+import { Container, MOTION } from "../ui_primitives";
 import { NodeData } from "../../stores/NodeData";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { useTheme } from "@mui/material/styles";
@@ -122,14 +122,14 @@ const styles = (theme: Theme) =>
       top: ".5em",
       right: ".5em",
       opacity: 0,
-      transition: "opacity 0.2s ease",
+      transition: `opacity ${MOTION.normal}`,
       "&:hover": {
         opacity: 1
       }
     },
     ".node-resize-handle": {
       opacity: 0.6,
-      transition: "opacity 0.2s ease",
+      transition: `opacity ${MOTION.normal}`,
       "&:hover": {
         opacity: 1
       }

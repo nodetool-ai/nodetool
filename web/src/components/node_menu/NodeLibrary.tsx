@@ -14,7 +14,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 
-import { Text, thinScrollbarStyles } from "../ui_primitives";
+import { Text, thinScrollbarStyles, MOTION } from "../ui_primitives";
 import NodeLibraryRow from "./NodeLibraryRow";
 import NodeInfo from "./NodeInfo";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -80,7 +80,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       borderRadius: "var(--rounded-md)",
       backgroundColor: theme.vars.palette.background.paper,
       border: `1px solid ${theme.vars.palette.divider}`,
-      transition: "border-color 120ms ease",
+      transition: `border-color ${MOTION.fast}`,
       "&:focus-within": {
         borderColor: theme.vars.palette.primary.main
       },
@@ -197,7 +197,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       lineHeight: 1.2,
       textAlign: "left",
       cursor: "pointer",
-      transition: "background-color 140ms ease, color 140ms ease",
+      transition: `background-color ${MOTION.fast}, color ${MOTION.fast}`,
       "& .nl-cat-icon": {
         display: "inline-flex",
         flexShrink: 0,

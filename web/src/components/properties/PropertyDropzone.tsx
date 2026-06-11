@@ -4,7 +4,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState, useRef, ChangeEvent } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
-import { Tooltip, ToolbarIconButton } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, MOTION } from "../ui_primitives";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import ImageDimensions from "../node/ImageDimensions";
 import { useTheme } from "@mui/material/styles";
@@ -71,7 +71,7 @@ const PropertyDropzone = ({
         border: "0",
         maxWidth: "none",
         textAlign: "left",
-        transition: "all 0.2s ease",
+        transition: MOTION.all,
         outline: `1px dashed ${theme.vars.palette.divider}`,
         margin: "5px 0",
         backgroundColor: theme.vars.palette.Paper.overlay,
@@ -130,7 +130,7 @@ const PropertyDropzone = ({
       },
       ".image-dimensions": {
         opacity: 0,
-        transition: "opacity 0.2s ease"
+        transition: `opacity ${MOTION.normal}`
       },
       "&:hover .image-dimensions": {
         opacity: 1
@@ -142,7 +142,7 @@ const PropertyDropzone = ({
         display: "flex",
         gap: "4px",
         opacity: 0,
-        transition: "opacity 0.2s ease",
+        transition: `opacity ${MOTION.normal}`,
         zIndex: 10
       },
       ".dropzone:hover .asset-actions": {

@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useCallback, useMemo, useState } from "react";
-import { Tooltip, ToolbarIconButton } from "../../ui_primitives";
+import { Tooltip, ToolbarIconButton, MOTION } from "../../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import isEqual from "fast-deep-equal";
 import { useTheme } from "@mui/material/styles";
@@ -68,7 +68,7 @@ const styles = (theme: Theme) =>
       top: "4px",
       opacity: 0,
       zIndex: 10,
-      transition: "opacity 0.2s ease"
+      transition: `opacity ${MOTION.normal}`
     },
     "&:hover .dataframe-action-buttons": {
       opacity: 1

@@ -8,7 +8,7 @@ import type {
   DragEvent as ReactDragEvent,
   KeyboardEvent as ReactKeyboardEvent
 } from "react";
-import { Tooltip, Text, thinScrollbarStyles } from "../ui_primitives";
+import { Tooltip, Text, thinScrollbarStyles, MOTION } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useShallow } from "zustand/react/shallow";
@@ -91,7 +91,7 @@ const tileStyles = (theme: Theme) =>
         background:
           "linear-gradient(180deg, rgba(255,255,255,0.06), transparent 80%)",
         opacity: 0,
-        transition: "opacity 0.3s ease",
+        transition: `opacity ${MOTION.slow}`,
         pointerEvents: "none"
       },
       "&:hover": {
@@ -151,7 +151,7 @@ const tileStyles = (theme: Theme) =>
       lineHeight: 1.3,
       color: theme.vars.palette.text.primary,
       opacity: 0.9,
-      transition: "opacity 0.3s ease",
+      transition: `opacity ${MOTION.slow}`,
       maxWidth: "100%"
     }
   });

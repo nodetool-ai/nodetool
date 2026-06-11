@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useCallback, memo, useMemo } from "react";
-import { FavoriteButton } from "../ui_primitives";
+import { FavoriteButton, MOTION } from "../ui_primitives";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 
 export interface FavoriteStarProps {
@@ -17,7 +17,7 @@ const wrapperStyles = (_theme: Theme) =>
   css({
     display: "inline-flex",
     alignItems: "center",
-    transition: "all 0.2s ease-in-out",
+    transition: MOTION.all,
     opacity: 0,
     "&:hover": {
       scale: 1.5,

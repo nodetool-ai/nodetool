@@ -28,7 +28,7 @@ import {
   timelineTemporalOf
 } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
-import { Tooltip } from "../../ui_primitives";
+import { Tooltip, MOTION } from "../../ui_primitives";
 import {
   DEFAULT_TRACK_HEIGHT_PX as SHARED_DEFAULT_TRACK_HEIGHT_PX,
   FX_PANEL_HEIGHT_PX
@@ -163,7 +163,7 @@ const iconButtonStyles = (theme: Theme, active = true) =>
       ? theme.vars.palette.text.secondary
       : theme.vars.palette.text.disabled,
     borderRadius: 5,
-    transition: "background-color 120ms, color 120ms, border-color 120ms",
+    transition: `background-color ${MOTION.fast}, color ${MOTION.fast}, border-color ${MOTION.fast}`,
     "&:hover": {
       backgroundColor: theme.vars.palette.action.hover,
       color: theme.vars.palette.text.primary,

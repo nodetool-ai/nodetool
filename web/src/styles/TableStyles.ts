@@ -1,5 +1,6 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
+import { MOTION } from "../components/ui_primitives";
 
 export const tableStyles = (theme: Theme) =>
   css({
@@ -87,7 +88,7 @@ export const tableStyles = (theme: Theme) =>
     // Sorting arrow
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
       {
-        transition: "border 0.15s"
+        transition: `border ${MOTION.fast}`
       },
     ".tabulator .tabulator-header .tabulator-col.tabulator-sortable[aria-sort=ascending] .tabulator-col-content .tabulator-col-sorter .tabulator-arrow":
       {

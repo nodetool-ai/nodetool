@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type { CSSProperties, DragEvent as ReactDragEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
-import { Tooltip, Text, ToolbarIconButton, thinScrollbarStyles, Box } from "../ui_primitives";
+import { Tooltip, Text, ToolbarIconButton, thinScrollbarStyles, Box, MOTION } from "../ui_primitives";
 import CloseIcon from "@mui/icons-material/Close";
 import ClearIcon from "@mui/icons-material/Clear";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM, NOTIFICATION_TIMEOUT_SHORT } from "../../config/constants";
@@ -88,7 +88,7 @@ const tileStyles = (theme: Theme) =>
         borderRadius: "inherit",
         background: `linear-gradient(180deg, ${theme.vars.palette.action.hover}, transparent 80%)`,
         opacity: 0,
-        transition: "opacity 0.3s ease",
+        transition: `opacity ${MOTION.slow}`,
         pointerEvents: "none"
       },
       "&:hover": {
@@ -115,7 +115,7 @@ const tileStyles = (theme: Theme) =>
       lineHeight: 1.3,
       color: theme.vars.palette.text.primary,
       opacity: 0.8,
-      transition: "opacity 0.3s ease",
+      transition: `opacity ${MOTION.slow}`,
       maxWidth: "100%",
       overflow: "hidden",
       textOverflow: "ellipsis",
@@ -146,7 +146,7 @@ const tileStyles = (theme: Theme) =>
       padding: "2px",
       minWidth: 0,
       opacity: 0,
-      transition: "opacity 0.2s ease",
+      transition: `opacity ${MOTION.normal}`,
       color: theme.vars.palette.text.secondary,
       "&:hover": {
         color: theme.vars.palette.warning.main,

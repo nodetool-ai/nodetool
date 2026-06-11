@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useCallback, useEffect, useState } from "react";
 import { shallow } from "zustand/shallow";
-import { Tooltip, Text, EditorButton, FlexRow, CloseButton, Box } from "../ui_primitives";
+import { Tooltip, Text, EditorButton, FlexRow, CloseButton, Box, MOTION } from "../ui_primitives";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { useReactFlow, useViewport } from "@xyflow/react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -114,7 +114,7 @@ const styles = (theme: Theme) =>
       textTransform: "uppercase",
       display: "inline-block",
       cursor: "pointer",
-      transition: "background-color 0.2s ease",
+      transition: `background-color ${MOTION.normal}`,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.selected,
         color: theme.vars.palette.primary.main

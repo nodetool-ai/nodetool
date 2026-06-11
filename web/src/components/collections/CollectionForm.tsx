@@ -11,7 +11,8 @@ import {
   LoadingSpinner,
   TextInput,
   EditorButton,
-  Box
+  Box,
+  MOTION
 } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -47,7 +48,7 @@ const styles = (theme: Theme) =>
       right: theme.spacing(1),
       top: theme.spacing(1),
       color: theme.vars.palette.text.secondary,
-      transition: "all 0.2s",
+      transition: MOTION.all,
       "&:hover": {
         color: theme.vars.palette.text.primary,
         backgroundColor: theme.vars.palette.action.hover

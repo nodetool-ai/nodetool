@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useMemo, useRef, useEffect, useCallback } from "react";
-import { Text, Box } from "../ui_primitives";
+import { Text, Box, MOTION } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListItem from "./WorkflowListItem";
@@ -53,7 +53,7 @@ const listStyles = (theme: Theme) =>
       outline: "none",
       border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.04)`,
       borderRadius: 10,
-      transition: "background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease",
+      transition: `background ${MOTION.normal}, border-color ${MOTION.normal}, box-shadow ${MOTION.normal}, transform ${MOTION.normal}`,
       "& .MuiCheckbox-root": {
         margin: "0 0.75em 0 0",
         padding: 0
@@ -152,7 +152,7 @@ const listStyles = (theme: Theme) =>
       gap: "4px",
       zIndex: 10,
       opacity: 0,
-      transition: "opacity 0.15s ease",
+      transition: MOTION.opacity,
       background: `linear-gradient(to right, transparent, rgb(${theme.vars.palette.background.defaultChannel} / 0.96) 16px)`,
       paddingLeft: "24px",
       button: {

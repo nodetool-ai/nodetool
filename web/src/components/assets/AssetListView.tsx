@@ -12,7 +12,7 @@ import { getAssetCategory } from "./assetGridUtils";
 import FolderIcon from "@mui/icons-material/Folder";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { ExpandCollapseButton, EmptyState, Text, Box } from "../ui_primitives";
+import { ExpandCollapseButton, EmptyState, Text, Box, MOTION } from "../ui_primitives";
 import { useSettingsStore } from "../../stores/SettingsStore";
 
 interface AssetListViewProps {
@@ -121,7 +121,7 @@ const styles = (theme: Theme) =>
       padding: "0.2em 1em",
       borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
       cursor: "pointer",
-      transition: "background-color 0.2s",
+      transition: MOTION.background,
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[800]
       },

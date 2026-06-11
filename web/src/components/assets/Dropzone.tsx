@@ -3,6 +3,7 @@ import { useState, DragEvent, useRef, useCallback, useEffect } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { MOTION } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -41,7 +42,7 @@ const styles = (theme: Theme) =>
       border: "none",
       outline: "none",
       borderRadius: "5px",
-      transition: "background 0.2s"
+      transition: `background ${MOTION.normal}`
     }
   });
 

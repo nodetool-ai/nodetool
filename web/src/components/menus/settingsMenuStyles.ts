@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import type { CSSObject } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
+import { MOTION } from "../ui_primitives";
 
 export const settingsStyles = (theme: Theme): CSSObject => ({
   display: "flex",
@@ -19,7 +20,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     },
     "& .MuiTab-root": {
       color: theme.vars.palette.grey[200],
-      transition: "color 0.2s ease",
+      transition: `color ${MOTION.normal}`,
       paddingBottom: "0em",
       "&.Mui-selected": {
         color: theme.vars.palette.grey[0]
@@ -135,7 +136,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     fontSize: theme.fontSizeSmall,
     color: theme.vars.palette.grey[0],
     opacity: "0.7",
-    transition: "all 0.2s ease",
+    transition: MOTION.all,
     borderLeft: "2px solid transparent",
     "&:hover": {
       opacity: 1,
@@ -160,7 +161,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     opacity: "0.85",
     cursor: "pointer",
     userSelect: "none",
-    transition: "all 0.15s ease",
+    transition: `all ${MOTION.fast}`,
     borderRadius: "var(--rounded-sm)",
     outline: "none",
     "&:hover": {
@@ -176,7 +177,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     ".settings-sidebar-chevron": {
       fontSize: "var(--fontSizeNormal)",
       color: theme.vars.palette.text.secondary,
-      transition: "transform 0.18s ease",
+      transition: `transform ${MOTION.normal}`,
       transform: "rotate(-90deg)"
     },
     ".settings-sidebar-folder-icon": {
@@ -356,7 +357,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
         borderRadius: ".3em",
         margin: "0",
         padding: ".3em 1em",
-        transition: "border-color 0.2s ease, background-color 0.2s ease",
+        transition: `${MOTION.border}, background-color ${MOTION.normal}`,
         fontSize: theme.fontSizeNormal,
         "&:hover": {
           borderColor: theme.vars.palette.grey[300]
@@ -401,7 +402,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
         marginTop: ".5em",
         display: "inline-block",
         textDecoration: "none",
-        transition: "all 0.2s ease"
+        transition: MOTION.all
       }
     },
     ul: {
@@ -425,7 +426,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     marginTop: "0",
     backgroundColor: theme.vars.palette.background.paper,
     borderRadius: "var(--rounded-lg)",
-    transition: "background-color 0.2s ease",
+    transition: `background-color ${MOTION.normal}`,
     "&:hover": {
       backgroundColor: theme.vars.palette.background.default
     }
@@ -464,14 +465,14 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     paddingBottom: "0.3em"
   },
   ".settings-button": {
-    transition: "transform 0.2s ease",
+    transition: `transform ${MOTION.normal}`,
     "&:hover": {
       transform: "rotate(30deg)"
     }
   },
   "button.MuiButton-root": {
     borderRadius: ".3em",
-    transition: "all 0.2s ease",
+    transition: MOTION.all,
     "&:hover": {
       transform: "translateY(-2px)",
       boxShadow: "0 4px 8px rgba(0,0,0,0.2)"

@@ -24,7 +24,7 @@ import TextDecreaseIcon from "@mui/icons-material/TextDecrease";
 import TextIncreaseIcon from "@mui/icons-material/TextIncrease";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
-import { Tooltip, LoadingSpinner } from "../ui_primitives";
+import { Tooltip, LoadingSpinner, MOTION } from "../ui_primitives";
 import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ListItemNode, ListNode } from "@lexical/list";
@@ -406,7 +406,7 @@ const styles = (theme: Theme) =>
         "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>\")",
       backgroundRepeat: "no-repeat",
       backgroundPosition: "right 0.55em center",
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
       "&:hover": {
         color: theme.vars.palette.text.primary,
         borderColor: `rgba(${theme.vars.palette.common.whiteChannel} / 0.18)`
@@ -424,7 +424,7 @@ const styles = (theme: Theme) =>
       fontWeight: 500,
       background: "transparent",
       border: "1px solid transparent",
-      transition: "all 0.18s ease",
+      transition: MOTION.all,
       whiteSpace: "nowrap",
       svg: { fontSize: "var(--fontSizeNormal)" },
       "&:hover": {
@@ -669,7 +669,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
-      transition: "all 0.25s ease",
+      transition: MOTION.all,
       "&:hover": {
         backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.05)`
       },

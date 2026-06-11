@@ -1,5 +1,6 @@
 import { css } from "@emotion/react";
 import { Theme } from "@mui/material/styles";
+import { MOTION } from "../ui_primitives";
 
 export const createStyles = (theme: Theme) => {
   const doubledRadius =
@@ -306,7 +307,7 @@ export const createStyles = (theme: Theme) => {
       // Hide copy button by default, show on hover
       ".result-card-copy-button": {
         opacity: 0,
-        transition: "opacity 0.2s ease-in-out"
+        transition: `opacity ${MOTION.normal}`
       },
 
       "&:hover .result-card-copy-button": {

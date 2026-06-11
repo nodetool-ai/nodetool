@@ -25,6 +25,7 @@ jest.mock('../../ui_primitives', () => {
   FlexRow.displayName = "FlexRow";
   return {
     __esModule: true,
+    MOTION: jest.requireActual('../../ui_primitives/tokens').MOTION,
     CopyButton,
     Text,
     Tooltip,

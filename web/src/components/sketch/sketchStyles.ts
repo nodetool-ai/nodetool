@@ -6,6 +6,7 @@
  */
 
 import type { SxProps, Theme } from "@mui/material/styles";
+import { MOTION } from "../ui_primitives";
 
 // ─── Color Tokens ─────────────────────────────────────────────────────────────
 // Semantic names tied to MUI's grey palette (dark theme).
@@ -103,7 +104,7 @@ export const sketchSliderSx: SxProps<Theme> = (theme) => {
       height: "10px",
       backgroundColor: t.vars.palette.grey[200],
       boxShadow: "none",
-      transition: "box-shadow 0.15s ease",
+      transition: `box-shadow ${MOTION.fast}`,
       // Brightest neutral on hover (#FCFCFC), never pure #fff.
       "&:hover": {
         boxShadow: "none",

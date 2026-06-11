@@ -1,7 +1,7 @@
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
-import { Box, FlexRow, FlexColumn, Text } from "../ui_primitives";
+import { Box, FlexRow, FlexColumn, Text, MOTION } from "../ui_primitives";
 import { CostNodeIcon } from "./CostNodeIcon";
 import {
   groupExecutions,
@@ -87,7 +87,7 @@ const ExecutionRows: React.FC<{ rows: Execution[] }> = ({ rows }) => {
             columnGap: "16px",
             padding: "12px 24px",
             borderTop: `1px solid ${theme.vars.palette.divider}`,
-            transition: "background-color 120ms ease",
+            transition: MOTION.background,
             "&:hover": { backgroundColor: theme.vars.palette.action.hover }
           }}
         >
@@ -224,7 +224,7 @@ const GroupRows: React.FC<{ rows: GroupRow[]; groupBy: GroupByKey }> = ({
             columnGap: "16px",
             padding: "12px 24px",
             borderTop: `1px solid ${theme.vars.palette.divider}`,
-            transition: "background-color 120ms ease",
+            transition: MOTION.background,
             "&:hover": { backgroundColor: theme.vars.palette.action.hover }
           }}
         >
