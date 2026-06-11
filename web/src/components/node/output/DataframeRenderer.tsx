@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useCallback, useMemo, useState } from "react";
-import { Tooltip, ToolbarIconButton, MOTION } from "../../ui_primitives";
+import { ToolbarIconButton, MOTION } from "../../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import isEqual from "fast-deep-equal";
 import { useTheme } from "@mui/material/styles";
