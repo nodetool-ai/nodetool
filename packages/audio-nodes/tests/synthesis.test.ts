@@ -6,11 +6,15 @@ import {
   AdsrNode,
   GateNode,
   VcaNode,
+  VcfNode,
+  AttenuverterNode,
   MixerNode,
   SampleHoldNode,
+  applyBiquadToWav,
   makeSignalChunk,
   makeDoneSignalChunk,
   readSignalChunk,
+  DEFAULT_Q,
   SYNTH_CHUNK_FRAMES
 } from "@nodetool-ai/audio-nodes";
 
@@ -416,6 +420,111 @@ describe("VCA", () => {
     );
     const out = concatEmitted(emitted);
     for (let i = 0; i < frames; i += 17) expect(out[i]).toBeCloseTo(1, 3);
+  });
+});
+
+describe("Attenuverter", () => {
+  it("applies out = in * scale + offset, preserving values beyond ±1 (f32le)", async () => {
+    const signal = new Float32Array([0, 0.5, -0.5, 1]);
+    const node = new AttenuverterNode({ scale: -2, offset: 1 });
+    const { outputs, emitted } = recordingOutputs();
+    await node.run(
+      makeInputs({
+        handles: {
+          signal: [
+            makeSignalChunk(signal, SR, 1, false, "f32le"),
+            makeDoneSignalChunk(SR, 1, "f32le")
+          ]
+        }
+      }),
+      outputs
+    );
+    const out = concatEmitted(emitted);
+    // -2 * 1 + 1 = -1 and -2 * -0.5 + 1 = 2: inversion and >1 survive on the
+    // f32le wire (pcm16 would clamp the 2).
+    expect([...out]).toEqual([1, 0, 2, -1]);
+    const last = readSignalChunk(emitted[emitted.length - 1][1])!;
+    expect(last.done).toBe(true);
+  });
+});
+
+describe("VCF", () => {
+  function nyquistTone(frames: number): Float32Array {
+    const samples = new Float32Array(frames);
+    for (let i = 0; i < frames; i++) samples[i] = i % 2 === 0 ? 0.8 : -0.8;
+    return samples;
+  }
+
+  function rms(samples: Float32Array, skip = 256): number {
+    let sum = 0;
+    for (let i = skip; i < samples.length; i++) sum += samples[i] * samples[i];
+    return Math.sqrt(sum / (samples.length - skip));
+  }
+
+  async function runVcf(
+    audio: Float32Array,
+    props: Record<string, unknown>,
+    cv?: Float32Array
+  ): Promise<Float32Array> {
+    const handles: Record<string, unknown[]> = {
+      audio: [
+        makeSignalChunk(audio, SR, 1, false, "pcm16le"),
+        makeDoneSignalChunk(SR, 1, "pcm16le")
+      ]
+    };
+    if (cv) {
+      handles.cutoff_cv = [
+        makeSignalChunk(cv, SR, 1, false, "f32le"),
+        makeDoneSignalChunk(SR, 1, "f32le")
+      ];
+    }
+    const node = new VcfNode(props);
+    const { outputs, emitted } = recordingOutputs();
+    await node.run(makeInputs({ handles }), outputs);
+    return concatEmitted(emitted);
+  }
+
+  it("static lowpass matches the whole-buffer biquad (state persists across control blocks)", async () => {
+    const audio = nyquistTone(2048);
+    const out = await runVcf(audio, {
+      mode: "lowpass",
+      cutoff_hz: 1000,
+      q: DEFAULT_Q
+    });
+    const reference = applyBiquadToWav(
+      { samples: audio, sampleRate: SR, numChannels: 1 },
+      "lowpass",
+      1000,
+      DEFAULT_Q,
+      0
+    ).samples;
+    expect(out.length).toBe(reference.length);
+    for (let i = 0; i < out.length; i++) {
+      expect(Math.abs(out[i] - reference[i])).toBeLessThan(1e-3); // pcm16 LSB
+    }
+  });
+
+  it("cutoff CV opens the filter: cutoff = cutoff_hz * 2^(cv * cv_amount)", async () => {
+    // 3 kHz sine — well inside the passband once the CV lifts the cutoff.
+    // (A Nyquist tone won't do: the RBJ lowpass has a double zero at
+    // Nyquist, so it is annihilated at any cutoff.)
+    const audio = new Float32Array(2048);
+    for (let i = 0; i < audio.length; i++) {
+      audio[i] = 0.8 * Math.sin((2 * Math.PI * 3000 * i) / SR);
+    }
+    const closed = await runVcf(audio, {
+      mode: "lowpass",
+      cutoff_hz: 500,
+      cv_amount: 1
+    });
+    const opened = await runVcf(
+      audio,
+      { mode: "lowpass", cutoff_hz: 500, cv_amount: 1 },
+      new Float32Array(2048).fill(4) // +4 octaves → 8 kHz cutoff
+    );
+    expect(rms(closed)).toBeLessThan(0.1);
+    expect(rms(opened)).toBeGreaterThan(0.3);
+    expect(rms(opened)).toBeGreaterThan(rms(closed) * 4);
   });
 });
 
