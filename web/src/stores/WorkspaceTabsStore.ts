@@ -208,6 +208,8 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
       setTitle: (ref, type, title) =>
         set((state) => {
           const id = tabId(type, ref);
+          const existing = state.tabs.find((t) => t.id === id);
+          if (!existing || existing.title === title) return state;
           return {
             tabs: state.tabs.map((t) =>
               t.id === id ? { ...t, title } : t

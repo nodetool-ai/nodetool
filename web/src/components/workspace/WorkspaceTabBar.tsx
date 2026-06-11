@@ -399,6 +399,13 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
     }
   }, [closeTab, removeWorkflow]);
 
+  const handleBeginRename = useCallback(
+    (tab: WorkspaceTab) => setEditingTabId(tab.id),
+    []
+  );
+
+  const handleCancelRename = useCallback(() => setEditingTabId(null), []);
+
   return (
     <div css={tabBarStyles} className="workspace-tabbar">
       <button
@@ -425,11 +432,11 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
             tab={tab}
             isActive={tab.id === activeTabId}
             isEditing={editingTabId === tab.id}
-            dropTarget={dropTarget}
+            dropPosition={dropTarget?.id === tab.id ? dropTarget.position : null}
             typeColor={TYPE_COLOR[tab.type]}
             typeGlyph={TYPE_GLYPH[tab.type]}
             onActivate={setActiveTab}
-            onBeginRename={() => setEditingTabId(tab.id)}
+            onBeginRename={handleBeginRename}
             onClose={handleClose}
             onCloseOthers={handleCloseOthers}
             onCloseAll={handleCloseAll}
@@ -438,7 +445,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onCommitRename={commitWorkflowRename}
-            onCancelRename={() => setEditingTabId(null)}
+            onCancelRename={handleCancelRename}
           />
         ))}
       </div>
