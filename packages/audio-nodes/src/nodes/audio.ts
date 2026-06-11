@@ -5,7 +5,7 @@ import type {
   Platform
 } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { tagAsServer } from "@nodetool-ai/nodes-utils";
+import { tagAsHybrid, tagAsServer } from "@nodetool-ai/nodes-utils";
 import {
   loadNodeFsPromises,
   loadNodePath
@@ -1683,12 +1683,12 @@ export class GetAudioInfoNode extends BaseNode {
   }
 }
 
-export const AUDIO_NODES = tagAsServer([
-  LoadAudioAssetsNode,
-  LoadAudioFileNode,
-  LoadAudioFolderNode,
-  SaveAudioNode,
-  SaveAudioFileNode,
+/**
+ * Pure sample/byte transforms — run on Node and in the browser workflow
+ * runner (all byte access goes through `audioBytesAsync`, whose `file://`
+ * branch is lazy and never taken in the browser).
+ */
+const AUDIO_HYBRID_NODES = tagAsHybrid([
   NormalizeAudioNode,
   OverlayAudioNode,
   RemoveSilenceNode,
@@ -1704,7 +1704,22 @@ export const AUDIO_NODES = tagAsServer([
   CreateSilenceNode,
   ConcatAudioNode,
   ConcatAudioListNode,
-  TextToSpeechNode,
   ChunkToAudioNode,
   GetAudioInfoNode
 ]);
+
+/**
+ * Server-only nodes: asset/file I/O (the Load/Save classes also declare
+ * `static platforms = NODE_ONLY`, which wins over the tagger) and TTS,
+ * which needs the server's provider prediction.
+ */
+const AUDIO_SERVER_NODES = tagAsServer([
+  LoadAudioAssetsNode,
+  LoadAudioFileNode,
+  LoadAudioFolderNode,
+  SaveAudioNode,
+  SaveAudioFileNode,
+  TextToSpeechNode
+]);
+
+export const AUDIO_NODES = [...AUDIO_HYBRID_NODES, ...AUDIO_SERVER_NODES];

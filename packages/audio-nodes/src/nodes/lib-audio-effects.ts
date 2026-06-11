@@ -1,6 +1,7 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { tagAsServer } from "@nodetool-ai/nodes-utils";
+import { tagAsHybrid, tagAsServer } from "@nodetool-ai/nodes-utils";
+import { importHidden } from "@nodetool-ai/config";
 import {
   audioBytesAsync,
   audioRefFromWav,
@@ -544,6 +545,26 @@ export class ReverbNode extends BaseNode {
 
 // ── PitchShift (rubberband WASM) ─────────────────────────────────
 
+type RubberbandModule = typeof import("@k13engineering/rubberband");
+
+/**
+ * Lazily load rubberband via a bundler-hidden import. The hidden import keeps
+ * the native/WASM package out of the web bundle (this file is loaded in the
+ * browser for its hybrid effects); the two nodes that need it stay
+ * server-only and throw when invoked off Node.
+ */
+async function loadRubberband(): Promise<RubberbandModule> {
+  const mod = await importHidden<RubberbandModule>(
+    "@k13engineering/rubberband"
+  );
+  if (!mod) {
+    throw new Error(
+      "PitchShift/TimeStretch require Node (rubberband is not available in the browser)"
+    );
+  }
+  return mod;
+}
+
 export class PitchShiftNode extends BaseNode {
   static readonly nodeType = "lib.audio.PitchShift";
   static readonly title = "Pitch Shift";
@@ -590,9 +611,7 @@ export class PitchShiftNode extends BaseNode {
     const bytes = await audioBytesAsync(audio, context);
     if (bytes.length === 0) return { output: audio };
 
-    const { createRubberbandWrapper } = await import(
-      "@k13engineering/rubberband"
-    );
+    const { createRubberbandWrapper } = await loadRubberband();
     const wav = decodeWav({ data: bytes });
     const { samples, sampleRate, numChannels } = wav;
     const frameSamples = Math.floor(samples.length / numChannels);
@@ -724,9 +743,7 @@ export class TimeStretchNode extends BaseNode {
     const bytes = await audioBytesAsync(audio, context);
     if (bytes.length === 0) return { output: audio };
 
-    const { createRubberbandWrapper } = await import(
-      "@k13engineering/rubberband"
-    );
+    const { createRubberbandWrapper } = await loadRubberband();
     const wav = decodeWav({ data: bytes });
     const { samples, sampleRate, numChannels } = wav;
     const frameSamples = Math.floor(samples.length / numChannels);
@@ -1061,14 +1078,24 @@ export class PhaserNode extends BaseNode {
 
 // ── Export ────────────────────────────────────────────────────────
 
-export const LIB_PEDALBOARD_EXTRA_NODES = tagAsServer([
+/** Pure-JS effects — run on Node and in the browser workflow runner. */
+export const LIB_AUDIO_EFFECTS_HYBRID_NODES = tagAsHybrid([
   BitcrushNode,
   CompressNode,
   DistortionNode,
   LimiterNode,
   ReverbNode,
-  PitchShiftNode,
-  TimeStretchNode,
   NoiseGateNode,
   PhaserNode
 ]);
+
+/** Rubberband-backed effects — native/WASM addon, Node only. */
+export const LIB_AUDIO_EFFECTS_SERVER_NODES = tagAsServer([
+  PitchShiftNode,
+  TimeStretchNode
+]);
+
+export const LIB_PEDALBOARD_EXTRA_NODES = [
+  ...LIB_AUDIO_EFFECTS_HYBRID_NODES,
+  ...LIB_AUDIO_EFFECTS_SERVER_NODES
+];

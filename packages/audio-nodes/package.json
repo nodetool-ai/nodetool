@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@k13engineering/rubberband": "^0.0.8",
+    "@nodetool-ai/config": "*",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",

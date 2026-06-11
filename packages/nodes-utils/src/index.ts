@@ -12,6 +12,8 @@
  *     non-Node runtimes.
  *   - `template.ts` — `{{ variable }}` / `{variable}` substitution shared by
  *     the Prompt, Format Text and Agent nodes.
+ *   - `base64.ts` — Buffer-free base64 encode/decode usable in Node and the
+ *     browser bundle alike.
  */
 
 export {
@@ -30,3 +32,5 @@ export {
 } from "./node-only-modules.js";
 
 export { renderTemplate } from "./template.js";
+
+export { base64ToBytes, bytesToBase64 } from "./base64.js";
