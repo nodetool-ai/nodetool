@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 // Full-page settings (formerly a Dialog).
-import React, { memo, useId, useMemo } from "react";
+import React, { memo, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Tabs,
@@ -216,9 +216,6 @@ function SettingsPage() {
       !generalSearch || keywords.toLowerCase().includes(generalSearch),
     [generalSearch]
   );
-
-  // Generate unique IDs for form controls
-  const baseId = useId();
 
   const [activeSection, setActiveSection] = useState("editor");
   const [, setSecretsUpdated] = useState({});

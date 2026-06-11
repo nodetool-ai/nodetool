@@ -4,7 +4,6 @@ import { Menu, MenuItem } from "@mui/material";
 import { Text, Divider } from "../ui_primitives";
 import { shallow } from "zustand/shallow";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import { useTheme } from "@mui/material/styles";
 import ContextMenuItem from "./ContextMenuItem";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SettingsBackupRestoreIcon from "@mui/icons-material/SettingsBackupRestore";
@@ -39,7 +38,6 @@ function resolvePropertyMenuTargetNodeIds(
 }
 
 const PropertyContextMenuComponent: React.FC = () => {
-  const theme = useTheme();
   const { writeClipboard } = useClipboard();
   const addNotification = useNotificationStore(
     (state) => state.addNotification

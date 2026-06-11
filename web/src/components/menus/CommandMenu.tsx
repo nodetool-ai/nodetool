@@ -31,7 +31,6 @@ import { useReactFlow } from "@xyflow/react";
 import { useSelectionActions } from "../../hooks/useSelectionActions";
 import { useFindInWorkflowStore } from "../../stores/FindInWorkflowStore";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
-import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { areNodesEqualIgnoringPosition } from "../../utils/nodeEquality";
 import { usePanelStore } from "../../stores/PanelStore";
 
@@ -524,7 +523,6 @@ const ViewCommands = memo(function ViewCommands() {
 const PanelCommands = memo(function PanelCommands() {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const rightPanelToggle = useRightPanelStore((state) => state.handleViewChange);
-  const bottomPanelToggle = useBottomPanelStore((state) => state.handleViewChange);
   const leftPanelToggle = usePanelStore((state) => state.handleViewChange);
 
   return (

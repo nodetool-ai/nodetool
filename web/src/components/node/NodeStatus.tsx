@@ -3,14 +3,11 @@ import { css } from "@emotion/react";
 import React, { memo } from "react";
 import { Text } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
-import { useTheme } from "@mui/material/styles";
-
 interface NodeStatusProps {
   status?: string;
 }
 
 const NodeStatus: React.FC<NodeStatusProps> = ({ status }) => {
-  const theme = useTheme();
   if (status !== "booting") {return null;}
 
   return (

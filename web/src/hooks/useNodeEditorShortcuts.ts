@@ -19,7 +19,6 @@ import { useMenuHandler } from "./useIpcRenderer";
 import { useReactFlow } from "@xyflow/react";
 import { useNotificationStore } from "../stores/NotificationStore";
 import { useRightPanelStore } from "../stores/RightPanelStore";
-import { useBottomPanelStore } from "../stores/BottomPanelStore";
 import { usePanelStore } from "../stores/PanelStore";
 import { NodeData } from "../stores/NodeData";
 import { getCollapseTogglePatches } from "../stores/collapseNodeLayout";
@@ -124,7 +123,6 @@ export const useNodeEditorShortcuts = (
     (state) => state.addNotification
   );
   const inspectorToggle = useRightPanelStore((state) => state.handleViewChange);
-  const bottomPanelToggle = useBottomPanelStore((state) => state.handleViewChange);
   const leftPanelToggle = usePanelStore((state) => state.handleViewChange);
   const openFind = useFindInWorkflowStore((state) => state.openFind);
   const nodeFocus = useNodeFocus();

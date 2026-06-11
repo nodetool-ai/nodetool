@@ -120,7 +120,6 @@ const MCPSettingsMenu = () => {
   );
 
   const allInstalled = data?.targets.every((t) => t.installed) ?? false;
-  const anyInstalled = data?.targets.some((t) => t.installed) ?? false;
   const busy = installMutation.isPending || uninstallMutation.isPending;
 
   return (
