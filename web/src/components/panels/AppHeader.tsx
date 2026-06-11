@@ -12,7 +12,7 @@ import { TOOLTIP_ENTER_DELAY, HEADER_HEIGHT } from "../../config/constants";
 import RightSideButtons from "./RightSideButtons";
 import SaveImageEditPill from "./SaveImageEditPill";
 import Logo from "../Logo";
-import { FlexRow, MOTION, Tooltip, Box, Text } from "../ui_primitives";
+import { FlexRow, MOTION, Tooltip, Box } from "../ui_primitives";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
 import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
 const styles = (theme: Theme) =>
