@@ -18,7 +18,7 @@ const sectionContainer = "mx-auto max-w-7xl px-6 lg:px-8";
 
 const installationCodeSource = `git clone https://github.com/nodetool-ai/nodetool
 cd nodetool
-nvm use         # Node 24.x
+nvm use         # Node 22.22.1 (.nvmrc)
 npm install
 npm run build:packages`;
 
@@ -153,8 +153,8 @@ export default function DeveloperCoreSection({
             className="mt-4 flex flex-wrap justify-center gap-2"
           >
             <Image
-              src="https://img.shields.io/badge/Node.js-24.x-339933.svg"
-              alt="Node.js 24.x"
+              src="https://img.shields.io/badge/Node.js-22.x-339933.svg"
+              alt="Node.js 22.x"
               width={105}
               height={20}
               className="h-5 w-auto"
@@ -247,8 +247,16 @@ export default function DeveloperCoreSection({
                 <Code2 className="h-5 w-5 text-emerald-400" />
               </div>
               <h3 className="text-xl font-semibold text-white">DSL Example</h3>
+              <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300 ring-1 ring-amber-500/30 whitespace-nowrap">
+                API preview
+              </span>
             </div>
             <CodeBlock code={basicUsageCode} language="typescript" />
+            <p className="mt-3 text-xs text-slate-500">
+              The @nodetool-ai packages aren&apos;t on npm yet — these imports
+              work from a source checkout today and will work via npm install
+              once published.
+            </p>
           </motion.div>
         </div>
 

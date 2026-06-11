@@ -26,10 +26,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: now,
     },
     {
-      url: `${BASE_URL}/business`,
-      lastModified: now,
-    },
-    {
       url: `${BASE_URL}/developers`,
       lastModified: now,
     },
