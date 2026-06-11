@@ -13,7 +13,7 @@ import { groupByDate } from "../../utils/groupByDate";
 
 type ListItem =
   | { type: "header"; label: string }
-  | { type: "workflow"; workflow: Workflow; index: number };
+  | { type: "workflow"; workflow: Workflow };
 
 interface WorkflowListViewProps {
   workflows: Workflow[];
@@ -43,7 +43,7 @@ const listStyles = (theme: Theme) =>
     ".workflow": {
       flex: 1,
       height: "100%",
-      padding: 0,
+      padding: theme.spacing(0, 1),
       display: "flex",
       flexDirection: "row",
       alignItems: "center",
@@ -51,31 +51,28 @@ const listStyles = (theme: Theme) =>
       width: "100%",
       cursor: "pointer",
       outline: "none",
-      border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.04)`,
-      borderRadius: 10,
-      transition: "background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease",
+      border: 0,
+      borderRadius: theme.rounded.md,
+      backgroundColor: "transparent",
+      transition: "background-color 120ms ease, color 120ms ease",
       "& .MuiCheckbox-root": {
         margin: "0 0.75em 0 0",
         padding: 0
       },
-      position: "relative",
-      background: `linear-gradient(180deg, rgb(${theme.vars.palette.common.whiteChannel} / 0.028), transparent)`
-    },
-    ".workflow.alternate": {
-      backgroundColor: `rgb(${theme.vars.palette.common.whiteChannel} / 0.015)`
+      position: "relative"
     },
     ".workflow.current .name": {
-      color: "var(--palette-primary-light)",
-      fontWeight: 600
+      color: theme.vars.palette.primary.light
     },
-    ".workflow.selected .name": {
-      fontSize: "1em"
+    ".workflow.selected, .workflow.current": {
+      backgroundColor: theme.vars.palette.action.selected
     },
     ".workflow:hover": {
-      background: `linear-gradient(180deg, rgb(${theme.vars.palette.primary.mainChannel} / 0.09), rgb(${theme.vars.palette.common.whiteChannel} / 0.02))`,
-      borderColor: `rgb(${theme.vars.palette.common.whiteChannel} / 0.08)`,
-      boxShadow: "0 10px 24px rgb(0 0 0 / 0.12)",
-      transform: "translateY(-1px)"
+      backgroundColor: theme.vars.palette.action.hover
+    },
+    ".workflow:focus-visible": {
+      outline: `2px solid ${theme.vars.palette.primary.main}`,
+      outlineOffset: -2
     },
     ".workflow img": {
       width: "100%",
@@ -94,9 +91,9 @@ const listStyles = (theme: Theme) =>
     },
     ".name": {
       fontSize: theme.fontSizeSmall,
-      fontWeight: 400,
+      fontWeight: 600,
       lineHeight: 1.35,
-      color: theme.vars.palette.grey[0],
+      color: theme.vars.palette.text.primary,
       userSelect: "none",
       flex: "1",
       display: "-webkit-box",
@@ -157,9 +154,10 @@ const listStyles = (theme: Theme) =>
       paddingLeft: "24px",
       button: {
         opacity: 1,
-        color: theme.vars.palette.grey[100],
+        color: theme.vars.palette.text.secondary,
         "&:hover": {
-          backgroundColor: `rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`
+          backgroundColor: theme.vars.palette.action.hover,
+          color: theme.vars.palette.text.primary
         }
       }
     },
@@ -233,7 +231,6 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
   // Group workflows by date and create a flat list with headers
   const flatList = useMemo(() => {
     const items: ListItem[] = [];
-    let workflowIndex = 0;
 
     // Sort workflows based on sortBy option
     const sortedWorkflows = [...workflows].sort((a, b) => {
@@ -253,14 +250,12 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
           currentGroup = group;
           items.push({ type: "header", label: group });
         }
-        items.push({ type: "workflow", workflow, index: workflowIndex });
-        workflowIndex++;
+        items.push({ type: "workflow", workflow });
       }
     } else {
       // For name sort, no headers
       for (const workflow of sortedWorkflows) {
-        items.push({ type: "workflow", workflow, index: workflowIndex });
-        workflowIndex++;
+        items.push({ type: "workflow", workflow });
       }
     }
 
@@ -335,7 +330,7 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
               </div>
             );
           }
-          const { workflow, index: workflowIndex } = item;
+          const { workflow } = item;
           return (
             <div key={vi.key} style={itemStyle}>
               <WorkflowListItem
@@ -351,7 +346,6 @@ const WorkflowListView: React.FC<WorkflowListViewProps> = ({
                 onEdit={onEdit}
                 onRename={onRename}
                 onOpenAsApp={onOpenAsApp}
-                isAlternate={workflowIndex % 2 === 1}
               />
             </div>
           );
