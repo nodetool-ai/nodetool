@@ -5,7 +5,7 @@
  * Eliminates repetitive padding patterns across the app.
  */
 
-import React from "react";
+import React, { forwardRef } from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -55,7 +55,7 @@ const PADDING_VARIANTS = {
  *   <Typography>Centered content</Typography>
  * </Container>
  */
-export const Container: React.FC<ContainerProps> = ({
+export const Container = forwardRef<HTMLDivElement, ContainerProps>(({
   padding = "normal",
   scrollable = false,
   maxWidth,
@@ -63,15 +63,16 @@ export const Container: React.FC<ContainerProps> = ({
   sx,
   children,
   ...props
-}) => {
+}, ref) => {
   const theme = useTheme();
-  
-  const paddingValue = typeof padding === "number" 
-    ? padding 
+
+  const paddingValue = typeof padding === "number"
+    ? padding
     : PADDING_VARIANTS[padding];
 
   return (
     <Box
+      ref={ref}
       sx={{
         padding: theme.spacing(paddingValue),
         overflow: scrollable ? "auto" : undefined,
@@ -84,4 +85,6 @@ export const Container: React.FC<ContainerProps> = ({
       {children}
     </Box>
   );
-};
+});
+
+Container.displayName = "Container";

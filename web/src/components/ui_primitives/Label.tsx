@@ -5,7 +5,7 @@
  * Provides consistent label styling across the application.
  */
 
-import React from "react";
+import React, { forwardRef } from "react";
 import { Typography, TypographyProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -41,7 +41,7 @@ export interface LabelProps extends Omit<TypographyProps, 'variant'> {
  * // Disabled label
  * <Label disabled>Disabled Field</Label>
  */
-export const Label: React.FC<LabelProps> = ({
+export const Label = forwardRef<HTMLElement, LabelProps>(({
   size = "normal",
   required = false,
   disabled = false,
@@ -50,7 +50,7 @@ export const Label: React.FC<LabelProps> = ({
   sx,
   children,
   ...props
-}) => {
+}, ref) => {
   const theme = useTheme();
 
   // Label is the sanctioned "label" role (13px / 500). The `small` variant
@@ -77,6 +77,7 @@ export const Label: React.FC<LabelProps> = ({
 
   return (
     <Typography
+      ref={ref}
       component="label"
       htmlFor={htmlFor}
       sx={{
@@ -103,4 +104,6 @@ export const Label: React.FC<LabelProps> = ({
       )}
     </Typography>
   );
-};
+});
+
+Label.displayName = "Label";

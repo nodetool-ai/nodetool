@@ -5,7 +5,7 @@
  * Similar to MUI Stack but with simplified API optimized for vertical layouts.
  */
 
-import React from "react";
+import React, { forwardRef } from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -64,7 +64,7 @@ const getChildKey = (child: React.ReactNode, index: number): string | number => 
   return index;
 };
 
-export const Stack: React.FC<StackProps> = ({
+export const Stack = forwardRef<HTMLDivElement, StackProps>(({
   spacing = 0,
   padding,
   divider,
@@ -72,12 +72,13 @@ export const Stack: React.FC<StackProps> = ({
   sx,
   children,
   ...props
-}) => {
+}, ref) => {
   const theme = useTheme();
   const childArray = React.Children.toArray(children);
 
   return (
     <Box
+      ref={ref}
       sx={{
         display: "flex",
         flexDirection: "column",
@@ -102,4 +103,6 @@ export const Stack: React.FC<StackProps> = ({
         : children}
     </Box>
   );
-};
+});
+
+Stack.displayName = "Stack";
