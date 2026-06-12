@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, useMemo, useState } from "react";
+import { MOTION } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { BASE_URL } from "../../stores/BASE_URL";
 import { WorkflowMiniPreview } from "../version/WorkflowMiniPreview";
@@ -24,7 +25,7 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       background: theme.vars.palette.c_node_bg,
       border: `1px solid ${theme.vars.palette.divider}`,
-      transition: "border-color 0.18s ease, transform 0.18s ease"
+      transition: `border-color ${MOTION.normal}, transform ${MOTION.normal}`
     },
     "&:hover .rthumb": {
       borderColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.45)`,

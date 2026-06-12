@@ -24,7 +24,7 @@ import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
 
 import { PANEL_RESIZE_HANDLE_WIDTH } from "../../config/constants";
 import ContextMenus from "../context_menus/ContextMenus";
-import { MobileBottomSheet, FlexColumn } from "../ui_primitives";
+import { MobileBottomSheet, FlexColumn, MOTION } from "../ui_primitives";
 
 const HEADER_AREA_HEIGHT = 77;
 // Matches HEADER_HEIGHT in PanelBottom — the bar still occupies this when collapsed.
@@ -61,7 +61,7 @@ const styles = (theme: Theme, bottomOffset: number) =>
       borderRadius: 0,
       cursor: "ew-resize",
       zIndex: 10,
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
 
       "&:hover": {
         backgroundColor: theme.vars.palette.primary.main,

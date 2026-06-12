@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useMemo } from "react";
 import { css, keyframes } from "@emotion/react";
-import { Caption, Tooltip, Box } from "../../ui_primitives";
+import { Caption, Tooltip, Box, MOTION } from "../../ui_primitives";
 import useStatusStore from "../../../stores/StatusStore";
 import { nodeKey } from "../../../stores/nodeKey";
 import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
@@ -83,7 +83,7 @@ const graphStyles = css({
     maxWidth: "90px",
     overflow: "hidden",
     textOverflow: "ellipsis",
-    transition: "all 0.2s ease",
+    transition: MOTION.all,
     cursor: "default",
 
     "&:hover": {

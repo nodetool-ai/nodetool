@@ -5,6 +5,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
+import { MOTION } from "../ui_primitives";
 
 interface EditableTitleProps {
   nodeId: string;
@@ -68,7 +69,7 @@ const EditableTitle = memo(function EditableTitle({
     `,
     zIndex: 10,
     animation: `${fadeSlideIn} 0.25s ease-out`,
-    transition: "all 0.2s ease",
+    transition: MOTION.all,
     cursor: "text",
 
     "&:hover": {
@@ -111,7 +112,7 @@ const EditableTitle = memo(function EditableTitle({
       )`,
       borderRadius: "0 3px 3px 0",
       opacity: 0.7,
-      transition: "opacity 0.2s ease"
+      transition: `opacity ${MOTION.normal}`
     },
 
     // Textarea styling
@@ -147,7 +148,7 @@ const EditableTitle = memo(function EditableTitle({
       textTransform: "uppercase",
       letterSpacing: "0.08em",
       color: theme.vars.palette.primary.light,
-      transition: "opacity 0.2s ease",
+      transition: `opacity ${MOTION.normal}`,
       ".icon": {
         fontSize: "var(--fontSizeSmall)"
       }
@@ -176,7 +177,7 @@ const EditableTitle = memo(function EditableTitle({
       margin: 0,
       opacity: 0,
       transform: "scale(0.9)",
-      transition: "all 0.15s ease",
+      transition: `all ${MOTION.fast}`,
       ".icon": {
         fontSize: "var(--fontSizeNormal)"
       },

@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { Tooltip, Text, Divider } from "../ui_primitives";
+import { Tooltip, Text, Divider, MOTION } from "../ui_primitives";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { colorForType, descriptionForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
@@ -101,7 +101,7 @@ const nodeInfoStyles = (theme: Theme) =>
       display: "inline-block",
       cursor: "pointer",
       marginRight: ".5em",
-      transition: "background-color 0.2s ease",
+      transition: `background-color ${MOTION.normal}`,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.selected
       }

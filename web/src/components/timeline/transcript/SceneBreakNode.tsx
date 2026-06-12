@@ -22,6 +22,7 @@ import {
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 
 import { useTimelineStoreApi } from "../../../stores/timeline/TimelineInstance";
+import { MOTION } from "../../ui_primitives";
 
 // ── Styles ──────────────────────────────────────────────────────────────────
 
@@ -58,7 +59,7 @@ const Row = styled("div")(({ theme }) => ({
     padding: 2,
     borderRadius: 4,
     opacity: 0,
-    transition: "opacity 100ms ease, color 100ms ease"
+    transition: `opacity ${MOTION.fast}, color ${MOTION.fast}`
   },
   "&:hover .del": { opacity: 1 },
   "& .del:hover": { color: theme.vars.palette.error.main }

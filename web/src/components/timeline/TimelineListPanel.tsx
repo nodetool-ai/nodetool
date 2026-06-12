@@ -20,7 +20,8 @@ import {
   LoadingSpinner,
   ToolbarIconButton,
   TruncatedText,
-  Tooltip
+  Tooltip,
+  MOTION
 } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
@@ -44,7 +45,7 @@ const styles = (theme: Theme) =>
       cursor: "pointer",
       padding: theme.spacing(1),
       textAlign: "left",
-      transition: "background-color 120ms ease, color 120ms ease",
+      transition: `background-color ${MOTION.fast}, color ${MOTION.fast}`,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover
       },

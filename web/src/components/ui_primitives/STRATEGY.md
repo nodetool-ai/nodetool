@@ -167,15 +167,90 @@ When you touch a file for any reason:
 
 ### How to Create a New Primitive
 
-If no existing primitive fits:
+If no existing primitive fits, follow this checklist in order:
 
-1. Create the component in `web/src/components/ui_primitives/`
-2. Use `useTheme()` for all styling — no hardcoded values
-3. Support `sx` prop for overrides
-4. Add TypeScript interface for props
-5. Export from `index.ts`
-6. Add tests in `__tests__/`
-7. Update this strategy doc's category listing
+**1. Scaffold**
+```
+web/src/components/ui_primitives/MyPrimitive.tsx
+web/src/components/ui_primitives/__tests__/MyPrimitive.test.tsx
+```
+
+**2. Props interface** — typed, no `any`, extend the closest MUI base (`BoxProps`, `TypographyProps`, etc.) with `Omit` for overridden props:
+```tsx
+export interface MyPrimitiveProps extends Omit<BoxProps, "color"> {
+  /** Semantic description of what this does */
+  variant?: "default" | "outlined";
+}
+```
+
+**3. `forwardRef` — mandatory for every primitive**
+Parent components need to measure, position, and focus primitives. Without `forwardRef`, Tooltips, drag handles, focus traps, and virtual scroll libraries break silently.
+```tsx
+export const MyPrimitive = forwardRef<HTMLDivElement, MyPrimitiveProps>(
+  ({ variant = "default", sx, children, ...props }, ref) => {
+    const theme = useTheme();
+    return (
+      <Box ref={ref} sx={{ ...sx }} {...props}>
+        {children}
+      </Box>
+    );
+  }
+);
+MyPrimitive.displayName = "MyPrimitive";
+```
+For `memo`-wrapped primitives, compose `forwardRef` first, then `memo`:
+```tsx
+const MyPrimitiveBase = forwardRef<HTMLDivElement, MyPrimitiveProps>((...) => { ... });
+export const MyPrimitive = memo(MyPrimitiveBase);
+MyPrimitive.displayName = "MyPrimitive";
+```
+
+**4. Styling rules**
+- All styles via `useTheme()` — no hardcoded values
+- `sx` prop for overrides (forward it to the root element)
+- Spacing from `SPACING.*`, radii from `BORDER_RADIUS.*`, motion from `MOTION.*`
+- Pair every `transition` with `reducedMotion({ transition: MOTION.none })` (WCAG 2.3.3)
+- Dark/light parity: verify in both color schemes before merging
+
+**5. Accessibility (WCAG 2.2 AA)**
+- Interactive elements: `role`, `aria-label` or visible label, keyboard handler, visible focus ring
+- Icon-only buttons: `aria-label` is mandatory — no tooltip replaces it
+- State communication: `aria-pressed`, `aria-expanded`, `aria-selected`, `aria-disabled` as appropriate
+- `htmlFor`/`id` pairing on form label+input combos
+
+**6. Export** from `index.ts`:
+```ts
+export { MyPrimitive } from "./MyPrimitive";
+export type { MyPrimitiveProps } from "./MyPrimitive";
+```
+
+**7. Tests** — use the shared utilities from `__tests__/testUtils.tsx`:
+```tsx
+import { renderWithTheme, checkA11y } from "./testUtils";
+
+describe("MyPrimitive", () => {
+  it("renders children", () => {
+    const { getByText } = renderWithTheme(<MyPrimitive>Hello</MyPrimitive>);
+    expect(getByText("Hello")).toBeInTheDocument();
+  });
+
+  it("has no accessibility violations", async () => {
+    const { container } = renderWithTheme(
+      <MyPrimitive aria-label="my action">Content</MyPrimitive>
+    );
+    await checkA11y(container);
+  });
+
+  it("forwards ref to DOM element", () => {
+    const ref = React.createRef<HTMLDivElement>();
+    renderWithTheme(<MyPrimitive ref={ref}>Content</MyPrimitive>);
+    expect(ref.current).toBeInstanceOf(HTMLDivElement);
+  });
+});
+```
+Every new primitive needs at minimum: a render test, an axe a11y test, and a ref-forwarding test.
+
+**8. Update docs** — add the new primitive to the category listing in this file.
 
 ## Typography System (STRICT)
 
@@ -278,12 +353,12 @@ hand-classify. The canonical px grid for raw CSS is `0 / 2 / 4 / 6 / 8 / 12 /
 
 ## Design Tokens
 
-Beyond spacing, use these constants from `tokens.ts` for consistent values across all style files.
+Beyond spacing, use these constants from `tokens.ts` for consistent values across all style files. This section is a summary — the complete token reference (all values, color palettes, editor tokens, migration checklist) lives in **[docs/DESIGN.md](../../../../docs/DESIGN.md)**.
 
 ### MOTION — transition timing
 
 ```ts
-import { MOTION } from "../ui_primitives";
+import { MOTION, reducedMotion } from "../ui_primitives";
 
 // Single property
 transition: MOTION.all          // "all 200ms ease"
@@ -295,6 +370,12 @@ transition: MOTION.shadow       // "box-shadow 200ms ease"
 
 // Compose multiple
 transition: `${MOTION.border}, ${MOTION.shadow}`
+
+// WCAG 2.3.3 — always pair with a reduced-motion override
+css({
+  transition: MOTION.all,
+  ...reducedMotion({ transition: MOTION.none }),
+})
 ```
 
 | Token | Value | Use |
@@ -302,6 +383,7 @@ transition: `${MOTION.border}, ${MOTION.shadow}`
 | `MOTION.fast` | `120ms ease` | Hover micro-interactions |
 | `MOTION.normal` | `200ms ease` | Standard UI transitions |
 | `MOTION.slow` | `350ms ease` | Panel/drawer animations |
+| `MOTION.none` | `"none"` | Disable in reduced-motion overrides |
 
 ### Z_INDEX — stacking layers
 
@@ -324,7 +406,7 @@ import { BORDER_RADIUS } from "../ui_primitives";
 
 borderRadius: BORDER_RADIUS.sm     // "var(--rounded-sm)"
 borderRadius: BORDER_RADIUS.lg     // "var(--rounded-lg)"
-borderRadius: BORDER_RADIUS.pill   // "999px" — tags, chips, compact buttons
+borderRadius: BORDER_RADIUS.pill   // "var(--rounded-pill)" — tags, chips, compact buttons
 borderRadius: BORDER_RADIUS.circle // "var(--rounded-circle)"
 ```
 
@@ -347,6 +429,7 @@ Only use `scrollbarStyles` for the standard scroll appearance. Components with i
 
 ## Related Documents
 
+- **[Design System](../../../../docs/DESIGN.md)** — Complete token reference: typography, spacing, color, border radius, motion, z-index, editor tokens
 - **[Primitives README](./README.md)** — Full API reference with usage examples
 - **[Implementation Guide](./IMPLEMENTATION.md)** — Real-world refactoring examples
 - **[Examples](./EXAMPLES.md)** — Practical code examples for each primitive

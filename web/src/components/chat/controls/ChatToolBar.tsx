@@ -6,6 +6,7 @@ import React from "react";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
 import { LanguageModel } from "../../../stores/ApiTypes";
 import { StateIconButton } from "../../ui_primitives/StateIconButton";
+import { MOTION } from "../../ui_primitives";
 import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 
 const styles = (theme: Theme) =>
@@ -57,7 +58,7 @@ const styles = (theme: Theme) =>
       gap: "4px",
       padding: "2px 4px",
       borderRadius: "var(--rounded-lg)",
-      transition: "background-color 0.2s ease",
+      transition: MOTION.background,
 
       "&:hover": {
         backgroundColor: `${theme.vars.palette.grey[700]}30`
@@ -69,7 +70,7 @@ const styles = (theme: Theme) =>
       padding: "4px 8px",
       borderRadius: "var(--rounded-lg)",
       border: `1px solid ${theme.vars.palette.grey[700]}40`,
-      transition: "background-color 0.2s ease, border-color 0.2s ease",
+      transition: `${MOTION.background}, ${MOTION.border}`,
 
       "&:hover": {
         backgroundColor: `${theme.vars.palette.grey[700]}40`,

@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
+import { MOTION } from "../ui_primitives";
 
 /**
  * Styles for the NumberInput component.
@@ -109,7 +110,7 @@ export const numberInputStyles = (theme: Theme) =>
       justifyContent: "center",
       backgroundColor: "transparent",
       border: `1px solid ${theme.vars.palette.grey[600]}`,
-      borderRadius: "3px",
+      borderRadius: "var(--rounded-sm)",
       color: theme.vars.palette.grey[100],
       cursor: "pointer",
       padding: 0,
@@ -180,7 +181,7 @@ export const numberInputStyles = (theme: Theme) =>
       marginTop: 0,
       height: "4px",
       opacity: 0,
-      transition: "opacity 0.15s"
+      transition: MOTION.opacity
     },
 
     "&:hover .range-container-wrapper": {
@@ -188,8 +189,7 @@ export const numberInputStyles = (theme: Theme) =>
     },
 
     ".range-container": {
-      transition:
-        "opacity 0.2s, background-color 0.3s ease-in-out, height 0.1s ease-in-out",
+      transition: `opacity ${MOTION.normal}, background-color ${MOTION.slow}, height ${MOTION.fast}`,
       backgroundColor: theme.vars.palette.grey[600],
       display: "block",
       width: "100%",
@@ -201,7 +201,7 @@ export const numberInputStyles = (theme: Theme) =>
     },
 
     ".range-indicator": {
-      transition: "background-color 0.3s ease-in-out, height 0.2s ease-in-out",
+      transition: `background-color ${MOTION.slow}, height ${MOTION.normal}`,
       opacity: 1,
       backgroundColor: theme.vars.palette.grey[500],
       height: "100%",

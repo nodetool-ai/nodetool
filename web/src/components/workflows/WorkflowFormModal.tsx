@@ -1,4 +1,3 @@
-import { DialogContent } from "@mui/material";
 import WorkflowForm from "./WorkflowForm";
 import { Workflow } from "../../stores/ApiTypes";
 import { Dialog } from "../ui_primitives";
@@ -24,9 +23,7 @@ const WorkflowFormModal = ({
       maxWidth="sm"
       fullWidth
     >
-      <DialogContent sx={{ bgcolor: "background.paper", p: 0 }}>
         <WorkflowForm onClose={onClose} workflow={workflow} availableTags={availableTags} />
-      </DialogContent>
     </Dialog>
   );
 };

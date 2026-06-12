@@ -1,7 +1,7 @@
 import React, { memo } from "react";
 //mui
-import { Menu, MenuItem } from "@mui/material";
-import { Text, Divider } from "../ui_primitives";
+import { MenuItem } from "@mui/material";
+import { Text, Divider, ContextMenu } from "../ui_primitives";
 import { shallow } from "zustand/shallow";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import ContextMenuItem from "./ContextMenuItem";
@@ -239,15 +239,12 @@ const PropertyContextMenuComponent: React.FC = () => {
   };
 
   return (
-    <Menu
+    <ContextMenu
       className="context-menu property-context-menu"
       open={menuPosition !== null}
       onClose={closeContextMenu}
       onContextMenu={(event) => event.preventDefault()}
-      anchorReference="anchorPosition"
-      anchorPosition={
-        menuPosition ? { top: menuPosition.y, left: menuPosition.x } : undefined
-      }
+      position={menuPosition}
     >
       <MenuItem disabled>
         <Text>Property</Text>
@@ -339,7 +336,7 @@ const PropertyContextMenuComponent: React.FC = () => {
           tooltip="Remove this property from being dynamic"
         />
       )}
-    </Menu>
+    </ContextMenu>
   );
 };
 

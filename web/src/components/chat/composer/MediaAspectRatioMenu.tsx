@@ -5,7 +5,8 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import {
   Caption,
-  Popover
+  Popover,
+  MOTION
 } from "../../ui_primitives";
 import type { AspectRatioOption } from "../../../stores/MediaGenerationStore";
 
@@ -44,7 +45,7 @@ const styles = (theme: Theme) =>
       cursor: "pointer",
       color: theme.vars.palette.grey[100],
       borderRadius: 10,
-      transition: "background-color 120ms ease",
+      transition: MOTION.background,
       "&:hover": {
         backgroundColor: "rgba(255,255,255,0.04)"
       },

@@ -1,11 +1,5 @@
 import React, { memo, useEffect, useMemo, useState } from "react";
-import {
-  List,
-  TextField,
-  InputAdornment
-} from "@mui/material";
-import { EditorButton, FlexRow, Text } from "../ui_primitives";
-import SearchIcon from "@mui/icons-material/Search";
+import { EditorButton, FlexRow, Text, SearchInput, ListGroup } from "../ui_primitives";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import ModelListItem from "./model_list/ModelListItem";
 import { useTheme } from "@mui/material/styles";
@@ -91,37 +85,13 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
         align="center"
         sx={{ marginBottom: 2 }}
       >
-        <TextField
+        <SearchInput
           className="search-models-input"
           placeholder="Search models..."
-          variant="outlined"
           size="small"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          sx={{
-            flex: 1,
-            maxWidth: "300px",
-            border: "none",
-            "& .MuiOutlinedInput-root": {
-              backgroundColor: "var(--palette-grey-800)",
-              borderRadius: "0.5em",
-              border: `1px solid ${theme.vars.palette.grey[600]}`,
-              "& .MuiOutlinedInput-notchedOutline": { border: "none " },
-              "&:hover": { opacity: 0.9 },
-              "&:focus": {
-                backgroundColor: "var(--palette-grey-500)"
-              }
-            }
-          }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon sx={{ color: "var(--palette-grey-200)" }} />
-                </InputAdornment>
-              )
-            }
-          }}
+          onChange={setSearchQuery}
+          fullWidth
         />
       </FlexRow>
 
@@ -132,7 +102,7 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
           No models found{searchQuery ? ` for "${searchQuery}"` : ""}.
         </Text>
       ) : (
-        <List>
+        <ListGroup>
           {displayModels.map((model) => {
             const cacheKey = getHfCacheKey(model);
             const isCacheable = canCheckHfCache(model);
@@ -149,7 +119,7 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
               />
             );
           })}
-        </List>
+        </ListGroup>
       )}
       <Text
         sx={{ marginTop: "1em", color: theme.vars.palette.grey[100] }}

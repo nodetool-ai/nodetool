@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { NodeResizer as ReactFlowNodeResizer } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box } from "../ui_primitives";
+import { Box, MOTION } from "../ui_primitives";
 import { memo } from "react";
 
 interface NodeResizerProps {
@@ -29,7 +29,7 @@ const styles = (theme: Theme) =>
       opacity: 0,
       borderWidth: "1px",
       borderColor: theme.vars.palette.grey[600],
-      transition: "all 0.15s ease-in-out"
+      transition: `all ${MOTION.fast}`
     },
     ".react-flow__resize-control.line:hover": {
       opacity: 1

@@ -3,8 +3,7 @@ import { memo, useCallback, forwardRef, useState, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Collapse } from "@mui/material";
-import { Text, Box } from "../ui_primitives";
+import { Text, Box, Collapse, MOTION } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -46,7 +45,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
       margin: compact ? theme.spacing(0.5, 0) : theme.spacing(0.5, 0),
       borderRadius: "var(--rounded-md)",
       cursor: "pointer",
-      transition: "all 0.15s ease",
+      transition: `all ${MOTION.fast}`,
       border: "1px solid transparent",
       backgroundColor: "transparent",
       position: "relative",
@@ -124,7 +123,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         height: "20px",
         borderRadius: "var(--rounded-sm)",
         color: theme.vars.palette.text.secondary,
-        transition: "transform 0.2s ease, color 0.2s ease",
+        transition: MOTION.all,
         "&.expanded": {
           transform: "rotate(180deg)",
           color: "var(--palette-primary-main)"
@@ -197,7 +196,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
       },
       ".io-item": {
         padding: theme.spacing(0.5, 1),
-        borderRadius: "3px",
+        borderRadius: "var(--rounded-sm)",
         fontSize: "var(--fontSizeSmaller)",
         borderLeft: "2px solid",
         backgroundColor: theme.vars.palette.action.hover

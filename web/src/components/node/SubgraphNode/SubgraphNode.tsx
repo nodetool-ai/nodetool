@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo } from "react";
 import { Node, NodeProps, NodeToolbar, Position } from "@xyflow/react";
-import { Box } from "@mui/material";
+import { Box } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import { NodeData } from "../../../stores/NodeData";
 import { NodeHeader } from "../NodeHeader";

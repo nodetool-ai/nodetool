@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import Keyboard from "react-simple-keyboard";
 import "react-simple-keyboard/build/css/index.css";
-import { ToggleButtonGroup, ToggleButton } from "@mui/material";
+import { ToggleGroup, ToggleOption } from "../../ui_primitives";
 import { Tooltip } from "../../ui_primitives";
 import {
   Shortcut,
@@ -389,29 +389,29 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
 
   return (
     <div>
-      <ToggleButtonGroup
+      <ToggleGroup
         value={os}
         exclusive
         onChange={handleOsToggle}
         size="small"
         sx={{ mb: 2 }}
       >
-        <ToggleButton value="mac">macOS</ToggleButton>
-        <ToggleButton value="win">Windows/Linux</ToggleButton>
-      </ToggleButtonGroup>
+        <ToggleOption value="mac">macOS</ToggleOption>
+        <ToggleOption value="win">Windows/Linux</ToggleOption>
+      </ToggleGroup>
 
-      <ToggleButtonGroup
+      <ToggleGroup
         value={layoutName}
         exclusive
         onChange={handleLayoutToggle}
         size="small"
         sx={{ mb: 2, ml: 2 }}
       >
-        <ToggleButton value="english">EN</ToggleButton>
-        <ToggleButton value="german">DE</ToggleButton>
-      </ToggleButtonGroup>
+        <ToggleOption value="english">EN</ToggleOption>
+        <ToggleOption value="german">DE</ToggleOption>
+      </ToggleGroup>
 
-      <ToggleButtonGroup
+      <ToggleGroup
         value={categoryFilter}
         exclusive
         onChange={(_, v: CategoryFilter | null) => v && setCategoryFilter(v)}
@@ -419,16 +419,16 @@ const KeyboardShortcutsView: React.FC<KeyboardShortcutsViewProps> = ({
         sx={{ mb: 2, ml: imageEditorShortcuts ? 2 : 8 }}
       >
         {imageEditorShortcuts ? (
-          <ToggleButton value="image-editor">Image Editor</ToggleButton>
+          <ToggleOption value="image-editor">Image Editor</ToggleOption>
         ) : (
           <>
-            <ToggleButton value="editor">Editor</ToggleButton>
-            <ToggleButton value="workflow">Workflow</ToggleButton>
-            <ToggleButton value="panel">Panels</ToggleButton>
-            <ToggleButton value="assets">Assets</ToggleButton>
+            <ToggleOption value="editor">Editor</ToggleOption>
+            <ToggleOption value="workflow">Workflow</ToggleOption>
+            <ToggleOption value="panel">Panels</ToggleOption>
+            <ToggleOption value="assets">Assets</ToggleOption>
           </>
         )}
-      </ToggleButtonGroup>
+      </ToggleGroup>
 
       <div ref={containerRef} className="keyboard-view">
         <Keyboard

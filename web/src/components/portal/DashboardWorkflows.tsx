@@ -8,6 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Workflow, WorkflowList as WorkflowListType } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { trpcClient } from "../../trpc/client";
+import { MOTION } from "../ui_primitives";
 import RecentWorkflowCard from "./RecentWorkflowCard";
 import WorkflowListView from "../workflows/WorkflowListView";
 import WorkflowDeleteDialog from "../workflows/WorkflowDeleteDialog";
@@ -72,7 +73,7 @@ const styles = (theme: Theme) =>
       border: `1px dashed ${theme.vars.palette.divider}`,
       display: "grid",
       placeItems: "center",
-      transition: "border-color 0.18s ease"
+      transition: `border-color ${MOTION.normal}`
     },
     ".rec-new:hover .rec-new-thumb": {
       borderColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.5)`

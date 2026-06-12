@@ -3,7 +3,7 @@
 let sharedAudioContext: AudioContext | null = null;
 let sharedNextStartTime = 0;
 
-export function getAudioContext(): AudioContext {
+function getAudioContext(): AudioContext {
   if (typeof window === "undefined") {throw new Error("No window");}
   type WebkitAudioWindow = Window & { webkitAudioContext?: typeof AudioContext };
   const Ctx: typeof AudioContext =

@@ -238,7 +238,8 @@ export {
   FONT_SIZE_SANS,
   FONT_SIZE_MONO,
   scrollbarStyles,
-  thinScrollbarStyles
+  thinScrollbarStyles,
+  reducedMotion
 } from "./tokens";
 
 // Keyboard shortcuts display
