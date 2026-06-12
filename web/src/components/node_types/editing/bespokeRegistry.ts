@@ -25,6 +25,12 @@ import ColorOverlayBody, {
   COLOR_OVERLAY_NODE_TYPE
 } from "./ColorOverlayBody";
 import CompositorBody, { COMPOSITOR_NODE_TYPE } from "./CompositorBody";
+import ConstantSketchBody, {
+  CONSTANT_SKETCH_NODE_TYPE
+} from "./ConstantSketchBody";
+import ConstantTimelineBody, {
+  CONSTANT_TIMELINE_NODE_TYPE
+} from "./ConstantTimelineBody";
 import CropBody, { CROP_NODE_TYPE } from "./CropBody";
 import CurvesBody, { CURVES_NODE_TYPE } from "./CurvesBody";
 import DropShadowBody, { DROP_SHADOW_NODE_TYPE } from "./DropShadowBody";
@@ -78,6 +84,8 @@ export const BESPOKE_BODY_REGISTRY: Readonly<
   [CHROMA_KEY_NODE_TYPE]: ChromaKeyBody,
   [COLOR_OVERLAY_NODE_TYPE]: ColorOverlayBody,
   [COMPOSITOR_NODE_TYPE]: CompositorBody,
+  [CONSTANT_SKETCH_NODE_TYPE]: ConstantSketchBody,
+  [CONSTANT_TIMELINE_NODE_TYPE]: ConstantTimelineBody,
   [CROP_NODE_TYPE]: CropBody,
   [CURVES_NODE_TYPE]: CurvesBody,
   [DROP_SHADOW_NODE_TYPE]: DropShadowBody,
@@ -119,6 +127,8 @@ export const BESPOKE_BODY_REGISTRY: Readonly<
  * saved height yet, so user resizes are preserved.
  */
 export const BESPOKE_DEFAULT_HEIGHTS: Readonly<Record<string, number>> = {
+  [CONSTANT_SKETCH_NODE_TYPE]: 300,
+  [CONSTANT_TIMELINE_NODE_TYPE]: 300,
   [CURVES_NODE_TYPE]: 520,
   // Generators: preview + color rows + up to 4 sliders need more than the
   // generic default to show all controls without resizing.

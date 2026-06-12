@@ -107,6 +107,8 @@ export default {
     "/dist/",
     "tests/e2e/",
     "tests/benchmarks/",
-    "tests/subgraph-e2e.spec.ts"
+    "tests/subgraph-e2e.spec.ts",
+    // Shared helpers living inside __tests__ dirs — not suites themselves.
+    "/__tests__/testUtils\\.tsx$"
   ]
 };

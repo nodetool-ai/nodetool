@@ -1,4 +1,5 @@
 export * from "./nodes/video.js";
+export * from "./nodes/timeline.js";
 export * from "./nodes/lib-video-download.js";
 export * from "./nodes/model3d.js";
 

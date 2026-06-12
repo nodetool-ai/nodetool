@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { SketchRef, TimelineRef } from "@nodetool-ai/protocol";
 import { tagAsUniversal } from "@nodetool-ai/nodes-utils";
 
 export class ConstantBaseNode extends BaseNode {
@@ -263,6 +264,120 @@ export class ConstantDocumentNode extends BaseNode {
     title: "Document"
   })
   declare value: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return { output: this.value ?? {} };
+  }
+}
+
+export class ConstantSketchNode extends BaseNode {
+  static readonly nodeType = "nodetool.constant.Sketch";
+  static readonly title = "Sketch";
+  static readonly description =
+    "Layered sketch document for drawing, masking, and image composition.\n    sketch, drawing, canvas, paint, image editor\n\n    Use cases:\n    - Pass a sketch document between nodes\n    - Edit the sketch directly from the workflow canvas\n    - Expose flattened image, mask, and layer outputs for downstream nodes";
+  static readonly metadataOutputTypes = {
+    output: "sketch",
+    image: "image",
+    mask: "image",
+    layers: "list[image]"
+  };
+  static readonly supportsDynamicInputs = true;
+  static readonly supportsDynamicOutputs = true;
+  static readonly inlineFields = ["value"];
+  static readonly inputFields = ["image", "mask"];
+
+  @prop({
+    type: "sketch",
+    default: {
+      type: "sketch",
+      id: null,
+      data: null
+    },
+    title: "Value"
+  })
+  declare value: SketchRef;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Sketch data",
+    description: "Serialized editor document (managed by the UI)."
+  })
+  declare sketch_data: unknown;
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "Flattened composite (filled when you edit in the UI)."
+  })
+  declare image: unknown;
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Mask",
+    description: "Mask output when configured in the editor."
+  })
+  declare mask: unknown;
+
+  @prop({
+    type: "list",
+    default: [],
+    title: "Layers",
+    description: "List of exposed layer image references."
+  })
+  declare layers: unknown;
+
+  async process(): Promise<Record<string, unknown>> {
+    const result: Record<string, unknown> = {
+      output: this.value ?? {},
+      image: this.image,
+      mask: this.mask,
+      layers: Array.isArray(this.layers) ? this.layers : []
+    };
+    for (const [key, value] of this.dynamicProps) {
+      if (key.startsWith("layer_out_")) {
+        result[key] = value;
+      }
+    }
+    return result;
+  }
+}
+
+export class ConstantTimelineNode extends BaseNode {
+  static readonly nodeType = "nodetool.constant.Timeline";
+  static readonly title = "Timeline";
+  static readonly description =
+    "References a timeline sequence in the workflow.\n    timeline, video editor, sequence, clips, tracks\n\n    Use cases:\n    - Pass a timeline between nodes for video rendering or editing\n    - Open and edit the referenced timeline in the timeline editor\n    - Provide a fixed timeline input for downstream nodes";
+  static readonly metadataOutputTypes = {
+    output: "timeline"
+  };
+  static readonly inlineFields = ["value"];
+  static readonly inputFields = [];
+
+  @prop({
+    type: "timeline",
+    default: {
+      type: "timeline",
+      id: null,
+      data: null
+    },
+    title: "Value"
+  })
+  declare value: TimelineRef;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -809,6 +924,8 @@ export const CONSTANT_NODES = tagAsUniversal([
   ConstantImageNode,
   ConstantVideoNode,
   ConstantDocumentNode,
+  ConstantSketchNode,
+  ConstantTimelineNode,
   ConstantJSONNode,
   ConstantModel3DNode,
   ConstantDataFrameNode,
