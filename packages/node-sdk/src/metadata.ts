@@ -109,6 +109,10 @@ export interface NodeMetadata {
    * Platform type for the closed set.
    */
   platforms?: readonly Platform[];
+  /** When true, the node remains runnable but should be deprioritized in search. */
+  deprecated?: boolean;
+  /** Preferred replacement node_type when deprecated is true. */
+  replaced_by?: string;
 }
 
 export interface PackageMetadata {

@@ -4317,9 +4317,10 @@ export class UnifiedWebSocketRunner {
               job.markFailed(active.error ?? "Unknown error");
             else if (active.status === "cancelled") job.markCancelled();
           }
-          if (active.providerCostTotal != null) {
-            job.cost = active.providerCostTotal;
-          }
+          job.cost =
+            (active.providerCostTotal ?? 0) > 0
+              ? (active.providerCostTotal ?? null)
+              : null;
           await job.save();
         }
       } catch (error) {
