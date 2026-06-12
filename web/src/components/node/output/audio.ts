@@ -3,7 +3,7 @@
 let sharedAudioContext: AudioContext | null = null;
 let sharedNextStartTime = 0;
 
-export function getAudioContext(): AudioContext {
+function getAudioContext(): AudioContext {
   if (typeof window === "undefined") {throw new Error("No window");}
   type WebkitAudioWindow = Window & { webkitAudioContext?: typeof AudioContext };
   const Ctx: typeof AudioContext =
@@ -35,12 +35,15 @@ export function int16ToFloat32(int16Array: Int16Array): Float32Array {
   return float32;
 }
 
+export type PcmEncoding = "pcm16le" | "f32le";
+
 export function playPcm16Base64(
   base64: string,
-  opts?: { sampleRate?: number; channels?: number }
+  opts?: { sampleRate?: number; channels?: number; encoding?: PcmEncoding }
 ): void {
   const sampleRate = opts?.sampleRate ?? 22000;
   const channels = opts?.channels ?? 1;
+  const encoding = opts?.encoding ?? "pcm16le";
 
   const ctx = getAudioContext();
   ctx.resume().catch((err) => {
@@ -50,18 +53,30 @@ export function playPcm16Base64(
 
   const u8 = base64ToUint8Array(base64);
   const view = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
-  const frameCount = Math.floor(u8.byteLength / 2 / channels);
+  const bytesPerSample = encoding === "f32le" ? 4 : 2;
+  const frameCount = Math.floor(u8.byteLength / bytesPerSample / channels);
   const buffer = ctx.createBuffer(channels, frameCount, sampleRate);
 
   for (let ch = 0; ch < channels; ch++) {
-    const channelData = new Int16Array(frameCount);
-    let srcIndex = ch * 2;
-    for (let i = 0; i < frameCount; i++) {
-      const sample = view.getInt16(srcIndex, true);
-      channelData[i] = sample;
-      srcIndex += channels * 2;
+    let floatData: Float32Array;
+    if (encoding === "f32le") {
+      floatData = new Float32Array(frameCount);
+      let srcIndex = ch * 4;
+      for (let i = 0; i < frameCount; i++) {
+        // CV legitimately exceeds [-1, 1]; clamp for the speaker path.
+        floatData[i] = Math.max(-1, Math.min(1, view.getFloat32(srcIndex, true)));
+        srcIndex += channels * 4;
+      }
+    } else {
+      const channelData = new Int16Array(frameCount);
+      let srcIndex = ch * 2;
+      for (let i = 0; i < frameCount; i++) {
+        const sample = view.getInt16(srcIndex, true);
+        channelData[i] = sample;
+        srcIndex += channels * 2;
+      }
+      floatData = int16ToFloat32(channelData);
     }
-    const floatData = int16ToFloat32(channelData);
     buffer.copyToChannel(floatData as Float32Array<ArrayBuffer>, ch);
   }
 

@@ -12,7 +12,6 @@ import React, { memo, useCallback, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { MenuItem, ListItemIcon, ListItemText } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import AudiotrackOutlinedIcon from "@mui/icons-material/AudiotrackOutlined";
@@ -21,7 +20,7 @@ import SubtitlesOutlinedIcon from "@mui/icons-material/SubtitlesOutlined";
 
 import type { TimelineTrack } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
-import { Popover } from "../../ui_primitives";
+import { Popover, MenuItemPrimitive, MOTION } from "../../ui_primitives";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
@@ -41,7 +40,7 @@ const buttonStyles = (theme: Theme) =>
     letterSpacing: "0.01em",
     fontFamily: theme.typography.fontFamily,
     borderRadius: 6,
-    transition: "background-color 120ms, color 120ms, border-color 120ms",
+    transition: `${MOTION.background}, color ${MOTION.fast}, ${MOTION.border}`,
     "&:hover": {
       backgroundColor: theme.vars.palette.action.hover,
       color: theme.vars.palette.text.primary,
@@ -126,10 +125,12 @@ export const AddTrackButton: React.FC = memo(() => {
         placement="bottom-left"
       >
         {TRACK_TYPES.map((opt) => (
-          <MenuItem key={opt.type} onClick={() => handleSelect(opt.type)}>
-            <ListItemIcon>{opt.icon}</ListItemIcon>
-            <ListItemText primary={opt.label} />
-          </MenuItem>
+          <MenuItemPrimitive
+            key={opt.type}
+            label={opt.label}
+            icon={opt.icon}
+            onClick={() => handleSelect(opt.type)}
+          />
         ))}
       </Popover>
     </>

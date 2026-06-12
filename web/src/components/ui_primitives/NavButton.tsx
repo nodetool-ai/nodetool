@@ -21,6 +21,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
+import { MOTION } from "./tokens";
 
 // Common props shared between Button and IconButton
 type CommonButtonProps = Pick<ButtonProps, "onClick" | "disabled" | "color">;
@@ -143,7 +144,7 @@ export const NavButton = memo(
           ? theme.vars.palette.grey[800]
           : "transparent",
         borderRadius: theme.rounded.lg,
-        transition: "all 0.2s ease-in-out",
+        transition: MOTION.all,
         "&:hover": {
           backgroundColor: theme.vars.palette.grey[700],
           color: active
@@ -199,7 +200,7 @@ export const NavButton = memo(
             ...baseStyles,
             textTransform: "none",
             justifyContent: "flex-start",
-            padding: "6px 12px"
+            padding: theme.spacing(1.5, 3)
           }}
           {...props}
         >

@@ -2,11 +2,12 @@
 import { css } from "@emotion/react";
 
 import React, { useMemo, useRef, useCallback, useState, useEffect } from "react";
-import { Text, ToolbarIconButton } from "../ui_primitives";
+import { Text, ToolbarIconButton, MOTION } from "../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import AssetViewer from "../assets/AssetViewer";
 import { createImageUrl } from "../../utils/imageUtils";
+import BitmapCanvas from "./BitmapCanvas";
 import ImageDimensions from "./ImageDimensions";
 import { CopyAssetButton } from "../common/CopyAssetButton";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
@@ -15,14 +16,14 @@ import { useMediaOverlay } from "./MediaOverlayContext";
 const hoverStyles = css({
   ".image-dimensions": {
     opacity: 0,
-    transition: "opacity 0.2s ease"
+    transition: `opacity ${MOTION.normal}`
   },
   "&:hover .image-dimensions": {
     opacity: 1
   },
   ".image-view-actions": {
     opacity: 0,
-    transition: "opacity 0.2s ease"
+    transition: `opacity ${MOTION.normal}`
   },
   "&:hover .image-view-actions": {
     opacity: 1
@@ -31,21 +32,149 @@ const hoverStyles = css({
 
 interface ImageViewProps {
   source?: string | Uint8Array;
+  /**
+   * Preview bitmap from the in-browser runner (zero-copy transport). When set
+   * it takes precedence over `source`: the frame is painted straight onto a
+   * canvas, and a PNG blob URL for the action buttons (copy / download /
+   * viewer) is derived lazily off the display path.
+   */
+  bitmap?: ImageBitmap;
 }
 
-const ImageView: React.FC<ImageViewProps> = ({ source }) => {
+const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
   const [openViewer, setOpenViewer] = React.useState(false);
-  const blobUrlRef = useRef<string | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
   const { suppressed: overlaySuppressed, onRequestOpenViewer } =
     useMediaOverlay();
 
-  const imageUrl = useMemo(() => {
-    const result = createImageUrl(source, blobUrlRef.current);
-    blobUrlRef.current = result.blobUrl;
+  // Double-buffer the displayed image so an output update replaces the old one
+  // smoothly: the visible <img> keeps the current (already-decoded) URL until
+  // the next one has finished loading, then swaps — no blank gap/flicker (the
+  // pattern transform nodes hit when they re-render their live output). Owned
+  // blob URLs are revoked only once they're no longer shown.
+  const displayedBlobRef = useRef<string | null>(null);
+  const nextBlobRef = useRef<string | null>(null);
+  const [displayedUrl, setDisplayedUrl] = useState<string>();
+
+  const nextUrl = useMemo(() => {
+    // A newer source arrived before the previous preload committed — drop the
+    // superseded blob.
+    if (nextBlobRef.current) {
+      URL.revokeObjectURL(nextBlobRef.current);
+      nextBlobRef.current = null;
+    }
+    const result = createImageUrl(source, null);
+    nextBlobRef.current = result.blobUrl;
     return result.url || undefined;
   }, [source]);
+
+  const promote = useCallback((url: string) => {
+    if (
+      displayedBlobRef.current &&
+      displayedBlobRef.current !== nextBlobRef.current
+    ) {
+      URL.revokeObjectURL(displayedBlobRef.current);
+    }
+    displayedBlobRef.current = nextBlobRef.current;
+    nextBlobRef.current = null;
+    setDisplayedUrl(url);
+  }, []);
+
+  useEffect(() => {
+    if (nextUrl === undefined) {
+      if (displayedBlobRef.current) {
+        URL.revokeObjectURL(displayedBlobRef.current);
+        displayedBlobRef.current = null;
+      }
+      setDisplayedUrl(undefined);
+      return;
+    }
+    if (nextUrl === displayedUrl) return;
+    // First image: nothing underneath to keep — commit immediately.
+    if (displayedUrl === undefined) {
+      promote(nextUrl);
+      return;
+    }
+    // Preload the next image off-screen and swap only once it's decoded, so the
+    // current frame stays put until then.
+    let cancelled = false;
+    const preload = new Image();
+    const commit = () => {
+      if (!cancelled) promote(nextUrl);
+    };
+    preload.onload = commit;
+    preload.onerror = commit;
+    preload.src = nextUrl;
+    return () => {
+      cancelled = true;
+    };
+  }, [nextUrl, displayedUrl, promote]);
+
+  useEffect(
+    () => () => {
+      if (displayedBlobRef.current) {
+        URL.revokeObjectURL(displayedBlobRef.current);
+      }
+      if (nextBlobRef.current) {
+        URL.revokeObjectURL(nextBlobRef.current);
+      }
+    },
+    []
+  );
+
+  // Bitmap path: the canvas shows the frame immediately; the PNG blob URL the
+  // action buttons need is encoded asynchronously after a short debounce, so a
+  // live scrub (a new bitmap every few frames) never pays for an encode — only
+  // the resting frame does, off the display path.
+  const bitmapUrlRef = useRef<string | null>(null);
+  const [bitmapUrl, setBitmapUrl] = useState<string | null>(null);
+  const commitBitmapUrl = useCallback((url: string | null) => {
+    if (bitmapUrlRef.current && bitmapUrlRef.current !== url) {
+      URL.revokeObjectURL(bitmapUrlRef.current);
+    }
+    bitmapUrlRef.current = url;
+    setBitmapUrl(url);
+  }, []);
+
+  useEffect(() => {
+    if (!bitmap) {
+      commitBitmapUrl(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctx.drawImage(bitmap, 0, 0);
+        const blob = await canvas.convertToBlob({ type: "image/png" });
+        if (!cancelled) {
+          commitBitmapUrl(URL.createObjectURL(blob));
+        }
+      } catch {
+        // Encode failed (bitmap closed mid-scrub) — actions stay hidden.
+      }
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [bitmap, commitBitmapUrl]);
+
+  useEffect(
+    () => () => {
+      if (bitmapUrlRef.current) {
+        URL.revokeObjectURL(bitmapUrlRef.current);
+      }
+    },
+    []
+  );
+
+  // Show the committed image, falling back to the freshly-computed one on the
+  // first render so there's no "no image" flash before the effect runs.
+  const imageUrl = bitmap ? bitmapUrl ?? undefined : displayedUrl ?? nextUrl;
 
   const handleImageLoad = useCallback(() => {
     if (imageRef.current) {
@@ -57,8 +186,12 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
   }, []);
 
   useEffect(() => {
+    if (bitmap) {
+      setImageDimensions({ width: bitmap.width, height: bitmap.height });
+      return;
+    }
     setImageDimensions(null);
-  }, [imageUrl]);
+  }, [bitmap, imageUrl]);
 
   // Memoize style objects to prevent recreation on every render
   const containerStyle = useMemo(() => ({
@@ -82,7 +215,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
     display: "flex",
     gap: "4px",
     opacity: 0,
-    transition: "opacity 0.2s ease"
+    transition: `opacity ${MOTION.normal}`
   }), []);
 
   const iconButtonStyle = useMemo(() => ({
@@ -175,7 +308,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
     setOpenViewer(true);
   }, []);
 
-  if (!imageUrl) {
+  if (!imageUrl && !bitmap) {
     return <Text>No Image found</Text>;
   }
 
@@ -185,7 +318,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
       className="image-output"
       style={containerStyle}
     >
-      {!onRequestOpenViewer && (
+      {!onRequestOpenViewer && imageUrl && (
         <AssetViewer
           contentType="image/*"
           url={imageUrl}
@@ -193,7 +326,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
           onClose={handleCloseViewer}
         />
       )}
-      {!overlaySuppressed && (
+      {!overlaySuppressed && imageUrl && (
         <div
           className="image-view-actions"
           style={actionsStyle}
@@ -220,15 +353,24 @@ const ImageView: React.FC<ImageViewProps> = ({ source }) => {
           </ToolbarIconButton>
         </div>
       )}
-      <img
-        ref={imageRef}
-        src={imageUrl}
-        alt="Generated image output"
-        onLoad={handleImageLoad}
-        style={imageStyle}
-        onDoubleClick={handleDoubleClick}
-        draggable={false}
-      />
+      {bitmap ? (
+        <BitmapCanvas
+          bitmap={bitmap}
+          aria-label="Generated image output"
+          style={imageStyle}
+          onDoubleClick={handleDoubleClick}
+        />
+      ) : (
+        <img
+          ref={imageRef}
+          src={imageUrl}
+          alt="Generated image output"
+          onLoad={handleImageLoad}
+          style={imageStyle}
+          onDoubleClick={handleDoubleClick}
+          draggable={false}
+        />
+      )}
       {!overlaySuppressed && imageDimensions && (
         <ImageDimensions
           width={imageDimensions.width}

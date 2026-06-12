@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { Toolbar, useMediaQuery } from "@mui/material";
+import { Toolbar } from "@mui/material";
 import { EditorButton } from "../editor_ui";
 import AutoAwesomeMosaicIcon from "@mui/icons-material/AutoAwesomeMosaic";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -12,13 +12,9 @@ import { TOOLTIP_ENTER_DELAY, HEADER_HEIGHT } from "../../config/constants";
 import RightSideButtons from "./RightSideButtons";
 import SaveImageEditPill from "./SaveImageEditPill";
 import Logo from "../Logo";
-import { FlexRow, Tooltip, Box, Text } from "../ui_primitives";
+import { FlexRow, MOTION, Tooltip, Box } from "../ui_primitives";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
 import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
-import { isProduction } from "../../lib/env";
-
-const workspacesEnabled = !isProduction;
-
 const styles = (theme: Theme) =>
   css({
     "&": {
@@ -49,7 +45,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.primary,
       borderRadius: "var(--rounded-md)",
       fontSize: theme.typography.body2.fontSize,
-      transition: "all 0.2s ease-out",
+      transition: MOTION.all,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover
       },
@@ -74,12 +70,18 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       paddingLeft: "2px",
-      marginRight: "16px",
+      marginRight: theme.spacing(4),
       cursor: "pointer",
       opacity: 0.55,
-      transition: "opacity 150ms ease-out",
+      borderRadius: "var(--rounded-sm)",
+      transition: MOTION.opacity,
       "&:hover": {
         opacity: 1
+      },
+      "&:focus-visible": {
+        opacity: 1,
+        outline: `2px solid ${theme.vars.palette.primary.main}`,
+        outlineOffset: 2
       }
     },
     ".buttons-right": {
@@ -89,9 +91,9 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       background: "transparent",
       flexShrink: 0,
-      marginLeft: "1em",
-      marginRight: "4px",
-      gap: "4px",
+      marginLeft: theme.spacing(4),
+      marginRight: theme.spacing(1),
+      gap: theme.spacing(1),
       WebkitAppRegion: "no-drag"
     }
     // Mobile styles handled via separate CSS file
@@ -125,8 +127,7 @@ const TemplatesButton = memo(function TemplatesButton({
           color: "var(--palette-text-secondary)",
           border: "1px solid transparent",
           gap: "6px",
-          transition:
-            "color 150ms ease-out, background-color 150ms ease-out",
+          transition: `color ${MOTION.normal}, ${MOTION.background}`,
           "& .templates-icon": {
             width: "16px",
             height: "16px",
@@ -276,8 +277,6 @@ const AppHeader: React.FC = memo(function AppHeader() {
   const path = useLocation().pathname;
   const headerStyles = useMemo(() => styles(theme), [theme]);
   const navigate = useNavigate();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-
   const isEditorRoute = path.startsWith("/editor/");
   const sketchDocumentId = path.match(/^\/sketch\/([^/]+)/)?.[1];
 

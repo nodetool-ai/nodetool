@@ -10,7 +10,8 @@ import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   loadPythonPackageMetadata,
-  normalizeTypeMetadata
+  normalizeTypeMetadata,
+  sanitizePythonJson
 } from "../src/metadata.js";
 
 const tmpDirs: string[] = [];
@@ -65,6 +66,30 @@ describe("parseMetadataFiles field handling", () => {
     const node = result.nodesByType.get("p.N");
     expect(node?.properties[0].min).toBeNull();
     expect(node?.properties[0].max).toBeNull();
+  });
+
+  it("preserves NaN/Infinity words inside string values", () => {
+    const root = metaRoot(
+      "pkg",
+      '{"name":"p","nodes":[{"node_type":"p.NaNDoc","title":"XInfinity Edge","description":"Returns NaN or Infinity on overflow","properties":[{"name":"x","type":{"type":"float","type_args":[]},"min":-Infinity,"max":NaN,"default":"NaN"}],"outputs":[]}]}'
+    );
+    const result = loadPythonPackageMetadata({ roots: [root] });
+    expect(result.warnings).toEqual([]);
+    const node = result.nodesByType.get("p.NaNDoc");
+    expect(node?.title).toBe("XInfinity Edge");
+    expect(node?.description).toBe("Returns NaN or Infinity on overflow");
+    expect(node?.properties[0].default).toBe("NaN");
+    expect(node?.properties[0].min).toBeNull();
+    expect(node?.properties[0].max).toBeNull();
+  });
+
+  it("sanitizePythonJson nulls bare tokens but never string content", () => {
+    expect(sanitizePythonJson('{"a":NaN,"b":Infinity,"c":-Infinity}')).toBe(
+      '{"a":null,"b":null,"c":null}'
+    );
+    expect(sanitizePythonJson('{"d":"NaN says \\"Infinity\\" here"}')).toBe(
+      '{"d":"NaN says \\"Infinity\\" here"}'
+    );
   });
 
   it("falls back name to the filename and drops mistyped fields", () => {

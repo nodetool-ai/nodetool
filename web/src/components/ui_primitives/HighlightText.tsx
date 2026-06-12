@@ -3,6 +3,7 @@ import { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { MOTION } from "./tokens";
 
 // Convert hex color to RGB values
 const hexToRgb = (hex: string) => {
@@ -80,7 +81,7 @@ const highlightStyles = (theme: Theme, matchStyle: "primary" | "underline") => {
         borderBottom: `2px solid rgba(${rgbColor || "25, 118, 210"}, 0.6)`,
         color: "var(--palette-primary-main)"
       }),
-      transition: "all 0.2s ease"
+      transition: MOTION.all
     },
     "ul": {
       listStyleType: "disc",

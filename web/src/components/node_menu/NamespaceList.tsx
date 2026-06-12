@@ -3,8 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { List } from "@mui/material";
-import { Text, EditorButton, BORDER_RADIUS, Box } from "../ui_primitives";
+import { Text, EditorButton, BORDER_RADIUS, Box, ListGroup, MOTION } from "../ui_primitives";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import NamespacePanel from "./NamespacePanel";
 import RenderNodes from "./RenderNodes";
@@ -71,7 +70,7 @@ const namespaceStyles = (theme: Theme) =>
       flex: "1 1 0",
       minWidth: "320px",
       backgroundColor: "transparent",
-      transition: "max-width 0.35s ease, width 0.35s ease",
+      transition: `max-width ${MOTION.slow}, width ${MOTION.slow}`,
       overflowX: "hidden",
       overflowY: "auto",
       padding: "0 0.35em"
@@ -208,7 +207,7 @@ const namespaceStyles = (theme: Theme) =>
       padding: "0",
       borderRadius: BORDER_RADIUS.lg,
       cursor: "pointer",
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
       border: "1px solid transparent",
       ".node-button": {
         padding: "2px 4px",
@@ -413,7 +412,7 @@ const InfoBox = memo(function InfoBox({
 
   return (
     <Box className="info-box">
-      <Text className="result-info" sx={{ fontSize: "var(--fontSizeSmall)" }}>
+      <Text size="small" className="result-info">
         {buildContextMessage()}
       </Text>
     </Box>
@@ -494,9 +493,9 @@ const NamespaceList: React.FC<NamespaceListProps> = ({
         selectedOutputType ||
         selectedProviderType !== "all" ? (
           <>
-            <List className={`node-list ${searchTerm ? "expanded" : ""}`}>
+            <ListGroup className={`node-list ${searchTerm ? "expanded" : ""}`}>
               <RenderNodes nodes={searchResults} />
-            </List>
+            </ListGroup>
             {/* Only show NodeInfo when not searching */}
             {!searchTerm && (
               <div className="node-info-container">

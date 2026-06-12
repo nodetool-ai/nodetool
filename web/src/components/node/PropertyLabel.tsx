@@ -129,7 +129,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
         <FlexRow
           className="property-label-row"
           align="center"
-          gap={0.25}
+          gap={0.5}
           sx={{ width: "100%", minWidth: 0 }}
         >
           <div
@@ -141,7 +141,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
           <FlexRow
             className="property-label-actions inspector-header-toolbar inspector-toolbar-hoverable"
             align="center"
-            gap={0.25}
+            gap={0.5}
             sx={{ flex: "0 0 auto", flexShrink: 0 }}
           >
             {headerSupplemental}

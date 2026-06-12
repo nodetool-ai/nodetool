@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 // Full-page settings (formerly a Dialog).
-import React, { memo, useId, useMemo } from "react";
+import React, { memo, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Tabs,
@@ -42,6 +42,7 @@ import ServerNumberSetting from "./ServerNumberSetting";
 import { getAboutSidebarSections } from "./aboutSidebarUtils";
 import DefaultModelsMenu from "./DefaultModelsMenu";
 import MCPSettingsMenu from "./MCPSettingsMenu";
+import BrowserExtensionSettingsMenu from "./BrowserExtensionSettingsMenu";
 import PackagesMenu from "./PackagesMenu";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState, useCallback, useEffect, useRef } from "react";
@@ -215,9 +216,6 @@ function SettingsPage() {
       !generalSearch || keywords.toLowerCase().includes(generalSearch),
     [generalSearch]
   );
-
-  // Generate unique IDs for form controls
-  const baseId = useId();
 
   const [activeSection, setActiveSection] = useState("editor");
   const [, setSecretsUpdated] = useState({});
@@ -528,7 +526,10 @@ function SettingsPage() {
         ? [
             {
               category: "Servers",
-              items: [{ id: "mcp-integration", label: "MCP Servers" }]
+              items: [
+                { id: "mcp-integration", label: "MCP Servers" },
+                { id: "browser-extension", label: "Browser Extension" }
+              ]
             }
           ]
         : []),
@@ -786,6 +787,36 @@ function SettingsPage() {
                         <Text className="description">
                           Warn when a run would execute more than this many
                           model/provider nodes (LLM, image, audio, API, etc.).
+                        </Text>
+                      </SearchItem>
+
+                      <SearchItem
+                        search={generalSearch}
+                        keywords="audio buffer latency realtime synth playback dropout"
+                      >
+                        <TextInput
+                          type="number"
+                          autoComplete="off"
+                          slotProps={{ htmlInput: { min: 20, max: 1000, step: 10 } }}
+                          id="audio-buffer-ms-input"
+                          label="Audio Buffer (ms)"
+                          value={settings.audioBufferMs ?? 100}
+                          onChange={(e) =>
+                            updateSettings({
+                              audioBufferMs: Math.min(
+                                1000,
+                                Math.max(20, Number(e.target.value) || 100)
+                              )
+                            })
+                          }
+                          variant="standard"
+                          size="small"
+                        />
+                        <Text className="description">
+                          Playback buffer for realtime audio (modular synth
+                          patches). Lower values reduce knob-to-ear latency;
+                          higher values prevent dropouts when the editor is
+                          busy.
                         </Text>
                       </SearchItem>
 
@@ -1147,6 +1178,15 @@ function SettingsPage() {
                         MCP Integration
                       </Text>
                       <MCPSettingsMenu />
+
+                      <Text
+                        size="big"
+                        id="browser-extension"
+                        className="settings-heading"
+                      >
+                        Browser Extension
+                      </Text>
+                      <BrowserExtensionSettingsMenu />
                     </>
                   )}
 

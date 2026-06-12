@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from "vitest";
-import { loadMediaRefBytes } from "../src/media-ref-bytes.js";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { encodeBase64, loadMediaRefBytes } from "../src/media-ref-bytes.js";
 import type { ProcessingContext } from "../src/context.js";
 
 describe("loadMediaRefBytes", () => {
@@ -11,6 +11,34 @@ describe("loadMediaRefBytes", () => {
       data: payload
     });
     expect(bytes).toEqual(new Uint8Array([1, 2, 3]));
+  });
+
+  it("loads inline base64 data: URIs", async () => {
+    const payload = Buffer.from([1, 2, 3]).toString("base64");
+    const bytes = await loadMediaRefBytes({
+      type: "image",
+      uri: "",
+      data: `data:image/png;base64,${payload}`
+    });
+    expect(bytes).toEqual(new Uint8Array([1, 2, 3]));
+  });
+
+  it("loads inline plain-text data: URIs without base64-decoding", async () => {
+    const bytes = await loadMediaRefBytes({
+      type: "image",
+      uri: "",
+      data: "data:text/plain,hello%20world"
+    });
+    expect(bytes).toEqual(new TextEncoder().encode("hello world"));
+  });
+
+  it("returns null for malformed data: strings without a comma", async () => {
+    const bytes = await loadMediaRefBytes({
+      type: "image",
+      uri: "",
+      data: "data:text/plain"
+    });
+    expect(bytes).toBeNull();
   });
 
   it("resolves storage via asset_id when uri is stale", async () => {
@@ -49,5 +77,33 @@ describe("loadMediaRefBytes", () => {
 
     expect(bytes).toEqual(new Uint8Array([7, 8, 9]));
     expect(ctx.resolveAssetBytes).toHaveBeenCalledWith("asset://abc-123.png");
+  });
+});
+
+describe("encodeBase64", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("encodes bytes via Buffer on Node", () => {
+    const bytes = new TextEncoder().encode("hello world");
+    expect(encodeBase64(bytes)).toBe(
+      Buffer.from(bytes).toString("base64")
+    );
+  });
+
+  it("falls back to btoa when Buffer is unavailable", () => {
+    const bytes = new TextEncoder().encode("hello world");
+    const expected = Buffer.from(bytes).toString("base64");
+    vi.stubGlobal("Buffer", undefined);
+    expect(encodeBase64(bytes)).toBe(expected);
+  });
+
+  it("handles payloads larger than one fromCharCode chunk without Buffer", () => {
+    const bytes = new Uint8Array(0x8000 * 2 + 17);
+    for (let i = 0; i < bytes.length; i += 1) bytes[i] = i % 251;
+    const expected = Buffer.from(bytes).toString("base64");
+    vi.stubGlobal("Buffer", undefined);
+    expect(encodeBase64(bytes)).toBe(expected);
   });
 });

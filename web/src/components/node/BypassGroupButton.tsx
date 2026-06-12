@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Tooltip, ToolbarIconButton } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, MOTION } from "../ui_primitives";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { memo, useMemo } from "react";
@@ -21,7 +21,7 @@ const styles = (theme: Theme, isBypassed: boolean) =>
       color: isBypassed
         ? theme.vars.palette.warning.contrastText
         : theme.vars.palette.grey[400],
-      transition: "all 0.15s ease",
+      transition: `all ${MOTION.fast}`,
       "&:hover": {
         backgroundColor: isBypassed
           ? theme.vars.palette.warning.main

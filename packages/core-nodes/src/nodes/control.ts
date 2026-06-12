@@ -37,8 +37,8 @@ export class IfNode extends BaseNode {
   declare value: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const condition = Boolean(this.condition ?? this.condition ?? false);
-    const value = this.value ?? this.value ?? null;
+    const condition = Boolean(this.condition ?? false);
+    const value = this.value ?? null;
 
     if (condition) {
       return { if_true: value, if_false: null };
@@ -315,7 +315,7 @@ export class RerouteNode extends BaseNode {
   declare input_value: any;
 
   async process(): Promise<Record<string, unknown>> {
-    return { output: this.input_value ?? this.input_value ?? null };
+    return { output: this.input_value ?? null };
   }
 }
 
@@ -380,7 +380,7 @@ export class TryCatchNode extends BaseNode {
   static readonly nodeType = "nodetool.control.TryCatch";
   static readonly title = "Try / Catch";
   static readonly description =
-    "Error handling wrapper: passes the value through on success, or returns error info on failure.\n    control, error, try, catch, exception, handling, retry, flow-control\n\n    Use cases:\n    - Gracefully handle errors in workflows\n    - Provide fallback values when operations fail\n    - Log error details for debugging";
+    "Fallback wrapper: passes the value through when present, or emits the fallback with error info when the value is null/undefined (e.g. an upstream step produced nothing).\n    control, error, fallback, default, null, missing, flow-control\n\n    Use cases:\n    - Provide fallback values when an upstream step produced no value\n    - Detect missing values in workflows\n    - Log error details for debugging";
   static readonly metadataOutputTypes = {
     output: "any",
     error: "str",
@@ -399,7 +399,7 @@ export class TryCatchNode extends BaseNode {
     type: "any",
     default: null,
     title: "Value",
-    description: "The value to pass through. If this node receives an error signal, the fallback is used."
+    description: "The value to pass through. When null/undefined, the fallback is used."
   })
   declare value: any;
 
@@ -407,21 +407,20 @@ export class TryCatchNode extends BaseNode {
     type: "any",
     default: null,
     title: "Fallback",
-    description: "Value to return if an error occurs."
+    description: "Value to return when the input value is null/undefined."
   })
   declare fallback: any;
 
   async process(): Promise<Record<string, unknown>> {
-    try {
-      const value = this.value;
-      if (value !== null && value !== undefined) {
-        return { output: value, error: "", has_error: false };
-      }
-      return { output: this.fallback ?? null, error: "Value is null or undefined", has_error: true };
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : String(e);
-      return { output: this.fallback ?? null, error: message, has_error: true };
+    const value = this.value;
+    if (value !== null && value !== undefined) {
+      return { output: value, error: "", has_error: false };
     }
+    return {
+      output: this.fallback ?? null,
+      error: "Value is null or undefined",
+      has_error: true
+    };
   }
 }
 
@@ -1154,6 +1153,24 @@ export class ZipNode extends BaseNode {
     const lefts = new Map<string, Pending>();
     const rights = new Map<string, Pending>();
 
+    // A duplicate bucket key means upstream emitted two values with the same
+    // iteration index; overwriting would silently drop the first one. §7.
+    const setOnce = (
+      side: Map<string, Pending>,
+      handle: string,
+      key: string,
+      pending: Pending
+    ) => {
+      if (side.has(key)) {
+        throw new Error(
+          `Zip received a duplicate item for bucket "${key}" on handle ` +
+            `"${handle}" — upstream emitted two values with the same ` +
+            `iteration index.`
+        );
+      }
+      side.set(key, pending);
+    };
+
     const tryEmit = async () => {
       for (const [key, l] of lefts) {
         const r = rights.get(key);
@@ -1182,7 +1199,7 @@ export class ZipNode extends BaseNode {
     const leftLoop = (async () => {
       for await (const env of inputs.streamWithEnvelope("left")) {
         const { key, index } = bucketKey(env, leftDiff);
-        lefts.set(key, { data: env.data, index });
+        setOnce(lefts, "left", key, { data: env.data, index });
         watchLimit();
         await tryEmit();
       }
@@ -1190,7 +1207,7 @@ export class ZipNode extends BaseNode {
     const rightLoop = (async () => {
       for await (const env of inputs.streamWithEnvelope("right")) {
         const { key, index } = bucketKey(env, rightDiff);
-        rights.set(key, { data: env.data, index });
+        setOnce(rights, "right", key, { data: env.data, index });
         watchLimit();
         await tryEmit();
       }

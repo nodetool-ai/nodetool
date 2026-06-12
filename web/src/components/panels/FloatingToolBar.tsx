@@ -3,8 +3,9 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
-import { useMediaQuery, Menu } from "@mui/material";
-import { Tooltip, Box, AlertBanner } from "../ui_primitives";
+import { useMediaQuery } from "@mui/material";
+import { EditorMenu } from "../ui_primitives";
+import { Tooltip, Box, AlertBanner, MOTION } from "../ui_primitives";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -102,7 +103,7 @@ const actionStyles = (theme: Theme) =>
       border: "none",
       cursor: "pointer",
       borderRadius: "999px",
-      transition: "background-color 0.15s ease, color 0.15s ease"
+      transition: `${MOTION.background}, color ${MOTION.fast}`
     },
 
     ".composer-run": {
@@ -392,7 +393,11 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           onClick={handleRun}
           aria-label="Run workflow"
         >
-          {isWorkflowRunning ? (
+          {/* Instant-update mode runs on every keystroke; the ticking timer
+              (and its setInterval re-render churn via useRunningTime) is pure
+              noise there, so show a static Play icon. The button stays a live
+              run control — clicking still queues another run. */}
+          {isWorkflowRunning && !instantUpdate ? (
             <RunningTime isRunning timerKey={workflow?.id} />
           ) : (
             <PlayArrow />
@@ -473,13 +478,13 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         <CanvasMediaComposer trailingActions={workflowActions} />
       </Box>
 
-      <Menu
+      <EditorMenu
         anchorEl={actionsMenuAnchor}
         open={Boolean(actionsMenuAnchor)}
         onClose={handleCloseActionsMenu}
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
         transformOrigin={{ vertical: "bottom", horizontal: "right" }}
-        slotProps={{ paper: { sx: { minWidth: "220px", maxWidth: "280px" } } }}
+        paperSx={{ minWidth: "220px", maxWidth: "280px" }}
       >
         <MenuItemPrimitive
           label={editorViewMode === "graph" ? "Chain View" : "Graph View"}
@@ -530,7 +535,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             onClick={runWithClose(handleOpenPaneMenu)}
           />
         )}
-      </Menu>
+      </EditorMenu>
 
       <MobilePaneMenu open={paneMenuOpen} onClose={handleClosePaneMenu} />
     </>

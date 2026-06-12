@@ -6,10 +6,9 @@ import {
   List,
   ListItemButton,
   ListItemIcon,
-  ListItemText,
-  Collapse
+  ListItemText
 } from "@mui/material";
-import { Text, LoadingSpinner, Box } from "../ui_primitives";
+import { Text, LoadingSpinner, Box, Collapse } from "../ui_primitives";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import { useAssetStore } from "../../stores/AssetStore";
 import { Asset } from "../../stores/ApiTypes";

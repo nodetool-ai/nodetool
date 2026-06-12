@@ -6,6 +6,7 @@ import {
   InstalledPackageListResponse,
   RuntimePackageStatus,
   RuntimePackageId,
+  BuiltinPackStatus,
 } from "../types";
 
 interface PackageManagerProps {
@@ -22,6 +23,8 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
   const [runtimePackages, setRuntimePackages] = useState<
     RuntimePackageStatus[]
   >([]);
+  const [builtinPacks, setBuiltinPacks] = useState<BuiltinPackStatus[]>([]);
+  const [builtinRestartNeeded, setBuiltinRestartNeeded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [installing, setInstalling] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
@@ -48,10 +51,12 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
       setLoading(true);
       setError(null);
 
-      const [availableResponse, installedResponse] = await Promise.all([
-        window.api.packages.listAvailable().catch(() => ({ packages: [] })),
-        window.api.packages.listInstalled().catch(() => ({ packages: [] })),
-      ]);
+      const [availableResponse, installedResponse, builtinResponse] =
+        await Promise.all([
+          window.api.packages.listAvailable().catch(() => ({ packages: [] })),
+          window.api.packages.listInstalled().catch(() => ({ packages: [] })),
+          window.api.nodePacks.listBuiltin().catch(() => []),
+        ]);
 
       setAvailablePackages(
         (availableResponse as PackageListResponse).packages || []
@@ -59,6 +64,7 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
       setInstalledPackages(
         (installedResponse as InstalledPackageListResponse).packages || []
       );
+      setBuiltinPacks(builtinResponse);
 
       await loadRuntimeStatuses();
     } catch (err) {
@@ -144,6 +150,34 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
     },
     [loadRuntimeStatuses, installLocation]
   );
+
+  const handleToggleBuiltin = useCallback(
+    async (pack: BuiltinPackStatus) => {
+      try {
+        const updated = await window.api.nodePacks.setBuiltinEnabled(
+          pack.id,
+          !pack.enabled
+        );
+        setBuiltinPacks(updated);
+        setBuiltinRestartNeeded(true);
+      } catch (err) {
+        console.error("Failed to toggle built-in pack:", err);
+        setError(
+          `Failed to ${pack.enabled ? "disable" : "enable"} ${pack.name}. Please try again.`
+        );
+      }
+    },
+    []
+  );
+
+  const handleRestartForBuiltins = useCallback(() => {
+    try {
+      window.api.server.restart();
+      setBuiltinRestartNeeded(false);
+    } catch (e) {
+      console.warn("Restart server failed:", e);
+    }
+  }, []);
 
   const handleInstall = useCallback(
     async (repoId: string) => {
@@ -377,6 +411,97 @@ const PackageManager: React.FC<PackageManagerProps> = ({ onSkip }) => {
             })}
           </div>
         </div>
+
+        {/* Included Node Packs Section */}
+        {builtinPacks.length > 0 && (
+          <div className="package-section">
+            <h2>Included Node Packs</h2>
+            <p
+              className="section-description"
+              style={{ color: "#999", margin: "4px 0 12px", fontSize: "13px" }}
+            >
+              These node packs ship with NodeTool, but only the essentials are
+              enabled out of the box. Enable the providers you use to add
+              their nodes to the editor.
+            </p>
+
+            {builtinRestartNeeded && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  margin: "0 0 16px",
+                  padding: "10px 14px",
+                  background: "rgba(74, 158, 255, 0.12)",
+                  border: "1px solid rgba(74, 158, 255, 0.4)",
+                  borderRadius: "8px",
+                  fontSize: "13px",
+                  color: "#ccc",
+                }}
+              >
+                <span style={{ flex: 1 }}>
+                  Changes take effect after the server restarts.
+                </span>
+                <button
+                  className="install-button"
+                  onClick={handleRestartForBuiltins}
+                >
+                  Restart Server
+                </button>
+              </div>
+            )}
+
+            <div className="package-list">
+              {builtinPacks.map((pack) => (
+                <div
+                  key={pack.id}
+                  className={`package-item ${pack.enabled ? "installed" : "available"}`}
+                  style={pack.enabled ? undefined : { opacity: 0.6 }}
+                >
+                  <div className="package-info">
+                    <div className="package-header-row">
+                      <h3>{pack.name}</h3>
+                      {pack.enabled ? (
+                        <span className="status-badge up-to-date">ENABLED</span>
+                      ) : (
+                        <span className="status-badge update-available">
+                          DISABLED
+                        </span>
+                      )}
+                    </div>
+                    <p className="package-description">{pack.description}</p>
+                  </div>
+                  <div className="package-actions">
+                    {pack.required ? (
+                      <button
+                        className="installed-indicator"
+                        disabled
+                        title="Core nodes — always enabled"
+                      >
+                        Always On
+                      </button>
+                    ) : pack.enabled ? (
+                      <button
+                        className="uninstall-button"
+                        onClick={() => handleToggleBuiltin(pack)}
+                      >
+                        Disable
+                      </button>
+                    ) : (
+                      <button
+                        className="install-button"
+                        onClick={() => handleToggleBuiltin(pack)}
+                      >
+                        Enable
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Installed Packages Section */}
         {installedPackages.length > 0 && (

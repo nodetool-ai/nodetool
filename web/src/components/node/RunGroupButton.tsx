@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Tooltip, ToolbarIconButton, LoadingSpinner } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, LoadingSpinner, MOTION } from "../ui_primitives";
 import { PlayArrow } from "@mui/icons-material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { memo, useCallback, useMemo } from "react";
@@ -16,7 +16,7 @@ const styles = (theme: Theme, _isRunning: boolean) =>
       borderRadius: "var(--rounded-circle)",
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.common.black,
-      transition: "all 0.15s ease",
+      transition: `all ${MOTION.fast}`,
       "&:hover": {
         backgroundColor: theme.vars.palette.primary.light,
         borderColor: theme.vars.palette.primary.light

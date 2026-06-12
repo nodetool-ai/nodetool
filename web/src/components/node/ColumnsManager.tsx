@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useEffect, useRef, memo, useCallback, useMemo } from "react";
-import { Grid, InputLabel } from "@mui/material";
+import { Label } from "../ui_primitives";
 import { ColumnDef } from "../../stores/ApiTypes";
 import isEqual from "fast-deep-equal";
 import Column from "./Column";
@@ -234,10 +234,10 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
   );
 
   return (
-    <Grid container spacing={0} css={styles(theme)}>
+    <div css={styles(theme)}>
       <div className="labels">
-        <InputLabel className="label-name">Name</InputLabel>
-        <InputLabel className="label-datatype">Data Type</InputLabel>
+        <Label className="label-name">Name</Label>
+        <Label className="label-datatype">Data Type</Label>
       </div>
       {localColumns.map((field, index) => (
         <Column
@@ -254,7 +254,7 @@ const ColumnsManager: React.FC<ColumnsManagerProps> = ({
           validDataTypes={validDataTypes}
         />
       ))}
-    </Grid>
+    </div>
   );
 };
 

@@ -26,7 +26,9 @@ export const filtersBlurSeparableV1 = defineRecipe({
   category: "filters",
   paramDefaults: { radius: 4, sigma: 0 },
   paramUi: {
-    radius: { min: 0, max: 64, step: 0.5, label: "Radius", notes: "blur radius, px" },
+    // Capped at 20 to match `filters.blur.gaussian@1`'s hard
+    // `kernelRadius = min(radius, 20)` clamp; a higher max silently truncates.
+    radius: { min: 0, max: 20, step: 0.5, label: "Radius", notes: "blur radius, px" },
     sigma: { min: 0, max: 32, step: 0.1, label: "Sigma", notes: "0 = derived from radius" }
   },
   io: {

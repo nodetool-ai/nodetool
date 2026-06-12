@@ -495,14 +495,13 @@ export class ConstantImageSizeNode extends BaseNode {
   declare value: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const value = (this.value ??
-      this.value ?? { width: 1024, height: 1024 }) as {
+    const value = (this.value ?? { width: 1024, height: 1024 }) as {
       width?: number;
       height?: number;
     };
     const width = Number(value.width ?? 1024);
     const height = Number(value.height ?? 1024);
-    return { output: value, image_size: value, width, height };
+    return { image_size: value, width, height };
   }
 }
 
@@ -548,9 +547,9 @@ export class ConstantDateNode extends BaseNode {
   declare day: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const year = Number(this.year ?? this.year ?? 2024);
-    const month = Number(this.month ?? this.month ?? 1);
-    const day = Number(this.day ?? this.day ?? 1);
+    const year = Number(this.year ?? 2024);
+    const month = Number(this.month ?? 1);
+    const day = Number(this.day ?? 1);
     return { output: { year, month, day } };
   }
 }
@@ -655,18 +654,18 @@ export class ConstantDateTimeNode extends BaseNode {
   declare utc_offset: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const millisecond = Number(this.millisecond ?? this.millisecond ?? 0);
-    const utcOffsetMinutes = Number(this.utc_offset ?? this.utc_offset ?? 0);
+    const millisecond = Number(this.millisecond ?? 0);
+    const utcOffsetMinutes = Number(this.utc_offset ?? 0);
     return {
       output: {
-        year: Number(this.year ?? this.year ?? 2024),
-        month: Number(this.month ?? this.month ?? 1),
-        day: Number(this.day ?? this.day ?? 1),
-        hour: Number(this.hour ?? this.hour ?? 0),
-        minute: Number(this.minute ?? this.minute ?? 0),
-        second: Number(this.second ?? this.second ?? 0),
+        year: Number(this.year ?? 2024),
+        month: Number(this.month ?? 1),
+        day: Number(this.day ?? 1),
+        hour: Number(this.hour ?? 0),
+        minute: Number(this.minute ?? 0),
+        second: Number(this.second ?? 0),
         microsecond: millisecond * 1000,
-        tzinfo: String(this.tzinfo ?? this.tzinfo ?? ""),
+        tzinfo: String(this.tzinfo ?? ""),
         utc_offset: utcOffsetMinutes * 60
       }
     };

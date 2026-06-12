@@ -14,6 +14,14 @@ export default defineConfig({
         __dirname,
         "../runtime/src/context.ts"
       ),
+      "@nodetool-ai/runtime/media-ref-bytes": resolve(
+        __dirname,
+        "../runtime/src/media-ref-bytes.ts"
+      ),
+      "@nodetool-ai/runtime/prompt-asset-refs": resolve(
+        __dirname,
+        "../runtime/src/prompt-asset-refs.ts"
+      ),
       "@nodetool-ai/runtime": resolve(__dirname, "../runtime/src/index.ts"),
       "@nodetool-ai/node-sdk": resolve(__dirname, "../node-sdk/src/index.ts"),
       "@nodetool-ai/base-nodes": resolve(__dirname, "../base-nodes/src/index.ts"),

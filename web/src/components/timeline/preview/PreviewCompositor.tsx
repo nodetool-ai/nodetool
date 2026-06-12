@@ -136,6 +136,11 @@ interface ActiveImageLayer {
   trackEffects?: TrackEffect[];
 }
 
+type AssetUrlEntry =
+  | { status: "pending" }
+  | { status: "resolved"; url: string }
+  | { status: "failed" };
+
 interface ActiveCaptionLayer {
   clipId: string;
   trackIndex: number;
@@ -172,7 +177,7 @@ export const PreviewCompositor: React.FC = memo(() => {
     s.selectedClipIds.size === 1 ? [...s.selectedClipIds][0] : null
   );
 
-  const assetUrlCache = useRef<Map<string, string>>(new Map());
+  const assetUrlCache = useRef<Map<string, AssetUrlEntry>>(new Map());
   const [urlCacheVersion, setUrlCacheVersion] = useState(0);
   const getAsset = useAssetStore((s) => s.get);
 
@@ -181,19 +186,27 @@ export const PreviewCompositor: React.FC = memo(() => {
       if (!assetId) {
         return undefined;
       }
-      if (assetUrlCache.current.has(assetId)) {
-        return assetUrlCache.current.get(assetId);
+      const cached = assetUrlCache.current.get(assetId);
+      if (cached) {
+        // pending → fetch already in flight; failed → don't retry every tick
+        // (the cache ref survives until remount, when a fresh attempt is made).
+        return cached.status === "resolved" ? cached.url : undefined;
       }
+      assetUrlCache.current.set(assetId, { status: "pending" });
       getAsset(assetId)
         .then((asset) => {
           const url = getAssetUrl(asset);
           if (url) {
-            assetUrlCache.current.set(assetId, url);
+            assetUrlCache.current.set(assetId, { status: "resolved", url });
             setUrlCacheVersion((v) => v + 1);
+          } else {
+            assetUrlCache.current.set(assetId, { status: "failed" });
           }
         })
         .catch(() => {
-          // Asset unavailable — leave cache empty; placeholder will render.
+          // Asset unavailable — mark failed so the placeholder renders
+          // without re-issuing the fetch on every render tick.
+          assetUrlCache.current.set(assetId, { status: "failed" });
         });
       return undefined;
     },
@@ -227,10 +240,9 @@ export const PreviewCompositor: React.FC = memo(() => {
   const [gpuReady, setGpuReady] = useState(false);
   const [gpuFailed, setGpuFailed] = useState(false);
 
-  // Frame element CSS size and canvas backing size, mirrored into state so the
-  // transform gizmo overlay can map clip space → screen pixels.
+  // Frame element CSS size, mirrored into state so the transform gizmo
+  // overlay can map clip space → screen pixels.
   const [frameSize, setFrameSize] = useState({ w: 0, h: 0 });
-  const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
 
   useLayoutEffect(() => {
     const container = poolContainerRef.current;
@@ -340,15 +352,19 @@ export const PreviewCompositor: React.FC = memo(() => {
         canvas.height = h;
         compositorRef.current?.resize(w, h);
       }
-      setCanvasSize((prev) =>
-        prev.w === w && prev.h === h ? prev : { w, h }
-      );
     };
     apply();
     const ro = new ResizeObserver(apply);
     ro.observe(container);
     return () => ro.disconnect();
   }, [sequenceWidth, sequenceHeight]);
+
+  // transform.position is stored in sequence pixels; tell the compositor the
+  // sequence resolution so placement doesn't depend on viewport size / DPR.
+  useEffect(() => {
+    if (!gpuReady) return;
+    compositorRef.current?.setReferenceSize(sequenceWidth, sequenceHeight);
+  }, [gpuReady, sequenceWidth, sequenceHeight]);
 
   const clipById = useMemo(
     () => new Map(clips.map((c) => [c.id, c])),
@@ -711,14 +727,22 @@ export const PreviewCompositor: React.FC = memo(() => {
     if (!gpuReady) return;
     const compositor = compositorRef.current;
     if (!compositor) return;
-    compositor.setLayers(buildLayers());
+    compositor.setLayers(buildLayersRef.current());
     compositor.render();
-  }, [gpuReady, buildLayers]);
+  }, [gpuReady]);
+
+  // Latest-frame builder ref so renderFrame and the rAF loop can always call
+  // the current buildLayers without listing it as a dep (it changes identity
+  // every clock tick, which would tear down effects every frame).
+  const buildLayersRef = useRef(buildLayers);
+  buildLayersRef.current = buildLayers;
 
   // One-shot render whenever scene state changes (paused mode + scrubbing).
+  // While playing the rAF loop owns rendering — skip the redundant pass.
   useEffect(() => {
+    if (isPlaying) return;
     renderFrame();
-  }, [renderFrame]);
+  }, [renderFrame, isPlaying]);
 
   // A paused scrub sets el.currentTime, which decodes the target frame
   // asynchronously — so the one-shot render above runs before the frame is
@@ -743,13 +767,13 @@ export const PreviewCompositor: React.FC = memo(() => {
 
     let raf = 0;
     const tick = () => {
-      compositor.setLayers(buildLayers());
+      compositor.setLayers(buildLayersRef.current());
       compositor.render();
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [gpuReady, isPlaying, buildLayers]);
+  }, [gpuReady, isPlaying]);
 
   const hasAnything =
     activeVideoSlots.length > 0 ||
@@ -778,8 +802,8 @@ export const PreviewCompositor: React.FC = memo(() => {
             transform={selectedGizmo.transform}
             sourceWidth={selectedGizmo.sourceWidth}
             sourceHeight={selectedGizmo.sourceHeight}
-            canvasWidth={canvasSize.w}
-            canvasHeight={canvasSize.h}
+            sequenceWidth={sequenceWidth}
+            sequenceHeight={sequenceHeight}
             frameWidth={frameSize.w}
             frameHeight={frameSize.h}
             onChange={(id, next) => patchClip(id, { transform: next })}

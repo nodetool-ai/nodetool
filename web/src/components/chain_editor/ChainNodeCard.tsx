@@ -3,7 +3,8 @@ import React, { memo, useMemo } from "react";
 import { css, keyframes } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Collapse, LinearProgress } from "@mui/material";
+import { LinearProgress } from "@mui/material";
+import { Collapse, MOTION } from "../ui_primitives";
 import { PREVIEW_NODE_TYPE } from "../../constants/nodeTypes";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -75,7 +76,7 @@ const runningCardStyles = (nsColor: string) =>
 const completedCardStyles = (theme: Theme) =>
   css({
     borderColor: `${theme.vars.palette.success.main} !important`,
-    transition: "border-color 0.3s",
+    transition: `border-color ${MOTION.slow}`,
   });
 
 const errorCardStyles = (theme: Theme) =>
@@ -135,7 +136,7 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
         border: `1.5px solid ${node.expanded ? `${nsColor}50` : theme.vars.palette.divider}`,
         backgroundColor: theme.vars.palette.background.paper,
         overflow: "hidden",
-        transition: "border-color 0.2s",
+        transition: MOTION.border,
         boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
       }}
     >
@@ -173,7 +174,7 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
           {index + 1}
         </Box>
 
-        <FlexColumn gap={0.25} sx={{ flex: 1, minWidth: 0 }}>
+        <FlexColumn gap={0.5} sx={{ flex: 1, minWidth: 0 }}>
           <Text size="small" weight={600} truncate>{node.metadata.title}</Text>
           {node.expanded && (
             <Text size="tiny" weight={600} sx={{ color: nsColor }}>

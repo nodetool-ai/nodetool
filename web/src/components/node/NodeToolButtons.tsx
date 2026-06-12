@@ -3,12 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useReactFlow, Node } from "@xyflow/react";
 import {
   Toolbar,
-  Menu,
-  MenuItem,
   ListItemIcon,
   ListItemText
 } from "@mui/material";
-import { Divider, ToolbarIconButton } from "../ui_primitives";
+import { Divider, ToolbarIconButton, EditorMenu, EditorMenuItem } from "../ui_primitives";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
@@ -182,7 +180,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
       </Toolbar>
 
       {/* Dropdown Menu for Secondary Actions */}
-      <Menu
+      <EditorMenu
         anchorEl={anchorEl}
         open={dropdownOpen}
         onClose={handleCloseDropdown}
@@ -194,86 +192,82 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
           vertical: "top",
           horizontal: "right",
         }}
-        slotProps={{
-          paper: {
-            sx: {
-              borderRadius: "var(--rounded-lg)",
-              minWidth: 200
-            }
-          }
+        paperSx={{
+          borderRadius: "var(--rounded-lg)",
+          minWidth: 200
         }}
       >
         {isInGroup && (
-          <MenuItem onClick={handleRemoveFromGroup}>
+          <EditorMenuItem onClick={handleRemoveFromGroup}>
             <ListItemIcon>
               <GroupRemoveIcon fontSize="small" />
             </ListItemIcon>
             <ListItemText>Remove from Group</ListItemText>
-          </MenuItem>
+          </EditorMenuItem>
         )}
 
         {conditions.canConvertToInput && (
-          <MenuItem onClick={handlers.handleConvertToInput}>
+          <EditorMenuItem onClick={handlers.handleConvertToInput}>
             <ListItemIcon>
               <SwapHorizIcon fontSize="small" />
             </ListItemIcon>
             <ListItemText>Convert to Input</ListItemText>
-          </MenuItem>
+          </EditorMenuItem>
         )}
 
         {conditions.canConvertToConstant && (
-          <MenuItem onClick={handlers.handleConvertToConstant}>
+          <EditorMenuItem onClick={handlers.handleConvertToConstant}>
             <ListItemIcon>
               <SwapHorizIcon fontSize="small" />
             </ListItemIcon>
             <ListItemText>Convert to Constant</ListItemText>
-          </MenuItem>
+          </EditorMenuItem>
         )}
 
-        <MenuItem onClick={handleToggleComment}>
+        <EditorMenuItem onClick={handleToggleComment}>
           <ListItemIcon>
             <EditIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>
             {hasCommentTitle ? "Remove Comment" : "Add Comment"}
           </ListItemText>
-        </MenuItem>
+        </EditorMenuItem>
 
-        <MenuItem onClick={handleFindTemplates}>
+        <EditorMenuItem onClick={handleFindTemplates}>
           <ListItemIcon>
             <SearchIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>Show Templates</ListItemText>
-        </MenuItem>
+        </EditorMenuItem>
 
-        <MenuItem onClick={handleSelectAllSameType}>
+        <EditorMenuItem onClick={handleSelectAllSameType}>
           <ListItemIcon>
             <FilterListIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>Select All Same Type</ListItemText>
-        </MenuItem>
+        </EditorMenuItem>
 
         {isDevelopment && [
           <Divider key="dev-divider" />,
-          <MenuItem key="dev-copy-metadata" onClick={handlers.handleCopyMetadataToClipboard}>
+          <EditorMenuItem key="dev-copy-metadata" onClick={handlers.handleCopyMetadataToClipboard}>
             <ListItemIcon>
               <DataArrayIcon fontSize="small" />
             </ListItemIcon>
             <ListItemText>Copy NodeData</ListItemText>
-          </MenuItem>
+          </EditorMenuItem>
         ]}
 
         <Divider />
 
-        <MenuItem onClick={handleDelete} sx={{ color: "error.main" }}>
+        <EditorMenuItem onClick={handleDelete} sx={{ color: "error.main" }}>
           <ListItemIcon sx={{ color: "error.main" }}>
             <DeleteIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText>
             Delete {getShortcutTooltip("deleteSelected", undefined, "combo")}
           </ListItemText>
-        </MenuItem>
-      </Menu>
+        </EditorMenuItem>
+      </EditorMenu>
     </>
   );
 };

@@ -55,6 +55,13 @@ export interface Settings {
   confirmLargeRun: boolean;
   /** Heavy-node count above which the large-run warning is shown. */
   largeRunThreshold: number;
+  /**
+   * Realtime audio playback buffer in milliseconds. The live-monitoring
+   * buffer between the synth graph and the speakers: smaller = lower
+   * knob-to-ear latency, larger = more resilience against dropouts under
+   * load. Applies to live patches (Audio Out node).
+   */
+  audioBufferMs: number;
   autosave: AutosaveSettings;
 }
 
@@ -98,6 +105,7 @@ export const defaultSettings: Settings = {
   imageEditorOpenMode: "modal",
   confirmLargeRun: true,
   largeRunThreshold: 5,
+  audioBufferMs: 100,
   autosave: { ...defaultAutosaveSettings }
 };
 

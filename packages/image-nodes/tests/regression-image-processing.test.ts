@@ -16,6 +16,7 @@ import {
   LIB_IMAGE_ENHANCE_NODES,
   LIB_IMAGE_FILTER_NODES
 } from "@nodetool-ai/image-nodes";
+import { RAW_RGBA_MIME } from "@nodetool-ai/protocol";
 
 // ---------------------------------------------------------------------------
 // Helpers (same as lib-image-processing.test.ts)
@@ -60,6 +61,21 @@ async function makeGradientImage(
 }
 
 async function decodeOutput(output: Record<string, unknown>) {
+  // GPU shader nodes emit a straight-alpha raw-RGBA buffer (no codec); others
+  // still emit base64 PNG. Normalize to 3-channel RGB (these tests index `* 3`)
+  // — the shader outputs are uniformly opaque, so dropping alpha is lossless.
+  if (output.data instanceof Uint8Array && output.mimeType === RAW_RGBA_MIME) {
+    const width = output.width as number;
+    const height = output.height as number;
+    const rgba = output.data;
+    const raw = Buffer.alloc(width * height * 3);
+    for (let p = 0; p < width * height; p++) {
+      raw[p * 3] = rgba[p * 4];
+      raw[p * 3 + 1] = rgba[p * 4 + 1];
+      raw[p * 3 + 2] = rgba[p * 4 + 2];
+    }
+    return { raw, info: { width, height, channels: 3 }, buf: raw };
+  }
   const data = output.data as string;
   const buf = Buffer.from(data, "base64");
   const { data: raw, info } = await sharp(buf)
@@ -99,6 +115,12 @@ async function runNode(
 
 function assertValidImage(output: Record<string, unknown>) {
   expect(output).toBeDefined();
+  if (output.data instanceof Uint8Array && output.mimeType === RAW_RGBA_MIME) {
+    expect(output.data.length).toBeGreaterThan(0);
+    expect(output.width as number).toBeGreaterThan(0);
+    expect(output.height as number).toBeGreaterThan(0);
+    return;
+  }
   expect(typeof output.data).toBe("string");
   expect((output.data as string).length).toBeGreaterThan(0);
 }
@@ -108,10 +130,11 @@ async function pixelsDiffer(
   a: Record<string, unknown>,
   b: Record<string, unknown>
 ): Promise<boolean> {
-  const aBuf = Buffer.from(a.data as string, "base64");
-  const bBuf = Buffer.from(b.data as string, "base64");
-  const { data: aRaw } = await sharp(aBuf).raw().toBuffer({ resolveWithObject: true });
-  const { data: bRaw } = await sharp(bBuf).raw().toBuffer({ resolveWithObject: true });
+  // `decodeOutput` normalizes both raw-RGBA (shader nodes) and base64 PNG
+  // (sharp/canvas nodes) to a 3-channel RGB buffer, so the compared pair is
+  // always the same channel layout regardless of which path produced it.
+  const { raw: aRaw } = await decodeOutput(a);
+  const { raw: bRaw } = await decodeOutput(b);
   const len = Math.min(aRaw.length, bRaw.length);
   for (let i = 0; i < len; i++) {
     if (aRaw[i] !== bRaw[i]) return true;

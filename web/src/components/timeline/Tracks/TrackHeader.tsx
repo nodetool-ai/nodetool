@@ -8,7 +8,7 @@
  *   - Height resize handle at the bottom edge
  */
 
-import React, { memo, useCallback, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -22,9 +22,13 @@ import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined
 import GraphicEqOutlinedIcon from "@mui/icons-material/GraphicEqOutlined";
 
 import type { TimelineTrack } from "@nodetool-ai/timeline";
-import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import {
+  useTimelineStore,
+  useTimelineStoreApi,
+  timelineTemporalOf
+} from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
-import { Tooltip } from "../../ui_primitives";
+import { Tooltip, MOTION } from "../../ui_primitives";
 import {
   DEFAULT_TRACK_HEIGHT_PX as SHARED_DEFAULT_TRACK_HEIGHT_PX,
   FX_PANEL_HEIGHT_PX
@@ -159,7 +163,7 @@ const iconButtonStyles = (theme: Theme, active = true) =>
       ? theme.vars.palette.text.secondary
       : theme.vars.palette.text.disabled,
     borderRadius: 5,
-    transition: "background-color 120ms, color 120ms, border-color 120ms",
+    transition: `background-color ${MOTION.fast}, color ${MOTION.fast}, border-color ${MOTION.fast}`,
     "&:hover": {
       backgroundColor: theme.vars.palette.action.hover,
       color: theme.vars.palette.text.primary,
@@ -226,11 +230,16 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
   }, [track.name]);
 
   const commitName = useCallback(() => {
+    // Blur fires even when the input is read-only (not in edit mode) — don't
+    // commit the stale localName from a previous edit session in that case.
+    if (!editingName) {
+      return;
+    }
     setEditingName(false);
     if (localName.trim()) {
       setTrackName(track.id, localName.trim());
     }
-  }, [localName, setTrackName, track.id]);
+  }, [editingName, localName, setTrackName, track.id]);
 
   const handleNameKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -249,6 +258,24 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
 
   const dragStartYRef = useRef(0);
   const dragStartHeightRef = useRef(heightPx);
+  // Gesture-ownership flag: the move handler only runs when this handle's
+  // pointerdown started the gesture (not when another drag passes over it).
+  const isResizingRef = useRef(false);
+
+  // Undo batching: record the pre-resize state with the first mutation, then
+  // pause history so the whole resize collapses into one undo entry.
+  const timelineStoreApi = useTimelineStoreApi();
+  const historyPausedRef = useRef(false);
+
+  const resumeHistory = useCallback(() => {
+    if (historyPausedRef.current) {
+      historyPausedRef.current = false;
+      timelineTemporalOf(timelineStoreApi).resume();
+    }
+  }, [timelineStoreApi]);
+
+  // Safety net: never leave history paused if the header unmounts mid-resize.
+  useEffect(() => resumeHistory, [resumeHistory]);
 
   const handleResizePointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -257,13 +284,14 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
       e.currentTarget.setPointerCapture(e.pointerId);
       dragStartYRef.current = e.clientY;
       dragStartHeightRef.current = heightPx;
+      isResizingRef.current = true;
     },
     [heightPx]
   );
 
   const handleResizePointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
-      if (e.buttons !== 1) {
+      if (!isResizingRef.current || e.buttons !== 1) {
         return;
       }
       const deltaY = e.clientY - dragStartYRef.current;
@@ -272,9 +300,19 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
         Math.max(MIN_TRACK_HEIGHT_PX, dragStartHeightRef.current + deltaY)
       );
       setTrackHeight(track.id, newHeight);
+      // First mutation recorded the pre-resize state; batch the rest.
+      if (!historyPausedRef.current) {
+        timelineTemporalOf(timelineStoreApi).pause();
+        historyPausedRef.current = true;
+      }
     },
-    [setTrackHeight, track.id]
+    [setTrackHeight, track.id, timelineStoreApi]
   );
+
+  const handleResizePointerEnd = useCallback(() => {
+    isResizingRef.current = false;
+    resumeHistory();
+  }, [resumeHistory]);
 
   const isAudioTrack = track.type === "audio";
   const supportsEffects =
@@ -440,6 +478,8 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
         css={resizeHandleStyles(theme)}
         onPointerDown={handleResizePointerDown}
         onPointerMove={handleResizePointerMove}
+        onPointerUp={handleResizePointerEnd}
+        onPointerCancel={handleResizePointerEnd}
         aria-label="Resize track height"
         role="separator"
         aria-orientation="horizontal"

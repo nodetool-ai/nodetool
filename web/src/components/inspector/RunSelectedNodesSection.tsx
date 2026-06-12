@@ -11,7 +11,8 @@ import {
   FlexColumn,
   FlexRow,
   ShortcutHint,
-  Text
+  Text,
+  MOTION
 } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
 import {
@@ -19,6 +20,7 @@ import {
   MIN_RUNS,
   useRunSelectedNodes
 } from "../../hooks/nodes/useRunSelectedNodes";
+import { useSettingsStore } from "../../stores/SettingsStore";
 
 const styles = (theme: Theme) =>
   css({
@@ -71,7 +73,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeNormal,
       fontWeight: 500,
       borderRadius: "var(--rounded-md)",
-      transition: "background-color 120ms ease",
+      transition: `background-color ${MOTION.fast}`,
       "&:hover": {
         backgroundColor: theme.vars.palette.primary.dark
       },
@@ -93,6 +95,11 @@ const RunSelectedNodesSectionInternal: React.FC = () => {
   const theme = useTheme();
   const { runSelectedNodes, isWorkflowRunning, runProgress } =
     useRunSelectedNodes();
+  // Instant-update mode runs continuously; don't perpetually disable the run
+  // button (you can re-trigger / queue), it would just strobe enabled/disabled.
+  const instantUpdate = useSettingsStore(
+    (state) => state.settings.instantUpdate
+  );
   const [runs, setRuns] = useState(1);
 
   const clamp = (n: number) => Math.max(MIN_RUNS, Math.min(MAX_RUNS, n));
@@ -105,7 +112,7 @@ const RunSelectedNodesSectionInternal: React.FC = () => {
   }, [runSelectedNodes, runs]);
 
   const inSequence = runProgress !== null && runProgress.total > 1;
-  const buttonDisabled = isWorkflowRunning;
+  const buttonDisabled = isWorkflowRunning && !instantUpdate;
 
   return (
     <div css={styles(theme)} className="run-selected-section">

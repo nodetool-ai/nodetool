@@ -24,6 +24,7 @@ import {
 
 import useConnectionStore from "../../stores/ConnectionStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
+import { useLiveRunStore } from "../../stores/LiveRunStore";
 import ContextMenus from "../context_menus/ContextMenus";
 import CommentNode from "../node/CommentNode";
 import PreviewNode from "../node/PreviewNode/PreviewNode";
@@ -436,6 +437,16 @@ const ReactFlowWrapper = ({
   const selectionMode = useSettingsStore(
     (state) => state.settings.selectionMode
   );
+  // Instant-update mode re-runs the graph on every keystroke; this flag lets the
+  // CSS freeze per-run edge/node animations and hide the timing badge (see
+  // handle_edge_tooltip.css → `.react-flow.instant-update`).
+  const instantUpdate = useSettingsStore(
+    (state) => state.settings.instantUpdate
+  );
+  // Live slider scrubs re-run the graph continuously; freeze the same per-run
+  // animations as instant-update mode while a scrub is active (independent of
+  // the instantUpdate setting). See `useLiveSliderWriter` / `LiveRunStore`.
+  const isScrubbing = useLiveRunStore((state) => state.isScrubbing);
 
   const { onDrop, onDragOver } = useDropHandler();
 
@@ -704,8 +715,14 @@ const ReactFlowWrapper = ({
     if (connecting) {
       classes.push("is-connecting");
     }
+    if (instantUpdate) {
+      classes.push("instant-update");
+    }
+    if (isScrubbing) {
+      classes.push("live-scrubbing");
+    }
     return classes.join(" ");
-  }, [zoom, connecting]);
+  }, [zoom, connecting, instantUpdate, isScrubbing]);
 
   const conditionalProps = useMemo(() => {
     const props: { selectionOnDrag?: boolean } = {};

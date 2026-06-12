@@ -7,7 +7,7 @@
  */
 
 import React, { useMemo, memo } from "react";
-import { useTheme } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import { GraphDiff } from "../../utils/graphDiff";
 import { Graph, Node } from "../../stores/ApiTypes";
 import { Caption, FlexColumn, FlexRow, Surface, Tooltip } from "../ui_primitives";
@@ -344,7 +344,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
           }}
         >
           {diff.addedNodes.length > 0 && (
-            <FlexRow align="center" gap={0.25}>
+            <FlexRow align="center" gap={0.5}>
               <Surface sx={{ width: 8, height: 8, borderRadius: "var(--rounded-circle)", bgcolor: theme.palette.success.main }} />
               <Caption sx={{ fontSize: "var(--fontSizeSmaller)" }}>
                 {diff.addedNodes.length}
@@ -352,7 +352,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
             </FlexRow>
           )}
           {diff.removedNodes.length > 0 && (
-            <FlexRow align="center" gap={0.25}>
+            <FlexRow align="center" gap={0.5}>
               <Surface sx={{ width: 8, height: 8, borderRadius: "var(--rounded-circle)", bgcolor: theme.palette.error.main }} />
               <Caption sx={{ fontSize: "var(--fontSizeSmaller)" }}>
                 {diff.removedNodes.length}
@@ -360,7 +360,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
             </FlexRow>
           )}
           {diff.modifiedNodes.length > 0 && (
-            <FlexRow align="center" gap={0.25}>
+            <FlexRow align="center" gap={0.5}>
               <Surface sx={{ width: 8, height: 8, borderRadius: "var(--rounded-circle)", bgcolor: theme.palette.warning.main }} />
               <Caption sx={{ fontSize: "var(--fontSizeSmaller)" }}>
                 {diff.modifiedNodes.length}

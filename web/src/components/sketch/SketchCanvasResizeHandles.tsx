@@ -11,6 +11,7 @@
 import { css } from "@emotion/react";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { SKETCH_Z_INDEX } from "./sketchStyles";
+import { MOTION } from "../ui_primitives";
 
 type ResizeEdge =
   | "n"
@@ -145,7 +146,7 @@ const handleStyles = css({
   backgroundColor: "rgba(200, 200, 200, 0.9)",
   border: "1px solid rgba(0, 0, 0, 0.12)",
   borderRadius: 1,
-  transition: "background-color 0.15s ease",
+  transition: MOTION.background,
   boxSizing: "border-box",
   "&:hover, &.active": {
     backgroundColor: "rgba(66, 165, 245, 0.35)"
@@ -358,6 +359,23 @@ const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
     [onResizeEnd]
   );
 
+  const handlePointerCancel = useCallback(
+    (e: React.PointerEvent) => {
+      if (!dragStartRef.current) {
+        return;
+      }
+      const target = e.target as HTMLElement;
+      if (typeof target.releasePointerCapture === "function") {
+        target.releasePointerCapture(e.pointerId);
+      }
+      dragStartRef.current = null;
+      lastSizeRef.current = null;
+      setActiveEdge(null);
+      onResizeEnd?.();
+    },
+    [onResizeEnd]
+  );
+
   const gap = SCREEN_OUTSIDE_GAP_PX / zoom;
   const hs = SCREEN_HANDLE_PX / zoom;
 
@@ -481,6 +499,7 @@ const SketchCanvasResizeHandles: React.FC<SketchCanvasResizeHandlesProps> = ({
           onPointerDown={(e) => handlePointerDown(e, edge)}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
         />
       ))}
     </div>

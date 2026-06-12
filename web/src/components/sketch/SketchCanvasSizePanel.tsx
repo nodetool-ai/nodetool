@@ -13,14 +13,12 @@ import {
   MenuItem,
   Select,
   Switch,
-  TextField,
-  Tooltip,
-  Typography
+  TextField
 } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
 import { CANVAS_PRESETS } from "./types";
 import { SKETCH_COLORS, SKETCH_FONT, SKETCH_SPACING, SKETCH_TOOLTIP_DELAY_MS } from "./sketchStyles";
-import { FlexColumn, FlexRow, StateIconButton } from "../ui_primitives";
+import { FlexColumn, FlexRow, StateIconButton, Text, Tooltip } from "../ui_primitives";
 
 function cycleArrayValue<T>(
   values: readonly T[],
@@ -152,9 +150,9 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
   return (
     <FlexColumn className="sketch-canvas-size-panel" padding={1} gap={1}>
       <FlexRow align="center" justify="space-between" sx={{ minHeight: 32 }}>
-        <Typography sx={{ fontSize: SKETCH_FONT.sm, color: SKETCH_COLORS.textMuted }}>
+        <Text sx={{ fontSize: SKETCH_FONT.sm, color: SKETCH_COLORS.textMuted }}>
           Resize handles
-        </Typography>
+        </Text>
         <Tooltip
           title={
             canvasResizeHandlesEnabled
@@ -201,14 +199,14 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
             (p) => p.width === canvasWidth && p.height === canvasHeight
           );
           return (
-            <Typography
+            <Text
               sx={{
                 fontSize: SKETCH_FONT.sm,
                 color: match ? "grey.200" : SKETCH_COLORS.textFaint
               }}
             >
               {match ? match.label : "Presets…"}
-            </Typography>
+            </Text>
           );
         }}
       >
@@ -233,9 +231,9 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
           inputProps={{ min: 1, max: 4096, step: 1 }}
           sx={dimensionFieldSx}
         />
-        <Typography sx={{ fontSize: SKETCH_FONT.md, color: SKETCH_COLORS.textFaint }}>
+        <Text sx={{ fontSize: SKETCH_FONT.md, color: SKETCH_COLORS.textFaint }}>
           ×
-        </Typography>
+        </Text>
         <TextField
           size="small"
           label="H"

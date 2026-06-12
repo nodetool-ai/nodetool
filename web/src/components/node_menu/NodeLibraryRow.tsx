@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
 
-import { Caption, Text } from "../ui_primitives";
+import { Caption, Text, MOTION } from "../ui_primitives";
 import FavoriteButton from "../ui_primitives/FavoriteButton";
 import { IconForType } from "../../config/IconForType";
 import { colorForType } from "../../config/data_types";
@@ -25,7 +25,7 @@ const rowStyles = (theme: Theme) =>
       cursor: "grab",
       userSelect: "none",
       boxSizing: "border-box",
-      transition: "background-color 140ms ease",
+      transition: `background-color ${MOTION.fast}`,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover
       },
@@ -50,7 +50,7 @@ const rowStyles = (theme: Theme) =>
       flexShrink: 0,
       display: "inline-flex",
       opacity: 0,
-      transition: "opacity 140ms ease"
+      transition: `opacity ${MOTION.fast}`
     },
     "&:hover .nl-fav, &:focus-within .nl-fav, &.is-favorite .nl-fav": {
       opacity: 1

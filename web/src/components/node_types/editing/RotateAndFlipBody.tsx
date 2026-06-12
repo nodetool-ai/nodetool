@@ -24,6 +24,7 @@ import {
 } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageView from "../../node/ImageView";
+import ImageRefPreview from "../../node/ImageRefPreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 
@@ -118,27 +119,14 @@ const extractImageRef = (
   };
 };
 
-const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => {
-  if (typeof value === "string" && value) {
-    return <ImageView source={value} />;
-  }
-  const v = extractImageRef(value);
-  if (v.uri) {
-    return <ImageView source={v.uri} />;
-  }
-  if (v.data instanceof Uint8Array) {
-    return <ImageView source={v.data} />;
-  }
-  if (Array.isArray(v.data)) {
-    return <ImageView source={new Uint8Array(v.data as number[])} />;
-  }
-  return (
-    <CheckerDropzone
-      message="Connect an image, then run"
-      icon={<ImageIcon />}
-    />
-  );
-};
+const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
+  <ImageRefPreview
+    value={value}
+    placeholder={
+      <CheckerDropzone message="Connect an image, then run" icon={<ImageIcon />} />
+    }
+  />
+);
 
 export interface RotateAndFlipBodyProps {
   id: string;
@@ -231,7 +219,7 @@ const RotateAndFlipBodyInner: React.FC<RotateAndFlipBodyProps> = ({
           <span className="angle-readout">{Math.round(angle)}°</span>
         </FlexRow>
         <FlexRow className="action-row" align="center" justify="space-between" gap={0.5}>
-          <FlexRow align="center" gap={0.25}>
+          <FlexRow align="center" gap={0.5}>
             <StateIconButton
               size="small"
               isActive={flipH}

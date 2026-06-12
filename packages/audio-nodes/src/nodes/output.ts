@@ -3,6 +3,12 @@ import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { audioBytesAsync } from "../lib/audio-wav.js";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
+// PreviewNode lives in its own browser-safe module so it can be registered in
+// the in-browser node registry (this file pulls in `audio-wav` → not browser-
+// bundleable). Re-exported here so existing importers and the server registry
+// (via OUTPUT_NODES) are unchanged.
+import { PreviewNode, PREVIEW_NODES } from "./preview.js";
+export { PreviewNode, PREVIEW_NODES };
 
 const MEDIA_EXTENSIONS: Record<string, string> = {
   image: ".png",
@@ -170,33 +176,6 @@ export class OutputNode extends BaseNode {
   }
 }
 
-export class PreviewNode extends BaseNode {
-  static readonly nodeType = "nodetool.workflows.base_node.Preview";
-  static readonly title = "Preview";
-  static readonly description = "Preview values inside the workflow graph";
-  static readonly inlineFields = [];
-  static readonly inputFields = ["value"];
-
-  @prop({ type: "any", default: null })
-  declare value: any;
-
-  @prop({ type: "str", default: "" })
-  declare name: any;
-
-  private async normalize(
-    value: unknown,
-    context?: ProcessingContext
-  ): Promise<unknown> {
-    if (!context || typeof context.normalizeOutputValue !== "function")
-      return value;
-    return context.normalizeOutputValue(value);
-  }
-
-  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const value = this.value ?? null;
-    const normalized = await this.normalize(value, context);
-    return { output: normalized };
-  }
-}
-
-export const OUTPUT_NODES = tagAsServer([OutputNode, PreviewNode]);
+// OutputNode is server-only; PreviewNode is hybrid (already tagged in
+// preview.js) so it survives the browser-registry platform filter.
+export const OUTPUT_NODES = [...tagAsServer([OutputNode]), ...PREVIEW_NODES];

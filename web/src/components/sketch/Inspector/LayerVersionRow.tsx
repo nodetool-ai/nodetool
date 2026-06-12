@@ -17,7 +17,8 @@ import {
   StatusIndicator,
   FavoriteButton,
   Dialog,
-  ToolbarIconButton
+  ToolbarIconButton,
+  MOTION
 } from "../../ui_primitives";
 
 const rowStyles = (theme: Theme) =>
@@ -33,7 +34,7 @@ const rowStyles = (theme: Theme) =>
     },
     ".row-actions": {
       opacity: 0,
-      transition: "opacity 0.15s"
+      transition: MOTION.opacity
     }
   });
 
@@ -121,7 +122,7 @@ export const LayerVersionRow: React.FC<LayerVersionRowProps> = memo(
           fullWidth
           css={rowStyles(theme)}
         >
-          <FlexColumn gap={0.25}>
+          <FlexColumn gap={0.5}>
             <Text size="small">{formatTimestamp(version.createdAt)}</Text>
             <FlexRow gap={1} align="center">
               <StatusIndicator
@@ -135,7 +136,7 @@ export const LayerVersionRow: React.FC<LayerVersionRowProps> = memo(
             </FlexRow>
           </FlexColumn>
 
-          <FlexRow gap={0.25} align="center" className="row-actions">
+          <FlexRow gap={0.5} align="center" className="row-actions">
             <FavoriteButton
               isFavorite={version.favorite ?? false}
               onToggle={handleFavoriteToggle}

@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { Tooltip, Text, Divider } from "../ui_primitives";
+import { Tooltip, Text, Divider, MOTION } from "../ui_primitives";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { colorForType, descriptionForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
@@ -101,7 +101,7 @@ const nodeInfoStyles = (theme: Theme) =>
       display: "inline-block",
       cursor: "pointer",
       marginRight: ".5em",
-      transition: "background-color 0.2s ease",
+      transition: `background-color ${MOTION.normal}`,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.selected
       }
@@ -266,18 +266,18 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
           delay={TOOLTIP_ENTER_DELAY}
           placement="top-start"
           title={
-            <Text sx={{ whiteSpace: "pre-line", fontSize: "inherit" }}>
+            <Text sx={{ whiteSpace: "pre-line" }}>
               {formatFalUnitPricingTooltip(nodeMetadata.fal_unit_pricing)}
             </Text>
           }
         >
           <Text
+            size="small"
+            weight={600}
             sx={{
-              fontSize: theme.fontSizeSmall,
               color: isFalVagueBillingSummary(nodeMetadata.fal_unit_pricing)
                 ? theme.vars.palette.warning.main
                 : theme.vars.palette.success.main,
-              fontWeight: 600,
               cursor: "default"
             }}
           >
@@ -291,19 +291,19 @@ const NodeInfo: React.FC<NodeInfoProps> = ({
           delay={TOOLTIP_ENTER_DELAY}
           placement="top-start"
           title={
-            <Text sx={{ whiteSpace: "pre-line", fontSize: "inherit" }}>
+            <Text sx={{ whiteSpace: "pre-line" }}>
               {formatKieUnitPricingTooltip(nodeMetadata.kie_unit_pricing)}
             </Text>
           }
         >
           <Text
+            size="small"
+            weight={600}
             sx={{
-              fontSize: theme.fontSizeSmall,
               color: isKieVagueBillingSummary(nodeMetadata.kie_unit_pricing)
                 ? theme.vars.palette.warning.main
                 : theme.vars.palette.success.main,
-              fontWeight: 600,
-              cursor: "default",
+              cursor: "default"
             }}
           >
             KIE: {formatKieUnitPricingShort(nodeMetadata.kie_unit_pricing)}

@@ -38,7 +38,12 @@ export function useTimelineSave(): UseTimelineSaveResult {
       });
       const updatedAt = (response as { updatedAt?: unknown } | undefined)
         ?.updatedAt;
-      if (typeof updatedAt === "string") {
+      // Only roll the token forward while the store still holds the saved
+      // sequence — otherwise we'd poison a newly loaded sequence's token.
+      if (
+        typeof updatedAt === "string" &&
+        store.getState().sequenceId === state.sequenceId
+      ) {
         store.getState().setBaseUpdatedAt(updatedAt);
       }
     } catch (error) {

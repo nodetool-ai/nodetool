@@ -142,6 +142,18 @@ describe("fromPersistedSketchEditorState", () => {
     expect(result.zoom).toBe(DEFAULT_SKETCH_ZOOM);
   });
 
+  const historyEntry: HistoryEntry = {
+    layerSnapshots: { l1: null },
+    layerStructure: [],
+    documentCanvas: { width: 800, height: 600, backgroundColor: "#ffffff" },
+    activeLayerId: "l1",
+    maskLayerId: null,
+    selection: null,
+    restoreMode: "full",
+    action: "paint",
+    timestamp: 1000
+  };
+
   it("restores viewport when present", () => {
     const persisted = {
       canvas: { width: 800, height: 600 },
@@ -150,7 +162,7 @@ describe("fromPersistedSketchEditorState", () => {
       maskLayerId: null,
       activeTool: "eraser",
       viewport: { zoom: 3.5, pan: { x: 50, y: 75 } },
-      history: [],
+      history: [historyEntry],
       historyIndex: 0
     };
 
@@ -159,6 +171,29 @@ describe("fromPersistedSketchEditorState", () => {
     expect(result.zoom).toBe(3.5);
     expect(result.pan).toEqual({ x: 50, y: 75 });
     expect(result.historyIndex).toBe(0);
+  });
+
+  it("clamps historyIndex above the history length", () => {
+    const result = fromPersistedSketchEditorState({
+      history: [historyEntry],
+      historyIndex: 10
+    });
+    expect(result.historyIndex).toBe(0);
+  });
+
+  it("clamps negative and non-finite historyIndex to -1", () => {
+    expect(
+      fromPersistedSketchEditorState({
+        history: [historyEntry],
+        historyIndex: -5
+      }).historyIndex
+    ).toBe(-1);
+    expect(
+      fromPersistedSketchEditorState({
+        history: [historyEntry],
+        historyIndex: Number.NaN
+      }).historyIndex
+    ).toBe(-1);
   });
 
   it("normalizes the document through normalizeSketchDocument", () => {

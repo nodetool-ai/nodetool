@@ -2,8 +2,8 @@ import type { MouseEvent } from "react";
 import { useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
 //mui
-import { Menu, MenuItem } from "@mui/material";
-import { Text, Divider } from "../ui_primitives";
+import { MenuItem } from "@mui/material";
+import { Text, Divider, ContextMenu } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 //icons
 import RemoveCircleIcon from "@mui/icons-material/RemoveCircle";
@@ -199,25 +199,14 @@ const AssetItemContextMenu = () => {
   if (!menuPosition) {return null;}
   return (
     <>
-      <Menu
+      <ContextMenu
         className="context-menu asset-item-context-menu"
         open={menuPosition !== null}
         onClose={closeContextMenu}
         onContextMenu={(event) => event.preventDefault()}
-        anchorReference="anchorPosition"
         style={{ padding: "1em" }}
-        anchorPosition={
-          menuPosition
-            ? { top: menuPosition.y, left: menuPosition.x }
-            : undefined
-        }
-        slotProps={{
-          paper: {
-            sx: singleAsset
-              ? { display: "flex", overflow: "visible" }
-              : undefined
-          }
-        }}
+        position={menuPosition}
+        paperSx={singleAsset ? { display: "flex", overflow: "visible" } : undefined}
       >
         <MenuItem disabled>
           <Text className="title">
@@ -321,7 +310,7 @@ const AssetItemContextMenu = () => {
           tooltip="Delete selected assets"
         />
         {singleAsset && <AssetInfoPanel asset={singleAsset} />}
-      </Menu>
+      </ContextMenu>
     </>
   );
 };

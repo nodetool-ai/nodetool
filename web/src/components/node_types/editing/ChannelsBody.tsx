@@ -23,6 +23,7 @@ import {
 } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageView from "../../node/ImageView";
+import ImageRefPreview from "../../node/ImageRefPreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 
@@ -90,34 +91,14 @@ const styles = (theme: Theme) =>
     }
   });
 
-const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => {
-  if (typeof value === "string" && value) {
-    return <ImageView source={value} />;
-  }
-  if (value && typeof value === "object") {
-    const v = value as Record<string, unknown>;
-    const uri = typeof v.uri === "string" ? v.uri : undefined;
-    if (uri) {
-      return <ImageView source={uri} />;
+const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
+  <ImageRefPreview
+    value={value}
+    placeholder={
+      <CheckerDropzone message="Connect an image, then run" icon={<ImageIcon />} />
     }
-    const data = v.data;
-    if (typeof data === "string" && data) {
-      return <ImageView source={data} />;
-    }
-    if (data instanceof Uint8Array) {
-      return <ImageView source={data} />;
-    }
-    if (Array.isArray(data)) {
-      return <ImageView source={new Uint8Array(data as number[])} />;
-    }
-  }
-  return (
-    <CheckerDropzone
-      message="Connect an image, then run"
-      icon={<ImageIcon />}
-    />
-  );
-};
+  />
+);
 
 export interface ChannelsBodyProps {
   id: string;
@@ -182,7 +163,7 @@ const ChannelsBodyInner: React.FC<ChannelsBodyProps> = ({
       </div>
 
       <FlexColumn className="controls" gap={0.5}>
-        <FlexRow align="center" gap={0.25}>
+        <FlexRow align="center" gap={0.5}>
           <ToggleGroup
             className="channel-toggle"
             size="small"

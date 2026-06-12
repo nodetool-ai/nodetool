@@ -8,7 +8,8 @@ import {
   LoadingSpinner,
   Tooltip,
   ToolbarIconButton,
-  Box
+  Box,
+  MOTION
 } from "../../ui_primitives";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import BoltIcon from "@mui/icons-material/Bolt";
@@ -339,13 +340,13 @@ const JobItem = ({ job }: { job: Job }) => {
         borderRadius: "6px",
         cursor: "pointer",
         backgroundColor: isActive ? "action.selected" : "transparent",
-        transition: "background-color 120ms ease-out",
+        transition: `background-color ${MOTION.fast}`,
         "&:hover": { backgroundColor: "action.hover" }
       }}
     >
       <StatusTile job={job} cancelling={cancelling} />
-      <FlexColumn gap={0.25} sx={{ flex: "0 1 240px", minWidth: 0 }}>
-        <FlexRow align="baseline" gap={0.75} sx={{ minWidth: 0 }}>
+      <FlexColumn gap={0.5} sx={{ flex: "0 1 240px", minWidth: 0 }}>
+        <FlexRow align="baseline" gap={1} sx={{ minWidth: 0 }}>
           <Text size="small" weight={500} truncate sx={{ minWidth: 0 }}>
             {workflowName}
           </Text>

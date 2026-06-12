@@ -109,7 +109,7 @@ export const useModelPreferencesStore = create<ModelPreferencesState>()(
         const fallback = {
           favorites: [] as FavoriteKey[],
           recents: [] as RecentEntry[],
-          onlyAvailable: true,
+          onlyAvailable: false,
           enabledProviders: {} as Record<string, boolean>,
           defaults: {} as Record<
             string,

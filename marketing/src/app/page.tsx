@@ -54,6 +54,8 @@ const ComparisonSection = dynamic(
   { ssr: false }
 );
 import { XMarkIcon, Bars3Icon } from "@heroicons/react/24/outline";
+import { Download } from "lucide-react";
+import { SmartDownloadButton } from "./SmartDownloadButton";
 
 import { Feature, features } from "./features";
 
@@ -243,7 +245,11 @@ export default function Home() {
   useEffect(() => {
     fetch("https://api.github.com/repos/nodetool-ai/nodetool")
       .then((r) => r.json())
-      .then((j) => setStars(j.stargazers_count))
+      .then((j) => {
+        if (typeof j.stargazers_count === "number") {
+          setStars(j.stargazers_count);
+        }
+      })
       .catch(() => { });
   }, []);
 
@@ -653,6 +659,36 @@ export default function Home() {
 
         {/* Contact */}
         <ContactSection />
+
+        {/* Closing CTA — end the page on the product, not the mailbox */}
+        <section aria-labelledby="closing-cta-title" className="relative py-24">
+          <div className={`${sectionNarrow} text-center`}>
+            <h2
+              id="closing-cta-title"
+              className="text-3xl md:text-4xl font-bold tracking-tight text-white"
+            >
+              Put every model on one canvas.
+            </h2>
+            <p className="mt-4 text-lg text-slate-400">
+              Free, open source, and yours to run. Download Studio and build
+              your first workflow in minutes.
+            </p>
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <SmartDownloadButton
+                icon={<Download className="h-5 w-5" />}
+                classNameOverride="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-900/40 transition-all hover:bg-blue-500 hover:shadow-blue-900/60"
+              />
+              <a
+                href="https://github.com/nodetool-ai/nodetool"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900/60 px-6 py-3.5 text-sm font-semibold text-slate-100 transition-all hover:border-slate-500 hover:bg-slate-800/60"
+              >
+                View on GitHub
+              </a>
+            </div>
+          </div>
+        </section>
       </div>
 
       {/* Footer */}

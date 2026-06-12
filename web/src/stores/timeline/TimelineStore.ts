@@ -9,8 +9,10 @@
  *     (tracks + clips + markers).
  *   - Exposes pure-reducer actions: move, trim, split, duplicate, delete,
  *     addTrack, removeTrack, reorderTracks, setTrackHeight.
- *   - Each drag operation is a single zundo entry (pauseTracking /
- *     resumeTracking wrapping fine-grained moves).
+ *   - Undo granularity: the temporal `equality` option dedupes no-op sets so
+ *     guard-returns never create history entries, and drag handlers (e.g. in
+ *     Clip.tsx) call zundo's `pause()` / `resume()` from the outside so each
+ *     drag gesture collapses into a single undo entry.
  *
  * Usage:
  *   // Subscribe to a single clip's geometry only:
@@ -182,6 +184,9 @@ export interface TimelineStoreState {
 
   /** Add a pre-built clip object directly (used by NOD-304 import). */
   addClip: (clip: TimelineClip) => void;
+
+  /** Add several pre-built clips in one update (one undo entry) — paste. */
+  addClips: (clips: TimelineClip[]) => void;
 
   /**
    * Create an imported clip from an Asset and insert it into the store.
@@ -372,6 +377,58 @@ type PartializedState = Pick<
   TimelineStoreState,
   "tracks" | "clips" | "markers" | "durationMs" | "transcript"
 >;
+
+// ── Temporal equality (dedupe no-op sets) ───────────────────────────────────
+
+/** Shallow per-key equality for plain records (one level of `Object.is`). */
+function shallowRecordEqual(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) {
+    return true;
+  }
+  if (
+    typeof a !== "object" ||
+    typeof b !== "object" ||
+    a === null ||
+    b === null
+  ) {
+    return false;
+  }
+  const recA = a as Record<string, unknown>;
+  const recB = b as Record<string, unknown>;
+  const keysA = Object.keys(recA);
+  const keysB = Object.keys(recB);
+  return (
+    keysA.length === keysB.length &&
+    keysA.every((k) => Object.is(recA[k], recB[k]))
+  );
+}
+
+/** Element-wise array equality, comparing items shallowly. */
+function shallowArrayEqual<T>(a: readonly T[], b: readonly T[]): boolean {
+  return (
+    a === b ||
+    (a.length === b.length &&
+      a.every((item, i) => shallowRecordEqual(item, b[i])))
+  );
+}
+
+/**
+ * zundo `equality`: returns true when two partialized snapshots are
+ * equivalent, so no-op sets (guard-returns, `{}` patches, value-identical
+ * remaps) don't push duplicate undo entries.
+ */
+function partializedEqual(
+  pastState: PartializedState,
+  currentState: PartializedState
+): boolean {
+  return (
+    pastState.durationMs === currentState.durationMs &&
+    shallowArrayEqual(pastState.tracks, currentState.tracks) &&
+    shallowArrayEqual(pastState.clips, currentState.clips) &&
+    shallowArrayEqual(pastState.markers, currentState.markers) &&
+    shallowArrayEqual(pastState.transcript, currentState.transcript)
+  );
+}
 
 // ── Scene split/merge helpers (pure) ───────────────────────────────────────
 
@@ -734,6 +791,14 @@ export const createTimelineStore = (
               snappedDelta = snappedStart - primary.startMs;
             }
 
+            // Clamp the delta ONCE for the whole group so relative spacing is
+            // preserved when the selection is dragged against t=0.
+            const minStartMs = state.clips.reduce(
+              (min, c) => (selectedIds.has(c.id) ? Math.min(min, c.startMs) : min),
+              primary.startMs
+            );
+            const effectiveDelta = Math.max(snappedDelta, -minStartMs);
+
             return {
               clips: state.clips.map((c) => {
                 if (!selectedIds.has(c.id)) {
@@ -742,13 +807,13 @@ export const createTimelineStore = (
                 if (c.id === primaryClipId) {
                   return {
                     ...c,
-                    startMs: Math.max(0, c.startMs + snappedDelta),
+                    startMs: c.startMs + effectiveDelta,
                     trackId: toTrackId ?? c.trackId
                   };
                 }
                 return {
                   ...c,
-                  startMs: Math.max(0, c.startMs + snappedDelta)
+                  startMs: c.startMs + effectiveDelta
                 };
               })
             };
@@ -780,15 +845,15 @@ export const createTimelineStore = (
               return state;
             }
             try {
-              // Clamp deltaMs so that outPointMs cannot exceed source duration.
+              // Clamp grow deltas so that outPointMs cannot exceed source
+              // duration. Never clamp a shrink — an over-extended clip
+              // (outPointMs already past source end) must still shrink.
               let clampedDelta = deltaMs;
-              if (maxSourceDurationMs !== undefined) {
+              if (maxSourceDurationMs !== undefined && deltaMs > 0) {
                 const currentOutPointMs =
                   clip.outPointMs ?? (clip.inPointMs ?? 0) + clip.durationMs;
                 const maxGrow = maxSourceDurationMs - currentOutPointMs;
-                if (clampedDelta > maxGrow) {
-                  clampedDelta = Math.max(0, maxGrow);
-                }
+                clampedDelta = Math.min(deltaMs, Math.max(0, maxGrow));
               }
               const trimmed = trimClip(clip, "end", clampedDelta);
               return {
@@ -876,6 +941,11 @@ export const createTimelineStore = (
           set((state) => ({
             clips: [...state.clips, clip]
           })),
+
+        addClips: (clips) =>
+          set((state) =>
+            clips.length === 0 ? state : { clips: [...state.clips, ...clips] }
+          ),
 
         addImportedClip: (asset, trackId, startMs) => {
           const clip = assetToClip(asset, trackId, startMs);
@@ -1196,6 +1266,7 @@ export const createTimelineStore = (
       }),
       {
         limit: 100,
+        equality: partializedEqual,
         partialize: (state): PartializedState => ({
           tracks: state.tracks,
           clips: state.clips,

@@ -8,7 +8,7 @@ import ChannelsBody from "./ChannelsBody";
 import CompositorBody from "./CompositorBody";
 import CropBody from "./CropBody";
 import CurvesBody from "./CurvesBody";
-import ExposureBody from "./ExposureBody";
+import AdjustmentBody from "./AdjustmentBody";
 import FitBody from "./FitBody";
 import HSLAdjustBody from "./HSLAdjustBody";
 import LevelsBody from "./LevelsBody";
@@ -20,6 +20,8 @@ import ResizeBody from "./ResizeBody";
 import RotateAndFlipBody from "./RotateAndFlipBody";
 import ScaleBody from "./ScaleBody";
 import SimpleFilterBody from "./SimpleFilterBody";
+import SynthModuleBody from "../synth/SynthModuleBody";
+import { SYNTH_NODE_TYPES } from "../synth/synthModules";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 
 const meta = (node_type: string): NodeMetadata =>
@@ -118,12 +120,12 @@ describe("bespokeRegistry", () => {
     expect(BESPOKE_BODY_REGISTRY["nodetool.image.Scale"]).toBe(ScaleBody);
   });
 
-  it("maps lib.image.color_grading.Exposure → ExposureBody", () => {
+  it("maps lib.image.color_grading.Exposure → AdjustmentBody", () => {
     const m = meta("lib.image.color_grading.Exposure");
     expect(isBespokeNode(m)).toBe(true);
-    expect(getBespokeBody(m)).toBe(ExposureBody);
+    expect(getBespokeBody(m)).toBe(AdjustmentBody);
     expect(BESPOKE_BODY_REGISTRY["lib.image.color_grading.Exposure"]).toBe(
-      ExposureBody
+      AdjustmentBody
     );
   });
 
@@ -176,6 +178,14 @@ describe("bespokeRegistry", () => {
       expect(isBespokeNode(m)).toBe(true);
       expect(getBespokeBody(m)).toBe(SimpleFilterBody);
       expect(BESPOKE_BODY_REGISTRY[t]).toBe(SimpleFilterBody);
+    }
+  });
+
+  it("maps every synth module node type → SynthModuleBody", () => {
+    for (const t of SYNTH_NODE_TYPES) {
+      const m = meta(t);
+      expect(isBespokeNode(m)).toBe(true);
+      expect(getBespokeBody(m)).toBe(SynthModuleBody);
     }
   });
 });

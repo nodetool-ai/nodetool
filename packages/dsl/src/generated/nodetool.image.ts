@@ -273,7 +273,6 @@ export interface TextToImageInputs {
   negative_prompt?: Connectable<string>;
   aspect_ratio?: Connectable<string>;
   resolution?: Connectable<string>;
-  timeout_seconds?: Connectable<number>;
 }
 
 export interface TextToImageOutputs {
@@ -294,7 +293,6 @@ export interface ImageToImageInputs {
   aspect_ratio?: Connectable<string>;
   resolution?: Connectable<string>;
   scheduler?: Connectable<string>;
-  timeout_seconds?: Connectable<number>;
 }
 
 export interface ImageToImageOutputs {

@@ -579,15 +579,19 @@ export class StepExecutor {
    */
   private evictOldToolResultsIfOverBudget(): void {
     while (this.estimateTokens() > this.maxTokenLimit * 0.9) {
+      // Evict the oldest assistant tool-call turn together with ALL of its
+      // tool results. Removing a tool result on its own leaves the assistant
+      // message with a dangling tool call, which providers reject.
       const idx = this.history.findIndex(
-        (m, i) => i > 0 && m.role === "tool"
+        (m, i) =>
+          i > 0 && m.role === "assistant" && (m.toolCalls?.length ?? 0) > 0
       );
       if (idx === -1) return;
-      this.history.splice(idx, 1);
-      const prev = this.history[idx - 1];
-      if (prev?.role === "assistant" && prev.toolCalls?.length === 1) {
-        this.history.splice(idx - 1, 1);
+      let end = idx + 1;
+      while (end < this.history.length && this.history[end].role === "tool") {
+        end++;
       }
+      this.history.splice(idx, end - idx);
     }
   }
 
@@ -984,6 +988,20 @@ export class StepExecutor {
             args: finishStepCall.args,
             message: this.generateToolCallMessage(finishStepCall)
           } satisfies ToolCallUpdate;
+
+          // Every tool call in the assistant message needs a tool result —
+          // even the siblings we don't execute. If finish_step validation
+          // fails below and the loop continues, a dangling tool call makes
+          // the provider reject the next request.
+          for (const tc of filteredToolCalls) {
+            if (tc === finishStepCall) continue;
+            this.history.push({
+              role: "tool",
+              toolCallId: tc.id,
+              content:
+                '{"status": "skipped", "reason": "finish_step was called in the same turn"}'
+            });
+          }
 
           // Extract and validate result
           const resultPayload =

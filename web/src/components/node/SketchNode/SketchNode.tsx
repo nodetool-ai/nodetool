@@ -22,7 +22,7 @@ import React, {
   useEffect
 } from "react";
 import { Handle, NodeProps, NodeToolbar, Position } from "@xyflow/react";
-import { Box, Text } from "../../ui_primitives";
+import { Box, Text, MOTION } from "../../ui_primitives";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -104,8 +104,7 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       border: `1px solid ${theme.vars.palette.grey[900]}`,
       backgroundColor: theme.vars.palette.c_node_bg,
       position: "relative",
-      transition:
-        "border-color 0.15s ease, box-shadow 0.15s ease, outline 0.15s ease",
+      transition: `border-color ${MOTION.fast}, box-shadow ${MOTION.fast}, outline ${MOTION.fast}`,
       boxShadow: opts.selected
         ? `0 0 0 1px ${opts.baseColor}, 0 1px 10px rgba(0,0,0,0.5)`
         : opts.isFocused
@@ -216,7 +215,7 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       justifyContent: "center",
       backgroundColor: "rgba(0,0,0,0.45)",
       opacity: 0,
-      transition: "opacity 0.2s"
+      transition: `opacity ${MOTION.normal}`
     },
     ".edit-overlay-label": {
       fontSize: "var(--fontSizeSmaller)",
@@ -468,6 +467,10 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     [theme, props.selected, isFocused, inputAccentColor]
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const isModalOpenRef = useRef(false);
+  useEffect(() => {
+    isModalOpenRef.current = isModalOpen;
+  }, [isModalOpen]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [editorDocument, setEditorDocument] = useState<SketchDocument | null>(
     null
@@ -932,7 +935,8 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
 
           // Push the updated layer into the live editor store when open, or
           // prepare editorDocument for the next open when the modal is closed.
-          if (isModalOpen) {
+          // Read the ref so we get the current modal state, not the stale closure value.
+          if (isModalOpenRef.current) {
             const storeState = useSketchStore.getState();
             const currentDoc = storeState.document;
             const storeLayerIdx = currentDoc.layers.findIndex(
@@ -975,8 +979,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     layerInputResults,
     sketchDoc,
     props.id,
-    updateNodeProperties,
-    isModalOpen
+    updateNodeProperties
   ]);
 
   // ─── Generate preview and update output properties ────────────────

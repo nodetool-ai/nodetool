@@ -8,7 +8,7 @@
 import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
 import type { ImageRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { tagAsHybrid } from "@nodetool-ai/nodes-utils";
+import { tagAsHybrid, tagAsContentCard } from "@nodetool-ai/nodes-utils";
 import {
   colorInvertV1,
   colorBrightnessContrastV1,
@@ -243,7 +243,7 @@ registerDeclaredProperty(
   intProp(0, { min: 0, max: 3, label: "Channel", notes: "0=R, 1=G, 2=B, 3=A" })
 );
 
-export const LIB_IMAGE_COLOR_NODES = tagAsHybrid([
+export const LIB_IMAGE_COLOR_NODES = tagAsHybrid(tagAsContentCard([
   InvertNode,
   BrightnessContrastNode,
   HSBNode,
@@ -251,7 +251,7 @@ export const LIB_IMAGE_COLOR_NODES = tagAsHybrid([
   PosterizeNode,
   GradeNode,
   ChannelSplitNode
-]);
+]));
 export {
   InvertNode,
   BrightnessContrastNode,

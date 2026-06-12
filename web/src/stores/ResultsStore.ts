@@ -13,6 +13,18 @@ import { PlanningUpdate, ProviderCost, Task, ToolCallUpdate } from "./ApiTypes";
 import { nodeKey, edgeKey, type NodeKey, type EdgeKey } from "./nodeKey";
 import type { Generation } from "../utils/nodeGenerations";
 
+/** Rolling-window size for appended audio-chunk stream buffers (~20s of
+ * audio at the synth nodes' 512-frame / 24 kHz chunks). */
+const MAX_AUDIO_STREAM_CHUNKS = 1024;
+
+const isAudioStreamChunk = (v: unknown): boolean => {
+  if (!v || typeof v !== "object") {
+    return false;
+  }
+  const c = v as Record<string, unknown>;
+  return c.type === "chunk" && c.content_type === "audio";
+};
+
 type ResultsStore = {
   outputResults: Record<NodeKey, unknown>;
   liveGenerations: Record<string, Generation[]>;
@@ -33,6 +45,7 @@ type ResultsStore = {
   clearChunks: (workflowId: string, nodeIds?: Set<string>) => void;
   clearPlanningUpdates: (workflowId: string, nodeIds?: Set<string>) => void;
   clearEdges: (workflowId: string, edgeIds?: Set<string>) => void;
+  clearJobRunVisuals: (workflowId: string, jobId: string) => void;
   setEdge: (
     workflowId: string,
     jobId: string,
@@ -74,6 +87,12 @@ type ResultsStore = {
     nodeId: string,
     result: unknown,
     append?: boolean
+  ) => void;
+  appendOutputResults: (
+    workflowId: string,
+    jobId: string,
+    nodeId: string,
+    results: unknown[]
   ) => void;
   setTask: (
     workflowId: string,
@@ -207,6 +226,31 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     }));
   },
   /**
+   * Drop one run's transient visuals — edge animations and node progress.
+   * Job-scoped (keys are `${workflowId}:${jobId}:…`), so concurrent sibling
+   * runs keep theirs. Outputs/generations are left intact so the cancelled
+   * run can still be focused and inspected.
+   */
+  clearJobRunVisuals: (workflowId: string, jobId: string) => {
+    const prefix = `${workflowId}:${jobId}:`;
+    const dropJobKeys = <K extends string, T>(
+      record: Record<K, T>
+    ): Record<K, T> => {
+      const next = { ...record };
+      for (const key in next) {
+        if (key.startsWith(prefix)) {
+          delete next[key];
+        }
+      }
+      return next;
+    };
+    set((state) => ({
+      edges: dropJobKeys(state.edges),
+      progress: dropJobKeys(state.progress),
+      resultsVersion: state.resultsVersion + 1
+    }));
+  },
+  /**
    * Set the planning update for a node.
    * The planning update is stored in the planningUpdates map.
    */
@@ -325,13 +369,23 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     return get().tasks[nodeKey(workflowId, jobId, nodeId)];
   },
   /**
-   * Clear the provider costs for a workflow.
+   * Clear all per-node results for a workflow (or for specific nodes of it):
+   * provider costs, live generations, tool results, output results, progress,
+   * chunks, tasks, tool calls and planning updates. Edge status is keyed by
+   * edge id, not node id, so it is cleared separately via `clearEdges`.
    */
   clearResults: (workflowId: string, nodeIds?: Set<string>) => {
     set((state) => ({
       providerCosts: filterRecord(state.providerCosts, workflowId, nodeIds),
       liveGenerations: filterRecord(state.liveGenerations, workflowId, nodeIds),
-      toolResults: filterRecord(state.toolResults, workflowId, nodeIds)
+      toolResults: filterRecord(state.toolResults, workflowId, nodeIds),
+      outputResults: filterRecord(state.outputResults, workflowId, nodeIds),
+      progress: filterRecord(state.progress, workflowId, nodeIds),
+      chunks: filterRecord(state.chunks, workflowId, nodeIds),
+      tasks: filterRecord(state.tasks, workflowId, nodeIds),
+      toolCalls: filterRecord(state.toolCalls, workflowId, nodeIds),
+      planningUpdates: filterRecord(state.planningUpdates, workflowId, nodeIds),
+      resultsVersion: state.resultsVersion + 1
     }));
   },
   clearOutputResults: (workflowId: string, nodeIds?: Set<string>) => {
@@ -482,10 +536,22 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
         };
       } else {
         if (Array.isArray(currentResult)) {
+          let appended = [...currentResult, result];
+          // Realtime audio streams are infinite; without a cap the buffer
+          // (and the per-chunk array copy above) grows unboundedly and the
+          // resulting GC churn turns into audible scheduling jank. Keep a
+          // rolling window — playback tracks chunks by identity, so head
+          // trimming is safe. Text/other streams are left untouched.
+          if (
+            appended.length > MAX_AUDIO_STREAM_CHUNKS &&
+            isAudioStreamChunk(result)
+          ) {
+            appended = appended.slice(appended.length - MAX_AUDIO_STREAM_CHUNKS);
+          }
           return {
             outputResults: {
               ...state.outputResults,
-              [key]: [...currentResult, result]
+              [key]: appended
             },
             resultsVersion: nextVersion
           };
@@ -499,6 +565,43 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
           };
         }
       }
+    });
+  },
+
+  /**
+   * Append a batch of streamed results to a node's buffer in ONE store set.
+   *
+   * Realtime audio streams arrive at ~50 chunks/s per node; appending each
+   * chunk via setOutputResult would do one array copy + one subscriber
+   * notification per chunk. Callers coalesce chunks (workflowUpdates flushes
+   * on a timer) and land them here in a single copy/notify.
+   */
+  appendOutputResults: (
+    workflowId: string,
+    jobId: string,
+    nodeId: string,
+    results: unknown[]
+  ) => {
+    if (results.length === 0) return;
+    const key = nodeKey(workflowId, jobId, nodeId);
+    set((state) => {
+      const current = state.outputResults[key];
+      let appended =
+        current === undefined
+          ? [...results]
+          : Array.isArray(current)
+            ? [...current, ...results]
+            : [current, ...results];
+      if (
+        appended.length > MAX_AUDIO_STREAM_CHUNKS &&
+        isAudioStreamChunk(results[results.length - 1])
+      ) {
+        appended = appended.slice(appended.length - MAX_AUDIO_STREAM_CHUNKS);
+      }
+      return {
+        outputResults: { ...state.outputResults, [key]: appended },
+        resultsVersion: state.resultsVersion + 1
+      };
     });
   },
 

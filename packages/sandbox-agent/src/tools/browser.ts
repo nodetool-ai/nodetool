@@ -41,10 +41,16 @@ import type {
   BrowserConsoleExecOutput,
   BrowserConsoleViewInput,
   BrowserConsoleViewOutput,
+  BrowserCaptureMediaInput,
+  BrowserCaptureMediaRaw,
+  BrowserUploadAssetRaw,
+  BrowserUploadAssetOutput,
   BrowserElement,
   BrowserConsoleMessage
 } from "@nodetool-ai/sandbox/schemas";
 import type { CdpPage } from "../lib/cdp-page.js";
+import { captureMediaInPage } from "../lib/browser-capture.js";
+import { uploadAssetToInput } from "../lib/browser-upload.js";
 
 const CONSOLE_BUFFER_MAX = 500;
 
@@ -316,6 +322,38 @@ export async function browserConsoleView(
   const max = input.max_lines ?? 100;
   const messages = s.consoleMessages.slice(-max);
   return { messages };
+}
+
+/**
+ * Capture generated media from the page as bytes.
+ *
+ * In the sandbox container there is no extension transport, so only the in-page
+ * `fetch()` rung applies: resolve the source URL (element currentSrc, or the
+ * supplied url/resource_url), fetch it inside the page to an ArrayBuffer, and
+ * return base64 bytes + MIME. The host-side tool wrapper persists the bytes as
+ * an asset.
+ */
+export async function browserCaptureMedia(
+  input: BrowserCaptureMediaInput
+): Promise<BrowserCaptureMediaRaw> {
+  const s = await ensureState();
+  return captureMediaInPage(s.page, input);
+}
+
+/**
+ * Inject a NodeTool asset (bytes already resolved host-side and streamed in the
+ * request) into a page file input.
+ *
+ * In the container the temp file the native path writes lives on the same
+ * filesystem as the container's Chrome, so native `DOM.setFileInputFiles`
+ * normally succeeds; the in-page DataTransfer fallback covers widgets that
+ * reject a native injection.
+ */
+export async function browserUploadAsset(
+  input: BrowserUploadAssetRaw
+): Promise<BrowserUploadAssetOutput> {
+  const s = await ensureState();
+  return uploadAssetToInput(s.page, input);
 }
 
 /** Test hook — tear down the browser singleton. */

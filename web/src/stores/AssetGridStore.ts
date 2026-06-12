@@ -101,7 +101,11 @@ export const useAssetGridStore = create<AssetGridState>()(
   selectedFolderIds: [],
   setAssetItemSize: (size) => set({ assetItemSize: size }),
   setCurrentFolder: (folder) =>
-    set({ currentFolder: folder, currentFolderId: folder?.id }),
+    set({
+      currentFolder: folder,
+      currentFolderId: folder?.id ?? null,
+      parentFolder: null
+    }),
   setCurrentFolderId: (folderId) =>
     set({ currentFolderId: folderId, currentFolder: null, parentFolder: null }),
   setDeleteDialogOpen: (open) => set({ deleteDialogOpen: open }),
@@ -127,12 +131,34 @@ export const useAssetGridStore = create<AssetGridState>()(
 
   handleSelectAllAssets: () => {
     const { filteredAssets } = get();
-    set({ selectedAssetIds: filteredAssets.map((asset) => asset.id) });
+    set({
+      selectedAssetIds: filteredAssets.map((asset) => asset.id),
+      selectedAssets: filteredAssets
+    });
   },
 
-  handleDeselectAssets: () => set({ selectedAssetIds: [] }),
+  handleDeselectAssets: () => set({ selectedAssetIds: [], selectedAssets: [] }),
   setSelectedAssetIds: (ids) => {
-    set({ selectedAssetIds: ids });
+    // Keep `selectedAssets` in sync so the two can't desync: resolve each id
+    // against the asset lists available in the store, falling back to the
+    // previous selection for ids whose assets aren't in the current view.
+    const { filteredAssets, globalSearchResults, selectedAssets } = get();
+    const byId = new Map<string, Asset>();
+    for (const asset of selectedAssets) {
+      byId.set(asset.id, asset);
+    }
+    for (const asset of globalSearchResults) {
+      byId.set(asset.id, asset);
+    }
+    for (const asset of filteredAssets) {
+      byId.set(asset.id, asset);
+    }
+    set({
+      selectedAssetIds: ids,
+      selectedAssets: ids
+        .map((id) => byId.get(id))
+        .filter((asset): asset is Asset => asset !== undefined)
+    });
   },
   setSelectedAssets: (assets) => {
     set({ selectedAssets: assets });

@@ -144,6 +144,7 @@ declare global {
   interface Window {
     api: {
       runApp: (workflowId: string) => Promise<void>;
+      showItemInFolder?: (fullPath: string) => Promise<void>;
 
       // Clipboard operations (new API)
       clipboard?: {

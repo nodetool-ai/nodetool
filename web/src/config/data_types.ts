@@ -149,6 +149,18 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     icon: "Message"
   },
   {
+    value: "cv",
+    label: "CV",
+    description:
+      "Control-voltage signal for modular synthesis — a streaming float32 chunk carrying pitch, gate, or modulation data. Interoperable with audio chunk streams.",
+    color: colour("event"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "SettingsInputComponent"
+  },
+  {
     value: "dataframe",
     label: "Dataframe",
     description:

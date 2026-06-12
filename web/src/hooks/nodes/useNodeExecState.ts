@@ -200,24 +200,29 @@ const TERMINAL_RUN_STATES: ReadonlySet<RunState> = new Set([
  * active (running/starting/booting). Drives the ambient-liveness ring + badge so
  * the canvas signals work happening in runs the user is not currently focused on.
  */
+const EMPTY_JOB_IDS: readonly string[] = [];
+
 export function useNodeActiveRunCount(
   workflowId: string,
   nodeId: string
 ): number {
-  const focusedJob = useWorkflowRunsStore((s) => s.focusedJob[workflowId]);
-  const runs = useWorkflowRunsStore((s) => s.runs[workflowId]);
+  const nonFocusedActiveJobIds = useWorkflowRunsStore(
+    useShallow((s) => {
+      const focused = s.focusedJob[workflowId];
+      const wfRuns = s.runs[workflowId];
+      if (!wfRuns) return EMPTY_JOB_IDS;
+      const ids: string[] = [];
+      for (const jobId in wfRuns) {
+        if (jobId !== focused && !TERMINAL_RUN_STATES.has(wfRuns[jobId].state)) {
+          ids.push(jobId);
+        }
+      }
+      return ids.length === 0 ? EMPTY_JOB_IDS : ids;
+    })
+  );
   return useStatusStore((s) => {
-    if (!runs) {
-      return 0;
-    }
     let count = 0;
-    for (const jobId in runs) {
-      if (jobId === focusedJob) {
-        continue;
-      }
-      if (TERMINAL_RUN_STATES.has(runs[jobId].state)) {
-        continue;
-      }
+    for (const jobId of nonFocusedActiveJobIds) {
       const status = s.getStatus(workflowId, jobId, nodeId);
       if (typeof status === "string" && ACTIVE_NODE_STATUSES.has(status)) {
         count++;

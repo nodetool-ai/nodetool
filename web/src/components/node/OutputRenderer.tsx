@@ -34,6 +34,17 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import isEqual from "fast-deep-equal";
 import { Chunk } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
+
+/** In-flight raw straight-alpha RGBA image format (see protocol RAW_RGBA_MIME). */
+const RAW_RGBA_MIME = "image/x-raw-rgba";
+
+import { isBitmapImage } from "@nodetool-ai/protocol";
+
+// Encodes the raw-RGBA in-flight format to a PNG data URL. Shared with the
+// in-browser run path (`materializeBrowserOutputs`), which normalizes the same
+// format at the run boundary; re-exported here for existing callers/tests.
+import { rawRgbaToPngDataUrl } from "../../lib/workflow/materializeBrowserOutputs";
+export { rawRgbaToPngDataUrl };
 import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
 import {
   typeFor,
@@ -54,7 +65,7 @@ import { ChunkRenderer } from "./output/ChunkRenderer";
 import { ImageComparisonRenderer, type ImageComparisonData } from "./output/ImageComparisonRenderer";
 import { JSONRenderer } from "./output/JSONRenderer";
 import ObjectRenderer from "./output/ObjectRenderer";
-import { RealtimeAudioOutput } from "./output";
+import { RealtimeAudioOutputFromChunks } from "./output";
 import PlotlyRenderer from "./output/PlotlyRenderer";
 import DataframeRenderer from "./output/DataframeRenderer";
 import { isAudioChunkLike, isTextLikeChunk } from "./outputChunkUtils";
@@ -416,6 +427,11 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
       case "image_comparison":
         return <ImageComparisonRenderer value={value as ImageComparisonData} />;
       case "image":
+        // Preview bitmap from the in-browser runner — paint it directly
+        // (zero-copy fast path; no PNG encode/decode).
+        if (isBitmapImage(v)) {
+          return <ImageView bitmap={v.bitmap as ImageBitmap} />;
+        }
         if (Array.isArray(v.data)) {
           const seen = new Map<string, number>();
           return (v.data as (string | Uint8Array)[]).map((item) => (
@@ -426,7 +442,19 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           ));
         } else {
           let imageSource: string | Uint8Array;
-          if (typeof v.uri === "string" && v.uri !== "" && !v.uri.startsWith("memory://")) {
+          if (
+            v.mimeType === RAW_RGBA_MIME &&
+            v.data instanceof Uint8Array &&
+            typeof v.width === "number" &&
+            typeof v.height === "number"
+          ) {
+            // Raw RGBA can't be decoded by <img>; encode to a PNG data URL.
+            imageSource = rawRgbaToPngDataUrl(
+              v.data,
+              v.width as number,
+              v.height as number
+            );
+          } else if (typeof v.uri === "string" && v.uri !== "" && !v.uri.startsWith("memory://")) {
             imageSource = signedValueUrl;
           } else if (v.data instanceof Uint8Array) {
             imageSource = v.data;
@@ -753,7 +781,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
               if (audioChunks.length >= 2) {
                 const firstMeta = audioChunks[0].content_metadata;
                 return (
-                  <RealtimeAudioOutput
+                  <RealtimeAudioOutputFromChunks
                     chunks={audioChunks}
                     sampleRate={(firstMeta?.sample_rate as number | undefined) ?? 22000}
                     channels={(firstMeta?.channels as number | undefined) ?? 1}

@@ -96,7 +96,9 @@ async function dataForSEORequest(
     }
     return (await res.json()) as DataForSEOResponse;
   } catch (e: unknown) {
-    return { error: `DataForSEO request failed: ${(e as Error).message}` };
+    return {
+      error: `DataForSEO request failed: ${e instanceof Error ? e.message : String(e)}`
+    };
   }
 }
 
@@ -162,7 +164,7 @@ export class DataForSEOSearchTool extends Tool {
     try {
       creds = await getDataForSEOCredentials(context);
     } catch (e: unknown) {
-      return { error: (e as Error).message };
+      return { error: e instanceof Error ? e.message : String(e) };
     }
     const auth = makeAuthHeader(creds.login, creds.password);
 
@@ -248,7 +250,7 @@ export class DataForSEONewsTool extends Tool {
     try {
       creds = await getDataForSEOCredentials(context);
     } catch (e: unknown) {
-      return { error: (e as Error).message };
+      return { error: e instanceof Error ? e.message : String(e) };
     }
     const auth = makeAuthHeader(creds.login, creds.password);
 
@@ -351,7 +353,7 @@ export class DataForSEOImagesTool extends Tool {
     try {
       creds = await getDataForSEOCredentials(context);
     } catch (e: unknown) {
-      return { error: (e as Error).message };
+      return { error: e instanceof Error ? e.message : String(e) };
     }
     const auth = makeAuthHeader(creds.login, creds.password);
 

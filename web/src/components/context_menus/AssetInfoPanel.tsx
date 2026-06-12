@@ -38,7 +38,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       maxHeight: "140px",
       objectFit: "contain",
-      borderRadius: "3px",
+      borderRadius: "var(--rounded-sm)",
       marginBottom: "0.5em",
       backgroundColor: theme.vars.palette.grey[800]
     },

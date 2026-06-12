@@ -259,7 +259,8 @@ export function reflowGenerated(
     ordered = orderedBeatIds
       .map((id) => byId.get(id))
       .filter((c): c is TimelineClip => c !== undefined);
-    for (const beat of beats) if (!orderedBeatIds.includes(beat.id)) ordered.push(beat);
+    const orderedSet = new Set(orderedBeatIds);
+    for (const beat of beats) if (!orderedSet.has(beat.id)) ordered.push(beat);
   } else {
     ordered = [...beats].sort(byTimeline);
   }
@@ -716,7 +717,9 @@ export function migrateTranscriptToClips(
       .map((id) => byId.get(id))
       .filter((c): c is TimelineClip => c !== undefined);
     const audio = bound.find((c) => c.mediaType === "audio");
-    const caption = bound.find((c) => c.caption !== undefined);
+    // Exclude the audio clip itself: if it already carries the caption it
+    // must not be treated as the redundant caption clip and removed.
+    const caption = bound.find((c) => c !== audio && c.caption !== undefined);
 
     if (audio) {
       const base = patched.get(audio.id) ?? audio;

@@ -17,6 +17,7 @@
 import { createLogger } from "@nodetool-ai/config";
 import type {
   NodeDescriptor,
+  HydratedGraphData,
   Edge,
   ProcessingMessage,
   ControlEvent
@@ -24,6 +25,31 @@ import type {
 import { TypeMetadata } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.kernel.runner");
+
+/**
+ * Minimum interval between edge_update emissions per edge. The first message
+ * on an edge always emits (it starts the flow animation); afterwards the
+ * counter badge is refreshed at most this often, with the exact final count
+ * flushed at run end. Keeps audio-rate streams (~50 chunks/s per edge) from
+ * flooding the message transport.
+ */
+const EDGE_UPDATE_MIN_INTERVAL_MS = 1000;
+
+/**
+ * Cap on messages retained for RunResult.messages. Long-running streaming
+ * jobs would otherwise accumulate messages without bound; when the cap is
+ * hit, the oldest half is dropped (block-wise, so the cost amortizes).
+ */
+const MAX_RETAINED_MESSAGES = 10_000;
+
+/** An output_update whose value is a streamed audio chunk (sample payload). */
+function isAudioChunkOutputUpdate(msg: ProcessingMessage): boolean {
+  if (msg.type !== "output_update") return false;
+  const value = (msg as { value?: unknown }).value;
+  if (!value || typeof value !== "object") return false;
+  const v = value as { type?: unknown; content_type?: unknown };
+  return v.type === "chunk" && v.content_type === "audio";
+}
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 // Import span helpers from the narrow `/tracing` subpath, not the package root,
 // so thin consumers (e.g. the in-browser workflow runner) don't drag the
@@ -191,6 +217,12 @@ export class WorkflowRunner {
   /** Per-edge message counters (for EdgeUpdate tracking). */
   private _edgeCounters = new Map<string, number>();
 
+  /** Per-edge timestamp of the last emitted edge_update (throttling). */
+  private _edgeCounterLastEmitMs = new Map<string, number>();
+
+  /** Edges whose counter advanced since their last emitted edge_update. */
+  private _edgeCounterDirty = new Set<string>();
+
   /** Per-edge streaming flag (true if on a streaming path). */
   private _streamingEdges = new Map<string, boolean>();
 
@@ -217,14 +249,31 @@ export class WorkflowRunner {
   /** Cancellation flag. */
   private _cancelled = false;
 
-  /** Pending response resolvers for sendControlEvent. nodeId → resolver */
+  /** Run-level cancellation signal source; aborted by `cancel()`. */
+  private _abortController = new AbortController();
+
+  /**
+   * Pending response resolvers for sendControlEvent, FIFO per node. The
+   * controlled actor processes control events in order and emits outputs in
+   * order, so the oldest waiter matches the next output. A single slot per
+   * node would let a burst of concurrent control events (e.g. parallel agent
+   * tool calls) overwrite an earlier resolver, leaving its promise unsettled
+   * forever.
+   */
   private _pendingControlResponses = new Map<
     string,
-    {
+    Array<{
       resolve: (outputs: Record<string, unknown>) => void;
       reject: (err: Error) => void;
-    }
+    }>
   >();
+
+  /**
+   * Executor instance per node. Resolved once and reused so that the
+   * instance initialized in _initializeGraph is the same one that executes
+   * (NodeRegistry.resolve constructs a fresh instance per call).
+   */
+  private _executors = new Map<string, NodeExecutor>();
 
   /**
    * Nodes whose actor has finished running. A control event sent to such a
@@ -235,6 +284,9 @@ export class WorkflowRunner {
    * through.
    */
   private _completedNodes = new Set<string>();
+
+  /** Errors reported by node actors, keyed by node id. */
+  private _nodeErrors = new Map<string, string>();
 
   constructor(jobId: string, options: WorkflowRunnerOptions) {
     this.jobId = jobId;
@@ -311,10 +363,17 @@ export class WorkflowRunner {
 
   /**
    * Execute a workflow graph.
+   *
+   * Requires hydrated descriptors: the actor trusts the behavior flags
+   * (`is_streaming_input` & co.) to pick the execution mode, so accepting a
+   * raw wire graph here would silently run streaming nodes as one-shot
+   * process() calls. Hydrate via `Graph.loadFromDict`, node-sdk's
+   * `hydrateGraphNodeFlags(graph, registry)`, or — for graphs constructed in
+   * code where the author sets the flags — `withExplicitNodeFlags`.
    */
   async run(
     request: RunJobRequest,
-    graphData: { nodes: NodeDescriptor[]; edges: Edge[] }
+    graphData: HydratedGraphData
   ): Promise<RunResult> {
     return withWorkflowSpan(
       {
@@ -328,7 +387,7 @@ export class WorkflowRunner {
 
   private async _runImpl(
     request: RunJobRequest,
-    graphData: { nodes: NodeDescriptor[]; edges: Edge[] }
+    graphData: HydratedGraphData
   ): Promise<RunResult> {
     this._resetRunState();
 
@@ -418,6 +477,29 @@ export class WorkflowRunner {
       // Post-completion: drain any edges that still have pending/open state
       this._drainActiveEdges();
 
+      // A node failure fails the whole job (Python parity). Actors swallow
+      // their own errors so sibling branches can finish, but the final
+      // status must not report success when any node errored.
+      if (!this._cancelled && this._nodeErrors.size > 0) {
+        const error = [...this._nodeErrors]
+          .map(([nodeId, msg]) => `Node "${nodeId}" failed: ${msg}`)
+          .join("; ");
+        log.error("Workflow failed", { jobId: request.job_id, error });
+        this._emit({
+          type: "job_update",
+          status: "failed",
+          job_id: request.job_id,
+          workflow_id: request.workflow_id ?? null,
+          error
+        });
+        return {
+          outputs: Object.fromEntries(this._outputs),
+          messages: this._messages,
+          status: "failed",
+          error
+        };
+      }
+
       const status = this._cancelled ? "cancelled" : "completed";
       log.info("Workflow completed", { jobId: request.job_id, status });
 
@@ -469,22 +551,49 @@ export class WorkflowRunner {
   private _resetRunState(): void {
     this._inboxes = new Map();
     this._edgeCounters = new Map();
+    this._edgeCounterLastEmitMs = new Map();
+    this._edgeCounterDirty = new Set();
     this._streamingEdges = new Map();
     this._controlEdgesRouted = new Set();
     this._multiEdgeListInputs = new Map();
     this._outputs = new Map();
     this._messages = [];
     this._cancelled = false;
+    this._abortController = new AbortController();
     this._pendingControlResponses = new Map();
+    this._completedNodes = new Set();
+    this._executors = new Map();
+    this._nodeErrors = new Map();
     this._correlation = undefined;
   }
 
   /**
    * Cancel the running workflow.
    */
+  /**
+   * Push property updates into a running node's executor instance (live
+   * parameter changes — e.g. turning a synth knob while the patch plays).
+   * Returns true when the node's executor exists and supports live updates;
+   * false is not an error — the caller's canvas state already holds the new
+   * value for the next run.
+   */
+  updateNodeProperties(
+    nodeId: string,
+    properties: Record<string, unknown>
+  ): boolean {
+    const executor = this._executors.get(nodeId);
+    if (!executor?.applyProperties) return false;
+    executor.applyProperties(properties);
+    return true;
+  }
+
   cancel(): void {
     log.info("Job cancelled", { jobId: this.jobId });
     this._cancelled = true;
+    // Stop producing loops (generators, pacers) that never wait on inputs —
+    // closing inboxes only unblocks consumers. Nodes observe this via
+    // `inputs.signal`.
+    this._abortController.abort();
     // Close all inboxes to unblock waiting actors
     for (const inbox of this._inboxes.values()) {
       void inbox.closeAll();
@@ -579,11 +688,21 @@ export class WorkflowRunner {
 
   private async _initializeGraph(): Promise<void> {
     for (const node of this._graph.nodes) {
-      const executor = this._options.resolveExecutor(node);
+      const executor = this._resolveExecutor(node);
       if (executor.initialize) {
         await executor.initialize();
       }
     }
+  }
+
+  /** Resolve (and cache) the executor instance for a node. */
+  private _resolveExecutor(node: NodeDescriptor): NodeExecutor {
+    let executor = this._executors.get(node.id);
+    if (!executor) {
+      executor = this._options.resolveExecutor(node);
+      this._executors.set(node.id, executor);
+    }
+    return executor;
   }
 
   // -----------------------------------------------------------------------
@@ -710,13 +829,40 @@ export class WorkflowRunner {
       }
 
       const value = hasRuntimeParam ? params[inputName] : properties.value;
+
+      // Run the node's own process() so transforming input nodes (e.g.
+      // DocumentFileInput building a DocumentRef, StringInput applying
+      // max_length, MessageDeconstructor splitting a message) emit their
+      // declared per-handle outputs instead of leaking the raw value to
+      // every edge. Uses the cached executor instance initialized in
+      // _initializeGraph. Test doubles whose process() returns an empty
+      // record fall back to raw-value dispatch per handle below; a real
+      // process() failure fails the run rather than leaking the raw value.
+      const executor = this._resolveExecutor(node);
+      let nodeOutputs: Record<string, unknown>;
+      try {
+        nodeOutputs = await executor.process(
+          { value },
+          this._options.executionContext
+        );
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        throw new Error(
+          `Input node "${node.name ?? node.id}" (${node.type}) failed: ${message}`
+        );
+      }
+
       const outgoing = this._graph
         .findOutgoingEdges(node.id)
         .filter(isDataEdge);
       for (const edge of outgoing) {
         const targetInbox = this._inboxes.get(edge.target);
         if (targetInbox) {
-          await targetInbox.put(edge.targetHandle, value, {
+          const handleValue =
+            nodeOutputs[edge.sourceHandle] !== undefined
+              ? nodeOutputs[edge.sourceHandle]
+              : value;
+          await targetInbox.put(edge.targetHandle, handleValue, {
             source_edge_id:
               edge.id ??
               syntheticEdgeId(
@@ -776,7 +922,7 @@ export class WorkflowRunner {
       }
 
       const inbox = this._inboxes.get(node.id)!;
-      const executor = this._options.resolveExecutor(node);
+      const executor = this._resolveExecutor(node);
 
       // Build control context for controller nodes (Python parity:
       // _is_controller / _build_control_context). This tells the node
@@ -796,11 +942,16 @@ export class WorkflowRunner {
         executionContext: this._options.executionContext,
         listInputHandles: this._multiEdgeListInputs.get(node.id),
         controlContext,
-        correlation: this._correlation?.nodes.get(node.id)
+        correlation: this._correlation?.nodes.get(node.id),
+        cancelSignal: this._abortController.signal
       });
 
       actorPromises.push(
         actor.run().then(async (result) => {
+          if (result.error !== undefined) {
+            this._nodeErrors.set(node.id, result.error);
+          }
+
           // After actor completes, send EOS to all downstream inboxes
           await this._sendEOS(node.id);
 
@@ -810,15 +961,17 @@ export class WorkflowRunner {
           // (the actor finished without producing the awaited output, e.g.
           // it errored mid-burst).
           this._completedNodes.add(node.id);
-          const pending = this._pendingControlResponses.get(node.id);
-          if (pending) {
+          const pendingQueue = this._pendingControlResponses.get(node.id);
+          if (pendingQueue) {
             this._pendingControlResponses.delete(node.id);
-            pending.reject(
-              new Error(
-                result.error ??
-                  `Controlled node ${node.id} completed without responding`
-              )
-            );
+            for (const pending of pendingQueue) {
+              pending.reject(
+                new Error(
+                  result.error ??
+                    `Controlled node ${node.id} completed without responding`
+                )
+              );
+            }
           }
 
           // If this is an output node, collect the result
@@ -1030,16 +1183,33 @@ export class WorkflowRunner {
     // Skip constant and input nodes: the client already holds their value
     // as a property (or supplied it as a runtime param), so re-sending it
     // (often a large image/audio payload) is redundant.
+    // Also skip handles with outgoing data edges: the value travels to its
+    // consumer on the edge, and clients only display terminal (unconnected)
+    // handles — Output/Preview nodes and dangling outputs. Without this,
+    // every intermediate module of a streaming patch firehoses the client
+    // (~50 output_updates/s per handle for realtime audio). Nodes whose
+    // output_updates are part of their UI contract even when patched onward
+    // (e.g. the realtime AudioOutput monitor) opt out via the
+    // `always_emit_output_updates` descriptor flag.
     const sourceNode = this._graph.findNode(sourceNodeId);
     if (
       sourceNode &&
       !sourceNode.type.startsWith("nodetool.constant.") &&
       !sourceNode.type.startsWith("nodetool.input.")
     ) {
+      const alwaysEmit = Boolean(
+        (sourceNode as { always_emit_output_updates?: boolean })
+          .always_emit_output_updates
+      );
       const declaredOutputs = sourceNode.outputs ?? {};
       for (const [handle, value] of Object.entries(outputs)) {
         if (value === undefined) continue;
         if (handle === "__control__" || handle === "__control_output__")
+          continue;
+        if (
+          !alwaysEmit &&
+          this._graph.findEdges(sourceNodeId, handle).some(isDataEdge)
+        )
           continue;
         const outputName = clientFacingOutputName(sourceNode, handle);
         this._emit({
@@ -1054,10 +1224,13 @@ export class WorkflowRunner {
       }
     }
 
-    // Resolve pending sendControlEvent promise if one exists for this node
-    const pending = this._pendingControlResponses.get(sourceNodeId);
-    if (pending) {
-      this._pendingControlResponses.delete(sourceNodeId);
+    // Resolve the oldest pending sendControlEvent promise for this node.
+    const pendingQueue = this._pendingControlResponses.get(sourceNodeId);
+    if (pendingQueue && pendingQueue.length > 0) {
+      const pending = pendingQueue.shift()!;
+      if (pendingQueue.length === 0) {
+        this._pendingControlResponses.delete(sourceNodeId);
+      }
       pending.resolve(outputs);
     }
   }
@@ -1069,6 +1242,11 @@ export class WorkflowRunner {
    */
   private async _sendEOS(nodeId: string): Promise<void> {
     const outgoing = this._graph.findOutgoingEdges(nodeId);
+    // _initializeInboxes counts one __control__ upstream per unique
+    // controller, so decrement once per target — not once per control edge.
+    // Parallel control edges to the same target would otherwise drive the
+    // count to zero while other controllers are still running.
+    const controlTargetsDone = new Set<string>();
     for (const edge of outgoing) {
       if (isControlEdge(edge)) {
         // Always mark __control__ source done when the controller finishes,
@@ -1076,6 +1254,8 @@ export class WorkflowRunner {
         // controlled nodes waiting on iterInput("__control__") regardless
         // of whether events were routed through the edge or via the manual
         // sendControlEvent() / dispatchControlEvent() APIs.
+        if (controlTargetsDone.has(edge.target)) continue;
+        controlTargetsDone.add(edge.target);
         const targetInbox = this._inboxes.get(edge.target);
         if (targetInbox) {
           targetInbox.markSourceDone("__control__");
@@ -1217,7 +1397,12 @@ export class WorkflowRunner {
     }
 
     const promise = new Promise<Record<string, unknown>>((resolve, reject) => {
-      this._pendingControlResponses.set(targetNodeId, { resolve, reject });
+      let queue = this._pendingControlResponses.get(targetNodeId);
+      if (!queue) {
+        queue = [];
+        this._pendingControlResponses.set(targetNodeId, queue);
+      }
+      queue.push({ resolve, reject });
     });
 
     const event: ControlEvent = {
@@ -1240,6 +1425,20 @@ export class WorkflowRunner {
     const counter = (this._edgeCounters.get(id) ?? 0) + 1;
     this._edgeCounters.set(id, counter);
 
+    // Per-message edge_updates only drive UI affordances: the flow animation
+    // needs the first message, and the "N streamed" badge doesn't need more
+    // than a few updates per second. Realtime audio streams cross edges at
+    // chunk rate (~50/s per edge), which would otherwise flood the transport.
+    // Emit the first update immediately, throttle the rest, and flush exact
+    // final counters in _flushEdgeCounters() at run end.
+    const now = Date.now();
+    const last = this._edgeCounterLastEmitMs.get(id);
+    if (last !== undefined && now - last < EDGE_UPDATE_MIN_INTERVAL_MS) {
+      this._edgeCounterDirty.add(id);
+      return;
+    }
+    this._edgeCounterLastEmitMs.set(id, now);
+    this._edgeCounterDirty.delete(id);
     this._emit({
       type: "edge_update",
       workflow_id: this.jobId,
@@ -1247,6 +1446,24 @@ export class WorkflowRunner {
       status: "active",
       counter
     });
+  }
+
+  /**
+   * Emit the final counter for every edge whose count advanced past its last
+   * throttled edge_update, so the badge ends on the exact total. Called from
+   * _drainActiveEdges (which runs on completion, cancellation and error).
+   */
+  private _flushEdgeCounters(): void {
+    for (const id of this._edgeCounterDirty) {
+      this._emit({
+        type: "edge_update",
+        workflow_id: this.jobId,
+        edge_id: id,
+        status: "active",
+        counter: this._edgeCounters.get(id) ?? null
+      });
+    }
+    this._edgeCounterDirty.clear();
   }
 
   // -----------------------------------------------------------------------
@@ -1261,6 +1478,9 @@ export class WorkflowRunner {
    */
   private _drainActiveEdges(): void {
     if (!this._graph || this._graph.edges.length === 0) return;
+    // Settle the throttled counters first; a "drained" update below may then
+    // override the status for still-open edges.
+    this._flushEdgeCounters();
     for (const edge of this._graph.edges) {
       try {
         const inbox = this._inboxes.get(edge.target);
@@ -1382,7 +1602,21 @@ export class WorkflowRunner {
   }
 
   private _emit(msg: ProcessingMessage): void {
-    this._messages.push(msg);
+    // Retain for RunResult.messages — except the realtime-audio firehose: a
+    // live synth patch emits ~50 audio-chunk output_updates per node per
+    // second, each holding a sample buffer, so retaining them grows the heap
+    // without bound (~25MB/min for a small patch) and the mounting GC
+    // pressure progressively degrades whichever thread runs the kernel.
+    // Streaming delivery (executionContext.emit) is unaffected. A generous
+    // cap backstops other unbounded streams.
+    if (!isAudioChunkOutputUpdate(msg)) {
+      if (this._messages.length >= MAX_RETAINED_MESSAGES) {
+        this._messages = this._messages.slice(
+          this._messages.length - MAX_RETAINED_MESSAGES / 2
+        );
+      }
+      this._messages.push(msg);
+    }
     if (this._options.executionContext) {
       this._options.executionContext.emit(msg);
     }

@@ -1,5 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
-import { runAgentLoop } from "@nodetool-ai/llm-nodes";
+import {
+  runAgentLoop,
+  registerBuiltinAgentToolClasses
+} from "@nodetool-ai/llm-nodes";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 function createMockContext(providerFactory: () => any): ProcessingContext {
@@ -202,5 +205,127 @@ describe("runAgentLoop", () => {
     expect(Array.isArray(userMsg?.content)).toBe(true);
     expect(userMsg.content).toHaveLength(2);
     expect(userMsg.content[1].type).toBe("image");
+  });
+
+  it("streams text deltas via onText", async () => {
+    const provider = makeMockProvider([
+      [
+        { type: "chunk", content: "Navi", done: false },
+        { type: "chunk", content: "gating", done: true }
+      ]
+    ]);
+    const deltas: string[] = [];
+    const result = await runAgentLoop({
+      context: createMockContext(provider),
+      providerId: "mock",
+      modelId: "test-model",
+      systemPrompt: "sys",
+      prompt: "go",
+      tools: [],
+      onText: (d) => deltas.push(d)
+    });
+    expect(deltas).toEqual(["Navi", "gating"]);
+    expect(result.text).toBe("Navigating");
+  });
+
+  it("emits a tool_call chunk via onToolCall before the tool runs", async () => {
+    const order: string[] = [];
+    const toolFn = vi.fn().mockImplementation(async () => {
+      order.push("tool-ran");
+      return { ok: true };
+    });
+    const tools: any[] = [
+      { name: "browser_navigate", process: toolFn, inputSchema: {} }
+    ];
+    const provider = makeMockProvider([
+      [{ id: "tc1", name: "browser_navigate", args: { url: "https://x.test" } }],
+      [{ type: "chunk", content: "done", done: true }]
+    ]);
+
+    const toolCallChunks: any[] = [];
+    await runAgentLoop({
+      context: createMockContext(provider),
+      providerId: "mock",
+      modelId: "test-model",
+      systemPrompt: "sys",
+      prompt: "navigate",
+      tools,
+      onToolCall: (chunk) => {
+        order.push("chunk");
+        toolCallChunks.push(chunk);
+      }
+    });
+
+    expect(toolCallChunks).toHaveLength(1);
+    expect(toolCallChunks[0]).toMatchObject({
+      type: "chunk",
+      content_type: "tool_call",
+      content_metadata: { tool_name: "browser_navigate" }
+    });
+    expect(toolCallChunks[0].content).toContain("browser_navigate");
+    // Fired before the tool executed.
+    expect(order).toEqual(["chunk", "tool-ran"]);
+  });
+
+  it("hydrates a bare name-stub into a registered builtin tool and runs it", async () => {
+    const ran = vi.fn().mockResolvedValue({ ok: true });
+    class FakeBuiltinTool {
+      readonly name = "fake_builtin_hydration_tool";
+      readonly description = "fake";
+      readonly inputSchema = { type: "object", properties: {} };
+      process = ran;
+    }
+    registerBuiltinAgentToolClasses([FakeBuiltinTool as any]);
+
+    const provider = makeMockProvider([
+      [{ id: "t1", name: "fake_builtin_hydration_tool", args: { a: 1 } }],
+      [{ type: "chunk", content: "ok", done: true }]
+    ]);
+
+    // Pass a bare stub (no process) — runAgentLoop must hydrate it from the
+    // registry, otherwise the call is rejected as "Unknown tool" and `ran`
+    // never fires.
+    const result = await runAgentLoop({
+      context: createMockContext(provider),
+      providerId: "mock",
+      modelId: "test-model",
+      systemPrompt: "sys",
+      prompt: "use the tool",
+      tools: [{ name: "fake_builtin_hydration_tool" } as any]
+    });
+
+    expect(ran).toHaveBeenCalledOnce();
+    expect(ran).toHaveBeenCalledWith(expect.anything(), { a: 1 });
+    expect(result.text).toBe("ok");
+  });
+
+  it("keeps tool_call chunks out of the text output and onText stream", async () => {
+    const provider = makeMockProvider([
+      [
+        { type: "chunk", content: "The result is ", content_type: "text", done: false },
+        // A provider that streams the tool call as a tool_call chunk — must NOT
+        // land in `text` or the onText stream.
+        {
+          type: "chunk",
+          content: 'browser_navigate({"url":"https://x"})',
+          content_type: "tool_call",
+          done: false
+        },
+        { type: "chunk", content: "ready.", content_type: "text", done: true }
+      ]
+    ]);
+    const deltas: string[] = [];
+    const result = await runAgentLoop({
+      context: createMockContext(provider),
+      providerId: "mock",
+      modelId: "test-model",
+      systemPrompt: "sys",
+      prompt: "go",
+      tools: [],
+      onText: (d) => deltas.push(d)
+    });
+    expect(result.text).toBe("The result is ready.");
+    expect(result.text).not.toContain("browser_navigate");
+    expect(deltas).toEqual(["The result is ", "ready."]);
   });
 });

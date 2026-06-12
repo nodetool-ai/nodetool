@@ -2,12 +2,10 @@
 import React, { useState, useCallback, useMemo, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import { Collapse } from "@mui/material";
-import { ToolbarIconButton, EditorButton, Box } from "../../ui_primitives";
+import { ToolbarIconButton, EditorButton, Box, Collapse, MOTION, Caption, CloseButton, ExpandCollapseButton, Text } from "../../ui_primitives";
 import MenuIcon from "@mui/icons-material/Menu";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
-import { Caption, CloseButton, ExpandCollapseButton, Text } from "../../ui_primitives";
 
 import ThemeToggle from "../../ui/ThemeToggle";
 import MiniWorkflowGraph from "./MiniWorkflowGraph";
@@ -87,7 +85,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
       boxShadow: theme.shadows[8],
       zIndex: 1050,
       transform: isOpen ? "translateX(0)" : `translateX(${panelWidth}px)`,
-      transition: "transform 0.25s ease-out",
+      transition: `transform ${MOTION.normal}`,
       display: "flex",
       flexDirection: "column",
       overflow: "hidden"
@@ -162,7 +160,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
       zIndex: 1040,
       opacity: isOpen ? 1 : 0,
       pointerEvents: isOpen ? "auto" : "none",
-      transition: "opacity 0.25s ease-out",
+      transition: `opacity ${MOTION.normal}`,
 
       [theme.breakpoints.up("lg")]: {
         display: "none"

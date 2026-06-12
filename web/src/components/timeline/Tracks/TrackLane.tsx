@@ -19,7 +19,6 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { MenuItem } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 
 import type { TimelineTrack } from "@nodetool-ai/timeline";
@@ -31,7 +30,7 @@ import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { Clip } from "./Clip";
-import { ContextMenu, WarningBanner } from "../../ui_primitives";
+import { ContextMenu, WarningBanner, MOTION, MenuItemPrimitive } from "../../ui_primitives";
 import { AddClipMenu } from "../AddClipMenu";
 import { deserializeDragData } from "../../../lib/dragdrop";
 import type { Asset } from "../../../stores/ApiTypes";
@@ -78,7 +77,7 @@ const laneStyles = (
     outlineOffset: "-2px",
     overflow: "hidden",
     cursor: isRubberBanding ? "crosshair" : "default",
-    transition: "opacity 120ms"
+    transition: `opacity ${MOTION.fast}`
   });
 
 const rubberBandStyles = (theme: Theme) =>
@@ -122,7 +121,6 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
   );
 
   const msPerPx = useTimelineUIStore((s) => s.msPerPx);
-  const scrollLeftPx = useTimelineUIStore((s) => s.scrollLeftPx);
   const clearSelection = useTimelineUIStore((s) => s.clearSelection);
   const seek = useTimelinePlaybackStore((s) => s.seek);
   const setSelection = useTimelineUIStore((s) => s.setSelection);
@@ -134,6 +132,8 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
   const isRubberBandingRef = useRef(false);
   const rbStartRef = useRef({ x: 0, y: 0 });
+  /** Selection snapshot taken at pointerdown when Shift is held (union mode). */
+  const rbBaseSelectionRef = useRef<Set<string> | null>(null);
   const [rubberBand, setRubberBand] = React.useState<RubberBandRect | null>(
     null
   );
@@ -272,10 +272,11 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
         return;
       }
 
-      // Compute start time from drop position + scroll offset
+      // The lane lives inside the scrolling lanes container, so lane-local
+      // coordinates are already content-space — no scroll offset needed.
       const rect = e.currentTarget.getBoundingClientRect();
       const dropX = e.clientX - rect.left;
-      const startMs = Math.max(0, Math.round((dropX + scrollLeftPx) * msPerPx));
+      const startMs = Math.max(0, Math.round(dropX * msPerPx));
 
       addImportedClip(asset, track.id, startMs);
     },
@@ -283,7 +284,6 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       isAssetDrag,
       track.type,
       track.id,
-      scrollLeftPx,
       msPerPx,
       addImportedClip,
       showWarning
@@ -302,6 +302,13 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
       if (!e.shiftKey) {
         clearSelection();
+        rbBaseSelectionRef.current = null;
+      } else {
+        // Shift+band: remember the existing selection so the band's contents
+        // can be unioned with it instead of replacing it.
+        rbBaseSelectionRef.current = new Set(
+          useTimelineUIStore.getState().selectedClipIds
+        );
       }
 
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -313,11 +320,12 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       };
       isRubberBandingRef.current = true;
 
-      // Move the playhead to the clicked position.
-      const timeMs = Math.round((localX + scrollLeftPx) * msPerPx);
+      // Move the playhead to the clicked position. The lane is inside the
+      // scrolling container, so localX is already content-space.
+      const timeMs = Math.round(localX * msPerPx);
       seek(timeMs);
     },
-    [clearSelection, scrollLeftPx, msPerPx, seek]
+    [clearSelection, msPerPx, seek]
   );
 
   const handleLanePointerMove = useCallback(
@@ -336,10 +344,10 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
       setRubberBand({ left, top, width, height });
 
-      // Compute which clips overlap the rubber-band. The lane itself is not
-      // the scroll container — TracksRegion is — so e.currentTarget.scrollLeft
-      // is always 0. Use the UI store's tracked scroll offset instead.
-      const rbStartMs = (left + scrollLeftPx) * msPerPx;
+      // Compute which clips overlap the rubber-band. The lane renders inside
+      // the scrolling lanes container, so lane-local coordinates are already
+      // content-space — no scroll offset.
+      const rbStartMs = left * msPerPx;
       const rbEndMs = rbStartMs + width * msPerPx;
 
       // Read clips lazily to avoid subscribing to the full array in render
@@ -354,13 +362,17 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
         })
         .map((c) => c.id);
 
-      setSelection(selected);
+      // Shift+band unions with the selection snapshotted at pointerdown;
+      // a plain band replaces the selection.
+      const base = rbBaseSelectionRef.current;
+      setSelection(base ? [...new Set([...base, ...selected])] : selected);
     },
-    [msPerPx, scrollLeftPx, track.id, setSelection]
+    [msPerPx, track.id, setSelection]
   );
 
   const handleLanePointerUp = useCallback(() => {
     isRubberBandingRef.current = false;
+    rbBaseSelectionRef.current = null;
     setRubberBand(null);
   }, []);
 
@@ -378,13 +390,10 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       e.preventDefault();
       const rect = e.currentTarget.getBoundingClientRect();
       const dropX = e.clientX - rect.left;
-      const startMs = Math.max(
-        0,
-        Math.round((dropX + scrollLeftPx) * msPerPx)
-      );
+      const startMs = Math.max(0, Math.round(dropX * msPerPx));
       setContextMenuPos({ x: e.clientX, y: e.clientY, startMs });
     },
-    [track.locked, scrollLeftPx, msPerPx]
+    [track.locked, msPerPx]
   );
 
   const handleAddClipFromMenu = useCallback(() => {
@@ -411,6 +420,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       onPointerDown={handleLanePointerDown}
       onPointerMove={handleLanePointerMove}
       onPointerUp={handleLanePointerUp}
+      onPointerCancel={handleLanePointerUp}
       onDragOver={handleAssetDragOver}
       onDragLeave={handleAssetDragLeave}
       onDrop={handleAssetDrop}
@@ -449,10 +459,12 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
         onClose={() => setContextMenuPos(null)}
         compact
       >
-        <MenuItem onClick={handleAddClipFromMenu}>
-          <AddIcon fontSize="small" style={{ marginRight: 8 }} />
-          Add generated clip here…
-        </MenuItem>
+        <MenuItemPrimitive
+          label="Add generated clip here…"
+          icon={<AddIcon fontSize="small" />}
+          onClick={handleAddClipFromMenu}
+          compact
+        />
       </ContextMenu>
 
       {/* Invisible anchor for AddClipMenu, positioned at click location */}

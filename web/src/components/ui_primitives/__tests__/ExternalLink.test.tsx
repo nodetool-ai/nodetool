@@ -168,7 +168,7 @@ describe("ExternalLink", () => {
       const link = container.querySelector("a.external-link");
       expect(link).toBeInTheDocument();
       const styles = window.getComputedStyle(link as HTMLElement);
-      expect(styles.fontSize).toBe("0.75rem");
+      expect(styles.fontSize).toBe(mockTheme.fontSizeSmaller);
     });
 
     it("renders with medium size (default)", () => {
@@ -181,7 +181,7 @@ describe("ExternalLink", () => {
       const link = container.querySelector("a.external-link");
       expect(link).toBeInTheDocument();
       const styles = window.getComputedStyle(link as HTMLElement);
-      expect(styles.fontSize).toBe("0.875rem");
+      expect(styles.fontSize).toBe(mockTheme.fontSizeSmall);
     });
 
     it("renders with large size", () => {
@@ -194,7 +194,7 @@ describe("ExternalLink", () => {
       const link = container.querySelector("a.external-link");
       expect(link).toBeInTheDocument();
       const styles = window.getComputedStyle(link as HTMLElement);
-      expect(styles.fontSize).toBe("1rem");
+      expect(styles.fontSize).toBe(mockTheme.fontSizeNormal);
     });
 
     it("defaults to medium size when size is not specified", () => {
@@ -205,7 +205,7 @@ describe("ExternalLink", () => {
       const link = container.querySelector("a.external-link");
       expect(link).toBeInTheDocument();
       const styles = window.getComputedStyle(link as HTMLElement);
-      expect(styles.fontSize).toBe("0.875rem");
+      expect(styles.fontSize).toBe(mockTheme.fontSizeSmall);
     });
   });
 
@@ -455,7 +455,7 @@ describe("ExternalLink", () => {
 
       if (link) {
         const styles = window.getComputedStyle(link);
-        expect(styles.fontSize).toBe("0.75rem");
+        expect(styles.fontSize).toBe(mockTheme.fontSizeSmaller);
       }
     });
 

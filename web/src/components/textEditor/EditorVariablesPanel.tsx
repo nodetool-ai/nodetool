@@ -6,7 +6,7 @@ import type React from "react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import DataObjectIcon from "@mui/icons-material/DataObject";
-import { Tooltip } from "../ui_primitives";
+import { Tooltip, MOTION } from "../ui_primitives";
 import type { TemplateVariable, VariableSyntax } from "./templateVariables";
 
 interface EditorVariablesPanelProps {
@@ -88,7 +88,7 @@ const styles = (theme: Theme) =>
       cursor: "pointer",
       backgroundColor: `rgba(${theme.vars.palette.background.paperChannel} / 0.55)`,
       border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.06)`,
-      transition: "all 0.15s ease",
+      transition: `all ${MOTION.fast}`,
       "&:hover": {
         borderColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.5)`,
         backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.08)`
@@ -148,7 +148,7 @@ const styles = (theme: Theme) =>
       background: "transparent",
       border: `1px dashed rgba(${theme.vars.palette.common.whiteChannel} / 0.18)`,
       fontSize: "var(--fontSizeSmall)",
-      transition: "all 0.15s ease",
+      transition: `all ${MOTION.fast}`,
       "&:hover": {
         color: theme.vars.palette.primary.main,
         borderColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.6)`

@@ -42,7 +42,7 @@ export const GeneratedLayerHeader: React.FC<GeneratedLayerHeaderProps> = memo(
       binding.versions[binding.versions.length - 1] ?? null;
 
     return (
-      <FlexColumn gap={0.75} sx={{ px: 1, pt: 0.5, pb: 0.5 }}>
+      <FlexColumn gap={1} sx={{ px: 1, pt: 0.5, pb: 0.5 }}>
         <FlexRow align="center" gap={1}>
           <Label
             sx={{

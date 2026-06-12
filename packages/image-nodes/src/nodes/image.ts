@@ -12,15 +12,36 @@ import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import { RAW_RGBA_MIME, isRawRgbaImage } from "@nodetool-ai/protocol";
 import type { ImageRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import {
-  loadMediaRefBytes,
-  mapPromptAssetsToInputs
-} from "@nodetool-ai/runtime";
+// Import from browser-safe subpaths (not the runtime barrel, which drags in the
+// provider / python-bridge stack) so this module can bundle for the browser.
+import { loadMediaRefBytes } from "@nodetool-ai/runtime/media-ref-bytes";
+import { mapPromptAssetsToInputs } from "@nodetool-ai/runtime/prompt-asset-refs";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import sharp from "sharp";
-import { tagAsHybrid } from "@nodetool-ai/nodes-utils";
+import {
+  tagAsHybrid,
+  tagAsServer,
+  tagAsContentCard
+} from "@nodetool-ai/nodes-utils";
+import * as d from "typegpu/data";
+import {
+  transformCropV1,
+  transformResizeV1,
+  transformPadV1,
+  transformRotate90V1,
+  transformMirrorV1,
+  transformAffineV1,
+  blurGaussianV1,
+  filtersBlurSeparableV1,
+  colorGrayscaleV1,
+  colorChannelShuffleV1,
+  colorLevelsV1,
+  mixerOverV1
+} from "@nodetool-ai/gpu/pool";
+import { IS_NODE } from "@nodetool-ai/config";
+import { runShaderNode, runRecipeNode } from "./lib-shader-utils.js";
+import { decodeRgba, rawRgbaImageRef, loadSharp } from "./image-io.js";
 
 type ImageRefLike = {
   uri?: string;
@@ -101,52 +122,10 @@ function imageRef(data: Uint8Array, extras: Partial<ImageRef> = {}): ImageRef {
   };
 }
 
-interface RawRgba {
-  rgba: Uint8Array;
-  width: number;
-  height: number;
-}
-
-/**
- * Build a raw-RGBA `ImageRef`: `data` carries straight-alpha RGBA8 pixels and
- * `mimeType` marks it as the in-flight raw format (see {@link RAW_RGBA_MIME}).
- * GPU ops emit this so an adjacent GPU op reuses the pixels via {@link decodeRgba}
- * instead of decoding an encoded image; the bytes are lazily encoded to PNG at
- * any boundary that needs a portable image.
- */
-export function rawRgbaImageRef(
-  rgba: Uint8Array,
-  width: number,
-  height: number
-): ImageRef {
-  return { type: "image", data: rgba, mimeType: RAW_RGBA_MIME, width, height };
-}
-
-/**
- * Decode an image input to straight-alpha RGBA. Reuses the pixels directly when
- * the input is already raw (an upstream GPU op left them, no codec work);
- * otherwise decodes the encoded bytes with sharp. Returns an empty buffer for
- * missing/empty input.
- */
-export async function decodeRgba(
-  image: unknown,
-  context?: ProcessingContext
-): Promise<RawRgba> {
-  if (isRawRgbaImage(image)) {
-    return { rgba: image.data, width: image.width, height: image.height };
-  }
-  const bytes = await imageBytesAsync(image, context);
-  if (bytes.length === 0) return { rgba: new Uint8Array(), width: 0, height: 0 };
-  const { data, info } = await sharp(bytes, { failOn: "none" })
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  return {
-    rgba: new Uint8Array(data.buffer, data.byteOffset, data.byteLength),
-    width: info.width,
-    height: info.height
-  };
-}
+// `decodeRgba` and `rawRgbaImageRef` are the env-aware (sharp-free) codec
+// helpers from ./image-io — re-exported so existing importers keep resolving
+// them from this module.
+export { decodeRgba, rawRgbaImageRef };
 
 function inferImageMime(uri: string | undefined, bytes: Uint8Array): string {
   const lower = (uri ?? "").toLowerCase();
@@ -252,6 +231,7 @@ async function metadataFor(
   bytes: Uint8Array
 ): Promise<{ width: number | undefined; height: number | undefined }> {
   try {
+    const sharp = await loadSharp();
     const md = await sharp(bytes).metadata();
     return {
       width: md.width ?? undefined,
@@ -259,41 +239,6 @@ async function metadataFor(
     };
   } catch {
     return { width: undefined, height: undefined };
-  }
-}
-
-async function transformImage(
-  image: ImageRefLike,
-  operation: (instance: sharp.Sharp, bytes: Uint8Array) => sharp.Sharp,
-  context?: ProcessingContext
-): Promise<Record<string, unknown>> {
-  const bytes = await imageBytesAsync(image, context);
-  if (bytes.length === 0) {
-    return imageRef(bytes, {
-      uri: image.uri ?? "",
-      width: image.width ?? undefined,
-      height: image.height ?? undefined
-    }) as unknown as Record<string, unknown>;
-  }
-
-  try {
-    const outputBytes = await operation(
-      sharp(bytes, { failOn: "none" }),
-      bytes
-    ).toBuffer();
-    const meta = await metadataFor(outputBytes);
-    return imageRef(outputBytes, {
-      uri: image.uri ?? "",
-      mimeType: inferImageMime(image.uri, outputBytes),
-      width: meta.width,
-      height: meta.height
-    }) as unknown as Record<string, unknown>;
-  } catch {
-    return imageRef(bytes, {
-      uri: image.uri ?? "",
-      width: image.width ?? undefined,
-      height: image.height ?? undefined
-    }) as unknown as Record<string, unknown>;
   }
 }
 
@@ -727,6 +672,7 @@ export class GetMetadataNode extends BaseNode {
     const image = (this.image ?? {}) as ImageRefLike;
     const bytes = await imageBytesAsync(image, context);
     try {
+      const sharp = await loadSharp();
       const md = await sharp(bytes).metadata();
       const formatMap: Record<string, string> = {
         jpeg: "JPEG",
@@ -993,39 +939,39 @@ export class PasteNode extends TransformImageNode {
     const paste = (this.paste ?? {}) as ImageRefLike;
     const left = Math.max(0, Number(this.left ?? 0));
     const top = Math.max(0, Number(this.top ?? 0));
-    const baseBytes = await imageBytesAsync(image, context);
-    const overlayBytes = await imageBytesAsync(paste, context);
-
-    if (baseBytes.length === 0 || overlayBytes.length === 0) {
-      return {
-        output: imageRef(baseBytes, {
-          uri: image.uri ?? "",
-          ...this.transformMeta()
-        })
-      };
+    const base = await decodeRgba(image, context);
+    if (!base.width || !base.height) return { output: image };
+    const over = await decodeRgba(paste, context);
+    if (!over.width || !over.height) {
+      return { output: rawRgbaImageRef(base.rgba, base.width, base.height) };
     }
 
-    try {
-      const outputBytes = await sharp(baseBytes, { failOn: "none" })
-        .composite([{ input: Buffer.from(overlayBytes), left, top }])
-        .toBuffer();
-      const meta = await metadataFor(outputBytes);
-      return {
-        output: imageRef(outputBytes, {
-          uri: image.uri ?? "",
-          mimeType: inferImageMime(image.uri, outputBytes),
-          width: meta.width,
-          height: meta.height
-        })
-      };
-    } catch {
-      return {
-        output: imageRef(baseBytes, {
-          uri: image.uri ?? "",
-          ...this.transformMeta()
-        })
-      };
-    }
+    // Place the overlay into a base-sized canvas at (left, top): pad in UV
+    // relative to the overlay, but force the output to the base dimensions so
+    // an overlay overhanging the base edge is clipped (mirrors sharp.composite).
+    const placed = await runShaderNode(
+      transformPadV1,
+      {
+        left: left / over.width,
+        top: top / over.height,
+        right: Math.max(0, base.width - over.width - left) / over.width,
+        bottom: Math.max(0, base.height - over.height - top) / over.height,
+        color: d.vec4f(0, 0, 0, 0)
+      },
+      paste,
+      { outputWidth: base.width, outputHeight: base.height },
+      context
+    );
+
+    // Source-over composite the placed overlay onto the base.
+    const output = await runShaderNode(
+      mixerOverV1,
+      { opacity: 1 },
+      image,
+      { extraInputs: { over: placed } },
+      context
+    );
+    return { output };
   }
 }
 
@@ -1227,29 +1173,19 @@ export class ScaleNode extends TransformImageNode {
     const image = (this.image ?? {}) as ImageRefLike;
     const requestedScale = Number(this.scale ?? 0);
     const scale = requestedScale > 0 ? requestedScale : 1;
-    const output = (await transformImage(image, (instance) => {
-      const fallbackWidth = image.width ?? 1;
-      const fallbackHeight = image.height ?? 1;
-      return instance.resize({
-        width: Math.max(1, Math.round(fallbackWidth * scale)),
-        height: Math.max(1, Math.round(fallbackHeight * scale))
-      });
-    }, context)) as Record<string, unknown>;
-    const fallbackWidth =
-      image.width != null
-        ? Math.max(1, Math.round(Number(image.width) * scale))
-        : null;
-    const fallbackHeight =
-      image.height != null
-        ? Math.max(1, Math.round(Number(image.height) * scale))
-        : null;
-    return {
-      output: {
-        ...output,
-        width: fallbackWidth ?? output.width,
-        height: fallbackHeight ?? output.height
-      }
-    };
+    const { width: srcW, height: srcH } = await decodeRgba(image, context);
+    if (!srcW || !srcH) return { output: image };
+    const output = await runShaderNode(
+      transformResizeV1,
+      { mode: 1 },
+      image,
+      {
+        outputWidth: Math.max(1, Math.round(srcW * scale)),
+        outputHeight: Math.max(1, Math.round(srcH * scale))
+      },
+      context
+    );
+    return { output };
   }
 }
 
@@ -1303,18 +1239,28 @@ export class ResizeNode extends TransformImageNode {
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const image = (this.image ?? {}) as ImageRefLike;
-    const width = Number(this.width ?? image.width ?? 0) || null;
-    const height = Number(this.height ?? image.height ?? 0) || null;
-    const output = (await transformImage(image, (instance) =>
-      instance.resize(width ?? undefined, height ?? undefined)
-    , context)) as Record<string, unknown>;
-    return {
-      output: {
-        ...output,
-        width: output.width ?? width,
-        height: output.height ?? height
-      }
-    };
+    const { width: srcW, height: srcH } = await decodeRgba(image, context);
+    if (!srcW || !srcH) return { output: image };
+    let w = Number(this.width ?? 0);
+    let h = Number(this.height ?? 0);
+    // A zero dimension means "preserve aspect from the other" (matches the old
+    // sharp behaviour where one undefined dimension is derived from the source).
+    if (w <= 0 && h <= 0) {
+      w = srcW;
+      h = srcH;
+    } else if (w <= 0) {
+      w = Math.max(1, Math.round((srcW / srcH) * h));
+    } else if (h <= 0) {
+      h = Math.max(1, Math.round((srcH / srcW) * w));
+    }
+    const output = await runShaderNode(
+      transformResizeV1,
+      { mode: 1 },
+      image,
+      { outputWidth: Math.round(w), outputHeight: Math.round(h) },
+      context
+    );
+    return { output };
   }
 }
 
@@ -1443,19 +1389,8 @@ export class CanvasResizeNode extends TransformImageNode {
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const image = (this.image ?? {}) as ImageRefLike;
-    const srcBytes = await imageBytesAsync(image, context);
-    if (srcBytes.length === 0) {
-      return {
-        output: imageRef(new Uint8Array(), {
-          uri: image.uri ?? "",
-          ...this.transformMeta()
-        })
-      };
-    }
-
-    const srcMeta = await metadataFor(srcBytes);
-    const srcW = srcMeta.width ?? Number(image.width ?? 1);
-    const srcH = srcMeta.height ?? Number(image.height ?? 1);
+    const { width: srcW, height: srcH } = await decodeRgba(image, context);
+    if (!srcW || !srcH) return { output: image };
     const mode = String(this.mode ?? "padding");
 
     let canvasW: number;
@@ -1490,35 +1425,30 @@ export class CanvasResizeNode extends TransformImageNode {
       offsetY = top;
     }
 
-    try {
-      const outputBytes = await sharp({
-        create: {
-          width: canvasW,
-          height: canvasH,
-          channels: 4,
-          background: { r: 0, g: 0, b: 0, alpha: 0 }
-        }
-      })
-        .composite([{ input: Buffer.from(srcBytes), left: offsetX, top: offsetY }])
-        .png()
-        .toBuffer();
-      const meta = await metadataFor(outputBytes);
-      return {
-        output: imageRef(outputBytes, {
-          uri: image.uri ?? "",
-          mimeType: "image/png",
-          width: meta.width ?? canvasW,
-          height: meta.height ?? canvasH
-        })
-      };
-    } catch {
-      return {
-        output: imageRef(srcBytes, {
-          uri: image.uri ?? "",
-          ...this.transformMeta()
-        })
-      };
-    }
+    // Pad placing the source at (offsetX, offsetY) in the larger canvas. The pad
+    // shader works in normalized-UV units relative to the source; output dims
+    // are derived from those (we also pass the absolute target as the host size).
+    const leftPad = Math.max(0, offsetX);
+    const topPad = Math.max(0, offsetY);
+    const rightPad = Math.max(0, canvasW - srcW - offsetX);
+    const bottomPad = Math.max(0, canvasH - srcH - offsetY);
+    const output = await runShaderNode(
+      transformPadV1,
+      {
+        left: leftPad / srcW,
+        top: topPad / srcH,
+        right: rightPad / srcW,
+        bottom: bottomPad / srcH,
+        color: d.vec4f(0, 0, 0, 0)
+      },
+      image,
+      {
+        outputWidth: srcW + leftPad + rightPad,
+        outputHeight: srcH + topPad + bottomPad
+      },
+      context
+    );
+    return { output };
   }
 }
 
@@ -1589,29 +1519,29 @@ export class CropNode extends TransformImageNode {
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const image = (this.image ?? {}) as ImageRefLike;
-    const imgW = Number(image.width ?? 0);
-    const imgH = Number(image.height ?? 0);
-    const left = Math.max(0, Number(this.left ?? 0));
-    const top = Math.max(0, Number(this.top ?? 0));
-    // Clamp the crop box to the known image bounds. Without this an
-    // out-of-bounds region makes sharp.extract throw, which transformImage
-    // silently swallows and returns the full, uncropped image.
-    let right = Number(this.right ?? image.width ?? 0);
-    let bottom = Number(this.bottom ?? image.height ?? 0);
-    if (imgW > 0) right = Math.min(right, imgW);
-    if (imgH > 0) bottom = Math.min(bottom, imgH);
-    const width = Math.max(1, right - left);
-    const height = Math.max(1, bottom - top);
-    const output = (await transformImage(image, (instance) =>
-      instance.extract({ left, top, width, height })
-    , context)) as Record<string, unknown>;
-    return {
-      output: {
-        ...output,
-        width: output.width ?? width,
-        height: output.height ?? height
-      }
-    };
+    // Crop is defined in pixels; the GPU crop shader samples a normalized-UV
+    // sub-rectangle, so resolve source dims first to convert px → UV.
+    const { width: srcW, height: srcH } = await decodeRgba(image, context);
+    if (!srcW || !srcH) return { output: image };
+    const left = Math.max(0, Math.min(srcW - 1, Number(this.left ?? 0)));
+    const top = Math.max(0, Math.min(srcH - 1, Number(this.top ?? 0)));
+    const right = Math.max(left + 1, Math.min(srcW, Number(this.right ?? srcW)));
+    const bottom = Math.max(top + 1, Math.min(srcH, Number(this.bottom ?? srcH)));
+    const cropW = right - left;
+    const cropH = bottom - top;
+    const output = await runShaderNode(
+      transformCropV1,
+      {
+        originX: left / srcW,
+        originY: top / srcH,
+        width: cropW / srcW,
+        height: cropH / srcH
+      },
+      image,
+      { outputWidth: cropW, outputHeight: cropH },
+      context
+    );
+    return { output };
   }
 }
 
@@ -1665,18 +1595,24 @@ export class FitNode extends TransformImageNode {
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const image = (this.image ?? {}) as ImageRefLike;
-    const width = Math.max(1, Number(this.width ?? image.width ?? 512));
-    const height = Math.max(1, Number(this.height ?? image.height ?? 512));
-    const output = (await transformImage(image, (instance) =>
-      instance.resize(width, height, { fit: "inside" })
-    , context)) as Record<string, unknown>;
-    return {
-      output: {
-        ...output,
-        width: output.width ?? width,
-        height: output.height ?? height
-      }
-    };
+    const targetW = Math.max(1, Number(this.width ?? 512));
+    const targetH = Math.max(1, Number(this.height ?? 512));
+    const { width: srcW, height: srcH } = await decodeRgba(image, context);
+    if (!srcW || !srcH) return { output: image };
+    // Fit inside the target box, preserving aspect ratio (never upscale past
+    // the box on either axis).
+    const ratio = Math.min(targetW / srcW, targetH / srcH);
+    const output = await runShaderNode(
+      transformResizeV1,
+      { mode: 1 },
+      image,
+      {
+        outputWidth: Math.max(1, Math.round(srcW * ratio)),
+        outputHeight: Math.max(1, Math.round(srcH * ratio))
+      },
+      context
+    );
+    return { output };
   }
 }
 
@@ -1743,16 +1679,6 @@ export class TextToImageNode extends BaseNode {
     json_schema_extra: { type: "media_resolution_image" }
   })
   declare resolution: any;
-
-  @prop({
-    type: "int",
-    default: 0,
-    title: "Timeout Seconds",
-    description: "Timeout in seconds for API calls (0 = use provider default)",
-    min: 0,
-    max: 3600
-  })
-  declare timeout_seconds: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const prompt = String(this.prompt ?? "");
@@ -1879,16 +1805,6 @@ export class ImageToImageNode extends BaseNode {
   })
   declare scheduler: any;
 
-  @prop({
-    type: "int",
-    default: 0,
-    title: "Timeout Seconds",
-    description: "Timeout in seconds for API calls (0 = use provider default)",
-    min: 0,
-    max: 3600
-  })
-  declare timeout_seconds: any;
-
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     let images = normalizeImageList(this.image);
     let prompt = String(this.prompt ?? "");
@@ -2014,35 +1930,70 @@ export class RotateAndFlipNode extends TransformImageNode {
     const angle = Number(this.angle ?? 0);
     const flipH = !!this.flip_horizontal;
     const flipV = !!this.flip_vertical;
-    if (angle === 0 && !flipH && !flipV) {
-      const bytes = await imageBytesAsync(image, context);
-      return {
-        output: imageRef(bytes, {
-          uri: image.uri ?? "",
-          width: image.width ?? undefined,
-          height: image.height ?? undefined
-        })
-      };
+    const { rgba, width: srcW, height: srcH } = await decodeRgba(image, context);
+    if (!srcW || !srcH) return { output: image };
+    const norm = ((angle % 360) + 360) % 360;
+    if (norm === 0 && !flipH && !flipV) {
+      return { output: rawRgbaImageRef(rgba, srcW, srcH) };
     }
-    return transformImage(
-      image,
-      (instance) => {
-        let pipeline = instance;
-        if (flipH) {
-          pipeline = pipeline.flop();
-        }
-        if (flipV) {
-          pipeline = pipeline.flip();
-        }
-        if (angle !== 0) {
-          pipeline = pipeline.rotate(angle, {
-            background: { r: 0, g: 0, b: 0, alpha: 0 }
-          });
-        }
-        return pipeline;
-      },
-      context
-    );
+
+    let current: unknown = image;
+    let curW = srcW;
+    const curH = srcH;
+
+    // Mirror first (output is same size as source).
+    if (flipH || flipV) {
+      const axes = (flipH ? 1 : 0) + (flipV ? 2 : 0); // 1 H, 2 V, 3 both
+      current = await runShaderNode(transformMirrorV1, { axes }, current, {}, context);
+    }
+
+    if (norm !== 0) {
+      if (norm % 90 === 0) {
+        const turns = (norm / 90) % 4; // 1=90°, 2=180°, 3=270° clockwise
+        const swap = turns === 1 || turns === 3;
+        const outW = swap ? curH : curW;
+        const outH = swap ? curW : curH;
+        current = await runShaderNode(
+          transformRotate90V1,
+          { turns },
+          current,
+          { outputWidth: outW, outputHeight: outH },
+          context
+        );
+      } else {
+        // Arbitrary angle: expand the canvas to the rotated bounding box and
+        // feed the affine shader the UV-space inverse matrix (output uv → source
+        // uv) for a clockwise rotation about the centre.
+        const rad = (norm * Math.PI) / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        const outW = Math.max(
+          1,
+          Math.round(Math.abs(curW * cos) + Math.abs(curH * sin))
+        );
+        const outH = Math.max(
+          1,
+          Math.round(Math.abs(curW * sin) + Math.abs(curH * cos))
+        );
+        current = await runShaderNode(
+          transformAffineV1,
+          {
+            m00: (cos * outW) / curW,
+            m01: (sin * outH) / curW,
+            tx: (curW / 2 - (cos * outW) / 2 - (sin * outH) / 2) / curW,
+            m10: (-sin * outW) / curH,
+            m11: (cos * outH) / curH,
+            ty: (curH / 2 + (sin * outW) / 2 - (cos * outH) / 2) / curH
+          },
+          current,
+          { outputWidth: outW, outputHeight: outH },
+          context
+        );
+        curW = outW;
+      }
+    }
+
+    return { output: current };
   }
 }
 
@@ -2086,24 +2037,31 @@ export class ChannelsNode extends TransformImageNode {
     const image = (this.image ?? {}) as ImageRefLike;
     const channel = String(this.channel ?? "luminance");
 
-    const output = (await transformImage(
+    if (channel === "luminance") {
+      return {
+        output: await runShaderNode(colorGrayscaleV1, { amount: 1 }, image, {}, context)
+      };
+    }
+    const channelIndex: Record<string, number> = {
+      red: 0,
+      green: 1,
+      blue: 2,
+      alpha: 3
+    };
+    const from = channelIndex[channel];
+    if (from === undefined) {
+      // Unsupported channel — pass the source through unchanged.
+      const { rgba, width, height } = await decodeRgba(image, context);
+      return { output: width ? rawRgbaImageRef(rgba, width, height) : image };
+    }
+    // Broadcast the chosen channel onto R/G/B for a grayscale preview, keep alpha.
+    const output = await runShaderNode(
+      colorChannelShuffleV1,
+      { rFrom: from, gFrom: from, bFrom: from, aFrom: 3 },
       image,
-      (instance) => {
-        if (channel === "luminance") {
-          return instance.grayscale();
-        }
-        if (
-          channel === "red" ||
-          channel === "green" ||
-          channel === "blue" ||
-          channel === "alpha"
-        ) {
-          return instance.ensureAlpha().extractChannel(channel);
-        }
-        throw new Error(`Unsupported channel: ${channel}`);
-      },
+      {},
       context
-    )) as Record<string, unknown>;
+    );
     return { output };
   }
 }
@@ -2160,41 +2118,35 @@ export class BlurNode extends TransformImageNode {
     const blurType = String(this.blur_type ?? "gaussian");
 
     if (size <= 0) {
-      const bytes = await imageBytesAsync(image, context);
-      return {
-        output: imageRef(bytes, {
-          uri: image.uri ?? "",
-          width: image.width ?? undefined,
-          height: image.height ?? undefined
-        })
-      };
+      const { rgba, width, height } = await decodeRgba(image, context);
+      return { output: width ? rawRgbaImageRef(rgba, width, height) : image };
     }
 
-    // sharp.convolve() requires kernel width AND height to be in [3, 1001];
-    // anything smaller throws "Invalid convolution kernel".
-    const odd = (n: number): number => (n % 2 === 0 ? n + 1 : n);
+    // Map the 0–100 "size" onto the gaussian shader's 0–20px kernel radius;
+    // sigma tracks radius for a natural falloff.
+    const radius = Math.min(20, Math.max(1, size / 5));
+    const sigma = Math.max(0.5, radius * 0.6);
 
-    const output = (await transformImage(
+    if (blurType === "motion") {
+      // Horizontal directional blur (single-axis gaussian).
+      const output = await runShaderNode(
+        blurGaussianV1,
+        { radius, sigma, direction: d.vec2f(1, 0) },
+        image,
+        {},
+        context
+      );
+      return { output };
+    }
+
+    // gaussian + box → isotropic separable (horizontal then vertical) blur.
+    const output = await runRecipeNode(
+      filtersBlurSeparableV1,
+      { radius, sigma },
       image,
-      (instance) => {
-        if (blurType === "gaussian") {
-          const sigma = Math.max(0.3, size * 0.5);
-          return instance.blur(sigma);
-        }
-        if (blurType === "motion") {
-          // Horizontal motion blur: w columns of 1/w in a single middle row,
-          // top/bottom rows zero. Padded to 3 rows so sharp accepts it.
-          const w = odd(Math.max(3, size));
-          const kernel = new Array(3 * w).fill(0);
-          for (let i = 0; i < w; i++) kernel[w + i] = 1 / w;
-          return instance.convolve({ width: w, height: 3, kernel });
-        }
-        const k = odd(Math.max(3, Math.min(31, size)));
-        const kernel = new Array(k * k).fill(1 / (k * k));
-        return instance.convolve({ width: k, height: k, kernel });
-      },
+      {},
       context
-    )) as Record<string, unknown>;
+    );
     return { output };
   }
 }
@@ -2318,21 +2270,9 @@ export class LevelsNode extends TransformImageNode {
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
     const image = (this.image ?? {}) as ImageRefLike;
-    const bytes = await imageBytesAsync(image, context);
-    if (bytes.length === 0) {
-      return {
-        output: imageRef(bytes, {
-          uri: image.uri ?? "",
-          width: image.width ?? undefined,
-          height: image.height ?? undefined
-        })
-      };
-    }
-
     const clamp255 = (n: number): number =>
       Math.max(0, Math.min(255, Math.round(n)));
-    const clampGamma = (n: number): number =>
-      Math.max(0.01, Math.min(10, n));
+    const clampGamma = (n: number): number => Math.max(0.01, Math.min(10, n));
 
     const rBlack = clamp255(Number(this.r_black ?? 0));
     const rWhite = clamp255(Number(this.r_white ?? 255));
@@ -2344,79 +2284,36 @@ export class LevelsNode extends TransformImageNode {
     const bWhite = clamp255(Number(this.b_white ?? 255));
     const bGamma = clampGamma(Number(this.b_gamma ?? 1));
 
+    const { rgba, width, height } = await decodeRgba(image, context);
+    if (!width || !height) return { output: image };
+
     const identity =
       rBlack === 0 && rWhite === 255 && rGamma === 1 &&
       gBlack === 0 && gWhite === 255 && gGamma === 1 &&
       bBlack === 0 && bWhite === 255 && bGamma === 1;
     if (identity) {
-      return {
-        output: imageRef(bytes, {
-          uri: image.uri ?? "",
-          ...this.transformMeta()
-        })
-      };
+      return { output: rawRgbaImageRef(rgba, width, height) };
     }
 
-    const buildLut = (black: number, gamma: number, white: number) => {
-      const lut = new Uint8Array(256);
-      const denom = Math.max(1, white - black);
-      const invGamma = 1 / gamma;
-      for (let i = 0; i < 256; i++) {
-        const t = Math.max(0, Math.min(1, (i - black) / denom));
-        lut[i] = clamp255(Math.pow(t, invGamma) * 255);
-      }
-      return lut;
-    };
-
-    const lutR = buildLut(rBlack, rGamma, rWhite);
-    const lutG = buildLut(gBlack, gGamma, gWhite);
-    const lutB = buildLut(bBlack, bGamma, bWhite);
-
-    try {
-      const { data: raw, info } = await sharp(bytes, { failOn: "none" })
-        .toColorspace("srgb")
-        .ensureAlpha()
-        .raw()
-        .toBuffer({ resolveWithObject: true });
-
-      const channels = info.channels;
-      const out = Buffer.allocUnsafe(raw.length);
-      for (let i = 0; i < raw.length; i += channels) {
-        out[i] = lutR[raw[i]];
-        out[i + 1] = lutG[raw[i + 1]];
-        out[i + 2] = lutB[raw[i + 2]];
-        if (channels >= 4) {
-          out[i + 3] = raw[i + 3];
-        }
-      }
-
-      const outputBytes = await sharp(out, {
-        raw: {
-          width: info.width,
-          height: info.height,
-          channels: info.channels
-        }
-      })
-        .png()
-        .toBuffer();
-      const meta = await metadataFor(outputBytes);
-      return {
-        output: imageRef(outputBytes, {
-          uri: image.uri ?? "",
-          mimeType: inferImageMime(image.uri, outputBytes),
-          width: meta.width,
-          height: meta.height
-        })
-      };
-    } catch (err) {
-      console.error("LevelsNode processing failed:", err);
-      return {
-        output: imageRef(bytes, {
-          uri: image.uri ?? "",
-          ...this.transformMeta()
-        })
-      };
-    }
+    // The levels shader works in [0,1]; the node authors black/white in 0–255.
+    const output = await runShaderNode(
+      colorLevelsV1,
+      {
+        rBlack: rBlack / 255,
+        rGamma,
+        rWhite: rWhite / 255,
+        gBlack: gBlack / 255,
+        gGamma,
+        gWhite: gWhite / 255,
+        bBlack: bBlack / 255,
+        bGamma,
+        bWhite: bWhite / 255
+      },
+      image,
+      {},
+      context
+    );
+    return { output };
   }
 }
 
@@ -2604,13 +2501,24 @@ export class CompositorNode extends BaseNode {
         ? Math.floor(Number(this.canvas_height))
         : decoded[0].height;
 
-    // Composite on the GPU through the shared WebGPULayerCompositor (the same
-    // engine the sketch editor and timeline preview use), via Node.js Dawn.
-    const result = await compositeImageLayers(
-      decoded,
-      canvasWidth,
-      canvasHeight
-    );
+    // Composite on the GPU through the shared headless layer compositor (the
+    // same engine the sketch editor and timeline preview use). Node uses the
+    // cached Dawn device; the browser acquires a navigator.gpu device.
+    let result;
+    if (IS_NODE) {
+      result = await compositeImageLayers(decoded, canvasWidth, canvasHeight);
+    } else {
+      const { createBrowserGPUContext, compositeLayersHeadless } = await import(
+        "@nodetool-ai/gpu/webgpu"
+      );
+      const ctx = await createBrowserGPUContext();
+      result = await compositeLayersHeadless(
+        ctx.device,
+        decoded,
+        canvasWidth,
+        canvasHeight
+      );
+    }
 
     // Emit raw RGBA as the in-flight format — no eager PNG encode. An adjacent
     // GPU op reuses the pixels directly; any boundary that needs a portable
@@ -2720,6 +2628,7 @@ export class PainterNode extends BaseNode {
         Number(image.height ?? this.canvas_height ?? 1)
       );
       try {
+        const sharp = await loadSharp();
         const blank = await sharp({
           create: {
             width: w,
@@ -2750,6 +2659,7 @@ export class PainterNode extends BaseNode {
 
     // Re-encode the mask as PNG to normalize and pick up dimensions.
     try {
+      const sharp = await loadSharp();
       const out = await sharp(maskBytes, { failOn: "none" })
         .png()
         .toBuffer();
@@ -3041,7 +2951,28 @@ export class VectorizeImageNode extends BaseNode {
   }
 }
 
-export const IMAGE_NODES = tagAsHybrid([
+// GPU transform nodes: pure WebGPU pixel ops (no sharp) — runnable in the
+// browser and rendered as media content cards.
+const IMAGE_TRANSFORM_NODES = tagAsContentCard(
+  tagAsHybrid([
+    PasteNode,
+    ScaleNode,
+    ResizeNode,
+    CanvasResizeNode,
+    CropNode,
+    FitNode,
+    RotateAndFlipNode,
+    ChannelsNode,
+    BlurNode,
+    LevelsNode,
+    CompositorNode
+  ])
+);
+
+// Node-only nodes: filesystem I/O (Load/Save), provider/AI generation, the
+// Dawn-only Compositor, and the canvas editors. Tagged server so the browser
+// runner never tries to execute them client-side.
+const IMAGE_SERVER_NODES = tagAsServer([
   LoadImageFileNode,
   LoadImageFolderNode,
   SaveImageFileImageNode,
@@ -3061,13 +2992,17 @@ export const IMAGE_NODES = tagAsHybrid([
   ChannelsNode,
   BlurNode,
   LevelsNode,
+  ImageEditorNode,
+  PainterNode,
   TextToImageNode,
   ImageToImageNode,
-  ImageEditorNode,
-  CompositorNode,
-  PainterNode,
   UpscaleImageNode,
   RemoveBackgroundNode,
   RelightImageNode,
   VectorizeImageNode
 ]);
+
+export const IMAGE_NODES = [
+  ...IMAGE_TRANSFORM_NODES,
+  ...IMAGE_SERVER_NODES
+];

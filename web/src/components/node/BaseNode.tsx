@@ -206,8 +206,8 @@ const getAmbientBadgeStyle = (theme: Theme): React.CSSProperties => ({
   backgroundColor: theme.vars.palette.secondary.main,
   color: theme.vars.palette.secondary.contrastText,
   border: `1px solid ${theme.vars.palette.c_node_bg}`,
-  fontSize: "10px",
-  fontWeight: 700,
+  fontSize: "var(--fontSizeSmaller)",
+  fontWeight: 600,
   lineHeight: 1,
   zIndex: 20,
   pointerEvents: "none"
@@ -842,7 +842,13 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         </div>
       )}
 
-      {showAmbientRing && <div css={ambientRingCss} aria-hidden="true" />}
+      {showAmbientRing && (
+        <div
+          className="node-ambient-ring"
+          css={ambientRingCss}
+          aria-hidden="true"
+        />
+      )}
       {showConcurrencyBadge && (
         <div
           style={ambientBadgeStyle}

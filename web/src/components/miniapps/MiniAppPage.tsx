@@ -16,7 +16,8 @@ import {
   FlexRow,
   FlexColumn,
   EditorButton,
-  Box
+  Box,
+  MOTION
 } from "../ui_primitives";
 import { useParams } from "react-router-dom";
 
@@ -231,7 +232,7 @@ const MiniAppPage: React.FC<MiniAppPageProps> = ({
           minHeight: embedded ? "100%" : "100vh",
           height: embedded ? "100%" : undefined,
           overflow: embedded ? "auto" : undefined,
-          transition: "margin-left 0.2s ease-out"
+          transition: `margin-left ${MOTION.normal}`
         }}
       >
         {workflow && (

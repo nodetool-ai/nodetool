@@ -17,8 +17,14 @@ import { BASE_URL } from "./BASE_URL";
 import { Edge, Node } from "@xyflow/react";
 import {
   RunJobRequest,
-  WorkflowAttributes
+  WorkflowAttributes,
+  WorkflowGraph
 } from "./ApiTypes";
+import {
+  reportBrowserEligibility,
+  runBrowserGraphJob,
+  updateBrowserJobNodeProperties
+} from "../lib/workflow/browserWorkflowRunner";
 import { uuidv4 } from "./uuidv4";
 import { useNotificationStore, Notification } from "./NotificationStore";
 import useMetadataStore from "./MetadataStore";
@@ -30,7 +36,10 @@ import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 import { createRunnerMessageHandler } from "../core/workflow/runnerProtocol";
+import { materializeBitmapRefs } from "../lib/workflow/materializeBrowserOutputs";
 import { getNodeStore, MsgpackData } from "./workflowUpdates";
+import useStatusStore from "./StatusStore";
+import useResultsStore from "./ResultsStore";
 import { queryClient } from "../queryClient";
 
 export type MessageHandler = (
@@ -71,6 +80,11 @@ export const deriveJobTitle = (
   }
   return workflow.name || "Workflow";
 };
+
+/** Abort handles for in-flight in-browser runs, keyed by job id. Browser
+ * runs have no server-side job, so cancel() aborts these instead of sending
+ * `cancel_job` over the websocket. */
+const browserRunAbortControllers = new Map<string, AbortController>();
 
 const buildRunJobData = (opts: {
   jobId: string;
@@ -125,6 +139,13 @@ export type WorkflowRunner = {
   edges: Edge[];
   job_id: string | null;
   /**
+   * True while the active run executes in-browser (kernel runner) rather than
+   * on the server. Browser runs don't hold a WebSocket connection, so the
+   * stuck-state recovery heuristic must not treat a closed socket as a sign
+   * the run died.
+   */
+  isBrowserRun: boolean;
+  /**
    * 1-based position in the backend's run queue while a run waits for a
    * concurrency slot, or null when not queued. Queued runs reuse the "running"
    * state (so existing busy/disabled logic applies); this field lets the UI
@@ -152,6 +173,15 @@ export type WorkflowRunner = {
   cancel: () => Promise<void>;
   pause: () => Promise<void>;
   resume: () => Promise<void>;
+  /**
+   * Push property updates into the running job's node executors (live
+   * parameters — e.g. synth knobs while a patch plays). No-op when nothing
+   * is running; the canvas state already holds the value for the next run.
+   */
+  updateRunningNodeProperties: (
+    nodeId: string,
+    properties: Record<string, unknown>
+  ) => void;
   /**
    * Start (or queue) a run and resolve with the `job_id` of the run that was
    * initiated. Callers must use this id — when the runner is already busy the
@@ -192,6 +222,7 @@ export const createWorkflowRunnerStore = (
     nodes: [],
     edges: [],
     job_id: null,
+    isBrowserRun: false,
     queuePosition: null,
     unsubscribe: null,
     state: "idle",
@@ -231,6 +262,7 @@ export const createWorkflowRunnerStore = (
         unsubscribe: null,
         state: "idle",
         job_id: null,
+        isBrowserRun: false,
         queuePosition: null,
         statusMessage: null,
         notifications: [],
@@ -350,6 +382,19 @@ export const createWorkflowRunnerStore = (
       subgraphNodeIds?: Set<string>,
       concurrent?: boolean
     ) => {
+      const activeNodeTypes = nodes
+        .filter((node) => !node.data?.bypassed)
+        .map((node) => node.type)
+        .filter((type): type is string => typeof type === "string");
+      console.info(
+        `WorkflowRunner[${workflowId}]: run() called — ${activeNodeTypes.length} active node(s)`,
+        {
+          nodeTypes: activeNodeTypes,
+          resourceLimited: !!resource_limits,
+          concurrent: !!concurrent
+        }
+      );
+
       const currentState = get().state;
       const currentJobId = get().job_id;
       const wsConnected = globalWebSocketManager.isConnectionOpen();
@@ -362,24 +407,73 @@ export const createWorkflowRunnerStore = (
       // never received a terminal job_update (e.g. WS dropped, worker crashed).
       // Reset so the user can retry instead of getting permanently blocked.
       // "connecting" is mid-handshake, not stuck — only treat the
-      // post-handshake states as stuck candidates.
+      // post-handshake states as stuck candidates. Pure in-browser runs never
+      // hold a WS connection, so a closed socket is only a stuck signal for
+      // server runs.
       const stuck =
         busy &&
         currentState !== "connecting" &&
-        (!currentJobId || !wsConnected);
+        (!currentJobId || (!wsConnected && !get().isBrowserRun));
 
-      // Resolve auth once; both the active run and a queued submission need it.
+      const jobId = uuidv4();
+      const queueRun = busy && !stuck;
+
+      if (!queueRun) {
+        if (stuck) {
+          console.warn(
+            `WorkflowRunner[${workflowId}]: Recovering from stuck state`,
+            { currentState, currentJobId, wsConnected }
+          );
+        }
+
+        console.info(`WorkflowRunner[${workflowId}]: Starting workflow run`);
+
+        // Claim the run synchronously — before any `await` (auth/session
+        // resolution included) — so a concurrent run() sees us as busy (and
+        // queues), and the UI reflects the start immediately. Per-run state is
+        // keyed by jobId, so a fresh run starts on an empty slice; don't clear
+        // prior runs' node state (per-job keys mean a clear would erase a
+        // concurrently running sibling of this workflow).
+        set({
+          workflow,
+          nodes,
+          edges,
+          job_id: jobId,
+          isBrowserRun: false,
+          queuePosition: null,
+          statusMessage: "Workflow starting...",
+          notifications: [],
+          state: "connecting"
+        });
+      }
+
+      // Resolve auth after the claim; both the active run and a queued
+      // submission need it. On failure, release the claim so the runner
+      // doesn't stay stuck in "connecting" with a phantom job_id.
       let auth_token = "local_token";
       let user = "1";
       if (!isLocalhost) {
-        const {
-          data: { session }
-        } = await supabase.auth.getSession();
-        auth_token = session?.access_token || "";
-        user = session?.user?.id || "";
+        try {
+          const {
+            data: { session }
+          } = await supabase.auth.getSession();
+          auth_token = session?.access_token || "";
+          user = session?.user?.id || "";
+        } catch (error) {
+          if (!queueRun) {
+            set({
+              state: "error",
+              job_id: null,
+              statusMessage:
+                error instanceof Error
+                  ? error.message
+                  : "Failed to resolve auth session"
+            });
+          }
+          throw error instanceof Error ? error : new Error(String(error));
+        }
       }
 
-      const jobId = uuidv4();
       const req = buildRunJobData({
         jobId,
         jobName: deriveJobTitle(workflow, nodes, subgraphNodeIds),
@@ -393,7 +487,7 @@ export const createWorkflowRunnerStore = (
         concurrent
       });
 
-      if (busy && !stuck) {
+      if (queueRun) {
         // A run is already in progress for this workflow. Submit this one to
         // the backend, which persists it as a "queued" job and starts it when
         // the current run finishes (one run per workflow). Leave the active
@@ -406,7 +500,7 @@ export const createWorkflowRunnerStore = (
           await globalWebSocketManager.send({
             type: "run_job",
             command: "run_job",
-            data: req
+            data: materializeBitmapRefs(req) as Record<string, unknown>
           });
           queryClient.invalidateQueries({ queryKey: ["jobs"] });
         } catch (error) {
@@ -420,40 +514,95 @@ export const createWorkflowRunnerStore = (
         }
         return jobId;
       }
-      if (stuck) {
-        console.warn(
-          `WorkflowRunner[${workflowId}]: Recovering from stuck state`,
-          { currentState, currentJobId, wsConnected }
+
+      // Pure-browser graphs (every node declares browser-platform support) run
+      // client-side with the kernel runner — no server round-trip. Their
+      // ProcessingMessages flow through the same subscriber pipeline
+      // (`deliverLocal`) so the canvas/results/status stores update identically
+      // to a server run. Explicitly resource-limited (subprocess) runs stay on
+      // the server.
+      let runsInBrowser = false;
+      if (resource_limits) {
+        console.info(
+          `WorkflowRunner[${workflowId}]: ↪ server run (resource limits requested)`
         );
-        set({ state: "idle", job_id: null });
+      } else {
+        try {
+          const report = await reportBrowserEligibility(
+            req.graph as unknown as WorkflowGraph
+          );
+          runsInBrowser = report.eligible;
+          if (report.eligible) {
+            console.info(
+              `WorkflowRunner[${workflowId}]: ▶ in-browser run — all ${report.total} node type(s) browser-capable`,
+              report.browserNodeTypes
+            );
+          } else if (!report.runnerAvailable) {
+            console.info(
+              `WorkflowRunner[${workflowId}]: ↪ server run — browser runner unavailable (not loaded / load failed)`
+            );
+          } else {
+            console.info(
+              `WorkflowRunner[${workflowId}]: ↪ server run — ${report.serverNodeTypes.length}/${report.total} node type(s) not browser-capable`,
+              { serverOnly: report.serverNodeTypes, browser: report.browserNodeTypes }
+            );
+          }
+        } catch (error) {
+          runsInBrowser = false;
+          console.warn(
+            `WorkflowRunner[${workflowId}]: browser-eligibility check failed; using server`,
+            error
+          );
+        }
       }
 
-      console.info(`WorkflowRunner[${workflowId}]: Starting workflow run`);
+      if (runsInBrowser) {
+        set({ state: "running", isBrowserRun: true });
+        console.info(
+          `WorkflowRunner[${workflowId}]: Running graph in-browser`,
+          { jobId }
+        );
+        // Browser runs have no server job to cancel; cancel() aborts this
+        // controller instead, which both run paths (worker + main thread)
+        // honor.
+        const abortController = new AbortController();
+        browserRunAbortControllers.set(jobId, abortController);
+        void runBrowserGraphJob({
+          graph: req.graph as unknown as WorkflowGraph,
+          params,
+          workflowId,
+          jobId,
+          signal: abortController.signal
+        })
+          .catch((error) => {
+            set({
+              state: "error",
+              statusMessage:
+                error instanceof Error
+                  ? error.message
+                  : "Browser execution failed"
+            });
+          })
+          .finally(() => {
+            browserRunAbortControllers.delete(jobId);
+          });
+        return jobId;
+      }
 
       await get().ensureConnection();
 
-      set({ workflow, nodes, edges, job_id: jobId, queuePosition: null });
-
-      // Per-run state is keyed by jobId, so a fresh run starts on an empty
-      // slice that auto-focus surfaces. Don't clear prior runs' node state here:
-      // with per-job keys those clears would erase a concurrently running
-      // sibling of this workflow.
-      set({
-        statusMessage: "Workflow starting..."
-      });
-
-      set({
-        state: "running",
-        notifications: []
-      });
+      set({ state: "running" });
 
       console.info(`WorkflowRunner[${workflowId}]: Sending run_job command`, req);
 
       try {
+        // Preview-bitmap refs (cached browser-run outputs seeded into single-
+        // node / run-from-here subgraph properties) can't cross msgpack —
+        // encode them to portable data-URL refs for the server.
         await globalWebSocketManager.send({
           type: "run_job",
           command: "run_job",
-          data: req
+          data: materializeBitmapRefs(req) as Record<string, unknown>
         });
       } catch (error) {
         // Rollback so the store doesn't get stuck in "running" with a phantom
@@ -490,8 +639,29 @@ export const createWorkflowRunnerStore = (
     /**
      * Cancel the current workflow run.
      */
+    updateRunningNodeProperties: (nodeId, properties) => {
+      const { job_id, state, isBrowserRun } = get();
+      if (state !== "running" || !job_id) {
+        return;
+      }
+      if (isBrowserRun) {
+        updateBrowserJobNodeProperties(job_id, nodeId, properties);
+        return;
+      }
+      void globalWebSocketManager.send({
+        type: "update_node_properties",
+        command: "update_node_properties",
+        data: {
+          job_id,
+          workflow_id: workflowId,
+          node_id: nodeId,
+          properties
+        }
+      });
+    },
+
     cancel: async () => {
-      const { job_id, state } = get();
+      const { job_id, state, isBrowserRun } = get();
       console.info(`WorkflowRunner[${workflowId}]: Cancelling job`, { job_id });
 
       if (state === "cancelled" || state === "idle" || state === "error") {
@@ -504,6 +674,21 @@ export const createWorkflowRunnerStore = (
       set({ state: "cancelled", queuePosition: null });
 
       if (!job_id) {
+        return;
+      }
+
+      // Stop this run's visuals (node "running" borders, edge animations,
+      // progress) right away: once state is "cancelled" the message handler
+      // drops all further node/edge updates, so the backend's own cleanup
+      // messages would never land. Job-scoped — sibling runs keep theirs.
+      useStatusStore.getState().clearJobStatuses(workflowId, job_id);
+      useResultsStore.getState().clearJobRunVisuals(workflowId, job_id);
+
+      // In-browser runs have no server-side job — abort the local run; the
+      // kernel then emits the cancelled job_update / node statuses through
+      // the same message pipeline as a server cancel.
+      if (isBrowserRun) {
+        browserRunAbortControllers.get(job_id)?.abort();
         return;
       }
 
@@ -627,6 +812,7 @@ const defaultWorkflowRunner: WorkflowRunner = {
   nodes: [],
   edges: [],
   job_id: null,
+  isBrowserRun: false,
   queuePosition: null,
   unsubscribe: null,
   state: "idle",
@@ -639,6 +825,7 @@ const defaultWorkflowRunner: WorkflowRunner = {
   cancel: async () => {},
   pause: async () => {},
   resume: async () => {},
+  updateRunningNodeProperties: () => {},
   run: async () => "",
   reconnect: async () => {},
   reconnectWithWorkflow: async () => {},

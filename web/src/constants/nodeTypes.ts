@@ -40,7 +40,6 @@ export const CHANNELS_NODE_TYPE = "nodetool.image.Channels";
 export const COMPOSITOR_NODE_TYPE = "nodetool.image.Compositor";
 export const CROP_NODE_TYPE = "nodetool.image.Crop";
 export const CURVES_NODE_TYPE = "lib.image.color_grading.Curves";
-export const EXPOSURE_NODE_TYPE = "lib.image.color_grading.Exposure";
 export const FIT_NODE_TYPE = "nodetool.image.Fit";
 export const HSL_ADJUST_NODE_TYPE = "lib.image.color_grading.HSLAdjust";
 export const LEVELS_NODE_TYPE = "nodetool.image.Levels";

@@ -711,9 +711,16 @@ describe("audio nodes — full coverage", () => {
     expect(Array.from(outData)).toEqual([1, 2, 3, 4]);
   });
 
-  it("TextToSpeechNode emits on the declared `audio` port", async () => {
+  it("TextToSpeechNode throws without a TTS-capable provider context", async () => {
     const _n = new TextToSpeechNode();
     _n.assign({ text: "hello" });
+    await expect(_n.process()).rejects.toThrow(/TTS provider/);
+  });
+
+  it("ChunkToAudioNode converts chunk with data on the `audio` port", async () => {
+    const data = Buffer.from([10, 20, 30]).toString("base64");
+    const _n = new ChunkToAudioNode();
+    _n.assign({ chunk: { data } });
     const result = await _n.process();
     // Output is keyed `audio` (matching metadataOutputTypes), not `output`.
     expect(result.output).toBeUndefined();
@@ -721,26 +728,37 @@ describe("audio nodes — full coverage", () => {
       (result.audio as { data: string }).data,
       "base64"
     );
-    expect(outData.toString("utf8")).toBe("hello");
+    expect(Array.from(outData)).toEqual([10, 20, 30]);
   });
 
-  it("ChunkToAudioNode converts chunk with data", async () => {
-    const data = Buffer.from([10, 20, 30]).toString("base64");
+  it("ChunkToAudioNode converts audio chunk content (base64)", async () => {
+    const content = Buffer.from([1, 2, 3, 4]).toString("base64");
     const _n = new ChunkToAudioNode();
-    _n.assign({ chunk: { data } });
+    _n.assign({ chunk: { type: "chunk", content_type: "audio", content } });
     const result = await _n.process();
     const outData = Buffer.from(
-      (result.output as { data: string }).data,
+      (result.audio as { data: string }).data,
       "base64"
     );
-    expect(Array.from(outData)).toEqual([10, 20, 30]);
+    expect(Array.from(outData)).toEqual([1, 2, 3, 4]);
+  });
+
+  it("ChunkToAudioNode does not treat text chunk content as audio", async () => {
+    const _n = new ChunkToAudioNode();
+    _n.assign({ chunk: { type: "chunk", content_type: "text", content: "hi" } });
+    const result = await _n.process();
+    const outData = Buffer.from(
+      (result.audio as { data: string }).data,
+      "base64"
+    );
+    expect(outData.length).toBe(0);
   });
 
   it("ChunkToAudioNode handles chunk with uri", async () => {
     const _n = new ChunkToAudioNode();
     _n.assign({ chunk: { uri: "file://test.wav" } });
     const result = await _n.process();
-    expect((result.output as { data: string }).data).toBeDefined();
+    expect((result.audio as { uri: string }).uri).toBe("file://test.wav");
   });
 
   it("ChunkToAudioNode handles null chunk", async () => {
@@ -748,7 +766,7 @@ describe("audio nodes — full coverage", () => {
     _n.assign({ chunk: null });
     const result = await _n.process();
     const outData = Buffer.from(
-      (result.output as { data: string }).data,
+      (result.audio as { data: string }).data,
       "base64"
     );
     expect(outData.length).toBe(0);
@@ -977,8 +995,7 @@ describe("audio nodes — full coverage", () => {
       speed: 1
     });
     expect(new ChunkToAudioNode().serialize()).toMatchObject({
-      chunk: { type: "chunk", content: "", content_type: "text" },
-      batch_size: 50
+      chunk: { type: "chunk", content: "", content_type: "text" }
     });
   });
 
@@ -1421,15 +1438,13 @@ describe("image nodes — full coverage", () => {
 // --------------- VIDEO NODES ---------------
 
 describe("video nodes — full coverage", () => {
-  it("ImageToVideoNode generates video from image", async () => {
+  it("ImageToVideoNode throws without a provider", async () => {
     const img = imageRef();
     const _n = new ImageToVideoNode();
     _n.assign({ image: img, prompt: "animate" });
-    const result = await _n.process();
-    const output = result.output as { type: string; data: string };
-    expect(output.type).toBe("video");
-    const outData = Buffer.from(output.data, "base64");
-    expect(outData.length).toBeGreaterThan(0);
+    await expect(_n.process()).rejects.toThrow(
+      "No provider available for image-to-video generation."
+    );
   });
 
   it("LoadVideoFileNode reads from file", async () => {
@@ -1453,7 +1468,7 @@ describe("video nodes — full coverage", () => {
     expect((result.output as { uri: string }).uri).toContain(filePath);
   });
 
-  it("SaveVideoFileVideoNode writes to file", async () => {
+  it("SaveVideoFileVideoNode writes to file and returns a video ref", async () => {
     const filePath = `${tmpDir}/save-video-file/out.mp4`;
     const ref = videoRef();
     const _n = new SaveVideoFileVideoNode();
@@ -1463,8 +1478,11 @@ describe("video nodes — full coverage", () => {
       filename: path.basename(filePath)
     });
     const result = await _n.process();
-    expect(path.normalize(String(result.output))).toBe(path.normalize(filePath));
-    const stat = await fs.stat(String(result.output));
+    const output = result.output as { type: string; uri: string; data: string };
+    expect(output.type).toBe("video");
+    expect(output.uri).toBe(`file://${path.normalize(filePath)}`);
+    expect(output.data.length).toBeGreaterThan(0);
+    const stat = await fs.stat(filePath);
     expect(stat.size).toBeGreaterThan(0);
   });
 
@@ -1543,17 +1561,16 @@ describe("video nodes — full coverage", () => {
     expect(result.output).toBe(0);
   });
 
-  it("FrameToVideoNode combines frames", async () => {
+  it("FrameToVideoNode throws when ffmpeg cannot encode the frames", async () => {
     const frameA = { data: Buffer.from([1, 2]).toString("base64") };
     const frameB = { data: Buffer.from([3, 4]).toString("base64") };
     const _n = new FrameToVideoNode();
     _n.assign({ frame: [frameA, frameB] });
-    const result = await _n.process();
-    const outData = Buffer.from(
-      (result.output as { data: string }).data,
-      "base64"
+    // The frames are not decodable PNGs (and ffmpeg may not even be
+    // installed) — the node must fail instead of emitting corrupt bytes.
+    await expect(_n.process()).rejects.toThrow(
+      "Combining frames into a video failed"
     );
-    expect(Array.from(outData)).toEqual([1, 2, 3, 4]);
   });
 
   it("FrameToVideoNode handles non-object frames", async () => {
@@ -1567,17 +1584,14 @@ describe("video nodes — full coverage", () => {
     expect(outData.length).toBe(0);
   });
 
-  it("ConcatVideoNode concatenates two videos", async () => {
+  it("ConcatVideoNode throws when ffmpeg cannot concatenate", async () => {
     const a = { data: Buffer.from([1, 2]).toString("base64") };
     const b = { data: Buffer.from([3, 4]).toString("base64") };
     const _n = new ConcatVideoNode();
     _n.assign({ video_1: a, video_2: b });
-    const result = await _n.process();
-    const outData = Buffer.from(
-      (result.output as { data: string }).data,
-      "base64"
-    );
-    expect(Array.from(outData)).toEqual([1, 2, 3, 4]);
+    // The inputs are not real videos (and ffmpeg may not even be
+    // installed) — the node must fail instead of emitting corrupt bytes.
+    await expect(_n.process()).rejects.toThrow("Concatenating videos failed");
   });
 
   it("TrimVideoNode falls back to original without ffmpeg", async () => {
@@ -1625,14 +1639,18 @@ describe("video nodes — full coverage", () => {
       overlay_video: ref
     });
     const overlay = await _n.process();
+    expect((overlay.output as { data: string }).data).toBeDefined();
+    // Transition reads both canonical inputs; with both non-empty it
+    // proceeds to ffmpeg, which fails on the fake bytes. Misread inputs
+    // would short-circuit to a pass-through instead.
     const _n2 = new TransitionVideoNode();
     _n2.assign({
       video_a: ref,
       video_b: ref
     });
-    const transition = await _n2.process();
-    expect((overlay.output as { data: string }).data).toBeDefined();
-    expect((transition.output as { data: string }).data).toBeDefined();
+    await expect(_n2.process()).rejects.toThrow(
+      "Creating the transition failed"
+    );
   });
 
   it("ReverseVideoNode falls back to original without ffmpeg", async () => {
@@ -1698,11 +1716,13 @@ describe("video nodes — full coverage", () => {
     const result = await _n.process();
     expect(typeof result.output).toBe("number");
 
-    // imageBytes in video module
+    // imageBytes in video module — null image is tolerated up to the
+    // provider check, which fails without a context
     const _n2 = new ImageToVideoNode();
     _n2.assign({ image: null, prompt: "" });
-    const imgResult = await _n2.process();
-    expect((imgResult.output as { data: string }).data).toBeDefined();
+    await expect(_n2.process()).rejects.toThrow(
+      "No provider available for image-to-video generation."
+    );
 
     // audioBytes in video module
     const _n3 = new AddAudioVideoNode();
@@ -1717,12 +1737,12 @@ describe("video nodes — full coverage", () => {
     _n.assign({
       frame: [{ data: uint8Data }]
     });
-    const result = await _n.process();
-    const outData = Buffer.from(
-      (result.output as { data: string }).data,
-      "base64"
+    // The Uint8Array frame is accepted (a frame file gets written), so the
+    // node proceeds to ffmpeg and fails there — an empty-bytes frame would
+    // instead resolve with an empty video before reaching ffmpeg.
+    await expect(_n.process()).rejects.toThrow(
+      "Combining frames into a video failed"
     );
-    expect(Array.from(outData)).toEqual([1, 2, 3]);
   });
 
   it("defaults() methods return expected structures", () => {
@@ -1797,14 +1817,12 @@ describe("video nodes — full coverage", () => {
     });
   });
 
-  it("TextToVideoNode generates video from text", async () => {
+  it("TextToVideoNode throws without a provider", async () => {
     const _n = new TextToVideoNode();
     _n.assign({ prompt: "hello-vid" });
-    const result = await _n.process();
-    const output = result.output as { type: string; data: string };
-    expect(output.type).toBe("video");
-    const outData = Buffer.from(output.data, "base64");
-    expect(outData.toString("utf8")).toBe("hello-vid");
+    await expect(_n.process()).rejects.toThrow(
+      "No provider available for text-to-video generation."
+    );
   });
 
   it("FrameToVideoNode handles non-array frames", async () => {

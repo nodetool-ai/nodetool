@@ -10,6 +10,7 @@ import DataObjectIcon from "@mui/icons-material/DataObject";
 import NotesIcon from "@mui/icons-material/Notes";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { MOTION } from "../ui_primitives";
 
 interface QuickStart {
   icon: React.ReactNode;
@@ -111,7 +112,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.primary,
       backgroundColor: `rgba(${theme.vars.palette.background.paperChannel} / 0.5)`,
       border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.06)`,
-      transition: "all 0.15s ease",
+      transition: `all ${MOTION.fast}`,
       "&:hover": {
         borderColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.5)`,
         backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.08)`,

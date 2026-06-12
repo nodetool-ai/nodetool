@@ -7,7 +7,7 @@ import { PropertyProps } from "../node/PropertyInput";
 import PropertyDropzone from "./PropertyDropzone";
 import { memo, useState } from "react";
 import isEqual from "fast-deep-equal";
-import { EditorButton, NodeTextField } from "../ui_primitives";
+import { EditorButton, NodeTextField, MOTION } from "../ui_primitives";
 import { useNodes } from "../../contexts/NodeContext";
 import AudioVisualizer from "../common/AudioVisualizer";
 import { useRealtimeAudioStream } from "../../hooks/useRealtimeAudioStream";
@@ -57,7 +57,7 @@ const styles = () =>
       color: "rgba(255, 255, 255, 0.4)",
       fontSize: "0.85em",
       cursor: "pointer",
-      transition: "all 0.15s ease",
+      transition: `all ${MOTION.fast}`,
       "&:hover": {
         background: "rgba(0, 0, 0, 0.3)",
         borderColor: "rgba(255, 255, 255, 0.3)",

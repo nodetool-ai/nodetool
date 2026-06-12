@@ -5,7 +5,7 @@ import type {
   Platform
 } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { tagAsServer } from "@nodetool-ai/nodes-utils";
+import { tagAsHybrid, tagAsServer } from "@nodetool-ai/nodes-utils";
 import {
   loadNodeFsPromises,
   loadNodePath
@@ -27,11 +27,6 @@ import {
   uriToPath,
   type WavData
 } from "../lib/audio-wav.js";
-
-type ImageLike = {
-  data?: Uint8Array | string;
-  uri?: string;
-};
 
 const DEFAULT_AUDIO_EXTENSIONS = [
   ".mp3",
@@ -78,6 +73,25 @@ async function* walkAudioFiles(
     if (!extensions.includes(ext)) continue;
     yield { full, name: entry.name };
   }
+}
+
+/**
+ * Resolve a folder prop that may be a plain path string, a `file:` URI, or a
+ * folder asset ref (`{ type: "folder", uri }`) into a filesystem path.
+ */
+function resolveFolderPath(raw: unknown): string {
+  if (typeof raw === "string" && raw.length > 0) {
+    return raw.startsWith("file:") ? uriToPath(raw) : raw;
+  }
+  if (
+    raw &&
+    typeof raw === "object" &&
+    typeof (raw as { uri?: unknown }).uri === "string" &&
+    (raw as { uri: string }).uri.length > 0
+  ) {
+    return uriToPath((raw as { uri: string }).uri);
+  }
+  return "";
 }
 
 function dateName(name: string): string {
@@ -162,26 +176,20 @@ export class LoadAudioAssetsNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const collected: Record<string, unknown>[] = [];
+    const names: string[] = [];
     for await (const item of this._loadAudios()) {
       collected.push(item.audio as Record<string, unknown>);
+      names.push(String(item.name ?? ""));
     }
     return {
       audio: collected[0] ?? {},
-      name: "",
+      name: names[0] ?? "",
       audios: collected
     };
   }
 
   private async *_loadAudios(): AsyncGenerator<Record<string, unknown>> {
-    const raw = this.folder;
-    const folder =
-      typeof raw === "string" && raw.length > 0
-        ? raw.startsWith("file:")
-          ? uriToPath(raw)
-          : raw
-        : typeof raw === "object" && raw !== null && typeof raw.uri === "string" && raw.uri.length > 0
-          ? uriToPath(raw.uri)
-          : "";
+    const folder = resolveFolderPath(this.folder);
     if (!folder) return;
     const fs = await loadNodeFsPromises();
     for await (const { full, name } of walkAudioFiles(
@@ -280,22 +288,6 @@ export class LoadAudioFolderNode extends BaseNode {
   })
   declare extensions: any;
 
-  private _resolveFolder(): string {
-    const raw = this.folder;
-    if (typeof raw === "string" && raw.length > 0) {
-      return raw.startsWith("file:") ? uriToPath(raw) : raw;
-    }
-    if (
-      raw &&
-      typeof raw === "object" &&
-      typeof raw.uri === "string" &&
-      raw.uri.length > 0
-    ) {
-      return uriToPath(raw.uri);
-    }
-    return "";
-  }
-
   private _extensions(): string[] {
     const list = Array.isArray(this.extensions)
       ? (this.extensions as unknown[])
@@ -307,7 +299,7 @@ export class LoadAudioFolderNode extends BaseNode {
   }
 
   private async *_load(): AsyncGenerator<Record<string, unknown>> {
-    const folder = this._resolveFolder();
+    const folder = resolveFolderPath(this.folder);
     if (!folder) return;
     const recursive = Boolean(this.include_subdirectories);
     const extensions = this._extensions();
@@ -324,10 +316,12 @@ export class LoadAudioFolderNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const collected: Record<string, unknown>[] = [];
+    const paths: string[] = [];
     for await (const item of this._load()) {
       collected.push(item.audio as Record<string, unknown>);
+      paths.push(String(item.path ?? ""));
     }
-    return { audio: collected[0] ?? {}, path: "", audios: collected };
+    return { audio: collected[0] ?? {}, path: paths[0] ?? "", audios: collected };
   }
 
   async *genProcess(): AsyncGenerator<Record<string, unknown>> {
@@ -390,8 +384,8 @@ export class SaveAudioNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const audio = this.audio;
-    const folder = String(this.folder ?? ".");
-    const name = dateName(String(this.name ?? "audio.wav"));
+    const folder = resolveFolderPath(this.folder) || ".";
+    const name = dateName(String(this.name || "audio.wav"));
     const fs = await loadNodeFsPromises();
     const path = await loadNodePath();
     const full = path.resolve(folder, name);
@@ -460,8 +454,8 @@ export class SaveAudioFileNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const audio = this.audio;
-    const folder = String(this.folder ?? ".");
-    const fname = dateName(String(this.filename ?? "audio.wav"));
+    const folder = String(this.folder || ".");
+    const fname = dateName(String(this.filename || "audio.wav"));
     const fs = await loadNodeFsPromises();
     const path = await loadNodePath();
     const p = path.resolve(folder, fname);
@@ -809,7 +803,7 @@ export class SliceAudioNode extends BaseNode {
     type: "float",
     default: 1,
     title: "End",
-    description: "The end time in seconds.",
+    description: "The end time in seconds. 0 or less slices to the end.",
     min: 0
   })
   declare end: any;
@@ -817,18 +811,18 @@ export class SliceAudioNode extends BaseNode {
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const bytes = await audioBytesAsync(this.audio, context);
     const start = Math.max(0, Number(this.start ?? 0));
-    const end = Number(this.end ?? -1);
+    const end = Number(this.end ?? 0);
     const wav = parseWavBytes(bytes);
     if (!wav) {
       // Non-WAV: fall back to raw byte slicing.
-      const e = end < 0 ? bytes.length : end;
+      const e = end <= 0 ? bytes.length : end;
       return { output: audioRefFromBytes(bytes.slice(start, e)) };
     }
     const { sampleRate, numChannels } = wav;
     const frames = wavFrameCount(wav);
     const startFrame = Math.min(frames, Math.round(start * sampleRate));
     const endFrame =
-      end < 0 ? frames : Math.min(frames, Math.round(end * sampleRate));
+      end <= 0 ? frames : Math.min(frames, Math.round(end * sampleRate));
     const sliced = wav.samples.slice(
       startFrame * numChannels,
       Math.max(startFrame, endFrame) * numChannels
@@ -1547,8 +1541,10 @@ export class TextToSpeechNode extends BaseNode {
       const wav = encodePcm16Wav(concatBytes(chunks), sampleRate, 1);
       return { audio: audioRefFromWav(wav) };
     }
-    const bytes = Uint8Array.from(Buffer.from(text, "utf8"));
-    return { audio: audioRefFromBytes(bytes) };
+    throw new Error(
+      `Text To Speech requires a TTS provider; no provider available for ` +
+        `provider "${providerId}" / model "${modelId}".`
+    );
   }
 }
 
@@ -1556,7 +1552,7 @@ export class ChunkToAudioNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.ChunkToAudio";
   static readonly title = "Chunk To Audio";
   static readonly description =
-    "Aggregates audio chunks from an input stream into AudioRef objects.\n    audio, stream, chunk, aggregate, collect, batch";
+    "Converts audio chunks from an input stream into AudioRef objects.\n    audio, stream, chunk, convert";
   static readonly metadataOutputTypes = {
     audio: "audio"
   };
@@ -1581,23 +1577,32 @@ export class ChunkToAudioNode extends BaseNode {
   })
   declare chunk: any;
 
-  @prop({
-    type: "int",
-    default: 50,
-    title: "Batch Size",
-    description: "Number of chunks to aggregate per output"
-  })
-  declare batch_size: any;
-
   async process(): Promise<Record<string, unknown>> {
-    const chunk = this.chunk ?? {};
+    const chunk = this.chunk;
     if (chunk && typeof chunk === "object") {
-      const image = chunk as ImageLike;
-      if (image.data || image.uri) {
-        return { output: audioRefFromBytes(toBytes(image.data)) };
+      const c = chunk as {
+        data?: Uint8Array | string;
+        uri?: string;
+        content?: unknown;
+        content_type?: string;
+      };
+      // Audio chunks (e.g. from streaming TTS providers) carry base64 bytes
+      // in `content` with content_type "audio"; legacy refs use `data`/`uri`.
+      if (c.data) {
+        return { audio: audioRefFromBytes(toBytes(c.data)) };
+      }
+      if (
+        c.content_type === "audio" &&
+        typeof c.content === "string" &&
+        c.content.length > 0
+      ) {
+        return { audio: audioRefFromBytes(toBytes(c.content)) };
+      }
+      if (typeof c.uri === "string" && c.uri.length > 0) {
+        return { audio: { type: "audio", uri: c.uri, data: "" } };
       }
     }
-    return { output: audioRefFromBytes(new Uint8Array()) };
+    return { audio: audioRefFromBytes(new Uint8Array()) };
   }
 }
 
@@ -1678,12 +1683,12 @@ export class GetAudioInfoNode extends BaseNode {
   }
 }
 
-export const AUDIO_NODES = tagAsServer([
-  LoadAudioAssetsNode,
-  LoadAudioFileNode,
-  LoadAudioFolderNode,
-  SaveAudioNode,
-  SaveAudioFileNode,
+/**
+ * Pure sample/byte transforms — run on Node and in the browser workflow
+ * runner (all byte access goes through `audioBytesAsync`, whose `file://`
+ * branch is lazy and never taken in the browser).
+ */
+const AUDIO_HYBRID_NODES = tagAsHybrid([
   NormalizeAudioNode,
   OverlayAudioNode,
   RemoveSilenceNode,
@@ -1699,7 +1704,22 @@ export const AUDIO_NODES = tagAsServer([
   CreateSilenceNode,
   ConcatAudioNode,
   ConcatAudioListNode,
-  TextToSpeechNode,
   ChunkToAudioNode,
   GetAudioInfoNode
 ]);
+
+/**
+ * Server-only nodes: asset/file I/O (the Load/Save classes also declare
+ * `static platforms = NODE_ONLY`, which wins over the tagger) and TTS,
+ * which needs the server's provider prediction.
+ */
+const AUDIO_SERVER_NODES = tagAsServer([
+  LoadAudioAssetsNode,
+  LoadAudioFileNode,
+  LoadAudioFolderNode,
+  SaveAudioNode,
+  SaveAudioFileNode,
+  TextToSpeechNode
+]);
+
+export const AUDIO_NODES = [...AUDIO_HYBRID_NODES, ...AUDIO_SERVER_NODES];

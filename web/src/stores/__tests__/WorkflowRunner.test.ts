@@ -48,6 +48,7 @@ jest.mock("../ResultsStore", () => ({
       clearChunks: jest.fn(),
       clearPlanningUpdates: jest.fn(),
       clearOutputResults: jest.fn(),
+      clearJobRunVisuals: jest.fn(),
     }),
   },
 }));
@@ -57,6 +58,7 @@ jest.mock("../StatusStore", () => ({
   default: {
     getState: jest.fn().mockReturnValue({
       clearStatuses: jest.fn(),
+      clearJobStatuses: jest.fn(),
       setNodeStatus: jest.fn(),
     }),
   },
@@ -337,6 +339,11 @@ describe("WorkflowRunner", () => {
       expect(store.getState().state).toBe("connecting");
       const secondRunPromise = store.getState().run({}, testWorkflow, [], []);
 
+      // run() awaits an async browser-eligibility check before opening the
+      // socket; flush microtasks so the (server-bound) active run reaches
+      // ensureConnection and exposes its resolver.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
       resolveConnection();
       await Promise.all([firstRunPromise, secondRunPromise]);
 
@@ -350,6 +357,50 @@ describe("WorkflowRunner", () => {
           command: "run_job"
         })
       );
+    });
+
+    it("claims the run synchronously so an immediate second run() queues", () => {
+      // The claim (job_id + state "connecting") must land before any await so
+      // a concurrent run() can't also see "idle" and clobber the first claim.
+      const promise = store.getState().run({}, testWorkflow, [], []);
+      expect(store.getState().state).toBe("connecting");
+      expect(store.getState().job_id).toBe("test-job-id-123");
+      return promise;
+    });
+
+    it("does not treat a live in-browser run as stuck when the socket is closed", async () => {
+      (globalWebSocketManager.isConnectionOpen as jest.Mock).mockReturnValueOnce(
+        false
+      );
+      store.setState({
+        state: "running",
+        job_id: "job-browser",
+        isBrowserRun: true
+      });
+
+      await store.getState().run({}, testWorkflow, [], []);
+
+      // The new run is queued behind the browser run instead of hijacking it.
+      expect(store.getState().job_id).toBe("job-browser");
+      expect(store.getState().state).toBe("running");
+      expect(globalWebSocketManager.send).toHaveBeenCalledTimes(1);
+    });
+
+    it("recovers a stuck server run when the socket is closed", async () => {
+      (globalWebSocketManager.isConnectionOpen as jest.Mock).mockReturnValueOnce(
+        false
+      );
+      store.setState({
+        state: "running",
+        job_id: "job-server",
+        isBrowserRun: false
+      });
+      (uuidv4 as jest.Mock).mockReturnValueOnce("job-recovered");
+
+      const jobId = await store.getState().run({}, testWorkflow, [], []);
+
+      expect(jobId).toBe("job-recovered");
+      expect(store.getState().job_id).toBe("job-recovered");
     });
 
     it("allows starting a new run after state returns to idle", async () => {

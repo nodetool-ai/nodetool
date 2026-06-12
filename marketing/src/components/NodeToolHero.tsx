@@ -23,9 +23,7 @@ export default function NodeToolHero() {
         >
           <span className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-300">
             <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
-            Open Source
-            <span className="text-blue-500/60">•</span>
-            BYOK
+            Free &amp; Open Source
           </span>
 
           <h1

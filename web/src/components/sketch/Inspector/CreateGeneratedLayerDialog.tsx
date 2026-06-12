@@ -296,7 +296,7 @@ const CreateGeneratedLayerDialogBody: React.FC<{
                       css={rowStyles(theme, selected)}
                       data-testid="create-generated-layer-row"
                     >
-                      <FlexColumn gap={0.25}>
+                      <FlexColumn gap={0.5}>
                         <FlexRow align="center" gap={1}>
                           <Label
                             sx={{
@@ -343,7 +343,7 @@ const CreateGeneratedLayerDialogBody: React.FC<{
               )}
 
             {requiresOutputPick && selectedWorkflow && (
-              <FlexColumn gap={0.75}>
+              <FlexColumn gap={1}>
                 <Text size="small">
                   This workflow has multiple image outputs. Pick one:
                 </Text>

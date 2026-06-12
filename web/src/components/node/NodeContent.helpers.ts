@@ -34,9 +34,10 @@ export const arePropsEqual = (
   if (
     prevProps.nodeMetadata.title !== nextProps.nodeMetadata.title ||
     prevProps.nodeMetadata.layout !== nextProps.nodeMetadata.layout ||
-    // `body` is the sole input to isContentCardNode — without it a node whose
-    // metadata flips to/from "content_card" (output shape unchanged) would
-    // keep its stale body mounted.
+    // `body` feeds isContentCardNode (the primary-output type is the other
+    // input — compared below). Without this, a node whose metadata flips
+    // to/from "content_card" (output shape unchanged) would keep its stale
+    // body mounted.
     prevProps.nodeMetadata.body !== nextProps.nodeMetadata.body ||
     prevProps.nodeMetadata.supports_dynamic_inputs !== nextProps.nodeMetadata.supports_dynamic_inputs ||
     prevProps.nodeMetadata.supports_dynamic_outputs !==

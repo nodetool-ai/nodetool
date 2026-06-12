@@ -161,6 +161,35 @@
   stroke-width: 4 !important;
 }
 
+/* ---------------------------------------------------------------------------
+   INSTANT-UPDATE MODE
+   The graph re-runs on every keystroke, so the per-run edge-flow and
+   node-running animations restart continuously — visual noise plus needless
+   paint/compositor churn on the hot path. While instant update is enabled
+   (the `.instant-update` class is set on the editor's ReactFlow root from the
+   `instantUpdate` setting), freeze those animations and hide the per-node
+   "Completed in …" timing badge that would otherwise flash on every run.
+   `!important` overrides the inline animation set on active edges and the
+   emotion-generated node ring/halo animations.
+   --------------------------------------------------------------------------- */
+.react-flow.instant-update .react-flow__edge-path,
+.react-flow.live-scrubbing .react-flow__edge-path {
+  animation: none !important;
+}
+/* Remove the per-node running glow ring + ambient halo entirely, not just
+   freeze the rotation: the ring also has an opacity fade (transition: opacity
+   0.5s), so `animation: none` alone would still flash it in/out on every
+   instant run. Hiding the pseudo-element/halo kills both. The timing badge is
+   hidden the same way. */
+.react-flow.instant-update .base-node.loading::before,
+.react-flow.instant-update .node-ambient-ring,
+.react-flow.instant-update .node-execution-indicator,
+.react-flow.live-scrubbing .base-node.loading::before,
+.react-flow.live-scrubbing .node-ambient-ring,
+.react-flow.live-scrubbing .node-execution-indicator {
+  display: none !important;
+}
+
 @keyframes edgeFlow {
   0% {
     stroke-dashoffset: 0;

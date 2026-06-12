@@ -27,7 +27,7 @@ describe("isContentCardNode", () => {
     expect(isContentCardNode(undefined)).toBe(false);
   });
 
-  it("is driven solely by metadata.body === 'content_card'", () => {
+  it("opts in via metadata.body === 'content_card' for any output type", () => {
     expect(
       isContentCardNode(
         meta("nodetool.image.TextToImage", "image", "content_card")
@@ -37,18 +37,35 @@ describe("isContentCardNode", () => {
     expect(
       isContentCardNode(meta("lib.image.SomeModel", "image", "content_card"))
     ).toBe(true);
+    // Non-media (`dict`) output still becomes a card when the body opts in.
     expect(
       isContentCardNode(meta("some.pkg.Whatever", "dict", "content_card"))
     ).toBe(true);
   });
 
-  it("returns false when body is absent (no node_type matching)", () => {
-    // Node types the old heuristics matched no longer match without body.
+  it("opts in any image-output node, even without the body field", () => {
     expect(isContentCardNode(meta("nodetool.image.TextToImage", "image"))).toBe(
+      true
+    );
+    expect(isContentCardNode(meta("some.pkg.TextToImage", "image"))).toBe(true);
+    expect(isContentCardNode(meta("fal.image_to_image.X", "image"))).toBe(true);
+    // Masks count as images (rendered on a checker).
+    expect(isContentCardNode(meta("some.pkg.MaskNode", "image_mask"))).toBe(true);
+  });
+
+  it("excludes constant nodes — they render their value via the overlay", () => {
+    // `nodetool.constant.Image` already shows its image without a content card.
+    expect(isContentCardNode(meta("nodetool.constant.Image", "image"))).toBe(
       false
     );
-    expect(isContentCardNode(meta("some.pkg.TextToImage", "image"))).toBe(false);
-    expect(isContentCardNode(meta("fal.image_to_image.X", "image"))).toBe(false);
+  });
+
+  it("returns false for non-image nodes without the body field", () => {
+    // Node types the old heuristics matched no longer match without body, and
+    // only image output (not other media) opts in implicitly.
+    expect(isContentCardNode(meta("some.pkg.VideoModel", "video"))).toBe(false);
+    expect(isContentCardNode(meta("some.pkg.AudioModel", "audio"))).toBe(false);
+    expect(isContentCardNode(meta("some.pkg.TextModel", "str"))).toBe(false);
   });
 
   it("ignores body values other than content_card", () => {

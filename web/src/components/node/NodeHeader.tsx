@@ -13,7 +13,7 @@ import ListAltIcon from "@mui/icons-material/ListAlt";
 import { OpenInNew } from "@mui/icons-material";
 import { NodeLogsDialog } from "./NodeLogs";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
-import { BORDER_RADIUS, FlexRow, Tooltip, ToolbarIconButton } from "../ui_primitives";
+import { BORDER_RADIUS, FlexRow, Tooltip, ToolbarIconButton, MOTION } from "../ui_primitives";
 
 export interface NodeHeaderProps {
   id: string;
@@ -104,7 +104,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         borderRadius:
           "calc(var(--rounded-node) - 1px) calc(var(--rounded-node) - 1px) 0 0",
         borderBottom: "none",
-        transition: "background-color 0.2s ease-in-out, opacity 0.15s",
+        transition: `background-color ${MOTION.normal}, opacity ${MOTION.fast}`,
         ".header-left": {
           padding: 0,
           flex: 1,

@@ -77,7 +77,7 @@ export const GeneratedClipHeader: React.FC<GeneratedClipHeaderProps> = memo(
       !speedBaked;
 
     return (
-      <FlexColumn gap={0.75} sx={{ px: 1, pt: 0.5, pb: 0.5 }}>
+      <FlexColumn gap={1} sx={{ px: 1, pt: 0.5, pb: 0.5 }}>
         {/* Name + status */}
         <FlexRow align="center" gap={1}>
           <Label sx={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

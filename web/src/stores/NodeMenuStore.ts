@@ -435,6 +435,18 @@ export const createNodeMenuStore = () =>
             set({ dragToCreate: false });
             return;
           }
+          // Clear pending timers so a late fire doesn't repopulate
+          // searchResults/hover state after the menu has closed.
+          if (searchTimeout) {
+            clearTimeout(searchTimeout);
+            searchTimeout = null;
+          }
+          if (hoveredNodeTimeout !== null) {
+            clearTimeout(hoveredNodeTimeout);
+            hoveredNodeTimeout = null;
+          }
+          // Invalidate any in-flight debounced search so it no-ops.
+          pendingSearchId++;
           set({
             searchTerm: "",
             dropType: "",
@@ -451,7 +463,8 @@ export const createNodeMenuStore = () =>
             selectedProviderType: "all",
             showDocumentation: false,
             selectedNodeType: null,
-            selectedIndex: -1
+            selectedIndex: -1,
+            hoveredNode: null
           });
         }
       },

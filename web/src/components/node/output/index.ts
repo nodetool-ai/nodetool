@@ -14,5 +14,8 @@ export { EmailRenderer } from "./EmailRenderer";
 export { TextRenderer } from "./TextRenderer";
 export { ImageComparisonRenderer } from "./ImageComparisonRenderer";
 export { JSONRenderer } from "./JSONRenderer";
-export { default as RealtimeAudioOutput } from "./RealtimeAudioOutput";
+export {
+  default as RealtimeAudioOutput,
+  RealtimeAudioOutputFromChunks
+} from "./RealtimeAudioOutput";
 export { default as DataframeRenderer } from "./DataframeRenderer";

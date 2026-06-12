@@ -6,6 +6,7 @@ import mockTheme from "../../../__mocks__/themeMock";
 
 // Tooltip pulls in heavy theme overrides we don't need for these unit tests.
 jest.mock("../../ui_primitives", () => ({
+  MOTION: jest.requireActual("../../ui_primitives/tokens").MOTION,
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>
 }));
 

@@ -19,6 +19,7 @@ import { resolveContentUrls, resolveContentForProvider } from "./resolve-media-u
 import {
   Graph,
   WorkflowRunner,
+  withExplicitNodeFlags,
   type NodeExecutor,
   type NodeTypeResolver,
   type NodeValidator
@@ -56,6 +57,9 @@ import {
 import { isRawRgbaImage } from "@nodetool-ai/protocol";
 import type {
   Chunk,
+  GraphData,
+  HydratedGraphData,
+  NodeDescriptor,
   ProcessingMessage,
   ProviderCost
 } from "@nodetool-ai/protocol";
@@ -295,6 +299,67 @@ function isAssetLikeValue(
     ASSET_MEDIA_TYPES.has(v.type as string) &&
     ("data" in v || "uri" in v)
   );
+}
+
+/**
+ * A chunk whose content is the native in-process `Float32Array` sample
+ * payload (see protocol `Chunk.content`). Must be encoded before crossing
+ * the websocket: msgpack/JSON would mangle the typed array.
+ */
+function isNativeAudioChunk(
+  value: unknown
+): value is Record<string, unknown> & { content: Float32Array } {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return v.type === "chunk" && v.content instanceof Float32Array;
+}
+
+/** Encode a native audio chunk's samples to base64 f32le for the wire. */
+function encodeAudioChunkForWire(
+  chunk: Record<string, unknown> & { content: Float32Array }
+): Record<string, unknown> {
+  const samples = chunk.content;
+  const bytes = Buffer.from(
+    samples.buffer,
+    samples.byteOffset,
+    samples.byteLength
+  );
+  return {
+    ...chunk,
+    content: bytes.toString("base64"),
+    content_metadata: {
+      ...(chunk.content_metadata as Record<string, unknown> | undefined),
+      encoding: "f32le"
+    }
+  };
+}
+
+/**
+ * Replace native-Float32Array chunk payloads in an outgoing message with
+ * their base64 wire form. Chunks appear as the message itself (chat
+ * streaming), as `value` (output_update), or as `result`/array elements
+ * (node_update); nested generic walks are deliberately avoided — this runs
+ * per message on the hot streaming path.
+ */
+function encodeNativeAudioChunks(
+  message: Record<string, unknown>
+): Record<string, unknown> {
+  if (isNativeAudioChunk(message)) return encodeAudioChunkForWire(message);
+  let out = message;
+  for (const key of ["value", "result", "chunk"]) {
+    const v = out[key];
+    if (isNativeAudioChunk(v)) {
+      out = { ...out, [key]: encodeAudioChunkForWire(v) };
+    } else if (Array.isArray(v) && v.some(isNativeAudioChunk)) {
+      out = {
+        ...out,
+        [key]: v.map((item) =>
+          isNativeAudioChunk(item) ? encodeAudioChunkForWire(item) : item
+        )
+      };
+    }
+  }
+  return out;
 }
 
 function decodeAssetBytes(data: unknown): Uint8Array | null {
@@ -694,10 +759,7 @@ interface ActiveJob {
   workflowId: string | null;
   context: ProcessingContext;
   runner: WorkflowRunner;
-  graph: {
-    nodes: Array<Record<string, unknown>>;
-    edges: Array<Record<string, unknown>>;
-  };
+  graph: HydratedGraphData;
   finished: boolean;
   status: "running" | "completed" | "failed" | "cancelled";
   error?: string;
@@ -788,7 +850,7 @@ export interface UnifiedWebSocketRunnerOptions {
   ) => Promise<string | null>;
   /** Called before a workflow job starts — used to lazily connect the Python bridge. */
   beforeRunJob?: (graph: {
-    nodes: Array<Record<string, unknown>>;
+    nodes: ReadonlyArray<NodeDescriptor>;
   }) => Promise<void>;
   /** Resolve node metadata by type — used for auto_save_asset detection. */
   getNodeMetadata?: (nodeType: string) => NodeMetadata | undefined;
@@ -1044,6 +1106,11 @@ export class UnifiedWebSocketRunner {
       };
     }
 
+    // In-process audio/CV chunks carry samples as a native Float32Array,
+    // which neither msgpack nor JSON represents. Encode them to base64
+    // f32le here — the one and only conversion on the path to the client.
+    message = encodeNativeAudioChunks(message);
+
     const payload =
       this.mode === "text"
         ? (this.serializeForJson(message) as Record<string, unknown>)
@@ -1157,21 +1224,20 @@ export class UnifiedWebSocketRunner {
   private async hydrateGraph(graph: {
     nodes: Array<Record<string, unknown>>;
     edges: Array<Record<string, unknown>>;
-  }): Promise<{
-    nodes: Array<Record<string, unknown>>;
-    edges: Array<Record<string, unknown>>;
-  }> {
+  }): Promise<HydratedGraphData> {
     const normalized = this.normalizeGraph(graph);
     if (!this.resolveNodeType) {
-      return normalized;
+      // No registry resolver configured — behavior flags can only come from
+      // the saved graph itself; absent ones are explicitly defaulted off.
+      return withExplicitNodeFlags(normalized as unknown as GraphData);
     }
 
     const hydrated = await Graph.loadFromDict(normalized, {
       resolver: this.resolveNodeType
     });
     return {
-      nodes: [...hydrated.nodes] as unknown as Array<Record<string, unknown>>,
-      edges: [...hydrated.edges] as unknown as Array<Record<string, unknown>>
+      nodes: [...hydrated.nodes],
+      edges: [...hydrated.edges]
     };
   }
 
@@ -1616,17 +1682,7 @@ export class UnifiedWebSocketRunner {
         workflow_id: workflowId ?? undefined,
         params: req.params ?? {}
       },
-      graph as unknown as {
-        nodes: Array<{ id: string; type: string; [key: string]: unknown }>;
-        edges: Array<{
-          id?: string | null;
-          source: string;
-          target: string;
-          sourceHandle: string;
-          targetHandle: string;
-          edge_type: "data" | "control";
-        }>;
-      }
+      graph
     );
 
     active.streamTask = this.streamJobMessages(active, executePromise);
@@ -2181,10 +2237,7 @@ export class UnifiedWebSocketRunner {
       edges: [] as Array<Record<string, unknown>>
     };
 
-    let graph: {
-      nodes: Array<Record<string, unknown>>;
-      edges: Array<Record<string, unknown>>;
-    };
+    let graph: HydratedGraphData;
     try {
       graph = await this.hydrateGraph(rawGraph);
     } catch (err) {
@@ -2241,20 +2294,7 @@ export class UnifiedWebSocketRunner {
       validateNode: this.validateNode
     });
 
-    const result = await runner.run(
-      { job_id: jobId, params: {} },
-      graph as unknown as {
-        nodes: Array<{ id: string; type: string; [key: string]: unknown }>;
-        edges: Array<{
-          id?: string | null;
-          source: string;
-          target: string;
-          sourceHandle: string;
-          targetHandle: string;
-          edge_type: "data" | "control";
-        }>;
-      }
-    );
+    const result = await runner.run({ job_id: jobId, params: {} }, graph);
 
     // Capture the node's completed result from the streamed updates.
     let nodeResult: unknown;
@@ -3986,14 +4026,14 @@ export class UnifiedWebSocketRunner {
         edges: Array<Record<string, unknown>>;
       };
 
-      if (this.beforeRunJob) {
-        await this.beforeRunJob(rawGraph);
-      }
-
       // Detect message input names from raw graph (reads node.data) — matches Python
       const { messageName, messagesName } =
         this.detectMessageInputNames(rawGraph);
       const graph = await this.hydrateGraph(rawGraph);
+
+      if (this.beforeRunJob) {
+        await this.beforeRunJob(graph);
+      }
       const messageInputName =
         (typeof data.workflow_message_input_name === "string"
           ? data.workflow_message_input_name
@@ -4117,17 +4157,7 @@ export class UnifiedWebSocketRunner {
       // Execute workflow and stream messages
       const executePromise = runner.run(
         { job_id: jobId, workflow_id: workflowId, params },
-        graph as unknown as {
-          nodes: Array<{ id: string; type: string; [key: string]: unknown }>;
-          edges: Array<{
-            id?: string | null;
-            source: string;
-            target: string;
-            sourceHandle: string;
-            targetHandle: string;
-            edge_type: "data" | "control";
-          }>;
-        }
+        graph
       );
 
       // Stream events, collect output_update results
@@ -4887,6 +4917,27 @@ export class UnifiedWebSocketRunner {
       case "cancel_job":
         if (!jobId) return { error: "job_id is required" };
         return this.cancelJob(jobId, workflowId);
+      case "update_node_properties": {
+        // Live parameter path: push property changes into a running job's
+        // node executors (e.g. synth knobs while a patch plays). Misses are
+        // not errors — the canvas already holds the value for the next run.
+        if (!jobId) return { error: "job_id is required" };
+        const nodeId = data.node_id;
+        const properties = data.properties;
+        if (typeof nodeId !== "string" || nodeId.length === 0) {
+          return { error: "node_id is required" };
+        }
+        if (properties === null || typeof properties !== "object") {
+          return { error: "properties must be an object" };
+        }
+        const active = this.activeJobs.get(jobId);
+        const applied =
+          active?.runner.updateNodeProperties(
+            nodeId,
+            properties as Record<string, unknown>
+          ) ?? false;
+        return { applied };
+      }
       case "get_status":
         return this.getStatus(jobId);
       case "set_mode": {

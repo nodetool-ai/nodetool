@@ -10,14 +10,13 @@ import {
   getNodeCategoryColor
 } from "../../utils/ColorUtils";
 import {
-  Popover,
   List,
   ListItem,
   ListItemButton,
   ListItemText,
   ListItemIcon
 } from "@mui/material";
-import { Text, ToolbarIconButton, FlexRow } from "../ui_primitives";
+import { Text, ToolbarIconButton, FlexRow, Popover } from "../ui_primitives";
 import PaletteIcon from "@mui/icons-material/Palette";
 import LegendToggleIcon from "@mui/icons-material/LegendToggle";
 import CheckIcon from "@mui/icons-material/Check";
@@ -166,7 +165,7 @@ const MiniMapNavigator: React.FC = () => {
 
           {/* Settings and Legend Buttons */}
           <FlexRow
-            gap={0.25}
+            gap={0.5}
             sx={{
               position: "absolute",
               top: "-28px",
@@ -216,21 +215,10 @@ const MiniMapNavigator: React.FC = () => {
         open={Boolean(settingsAnchor)}
         anchorEl={settingsAnchor}
         onClose={handleCloseSettings}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "right"
-        }}
-        transformOrigin={{
-          vertical: "top",
-          horizontal: "right"
-        }}
-        slotProps={{
-          paper: {
-            sx: {
-              minWidth: 180,
-              borderRadius: "var(--rounded-lg)"
-            }
-          }
+        placement="bottom-right"
+        paperSx={{
+          minWidth: 180,
+          borderRadius: "var(--rounded-lg)"
         }}
       >
         <List dense disablePadding>
@@ -292,21 +280,10 @@ const MiniMapNavigator: React.FC = () => {
         open={Boolean(legendAnchor)}
         anchorEl={legendAnchor}
         onClose={handleCloseLegend}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "right"
-        }}
-        transformOrigin={{
-          vertical: "top",
-          horizontal: "right"
-        }}
-        slotProps={{
-          paper: {
-            sx: {
-              minWidth: 180,
-              borderRadius: "var(--rounded-lg)"
-            }
-          }
+        placement="bottom-right"
+        paperSx={{
+          minWidth: 180,
+          borderRadius: "var(--rounded-lg)"
         }}
       >
         <div style={{ padding: 8 }}>

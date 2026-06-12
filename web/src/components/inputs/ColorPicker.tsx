@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useState, useRef } from "react";
 import { Popover, Button } from "@mui/material";
-import { Tooltip } from "../ui_primitives";
+import { Tooltip, MOTION } from "../ui_primitives";
 import { colorPickerColors } from "../../constants/colors";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { ColorPickerModal } from "../color_picker";
@@ -27,7 +27,7 @@ const styles = (theme: Theme) =>
       minWidth: "unset !important",
       minHeight: "unset !important",
       boxShadow: `0 0 0 1px ${theme.vars.palette.grey[900] || "rgba(0, 0, 0, 0.5)"}`,
-      transition: "all 0.15s ease",
+      transition: `all ${MOTION.fast}`,
       "&:hover": {
         transform: "scale(1.1)",
         boxShadow: `0 0 0 2px ${theme.vars.palette.grey[800] || "rgba(0, 0, 0, 0.7)"}`

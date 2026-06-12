@@ -5,24 +5,17 @@
  */
 
 import React, { useCallback, useMemo, useState, memo } from "react";
-import {
-  List,
-  DialogContentText
-} from "@mui/material";
-import {
-  Compare as CompareIcon,
-  FilterList as FilterIcon
-} from "@mui/icons-material";
+import { Compare as CompareIcon } from "@mui/icons-material";
 import VersionListItem from "./VersionListItem";
 import { VersionDiff } from "./VersionDiff";
 import { GraphVisualDiff } from "./GraphVisualDiff";
-import { WorkflowMiniPreview } from "./WorkflowMiniPreview";
+import { WorkflowGraphPreview } from "./WorkflowGraphPreview";
 import { useVersionHistoryStore, SaveType } from "../../stores/VersionHistoryStore";
 import { useWorkflowVersions } from "../../serverState/useWorkflowVersions";
 import { computeGraphDiff, GraphDiff } from "../../utils/graphDiff";
 import { WorkflowVersion, Graph } from "../../stores/ApiTypes";
 import { formatDistanceToNow, format } from "date-fns";
-import PanelHeadline from "../ui/PanelHeadline";
+import PanelToolbar from "../panels/PanelToolbar";
 import {
   Caption,
   Chip,
@@ -30,6 +23,7 @@ import {
   Dialog,
   EditorButton,
   FlexColumn,
+  ListGroup,
   LoadingSpinner,
   Text,
   ToggleGroup,
@@ -268,21 +262,22 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
   if (error) {
     return (
       <FlexColumn
-        padding={3}
         sx={{
           backgroundColor: "var(--palette-background-default)",
           width: "100%",
           height: "100%"
         }}
       >
-        <PanelHeadline
+        <PanelToolbar
           title="Version History"
           actions={
             <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
           }
         />
-        <Text color="error">Failed to load versions</Text>
-        <Text size="tiny" color="secondary">{String(error)}</Text>
+        <FlexColumn padding={3} gap={0.5}>
+          <Text color="error">Failed to load versions</Text>
+          <Text size="tiny" color="secondary">{String(error)}</Text>
+        </FlexColumn>
       </FlexColumn>
     );
   }
@@ -294,81 +289,62 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         width: "100%",
         height: "100%",
         display: "flex",
-        padding: "0 1em",
         flexDirection: "column",
         overflow: "hidden"
       }}
     >
-      <div
-        className="version-history-panel-header"
-        style={{ borderBottom: "1px solid var(--palette-divider)" }}
-      >
-        <PanelHeadline
-          title="Version History"
-          actions={
+      <PanelToolbar
+        title="Versions"
+        count={versions.length}
+        actions={
+          <>
+            {isCompareMode && (selectedVersionId || compareVersionId) && (
+              <EditorButton
+                density="compact"
+                variant="text"
+                onClick={handleClearComparison}
+                sx={{ fontSize: "var(--fontSizeSmaller)", py: 0.5, px: 0.5, minWidth: 0 }}
+              >
+                Clear
+              </EditorButton>
+            )}
+            <Tooltip title="Compare two versions side by side">
+              <EditorButton
+                density="compact"
+                variant={isCompareMode ? "contained" : "text"}
+                onClick={handleToggleCompareMode}
+                sx={{
+                  fontSize: "var(--fontSizeSmaller)",
+                  py: 0.5,
+                  px: 1,
+                  minWidth: 0,
+                  color: isCompareMode ? undefined : "text.secondary"
+                }}
+              >
+                <CompareIcon sx={{ fontSize: "14px !important", mr: 0.5 }} />
+                Compare
+              </EditorButton>
+            </Tooltip>
             <CloseButton onClick={onClose} buttonSize="small" tooltip="Close" />
-          }
-        />
-      </div>
-
-      <div style={{
-        padding: "4px 8px",
-        borderBottom: "1px solid var(--palette-divider)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: "8px"
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <FilterIcon sx={{ fontSize: 16, color: "text.secondary" }} />
-          <ToggleGroup
-            value={filterType}
-            exclusive
-            onChange={handleFilterChange}
-            compact
-            aria-label="version filter"
-          >
-            <ToggleOption value="all" aria-label="all">All</ToggleOption>
-            <ToggleOption value="manual" aria-label="manual">Manual</ToggleOption>
-            <ToggleOption value="autosave" aria-label="autosave">Auto</ToggleOption>
-          </ToggleGroup>
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-          <Tooltip title="Compare two versions side by side">
-            <EditorButton
-              density="compact"
-              variant={isCompareMode ? "contained" : "text"}
-              onClick={handleToggleCompareMode}
-              sx={{
-                fontSize: "var(--fontSizeSmaller)",
-                py: 0.5,
-                px: 1,
-                minWidth: 0,
-                color: isCompareMode ? undefined : "text.secondary"
-              }}
-            >
-              <CompareIcon sx={{ fontSize: "14px !important", mr: 0.5 }} />
-              Compare
-            </EditorButton>
-          </Tooltip>
-
-          {isCompareMode && (selectedVersionId || compareVersionId) && (
-            <EditorButton
-              density="compact"
-              variant="text"
-              onClick={handleClearComparison}
-              sx={{ fontSize: "var(--fontSizeSmaller)", py: 0.5, px: 0.5, minWidth: 0 }}
-            >
-              Clear
-            </EditorButton>
-          )}
-        </div>
-      </div>
+          </>
+        }
+      >
+        <ToggleGroup
+          value={filterType}
+          exclusive
+          onChange={handleFilterChange}
+          compact
+          aria-label="version filter"
+        >
+          <ToggleOption value="all" aria-label="all">All</ToggleOption>
+          <ToggleOption value="manual" aria-label="manual">Manual</ToggleOption>
+          <ToggleOption value="autosave" aria-label="autosave">Auto</ToggleOption>
+        </ToggleGroup>
+      </PanelToolbar>
 
       {isCompareMode && !compareVersionId && (
         <div style={{
-          padding: "4px 8px",
+          padding: "4px 12px",
           backgroundColor: "rgba(2, 136, 209, 0.08)"
         }}>
           <Caption size="tiny" color="primary">
@@ -405,7 +381,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
               </Caption>
             </div>
           ) : (
-            <List dense sx={{ py: 0 }}>
+            <ListGroup compact flush sx={{ py: 0 }}>
               {versions.map((version) => (
                 <VersionListItem
                   key={version.id}
@@ -420,7 +396,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
                   isRestoring={isRestoringVersion}
                 />
               ))}
-            </List>
+            </ListGroup>
           )}
         </div>
 
@@ -513,20 +489,12 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
                 </FlexColumn>
               )}
 
-              <div
-                style={{
-                  border: "1px solid var(--palette-divider)",
-                  borderRadius: "var(--rounded-md)",
-                  padding: 8,
-                  backgroundColor: "var(--palette-background-default)"
-                }}
-              >
-                <WorkflowMiniPreview
-                  workflow={selectedVersion}
-                  width="100%"
-                  height={320}
-                />
-              </div>
+              <WorkflowGraphPreview
+                graph={selectedVersion.graph as unknown as Graph}
+                workflowId={workflowId}
+                width="100%"
+                height={320}
+              />
 
               <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                 <EditorButton
@@ -572,15 +540,6 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         </div>
       </div>
 
-      <div style={{
-        padding: "4px 8px",
-        borderTop: "1px solid var(--palette-divider)"
-      }}>
-        <Caption size="tiny" color="muted">
-          {versions.length} version{versions.length !== 1 ? "s" : ""} saved
-        </Caption>
-      </div>
-
       <Dialog
         open={deleteDialogOpen}
         onClose={handleCloseDeleteDialog}
@@ -590,10 +549,10 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
         confirmText="Delete"
         destructive
       >
-        <DialogContentText>
+        <Text color="secondary">
           Are you sure you want to delete this version? This action cannot be
           undone.
-        </DialogContentText>
+        </Text>
       </Dialog>
     </div>
   );

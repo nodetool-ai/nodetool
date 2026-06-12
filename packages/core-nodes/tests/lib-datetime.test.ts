@@ -64,6 +64,17 @@ describe("parseDate", () => {
   it("throws on garbage strings", () => {
     expect(() => parseDate("not-a-date")).toThrow(/Could not parse date/);
   });
+
+  it("throws a friendly error on non-finite numbers", () => {
+    expect(() => parseDate(NaN)).toThrow(/Could not parse date/);
+    expect(() => parseDate(Infinity)).toThrow(/Could not parse date/);
+  });
+
+  it("throws a friendly error on an Invalid Date instance", () => {
+    expect(() => parseDate(new Date("not-a-date"))).toThrow(
+      /Could not parse date/
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------

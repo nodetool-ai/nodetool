@@ -33,7 +33,8 @@ const useAlignNodes = () => {
       const selectedNodes = getSelectedNodes();
       if (selectedNodes.length < 2) {return;}
 
-      // Create a map to store the changes for each node
+      // Create maps for O(1) lookups instead of repeated find() calls
+      const nodeById = new Map(selectedNodes.map((n) => [n.id, n]));
       const nodeUpdates = new Map<
         string,
         { position: { x: number; y: number }; data: Partial<NodeData> }
@@ -42,8 +43,8 @@ const useAlignNodes = () => {
       // Initialize with current positions and ensure data is at least an empty object
       selectedNodes.forEach((node) => {
         nodeUpdates.set(node.id, {
-          position: { ...node.position }, // New position object
-          data: { ...(node.data || {}) } // New data object, ensure it exists
+          position: { ...node.position },
+          data: { ...(node.data || {}) }
         });
       });
 
@@ -53,31 +54,27 @@ const useAlignNodes = () => {
       const xRange = Math.max(...xCoordinates) - Math.min(...xCoordinates);
       const yRange = Math.max(...yCoordinates) - Math.min(...yCoordinates);
 
-      // Create a sorted list of node IDs for processing alignment
-      // We operate on the `nodeUpdates` map using these sorted IDs
       const sortedNodeIds = selectedNodes.map((n) => n.id);
 
       if (xRange < yRange) {
-        // Align left
         const leftMostX = Math.min(...xCoordinates);
-        // Sort nodes by original y position for processing order
         sortedNodeIds.sort((idA, idB) => {
-          const nodeA = selectedNodes.find((n) => n.id === idA)!;
-          const nodeB = selectedNodes.find((n) => n.id === idB)!;
+          const nodeA = nodeById.get(idA);
+          const nodeB = nodeById.get(idB);
+          if (!nodeA || !nodeB) {return 0;}
           return nodeA.position.y - nodeB.position.y;
         });
 
         sortedNodeIds.forEach((nodeId, index) => {
-          const update = nodeUpdates.get(nodeId)!;
+          const update = nodeUpdates.get(nodeId);
+          if (!update) {return;}
           update.position.x = leftMostX;
           if (arrangeSpacing && index > 0) {
             const previousNodeId = sortedNodeIds[index - 1];
-            const previousNodeOriginal = selectedNodes.find(
-              (n) => n.id === previousNodeId
-            )!;
-            const previousNodeHeight =
-              previousNodeOriginal.measured?.height ?? 0;
-            const previousNodeUpdate = nodeUpdates.get(previousNodeId)!;
+            const previousNode = nodeById.get(previousNodeId);
+            const previousNodeUpdate = nodeUpdates.get(previousNodeId);
+            if (!previousNode || !previousNodeUpdate) {return;}
+            const previousNodeHeight = previousNode.measured?.height ?? 0;
             update.position.y =
               previousNodeUpdate.position.y +
               previousNodeHeight +
@@ -85,25 +82,24 @@ const useAlignNodes = () => {
           }
         });
       } else {
-        // Align top
         const topMostY = Math.min(...yCoordinates);
-        // Sort nodes by original x position for processing order
         sortedNodeIds.sort((idA, idB) => {
-          const nodeA = selectedNodes.find((n) => n.id === idA)!;
-          const nodeB = selectedNodes.find((n) => n.id === idB)!;
+          const nodeA = nodeById.get(idA);
+          const nodeB = nodeById.get(idB);
+          if (!nodeA || !nodeB) {return 0;}
           return nodeA.position.x - nodeB.position.x;
         });
 
         sortedNodeIds.forEach((nodeId, index) => {
-          const update = nodeUpdates.get(nodeId)!;
+          const update = nodeUpdates.get(nodeId);
+          if (!update) {return;}
           update.position.y = topMostY;
           if (arrangeSpacing && index > 0) {
             const previousNodeId = sortedNodeIds[index - 1];
-            const previousNodeOriginal = selectedNodes.find(
-              (n) => n.id === previousNodeId
-            )!;
-            const previousNodeWidth = previousNodeOriginal.measured?.width ?? 0;
-            const previousNodeUpdate = nodeUpdates.get(previousNodeId)!;
+            const previousNode = nodeById.get(previousNodeId);
+            const previousNodeUpdate = nodeUpdates.get(previousNodeId);
+            if (!previousNode || !previousNodeUpdate) {return;}
+            const previousNodeWidth = previousNode.measured?.width ?? 0;
             update.position.x =
               previousNodeUpdate.position.x +
               previousNodeWidth +
@@ -112,10 +108,10 @@ const useAlignNodes = () => {
         });
       }
 
-      // Set collapsed state in the updates map
       if (collapsed !== undefined) {
         selectedNodes.forEach((node) => {
-          const update = nodeUpdates.get(node.id)!;
+          const update = nodeUpdates.get(node.id);
+          if (!update) {return;}
           update.data.collapsed = collapsed;
         });
       }

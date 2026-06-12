@@ -14,9 +14,6 @@ import {
   Wand2,
   ArrowRight,
   Check,
-  Github,
-  MessageCircle,
-  Star,
   Download,
   Zap,
   Shield,
@@ -24,6 +21,7 @@ import {
   Monitor,
 } from "lucide-react";
 import { XMarkIcon, Bars3Icon } from "@heroicons/react/24/outline";
+import CommunitySection from "../../components/CommunitySection";
 
 
 type PersonaAccent = "rose" | "emerald" | "sky" | "amber";
@@ -206,7 +204,11 @@ export default function CreativesPage() {
   useEffect(() => {
     fetch("https://api.github.com/repos/nodetool-ai/nodetool")
       .then((r) => r.json())
-      .then((j) => setStars(j.stargazers_count))
+      .then((j) => {
+        if (typeof j.stargazers_count === "number") {
+          setStars(j.stargazers_count);
+        }
+      })
       .catch(() => { });
   }, []);
 
@@ -838,61 +840,7 @@ export default function CreativesPage() {
         </section>
 
         {/* Community Section */}
-        <section id="community" className="py-24 relative">
-          <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="rounded-3xl border border-white/10 bg-gradient-to-br from-rose-500/10 via-teal-500/10 to-cyan-500/10 backdrop-blur-xl p-8 md:p-16 text-center overflow-hidden relative"
-            >
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 via-teal-500 to-cyan-500 opacity-50" />
-
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-                Join the{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-amber-400">
-                  community
-                </span>
-              </h2>
-              <p className="text-lg text-slate-300 mb-10 max-w-2xl mx-auto leading-relaxed">
-                Trade workflows, swap prompts, and ship work with other working
-                creatives. NodeTool is open source under AGPL-3.0 — built in the open.
-              </p>
-
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <a
-                  href="https://github.com/nodetool-ai/nodetool"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 rounded-xl bg-white text-slate-900 font-semibold hover:bg-slate-100 transition-colors shadow-lg group"
-                >
-                  <Github className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-                  <span>Star on GitHub</span>
-                  <div className="ml-3 pl-3 border-l border-slate-200 text-sm font-normal text-slate-500 flex items-center">
-                    <Star className="w-3 h-3 mr-1 text-amber-500 fill-amber-500" />
-                    <span>
-                      {stars
-                        ? stars > 1000
-                          ? `${(stars / 1000).toFixed(1)}k`
-                          : stars
-                        : "2.4k"}
-                    </span>
-                  </div>
-                </a>
-
-                <a
-                  href="https://discord.gg/WmQTWZRcYE"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 rounded-xl bg-[#5865F2] text-white font-semibold hover:bg-[#4752C4] transition-colors shadow-lg group"
-                >
-                  <MessageCircle className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-                  <span>Join Discord</span>
-                </a>
-              </div>
-            </motion.div>
-          </div>
-        </section>
+        <CommunitySection id="community" variant="creatives" stars={stars} />
 
         {/* CTA Section */}
         <section className="py-24 relative">

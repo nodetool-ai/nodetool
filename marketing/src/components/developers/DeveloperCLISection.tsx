@@ -146,7 +146,8 @@ Build, Run, Extend from Code
             className="mt-4 text-lg text-slate-400 max-w-2xl mx-auto"
           >
             Declare graphs, write custom nodes, and run workflows from code.
-            The CLI ships them, the runner streams them.
+            The CLI ships them, the runner streams them. Until the @nodetool-ai
+            packages land on npm, these examples run from a source checkout.
           </motion.p>
         </div>
 

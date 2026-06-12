@@ -197,6 +197,8 @@ export interface TextToVideoParams {
   guidanceScale?: number | null;
   numInferenceSteps?: number | null;
   seed?: number | null;
+  /** Per-call timeout. Providers translate this into a max polling window. */
+  timeoutSeconds?: number | null;
 }
 
 export interface ImageToVideoParams {
@@ -211,6 +213,8 @@ export interface ImageToVideoParams {
   guidanceScale?: number | null;
   numInferenceSteps?: number | null;
   seed?: number | null;
+  /** Per-call timeout. Providers translate this into a max polling window. */
+  timeoutSeconds?: number | null;
 }
 
 /**

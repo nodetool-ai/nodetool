@@ -11,7 +11,14 @@
  * Only enabled effects are wired into the live audio graph.
  */
 
-import React, { memo, useCallback, useMemo, useRef, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -41,7 +48,8 @@ import {
   Tooltip,
   LabeledSwitch,
   SelectField,
-  NodeMenuItem
+  NodeMenuItem,
+  MOTION
 } from "../../ui_primitives";
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 
@@ -109,7 +117,7 @@ const effectCardStyles = (
     overflowY: "auto",
     overflowX: "hidden",
     opacity: dragging ? 0.4 : 1,
-    transition: "opacity 0.12s",
+    transition: `opacity ${MOTION.fast}`,
     "&::before": dragOver
       ? {
           content: '""',
@@ -575,9 +583,14 @@ const Eq3Curve: React.FC<Eq3CurveProps> = ({ effect, onPatch, disabled }) => {
     [dragBand]
   );
 
-  // Scroll-wheel on mid handle adjusts Q.
-  const handleMidWheel = useCallback(
-    (e: React.WheelEvent<SVGElement>) => {
+  // Scroll-wheel on mid handle adjusts Q. Attached as a native non-passive
+  // listener: React's onWheel is passive, so preventDefault() there can't
+  // stop the page from scrolling.
+  const midHandleRef = useRef<SVGCircleElement | null>(null);
+  useEffect(() => {
+    const el = midHandleRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
       if (disabled) return;
       e.preventDefault();
       const next = clamp(
@@ -586,9 +599,10 @@ const Eq3Curve: React.FC<Eq3CurveProps> = ({ effect, onPatch, disabled }) => {
         10
       );
       onPatch({ midQ: parseFloat(next.toFixed(2)) });
-    },
-    [effect.midQ, onPatch, disabled]
-  );
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [effect.midQ, onPatch, disabled]);
 
   // Static grid: log decade lines + dB lines.
   const gridFreqs = [50, 100, 200, 500, 1000, 2000, 5000, 10000];
@@ -712,7 +726,7 @@ const Eq3Curve: React.FC<Eq3CurveProps> = ({ effect, onPatch, disabled }) => {
               strokeWidth={2}
               style={{ cursor: disabled ? "default" : "grab" }}
               onPointerDown={handlePointerDown(band)}
-              onWheel={isMid ? handleMidWheel : undefined}
+              ref={isMid ? midHandleRef : undefined}
             />
             <text
               x={x}
@@ -742,7 +756,7 @@ const Eq3Editor: React.FC<EffectEditorProps<TrackEq3Effect>> = ({
 }) => {
   const theme = useTheme();
   return (
-    <FlexColumn gap={0.75}>
+    <FlexColumn gap={1}>
       <Eq3Curve effect={effect} onPatch={onPatch} disabled={disabled} />
       <FlexRow gap={0.5}>
         <div css={bandReadoutStyles(theme, BAND_COLORS.low)}>
@@ -1049,9 +1063,13 @@ const CompressorCurve: React.FC<CompressorCurveProps> = ({
     [drag]
   );
 
-  // Threshold-line wheel changes knee width.
-  const onThreshWheel = useCallback(
-    (e: React.WheelEvent<SVGElement>) => {
+  // Threshold-line wheel changes knee width. Native non-passive listener so
+  // preventDefault() actually blocks scrolling (React's onWheel is passive).
+  const threshHandleRef = useRef<SVGCircleElement | null>(null);
+  useEffect(() => {
+    const el = threshHandleRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
       if (disabled) return;
       e.preventDefault();
       const next = clamp(
@@ -1060,9 +1078,10 @@ const CompressorCurve: React.FC<CompressorCurveProps> = ({
         40
       );
       onPatch({ kneeDb: parseFloat(next.toFixed(1)) });
-    },
-    [effect.kneeDb, onPatch, disabled]
-  );
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [effect.kneeDb, onPatch, disabled]);
 
   const gridDbs = [-48, -36, -24, -12];
   const gridColor = theme.vars.palette.divider;
@@ -1175,7 +1194,7 @@ const CompressorCurve: React.FC<CompressorCurveProps> = ({
         strokeWidth={2}
         style={{ cursor: disabled ? "default" : "ew-resize" }}
         onPointerDown={onDown("threshold")}
-        onWheel={onThreshWheel}
+        ref={threshHandleRef}
       />
       <text
         x={thrX}
@@ -1233,7 +1252,7 @@ const CompressorEditor: React.FC<EffectEditorProps<TrackCompressorEffect>> = ({
 }) => {
   const theme = useTheme();
   return (
-    <FlexColumn gap={0.75}>
+    <FlexColumn gap={1}>
       <FlexRow gap={1} align="stretch">
         <CompressorCurve
           effect={effect}
@@ -1267,7 +1286,7 @@ const CompressorEditor: React.FC<EffectEditorProps<TrackCompressorEffect>> = ({
           </div>
         </div>
       </FlexRow>
-      <FlexColumn gap={0.25}>
+      <FlexColumn gap={0.5}>
         <ParamRow
           label="Attack"
           value={effect.attackMs}
@@ -1314,7 +1333,7 @@ const CompressorEditor: React.FC<EffectEditorProps<TrackCompressorEffect>> = ({
 const ColorCorrectionEditor: React.FC<
   EffectEditorProps<TrackColorCorrectionEffect>
 > = ({ effect, onPatch, disabled }) => (
-  <FlexColumn gap={0.25}>
+  <FlexColumn gap={0.5}>
     <ParamRow
       label="Brightness"
       value={effect.brightness}
@@ -1446,7 +1465,7 @@ const VideoBlurEditor: React.FC<
 const SharpenEditor: React.FC<
   EffectEditorProps<TrackSharpenEffect>
 > = ({ effect, onPatch, disabled }) => (
-  <FlexColumn gap={0.25}>
+  <FlexColumn gap={0.5}>
     <ParamRow
       label="Amount"
       value={effect.amount}
@@ -1550,7 +1569,7 @@ const ChromaKeyEditor: React.FC<
   const theme = useTheme();
   return (
     <FlexColumn gap={0.5}>
-      <FlexRow gap={0.75} align="center">
+      <FlexRow gap={1} align="center">
         <span
           css={{
             fontSize: theme.typography.caption.fontSize,
@@ -1735,7 +1754,7 @@ const EffectCard: React.FC<EffectCardProps> = memo(
               size="small"
             />
           </FlexRow>
-          <FlexRow gap={0.25}>
+          <FlexRow gap={0.5}>
             <Tooltip title="Remove effect">
               <button
                 type="button"

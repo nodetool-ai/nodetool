@@ -33,10 +33,12 @@ import {
 type JsonObject = Record<string, unknown>;
 import { uiToolSchemas } from "@nodetool-ai/protocol";
 import {
+  hydrateGraphNodeFlags,
   NodeRegistry,
   rankNodeMetadata,
   type NodeMetadata
 } from "@nodetool-ai/node-sdk";
+import type { GraphData } from "@nodetool-ai/protocol";
 import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   PythonNodeExecutor,
@@ -446,7 +448,10 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
         });
         const result = await runner.run(
           { job_id: job.id, workflow_id, params },
-          runnableGraph
+          hydrateGraphNodeFlags(
+            runnableGraph as unknown as GraphData,
+            runtime.registry
+          )
         );
 
         if (result.status === "completed") {

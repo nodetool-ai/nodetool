@@ -49,6 +49,7 @@ import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
 import { isValidEdge, sanitizeGraph } from "../core/workflow/graphMapping";
 import { GROUP_NODE_TYPE } from "../utils/nodeUtils";
 import { PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
+import { BESPOKE_DEFAULT_HEIGHTS } from "../components/node_types/editing/bespokeRegistry";
 import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
 import { reactFlowNodeChromeClassName } from "../utils/reactFlowNodeChromeClassName";
@@ -546,8 +547,26 @@ export const createNodeStore = (
             }
           },
           onEdgeUpdate: (oldEdge: Edge, newConnection: Connection): void => {
+            // A reconnect onto a handle was attempted — mark it successful
+            // immediately (canonical xyflow pattern) so onEdgeUpdateEnd never
+            // deletes the edge. If validation fails below, the original edge
+            // is left unchanged.
+            get().setEdgeUpdateSuccessful(true);
             const edge = get().edges.find((e) => e.id === oldEdge.id);
             if (edge) {
+              const isUnchanged =
+                edge.source === newConnection.source &&
+                edge.target === newConnection.target &&
+                (edge.sourceHandle ?? null) ===
+                  (newConnection.sourceHandle ?? null) &&
+                (edge.targetHandle ?? null) ===
+                  (newConnection.targetHandle ?? null);
+              if (isUnchanged) {
+                // Dropped back on the original handle — successful no-op.
+                // (validateConnection would reject it as a duplicate since
+                // the dragged edge itself is still in the edges array.)
+                return;
+              }
               const srcNode = get().findNode(newConnection.source);
               const targetNode = get().findNode(newConnection.target);
               if (
@@ -703,9 +722,14 @@ export const createNodeStore = (
               console.warn(`Node with id ${node.id} already exists`);
               return;
             }
-            node.expandParent = true;
-            node.data.workflow_id = get().workflow.id;
-            set({ nodes: [...get().nodes, syncReactFlowNodeChromeClass(node)] });
+            const newNode = {
+              ...node,
+              expandParent: true,
+              data: { ...node.data, workflow_id: get().workflow.id }
+            };
+            set({
+              nodes: [...get().nodes, syncReactFlowNodeChromeClass(newNode)]
+            });
             get().setWorkflowDirty(true);
           },
           updateNode: (
@@ -780,6 +804,7 @@ export const createNodeStore = (
               };
               return { ...state, nodes };
             });
+            get().setWorkflowDirty(true);
           },
           updateNodeProperties: (
             id: string,
@@ -827,15 +852,10 @@ export const createNodeStore = (
               return;
             }
 
-            const focusedElement = document.activeElement;
-            if (
-              focusedElement instanceof HTMLElement &&
-              (focusedElement.classList.contains("MuiInput-input") ||
-                focusedElement.tagName === "TEXTAREA")
-            ) {
-              return;
-            }
-
+            // Note: the Delete/Backspace-while-typing guard lives in the
+            // keyboard layer (KeyPressedStore suppresses those combos when an
+            // editable element is focused), so programmatic callers (ui tools,
+            // context menus, grouping) always work here.
             const foundIdSet = new Set(foundIds);
             const nodes: Node<NodeData>[] = [];
 
@@ -1034,7 +1054,10 @@ export const createNodeStore = (
               layoutedNodes.map((n) => [n.id, n])
             );
 
-            const updatedNodes = allNodes.map((node) => {
+            // Re-read nodes after the await: merge only layout-computed
+            // positions into the current state so concurrent edits (added,
+            // removed, or changed nodes) are preserved.
+            const updatedNodes = get().nodes.map((node) => {
               const layoutedNode = layoutedNodeMap.get(node.id);
               if (layoutedNode) {
                 return {
@@ -1260,6 +1283,11 @@ export const createNodeStore = (
               defaultStyle = { width: 320, height: 320 };
             } else if (isAgentStyle) {
               defaultStyle = { width: DEFAULT_NODE_WIDTH };
+            } else if (metadata.node_type in BESPOKE_DEFAULT_HEIGHTS) {
+              defaultStyle = {
+                width: DEFAULT_NODE_WIDTH,
+                height: BESPOKE_DEFAULT_HEIGHTS[metadata.node_type]
+              };
             } else if (isContentCard) {
               defaultStyle = getContentCardDefaultSize(metadata);
             } else {

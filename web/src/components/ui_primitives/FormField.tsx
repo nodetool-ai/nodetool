@@ -86,7 +86,7 @@ export const FormField: React.FC<FormFieldProps> = ({
         <Typography
           component="label"
           sx={{
-            fontSize: compact ? theme.fontSizeTiny : theme.fontSizeSmall,
+            fontSize: compact ? theme.fontSizeSmaller : theme.fontSizeSmall,
             fontWeight: 500,
             color: error
               ? theme.vars.palette.error.main
@@ -114,7 +114,7 @@ export const FormField: React.FC<FormFieldProps> = ({
         {bottomText && (
           <Typography
             sx={{
-              fontSize: theme.fontSizeTinyer || "0.7rem",
+              fontSize: theme.fontSizeSmaller,
               color: error
                 ? theme.vars.palette.error.main
                 : theme.vars.palette.text.secondary,

@@ -213,9 +213,10 @@ describe("Edge counter lifecycle (T-K-15)", () => {
       { nodes, edges }
     );
 
-    // Actor errors are caught and returned; the runner still completes.
-    // _drainActiveEdges is called post-completion regardless.
-    expect(result.status).toBe("completed");
+    // Actor errors are caught so sibling branches can finish, but the run
+    // reports failed. _drainActiveEdges is called post-completion regardless.
+    expect(result.status).toBe("failed");
+    expect(result.error).toMatch(/deliberate test error/);
 
     // There should be at least one edge_update for e1 (from input dispatch)
     const edgeUpdates = result.messages.filter((m) => m.type === "edge_update");

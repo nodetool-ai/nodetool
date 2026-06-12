@@ -16,13 +16,32 @@ function asColor(value: unknown, fallback: string): string {
   return fallback;
 }
 
+function escapeXmlText(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+function escapeXmlAttribute(value: string): string {
+  return escapeXmlText(value).replaceAll('"', "&quot;");
+}
+
+// Counter for element ids (filters, gradients, clip paths) so multiple
+// instances in one document don't collide.
+let svgIdCounter = 0;
+function nextSvgId(prefix: string): string {
+  svgIdCounter += 1;
+  return `${prefix}_${svgIdCounter}`;
+}
+
 function elementToString(el: SvgElementLike): string {
   const attrs = Object.entries(el.attributes ?? {})
-    .map(([k, v]) => `${k}="${String(v).replaceAll('"', "&quot;")}"`)
+    .map(([k, v]) => `${k}="${escapeXmlAttribute(String(v))}"`)
     .join(" ");
   const open = attrs ? `<${el.name} ${attrs}>` : `<${el.name}>`;
   const children = (el.children ?? []).map(elementToString).join("");
-  const content = el.content ?? "";
+  const content = escapeXmlText(el.content ?? "");
   return `${open}${content}${children}</${el.name}>`;
 }
 
@@ -583,7 +602,7 @@ export class GaussianBlurLibNode extends BaseNode {
     return {
       output: {
         name: "filter",
-        attributes: { id: "filter_gaussian_blur" },
+        attributes: { id: nextSvgId("filter_gaussian_blur") },
         children: [
           {
             name: "feGaussianBlur",
@@ -645,7 +664,7 @@ export class DropShadowLibNode extends BaseNode {
     return {
       output: {
         name: "filter",
-        attributes: { id: "filter_drop_shadow" },
+        attributes: { id: nextSvgId("filter_drop_shadow") },
         children: [
           {
             name: "feGaussianBlur",
@@ -894,7 +913,9 @@ export class GradientLibNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const gradientType = String(this.gradient_type ?? "linearGradient");
-    const attrs: Record<string, string> = { id: `gradient_${gradientType}` };
+    const attrs: Record<string, string> = {
+      id: nextSvgId(`gradient_${gradientType}`)
+    };
     if (gradientType === "linearGradient") {
       attrs.x1 = `${String(this.x1 ?? 0)}%`;
       attrs.y1 = `${String(this.y1 ?? 0)}%`;
@@ -1065,7 +1086,7 @@ export class ClipPathLibNode extends BaseNode {
     if (!clipContent || !content || !clipContent.name || !content.name) {
       return { output: { name: "g", attributes: {}, children: [] } };
     }
-    const clipId = `clip_path_${Date.now()}`;
+    const clipId = nextSvgId("clip_path");
     content.attributes = {
       ...(content.attributes ?? {}),
       "clip-path": `url(#${clipId})`

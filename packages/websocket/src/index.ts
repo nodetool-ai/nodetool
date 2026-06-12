@@ -31,6 +31,12 @@ export {
   type McpServerOptions
 } from "./mcp-server.js";
 export {
+  extensionBridge,
+  ExtensionBridge,
+  type ExtensionChannel,
+  type ExtensionSocket
+} from "./extension-cdp-bridge.js";
+export {
   materializeWorkflowConstantAssets,
   collectWorkflowAssets,
   transformMediaRefs,

@@ -34,8 +34,11 @@ import type {
 } from "@nodetool-ai/models";
 import { PythonNodeExecutor } from "@nodetool-ai/runtime";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
-import type { NodeDescriptor } from "@nodetool-ai/protocol";
-import { loadPythonPackageMetadata } from "@nodetool-ai/node-sdk";
+import type { GraphData, NodeDescriptor } from "@nodetool-ai/protocol";
+import {
+  hydrateGraphNodeFlags,
+  loadPythonPackageMetadata
+} from "@nodetool-ai/node-sdk";
 import { createLogger } from "@nodetool-ai/config";
 import {
   loadExampleGraph,
@@ -652,7 +655,7 @@ export const workflowsRouter = router({
       const runner = new WorkflowRunner(job.id, { resolveExecutor });
       const result = await runner.run(
         { job_id: job.id, workflow_id: input.id, params },
-        runnableGraph
+        hydrateGraphNodeFlags(runnableGraph as unknown as GraphData, registry)
       );
 
       if (result.status === "completed") {

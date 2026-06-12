@@ -32,9 +32,58 @@ import { queryClient } from "../queryClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import { preloadBrowserRunner } from "../lib/workflow/browserWorkflowRunner";
 import useExecutionTimeStore from "./ExecutionTimeStore";
+import { isSilentJob } from "./previewJobs";
+import { useWorkflowAssetStore } from "./WorkflowAssetStore";
 import { NodeStore } from "./NodeStore";
 import { DYNAMIC_KIE_NODE_TYPE } from "../components/node/DynamicKieSchemaNode";
 import { normalizeOutputUpdateValue } from "./outputUpdateValue";
+import { publishRealtimeAudioChunk } from "../lib/audio/realtimeAudioChunkBus";
+
+/**
+ * Pending audio-chunk store appends, coalesced per node and flushed on a
+ * timer. Realtime streams append ~50 chunks/s per node; landing each one as
+ * its own ResultsStore set means one array copy + full subscriber sweep per
+ * chunk. Playback latency is unaffected — the chunk bus above delivers to
+ * the worklet immediately; the store buffer only serves mount/replay/restart,
+ * which tolerate a flush interval.
+ */
+const AUDIO_APPEND_FLUSH_MS = 200;
+const pendingAudioAppends = new Map<
+  string,
+  { workflowId: string; jobId: string; nodeId: string; chunks: unknown[] }
+>();
+let audioAppendFlushTimer: ReturnType<typeof setTimeout> | null = null;
+
+const flushAudioAppends = (): void => {
+  if (audioAppendFlushTimer !== null) {
+    clearTimeout(audioAppendFlushTimer);
+    audioAppendFlushTimer = null;
+  }
+  if (pendingAudioAppends.size === 0) return;
+  const appendOutputResults = useResultsStore.getState().appendOutputResults;
+  for (const { workflowId, jobId, nodeId, chunks } of pendingAudioAppends.values()) {
+    appendOutputResults(workflowId, jobId, nodeId, chunks);
+  }
+  pendingAudioAppends.clear();
+};
+
+const queueAudioAppend = (
+  workflowId: string,
+  jobId: string,
+  nodeId: string,
+  chunk: unknown
+): void => {
+  const key = `${workflowId}:${jobId}:${nodeId}`;
+  const pending = pendingAudioAppends.get(key);
+  if (pending) {
+    pending.chunks.push(chunk);
+  } else {
+    pendingAudioAppends.set(key, { workflowId, jobId, nodeId, chunks: [chunk] });
+  }
+  if (audioAppendFlushTimer === null) {
+    audioAppendFlushTimer = setTimeout(flushAudioAppends, AUDIO_APPEND_FLUSH_MS);
+  }
+};
 
 export type { NodeStore };
 
@@ -69,10 +118,13 @@ type WorkflowSubscription = {
 
 const workflowSubscriptions = new Map<string, WorkflowSubscription>();
 
-// The job_id whose run is currently being recorded into the TraceStore. Used to
-// call startRun() exactly once per run (startRun clears prior events), so the
-// trace panel shows a fresh timeline per execution rather than accumulating.
-let traceRunJobId: string | null = null;
+// Per-workflow job_id whose run is currently being recorded into the
+// TraceStore. Used to call startRun() exactly once per run (startRun clears
+// prior events), so the trace panel shows a fresh timeline per execution
+// rather than accumulating. Keyed by workflow id so concurrent runs of
+// different workflows don't ping-pong a shared id and repeatedly wipe the
+// trace timeline.
+const traceRunJobIds = new Map<string, string | null>();
 
 /**
  * Append one event to the global TraceStore (the LLM/agent debug timeline shown
@@ -229,6 +281,7 @@ export const subscribeToWorkflowUpdates = (
         unsubscribeJob = null;
       }
       workflowSubscriptions.delete(workflowId);
+      traceRunJobIds.delete(workflowId);
     }
   });
 
@@ -328,7 +381,9 @@ export const handleUpdate = (
     if (
       currentState !== "cancelled" &&
       currentState !== "error" &&
-      messageJobId
+      messageJobId &&
+      // Silent preview jobs don't animate edges (scrub-frame noise).
+      !isSilentJob(messageJobId)
     ) {
       setEdge(
         workflow.id,
@@ -396,42 +451,87 @@ export const handleUpdate = (
 
   if (data.type === "output_update") {
     const normalizedValue = normalizeOutputUpdateValue(data);
+
+    // Realtime audio streams emit ~50 chunks/s per node; logging/tracing each
+    // one would copy the (capped) log array per chunk for entries nobody
+    // reads. Skip audio chunks entirely.
+    const isAudioChunk =
+      typeof normalizedValue === "object" &&
+      normalizedValue !== null &&
+      (normalizedValue as { type?: unknown }).type === "chunk" &&
+      (normalizedValue as { content_type?: unknown }).content_type === "audio";
+
     // output_update feeds the output-node stream buffer only. It does NOT
     // create or modify a live generation — generations are driven solely by
-    // node_update (see the live-generations branch below).
+    // node_update (see the live-generations branch below). Audio chunks are
+    // coalesced and flushed on a timer; everything else lands immediately.
     if (messageJobId) {
-      setOutputResult(workflow.id, messageJobId, data.node_id, normalizedValue, true);
+      if (isAudioChunk) {
+        queueAudioAppend(workflow.id, messageJobId, data.node_id, normalizedValue);
+      } else {
+        setOutputResult(workflow.id, messageJobId, data.node_id, normalizedValue, true);
+      }
     }
 
-    appendLog({
-      workflowId: workflow.id,
-      workflowName: workflow.name,
-      nodeId: data.node_id,
-      nodeName: data.node_name,
-      content: `Output: ${typeof normalizedValue === "string"
-          ? normalizedValue
-          : JSON.stringify(normalizedValue)
-        }`,
-      severity: "info",
-      timestamp: Date.now()
-    });
+    if (isAudioChunk && data.node_id) {
+      // React-free fast path to the playback worklet: deliver in this task,
+      // not after the store→render→effect round trip. Same object identity
+      // as the store append above, so playback dedupes the two paths.
+      publishRealtimeAudioChunk(data.node_id, normalizedValue as Chunk);
+    }
 
-    appendTrace(
-      "output",
-      `${data.node_name || data.node_id} → ${data.output_name}`,
-      data,
-      { nodeId: data.node_id, nodeName: data.node_name }
-    );
+    if (!isAudioChunk) {
+      appendLog({
+        workflowId: workflow.id,
+        workflowName: workflow.name,
+        nodeId: data.node_id,
+        nodeName: data.node_name,
+        content: `Output: ${typeof normalizedValue === "string"
+            ? normalizedValue
+            : JSON.stringify(normalizedValue)
+          }`,
+        severity: "info",
+        timestamp: Date.now()
+      });
+
+      appendTrace(
+        "output",
+        `${data.node_name || data.node_id} → ${data.output_name}`,
+        data,
+        { nodeId: data.node_id, nodeName: data.node_name }
+      );
+    }
   }
 
   if (data.type === "chunk") {
-    if (data.node_id && data.content && messageJobId) {
+    // Binary (audio) chunk payloads don't belong in the text-chunk channel.
+    if (
+      data.node_id &&
+      typeof data.content === "string" &&
+      data.content &&
+      messageJobId
+    ) {
       addChunk(workflow.id, messageJobId, data.node_id, data.content);
     }
   }
   if (data.type === "job_update") {
     const job = data;
+    // Live-preview scrub jobs must never touch the runner state, queue or job
+    // list — they'd hijack the Stop button (the runner is idle during a scrub,
+    // so they'd otherwise match the "fresh run" branch below) and refetch the
+    // job list on every frame.
+    const silentJob = isSilentJob(job.job_id);
     const runnerJobId = runnerStore.getState().job_id;
+    // Land any coalesced audio-chunk appends before the run's terminal state
+    // is processed, so the buffer holds the complete stream (incl. the done
+    // marker) the moment the job ends.
+    if (
+      ["completed", "failed", "cancelled", "error", "timed_out"].includes(
+        String(job.status)
+      )
+    ) {
+      flushAudioAppends();
+    }
     // The per-workflow runner represents the single full run. Concurrent
     // inline/per-node jobs share this workflow_id but have their own job_id, so
     // only updates for the runner's OWN job (or a fresh run when the runner is
@@ -441,10 +541,11 @@ export const handleUpdate = (
     // tracks every job.
     const runnerState = runnerStore.getState().state;
     const isRunnerJob =
-      !job.job_id ||
-      job.job_id === runnerJobId ||
-      (runnerJobId === null &&
-        (runnerState === "idle" || runnerState === "connecting"));
+      !silentJob &&
+      (!job.job_id ||
+        job.job_id === runnerJobId ||
+        (runnerJobId === null &&
+          (runnerState === "idle" || runnerState === "connecting")));
 
     // Whether this run was sitting in the backend's concurrency queue, so we
     // can clear the "Queued…" status once it actually starts running.
@@ -472,8 +573,12 @@ export const handleUpdate = (
       // Begin a fresh LLM/agent trace timeline for the runner's own run. Guarded
       // by job_id so startRun (which clears prior events) fires once per run, not
       // on every running/queued heartbeat.
-      if (isRunnerJob && job.job_id !== traceRunJobId) {
-        traceRunJobId = job.job_id ?? null;
+      const incomingTraceJobId = job.job_id ?? null;
+      if (
+        isRunnerJob &&
+        incomingTraceJobId !== traceRunJobIds.get(workflow.id)
+      ) {
+        traceRunJobIds.set(workflow.id, incomingTraceJobId);
         useTraceStore.getState().startRun(new Date().toISOString());
       }
     } else if (job.status === "suspended") {
@@ -537,23 +642,36 @@ export const handleUpdate = (
 
     // Refresh the Queue panel when a job moves between lifecycle columns.
     // These are per-job (not per-node) updates, so the frequency is low.
+    // Silent preview jobs are skipped — they'd refetch on every scrub frame.
     if (
-      job.status === "queued" ||
-      job.status === "running" ||
-      job.status === "completed" ||
-      job.status === "cancelled" ||
-      job.status === "failed" ||
-      job.status === "suspended" ||
-      job.status === "paused"
+      !silentJob &&
+      (job.status === "queued" ||
+        job.status === "running" ||
+        job.status === "completed" ||
+        job.status === "cancelled" ||
+        job.status === "failed" ||
+        job.status === "suspended" ||
+        job.status === "paused")
     ) {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
     }
 
     // Generative nodes auto-save outputs to assets on completion; refresh
     // the per-node asset cache so history badges/panels update without
-    // waiting for staleTime to elapse.
-    if (job.status === "completed") {
+    // waiting for staleTime to elapse. (Preview runs persist nothing.)
+    if (job.status === "completed" && !silentJob) {
       queryClient.invalidateQueries({ queryKey: ["assets"] });
+      // The generation timeline (useNodeGenerations) reads persisted assets
+      // from WorkflowAssetStore, which is otherwise only loaded when the
+      // workflow is fetched. Reload it so the finished run's live generation
+      // is superseded by its persisted asset — download / open-in-viewer in
+      // NodeHistoryViewer need the full Asset to enable.
+      useWorkflowAssetStore
+        .getState()
+        .loadWorkflowAssets(workflow.id)
+        .catch(() => {
+          // already logged inside loadWorkflowAssets
+        });
     }
 
     switch (job.status) {
@@ -571,8 +689,17 @@ export const handleUpdate = (
           alert: true,
           content: "Job cancelled"
         });
-        // Keep this run's per-job slice (see "completed"): broad clears here
-        // would erase a concurrent sibling.
+        // Keep this run's per-job results slice (see "completed"): broad
+        // clears here would erase a concurrent sibling. But do stop the
+        // run's transient visuals — node/edge updates are dropped once the
+        // runner state is "cancelled", so without this job-scoped clear the
+        // "running" borders and edge animations would persist forever.
+        if (job.job_id) {
+          useStatusStore.getState().clearJobStatuses(workflow.id, job.job_id);
+          useResultsStore
+            .getState()
+            .clearJobRunVisuals(workflow.id, job.job_id);
+        }
         break;
       case "failed":
       case "timed_out": {
@@ -743,12 +870,19 @@ export const handleUpdate = (
         }
       );
     } else {
-      runnerStore.setState({
-        statusMessage: `${update.node_name} ${update.status}`
-      });
+      // Intentionally no per-node status text: a "<node> running/completed"
+      // line on every node_update is pure churn (and a constant flicker during
+      // live slider scrubs). Job-level statusMessages (starting / queued /
+      // suspended) still drive the canvas StatusMessage.
+
+      // Silent live-preview jobs (slider scrubs) only refresh the picture —
+      // recording per-node status / timing / cost would flash the running
+      // ring, "Completed in …" badge and ambient-liveness ring on every frame.
+      // The live-generation upsert below still runs, so the image updates.
+      const silent = isSilentJob(jobId);
 
       // Track execution timing (per job)
-      if (jobId) {
+      if (jobId && !silent) {
         const previousStatus = getStatus(workflow.id, jobId, update.node_id);
         const isStarting =
           update.status === "running" ||
@@ -781,7 +915,7 @@ export const handleUpdate = (
         setStatus(workflow.id, jobId, update.node_id, update.status);
       }
 
-      if (update.provider_cost && jobId) {
+      if (update.provider_cost && jobId && !silent) {
         setProviderCost(
           workflow.id,
           jobId,

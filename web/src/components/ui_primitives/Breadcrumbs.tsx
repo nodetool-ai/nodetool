@@ -3,17 +3,18 @@ import React, { memo, useCallback } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { 
-  Breadcrumbs as MuiBreadcrumbs, 
-  Link, 
+import {
+  Breadcrumbs as MuiBreadcrumbs,
+  Link,
   Typography,
-  Tooltip 
+  Tooltip
 } from "@mui/material";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import HomeIcon from "@mui/icons-material/Home";
 import FolderIcon from "@mui/icons-material/Folder";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { MOTION } from "./tokens";
 
 export interface BreadcrumbItem {
   /** Label to display */
@@ -50,10 +51,10 @@ const styles = (theme: Theme) => css`
     gap: 4px;
     color: ${theme.vars.palette.text.secondary};
     text-decoration: none;
-    font-size: 14px;
+    font-size: var(--fontSizeSmall);
     padding: 4px 8px;
     border-radius: 4px;
-    transition: all 0.2s ease;
+    transition: ${MOTION.all};
     cursor: pointer;
     
     &:hover {
@@ -71,7 +72,7 @@ const styles = (theme: Theme) => css`
     align-items: center;
     gap: 4px;
     color: ${theme.vars.palette.text.primary};
-    font-size: 14px;
+    font-size: var(--fontSizeSmall);
     font-weight: 500;
     padding: 4px 8px;
     

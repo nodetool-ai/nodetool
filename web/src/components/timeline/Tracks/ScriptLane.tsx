@@ -13,6 +13,7 @@
 import React, { useMemo } from "react";
 import { styled } from "@mui/material/styles";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
+import { MOTION } from "../../ui_primitives";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
@@ -53,7 +54,7 @@ const PhraseChip = styled("button")(({ theme }) => ({
   overflow: "hidden",
   cursor: "pointer",
   textAlign: "left",
-  transition: "background-color 80ms ease, border-color 80ms ease",
+  transition: `background-color ${MOTION.fast}, border-color ${MOTION.fast}`,
   // The word spans live inside one inline text box so inter-word spaces are
   // preserved (a flex container would otherwise strip whitespace between the
   // per-word flex items, running the text together).
@@ -121,9 +122,7 @@ export const ScriptLaneHeader: React.FC = () => (
 
 // ── Lane (for the scrollable lanes area) ──────────────────────────────────────
 
-export const ScriptLane: React.FC<{ totalWidthPx: number }> = ({
-  totalWidthPx
-}) => {
+export const ScriptLane: React.FC = () => {
   const clips = useTimelineStore((s) => s.clips);
   const msPerPx = useTimelineUIStore((s) => s.msPerPx);
   const selectedClipIds = useTimelineUIStore((s) => s.selectedClipIds);
@@ -137,7 +136,7 @@ export const ScriptLane: React.FC<{ totalWidthPx: number }> = ({
   );
 
   return (
-    <LaneRoot style={{ width: totalWidthPx }} data-testid="script-lane">
+    <LaneRoot style={{ width: "100%" }} data-testid="script-lane">
       {segments.map((seg, i) => {
         const prev = segments[i - 1];
         const gapMs = prev ? seg.startMs - prev.endMs : 0;

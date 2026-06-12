@@ -124,8 +124,7 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = memo(
     };
 
     const handleSave = useCallback(async () => {
-      const result = await saveWorkflow();
-      // No alert — the save button briefly changes to indicate success
+      await saveWorkflow();
     }, [saveWorkflow]);
 
     const handleRun = useCallback(async () => {

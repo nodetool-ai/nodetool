@@ -3,18 +3,23 @@
  *
  * Subscribes to the document slice of `TimelineStore` and PATCHes the
  * persisted sequence via `trpc.timeline.update` whenever the user mutates
- * tracks / clips / markers / durationMs.
+ * tracks / clips / markers / transcript.
  *
  * Robustness:
  *   - Debounces saves so a burst of edits coalesces into one PATCH.
  *   - Single-flight: while a save is in flight, additional edits accumulate
  *     in `pendingRef` and a follow-up save fires once the in-flight one
  *     resolves.
- *   - Optimistic concurrency: sends `baseUpdatedAt` (sourced from the
- *     TimelineStore) so the server can reject stale writes; rolls it
- *     forward from each successful response.
- *   - Failures surface a deduped notification and leave `pendingRef`
- *     intact so the next edit retries automatically.
+ *   - Optimistic concurrency: sends `baseUpdatedAt` (read from the
+ *     TimelineStore at SEND time, so an edit captured during an in-flight
+ *     save can't self-conflict with that save's own response token) and
+ *     rolls it forward from each successful response — but only while the
+ *     store still holds the saved sequence.
+ *   - Failures surface a deduped notification and restore the snapshot to
+ *     `pendingRef` so the next edit or the unmount flush retries.
+ *   - Loading a sequence re-baselines the subscriber instead of scheduling a
+ *     save; the one exception is a load that migrated a legacy transcript,
+ *     which is persisted once (see `markTimelineLoadMigrated`).
  *   - Pending edits are flushed on unmount.
  */
 import { useEffect, useRef } from "react";
@@ -34,18 +39,36 @@ interface DocumentSnapshot {
   clips: TimelineStoreState["clips"];
   markers: TimelineStoreState["markers"];
   transcript: TimelineStoreState["transcript"];
-  durationMs: number;
 }
 
+// `durationMs` is intentionally NOT tracked: the PATCH schema has no
+// durationMs field, so treating it as a dirty-trigger would schedule saves
+// that can never persist it. It is recomputed client-side from the clips.
 const pickSnapshot = (state: TimelineStoreState): DocumentSnapshot => ({
   sequenceId: state.sequenceId,
   baseUpdatedAt: state.baseUpdatedAt,
   tracks: state.tracks,
   clips: state.clips,
   markers: state.markers,
-  transcript: state.transcript,
-  durationMs: state.durationMs
+  transcript: state.transcript
 });
+
+// Sequence ids whose load migrated a legacy transcript onto clips. The
+// migrated document differs from what the server holds, so it must be
+// persisted once even though a plain load is not an edit.
+const migratedLoads = new Set<string>();
+
+/**
+ * Called by `useLoadTimelineIntoStore` just before `loadSequence` when the
+ * fetched document carries a legacy `TranscriptLine[]` transcript that the
+ * load folds onto clips. Autosave then persists that one load.
+ */
+export function markTimelineLoadMigrated(sequenceId: string): void {
+  migratedLoads.add(sequenceId);
+}
+
+const consumeMigratedLoad = (sequenceId: string): boolean =>
+  migratedLoads.delete(sequenceId);
 
 export interface UseTimelineAutosaveOptions {
   debounceMs?: number;
@@ -72,10 +95,21 @@ export function useTimelineAutosave(
     const runSave = async (snapshot: DocumentSnapshot) => {
       if (!snapshot.sequenceId) return;
       inFlightRef.current = true;
+      let succeeded = false;
       try {
+        // Read the concurrency token at send time: a snapshot captured while
+        // a previous save was in flight still carries that save's
+        // pre-response token and would 409 against our own write. Fall back
+        // to the snapshot token if the store has since loaded a different
+        // sequence (its live token belongs to the new one).
+        const live = store.getState();
+        const baseUpdatedAt =
+          live.sequenceId === snapshot.sequenceId
+            ? live.baseUpdatedAt
+            : snapshot.baseUpdatedAt;
         const response = await trpcClient.timeline.update.mutate({
           id: snapshot.sequenceId,
-          baseUpdatedAt: snapshot.baseUpdatedAt ?? undefined,
+          baseUpdatedAt: baseUpdatedAt ?? undefined,
           document: {
             tracks: snapshot.tracks,
             clips: snapshot.clips,
@@ -85,9 +119,15 @@ export function useTimelineAutosave(
         });
         const updatedAt = (response as { updatedAt?: unknown } | undefined)
           ?.updatedAt;
-        if (typeof updatedAt === "string") {
+        // Only roll the token forward while the store still holds the saved
+        // sequence — otherwise we'd poison a newly loaded sequence's token.
+        if (
+          typeof updatedAt === "string" &&
+          store.getState().sequenceId === snapshot.sequenceId
+        ) {
           store.getState().setBaseUpdatedAt(updatedAt);
         }
+        succeeded = true;
       } catch (error) {
         console.error("Timeline autosave failed:", error);
         useNotificationStore.getState().addNotification({
@@ -98,10 +138,20 @@ export function useTimelineAutosave(
           dedupeKey: "timeline-autosave-failed",
           replaceExisting: true
         });
-        // Leave pendingRef intact so the next edit triggers a retry.
+        // Restore the snapshot (unless a newer edit replaced it) so the next
+        // edit or the unmount flush retries the save.
+        if (!pendingRef.current) {
+          pendingRef.current = snapshot;
+        }
       } finally {
         inFlightRef.current = false;
-        if (pendingRef.current) {
+        // Follow up on a pending snapshot — but not the failed one we just
+        // restored, which would otherwise retry in a hot loop. It waits for
+        // the next edit or the unmount flush instead.
+        if (
+          pendingRef.current &&
+          (succeeded || pendingRef.current !== snapshot)
+        ) {
           if (flushImmediatelyOnComplete) {
             flush();
           } else {
@@ -134,12 +184,22 @@ export function useTimelineAutosave(
     // Skip subscriber updates that don't change persisted document fields.
     // Otherwise the server's `setBaseUpdatedAt` write after each save loops
     // back into the subscriber and triggers an infinite save→response cycle.
-    let lastSequenceId: string | null = null;
-    let lastTracks: TimelineStoreState["tracks"] | null = null;
-    let lastClips: TimelineStoreState["clips"] | null = null;
-    let lastMarkers: TimelineStoreState["markers"] | null = null;
-    let lastTranscript: TimelineStoreState["transcript"] | null = null;
-    let lastDurationMs: number | null = null;
+    // Baseline from the current state so a remount mid-session doesn't
+    // mistake the next edit for a sequence load.
+    const initial = store.getState();
+    let lastSequenceId: string | null = initial.sequenceId;
+    let lastTracks: TimelineStoreState["tracks"] | null = initial.tracks;
+    let lastClips: TimelineStoreState["clips"] | null = initial.clips;
+    let lastMarkers: TimelineStoreState["markers"] | null = initial.markers;
+    let lastTranscript: TimelineStoreState["transcript"] | null =
+      initial.transcript;
+
+    // A sequence loaded before this hook subscribed may still owe its
+    // one-time migration save.
+    if (initial.sequenceId && consumeMigratedLoad(initial.sequenceId)) {
+      pendingRef.current = pickSnapshot(initial);
+      schedule();
+    }
 
     const unsubscribe = store.subscribe((state) => {
       if (!state.sequenceId) return;
@@ -148,15 +208,19 @@ export function useTimelineAutosave(
         state.tracks === lastTracks &&
         state.clips === lastClips &&
         state.markers === lastMarkers &&
-        state.transcript === lastTranscript &&
-        state.durationMs === lastDurationMs;
+        state.transcript === lastTranscript;
       if (docUnchanged) return;
+      const isLoad = state.sequenceId !== lastSequenceId;
       lastSequenceId = state.sequenceId;
       lastTracks = state.tracks;
       lastClips = state.clips;
       lastMarkers = state.markers;
       lastTranscript = state.transcript;
-      lastDurationMs = state.durationMs;
+      if (isLoad && !consumeMigratedLoad(state.sequenceId)) {
+        // Loading a sequence is not an edit: re-baseline without scheduling
+        // a redundant PATCH of the document we just fetched.
+        return;
+      }
       pendingRef.current = pickSnapshot(state);
       schedule();
     });

@@ -7,6 +7,7 @@ import { IconButton, Tooltip, Switch, Box, Typography } from "@mui/material";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
+import { MOTION } from "./tokens";
 
 const styles = (theme: Theme) =>
   css({
@@ -14,7 +15,7 @@ const styles = (theme: Theme) =>
     alignItems: "center",
     ".theme-button": {
       color: theme.vars.palette.text.primary,
-      transition: "transform 0.3s ease",
+      transition: `transform ${MOTION.slow}`,
       "&:hover": {
         transform: "rotate(20deg)"
       }

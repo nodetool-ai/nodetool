@@ -45,15 +45,90 @@ const NODE_BUILTIN_STUBS: Record<string, string> = {
   "node:module": `${NODE_STUBS}/empty.js`
 };
 
+// Same stubs keyed by the bare specifier (no `node:`). Third-party deps in the
+// browser-runner graph (e.g. `dotenv` → `fs`/`path`/`crypto`/`os`) import the
+// un-prefixed names. The main app bundle externalizes these (a browser-compat
+// warning), but a Web Worker bundle can't carry external imports, so the worker
+// must stub them — see the `worker` config block.
+const BARE_BUILTIN_STUBS: Record<string, string> = Object.fromEntries(
+  Object.entries(NODE_BUILTIN_STUBS).map(([key, stub]) => [
+    key.replace(/^node:/, ""),
+    stub
+  ])
+);
+
 // Vite's `resolve.alias` doesn't intercept the `node:` protocol — these imports
 // bypass the alias plugin and hit the default resolver. Catch them in a `pre`
-// resolveId hook before any other plugin runs.
-function stubNodeProtocolPlugin(): Plugin {
+// resolveId hook before any other plugin runs. `includeBare` additionally stubs
+// the un-prefixed builtin names (needed only for the self-contained worker
+// bundle, where externalizing a builtin is a hard error).
+function stubNodeProtocolPlugin(includeBare = false): Plugin {
   return {
     name: "stub-node-protocol",
     enforce: "pre",
     resolveId(source) {
-      return NODE_BUILTIN_STUBS[source] ?? null;
+      return (
+        NODE_BUILTIN_STUBS[source] ??
+        (includeBare ? BARE_BUILTIN_STUBS[source] : undefined) ??
+        null
+      );
+    }
+  };
+}
+
+// Worker-only telemetry cuts. The browser-runner worker never exports traces,
+// but the kernel/runtime statically reach OpenTelemetry: the kernel imports
+// `@nodetool-ai/runtime/tracing` (→ a no-op stub here), and `telemetry.js`
+// lazy-loads the OTel Node SDK + OTLP/gRPC exporters — server-only packages that
+// pull node builtins (`stream`, `http2`, gRPC) a worker can't carry. Those run
+// only inside `initTelemetry()` (never in the browser), so empty them; the API
+// surface the worker actually uses (`@opentelemetry/api`, `core`,
+// `sdk-trace-base`) is browser-safe and left intact.
+function stubServerTelemetryPlugin(): Plugin {
+  const EMPTY = `${NODE_STUBS}/empty.js`;
+  return {
+    name: "stub-server-telemetry",
+    enforce: "pre",
+    resolveId(source) {
+      if (source === "@nodetool-ai/runtime/tracing") {
+        return `${NODE_STUBS}/tracing-stub.js`;
+      }
+      if (
+        source.startsWith("@grpc/") ||
+        source.startsWith("@opentelemetry/sdk-node") ||
+        source.startsWith("@opentelemetry/exporter-") ||
+        source.startsWith("@opentelemetry/otlp-")
+      ) {
+        return EMPTY;
+      }
+      return null;
+    }
+  };
+}
+
+// Cross-origin isolation for the perf harness page only. crossOriginIsolated
+// unlocks performance.measureUserAgentSpecificMemory(), which attributes JS
+// heap to every realm in the agent cluster — including the browser-runner
+// Web Worker, whose memory is otherwise unreadable (dedicated workers expose
+// no performance.memory). Scoped to /perf-realtime so the app keeps its
+// normal embedding behavior.
+function perfPageIsolationPlugin(): Plugin {
+  return {
+    name: "perf-page-isolation",
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const url = req.url ?? "";
+        if (url.startsWith("/perf-realtime")) {
+          res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+          res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+        } else if (url.includes("browserRunner.worker")) {
+          // A require-corp document may only spawn dedicated workers whose
+          // script response also carries COEP. Harmless for the normal app
+          // (a non-isolated owner accepts any worker policy).
+          res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+        }
+        next();
+      });
     }
   };
 }
@@ -101,6 +176,7 @@ export default defineConfig(async ({ mode }) => {
         "superjson",
         "@trpc/client",
         "@trpc/react-query",
+        "@trpc/server",
         "@tanstack/react-query",
       ],
       exclude: [
@@ -137,7 +213,16 @@ export default defineConfig(async ({ mode }) => {
         ),
       },
     },
+    // The in-browser runner Web Worker (browserRunner.worker.ts) is bundled as
+    // its own self-contained entry. It inherits `resolve` (conditions/alias) but
+    // NOT the main `plugins`, so re-apply the node-builtin stub here — and with
+    // `includeBare` since a worker can't externalize builtins like the app can.
+    worker: {
+      format: "es",
+      plugins: () => [stubServerTelemetryPlugin(), stubNodeProtocolPlugin(true)]
+    },
     plugins: [
+      perfPageIsolationPlugin(),
       stubNodeProtocolPlugin(),
       react({
         jsxImportSource: "@emotion/react",

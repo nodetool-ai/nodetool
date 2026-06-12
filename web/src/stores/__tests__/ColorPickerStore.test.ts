@@ -234,6 +234,24 @@ describe("gradientToCss", () => {
     const css = gradientToCss(gradient);
     expect(css).toBe("linear-gradient(90deg, #ff0000 0%, #0000ff 100%)");
   });
+
+  it("does not mutate the input gradient's stops", () => {
+    const gradient: GradientValue = {
+      type: "linear",
+      angle: 90,
+      stops: [
+        { color: "#0000ff", position: 100 },
+        { color: "#ff0000", position: 0 }
+      ]
+    };
+
+    gradientToCss(gradient);
+
+    expect(gradient.stops).toEqual([
+      { color: "#0000ff", position: 100 },
+      { color: "#ff0000", position: 0 }
+    ]);
+  });
 });
 
 describe("PRESET_PALETTES", () => {

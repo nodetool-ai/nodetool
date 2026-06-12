@@ -14,7 +14,7 @@ import {
   getCategoryForWorkflow
 } from "../../utils/templateCategories";
 import WorkflowCard from "../workflows/WorkflowCard";
-import { LoadingSpinner } from "../ui_primitives";
+import { LoadingSpinner, MOTION } from "../ui_primitives";
 import {
   wrapStyles,
   SectionHeader,
@@ -45,7 +45,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       border: `1px solid ${theme.vars.palette.divider}`,
       cursor: "pointer",
-      transition: "color 0.15s ease, border-color 0.15s ease, background 0.15s ease",
+      transition: `color ${MOTION.fast}, border-color ${MOTION.fast}, background ${MOTION.fast}`,
       "&:hover": {
         color: theme.vars.palette.text.primary,
         borderColor: theme.vars.palette.action.focus

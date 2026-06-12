@@ -13,7 +13,10 @@ import {
   type RunJobRequest,
   type RunResult
 } from "@nodetool-ai/kernel";
-import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import {
+  hydrateGraphNodeFlags,
+  type NodeRegistry
+} from "@nodetool-ai/node-sdk";
 // Narrow `/context` subpath (not the package root) so the browser bundle of
 // this runner doesn't pull the provider / python-bridge barrel.
 import {
@@ -57,6 +60,13 @@ export interface RunWorkflowOptions {
   signal?: AbortSignal;
 
   /**
+   * Receives the live WorkflowRunner right after construction — lets the
+   * caller push live property updates into running nodes
+   * (`runner.updateNodeProperties`) or otherwise drive the run.
+   */
+  onRunner?: (runner: WorkflowRunner) => void;
+
+  /**
    * Reject graphs whose nodes do not declare support for this deployment
    * platform. When set, the runner runs both property validation and
    * platform validation as a pre-flight; unsupported nodes cause the run
@@ -88,6 +98,8 @@ export async function* runWorkflow(
     return { outputs: {}, messages: [message], status: "cancelled" };
   }
 
+  const graph = hydrateGraphNodeFlags(opts.graph, opts.registry);
+
   const context =
     opts.context ??
     new ProcessingContext({
@@ -97,7 +109,10 @@ export async function* runWorkflow(
       workspaceStorage: opts.workspaceStorage ?? null,
       cache: opts.cache,
       environment: opts.environment,
-      secretResolver: opts.secretResolver
+      secretResolver: opts.secretResolver,
+      // This path streams via the message listener below and never drains
+      // the pull queue — retaining it would pin every streamed chunk.
+      retainMessageQueue: false
     });
 
   const runner = new WorkflowRunner(jobId, {
@@ -110,6 +125,7 @@ export async function* runWorkflow(
         : null
     )
   });
+  opts.onRunner?.(runner);
 
   const queue: ProcessingMessage[] = [];
   let wake: (() => void) | null = null;
@@ -134,7 +150,7 @@ export async function* runWorkflow(
   let result: RunResult | null = null;
 
   const runPromise = runner
-    .run(request, opts.graph)
+    .run(request, graph)
     .then((r) => {
       result = r;
     })

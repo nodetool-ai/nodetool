@@ -128,14 +128,12 @@ describe("Gap #9 — OutputUpdate messages", () => {
       }
     ];
 
-    let callCount = 0;
     const runner = makeRunner({
       "test.Streamer": {
-        async *stream() {
+        async *genProcess() {
           yield { value: "same" };
           yield { value: "same" }; // duplicate
           yield { value: "different" };
-          callCount++;
         }
       } as unknown as NodeExecutor,
       "test.Output": simpleExecutor((inputs) => ({
@@ -153,15 +151,16 @@ describe("Gap #9 — OutputUpdate messages", () => {
     // GAP #9: Consecutive deduplication not implemented.
     // Python's process_output_node() deduplicates consecutive identical values,
     // emitting only one OutputUpdate when the same value appears back-to-back.
-    // TypeScript does not have this logic since it doesn't emit output_update at all.
+    // The buffered output node currently fires once with the last value.
     const outputMsgs = result.messages.filter(
-      (m) => m.type === "output_update"
+      (m) => m.type === "output_update" && (m as OutputUpdate).node_id === "out"
     ) as OutputUpdate[];
 
-    // Currently no output_update messages at all — dedup is moot
-    expect(outputMsgs.length).toBe(0); // Current behavior
+    expect(outputMsgs.length).toBe(1); // Current behavior
+    expect(outputMsgs[0].value).toBe("different");
 
-    // TODO: When gap #9 is fixed, consecutive dedup should reduce 3 yields to 2 output_updates:
+    // TODO: When the output node consumes the stream item-by-item,
+    // consecutive dedup should reduce 3 yields to 2 output_updates:
     // expect(outputMsgs.length).toBe(2); // "same" (once) + "different"
   });
 

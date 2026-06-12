@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { EditorButton, FlexColumn, FlexRow, Box } from "../../ui_primitives";
+import { EditorButton, FlexColumn, FlexRow, Box, MOTION } from "../../ui_primitives";
 import { LoadingSpinner, Text } from "../../ui_primitives";
 import SearchOffIcon from "@mui/icons-material/SearchOff";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -89,14 +89,14 @@ const styles = (theme: Theme) =>
     },
     ".model-type-button.Mui-selected": {
       color: theme.vars.palette.text.primary,
-      transition: "background-color 0.2s ease-in",
+      transition: `background-color ${MOTION.normal}`,
       borderRadius: 8,
       backgroundColor: theme.vars.palette.action.selected
     },
     ".model-type-button span": {
       display: "flex",
       alignItems: "center",
-      transition: "color 0.2s ease-in"
+      transition: `color ${MOTION.normal}`
     },
     ".model-type-button img": {
       filter: "saturate(0)"
@@ -323,6 +323,7 @@ const ModelListIndex: React.FC = () => {
           Could not load models
         </Text>
         <Text
+          size="normal"
           color="secondary"
           sx={{ maxWidth: 600 }}
         >
@@ -342,7 +343,8 @@ const ModelListIndex: React.FC = () => {
                 href="https://ollama.com/download"
                 target="_blank"
                 rel="noopener noreferrer"
-                sx={{ color: "primary.main", textDecoration: "underline" }}
+                sx={{ textDecoration: "underline" }}
+                color="primary"
               >
                 Download Ollama →
               </Text>
@@ -374,7 +376,7 @@ const ModelListIndex: React.FC = () => {
             </Box>
           )}
           {modelSearchTerm && selectedModelType === "All" && (
-            <Text size="normal" weight={600} sx={{ mb: 2 }}>
+            <Text size="normal" weight={600} sx={{ mb: 2, display: "block" }}>
               Searched models for &quot;{modelSearchTerm}&quot;
             </Text>
           )}
@@ -416,7 +418,7 @@ const ModelListIndex: React.FC = () => {
                 />
               </Box>
               <Box sx={{ minWidth: 0 }}>
-                <Text size="bigger" weight={600} sx={{ fontSize: "1.5em", lineHeight: 1.2 }}>
+                <Text size="bigger" weight={600} sx={{ lineHeight: 1.2 }}>
                   {prettifyModelType(selectedModelType)}
                 </Text>
                 <Text
@@ -461,7 +463,7 @@ const ModelListIndex: React.FC = () => {
                   if (item.type === "header") {
                     return (
                       <Box key={vi.key} style={itemStyle} sx={{ pt: 2, pb: 1 }}>
-                        <Text size="bigger" sx={{ fontSize: "1.25em" }}>
+                        <Text size="bigger">
                           {prettifyModelType(item.modelType)}
                         </Text>
                       </Box>
@@ -525,20 +527,20 @@ const ModelListIndex: React.FC = () => {
               {modelSearchTerm ? (
                 <>
                   <SearchOffIcon sx={{ fontSize: 48, opacity: 0.5 }} />
-                  <Text size="normal" weight={600} color="secondary">
+                  <Text size="normal" weight={600} color="secondary" sx={{ display: "block" }}>
                     No models found for &quot;{modelSearchTerm}&quot;
                   </Text>
-                  <Text size="small" color="secondary">
+                  <Text size="small" color="secondary" sx={{ display: "block" }}>
                     Try a different search term or adjust your filters
                   </Text>
                 </>
               ) : filterStatus === "downloaded" ? (
                 <>
                   <DownloadIcon sx={{ fontSize: 48, opacity: 0.5 }} />
-                  <Text size="normal" weight={600} color="secondary">
+                  <Text size="normal" weight={600} color="secondary" sx={{ display: "block" }}>
                     No downloaded models
                   </Text>
-                  <Text size="small" color="secondary">
+                  <Text size="small" color="secondary" sx={{ display: "block" }}>
                     Switch to &quot;All&quot; or &quot;Available&quot; to find
                     models to download
                   </Text>
@@ -554,10 +556,10 @@ const ModelListIndex: React.FC = () => {
               ) : (
                 <>
                   <SearchOffIcon sx={{ fontSize: 48, opacity: 0.5 }} />
-                  <Text size="normal" weight={600} color="secondary">
+                  <Text size="normal" weight={600} color="secondary" sx={{ display: "block" }}>
                     No models available
                   </Text>
-                  <Text size="small" color="secondary">
+                  <Text size="small" color="secondary" sx={{ display: "block" }}>
                     Try adjusting the size filter or selecting a different
                     category
                   </Text>

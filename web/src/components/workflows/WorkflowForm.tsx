@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Text, Caption, TextInput, SelectField, AutocompleteTagInput, EditorButton } from "../ui_primitives";
+import { Text, Caption, TextInput, SelectField, AutocompleteTagInput, EditorButton, MOTION } from "../ui_primitives";
 import { useCallback, useEffect, useState, memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -49,13 +49,13 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(2),
       backgroundColor: theme.vars.palette.action.hover,
       borderRadius: "var(--rounded-lg)",
-      border: `1px solid ${theme.vars.palette.grey[800]}`
+      border: `1px solid ${theme.vars.palette.divider}`
     },
-    
+
     ".section-title": {
       fontSize: theme.fontSizeSmall,
       fontWeight: 600,
-      color: theme.vars.palette.grey[300],
+      color: theme.vars.palette.text.secondary,
       textTransform: "uppercase",
       letterSpacing: "0.08em",
       marginBottom: theme.spacing(2)
@@ -72,21 +72,21 @@ const styles = (theme: Theme) =>
     ".MuiFormLabel-root": {
       fontSize: theme.fontSizeSmall,
       fontWeight: 500,
-      color: theme.vars.palette.grey[200],
+      color: theme.vars.palette.text.secondary,
       marginBottom: theme.spacing(1),
       display: "block"
     },
     
     ".MuiOutlinedInput-root": {
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.paper,
       borderRadius: "var(--rounded-md)",
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
       "& .MuiOutlinedInput-notchedOutline": {
-        borderColor: theme.vars.palette.grey[700],
-        transition: "border-color 0.2s ease"
+        borderColor: theme.vars.palette.divider,
+        transition: MOTION.border
       },
       "&:hover .MuiOutlinedInput-notchedOutline": {
-        borderColor: theme.vars.palette.grey[500]
+        borderColor: theme.vars.palette.text.secondary
       },
       "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
         borderColor: "var(--palette-primary-main)",
@@ -97,13 +97,13 @@ const styles = (theme: Theme) =>
     ".MuiOutlinedInput-input": {
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal,
-      color: theme.vars.palette.grey[0],
+      color: theme.vars.palette.text.primary,
       padding: "10px 12px"
     },
-    
+
     ".MuiFormHelperText-root": {
       fontSize: "var(--fontSizeSmaller)",
-      color: theme.vars.palette.grey[400],
+      color: theme.vars.palette.text.secondary,
       marginTop: theme.spacing(0.5),
       marginLeft: 0
     },
@@ -112,32 +112,32 @@ const styles = (theme: Theme) =>
     ".tag-input": {
       "& .MuiOutlinedInput-root": {
         fontFamily: theme.fontFamily1,
-        color: theme.vars.palette.grey[0],
+        color: theme.vars.palette.text.primary,
         minHeight: "auto"
       },
       "& .MuiAutocomplete-popper": {
-        backgroundColor: theme.vars.palette.grey[800],
+        backgroundColor: theme.vars.palette.background.paper,
         zIndex: theme.zIndex.autocomplete,
         "& .MuiPaper-root": {
-          backgroundColor: theme.vars.palette.grey[800],
-          color: theme.vars.palette.grey[0],
+          backgroundColor: theme.vars.palette.background.paper,
+          color: theme.vars.palette.text.primary,
           borderRadius: "var(--rounded-md)",
-          border: `1px solid ${theme.vars.palette.grey[700]}`
+          border: `1px solid ${theme.vars.palette.divider}`
         },
         "& .MuiAutocomplete-option": {
           fontSize: theme.fontSizeSmall,
           "&:hover": {
-            backgroundColor: theme.vars.palette.grey[600]
+            backgroundColor: theme.vars.palette.action.hover
           },
           "&[aria-selected='true']": {
-            backgroundColor: theme.vars.palette.grey[500]
+            backgroundColor: theme.vars.palette.action.selected
           }
         }
       },
       "& .MuiChip-root": {
-        color: theme.vars.palette.grey[0],
-        backgroundColor: theme.vars.palette.grey[700],
-        borderColor: theme.vars.palette.grey[500],
+        color: theme.vars.palette.text.primary,
+        backgroundColor: theme.vars.palette.action.selected,
+        borderColor: theme.vars.palette.divider,
         fontSize: theme.fontSizeSmall,
         height: "26px"
       }
@@ -154,25 +154,26 @@ const styles = (theme: Theme) =>
       gap: theme.spacing(2),
       marginTop: theme.spacing(4),
       paddingTop: theme.spacing(3),
-      borderTop: `1px solid ${theme.vars.palette.grey[800]}`,
+      borderTop: `1px solid ${theme.vars.palette.divider}`,
       justifyContent: "flex-end"
     },
-    
+
     ".cancel-button": {
       backgroundColor: "transparent",
-      color: theme.vars.palette.grey[200],
+      color: theme.vars.palette.text.secondary,
       padding: "8px 20px",
       fontSize: theme.fontSizeSmall,
       fontWeight: 500,
       textTransform: "none",
       borderRadius: "var(--rounded-md)",
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[700]
+        backgroundColor: theme.vars.palette.action.hover,
+        color: theme.vars.palette.text.primary
       }
     },
-    
+
     ".save-button": {
-      background: `linear-gradient(135deg, var(--palette-primary-main) 0%, ${theme.vars.palette.primary.dark} 100%)`,
+      backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.primary.contrastText,
       padding: "8px 28px",
       fontSize: theme.fontSizeSmall,
@@ -180,11 +181,11 @@ const styles = (theme: Theme) =>
       textTransform: "none",
       borderRadius: "var(--rounded-md)",
       border: "none",
-      boxShadow: `0 2px 8px ${theme.vars.palette.primary.main}4d`,
-      transition: "all 0.2s ease",
+      boxShadow: "none",
+      transition: MOTION.background,
       "&:hover": {
-        boxShadow: `0 4px 12px ${theme.vars.palette.primary.main}66`,
-        transform: "translateY(-1px)"
+        backgroundColor: theme.vars.palette.primary.dark,
+        boxShadow: "none"
       }
     }
   });

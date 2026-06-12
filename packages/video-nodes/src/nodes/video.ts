@@ -18,11 +18,6 @@ type VideoRefLike = { uri?: string; data?: Uint8Array | string };
 type ImageRefLike = { uri?: string; data?: Uint8Array | string };
 const execFile = promisify(execFileCb);
 
-function videoBytes(video: unknown): Uint8Array {
-  if (!video || typeof video !== "object") return new Uint8Array();
-  return toBytes((video as VideoRefLike).data);
-}
-
 async function videoBytesAsync(video: unknown, context?: ProcessingContext): Promise<Uint8Array> {
   if (!video || typeof video !== "object") return new Uint8Array();
   const bytes = await loadMediaRefBytes(video as VideoRefLike, context);
@@ -103,15 +98,19 @@ function dateName(name: string): string {
     .replaceAll("%S", pad(now.getSeconds()));
 }
 
-function bytesConcat(parts: Uint8Array[]): Uint8Array {
-  const total = parts.reduce((s, p) => s + p.length, 0);
-  const out = new Uint8Array(total);
-  let off = 0;
-  for (const p of parts) {
-    out.set(p, off);
-    off += p.length;
+/**
+ * Parse an ffprobe `r_frame_rate` value ("30000/1001" or "25") into a number.
+ * Returns 0 for malformed values or zero denominators instead of NaN/Infinity.
+ */
+function parseFrameRate(raw: string): number {
+  const parts = raw.trim().split("/");
+  if (parts.length === 2) {
+    const num = Number(parts[0]);
+    const den = Number(parts[1]);
+    return Number.isFinite(num) && den > 0 ? num / den : 0;
   }
-  return out;
+  const val = Number(parts[0]);
+  return Number.isFinite(val) && val > 0 ? val : 0;
 }
 
 async function ffprobeDuration(filePath: string): Promise<number> {
@@ -309,23 +308,23 @@ export class TextToVideoNode extends BaseNode {
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const text = String(this.prompt ?? "");
     const { providerId, modelId } = modelConfig(this.serialize());
-    if (canUseProvider(context, providerId, modelId)) {
-      const output = (await context.runProviderPrediction({
-        provider: providerId,
-        capability: "text_to_video",
-        model: modelId,
-        params: {
-          prompt: text,
-          negative_prompt: this.negative_prompt,
-          duration_seconds: Number(this.duration ?? 0) || undefined,
-          aspect_ratio: this.aspect_ratio,
-          resolution: this.resolution
-        }
-      })) as Uint8Array;
-      return { output: videoRef(output) };
+    if (!canUseProvider(context, providerId, modelId)) {
+      throw new Error("No provider available for text-to-video generation.");
     }
-    const bytes = Uint8Array.from(Buffer.from(text, "utf8"));
-    return { output: videoRef(bytes) };
+    const output = (await context.runProviderPrediction({
+      provider: providerId,
+      capability: "text_to_video",
+      model: modelId,
+      params: {
+        prompt: text,
+        negative_prompt: this.negative_prompt,
+        duration_seconds: Number(this.duration ?? 0) || undefined,
+        aspect_ratio: this.aspect_ratio,
+        resolution: this.resolution,
+        timeout_seconds: Number(this.timeout_seconds ?? 0) || undefined
+      }
+    })) as Uint8Array;
+    return { output: videoRef(output) };
   }
 }
 
@@ -450,27 +449,24 @@ export class ImageToVideoNode extends BaseNode {
       await Promise.all(images.map((img) => imageBytesAsync(img, context)))
     ).filter((b) => b.length > 0);
     const { providerId, modelId } = modelConfig(this.serialize());
-    if (canUseProvider(context, providerId, modelId)) {
-      const output = (await context.runProviderPrediction({
-        provider: providerId,
-        capability: "image_to_video",
-        model: modelId,
-        params: {
-          images: bytesList,
-          prompt,
-          negative_prompt: this.negative_prompt,
-          duration_seconds: Number(this.duration ?? 0) || undefined,
-          aspect_ratio: this.aspect_ratio,
-          resolution: this.resolution
-        }
-      })) as Uint8Array;
-      return { output: videoRef(output) };
+    if (!canUseProvider(context, providerId, modelId)) {
+      throw new Error("No provider available for image-to-video generation.");
     }
-    return {
-      output: videoRef(
-        bytesConcat([...bytesList, Uint8Array.from(Buffer.from(prompt))])
-      )
-    };
+    const output = (await context.runProviderPrediction({
+      provider: providerId,
+      capability: "image_to_video",
+      model: modelId,
+      params: {
+        images: bytesList,
+        prompt,
+        negative_prompt: this.negative_prompt,
+        duration_seconds: Number(this.duration ?? 0) || undefined,
+        aspect_ratio: this.aspect_ratio,
+        resolution: this.resolution,
+        timeout_seconds: Number(this.timeout_seconds ?? 0) || undefined
+      }
+    })) as Uint8Array;
+    return { output: videoRef(output) };
   }
 }
 
@@ -494,7 +490,8 @@ export class LoadVideoFileNode extends BaseNode {
   declare path: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const p = filePath(String(this.path ?? ""));
+    const p = filePath(String(this.path ?? "").trim());
+    if (!p) throw new Error("No file path provided to Load Video File.");
     const data = new Uint8Array(await fs.readFile(p));
     return { output: videoRef(data, { uri: `file://${p}` }) };
   }
@@ -549,8 +546,9 @@ export class SaveVideoFileVideoNode extends BaseNode {
     const fname = dateName(String(this.filename || "video.mp4"));
     const p = path.resolve(folder, fname);
     await fs.mkdir(path.dirname(p), { recursive: true });
-    await fs.writeFile(p, await videoBytesAsync(this.video, context));
-    return { output: p };
+    const bytes = await videoBytesAsync(this.video, context);
+    await fs.writeFile(p, bytes);
+    return { output: videoRef(bytes, { uri: `file://${p}` }) };
   }
 }
 
@@ -757,7 +755,11 @@ export class ForEachFrameNode extends BaseNode {
   })
   declare end: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    // Buffered fallback: surface the first frame instead of nothing.
+    for await (const item of this.genProcess(context)) {
+      return item;
+    }
     return {};
   }
 
@@ -780,12 +782,8 @@ export class ForEachFrameNode extends BaseNode {
           "-of", "csv=p=0",
           inputFile.path
         ]);
-        const parts = stdout.trim().split("/");
-        if (parts.length === 2) {
-          fps = Number(parts[0]) / Number(parts[1]);
-        } else if (parts.length === 1 && Number(parts[0]) > 0) {
-          fps = Number(parts[0]);
-        }
+        const parsed = parseFrameRate(stdout);
+        if (parsed > 0) fps = parsed;
       } catch {
         // fall back to 24 fps
       }
@@ -880,14 +878,7 @@ export class FpsNode extends BaseNode {
         "-of", "csv=p=0",
         inputFile.path
       ]);
-      const parts = stdout.trim().split("/");
-      let fps = 0;
-      if (parts.length === 2) {
-        fps = Number(parts[0]) / Number(parts[1]);
-      } else if (parts.length === 1 && Number(parts[0]) > 0) {
-        fps = Number(parts[0]);
-      }
-      return { output: fps };
+      return { output: parseFrameRate(stdout) };
     } catch {
       return { output: 0 };
     } finally {
@@ -997,13 +988,12 @@ export class FrameToVideoNode extends BaseNode {
       );
       const result = new Uint8Array(await fs.readFile(outputPath));
       await outputs.emit("output", videoRef(result));
-    } catch {
-      // Fallback: concatenate raw frame bytes
-      const parts = frames.map((f) => {
-        if (!f || typeof f !== "object") return new Uint8Array();
-        return toBytes((f as { data?: Uint8Array | string }).data);
-      });
-      await outputs.emit("output", videoRef(bytesConcat(parts)));
+    } catch (error) {
+      throw new Error(
+        `Combining frames into a video failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     } finally {
       await fs.rm(inputDir, { recursive: true, force: true });
       await fs.rm(outputDir, { recursive: true, force: true });
@@ -1053,12 +1043,12 @@ export class FrameToVideoNode extends BaseNode {
       );
       const result = new Uint8Array(await fs.readFile(outputPath));
       return { output: videoRef(result) };
-    } catch {
-      const parts = frames.map((f) => {
-        if (!f || typeof f !== "object") return new Uint8Array();
-        return toBytes((f as { data?: Uint8Array | string }).data);
-      });
-      return { output: videoRef(bytesConcat(parts)) };
+    } catch (error) {
+      throw new Error(
+        `Combining frames into a video failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     } finally {
       await fs.rm(inputDir, { recursive: true, force: true });
       await fs.rm(outputDir, { recursive: true, force: true });
@@ -1123,8 +1113,12 @@ export class ConcatVideoNode extends BaseNode {
       );
       const result = new Uint8Array(await fs.readFile(outputPath));
       return { output: videoRef(result) };
-    } catch {
-      return { output: videoRef(bytesConcat(parts)) };
+    } catch (error) {
+      throw new Error(
+        `Concatenating videos failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     } finally {
       for (const input of inputs) {
         await input.cleanup();
@@ -1288,7 +1282,7 @@ export class RotateVideoNode extends VideoTransformNode {
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const bytes = await videoBytesAsync(this.video, context);
-    const angle = Number(this.angle ?? 90);
+    const angle = Number(this.angle ?? 0);
     const radians = (angle * Math.PI) / 180;
     const transformed =
       (await ffmpegTransform(bytes, [
@@ -1453,6 +1447,7 @@ export class OverlayVideoNode extends VideoTransformNode {
     const mainVideo = await videoBytesAsync(this.main_video, context);
     const overlayVideo = await videoBytesAsync(this.overlay_video, context);
     if (overlayVideo.length === 0) return { output: videoRef(mainVideo) };
+    if (mainVideo.length === 0) return { output: videoRef(overlayVideo) };
     const x = Number(this.x ?? 0);
     const y = Number(this.y ?? 0);
     const scale = Math.max(0.01, Number(this.scale ?? 1));
@@ -1771,7 +1766,8 @@ export class BlurVideoNode extends VideoTransformNode {
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const bytes = await videoBytesAsync(this.video, context);
-    const radius = Math.max(1, Number(this.strength ?? 2));
+    const radius = Number(this.strength ?? 5);
+    if (radius <= 0) return { output: videoRef(bytes) };
     const transformed =
       (await ffmpegTransform(bytes, [
         "-vf",
@@ -1820,7 +1816,7 @@ export class SaturationVideoNode extends VideoTransformNode {
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const bytes = await videoBytesAsync(this.video, context);
-    const saturation = Number(this.saturation ?? 1.2);
+    const saturation = Number(this.saturation ?? 1);
     const transformed =
       (await ffmpegTransform(bytes, [
         "-vf",
@@ -1916,8 +1912,10 @@ export class AddSubtitlesVideoNode extends VideoTransformNode {
     const fontSize = Math.max(1, Number(this.font_size ?? 24));
     const fontColorObj = this.font_color as { value?: string } | undefined;
     const fontColor = String(fontColorObj?.value ?? "#FFFFFF").replace("#", "0x");
+    // `||` (not `??`): the default font ref has name "", which must also
+    // fall back rather than producing drawtext's font=''.
     const fontName = String(
-      (this.font as { name?: string } | undefined)?.name ?? "Sans"
+      (this.font as { name?: string } | undefined)?.name || "Sans"
     );
     const align = String(this.align ?? "bottom");
 
@@ -2127,6 +2125,7 @@ export class TransitionVideoNode extends VideoTransformNode {
     const a = await videoBytesAsync(this.video_a, context);
     const b = await videoBytesAsync(this.video_b, context);
     if (b.length === 0) return { output: videoRef(a) };
+    if (a.length === 0) return { output: videoRef(b) };
     const duration = Math.max(0.1, Number(this.duration ?? 1));
     const transitionType = String(this.transition_type ?? "fade");
 
@@ -2165,8 +2164,12 @@ export class TransitionVideoNode extends VideoTransformNode {
           `[0:v][1:v]xfade=transition=${transitionType}:duration=${duration}:offset=${offsetVal}`
         ],
         [{ suffix: ".mp4", bytes: b }]
-      )) ??
-      videoBytes({ data: Buffer.from(bytesConcat([a, b])).toString("base64") });
+      ));
+    if (transformed == null) {
+      throw new Error(
+        "Creating the transition failed: ffmpeg could not crossfade the two videos."
+      );
+    }
     return { output: videoRef(transformed) };
   }
 }
@@ -2249,49 +2252,52 @@ export class AddAudioVideoNode extends BaseNode {
       const volume = Math.max(0, Number(this.volume ?? 1));
       const mix = Boolean(this.mix);
 
-      const args: string[] = [
-        "-y",
-        "-i", videoInput.path,
-        "-i", audioInput.path
-      ];
-
-      if (mix) {
-        // Mix new audio with existing audio
-        args.push(
-          "-filter_complex",
-          `[1:a]volume=${volume}[newaud];[0:a][newaud]amix=inputs=2:duration=first[aout]`,
-          "-map", "0:v:0",
-          "-map", "[aout]",
-          "-c:v", "copy"
-        );
-      } else {
-        // Replace existing audio
-        args.push(
-          "-map", "0:v:0",
-          "-map", "1:a:0",
-          "-c:v", "copy",
-          "-c:a", "aac"
-        );
-        if (volume !== 1) {
-          // Insert volume filter before output
-          args.splice(args.length, 0);
-          // Re-build with filter
-          args.length = 0;
+      const buildArgs = (useMix: boolean): string[] => {
+        const args: string[] = [
+          "-y",
+          "-i", videoInput.path,
+          "-i", audioInput.path
+        ];
+        if (useMix) {
           args.push(
-            "-y",
-            "-i", videoInput.path,
-            "-i", audioInput.path,
+            "-filter_complex",
+            `[1:a]volume=${volume}[newaud];[0:a][newaud]amix=inputs=2:duration=first[aout]`,
+            "-map", "0:v:0",
+            "-map", "[aout]",
+            "-c:v", "copy"
+          );
+        } else if (volume !== 1) {
+          args.push(
             "-filter_complex", `[1:a]volume=${volume}[aout]`,
             "-map", "0:v:0",
             "-map", "[aout]",
             "-c:v", "copy",
             "-c:a", "aac"
           );
+        } else {
+          args.push(
+            "-map", "0:v:0",
+            "-map", "1:a:0",
+            "-c:v", "copy",
+            "-c:a", "aac"
+          );
         }
-      }
+        args.push(outputPath);
+        return args;
+      };
 
-      args.push(outputPath);
-      await execFile("ffmpeg", args, { maxBuffer: 50 * 1024 * 1024 });
+      try {
+        await execFile("ffmpeg", buildArgs(mix), {
+          maxBuffer: 50 * 1024 * 1024
+        });
+      } catch (error) {
+        // Mixing requires an existing audio stream ([0:a]); videos without
+        // one make ffmpeg fail. Fall back to plain replacement.
+        if (!mix) throw error;
+        await execFile("ffmpeg", buildArgs(false), {
+          maxBuffer: 50 * 1024 * 1024
+        });
+      }
       const result = new Uint8Array(await fs.readFile(outputPath));
       return { output: videoRef(result) };
     } catch {
@@ -2308,7 +2314,7 @@ export class ChromaKeyVideoNode extends VideoTransformNode {
   static readonly nodeType = "nodetool.video.ChromaKey";
   static readonly title = "Chroma Key";
   static readonly description =
-    "Apply chroma key (green screen) effect to a video.\n    video, chroma key, green screen, compositing";
+    "Apply chroma key (green screen) effect to a video. The MP4 output has no alpha channel, so the keyed-out area renders black — composite it over a background with the Overlay node.\n    video, chroma key, green screen, compositing";
   static readonly metadataOutputTypes = {
     output: "video"
   };
@@ -2406,7 +2412,17 @@ export class ExtractAudioVideoNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const bytes = await videoBytesAsync(this.video, context);
-    if (bytes.length === 0) return { output: { data: null } };
+    if (bytes.length === 0) {
+      return {
+        output: {
+          type: "audio",
+          data: null,
+          uri: "",
+          asset_id: null,
+          metadata: null
+        }
+      };
+    }
 
     const input = await withTempFile(".mp4", bytes);
     const outputDir = await fs.mkdtemp(
@@ -2592,19 +2608,13 @@ export class GetVideoInfoNode extends BaseNode {
         (s) => s.codec_type === "audio"
       );
 
-      let fps = 0;
-      if (videoStream?.r_frame_rate) {
-        const parts = videoStream.r_frame_rate.split("/");
-        if (parts.length === 2) {
-          fps = Number(parts[0]) / Number(parts[1]);
-        } else if (parts.length === 1) {
-          fps = Number(parts[0]);
-        }
-      }
+      const fps = videoStream?.r_frame_rate
+        ? parseFrameRate(videoStream.r_frame_rate)
+        : 0;
 
-      const duration = Number(info.format?.duration ?? 0);
+      const duration = Number(info.format?.duration ?? 0) || 0;
       const frameCount = videoStream?.nb_frames
-        ? Number(videoStream.nb_frames)
+        ? Number(videoStream.nb_frames) || 0
         : Math.round(duration * fps);
 
       return {

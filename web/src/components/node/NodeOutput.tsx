@@ -96,7 +96,6 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, displayName }) => {
   }, []);
 
   const connections = useNodeConnections({ handleType: "source", handleId: output.name });
-  const isConnected = connections.length > 0;
 
   const isConnectable = useMemo(() => {
     if (!effectiveConnectType || connectDirection !== "target") {

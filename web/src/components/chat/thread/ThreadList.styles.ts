@@ -1,6 +1,6 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { scrollbarStyles } from "../../ui_primitives/tokens";
+import { scrollbarStyles, MOTION } from "../../ui_primitives/tokens";
 
 export const createStyles = (theme: Theme) =>
   css({
@@ -48,8 +48,7 @@ export const createStyles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall,
       width: "100%",
       cursor: "pointer",
-      transition:
-        "background-color 0.12s ease, opacity 0.25s ease-out, transform 0.25s ease-out, max-height 0.25s ease-out",
+      transition: `${MOTION.background}, opacity ${MOTION.normal}, transform ${MOTION.normal}, max-height ${MOTION.normal}`,
       borderRadius: 5,
       overflow: "hidden",
       outline: "none",
@@ -106,7 +105,7 @@ export const createStyles = (theme: Theme) =>
       color: theme.vars.palette.grey[500],
       whiteSpace: "nowrap",
       fontVariantNumeric: "tabular-nums",
-      transition: "opacity 0.12s ease"
+      transition: `opacity ${MOTION.fast}`
     },
 
     // DeleteButton renders: Tooltip > span > IconButton.delete-button
@@ -124,7 +123,7 @@ export const createStyles = (theme: Theme) =>
       padding: "4px",
       minWidth: "unset",
       color: theme.vars.palette.grey[200],
-      transition: "opacity 0.2s, transform 0.15s ease",
+      transition: `${MOTION.opacity}, ${MOTION.transform}`,
 
       "&:hover": {
         color: theme.vars.palette.error.main,

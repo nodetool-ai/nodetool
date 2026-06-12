@@ -84,7 +84,7 @@ const NodeItem = memo(
         }
         return (
           <Box sx={{ maxWidth: 300 }}>
-            <Text sx={{ fontSize: "var(--fontSizeNormal)", fontWeight: 500, mb: 0.5 }}>
+            <Text size="normal" weight={500} sx={{ mb: 0.5 }}>
               {parsedDescription.description}
             </Text>
             {parsedDescription.tags.length > 0 && (
@@ -101,7 +101,7 @@ const NodeItem = memo(
                       color: "grey.300",
                       px: 1,
                       py: 0.5,
-                      borderRadius: "3px"
+                      borderRadius: "var(--rounded-sm)"
                     }}
                   >
                     {tag}
@@ -111,7 +111,7 @@ const NodeItem = memo(
             )}
             {parsedDescription.useCases.raw && (
               <Box sx={{ mt: 1 }}>
-                <Text sx={{ fontSize: "var(--fontSizeSmaller)", fontWeight: 600, color: "grey.400", textTransform: "uppercase", mb: 0.5 }}>
+                <Text size="smaller" weight={600} sx={{ color: "grey.400", textTransform: "uppercase", mb: 0.5 }}>
                   Use cases
                 </Text>
                 <Box component="ul" sx={{ m: 0, pl: 2, fontSize: "var(--fontSizeSmall)", color: "grey.300" }}>
@@ -351,9 +351,9 @@ const NodeItem = memo(
                     color: theme.vars.palette.warning.main,
                     px: 0.5,
                     py: 0.5,
-                    borderRadius: "3px",
+                    borderRadius: "var(--rounded-sm)",
                     whiteSpace: "nowrap",
-                    flexShrink: 0,
+                    flexShrink: 0
                   }}
                 >
                   {node.required_runtimes!.join(", ")}
@@ -372,9 +372,9 @@ const NodeItem = memo(
                   color: theme.vars.palette.info.main,
                   px: 0.5,
                   py: 0.5,
-                  borderRadius: "3px",
+                  borderRadius: "var(--rounded-sm)",
                   whiteSpace: "nowrap",
-                  flexShrink: 0,
+                  flexShrink: 0
                 }}
               >
                 JS

@@ -2,7 +2,7 @@
 import { css, keyframes } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Box, FlexColumn, FlexRow, Text, Tooltip } from "../ui_primitives";
+import { Box, FlexColumn, FlexRow, Text, Tooltip, MOTION } from "../ui_primitives";
 import type { SxProps } from "@mui/material/styles";
 import LayersIcon from "@mui/icons-material/Layers";
 import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
@@ -86,7 +86,7 @@ const useJobName = (job: Job): string => {
 const cardSx: SxProps<Theme> = {
   backgroundColor: "grey.800",
   border: "1px solid rgba(255,255,255,0.05)",
-  borderRadius: "10px",
+  borderRadius: "var(--rounded-lg)",
   px: 1.5,
   py: 1
 };
@@ -176,7 +176,7 @@ const RunningCard = memo(function RunningCard({
         ...cardSx,
         ...focusableSx,
         ...focusedAccentSx,
-        transition: "border-color 120ms ease, background-color 120ms ease"
+        transition: `border-color ${MOTION.fast}, background-color ${MOTION.fast}`
       }}
     >
       <FlexRow align="center" gap={1} sx={{ minWidth: 0 }}>
@@ -242,7 +242,7 @@ const RunningCard = memo(function RunningCard({
           "&:focus-visible": {
             outline: `2px solid ${theme.vars.palette.primary.main}`,
             outlineOffset: "2px",
-            borderRadius: "10px"
+            borderRadius: "var(--rounded-lg)"
           }
         }}
       >

@@ -25,7 +25,7 @@ import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeOutputs } from "./NodeOutputs";
 import NodeResizeHandle from "./NodeResizeHandle";
-import { CopyButton, ToolbarIconButton, Container } from "../ui_primitives";
+import { CopyButton, ToolbarIconButton, Container, MOTION } from "../ui_primitives";
 import TextEditorModal from "../properties/TextEditorModal";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
@@ -119,7 +119,7 @@ const styles = (theme: Theme) =>
       lineHeight: "1.2em",
       padding: "0.5em",
       overflowY: "auto",
-      transition: "background-color 0.15s ease",
+      transition: MOTION.background,
       "&:focus": {
         background: "rgba(255,255,255,0.06)"
       },

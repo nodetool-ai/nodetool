@@ -25,7 +25,9 @@ import {
   TextInput,
   Card,
   Chip,
-  Box
+  Box,
+  BORDER_RADIUS,
+  MOTION
 } from "../ui_primitives";
 import { ToolbarIconButton } from "../ui_primitives/ToolbarIconButton";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
@@ -434,12 +436,12 @@ const ProviderCard = memo(function ProviderCard({
       padding="compact"
       sx={{
         display: "flex",
-        alignItems: "stretch",
-        gap: "0.75rem",
+        alignItems: "center",
+        gap: theme.spacing(3),
         borderRadius: "var(--rounded-lg)",
         border: `1px solid ${theme.vars.palette.divider}`,
         backgroundColor: theme.vars.palette.background.paper,
-        transition: "border-color 0.2s ease, background-color 0.2s ease",
+        transition: `${MOTION.border}, ${MOTION.background}`,
         "&:hover": {
           borderColor: theme.vars.palette.grey[700],
           backgroundColor: theme.vars.palette.action.hover
@@ -456,8 +458,7 @@ const ProviderCard = memo(function ProviderCard({
           minWidth: 48,
           borderRadius: "var(--rounded-lg)",
           backgroundColor: theme.vars.palette.background.default,
-          overflow: "hidden",
-          marginTop: "2px"
+          overflow: "hidden"
         }}
       >
         {meta.icon ? (
@@ -495,7 +496,6 @@ const ProviderCard = memo(function ProviderCard({
               color="primary"
               sx={{
                 height: 18,
-                fontSize: theme.fontSizeTinyer,
                 fontWeight: 600,
                 borderColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.4)`
               }}
@@ -507,10 +507,10 @@ const ProviderCard = memo(function ProviderCard({
         </Caption>
         {meta.note && (
           <Caption
+            size="tiny"
             sx={{
               opacity: 0.45,
-              lineHeight: 1.4,
-              fontSize: theme.fontSizeTiny
+              lineHeight: 1.4
             }}
           >
             {meta.note}
@@ -518,19 +518,26 @@ const ProviderCard = memo(function ProviderCard({
         )}
       </FlexColumn>
 
-      {/* Status + Actions — right-aligned, vertically distributed */}
-      <FlexColumn
-        align="flex-end"
-        justify="space-between"
-        gap={0.25}
-        sx={{ flexShrink: 0, minHeight: "100%" }}
-      >
-        <FlexColumn align="flex-end" gap={0.25}>
-          <FlexRow align="center" gap={0.5}>
+      {/* Status + Actions — one vertically centered band */}
+      <FlexRow align="center" gap={3} sx={{ flexShrink: 0 }}>
+        <FlexColumn align="flex-end" gap={1}>
+          <FlexRow
+            align="center"
+            gap={1}
+            sx={{
+              padding: theme.spacing(0.5, 2),
+              borderRadius: BORDER_RADIUS.pill,
+              backgroundColor: `rgba(${
+                isConnected
+                  ? theme.vars.palette.success.mainChannel
+                  : theme.vars.palette.error.mainChannel
+              } / 0.1)`
+            }}
+          >
             <span
               style={{
-                width: 8,
-                height: 8,
+                width: 6,
+                height: 6,
                 borderRadius: "50%",
                 backgroundColor: isConnected
                   ? theme.vars.palette.success.main
@@ -539,31 +546,31 @@ const ProviderCard = memo(function ProviderCard({
               }}
             />
             <Caption
+              size="smaller"
+              color={isConnected ? "success" : "error"}
               sx={{
-                color: isConnected
-                  ? theme.vars.palette.success.main
-                  : theme.vars.palette.error.main,
                 fontWeight: 500,
-                fontSize: theme.fontSizeTiny
+                lineHeight: 1.6,
+                whiteSpace: "nowrap"
               }}
             >
               {isConnected ? "Connected" : "Not connected"}
             </Caption>
           </FlexRow>
           {isConnected && secret.updated_at && (
-            <Caption sx={{ opacity: 0.45, fontSize: theme.fontSizeTinyer }}>
+            <Caption size="tiny" sx={{ opacity: 0.45, whiteSpace: "nowrap" }}>
               Last used{" "}
               {new Date(secret.updated_at).toLocaleDateString()}
             </Caption>
           )}
           {!isConnected && (
-            <Caption sx={{ opacity: 0.45, fontSize: theme.fontSizeTinyer }}>
+            <Caption size="tiny" sx={{ opacity: 0.45, whiteSpace: "nowrap" }}>
               Add your API key to get started.
             </Caption>
           )}
         </FlexColumn>
 
-        <FlexRow align="center" gap={0.5} sx={{ marginTop: "4px" }}>
+        <FlexRow align="center" gap={0.5}>
           <EditorButton
             density="compact"
             variant="text"
@@ -605,7 +612,7 @@ const ProviderCard = memo(function ProviderCard({
             </EditorButton>
           )}
         </FlexRow>
-      </FlexColumn>
+      </FlexRow>
     </Card>
   );
 });
@@ -627,12 +634,12 @@ const GetStartedBanner = memo(function GetStartedBanner({
         borderRadius: "var(--rounded-xl)",
         border: `1px solid ${theme.vars.palette.divider}`,
         backgroundColor: theme.vars.palette.background.paper,
-        marginBottom: "1.5rem"
+        marginBottom: theme.spacing(6)
       }}
     >
       <FlexRow justify="space-between" align="flex-start" gap={2} wrap>
         <FlexColumn sx={{ maxWidth: 280 }}>
-          <Text size="normal" weight={600} sx={{ marginBottom: "4px" }}>
+          <Text size="normal" weight={600} sx={{ marginBottom: theme.spacing(1) }}>
             Get started
           </Text>
           <Caption sx={{ opacity: 0.6, lineHeight: 1.5 }}>
@@ -705,17 +712,17 @@ const SectionTitle = memo(function SectionTitle({
   theme: Theme;
 }) {
   return (
-    <FlexRow align="center" gap={0.75} sx={{ marginBottom: "0.75rem" }}>
+    <FlexRow align="center" gap={0.75} sx={{ marginBottom: theme.spacing(3) }}>
       <Text size="normal" weight={600}>
         {title}
       </Text>
       <Caption
+        size="small"
         sx={{
-          fontSize: theme.fontSizeTiny,
           opacity: 0.5,
           fontWeight: 600,
           backgroundColor: theme.vars.palette.action.selected,
-          padding: "1px 8px",
+          padding: theme.spacing(0.5, 2),
           borderRadius: "var(--rounded-sm)"
         }}
       >
@@ -912,7 +919,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
       <GetStartedBanner theme={theme} />
 
       {!hasContent && lowerSearch && (
-        <Text sx={{ textAlign: "center", padding: "2em", opacity: 0.6 }}>
+        <Text sx={{ textAlign: "center", padding: theme.spacing(8), opacity: 0.6 }}>
           No providers found matching &quot;{searchTerm}&quot;
         </Text>
       )}
@@ -924,7 +931,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
             count={allRecommended.length}
             theme={theme}
           />
-          <FlexColumn sx={{ gap: "0.6rem" }}>
+          <FlexColumn sx={{ gap: theme.spacing(2) }}>
             {allRecommended.map(({ secret, meta }) => (
               <ProviderCard
                 key={meta.key}
@@ -946,7 +953,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
             count={allOthers.length}
             theme={theme}
           />
-          <FlexColumn sx={{ gap: "0.6rem" }}>
+          <FlexColumn sx={{ gap: theme.spacing(2) }}>
             {allOthers.map(({ secret, meta }) => (
               <ProviderCard
                 key={meta.key}
@@ -981,7 +988,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
         cancelText="Cancel"
         confirmDisabled={!formValue}
       >
-        <FlexColumn sx={{ marginTop: "1em", gap: "0.75em" }}>
+        <FlexColumn sx={{ marginTop: theme.spacing(4), gap: theme.spacing(3) }}>
           <TextInput
             label="API Key"
             type="password"
@@ -1034,7 +1041,7 @@ export const SecurityNotice = memo(function SecurityNotice() {
           sx={{
             fontSize: 18,
             color: theme.vars.palette.success.main,
-            marginTop: "2px",
+            marginTop: theme.spacing(0.5),
             flexShrink: 0
           }}
         />
@@ -1042,7 +1049,7 @@ export const SecurityNotice = memo(function SecurityNotice() {
           <Text size="tiny" weight={600}>
             Your secrets are safe
           </Text>
-          <Caption sx={{ opacity: 0.6, lineHeight: 1.4, marginTop: "2px", fontSize: theme.fontSizeTinyer }}>
+          <Caption size="tiny" sx={{ opacity: 0.6, lineHeight: 1.4, marginTop: theme.spacing(0.5) }}>
             All API keys are encrypted in the database and never exposed.
           </Caption>
           <EditorButton
@@ -1057,7 +1064,7 @@ export const SecurityNotice = memo(function SecurityNotice() {
                 "noopener,noreferrer"
               )
             }
-            sx={{ alignSelf: "flex-start", marginTop: "4px", fontSize: theme.fontSizeTiny }}
+            sx={{ alignSelf: "flex-start", marginTop: theme.spacing(1) }}
           >
             Learn more
           </EditorButton>
@@ -1100,8 +1107,8 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
       sx={{
         width: 280,
         minWidth: 280,
-        padding: "1.5rem 1rem 1.5rem 1rem",
-        gap: "1rem",
+        padding: theme.spacing(6, 4),
+        gap: theme.spacing(4),
         overflowY: "auto",
         overflowX: "hidden"
       }}
@@ -1115,20 +1122,20 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
           border: `1px solid ${theme.vars.palette.divider}`
         }}
       >
-        <Text size="small" weight={600} sx={{ marginBottom: "0.75rem" }}>
+        <Text size="small" weight={600} sx={{ marginBottom: theme.spacing(3) }}>
           Quick Links
         </Text>
-        <FlexColumn sx={{ gap: "2px" }}>
+        <FlexColumn sx={{ gap: theme.spacing(0.5) }}>
           {quickLinks.map((link) => (
             <FlexRow
               key={link.title}
               align="center"
               gap={0.75}
               sx={{
-                padding: "8px 10px",
+                padding: theme.spacing(2, 2),
                 borderRadius: "var(--rounded-md)",
                 cursor: "pointer",
-                transition: "background-color 0.15s ease",
+                transition: MOTION.background,
                 "&:hover": {
                   backgroundColor: theme.vars.palette.action.hover
                 }
@@ -1166,7 +1173,7 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
                   color: theme.vars.palette.text.secondary,
                   fontSize: 16,
                   flexShrink: 0,
-                  marginLeft: "4px"
+                  marginLeft: theme.spacing(1)
                 }}
               >
                 ›
@@ -1186,7 +1193,7 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
           background: `linear-gradient(135deg, rgba(${theme.vars.palette.primary.mainChannel} / 0.08) 0%, rgba(${theme.vars.palette.primary.mainChannel} / 0.02) 100%)`
         }}
       >
-        <FlexRow align="center" gap={1} sx={{ marginBottom: "0.5rem" }}>
+        <FlexRow align="center" gap={1} sx={{ marginBottom: theme.spacing(2) }}>
           <CardGiftcardIcon
             sx={{ color: theme.vars.palette.primary.main, fontSize: 20 }}
           />
@@ -1194,7 +1201,7 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
             Need API credits?
           </Text>
         </FlexRow>
-        <Caption sx={{ opacity: 0.6, lineHeight: 1.5, marginBottom: "0.75rem" }}>
+        <Caption sx={{ opacity: 0.6, lineHeight: 1.5, marginBottom: theme.spacing(3) }}>
           Get free credits and offers from our partner providers.
         </Caption>
         <EditorButton

@@ -135,7 +135,18 @@ const metadataForOutput = (type: string): NodeMetadata =>
     layout: "default",
     properties: [],
     outputs: [{ name: "output", type: { type } }],
-    supports_dynamic_inputs: false
+    supports_dynamic_inputs: false,
+    // A generator/saver: persists each run, so its card gets the gallery.
+    auto_save_asset: true
+  }) as unknown as NodeMetadata;
+
+/** A pure transform: outputs media but doesn't persist — no gallery. */
+const transformMetadata = (): NodeMetadata =>
+  ({
+    ...metadataForOutput("image"),
+    node_type: "lib.image.color_grading.Curves",
+    namespace: "lib.image.color_grading",
+    auto_save_asset: false
   }) as unknown as NodeMetadata;
 
 const renderContentCard = (nodeMetadata: NodeMetadata) =>
@@ -242,6 +253,23 @@ describe("ContentCardBody results", () => {
     await userEvent.click(screen.getByLabelText("Toggle view mode"));
     const items = screen.getAllByRole("listitem");
     expect(items).toHaveLength(2);
+  });
+
+  it("renders a pure transform's output without the gallery navigator", () => {
+    seedLiveGeneration("job-x", {
+      output: { type: "image", uri: "transformed.png" }
+    });
+
+    renderContentCard(transformMetadata());
+
+    // The transformed image renders directly...
+    const rendered = screen.getAllByTestId("image-view");
+    expect(rendered[0]).toHaveTextContent("transformed.png");
+    // ...but a non-auto-saving transform has no gallery to browse, so none of
+    // the history-navigator controls are present.
+    expect(screen.queryByLabelText("Toggle view mode")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Next output")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Previous output")).not.toBeInTheDocument();
   });
 
   it("shows the live streaming result during a run, even when prior history exists", () => {

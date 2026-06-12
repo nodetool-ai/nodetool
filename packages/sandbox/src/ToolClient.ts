@@ -53,6 +53,10 @@ import {
   BrowserConsoleExecOutput,
   BrowserConsoleViewInput,
   BrowserConsoleViewOutput,
+  BrowserCaptureMediaInput,
+  BrowserCaptureMediaRaw,
+  BrowserUploadAssetRaw,
+  BrowserUploadAssetOutput,
   ScreenCaptureInput,
   ScreenCaptureOutput,
   ScreenFindInput,
@@ -310,6 +314,28 @@ export class ToolClient {
       input,
       BrowserConsoleViewInput,
       BrowserConsoleViewOutput
+    );
+  }
+
+  async browserCaptureMedia(
+    input: BrowserCaptureMediaInput
+  ): Promise<BrowserCaptureMediaRaw> {
+    return this.post(
+      "/browser/capture-media",
+      input,
+      BrowserCaptureMediaInput,
+      BrowserCaptureMediaRaw
+    );
+  }
+
+  async browserUploadAsset(
+    input: BrowserUploadAssetRaw
+  ): Promise<BrowserUploadAssetOutput> {
+    return this.post(
+      "/browser/upload-asset",
+      input,
+      BrowserUploadAssetRaw,
+      BrowserUploadAssetOutput
     );
   }
 

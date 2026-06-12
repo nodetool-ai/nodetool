@@ -328,8 +328,8 @@ describe("input nodes — full coverage", () => {
     it(`${Cls.nodeType} returns default value`, async () => {
       const node = new Cls();
       const result = await node.process();
-      if (verify) verify(result.value);
-      else expect(result).toEqual({ value: expected });
+      if (verify) verify(result.output);
+      else expect(result).toEqual({ output: expected });
     });
   }
 
@@ -337,14 +337,14 @@ describe("input nodes — full coverage", () => {
     const node = new FloatInputNode();
     node.assign({ value: 3.14 });
     const result = await node.process();
-    expect(result).toEqual({ value: 3.14 });
+    expect(result).toEqual({ output: 3.14 });
   });
 
   it("StringInputNode returns full string when no max_length", async () => {
     const node = new StringInputNode();
     node.assign({ value: "hello world", max_length: 0 });
     const result = await node.process();
-    expect(result).toEqual({ value: "hello world" });
+    expect(result).toEqual({ output: "hello world" });
   });
 
   it("StringInputNode defaults include line_mode", () => {
@@ -377,7 +377,7 @@ describe("input nodes — full coverage", () => {
     node.assign({ value: "/some/doc.pdf" });
     const result = await node.process();
     expect(result).toEqual({
-      document: { uri: "file:///some/doc.pdf" },
+      document: { type: "document", uri: "file:///some/doc.pdf" },
       path: "/some/doc.pdf"
     });
   });
@@ -385,7 +385,10 @@ describe("input nodes — full coverage", () => {
   it("DocumentFileInputNode handles empty path", async () => {
     const node = new DocumentFileInputNode();
     const result = await node.process();
-    expect(result).toEqual({ document: { uri: "" }, path: "" });
+    expect(result).toEqual({
+      document: { type: "document", uri: "" },
+      path: ""
+    });
   });
 
   it("MessageDeconstructorNode handles string content", async () => {
@@ -516,9 +519,15 @@ describe("output nodes — full coverage", () => {
     node.assign({ value: { a: 1 } });
     expect(await node.process()).toEqual({ output: { a: 1 } });
 
-    // undefined (fallback to null)
-    node.assign({ value: undefined });
-    expect(await node.process()).toEqual({ output: null });
+    // undefined → assign() treats it as absent, so a fresh node keeps its
+    // declared default (null); process() normalizes that to null output.
+    const fresh = new OutputNode();
+    fresh.assign({ value: undefined });
+    expect(await fresh.process()).toEqual({ output: null });
+
+    // a raw undefined reaching process() directly still falls back to null
+    fresh.value = undefined;
+    expect(await fresh.process()).toEqual({ output: null });
   });
 
   it("OutputNode output_name defaults to 'output' when name prop empty", async () => {
@@ -760,7 +769,6 @@ describe("constant nodes — full coverage", () => {
     expect(d).toEqual({ value: null });
     const result = await node.process();
     expect(result).toEqual({
-      output: { width: 1024, height: 1024 },
       image_size: { width: 1024, height: 1024 },
       width: 1024,
       height: 1024

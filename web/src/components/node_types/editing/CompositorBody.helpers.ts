@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { rawRgbaToPngDataUrl } from "../../../lib/workflow/materializeBrowserOutputs";
 
 export interface ImageRefLike {
   uri?: string;
@@ -46,6 +47,16 @@ export const resolveImageUrl = (
     return `data:image/png;base64,${image.data}`;
   }
   if (image.data instanceof Uint8Array) {
+    const { width, height } = image;
+    // Raw-RGBA buffers (length === w*h*4) aren't an encoded image — base64-ing
+    // the bytes as PNG yields an undecodable URL. Encode them via a canvas.
+    if (
+      typeof width === "number" &&
+      typeof height === "number" &&
+      image.data.length === width * height * 4
+    ) {
+      return rawRgbaToPngDataUrl(image.data, width, height) || undefined;
+    }
     return `data:image/png;base64,${uint8ArrayToBase64(image.data)}`;
   }
   return undefined;

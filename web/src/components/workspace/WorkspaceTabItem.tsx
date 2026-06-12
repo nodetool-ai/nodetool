@@ -11,6 +11,7 @@ import React, {
 import type { WorkspaceTab } from "../../stores/WorkspaceTabsStore";
 import { useIsWorkflowRunning } from "../../hooks/useWorkflowRunnerState";
 import { useWorkflowDirty } from "../../hooks/useWorkflowDirty";
+import { useSettingsStore } from "../../stores/SettingsStore";
 import {
   CloseButton,
   ContextMenu,
@@ -22,7 +23,7 @@ export interface WorkspaceTabItemProps {
   tab: WorkspaceTab;
   isActive: boolean;
   isEditing: boolean;
-  dropTarget: { id: string; position: "left" | "right" } | null;
+  dropPosition: "left" | "right" | null;
   typeColor: string;
   typeGlyph: string;
   onActivate: (tabId: string) => void;
@@ -42,7 +43,7 @@ const WorkspaceTabItem = ({
   tab,
   isActive,
   isEditing,
-  dropTarget,
+  dropPosition,
   typeColor,
   typeGlyph,
   onActivate,
@@ -60,6 +61,12 @@ const WorkspaceTabItem = ({
   const workflowId = tab.type === "workflow" ? tab.ref : undefined;
   const isWorkflowDirty = useWorkflowDirty(workflowId);
   const isRunning = useIsWorkflowRunning(workflowId);
+  // Instant-update mode re-runs the graph on every keystroke, so the per-run
+  // tab spinner would strobe on/off continuously — suppress it (and its
+  // animation) while instant update is on.
+  const instantUpdate = useSettingsStore(
+    (state) => state.settings.instantUpdate
+  );
 
   const [contextMenuPosition, setContextMenuPosition] = useState<{
     x: number;
@@ -68,11 +75,11 @@ const WorkspaceTabItem = ({
   const cancelRenameRef = useRef(false);
 
   const dropClass =
-    dropTarget?.id === tab.id
-      ? dropTarget.position === "left"
-        ? " drop-target-left"
-        : " drop-target-right"
-      : "";
+    dropPosition === "left"
+      ? " drop-target-left"
+      : dropPosition === "right"
+        ? " drop-target-right"
+        : "";
 
   const closeContextMenu = useCallback(() => {
     setContextMenuPosition(null);
@@ -166,7 +173,7 @@ const WorkspaceTabItem = ({
           />
         ) : (
           <>
-            {isRunning && (
+            {isRunning && !instantUpdate && (
               <LoadingSpinner
                 inline
                 variant="circular"

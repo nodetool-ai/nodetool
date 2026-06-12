@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Chip } from "../../ui_primitives";
+import { Text, Chip, MOTION } from "../../ui_primitives";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { memo, useCallback } from "react";
 
@@ -106,7 +106,7 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
                   borderColor: theme.vars.palette.divider,
                   color: theme.vars.palette.text.secondary,
                   cursor: "pointer",
-                  transition: "all 0.15s ease",
+                  transition: `all ${MOTION.fast}`,
                   "&:hover": {
                     borderColor: theme.vars.palette.primary.main,
                     color: theme.vars.palette.primary.main,

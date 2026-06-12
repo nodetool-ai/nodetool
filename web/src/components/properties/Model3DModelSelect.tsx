@@ -5,8 +5,8 @@ import { BASE_URL } from "../../stores/BASE_URL";
 import { Model3DModelValue } from "../../stores/ApiTypes";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
-import { Menu, MenuItem, ListItemText } from "@mui/material";
-import { Caption, Divider } from "../ui_primitives";
+import { ListItemText } from "@mui/material";
+import { Caption, Divider, EditorMenu, EditorMenuItem } from "../ui_primitives";
 
 // Local type until codegen adds Model3DModel to ApiTypes
 interface Model3DModel {
@@ -30,7 +30,7 @@ const ModelMenuItem = React.memo<ModelMenuItemProps>(
     }, [model, onSelect]);
 
     return (
-      <MenuItem
+      <EditorMenuItem
         onClick={handleClick}
         selected={isSelected}
         sx={{ pl: 3 }}
@@ -39,7 +39,7 @@ const ModelMenuItem = React.memo<ModelMenuItemProps>(
           primary={model.name || model.id}
           secondary={model.supported_tasks?.join(", ")}
         />
-      </MenuItem>
+      </EditorMenuItem>
     );
   },
   (prevProps, nextProps) =>
@@ -143,7 +143,7 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
         subLabel="Select 3D Model"
         onClick={handleClick}
       />
-      <Menu
+      <EditorMenu
         anchorEl={anchorEl}
         open={!!anchorEl}
         onClose={handleClose}
@@ -155,33 +155,29 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
           vertical: "top",
           horizontal: "left"
         }}
-        slotProps={{
-          paper: {
-            sx: {
-              maxHeight: 400,
-              minWidth: 250
-            }
-          }
+        paperSx={{
+          maxHeight: 400,
+          minWidth: 250
         }}
       >
         {isLoading && (
-          <MenuItem disabled>
+          <EditorMenuItem disabled>
             <ListItemText primary="Loading models..." />
-          </MenuItem>
+          </EditorMenuItem>
         )}
         {!isLoading && filteredModels.length === 0 && (
-          <MenuItem disabled>
+          <EditorMenuItem disabled>
             <ListItemText primary="No 3D models available" />
-          </MenuItem>
+          </EditorMenuItem>
         )}
         {Object.entries(modelsByProvider).map(([provider, providerModels], index) => (
           <React.Fragment key={provider}>
             {index > 0 && <Divider />}
-            <MenuItem disabled sx={{ opacity: 1 }}>
+            <EditorMenuItem disabled sx={{ opacity: 1 }}>
               <Caption color="secondary" sx={{ fontWeight: 600 }}>
                 {provider}
               </Caption>
-            </MenuItem>
+            </EditorMenuItem>
             {providerModels.map((model) => (
               <ModelMenuItem
                 key={model.id}
@@ -192,7 +188,7 @@ const Model3DModelSelect: React.FC<Model3DModelSelectProps> = ({
             ))}
           </React.Fragment>
         ))}
-      </Menu>
+      </EditorMenu>
     </>
   );
 };

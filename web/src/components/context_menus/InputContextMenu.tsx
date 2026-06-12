@@ -8,9 +8,9 @@ import React, {
 } from "react";
 import { shallow } from "zustand/shallow";
 //mui
-import { InputAdornment, Menu, TextField } from "@mui/material";
+import { InputAdornment, TextField } from "@mui/material";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Divider, Text, ToolbarIconButton, Box } from "../ui_primitives";
+import { Divider, Text, ToolbarIconButton, Box, ContextMenu } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 //icons
 import PushPinIcon from "@mui/icons-material/PushPin";
@@ -852,35 +852,26 @@ const InputContextMenu: React.FC = () => {
     : "Input";
 
   return (
-    <Menu
+    <ContextMenu
       className="context-menu input-context-menu"
       open={menuPosition !== null}
       onClose={closeContextMenu}
       onContextMenu={(event) => event.preventDefault()}
-      anchorReference="anchorPosition"
-      anchorPosition={
-        menuPosition
-          ? { top: menuPosition.y, left: menuPosition.x }
-          : undefined
-      }
+      position={menuPosition}
       transformOrigin={{ vertical: "top", horizontal: "left" }}
       marginThreshold={0}
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: "var(--rounded-xl)",
-            backgroundColor: theme.vars.palette.background.paper,
-            border: `1px solid ${theme.vars.palette.divider}`,
-            boxShadow: theme.shadows[8],
-            maxHeight: `calc(100vh - ${menuPosition.y}px)`,
-            minWidth: "320px",
-            overflow: "hidden",
-            padding: "4px",
-            "& .MuiDivider-root": {
-              margin: "4px 0",
-              borderColor: theme.vars.palette.divider
-            }
-          }
+      paperSx={{
+        borderRadius: "var(--rounded-xl)",
+        backgroundColor: theme.vars.palette.background.paper,
+        border: `1px solid ${theme.vars.palette.divider}`,
+        boxShadow: theme.shadows[8],
+        maxHeight: `calc(100vh - ${menuPosition.y}px)`,
+        minWidth: "320px",
+        overflow: "hidden",
+        padding: "4px",
+        "& .MuiDivider-root": {
+          margin: "4px 0",
+          borderColor: theme.vars.palette.divider
         }
       }}
       transitionDuration={200}
@@ -1089,7 +1080,7 @@ const InputContextMenu: React.FC = () => {
           </Box>
         )}
       </Box>
-    </Menu>
+    </ContextMenu>
   );
 };
 

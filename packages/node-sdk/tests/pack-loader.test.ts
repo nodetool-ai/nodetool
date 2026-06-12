@@ -8,7 +8,9 @@ import {
   defaultPackSearchPaths,
   discoverPacks,
   loadInstalledPacks,
+  readBuiltinPackOverrides,
   resolvePackTrust,
+  writeBuiltinPackOverrides,
   writePackTrustConfig,
   PACK_API_VERSION
 } from "../src/pack-loader.js";
@@ -329,6 +331,72 @@ describe("writePackTrustConfig", () => {
       allow: [],
       allowUnlisted: true
     });
+  });
+
+  it("preserves built-in pack overrides already in the file", () => {
+    const path = joinPath(root, "packs.json");
+    process.env["NODETOOL_PACKS_CONFIG"] = path;
+    writeFileSync(
+      path,
+      JSON.stringify({ enabledBuiltins: ["kie"], disabledBuiltins: ["fal"] })
+    );
+    writePackTrustConfig({ allowlist: ["@acme/a"], allowUnlisted: false }, path);
+    expect(JSON.parse(readFileSync(path, "utf8"))).toEqual({
+      enabledBuiltins: ["kie"],
+      disabledBuiltins: ["fal"],
+      allow: ["@acme/a"],
+      allowUnlisted: false
+    });
+  });
+});
+
+describe("built-in pack overrides", () => {
+  it("defaults to an empty map", () => {
+    expect(readBuiltinPackOverrides()).toEqual({});
+  });
+
+  it("round-trips overrides in both directions, sorted", () => {
+    const path = joinPath(root, "packs.json");
+    process.env["NODETOOL_PACKS_CONFIG"] = path;
+    writeBuiltinPackOverrides(
+      { kie: true, fal: false, elevenlabs: true },
+      path
+    );
+    expect(readBuiltinPackOverrides()).toEqual({
+      kie: true,
+      elevenlabs: true,
+      fal: false
+    });
+    expect(JSON.parse(readFileSync(path, "utf8"))).toEqual({
+      enabledBuiltins: ["elevenlabs", "kie"],
+      disabledBuiltins: ["fal"]
+    });
+  });
+
+  it("preserves trust fields already in the file", () => {
+    const path = joinPath(root, "packs.json");
+    process.env["NODETOOL_PACKS_CONFIG"] = path;
+    writePackTrustConfig({ allowlist: ["@acme/a"], allowUnlisted: true }, path);
+    writeBuiltinPackOverrides({ kie: true }, path);
+    expect(JSON.parse(readFileSync(path, "utf8"))).toEqual({
+      allow: ["@acme/a"],
+      allowUnlisted: true,
+      enabledBuiltins: ["kie"],
+      disabledBuiltins: []
+    });
+    const resolved = resolvePackTrust();
+    expect(resolved.allowlist).toEqual(["@acme/a"]);
+    expect(resolved.allowUnlisted).toBe(true);
+  });
+
+  it("ignores non-string entries in the config file", () => {
+    const path = joinPath(root, "packs.json");
+    process.env["NODETOOL_PACKS_CONFIG"] = path;
+    writeFileSync(
+      path,
+      JSON.stringify({ enabledBuiltins: ["kie", 3], disabledBuiltins: [null, "fal"] })
+    );
+    expect(readBuiltinPackOverrides()).toEqual({ kie: true, fal: false });
   });
 });
 

@@ -103,6 +103,18 @@ describe("ProcessingContext – message queue", () => {
     });
   });
 
+  it("resolves concurrent popMessageAsync waiters one message each", async () => {
+    const ctx = new ProcessingContext({ jobId: "j1" });
+    const first = ctx.popMessageAsync();
+    const second = ctx.popMessageAsync();
+    ctx.emit({ type: "job_update", status: "running" });
+    ctx.emit({ type: "job_update", status: "completed" });
+    const [a, b] = await Promise.all([first, second]);
+    expect(a).toMatchObject({ type: "job_update", status: "running" });
+    expect(b).toMatchObject({ type: "job_update", status: "completed" });
+    expect(ctx.hasMessages()).toBe(false);
+  });
+
   it("tracks latest node and edge statuses", () => {
     const ctx = new ProcessingContext({ jobId: "j1" });
     ctx.emit({
@@ -2114,13 +2126,16 @@ describe("ProcessingContext – storage retrieve returns null on error", () => {
 });
 
 describe("ProcessingContext – getProvider with no resolver", () => {
+  // Generous timeout: the no-resolver path does a cold dynamic import of the
+  // full provider barrel (./providers/index.js), which can be slow on first
+  // load under full-suite parallel contention.
   it("falls back to the global provider registry", async () => {
     const providerId = `fake-${Date.now()}`;
     registerProvider(providerId, FakeProvider, { textResponse: "hello" });
     const ctx = new ProcessingContext({ jobId: "j1" });
     const provider = await ctx.getProvider(providerId);
     expect(provider).toBeInstanceOf(FakeProvider);
-  });
+  }, 30000);
 
   it("resolves built-in providers from the default registry path", async () => {
     vi.stubEnv("OPENAI_API_KEY", "sk-test-fake-key");
@@ -2131,7 +2146,7 @@ describe("ProcessingContext – getProvider with no resolver", () => {
     } finally {
       vi.unstubAllEnvs();
     }
-  });
+  }, 30000);
 });
 
 describe("ProcessingContext – get with default value", () => {

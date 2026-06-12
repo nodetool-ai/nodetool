@@ -8,8 +8,8 @@
 
 import React, { useState, useCallback, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Menu, MenuItem, ListItemText, ListItemIcon } from "@mui/material";
-import { ToolbarIconButton, Box } from "../ui_primitives";
+import { ListItemText, ListItemIcon } from "@mui/material";
+import { ToolbarIconButton, Box, EditorMenu, EditorMenuItem, MOTION } from "../ui_primitives";
 import InputOutlinedIcon from "@mui/icons-material/InputOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
@@ -107,8 +107,8 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
 
   return (
     <>
-      <FlexColumn gap={0.75}>
-        <FlexRow gap={0.75} align="center">
+      <FlexColumn gap={1}>
+        <FlexRow gap={1} align="center">
           <InputOutlinedIcon
             sx={{ fontSize: 14, color: theme.vars.palette.secondary.main }}
           />
@@ -152,7 +152,7 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
                     ? `${theme.vars.palette.secondary.main}14`
                     : theme.vars.palette.action.hover,
                 },
-                transition: "all 0.15s",
+                transition: `all ${MOTION.fast}`,
               }}
             >
               <FlexColumn gap={0} sx={{ flex: 1, minWidth: 0 }}>
@@ -214,15 +214,13 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
       </FlexColumn>
 
       {/* Source picker menu */}
-      <Menu
+      <EditorMenu
         anchorEl={anchorEl}
         open={Boolean(anchorEl) && activeInput !== null}
         onClose={handleClose}
-        slotProps={{
-          paper: { sx: { minWidth: 280, maxHeight: 400 } },
-        }}
+        paperSx={{ minWidth: 280, maxHeight: 400 }}
       >
-        <MenuItem disabled sx={{ opacity: "1 !important" }}>
+        <EditorMenuItem disabled sx={{ opacity: "1 !important" }}>
           <ListItemText
             primary={`Source for "${activeInput}"`}
             secondary="Pick which node output feeds this input"
@@ -230,15 +228,15 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
               primary: { sx: { fontWeight: 600 } },
             }}
           />
-        </MenuItem>
+        </EditorMenuItem>
 
         {/* None option */}
-        <MenuItem
+        <EditorMenuItem
           selected={activeInput !== null && !inputMappings[activeInput]}
           onClick={() => handleSelect(null)}
         >
           <ListItemText primary="No connection" />
-        </MenuItem>
+        </EditorMenuItem>
 
         {sourceOptions.map(({ node, output, compatible }) => {
           const isSelected =
@@ -247,7 +245,7 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
             inputMappings[activeInput]?.sourceOutput === output.name;
 
           return (
-            <MenuItem
+            <EditorMenuItem
               key={`${node.id}-${output.name}`}
               selected={isSelected}
               onClick={() =>
@@ -281,10 +279,10 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
                   }}
                 />
               )}
-            </MenuItem>
+            </EditorMenuItem>
           );
         })}
-      </Menu>
+      </EditorMenu>
     </>
   );
 };

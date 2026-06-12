@@ -12,10 +12,16 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { getPackSnapshot, reloadPacks } from "../../pack-snapshot.js";
 import {
+  readBuiltinPackOverrides,
   resolvePackTrust,
+  writeBuiltinPackOverrides,
   writePackTrustConfig,
   type LoadedPackResult
 } from "@nodetool-ai/node-sdk";
+import {
+  BUILTIN_NODE_PACKS,
+  resolveBuiltinPackEnabled
+} from "@nodetool-ai/protocol";
 
 // ── Schemas ──────────────────────────────────────────────────────────────
 
@@ -55,6 +61,16 @@ const trustUpdateInput = z
     message: "at least one of allowlist or allowUnlisted must be set"
   });
 
+const builtinPackSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  enabled: z.boolean(),
+  required: z.boolean()
+});
+
+const builtinsOutput = z.object({ packs: z.array(builtinPackSchema) });
+
 // ── DTO mapping ──────────────────────────────────────────────────────────
 
 function toDto(r: LoadedPackResult): z.infer<typeof packResultSchema> {
@@ -67,6 +83,17 @@ function toDto(r: LoadedPackResult): z.infer<typeof packResultSchema> {
     skippedNodes: r.skippedNodes,
     ...(r.error ? { error: r.error.message } : {})
   };
+}
+
+function builtinPackDtos(): z.infer<typeof builtinPackSchema>[] {
+  const overrides = readBuiltinPackOverrides();
+  return BUILTIN_NODE_PACKS.map((pack) => ({
+    id: pack.id,
+    name: pack.name,
+    description: pack.description,
+    required: pack.required ?? false,
+    enabled: resolveBuiltinPackEnabled(pack, overrides[pack.id])
+  }));
 }
 
 // ── Router ───────────────────────────────────────────────────────────────
@@ -98,6 +125,40 @@ export const packsRouter = router({
       };
       writePackTrustConfig(next);
       return next;
+    }),
+
+  /** Built-in packs that ship with NodeTool and whether each is enabled. */
+  listBuiltins: protectedProcedure
+    .output(builtinsOutput)
+    .query(() => ({ packs: builtinPackDtos() })),
+
+  /**
+   * Enable or disable a built-in pack. Persisted to
+   * `~/.config/nodetool/packs.json` and applied to the live registry
+   * immediately, so clients only need to refetch node metadata.
+   */
+  setBuiltinEnabled: protectedProcedure
+    .input(z.object({ id: z.string(), enabled: z.boolean() }))
+    .output(builtinsOutput)
+    .mutation(async ({ input, ctx }) => {
+      const pack = BUILTIN_NODE_PACKS.find((p) => p.id === input.id);
+      if (!pack) {
+        throw new Error(`Unknown built-in pack "${input.id}"`);
+      }
+      if (pack.required && !input.enabled) {
+        throw new Error(`Built-in pack "${input.id}" cannot be disabled`);
+      }
+      writeBuiltinPackOverrides({
+        ...readBuiltinPackOverrides(),
+        [input.id]: input.enabled
+      });
+      // Lazy import: node-registry-setup pulls in every built-in pack, which
+      // must not load just because the router module is imported.
+      const { applyBuiltinPackEnabled } = await import(
+        "../../node-registry-setup.js"
+      );
+      applyBuiltinPackEnabled(ctx.registry, input.id, input.enabled);
+      return { packs: builtinPackDtos() };
     }),
 
   /**

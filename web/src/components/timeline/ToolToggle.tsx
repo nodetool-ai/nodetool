@@ -12,7 +12,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ContentCutOutlinedIcon from "@mui/icons-material/ContentCutOutlined";
 
-import { FlexRow, Tooltip } from "../ui_primitives";
+import { FlexRow, Tooltip, MOTION } from "../ui_primitives";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 
 /** Custom pointer cursor — monoline, 1.6px stroke. */
@@ -50,7 +50,7 @@ const buttonStyles = (theme: Theme, active: boolean) =>
     letterSpacing: "0.01em",
     fontFamily: theme.typography.fontFamily,
     borderRadius: 6,
-    transition: "background-color 120ms, color 120ms, border-color 120ms",
+    transition: `background-color ${MOTION.fast}, color ${MOTION.fast}, border-color ${MOTION.fast}`,
     "&:hover": {
       backgroundColor: active
         ? theme.vars.palette.action.selected

@@ -27,7 +27,8 @@ import { initDb, Workflow, Secret, getSecret } from "@nodetool-ai/models";
 import { initMasterKey } from "@nodetool-ai/security";
 import { getDefaultDbPath, getDefaultAssetsPath } from "@nodetool-ai/config";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
-import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { hydrateGraphNodeFlags, NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { GraphData } from "@nodetool-ai/protocol";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
 import { registerMinimaxNodes } from "@nodetool-ai/minimax-nodes";
@@ -555,7 +556,9 @@ workflows
                 workflow_id: workflowId ?? undefined,
                 params
               },
-              graph
+              // Saved workflow JSON carries no behavior flags; stamp them
+              // from the registry or streaming nodes run as one-shots.
+              hydrateGraphNodeFlags(graph as GraphData, registry)
             );
           } finally {
             pythonBridge?.close();

@@ -123,9 +123,15 @@ export const TYPOGRAPHY = {
 /**
  * Motion / transition timing constants.
  *
+ * Always pair transitions with a `prefers-reduced-motion` override.
+ * Use the `reducedMotion()` helper to add the override in one step:
+ *
  * @example
  * transition: MOTION.all
  * transition: `${MOTION.border}, ${MOTION.shadow}`
+ *
+ * // With accessibility override:
+ * css({ transition: MOTION.all, ...reducedMotion({ transition: MOTION.none }) })
  */
 export const MOTION = {
   /** 120ms — hover micro-interactions, icon state changes */
@@ -142,7 +148,36 @@ export const MOTION = {
   shadow: "box-shadow 200ms ease",
   background: "background-color 150ms ease",
   all: "all 200ms ease",
+
+  /** Disables a transition entirely. Use in prefers-reduced-motion overrides. */
+  none: "none",
 } as const;
+
+/**
+ * Returns an Emotion-compatible `@media (prefers-reduced-motion: reduce)`
+ * block with the given style overrides. Spread into any css() or sx block
+ * that uses MOTION tokens.
+ *
+ * WCAG 2.3.3 requires nonessential animations to be suppressible.
+ * Any component that transitions layout, opacity, or transform must call this.
+ *
+ * @example
+ * css({
+ *   transition: MOTION.all,
+ *   ...reducedMotion({ transition: MOTION.none }),
+ * })
+ *
+ * // Suppress a keyframe animation entirely:
+ * css({
+ *   animation: `${spin} 1s linear infinite`,
+ *   ...reducedMotion({ animation: "none", opacity: 0.6 }),
+ * })
+ */
+export const reducedMotion = (
+  overrides: Record<string, unknown>
+): Record<string, unknown> => ({
+  "@media (prefers-reduced-motion: reduce)": overrides,
+});
 
 /**
  * Z-index scale.
@@ -176,7 +211,7 @@ export const BORDER_RADIUS = {
   xxl: "var(--rounded-xxl)",
   circle: "var(--rounded-circle)",
   /** Full pill shape — for tags, chips, and compact buttons */
-  pill: "999px",
+  pill: "var(--rounded-pill)",
 } as const;
 
 /**

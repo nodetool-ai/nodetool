@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useEffect, useRef, useCallback, memo } from "react";
 import { css } from "@emotion/react";
-import { useTheme, Theme } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import {
   FlexColumn,
   FlexRow,
@@ -12,6 +12,7 @@ import {
   AlertBanner,
   EditorButton
 } from "../ui_primitives";
+import PanelToolbar from "../panels/PanelToolbar";
 import { trpc } from "../../trpc/client";
 
 interface SandboxStatus {
@@ -34,21 +35,17 @@ interface SandboxToolCall {
   message: string;
 }
 
-const panelStyles = (theme: Theme) =>
-  css({
-    "&": {
-      height: "100%"
-    },
-    ".panel-header": {
-      paddingBottom: "0.75em",
-      borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
-    },
-    ".scrollable-content": {
-      flex: 1,
-      overflowY: "auto",
-      overflowX: "hidden"
-    }
-  });
+const panelStyles = css({
+  "&": {
+    height: "100%"
+  },
+  ".scrollable-content": {
+    flex: 1,
+    overflowY: "auto",
+    overflowX: "hidden",
+    padding: "8px 12px 12px"
+  }
+});
 
 function formatAge(seconds: number): string {
   if (seconds < 60) return `${seconds}s`;
@@ -167,21 +164,16 @@ const SandboxesPanel: React.FC = () => {
     : null;
 
   return (
-    <FlexColumn gap={0} padding={4} fullHeight css={panelStyles(theme)}>
-      <FlexRow gap={3} align="center" justify="space-between" className="panel-header">
-        <Text size="big" weight={600}>
-          Sandboxes
-        </Text>
-        <Caption size="small">
-          {sandboxesQuery.isLoading ? "Loading..." : `${sandboxes.length} active`}
-        </Caption>
-      </FlexRow>
+    <FlexColumn gap={0} fullHeight css={panelStyles}>
+      <PanelToolbar title="Sandboxes" count={sandboxes.length}>
+        {sandboxesQuery.isLoading && <Caption size="small">Loading…</Caption>}
+      </PanelToolbar>
       {sandboxesQuery.isError && (
-        <AlertBanner severity="error" sx={{ mt: 2 }}>
+        <AlertBanner severity="error" sx={{ mx: 1.5, mt: 1 }}>
           Failed to load sandbox status
         </AlertBanner>
       )}
-      <FlexColumn className="scrollable-content" sx={{ mt: 2 }}>
+      <FlexColumn className="scrollable-content">
         {sandboxesQuery.isLoading ? (
           <FlexRow justify="center" sx={{ py: 4 }}>
             <LoadingSpinner size="small" />
@@ -312,8 +304,8 @@ const SandboxesPanel: React.FC = () => {
                       css={{
                         width: "100%",
                         height: VNC_IFRAME_HEIGHT_PX,
-                        border: `1px solid ${theme.vars.palette.grey[700]}`,
-                        borderRadius: "6px",
+                        border: `1px solid ${theme.vars.palette.divider}`,
+                        borderRadius: theme.rounded.md,
                         backgroundColor: "black",
                         "&:fullscreen": {
                           width: "100vw",
@@ -341,12 +333,12 @@ const SandboxesPanel: React.FC = () => {
                         sx={{
                           maxHeight: TOOL_CALLS_MAX_HEIGHT_PX,
                           overflow: "auto",
-                          border: `1px solid ${theme.vars.palette.grey[700]}`,
-                          borderRadius: "6px",
+                          border: `1px solid ${theme.vars.palette.divider}`,
+                          borderRadius: theme.rounded.md,
                           p: 1
                         }}
                       >
-                        <FlexColumn gap={0.75}>
+                        <FlexColumn gap={1}>
                           {toolCalls.map((call) => (
                             <Caption key={call.id} size="small">
                               {call.timestamp ? `[${call.timestamp}] ` : ""}

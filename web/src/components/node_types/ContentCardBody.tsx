@@ -48,6 +48,7 @@ import { TextRenderer } from "../node/output/TextRenderer";
 import AudioPlayer from "../audio/AudioPlayer";
 
 import type { NodeMetadata } from "../../stores/ApiTypes";
+import { RAW_RGBA_MIME } from "@nodetool-ai/protocol";
 import type { NodeData } from "../../stores/NodeData";
 import { useNodeResultValue } from "../../hooks/nodes/useNodeExecState";
 import {
@@ -391,6 +392,11 @@ const imageSourceFromValue = (value: unknown): ImagePreviewSource | undefined =>
   if (!isRecord(value)) {
     return undefined;
   }
+  // Raw-RGBA buffers aren't encoded images — returning the bytes here would feed
+  // them to <img>. Defer to OutputRenderer, which paints them onto a <canvas>.
+  if (value.mimeType === RAW_RGBA_MIME) {
+    return undefined;
+  }
 
   if (typeof value.uri === "string" && value.uri) {
     return value.uri;
@@ -622,10 +628,14 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   }, [result, liveResolvedResult, lastJobAssets]);
 
   const isMediaVariant = MEDIA_VARIANTS.includes(variant);
-  // Text generations are persisted as text/plain assets (autoSaveAsset on
-  // Agent/Summarizer/Classifier), so the text card gets the same browsable,
-  // reload-surviving history navigator as media variants.
-  const usesHistoryNavigator = isMediaVariant || variant === "text";
+  // Only nodes that persist their outputs have a gallery to browse. Media
+  // generators / savers (`auto_save_asset`) and text nodes (persisted as
+  // text/plain assets) get the history navigator. Pure transforms
+  // (brightness/contrast, color grading, …) don't auto-save, so there's no
+  // gallery — show their live output directly, without the nav/grid buttons.
+  const hasGallery = !!nodeMetadata.auto_save_asset;
+  const usesHistoryNavigator =
+    (isMediaVariant && hasGallery) || variant === "text";
 
   const isDynamic = !!nodeMetadata.supports_dynamic_inputs;
   const hasDynamicProps =

@@ -4,15 +4,15 @@ import React, { useCallback } from "react";
 import {
   List,
   ListItemButton,
-  ListItemText,
-  Menu,
-  MenuItem
+  ListItemText
 } from "@mui/material";
 import {
   Caption,
   Checkbox,
   Divider,
   EditorButton,
+  EditorMenu,
+  EditorMenuItem,
   FlexColumn,
   FlexRow,
   LoadingSpinner,
@@ -651,7 +651,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
             title="All providers"
             placement="right"
           >
-            <FlexColumn align="center" gap={0.25} sx={{ py: 0.5 }}>
+            <FlexColumn align="center" gap={0.5} sx={{ py: 0.5 }}>
               <FormatListBulletedIcon className="model-menu__all-providers-icon" />
               <Caption
                 sx={{
@@ -781,7 +781,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                     title={providerLabel}
                     placement="right"
                   >
-                    <FlexColumn align="center" gap={0.25} sx={{ py: 0.5 }}>
+                    <FlexColumn align="center" gap={0.5} sx={{ py: 0.5 }}>
                       <FlexRow
                         className="model-menu__provider-icon-circle"
                         align="center"
@@ -988,28 +988,28 @@ const ProviderList: React.FC<ProviderListProps> = ({
           );
         }
       )}
-      <Menu
+      <EditorMenu
         className="model-menu__provider-context-menu"
         anchorEl={menuAnchor}
         open={Boolean(menuAnchor)}
         onClose={handleMenuClose}
       >
-        <MenuItem
+        <EditorMenuItem
           className="model-menu__provider-context-menu-item model-menu__provider-context-menu-item--website"
           disabled={!menuProvider || !getProviderUrl(menuProvider)}
           onClick={handleOpenWebsite}
         >
           Open provider website
-        </MenuItem>
-        <MenuItem
+        </EditorMenuItem>
+        <EditorMenuItem
           className="model-menu__provider-context-menu-item model-menu__provider-context-menu-item--toggle"
           onClick={handleToggleProvider}
         >
           {menuProvider && isProviderEnabled(menuProvider)
             ? "Disable provider"
             : "Enable provider"}
-        </MenuItem>
-      </Menu>
+        </EditorMenuItem>
+      </EditorMenu>
     </List>
   );
 };

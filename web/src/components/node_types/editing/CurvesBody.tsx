@@ -18,41 +18,37 @@ import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import {
   CheckerDropzone,
   FlexRow,
-  NodeSlider,
   StateIconButton
 } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
-import ImageView from "../../node/ImageView";
+import ImageRefPreview from "../../node/ImageRefPreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
-import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
+import { useLiveSliderWriter } from "../../../hooks/nodes/useLiveSliderWriter";
 import { useNodeOutput } from "../../../hooks/nodes/useNodeIO";
-import { asImageRef } from "../../../utils/imageRef";
 import { CURVES_NODE_TYPE } from "../../../constants/nodeTypes";
-
-interface SliderSpec {
-  name: string;
-  label: string;
-  min: number;
-  max: number;
-  default: number;
-}
+import {
+  AdjustmentSlider,
+  adjustmentSliderStyles,
+  clamp,
+  type SliderSpec
+} from "./AdjustmentSlider";
 
 const TONAL_SLIDERS: ReadonlyArray<SliderSpec> = [
-  { name: "black_point", label: "Black Point", min: 0, max: 0.5, default: 0 },
-  { name: "white_point", label: "White Point", min: 0.5, max: 1, default: 1 },
-  { name: "shadows", label: "Shadows", min: -0.5, max: 0.5, default: 0 },
-  { name: "midtones", label: "Midtones", min: -0.5, max: 0.5, default: 0 },
-  { name: "highlights", label: "Highlights", min: -0.5, max: 0.5, default: 0 }
+  { name: "black_point", label: "Black Point", min: 0, max: 0.5, step: 0.01, default: 0, bipolar: false },
+  { name: "white_point", label: "White Point", min: 0.5, max: 1, step: 0.01, default: 1, bipolar: false },
+  { name: "shadows", label: "Shadows", min: -0.5, max: 0.5, step: 0.01, default: 0, bipolar: true },
+  { name: "midtones", label: "Midtones", min: -0.5, max: 0.5, step: 0.01, default: 0, bipolar: true },
+  { name: "highlights", label: "Highlights", min: -0.5, max: 0.5, step: 0.01, default: 0, bipolar: true }
 ];
 
 const RGB_SLIDERS: ReadonlyArray<SliderSpec> = [
-  { name: "red_midtones", label: "Red", min: -0.5, max: 0.5, default: 0 },
-  { name: "green_midtones", label: "Green", min: -0.5, max: 0.5, default: 0 },
-  { name: "blue_midtones", label: "Blue", min: -0.5, max: 0.5, default: 0 }
+  { name: "red_midtones", label: "Red", min: -0.5, max: 0.5, step: 0.01, default: 0, bipolar: true },
+  { name: "green_midtones", label: "Green", min: -0.5, max: 0.5, step: 0.01, default: 0, bipolar: true },
+  { name: "blue_midtones", label: "Blue", min: -0.5, max: 0.5, step: 0.01, default: 0, bipolar: true }
 ];
 
 const ALL_SLIDERS: ReadonlyArray<SliderSpec> = [...TONAL_SLIDERS, ...RGB_SLIDERS];
@@ -118,103 +114,29 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       padding: `${theme.spacing(0.5)} ${theme.spacing(1)} ${theme.spacing(0.5)}`
     },
-    ".ctrl-label": {
-      fontSize: theme.fontSizeSmaller,
-      color: theme.vars.palette.text.secondary,
-      textTransform: "uppercase",
-      letterSpacing: "0.04em",
-      lineHeight: 1
-    },
+    // Channel tints layered over the shared `.ctrl-label` styles.
     ".ctrl-label.red": { color: theme.vars.palette.error.main },
     ".ctrl-label.green": { color: theme.vars.palette.success.main },
     ".ctrl-label.blue": { color: theme.vars.palette.info.main },
-    ".ctrl-value": {
-      fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeSmaller,
-      color: theme.vars.palette.text.primary,
-      minWidth: 40,
-      textAlign: "right",
-      lineHeight: 1
-    },
     ".outputs-row": {
       flex: "0 0 auto"
     }
   });
 
-const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => {
-  if (typeof value === "string" && value) {
-    return <ImageView source={value} />;
-  }
-  const ref = asImageRef(value);
-  if (ref?.uri) {
-    return <ImageView source={ref.uri} />;
-  }
-  if (ref?.data instanceof Uint8Array) {
-    return <ImageView source={ref.data} />;
-  }
-  if (Array.isArray(ref?.data)) {
-    return <ImageView source={new Uint8Array(ref!.data as number[])} />;
-  }
-  return (
-    <CheckerDropzone message="Connect an image, then run" icon={<ImageIcon />} />
-  );
-};
-
-const clamp = (v: number, min: number, max: number) =>
-  Math.max(min, Math.min(max, v));
-
-const formatValue = (spec: SliderSpec, v: number): string => {
-  // Black/white points are absolute levels (0..1); show plain. Other sliders
-  // are signed deltas; show with explicit sign so users can read "+0.10".
-  if (spec.name === "black_point" || spec.name === "white_point") {
-    return v.toFixed(2);
-  }
-  return `${v > 0 ? "+" : ""}${v.toFixed(2)}`;
-};
+const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
+  <ImageRefPreview
+    value={value}
+    placeholder={
+      <CheckerDropzone message="Connect an image, then run" icon={<ImageIcon />} />
+    }
+  />
+);
 
 const channelClass = (name: string): string => {
   if (name === "red_midtones") return "red";
   if (name === "green_midtones") return "green";
   if (name === "blue_midtones") return "blue";
   return "";
-};
-
-interface CurvesSliderProps {
-  spec: SliderSpec;
-  value: number;
-  onChange: (name: string, v: number) => void;
-  onCommit: () => void;
-}
-
-const CurvesSlider: React.FC<CurvesSliderProps> = ({
-  spec,
-  value,
-  onChange,
-  onCommit
-}) => {
-  const handleChange = useCallback(
-    (_: Event, v: number | number[]) => {
-      const next = Array.isArray(v) ? v[0] : v;
-      onChange(spec.name, Math.round(next * 100) / 100);
-    },
-    [onChange, spec.name]
-  );
-  const cls = channelClass(spec.name);
-  return (
-    <>
-      <span className={`ctrl-label${cls ? ` ${cls}` : ""}`}>{spec.label}</span>
-      <NodeSlider
-        min={spec.min}
-        max={spec.max}
-        step={0.01}
-        value={value}
-        onChange={handleChange}
-        onChangeCommitted={onCommit}
-        aria-label={`${spec.label} adjustment`}
-      />
-      <span className="ctrl-value">{formatValue(spec, value)}</span>
-    </>
-  );
 };
 
 export interface CurvesBodyProps {
@@ -237,7 +159,10 @@ const CurvesBodyInner: React.FC<CurvesBodyProps> = ({
   isOutputNode
 }) => {
   const theme = useTheme();
-  const cssStyles = useMemo(() => styles(theme), [theme]);
+  const cssStyles = useMemo(
+    () => [styles(theme), adjustmentSliderStyles(theme)],
+    [theme]
+  );
 
   const properties = nodeMetadata.properties ?? [];
   const imageProperty = useMemo(
@@ -249,7 +174,7 @@ const CurvesBodyInner: React.FC<CurvesBodyProps> = ({
   const previewValue = useNodeOutput(workflowId, id);
 
   const { setProperty, setProperties, setPropertyComplete } =
-    useBespokePropertyWriter({ nodeId: id, nodeType });
+    useLiveSliderWriter({ nodeId: id, nodeType });
 
   const handleChange = useCallback(
     (name: string, v: number) => {
@@ -290,7 +215,7 @@ const CurvesBodyInner: React.FC<CurvesBodyProps> = ({
             const raw = Number(props[spec.name] ?? spec.default);
             const value = clamp(raw, spec.min, spec.max);
             return (
-              <CurvesSlider
+              <AdjustmentSlider
                 key={spec.name}
                 spec={spec}
                 value={value}
@@ -311,12 +236,13 @@ const CurvesBodyInner: React.FC<CurvesBodyProps> = ({
             const raw = Number(props[spec.name] ?? spec.default);
             const value = clamp(raw, spec.min, spec.max);
             return (
-              <CurvesSlider
+              <AdjustmentSlider
                 key={spec.name}
                 spec={spec}
                 value={value}
                 onChange={handleChange}
                 onCommit={setPropertyComplete}
+                labelClassName={channelClass(spec.name)}
               />
             );
           })}
