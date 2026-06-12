@@ -28,7 +28,6 @@ describe("NodeTerminal", () => {
 
   it("writes only the unseen suffix on append, and replays on version bump", () => {
     const written: string[] = [];
-    let instance: MockTerminal | undefined;
     const origWrite = Terminal.prototype.write;
     jest
       .spyOn(Terminal.prototype, "write")
@@ -36,10 +35,10 @@ describe("NodeTerminal", () => {
         this: MockTerminal,
         data: string | Uint8Array
       ) {
-        instance = this;
         written.push(String(data));
         origWrite.call(this, data);
       });
+    const resetSpy = jest.spyOn(Terminal.prototype, "reset");
 
     const { rerender } = render(<NodeTerminal terminal={buf({ buffer: "abc" })} />);
     rerender(<NodeTerminal terminal={buf({ buffer: "abcdef" })} />);
@@ -48,7 +47,7 @@ describe("NodeTerminal", () => {
     // Reset snapshot: version bumps, buffer replaced → terminal resets and replays
     rerender(<NodeTerminal terminal={buf({ buffer: "SNAP", version: 1 })} />);
     expect(written).toEqual(["abc", "def", "SNAP"]);
-    expect(instance?.resetCount).toBe(1);
+    expect(resetSpy).toHaveBeenCalledTimes(1);
 
     jest.restoreAllMocks();
   });
