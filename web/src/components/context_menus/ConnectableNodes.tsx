@@ -183,7 +183,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     sourceHandle,
     targetHandle,
     nodeId
-  } = useConnectableNodesStore(storeSelector);
+  } = useConnectableNodesStore(storeSelector, shallow);
 
   const filteredNodes = useMemo(
     () => searchNodesHelper(connectableNodes, searchTerm, recentNodeTypes),

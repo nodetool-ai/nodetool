@@ -65,7 +65,7 @@ import { ChunkRenderer } from "./output/ChunkRenderer";
 import { ImageComparisonRenderer, type ImageComparisonData } from "./output/ImageComparisonRenderer";
 import { JSONRenderer } from "./output/JSONRenderer";
 import ObjectRenderer from "./output/ObjectRenderer";
-import { RealtimeAudioOutput } from "./output";
+import { RealtimeAudioOutputFromChunks } from "./output";
 import PlotlyRenderer from "./output/PlotlyRenderer";
 import DataframeRenderer from "./output/DataframeRenderer";
 import { isAudioChunkLike, isTextLikeChunk } from "./outputChunkUtils";
@@ -781,7 +781,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
               if (audioChunks.length >= 2) {
                 const firstMeta = audioChunks[0].content_metadata;
                 return (
-                  <RealtimeAudioOutput
+                  <RealtimeAudioOutputFromChunks
                     chunks={audioChunks}
                     sampleRate={(firstMeta?.sample_rate as number | undefined) ?? 22000}
                     channels={(firstMeta?.channels as number | undefined) ?? 1}

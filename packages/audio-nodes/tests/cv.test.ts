@@ -68,26 +68,46 @@ describe("readSignalChunk", () => {
     expect(readSignalChunk(null)).toBeNull();
   });
 
-  it("pcm16 clamps values beyond [-1, 1] while f32le preserves them", () => {
+  it("native chunks preserve out-of-range CV values regardless of declared encoding", () => {
+    // In-process chunks carry samples natively — no pcm16 clamping until a
+    // boundary actually serializes them.
     const samples = new Float32Array([2.5, -3]);
-    const viaPcm = readSignalChunk(
-      makeSignalChunk(samples, 24000, 1, false, "pcm16le")
-    )!;
-    expect(viaPcm.samples[0]).toBeCloseTo(1, 3);
-    expect(viaPcm.samples[1]).toBeCloseTo(-1, 3);
-    const viaF32 = readSignalChunk(
-      makeSignalChunk(samples, 24000, 1, false, "f32le")
-    )!;
-    expect(viaF32.samples[0]).toBe(2.5);
-    expect(viaF32.samples[1]).toBe(-3);
+    for (const enc of ["pcm16le", "f32le"] as const) {
+      const parsed = readSignalChunk(makeSignalChunk(samples, 24000, 1, false, enc))!;
+      expect(parsed.samples[0]).toBe(2.5);
+      expect(parsed.samples[1]).toBe(-3);
+    }
   });
 
-  it("reads base64 content via the standard decoder", () => {
+  it("decoding base64 pcm16 (the lossy wire encoding) clamps beyond [-1, 1]", () => {
+    const samples = new Float32Array([2.5, -3]);
+    const viaPcm = readSignalChunk({
+      type: "chunk",
+      content: bytesToB64(float32ToPcm16(samples)),
+      content_type: "audio",
+      content_metadata: { sample_rate: 24000, channels: 1 }
+    })!;
+    expect(viaPcm.samples[0]).toBeCloseTo(1, 3);
+    expect(viaPcm.samples[1]).toBeCloseTo(-1, 3);
+  });
+
+  it("carries samples as a native Float32Array (zero-conversion payload)", () => {
     const samples = new Float32Array([1, 2, 3]);
     const chunk = makeSignalChunk(samples, 24000, 1, false, "f32le") as {
-      content: string;
+      content: unknown;
     };
-    expect(f32leToFloat32(b64ToBytes(chunk.content))).toEqual(samples);
+    expect(chunk.content).toBe(samples);
+  });
+
+  it("decodes base64 f32le wire-format content", () => {
+    const samples = new Float32Array([1, 2, 3]);
+    const parsed = readSignalChunk({
+      type: "chunk",
+      content: bytesToB64(float32ToF32le(samples)),
+      content_type: "audio",
+      content_metadata: { encoding: "f32le", sample_rate: 24000, channels: 1 }
+    })!;
+    expect(parsed.samples).toEqual(samples);
   });
 });
 

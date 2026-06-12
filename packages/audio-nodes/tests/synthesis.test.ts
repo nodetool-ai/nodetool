@@ -72,6 +72,32 @@ function recordingOutputs(): {
   return { outputs, emitted };
 }
 
+/**
+ * Recording outputs that abort the run signal after `n` data chunks — the
+ * free-running generators never end on their own, so tests bound them via
+ * cancellation, exactly like a stopped patch.
+ */
+function abortAfter(n: number): {
+  outputs: StreamingOutputs;
+  emitted: Array<[string, unknown]>;
+  signal: AbortSignal;
+} {
+  const controller = new AbortController();
+  const emitted: Array<[string, unknown]> = [];
+  let count = 0;
+  const outputs = {
+    async emit(slot: string, value: unknown) {
+      emitted.push([slot, value]);
+      const chunk = readSignalChunk(value);
+      if (chunk && !chunk.done && chunk.samples.length > 0) {
+        count++;
+        if (count >= n) controller.abort();
+      }
+    }
+  } as unknown as StreamingOutputs;
+  return { outputs, emitted, signal: controller.signal };
+}
+
 /** Decode all non-done chunks on a slot into one concatenated Float32Array. */
 function concatEmitted(emitted: Array<[string, unknown]>): Float32Array {
   const parts: Float32Array[] = [];
@@ -98,26 +124,72 @@ function signChanges(samples: Float32Array): number {
 }
 
 describe("Oscillator (free run)", () => {
-  it("renders the requested duration in 512-frame chunks plus a done marker", async () => {
+  it("emits 512-frame chunks until cancelled, then a done marker", async () => {
     const node = new OscillatorNode({
       waveform: "sine",
       frequency: 100,
       amplitude: 1,
-      duration: 1,
       sample_rate: SR
     });
-    const { outputs, emitted } = recordingOutputs();
-    await node.run(makeInputs({ handles: {} }), outputs);
+    const chunks = 8;
+    const { outputs, emitted, signal } = abortAfter(chunks);
+    await node.run(makeInputs({ handles: {}, signal }), outputs);
 
-    const expectedChunks = Math.ceil(SR / SYNTH_CHUNK_FRAMES);
-    expect(emitted).toHaveLength(expectedChunks + 1);
+    expect(emitted).toHaveLength(chunks + 1);
     const last = readSignalChunk(emitted[emitted.length - 1][1])!;
     expect(last.done).toBe(true);
 
     const samples = concatEmitted(emitted);
-    expect(samples.length).toBe(SR);
-    // 100 Hz over 1 s → ~200 zero crossings.
-    expect(Math.abs(signChanges(samples) - 200)).toBeLessThanOrEqual(2);
+    expect(samples.length).toBe(chunks * SYNTH_CHUNK_FRAMES);
+    // 100 Hz sine → 2 zero crossings per period.
+    const expected = Math.round((2 * 100 * samples.length) / SR);
+    expect(Math.abs(signChanges(samples) - expected)).toBeLessThanOrEqual(2);
+  });
+
+  it("picks up live property updates between chunks", async () => {
+    const node = new OscillatorNode({
+      waveform: "sine",
+      frequency: 100,
+      amplitude: 1,
+      sample_rate: SR
+    });
+    // Retune mid-run via the live-parameter path (applyProperties → assign);
+    // the generator reads properties per chunk, so chunks 5+ are at 800 Hz.
+    const controller = new AbortController();
+    const emitted: Array<[string, unknown]> = [];
+    let count = 0;
+    const outputs = {
+      async emit(slot: string, value: unknown) {
+        emitted.push([slot, value]);
+        const c = readSignalChunk(value);
+        if (c && !c.done && c.samples.length > 0) {
+          count++;
+          if (count === 4) node.assign({ frequency: 800 });
+          if (count >= 8) controller.abort();
+        }
+      }
+    } as unknown as StreamingOutputs;
+    await node.run(
+      makeInputs({ handles: {}, signal: controller.signal }),
+      outputs
+    );
+
+    const data = emitted
+      .map(([, v]) => readSignalChunk(v)!)
+      .filter((c) => !c.done && c.samples.length > 0);
+    const concat = (chunks: typeof data) => {
+      const total = chunks.reduce((s, c) => s + c.samples.length, 0);
+      const out = new Float32Array(total);
+      let off = 0;
+      for (const c of chunks) {
+        out.set(c.samples, off);
+        off += c.samples.length;
+      }
+      return out;
+    };
+    const head = concat(data.slice(0, 4)); // 100 Hz
+    const tail = concat(data.slice(4)); // 800 Hz
+    expect(signChanges(tail)).toBeGreaterThan(signChanges(head) * 4);
   });
 
   it("keeps phase continuous across chunk boundaries", async () => {
@@ -125,11 +197,10 @@ describe("Oscillator (free run)", () => {
       waveform: "sine",
       frequency: 440,
       amplitude: 1,
-      duration: 0.5,
       sample_rate: SR
     });
-    const { outputs, emitted } = recordingOutputs();
-    await node.run(makeInputs({ handles: {} }), outputs);
+    const { outputs, emitted, signal } = abortAfter(6);
+    await node.run(makeInputs({ handles: {}, signal }), outputs);
 
     const samples = concatEmitted(emitted);
     // Max per-sample step of a 440 Hz sine @ 24 kHz, with quantization slack.
@@ -139,14 +210,6 @@ describe("Oscillator (free run)", () => {
         maxStep
       );
     }
-  });
-
-  it("throws on duration 0 without realtime", async () => {
-    const node = new OscillatorNode({ duration: 0, sample_rate: SR });
-    const { outputs } = recordingOutputs();
-    await expect(
-      node.run(makeInputs({ handles: {} }), outputs)
-    ).rejects.toThrow(/realtime/);
   });
 });
 
@@ -272,66 +335,54 @@ describe("Gate", () => {
     const node = new GateNode({
       on_duration: 0.01, // 240 frames
       off_duration: 0.01,
-      repeats: 2,
       amplitude: 1,
       sample_rate: SR
     });
-    const { outputs, emitted } = recordingOutputs();
-    await node.run(makeInputs({ handles: {} }), outputs);
+    // 2 chunks = 1024 frames, covering two full 480-frame cycles.
+    const { outputs, emitted, signal } = abortAfter(2);
+    await node.run(makeInputs({ handles: {}, signal }), outputs);
     const cv = concatEmitted(emitted);
-    expect(cv.length).toBe(2 * 480);
+    expect(cv.length).toBe(2 * SYNTH_CHUNK_FRAMES);
     expect(cv[0]).toBe(1);
     expect(cv[239]).toBe(1);
     expect(cv[240]).toBe(0);
     expect(cv[479]).toBe(0);
     expect(cv[480]).toBe(1); // second cycle
+    expect(cv[719]).toBe(1);
+    expect(cv[720]).toBe(0);
+    expect(cv[960]).toBe(1); // third cycle
   });
 
-  it("realtime pacing delays emission without changing content", async () => {
-    const props = {
+  it("paces emission with the wall clock", async () => {
+    const node = new GateNode({
       on_duration: 0.02,
       off_duration: 0.02,
-      repeats: 2,
       amplitude: 1,
       sample_rate: SR
-    };
-    const free = recordingOutputs();
-    await new GateNode({ ...props }).run(makeInputs({ handles: {} }), free.outputs);
-
-    const paced = recordingOutputs();
+    });
+    const { outputs, emitted, signal } = abortAfter(4);
     const startMs = Date.now();
-    await new GateNode({ ...props, realtime: true }).run(
-      makeInputs({ handles: {} }),
-      paced.outputs
-    );
+    await node.run(makeInputs({ handles: {}, signal }), outputs);
     const elapsedMs = Date.now() - startMs;
 
-    // 1920 frames @ 24 kHz = 80 ms of audio in 512-frame chunks → the paced
-    // run must take at least ~3 chunk periods (loose bound against CI jitter).
+    // 4 chunks = 2048 frames @ 24 kHz ≈ 85 ms of audio; the first chunk is
+    // unpaced, so the run must take at least ~3 chunk periods (loose bound
+    // against CI jitter).
     expect(elapsedMs).toBeGreaterThan(40);
-    expect(concatEmitted(paced.emitted)).toEqual(concatEmitted(free.emitted));
+    expect(concatEmitted(emitted).length).toBe(4 * SYNTH_CHUNK_FRAMES);
   });
 
-  it("infinite (repeats 0) requires realtime and stops on abort", async () => {
-    const { outputs } = recordingOutputs();
-    await expect(
-      new GateNode({ repeats: 0, sample_rate: SR }).run(
-        makeInputs({ handles: {} }),
-        outputs
-      )
-    ).rejects.toThrow(/realtime/);
-
+  it("stops on abort and terminates the stream with a done marker", async () => {
     const controller = new AbortController();
-    const paced = recordingOutputs();
-    const run = new GateNode({
-      repeats: 0,
-      realtime: true,
-      sample_rate: SR
-    }).run(makeInputs({ handles: {}, signal: controller.signal }), paced.outputs);
+    const { outputs, emitted } = recordingOutputs();
+    const run = new GateNode({ sample_rate: SR }).run(
+      makeInputs({ handles: {}, signal: controller.signal }),
+      outputs
+    );
     setTimeout(() => controller.abort(), 80);
     await expect(run).resolves.toBeUndefined();
-    expect(paced.emitted.length).toBeGreaterThan(0);
-    const last = readSignalChunk(paced.emitted[paced.emitted.length - 1][1])!;
+    expect(emitted.length).toBeGreaterThan(0);
+    const last = readSignalChunk(emitted[emitted.length - 1][1])!;
     expect(last.done).toBe(true);
   });
 });
@@ -556,6 +607,31 @@ describe("LFO (clocked)", () => {
     // Saw at phase 0 is -1: the reset lands exactly at chunk 2's first sample.
     const secondChunk = readSignalChunk(emitted[1][1])!.samples;
     expect(secondChunk[0]).toBe(-1);
+  });
+});
+
+describe("LFO (free run)", () => {
+  it("free-runs paced chunks until cancelled, then a done marker", async () => {
+    const node = new LfoNode({
+      waveform: "saw",
+      rate_hz: 10,
+      depth: 1,
+      offset: 0,
+      sample_rate: SR
+    });
+    const { outputs, emitted, signal } = abortAfter(3);
+    await node.run(makeInputs({ handles: {}, signal }), outputs);
+
+    expect(emitted).toHaveLength(4);
+    const cv = concatEmitted(emitted);
+    expect(cv.length).toBe(3 * SYNTH_CHUNK_FRAMES);
+    expect(cv[0]).toBe(-1); // saw starts at phase 0
+    // Phase advances across chunk boundaries: 10 Hz over 1536 frames stays
+    // within the first period, so the saw rises monotonically throughout.
+    for (let i = 1; i < cv.length; i++) {
+      expect(cv[i]).toBeGreaterThan(cv[i - 1]);
+    }
+    expect(readSignalChunk(emitted[3][1])!.done).toBe(true);
   });
 });
 

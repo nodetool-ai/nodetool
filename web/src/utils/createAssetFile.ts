@@ -268,15 +268,18 @@ const chunkToOutput = (chunk: Chunk) => {
         typeof chunk.content === "string" ? chunk.content.length : undefined
     });
   }
+  // Native Float32Array audio payloads aren't a saveable string; the asset
+  // path only handles encoded (string) content.
+  const content = typeof chunk.content === "string" ? chunk.content : "";
   switch (chunk.content_type) {
     case "text":
-      return { type: "text", data: chunk.content ?? "" };
+      return { type: "text", data: content };
     case "image":
     case "audio":
     case "video":
-      return { type: chunk.content_type, data: chunk.content ?? "" };
+      return { type: chunk.content_type, data: content };
     default:
-      return chunk.content ?? chunk;
+      return content || chunk;
   }
 };
 

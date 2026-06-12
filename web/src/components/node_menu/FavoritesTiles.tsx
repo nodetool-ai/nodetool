@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type { CSSProperties, DragEvent as ReactDragEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
-import { Tooltip, Text, ToolbarIconButton, thinScrollbarStyles, Box, MOTION } from "../ui_primitives";
+import { EmptyState, Tooltip, Text, ToolbarIconButton, thinScrollbarStyles, Box, MOTION } from "../ui_primitives";
 import CloseIcon from "@mui/icons-material/Close";
 import ClearIcon from "@mui/icons-material/Clear";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM, NOTIFICATION_TIMEOUT_SHORT } from "../../config/constants";
@@ -23,11 +23,6 @@ const tooltipHintStyle: CSSProperties = {
   marginTop: "4px"
 };
 
-const favoriteTileStyle: CSSProperties = {
-  background:
-    "linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(255, 152, 0, 0.05))"
-};
-
 const tileStyles = (theme: Theme) =>
   css({
     "&": {
@@ -35,7 +30,6 @@ const tileStyles = (theme: Theme) =>
       flexDirection: "column",
       width: "100%",
       height: "fit-content",
-      padding: "0 0.5em",
       boxSizing: "border-box"
     },
     ".tiles-header": {
@@ -43,19 +37,7 @@ const tileStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      padding: "0 4px",
-      "& h5": {
-        margin: 0,
-        fontSize: "var(--fontSizeNormal)",
-        fontWeight: 600,
-        color: theme.vars.palette.text.secondary,
-        textTransform: "uppercase",
-        letterSpacing: "1px",
-        opacity: 0.8,
-        display: "flex",
-        alignItems: "center",
-        gap: "0.5em"
-      }
+      padding: "0 4px"
     },
     ".tiles-container": {
       display: "grid",
@@ -73,12 +55,12 @@ const tileStyles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       padding: "12px 8px",
-      borderRadius: "var(--rounded-xl)",
+      borderRadius: theme.rounded.md,
       cursor: "pointer",
       position: "relative",
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.divider}`,
-      transition: "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
+      transition: "background-color 120ms ease, border-color 120ms ease",
       minHeight: "30px",
       background: theme.vars.palette.background.paper,
       "&::before": {
@@ -92,25 +74,17 @@ const tileStyles = (theme: Theme) =>
         pointerEvents: "none"
       },
       "&:hover": {
-        transform: "translateY(-3px)",
         borderColor: theme.vars.palette.primary.main,
-        background: theme.vars.palette.action.hover,
-        boxShadow: `0 8px 24px -6px ${theme.vars.palette.common.black}80`,
-        "&::before": {
-          opacity: 1
-        },
-        "& .tile-label": {
-          opacity: 1
-        }
+        background: theme.vars.palette.action.hover
       },
-      "&:active": {
-        transform: "scale(0.97) translateY(0)",
-        transition: "all 0.1s ease"
+      "&:focus-visible": {
+        outline: `2px solid ${theme.vars.palette.primary.main}`,
+        outlineOffset: -2
       }
     },
     ".tile-label": {
-      fontSize: "var(--fontSizeNormal)",
-      fontWeight: 500,
+      fontSize: "var(--fontSizeSmall)",
+      fontWeight: 600,
       textAlign: "center",
       lineHeight: 1.3,
       color: theme.vars.palette.text.primary,
@@ -122,13 +96,6 @@ const tileStyles = (theme: Theme) =>
       display: "-webkit-box",
       WebkitLineClamp: 2,
       WebkitBoxOrient: "vertical"
-    },
-    ".empty-state": {
-      padding: "1em",
-      textAlign: "center",
-      color: theme.vars.palette.text.secondary,
-      fontSize: "var(--fontSizeNormal)",
-      opacity: 0.6
     },
     ".clear-button": {
       padding: "4px",
@@ -316,9 +283,11 @@ const FavoritesTiles = memo(function FavoritesTiles({
             </Text>
           </div>
         )}
-        <div className="empty-state">
-          No favorites yet. Click the star next to any node to add it here.
-        </div>
+        <EmptyState
+          size="small"
+          title="No favorites yet"
+          description="Click the star next to any node to add it here."
+        />
       </Box>
     );
   }
@@ -380,7 +349,6 @@ const FavoritesTiles = memo(function FavoritesTiles({
                 }}
                 onMouseEnter={handleTileMouseEnter}
                 data-node-type={nodeType}
-                style={favoriteTileStyle}
               >
                 <ToolbarIconButton
                   icon={<CloseIcon fontSize="small" />}

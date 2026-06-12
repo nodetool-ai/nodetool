@@ -5,6 +5,8 @@
 export {
   Graph,
   GraphValidationError,
+  withExplicitNodeFlags,
+  type HydratedGraph,
   type GraphValidationIssue,
   type GraphFromDictOptions,
   type GraphLoadOptions,

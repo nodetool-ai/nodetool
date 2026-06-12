@@ -37,7 +37,7 @@ export interface SliderSpec {
 export const clamp = (v: number, min: number, max: number): number =>
   Math.max(min, Math.min(max, v));
 
-export const formatSliderValue = (spec: SliderSpec, value: number): string => {
+const formatSliderValue = (spec: SliderSpec, value: number): string => {
   if (spec.step >= 1) {
     return String(Math.round(value));
   }

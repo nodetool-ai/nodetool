@@ -259,7 +259,8 @@ export function reflowGenerated(
     ordered = orderedBeatIds
       .map((id) => byId.get(id))
       .filter((c): c is TimelineClip => c !== undefined);
-    for (const beat of beats) if (!orderedBeatIds.includes(beat.id)) ordered.push(beat);
+    const orderedSet = new Set(orderedBeatIds);
+    for (const beat of beats) if (!orderedSet.has(beat.id)) ordered.push(beat);
   } else {
     ordered = [...beats].sort(byTimeline);
   }

@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useMemo } from "react";
 
-import { Text } from "../ui_primitives";
+import { EmptyState, FlexColumn } from "../ui_primitives";
 import SearchResultsPanel from "./SearchResultsPanel";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
@@ -24,11 +24,6 @@ const styles = (theme: Theme) =>
       minHeight: 0,
       display: "flex",
       flexDirection: "column"
-    },
-    ".history-empty": {
-      padding: theme.spacing(2),
-      color: theme.vars.palette.text.secondary,
-      textAlign: "center"
     }
   });
 
@@ -53,7 +48,12 @@ const HistoryTilesPanel = memo(() => {
     <div css={styles(theme)} className="history-tiles">
       <div className="history-list">
         {nodes.length === 0 ? (
-          <Text className="history-empty">No recent nodes yet</Text>
+          <FlexColumn gap={2} justify="center" align="center" sx={{ flex: 1, px: 2 }}>
+            <EmptyState
+              title="No recent nodes yet"
+              description="Nodes you use will appear here."
+            />
+          </FlexColumn>
         ) : (
           <SearchResultsPanel searchNodes={nodes} compact />
         )}
