@@ -30,7 +30,6 @@ function setImportMetaEnv(envOverrides: Record<string, string | undefined>) {
 function getForcedLocalhost(): boolean | null {
   if (typeof window === "undefined") return null;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const envForce = (globalThis as any).import?.meta?.env?.VITE_FORCE_LOCALHOST;
   if (envForce === "true" || envForce === "1") return true;
   if (envForce === "false" || envForce === "0") return false;
