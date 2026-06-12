@@ -2,7 +2,6 @@
 
 import { useCallback, useRef, useState } from "react";
 
-import { LAYER_TEMPLATE_SEED_IDS } from "@nodetool-ai/image-editor";
 import { trpcClient } from "../../trpc/client";
 import { useSketchStore } from "../../components/sketch/state/useSketchStore";
 import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
@@ -62,6 +61,22 @@ export function useInpaintHere(): UseInpaintHereResult {
         return { ok: false, reason: "no-selection" };
       }
 
+      const templateResult = await trpcClient.workflows.list.query({
+        tag: "image-editor-layer-template",
+        limit: 100
+      });
+      const inpaintWorkflow = templateResult.workflows.find((w) =>
+        w.name.toLowerCase().includes("inpaint")
+      ) ?? templateResult.workflows[0];
+      if (!inpaintWorkflow) {
+        return {
+          ok: false,
+          reason: "error",
+          message:
+            "No inpaint workflow template found. Create a workflow with an image output and tag it 'image-editor-layer-template'."
+        };
+      }
+
       const newLayerId = useSketchStore
         .getState()
         .addLayer("Inpaint Here", "raster");
@@ -71,7 +86,7 @@ export function useInpaintHere(): UseInpaintHereResult {
         binding = await trpcClient.sketch.layers.create.mutate({
           id: documentId,
           layerId: newLayerId,
-          sourceWorkflowId: LAYER_TEMPLATE_SEED_IDS.inpaint
+          sourceWorkflowId: inpaintWorkflow.id
         });
       } catch (err) {
         useSketchStore.getState().removeLayer(newLayerId);
