@@ -23,6 +23,11 @@ async function makeTestImage(w = 100, h = 50): Promise<Record<string, unknown>> 
 }
 
 async function outputSize(output: Record<string, unknown>): Promise<{ w: number; h: number }> {
+  const width = Number(output.width ?? 0);
+  const height = Number(output.height ?? 0);
+  if (width > 0 && height > 0) {
+    return { w: width, h: height };
+  }
   const data = output.data as string;
   const meta = await sharp(Buffer.from(data, "base64")).metadata();
   return { w: meta.width ?? 0, h: meta.height ?? 0 };

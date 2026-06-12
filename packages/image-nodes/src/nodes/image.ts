@@ -981,70 +981,6 @@ function deprecatedResizeDescription(body: string): string {
   return `Deprecated — use Resize Image (${RESIZE_IMAGE_NODE_TYPE}) instead.\n${body}`;
 }
 
-type ResizeImageMode = "scale" | "dimensions" | "fit";
-
-async function resizeImageByMode(
-  image: ImageRefLike,
-  mode: ResizeImageMode,
-  params: { scale: number; width: number; height: number },
-  context?: ProcessingContext
-): Promise<Record<string, unknown>> {
-  if (mode === "scale") {
-    const scale = params.scale > 0 ? params.scale : 1;
-    const output = (await transformImage(image, (instance) => {
-      const fallbackWidth = image.width ?? 1;
-      const fallbackHeight = image.height ?? 1;
-      return instance.resize({
-        width: Math.max(1, Math.round(fallbackWidth * scale)),
-        height: Math.max(1, Math.round(fallbackHeight * scale))
-      });
-    }, context)) as Record<string, unknown>;
-    const fallbackWidth =
-      image.width != null
-        ? Math.max(1, Math.round(Number(image.width) * scale))
-        : null;
-    const fallbackHeight =
-      image.height != null
-        ? Math.max(1, Math.round(Number(image.height) * scale))
-        : null;
-    return {
-      ...output,
-      width: fallbackWidth ?? output.width,
-      height: fallbackHeight ?? output.height
-    };
-  }
-
-  const width = Math.max(1, Math.floor(params.width));
-  const height = Math.max(1, Math.floor(params.height));
-
-  if (mode === "fit") {
-    const output = (await transformImage(
-      image,
-      (instance) => instance.resize(width, height, { fit: "inside" }),
-      context
-    )) as Record<string, unknown>;
-    return {
-      ...output,
-      width: output.width ?? width,
-      height: output.height ?? height
-    };
-  }
-
-  const explicitWidth = Number(params.width ?? image.width ?? 0) || null;
-  const explicitHeight = Number(params.height ?? image.height ?? 0) || null;
-  const output = (await transformImage(
-    image,
-    (instance) =>
-      instance.resize(explicitWidth ?? undefined, explicitHeight ?? undefined),
-    context
-  )) as Record<string, unknown>;
-  return {
-    ...output,
-    width: output.width ?? explicitWidth,
-    height: output.height ?? explicitHeight
-  };
-}
-
 export class ResizeImageNode extends TransformImageNode {
   static readonly nodeType = RESIZE_IMAGE_NODE_TYPE;
   static readonly title = "Resize Image";
@@ -1114,17 +1050,47 @@ export class ResizeImageNode extends TransformImageNode {
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const image = (this.image ?? {}) as ImageRefLike;
+    const { width: srcW, height: srcH } = await decodeRgba(image, context);
+    if (!srcW || !srcH) return { output: image };
+
     const modeRaw = String(this.mode ?? "dimensions");
-    const mode: ResizeImageMode =
+    const mode =
       modeRaw === "scale" || modeRaw === "fit" ? modeRaw : "dimensions";
-    const output = await resizeImageByMode(
+
+    let outputWidth: number;
+    let outputHeight: number;
+
+    if (mode === "scale") {
+      const requestedScale = Number(this.scale ?? 0);
+      const scale = requestedScale > 0 ? requestedScale : 1;
+      outputWidth = Math.max(1, Math.round(srcW * scale));
+      outputHeight = Math.max(1, Math.round(srcH * scale));
+    } else if (mode === "fit") {
+      const targetW = Math.max(1, Number(this.width ?? 512));
+      const targetH = Math.max(1, Number(this.height ?? 512));
+      const ratio = Math.min(targetW / srcW, targetH / srcH);
+      outputWidth = Math.max(1, Math.round(srcW * ratio));
+      outputHeight = Math.max(1, Math.round(srcH * ratio));
+    } else {
+      let w = Number(this.width ?? 0);
+      let h = Number(this.height ?? 0);
+      if (w <= 0 && h <= 0) {
+        w = srcW;
+        h = srcH;
+      } else if (w <= 0) {
+        w = Math.max(1, Math.round((srcW / srcH) * h));
+      } else if (h <= 0) {
+        h = Math.max(1, Math.round((srcH / srcW) * w));
+      }
+      outputWidth = Math.round(w);
+      outputHeight = Math.round(h);
+    }
+
+    const output = await runShaderNode(
+      transformResizeV1,
+      { mode: 1 },
       image,
-      mode,
-      {
-        scale: Number(this.scale ?? 1),
-        width: Number(this.width ?? 0),
-        height: Number(this.height ?? 0)
-      },
+      { outputWidth, outputHeight },
       context
     );
     return { output };
