@@ -28,7 +28,7 @@ import type { OutputCorrelation } from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
-import { mkdir, mkdtemp, open, readdir, stat } from "node:fs/promises";
+import { mkdir, mkdtemp, open, readdir, stat, unlink } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
@@ -324,6 +324,114 @@ const LIVE_SESSIONS = new Map<
 >();
 
 // ---------------------------------------------------------------------------
+// Live terminal streaming (terminal_update messages → xterm.js node body)
+// ---------------------------------------------------------------------------
+
+/** Pane geometry — also sent with every terminal_update so the UI emulator matches. */
+const TMUX_COLS = 120;
+const TMUX_ROWS = 36;
+
+/** A delta larger than this is replaced by a screen snapshot (reset) instead. */
+const TERMINAL_SNAPSHOT_THRESHOLD = 64 * 1024;
+
+export function terminalPipeFile(sessionName: string): string {
+  return path.join(tmpdir(), `nodetool-tmux-${sessionName}.out`);
+}
+
+/**
+ * Streams the raw tmux pane byte stream (ANSI escapes included) to the client
+ * as `terminal_update` messages. Attaches `tmux pipe-pane` to the session and
+ * tails the pipe file; an initial `capture-pane -e` snapshot (with `reset`)
+ * reproduces the current screen so the client emulator starts in sync.
+ */
+class TerminalStreamer {
+  private offset = 0;
+
+  private constructor(
+    private readonly context: ProcessingContext,
+    private readonly nodeId: string,
+    private readonly sessionName: string,
+    private readonly pipeFile: string
+  ) {}
+
+  static async attach(
+    context: ProcessingContext,
+    nodeId: string,
+    sessionName: string
+  ): Promise<TerminalStreamer> {
+    const pipeFile = terminalPipeFile(sessionName);
+    // -o only opens a new pipe when none is active, so attaching to a
+    // kept-alive session that is already piping is a no-op.
+    await tmux(
+      "pipe-pane",
+      "-o",
+      "-t",
+      sessionName,
+      `cat >> ${shQuote(pipeFile)}`
+    );
+    const streamer = new TerminalStreamer(context, nodeId, sessionName, pipeFile);
+    streamer.offset = await stat(pipeFile)
+      .then((s) => s.size)
+      .catch(() => 0);
+    await streamer.snapshot();
+    return streamer;
+  }
+
+  private post(content: string, reset: boolean): void {
+    this.context.postMessage({
+      type: "terminal_update",
+      node_id: this.nodeId,
+      content,
+      cols: TMUX_COLS,
+      rows: TMUX_ROWS,
+      ...(reset ? { reset: true } : {})
+    });
+  }
+
+  /** Send the current screen (escapes preserved), replacing client state. */
+  async snapshot(): Promise<void> {
+    try {
+      const screen = await tmux(
+        "capture-pane",
+        "-e",
+        "-p",
+        "-t",
+        this.sessionName
+      );
+      // capture-pane emits bare \n line endings; the emulator needs \r\n.
+      this.post(screen.replace(/\n/g, "\r\n"), true);
+    } catch {
+      // Pane already gone — nothing to snapshot
+    }
+  }
+
+  /** Forward bytes the pane produced since the last flush. */
+  async flush(): Promise<void> {
+    try {
+      const read = await readNewBytes(this.pipeFile, this.offset);
+      if (read.offset === this.offset) return;
+      this.offset = read.offset;
+      if (read.text.length > TERMINAL_SNAPSHOT_THRESHOLD) {
+        // Huge burst (e.g. a file dump) — a snapshot is smaller and faster
+        // than replaying the whole stream.
+        await this.snapshot();
+      } else if (read.text) {
+        this.post(read.text, false);
+      }
+    } catch {
+      // Pipe file missing (not yet created) — try again next tick
+    }
+  }
+
+  /** Best-effort removal of the pipe file once the session is killed. */
+  async cleanup(): Promise<void> {
+    await unlink(this.pipeFile).catch(() => {
+      // Already gone
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Node
 // ---------------------------------------------------------------------------
 
@@ -530,9 +638,9 @@ export class ClaudeCodeAgentNode extends BaseNode {
         "-c",
         workspaceDir,
         "-x",
-        "220",
+        String(TMUX_COLS),
         "-y",
-        "50",
+        String(TMUX_ROWS),
         launch
       );
       LIVE_SESSIONS.set(sessionName, { sessionId, workspace: workspaceDir });
@@ -543,9 +651,20 @@ export class ClaudeCodeAgentNode extends BaseNode {
     let killOnExit = !keepSession;
     let lastPane = "";
 
+    // Mirror the live pane to the client's terminal emulator. UI-only: the
+    // raw ANSI stream never touches the dataflow outputs.
+    let term: TerminalStreamer | null = null;
+    if (context && this.__node_id) {
+      term = await TerminalStreamer.attach(
+        context,
+        this.__node_id,
+        sessionName
+      ).catch(() => null);
+    }
+
     try {
       if (!reused) {
-        lastPane = await this.waitForReady(sessionName, deadline);
+        lastPane = await this.waitForReady(sessionName, deadline, term);
       }
 
       // Snapshot the session file position BEFORE sending the prompt so only
@@ -572,6 +691,7 @@ export class ClaudeCodeAgentNode extends BaseNode {
           );
         }
         await sleep(POLL_MS);
+        await term?.flush();
 
         if (!(await tmuxHasSession(sessionName))) {
           killOnExit = false;
@@ -646,6 +766,7 @@ export class ClaudeCodeAgentNode extends BaseNode {
         if (done) break;
       }
 
+      await term?.flush();
       log.info("Claude Code turn complete", {
         sessionName,
         elapsedMs: Date.now() - startedAt,
@@ -667,6 +788,7 @@ export class ClaudeCodeAgentNode extends BaseNode {
             // Session already gone
           }
         );
+        await term?.cleanup();
       }
     }
   }
@@ -678,13 +800,15 @@ export class ClaudeCodeAgentNode extends BaseNode {
    */
   private async waitForReady(
     sessionName: string,
-    deadline: number
+    deadline: number,
+    term: TerminalStreamer | null = null
   ): Promise<string> {
     const readyDeadline = Math.min(deadline, Date.now() + READY_TIMEOUT_MS);
     let pane = "";
     let lastDialogActionAt = 0;
     while (Date.now() < readyDeadline) {
       await sleep(POLL_MS);
+      await term?.flush();
       if (!(await tmuxHasSession(sessionName))) {
         throw new Error(
           `Claude Code failed to start (is '${String(this.command ?? "claude")}' installed and on PATH?). ` +

@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { tmpdir } from "node:os";
 import {
   ClaudeCodeAgentNode,
   CLAUDE_CODE_NODES,
@@ -10,7 +11,8 @@ import {
   shQuote,
   isTurnComplete,
   isPaneBusy,
-  detectPaneDialog
+  detectPaneDialog,
+  terminalPipeFile
 } from "@nodetool-ai/code-nodes";
 
 describe("ClaudeCodeAgentNode metadata", () => {
@@ -57,6 +59,14 @@ describe("combinePrompt (agent chaining)", () => {
     expect(combinePrompt("only prompt", "")).toBe("only prompt");
     expect(combinePrompt("", "only input")).toBe("only input");
     expect(combinePrompt("  ", " \n ")).toBe("");
+  });
+});
+
+describe("terminalPipeFile", () => {
+  it("derives a per-session pipe file in the OS temp dir", () => {
+    expect(terminalPipeFile("nt-claude-abc")).toBe(
+      `${tmpdir()}/nodetool-tmux-nt-claude-abc.out`
+    );
   });
 });
 

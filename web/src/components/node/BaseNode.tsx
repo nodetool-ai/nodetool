@@ -48,6 +48,7 @@ import { NodeMetadata, Property, OutputSlot } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import ChunkDisplay from "./ChunkDisplay";
+import NodeTerminal from "./NodeTerminal";
 import NodeResizeHandle from "./NodeResizeHandle";
 import { useDelayedVisibility } from "../../hooks/useDelayedVisibility";
 
@@ -502,7 +503,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   // Single subscription instead of 5 — one listener per node instead of five
-  const { result, chunk, toolCall, planningUpdate, task } = useNodeArtifacts(workflow_id, id);
+  const { result, chunk, terminal, toolCall, planningUpdate, task } =
+    useNodeArtifacts(workflow_id, id);
 
   // Optimize: Use memoized selectors that only perform O(E) filter operations when the
   // state.edges array reference actually changes (e.g. adding/removing edges), rather than
@@ -822,7 +824,14 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       {planningUpdate && !task && (
         <PlanningUpdateDisplay planningUpdate={planningUpdate} />
       )}
-      {chunk && <ChunkDisplay chunk={chunk} />}
+      {/* Terminal-driving nodes (e.g. Claude Code) stream their raw pane via
+          terminal_update; the emulator IS the node content, so it supersedes
+          the plain-text chunk display. */}
+      {terminal ? (
+        <NodeTerminal terminal={terminal} />
+      ) : (
+        chunk && <ChunkDisplay chunk={chunk} />
+      )}
       {task && <TaskView task={task} />}
 
       {/* Agent control output handle - positioned at the bottom of Agent nodes */}
