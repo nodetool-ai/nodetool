@@ -342,10 +342,10 @@ Magic numbers: `1`, `3`, `4`, `7`, `10`, `18`, `20`. Raw `"var(--rounded-*)"` st
 
 ## 5. Motion
 
-All `transition` values must use `MOTION.*` constants. Never write raw timing strings.
+All `transition` and `animation` timing values must use `MOTION.*` constants. Never write raw timing strings.
 
 ```tsx
-import { MOTION } from "../ui_primitives";
+import { MOTION, reducedMotion } from "../ui_primitives";
 ```
 
 ### Duration Tiers
@@ -355,6 +355,7 @@ import { MOTION } from "../ui_primitives";
 | `MOTION.fast` | `120ms ease` | Hover micro-interactions, icon state changes |
 | `MOTION.normal` | `200ms ease` | Standard UI transitions (color, border, opacity) |
 | `MOTION.slow` | `350ms ease` | Panel open/close, drawer animations |
+| `MOTION.none` | `"none"` | Disable a transition (use in reduced-motion overrides) |
 
 ### Property Shorthands
 
@@ -379,9 +380,49 @@ sx={{ transition: `${MOTION.border}, ${MOTION.shadow}` }}
 sx={{ transition: `${MOTION.background}, ${MOTION.opacity}` }}
 ```
 
+### Accessibility — `prefers-reduced-motion` (WCAG 2.3.3)
+
+**Rule: Every component that uses a `transition` on layout, opacity, or transform, or that runs a CSS keyframe animation, must include a `prefers-reduced-motion: reduce` override.**
+
+Use the `reducedMotion()` helper to add the override inline — it returns an Emotion-compatible `@media` block:
+
+```tsx
+import { MOTION, reducedMotion } from "../ui_primitives";
+
+// Transition — suppress it entirely
+css({
+  transition: MOTION.all,
+  ...reducedMotion({ transition: MOTION.none }),
+})
+
+// Keyframe animation — remove motion, keep visual state
+css({
+  animation: `${spin} 1s linear infinite`,
+  ...reducedMotion({ animation: "none", opacity: 0.6 }),
+})
+
+// Multiple transitions
+css({
+  transition: `${MOTION.border}, ${MOTION.shadow}`,
+  ...reducedMotion({ transition: MOTION.none }),
+})
+```
+
+**What counts as "nonessential" (must be suppressed):**
+- Entrance/exit animations (fades, slides, scales)
+- Hover transitions on color, border, background, shadow
+- Infinite/looping animations (spinners, pulsing indicators)
+- Transform transitions (expand/collapse, panel slide-in)
+
+**What does NOT need suppression:**
+- State changes that convey information without motion (color alone, icon swap)
+- Loading states that go static when `reduce` is set (opacity-only)
+
+Existing components that write `@media (prefers-reduced-motion: reduce)` raw should be migrated to `reducedMotion()` opportunistically.
+
 ### Forbidden
 
-Raw timing strings of any kind: `"200ms"`, `"0.2s ease-in-out"`, `"all 150ms linear"`, `"background-color 300ms"`. Compose from `MOTION.*` tokens.
+Raw timing strings of any kind: `"200ms"`, `"0.2s ease-in-out"`, `"all 150ms linear"`. Compose from `MOTION.*` tokens. Raw `@media (prefers-reduced-motion: reduce) { … }` blocks in new code — use `reducedMotion()` instead.
 
 ---
 
@@ -542,8 +583,33 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 2. **Typography**: Do not add a ninth type style. Any new text hierarchy must collapse onto one of the eight existing combinations.
 3. **Color**: Add as a `c_*` key in **both** `paletteDark.ts` and `paletteLight.ts`. Document its semantic role in a comment.
 4. **Border radius**: Add a new `BORDER_RADIUS.*` entry in `tokens.ts` and a corresponding `--rounded-*` CSS var in `ThemeNodetool.tsx` `MuiCssBaseline`.
-5. **Motion**: If a new timing is needed, add to `MOTION` in `tokens.ts` as a named constant — never use the value inline.
+5. **Motion**: If a new timing is needed, add to `MOTION` in `tokens.ts` as a named constant — never use the value inline. New animated components must also include a `reducedMotion()` override.
 6. **Z-index**: Add to `Z_INDEX` in `tokens.ts` or to `theme.zIndex` in `ThemeNodetool.tsx`. Never use a raw integer.
+
+---
+
+## 12. Design Decisions and Tradeoffs
+
+Documented rationale for choices that differ from common defaults.
+
+### Body text at 15px (not 16px)
+
+The WCAG accessibility guidance and many style guides recommend 16px as the minimum body text size. NodeTool uses 15px (`--fontSizeNormal`) because the application is a **dense developer tool** (workflow editor, inspector, code runners) where screen real estate is precious and users are primarily on desktop. VS Code uses 13px, GitHub uses 14px, Linear uses 14px. At 15px on a 1x display, readability is acceptable; the `font-size` root setting in the user's browser can still scale it up, and WCAG 1.4.4 (Resize Text) is met as long as text reflows at 200% zoom without loss of content. If the product ever targets general-audience screens or mobile as a primary surface, revisit this.
+
+### 4px base grid (not 8px)
+
+Material Design and Apple HIG both recommend an 8px grid. NodeTool uses a 4px grid because it needs intermediate densities (2px micro-gaps inside node controls, 6px compact padding) that an 8px grid cannot express without off-grid values. The 8px steps still exist (`SPACING.md` = 8px, `SPACING.xl` = 16px) as the default spacing rhythm; the finer steps are used only in the editor's dense control surfaces.
+
+### Flat token tier (no primitive → semantic → component layering)
+
+The W3C Design Tokens Community Group specification (DTCG, stable as of 2025.10) recommends a three-tier model: primitive tokens → semantic/alias tokens → component tokens, expressed in a `.tokens.json` file. NodeTool uses a flat semantic tier only — `SPACING.md`, `BORDER_RADIUS.sm`, `c_node_bg` — because:
+- The codebase is a single product, not a multi-brand system. The main benefit of the primitive tier (reusing raw values across brands) does not apply.
+- TypeScript constant objects provide type safety and tree-shaking that a JSON token file does not.
+- The DTCG format is valuable if you want Figma/Storybook/other tools to consume the tokens directly. When that need arises, generate the `.tokens.json` from the TypeScript source — do not author two separate files.
+
+### Motion: duration and easing bundled, not separated
+
+Some systems separate `duration.fast = 120ms` from `easing.standard = ease` to allow independent variation. NodeTool bundles them (`MOTION.fast = "120ms ease"`) because: (a) all transitions use the same easing curve (`ease`), so separation adds API surface with no benefit; (b) property shorthands (`MOTION.border = "border-color 200ms ease"`) already encode all three values. If you ever need a different easing (e.g. a spring curve for a specific animation), use `MOTION.slow` as the duration tier and add a named constant for the specific animation.
 
 ---
 
@@ -554,5 +620,6 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 - **[UI Primitives EXAMPLES](../web/src/components/ui_primitives/EXAMPLES.md)** — Practical code examples for every primitive
 - **[Development Standards §5](DEVELOPMENT_STANDARDS.md#5-mui-v7--emotion--ui-primitives)** — Enforceable MUI/primitives/token rules
 - **[ThemeNodetool.tsx](../web/src/components/themes/ThemeNodetool.tsx)** — MUI theme, CSS variable definitions, component overrides
-- **[tokens.ts](../web/src/components/ui_primitives/tokens.ts)** — TYPOGRAPHY, MOTION, Z_INDEX, BORDER_RADIUS, scrollbarStyles
+- **[tokens.ts](../web/src/components/ui_primitives/tokens.ts)** — TYPOGRAPHY, MOTION, Z_INDEX, BORDER_RADIUS, reducedMotion, scrollbarStyles
 - **[spacing.ts](../web/src/components/ui_primitives/spacing.ts)** — SPACING, GAP, PADDING, MARGIN, snapSpacing
+- **[DTCG Specification](https://www.designtokens.org/tr/2025.10/format/)** — W3C Design Tokens Format v2025.10 (stable). Reference if cross-tool token export is ever needed.

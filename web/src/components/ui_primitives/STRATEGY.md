@@ -283,7 +283,7 @@ Beyond spacing, use these constants from `tokens.ts` for consistent values acros
 ### MOTION — transition timing
 
 ```ts
-import { MOTION } from "../ui_primitives";
+import { MOTION, reducedMotion } from "../ui_primitives";
 
 // Single property
 transition: MOTION.all          // "all 200ms ease"
@@ -295,6 +295,12 @@ transition: MOTION.shadow       // "box-shadow 200ms ease"
 
 // Compose multiple
 transition: `${MOTION.border}, ${MOTION.shadow}`
+
+// WCAG 2.3.3 — always pair with a reduced-motion override
+css({
+  transition: MOTION.all,
+  ...reducedMotion({ transition: MOTION.none }),
+})
 ```
 
 | Token | Value | Use |
@@ -302,6 +308,7 @@ transition: `${MOTION.border}, ${MOTION.shadow}`
 | `MOTION.fast` | `120ms ease` | Hover micro-interactions |
 | `MOTION.normal` | `200ms ease` | Standard UI transitions |
 | `MOTION.slow` | `350ms ease` | Panel/drawer animations |
+| `MOTION.none` | `"none"` | Disable in reduced-motion overrides |
 
 ### Z_INDEX — stacking layers
 
