@@ -15,6 +15,8 @@
  *
  * Also registers window-level keyboard shortcuts for clip operations:
  *   Delete/Backspace → deleteSelected
+ *   ← / →            → nudge selected clips one frame (Shift: 1 s)
+ *   Ctrl+C / X / V   → copy / cut / paste clips (paste lands at the playhead)
  *   Ctrl+D           → duplicateSelected (places duplicate right after source)
  *   Ctrl+Shift+D     → duplicateSelected with extra 1 s gap after source
  *   S                → splitSelectedAtPlayhead
@@ -22,18 +24,31 @@
  *   Ctrl+Z / Ctrl+Y  → undo / redo
  * Shortcuts are skipped when focus is in a text input or contenteditable.
  *
- * Zoom: scroll wheel on the lane area changes msPerPx.
+ * Zoom: Ctrl+wheel on the lane area changes msPerPx, anchored at the cursor.
  * Horizontal scroll: native overflow-x scroll on the scrollable panel.
  */
 
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { useTimelineStore, getTimelineTemporal } from "../../../stores/timeline/TimelineStore";
-import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
-import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
+import {
+  useTimelineStore,
+  useTimelineStoreApi,
+  getTimelineTemporal
+} from "../../../stores/timeline/TimelineStore";
+import {
+  useTimelineUIStore,
+  MIN_MS_PER_PX,
+  MAX_MS_PER_PX
+} from "../../../stores/timeline/TimelineUIStore";
+import { useTimelinePlaybackStoreApi } from "../../../stores/timeline/TimelinePlaybackStore";
+import {
+  buildPastedClips,
+  copyClipsToClipboard,
+  hasClipboardClips
+} from "../../../stores/timeline/clipboardOps";
 import { TRACK_HEADER_WIDTH_PX } from "./TrackHeader";
 import { TrackHeader } from "./TrackHeader";
 import { TrackLane } from "./TrackLane";
@@ -166,7 +181,13 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const splitSelectedAtPlayhead = useTimelineStore(
       (s) => s.splitSelectedAtPlayhead
     );
-    const currentTimeMs = useTimelinePlaybackStore((s) => s.currentTimeMs);
+    const moveSelectedClips = useTimelineStore((s) => s.moveSelectedClips);
+    const addClips = useTimelineStore((s) => s.addClips);
+    // Store handles for values read only inside event handlers (playhead
+    // time, fps, clip list). Subscribing reactively to currentTimeMs here
+    // would re-render every lane ~60×/s during playback.
+    const docStore = useTimelineStoreApi();
+    const playbackStore = useTimelinePlaybackStoreApi();
 
     const addTrack = useTimelineStore((s) => s.addTrack);
     const addImportedClip = useTimelineStore((s) => s.addImportedClip);
@@ -249,6 +270,14 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     // Attached as a native non-passive listener: React's onWheel is passive,
     // so preventDefault() inside it can't stop the browser's pinch-zoom.
 
+    // Anchor zoom at the cursor: remember which timeline time sat under the
+    // pointer, then restore it to the same viewport x once the lanes have
+    // re-rendered at the new scale (layout effect below — scrollLeft set
+    // before re-render would clamp against the old content width).
+    const zoomAnchorRef = useRef<{ timeMs: number; cursorPx: number } | null>(
+      null
+    );
+
     useEffect(() => {
       const el = scrollableRef.current;
       if (!el) return;
@@ -256,12 +285,30 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         if (e.ctrlKey || e.metaKey) {
           e.preventDefault();
           const factor = 1 + e.deltaY * ZOOM_SENSITIVITY;
-          setZoom(msPerPx * factor);
+          const next = Math.min(
+            MAX_MS_PER_PX,
+            Math.max(MIN_MS_PER_PX, msPerPx * factor)
+          );
+          if (next === msPerPx) return;
+          const cursorPx = e.clientX - el.getBoundingClientRect().left;
+          zoomAnchorRef.current = {
+            timeMs: (el.scrollLeft + cursorPx) * msPerPx,
+            cursorPx
+          };
+          setZoom(next);
         }
       };
       el.addEventListener("wheel", onWheel, { passive: false });
       return () => el.removeEventListener("wheel", onWheel);
     }, [msPerPx, setZoom]);
+
+    useLayoutEffect(() => {
+      const el = scrollableRef.current;
+      const anchor = zoomAnchorRef.current;
+      if (!el || !anchor) return;
+      zoomAnchorRef.current = null;
+      el.scrollLeft = Math.max(0, anchor.timeMs / msPerPx - anchor.cursorPx);
+    }, [msPerPx]);
 
     // ── Keyboard shortcuts ─────────────────────────────────────────────────
     //
@@ -282,6 +329,11 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         if (isEditableTarget(e.target)) {
           return;
         }
+        // Another timeline surface (e.g. the focused preview's frame-step
+        // arrows) already consumed this key.
+        if (e.defaultPrevented) {
+          return;
+        }
 
         const isCtrl = e.ctrlKey || e.metaKey;
 
@@ -292,6 +344,50 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         ) {
           e.preventDefault();
           deleteSelected(selectedClipIds);
+          return;
+        }
+
+        // ←/→ → nudge selected clips by one frame (Shift: 1 s)
+        if (
+          (e.key === "ArrowLeft" || e.key === "ArrowRight") &&
+          !isCtrl &&
+          !e.altKey &&
+          selectedClipIds.size > 0
+        ) {
+          e.preventDefault();
+          const fps = docStore.getState().fps;
+          const stepMs = e.shiftKey ? 1000 : Math.round(1000 / Math.max(1, fps));
+          const deltaMs = e.key === "ArrowLeft" ? -stepMs : stepMs;
+          const primaryId: string = selectedClipIds.values().next().value!;
+          moveSelectedClips(primaryId, selectedClipIds, deltaMs);
+          return;
+        }
+
+        // Ctrl+C / Ctrl+X → copy (cut) selected clips
+        if (isCtrl && (e.key === "c" || e.key === "x") && selectedClipIds.size > 0) {
+          e.preventDefault();
+          const clips = docStore
+            .getState()
+            .clips.filter((c) => selectedClipIds.has(c.id));
+          copyClipsToClipboard(clips);
+          if (e.key === "x") {
+            deleteSelected(selectedClipIds);
+          }
+          return;
+        }
+
+        // Ctrl+V → paste at playhead (earliest clip lands on the playhead,
+        // the rest keep their relative offsets)
+        if (isCtrl && e.key === "v" && hasClipboardClips()) {
+          e.preventDefault();
+          const pasted = buildPastedClips(
+            docStore.getState().tracks,
+            playbackStore.getState().currentTimeMs
+          );
+          if (pasted.length > 0) {
+            addClips(pasted);
+            setSelection(pasted.map((c) => c.id));
+          }
           return;
         }
 
@@ -314,7 +410,10 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         // S → split at playhead (no modifier; avoid hijacking browser Ctrl+S)
         if (e.key === "s" && !isCtrl && !e.shiftKey && !e.altKey) {
           e.preventDefault();
-          splitSelectedAtPlayhead(currentTimeMs, selectedClipIds);
+          splitSelectedAtPlayhead(
+            playbackStore.getState().currentTimeMs,
+            selectedClipIds
+          );
           return;
         }
 
@@ -355,7 +454,10 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       duplicateSelected,
       setSelection,
       splitSelectedAtPlayhead,
-      currentTimeMs,
+      moveSelectedClips,
+      addClips,
+      docStore,
+      playbackStore,
       setActiveTool
     ]);
 

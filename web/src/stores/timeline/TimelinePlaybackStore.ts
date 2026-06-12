@@ -57,5 +57,8 @@ export const createTimelinePlaybackStore = (): TimelinePlaybackStoreApi =>
     stop: () => set({ isPlaying: false, currentTimeMs: 0 })
   }));
 
-// Context-bound hook re-exported from the instance module.
-export { useTimelinePlaybackStore } from "./TimelineInstance";
+// Context-bound hooks re-exported from the instance module.
+export {
+  useTimelinePlaybackStore,
+  useTimelinePlaybackStoreApi
+} from "./TimelineInstance";
