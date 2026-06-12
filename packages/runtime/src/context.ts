@@ -980,7 +980,9 @@ export class ProcessingContext {
       environment: { ...this.environment },
       fetchFn: this._fetch,
       secretResolver: this._secretResolver ?? undefined,
-      tempUrlResolver: this._tempUrlResolver ?? undefined
+      tempUrlResolver: this._tempUrlResolver ?? undefined,
+      modelInterfaces: this._modelInterfaces ?? undefined,
+      retainMessageQueue: this._retainMessageQueue
     });
     for (const listener of this._messageListeners) {
       next.addMessageListener(listener);

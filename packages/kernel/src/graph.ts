@@ -440,7 +440,8 @@ export class Graph {
         // Correlation metadata is registry-authoritative; saved JSON is a
         // cache that gets overwritten — matching `input_mode` /
         // `output_correlation` above. See docs/correlation-design.md §1.
-        is_join_node: descriptorDefaults.is_join_node ?? false
+        is_join_node:
+          descriptorDefaults.is_join_node || node.is_join_node || false
       };
 
       resolvedNodes.push(hydratedNode);

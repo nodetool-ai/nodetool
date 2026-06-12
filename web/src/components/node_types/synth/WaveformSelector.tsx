@@ -70,7 +70,7 @@ const WaveformSelectorInner: React.FC<WaveformSelectorProps> = ({
   );
 
   return (
-    <div className="waveform-row nodrag" role="radiogroup" aria-label="Waveform">
+    <div className="waveform-row nodrag" role="group" aria-label="Waveform">
       {options.map((w) => {
         const active = w === value;
         return (
@@ -79,8 +79,7 @@ const WaveformSelectorInner: React.FC<WaveformSelectorProps> = ({
             type="button"
             value={w}
             className={`waveform-btn${active ? " active" : ""}`}
-            role="radio"
-            aria-checked={active}
+            aria-pressed={active}
             aria-label={w}
             title={w}
             onClick={handleClick}

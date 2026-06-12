@@ -46,8 +46,8 @@ const PAGE_HTML = `<!doctype html>
 </table>
 <script>
   window.__updateMetrics = function (rows) {
-    const esc = (s) => String(s).replace(/[&<>"]/g, (c) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    const esc = (s) => String(s).replace(/[&<>"']/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     document.getElementById("rows").innerHTML = rows
       .map((r) =>
         "<tr><td class='label' title='" + esc(r.label) + "'>" + esc(r.label) +
