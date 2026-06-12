@@ -11,7 +11,7 @@ import React from "react";
 import { render, RenderResult } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { axe, toHaveNoViolations } from "jest-axe";
-import mockTheme from "../../../__mocks__/themeMock";
+import mockTheme from "../../__mocks__/themeMock";
 
 expect.extend(toHaveNoViolations);
 
