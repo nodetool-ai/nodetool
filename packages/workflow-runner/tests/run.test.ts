@@ -27,7 +27,8 @@ function fakeRegistry(
 ): NodeRegistry {
   return {
     resolve,
-    createNodeValidator: () => () => []
+    createNodeValidator: () => () => [],
+    getClass: () => undefined
   } as unknown as NodeRegistry;
 }
 
@@ -156,7 +157,8 @@ describe("runWorkflow", () => {
     const registry = {
       resolve: () => passthrough(),
       createNodeValidator: () => propValidator,
-      createPlatformValidator: () => platformValidator
+      createPlatformValidator: () => platformValidator,
+      getClass: () => undefined
     } as unknown as NodeRegistry;
 
     const gen = runWorkflow({
@@ -181,6 +183,41 @@ describe("runWorkflow", () => {
     expect(result.error).toMatch(/workers/);
     expect(propCalls).toBeGreaterThan(0);
     expect(platformCalls).toBeGreaterThan(0);
+  });
+
+  it("hydrates streaming flags from the registry's classes", async () => {
+    // The graph carries NO is_streaming_input — exactly what a web client
+    // sends. Without hydration the actor one-shots process() and the node
+    // never streams (the synth "stops immediately" regression).
+    let streamed = false;
+    const streamingExecutor: NodeExecutor = {
+      async process() {
+        return {};
+      },
+      async run(inputs) {
+        streamed = true;
+        for await (const value of inputs.stream("value")) {
+          void value;
+        }
+      }
+    };
+    const registry = {
+      resolve: () => streamingExecutor,
+      createNodeValidator: () => () => [],
+      getClass: () => ({ isStreamingInput: true })
+    } as unknown as NodeRegistry;
+
+    const gen = runWorkflow({
+      graph: {
+        nodes: [{ id: "stream", type: "test.Streaming" }],
+        edges: []
+      },
+      registry
+    });
+    while (!(await gen.next()).done) {
+      // drain
+    }
+    expect(streamed).toBe(true);
   });
 
   it("honours an AbortSignal before the run begins", async () => {

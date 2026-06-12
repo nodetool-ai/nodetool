@@ -1,5 +1,9 @@
 /**
  * Tests for T-K-9: OutputUpdate messages emitted after node produces output.
+ *
+ * Contract: output_update is emitted for terminal (unconnected) handles only —
+ * connected handles deliver their value downstream on the edge and are
+ * suppressed — unless the node sets `always_emit_output_updates`.
  */
 import { describe, it, expect } from "vitest";
 import { WorkflowRunner } from "../src/runner.js";
@@ -15,7 +19,7 @@ function makeExecutor(
 }
 
 describe("T-K-9: OutputUpdate messages", () => {
-  it("emits output_update after node produces output", async () => {
+  it("emits output_update for terminal handles, suppresses connected ones", async () => {
     const nodes: NodeDescriptor[] = [
       { id: "n1", type: "test.Source", outputs: { output: "int" } },
       { id: "n2", type: "test.Sink", outputs: { result: "int" } }
@@ -38,20 +42,23 @@ describe("T-K-9: OutputUpdate messages", () => {
     const outputUpdates = result.messages.filter(
       (m) => m.type === "output_update"
     );
-    expect(outputUpdates.length).toBeGreaterThanOrEqual(1);
-
-    // Check that at least one output_update has the node's output
-    const n1Update = outputUpdates.find(
-      (m) => m.type === "output_update" && m.node_id === "n1"
+    // n1's "output" is connected → suppressed; n2's "result" is terminal.
+    expect(
+      outputUpdates.some(
+        (m) => m.type === "output_update" && m.node_id === "n1"
+      )
+    ).toBe(false);
+    const n2Update = outputUpdates.find(
+      (m) => m.type === "output_update" && m.node_id === "n2"
     );
-    expect(n1Update).toBeDefined();
-    if (n1Update && n1Update.type === "output_update") {
-      expect(n1Update.output_name).toBe("output");
-      expect(n1Update.value).toBe(42);
+    expect(n2Update).toBeDefined();
+    if (n2Update && n2Update.type === "output_update") {
+      expect(n2Update.output_name).toBe("result");
+      expect(n2Update.value).toBe(99);
     }
   });
 
-  it("emits output_update for each output handle", async () => {
+  it("emits output_update only for unconnected handles of a multi-output node", async () => {
     const nodes: NodeDescriptor[] = [
       { id: "n1", type: "test.MultiOut", outputs: { a: "int", b: "str" } },
       { id: "n2", type: "test.Sink", outputs: { result: "int" } }
@@ -74,20 +81,21 @@ describe("T-K-9: OutputUpdate messages", () => {
     const outputUpdates = result.messages.filter(
       (m) => m.type === "output_update" && m.node_id === "n1"
     );
-    expect(outputUpdates.length).toBe(2);
-    const handles = outputUpdates.map((m) =>
-      m.type === "output_update" ? m.output_name : ""
-    );
-    expect(handles).toContain("a");
-    expect(handles).toContain("b");
+    // "a" is connected → suppressed; "b" is terminal → emitted.
+    expect(outputUpdates.length).toBe(1);
+    if (outputUpdates[0].type === "output_update") {
+      expect(outputUpdates[0].output_name).toBe("b");
+      expect(outputUpdates[0].value).toBe("hello");
+    }
   });
 
-  it("does not emit output_update for undefined values", async () => {
+  it("always_emit_output_updates restores emission for connected handles", async () => {
     const nodes: NodeDescriptor[] = [
       {
         id: "n1",
-        type: "test.Source",
-        outputs: { output: "int", extra: "str" }
+        type: "test.Monitor",
+        outputs: { output: "int" },
+        always_emit_output_updates: true
       },
       { id: "n2", type: "test.Sink", outputs: { result: "int" } }
     ];
@@ -98,11 +106,37 @@ describe("T-K-9: OutputUpdate messages", () => {
     const runner = new WorkflowRunner("job1", {
       resolveExecutor: (node) => {
         if (node.id === "n1") {
-          // Only output on "output", not "extra"
-          return makeExecutor(() => ({ output: 5 }));
+          return makeExecutor(() => ({ output: 7 }));
         }
-        return makeExecutor(() => ({ result: 5 }));
+        return makeExecutor(() => ({ result: 7 }));
       }
+    });
+
+    const result = await runner.run({ job_id: "job1" }, { nodes, edges });
+
+    const n1Update = result.messages.find(
+      (m) => m.type === "output_update" && m.node_id === "n1"
+    );
+    expect(n1Update).toBeDefined();
+    if (n1Update && n1Update.type === "output_update") {
+      expect(n1Update.output_name).toBe("output");
+      expect(n1Update.value).toBe(7);
+    }
+  });
+
+  it("does not emit output_update for undefined values", async () => {
+    const nodes: NodeDescriptor[] = [
+      {
+        id: "n1",
+        type: "test.Source",
+        outputs: { output: "int", extra: "str" }
+      }
+    ];
+    const edges: Array<Record<string, unknown>> = [];
+
+    const runner = new WorkflowRunner("job1", {
+      // Only output on "output", not "extra" — both handles terminal.
+      resolveExecutor: () => makeExecutor(() => ({ output: 5 }))
     });
 
     const result = await runner.run({ job_id: "job1" }, { nodes, edges });

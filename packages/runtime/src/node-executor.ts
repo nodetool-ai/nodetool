@@ -152,6 +152,14 @@ export interface NodeExecutor {
     context?: ProcessingContext
   ): Promise<void>;
 
+  /**
+   * Apply property updates to a live executor instance. Long-running
+   * streaming nodes (synth generators, realtime effects) that read their
+   * properties per chunk pick the new values up on the next chunk —
+   * the basis for live parameter changes while a patch is running.
+   */
+  applyProperties?(properties: Record<string, unknown>): void;
+
   /** Called before process/genProcess. */
   preProcess?(): Promise<void>;
 

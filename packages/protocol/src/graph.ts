@@ -151,6 +151,15 @@ export interface NodeDescriptor {
   /** Whether this node produces streaming output. */
   is_streaming_output?: boolean;
 
+  /**
+   * Emit output_update for this node's handles even when they have outgoing
+   * data edges. The runner suppresses output_update for connected handles by
+   * default (downstream receives the value on the edge; clients display only
+   * terminal handles). Nodes whose output_updates feed a UI surface
+   * regardless of patching — e.g. the realtime audio monitor — set this.
+   */
+  always_emit_output_updates?: boolean;
+
   /** Correlation-aware input execution mode. */
   input_mode?: InputMode;
 
@@ -181,11 +190,33 @@ export interface NodeDescriptor {
   >;
 }
 
+/**
+ * A node descriptor whose behavior-critical flags have been resolved — the
+ * kernel trusts these flags to pick the execution mode (streaming run() vs
+ * one-shot process(), controlled mode, join semantics), so a runner must
+ * never receive a descriptor where they are merely absent. Produced by the
+ * hydration helpers (`Graph.loadFromDict`, node-sdk's `hydrateGraphNodeFlags`,
+ * kernel's `withExplicitNodeFlags`); raw wire graphs (`NodeDescriptor`) are
+ * deliberately not assignable.
+ */
+export interface HydratedNodeDescriptor extends NodeDescriptor {
+  is_streaming_input: boolean;
+  is_streaming_output: boolean;
+  is_controlled: boolean;
+  is_join_node: boolean;
+}
+
 // ---------------------------------------------------------------------------
 // Graph
 // ---------------------------------------------------------------------------
 
 export interface GraphData {
   nodes: NodeDescriptor[];
+  edges: Edge[];
+}
+
+/** GraphData whose nodes carry resolved behavior flags. See {@link HydratedNodeDescriptor}. */
+export interface HydratedGraphData {
+  nodes: HydratedNodeDescriptor[];
   edges: Edge[];
 }
