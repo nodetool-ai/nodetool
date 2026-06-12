@@ -25,7 +25,7 @@ import AudioPlayer from "../audio/AudioPlayer";
 import ThreadMessageList from "./ThreadMessageList";
 import CalendarEventView from "./CalendarEventView";
 import { List, ListItem, ListItemText } from "@mui/material";
-import { Container } from "../ui_primitives";
+import { Container, EmptyState, LoadingSpinner } from "../ui_primitives";
 import ListTable from "./DataTable/ListTable";
 import ImageView from "./ImageView";
 import AssetViewer from "../assets/AssetViewer";
@@ -34,6 +34,11 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import isEqual from "fast-deep-equal";
 import { Chunk } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
+import { trpc } from "../../trpc/client";
+import { fromPersistedSketchEditorState } from "../../stores/sketch/persistence";
+import SketchRenderer from "../sketch/SketchRenderer";
+import type { SketchDocument } from "../sketch/types";
+import type { TimelineSequence } from "@nodetool-ai/timeline";
 
 /** In-flight raw straight-alpha RGBA image format (see protocol RAW_RGBA_MIME). */
 const RAW_RGBA_MIME = "image/x-raw-rgba";
@@ -69,6 +74,8 @@ import { RealtimeAudioOutputFromChunks } from "./output";
 import PlotlyRenderer from "./output/PlotlyRenderer";
 import DataframeRenderer from "./output/DataframeRenderer";
 import { isAudioChunkLike, isTextLikeChunk } from "./outputChunkUtils";
+
+const LazyTimelineRenderer = React.lazy(() => import("../timeline/TimelineRenderer"));
 
 // Keep this large for UX (big LLM outputs), but bounded to avoid browser OOM /
 // `RangeError: Invalid string length` when streams run away.
@@ -168,6 +175,111 @@ const stableKeyForOutputValue = (v: unknown): string => {
     }
   }
   return `other:${String(v)}`;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const getSketchId = (value: unknown): string | null => {
+  if (!isRecord(value)) {
+    return null;
+  }
+  return typeof value.id === "string" && value.id.length > 0
+    ? value.id
+    : null;
+};
+
+const isSketchDocumentLike = (value: unknown): boolean => {
+  if (!isRecord(value)) {
+    return false;
+  }
+  const canvas = value.canvas;
+  return (
+    isRecord(canvas) &&
+    typeof canvas.width === "number" &&
+    typeof canvas.height === "number" &&
+    Array.isArray(value.layers) &&
+    typeof value.activeLayerId === "string"
+  );
+};
+
+const unwrapSketchDocumentCandidate = (value: unknown, depth = 0): unknown => {
+  if (depth > 4 || isSketchDocumentLike(value) || !isRecord(value)) {
+    return value;
+  }
+  if (isRecord(value.document)) {
+    return unwrapSketchDocumentCandidate(value.document, depth + 1);
+  }
+  if ("sketch" in value) {
+    return unwrapSketchDocumentCandidate(value.sketch, depth + 1);
+  }
+  if (value.type === "sketch" && "data" in value) {
+    return unwrapSketchDocumentCandidate(value.data, depth + 1);
+  }
+  return value;
+};
+
+const resolveSketchDocument = (value: unknown): SketchDocument | null => {
+  const candidate = unwrapSketchDocumentCandidate(value);
+  if (!isSketchDocumentLike(candidate)) {
+    return null;
+  }
+  try {
+    return fromPersistedSketchEditorState(candidate).document;
+  } catch (error) {
+    console.warn("Could not render sketch document", error);
+    return null;
+  }
+};
+
+const getTimelineId = (value: unknown): string | null => {
+  if (!isRecord(value)) {
+    return null;
+  }
+  return typeof value.id === "string" && value.id.length > 0
+    ? value.id
+    : null;
+};
+
+const isTimelineSequenceLike = (value: unknown): value is TimelineSequence => {
+  if (!isRecord(value)) {
+    return false;
+  }
+  return (
+    typeof value.id === "string" &&
+    typeof value.name === "string" &&
+    typeof value.fps === "number" &&
+    typeof value.width === "number" &&
+    typeof value.height === "number" &&
+    typeof value.durationMs === "number" &&
+    Array.isArray(value.tracks) &&
+    Array.isArray(value.clips) &&
+    Array.isArray(value.markers)
+  );
+};
+
+const unwrapTimelineSequenceCandidate = (value: unknown, depth = 0): unknown => {
+  if (depth > 4 || isTimelineSequenceLike(value) || !isRecord(value)) {
+    return value;
+  }
+  if (isRecord(value.sequence)) {
+    return unwrapTimelineSequenceCandidate(value.sequence, depth + 1);
+  }
+  if (isRecord(value.document)) {
+    return unwrapTimelineSequenceCandidate(value.document, depth + 1);
+  }
+  if ("timeline" in value) {
+    return unwrapTimelineSequenceCandidate(value.timeline, depth + 1);
+  }
+  if (value.type === "timeline" && "data" in value) {
+    return unwrapTimelineSequenceCandidate(value.data, depth + 1);
+  }
+  return value;
+};
+
+const resolveTimelineSequence = (value: unknown): TimelineSequence | null => {
+  const candidate = unwrapTimelineSequenceCandidate(value);
+  return isTimelineSequenceLike(candidate) ? candidate : null;
 };
 
 const concatTextChunksSafely = (
@@ -337,6 +449,48 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
   const { scrollRef, handleMouseDown } = useDraggableScroll();
 
   const type = useMemo(() => typeFor(value), [value]);
+  const inlineSketchDocument = useMemo(
+    () => (type === "sketch" ? resolveSketchDocument(value) : null),
+    [type, value]
+  );
+  const sketchId = useMemo(
+    () => (type === "sketch" ? getSketchId(value) : null),
+    [type, value]
+  );
+  const shouldLoadSketch = Boolean(sketchId && !inlineSketchDocument);
+  const sketchQuery = trpc.sketch.get.useQuery(
+    { id: sketchId ?? "" },
+    {
+      enabled: shouldLoadSketch,
+      staleTime: 30_000
+    }
+  );
+  const loadedSketchDocument = useMemo(
+    () => resolveSketchDocument(sketchQuery.data),
+    [sketchQuery.data]
+  );
+  const sketchDocument = inlineSketchDocument ?? loadedSketchDocument;
+  const inlineTimelineSequence = useMemo(
+    () => (type === "timeline" ? resolveTimelineSequence(value) : null),
+    [type, value]
+  );
+  const timelineId = useMemo(
+    () => (type === "timeline" ? getTimelineId(value) : null),
+    [type, value]
+  );
+  const shouldLoadTimeline = Boolean(timelineId && !inlineTimelineSequence);
+  const timelineQuery = trpc.timeline.get.useQuery(
+    { id: timelineId ?? "" },
+    {
+      enabled: shouldLoadTimeline,
+      staleTime: 30_000
+    }
+  );
+  const loadedTimelineSequence = useMemo(
+    () => resolveTimelineSequence(timelineQuery.data),
+    [timelineQuery.data]
+  );
+  const timelineSequence = inlineTimelineSequence ?? loadedTimelineSequence;
   const documentDataPreview = useMemo(() => {
     if (type !== "document") {
       return { url: "", isPdf: false };
@@ -612,6 +766,66 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           </div>
         );
       }
+      case "sketch": {
+        if (sketchDocument) {
+          return (
+            <SketchRenderer
+              document={sketchDocument}
+              ariaLabel="Sketch output preview"
+              showDimensions
+            />
+          );
+        }
+        if (shouldLoadSketch && sketchQuery.isLoading) {
+          return <LoadingSpinner size="small" text="Loading sketch" />;
+        }
+        if (sketchQuery.isError) {
+          return (
+            <EmptyState
+              variant="error"
+              title="Could not load sketch"
+              description={sketchQuery.error.message}
+            />
+          );
+        }
+        return (
+          <EmptyState
+            title="No sketch selected"
+            description="Choose a sketch document to preview it here."
+          />
+        );
+      }
+      case "timeline": {
+        if (timelineSequence) {
+          return (
+            <React.Suspense fallback={<LoadingSpinner size="small" text="Loading timeline preview" />}>
+              <LazyTimelineRenderer
+                sequence={timelineSequence}
+                ariaLabel="Timeline output preview"
+                showMetadata
+              />
+            </React.Suspense>
+          );
+        }
+        if (shouldLoadTimeline && timelineQuery.isLoading) {
+          return <LoadingSpinner size="small" text="Loading timeline" />;
+        }
+        if (timelineQuery.isError) {
+          return (
+            <EmptyState
+              variant="error"
+              title="Could not load timeline"
+              description={timelineQuery.error.message}
+            />
+          );
+        }
+        return (
+          <EmptyState
+            title="No timeline selected"
+            description="Choose a timeline sequence to preview it here."
+          />
+        );
+      }
       case "dataframe":
         return <DataframeRenderer dataframe={value as DataframeRef} />;
       case "np_array":
@@ -869,7 +1083,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 <AssetGrid values={arr as AssetRef[]} onOpenIndex={onDoubleClickAsset} />
               );
             }
-            if (["audio", "video", "html"].includes(first.type as string)) {
+            if (["audio", "video", "html", "sketch"].includes(first.type as string)) {
               const seen = new Map<string, number>();
               return (
                 <Container>
@@ -981,7 +1195,17 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
     handleMouseDown,
     scrollRef,
     showTextActions,
-    handleModel3DDoubleClick
+    handleModel3DDoubleClick,
+    sketchDocument,
+    shouldLoadSketch,
+    sketchQuery.error,
+    sketchQuery.isError,
+    sketchQuery.isLoading,
+    timelineSequence,
+    shouldLoadTimeline,
+    timelineQuery.error,
+    timelineQuery.isError,
+    timelineQuery.isLoading
   ]);
 
   const handleCloseAsset = useCallback(() => {

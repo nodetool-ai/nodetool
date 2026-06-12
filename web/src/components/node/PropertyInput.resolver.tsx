@@ -29,6 +29,8 @@ import FolderPathProperty from "../properties/FolderPathProperty";
 import DocumentProperty from "../properties/DocumentProperty";
 import FontProperty from "../properties/FontProperty";
 import SelectProperty from "../properties/SelectProperty";
+import SketchProperty from "../properties/SketchProperty";
+import TimelineProperty from "../properties/TimelineProperty";
 import ImageSizeProperty from "../properties/ImageSizeProperty";
 import JSONProperty from "../properties/JSONProperty";
 import StringListProperty from "../properties/StringListProperty";
@@ -170,6 +172,10 @@ function componentForType(type: string): ComponentType<PropertyProps> {
       return AssetProperty;
     case "select":
       return SelectProperty;
+    case "sketch":
+      return SketchProperty;
+    case "timeline":
+      return TimelineProperty;
     case "workflow":
       return WorkflowProperty;
     case "dataframe":

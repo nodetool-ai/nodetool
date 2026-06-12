@@ -1,4 +1,5 @@
 export * from "./nodes/image.js";
+export * from "./nodes/sketch.js";
 export * from "./nodes/lib-image-channel.js";
 export * from "./nodes/lib-image-color-grading.js";
 export * from "./nodes/lib-image-color.js";

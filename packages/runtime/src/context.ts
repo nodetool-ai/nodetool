@@ -324,6 +324,36 @@ export interface ProcessingContextModelInterfaces {
     startKey?: string | null;
     reverse?: boolean;
   }) => Promise<ThreadMessagesResultLike>;
+  /** Load a persisted sketch (image document) by id; null when missing or not owned. */
+  getImageDocument?: (args: {
+    userId: string;
+    id: string;
+  }) => Promise<unknown | null>;
+  /** Create a persisted sketch (image document); returns the created document response. */
+  createImageDocument?: (args: {
+    userId: string;
+    name: string;
+    projectId?: string;
+    width: number;
+    height: number;
+    document: unknown;
+  }) => Promise<unknown>;
+  /** Load a persisted timeline sequence by id; null when missing or not owned. */
+  getTimelineSequence?: (args: {
+    userId: string;
+    id: string;
+  }) => Promise<unknown | null>;
+  /** Create a persisted timeline sequence from a full sequence document. */
+  createTimelineSequence?: (args: {
+    userId: string;
+    sequence: unknown;
+  }) => Promise<unknown>;
+  /** Replace a persisted timeline sequence's document; null when missing or not owned. */
+  updateTimelineSequence?: (args: {
+    userId: string;
+    id: string;
+    sequence: unknown;
+  }) => Promise<unknown | null>;
 }
 
 function isWithinRoot(root: string, target: string): boolean {
@@ -1641,6 +1671,45 @@ export class ProcessingContext {
     nodeId?: string | null;
   }): Promise<unknown> {
     return this.createAsset(args);
+  }
+
+  /** Load a persisted sketch (image document) owned by the current user. */
+  async getImageDocument(id: string): Promise<unknown | null> {
+    const fn = this.requireModelInterface("getImageDocument");
+    return fn({ userId: this.userId, id });
+  }
+
+  /** Create a persisted sketch (image document) owned by the current user. */
+  async createImageDocument(args: {
+    name: string;
+    projectId?: string;
+    width: number;
+    height: number;
+    document: unknown;
+  }): Promise<unknown> {
+    const fn = this.requireModelInterface("createImageDocument");
+    return fn({ userId: this.userId, ...args });
+  }
+
+  /** Load a persisted timeline sequence owned by the current user. */
+  async getTimelineSequence(id: string): Promise<unknown | null> {
+    const fn = this.requireModelInterface("getTimelineSequence");
+    return fn({ userId: this.userId, id });
+  }
+
+  /** Create a persisted timeline sequence owned by the current user. */
+  async createTimelineSequence(sequence: unknown): Promise<unknown> {
+    const fn = this.requireModelInterface("createTimelineSequence");
+    return fn({ userId: this.userId, sequence });
+  }
+
+  /** Replace a persisted timeline sequence's document. */
+  async updateTimelineSequence(
+    id: string,
+    sequence: unknown
+  ): Promise<unknown | null> {
+    const fn = this.requireModelInterface("updateTimelineSequence");
+    return fn({ userId: this.userId, id, sequence });
   }
 
   /**
