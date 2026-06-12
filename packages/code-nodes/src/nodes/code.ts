@@ -70,7 +70,23 @@ export function startTerminalEmitter(
   };
 }
 
-/** Collect all streamed output from a runner into buffered stdout/stderr. */
+/**
+ * Strip ANSI escape sequences (CSI, OSC, and single-char escapes) from
+ * buffered output. The runners force color via PIPED_OUTPUT_ENV so the
+ * node-body terminal renders rich output; the stdout/stderr DATA handles
+ * must stay clean for downstream parsing, so we remove what we injected.
+ */
+// eslint-disable-next-line no-control-regex
+const ANSI_PATTERN = /\u001b\[[0-9;?]*[ -/]*[@-~]|\u001b\][^\u0007\u001b]*(?:\u0007|\u001b\\)|\u001b[@-Z\\^_-]/g;
+
+export function stripAnsi(text: string): string {
+  return text.replace(ANSI_PATTERN, "");
+}
+
+/**
+ * Collect all streamed output from a runner into buffered stdout/stderr
+ * (ANSI-stripped — the raw colored stream goes to the terminal mirror).
+ */
 async function collectRunnerOutput(
   runner: StreamRunnerBase,
   userCode: string,
@@ -111,8 +127,8 @@ async function collectRunnerOutput(
     term.close();
   }
   return {
-    stdout: stdoutBuf.join(""),
-    stderr: stderrBuf.join(""),
+    stdout: stripAnsi(stdoutBuf.join("")),
+    stderr: stripAnsi(stderrBuf.join("")),
     exit_code: exitCode
   };
 }
