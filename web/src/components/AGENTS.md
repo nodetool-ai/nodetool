@@ -99,12 +99,18 @@ From shipped fixes in `node_editor/`, `node/`, and the Inspector:
 
 ## Styling
 
+See **[docs/DESIGN.md](../../../docs/DESIGN.md)** for the full design token reference and migration checklist. Summary of the mandatory rules:
+
 - Use `sx` prop on primitives for one-off style overrides.
 - Use `styled()` only inside `ui_primitives/` for defining new primitives — not in regular component files.
 - Use theme values (`theme.spacing()`, `theme.vars.palette`, `theme.fontSizeSmall`, etc.) — never hardcode colors, fonts, or spacing.
 - No inline `display: "flex"` — use `FlexRow` / `FlexColumn` primitives.
 - No hardcoded hex colors (`#fff`, `#000`, `rgb(...)`) — use theme palette values.
-- Use spacing constants (`SPACING`, `GAP`, `PADDING`, `MARGIN`) from `ui_primitives/spacing`.
+- **Spacing**: use `SPACING.*` / `GAP.*` / `PADDING.*` — forbidden: `5px`, `10px`, `13px`, `20px`, or any off-grid pixel value.
+- **Typography**: use `<Text>` / `<Label>` / `<Caption>` or `TYPOGRAPHY.*` — forbidden: raw `fontSize` px/rem literals, weights `700 / "bold" / 300`.
+- **Border radius**: use `BORDER_RADIUS.xs / sm / md / lg / xl / xxl / pill / circle` — forbidden: magic numbers (`4`, `10`, `18`), raw `"var(--rounded-*)"` strings where a constant exists.
+- **Transitions**: use `MOTION.all / border / background / transform / opacity / shadow` — forbidden: raw timing strings (`"all 200ms ease"`).
+- **Z-index**: use `Z_INDEX.*` — forbidden: raw integers (`9999`, `1000`).
 
 ## Testing
 

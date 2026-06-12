@@ -11,7 +11,8 @@ import {
   FlexColumn,
   FlexRow,
   ShortcutHint,
-  Text
+  Text,
+  MOTION
 } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
 import {
@@ -72,7 +73,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeNormal,
       fontWeight: 500,
       borderRadius: "var(--rounded-md)",
-      transition: "background-color 120ms ease",
+      transition: `background-color ${MOTION.fast}`,
       "&:hover": {
         backgroundColor: theme.vars.palette.primary.dark
       },

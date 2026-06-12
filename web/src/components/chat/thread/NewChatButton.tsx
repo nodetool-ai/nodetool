@@ -1,6 +1,6 @@
 import React from "react";
 import AddIcon from "@mui/icons-material/Add";
-import { CreateFab } from "../../ui_primitives";
+import { CreateFab, MOTION } from "../../ui_primitives";
 
 interface NewChatButtonProps {
   onNewThread: () => void;
@@ -33,7 +33,7 @@ export const NewChatButton: React.FC<NewChatButtonProps> = ({
           fontWeight: 400,
           textTransform: "uppercase",
           justifyContent: "center",
-          transition: "all 0.1s ease-in-out",
+          transition: `all ${MOTION.fast}`,
           "&:hover": {
             background: theme.vars.palette.grey[700],
             boxShadow: "0px 0px 3px var(--palette-grey-500)",

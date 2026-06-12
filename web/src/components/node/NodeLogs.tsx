@@ -4,14 +4,13 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useRef, useEffect, useCallback, useState, useMemo } from "react";
 import {
-  Stack,
   DialogTitle,
   DialogContent,
   DialogActions
 } from "@mui/material";
 import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
 import isEqual from "fast-deep-equal";
-import { CopyButton, Text, Chip, EditorButton, Dialog } from "../ui_primitives";
+import { CopyButton, Text, Chip, EditorButton, Dialog, FlexRow } from "../ui_primitives";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import LogsTable, { LogRow, Severity } from "../common/LogsTable";
 
@@ -139,7 +138,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
         }}
       >
         <DialogTitle className="dialog-title">
-          <Stack direction="row" spacing={1} alignItems="center">
+          <FlexRow gap={1} align="center">
             <Text size="normal" weight={600} component="h6">
               Node Logs
             </Text>
@@ -149,7 +148,7 @@ export const NodeLogsDialog: React.FC<NodeLogsDialogProps> = memo(
               tooltip="Copy logs"
               nodrag={false}
             />
-          </Stack>
+          </FlexRow>
         </DialogTitle>
         <DialogContent dividers sx={{ p: 0 }}>
           <div style={{ padding: 8 }}>

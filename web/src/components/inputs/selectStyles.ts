@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
+import { MOTION } from "../ui_primitives";
 
 /**
  * Styles for the Select component.
@@ -48,7 +49,7 @@ export const selectStyles = (theme: Theme) =>
       cursor: "pointer",
       fontSize: theme.fontSizeSmall,
       color: "var(--text-primary)",
-      transition: "all 0.1s ease",
+      transition: `all ${MOTION.fast}`,
       whiteSpace: "nowrap",
       borderRadius: "var(--rounded-sm)",
       marginBottom: "2px"
@@ -93,7 +94,7 @@ export const selectStyles = (theme: Theme) =>
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      transition: "all 0.2s ease"
+      transition: MOTION.all
     },
 
     ".select-header:hover": {
@@ -112,7 +113,7 @@ export const selectStyles = (theme: Theme) =>
     },
 
     ".chevron": {
-      transition: "transform 0.2s ease",
+      transition: `transform ${MOTION.normal}`,
       color: theme.vars.palette.grey[400],
       transform: "rotate(0deg)",
       flexShrink: 0,
@@ -169,7 +170,7 @@ export const portalOptionsStyles = (theme: Theme) =>
       cursor: "pointer",
       fontSize: theme.fontSizeSmall,
       color: "var(--text-primary)",
-      transition: "all 0.1s ease",
+      transition: `all ${MOTION.fast}`,
       whiteSpace: "nowrap",
       borderRadius: "var(--rounded-sm)",
       marginBottom: "2px"

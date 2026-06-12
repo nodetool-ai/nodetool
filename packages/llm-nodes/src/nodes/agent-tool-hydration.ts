@@ -70,6 +70,7 @@ const STATIC_TOOL_CLASSES: ToolCtor[] = [
 ];
 
 const extraToolClasses: ToolCtor[] = [];
+const toolFactories: (() => ToolCtor[])[] = [];
 let builtinAgentTools: Map<string, Tool> | null = null;
 
 /**
@@ -82,11 +83,26 @@ export function registerBuiltinAgentToolClasses(classes: ToolCtor[]): void {
   builtinAgentTools = null;
 }
 
+/**
+ * Register a factory that produces Tool classes on demand. Unlike
+ * `registerBuiltinAgentToolClasses`, the factory is called lazily on the
+ * first `resolveBuiltinAgentTool` call, after all modules are initialized.
+ * Use this when the tool classes depend on module-level constants that may
+ * not be initialized at the time the registering module is evaluated (e.g.
+ * `BROWSER_ACTION_SPECS` in esbuild bundles where `__esm` lazy init can
+ * cause the constant to be `undefined` at module load time).
+ */
+export function registerBuiltinAgentToolFactory(factory: () => ToolCtor[]): void {
+  toolFactories.push(factory);
+  builtinAgentTools = null;
+}
+
 /** Resolve a registered builtin tool by name to a runnable `Tool`, or null. */
 export function resolveBuiltinAgentTool(name: string): Tool | null {
   if (!builtinAgentTools) {
     builtinAgentTools = new Map<string, Tool>();
-    for (const ToolClass of [...STATIC_TOOL_CLASSES, ...extraToolClasses]) {
+    const dynamicClasses = toolFactories.flatMap((f) => f());
+    for (const ToolClass of [...STATIC_TOOL_CLASSES, ...extraToolClasses, ...dynamicClasses]) {
       const tool = new ToolClass();
       builtinAgentTools.set(tool.name, tool);
     }

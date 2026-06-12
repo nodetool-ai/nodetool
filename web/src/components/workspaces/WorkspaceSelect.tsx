@@ -6,7 +6,7 @@ import {
   Select,
   MenuItem
 } from "@mui/material";
-import { Text, Caption, FlexRow, Box, Divider, LoadingSpinner } from "../ui_primitives";
+import { Text, Caption, FlexRow, Box, Divider, LoadingSpinner, MOTION } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useQuery } from "@tanstack/react-query";
@@ -33,7 +33,7 @@ const styles = (theme: Theme) =>
       },
       "& .MuiOutlinedInput-notchedOutline": {
         borderColor: theme.vars.palette.divider,
-        transition: "border-color 0.2s ease"
+        transition: MOTION.border
       },
       "&:hover .MuiOutlinedInput-notchedOutline": {
         borderColor: theme.vars.palette.grey[600]

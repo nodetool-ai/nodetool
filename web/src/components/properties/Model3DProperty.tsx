@@ -12,7 +12,7 @@ import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import ConnectedBadge from "./ConnectedBadge";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { Asset } from "../../stores/ApiTypes";
-import { Tooltip, EditorButton, NodeTextField } from "../ui_primitives";
+import { Tooltip, EditorButton, NodeTextField, MOTION } from "../ui_primitives";
 import AssetViewer from "../assets/AssetViewer";
 import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
 import { resolveAssetUri } from "../node/output/hooks";
@@ -54,7 +54,7 @@ const styles = (theme: Theme) =>
       margin: "0",
       padding: "2px 4px",
       borderRadius: "var(--rounded-sm)",
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
       "&:hover": {
         color: theme.vars.palette.primary.main,
         backgroundColor: theme.vars.palette.action.hover
@@ -89,7 +89,7 @@ const styles = (theme: Theme) =>
       border: "0",
       maxWidth: "none",
       textAlign: "center",
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
       backgroundColor: theme.vars.palette.grey[800],
       borderRadius: 0,
       cursor: "pointer",

@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Text, Caption, TextInput, SelectField, AutocompleteTagInput, EditorButton } from "../ui_primitives";
+import { Text, Caption, TextInput, SelectField, AutocompleteTagInput, EditorButton, MOTION } from "../ui_primitives";
 import { useCallback, useEffect, useState, memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -80,10 +80,10 @@ const styles = (theme: Theme) =>
     ".MuiOutlinedInput-root": {
       backgroundColor: theme.vars.palette.background.paper,
       borderRadius: "var(--rounded-md)",
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
       "& .MuiOutlinedInput-notchedOutline": {
         borderColor: theme.vars.palette.divider,
-        transition: "border-color 0.2s ease"
+        transition: MOTION.border
       },
       "&:hover .MuiOutlinedInput-notchedOutline": {
         borderColor: theme.vars.palette.text.secondary
@@ -182,7 +182,7 @@ const styles = (theme: Theme) =>
       borderRadius: "var(--rounded-md)",
       border: "none",
       boxShadow: "none",
-      transition: "background-color 120ms ease",
+      transition: MOTION.background,
       "&:hover": {
         backgroundColor: theme.vars.palette.primary.dark,
         boxShadow: "none"

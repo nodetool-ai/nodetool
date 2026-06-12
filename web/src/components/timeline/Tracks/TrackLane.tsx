@@ -19,7 +19,6 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { MenuItem } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 
 import type { TimelineTrack } from "@nodetool-ai/timeline";
@@ -31,7 +30,7 @@ import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { Clip } from "./Clip";
-import { ContextMenu, WarningBanner } from "../../ui_primitives";
+import { ContextMenu, WarningBanner, MOTION, MenuItemPrimitive } from "../../ui_primitives";
 import { AddClipMenu } from "../AddClipMenu";
 import { deserializeDragData } from "../../../lib/dragdrop";
 import type { Asset } from "../../../stores/ApiTypes";
@@ -78,7 +77,7 @@ const laneStyles = (
     outlineOffset: "-2px",
     overflow: "hidden",
     cursor: isRubberBanding ? "crosshair" : "default",
-    transition: "opacity 120ms"
+    transition: `opacity ${MOTION.fast}`
   });
 
 const rubberBandStyles = (theme: Theme) =>
@@ -460,10 +459,12 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
         onClose={() => setContextMenuPos(null)}
         compact
       >
-        <MenuItem onClick={handleAddClipFromMenu}>
-          <AddIcon fontSize="small" style={{ marginRight: 8 }} />
-          Add generated clip here…
-        </MenuItem>
+        <MenuItemPrimitive
+          label="Add generated clip here…"
+          icon={<AddIcon fontSize="small" />}
+          onClick={handleAddClipFromMenu}
+          compact
+        />
       </ContextMenu>
 
       {/* Invisible anchor for AddClipMenu, positioned at click location */}

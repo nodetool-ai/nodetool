@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, memo } from "react";
-import { MenuItem, Menu } from "@mui/material";
-import { Text, Divider } from "../ui_primitives";
+import { MenuItem } from "@mui/material";
+import { Text, Divider, ContextMenu } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -148,16 +148,13 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
     return null;
   }
   return (
-    <Menu
+    <ContextMenu
       className="context-menu selection-context-menu"
       open={menuPosition !== null}
       onClose={closeContextMenu}
       onContextMenu={(event) => event.preventDefault()}
       onClick={(e) => e.stopPropagation()}
-      anchorReference="anchorPosition"
-      anchorPosition={
-        menuPosition ? { top: menuPosition.y, left: menuPosition.x } : undefined
-      }
+      position={menuPosition}
     >
       <MenuItem disabled>
         <Text
@@ -358,7 +355,7 @@ const SelectionContextMenu: React.FC<SelectionContextMenuProps> = () => {
         }
         addButtonClassName="delete"
       />
-    </Menu>
+    </ContextMenu>
   );
 };
 

@@ -7,7 +7,7 @@ import React, {
   useCallback,
   memo
 } from "react";
-import { useMediaQuery } from "@mui/material";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import {
   AlertBanner,
   Text,

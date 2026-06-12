@@ -6,7 +6,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Tooltip, Text, CloseButton } from "../ui_primitives";
+import { Tooltip, Text, CloseButton, MOTION } from "../ui_primitives";
 import DescriptionIcon from "@mui/icons-material/Description";
 import isEqual from "fast-deep-equal";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
@@ -41,7 +41,7 @@ const styles = (theme: Theme) =>
       borderRadius: "var(--rounded-md)",
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
       padding: "8px 12px",
       display: "flex",
       alignItems: "center",
@@ -73,7 +73,7 @@ const styles = (theme: Theme) =>
     },
     ".remove-button": {
       opacity: 0,
-      transition: "opacity 0.2s ease",
+      transition: `opacity ${MOTION.normal}`,
       backgroundColor: `rgba(0, 0, 0, 0.7)`,
       color: theme.vars.palette.grey[100],
       padding: "2px",
@@ -95,7 +95,7 @@ const styles = (theme: Theme) =>
       border: "0",
       maxWidth: "none",
       textAlign: "center",
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
       outline: `1px dashed ${theme.vars.palette.grey[600]}`,
       margin: "5px 0",
       backgroundColor: `rgba(0, 0, 0, 0.2)`,

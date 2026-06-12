@@ -31,6 +31,7 @@ import xaiIcon from "@lobehub/icons-static-svg/icons/xai.svg";
 import elevenlabsIcon from "@lobehub/icons-static-svg/icons/elevenlabs.svg";
 
 import { useIsDarkMode } from "../../hooks/useIsDarkMode";
+import { MOTION } from "../ui_primitives";
 
 type IconKind = "svg" | "mui";
 
@@ -113,7 +114,7 @@ const badgeStyles = (theme: Theme) =>
     borderRadius: "var(--rounded-md)",
     backgroundColor: theme.vars.palette.action.hover,
     border: `1px solid ${theme.vars.palette.divider}`,
-    transition: "background-color 0.15s ease, border-color 0.15s ease"
+    transition: `${MOTION.background}, border-color ${MOTION.fast}`
   });
 
 interface NamespaceIconProps {

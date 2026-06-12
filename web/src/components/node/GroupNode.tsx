@@ -37,7 +37,7 @@ import { useKeyPressed } from "../../stores/KeyPressedStore";
 import RunGroupButton from "./RunGroupButton";
 import BypassGroupButton from "./BypassGroupButton";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import { Tooltip, ToolbarIconButton, Popover } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, Popover, MOTION } from "../ui_primitives";
 
 // constants
 const MIN_WIDTH = 200;
@@ -170,7 +170,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
         height: "28px !important",
         boxShadow: "0 1px 3px rgba(0, 0, 0, 0.3)",
         "& svg": {
-          fontSize: "18px !important"
+          fontSize: "var(--fontSizeBig) !important"
         }
       }
     },
@@ -534,7 +534,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
             transform: `scale(${labelScale})`,
             maxWidth: `${labelMaxCssWidth}px`,
             overflow: "hidden",
-            transition: "max-width 0.15s ease"
+            transition: `max-width ${MOTION.fast}`
           }}
         >
           <input
@@ -570,7 +570,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           transform: `scale(${actionsScale})`,
           opacity: headerHovered || props.selected || menuOpen ? 1 : 0,
           pointerEvents: headerHovered || props.selected || menuOpen ? "auto" : "none",
-          transition: "opacity 0.15s ease"
+          transition: `opacity ${MOTION.fast}`
         }}
       >
         <Tooltip title="Group options" delay={TOOLTIP_ENTER_DELAY}>

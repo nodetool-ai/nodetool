@@ -35,7 +35,7 @@ export const trackZ = (uiIndex: number): number => LAYER_Z_BASE - uiIndex;
  * caption must stay legible above the picture, so `trackZ(-1)` puts it one
  * step above `LAYER_Z_BASE`.
  */
-export const CAPTION_TRACK_INDEX = -1;
+const CAPTION_TRACK_INDEX = -1;
 
 /**
  * Max simultaneous video layers. The live preview is bounded by its hot
@@ -84,7 +84,7 @@ export function effectiveAssetId(clip: TimelineClip): string | undefined {
   }
 }
 
-export function resolveBlendMode(
+function resolveBlendMode(
   b: TimelineClip["blendMode"]
 ): CompositorBlendMode {
   return b ?? "normal";

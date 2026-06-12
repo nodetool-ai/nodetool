@@ -3,12 +3,10 @@ import { css } from "@emotion/react";
 
 import {
   Tabs,
-  Tab,
-  DialogContent,
-  Link
+  Tab
 } from "@mui/material";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import { CloseButton, Text, Tooltip, Box } from "../../ui_primitives";
+import { CloseButton, Text, Tooltip, Box, MOTION } from "../../ui_primitives";
 import { useAppHeaderStore } from "../../../stores/AppHeaderStore";
 import DataTypesList from "./DataTypesList";
 import { useTheme } from "@mui/material/styles";
@@ -82,7 +80,7 @@ const helpStyles = (theme: Theme) =>
       },
       "& .MuiTab-root": {
         color: theme.vars.palette.grey[200],
-        transition: "color 0.2s ease",
+        transition: `color ${MOTION.normal}`,
         paddingBottom: "0em",
         "&.Mui-selected": {
           color: theme.vars.palette.grey[0]
@@ -110,7 +108,7 @@ const helpStyles = (theme: Theme) =>
       fontWeight: 500,
       padding: "8px 14px",
       borderRadius: "var(--rounded-lg)",
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
       flexShrink: 0,
       "&:hover": {
         backgroundColor: theme.vars.palette.secondary.light,
@@ -232,7 +230,6 @@ const Help = ({
       fullWidth
       maxWidth="lg"
     >
-      <DialogContent sx={{ p: 0 }}>
         <div css={helpStyles(theme)}>
           <div className="help">
             <div className="top">
@@ -253,7 +250,7 @@ const Help = ({
               <Tooltip title="Open Nodetool Documentation Website" placement="bottom"
                 delay={TOOLTIP_ENTER_DELAY}
               >
-                <Link
+                <a
                   href="https://docs.nodetool.ai"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -264,7 +261,7 @@ const Help = ({
                     <span>Docs</span>
                   </div>
                   <OpenInNewIcon />
-                </Link>
+                </a>
               </Tooltip>
             </div>
             <div className="content">
@@ -285,7 +282,6 @@ const Help = ({
             </div>
           </div>
         </div>
-      </DialogContent>
     </Dialog>
   );
 };

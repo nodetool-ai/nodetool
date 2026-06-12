@@ -45,6 +45,7 @@ jest.mock("../../../node/NodeProgress", () => ({
 
 let sliderProps: Array<Record<string, unknown>> = [];
 jest.mock("../../../ui_primitives", () => ({
+  MOTION: jest.requireActual("../../../ui_primitives/tokens").MOTION,
   CheckerDropzone: ({ message }: { message: string }) => (
     <div data-testid="checker-dropzone">{message}</div>
   ),

@@ -17,6 +17,7 @@ import {
   CloseButton,
   CopyButton,
   EditorButton,
+  MOTION,
   ScrollArea,
   Text,
   Tooltip,
@@ -162,7 +163,7 @@ const styles = (theme: Theme) =>
       display: "inline-flex",
       alignItems: "baseline",
       gap: "6px",
-      transition: "color 120ms ease",
+      transition: `color ${MOTION.fast}`,
       "&:hover": { color: theme.vars.palette.text.primary },
       "&:focus-visible": {
         outline: `2px solid ${theme.vars.palette.primary.main}`,
@@ -235,7 +236,7 @@ const styles = (theme: Theme) =>
     ".property-row .inspector-header-toolbar.inspector-toolbar-hoverable .MuiIconButton-root, .property-row .inspector-header-toolbar.inspector-toolbar-hoverable .MuiButtonBase-root":
       {
         opacity: 0,
-        transition: "opacity 120ms ease"
+        transition: `opacity ${MOTION.fast}`
       },
     ".property-row:hover .inspector-header-toolbar.inspector-toolbar-hoverable .MuiIconButton-root, .property-row:hover .inspector-header-toolbar.inspector-toolbar-hoverable .MuiButtonBase-root, .property-row .inspector-header-toolbar.inspector-toolbar-hoverable:focus-within .MuiIconButton-root, .property-row .inspector-header-toolbar.inspector-toolbar-hoverable:focus-within .MuiButtonBase-root":
       {
@@ -350,7 +351,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       padding: "2px 6px",
       borderRadius: "var(--rounded-sm)",
-      backgroundColor: "rgba(255,255,255,0.04)"
+      backgroundColor: theme.vars.palette.action.hover
     },
 
     /* ---------- Help tab ---------- */
@@ -378,7 +379,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       padding: "2px 8px",
       borderRadius: "var(--rounded-pill)",
-      backgroundColor: "rgba(255,255,255,0.04)",
+      backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`
     },
     ".help-meta": {

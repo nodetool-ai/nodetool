@@ -18,6 +18,7 @@ import {
 import { useWorkflowManager, useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
 import { colorForType } from "../../config/data_types";
 import { TOOLBAR_WIDTH } from "../../config/constants";
+import { MOTION } from "../ui_primitives";
 import NotificationButton from "../panels/NotificationButton";
 import OpenMenu from "./OpenMenu";
 import WorkspaceTabItem from "./WorkspaceTabItem";
@@ -92,7 +93,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       borderRight: `1px solid ${theme.vars.palette.divider}`,
       fontSize: "var(--fontSizeSmall)",
-      transition: "color 120ms, background-color 120ms",
+      transition: `color ${MOTION.fast}, background-color ${MOTION.fast}`,
       "&:hover": {
         color: theme.vars.palette.text.primary,
         backgroundColor: "rgba(255,255,255,0.03)"
@@ -169,7 +170,7 @@ const styles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmall)",
       fontWeight: 500,
       whiteSpace: "nowrap",
-      transition: "color 120ms, background-color 120ms",
+      transition: `color ${MOTION.fast}, background-color ${MOTION.fast}`,
       "& .new-tab-plus": {
         fontSize: "var(--fontSizeNormal)",
         lineHeight: 1

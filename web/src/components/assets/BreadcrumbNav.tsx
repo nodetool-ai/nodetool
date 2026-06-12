@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo, useMemo, useCallback } from "react";
-import { Text } from "../ui_primitives";
+import { Text, MOTION } from "../ui_primitives";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import HomeIcon from "@mui/icons-material/Home";
 import { useTheme } from "@mui/material/styles";
@@ -29,7 +29,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[400],
       fontSize: theme.fontSizeSmall,
       whiteSpace: "nowrap",
-      transition: "color 0.15s",
+      transition: `color ${MOTION.fast}`,
       "&:hover": {
         color: theme.vars.palette.grey[0]
       }

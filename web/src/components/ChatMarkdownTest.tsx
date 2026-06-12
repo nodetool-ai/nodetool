@@ -3,8 +3,7 @@ import React, { useState, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Tabs, Tab } from "@mui/material";
-import { Box, Text, Caption } from "./ui_primitives";
+import { Box, Text, Caption, TabGroup, TabPanel } from "./ui_primitives";
 import ChatMarkdown from "./chat/message/ChatMarkdown";
 import { createStyles } from "./chat/thread/ChatThreadView.styles";
 
@@ -125,17 +124,6 @@ An extremely wide table to stress-test overflow handling:
 | Row 2 A | Row 2 B | Row 2 C | Row 2 D | Row 2 E | Row 2 F | Row 2 G | Row 2 H | Row 2 I | Row 2 J | Row 2 K | Row 2 L |
 `;
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
-  <div role="tabpanel" hidden={value !== index}>
-    {value === index && <Box sx={{ pt: 2 }}>{children}</Box>}
-  </div>
-);
 
 const pageStyles = (theme: Theme) => css({
   minHeight: "100vh",
@@ -157,7 +145,7 @@ const containerStyles = css({
 
 const ChatMarkdownTest: React.FC = () => {
   const theme = useTheme();
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState("Wide Table");
   const chatStyles = createStyles(theme);
 
   const renderChatMessage = (
@@ -208,26 +196,23 @@ const ChatMarkdownTest: React.FC = () => {
           container wider. The layout should stay consistent like ChatGPT.
         </Text>
 
-        <Tabs
+        <TabGroup
+          tabs={tabs.map((tab) => ({ value: tab.label, label: tab.label }))}
           value={activeTab}
-          onChange={(_, v) => setActiveTab(v)}
-          variant="scrollable"
-          scrollButtons="auto"
+          onChange={setActiveTab}
           sx={{ mb: 1 }}
-        >
-          {tabs.map((tab, i) => (
-            <Tab key={tab.label} label={tab.label} />
-          ))}
-        </Tabs>
+        />
 
-        {tabs.map((tab, i) => (
-          <TabPanel key={tab.label} value={activeTab} index={i}>
-            {renderChatMessage(tab.content, "assistant", `Assistant — ${tab.label}`)}
-            {renderChatMessage(
-              `Please show me: ${tab.label.toLowerCase()}`,
-              "user",
-              "User message"
-            )}
+        {tabs.map((tab) => (
+          <TabPanel key={tab.label} value={tab.label} activeValue={activeTab}>
+            <Box sx={{ pt: 2 }}>
+              {renderChatMessage(tab.content, "assistant", `Assistant — ${tab.label}`)}
+              {renderChatMessage(
+                `Please show me: ${tab.label.toLowerCase()}`,
+                "user",
+                "User message"
+              )}
+            </Box>
           </TabPanel>
         ))}
       </div>

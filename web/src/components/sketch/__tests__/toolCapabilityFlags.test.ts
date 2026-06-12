@@ -120,7 +120,6 @@ describe("Blur tool continuous stroke behavior", () => {
     // Access the private blurSourceCanvas via casting to verify it stays null
     // after initialization.
     const handler = getToolHandler("blur");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const blurHandler = handler as any;
     // Before any interaction, blurSourceCanvas should be null
     expect(blurHandler.blurSourceCanvas).toBeNull();

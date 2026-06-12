@@ -3,7 +3,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { shallow } from "zustand/shallow";
 import {
-  Menu,
   MenuItem,
   TextField,
   InputAdornment
@@ -18,7 +17,7 @@ import { rankSearchNodes } from "../../utils/nodeSearch";
 import ClearIcon from "@mui/icons-material/Clear";
 import SearchIcon from "@mui/icons-material/Search";
 import NodeItem from "../node_menu/NodeItem";
-import { Text, ToolbarIconButton, Box } from "../ui_primitives";
+import { Text, ToolbarIconButton, Box, MOTION, ContextMenu } from "../ui_primitives";
 import { useNodes } from "../../contexts/NodeContext";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import { useTheme } from "@mui/material/styles";
@@ -60,7 +59,7 @@ const scrollableContentStyles = (theme: Theme) =>
       padding: "3px 6px",
       borderRadius: "var(--rounded-md)",
       cursor: "pointer",
-      transition: "background-color 0.2s ease",
+      transition: MOTION.background,
       ".node-button": {
         padding: "0 6px",
         flexGrow: 1,
@@ -184,7 +183,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
     sourceHandle,
     targetHandle,
     nodeId
-  } = useConnectableNodesStore(storeSelector);
+  } = useConnectableNodesStore(storeSelector, shallow);
 
   const filteredNodes = useMemo(
     () => searchNodesHelper(connectableNodes, searchTerm, recentNodeTypes),
@@ -329,14 +328,11 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
   if (!menuPosition || !isVisible) {return null;}
 
   return (
-    <Menu
+    <ContextMenu
       css={menuStyles}
       open={isVisible}
       onContextMenu={(event) => event.preventDefault()}
-      anchorReference="anchorPosition"
-      anchorPosition={
-        menuPosition ? { top: menuPosition.y, left: menuPosition.x } : undefined
-      }
+      position={menuPosition}
       onClose={hideMenu}
       transitionDuration={200}
       slotProps={{
@@ -446,7 +442,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
           </div>
         )}
       </div>
-    </Menu>
+    </ContextMenu>
   );
 });
 

@@ -6,7 +6,7 @@ import { memo } from "react";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
-import { FlexColumn, FlexRow, Text, ScrollArea } from "../../ui_primitives";
+import { FlexColumn, FlexRow, Text, ScrollArea, MOTION } from "../../ui_primitives";
 import type { TodoItem } from "../../../stores/ApiTypes";
 
 export const TODO_SIDEBAR_WIDTH = 280;
@@ -45,7 +45,7 @@ const styles = (theme: Theme) =>
       alignItems: "flex-start",
       gap: 8,
       lineHeight: 1.35,
-      transition: "background-color 120ms ease"
+      transition: MOTION.background
     },
     ".todo-item + .todo-item": { marginTop: 2 },
     ".todo-item.in_progress": {

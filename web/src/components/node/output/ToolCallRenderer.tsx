@@ -7,6 +7,7 @@ import Prism from "prismjs";
 import "prismjs/components/prism-json";
 import DOMPurify from "dompurify";
 import type { Chunk } from "../../../stores/ApiTypes";
+import { MOTION } from "../../ui_primitives";
 
 type Props = {
   chunk: Chunk;
@@ -60,7 +61,7 @@ const toolCallStyles = (theme: Theme) =>
     },
     ".caret": {
       color: theme.vars.palette.grey[400],
-      transition: "transform 120ms ease",
+      transition: MOTION.transform,
       flexShrink: 0
     },
     ".caret.open": {

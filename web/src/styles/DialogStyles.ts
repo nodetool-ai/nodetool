@@ -1,5 +1,6 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
+import { MOTION } from "../components/ui_primitives";
 
 const dialogStyles = (theme: Theme) =>
   css({
@@ -43,7 +44,7 @@ const dialogStyles = (theme: Theme) =>
     ".input-field input": {
       fontFamily: theme.fontFamily1,
       padding: "8px 12px",
-      transition: "border-color 0.2s ease-in-out"
+      transition: MOTION.border
     },
     ".input-field:hover fieldset": {
       borderColor: theme.vars.palette.grey[100]

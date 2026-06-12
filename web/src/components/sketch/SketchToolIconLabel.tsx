@@ -6,7 +6,7 @@
 import React, { memo } from "react";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { alpha, useTheme } from "@mui/material/styles";
-import { FlexRow, Text, Box } from "../ui_primitives";
+import { FlexRow, Text, Box, MOTION } from "../ui_primitives";
 import { SKETCH_FONT } from "./sketchStyles";
 
 export interface SketchToolIconLabelProps {
@@ -58,7 +58,7 @@ function SketchToolIconLabel({
         color: "text.secondary",
         opacity: selected ? 1 : 0,
         pointerEvents: "none",
-        transition: "opacity 120ms ease"
+        transition: `opacity ${MOTION.fast}`
       }}
     >
       {shortcut}

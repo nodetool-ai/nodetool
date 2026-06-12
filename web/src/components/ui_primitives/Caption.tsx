@@ -5,7 +5,7 @@
  * Provides consistent styling for supplementary text content.
  */
 
-import React, { memo } from "react";
+import React, { memo, forwardRef } from "react";
 import { Typography, TypographyProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -47,14 +47,14 @@ export interface CaptionProps extends Omit<TypographyProps, 'variant'> {
  * // Italic caption
  * <Caption italic>Optional field</Caption>
  */
-const CaptionInternal: React.FC<CaptionProps> = ({
+const CaptionInternal = forwardRef<HTMLElement, CaptionProps>(({
   size = "smaller",
   color = "secondary",
   italic = false,
   sx,
   children,
   ...props
-}) => {
+}, ref) => {
   const theme = useTheme();
 
   const getFontSize = () => {
@@ -83,6 +83,7 @@ const CaptionInternal: React.FC<CaptionProps> = ({
 
   return (
     <Typography
+      ref={ref}
       sx={{
         fontSize: getFontSize(),
         fontWeight,
@@ -96,6 +97,7 @@ const CaptionInternal: React.FC<CaptionProps> = ({
       {children}
     </Typography>
   );
-};
+});
 
 export const Caption = memo(CaptionInternal);
+Caption.displayName = "Caption";

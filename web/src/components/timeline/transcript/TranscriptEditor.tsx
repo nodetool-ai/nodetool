@@ -71,7 +71,7 @@ import {
   useTimelineUIStoreApi,
   useTimelinePlaybackStoreApi
 } from "../../../stores/timeline/TimelineInstance";
-import { EditorButton, FlexRow, Caption, SPACING } from "../../ui_primitives";
+import { EditorButton, FlexRow, Caption, SPACING, MOTION } from "../../ui_primitives";
 import type { TimelineClip, TimelineMarker } from "@nodetool-ai/timeline";
 
 type EditorMode = "script" | "write";
@@ -444,7 +444,7 @@ const EditorSurface = styled("div")(({ theme }) => ({
   fontSize: 14,
   lineHeight: 1.95,
   outline: "none",
-  transition: "border-color 120ms ease, box-shadow 120ms ease",
+  transition: `border-color ${MOTION.fast}, box-shadow ${MOTION.fast}`,
   "&.is-writing": {
     borderColor: theme.vars.palette.primary.main,
     boxShadow: `0 0 0 1px ${theme.vars.palette.primary.main} inset`
@@ -475,7 +475,7 @@ const EditorSurface = styled("div")(({ theme }) => ({
   "& p:last-child": { marginBottom: 0 },
   "& .transcript-word": {
     borderRadius: 3,
-    transition: "background-color 80ms ease, color 80ms ease"
+    transition: `background-color ${MOTION.fast}, color ${MOTION.fast}`
   },
   "& .transcript-word--filler": {
     color: theme.vars.palette.text.disabled,

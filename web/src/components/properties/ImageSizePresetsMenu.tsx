@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { Menu, MenuItem, ListSubheader, InputAdornment } from "@mui/material";
-import { FlexColumn, FlexRow, NodeTextField } from "../ui_primitives";
+import { ListSubheader, InputAdornment } from "@mui/material";
+import { FlexColumn, FlexRow, NodeTextField, EditorMenu, EditorMenuItem } from "../ui_primitives";
 import Search from "@mui/icons-material/Search";
 import { IMAGE_SIZE_PRESETS, PresetOption } from "../../config/constants";
 
@@ -68,30 +68,26 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
   }, [handlePresetSelect]);
 
   return (
-    <Menu
+    <EditorMenu
       className="presets-menu"
       anchorEl={anchorEl}
       open={open}
       onClose={handleClose}
       disableAutoFocusItem
-      MenuListProps={{
-        sx: { padding: 0 }
-      }}
-      PaperProps={{
-        sx: {
-          maxHeight: 450,
-          width: '300px',
-          backgroundColor: 'background.paper',
-          '& .MuiListSubheader-root': {
-            lineHeight: '32px',
-            backgroundColor: '#1E1E1E', 
-            backgroundImage: 'none', 
-            fontWeight: 600,
-            color: 'primary.light',
-            position: 'sticky',
-            top: '48px',
-            zIndex: 10,  
-          }
+      listSx={{ padding: 0 }}
+      paperSx={{
+        maxHeight: 450,
+        width: '300px',
+        backgroundColor: 'background.paper',
+        '& .MuiListSubheader-root': {
+          lineHeight: '32px',
+          backgroundColor: '#1E1E1E',
+          backgroundImage: 'none',
+          fontWeight: 600,
+          color: 'primary.light',
+          position: 'sticky',
+          top: '48px',
+          zIndex: 10,
         }
       }}
     >
@@ -131,12 +127,12 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
       </FlexRow>
 
       {Object.entries(filteredGroupedPresets).length === 0 ? (
-        <MenuItem disabled sx={{ fontSize: '0.8125rem' }}>No presets found</MenuItem>
+        <EditorMenuItem disabled sx={{ fontSize: 'var(--fontSizeSmall)' }}>No presets found</EditorMenuItem>
       ) : (
         Object.entries(filteredGroupedPresets).map(([category, items]) => [
           <ListSubheader key={category} className="presets-category-header">{category}</ListSubheader>,
           ...items.map((preset) => (
-            <MenuItem
+            <EditorMenuItem
               className="preset-menu-item"
               key={`${preset.width}x${preset.height}-${preset.label}`}
               onClick={presetHandlers[`${preset.width}x${preset.height}-${preset.label}`]}
@@ -144,7 +140,7 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
               sx={{ py: 1, px: 2 }}
             >
               <FlexColumn fullWidth>
-                <span style={{ fontSize: '1rem', fontWeight: 500 }}>
+                <span style={{ fontSize: 'var(--fontSizeNormal)', fontWeight: 500 }}>
                   {preset.width} × {preset.height}
                 </span>
                 <FlexRow gap={0.5} align="center" sx={{
@@ -165,10 +161,10 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
                   )}
                 </FlexRow>
               </FlexColumn>
-            </MenuItem>
+            </EditorMenuItem>
           ))
         ])
       )}
-    </Menu>
+    </EditorMenu>
   );
 };

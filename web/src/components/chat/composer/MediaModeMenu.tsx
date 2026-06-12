@@ -19,7 +19,8 @@ import {
   Caption,
   FlexRow,
   Popover,
-  Text
+  Text,
+  MOTION
 } from "../../ui_primitives";
 import type { MediaMode } from "../../../stores/MediaGenerationStore";
 
@@ -125,7 +126,7 @@ const styles = (theme: Theme) =>
       padding: "10px 16px",
       cursor: "pointer",
       color: theme.vars.palette.grey[100],
-      transition: "background-color 120ms ease",
+      transition: MOTION.background,
       "&:hover": {
         backgroundColor: "rgba(255,255,255,0.06)"
       },

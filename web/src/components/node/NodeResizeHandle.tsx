@@ -5,7 +5,7 @@ import type { OnResize } from "@xyflow/system";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box } from "../ui_primitives";
+import { Box, MOTION } from "../ui_primitives";
 import { memo, useMemo } from "react";
 
 interface NodeResizeHandleProps {
@@ -35,7 +35,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       opacity: 0.6,
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
       "&:hover": {
         opacity: 1
       },
@@ -46,7 +46,7 @@ const styles = (theme: Theme) =>
         top: "50%",
         color: theme.vars.palette.grey[100],
         transform: "translate(-50%, -50%) rotate(-45deg)",
-        transition: "color 0.2s"
+        transition: `color ${MOTION.normal}`
       }
     }
   });

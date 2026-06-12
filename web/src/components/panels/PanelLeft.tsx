@@ -40,7 +40,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { TOOLTIP_ENTER_DELAY, TOOLBAR_WIDTH, PANEL_RESIZE_HANDLE_WIDTH } from "../../config/constants";
 import ThemeToggle from "../ui/ThemeToggle";
 import PanelHeadline from "../ui/PanelHeadline";
-import { ScrollArea, Tooltip, MobileBottomSheet } from "../ui_primitives";
+import { ScrollArea, Tooltip, MobileBottomSheet, MOTION } from "../ui_primitives";
 import MenuIcon from "@mui/icons-material/Menu";
 import CodeIcon from "@mui/icons-material/Code";
 import GridViewIcon from "@mui/icons-material/GridView";
@@ -109,7 +109,7 @@ const styles = (
       borderRadius: 0,
       cursor: "ew-resize",
       zIndex: 10,
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
 
       "&:hover": {
         backgroundColor: theme.vars.palette.primary.main,
@@ -145,13 +145,12 @@ const styles = (
         margin: "0 6px",
         borderRadius: "8px",
         backgroundColor: "transparent",
-        transition:
-          "background-color 140ms ease-out, color 140ms ease-out",
+        transition: `${MOTION.background}, color ${MOTION.fast}`,
 
         "& svg": {
           fontSize: "var(--fontSizeBig)",
           color: theme.vars.palette.text.secondary,
-          transition: "color 140ms ease-out"
+          transition: `color ${MOTION.fast}`
         },
 
         "&:hover": {
@@ -460,7 +459,7 @@ const mobileLauncherStyles = (theme: Theme, hasHeader: boolean) =>
     border: `1px solid ${theme.vars.palette.divider}`,
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
     padding: "8px",
-    borderRadius: "10px",
+    borderRadius: "var(--rounded-lg)",
     "&:hover": {
       backgroundColor: theme.vars.palette.action.hover
     },

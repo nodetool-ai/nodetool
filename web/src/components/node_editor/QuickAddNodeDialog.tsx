@@ -24,7 +24,7 @@
 
 import { memo, useCallback, useEffect, useRef } from "react";
 import { Command, CommandInput } from "cmdk";
-import { Dialog } from "../ui_primitives";
+import { Dialog, MOTION } from "../ui_primitives";
 import { Caption, Text, Chip } from "../ui_primitives";
 import { css } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
@@ -67,7 +67,7 @@ const styles = (theme: Theme) =>
       padding: "12px 16px",
       borderRadius: "var(--rounded-lg)",
       cursor: "pointer",
-      transition: "background-color 0.15s ease",
+      transition: MOTION.background,
       "&:hover, &[data-selected=true]": {
         backgroundColor: theme.vars.palette.action.hover
       },
