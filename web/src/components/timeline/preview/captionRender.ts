@@ -23,7 +23,7 @@ const MAX_CACHE_ENTRIES = 64;
  * with a marker on the active one. Two frames that look the same share a
  * cached bitmap, so the GPU side re-uploads only when the caption changes.
  */
-export function captionSignature(
+function captionSignature(
   caption: ResolvedCaption,
   width: number,
   height: number
