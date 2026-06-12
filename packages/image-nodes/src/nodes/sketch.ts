@@ -15,6 +15,7 @@ import {
   compositeImageLayers,
   type HeadlessLayer
 } from "@nodetool-ai/gpu/node";
+import type { ImageRef, SketchRef } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import {
@@ -273,7 +274,7 @@ export class RenderSketchNode extends BaseNode {
     title: "Sketch",
     description: "The sketch document to render."
   })
-  declare sketch: any;
+  declare sketch: SketchRef;
 
   async process(
     context?: ProcessingContext
@@ -316,7 +317,7 @@ export class SketchLayersNode extends BaseNode {
     title: "Sketch",
     description: "The sketch document to split into layer images."
   })
-  declare sketch: any;
+  declare sketch: SketchRef;
 
   async process(
     context?: ProcessingContext
@@ -352,7 +353,7 @@ export class CreateSketchNode extends BaseNode {
     title: "Image",
     description: "The image to place on the sketch's base layer."
   })
-  declare image: any;
+  declare image: ImageRef;
 
   @prop({
     type: "str",
@@ -360,7 +361,7 @@ export class CreateSketchNode extends BaseNode {
     title: "Name",
     description: "Name of the new sketch document."
   })
-  declare name: any;
+  declare name: string;
 
   async process(
     context?: ProcessingContext

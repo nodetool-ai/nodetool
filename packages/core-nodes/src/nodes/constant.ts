@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { SketchRef, TimelineRef } from "@nodetool-ai/protocol";
 import { tagAsUniversal } from "@nodetool-ai/nodes-utils";
 
 export class ConstantBaseNode extends BaseNode {
@@ -289,7 +290,7 @@ export class ConstantSketchNode extends BaseNode {
     },
     title: "Value"
   })
-  declare value: any;
+  declare value: SketchRef;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };
@@ -316,7 +317,7 @@ export class ConstantTimelineNode extends BaseNode {
     },
     title: "Value"
   })
-  declare value: any;
+  declare value: TimelineRef;
 
   async process(): Promise<Record<string, unknown>> {
     return { output: this.value ?? {} };

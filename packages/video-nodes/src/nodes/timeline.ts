@@ -11,6 +11,7 @@
 
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { VideoRef } from "@nodetool-ai/node-sdk";
+import type { TimelineRef } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import {
@@ -300,7 +301,7 @@ export class RenderTimelineNode extends BaseNode {
     title: "Timeline",
     description: "The timeline sequence to render."
   })
-  declare timeline: any;
+  declare timeline: TimelineRef;
 
   @prop({
     type: "bool",
@@ -308,7 +309,7 @@ export class RenderTimelineNode extends BaseNode {
     title: "Include audio",
     description: "Mix audio-track clips into the rendered video."
   })
-  declare include_audio: any;
+  declare include_audio: boolean;
 
   async process(
     context?: ProcessingContext
@@ -472,7 +473,7 @@ export class TimelineTranscriptNode extends BaseNode {
     title: "Timeline",
     description: "The timeline sequence to read the transcript from."
   })
-  declare timeline: any;
+  declare timeline: TimelineRef;
 
   async process(
     context?: ProcessingContext
@@ -502,7 +503,7 @@ export class AddClipsToTimelineNode extends BaseNode {
     description:
       "Timeline to append to. Leave empty to create a new timeline."
   })
-  declare timeline: any;
+  declare timeline: TimelineRef;
 
   @prop({
     type: "list",
@@ -510,7 +511,7 @@ export class AddClipsToTimelineNode extends BaseNode {
     title: "Clips",
     description: "Media to append: image, video, and audio references."
   })
-  declare clips: any;
+  declare clips: unknown[];
 
   @prop({
     type: "str",
@@ -518,7 +519,7 @@ export class AddClipsToTimelineNode extends BaseNode {
     title: "Name",
     description: "Name for the timeline when a new one is created."
   })
-  declare name: any;
+  declare name: string;
 
   @prop({
     type: "int",
@@ -528,7 +529,7 @@ export class AddClipsToTimelineNode extends BaseNode {
     min: 100,
     max: 600000
   })
-  declare image_duration_ms: any;
+  declare image_duration_ms: number;
 
   async process(
     context?: ProcessingContext
