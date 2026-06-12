@@ -821,6 +821,8 @@ export class ProcessingContext {
 
   /** Message queue: all emitted processing messages. */
   private _messages: ProcessingMessage[] = [];
+  /** Whether emit() feeds the pull queue (see constructor option). */
+  private _retainMessageQueue = true;
   /** Latest node status by node id. */
   private _nodeStatuses = new Map<string, ProcessingMessage>();
   /** Latest edge status by edge id. */
@@ -926,6 +928,15 @@ export class ProcessingContext {
     fetchFn?: (input: string, init?: RequestInit) => Promise<Response>;
     tempUrlResolver?: (uri: string) => Promise<string> | string;
     modelInterfaces?: ProcessingContextModelInterfaces;
+    /**
+     * Keep emitted messages in the pull queue (popMessage/waitMessage).
+     * Consumers that stream via message listeners instead (the browser/
+     * workflow-runner path) should pass false — with nothing draining the
+     * queue, an infinite realtime stream otherwise retains every chunk
+     * payload for the lifetime of the run. Default true (server paths pull
+     * from the queue).
+     */
+    retainMessageQueue?: boolean;
   }) {
     this.jobId = opts.jobId;
     this.workflowId = opts.workflowId ?? null;
@@ -951,6 +962,7 @@ export class ProcessingContext {
       ((input: string, init?: RequestInit) => fetch(input, init));
     this._tempUrlResolver = opts.tempUrlResolver ?? null;
     this._modelInterfaces = opts.modelInterfaces ?? null;
+    this._retainMessageQueue = opts.retainMessageQueue ?? true;
   }
 
   copy(): ProcessingContext {
@@ -1255,7 +1267,9 @@ export class ProcessingContext {
    * Appended to the internal queue and forwarded to listeners if set.
    */
   emit(msg: ProcessingMessage): void {
-    this._messages.push(msg);
+    if (this._retainMessageQueue) {
+      this._messages.push(msg);
+    }
     this._notifyMessage();
     if (msg.type === "node_update" && msg.node_id) {
       this._nodeStatuses.set(msg.node_id, msg);

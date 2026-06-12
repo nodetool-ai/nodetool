@@ -13,7 +13,9 @@ import { createLogger } from "@nodetool-ai/config";
 import type {
   Edge,
   NodeDescriptor,
-  GraphData
+  HydratedNodeDescriptor,
+  GraphData,
+  HydratedGraphData
 } from "@nodetool-ai/protocol";
 
 // Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
@@ -116,6 +118,31 @@ function resolveNodeTypeWith(
 // ---------------------------------------------------------------------------
 // Graph
 // ---------------------------------------------------------------------------
+
+/**
+ * Mark a code-constructed graph as hydrated by defaulting absent behavior
+ * flags to false. For graphs built in code (tests, DSL output) where the
+ * author already set the flags that matter. NOT a substitute for registry
+ * hydration of client/wire graphs — there an absent flag means "unknown",
+ * not "off"; use `Graph.loadFromDict` or node-sdk's `hydrateGraphNodeFlags`.
+ */
+export function withExplicitNodeFlags(graph: GraphData): HydratedGraphData {
+  return {
+    nodes: graph.nodes.map((node) => ({
+      ...node,
+      is_streaming_input: node.is_streaming_input ?? false,
+      is_streaming_output: node.is_streaming_output ?? false,
+      is_controlled: node.is_controlled ?? false,
+      is_join_node: node.is_join_node ?? false
+    })),
+    edges: [...graph.edges]
+  };
+}
+
+/** A Graph whose descriptors carry resolved behavior flags (see loadFromDict). */
+export interface HydratedGraph extends Graph {
+  readonly nodes: ReadonlyArray<HydratedNodeDescriptor>;
+}
 
 export class Graph {
   readonly nodes: ReadonlyArray<NodeDescriptor>;
@@ -328,7 +355,7 @@ export class Graph {
   static async loadFromDict(
     data: unknown,
     options: GraphLoadOptions
-  ): Promise<Graph> {
+  ): Promise<HydratedGraph> {
     const {
       resolver,
       skipErrors = true,
@@ -344,7 +371,7 @@ export class Graph {
       pruneEdgeProperties: false
     });
 
-    const resolvedNodes: NodeDescriptor[] = [];
+    const resolvedNodes: HydratedNodeDescriptor[] = [];
     const validNodeIds = new Set<string>();
 
     for (const node of normalized.nodes) {
@@ -378,7 +405,7 @@ export class Graph {
 
       const descriptorDefaults: Partial<NodeDescriptor> =
         resolved.descriptorDefaults ?? {};
-      const hydratedNode: NodeDescriptor = {
+      const hydratedNode: HydratedNodeDescriptor = {
         ...descriptorDefaults,
         ...node,
         type: resolved.nodeType,
@@ -413,7 +440,7 @@ export class Graph {
         // Correlation metadata is registry-authoritative; saved JSON is a
         // cache that gets overwritten — matching `input_mode` /
         // `output_correlation` above. See docs/correlation-design.md §1.
-        is_join_node: descriptorDefaults.is_join_node
+        is_join_node: descriptorDefaults.is_join_node ?? false
       };
 
       resolvedNodes.push(hydratedNode);
@@ -424,7 +451,11 @@ export class Graph {
       (edge) => validNodeIds.has(edge.source) && validNodeIds.has(edge.target)
     );
     Graph._pruneEdgeFedProperties(resolvedNodes, validEdges);
-    return new Graph({ nodes: resolvedNodes, edges: validEdges });
+    // Sound: resolvedNodes were built as HydratedNodeDescriptor above.
+    return new Graph({
+      nodes: resolvedNodes,
+      edges: validEdges
+    }) as HydratedGraph;
   }
 
   // -----------------------------------------------------------------------

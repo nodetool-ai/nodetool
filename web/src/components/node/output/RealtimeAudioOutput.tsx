@@ -14,6 +14,8 @@ type Props = {
   sampleRate?: number;
   channels?: number;
   nodeId?: string;
+  /** Live-monitoring mode: bound scheduling lead, drop stale chunks. */
+  live?: boolean;
 };
 
 const styles = (theme: Theme) =>
@@ -35,7 +37,8 @@ const RealtimeAudioOutput: React.FC<Props> = ({
   chunks,
   sampleRate = 22000,
   channels = 1,
-  nodeId
+  nodeId,
+  live = false
 }) => {
   const theme = useTheme();
   const workflowState = useWebsocketRunner((s) => s.state);
@@ -53,7 +56,8 @@ const RealtimeAudioOutput: React.FC<Props> = ({
     chunks,
     sampleRate,
     channels,
-    nodeId
+    nodeId,
+    live
   });
 
   // Stop playback when workflow stops
