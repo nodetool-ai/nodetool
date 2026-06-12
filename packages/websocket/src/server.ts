@@ -229,6 +229,7 @@ try {
     });
   } else {
     const dbPath = getDefaultDbPath();
+    log.info(`Initializing SQLite database at: ${dbPath}`);
     mkdirSync(dirname(dbPath), { recursive: true });
     const appliedMigrations = await migrateSqliteDb(dbPath);
     if (appliedMigrations.length > 0) {

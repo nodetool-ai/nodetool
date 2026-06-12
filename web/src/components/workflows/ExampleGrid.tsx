@@ -23,7 +23,6 @@ import SearchBar from "./SearchBar";
 import TagFilter from "./TagFilter";
 import WorkflowCard from "./WorkflowCard";
 import GettingStartedStrip from "./GettingStartedStrip";
-import AppHeader from "../panels/AppHeader";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   isGettingStarted,
@@ -493,18 +492,6 @@ const TemplateGrid = memo(function TemplateGrid() {
 
   return (
     <Box css={styles(theme)}>
-      <Box
-        className="actions-container"
-        sx={{
-          position: "absolute",
-          top: "32px",
-          left: 0,
-          right: 0,
-          zIndex: 1000
-        }}
-      >
-        <AppHeader />
-      </Box>
       <Box className="workflow-grid">
         <SearchBar
           inputValue={inputValue}

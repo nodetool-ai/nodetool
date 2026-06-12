@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 /**
- * Full-page wrapper for the chain editor with AppHeader.
+ * Full-page wrapper for the chain editor.
  * Handles loading an existing workflow or starting fresh.
  */
 

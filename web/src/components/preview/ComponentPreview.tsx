@@ -23,7 +23,6 @@ import {
 import useMetadataStore from "../../stores/MetadataStore";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 
-const AppHeader = React.lazy(() => import("../panels/AppHeader"));
 const CostsDashboard = React.lazy(() => import("../costs/CostsDashboard"));
 const ModelListIndex = React.lazy(
   () => import("../hugging_face/model_list/ModelListIndex")
@@ -333,20 +332,6 @@ const SAMPLE_IMAGE_B =
   "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=900&q=80&auto=format&fit=crop";
 
 // ─── Individual preview renderers ─────────────────────────────────────────────
-
-const PreviewAppHeader: React.FC = () => {
-  const theme = useTheme();
-  return (
-    <Box
-      data-preview="app-header"
-      sx={{ width: "100%", bgcolor: theme.palette.background.default }}
-    >
-      <Suspense fallback={<LoadingSpinner size="small" />}>
-        <AppHeader />
-      </Suspense>
-    </Box>
-  );
-};
 
 const PreviewDashboard: React.FC = () => (
   <FullscreenBox preview="dashboard">
@@ -672,7 +657,6 @@ const PreviewIndex: React.FC = () => {
 // ─── Router component ──────────────────────────────────────────────────────────
 
 const COMPONENT_MAP: Record<string, React.FC> = {
-  "app-header": PreviewAppHeader,
   dashboard: PreviewDashboard,
   costs: PreviewCosts,
   models: PreviewModels,

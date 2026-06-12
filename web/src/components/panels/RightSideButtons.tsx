@@ -47,7 +47,7 @@ const styles = (theme: Theme) =>
         outlineOffset: "1px"
       }
     },
-    // Override AppHeader's stray icon margin so icon-only buttons are
+    // Override the old header's stray icon margin so icon-only buttons are
     // visually centered, not nudged left.
     "& svg, & .MuiSvgIcon-root": {
       width: "16px",

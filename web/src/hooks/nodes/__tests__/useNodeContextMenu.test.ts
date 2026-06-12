@@ -367,7 +367,7 @@ describe("useNodeContextMenu", () => {
       });
 
       expect(mockNavigate).toHaveBeenCalledWith(
-        "/templates?node=nodetool.constant.String"
+        "/dashboard?node=nodetool.constant.String"
       );
       expect(mockCloseContextMenu).toHaveBeenCalled();
     });

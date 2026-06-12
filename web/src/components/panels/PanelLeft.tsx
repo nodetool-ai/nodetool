@@ -635,11 +635,11 @@ const PanelLeft: React.FC = () => {
     location.pathname.startsWith("/standalone-chat") ||
     location.pathname.startsWith("/miniapp");
   // The rail owns the app menu (logo) only in the unified workspace shell;
-  // legacy routes still carry it in AppHeader.
+  // legacy routes still carry it in their own header.
   const isWorkspace = location.pathname.startsWith("/workspace");
   // On the global chat route the chat owns the screen and renders its own
   // conversation sidebar, so the rail's "Agent" entry is redundant. The chat
-  // route also drops the AppHeader, so the rail runs full-height there.
+  // route also drops the header, so the rail runs full-height there.
   const isChatRoute = location.pathname.startsWith("/chat");
   const isWorkflowEditActive =
     location.pathname.startsWith("/editor/") ||

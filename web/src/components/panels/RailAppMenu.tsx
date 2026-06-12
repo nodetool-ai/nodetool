@@ -57,7 +57,7 @@ const menuStyles = () =>
 
 /**
  * The app menu docked at the top of the workspace rail. The logo opens a menu
- * carrying the global actions that used to live in AppHeader's right cluster:
+ * carrying the global actions that used to live in the old header's right cluster:
  * Settings, Help, and Downloads (with live progress when active).
  */
 const RailAppMenu: React.FC = () => {

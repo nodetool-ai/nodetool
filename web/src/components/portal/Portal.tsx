@@ -133,7 +133,7 @@ const Portal: React.FC = () => {
   }, [navigate]);
 
   const handleGettingStarted = useCallback(() => {
-    navigate("/templates");
+    navigate("/dashboard");
   }, [navigate]);
 
   const sendAndNavigate = useCallback(
