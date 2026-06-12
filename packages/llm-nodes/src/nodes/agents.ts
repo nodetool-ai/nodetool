@@ -1140,7 +1140,7 @@ export async function runAgentLoop(
         // agent_status, etc.) — those must not leak into the text output.
         // (Tool execution uses the structured ToolCall items below.)
         if (!item.thinking && item.content_type === "text") {
-          const delta = item.content ?? "";
+          const delta = typeof item.content === "string" ? item.content : "";
           assistantText += delta;
           if (delta) options.onText?.(delta);
         }
@@ -2704,9 +2704,16 @@ export class AgentNode extends BaseNode {
             if (item.content_type === "audio") {
               audioChunkCount += 1;
               yield { chunk: item, thinking: null, text: null, audio: null };
-              const audioBytes = item.content
-                ? Buffer.from(item.content, "base64")
-                : Buffer.alloc(0);
+              const audioBytes =
+                typeof item.content === "string" && item.content
+                  ? Buffer.from(item.content, "base64")
+                  : item.content instanceof Float32Array
+                    ? Buffer.from(
+                        item.content.buffer,
+                        item.content.byteOffset,
+                        item.content.byteLength
+                      )
+                    : Buffer.alloc(0);
               yield {
                 chunk: null,
                 thinking: null,
@@ -2714,7 +2721,8 @@ export class AgentNode extends BaseNode {
                 audio: { data: new Uint8Array(audioBytes) }
               };
             } else {
-              const rawPiece = item.content ?? "";
+              const rawPiece =
+                typeof item.content === "string" ? item.content : "";
               assistantText += rawPiece;
               for (const y of yieldSplitThinkChunks(item, rawPiece, thinkSplitter)) {
                 if (y.thinking != null) streamedRedactedThinking = true;

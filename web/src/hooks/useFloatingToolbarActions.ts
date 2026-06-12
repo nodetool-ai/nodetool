@@ -119,13 +119,31 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
       // Access current state directly to avoid re-renders on every node drag
       const { nodes, edges } = nodeStore.getState();
       run({}, workflow, nodes, edges, undefined, undefined, true);
+      setTimeout(() => {
+        const w = getWorkflowById(workflow.id);
+        if (w) {
+          saveWorkflow(w);
+        }
+      }, 100);
     };
 
-    // Clicking Run while a run is in progress queues another run rather than
-    // being ignored — the store enqueues it and fires it when the current run
-    // finishes. "Run Workflow" fires every executable node at once, so warn
-    // first when a run would launch many provider/model nodes, unless the user
-    // disabled the warning or dismissed it for this session.
+    // Clicking Run while a run is in progress starts a second run alongside
+    // it (for in-browser runs the server queue can't see the active run, so
+    // "queued" starts immediately). That's rarely what a double-click meant —
+    // always confirm first. Never suppressed.
+    if (isWorkflowRunning || isPaused || isSuspended) {
+      requestRunConfirmation({
+        kind: "concurrent",
+        onConfirm: () => {
+          void doRun();
+        }
+      });
+      return;
+    }
+
+    // "Run Workflow" fires every executable node at once, so warn first when
+    // a run would launch many provider/model nodes, unless the user disabled
+    // the warning or dismissed it for this session.
     const { nodes } = nodeStore.getState();
     const heavyCount = countHeavyNodes(
       nodes,
@@ -143,12 +161,6 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     } else {
       await doRun();
     }
-    setTimeout(() => {
-      const w = getWorkflowById(workflow.id);
-      if (w) {
-        saveWorkflow(w);
-      }
-    }, 100);
   }, [
     run,
     workflow,
@@ -158,7 +170,10 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     autosave,
     confirmLargeRun,
     largeRunThreshold,
-    requestRunConfirmation
+    requestRunConfirmation,
+    isWorkflowRunning,
+    isPaused,
+    isSuspended
   ]);
 
   const handleStop = useCallback(() => {

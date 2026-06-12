@@ -370,6 +370,10 @@ const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
   const messages = state.messageCache[threadId] || [];
   const lastMessage = messages[messages.length - 1];
 
+  // Audio chunks carry binary payloads (native Float32Array or base64);
+  // only text contributes to the assistant message stream.
+  const chunkText = typeof chunk.content === "string" ? chunk.content : "";
+
   // Get current message length for deduplication check
   const currentMessageLength =
     lastMessage && lastMessage.role === "assistant"
@@ -377,7 +381,7 @@ const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
       : 0;
 
   // Check for duplicate chunk (can happen with multiple WebSocket handlers)
-  if (isChunkDuplicate(threadId, chunk.content, currentMessageLength)) {
+  if (isChunkDuplicate(threadId, chunkText, currentMessageLength)) {
     // Still update status if this is the final chunk
     if (chunk.done) {
       clearChunkCache(threadId);
@@ -398,7 +402,7 @@ const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
   let newMessageLength: number;
 
   if (lastMessage && lastMessage.role === "assistant") {
-    const newContent = (lastMessage.content || "") + chunk.content;
+    const newContent = (lastMessage.content || "") + chunkText;
     newMessageLength = newContent.length;
     const updatedMessage: Message = {
       ...lastMessage,
@@ -409,18 +413,18 @@ const applyChunk = (state: GlobalChatState, chunk: Chunk): ReducerResult => {
     const localStreamId = `local-stream-${Date.now()}-${Math.random()
       .toString(16)
       .slice(2)}`;
-    newMessageLength = chunk.content.length;
+    newMessageLength = chunkText.length;
     const message: Message = {
       id: localStreamId,
       role: "assistant",
       type: "message",
-      content: chunk.content
+      content: chunkText
     };
     updatedMessages = [...messages, message];
   }
 
   // Record this chunk as processed for deduplication
-  recordProcessedChunk(threadId, chunk.content, newMessageLength);
+  recordProcessedChunk(threadId, chunkText, newMessageLength);
 
   // Preserve statusMessage during media generation (it's set from
   // content_metadata.media_generation in the chunk handler above).
