@@ -5,6 +5,7 @@ import type {
   StreamingOutputs
 } from "@nodetool-ai/node-sdk";
 import {
+  AudioOutputNode,
   AudioToChunksNode,
   ChunksToAudioNode,
   StreamingGainNode,
@@ -62,7 +63,8 @@ function recordingOutputs(): {
 
 type ChunkShape = {
   type: string;
-  content: string;
+  /** Native Float32Array in-process; "" for done markers. */
+  content: Float32Array | string;
   done: boolean;
   content_type: string;
   content_metadata: {
@@ -93,6 +95,12 @@ function makeChunk(
       duration_seconds: pcm.length / 2 / channels / sampleRate
     }
   };
+}
+
+/** Samples of an emitted chunk (native Float32Array payload). */
+function chunkSamples(chunk: ChunkShape): Float32Array {
+  expect(chunk.content).toBeInstanceOf(Float32Array);
+  return chunk.content as Float32Array;
 }
 
 /** 1 s of quantization-stable mono samples (already on the PCM16 grid). */
@@ -131,16 +139,16 @@ describe("AudioToChunks", () => {
       expect(chunk.content_metadata.sample_rate).toBe(SAMPLE_RATE);
       expect(chunk.content_metadata.channels).toBe(1);
       expect(chunk.content_metadata.duration_seconds).toBeCloseTo(0.25, 6);
-      expect(b64ToBytes(chunk.content).length).toBe(SAMPLE_RATE * 0.25 * 2);
+      expect(chunkSamples(chunk).length).toBe(SAMPLE_RATE * 0.25);
     }
 
     const last = chunks[4];
     expect(last.done).toBe(true);
     expect(last.content).toBe("");
 
-    // The concatenated PCM equals the original samples (PCM16-quantized).
-    const allPcm = data.flatMap((c) => [...b64ToBytes(c.content)]);
-    const decoded = pcm16ToFloat32(Uint8Array.from(allPcm));
+    // The concatenated samples equal the original (PCM16-quantized by the
+    // WAV round-trip on input; chunk payloads themselves are lossless).
+    const decoded = Float32Array.from(data.flatMap((c) => [...chunkSamples(c)]));
     expect(decoded.length).toBe(samples.length);
     for (let i = 0; i < samples.length; i += 997) {
       expect(decoded[i]).toBeCloseTo(samples[i], 4);
@@ -203,6 +211,29 @@ describe("ChunksToAudio", () => {
   });
 });
 
+describe("AudioOutput", () => {
+  it("passes audio chunks through verbatim and stops on done", async () => {
+    const pcm = float32ToPcm16(testSamples(512));
+    const items = [
+      { type: "chunk", content: "ignored", content_type: "text", done: false },
+      makeChunk(pcm, SAMPLE_RATE, 1),
+      makeChunk(pcm, SAMPLE_RATE, 1),
+      makeChunk(new Uint8Array(), SAMPLE_RATE, 1, true)
+    ];
+    const node = new AudioOutputNode({});
+    const { outputs, emitted } = recordingOutputs();
+    await node.run(inputsFrom(items), outputs);
+
+    // Non-audio chunk skipped; the two data chunks + done pass through
+    // as the exact same objects.
+    expect(emitted).toHaveLength(3);
+    expect(emitted[0][0]).toBe("chunk");
+    expect(emitted[0][1]).toBe(items[1]);
+    expect(emitted[1][1]).toBe(items[2]);
+    expect((emitted[2][1] as ChunkShape).done).toBe(true);
+  });
+});
+
 describe("StreamingGain", () => {
   it("+6.0206 dB doubles sample values and forwards the done chunk", async () => {
     const samples = new Float32Array(512).fill(0.25);
@@ -220,7 +251,7 @@ describe("StreamingGain", () => {
     const first = emitted[0][1] as ChunkShape;
     expect(first.done).toBe(false);
     expect(first.content_metadata.sample_rate).toBe(SAMPLE_RATE);
-    const out = pcm16ToFloat32(b64ToBytes(first.content));
+    const out = chunkSamples(first);
     for (let i = 0; i < out.length; i += 37) {
       expect(out[i]).toBeCloseTo(0.5, 3);
     }
@@ -255,7 +286,7 @@ describe("StreamingLowPass", () => {
     expect(emitted).toHaveLength(9);
     const streamed: number[] = [];
     for (const [, value] of emitted.slice(0, 8)) {
-      streamed.push(...pcm16ToFloat32(b64ToBytes((value as ChunkShape).content)));
+      streamed.push(...chunkSamples(value as ChunkShape));
     }
 
     // Reference: the same quantized input filtered in a single pass.

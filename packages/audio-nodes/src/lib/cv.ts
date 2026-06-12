@@ -1,24 +1,26 @@
 /**
  * Control-voltage (CV) signal helpers for the modular synthesis nodes.
  *
- * CV rides the same chunk wire shape as streaming audio (`type:"chunk"`,
- * `content_type:"audio"`, base64 payload, `done:true` terminator) but with
- * `encoding:"f32le"`: pcm16 clamps to [-1,1] and quantizes, which is wrong
- * for multi-octave pitch CV. `readSignalChunk` decodes both encodings, so
- * any signal node accepts audio and CV interchangeably (Eurorack semantics).
+ * CV rides the same chunk shape as streaming audio (`type:"chunk"`,
+ * `content_type:"audio"`, `done:true` terminator). In-process the payload is
+ * a native `Float32Array` (zero per-hop conversions); encoded string
+ * payloads from external sources are still decoded, where `encoding:"f32le"`
+ * matters for CV: pcm16 clamps to [-1,1] and quantizes, which is wrong for
+ * multi-octave pitch CV. `readSignalChunk` accepts all three forms, so any
+ * signal node accepts audio and CV interchangeably (Eurorack semantics).
  *
  * Also home to the sample-domain timing utilities:
  *  - `SampleFifo` / `alignedSignalStreams` — the "zip-with-hold" pattern for
  *    multi-input streaming nodes (the kernel has no sample-aligned zip;
  *    alignment is exact when one clock drives the patch, hold-last
  *    otherwise).
- *  - `abortableSleep` / `RealtimePacer` — wall-clock pacing for
- *    `realtime: true` generators. Pacing only delays emission; signal
- *    content is identical to a free run.
+ *  - `abortableSleep` / `RealtimePacer` — wall-clock pacing for the
+ *    free-running generators. Pacing only delays emission; signal content
+ *    is identical to an unpaced run.
  */
 import type { StreamingInputs } from "@nodetool-ai/node-sdk";
-import { base64ToBytes, bytesToBase64 } from "@nodetool-ai/nodes-utils";
-import { float32ToPcm16, pcm16ToFloat32 } from "./audio-wav.js";
+import { base64ToBytes } from "@nodetool-ai/nodes-utils";
+import { pcm16ToFloat32 } from "./audio-wav.js";
 
 export type SignalEncoding = "pcm16le" | "f32le";
 
@@ -74,19 +76,28 @@ export function readSignalChunk(item: unknown): SignalChunk | null {
       : SYNTH_SAMPLE_RATE;
   const channels =
     typeof meta.channels === "number" && meta.channels > 0 ? meta.channels : 1;
-  const content = typeof c.content === "string" ? c.content : "";
   let samples: Float32Array;
-  if (!content) {
-    samples = new Float32Array(0);
-  } else {
-    const bytes = base64ToBytes(content);
+  if (c.content instanceof Float32Array) {
+    // Native in-process payload — zero conversions.
+    samples = c.content;
+  } else if (typeof c.content === "string" && c.content) {
+    // Encoded payload (external sources, websocket wire format).
+    const bytes = base64ToBytes(c.content);
     samples =
       meta.encoding === "f32le" ? f32leToFloat32(bytes) : pcm16ToFloat32(bytes);
+  } else {
+    samples = new Float32Array(0);
   }
   return { samples, sampleRate, channels, done: Boolean(c.done ?? false) };
 }
 
-/** Build a signal chunk in the shared chunk wire shape. */
+/**
+ * Build a signal chunk in the shared chunk shape. Samples stay a native
+ * `Float32Array` — no encoding between nodes; the websocket transport
+ * encodes to base64 at the wire boundary. The `encoding` parameter is kept
+ * as metadata describing the *preferred wire encoding* for consumers that do
+ * serialize (pcm16le clamps to [-1,1], wrong for multi-octave CV).
+ */
 export function makeSignalChunk(
   samples: Float32Array,
   sampleRate: number,
@@ -94,11 +105,9 @@ export function makeSignalChunk(
   done: boolean,
   encoding: SignalEncoding
 ): Record<string, unknown> {
-  const bytes =
-    encoding === "f32le" ? float32ToF32le(samples) : float32ToPcm16(samples);
   return {
     type: "chunk",
-    content: samples.length > 0 ? bytesToBase64(bytes) : "",
+    content: samples.length > 0 ? samples : "",
     done,
     content_type: "audio",
     content_metadata: {
@@ -301,12 +310,11 @@ export function abortableSleep(
 }
 
 /**
- * Drift-compensated wall-clock pacer for `realtime: true` generators: chunk
- * k is released no earlier than the cumulative duration of chunks 0..k-1
+ * Drift-compensated wall-clock pacer for free-running generators: chunk k
+ * is released no earlier than the cumulative duration of chunks 0..k-1
  * after start (absolute target times, same scheme as IntervalTriggerNode).
- * Tracking the target cumulatively keeps variable-length chunks — e.g. the
- * shorter final chunk of a bounded render — correctly paced. Pacing never
- * alters chunk contents — a realtime render is bit-identical to a free run.
+ * Pacing never alters chunk contents — a paced render is bit-identical to
+ * an unpaced one.
  */
 export class RealtimePacer {
   private _nextTargetMs = Date.now();

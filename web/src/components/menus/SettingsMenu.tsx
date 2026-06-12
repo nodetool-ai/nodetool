@@ -792,6 +792,36 @@ function SettingsPage() {
 
                       <SearchItem
                         search={generalSearch}
+                        keywords="audio buffer latency realtime synth playback dropout"
+                      >
+                        <TextInput
+                          type="number"
+                          autoComplete="off"
+                          slotProps={{ htmlInput: { min: 20, max: 1000, step: 10 } }}
+                          id="audio-buffer-ms-input"
+                          label="Audio Buffer (ms)"
+                          value={settings.audioBufferMs ?? 100}
+                          onChange={(e) =>
+                            updateSettings({
+                              audioBufferMs: Math.min(
+                                1000,
+                                Math.max(20, Number(e.target.value) || 100)
+                              )
+                            })
+                          }
+                          variant="standard"
+                          size="small"
+                        />
+                        <Text className="description">
+                          Playback buffer for realtime audio (modular synth
+                          patches). Lower values reduce knob-to-ear latency;
+                          higher values prevent dropouts when the editor is
+                          busy.
+                        </Text>
+                      </SearchItem>
+
+                      <SearchItem
+                        search={generalSearch}
                         keywords="execution max concurrent jobs runs queue concurrency parallel"
                       >
                         <ServerNumberSetting

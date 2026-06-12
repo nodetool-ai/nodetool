@@ -286,10 +286,10 @@ const PanelContent = memo(function PanelContent({
     <>
       {activeView === "history" && (
         <FlexColumn
+          className="history-panel-container"
           fullWidth
           fullHeight
           sx={{
-            margin: isMobile ? "0" : "0 0.5em",
             overflow: "hidden"
           }}
         >
@@ -298,31 +298,27 @@ const PanelContent = memo(function PanelContent({
         </FlexColumn>
       )}
       {activeView === "favorites" && (
-        <Box
+        <FlexColumn
+          className="favorites-panel-container"
+          fullWidth
+          fullHeight
           sx={{
-            width: "100%",
-            height: "100%",
-            
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column"
+            overflow: "hidden"
           }}
         >
           {!isMobile && <PanelHeadline title="Favorites" />}
           <ScrollArea fullHeight>
             <FavoritesTiles showEmpty hideHeader />
           </ScrollArea>
-        </Box>
+        </FlexColumn>
       )}
       {activeView === "assets" && (
-        <Box
+        <FlexColumn
           className="assets-container"
+          fullWidth
+          fullHeight
           sx={{
-            width: "100%",
-            height: "100%",
-            overflow: "hidden",
-            display: "flex",
-            flexDirection: "column"
+            overflow: "hidden"
           }}
         >
           {!isMobile && (
@@ -341,7 +337,7 @@ const PanelContent = memo(function PanelContent({
             />
           )}
           <AssetGrid maxItemSize={5} isMobile={isMobile} />
-        </Box>
+        </FlexColumn>
       )}
       {activeView === "workflows" && (
         <FlexColumn
@@ -400,17 +396,19 @@ const PanelContent = memo(function PanelContent({
         </FlexColumn>
       )}
       {activeView === "settings" && currentWorkflow && (
-        <Box
+        <FlexColumn
           className="workflow-settings-container"
+          fullWidth
+          fullHeight
           sx={{
-            width: "100%",
-            height: "100%",
-            overflow: "auto"
+            overflow: "hidden"
           }}
         >
           {!isMobile && <PanelHeadline title="Settings" />}
-          <WorkflowForm workflow={currentWorkflow} onClose={closePanel} />
-        </Box>
+          <ScrollArea fullHeight>
+            <WorkflowForm workflow={currentWorkflow} onClose={closePanel} />
+          </ScrollArea>
+        </FlexColumn>
       )}
       {activeView === "agent" && (
         <FlexColumn

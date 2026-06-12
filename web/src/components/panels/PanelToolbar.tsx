@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo } from "react";
 import { FlexRow, Text } from "../ui_primitives";
 
-export const PANEL_TOOLBAR_HEIGHT = 36;
+const PANEL_TOOLBAR_HEIGHT = 36;
 
 interface PanelToolbarProps {
   title: string;

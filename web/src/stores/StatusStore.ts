@@ -33,6 +33,7 @@ type StatusStore = {
     nodeId: string
   ) => StatusValue | undefined;
   clearStatuses: (workflowId: string, nodeIds?: Set<string>) => void;
+  clearJobStatuses: (workflowId: string, jobId: string) => void;
 };
 
 /** @deprecated kept as a re-export of `nodeKey` for backwards compatibility. */
@@ -75,6 +76,30 @@ const useStatusStore = create<StatusStore>((set, get) => ({
       }
     }
 
+    if (changed) {
+      set({ statuses: newStatuses });
+    }
+  },
+
+  /**
+   * Clear all node statuses belonging to one run. Job-scoped, so a
+   * concurrently running sibling job of the same workflow is untouched —
+   * used when a run is cancelled and its "running" borders must stop.
+   *
+   * @param workflowId The id of the workflow.
+   * @param jobId The id of the run/job whose statuses to drop.
+   */
+  clearJobStatuses: (workflowId: string, jobId: string) => {
+    const statuses = get().statuses;
+    const newStatuses = { ...statuses };
+    let changed = false;
+    const prefix = `${workflowId}:${jobId}:`;
+    for (const key in newStatuses) {
+      if (key.startsWith(prefix)) {
+        delete newStatuses[key as NodeKey];
+        changed = true;
+      }
+    }
     if (changed) {
       set({ statuses: newStatuses });
     }

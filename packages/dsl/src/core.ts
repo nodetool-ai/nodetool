@@ -4,7 +4,7 @@
  * OutputHandle, Connectable, DslNode, SingleOutput, createNode(), workflow(), run()
  */
 
-import { WorkflowRunner } from "@nodetool-ai/kernel";
+import { WorkflowRunner, withExplicitNodeFlags } from "@nodetool-ai/kernel";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   ProcessingContext,
@@ -450,7 +450,12 @@ export async function run(
 
   const result = await (async () => {
     try {
-      return await runner.run({ job_id: jobId }, { nodes, edges });
+      // DSL nodes carry their streaming flags from generated metadata
+      // (`n.streaming` / `n.streamingInput` above); the rest default off.
+      return await runner.run(
+        { job_id: jobId },
+        withExplicitNodeFlags({ nodes, edges })
+      );
     } finally {
       pythonBridge?.close();
     }

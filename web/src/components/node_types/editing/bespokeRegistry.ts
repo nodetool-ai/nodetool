@@ -49,6 +49,12 @@ import RotateAndFlipBody, {
 import ScaleBody, { SCALE_NODE_TYPE } from "./ScaleBody";
 import SimpleFilterBody from "./SimpleFilterBody";
 import { SIMPLE_FILTER_NODE_TYPES } from "./SimpleFilterBody.constants";
+import AudioOutBody, { AUDIO_OUT_NODE_TYPE } from "../synth/AudioOutBody";
+import SynthModuleBody from "../synth/SynthModuleBody";
+import {
+  SYNTH_MODULE_CONFIGS,
+  SYNTH_NODE_TYPES
+} from "../synth/synthModules";
 
 export interface BespokeBodyProps {
   id: string;
@@ -98,7 +104,11 @@ export const BESPOKE_BODY_REGISTRY: Readonly<
   ),
   ...Object.fromEntries(
     ADJUSTMENT_NODE_TYPES.map((t) => [t, AdjustmentBody] as const)
-  )
+  ),
+  ...Object.fromEntries(
+    SYNTH_NODE_TYPES.map((t) => [t, SynthModuleBody] as const)
+  ),
+  [AUDIO_OUT_NODE_TYPE]: AudioOutBody
 };
 
 /**
@@ -113,7 +123,20 @@ export const BESPOKE_DEFAULT_HEIGHTS: Readonly<Record<string, number>> = {
   ...Object.fromEntries(GENERATOR_NODE_TYPES.map((t) => [t, 460] as const)),
   // Adjustment nodes with many sliders that overflow the generic height.
   "lib.image.color_grading.LiftGammaGain": 580,
-  "lib.image.color_grading.SplitToning": 380
+  "lib.image.color_grading.SplitToning": 380,
+  // Synth modules: label strip + extras + knob rows (≈80px per wrapped row
+  // of knobs at the default node width) + output jacks.
+  ...Object.fromEntries(
+    SYNTH_NODE_TYPES.map((t) => {
+      const c = SYNTH_MODULE_CONFIGS[t];
+      const knobRows = Math.ceil(c.knobs.length / 3);
+      const extras =
+        (c.waveform ? 26 : 0) + (c.modeToggle ? 28 : 0) + (c.adsrPreview ? 42 : 0);
+      return [t, 96 + extras + knobRows * 84] as const;
+    })
+  ),
+  // Audio Out: label strip + transport buttons + visualizer.
+  [AUDIO_OUT_NODE_TYPE]: 220
 };
 
 export const isBespokeNode = (
