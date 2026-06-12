@@ -8,7 +8,7 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { randomUUID } from "node:crypto";
 import { Tool } from "@nodetool-ai/agents";
 import { buildBrowserAgentToolClasses } from "@nodetool-ai/automation-nodes";
-import { registerBuiltinAgentToolClasses } from "@nodetool-ai/llm-nodes";
+import { registerBuiltinAgentToolFactory } from "@nodetool-ai/llm-nodes";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
 const DEFAULT_SCOPE_USER = "no-user";
@@ -516,9 +516,13 @@ export const SANDBOX_NODES = tagAsServer([
 //   - 11 sandbox browser tools (`sandbox_browser_*`) drive the container's Chrome.
 //   - 5 sandbox shell tools (`sandbox_shell_*`).
 //   - 5 sandbox file tools (`sandbox_file_*`).
-// Registration runs after this module's body so the cycle through
-// agent-tool-hydration -> sandbox is broken by inversion of control.
-registerBuiltinAgentToolClasses([
+// Use a factory so buildBrowserAgentToolClasses (and BROWSER_ACTION_SPECS) are
+// only accessed when tools are first resolved, not at module-evaluation time.
+// In esbuild bundles, module-level consts are wrapped in __esm lazy initializers
+// and are undefined until their init function runs; calling buildBrowserAgentToolClasses
+// at top level risks a "not iterable" crash when the automation-nodes module hasn't
+// been initialized yet.
+registerBuiltinAgentToolFactory(() => [
   ...buildBrowserAgentToolClasses(acquireSandboxClient),
   ...SHELL_AGENT_TOOLS.map(makeSandboxActionToolClass),
   ...Object.values(FILE_ACTIONS).map(makeSandboxActionToolClass)
