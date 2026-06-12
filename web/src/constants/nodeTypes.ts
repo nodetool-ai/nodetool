@@ -19,7 +19,7 @@ export const WORKFLOW_NODE_TYPE = "nodetool.workflows.workflow_node.Workflow";
 export const SUBGRAPH_NODE_TYPE = "nodetool.workflows.subgraph.Subgraph";
 
 // --- Special editor nodes --------------------------------------------------
-export const SKETCH_NODE_TYPE = "nodetool.image.ImageEditor";
+export const SKETCH_NODE_TYPE = "nodetool.constant.Sketch";
 export const CODE_NODE_TYPE = "nodetool.code.Code";
 export const STRING_NODE_TYPE = "nodetool.constant.String";
 

@@ -27,6 +27,7 @@ import {
   FlexRow,
   Text,
   Caption,
+  NodeSlider,
   ToolbarIconButton
 } from "../../ui_primitives";
 
@@ -81,14 +82,30 @@ const viewportStyles = css({
 const controlBarStyles = (theme: Theme) =>
   css({
     flexShrink: 0,
-    height: 36,
+    minHeight: 36,
     backgroundColor: theme.vars.palette.background.paper,
     borderTop: `1px solid ${theme.vars.palette.divider}`,
     paddingLeft: theme.spacing(0.5),
-    paddingRight: theme.spacing(1),
+    paddingRight: theme.spacing(0.5),
     display: "flex",
     alignItems: "center",
-    gap: theme.spacing(0.5)
+    gap: theme.spacing(0.5),
+    overflow: "hidden",
+    containerType: "inline-size",
+    containerName: "timelinePreviewControls",
+    ".toolbar-icon-button": {
+      flexShrink: 0
+    },
+    "@container timelinePreviewControls (max-width: 560px)": {
+      ".timeline-preview__secondary-control, .timeline-preview__fps": {
+        display: "none"
+      }
+    },
+    "@container timelinePreviewControls (max-width: 420px)": {
+      ".timeline-preview__duration, .timeline-preview__fullscreen": {
+        display: "none"
+      }
+    }
   });
 
 const timecodeStyles = (theme: Theme) =>
@@ -97,7 +114,7 @@ const timecodeStyles = (theme: Theme) =>
     fontSize: 12,
     color: theme.vars.palette.text.primary,
     letterSpacing: "0.05em",
-    minWidth: 88,
+    minWidth: 78,
     textAlign: "center",
     userSelect: "none"
   });
@@ -108,6 +125,25 @@ const fpsStyles = (theme: Theme) =>
     color: theme.vars.palette.text.disabled,
     minWidth: 36,
     textAlign: "right",
+    userSelect: "none"
+  });
+
+const scrubberStyles = css({
+  flex: "1 1 auto",
+  minWidth: 56,
+  paddingLeft: 6,
+  paddingRight: 6,
+  display: "flex",
+  alignItems: "center"
+});
+
+const durationStyles = (theme: Theme) =>
+  css({
+    fontFamily: "monospace",
+    fontSize: 11,
+    color: theme.vars.palette.text.secondary,
+    minWidth: 82,
+    textAlign: "center",
     userSelect: "none"
   });
 
@@ -140,6 +176,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       pause,
       stop,
       setCurrentTimeMs,
+      seek,
       seekNonce
     } = useTimelinePlaybackStore(
       useShallow((s) => ({
@@ -149,6 +186,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         pause: s.pause,
         stop: s.stop,
         setCurrentTimeMs: s.setCurrentTimeMs,
+        seek: s.seek,
         seekNonce: s.seekNonce
       }))
     );
@@ -358,6 +396,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
     const containerRef = useRef<HTMLDivElement>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [scrubMs, setScrubMs] = useState<number | null>(null);
 
     useEffect(() => {
       const onFullscreenChange = () => {
@@ -379,6 +418,27 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         void document.exitFullscreen();
       }
     }, []);
+
+    const scrubMax = Math.max(1, durationMs || 0);
+    const scrubValue = Math.min(scrubMax, scrubMs ?? currentTimeMs);
+
+    const handleScrubChange = useCallback(
+      (_event: Event, value: number | number[]) => {
+        const next = Array.isArray(value) ? value[0] : value;
+        setScrubMs(next);
+        setCurrentTimeMs(next);
+      },
+      [setCurrentTimeMs]
+    );
+
+    const handleScrubCommit = useCallback(
+      (_event: Event | React.SyntheticEvent, value: number | number[]) => {
+        const next = Array.isArray(value) ? value[0] : value;
+        setScrubMs(null);
+        seek(next);
+      },
+      [seek]
+    );
 
     useCombo([" "], handlePlayPauseToggle);
 
@@ -432,6 +492,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     );
 
     const timecode = formatTimecode(currentTimeMs, fps);
+    const durationTimecode = formatTimecode(durationMs || 0, fps);
 
     return (
       <div
@@ -453,6 +514,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             onClick={jumpToPrevBoundary}
             aria-label="Previous clip boundary"
             size="small"
+            className="timeline-preview__secondary-control"
           />
 
           <ToolbarIconButton
@@ -462,6 +524,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             disabled={isPlaying}
             aria-label="Step back one frame"
             size="small"
+            className="timeline-preview__secondary-control"
           />
 
           <ToolbarIconButton
@@ -488,6 +551,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             disabled={isPlaying}
             aria-label="Step forward one frame"
             size="small"
+            className="timeline-preview__secondary-control"
           />
 
           <ToolbarIconButton
@@ -496,12 +560,29 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             onClick={jumpToNextBoundary}
             aria-label="Next clip boundary"
             size="small"
+            className="timeline-preview__secondary-control"
           />
 
-          <div css={dividerStyles(theme)} />
+          <div css={dividerStyles(theme)} className="timeline-preview__secondary-control" />
           <Text css={timecodeStyles(theme)}>{timecode}</Text>
-          <Caption css={fpsStyles(theme)}>{fps} fps</Caption>
-          <FlexRow sx={{ flex: "1 1 auto" }} />
+          <div css={scrubberStyles}>
+            <NodeSlider
+              aria-label="Scrub timeline"
+              min={0}
+              max={scrubMax}
+              step={frameDeltaMs(fps)}
+              value={scrubValue}
+              onChange={handleScrubChange}
+              onChangeCommitted={handleScrubCommit}
+              density="compact"
+            />
+          </div>
+          <Caption css={durationStyles(theme)} className="timeline-preview__duration">
+            /{durationTimecode}
+          </Caption>
+          <Caption css={fpsStyles(theme)} className="timeline-preview__fps">
+            {fps} fps
+          </Caption>
 
           <ToolbarIconButton
             icon={isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
@@ -509,6 +590,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             onClick={handleFullscreen}
             aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
             size="small"
+            className="timeline-preview__fullscreen"
           />
         </div>
       </div>

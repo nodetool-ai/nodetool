@@ -9,6 +9,7 @@ import useAuth from "../../../stores/useAuth";
 import { useAddNodeFromAsset } from "../addNodeFromAsset";
 import { useRecentNodesStore } from "../../../stores/RecentNodesStore";
 import { useFileHandlers } from "../dropHandlerUtils";
+import useMetadataStore from "../../../stores/MetadataStore";
 
 // Mock dependencies
 jest.mock("@xyflow/react", () => ({
@@ -21,6 +22,7 @@ jest.mock("../../../stores/useAuth");
 jest.mock("../addNodeFromAsset");
 jest.mock("../../../stores/RecentNodesStore");
 jest.mock("../dropHandlerUtils");
+jest.mock("../../../stores/MetadataStore");
 
 describe("useDropHandler", () => {
   const mockScreenToFlowPosition = jest.fn();
@@ -30,6 +32,7 @@ describe("useDropHandler", () => {
   const mockAddNodeFromAsset = jest.fn();
   const mockAddRecentNode = jest.fn();
   const mockAddNotification = jest.fn();
+  const mockGetMetadata = jest.fn();
 
   // File handlers mocks
   const mockHandlePngFile = jest.fn();
@@ -47,7 +50,8 @@ describe("useDropHandler", () => {
     (useNodes as unknown as jest.Mock).mockImplementation((selector) => {
         const state = {
             addNode: mockAddNode,
-            createNode: mockCreateNode
+            createNode: mockCreateNode,
+            updateNodeData: jest.fn()
         };
         return selector ? selector(state) : state;
     });
@@ -79,6 +83,133 @@ describe("useDropHandler", () => {
         handleCsvFile: mockHandleCsvFile,
         handleGenericFile: mockHandleGenericFile
     });
+
+    (useMetadataStore as unknown as jest.Mock).mockImplementation((selector) => {
+      const state = { getMetadata: mockGetMetadata };
+      return selector ? selector(state) : state;
+    });
+  });
+
+  it("creates a constant sketch node when dropping a sketch on the pane", async () => {
+    const { result } = renderHook(() => useDropHandler());
+    const sketchMetadata = {
+      node_type: "nodetool.constant.Sketch",
+      title: "Sketch",
+      properties: [],
+      outputs: []
+    };
+    const node: {
+      id: string;
+      type: string;
+      data: {
+        properties: Record<string, unknown>;
+        dynamic_properties: Record<string, unknown>;
+        workflow_id: string;
+        title?: string;
+      };
+    } = {
+      id: "node-1",
+      type: "nodetool.constant.Sketch",
+      data: { properties: {}, dynamic_properties: {}, workflow_id: "wf" }
+    };
+    mockGetMetadata.mockReturnValue(sketchMetadata);
+    mockCreateNode.mockReturnValue(node);
+
+    const dropEvent = {
+      preventDefault: jest.fn(),
+      target: { classList: { contains: () => true } },
+      clientX: 100,
+      clientY: 100,
+      dataTransfer: {
+        getData: jest.fn().mockImplementation((format) => {
+          if (format === "application/x-nodetool-drag") {
+            return JSON.stringify({
+              type: "sketch",
+              payload: { id: "sketch-1", name: "Character Sheet" }
+            });
+          }
+          return "";
+        }),
+        types: ["application/x-nodetool-drag"],
+        items: [],
+        files: []
+      }
+    } as unknown as React.DragEvent<HTMLDivElement>;
+
+    await act(async () => {
+      await result.current.onDrop(dropEvent);
+    });
+
+    expect(mockGetMetadata).toHaveBeenCalledWith("nodetool.constant.Sketch");
+    expect(mockCreateNode).toHaveBeenCalledWith(sketchMetadata, { x: 0, y: 0 });
+    expect(node.data.properties.value).toEqual({
+      type: "sketch",
+      id: "sketch-1"
+    });
+    expect(node.data.title).toBe("Character Sheet");
+    expect(mockAddNode).toHaveBeenCalledWith(node);
+    expect(mockAddRecentNode).toHaveBeenCalledWith("nodetool.constant.Sketch");
+  });
+
+  it("creates a constant timeline node when dropping a timeline on the pane", async () => {
+    const { result } = renderHook(() => useDropHandler());
+    const timelineMetadata = {
+      node_type: "nodetool.constant.Timeline",
+      title: "Timeline",
+      properties: [],
+      outputs: []
+    };
+    const node: {
+      id: string;
+      type: string;
+      data: {
+        properties: Record<string, unknown>;
+        dynamic_properties: Record<string, unknown>;
+        workflow_id: string;
+        title?: string;
+      };
+    } = {
+      id: "node-1",
+      type: "nodetool.constant.Timeline",
+      data: { properties: {}, dynamic_properties: {}, workflow_id: "wf" }
+    };
+    mockGetMetadata.mockReturnValue(timelineMetadata);
+    mockCreateNode.mockReturnValue(node);
+
+    const dropEvent = {
+      preventDefault: jest.fn(),
+      target: { classList: { contains: () => true } },
+      clientX: 100,
+      clientY: 100,
+      dataTransfer: {
+        getData: jest.fn().mockImplementation((format) => {
+          if (format === "application/x-nodetool-drag") {
+            return JSON.stringify({
+              type: "timeline",
+              payload: { id: "timeline-1", name: "Launch Cutdown" }
+            });
+          }
+          return "";
+        }),
+        types: ["application/x-nodetool-drag"],
+        items: [],
+        files: []
+      }
+    } as unknown as React.DragEvent<HTMLDivElement>;
+
+    await act(async () => {
+      await result.current.onDrop(dropEvent);
+    });
+
+    expect(mockGetMetadata).toHaveBeenCalledWith("nodetool.constant.Timeline");
+    expect(mockCreateNode).toHaveBeenCalledWith(timelineMetadata, { x: 0, y: 0 });
+    expect(node.data.properties.value).toEqual({
+      type: "timeline",
+      id: "timeline-1"
+    });
+    expect(node.data.title).toBe("Launch Cutdown");
+    expect(mockAddNode).toHaveBeenCalledWith(node);
+    expect(mockAddRecentNode).toHaveBeenCalledWith("nodetool.constant.Timeline");
   });
 
   it("handles multiple assets drop correctly", async () => {

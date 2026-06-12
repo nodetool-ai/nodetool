@@ -75,6 +75,50 @@ describe("serialization", () => {
         JSON.stringify(["id1", "id2", "id3"])
       );
     });
+
+    it("should serialize sketch data with legacy key", () => {
+      const mockDataTransfer = {
+        setData: jest.fn()
+      } as unknown as DataTransfer;
+
+      const data: DragData<"sketch"> = {
+        type: "sketch",
+        payload: { id: "sketch-1", name: "Storyboard" }
+      };
+
+      serializeDragData(data, mockDataTransfer);
+
+      expect(mockDataTransfer.setData).toHaveBeenCalledWith(
+        DRAG_DATA_MIME,
+        expect.any(String)
+      );
+      expect(mockDataTransfer.setData).toHaveBeenCalledWith(
+        "sketch",
+        JSON.stringify({ id: "sketch-1", name: "Storyboard" })
+      );
+    });
+
+    it("should serialize timeline data with legacy key", () => {
+      const mockDataTransfer = {
+        setData: jest.fn()
+      } as unknown as DataTransfer;
+
+      const data: DragData<"timeline"> = {
+        type: "timeline",
+        payload: { id: "timeline-1", name: "Cutdown" }
+      };
+
+      serializeDragData(data, mockDataTransfer);
+
+      expect(mockDataTransfer.setData).toHaveBeenCalledWith(
+        DRAG_DATA_MIME,
+        expect.any(String)
+      );
+      expect(mockDataTransfer.setData).toHaveBeenCalledWith(
+        "timeline",
+        JSON.stringify({ id: "timeline-1", name: "Cutdown" })
+      );
+    });
   });
 
   describe("deserializeDragData", () => {
@@ -155,6 +199,42 @@ describe("serialization", () => {
       expect(result?.type).toBe("assets-multiple");
       expect(result?.payload).toEqual(["id1", "id2"]);
       expect(result?.metadata?.count).toBe(2);
+    });
+
+    it("should fall back to legacy sketch format", () => {
+      const mockDataTransfer = {
+        getData: jest.fn((key: string) => {
+          if (key === "sketch") {
+            return JSON.stringify({ id: "sketch-1", name: "Storyboard" });
+          }
+          return "";
+        }),
+        items: [],
+        files: { length: 0 }
+      } as unknown as DataTransfer;
+
+      const result = deserializeDragData(mockDataTransfer);
+
+      expect(result?.type).toBe("sketch");
+      expect(result?.payload).toEqual({ id: "sketch-1", name: "Storyboard" });
+    });
+
+    it("should fall back to legacy timeline format", () => {
+      const mockDataTransfer = {
+        getData: jest.fn((key: string) => {
+          if (key === "timeline") {
+            return JSON.stringify({ id: "timeline-1", name: "Cutdown" });
+          }
+          return "";
+        }),
+        items: [],
+        files: { length: 0 }
+      } as unknown as DataTransfer;
+
+      const result = deserializeDragData(mockDataTransfer);
+
+      expect(result?.type).toBe("timeline");
+      expect(result?.payload).toEqual({ id: "timeline-1", name: "Cutdown" });
     });
 
     it("should return null for invalid JSON", () => {

@@ -274,12 +274,17 @@ export class ConstantSketchNode extends BaseNode {
   static readonly nodeType = "nodetool.constant.Sketch";
   static readonly title = "Sketch";
   static readonly description =
-    "References a sketch document in the workflow.\n    sketch, drawing, canvas, paint, image editor\n\n    Use cases:\n    - Pass a sketch between nodes for image generation or editing\n    - Open and edit the referenced sketch in the sketch editor\n    - Provide a fixed sketch input for downstream nodes";
+    "Layered sketch document for drawing, masking, and image composition.\n    sketch, drawing, canvas, paint, image editor\n\n    Use cases:\n    - Pass a sketch document between nodes\n    - Edit the sketch directly from the workflow canvas\n    - Expose flattened image, mask, and layer outputs for downstream nodes";
   static readonly metadataOutputTypes = {
-    output: "sketch"
+    output: "sketch",
+    image: "image",
+    mask: "image",
+    layers: "list[image]"
   };
+  static readonly supportsDynamicInputs = true;
+  static readonly supportsDynamicOutputs = true;
   static readonly inlineFields = ["value"];
-  static readonly inputFields = [];
+  static readonly inputFields = ["image", "mask"];
 
   @prop({
     type: "sketch",
@@ -292,8 +297,63 @@ export class ConstantSketchNode extends BaseNode {
   })
   declare value: SketchRef;
 
+  @prop({
+    type: "str",
+    default: "",
+    title: "Sketch data",
+    description: "Serialized editor document (managed by the UI)."
+  })
+  declare sketch_data: unknown;
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "Flattened composite (filled when you edit in the UI)."
+  })
+  declare image: unknown;
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Mask",
+    description: "Mask output when configured in the editor."
+  })
+  declare mask: unknown;
+
+  @prop({
+    type: "list",
+    default: [],
+    title: "Layers",
+    description: "List of exposed layer image references."
+  })
+  declare layers: unknown;
+
   async process(): Promise<Record<string, unknown>> {
-    return { output: this.value ?? {} };
+    const result: Record<string, unknown> = {
+      output: this.value ?? {},
+      image: this.image,
+      mask: this.mask,
+      layers: Array.isArray(this.layers) ? this.layers : []
+    };
+    for (const [key, value] of this.dynamicProps) {
+      if (key.startsWith("layer_out_")) {
+        result[key] = value;
+      }
+    }
+    return result;
   }
 }
 

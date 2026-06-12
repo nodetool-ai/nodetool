@@ -16,6 +16,8 @@ import {
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import { shallow } from "zustand/shallow";
 import { instantiatePaletteNode } from "../../utils/instantiatePaletteNode";
+import useMetadataStore from "../../stores/MetadataStore";
+import type { SketchDragPayload, TimelineDragPayload } from "../../lib/dragdrop";
 
 /** Horizontal spacing between nodes when dropping multiple assets */
 const MULTI_NODE_HORIZONTAL_SPACING = 250;
@@ -23,6 +25,8 @@ const MULTI_NODE_HORIZONTAL_SPACING = 250;
 const MULTI_NODE_VERTICAL_SPACING = 250;
 /** Number of nodes per row when laying out multiple dropped assets */
 const NODES_PER_ROW = 2;
+const CONSTANT_SKETCH_NODE_TYPE = "nodetool.constant.Sketch";
+const CONSTANT_TIMELINE_NODE_TYPE = "nodetool.constant.Timeline";
 
 /**
  * Detects the file type based on MIME type.
@@ -128,6 +132,7 @@ export const useDropHandler = (): UseDropHandlerResult => {
   );
   const addNodeFromAsset = useAddNodeFromAsset();
   const addRecentNode = useRecentNodesStore((state) => state.addRecentNode);
+  const getMetadata = useMetadataStore((state) => state.getMetadata);
 
   const onDrop = useCallback(
     async (event: React.DragEvent<HTMLDivElement>) => {
@@ -159,8 +164,52 @@ export const useDropHandler = (): UseDropHandlerResult => {
         return;
       }
 
-      // Handle asset drops on pane
+      // Handle asset/sketch/timeline drops on pane
       if (targetIsPane && dragData) {
+        if (dragData.type === "sketch") {
+          const sketch = dragData.payload as SketchDragPayload;
+          const metadata = getMetadata(CONSTANT_SKETCH_NODE_TYPE);
+          if (!metadata) {
+            addNotification({
+              type: "error",
+              content: "Could not create sketch node: metadata is missing.",
+              alert: true
+            });
+            return;
+          }
+          const newNode = createNode(metadata, position);
+          newNode.data.properties.value = {
+            type: "sketch",
+            id: sketch.id
+          };
+          newNode.data.title = sketch.name || "Untitled sketch";
+          addNode(newNode);
+          addRecentNode(CONSTANT_SKETCH_NODE_TYPE);
+          return;
+        }
+
+        if (dragData.type === "timeline") {
+          const timeline = dragData.payload as TimelineDragPayload;
+          const metadata = getMetadata(CONSTANT_TIMELINE_NODE_TYPE);
+          if (!metadata) {
+            addNotification({
+              type: "error",
+              content: "Could not create timeline node: metadata is missing.",
+              alert: true
+            });
+            return;
+          }
+          const newNode = createNode(metadata, position);
+          newNode.data.properties.value = {
+            type: "timeline",
+            id: timeline.id
+          };
+          newNode.data.title = timeline.name || "Untitled video";
+          addNode(newNode);
+          addRecentNode(CONSTANT_TIMELINE_NODE_TYPE);
+          return;
+        }
+
         if (dragData.type === "assets-multiple") {
           const selectedAssetIds = dragData.payload as string[];
           // If multiple assets are selected, create nodes for all of them
@@ -299,7 +348,8 @@ export const useDropHandler = (): UseDropHandlerResult => {
       handleJsonFile,
       handleCsvFile,
       handleGenericFile,
-      addNotification
+      addNotification,
+      getMetadata
     ]
   );
 
