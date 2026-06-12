@@ -134,14 +134,14 @@ Stores live in `web/src/stores/` (Zustand 4.5.7) and `electron/src/stores/` (Zus
 
 The frontend uses **MUI v7.2.0** with Emotion. We enforce a **primitives-first** policy: all UI in `web/src/` (and Electron renderer) must use the primitives from `web/src/components/ui_primitives/`. Raw MUI imports are only allowed inside `ui_primitives/` and `editor_ui/`.
 
-See **[UI Primitives Strategy](../web/src/components/ui_primitives/STRATEGY.md)** for the full decision tree.
+See **[UI Primitives Strategy](../web/src/components/ui_primitives/STRATEGY.md)** for the full decision tree and **[Design System](DESIGN.md)** for the complete token reference (spacing, typography, border radius, motion, z-index).
 
 ### Rules
 
 - **Never import raw MUI components** (`Typography`, `Button`, `IconButton`, `Tooltip`, `CircularProgress`, `Chip`, `Dialog`, `Alert`, `Divider`, `Paper`, `Skeleton`, `Tabs`, `Drawer`, `Breadcrumbs`, `Select`, `Switch`, `TextField`, ...) in component files outside `ui_primitives/` and `editor_ui/`.
-- **Opportunistic migration**: when touching any component file, migrate raw MUI usage to primitives in the same PR.
+- **Opportunistic migration**: when touching any component file, migrate raw MUI usage to primitives and fix design token violations in the same PR.
 - **No hardcoded colors.** Use `theme.palette.*` and CSS variables. No hex literals, no `rgb()` literals.
-- **No hardcoded spacing.** Use the spacing constants (`SPACING`, `GAP`, `PADDING`) and `theme.spacing()`. No pixel literals for layout dimensions.
+- **No hardcoded spacing.** Use `SPACING.*` / `GAP.*` / `PADDING.*` from `ui_primitives`. No pixel literals for layout dimensions. Off-grid values (`5px`, `10px`, `13px`, `20px`) are forbidden — snap to the 4px grid (`SPACING.xs`=4, `SPACING.md`=8, `SPACING.lg`=12, `SPACING.xl`=16…).
 - **No inline `display: "flex"`** — use the `FlexRow` / `FlexColumn` primitives. `Box` is allowed only when significant `sx` overrides are needed anyway.
 - **`sx` for one-off, `styled()` for reusable.** `styled()` is allowed only inside `ui_primitives/` for defining new primitives.
 - **No `!important`** in any styles. If a style cascade is fighting you, fix the cascade.
@@ -149,6 +149,17 @@ See **[UI Primitives Strategy](../web/src/components/ui_primitives/STRATEGY.md)*
 - **Dark mode parity**: every new primitive must render correctly in both light and dark themes. Verify in PR screenshots.
 - **No new `*.module.css` or `*.scss`** files. Style with Emotion via `sx` or `styled()`.
 - **Iconography**: prefer the existing icon set (`@mui/icons-material` re-exported through a primitive). Don't import raw SVG into components.
+
+### Design Token Quick Reference (full details: [DESIGN.md](DESIGN.md))
+
+| Category | Token constant | Forbidden pattern |
+|---|---|---|
+| Spacing | `SPACING.xs/sm/md/lg/xl/xxl/xxxl` | `5px`, `10px`, `13px`, `20px`, `0.75` theme units |
+| Typography size | `var(--fontSizeSmall)` / `<Label>` | Any raw px/rem font size |
+| Typography weight | `400`, `500`, `600` | `700`, `"bold"`, `300` |
+| Border radius | `BORDER_RADIUS.sm/lg/pill/circle` | `4`, `10`, `18`, raw `"var(--rounded-*)"` |
+| Transitions | `MOTION.all/border/background/…` | `"all 200ms ease"`, any raw timing string |
+| Z-index | `Z_INDEX.dropdown/modal/tooltip/…` | `9999`, `1000`, arbitrary integers |
 
 ### target
 
