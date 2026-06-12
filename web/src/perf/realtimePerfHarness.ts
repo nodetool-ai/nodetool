@@ -21,6 +21,7 @@ import {
   runBrowserGraphJobInWorker
 } from "../lib/workflow/browserWorkerClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
+import { buildMegaSynthPatch } from "./megaSynthPatch";
 
 const SYNTH_SAMPLE_RATE = 24000;
 const SYNTH_CHUNK_FRAMES = 512;
@@ -40,8 +41,10 @@ export interface PerfRunOptions {
    *    high-pass → ONE output. ~9 nodes/voice, deep chains, fan-outs and
    *    several clock domains — stresses kernel scheduling and the
    *    zip-with-hold alignment paths.
+   *  - "mega": the Mega Synth demo ensemble (see megaSynthPatch.ts) —
+   *    `voices` = detuned ensemble layers; 1 layer ≈ 50 nodes, 24 ≈ 1,100.
    */
-  patch?: "voices" | "complex";
+  patch?: "voices" | "complex" | "mega";
   /**
    * Real playback: route the AudioOutput stream(s) into an actual
    * AudioContext + chunk-player worklet (live config, production defaults)
@@ -65,7 +68,7 @@ export interface PlaybackStatsSample {
 
 export interface PerfRunSummary {
   voices: number;
-  patch: "voices" | "complex";
+  patch: "voices" | "complex" | "mega";
   nodeCount: number;
   edgeCount: number;
   /** Number of AudioOutput streams (expected-rate basis). */
@@ -375,7 +378,11 @@ export async function startPerfRun(
   const durationMs = Math.max(1000, Math.floor(options.durationMs ?? 10_000));
   const patch = options.patch ?? "voices";
   const { nodes, edges } =
-    patch === "complex" ? buildComplexPatch(voices) : buildPatch(voices);
+    patch === "mega"
+      ? buildMegaSynthPatch(voices)
+      : patch === "complex"
+        ? buildComplexPatch(voices)
+        : buildPatch(voices);
   const outputStreams = nodes.filter(
     (n) => n.type === "nodetool.audio.realtime.AudioOutput"
   ).length;
@@ -395,10 +402,9 @@ export async function startPerfRun(
   let playbackNode: AudioWorkletNode | null = null;
   const runStartRef = { t: 0 };
   if (options.playback) {
-    playbackCtx = new AudioContext({
-      sampleRate: SYNTH_SAMPLE_RATE,
-      latencyHint: "interactive"
-    });
+    // System-native rate, matching the production hook — the worklet
+    // resamples chunk-rate → context-rate.
+    playbackCtx = new AudioContext({ latencyHint: "interactive" });
     const { getChunkPlayerWorkletUrl } = await import(
       "../lib/audio/chunkPlayerWorkletUrl"
     );
@@ -602,7 +608,12 @@ if (params.get("autorun")) {
   void window.__realtimePerf.start({
     voices: Number(params.get("voices") ?? 8),
     durationMs: Number(params.get("durationMs") ?? 10_000),
-    patch: params.get("patch") === "complex" ? "complex" : "voices",
+    patch:
+      params.get("patch") === "mega"
+        ? "mega"
+        : params.get("patch") === "complex"
+          ? "complex"
+          : "voices",
     playback: params.get("playback") === "1"
   });
 }

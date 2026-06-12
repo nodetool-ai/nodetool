@@ -14,8 +14,10 @@
  *   the max lead — a live patch monitors "now", stale audio is worse than a
  *   dropped instant.
  * - Linear-interpolation resampling from the chunk sample rate to the
- *   context rate (the context is created at the chunk rate when the browser
- *   allows it, making this a pass-through).
+ *   context rate. The context runs at the system's native rate (forcing the
+ *   chunk rate would make the browser resample the whole context output and
+ *   misbehaves on some devices), so this resampler is the normal path —
+ *   e.g. 24 kHz chunks into a 48 kHz context.
  *
  * Port protocol (main→worklet):
  *   { type: "config", sampleRate, channels, live, primeSeconds, maxLeadSeconds }
@@ -134,6 +136,10 @@ class NodetoolChunkPlayer extends AudioWorkletProcessor {
         }
         this.segOffset++;
         this.buffered--;
+        // framesOut counts SOURCE frames consumed (same unit as framesIn),
+        // so producer/consumer rates stay comparable whatever the context
+        // rate is.
+        this.framesOut++;
         return true;
       }
       this.segments.shift();
@@ -185,7 +191,6 @@ class NodetoolChunkPlayer extends AudioWorkletProcessor {
           // Underrun: go silent for the rest of the block and re-prime.
           this.rolling = false;
           this.underruns++;
-          this.framesOut += i;
           return true;
         }
         this.pos -= 1;
@@ -197,7 +202,6 @@ class NodetoolChunkPlayer extends AudioWorkletProcessor {
           this.prevFrame[src] + (this.currFrame[src] - this.prevFrame[src]) * t;
       }
     }
-    this.framesOut += frames;
     return true;
   }
 }

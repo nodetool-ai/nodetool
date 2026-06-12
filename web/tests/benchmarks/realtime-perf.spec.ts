@@ -33,7 +33,12 @@ const VOICES = Number(process.env.PERF_VOICES ?? 8);
 const DURATION_MS = Number(process.env.PERF_DURATION_MS ?? 60_000);
 /** "voices" = N independent chains; "complex" = full modular patch
  * (clock, S&H pitch CV, FM/filter LFOs, ADSR/VCA, mixer tree → 1 output). */
-const PATCH = process.env.PERF_PATCH === "complex" ? "complex" : "voices";
+const PATCH =
+  process.env.PERF_PATCH === "mega"
+    ? "mega"
+    : process.env.PERF_PATCH === "complex"
+      ? "complex"
+      : "voices";
 /** PERF_PLAYBACK=1: route the output into a real AudioContext + worklet and
  * report buffer health. Runs HEADED — clock-skew diagnosis needs the real
  * audio-hardware clock; headless fake audio is paced by the system clock. */
@@ -147,7 +152,7 @@ test.describe("Realtime workflow performance", () => {
       {
         voices: VOICES,
         durationMs: DURATION_MS,
-        patch: PATCH as "voices" | "complex",
+        patch: PATCH as "voices" | "complex" | "mega",
         playback: PLAYBACK
       }
     );

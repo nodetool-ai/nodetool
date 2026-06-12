@@ -168,12 +168,14 @@ export const useRealtimeAudioPlayback = ({
     type WebkitAudioWindow = Window & { webkitAudioContext?: typeof AudioContext };
     const Ctx: typeof AudioContext =
       window.AudioContext || (window as WebkitAudioWindow).webkitAudioContext!;
-    // Ask for the chunk sample rate so the worklet's resampler is a
-    // pass-through; browsers that don't support the option get their default
-    // rate and the worklet interpolates.
+    // Run the context at the system's native sample rate. Forcing the chunk
+    // rate (24 kHz) makes the browser resample the whole context output to
+    // the hardware rate downstream — extra latency, and flaky on devices
+    // that dislike non-native rates (Bluetooth, macOS aggregate devices).
+    // The chunk-player worklet resamples chunk-rate → context-rate itself.
     let ctx: AudioContext;
     try {
-      ctx = new Ctx({ sampleRate, latencyHint: "interactive" });
+      ctx = new Ctx({ latencyHint: "interactive" });
     } catch {
       ctx = new Ctx();
     }
@@ -286,7 +288,10 @@ export const useRealtimeAudioPlayback = ({
         restartTimeoutRef.current = null;
       }
     };
-  }, [sampleRate, channels]);
+    // channels only: the context runs at the system rate regardless of the
+    // chunk rate, so a sampleRate change just reconfigures the worklet (next
+    // effect) instead of rebuilding the AudioContext.
+  }, [channels]);
 
   // Keep the worklet's stream parameters current.
   useEffect(() => {
