@@ -324,7 +324,7 @@ import { BORDER_RADIUS } from "../ui_primitives";
 
 borderRadius: BORDER_RADIUS.sm     // "var(--rounded-sm)"
 borderRadius: BORDER_RADIUS.lg     // "var(--rounded-lg)"
-borderRadius: BORDER_RADIUS.pill   // "999px" — tags, chips, compact buttons
+borderRadius: BORDER_RADIUS.pill   // "var(--rounded-pill)" — tags, chips, compact buttons
 borderRadius: BORDER_RADIUS.circle // "var(--rounded-circle)"
 ```
 

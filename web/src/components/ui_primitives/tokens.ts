@@ -176,7 +176,7 @@ export const BORDER_RADIUS = {
   xxl: "var(--rounded-xxl)",
   circle: "var(--rounded-circle)",
   /** Full pill shape — for tags, chips, and compact buttons */
-  pill: "999px",
+  pill: "var(--rounded-pill)",
 } as const;
 
 /**

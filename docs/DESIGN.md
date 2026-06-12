@@ -309,7 +309,7 @@ import { BORDER_RADIUS } from "../ui_primitives";
 | `BORDER_RADIUS.xl` | `var(--rounded-xl)` | 12px | Cards, modals |
 | `BORDER_RADIUS.xxl` | `var(--rounded-xxl)` | 16px | Large surfaces |
 | `BORDER_RADIUS.circle` | `var(--rounded-circle)` | 50% | Avatars, circular icons |
-| `BORDER_RADIUS.pill` | *(literal `999px`)* | full pill | Tags, chips, compact buttons |
+| `BORDER_RADIUS.pill` | `var(--rounded-pill)` | 9999px | Tags, chips, compact buttons |
 
 ### Semantic Aliases
 
