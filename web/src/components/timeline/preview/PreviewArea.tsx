@@ -194,6 +194,11 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       const graph = graphRef.current;
       const clock = clockRef.current;
 
+      // Kill any running clock now: during the async work below (context
+      // resume, asset fetches) a still-ticking clock would keep overwriting
+      // currentTimeMs from its old start position, stomping a fresh seek.
+      clock.stop();
+
       // Read fresh to avoid stale closure when the user scrubs before pressing play.
       let startMs = useTimelinePlaybackStore.getState().currentTimeMs;
       // Pressing Play while parked at the end restarts from the top.
