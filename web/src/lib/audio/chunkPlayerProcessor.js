@@ -17,10 +17,17 @@
  *   context rate (the context is created at the chunk rate when the browser
  *   allows it, making this a pass-through).
  *
- * Port protocol (all main→worklet):
+ * Port protocol (main→worklet):
  *   { type: "config", sampleRate, channels, live, primeSeconds, maxLeadSeconds }
  *   { type: "chunk", samples: Float32Array }   interleaved samples
  *   { type: "reset" }                          drop all buffered audio
+ *
+ * Worklet→main (once per rendered second):
+ *   { type: "stats", buffered, underruns, droppedFrames, framesOut,
+ *     framesIn, srcRate }
+ * Buffer-health telemetry: `buffered` trending down ⇒ the producer clock is
+ * slow relative to the audio clock (ends in underruns); trending up ⇒ fast
+ * (ends in live-mode stale drops).
  */
 
 /* global AudioWorkletProcessor, registerProcessor, sampleRate */
@@ -43,6 +50,12 @@ class NodetoolChunkPlayer extends AudioWorkletProcessor {
 
     /** True while primed and emitting audio. */
     this.rolling = false;
+    /** Telemetry counters (reported via "stats" messages). */
+    this.underruns = 0;
+    this.droppedFrames = 0;
+    this.framesOut = 0;
+    this.framesIn = 0;
+    this._statFrames = 0;
     /** Fractional source-frame position between prevFrame (0) and currFrame (1). */
     this.pos = 1;
     this.prevFrame = null;
@@ -91,6 +104,7 @@ class NodetoolChunkPlayer extends AudioWorkletProcessor {
       if (frames <= 0) return;
       this.segments.push(d.samples);
       this.buffered += frames;
+      this.framesIn += frames;
       // Live monitoring: a backlog beyond the max lead is stale — drop the
       // oldest whole segments down to the prime level (jump to "now").
       if (this.buffered > this.maxFrames) {
@@ -102,6 +116,7 @@ class NodetoolChunkPlayer extends AudioWorkletProcessor {
           this.segments.shift();
           this.segOffset = 0;
           this.buffered -= remaining;
+          this.droppedFrames += remaining;
         }
       }
     }
@@ -127,10 +142,26 @@ class NodetoolChunkPlayer extends AudioWorkletProcessor {
     return false;
   }
 
+  emitStatsMaybe(frames) {
+    this._statFrames += frames;
+    if (this._statFrames < sampleRate) return;
+    this._statFrames -= sampleRate;
+    this.port.postMessage({
+      type: "stats",
+      buffered: this.buffered,
+      underruns: this.underruns,
+      droppedFrames: this.droppedFrames,
+      framesOut: this.framesOut,
+      framesIn: this.framesIn,
+      srcRate: this.srcRate
+    });
+  }
+
   process(_inputs, outputs) {
     const out = outputs[0];
     if (!out || out.length === 0) return true;
     const frames = out[0].length;
+    this.emitStatsMaybe(frames);
 
     if (!this.rolling) {
       if (this.buffered >= this.primeFrames) {
@@ -153,6 +184,8 @@ class NodetoolChunkPlayer extends AudioWorkletProcessor {
         if (!this.pullFrame(this.currFrame)) {
           // Underrun: go silent for the rest of the block and re-prime.
           this.rolling = false;
+          this.underruns++;
+          this.framesOut += i;
           return true;
         }
         this.pos -= 1;
@@ -164,6 +197,7 @@ class NodetoolChunkPlayer extends AudioWorkletProcessor {
           this.prevFrame[src] + (this.currFrame[src] - this.prevFrame[src]) * t;
       }
     }
+    this.framesOut += frames;
     return true;
   }
 }

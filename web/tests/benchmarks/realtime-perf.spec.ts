@@ -34,6 +34,10 @@ const DURATION_MS = Number(process.env.PERF_DURATION_MS ?? 60_000);
 /** "voices" = N independent chains; "complex" = full modular patch
  * (clock, S&H pitch CV, FM/filter LFOs, ADSR/VCA, mixer tree → 1 output). */
 const PATCH = process.env.PERF_PATCH === "complex" ? "complex" : "voices";
+/** PERF_PLAYBACK=1: route the output into a real AudioContext + worklet and
+ * report buffer health. Runs HEADED — clock-skew diagnosis needs the real
+ * audio-hardware clock; headless fake audio is paced by the system clock. */
+const PLAYBACK = process.env.PERF_PLAYBACK === "1";
 
 /** Worker timer ticks arriving this late are almost certainly GC pauses. */
 const GC_PAUSE_THRESHOLD_MS = 20;
@@ -104,7 +108,13 @@ const measureAgentMemory = (page: Page): Promise<AgentMemory | null> =>
 // these options force a dedicated browser worker.
 test.use({
   channel: "chromium",
-  launchOptions: { args: ["--enable-precise-memory-info"] }
+  ...(PLAYBACK ? { headless: false } : {}),
+  launchOptions: {
+    args: [
+      "--enable-precise-memory-info",
+      "--autoplay-policy=no-user-gesture-required"
+    ]
+  }
 });
 
 test.describe("Realtime workflow performance", () => {
@@ -132,9 +142,14 @@ test.describe("Realtime workflow performance", () => {
     });
 
     const runPromise = page.evaluate(
-      ({ voices, durationMs, patch }) =>
-        window.__realtimePerf.start({ voices, durationMs, patch }),
-      { voices: VOICES, durationMs: DURATION_MS, patch: PATCH as "voices" | "complex" }
+      ({ voices, durationMs, patch, playback }) =>
+        window.__realtimePerf.start({ voices, durationMs, patch, playback }),
+      {
+        voices: VOICES,
+        durationMs: DURATION_MS,
+        patch: PATCH as "voices" | "complex",
+        playback: PLAYBACK
+      }
     );
 
     const worker = await workerPromise;
@@ -235,6 +250,38 @@ test.describe("Realtime workflow performance", () => {
           )
         }
       },
+      playback: summary.playback
+        ? (() => {
+            const s = summary.playback.stats;
+            const first = s[0];
+            const last = s[s.length - 1];
+            const seconds = first && last ? (last.t - first.t) / 1000 : 0;
+            // Buffer drift in source frames per second over the run. With
+            // matched clocks this is ~0; a steady slope is producer/consumer
+            // clock skew (negative ⇒ heading for underruns, positive ⇒
+            // heading for live-mode stale drops).
+            const slope =
+              first && last && seconds > 0
+                ? (last.buffered - first.buffered) / seconds
+                : 0;
+            return {
+              contextSampleRate: summary.playback.contextSampleRate,
+              underruns: summary.playback.underruns,
+              droppedFrames: summary.playback.droppedFrames,
+              bufferedFrames: {
+                first: first?.buffered ?? 0,
+                last: last?.buffered ?? 0,
+                min: Math.min(...s.map((x) => x.buffered)),
+                max: Math.max(...s.map((x) => x.buffered))
+              },
+              bufferSlopeFramesPerSec: Number(slope.toFixed(2)),
+              impliedClockSkewPpm: Number(((slope / 24000) * 1e6).toFixed(0)),
+              timeline: s
+                .filter((_, i) => i % 5 === 0)
+                .map((x) => `${Math.round(x.t / 1000)}s:${x.buffered}f/${x.underruns}u/${x.droppedFrames}d`)
+            };
+          })()
+        : null,
       retainedMemory:
         memoryStart && memoryEnd
           ? {

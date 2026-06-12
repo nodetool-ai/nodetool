@@ -8,7 +8,7 @@
  * transport buttons and a visualizer on the faceplate.
  */
 
-import React, { memo, useMemo } from "react";
+import React, { memo, useCallback, useMemo, useRef } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -136,6 +136,18 @@ const AudioOutBodyInner: React.FC<AudioOutBodyProps> = ({
     return isAudioChunk(streamBuffer) ? [streamBuffer] : [];
   }, [streamBuffer]);
 
+  // Hand the buffer to the player as getter+version, never as a prop: the
+  // full rolling window (1024 chunks × sample payloads) as a React prop gets
+  // deep-serialized by react-dom's dev performance instrumentation on every
+  // commit — the GC storm behind "dropouts after ~30s".
+  const chunksRef = useRef(chunks);
+  const versionRef = useRef(0);
+  if (chunksRef.current !== chunks) {
+    chunksRef.current = chunks;
+    versionRef.current++;
+  }
+  const getChunks = useCallback(() => chunksRef.current, []);
+
   const firstMeta = chunks[0]?.content_metadata;
 
   return (
@@ -146,7 +158,8 @@ const AudioOutBodyInner: React.FC<AudioOutBodyProps> = ({
       {chunks.length > 0 ? (
         <div className="player nodrag">
           <RealtimeAudioOutput
-            chunks={chunks}
+            getChunks={getChunks}
+            chunksVersion={versionRef.current}
             sampleRate={(firstMeta?.sample_rate as number | undefined) ?? 24000}
             channels={(firstMeta?.channels as number | undefined) ?? 1}
             nodeId={id}

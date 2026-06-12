@@ -9,7 +9,18 @@ import { useSettingsStore } from "../../stores/SettingsStore";
 import { subscribeRealtimeAudioChunks } from "../../lib/audio/realtimeAudioChunkBus";
 
 interface UseRealtimeAudioPlaybackOptions {
-  chunks: Chunk[];
+  /**
+   * Accessor for the current chunk buffer, paired with `chunksVersion` to
+   * signal updates. The array is deliberately NOT taken as a plain value:
+   * anything passed as a React prop gets deep-serialized by react-dom's
+   * dev-build performance instrumentation on every commit — for a full
+   * 1024-chunk rolling buffer that is megabytes per commit, enough GC churn
+   * to stall the main thread and starve the playback worklet (the
+   * "dropouts after ~30s" failure mode; onset = time to fill the window).
+   */
+  getChunks: () => Chunk[];
+  /** Increment whenever the buffer content changes. */
+  chunksVersion: number;
   sampleRate?: number;
   channels?: number;
   nodeId?: string; // Optional ID for this audio source
@@ -29,6 +40,34 @@ const DEFAULT_AUDIO_BUFFER_MS = 100;
 const MIN_AUDIO_BUFFER_MS = 20;
 const MAX_AUDIO_BUFFER_MS = 1000;
 
+interface RealtimeAudioStats {
+  buffered: number;
+  underruns: number;
+  droppedFrames: number;
+  framesIn: number;
+  framesOut: number;
+  updatedAt: number;
+  /** Chunks delivered via the realtime bus (fast path). */
+  busChunks?: number;
+  /** Chunks delivered via the store-driven scheduling effect. */
+  effectChunks?: number;
+  /** Largest gap between consecutive worklet hand-offs (ms). */
+  maxDeliveryGapMs?: number;
+}
+
+/**
+ * Per-instance worklet buffer stats, exposed for field debugging:
+ * `window.__nodetoolRealtimeAudio` in the console shows live buffer level,
+ * underrun and stale-drop counters for every playing realtime output.
+ */
+function getRealtimeAudioDebug(): Record<string, RealtimeAudioStats> {
+  const w = window as Window & {
+    __nodetoolRealtimeAudio?: Record<string, RealtimeAudioStats>;
+  };
+  w.__nodetoolRealtimeAudio ??= {};
+  return w.__nodetoolRealtimeAudio;
+}
+
 interface UseRealtimeAudioPlaybackReturn {
   isPlaying: boolean;
   isQueued: boolean;
@@ -46,7 +85,8 @@ interface UseRealtimeAudioPlaybackReturn {
  * Integrates with global audio queue to prevent overlapping playback.
  */
 export const useRealtimeAudioPlayback = ({
-  chunks,
+  getChunks,
+  chunksVersion,
   sampleRate = 22000,
   channels = 1,
   nodeId,
@@ -70,6 +110,23 @@ export const useRealtimeAudioPlayback = ({
   // flushed — only then may bus-delivered chunks go straight to the worklet
   // (engaging earlier would post new chunks ahead of the unflushed backlog).
   const liveSinkActiveRef = useRef<boolean>(false);
+  const audioStatsRef = useRef<RealtimeAudioStats | null>(null);
+  const deliveryDebugRef = useRef({
+    busChunks: 0,
+    effectChunks: 0,
+    lastDeliveryAt: 0,
+    maxDeliveryGapMs: 0
+  });
+  const noteDelivery = useCallback((via: "bus" | "effect") => {
+    const d = deliveryDebugRef.current;
+    const now = performance.now();
+    if (d.lastDeliveryAt > 0) {
+      d.maxDeliveryGapMs = Math.max(d.maxDeliveryGapMs, now - d.lastDeliveryAt);
+    }
+    d.lastDeliveryAt = now;
+    if (via === "bus") d.busChunks++;
+    else d.effectChunks++;
+  }, []);
   const [internalPlaying, setInternalPlaying] = useState<boolean>(false);
   const [wantsToPlay, setWantsToPlay] = useState<boolean>(true);
   const [visualizerVersion, setVisualizerVersion] = useState<number>(0);
@@ -150,6 +207,47 @@ export const useRealtimeAudioPlayback = ({
           outputChannelCount: [Math.max(1, channels)]
         });
         node.connect(gain);
+        // Buffer-health telemetry (1 Hz from the processor). Underruns and
+        // stale-drops are the two dropout mechanisms; warn when they advance
+        // so a field report pinpoints which side starves/floods the buffer.
+        node.port.onmessage = (event: MessageEvent) => {
+          const d = event.data as {
+            type?: string;
+            buffered?: number;
+            underruns?: number;
+            droppedFrames?: number;
+            framesIn?: number;
+            framesOut?: number;
+          };
+          if (d?.type !== "stats") return;
+          const prev = audioStatsRef.current;
+          audioStatsRef.current = {
+            buffered: d.buffered ?? 0,
+            underruns: d.underruns ?? 0,
+            droppedFrames: d.droppedFrames ?? 0,
+            framesIn: d.framesIn ?? 0,
+            framesOut: d.framesOut ?? 0,
+            updatedAt: Date.now(),
+            busChunks: deliveryDebugRef.current.busChunks,
+            effectChunks: deliveryDebugRef.current.effectChunks,
+            maxDeliveryGapMs: Math.round(
+              deliveryDebugRef.current.maxDeliveryGapMs
+            )
+          };
+          getRealtimeAudioDebug()[instanceIdRef.current] =
+            audioStatsRef.current;
+          if (
+            prev &&
+            ((d.underruns ?? 0) > prev.underruns ||
+              (d.droppedFrames ?? 0) > prev.droppedFrames)
+          ) {
+            console.warn(
+              `[realtime-audio] ${instanceIdRef.current} buffer distress: ` +
+                `buffered=${d.buffered} underruns=${d.underruns} ` +
+                `droppedFrames=${d.droppedFrames} (in=${d.framesIn} out=${d.framesOut})`
+            );
+          }
+        };
         workletNodeRef.current = node;
         setWorkletState("ready");
       } catch {
@@ -356,7 +454,7 @@ export const useRealtimeAudioPlayback = ({
       return;
     }
     const ctx = audioContextRef.current;
-    const pending = chunks.filter(
+    const pending = getChunks().filter(
       (c) =>
         c?.content_type === "audio" &&
         (typeof c.content === "string" ||
@@ -373,6 +471,7 @@ export const useRealtimeAudioPlayback = ({
         scheduledChunksRef.current.add(chunk);
         const samples = decodeChunkSamples(chunk);
         if (samples && samples.length > 0) {
+          noteDelivery("effect");
           workletNode.port.postMessage({ type: "chunk", samples });
         }
       }
@@ -422,7 +521,8 @@ export const useRealtimeAudioPlayback = ({
       }
     }
   }, [
-    chunks,
+    getChunks,
+    chunksVersion,
     internalPlaying,
     isQueuedPlaying,
     live,
@@ -431,7 +531,8 @@ export const useRealtimeAudioPlayback = ({
     maxLeadSeconds,
     decodeChunkSamples,
     chunkDurationSeconds,
-    scheduleChunk
+    scheduleChunk,
+    noteDelivery
   ]);
 
   // React-free live feed: chunks published by the message handler go to the
@@ -456,10 +557,11 @@ export const useRealtimeAudioPlayback = ({
       scheduledChunksRef.current.add(chunk);
       const samples = decodeChunkSamples(chunk);
       if (samples && samples.length > 0) {
+        noteDelivery("bus");
         workletNode.port.postMessage({ type: "chunk", samples });
       }
     });
-  }, [nodeId, decodeChunkSamples]);
+  }, [nodeId, decodeChunkSamples, noteDelivery]);
 
   // Public start: requests playback via queue
   const start = useCallback(() => {

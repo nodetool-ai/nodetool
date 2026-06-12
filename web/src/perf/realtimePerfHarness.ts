@@ -42,6 +42,25 @@ export interface PerfRunOptions {
    *    zip-with-hold alignment paths.
    */
   patch?: "voices" | "complex";
+  /**
+   * Real playback: route the AudioOutput stream(s) into an actual
+   * AudioContext + chunk-player worklet (live config, production defaults)
+   * and collect the worklet's per-second buffer-health stats. This is the
+   * only mode that exercises the audio-hardware clock — producer/consumer
+   * clock skew is invisible without it. Requires an audio output device
+   * (run the Playwright spec headed) and autoplay permission.
+   */
+  playback?: boolean;
+}
+
+export interface PlaybackStatsSample {
+  /** ms since run start (main-thread clock). */
+  t: number;
+  buffered: number;
+  underruns: number;
+  droppedFrames: number;
+  framesIn: number;
+  framesOut: number;
 }
 
 export interface PerfRunSummary {
@@ -74,6 +93,15 @@ export interface PerfRunSummary {
     /** Sawtooth drops between samples (≥1MB) ≈ major GC events. */
     gcEvents: number;
     gcReclaimedMb: number;
+  } | null;
+  /** Worklet buffer-health timeline; null unless options.playback. */
+  playback: {
+    stats: PlaybackStatsSample[];
+    underruns: number;
+    droppedFrames: number;
+    framesIn: number;
+    framesOut: number;
+    contextSampleRate: number;
   } | null;
   runError?: string;
 }
@@ -356,6 +384,60 @@ export async function startPerfRun(
   // we measure the steady-state stream, not startup.
   await getBrowserWorkerReady();
 
+  // Real playback sink: production worklet, production live config.
+  const audioOutIds = new Set(
+    nodes
+      .filter((n) => n.type === "nodetool.audio.realtime.AudioOutput")
+      .map((n) => n.id)
+  );
+  const playbackStats: PlaybackStatsSample[] = [];
+  let playbackCtx: AudioContext | null = null;
+  let playbackNode: AudioWorkletNode | null = null;
+  const runStartRef = { t: 0 };
+  if (options.playback) {
+    playbackCtx = new AudioContext({
+      sampleRate: SYNTH_SAMPLE_RATE,
+      latencyHint: "interactive"
+    });
+    const { getChunkPlayerWorkletUrl } = await import(
+      "../lib/audio/chunkPlayerWorkletUrl"
+    );
+    await playbackCtx.audioWorklet.addModule(getChunkPlayerWorkletUrl());
+    playbackNode = new AudioWorkletNode(playbackCtx, "nodetool-chunk-player", {
+      numberOfInputs: 0,
+      outputChannelCount: [1]
+    });
+    playbackNode.connect(playbackCtx.destination);
+    playbackNode.port.postMessage({
+      type: "config",
+      sampleRate: SYNTH_SAMPLE_RATE,
+      channels: 1,
+      live: true,
+      primeSeconds: 0.04,
+      maxLeadSeconds: 0.1
+    });
+    playbackNode.port.onmessage = (event: MessageEvent) => {
+      const d = event.data as {
+        type?: string;
+        buffered?: number;
+        underruns?: number;
+        droppedFrames?: number;
+        framesIn?: number;
+        framesOut?: number;
+      };
+      if (d?.type !== "stats") return;
+      playbackStats.push({
+        t: Math.round(performance.now() - runStartRef.t),
+        buffered: d.buffered ?? 0,
+        underruns: d.underruns ?? 0,
+        droppedFrames: d.droppedFrames ?? 0,
+        framesIn: d.framesIn ?? 0,
+        framesOut: d.framesOut ?? 0
+      });
+    };
+    await playbackCtx.resume();
+  }
+
   const chunksPerNode: Record<string, number> = {};
   const messageCountsByType: Record<string, number> = {};
   let totalAudioChunks = 0;
@@ -381,6 +463,12 @@ export async function startPerfRun(
         totalAudioChunks++;
         if (m.value.content instanceof Float32Array) {
           totalSamples += m.value.content.length;
+          if (playbackNode && audioOutIds.has(nodeId)) {
+            playbackNode.port.postMessage({
+              type: "chunk",
+              samples: m.value.content
+            });
+          }
         }
       }
     }
@@ -420,6 +508,7 @@ export async function startPerfRun(
 
   const controller = new AbortController();
   const started = performance.now();
+  runStartRef.t = started;
   const runPromise = runBrowserGraphJobInWorker({
     graph: { nodes, edges },
     jobId: `perf-${Date.now()}`,
@@ -436,6 +525,13 @@ export async function startPerfRun(
   clearInterval(lagInterval);
   longTaskObserver?.disconnect();
   unsubscribe();
+  const lastPlayback = playbackStats[playbackStats.length - 1];
+  try {
+    playbackNode?.disconnect();
+    await playbackCtx?.close();
+  } catch {
+    // playback teardown is best-effort
+  }
   const endHeap = heapBytes();
   if (endHeap !== null) heapSamples.push(endHeap);
 
@@ -464,6 +560,17 @@ export async function startPerfRun(
     },
     longTasks: { count: longTaskCount, totalMs: Math.round(longTaskTotalMs) },
     heap: heapStats(heapSamples, elapsedMs),
+    playback:
+      options.playback && playbackCtx
+        ? {
+            stats: playbackStats,
+            underruns: lastPlayback?.underruns ?? 0,
+            droppedFrames: lastPlayback?.droppedFrames ?? 0,
+            framesIn: lastPlayback?.framesIn ?? 0,
+            framesOut: lastPlayback?.framesOut ?? 0,
+            contextSampleRate: playbackCtx.sampleRate
+          }
+        : null,
     // The harness ends every run by aborting the infinite patch — that
     // cancellation is the expected outcome, not a failure.
     runError:
@@ -495,6 +602,7 @@ if (params.get("autorun")) {
   void window.__realtimePerf.start({
     voices: Number(params.get("voices") ?? 8),
     durationMs: Number(params.get("durationMs") ?? 10_000),
-    patch: params.get("patch") === "complex" ? "complex" : "voices"
+    patch: params.get("patch") === "complex" ? "complex" : "voices",
+    playback: params.get("playback") === "1"
   });
 }
