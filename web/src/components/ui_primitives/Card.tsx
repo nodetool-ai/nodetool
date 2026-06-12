@@ -5,9 +5,10 @@
  * Provides consistent card appearance across the application.
  */
 
-import React, { memo } from "react";
+import React, { memo, forwardRef } from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { MOTION } from "./tokens";
 
 export interface CardProps extends BoxProps {
   /** Padding size variant */
@@ -57,7 +58,7 @@ const PADDING_VARIANTS = {
  *   <Typography>Elevated content</Typography>
  * </Card>
  */
-const CardInternal: React.FC<CardProps> = ({
+const CardInternal = forwardRef<HTMLDivElement, CardProps>(({
   padding = "normal",
   elevation = 1,
   variant = "default",
@@ -67,7 +68,7 @@ const CardInternal: React.FC<CardProps> = ({
   children,
   onClick,
   ...props
-}) => {
+}, ref) => {
   const theme = useTheme();
   
   const paddingValue = typeof padding === "number" 
@@ -99,6 +100,7 @@ const CardInternal: React.FC<CardProps> = ({
 
   return (
     <Box
+      ref={ref}
       onClick={clickable ? onClick : undefined}
       sx={{
         padding: theme.spacing(paddingValue),
@@ -107,10 +109,10 @@ const CardInternal: React.FC<CardProps> = ({
         borderRadius: theme.shape.borderRadius,
         boxShadow: getBoxShadow(),
         cursor: clickable ? "pointer" : undefined,
-        transition: hoverable || clickable 
-          ? "transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease" 
+        transition: hoverable || clickable
+          ? `${MOTION.transform}, ${MOTION.shadow}, ${MOTION.background}`
           : undefined,
-        "&:hover": hoverable || clickable 
+        "&:hover": hoverable || clickable
           ? {
               transform: "translateY(-2px)",
               boxShadow: `0 ${elevation + 4}px ${(elevation + 4) * 2}px rgba(0, 0, 0, 0.25)`,
@@ -124,6 +126,7 @@ const CardInternal: React.FC<CardProps> = ({
       {children}
     </Box>
   );
-};
+});
 
 export const Card = memo(CardInternal);
+Card.displayName = "Card";
