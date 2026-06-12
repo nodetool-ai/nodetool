@@ -294,12 +294,18 @@ function parseWithTypeCoercion(schema: ZodType, args: unknown): unknown {
   }
 }
 
+export interface ToolManifestEntry {
+  name: string;
+  description: string;
+  parameters: JsonSchema;
+}
+
 export const FrontendToolRegistry = {
-  register(tool: FrontendToolDefinition) {
+  register(tool: FrontendToolDefinition): () => boolean {
     registry.set(tool.name, tool);
     return () => registry.delete(tool.name);
   },
-  getManifest() {
+  getManifest(): ToolManifestEntry[] {
     return Array.from(registry.values())
       .filter((tool) => !tool.hidden)
       .map(({ name, description, parameters }) => ({
@@ -310,10 +316,10 @@ export const FrontendToolRegistry = {
           : parameters
       }));
   },
-  has(name: string) {
+  has(name: string): boolean {
     return registry.has(name);
   },
-  get(name: string) {
+  get(name: string): FrontendToolDefinition | undefined {
     return registry.get(name);
   },
   async call(
@@ -321,13 +327,12 @@ export const FrontendToolRegistry = {
     args: unknown,
     toolCallId: string,
     ctx: Omit<FrontendToolContext, "abortSignal">
-  ) {
+  ): Promise<unknown> {
     const tool = registry.get(name);
     if (!tool) {throw new Error(`Unknown tool: ${name}`);}
     const controller = new AbortController();
     active.set(toolCallId, { controller });
     try {
-      // Validate args using Zod if parameters is a Zod schema
       const validatedArgs = isZodSchema(tool.parameters)
         ? parseWithTypeCoercion(tool.parameters, args)
         : args;
@@ -342,7 +347,7 @@ export const FrontendToolRegistry = {
       active.delete(toolCallId);
     }
   },
-  abortAll() {
+  abortAll(): void {
     for (const { controller } of active.values()) {controller.abort();}
     active.clear();
   }

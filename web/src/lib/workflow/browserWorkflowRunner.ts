@@ -275,6 +275,18 @@ export async function reportBrowserEligibility(
 const asString = (value: unknown): string | undefined =>
   typeof value === "string" ? value : undefined;
 
+function hasOutputs(
+  value: unknown
+): value is { outputs: Record<string, unknown> } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "outputs" in value &&
+    typeof (value as { outputs?: unknown }).outputs === "object" &&
+    (value as { outputs?: unknown }).outputs !== null
+  );
+}
+
 /**
  * Run a pure-browser sub-graph client-side. Uses the Web Worker in real
  * browsers; falls back to the main thread under jest / when a worker can't
@@ -325,7 +337,7 @@ async function runBrowserGraphJobLocal(
   let nodeError: string | undefined;
 
   const nodeTypes = (graph.nodes ?? [])
-    .map((n) => (n as { type?: string }).type)
+    .map((n) => n.type)
     .filter((t): t is string => typeof t === "string");
   const startedAt = performance.now();
   const elapsed = () => `${Math.round(performance.now() - startedAt)}ms`;
@@ -397,18 +409,8 @@ async function runBrowserGraphJobLocal(
           nodeError = asString(message.error) ?? "Node error";
         }
       } else if (type === "job_update") {
-        const resultField = message.result;
-        if (
-          resultField != null &&
-          typeof resultField === "object" &&
-          "outputs" in resultField &&
-          (resultField as { outputs?: unknown }).outputs != null &&
-          typeof (resultField as { outputs?: unknown }).outputs === "object"
-        ) {
-          Object.assign(
-            outputs,
-            (resultField as { outputs: Record<string, unknown> }).outputs
-          );
+        if (hasOutputs(message.result)) {
+          Object.assign(outputs, message.result.outputs);
         }
       }
     }

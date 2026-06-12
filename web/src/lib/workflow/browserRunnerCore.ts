@@ -64,8 +64,13 @@ export interface BrowserGraphJobResult {
   error?: string;
 }
 
+interface NodeClass {
+  nodeType: string;
+  (...args: unknown[]): unknown;
+}
+
 /** A class is a node executor if it exposes a static `nodeType` string. */
-function isNodeClass(value: unknown): boolean {
+function isNodeClass(value: unknown): value is NodeClass {
   return (
     typeof value === "function" &&
     typeof (value as { nodeType?: unknown }).nodeType === "string"
@@ -251,9 +256,9 @@ export function buildBrowserRunner(mods: LoadedModules): LoadedBrowserRunner {
       WorkflowRunnerModule["createBrowserRegistry"]
     >[0]
   );
-  const candidates = (mods.nodeClasses as Array<{ nodeType?: unknown }>)
-    .map((c) => c.nodeType)
-    .filter((t): t is string => typeof t === "string");
+  const candidates = mods.nodeClasses
+    .filter(isNodeClass)
+    .map((c) => c.nodeType);
   const browserNodeTypes = candidates.filter((t) => registry.has(t));
   const filteredOut = candidates.filter((t) => !registry.has(t));
   console.info(
@@ -276,18 +281,16 @@ export function buildBrowserRunner(mods: LoadedModules): LoadedBrowserRunner {
  */
 export function normalizeGraphForKernel(graph: WorkflowGraph): KernelGraph {
   const nodes = (graph.nodes ?? []).map((raw) => {
-    const node = raw as Record<string, unknown>;
-    if (node.properties === undefined && node.data !== undefined) {
-      const { data, ...rest } = node;
+    if (raw.properties === undefined && raw.data !== undefined) {
+      const { data, ...rest } = raw;
       return { ...rest, properties: data };
     }
-    return node;
+    return raw;
   });
   const edges = (graph.edges ?? []).map((raw) => {
-    const edge = raw as Record<string, unknown>;
-    const rawType = edge.edge_type ?? edge.type;
+    const rawType = raw.edge_type ?? raw.type;
     const edge_type = rawType === "control" ? "control" : "data";
-    const { type: _type, ...rest } = edge;
+    const { type: _type, ...rest } = raw;
     return { ...rest, edge_type };
   });
   return { nodes, edges };

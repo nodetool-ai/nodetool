@@ -126,6 +126,7 @@ function materializeImageRef(
  * cached output (params travel as msgpack). Pays the sync PNG encode, so keep
  * it to one-off run starts, never the streaming display path.
  */
+export function materializeBitmapRefs<T>(value: T): T;
 export function materializeBitmapRefs(value: unknown): unknown {
   if (value === null || value === undefined) return value;
   if (Array.isArray(value)) return value.map(materializeBitmapRefs);
@@ -139,7 +140,7 @@ export function materializeBitmapRefs(value: unknown): unknown {
   }
   if (typeof value === "object" && !ArrayBuffer.isView(value)) {
     const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    for (const [k, v] of Object.entries(value)) {
       out[k] = materializeBitmapRefs(v);
     }
     return out;

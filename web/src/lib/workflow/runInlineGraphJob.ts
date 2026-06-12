@@ -29,16 +29,14 @@ interface InlineGraphJobOptions {
  * metadata title (same precedence as NodeHeader), else the type segment.
  */
 const deriveInlineJobName = (graph: InlineGraph): string => {
-  const nodes = (graph?.nodes ?? []) as Array<{
-    type?: string;
-    data?: { title?: unknown };
-  }>;
+  const nodes = graph?.nodes ?? [];
   if (nodes.length !== 1) {
     return "";
   }
   const node = nodes[0];
+  const data = node.data as { title?: unknown } | undefined;
   const custom =
-    typeof node.data?.title === "string" ? node.data.title.trim() : "";
+    typeof data?.title === "string" ? data.title.trim() : "";
   const metadataTitle = node.type
     ? useMetadataStore.getState().getMetadata(node.type)?.title
     : undefined;
@@ -59,6 +57,18 @@ function mergeOutputsRecord(
   for (const key of Object.keys(from)) {
     into[key] = from[key];
   }
+}
+
+function hasOutputs(
+  value: unknown
+): value is { outputs: Record<string, unknown> } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "outputs" in value &&
+    typeof (value as { outputs?: unknown }).outputs === "object" &&
+    (value as { outputs?: unknown }).outputs !== null
+  );
 }
 
 /** Run an ephemeral workflow graph via the unified WebSocket runner (same path as WorkflowRunner). */
@@ -85,11 +95,8 @@ export async function runInlineGraphJob(
   // Preview-bitmap refs can't cross msgpack to the server. Run-from-here /
   // single-node runs seed cached browser-run outputs into node property
   // overrides (graph) and params — encode those to portable data-URL refs.
-  const portableGraph = materializeBitmapRefs(graph) as InlineGraph;
-  const portableParams = materializeBitmapRefs(params) as Record<
-    string,
-    unknown
-  >;
+  const portableGraph = materializeBitmapRefs(graph);
+  const portableParams = materializeBitmapRefs(params);
 
   const jobId = uuidv4();
 
@@ -153,9 +160,7 @@ export async function runInlineGraphJob(
       const resultPayload = message.result;
 
       if (status === "completed" && nodeId != null) {
-        if (resultPayload != null && typeof resultPayload === "object") {
-          outputs[nodeId] = resultPayload as Record<string, unknown>;
-        } else if (resultPayload != null) {
+        if (resultPayload != null) {
           outputs[nodeId] = resultPayload;
         }
       } else if (status === "error") {
@@ -176,17 +181,8 @@ export async function runInlineGraphJob(
     const status = str(message.status);
     const resultField = message.result;
 
-    if (
-      resultField != null &&
-      typeof resultField === "object" &&
-      "outputs" in resultField &&
-      resultField.outputs != null &&
-      typeof resultField.outputs === "object"
-    ) {
-      mergeOutputsRecord(
-        outputs,
-        resultField.outputs as Record<string, unknown>
-      );
+    if (hasOutputs(resultField)) {
+      mergeOutputsRecord(outputs, resultField.outputs);
     }
 
     if (status === "failed") {
