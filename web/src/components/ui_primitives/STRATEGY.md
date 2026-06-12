@@ -278,7 +278,7 @@ hand-classify. The canonical px grid for raw CSS is `0 / 2 / 4 / 6 / 8 / 12 /
 
 ## Design Tokens
 
-Beyond spacing, use these constants from `tokens.ts` for consistent values across all style files.
+Beyond spacing, use these constants from `tokens.ts` for consistent values across all style files. This section is a summary — the complete token reference (all values, color palettes, editor tokens, migration checklist) lives in **[docs/DESIGN.md](../../../../docs/DESIGN.md)**.
 
 ### MOTION — transition timing
 
@@ -347,6 +347,7 @@ Only use `scrollbarStyles` for the standard scroll appearance. Components with i
 
 ## Related Documents
 
+- **[Design System](../../../../docs/DESIGN.md)** — Complete token reference: typography, spacing, color, border radius, motion, z-index, editor tokens
 - **[Primitives README](./README.md)** — Full API reference with usage examples
 - **[Implementation Guide](./IMPLEMENTATION.md)** — Real-world refactoring examples
 - **[Examples](./EXAMPLES.md)** — Practical code examples for each primitive

@@ -1,3 +1,10 @@
+---
+layout: page
+title: "Design System"
+permalink: /design
+description: "NodeTool design system reference — typography, spacing, color, border radius, motion, z-index, and editor tokens."
+---
+
 # NodeTool Design System
 
 **Navigation**: [Root AGENTS.md](../AGENTS.md) | [CLAUDE.md](../CLAUDE.md) | [UI Primitives Strategy](../web/src/components/ui_primitives/STRATEGY.md)
@@ -304,16 +311,16 @@ import { BORDER_RADIUS } from "../ui_primitives";
 | `BORDER_RADIUS.circle` | `var(--rounded-circle)` | 50% | Avatars, circular icons |
 | `BORDER_RADIUS.pill` | *(literal `999px`)* | full pill | Tags, chips, compact buttons |
 
-### Semantic Aliases (CSS-only)
+### Semantic Aliases
 
-These `--rounded-*` vars are available in plain CSS but have no `BORDER_RADIUS` constant — reference via the table above.
+These have no `BORDER_RADIUS` constant. In TSX, access via `theme.rounded.*`; in plain CSS files, use the `--rounded-*` var.
 
-| CSS variable | Pixels | Use |
-|---|---|---|
-| `--rounded-dialog` | 20px | Dialog / modal outer radius |
-| `--rounded-node` | 8px | Workflow node cards |
-| `--rounded-buttonSmall` | 4px | Small button radius |
-| `--rounded-buttonLarge` | 6px | Default button radius |
+| Theme key | CSS variable | Pixels | Use |
+|---|---|---|---|
+| `theme.rounded.dialog` | `--rounded-dialog` | 20px | Dialog / modal outer radius |
+| `theme.rounded.node` | `--rounded-node` | 8px | Workflow node cards |
+| `theme.rounded.buttonSmall` | `--rounded-buttonSmall` | 4px | Small button radius |
+| `theme.rounded.buttonLarge` | `--rounded-buttonLarge` | 6px | Default button radius |
 
 ### Usage
 
@@ -329,7 +336,7 @@ borderRadius: `${BORDER_RADIUS.sm} ${BORDER_RADIUS.sm} 0 0`
 
 ### Forbidden
 
-Magic numbers: `1`, `3`, `4`, `7`, `10`, `18`, `20` — and raw `"var(--rounded-sm)"` string literals. Use the `BORDER_RADIUS.*` constant. For circles, use `BORDER_RADIUS.circle` not `"50%"`.
+Magic numbers: `1`, `3`, `4`, `7`, `10`, `18`, `20`. Raw `"var(--rounded-*)"` string literals in TSX where a `BORDER_RADIUS` constant or `theme.rounded.*` key exists (plain `.css` files use the vars — that's what they're for). For circles, use `BORDER_RADIUS.circle` not `"50%"`.
 
 ---
 
@@ -498,7 +505,7 @@ When editing any UI file, scan for these violations and fix them in the same PR.
 | `borderRadius: 6` / `"6px"` | `BORDER_RADIUS.md` |
 | `borderRadius: 8` / `"8px"` / `"10px"` | `BORDER_RADIUS.lg` |
 | `borderRadius: 12` / `"12px"` | `BORDER_RADIUS.xl` |
-| `borderRadius: 18` / `"18px"` / `"20px"` | `BORDER_RADIUS.xxl` or `"var(--rounded-dialog)"` |
+| `borderRadius: 18` / `"18px"` / `"20px"` | `BORDER_RADIUS.xxl` or `theme.rounded.dialog` |
 | `borderRadius: "50%"` | `BORDER_RADIUS.circle` |
 | `borderRadius: 999` / `"999px"` | `BORDER_RADIUS.pill` |
 | `"var(--rounded-sm)"` raw string | `BORDER_RADIUS.sm` |

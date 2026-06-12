@@ -157,7 +157,7 @@ See **[UI Primitives Strategy](../web/src/components/ui_primitives/STRATEGY.md)*
 | Spacing | `SPACING.xs/sm/md/lg/xl/xxl/xxxl` | `5px`, `10px`, `13px`, `20px`, `0.75` theme units |
 | Typography size | `var(--fontSizeSmall)` / `<Label>` | Any raw px/rem font size |
 | Typography weight | `400`, `500`, `600` | `700`, `"bold"`, `300` |
-| Border radius | `BORDER_RADIUS.sm/lg/pill/circle` | `4`, `10`, `18`, raw `"var(--rounded-*)"` |
+| Border radius | `BORDER_RADIUS.xs/sm/md/lg/xl/xxl/pill/circle` | `4`, `10`, `18`, raw `"var(--rounded-*)"` |
 | Transitions | `MOTION.all/border/background/…` | `"all 200ms ease"`, any raw timing string |
 | Z-index | `Z_INDEX.dropdown/modal/tooltip/…` | `9999`, `1000`, arbitrary integers |
 

@@ -17,7 +17,6 @@ Guidelines for working with code in this repository. These are linter-like rules
 - **[Mobile](mobile/README.md)** — React Native mobile app
 - **[Agent System](docs/AGENTS.md)** — Agent architecture, tools, skills, workflow nodes
 - **[Scripts](scripts/AGENTS.md)** — Build and release scripts
-- **[Workflow Runner](workflow_runner/AGENTS.md)** — Standalone workflow runner
 
 ---
 
@@ -196,7 +195,7 @@ Every style value that falls into one of the categories below must use the corre
 | Spacing / gap / padding | `5px`, `10px`, `13px`, `0.25` theme units | `SPACING.*` / `GAP.*` / `PADDING.*` |
 | Font size | `"14px"`, `"0.85rem"`, any raw px/rem | `var(--fontSize*)` or `<Text>`/`<Label>`/`<Caption>` |
 | Font weight | `700`, `"bold"`, `300` | `400`, `500`, or `600` only |
-| Border radius | `4`, `10`, `18`, `"var(--rounded-*)"` | `BORDER_RADIUS.sm/lg/pill/circle` |
+| Border radius | `4`, `10`, `18`, `"var(--rounded-*)"` | `BORDER_RADIUS.xs/sm/md/lg/xl/xxl/pill/circle` |
 | Transitions | `"all 200ms ease"`, raw timing strings | `MOTION.all/border/background/…` |
 | Z-index | `9999`, `1000`, arbitrary integers | `Z_INDEX.dropdown/modal/tooltip/…` |
 

@@ -108,7 +108,7 @@ See **[docs/DESIGN.md](../../../docs/DESIGN.md)** for the full design token refe
 - No hardcoded hex colors (`#fff`, `#000`, `rgb(...)`) — use theme palette values.
 - **Spacing**: use `SPACING.*` / `GAP.*` / `PADDING.*` — forbidden: `5px`, `10px`, `13px`, `20px`, or any off-grid pixel value.
 - **Typography**: use `<Text>` / `<Label>` / `<Caption>` or `TYPOGRAPHY.*` — forbidden: raw `fontSize` px/rem literals, weights `700 / "bold" / 300`.
-- **Border radius**: use `BORDER_RADIUS.sm / lg / pill / circle` — forbidden: magic numbers (`4`, `10`, `18`), raw `"var(--rounded-*)"` strings.
+- **Border radius**: use `BORDER_RADIUS.xs / sm / md / lg / xl / xxl / pill / circle` — forbidden: magic numbers (`4`, `10`, `18`), raw `"var(--rounded-*)"` strings where a constant exists.
 - **Transitions**: use `MOTION.all / border / background / transform / opacity / shadow` — forbidden: raw timing strings (`"all 200ms ease"`).
 - **Z-index**: use `Z_INDEX.*` — forbidden: raw integers (`9999`, `1000`).
 

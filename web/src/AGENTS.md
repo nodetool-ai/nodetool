@@ -105,9 +105,9 @@ When writing or editing any style, check these rules. Violations in the file you
 
 **Spacing** — use `SPACING.*` / `GAP.*` / `PADDING.*` from `ui_primitives`. Forbidden: `5px`, `10px`, `13px`, `20px`, theme units `0.25 / 0.75 / 1.25 / 2.5 / 5`.
 
-**Typography** — use `<Text>` / `<Label>` / `<Caption>` or `TYPOGRAPHY.*` from `ui_primitives`. Forbidden: any raw `fontSize` px/rem literal (`"14px"`, `"0.85rem"`); weights `700 / "bold" / 300`; size+weight combos outside the [4-pair table](../../docs/DESIGN.md#2-typography--4-size-scale-typography).
+**Typography** — use `<Text>` / `<Label>` / `<Caption>` or `TYPOGRAPHY.*` from `ui_primitives`. Forbidden: any raw `fontSize` px/rem literal (`"14px"`, `"0.85rem"`); weights `700 / "bold" / 300`; size+weight combos outside the [8-style table](../../docs/DESIGN.md#1-typography).
 
-**Border radius** — use `BORDER_RADIUS.sm / lg / pill / circle` from `ui_primitives`. Forbidden: magic numbers (`1 / 3 / 4 / 7 / 10 / 18`), raw `"var(--rounded-*)"` strings, `"50%"` for circles.
+**Border radius** — use `BORDER_RADIUS.xs / sm / md / lg / xl / xxl / pill / circle` from `ui_primitives`. Forbidden: magic numbers (`1 / 3 / 4 / 7 / 10 / 18`), raw `"var(--rounded-*)"` strings where a constant exists, `"50%"` for circles.
 
 **Transitions** — use `MOTION.all / border / background / transform / opacity / shadow` from `ui_primitives`. Forbidden: raw timing strings (`"all 200ms ease"`, `"0.2s ease-in-out"`).
 
