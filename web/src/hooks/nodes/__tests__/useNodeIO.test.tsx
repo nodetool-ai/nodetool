@@ -264,6 +264,53 @@ describe("useUpstreamValue", () => {
     );
     expect(result.current).toEqual({ uri: "asset://img-1", type: "image" });
   });
+
+  it("collects multiple edges targeting the same input into an array", () => {
+    setMockState(
+      [
+        {
+          source: "img-a",
+          sourceHandle: "output",
+          target: "merge",
+          targetHandle: "images"
+        },
+        {
+          source: "img-b",
+          sourceHandle: "output",
+          target: "merge",
+          targetHandle: "images"
+        }
+      ],
+      {
+        "img-a": [gen("ga", { output: { uri: "a.png" } })],
+        "img-b": [gen("gb", { output: { uri: "b.png" } })]
+      }
+    );
+    const { result } = renderHook(() =>
+      useUpstreamValue(WF, "merge", "images", undefined)
+    );
+    expect(result.current).toEqual([{ uri: "a.png" }, { uri: "b.png" }]);
+  });
+
+  it("returns a single value when only one edge feeds the input", () => {
+    setMockState(
+      [
+        {
+          source: "img-a",
+          sourceHandle: "output",
+          target: "merge",
+          targetHandle: "images"
+        }
+      ],
+      {
+        "img-a": [gen("ga", { output: { uri: "only.png" } })]
+      }
+    );
+    const { result } = renderHook(() =>
+      useUpstreamValue(WF, "merge", "images", undefined)
+    );
+    expect(result.current).toEqual({ uri: "only.png" });
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -361,5 +408,42 @@ describe("useUpstreamValues", () => {
       useUpstreamValues(WF, "comp", ["image_0"])
     );
     expect(result.current).toEqual({ image_0: { uri: "asset://img-1" } });
+  });
+
+  it("collects multiple edges into arrays per input", () => {
+    setMockState(
+      [
+        {
+          source: "a",
+          sourceHandle: "output",
+          target: "comp",
+          targetHandle: "images"
+        },
+        {
+          source: "b",
+          sourceHandle: "output",
+          target: "comp",
+          targetHandle: "images"
+        },
+        {
+          source: "c",
+          sourceHandle: "output",
+          target: "comp",
+          targetHandle: "mask"
+        }
+      ],
+      {
+        a: [gen("ga", { output: { uri: "a.png" } })],
+        b: [gen("gb", { output: { uri: "b.png" } })],
+        c: [gen("gc", { output: { uri: "c.png" } })]
+      }
+    );
+    const { result } = renderHook(() =>
+      useUpstreamValues(WF, "comp", ["images", "mask"])
+    );
+    expect(result.current).toEqual({
+      images: [{ uri: "a.png" }, { uri: "b.png" }],
+      mask: { uri: "c.png" }
+    });
   });
 });
