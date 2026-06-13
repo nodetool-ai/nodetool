@@ -75,8 +75,7 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
           return (
             <>
               {messages.map((message, i) => {
-                // Create a stable key using message content and position
-                const messageKey = `${index}-${i}-${typeof message === 'string' ? message : JSON.stringify(message).slice(0, 20)}`;
+                const messageKey = `${index}-${i}-${message.role}-${message.content.length}`;
                 return (
                   <React.Fragment key={messageKey}>
                     {renderTextContent(getDisplayContent(message), index + i)}

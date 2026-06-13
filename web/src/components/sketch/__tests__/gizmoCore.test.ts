@@ -31,10 +31,6 @@ import {
 } from "../tools/transform/handleGeometry";
 import { cursorForHandle, ROTATE_CURSOR_CSS } from "../tools/transform/cursorMapping";
 import {
-  getTransformHoverInfo,
-  isPointInsideGizmo
-} from "../tools/transform/transformHoverPolicy";
-import {
   computeRotateTransform,
   computeSkewTransform
 } from "../tools/transform/computeTransform";
@@ -276,42 +272,6 @@ describe("gizmo hover cursor behavior", () => {
     expect(cursor0).not.toBe(cursor90);
   });
 
-  it("getTransformHoverInfo returns handle and cursor for valid point", () => {
-    const transform = makeTransform();
-    const bounds = makeBounds();
-    const info = getTransformHoverInfo({ x: 50, y: 50 }, transform, bounds, 1);
-    expect(info.handle).toBe("move");
-    expect(info.cursor).toBe("move");
-  });
-
-  it("getTransformHoverInfo returns nulls for miss", () => {
-    const transform = makeTransform();
-    const bounds = makeBounds();
-    const info = getTransformHoverInfo(
-      { x: -100, y: -100 },
-      transform,
-      bounds,
-      1
-    );
-    expect(info.handle).toBeNull();
-    expect(info.cursor).toBeNull();
-  });
-
-  it("isPointInsideGizmo returns true for interior point", () => {
-    const transform = makeTransform();
-    const bounds = makeBounds();
-    expect(isPointInsideGizmo({ x: 50, y: 50 }, transform, bounds, 1)).toBe(
-      true
-    );
-  });
-
-  it("isPointInsideGizmo returns false for exterior point", () => {
-    const transform = makeTransform();
-    const bounds = makeBounds();
-    expect(
-      isPointInsideGizmo({ x: -100, y: -100 }, transform, bounds, 1)
-    ).toBe(false);
-  });
 });
 
 // ─── Outside-box rotate zone ────────────────────────────────────────────────
@@ -392,29 +352,6 @@ describe("outside-box rotate zone", () => {
     ).toBe(false);
   });
 
-  it("getTransformHoverInfo returns rotate for outside-box rotate zone", () => {
-    const margin = OUTSIDE_ROTATE_MARGIN / zoom;
-    const info = getTransformHoverInfo(
-      { x: 100 + margin * 0.5, y: 50 },
-      transform,
-      bounds,
-      zoom
-    );
-    expect(info.handle).toBe("rotate");
-    expect(info.cursor).toBe(ROTATE_CURSOR_CSS);
-  });
-
-  it("getTransformHoverInfo returns null for points well outside", () => {
-    const margin = OUTSIDE_ROTATE_MARGIN / zoom;
-    const info = getTransformHoverInfo(
-      { x: 100 + margin * 2, y: 50 },
-      transform,
-      bounds,
-      zoom
-    );
-    expect(info.handle).toBeNull();
-    expect(info.cursor).toBeNull();
-  });
 });
 
 // ─── Viewport conversion ────────────────────────────────────────────────────

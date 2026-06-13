@@ -243,17 +243,26 @@ const getProcessEnv = (): ProcessEnv => {
     );
   }
 
+  const optionalNodeBin = path.join(
+    app.getPath("userData"),
+    "optional-node",
+    "node_modules",
+    ".bin"
+  );
+
   const pathSegmentsWin = [
     path.join(condaPath),
     path.join(condaPath, "Library", "mingw-w64", "bin"),
     path.join(condaPath, "Library", "usr", "bin"),
     path.join(condaPath, "Library", "bin"),
     path.join(condaPath, "Scripts"),
+    optionalNodeBin,
     baseEnv.PATH || "",
   ];
   const pathSegmentsUnix = [
     path.join(condaPath, "bin"),
     path.join(condaPath, "lib"),
+    optionalNodeBin,
     baseEnv.PATH || "",
   ];
 

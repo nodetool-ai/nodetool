@@ -34,7 +34,7 @@ function rotateHue(hsl: HSL, degrees: number): HSL {
 /**
  * Generate complementary color (opposite on color wheel)
  */
-export function getComplementary(hex: string): string[] {
+function getComplementary(hex: string): string[] {
   const rgb = hexToRgb(hex);
   const hsl = rgbToHsl(rgb);
   
@@ -48,7 +48,7 @@ export function getComplementary(hex: string): string[] {
  * Generate analogous colors (adjacent on color wheel)
  * Returns colors at -30° and +30° from base
  */
-export function getAnalogous(hex: string): string[] {
+function getAnalogous(hex: string): string[] {
   const rgb = hexToRgb(hex);
   const hsl = rgbToHsl(rgb);
   
@@ -65,7 +65,7 @@ export function getAnalogous(hex: string): string[] {
 /**
  * Generate triadic colors (120° apart)
  */
-export function getTriadic(hex: string): string[] {
+function getTriadic(hex: string): string[] {
   const rgb = hexToRgb(hex);
   const hsl = rgbToHsl(rgb);
   
@@ -83,7 +83,7 @@ export function getTriadic(hex: string): string[] {
  * Generate split-complementary colors
  * Base color + two colors adjacent to the complement
  */
-export function getSplitComplementary(hex: string): string[] {
+function getSplitComplementary(hex: string): string[] {
   const rgb = hexToRgb(hex);
   const hsl = rgbToHsl(rgb);
   
@@ -100,7 +100,7 @@ export function getSplitComplementary(hex: string): string[] {
 /**
  * Generate tetradic/rectangular colors (60°, 180°, 240° from base)
  */
-export function getTetradic(hex: string): string[] {
+function getTetradic(hex: string): string[] {
   const rgb = hexToRgb(hex);
   const hsl = rgbToHsl(rgb);
   
@@ -119,7 +119,7 @@ export function getTetradic(hex: string): string[] {
 /**
  * Generate square colors (90° apart)
  */
-export function getSquare(hex: string): string[] {
+function getSquare(hex: string): string[] {
   const rgb = hexToRgb(hex);
   const hsl = rgbToHsl(rgb);
   

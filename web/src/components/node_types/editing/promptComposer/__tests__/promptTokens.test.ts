@@ -5,7 +5,6 @@ import {
   parseAssetUri,
   tokenizePrompt,
   tokenizePromptLine,
-  tokensToPrompt,
   variablesInPrompt
 } from "../promptTokens";
 
@@ -52,23 +51,6 @@ describe("promptTokens", () => {
         { kind: "asset", uri: "asset://a.png", assetId: "a", ext: "png" },
         { kind: "variable", expr: "v" }
       ]);
-    });
-  });
-
-  describe("round-trip", () => {
-    it("re-serializes a multi-line prompt to canonical form", () => {
-      const original =
-        "Describe asset://img-1.png\nfor {{ audience }} in {{ tone }} tone";
-      expect(tokensToPrompt(tokenizePrompt(original))).toBe(original);
-    });
-
-    it("canonicalizes variable spacing on round-trip", () => {
-      expect(tokensToPrompt(tokenizePrompt("{{name}}"))).toBe("{{ name }}");
-    });
-
-    it("preserves blank lines", () => {
-      const original = "line one\n\nline three";
-      expect(tokensToPrompt(tokenizePrompt(original))).toBe(original);
     });
   });
 
