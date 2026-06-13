@@ -24,6 +24,26 @@ import {
 // ---------------------------------------------------------------------------
 
 describe("getNodeMetadata", () => {
+  it("extracts deprecated and replaced_by metadata", () => {
+    class DeprecatedNode extends BaseNode {
+      static readonly nodeType = "nodetool.test.Deprecated";
+      static readonly title = "Deprecated";
+      static readonly description = "Old node";
+      static readonly deprecated = true;
+      static readonly replacedBy = "nodetool.test.Replacement";
+
+      async process() {
+        return {};
+      }
+    }
+
+    const meta = getNodeMetadata(
+      DeprecatedNode as unknown as import("../src/base-node.js").NodeClass
+    );
+    expect(meta.deprecated).toBe(true);
+    expect(meta.replaced_by).toBe("nodetool.test.Replacement");
+  });
+
   it("extracts basic metadata from Add node", () => {
     const meta = getNodeMetadata(Add);
     expect(meta.title).toBe("Add");

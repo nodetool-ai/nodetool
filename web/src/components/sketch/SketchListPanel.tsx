@@ -5,11 +5,12 @@ import type { Theme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import BrushOutlinedIcon from "@mui/icons-material/BrushOutlined";
 import { memo, useCallback, useMemo, useState } from "react";
-import type { KeyboardEvent } from "react";
+import type { DragEvent, KeyboardEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { usePanelStore } from "../../stores/PanelStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import { serializeDragData, useDragDropStore } from "../../lib/dragdrop";
 import { trpc } from "../../trpc/client";
 import CategorySearchBar from "../node_menu/CategorySearchBar";
 import {
@@ -82,6 +83,61 @@ function formatUpdatedAt(value: string): string {
   return `Updated ${dateFormatter.format(date)}`;
 }
 
+function createSketchDragImage(name: string): HTMLElement {
+  const container = document.createElement("div");
+  container.style.cssText = `
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+    width: 240px;
+    height: 64px;
+    background: var(--palette-background-paper);
+    border: 1px solid var(--palette-divider);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px;
+    box-sizing: border-box;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    color: var(--palette-text-primary);
+    font-family: Inter, sans-serif;
+    pointer-events: none;
+    z-index: 9999;
+  `;
+
+  const icon = document.createElement("div");
+  icon.textContent = "✎";
+  icon.style.cssText = `
+    width: 48px;
+    height: 48px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    background-color: var(--palette-grey-800);
+    color: var(--palette-text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--fontSizeBig);
+    font-weight: 600;
+  `;
+  container.appendChild(icon);
+
+  const label = document.createElement("div");
+  label.textContent = name || "Untitled sketch";
+  label.style.cssText = `
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--fontSizeSmall);
+    font-weight: 500;
+  `;
+  container.appendChild(label);
+
+  return container;
+}
+
 interface SketchListItemProps {
   id: string;
   name: string;
@@ -97,6 +153,8 @@ const SketchListItem = memo(function SketchListItem({
   active,
   onOpen
 }: SketchListItemProps) {
+  const setActiveDrag = useDragDropStore((state) => state.setActiveDrag);
+  const clearDrag = useDragDropStore((state) => state.clearDrag);
   const handleClick = useCallback(() => onOpen(id, name), [id, name, onOpen]);
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLButtonElement>) => {
@@ -107,6 +165,33 @@ const SketchListItem = memo(function SketchListItem({
     },
     [id, name, onOpen]
   );
+  const handleDragStart = useCallback(
+    (event: DragEvent<HTMLButtonElement>) => {
+      const payload = { id, name, updatedAt };
+      serializeDragData(
+        {
+          type: "sketch",
+          payload,
+          metadata: { sourceId: id, sourceName: name || "Untitled sketch" }
+        },
+        event.dataTransfer
+      );
+      event.dataTransfer.effectAllowed = "copyMove";
+      const dragImage = createSketchDragImage(name);
+      document.body.appendChild(dragImage);
+      event.dataTransfer.setDragImage(dragImage, 10, 10);
+      window.setTimeout(() => document.body.removeChild(dragImage), 0);
+      setActiveDrag({
+        type: "sketch",
+        payload,
+        metadata: { sourceId: id, sourceName: name || "Untitled sketch" }
+      });
+    },
+    [id, name, updatedAt, setActiveDrag]
+  );
+  const handleDragEnd = useCallback(() => {
+    clearDrag();
+  }, [clearDrag]);
 
   return (
     <button
@@ -114,6 +199,9 @@ const SketchListItem = memo(function SketchListItem({
       className={`sketch-item ${active ? "active" : ""}`}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
       aria-current={active ? "page" : undefined}
     >
       <FlexRow align="center" gap={1} fullWidth>

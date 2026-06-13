@@ -26,8 +26,6 @@ import React, {
   useState
 } from "react";
 import { styled } from "@mui/material/styles";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import CheckIcon from "@mui/icons-material/Check";
 
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import type { InitialConfigType } from "@lexical/react/LexicalComposer";
@@ -71,7 +69,7 @@ import {
   useTimelineUIStoreApi,
   useTimelinePlaybackStoreApi
 } from "../../../stores/timeline/TimelineInstance";
-import { EditorButton, FlexRow, Caption, SPACING, MOTION } from "../../ui_primitives";
+import { MOTION } from "../../ui_primitives";
 import type { TimelineClip, TimelineMarker } from "@nodetool-ai/timeline";
 
 type EditorMode = "script" | "write";
@@ -444,6 +442,11 @@ const EditorSurface = styled("div")(({ theme }) => ({
   fontSize: 14,
   lineHeight: 1.95,
   outline: "none",
+  flex: 1,
+  minHeight: 0,
+  overflowY: "auto",
+  display: "flex",
+  flexDirection: "column",
   transition: `border-color ${MOTION.fast}, box-shadow ${MOTION.fast}`,
   "&.is-writing": {
     borderColor: theme.vars.palette.primary.main,
@@ -664,31 +667,6 @@ const EditorBody: React.FC<{
       onClick={onClick}
       data-testid="transcript-surface"
     >
-      <FlexRow justify="space-between" align="center" sx={{ mb: SPACING.xs }}>
-        <Caption sx={{ color: "text.disabled" }}>
-          {writing
-            ? "Writing — ⌘S plays · Esc to finish"
-            : "Click a word to jump · Space plays · / for commands"}
-        </Caption>
-        <EditorButton
-          size="small"
-          variant={writing ? "contained" : "outlined"}
-          startIcon={
-            writing ? (
-              <CheckIcon fontSize="small" />
-            ) : (
-              <EditOutlinedIcon fontSize="small" />
-            )
-          }
-          onClick={(e) => {
-            e.stopPropagation();
-            setMode(writing ? "script" : "write");
-          }}
-        >
-          {writing ? "Done writing" : "Write"}
-        </EditorButton>
-      </FlexRow>
-
       <div className="transcript-editor-area">
         <RichTextPlugin
           contentEditable={

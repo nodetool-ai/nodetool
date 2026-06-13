@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { useCallback, useRef } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -10,10 +10,18 @@ import { useWebsocketRunner } from "../../../stores/WorkflowRunner";
 import { useRealtimeAudioPlayback } from "../../../hooks/browser/useRealtimeAudioPlayback";
 
 type Props = {
-  chunks: Chunk[];
+  /**
+   * Buffer accessor + change signal instead of the array itself: large chunk
+   * arrays passed as props get deep-serialized per commit by react-dom's
+   * dev performance instrumentation (see useRealtimeAudioPlayback).
+   */
+  getChunks: () => Chunk[];
+  chunksVersion: number;
   sampleRate?: number;
   channels?: number;
   nodeId?: string;
+  /** Live-monitoring mode: bound scheduling lead, drop stale chunks. */
+  live?: boolean;
 };
 
 const styles = (theme: Theme) =>
@@ -32,10 +40,12 @@ const styles = (theme: Theme) =>
   });
 
 const RealtimeAudioOutput: React.FC<Props> = ({
-  chunks,
+  getChunks,
+  chunksVersion,
   sampleRate = 22000,
   channels = 1,
-  nodeId
+  nodeId,
+  live = false
 }) => {
   const theme = useTheme();
   const workflowState = useWebsocketRunner((s) => s.state);
@@ -50,10 +60,12 @@ const RealtimeAudioOutput: React.FC<Props> = ({
     stream,
     visualizerVersion
   } = useRealtimeAudioPlayback({
-    chunks,
+    getChunks,
+    chunksVersion,
     sampleRate,
     channels,
-    nodeId
+    nodeId,
+    live
   });
 
   // Stop playback when workflow stops
@@ -86,3 +98,27 @@ const RealtimeAudioOutput: React.FC<Props> = ({
 };
 
 export default React.memo(RealtimeAudioOutput);
+
+/**
+ * Adapter for call sites that hold a plain chunk array (e.g. OutputRenderer's
+ * preview of a completed stream). Converts to the getter+version contract so
+ * the array stops at this boundary instead of flowing further down the tree.
+ */
+export const RealtimeAudioOutputFromChunks: React.FC<
+  Omit<Props, "getChunks" | "chunksVersion"> & { chunks: Chunk[] }
+> = ({ chunks, ...rest }) => {
+  const chunksRef = useRef<Chunk[]>(chunks);
+  const versionRef = useRef(0);
+  if (chunksRef.current !== chunks) {
+    chunksRef.current = chunks;
+    versionRef.current++;
+  }
+  const getChunks = useCallback(() => chunksRef.current, []);
+  return (
+    <RealtimeAudioOutput
+      getChunks={getChunks}
+      chunksVersion={versionRef.current}
+      {...rest}
+    />
+  );
+};

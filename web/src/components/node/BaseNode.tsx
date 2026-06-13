@@ -66,6 +66,10 @@ import {
   resolveCodeNodeTitle
 } from "./codeNodeUi";
 import { isContentCardNode } from "../node_types/contentCardRegistry";
+import {
+  CONSTANT_IMAGE_NODE_TYPE,
+  CONSTANT_VIDEO_NODE_TYPE
+} from "../../constants/nodeTypes";
 
 // CONSTANTS
 const BASE_HEIGHT = 0;
@@ -427,7 +431,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       isConstantNode: type.startsWith("nodetool.constant"),
       isInputNode: type.startsWith("nodetool.input"),
       isOutputNode: type.startsWith("nodetool.output"),
-      isAgentNode: isAgentNodeType(type)
+      isAgentNode: isAgentNodeType(type),
+      // Constant image/video nodes preview their media, so resizing should
+      // preserve the media's aspect ratio rather than distort it.
+      lockAspectRatio:
+        type === CONSTANT_IMAGE_NODE_TYPE || type === CONSTANT_VIDEO_NODE_TYPE
     }),
     [type]
   );
@@ -764,7 +772,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         isConnectable={true}
       />
       {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
-      <NodeResizeHandle minWidth={150} minHeight={styleProps.minHeight} />
+      <NodeResizeHandle
+        minWidth={150}
+        minHeight={styleProps.minHeight}
+        keepAspectRatio={nodeType.lockAspectRatio}
+      />
       <NodeHeader
         id={id}
         selected={selected}

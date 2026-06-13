@@ -1,7 +1,16 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import { WorkflowRunner, Graph } from "@nodetool-ai/kernel";
+import {
+  WorkflowRunner,
+  Graph,
+  withExplicitNodeFlags
+} from "@nodetool-ai/kernel";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import type { NodeDescriptor, Edge, InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
+import type {
+  GraphData,
+  HydratedGraphData,
+  InputMode,
+  OutputCorrelation
+} from "@nodetool-ai/protocol";
 import { tagAsUniversal } from "@nodetool-ai/nodes-utils";
 
 const randomUUID = (): string =>
@@ -90,21 +99,20 @@ export class WorkflowNode extends BaseNode {
     });
 
     // Hydrate graph via resolver if available
-    let hydratedGraph: {
-      nodes: Array<Record<string, unknown>>;
-      edges: Array<Record<string, unknown>>;
-    };
+    let hydratedGraph: HydratedGraphData;
     if (context.resolveNodeType) {
       const loaded = await Graph.loadFromDict(
         { nodes: normalizedNodes, edges: normalizedEdges },
         { resolver: { resolveNodeType: context.resolveNodeType } }
       );
-      hydratedGraph = {
-        nodes: [...loaded.nodes] as unknown as Array<Record<string, unknown>>,
-        edges: [...loaded.edges] as unknown as Array<Record<string, unknown>>
-      };
+      hydratedGraph = { nodes: [...loaded.nodes], edges: [...loaded.edges] };
     } else {
-      hydratedGraph = { nodes: normalizedNodes, edges: normalizedEdges };
+      // No registry resolver on the context — behavior flags can only come
+      // from the saved sub-workflow itself; absent ones default off.
+      hydratedGraph = withExplicitNodeFlags({
+        nodes: normalizedNodes,
+        edges: normalizedEdges
+      } as unknown as GraphData);
     }
 
     // Collect dynamic input values as params for the sub-workflow's input nodes
@@ -126,7 +134,7 @@ export class WorkflowNode extends BaseNode {
       const nodeId = String(n.id ?? "");
       const nodeName = n.name as string | undefined;
       const runnerKey = nodeName ?? nodeId;
-      const props = (n.properties ?? n.data ?? {}) as Record<string, unknown>;
+      const props = (n.properties ?? {}) as Record<string, unknown>;
       const outputName =
         typeof props.name === "string" && props.name.trim()
           ? props.name.trim()
@@ -149,7 +157,7 @@ export class WorkflowNode extends BaseNode {
         workflow_id: this.workflow_id || undefined,
         params
       },
-      hydratedGraph as unknown as { nodes: NodeDescriptor[]; edges: Edge[] }
+      hydratedGraph
     );
 
     if (result.status === "failed") {

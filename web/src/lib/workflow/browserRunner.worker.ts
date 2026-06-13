@@ -10,10 +10,16 @@
  * Protocol (see `browserWorkerClient.ts` for the main-thread half):
  *   ← { type: "ready", browserNodeTypes }   once, after the registry builds
  *   ← { type: "init-error", error }         registry build failed → main falls back
- *   ← { type: "message", jobId, message }   a raw kernel ProcessingMessage
+ *   ← { type: "messages", jobId, messages } a batch of kernel ProcessingMessages
  *   ← { type: "done", jobId, status, error }
  *   → { type: "run", jobId, graph, params, workflowId }
  *   → { type: "cancel", jobId }
+ *   → { type: "update-properties", jobId, nodeId, properties }   live params
+ *
+ * Messages are BATCHED: streaming nodes (realtime audio) emit hundreds of
+ * messages per second, and one postMessage → one main-thread task each would
+ * dominate the main thread. Messages buffer for up to BATCH_INTERVAL_MS and
+ * cross as a single postMessage; the client delivers them in order.
  *
  * Messages are streamed with image outputs resolved for transport: GPU textures
  * are read back to CPU, then converted to transferable ImageBitmaps
@@ -32,6 +38,18 @@ import { attachPreviewBitmaps } from "./attachPreviewBitmaps";
 declare const self: DedicatedWorkerGlobalScope;
 
 const controllers = new Map<string, AbortController>();
+
+/** Streamed audio chunk payload — never contains image refs to resolve. */
+const isAudioChunkValue = (value: unknown): boolean => {
+  if (!value || typeof value !== "object") return false;
+  const v = value as { type?: unknown; content_type?: unknown };
+  return v.type === "chunk" && v.content_type === "audio";
+};
+/** Live WorkflowRunner per job, for in-flight property updates. */
+const runners = new Map<
+  string,
+  { updateNodeProperties: (nodeId: string, props: Record<string, unknown>) => boolean }
+>();
 
 // Build the registry once for the worker's lifetime; announce readiness (and
 // the browser-capable node types, so the main thread can make routing
@@ -65,6 +83,12 @@ interface CancelMessage {
   type: "cancel";
   jobId: string;
 }
+interface UpdatePropertiesMessage {
+  type: "update-properties";
+  jobId: string;
+  nodeId: string;
+  properties: Record<string, unknown>;
+}
 
 async function runJob(msg: RunMessage): Promise<void> {
   const { jobId, graph, params = {}, workflowId } = msg;
@@ -84,6 +108,37 @@ async function runJob(msg: RunMessage): Promise<void> {
 
   const controller = new AbortController();
   controllers.set(jobId, controller);
+
+  // Message batching: coalesce the streaming firehose into one postMessage
+  // (= one main-thread task) per interval. ~16ms keeps UI updates at frame
+  // cadence while cutting task churn by an order of magnitude.
+  const BATCH_INTERVAL_MS = 16;
+  let batch: Array<Record<string, unknown>> = [];
+  let batchTransfer: Transferable[] = [];
+  let flushTimer: ReturnType<typeof setTimeout> | null = null;
+  const flush = () => {
+    if (flushTimer !== null) {
+      clearTimeout(flushTimer);
+      flushTimer = null;
+    }
+    if (batch.length === 0) return;
+    const messages = batch;
+    const transfer = batchTransfer;
+    batch = [];
+    batchTransfer = [];
+    self.postMessage({ type: "messages", jobId, messages }, transfer);
+  };
+  const enqueue = (
+    message: Record<string, unknown>,
+    transfer: Transferable[]
+  ) => {
+    batch.push(message);
+    if (transfer.length > 0) batchTransfer.push(...transfer);
+    if (flushTimer === null) {
+      flushTimer = setTimeout(flush, BATCH_INTERVAL_MS);
+    }
+  };
+
   try {
     const gen = runner.runBrowserWorkflow({
       graph: normalizeGraphForKernel(graph) as unknown as Parameters<
@@ -93,13 +148,19 @@ async function runJob(msg: RunMessage): Promise<void> {
       params,
       jobId,
       workflowId,
-      signal: controller.signal
+      signal: controller.signal,
+      onRunner: (workflowRunner) => {
+        runners.set(jobId, workflowRunner);
+      }
     });
 
     while (true) {
       const next = await gen.next();
       if (next.done) {
         const result = next.value;
+        // Deliver any buffered messages before the terminal signal so the
+        // client never sees "done" with updates still in flight.
+        flush();
         self.postMessage({
           type: "done",
           jobId,
@@ -123,16 +184,23 @@ async function runJob(msg: RunMessage): Promise<void> {
             await resolve(message.result),
             transfer
           );
-        } else if (message.type === "output_update" && message.value != null) {
+        } else if (
+          message.type === "output_update" &&
+          message.value != null &&
+          // Audio chunks stream at ~50/s per node and never hold image refs
+          // — skip the async resolve/walk entirely on the hot path.
+          !isAudioChunkValue(message.value)
+        ) {
           message.value = await attachPreviewBitmaps(
             await resolve(message.value),
             transfer
           );
         }
       }
-      self.postMessage({ type: "message", jobId, message }, transfer);
+      enqueue(message, transfer);
     }
   } catch (error) {
+    flush();
     self.postMessage({
       type: "done",
       jobId,
@@ -140,17 +208,28 @@ async function runJob(msg: RunMessage): Promise<void> {
       error: error instanceof Error ? error.message : "Browser execution failed"
     });
   } finally {
+    if (flushTimer !== null) {
+      clearTimeout(flushTimer);
+      flushTimer = null;
+    }
     // Free every GPU texture this run created (run-scoped lifecycle).
     runner.releaseRunTextures?.(jobId);
     controllers.delete(jobId);
+    runners.delete(jobId);
   }
 }
 
-self.onmessage = (event: MessageEvent<RunMessage | CancelMessage>) => {
+self.onmessage = (
+  event: MessageEvent<RunMessage | CancelMessage | UpdatePropertiesMessage>
+) => {
   const data = event.data;
   if (!data) return;
   if (data.type === "cancel") {
     controllers.get(data.jobId)?.abort();
+    return;
+  }
+  if (data.type === "update-properties") {
+    runners.get(data.jobId)?.updateNodeProperties(data.nodeId, data.properties);
     return;
   }
   if (data.type === "run") {
