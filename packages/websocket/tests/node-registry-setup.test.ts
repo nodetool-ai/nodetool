@@ -1,8 +1,13 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
-import { BUILTIN_NODE_PACKS } from "@nodetool-ai/protocol";
+import {
+  BUILTIN_NODE_PACKS,
+  CLOUD_PROFILE_ENV,
+  isCloudNodeType
+} from "@nodetool-ai/protocol";
 import {
   applyBuiltinPackEnabled,
+  applyCloudNodePolicy,
   registerBuiltInNodes
 } from "../src/node-registry-setup.js";
 
@@ -110,5 +115,62 @@ describe("applyBuiltinPackEnabled", () => {
     expect(() =>
       applyBuiltinPackEnabled(new NodeRegistry(), "nope", true)
     ).toThrow(/No registrar/);
+  });
+});
+
+describe("applyCloudNodePolicy", () => {
+  afterEach(() => {
+    delete process.env[CLOUD_PROFILE_ENV];
+  });
+
+  function fullRegistry(): NodeRegistry {
+    const registry = new NodeRegistry();
+    registerBuiltInNodes(registry, {
+      enabledOverrides: Object.fromEntries(
+        BUILTIN_NODE_PACKS.map((p) => [p.id, true])
+      )
+    });
+    return registry;
+  }
+
+  it("is a no-op when the cloud profile is off", () => {
+    delete process.env[CLOUD_PROFILE_ENV];
+    const registry = fullRegistry();
+    const before = registry.list().length;
+    applyCloudNodePolicy(registry);
+    expect(registry.list().length).toBe(before);
+    // Nerdy namespaces survive without the profile.
+    expect(registry.list().some((t) => t.startsWith("lib.os."))).toBe(true);
+  });
+
+  it("drops nerdy/out-of-scope nodes when the cloud profile is on", () => {
+    process.env[CLOUD_PROFILE_ENV] = "cloud";
+    const registry = fullRegistry();
+    applyCloudNodePolicy(registry);
+
+    const remaining = registry.list();
+    expect(remaining.length).toBeGreaterThan(0);
+    // Every survivor is part of the curated cloud surface…
+    for (const nodeType of remaining) {
+      expect(isCloudNodeType(nodeType)).toBe(true);
+    }
+    // …nerdy namespaces are gone…
+    for (const prefix of [
+      "lib.os.",
+      "lib.sqlite.",
+      "nodetool.data.",
+      "nodetool.workspace.",
+      "vector.",
+      "search.google.",
+      "huggingface."
+    ]) {
+      expect(remaining.some((t) => t.startsWith(prefix))).toBe(false);
+    }
+    // …the developer-flavored agents are gone…
+    expect(remaining).not.toContain("nodetool.agents.ShellAgent");
+    // …while the creative core stays.
+    expect(remaining).toContain("nodetool.code.Code");
+    expect(remaining.some((t) => t.startsWith("nodetool.image."))).toBe(true);
+    expect(remaining.some((t) => t.startsWith("nodetool.audio."))).toBe(true);
   });
 });
