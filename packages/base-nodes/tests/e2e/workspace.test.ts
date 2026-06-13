@@ -25,7 +25,7 @@ describe("workspace e2e", () => {
       {
         nodes: [
           inp("ws", "ws"),
-          nd("write", "nodetool.workspace.WriteTextFile", {
+          nd("write", "lib.os.WriteTextFile", {
             name: "out",
             properties: { path: "hello.txt", content: "Hello E2E!" }
           })
@@ -43,7 +43,7 @@ describe("workspace e2e", () => {
       {
         nodes: [
           inp("ws", "ws"),
-          nd("read", "nodetool.workspace.ReadTextFile", {
+          nd("read", "lib.os.ReadTextFile", {
             name: "out",
             properties: { path: "hello.txt" }
           })
@@ -62,7 +62,7 @@ describe("workspace e2e", () => {
       {
         nodes: [
           inp("ws", "ws"),
-          nd("write", "nodetool.workspace.WriteTextFile", {
+          nd("write", "lib.os.WriteTextFile", {
             properties: { path: "append.txt", content: "first" }
           })
         ],
@@ -77,7 +77,7 @@ describe("workspace e2e", () => {
       {
         nodes: [
           inp("ws", "ws"),
-          nd("write", "nodetool.workspace.WriteTextFile", {
+          nd("write", "lib.os.WriteTextFile", {
             properties: { path: "append.txt", content: " second", append: true }
           })
         ],
@@ -92,7 +92,7 @@ describe("workspace e2e", () => {
       {
         nodes: [
           inp("ws", "ws"),
-          nd("read", "nodetool.workspace.ReadTextFile", {
+          nd("read", "lib.os.ReadTextFile", {
             name: "out",
             properties: { path: "append.txt" }
           })

@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Write Binary File"
-node_type: "nodetool.workspace.WriteBinaryFile"
-namespace: "nodetool.workspace"
+node_type: "lib.os.WriteBinaryFile"
+namespace: "lib.os"
 ---
 
-**Type:** `nodetool.workspace.WriteBinaryFile`
+**Type:** `lib.os.WriteBinaryFile`
 
-**Namespace:** `nodetool.workspace`
+**Namespace:** `lib.os`
 
 ## Description
 
@@ -29,4 +29,4 @@ Write binary data (base64-encoded) to a file in the workspace.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.workspace](../) namespace.
+Browse other nodes in the [lib.os](../) namespace.

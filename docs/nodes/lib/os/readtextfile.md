@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Read Text File"
-node_type: "nodetool.workspace.ReadTextFile"
-namespace: "nodetool.workspace"
+node_type: "lib.os.ReadTextFile"
+namespace: "lib.os"
 ---
 
-**Type:** `nodetool.workspace.ReadTextFile`
+**Type:** `lib.os.ReadTextFile`
 
-**Namespace:** `nodetool.workspace`
+**Namespace:** `lib.os`
 
 ## Description
 
@@ -29,4 +29,4 @@ Read a text file from the workspace.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.workspace](../) namespace.
+Browse other nodes in the [lib.os](../) namespace.

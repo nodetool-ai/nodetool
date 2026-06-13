@@ -117,7 +117,7 @@ export const CORE_BASELINE_NAMESPACES: readonly string[] = [
   "nodetool.constant",
   "nodetool.input",
   "nodetool.output",
-  "nodetool.workspace",
+  "lib.os",
   "nodetool.document",
   "nodetool.vector",
   "nodetool.triggers"
@@ -300,7 +300,7 @@ ${tools}
 - For images/audio/video, the generic AI nodes auto-save outputs as assets;
   no separate save node needed.
 - For text artifacts an AgentStep produces (reports, summaries, JSON),
-  either use the \`nodetool.workspace.WriteTextFile\` deterministic node OR
+  either use the \`lib.os.WriteTextFile\` deterministic node OR
   have the AgentStep call \`save_asset\` from its tool list so the artifact
   shows up in the chat asset browser.`;
 }

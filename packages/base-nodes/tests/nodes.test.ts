@@ -88,7 +88,7 @@ describe("base node registration", () => {
     expect(registry.has("nodetool.image.ImageToImage")).toBe(true);
     expect(registry.has("nodetool.constant.Sketch")).toBe(true);
     expect(registry.has("nodetool.video.TextToVideo")).toBe(true);
-    expect(registry.has("nodetool.workspace.ReadTextFile")).toBe(true);
+    expect(registry.has("lib.os.ReadTextFile")).toBe(true);
     expect(registry.has("nodetool.document.SplitDocument")).toBe(true);
     expect(registry.has("nodetool.compare.CompareImages")).toBe(true);
     expect(registry.has("nodetool.data.Aggregate")).toBe(true);
