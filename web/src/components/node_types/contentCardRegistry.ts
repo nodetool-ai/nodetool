@@ -48,6 +48,12 @@ export const isContentCardNode = (
   if ((metadata.node_type ?? "").startsWith("nodetool.constant.")) {
     return false;
   }
+  // ImageInput is an input node: its `value` is set by the user via the image
+  // dropzone, not produced by a run. Render that editable value directly rather
+  // than the content-card result preview.
+  if (metadata.node_type === "nodetool.input.ImageInput") {
+    return false;
+  }
   const variant = getContentCardVariant(getPrimaryOutput(metadata));
   return variant === "image" || variant === "image_mask";
 };
