@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import { ListItemIcon, ListItemText } from "@mui/material";
-import { Box, EditorMenu, EditorMenuItem, MOTION } from "../ui_primitives";
+import { Box, EditorMenu, EditorMenuItem, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -37,12 +37,12 @@ export const OutputSelector: React.FC<OutputSelectorProps> = React.memo(function
           gap: 1,
           px: 1,
           py: 0.5,
-          borderRadius: 1,
+          borderRadius: BORDER_RADIUS.xs,
           border: `1px solid ${theme.vars.palette.primary.main}30`,
           backgroundColor: `${theme.vars.palette.primary.main}12`,
           cursor: "pointer",
           "&:hover": { backgroundColor: `${theme.vars.palette.primary.main}20` },
-          transition: `all ${MOTION.fast}`,
+          transition: MOTION.all,
         }}
       >
         <AccountTreeOutlinedIcon sx={{ fontSize: 14, color: theme.vars.palette.primary.main }} />

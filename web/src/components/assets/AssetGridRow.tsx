@@ -8,7 +8,7 @@ import AssetItem from "./AssetItem";
 import { colorForType } from "../../config/data_types";
 import { IconForType } from "../../config/IconForType";
 import { Asset } from "../../stores/ApiTypes";
-import { Text, Tooltip } from "../ui_primitives";
+import { Text, Tooltip, BORDER_RADIUS, FONT_WEIGHT, MOTION } from "../ui_primitives";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useTheme } from "@mui/material/styles";
 import {
@@ -174,19 +174,19 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
           <IconForType
             iconName={divider.type}
             containerStyle={{
-              borderRadius: "0 0 3px 0",
+              borderRadius: `0 0 ${BORDER_RADIUS.xs} 0`,
               marginLeft: "0",
               marginTop: "0"
             }}
             bgStyle={{
               backgroundColor: "transparent",
-              width: "15px"
+              width: "16px"
             }}
             showTooltip={false}
           />
           <Text
             size="small"
-            weight={600}
+            weight={FONT_WEIGHT.semibold}
             style={{
               color: theme.vars.palette.grey[100],
               textTransform: "uppercase",

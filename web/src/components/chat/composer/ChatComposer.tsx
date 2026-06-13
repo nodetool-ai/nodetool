@@ -7,7 +7,7 @@ import React, {
   memo
 } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Collapse } from "../../ui_primitives";
+import { Collapse, BORDER_RADIUS } from "../../ui_primitives";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { Caption, FlexRow, ToolbarIconButton } from "../../ui_primitives";
 import SendIcon from "@mui/icons-material/Send";
@@ -132,7 +132,7 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
               px: 1.5,
               py: 1,
               maxWidth: "400px",
-              borderRadius: 2,
+              borderRadius: BORDER_RADIUS.sm,
               backgroundColor: theme.vars.palette.background.paper,
               border: `1px solid ${theme.vars.palette.primary.main}`,
               boxShadow: `0 2px 8px ${theme.vars.palette.primary.main}25`

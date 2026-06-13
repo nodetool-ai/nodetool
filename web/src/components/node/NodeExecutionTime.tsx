@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useMemo } from "react";
-import { Text, FlexRow, Box } from "../ui_primitives";
+import { Text, FlexRow, Box, BORDER_RADIUS } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
 import { useNodeExecutionDuration } from "../../hooks/nodes/useNodeExecState";
 
@@ -59,7 +59,7 @@ const NodeExecutionTime: React.FC<NodeExecutionTimeProps> = ({
         right: 4,
         padding: "2px 8px",
         backgroundColor: isError ? "error.dark" : "success.dark",
-        borderRadius: 1,
+        borderRadius: BORDER_RADIUS.xs,
         zIndex: 1000,
         boxShadow: 1
       }}

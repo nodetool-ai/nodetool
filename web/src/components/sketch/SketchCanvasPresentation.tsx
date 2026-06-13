@@ -13,7 +13,7 @@ import { css } from "@emotion/react";
 import React, { memo } from "react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
-import { FlexRow } from "../ui_primitives";
+import { FlexRow, BORDER_RADIUS } from "../ui_primitives";
 import type { Point, SketchTool } from "./types";
 import SketchCanvasResizeHandles from "./SketchCanvasResizeHandles";
 import { SKETCH_Z_INDEX, SKETCH_FONT } from "./sketchStyles";
@@ -279,7 +279,7 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
               backgroundColor: "rgba(0,0,0,0.6)",
               color: "#ccc",
               padding: "2px 12px",
-              borderRadius: "4px",
+              borderRadius: BORDER_RADIUS.sm,
               fontSize: SKETCH_FONT.md,
               fontFamily: SKETCH_FONT.familyMono,
               pointerEvents: "none",

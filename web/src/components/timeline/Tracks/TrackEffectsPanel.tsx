@@ -49,7 +49,9 @@ import {
   LabeledSwitch,
   SelectField,
   NodeMenuItem,
-  MOTION
+  MOTION,
+  BORDER_RADIUS,
+  FONT_SIZE_SANS
 } from "../../ui_primitives";
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 
@@ -104,7 +106,7 @@ const effectCardStyles = (
   css({
     position: "relative",
     border: `1px solid ${theme.vars.palette.divider}`,
-    borderRadius: 4,
+    borderRadius: BORDER_RADIUS.sm,
     padding: theme.spacing(1, 1),
     width,
     minWidth: width,
@@ -126,7 +128,7 @@ const effectCardStyles = (
           bottom: 0,
           [dragOver === "left" ? "left" : "right"]: -5,
           width: 3,
-          borderRadius: 2,
+          borderRadius: BORDER_RADIUS.xs,
           background: theme.vars.palette.primary.main,
           boxShadow: `0 0 8px ${theme.vars.palette.primary.main}`,
           pointerEvents: "none"
@@ -159,7 +161,7 @@ const iconButtonStyles = (theme: Theme, disabled = false) =>
     color: disabled
       ? theme.vars.palette.text.disabled
       : theme.vars.palette.text.secondary,
-    borderRadius: 3,
+    borderRadius: BORDER_RADIUS.xs,
     "&:hover": {
       backgroundColor: disabled
         ? "transparent"

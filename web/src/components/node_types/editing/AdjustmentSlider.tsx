@@ -18,7 +18,7 @@ import React, { useCallback } from "react";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 
-import { NodeSlider } from "../../ui_primitives";
+import { NodeSlider, BORDER_RADIUS, FONT_WEIGHT } from "../../ui_primitives";
 
 const TRACK_HEIGHT = 4;
 const THUMB_SIZE = 12;
@@ -53,7 +53,7 @@ export const adjustmentSliderStyles = (theme: Theme) =>
   css({
     ".ctrl-label": {
       fontSize: theme.fontSizeSmaller,
-      fontWeight: 500,
+      fontWeight: FONT_WEIGHT.medium,
       color: theme.vars.palette.text.secondary,
       textTransform: "uppercase",
       letterSpacing: "0.045em",
@@ -77,7 +77,7 @@ export const adjustmentSliderStyles = (theme: Theme) =>
       transform: "translate(-50%, -50%)",
       width: 2,
       height: 9,
-      borderRadius: 1,
+      borderRadius: BORDER_RADIUS.xs,
       backgroundColor: theme.vars.palette.grey[600],
       pointerEvents: "none",
       zIndex: 0
@@ -101,7 +101,7 @@ export const adjustmentSliderStyles = (theme: Theme) =>
       textAlign: "right",
       lineHeight: 1,
       padding: "3px 6px",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.grey[800]
     },
     // Slider polish — rounded rail/track, ring-style thumb. Scoped here so the

@@ -14,7 +14,7 @@
 
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 
-import { Box, FlexColumn } from "../ui_primitives";
+import { Box, FlexColumn, BORDER_RADIUS } from "../ui_primitives";
 import { parseColorToRgba, rgbaToCss, rgbToHsv, hsvToRgb } from "./types";
 
 /** Below this saturation/value, hue is ambiguous — don't resync from color. */
@@ -118,7 +118,7 @@ const ColorFieldPickerInner: React.FC<ColorFieldPickerProps> = ({
           position: "relative",
           width: "100%",
           height: 140,
-          borderRadius: 1,
+          borderRadius: BORDER_RADIUS.sm,
           overflow: "hidden",
           cursor: "crosshair",
           flexShrink: 0
@@ -148,7 +148,7 @@ const ColorFieldPickerInner: React.FC<ColorFieldPickerProps> = ({
             top: `${cursorTopPct}%`,
             width: 12,
             height: 12,
-            borderRadius: "50%",
+            borderRadius: BORDER_RADIUS.circle,
             border: "2px solid #fff",
             boxShadow: "0 0 0 1px rgba(0,0,0,0.5)",
             transform: "translate(-50%, -50%)",
@@ -170,7 +170,7 @@ const ColorFieldPickerInner: React.FC<ColorFieldPickerProps> = ({
           position: "relative",
           width: "100%",
           height: 12,
-          borderRadius: "6px",
+          borderRadius: BORDER_RADIUS.sm,
           cursor: "pointer",
           flexShrink: 0,
           background:
@@ -184,7 +184,7 @@ const ColorFieldPickerInner: React.FC<ColorFieldPickerProps> = ({
             left: `${hueLeftPct}%`,
             width: 14,
             height: 14,
-            borderRadius: "50%",
+            borderRadius: BORDER_RADIUS.circle,
             backgroundColor: huePureCss,
             border: "2px solid #fff",
             boxShadow: "0 0 0 1px rgba(0,0,0,0.5)",

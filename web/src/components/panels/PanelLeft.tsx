@@ -7,6 +7,7 @@ import {
 } from "@mui/material";
 import { ToolbarIconButton, FlexColumn, Box } from "../ui_primitives";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
+import { BORDER_RADIUS } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
 import { memo, useCallback, useEffect, useMemo } from "react";
 import AssetGrid from "../assets/AssetGrid";
@@ -141,9 +142,9 @@ const styles = (
       },
 
       "& .MuiIconButton-root, .MuiButton-root": {
-        padding: "8px",
-        margin: "0 6px",
-        borderRadius: "8px",
+        padding: `${theme.spacing(1)}`,
+        margin: `0 ${theme.spacing(0.75)}`,
+        borderRadius: BORDER_RADIUS.lg,
         backgroundColor: "transparent",
         transition: `${MOTION.background}, color ${MOTION.fast}`,
 
@@ -459,7 +460,7 @@ const mobileLauncherStyles = (theme: Theme, hasHeader: boolean) =>
     border: `1px solid ${theme.vars.palette.divider}`,
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
     padding: "8px",
-    borderRadius: "var(--rounded-lg)",
+    borderRadius: BORDER_RADIUS.lg,
     "&:hover": {
       backgroundColor: theme.vars.palette.action.hover
     },
@@ -485,7 +486,7 @@ const mobileHeaderExtrasStyles = (theme: Theme) =>
     WebkitOverflowScrolling: "touch",
     "& .tab-button": {
       padding: "6px 10px",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       color: theme.vars.palette.text.secondary,
       minWidth: "auto",
       "&.active": {

@@ -2,7 +2,7 @@
 import React, { useState, useCallback, useMemo, memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import { ToolbarIconButton, EditorButton, Box, Collapse, MOTION, Caption, CloseButton, ExpandCollapseButton, Text } from "../../ui_primitives";
+import { ToolbarIconButton, EditorButton, Box, Collapse, MOTION, Caption, CloseButton, ExpandCollapseButton, Text, BORDER_RADIUS } from "../../ui_primitives";
 import MenuIcon from "@mui/icons-material/Menu";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
@@ -65,7 +65,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
       zIndex: 1100,
       backgroundColor: theme.vars.palette.background.paper,
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: 8,
+      borderRadius: BORDER_RADIUS.md,
       boxShadow: theme.shadows[2],
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover
@@ -85,7 +85,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
       boxShadow: theme.shadows[8],
       zIndex: 1050,
       transform: isOpen ? "translateX(0)" : `translateX(${panelWidth}px)`,
-      transition: `transform ${MOTION.normal}`,
+      transition: MOTION.transform,
       display: "flex",
       flexDirection: "column",
       overflow: "hidden"
@@ -147,7 +147,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
     },
 
     ".graph-wrapper": {
-      borderRadius: 8,
+      borderRadius: BORDER_RADIUS.md,
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.divider}`
     },

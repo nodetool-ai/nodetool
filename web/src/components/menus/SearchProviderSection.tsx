@@ -6,7 +6,7 @@ import {
   FormControl,
   InputLabel
 } from "@mui/material";
-import { FlexRow, Box, Chip, Stack } from "../ui_primitives";
+import { FlexRow, Box, Chip, Stack, BORDER_RADIUS } from "../ui_primitives";
 import { formatSettingLabel } from "./settingsLabel";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
@@ -148,7 +148,7 @@ const SearchProviderSection = memo(function SearchProviderSection({
               hasAllCredentials ?
                 theme.palette.success.light :
                 theme.palette.warning.light,
-            borderRadius: "4px"
+            borderRadius: BORDER_RADIUS.sm
           }}
         >
           {hasAllCredentials ? (
@@ -189,7 +189,7 @@ const SearchProviderSection = memo(function SearchProviderSection({
               "rgba(255,255,255,0.05)" :
               "rgba(0,0,0,0.02)",
             borderLeft: `4px solid ${theme.palette.primary.main}`,
-            borderRadius: "4px"
+            borderRadius: BORDER_RADIUS.sm
           }}
         >
           <Stack spacing={1.5}>

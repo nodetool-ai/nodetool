@@ -1,6 +1,6 @@
 import { memo, useCallback, forwardRef, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Tooltip, Text, ToolbarIconButton, FlexRow, Box } from "../ui_primitives";
+import { Tooltip, Text, ToolbarIconButton, FlexRow, Box, BORDER_RADIUS, FONT_WEIGHT } from "../ui_primitives";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import CheckIcon from "@mui/icons-material/Check";
@@ -84,7 +84,7 @@ const NodeItem = memo(
         }
         return (
           <Box sx={{ maxWidth: 300 }}>
-            <Text size="normal" weight={500} sx={{ mb: 0.5 }}>
+            <Text size="normal" weight={FONT_WEIGHT.medium} sx={{ mb: 0.5 }}>
               {parsedDescription.description}
             </Text>
             {parsedDescription.tags.length > 0 && (
@@ -95,13 +95,13 @@ const NodeItem = memo(
                     component="span"
                     sx={{
                       fontSize: "var(--fontSizeSmaller)",
-                      fontWeight: 500,
+                      fontWeight: FONT_WEIGHT.medium,
                       textTransform: "uppercase",
                       bgcolor: "grey.700",
                       color: "grey.300",
                       px: 1,
                       py: 0.5,
-                      borderRadius: "var(--rounded-sm)"
+                      borderRadius: BORDER_RADIUS.sm
                     }}
                   >
                     {tag}
@@ -111,7 +111,7 @@ const NodeItem = memo(
             )}
             {parsedDescription.useCases.raw && (
               <Box sx={{ mt: 1 }}>
-                <Text size="smaller" weight={600} sx={{ color: "grey.400", textTransform: "uppercase", mb: 0.5 }}>
+                <Text size="smaller" weight={FONT_WEIGHT.semibold} sx={{ color: "grey.400", textTransform: "uppercase", mb: 0.5 }}>
                   Use cases
                 </Text>
                 <Box component="ul" sx={{ m: 0, pl: 2, fontSize: "var(--fontSizeSmall)", color: "grey.300" }}>
@@ -206,7 +206,7 @@ const NodeItem = memo(
 
       const iconForTypeContainerStyle = useMemo(
         () => ({
-          borderRadius: "0 0 3px 0",
+          borderRadius: "0 0 2px 0",
           marginLeft: "0",
           marginTop: "0"
         }),
@@ -218,7 +218,7 @@ const NodeItem = memo(
           backgroundColor: theme.vars.palette.grey[900],
           margin: "0",
           padding: "1px",
-          borderRadius: "0 0 3px 0",
+          borderRadius: "0 0 2px 0",
           boxShadow: `inset 1px 1px 2px ${theme.vars.palette.action.disabledBackground}`,
           width: "20px",
           height: "20px"
@@ -345,13 +345,13 @@ const NodeItem = memo(
                   component="span"
                   sx={{
                     fontSize: "var(--fontSizeSmaller)",
-                    fontWeight: 600,
+                    fontWeight: FONT_WEIGHT.semibold,
                     textTransform: "uppercase",
                     bgcolor: `color-mix(in srgb, ${theme.vars.palette.warning.main} 20%, transparent)`,
                     color: theme.vars.palette.warning.main,
                     px: 0.5,
                     py: 0.5,
-                    borderRadius: "var(--rounded-sm)",
+                    borderRadius: BORDER_RADIUS.sm,
                     whiteSpace: "nowrap",
                     flexShrink: 0
                   }}
@@ -365,14 +365,14 @@ const NodeItem = memo(
                 component="span"
                 sx={{
                   fontSize: "var(--fontSizeSmaller)",
-                  fontWeight: 600,
+                  fontWeight: FONT_WEIGHT.semibold,
                   fontFamily: "monospace",
                   letterSpacing: "0.03em",
                   bgcolor: `color-mix(in srgb, ${theme.vars.palette.info.main} 18%, transparent)`,
                   color: theme.vars.palette.info.main,
                   px: 0.5,
                   py: 0.5,
-                  borderRadius: "var(--rounded-sm)",
+                  borderRadius: BORDER_RADIUS.sm,
                   whiteSpace: "nowrap",
                   flexShrink: 0
                 }}

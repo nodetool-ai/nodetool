@@ -4,6 +4,7 @@ import { memo, useEffect, useRef } from "react";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import type { TerminalBuffer } from "../../stores/ResultsStore";
+import { BORDER_RADIUS } from "../ui_primitives";
 
 /**
  * Read-only terminal emulator for node bodies, fed by `terminal_update`
@@ -21,12 +22,12 @@ const terminalCss = css({
   marginTop: "0.5em",
   maxHeight: "320px",
   overflow: "auto",
-  borderRadius: "4px",
+  borderRadius: BORDER_RADIUS.sm,
   // xterm renders its own dark background; pad it out to the node edge.
   backgroundColor: "#1e1e1e",
   padding: "4px",
   ".xterm": {
-    fontSize: "10px"
+    fontSize: "var(--fontSizeSmaller)"
   }
 });
 

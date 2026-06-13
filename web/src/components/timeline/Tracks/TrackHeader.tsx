@@ -28,7 +28,7 @@ import {
   timelineTemporalOf
 } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
-import { Tooltip, MOTION } from "../../ui_primitives";
+import { Tooltip, MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT } from "../../ui_primitives";
 import {
   DEFAULT_TRACK_HEIGHT_PX as SHARED_DEFAULT_TRACK_HEIGHT_PX,
   FX_PANEL_HEIGHT_PX
@@ -77,7 +77,7 @@ const typeGlyphStyles = (theme: Theme, accent: string) =>
     width: 26,
     height: 26,
     flexShrink: 0,
-    borderRadius: 6,
+    borderRadius: BORDER_RADIUS.md,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -103,8 +103,8 @@ const nameInputStyles = (theme: Theme) =>
     border: "none",
     background: "transparent",
     color: theme.vars.palette.text.primary,
-    fontSize: 13,
-    fontWeight: 500,
+    fontSize: FONT_SIZE_SANS.label,
+    fontWeight: FONT_WEIGHT.medium,
     letterSpacing: "-0.005em",
     fontFamily: theme.typography.fontFamily,
     minWidth: 0,
@@ -129,12 +129,12 @@ const indexChipStyles = (theme: Theme) =>
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 4,
+    borderRadius: BORDER_RADIUS.sm,
     border: `1px solid ${theme.vars.palette.divider}`,
     fontFamily:
       "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-    fontSize: 10,
-    fontWeight: 600,
+    fontSize: FONT_SIZE_MONO.caption,
+    fontWeight: FONT_WEIGHT.semibold,
     letterSpacing: "0.04em",
     color: theme.vars.palette.text.secondary,
     backgroundColor: "transparent"

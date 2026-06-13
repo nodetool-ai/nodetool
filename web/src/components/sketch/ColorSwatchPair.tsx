@@ -15,7 +15,8 @@ import {
   FlexColumn,
   FlexRow,
   Text,
-  Tooltip
+  Tooltip,
+  BORDER_RADIUS
 } from "../ui_primitives";
 import { colorToHex6 } from "./types";
 import {
@@ -159,7 +160,7 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
             density="compact"
             onClick={onSwapColors}
             aria-label="Swap Colors (X)"
-            sx={{ flex: 1, minWidth: 0, padding: 0, borderRadius: "3px" }}
+            sx={{ flex: 1, minWidth: 0, padding: 0, borderRadius: BORDER_RADIUS.sm }}
           >
             <SwapHorizIcon sx={{ fontSize: "var(--fontSizeSmall)" }} />
           </EditorButton>
@@ -174,7 +175,7 @@ const ColorSwatchPair: React.FC<ColorSwatchPairProps> = ({
             density="compact"
             onClick={onResetColors}
             aria-label="Reset to black and white (D)"
-            sx={{ flex: 1, minWidth: 0, padding: 0, borderRadius: "3px" }}
+            sx={{ flex: 1, minWidth: 0, padding: 0, borderRadius: BORDER_RADIUS.sm }}
           >
             <Text
               sx={{ fontSize: SKETCH_FONT.xxs, fontWeight: 600, lineHeight: 1 }}

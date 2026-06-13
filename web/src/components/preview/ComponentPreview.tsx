@@ -636,7 +636,7 @@ const PreviewIndex: React.FC = () => {
                   borderColor: theme.palette.primary.main,
                   boxShadow: `0 0 0 2px ${theme.palette.primary.main}22`
                 },
-                transition: `border-color ${MOTION.fast}, box-shadow ${MOTION.fast}`
+                transition: `${MOTION.border}, ${MOTION.shadow}`
               }}
             >
               <Text size="normal" weight={600} sx={{ mb: 0.5, display: "block" }}>

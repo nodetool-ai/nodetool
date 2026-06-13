@@ -25,7 +25,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { FlexColumn, FlexRow, LoadingSpinner } from "../../ui_primitives";
+import { FlexColumn, FlexRow, LoadingSpinner, BORDER_RADIUS, MOTION, FONT_WEIGHT } from "../../ui_primitives";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import HandleColumn from "../../node/HandleColumn";
 import NodeProgress from "../../node/NodeProgress";
@@ -92,7 +92,7 @@ const styles = (theme: Theme) =>
       gap: 4
     },
     ".list-section": {
-      borderRadius: "var(--rounded-buttonSmall)",
+      borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.background.paper,
       border: `1px solid ${theme.vars.palette.divider}`,
       overflow: "hidden"
@@ -104,7 +104,7 @@ const styles = (theme: Theme) =>
       padding: "5px 8px",
       cursor: "pointer",
       userSelect: "none",
-      transition: "background-color 120ms ease",
+      transition: MOTION.background,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover
       }
@@ -113,11 +113,11 @@ const styles = (theme: Theme) =>
       flexShrink: 0,
       minWidth: 18,
       height: 18,
-      borderRadius: "var(--rounded-pill)",
+      borderRadius: BORDER_RADIUS.pill,
       backgroundColor: `rgba(var(--palette-primary-mainChannel) / 0.18)`,
       color: theme.vars.palette.primary.main,
-      fontSize: theme.fontSizeTiny,
-      fontWeight: 600,
+      fontSize: theme.fontSizeSmaller,
+      fontWeight: FONT_WEIGHT.semibold,
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
@@ -136,7 +136,7 @@ const styles = (theme: Theme) =>
       flexShrink: 0,
       fontSize: 16,
       color: theme.vars.palette.text.secondary,
-      transition: "transform 140ms ease"
+      transition: MOTION.transform
     },
     ".list-chevron.expanded": {
       transform: "rotate(90deg)"

@@ -13,7 +13,7 @@
 import React, { useMemo } from "react";
 import { styled } from "@mui/material/styles";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
-import { MOTION } from "../../ui_primitives";
+import { MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT } from "../../ui_primitives";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
@@ -46,10 +46,10 @@ const PhraseChip = styled("button")(({ theme }) => ({
   display: "inline-flex",
   alignItems: "center",
   border: `1px solid ${theme.vars.palette.divider}`,
-  borderRadius: 5,
+  borderRadius: BORDER_RADIUS.md,
   background: theme.vars.palette.action.hover,
   color: theme.vars.palette.text.secondary,
-  fontSize: 12,
+  fontSize: FONT_SIZE_SANS.label,
   lineHeight: 1,
   overflow: "hidden",
   cursor: "pointer",
@@ -74,7 +74,7 @@ const PhraseChip = styled("button")(({ theme }) => ({
   "&.is-active": { color: theme.vars.palette.text.primary },
   "&.is-draft": { fontStyle: "italic" },
   "& .w-active": {
-    borderRadius: 3,
+    borderRadius: BORDER_RADIUS.xs,
     padding: "0 1px",
     background: theme.vars.palette.primary.main,
     color: theme.vars.palette.primary.contrastText
@@ -88,7 +88,7 @@ const PauseChip = styled("div")(({ theme }) => ({
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  fontSize: 10,
+  fontSize: FONT_SIZE_MONO.caption,
   color: theme.vars.palette.text.disabled,
   fontVariantNumeric: "tabular-nums",
   pointerEvents: "none"
@@ -105,8 +105,8 @@ const HeaderCell = styled("div")(({ theme }) => ({
   borderBottom: `1px solid ${theme.vars.palette.divider}`,
   background: theme.vars.palette.background.paper,
   color: theme.vars.palette.text.secondary,
-  fontSize: 11,
-  fontWeight: 700,
+  fontSize: FONT_SIZE_SANS.caption,
+  fontWeight: FONT_WEIGHT.semibold,
   letterSpacing: "0.06em",
   "& svg": { fontSize: 15, color: theme.vars.palette.primary.main }
 }));

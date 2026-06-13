@@ -3,6 +3,7 @@ import { memo, useCallback, useEffect, useState, type FC } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { BORDER_RADIUS } from "../ui_primitives";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import isEqual from "fast-deep-equal";
 import { getIsElectronDetails } from "../../utils/browser";
@@ -16,7 +17,7 @@ import {
 const warningStyles = (theme: Theme) =>
   css({
     backgroundColor: `color-mix(in srgb, ${theme.vars.palette.warning.main} 15%, transparent)`,
-    borderRadius: "1px",
+    borderRadius: BORDER_RADIUS.xs,
     padding: "8px 10px",
     display: "flex",
     flexDirection: "column",
@@ -61,7 +62,7 @@ const warningStyles = (theme: Theme) =>
       color: theme.vars.palette.common.white,
       backgroundColor: theme.vars.palette.primary.main,
       border: "none",
-      borderRadius: "3px",
+      borderRadius: BORDER_RADIUS.sm,
       padding: "3px 10px",
       cursor: "pointer",
       marginTop: "2px",

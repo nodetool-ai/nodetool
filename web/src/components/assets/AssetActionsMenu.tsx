@@ -31,7 +31,10 @@ import {
   MenuItemPrimitive,
   SearchInput,
   FlexRow,
-  Box
+  Box,
+  BORDER_RADIUS,
+  FONT_SIZE_SANS,
+  MOTION
 } from "../ui_primitives";
 import { TYPE_FILTERS, TypeFilterKey } from "../../utils/formatUtils";
 import isEqual from "fast-deep-equal";
@@ -49,7 +52,7 @@ const styles = (theme: Theme) =>
       alignItems: "start",
       gap: ".4em",
       width: "100%",
-      transition: "max-height 0.5s ease-in-out",
+      transition: MOTION.all,
       // Tighter, stacked controls for narrow sidebars
       "@media (max-width: 520px)": {
         flexDirection: "column",
@@ -183,10 +186,10 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
           tooltipPlacement="top"
           nodrag={false}
           sx={{
-            borderRadius: 1,
+            borderRadius: BORDER_RADIUS.sm,
             px: 0.5,
             gap: 0.5,
-            fontSize: "var(--fontSizeSmall)",
+            fontSize: FONT_SIZE_SANS.label,
             color: typeFilterActive
               ? "var(--palette-primary-main)"
               : undefined
@@ -210,10 +213,10 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
           tooltipPlacement="top"
           nodrag={false}
           sx={{
-            borderRadius: 1,
+            borderRadius: BORDER_RADIUS.sm,
             px: 0.5,
             gap: 0.5,
-            fontSize: "var(--fontSizeSmall)",
+            fontSize: FONT_SIZE_SANS.label,
             color: workflowFilter
               ? "var(--palette-primary-main)"
               : undefined

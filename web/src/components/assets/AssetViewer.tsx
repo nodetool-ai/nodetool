@@ -18,7 +18,7 @@ const EASE_OUT_QUINT = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 import { useEffect, useState, useRef, useCallback, useMemo, memo } from "react";
 //mui
-import { EditorButton, Dialog, Text } from "../ui_primitives";
+import { EditorButton, Dialog, Text, MOTION, BORDER_RADIUS } from "../ui_primitives";
 //icons
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
@@ -100,7 +100,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.background.paper,
       color: theme.vars.palette.text.primary,
       border: `1px solid ${theme.vars.palette.action.disabledBackground}`,
-      borderRadius: "var(--rounded-circle)",
+      borderRadius: BORDER_RADIUS.circle,
       padding: "0.3em"
     },
     ".actions button svg": {
@@ -130,7 +130,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[200],
       backgroundColor: theme.vars.palette.background.paper,
       border: `2px solid ${theme.vars.palette.action.disabledBackground}`,
-      transition: `transform 140ms ${EASE_OUT_QUINT}, background-color 140ms ease, color 140ms ease`
+      transition: `transform 140ms ${EASE_OUT_QUINT}, ${MOTION.background}, ${MOTION.opacity}`
     },
     ".prev-next-button:active": {
       transform: "scale(0.88)"
@@ -169,7 +169,7 @@ const styles = (theme: Theme) =>
       width: "100px",
       height: "100px",
       overflow: "hidden",
-      borderRadius: "0.6em",
+      borderRadius: BORDER_RADIUS.lg,
       border: `2px solid ${theme.vars.palette.primary.main}`,
       boxShadow: `0 0 0 4px rgb(${theme.vars.palette.primary.mainChannel} / 0.18), 0 12px 32px rgb(0 0 0 / 0.5)`,
       // Re-keyed by asset id on navigation, so this replays each time the
@@ -182,10 +182,10 @@ const styles = (theme: Theme) =>
       width: "120px",
       height: "80px",
       overflow: "hidden",
-      borderRadius: "0.5em",
+      borderRadius: BORDER_RADIUS.md,
       cursor: "pointer !important",
       willChange: "transform",
-      transition: `transform 200ms ${EASE_OUT_QUINT}, box-shadow 200ms ease`,
+      transition: `transform 200ms ${EASE_OUT_QUINT}, ${MOTION.shadow}`,
       // `backwards` keeps the from-state during the stagger delay but releases
       // the element afterward, so the hover transition below still applies.
       animation: `${thumbReveal} 320ms ${EASE_OUT_EXPO} backwards`
@@ -231,7 +231,7 @@ const styles = (theme: Theme) =>
       transform: "translateX(-50%)",
       padding: theme.spacing(1, 2),
       backgroundColor: theme.vars.palette.background.paper,
-      borderRadius: theme.shape.borderRadius,
+      borderRadius: BORDER_RADIUS.md,
       zIndex: 10001,
       color: theme.vars.palette.text.primary,
       fontSize: theme.fontSizeSmall
@@ -248,7 +248,7 @@ const styles = (theme: Theme) =>
       zIndex: 10001,
       padding: theme.spacing(1, 1.5),
       backgroundColor: theme.vars.palette.background.paper,
-      borderRadius: theme.shape.borderRadius,
+      borderRadius: BORDER_RADIUS.md,
       fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.text.primary
     },

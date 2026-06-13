@@ -11,7 +11,7 @@ import {
 import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
 import { useNodeError } from "../../hooks/nodes/useNodeExecState";
 import isEqual from "fast-deep-equal";
-import { CopyButton, ExternalLink, Tooltip, MOTION } from "../ui_primitives";
+import { CopyButton, ExternalLink, Tooltip, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { VERSION } from "../../config/constants";
 import { extractKieTaskId, KIE_LOGS_URL } from "../../utils/kieTaskId";
 
@@ -129,7 +129,7 @@ const errorStyles = (theme: Theme) =>
       alignItems: "center",
       gap: "4px",
       padding: "2px 8px",
-      borderRadius: "4px",
+      borderRadius: BORDER_RADIUS.sm,
       border: `1px solid ${theme.vars.palette.grey[1000]}44`,
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[1000],

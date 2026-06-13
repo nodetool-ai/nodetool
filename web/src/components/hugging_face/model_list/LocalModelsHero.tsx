@@ -10,7 +10,8 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
-  Text
+  Text,
+  BORDER_RADIUS
 } from "../../ui_primitives";
 import type { UnifiedModel } from "../../../stores/ApiTypes";
 
@@ -50,7 +51,7 @@ const LocalModelsHero: React.FC<LocalModelsHeroProps> = ({ models }) => {
       variant="outlined"
       padding="comfortable"
       sx={{
-        borderRadius: "var(--rounded-xl)",
+        borderRadius: BORDER_RADIUS.lg,
         border: `1px solid ${theme.vars.palette.divider}`,
         backgroundColor: theme.vars.palette.background.paper,
         marginBottom: "1.25rem"
@@ -66,7 +67,7 @@ const LocalModelsHero: React.FC<LocalModelsHeroProps> = ({ models }) => {
               width: 44,
               height: 44,
               minWidth: 44,
-              borderRadius: "var(--rounded-lg)",
+              borderRadius: BORDER_RADIUS.md,
               backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`,
               color: theme.vars.palette.primary.main
             }}
@@ -97,7 +98,7 @@ const LocalModelsHero: React.FC<LocalModelsHeroProps> = ({ models }) => {
                 marginTop: "2px",
                 paddingLeft: 0,
                 paddingRight: 0,
-                fontSize: theme.fontSizeTiny
+                fontSize: "var(--fontSizeTiny)"
               }}
             >
               Learn more
@@ -157,7 +158,7 @@ const Stat: React.FC<StatProps> = ({ value, label, icon }) => {
       <Caption
         sx={{
           opacity: 0.55,
-          fontSize: theme.fontSizeTiny,
+          fontSize: "var(--fontSizeTiny)",
           marginTop: "2px",
           whiteSpace: "nowrap"
         }}

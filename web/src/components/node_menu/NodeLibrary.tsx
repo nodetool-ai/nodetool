@@ -14,7 +14,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 
-import { Text, thinScrollbarStyles, MOTION } from "../ui_primitives";
+import { Text, thinScrollbarStyles, MOTION, FONT_WEIGHT } from "../ui_primitives";
 import NodeLibraryRow from "./NodeLibraryRow";
 import NodeInfo from "./NodeInfo";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -55,7 +55,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
     },
     ".nl-title": {
       fontSize: "var(--fontSizeNormal)",
-      fontWeight: 600,
+      fontWeight: FONT_WEIGHT.semibold,
       letterSpacing: "-0.01em",
       color: theme.vars.palette.text.primary
     },
@@ -67,7 +67,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       backgroundColor: theme.vars.palette.action.selected,
       color: theme.vars.palette.text.secondary,
       fontSize: "var(--fontSizeSmall)",
-      fontWeight: 500,
+      fontWeight: FONT_WEIGHT.medium,
       fontVariantNumeric: "tabular-nums"
     },
 
@@ -125,7 +125,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       border: `1px solid ${theme.vars.palette.divider}`,
       color: theme.vars.palette.text.secondary,
       fontSize: "var(--fontSizeSmaller)",
-      fontWeight: 600,
+      fontWeight: FONT_WEIGHT.semibold,
       lineHeight: 1,
       flexShrink: 0
     },
@@ -197,7 +197,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       lineHeight: 1.2,
       textAlign: "left",
       cursor: "pointer",
-      transition: `background-color ${MOTION.fast}, color ${MOTION.fast}`,
+      transition: `${MOTION.background}, color ${MOTION.fast}`,
       "& .nl-cat-icon": {
         display: "inline-flex",
         flexShrink: 0,

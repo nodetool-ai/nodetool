@@ -18,6 +18,7 @@ import {
   CopyButton,
   EditorButton,
   MOTION,
+  BORDER_RADIUS,
   ScrollArea,
   Text,
   Tooltip,
@@ -71,7 +72,7 @@ const styles = (theme: Theme) =>
     ".inspector-head-icon": {
       width: 32,
       height: 32,
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       display: "grid",
       placeItems: "center",
       flexShrink: 0,
@@ -290,7 +291,7 @@ const styles = (theme: Theme) =>
       padding: "0.5em 0.75em",
       border: `1px solid ${theme.vars.palette.error.main}`,
       backgroundColor: "var(--palette-error-overlay)",
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.error.main
     },
@@ -356,7 +357,7 @@ const styles = (theme: Theme) =>
       letterSpacing: "0.02em",
       color: theme.vars.palette.text.secondary,
       padding: "2px 6px",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.action.hover
     },
 
@@ -384,7 +385,7 @@ const styles = (theme: Theme) =>
       letterSpacing: "0.02em",
       color: theme.vars.palette.text.secondary,
       padding: "2px 8px",
-      borderRadius: "var(--rounded-pill)",
+      borderRadius: BORDER_RADIUS.pill,
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`
     },

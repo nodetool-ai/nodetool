@@ -6,7 +6,7 @@ import { memo, useState, useEffect, useCallback } from "react";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ReplaceIcon from "@mui/icons-material/FindReplace";
-import { CloseButton, NodeTextField, ToolbarIconButton, Box } from "../ui_primitives";
+import { CloseButton, NodeTextField, ToolbarIconButton, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
 
 const MAX_SEARCH_LENGTH = 1000;
 
@@ -110,7 +110,7 @@ const styles = (theme: Theme) =>
       marginRight: "0",
       color: `${theme.vars.palette.grey[200]} !important`,
       backgroundColor: "transparent !important",
-      borderRadius: "4px !important",
+      borderRadius: `${BORDER_RADIUS.sm} !important`,
       "&:hover": {
         backgroundColor: `${theme.vars.palette.grey[600]} !important`,
         color: `${theme.vars.palette.grey[0]} !important`
@@ -266,7 +266,7 @@ const FindReplaceBar = ({
 
           <span>
             <ToolbarIconButton
-              icon={<span style={{ fontSize: '0.75rem', fontWeight: 500 }}>Replace</span>}
+              icon={<span style={{ fontSize: 'var(--fontSizeSmaller)', fontWeight: 600 }}>Replace</span>}
               tooltip="Replace"
               onClick={handleReplace}
               disabled={!isValidSearch || totalMatches === 0}
@@ -276,7 +276,7 @@ const FindReplaceBar = ({
 
           <span>
             <ToolbarIconButton
-              icon={<span style={{ fontSize: '0.75rem', fontWeight: 500 }}>All</span>}
+              icon={<span style={{ fontSize: 'var(--fontSizeSmaller)', fontWeight: 600 }}>All</span>}
               tooltip="Replace All"
               onClick={handleReplaceAll}
               disabled={!isValidSearch || totalMatches === 0}

@@ -4,7 +4,7 @@ import { css, keyframes } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { LinearProgress } from "@mui/material";
-import { Collapse, MOTION } from "../ui_primitives";
+import { Collapse, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { PREVIEW_NODE_TYPE } from "../../constants/nodeTypes";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -132,7 +132,7 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
     <Box
       css={cardCss}
       sx={{
-        borderRadius: 2,
+        borderRadius: BORDER_RADIUS.sm,
         border: `1.5px solid ${node.expanded ? `${nsColor}50` : theme.vars.palette.divider}`,
         backgroundColor: theme.vars.palette.background.paper,
         overflow: "hidden",
@@ -165,10 +165,10 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
       >
         <Box
           sx={{
-            width: 32, height: 32, borderRadius: 1.25,
+            width: 32, height: 32, borderRadius: BORDER_RADIUS.sm,
             display: "flex", alignItems: "center", justifyContent: "center",
             backgroundColor: `${nsColor}18`, color: nsColor,
-            fontSize: 14, fontWeight: 600,
+            fontSize: "var(--fontSizeSmall)", fontWeight: 600,
           }}
         >
           {index + 1}

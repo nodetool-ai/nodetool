@@ -6,7 +6,8 @@ import type { Theme } from "@mui/material/styles";
 import {
   Caption,
   Popover,
-  MOTION
+  MOTION,
+  BORDER_RADIUS
 } from "../../ui_primitives";
 import type { AspectRatioOption } from "../../../stores/MediaGenerationStore";
 
@@ -44,7 +45,7 @@ const styles = (theme: Theme) =>
       border: "none",
       cursor: "pointer",
       color: theme.vars.palette.grey[100],
-      borderRadius: 10,
+      borderRadius: BORDER_RADIUS.lg,
       transition: MOTION.background,
       "&:hover": {
         backgroundColor: "rgba(255,255,255,0.04)"
@@ -63,14 +64,14 @@ const styles = (theme: Theme) =>
     },
     ".aspect-rect": {
       border: `2px solid ${theme.vars.palette.grey[400]}`,
-      borderRadius: 6,
+      borderRadius: BORDER_RADIUS.md,
       boxSizing: "border-box"
     },
     ".aspect-option.selected .aspect-rect": {
       borderColor: theme.vars.palette.primary.light
     },
     ".aspect-label": {
-      fontSize: 13,
+      fontSize: "var(--fontSizeSmall)",
       fontWeight: 500,
       color: theme.vars.palette.grey[200]
     },
@@ -133,7 +134,7 @@ const MediaAspectRatioMenu: React.FC<MediaAspectRatioMenuProps> = ({
       paperSx={{
         backgroundColor: theme.vars.palette.grey[900],
         border: `1px solid ${theme.vars.palette.grey[800]}`,
-        borderRadius: 3,
+        borderRadius: BORDER_RADIUS.md,
         boxShadow: "0 12px 40px rgba(0,0,0,0.45)"
       }}
     >
