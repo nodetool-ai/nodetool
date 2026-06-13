@@ -368,22 +368,20 @@ export function useProcessedEdges({
   });
 
   // 2. Status Pass (Light)
-  // Adds execution status classes and counters based on real-time execution state
-  return useMemo(() => {
-    // If selecting, preserve behavior of freezing updates (or reuse heavy result)
-    // The structural result already handles isSelecting caching for structure.
-    // For status, we'll re-apply the latest status on top of the cached structure.
+  // Adds execution status classes and counters based on real-time execution state.
+  // Uses a ref to preserve the previous result so that when no edge actually
+  // changed we return the same array reference — preventing ReactFlow from
+  // diffing all edges on every status store update.
+  const prevStatusResultRef = useRef<ProcessedEdgesResult | null>(null);
 
+  return useMemo(() => {
     const { processedEdges: structuralEdges, activeGradientKeys } = structuralResult;
 
     const processedEdges = structuralEdges.map((edge) => {
-      // Skip status processing for control edges
       if (edge.type === "control") {
         return edge;
       }
 
-      // Edge statuses are keyed by the focused run; without one there's no run
-      // to visualize.
       const statusKey =
         workflowId && focusedJobId && edge.id
           ? edgeKey(workflowId, focusedJobId, edge.id)
@@ -392,37 +390,24 @@ export function useProcessedEdges({
       const status = statusObj?.status;
       const counter = statusObj?.counter;
 
-      // Check if source node is running - animate edges from running nodes.
-      // Node statuses are keyed by the focused run; without one there's no
-      // run to visualize.
       const sourceNodeStatusKey =
         workflowId && focusedJobId
           ? nodeKey(workflowId, focusedJobId, edge.source)
           : undefined;
       const sourceNodeStatus = sourceNodeStatusKey ? nodeStatuses?.[sourceNodeStatusKey] : undefined;
       const isSourceRunning = sourceNodeStatus === "running" || sourceNodeStatus === "starting" || sourceNodeStatus === "booting";
-      
-      const statusClasses: string[] = [];
-      if (status === "message_sent" || isSourceRunning) {
-        statusClasses.push("message-sent");
-      }
 
-      // If no status changes, return the original structural edge to preserve reference stability if possible?
-      // But we are mapping, so we create new object anyway.
-      // Optimizing reference stability here would require checking if changes are needed.
-      // Given this runs frequently, creating new object is okay as long as we don't re-run structural logic.
+      const hasMessageSent = status === "message_sent" || isSourceRunning;
 
-      if (statusClasses.length === 0 && !status && !counter) {
-          // If no status to add, return structural edge directly?
-          // Wait, structural edge might already have classes.
-          // And we might have had status before.
-          // But structuralEdge is "pure" structure.
-          return edge;
+      if (!hasMessageSent && !status && !counter) {
+        return edge;
       }
 
       return {
         ...edge,
-        className: [edge.className, ...statusClasses].filter(Boolean).join(" "),
+        className: hasMessageSent
+          ? [edge.className, "message-sent"].filter(Boolean).join(" ")
+          : edge.className,
         data: {
           ...edge.data,
           status: status || null,
@@ -431,6 +416,18 @@ export function useProcessedEdges({
       };
     });
 
-    return { processedEdges, activeGradientKeys };
+    const prev = prevStatusResultRef.current;
+    if (
+      prev &&
+      prev.activeGradientKeys === activeGradientKeys &&
+      prev.processedEdges.length === processedEdges.length &&
+      prev.processedEdges.every((e, i) => e === processedEdges[i])
+    ) {
+      return prev;
+    }
+
+    const result = { processedEdges, activeGradientKeys };
+    prevStatusResultRef.current = result;
+    return result;
   }, [structuralResult, workflowId, focusedJobId, edgeStatuses, nodeStatuses]);
 }
