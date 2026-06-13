@@ -3,7 +3,7 @@ layout: page
 title: "lib.os Nodes"
 ---
 
-This namespace contains 29 node(s).
+This namespace contains 33 node(s).
 
 ## Available Nodes
 
@@ -31,8 +31,12 @@ This namespace contains 29 node(s).
 - **[Normalize Path](normalizepath.md)** - Normalizes a path.
 - **[Open Workspace Directory](openworkspacedirectory.md)** - Open the workspace directory.
 - **[Path To String](pathtostring.md)** - Convert a FilePath object to a string.
+- **[Read Binary File](readbinaryfile.md)** - Read a binary file from the workspace as base64-encoded string.
+- **[Read Text File](readtextfile.md)** - Read a text file from the workspace.
 - **[Relative Path](relativepath.md)** - Return a relative path to a target from a start directory.
 - **[Show Notification](shownotification.md)** - Shows a system notification.
 - **[Split Extension](splitextension.md)** - Split a path into root and extension components.
 - **[Split Path](splitpath.md)** - Split a path into directory and file components.
 - **[Workspace Directory](workspacedirectory.md)** - Get the workspace directory.
+- **[Write Binary File](writebinaryfile.md)** - Write binary data (base64-encoded) to a file in the workspace.
+- **[Write Text File](writetextfile.md)** - Write text to a file in the workspace.
