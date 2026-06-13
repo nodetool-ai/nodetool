@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { Fade } from "@mui/material";
-import { Text, Tooltip, LoadingSpinner, Box, MOTION } from "../ui_primitives";
+import { Text, Tooltip, LoadingSpinner, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
@@ -47,7 +47,7 @@ const cardStyles = (theme: Theme) =>
     width: "100%",
     height: "100%",
     minHeight: "260px",
-    borderRadius: "var(--rounded-xl)",
+    borderRadius: BORDER_RADIUS.lg,
     overflow: "hidden",
     cursor: "pointer",
     background: theme.vars.palette.grey[900],
@@ -75,7 +75,7 @@ const cardStyles = (theme: Theme) =>
       backgroundColor: "rgba(0, 0, 0, 0.75)",
       backdropFilter: "blur(4px)",
       zIndex: 10,
-      borderRadius: "var(--rounded-xl)"
+      borderRadius: BORDER_RADIUS.lg
     },
     ".loading-text": {
       color: theme.vars.palette.primary.main,
@@ -96,7 +96,7 @@ const cardStyles = (theme: Theme) =>
       width: "100%",
       height: "100%",
       objectFit: "cover",
-      transition: `transform ${MOTION.slow}`
+      transition: MOTION.transform
     },
     "&:hover .card-image": {
       transform: "scale(1.03)"
@@ -121,7 +121,7 @@ const cardStyles = (theme: Theme) =>
       backdropFilter: "blur(4px)",
       color: theme.vars.palette.grey[200],
       padding: "4px 8px",
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.xs,
       textTransform: "uppercase"
     },
     ".matched-nodes": {
@@ -138,7 +138,7 @@ const cardStyles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       padding: "4px 8px",
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.xs,
       backgroundColor: theme.vars.palette.grey[100],
       color: theme.vars.palette.grey[900]
     },
@@ -202,7 +202,7 @@ const cardStyles = (theme: Theme) =>
       fontWeight: 500,
       letterSpacing: "0.3px",
       padding: "2px 8px",
-      borderRadius: "999px",
+      borderRadius: BORDER_RADIUS.pill,
       color: theme.vars.palette.text.secondary,
       background: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`,
@@ -218,7 +218,7 @@ const cardStyles = (theme: Theme) =>
     ".chip-dot": {
       width: "6px",
       height: "6px",
-      borderRadius: "999px",
+      borderRadius: BORDER_RADIUS.pill,
       flexShrink: 0
     }
   });
@@ -286,7 +286,7 @@ const WorkflowCard = ({
             fontSize: "var(--fontSizeNormal)",
             padding: "10px 14px",
             maxWidth: 300,
-            borderRadius: "var(--rounded-lg)",
+            borderRadius: BORDER_RADIUS.lg,
             boxShadow: "0 4px 20px rgba(0, 0, 0, 0.3)"
           }
         },

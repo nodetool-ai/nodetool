@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useMemo } from "react";
-import { Divider, FlexRow, ToolbarIconButton } from "../ui_primitives";
+import { Divider, FlexRow, ToolbarIconButton, Z_INDEX, BORDER_RADIUS } from "../ui_primitives";
 import {
   AlignHorizontalLeft,
   AlignHorizontalCenter,
@@ -251,10 +251,10 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(({
         top: 30,
         left: "50%",
         transform: "translateX(-50%)",
-        zIndex: 1000,
-        padding: "6px 10px",
+        zIndex: Z_INDEX.dropdown,
+        padding: "6px 8px",
         backgroundColor: 'var(--palette-grey-800)',
-        borderRadius: 2,
+        borderRadius: BORDER_RADIUS.md,
         boxShadow: 1,
       }}
     >

@@ -14,7 +14,7 @@ import {
   AccordionSummary,
   AccordionDetails
 } from "@mui/material";
-import { Caption, Chip, Divider, FlexRow, Surface, Text, Box } from "../ui_primitives";
+import { Caption, Chip, Divider, FlexRow, Surface, Text, Box, BORDER_RADIUS } from "../ui_primitives";
 import {
   Add as AddIcon,
   Remove as RemoveIcon,
@@ -84,7 +84,7 @@ const NodeDiffItem: React.FC<{
   <ListItem
     sx={{
       bgcolor: type === "added" ? "rgba(46, 125, 50, 0.1)" : "rgba(211, 47, 47, 0.1)",
-      borderRadius: 1,
+      borderRadius: BORDER_RADIUS.xs,
       mb: 0.5
     }}
   >
@@ -166,7 +166,7 @@ const EdgeDiffItem: React.FC<{
         type === "added"
           ? "rgba(46, 125, 50, 0.1)"
           : "rgba(211, 47, 47, 0.1)",
-      borderRadius: 1,
+      borderRadius: BORDER_RADIUS.xs,
       mb: 0.5,
       py: 0.5
     }}

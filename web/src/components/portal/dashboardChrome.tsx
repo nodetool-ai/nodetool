@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { forwardRef, memo, type ReactNode } from "react";
-import { MOTION } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS } from "../ui_primitives";
 
 /** Shared horizontal rhythm for the dashboard: a centered column that the hero
  *  background and section borders bleed past, while content stays aligned. */
@@ -22,16 +22,16 @@ const headerStyles = (theme: Theme) =>
     display: "flex",
     alignItems: "flex-end",
     justifyContent: "space-between",
-    gap: 8,
-    paddingBottom: 8,
+    gap: `${theme.spacing(1)}`,
+    paddingBottom: `${theme.spacing(1)}`,
     flexWrap: "wrap",
     ".sec-title": {
       display: "flex",
       alignItems: "baseline",
-      gap: 8
+      gap: `${theme.spacing(1)}`
     },
     ".sec-title h2": {
-      fontSize: 19,
+      fontSize: "var(--fontSizeBig)",
       fontWeight: 500,
       letterSpacing: "-0.012em",
       margin: 0,
@@ -39,13 +39,13 @@ const headerStyles = (theme: Theme) =>
     },
     ".sec-count": {
       fontFamily: theme.fontFamily2,
-      fontSize: 12,
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.disabled
     },
     ".sec-actions": {
       display: "flex",
       alignItems: "center",
-      gap: 8
+      gap: `${theme.spacing(1)}`
     }
   });
 
@@ -76,12 +76,12 @@ const searchStyles = (theme: Theme) =>
   css({
     display: "flex",
     alignItems: "center",
-    gap: 8,
+    gap: `${theme.spacing(1)}`,
     height: 32,
-    padding: "0 11px",
+    padding: `0 ${theme.spacing(1.375)}`,
     background: theme.vars.palette.c_node_bg,
     border: `1px solid ${theme.vars.palette.divider}`,
-    borderRadius: 7,
+    borderRadius: BORDER_RADIUS.sm,
     color: theme.vars.palette.text.secondary,
     minWidth: 240,
     transition: `border-color ${MOTION.fast}`,
@@ -96,16 +96,16 @@ const searchStyles = (theme: Theme) =>
       outline: "none",
       color: theme.vars.palette.text.primary,
       font: "inherit",
-      fontSize: 13.5,
+      fontSize: "var(--fontSizeNormal)",
       "&::placeholder": { color: theme.vars.palette.text.disabled }
     },
     ".kbd": {
       fontFamily: theme.fontFamily2,
-      fontSize: 10.5,
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.secondary,
-      padding: "1px 6px",
+      padding: `${theme.spacing(0.125)} ${theme.spacing(0.75)}`,
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: 4,
+      borderRadius: BORDER_RADIUS.xs,
       lineHeight: 1.4
     },
     ".search-clear": {
@@ -116,7 +116,7 @@ const searchStyles = (theme: Theme) =>
       flexShrink: 0,
       padding: 0,
       border: "none",
-      borderRadius: 4,
+      borderRadius: BORDER_RADIUS.xs,
       background: "transparent",
       color: theme.vars.palette.text.disabled,
       cursor: "pointer",
@@ -208,8 +208,8 @@ const linkStyles = (theme: Theme) =>
   css({
     display: "inline-flex",
     alignItems: "center",
-    gap: 6,
-    fontSize: 13,
+    gap: `${theme.spacing(0.75)}`,
+    fontSize: "var(--fontSizeSmall)",
     color: theme.vars.palette.primary.main,
     background: "none",
     border: "none",

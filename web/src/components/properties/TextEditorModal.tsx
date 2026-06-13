@@ -24,7 +24,7 @@ import TextDecreaseIcon from "@mui/icons-material/TextDecrease";
 import TextIncreaseIcon from "@mui/icons-material/TextIncrease";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
-import { Tooltip, LoadingSpinner, MOTION } from "../ui_primitives";
+import { Tooltip, LoadingSpinner, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ListItemNode, ListNode } from "@lexical/list";
@@ -219,7 +219,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       justifyContent: "center",
       alignItems: "flex-start",
-      transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)"
+      transition: MOTION.all
     },
     ".modal-overlay.fullscreen": {
       top: 0,
@@ -251,7 +251,7 @@ const styles = (theme: Theme) =>
         0 0 0 1px rgba(255,255,255,0.06) inset,
         0 1px 0 0 rgba(255,255,255,0.08) inset`,
       overflow: "hidden",
-      transition: "all 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
+      transition: MOTION.all,
       animation: "modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards"
     },
     ".modal-content.fullscreen": {
@@ -299,7 +299,7 @@ const styles = (theme: Theme) =>
       flexShrink: 0,
       width: "2.4em",
       height: "2.4em",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -352,7 +352,7 @@ const styles = (theme: Theme) =>
     ".type-badge": {
       flexShrink: 0,
       padding: "0.1em 0.6em",
-      borderRadius: "var(--rounded-pill, 999px)",
+      borderRadius: BORDER_RADIUS.pill,
       fontSize: "var(--fontSizeTiny)",
       fontFamily: theme.fontFamily2,
       letterSpacing: "0.03em",
@@ -394,7 +394,7 @@ const styles = (theme: Theme) =>
       background: `rgba(${theme.vars.palette.background.paperChannel} / 0.5)`,
       color: theme.vars.palette.text.secondary,
       border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.08)`,
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       padding: "0.3em 1.6em 0.3em 0.7em",
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
@@ -419,7 +419,7 @@ const styles = (theme: Theme) =>
       padding: "0.32em 0.6em",
       cursor: "pointer",
       color: theme.vars.palette.text.secondary,
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 500,
       background: "transparent",
@@ -445,7 +445,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "0.15em",
       padding: "0.1em 0.25em",
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.07)`,
       background: `rgba(${theme.vars.palette.background.paperChannel} / 0.35)`,
       ".font-size-value": {
@@ -504,7 +504,7 @@ const styles = (theme: Theme) =>
       ".editor-variable-token": {
         color: `${theme.vars.palette.primary.light} !important`,
         backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`,
-        borderRadius: "var(--rounded-sm)",
+        borderRadius: BORDER_RADIUS.sm,
         fontWeight: 600
       },
       ".editor-pane": {
@@ -606,14 +606,14 @@ const styles = (theme: Theme) =>
       minHeight: "32px",
       cursor: "pointer",
       color: theme.vars.palette.text.secondary,
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       fontSize: "var(--fontSizeNormal)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       background: "transparent",
       border: "1px solid transparent",
-      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+      transition: MOTION.all,
       "&:hover": {
         color: theme.vars.palette.primary.main,
         background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`,
@@ -629,7 +629,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".button-close": {
-      marginLeft: "0.35em",
+      marginLeft: "3px",
       border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.08)`,
       "&:hover": {
         backgroundColor: theme.vars.palette.error.main,
@@ -644,7 +644,7 @@ const styles = (theme: Theme) =>
       cursor: "pointer",
       color: theme.vars.palette.grey[400],
       fontSize: "var(--fontSizeNormal)",
-      borderRadius: "8px",
+      borderRadius: BORDER_RADIUS.md,
       background: "transparent",
       border: "1px solid transparent",
       minWidth: "28px",
@@ -652,7 +652,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+      transition: MOTION.all,
       svg: { fontSize: "var(--fontSizeNormal)" },
       "&:hover": {
         color: theme.vars.palette.primary.light,
@@ -688,8 +688,8 @@ const styles = (theme: Theme) =>
       left: "50%",
       transform: "translate(-50%, -50%)",
       backgroundColor: `rgba(${theme.vars.palette.common.whiteChannel} / 0.15)`,
-      borderRadius: "100px",
-      transition: "all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1)"
+      borderRadius: BORDER_RADIUS.pill,
+      transition: MOTION.all
     },
     ".loading-container": {
       display: "flex",

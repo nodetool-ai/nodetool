@@ -47,8 +47,7 @@ export default class PanelErrorBoundary extends React.Component<
               padding: 3,
               minHeight: 200,
               bgcolor: "error.dark",
-              color: "error.contrastText",
-              borderRadius: 1
+              color: "error.contrastText"
             }}
           >
             <Text size="small" component="div">

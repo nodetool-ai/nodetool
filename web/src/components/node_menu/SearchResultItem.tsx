@@ -3,7 +3,7 @@ import { memo, useCallback, forwardRef, useState, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Box, Collapse, MOTION } from "../ui_primitives";
+import { Text, Box, Collapse, MOTION, BORDER_RADIUS, FONT_WEIGHT } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -45,7 +45,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
       margin: compact ? theme.spacing(0.5, 0) : theme.spacing(0.5, 0),
       borderRadius: "var(--rounded-md)",
       cursor: "pointer",
-      transition: `all ${MOTION.fast}`,
+      transition: MOTION.all,
       border: "1px solid transparent",
       backgroundColor: "transparent",
       position: "relative",
@@ -86,7 +86,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
       },
       ".result-title": {
         fontSize: "var(--fontSizeNormal)",
-        fontWeight: 400,
+        fontWeight: FONT_WEIGHT.normal,
         color: theme.vars.palette.text.primary,
         lineHeight: 1.3,
         "& .highlight": {
@@ -121,9 +121,9 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         justifyContent: "center",
         width: "20px",
         height: "20px",
-        borderRadius: "var(--rounded-sm)",
+        borderRadius: BORDER_RADIUS.sm,
         color: theme.vars.palette.text.secondary,
-        transition: MOTION.all,
+        transition: `${MOTION.transform}, color ${MOTION.fast}`,
         "&.expanded": {
           transform: "rotate(180deg)",
           color: "var(--palette-primary-main)"
@@ -146,15 +146,15 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
       ".result-tag": {
         fontSize: "var(--fontSizeSmaller)",
         padding: theme.spacing(0.5, 1.5),
-        borderRadius: "var(--rounded-lg)",
+        borderRadius: BORDER_RADIUS.lg,
         backgroundColor: theme.vars.palette.action.selected,
         color: theme.vars.palette.text.secondary,
         letterSpacing: "0.3px"
       },
       ".provider-tag": {
         fontSize: "var(--fontSizeSmaller)",
-        padding: "1px 5px",
-        borderRadius: "var(--rounded-md)",
+        padding: "2px 5px",
+        borderRadius: BORDER_RADIUS.md,
         letterSpacing: "0.3px",
         opacity: 1,
         border: "none"
@@ -171,7 +171,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         padding: theme.spacing(2),
         backgroundColor: theme.vars.palette.background.paper,
         border: `1px solid ${theme.vars.palette.divider}`,
-        borderRadius: "0 0 6px 6px",
+        borderRadius: `0 0 ${BORDER_RADIUS.md} ${BORDER_RADIUS.md}`,
         display: "flex",
         flexDirection: "column",
         gap: theme.spacing(1),
@@ -196,7 +196,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
       },
       ".io-item": {
         padding: theme.spacing(0.5, 1),
-        borderRadius: "var(--rounded-sm)",
+        borderRadius: BORDER_RADIUS.sm,
         fontSize: "var(--fontSizeSmaller)",
         borderLeft: "2px solid",
         backgroundColor: theme.vars.palette.action.hover
@@ -319,7 +319,7 @@ const SearchResultItem = memo(
                 height: "18px",
                 margin: 0,
                 padding: "1px",
-                borderRadius: "var(--rounded-sm)"
+                borderRadius: BORDER_RADIUS.sm
               }}
               svgProps={{ width: "14px", height: "14px" }}
             />
@@ -393,8 +393,8 @@ const SearchResultItem = memo(
                     backgroundColor: theme.vars.palette.action.hover,
                     border: `1px solid ${theme.vars.palette.divider}`,
                     margin: "0",
-                    padding: "5px",
-                    borderRadius: "var(--rounded-md)",
+                    padding: "4px",
+                    borderRadius: BORDER_RADIUS.md,
                     width: "28px",
                     height: "28px"
                   }}

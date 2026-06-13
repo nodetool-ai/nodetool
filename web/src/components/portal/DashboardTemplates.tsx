@@ -14,7 +14,7 @@ import {
   getCategoryForWorkflow
 } from "../../utils/templateCategories";
 import WorkflowCard from "../workflows/WorkflowCard";
-import { LoadingSpinner, MOTION } from "../ui_primitives";
+import { LoadingSpinner, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import {
   wrapStyles,
   SectionHeader,
@@ -36,11 +36,11 @@ const styles = (theme: Theme) =>
     ".cat": {
       display: "inline-flex",
       alignItems: "center",
-      gap: 6,
+      gap: `${theme.spacing(0.75)}`,
       height: 30,
-      padding: "0 14px",
-      borderRadius: 9999,
-      fontSize: 13,
+      padding: `0 ${theme.spacing(1.75)}`,
+      borderRadius: BORDER_RADIUS.pill,
+      fontSize: "var(--fontSizeSmall)",
       background: "transparent",
       color: theme.vars.palette.text.secondary,
       border: `1px solid ${theme.vars.palette.divider}`,
@@ -54,7 +54,7 @@ const styles = (theme: Theme) =>
     ".cat-dot": {
       width: 7,
       height: 7,
-      borderRadius: 9999,
+      borderRadius: BORDER_RADIUS.circle,
       flexShrink: 0
     },
     // Neutral "All" active state; category pills override colours inline.

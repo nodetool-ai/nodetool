@@ -20,7 +20,7 @@ import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import Help from "../content/Help/Help";
 import Logo from "../Logo";
-import { Popover, MenuItemPrimitive, Tooltip, MOTION } from "../ui_primitives";
+import { Popover, MenuItemPrimitive, Tooltip, MOTION, BORDER_RADIUS } from "../ui_primitives";
 
 const workspacesEnabled = !isProduction;
 
@@ -31,10 +31,10 @@ const logoButtonStyles = (theme: Theme) =>
     justifyContent: "center",
     width: "40px",
     height: "34px",
-    margin: "0 5px",
+    margin: `0 ${theme.spacing(0.625)}`,
     padding: 0,
     border: "none",
-    borderRadius: "8px",
+    borderRadius: BORDER_RADIUS.lg,
     background: "transparent",
     cursor: "pointer",
     opacity: 0.9,

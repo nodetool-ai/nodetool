@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type { CSSProperties, DragEvent as ReactDragEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
-import { EmptyState, Tooltip, Text, ToolbarIconButton, thinScrollbarStyles, Box, MOTION } from "../ui_primitives";
+import { EmptyState, Tooltip, Text, ToolbarIconButton, thinScrollbarStyles, Box, MOTION, BORDER_RADIUS, FONT_WEIGHT } from "../ui_primitives";
 import CloseIcon from "@mui/icons-material/Close";
 import ClearIcon from "@mui/icons-material/Clear";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM, NOTIFICATION_TIMEOUT_SHORT } from "../../config/constants";
@@ -55,12 +55,12 @@ const tileStyles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       padding: "12px 8px",
-      borderRadius: theme.rounded.md,
+      borderRadius: BORDER_RADIUS.md,
       cursor: "pointer",
       position: "relative",
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.divider}`,
-      transition: "background-color 120ms ease, border-color 120ms ease",
+      transition: `${MOTION.background}, ${MOTION.border}`,
       minHeight: "30px",
       background: theme.vars.palette.background.paper,
       "&::before": {
@@ -84,7 +84,7 @@ const tileStyles = (theme: Theme) =>
     },
     ".tile-label": {
       fontSize: "var(--fontSizeSmall)",
-      fontWeight: 600,
+      fontWeight: FONT_WEIGHT.semibold,
       textAlign: "center",
       lineHeight: 1.3,
       color: theme.vars.palette.text.primary,

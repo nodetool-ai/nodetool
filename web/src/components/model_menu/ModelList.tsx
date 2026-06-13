@@ -8,7 +8,7 @@ import {
   ListItemText,
   ListItemIcon
 } from "@mui/material";
-import { FlexRow, Tooltip, EmptyState, Box } from "../ui_primitives";
+import { FlexRow, Tooltip, EmptyState, Box, BORDER_RADIUS } from "../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 import FavoriteStar from "./FavoriteStar";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
@@ -151,7 +151,7 @@ function ModelList<TModel extends ModelSelectorModel>({
     padding: "0px 6px",
     fontSize: "var(--fontSizeSmaller)",
     lineHeight: 1.4,
-    borderRadius: 4,
+    borderRadius: BORDER_RADIUS.xs,
     background: theme.vars.palette.action.hover,
     color: theme.vars.palette.text.secondary,
     letterSpacing: 0.2,

@@ -9,7 +9,7 @@ import { Workflow, WorkflowList as WorkflowListType } from "../../stores/ApiType
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { trpcClient } from "../../trpc/client";
-import { MOTION } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS } from "../ui_primitives";
 import RecentWorkflowCard from "./RecentWorkflowCard";
 import WorkflowListView from "../workflows/WorkflowListView";
 import WorkflowDeleteDialog from "../workflows/WorkflowDeleteDialog";
@@ -26,7 +26,7 @@ const styles = (theme: Theme) =>
       gap: 2,
       background: theme.vars.palette.c_node_bg,
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: 7,
+      borderRadius: BORDER_RADIUS.md,
       padding: 2
     },
     ".viewtog button": {
@@ -37,7 +37,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       background: "transparent",
       border: "none",
-      borderRadius: 5,
+      borderRadius: BORDER_RADIUS.sm,
       cursor: "pointer",
       "&.on": {
         background: theme.vars.palette.c_node_bg_group,
@@ -70,7 +70,7 @@ const styles = (theme: Theme) =>
     },
     ".rec-new-thumb": {
       aspectRatio: "4 / 3",
-      borderRadius: "var(--rounded-xl)",
+      borderRadius: BORDER_RADIUS.xl,
       border: `1px dashed ${theme.vars.palette.divider}`,
       display: "grid",
       placeItems: "center",
@@ -82,11 +82,12 @@ const styles = (theme: Theme) =>
     ".rec-new-icon": {
       width: 40,
       height: 40,
-      borderRadius: 10,
+      borderRadius: BORDER_RADIUS.lg,
       display: "grid",
       placeItems: "center",
       background: theme.vars.palette.c_node_bg,
-      color: theme.vars.palette.primary.main
+      color: theme.vars.palette.primary.main,
+      transition: MOTION.all
     },
     ".rec-new-label": {
       fontSize: 14,
@@ -102,7 +103,7 @@ const styles = (theme: Theme) =>
     ".rec-list": {
       height: 420,
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       padding: "6px 10px",
       background: `rgba(${theme.vars.palette.common.whiteChannel} / 0.012)`
     },

@@ -17,7 +17,7 @@ import {
   ResizeParams
 } from "@xyflow/react";
 import isEqual from "fast-deep-equal";
-import { Container } from "../ui_primitives";
+import { Container, BORDER_RADIUS, MOTION } from "../ui_primitives";
 import FalPricingFooter from "./FalPricingFooter";
 import KieCreditsFooter from "./KieCreditsFooter";
 import { NodeData } from "../../stores/NodeData";
@@ -207,7 +207,7 @@ const getAmbientBadgeStyle = (theme: Theme): React.CSSProperties => ({
   padding: "0 4px",
   display: "grid",
   placeItems: "center",
-  borderRadius: 8,
+  borderRadius: BORDER_RADIUS.lg,
   backgroundColor: theme.vars.palette.secondary.main,
   color: theme.vars.palette.secondary.contrastText,
   border: `1px solid ${theme.vars.palette.c_node_bg}`,
@@ -258,7 +258,7 @@ const getNodeStyles = (colors: string[]) =>
         padding: "var(--ring)",
         backgroundClip: "border-box",
         animation: `${gradientAnimationKeyframes} 5s ease-in-out infinite`,
-        transition: "opacity 0.5s ease-in-out"
+        transition: MOTION.opacity
       }
     },
 
@@ -415,7 +415,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       backgroundColor: theme.vars.palette.warning.main,
       color: theme.vars.palette.warning.contrastText,
       padding: "2px 8px",
-      borderRadius: 4,
+      borderRadius: BORDER_RADIUS.sm,
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       zIndex: 1000

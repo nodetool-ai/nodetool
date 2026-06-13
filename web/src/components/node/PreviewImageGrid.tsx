@@ -12,7 +12,7 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { ImageComparer } from "../widgets";
 import AssetViewer from "../assets/AssetViewer";
 import { CopyAssetButton } from "../common/CopyAssetButton";
-import { Checkbox, Dialog, Tooltip, EditorButton, ToolbarIconButton, Box, MOTION } from "../ui_primitives";
+import { Checkbox, Dialog, Tooltip, EditorButton, ToolbarIconButton, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 
 export type ImageSource = Uint8Array | string;
@@ -46,7 +46,7 @@ const styles = (theme: Theme, gap: number) =>
       position: "relative",
       width: "100%",
       aspectRatio: "1 / 1",
-      borderRadius: 6,
+      borderRadius: BORDER_RADIUS.md,
       overflow: "hidden",
       ...alphaSurfaceBg,
       border: `1px solid ${theme.vars.palette.divider}`,
@@ -69,8 +69,8 @@ const styles = (theme: Theme, gap: number) =>
       top: 6,
       left: 6,
       padding: "2px 6px",
-      fontSize: 11,
-      borderRadius: 4,
+      fontSize: "var(--fontSizeSmaller)",
+      borderRadius: BORDER_RADIUS.sm,
       background: `rgba(${theme.vars.palette.background.defaultChannel} / 0.5)`,
       color: "var(--palette-text-primary)",
       userSelect: "none" as const
@@ -81,7 +81,7 @@ const styles = (theme: Theme, gap: number) =>
       right: 0,
       bottom: 0,
       padding: "4px 6px",
-      fontSize: 11,
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.primary,
       background:
         `linear-gradient(180deg, rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0) 0%, rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.55) 100%)`,
@@ -97,7 +97,7 @@ const styles = (theme: Theme, gap: number) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      fontSize: 12,
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       background: theme.vars.palette.grey[900]
     },
@@ -124,12 +124,12 @@ const styles = (theme: Theme, gap: number) =>
       padding: 4,
       backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
       color: theme.vars.palette.common.white,
-      borderRadius: 4,
+      borderRadius: BORDER_RADIUS.sm,
       "&:hover": {
         backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.85)`
       },
       "& svg": {
-        fontSize: 14
+        fontSize: "var(--fontSizeSmall)"
       }
     },
     ".tile .select-checkbox": {
@@ -139,7 +139,7 @@ const styles = (theme: Theme, gap: number) =>
       zIndex: 5,
       padding: 2,
       backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.5)`,
-      borderRadius: 4,
+      borderRadius: BORDER_RADIUS.sm,
       color: theme.vars.palette.common.white,
       "&:hover": {
         backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.7)`
@@ -154,13 +154,13 @@ const styles = (theme: Theme, gap: number) =>
       gap: 8,
       padding: "8px 16px",
       backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.85)`,
-      borderRadius: 8,
+      borderRadius: BORDER_RADIUS.lg,
       zIndex: 100,
       alignItems: "center"
     },
     ".action-bar .action-button": {
       color: theme.vars.palette.common.white,
-      fontSize: 13,
+      fontSize: "var(--fontSizeSmall)",
       textTransform: "none"
     },
     ".select-mode-toggle": {
@@ -170,7 +170,7 @@ const styles = (theme: Theme, gap: number) =>
       zIndex: 50,
       backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
       color: theme.vars.palette.common.white,
-      fontSize: 11,
+      fontSize: "var(--fontSizeSmaller)",
       textTransform: "none",
       padding: "2px 8px",
       minWidth: "unset",

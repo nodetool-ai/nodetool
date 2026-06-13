@@ -12,7 +12,7 @@ import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
 import SpeedIcon from "@mui/icons-material/Speed";
 import TuneIcon from "@mui/icons-material/Tune";
 import LayersIcon from "@mui/icons-material/Layers";
-import { BORDER_RADIUS, FlexColumn, FlexRow, Text } from "../../ui_primitives";
+import { BORDER_RADIUS, FlexColumn, FlexRow, Text, FONT_SIZE_SANS } from "../../ui_primitives";
 import ImageView from "../../node/ImageView";
 import type {
   Message,
@@ -37,7 +37,7 @@ interface MediaOutputGroupProps {
 const styles = (theme: Theme) =>
   css({
     width: "100%",
-    borderRadius: 14,
+    borderRadius: BORDER_RADIUS.xl,
     backgroundColor: theme.vars.palette.background.paper,
     border: `1px solid ${theme.vars.palette.divider}`,
     padding: 8,
@@ -69,7 +69,7 @@ const styles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.pill,
       background: "rgba(255,255,255,0.04)",
       color: theme.vars.palette.text.secondary,
-      fontSize: 12,
+      fontSize: FONT_SIZE_SANS.caption,
       "& svg": { fontSize: 14, opacity: 0.75 }
     },
 
@@ -92,7 +92,7 @@ const styles = (theme: Theme) =>
     ".media-grid > *": {
       width: "100%",
       aspectRatio: "auto",
-      borderRadius: 10,
+      borderRadius: BORDER_RADIUS.lg,
       overflow: "hidden",
       background: theme.vars.palette.grey[900]
     },

@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { EditorButton, FlexColumn, FlexRow, Box, MOTION } from "../../ui_primitives";
+import { EditorButton, FlexColumn, FlexRow, Box, MOTION, BORDER_RADIUS } from "../../ui_primitives";
 import { LoadingSpinner, Text } from "../../ui_primitives";
 import SearchOffIcon from "@mui/icons-material/SearchOff";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -90,7 +90,7 @@ const styles = (theme: Theme) =>
     ".model-type-button.Mui-selected": {
       color: theme.vars.palette.text.primary,
       transition: `background-color ${MOTION.normal}`,
-      borderRadius: 8,
+      borderRadius: BORDER_RADIUS.md,
       backgroundColor: theme.vars.palette.action.selected
     },
     ".model-type-button span": {
@@ -398,7 +398,7 @@ const ModelListIndex: React.FC = () => {
                   justifyContent: "center",
                   width: 40,
                   height: 40,
-                  borderRadius: "var(--rounded-lg)",
+                  borderRadius: BORDER_RADIUS.md,
                   background:
                     "rgba(var(--palette-primary-main-channel) / 0.12)",
                   flexShrink: 0

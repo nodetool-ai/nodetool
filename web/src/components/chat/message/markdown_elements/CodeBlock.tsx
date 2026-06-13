@@ -8,7 +8,7 @@ import {
   oneLight
 } from "react-syntax-highlighter/dist/esm/styles/prism";
 import SyntaxHighlighter from "react-syntax-highlighter/dist/esm/prism";
-import { CopyButton } from "../../../ui_primitives/CopyButton";
+import { CopyButton, BORDER_RADIUS, FONT_SIZE_SANS } from "../../../ui_primitives";
 import { useIsDarkMode } from "../../../../hooks/useIsDarkMode";
 import isEqual from "fast-deep-equal";
 
@@ -89,8 +89,8 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
                 title="Insert into editor"
                 style={{
                   padding: "6px 10px",
-                  fontSize: "var(--fontSizeSmaller)",
-                  borderRadius: "var(--rounded-sm)",
+                  fontSize: FONT_SIZE_SANS.caption,
+                  borderRadius: BORDER_RADIUS.xs,
                   border: "1px solid var(--palette-grey-700)",
                   background: "var(--palette-grey-700)",
                   color: "var(--palette-grey-50)",
@@ -117,8 +117,8 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
             boxSizing: "border-box",
             borderTopLeftRadius: 0,
             borderTopRightRadius: 0,
-            borderBottomLeftRadius: "8px",
-            borderBottomRightRadius: "8px"
+            borderBottomLeftRadius: BORDER_RADIUS.sm,
+            borderBottomRightRadius: BORDER_RADIUS.sm
           }}
           {...props}
         >

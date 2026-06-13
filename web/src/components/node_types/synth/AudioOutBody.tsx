@@ -12,6 +12,7 @@ import React, { memo, useCallback, useMemo, useRef } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { BORDER_RADIUS, FONT_WEIGHT } from "../../ui_primitives";
 
 import HandleColumn from "../../node/HandleColumn";
 import { NodeOutputs } from "../../node/NodeOutputs";
@@ -33,7 +34,7 @@ const styles = (theme: Theme) =>
       gap: theme.spacing(0.75),
       padding: theme.spacing(1),
       minHeight: 0,
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.grey[900]
     },
     "& > .handle-column": {
@@ -44,14 +45,14 @@ const styles = (theme: Theme) =>
     ".module-label": {
       alignSelf: "center",
       fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeTiny,
-      fontWeight: 700,
+      fontSize: theme.fontSizeSmaller,
+      fontWeight: FONT_WEIGHT.semibold,
       letterSpacing: "0.18em",
       textTransform: "uppercase",
       lineHeight: 1,
       color: theme.vars.palette.text.secondary,
       padding: `2px ${theme.spacing(1)}`,
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       border: `1px solid ${theme.vars.palette.grey[800]}`
     },
     ".player": {

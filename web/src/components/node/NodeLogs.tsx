@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
 import isEqual from "fast-deep-equal";
-import { CopyButton, Text, Chip, EditorButton, Dialog, FlexRow } from "../ui_primitives";
+import { CopyButton, Text, Chip, EditorButton, Dialog, FlexRow, BORDER_RADIUS } from "../ui_primitives";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import LogsTable, { LogRow, Severity } from "../common/LogsTable";
 
@@ -33,7 +33,7 @@ const styles = (theme: Theme) =>
     ".logs-button": {
       width: "100%",
       justifyContent: "space-between",
-      borderRadius: 8,
+      borderRadius: BORDER_RADIUS.lg,
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[200],
       textTransform: "none",

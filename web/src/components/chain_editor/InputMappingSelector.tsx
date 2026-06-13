@@ -9,7 +9,7 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import { ListItemText, ListItemIcon } from "@mui/material";
-import { ToolbarIconButton, Box, EditorMenu, EditorMenuItem, MOTION } from "../ui_primitives";
+import { ToolbarIconButton, Box, EditorMenu, EditorMenuItem, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import InputOutlinedIcon from "@mui/icons-material/InputOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
@@ -137,7 +137,7 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
                 gap: 1,
                 px: 1,
                 py: 1,
-                borderRadius: 1,
+                borderRadius: BORDER_RADIUS.xs,
                 border: `1px solid ${
                   mapping
                     ? `${theme.vars.palette.secondary.main}40`
@@ -152,7 +152,7 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
                     ? `${theme.vars.palette.secondary.main}14`
                     : theme.vars.palette.action.hover,
                 },
-                transition: `all ${MOTION.fast}`,
+                transition: MOTION.all,
               }}
             >
               <FlexColumn gap={0} sx={{ flex: 1, minWidth: 0 }}>

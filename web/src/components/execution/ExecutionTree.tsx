@@ -18,7 +18,7 @@ import React, { memo, useMemo, useState, useCallback } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, FlexRow, FlexColumn } from "../ui_primitives";
+import { Text, FlexRow, FlexColumn, BORDER_RADIUS } from "../ui_primitives";
 import type {
   ExecutionTreeState,
   TaskState,
@@ -210,7 +210,7 @@ const treeStyles = (theme: Theme) =>
       padding: "0.5rem 0.75rem",
       borderLeft: `2px solid ${theme.vars.palette.divider}`,
       background: `${theme.vars.palette.action.hover}`,
-      borderRadius: "0 var(--rounded-sm) var(--rounded-sm) 0",
+      borderRadius: `0 ${BORDER_RADIUS.sm} ${BORDER_RADIUS.sm} 0`,
       fontSize: "var(--fontSizeSmall)",
       lineHeight: 1.5,
       display: "flex",

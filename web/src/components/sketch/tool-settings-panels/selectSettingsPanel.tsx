@@ -24,7 +24,8 @@ import {
   Text,
   ToolbarIconButton,
   Tooltip,
-  Box
+  Box,
+  BORDER_RADIUS
 } from "../../ui_primitives";
 import { RefineSelectionPopover } from "./refine-selection";
 import { useSketchStore } from "../state";
@@ -214,7 +215,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
                 sx={{
                   ...iconButtonCompactSx,
                   border: `1px solid ${SKETCH_COLORS.border}`,
-                  borderRadius: 1,
+                  borderRadius: BORDER_RADIUS.xs,
                   height: 24,
                   width: 24,
                   color: showAsMask
@@ -254,7 +255,7 @@ export const SelectSettingsPanel = memo(function SelectSettingsPanel({
                   sx={{
                     ...iconButtonCompactSx,
                     border: `1px solid ${SKETCH_COLORS.border}`,
-                    borderRadius: 1,
+                    borderRadius: BORDER_RADIUS.xs,
                     color: SKETCH_COLORS.textSecondary
                   }}
                 >

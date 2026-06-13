@@ -20,6 +20,7 @@ import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlayb
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { getAssetUrl } from "../../../utils/assetHelpers";
+import { FONT_SIZE_SANS, FONT_WEIGHT, BORDER_RADIUS } from "../../ui_primitives";
 
 import { WebGPUCompositor } from "./gpu/compositor";
 import type { CompositeLayer, CompositorBlendMode } from "./gpu/types";
@@ -84,14 +85,14 @@ const overlayBadgeStyles = (color: string) =>
     top: 4,
     left: 4,
     zIndex: 9999,
-    fontSize: 9,
+    fontSize: FONT_SIZE_SANS.caption,
     lineHeight: 1,
     padding: "2px 5px",
-    borderRadius: 3,
+    borderRadius: BORDER_RADIUS.xs,
     backgroundColor: color,
     color: "#fff",
     pointerEvents: "none",
-    fontWeight: 600,
+    fontWeight: FONT_WEIGHT.semibold,
     letterSpacing: 0.5,
     textTransform: "uppercase"
   });
@@ -106,7 +107,7 @@ const placeholderLayerStyles = (theme: Theme) =>
     flexDirection: "column",
     gap: 4,
     color: theme.vars.palette.text.disabled,
-    fontSize: 13,
+    fontSize: FONT_SIZE_SANS.label,
     userSelect: "none",
     pointerEvents: "none"
   });

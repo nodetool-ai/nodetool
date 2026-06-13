@@ -1,7 +1,7 @@
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { SvgIconProps } from "@mui/material/SvgIcon";
-import { Box, FlexRow, FlexColumn, Text } from "../ui_primitives";
+import { Box, FlexRow, FlexColumn, Text, BORDER_RADIUS } from "../ui_primitives";
 
 export interface CostStatCardProps {
   label: string;
@@ -42,7 +42,7 @@ const CostStatCardInternal: React.FC<CostStatCardProps> = ({
         flex: "1 1 0",
         minWidth: 200,
         padding: "18px 20px",
-        borderRadius: "14px",
+        borderRadius: BORDER_RADIUS.xxl,
         backgroundColor: theme.vars.palette.background.paper,
         border: `1px solid ${theme.vars.palette.divider}`
       }}
@@ -66,7 +66,7 @@ const CostStatCardInternal: React.FC<CostStatCardProps> = ({
             justifyContent: "center",
             width: 26,
             height: 26,
-            borderRadius: "8px",
+            borderRadius: BORDER_RADIUS.lg,
             backgroundColor: theme.vars.palette.action.hover,
             color: theme.vars.palette.text.disabled
           }}
@@ -81,7 +81,7 @@ const CostStatCardInternal: React.FC<CostStatCardProps> = ({
             sx={{
               width: 11,
               height: 11,
-              borderRadius: "var(--rounded-sm)",
+              borderRadius: BORDER_RADIUS.sm,
               backgroundColor: valueDotColor,
               flexShrink: 0,
               mt: isLabel ? "7px" : 0

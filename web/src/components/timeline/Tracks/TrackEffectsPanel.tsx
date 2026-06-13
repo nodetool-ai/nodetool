@@ -49,7 +49,9 @@ import {
   LabeledSwitch,
   SelectField,
   NodeMenuItem,
-  MOTION
+  MOTION,
+  BORDER_RADIUS,
+  FONT_SIZE_SANS
 } from "../../ui_primitives";
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 
@@ -104,7 +106,7 @@ const effectCardStyles = (
   css({
     position: "relative",
     border: `1px solid ${theme.vars.palette.divider}`,
-    borderRadius: 4,
+    borderRadius: BORDER_RADIUS.sm,
     padding: theme.spacing(1, 1),
     width,
     minWidth: width,
@@ -126,7 +128,7 @@ const effectCardStyles = (
           bottom: 0,
           [dragOver === "left" ? "left" : "right"]: -5,
           width: 3,
-          borderRadius: 2,
+          borderRadius: BORDER_RADIUS.xs,
           background: theme.vars.palette.primary.main,
           boxShadow: `0 0 8px ${theme.vars.palette.primary.main}`,
           pointerEvents: "none"
@@ -159,7 +161,7 @@ const iconButtonStyles = (theme: Theme, disabled = false) =>
     color: disabled
       ? theme.vars.palette.text.disabled
       : theme.vars.palette.text.secondary,
-    borderRadius: 3,
+    borderRadius: BORDER_RADIUS.xs,
     "&:hover": {
       backgroundColor: disabled
         ? "transparent"
@@ -177,7 +179,7 @@ const addButtonStyles = (theme: Theme) =>
     color: theme.vars.palette.primary.contrastText,
     border: "none",
     padding: theme.spacing(0.5, 1),
-    borderRadius: 3,
+    borderRadius: BORDER_RADIUS.xs,
     fontSize: theme.typography.caption.fontSize,
     cursor: "pointer",
     display: "inline-flex",
@@ -433,7 +435,7 @@ const eqCurveStyles = (theme: Theme) =>
     width: "100%",
     height: EQ_GRAPH_HEIGHT,
     border: `1px solid ${theme.vars.palette.divider}`,
-    borderRadius: 4,
+    borderRadius: BORDER_RADIUS.sm,
     background: `linear-gradient(to bottom, ${theme.vars.palette.background.paper} 0%, rgba(0,0,0,0.25) 100%)`,
     display: "block",
     touchAction: "none",
@@ -446,7 +448,7 @@ const bandReadoutStyles = (theme: Theme, color: string) =>
     minWidth: 0,
     border: `1px solid ${theme.vars.palette.divider}`,
     borderTop: `2px solid ${color}`,
-    borderRadius: 3,
+    borderRadius: BORDER_RADIUS.xs,
     padding: theme.spacing(0.5, 1),
     background: theme.vars.palette.background.paper,
     fontSize: theme.typography.caption.fontSize,
@@ -884,7 +886,7 @@ const compGraphStyles = (theme: Theme) =>
     width: COMP_GRAPH_SIZE,
     height: COMP_GRAPH_SIZE,
     border: `1px solid ${theme.vars.palette.divider}`,
-    borderRadius: 4,
+    borderRadius: BORDER_RADIUS.sm,
     background: `linear-gradient(135deg, ${theme.vars.palette.background.paper} 0%, rgba(0,0,0,0.3) 100%)`,
     display: "block",
     flexShrink: 0,
@@ -905,7 +907,7 @@ const compTileStyles = (theme: Theme, accent?: string) =>
   css({
     border: `1px solid ${theme.vars.palette.divider}`,
     borderTop: accent ? `2px solid ${accent}` : undefined,
-    borderRadius: 3,
+    borderRadius: BORDER_RADIUS.xs,
     padding: theme.spacing(0.5, 1),
     background: theme.vars.palette.background.paper,
     display: "flex",
@@ -1422,7 +1424,7 @@ const previewBoxStyles = (theme: Theme) =>
     width: "100%",
     aspectRatio: "16 / 9",
     border: `1px solid ${theme.vars.palette.divider}`,
-    borderRadius: 4,
+    borderRadius: BORDER_RADIUS.sm,
     overflow: "hidden",
     position: "relative",
     background:
@@ -1553,14 +1555,14 @@ const swatchStyles = (theme: Theme) =>
   css({
     width: 28,
     height: 28,
-    borderRadius: 4,
+    borderRadius: BORDER_RADIUS.sm,
     border: `1px solid ${theme.vars.palette.divider}`,
     cursor: "pointer",
     padding: 0,
     background: "none",
     flexShrink: 0,
-    "&::-webkit-color-swatch": { border: "none", borderRadius: 3 },
-    "&::-moz-color-swatch": { border: "none", borderRadius: 3 }
+    "&::-webkit-color-swatch": { border: "none", borderRadius: BORDER_RADIUS.xs },
+    "&::-moz-color-swatch": { border: "none", borderRadius: BORDER_RADIUS.xs }
   });
 
 const ChromaKeyEditor: React.FC<

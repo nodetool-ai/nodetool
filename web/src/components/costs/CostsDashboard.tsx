@@ -26,7 +26,8 @@ import {
   Checkbox,
   Popover,
   LoadingSpinner,
-  MOTION
+  MOTION,
+  BORDER_RADIUS
 } from "../ui_primitives";
 import { CostStatCard } from "./CostStatCard";
 import { SpendOverTimeChart } from "./SpendOverTimeChart";
@@ -247,7 +248,7 @@ const CostsDashboard: React.FC = () => {
               component="h1"
               sx={{
                 fontSize: "1.75rem",
-                fontWeight: 700,
+                fontWeight: 600,
                 lineHeight: 1.1,
                 color: theme.vars.palette.text.primary
               }}
@@ -461,7 +462,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
                 align="center"
                 sx={{
                   padding: "1px 6px",
-                  borderRadius: "6px",
+                  borderRadius: BORDER_RADIUS.md,
                   backgroundColor: `${deltaColor}1F`
                 }}
               >

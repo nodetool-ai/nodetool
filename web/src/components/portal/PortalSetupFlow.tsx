@@ -4,31 +4,31 @@ import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, useState, useCallback } from "react";
-import { TextInput, EditorButton, LoadingSpinner, MOTION } from "../ui_primitives";
+import { TextInput, EditorButton, LoadingSpinner, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import useSecretsStore from "../../stores/SecretsStore";
 
 const styles = (theme: Theme) =>
   css({
     maxWidth: 400,
     ".portal-setup-text": {
-      fontSize: 14,
+      fontSize: "var(--fontSizeNormal)",
       color: theme.vars.palette.c_gray6,
       lineHeight: 1.6,
-      marginBottom: 8,
+      marginBottom: `${theme.spacing(1)}`,
     },
     ".portal-setup-providers": {
       display: "flex",
       flexDirection: "column",
-      gap: 6,
+      gap: `${theme.spacing(0.75)}`,
     },
     ".portal-setup-provider": {
       display: "flex",
       alignItems: "center",
-      gap: 8,
+      gap: `${theme.spacing(1)}`,
       background: theme.vars.palette.c_gray1,
       border: `1px solid ${theme.vars.palette.c_gray2}`,
-      borderRadius: 10,
-      padding: "12px 14px",
+      borderRadius: BORDER_RADIUS.lg,
+      padding: `${theme.spacing(1.5)} ${theme.spacing(1.75)}`,
       cursor: "pointer",
       transition: `border-color ${MOTION.fast}`,
       "&:hover": {
@@ -38,11 +38,11 @@ const styles = (theme: Theme) =>
     ".portal-setup-provider-icon": {
       width: 28,
       height: 28,
-      borderRadius: 6,
+      borderRadius: BORDER_RADIUS.sm,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      fontSize: 14,
+      fontSize: "var(--fontSizeNormal)",
       color: "white",
       fontWeight: 600,
     },
@@ -50,36 +50,36 @@ const styles = (theme: Theme) =>
       flex: 1,
     },
     ".portal-setup-provider-name": {
-      fontSize: 13,
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.c_white,
     },
     ".portal-setup-provider-desc": {
-      fontSize: 11,
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.c_gray4,
     },
     ".portal-setup-connect": {
-      fontSize: 12,
-      color: theme.palette.primary.main,
+      fontSize: "var(--fontSizeSmaller)",
+      color: theme.vars.palette.primary.main,
     },
     ".portal-setup-key-input": {
-      marginTop: 8,
+      marginTop: `${theme.spacing(1)}`,
       display: "flex",
-      gap: 8,
+      gap: `${theme.spacing(1)}`,
       alignItems: "center",
     },
     ".portal-setup-note": {
-      fontSize: 11,
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.c_gray4,
-      marginTop: 8,
+      marginTop: `${theme.spacing(1)}`,
       textAlign: "center" as const,
     },
     ".portal-setup-ollama-status": {
-      fontSize: 12,
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.c_gray5,
-      marginTop: 6,
-      padding: "8px 12px",
+      marginTop: `${theme.spacing(0.75)}`,
+      padding: `${theme.spacing(1)} ${theme.spacing(1.5)}`,
       background: theme.vars.palette.c_gray1,
-      borderRadius: 8,
+      borderRadius: BORDER_RADIUS.lg,
     },
   });
 

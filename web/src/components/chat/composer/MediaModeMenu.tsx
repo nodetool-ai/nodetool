@@ -20,7 +20,8 @@ import {
   FlexRow,
   Popover,
   Text,
-  MOTION
+  MOTION,
+  BORDER_RADIUS
 } from "../../ui_primitives";
 import type { MediaMode } from "../../../stores/MediaGenerationStore";
 
@@ -175,7 +176,7 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
       paperSx={{
         backgroundColor: theme.vars.palette.grey[900],
         border: `1px solid ${theme.vars.palette.grey[800]}`,
-        borderRadius: 2,
+        borderRadius: BORDER_RADIUS.sm,
         boxShadow: "0 12px 40px rgba(0,0,0,0.45)"
       }}
     >

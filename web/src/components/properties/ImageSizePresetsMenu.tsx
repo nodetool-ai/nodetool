@@ -116,7 +116,7 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
               </InputAdornment>
             ),
             sx: { 
-                fontSize: '0.8125rem',
+                fontSize: 'var(--fontSizeSmall)',
                 height: '32px',
                 '& .MuiInputBase-input': {
                     py: 0
