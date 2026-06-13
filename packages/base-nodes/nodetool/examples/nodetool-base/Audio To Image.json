@@ -37,17 +37,6 @@
           "className": "str"
         },
         "edge_type": "data"
-      },
-      {
-        "id": "f3c81d10-05dc-428a-b067-88516e30bf14",
-        "source": "8b07b1ed-2ce9-4581-993e-efad334ab7a8",
-        "sourceHandle": "output",
-        "target": "3795e7ff-223e-48d4-bba4-dea0af2794d6",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        },
-        "edge_type": "data"
       }
     ],
     "nodes": [
@@ -56,7 +45,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎙️ Audio To Image\n\nSpeak a description and turn it into an image. Audio is transcribed by Whisper, then the transcript drives a text-to-image model.\n\n**Pipeline:** Audio input → Whisper transcription → Text-to-Image → Output preview.\n\n**Try this:** swap the ASR or image model, change `aspect_ratio` / `resolution` on the image node, or replace the recording with a longer audio asset."
+          "comment": "# 🎙️ Audio To Image\n\nSpeak a description and watch it become an image. Whisper transcribes your audio, then a text-to-image model renders it.\n\n**Pipeline:** Audio → Whisper → Text-to-Image\n\n**Try this:** swap the ASR or image model, or change aspect ratio / resolution."
         },
         "ui_properties": {
           "selected": false,
@@ -86,8 +75,8 @@
           }
         },
         "ui_properties": {
-          "title": "1️⃣ Record or upload audio — describe your image",
-          "selected": true,
+          "title": "1️⃣ Record audio",
+          "selected": false,
           "position": {
             "x": 65,
             "y": 67
@@ -105,15 +94,10 @@
         "id": "3620653b-0786-4222-9829-3183899984cd",
         "type": "nodetool.text.AutomaticSpeechRecognition",
         "data": {
-          "model": {
-            "type": "asr_model",
-            "id": "whisper-1",
-            "provider": "openai",
-            "name": "Whisper"
-          }
+          "model": {}
         },
         "ui_properties": {
-          "title": "2️⃣ Transcribe with Whisper — pick a different ASR model if you like",
+          "title": "2️⃣ Transcribe",
           "selected": false,
           "position": {
             "x": 340,
@@ -132,51 +116,24 @@
         "id": "8b07b1ed-2ce9-4581-993e-efad334ab7a8",
         "type": "nodetool.image.TextToImage",
         "data": {
-          "model": {
-            "type": "image_model",
-            "id": "gpt-image-2",
-            "provider": "openai",
-            "name": "GPT Image 2",
-            "path": "gpt-image-2"
-          },
+          "model": {},
           "negative_prompt": "",
           "aspect_ratio": "1:1",
           "resolution": "1K",
           "timeout_seconds": 0
         },
         "ui_properties": {
-          "title": "3️⃣ Generate image — tweak model, aspect ratio, resolution",
+          "title": "3️⃣ Generate image",
           "selected": false,
           "position": {
             "x": 650,
             "y": 86
           },
           "zIndex": 0,
-          "width": 280,
+          "width": 384,
           "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "3795e7ff-223e-48d4-bba4-dea0af2794d6",
-        "type": "nodetool.output.Output",
-        "data": {
-          "name": "output",
-          "description": ""
-        },
-        "ui_properties": {
-          "title": "4️⃣ Output — final image",
-          "position": {
-            "x": 960,
-            "y": 167
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "height": 400
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},

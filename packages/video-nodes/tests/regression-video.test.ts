@@ -806,4 +806,33 @@ describe("FrameToVideoNode — numbers frames contiguously despite gaps", () => 
       writeSpy.mockRestore();
     }
   });
+
+  it("feeds in-flight raw-RGBA frames through the rawvideo demuxer, not image2", async () => {
+    const writeSpy = vi.spyOn(fs, "writeFile").mockResolvedValue(undefined);
+    try {
+      // A raw-RGBA ref carries uncompressed pixels — writing them as PNG makes
+      // ffmpeg fail with "Invalid PNG signature". They must go through rawvideo.
+      const rawFrame = (w: number, h: number) => ({
+        type: "image",
+        mimeType: "image/x-raw-rgba",
+        width: w,
+        height: h,
+        data: new Uint8Array(w * h * 4).fill(0x0a)
+      });
+      const node = new FrameToVideoNode();
+      node.assign({ frame: [rawFrame(2, 2), rawFrame(2, 2)], fps: 30 });
+      await expect(node.process()).rejects.toThrow(
+        "Combining frames into a video failed"
+      );
+
+      const args = ffmpegArgString();
+      expect(args).toContain("rawvideo");
+      expect(args).toContain("rgba");
+      expect(args).toContain("2x2");
+      // Must NOT route raw pixels through the PNG image2 demuxer.
+      expect(args).not.toContain("frame_%06d.png");
+    } finally {
+      writeSpy.mockRestore();
+    }
+  });
 });
