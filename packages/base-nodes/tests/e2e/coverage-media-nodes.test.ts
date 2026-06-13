@@ -35,7 +35,7 @@ import {
   GetMetadataNode,
   BatchToListNode,
   ImagesToListNode,
-  ImageEditorNode,
+  ConstantSketchNode,
   PasteNode,
   ScaleNode,
   ResizeNode,
@@ -1402,21 +1402,23 @@ describe("image nodes — full coverage", () => {
     expect(result.output).toEqual(["not-array"]);
   });
 
-  it("ImageEditorNode passes through image, mask, and layers from properties", async () => {
+  it("ConstantSketchNode passes through sketch, image, mask, and layers from properties", async () => {
     const image = imageRef();
     const mask = imageRef();
     const layers = [imageRef(), imageRef()];
-    const _n = new ImageEditorNode();
-    _n.assign({ image, mask, layers });
+    const sketch = { type: "sketch", id: "sketch-1", data: null };
+    const _n = new ConstantSketchNode();
+    _n.assign({ value: sketch, image, mask, layers });
     const result = await _n.process();
+    expect(result.output).toBe(sketch);
     expect(result.image).toBe(image);
     expect(result.mask).toBe(mask);
     expect(result.layers).toEqual(layers);
   });
 
-  it("ImageEditorNode forwards dynamic layer_out_* properties", async () => {
+  it("ConstantSketchNode forwards dynamic layer_out_* properties", async () => {
     const overlay = imageRef();
-    const _n = new ImageEditorNode();
+    const _n = new ConstantSketchNode();
     _n.assign({
       image: imageRef(),
       layer_out_top: overlay,
@@ -1427,8 +1429,8 @@ describe("image nodes — full coverage", () => {
     expect(result).not.toHaveProperty("ignored_extra");
   });
 
-  it("ImageEditorNode coerces non-array layers to an empty list", async () => {
-    const _n = new ImageEditorNode();
+  it("ConstantSketchNode coerces non-array layers to an empty list", async () => {
+    const _n = new ConstantSketchNode();
     _n.assign({ image: imageRef(), layers: "not-an-array" });
     const result = await _n.process();
     expect(result.layers).toEqual([]);

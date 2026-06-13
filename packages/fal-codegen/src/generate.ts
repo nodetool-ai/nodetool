@@ -94,7 +94,7 @@ async function generatePricing(
   const apiKey = process.env.FAL_API_KEY;
   if (!apiKey) {
     const outcome = await preserveOrWriteEmptyPricingBundles(paths);
-    if (outcome === "preserved") {
+    if (outcome === "preserved" || outcome === "partial") {
       console.warn(
         "\nFAL_API_KEY not set — keeping existing pricing bundles. " +
           "Set FAL_API_KEY=... to refresh pricing, or pass --no-pricing to silence this."

@@ -385,3 +385,56 @@ describe("ContentCardBody dynamic inputs", () => {
     expect(container.querySelector(".dynamic-inputs")).toBeNull();
   });
 });
+
+describe("ContentCardBody dynamic inputs", () => {
+  const dynamicMetadata = (): NodeMetadata =>
+    ({
+      ...metadataForOutput("str"),
+      node_type: "nodetool.text.Concat",
+      title: "Concatenate Text",
+      inline_fields: [],
+      input_fields: [],
+      supports_dynamic_inputs: true
+    }) as unknown as NodeMetadata;
+
+  const renderDynamicCard = (dynamicProperties: Record<string, unknown>) =>
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ContentCardBody
+          id={nodeId}
+          nodeType="nodetool.text.Concat"
+          nodeMetadata={dynamicMetadata()}
+          data={
+            {
+              ...nodeData,
+              dynamic_properties: dynamicProperties
+            } as NodeData
+          }
+          workflowId={workflowId}
+          isOutputNode={true}
+        />
+      </ThemeProvider>
+    );
+
+  it("renders a handle-bearing input row for each user-added dynamic input", () => {
+    const { container } = renderDynamicCard({ input_1: "" });
+
+    const dynamicBlock = container.querySelector(".dynamic-inputs");
+    expect(dynamicBlock).not.toBeNull();
+    const nodeInputs = dynamicBlock!.querySelector(
+      '[data-testid="node-inputs"]'
+    );
+    // Dynamic inputs render (so each gets a handle) and are editable so the
+    // user can rename/delete them.
+    expect(nodeInputs).toHaveAttribute("data-show-dynamic", "true");
+    expect(nodeInputs).toHaveAttribute("data-editable-dynamic", "true");
+    // Unconnected inputs fall back to the node's primary-output type (str
+    // here) so they get a real editor instead of the uneditable `any`.
+    expect(nodeInputs).toHaveAttribute("data-default-type", "str");
+  });
+
+  it("omits the dynamic input block when nothing has been added", () => {
+    const { container } = renderDynamicCard({});
+    expect(container.querySelector(".dynamic-inputs")).toBeNull();
+  });
+});

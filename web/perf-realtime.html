@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Realtime Workflow Perf Harness</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 16px;
+        background: #111;
+        color: #ddd;
+        font-family: monospace;
+      }
+      pre {
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <h3>Realtime workflow perf harness</h3>
+    <p>
+      Drive via <code>window.__realtimePerf.start({ voices, durationMs })</code>
+      or <code>?autorun=1&amp;voices=8&amp;durationMs=10000</code>.
+    </p>
+    <pre id="status">idle</pre>
+    <pre id="result"></pre>
+    <script type="module" src="/src/perf/realtimePerfHarness.ts"></script>
+  </body>
+</html>

@@ -185,7 +185,7 @@ describe("SketchNode layer inputs via generations", () => {
 
   const props = {
     id: "sketch-1",
-    type: "nodetool.image.ImageEditor",
+    type: "nodetool.constant.Sketch",
     selected: false,
     dragging: false,
     data: {

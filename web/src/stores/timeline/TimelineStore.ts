@@ -185,6 +185,9 @@ export interface TimelineStoreState {
   /** Add a pre-built clip object directly (used by NOD-304 import). */
   addClip: (clip: TimelineClip) => void;
 
+  /** Add several pre-built clips in one update (one undo entry) — paste. */
+  addClips: (clips: TimelineClip[]) => void;
+
   /**
    * Create an imported clip from an Asset and insert it into the store.
    * The clip geometry is derived from the asset's content type and duration.
@@ -938,6 +941,11 @@ export const createTimelineStore = (
           set((state) => ({
             clips: [...state.clips, clip]
           })),
+
+        addClips: (clips) =>
+          set((state) =>
+            clips.length === 0 ? state : { clips: [...state.clips, ...clips] }
+          ),
 
         addImportedClip: (asset, trackId, startMs) => {
           const clip = assetToClip(asset, trackId, startMs);

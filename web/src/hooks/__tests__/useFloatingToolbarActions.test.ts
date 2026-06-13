@@ -8,6 +8,7 @@ import { triggerAutosaveForWorkflow } from "../useAutosave";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useBottomPanelStore } from "../../stores/BottomPanelStore";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
+import { useRunWarningStore } from "../../stores/RunWarningStore";
 
 jest.mock("react-router-dom", () => ({
   useNavigate: jest.fn(() => jest.fn()),
@@ -204,7 +205,7 @@ describe("useFloatingToolbarActions", () => {
       expect(mockRun).toHaveBeenCalled();
     });
 
-    it("still calls run while running so the store can queue it", async () => {
+    it("asks for confirmation while running, then runs on confirm", async () => {
       mockUseWebsocketRunner.mockImplementation((selector) => {
         const mockRunnerState = {
           run: mockRun,
@@ -227,7 +228,16 @@ describe("useFloatingToolbarActions", () => {
         await result.current.handleRun();
       });
 
-      // Clicking Run while busy now reaches the store, which enqueues it.
+      // Clicking Run while busy opens the concurrent-run confirmation
+      // instead of starting a second run outright.
+      expect(mockRun).not.toHaveBeenCalled();
+      const warning = useRunWarningStore.getState();
+      expect(warning.open).toBe(true);
+      expect(warning.kind).toBe("concurrent");
+
+      await act(async () => {
+        useRunWarningStore.getState().confirm(false);
+      });
       expect(mockRun).toHaveBeenCalled();
     });
 

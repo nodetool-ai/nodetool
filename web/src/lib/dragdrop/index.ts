@@ -8,6 +8,8 @@
 export type {
   DragDataType,
   DragPayloadMap,
+  SketchDragPayload,
+  TimelineDragPayload,
   DragData,
   DragMetadata,
   DropZoneConfig,

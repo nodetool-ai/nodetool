@@ -15,6 +15,8 @@ export type DragDataType =
   | "create-node" // Node from node menu (maps to existing "create-node" key)
   | "asset" // Single asset (maps to existing "asset" key)
   | "assets-multiple" // Multiple assets (maps to existing "selectedAssetIds" key)
+  | "sketch" // Persisted sketch document from sketch panel
+  | "timeline" // Persisted timeline sequence from timeline panel
   | "file" // External file from OS
   | "tab" // Editor tab reordering
   | "collection-file"; // File being added to collection
@@ -22,10 +24,24 @@ export type DragDataType =
 /**
  * Type-safe payload definitions for each drag type
  */
+export interface SketchDragPayload {
+  id: string;
+  name: string;
+  updatedAt?: string;
+}
+
+export interface TimelineDragPayload {
+  id: string;
+  name: string;
+  updatedAt?: string;
+}
+
 export interface DragPayloadMap {
   "create-node": NodeMetadata;
   asset: Asset;
   "assets-multiple": string[]; // Asset IDs
+  sketch: SketchDragPayload;
+  timeline: TimelineDragPayload;
   file: File;
   tab: string; // Workflow ID
   "collection-file": File;

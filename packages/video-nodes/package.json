@@ -19,6 +19,7 @@
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/timeline": "*",
     "manifold-3d": "^3.4.1",
     "meshoptimizer": "^1.1.1"
   },

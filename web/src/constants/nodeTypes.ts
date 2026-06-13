@@ -19,9 +19,11 @@ export const WORKFLOW_NODE_TYPE = "nodetool.workflows.workflow_node.Workflow";
 export const SUBGRAPH_NODE_TYPE = "nodetool.workflows.subgraph.Subgraph";
 
 // --- Special editor nodes --------------------------------------------------
-export const SKETCH_NODE_TYPE = "nodetool.image.ImageEditor";
+export const SKETCH_NODE_TYPE = "nodetool.constant.Sketch";
 export const CODE_NODE_TYPE = "nodetool.code.Code";
 export const STRING_NODE_TYPE = "nodetool.constant.String";
+export const CONSTANT_IMAGE_NODE_TYPE = "nodetool.constant.Image";
+export const CONSTANT_VIDEO_NODE_TYPE = "nodetool.constant.Video";
 
 // --- Dynamic-schema nodes --------------------------------------------------
 export const DYNAMIC_FAL_NODE_TYPE = "fal.DynamicFal";
@@ -40,7 +42,6 @@ export const CHANNELS_NODE_TYPE = "nodetool.image.Channels";
 export const COMPOSITOR_NODE_TYPE = "nodetool.image.Compositor";
 export const CROP_NODE_TYPE = "nodetool.image.Crop";
 export const CURVES_NODE_TYPE = "lib.image.color_grading.Curves";
-export const EXPOSURE_NODE_TYPE = "lib.image.color_grading.Exposure";
 export const FIT_NODE_TYPE = "nodetool.image.Fit";
 export const HSL_ADJUST_NODE_TYPE = "lib.image.color_grading.HSLAdjust";
 export const LEVELS_NODE_TYPE = "nodetool.image.Levels";
@@ -49,6 +50,13 @@ export const PAINTER_NODE_TYPE = "nodetool.image.Painter";
 export const PASTE_NODE_TYPE = "nodetool.image.Paste";
 export const PROMPT_NODE_TYPE = "nodetool.text.Prompt";
 export const RESIZE_NODE_TYPE = "nodetool.image.Resize";
+export const RESIZE_IMAGE_NODE_TYPE = "nodetool.image.ResizeImage";
 export const CANVAS_RESIZE_NODE_TYPE = "nodetool.image.CanvasResize";
 export const ROTATE_AND_FLIP_NODE_TYPE = "nodetool.image.RotateAndFlip";
 export const SCALE_NODE_TYPE = "nodetool.image.Scale";
+
+/** Human-readable label from a node_type string (e.g. ResizeImage → Resize Image). */
+export function nodeTypeDisplayName(nodeType: string): string {
+  const segment = nodeType.split(".").pop() ?? nodeType;
+  return segment.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+}

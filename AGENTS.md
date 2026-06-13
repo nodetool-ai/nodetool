@@ -7,6 +7,7 @@ Guidelines for working with code in this repository. These are linter-like rules
 ## Quick Navigation
 
 - **[Development Standards](docs/DEVELOPMENT_STANDARDS.md)** — **Canonical standards for the whole repo (MUST READ).**
+- **[Design System](docs/DESIGN.md)** — **Design token rules: SPACING, TYPOGRAPHY, BORDER_RADIUS, MOTION, Z_INDEX (MUST READ for any UI work).**
 - **[TypeScript Backend](packages/AGENTS.md)** — TypeScript backend packages (`packages/`)
 - **[Web UI](web/src/AGENTS.md)** — React web application
   - [Components](web/src/components/AGENTS.md), [Stores](web/src/stores/AGENTS.md), [Contexts](web/src/contexts/AGENTS.md), [Hooks](web/src/hooks/AGENTS.md), [Utils](web/src/utils/AGENTS.md), [ServerState](web/src/serverState/AGENTS.md), [Lib](web/src/lib/AGENTS.md), [Config](web/src/config/AGENTS.md)
@@ -16,7 +17,6 @@ Guidelines for working with code in this repository. These are linter-like rules
 - **[Mobile](mobile/README.md)** — React Native mobile app
 - **[Agent System](docs/AGENTS.md)** — Agent architecture, tools, skills, workflow nodes
 - **[Scripts](scripts/AGENTS.md)** — Build and release scripts
-- **[Workflow Runner](workflow_runner/AGENTS.md)** — Standalone workflow runner
 
 ---
 
@@ -185,6 +185,19 @@ Before submitting a PR, review for:
 - Use theme values for spacing, colors, and typography — never hardcode hex colors or pixel values.
 - Prefer composition over deep prop drilling.
 - If no primitive exists for your use case, **create a new primitive** in `ui_primitives/` rather than using raw MUI.
+
+### Design Token Rules (see [docs/DESIGN.md](docs/DESIGN.md) for full reference)
+
+Every style value that falls into one of the categories below must use the corresponding token — never hardcode.
+
+| Category | Forbidden | Use instead |
+|---|---|---|
+| Spacing / gap / padding | `5px`, `10px`, `13px`, `0.25` theme units | `SPACING.*` / `GAP.*` / `PADDING.*` |
+| Font size | `"14px"`, `"0.85rem"`, any raw px/rem | `var(--fontSize*)` or `<Text>`/`<Label>`/`<Caption>` |
+| Font weight | `700`, `"bold"`, `300` | `400`, `500`, or `600` only |
+| Border radius | `4`, `10`, `18`, `"var(--rounded-*)"` | `BORDER_RADIUS.xs/sm/md/lg/xl/xxl/pill/circle` |
+| Transitions | `"all 200ms ease"`, raw timing strings | `MOTION.all/border/background/…` |
+| Z-index | `9999`, `1000`, arbitrary integers | `Z_INDEX.dropdown/modal/tooltip/…` |
 
 ## TanStack Query Rules
 

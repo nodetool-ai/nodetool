@@ -139,6 +139,10 @@ function handleWebSocketMessage(
       const chunk = data as Chunk;
       if (!threadId) {break;}
 
+      // Audio chunks carry binary payloads (Float32Array or base64); only
+      // text contributes to the assistant message.
+      const chunkText = typeof chunk.content === 'string' ? chunk.content : '';
+
       const messages = state.messageCache[threadId] || [];
       const lastMessage = messages[messages.length - 1];
 
@@ -146,7 +150,7 @@ function handleWebSocketMessage(
         // Append to existing assistant message
         const updatedMessage: Message = {
           ...lastMessage,
-          content: (lastMessage.content || '') + chunk.content,
+          content: (lastMessage.content || '') + chunkText,
         };
         set((s) => ({
           status: chunk.done ? 'connected' : 'streaming',
@@ -161,7 +165,7 @@ function handleWebSocketMessage(
           id: `local-stream-${Date.now()}`,
           type: 'message',
           role: 'assistant',
-          content: chunk.content,
+          content: chunkText,
         };
         set((s) => ({
           status: chunk.done ? 'connected' : 'streaming',

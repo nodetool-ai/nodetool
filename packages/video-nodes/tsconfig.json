@@ -12,6 +12,7 @@
     { "path": "../runtime" },
     { "path": "../node-sdk" },
     { "path": "../nodes-utils" },
-    { "path": "../audio-nodes" }
+    { "path": "../audio-nodes" },
+    { "path": "../timeline" }
   ]
 }
