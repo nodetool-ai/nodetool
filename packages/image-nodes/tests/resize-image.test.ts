@@ -1,3 +1,5 @@
+import "../../gpu/tests/setup/swiftshaderIcd.js";
+
 import { describe, expect, it } from "vitest";
 import sharp from "sharp";
 import { getNodeMetadata } from "@nodetool-ai/node-sdk";
@@ -7,6 +9,24 @@ import {
   ResizeNode,
   ScaleNode
 } from "../src/nodes/image.js";
+
+async function gpuAvailable(): Promise<boolean> {
+  try {
+    const spec = "webgpu";
+    const dawn = (await import(spec)) as {
+      create?: (flags: string[]) => { requestAdapter: () => Promise<unknown> };
+    };
+    const gpu = dawn.create?.([]);
+    const adapter = await gpu?.requestAdapter();
+    return !!adapter;
+  } catch {
+    return false;
+  }
+}
+
+// The resize/scale/fit nodes run on the GPU shader pool; skip when no adapter
+// (Dawn/SwiftShader) is available, matching transform-nodes.test.ts.
+const hasGpu = await gpuAvailable();
 
 async function makeTestImage(w = 100, h = 50): Promise<Record<string, unknown>> {
   const buf = await sharp({
@@ -33,7 +53,7 @@ async function outputSize(output: Record<string, unknown>): Promise<{ w: number;
   return { w: meta.width ?? 0, h: meta.height ?? 0 };
 }
 
-describe("ResizeImageNode", () => {
+describe.skipIf(!hasGpu)("ResizeImageNode", () => {
   it("scales by factor in scale mode", async () => {
     const node = new ResizeImageNode();
     node.assign({ image: await makeTestImage(100, 50), mode: "scale", scale: 2 });
@@ -99,7 +119,7 @@ describe("deprecated resize nodes", () => {
     }
   });
 
-  it("still process identically to unified node for scale", async () => {
+  it.skipIf(!hasGpu)("still process identically to unified node for scale", async () => {
     const image = await makeTestImage(100, 50);
     const legacy = new ScaleNode();
     legacy.assign({ image, scale: 2 });
