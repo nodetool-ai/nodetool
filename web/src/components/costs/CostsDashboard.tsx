@@ -493,6 +493,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
           label="Top cost driver"
           icon={BarChartIcon}
           value={driver ? driver.label : "—"}
+          valueVariant="label"
           valueDotColor={driver ? providerColor(driver.providerId) : undefined}
           caption={
             driver
