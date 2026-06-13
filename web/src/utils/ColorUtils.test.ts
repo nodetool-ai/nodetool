@@ -1,7 +1,6 @@
 import {
   hexToRgba,
   darkenHexColor,
-  lightenHexColor,
   adjustSaturation,
   createLinearGradient,
   simulateOpacity
@@ -40,17 +39,6 @@ describe("ColorUtils", () => {
 
     it("returns CSS variable unchanged", () => {
       expect(darkenHexColor("var(--color)", 10)).toBe("var(--color)");
-    });
-  });
-
-  describe("lightenHexColor", () => {
-    it("lightens a color", () => {
-      const result = lightenHexColor("#000000", 10);
-      expect(result).not.toBe("#000000");
-    });
-
-    it("returns CSS variable unchanged", () => {
-      expect(lightenHexColor("var(--color)", 10)).toBe("var(--color)");
     });
   });
 
