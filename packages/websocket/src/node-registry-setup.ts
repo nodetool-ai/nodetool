@@ -18,8 +18,9 @@ import {
   BUILTIN_NODE_PACKS,
   resolveBuiltinPackEnabled,
   CLOUD_PROFILE_ENV,
+  NODE_ENV_VAR,
   CLOUD_BUILTIN_PACK_IDS,
-  isCloudProfileValue,
+  isCloudProfileActive,
   isCloudNodeType
 } from "@nodetool-ai/protocol";
 import { setPackSnapshot } from "./pack-snapshot.js";
@@ -65,7 +66,10 @@ function isProduction(): boolean {
 
 /** True when the curated commercial cloud profile is active. */
 function isCloudProfile(): boolean {
-  return isCloudProfileValue(process.env[CLOUD_PROFILE_ENV]);
+  return isCloudProfileActive(
+    process.env[CLOUD_PROFILE_ENV],
+    process.env[NODE_ENV_VAR]
+  );
 }
 
 /**

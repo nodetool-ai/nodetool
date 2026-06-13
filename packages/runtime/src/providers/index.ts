@@ -117,7 +117,8 @@ import {
 import {
   PROVIDER_IDS,
   CLOUD_PROFILE_ENV,
-  isCloudProfileValue,
+  NODE_ENV_VAR,
+  isCloudProfileActive,
   isCloudProvider
 } from "@nodetool-ai/protocol";
 export type {
@@ -237,11 +238,17 @@ if (
   registerBuiltinProvider(PROVIDER_IDS.FAKE, FakeProvider, {});
 }
 
-// Cloud profile: keep only the curated provider allowlist (the big LLM labs
-// plus Fal + Kie). Pruning after registration — rather than gating each
-// register call — keeps the registration block above untouched and works
-// regardless of which providers a future edit adds.
-if (isCloudProfileValue(_envProcess.env[CLOUD_PROFILE_ENV])) {
+// Cloud profile (production, or NODETOOL_NODE_PROFILE=cloud): keep only the
+// curated provider allowlist (the big LLM labs plus Fal + Kie). Pruning after
+// registration — rather than gating each register call — keeps the
+// registration block above untouched and works regardless of which providers
+// a future edit adds.
+if (
+  isCloudProfileActive(
+    _envProcess.env[CLOUD_PROFILE_ENV],
+    _envProcess.env[NODE_ENV_VAR]
+  )
+) {
   for (const id of listBuiltinProviderIds()) {
     if (!isCloudProvider(id)) unregisterBuiltinProvider(id);
   }

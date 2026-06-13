@@ -1,24 +1,32 @@
 import { describe, it, expect } from "vitest";
 import {
   CLOUD_NODE_NAMESPACES,
+  CLOUD_NODE_ALLOWLIST,
   CLOUD_NODE_DENYLIST,
   CLOUD_PROVIDER_IDS,
   CLOUD_BUILTIN_PACK_IDS,
-  CLOUD_PROFILE_VALUE,
   isCloudNodeType,
   isCloudProvider,
-  isCloudProfileValue
+  isCloudProfileActive
 } from "../src/cloud-profile.js";
 import { BUILTIN_NODE_PACKS } from "../src/builtin-packs.js";
 
 describe("cloud profile activation", () => {
-  it("only the cloud value turns it on", () => {
-    expect(isCloudProfileValue(CLOUD_PROFILE_VALUE)).toBe(true);
-    expect(isCloudProfileValue("cloud")).toBe(true);
-    expect(isCloudProfileValue("full")).toBe(false);
-    expect(isCloudProfileValue("")).toBe(false);
-    expect(isCloudProfileValue(undefined)).toBe(false);
-    expect(isCloudProfileValue(null)).toBe(false);
+  it("activates for the explicit cloud flag", () => {
+    expect(isCloudProfileActive("cloud", undefined)).toBe(true);
+    expect(isCloudProfileActive("cloud", "development")).toBe(true);
+  });
+
+  it("activates in production mode", () => {
+    expect(isCloudProfileActive(undefined, "production")).toBe(true);
+    expect(isCloudProfileActive(null, "production")).toBe(true);
+  });
+
+  it("stays off otherwise", () => {
+    expect(isCloudProfileActive(undefined, undefined)).toBe(false);
+    expect(isCloudProfileActive("full", "development")).toBe(false);
+    expect(isCloudProfileActive("", "")).toBe(false);
+    expect(isCloudProfileActive(null, null)).toBe(false);
   });
 });
 
@@ -30,7 +38,6 @@ describe("isCloudNodeType", () => {
       "nodetool.audio.realtime.AudioOutput",
       "nodetool.video.ImageToVideo",
       "nodetool.model3d.TextTo3D",
-      "nodetool.code.Code",
       "nodetool.agents.Agent",
       "nodetool.generators.SVGGenerator",
       "lib.image.warp.Offset",
@@ -83,9 +90,51 @@ describe("isCloudNodeType", () => {
   });
 
   it("matches namespaces only at segment boundaries", () => {
-    // A look-alike namespace must not be admitted by a prefix.
     expect(isCloudNodeType("lib.imagery.Thing")).toBe(false);
     expect(isCloudNodeType("openairtable.Thing")).toBe(false);
+  });
+});
+
+describe("code + text are node-level trimmed", () => {
+  it("keeps only the sandboxed Code node", () => {
+    expect(isCloudNodeType("nodetool.code.Code")).toBe(true);
+    for (const nodeType of [
+      "nodetool.code.ExecutePython",
+      "nodetool.code.ExecuteBash",
+      "nodetool.code.ExecuteRuby",
+      "nodetool.code.RunPythonCommandDocker",
+      "nodetool.code.RunShellCommandDocker"
+    ]) {
+      expect(isCloudNodeType(nodeType)).toBe(false);
+    }
+  });
+
+  it("keeps the curated creative-text nodes, drops the utilities", () => {
+    for (const nodeType of [
+      "nodetool.text.Prompt",
+      "nodetool.text.Template",
+      "nodetool.text.Concat",
+      "nodetool.text.FormatText",
+      "nodetool.text.ExtractJSON"
+    ]) {
+      expect(isCloudNodeType(nodeType)).toBe(true);
+    }
+    for (const nodeType of [
+      "nodetool.text.RegexMatch",
+      "nodetool.text.ToUppercase",
+      "nodetool.text.CountTokens",
+      "nodetool.text.Slugify",
+      "nodetool.text.SaveTextFile",
+      "nodetool.text.Embedding"
+    ]) {
+      expect(isCloudNodeType(nodeType)).toBe(false);
+    }
+  });
+
+  it("admits every explicit allowlist entry", () => {
+    for (const nodeType of CLOUD_NODE_ALLOWLIST) {
+      expect(isCloudNodeType(nodeType)).toBe(true);
+    }
   });
 });
 
@@ -99,12 +148,12 @@ describe("cloud provider + pack allowlists", () => {
     }
   });
 
-  it("denylisted node types never leak into the allowed namespaces", () => {
+  it("denylisted node types target an allowed namespace and stay out", () => {
     for (const nodeType of CLOUD_NODE_DENYLIST) {
       const ns = CLOUD_NODE_NAMESPACES.find(
         (n) => nodeType === n || nodeType.startsWith(`${n}.`)
       );
-      expect(ns).toBeDefined(); // denylist entries target an allowed namespace
+      expect(ns).toBeDefined();
       expect(isCloudNodeType(nodeType)).toBe(false);
     }
   });

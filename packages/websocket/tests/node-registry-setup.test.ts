@@ -3,6 +3,7 @@ import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   BUILTIN_NODE_PACKS,
   CLOUD_PROFILE_ENV,
+  NODE_ENV_VAR,
   isCloudNodeType
 } from "@nodetool-ai/protocol";
 import {
@@ -119,8 +120,12 @@ describe("applyBuiltinPackEnabled", () => {
 });
 
 describe("applyCloudNodePolicy", () => {
+  const originalEnv = process.env[NODE_ENV_VAR];
+
   afterEach(() => {
     delete process.env[CLOUD_PROFILE_ENV];
+    if (originalEnv === undefined) delete process.env[NODE_ENV_VAR];
+    else process.env[NODE_ENV_VAR] = originalEnv;
   });
 
   function fullRegistry(): NodeRegistry {
@@ -133,21 +138,7 @@ describe("applyCloudNodePolicy", () => {
     return registry;
   }
 
-  it("is a no-op when the cloud profile is off", () => {
-    delete process.env[CLOUD_PROFILE_ENV];
-    const registry = fullRegistry();
-    const before = registry.list().length;
-    applyCloudNodePolicy(registry);
-    expect(registry.list().length).toBe(before);
-    // Nerdy namespaces survive without the profile.
-    expect(registry.list().some((t) => t.startsWith("lib.os."))).toBe(true);
-  });
-
-  it("drops nerdy/out-of-scope nodes when the cloud profile is on", () => {
-    process.env[CLOUD_PROFILE_ENV] = "cloud";
-    const registry = fullRegistry();
-    applyCloudNodePolicy(registry);
-
+  function expectCuratedSurface(registry: NodeRegistry): void {
     const remaining = registry.list();
     expect(remaining.length).toBeGreaterThan(0);
     // Every survivor is part of the curated cloud surface…
@@ -166,11 +157,45 @@ describe("applyCloudNodePolicy", () => {
     ]) {
       expect(remaining.some((t) => t.startsWith(prefix))).toBe(false);
     }
-    // …the developer-flavored agents are gone…
+    // …developer-flavored agents are gone…
     expect(remaining).not.toContain("nodetool.agents.ShellAgent");
-    // …while the creative core stays.
+    // …only the sandboxed Code node survives nodetool.code…
     expect(remaining).toContain("nodetool.code.Code");
+    expect(remaining).not.toContain("nodetool.code.ExecutePython");
+    expect(remaining).not.toContain("nodetool.code.RunShellCommandDocker");
+    // …text is trimmed to the curated set…
+    expect(remaining).toContain("nodetool.text.Prompt");
+    expect(remaining).not.toContain("nodetool.text.RegexMatch");
+    expect(remaining).not.toContain("nodetool.text.CountTokens");
+    // …while the creative media core stays.
     expect(remaining.some((t) => t.startsWith("nodetool.image."))).toBe(true);
     expect(remaining.some((t) => t.startsWith("nodetool.audio."))).toBe(true);
+  }
+
+  it("is a no-op when the cloud profile is off", () => {
+    delete process.env[CLOUD_PROFILE_ENV];
+    delete process.env[NODE_ENV_VAR];
+    const registry = fullRegistry();
+    const before = registry.list().length;
+    applyCloudNodePolicy(registry);
+    expect(registry.list().length).toBe(before);
+    // Nerdy namespaces survive without the profile.
+    expect(registry.list().some((t) => t.startsWith("lib.os."))).toBe(true);
+  });
+
+  it("prunes to the curated surface under NODETOOL_NODE_PROFILE=cloud", () => {
+    delete process.env[NODE_ENV_VAR];
+    process.env[CLOUD_PROFILE_ENV] = "cloud";
+    const registry = fullRegistry();
+    applyCloudNodePolicy(registry);
+    expectCuratedSurface(registry);
+  });
+
+  it("prunes to the curated surface in production mode", () => {
+    delete process.env[CLOUD_PROFILE_ENV];
+    process.env[NODE_ENV_VAR] = "production";
+    const registry = fullRegistry();
+    applyCloudNodePolicy(registry);
+    expectCuratedSurface(registry);
   });
 });

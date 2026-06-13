@@ -11,19 +11,30 @@ office-doc tooling, local model runtimes) that is powerful but "nerdy" — it
 dilutes the creative mission and balloons the support surface. The cloud profile
 drops it.
 
-> **One exception:** the **Code node** (`nodetool.code`) is kept. It is the
-> intentional power-user escape hatch.
+> **One exception:** the **sandboxed Code node** (`nodetool.code.Code`, vm-based
+> JavaScript) is kept. It is the intentional power-user escape hatch. The rest
+> of `nodetool.code` (Python/Bash/Ruby/Lua subprocess + Docker runners) stays
+> out — arbitrary process/Docker execution isn't appropriate for a managed
+> multi-tenant cloud.
 
-## How it's enforced
+## How it's enabled
 
-Curation is **opt-in** and off by default, so OSS/local installs are unchanged.
-Set the env var on the cloud server:
+The commercial cloud product runs in **production mode**, so production *is* the
+cloud profile — no extra flag needed:
+
+```bash
+NODETOOL_ENV=production
+```
+
+It can also be enabled outside production (e.g. for local testing) with an
+explicit flag:
 
 ```bash
 NODETOOL_NODE_PROFILE=cloud
 ```
 
-When active, three things happen at server bootstrap:
+When neither applies (the default for OSS/local installs), the full catalog
+loads unchanged. When active, three things happen at server bootstrap:
 
 1. **Provider packs** — only `base`, `fal`, and `kie` load (other provider
    packs like Replicate, Hugging Face, Together, MiniMax, … are never
@@ -35,7 +46,10 @@ When active, three things happen at server bootstrap:
 
 The single source of truth is
 [`packages/protocol/src/cloud-profile.ts`](../packages/protocol/src/cloud-profile.ts):
-`CLOUD_NODE_NAMESPACES`, `CLOUD_NODE_DENYLIST`, `CLOUD_PROVIDER_IDS`,
+`CLOUD_NODE_NAMESPACES` (whole namespaces kept), `CLOUD_NODE_ALLOWLIST`
+(individual node types kept from an otherwise-trimmed namespace — the sandboxed
+Code node and the curated text nodes), `CLOUD_NODE_DENYLIST` (individual node
+types dropped from a kept namespace), `CLOUD_PROVIDER_IDS`, and
 `CLOUD_BUILTIN_PACK_IDS`. Maintaining the cloud offering = editing those lists.
 
 ## Providers
@@ -81,7 +95,6 @@ llama.cpp, vLLM, Hugging Face local, Transformers.js).
 
 | Namespace              | What it is                                   |
 | ---------------------- | -------------------------------------------- |
-| `nodetool.text`        | Text manipulation, prompts, templates        |
 | `nodetool.image`       | Image generate / edit / transform            |
 | `nodetool.sketch`      | Sketch / vector drawing                       |
 | `nodetool.audio`       | Audio + `.synth` + `.realtime`                |
@@ -90,7 +103,23 @@ llama.cpp, vLLM, Hugging Face local, Transformers.js).
 | `nodetool.model3d`     | 3D model generation & processing              |
 | `nodetool.generators`  | Data/List/StructuredOutput/Chart/SVG gen      |
 | `nodetool.agents`      | AI agents (creative subset — see denylist)    |
-| `nodetool.code`        | **The Code node** (kept on purpose)           |
+
+`nodetool.text` and `nodetool.code` are **not** kept whole — only a curated
+slice of each is admitted via `CLOUD_NODE_ALLOWLIST`:
+
+| From `nodetool.code`   | Kept node                                     |
+| ---------------------- | --------------------------------------------- |
+| `Code`                 | Sandboxed (vm) JavaScript only                |
+
+| From `nodetool.text`   | Kept nodes                                                  |
+| ---------------------- | ---------------------------------------------------------- |
+| Prompt building        | `Prompt`, `Template`, `FormatText`                          |
+| Composition            | `Concat`, `Join`, `Collect`, `Replace`, `ToString`          |
+| Light parsing/IO       | `Split`, `Slice`, `Chunk`, `Extract`, `ParseJSON`, `ExtractJSON`, `SaveText` |
+
+Everything else in `nodetool.text` (regex, case/whitespace utilities, token
+counting, embeddings, predicates, file I/O) and `nodetool.code` (Python/Bash/
+Ruby/Lua subprocess + Docker runners) is dropped.
 
 ### Creative media toolkit
 
@@ -136,14 +165,12 @@ cloud profile drops:
 **Kept agents:** `Agent`, `Classifier`, `Extractor`, `Summarizer`,
 `CreateThread`, `ImageAgent`, `MediaAgent`, `FfmpegAgent`, `DocumentAgent`.
 
-## Open considerations
+## Maintenance
 
-- **`nodetool.code` breadth.** The whole namespace (19 nodes) includes
-  multi-language exec (Bash, Ruby, Lua) and Docker runners. In a managed cloud,
-  arbitrary code execution is a security surface — consider trimming to the
-  sandboxed `Code` node, or ensuring all runners use the hardened sandbox.
-- **`nodetool.text` breadth.** 51 nodes, a few are low-level (regex/token
-  utilities). Fine to keep at namespace granularity; trim later if it clutters
-  the palette.
-- Re-adding a dropped capability is a one-line change to
-  `CLOUD_NODE_NAMESPACES`.
+- Re-add a whole capability → add a namespace to `CLOUD_NODE_NAMESPACES`.
+- Re-add a single node from a trimmed namespace (text/code) → add its node type
+  to `CLOUD_NODE_ALLOWLIST`.
+- Hide a single node from a kept namespace → add its node type to
+  `CLOUD_NODE_DENYLIST`.
+- Add/remove a provider → edit `CLOUD_PROVIDER_IDS` (and, for whole provider
+  packs, `CLOUD_BUILTIN_PACK_IDS`).
