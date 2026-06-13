@@ -28,7 +28,6 @@ import {
   CloseButton,
   EditorButton,
   FlexRow,
-  Toast,
   Tooltip
 } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -100,7 +99,6 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
   const documentId = useSketchSessionStore((s) => s.documentId);
   const clearActiveLayer = useSketchCanvasRefStore((s) => s.clearActiveLayer);
 
-  const [error, setError] = useState<string | null>(null);
   const [refineOpen, setRefineOpen] = useState(false);
   const refineAnchorRef = useRef<HTMLButtonElement | null>(null);
 
@@ -315,15 +313,6 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
         onFeatherSelection={() => void featherCurrentSelection()}
         onSmoothSelectionBorders={() => void smoothCurrentSelectionBorders()}
         onConvertSelectionToBorder={convertSelectionToBorderOutline}
-      />
-
-      <Toast
-        open={error !== null}
-        message={error ?? ""}
-        severity="warning"
-        onClose={() => setError(null)}
-        vertical="top"
-        horizontal="center"
       />
     </>
   );

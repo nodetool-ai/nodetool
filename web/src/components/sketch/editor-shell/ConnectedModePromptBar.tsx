@@ -182,10 +182,6 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
   }, [model, prompt, provider, start]);
 
   const handleInpaint = useCallback(async () => {
-    if (!prompt.trim() || !model) {
-      setError("Enter a prompt and select a model before inpainting.");
-      return;
-    }
     setGenerating(true);
     try {
       const result = await inpaintHere({ prompt: prompt.trim(), provider, model });
@@ -336,7 +332,7 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
         <FlexRow sx={{ flexShrink: 0 }}>
           <ImageModelSelect
             value={model}
-            task="text_to_image"
+            task={genMode === "inpaint" ? "image_to_image" : "text_to_image"}
             onChange={handleModelChange}
           />
         </FlexRow>

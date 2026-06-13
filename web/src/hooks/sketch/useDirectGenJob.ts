@@ -152,8 +152,25 @@ export function useDirectGenJob(): UseDirectGenJobApi {
       inFlight.delete(layerId);
     };
 
+    // The inpaint source/mask are throwaway uploads; once the backend is done
+    // with them (or never received them) they should not linger in the asset
+    // library. Best-effort — never block on cleanup.
+    const deleteInpaintTempAssets = () => {
+      if (binding.kind !== "inpaint") return;
+      for (const id of [binding.sourceAssetId, binding.maskAssetId]) {
+        if (id) {
+          void useAssetStore
+            .getState()
+            .delete(id)
+            .catch(() => {});
+        }
+      }
+    };
+
     const settle = async (msg: DirectGenRpcResponse) => {
       cleanup();
+      // rpc_response means the backend has finished reading the inputs.
+      deleteInpaintTempAssets();
       const store = useSketchSessionStore.getState();
       if (msg.error) {
         store.patchBinding(layerId, { status: "failed" });
@@ -239,6 +256,8 @@ export function useDirectGenJob(): UseDirectGenJobApi {
       });
     } catch {
       cleanup();
+      // Send never reached the backend, so the uploads are orphaned.
+      deleteInpaintTempAssets();
       useSketchSessionStore
         .getState()
         .patchBinding(layerId, { status: "failed" });

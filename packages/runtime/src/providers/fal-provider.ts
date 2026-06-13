@@ -196,9 +196,13 @@ class FalArgsBuilder {
     fallbackApiName?: string
   ): this {
     if (urls.length === 0) return this;
+    // Skip mask-named fields: inpaint endpoints declare both the source
+    // (`image_url`) and the mask (`mask_url`/`mask_image_url`) as `image`, and
+    // the primary asset must never land in the mask slot.
     const field = this.fields.find((f) => {
       const t = f.propType.toLowerCase();
-      return t === kind || t === `list[${kind}]`;
+      const apiName = (f.apiParamName ?? f.name).toLowerCase();
+      return (t === kind || t === `list[${kind}]`) && !apiName.includes("mask");
     });
     if (field) {
       const apiName = field.apiParamName ?? field.name;
@@ -207,6 +211,29 @@ class FalArgsBuilder {
         : urls[0];
     } else {
       this.args[fallbackApiName ?? `${kind}_url`] = urls[0];
+    }
+    return this;
+  }
+
+  /**
+   * Attach an inpaint mask URL to whatever mask field the endpoint declares.
+   * Endpoints name it `mask_url`, `mask_image_url`, `static_mask_url`, etc. —
+   * all `image`-typed fields whose name contains "mask". Falls back to
+   * `mask_url` for endpoints not in the manifest.
+   */
+  attachMask(url: string): this {
+    const field = this.fields.find((f) => {
+      const t = f.propType.toLowerCase();
+      const apiName = (f.apiParamName ?? f.name).toLowerCase();
+      return (t === "image" || t === "list[image]") && apiName.includes("mask");
+    });
+    if (field) {
+      const apiName = field.apiParamName ?? field.name;
+      this.args[apiName] = field.propType.toLowerCase().startsWith("list[")
+        ? [url]
+        : url;
+    } else {
+      this.args.mask_url = url;
     }
     return this;
   }
@@ -413,7 +440,7 @@ if (update.status === "IN_PROGRESS") {
       .set("strength", params.strength)
       .setImageSize(params.targetWidth, params.targetHeight)
       .setSize(params.aspectRatio, params.resolution);
-    if (maskUrls.length > 0) b.force("mask_url", maskUrls[0]);
+    if (maskUrls.length > 0) b.attachMask(maskUrls[0]);
     if (params.seed != null && params.seed !== -1) b.set("seed", params.seed);
     return b.args;
   }
