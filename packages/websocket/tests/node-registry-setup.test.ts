@@ -120,10 +120,12 @@ describe("applyBuiltinPackEnabled", () => {
 });
 
 describe("applyCloudNodePolicy", () => {
+  const originalProfile = process.env[CLOUD_PROFILE_ENV];
   const originalEnv = process.env[NODE_ENV_VAR];
 
   afterEach(() => {
-    delete process.env[CLOUD_PROFILE_ENV];
+    if (originalProfile === undefined) delete process.env[CLOUD_PROFILE_ENV];
+    else process.env[CLOUD_PROFILE_ENV] = originalProfile;
     if (originalEnv === undefined) delete process.env[NODE_ENV_VAR];
     else process.env[NODE_ENV_VAR] = originalEnv;
   });
