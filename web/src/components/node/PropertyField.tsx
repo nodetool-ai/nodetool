@@ -18,7 +18,7 @@ import { Tooltip } from "../ui_primitives/Tooltip";
 
 export type PropertyFieldProps = {
   id: string;
-  value: any;
+  value: unknown;
   nodeType: string;
   layout?: string;
   property: Property;
@@ -34,7 +34,7 @@ export type PropertyFieldProps = {
   data: NodeData;
   /** True when an edge is connected to this property's target handle. */
   isConnected?: boolean;
-  onValueChange?: (value: any) => void;
+  onValueChange?: (value: unknown) => void;
 };
 
 /**

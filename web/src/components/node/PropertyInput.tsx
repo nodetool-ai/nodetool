@@ -171,7 +171,7 @@ export type PropertyInputProps = {
   id: string;
   nodeType: string;
   data: NodeData;
-  value: any;
+  value: unknown;
   property: Property;
   propertyIndex?: string;
   controlKeyPressed?: boolean;
@@ -183,7 +183,7 @@ export type PropertyInputProps = {
   hideActionIcons?: boolean;
   /** True when an edge is connected to this property's target handle. */
   isConnected?: boolean;
-  onValueChange?: (value: any) => void;
+  onValueChange?: (value: unknown) => void;
 };
 
 const PropertyInput: React.FC<PropertyInputProps> = ({
@@ -349,7 +349,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         const dynamicInputDefaults = node.data.dynamic_inputs || {};
         let defaultValue = dynamicInputDefaults?.[property.name]?.default;
         if (defaultValue === undefined) {
-          const nodeMetadata = metadata?.[node.type as string];
+          const nodeMetadata = node.type ? metadata?.[node.type] : undefined;
           if (nodeMetadata) {
             const propertyDef = nodeMetadata.properties.find(
               (prop: Property) => prop.name === property.name
@@ -366,7 +366,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
           });
         }
       } else {
-        const nodeMetadata = metadata?.[node.type as string];
+        const nodeMetadata = node.type ? metadata?.[node.type] : undefined;
         if (nodeMetadata) {
           const propertyDef = nodeMetadata.properties.find(
             (prop: Property) => prop.name === property.name

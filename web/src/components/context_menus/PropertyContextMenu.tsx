@@ -205,7 +205,7 @@ const PropertyContextMenuComponent: React.FC = () => {
           let defaultValue = dynamicInputDefaults?.[handleId]?.default;
 
           if (defaultValue === undefined) {
-            const nodeMetadata = metadata?.[node.type as string];
+            const nodeMetadata = node.type ? metadata?.[node.type] : undefined;
             if (nodeMetadata) {
               const propertyDef = nodeMetadata.properties.find(
                 (prop: Property) => prop.name === handleId
@@ -223,7 +223,7 @@ const PropertyContextMenuComponent: React.FC = () => {
             });
           }
         } else {
-          const nodeMetadata = metadata?.[node.type as string];
+          const nodeMetadata = node.type ? metadata?.[node.type] : undefined;
           if (nodeMetadata) {
             const propertyDef = nodeMetadata.properties.find(
               (prop: Property) => prop.name === handleId
