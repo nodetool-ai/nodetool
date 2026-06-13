@@ -11,7 +11,8 @@ import {
   LoadingSpinner,
   TextInput,
   EditorButton,
-  Box
+  Box,
+  MOTION
 } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -47,7 +48,7 @@ const styles = (theme: Theme) =>
       right: theme.spacing(1),
       top: theme.spacing(1),
       color: theme.vars.palette.text.secondary,
-      transition: "all 0.2s",
+      transition: MOTION.all,
       "&:hover": {
         color: theme.vars.palette.text.primary,
         backgroundColor: theme.vars.palette.action.hover
@@ -56,7 +57,7 @@ const styles = (theme: Theme) =>
     ".header-icon": {
       width: 36,
       height: 36,
-      borderRadius: "10px",
+      borderRadius: "var(--rounded-lg)",
       background: `color-mix(in srgb, ${theme.vars.palette.primary.main} 15%, transparent)`,
       color: theme.vars.palette.primary.main,
       flexShrink: 0
@@ -73,7 +74,7 @@ const styles = (theme: Theme) =>
     },
     ".text-input": {
       "& .MuiOutlinedInput-root": {
-        borderRadius: "10px",
+        borderRadius: "var(--rounded-lg)",
         backgroundColor: theme.vars.palette.background.default,
         "& fieldset": {
           borderColor: theme.vars.palette.divider
@@ -109,7 +110,7 @@ const styles = (theme: Theme) =>
     ".error-box": {
       marginTop: theme.spacing(2),
       padding: theme.spacing(1.5),
-      borderRadius: "10px",
+      borderRadius: "var(--rounded-lg)",
       background: `color-mix(in srgb, ${theme.vars.palette.error.main} 10%, transparent)`,
       border: `1px solid color-mix(in srgb, ${theme.vars.palette.error.main} 25%, transparent)`
     }

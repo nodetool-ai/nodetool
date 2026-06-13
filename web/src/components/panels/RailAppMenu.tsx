@@ -20,7 +20,7 @@ import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import Help from "../content/Help/Help";
 import Logo from "../Logo";
-import { Popover, MenuItemPrimitive, Tooltip } from "../ui_primitives";
+import { Popover, MenuItemPrimitive, Tooltip, MOTION } from "../ui_primitives";
 
 const workspacesEnabled = !isProduction;
 
@@ -38,7 +38,7 @@ const logoButtonStyles = (theme: Theme) =>
     background: "transparent",
     cursor: "pointer",
     opacity: 0.9,
-    transition: "background-color 140ms ease-out, opacity 140ms ease-out",
+    transition: `background-color ${MOTION.fast}, opacity ${MOTION.fast}`,
     "&:hover": {
       backgroundColor: theme.vars.palette.action.hover,
       opacity: 1

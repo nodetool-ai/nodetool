@@ -3,8 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { List } from "@mui/material";
-import { Text, BORDER_RADIUS } from "../ui_primitives";
+import { Text, BORDER_RADIUS, ListGroup, MOTION } from "../ui_primitives";
 import RenderNamespaces from "./RenderNamespaces";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useShallow } from "zustand/react/shallow";
@@ -121,7 +120,7 @@ const namespacePanelStyles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall,
       fontWeight: 400,
       lineHeight: 1.2,
-      transition: "background-color 0.15s ease, color 0.15s ease",
+      transition: `${MOTION.background}, ${MOTION.opacity}`,
       overflow: "hidden",
       margin: "1px 0",
       borderRadius: "var(--rounded-md)"
@@ -245,7 +244,7 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
       css={namespacePanelStyles(theme)}
       className="namespace-panel-container"
     >
-      <List className="namespace-list">
+      <ListGroup className="namespace-list">
         <div className="namespaces">
           <div
             className={`list-item ${selectedPathString ? "" : "selected"}`}
@@ -292,7 +291,7 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
             </div>
           </>
         )}
-      </List>
+      </ListGroup>
     </div>
   );
 };

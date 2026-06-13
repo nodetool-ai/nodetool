@@ -3,12 +3,13 @@
  * voice operating on streamed signal chunks: oscillator, LFO, ADSR, gate
  * source, VCA, VCF, CV utilities, and a mixer.
  *
- * Timing is sample-domain: time = sample count, never the wall clock.
- * Generators render a bounded duration deterministically (or run infinitely
- * with `realtime: true`, paced by `RealtimePacer` — pacing delays emission
- * but never changes signal content). Driven nodes derive all timing from
- * their input chunks (one output chunk per input chunk, same frame count),
- * so a patch driven by one Gate source is sample-aligned by construction.
+ * Timing is sample-domain: time = sample count; the wall clock only paces
+ * emission. Free-running generators (Oscillator, LFO, Gate) are realtime
+ * modules: they emit forever, paced by `RealtimePacer`, until the run is
+ * cancelled (pacing delays emission but never changes signal content).
+ * Driven nodes derive all timing from their input chunks (one output chunk
+ * per input chunk, same frame count), so a patch driven by one Gate source
+ * is sample-aligned by construction.
  *
  * Control voltage (CV) is a first-class socket type riding the chunk wire
  * shape with `encoding: "f32le"` (see ../lib/cv.ts) — interchangeable with
@@ -57,10 +58,12 @@ import {
 // ── Shared generator scaffolding ───────────────────────────────────
 
 /**
- * Run a bounded (or realtime-infinite) generator loop: calls `fill` to
- * produce each chunk's samples, paces with the wall clock when `realtime`,
- * and stops on run cancellation. `totalFrames === Infinity` only when the
- * caller has validated `realtime` is on.
+ * Run a free-running generator loop: calls `fill` to produce each chunk's
+ * samples, paces emission with the wall clock, and runs until cancellation
+ * (`signal`) — free-running synth sources have no other end; they play
+ * until the patch is stopped. Pacing is what keeps the infinite stream
+ * legal: inbox buffering is unbounded by default, and an unpaced infinite
+ * producer would exhaust memory.
  */
 async function runGenerator(
   outputs: StreamingOutputs,
@@ -68,48 +71,24 @@ async function runGenerator(
     slot: string;
     sampleRate: number;
     encoding: SignalEncoding;
-    totalFrames: number;
-    realtime: boolean;
     signal: AbortSignal;
     fill: (buf: Float32Array, startFrame: number) => void;
   }
 ): Promise<void> {
-  const { slot, sampleRate, encoding, totalFrames, realtime, signal } = opts;
-  const pacer = realtime ? new RealtimePacer(signal) : null;
+  const { slot, sampleRate, encoding, signal } = opts;
+  const pacer = new RealtimePacer(signal);
+  const chunkMs = (SYNTH_CHUNK_FRAMES / sampleRate) * 1000;
   let emitted = 0;
-  while (emitted < totalFrames) {
-    if (signal.aborted) break;
-    const frames = Math.min(SYNTH_CHUNK_FRAMES, totalFrames - emitted);
-    if (pacer && !(await pacer.waitNext((frames / sampleRate) * 1000))) break;
-    const buf = new Float32Array(frames);
+  while (await pacer.waitNext(chunkMs)) {
+    const buf = new Float32Array(SYNTH_CHUNK_FRAMES);
     opts.fill(buf, emitted);
     await outputs.emit(
       slot,
       makeSignalChunk(buf, sampleRate, 1, false, encoding)
     );
-    emitted += frames;
+    emitted += SYNTH_CHUNK_FRAMES;
   }
   await outputs.emit(slot, makeDoneSignalChunk(sampleRate, 1, encoding));
-}
-
-/**
- * Frame budget for a generator: `seconds <= 0` means infinite, which is
- * only legal in realtime mode (inbox buffering is unbounded by default — an
- * unpaced infinite producer would never terminate and exhaust memory).
- */
-function generatorFrames(
-  seconds: number,
-  sampleRate: number,
-  realtime: boolean,
-  what: string
-): number {
-  if (seconds > 0) return Math.max(1, Math.round(seconds * sampleRate));
-  if (!realtime) {
-    throw new Error(
-      `${what} of 0 (infinite) requires realtime: true — an unpaced infinite generator would run unbounded`
-    );
-  }
-  return Infinity;
 }
 
 /** Channel 0 of an interleaved chunk — CV inputs are conceptually mono. */
@@ -128,7 +107,7 @@ export class OscillatorNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.synth.Oscillator";
   static readonly title = "Oscillator";
   static readonly description =
-    "Voltage-controlled oscillator generating sine, saw, square, triangle or noise audio.\n    audio, synthesis, oscillator, vco, modular\n\n    Pitch CV is volts/octave: freq = frequency * 2^cv (cv in octaves). With pitch_cv or fm patched, output follows that stream's chunk cadence (sample-aligned); otherwise it free-runs for `duration` seconds (0 = infinite, realtime only). Naive waveforms — saw/square alias at high frequencies.\n\n    Use cases:\n    - Sound source for a modular synth voice\n    - FM/vibrato via the fm input driven by an LFO\n    - Melodic sequences via a pitch CV stream";
+    "Voltage-controlled oscillator generating sine, saw, square, triangle or noise audio.\n    audio, synthesis, oscillator, vco, modular\n\n    Pitch CV is volts/octave: freq = frequency * 2^cv (cv in octaves). With pitch_cv or fm patched, output follows that stream's chunk cadence (sample-aligned); otherwise it free-runs wall-clock paced until the run is stopped. Naive waveforms — saw/square alias at high frequencies.\n\n    Use cases:\n    - Sound source for a modular synth voice\n    - FM/vibrato via the fm input driven by an LFO\n    - Melodic sequences via a pitch CV stream";
   static readonly metadataOutputTypes = { chunk: "chunk" };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["pitch_cv", "fm"];
@@ -202,17 +181,6 @@ export class OscillatorNode extends BaseNode {
   declare fm_amount: any;
 
   @prop({
-    type: "float",
-    default: 2,
-    title: "Duration",
-    description:
-      "Free-run render length in seconds. 0 = infinite (requires realtime). Ignored when pitch_cv/fm is patched.",
-    min: 0,
-    max: 600
-  })
-  declare duration: any;
-
-  @prop({
     type: "int",
     default: SYNTH_SAMPLE_RATE,
     title: "Sample Rate",
@@ -222,32 +190,41 @@ export class OscillatorNode extends BaseNode {
   })
   declare sample_rate: any;
 
-  @prop({
-    type: "bool",
-    default: false,
-    title: "Realtime",
-    description:
-      "Pace free-run emission with the wall clock (content is identical to a free run)."
-  })
-  declare realtime: any;
-
   // Required by BaseNode but unused for streaming
   async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
-    const waveform = String(this.waveform ?? "sine") as Waveform;
-    const baseFreq = Number(this.frequency ?? 220);
-    const amplitude = Number(this.amplitude ?? 0.8);
-    const pulseWidth = Number(this.pulse_width ?? 0.5);
-    const fmAmount = Number(this.fm_amount ?? 0);
+  /** Current property values — read per chunk so live updates apply. */
+  private params(): {
+    waveform: Waveform;
+    baseFreq: number;
+    amplitude: number;
+    pulseWidth: number;
+    fmAmount: number;
+  } {
+    return {
+      waveform: String(this.waveform ?? "sine") as Waveform,
+      baseFreq: Number(this.frequency ?? 220),
+      amplitude: Number(this.amplitude ?? 0.8),
+      pulseWidth: Number(this.pulse_width ?? 0.5),
+      fmAmount: Number(this.fm_amount ?? 0)
+    };
+  }
 
+  async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
     // Double-precision phase accumulator carried across chunks — no drift.
+    // Properties are re-read at every chunk boundary (params()), so live
+    // updates pushed via applyProperties land on the next chunk.
     let phase = 0;
-    const sampleAt = (freq: number, sampleRate: number): number => {
+    type OscParams = ReturnType<OscillatorNode["params"]>;
+    const sampleAt = (
+      p: OscParams,
+      freq: number,
+      sampleRate: number
+    ): number => {
       const f = Math.min(Math.max(freq, 0), sampleRate / 2 - 1e-6);
-      const out = amplitude * oscSample(waveform, phase, pulseWidth);
+      const out = p.amplitude * oscSample(p.waveform, phase, p.pulseWidth);
       phase = (phase + f / sampleRate) % 1;
       return out;
     };
@@ -265,6 +242,7 @@ export class OscillatorNode extends BaseNode {
         primary,
         cvHandles: [secondary]
       })) {
+        const p = this.params();
         sampleRate = frame.primary.sampleRate;
         const drive = chunkMono(frame.primary.samples, frame.primary.channels);
         const other = frame.cv[secondary];
@@ -272,8 +250,8 @@ export class OscillatorNode extends BaseNode {
         for (let i = 0; i < drive.length; i++) {
           const pitch = hasPitch ? drive[i] : (other?.[i] ?? 0);
           const fm = hasPitch ? (other?.[i] ?? 0) : drive[i];
-          const freq = baseFreq * Math.pow(2, pitch) * (1 + fmAmount * fm);
-          buf[i] = sampleAt(freq, sampleRate);
+          const freq = p.baseFreq * Math.pow(2, pitch) * (1 + p.fmAmount * fm);
+          buf[i] = sampleAt(p, freq, sampleRate);
         }
         await outputs.emit(
           "chunk",
@@ -288,23 +266,15 @@ export class OscillatorNode extends BaseNode {
     }
 
     const sampleRate = Number(this.sample_rate ?? SYNTH_SAMPLE_RATE);
-    const realtime = Boolean(this.realtime ?? false);
-    const totalFrames = generatorFrames(
-      Number(this.duration ?? 2),
-      sampleRate,
-      realtime,
-      "Oscillator duration"
-    );
     await runGenerator(outputs, {
       slot: "chunk",
       sampleRate,
       encoding: "pcm16le",
-      totalFrames,
-      realtime,
       signal: inputs.signal,
       fill: (buf) => {
+        const p = this.params();
         for (let i = 0; i < buf.length; i++) {
-          buf[i] = sampleAt(baseFreq, sampleRate);
+          buf[i] = sampleAt(p, p.baseFreq, sampleRate);
         }
       }
     });
@@ -317,7 +287,7 @@ export class LfoNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.synth.LFO";
   static readonly title = "LFO";
   static readonly description =
-    "Low-frequency oscillator emitting a control-voltage stream.\n    cv, synthesis, lfo, modulation, modular\n\n    Output is offset + depth * wave(phase). With a clock patched, emits one chunk per clock chunk (sample-aligned) and resets phase on each clock rising edge; otherwise free-runs for `duration` seconds (0 = infinite, realtime only).\n\n    Use cases:\n    - Vibrato/tremolo via Oscillator fm or VCA cv\n    - Filter sweeps via VCF cutoff_cv\n    - Slow parameter drift in generative patches";
+    "Low-frequency oscillator emitting a control-voltage stream.\n    cv, synthesis, lfo, modulation, modular\n\n    Output is offset + depth * wave(phase). With a clock patched, emits one chunk per clock chunk (sample-aligned) and resets phase on each clock rising edge; otherwise free-runs wall-clock paced until the run is stopped.\n\n    Use cases:\n    - Vibrato/tremolo via Oscillator fm or VCA cv\n    - Filter sweeps via VCF cutoff_cv\n    - Slow parameter drift in generative patches";
   static readonly metadataOutputTypes = { cv: "cv" };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = ["clock"];
@@ -372,17 +342,6 @@ export class LfoNode extends BaseNode {
   declare offset: any;
 
   @prop({
-    type: "float",
-    default: 4,
-    title: "Duration",
-    description:
-      "Free-run render length in seconds. 0 = infinite (requires realtime). Ignored when clock is patched.",
-    min: 0,
-    max: 600
-  })
-  declare duration: any;
-
-  @prop({
     type: "int",
     default: SYNTH_SAMPLE_RATE,
     title: "Sample Rate",
@@ -392,26 +351,27 @@ export class LfoNode extends BaseNode {
   })
   declare sample_rate: any;
 
-  @prop({
-    type: "bool",
-    default: false,
-    title: "Realtime",
-    description:
-      "Pace free-run emission with the wall clock (content is identical to a free run)."
-  })
-  declare realtime: any;
-
   // Required by BaseNode but unused for streaming
   async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
-  async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
-    const waveform = String(this.waveform ?? "sine") as Waveform;
-    const rateHz = Number(this.rate_hz ?? 2);
-    const depth = Number(this.depth ?? 1);
-    const offset = Number(this.offset ?? 0);
+  /** Current property values — read per chunk so live updates apply. */
+  private params(): {
+    waveform: Waveform;
+    rateHz: number;
+    depth: number;
+    offset: number;
+  } {
+    return {
+      waveform: String(this.waveform ?? "sine") as Waveform,
+      rateHz: Number(this.rate_hz ?? 2),
+      depth: Number(this.depth ?? 1),
+      offset: Number(this.offset ?? 0)
+    };
+  }
 
+  async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
     let phase = 0;
 
     if (inputs.hasStream("clock")) {
@@ -422,6 +382,7 @@ export class LfoNode extends BaseNode {
         if (!chunk) continue;
         if (chunk.done) break;
         if (chunk.samples.length === 0) continue;
+        const p = this.params();
         sampleRate = chunk.sampleRate;
         const clock = chunkMono(chunk.samples, chunk.channels);
         const buf = new Float32Array(clock.length);
@@ -429,8 +390,8 @@ export class LfoNode extends BaseNode {
           const high = clock[i] >= GATE_THRESHOLD;
           if (high && !clockWasHigh) phase = 0; // sample-accurate reset
           clockWasHigh = high;
-          buf[i] = offset + depth * oscSample(waveform, phase);
-          phase = (phase + rateHz / sampleRate) % 1;
+          buf[i] = p.offset + p.depth * oscSample(p.waveform, phase);
+          phase = (phase + p.rateHz / sampleRate) % 1;
         }
         await outputs.emit(
           "cv",
@@ -442,24 +403,16 @@ export class LfoNode extends BaseNode {
     }
 
     const sampleRate = Number(this.sample_rate ?? SYNTH_SAMPLE_RATE);
-    const realtime = Boolean(this.realtime ?? false);
-    const totalFrames = generatorFrames(
-      Number(this.duration ?? 4),
-      sampleRate,
-      realtime,
-      "LFO duration"
-    );
     await runGenerator(outputs, {
       slot: "cv",
       sampleRate,
       encoding: "f32le",
-      totalFrames,
-      realtime,
       signal: inputs.signal,
       fill: (buf) => {
+        const p = this.params();
         for (let i = 0; i < buf.length; i++) {
-          buf[i] = offset + depth * oscSample(waveform, phase);
-          phase = (phase + rateHz / sampleRate) % 1;
+          buf[i] = p.offset + p.depth * oscSample(p.waveform, phase);
+          phase = (phase + p.rateHz / sampleRate) % 1;
         }
       }
     });
@@ -532,34 +485,23 @@ export class AdsrNode extends BaseNode {
   }
 
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
-    const attack = Number(this.attack ?? 0.01);
-    const decay = Number(this.decay ?? 0.1);
-    const sustain = Number(this.sustain ?? 0.7);
-    const release = Number(this.release ?? 0.3);
-
     const state = createAdsrState();
     let sampleRate = SYNTH_SAMPLE_RATE;
-    let params = {
-      attackCoeff: adsrCoeff(attack, sampleRate),
-      decayCoeff: adsrCoeff(decay, sampleRate),
-      releaseCoeff: adsrCoeff(release, sampleRate),
-      sustain
-    };
 
     for await (const item of inputs.stream("gate")) {
       const chunk = readSignalChunk(item);
       if (!chunk) continue;
       if (chunk.done) break;
       if (chunk.samples.length === 0) continue;
-      if (chunk.sampleRate !== sampleRate) {
-        sampleRate = chunk.sampleRate;
-        params = {
-          attackCoeff: adsrCoeff(attack, sampleRate),
-          decayCoeff: adsrCoeff(decay, sampleRate),
-          releaseCoeff: adsrCoeff(release, sampleRate),
-          sustain
-        };
-      }
+      sampleRate = chunk.sampleRate;
+      // Coefficients recomputed per chunk from the current property values
+      // (three exp() calls per ~21 ms chunk) so live updates apply.
+      const params = {
+        attackCoeff: adsrCoeff(Number(this.attack ?? 0.01), sampleRate),
+        decayCoeff: adsrCoeff(Number(this.decay ?? 0.1), sampleRate),
+        releaseCoeff: adsrCoeff(Number(this.release ?? 0.3), sampleRate),
+        sustain: Number(this.sustain ?? 0.7)
+      };
       const gate = chunkMono(chunk.samples, chunk.channels);
       const buf = new Float32Array(gate.length);
       for (let i = 0; i < gate.length; i++) {
@@ -580,7 +522,7 @@ export class GateNode extends BaseNode {
   static readonly nodeType = "nodetool.audio.synth.Gate";
   static readonly title = "Gate";
   static readonly description =
-    "Generates a repeating on/off gate CV pattern — the patch's master clock.\n    cv, synthesis, gate, trigger, clock, modular\n\n    Emits `amplitude` for on_duration seconds, 0 for off_duration, `repeats` times (0 = infinite, realtime only). Drive an ADSR with it; every node downstream is sample-aligned to it by construction, and with realtime: true the whole driven patch is wall-clock paced.\n\n    Use cases:\n    - Trigger envelopes rhythmically\n    - Master clock for clocked LFOs and sample & hold\n    - Live patches via realtime mode";
+    "Generates a repeating on/off gate CV pattern — the patch's master clock.\n    cv, synthesis, gate, trigger, clock, modular\n\n    Emits `amplitude` for on_duration seconds, 0 for off_duration, cycling wall-clock paced until the run is stopped. Drive an ADSR with it; every node downstream is sample-aligned to it by construction and paced with it.\n\n    Use cases:\n    - Trigger envelopes rhythmically\n    - Master clock for clocked LFOs and sample & hold\n    - Heartbeat of a live patch";
   static readonly metadataOutputTypes = { cv: "cv" };
   static readonly inlineFields: string[] = [];
   static readonly inputFields: string[] = [];
@@ -607,16 +549,6 @@ export class GateNode extends BaseNode {
   declare off_duration: any;
 
   @prop({
-    type: "int",
-    default: 4,
-    title: "Repeats",
-    description: "Number of on/off cycles. 0 = infinite (requires realtime).",
-    min: 0,
-    max: 1024
-  })
-  declare repeats: any;
-
-  @prop({
     type: "float",
     default: 1,
     title: "Amplitude",
@@ -636,46 +568,34 @@ export class GateNode extends BaseNode {
   })
   declare sample_rate: any;
 
-  @prop({
-    type: "bool",
-    default: false,
-    title: "Realtime",
-    description:
-      "Pace emission with the wall clock (content is identical to a free run)."
-  })
-  declare realtime: any;
-
   // Required by BaseNode but unused for streaming
   async process(): Promise<Record<string, unknown>> {
     return {};
   }
 
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
-    const onDuration = Number(this.on_duration ?? 0.25);
-    const offDuration = Number(this.off_duration ?? 0.25);
-    const repeats = Number(this.repeats ?? 4);
-    const amplitude = Number(this.amplitude ?? 1);
     const sampleRate = Number(this.sample_rate ?? SYNTH_SAMPLE_RATE);
-    const realtime = Boolean(this.realtime ?? false);
-
-    const onFrames = Math.max(1, Math.round(onDuration * sampleRate));
-    const periodFrames =
-      onFrames + Math.max(1, Math.round(offDuration * sampleRate));
-    const totalFrames = generatorFrames(
-      repeats > 0 ? (repeats * periodFrames) / sampleRate : 0,
-      sampleRate,
-      realtime,
-      "Gate repeats"
-    );
 
     await runGenerator(outputs, {
       slot: "cv",
       sampleRate,
       encoding: "f32le",
-      totalFrames,
-      realtime,
       signal: inputs.signal,
       fill: (buf, startFrame) => {
+        // Timing re-read per chunk so live updates apply; the phase derives
+        // from the absolute frame counter, so a period change just re-grids
+        // the pattern instead of glitching it.
+        const onFrames = Math.max(
+          1,
+          Math.round(Number(this.on_duration ?? 0.25) * sampleRate)
+        );
+        const periodFrames =
+          onFrames +
+          Math.max(
+            1,
+            Math.round(Number(this.off_duration ?? 0.25) * sampleRate)
+          );
+        const amplitude = Number(this.amplitude ?? 1);
         for (let i = 0; i < buf.length; i++) {
           buf[i] =
             (startFrame + i) % periodFrames < onFrames ? amplitude : 0;
@@ -729,7 +649,6 @@ export class VcaNode extends BaseNode {
   }
 
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
-    const gain = Number(this.gain ?? 1);
     let sampleRate = SYNTH_SAMPLE_RATE;
     let channels = 1;
 
@@ -737,6 +656,7 @@ export class VcaNode extends BaseNode {
       primary: "audio",
       cvHandles: ["cv"]
     })) {
+      const gain = Number(this.gain ?? 1); // per chunk — live updates apply
       sampleRate = frame.primary.sampleRate;
       channels = frame.primary.channels;
       const input = frame.primary.samples;
@@ -836,11 +756,6 @@ export class VcfNode extends BaseNode {
   }
 
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
-    const mode = String(this.mode ?? "lowpass") as "lowpass" | "highpass";
-    const cutoffHz = Number(this.cutoff_hz ?? 1000);
-    const q = Number(this.q ?? DEFAULT_Q);
-    const cvAmount = Number(this.cv_amount ?? 1);
-
     let sampleRate = SYNTH_SAMPLE_RATE;
     let channels = 1;
     let states: BiquadState[] = [];
@@ -849,6 +764,12 @@ export class VcfNode extends BaseNode {
       primary: "audio",
       cvHandles: ["cutoff_cv"]
     })) {
+      // Per chunk — live updates apply (coefficients are recomputed per
+      // 64-frame control block below anyway).
+      const mode = String(this.mode ?? "lowpass") as "lowpass" | "highpass";
+      const cutoffHz = Number(this.cutoff_hz ?? 1000);
+      const q = Number(this.q ?? DEFAULT_Q);
+      const cvAmount = Number(this.cv_amount ?? 1);
       sampleRate = frame.primary.sampleRate;
       if (states.length !== frame.primary.channels) {
         channels = frame.primary.channels;
@@ -942,8 +863,6 @@ export class AttenuverterNode extends BaseNode {
   }
 
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
-    const scale = Number(this.scale ?? 1);
-    const offset = Number(this.offset ?? 0);
     let sampleRate = SYNTH_SAMPLE_RATE;
     let channels = 1;
 
@@ -952,6 +871,8 @@ export class AttenuverterNode extends BaseNode {
       if (!chunk) continue;
       if (chunk.done) break;
       if (chunk.samples.length === 0) continue;
+      const scale = Number(this.scale ?? 1); // per chunk — live updates apply
+      const offset = Number(this.offset ?? 0);
       sampleRate = chunk.sampleRate;
       channels = chunk.channels;
       const buf = chunk.samples;
@@ -1121,12 +1042,13 @@ export class MixerNode extends BaseNode {
   }
 
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
-    const levels: Record<string, number> = {
+    // Read per emitted block — live updates apply.
+    const levels = (): Record<string, number> => ({
       in1: Number(this.level1 ?? 1),
       in2: Number(this.level2 ?? 1),
       in3: Number(this.level3 ?? 1),
       in4: Number(this.level4 ?? 1)
-    };
+    });
     const connected: string[] = MIXER_HANDLES.filter((h) =>
       inputs.hasStream(h)
     );
@@ -1140,12 +1062,13 @@ export class MixerNode extends BaseNode {
 
     const emitMixed = async (n: number): Promise<void> => {
       if (n <= 0) return;
+      const lv = levels();
       const buf = new Float32Array(n);
       for (const h of connected) {
         // Ended/short inputs contribute zeros — silence is correct for
         // finished audio, unlike CV's hold-last.
         const part = fifos.get(h)!.pull(n, "zero");
-        const level = levels[h];
+        const level = lv[h];
         for (let i = 0; i < n; i++) buf[i] += level * part[i];
       }
       await outputs.emit(

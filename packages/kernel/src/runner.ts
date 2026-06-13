@@ -17,6 +17,7 @@
 import { createLogger } from "@nodetool-ai/config";
 import type {
   NodeDescriptor,
+  HydratedGraphData,
   Edge,
   ProcessingMessage,
   ControlEvent
@@ -24,6 +25,31 @@ import type {
 import { TypeMetadata } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.kernel.runner");
+
+/**
+ * Minimum interval between edge_update emissions per edge. The first message
+ * on an edge always emits (it starts the flow animation); afterwards the
+ * counter badge is refreshed at most this often, with the exact final count
+ * flushed at run end. Keeps audio-rate streams (~50 chunks/s per edge) from
+ * flooding the message transport.
+ */
+const EDGE_UPDATE_MIN_INTERVAL_MS = 1000;
+
+/**
+ * Cap on messages retained for RunResult.messages. Long-running streaming
+ * jobs would otherwise accumulate messages without bound; when the cap is
+ * hit, the oldest half is dropped (block-wise, so the cost amortizes).
+ */
+const MAX_RETAINED_MESSAGES = 10_000;
+
+/** An output_update whose value is a streamed audio chunk (sample payload). */
+function isAudioChunkOutputUpdate(msg: ProcessingMessage): boolean {
+  if (msg.type !== "output_update") return false;
+  const value = (msg as { value?: unknown }).value;
+  if (!value || typeof value !== "object") return false;
+  const v = value as { type?: unknown; content_type?: unknown };
+  return v.type === "chunk" && v.content_type === "audio";
+}
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 // Import span helpers from the narrow `/tracing` subpath, not the package root,
 // so thin consumers (e.g. the in-browser workflow runner) don't drag the
@@ -191,6 +217,12 @@ export class WorkflowRunner {
   /** Per-edge message counters (for EdgeUpdate tracking). */
   private _edgeCounters = new Map<string, number>();
 
+  /** Per-edge timestamp of the last emitted edge_update (throttling). */
+  private _edgeCounterLastEmitMs = new Map<string, number>();
+
+  /** Edges whose counter advanced since their last emitted edge_update. */
+  private _edgeCounterDirty = new Set<string>();
+
   /** Per-edge streaming flag (true if on a streaming path). */
   private _streamingEdges = new Map<string, boolean>();
 
@@ -331,10 +363,17 @@ export class WorkflowRunner {
 
   /**
    * Execute a workflow graph.
+   *
+   * Requires hydrated descriptors: the actor trusts the behavior flags
+   * (`is_streaming_input` & co.) to pick the execution mode, so accepting a
+   * raw wire graph here would silently run streaming nodes as one-shot
+   * process() calls. Hydrate via `Graph.loadFromDict`, node-sdk's
+   * `hydrateGraphNodeFlags(graph, registry)`, or — for graphs constructed in
+   * code where the author sets the flags — `withExplicitNodeFlags`.
    */
   async run(
     request: RunJobRequest,
-    graphData: { nodes: NodeDescriptor[]; edges: Edge[] }
+    graphData: HydratedGraphData
   ): Promise<RunResult> {
     return withWorkflowSpan(
       {
@@ -348,7 +387,7 @@ export class WorkflowRunner {
 
   private async _runImpl(
     request: RunJobRequest,
-    graphData: { nodes: NodeDescriptor[]; edges: Edge[] }
+    graphData: HydratedGraphData
   ): Promise<RunResult> {
     this._resetRunState();
 
@@ -512,6 +551,8 @@ export class WorkflowRunner {
   private _resetRunState(): void {
     this._inboxes = new Map();
     this._edgeCounters = new Map();
+    this._edgeCounterLastEmitMs = new Map();
+    this._edgeCounterDirty = new Set();
     this._streamingEdges = new Map();
     this._controlEdgesRouted = new Set();
     this._multiEdgeListInputs = new Map();
@@ -529,6 +570,23 @@ export class WorkflowRunner {
   /**
    * Cancel the running workflow.
    */
+  /**
+   * Push property updates into a running node's executor instance (live
+   * parameter changes — e.g. turning a synth knob while the patch plays).
+   * Returns true when the node's executor exists and supports live updates;
+   * false is not an error — the caller's canvas state already holds the new
+   * value for the next run.
+   */
+  updateNodeProperties(
+    nodeId: string,
+    properties: Record<string, unknown>
+  ): boolean {
+    const executor = this._executors.get(nodeId);
+    if (!executor?.applyProperties) return false;
+    executor.applyProperties(properties);
+    return true;
+  }
+
   cancel(): void {
     log.info("Job cancelled", { jobId: this.jobId });
     this._cancelled = true;
@@ -1125,16 +1183,33 @@ export class WorkflowRunner {
     // Skip constant and input nodes: the client already holds their value
     // as a property (or supplied it as a runtime param), so re-sending it
     // (often a large image/audio payload) is redundant.
+    // Also skip handles with outgoing data edges: the value travels to its
+    // consumer on the edge, and clients only display terminal (unconnected)
+    // handles — Output/Preview nodes and dangling outputs. Without this,
+    // every intermediate module of a streaming patch firehoses the client
+    // (~50 output_updates/s per handle for realtime audio). Nodes whose
+    // output_updates are part of their UI contract even when patched onward
+    // (e.g. the realtime AudioOutput monitor) opt out via the
+    // `always_emit_output_updates` descriptor flag.
     const sourceNode = this._graph.findNode(sourceNodeId);
     if (
       sourceNode &&
       !sourceNode.type.startsWith("nodetool.constant.") &&
       !sourceNode.type.startsWith("nodetool.input.")
     ) {
+      const alwaysEmit = Boolean(
+        (sourceNode as { always_emit_output_updates?: boolean })
+          .always_emit_output_updates
+      );
       const declaredOutputs = sourceNode.outputs ?? {};
       for (const [handle, value] of Object.entries(outputs)) {
         if (value === undefined) continue;
         if (handle === "__control__" || handle === "__control_output__")
+          continue;
+        if (
+          !alwaysEmit &&
+          this._graph.findEdges(sourceNodeId, handle).some(isDataEdge)
+        )
           continue;
         const outputName = clientFacingOutputName(sourceNode, handle);
         this._emit({
@@ -1350,6 +1425,20 @@ export class WorkflowRunner {
     const counter = (this._edgeCounters.get(id) ?? 0) + 1;
     this._edgeCounters.set(id, counter);
 
+    // Per-message edge_updates only drive UI affordances: the flow animation
+    // needs the first message, and the "N streamed" badge doesn't need more
+    // than a few updates per second. Realtime audio streams cross edges at
+    // chunk rate (~50/s per edge), which would otherwise flood the transport.
+    // Emit the first update immediately, throttle the rest, and flush exact
+    // final counters in _flushEdgeCounters() at run end.
+    const now = Date.now();
+    const last = this._edgeCounterLastEmitMs.get(id);
+    if (last !== undefined && now - last < EDGE_UPDATE_MIN_INTERVAL_MS) {
+      this._edgeCounterDirty.add(id);
+      return;
+    }
+    this._edgeCounterLastEmitMs.set(id, now);
+    this._edgeCounterDirty.delete(id);
     this._emit({
       type: "edge_update",
       workflow_id: this.jobId,
@@ -1357,6 +1446,24 @@ export class WorkflowRunner {
       status: "active",
       counter
     });
+  }
+
+  /**
+   * Emit the final counter for every edge whose count advanced past its last
+   * throttled edge_update, so the badge ends on the exact total. Called from
+   * _drainActiveEdges (which runs on completion, cancellation and error).
+   */
+  private _flushEdgeCounters(): void {
+    for (const id of this._edgeCounterDirty) {
+      this._emit({
+        type: "edge_update",
+        workflow_id: this.jobId,
+        edge_id: id,
+        status: "active",
+        counter: this._edgeCounters.get(id) ?? null
+      });
+    }
+    this._edgeCounterDirty.clear();
   }
 
   // -----------------------------------------------------------------------
@@ -1371,6 +1478,9 @@ export class WorkflowRunner {
    */
   private _drainActiveEdges(): void {
     if (!this._graph || this._graph.edges.length === 0) return;
+    // Settle the throttled counters first; a "drained" update below may then
+    // override the status for still-open edges.
+    this._flushEdgeCounters();
     for (const edge of this._graph.edges) {
       try {
         const inbox = this._inboxes.get(edge.target);
@@ -1492,7 +1602,21 @@ export class WorkflowRunner {
   }
 
   private _emit(msg: ProcessingMessage): void {
-    this._messages.push(msg);
+    // Retain for RunResult.messages — except the realtime-audio firehose: a
+    // live synth patch emits ~50 audio-chunk output_updates per node per
+    // second, each holding a sample buffer, so retaining them grows the heap
+    // without bound (~25MB/min for a small patch) and the mounting GC
+    // pressure progressively degrades whichever thread runs the kernel.
+    // Streaming delivery (executionContext.emit) is unaffected. A generous
+    // cap backstops other unbounded streams.
+    if (!isAudioChunkOutputUpdate(msg)) {
+      if (this._messages.length >= MAX_RETAINED_MESSAGES) {
+        this._messages = this._messages.slice(
+          this._messages.length - MAX_RETAINED_MESSAGES / 2
+        );
+      }
+      this._messages.push(msg);
+    }
     if (this._options.executionContext) {
       this._options.executionContext.emit(msg);
     }

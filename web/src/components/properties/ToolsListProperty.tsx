@@ -1,11 +1,9 @@
 import React, { memo, useCallback, useMemo, useState } from "react";
 import {
-  Menu,
-  MenuItem,
   ListItemIcon,
   ListItemText
 } from "@mui/material";
-import { ToolbarIconButton, FlexRow, Checkbox } from "../ui_primitives";
+import { ToolbarIconButton, FlexRow, Checkbox, EditorMenu, EditorMenuItem, MOTION } from "../ui_primitives";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "fast-deep-equal";
@@ -189,7 +187,7 @@ const ToolsListProperty = (props: PropertyProps) => {
             sx={{
               padding: "1px",
               marginLeft: "0 !important",
-              transition: "color 0.2s ease",
+              transition: `color ${MOTION.normal}`,
               color: "c_hl1",
               "&:hover": {
                 color: "c_hl1"
@@ -223,7 +221,7 @@ const ToolsListProperty = (props: PropertyProps) => {
       </FlexRow>
 
       {/* Menu for selecting tools */}
-      <Menu
+      <EditorMenu
         anchorEl={menuAnchor}
         open={Boolean(menuAnchor)}
         onClose={() => setMenuAnchor(null)}
@@ -233,11 +231,10 @@ const ToolsListProperty = (props: PropertyProps) => {
             toolNameSet.has(tid)
           );
           return (
-            <MenuItem
+            <EditorMenuItem
               key={entry.id}
               onClick={handleToolClick}
               data-tool={entry.id}
-              dense
             >
               <ListItemIcon sx={{ minWidth: 24 }}>{entry.icon}</ListItemIcon>
               <ListItemText>{entry.description}</ListItemText>
@@ -247,10 +244,10 @@ const ToolsListProperty = (props: PropertyProps) => {
                 sx={{ p: 0, ml: 1 }}
                 disableRipple
               />
-            </MenuItem>
+            </EditorMenuItem>
           );
         })}
-      </Menu>
+      </EditorMenu>
     </>
   );
 };

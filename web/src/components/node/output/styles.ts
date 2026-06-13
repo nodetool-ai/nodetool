@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
+import { MOTION } from "../../ui_primitives";
 
 export const outputStyles = (theme: Theme, hasActions = true) =>
   css({
@@ -59,7 +60,7 @@ export const outputStyles = (theme: Theme, hasActions = true) =>
       gap: "0.5em",
       zIndex: 10,
       opacity: 0,
-      transition: "opacity 0.15s ease-in-out"
+      transition: MOTION.opacity
     },
     ".actions button": {
       minWidth: "unset",

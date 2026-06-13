@@ -1,11 +1,9 @@
 import { memo, useCallback, useMemo, useState, useEffect, useRef } from "react";
 import {
-  Popover,
-  List,
   ListItemButton,
   ListItemText
 } from "@mui/material";
-import { Tooltip, ToolbarIconButton, Text, FlexRow, Box } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, Text, FlexRow, Box, Popover, ListGroup, MOTION } from "../ui_primitives";
 import { useViewport, useReactFlow } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
@@ -141,7 +139,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
       textAlign: "center" as const,
       padding: "2px 6px",
       borderRadius: "var(--rounded-sm)",
-      transition: "all 0.15s ease",
+      transition: `all ${MOTION.fast}`,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
         color: theme.palette.primary.main
@@ -246,22 +244,13 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
         open={Boolean(zoomMenuAnchor)}
         anchorEl={zoomMenuAnchor}
         onClose={handleCloseZoomMenu}
-        anchorOrigin={{
-          vertical: "top",
-          horizontal: "center"
-        }}
-        transformOrigin={{
-          vertical: "bottom",
-          horizontal: "center"
-        }}
-        PaperProps={{
-          sx: {
-            minWidth: 120,
-            py: 0.5
-          }
+        placement="top-center"
+        paperSx={{
+          minWidth: 120,
+          py: 0.5
         }}
       >
-        <List dense disablePadding>
+        <ListGroup compact flush>
           {ZOOM_PRESETS.map((preset) => (
             <ListItemButton
               key={preset}
@@ -289,7 +278,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
               />
             </ListItemButton>
           ))}
-        </List>
+        </ListGroup>
       </Popover>
     </>
   );

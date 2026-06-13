@@ -68,6 +68,8 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
   private static instance: GlobalWebSocketManager | null = null;
   private wsManager: WebSocketManager | null = null;
   private messageHandlers: Map<string, Set<MessageHandler>> = new Map();
+  /** Routing keys already reported as unhandled (log once, payload-free). */
+  private loggedUnhandledKeys = new Set<string>();
   private isConnecting = false;
   private isConnected = false;
   private networkListenersSetup = false;
@@ -234,9 +236,11 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
     }
 
     if (routingKeys.size === 0) {
+      // Never log the message object itself: the console buffer retains its
+      // arguments (for a later DevTools attach), so logging streamed chunk
+      // payloads here pins them all — a multi-MB/s leak on realtime runs.
       console.debug(
-        "GlobalWebSocketManager: Message without routing key (job_id/workflow_id/thread_id)",
-        message
+        `GlobalWebSocketManager: Message without routing key (${message.type})`
       );
       return;
     }
@@ -260,10 +264,14 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
             console.error("GlobalWebSocketManager: Handler error:", error);
           }
         });
-      } else {
+      } else if (!this.loggedUnhandledKeys.has(routingKey)) {
+        // Once per key and payload-free: streamed runs hit this branch at
+        // chunk rate (the job_id key often has no handler even when the
+        // workflow_id key does), and console arguments are retained by the
+        // browser — logging the message would pin every chunk.
+        this.loggedUnhandledKeys.add(routingKey);
         console.debug(
-          `GlobalWebSocketManager: No handlers for ${routingKey}`,
-          message
+          `GlobalWebSocketManager: No handlers for ${routingKey} (first: ${message.type})`
         );
       }
     });

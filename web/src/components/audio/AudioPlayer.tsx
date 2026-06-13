@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import WaveSurfer from "wavesurfer.js";
 import Minimap from "wavesurfer.js/dist/plugins/minimap";
-import { Text } from "../ui_primitives";
+import { Text, MOTION } from "../ui_primitives";
 
 import React, {
   useEffect,
@@ -110,7 +110,7 @@ const styles = (theme: Theme) =>
       marginTop: "2px",
       cursor: "pointer",
       opacity: "0",
-      transition: "opacity 0.3s"
+      transition: `opacity ${MOTION.slow}`
     },
     ".minimap.visible": {
       opacity: "1"

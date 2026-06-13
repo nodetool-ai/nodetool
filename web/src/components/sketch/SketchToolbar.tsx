@@ -12,7 +12,7 @@ import React, { memo, useCallback } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { ToggleButtonGroup, ToggleButton } from "@mui/material";
-import { Divider, FlexColumn, Tooltip } from "../ui_primitives";
+import { Divider, FlexColumn, Tooltip, MOTION } from "../ui_primitives";
 import type { SelectToolMode, SketchTool } from "./types";
 import {
   getToolShortcutActionId,
@@ -64,7 +64,7 @@ const styles = (theme: Theme) =>
       border: "none",
       borderRadius: "8px !important",
       color: theme.vars.palette.grey[400],
-      transition: "background-color 0.12s ease, color 0.12s ease",
+      transition: `${MOTION.background}, color ${MOTION.fast}`,
       "&.Mui-selected": {
         backgroundColor: theme.vars.palette.grey[700],
         color: theme.vars.palette.grey[50],

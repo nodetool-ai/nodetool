@@ -3,6 +3,7 @@ import { css, keyframes } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, type CSSProperties } from "react";
+import { MOTION } from "../ui_primitives";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
@@ -94,8 +95,7 @@ const styles = (theme: Theme, fullWidth: boolean) =>
       font: "inherit",
       position: "relative",
       overflow: "hidden",
-      transition:
-        "border-color 200ms ease, transform 240ms ease, background 200ms ease",
+      transition: `${MOTION.border}, transform ${MOTION.normal}, background ${MOTION.normal}`,
       "&:hover, &:focus-visible": {
         transform: "translateY(-2px)",
         borderColor: "var(--card-accent)",
@@ -150,7 +150,7 @@ const styles = (theme: Theme, fullWidth: boolean) =>
       fontSize: 13,
       color: theme.vars.palette.text.secondary,
       cursor: "pointer",
-      transition: "color 0.2s ease, background 0.2s ease",
+      transition: `color ${MOTION.normal}, background ${MOTION.normal}`,
       "&:hover": {
         color: theme.vars.palette.text.primary,
         background: theme.vars.palette.action.hover

@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 
 import React, { useCallback, useMemo, ReactElement, memo } from "react";
-import { Text, ToolbarIconButton } from "../ui_primitives";
+import { Text, ToolbarIconButton, MOTION } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import SliderBasic from "../inputs/SliderBasic";
 import LoopIcon from "@mui/icons-material/Loop";
@@ -62,11 +62,11 @@ const styles = (theme: Theme) =>
       height: "0.8em"
     },
     ".loop-button.disabled svg": {
-      transition: "opacity 0.1s",
+      transition: `opacity ${MOTION.fast}`,
       opacity: "0.5"
     },
     ".mute-button svg": {
-      transition: "opacity 0.1s",
+      transition: `opacity ${MOTION.fast}`,
       opacity: "0.5"
     },
     ".mute-button.disabled svg": {

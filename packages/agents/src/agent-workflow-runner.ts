@@ -7,7 +7,7 @@
  */
 
 import { WorkflowRunner } from "@nodetool-ai/kernel";
-import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { hydrateGraphNodeFlags, type NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import type {
   GraphData,
@@ -95,7 +95,13 @@ export class AgentWorkflowRunner {
     let runError: unknown = null;
     let done = false;
     const runPromise = runner
-      .run({ job_id: jobId, params: this.opts.inputs }, graphData)
+      .run(
+        { job_id: jobId, params: this.opts.inputs },
+        // Planned graphs carry no behavior flags; stamp them from the
+        // registry so streaming nodes run streaming. The agent-step node
+        // type is not in the registry and keeps default (buffered) mode.
+        hydrateGraphNodeFlags(graphData, registry)
+      )
       .catch((err) => {
         runError = err;
         return undefined;

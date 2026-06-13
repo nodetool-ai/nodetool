@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, memo } from "react";
 import { shallow } from "zustand/shallow";
-import { Menu } from "@mui/material";
+import { ContextMenu } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 import { REROUTE_NODE_TYPE } from "../../constants/nodeTypes";
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -116,22 +116,12 @@ const EdgeContextMenuComponent: React.FC<EdgeContextMenuProps> = () => {
   if (!menuPosition) {return null;}
 
   return (
-    <Menu
+    <ContextMenu
       open={true}
       onClose={closeContextMenu}
-      anchorReference="anchorPosition"
-      anchorPosition={{
-        top: menuPosition.y,
-        left: menuPosition.x
-      }}
-      slotProps={{
-        paper: {
-          style: {
-            maxHeight: "400px",
-            width: "200px"
-          }
-        }
-      }}
+      position={menuPosition}
+      maxHeight="400px"
+      minWidth="200px"
     >
       <ContextMenuItem
         onClick={handleInsertReroute}
@@ -160,7 +150,7 @@ const EdgeContextMenuComponent: React.FC<EdgeContextMenuProps> = () => {
           </span>
         }
       />
-    </Menu>
+    </ContextMenu>
   );
 };
 

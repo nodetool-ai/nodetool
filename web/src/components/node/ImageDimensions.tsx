@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Box } from "../ui_primitives";
+import { Box, MOTION } from "../ui_primitives";
 import { memo } from "react";
 
 interface ImageDimensionsProps {
@@ -17,7 +17,7 @@ const styles = css({
   zIndex: "var(--zIndexFab)",
   display: "flex",
   gap: "4px",
-  transition: "opacity 0.2s ease",
+  transition: `opacity ${MOTION.normal}`,
   pointerEvents: "none",
   backgroundColor: "rgba(0, 0, 0, 0.4)",
   color: "#eee",

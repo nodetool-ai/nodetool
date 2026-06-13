@@ -20,6 +20,7 @@ import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlayb
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { formatTimecode } from "../Inspector/InspectorPrimitives.helpers";
+import { MOTION } from "../../ui_primitives";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -87,7 +88,7 @@ const pillStyles = (theme: Theme, dragging: boolean, hovered: boolean) =>
       dragging || hovered
         ? `0 0 0 3px ${theme.vars.palette.secondary.main}33, 0 4px 12px rgba(0,0,0,0.4)`
         : "0 2px 6px rgba(0,0,0,0.35)",
-    transition: "box-shadow 120ms",
+    transition: `box-shadow ${MOTION.fast}`,
     pointerEvents: "none"
   });
 

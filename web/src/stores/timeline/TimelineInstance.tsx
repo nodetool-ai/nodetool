@@ -60,6 +60,34 @@ const createTimelineInstance = (): TimelineInstance => ({
   playback: createTimelinePlaybackStore()
 });
 
+/**
+ * Keep UI clip references valid: whenever the document's clips change
+ * (delete, undo/redo, track removal, sequence load), drop selection, hover,
+ * and word-selection entries that point at clips which no longer exist.
+ * Returns the unsubscribe function.
+ */
+export const attachUiPruning = (
+  doc: TimelineStoreApi,
+  ui: TimelineUIStoreApi
+): (() => void) =>
+  doc.subscribe((state, prev) => {
+    if (state.clips === prev.clips) return;
+    const ids = new Set(state.clips.map((c) => c.id));
+    const uiState = ui.getState();
+    if (uiState.hoveredClipId && !ids.has(uiState.hoveredClipId)) {
+      uiState.setHoveredClipId(null);
+    }
+    const selected = [...uiState.selectedClipIds];
+    const valid = selected.filter((id) => ids.has(id));
+    if (valid.length !== selected.length) {
+      uiState.setSelection(valid);
+    }
+    const ws = uiState.wordSelection;
+    if (ws && (!ids.has(ws.anchor.clipId) || !ids.has(ws.focus.clipId))) {
+      uiState.clearWordSelection();
+    }
+  });
+
 let defaultInstance: TimelineInstance | null = null;
 const getDefaultInstance = (): TimelineInstance =>
   (defaultInstance ??= createTimelineInstance());
@@ -123,6 +151,8 @@ export const TimelineProvider = ({
   children
 }: TimelineProviderProps) => {
   const instance = useMemo(() => createTimelineInstance(), []);
+
+  useEffect(() => attachUiPruning(instance.doc, instance.ui), [instance]);
 
   useEffect(() => {
     if (!active) return;

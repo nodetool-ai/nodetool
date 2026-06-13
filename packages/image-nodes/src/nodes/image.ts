@@ -787,84 +787,6 @@ export class ImagesToListNode extends BaseNode {
   }
 }
 
-/**
- * Image / sketch editor node. Execution uses properties and per-layer outputs
- * written by the web UI (flattened image, mask, optional exposed layers).
- */
-export class ImageEditorNode extends BaseNode {
-  static readonly nodeType = "nodetool.image.ImageEditor";
-  static readonly title = "Image Editor";
-  static readonly description =
-    "Layered sketch and image editor: draw, paint, mask, and composite.\n    sketch, image editor, draw, paint, layers, mask, canvas, composite\n\n    - Build masks for inpainting workflows\n    - Annotate or rough-in compositions before generation\n    - Per-layer inputs/outputs when exposed in the editor";
-  static readonly metadataOutputTypes = {
-    image: "image",
-    mask: "image",
-    layers: "list[image]"
-  };
-  static readonly supportsDynamicInputs = true;
-  static readonly supportsDynamicOutputs = true;
-  static readonly inlineFields = ["sketch_data"];
-  static readonly inputFields = ["image", "mask"];
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "Sketch data",
-    description: "Serialized editor document (managed by the UI)."
-  })
-  declare sketch_data: unknown;
-
-  @prop({
-    type: "image",
-    default: {
-      type: "image",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Image",
-    description: "Flattened composite (filled when you edit in the UI)."
-  })
-  declare image: unknown;
-
-  @prop({
-    type: "image",
-    default: {
-      type: "image",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    },
-    title: "Mask",
-    description: "Mask output when configured in the editor."
-  })
-  declare mask: unknown;
-
-  @prop({
-    type: "list",
-    default: [],
-    title: "Layers",
-    description: "List of exposed layer image references."
-  })
-  declare layers: unknown;
-
-  async process(): Promise<Record<string, unknown>> {
-    const result: Record<string, unknown> = {
-      image: this.image,
-      mask: this.mask,
-      layers: Array.isArray(this.layers) ? this.layers : []
-    };
-    for (const [key, value] of this.dynamicProps) {
-      if (key.startsWith("layer_out_")) {
-        result[key] = value;
-      }
-    }
-    return result;
-  }
-}
-
 abstract class TransformImageNode extends BaseNode {
   protected transformMeta(): Record<string, unknown> {
     const image = ((this as any).image ?? {}) as ImageRefLike;
@@ -975,11 +897,136 @@ export class PasteNode extends TransformImageNode {
   }
 }
 
+const RESIZE_IMAGE_NODE_TYPE = "nodetool.image.ResizeImage";
+
+function deprecatedResizeDescription(body: string): string {
+  return `Deprecated — use Resize Image (${RESIZE_IMAGE_NODE_TYPE}) instead.\n${body}`;
+}
+
+export class ResizeImageNode extends TransformImageNode {
+  static readonly nodeType = RESIZE_IMAGE_NODE_TYPE;
+  static readonly title = "Resize Image";
+  static readonly description =
+    "Scale, set exact dimensions, or fit inside a box. In dimensions mode, set width or height to 0 to preserve that axis.\n    image, resize, scale, fit, dimensions";
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
+  static readonly inlineFields = ["mode", "scale", "width", "height"];
+  static readonly inputFields = ["image"];
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image",
+    description: "The image to resize."
+  })
+  declare image: any;
+
+  @prop({
+    type: "enum",
+    default: "dimensions",
+    values: ["scale", "dimensions", "fit"],
+    title: "Mode",
+    description:
+      "Scale multiplies pixel size; Dimensions sets exact W×H; Fit preserves aspect inside a box."
+  })
+  declare mode: any;
+
+  @prop({
+    type: "float",
+    default: 1,
+    title: "Scale",
+    description: "Scale factor (scale mode).",
+    min: 0.1,
+    max: 10
+  })
+  declare scale: any;
+
+  @prop({
+    type: "int",
+    default: 512,
+    title: "Width",
+    description:
+      "Target width (dimensions / fit modes). Use 0 in dimensions mode to preserve aspect on this axis.",
+    min: 0,
+    max: 8192
+  })
+  declare width: any;
+
+  @prop({
+    type: "int",
+    default: 512,
+    title: "Height",
+    description:
+      "Target height (dimensions / fit modes). Use 0 in dimensions mode to preserve aspect on this axis.",
+    min: 0,
+    max: 8192
+  })
+  declare height: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const image = (this.image ?? {}) as ImageRefLike;
+    const { width: srcW, height: srcH } = await decodeRgba(image, context);
+    if (!srcW || !srcH) return { output: image };
+
+    const modeRaw = String(this.mode ?? "dimensions");
+    const mode =
+      modeRaw === "scale" || modeRaw === "fit" ? modeRaw : "dimensions";
+
+    let outputWidth: number;
+    let outputHeight: number;
+
+    if (mode === "scale") {
+      const requestedScale = Number(this.scale ?? 0);
+      const scale = requestedScale > 0 ? requestedScale : 1;
+      outputWidth = Math.max(1, Math.round(srcW * scale));
+      outputHeight = Math.max(1, Math.round(srcH * scale));
+    } else if (mode === "fit") {
+      const targetW = Math.max(1, Number(this.width ?? 512));
+      const targetH = Math.max(1, Number(this.height ?? 512));
+      const ratio = Math.min(targetW / srcW, targetH / srcH);
+      outputWidth = Math.max(1, Math.round(srcW * ratio));
+      outputHeight = Math.max(1, Math.round(srcH * ratio));
+    } else {
+      let w = Number(this.width ?? 0);
+      let h = Number(this.height ?? 0);
+      if (w <= 0 && h <= 0) {
+        w = srcW;
+        h = srcH;
+      } else if (w <= 0) {
+        w = Math.max(1, Math.round((srcW / srcH) * h));
+      } else if (h <= 0) {
+        h = Math.max(1, Math.round((srcH / srcW) * w));
+      }
+      outputWidth = Math.round(w);
+      outputHeight = Math.round(h);
+    }
+
+    const output = await runShaderNode(
+      transformResizeV1,
+      { mode: 1 },
+      image,
+      { outputWidth, outputHeight },
+      context
+    );
+    return { output };
+  }
+}
+
 export class ScaleNode extends TransformImageNode {
   static readonly nodeType = "nodetool.image.Scale";
   static readonly title = "Scale";
-  static readonly description =
-    "Enlarge or shrink an image by a scale factor.\n    image, resize, scale";
+  static readonly deprecated = true;
+  static readonly replacedBy = RESIZE_IMAGE_NODE_TYPE;
+  static readonly description = deprecatedResizeDescription(
+    "Enlarge or shrink an image by a scale factor.\n    image, resize, scale"
+  );
   static readonly metadataOutputTypes = {
     output: "image"
   };
@@ -1033,8 +1080,11 @@ export class ScaleNode extends TransformImageNode {
 export class ResizeNode extends TransformImageNode {
   static readonly nodeType = "nodetool.image.Resize";
   static readonly title = "Resize";
-  static readonly description =
-    "Change image dimensions to specified width and height.\n    image, resize";
+  static readonly deprecated = true;
+  static readonly replacedBy = RESIZE_IMAGE_NODE_TYPE;
+  static readonly description = deprecatedResizeDescription(
+    "Change image dimensions to specified width and height.\n    image, resize"
+  );
   static readonly metadataOutputTypes = {
     output: "image"
   };
@@ -1386,8 +1436,11 @@ export class CropNode extends TransformImageNode {
 export class FitNode extends TransformImageNode {
   static readonly nodeType = "nodetool.image.Fit";
   static readonly title = "Fit";
-  static readonly description =
-    "Resize an image to fit within specified dimensions while preserving aspect ratio.\n    image, resize, fit";
+  static readonly deprecated = true;
+  static readonly replacedBy = RESIZE_IMAGE_NODE_TYPE;
+  static readonly description = deprecatedResizeDescription(
+    "Resize an image to fit within specified dimensions while preserving aspect ratio.\n    image, resize, fit"
+  );
   static readonly metadataOutputTypes = {
     output: "image"
   };
@@ -2816,7 +2869,6 @@ const IMAGE_SERVER_NODES = tagAsServer([
   GetMetadataNode,
   BatchToListNode,
   ImagesToListNode,
-  ImageEditorNode,
   PainterNode,
   TextToImageNode,
   ImageToImageNode,

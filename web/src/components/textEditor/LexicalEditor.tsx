@@ -52,7 +52,7 @@ const styles = (theme: Theme) =>
     ".editor-text-code": {
       backgroundColor: theme.vars.palette.action.selected,
       padding: "2px 4px",
-      borderRadius: "3px",
+      borderRadius: "var(--rounded-sm)",
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall
     },

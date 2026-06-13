@@ -1,5 +1,6 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
+import { MOTION } from "../../ui_primitives";
 
 const modelListItemStyles = (theme: Theme) =>
   css({
@@ -13,8 +14,7 @@ const modelListItemStyles = (theme: Theme) =>
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: "var(--rounded-lg)",
       backgroundColor: "rgba(255,255,255,0.01)",
-      transition:
-        "background-color 0.15s ease, border-color 0.15s ease",
+      transition: `${MOTION.background}, ${MOTION.border}`,
 
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
@@ -107,7 +107,7 @@ const modelListItemStyles = (theme: Theme) =>
         textDecoration: "none",
         marginLeft: "0 !important",
         paddingBottom: "0.25em",
-        transition: "color 0.2s",
+        transition: `color ${MOTION.normal}`,
         "&:hover": {
           color: theme.vars.palette.primary.main,
           textDecoration: "none"
@@ -176,7 +176,7 @@ const modelListItemStyles = (theme: Theme) =>
         borderRadius: "var(--rounded-xl)",
         height: "auto",
         border: `1px solid ${theme.vars.palette.divider}`,
-        transition: "all 0.2s",
+        transition: MOTION.all,
         "&:hover": {
           backgroundColor: theme.vars.palette.action.selected,
           borderColor: theme.vars.palette.text.secondary
@@ -273,7 +273,7 @@ const modelListItemStyles = (theme: Theme) =>
         padding: ".75em",
         backgroundColor: "transparent",
         filter: "saturate(0)",
-        transition: "transform 0.125s ease-in, filter 0.2s ease-in",
+        transition: `${MOTION.transform}, filter ${MOTION.normal}`,
         "&:hover": {
           backgroundColor: "transparent",
           transform: "scale(1.25)",

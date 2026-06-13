@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import React, { useMemo, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Tooltip, Box } from "../ui_primitives";
+import { Text, Tooltip, Box, MOTION } from "../ui_primitives";
 import { CopyButton } from "../ui_primitives";
 import {
   HarmonyType,
@@ -52,7 +52,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      transition: "transform 0.15s, box-shadow 0.15s",
+      transition: `${MOTION.transform}, box-shadow ${MOTION.fast}`,
       "&:hover": {
         transform: "scale(1.05)",
         boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
@@ -64,7 +64,7 @@ const styles = (theme: Theme) =>
       fontWeight: 600,
       textTransform: "uppercase",
       opacity: 0,
-      transition: "opacity 0.15s"
+      transition: `opacity ${MOTION.fast}`
     },
     ".harmony-color:hover .color-hex": {
       opacity: 1

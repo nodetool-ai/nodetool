@@ -187,6 +187,50 @@ export class ChunksToAudioNode extends BaseNode {
   }
 }
 
+// ── AudioOutput ────────────────────────────────────────────────────
+
+export class AudioOutputNode extends BaseNode {
+  static readonly nodeType = "nodetool.audio.realtime.AudioOutput";
+  static readonly title = "Audio Out";
+  static readonly description =
+    "Plays a realtime audio chunk stream — the patch's speaker.\n    audio, stream, chunk, realtime, output, speaker, monitor\n\n    Passes every chunk through verbatim; the editor picks the chunks up from the live stream and plays them as they arrive. Terminate any synth patch or streaming effect chain here to hear it.\n\n    Use cases:\n    - Monitor a live modular synth patch\n    - Hear streaming TTS or effects output as it renders\n    - Audition a chain before recording it with ChunksToAudio";
+  static readonly metadataOutputTypes = {
+    chunk: "chunk"
+  };
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields: string[] = ["chunk"];
+  static readonly isStreamingInput = true;
+  // The editor's monitor buffer is fed by this node's output_updates; keep
+  // them flowing even when the pass-through output is patched into a
+  // recorder (the runner suppresses connected handles by default).
+  static readonly alwaysEmitOutputUpdates = true;
+
+  @prop({
+    type: "chunk",
+    default: CHUNK_PROP_DEFAULT,
+    title: "Chunk",
+    description: "Stream of PCM16LE audio chunks to play."
+  })
+  declare chunk: any;
+
+  // Required by BaseNode but unused for streaming
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+
+  async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
+    for await (const item of inputs.stream("chunk")) {
+      const chunk = readSignalChunk(item);
+      if (!chunk) continue;
+      // Verbatim pass-through: each emit becomes an output_update the
+      // editor's playback buffer consumes; downstream nodes can still
+      // record the same stream.
+      await outputs.emit("chunk", item);
+      if (chunk.done) break;
+    }
+  }
+}
+
 // ── StreamingGain ──────────────────────────────────────────────────
 
 export class StreamingGainNode extends BaseNode {
@@ -226,9 +270,6 @@ export class StreamingGainNode extends BaseNode {
   }
 
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
-    const gainDb = Number(this.gain_db ?? 0);
-    const factor = Math.pow(10, gainDb / 20);
-
     for await (const item of inputs.stream("chunk")) {
       const chunk = readSignalChunk(item);
       if (!chunk) continue;
@@ -242,12 +283,18 @@ export class StreamingGainNode extends BaseNode {
       }
       if (chunk.samples.length === 0) continue;
 
+      // Per chunk — live updates apply. Write into a fresh buffer: the input
+      // Float32Array is shared by reference with fan-out edges and any UI
+      // buffer holding the upstream chunk; mutating it in place would
+      // corrupt those.
+      const factor = Math.pow(10, Number(this.gain_db ?? 0) / 20);
       const samples = chunk.samples;
-      for (let i = 0; i < samples.length; i++) samples[i] *= factor;
+      const scaled = new Float32Array(samples.length);
+      for (let i = 0; i < samples.length; i++) scaled[i] = samples[i] * factor;
       await outputs.emit(
         "chunk",
         makeSignalChunk(
-          samples,
+          scaled,
           chunk.sampleRate,
           chunk.channels,
           false,
@@ -263,16 +310,15 @@ export class StreamingGainNode extends BaseNode {
 /**
  * Shared body of the streaming low/high-pass filters: one biquad per channel
  * whose state persists across chunk boundaries, so the filter behaves exactly
- * as if it had processed the unchunked signal.
+ * as if it had processed the unchunked signal. The cutoff/Q are read via
+ * `params` and coefficients recomputed per chunk, so live updates apply.
  */
 async function runStreamingFilter(
   type: BiquadType,
-  frequency: number,
-  q: number,
+  params: () => { frequency: number; q: number },
   inputs: StreamingInputs,
   outputs: StreamingOutputs
 ): Promise<void> {
-  let coeffs: ReturnType<typeof biquadCoeffs> | null = null;
   let states: BiquadState[] = [];
 
   for await (const item of inputs.stream("chunk")) {
@@ -288,19 +334,29 @@ async function runStreamingFilter(
     }
     if (chunk.samples.length === 0) continue;
 
-    if (!coeffs) {
-      coeffs = biquadCoeffs(type, chunk.sampleRate, frequency, q, 0);
+    if (states.length !== chunk.channels) {
       states = Array.from({ length: chunk.channels }, createBiquadState);
     }
+    const { frequency, q } = params();
+    const coeffs = biquadCoeffs(type, chunk.sampleRate, frequency, q, 0);
 
-    const planes = deinterleave(chunk.samples, chunk.channels);
-    const filtered = planes.map((plane, ch) =>
-      processBiquad(coeffs!, states[ch] ?? createBiquadState(), plane)
-    );
+    // Mono fast path: filter the interleaved buffer directly — the
+    // deinterleave/interleave round trip would add two full copies per
+    // chunk, pure GC churn at realtime rates.
+    let filteredSamples: Float32Array;
+    if (chunk.channels === 1) {
+      filteredSamples = processBiquad(coeffs, states[0]!, chunk.samples);
+    } else {
+      const planes = deinterleave(chunk.samples, chunk.channels);
+      const filtered = planes.map((plane, ch) =>
+        processBiquad(coeffs, states[ch] ?? createBiquadState(), plane)
+      );
+      filteredSamples = interleave(filtered);
+    }
     await outputs.emit(
       "chunk",
       makeSignalChunk(
-        interleave(filtered),
+        filteredSamples,
         chunk.sampleRate,
         chunk.channels,
         false,
@@ -358,8 +414,10 @@ export class StreamingLowPassNode extends BaseNode {
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
     await runStreamingFilter(
       "lowpass",
-      Number(this.cutoff_frequency_hz ?? 5000),
-      Number(this.q ?? DEFAULT_Q),
+      () => ({
+        frequency: Number(this.cutoff_frequency_hz ?? 5000),
+        q: Number(this.q ?? DEFAULT_Q)
+      }),
       inputs,
       outputs
     );
@@ -414,8 +472,10 @@ export class StreamingHighPassNode extends BaseNode {
   async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
     await runStreamingFilter(
       "highpass",
-      Number(this.cutoff_frequency_hz ?? 80),
-      Number(this.q ?? DEFAULT_Q),
+      () => ({
+        frequency: Number(this.cutoff_frequency_hz ?? 80),
+        q: Number(this.q ?? DEFAULT_Q)
+      }),
       inputs,
       outputs
     );
@@ -424,6 +484,7 @@ export class StreamingHighPassNode extends BaseNode {
 
 export const REALTIME_AUDIO_NODES: readonly NodeClass[] = tagAsHybrid([
   AudioToChunksNode,
+  AudioOutputNode,
   ChunksToAudioNode,
   StreamingGainNode,
   StreamingLowPassNode,

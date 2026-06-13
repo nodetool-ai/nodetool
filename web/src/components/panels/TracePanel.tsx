@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState } from "react";
-import { CopyButton, DeleteButton, DownloadButton, EmptyState, ScrollArea, Text, FlexRow, Chip } from "../ui_primitives";
+import { CopyButton, DeleteButton, DownloadButton, EmptyState, ScrollArea } from "../ui_primitives";
+import PanelToolbar from "./PanelToolbar";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
@@ -34,17 +35,9 @@ const styles = (theme: Theme) =>
     flexDirection: "column",
     height: "100%",
     overflow: "hidden",
-    ".trace-toolbar": {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      padding: "4px 12px",
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      minHeight: 36,
-    },
     ".trace-list": {
       flex: 1,
-      fontFamily: "monospace",
+      fontFamily: theme.fontFamily2,
       fontSize: "var(--fontSizeSmall)",
     },
     ".trace-row": {
@@ -279,34 +272,32 @@ const TracePanel: React.FC = () => {
 
   return (
     <div css={cssStyles}>
-      <div className="trace-toolbar">
-        <FlexRow align="center" gap={1}>
-          <Text size="small" weight={500}>
-            Trace
-          </Text>
-          <Chip label={events.length} size="small" variant="outlined" />
-        </FlexRow>
-        <FlexRow gap={0.5}>
-          <CopyButton
-            value={copyValue}
-            tooltip="Copy to clipboard"
-            disabled={events.length === 0}
-            nodrag={false}
-          />
-          <DownloadButton
-            onClick={handleExport}
-            tooltip="Export as JSON"
-            disabled={events.length === 0}
-            nodrag={false}
-          />
-          <DeleteButton
-            onClick={clear}
-            tooltip="Clear trace"
-            iconVariant="clear"
-            nodrag={false}
-          />
-        </FlexRow>
-      </div>
+      <PanelToolbar
+        title="Trace"
+        count={events.length}
+        actions={
+          <>
+            <CopyButton
+              value={copyValue}
+              tooltip="Copy to clipboard"
+              disabled={events.length === 0}
+              nodrag={false}
+            />
+            <DownloadButton
+              onClick={handleExport}
+              tooltip="Export as JSON"
+              disabled={events.length === 0}
+              nodrag={false}
+            />
+            <DeleteButton
+              onClick={clear}
+              tooltip="Clear trace"
+              iconVariant="clear"
+              nodrag={false}
+            />
+          </>
+        }
+      />
       <ScrollArea className="trace-list" direction="both">
         {events.length === 0 ? (
           <EmptyState

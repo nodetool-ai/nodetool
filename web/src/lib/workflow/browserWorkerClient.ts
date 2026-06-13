@@ -31,13 +31,23 @@ interface StreamMessage {
   jobId: string;
   message: WebSocketMessage;
 }
+interface StreamBatchMessage {
+  type: "messages";
+  jobId: string;
+  messages: WebSocketMessage[];
+}
 interface DoneMessage {
   type: "done";
   jobId: string;
   status: "completed" | "failed" | "cancelled";
   error?: string;
 }
-type FromWorker = ReadyMessage | InitErrorMessage | StreamMessage | DoneMessage;
+type FromWorker =
+  | ReadyMessage
+  | InitErrorMessage
+  | StreamMessage
+  | StreamBatchMessage
+  | DoneMessage;
 
 let worker: Worker | null = null;
 let ready: Promise<Set<string>> | null = null;
@@ -84,6 +94,19 @@ export function getBrowserWorkerReady(): Promise<Set<string>> {
 }
 
 /**
+ * Push live property updates into a running worker job's node instances
+ * (e.g. turning a synth knob while the patch plays). Fire-and-forget; a
+ * no-op when the worker isn't running or the job has finished.
+ */
+export function updateBrowserJobNodeProperties(
+  jobId: string,
+  nodeId: string,
+  properties: Record<string, unknown>
+): void {
+  worker?.postMessage({ type: "update-properties", jobId, nodeId, properties });
+}
+
+/**
  * Run a graph in the worker, streaming its messages into `deliverLocal`. Assumes
  * the worker is already ready (caller awaits {@link getBrowserWorkerReady}).
  */
@@ -122,31 +145,41 @@ export function runBrowserGraphJobInWorker(
     };
     const onAbort = () => w.postMessage({ type: "cancel", jobId });
 
+    const handleStreamMessage = (message: WebSocketMessage) => {
+      const mutable = message as Record<string, unknown>;
+      if (message.type === "node_update" && mutable.result != null) {
+        mutable.result = materializeBrowserOutputs(mutable.result);
+      } else if (message.type === "output_update" && mutable.value != null) {
+        mutable.value = materializeBrowserOutputs(mutable.value);
+      }
+      globalWebSocketManager.deliverLocal(message);
+
+      if (message.type === "node_update") {
+        const status = (mutable.status as string | undefined) ?? "";
+        const nodeId = (mutable.node_id as string | undefined) ?? "";
+        if (status === "completed" && nodeId && mutable.result != null) {
+          outputs[nodeId] = mutable.result;
+        }
+      } else if (message.type === "job_update") {
+        const res = mutable.result as { outputs?: unknown } | undefined;
+        if (res?.outputs && typeof res.outputs === "object") {
+          Object.assign(outputs, res.outputs as Record<string, unknown>);
+        }
+      }
+    };
+
     const onMessage = (event: MessageEvent<FromWorker>) => {
       const data = event.data;
       if (!data || (data as { jobId?: string }).jobId !== jobId) return;
 
       if (data.type === "message") {
-        const message = data.message;
-        const mutable = message as Record<string, unknown>;
-        if (message.type === "node_update" && mutable.result != null) {
-          mutable.result = materializeBrowserOutputs(mutable.result);
-        } else if (message.type === "output_update" && mutable.value != null) {
-          mutable.value = materializeBrowserOutputs(mutable.value);
-        }
-        globalWebSocketManager.deliverLocal(message);
+        handleStreamMessage(data.message);
+        return;
+      }
 
-        if (message.type === "node_update") {
-          const status = (mutable.status as string | undefined) ?? "";
-          const nodeId = (mutable.node_id as string | undefined) ?? "";
-          if (status === "completed" && nodeId && mutable.result != null) {
-            outputs[nodeId] = mutable.result;
-          }
-        } else if (message.type === "job_update") {
-          const res = mutable.result as { outputs?: unknown } | undefined;
-          if (res?.outputs && typeof res.outputs === "object") {
-            Object.assign(outputs, res.outputs as Record<string, unknown>);
-          }
+      if (data.type === "messages") {
+        for (const message of data.messages) {
+          handleStreamMessage(message);
         }
         return;
       }

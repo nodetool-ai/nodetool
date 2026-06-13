@@ -12,7 +12,7 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 
 
 
-import { Tooltip, ToolbarIconButton } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, MOTION } from "../ui_primitives";
 
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
@@ -68,7 +68,7 @@ const styles = (
 
               : "none",
 
-        transition: "transform 0.15s ease"
+        transition: MOTION.transform
 
       }
 

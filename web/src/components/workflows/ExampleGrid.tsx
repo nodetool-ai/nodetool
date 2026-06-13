@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 
-import { LoadingSpinner, ScrollArea, Text, Box } from "../ui_primitives";
+import { LoadingSpinner, ScrollArea, Text, Box, MOTION } from "../ui_primitives";
 import { useCallback, useMemo, useState, useEffect, useRef, memo } from "react";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
@@ -101,7 +101,7 @@ const styles = (theme: Theme) =>
       gap: "4px"
     },
     ".tag-menu button": {
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
       textTransform: "uppercase",
       letterSpacing: "0.5px",
       fontWeight: 600,

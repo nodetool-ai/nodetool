@@ -28,10 +28,12 @@ import {
   Asset
 } from "@nodetool-ai/models";
 import {
+  hydrateGraphNodeFlags,
   loadPythonPackageMetadata,
   type NodeMetadata,
   NodeRegistry
 } from "@nodetool-ai/node-sdk";
+import type { GraphData } from "@nodetool-ai/protocol";
 import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   PythonNodeExecutor,
@@ -673,7 +675,10 @@ export async function handleWorkflowRun(
   });
   const result = await runner.run(
     { job_id: job.id, workflow_id: workflowId, params },
-    runnableGraph
+    hydrateGraphNodeFlags(
+      runnableGraph as unknown as GraphData,
+      runtime.registry
+    )
   );
 
   if (result.status === "completed") {

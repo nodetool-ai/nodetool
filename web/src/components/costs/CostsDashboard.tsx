@@ -25,7 +25,8 @@ import {
   SearchInput,
   Checkbox,
   Popover,
-  LoadingSpinner
+  LoadingSpinner,
+  MOTION
 } from "../ui_primitives";
 import { CostStatCard } from "./CostStatCard";
 import { SpendOverTimeChart } from "./SpendOverTimeChart";
@@ -57,15 +58,15 @@ const GROUP_OPTIONS: { value: GroupByKey; label: string }[] = [
 const segmentedSx = (theme: Theme): SxProps<Theme> => ({
   backgroundColor: theme.vars.palette.action.hover,
   border: `1px solid ${theme.vars.palette.divider}`,
-  borderRadius: "10px",
+  borderRadius: "var(--rounded-lg)",
   padding: "3px",
   gap: "2px",
   "& .MuiToggleButton-root": {
     border: "none",
-    borderRadius: "7px !important",
+    borderRadius: "var(--rounded-md) !important",
     color: theme.vars.palette.text.secondary,
     textTransform: "none",
-    fontSize: "13px",
+    fontSize: "var(--fontSizeSmall)",
     fontWeight: 500,
     lineHeight: 1,
     padding: "6px 12px",
@@ -223,10 +224,10 @@ const CostsDashboard: React.FC = () => {
             background: "none",
             cursor: "pointer",
             fontFamily: "inherit",
-            fontSize: "13px",
+            fontSize: "var(--fontSizeSmall)",
             fontWeight: 500,
             color: theme.vars.palette.text.secondary,
-            transition: "color 120ms ease",
+            transition: `color ${MOTION.fast}`,
             "&:hover": { color: theme.vars.palette.text.primary }
           }}
         >
@@ -348,15 +349,15 @@ const CostsDashboard: React.FC = () => {
                     gap: "8px",
                     height: 38,
                     padding: "0 16px",
-                    borderRadius: "10px",
+                    borderRadius: "var(--rounded-lg)",
                     border: "none",
                     cursor: "pointer",
                     fontFamily: "inherit",
-                    fontSize: "13px",
+                    fontSize: "var(--fontSizeSmall)",
                     fontWeight: 600,
                     color: theme.vars.palette.primary.contrastText,
                     backgroundColor: theme.vars.palette.primary.main,
-                    transition: "background-color 120ms ease",
+                    transition: MOTION.background,
                     "&:hover": {
                       backgroundColor: theme.vars.palette.primary.dark
                     }
@@ -632,15 +633,15 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
           gap: "8px",
           height: 38,
           padding: "0 12px",
-          borderRadius: "10px",
+          borderRadius: "var(--rounded-lg)",
           cursor: "pointer",
           fontFamily: "inherit",
-          fontSize: "13px",
+          fontSize: "var(--fontSizeSmall)",
           fontWeight: 500,
           color: theme.vars.palette.text.primary,
           backgroundColor: theme.vars.palette.action.hover,
           border: `1px solid ${theme.vars.palette.divider}`,
-          transition: "background-color 120ms ease",
+          transition: MOTION.background,
           "&:hover": {
             backgroundColor: theme.vars.palette.action.selected
           }
@@ -668,7 +669,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
           sx={{
             fontSize: 16,
             color: theme.vars.palette.text.secondary,
-            transition: "transform 120ms ease",
+            transition: MOTION.transform,
             transform: open ? "rotate(180deg)" : "none"
           }}
         />
@@ -724,7 +725,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
                       sx={{
                         width: 9,
                         height: 9,
-                        borderRadius: "3px",
+                        borderRadius: "var(--rounded-sm)",
                         backgroundColor: o.color
                       }}
                     />
@@ -752,7 +753,7 @@ const linkButtonSx = (theme: Theme): SxProps<Theme> => ({
   padding: 0,
   cursor: "pointer",
   fontFamily: "inherit",
-  fontSize: "12px",
+  fontSize: "var(--fontSizeSmall)",
   fontWeight: 500,
   color: theme.vars.palette.primary.main,
   "&:hover": { textDecoration: "underline" }

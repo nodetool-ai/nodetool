@@ -22,7 +22,8 @@ import {
 } from "./ApiTypes";
 import {
   reportBrowserEligibility,
-  runBrowserGraphJob
+  runBrowserGraphJob,
+  updateBrowserJobNodeProperties
 } from "../lib/workflow/browserWorkflowRunner";
 import { uuidv4 } from "./uuidv4";
 import { useNotificationStore, Notification } from "./NotificationStore";
@@ -38,6 +39,8 @@ import { shallow } from "zustand/shallow";
 import { createRunnerMessageHandler } from "../core/workflow/runnerProtocol";
 import { materializeBitmapRefs } from "../lib/workflow/materializeBrowserOutputs";
 import { getNodeStore, MsgpackData } from "./workflowUpdates";
+import useStatusStore from "./StatusStore";
+import useResultsStore from "./ResultsStore";
 import { queryClient } from "../queryClient";
 
 export type MessageHandler = (
@@ -78,6 +81,11 @@ export const deriveJobTitle = (
   }
   return workflow.name || "Workflow";
 };
+
+/** Abort handles for in-flight in-browser runs, keyed by job id. Browser
+ * runs have no server-side job, so cancel() aborts these instead of sending
+ * `cancel_job` over the websocket. */
+const browserRunAbortControllers = new Map<string, AbortController>();
 
 const buildRunJobData = (opts: {
   jobId: string;
@@ -166,6 +174,15 @@ export type WorkflowRunner = {
   cancel: () => Promise<void>;
   pause: () => Promise<void>;
   resume: () => Promise<void>;
+  /**
+   * Push property updates into the running job's node executors (live
+   * parameters — e.g. synth knobs while a patch plays). No-op when nothing
+   * is running; the canvas state already holds the value for the next run.
+   */
+  updateRunningNodeProperties: (
+    nodeId: string,
+    properties: Record<string, unknown>
+  ) => void;
   /**
    * Start (or queue) a run and resolve with the `job_id` of the run that was
    * initiated. Callers must use this id — when the runner is already busy the
@@ -547,20 +564,30 @@ export const createWorkflowRunnerStore = (
           `WorkflowRunner[${workflowId}]: Running graph in-browser`,
           { jobId }
         );
+        // Browser runs have no server job to cancel; cancel() aborts this
+        // controller instead, which both run paths (worker + main thread)
+        // honor.
+        const abortController = new AbortController();
+        browserRunAbortControllers.set(jobId, abortController);
         void runBrowserGraphJob({
           graph: req.graph as unknown as WorkflowGraph,
           params,
           workflowId,
-          jobId
-        }).catch((error) => {
-          set({
-            state: "error",
-            statusMessage:
-              error instanceof Error
-                ? error.message
-                : "Browser execution failed"
+          jobId,
+          signal: abortController.signal
+        })
+          .catch((error) => {
+            set({
+              state: "error",
+              statusMessage:
+                error instanceof Error
+                  ? error.message
+                  : "Browser execution failed"
+            });
+          })
+          .finally(() => {
+            browserRunAbortControllers.delete(jobId);
           });
-        });
         return jobId;
       }
 
@@ -614,8 +641,29 @@ export const createWorkflowRunnerStore = (
     /**
      * Cancel the current workflow run.
      */
+    updateRunningNodeProperties: (nodeId, properties) => {
+      const { job_id, state, isBrowserRun } = get();
+      if (state !== "running" || !job_id) {
+        return;
+      }
+      if (isBrowserRun) {
+        updateBrowserJobNodeProperties(job_id, nodeId, properties);
+        return;
+      }
+      void globalWebSocketManager.send({
+        type: "update_node_properties",
+        command: "update_node_properties",
+        data: {
+          job_id,
+          workflow_id: workflowId,
+          node_id: nodeId,
+          properties
+        }
+      });
+    },
+
     cancel: async () => {
-      const { job_id, state } = get();
+      const { job_id, state, isBrowserRun } = get();
       console.info(`WorkflowRunner[${workflowId}]: Cancelling job`, { job_id });
 
       if (state === "cancelled" || state === "idle" || state === "error") {
@@ -628,6 +676,21 @@ export const createWorkflowRunnerStore = (
       set({ state: "cancelled", queuePosition: null });
 
       if (!job_id) {
+        return;
+      }
+
+      // Stop this run's visuals (node "running" borders, edge animations,
+      // progress) right away: once state is "cancelled" the message handler
+      // drops all further node/edge updates, so the backend's own cleanup
+      // messages would never land. Job-scoped — sibling runs keep theirs.
+      useStatusStore.getState().clearJobStatuses(workflowId, job_id);
+      useResultsStore.getState().clearJobRunVisuals(workflowId, job_id);
+
+      // In-browser runs have no server-side job — abort the local run; the
+      // kernel then emits the cancelled job_update / node statuses through
+      // the same message pipeline as a server cancel.
+      if (isBrowserRun) {
+        browserRunAbortControllers.get(job_id)?.abort();
         return;
       }
 
@@ -764,6 +827,7 @@ const defaultWorkflowRunner: WorkflowRunner = {
   cancel: async () => {},
   pause: async () => {},
   resume: async () => {},
+  updateRunningNodeProperties: () => {},
   run: async () => "",
   reconnect: async () => {},
   reconnectWithWorkflow: async () => {},

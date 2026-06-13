@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback, memo } from "react";
 import { DATA_TYPES } from "../config/data_types";
 import { useColorScheme, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { MOTION } from "./ui_primitives";
 
 const randomDatatype = () => {
   return DATA_TYPES[Math.floor(Math.random() * DATA_TYPES.length)];
@@ -52,7 +53,7 @@ const logoStyles = (
       borderRadius: ".1em",
       cursor: "pointer",
       boxSizing: "border-box",
-      transition: "all .4s ease-in-out"
+      transition: `all ${MOTION.slow}`
     },
     ".nt:hover .nodetool": {
       borderRadius: borderRadius,

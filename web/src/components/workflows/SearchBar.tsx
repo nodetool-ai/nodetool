@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import {
-  TextField,
   InputAdornment
 } from "@mui/material";
 import {
@@ -12,7 +11,7 @@ import {
   TOOLTIP_ENTER_DELAY,
   TOOLTIP_LEAVE_DELAY
 } from "../../config/constants";
-import { Tooltip, ToolbarIconButton, Box } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, Box, TextInput } from "../ui_primitives";
 import React, { memo, useCallback } from "react";
 
 interface SearchBarProps {
@@ -40,7 +39,7 @@ const SearchBar = memo(({
 
   return (
     <Box className="search-container">
-      <TextField
+      <TextInput
         className="search-field"
         placeholder={
           nodesOnlySearch
@@ -103,6 +102,7 @@ const SearchBar = memo(({
             )
           }
         }}
+        fullWidth={false}
       />
     </Box>
   );

@@ -9,6 +9,7 @@ import React, { useState, useMemo, useCallback, useRef } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { InputAdornment } from "@mui/material";
+import { MOTION } from "../ui_primitives";
 import { Box } from "../ui_primitives";
 import SearchIcon from "@mui/icons-material/Search";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -48,7 +49,7 @@ const quickTileStyles = (theme: Theme) =>
       cursor: "pointer",
       border: "1px solid transparent",
       background: theme.vars.palette.action.hover,
-      transition: "all 0.15s",
+      transition: `all ${MOTION.fast}`,
       minHeight: 70,
       "&:hover": {
         borderColor: theme.vars.palette.divider,

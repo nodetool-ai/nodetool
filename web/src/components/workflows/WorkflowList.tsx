@@ -3,7 +3,6 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useCallback, useEffect, useRef, useState, useMemo, memo } from "react";
-import { ErrorOutlineRounded } from "@mui/icons-material";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import WorkflowToolbar from "./WorkflowToolbar";
 import CategorySearchBar from "../node_menu/CategorySearchBar";
@@ -23,42 +22,21 @@ import WorkflowFormModal from "./WorkflowFormModal";
 import { usePanelStore } from "../../stores/PanelStore";
 import { useFavoriteWorkflowIds } from "../../stores/FavoriteWorkflowsStore";
 import { useSelectedTags } from "../../stores/WorkflowListViewStore";
-import { FlexColumn, FlexRow, LoadingSpinner, Text } from "../ui_primitives";
+import { EmptyState, FlexColumn, FlexRow, LoadingSpinner } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
     "&": {
-      margin: "0px",
+      margin: 0,
       height: "100%"
     },
-
-    ".search-header": {},
     ".toolbar-header": {
-      padding: "6px 0 10px"
-    },
-
-    ".status": {
-      margin: "0.5em 0.75em 0 0.75em",
-      color: theme.vars.palette.grey[300]
+      padding: theme.spacing(0.75, 0, 1)
     },
     ".workflow-items": {
       flex: 1,
-      overflow: "hidden",
-      paddingLeft: "0.5em"
-    },
-    // Toggle category
-    ".toggle-category": {
-      display: "flex",
-      flexDirection: "row",
-      gap: "0",
-      height: "2em",
-      margin: "0"
-    },
-    ".explanations": {
-      margin: "-.5em 1em -1em 2em",
-      padding: 0,
-      fontSize: theme.fontSizeSmall,
-      color: theme.vars.palette.grey[200]
+      minHeight: 0,
+      overflow: "hidden"
     }
   });
 
@@ -320,14 +298,12 @@ const WorkflowList = () => {
         />
       )}
       <FlexColumn gap={0} fullHeight css={styles(theme)}>
-        <div className="search-header">
-          <CategorySearchBar
-            ref={searchRef}
-            value={filterValue}
-            onChange={setFilterValue}
-            placeholder="Search workflows..."
-          />
-        </div>
+        <CategorySearchBar
+          ref={searchRef}
+          value={filterValue}
+          onChange={setFilterValue}
+          placeholder="Search workflows..."
+        />
         <FlexRow
           className="toolbar-header"
           align="center"
@@ -344,51 +320,47 @@ const WorkflowList = () => {
             availableTags={availableTags}
           />
         </FlexRow>
-        <div className="status">
-          {isLoading && (
-            <FlexColumn gap={3} justify="center" align="center" sx={{ height: "45vh", width: "100%", color: theme.vars.palette.grey[0] }}>
-              <LoadingSpinner size="large" text="Loading Workflows" />
-            </FlexColumn>
-          )}
-          {isError && (
-            <FlexRow gap={4} align="center">
-              <ErrorOutlineRounded />
-              <Text>{error?.message}</Text>
-              <Text>No workflows found.</Text>
-            </FlexRow>
-          )}
-          {showFavoritesOnly && workflows.length === 0 && !isLoading && !isError && (
-            <Text size="small" sx={{ mt: 1, fontStyle: "italic" }}>
-              No favorite workflows. Click the star icon on a workflow to add it to your favorites.
-            </Text>
-          )}
-        </div>
-        <div className="workflow-items">
-          {!isLoading && !isError && workflows.length === 0 ? (
-            <FlexColumn gap={2} align="center" justify="center" sx={{ padding: "2em 1em", color: theme.vars.palette.grey[300] }}>
-              {data?.workflows && data.workflows.length > 0 ? (
-                <>
-                  <Text size="normal" weight={600}>No matching workflows</Text>
-                  <Text size="small">
-                    {filterValue && selectedTags.length > 0
-                      ? "Try adjusting your search term or tag filters."
-                      : filterValue
-                        ? "Try a different search term."
-                        : selectedTags.length > 0
-                          ? "Try removing some tag filters."
-                          : "No workflows match the current filters."}
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <Text size="normal" weight={600}>No workflows yet</Text>
-                  <Text size="small">
-                    Create your first workflow with the + button above.
-                  </Text>
-                </>
-              )}
-            </FlexColumn>
-          ) : (
+        {isLoading ? (
+          <FlexColumn gap={2} justify="center" align="center" sx={{ flex: 1 }}>
+            <LoadingSpinner size="large" text="Loading workflows" />
+          </FlexColumn>
+        ) : isError ? (
+          <FlexColumn gap={2} justify="center" align="center" sx={{ flex: 1, px: 2 }}>
+            <EmptyState
+              variant="error"
+              title="Could not load workflows"
+              description={error?.message ?? "Try again later."}
+            />
+          </FlexColumn>
+        ) : workflows.length === 0 ? (
+          <FlexColumn gap={2} justify="center" align="center" sx={{ flex: 1, px: 2 }}>
+            {showFavoritesOnly ? (
+              <EmptyState
+                title="No favorite workflows"
+                description="Click the star icon on a workflow to add it to your favorites."
+              />
+            ) : data?.workflows && data.workflows.length > 0 ? (
+              <EmptyState
+                title="No matching workflows"
+                description={
+                  filterValue && selectedTags.length > 0
+                    ? "Try adjusting your search term or tag filters."
+                    : filterValue
+                      ? "Try a different search term."
+                      : selectedTags.length > 0
+                        ? "Try removing some tag filters."
+                        : "No workflows match the current filters."
+                }
+              />
+            ) : (
+              <EmptyState
+                title="No workflows yet"
+                description="Create your first workflow with the + button above."
+              />
+            )}
+          </FlexColumn>
+        ) : (
+          <div className="workflow-items">
             <WorkflowListView
               workflows={workflows}
               onOpenWorkflow={handleOpenWorkflow}
@@ -401,8 +373,8 @@ const WorkflowList = () => {
               workflowCategory="user"
               showCheckboxes={showCheckboxes}
             />
-          )}
-        </div>
+          </div>
+        )}
       </FlexColumn>
     </>
   );

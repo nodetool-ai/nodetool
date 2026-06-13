@@ -13,7 +13,7 @@
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
-import { Text, Caption, LoadingSpinner, Surface, Box } from "../ui_primitives";
+import { Text, Caption, LoadingSpinner, Surface, Box, MOTION } from "../ui_primitives";
 import {
   DataframeRef,
   NodeMetadata,
@@ -621,7 +621,7 @@ const PreviewIndex: React.FC = () => {
                   borderColor: theme.palette.primary.main,
                   boxShadow: `0 0 0 2px ${theme.palette.primary.main}22`
                 },
-                transition: "border-color 0.15s, box-shadow 0.15s"
+                transition: `border-color ${MOTION.fast}, box-shadow ${MOTION.fast}`
               }}
             >
               <Text size="normal" weight={600} sx={{ mb: 0.5, display: "block" }}>

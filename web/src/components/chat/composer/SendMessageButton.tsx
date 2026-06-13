@@ -1,6 +1,6 @@
 import React, { forwardRef } from "react";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
-import { ToolbarIconButton } from "../../ui_primitives";
+import { ToolbarIconButton, MOTION } from "../../ui_primitives";
 
 interface SendMessageButtonProps {
   disabled?: boolean;
@@ -24,7 +24,7 @@ export const SendMessageButton = forwardRef<
       sx={(theme) => ({
         width: 36,
         height: 36,
-        transition: "background-color 0.15s ease, transform 0.1s ease",
+        transition: `${MOTION.background}, ${MOTION.transform}`,
         boxShadow: "none",
         color: isDisabled
           ? theme.vars.palette.grey[500]

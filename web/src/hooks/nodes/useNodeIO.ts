@@ -68,6 +68,31 @@ export const useNodeOutput = (
   nodeId: string
 ): unknown => useNodeResultValue(workflowId, nodeId);
 
+const resolveSingleEdge = (
+  edge: Edge,
+  workflowId: string,
+  resolveCurrent: (nodeId: string, node?: Node<NodeData>) => Generation | undefined,
+  findNode: (nodeId: string) => Node<NodeData> | undefined
+): unknown => {
+  const sourceNode = findNode(edge.source);
+  const current = resolveCurrent(edge.source, sourceNode);
+  const storeValue = current
+    ? outputOf(current, edge.sourceHandle ?? undefined)
+    : undefined;
+  if (storeValue !== undefined) {
+    return storeValue;
+  }
+
+  // No generation yet — fall back to a wired literal-source node's property.
+  const resolved = resolveExternalEdgeValue(
+    edge,
+    workflowId,
+    () => undefined,
+    findNode
+  );
+  return resolved.hasValue ? resolved.value : undefined;
+};
+
 /**
  * Resolve the current value feeding a node's named input:
  *   - if an edge targets the input, return the upstream node's current
@@ -75,6 +100,10 @@ export const useNodeOutput = (
  *   - otherwise return the upstream literal-source node's property
  *     (constant/input nodes wired but not yet run);
  *   - otherwise return `constantFallback` (typically `data.properties[name]`).
+ *
+ * When several edges target the same input (collect handles / list inputs),
+ * the resolved upstream values are returned as an array, preserving edge
+ * order.
  *
  * Returns `undefined` when neither a wired source nor a constant is available.
  */
@@ -84,10 +113,10 @@ export const useUpstreamValue = (
   inputName: string,
   constantFallback?: unknown
 ): unknown => {
-  const { upstreamEdge, findNode } = useNodes(
+  const { upstreamEdges, findNode } = useNodes(
     useMemo(
       () => (state: NodeStoreState) => ({
-        upstreamEdge: state.edges.find(
+        upstreamEdges: state.edges.filter(
           (e) => e.target === nodeId && (e.targetHandle ?? "") === inputName
         ),
         findNode: state.findNode
@@ -99,27 +128,28 @@ export const useUpstreamValue = (
 
   const resolveCurrent = useCurrentGenerationResolver(workflowId);
 
-  if (!upstreamEdge) {
+  if (upstreamEdges.length === 0) {
     return constantFallback;
   }
 
-  const sourceNode = findNode(upstreamEdge.source);
-  const current = resolveCurrent(upstreamEdge.source, sourceNode);
-  const storeValue = current
-    ? outputOf(current, upstreamEdge.sourceHandle ?? undefined)
-    : undefined;
-  if (storeValue !== undefined) {
-    return storeValue;
+  if (upstreamEdges.length === 1) {
+    const value = resolveSingleEdge(
+      upstreamEdges[0],
+      workflowId,
+      resolveCurrent,
+      findNode
+    );
+    return value !== undefined ? value : constantFallback;
   }
 
-  // No generation yet — fall back to a wired literal-source node's property.
-  const resolved = resolveExternalEdgeValue(
-    upstreamEdge,
-    workflowId,
-    () => undefined,
-    findNode
-  );
-  return resolved.hasValue ? resolved.value : constantFallback;
+  const values: unknown[] = [];
+  for (const edge of upstreamEdges) {
+    const value = resolveSingleEdge(edge, workflowId, resolveCurrent, findNode);
+    if (value !== undefined) {
+      values.push(value);
+    }
+  }
+  return values.length > 0 ? values : constantFallback;
 };
 
 /**
@@ -145,9 +175,17 @@ export const useUpstreamValues = (
   );
   const findNode = useNodes((state: NodeStoreState) => state.findNode);
 
-  const edgeByHandle = useMemo(() => {
-    const map = new Map<string, Edge>();
-    for (const e of edges) map.set(e.targetHandle ?? "", e);
+  const edgesByHandle = useMemo(() => {
+    const map = new Map<string, Edge[]>();
+    for (const e of edges) {
+      const key = e.targetHandle ?? "";
+      const list = map.get(key);
+      if (list) {
+        list.push(e);
+      } else {
+        map.set(key, [e]);
+      }
+    }
     return map;
   }, [edges]);
 
@@ -156,32 +194,41 @@ export const useUpstreamValues = (
   return useMemo(() => {
     const out: Record<string, unknown> = {};
     for (const name of inputNames) {
-      const edge = edgeByHandle.get(name);
-      if (!edge) {
+      const handleEdges = edgesByHandle.get(name);
+      if (!handleEdges || handleEdges.length === 0) {
         out[name] = constants?.[name];
         continue;
       }
-      const sourceNode = findNode(edge.source);
-      const current = resolveCurrent(edge.source, sourceNode);
-      const storeValue = current
-        ? outputOf(current, edge.sourceHandle ?? undefined)
-        : undefined;
-      if (storeValue !== undefined) {
-        out[name] = storeValue;
+
+      if (handleEdges.length === 1) {
+        const value = resolveSingleEdge(
+          handleEdges[0],
+          workflowId,
+          resolveCurrent,
+          findNode
+        );
+        out[name] = value !== undefined ? value : constants?.[name];
         continue;
       }
-      const resolved = resolveExternalEdgeValue(
-        edge,
-        workflowId,
-        () => undefined,
-        findNode
-      );
-      out[name] = resolved.hasValue ? resolved.value : constants?.[name];
+
+      const values: unknown[] = [];
+      for (const edge of handleEdges) {
+        const value = resolveSingleEdge(
+          edge,
+          workflowId,
+          resolveCurrent,
+          findNode
+        );
+        if (value !== undefined) {
+          values.push(value);
+        }
+      }
+      out[name] = values.length > 0 ? values : constants?.[name];
     }
     return out;
   }, [
     inputNames,
-    edgeByHandle,
+    edgesByHandle,
     findNode,
     resolveCurrent,
     workflowId,

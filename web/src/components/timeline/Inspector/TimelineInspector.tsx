@@ -30,7 +30,6 @@ import {
   FlexColumn,
   FlexRow,
   NodeSelect,
-  NodeSlider,
   NodeMenuItem,
   Panel,
   Text,
@@ -44,6 +43,8 @@ import {
   InspectorPillInput,
   InspectorRow,
   InspectorSectionTitle,
+  InspectorSliderRow,
+  InspectorStaticValue,
   InspectorToggleRow
 } from "./InspectorPrimitives";
 import {
@@ -305,19 +306,10 @@ export const TimelineInspector: React.FC = memo(() => {
       >
         <FlexColumn css={sectionContentStyles}>
           <InspectorRow label="Type">
-            <InspectorPillInput
-              value={clip.mediaType}
-              onCommit={() => {
-                /* read-only — committed on change elsewhere */
-              }}
-              disabled
-              ariaLabel="Media type"
-            />
+            <InspectorStaticValue value={clip.mediaType} />
           </InspectorRow>
           <InspectorRow label="Asset">
-            <Text size="small" sx={{ color: "text.secondary" }}>
-              {clip.currentAssetId ?? "—"}
-            </Text>
+            <InspectorStaticValue value={clip.currentAssetId ?? "—"} />
           </InspectorRow>
         </FlexColumn>
       </CollapsibleSection>
@@ -381,19 +373,15 @@ export const TimelineInspector: React.FC = memo(() => {
       >
         <FlexColumn css={sectionContentStyles}>
           {!isAudio && (
-            <InspectorRow label="Opacity">
-              <NodeSlider
-                min={0}
-                max={1}
-                step={0.01}
-                value={clip.opacity ?? 1}
-                onChange={(_e, value) =>
-                  patchClip(clip.id, {
-                    opacity: Array.isArray(value) ? value[0] : value
-                  })
-                }
-              />
-            </InspectorRow>
+            <InspectorSliderRow
+              label="Opacity"
+              min={0}
+              max={1}
+              step={0.01}
+              value={clip.opacity ?? 1}
+              display={`${Math.round((clip.opacity ?? 1) * 100)}%`}
+              onChange={(value) => patchClip(clip.id, { opacity: value })}
+            />
           )}
           {isOverlay && !isAudio && (
             <InspectorRow label="Blend">
@@ -494,21 +482,21 @@ export const TimelineInspector: React.FC = memo(() => {
                   setTransform({ ...t, rotation: (deg * Math.PI) / 180 });
                 return (
                   <>
-                    <InspectorRow label="X">
+                    <InspectorRow label="Position">
                       <InspectorPillInput
                         value={t.position.x.toFixed(0)}
                         unit="px"
+                        minWidth={72}
                         onCommit={(raw) => {
                           const n = Number(raw);
                           if (Number.isFinite(n)) setPos("x", n);
                         }}
                         ariaLabel="Position X"
                       />
-                    </InspectorRow>
-                    <InspectorRow label="Y">
                       <InspectorPillInput
                         value={t.position.y.toFixed(0)}
                         unit="px"
+                        minWidth={72}
                         onCommit={(raw) => {
                           const n = Number(raw);
                           if (Number.isFinite(n)) setPos("y", n);
@@ -516,21 +504,21 @@ export const TimelineInspector: React.FC = memo(() => {
                         ariaLabel="Position Y"
                       />
                     </InspectorRow>
-                    <InspectorRow label="Scale X">
+                    <InspectorRow label="Scale">
                       <InspectorPillInput
                         value={t.scale.x.toFixed(2)}
                         unit="×"
+                        minWidth={72}
                         onCommit={(raw) => {
                           const n = Number(raw);
                           if (Number.isFinite(n)) setScale("x", n);
                         }}
                         ariaLabel="Scale X"
                       />
-                    </InspectorRow>
-                    <InspectorRow label="Scale Y">
                       <InspectorPillInput
                         value={t.scale.y.toFixed(2)}
                         unit="×"
+                        minWidth={72}
                         onCommit={(raw) => {
                           const n = Number(raw);
                           if (Number.isFinite(n)) setScale("y", n);
@@ -549,43 +537,35 @@ export const TimelineInspector: React.FC = memo(() => {
                         ariaLabel="Rotation in degrees"
                       />
                     </InspectorRow>
-                    <InspectorRow label={`Anchor X (${t.anchor.x.toFixed(2)})`}>
-                      <NodeSlider
-                        min={0}
-                        max={1}
-                        step={0.01}
-                        value={t.anchor.x}
-                        onChange={(_e, value) =>
-                          setAnchor("x", Array.isArray(value) ? value[0] : value)
-                        }
-                      />
-                    </InspectorRow>
-                    <InspectorRow label={`Anchor Y (${t.anchor.y.toFixed(2)})`}>
-                      <NodeSlider
-                        min={0}
-                        max={1}
-                        step={0.01}
-                        value={t.anchor.y}
-                        onChange={(_e, value) =>
-                          setAnchor("y", Array.isArray(value) ? value[0] : value)
-                        }
-                      />
-                    </InspectorRow>
-                    <InspectorRow label="Radius">
-                      <NodeSlider
-                        min={0}
-                        max={500}
-                        step={1}
-                        value={clip.borderRadius ?? 0}
-                        onChange={(_e, value) =>
-                          patchClip(clip.id, {
-                            borderRadius: Array.isArray(value)
-                              ? value[0]
-                              : value
-                          })
-                        }
-                      />
-                    </InspectorRow>
+                    <InspectorSliderRow
+                      label="Anchor X"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={t.anchor.x}
+                      display={t.anchor.x.toFixed(2)}
+                      onChange={(value) => setAnchor("x", value)}
+                    />
+                    <InspectorSliderRow
+                      label="Anchor Y"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={t.anchor.y}
+                      display={t.anchor.y.toFixed(2)}
+                      onChange={(value) => setAnchor("y", value)}
+                    />
+                    <InspectorSliderRow
+                      label="Radius"
+                      min={0}
+                      max={500}
+                      step={1}
+                      value={clip.borderRadius ?? 0}
+                      display={`${(clip.borderRadius ?? 0).toFixed(0)}px`}
+                      onChange={(value) =>
+                        patchClip(clip.id, { borderRadius: value })
+                      }
+                    />
                     <FlexRow justify="flex-end" sx={{ mt: 1, px: 0.5 }}>
                       <EditorButton
                         size="small"
@@ -652,37 +632,38 @@ export const TimelineInspector: React.FC = memo(() => {
                   min: number,
                   max: number,
                   step: number,
-                  defaultV: number
+                  defaultV: number,
+                  format: (v: number) => string = (v) => v.toFixed(2)
                 ) => {
                   const v = color?.[key] ?? defaultV;
                   return (
-                    <InspectorRow label={`${label} (${v.toFixed(2)})`}>
-                      <NodeSlider
-                        min={min}
-                        max={max}
-                        step={step}
-                        value={v}
-                        disabled={!enabled}
-                        onChange={(_e, value) =>
-                          update({
-                            [key]: Array.isArray(value) ? value[0] : value
-                          } as Partial<ClipColorEffect>)
-                        }
-                      />
-                    </InspectorRow>
+                    <InspectorSliderRow
+                      label={label}
+                      min={min}
+                      max={max}
+                      step={step}
+                      value={v}
+                      display={format(v)}
+                      disabled={!enabled}
+                      onChange={(value) =>
+                        update({ [key]: value } as Partial<ClipColorEffect>)
+                      }
+                    />
                   );
                 };
                 return (
                   <>
                     <InspectorToggleRow
-                      label="Enable"
+                      label="Enabled"
                       checked={enabled}
                       onChange={(next) => update({ enabled: next })}
                     />
                     {slider("Brightness", "brightness", -1, 1, 0.01, 0)}
                     {slider("Contrast", "contrast", 0, 4, 0.01, 1)}
                     {slider("Saturation", "saturation", 0, 4, 0.01, 1)}
-                    {slider("Hue", "hue", -180, 180, 1, 0)}
+                    {slider("Hue", "hue", -180, 180, 1, 0, (v) =>
+                      `${v.toFixed(0)}°`
+                    )}
                     {slider("Temperature", "temperature", -1, 1, 0.01, 0)}
                     {slider("Tint", "tint", -1, 1, 0.01, 0)}
                     {slider("Shadows", "shadows", -1, 1, 0.01, 0)}
@@ -744,24 +725,20 @@ export const TimelineInspector: React.FC = memo(() => {
                 return (
                   <>
                     <InspectorToggleRow
-                      label="Enable"
+                      label="Enabled"
                       checked={enabled}
                       onChange={(next) => updateBlur({ enabled: next })}
                     />
-                    <InspectorRow label={`Radius (${radius.toFixed(0)} px)`}>
-                      <NodeSlider
-                        min={0}
-                        max={20}
-                        step={0.5}
-                        value={radius}
-                        disabled={!enabled}
-                        onChange={(_e, value) =>
-                          updateBlur({
-                            radius: Array.isArray(value) ? value[0] : value
-                          })
-                        }
-                      />
-                    </InspectorRow>
+                    <InspectorSliderRow
+                      label="Radius"
+                      min={0}
+                      max={20}
+                      step={0.5}
+                      value={radius}
+                      display={`${radius.toFixed(0)}px`}
+                      disabled={!enabled}
+                      onChange={(value) => updateBlur({ radius: value })}
+                    />
                     <FlexRow justify="flex-end" sx={{ mt: 1, px: 0.5 }}>
                       <EditorButton
                         size="small"

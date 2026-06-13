@@ -1,6 +1,5 @@
 import React, { memo, useMemo } from "react";
-import { Box } from "@mui/material";
-import { Caption } from "../../ui_primitives";
+import { Box, Caption } from "../../ui_primitives";
 import { NodeInputs } from "../NodeInputs";
 import { NodeOutputs } from "../NodeOutputs";
 import NodeProgress from "../NodeProgress";

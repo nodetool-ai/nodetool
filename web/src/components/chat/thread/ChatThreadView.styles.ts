@@ -1,5 +1,6 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
+import { MOTION } from "../../ui_primitives";
 
 export const createStyles = (theme: Theme) => ({
   chatThreadViewRoot: css({
@@ -57,12 +58,12 @@ export const createStyles = (theme: Theme) => ({
       alignItems: "flex-start",
       gap: theme.spacing(1),
       border: "1px solid transparent",
-      transition: "border-color 0.25s ease"
+      transition: MOTION.border
     },
     ".chat-message.assistant": {
       padding: "0.75em 1em",
       borderRadius: "1em",
-      transition: "border-color 0.25s ease"
+      transition: MOTION.border
     },
     ".chat-message.assistant:hover": {
       border: `1px solid ${theme.vars.palette.divider}`
@@ -88,7 +89,7 @@ export const createStyles = (theme: Theme) => ({
       padding: "0.2em",
       textAlign: "right",
       border: "1px solid transparent",
-      transition: "border-color 0.15s ease"
+      transition: `border-color ${MOTION.fast}`
     },
 
     ".user:hover .message-content": {
@@ -106,7 +107,7 @@ export const createStyles = (theme: Theme) => ({
 
     ".assistant .message-content": {
       borderRadius: ".5em",
-      transition: "border-color 0.15s ease"
+      transition: `border-color ${MOTION.fast}`
     },
 
     // Keep user->assistant transitions compact.
@@ -139,7 +140,7 @@ export const createStyles = (theme: Theme) => ({
       marginTop: theme.spacing(1),
       opacity: 0,
       pointerEvents: "none",
-      transition: "opacity 0.15s ease",
+      transition: MOTION.opacity,
       fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.text.disabled
     },
@@ -467,7 +468,7 @@ export const createStyles = (theme: Theme) => ({
     },
 
     ".expand-icon": {
-      transition: "transform 0.15s ease",
+      transition: MOTION.transform,
       color: theme.vars.palette.text.disabled,
       fontSize: 16
     },

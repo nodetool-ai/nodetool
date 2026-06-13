@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, memo, useMemo, useRef, useEffect } from "react";
-import { EditorButton, Text, Tooltip, Box } from "../ui_primitives";
+import { EditorButton, Text, Tooltip, Box, MOTION } from "../ui_primitives";
 import {
   Folder as FolderIcon,
   NavigateNext as NavigateIcon
@@ -71,7 +71,7 @@ const styles = (theme: Theme) =>
       padding: "0.75em 1em",
       borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
       cursor: "grab",
-      transition: "background-color 0.2s",
+      transition: MOTION.background,
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[800]
       },

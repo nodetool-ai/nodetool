@@ -22,7 +22,7 @@ import React, {
   useEffect
 } from "react";
 import { Handle, NodeProps, NodeToolbar, Position } from "@xyflow/react";
-import { Box, Text } from "../../ui_primitives";
+import { Box, Text, MOTION } from "../../ui_primitives";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -70,6 +70,8 @@ import type { Asset } from "../../../stores/ApiTypes";
 import { useShallow } from "zustand/react/shallow";
 import { useNodeFocusStore } from "../../../stores/NodeFocusStore";
 import { useSettingsStore } from "../../../stores/SettingsStore";
+import { fromPersistedSketchEditorState } from "../../../stores/sketch/persistence";
+import { trpcClient } from "../../../trpc/client";
 import type { Node as FlowNode } from "@xyflow/react";
 import {
   SKETCH_OUTPUT_LAYERS_HANDLE,
@@ -104,8 +106,7 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       border: `1px solid ${theme.vars.palette.grey[900]}`,
       backgroundColor: theme.vars.palette.c_node_bg,
       position: "relative",
-      transition:
-        "border-color 0.15s ease, box-shadow 0.15s ease, outline 0.15s ease",
+      transition: `border-color ${MOTION.fast}, box-shadow ${MOTION.fast}, outline ${MOTION.fast}`,
       boxShadow: opts.selected
         ? `0 0 0 1px ${opts.baseColor}, 0 1px 10px rgba(0,0,0,0.5)`
         : opts.isFocused
@@ -216,7 +217,7 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       justifyContent: "center",
       backgroundColor: "rgba(0,0,0,0.45)",
       opacity: 0,
-      transition: "opacity 0.2s"
+      transition: `opacity ${MOTION.normal}`
     },
     ".edit-overlay-label": {
       fontSize: "var(--fontSizeSmaller)",
@@ -277,6 +278,32 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
 const TOOLBAR_SHOW_DELAY = 200;
 
 const EMPTY_ASSETS: Asset[] = [];
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const getSketchRefId = (value: unknown): string | null =>
+  isRecord(value) && typeof value.id === "string" && value.id.length > 0
+    ? value.id
+    : null;
+
+const readSketchDocumentFromValue = (value: unknown): SketchDocument | null => {
+  if (!isRecord(value)) {
+    return null;
+  }
+  const candidates = [value.data, value.document, value.sketch, value];
+  for (const candidate of candidates) {
+    if (!candidate) {
+      continue;
+    }
+    try {
+      return fromPersistedSketchEditorState(candidate).document;
+    } catch {
+      // Try the next supported shape.
+    }
+  }
+  return null;
+};
 
 const Toolbar = memo(function Toolbar({
   id,
@@ -506,7 +533,36 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
   const deleteEdges = useNodes((s) => s.deleteEdges);
   const findNode = useNodes((s) => s.findNode);
 
-  // Parse sketch document from node properties
+  const sketchRefId = useMemo(
+    () => getSketchRefId(props.data.properties?.value),
+    [props.data.properties?.value]
+  );
+  const [loadedSketchValue, setLoadedSketchValue] = useState<unknown>(null);
+
+  useEffect(() => {
+    if (!sketchRefId) {
+      setLoadedSketchValue(null);
+      return;
+    }
+    let cancelled = false;
+    trpcClient.sketch.get
+      .query({ id: sketchRefId })
+      .then((sketch) => {
+        if (!cancelled) {
+          setLoadedSketchValue(sketch);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLoadedSketchValue(null);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sketchRefId]);
+
+  // Parse sketch document from node properties or the persisted sketch ref.
   const sketchDoc = useMemo((): SketchDocument => {
     const sketchData = props.data.properties?.sketch_data;
     if (typeof sketchData === "string" && sketchData) {
@@ -515,8 +571,21 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
         return parsed;
       }
     }
+
+    const inlineDocument = readSketchDocumentFromValue(
+      props.data.properties?.value
+    );
+    if (inlineDocument) {
+      return inlineDocument;
+    }
+
+    const loadedDocument = readSketchDocumentFromValue(loadedSketchValue);
+    if (loadedDocument) {
+      return loadedDocument;
+    }
+
     return createDefaultDocument();
-  }, [props.data.properties?.sketch_data]);
+  }, [props.data.properties?.sketch_data, props.data.properties?.value, loadedSketchValue]);
 
   // ─── Compute exposed layer handles ────────────────────────────────
   const exposedInputLayers = useMemo(
@@ -619,6 +688,13 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     if (pendingDocumentSyncRef.current) {
       const doc = pendingDocumentSyncRef.current;
       pendingProps.sketch_data = serializeDocument(doc);
+      pendingProps.value = {
+        ...(isRecord(props.data.properties?.value)
+          ? props.data.properties?.value
+          : { type: "sketch", id: null }),
+        type: "sketch",
+        data: doc
+      };
       pendingProps[SKETCH_LAYER_IO_SIG_KEY] = sketchLayerIoSignature(doc);
       pendingDocumentSyncRef.current = null;
     }
@@ -628,7 +704,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     }
 
     updateNodeProperties(props.id, pendingProps);
-  }, [props.id, updateNodeProperties]);
+  }, [props.data.properties?.value, props.id, updateNodeProperties]);
 
   const schedulePendingNodeSync = useCallback(() => {
     if (nodeSyncTimeoutRef.current !== null) {
@@ -718,6 +794,13 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     documentRef.current = nextDoc;
     updateNodeProperties(props.id, {
       sketch_data: serializeDocument(nextDoc),
+      value: {
+        ...(isRecord(props.data.properties?.value)
+          ? props.data.properties?.value
+          : { type: "sketch", id: null }),
+        type: "sketch",
+        data: nextDoc
+      },
       [SKETCH_LAYER_IO_SIG_KEY]: sketchLayerIoSignature(nextDoc)
     });
 
@@ -731,7 +814,8 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     isModalOpen,
     props.id,
     sketchDoc,
-    updateNodeProperties
+    updateNodeProperties,
+    props.data.properties?.value
   ]);
 
   // Register `layer_in_*` on dynamic_properties / dynamic_inputs and
@@ -931,6 +1015,13 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           documentRef.current = updatedDoc;
           updateNodeProperties(props.id, {
             sketch_data: serializeDocument(updatedDoc),
+            value: {
+              ...(isRecord(props.data.properties?.value)
+                ? props.data.properties?.value
+                : { type: "sketch", id: null }),
+              type: "sketch",
+              data: updatedDoc
+            },
             [SKETCH_LAYER_IO_SIG_KEY]: sketchLayerIoSignature(updatedDoc)
           });
 
@@ -980,7 +1071,8 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
     layerInputResults,
     sketchDoc,
     props.id,
-    updateNodeProperties
+    updateNodeProperties,
+    props.data.properties?.value
   ]);
 
   // ─── Generate preview and update output properties ────────────────
@@ -1221,7 +1313,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
             id={props.id}
             data={props.data}
             hasParent={hasParent}
-            metadataTitle="Image Editor"
+            metadataTitle="Sketch"
             selected={props.selected}
             backgroundColor="transparent"
             iconType="image"
@@ -1248,12 +1340,12 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                     />
                     <div className="edit-overlay">
                       <EditIcon sx={{ fontSize: 32, color: "white" }} />
-                      <span className="edit-overlay-label">Edit Image</span>
+                      <span className="edit-overlay-label">Edit Sketch</span>
                     </div>
                   </>
                 ) : (
                   <Text className="hint">
-                    Click to open image editor
+                    Click to open sketch editor
                   </Text>
                 )}
               </div>
@@ -1332,7 +1424,7 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
       <SketchProvider active={isModalOpen}>
         <SketchModal
           open={isModalOpen}
-          title="Image Editor"
+          title="Sketch"
           initialDocument={editorDocument || sketchDoc}
           onClose={handleCloseEditor}
           onDocumentChange={handleDocumentChange}

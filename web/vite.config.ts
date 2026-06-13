@@ -106,6 +106,33 @@ function stubServerTelemetryPlugin(): Plugin {
   };
 }
 
+// Cross-origin isolation for the perf harness page only. crossOriginIsolated
+// unlocks performance.measureUserAgentSpecificMemory(), which attributes JS
+// heap to every realm in the agent cluster — including the browser-runner
+// Web Worker, whose memory is otherwise unreadable (dedicated workers expose
+// no performance.memory). Scoped to /perf-realtime so the app keeps its
+// normal embedding behavior.
+function perfPageIsolationPlugin(): Plugin {
+  return {
+    name: "perf-page-isolation",
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const url = req.url ?? "";
+        if (url.startsWith("/perf-realtime")) {
+          res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+          res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+        } else if (url.includes("browserRunner.worker")) {
+          // A require-corp document may only spawn dedicated workers whose
+          // script response also carries COEP. Harmless for the normal app
+          // (a non-isolated owner accepts any worker policy).
+          res.setHeader("Cross-Origin-Embedder-Policy", "require-corp");
+        }
+        next();
+      });
+    }
+  };
+}
+
 export default defineConfig(async ({ mode }) => {
   // Load all env vars (including non-VITE_ prefixed ones) for server-side config
   const env = loadEnv(mode, configDir, "");
@@ -195,6 +222,7 @@ export default defineConfig(async ({ mode }) => {
       plugins: () => [stubServerTelemetryPlugin(), stubNodeProtocolPlugin(true)]
     },
     plugins: [
+      perfPageIsolationPlugin(),
       stubNodeProtocolPlugin(),
       react({
         jsxImportSource: "@emotion/react",

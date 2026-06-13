@@ -1,6 +1,6 @@
 import React, { useCallback } from "react";
-import { Menu, MenuItem } from "@mui/material";
-import { Text } from "../ui_primitives";
+import { MenuItem } from "@mui/material";
+import { Text, ContextMenu } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { Workflow } from "../../stores/ApiTypes";
@@ -69,15 +69,12 @@ const WorkflowContextMenu: React.FC = () => {
   }
 
   return (
-    <Menu
+    <ContextMenu
       className="context-menu workflow-context-menu"
       open={menuPosition !== null}
       onClose={closeContextMenu}
       onContextMenu={(event) => event.preventDefault()}
-      anchorReference="anchorPosition"
-      anchorPosition={
-        menuPosition ? { top: menuPosition.y, left: menuPosition.x } : undefined
-      }
+      position={menuPosition}
     >
       <MenuItem disabled>
         <Text>{payload.name}</Text>
@@ -106,7 +103,7 @@ const WorkflowContextMenu: React.FC = () => {
         addButtonClassName="delete"
         IconComponent={<DeleteIcon />}
       />
-    </Menu>
+    </ContextMenu>
   );
 };
 

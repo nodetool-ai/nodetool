@@ -2,8 +2,7 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 
-import { Menu } from "@mui/material";
-import { EditorButton, Text, Divider, FlexRow } from "../ui_primitives";
+import { EditorButton, Text, Divider, FlexRow, ContextMenu } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -283,7 +282,7 @@ const PaneContextMenu: React.FC = () => {
 
   return (
     <>
-      <Menu
+      <ContextMenu
         className="context-menu pane-context-menu"
         open={menuPosition !== null}
         onClose={closeAllMenus}
@@ -292,19 +291,13 @@ const PaneContextMenu: React.FC = () => {
         MenuListProps={{
           onClick: (event) => event.stopPropagation()
         }}
-        anchorReference="anchorPosition"
-        anchorPosition={
-          menuPosition ? { top: menuPosition.y, left: menuPosition.x } : undefined
-        }
+        position={menuPosition}
         slotProps={{
           paper: {
-            className: "context-menu pane-context-menu",
-            sx: {
-              borderRadius: "var(--rounded-lg)",
-              width: "240px"
-            }
+            className: "context-menu pane-context-menu"
           }
         }}
+        paperSx={{ borderRadius: "var(--rounded-lg)", width: "240px" }}
       >
         <ContextMenuItem
           onClick={handlePasteAndClose}
@@ -419,8 +412,8 @@ const PaneContextMenu: React.FC = () => {
           label="Add Subgraph"
           tooltip={"Add an inline subgraph node"}
         />
-      </Menu>
-      <Menu
+      </ContextMenu>
+      <ContextMenu
         className="context-menu pane-submenu"
         anchorEl={constantMenuAnchorEl}
         open={Boolean(constantMenuAnchorEl)}
@@ -452,8 +445,8 @@ const PaneContextMenu: React.FC = () => {
             />
           );
         })}
-      </Menu>
-      <Menu
+      </ContextMenu>
+      <ContextMenu
         className="context-menu pane-submenu"
         anchorEl={inputMenuAnchorEl}
         open={Boolean(inputMenuAnchorEl)}
@@ -485,7 +478,7 @@ const PaneContextMenu: React.FC = () => {
             />
           );
         })}
-      </Menu>
+      </ContextMenu>
     </>
   );
 };
