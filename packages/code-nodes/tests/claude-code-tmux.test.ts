@@ -24,22 +24,16 @@ describe("ClaudeCodeAgentNode metadata", () => {
       text: "str",
       chunk: "chunk",
       transcript: "str",
-      session_id: "str",
-      workspace: "str"
+      session_id: "str"
     });
   });
 
-  it("is chainable: text output and input/prompt/workspace inputs are strings", () => {
+  it("is chainable: text output and input/prompt are strings", () => {
     const props = ClaudeCodeAgentNode.getDeclaredProperties();
     const byName = new Map(props.map((p) => [p.name, p.options]));
     expect(byName.get("prompt")?.type).toBe("str");
     expect(byName.get("input")?.type).toBe("str");
-    expect(byName.get("workspace")?.type).toBe("str");
-    expect(ClaudeCodeAgentNode.inputFields).toEqual([
-      "prompt",
-      "input",
-      "workspace"
-    ]);
+    expect(ClaudeCodeAgentNode.inputFields).toEqual(["prompt", "input"]);
   });
 
   it("requires a prompt", async () => {

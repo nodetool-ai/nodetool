@@ -313,7 +313,8 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   // the runner's `output_update` for the source already carries the value.
   const rawSourceNodeValue = useNodeResultValue(
     props.data.workflow_id,
-    incomingValueEdge?.source ?? ""
+    incomingValueEdge?.source ?? "",
+    incomingValueEdge?.sourceHandle ?? undefined
   );
   const sourceNodeValue = incomingValueEdge?.source ? rawSourceNodeValue : undefined;
 
