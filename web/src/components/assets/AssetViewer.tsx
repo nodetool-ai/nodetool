@@ -350,7 +350,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       backgroundColor: theme.vars.palette.background.paper,
       color: theme.vars.palette.text.primary,
       border: `1px solid ${theme.vars.palette.action.disabledBackground}`,
-      borderRadius: "50%",
+      borderRadius: BORDER_RADIUS.circle,
       padding: theme.spacing(0.5),
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,

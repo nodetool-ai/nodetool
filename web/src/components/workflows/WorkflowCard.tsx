@@ -202,7 +202,7 @@ const cardStyles = (theme: Theme) =>
       fontWeight: 500,
       letterSpacing: "0.3px",
       padding: "2px 8px",
-      borderRadius: "999px",
+      borderRadius: BORDER_RADIUS.pill,
       color: theme.vars.palette.text.secondary,
       background: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`,
@@ -218,7 +218,7 @@ const cardStyles = (theme: Theme) =>
     ".chip-dot": {
       width: "6px",
       height: "6px",
-      borderRadius: "999px",
+      borderRadius: BORDER_RADIUS.pill,
       flexShrink: 0
     }
   });

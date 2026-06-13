@@ -248,7 +248,7 @@ const CostsDashboard: React.FC = () => {
               component="h1"
               sx={{
                 fontSize: "1.75rem",
-                fontWeight: 700,
+                fontWeight: 600,
                 lineHeight: 1.1,
                 color: theme.vars.palette.text.primary
               }}

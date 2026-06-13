@@ -223,7 +223,7 @@ const styles = (theme: Theme) =>
       "& .status-dot": {
         width: "6px",
         height: "6px",
-        borderRadius: "50%",
+        borderRadius: BORDER_RADIUS.circle,
         backgroundColor: theme.vars.palette.success.main,
         flexShrink: 0,
         boxShadow: `0 0 6px ${theme.vars.palette.success.main}99`,

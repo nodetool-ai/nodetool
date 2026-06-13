@@ -162,7 +162,7 @@ const iconButtonStyles = (theme: Theme, active = true) =>
     color: active
       ? theme.vars.palette.text.secondary
       : theme.vars.palette.text.disabled,
-    borderRadius: 5,
+    borderRadius: BORDER_RADIUS.md,
     transition: `background-color ${MOTION.fast}, color ${MOTION.fast}, border-color ${MOTION.fast}`,
     "&:hover": {
       backgroundColor: theme.vars.palette.action.hover,

@@ -61,7 +61,7 @@ const styles = (theme: Theme) =>
       right: "0.6em",
       width: "1.4em",
       height: "1.4em",
-      borderRadius: "50%",
+      borderRadius: BORDER_RADIUS.circle,
       backgroundColor: theme.vars.palette.primary.main,
       backgroundImage:
         "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'><path d='M9 16.17 4.83 12l-1.41 1.41L9 19 21 7l-1.41-1.41z'/></svg>\")",

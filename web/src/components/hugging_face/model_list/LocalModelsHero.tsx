@@ -116,7 +116,7 @@ const LocalModelsHero: React.FC<LocalModelsHeroProps> = ({ models }) => {
                 sx={{
                   width: 14,
                   height: 14,
-                  borderRadius: "50%",
+                  borderRadius: BORDER_RADIUS.circle,
                   border: `1.5px solid ${theme.vars.palette.success.main}`,
                   display: "inline-block"
                 }}

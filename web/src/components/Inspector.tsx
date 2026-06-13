@@ -194,7 +194,7 @@ const styles = (theme: Theme) =>
       bottom: -1,
       height: 2,
       backgroundColor: theme.vars.palette.primary.main,
-      borderRadius: 2
+      borderRadius: BORDER_RADIUS.xs
     },
     ".inspector-tab.is-active .tab-count": {
       color: theme.vars.palette.primary.main

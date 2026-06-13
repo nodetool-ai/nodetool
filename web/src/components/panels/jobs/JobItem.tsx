@@ -339,7 +339,7 @@ const JobItem = ({ job }: { job: Job }) => {
         px: 1,
         py: 1,
         mb: 0.5,
-        borderRadius: "6px",
+        borderRadius: BORDER_RADIUS.md,
         cursor: "pointer",
         backgroundColor: isActive ? "action.selected" : "transparent",
         transition: `background-color ${MOTION.fast}`,

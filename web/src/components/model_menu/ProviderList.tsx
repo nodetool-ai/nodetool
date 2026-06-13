@@ -17,7 +17,8 @@ import {
   FlexRow,
   LoadingSpinner,
   Tooltip,
-  Box
+  Box,
+  BORDER_RADIUS
 } from "../ui_primitives";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -733,7 +734,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                           padding: "1px 5px",
                           fontSize: theme.vars.fontSizeTiny,
                           lineHeight: 1.1,
-                          borderRadius: 4,
+                          borderRadius: BORDER_RADIUS.sm,
                           background: "transparent",
                           color:
                             b.label === "API"

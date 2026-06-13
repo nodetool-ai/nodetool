@@ -90,7 +90,7 @@ const styles = (theme: Theme) =>
         gap: "4px",
         "& .MuiButton-root": {
           marginLeft: "0 !important",
-          borderRadius: "4px !important",
+          borderRadius: `${BORDER_RADIUS.sm} !important`,
           minWidth: "80px",
           margin: "2px"
         }

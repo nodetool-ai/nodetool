@@ -381,7 +381,7 @@ const styles = (theme: Theme) =>
       height: "4px",
       opacity: 0.5,
       backgroundColor: theme.vars.palette.grey[600],
-      borderRadius: "100px",
+      borderRadius: BORDER_RADIUS.pill,
       transition: MOTION.all
     },
     "@media (max-width: 1200px)": {

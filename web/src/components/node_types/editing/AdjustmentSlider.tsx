@@ -127,7 +127,7 @@ export const adjustmentSliderStyles = (theme: Theme) =>
     ".controls .MuiSlider-thumb": {
       width: THUMB_SIZE,
       height: THUMB_SIZE,
-      borderRadius: "50%",
+      borderRadius: BORDER_RADIUS.circle,
       border: `2px solid ${theme.vars.palette.primary.main}`,
       boxShadow: "0 1px 3px rgba(0, 0, 0, 0.45)",
       "&:hover, &.Mui-focusVisible, &.Mui-active": {
