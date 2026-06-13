@@ -701,6 +701,10 @@ export { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
 export { SEARCH_NODES } from "@nodetool-ai/integration-nodes/nodes/search";
 export { TOOL_AGENT_NODES } from "@nodetool-ai/code-nodes/nodes/tool-agents";
 export {
+  ClaudeCodeAgentNode,
+  CLAUDE_CODE_NODES
+} from "@nodetool-ai/code-nodes/nodes/claude-code-tmux";
+export {
   SandboxShellNode,
   SandboxFileNode,
   SANDBOX_NODES
@@ -784,6 +788,7 @@ import { OPENAI_NODES } from "@nodetool-ai/llm-nodes/nodes/openai";
 import { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
 import { SEARCH_NODES } from "@nodetool-ai/integration-nodes/nodes/search";
 import { TOOL_AGENT_NODES } from "@nodetool-ai/code-nodes/nodes/tool-agents";
+import { CLAUDE_CODE_NODES } from "@nodetool-ai/code-nodes/nodes/claude-code-tmux";
 import { SANDBOX_NODES } from "@nodetool-ai/code-nodes/nodes/sandbox";
 import { LIB_NLP_NODES } from "@nodetool-ai/text-nodes/nodes/lib-nlp";
 import { LIB_DATETIME_NODES } from "@nodetool-ai/core-nodes/nodes/lib-datetime";
@@ -869,6 +874,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...XAI_NODES,
   ...SEARCH_NODES,
   ...TOOL_AGENT_NODES,
+  ...CLAUDE_CODE_NODES,
   ...SANDBOX_NODES,
   ...LIB_NLP_NODES,
   ...LIB_IMAGE_EFFECTS_NODES,

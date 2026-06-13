@@ -99,35 +99,29 @@
         "sourceHandle": "output",
         "target": "2",
         "targetHandle": "audience"
-      },
-      {
-        "id": "13",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "1",
-        "targetHandle": "value"
       }
     ],
     "nodes": [
       {
-        "id": "1",
-        "type": "nodetool.output.Output",
+        "id": "comment-intro",
+        "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "name": "product_descriptions",
-          "description": ""
+          "comment": "# 🛒 Product Description Generator\n\nFrom a product, its features, and audience, write both marketing and SEO descriptions in parallel.\n\n**Pipeline:** Inputs → Copywriter agent + SEO agent → Combined output\n\n**Try this:** change the audience to reframe the tone and keywords."
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 1680,
-            "y": 81
+            "x": 0,
+            "y": -220
           },
           "zIndex": 0,
-          "width": 280,
-          "selectable": true
+          "width": 460,
+          "height": 180,
+          "selectable": true,
+          "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "2",
@@ -143,7 +137,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Combine descriptions"
         },
         "dynamic_properties": {
           "product": null,
@@ -170,7 +165,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Product name"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -180,9 +176,7 @@
         "id": "4",
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {
-            "type": "language_model"
-          },
+          "model": {},
           "system": "You are an expert copywriter. Create compelling product descriptions that sell.",
           "image": {
             "type": "image",
@@ -207,7 +201,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Copywriter agent"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -226,7 +221,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Build copy prompt"
         },
         "dynamic_properties": {
           "product": null,
@@ -251,7 +247,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Features"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -272,7 +269,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Target audience"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -282,9 +280,7 @@
         "id": "8",
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {
-            "type": "language_model"
-          },
+          "model": {},
           "system": "You are an SEO specialist. Create keyword-rich product descriptions.",
           "image": {
             "type": "image",
@@ -309,7 +305,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "SEO agent"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -328,7 +325,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Build SEO prompt"
         },
         "dynamic_properties": {
           "product": null,

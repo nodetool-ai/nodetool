@@ -6,16 +6,25 @@ import {
   Select,
   MenuItem
 } from "@mui/material";
-import { Text, Caption, FlexRow, Box, Divider, LoadingSpinner, MOTION } from "../ui_primitives";
+import {
+  Text,
+  Caption,
+  FlexRow,
+  Box,
+  Divider,
+  LoadingSpinner,
+  MOTION
+} from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { trpcClient } from "../../trpc/client";
 import { WorkspaceResponse } from "../../stores/ApiTypes";
+import { useNotificationStore } from "../../stores/NotificationStore";
+import { useFolderPicker } from "./useFolderPicker";
 import FolderIcon from "@mui/icons-material/Folder";
 import AddIcon from "@mui/icons-material/Add";
 import StarIcon from "@mui/icons-material/Star";
-import { useNavigate } from "react-router-dom";
 
 const styles = (theme: Theme) =>
   css({
@@ -47,7 +56,8 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(1.5),
-      width: "100%"
+      width: "100%",
+      overflow: "hidden"
     },
     ".workspace-icon": {
       color: theme.vars.palette.text.secondary,
@@ -55,22 +65,10 @@ const styles = (theme: Theme) =>
       flexShrink: 0,
       opacity: 0.7
     },
-    ".workspace-details": {
-      display: "flex",
-      flexDirection: "column",
-      overflow: "hidden"
-    },
-    ".workspace-name": {
+    ".workspace-path": {
       fontSize: "var(--fontSizeNormal)",
       fontWeight: 400,
       color: theme.vars.palette.text.secondary,
-      whiteSpace: "nowrap",
-      overflow: "hidden",
-      textOverflow: "ellipsis"
-    },
-    ".workspace-path": {
-      fontSize: "var(--fontSizeSmaller)",
-      color: theme.vars.palette.text.disabled,
       whiteSpace: "nowrap",
       overflow: "hidden",
       textOverflow: "ellipsis",
@@ -103,57 +101,112 @@ const styles = (theme: Theme) =>
     }
   });
 
-// Fetch workspaces
 const fetchWorkspaces = async (): Promise<WorkspaceResponse[]> => {
   const { workspaces } = await trpcClient.workspace.list.query({ limit: 100 });
   return workspaces as WorkspaceResponse[];
 };
 
+/** Derive a workspace name from an absolute folder path. */
+function nameFromPath(path: string): string {
+  const normalized = path.replace(/\\/g, "/");
+  const parts = normalized.split("/").filter(Boolean);
+  return parts[parts.length - 1] ?? path;
+}
+
+/** Compact label shows only the folder basename. */
+function compactPath(path: string): string {
+  const base = nameFromPath(path);
+  return base || path;
+}
+
 interface WorkspaceSelectProps {
   value: string | undefined;
   onChange: (workspaceId: string | undefined) => void;
-  label?: string;
   helperText?: string;
   fullWidth?: boolean;
   disabled?: boolean;
-  /**
-   * Compact rendering for use in dense UI (e.g. the app header).
-   * Shows only the workspace name (no path line) and tighter padding.
-   */
   compact?: boolean;
 }
 
 const CREATE_NEW_VALUE = "__create_new__";
 
+const setWorkspacesData = (
+  queryClient: ReturnType<typeof useQueryClient>,
+  updater: (workspaces: WorkspaceResponse[]) => WorkspaceResponse[]
+) => {
+  queryClient.setQueryData<WorkspaceResponse[]>(["workspaces"], (prev) =>
+    updater(prev ?? [])
+  );
+};
+
 const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
   function WorkspaceSelect({
     value,
     onChange,
+    helperText,
     fullWidth = true,
     disabled = false,
     compact = false
   }) {
     const theme = useTheme();
-    const navigate = useNavigate();
+    const queryClient = useQueryClient();
+    const addNotification = useNotificationStore(
+      (state) => state.addNotification
+    );
+    const { pickFolder, dialog: folderPickerDialog } = useFolderPicker();
 
     const { data: workspaces, isLoading, error } = useQuery({
       queryKey: ["workspaces"],
       queryFn: fetchWorkspaces
     });
 
+    const createMutation = useMutation({
+      mutationFn: async (path: string) => {
+        return trpcClient.workspace.create.mutate({
+          name: nameFromPath(path),
+          path,
+          is_default: false
+        });
+      },
+      onSuccess: (created) => {
+        setWorkspacesData(queryClient, (prev) => {
+          if (prev.some((w) => w.id === created.id)) return prev;
+          return [...prev, created as WorkspaceResponse];
+        });
+        queryClient.invalidateQueries({ queryKey: ["workspaces"] });
+        onChange(created.id);
+        addNotification({
+          type: "success",
+          alert: true,
+          content: "Workspace added",
+          dismissable: true
+        });
+      },
+      onError: (error) => {
+        addNotification({
+          type: "error",
+          alert: true,
+          content: String(error),
+          dismissable: true
+        });
+      }
+    });
+
     const handleChange = useCallback(
-      (event: { target: { value: string } }) => {
+      async (event: { target: { value: string } }) => {
         const newValue = event.target.value;
         if (newValue === CREATE_NEW_VALUE) {
-          navigate("/settings?tab=5");
+          const path = await pickFolder();
+          if (path) {
+            createMutation.mutate(path);
+          }
           return;
         }
         onChange(newValue === "" ? undefined : newValue);
       },
-      [onChange, navigate]
+      [onChange, pickFolder, createMutation]
     );
 
-    // Find the selected workspace for display
     const selectedWorkspace = workspaces?.find((w) => w.id === value);
 
     if (isLoading) {
@@ -187,163 +240,154 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
       return (
         <div className="workspace-option">
           <FolderIcon className="workspace-icon" />
-          <div className="workspace-details">
-            <span className="workspace-name">
-              {selectedWorkspace.name}
-              {compact && selectedWorkspace.path && (
-                <span className="workspace-path-inline">
-                  {" · "}
-                  {selectedWorkspace.path}
-                </span>
-              )}
-              {selectedWorkspace.is_default && (
-                <StarIcon className="default-badge" />
-              )}
-            </span>
-            {!compact && (
-              <span className="workspace-path">{selectedWorkspace.path}</span>
+          <span className="workspace-path" title={selectedWorkspace.path}>
+            {compact
+              ? compactPath(selectedWorkspace.path)
+              : selectedWorkspace.path}
+            {selectedWorkspace.is_default && (
+              <StarIcon className="default-badge" />
             )}
-          </div>
+          </span>
         </div>
       );
     };
 
     return (
-      <FormControl fullWidth={fullWidth} css={styles(theme)}>
-        <Select
-          className={`workspace-select${compact ? " compact" : ""}`}
-          value={value || ""}
-          onChange={handleChange}
-          disabled={disabled}
-          displayEmpty
-          size="small"
-          renderValue={renderSelectedValue}
-          MenuProps={{
-            PaperProps: {
-              sx: {
-                maxWidth: "min(400px, calc(100vw - 32px))",
-                backgroundColor: theme.vars.palette.background.paper,
-                border: `1px solid ${theme.vars.palette.divider}`,
-                borderRadius: "var(--rounded-md)",
-                mt: 0.5,
-                "& .workspace-option": {
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                  width: "100%"
-                },
-                "& .workspace-icon": {
-                  color: theme.vars.palette.text.secondary,
-                  fontSize: "var(--fontSizeBig)",
-                  flexShrink: 0,
-                  opacity: 0.7
-                },
-                "& .workspace-details": {
-                  display: "flex",
-                  flexDirection: "column",
-                  overflow: "hidden"
-                },
-                "& .workspace-name": {
-                  fontSize: "var(--fontSizeNormal)",
-                  fontWeight: 400,
-                  color: theme.vars.palette.text.secondary
-                },
-                "& .workspace-path": {
-                  fontSize: "var(--fontSizeSmaller)",
-                  color: theme.vars.palette.text.disabled,
-                  fontFamily: "monospace"
-                },
-                "& .none-option": {
-                  color: theme.vars.palette.text.disabled,
-                  fontStyle: "italic",
-                  fontSize: "var(--fontSizeNormal)"
-                },
-                "& .create-option": {
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  color: theme.vars.palette.text.secondary,
-                  fontSize: "var(--fontSizeNormal)",
-                  fontWeight: 400
-                },
-                "& .default-badge": {
-                  color: theme.vars.palette.text.disabled,
-                  fontSize: "var(--fontSizeNormal)",
-                  marginLeft: "4px",
-                  verticalAlign: "middle",
-                  opacity: 0.6
-                },
-                "& .MuiMenuItem-root": {
-                  padding: "10px 14px",
-                  borderRadius: "var(--rounded-sm)",
-                  margin: "2px 4px",
-                  "&:hover": {
-                    backgroundColor: theme.vars.palette.action.hover
+      <>
+        <FormControl fullWidth={fullWidth} css={styles(theme)}>
+          <Select
+            className={`workspace-select${compact ? " compact" : ""}`}
+            value={value || ""}
+            onChange={handleChange}
+            disabled={disabled || createMutation.isPending}
+            displayEmpty
+            size="small"
+            renderValue={renderSelectedValue}
+            MenuProps={{
+              PaperProps: {
+                sx: {
+                  maxWidth: "min(600px, calc(100vw - 32px))",
+                  backgroundColor: theme.vars.palette.background.paper,
+                  border: `1px solid ${theme.vars.palette.divider}`,
+                  borderRadius: "var(--rounded-md)",
+                  mt: 0.5,
+                  "& .workspace-option": {
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    width: "100%",
+                    overflow: "hidden"
                   },
-                  "&.Mui-selected": {
-                    backgroundColor: theme.vars.palette.action.selected,
+                  "& .workspace-icon": {
+                    color: theme.vars.palette.text.secondary,
+                    fontSize: "var(--fontSizeBig)",
+                    flexShrink: 0,
+                    opacity: 0.7
+                  },
+                  "& .workspace-path": {
+                    fontSize: "var(--fontSizeNormal)",
+                    fontWeight: 400,
+                    color: theme.vars.palette.text.secondary,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    fontFamily: "monospace"
+                  },
+                  "& .none-option": {
+                    color: theme.vars.palette.text.disabled,
+                    fontStyle: "italic",
+                    fontSize: "var(--fontSizeNormal)"
+                  },
+                  "& .create-option": {
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    color: theme.vars.palette.text.secondary,
+                    fontSize: "var(--fontSizeNormal)",
+                    fontWeight: 400
+                  },
+                  "& .default-badge": {
+                    color: theme.vars.palette.text.disabled,
+                    fontSize: "var(--fontSizeNormal)",
+                    marginLeft: "4px",
+                    verticalAlign: "middle",
+                    opacity: 0.6
+                  },
+                  "& .MuiMenuItem-root": {
+                    padding: "10px 14px",
+                    borderRadius: "var(--rounded-sm)",
+                    margin: "2px 4px",
                     "&:hover": {
                       backgroundColor: theme.vars.palette.action.hover
+                    },
+                    "&.Mui-selected": {
+                      backgroundColor: theme.vars.palette.action.selected,
+                      "&:hover": {
+                        backgroundColor: theme.vars.palette.action.hover
+                      }
                     }
                   }
                 }
               }
-            }
-          }}
-        >
-          <Box
-            role="note"
-            sx={{
-              px: 2,
-              pt: 1,
-              pb: 1,
-              pointerEvents: "none"
             }}
           >
-            <Caption
-              size="smaller"
-              color="muted"
+            <Box
+              role="note"
               sx={{
-                display: "block",
-                lineHeight: 1.5,
-                whiteSpace: "normal",
-                wordBreak: "break-word"
+                px: 2,
+                pt: 1,
+                pb: 1,
+                pointerEvents: "none"
               }}
             >
-              Agents read and write files here during execution - saved images,
-              text, data, and other outputs. Browse the results in the Workspace
-              panel. Agents can only access files inside this folder.
-            </Caption>
-          </Box>
-          <Divider sx={{ mb: 0.5 }} />
-          <MenuItem value="">
-            <span className="none-option">None</span>
-          </MenuItem>
-          {workspaces?.map((workspace) => (
-            <MenuItem key={workspace.id} value={workspace.id}>
-              <div className="workspace-option">
-                <FolderIcon className="workspace-icon" />
-                <div className="workspace-details">
-                  <span className="workspace-name">
-                    {workspace.name}
+              <Caption
+                size="smaller"
+                color="muted"
+                sx={{
+                  display: "block",
+                  lineHeight: 1.5,
+                  whiteSpace: "normal",
+                  wordBreak: "break-word"
+                }}
+              >
+                Agents read and write files here during execution - saved images,
+                text, data, and other outputs. Browse the results in the Workspace
+                panel. Agents can only access files inside this folder.
+              </Caption>
+            </Box>
+            <Divider sx={{ mb: 0.5 }} />
+            <MenuItem value="">
+              <span className="none-option">None</span>
+            </MenuItem>
+            {workspaces?.map((workspace) => (
+              <MenuItem key={workspace.id} value={workspace.id}>
+                <div className="workspace-option">
+                  <FolderIcon className="workspace-icon" />
+                  <span className="workspace-path" title={workspace.path}>
+                    {workspace.path}
                     {workspace.is_default && (
                       <StarIcon className="default-badge" />
                     )}
                   </span>
-                  <span className="workspace-path">{workspace.path}</span>
                 </div>
-              </div>
+              </MenuItem>
+            ))}
+            <Divider sx={{ my: 0.5 }} />
+            <MenuItem value={CREATE_NEW_VALUE}>
+              <span className="create-option">
+                <AddIcon fontSize="small" />
+                Create New Workspace
+              </span>
             </MenuItem>
-          ))}
-          <Divider sx={{ my: 0.5 }} />
-          <MenuItem value={CREATE_NEW_VALUE}>
-            <span className="create-option">
-              <AddIcon fontSize="small" />
-              Create New Workspace
-            </span>
-          </MenuItem>
-        </Select>
-      </FormControl>
+          </Select>
+          {helperText && (
+            <Caption color="secondary" sx={{ mt: 0.5, ml: 0.5 }}>
+              {helperText}
+            </Caption>
+          )}
+        </FormControl>
+        {folderPickerDialog}
+      </>
     );
   }
 );

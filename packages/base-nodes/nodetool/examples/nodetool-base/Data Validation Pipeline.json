@@ -34,36 +34,29 @@
         "sourceHandle": "text",
         "target": "2",
         "targetHandle": "analysis"
-      },
-      {
-        "id": "4",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "1",
-        "targetHandle": "value"
       }
     ],
     "nodes": [
       {
-        "id": "1",
-        "type": "nodetool.output.Output",
+        "id": "comment-intro",
+        "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "name": "validation_report",
-          "description": ""
+          "comment": "# ✅ Data Validation Pipeline\n\nPaste CSV data and let an AI analyst flag quality issues, bad records, and fixes.\n\n**Pipeline:** CSV input → build prompt → Analyst agent → report\n\n**Try this:** swap in your own CSV, or edit the agent's system prompt to check different rules."
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1240,
-            "y": 0
+            "x": 0,
+            "y": 722
           },
           "zIndex": 0,
-          "width": 280,
-          "selectable": true
+          "width": 460,
+          "height": 180,
+          "selectable": true,
+          "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "2",
@@ -79,7 +72,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "4️⃣ Format report"
         },
         "dynamic_properties": {
           "analysis": null
@@ -91,9 +85,7 @@
         "id": "3",
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {
-            "type": "language_model"
-          },
+          "model": {},
           "system": "You are a data quality analyst. Identify validation issues in datasets.",
           "image": {
             "type": "image",
@@ -118,7 +110,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "3️⃣ Analyze data quality"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -138,7 +131,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "2️⃣ Build analysis prompt"
         },
         "dynamic_properties": {
           "data": null
@@ -162,7 +156,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "1️⃣ Paste CSV data"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},

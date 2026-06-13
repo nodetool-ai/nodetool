@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Workflow, WorkflowList as WorkflowListType } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { useSettingsStore } from "../../stores/SettingsStore";
 import { trpcClient } from "../../trpc/client";
 import { MOTION } from "../ui_primitives";
 import RecentWorkflowCard from "./RecentWorkflowCard";
@@ -109,7 +110,16 @@ const styles = (theme: Theme) =>
       padding: "40px 0",
       textAlign: "center",
       color: theme.vars.palette.text.secondary,
-      fontSize: 14
+      fontSize: 14,
+      "& button": {
+        background: "none",
+        border: "none",
+        padding: 0,
+        font: "inherit",
+        cursor: "pointer",
+        color: theme.vars.palette.primary.main,
+        "&:hover": { color: theme.vars.palette.primary.light }
+      }
     }
   });
 
@@ -132,7 +142,12 @@ const DashboardWorkflows: React.FC<DashboardWorkflowsProps> = ({
   const copyWorkflow = useWorkflowManager((state) => state.copy);
   const createWorkflow = useWorkflowManager((state) => state.create);
 
-  const [view, setView] = useState<ViewMode>("grid");
+  const view = useSettingsStore((s) => s.settings.dashboardWorkflowView);
+  const updateSettings = useSettingsStore((s) => s.updateSettings);
+  const setView = useCallback(
+    (next: ViewMode) => updateSettings({ dashboardWorkflowView: next }),
+    [updateSettings]
+  );
   const [query, setQuery] = useState("");
   const [workflowsToDelete, setWorkflowsToDelete] = useState<Workflow[]>([]);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -190,9 +205,15 @@ const DashboardWorkflows: React.FC<DashboardWorkflowsProps> = ({
 
   const noop = useCallback(() => {}, []);
 
+  const hasQuery = query.trim().length > 0;
+  const noMatches = !isLoading && hasQuery && filtered.length === 0;
+  const isEmpty = !isLoading && workflows.length === 0;
+
   const countLabel = isLoading
-    ? "my files"
-    : `my files · ${workflows.length}`;
+    ? undefined
+    : hasQuery
+      ? `${filtered.length} of ${workflows.length}`
+      : `${workflows.length}`;
 
   return (
     <section css={styles(theme)}>
@@ -206,7 +227,7 @@ const DashboardWorkflows: React.FC<DashboardWorkflowsProps> = ({
           <DashboardSearchBox
             value={query}
             onChange={setQuery}
-            placeholder="Search my files…"
+            placeholder="Search workflows…"
             aria-label="Search workflows"
           />
           <div className="viewtog" role="group" aria-label="View mode">
@@ -239,30 +260,53 @@ const DashboardWorkflows: React.FC<DashboardWorkflowsProps> = ({
         </SectionHeader>
 
         {view === "grid" ? (
-          <div className="rec-grid">
-            <button type="button" className="rec-new" onClick={onCreateNew}>
-              <div className="rec-new-thumb">
-                <span className="rec-new-icon">
-                  <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
-                    <path d="M8 3v10M3 8h10" />
-                  </svg>
-                </span>
+          <>
+            <div className="rec-grid">
+              <button type="button" className="rec-new" onClick={onCreateNew}>
+                <div className="rec-new-thumb">
+                  <span className="rec-new-icon">
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
+                      <path d="M8 3v10M3 8h10" />
+                    </svg>
+                  </span>
+                </div>
+                <div>
+                  <div className="rec-new-label">New workflow</div>
+                  <div className="rec-new-hint">Start from blank</div>
+                </div>
+              </button>
+              {filtered.map((workflow) => (
+                <RecentWorkflowCard
+                  key={workflow.id}
+                  workflow={workflow}
+                  onClick={handleOpen}
+                />
+              ))}
+            </div>
+            {noMatches && (
+              <div className="rec-empty">
+                No workflows match “{query.trim()}”.{" "}
+                <button type="button" onClick={() => setQuery("")}>
+                  Clear search
+                </button>
               </div>
-              <div>
-                <div className="rec-new-label">New workflow</div>
-                <div className="rec-new-hint">Start from blank</div>
-              </div>
+            )}
+          </>
+        ) : noMatches ? (
+          <div className="rec-empty">
+            No workflows match “{query.trim()}”.{" "}
+            <button type="button" onClick={() => setQuery("")}>
+              Clear search
             </button>
-            {filtered.map((workflow) => (
-              <RecentWorkflowCard
-                key={workflow.id}
-                workflow={workflow}
-                onClick={handleOpen}
-              />
-            ))}
           </div>
-        ) : filtered.length === 0 ? (
-          <div className="rec-empty">No workflows yet. Create one to get started.</div>
+        ) : isEmpty ? (
+          <div className="rec-empty">
+            No workflows yet.{" "}
+            <button type="button" onClick={onCreateNew}>
+              Create one
+            </button>{" "}
+            to get started.
+          </div>
         ) : (
           <div className="rec-list">
             <WorkflowListView

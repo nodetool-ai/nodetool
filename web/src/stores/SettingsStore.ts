@@ -27,6 +27,8 @@ export interface Settings {
   panControls: string;
   selectionMode: string;
   workflowOrder: "name" | "date";
+  /** Layout used for the "Recent workflows" list on the dashboard portal. */
+  dashboardWorkflowView: "grid" | "list";
   assetsOrder: "name" | "date" | "size";
   assetItemSize: number;
   timeFormat: "12h" | "24h";
@@ -93,6 +95,7 @@ export const defaultSettings: Settings = {
   panControls: "LMB",
   selectionMode: "partial",
   workflowOrder: "name",
+  dashboardWorkflowView: "grid",
   assetsOrder: "name",
   assetItemSize: 2,
   timeFormat: "12h",

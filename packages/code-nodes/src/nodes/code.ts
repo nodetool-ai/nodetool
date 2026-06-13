@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { tagAsUniversal } from "@nodetool-ai/nodes-utils";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   PythonDockerRunner,
   JavaScriptDockerRunner,
@@ -16,7 +17,76 @@ import {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Collect all streamed output from a runner into buffered stdout/stderr. */
+const TERMINAL_FLUSH_MS = 150;
+const TERMINAL_COLS = 120;
+const TERMINAL_ROWS = 30;
+
+/**
+ * Coalescing terminal_update emitter: mirrors runner output lines to the
+ * client's node-body terminal as they stream (stderr tinted red). UI-only —
+ * the buffered stdout/stderr node outputs are unaffected. No-ops without a
+ * context/node id (e.g. direct unit-test invocation).
+ */
+export function startTerminalEmitter(
+  context: ProcessingContext | undefined,
+  nodeId: string | undefined
+): { write: (slot: string, text: string) => void; close: () => void } {
+  if (!context || !nodeId || typeof context.postMessage !== "function") {
+    return {
+      write: () => {
+        // No client to stream to
+      },
+      close: () => {
+        // Nothing to flush
+      }
+    };
+  }
+  let pending = "";
+  const flush = () => {
+    if (!pending) return;
+    context.postMessage({
+      type: "terminal_update",
+      node_id: nodeId,
+      content: pending,
+      cols: TERMINAL_COLS,
+      rows: TERMINAL_ROWS
+    });
+    pending = "";
+  };
+  const timer = setInterval(flush, TERMINAL_FLUSH_MS);
+  // The flush timer must not keep the process alive after a run.
+  timer.unref?.();
+  return {
+    write: (slot, text) => {
+      // Runner lines use bare \n; the terminal emulator needs \r\n.
+      const normalized = text.replace(/\r?\n/g, "\r\n");
+      pending +=
+        slot === "stderr" ? `\x1b[31m${normalized}\x1b[0m` : normalized;
+    },
+    close: () => {
+      clearInterval(timer);
+      flush();
+    }
+  };
+}
+
+/**
+ * Strip ANSI escape sequences (CSI, OSC, and single-char escapes) from
+ * buffered output. The runners force color via PIPED_OUTPUT_ENV so the
+ * node-body terminal renders rich output; the stdout/stderr DATA handles
+ * must stay clean for downstream parsing, so we remove what we injected.
+ */
+// eslint-disable-next-line no-control-regex
+const ANSI_PATTERN = /\u001b\[[0-9;?]*[ -/]*[@-~]|\u001b\][^\u0007\u001b]*(?:\u0007|\u001b\\)|\u001b[@-Z\\^_-]/g;
+
+export function stripAnsi(text: string): string {
+  return text.replace(ANSI_PATTERN, "");
+}
+
+/**
+ * Collect all streamed output from a runner into buffered stdout/stderr
+ * (ANSI-stripped — the raw colored stream goes to the terminal mirror).
+ */
 async function collectRunnerOutput(
   runner: StreamRunnerBase,
   userCode: string,
@@ -24,11 +94,17 @@ async function collectRunnerOutput(
   options?: {
     stdinStream?: AsyncIterable<string>;
     workspaceDir?: string;
+    /** When set, mirror output lines to the node-body terminal as they stream. */
+    terminal?: { context?: ProcessingContext; nodeId?: string };
   }
 ): Promise<{ stdout: string; stderr: string; exit_code: number }> {
   const stdoutBuf: string[] = [];
   const stderrBuf: string[] = [];
   let exitCode = 0;
+  const term = startTerminalEmitter(
+    options?.terminal?.context,
+    options?.terminal?.nodeId
+  );
   try {
     for await (const [slot, line] of runner.stream(
       userCode,
@@ -37,6 +113,7 @@ async function collectRunnerOutput(
     )) {
       if (slot === "stdout") stdoutBuf.push(line);
       else if (slot === "stderr") stderrBuf.push(line);
+      term.write(slot, line);
     }
   } catch (err) {
     if (err instanceof ContainerFailureError) {
@@ -44,11 +121,14 @@ async function collectRunnerOutput(
     } else {
       exitCode = 1;
       stderrBuf.push(String(err));
+      term.write("stderr", String(err));
     }
+  } finally {
+    term.close();
   }
   return {
-    stdout: stdoutBuf.join(""),
-    stderr: stderrBuf.join(""),
+    stdout: stripAnsi(stdoutBuf.join("")),
+    stderr: stripAnsi(stderrBuf.join("")),
     exit_code: exitCode
   };
 }
@@ -110,7 +190,9 @@ export class ExecutePythonNode extends BaseNode {
   })
   declare stdin: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
     const code = String(this.code ?? this.code ?? "");
     if (!code.trim()) throw new Error("Code is required");
     const mode = String(
@@ -124,7 +206,8 @@ export class ExecutePythonNode extends BaseNode {
       code,
       {},
       {
-        stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined
+        stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined,
+        terminal: { context, nodeId: this.__node_id }
       }
     );
     return {
@@ -183,7 +266,9 @@ export class ExecuteJavaScriptNode extends BaseNode {
   })
   declare stdin: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
     const code = String(this.code ?? this.code ?? "");
     if (!code.trim()) throw new Error("Code is required");
     const mode = String(
@@ -197,7 +282,8 @@ export class ExecuteJavaScriptNode extends BaseNode {
       code,
       {},
       {
-        stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined
+        stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined,
+        terminal: { context, nodeId: this.__node_id }
       }
     );
     return {
@@ -262,7 +348,9 @@ export class ExecuteBashNode extends BaseNode {
   })
   declare stdin: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
     const code = String(this.code ?? this.code ?? "");
     if (!code.trim()) throw new Error("Code is required");
     const mode = String(
@@ -276,7 +364,8 @@ export class ExecuteBashNode extends BaseNode {
       code,
       {},
       {
-        stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined
+        stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined,
+        terminal: { context, nodeId: this.__node_id }
       }
     );
     return {
@@ -335,7 +424,9 @@ export class ExecuteRubyNode extends BaseNode {
   })
   declare stdin: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
     const code = String(this.code ?? this.code ?? "");
     if (!code.trim()) throw new Error("Code is required");
     const mode = String(
@@ -349,7 +440,8 @@ export class ExecuteRubyNode extends BaseNode {
       code,
       {},
       {
-        stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined
+        stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined,
+        terminal: { context, nodeId: this.__node_id }
       }
     );
     return {
@@ -416,7 +508,9 @@ export class ExecuteLuaNode extends BaseNode {
   })
   declare stdin: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
     const code = String(this.code ?? this.code ?? "");
     if (!code.trim()) throw new Error("Code is required");
     const mode = String(
@@ -443,7 +537,8 @@ export class ExecuteLuaNode extends BaseNode {
       code,
       {},
       {
-        stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined
+        stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined,
+        terminal: { context, nodeId: this.__node_id }
       }
     );
     return {
@@ -500,7 +595,9 @@ export class ExecuteCommandNode extends BaseNode {
   })
   declare stdin: any;
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
     const command = String(this.command ?? this.command ?? "");
     if (!command.trim()) throw new Error("Command is required");
     const mode = String(
@@ -514,7 +611,8 @@ export class ExecuteCommandNode extends BaseNode {
       command,
       {},
       {
-        stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined
+        stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined,
+        terminal: { context, nodeId: this.__node_id }
       }
     );
     return {
@@ -589,7 +687,9 @@ abstract class RunCommandNode extends BaseNode {
   /** Default execution mode */
   static readonly defaultMode: "docker" | "subprocess" = "subprocess";
 
-  async process(): Promise<Record<string, unknown>> {
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
     const command = String((this as any).command ?? "");
     if (!command.trim())
       return {
@@ -620,7 +720,8 @@ abstract class RunCommandNode extends BaseNode {
       command,
       {},
       {
-        stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined
+        stdinStream: stdinStr ? stdinFromString(stdinStr) : undefined,
+        terminal: { context, nodeId: this.__node_id }
       }
     );
     return {

@@ -16,7 +16,12 @@ import {
 } from "@nodetool-ai/node-sdk";
 import {
   BUILTIN_NODE_PACKS,
-  resolveBuiltinPackEnabled
+  resolveBuiltinPackEnabled,
+  CLOUD_PROFILE_ENV,
+  NODE_ENV_VAR,
+  CLOUD_BUILTIN_PACK_IDS,
+  isCloudProfileActive,
+  isCloudNodeType
 } from "@nodetool-ai/protocol";
 import { setPackSnapshot } from "./pack-snapshot.js";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
@@ -57,6 +62,28 @@ export interface BootstrapRegistryOptions {
 
 function isProduction(): boolean {
   return process.env["NODETOOL_ENV"] === "production";
+}
+
+/** True when the curated commercial cloud profile is active. */
+function isCloudProfile(): boolean {
+  return isCloudProfileActive(
+    process.env[CLOUD_PROFILE_ENV],
+    process.env[NODE_ENV_VAR]
+  );
+}
+
+/**
+ * Pack-enabled map for the cloud profile: only `base` (required), `fal`, and
+ * `kie` load; every other provider pack is off so we don't register thousands
+ * of out-of-scope nodes just to prune them.
+ */
+function cloudPackOverrides(): Record<string, boolean> {
+  return Object.fromEntries(
+    BUILTIN_NODE_PACKS.map((pack) => [
+      pack.id,
+      CLOUD_BUILTIN_PACK_IDS.includes(pack.id)
+    ])
+  );
 }
 
 /**
@@ -100,7 +127,9 @@ export function registerBuiltInNodes(
   registry: NodeRegistry,
   options: RegisterBuiltInNodesOptions = {}
 ): void {
-  const overrides = options.enabledOverrides ?? readBuiltinPackOverrides();
+  const overrides =
+    options.enabledOverrides ??
+    (isCloudProfile() ? cloudPackOverrides() : readBuiltinPackOverrides());
   for (const pack of BUILTIN_NODE_PACKS) {
     if (!resolveBuiltinPackEnabled(pack, overrides[pack.id])) {
       options.log?.info(`Skipped built-in node pack ${pack.id} (disabled)`);
@@ -159,6 +188,28 @@ export function applyProductionNodePolicy(
   }
 }
 
+/**
+ * Prune the registry down to the curated commercial-cloud surface when the
+ * cloud profile (`NODETOOL_NODE_PROFILE=cloud`) is active. Drops every node
+ * type outside {@link isCloudNodeType} — nerdy/automation namespaces,
+ * out-of-scope provider packs, and the developer-flavored agents — leaving the
+ * creative AI workspace set (text, image, audio, video, 3D, agents, Code).
+ * A no-op when the profile is off, so OSS/local installs are unaffected.
+ */
+export function applyCloudNodePolicy(
+  registry: NodeRegistry,
+  log?: BootstrapLogger
+): void {
+  if (!isCloudProfile()) return;
+  for (const nodeType of registry.list()) {
+    if (!isCloudNodeType(nodeType)) {
+      if (registry.unregister(nodeType)) {
+        log?.info(`Cloud profile: dropped ${nodeType}`);
+      }
+    }
+  }
+}
+
 function logPackResult(result: LoadedPackResult, log?: BootstrapLogger): void {
   const { pack } = result;
   const id = `${pack.name}@${pack.version ?? "?"}`;
@@ -201,6 +252,7 @@ export async function bootstrapNodeRegistry(
     setPackSnapshot(results);
   }
   applyProductionNodePolicy(registry, options.log);
+  applyCloudNodePolicy(registry, options.log);
   return registry;
 }
 

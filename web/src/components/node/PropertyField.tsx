@@ -1,6 +1,8 @@
 /** @jsxImportSource @emotion/react */
-import { memo, useCallback, useMemo } from "react";
+import { css, keyframes } from "@emotion/react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import { Handle, Position } from "@xyflow/react";
+import usePropertyHighlightStore from "../../stores/PropertyHighlightStore";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { useShallow } from "zustand/react/shallow";
 import { Property } from "../../stores/ApiTypes";
@@ -15,10 +17,36 @@ import HandleTooltip from "../HandleTooltip";
 import { NodeData } from "../../stores/NodeData";
 import usePropertyValidationStore from "../../stores/PropertyValidationStore";
 import { Tooltip } from "../ui_primitives/Tooltip";
+import useModelCalloutStore from "../../stores/ModelCalloutStore";
+import { isModelEmpty } from "../../utils/findMissingModelNodes";
+import ModelSetupCallout from "./ModelSetupCallout";
+
+const highlightPulse = keyframes({
+  "0%": {
+    boxShadow:
+      "0 0 0 0 rgba(var(--palette-primary-mainChannel) / 0.9), 0 0 18px 4px rgba(var(--palette-primary-mainChannel) / 0.8)"
+  },
+  "70%": {
+    boxShadow:
+      "0 0 0 10px rgba(var(--palette-primary-mainChannel) / 0), 0 0 26px 8px rgba(var(--palette-primary-mainChannel) / 0.35)"
+  },
+  "100%": {
+    boxShadow:
+      "0 0 0 0 rgba(var(--palette-primary-mainChannel) / 0), 0 0 18px 4px rgba(var(--palette-primary-mainChannel) / 0.7)"
+  }
+});
+
+const highlightStyle = css({
+  borderRadius: "var(--rounded-buttonSmall)",
+  outline: "2px solid var(--palette-primary-light)",
+  outlineOffset: 2,
+  boxShadow: "0 0 18px 4px rgba(var(--palette-primary-mainChannel) / 0.7)",
+  animation: `${highlightPulse} 0.9s ease-out 3`
+});
 
 export type PropertyFieldProps = {
   id: string;
-  value: any;
+  value: unknown;
   nodeType: string;
   layout?: string;
   property: Property;
@@ -34,7 +62,7 @@ export type PropertyFieldProps = {
   data: NodeData;
   /** True when an edge is connected to this property's target handle. */
   isConnected?: boolean;
-  onValueChange?: (value: any) => void;
+  onValueChange?: (value: unknown) => void;
 };
 
 /**
@@ -72,6 +100,39 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
     }))
   );
   const openContextMenu = useContextMenuStore((state) => state.openContextMenu);
+
+  // Transient highlight (e.g. guiding the user to set a model). Only in the
+  // inspector, where we also scroll the field into view.
+  const highlightToken = usePropertyHighlightStore((state) =>
+    isInspector &&
+    state.nodeId === id &&
+    state.propertyName === property.name
+      ? state.token
+      : null
+  );
+  const isHighlighted = highlightToken !== null;
+  const fieldRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (isHighlighted && fieldRef.current) {
+      fieldRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [isHighlighted, highlightToken]);
+
+  // Inline "set a model" call-out, shown in the inspector when a run was
+  // blocked for this unset model field. Clears itself once a model is picked.
+  const showCallout = useModelCalloutStore((state) =>
+    Boolean(isInspector) && state.has(id, property.name)
+  );
+  const resolveCallout = useModelCalloutStore((state) => state.resolve);
+  const dismissCallout = useCallback(() => {
+    resolveCallout(id, property.name);
+  }, [resolveCallout, id, property.name]);
+  useEffect(() => {
+    if (showCallout && !isModelEmpty(value)) {
+      resolveCallout(id, property.name);
+    }
+  }, [showCallout, value, resolveCallout, id, property.name]);
+
   const validationError = usePropertyValidationStore((state) =>
     data.workflow_id
       ? state.errors[`${data.workflow_id}:${id}:${property.name}` as const]
@@ -144,7 +205,12 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   }${isConnected ? " is-connected" : ""}`;
 
   const inner = (
-    <div className={fieldClass} data-property={property.name}>
+    <div
+      ref={fieldRef}
+      className={fieldClass}
+      data-property={property.name}
+      css={isHighlighted ? highlightStyle : undefined}
+    >
       {showHandle && (
         <div className="handle-popup" style={handlePopupStyle}>
           <HandleTooltip
@@ -201,11 +267,20 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
     </div>
   );
 
-  if (!validationError) return inner;
-  return (
+  const field = validationError ? (
     <Tooltip title={validationError} placement="top" arrow enterDelay={250}>
       {inner}
     </Tooltip>
+  ) : (
+    inner
+  );
+
+  if (!showCallout) return field;
+  return (
+    <>
+      {field}
+      <ModelSetupCallout onDismiss={dismissCallout} />
+    </>
   );
 };
 

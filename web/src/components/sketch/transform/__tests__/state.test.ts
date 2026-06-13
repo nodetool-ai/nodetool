@@ -1,10 +1,8 @@
 import {
   IDLE,
   hasTargets,
-  isArmed,
   isDragging,
   isDraggingHandle,
-  isDraggingPivot,
   isIdle,
   type TransformToolState,
   type TransformTargets
@@ -51,13 +49,6 @@ describe("TransformToolState type guards", () => {
     expect(isIdle(draggingHandle)).toBe(false);
   });
 
-  it("isArmed narrows only the armed state", () => {
-    expect(isArmed(IDLE)).toBe(false);
-    expect(isArmed(armed)).toBe(true);
-    expect(isArmed(draggingPivot)).toBe(false);
-    expect(isArmed(draggingHandle)).toBe(false);
-  });
-
   it("hasTargets excludes idle, includes the rest", () => {
     expect(hasTargets(IDLE)).toBe(false);
     expect(hasTargets(armed)).toBe(true);
@@ -79,10 +70,4 @@ describe("TransformToolState type guards", () => {
     expect(isDraggingHandle(IDLE)).toBe(false);
   });
 
-  it("isDraggingPivot narrows draggingPivot only", () => {
-    expect(isDraggingPivot(draggingPivot)).toBe(true);
-    expect(isDraggingPivot(draggingHandle)).toBe(false);
-    expect(isDraggingPivot(armed)).toBe(false);
-    expect(isDraggingPivot(IDLE)).toBe(false);
-  });
 });

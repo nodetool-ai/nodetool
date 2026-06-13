@@ -39,6 +39,12 @@ import RunSelectedNodesSection from "./inspector/RunSelectedNodesSection";
 import { colorForType } from "../config/data_types";
 import { IconForType } from "../config/IconForType";
 
+const DEFAULT_TYPE_METADATA: TypeMetadata = {
+  type: "any",
+  type_args: [],
+  optional: false
+};
+
 const styles = (theme: Theme) =>
   css({
     "&": {
@@ -995,14 +1001,8 @@ const Inspector: React.FC = () => {
                     const dynamicInputMeta =
                       selectedNode.data.dynamic_inputs?.[name];
 
-                    const defaultTypeMetadata: TypeMetadata = {
-                      type: "any",
-                      type_args: [],
-                      optional: false
-                    };
-
                     let resolvedType: TypeMetadata =
-                      (dynamicInputMeta as TypeMetadata) || defaultTypeMetadata;
+                      (dynamicInputMeta as TypeMetadata) || DEFAULT_TYPE_METADATA;
 
                     if (incoming && !dynamicInputMeta) {
                       const sourceNode = findNode(incoming.source);

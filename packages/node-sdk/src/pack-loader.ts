@@ -424,10 +424,9 @@ async function loadPack(
   );
 
   try {
-    const mod = (await import(pathToFileURL(pack.entry).href)) as Record<
-      string,
-      unknown
-    >;
+    const mod = (await import(
+      /* @vite-ignore */ pathToFileURL(pack.entry).href
+    )) as Record<string, unknown>;
     const register = resolveRegisterFn(mod, pack.registerExport);
     if (!register) {
       throw new Error(

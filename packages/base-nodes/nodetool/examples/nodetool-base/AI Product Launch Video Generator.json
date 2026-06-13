@@ -25,14 +25,6 @@
         "edge_type": "data"
       },
       {
-        "id": "8",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "1",
-        "targetHandle": "value",
-        "edge_type": "data"
-      },
-      {
         "id": "01ff2dd6-973b-486d-aa3d-49047690ac60",
         "source": "5",
         "sourceHandle": "output",
@@ -71,205 +63,7 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": {
-            "root": {
-              "children": [
-                {
-                  "children": [
-                    {
-                      "detail": 0,
-                      "format": 0,
-                      "mode": "normal",
-                      "style": "",
-                      "text": "🎬 AI Product Launch Video Generator",
-                      "type": "text",
-                      "version": 1
-                    }
-                  ],
-                  "direction": "ltr",
-                  "format": "",
-                  "indent": 0,
-                  "type": "heading",
-                  "version": 1,
-                  "tag": "h1"
-                },
-                {
-                  "children": [
-                    {
-                      "detail": 0,
-                      "format": 0,
-                      "mode": "normal",
-                      "style": "",
-                      "text": "Turn a brief, an audience, and a feature list into a realistic 16:9 marketing video using a Sora-style prompt and the TextToVideo node.",
-                      "type": "text",
-                      "version": 1
-                    }
-                  ],
-                  "direction": "ltr",
-                  "format": "",
-                  "indent": 0,
-                  "type": "paragraph",
-                  "version": 1,
-                  "textFormat": 0,
-                  "textStyle": ""
-                },
-                {
-                  "children": [
-                    {
-                      "detail": 0,
-                      "format": 1,
-                      "mode": "normal",
-                      "style": "",
-                      "text": "Pipeline:",
-                      "type": "text",
-                      "version": 1
-                    },
-                    {
-                      "detail": 0,
-                      "format": 0,
-                      "mode": "normal",
-                      "style": "",
-                      "text": " three string inputs (",
-                      "type": "text",
-                      "version": 1
-                    },
-                    {
-                      "detail": 0,
-                      "format": 16,
-                      "mode": "normal",
-                      "style": "",
-                      "text": "brief",
-                      "type": "text",
-                      "version": 1
-                    },
-                    {
-                      "detail": 0,
-                      "format": 0,
-                      "mode": "normal",
-                      "style": "",
-                      "text": ", ",
-                      "type": "text",
-                      "version": 1
-                    },
-                    {
-                      "detail": 0,
-                      "format": 16,
-                      "mode": "normal",
-                      "style": "",
-                      "text": "audience",
-                      "type": "text",
-                      "version": 1
-                    },
-                    {
-                      "detail": 0,
-                      "format": 0,
-                      "mode": "normal",
-                      "style": "",
-                      "text": ", ",
-                      "type": "text",
-                      "version": 1
-                    },
-                    {
-                      "detail": 0,
-                      "format": 16,
-                      "mode": "normal",
-                      "style": "",
-                      "text": "features",
-                      "type": "text",
-                      "version": 1
-                    },
-                    {
-                      "detail": 0,
-                      "format": 0,
-                      "mode": "normal",
-                      "style": "",
-                      "text": ") feed an Agent that writes a cinematic Sora prompt → TextToVideo renders the shot → Output returns the final clip.",
-                      "type": "text",
-                      "version": 1
-                    }
-                  ],
-                  "direction": "ltr",
-                  "format": "",
-                  "indent": 0,
-                  "type": "paragraph",
-                  "version": 1,
-                  "textFormat": 1,
-                  "textStyle": ""
-                },
-                {
-                  "children": [
-                    {
-                      "detail": 0,
-                      "format": 1,
-                      "mode": "normal",
-                      "style": "",
-                      "text": "Try this:",
-                      "type": "text",
-                      "version": 1
-                    },
-                    {
-                      "detail": 0,
-                      "format": 0,
-                      "mode": "normal",
-                      "style": "",
-                      "text": " swap the product, edit the audience or feature list, change the video model, or tweak ",
-                      "type": "text",
-                      "version": 1
-                    },
-                    {
-                      "detail": 0,
-                      "format": 16,
-                      "mode": "normal",
-                      "style": "",
-                      "text": "guidance_scale",
-                      "type": "text",
-                      "version": 1
-                    },
-                    {
-                      "detail": 0,
-                      "format": 0,
-                      "mode": "normal",
-                      "style": "",
-                      "text": " / ",
-                      "type": "text",
-                      "version": 1
-                    },
-                    {
-                      "detail": 0,
-                      "format": 16,
-                      "mode": "normal",
-                      "style": "",
-                      "text": "num_frames",
-                      "type": "text",
-                      "version": 1
-                    },
-                    {
-                      "detail": 0,
-                      "format": 0,
-                      "mode": "normal",
-                      "style": "",
-                      "text": " on the TextToVideo node for a different look.",
-                      "type": "text",
-                      "version": 1
-                    }
-                  ],
-                  "direction": "ltr",
-                  "format": "",
-                  "indent": 0,
-                  "type": "paragraph",
-                  "version": 1,
-                  "textFormat": 1,
-                  "textStyle": ""
-                }
-              ],
-              "direction": "ltr",
-              "format": "",
-              "indent": 0,
-              "type": "root",
-              "version": 1,
-              "textFormat": 1
-            }
-          }
+          "comment": "# 🎬 AI Product Launch Video Generator\n\nTurn a campaign brief into a cinematic launch clip. An agent writes a video prompt from your inputs, then a text-to-video model renders it.\n\n**Pipeline:** Brief + Audience + Features → Agent → Text-to-Video\n\n**Try this:** swap the video model or rewrite the agent's system prompt for a different tone."
         },
         "ui_properties": {
           "position": {
@@ -287,37 +81,10 @@
         "sync_mode": "on_any"
       },
       {
-        "id": "1",
-        "type": "nodetool.output.Output",
-        "data": {
-          "name": "product_launch_video",
-          "description": "Generated marketing video for the Aurora Trail watch"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1080,
-            "y": 1009
-          },
-          "zIndex": 0,
-          "width": 280,
-          "title": "👁️ Output — final marketing video",
-          "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
         "id": "2",
         "type": "nodetool.video.TextToVideo",
         "data": {
-          "model": {
-            "type": "video_model",
-            "id": "bytedance/seedance-2",
-            "provider": "kie",
-            "name": "Seedance 2.0 Text To Video"
-          },
+          "model": {},
           "aspect_ratio": "16:9",
           "resolution": "720p",
           "num_frames": 120,
@@ -332,10 +99,11 @@
             "y": 886
           },
           "zIndex": 0,
-          "width": 280,
-          "title": "5️⃣ Text To Video — renders the launch shot",
+          "width": 416,
+          "title": "5️⃣ Generate video",
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "height": 360
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -345,12 +113,7 @@
         "id": "3",
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {
-            "type": "language_model",
-            "id": "gpt-5.5",
-            "provider": "openai",
-            "name": "gpt-5.5"
-          },
+          "model": {},
           "system": "You are a senior video prompt engineer for OpenAI Sora. Follow Sora best practices: describe the shot like a storyboard—subject, setting, action beats, and camera. Be specific about camera framing and movement (e.g., wide establishing, eye level, 50mm, slow push-in), depth cues, composition (rule of thirds, leading lines), lighting and color anchors (name 3–5 colors), and atmosphere/texture (mist, rain on asphalt). Keep motion simple and grounded with one clear camera move and one primary subject action. Support continuity and realism (plausible physics, natural motion, environmental interaction). Do not mention size/resolution or clip length; those are set via API, not prose. Use present tense and avoid abstract phrasing and meta commentary. If dialogue adds clarity, include a short 'Dialogue:' block; otherwise omit. End with constraints: no on-screen text, no logos, no watermarks, no glitches, no distorted anatomy.",
           "image": {
             "type": "image",
@@ -377,7 +140,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "4️⃣ Agent — writes a cinematic Sora prompt",
+          "title": "4️⃣ Write video prompt",
           "selectable": true,
           "bypassed": false
         },
@@ -404,7 +167,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "1️⃣ Campaign Brief",
+          "title": "1️⃣ Campaign brief",
           "selectable": true,
           "bypassed": false
         },
@@ -427,7 +190,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "2️⃣ Target Audience",
+          "title": "2️⃣ Target audience",
           "selectable": true,
           "bypassed": false
         },
@@ -450,7 +213,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "3️⃣ Key Features",
+          "title": "3️⃣ Key features",
           "selectable": true,
           "bypassed": false
         },

@@ -7,6 +7,7 @@ import type { PythonBridge } from "@nodetool-ai/runtime";
 import { PythonNodeExecutor, getProvider } from "@nodetool-ai/runtime";
 import { getSecret as getStoredSecret } from "@nodetool-ai/models";
 import type { HttpApiOptions } from "../http-api.js";
+import { resolveWorkflowWorkspace } from "../lib/workflow-workspace.js";
 import {
   extensionBridge,
   type ExtensionSocket
@@ -205,6 +206,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
       },
       resolveNodeType: graphNodeTypeResolver,
       resolveProvider,
+      workspaceResolver: resolveWorkflowWorkspace,
       getNodeMetadata: (nodeType) => registry.getMetadata(nodeType),
       validateNode: registry.createNodeValidator(),
       nodeRegistry: registry,

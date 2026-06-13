@@ -60,6 +60,12 @@ describe("isContentCardNode", () => {
     );
   });
 
+  it("excludes ImageInput — it renders its editable value, not a card", () => {
+    expect(isContentCardNode(meta("nodetool.input.ImageInput", "image"))).toBe(
+      false
+    );
+  });
+
   it("returns false for non-image nodes without the body field", () => {
     // Node types the old heuristics matched no longer match without body, and
     // only image output (not other media) opts in implicitly.
