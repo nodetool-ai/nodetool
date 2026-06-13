@@ -78,36 +78,29 @@
         "sourceHandle": "output",
         "target": "2",
         "targetHandle": "image"
-      },
-      {
-        "id": "10",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "1",
-        "targetHandle": "value"
       }
     ],
     "nodes": [
       {
-        "id": "1",
-        "type": "nodetool.output.Output",
+        "id": "comment-intro",
+        "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "name": "brand_assets",
-          "description": "Generated brand assets ready for social media platforms"
+          "comment": "# 🏷️ Brand Asset Generator\n\nGenerate a branded logo image from a name and description, then stamp on your brand name in a chosen color.\n\n**Pipeline:** Name + Description → Prompt → Text-to-Image → Add color label → Add text\n\n**Try this:** change the brand color, or edit the prompt template for a different look."
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 1960,
-            "y": 254
+            "x": 0,
+            "y": -220
           },
           "zIndex": 0,
-          "width": 280,
+          "width": 460,
+          "height": 180,
           "selectable": true,
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "2",
@@ -137,7 +130,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Add text overlay"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -159,7 +153,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Tagline / extra text"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -189,7 +184,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Add colored label"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -211,7 +207,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Brand name"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -236,7 +233,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Brand color"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -246,9 +244,7 @@
         "id": "7",
         "type": "nodetool.image.TextToImage",
         "data": {
-          "model": {
-            "type": "image_model"
-          },
+          "model": {},
           "negative_prompt": "",
           "width": 1024,
           "height": 1024,
@@ -263,9 +259,11 @@
             "y": 0
           },
           "zIndex": 0,
-          "width": 280,
+          "width": 384,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "height": 400,
+          "title": "Render logo image"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -275,9 +273,7 @@
         "id": "8",
         "type": "nodetool.generators.ListGenerator",
         "data": {
-          "model": {
-            "type": "language_model"
-          },
+          "model": {},
           "input_text": "",
           "max_tokens": 2048
         },
@@ -289,7 +285,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Generate logo"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -309,7 +306,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Build image prompt"
         },
         "dynamic_properties": {
           "brand_name": null,
@@ -334,7 +332,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Brand description"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},

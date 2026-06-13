@@ -90,52 +90,35 @@
           "className": "str"
         },
         "edge_type": "data"
-      },
-      {
-        "id": "c6ebff7f-36a8-4590-a334-72afe6272bb5",
-        "source": "0276f606-d899-4487-be65-4615564507cc",
-        "sourceHandle": "output",
-        "target": "fb158571-fec0-4b09-95c5-eeb350084986",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        },
-        "edge_type": "data"
-      },
-      {
-        "id": "b826a7a6-238c-4364-a320-aeea84d0b70c",
-        "source": "strategy_llm",
-        "sourceHandle": "text",
-        "target": "b272e901-1506-481b-be89-a76b58fe8c96",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "str"
-        },
-        "edge_type": "data"
-      },
-      {
-        "id": "263ba5b1-4d07-487d-a0ed-73a1faf0a0c6",
-        "source": "prompt_list_generator",
-        "sourceHandle": "item",
-        "target": "a508973c-4630-49ca-a597-6e916c8574d0",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "str"
-        },
-        "edge_type": "data"
       }
     ],
     "nodes": [
       {
+        "id": "comment-intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# 🎬 Movie Posters\n\nFrom a title, genre, and audience, design a batch of movie poster concepts. An agent writes a creative brief, then turns it into image prompts.\n\n**Pipeline:** Inputs → Strategy agent → Prompt list → Text-to-Image\n\n**Try this:** change the genre or audience to shift the visual tone."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 4,
+            "y": -79
+          },
+          "zIndex": 0,
+          "width": 460,
+          "height": 180,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "strategy_llm",
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {
-            "type": "language_model",
-            "id": "gpt-5.5",
-            "provider": "openai",
-            "name": "gpt-5.5"
-          },
+          "model": {},
           "system": "You are a friendly assistant.",
           "image": {},
           "audio": {},
@@ -152,7 +135,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Creative strategy agent"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -192,7 +176,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Build strategy prompt"
         },
         "dynamic_properties": {
           "MOVIE_TITLE": "Infinity",
@@ -217,7 +202,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Movie title"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -238,7 +224,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Genre"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -259,7 +246,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Primary audience"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -269,12 +257,7 @@
         "id": "prompt_list_generator",
         "type": "nodetool.generators.ListGenerator",
         "data": {
-          "model": {
-            "type": "language_model",
-            "id": "gpt-5.5-2026-04-23",
-            "provider": "openai",
-            "name": "gpt-5.5-2026-04-23"
-          },
+          "model": {},
           "max_tokens": 4096
         },
         "ui_properties": {
@@ -285,7 +268,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Generate poster prompts"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -317,13 +301,7 @@
         "id": "0276f606-d899-4487-be65-4615564507cc",
         "type": "nodetool.image.TextToImage",
         "data": {
-          "model": {
-            "type": "image_model",
-            "id": "gpt-image-2",
-            "provider": "openai",
-            "name": "GPT Image 2",
-            "path": "gpt-image-2"
-          },
+          "model": {},
           "negative_prompt": "",
           "aspect_ratio": "3:4",
           "resolution": "2K",
@@ -335,73 +313,11 @@
             "y": 242
           },
           "zIndex": 0,
-          "width": 280,
+          "width": 384,
           "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "fb158571-fec0-4b09-95c5-eeb350084986",
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "output"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1670,
-            "y": 248
-          },
-          "zIndex": 0,
-          "width": 517,
-          "height": 374,
-          "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "b272e901-1506-481b-be89-a76b58fe8c96",
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "text"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1066,
-            "y": 927
-          },
-          "zIndex": 0,
-          "width": 435,
-          "height": 490,
-          "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "a508973c-4630-49ca-a597-6e916c8574d0",
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "item"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1357,
-            "y": 590
-          },
-          "zIndex": 0,
-          "width": 400,
-          "height": 300,
-          "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "height": 400,
+          "title": "Render posters"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},

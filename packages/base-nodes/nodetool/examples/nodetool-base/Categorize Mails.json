@@ -20,7 +20,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 📬 Categorize Emails\n\nClassify recent Gmail messages into Newsletter / Work / Family / Friends and apply the matching label.\n\n**Pipeline:** Gmail search → format each email as a prompt → LLM classifies (streams reasoning, calls `apply_label`) → label applied in Gmail.\n\n**Try this:** edit the categories in the Agent's system prompt, widen the search (date, sender, folder), or pick a smaller/faster model on the Agent."
+          "comment": "# 📬 Categorize Emails\n\nClassify recent Gmail messages with an LLM and apply the matching label automatically.\n\n**Pipeline:** Gmail Search → Format email → Classify (LLM) → Apply label\n\n**Try this:** edit the categories in the agent's system prompt, or narrow the Gmail filters."
         },
         "ui_properties": {
           "selected": false,
@@ -45,7 +45,7 @@
           "string": "subject: {{subject}}\nsender: {{sender}}\ncontent: {{body|truncate(100)}}"
         },
         "ui_properties": {
-          "title": "2️⃣ Format email — subject, sender, snippet",
+          "title": "2️⃣ Format email",
           "selected": false,
           "position": {
             "x": 355,
@@ -66,9 +66,7 @@
         "data": {
           "system": "You are a precise text classifier. Your task is to analyze the input text and assign one of the following categories: newsletter, work, family, friends.\n\nInstructions:\n1. Analyze the email content and briefly explain your reasoning.\n2. Select the most appropriate category.\n3. Use the 'apply_label' tool (dynamic output) to apply the category as a label.\n",
           "prompt": "",
-          "model": {
-            "type": "language_model"
-          },
+          "model": {},
           "image": {
             "type": "image",
             "uri": "",
@@ -86,7 +84,7 @@
           "max_tokens": 8192
         },
         "ui_properties": {
-          "title": "3️⃣ Classify with LLM — pick a model, edit categories in system prompt",
+          "title": "3️⃣ Classify with LLM",
           "selected": false,
           "position": {
             "x": 665,
@@ -104,26 +102,6 @@
             "optional": false
           }
         },
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "preview_reasoning",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {},
-        "ui_properties": {
-          "title": "👁️ Reasoning stream — watch the model think",
-          "selected": false,
-          "position": {
-            "x": 1043,
-            "y": 50
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
         "sync_mode": "on_any"
       },
       {
@@ -162,7 +140,7 @@
           "max_results": 10
         },
         "ui_properties": {
-          "title": "1️⃣ Fetch recent Gmail — narrow with the filters",
+          "title": "1️⃣ Fetch recent Gmail",
           "selected": false,
           "position": {
             "x": 45,
@@ -184,14 +162,6 @@
         "sourceHandle": "output",
         "target": "a6df088f-3515-49c7-9a86-fb158ae223cc",
         "targetHandle": "prompt",
-        "ui_properties": null
-      },
-      {
-        "id": "edge-reasoning",
-        "source": "a6df088f-3515-49c7-9a86-fb158ae223cc",
-        "sourceHandle": "chunk",
-        "target": "preview_reasoning",
-        "targetHandle": "value",
         "ui_properties": null
       },
       {

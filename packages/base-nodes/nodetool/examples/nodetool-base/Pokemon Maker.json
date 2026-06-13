@@ -42,19 +42,30 @@
         "ui_properties": {
           "className": "str"
         }
-      },
-      {
-        "id": "6e0938c9-bdd3-49e6-9aa4-a59a8681281b",
-        "source": "b55c474e-e397-44a3-adc7-94bcf61eee35",
-        "sourceHandle": "output",
-        "target": "78679cbb-a824-442c-8833-7c19255199bc",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "image"
-        }
       }
     ],
     "nodes": [
+      {
+        "id": "comment-intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# 🐲 Pokemon Maker\n\nName an animal and get a batch of original creature designs. It builds a prompt, generates variations, and renders each one.\n\n**Pipeline:** Animal → Build prompt → Prompt list → Generate image\n\n**Try this:** combine two animals for a hybrid creature."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 291,
+            "y": -170
+          },
+          "zIndex": 0,
+          "width": 460,
+          "height": 180,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
       {
         "id": "464a17c1-c916-4b24-8e23-856160732293",
         "type": "nodetool.text.FormatText",
@@ -69,7 +80,7 @@
           },
           "zIndex": 0,
           "width": 351,
-          "title": "Pokemon Generation Prompt",
+          "title": "2️⃣ Build creature prompt",
           "selectable": true,
           "bypassed": false
         },
@@ -95,7 +106,7 @@
           },
           "zIndex": 0,
           "width": 200,
-          "title": "Animal Inspiration Input",
+          "title": "1️⃣ Animal inspiration",
           "selectable": true,
           "bypassed": false
         },
@@ -107,9 +118,7 @@
         "id": "7613de08-0407-42aa-8dc8-3b7777e9529d",
         "type": "nodetool.generators.ListGenerator",
         "data": {
-          "model": {
-            "type": "language_model"
-          },
+          "model": {},
           "input_text": "",
           "max_tokens": 4096
         },
@@ -122,27 +131,8 @@
           "zIndex": 0,
           "width": 291,
           "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "78679cbb-a824-442c-8833-7c19255199bc",
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {},
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1533,
-            "y": 64
-          },
-          "zIndex": 0,
-          "width": 466,
-          "height": 395,
-          "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "3️⃣ Generate prompts"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -161,9 +151,11 @@
             "y": 149
           },
           "zIndex": 0,
-          "width": 280,
+          "width": 384,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "height": 400,
+          "title": "4️⃣ Render creature"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
