@@ -7,7 +7,7 @@ import { useShallow } from "zustand/react/shallow";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import AddCommentOutlinedIcon from "@mui/icons-material/AddCommentOutlined";
 
-import { Text, Tooltip, FlexRow } from "../ui_primitives";
+import { Text, Tooltip, FlexRow, MOTION } from "../ui_primitives";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import ChatThreadView from "../chat/thread/ChatThreadView";
 import type { Message } from "../../stores/ApiTypes";
@@ -69,7 +69,7 @@ const styles = (theme: Theme) =>
       background: "transparent",
       color: theme.vars.palette.grey[400],
       cursor: "pointer",
-      transition: "background-color 0.15s ease, color 0.15s ease",
+      transition: `${MOTION.background}, color ${MOTION.fast}`,
       "& svg": { fontSize: "18px" },
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[800],

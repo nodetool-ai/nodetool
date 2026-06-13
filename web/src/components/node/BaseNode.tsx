@@ -48,6 +48,7 @@ import { NodeMetadata, Property, OutputSlot } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import ChunkDisplay from "./ChunkDisplay";
+import NodeTerminal from "./NodeTerminal";
 import NodeResizeHandle from "./NodeResizeHandle";
 import { useDelayedVisibility } from "../../hooks/useDelayedVisibility";
 
@@ -66,13 +67,17 @@ import {
   resolveCodeNodeTitle
 } from "./codeNodeUi";
 import { isContentCardNode } from "../node_types/contentCardRegistry";
+import {
+  CONSTANT_IMAGE_NODE_TYPE,
+  CONSTANT_VIDEO_NODE_TYPE
+} from "../../constants/nodeTypes";
 
 // CONSTANTS
 const BASE_HEIGHT = 0;
 const INCREMENT_PER_HANDLE = 25;
 /** Cap metadata-driven minHeight so many-handle types do not force huge boxes (collapse snapshot / RF measure). */
 const MAX_HANDLE_DRIVEN_MIN_HEIGHT_PX = 320;
-const MAX_NODE_WIDTH = 600;
+const MAX_NODE_WIDTH = 800;
 const GROUP_COLOR_OPACITY = 0.55;
 /** Shared floor for initial layout and user resizing. */
 const MIN_NODE_HEIGHT = 150;
@@ -206,8 +211,8 @@ const getAmbientBadgeStyle = (theme: Theme): React.CSSProperties => ({
   backgroundColor: theme.vars.palette.secondary.main,
   color: theme.vars.palette.secondary.contrastText,
   border: `1px solid ${theme.vars.palette.c_node_bg}`,
-  fontSize: "10px",
-  fontWeight: 700,
+  fontSize: "var(--fontSizeSmaller)",
+  fontWeight: 600,
   lineHeight: 1,
   zIndex: 20,
   pointerEvents: "none"
@@ -427,7 +432,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       isConstantNode: type.startsWith("nodetool.constant"),
       isInputNode: type.startsWith("nodetool.input"),
       isOutputNode: type.startsWith("nodetool.output"),
-      isAgentNode: isAgentNodeType(type)
+      isAgentNode: isAgentNodeType(type),
+      // Constant image/video nodes preview their media, so resizing should
+      // preserve the media's aspect ratio rather than distort it.
+      lockAspectRatio:
+        type === CONSTANT_IMAGE_NODE_TYPE || type === CONSTANT_VIDEO_NODE_TYPE
     }),
     [type]
   );
@@ -502,7 +511,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   // Single subscription instead of 5 — one listener per node instead of five
-  const { result, chunk, toolCall, planningUpdate, task } = useNodeArtifacts(workflow_id, id);
+  const { result, chunk, terminal, toolCall, planningUpdate, task } =
+    useNodeArtifacts(workflow_id, id);
 
   // Optimize: Use memoized selectors that only perform O(E) filter operations when the
   // state.edges array reference actually changes (e.g. adding/removing edges), rather than
@@ -751,7 +761,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     <NodeSelectionContext.Provider value={selected || isNodeHovered}>
     <Container
       css={isLoading ? [toolCallStyles, styles] : toolCallStyles}
-      className={styleProps.className}
+      className={`${styleProps.className}${terminal ? " has-terminal" : ""}`}
       sx={containerSx}
       onMouseEnter={handleNodeMouseEnter}
       onMouseLeave={handleNodeMouseLeave}
@@ -764,7 +774,11 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         isConnectable={true}
       />
       {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
-      <NodeResizeHandle minWidth={150} minHeight={styleProps.minHeight} />
+      <NodeResizeHandle
+        minWidth={150}
+        minHeight={styleProps.minHeight}
+        keepAspectRatio={nodeType.lockAspectRatio}
+      />
       <NodeHeader
         id={id}
         selected={selected}
@@ -816,13 +830,17 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       {selected && !hasToggleableResult && (
         <ResizeOverlay minHeight={styleProps.minHeight} />
       )}
-      {toolCall?.message && status === "running" && (
+      {!terminal && toolCall?.message && status === "running" && (
         <div className="tool-call-container">{toolCall.message}</div>
       )}
-      {planningUpdate && !task && (
+      {!terminal && planningUpdate && !task && (
         <PlanningUpdateDisplay planningUpdate={planningUpdate} />
       )}
-      {chunk && <ChunkDisplay chunk={chunk} />}
+      {!terminal && chunk && <ChunkDisplay chunk={chunk} />}
+      {/* Terminal-driving nodes (e.g. Claude Code) stream their raw pane via
+          terminal_update. It renders below the input/output handles so the
+          emulator never displaces them from their natural edge positions. */}
+      {terminal && <NodeTerminal terminal={terminal} />}
       {task && <TaskView task={task} />}
 
       {/* Agent control output handle - positioned at the bottom of Agent nodes */}

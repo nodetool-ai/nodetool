@@ -17,6 +17,7 @@ import {
   CloseButton,
   CopyButton,
   EditorButton,
+  MOTION,
   ScrollArea,
   Text,
   Tooltip,
@@ -37,6 +38,12 @@ import { useStoreWithEqualityFn } from "zustand/traditional";
 import RunSelectedNodesSection from "./inspector/RunSelectedNodesSection";
 import { colorForType } from "../config/data_types";
 import { IconForType } from "../config/IconForType";
+
+const DEFAULT_TYPE_METADATA: TypeMetadata = {
+  type: "any",
+  type_args: [],
+  optional: false
+};
 
 const styles = (theme: Theme) =>
   css({
@@ -162,7 +169,7 @@ const styles = (theme: Theme) =>
       display: "inline-flex",
       alignItems: "baseline",
       gap: "6px",
-      transition: "color 120ms ease",
+      transition: `color ${MOTION.fast}`,
       "&:hover": { color: theme.vars.palette.text.primary },
       "&:focus-visible": {
         outline: `2px solid ${theme.vars.palette.primary.main}`,
@@ -235,7 +242,7 @@ const styles = (theme: Theme) =>
     ".property-row .inspector-header-toolbar.inspector-toolbar-hoverable .MuiIconButton-root, .property-row .inspector-header-toolbar.inspector-toolbar-hoverable .MuiButtonBase-root":
       {
         opacity: 0,
-        transition: "opacity 120ms ease"
+        transition: `opacity ${MOTION.fast}`
       },
     ".property-row:hover .inspector-header-toolbar.inspector-toolbar-hoverable .MuiIconButton-root, .property-row:hover .inspector-header-toolbar.inspector-toolbar-hoverable .MuiButtonBase-root, .property-row .inspector-header-toolbar.inspector-toolbar-hoverable:focus-within .MuiIconButton-root, .property-row .inspector-header-toolbar.inspector-toolbar-hoverable:focus-within .MuiButtonBase-root":
       {
@@ -350,7 +357,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       padding: "2px 6px",
       borderRadius: "var(--rounded-sm)",
-      backgroundColor: "rgba(255,255,255,0.04)"
+      backgroundColor: theme.vars.palette.action.hover
     },
 
     /* ---------- Help tab ---------- */
@@ -378,7 +385,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       padding: "2px 8px",
       borderRadius: "var(--rounded-pill)",
-      backgroundColor: "rgba(255,255,255,0.04)",
+      backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`
     },
     ".help-meta": {
@@ -994,14 +1001,8 @@ const Inspector: React.FC = () => {
                     const dynamicInputMeta =
                       selectedNode.data.dynamic_inputs?.[name];
 
-                    const defaultTypeMetadata: TypeMetadata = {
-                      type: "any",
-                      type_args: [],
-                      optional: false
-                    };
-
                     let resolvedType: TypeMetadata =
-                      (dynamicInputMeta as TypeMetadata) || defaultTypeMetadata;
+                      (dynamicInputMeta as TypeMetadata) || DEFAULT_TYPE_METADATA;
 
                     if (incoming && !dynamicInputMeta) {
                       const sourceNode = findNode(incoming.source);

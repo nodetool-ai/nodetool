@@ -330,6 +330,20 @@ const PRIMARY_IMAGE_PRIORITY = [
 ];
 
 /**
+ * Choose the mask image input declared by a model's manifest entry. Returns the
+ * first field whose name or API param name contains "mask", or undefined when
+ * the model doesn't declare one (callers fall back to a conventional name like
+ * `mask_url`).
+ */
+export function selectMaskImageInput(
+  inputs: ModelImageInput[]
+): ModelImageInput | undefined {
+  return inputs.find(
+    (i) => /mask/i.test(i.name) || /mask/i.test(i.apiName)
+  );
+}
+
+/**
  * Choose the primary image input for a generic image-to-image / image-to-video
  * request. Auxiliary inputs (mask, control, reference/style/end-frame images)
  * are skipped. When more than one source image is supplied, a list-typed field

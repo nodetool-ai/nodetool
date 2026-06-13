@@ -14,6 +14,8 @@ export {
   type WrappedPrimitive
 } from "./wrap-primitives.js";
 export * from "./toolSchemas.js";
+export * from "./builtin-packs.js";
+export * from "./cloud-profile.js";
 export * from "./agent-protocol.js";
 export {
   type Platform,

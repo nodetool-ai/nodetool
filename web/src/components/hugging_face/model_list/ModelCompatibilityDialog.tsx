@@ -10,7 +10,8 @@ import {
   FlexRow,
   FlexColumn,
   EditorButton,
-  CopyButton
+  CopyButton,
+  MOTION
 } from "../../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
@@ -55,7 +56,7 @@ const styles = (theme: Theme) =>
     },
     "& .node-list-item": {
       padding: theme.spacing(1.5, 2),
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       "&:last-child": {
         borderBottom: "none"
@@ -119,7 +120,7 @@ const styles = (theme: Theme) =>
     },
     "& .copy-button": {
       opacity: 0,
-      transition: "opacity 0.2s ease"
+      transition: `opacity ${MOTION.normal}`
     }
   });
 

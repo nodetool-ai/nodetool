@@ -230,6 +230,30 @@ export interface LogUpdate {
   workflow_id?: string | null;
 }
 
+/**
+ * Raw terminal output streamed from a node that drives an interactive
+ * terminal program (e.g. Claude Code in tmux). `content` carries the verbatim
+ * byte stream including ANSI escape sequences, intended for a client-side
+ * terminal emulator (xterm.js) — NOT for plain-text rendering. Kept separate
+ * from `Chunk` so text-chunk consumers never see escape sequences.
+ */
+export interface TerminalUpdate {
+  type: "terminal_update";
+  node_id: string;
+  workflow_id?: string | null;
+  /** Raw terminal output, including ANSI escape sequences. */
+  content: string;
+  /** Terminal grid size, for sizing the client-side emulator. */
+  cols?: number;
+  rows?: number;
+  /**
+   * When true, `content` is a full-screen snapshot: the client should reset
+   * its terminal state before writing (used on attach and to compact the
+   * stream after large bursts).
+   */
+  reset?: boolean;
+}
+
 export interface Notification {
   type: "notification";
   node_id: string;
@@ -318,7 +342,15 @@ export interface Chunk {
   thread_id?: string | null;
   workflow_id?: string | null;
   content_type?: ContentType;
-  content: string;
+  /**
+   * Text chunks and externally-sourced audio carry a string (base64 for
+   * binary payloads). In-process audio/CV chunks carry their samples as a
+   * native interleaved `Float32Array` — no per-hop encode/decode. The
+   * websocket transport encodes native samples to base64 (`encoding:
+   * "f32le"`) at the wire boundary; worker postMessage structured-clones
+   * them natively.
+   */
+  content: string | Float32Array;
   content_metadata?: Record<string, unknown>;
   done?: boolean;
   thinking?: boolean;
@@ -397,6 +429,7 @@ export type UnifiedCommandType =
   | "reconnect_job"
   | "resume_job"
   | "cancel_job"
+  | "update_node_properties"
   | "get_status"
   | "set_mode"
   | "clear_models"
@@ -602,6 +635,7 @@ export type ProcessingMessage =
   | SaveUpdate
   | BinaryUpdate
   | LogUpdate
+  | TerminalUpdate
   | Notification
   | ErrorMessage
   | ToolCallUpdate

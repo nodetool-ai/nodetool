@@ -60,6 +60,7 @@ import {
   listInstalledNodePacks,
   getNodePackInstallRoot,
 } from "./nodePackManager";
+import { listBuiltinPacks, setBuiltinPackEnabled } from "./builtinPacks";
 import {
   openModelDirectory,
   openPathInExplorer,
@@ -904,6 +905,20 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(IpcChannels.NODE_PACK_GET_INSTALL_DIR, async () => {
     return getNodePackInstallRoot();
   });
+
+  // Built-in node pack handlers (first-party packs shipped with NodeTool)
+  createIpcMainHandler(IpcChannels.BUILTIN_PACK_LIST, async () => {
+    return listBuiltinPacks();
+  });
+  createIpcMainHandler(
+    IpcChannels.BUILTIN_PACK_SET_ENABLED,
+    async (_event, req) => {
+      logMessage(
+        `${req.enabled ? "Enabling" : "Disabling"} built-in node pack: ${req.id}`,
+      );
+      return setBuiltinPackEnabled(req.id, req.enabled);
+    },
+  );
 
   // Runtime package handlers
   createIpcMainHandler(IpcChannels.RUNTIME_PACKAGE_STATUSES, async () => {

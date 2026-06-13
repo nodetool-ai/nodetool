@@ -1,12 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Text, Caption, TextInput, SelectField, AutocompleteTagInput, EditorButton } from "../ui_primitives";
-import { useCallback, useEffect, useState, memo, useMemo } from "react";
+import { Text, Caption, TextInput, SelectField, AutocompleteTagInput, EditorButton, MOTION } from "../ui_primitives";
+import { useCallback, useEffect, useRef, useState, memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
 import { isProduction } from "../../lib/env";
 
@@ -49,13 +50,13 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(2),
       backgroundColor: theme.vars.palette.action.hover,
       borderRadius: "var(--rounded-lg)",
-      border: `1px solid ${theme.vars.palette.grey[800]}`
+      border: `1px solid ${theme.vars.palette.divider}`
     },
-    
+
     ".section-title": {
       fontSize: theme.fontSizeSmall,
       fontWeight: 600,
-      color: theme.vars.palette.grey[300],
+      color: theme.vars.palette.text.secondary,
       textTransform: "uppercase",
       letterSpacing: "0.08em",
       marginBottom: theme.spacing(2)
@@ -72,21 +73,21 @@ const styles = (theme: Theme) =>
     ".MuiFormLabel-root": {
       fontSize: theme.fontSizeSmall,
       fontWeight: 500,
-      color: theme.vars.palette.grey[200],
+      color: theme.vars.palette.text.secondary,
       marginBottom: theme.spacing(1),
       display: "block"
     },
     
     ".MuiOutlinedInput-root": {
-      backgroundColor: theme.vars.palette.grey[900],
+      backgroundColor: theme.vars.palette.background.paper,
       borderRadius: "var(--rounded-md)",
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
       "& .MuiOutlinedInput-notchedOutline": {
-        borderColor: theme.vars.palette.grey[700],
-        transition: "border-color 0.2s ease"
+        borderColor: theme.vars.palette.divider,
+        transition: MOTION.border
       },
       "&:hover .MuiOutlinedInput-notchedOutline": {
-        borderColor: theme.vars.palette.grey[500]
+        borderColor: theme.vars.palette.text.secondary
       },
       "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
         borderColor: "var(--palette-primary-main)",
@@ -97,13 +98,13 @@ const styles = (theme: Theme) =>
     ".MuiOutlinedInput-input": {
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal,
-      color: theme.vars.palette.grey[0],
+      color: theme.vars.palette.text.primary,
       padding: "10px 12px"
     },
-    
+
     ".MuiFormHelperText-root": {
       fontSize: "var(--fontSizeSmaller)",
-      color: theme.vars.palette.grey[400],
+      color: theme.vars.palette.text.secondary,
       marginTop: theme.spacing(0.5),
       marginLeft: 0
     },
@@ -112,32 +113,32 @@ const styles = (theme: Theme) =>
     ".tag-input": {
       "& .MuiOutlinedInput-root": {
         fontFamily: theme.fontFamily1,
-        color: theme.vars.palette.grey[0],
+        color: theme.vars.palette.text.primary,
         minHeight: "auto"
       },
       "& .MuiAutocomplete-popper": {
-        backgroundColor: theme.vars.palette.grey[800],
+        backgroundColor: theme.vars.palette.background.paper,
         zIndex: theme.zIndex.autocomplete,
         "& .MuiPaper-root": {
-          backgroundColor: theme.vars.palette.grey[800],
-          color: theme.vars.palette.grey[0],
+          backgroundColor: theme.vars.palette.background.paper,
+          color: theme.vars.palette.text.primary,
           borderRadius: "var(--rounded-md)",
-          border: `1px solid ${theme.vars.palette.grey[700]}`
+          border: `1px solid ${theme.vars.palette.divider}`
         },
         "& .MuiAutocomplete-option": {
           fontSize: theme.fontSizeSmall,
           "&:hover": {
-            backgroundColor: theme.vars.palette.grey[600]
+            backgroundColor: theme.vars.palette.action.hover
           },
           "&[aria-selected='true']": {
-            backgroundColor: theme.vars.palette.grey[500]
+            backgroundColor: theme.vars.palette.action.selected
           }
         }
       },
       "& .MuiChip-root": {
-        color: theme.vars.palette.grey[0],
-        backgroundColor: theme.vars.palette.grey[700],
-        borderColor: theme.vars.palette.grey[500],
+        color: theme.vars.palette.text.primary,
+        backgroundColor: theme.vars.palette.action.selected,
+        borderColor: theme.vars.palette.divider,
         fontSize: theme.fontSizeSmall,
         height: "26px"
       }
@@ -154,25 +155,26 @@ const styles = (theme: Theme) =>
       gap: theme.spacing(2),
       marginTop: theme.spacing(4),
       paddingTop: theme.spacing(3),
-      borderTop: `1px solid ${theme.vars.palette.grey[800]}`,
+      borderTop: `1px solid ${theme.vars.palette.divider}`,
       justifyContent: "flex-end"
     },
-    
+
     ".cancel-button": {
       backgroundColor: "transparent",
-      color: theme.vars.palette.grey[200],
+      color: theme.vars.palette.text.secondary,
       padding: "8px 20px",
       fontSize: theme.fontSizeSmall,
       fontWeight: 500,
       textTransform: "none",
       borderRadius: "var(--rounded-md)",
       "&:hover": {
-        backgroundColor: theme.vars.palette.grey[700]
+        backgroundColor: theme.vars.palette.action.hover,
+        color: theme.vars.palette.text.primary
       }
     },
-    
+
     ".save-button": {
-      background: `linear-gradient(135deg, var(--palette-primary-main) 0%, ${theme.vars.palette.primary.dark} 100%)`,
+      backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.primary.contrastText,
       padding: "8px 28px",
       fontSize: theme.fontSizeSmall,
@@ -180,11 +182,11 @@ const styles = (theme: Theme) =>
       textTransform: "none",
       borderRadius: "var(--rounded-md)",
       border: "none",
-      boxShadow: `0 2px 8px ${theme.vars.palette.primary.main}4d`,
-      transition: "all 0.2s ease",
+      boxShadow: "none",
+      transition: MOTION.background,
       "&:hover": {
-        boxShadow: `0 4px 12px ${theme.vars.palette.primary.main}66`,
-        transform: "translateY(-1px)"
+        backgroundColor: theme.vars.palette.primary.dark,
+        boxShadow: "none"
       }
     }
   });
@@ -198,13 +200,21 @@ interface WorkflowFormProps {
 const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormProps) => {
   const [localWorkflow, setLocalWorkflow] = useState<Workflow>(workflow);
   const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
+  const getNodeStore = useWorkflowManager((state) => state.getNodeStore);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
   const theme = useTheme();
+  // Re-sync local form state only when a *different* workflow is opened — not on
+  // every new `workflow` reference. The parent selector builds this prop via
+  // `getWorkflow()`, which returns a fresh object on every store update, so
+  // depending on the object identity would reset the form (wiping in-progress
+  // edits) before the autosave round-trips.
+  const workflowId = workflow?.id;
   useEffect(() => {
     setLocalWorkflow(workflow || ({} as Workflow));
-  }, [workflow]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workflowId]);
 
   // Merge default suggestions with available tags from existing workflows
   const tagOptions = useMemo(() => {
@@ -212,48 +222,100 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
     return Array.from(allTags).sort();
   }, [availableTags]);
 
+  // Persist the form's metadata onto the workflow. When the workflow is open in
+  // the editor we merge onto its live node-store graph so a concurrent canvas
+  // edit isn't clobbered by the form's stale graph snapshot; otherwise we save
+  // the form's own copy.
+  const pendingRef = useRef<Workflow | null>(null);
+  const persist = useCallback(
+    (next: Workflow) => {
+      pendingRef.current = null;
+      const store = getNodeStore(next.id);
+      const base = store ? store.getState().getWorkflow() : next;
+      saveWorkflow({
+        ...base,
+        name: next.name,
+        description: next.description,
+        tags: next.tags,
+        run_mode: next.run_mode,
+        tool_name: next.tool_name,
+        workspace_id: next.workspace_id ?? null
+      }).catch((err) => {
+        // Surface autosave failures instead of swallowing them — a silent
+        // failure here is exactly what "my setting didn't save" looks like.
+        addNotification({
+          type: "error",
+          alert: true,
+          content: `Failed to save workflow: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+          dismissable: true
+        });
+      });
+    },
+    [getNodeStore, saveWorkflow, addNotification]
+  );
+
+  const debouncedPersist = useDebouncedCallback(persist, 600);
+
+  // Track the latest local value (for change-merging and unmount flush) without
+  // running side effects inside the state updater.
+  const latestRef = useRef(localWorkflow);
+  latestRef.current = localWorkflow;
+
+  // Flush a pending debounced save if the form unmounts before it fires (e.g.
+  // the user types then immediately closes the panel/modal).
+  useEffect(() => {
+    return () => {
+      if (pendingRef.current) persist(pendingRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Apply a field change to local state and schedule (or immediately run) the
+  // autosave. Discrete pickers (run mode, workspace) save immediately; free-text
+  // fields debounce so we don't save on every keystroke.
+  const applyChange = useCallback(
+    (patch: Partial<Workflow>, immediate = false) => {
+      const next = { ...latestRef.current, ...patch };
+      latestRef.current = next;
+      setLocalWorkflow(next);
+      if (immediate) {
+        debouncedPersist.cancel();
+        pendingRef.current = null;
+        persist(next);
+      } else {
+        pendingRef.current = next;
+        debouncedPersist(next);
+      }
+    },
+    [persist, debouncedPersist]
+  );
+
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const { name, value } = event.target;
-      setLocalWorkflow((prev: Workflow) => ({
-        ...prev,
-        [name]: value
-      }));
+      applyChange({ [name]: value });
     },
-    [setLocalWorkflow]
+    [applyChange]
   );
-
-  const handleSave = useCallback(async () => {
-    await saveWorkflow(localWorkflow);
-    addNotification({
-      type: "info",
-      alert: true,
-      content: "Workflow saved!",
-      dismissable: true
-    });
-    onClose();
-  }, [saveWorkflow, localWorkflow, addNotification, onClose]);
 
   const handleToolNameChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      const rawValue = event.target.value || "";
-      const sanitizedValue = rawValue.replace(/[^A-Za-z0-9_]/g, "");
-      setLocalWorkflow((prev: Workflow) => ({
-        ...prev,
-        tool_name: sanitizedValue
-      }));
+      const sanitizedValue = (event.target.value || "").replace(
+        /[^A-Za-z0-9_]/g,
+        ""
+      );
+      applyChange({ tool_name: sanitizedValue });
     },
-    []
+    [applyChange]
   );
 
   const handleWorkspaceChange = useCallback(
     (workspaceId: string | undefined) => {
-      setLocalWorkflow((prev: Workflow) => ({
-        ...prev,
-        workspace_id: workspaceId || null
-      }));
+      applyChange({ workspace_id: workspaceId || null }, true);
     },
-    []
+    [applyChange]
   );
 
   return (
@@ -287,7 +349,7 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
           value={localWorkflow.tags || []}
           onChange={(tags) => {
             const uniqueTags = Array.from(new Set(tags.map(t => t.trim().toLowerCase()).filter(t => t.length > 0)));
-            setLocalWorkflow((prev: Workflow) => ({ ...prev, tags: uniqueTags }));
+            applyChange({ tags: uniqueTags }, true);
           }}
           suggestions={tagOptions}
           placeholder="Type or select tags..."
@@ -305,12 +367,7 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
         <SelectField
           label="Run Mode"
           value={localWorkflow.run_mode || "workflow"}
-          onChange={(value) =>
-            setLocalWorkflow((prev: Workflow) => ({
-              ...prev,
-              run_mode: value
-            }))
-          }
+          onChange={(value) => applyChange({ run_mode: value }, true)}
           options={RUN_MODE_OPTIONS}
         />
 
@@ -348,10 +405,7 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
 
       <div className="button-container">
         <EditorButton className="cancel-button" onClick={onClose}>
-          Cancel
-        </EditorButton>
-        <EditorButton className="save-button" onClick={handleSave}>
-          Save Changes
+          Close
         </EditorButton>
       </div>
     </div>

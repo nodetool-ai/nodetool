@@ -1,10 +1,9 @@
 import React, { memo } from "react";
 //mui
-import { Menu, MenuItem } from "@mui/material";
-import { Text, Divider } from "../ui_primitives";
+import { MenuItem } from "@mui/material";
+import { Text, Divider, ContextMenu } from "../ui_primitives";
 import { shallow } from "zustand/shallow";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import { useTheme } from "@mui/material/styles";
 import ContextMenuItem from "./ContextMenuItem";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SettingsBackupRestoreIcon from "@mui/icons-material/SettingsBackupRestore";
@@ -39,7 +38,6 @@ function resolvePropertyMenuTargetNodeIds(
 }
 
 const PropertyContextMenuComponent: React.FC = () => {
-  const theme = useTheme();
   const { writeClipboard } = useClipboard();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -207,7 +205,7 @@ const PropertyContextMenuComponent: React.FC = () => {
           let defaultValue = dynamicInputDefaults?.[handleId]?.default;
 
           if (defaultValue === undefined) {
-            const nodeMetadata = metadata?.[node.type as string];
+            const nodeMetadata = node.type ? metadata?.[node.type] : undefined;
             if (nodeMetadata) {
               const propertyDef = nodeMetadata.properties.find(
                 (prop: Property) => prop.name === handleId
@@ -225,7 +223,7 @@ const PropertyContextMenuComponent: React.FC = () => {
             });
           }
         } else {
-          const nodeMetadata = metadata?.[node.type as string];
+          const nodeMetadata = node.type ? metadata?.[node.type] : undefined;
           if (nodeMetadata) {
             const propertyDef = nodeMetadata.properties.find(
               (prop: Property) => prop.name === handleId
@@ -241,15 +239,12 @@ const PropertyContextMenuComponent: React.FC = () => {
   };
 
   return (
-    <Menu
+    <ContextMenu
       className="context-menu property-context-menu"
       open={menuPosition !== null}
       onClose={closeContextMenu}
       onContextMenu={(event) => event.preventDefault()}
-      anchorReference="anchorPosition"
-      anchorPosition={
-        menuPosition ? { top: menuPosition.y, left: menuPosition.x } : undefined
-      }
+      position={menuPosition}
     >
       <MenuItem disabled>
         <Text>Property</Text>
@@ -341,7 +336,7 @@ const PropertyContextMenuComponent: React.FC = () => {
           tooltip="Remove this property from being dynamic"
         />
       )}
-    </Menu>
+    </ContextMenu>
   );
 };
 

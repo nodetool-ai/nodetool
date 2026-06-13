@@ -2,9 +2,25 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Chip } from "../../ui_primitives";
+import {
+  Text,
+  Chip,
+  FlexRow,
+  FlexColumn,
+  Box,
+  EditorButton,
+  BORDER_RADIUS,
+  MOTION
+} from "../../ui_primitives";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import KeyRoundedIcon from "@mui/icons-material/KeyRounded";
 import { memo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { useLanguageModelProviders } from "../../../hooks/useProviders";
+
+import openaiIcon from "@lobehub/icons-static-svg/icons/openai.svg";
+import anthropicIcon from "@lobehub/icons-static-svg/icons/anthropic.svg";
+import geminiColorIcon from "@lobehub/icons-static-svg/icons/gemini-color.svg";
 
 const styles = (theme: Theme) =>
   css({
@@ -70,14 +86,30 @@ const SUGGESTIONS = [
   "Help me with code"
 ];
 
+// Cloud LLM providers we point first-time users at. Each maps to an API key
+// they can add on the Settings → API Keys tab.
+const SETUP_PROVIDERS = [
+  { name: "OpenAI", icon: openaiIcon, mono: true },
+  { name: "Anthropic", icon: anthropicIcon, mono: true },
+  { name: "Gemini", icon: geminiColorIcon, mono: false }
+] as const;
+
 interface WelcomePlaceholderProps {
   onSuggestionClick?: (suggestion: string) => void;
 }
 
+/**
+ * Shown when a chat thread has no messages yet. When no language-model
+ * provider is configured we guide the user to add an API key first (otherwise
+ * sending a message just fails); once a provider is available we show the
+ * regular prompt suggestions.
+ */
 const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
   onSuggestionClick
 }) => {
   const theme = useTheme();
+  const navigate = useNavigate();
+  const { providers, isLoading, error } = useLanguageModelProviders();
 
   const handleClick = useCallback(
     (suggestion: string) => {
@@ -86,37 +118,102 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
     [onSuggestionClick]
   );
 
+  const handleOpenSettings = useCallback(() => {
+    navigate("/settings?tab=1");
+  }, [navigate]);
+
+  // Only treat the chat as "no provider" once the provider query has settled
+  // successfully — while loading (or on a transient fetch error, which the
+  // connection banner already surfaces) we keep the neutral suggestions view.
+  const noProvider = !isLoading && !error && providers.length === 0;
+
   return (
     <div css={styles(theme)}>
       <div className="welcome-inner">
-        <div className="chat-suggestions-block">
-          <AutoAwesomeIcon className="welcome-icon" />
-          <Text className="welcome-title">How can I help you today?</Text>
-          <Text className="welcome-subtitle">
-            Ask me anything, drop files to analyze, or try one of these:
-          </Text>
-          <div className="suggestions">
-            {SUGGESTIONS.map((suggestion) => (
-              <Chip
-                key={suggestion}
-                label={suggestion}
-                variant="outlined"
-                onClick={() => handleClick(suggestion)}
-                sx={{
-                  borderColor: theme.vars.palette.divider,
-                  color: theme.vars.palette.text.secondary,
-                  cursor: "pointer",
-                  transition: "all 0.15s ease",
-                  "&:hover": {
-                    borderColor: theme.vars.palette.primary.main,
-                    color: theme.vars.palette.primary.main,
-                    backgroundColor: `${theme.vars.palette.primary.main}10`
-                  }
-                }}
-              />
-            ))}
+        {noProvider ? (
+          <FlexColumn align="center" gap={1.5} sx={{ textAlign: "center" }}>
+            <KeyRoundedIcon className="welcome-icon" />
+            <Text className="welcome-title">
+              Connect an AI provider to get started
+            </Text>
+            <Text className="welcome-subtitle" sx={{ maxWidth: 520 }}>
+              Add an API key for OpenAI, Anthropic, or Gemini to start chatting.
+              Your keys are encrypted and stored securely.
+            </Text>
+            <FlexRow gap={1} justify="center" wrap sx={{ mt: 0.5 }}>
+              {SETUP_PROVIDERS.map((provider) => (
+                <FlexRow
+                  key={provider.name}
+                  align="center"
+                  gap={0.75}
+                  sx={{
+                    px: 1.25,
+                    py: 0.5,
+                    borderRadius: BORDER_RADIUS.pill,
+                    border: `1px solid ${theme.vars.palette.divider}`,
+                    backgroundColor: theme.vars.palette.background.paper
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src={provider.icon}
+                    alt=""
+                    aria-hidden
+                    sx={{
+                      width: 16,
+                      height: 16,
+                      objectFit: "contain",
+                      ...(provider.mono &&
+                        theme.applyStyles("dark", { filter: "invert(1)" }))
+                    }}
+                  />
+                  <Text size="small" weight={500}>
+                    {provider.name}
+                  </Text>
+                </FlexRow>
+              ))}
+            </FlexRow>
+            <EditorButton
+              variant="contained"
+              color="primary"
+              size="small"
+              startIcon={<KeyRoundedIcon sx={{ fontSize: 16 }} />}
+              onClick={handleOpenSettings}
+              sx={{ mt: 1 }}
+            >
+              Add API keys in Settings
+            </EditorButton>
+          </FlexColumn>
+        ) : (
+          <div className="chat-suggestions-block">
+            <AutoAwesomeIcon className="welcome-icon" />
+            <Text className="welcome-title">How can I help you today?</Text>
+            <Text className="welcome-subtitle">
+              Ask me anything, drop files to analyze, or try one of these:
+            </Text>
+            <div className="suggestions">
+              {SUGGESTIONS.map((suggestion) => (
+                <Chip
+                  key={suggestion}
+                  label={suggestion}
+                  variant="outlined"
+                  onClick={() => handleClick(suggestion)}
+                  sx={{
+                    borderColor: theme.vars.palette.divider,
+                    color: theme.vars.palette.text.secondary,
+                    cursor: "pointer",
+                    transition: `all ${MOTION.fast}`,
+                    "&:hover": {
+                      borderColor: theme.vars.palette.primary.main,
+                      color: theme.vars.palette.primary.main,
+                      backgroundColor: `${theme.vars.palette.primary.main}10`
+                    }
+                  }}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

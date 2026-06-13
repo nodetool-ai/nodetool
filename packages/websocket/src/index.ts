@@ -37,6 +37,10 @@ export {
   type ExtensionSocket
 } from "./extension-cdp-bridge.js";
 export {
+  resolveWorkflowWorkspace,
+  buildWorkspaceExecutionContext
+} from "./lib/workflow-workspace.js";
+export {
   materializeWorkflowConstantAssets,
   collectWorkflowAssets,
   transformMediaRefs,

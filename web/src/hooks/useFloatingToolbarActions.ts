@@ -8,6 +8,9 @@ import { useSettingsStore } from "../stores/SettingsStore";
 import { triggerAutosaveForWorkflow } from "./useAutosave";
 import useMetadataStore from "../stores/MetadataStore";
 import { useRunWarningStore } from "../stores/RunWarningStore";
+import { useModelCalloutStore } from "../stores/ModelCalloutStore";
+import { usePropertyHighlightStore } from "../stores/PropertyHighlightStore";
+import { findMissingModelNodes } from "../utils/findMissingModelNodes";
 import { countHeavyNodes } from "../utils/heavyNodes";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useBottomPanelStore } from "../stores/BottomPanelStore";
@@ -87,6 +90,7 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
   const requestRunConfirmation = useRunWarningStore(
     (state) => state.requestConfirmation
   );
+  const showModelCallout = useModelCalloutStore((state) => state.show);
 
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
@@ -119,13 +123,60 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
       // Access current state directly to avoid re-renders on every node drag
       const { nodes, edges } = nodeStore.getState();
       run({}, workflow, nodes, edges, undefined, undefined, true);
+      setTimeout(() => {
+        const w = getWorkflowById(workflow.id);
+        if (w) {
+          saveWorkflow(w);
+        }
+      }, 100);
     };
 
-    // Clicking Run while a run is in progress queues another run rather than
-    // being ignored — the store enqueues it and fires it when the current run
-    // finishes. "Run Workflow" fires every executable node at once, so warn
-    // first when a run would launch many provider/model nodes, unless the user
-    // disabled the warning or dismissed it for this session.
+    // Catch nodes with no model set before the run fails on the server. Select
+    // and reveal the first offending node, flag every unset model field so the
+    // inspector shows an inline call-out next to each, and pulse the first one.
+    // Only blocks a fresh run — concurrent/resume paths below already have a
+    // job going.
+    if (!isWorkflowRunning && !isPaused && !isSuspended) {
+      const { nodes, edges } = nodeStore.getState();
+      const missing = findMissingModelNodes(
+        nodes,
+        edges,
+        useMetadataStore.getState().getMetadata
+      );
+      if (missing.length > 0) {
+        const first = missing[0];
+        showModelCallout(missing);
+        const target = nodeStore
+          .getState()
+          .nodes.find((n) => n.id === first.nodeId);
+        if (target) {
+          nodeStore.getState().setSelectedNodes([target]);
+          nodeStore.getState().setShouldFitToScreen(true, [first.nodeId]);
+          usePropertyHighlightStore
+            .getState()
+            .highlight(first.nodeId, first.propertyName);
+        }
+        return;
+      }
+    }
+
+    // Clicking Run while a run is in progress starts a second run alongside
+    // it (for in-browser runs the server queue can't see the active run, so
+    // "queued" starts immediately). That's rarely what a double-click meant —
+    // always confirm first. Never suppressed.
+    if (isWorkflowRunning || isPaused || isSuspended) {
+      requestRunConfirmation({
+        kind: "concurrent",
+        onConfirm: () => {
+          void doRun();
+        }
+      });
+      return;
+    }
+
+    // "Run Workflow" fires every executable node at once, so warn first when
+    // a run would launch many provider/model nodes, unless the user disabled
+    // the warning or dismissed it for this session.
     const { nodes } = nodeStore.getState();
     const heavyCount = countHeavyNodes(
       nodes,
@@ -143,12 +194,6 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     } else {
       await doRun();
     }
-    setTimeout(() => {
-      const w = getWorkflowById(workflow.id);
-      if (w) {
-        saveWorkflow(w);
-      }
-    }, 100);
   }, [
     run,
     workflow,
@@ -158,7 +203,11 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     autosave,
     confirmLargeRun,
     largeRunThreshold,
-    requestRunConfirmation
+    requestRunConfirmation,
+    showModelCallout,
+    isWorkflowRunning,
+    isPaused,
+    isSuspended
   ]);
 
   const handleStop = useCallback(() => {

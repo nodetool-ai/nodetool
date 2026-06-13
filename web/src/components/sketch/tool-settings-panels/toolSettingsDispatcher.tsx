@@ -1,4 +1,3 @@
-/* eslint-disable max-lines-per-function -- Dispatcher switch is exhaustive by tool. */
 import React, { memo } from "react";
 import type {
   BrushSettings,

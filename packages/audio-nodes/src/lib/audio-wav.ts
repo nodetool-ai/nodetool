@@ -10,7 +10,11 @@
  *   them at call sites.
  */
 
-import { loadNodeFsPromises } from "@nodetool-ai/nodes-utils";
+import {
+  base64ToBytes,
+  bytesToBase64,
+  loadNodeFsPromises
+} from "@nodetool-ai/nodes-utils";
 import type { AudioRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
@@ -30,7 +34,7 @@ export function toBytes(value: Uint8Array | string | undefined): Uint8Array {
   if (!value) return new Uint8Array();
   if (value instanceof Uint8Array) return value;
   if (typeof value !== "string") throw new Error("Invalid audio data");
-  return Uint8Array.from(Buffer.from(value, "base64"));
+  return base64ToBytes(value);
 }
 
 /** Synchronously extract raw bytes from an AudioRef's inline `data` field. */
@@ -95,7 +99,7 @@ export function audioRefFromBytes(data: Uint8Array, uri?: string): AudioRef {
   return {
     type: "audio",
     uri: uri ?? "",
-    data: Buffer.from(data).toString("base64")
+    data: bytesToBase64(data)
   };
 }
 
@@ -116,6 +120,46 @@ export function concatBytes(chunks: Uint8Array[]): Uint8Array {
   return out;
 }
 
+/** Write an ASCII tag (e.g. "RIFF") into a byte buffer at `offset`. */
+function writeAscii(out: Uint8Array, offset: number, text: string): void {
+  for (let i = 0; i < text.length; i++) out[offset + i] = text.charCodeAt(i);
+}
+
+/** Read bytes [start, end) as an ASCII string. */
+function asciiAt(bytes: Uint8Array, start: number, end: number): string {
+  let text = "";
+  for (let i = start; i < end && i < bytes.length; i++) {
+    text += String.fromCharCode(bytes[i]);
+  }
+  return text;
+}
+
+/** Write the canonical 44-byte RIFF/WAVE PCM header into `out`. */
+function writeWavHeader(
+  out: Uint8Array,
+  view: DataView,
+  sampleRate: number,
+  numChannels: number,
+  dataSize: number
+): void {
+  const bitsPerSample = 16;
+  const blockAlign = (numChannels * bitsPerSample) / 8;
+  const byteRate = sampleRate * blockAlign;
+  writeAscii(out, 0, "RIFF");
+  view.setUint32(4, 36 + dataSize, true);
+  writeAscii(out, 8, "WAVE");
+  writeAscii(out, 12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitsPerSample, true);
+  writeAscii(out, 36, "data");
+  view.setUint32(40, dataSize, true);
+}
+
 /**
  * Wrap a buffer of already-encoded little-endian 16-bit PCM samples in a
  * RIFF/WAVE container. Use when the caller already has Int16 samples (e.g.
@@ -127,29 +171,12 @@ export function encodePcm16Wav(
   sampleRate: number,
   numChannels = 1
 ): Uint8Array {
-  const bitsPerSample = 16;
-  const blockAlign = (numChannels * bitsPerSample) / 8;
-  const byteRate = sampleRate * blockAlign;
   const dataSize = pcmBytes.length;
-  const buffer = Buffer.alloc(44 + dataSize);
-  buffer.write("RIFF", 0);
-  buffer.writeUInt32LE(36 + dataSize, 4);
-  buffer.write("WAVE", 8);
-  buffer.write("fmt ", 12);
-  buffer.writeUInt32LE(16, 16);
-  buffer.writeUInt16LE(1, 20); // PCM
-  buffer.writeUInt16LE(numChannels, 22);
-  buffer.writeUInt32LE(sampleRate, 24);
-  buffer.writeUInt32LE(byteRate, 28);
-  buffer.writeUInt16LE(blockAlign, 32);
-  buffer.writeUInt16LE(bitsPerSample, 34);
-  buffer.write("data", 36);
-  buffer.writeUInt32LE(dataSize, 40);
-  Buffer.from(pcmBytes.buffer, pcmBytes.byteOffset, pcmBytes.byteLength).copy(
-    buffer,
-    44
-  );
-  return new Uint8Array(buffer);
+  const out = new Uint8Array(44 + dataSize);
+  const view = new DataView(out.buffer);
+  writeWavHeader(out, view, sampleRate, numChannels, dataSize);
+  out.set(pcmBytes, 44);
+  return out;
 }
 
 /**
@@ -161,29 +188,15 @@ export function encodeWav(
   sampleRate: number,
   numChannels = 1
 ): Uint8Array {
-  const bitsPerSample = 16;
-  const blockAlign = (numChannels * bitsPerSample) / 8;
-  const byteRate = sampleRate * blockAlign;
   const dataSize = samples.length * 2;
-  const buffer = Buffer.alloc(44 + dataSize);
-  buffer.write("RIFF", 0);
-  buffer.writeUInt32LE(36 + dataSize, 4);
-  buffer.write("WAVE", 8);
-  buffer.write("fmt ", 12);
-  buffer.writeUInt32LE(16, 16);
-  buffer.writeUInt16LE(1, 20); // PCM
-  buffer.writeUInt16LE(numChannels, 22);
-  buffer.writeUInt32LE(sampleRate, 24);
-  buffer.writeUInt32LE(byteRate, 28);
-  buffer.writeUInt16LE(blockAlign, 32);
-  buffer.writeUInt16LE(bitsPerSample, 34);
-  buffer.write("data", 36);
-  buffer.writeUInt32LE(dataSize, 40);
+  const out = new Uint8Array(44 + dataSize);
+  const view = new DataView(out.buffer);
+  writeWavHeader(out, view, sampleRate, numChannels, dataSize);
   for (let i = 0; i < samples.length; i++) {
     const s = Math.max(-1, Math.min(1, samples[i]));
-    buffer.writeInt16LE(Math.round(s * 0x7fff), 44 + i * 2);
+    view.setInt16(44 + i * 2, Math.round(s * 0x7fff), true);
   }
-  return new Uint8Array(buffer);
+  return out;
 }
 
 export interface WavHeader {
@@ -208,11 +221,8 @@ export interface WavHeader {
  */
 export function readWavHeader(bytes: Uint8Array): WavHeader | null {
   if (bytes.length < 12) return null;
-  const buf = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  if (
-    buf.toString("ascii", 0, 4) !== "RIFF" ||
-    buf.toString("ascii", 8, 12) !== "WAVE"
-  ) {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  if (asciiAt(bytes, 0, 4) !== "RIFF" || asciiAt(bytes, 8, 12) !== "WAVE") {
     return null;
   }
 
@@ -223,14 +233,14 @@ export function readWavHeader(bytes: Uint8Array): WavHeader | null {
   let dataSize = 0;
 
   let offset = 12;
-  while (offset + 8 <= buf.length) {
-    const chunkId = buf.toString("ascii", offset, offset + 4);
-    const chunkSize = buf.readUInt32LE(offset + 4);
+  while (offset + 8 <= bytes.length) {
+    const chunkId = asciiAt(bytes, offset, offset + 4);
+    const chunkSize = view.getUint32(offset + 4, true);
     const body = offset + 8;
-    if (chunkId === "fmt " && body + 16 <= buf.length) {
-      numChannels = buf.readUInt16LE(body + 2);
-      sampleRate = buf.readUInt32LE(body + 4);
-      bitsPerSample = buf.readUInt16LE(body + 14);
+    if (chunkId === "fmt " && body + 16 <= bytes.length) {
+      numChannels = view.getUint16(body + 2, true);
+      sampleRate = view.getUint32(body + 4, true);
+      bitsPerSample = view.getUint16(body + 14, true);
     } else if (chunkId === "data") {
       // `fmt ` always precedes `data` in a well-formed file, so the format
       // fields are populated by the time we get here.
@@ -242,7 +252,7 @@ export function readWavHeader(bytes: Uint8Array): WavHeader | null {
   }
 
   if (dataOffset < 0) return null;
-  const available = buf.length - dataOffset;
+  const available = bytes.length - dataOffset;
   if (dataSize <= 0 || dataSize > available) dataSize = available;
   return { sampleRate, numChannels, bitsPerSample, dataOffset, dataSize };
 }
@@ -261,16 +271,16 @@ export function parseWavBytes(bytes: Uint8Array): WavData | null {
   const bytesPerSample = bitsPerSample / 8;
   if (bytesPerSample !== 1 && bytesPerSample !== 2) return null;
 
-  const buf = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const totalSamples = Math.floor(dataSize / bytesPerSample);
   const samples = new Float32Array(totalSamples);
 
   for (let i = 0; i < totalSamples; i++) {
     const pos = dataOffset + i * bytesPerSample;
     if (bitsPerSample === 16) {
-      samples[i] = buf.readInt16LE(pos) / 0x7fff;
+      samples[i] = view.getInt16(pos, true) / 0x7fff;
     } else if (bitsPerSample === 8) {
-      samples[i] = (buf.readUInt8(pos) - 128) / 128;
+      samples[i] = (bytes[pos] - 128) / 128;
     }
   }
 
@@ -302,6 +312,28 @@ export function interleave(planes: Float32Array[]): Float32Array {
     for (let i = 0; i < frames; i++) {
       out[i * numChannels + ch] = planes[ch][i];
     }
+  }
+  return out;
+}
+
+/** Decode raw little-endian 16-bit PCM bytes into Float32 samples ([-1, 1]). */
+export function pcm16ToFloat32(bytes: Uint8Array): Float32Array {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const count = Math.floor(bytes.length / 2);
+  const samples = new Float32Array(count);
+  for (let i = 0; i < count; i++) {
+    samples[i] = view.getInt16(i * 2, true) / 0x7fff;
+  }
+  return samples;
+}
+
+/** Encode Float32 samples (clipped to [-1, 1]) as little-endian 16-bit PCM bytes. */
+export function float32ToPcm16(samples: Float32Array): Uint8Array {
+  const out = new Uint8Array(samples.length * 2);
+  const view = new DataView(out.buffer);
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(i * 2, Math.round(s * 0x7fff), true);
   }
   return out;
 }

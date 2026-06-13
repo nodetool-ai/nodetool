@@ -21,7 +21,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import Switch from "@mui/material/Switch";
 
-import { Tooltip } from "../../ui_primitives";
+import { NodeSlider, Tooltip, MOTION } from "../../ui_primitives";
 
 // ── Header ─────────────────────────────────────────────────────────────────
 
@@ -62,7 +62,7 @@ const headerIconButtonStyles = (theme: Theme) =>
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 6,
-    transition: "background-color 120ms, color 120ms, border-color 120ms",
+    transition: `background-color ${MOTION.fast}, color ${MOTION.fast}, border-color ${MOTION.fast}`,
     "&:hover": {
       backgroundColor: theme.vars.palette.action.hover,
       color: theme.vars.palette.text.primary,
@@ -128,23 +128,11 @@ InspectorHeader.displayName = "InspectorHeader";
 // ── Identity card ──────────────────────────────────────────────────────────
 
 const identityWrapStyles = css({
-  position: "relative",
   display: "flex",
   flexDirection: "column",
-  gap: 4,
-  padding: "10px 4px 14px 14px"
+  gap: 5,
+  padding: "10px 4px 14px"
 });
-
-const identityAccentStyles = (color: string) =>
-  css({
-    position: "absolute",
-    left: 4,
-    top: 12,
-    bottom: 16,
-    width: 3,
-    borderRadius: 2,
-    backgroundColor: color
-  });
 
 const identityNameStyles = (theme: Theme) =>
   css({
@@ -157,6 +145,21 @@ const identityNameStyles = (theme: Theme) =>
     wordBreak: "break-all"
   });
 
+const identityMetaRowStyles = css({
+  display: "flex",
+  alignItems: "center",
+  gap: 6
+});
+
+const identitySwatchStyles = (color: string) =>
+  css({
+    width: 8,
+    height: 8,
+    borderRadius: 2,
+    flexShrink: 0,
+    backgroundColor: color
+  });
+
 const identityMetaStyles = (theme: Theme) =>
   css({
     color: theme.vars.palette.text.secondary,
@@ -167,7 +170,7 @@ const identityMetaStyles = (theme: Theme) =>
 export interface ClipIdentityCardProps {
   name: string;
   metadata: ReadonlyArray<string>;
-  /** Color of the left accent bar — usually the track-type accent. */
+  /** Track-type accent shown as a small swatch beside the metadata. */
   accentColor?: string;
 }
 
@@ -178,12 +181,14 @@ export const ClipIdentityCard: React.FC<ClipIdentityCardProps> = memo(
     const accent = accentColor ?? theme.vars.palette.secondary.main;
     return (
       <div css={identityWrapStyles}>
-        <div css={identityAccentStyles(accent)} aria-hidden />
         <div css={identityNameStyles(theme)} title={name}>
           {name}
         </div>
         {metadata.length > 0 && (
-          <div css={identityMetaStyles(theme)}>{metadata.join(" · ")}</div>
+          <div css={identityMetaRowStyles}>
+            <span css={identitySwatchStyles(accent)} aria-hidden />
+            <span css={identityMetaStyles(theme)}>{metadata.join(" · ")}</span>
+          </div>
         )}
       </div>
     );
@@ -216,6 +221,7 @@ const rowControlStyles = css({
   display: "flex",
   alignItems: "center",
   justifyContent: "flex-end",
+  gap: 6,
   minWidth: 120
 });
 
@@ -244,6 +250,34 @@ export const InspectorRow: React.FC<InspectorRowProps> = memo(
 );
 InspectorRow.displayName = "InspectorRow";
 
+// ── Static value ───────────────────────────────────────────────────────────
+
+const staticValueStyles = (theme: Theme) =>
+  css({
+    fontFamily:
+      "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+    fontSize: 12,
+    fontWeight: 500,
+    color: theme.vars.palette.text.secondary,
+    maxWidth: 160,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap"
+  });
+
+/** Read-only mono value for rows that display but don't edit (type, IDs). */
+export const InspectorStaticValue: React.FC<{ value: string }> = memo(
+  ({ value }) => {
+    const theme = useTheme();
+    return (
+      <span css={staticValueStyles(theme)} title={value}>
+        {value}
+      </span>
+    );
+  }
+);
+InspectorStaticValue.displayName = "InspectorStaticValue";
+
 // ── Pill input ─────────────────────────────────────────────────────────────
 
 const pillWrapStyles = (theme: Theme, disabled: boolean, focused: boolean) =>
@@ -261,7 +295,7 @@ const pillWrapStyles = (theme: Theme, disabled: boolean, focused: boolean) =>
     minWidth: 92,
     justifyContent: "flex-end",
     opacity: disabled ? 0.5 : 1,
-    transition: "border-color 120ms",
+    transition: `border-color ${MOTION.fast}`,
     "&:hover": {
       borderColor: focused
         ? theme.vars.palette.primary.main
@@ -396,7 +430,7 @@ const toggleSwitchSx = {
       transform: "translateX(16px)",
       color: "#fff",
       "& + .MuiSwitch-track": {
-        backgroundColor: "var(--palette-secondary-main)",
+        backgroundColor: "var(--palette-primary-main)",
         opacity: 1,
         border: 0
       }
@@ -440,6 +474,89 @@ export const InspectorToggleRow: React.FC<InspectorToggleRowProps> = memo(
   }
 );
 InspectorToggleRow.displayName = "InspectorToggleRow";
+
+// ── Slider row ─────────────────────────────────────────────────────────────
+
+const sliderRowStyles = css({
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  minHeight: 32,
+  padding: "0 4px"
+});
+
+const sliderLabelStyles = (theme: Theme) =>
+  css({
+    flex: "0 1 auto",
+    minWidth: 56,
+    color: theme.vars.palette.text.secondary,
+    fontSize: 13,
+    fontWeight: 400,
+    lineHeight: 1.3,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap"
+  });
+
+const sliderTrackStyles = css({
+  flex: "1 1 60px",
+  minWidth: 60,
+  display: "flex",
+  alignItems: "center"
+});
+
+const sliderValueStyles = (theme: Theme) =>
+  css({
+    flex: "0 0 48px",
+    fontFamily:
+      "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+    fontSize: 11,
+    fontWeight: 500,
+    color: theme.vars.palette.text.secondary,
+    textAlign: "right",
+    fontVariantNumeric: "tabular-nums"
+  });
+
+export interface InspectorSliderRowProps {
+  label: string;
+  value: number;
+  /** Formatted readout shown right of the slider, e.g. "0.50", "45°", "80%". */
+  display: string;
+  min: number;
+  max: number;
+  step: number;
+  disabled?: boolean;
+  onChange: (value: number) => void;
+}
+
+/** Label + full-width slider + mono value readout. */
+export const InspectorSliderRow: React.FC<InspectorSliderRowProps> = memo(
+  ({ label, value, display, min, max, step, disabled, onChange }) => {
+    const theme = useTheme();
+    return (
+      <div css={sliderRowStyles}>
+        <span css={sliderLabelStyles(theme)} title={label}>
+          {label}
+        </span>
+        <div css={sliderTrackStyles}>
+          <NodeSlider
+            min={min}
+            max={max}
+            step={step}
+            value={value}
+            disabled={disabled}
+            aria-label={label}
+            onChange={(_e, next) =>
+              onChange(Array.isArray(next) ? next[0] : next)
+            }
+          />
+        </div>
+        <span css={sliderValueStyles(theme)}>{display}</span>
+      </div>
+    );
+  }
+);
+InspectorSliderRow.displayName = "InspectorSliderRow";
 
 // ── Section title (for CollapsibleSection title prop) ──────────────────────
 

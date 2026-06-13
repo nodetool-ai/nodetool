@@ -28,10 +28,12 @@ import {
   Asset
 } from "@nodetool-ai/models";
 import {
+  hydrateGraphNodeFlags,
   loadPythonPackageMetadata,
   type NodeMetadata,
   NodeRegistry
 } from "@nodetool-ai/node-sdk";
+import type { GraphData } from "@nodetool-ai/protocol";
 import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   PythonNodeExecutor,
@@ -41,6 +43,10 @@ import {
   type PythonBridge
 } from "@nodetool-ai/runtime";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
+import {
+  resolveWorkflowWorkspace,
+  buildWorkspaceExecutionContext
+} from "./lib/workflow-workspace.js";
 import { handleOpenAIRequest, type OpenAIApiOptions } from "./openai-api.js";
 import { handleOAuthRequest } from "./oauth-api.js";
 import {
@@ -665,15 +671,25 @@ export async function handleWorkflowRun(
     graph: runnableGraph
   });
 
+  const workspaceDir = await resolveWorkflowWorkspace(workflowId, userId);
   const runner = new WorkflowRunner(job.id, {
     resolveExecutor: (node) =>
       runtime.resolveExecutor(
         node as { id: string; type: string; [key: string]: unknown }
-      )
+      ),
+    executionContext: buildWorkspaceExecutionContext({
+      jobId: job.id,
+      workflowId,
+      userId,
+      workspaceDir
+    })
   });
   const result = await runner.run(
     { job_id: job.id, workflow_id: workflowId, params },
-    runnableGraph
+    hydrateGraphNodeFlags(
+      runnableGraph as unknown as GraphData,
+      runtime.registry
+    )
   );
 
   if (result.status === "completed") {

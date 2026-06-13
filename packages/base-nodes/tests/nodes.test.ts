@@ -39,8 +39,6 @@ import {
   PreviewNode,
   WriteTextFileNode,
   ReadTextFileNode,
-  JoinWorkspacePathsNode,
-  WorkspaceFileExistsNode,
   CompareImagesNode,
   SplitJSONNode,
   SaveDocumentFileNode,
@@ -88,9 +86,9 @@ describe("base node registration", () => {
     expect(registry.has("nodetool.workflows.base_node.Preview")).toBe(true);
     expect(registry.has("nodetool.audio.TextToSpeech")).toBe(true);
     expect(registry.has("nodetool.image.ImageToImage")).toBe(true);
-    expect(registry.has("nodetool.image.ImageEditor")).toBe(true);
+    expect(registry.has("nodetool.constant.Sketch")).toBe(true);
     expect(registry.has("nodetool.video.TextToVideo")).toBe(true);
-    expect(registry.has("nodetool.workspace.ReadTextFile")).toBe(true);
+    expect(registry.has("lib.os.ReadTextFile")).toBe(true);
     expect(registry.has("nodetool.document.SplitDocument")).toBe(true);
     expect(registry.has("nodetool.compare.CompareImages")).toBe(true);
     expect(registry.has("nodetool.data.Aggregate")).toBe(true);
@@ -200,16 +198,6 @@ describe("input/output/workspace nodes", () => {
       path: "notes/a.txt"
     });
     await expect(read.process()).resolves.toEqual({ output: "hello" });
-  });
-
-  it("workspace helpers validate and inspect paths", async () => {
-    const dir = `/tmp/nodetool-ws-${Date.now()}-2`;
-    const joined = new JoinWorkspacePathsNode();
-    joined.assign({ workspace_dir: dir, paths: ["x", "y.txt"] });
-    const exists = new WorkspaceFileExistsNode();
-    exists.assign({ workspace_dir: dir, path: "x/y.txt" });
-    await expect(joined.process()).resolves.toEqual({ output: "x/y.txt" });
-    await expect(exists.process()).resolves.toEqual({ output: false });
   });
 
   it("CompareImagesNode returns perfect score for equal bytes", async () => {

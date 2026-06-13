@@ -4,6 +4,7 @@ import { getMainWindow } from "./state";
 import { createPackageManagerWindow, createLogViewerWindow, createSettingsWindow } from "./window";
 import { createChatWindow } from "./workflowWindow";
 import { getSystemInfo } from "./systemInfo";
+import { openPerformanceMonitorWindow } from "./perfMonitor";
 
 /**
  * Builds the application menu
@@ -234,6 +235,10 @@ const buildMenu = () => {
         {
           label: "Log Viewer",
           click: () => createLogViewerWindow(),
+        },
+        {
+          label: "Performance Monitor",
+          click: () => openPerformanceMonitorWindow(),
         },
         { type: "separator" },
         {

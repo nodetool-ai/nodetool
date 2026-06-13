@@ -35,7 +35,11 @@ export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
     case "agent_status":
       return <AgentStatusRenderer chunk={chunk} />;
     case "image":
-      return <ImageView source={chunk.content} />;
+      return (
+        <ImageView
+          source={typeof chunk.content === "string" ? chunk.content : undefined}
+        />
+      );
     case "audio": {
       const meta = chunk.content_metadata;
       return (
@@ -43,6 +47,7 @@ export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
           base64={chunk.content as string}
           sampleRate={(meta?.sample_rate as number | undefined) ?? 22000}
           channels={(meta?.channels as number | undefined) ?? 1}
+          encoding={meta?.encoding === "f32le" ? "f32le" : "pcm16le"}
         />
       );
     }

@@ -70,6 +70,7 @@ import {
   SettingWithValue,
   SettingsResponse,
   SettingsUpdateRequest,
+  SketchRef,
   Step,
   StepResult,
   SVGElement,
@@ -77,6 +78,7 @@ import {
   Task,
   TaskPlan,
   TaskUpdate,
+  TerminalUpdate,
   TodoItem,
   TodoStatus,
   TodoUpdate,
@@ -86,6 +88,7 @@ import {
   ThreadList,
   ThreadSummarizeRequest,
   ThreadUpdateRequest,
+  TimelineRef,
   ToolCall,
   ToolCallUpdate,
   ToolResultUpdate,
@@ -189,6 +192,7 @@ export type { SecretResponse };
 export type { SettingWithValue };
 export type { SettingsResponse };
 export type { SettingsUpdateRequest };
+export type { SketchRef };
 export type { Step };
 export type { StepResult };
 export type { SVGElement };
@@ -196,6 +200,7 @@ export type { SystemStats };
 export type { Task };
 export type { TaskPlan };
 export type { TaskUpdate };
+export type { TerminalUpdate };
 export type { TodoItem };
 export type { TodoStatus };
 export type { TodoUpdate };
@@ -205,6 +210,7 @@ export type { ThreadCreateRequest };
 export type { ThreadList };
 export type { ThreadSummarizeRequest };
 export type { ThreadUpdateRequest };
+export type { TimelineRef };
 export type { ToolCall };
 export type { ToolCallUpdate };
 export type { ToolResultUpdate };

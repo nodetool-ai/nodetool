@@ -23,7 +23,7 @@ export interface WorkspaceTabItemProps {
   tab: WorkspaceTab;
   isActive: boolean;
   isEditing: boolean;
-  dropTarget: { id: string; position: "left" | "right" } | null;
+  dropPosition: "left" | "right" | null;
   typeColor: string;
   typeGlyph: string;
   onActivate: (tabId: string) => void;
@@ -43,7 +43,7 @@ const WorkspaceTabItem = ({
   tab,
   isActive,
   isEditing,
-  dropTarget,
+  dropPosition,
   typeColor,
   typeGlyph,
   onActivate,
@@ -72,14 +72,14 @@ const WorkspaceTabItem = ({
     x: number;
     y: number;
   } | null>(null);
-  const skipBlurCommitRef = useRef(false);
+  const cancelRenameRef = useRef(false);
 
   const dropClass =
-    dropTarget?.id === tab.id
-      ? dropTarget.position === "left"
-        ? " drop-target-left"
-        : " drop-target-right"
-      : "";
+    dropPosition === "left"
+      ? " drop-target-left"
+      : dropPosition === "right"
+        ? " drop-target-right"
+        : "";
 
   const closeContextMenu = useCallback(() => {
     setContextMenuPosition(null);
@@ -100,6 +100,12 @@ const WorkspaceTabItem = ({
     },
     [onClose, tab]
   );
+
+  const handleMouseDown = useCallback((event: MouseEvent<HTMLDivElement>) => {
+    if (event.button === 0) {
+      event.preventDefault();
+    }
+  }, []);
 
   const handleTabKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -127,6 +133,7 @@ const WorkspaceTabItem = ({
             onBeginRename(tab);
           }
         }}
+        onMouseDown={handleMouseDown}
         onAuxClick={handleAuxClick}
         onDragStart={(event) => onDragStart(event, tab.id)}
         onDragOver={(event) => onDragOver(event, tab)}
@@ -146,22 +153,20 @@ const WorkspaceTabItem = ({
             onClick={(event) => event.stopPropagation()}
             onFocus={(event) => event.currentTarget.select()}
             onBlur={(event) => {
-              if (skipBlurCommitRef.current) {
-                skipBlurCommitRef.current = false;
-                return;
+              if (!cancelRenameRef.current) {
+                void onCommitRename(tab, event.currentTarget.value);
               }
-              void onCommitRename(tab, event.currentTarget.value);
+              cancelRenameRef.current = false;
             }}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();
                 event.stopPropagation();
-                skipBlurCommitRef.current = true;
-                void onCommitRename(tab, event.currentTarget.value);
+                event.currentTarget.blur();
               } else if (event.key === "Escape") {
                 event.preventDefault();
                 event.stopPropagation();
-                skipBlurCommitRef.current = true;
+                cancelRenameRef.current = true;
                 onCancelRename();
               }
             }}

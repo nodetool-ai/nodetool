@@ -33,10 +33,12 @@ import {
 type JsonObject = Record<string, unknown>;
 import { uiToolSchemas } from "@nodetool-ai/protocol";
 import {
+  hydrateGraphNodeFlags,
   NodeRegistry,
   rankNodeMetadata,
   type NodeMetadata
 } from "@nodetool-ai/node-sdk";
+import type { GraphData } from "@nodetool-ai/protocol";
 import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   PythonNodeExecutor,
@@ -46,6 +48,10 @@ import {
   type PythonBridge
 } from "@nodetool-ai/runtime";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
+import {
+  resolveWorkflowWorkspace,
+  buildWorkspaceExecutionContext
+} from "./lib/workflow-workspace.js";
 import type { AgentTransport } from "./agent/transport.js";
 
 export interface McpServerOptions {
@@ -438,15 +444,28 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
           graph: runnableGraph
         });
 
+        const workspaceDir = await resolveWorkflowWorkspace(
+          workflow_id,
+          user_id
+        );
         const runner = new WorkflowRunner(job.id, {
           resolveExecutor: (node) =>
             runtime.resolveExecutor(
               node as { id: string; type: string; [key: string]: unknown }
-            )
+            ),
+          executionContext: buildWorkspaceExecutionContext({
+            jobId: job.id,
+            workflowId: workflow_id,
+            userId: user_id,
+            workspaceDir
+          })
         });
         const result = await runner.run(
           { job_id: job.id, workflow_id, params },
-          runnableGraph
+          hydrateGraphNodeFlags(
+            runnableGraph as unknown as GraphData,
+            runtime.registry
+          )
         );
 
         if (result.status === "completed") {

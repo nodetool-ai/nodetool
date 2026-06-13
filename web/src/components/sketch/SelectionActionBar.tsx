@@ -28,14 +28,12 @@ import {
   CloseButton,
   EditorButton,
   FlexRow,
-  Toast,
   Tooltip
 } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useSketchStore } from "./state";
 import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
 import { useSketchCanvasRefStore } from "../../stores/sketch/SketchCanvasRefStore";
-import { useInpaintHere } from "../../hooks/sketch/useInpaintHere";
 import { getSelectionBounds } from "./selection";
 import type { Point } from "./types";
 import { SKETCH_Z_INDEX } from "./sketchStyles";
@@ -101,8 +99,6 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
   const documentId = useSketchSessionStore((s) => s.documentId);
   const clearActiveLayer = useSketchCanvasRefStore((s) => s.clearActiveLayer);
 
-  const { inpaintHere, isBusy: inpaintBusy } = useInpaintHere();
-  const [error, setError] = useState<string | null>(null);
   const [refineOpen, setRefineOpen] = useState(false);
   const refineAnchorRef = useRef<HTMLButtonElement | null>(null);
 
@@ -128,25 +124,9 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
     return () => ro.disconnect();
   }, [containerRef]);
 
-  const handleGenerativeFill = useCallback(async () => {
-    const result = await inpaintHere();
-    if (!result.ok) {
-      switch (result.reason) {
-        case "no-selection":
-          setError("Make a selection first.");
-          break;
-        case "no-document":
-          setError("No image document is open.");
-          break;
-        case "no-canvas":
-          setError("Canvas is not ready yet.");
-          break;
-        case "error":
-          setError(result.message ?? "Generative fill failed.");
-          break;
-      }
-    }
-  }, [inpaintHere]);
+  const handleGenerativeFill = useCallback(() => {
+    setGenMode("inpaint");
+  }, [setGenMode]);
 
   const handleRemove = useCallback(() => {
     if (clearActiveLayer) {
@@ -244,7 +224,7 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
         onPointerDown={(e: React.PointerEvent) => e.stopPropagation()}
       >
         <Tooltip
-          title="Generative fill — create a new layer that regenerates the selected region (uses the selection as a mask)."
+          title="Generative fill — switch to Inpaint mode to describe a replacement for the selected region."
           delay={TOOLTIP_ENTER_DELAY}
           placement={placeAbove ? "top" : "bottom"}
         >
@@ -252,8 +232,7 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
             <EditorButton
               variant="contained"
               size="small"
-              onClick={() => void handleGenerativeFill()}
-              disabled={inpaintBusy}
+              onClick={handleGenerativeFill}
               startIcon={<AutoAwesomeIcon fontSize="small" />}
               data-testid="sketch-selection-generative-fill"
             >
@@ -334,15 +313,6 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
         onFeatherSelection={() => void featherCurrentSelection()}
         onSmoothSelectionBorders={() => void smoothCurrentSelectionBorders()}
         onConvertSelectionToBorder={convertSelectionToBorderOutline}
-      />
-
-      <Toast
-        open={error !== null}
-        message={error ?? ""}
-        severity="warning"
-        onClose={() => setError(null)}
-        vertical="top"
-        horizontal="center"
       />
     </>
   );

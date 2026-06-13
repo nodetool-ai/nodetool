@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 // Full-page settings (formerly a Dialog).
-import React, { memo, useId, useMemo } from "react";
+import React, { memo, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Tabs,
@@ -216,9 +216,6 @@ function SettingsPage() {
       !generalSearch || keywords.toLowerCase().includes(generalSearch),
     [generalSearch]
   );
-
-  // Generate unique IDs for form controls
-  const baseId = useId();
 
   const [activeSection, setActiveSection] = useState("editor");
   const [, setSecretsUpdated] = useState({});
@@ -790,6 +787,36 @@ function SettingsPage() {
                         <Text className="description">
                           Warn when a run would execute more than this many
                           model/provider nodes (LLM, image, audio, API, etc.).
+                        </Text>
+                      </SearchItem>
+
+                      <SearchItem
+                        search={generalSearch}
+                        keywords="audio buffer latency realtime synth playback dropout"
+                      >
+                        <TextInput
+                          type="number"
+                          autoComplete="off"
+                          slotProps={{ htmlInput: { min: 20, max: 1000, step: 10 } }}
+                          id="audio-buffer-ms-input"
+                          label="Audio Buffer (ms)"
+                          value={settings.audioBufferMs ?? 100}
+                          onChange={(e) =>
+                            updateSettings({
+                              audioBufferMs: Math.min(
+                                1000,
+                                Math.max(20, Number(e.target.value) || 100)
+                              )
+                            })
+                          }
+                          variant="standard"
+                          size="small"
+                        />
+                        <Text className="description">
+                          Playback buffer for realtime audio (modular synth
+                          patches). Lower values reduce knob-to-ear latency;
+                          higher values prevent dropouts when the editor is
+                          busy.
                         </Text>
                       </SearchItem>
 

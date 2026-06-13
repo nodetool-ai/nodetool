@@ -41,7 +41,7 @@ const GhostNode = memo(function GhostNode({
       badge: {
         width: "56px",
         height: "56px",
-        borderRadius: "18px",
+        borderRadius: "var(--rounded-xxl)",
         border: `1.6px solid ${theme.badgeBorder}`,
         background: theme.badgeBackground,
         boxShadow: theme.badgeShadow,

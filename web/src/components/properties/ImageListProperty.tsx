@@ -6,13 +6,14 @@ import PropertyLabel from "../node/PropertyLabel";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Tooltip, CloseButton } from "../ui_primitives";
+import { Tooltip, CloseButton, MOTION } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import ImageDimensions from "../node/ImageDimensions";
 import { isElectron } from "../../utils/browser";
 import { deserializeDragData, hasExternalFiles } from "../../lib/dragdrop";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
+import { useUpstreamValue } from "../../hooks/nodes/useNodeIO";
 
 interface ImageItem {
   uri: string;
@@ -42,7 +43,7 @@ const styles = (theme: Theme) =>
       borderRadius: "var(--rounded-md)",
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
       "&:hover": {
         borderColor: theme.vars.palette.grey[500],
         ".remove-button": {
@@ -75,7 +76,7 @@ const styles = (theme: Theme) =>
       top: "2px",
       right: "2px",
       opacity: 0,
-      transition: "opacity 0.2s ease",
+      transition: `opacity ${MOTION.normal}`,
       backgroundColor: `rgba(0, 0, 0, 0.7)`,
       color: theme.vars.palette.grey[100],
       padding: "2px",
@@ -97,7 +98,7 @@ const styles = (theme: Theme) =>
       border: "0",
       maxWidth: "none",
       textAlign: "center",
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
       outline: `1px dashed ${theme.vars.palette.grey[600]}`,
       margin: "5px 0",
       backgroundColor: `rgba(0, 0, 0, 0.2)`,
@@ -128,7 +129,7 @@ const styles = (theme: Theme) =>
     },
     ".image-dimensions": {
       opacity: 0,
-      transition: "opacity 0.2s ease"
+      transition: `opacity ${MOTION.normal}`
     }
   });
 
@@ -166,6 +167,17 @@ const ImageListProperty = (props: PropertyProps) => {
   const filteredAssets = useAssetGridStore((state) => state.filteredAssets);
   const globalSearchResults = useAssetGridStore((state) => state.globalSearchResults);
   const selectedAssets = useAssetGridStore((state) => state.selectedAssets);
+
+  // Resolve upstream value for connected handle preview
+  const upstreamValue = useUpstreamValue(
+    props.workflowId ?? "",
+    props.nodeId,
+    props.property.name
+  );
+  const upstreamImages: ImageItem[] = useMemo(
+    () => flattenImageItems(upstreamValue),
+    [upstreamValue]
+  );
 
   // Convert value to array of ImageItem, flattening nested arrays
   const images: ImageItem[] = useMemo(
@@ -457,6 +469,47 @@ const ImageListProperty = (props: PropertyProps) => {
     }
   }, [handleNativeFilePicker, handleBrowserFilePicker]);
 
+  if (props.isConnected) {
+    return (
+      <div className="image-list-property" css={styles(theme)}>
+        <PropertyLabel
+          name={props.property.name}
+          description={props.property.description}
+          id={id}
+        />
+        {upstreamImages.length > 0 ? (
+          <div className="image-grid">
+            {upstreamImages.map((image, index) => (
+              <div key={image.uri} className="image-item">
+                <div className="image-content">
+                  <img
+                    src={image.uri}
+                    alt={`Item ${index + 1}`}
+                    draggable={false}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div
+            css={css({
+              color: "rgba(255,255,255,0.3)",
+              fontSize: "var(--fontSizeSmall)",
+              textAlign: "center",
+              padding: "16px 8px",
+              outline: "1px dashed rgba(255,255,255,0.1)",
+              borderRadius: "var(--rounded-md)",
+              margin: "5px 0"
+            })}
+          >
+            Awaiting upstream
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="image-list-property" css={styles(theme)}>
       {/* Hidden file input for browser fallback */}
@@ -474,7 +527,7 @@ const ImageListProperty = (props: PropertyProps) => {
         description={props.property.description}
         id={id}
       />
-      
+
       {/* Image Grid */}
       {images.length > 0 && (
         <div className="image-grid">

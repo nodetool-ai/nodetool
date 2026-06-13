@@ -15,6 +15,8 @@ const VALID_DRAG_TYPES: ReadonlySet<string> = new Set<DragDataType>([
   "create-node",
   "asset",
   "assets-multiple",
+  "sketch",
+  "timeline",
   "file",
   "tab",
   "collection-file"
@@ -35,6 +37,8 @@ const LEGACY_KEY_MAP: Record<DragDataType, string> = {
   "create-node": "create-node",
   asset: "asset",
   "assets-multiple": "selectedAssetIds",
+  sketch: "sketch",
+  timeline: "timeline",
   file: "", // External files don't use custom keys
   tab: "text/plain",
   "collection-file": ""
@@ -115,6 +119,32 @@ export function deserializeDragData(dataTransfer: DataTransfer): DragData | null
       return {
         type: "asset",
         payload: assetPayload as Asset
+      };
+    } catch {
+      // Ignore parse errors
+    }
+  }
+
+  const sketch = dataTransfer.getData("sketch");
+  if (sketch) {
+    try {
+      const sketchPayload: unknown = JSON.parse(sketch);
+      return {
+        type: "sketch",
+        payload: sketchPayload as DragData<"sketch">["payload"]
+      };
+    } catch {
+      // Ignore parse errors
+    }
+  }
+
+  const timeline = dataTransfer.getData("timeline");
+  if (timeline) {
+    try {
+      const timelinePayload: unknown = JSON.parse(timeline);
+      return {
+        type: "timeline",
+        payload: timelinePayload as DragData<"timeline">["payload"]
       };
     } catch {
       // Ignore parse errors

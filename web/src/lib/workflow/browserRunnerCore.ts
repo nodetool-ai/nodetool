@@ -131,7 +131,12 @@ export async function loadBrowserModules(): Promise<LoadedModules> {
     imageEnhance,
     imageDraw,
     imageCore,
-    audioPreview
+    audioPreview,
+    audioCore,
+    audioDsp,
+    audioEffects,
+    audioRealtime,
+    audioSynthesis
   ] = await Promise.all([
     import("@nodetool-ai/workflow-runner/browser"),
     import("@nodetool-ai/core-nodes/nodes/constant"),
@@ -165,7 +170,17 @@ export async function loadBrowserModules(): Promise<LoadedModules> {
     // Preview is a pure pass-through that renders any value; its own browser-safe
     // module (no audio-codec deps) lets pass-through graphs ending in a Preview
     // run client-side instead of forcing a server round-trip.
-    import("@nodetool-ai/audio-nodes/nodes/preview")
+    import("@nodetool-ai/audio-nodes/nodes/preview"),
+    // audio.ts mixes pure sample/byte transforms (hybrid) with node-only
+    // Load/Save/TTS nodes tagged server; dsp/effects route WebAudio through
+    // lib/audio-context.ts (global OfflineAudioContext or pure-JS biquad
+    // fallback) and hide node-web-audio-api / rubberband behind importHidden,
+    // so all four modules bundle cleanly.
+    import("@nodetool-ai/audio-nodes/nodes/audio"),
+    import("@nodetool-ai/audio-nodes/nodes/lib-audio-dsp"),
+    import("@nodetool-ai/audio-nodes/nodes/lib-audio-effects"),
+    import("@nodetool-ai/audio-nodes/nodes/realtime-audio"),
+    import("@nodetool-ai/audio-nodes/nodes/synthesis")
   ]);
 
   const groups: Array<[string, unknown]> = [
@@ -192,7 +207,12 @@ export async function loadBrowserModules(): Promise<LoadedModules> {
     ["lib-image-enhance", imageEnhance],
     ["lib-image-draw", imageDraw],
     ["image", imageCore],
-    ["preview", audioPreview]
+    ["preview", audioPreview],
+    ["audio", audioCore],
+    ["lib-audio-dsp", audioDsp],
+    ["lib-audio-effects", audioEffects],
+    ["realtime-audio", audioRealtime],
+    ["synthesis", audioSynthesis]
   ];
   const nodeClasses: unknown[] = [];
   const perGroup: Record<string, number> = {};

@@ -17,7 +17,8 @@ import {
   StatusIndicator,
   FavoriteButton,
   Dialog,
-  ToolbarIconButton
+  ToolbarIconButton,
+  MOTION
 } from "../../ui_primitives";
 
 const rowStyles = (theme: Theme) =>
@@ -33,7 +34,7 @@ const rowStyles = (theme: Theme) =>
     },
     ".row-actions": {
       opacity: 0,
-      transition: "opacity 0.15s"
+      transition: MOTION.opacity
     }
   });
 

@@ -5,7 +5,7 @@
   "updated_at": "2026-03-08T17:00:00.000000",
   "name": "Travel Planner & Inspiration",
   "tool_name": null,
-  "description": "An AI travel concierge that researches flights, hotels, events, and attractions, generates stunning AI destination images, and builds a complete interactive travel website \u2014 all orchestrated by a single Claude Agent.",
+  "description": "An AI travel concierge that researches flights, hotels, events, and attractions, generates stunning AI destination images, and builds a complete interactive travel website — all orchestrated by a single Claude Agent.",
   "tags": [
     "travel",
     "planner",
@@ -124,17 +124,33 @@
     ],
     "nodes": [
       {
+        "id": "comment-intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# ✈️ Travel Planner & Inspiration\n\nAn agent researches flights, hotels, events and photos, generates inspiration images, and writes a trip website.\n\n**Pipeline:** Agent → Search (flights / hotels / events / web / photos) + Generate images → Save website\n\n**Try this:** change the destination in the agent prompt or the image aspect ratios."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 100,
+            "y": -170
+          },
+          "zIndex": 0,
+          "width": 460,
+          "height": 180,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "agent",
         "type": "nodetool.agents.Agent",
         "data": {
-          "prompt": "Plan an unforgettable 5-day trip to Berlin, Germany.\n\nDeparting from San Francisco (SFO) around 2026-05-01, returning 2026-05-06.\n2 adults, economy class, budget ~$150/night for hotels.\n\nPHASE 1 \u2014 RESEARCH:\n1. Search flights (nonstop + 1-stop options)\n2. Find hotels in Mitte, Kreuzberg, or Prenzlauer Berg\n3. Discover local events during those dates\n4. Research attractions, hidden gems, food\n5. Search for destination photos\n\nPHASE 2 \u2014 GENERATE IMAGES:\nGenerate 5 stunning AI images for the travel page. Call each image tool and note the handle if you get one. Then poll with get_result until all images are ready.\n- gen_hero: cinematic skyline at golden hour (wide 16:9)\n- gen_scene1: most iconic landmark/cultural site\n- gen_scene2: local food & market culture\n- gen_scene3: nightlife/evening atmosphere\n- gen_scene4: architecture, parks, or hidden gem\n\nWrite vivid, detailed prompts (50+ words each).\n\nIMPORTANT: Image tools may return a handle with status 'pending'. Call get_result(handle='xxx') every few seconds until you get the actual image data with a 'uri' field. Collect all 5 image URIs before building the HTML.\n\nPHASE 3 \u2014 BUILD WEBSITE:\nUsing ALL research data and the 5 generated image URIs, write a COMPLETE standalone HTML page.\n\nThe HTML must be a polished, dark-themed, agency-quality travel guide with:\n- Full-bleed hero image (from gen_hero URI)\n- Photo grid with 4 scene images (from gen_scene URIs) with hover zoom\n- Flights ranked cards, hotels cards with ratings/prices\n- Day-by-day itinerary timeline, budget stats\n- Hidden gems, events, practical tips\n- Scroll animations (IntersectionObserver), mobile responsive\n- Google Fonts: Space Grotesk + Playfair Display\n- Dark theme (#0c0c14) with amber/teal/coral/blue/purple accents\n- Footer crediting Nodetool\n\nOutput ONLY the raw HTML starting with <!DOCTYPE html>.",
-          "model": {
-            "type": "language_model",
-            "provider": "anthropic",
-            "id": "claude-sonnet-4-6",
-            "name": "Claude Sonnet 4.6"
-          },
-          "system": "You are an elite travel concierge and web designer with access to search tools and AI image generation.\n\n## CRITICAL: Async tool polling protocol\n\nImage generation tools take 30-60 seconds. They return a JSON with status and handle:\n{\"status\": \"pending\", \"handle\": \"abc123\"}\n\nYou MUST follow this EXACT procedure:\n1. Call all 5 image generation tools to start them. Collect all handles.\n2. Poll ONE handle at a time using get_result(handle=\"xxx\").\n   Each call waits ~4 seconds internally before checking.\n3. If still pending, call get_result for the SAME handle again immediately.\n   Keep calling get_result repeatedly for each handle \u2014 it waits each time.\n4. After ~8-10 calls per handle (30-40 seconds of waiting), you should get the result.\n5. Once a handle returns data with a \"uri\" field, save that URI and move to the next handle.\n6. NEVER re-call the original image tool. NEVER give up. The image IS generating.\n7. Poll ALL 5 handles until all return results.\n\nThe image URIs look like: https://...supabase.co/storage/.../XXXX.png\nUse these URIs directly in your HTML <img> tags.\n\nFor image prompts, write rich cinematic descriptions (50+ words).\n\nYour final text output must be ONLY the raw HTML \u2014 no markdown, no explanation. Start with <!DOCTYPE html> and end with </html>.",
+          "prompt": "Plan an unforgettable 5-day trip to Berlin, Germany.\n\nDeparting from San Francisco (SFO) around 2026-05-01, returning 2026-05-06.\n2 adults, economy class, budget ~$150/night for hotels.\n\nPHASE 1 — RESEARCH:\n1. Search flights (nonstop + 1-stop options)\n2. Find hotels in Mitte, Kreuzberg, or Prenzlauer Berg\n3. Discover local events during those dates\n4. Research attractions, hidden gems, food\n5. Search for destination photos\n\nPHASE 2 — GENERATE IMAGES:\nGenerate 5 stunning AI images for the travel page. Call each image tool and note the handle if you get one. Then poll with get_result until all images are ready.\n- gen_hero: cinematic skyline at golden hour (wide 16:9)\n- gen_scene1: most iconic landmark/cultural site\n- gen_scene2: local food & market culture\n- gen_scene3: nightlife/evening atmosphere\n- gen_scene4: architecture, parks, or hidden gem\n\nWrite vivid, detailed prompts (50+ words each).\n\nIMPORTANT: Image tools may return a handle with status 'pending'. Call get_result(handle='xxx') every few seconds until you get the actual image data with a 'uri' field. Collect all 5 image URIs before building the HTML.\n\nPHASE 3 — BUILD WEBSITE:\nUsing ALL research data and the 5 generated image URIs, write a COMPLETE standalone HTML page.\n\nThe HTML must be a polished, dark-themed, agency-quality travel guide with:\n- Full-bleed hero image (from gen_hero URI)\n- Photo grid with 4 scene images (from gen_scene URIs) with hover zoom\n- Flights ranked cards, hotels cards with ratings/prices\n- Day-by-day itinerary timeline, budget stats\n- Hidden gems, events, practical tips\n- Scroll animations (IntersectionObserver), mobile responsive\n- Google Fonts: Space Grotesk + Playfair Display\n- Dark theme (#0c0c14) with amber/teal/coral/blue/purple accents\n- Footer crediting Nodetool\n\nOutput ONLY the raw HTML starting with <!DOCTYPE html>.",
+          "model": {},
+          "system": "You are an elite travel concierge and web designer with access to search tools and AI image generation.\n\n## CRITICAL: Async tool polling protocol\n\nImage generation tools take 30-60 seconds. They return a JSON with status and handle:\n{\"status\": \"pending\", \"handle\": \"abc123\"}\n\nYou MUST follow this EXACT procedure:\n1. Call all 5 image generation tools to start them. Collect all handles.\n2. Poll ONE handle at a time using get_result(handle=\"xxx\").\n   Each call waits ~4 seconds internally before checking.\n3. If still pending, call get_result for the SAME handle again immediately.\n   Keep calling get_result repeatedly for each handle — it waits each time.\n4. After ~8-10 calls per handle (30-40 seconds of waiting), you should get the result.\n5. Once a handle returns data with a \"uri\" field, save that URI and move to the next handle.\n6. NEVER re-call the original image tool. NEVER give up. The image IS generating.\n7. Poll ALL 5 handles until all return results.\n\nThe image URIs look like: https://...supabase.co/storage/.../XXXX.png\nUse these URIs directly in your HTML <img> tags.\n\nFor image prompts, write rich cinematic descriptions (50+ words).\n\nYour final text output must be ONLY the raw HTML — no markdown, no explanation. Start with <!DOCTYPE html> and end with </html>.",
           "max_turns": 40,
           "tools": [
             "Bash"
@@ -147,7 +163,8 @@
           },
           "zIndex": 0,
           "width": 450,
-          "selectable": true
+          "selectable": true,
+          "title": "1️⃣ Travel research agent"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -291,9 +308,10 @@
             "y": 50
           },
           "zIndex": 0,
-          "width": 240,
+          "width": 384,
           "selectable": true,
-          "title": "Hero Image (16:9)"
+          "title": "Hero Image (16:9)",
+          "height": 400
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -315,9 +333,10 @@
             "y": 200
           },
           "zIndex": 0,
-          "width": 240,
+          "width": 384,
           "selectable": true,
-          "title": "Scene 1 (4:3)"
+          "title": "Scene 1 (4:3)",
+          "height": 400
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -339,9 +358,10 @@
             "y": 350
           },
           "zIndex": 0,
-          "width": 240,
+          "width": 384,
           "selectable": true,
-          "title": "Scene 2 (4:3)"
+          "title": "Scene 2 (4:3)",
+          "height": 400
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -363,9 +383,10 @@
             "y": 500
           },
           "zIndex": 0,
-          "width": 240,
+          "width": 384,
           "selectable": true,
-          "title": "Scene 3 (4:3)"
+          "title": "Scene 3 (4:3)",
+          "height": 400
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -387,9 +408,10 @@
             "y": 650
           },
           "zIndex": 0,
-          "width": 240,
+          "width": 384,
           "selectable": true,
-          "title": "Scene 4 (4:3)"
+          "title": "Scene 4 (4:3)",
+          "height": 400
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -410,7 +432,7 @@
           "zIndex": 0,
           "width": 300,
           "selectable": true,
-          "title": "Save Website"
+          "title": "2️⃣ Save trip website"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},

@@ -384,6 +384,35 @@ describe("TypeHandler", () => {
       expect(isConnectable(str1, str2)).toBe(true);
     });
 
+    describe("cv (control voltage) interop", () => {
+      const cv: TypeMetadata = { type: "cv", optional: false, type_args: [] };
+      const chunk: TypeMetadata = { type: "chunk", optional: false, type_args: [] };
+      const audio: TypeMetadata = { type: "audio", optional: false, type_args: [] };
+      const float: TypeMetadata = { type: "float", optional: false, type_args: [] };
+      const any: TypeMetadata = { type: "any", optional: false, type_args: [] };
+
+      it("connects cv to cv", () => {
+        expect(isConnectable(cv, cv)).toBe(true);
+      });
+
+      it("connects cv and chunk bidirectionally (Eurorack interop)", () => {
+        expect(isConnectable(cv, chunk)).toBe(true);
+        expect(isConnectable(chunk, cv)).toBe(true);
+      });
+
+      it("does not connect cv to audio or float", () => {
+        expect(isConnectable(cv, audio)).toBe(false);
+        expect(isConnectable(audio, cv)).toBe(false);
+        expect(isConnectable(cv, float)).toBe(false);
+        expect(isConnectable(float, cv)).toBe(false);
+      });
+
+      it("connects cv to any", () => {
+        expect(isConnectable(cv, any)).toBe(true);
+        expect(isConnectable(any, cv)).toBe(true);
+      });
+    });
+
     it("should not connect different basic types", () => {
       const str: TypeMetadata = { type: "str", optional: false, type_args: [] };
       const num: TypeMetadata = { type: "number", optional: false, type_args: [] };

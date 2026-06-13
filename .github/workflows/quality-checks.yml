@@ -74,6 +74,14 @@ jobs:
         # (npm ci --omit=dev), crashing the server with ERR_MODULE_NOT_FOUND.
         run: node scripts/check-workspace-deps.mjs
 
+      - name: Check for circular dependencies
+        # Circular imports among @nodetool-ai/* workspace packages cause
+        # esbuild to wrap `export const` values in __esm lazy initializers.
+        # If a module's top-level code runs before the cycle resolves, those
+        # constants are still `undefined` — the failure mode behind the
+        # "BROWSER_ACTION_SPECS is not iterable" production crash.
+        run: node scripts/check-circular-deps.mjs
+
       - name: Build backend packages
         run: npm run build:packages
 

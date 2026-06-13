@@ -59,13 +59,6 @@
         "targetHandle": "instructions"
       },
       {
-        "id": "9",
-        "source": "4",
-        "sourceHandle": "waves",
-        "target": "1",
-        "targetHandle": "value"
-      },
-      {
         "id": "10",
         "source": "6",
         "sourceHandle": "output",
@@ -99,13 +92,6 @@
         "sourceHandle": "output",
         "target": "12",
         "targetHandle": "prompt"
-      },
-      {
-        "id": "14",
-        "source": "12",
-        "sourceHandle": "text",
-        "target": "11",
-        "targetHandle": "value"
       },
       {
         "id": "15",
@@ -162,43 +148,14 @@
         "sourceHandle": "output",
         "target": "15",
         "targetHandle": "prompt"
-      },
-      {
-        "id": "24",
-        "source": "15",
-        "sourceHandle": "text",
-        "target": "14",
-        "targetHandle": "value"
       }
     ],
     "nodes": [
       {
-        "id": "1",
-        "type": "nodetool.output.Output",
-        "data": {
-          "name": "encounter_waves",
-          "description": "Structured wave composition proposed by the planning agent"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1560,
-            "y": 3290
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
         "id": "4",
         "type": "nodetool.generators.StructuredOutputGenerator",
         "data": {
-          "model": {
-            "type": "language_model"
-          },
+          "model": {},
           "system_prompt": "You are a veteran encounter designer. Produce balanced, data-grounded plans that satisfy the requested schema. Validate your calculations before finalizing.",
           "context": "",
           "max_tokens": 2048
@@ -210,7 +167,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "1️⃣ Design encounter"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {
@@ -267,7 +225,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Build designer prompt"
         },
         "dynamic_properties": {
           "biome": null,
@@ -293,7 +252,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Input: biome"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -314,7 +274,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Input: difficulty"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -335,7 +296,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Input: design focus"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -354,7 +316,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Roster → JSON"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -446,27 +409,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "11",
-        "type": "nodetool.output.Output",
-        "data": {
-          "name": "qa_review_notes",
-          "description": "QA agent assessment of pacing risks and mitigation ideas"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 2750,
-            "y": 3918
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Enemy roster"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -476,9 +420,7 @@
         "id": "12",
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {
-            "type": "language_model"
-          },
+          "model": {},
           "system": "You are a sharp-eyed gameplay QA lead. Identify exploit risks, damage spikes, and tuning issues in encounter plans. Give concise, actionable feedback.",
           "image": {
             "type": "image",
@@ -503,7 +445,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "2️⃣ QA review"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -522,7 +465,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Build QA prompt"
         },
         "dynamic_properties": {
           "biome": null,
@@ -534,32 +478,10 @@
         "sync_mode": "on_any"
       },
       {
-        "id": "14",
-        "type": "nodetool.output.Output",
-        "data": {
-          "name": "designer_briefing",
-          "description": "Markdown briefing summarizing the encounter plan and QA guidance"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 3895,
-            "y": 3108
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
         "id": "15",
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {
-            "type": "language_model"
-          },
+          "model": {},
           "system": "You assemble clear, production-ready briefs. Reformat supplied data, do not invent new enemies, and ensure markdown is clean and concise.",
           "image": {
             "type": "image",
@@ -584,7 +506,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "3️⃣ Write briefing"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -603,7 +526,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Build briefing prompt"
         },
         "dynamic_properties": {
           "biome": null,
@@ -638,7 +562,9 @@
       {
         "id": "089694a7-5900-4f88-8ad6-aed4f198711b",
         "type": "nodetool.workflows.base_node.Comment",
-        "data": {},
+        "data": {
+          "comment": "# ⚔️ Game Encounter Planner Agent\n\nThree AI agents design, QA, and brief a multi-wave combat encounter from your biome, difficulty, and focus.\n\n**Pipeline:** inputs + enemy roster → Designer (structured) → QA review → Briefing writer\n\n**Try this:** change the biome or difficulty, or edit the roster list. Pick a model on each agent first."
+        },
         "ui_properties": {
           "position": {
             "x": -687,

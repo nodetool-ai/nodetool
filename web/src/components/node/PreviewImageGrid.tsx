@@ -12,7 +12,7 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { ImageComparer } from "../widgets";
 import AssetViewer from "../assets/AssetViewer";
 import { CopyAssetButton } from "../common/CopyAssetButton";
-import { Checkbox, Dialog, Tooltip, EditorButton, ToolbarIconButton, Box } from "../ui_primitives";
+import { Checkbox, Dialog, Tooltip, EditorButton, ToolbarIconButton, Box, MOTION } from "../ui_primitives";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 
 export type ImageSource = Uint8Array | string;
@@ -51,7 +51,7 @@ const styles = (theme: Theme, gap: number) =>
       ...alphaSurfaceBg,
       border: `1px solid ${theme.vars.palette.divider}`,
       cursor: "pointer",
-      transition: "transform 0.08s ease-out, box-shadow 0.08s ease-out",
+      transition: `${MOTION.transform}, box-shadow ${MOTION.fast}`,
       boxShadow: "none",
       ["&:hover"]: {
         transform: "translateY(-1px)",
@@ -113,7 +113,7 @@ const styles = (theme: Theme, gap: number) =>
       gap: 2,
       zIndex: 5,
       opacity: 0,
-      transition: "opacity 0.15s ease"
+      transition: MOTION.opacity
     },
     ".tile:hover .tile-actions": {
       opacity: 1

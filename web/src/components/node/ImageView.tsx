@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { useMemo, useRef, useCallback, useState, useEffect } from "react";
-import { Text, ToolbarIconButton } from "../ui_primitives";
+import { Text, ToolbarIconButton, MOTION } from "../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import AssetViewer from "../assets/AssetViewer";
@@ -16,14 +16,14 @@ import { useMediaOverlay } from "./MediaOverlayContext";
 const hoverStyles = css({
   ".image-dimensions": {
     opacity: 0,
-    transition: "opacity 0.2s ease"
+    transition: `opacity ${MOTION.normal}`
   },
   "&:hover .image-dimensions": {
     opacity: 1
   },
   ".image-view-actions": {
     opacity: 0,
-    transition: "opacity 0.2s ease"
+    transition: `opacity ${MOTION.normal}`
   },
   "&:hover .image-view-actions": {
     opacity: 1
@@ -215,7 +215,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
     display: "flex",
     gap: "4px",
     opacity: 0,
-    transition: "opacity 0.2s ease"
+    transition: `opacity ${MOTION.normal}`
   }), []);
 
   const iconButtonStyle = useMemo(() => ({

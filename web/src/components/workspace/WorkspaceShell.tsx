@@ -12,6 +12,17 @@ import WorkspaceTabBar from "./WorkspaceTabBar";
 import TabContent from "./TabContent";
 import { Caption } from "../ui_primitives";
 
+const ACTIVE_TAB_STYLE: React.CSSProperties = {
+  opacity: 1,
+  pointerEvents: "auto",
+  zIndex: 1
+};
+const INACTIVE_TAB_STYLE: React.CSSProperties = {
+  opacity: 0,
+  pointerEvents: "none",
+  zIndex: 0
+};
+
 const PanelLeft = React.lazy(() => import("../panels/PanelLeft"));
 const PanelRight = React.lazy(() => import("../panels/PanelRight"));
 const PanelBottom = React.lazy(() => import("../panels/PanelBottom"));
@@ -68,10 +79,13 @@ const styles = (theme: Theme) =>
       minWidth: 0
     },
     "& .workspace-empty": {
-      flex: 1,
+      position: "absolute",
+      inset: 0,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
+      textAlign: "center",
+      padding: theme.spacing(0, 3),
       color: theme.vars.palette.text.secondary
     }
   });
@@ -141,11 +155,7 @@ const WorkspaceShell = () => {
                 <div
                   key={tab.id}
                   className="tab-layer"
-                  style={{
-                    opacity: isActive ? 1 : 0,
-                    pointerEvents: isActive ? "auto" : "none",
-                    zIndex: isActive ? 1 : 0
-                  }}
+                  style={isActive ? ACTIVE_TAB_STYLE : INACTIVE_TAB_STYLE}
                 >
                   <TabContent tab={tab} active={isActive} />
                 </div>

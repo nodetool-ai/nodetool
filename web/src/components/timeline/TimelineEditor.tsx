@@ -30,7 +30,8 @@ import {
   FlexRow,
   LoadingSpinner,
   ProgressBar,
-  Text
+  Text,
+  MOTION
 } from "../ui_primitives";
 
 import { TopBar } from "./TopBar";
@@ -112,7 +113,7 @@ const dragHandleStyles = (theme: Theme) =>
     cursor: "ns-resize",
     flexShrink: 0,
     backgroundColor: theme.vars.palette.divider,
-    transition: "background-color 0.15s ease",
+    transition: MOTION.background,
     outline: "none",
     "&:hover, &.dragging": {
       backgroundColor: theme.vars.palette.primary.main

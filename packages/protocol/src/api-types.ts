@@ -225,6 +225,30 @@ export interface AssetRef {
   metadata?: Record<string, unknown> | null;
 }
 
+/**
+ * Reference to a persisted sketch (image document), editable in the
+ * sketch editor and passable between workflow nodes.
+ */
+export interface SketchRef {
+  type: "sketch";
+  /** Id of the persisted image document holding the sketch. */
+  id?: string | null;
+  /** Optional inline sketch document payload. */
+  data?: unknown;
+}
+
+/**
+ * Reference to a persisted timeline sequence, editable in the
+ * timeline editor and passable between workflow nodes.
+ */
+export interface TimelineRef {
+  type: "timeline";
+  /** Id of the persisted timeline sequence. */
+  id?: string | null;
+  /** Optional inline timeline document payload. */
+  data?: unknown;
+}
+
 export interface WorkflowRef {
   type: "workflow_ref";
   id: string;
@@ -714,6 +738,10 @@ export interface NodeMetadata {
   supports_dynamic_outputs: boolean;
   model_packs?: ModelPack[];
   fal_unit_pricing?: FalUnitPricing | null;
+  /** When true, the node remains runnable but is hidden from default discovery. */
+  deprecated?: boolean;
+  /** Preferred replacement node_type when deprecated is true. */
+  replaced_by?: string;
   /**
    * Deployment platforms this node supports. See `@nodetool-ai/protocol`'s
    * Platform type. Absent or empty values are treated as ["node"].

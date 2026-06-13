@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, useState, useCallback } from "react";
-import { TextInput, EditorButton, LoadingSpinner } from "../ui_primitives";
+import { TextInput, EditorButton, LoadingSpinner, MOTION } from "../ui_primitives";
 import useSecretsStore from "../../stores/SecretsStore";
 
 const styles = (theme: Theme) =>
@@ -30,7 +30,7 @@ const styles = (theme: Theme) =>
       borderRadius: 10,
       padding: "12px 14px",
       cursor: "pointer",
-      transition: "border-color 0.15s",
+      transition: `border-color ${MOTION.fast}`,
       "&:hover": {
         borderColor: theme.vars.palette.c_gray3,
       },
@@ -107,7 +107,7 @@ const PROVIDERS: Provider[] = [
     description: "Claude Sonnet, Haiku",
     secretKey: "ANTHROPIC_API_KEY",
     color: "#d97706",
-    defaultModel: "anthropic:claude-sonnet-4-20250514",
+    defaultModel: "anthropic:claude-sonnet-4-6",
   },
 ];
 

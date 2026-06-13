@@ -1,5 +1,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
+import { MOTION } from "../ui_primitives";
 
 interface SpeedDisplayProps {
   speedFactor: number;
@@ -34,7 +35,7 @@ const SpeedDisplay: React.FC<SpeedDisplayProps> = ({
         textAlign: "center",
         maxWidth: "200px",
         opacity: 0.4,
-        transition: "opacity 0.1s ease-in-out"
+        transition: `opacity ${MOTION.fast}`
       }}
     >
       <div>{(speedFactor * 100).toFixed(0)}%</div>

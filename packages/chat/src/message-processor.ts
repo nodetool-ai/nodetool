@@ -205,6 +205,9 @@ export async function processChat(opts: {
       if (isChunk(item)) {
         // Skip thinking chunks — they must not appear in user-visible text output.
         if (item.thinking) continue;
+        // Audio chunks carry binary payloads (native Float32Array or base64);
+        // they aren't assistant text.
+        if (typeof item.content !== "string") continue;
 
         const text = item.content ?? "";
         callbacks?.onChunk?.(text);

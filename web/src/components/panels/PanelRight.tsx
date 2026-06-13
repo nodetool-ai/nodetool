@@ -24,13 +24,18 @@ import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
 
 import { PANEL_RESIZE_HANDLE_WIDTH } from "../../config/constants";
 import ContextMenus from "../context_menus/ContextMenus";
-import { MobileBottomSheet, FlexColumn } from "../ui_primitives";
+import {
+  MobileBottomSheet,
+  FlexColumn,
+  MOTION,
+  reducedMotion
+} from "../ui_primitives";
 
 const HEADER_AREA_HEIGHT = 77;
 // Matches HEADER_HEIGHT in PanelBottom — the bar still occupies this when collapsed.
 const BOTTOM_PANEL_HEADER_HEIGHT = 32;
 
-const styles = (theme: Theme, bottomOffset: number) =>
+const styles = (theme: Theme, bottomOffset: number, isVisible: boolean) =>
   css({
     position: "fixed",
     right: 0,
@@ -39,6 +44,12 @@ const styles = (theme: Theme, bottomOffset: number) =>
     display: "flex",
     flexDirection: "row",
     zIndex: 1100,
+    // Slide off the right edge when hidden; the panel overlays (position:
+    // fixed) so this is a purely visual transform, no layout reflow.
+    transform: isVisible ? "translateX(0)" : "translateX(100%)",
+    pointerEvents: isVisible ? "auto" : "none",
+    transition: `transform ${MOTION.slow}`,
+    ...reducedMotion({ transition: MOTION.none }),
 
     ".drawer-content": {
       height: "100%",
@@ -61,7 +72,7 @@ const styles = (theme: Theme, bottomOffset: number) =>
       borderRadius: 0,
       cursor: "ew-resize",
       zIndex: 10,
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
 
       "&:hover": {
         backgroundColor: theme.vars.palette.primary.main,
@@ -361,30 +372,29 @@ const PanelRight: React.FC = () => {
       {activeNodeStore && (
         <InspectorVisibilitySync activeNodeStore={activeNodeStore} />
       )}
-      {isVisible && (
+      <div
+        css={styles(theme, bottomOffset, isVisible)}
+        className="panel-right-container"
+        aria-hidden={!isVisible}
+      >
         <div
-          css={styles(theme, bottomOffset)}
-          className="panel-right-container"
+          ref={panelRef}
+          className={`drawer-content ${isDragging ? "dragging" : ""}`}
+          style={{ width: `${panelSize}px` }}
         >
           <div
-            ref={panelRef}
-            className={`drawer-content ${isDragging ? "dragging" : ""}`}
-            style={{ width: `${panelSize}px` }}
-          >
-            <div
-              className="panel-button"
-              onMouseDown={handleMouseDown}
-              role="slider"
-              aria-label="Resize panel"
-              aria-valuenow={panelSize}
-              aria-valuemin={60}
-              aria-valuemax={600}
-              tabIndex={-1}
-            />
-            <div className="panel-inner-content">{inspectorBody}</div>
-          </div>
+            className="panel-button"
+            onMouseDown={handleMouseDown}
+            role="slider"
+            aria-label="Resize panel"
+            aria-valuenow={panelSize}
+            aria-valuemin={60}
+            aria-valuemax={600}
+            tabIndex={-1}
+          />
+          <div className="panel-inner-content">{inspectorBody}</div>
         </div>
-      )}
+      </div>
     </>
   );
 };

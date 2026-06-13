@@ -66,7 +66,6 @@ export * as triggers from "./nodetool.triggers.js";
 export * as video from "./nodetool.video.js";
 export * as workflowsBase_node from "./nodetool.workflows.base_node.js";
 export * as workflowsWorkflow_node from "./nodetool.workflows.workflow_node.js";
-export * as workspace from "./nodetool.workspace.js";
 export * as openaiAgents from "./openai.agents.js";
 export * as openaiAudio from "./openai.audio.js";
 export * as openaiImage from "./openai.image.js";

@@ -64,6 +64,15 @@
   padding: var(--node-body-padding);
 }
 
+/* Terminal-driving nodes (e.g. Claude Code) render an xterm pane sized to the
+   tmux geometry (~80 cols). Widen the node so the terminal fits without
+   clipping, and drop body padding so it sits edge-to-edge. No overflow:hidden
+   here — that would clip the absolutely-positioned handles. */
+.react-flow__node .node-body.base-node.has-terminal {
+  padding: 0;
+  min-width: 540px;
+}
+
 /* Resized nodes: clip overflowing params at the bottom (y) while side handles
    can still protrude horizontally (x). Collapsed nodes override in collapsed.css. */
 .react-flow__node .node-content-container {

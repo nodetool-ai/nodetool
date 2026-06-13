@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Menu, MenuItem, ListItemIcon, ListItemText } from "@mui/material";
-import { Box } from "../ui_primitives";
+import { ListItemIcon, ListItemText } from "@mui/material";
+import { Box, EditorMenu, EditorMenuItem, MOTION } from "../ui_primitives";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import CheckIcon from "@mui/icons-material/Check";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -42,7 +42,7 @@ export const OutputSelector: React.FC<OutputSelectorProps> = React.memo(function
           backgroundColor: `${theme.vars.palette.primary.main}12`,
           cursor: "pointer",
           "&:hover": { backgroundColor: `${theme.vars.palette.primary.main}20` },
-          transition: "all 0.15s",
+          transition: `all ${MOTION.fast}`,
         }}
       >
         <AccountTreeOutlinedIcon sx={{ fontSize: 14, color: theme.vars.palette.primary.main }} />
@@ -55,14 +55,14 @@ export const OutputSelector: React.FC<OutputSelectorProps> = React.memo(function
         <ExpandMoreIcon sx={{ fontSize: 14, color: theme.vars.palette.primary.main }} />
       </Box>
 
-      <Menu
+      <EditorMenu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={() => setAnchorEl(null)}
-        slotProps={{ paper: { sx: { minWidth: 220 } } }}
+        paperSx={{ minWidth: 220 }}
       >
         {outputs.map((o) => (
-          <MenuItem
+          <EditorMenuItem
             key={o.name}
             selected={o.name === selectedOutput}
             onClick={() => { onSelect(o.name); setAnchorEl(null); }}
@@ -76,9 +76,9 @@ export const OutputSelector: React.FC<OutputSelectorProps> = React.memo(function
                 <CheckIcon sx={{ fontSize: 18, color: theme.vars.palette.primary.main }} />
               </ListItemIcon>
             )}
-          </MenuItem>
+          </EditorMenuItem>
         ))}
-      </Menu>
+      </EditorMenu>
     </>
   );
 });

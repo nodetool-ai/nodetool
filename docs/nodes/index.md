@@ -42,7 +42,7 @@ Complete reference documentation for all 581 NodeTool nodes across 70 namespaces
 - **[lib.nlp](lib/nlp/)** - 7 node(s)
 - **[lib.notion](lib/notion/)** - 6 node(s)
 - **[lib.ocr](lib/ocr/)** - 2 node(s)
-- **[lib.os](lib/os/)** - 29 node(s)
+- **[lib.os](lib/os/)** - 33 node(s)
 - **[lib.pdf](lib/pdf/)** - 11 node(s)
 - **[lib.pptx](lib/pptx/)** - 2 node(s)
 - **[lib.rss](lib/rss/)** - 2 node(s)
@@ -89,7 +89,6 @@ Complete reference documentation for all 581 NodeTool nodes across 70 namespaces
 - **[nodetool.video](nodetool/video/)** - 29 node(s)
 - **[nodetool.workflows.base_node](nodetool/workflows/base_node/)** - 1 node(s)
 - **[nodetool.workflows.workflow_node](nodetool/workflows/workflow_node/)** - 1 node(s)
-- **[nodetool.workspace](nodetool/workspace/)** - 18 node(s)
 
 ### openai
 

@@ -26,6 +26,12 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./builtin-packs": {
+      "nodetool-dev": "./src/builtin-packs.ts",
+      "types": "./dist/builtin-packs.d.ts",
+      "import": "./dist/builtin-packs.js",
+      "default": "./dist/builtin-packs.js"
+    },
     "./bridge-protocol": {
       "nodetool-dev": "./src/bridge-protocol.ts",
       "types": "./dist/bridge-protocol.d.ts",

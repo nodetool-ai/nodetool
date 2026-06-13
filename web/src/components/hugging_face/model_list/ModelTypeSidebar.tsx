@@ -5,7 +5,7 @@ import {
   ListItemButton,
   ListItemText
 } from "@mui/material";
-import { Chip, Text, ToolbarIconButton, Box } from "../../ui_primitives";
+import { Chip, Text, ToolbarIconButton, Box, MOTION } from "../../ui_primitives";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { IconForType } from "../../../config/IconForType";
 import { prettifyModelType } from "../../../utils/modelFormatting";
@@ -104,7 +104,7 @@ const ModelTypeSidebar: React.FC = () => {
               sx={{
                   borderRadius: "var(--rounded-lg)",
                   padding: "8px 12px",
-                  transition: "background-color 0.15s ease, color 0.15s ease",
+                  transition: `${MOTION.background}, color ${MOTION.fast}`,
                   "&.Mui-selected": {
                     backgroundColor:
                       "rgba(var(--palette-primary-main-channel) / 0.12)",

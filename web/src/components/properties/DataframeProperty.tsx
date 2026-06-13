@@ -8,7 +8,7 @@ import { ColumnDef, DataframeRef } from "../../stores/ApiTypes";
 import DataTable from "../node/DataTable/DataTable";
 import ColumnsManager from "../node/ColumnsManager";
 import DataframeEditorModal from "./DataframeEditorModal";
-import { Tooltip, ToolbarIconButton, EditorButton, ButtonGroup } from "../ui_primitives";
+import { ToolbarIconButton, EditorButton, ButtonGroup, MOTION } from "../ui_primitives";
 // icons
 import TableRowsIcon from "@mui/icons-material/TableRows";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
@@ -85,7 +85,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       border: "0",
       textAlign: "center",
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
       outline: `1px dashed ${theme.vars.palette.grey[600]}`,
       margin: "5px 0",
       backgroundColor: alpha(theme.palette.common.black, 0.2),

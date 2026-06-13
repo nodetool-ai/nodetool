@@ -27,7 +27,8 @@ import { initDb, Workflow, Secret, getSecret } from "@nodetool-ai/models";
 import { initMasterKey } from "@nodetool-ai/security";
 import { getDefaultDbPath, getDefaultAssetsPath } from "@nodetool-ai/config";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
-import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { hydrateGraphNodeFlags, NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { GraphData } from "@nodetool-ai/protocol";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
 import { registerMinimaxNodes } from "@nodetool-ai/minimax-nodes";
@@ -516,12 +517,24 @@ workflows
         // Resolve asset URIs (e.g. /api/storage/<key>) against the local
         // assets directory, so workflows referencing stored assets run the
         // same decode path the server does.
+        // Apply the workflow's assigned workspace (if any) so file ops and
+        // workspace-driving nodes land in the same directory as a server run.
+        const { resolveWorkflowWorkspace } = await import(
+          "@nodetool-ai/websocket"
+        );
+        const workspaceDir = workflowId
+          ? await resolveWorkflowWorkspace(workflowId, "1")
+          : null;
         const context = new ProcessingContext({
           jobId,
           workflowId,
           userId: "1",
           secretResolver: getSecret,
-          storage: new FileStorageAdapter(getDefaultAssetsPath())
+          storage: new FileStorageAdapter(getDefaultAssetsPath()),
+          workspaceDir,
+          workspaceStorage: workspaceDir
+            ? new FileStorageAdapter(workspaceDir)
+            : null
         });
 
         // Connect a Python worker bridge when the graph has non-TS (Python)
@@ -555,7 +568,9 @@ workflows
                 workflow_id: workflowId ?? undefined,
                 params
               },
-              graph
+              // Saved workflow JSON carries no behavior flags; stamp them
+              // from the registry or streaming nodes run as one-shots.
+              hydrateGraphNodeFlags(graph as GraphData, registry)
             );
           } finally {
             pythonBridge?.close();

@@ -4,6 +4,18 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import ImageListProperty from "../ImageListProperty";
 
+// Mock NodeContext — useUpstreamValue (added to ImageListProperty) calls useNodes
+// which requires a NodeProvider. Provide a minimal stub so tests that render
+// the component without a full store context still work.
+jest.mock("../../../contexts/NodeContext", () => {
+  const actual = jest.requireActual("../../../contexts/NodeContext");
+  return {
+    ...actual,
+    useNodes: (selector: (state: Record<string, unknown>) => unknown) =>
+      selector({ nodes: [], edges: [], findNode: () => undefined })
+  };
+});
+
 // Mock dependencies
 jest.mock("../../../config/data_types", () => ({}));
 jest.mock("../../../serverState/useAssetUpload", () => ({

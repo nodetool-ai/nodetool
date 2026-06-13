@@ -18,11 +18,7 @@ const ACTIVE_COLOR = "#FFD60A";
 const OUTLINE_COLOR = "rgba(0, 0, 0, 0.85)";
 const MAX_CACHE_ENTRIES = 64;
 
-/**
- * Stable content key for a caption at a frame: the dimensions plus each word
- * with a marker on the active one. Two frames that look the same share a
- * cached bitmap, so the GPU side re-uploads only when the caption changes.
- */
+/** @visibleForTesting */
 export function captionSignature(
   caption: ResolvedCaption,
   width: number,

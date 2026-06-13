@@ -1,5 +1,4 @@
 import React, { useCallback } from "react";
-import { ListItem } from "@mui/material";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import RenderNamespaces from "./RenderNamespaces";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
@@ -49,7 +48,7 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
 
   return (
     <>
-      <ListItem
+      <li
         className={`list-item ${isExpanded ? "expanded" : "collapsed"} ${
           isSelected ? "selected" : ""
         } ${isHighlighted ? "highlighted" : "no-highlight"}`}
@@ -61,7 +60,7 @@ const NamespaceItem: React.FC<NamespaceItemProps> = ({
             {formatNamespaceLabel(namespace)}
           </span>
         </div>
-      </ListItem>
+      </li>
       {hasChildren && isExpanded && (
         <div className="sublist">
           <RenderNamespaces

@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo } from "react";
-import { List } from "@mui/material";
-import { Caption, FlexColumn, Text, Box } from "../../ui_primitives";
+import { Caption, FlexColumn, Text, Box, ListGroup } from "../../ui_primitives";
 import ModelListItem from "../../hugging_face/model_list/ModelListItem";
 import ModelPackCard from "../../hugging_face/ModelPackCard";
 import type { ModelPack, UnifiedModel } from "../../../stores/ApiTypes";
@@ -135,7 +134,7 @@ const RecommendedModelsView: React.FC<RecommendedModelsViewProps> = ({
                 No models found{searchQuery ? ` for "${searchQuery}"` : ""}.
               </Text>
             ) : (
-              <List disablePadding>
+              <ListGroup flush>
                 {displayModels.map((model) => {
                   const cacheKey = getHfCacheKey(model);
                   const isCacheable = canCheckHfCache(model);
@@ -153,7 +152,7 @@ const RecommendedModelsView: React.FC<RecommendedModelsViewProps> = ({
                     />
                   );
                 })}
-              </List>
+              </ListGroup>
             )}
           </Box>
         )}

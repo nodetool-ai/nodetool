@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Drawer } from "@mui/material";
+import { MOTION } from "../ui_primitives";
 import { Tooltip } from "../ui_primitives";
 import { useResizeBottomPanel } from "../../hooks/handlers/useResizeBottomPanel";
 import {
@@ -155,7 +156,7 @@ const styles = (theme: Theme) =>
       border: 0,
       borderRadius: 0,
       cursor: "ns-resize",
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
       "&::before": {
         content: '""',
         position: "absolute",
@@ -167,7 +168,7 @@ const styles = (theme: Theme) =>
         borderRadius: "var(--rounded-xs)",
         backgroundColor: theme.vars.palette.grey[600],
         opacity: 0.5,
-        transition: "all 0.2s ease"
+        transition: MOTION.all
       },
       "&:hover": {
         backgroundColor: theme.vars.palette.primary.main,
@@ -266,7 +267,7 @@ const styles = (theme: Theme) =>
         backgroundColor: "transparent",
         border: "none",
         whiteSpace: "nowrap",
-        transition: "background-color 120ms, color 120ms",
+        transition: `${MOTION.background}, color ${MOTION.fast}`,
         "& svg": {
           fontSize: "var(--fontSizeNormal)",
           color: theme.vars.palette.text.disabled
@@ -508,7 +509,7 @@ const PanelBottom: React.FC = () => {
             backgroundColor: theme.vars.palette.background.default,
             boxShadow: isVisible ? "0 -4px 10px rgba(0, 0, 0, 0.3)" : "none",
             overflow: "hidden",
-            transition: "height 200ms ease"
+            transition: `height ${MOTION.normal}`
           }
         }}
         variant="persistent"

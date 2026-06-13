@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useMemo, useRef } from "react";
 import { ProgressBar } from "../../ui_primitives/ProgressBar";
 
 interface ProgressProps {
@@ -7,20 +7,14 @@ interface ProgressProps {
 }
 
 export const Progress: React.FC<ProgressProps> = ({ progress, total }) => {
-  const [eta, setEta] = useState<number | null>(null);
-  const startTimeRef = useRef<number | null>(null);
+  const startTimeRef = useRef<number>(Date.now());
 
-  useEffect(() => {
-    if (startTimeRef.current === null) {
-      startTimeRef.current = Date.now();
-    }
-
-    const remainingItems = total - progress;
-    const elapsedTime = Date.now() - (startTimeRef.current || Date.now());
+  const eta = useMemo(() => {
+    const elapsedTime = Date.now() - startTimeRef.current;
+    if (progress <= 0 || elapsedTime <= 0) return null;
     const itemsPerMs = progress / elapsedTime;
-    const remainingTimeMs = remainingItems / itemsPerMs;
-    const etaSeconds = Math.round(remainingTimeMs / 1000);
-    setEta(etaSeconds);
+    const remainingItems = total - progress;
+    return Math.round(remainingItems / itemsPerMs / 1000);
   }, [progress, total]);
 
   const percentValue = (progress * 100) / total;

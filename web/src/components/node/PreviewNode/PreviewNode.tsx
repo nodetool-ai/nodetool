@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { Handle, NodeProps, Position, useReactFlow } from "@xyflow/react";
-import { Text, Container } from "../../ui_primitives";
+import { Text, Container, MOTION } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import isEqual from "fast-deep-equal";
@@ -135,7 +135,7 @@ const styles = (theme: Theme) =>
         position: "absolute",
         right: "-8px",
         bottom: "-9px",
-        transition: "opacity 0.2s"
+        transition: `opacity ${MOTION.normal}`
       },
       "&:hover .react-flow__resize-control.handle.bottom.right": {
         opacity: 1
@@ -153,7 +153,7 @@ const styles = (theme: Theme) =>
         left: "1em",
         width: "calc(100% - 2em)",
         zIndex: 10,
-        transition: "opacity 0.2s"
+        transition: `opacity ${MOTION.normal}`
       },
       ".actions .action-button.copy": {
         marginLeft: "auto"
@@ -313,7 +313,8 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   // the runner's `output_update` for the source already carries the value.
   const rawSourceNodeValue = useNodeResultValue(
     props.data.workflow_id,
-    incomingValueEdge?.source ?? ""
+    incomingValueEdge?.source ?? "",
+    incomingValueEdge?.sourceHandle ?? undefined
   );
   const sourceNodeValue = incomingValueEdge?.source ? rawSourceNodeValue : undefined;
 

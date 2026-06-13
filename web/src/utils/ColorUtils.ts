@@ -39,7 +39,7 @@ export function darkenHexColor(hex: string, amount: number): string {
     .hex();
 }
 
-export function lightenHexColor(hex: string, amount: number): string {
+function lightenHexColor(hex: string, amount: number): string {
   if (isCssVar(hex)) {return hex;}
 
   return chroma(hex)
@@ -139,7 +139,7 @@ export enum NodeTypeCategory {
 /**
  * Determines the category of a node based on its type string.
  */
-export function getNodeTypeCategory(nodeType: string | undefined): NodeTypeCategory {
+function getNodeTypeCategory(nodeType: string | undefined): NodeTypeCategory {
   if (!nodeType) {
     return NodeTypeCategory.Processing;
   }

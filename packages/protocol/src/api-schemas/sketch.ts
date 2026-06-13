@@ -22,7 +22,8 @@ export type LayerVersion = z.infer<typeof layerVersion>;
 export const layerBindingKind = z.enum([
   "workflow",
   "text-to-image",
-  "image-to-image"
+  "image-to-image",
+  "inpaint"
 ]);
 
 /**
@@ -45,6 +46,8 @@ export const layerWorkflowBinding = z.object({
   provider: z.string().optional(),
   model: z.string().optional(),
   sourceLayerId: z.string().nullable().optional(),
+  sourceAssetId: z.string().nullable().optional(),
+  maskAssetId: z.string().nullable().optional(),
   width: z.number().optional(),
   height: z.number().optional(),
   strength: z.number().optional(),

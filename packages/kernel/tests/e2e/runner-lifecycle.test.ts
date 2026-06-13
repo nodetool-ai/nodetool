@@ -319,14 +319,16 @@ describe("RUNNER-019: Streaming output node propagates streaming flag downstream
     );
 
     expect(result.status).toBe("completed");
-    // 4 items emitted → 4 active edge_update on e1
+    // 4 items emitted on e1. edge_update is throttled; the last active
+    // update carries the total.
     const active = result.messages.filter(
       (m) =>
         m.type === "edge_update" &&
         (m as EdgeUpdate).edge_id === "e1" &&
         (m as EdgeUpdate).status === "active"
     );
-    expect(active.length).toBe(4);
+    expect(active.length).toBeGreaterThanOrEqual(1);
+    expect((active[active.length - 1] as EdgeUpdate).counter).toBe(4);
   });
 });
 

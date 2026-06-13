@@ -5,13 +5,15 @@ import type { OnResize } from "@xyflow/system";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box } from "../ui_primitives";
+import { Box, MOTION } from "../ui_primitives";
 import { memo, useMemo } from "react";
 
 interface NodeResizeHandleProps {
   minWidth: number;
   minHeight: number;
   onResize?: OnResize;
+  /** Lock the width/height ratio while dragging the handle. */
+  keepAspectRatio?: boolean;
 }
 
 const styles = (theme: Theme) =>
@@ -35,7 +37,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       opacity: 0.6,
-      transition: "all 0.2s ease",
+      transition: MOTION.all,
       "&:hover": {
         opacity: 1
       },
@@ -46,7 +48,7 @@ const styles = (theme: Theme) =>
         top: "50%",
         color: theme.vars.palette.grey[100],
         transform: "translate(-50%, -50%) rotate(-45deg)",
-        transition: "color 0.2s"
+        transition: `color ${MOTION.normal}`
       }
     }
   });
@@ -54,7 +56,8 @@ const styles = (theme: Theme) =>
 const NodeResizeHandle: React.FC<NodeResizeHandleProps> = memo(function NodeResizeHandle({
   minWidth,
   minHeight,
-  onResize
+  onResize,
+  keepAspectRatio
 }) {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
@@ -64,6 +67,7 @@ const NodeResizeHandle: React.FC<NodeResizeHandleProps> = memo(function NodeResi
         minWidth={minWidth}
         minHeight={minHeight}
         onResize={onResize}
+        keepAspectRatio={keepAspectRatio}
       >
         <KeyboardArrowDownIcon />
       </NodeResizeControl>

@@ -4,10 +4,9 @@ import React, { memo, useCallback, useMemo, useState } from "react";
 import { IconForType } from "../../config/IconForType";
 import {
   Autocomplete,
-  Menu,
   TextField
 } from "@mui/material";
-import { Tooltip, Text, Chip, EditorButton, Box } from "../ui_primitives";
+import { Tooltip, Text, Chip, EditorButton, Box, EditorMenu, MOTION } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import FilterListIcon from "@mui/icons-material/FilterList";
@@ -84,7 +83,7 @@ const typeFilterChipsStyles = (theme: Theme) =>
       border: "1px solid transparent",
       backgroundColor: "transparent",
       color: theme.vars.palette.text.secondary,
-      transition: "all 0.15s ease",
+      transition: `all ${MOTION.fast}`,
       "& .MuiChip-label": {
         paddingInline: theme.spacing(1)
       },
@@ -132,7 +131,7 @@ const typeFilterChipsStyles = (theme: Theme) =>
       border: "1px solid transparent",
       color: theme.vars.palette.text.secondary,
       cursor: "pointer",
-      transition: "all 0.15s ease",
+      transition: `all ${MOTION.fast}`,
       "& .MuiChip-label": {
         paddingInline: theme.spacing(0.5)
       },
@@ -408,21 +407,16 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
           </span>
         </Box>
 
-        <Menu
+        <EditorMenu
           anchorEl={menuAnchor}
           open={menuOpen}
           onClose={handleCloseMenu}
-          slotProps={{
-            paper: {
-              sx: {
-                borderRadius: "14px",
-                backgroundImage: "none",
-                overflow: "visible",
-                border: (muiTheme) =>
-                  `1px solid ${muiTheme.vars.palette.divider}`
-                // boxShadow: "0 18px 36px rgba(0,0,0,0.3)"
-              }
-            }
+          paperSx={{
+            borderRadius: "14px",
+            backgroundImage: "none",
+            overflow: "visible",
+            border: (muiTheme) =>
+              `1px solid ${muiTheme.vars.palette.divider}`
           }}
         >
           <Box
@@ -538,7 +532,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
               }}
             />
           </Box>
-        </Menu>
+        </EditorMenu>
       </Box>
     );
   }

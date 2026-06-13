@@ -125,6 +125,30 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     icon: "Videocam"
   },
   {
+    value: "sketch",
+    label: "Sketch",
+    description:
+      "Reference to a sketch document. Can be opened and edited in the sketch editor and passed between nodes.",
+    color: colour("spatial"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "Brush"
+  },
+  {
+    value: "timeline",
+    label: "Timeline",
+    description:
+      "Reference to a timeline sequence. Can be opened and edited in the timeline editor and passed between nodes.",
+    color: colour("video"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "MovieFilter"
+  },
+  {
     value: "bool",
     label: "Boolean",
     description:
@@ -147,6 +171,18 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     slug: "",
     namespace: "",
     icon: "Message"
+  },
+  {
+    value: "cv",
+    label: "CV",
+    description:
+      "Control-voltage signal for modular synthesis — a streaming float32 chunk carrying pitch, gate, or modulation data. Interoperable with audio chunk streams.",
+    color: colour("event"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "SettingsInputComponent"
   },
   {
     value: "dataframe",

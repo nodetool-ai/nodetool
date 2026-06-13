@@ -1,4 +1,9 @@
-import type { NodeDescriptor, Platform } from "@nodetool-ai/protocol";
+import type {
+  GraphData,
+  HydratedGraphData,
+  NodeDescriptor,
+  Platform
+} from "@nodetool-ai/protocol";
 import { supportsPlatform } from "@nodetool-ai/protocol";
 import type { NodeExecutor, ResolvedNodeType } from "@nodetool-ai/kernel";
 import type { NodeClass } from "./base-node.js";
@@ -277,6 +282,43 @@ function typeMetadataToString(
   return args.length > 0 ? `${typeMeta.type}[${args.join(", ")}]` : typeMeta.type;
 }
 
+/**
+ * Stamp streaming/control flags from the registry's node classes onto graph
+ * descriptors. Graphs arriving from a client carry only `type` and
+ * `properties`, and the kernel actor trusts `node.is_streaming_input` to
+ * pick run() over a one-shot process() — without this every streaming node
+ * "completes" instantly with empty outputs. The full-fat equivalent (which
+ * also resolves property/output types and drops unknown node types) is
+ * `Graph.loadFromDict` with `createGraphNodeTypeResolver`; this is the
+ * lightweight synchronous version for runners that only need correct
+ * execution semantics. Node types the registry doesn't know keep their own
+ * flags, defaulted to false (resolveExecutor reports unknown types loudly).
+ */
+export function hydrateGraphNodeFlags(
+  graph: GraphData,
+  registry: Pick<NodeRegistry, "getClass">
+): HydratedGraphData {
+  const nodes = graph.nodes.map((node) => {
+    const cls = registry.getClass(node.type);
+    return {
+      ...node,
+      is_streaming_input:
+        cls?.isStreamingInput || node.is_streaming_input || false,
+      is_streaming_output:
+        cls?.isStreamingOutput || node.is_streaming_output || false,
+      is_controlled: cls?.isControlled || node.is_controlled || false,
+      is_join_node: cls?.isJoinNode || node.is_join_node || false,
+      always_emit_output_updates:
+        cls?.alwaysEmitOutputUpdates ||
+        node.always_emit_output_updates ||
+        false,
+      input_mode: cls?.inputMode ?? node.input_mode,
+      output_correlation: cls?.outputCorrelation ?? node.output_correlation
+    };
+  });
+  return { nodes, edges: [...graph.edges] };
+}
+
 function deriveNamespace(nodeType: string): string {
   const lastDot = nodeType.lastIndexOf(".");
   // Stryker disable next-line EqualityOperator: at lastDot === 0 both arms yield "" (slice(0,0) === the else ""), so > 0 vs >= 0 are indistinguishable (equivalent).
@@ -343,6 +385,9 @@ export function createGraphNodeTypeResolver(
           }),
           ...(metadata.is_controlled && { is_controlled: true }),
           ...(metadata.is_join_node && { is_join_node: true }),
+          ...(metadata.always_emit_output_updates && {
+            always_emit_output_updates: true
+          }),
           ...(Object.keys(propertyMeta).length > 0 && { propertyMeta })
         }
       };

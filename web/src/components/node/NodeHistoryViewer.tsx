@@ -24,7 +24,7 @@ import { useNodeGenerations } from "../../hooks/nodes/useNodeGenerations";
 import { outputOf } from "../../utils/nodeGenerations";
 import type { Asset } from "../../stores/ApiTypes";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
-import { ToolbarIconButton } from "../ui_primitives";
+import { ToolbarIconButton, MOTION } from "../ui_primitives";
 import { MediaOverlaySuppressProvider } from "./MediaOverlayContext";
 
 interface NodeHistoryViewerProps {
@@ -73,7 +73,7 @@ const styles = (theme: Theme) =>
       zIndex: 10,
       pointerEvents: "none",
       opacity: 0,
-      transition: "opacity 0.2s ease"
+      transition: `opacity ${MOTION.normal}`
     },
     "&:hover .node-history-overlay, &:focus-within .node-history-overlay": {
       opacity: 1

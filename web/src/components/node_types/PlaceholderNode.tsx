@@ -2,10 +2,9 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useMemo, useCallback } from "react";
+import { memo, useMemo, useCallback, useEffect, useState } from "react";
 import { Node, NodeProps } from "@xyflow/react";
 import isEqual from "fast-deep-equal";
-import { Container } from "@mui/material";
 import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "../node/NodeHeader";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -13,11 +12,16 @@ import { useNodes } from "../../contexts/NodeContext";
 import { NodeInputs } from "../node/NodeInputs";
 import { NodeOutputs } from "../node/NodeOutputs";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
+import ExtensionIcon from "@mui/icons-material/Extension";
 import type { Edge } from "@xyflow/react";
 import type { NodeStoreState } from "../../stores/NodeStore";
+import { findBuiltinPackForNodeType } from "@nodetool-ai/protocol";
+import usePacksStore from "../../stores/PacksStore";
 import {
+  Box,
   EditorButton,
   FlexColumn,
+  MOTION,
   Text,
   Tooltip
 } from "../ui_primitives";
@@ -83,8 +87,7 @@ const styles = (theme: Theme) =>
       backgroundSize: "200% 200%",
       border: `1px solid ${theme.vars.palette.action.selected}`,
       boxShadow: "0 6px 18px rgba(0,0,0,0.25)",
-      transition:
-        "transform 200ms ease, box-shadow 200ms ease, background-position 300ms ease",
+      transition: `transform ${MOTION.normal}, ${MOTION.shadow}, background-position ${MOTION.slow}`,
       overflow: "hidden",
       "&::before": {
         content: "''",
@@ -181,6 +184,41 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
     return resolvedType.split(".").slice(0, -1).join(".") || "unknown";
   }, [resolvedType]);
 
+  // If the missing type belongs to a built-in pack that's merely disabled,
+  // offer to enable it in place instead of sending the user to the package
+  // manager. The server applies the toggle live; refetched metadata swaps
+  // this placeholder for the real node.
+  const candidatePack = useMemo(
+    () => findBuiltinPackForNodeType(resolvedType),
+    [resolvedType]
+  );
+  const builtins = usePacksStore((state) => state.builtins);
+  const fetchBuiltins = usePacksStore((state) => state.fetchBuiltins);
+  const setBuiltinEnabled = usePacksStore((state) => state.setBuiltinEnabled);
+  const [enabling, setEnabling] = useState(false);
+
+  useEffect(() => {
+    if (candidatePack && builtins.length === 0) {
+      void fetchBuiltins();
+    }
+  }, [candidatePack, builtins.length, fetchBuiltins]);
+
+  const disabledPack = useMemo(() => {
+    if (!candidatePack) return undefined;
+    const status = builtins.find((p) => p.id === candidatePack.id);
+    return status && !status.enabled ? candidatePack : undefined;
+  }, [candidatePack, builtins]);
+
+  const enablePack = useCallback(async () => {
+    if (!disabledPack) return;
+    setEnabling(true);
+    try {
+      await setBuiltinEnabled(disabledPack.id, true);
+    } finally {
+      setEnabling(false);
+    }
+  }, [disabledPack, setBuiltinEnabled]);
+
   const installPackage = useCallback(() => {
     // Pass the node type to the package manager to pre-fill the search
     const nodeTypeToSearch = nodeData?.originalType || nodeType || "";
@@ -276,7 +314,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
     [props.data.collapsed, hasParent]
   );
   return (
-    <Container
+    <Box
       css={styles(theme)}
       className={className}
       sx={{
@@ -298,17 +336,36 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
       </Tooltip>
 
       <FlexColumn gap={1} align="center" className="node-actions" sx={{ margin: "8px 0" }}>
-        <Tooltip title={`Search for ${resolvedType} in Package Manager`}>
-          <EditorButton
-            variant="contained"
-            density="compact"
-            className="install-button"
-            onClick={installPackage}
-            startIcon={<CloudDownloadIcon />}
+        {disabledPack ? (
+          <Tooltip
+            title={`This node is part of the ${disabledPack.name} pack, which is currently disabled. Enable it to load the node.`}
           >
-            Search Package Manager
-          </EditorButton>
-        </Tooltip>
+            <EditorButton
+              variant="contained"
+              density="compact"
+              className="install-button"
+              onClick={enablePack}
+              disabled={enabling}
+              startIcon={<ExtensionIcon />}
+            >
+              {enabling
+                ? "Enabling…"
+                : `Enable ${disabledPack.name} Nodes`}
+            </EditorButton>
+          </Tooltip>
+        ) : (
+          <Tooltip title={`Search for ${resolvedType} in Package Manager`}>
+            <EditorButton
+              variant="contained"
+              density="compact"
+              className="install-button"
+              onClick={installPackage}
+              startIcon={<CloudDownloadIcon />}
+            >
+              Search Package Manager
+            </EditorButton>
+          </Tooltip>
+        )}
       </FlexColumn>
 
       {mockProperties.length > 0 && (
@@ -321,7 +378,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
         />
       )}
       <NodeOutputs id={props.id} outputs={mockMetadata.outputs} />
-    </Container>
+    </Box>
   );
 };
 

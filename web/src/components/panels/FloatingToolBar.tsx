@@ -3,8 +3,9 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
-import { useMediaQuery, Menu } from "@mui/material";
-import { Tooltip, Box, AlertBanner } from "../ui_primitives";
+import { useMediaQuery } from "@mui/material";
+import { EditorMenu } from "../ui_primitives";
+import { Tooltip, Box, AlertBanner, MOTION } from "../ui_primitives";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -12,7 +13,7 @@ import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import PlayCircleIcon from "@mui/icons-material/PlayCircle";
 import BoltIcon from "@mui/icons-material/Bolt";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
-import LayoutIcon from "@mui/icons-material/ViewModule";
+import LayoutIcon from "@mui/icons-material/AutoFixHigh";
 import MapIcon from "@mui/icons-material/Map";
 import SaveIcon from "@mui/icons-material/Save";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -102,7 +103,7 @@ const actionStyles = (theme: Theme) =>
       border: "none",
       cursor: "pointer",
       borderRadius: "999px",
-      transition: "background-color 0.15s ease, color 0.15s ease"
+      transition: `${MOTION.background}, color ${MOTION.fast}`
     },
 
     ".composer-run": {
@@ -279,14 +280,15 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   // view to surface them, so show them as a dismissible banner above the composer.
   const chatError = useGlobalChatStore((state) => state.error);
   const clearChatError = useGlobalChatStore((state) => state.clearError);
-  const [conversationCollapsed, setConversationCollapsed] = useState(false);
-  const prevCount = useRef(conversationCount);
+  // Start collapsed so opening a workflow with existing conversation history
+  // doesn't pop the overlay. It auto-reveals only when chat becomes busy in
+  // this session (the user sent a message / a generation is streaming).
+  const [conversationCollapsed, setConversationCollapsed] = useState(true);
   useEffect(() => {
-    if (conversationCount > prevCount.current || chatBusy) {
+    if (chatBusy) {
       setConversationCollapsed(false);
     }
-    prevCount.current = conversationCount;
-  }, [conversationCount, chatBusy]);
+  }, [chatBusy]);
 
   const hasConversation = conversationCount > 0 || chatBusy;
   const conversationOpen = hasConversation && !conversationCollapsed;
@@ -477,13 +479,13 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         <CanvasMediaComposer trailingActions={workflowActions} />
       </Box>
 
-      <Menu
+      <EditorMenu
         anchorEl={actionsMenuAnchor}
         open={Boolean(actionsMenuAnchor)}
         onClose={handleCloseActionsMenu}
         anchorOrigin={{ vertical: "top", horizontal: "right" }}
         transformOrigin={{ vertical: "bottom", horizontal: "right" }}
-        slotProps={{ paper: { sx: { minWidth: "220px", maxWidth: "280px" } } }}
+        paperSx={{ minWidth: "220px", maxWidth: "280px" }}
       >
         <MenuItemPrimitive
           label={editorViewMode === "graph" ? "Chain View" : "Graph View"}
@@ -534,7 +536,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             onClick={runWithClose(handleOpenPaneMenu)}
           />
         )}
-      </Menu>
+      </EditorMenu>
 
       <MobilePaneMenu open={paneMenuOpen} onClose={handleClosePaneMenu} />
     </>

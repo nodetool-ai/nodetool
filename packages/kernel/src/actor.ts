@@ -183,6 +183,13 @@ export class NodeActor {
    */
   private _iterationCounters = new Map<string, Map<string, number>>();
 
+  /**
+   * Run-level cancellation signal (aborted by `WorkflowRunner.cancel()`),
+   * exposed to node code via `NodeInputs.signal`. Defaults to a
+   * never-aborted signal for test fixtures.
+   */
+  private _cancelSignal: AbortSignal;
+
   constructor(opts: {
     node: NodeDescriptor;
     inbox: NodeInbox;
@@ -197,6 +204,7 @@ export class NodeActor {
     listInputHandles?: Set<string>;
     controlContext?: Record<string, unknown> | null;
     correlation?: NodeAnalysis;
+    cancelSignal?: AbortSignal;
   }) {
     this.node = opts.node;
     this.inbox = opts.inbox;
@@ -207,6 +215,7 @@ export class NodeActor {
     this._listInputHandles = opts.listInputHandles ?? new Set();
     this._controlContext = opts.controlContext ?? null;
     this._correlation = opts.correlation;
+    this._cancelSignal = opts.cancelSignal ?? new AbortController().signal;
   }
 
   // -----------------------------------------------------------------------
@@ -251,7 +260,8 @@ export class NodeActor {
           const nodeInputs = new NodeInputs(
             this.inbox,
             this._lastEnvelopes,
-            this._correlation
+            this._correlation,
+            this._cancelSignal
           );
           const nodeOutputs = new NodeOutputs({
             sendFn: async (slot: string, value: unknown, opts) => {

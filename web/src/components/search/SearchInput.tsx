@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useRef, useState } from "react";
-import { Tooltip } from "../ui_primitives";
+import { MOTION, Tooltip } from "../ui_primitives";
 import BackspaceIcon from "@mui/icons-material/Backspace";
 import SearchIcon from "@mui/icons-material/Search";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
@@ -51,8 +51,8 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.primary,
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: "10px",
-      transition: "all 0.2s ease",
+      borderRadius: "var(--rounded-lg)",
+      transition: MOTION.all,
       boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
       fontSize: theme.fontSizeNormal,
       "::placeholder": {
@@ -82,7 +82,7 @@ const styles = (theme: Theme) =>
       border: 0,
       backgroundColor: "transparent",
       color: theme.vars.palette.text.disabled,
-      transition: "color 0.2s",
+      transition: `color ${MOTION.normal}`,
       padding: 0,
       "& svg": {
         fontSize: "var(--fontSizeBig)"

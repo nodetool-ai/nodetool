@@ -17,7 +17,9 @@
 import { useShallow } from "zustand/react/shallow";
 import useStatusStore from "../../stores/StatusStore";
 import useErrorStore, { hasNodeError } from "../../stores/ErrorStore";
-import useResultsStore from "../../stores/ResultsStore";
+import useResultsStore, {
+  type TerminalBuffer
+} from "../../stores/ResultsStore";
 import useExecutionTimeStore from "../../stores/ExecutionTimeStore";
 import useWorkflowRunsStore, {
   type RunState
@@ -161,10 +163,11 @@ export function useNodeProviderCost(
  */
 export function useNodeResultValue(
   workflowId: string,
-  nodeId: string
+  nodeId: string,
+  handle?: string
 ): unknown {
   const { current } = useNodeGenerations(workflowId, nodeId);
-  return current ? outputOf(current) : undefined;
+  return current ? outputOf(current, handle) : undefined;
 }
 
 // ── Ambient liveness (other concurrent runs) ─────────────────────────────────
@@ -200,24 +203,29 @@ const TERMINAL_RUN_STATES: ReadonlySet<RunState> = new Set([
  * active (running/starting/booting). Drives the ambient-liveness ring + badge so
  * the canvas signals work happening in runs the user is not currently focused on.
  */
+const EMPTY_JOB_IDS: readonly string[] = [];
+
 export function useNodeActiveRunCount(
   workflowId: string,
   nodeId: string
 ): number {
-  const focusedJob = useWorkflowRunsStore((s) => s.focusedJob[workflowId]);
-  const runs = useWorkflowRunsStore((s) => s.runs[workflowId]);
+  const nonFocusedActiveJobIds = useWorkflowRunsStore(
+    useShallow((s) => {
+      const focused = s.focusedJob[workflowId];
+      const wfRuns = s.runs[workflowId];
+      if (!wfRuns) return EMPTY_JOB_IDS;
+      const ids: string[] = [];
+      for (const jobId in wfRuns) {
+        if (jobId !== focused && !TERMINAL_RUN_STATES.has(wfRuns[jobId].state)) {
+          ids.push(jobId);
+        }
+      }
+      return ids.length === 0 ? EMPTY_JOB_IDS : ids;
+    })
+  );
   return useStatusStore((s) => {
-    if (!runs) {
-      return 0;
-    }
     let count = 0;
-    for (const jobId in runs) {
-      if (jobId === focusedJob) {
-        continue;
-      }
-      if (TERMINAL_RUN_STATES.has(runs[jobId].state)) {
-        continue;
-      }
+    for (const jobId of nonFocusedActiveJobIds) {
       const status = s.getStatus(workflowId, jobId, nodeId);
       if (typeof status === "string" && ACTIVE_NODE_STATUSES.has(status)) {
         count++;
@@ -240,6 +248,7 @@ export function useNodeActiveRunCount(
  *  - `result`         — the current generation's resolved value (same as `useNodeResultValue`)
  *  - `output`         — the current generation's full `outputs` record
  *  - `chunk`          — accumulated text chunks
+ *  - `terminal`       — accumulated raw terminal stream (for xterm node bodies)
  *  - `task`           — latest Task object from the agent planner
  *  - `toolCall`       — latest ToolCallUpdate
  *  - `planningUpdate` — latest PlanningUpdate
@@ -251,6 +260,7 @@ export function useNodeArtifacts(
   result: unknown;
   output: unknown;
   chunk: string | undefined;
+  terminal: TerminalBuffer | undefined;
   task: Task | undefined;
   toolCall: ToolCallUpdate | undefined;
   planningUpdate: PlanningUpdate | undefined;
@@ -267,6 +277,7 @@ export function useNodeArtifacts(
       const key = jobId ? nodeKey(workflowId, jobId, nodeId) : undefined;
       return {
         chunk: key ? (s.chunks[key] as string | undefined) : undefined,
+        terminal: key ? s.terminals[key] : undefined,
         task: key ? s.tasks[key] : undefined,
         toolCall: key ? s.toolCalls[key] : undefined,
         planningUpdate: key ? s.planningUpdates[key] : undefined

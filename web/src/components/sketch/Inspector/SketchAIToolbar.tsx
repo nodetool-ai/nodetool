@@ -18,7 +18,6 @@ import {
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import { useSketchStore } from "../state/useSketchStore";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
-import { useInpaintHere } from "../../../hooks/sketch/useInpaintHere";
 import { useRegenerateStaleLayers } from "../../../hooks/sketch/useRegenerateStaleLayers";
 import { CreateGeneratedLayerDialog } from "./CreateGeneratedLayerDialog";
 
@@ -42,7 +41,7 @@ const SketchAIToolbarInner: React.FC = () => {
       )
   );
 
-  const { inpaintHere, isBusy: inpaintBusy } = useInpaintHere();
+  const setGenMode = useSketchStore((s) => s.setGenMode);
   const { regenerateStaleLayers, isBusy: regenBusy } =
     useRegenerateStaleLayers();
 
@@ -50,25 +49,9 @@ const SketchAIToolbarInner: React.FC = () => {
   const [confirmRegenOpen, setConfirmRegenOpen] = useState(false);
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
 
-  const handleInpaint = useCallback(async () => {
-    const result = await inpaintHere();
-    if (!result.ok) {
-      switch (result.reason) {
-        case "no-selection":
-          setError("Make a selection first to inpaint here.");
-          return;
-        case "no-document":
-          setError("No image document is open.");
-          return;
-        case "no-canvas":
-          setError("Canvas is not ready yet.");
-          return;
-        case "error":
-          setError(result.message ?? "Inpaint Here failed.");
-          return;
-      }
-    }
-  }, [inpaintHere]);
+  const handleInpaint = useCallback(() => {
+    setGenMode("inpaint");
+  }, [setGenMode]);
 
   const handleConfirmRegen = useCallback(async () => {
     setConfirmRegenOpen(false);
@@ -102,8 +85,8 @@ const SketchAIToolbarInner: React.FC = () => {
         >
           <span>
             <EditorButton
-              onClick={() => void handleInpaint()}
-              disabled={!hasActiveSelection || inpaintBusy}
+              onClick={handleInpaint}
+              disabled={!hasActiveSelection}
               size="small"
               startIcon={<AutoFixHighIcon fontSize="small" />}
               data-testid="sketch-action-inpaint-here"

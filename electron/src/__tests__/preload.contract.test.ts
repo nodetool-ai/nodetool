@@ -54,6 +54,8 @@ const IpcChannels = {
   NODE_PACK_INSTALL: "node-pack-install",
   NODE_PACK_UNINSTALL: "node-pack-uninstall",
   NODE_PACK_GET_INSTALL_DIR: "node-pack-get-install-dir",
+  BUILTIN_PACK_LIST: "builtin-pack-list",
+  BUILTIN_PACK_SET_ENABLED: "builtin-pack-set-enabled",
   RUNTIME_PACKAGE_STATUSES: "runtime-package-statuses",
   RUNTIME_PACKAGE_INSTALL: "runtime-package-install",
   RUNTIME_PACKAGE_UNINSTALL: "runtime-package-uninstall",
@@ -178,6 +180,8 @@ describe("preload contract", () => {
     api.nodePacks.install("@acme/cool-nodes");
     api.nodePacks.uninstall("@acme/cool-nodes");
     api.nodePacks.getInstallDir();
+    api.nodePacks.listBuiltin();
+    api.nodePacks.setBuiltinEnabled("fal", false);
 
     const channels = (electronMock.ipcRenderer.invoke as jest.Mock).mock.calls
       .map((c: unknown[]) => c[0]);
@@ -187,6 +191,8 @@ describe("preload contract", () => {
       IpcChannels.NODE_PACK_INSTALL,
       IpcChannels.NODE_PACK_UNINSTALL,
       IpcChannels.NODE_PACK_GET_INSTALL_DIR,
+      IpcChannels.BUILTIN_PACK_LIST,
+      IpcChannels.BUILTIN_PACK_SET_ENABLED,
     ]);
   });
 

@@ -102,6 +102,7 @@ export {
   ConstantAudioListNode,
   ConstantImageListNode,
   ConstantVideoListNode,
+  ConstantSketchNode,
   ConstantSelectNode,
   ConstantImageSizeNode,
   ConstantDateNode,
@@ -153,27 +154,6 @@ export {
 export { OutputNode, PreviewNode, OUTPUT_NODES } from "@nodetool-ai/audio-nodes/nodes/output";
 export { WorkflowNode, WORKFLOW_NODES } from "@nodetool-ai/core-nodes/nodes/workflow";
 export { SubgraphNode, SUBGRAPH_NODES } from "@nodetool-ai/core-nodes/nodes/subgraph";
-export {
-  GetWorkspaceDirNode,
-  ListWorkspaceFilesNode,
-  ReadTextFileNode,
-  WriteTextFileNode,
-  ReadBinaryFileNode,
-  WriteBinaryFileNode,
-  DeleteWorkspaceFileNode,
-  CreateWorkspaceDirectoryNode,
-  WorkspaceFileExistsNode,
-  GetWorkspaceFileInfoNode,
-  CopyWorkspaceFileNode,
-  MoveWorkspaceFileNode,
-  GetWorkspaceFileSizeNode,
-  IsWorkspaceFileNode,
-  IsWorkspaceDirectoryNode,
-  JoinWorkspacePathsNode,
-  SaveImageFileNode,
-  SaveVideoFileNode,
-  WORKSPACE_NODES
-} from "@nodetool-ai/automation-nodes/nodes/workspace";
 export { CompareImagesNode, COMPARE_NODES } from "@nodetool-ai/core-nodes/nodes/compare";
 export {
   LoadDocumentFileNode,
@@ -283,6 +263,26 @@ export {
   AUDIO_NODES
 } from "@nodetool-ai/audio-nodes/nodes/audio";
 export {
+  AudioToChunksNode,
+  ChunksToAudioNode,
+  StreamingGainNode,
+  StreamingLowPassNode,
+  StreamingHighPassNode,
+  REALTIME_AUDIO_NODES
+} from "@nodetool-ai/audio-nodes/nodes/realtime-audio";
+export {
+  OscillatorNode,
+  LfoNode,
+  AdsrNode,
+  GateNode,
+  VcaNode,
+  VcfNode,
+  AttenuverterNode,
+  SampleHoldNode,
+  MixerNode,
+  SYNTHESIS_NODES
+} from "@nodetool-ai/audio-nodes/nodes/synthesis";
+export {
   WaitNode,
   ManualTriggerNode,
   IntervalTriggerNode,
@@ -300,6 +300,7 @@ export {
   BatchToListNode,
   ImagesToListNode,
   PasteNode,
+  ResizeImageNode,
   ScaleNode,
   ResizeNode,
   CanvasResizeNode,
@@ -308,7 +309,6 @@ export {
   ChannelsNode,
   TextToImageNode,
   ImageToImageNode,
-  ImageEditorNode,
   CompositorNode,
   PainterNode,
   UpscaleImageNode,
@@ -317,6 +317,12 @@ export {
   VectorizeImageNode,
   IMAGE_NODES
 } from "@nodetool-ai/image-nodes/nodes/image";
+export {
+  RenderSketchNode,
+  SketchLayersNode,
+  CreateSketchNode,
+  SKETCH_NODES
+} from "@nodetool-ai/image-nodes/nodes/sketch";
 export {
   TextToVideoNode,
   ImageToVideoNode,
@@ -351,6 +357,12 @@ export {
   LipSyncNode,
   VIDEO_NODES
 } from "@nodetool-ai/video-nodes/nodes/video";
+export {
+  RenderTimelineNode,
+  TimelineTranscriptNode,
+  AddClipsToTimelineNode,
+  TIMELINE_NODES
+} from "@nodetool-ai/video-nodes/nodes/timeline";
 export {
   SummarizerNode,
   CreateThreadNode,
@@ -387,6 +399,10 @@ export {
 } from "@nodetool-ai/video-nodes/nodes/model3d";
 export {
   WorkspaceDirectoryLibNode,
+  ReadTextFileNode,
+  WriteTextFileNode,
+  ReadBinaryFileNode,
+  WriteBinaryFileNode,
   OpenWorkspaceDirectoryLibNode,
   FileExistsLibNode,
   ListFilesLibNode,
@@ -685,6 +701,10 @@ export { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
 export { SEARCH_NODES } from "@nodetool-ai/integration-nodes/nodes/search";
 export { TOOL_AGENT_NODES } from "@nodetool-ai/code-nodes/nodes/tool-agents";
 export {
+  ClaudeCodeAgentNode,
+  CLAUDE_CODE_NODES
+} from "@nodetool-ai/code-nodes/nodes/claude-code-tmux";
+export {
   SandboxShellNode,
   SandboxFileNode,
   SANDBOX_NODES
@@ -708,16 +728,19 @@ import { INPUT_NODES } from "@nodetool-ai/core-nodes/nodes/input";
 import { OUTPUT_NODES } from "@nodetool-ai/audio-nodes/nodes/output";
 import { WORKFLOW_NODES } from "@nodetool-ai/core-nodes/nodes/workflow";
 import { SUBGRAPH_NODES } from "@nodetool-ai/core-nodes/nodes/subgraph";
-import { WORKSPACE_NODES } from "@nodetool-ai/automation-nodes/nodes/workspace";
 import { COMPARE_NODES } from "@nodetool-ai/core-nodes/nodes/compare";
 import { DOCUMENT_NODES } from "@nodetool-ai/document-nodes/nodes/document";
 import { DATA_NODES } from "@nodetool-ai/data-nodes/nodes/data";
 import { CODE_NODES } from "@nodetool-ai/code-nodes/nodes/code";
 import { CodeNode } from "@nodetool-ai/code-nodes/nodes/code-node";
 import { AUDIO_NODES } from "@nodetool-ai/audio-nodes/nodes/audio";
+import { REALTIME_AUDIO_NODES } from "@nodetool-ai/audio-nodes/nodes/realtime-audio";
+import { SYNTHESIS_NODES } from "@nodetool-ai/audio-nodes/nodes/synthesis";
 import { TRIGGER_NODES } from "@nodetool-ai/automation-nodes/nodes/triggers";
 import { IMAGE_NODES } from "@nodetool-ai/image-nodes/nodes/image";
+import { SKETCH_NODES } from "@nodetool-ai/image-nodes/nodes/sketch";
 import { VIDEO_NODES } from "@nodetool-ai/video-nodes/nodes/video";
+import { TIMELINE_NODES } from "@nodetool-ai/video-nodes/nodes/timeline";
 import { AGENT_NODES } from "@nodetool-ai/llm-nodes/nodes/agents";
 import { GENERATOR_NODES } from "@nodetool-ai/llm-nodes/nodes/generators";
 import { MODEL3D_NODES } from "@nodetool-ai/video-nodes/nodes/model3d";
@@ -765,6 +788,7 @@ import { OPENAI_NODES } from "@nodetool-ai/llm-nodes/nodes/openai";
 import { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
 import { SEARCH_NODES } from "@nodetool-ai/integration-nodes/nodes/search";
 import { TOOL_AGENT_NODES } from "@nodetool-ai/code-nodes/nodes/tool-agents";
+import { CLAUDE_CODE_NODES } from "@nodetool-ai/code-nodes/nodes/claude-code-tmux";
 import { SANDBOX_NODES } from "@nodetool-ai/code-nodes/nodes/sandbox";
 import { LIB_NLP_NODES } from "@nodetool-ai/text-nodes/nodes/lib-nlp";
 import { LIB_DATETIME_NODES } from "@nodetool-ai/core-nodes/nodes/lib-datetime";
@@ -788,7 +812,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...OUTPUT_NODES,
   ...WORKFLOW_NODES,
   ...SUBGRAPH_NODES,
-  ...WORKSPACE_NODES,
   ...COMPARE_NODES,
   ...DOCUMENT_NODES,
   ...DATA_NODES,
@@ -797,9 +820,13 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_DATETIME_NODES,
   ...LIB_VALIDATE_NODES,
   ...AUDIO_NODES,
+  ...REALTIME_AUDIO_NODES,
+  ...SYNTHESIS_NODES,
   ...TRIGGER_NODES,
   ...IMAGE_NODES,
+  ...SKETCH_NODES,
   ...VIDEO_NODES,
+  ...TIMELINE_NODES,
   ...AGENT_NODES,
   ...GENERATOR_NODES,
   ...MODEL3D_NODES,
@@ -847,6 +874,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...XAI_NODES,
   ...SEARCH_NODES,
   ...TOOL_AGENT_NODES,
+  ...CLAUDE_CODE_NODES,
   ...SANDBOX_NODES,
   ...LIB_NLP_NODES,
   ...LIB_IMAGE_EFFECTS_NODES,
