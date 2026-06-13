@@ -20,7 +20,7 @@ import useNamespaceTree from "../../hooks/useNamespaceTree";
 import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useCreateNode } from "../../hooks/useCreateNode";
-import { FlexColumn, FlexRow, Chip, Box, BORDER_RADIUS } from "../ui_primitives";
+import { FlexColumn, FlexRow, Box, BORDER_RADIUS } from "../ui_primitives";
 import { useShallow } from "zustand/react/shallow";
 
 const treeStyles = (theme: Theme) =>

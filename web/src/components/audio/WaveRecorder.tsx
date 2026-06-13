@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { EditorButton, Text, LoadingSpinner, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { EditorButton, Text, LoadingSpinner, Box, BORDER_RADIUS } from "../ui_primitives";
 import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
 import {
   WaveRecorderProps,

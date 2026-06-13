@@ -1,7 +1,7 @@
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { SvgIconProps } from "@mui/material/SvgIcon";
-import { Box, FlexRow, FlexColumn, Text, BORDER_RADIUS, MOTION } from "../ui_primitives";
+import { Box, FlexRow, FlexColumn, Text, BORDER_RADIUS } from "../ui_primitives";
 
 export interface CostStatCardProps {
   label: string;

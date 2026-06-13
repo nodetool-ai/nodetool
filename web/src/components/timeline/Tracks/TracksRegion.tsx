@@ -63,7 +63,7 @@ import {
 } from "./ScriptLane";
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 import { ToolToggle } from "../ToolToggle";
-import { FlexColumn, FlexRow, FONT_SIZE_MONO, FONT_WEIGHT, BORDER_RADIUS } from "../../ui_primitives";
+import { FlexRow, FONT_SIZE_MONO, FONT_WEIGHT, BORDER_RADIUS } from "../../ui_primitives";
 import { deserializeDragData } from "../../../lib/dragdrop";
 import type { Asset } from "../../../stores/ApiTypes";
 import { assetMediaType } from "../dnd/assetToClipAdapter";

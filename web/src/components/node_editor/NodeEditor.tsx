@@ -3,7 +3,7 @@ import { memo, useState, useRef, useEffect } from "react";
 import {
   Modal
 } from "@mui/material";
-import { LoadingSpinner, Dialog, EditorButton, Box, TextInput, BORDER_RADIUS } from "../ui_primitives";
+import { LoadingSpinner, Dialog, Box, TextInput, BORDER_RADIUS } from "../ui_primitives";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 //css

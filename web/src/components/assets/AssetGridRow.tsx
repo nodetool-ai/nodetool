@@ -8,7 +8,7 @@ import AssetItem from "./AssetItem";
 import { colorForType } from "../../config/data_types";
 import { IconForType } from "../../config/IconForType";
 import { Asset } from "../../stores/ApiTypes";
-import { Text, Tooltip, BORDER_RADIUS, FONT_WEIGHT, MOTION } from "../ui_primitives";
+import { Text, Tooltip, BORDER_RADIUS, FONT_WEIGHT } from "../ui_primitives";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useTheme } from "@mui/material/styles";
 import {

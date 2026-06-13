@@ -12,6 +12,28 @@
   "graph": {
     "nodes": [
       {
+        "id": "comment-intro",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# 📡 Summarize RSS\n\nFetch an RSS feed, gather the headlines, and summarize what's new.\n\n**Pipeline:** RSS feed → collect titles → summarize\n\n**Try this:** point it at your favorite feed or change the summary length."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 266,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 460,
+          "height": 180,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
         "id": "3fd0dc61-7a0f-4a2d-900a-cbbbd35ddfcc",
         "parent_id": null,
         "type": "lib.rss.FetchRSSFeed",
@@ -26,7 +48,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "1️⃣ Fetch RSS feed"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -47,7 +70,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "2️⃣ Collect titles"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -72,27 +96,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "578ff15c-a820-4e4e-b4b1-b5a6007635e8",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {},
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1196,
-            "y": 162
-          },
-          "zIndex": 0,
-          "width": 280,
-          "height": 758,
-          "selectable": true
+          "selectable": true,
+          "title": "3️⃣ Summarize"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -116,16 +121,6 @@
         "sourceHandle": "output",
         "target": "0659612a-1a3b-471b-b397-6ec97e33882f",
         "targetHandle": "text",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "928b8a16-482f-4cf3-94ab-4e0b1ebc9297",
-        "source": "0659612a-1a3b-471b-b397-6ec97e33882f",
-        "sourceHandle": "text",
-        "target": "578ff15c-a820-4e4e-b4b1-b5a6007635e8",
-        "targetHandle": "value",
         "ui_properties": {
           "className": "str"
         }
