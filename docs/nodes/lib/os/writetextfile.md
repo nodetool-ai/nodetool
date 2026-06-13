@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Write Text File"
-node_type: "nodetool.workspace.WriteTextFile"
-namespace: "nodetool.workspace"
+node_type: "lib.os.WriteTextFile"
+namespace: "lib.os"
 ---
 
-**Type:** `nodetool.workspace.WriteTextFile`
+**Type:** `lib.os.WriteTextFile`
 
-**Namespace:** `nodetool.workspace`
+**Namespace:** `lib.os`
 
 ## Description
 
@@ -31,4 +31,4 @@ Write text to a file in the workspace.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.workspace](../) namespace.
+Browse other nodes in the [lib.os](../) namespace.

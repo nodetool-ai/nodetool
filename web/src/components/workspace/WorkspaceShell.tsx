@@ -79,10 +79,13 @@ const styles = (theme: Theme) =>
       minWidth: 0
     },
     "& .workspace-empty": {
-      flex: 1,
+      position: "absolute",
+      inset: 0,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
+      textAlign: "center",
+      padding: theme.spacing(0, 3),
       color: theme.vars.palette.text.secondary
     }
   });

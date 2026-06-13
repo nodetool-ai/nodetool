@@ -17,7 +17,9 @@
 import { useShallow } from "zustand/react/shallow";
 import useStatusStore from "../../stores/StatusStore";
 import useErrorStore, { hasNodeError } from "../../stores/ErrorStore";
-import useResultsStore from "../../stores/ResultsStore";
+import useResultsStore, {
+  type TerminalBuffer
+} from "../../stores/ResultsStore";
 import useExecutionTimeStore from "../../stores/ExecutionTimeStore";
 import useWorkflowRunsStore, {
   type RunState
@@ -161,10 +163,11 @@ export function useNodeProviderCost(
  */
 export function useNodeResultValue(
   workflowId: string,
-  nodeId: string
+  nodeId: string,
+  handle?: string
 ): unknown {
   const { current } = useNodeGenerations(workflowId, nodeId);
-  return current ? outputOf(current) : undefined;
+  return current ? outputOf(current, handle) : undefined;
 }
 
 // ── Ambient liveness (other concurrent runs) ─────────────────────────────────
@@ -245,6 +248,7 @@ export function useNodeActiveRunCount(
  *  - `result`         — the current generation's resolved value (same as `useNodeResultValue`)
  *  - `output`         — the current generation's full `outputs` record
  *  - `chunk`          — accumulated text chunks
+ *  - `terminal`       — accumulated raw terminal stream (for xterm node bodies)
  *  - `task`           — latest Task object from the agent planner
  *  - `toolCall`       — latest ToolCallUpdate
  *  - `planningUpdate` — latest PlanningUpdate
@@ -256,6 +260,7 @@ export function useNodeArtifacts(
   result: unknown;
   output: unknown;
   chunk: string | undefined;
+  terminal: TerminalBuffer | undefined;
   task: Task | undefined;
   toolCall: ToolCallUpdate | undefined;
   planningUpdate: PlanningUpdate | undefined;
@@ -272,6 +277,7 @@ export function useNodeArtifacts(
       const key = jobId ? nodeKey(workflowId, jobId, nodeId) : undefined;
       return {
         chunk: key ? (s.chunks[key] as string | undefined) : undefined,
+        terminal: key ? s.terminals[key] : undefined,
         task: key ? s.tasks[key] : undefined,
         toolCall: key ? s.toolCalls[key] : undefined,
         planningUpdate: key ? s.planningUpdates[key] : undefined

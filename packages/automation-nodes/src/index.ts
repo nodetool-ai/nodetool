@@ -1,6 +1,5 @@
 export * from "./nodes/lib-browser.js";
 export * from "./nodes/lib-os.js";
-export * from "./nodes/workspace.js";
 export * from "./nodes/triggers.js";
 export * from "./nodes/lib-sqlite.js";
 export * from "./nodes/lib-ocr.js";

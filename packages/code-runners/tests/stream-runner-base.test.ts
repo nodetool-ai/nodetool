@@ -5,7 +5,8 @@ import { resolve as pathResolve, join as pathJoin } from "node:path";
 import { spawnSync } from "node:child_process";
 import {
   StreamRunnerBase,
-  ContainerFailureError
+  ContainerFailureError,
+  PIPED_OUTPUT_ENV
 } from "../src/stream-runner-base.js";
 import { JavaScriptDockerRunner } from "../src/javascript-runner.js";
 import { BashDockerRunner } from "../src/bash-runner.js";
@@ -218,27 +219,42 @@ describe("StreamRunnerBase.cleanupSubprocessWrapper", () => {
 // ============================================================================
 
 describe("StreamRunnerBase.buildContainerEnvironment", () => {
-  it("returns empty object for empty input", () => {
+  it("starts from the piped-output defaults for empty input", () => {
     const runner = new EchoRunner();
-    expect(runner.buildContainerEnvironment({})).toEqual({});
+    expect(runner.buildContainerEnvironment({})).toEqual(PIPED_OUTPUT_ENV);
+  });
+
+  it("forces color and unbuffered output despite the non-TTY pipes", () => {
+    const runner = new EchoRunner();
+    const env = runner.buildContainerEnvironment({});
+    expect(env.FORCE_COLOR).toBe("1");
+    expect(env.CLICOLOR_FORCE).toBe("1");
+    expect(env.PYTHONUNBUFFERED).toBe("1");
+    expect(env.TERM).toBe("xterm-256color");
+  });
+
+  it("lets explicit entries override the defaults", () => {
+    const runner = new EchoRunner();
+    const env = runner.buildContainerEnvironment({ TERM: "dumb" });
+    expect(env.TERM).toBe("dumb");
   });
 
   it("converts number values to strings", () => {
     const runner = new EchoRunner();
     const env = runner.buildContainerEnvironment({ PORT: 3000 });
-    expect(env).toEqual({ PORT: "3000" });
+    expect(env).toEqual({ ...PIPED_OUTPUT_ENV, PORT: "3000" });
   });
 
   it("converts boolean values to strings", () => {
     const runner = new EchoRunner();
     const env = runner.buildContainerEnvironment({ DEBUG: true });
-    expect(env).toEqual({ DEBUG: "true" });
+    expect(env).toEqual({ ...PIPED_OUTPUT_ENV, DEBUG: "true" });
   });
 
   it("keeps string values as-is", () => {
     const runner = new EchoRunner();
     const env = runner.buildContainerEnvironment({ NAME: "Alice" });
-    expect(env).toEqual({ NAME: "Alice" });
+    expect(env).toEqual({ ...PIPED_OUTPUT_ENV, NAME: "Alice" });
   });
 
   it("handles multiple entries", () => {
@@ -248,7 +264,12 @@ describe("StreamRunnerBase.buildContainerEnvironment", () => {
       PORT: 8080,
       DEBUG: false
     });
-    expect(env).toEqual({ HOST: "localhost", PORT: "8080", DEBUG: "false" });
+    expect(env).toEqual({
+      ...PIPED_OUTPUT_ENV,
+      HOST: "localhost",
+      PORT: "8080",
+      DEBUG: "false"
+    });
   });
 });
 
@@ -420,7 +441,14 @@ describe("StreamRunnerBase subprocess mode (JavaScript)", () => {
     for await (const item of runner.stream("console.log(x)", { x: 123 })) {
       outputs.push(item);
     }
-    expect(outputs).toContainEqual(["stdout", "123\n"]);
+    // PIPED_OUTPUT_ENV forces color, so console.log(number) arrives tinted
+    // (e.g. \x1b[33m123\x1b[39m) — compare with escapes stripped.
+    const stdout = outputs
+      .filter(([slot]) => slot === "stdout")
+      // eslint-disable-next-line no-control-regex
+      .map(([, text]) => text.replace(/\u001b\[[0-9;]*m/g, ""))
+      .join("");
+    expect(stdout).toBe("123\n");
   });
 
   it("injects string locals correctly", async () => {

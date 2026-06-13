@@ -24,6 +24,7 @@ import {
 
 import useConnectionStore from "../../stores/ConnectionStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
+import { useShallow } from "zustand/react/shallow";
 import { useLiveRunStore } from "../../stores/LiveRunStore";
 import ContextMenus from "../context_menus/ContextMenus";
 import CommentNode from "../node/CommentNode";
@@ -168,13 +169,14 @@ const ReactFlowWrapper = ({
     useState(false);
 
   const reactFlowInstance = useReactFlow();
-  const pendingNodeType = useNodePlacementStore(
-    (state) => state.pendingNodeType
-  );
-  const cancelPlacement = useNodePlacementStore(
-    (state) => state.cancelPlacement
-  );
-  const placementLabel = useNodePlacementStore((state) => state.label);
+  const { pendingNodeType, cancelPlacement, placementLabel } =
+    useNodePlacementStore(
+      useShallow((state) => ({
+        pendingNodeType: state.pendingNodeType,
+        cancelPlacement: state.cancelPlacement,
+        placementLabel: state.label
+      }))
+    );
   const [ghostPosition, setGhostPosition] = useState<{
     x: number;
     y: number;
@@ -426,22 +428,22 @@ const ReactFlowWrapper = ({
     []
   );
 
-  const gridSnap = useSettingsStore((state) => state.settings.gridSnap);
-  const connectionSnap = useSettingsStore(
-    (state) => state.settings.connectionSnap
-  );
-  const panControls = useSettingsStore((state) => state.settings.panControls);
-  const selectNodesOnDrag = useSettingsStore(
-    (state) => state.settings.selectNodesOnDrag
-  );
-  const selectionMode = useSettingsStore(
-    (state) => state.settings.selectionMode
-  );
-  // Instant-update mode re-runs the graph on every keystroke; this flag lets the
-  // CSS freeze per-run edge/node animations and hide the timing badge (see
-  // handle_edge_tooltip.css → `.react-flow.instant-update`).
-  const instantUpdate = useSettingsStore(
-    (state) => state.settings.instantUpdate
+  const {
+    gridSnap,
+    connectionSnap,
+    panControls,
+    selectNodesOnDrag,
+    selectionMode,
+    instantUpdate
+  } = useSettingsStore(
+    useShallow((state) => ({
+      gridSnap: state.settings.gridSnap,
+      connectionSnap: state.settings.connectionSnap,
+      panControls: state.settings.panControls,
+      selectNodesOnDrag: state.settings.selectNodesOnDrag,
+      selectionMode: state.settings.selectionMode,
+      instantUpdate: state.settings.instantUpdate
+    }))
   );
   // Live slider scrubs re-run the graph continuously; freeze the same per-run
   // animations as instant-update mode while a scrub is active (independent of

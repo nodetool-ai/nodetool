@@ -154,27 +154,6 @@ export {
 export { OutputNode, PreviewNode, OUTPUT_NODES } from "@nodetool-ai/audio-nodes/nodes/output";
 export { WorkflowNode, WORKFLOW_NODES } from "@nodetool-ai/core-nodes/nodes/workflow";
 export { SubgraphNode, SUBGRAPH_NODES } from "@nodetool-ai/core-nodes/nodes/subgraph";
-export {
-  GetWorkspaceDirNode,
-  ListWorkspaceFilesNode,
-  ReadTextFileNode,
-  WriteTextFileNode,
-  ReadBinaryFileNode,
-  WriteBinaryFileNode,
-  DeleteWorkspaceFileNode,
-  CreateWorkspaceDirectoryNode,
-  WorkspaceFileExistsNode,
-  GetWorkspaceFileInfoNode,
-  CopyWorkspaceFileNode,
-  MoveWorkspaceFileNode,
-  GetWorkspaceFileSizeNode,
-  IsWorkspaceFileNode,
-  IsWorkspaceDirectoryNode,
-  JoinWorkspacePathsNode,
-  SaveImageFileNode,
-  SaveVideoFileNode,
-  WORKSPACE_NODES
-} from "@nodetool-ai/automation-nodes/nodes/workspace";
 export { CompareImagesNode, COMPARE_NODES } from "@nodetool-ai/core-nodes/nodes/compare";
 export {
   LoadDocumentFileNode,
@@ -420,6 +399,10 @@ export {
 } from "@nodetool-ai/video-nodes/nodes/model3d";
 export {
   WorkspaceDirectoryLibNode,
+  ReadTextFileNode,
+  WriteTextFileNode,
+  ReadBinaryFileNode,
+  WriteBinaryFileNode,
   OpenWorkspaceDirectoryLibNode,
   FileExistsLibNode,
   ListFilesLibNode,
@@ -718,6 +701,10 @@ export { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
 export { SEARCH_NODES } from "@nodetool-ai/integration-nodes/nodes/search";
 export { TOOL_AGENT_NODES } from "@nodetool-ai/code-nodes/nodes/tool-agents";
 export {
+  ClaudeCodeAgentNode,
+  CLAUDE_CODE_NODES
+} from "@nodetool-ai/code-nodes/nodes/claude-code-tmux";
+export {
   SandboxShellNode,
   SandboxFileNode,
   SANDBOX_NODES
@@ -741,7 +728,6 @@ import { INPUT_NODES } from "@nodetool-ai/core-nodes/nodes/input";
 import { OUTPUT_NODES } from "@nodetool-ai/audio-nodes/nodes/output";
 import { WORKFLOW_NODES } from "@nodetool-ai/core-nodes/nodes/workflow";
 import { SUBGRAPH_NODES } from "@nodetool-ai/core-nodes/nodes/subgraph";
-import { WORKSPACE_NODES } from "@nodetool-ai/automation-nodes/nodes/workspace";
 import { COMPARE_NODES } from "@nodetool-ai/core-nodes/nodes/compare";
 import { DOCUMENT_NODES } from "@nodetool-ai/document-nodes/nodes/document";
 import { DATA_NODES } from "@nodetool-ai/data-nodes/nodes/data";
@@ -802,6 +788,7 @@ import { OPENAI_NODES } from "@nodetool-ai/llm-nodes/nodes/openai";
 import { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
 import { SEARCH_NODES } from "@nodetool-ai/integration-nodes/nodes/search";
 import { TOOL_AGENT_NODES } from "@nodetool-ai/code-nodes/nodes/tool-agents";
+import { CLAUDE_CODE_NODES } from "@nodetool-ai/code-nodes/nodes/claude-code-tmux";
 import { SANDBOX_NODES } from "@nodetool-ai/code-nodes/nodes/sandbox";
 import { LIB_NLP_NODES } from "@nodetool-ai/text-nodes/nodes/lib-nlp";
 import { LIB_DATETIME_NODES } from "@nodetool-ai/core-nodes/nodes/lib-datetime";
@@ -825,7 +812,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...OUTPUT_NODES,
   ...WORKFLOW_NODES,
   ...SUBGRAPH_NODES,
-  ...WORKSPACE_NODES,
   ...COMPARE_NODES,
   ...DOCUMENT_NODES,
   ...DATA_NODES,
@@ -888,6 +874,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...XAI_NODES,
   ...SEARCH_NODES,
   ...TOOL_AGENT_NODES,
+  ...CLAUDE_CODE_NODES,
   ...SANDBOX_NODES,
   ...LIB_NLP_NODES,
   ...LIB_IMAGE_EFFECTS_NODES,

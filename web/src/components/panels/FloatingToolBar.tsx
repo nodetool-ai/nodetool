@@ -13,7 +13,7 @@ import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import PlayCircleIcon from "@mui/icons-material/PlayCircle";
 import BoltIcon from "@mui/icons-material/Bolt";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
-import LayoutIcon from "@mui/icons-material/ViewModule";
+import LayoutIcon from "@mui/icons-material/AutoFixHigh";
 import MapIcon from "@mui/icons-material/Map";
 import SaveIcon from "@mui/icons-material/Save";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -280,14 +280,15 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   // view to surface them, so show them as a dismissible banner above the composer.
   const chatError = useGlobalChatStore((state) => state.error);
   const clearChatError = useGlobalChatStore((state) => state.clearError);
-  const [conversationCollapsed, setConversationCollapsed] = useState(false);
-  const prevCount = useRef(conversationCount);
+  // Start collapsed so opening a workflow with existing conversation history
+  // doesn't pop the overlay. It auto-reveals only when chat becomes busy in
+  // this session (the user sent a message / a generation is streaming).
+  const [conversationCollapsed, setConversationCollapsed] = useState(true);
   useEffect(() => {
-    if (conversationCount > prevCount.current || chatBusy) {
+    if (chatBusy) {
       setConversationCollapsed(false);
     }
-    prevCount.current = conversationCount;
-  }, [conversationCount, chatBusy]);
+  }, [chatBusy]);
 
   const hasConversation = conversationCount > 0 || chatBusy;
   const conversationOpen = hasConversation && !conversationCollapsed;

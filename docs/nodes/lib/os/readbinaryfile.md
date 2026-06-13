@@ -1,13 +1,13 @@
 ---
 layout: page
 title: "Read Binary File"
-node_type: "nodetool.workspace.ReadBinaryFile"
-namespace: "nodetool.workspace"
+node_type: "lib.os.ReadBinaryFile"
+namespace: "lib.os"
 ---
 
-**Type:** `nodetool.workspace.ReadBinaryFile`
+**Type:** `lib.os.ReadBinaryFile`
 
-**Namespace:** `nodetool.workspace`
+**Namespace:** `lib.os`
 
 ## Description
 
@@ -28,4 +28,4 @@ Read a binary file from the workspace as base64-encoded string.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.workspace](../) namespace.
+Browse other nodes in the [lib.os](../) namespace.

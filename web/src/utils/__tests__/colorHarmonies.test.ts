@@ -1,140 +1,96 @@
 /**
  * @jest-environment node
  */
-import {
-  getComplementary,
-  getAnalogous,
-  getTriadic,
-  getSplitComplementary,
-  getTetradic,
-  getSquare,
-  getHarmonyInfo,
-  generateHarmony
-} from "../colorHarmonies";
+import { getHarmonyInfo, generateHarmony } from "../colorHarmonies";
 
 const HEX_REGEX = /^#[0-9a-fA-F]{6}$/;
 
 describe("colorHarmonies", () => {
-  describe("getComplementary", () => {
+  describe("complementary via generateHarmony", () => {
     it("returns 2 colors", () => {
-      expect(getComplementary("#ff0000")).toHaveLength(2);
+      expect(generateHarmony("#ff0000", "complementary").colors).toHaveLength(2);
     });
 
     it("includes the original color", () => {
-      expect(getComplementary("#ff0000")[0]).toBe("#ff0000");
+      expect(generateHarmony("#ff0000", "complementary").colors[0]).toBe("#ff0000");
     });
 
     it("returns valid hex strings", () => {
-      for (const c of getComplementary("#ff0000")) {
+      for (const c of generateHarmony("#ff0000", "complementary").colors) {
         expect(c).toMatch(HEX_REGEX);
       }
     });
 
     it("returns cyan as the complement of pure red", () => {
-      const [, complement] = getComplementary("#ff0000");
+      const [, complement] = generateHarmony("#ff0000", "complementary").colors;
       expect(complement).toBe("#00ffff");
     });
   });
 
-  describe("getAnalogous", () => {
+  describe("analogous via generateHarmony", () => {
     it("returns 3 colors", () => {
-      expect(getAnalogous("#ff0000")).toHaveLength(3);
+      expect(generateHarmony("#ff0000", "analogous").colors).toHaveLength(3);
     });
 
     it("includes the original color in the middle", () => {
-      expect(getAnalogous("#ff0000")[1]).toBe("#ff0000");
+      expect(generateHarmony("#ff0000", "analogous").colors[1]).toBe("#ff0000");
     });
 
     it("returns valid hex strings", () => {
-      for (const c of getAnalogous("#ff0000")) {
+      for (const c of generateHarmony("#ff0000", "analogous").colors) {
         expect(c).toMatch(HEX_REGEX);
       }
     });
 
     it("returns hue-shifted colors at -30 and +30 degrees for pure red", () => {
-      const [minus30, , plus30] = getAnalogous("#ff0000");
+      const [minus30, , plus30] = generateHarmony("#ff0000", "analogous").colors;
       expect(minus30).toMatch(HEX_REGEX);
       expect(plus30).toMatch(HEX_REGEX);
       expect(minus30).not.toBe(plus30);
     });
   });
 
-  describe("getTriadic", () => {
+  describe("triadic via generateHarmony", () => {
     it("returns 3 colors", () => {
-      expect(getTriadic("#ff0000")).toHaveLength(3);
+      expect(generateHarmony("#ff0000", "triadic").colors).toHaveLength(3);
     });
 
     it("includes the original color first", () => {
-      expect(getTriadic("#ff0000")[0]).toBe("#ff0000");
-    });
-
-    it("returns valid hex strings", () => {
-      for (const c of getTriadic("#ff0000")) {
-        expect(c).toMatch(HEX_REGEX);
-      }
+      expect(generateHarmony("#ff0000", "triadic").colors[0]).toBe("#ff0000");
     });
 
     it("returns green and blue variants for pure red", () => {
-      const [, color120, color240] = getTriadic("#ff0000");
+      const [, color120, color240] = generateHarmony("#ff0000", "triadic").colors;
       expect(color120).toBe("#00ff00");
       expect(color240).toBe("#0000ff");
     });
   });
 
-  describe("getSplitComplementary", () => {
-    it("returns 3 colors", () => {
-      expect(getSplitComplementary("#ff0000")).toHaveLength(3);
-    });
-
-    it("includes the original color first", () => {
-      expect(getSplitComplementary("#ff0000")[0]).toBe("#ff0000");
-    });
-
-    it("returns valid hex strings", () => {
-      for (const c of getSplitComplementary("#ff0000")) {
+  describe("split-complementary via generateHarmony", () => {
+    it("returns 3 valid hex colors starting with original", () => {
+      const colors = generateHarmony("#ff0000", "split-complementary").colors;
+      expect(colors).toHaveLength(3);
+      expect(colors[0]).toBe("#ff0000");
+      for (const c of colors) {
         expect(c).toMatch(HEX_REGEX);
       }
     });
   });
 
-  describe("getTetradic", () => {
-    it("returns 4 colors", () => {
-      expect(getTetradic("#ff0000")).toHaveLength(4);
-    });
-
-    it("includes the original color first", () => {
-      expect(getTetradic("#ff0000")[0]).toBe("#ff0000");
-    });
-
-    it("returns valid hex strings", () => {
-      for (const c of getTetradic("#ff0000")) {
-        expect(c).toMatch(HEX_REGEX);
-      }
-    });
-
-    it("includes the complement (180 degrees) for pure red", () => {
-      const colors = getTetradic("#ff0000");
+  describe("tetradic via generateHarmony", () => {
+    it("returns 4 colors with complement at 180 degrees", () => {
+      const colors = generateHarmony("#ff0000", "tetradic").colors;
+      expect(colors).toHaveLength(4);
+      expect(colors[0]).toBe("#ff0000");
       expect(colors[2]).toBe("#00ffff");
     });
   });
 
-  describe("getSquare", () => {
-    it("returns 4 colors", () => {
-      expect(getSquare("#ff0000")).toHaveLength(4);
-    });
-
-    it("includes the original color first", () => {
-      expect(getSquare("#ff0000")[0]).toBe("#ff0000");
-    });
-
-    it("returns valid hex strings", () => {
-      for (const c of getSquare("#ff0000")) {
-        expect(c).toMatch(HEX_REGEX);
-      }
-    });
-
-    it("includes the complement (180 degrees) for pure red", () => {
-      const colors = getSquare("#ff0000");
+  describe("square via generateHarmony", () => {
+    it("returns 4 colors with complement at 180 degrees", () => {
+      const colors = generateHarmony("#ff0000", "square").colors;
+      expect(colors).toHaveLength(4);
+      expect(colors[0]).toBe("#ff0000");
       expect(colors[2]).toBe("#00ffff");
     });
   });
@@ -166,40 +122,13 @@ describe("colorHarmonies", () => {
   });
 
   describe("generateHarmony", () => {
-    it("dispatches to getComplementary", () => {
-      const harmony = generateHarmony("#ff0000", "complementary");
-      expect(harmony.type).toBe("complementary");
-      expect(harmony.colors).toEqual(getComplementary("#ff0000"));
-    });
-
-    it("dispatches to getAnalogous", () => {
-      const harmony = generateHarmony("#ff0000", "analogous");
-      expect(harmony.type).toBe("analogous");
-      expect(harmony.colors).toEqual(getAnalogous("#ff0000"));
-    });
-
-    it("dispatches to getTriadic", () => {
-      const harmony = generateHarmony("#ff0000", "triadic");
-      expect(harmony.type).toBe("triadic");
-      expect(harmony.colors).toEqual(getTriadic("#ff0000"));
-    });
-
-    it("dispatches to getSplitComplementary", () => {
-      const harmony = generateHarmony("#ff0000", "split-complementary");
-      expect(harmony.type).toBe("split-complementary");
-      expect(harmony.colors).toEqual(getSplitComplementary("#ff0000"));
-    });
-
-    it("dispatches to getTetradic", () => {
-      const harmony = generateHarmony("#ff0000", "tetradic");
-      expect(harmony.type).toBe("tetradic");
-      expect(harmony.colors).toEqual(getTetradic("#ff0000"));
-    });
-
-    it("dispatches to getSquare", () => {
-      const harmony = generateHarmony("#ff0000", "square");
-      expect(harmony.type).toBe("square");
-      expect(harmony.colors).toEqual(getSquare("#ff0000"));
+    it("returns correct type for each harmony", () => {
+      expect(generateHarmony("#ff0000", "complementary").type).toBe("complementary");
+      expect(generateHarmony("#ff0000", "analogous").type).toBe("analogous");
+      expect(generateHarmony("#ff0000", "triadic").type).toBe("triadic");
+      expect(generateHarmony("#ff0000", "split-complementary").type).toBe("split-complementary");
+      expect(generateHarmony("#ff0000", "tetradic").type).toBe("tetradic");
+      expect(generateHarmony("#ff0000", "square").type).toBe("square");
     });
 
     it("includes name and description from harmonyInfo", () => {
@@ -210,52 +139,23 @@ describe("colorHarmonies", () => {
   });
 
   describe("achromatic color (#808080)", () => {
-    it("getComplementary returns valid hex values", () => {
-      const colors = getComplementary("#808080");
-      expect(colors).toHaveLength(2);
-      for (const c of colors) {
-        expect(c).toMatch(HEX_REGEX);
-      }
-    });
+    const cases: Array<{ type: Parameters<typeof generateHarmony>[1]; minColors: number }> = [
+      { type: "complementary", minColors: 2 },
+      { type: "analogous", minColors: 3 },
+      { type: "triadic", minColors: 3 },
+      { type: "split-complementary", minColors: 3 },
+      { type: "tetradic", minColors: 4 },
+      { type: "square", minColors: 4 }
+    ];
 
-    it("getAnalogous returns valid hex values", () => {
-      const colors = getAnalogous("#808080");
-      expect(colors).toHaveLength(3);
-      for (const c of colors) {
-        expect(c).toMatch(HEX_REGEX);
-      }
-    });
-
-    it("getTriadic returns valid hex values", () => {
-      const colors = getTriadic("#808080");
-      expect(colors).toHaveLength(3);
-      for (const c of colors) {
-        expect(c).toMatch(HEX_REGEX);
-      }
-    });
-
-    it("getSplitComplementary returns valid hex values", () => {
-      const colors = getSplitComplementary("#808080");
-      expect(colors).toHaveLength(3);
-      for (const c of colors) {
-        expect(c).toMatch(HEX_REGEX);
-      }
-    });
-
-    it("getTetradic returns valid hex values", () => {
-      const colors = getTetradic("#808080");
-      expect(colors).toHaveLength(4);
-      for (const c of colors) {
-        expect(c).toMatch(HEX_REGEX);
-      }
-    });
-
-    it("getSquare returns valid hex values", () => {
-      const colors = getSquare("#808080");
-      expect(colors).toHaveLength(4);
-      for (const c of colors) {
-        expect(c).toMatch(HEX_REGEX);
-      }
-    });
+    for (const { type, minColors } of cases) {
+      it(`${type} returns ${minColors} valid hex values`, () => {
+        const colors = generateHarmony("#808080", type).colors;
+        expect(colors).toHaveLength(minColors);
+        for (const c of colors) {
+          expect(c).toMatch(HEX_REGEX);
+        }
+      });
+    }
   });
 });

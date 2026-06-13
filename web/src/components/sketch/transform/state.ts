@@ -116,12 +116,6 @@ export function isIdle(s: TransformToolState): s is { kind: "idle" } {
   return s.kind === "idle";
 }
 
-export function isArmed(
-  s: TransformToolState
-): s is Extract<TransformToolState, { kind: "armed" }> {
-  return s.kind === "armed";
-}
-
 export function hasTargets(
   s: TransformToolState
 ): s is Exclude<TransformToolState, { kind: "idle" }> {
@@ -143,8 +137,3 @@ export function isDraggingHandle(
   return s.kind === "draggingHandle";
 }
 
-export function isDraggingPivot(
-  s: TransformToolState
-): s is Extract<TransformToolState, { kind: "draggingPivot" }> {
-  return s.kind === "draggingPivot";
-}

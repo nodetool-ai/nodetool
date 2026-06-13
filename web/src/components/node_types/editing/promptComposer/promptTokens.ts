@@ -144,18 +144,6 @@ export const assetMediaKind = (ext: string): AssetMediaKind => {
   return "other";
 };
 
-/** Serialize a single token back to its on-disk text encoding. */
-const tokenToString = (token: PromptToken): string => {
-  switch (token.kind) {
-    case "text":
-      return token.text;
-    case "asset":
-      return token.uri;
-    case "variable":
-      return `{{ ${token.expr} }}`;
-  }
-};
-
 /**
  * Split a single line (no newlines) into ordered tokens. Trailing dots on an
  * asset URI are treated as sentence punctuation, not part of the extension.
@@ -201,10 +189,6 @@ export const tokenizePromptLine = (line: string): PromptToken[] => {
 /** Tokenize a full multi-line prompt into one token list per line. */
 export const tokenizePrompt = (text: string): PromptToken[][] =>
   text.split("\n").map(tokenizePromptLine);
-
-/** Re-join tokenized lines back into the on-disk prompt string. */
-export const tokensToPrompt = (lines: PromptToken[][]): string =>
-  lines.map((line) => line.map(tokenToString).join("")).join("\n");
 
 /** Collect the distinct variable expressions referenced in a prompt string. */
 export const variablesInPrompt = (text: string): string[] => {

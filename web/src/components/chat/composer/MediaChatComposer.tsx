@@ -944,6 +944,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         )}
 
         <div className="media-chip-row">
+          {/* Collapsible cluster: mode/model chips + primary action. Hidden
+              while the composer is minimized (idle + empty); the trailing
+              run actions below stay visible so the workflow can still run. */}
+          <div className="media-chip-main">
           {/* Mode selector chip */}
           <MediaControlChip
             icon={modeIcon}
@@ -1461,9 +1465,11 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
               {isMediaMode ? "Generate" : <ArrowUpwardIcon fontSize="small" />}
             </button>
           )}
+          </div>
 
           {/* Host-supplied actions at the end of the footer (e.g. the canvas
-              Run button + workflow menu). Empty in the chat panel. */}
+              Run button + workflow menu). Empty in the chat panel. Stays
+              visible even while the composer is minimized. */}
           {trailingActions}
         </div>
       </div>

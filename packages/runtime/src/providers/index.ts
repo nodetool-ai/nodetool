@@ -105,11 +105,22 @@ export {
   getProvider,
   getProviderSecretKey,
   isProviderConfigured,
-  listRegisteredProviderIds
+  listRegisteredProviderIds,
+  unregisterProvider
 } from "./provider-registry.js";
 export type { GetSecret } from "./provider-registry.js";
-import { registerProvider as registerBuiltinProvider } from "./provider-registry.js";
-import { PROVIDER_IDS } from "@nodetool-ai/protocol";
+import {
+  registerProvider as registerBuiltinProvider,
+  listRegisteredProviderIds as listBuiltinProviderIds,
+  unregisterProvider as unregisterBuiltinProvider
+} from "./provider-registry.js";
+import {
+  PROVIDER_IDS,
+  CLOUD_PROFILE_ENV,
+  NODE_ENV_VAR,
+  isCloudProfileActive,
+  isCloudProvider
+} from "@nodetool-ai/protocol";
 export type {
   ProviderId,
   LanguageModel,
@@ -225,4 +236,20 @@ if (
   _envProcess.env["NODETOOL_ENABLE_FAKE_PROVIDER"] === "1"
 ) {
   registerBuiltinProvider(PROVIDER_IDS.FAKE, FakeProvider, {});
+}
+
+// Cloud profile (production, or NODETOOL_NODE_PROFILE=cloud): keep only the
+// curated provider allowlist (the big LLM labs plus Fal + Kie). Pruning after
+// registration — rather than gating each register call — keeps the
+// registration block above untouched and works regardless of which providers
+// a future edit adds.
+if (
+  isCloudProfileActive(
+    _envProcess.env[CLOUD_PROFILE_ENV],
+    _envProcess.env[NODE_ENV_VAR]
+  )
+) {
+  for (const id of listBuiltinProviderIds()) {
+    if (!isCloudProvider(id)) unregisterBuiltinProvider(id);
+  }
 }

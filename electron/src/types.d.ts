@@ -989,7 +989,9 @@ export type RuntimePackageId =
   | "pdftotext"
   | "yt-dlp"
   | "transformers-js"
-  | "tensorflow-js";
+  | "tensorflow-js"
+  | "tmux"
+  | "claude";
 
 export interface RuntimePackageStatus {
   id: RuntimePackageId;

@@ -28,8 +28,10 @@ export const useRunningTime = (
           persistedStart === undefined &&
           persistedStartTimes.size >= MAX_PERSISTED_TIMERS
         ) {
-          const oldestKey = persistedStartTimes.keys().next().value as string;
-          persistedStartTimes.delete(oldestKey);
+          const oldestKey = persistedStartTimes.keys().next().value;
+          if (oldestKey !== undefined) {
+            persistedStartTimes.delete(oldestKey);
+          }
         }
         persistedStartTimes.set(timerKey, startTime);
       }

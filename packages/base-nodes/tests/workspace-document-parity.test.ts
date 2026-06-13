@@ -4,7 +4,6 @@ import path from "node:path";
 import { tmpdir } from "node:os";
 import {
   ensureWorkspacePath,
-  ListWorkspaceFilesNode,
   ReadTextFileNode,
   WriteTextFileNode
 } from "@nodetool-ai/automation-nodes";
@@ -53,32 +52,8 @@ describe("workspace/document parity", () => {
     );
   });
 
-  it("matches workspace file listing and write semantics", async () => {
+  it("matches workspace write semantics", async () => {
     const workspace = await mkdtemp(path.join(tmpdir(), "nodetool-ws-parity-"));
-    await writeFile(path.join(workspace, "file1.txt"), "content1");
-    await writeFile(path.join(workspace, "file2.txt"), "content2");
-    await writeFile(path.join(workspace, "file.json"), "{}");
-    await mkdir(path.join(workspace, "subdir"));
-    await writeFile(path.join(workspace, "subdir", "nested.txt"), "nested");
-
-    const listNode = withWorkspace(new ListWorkspaceFilesNode(), workspace);
-    Object.assign(listNode, { path: ".", pattern: "*.txt" });
-    const files = await collectGen(listNode.genProcess());
-    // Last yield is the collected files list
-    const fileItems = files.filter((item) => "file" in item);
-    expect(fileItems.map((item) => item.file).sort()).toEqual([
-      "file1.txt",
-      "file2.txt"
-    ]);
-
-    Object.assign(listNode, { path: ".", pattern: "*.txt", recursive: true });
-    const recursiveFiles = await collectGen(listNode.genProcess());
-    const recursiveFileItems = recursiveFiles.filter((item) => "file" in item);
-    expect(recursiveFileItems.map((item) => item.file).sort()).toEqual([
-      "file1.txt",
-      "file2.txt",
-      path.join("subdir", "nested.txt")
-    ]);
 
     const writeNode = withWorkspace(new WriteTextFileNode(), workspace);
     const readNode = withWorkspace(new ReadTextFileNode(), workspace);
