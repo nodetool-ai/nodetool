@@ -13,8 +13,6 @@ import RightSideButtons from "./RightSideButtons";
 import SaveImageEditPill from "./SaveImageEditPill";
 import Logo from "../Logo";
 import { FlexRow, MOTION, Tooltip, Box } from "../ui_primitives";
-import WorkspaceSelect from "../workspaces/WorkspaceSelect";
-import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
 const styles = (theme: Theme) =>
   css({
     "&": {
@@ -153,25 +151,6 @@ const TemplatesButton = memo(function TemplatesButton({
         <AutoAwesomeMosaicIcon className="templates-icon" />
         <span className="nav-button-text">Templates</span>
       </EditorButton>
-    </Tooltip>
-  );
-});
-
-const HeaderWorkspaceSelector = memo(function HeaderWorkspaceSelector() {
-  const { workspaceId, setWorkspaceId } = useCurrentWorkspace();
-  return (
-    <Tooltip
-      title="Current workspace"
-      delay={TOOLTIP_ENTER_DELAY}
-      placement="bottom"
-    >
-      <Box sx={{ width: 280 }}>
-        <WorkspaceSelect
-          value={workspaceId}
-          onChange={setWorkspaceId}
-          compact
-        />
-      </Box>
     </Tooltip>
   );
 });

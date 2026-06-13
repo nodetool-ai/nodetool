@@ -48,6 +48,10 @@ import {
   type PythonBridge
 } from "@nodetool-ai/runtime";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
+import {
+  resolveWorkflowWorkspace,
+  buildWorkspaceExecutionContext
+} from "./lib/workflow-workspace.js";
 import type { AgentTransport } from "./agent/transport.js";
 
 export interface McpServerOptions {
@@ -440,11 +444,21 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
           graph: runnableGraph
         });
 
+        const workspaceDir = await resolveWorkflowWorkspace(
+          workflow_id,
+          user_id
+        );
         const runner = new WorkflowRunner(job.id, {
           resolveExecutor: (node) =>
             runtime.resolveExecutor(
               node as { id: string; type: string; [key: string]: unknown }
-            )
+            ),
+          executionContext: buildWorkspaceExecutionContext({
+            jobId: job.id,
+            workflowId: workflow_id,
+            userId: user_id,
+            workspaceDir
+          })
         });
         const result = await runner.run(
           { job_id: job.id, workflow_id, params },

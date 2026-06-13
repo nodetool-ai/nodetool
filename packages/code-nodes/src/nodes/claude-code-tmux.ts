@@ -17,8 +17,8 @@
  *   quiet for a stability window.
  *
  * Nodes are directly chainable: wire one node's `text` output into another
- * node's `input`, and `workspace` into `workspace` so e.g. an implementer and
- * a reviewer agent operate on the same checkout.
+ * node's `input`. All agents in a workflow run share the current workspace
+ * directory.
  */
 
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
@@ -327,9 +327,13 @@ const LIVE_SESSIONS = new Map<
 // Live terminal streaming (terminal_update messages → xterm.js node body)
 // ---------------------------------------------------------------------------
 
-/** Pane geometry — also sent with every terminal_update so the UI emulator matches. */
-const TMUX_COLS = 120;
-const TMUX_ROWS = 36;
+/** Pane geometry — also sent with every terminal_update so the UI emulator
+ * matches. Claude Code's Ink TUI needs a real-terminal-sized pane to render its
+ * input box and first-run dialogs; too small (e.g. 80x20) and the readiness
+ * markers never appear, so the launch handshake times out. The node body keeps
+ * the *display* small independently by capping the xterm height. */
+const TMUX_COLS = 80;
+const TMUX_ROWS = 40;
 
 /** A delta larger than this is replaced by a screen snapshot (reset) instead. */
 const TERMINAL_SNAPSHOT_THRESHOLD = 64 * 1024;
@@ -449,14 +453,13 @@ export class ClaudeCodeAgentNode extends BaseNode {
     "    wiring `text` into the next node's `input` and sharing `workspace`.\n" +
     "    claude, code, agent, tmux, coding, autonomous, reviewer, implementer";
   static readonly requiredRuntimes = ["tmux", "claude"];
-  static readonly inputFields = ["prompt", "input", "workspace"];
-  static readonly basicFields = ["prompt", "workspace", "model"];
+  static readonly inputFields = ["prompt", "input"];
+  static readonly basicFields = ["prompt", "model"];
   static readonly metadataOutputTypes = {
     text: "str",
     chunk: "chunk",
     transcript: "str",
-    session_id: "str",
-    workspace: "str"
+    session_id: "str"
   };
   // `text` is the final assistant answer; `chunk` streams assistant messages
   // and tool-call markers as the agent works.
@@ -464,7 +467,6 @@ export class ClaudeCodeAgentNode extends BaseNode {
     text: { kind: "single", source: "__execution__" },
     transcript: { kind: "single", source: "__execution__" },
     session_id: { kind: "single", source: "__execution__" },
-    workspace: { kind: "single", source: "__execution__" },
     chunk: { kind: "iteration", source: "__execution__", group: "stream" }
   };
 
@@ -485,15 +487,6 @@ export class ClaudeCodeAgentNode extends BaseNode {
       "Hand-off text from an upstream agent (wire another node's `text` output here). Appended after the prompt."
   })
   declare input: any;
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "Workspace",
-    description:
-      "Working directory Claude Code runs in. Empty: use the workflow workspace (or a temp dir). Wire the upstream node's `workspace` output here so chained agents share files."
-  })
-  declare workspace: any;
 
   @prop({
     type: "str",
@@ -593,14 +586,16 @@ export class ClaudeCodeAgentNode extends BaseNode {
     const command = String(this.command ?? "claude").trim() || "claude";
 
     let sessionName = String(this.session_name ?? "").trim();
-    let workspaceDir = String(this.workspace ?? "").trim();
+    const workspaceDir =
+      (context as { workspaceDir?: string } | undefined)?.workspaceDir ??
+      (await mkdtemp(path.join(tmpdir(), "nodetool-claude-")));
+    await mkdir(workspaceDir, { recursive: true });
     let sessionId: string;
     let reused = false;
 
     const live = sessionName ? LIVE_SESSIONS.get(sessionName) : undefined;
     if (sessionName && live && (await tmuxHasSession(sessionName))) {
       sessionId = live.sessionId;
-      workspaceDir = live.workspace;
       reused = true;
       log.info("Reusing live Claude Code session", { sessionName, sessionId });
     } else {
@@ -611,12 +606,6 @@ export class ClaudeCodeAgentNode extends BaseNode {
             "kill it (tmux kill-session) or choose a different session_name"
         );
       }
-      if (!workspaceDir) {
-        workspaceDir =
-          (context as { workspaceDir?: string } | undefined)?.workspaceDir ??
-          (await mkdtemp(path.join(tmpdir(), "nodetool-claude-")));
-      }
-      await mkdir(workspaceDir, { recursive: true });
       sessionId = randomUUID();
       const launch = buildClaudeLaunchCommand({
         command,
@@ -777,8 +766,7 @@ export class ClaudeCodeAgentNode extends BaseNode {
         chunk: { type: "chunk", content: "", content_type: "text", done: true },
         text: lastAssistantText,
         transcript: transcript.join("\n"),
-        session_id: sessionId,
-        workspace: workspaceDir
+        session_id: sessionId
       };
     } finally {
       if (killOnExit) {

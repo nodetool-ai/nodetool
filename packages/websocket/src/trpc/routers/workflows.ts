@@ -34,6 +34,10 @@ import type {
 } from "@nodetool-ai/models";
 import { PythonNodeExecutor } from "@nodetool-ai/runtime";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
+import {
+  resolveWorkflowWorkspace,
+  buildWorkspaceExecutionContext
+} from "../../lib/workflow-workspace.js";
 import type { GraphData, NodeDescriptor } from "@nodetool-ai/protocol";
 import {
   hydrateGraphNodeFlags,
@@ -652,7 +656,16 @@ export const workflowsRouter = router({
         graph: runnableGraph
       });
 
-      const runner = new WorkflowRunner(job.id, { resolveExecutor });
+      const workspaceDir = await resolveWorkflowWorkspace(input.id, ctx.userId);
+      const runner = new WorkflowRunner(job.id, {
+        resolveExecutor,
+        executionContext: buildWorkspaceExecutionContext({
+          jobId: job.id,
+          workflowId: input.id,
+          userId: ctx.userId,
+          workspaceDir
+        })
+      });
       const result = await runner.run(
         { job_id: job.id, workflow_id: input.id, params },
         hydrateGraphNodeFlags(runnableGraph as unknown as GraphData, registry)
