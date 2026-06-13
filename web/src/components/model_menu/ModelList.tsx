@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 
-import React, { useCallback, useMemo, useRef, memo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, memo } from "react";
 import {
   ListItemButton,
   ListItemText,
@@ -17,13 +17,10 @@ import {
   isCloudProvider,
   isHuggingFaceInferenceProvider
 } from "../../utils/providerDisplay";
-import {
-  requiredSecretForProvider,
-  ModelSelectorModel
-} from "../../stores/ModelMenuStore";
+import { ModelSelectorModel } from "../../stores/ModelMenuStore";
 
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useSecrets } from "../../hooks/useSecrets";
+import { useModelAvailability } from "../../hooks/useModelAvailability";
 import { useNavigate } from "react-router-dom";
 
 import type { Theme } from "@mui/material/styles";
@@ -71,6 +68,10 @@ const listStyles = (theme: Theme) =>
     },
     "& .MuiListItemButton-root:hover .favorite-star": {
       opacity: 1
+    },
+    "& .model-menu__model-item.is-active": {
+      background: theme.vars.palette.action.selected,
+      boxShadow: `inset 3px 0 0 ${theme.vars.palette.primary.main}`
     }
   });
 
@@ -123,6 +124,8 @@ export interface ModelListProps<TModel extends ModelSelectorModel> {
   onGoToDownloads?: () => void;
   /** Whether the dialog has recommended downloads available */
   hasDownloads?: boolean;
+  /** Index of the keyboard-highlighted row (-1 when none). */
+  activeIndex?: number;
 }
 
 function ModelList<TModel extends ModelSelectorModel>({
@@ -130,11 +133,11 @@ function ModelList<TModel extends ModelSelectorModel>({
   onSelect,
   searchTerm = "",
   onGoToDownloads,
-  hasDownloads = false
+  hasDownloads = false,
+  activeIndex = -1
 }: ModelListProps<TModel>) {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
-  const enabledProviders = useModelPreferencesStore((s) => s.enabledProviders);
-  const { isApiKeySet } = useSecrets();
+  const getAvailability = useModelAvailability();
   const theme = useTheme();
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -181,6 +184,13 @@ function ModelList<TModel extends ModelSelectorModel>({
     getItemKey: (index) => `${models[index].provider}:${models[index].id}`,
   });
 
+  // Keep the keyboard-highlighted row scrolled into view.
+  useEffect(() => {
+    if (activeIndex >= 0 && activeIndex < models.length) {
+      virtualizer.scrollToIndex(activeIndex, { align: "auto" });
+    }
+  }, [activeIndex, models.length, virtualizer]);
+
   // Stable handler for model selection using data attributes
   const handleModelClick = useCallback((event: React.MouseEvent<HTMLElement>) => {
     const target = event.currentTarget;
@@ -195,13 +205,8 @@ function ModelList<TModel extends ModelSelectorModel>({
     ({ index, style }: { index: number; style: React.CSSProperties }) => {
       const m = models[index];
       const fav = isFavorite(m.provider || "", m.id || "");
-      const env = requiredSecretForProvider(m.provider);
-      const normKey = /gemini|google/i.test(m.provider || "")
-        ? "gemini"
-        : m.provider || "";
-      const providerEnabled = enabledProviders?.[normKey] !== false;
-      const hasKey = env ? isApiKeySet(env) : true;
-      const available = providerEnabled && hasKey;
+      const { available, providerEnabled, hasKey } = getAvailability(m);
+      const isActive = index === activeIndex;
       const tooltipTitle =
         !providerEnabled && !hasKey
           ? "Enable provider and add API key in Settings to use this model"
@@ -215,8 +220,9 @@ function ModelList<TModel extends ModelSelectorModel>({
           <Tooltip disableInteractive title={tooltipTitle}>
             <ListItemButton
               className={`model-menu__model-item ${available ? "" : "is-unavailable"
-                } ${fav ? "is-favorite" : ""}`}
+                } ${fav ? "is-favorite" : ""} ${isActive ? "is-active" : ""}`}
               aria-disabled={!available}
+              aria-selected={isActive}
               data-index={index}
               data-available={available}
               onClick={handleModelClick}
@@ -310,8 +316,8 @@ function ModelList<TModel extends ModelSelectorModel>({
     [
       models,
       isFavorite,
-      enabledProviders,
-      isApiKeySet,
+      getAvailability,
+      activeIndex,
       handleModelClick,
       badgeStyle,
       badgeWithIconStyle,
