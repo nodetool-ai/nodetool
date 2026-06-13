@@ -69,7 +69,11 @@ export function useDirectGenJob(): UseDirectGenJobApi {
     if (binding.status === "queued" || binding.status === "generating") {
       return;
     }
-    if (binding.kind !== "text-to-image" && binding.kind !== "image-to-image") {
+    if (
+      binding.kind !== "text-to-image" &&
+      binding.kind !== "image-to-image" &&
+      binding.kind !== "inpaint"
+    ) {
       return;
     }
     if (!binding.provider || !binding.model) {
@@ -83,7 +87,16 @@ export function useDirectGenJob(): UseDirectGenJobApi {
 
     const sketch = useSketchStore.getState();
     let sourceAssetId: string | undefined;
-    if (binding.kind === "image-to-image") {
+    let maskAssetId: string | undefined;
+
+    if (binding.kind === "inpaint") {
+      if (!binding.sourceAssetId || !binding.maskAssetId) {
+        bindings.patchBinding(layerId, { status: "failed" });
+        return;
+      }
+      sourceAssetId = binding.sourceAssetId;
+      maskAssetId = binding.maskAssetId;
+    } else if (binding.kind === "image-to-image") {
       if (!binding.sourceLayerId) {
         bindings.patchBinding(layerId, { status: "failed" });
         return;
@@ -139,8 +152,25 @@ export function useDirectGenJob(): UseDirectGenJobApi {
       inFlight.delete(layerId);
     };
 
+    // The inpaint source/mask are throwaway uploads; once the backend is done
+    // with them (or never received them) they should not linger in the asset
+    // library. Best-effort — never block on cleanup.
+    const deleteInpaintTempAssets = () => {
+      if (binding.kind !== "inpaint") return;
+      for (const id of [binding.sourceAssetId, binding.maskAssetId]) {
+        if (id) {
+          void useAssetStore
+            .getState()
+            .delete(id)
+            .catch(() => {});
+        }
+      }
+    };
+
     const settle = async (msg: DirectGenRpcResponse) => {
       cleanup();
+      // rpc_response means the backend has finished reading the inputs.
+      deleteInpaintTempAssets();
       const store = useSketchSessionStore.getState();
       if (msg.error) {
         store.patchBinding(layerId, { status: "failed" });
@@ -201,15 +231,22 @@ export function useDirectGenJob(): UseDirectGenJobApi {
     inFlight.set(layerId, cleanup);
 
     try {
+      const mode =
+        binding.kind === "text-to-image"
+          ? "image"
+          : binding.kind === "inpaint"
+            ? "inpaint"
+            : "image_edit";
       await globalWebSocketManager.send({
         command: "generate_media",
         request_id: requestId,
         data: {
-          mode: binding.kind === "text-to-image" ? "image" : "image_edit",
+          mode,
           provider: binding.provider,
           model: binding.model,
           prompt: binding.prompt,
           source_asset_id: sourceAssetId,
+          mask_asset_id: maskAssetId,
           width: binding.width,
           height: binding.height,
           strength: binding.strength,
@@ -219,6 +256,8 @@ export function useDirectGenJob(): UseDirectGenJobApi {
       });
     } catch {
       cleanup();
+      // Send never reached the backend, so the uploads are orphaned.
+      deleteInpaintTempAssets();
       useSketchSessionStore
         .getState()
         .patchBinding(layerId, { status: "failed" });

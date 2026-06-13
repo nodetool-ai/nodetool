@@ -163,10 +163,11 @@ export function useNodeProviderCost(
  */
 export function useNodeResultValue(
   workflowId: string,
-  nodeId: string
+  nodeId: string,
+  handle?: string
 ): unknown {
   const { current } = useNodeGenerations(workflowId, nodeId);
-  return current ? outputOf(current) : undefined;
+  return current ? outputOf(current, handle) : undefined;
 }
 
 // ── Ambient liveness (other concurrent runs) ─────────────────────────────────

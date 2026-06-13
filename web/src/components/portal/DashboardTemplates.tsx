@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
-import { memo, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Workflow, WorkflowList as WorkflowListType } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -94,6 +94,28 @@ const DashboardTemplates: React.FC = () => {
 
   const [category, setCategory] = useState<string>("all");
   const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // The search box advertises "/" as a shortcut; make it work. Focus the
+  // template search when the user presses "/" anywhere outside a text field.
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+      e.preventDefault();
+      searchRef.current?.focus();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, []);
 
   const { data, isLoading } = useQuery<WorkflowListType>({
     queryKey: ["templates"],
@@ -141,6 +163,7 @@ const DashboardTemplates: React.FC = () => {
       <div css={wrapStyles(theme)}>
         <SectionHeader title="Start from a template" count={countLabel}>
           <DashboardSearchBox
+            ref={searchRef}
             value={query}
             onChange={setQuery}
             placeholder="Search templates by name, tag…"
@@ -154,6 +177,7 @@ const DashboardTemplates: React.FC = () => {
           <button
             type="button"
             className={`cat${category === "all" ? " on" : ""}`}
+            aria-pressed={category === "all"}
             onClick={() => setCategory("all")}
           >
             All
@@ -165,6 +189,7 @@ const DashboardTemplates: React.FC = () => {
                 key={cat.id}
                 type="button"
                 className={`cat${active ? " on" : ""}`}
+                aria-pressed={active}
                 onClick={() => setCategory(cat.id)}
                 style={
                   active

@@ -142,30 +142,30 @@
         "sourceHandle": "item",
         "target": "collected_captions",
         "targetHandle": "input_item"
-      },
-      {
-        "id": "e19",
-        "source": "collected_images",
-        "sourceHandle": "output",
-        "target": "images_out",
-        "targetHandle": "value"
-      },
-      {
-        "id": "e20",
-        "source": "collected_captions",
-        "sourceHandle": "output",
-        "target": "captions_out",
-        "targetHandle": "value"
-      },
-      {
-        "id": "e21",
-        "source": "content_plan",
-        "sourceHandle": "text",
-        "target": "plan_out",
-        "targetHandle": "value"
       }
     ],
     "nodes": [
+      {
+        "id": "comment-intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# 📅 Social Media Calendar Filler\n\nTurn a brand brief into a month of posts: an agent plans the calendar, then images and captions are generated per post.\n\n**Pipeline:** Brand inputs → Plan calendar → Post prompts → Image + Caption per post\n\n**Try this:** change posts-per-week or brand voice, or swap the image model."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 0,
+            "y": -220
+          },
+          "zIndex": 0,
+          "width": 460,
+          "height": 180,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
       {
         "id": "brand_name",
         "type": "nodetool.input.StringInput",
@@ -181,7 +181,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Brand name"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -202,7 +203,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Monthly theme"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -223,7 +225,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Target audience"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -244,7 +247,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Brand voice"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -267,7 +271,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Posts per week"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -304,9 +309,7 @@
         "id": "content_plan",
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {
-            "type": "language_model"
-          },
+          "model": {},
           "system": "You are a social media strategist."
         },
         "ui_properties": {
@@ -317,7 +320,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "1️⃣ Plan calendar"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -349,9 +353,7 @@
         "id": "post_prompts",
         "type": "nodetool.generators.ListGenerator",
         "data": {
-          "model": {
-            "type": "language_model"
-          },
+          "model": {},
           "max_tokens": 3000
         },
         "ui_properties": {
@@ -362,7 +364,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "2️⃣ Write post prompts"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -380,7 +383,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Loop over posts"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -390,9 +394,7 @@
         "id": "post_image",
         "type": "nodetool.image.TextToImage",
         "data": {
-          "model": {
-            "type": "image_model"
-          },
+          "model": {},
           "width": 1080,
           "height": 1080,
           "guidance_scale": 7,
@@ -404,9 +406,11 @@
             "y": 678
           },
           "zIndex": 0,
-          "width": 280,
+          "width": 384,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "height": 400,
+          "title": "3️⃣ Generate post image"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -437,7 +441,7 @@
           "template": ""
         },
         "ui_properties": {
-          "selected": true,
+          "selected": false,
           "position": {
             "x": 1010,
             "y": 85
@@ -445,7 +449,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Build caption prompt"
         },
         "dynamic_properties": {
           "plan": "",
@@ -459,9 +464,7 @@
         "id": "captions",
         "type": "nodetool.generators.ListGenerator",
         "data": {
-          "model": {
-            "type": "language_model"
-          },
+          "model": {},
           "max_tokens": 2000
         },
         "ui_properties": {
@@ -472,7 +475,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "4️⃣ Write captions"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -486,69 +490,6 @@
           "position": {
             "x": 1630,
             "y": 198
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "images_out",
-        "type": "nodetool.output.Output",
-        "data": {
-          "name": "post_images",
-          "description": "Generated images for each social media post"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 2560,
-            "y": 767
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "captions_out",
-        "type": "nodetool.output.Output",
-        "data": {
-          "name": "captions_and_hashtags",
-          "description": "Captions and hashtags for each post"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1940,
-            "y": 173
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "plan_out",
-        "type": "nodetool.output.Output",
-        "data": {
-          "name": "content_calendar",
-          "description": "Full content calendar plan for the month"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1010,
-            "y": 470
           },
           "zIndex": 0,
           "width": 280,

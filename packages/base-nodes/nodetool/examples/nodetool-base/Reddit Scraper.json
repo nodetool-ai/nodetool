@@ -71,36 +71,29 @@
         "sourceHandle": "recommendations",
         "target": "2",
         "targetHandle": "recommendations"
-      },
-      {
-        "id": "9",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "1",
-        "targetHandle": "value"
       }
     ],
     "nodes": [
       {
-        "id": "1",
-        "type": "nodetool.output.Output",
+        "id": "comment-intro",
+        "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "name": "reddit_research_report",
-          "description": ""
+          "comment": "# 🔎 Reddit Scraper\n\nResearch a subreddit with a web-browsing agent and get a structured report of issues and recommendations.\n\n**Pipeline:** Inputs → Build prompt → Research agent → Format report\n\n**Try this:** point it at any subreddit and set a focus area."
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 1330,
-            "y": 201
+            "x": 0,
+            "y": -220
           },
           "zIndex": 0,
-          "width": 280,
+          "width": 460,
+          "height": 180,
           "selectable": true,
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "2",
@@ -116,7 +109,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Format report"
         },
         "dynamic_properties": {
           "subreddit": null,
@@ -144,7 +138,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Subreddit"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -154,9 +149,7 @@
         "id": "4",
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {
-            "type": "language_model"
-          },
+          "model": {},
           "tools": [
             {
               "type": "tool_name",
@@ -180,7 +173,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Research agent"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {
@@ -245,7 +239,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Build research prompt"
         },
         "dynamic_properties": {
           "subreddit": null,
@@ -270,7 +265,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Focus area"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},

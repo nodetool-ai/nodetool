@@ -25,7 +25,7 @@
           }
         },
         "ui_properties": {
-          "title": "1️⃣ Source video — drop in your own clip",
+          "title": "1️⃣ Source video",
           "position": {
             "x": 50,
             "y": 50
@@ -45,7 +45,7 @@
           "end": 2
         },
         "ui_properties": {
-          "title": "2️⃣ Split into frames — start/end picks the range",
+          "title": "2️⃣ Split into frames",
           "position": {
             "x": 360,
             "y": 54
@@ -67,7 +67,7 @@
           "shadows": 0.1
         },
         "ui_properties": {
-          "title": "3️⃣ Exposure & contrast — lift shadows, tame highlights",
+          "title": "3️⃣ Exposure & contrast",
           "position": {
             "x": 680,
             "y": 60
@@ -87,7 +87,7 @@
           "vibrance": 0.4
         },
         "ui_properties": {
-          "title": "4️⃣ Saturation & vibrance — punch up the colors",
+          "title": "4️⃣ Saturation & vibrance",
           "position": {
             "x": 1000,
             "y": 140
@@ -104,34 +104,15 @@
         "type": "nodetool.video.FrameToVideo",
         "data": {},
         "ui_properties": {
-          "title": "5️⃣ Reassemble frames into video",
+          "title": "5️⃣ Reassemble video",
           "position": {
             "x": 1320,
             "y": 112
           },
           "zIndex": 0,
-          "width": 280,
-          "selectable": true
-        },
-        "dynamic_properties": {}
-      },
-      {
-        "id": "fe5a5e36-f57e-4b38-83c8-8c9086618102",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "any_output"
-        },
-        "ui_properties": {
-          "title": "✨ Final result — graded video plays here",
-          "position": {
-            "x": 1640,
-            "y": 93
-          },
-          "zIndex": 0,
-          "width": 280,
-          "height": 188,
-          "selectable": true
+          "width": 416,
+          "selectable": true,
+          "height": 360
         },
         "dynamic_properties": {}
       },
@@ -140,7 +121,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# \ud83c\udfa8 Color Boost Video\n\nGrade a short clip frame-by-frame, then reassemble it.\n\n**Pipeline:** Video \u2192 split into frames \u2192 exposure & contrast \u2192 saturation & vibrance \u2192 recombine \u2192 preview.\n\n**Try this:** swap the Source video, widen the frame range (`end`) for a longer clip, and push the saturation/vibrance sliders for a more cinematic look."
+          "comment": "# 🎨 Color Boost Video\n\nGrade a short clip frame-by-frame, then reassemble it. Each frame gets an exposure and saturation pass.\n\n**Pipeline:** Video → Split frames → Exposure → Saturation → Reassemble\n\n**Try this:** tweak the exposure/saturation settings or set a start/end range."
         },
         "ui_properties": {
           "selected": false,
@@ -192,16 +173,6 @@
         "target": "4ca8874f-5caa-413c-a329-936d90358e8e",
         "targetHandle": "frame",
         "ui_properties": null
-      },
-      {
-        "id": "f285b492-a2be-4348-a8b9-1004b796510e",
-        "source": "4ca8874f-5caa-413c-a329-936d90358e8e",
-        "sourceHandle": "output",
-        "target": "fe5a5e36-f57e-4b38-83c8-8c9086618102",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "any"
-        }
       },
       {
         "id": "c4081d24-ebb0-4c64-a182-8107036b7b5e",

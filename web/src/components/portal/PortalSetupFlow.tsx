@@ -107,7 +107,7 @@ const PROVIDERS: Provider[] = [
     description: "Claude Sonnet, Haiku",
     secretKey: "ANTHROPIC_API_KEY",
     color: "#d97706",
-    defaultModel: "anthropic:claude-sonnet-4-20250514",
+    defaultModel: "anthropic:claude-sonnet-4-6",
   },
 ];
 
