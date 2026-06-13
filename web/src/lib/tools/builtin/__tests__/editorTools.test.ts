@@ -18,7 +18,7 @@ const mockState: FrontendToolState = {
   fetchWorkflow: async () => {},
   newWorkflow: () => ({} as Workflow),
   createNew: async () => ({} as Workflow),
-  searchTemplates: async () => ({ workflows: [] } as WorkflowList),
+  searchTemplates: async () => ({ workflows: [], next: null } as WorkflowList),
   copy: async () => ({} as Workflow),
 };
 
