@@ -22,6 +22,8 @@ export const SUBGRAPH_NODE_TYPE = "nodetool.workflows.subgraph.Subgraph";
 export const SKETCH_NODE_TYPE = "nodetool.constant.Sketch";
 export const CODE_NODE_TYPE = "nodetool.code.Code";
 export const STRING_NODE_TYPE = "nodetool.constant.String";
+export const CONSTANT_IMAGE_NODE_TYPE = "nodetool.constant.Image";
+export const CONSTANT_VIDEO_NODE_TYPE = "nodetool.constant.Video";
 
 // --- Dynamic-schema nodes --------------------------------------------------
 export const DYNAMIC_FAL_NODE_TYPE = "fal.DynamicFal";
