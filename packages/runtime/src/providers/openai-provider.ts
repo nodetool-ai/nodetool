@@ -954,6 +954,28 @@ export class OpenAIProvider extends BaseProvider {
     throw new Error("OpenAI image generation returned no image data.");
   }
 
+  /**
+   * Convert a white-region mask (R=G=B=255, alpha = selection) into the mask
+   * OpenAI's edit endpoint expects, where fully transparent pixels mark the
+   * region to regenerate. Inverts the alpha channel and keeps RGBA shape.
+   */
+  private async toOpenAiEditMask(mask: Uint8Array): Promise<Uint8Array> {
+    const sharp = await loadSharp();
+    const { data, info } = await sharp(Buffer.from(mask))
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    for (let i = 3; i < data.length; i += 4) {
+      data[i] = 255 - data[i];
+    }
+    const png = await sharp(data, {
+      raw: { width: info.width, height: info.height, channels: 4 }
+    })
+      .png()
+      .toBuffer();
+    return new Uint8Array(png);
+  }
+
   async imageToImage(
     images: Uint8Array[],
     params: ImageToImageParams
@@ -983,6 +1005,17 @@ export class OpenAIProvider extends BaseProvider {
       image: imageFiles.length === 1 ? imageFiles[0] : imageFiles,
       prompt
     };
+
+    // Inpainting: the edit endpoint marks the region to regenerate with the
+    // mask's *transparent* pixels. Our masks use the opposite convention
+    // (opaque/white alpha = edit region, matching FAL), so invert the alpha
+    // channel before sending.
+    if (params.mask && params.mask.length > 0) {
+      const openAiMask = await this.toOpenAiEditMask(params.mask);
+      request.mask = await toFile(Buffer.from(openAiMask), "mask.png", {
+        type: "image/png"
+      });
+    }
 
     const size = this.resolveImageSize(
       params.targetWidth ?? undefined,

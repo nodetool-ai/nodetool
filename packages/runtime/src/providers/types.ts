@@ -148,6 +148,8 @@ export interface ImageToImageParams {
   strength?: number | null;
   seed?: number | null;
   scheduler?: string | null;
+  /** Mask image for inpainting — white pixels indicate the region to regenerate. */
+  mask?: Uint8Array | null;
 }
 
 /**
