@@ -5,7 +5,7 @@
  * Simplifies common typography patterns across the application.
  */
 
-import React from "react";
+import React, { forwardRef } from "react";
 import { Typography, TypographyProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
@@ -67,7 +67,7 @@ export interface TextProps extends Omit<TypographyProps, 'variant'> {
  *   This is a long paragraph that will be clamped to 2 lines with ellipsis
  * </Text>
  */
-export const Text: React.FC<TextProps> = ({
+export const Text = forwardRef<HTMLElement, TextProps>(({
   size = "normal",
   color = "inherit",
   weight,
@@ -77,7 +77,7 @@ export const Text: React.FC<TextProps> = ({
   sx,
   children,
   ...props
-}) => {
+}, ref) => {
   const theme = useTheme();
 
   // Font sizes are driven by the theme CSS variables (single source of truth
@@ -150,6 +150,7 @@ export const Text: React.FC<TextProps> = ({
 
   return (
     <Typography
+      ref={ref}
       sx={{
         fontSize: getFontSize() as string,
         color: getColor() as string,
@@ -163,4 +164,6 @@ export const Text: React.FC<TextProps> = ({
       {children}
     </Typography>
   );
-};
+});
+
+Text.displayName = "Text";

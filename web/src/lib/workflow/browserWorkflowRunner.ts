@@ -282,6 +282,40 @@ const asString = (value: unknown): string | undefined =>
  * `GlobalWebSocketManager.deliverLocal` so the UI updates exactly as it would
  * for a server run.
  */
+/** Live runners of main-thread (fallback) jobs, keyed by job id. */
+const localRunners = new Map<
+  string,
+  {
+    updateNodeProperties: (
+      nodeId: string,
+      props: Record<string, unknown>
+    ) => boolean;
+  }
+>();
+
+/**
+ * Push live property updates into a running browser job's node instances
+ * (e.g. turning a synth knob while a patch plays). Routes to the worker when
+ * worker runs are active, and to the main-thread runner otherwise.
+ * Fire-and-forget; a no-op when the job isn't running.
+ */
+export function updateBrowserJobNodeProperties(
+  jobId: string,
+  nodeId: string,
+  properties: Record<string, unknown>
+): void {
+  const local = localRunners.get(jobId);
+  if (local) {
+    local.updateNodeProperties(nodeId, properties);
+    return;
+  }
+  if (shouldUseWorker() && !workerDisabled) {
+    void import("./browserWorkerClient")
+      .then((m) => m.updateBrowserJobNodeProperties(jobId, nodeId, properties))
+      .catch(() => undefined);
+  }
+}
+
 export async function runBrowserGraphJob(
   options: BrowserGraphJobOptions
 ): Promise<BrowserGraphJobResult> {
@@ -342,7 +376,10 @@ async function runBrowserGraphJobLocal(
     params,
     jobId,
     workflowId,
-    signal
+    signal,
+    onRunner: (workflowRunner) => {
+      localRunners.set(jobId, workflowRunner);
+    }
   });
 
   try {
@@ -422,5 +459,6 @@ async function runBrowserGraphJobLocal(
   } finally {
     // Free every GPU texture this main-thread run created (run-scoped lifecycle).
     runner.releaseRunTextures?.(jobId);
+    localRunners.delete(jobId);
   }
 }

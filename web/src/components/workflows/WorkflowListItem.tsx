@@ -16,7 +16,6 @@ interface WorkflowListItemProps {
   workflow: Workflow;
   isSelected: boolean;
   isCurrent: boolean;
-  isAlternate: boolean;
   showCheckboxes: boolean;
   hideDate?: boolean;
   onOpenWorkflow: (workflow: Workflow) => void;
@@ -32,7 +31,6 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
   workflow,
   isSelected,
   isCurrent,
-  isAlternate,
   showCheckboxes,
   hideDate = false,
   onOpenWorkflow,
@@ -238,7 +236,6 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
         (hideDate ? " hide-date" : "") +
         (isSelected ? " selected" : "") +
         (isCurrent ? " current" : "") +
-        (isAlternate ? " alternate" : "") +
         (isFavorite ? " favorite" : "")
       }
       onContextMenu={handleContextMenu}
@@ -277,7 +274,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
           <Text
             className="name"
             size="small"
-            weight={400}
+            weight={600}
             sx={{ lineHeight: 1.35 }}
             onDoubleClick={handleNameDoubleClick}
             title="Double-click to rename"
@@ -301,11 +298,13 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
               lineHeight: 1.4,
               borderRadius: "var(--rounded-sm)",
               boxShadow: "none",
-              background: "linear-gradient(180deg, rgb(255 255 255 / 0.08), rgb(255 255 255 / 0.03))",
-              border: "1px solid rgb(255 255 255 / 0.08)",
+              backgroundColor: "action.selected",
+              border: "1px solid",
+              borderColor: "divider",
+              color: "text.primary",
               "&:hover": {
                 boxShadow: "none",
-                background: "linear-gradient(180deg, rgb(255 255 255 / 0.12), rgb(255 255 255 / 0.05))"
+                backgroundColor: "action.hover"
               }
             }}
           >

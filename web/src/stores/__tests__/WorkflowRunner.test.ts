@@ -48,6 +48,7 @@ jest.mock("../ResultsStore", () => ({
       clearChunks: jest.fn(),
       clearPlanningUpdates: jest.fn(),
       clearOutputResults: jest.fn(),
+      clearJobRunVisuals: jest.fn(),
     }),
   },
 }));
@@ -57,6 +58,7 @@ jest.mock("../StatusStore", () => ({
   default: {
     getState: jest.fn().mockReturnValue({
       clearStatuses: jest.fn(),
+      clearJobStatuses: jest.fn(),
       setNodeStatus: jest.fn(),
     }),
   },

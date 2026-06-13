@@ -4,12 +4,13 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
 
-import { Text, MOTION } from "../ui_primitives";
+import { Caption, Text, MOTION } from "../ui_primitives";
 import FavoriteButton from "../ui_primitives/FavoriteButton";
 import { IconForType } from "../../config/IconForType";
 import { colorForType } from "../../config/data_types";
 import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
 import type { NodeMetadata } from "../../stores/ApiTypes";
+import { nodeTypeDisplayName } from "../../constants/nodeTypes";
 
 const rowStyles = (theme: Theme) =>
   css({
@@ -105,6 +106,10 @@ const NodeLibraryRow = memo<NodeLibraryRowProps>(
       ? `1px solid color-mix(in srgb, ${typeColor} 14%, transparent)`
       : `1px solid ${theme.vars.palette.divider}`;
 
+    const replacementTitle = node.replaced_by
+      ? nodeTypeDisplayName(node.replaced_by)
+      : null;
+
     const containerStyle = useMemo(
       () => ({
         color: tileColor,
@@ -143,7 +148,11 @@ const NodeLibraryRow = memo<NodeLibraryRowProps>(
             handleClick();
           }
         }}
-        title={node.title}
+        title={
+          node.deprecated
+            ? `${node.title}${replacementTitle ? ` — use ${replacementTitle}` : ""}`
+            : node.title
+        }
       >
         <IconForType
           iconName={outputType}
@@ -154,6 +163,11 @@ const NodeLibraryRow = memo<NodeLibraryRowProps>(
         />
         <Text className="nl-row-title" component="div">
           {node.title}
+          {node.deprecated && (
+            <Caption component="span" sx={{ marginLeft: "6px", color: "warning.main" }}>
+              Deprecated
+            </Caption>
+          )}
         </Text>
         <span className="nl-fav">
           <FavoriteButton

@@ -22,12 +22,9 @@ const styles = (theme: Theme) =>
       "& svg": { fontSize: "var(--fontSizeNormal)" }
     },
     ".headline-title": {
-      fontSize: "var(--fontSizeNormal)",
-      fontWeight: 400,
       letterSpacing: "0.01em",
       lineHeight: "1.4em",
       color: theme.vars.palette.text.primary,
-      textShadow: `0px 0px 1px ${theme.vars.palette.common.black}${Math.round(0.4 * 255).toString(16).padStart(2, "0")}`,
       margin: 0
     }
   });

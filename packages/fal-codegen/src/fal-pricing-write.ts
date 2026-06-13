@@ -11,7 +11,8 @@
  *     the generic `PricingBundleSpec` shape before delegating.
  */
 
-import { access } from "node:fs/promises";
+import { access, mkdir, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
 
 import {
   buildPricingBundles as buildPricingBundlesGeneric,
@@ -73,27 +74,77 @@ export const writeEmptyPricingBundles = writeEmptyPricingBundlesGeneric;
 export async function pricingBundleFilesExist(
   paths: PricingOutputPaths
 ): Promise<boolean> {
+  const [byNodeExists, catalogExists] = await Promise.all([
+    pricingFileExists(paths.byNodeTypePath),
+    pricingFileExists(paths.catalogPath)
+  ]);
+  return byNodeExists && catalogExists;
+}
+
+async function pricingFileExists(path: string): Promise<boolean> {
   try {
-    await Promise.all([
-      access(paths.byNodeTypePath),
-      access(paths.catalogPath)
-    ]);
+    await access(path);
     return true;
   } catch {
     return false;
   }
 }
 
+async function writeEmptyByNodeTypeBundle(path: string): Promise<void> {
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(
+    path,
+    JSON.stringify(
+      {
+        schemaVersion: NODE_TYPE_PRICING_SCHEMA_VERSION,
+        writtenAt: new Date(0).toISOString(),
+        byNodeType: {}
+      },
+      null,
+      2
+    ) + "\n"
+  );
+}
+
+async function writeEmptyCatalogBundle(path: string): Promise<void> {
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(
+    path,
+    JSON.stringify(
+      {
+        schemaVersion: NODE_TYPE_PRICING_SCHEMA_VERSION,
+        writtenAt: new Date(0).toISOString(),
+        prices: {}
+      },
+      null,
+      2
+    ) + "\n"
+  );
+}
+
 /**
  * When codegen runs without a provider API key, keep committed bundles intact
- * and only emit empty stubs for a fresh checkout that has no pricing files yet.
+ * and only emit empty stubs for files missing on a fresh checkout.
  */
 export async function preserveOrWriteEmptyPricingBundles(
   paths: PricingOutputPaths
-): Promise<"preserved" | "stubbed"> {
-  if (await pricingBundleFilesExist(paths)) {
+): Promise<"preserved" | "stubbed" | "partial"> {
+  const byNodeExists = await pricingFileExists(paths.byNodeTypePath);
+  const catalogExists = await pricingFileExists(paths.catalogPath);
+
+  if (byNodeExists && catalogExists) {
     return "preserved";
   }
-  await writeEmptyPricingBundles(paths);
-  return "stubbed";
+  if (!byNodeExists && !catalogExists) {
+    await writeEmptyPricingBundles(paths);
+    return "stubbed";
+  }
+
+  if (!byNodeExists) {
+    await writeEmptyByNodeTypeBundle(paths.byNodeTypePath);
+  }
+  if (!catalogExists) {
+    await writeEmptyCatalogBundle(paths.catalogPath);
+  }
+  return "partial";
 }

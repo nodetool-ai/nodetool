@@ -23,4 +23,8 @@ export type PropertyProps = {
   changed?: boolean;
   /** Right-click on the property field (forwarded from text/json editors). */
   onPropertyContextMenu?: (event: React.MouseEvent<HTMLElement>) => void;
+  /** True when an edge is connected to this property's target handle. */
+  isConnected?: boolean;
+  /** The workflow ID containing this node, used to resolve upstream values. */
+  workflowId?: string;
 };

@@ -5,6 +5,8 @@
  */
 
 export { TimelineEditor } from "./TimelineEditor";
+export { default as TimelineRenderer } from "./TimelineRenderer";
+export type { TimelineRendererProps } from "./TimelineRenderer";
 
 export { TopBar } from "./TopBar";
 export type { TopBarProps } from "./TopBar";

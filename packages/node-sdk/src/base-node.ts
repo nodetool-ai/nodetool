@@ -67,6 +67,7 @@ export type NodeClass = {
   requiredRuntimes?: string[];
   isStreamingInput: boolean;
   isStreamingOutput: boolean;
+  alwaysEmitOutputUpdates?: boolean;
   inputMode?: InputMode;
   outputCorrelation?: Record<string, OutputCorrelation>;
   supportsDynamicInputs: boolean;
@@ -80,6 +81,8 @@ export type NodeClass = {
    * Platform type. Unset is treated as ["node"].
    */
   platforms?: readonly Platform[];
+  deprecated: boolean;
+  replacedBy?: string;
   metadataOutputTypes?: DeclaredOutputTypes;
   outputTypes: DeclaredOutputTypes;
   getDeclaredProperties(): Array<{
@@ -211,6 +214,13 @@ export abstract class BaseNode {
   static readonly requiredRuntimes: string[] | undefined = undefined;
   static readonly isStreamingInput: boolean = false;
   static readonly isStreamingOutput: boolean = false;
+  /**
+   * Emit output_update for this node's handles even when they are connected
+   * onward. The runner suppresses output_update for connected handles by
+   * default; nodes whose updates feed a UI surface regardless of patching
+   * (e.g. the realtime audio monitor) opt in.
+   */
+  static readonly alwaysEmitOutputUpdates: boolean = false;
   static readonly inputMode: InputMode | undefined = undefined;
   static readonly outputCorrelation:
     | Record<string, OutputCorrelation>
@@ -232,6 +242,8 @@ export abstract class BaseNode {
    * explicitly. See `@nodetool-ai/protocol`'s Platform type.
    */
   static readonly platforms: readonly Platform[] | undefined = undefined;
+  static readonly deprecated: boolean = false;
+  static readonly replacedBy: string | undefined = undefined;
   static readonly metadataOutputTypes: DeclaredOutputTypes | undefined =
     undefined;
   static readonly outputTypes: DeclaredOutputTypes = {};
@@ -511,6 +523,11 @@ export abstract class BaseNode {
         this.assign(props);
         yield* this.genProcess(context);
       }.bind(this) as NodeExecutor["genProcess"],
+      // Live parameter path: assign() only touches the supplied declared
+      // properties, so a running run() loop that reads `this.<prop>` per
+      // chunk sees the new value on its next chunk.
+      applyProperties: (properties: Record<string, unknown>) =>
+        this.assign(properties),
       preProcess: () => this.preProcess(),
       finalize: () => this.finalize(),
       initialize: () => this.initialize()

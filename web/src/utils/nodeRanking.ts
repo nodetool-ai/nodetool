@@ -93,7 +93,13 @@ function buildConfig<T extends NodeMetadata>(
   return {
     fields: NODE_FIELDS as ReadonlyArray<RankField<T>>,
     keyFn: (meta) => meta.node_type,
-    multiplier: (meta) => (namespaceClass(meta.namespace) === "core" ? CORE_MULTIPLIER : 1),
+    multiplier: (meta) => {
+      let value = namespaceClass(meta.namespace) === "core" ? CORE_MULTIPLIER : 1;
+      if (meta.deprecated) {
+        value *= 0.15;
+      }
+      return value;
+    },
     prefilter: buildPrefilter(options),
     recentKeys: options.recentNodeTypes,
     boostedKeys: options.boostedNodeTypes,

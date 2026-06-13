@@ -12,6 +12,8 @@ interface NodeResizeHandleProps {
   minWidth: number;
   minHeight: number;
   onResize?: OnResize;
+  /** Lock the width/height ratio while dragging the handle. */
+  keepAspectRatio?: boolean;
 }
 
 const styles = (theme: Theme) =>
@@ -54,7 +56,8 @@ const styles = (theme: Theme) =>
 const NodeResizeHandle: React.FC<NodeResizeHandleProps> = memo(function NodeResizeHandle({
   minWidth,
   minHeight,
-  onResize
+  onResize,
+  keepAspectRatio
 }) {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
@@ -64,6 +67,7 @@ const NodeResizeHandle: React.FC<NodeResizeHandleProps> = memo(function NodeResi
         minWidth={minWidth}
         minHeight={minHeight}
         onResize={onResize}
+        keepAspectRatio={keepAspectRatio}
       >
         <KeyboardArrowDownIcon />
       </NodeResizeControl>
