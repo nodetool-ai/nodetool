@@ -4,6 +4,7 @@ import type {
   NodeUpdate,
   OutputUpdate,
   LogUpdate,
+  TerminalUpdate,
   WorkflowAttributes
 } from "../ApiTypes";
 import useResultsStore from "../ResultsStore";
@@ -38,6 +39,7 @@ beforeEach(() => {
     progress: {},
     edges: {},
     chunks: {},
+    terminals: {},
     tasks: {},
     toolCalls: {},
     planningUpdates: {}
@@ -51,6 +53,26 @@ beforeEach(() => {
 });
 
 describe("handleUpdate", () => {
+  it("routes terminal_update into the per-node terminal buffer", () => {
+    const terminalUpdate = {
+      type: "terminal_update",
+      node_id: "n1",
+      content: "\x1b[2J$ claude\r\n",
+      cols: 120,
+      rows: 36,
+      job_id: "job-1"
+    } as unknown as TerminalUpdate;
+
+    handleUpdate(mockWorkflow, terminalUpdate, mockRunnerStore as never, () => undefined);
+
+    const terminal = useResultsStore
+      .getState()
+      .getTerminal("workflow-1", "job-1", "n1");
+    expect(terminal?.buffer).toBe("\x1b[2J$ claude\r\n");
+    expect(terminal?.cols).toBe(120);
+    expect(terminal?.rows).toBe(36);
+  });
+
   it("appends a log entry on log_update", () => {
     const logUpdate: LogUpdate = {
       type: "log_update",
