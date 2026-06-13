@@ -1,4 +1,17 @@
 import { collectNodeClasses, normalizeGraphForKernel } from "../browserRunnerCore";
+import type { WorkflowGraph } from "../../../stores/ApiTypes";
+
+function makeGraph(
+  overrides: {
+    nodes?: Record<string, unknown>[];
+    edges?: Record<string, unknown>[];
+  } = {}
+): WorkflowGraph {
+  return {
+    nodes: overrides.nodes ?? [],
+    edges: overrides.edges ?? [],
+  } as WorkflowGraph;
+}
 
 describe("browserRunnerCore", () => {
   describe("collectNodeClasses", () => {
@@ -78,80 +91,75 @@ describe("browserRunnerCore", () => {
 
   describe("normalizeGraphForKernel", () => {
     it("moves node.data to node.properties", () => {
-      const graph = {
+      const graph = makeGraph({
         nodes: [
           { id: "n1", type: "nodetool.foo.Foo", data: { prompt: "hello" } },
         ],
-        edges: [],
-      };
+      });
 
-      const result = normalizeGraphForKernel(graph as any);
+      const result = normalizeGraphForKernel(graph);
       expect(result.nodes).toHaveLength(1);
       expect(result.nodes[0]).toHaveProperty("properties", { prompt: "hello" });
       expect(result.nodes[0]).not.toHaveProperty("data");
     });
 
     it("preserves node.properties if already present", () => {
-      const graph = {
+      const graph = makeGraph({
         nodes: [
           { id: "n1", type: "nodetool.foo.Foo", properties: { x: 1 } },
         ],
-        edges: [],
-      };
+      });
 
-      const result = normalizeGraphForKernel(graph as any);
+      const result = normalizeGraphForKernel(graph);
       expect(result.nodes[0]).toHaveProperty("properties", { x: 1 });
     });
 
     it("normalizes edge type to edge_type", () => {
-      const graph = {
-        nodes: [],
+      const graph = makeGraph({
         edges: [
-          { id: "e1", source: "a", target: "b", type: "data" },
-          { id: "e2", source: "b", target: "c", type: "control" },
+          { id: "e1", source: "a", sourceHandle: "out", target: "b", targetHandle: "in", type: "data" },
+          { id: "e2", source: "b", sourceHandle: "out", target: "c", targetHandle: "in", type: "control" },
         ],
-      };
+      });
 
-      const result = normalizeGraphForKernel(graph as any);
+      const result = normalizeGraphForKernel(graph);
       expect(result.edges[0]).toHaveProperty("edge_type", "data");
       expect(result.edges[1]).toHaveProperty("edge_type", "control");
       expect(result.edges[0]).not.toHaveProperty("type");
     });
 
     it("defaults edge_type to 'data' for unknown types", () => {
-      const graph = {
-        nodes: [],
+      const graph = makeGraph({
         edges: [
-          { id: "e1", source: "a", target: "b", type: "something_else" },
-          { id: "e2", source: "c", target: "d" },
+          { id: "e1", source: "a", sourceHandle: "out", target: "b", targetHandle: "in", type: "something_else" },
+          { id: "e2", source: "c", sourceHandle: "out", target: "d", targetHandle: "in" },
         ],
-      };
+      });
 
-      const result = normalizeGraphForKernel(graph as any);
+      const result = normalizeGraphForKernel(graph);
       expect(result.edges[0]).toHaveProperty("edge_type", "data");
       expect(result.edges[1]).toHaveProperty("edge_type", "data");
     });
 
     it("preserves existing edge_type field", () => {
-      const graph = {
-        nodes: [],
+      const graph = makeGraph({
         edges: [
-          { id: "e1", source: "a", target: "b", edge_type: "control" },
+          { id: "e1", source: "a", sourceHandle: "out", target: "b", targetHandle: "in", edge_type: "control" },
         ],
-      };
+      });
 
-      const result = normalizeGraphForKernel(graph as any);
+      const result = normalizeGraphForKernel(graph);
       expect(result.edges[0]).toHaveProperty("edge_type", "control");
     });
 
     it("handles empty graph", () => {
-      const result = normalizeGraphForKernel({ nodes: [], edges: [] } as any);
+      const result = normalizeGraphForKernel(makeGraph());
       expect(result.nodes).toHaveLength(0);
       expect(result.edges).toHaveLength(0);
     });
 
     it("handles undefined nodes/edges gracefully", () => {
-      const result = normalizeGraphForKernel({} as any);
+      const result = normalizeGraphForKernel({} as WorkflowGraph);
       expect(result.nodes).toHaveLength(0);
       expect(result.edges).toHaveLength(0);
     });
