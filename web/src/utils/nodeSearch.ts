@@ -365,13 +365,13 @@ export function computeSearchResults(
     ? strictMatch
       ? filterDataByExactType(
           providerFilteredMetadata,
-          selectedInputType as TypeName,
-          selectedOutputType as TypeName
+          selectedInputType,
+          selectedOutputType
         )
       : filterDataByType(
           providerFilteredMetadata,
-          selectedInputType as TypeName,
-          selectedOutputType as TypeName
+          selectedInputType,
+          selectedOutputType
         )
     : providerFilteredMetadata;
 

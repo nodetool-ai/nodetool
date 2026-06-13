@@ -81,6 +81,8 @@ export type NodeClass = {
    * Platform type. Unset is treated as ["node"].
    */
   platforms?: readonly Platform[];
+  deprecated: boolean;
+  replacedBy?: string;
   metadataOutputTypes?: DeclaredOutputTypes;
   outputTypes: DeclaredOutputTypes;
   getDeclaredProperties(): Array<{
@@ -240,6 +242,8 @@ export abstract class BaseNode {
    * explicitly. See `@nodetool-ai/protocol`'s Platform type.
    */
   static readonly platforms: readonly Platform[] | undefined = undefined;
+  static readonly deprecated: boolean = false;
+  static readonly replacedBy: string | undefined = undefined;
   static readonly metadataOutputTypes: DeclaredOutputTypes | undefined =
     undefined;
   static readonly outputTypes: DeclaredOutputTypes = {};

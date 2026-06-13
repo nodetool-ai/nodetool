@@ -49,6 +49,7 @@ import PainterBody, { PAINTER_NODE_TYPE } from "./PainterBody";
 import PromptComposerBody, { PROMPT_NODE_TYPE } from "./PromptComposerBody";
 import PasteBody, { PASTE_NODE_TYPE } from "./PasteBody";
 import ResizeBody, { RESIZE_NODE_TYPE } from "./ResizeBody";
+import ResizeImageBody, { RESIZE_IMAGE_NODE_TYPE } from "./ResizeImageBody";
 import RotateAndFlipBody, {
   ROTATE_AND_FLIP_NODE_TYPE
 } from "./RotateAndFlipBody";
@@ -99,6 +100,7 @@ export const BESPOKE_BODY_REGISTRY: Readonly<
   [PASTE_NODE_TYPE]: PasteBody,
   [PROMPT_NODE_TYPE]: PromptComposerBody,
   [RESIZE_NODE_TYPE]: ResizeBody,
+  [RESIZE_IMAGE_NODE_TYPE]: ResizeImageBody,
   [ROTATE_AND_FLIP_NODE_TYPE]: RotateAndFlipBody,
   [SCALE_NODE_TYPE]: ScaleBody,
   ...Object.fromEntries(

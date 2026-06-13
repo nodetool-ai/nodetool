@@ -2,38 +2,27 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import {
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
-  FormControlLabel
-} from "@mui/material";
-import React, { useCallback, useState, memo } from "react";
+import { List, ListItem, ListItemSecondaryAction } from "@mui/material";
+import React, { useCallback, memo } from "react";
 import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import FolderIcon from "@mui/icons-material/Folder";
-import CheckIcon from "@mui/icons-material/Check";
-import CancelIcon from "@mui/icons-material/Cancel";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { trpcClient } from "../../trpc/client";
 import { WorkspaceResponse } from "../../stores/ApiTypes";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import FileBrowserDialog from "../dialogs/FileBrowserDialog";
+import { useFolderPicker } from "./useFolderPicker";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
 import {
   Box,
-  Checkbox,
   Chip,
   EditorButton,
   FlexColumn,
   FlexRow,
   LoadingSpinner,
   Text,
-  TextInput,
   ToolbarIconButton
 } from "../ui_primitives";
 
@@ -48,7 +37,7 @@ const styles = (theme: Theme) =>
     ".workspace-list": {
       flex: 1,
       overflowY: "auto",
-      padding: "0"
+      padding: 0
     },
     ".workspace-item": {
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
@@ -60,52 +49,32 @@ const styles = (theme: Theme) =>
     ".workspace-item-content": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(1.5)
+      gap: theme.spacing(1.5),
+      minWidth: 0
     },
     ".workspace-icon": {
       color: theme.vars.palette.primary.main,
-      fontSize: "var(--fontSizeBig)"
-    },
-    ".workspace-info": {
-      flex: 1,
-      minWidth: 0
-    },
-    ".workspace-name": {
-      fontWeight: 500,
-      fontSize: "var(--fontSizeNormal)",
-      color: theme.vars.palette.text.primary
+      fontSize: "var(--fontSizeBig)",
+      flexShrink: 0
     },
     ".workspace-path": {
-      fontSize: "var(--fontSizeSmall)",
-      color: theme.vars.palette.text.secondary,
+      flex: 1,
+      fontSize: "var(--fontSizeNormal)",
+      color: theme.vars.palette.text.primary,
       overflow: "hidden",
       textOverflow: "ellipsis",
-      whiteSpace: "nowrap"
+      whiteSpace: "nowrap",
+      fontFamily: "monospace"
     },
     ".workspace-badges": {
       display: "flex",
       gap: theme.spacing(0.5),
-      marginTop: theme.spacing(0.5)
+      marginLeft: theme.spacing(1)
     },
     ".add-workspace-section": {
       borderTop: `1px solid ${theme.vars.palette.divider}`,
       padding: theme.spacing(2),
       backgroundColor: theme.vars.palette.background.default
-    },
-    ".add-form": {
-      display: "flex",
-      flexDirection: "column",
-      gap: theme.spacing(1.5)
-    },
-    ".form-row": {
-      display: "flex",
-      gap: theme.spacing(1),
-      alignItems: "flex-start"
-    },
-    ".browse-button": {
-      marginTop: "8px",
-      minWidth: "auto",
-      padding: "6px 12px"
     },
     ".empty-state": {
       display: "flex",
@@ -114,12 +83,6 @@ const styles = (theme: Theme) =>
       justifyContent: "center",
       padding: theme.spacing(4),
       color: theme.vars.palette.text.secondary
-    },
-    ".edit-form": {
-      display: "flex",
-      alignItems: "center",
-      gap: theme.spacing(1),
-      width: "100%"
     }
   });
 
@@ -129,10 +92,12 @@ const fetchWorkspaces = async (): Promise<WorkspaceResponse[]> => {
   return workspaces as WorkspaceResponse[];
 };
 
-// Check if native dialog API is available (running in Electron)
-const hasNativeDialog = (): boolean => {
-  return typeof window !== "undefined" && window.api?.dialog !== undefined;
-};
+/** Derive a workspace name from an absolute folder path. */
+function nameFromPath(path: string): string {
+  const normalized = path.replace(/\\/g, "/");
+  const parts = normalized.split("/").filter(Boolean);
+  return parts[parts.length - 1] ?? path;
+}
 
 const WorkspacesManager: React.FC = () => {
   const theme = useTheme();
@@ -140,72 +105,39 @@ const WorkspacesManager: React.FC = () => {
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
+  const { pickFolder, dialog: folderPickerDialog } = useFolderPicker();
 
-  // Form state
-  const [newName, setNewName] = useState("");
-  const [newPath, setNewPath] = useState("");
-  const [isDefault, setIsDefault] = useState(false);
-  const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
-  const [isFileBrowserOpen, setIsFileBrowserOpen] = useState(false);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [workspaceToDelete, setWorkspaceToDelete] = useState<string | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
+  const [workspaceToDelete, setWorkspaceToDelete] = React.useState<
+    string | null
+  >(null);
 
-  // Query workspaces
-  const {
-    data: workspaces,
-    isLoading,
-    error
-  } = useQuery({
+  const { data: workspaces, isLoading, error } = useQuery({
     queryKey: ["workspaces"],
     queryFn: fetchWorkspaces
   });
 
-  // Memoized handlers
   const handleRetry = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["workspaces"] });
   }, [queryClient]);
 
-  const handleDeleteWorkspace = useCallback((id: string) => {
-    setWorkspaceToDelete(id);
-    setDeleteConfirmOpen(true);
-  }, []);
-
-  const createDeleteWorkspaceHandler = useCallback((id: string) => {
-    return () => handleDeleteWorkspace(id);
-  }, [handleDeleteWorkspace]);
-
-  const handleAddWorkspace = useCallback(() => {
-    setIsAdding(true);
-  }, []);
-
-  const handleCancelAdd = useCallback(() => {
-    setIsAdding(false);
-    setNewName("");
-    setNewPath("");
-    setIsDefault(false);
-  }, []);
-
-  // Create workspace mutation
   const createMutation = useMutation({
-    mutationFn: async (data: {
-      name: string;
-      path: string;
-      is_default: boolean;
-    }) => {
-      return trpcClient.workspace.create.mutate(data);
+    mutationFn: async (data: { name: string; path: string }) => {
+      return trpcClient.workspace.create.mutate({
+        ...data,
+        is_default: false
+      });
     },
-    onSuccess: () => {
+    onSuccess: (created) => {
+      queryClient.setQueryData<WorkspaceResponse[]>(["workspaces"], (prev) => {
+        if (prev?.some((w) => w.id === created.id)) return prev;
+        return [...(prev ?? []), created as WorkspaceResponse];
+      });
       queryClient.invalidateQueries({ queryKey: ["workspaces"] });
-      setNewName("");
-      setNewPath("");
-      setIsDefault(false);
-      setIsAdding(false);
       addNotification({
         type: "success",
         alert: true,
-        content: "Workspace created successfully",
+        content: "Workspace added",
         dismissable: true
       });
     },
@@ -219,30 +151,12 @@ const WorkspacesManager: React.FC = () => {
     }
   });
 
-  // Update workspace mutation
   const updateMutation = useMutation({
-    mutationFn: async (data: {
-      id: string;
-      name?: string;
-      is_default?: boolean;
-    }) => {
-      return trpcClient.workspace.update.mutate({
-        id: data.id,
-        ...(data.name !== undefined ? { name: data.name } : {}),
-        ...(data.is_default !== undefined
-          ? { is_default: data.is_default }
-          : {})
-      });
+    mutationFn: async (data: { id: string; is_default: boolean }) => {
+      return trpcClient.workspace.update.mutate(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["workspaces"] });
-      setEditingId(null);
-      addNotification({
-        type: "success",
-        alert: true,
-        content: "Workspace updated successfully",
-        dismissable: true
-      });
     },
     onError: (error) => {
       addNotification({
@@ -254,7 +168,6 @@ const WorkspacesManager: React.FC = () => {
     }
   });
 
-  // Delete workspace mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       await trpcClient.workspace.delete.mutate({ id });
@@ -264,7 +177,7 @@ const WorkspacesManager: React.FC = () => {
       addNotification({
         type: "success",
         alert: true,
-        content: "Workspace deleted successfully",
+        content: "Workspace removed",
         dismissable: true
       });
     },
@@ -278,36 +191,16 @@ const WorkspacesManager: React.FC = () => {
     }
   });
 
-  const handleCreate = useCallback(() => {
-    if (!newName.trim() || !newPath.trim()) {
-      addNotification({
-        type: "error",
-        alert: true,
-        content: "Name and path are required",
-        dismissable: true
-      });
-      return;
-    }
-    createMutation.mutate({
-      name: newName.trim(),
-      path: newPath.trim(),
-      is_default: isDefault
-    });
-  }, [newName, newPath, isDefault, createMutation, addNotification]);
+  const handleAddWorkspace = useCallback(async () => {
+    const path = await pickFolder();
+    if (!path) return;
+    createMutation.mutate({ name: nameFromPath(path), path });
+  }, [pickFolder, createMutation]);
 
-  const handleUpdate = useCallback(
-    (id: string) => {
-      if (!editName.trim()) {
-        return;
-      }
-      updateMutation.mutate({ id, name: editName.trim() });
-    },
-    [editName, updateMutation]
-  );
-
-  const createUpdateHandler = useCallback((id: string) => {
-    return () => handleUpdate(id);
-  }, [handleUpdate]);
+  const handleDeleteWorkspace = useCallback((id: string) => {
+    setWorkspaceToDelete(id);
+    setDeleteConfirmOpen(true);
+  }, []);
 
   const handleConfirmDelete = useCallback(() => {
     if (workspaceToDelete) {
@@ -324,315 +217,122 @@ const WorkspacesManager: React.FC = () => {
 
   const handleToggleDefault = useCallback(
     (workspace: WorkspaceResponse) => {
-      if (workspace.is_default) {
-        return; // Already default, don't un-default
-      }
+      if (workspace.is_default) return;
       updateMutation.mutate({ id: workspace.id, is_default: true });
     },
     [updateMutation]
   );
 
-  const createToggleDefaultHandler = useCallback(
-    (workspace: WorkspaceResponse) => {
-      return () => handleToggleDefault(workspace);
-    },
-    [handleToggleDefault]
-  );
-
-  const handleStartEdit = useCallback((workspace: WorkspaceResponse) => {
-    setEditingId(workspace.id);
-    setEditName(workspace.name);
-  }, []);
-
-  const createStartEditHandler = useCallback((workspace: WorkspaceResponse) => {
-    return () => handleStartEdit(workspace);
-  }, [handleStartEdit]);
-
-  const handleCancelEdit = useCallback(() => {
-    setEditingId(null);
-    setEditName("");
-  }, []);
-
-  const handleBrowse = useCallback(async () => {
-    // Use native dialog if available (Electron context)
-    if (hasNativeDialog() && window.api.dialog) {
-      try {
-        const result = await window.api.dialog.openFolder({
-          title: "Select Workspace Folder"
-        });
-        if (!result.canceled && result.filePaths.length > 0) {
-          setNewPath(result.filePaths[0]);
-        }
-      } catch {
-        // Fall back to custom dialog if native fails
-        setIsFileBrowserOpen(true);
-      }
-    } else {
-      setIsFileBrowserOpen(true);
-    }
-  }, []);
-
-  const handleFileBrowserConfirm = useCallback((path: string) => {
-    setNewPath(path);
-    setIsFileBrowserOpen(false);
-  }, []);
-
-  // Memoized handlers for form inputs to prevent re-renders
-  const handleNewNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewName(e.target.value);
-  }, []);
-
-  const handleNewPathChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewPath(e.target.value);
-  }, []);
-
-  const handleIsDefaultChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setIsDefault(e.target.checked);
-  }, []);
-
-  const handleEditNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setEditName(e.target.value);
-  }, []);
-
   return (
     <>
       <FlexColumn css={styles(theme)} sx={{ flex: 1, minHeight: 0 }}>
         <div className="workspaces-manager">
-            {isLoading ? (
-              <FlexRow
-                justify="center"
-                align="center"
-                sx={{ py: 4 }}
-              >
-                <LoadingSpinner size={30} />
-              </FlexRow>
-            ) : error ? (
-              <Box className="empty-state">
-                <Text color="error" sx={{ mb: 1 }}>
-                  Unable to load workspaces
-                </Text>
-                <Text size="small" color="secondary" sx={{ mb: 2 }}>
-                  Check your connection and try again
-                </Text>
-                <EditorButton
-                  variant="outlined"
-                  onClick={handleRetry}
-                >
-                  Retry
-                </EditorButton>
-              </Box>
-            ) : workspaces && workspaces.length > 0 ? (
-              <List className="workspace-list">
-                {workspaces.map((workspace) => (
-                  <ListItem key={workspace.id} className="workspace-item">
-                    {editingId === workspace.id ? (
-                      <div className="edit-form">
-                        <TextInput
+          {isLoading ? (
+            <FlexRow justify="center" align="center" sx={{ py: 4 }}>
+              <LoadingSpinner size={30} />
+            </FlexRow>
+          ) : error ? (
+            <Box className="empty-state">
+              <Text color="error" sx={{ mb: 1 }}>
+                Unable to load workspaces
+              </Text>
+              <Text size="small" color="secondary" sx={{ mb: 2 }}>
+                Check your connection and try again
+              </Text>
+              <EditorButton variant="outlined" onClick={handleRetry}>
+                Retry
+              </EditorButton>
+            </Box>
+          ) : workspaces && workspaces.length > 0 ? (
+            <List className="workspace-list">
+              {workspaces.map((workspace) => (
+                <ListItem key={workspace.id} className="workspace-item">
+                  <div className="workspace-item-content">
+                    <FolderIcon className="workspace-icon" />
+                    <Text className="workspace-path" title={workspace.path}>
+                      {workspace.path}
+                    </Text>
+                    <span className="workspace-badges">
+                      {!workspace.is_accessible && (
+                        <Chip
                           size="small"
-                          value={editName}
-                          onChange={handleEditNameChange}
-                          placeholder="Workspace name"
-                          autoFocus
-                          fullWidth
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              handleUpdate(workspace.id);
-                            }
-                            if (e.key === "Escape") {
-                              handleCancelEdit();
-                            }
-                          }}
+                          label="Inaccessible"
+                          color="error"
+                          variant="outlined"
                         />
-                        <ToolbarIconButton
-                          icon={<CheckIcon />}
-                          tooltip="Save changes"
-                          onClick={createUpdateHandler(workspace.id)}
-                          variant="primary"
-                        />
-                        <ToolbarIconButton
-                          icon={<CancelIcon />}
-                          tooltip="Cancel"
-                          onClick={handleCancelEdit}
-                        />
-                      </div>
-                    ) : (
-                      <>
-                        <div className="workspace-item-content">
-                          <FolderIcon className="workspace-icon" />
-                          <ListItemText
-                            className="workspace-info"
-                            primary={
-                              <Text className="workspace-name">
-                                {workspace.name}
-                              </Text>
-                            }
-                            secondaryTypographyProps={{ component: 'div' }}
-                            secondary={
-                              <>
-                                <Text
-                                  component="span"
-                                  className="workspace-path"
-                                >
-                                  {workspace.path}
-                                </Text>
-                                <span className="workspace-badges">
-                                  {!workspace.is_accessible && (
-                                    <Chip
-                                      size="small"
-                                      label="Inaccessible"
-                                      color="error"
-                                      variant="outlined"
-                                    />
-                                  )}
-                                </span>
-                              </>
-                            }
-                          />
-                        </div>
-                        <ListItemSecondaryAction>
-                          <ToolbarIconButton
-                            icon={
-                              workspace.is_default ? (
-                                <StarIcon fontSize="small" />
-                              ) : (
-                                <StarBorderIcon fontSize="small" />
-                              )
-                            }
-                            tooltip={
-                              workspace.is_default
-                                ? "Default workspace"
-                                : "Set as default"
-                            }
-                            onClick={createToggleDefaultHandler(workspace)}
-                            sx={{
-                              color: workspace.is_default
-                                ? "warning.main"
-                                : "text.secondary",
-                              "&:hover": {
-                                color: "warning.main"
-                              }
-                            }}
-                          />
-                          <ToolbarIconButton
-                            icon={<EditIcon fontSize="small" />}
-                            tooltip="Edit"
-                            onClick={createStartEditHandler(workspace)}
-                          />
-                          <ToolbarIconButton
-                            icon={<DeleteIcon fontSize="small" />}
-                            tooltip="Delete"
-                            onClick={createDeleteWorkspaceHandler(workspace.id)}
-                          />
-                        </ListItemSecondaryAction>
-                      </>
-                    )}
-                  </ListItem>
-                ))}
-              </List>
-            ) : (
-              <Box className="empty-state">
-                <FolderIcon sx={{ fontSize: 48, mb: 1, opacity: 0.5 }} />
-                <Text>No workspaces configured</Text>
-                <Text size="small">
-                  Add a workspace to allow agents to access local folders
-                </Text>
-              </Box>
-            )}
-
-            {/* Add workspace section */}
-            <div className="add-workspace-section">
-              {isAdding ? (
-                <div className="add-form">
-                  <TextInput
-                    size="small"
-                    label="Name"
-                    value={newName}
-                    onChange={handleNewNameChange}
-                    placeholder="My Workspace"
-                    fullWidth
-                    autoFocus
-                  />
-                  <div className="form-row">
-                    <TextInput
-                      size="small"
-                      label="Path"
-                      value={newPath}
-                      onChange={handleNewPathChange}
-                      placeholder="/path/to/folder"
-                      fullWidth
-                    />
-                    <EditorButton
-                      className="browse-button"
-                      variant="outlined"
-                      onClick={handleBrowse}
-                    >
-                      Browse
-                    </EditorButton>
+                      )}
+                    </span>
                   </div>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={isDefault}
-                        onChange={handleIsDefaultChange}
-                        size="small"
-                      />
-                    }
-                    label="Set as default workspace"
-                  />
-                  <FlexRow
-                    justify="flex-end"
-                    gap={1}
-                    sx={{ mt: 1 }}
-                  >
-                    <EditorButton
-                      onClick={handleCancelAdd}
-                      color="inherit"
-                    >
-                      Cancel
-                    </EditorButton>
-                    <EditorButton
-                      variant="contained"
-                      onClick={handleCreate}
-                      disabled={createMutation.isPending}
-                    >
-                      {createMutation.isPending ? "Adding..." : "Add Workspace"}
-                    </EditorButton>
-                  </FlexRow>
-                </div>
-              ) : (
-                <EditorButton
-                  startIcon={<AddIcon />}
-                  onClick={handleAddWorkspace}
-                  fullWidth
-                >
-                  Add Workspace
-                </EditorButton>
-              )}
-            </div>
+                  <ListItemSecondaryAction>
+                    <ToolbarIconButton
+                      icon={
+                        workspace.is_default ? (
+                          <StarIcon fontSize="small" />
+                        ) : (
+                          <StarBorderIcon fontSize="small" />
+                        )
+                      }
+                      tooltip={
+                        workspace.is_default
+                          ? "Default workspace"
+                          : "Set as default"
+                      }
+                      onClick={() => handleToggleDefault(workspace)}
+                      sx={{
+                        color: workspace.is_default
+                          ? "warning.main"
+                          : "text.secondary",
+                        "&:hover": {
+                          color: "warning.main"
+                        }
+                      }}
+                    />
+                    <ToolbarIconButton
+                      icon={<DeleteIcon fontSize="small" />}
+                      tooltip="Remove"
+                      onClick={() => handleDeleteWorkspace(workspace.id)}
+                    />
+                  </ListItemSecondaryAction>
+                </ListItem>
+              ))}
+            </List>
+          ) : (
+            <Box className="empty-state">
+              <FolderIcon sx={{ fontSize: 48, mb: 1, opacity: 0.5 }} />
+              <Text>No workspaces configured</Text>
+              <Text size="small">
+                Add a workspace to allow agents to access local folders
+              </Text>
+            </Box>
+          )}
+
+          <div className="add-workspace-section">
+            <EditorButton
+              startIcon={<AddIcon />}
+              onClick={handleAddWorkspace}
+              fullWidth
+              disabled={createMutation.isPending}
+            >
+              {createMutation.isPending ? "Adding…" : "Add Workspace"}
+            </EditorButton>
+          </div>
         </div>
       </FlexColumn>
 
-      <FileBrowserDialog
-        open={isFileBrowserOpen}
-        onClose={() => setIsFileBrowserOpen(false)}
-        onConfirm={handleFileBrowserConfirm}
-        title="Select Workspace Folder"
-        initialPath="~"
-        selectionMode="directory"
-      />
+      {folderPickerDialog}
 
       <ConfirmDialog
         open={deleteConfirmOpen}
         onClose={handleCancelDelete}
         onConfirm={handleConfirmDelete}
-        title="Delete Workspace"
+        title="Remove Workspace"
         content={
           <Text>
-            Are you sure you want to delete this workspace? This action cannot
-            be undone.
+            Remove this workspace from NodeTool? The folder itself will not be
+            deleted.
           </Text>
         }
-        confirmText="Delete"
+        confirmText="Remove"
         cancelText="Cancel"
       />
     </>

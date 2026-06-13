@@ -738,6 +738,10 @@ export interface NodeMetadata {
   supports_dynamic_outputs: boolean;
   model_packs?: ModelPack[];
   fal_unit_pricing?: FalUnitPricing | null;
+  /** When true, the node remains runnable but is hidden from default discovery. */
+  deprecated?: boolean;
+  /** Preferred replacement node_type when deprecated is true. */
+  replaced_by?: string;
   /**
    * Deployment platforms this node supports. See `@nodetool-ai/protocol`'s
    * Platform type. Absent or empty values are treated as ["node"].

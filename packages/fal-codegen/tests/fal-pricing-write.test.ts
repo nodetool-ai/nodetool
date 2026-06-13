@@ -154,4 +154,28 @@ describe("preserveOrWriteEmptyPricingBundles", () => {
       await rm(dir, { recursive: true, force: true });
     }
   });
+
+  it("preserves an existing bundle when only the other file is missing", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "fal-pricing-partial-"));
+    const paths = {
+      byNodeTypePath: join(dir, "fal-node-type-pricing.json"),
+      catalogPath: join(dir, "fal-unit-pricing.json")
+    };
+
+    try {
+      await writeFile(
+        paths.byNodeTypePath,
+        JSON.stringify({ schemaVersion: 1, writtenAt: "keep-me", byNodeType: { a: 1 } })
+      );
+
+      expect(await preserveOrWriteEmptyPricingBundles(paths)).toBe("partial");
+
+      const byNodeType = JSON.parse(await readFile(paths.byNodeTypePath, "utf8"));
+      const catalog = JSON.parse(await readFile(paths.catalogPath, "utf8"));
+      expect(byNodeType.writtenAt).toBe("keep-me");
+      expect(catalog.prices).toEqual({});
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
 });

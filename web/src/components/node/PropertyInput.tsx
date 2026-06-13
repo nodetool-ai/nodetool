@@ -141,6 +141,15 @@ const propertyInputContainerStyles = (theme: Theme) =>
     }
   });
 
+/** Returns true when the property renders as an image/image-list field that
+ * manages its own connected-state display (upstream preview). */
+function isImageInputType(property: Property): boolean {
+  const t = property.type.type;
+  if (t === "image" || t === "image_list") return true;
+  if (t === "list" && property.type.type_args?.[0]?.type === "image") return true;
+  return false;
+}
+
 /**
  * Get the component for the property.
  *
@@ -162,7 +171,7 @@ export type PropertyInputProps = {
   id: string;
   nodeType: string;
   data: NodeData;
-  value: any;
+  value: unknown;
   property: Property;
   propertyIndex?: string;
   controlKeyPressed?: boolean;
@@ -174,7 +183,7 @@ export type PropertyInputProps = {
   hideActionIcons?: boolean;
   /** True when an edge is connected to this property's target handle. */
   isConnected?: boolean;
-  onValueChange?: (value: any) => void;
+  onValueChange?: (value: unknown) => void;
 };
 
 const PropertyInput: React.FC<PropertyInputProps> = ({
@@ -340,7 +349,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         const dynamicInputDefaults = node.data.dynamic_inputs || {};
         let defaultValue = dynamicInputDefaults?.[property.name]?.default;
         if (defaultValue === undefined) {
-          const nodeMetadata = metadata?.[node.type as string];
+          const nodeMetadata = node.type ? metadata?.[node.type] : undefined;
           if (nodeMetadata) {
             const propertyDef = nodeMetadata.properties.find(
               (prop: Property) => prop.name === property.name
@@ -357,7 +366,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
           });
         }
       } else {
-        const nodeMetadata = metadata?.[node.type as string];
+        const nodeMetadata = node.type ? metadata?.[node.type] : undefined;
         if (nodeMetadata) {
           const propertyDef = nodeMetadata.properties.find(
             (prop: Property) => prop.name === property.name
@@ -412,7 +421,9 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     isDynamicProperty: isDynamicProperty,
     isInspector: isInspector,
     changed: isChanged,
-    onPropertyContextMenu: onContextMenu
+    onPropertyContextMenu: onContextMenu,
+    isConnected: isConnected,
+    workflowId: data.workflow_id
   };
 
   const [isEditingName, setIsEditingName] = React.useState(false);
@@ -547,7 +558,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       onDoubleClick={handleDoubleClick}
     >
       <PropertyHandleTooltipContext.Provider value={property.type}>
-        {isConnected ? (
+        {isConnected && !isImageInputType(property) ? (
           <div
             className="property-connected-disabled"
             title="Driven by a connected input — disconnect the edge to edit"

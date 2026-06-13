@@ -52,6 +52,20 @@ export interface StreamOptions {
   workspaceDir?: string;
 }
 
+/**
+ * Env defaults that coax interactive-style output from programs running
+ * behind pipes (no TTY): force color despite the pipe, disable Python's
+ * block buffering so output streams live, and advertise a capable terminal.
+ * Consumers that surface stdout/stderr as data should strip ANSI sequences
+ * from the buffered output (the code nodes do — see collectRunnerOutput).
+ */
+export const PIPED_OUTPUT_ENV: Record<string, string> = {
+  FORCE_COLOR: "1",
+  CLICOLOR_FORCE: "1",
+  PYTHONUNBUFFERED: "1",
+  TERM: "xterm-256color"
+};
+
 // ---------------------------------------------------------------------------
 // StreamRunnerBase
 // ---------------------------------------------------------------------------
@@ -223,12 +237,14 @@ export class StreamRunnerBase {
   /**
    * Build the environment dict for Docker or subprocess.
    *
-   * Converts values to strings; unconvertible values become empty strings.
+   * Starts from `PIPED_OUTPUT_ENV` (interactive-style output despite the
+   * non-TTY pipes); explicit entries override the defaults. Converts values
+   * to strings; unconvertible values become empty strings.
    */
   buildContainerEnvironment(
     env: Record<string, unknown>
   ): Record<string, string> {
-    const out: Record<string, string> = {};
+    const out: Record<string, string> = { ...PIPED_OUTPUT_ENV };
     for (const [k, v] of Object.entries(env ?? {})) {
       try {
         out[String(k)] = String(v);

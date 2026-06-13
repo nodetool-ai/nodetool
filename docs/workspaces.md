@@ -25,11 +25,11 @@ After adding a workspace, NodeTool can browse files, list folders, and read/writ
 ## Where workspaces are used
 
 - **Agents and chat tools** for file operations
-- **Workflow nodes** in the `nodetool.workspace` namespace
+- **Workflow nodes** in the `lib.os` namespace (file read/write, path, and filesystem operations)
 - **Project organization** when working with local assets and generated outputs
 
 ## Related docs
 
 - [Workflow Editor](workflow-editor.md)
 - [Storage Guide](storage.md)
-- [Node Reference: `nodetool.workspace`](nodes/nodetool/workspace/)
+- [Node Reference: `lib.os`](nodes/lib/os/)
