@@ -31,26 +31,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "cbaa7d34-4296-407a-be2a-7ac9e00188b0",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {},
-        "ui_properties": {
-          "position": {
-            "x": 684,
-            "y": 130
-          },
-          "zIndex": 0,
-          "width": 280,
-          "height": 287,
-          "selectable": true
+          "selectable": true,
+          "title": "1️⃣ Mic input"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -62,7 +44,7 @@
         "type": "openai.agents.RealtimeAgent",
         "data": {
           "model": "gpt-4o-mini-realtime-preview",
-          "system": "\nYou are an AI assistant interacting in real-time. Follow these rules unless explicitly overridden by the user:\n\n1. Respond promptly \u2014 minimize delay. If you do not yet have a complete answer, acknowledge the question and indicate what you are doing to find the answer.\n2. Maintain correctness. Always aim for accuracy; if you\u2019re uncertain, say so and optionally offer to verify.\n3. Be concise but clear. Prioritize key information first, then supporting details if helpful.\n4. Ask clarifying questions when needed. If the user\u2019s request is ambiguous, request clarification rather than guessing.\n5. Be consistent in terminology and definitions. Once you adopt a term or abbreviation, use it consistently in this conversation.\n6. Respect politeness and neutrality. Do not use emotive language unless the conversation tone demands it.\n7. Stay within safe and ethical bounds. Avoid disallowed content; follow OpenAI policies.\n8. Adapt to the user\u2019s style and level. If the user seems technical, use technical detail; if non-technical, explain with simpler language.\n---\nYou are now active. Await the user\u2019s request.\n",
+          "system": "\nYou are an AI assistant interacting in real-time. Follow these rules unless explicitly overridden by the user:\n\n1. Respond promptly — minimize delay. If you do not yet have a complete answer, acknowledge the question and indicate what you are doing to find the answer.\n2. Maintain correctness. Always aim for accuracy; if you’re uncertain, say so and optionally offer to verify.\n3. Be concise but clear. Prioritize key information first, then supporting details if helpful.\n4. Ask clarifying questions when needed. If the user’s request is ambiguous, request clarification rather than guessing.\n5. Be consistent in terminology and definitions. Once you adopt a term or abbreviation, use it consistently in this conversation.\n6. Respect politeness and neutrality. Do not use emotive language unless the conversation tone demands it.\n7. Stay within safe and ethical bounds. Avoid disallowed content; follow OpenAI policies.\n8. Adapt to the user’s style and level. If the user seems technical, use technical detail; if non-technical, explain with simpler language.\n---\nYou are now active. Await the user’s request.\n",
           "voice": "alloy",
           "speed": 1,
           "temperature": 0.8
@@ -74,7 +56,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "2️⃣ Realtime agent"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -185,7 +168,8 @@
               "type": "root",
               "version": 1
             }
-          }
+          },
+          "comment": "# 🎤 Realtime Agent\n\nStream your microphone into OpenAI's realtime agent and hear it respond live.\n\n**Pipeline:** Mic → Realtime agent\n\n**Try this:** edit the agent's instructions or voice."
         },
         "ui_properties": {
           "position": {
@@ -193,8 +177,8 @@
             "y": -193
           },
           "zIndex": 0,
-          "width": 280,
-          "height": 160,
+          "width": 460,
+          "height": 180,
           "selectable": true
         },
         "dynamic_properties": {},
@@ -209,16 +193,6 @@
         "sourceHandle": "chunk",
         "target": "a2a7cb00-0409-4f9a-85f1-c8b53f880bc8",
         "targetHandle": "chunk",
-        "ui_properties": {
-          "className": "chunk"
-        }
-      },
-      {
-        "id": "c66d450e-f877-4378-bf28-d4bb5e38474a",
-        "source": "a2a7cb00-0409-4f9a-85f1-c8b53f880bc8",
-        "sourceHandle": "chunk",
-        "target": "cbaa7d34-4296-407a-be2a-7ac9e00188b0",
-        "targetHandle": "value",
         "ui_properties": {
           "className": "chunk"
         }

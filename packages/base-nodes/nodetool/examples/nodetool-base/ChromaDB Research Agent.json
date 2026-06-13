@@ -16,15 +16,23 @@
   "graph": {
     "nodes": [
       {
-        "id": "1",
+        "id": "comment-intro",
         "parent_id": null,
-        "type": "nodetool.output.Output",
+        "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "name": "chroma_research_answer",
-          "value": null,
-          "description": ""
+          "comment": "# 📚 ChromaDB Research Agent\n\nAsk a question; the workflow retrieves matching passages from a Chroma collection and an agent answers from them.\n\n**Pipeline:** Question → Chroma search → build prompt → agent\n\n**Try this:** point it at your own collection or change the question."
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 80,
+            "y": -200
+          },
+          "zIndex": 0,
+          "width": 460,
+          "height": 180,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -57,7 +65,16 @@
           "thread_id": "",
           "max_tokens": 4096
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "4️⃣ Research agent",
+          "position": {
+            "x": 1160,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -69,7 +86,16 @@
         "data": {
           "template": "\nYou are a research assistant working over a Chroma collection of academic papers.\n\nQuestion:\n{{ question }}\n\nYou are given excerpts from relevant documents. Use them as the main ground truth.\nIf something is not supported by the excerpts, flag it as speculation.\n\nContext snippets:\n{% for doc in documents %}\n---\n{{ doc }}\n{% endfor %}\n\nWrite:\n- A concise explanation that answers the question.\n- A bullet list of key findings.\n- Short notes on open problems or limitations.\n\nRespond in markdown.\n"
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "3️⃣ Build prompt",
+          "position": {
+            "x": 800,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {
           "question": null,
           "documents": null
@@ -86,7 +112,16 @@
           "value": "How do recent transformer variants improve long context modeling?",
           "description": "Research question about the indexed papers"
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "1️⃣ Research question",
+          "position": {
+            "x": 80,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -105,7 +140,16 @@
           "k_constant": 60.0,
           "min_keyword_length": 3
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "2️⃣ Search Chroma",
+          "position": {
+            "x": 440,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -142,14 +186,6 @@
         "sourceHandle": "output",
         "target": "2",
         "targetHandle": "prompt",
-        "ui_properties": null
-      },
-      {
-        "id": "5",
-        "source": "2",
-        "sourceHandle": "text",
-        "target": "1",
-        "targetHandle": "value",
         "ui_properties": null
       }
     ]

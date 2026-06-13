@@ -13,25 +13,6 @@
   "graph": {
     "nodes": [
       {
-        "id": "2",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "dataframe_output_2024-12-01"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 410,
-            "y": 55
-          },
-          "zIndex": 0,
-          "width": 280,
-          "height": 378,
-          "selectable": true
-        },
-        "dynamic_properties": {}
-      },
-      {
         "id": "2ed27bde-9299-4088-a169-156b1ea5552f",
         "parent_id": null,
         "type": "nodetool.generators.DataGenerator",
@@ -66,7 +47,28 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "1️⃣ Generate data"
+        },
+        "dynamic_properties": {}
+      },
+      {
+        "id": "2",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "generated_data"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 410,
+            "y": 71
+          },
+          "zIndex": 0,
+          "width": 280,
+          "height": 378,
+          "selectable": true,
+          "title": "2️⃣ Preview rows"
         },
         "dynamic_properties": {}
       },
@@ -75,50 +77,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": [
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "Data Generator",
-                  "bold": true,
-                  "size": "+"
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": ""
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "- Generate synthetic data"
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "- Use prompt to describe the data"
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "- Add columns to specify the shape of data"
-                }
-              ]
-            }
-          ]
+          "comment": "# 🧮 Data Generator\n\nDescribe the data you want and the AI generates structured rows matching your columns.\n\n**Pipeline:** Data Generator → preview\n\n**Try this:** edit the prompt or add/rename columns to change the shape. Pick a model first."
         },
         "ui_properties": {
           "position": {
@@ -126,8 +85,8 @@
             "y": -164
           },
           "zIndex": 0,
-          "width": 280,
-          "height": 135,
+          "width": 460,
+          "height": 180,
           "selectable": true
         },
         "dynamic_properties": {}

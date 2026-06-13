@@ -14,15 +14,23 @@
   "graph": {
     "nodes": [
       {
-        "id": "1",
+        "id": "comment-intro",
         "parent_id": null,
-        "type": "nodetool.output.Output",
+        "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "name": "paper_summary",
-          "value": "",
-          "description": ""
+          "comment": "# 🔬 Research Paper Summarizer\n\nPaste a paper; two agents extract the key findings and a technical methodology summary, merged into one report.\n\n**Pipeline:** Paper → Findings agent + Technical agent → report\n\n**Try this:** paste your own paper, or adjust what each agent extracts."
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 80,
+            "y": -200
+          },
+          "zIndex": 0,
+          "width": 460,
+          "height": 180,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -34,7 +42,16 @@
         "data": {
           "template": "# Research Paper Summary Report\n\n## Key Findings:\n{{ findings }}\n\n## Technical Approach:\n{{ technical }}\n\n## Quick Reference:\n- **Type:** Research Paper (Academic)\n- **Field:** Machine Learning\n- **Contribution Level:** High Impact\n- **Methodology:** Novel Architecture\n\n## For Practitioners:\nThis paper presents fundamental concepts that have influenced modern AI development.\nThe techniques are widely applicable across various sequence modeling tasks.\n\n## Further Reading:\nConsider reading related work on:\n- RNN architectures\n- Attention mechanisms\n- Transfer learning approaches\n"
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "6️⃣ Assemble report",
+          "position": {
+            "x": 1160,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {
           "findings": null,
           "technical": null
@@ -68,7 +85,16 @@
           "thread_id": null,
           "max_tokens": 1000
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "3️⃣ Extract findings",
+          "position": {
+            "x": 800,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -80,7 +106,16 @@
         "data": {
           "template": "Analyze this research paper and extract:\n1. Main research question/contribution\n2. Novel approach or methodology\n3. Key findings and results\n4. Impact and significance\n\nPaper:\n{{ paper }}"
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "2️⃣ Build findings prompt",
+          "position": {
+            "x": 440,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {
           "paper": null
         },
@@ -96,7 +131,16 @@
           "value": "\nTitle: Attention Is All You Need\n\nAbstract:\nThe dominant sequence transduction models are based on complex recurrent or convolutional neural networks.\nWe propose a new simple network architecture, the Transformer, based solely on attention mechanisms.\n\nIntroduction:\nRecurrent neural networks have long been the standard for sequence modeling tasks.\nHowever, RNNs suffer from parallelization challenges during training.\nOur approach abandons recurrence entirely and relies on attention mechanisms.\n\nMethods:\nThe Transformer architecture consists of:\n1. Multi-head self-attention layers\n2. Feed-forward networks\n3. Positional encoding\n4. Layer normalization\n\nResults:\nOur model achieves state-of-the-art results on machine translation tasks.\nThe architecture enables much faster training compared to RNNs.\nWe demonstrate superior performance on multiple benchmarks.\n\nConclusion:\nThe Transformer architecture represents a major advancement in sequence modeling.\nIt enables faster training and better parallelization.\nFuture work will explore applications beyond sequence transduction.\n",
           "description": "Research paper text"
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "1️⃣ Paper text",
+          "position": {
+            "x": 80,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -127,7 +171,16 @@
           "thread_id": null,
           "max_tokens": 800
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "5️⃣ Technical summary",
+          "position": {
+            "x": 800,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -139,7 +192,16 @@
         "data": {
           "template": "Provide a technical summary of the methodology described in this paper:\n{{ paper }}\n\nFocus on: Architecture, algorithms, and technical innovations."
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "4️⃣ Build technical prompt",
+          "position": {
+            "x": 440,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {
           "paper": null
         },
@@ -194,14 +256,6 @@
         "sourceHandle": "text",
         "target": "2",
         "targetHandle": "technical",
-        "ui_properties": null
-      },
-      {
-        "id": "7",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "1",
-        "targetHandle": "value",
         "ui_properties": null
       }
     ]
