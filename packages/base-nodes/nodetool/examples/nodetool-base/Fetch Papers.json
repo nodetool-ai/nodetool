@@ -26,7 +26,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "Convert Extracted Links to DataFrame"
+          "title": "3️⃣ To dataframe"
         },
         "dynamic_properties": {}
       },
@@ -46,7 +46,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "Filter DataFrame for Paper Entries Only"
+          "title": "4️⃣ Keep papers"
         },
         "dynamic_properties": {}
       },
@@ -66,28 +66,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "Extract URL Column from Paper DataFrame"
-        },
-        "dynamic_properties": {}
-      },
-      {
-        "id": "28",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "list_output_2024-12-27"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1630,
-            "y": 50
-          },
-          "zIndex": 0,
-          "width": 280,
-          "height": 169,
-          "selectable": true,
-          "title": "Preview Paper URLs Before Download"
+          "title": "5️⃣ Get URLs"
         },
         "dynamic_properties": {}
       },
@@ -107,7 +86,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "Extract Links from Markdown Content"
+          "title": "2️⃣ Extract links"
         },
         "dynamic_properties": {}
       },
@@ -129,7 +108,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "Download Paper Files to Local Folder"
+          "title": "6️⃣ Download papers"
         },
         "dynamic_properties": {}
       },
@@ -150,7 +129,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "Fetch Awesome Transformers README from GitHub"
+          "title": "1️⃣ Fetch README"
         },
         "dynamic_properties": {}
       },
@@ -159,7 +138,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Automated Research Paper Downloader\n\nThis workflow automatically fetches and downloads research papers from the Awesome Transformers GitHub repository. The process follows these steps:\n\n1. **Fetch the README.md** from the GitHub repository\n2. **Extract all links** with their titles from the markdown\n3. **Convert the extracted links** to a DataFrame for processing\n4. **Filter the DataFrame** to keep only entries with title 'Paper'\n5. **Extract the URL column** from the filtered DataFrame\n6. **Preview the URLs** before downloading\n7. **Download all papers** to the specified folder"
+          "comment": "# 📥 Fetch Papers\n\nPulls the Awesome Transformers README from GitHub, extracts the paper links, and downloads them to a folder.\n\n**Pipeline:** Fetch README → extract links → dataframe → filter papers → download\n\n**Try this:** point it at a different README or change the download folder."
         },
         "ui_properties": {
           "selected": false,
@@ -168,8 +147,8 @@
             "y": -189
           },
           "zIndex": 0,
-          "width": 280,
-          "height": 300,
+          "width": 460,
+          "height": 180,
           "selectable": true,
           "title": "Workflow Documentation and Process Overview"
         },
@@ -193,16 +172,6 @@
         "sourceHandle": "output",
         "target": "5",
         "targetHandle": "values",
-        "ui_properties": {
-          "className": "list"
-        }
-      },
-      {
-        "id": "062f298d-a041-4c80-b8b2-73541c8e6bdf",
-        "source": "25",
-        "sourceHandle": "output",
-        "target": "28",
-        "targetHandle": "value",
         "ui_properties": {
           "className": "list"
         }

@@ -159,32 +159,26 @@
         "sourceHandle": "output",
         "target": "2",
         "targetHandle": "processing"
-      },
-      {
-        "id": "22",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "1",
-        "targetHandle": "value"
       }
     ],
     "nodes": [
       {
-        "id": "1",
-        "type": "nodetool.output.Output",
+        "id": "comment-intro",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "name": "decision_result",
-          "description": ""
+          "comment": "# 🔀 Conditional Logic Engine\n\nRoute a number through compare, boolean, and switch nodes to demonstrate multi-branch decision logic, then assemble a report.\n\n**Pipeline:** Number → compare (>100, <50) → OR → conditional switches → report\n\n**Try this:** change the input value (0–100) and watch which branch fires."
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 2040,
-            "y": 579
+            "x": 0,
+            "y": -220
           },
           "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "bypassed": false
+          "width": 460,
+          "height": 180,
+          "selectable": true
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -204,7 +198,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "📋 Decision report"
         },
         "dynamic_properties": {
           "value": null,
@@ -235,7 +230,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "1️⃣ Input value"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -256,7 +252,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Compare: > 100?"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -277,7 +274,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Compare: < 50?"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -297,7 +295,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Extreme? (OR)"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -318,7 +317,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Route label"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -336,7 +336,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Switch: high / other"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -346,7 +347,7 @@
         "id": "9",
         "type": "nodetool.text.FormatText",
         "data": {
-          "template": "\ud83d\udd34 HIGH VALUE: {{ value }} is greater than 100. Priority processing engaged."
+          "template": "🔴 HIGH VALUE: {{ value }} is greater than 100. Priority processing engaged."
         },
         "ui_properties": {
           "position": {
@@ -356,7 +357,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "🔴 High message"
         },
         "dynamic_properties": {
           "value": null
@@ -378,7 +380,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Selected message"
         },
         "dynamic_properties": {
           "text": null
@@ -398,7 +401,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Switch: low / medium"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -408,7 +412,7 @@
         "id": "12",
         "type": "nodetool.text.FormatText",
         "data": {
-          "template": "\ud83d\udd35 LOW VALUE: {{ value }} is less than 50. Standard processing applied."
+          "template": "🔵 LOW VALUE: {{ value }} is less than 50. Standard processing applied."
         },
         "ui_properties": {
           "position": {
@@ -418,7 +422,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "🔵 Low message"
         },
         "dynamic_properties": {
           "value": null
@@ -430,7 +435,7 @@
         "id": "13",
         "type": "nodetool.text.FormatText",
         "data": {
-          "template": "\ud83d\udfe1 MEDIUM VALUE: {{ value }} is between 50 and 100. Balanced processing selected."
+          "template": "🟡 MEDIUM VALUE: {{ value }} is between 50 and 100. Balanced processing selected."
         },
         "ui_properties": {
           "position": {
@@ -440,7 +445,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "🟡 Medium message"
         },
         "dynamic_properties": {
           "value": null

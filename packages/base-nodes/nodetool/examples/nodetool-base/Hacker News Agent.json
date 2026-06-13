@@ -16,15 +16,23 @@
   "graph": {
     "nodes": [
       {
-        "id": "1",
+        "id": "comment-intro",
         "parent_id": null,
-        "type": "nodetool.output.Output",
+        "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "name": "hn_report",
-          "value": null,
-          "description": ""
+          "comment": "# 📰 Hacker News Agent\n\nAn agent scrapes the Hacker News front page, pulls the top posts and comments, and writes a themed snapshot.\n\n**Pipeline:** Instructions → HN agent → formatted snapshot\n\n**Try this:** change how many posts to cover, or ask for a different angle."
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 80,
+            "y": -200
+          },
+          "zIndex": 0,
+          "width": 460,
+          "height": 180,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -36,7 +44,16 @@
         "data": {
           "template": "\n# Hacker News snapshot\n\n## Overview\n{{ summary }}\n\n{% for p in posts %}\n### {{ p.title }}\n{{ p.url }}\n\nTop comments:\n{% for c in p.top_comments %}\n- {{ c.author }}: {{ c.text }}\n{% endfor %}\n\n{% endfor %}\n"
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "3️⃣ Format snapshot",
+          "position": {
+            "x": 800,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {
           "summary": null,
           "posts": null
@@ -67,7 +84,16 @@
           "system": "You are a research assistant.\n\nGoal\n- Conduct thorough research on the given objective\n- Use tools to gather information from multiple sources\n- Synthesize information into the structured output format specified\n\nTools Available\n- google_search: Search the web for information\n- browser: Navigate to URLs and extract content\n\nWorkflow\n1. Break down the research objective into specific queries\n2. Use google_search to find relevant sources\n3. Use browser to extract content from promising URLs\n4. Synthesize all findings into the requested output format\n\nOutput Format\n- Return a structured JSON object matching the defined output schema\n- Be thorough and cite sources where appropriate\n- Ensure all required fields are populated with accurate information\n",
           "mode": "plan"
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "2️⃣ Scrape & analyze",
+          "position": {
+            "x": 440,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {
           "summary": {
@@ -117,7 +143,16 @@
         "data": {
           "template": "\nScrape the front page of https://news.ycombinator.com/ and analyze activity.\n\nTasks:\n1) Identify the top 5 posts on the front page.\n2) For each post:\n   - Record title and url.\n   - Fetch the discussion thread with the browser tool.\n   - Extract the top 3 comments by score or prominence.\n   - For each comment, store text and author.\n\n3) Summarize the overall themes across the selected posts.\n\nOutput format (JSON):\n{\n  \"summary\": \"<high level summary of the 5 posts>\",\n  \"posts\": [\n    {\n      \"title\": \"<title>\",\n      \"url\": \"<url>\",\n      \"top_comments\": [\n        {\"text\": \"<comment text>\", \"author\": \"<username>\"},\n        ...\n      ]\n    },\n    ...\n  ]\n}\n"
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "1️⃣ Research instructions",
+          "position": {
+            "x": 80,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -146,14 +181,6 @@
         "sourceHandle": "posts",
         "target": "2",
         "targetHandle": "posts",
-        "ui_properties": null
-      },
-      {
-        "id": "4",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "1",
-        "targetHandle": "value",
         "ui_properties": null
       }
     ]

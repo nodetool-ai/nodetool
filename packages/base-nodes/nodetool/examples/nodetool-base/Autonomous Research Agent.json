@@ -16,15 +16,23 @@
   "graph": {
     "nodes": [
       {
-        "id": "1",
+        "id": "comment-intro",
         "parent_id": null,
-        "type": "nodetool.output.Output",
+        "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "name": "market_research_brief",
-          "value": "",
-          "description": "Compiled market research memo"
+          "comment": "# 📊 Autonomous Research Agent\n\nFeed a product and goal; the agent runs a lightweight market analysis and returns a structured brief through dynamic output slots.\n\n**Pipeline:** Inputs → build prompt → Analyst agent → formatted brief\n\n**Try this:** change the product or segment, or edit the agent's output slots."
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 80,
+            "y": -200
+          },
+          "zIndex": 0,
+          "width": 460,
+          "height": 180,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -36,7 +44,16 @@
         "data": {
           "template": "# Aurora Metrics – Market Intelligence Brief\n\n## Executive Summary\n{{ summary }}\n\n## Market Landscape\n{{ landscape }}\n\n## Key Players\n- {{ players | join('\n- ') }}\n\n## Opportunities\n{{ opportunities }}\n\n## Risk Factors\n{{ risks }}\n\n## Recommended Actions\n{{ actions }}\n\n## Source Notes\n{{ sources }}\n"
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "7️⃣ Format brief",
+          "position": {
+            "x": 1160,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {
           "summary": null,
           "landscape": null,
@@ -72,7 +89,16 @@
           "system": "You are a research assistant.\n\nGoal\n- Conduct thorough research on the given objective\n- Use tools to gather information from multiple sources\n- Synthesize information into the structured output format specified\n\nTools Available\n- google_search: Search the web for information\n- browser: Navigate to URLs and extract content\n\nWorkflow\n1. Break down the research objective into specific queries\n2. Use google_search to find relevant sources\n3. Use browser to extract content from promising URLs\n4. Synthesize all findings into the requested output format\n\nOutput Format\n- Return a structured JSON object matching the defined output schema\n- Be thorough and cite sources where appropriate\n- Ensure all required fields are populated with accurate information\n",
           "mode": "plan"
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "6️⃣ Market analyst agent",
+          "position": {
+            "x": 800,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {
           "executive_summary": {
@@ -142,7 +168,16 @@
         "data": {
           "template": "You are supporting the launch team for {{ product }}.\n        Build a concise market research brief that helps leadership evaluate\n        {{ goal }}\n\n        Context to consider:\n        - Target segment: {{ segment }}\n        - Focus region: {{ region }}\n        - Deliver the results using the predefined JSON keys.\n        "
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "5️⃣ Build brief prompt",
+          "position": {
+            "x": 440,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {
           "product": null,
           "goal": null,
@@ -161,7 +196,16 @@
           "value": "Aurora Metrics",
           "description": "SaaS product under evaluation"
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "1️⃣ Product",
+          "position": {
+            "x": 80,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -175,7 +219,16 @@
           "value": "Assess the competitive landscape and opportunities for a data-driven operations dashboard ahead of a Q1 launch.",
           "description": "Specific decision the leadership team needs to make"
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "2️⃣ Analysis goal",
+          "position": {
+            "x": 80,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -189,7 +242,16 @@
           "value": "Series B startup COOs in North America",
           "description": "Primary audience for the product"
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "3️⃣ Target segment",
+          "position": {
+            "x": 80,
+            "y": 520
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -203,7 +265,16 @@
           "value": "United States and Canada",
           "description": "Geographic focus for market intelligence"
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "4️⃣ Focus region",
+          "position": {
+            "x": 80,
+            "y": 740
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -304,14 +375,6 @@
         "sourceHandle": "sources",
         "target": "2",
         "targetHandle": "sources",
-        "ui_properties": null
-      },
-      {
-        "id": "13",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "1",
-        "targetHandle": "value",
         "ui_properties": null
       }
     ]
