@@ -4532,11 +4532,12 @@ export class UnifiedWebSocketRunner {
    */
   private async runDirectMediaGeneration(
     req: {
-      mode: "image" | "image_edit" | "video" | "audio";
+      mode: "image" | "image_edit" | "inpaint" | "video" | "audio";
       provider: string;
       model: string;
       prompt: string;
       sourceAssetId?: string;
+      maskAssetId?: string;
       width?: number;
       height?: number;
       strength?: number;
@@ -4716,6 +4717,38 @@ export class UnifiedWebSocketRunner {
         height: req.height
       };
       images = await provider.textToImages(params, variations);
+    } else if (req.mode === "inpaint") {
+      if (!req.sourceAssetId) {
+        throw new Error("source_asset_id is required for inpaint");
+      }
+      if (!req.maskAssetId) {
+        throw new Error("mask_asset_id is required for inpaint");
+      }
+      const adapter = getAssetAdapter();
+      const [sourceAsset, maskAsset] = await Promise.all([
+        Asset.find(userId, req.sourceAssetId),
+        Asset.find(userId, req.maskAssetId)
+      ]);
+      if (!sourceAsset) throw new Error(`Source asset not found: ${req.sourceAssetId}`);
+      if (!maskAsset) throw new Error(`Mask asset not found: ${req.maskAssetId}`);
+      const sourceExt = (sourceAsset.content_type ?? "image/png").split("/")[1] ?? "png";
+      const maskExt = (maskAsset.content_type ?? "image/png").split("/")[1] ?? "png";
+      const [sourceBytes, maskBytes] = await Promise.all([
+        adapter.retrieve(adapter.uriForKey(`${req.sourceAssetId}.${sourceExt}`)),
+        adapter.retrieve(adapter.uriForKey(`${req.maskAssetId}.${maskExt}`))
+      ]);
+      if (!sourceBytes) throw new Error(`Source asset bytes not found: ${req.sourceAssetId}`);
+      if (!maskBytes) throw new Error(`Mask asset bytes not found: ${req.maskAssetId}`);
+      const params: ImageToImageParams = {
+        model: imageModel,
+        prompt: req.prompt,
+        targetWidth: req.width ?? null,
+        targetHeight: req.height ?? null,
+        strength: req.strength ?? null,
+        numInferenceSteps: req.numInferenceSteps ?? null,
+        mask: maskBytes
+      };
+      images = await provider.imageToImages([sourceBytes], params, variations);
     } else {
       if (!req.sourceAssetId) {
         throw new Error("source_asset_id is required for image_edit");
@@ -5102,20 +5135,26 @@ export class UnifiedWebSocketRunner {
       }
       case "generate_media": {
         const rawMode = data.mode;
-        const mode: "image" | "image_edit" | "video" | "audio" =
+        const mode: "image" | "image_edit" | "inpaint" | "video" | "audio" =
           rawMode === "image_edit"
             ? "image_edit"
-            : rawMode === "video"
-              ? "video"
-              : rawMode === "audio"
-                ? "audio"
-                : "image";
+            : rawMode === "inpaint"
+              ? "inpaint"
+              : rawMode === "video"
+                ? "video"
+                : rawMode === "audio"
+                  ? "audio"
+                  : "image";
         const provider = String(data.provider ?? this.defaultProvider);
         const model = String(data.model ?? this.defaultModel);
         const prompt = String(data.prompt ?? "");
         const sourceAssetId =
           typeof data.source_asset_id === "string"
             ? (data.source_asset_id as string)
+            : undefined;
+        const maskAssetId =
+          typeof data.mask_asset_id === "string"
+            ? (data.mask_asset_id as string)
             : undefined;
         const width =
           typeof data.width === "number" ? (data.width as number) : undefined;
@@ -5148,6 +5187,7 @@ export class UnifiedWebSocketRunner {
             model,
             prompt,
             sourceAssetId,
+            maskAssetId,
             width,
             height,
             strength,

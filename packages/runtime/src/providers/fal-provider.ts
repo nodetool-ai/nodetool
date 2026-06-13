@@ -401,6 +401,7 @@ if (update.status === "IN_PROGRESS") {
     params: ImageToImageParams
   ): Promise<Record<string, unknown>> {
     const urls = await this.uploadImages(images);
+    const maskUrls = params.mask ? await this.uploadImages([params.mask]) : [];
 
     const b = new FalArgsBuilder(modelId);
     b.attachAssets("image", urls)
@@ -412,6 +413,7 @@ if (update.status === "IN_PROGRESS") {
       .set("strength", params.strength)
       .setImageSize(params.targetWidth, params.targetHeight)
       .setSize(params.aspectRatio, params.resolution);
+    if (maskUrls.length > 0) b.force("mask_url", maskUrls[0]);
     if (params.seed != null && params.seed !== -1) b.set("seed", params.seed);
     return b.args;
   }

@@ -182,33 +182,38 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
   }, [model, prompt, provider, start]);
 
   const handleInpaint = useCallback(async () => {
-    const result = await inpaintHere();
-    if (!result.ok) {
-      switch (result.reason) {
-        case "no-selection":
-          setError("Make a selection first to inpaint.");
-          break;
-        case "no-document":
-          setError("No image document is open.");
-          break;
-        case "no-canvas":
-          setError("Canvas is not ready yet.");
-          break;
-        case "error":
-          setError(result.message ?? "Inpaint failed.");
-          break;
-      }
+    if (!prompt.trim() || !model) {
+      setError("Enter a prompt and select a model before inpainting.");
       return;
     }
-    // Seed the freshly-bound inpaint layer with the typed prompt so the user
-    // doesn't retype it in the layer panel before running the workflow.
-    if (prompt.trim()) {
-      useSketchSessionStore
-        .getState()
-        .setParamOverride(result.layerId, "prompt", prompt.trim());
+    setGenerating(true);
+    try {
+      const result = await inpaintHere({ prompt: prompt.trim(), provider, model });
+      if (!result.ok) {
+        switch (result.reason) {
+          case "no-selection":
+            setError("Make a selection first to inpaint.");
+            break;
+          case "no-document":
+            setError("No image document is open.");
+            break;
+          case "no-canvas":
+            setError("Canvas is not ready yet.");
+            break;
+          case "error":
+            setError(result.message ?? "Inpaint failed.");
+            break;
+        }
+        return;
+      }
+      await start(result.layerId);
+      setPrompt("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Inpaint failed.");
+    } finally {
+      setGenerating(false);
     }
-    setPrompt("");
-  }, [inpaintHere, prompt]);
+  }, [inpaintHere, start, prompt, provider, model]);
 
   const isBusy = inpaintBusy || generating;
 
@@ -217,7 +222,7 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
     isBusy ||
     !descriptor.enabled ||
     (genMode === "generate" && (!prompt.trim() || !model)) ||
-    (genMode === "inpaint" && !hasActiveSelection);
+    (genMode === "inpaint" && (!hasActiveSelection || !prompt.trim() || !model));
 
   const handleSubmit = useCallback(() => {
     if (genMode === "generate") {
