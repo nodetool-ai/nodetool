@@ -3,6 +3,7 @@ layout: page
 title: "Design System"
 permalink: /design
 description: "NodeTool design system reference — typography, spacing, color, border radius, motion, z-index, and editor tokens."
+render_with_liquid: false
 ---
 
 # NodeTool Design System
