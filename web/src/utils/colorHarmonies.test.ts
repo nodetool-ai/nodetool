@@ -1,95 +1,56 @@
 import {
-  getComplementary,
-  getAnalogous,
-  getTriadic,
-  getSplitComplementary,
-  getTetradic,
-  getSquare,
   getHarmonyInfo,
   generateHarmony,
 } from "./colorHarmonies";
 
 describe("colorHarmonies", () => {
-  describe("getComplementary", () => {
-    it("returns 2 colors", () => {
-      const colors = getComplementary("#ff0000");
+  describe("complementary via generateHarmony", () => {
+    it("returns 2 colors with original first and cyan complement", () => {
+      const colors = generateHarmony("#ff0000", "complementary").colors;
       expect(colors).toHaveLength(2);
-    });
-
-    it("includes the original color", () => {
-      const colors = getComplementary("#ff0000");
       expect(colors[0]).toBe("#ff0000");
-    });
-
-    it("complement of red is cyan-ish", () => {
-      const colors = getComplementary("#ff0000");
       expect(colors[1]).toBe("#00ffff");
     });
   });
 
-  describe("getAnalogous", () => {
-    it("returns 3 colors", () => {
-      const colors = getAnalogous("#ff0000");
+  describe("analogous via generateHarmony", () => {
+    it("returns 3 colors with original in the middle", () => {
+      const colors = generateHarmony("#ff0000", "analogous").colors;
       expect(colors).toHaveLength(3);
-    });
-
-    it("includes the original as the middle color", () => {
-      const colors = getAnalogous("#ff0000");
       expect(colors[1]).toBe("#ff0000");
     });
   });
 
-  describe("getTriadic", () => {
-    it("returns 3 colors", () => {
-      const colors = getTriadic("#ff0000");
+  describe("triadic via generateHarmony", () => {
+    it("returns 3 colors with original first", () => {
+      const colors = generateHarmony("#ff0000", "triadic").colors;
       expect(colors).toHaveLength(3);
-    });
-
-    it("includes the original as the first color", () => {
-      const colors = getTriadic("#ff0000");
       expect(colors[0]).toBe("#ff0000");
     });
   });
 
-  describe("getSplitComplementary", () => {
-    it("returns 3 colors", () => {
-      const colors = getSplitComplementary("#ff0000");
+  describe("split-complementary via generateHarmony", () => {
+    it("returns 3 colors with original first", () => {
+      const colors = generateHarmony("#ff0000", "split-complementary").colors;
       expect(colors).toHaveLength(3);
-    });
-
-    it("includes the original as the first color", () => {
-      const colors = getSplitComplementary("#ff0000");
       expect(colors[0]).toBe("#ff0000");
     });
   });
 
-  describe("getTetradic", () => {
-    it("returns 4 colors", () => {
-      const colors = getTetradic("#ff0000");
+  describe("tetradic via generateHarmony", () => {
+    it("returns 4 colors with original first", () => {
+      const colors = generateHarmony("#ff0000", "tetradic").colors;
       expect(colors).toHaveLength(4);
-    });
-
-    it("includes the original as the first color", () => {
-      const colors = getTetradic("#ff0000");
       expect(colors[0]).toBe("#ff0000");
     });
   });
 
-  describe("getSquare", () => {
-    it("returns 4 colors", () => {
-      const colors = getSquare("#ff0000");
+  describe("square via generateHarmony", () => {
+    it("returns 4 distinct colors with original first", () => {
+      const colors = generateHarmony("#ff0000", "square").colors;
       expect(colors).toHaveLength(4);
-    });
-
-    it("includes the original as the first color", () => {
-      const colors = getSquare("#ff0000");
       expect(colors[0]).toBe("#ff0000");
-    });
-
-    it("produces distinct colors", () => {
-      const colors = getSquare("#ff0000");
-      const unique = new Set(colors);
-      expect(unique.size).toBe(4);
+      expect(new Set(colors).size).toBe(4);
     });
   });
 

@@ -13,52 +13,7 @@
  */
 
 import type { ToolContext } from "../types";
-import type { Point, LayerTransform, LayerContentBounds } from "../../types";
-import { isAffineTransform } from "../../types";
 import { cursorStyleForTool } from "../../sketchCursorStyle";
-import type { TransformHandle } from "./handleGeometry";
-import { hitTestHandles, isInRotateZone } from "./handleGeometry";
-import { cursorForHandle } from "./cursorMapping";
-
-/**
- * Hit-test transform handles and return cursor + handle info for a given
- * document-space point. Includes the outside-box rotate zone: if the point
- * misses all handles and the box interior but falls within the rotate
- * margin, handle is reported as `"rotate"`.
- *
- * @returns Object with `handle` (which handle, or null) and `cursor` (CSS cursor, or null).
- */
-export function getTransformHoverInfo(
-  docPoint: Point,
-  transform: LayerTransform,
-  rasterBounds: LayerContentBounds,
-  zoom: number
-): { handle: TransformHandle | null; cursor: string | null } {
-  const handle = hitTestHandles(transform, rasterBounds, docPoint, zoom);
-  const rot = isAffineTransform(transform) ? transform.rotation : 0;
-  if (handle) {
-    return { handle, cursor: cursorForHandle(handle, rot) };
-  }
-  // Check the outside-box rotate zone
-  if (isInRotateZone(transform, rasterBounds, docPoint, zoom)) {
-    return { handle: "rotate", cursor: cursorForHandle("rotate", rot) };
-  }
-  return { handle: null, cursor: null };
-}
-
-/**
- * Test whether a document-space point falls inside the transform bounding box
- * (any handle or the interior "move" zone).
- */
-export function isPointInsideGizmo(
-  docPoint: Point,
-  transform: LayerTransform,
-  rasterBounds: LayerContentBounds,
-  zoom: number
-): boolean {
-  const handle = hitTestHandles(transform, rasterBounds, docPoint, zoom);
-  return handle !== null;
-}
 
 /**
  * Apply cursor feedback on the sketch container (direct `style.cursor`).
