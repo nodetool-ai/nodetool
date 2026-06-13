@@ -155,24 +155,10 @@ export { OutputNode, PreviewNode, OUTPUT_NODES } from "@nodetool-ai/audio-nodes/
 export { WorkflowNode, WORKFLOW_NODES } from "@nodetool-ai/core-nodes/nodes/workflow";
 export { SubgraphNode, SUBGRAPH_NODES } from "@nodetool-ai/core-nodes/nodes/subgraph";
 export {
-  GetWorkspaceDirNode,
-  ListWorkspaceFilesNode,
   ReadTextFileNode,
   WriteTextFileNode,
   ReadBinaryFileNode,
   WriteBinaryFileNode,
-  DeleteWorkspaceFileNode,
-  CreateWorkspaceDirectoryNode,
-  WorkspaceFileExistsNode,
-  GetWorkspaceFileInfoNode,
-  CopyWorkspaceFileNode,
-  MoveWorkspaceFileNode,
-  GetWorkspaceFileSizeNode,
-  IsWorkspaceFileNode,
-  IsWorkspaceDirectoryNode,
-  JoinWorkspacePathsNode,
-  SaveImageFileNode,
-  SaveVideoFileNode,
   WORKSPACE_NODES
 } from "@nodetool-ai/automation-nodes/nodes/workspace";
 export { CompareImagesNode, COMPARE_NODES } from "@nodetool-ai/core-nodes/nodes/compare";
