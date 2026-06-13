@@ -35,7 +35,11 @@ export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
     case "agent_status":
       return <AgentStatusRenderer chunk={chunk} />;
     case "image":
-      return <ImageView source={chunk.content} />;
+      return (
+        <ImageView
+          source={typeof chunk.content === "string" ? chunk.content : undefined}
+        />
+      );
     case "audio": {
       const meta = chunk.content_metadata;
       return (

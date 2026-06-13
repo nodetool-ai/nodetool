@@ -25,3 +25,6 @@
 ## 2026-05-25 - O(N*M) lookup optimization in Timeline Activity Indicator
 **Learning:** Found an $O(N \times M)$ performance bottleneck in `web/src/components/timeline/ActivityIndicator.tsx` where `clipIds.includes(...)` was called inside `clips.filter(...)` to determine which clips are generating or have failed. This degrades UI performance as the number of clips in a timeline grows. Benchmarking shows using a Set provides >100x speedup for large arrays.
 **Action:** Replaced `.includes(id)` with a pre-initialized `Set.has(id)` lookup. Converting the `clipIds` array to a Set reduces time complexity to $O(N+M)$ and prevents unnecessary UI thread blocking.
+## 2026-05-25 - O(N*M) lookup optimization in Transcript Operations
+**Learning:** Found an $O(N \times M)$ performance bottleneck in `web/src/stores/timeline/transcriptOps.ts` where `!orderedBeatIds.includes(beat.id)` was called inside a loop over `beats`. This scales poorly for sequences with large numbers of beats.
+**Action:** Replaced `.includes()` with a pre-initialized `Set` and `.has()`. Converting the array to a `Set` allows O(1) lookups inside the loop, dropping the overall complexity to $O(N + M)$ and noticeably reducing script execution time.

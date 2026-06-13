@@ -73,7 +73,12 @@ export function bitmapToPngDataUrl(bitmap: ImageBitmap): string {
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
+  typeof value === "object" &&
+  value !== null &&
+  !Array.isArray(value) &&
+  // Typed arrays (e.g. native Float32Array audio-chunk payloads) must pass
+  // through untouched — Object.entries would explode them per-sample.
+  !ArrayBuffer.isView(value);
 
 const isImageRef = (value: unknown): value is Record<string, unknown> =>
   isRecord(value) &&
