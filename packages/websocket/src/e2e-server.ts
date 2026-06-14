@@ -122,6 +122,19 @@ interface FakeMeta {
   node_type?: string;
   required_settings?: string[] | null;
   outputs?: Array<{ name: string; type?: { type?: string } }> | null;
+  properties?: Array<{ name: string; type?: { type?: string } }> | null;
+}
+
+// Structural nodes must always run for real: inputs dispatch run params, outputs
+// emit results, control routes the graph.
+const STRUCTURAL_PREFIXES = [
+  "nodetool.input.",
+  "nodetool.output.",
+  "nodetool.control."
+];
+
+function isStructural(nodeType: string): boolean {
+  return STRUCTURAL_PREFIXES.some((p) => nodeType.startsWith(p));
 }
 
 function baseType(slot: { type?: { type?: string } } | undefined): string {
@@ -130,6 +143,10 @@ function baseType(slot: { type?: { type?: string } } | undefined): string {
 
 function outputsMedia(meta: FakeMeta | undefined): boolean {
   return (meta?.outputs ?? []).some((o) => MEDIA_TYPES.has(baseType(o)));
+}
+
+function inputsMedia(meta: FakeMeta | undefined): boolean {
+  return (meta?.properties ?? []).some((p) => MEDIA_TYPES.has(baseType(p)));
 }
 
 function needsSecret(meta: FakeMeta | undefined): boolean {
@@ -232,10 +249,13 @@ async function main(): Promise<void> {
         // Unknown node (e.g. test.Input) — echo inputs through.
         return { async process(inputs: Record<string, unknown>) { return inputs; } };
       }
+      // Structural nodes (input/output/control) always run for real.
+      if (isStructural(node.type)) return reg.resolve(node);
       const meta = reg.getMetadata(node.type) as FakeMeta | undefined;
       if (
         needsSecret(meta) ||
         outputsMedia(meta) ||
+        inputsMedia(meta) ||
         isExternal(node.type) ||
         isFakeByClass(node.type)
       ) {
