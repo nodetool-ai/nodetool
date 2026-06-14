@@ -105,7 +105,12 @@ const DynamicReplicateNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       }}
     >
       {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
-      <NodeResizeHandle minWidth={150} minHeight={150} />
+      <NodeResizeHandle
+        minWidth={150}
+        minHeight={150}
+        nodeId={id}
+        contentAware
+      />
       <Box sx={{ position: "relative" }}>
         <NodeHeader
           id={id}

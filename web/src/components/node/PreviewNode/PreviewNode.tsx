@@ -428,7 +428,12 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
           isConnectable={true}
         />
         <>
-          <NodeResizeHandle minWidth={150} minHeight={80} />
+          <NodeResizeHandle
+            minWidth={150}
+            minHeight={80}
+            nodeId={props.id}
+            contentAware
+          />
           <NodeHeader
             id={props.id}
             data={props.data}

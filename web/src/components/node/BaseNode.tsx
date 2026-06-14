@@ -432,11 +432,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       isConstantNode: type.startsWith("nodetool.constant"),
       isInputNode: type.startsWith("nodetool.input"),
       isOutputNode: type.startsWith("nodetool.output"),
-      isAgentNode: isAgentNodeType(type),
-      // Constant image/video nodes preview their media, so resizing should
-      // preserve the media's aspect ratio rather than distort it.
-      lockAspectRatio:
-        type === CONSTANT_IMAGE_NODE_TYPE || type === CONSTANT_VIDEO_NODE_TYPE
+      isAgentNode: isAgentNodeType(type)
     }),
     [type]
   );
@@ -488,6 +484,24 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       showFooter: !SPECIAL_NAMESPACES.includes(metadata.namespace || "")
     };
   }, [metadata.namespace]);
+
+  // Nodes that preview media (image/video) resize by keeping the *media's*
+  // aspect ratio, not the whole node box — the corner handle measures the live
+  // image and the surrounding chrome (header, sliders, outputs) at drag time.
+  // Output/preview nodes opt in too: they free-resize until media is present.
+  const hasMediaView = useMemo(() => {
+    if (
+      nodeType.isOutputNode ||
+      type === CONSTANT_IMAGE_NODE_TYPE ||
+      type === CONSTANT_VIDEO_NODE_TYPE
+    ) {
+      return true;
+    }
+    return (metadata.outputs ?? []).some((output) => {
+      const outputType = output.type?.type;
+      return outputType === "image" || outputType === "video";
+    });
+  }, [nodeType.isOutputNode, type, metadata.outputs]);
 
   const displayTitle = useMemo(
     () => resolveCodeNodeTitle(type, data.title, metadata.title),
@@ -777,7 +791,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       <NodeResizeHandle
         minWidth={150}
         minHeight={styleProps.minHeight}
-        keepAspectRatio={nodeType.lockAspectRatio}
+        nodeId={id}
+        contentAware={hasMediaView}
       />
       <NodeHeader
         id={id}

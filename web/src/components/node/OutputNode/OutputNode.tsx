@@ -362,7 +362,12 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
     >
       <div className={`output-node-content `}>
         <>
-          <NodeResizeHandle minWidth={150} minHeight={150} />
+          <NodeResizeHandle
+            minWidth={150}
+            minHeight={150}
+            nodeId={props.id}
+            contentAware
+          />
           <NodeHeader
             id={props.id}
             data={props.data}
