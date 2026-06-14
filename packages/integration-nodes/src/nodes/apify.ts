@@ -66,7 +66,7 @@ export class ApifyWebScraperNode extends BaseNode {
   static readonly nodeType = "apify.scraping.ApifyWebScraper";
   static readonly title = "Apify Web Scraper";
   static readonly description =
-    "Scrape websites using Apify's Web Scraper actor.\n    Extracts data from web pages using CSS selectors or custom JavaScript.\n    apify, scraping, web, data, extraction, crawler";
+    "Scrape websites using Apify's Web Scraper actor, extracting data via CSS selectors or custom JavaScript.\n    apify, scraping, web, data, extraction, crawler";
   static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
@@ -147,7 +147,7 @@ export class ApifyGoogleSearchScraperNode extends BaseNode {
   static readonly nodeType = "apify.scraping.ApifyGoogleSearchScraper";
   static readonly title = "Apify Google Search Scraper";
   static readonly description =
-    "Scrape Google Search results using Apify's Google Search Scraper.\n    Extract organic results, ads, related searches, and more.\n    apify, google, search, serp, scraping, seo";
+    "Scrape Google Search results using Apify — organic results, ads, related searches, and more.\n    apify, google, search, serp, scraping, seo";
   static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
@@ -239,7 +239,7 @@ export class ApifyInstagramScraperNode extends BaseNode {
   static readonly nodeType = "apify.scraping.ApifyInstagramScraper";
   static readonly title = "Apify Instagram Scraper";
   static readonly description =
-    "Scrape Instagram profiles, posts, comments, and hashtags.\n    Extract user data, post details, engagement metrics, and more.\n    apify, instagram, social, media, scraping, posts, profiles";
+    "Scrape Instagram profiles, posts, comments, and hashtags — user data, post details, and engagement metrics.\n    apify, instagram, social, media, scraping, posts, profiles";
   static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
@@ -331,7 +331,7 @@ export class ApifyAmazonScraperNode extends BaseNode {
   static readonly nodeType = "apify.scraping.ApifyAmazonScraper";
   static readonly title = "Apify Amazon Scraper";
   static readonly description =
-    "Scrape Amazon product data including prices, reviews, and ratings.\n    Extract product details, seller information, and customer reviews.\n    apify, amazon, ecommerce, products, scraping, prices, reviews";
+    "Scrape Amazon product data including prices, ratings, seller information, and customer reviews.\n    apify, amazon, ecommerce, products, scraping, prices, reviews";
   static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
@@ -423,7 +423,7 @@ export class ApifyYouTubeScraperNode extends BaseNode {
   static readonly nodeType = "apify.scraping.ApifyYouTubeScraper";
   static readonly title = "Apify You Tube Scraper";
   static readonly description =
-    "Scrape YouTube videos, channels, and playlists.\n    Extract video metadata, comments, channel info, and statistics.\n    apify, youtube, video, scraping, social, media, channels";
+    "Scrape YouTube videos, channels, and playlists — metadata, comments, channel info, and statistics.\n    apify, youtube, video, scraping, social, media, channels";
   static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
@@ -533,7 +533,7 @@ export class ApifyTwitterScraperNode extends BaseNode {
   static readonly nodeType = "apify.scraping.ApifyTwitterScraper";
   static readonly title = "Apify Twitter Scraper";
   static readonly description =
-    "Scrape Twitter/X posts, profiles, and followers.\n    Extract tweets, user information, and engagement metrics.\n    apify, twitter, x, social, media, scraping, tweets, posts";
+    "Scrape Twitter/X posts, profiles, and followers — tweets, user information, and engagement metrics.\n    apify, twitter, x, social, media, scraping, tweets, posts";
   static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };
@@ -632,7 +632,7 @@ export class ApifyLinkedInScraperNode extends BaseNode {
   static readonly nodeType = "apify.scraping.ApifyLinkedInScraper";
   static readonly title = "Apify Linked In Scraper";
   static readonly description =
-    "Scrape LinkedIn profiles, company pages, and job postings.\n    Extract professional information, connections, and company data.\n    apify, linkedin, professional, social, scraping, profiles, jobs";
+    "Scrape LinkedIn profiles, company pages, and job postings — professional info, connections, and company data.\n    apify, linkedin, professional, social, scraping, profiles, jobs";
   static readonly metadataOutputTypes = {
     output: "list[dict[str, any]]"
   };

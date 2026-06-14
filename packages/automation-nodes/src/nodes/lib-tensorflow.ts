@@ -238,7 +238,7 @@ export class TensorflowMobileNetEmbeddingNode extends BaseNode {
   static readonly nodeType = "lib.tensorflow.MobileNetEmbedding";
   static readonly title = "TensorFlow MobileNet Embedding";
   static readonly description =
-    "Extract a fixed-length feature embedding from an image using the MobileNet penultimate layer.\n    Useful as input to a custom classifier or nearest-neighbour search.\n    tensorflow, image, embedding, features, mobilenet, transfer learning";
+    "Extract a fixed-length feature embedding from an image using the MobileNet penultimate layer.\n    tensorflow, image, embedding, features, mobilenet, transfer-learning";
   static readonly inlineFields = [];
   static readonly inputFields = ["image"];
   static readonly metadataOutputTypes = { output: "list" };
@@ -288,7 +288,7 @@ export class TensorflowCocoSsdDetectNode extends BaseNode {
   static readonly nodeType = "lib.tensorflow.CocoSsdDetect";
   static readonly title = "TensorFlow COCO-SSD Detect";
   static readonly description =
-    "Detect objects in an image using the COCO-SSD model from TensorFlow.js.\n    Returns class name, score and bounding box ({x, y, width, height}) for each detection.\n    tensorflow, object detection, coco, ssd, bounding box";
+    "Detect objects in an image using the COCO-SSD model from TensorFlow.js, returning class, score, and bounding box per detection.\n    tensorflow, object-detection, coco, ssd, bounding-box";
   static readonly inlineFields = [];
   static readonly inputFields = ["image"];
   static readonly metadataOutputTypes = { output: "list" };

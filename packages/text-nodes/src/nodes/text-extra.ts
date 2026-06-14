@@ -1895,7 +1895,7 @@ export class EmbeddingTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Embedding";
   static readonly title = "Embedding";
   static readonly description =
-    "Generate vector representations of text using any supported embedding provider.\n    Automatically routes to the appropriate backend (OpenAI, Gemini, Mistral).\n    embeddings, similarity, search, clustering, classification, vectors, semantic\n\n    Uses embedding models to create dense vector representations of text.\n    These vectors capture semantic meaning, enabling:\n    - Semantic search\n    - Text clustering\n    - Document classification\n    - Recommendation systems\n    - Anomaly detection\n    - Measuring text similarity and diversity";
+    "Generate vector representations of text using any supported embedding provider (OpenAI, Gemini, Mistral).\n    embeddings, similarity, search, clustering, classification, vectors, semantic\n\n    Use cases:\n    - Semantic search and recommendation\n    - Text clustering and classification\n    - Anomaly detection\n    - Measuring text similarity and diversity";
   static readonly metadataOutputTypes = {
     output: "list"
   };
@@ -2537,7 +2537,7 @@ export class PromptNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Prompt";
   static readonly title = "Prompt";
   static readonly description =
-    "Compose a prompt string with named variables. Add variables via the Add Variable button; reference them in the prompt as {{ variable }} (or {variable}). Supports filters: {{ var|upper }}, {{ var|lower }}, {{ var|capitalize }}, {{ var|title }}, {{ var|trim }}, {{ var|truncate(n) }}, {{ var|default(val) }}.\n\n    prompt, text, template, variable, llm, agent";
+    "Compose a prompt string with named variables. Add variables via the Add Variable button; reference them in the prompt as {{ variable }} (or {variable}). Supports filters: {{ var|upper }}, {{ var|lower }}, {{ var|capitalize }}, {{ var|title }}, {{ var|trim }}, {{ var|truncate(n) }}, {{ var|default(val) }}.\n    prompt, text, template, variable, llm, agent";
   static readonly metadataOutputTypes = {
     output: "str"
   };
