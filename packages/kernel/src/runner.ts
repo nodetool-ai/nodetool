@@ -70,9 +70,10 @@ import {
 /**
  * Hints from the actor about how to route an invocation's outputs.
  *
- * Under PR 2 only `invocationLineage` is consumed, and only for outputs whose
- * static correlation kind would inherit the invocation scope. PR 3 extends
- * this with per-output explicit lineage from `outputs.forward()` calls.
+ * `invocationLineage` is applied to outputs that inherit the invocation scope.
+ * `perSlotLineage` overrides it per slot (e.g. minted iteration lineage or
+ * `outputs.forward()` calls). `lineageDoneSlots` marks slots the node dropped,
+ * for which the runner sends `signalLineageDone` instead of a value.
  */
 export interface OutputRoutingHints {
   /** Lineage carried by the consumed envelope when the node had exactly one. */
@@ -168,10 +169,23 @@ export interface RunResult {
   messages: ProcessingMessage[];
 
   /** Final job status. */
-  status: "completed" | "failed" | "cancelled";
+  status: "completed" | "failed" | "cancelled" | "suspended";
 
   /** Error message if status is 'failed'. */
   error?: string;
+
+  /**
+   * Set when status is 'suspended': the node that suspended, the human
+   * reason, and the saved state/metadata to persist for a future resume.
+   * snake_case to match the wire / job_update convention and
+   * `WorkflowSuspendedError.toDict()`.
+   */
+  suspend?: {
+    node_id: string;
+    reason: string;
+    state: Record<string, unknown>;
+    metadata: Record<string, unknown>;
+  };
 }
 
 /**
@@ -223,16 +237,10 @@ export class WorkflowRunner {
   /** Edges whose counter advanced since their last emitted edge_update. */
   private _edgeCounterDirty = new Set<string>();
 
-  /** Per-edge streaming flag (true if on a streaming path). */
-  private _streamingEdges = new Map<string, boolean>();
-
   /**
    * Static correlation analysis result. Always populated before actors run.
    */
   private _correlation: CorrelationAnalysisResult | undefined;
-
-  /** Control edges that have routed at least one event (used for diagnostics). */
-  private _controlEdgesRouted = new Set<string>();
 
   /**
    * Multi-edge list inputs: nodeId → set of handles that aggregate
@@ -287,6 +295,28 @@ export class WorkflowRunner {
 
   /** Errors reported by node actors, keyed by node id. */
   private _nodeErrors = new Map<string, string>();
+
+  /**
+   * Edge ids whose source has already been marked done on the target inbox.
+   * `markSourceDone` decrements an upstream counter, so marking the same edge
+   * twice would over-decrement and could prematurely close a handle that still
+   * has other open upstreams. Early per-slot EOS (`outputs.complete`) and the
+   * final `_sendEOS` both guard against double-marking via this set.
+   */
+  private _eosSentEdges = new Set<string>();
+
+  /**
+   * First suspension reported by a node actor (`WorkflowSuspendedError`).
+   * Precedence in finalization is cancel > suspend > failed > completed.
+   */
+  private _suspend:
+    | {
+        node_id: string;
+        reason: string;
+        state: Record<string, unknown>;
+        metadata: Record<string, unknown>;
+      }
+    | undefined;
 
   constructor(jobId: string, options: WorkflowRunnerOptions) {
     this.jobId = jobId;
@@ -408,9 +438,6 @@ export class WorkflowRunner {
       // whose source or target node doesn't exist in the graph.
       this._filterInvalidEdges();
 
-      // Analyze streaming paths (Python parity: _analyze_streaming)
-      this._analyzeStreaming();
-
       // Static correlation analysis is mandatory. Issues abort the run with
       // a graph validation error before any actor is spawned.
       this._correlation = analyzeCorrelation({
@@ -476,6 +503,30 @@ export class WorkflowRunner {
 
       // Post-completion: drain any edges that still have pending/open state
       this._drainActiveEdges();
+
+      // A suspension is a distinct terminal outcome (suspended, not failed).
+      // Precedence is cancel > suspend > failed > completed: cancel is
+      // checked first, then suspend takes priority over node errors so a
+      // human-in-the-loop pause isn't masked by an incidental sibling error.
+      if (!this._cancelled && this._suspend) {
+        log.info("Workflow suspended", {
+          jobId: request.job_id,
+          nodeId: this._suspend.node_id,
+          reason: this._suspend.reason
+        });
+        this._emit({
+          type: "job_update",
+          status: "suspended",
+          job_id: request.job_id,
+          workflow_id: request.workflow_id ?? null
+        });
+        return {
+          outputs: Object.fromEntries(this._outputs),
+          messages: this._messages,
+          status: "suspended",
+          suspend: this._suspend
+        };
+      }
 
       // A node failure fails the whole job (Python parity). Actors swallow
       // their own errors so sibling branches can finish, but the final
@@ -553,8 +604,6 @@ export class WorkflowRunner {
     this._edgeCounters = new Map();
     this._edgeCounterLastEmitMs = new Map();
     this._edgeCounterDirty = new Set();
-    this._streamingEdges = new Map();
-    this._controlEdgesRouted = new Set();
     this._multiEdgeListInputs = new Map();
     this._outputs = new Map();
     this._messages = [];
@@ -565,6 +614,8 @@ export class WorkflowRunner {
     this._executors = new Map();
     this._nodeErrors = new Map();
     this._correlation = undefined;
+    this._eosSentEdges = new Set();
+    this._suspend = undefined;
   }
 
   /**
@@ -804,6 +855,15 @@ export class WorkflowRunner {
     for (const node of this._graph.nodes) {
       const incoming = this._graph.findDataEdges(node.id);
       if (incoming.length > 0) continue; // not an input node
+      // A node with an incoming control edge is run by its actor in
+      // _processGraph (which only skips actor-spawning when the node has
+      // neither data nor control edges). Skipping it here keeps the two
+      // predicates in parity — otherwise a controlled input node would be
+      // both one-shot dispatched here and spawned as an actor (double run).
+      const incomingControl = this._graph
+        .findIncomingEdges(node.id)
+        .filter(isControlEdge);
+      if (incomingControl.length > 0) continue;
       if (!this._isExternalInputNode(node)) continue;
 
       const inputName = this._getExternalInputName(node);
@@ -943,13 +1003,26 @@ export class WorkflowRunner {
         listInputHandles: this._multiEdgeListInputs.get(node.id),
         controlContext,
         correlation: this._correlation?.nodes.get(node.id),
-        cancelSignal: this._abortController.signal
+        cancelSignal: this._abortController.signal,
+        signalSlotEos: (sourceNodeId, slot) =>
+          this._signalSlotEos(sourceNodeId, slot)
       });
 
       actorPromises.push(
         actor.run().then(async (result) => {
           if (result.error !== undefined) {
             this._nodeErrors.set(node.id, result.error);
+          }
+
+          // A suspension is a distinct terminal outcome, not an error.
+          // Record the first one; precedence is resolved at finalization.
+          if (result.suspend !== undefined) {
+            this._suspend ??= {
+              node_id: result.suspend.nodeId,
+              reason: result.suspend.reason,
+              state: result.suspend.state,
+              metadata: result.suspend.metadata
+            };
           }
 
           // After actor completes, send EOS to all downstream inboxes
@@ -1097,8 +1170,6 @@ export class WorkflowRunner {
         await targetInbox.put("__control__", controlEvent, {
           source_edge_id: ctrlEdgeId
         });
-        // Track that this edge has routed at least one event
-        this._controlEdgesRouted.add(ctrlEdgeId);
         continue;
       }
 
@@ -1236,6 +1307,47 @@ export class WorkflowRunner {
   }
 
   /**
+   * Mark the source of one data edge done on its target inbox at most once.
+   * `markSourceDone` decrements an upstream counter, so calling it twice for
+   * the same edge would over-decrement and could prematurely close a handle
+   * that still has other open upstreams. Both early per-slot EOS
+   * (`_signalSlotEos`) and the final `_sendEOS` route through this guard.
+   * Returns true if the mark was applied (first time), false if skipped.
+   */
+  private _markEdgeSourceDoneOnce(edge: Edge): boolean {
+    const edgeId =
+      edge.id ??
+      syntheticEdgeId(
+        edge.source,
+        edge.sourceHandle,
+        edge.target,
+        edge.targetHandle
+      );
+    if (this._eosSentEdges.has(edgeId)) return false;
+    this._eosSentEdges.add(edgeId);
+    const targetInbox = this._inboxes.get(edge.target);
+    if (targetInbox) {
+      targetInbox.markSourceDone(edge.targetHandle);
+    }
+    return true;
+  }
+
+  /**
+   * Signal early end-of-stream for a single output slot of a node, in
+   * response to `outputs.complete(slot)`. Marks every outgoing edge of
+   * `(nodeId, slot)` done on its target inbox immediately, rather than
+   * waiting for the actor to finish. Idempotent with `_sendEOS` via the
+   * `_eosSentEdges` guard so a handle's upstream count is never
+   * double-decremented.
+   */
+  private _signalSlotEos(nodeId: string, slot: string): void {
+    for (const edge of this._graph.findEdges(nodeId, slot)) {
+      if (isControlEdge(edge)) continue;
+      this._markEdgeSourceDoneOnce(edge);
+    }
+  }
+
+  /**
    * Signal EOS on all outgoing edges of a completed node.
    * For control edges: close the __control__ handle of the target.
    * For data edges: close the named target handle.
@@ -1262,13 +1374,19 @@ export class WorkflowRunner {
         }
         continue;
       }
+      // Mark the source done at most once per edge — early per-slot EOS
+      // (`outputs.complete`) may already have marked it. The rest of the
+      // EOS work (lineage_scope_closed, edge_update) is unconditional.
+      this._markEdgeSourceDoneOnce(edge);
       const targetInbox = this._inboxes.get(edge.target);
-      if (targetInbox) {
-        targetInbox.markSourceDone(edge.targetHandle);
-      }
       const edgeId =
         edge.id ??
-        `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`;
+        syntheticEdgeId(
+          edge.source,
+          edge.sourceHandle,
+          edge.target,
+          edge.targetHandle
+        );
 
       // §6 — at source EOS, synthesize `lineage_scope_closed` for every
       // possible child root the edge could have produced. Downstream
@@ -1337,11 +1455,17 @@ export class WorkflowRunner {
     for (const edge of controlEdges) {
       const targetInbox = this._inboxes.get(edge.target);
       if (!targetInbox) continue;
-      await targetInbox.put("__control__", event);
       const ctrlEdgeId =
         edge.id ??
-        `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`;
-      this._controlEdgesRouted.add(ctrlEdgeId);
+        syntheticEdgeId(
+          edge.source,
+          edge.sourceHandle,
+          edge.target,
+          edge.targetHandle
+        );
+      await targetInbox.put("__control__", event, {
+        source_edge_id: ctrlEdgeId
+      });
     }
   }
 
@@ -1421,7 +1545,12 @@ export class WorkflowRunner {
   private _incrementEdgeCounter(edge: Edge): void {
     const id =
       edge.id ??
-      `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`;
+      syntheticEdgeId(
+        edge.source,
+        edge.sourceHandle,
+        edge.target,
+        edge.targetHandle
+      );
     const counter = (this._edgeCounters.get(id) ?? 0) + 1;
     this._edgeCounters.set(id, counter);
 
@@ -1487,7 +1616,12 @@ export class WorkflowRunner {
         if (!inbox) continue;
         const edgeId =
           edge.id ??
-          `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`;
+          syntheticEdgeId(
+            edge.source,
+            edge.sourceHandle,
+            edge.target,
+            edge.targetHandle
+          );
         if (
           inbox.hasBuffered(edge.targetHandle) ||
           inbox.isOpen(edge.targetHandle)
@@ -1504,56 +1638,6 @@ export class WorkflowRunner {
         // Best effort — ignore errors during draining
       }
     }
-  }
-
-  // -----------------------------------------------------------------------
-  // Streaming analysis
-  // -----------------------------------------------------------------------
-
-  private _edgeKey(edge: Edge): string {
-    return (
-      edge.id ??
-      `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`
-    );
-  }
-
-  private _analyzeStreaming(): void {
-    this._streamingEdges.clear();
-    const adjacency = new Map<string, Edge[]>();
-
-    for (const edge of this._graph.edges) {
-      if (isControlEdge(edge)) continue;
-      const key = this._edgeKey(edge);
-      this._streamingEdges.set(key, false);
-      const arr = adjacency.get(edge.source) ?? [];
-      arr.push(edge);
-      adjacency.set(edge.source, arr);
-    }
-
-    const queue: string[] = [];
-    const visited = new Set<string>();
-    for (const node of this._graph.nodes) {
-      if (node.is_streaming_output) {
-        queue.push(node.id);
-        visited.add(node.id);
-      }
-    }
-
-    while (queue.length > 0) {
-      const current = queue.shift()!;
-      for (const edge of adjacency.get(current) ?? []) {
-        this._streamingEdges.set(this._edgeKey(edge), true);
-        if (!visited.has(edge.target)) {
-          visited.add(edge.target);
-          queue.push(edge.target);
-        }
-      }
-    }
-  }
-
-  /** Returns true if the given edge is on a streaming path. */
-  edgeStreams(edge: Edge): boolean {
-    return this._streamingEdges.get(this._edgeKey(edge)) ?? false;
   }
 
   // -----------------------------------------------------------------------
