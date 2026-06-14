@@ -10,7 +10,7 @@ import { memo } from "react";
 const styles = () =>
   css({
     "& .property-label": {
-      marginBottom: "5px"
+      marginBottom: "6px"
     }
   });
 

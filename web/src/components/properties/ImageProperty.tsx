@@ -45,7 +45,7 @@ const ImageProperty = (props: PropertyProps) => {
       className="image-property"
       css={css({
         "& .property-label": {
-          marginBottom: "5px"
+          marginBottom: "6px"
         }
       })}
     >

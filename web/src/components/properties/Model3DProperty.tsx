@@ -26,7 +26,7 @@ const styles = (theme: Theme) =>
       flexDirection: "column"
     },
     "& .property-label": {
-      marginBottom: "5px"
+      marginBottom: "6px"
     },
     ".drop-container": {
       position: "relative",

@@ -27,7 +27,7 @@ const styles = (theme: Theme) =>
       marginBottom: "8px"
     },
     ".property-label": {
-      marginBottom: "5px"
+      marginBottom: "6px"
     },
     ".image-grid": {
       display: "grid",
@@ -100,7 +100,7 @@ const styles = (theme: Theme) =>
       textAlign: "center",
       transition: MOTION.all,
       outline: `1px dashed ${theme.vars.palette.grey[600]}`,
-      margin: "5px 0",
+      margin: "6px 0",
       backgroundColor: `rgba(0, 0, 0, 0.2)`,
       borderRadius: "var(--rounded-md)",
       display: "flex",
@@ -500,7 +500,7 @@ const ImageListProperty = (props: PropertyProps) => {
               padding: "16px 8px",
               outline: "1px dashed rgba(255,255,255,0.1)",
               borderRadius: "var(--rounded-md)",
-              margin: "5px 0"
+              margin: "6px 0"
             })}
           >
             Awaiting upstream

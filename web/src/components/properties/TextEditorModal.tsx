@@ -582,7 +582,7 @@ const styles = (theme: Theme) =>
           }
         },
         ".chat-view": {
-          padding: "0 10px 10px 10px !important",
+          padding: "0 12px 12px 12px !important",
           minHeight: 0,
           flex: 1
         },
@@ -601,7 +601,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".button": {
-      padding: "5px",
+      padding: "6px",
       minWidth: "32px",
       minHeight: "32px",
       cursor: "pointer",

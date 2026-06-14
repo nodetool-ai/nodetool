@@ -73,7 +73,7 @@ const PropertyDropzone = ({
         textAlign: "left",
         transition: MOTION.all,
         outline: `1px dashed ${theme.vars.palette.divider}`,
-        margin: "5px 0",
+        margin: "6px 0",
         backgroundColor: theme.vars.palette.Paper.overlay,
         borderRadius: "var(--rounded-md)",
 

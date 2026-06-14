@@ -60,7 +60,7 @@ const propertyStyles = css({
     zIndex: 10
   },
   ".string-action-buttons .MuiIconButton-root": {
-    margin: "0 0 0 5px",
+    margin: "0 0 0 6px",
     padding: 0
   },
   ".string-action-buttons .MuiIconButton-root svg": {

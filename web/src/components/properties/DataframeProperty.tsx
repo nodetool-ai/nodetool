@@ -43,7 +43,7 @@ const styles = (theme: Theme) =>
       zIndex: 10
     },
     ".dataframe-action-buttons .MuiIconButton-root": {
-      margin: "0 0 0 5px",
+      margin: "0 0 0 6px",
       padding: "0.2em",
       color: theme.vars.palette.primary.main,
       "&:hover": {
@@ -87,7 +87,7 @@ const styles = (theme: Theme) =>
       textAlign: "center",
       transition: MOTION.all,
       outline: `1px dashed ${theme.vars.palette.grey[600]}`,
-      margin: "5px 0",
+      margin: "6px 0",
       backgroundColor: alpha(theme.palette.common.black, 0.2),
       borderRadius: "var(--rounded-md)",
       display: "flex",

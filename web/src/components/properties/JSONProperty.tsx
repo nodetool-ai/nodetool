@@ -161,7 +161,7 @@ const JSONProperty = (props: PropertyProps) => {
           zIndex: 10
         },
         ".json-action-buttons .MuiIconButton-root": {
-          margin: "0 0 0 5px",
+          margin: "0 0 0 6px",
           padding: 0
         },
         ".json-action-buttons .MuiIconButton-root svg": {

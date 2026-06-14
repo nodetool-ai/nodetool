@@ -16,7 +16,7 @@ import type { NodeData } from "../../stores/NodeData";
 const styles = () =>
   css({
     "& .property-label": {
-      marginBottom: "5px"
+      marginBottom: "6px"
     },
     "& .dropzone": {
       width: "100%"
