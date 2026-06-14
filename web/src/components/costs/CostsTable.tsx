@@ -324,7 +324,7 @@ const CostsTableInternal: React.FC<CostsTableProps> = ({
     gridTemplateColumns: isExecution ? EXEC_GRID : GROUP_GRID,
     alignItems: "center",
     columnGap: "16px",
-    padding: "10px 24px"
+    padding: "12px 24px"
   } as const;
 
   return (

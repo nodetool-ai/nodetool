@@ -98,7 +98,7 @@ const LocalModelsHero: React.FC<LocalModelsHeroProps> = ({ models }) => {
                 marginTop: "2px",
                 paddingLeft: 0,
                 paddingRight: 0,
-                fontSize: "var(--fontSizeTiny)"
+                fontSize: "var(--fontSizeSmaller)"
               }}
             >
               Learn more
@@ -158,7 +158,7 @@ const Stat: React.FC<StatProps> = ({ value, label, icon }) => {
       <Caption
         sx={{
           opacity: 0.55,
-          fontSize: "var(--fontSizeTiny)",
+          fontSize: "var(--fontSizeSmaller)",
           marginTop: "2px",
           whiteSpace: "nowrap"
         }}

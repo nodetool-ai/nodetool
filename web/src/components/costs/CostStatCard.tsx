@@ -41,7 +41,7 @@ const CostStatCardInternal: React.FC<CostStatCardProps> = ({
       sx={{
         flex: "1 1 0",
         minWidth: 200,
-        padding: "18px 20px",
+        padding: theme.spacing(4, 6),
         borderRadius: BORDER_RADIUS.xxl,
         backgroundColor: theme.vars.palette.background.paper,
         border: `1px solid ${theme.vars.palette.divider}`
@@ -84,7 +84,7 @@ const CostStatCardInternal: React.FC<CostStatCardProps> = ({
               borderRadius: BORDER_RADIUS.sm,
               backgroundColor: valueDotColor,
               flexShrink: 0,
-              mt: isLabel ? "7px" : 0
+              mt: isLabel ? "8px" : 0
             }}
           />
         )}
@@ -107,7 +107,7 @@ const CostStatCardInternal: React.FC<CostStatCardProps> = ({
             <Text
               component="span"
               sx={{
-                fontSize: "1.25rem",
+                fontSize: "var(--fontSizeBig)",
                 fontWeight: 600,
                 color: theme.vars.palette.text.disabled
               }}

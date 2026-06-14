@@ -243,7 +243,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
             ]}
             sx={{
               "& .MuiSlider-markLabel": {
-                fontSize: "var(--fontSizeTiny)"
+                fontSize: "var(--fontSizeSmaller)"
               }
             }}
           />
