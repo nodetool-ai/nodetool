@@ -817,8 +817,15 @@ interface ActiveJob {
   runner: WorkflowRunner;
   graph: HydratedGraphData;
   finished: boolean;
-  status: "running" | "completed" | "failed" | "cancelled";
+  status: "running" | "completed" | "failed" | "cancelled" | "suspended";
   error?: string;
+  /** Suspension detail when status is "suspended" (node + saved state). */
+  suspend?: {
+    node_id: string;
+    reason: string;
+    state: Record<string, unknown>;
+    metadata: Record<string, unknown>;
+  };
   streamTask?: Promise<void>;
   /** Running sum of node-level provider charges (e.g. kie credits) for this run. */
   providerCostTotal?: number;
@@ -1747,9 +1754,15 @@ export class UnifiedWebSocketRunner {
   private async streamJobMessages(
     active: ActiveJob,
     executePromise: Promise<{
-      status: "completed" | "failed" | "cancelled";
+      status: "completed" | "failed" | "cancelled" | "suspended";
       error?: string;
       outputs?: Record<string, unknown[]>;
+      suspend?: {
+        node_id: string;
+        reason: string;
+        state: Record<string, unknown>;
+        metadata: Record<string, unknown>;
+      };
     }>
   ): Promise<void> {
     let terminalSeen = false;
@@ -1767,6 +1780,7 @@ export class UnifiedWebSocketRunner {
       .then((result) => {
         active.status = result.status;
         active.error = result.error;
+        active.suspend = result.suspend;
         finalOutputs = result.outputs ?? {};
       })
       .catch((err) => {
@@ -1951,6 +1965,15 @@ export class UnifiedWebSocketRunner {
             job.markFailed(active.error ?? "Unknown error");
           } else if (active.status === "cancelled") {
             job.markCancelled();
+          } else if (active.status === "suspended") {
+            // A node paused the run (e.g. human-in-the-loop). Persist the
+            // saved state so the job can be resumed later.
+            job.markSuspended(
+              active.suspend?.node_id ?? "",
+              active.suspend?.reason ?? "",
+              active.suspend?.state,
+              active.suspend?.metadata
+            );
           }
         }
         job.cost =
@@ -4236,6 +4259,7 @@ export class UnifiedWebSocketRunner {
         .then((r) => {
           active.status = r.status;
           active.error = r.error;
+          active.suspend = r.suspend;
           finalOutputs = r.outputs ?? {};
         })
         .catch((err) => {
@@ -4322,6 +4346,13 @@ export class UnifiedWebSocketRunner {
             else if (active.status === "failed")
               job.markFailed(active.error ?? "Unknown error");
             else if (active.status === "cancelled") job.markCancelled();
+            else if (active.status === "suspended")
+              job.markSuspended(
+                active.suspend?.node_id ?? "",
+                active.suspend?.reason ?? "",
+                active.suspend?.state,
+                active.suspend?.metadata
+              );
           }
           job.cost =
             (active.providerCostTotal ?? 0) > 0
