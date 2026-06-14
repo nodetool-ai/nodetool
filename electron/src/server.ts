@@ -519,9 +519,6 @@ async function startServer(): Promise<void> {
  */
 function handleServerOutput(data: Buffer): void {
   const output = data.toString().trim();
-  // if (output) {
-  //   logMessage(output);
-  // }
 
   if (output.includes("KeychainAccessError")) {
     backendKeychainErrorSeen = true;
