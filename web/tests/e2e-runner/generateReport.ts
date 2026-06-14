@@ -80,10 +80,16 @@ function renderArtifact(a: ReportRecord["artifacts"][number]): string {
 
 function renderRecord(r: ReportRecord): string {
   const color = STATUS_COLOR[r.status] ?? "#64748B";
+  const erroredIds = new Set(
+    Object.entries(r.nodeIO)
+      .filter(([, io]) => io.error || io.status === "error" || io.status === "failed")
+      .map(([id]) => id)
+  );
+  const errCount = erroredIds.size;
   const nodeRows = Object.entries(r.nodeIO)
     .map(
       ([id, io]) =>
-        `<tr><td>${esc(id)}</td><td>${esc(io.node_type ?? "")}</td><td style="color:${STATUS_COLOR[io.status ?? ""] ?? "#e2e8f0"}">${esc(io.status ?? "")}</td><td>${esc(io.error ?? "")}</td></tr>`
+        `<tr${erroredIds.has(id) ? ' class="err-row"' : ""}><td>${esc(id)}</td><td>${esc(io.node_type ?? "")}</td><td style="color:${STATUS_COLOR[io.status ?? ""] ?? "#e2e8f0"}">${esc(io.status ?? "")}</td><td>${esc(io.error ?? "")}</td></tr>`
     )
     .join("");
   const outputs = r.outputs
@@ -104,7 +110,7 @@ function renderRecord(r: ReportRecord): string {
       <span class="badge" style="border-color:${color};color:${color}">${esc(r.status)}</span>
       ${r.durationMs != null ? `<span class="muted">${r.durationMs}ms</span>` : ""}
       ${r.counts.outputs ? `<span class="muted">${r.counts.outputs} out</span>` : ""}
-      ${r.counts.errors ? `<span class="muted err">${r.counts.errors} err</span>` : ""}
+      ${errCount ? `<span class="muted err">${errCount} err</span>` : ""}
     </summary>
     <div class="body">
       ${r.skipReason ? `<div class="warn">Skipped: ${esc(r.skipReason)}</div>` : ""}
@@ -164,6 +170,7 @@ export function generateReport(
   table { width:100%; border-collapse:collapse; font-size:12px; margin-bottom:8px; }
   th, td { text-align:left; padding:4px 8px; border-bottom:1px solid #1E293B; }
   th { color:#94A3B8; font-weight:500; }
+  tr.err-row td { background:#2a1414; color:#fecaca; }
   img.shot { max-width:100%; border:1px solid #1E293B; border-radius:6px; }
   .artifact img { max-width:100%; border-radius:6px; }
   .warn { background:#3f1d1d; border:1px solid #7f1d1d; color:#fecaca; padding:8px 10px; border-radius:6px; margin-bottom:10px; font-size:13px; }
