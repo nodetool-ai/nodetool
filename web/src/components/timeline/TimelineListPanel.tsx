@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
-import { memo, useCallback, useMemo, useState } from "react";
+import { Fragment, memo, useCallback, useMemo, useState } from "react";
 import type { DragEvent, KeyboardEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -12,13 +12,14 @@ import { useCreateTimeline, useTimelines } from "../../hooks/useTimelineSequence
 import { usePanelStore } from "../../stores/PanelStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { serializeDragData, useDragDropStore } from "../../lib/dragdrop";
+import { groupByDate } from "../../utils/groupByDate";
 import CategorySearchBar from "../node_menu/CategorySearchBar";
 import {
-  Caption,
   EmptyState,
   FlexColumn,
   FlexRow,
   LoadingSpinner,
+  Text,
   ToolbarIconButton,
   TruncatedText,
   Tooltip,
@@ -63,25 +64,25 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       fontSize: 20
     },
-    ".timeline-meta": {
-      color: theme.vars.palette.text.secondary
+    ".date-header-row": {
+      width: "100%",
+      padding: "0 12px 4px 0",
+      display: "flex",
+      alignItems: "flex-end",
+      borderBottom: "1px solid var(--palette-divider)"
+    },
+    ".date-header": {
+      fontSize: theme.fontSizeSmaller,
+      flexShrink: 0,
+      padding: 0,
+      lineHeight: 1.1,
+      width: "100%",
+      textAlign: "right",
+      letterSpacing: "0.02em",
+      textTransform: "uppercase",
+      whiteSpace: "nowrap"
     }
   });
-
-const dateFormatter = new Intl.DateTimeFormat(undefined, {
-  month: "short",
-  day: "numeric",
-  hour: "2-digit",
-  minute: "2-digit"
-});
-
-function formatUpdatedAt(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "Updated recently";
-  }
-  return `Updated ${dateFormatter.format(date)}`;
-}
 
 function createTimelineDragImage(name: string): HTMLElement {
   const container = document.createElement("div");
@@ -213,9 +214,6 @@ const TimelineListItem = memo(function TimelineListItem({
           >
             {name || "Untitled video"}
           </TruncatedText>
-          <Caption className="timeline-meta">
-            {formatUpdatedAt(updatedAt)}
-          </Caption>
         </FlexColumn>
       </FlexRow>
     </button>
@@ -343,16 +341,37 @@ const TimelineListPanel = () => {
         </FlexColumn>
       ) : (
         <FlexColumn className="timeline-list" gap={0.5}>
-          {timelines.map((timeline) => (
-            <TimelineListItem
-              key={timeline.id}
-              id={timeline.id}
-              name={timeline.name}
-              updatedAt={timeline.updatedAt}
-              active={timeline.id === activeTimelineId}
-              onOpen={handleOpen}
-            />
-          ))}
+          {(() => {
+            let currentGroup = "";
+            return timelines.map((timeline) => {
+              const group = groupByDate(timeline.updatedAt);
+              const showHeader = group !== currentGroup;
+              currentGroup = group;
+              return (
+                <Fragment key={timeline.id}>
+                  {showHeader && (
+                    <div className="date-header-row">
+                      <Text
+                        className="date-header"
+                        size="small"
+                        color="secondary"
+                        weight={400}
+                      >
+                        {group}
+                      </Text>
+                    </div>
+                  )}
+                  <TimelineListItem
+                    id={timeline.id}
+                    name={timeline.name}
+                    updatedAt={timeline.updatedAt}
+                    active={timeline.id === activeTimelineId}
+                    onOpen={handleOpen}
+                  />
+                </Fragment>
+              );
+            });
+          })()}
         </FlexColumn>
       )}
     </FlexColumn>
