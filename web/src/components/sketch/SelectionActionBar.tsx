@@ -2,8 +2,9 @@
  * SelectionActionBar — floating contextual toolbar anchored to the active
  * selection (Photoshop-style). Appears below (or above, when near the bottom
  * edge) the selection's bounding box and surfaces the selection-driven
- * actions: Generative fill (inpaint), Remove (clear masked pixels), and
- * Refine edge (the existing RefineSelectionPopover).
+ * actions: an inline Inpaint form (prompt + model + run, using the selection as
+ * a mask), Remove (clear masked pixels), and Refine edge (the existing
+ * RefineSelectionPopover).
  *
  * Mounted inside SketchCanvasPresentation next to the TransformGizmo so it
  * shares the canvas container and stays viewport-aware (zoom / pan). Like the
@@ -20,7 +21,6 @@ import React, {
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
-import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import TuneIcon from "@mui/icons-material/Tune";
 
@@ -28,12 +28,19 @@ import {
   CloseButton,
   EditorButton,
   FlexRow,
+  LoadingSpinner,
+  TextInput,
+  Toast,
   Tooltip
 } from "../ui_primitives";
+import ImageModelSelect from "../properties/ImageModelSelect";
+import type { ImageModelValue } from "../../stores/ApiTypes";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useSketchStore } from "./state";
 import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
 import { useSketchCanvasRefStore } from "../../stores/sketch/SketchCanvasRefStore";
+import { useInpaintHere } from "../../hooks/sketch/useInpaintHere";
+import { useDirectGenJob } from "../../hooks/sketch/useDirectGenJob";
 import { getSelectionBounds } from "./selection";
 import type { Point } from "./types";
 import { SKETCH_Z_INDEX } from "./sketchStyles";
@@ -46,6 +53,20 @@ const EDGE_MARGIN = 8;
 
 interface SelectionActionBarProps {
   containerRef: RefObject<HTMLDivElement | null>;
+}
+
+/** Most recent direct-gen binding's model, to seed the inpaint picker. */
+function seedModelFromBindings(): { model: string; provider: string } {
+  const bindings = Object.values(useSketchSessionStore.getState().bindings);
+  const last = bindings
+    .filter(
+      (b) =>
+        b.kind === "text-to-image" ||
+        b.kind === "image-to-image" ||
+        b.kind === "inpaint"
+    )
+    .pop();
+  return { model: last?.model ?? "", provider: last?.provider ?? "" };
 }
 
 /** Document-space point → container CSS px (mirrors TransformGizmo.docToCss). */
@@ -74,7 +95,6 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
   const hasActiveSelection = useSketchStore((s) => s.hasActiveSelection);
   const isDrawing = useSketchStore((s) => s.isDrawing);
   const activeTool = useSketchStore((s) => s.activeTool);
-  const setGenMode = useSketchStore((s) => s.setGenMode);
   const setSelection = useSketchStore((s) => s.setSelection);
   const zoom = useSketchStore((s) => s.zoom);
   const pan = useSketchStore((s) => s.pan);
@@ -99,6 +119,16 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
   const documentId = useSketchSessionStore((s) => s.documentId);
   const clearActiveLayer = useSketchCanvasRefStore((s) => s.clearActiveLayer);
 
+  const { inpaintHere, isBusy: inpaintBusy } = useInpaintHere();
+  const { start } = useDirectGenJob();
+
+  const [prompt, setPrompt] = useState("");
+  const [seed] = useState(seedModelFromBindings);
+  const [model, setModel] = useState(seed.model);
+  const [provider, setProvider] = useState(seed.provider);
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const [refineOpen, setRefineOpen] = useState(false);
   const refineAnchorRef = useRef<HTMLButtonElement | null>(null);
 
@@ -118,15 +148,53 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
       if (!entry) {
         return;
       }
-      setContainerSize({ w: entry.contentRect.width, h: entry.contentRect.height });
+      setContainerSize({
+        w: entry.contentRect.width,
+        h: entry.contentRect.height
+      });
     });
     ro.observe(el);
     return () => ro.disconnect();
   }, [containerRef]);
 
-  const handleGenerativeFill = useCallback(() => {
-    setGenMode("inpaint");
-  }, [setGenMode]);
+  const handleModelChange = useCallback((v: ImageModelValue) => {
+    setModel(v.id);
+    setProvider(v.provider);
+  }, []);
+
+  const handleInpaint = useCallback(async () => {
+    setGenerating(true);
+    try {
+      const result = await inpaintHere({
+        prompt: prompt.trim(),
+        provider,
+        model
+      });
+      if (!result.ok) {
+        switch (result.reason) {
+          case "no-selection":
+            setError("Make a selection first to inpaint.");
+            break;
+          case "no-document":
+            setError("No image document is open.");
+            break;
+          case "no-canvas":
+            setError("Canvas is not ready yet.");
+            break;
+          case "error":
+            setError(result.message ?? "Inpaint failed.");
+            break;
+        }
+        return;
+      }
+      await start(result.layerId);
+      setPrompt("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Inpaint failed.");
+    } finally {
+      setGenerating(false);
+    }
+  }, [inpaintHere, start, prompt, provider, model]);
 
   const handleRemove = useCallback(() => {
     if (clearActiveLayer) {
@@ -134,16 +202,12 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
     }
   }, [clearActiveLayer]);
 
-  // "Inpaint" switches the top mode/prompt bar into inpaint mode so the user
-  // can describe a replacement for the selected region, distinct from the
-  // one-click "Generative fill" which regenerates the region immediately.
-  const handleInpaintMode = useCallback(() => {
-    setGenMode("inpaint");
-  }, [setGenMode]);
-
   const handleClose = useCallback(() => {
     setSelection(null);
   }, [setSelection]);
+
+  const isBusy = inpaintBusy || generating;
+  const inpaintDisabled = isBusy || !prompt.trim() || !model;
 
   // ── Visibility gate ──────────────────────────────────────────────────────
   const bounds =
@@ -223,8 +287,41 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
         // starts a stroke / new selection on the tool underneath.
         onPointerDown={(e: React.PointerEvent) => e.stopPropagation()}
       >
+        {/* Inline inpaint: prompt + model + run, using the selection as a mask. */}
+        <TextInput
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          placeholder="Replace selection with…"
+          compact
+          aria-label="Inpaint prompt"
+          data-testid="sketch-selection-inpaint-prompt"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey && !inpaintDisabled) {
+              e.preventDefault();
+              void handleInpaint();
+            }
+          }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <AutoAwesomeIcon
+                  fontSize="small"
+                  sx={{ mr: 0.5, color: theme.vars.palette.primary.main }}
+                />
+              )
+            }
+          }}
+          sx={{ width: 200 }}
+        />
+
+        <ImageModelSelect
+          value={model}
+          task="image_to_image"
+          onChange={handleModelChange}
+        />
+
         <Tooltip
-          title="Generative fill — switch to Inpaint mode to describe a replacement for the selected region."
+          title="Inpaint — regenerate the selected region using your prompt and the selection as a mask."
           delay={TOOLTIP_ENTER_DELAY}
           placement={placeAbove ? "top" : "bottom"}
         >
@@ -232,26 +329,15 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
             <EditorButton
               variant="contained"
               size="small"
-              onClick={handleGenerativeFill}
-              startIcon={<AutoAwesomeIcon fontSize="small" />}
-              data-testid="sketch-selection-generative-fill"
-            >
-              Generative fill
-            </EditorButton>
-          </span>
-        </Tooltip>
-
-        <Tooltip
-          title="Inpaint — switch to Inpaint mode and describe a replacement for the selected region."
-          delay={TOOLTIP_ENTER_DELAY}
-          placement={placeAbove ? "top" : "bottom"}
-        >
-          <span>
-            <EditorButton
-              variant="outlined"
-              size="small"
-              onClick={handleInpaintMode}
-              startIcon={<AutoFixHighIcon fontSize="small" />}
+              onClick={() => void handleInpaint()}
+              disabled={inpaintDisabled}
+              startIcon={
+                isBusy ? (
+                  <LoadingSpinner inline size={14} color="inherit" />
+                ) : (
+                  <AutoAwesomeIcon fontSize="small" />
+                )
+              }
               data-testid="sketch-selection-inpaint"
             >
               Inpaint
@@ -313,6 +399,15 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
         onFeatherSelection={() => void featherCurrentSelection()}
         onSmoothSelectionBorders={() => void smoothCurrentSelectionBorders()}
         onConvertSelectionToBorder={convertSelectionToBorderOutline}
+      />
+
+      <Toast
+        open={error !== null}
+        message={error ?? ""}
+        severity="warning"
+        onClose={() => setError(null)}
+        vertical="top"
+        horizontal="center"
       />
     </>
   );
