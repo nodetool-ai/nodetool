@@ -1,4 +1,3 @@
-import { css, type SerializedStyles } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 
 /**
@@ -8,7 +7,6 @@ import type { Theme } from "@mui/material/styles";
  * while transparent regions show a quiet grid.  Two presets are provided:
  *
  *  • `alphaSurfaceBg`  – raw CSS properties to spread into any style object
- *  • `alphaSurfaceCss` – a ready-made Emotion `css` block
  *
  * Both work with any `object-fit` value; the checkerboard tiles via
  * `background-size` independently of the image element.
@@ -70,15 +68,3 @@ export const alphaSurfaceBg = {
   backgroundSize: `${CHECKER_SIZE} ${CHECKER_SIZE}`,
   backgroundPosition: `0 0, 0 ${HALF_SIZE}, ${HALF_SIZE} -${HALF_SIZE}, -${HALF_SIZE} 0px`
 } as const;
-
-/**
- * Emotion `css` block ready to apply via the `css` prop.
- *
- * @example
- * ```tsx
- * <div css={alphaSurfaceCss}>
- *   <img src={src} style={{ objectFit: "contain" }} />
- * </div>
- * ```
- */
-export const alphaSurfaceCss: SerializedStyles = css(alphaSurfaceBg);
