@@ -536,7 +536,7 @@ export class VideoModelInputNode extends BaseNode {
 
 export class TTSModelInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.TTSModelInput";
-  static readonly title = "TTSModel Input";
+  static readonly title = "TTS Model Input";
   static readonly description =
     "Accepts a text-to-speech model as a parameter for workflows.\n    input, parameter, model, tts, speech, voice";
   static readonly metadataOutputTypes = {
@@ -584,7 +584,7 @@ export class TTSModelInputNode extends BaseNode {
 
 export class ASRModelInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.ASRModelInput";
-  static readonly title = "ASRModel Input";
+  static readonly title = "ASR Model Input";
   static readonly description =
     "Accepts an automatic speech recognition model as a parameter for workflows.\n    input, parameter, model, asr, transcription, speech";
   static readonly metadataOutputTypes = {
