@@ -26,7 +26,7 @@ const styles = (theme: Theme) =>
     flexDirection: "column",
     minHeight: 0,
     ".todo-header": {
-      padding: "14px 16px 10px",
+      padding: "16px 16px 12px",
       borderBottom: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`,
       display: "flex",
       alignItems: "baseline",
@@ -53,7 +53,7 @@ const styles = (theme: Theme) =>
     },
     ".todo-icon": {
       fontSize: 18,
-      marginTop: 1,
+      marginTop: 2,
       flexShrink: 0
     },
     ".todo-icon.pending": { color: `rgb(${theme.vars.palette.common.whiteChannel} / 0.45)` },
@@ -72,7 +72,7 @@ const styles = (theme: Theme) =>
       opacity: 0.55
     },
     ".empty-state": {
-      padding: "32px 20px",
+      padding: "32px 24px",
       textAlign: "center",
       opacity: 0.55
     },

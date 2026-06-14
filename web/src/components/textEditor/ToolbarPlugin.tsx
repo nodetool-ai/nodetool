@@ -24,9 +24,9 @@ const toolbarStyles = css`
   padding: 4px 8px;
   border-radius: 3px;
   button {
-    padding: 1px 5px;
+    padding: 2px 6px;
     min-width: 20px;
-    font-size: 12px;
+    font-size: var(--fontSizeSmall);
     border: none;
     line-height: 1.2em;
     background-color: transparent;

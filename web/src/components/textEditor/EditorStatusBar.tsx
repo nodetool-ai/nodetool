@@ -88,7 +88,7 @@ const styles = (theme: Theme) =>
       display: "inline-flex",
       alignItems: "center",
       gap: "0.25em",
-      padding: "1px 8px",
+      padding: "2px 8px",
       borderRadius: "var(--rounded-md)",
       fontSize: theme.fontSizeTiny,
       fontWeight: 500,

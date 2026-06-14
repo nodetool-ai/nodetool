@@ -45,7 +45,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: 8,
-      padding: "10px 16px",
+      padding: "12px 16px",
       cursor: "pointer",
       color: theme.vars.palette.grey[100],
       transition: MOTION.background,

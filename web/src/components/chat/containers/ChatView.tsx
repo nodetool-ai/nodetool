@@ -36,7 +36,7 @@ const styles = (theme: Theme) =>
       flexDirection: "row",
       overflow: "hidden",
       minHeight: 0,
-      padding: "0 0 20px 20px"
+      padding: "0 0 24px 24px"
     },
     ".chat-main": {
       flex: 1,
@@ -58,7 +58,7 @@ const styles = (theme: Theme) =>
       minHeight: 0,
       display: "flex",
       flexDirection: "column",
-      paddingBottom: "20px",
+      paddingBottom: "24px",
       width: "100%",
       maxWidth: "1180px",
       alignSelf: "center"
