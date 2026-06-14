@@ -62,7 +62,7 @@ const styles = (theme: Theme) =>
     alignContent: "flex-start",
     flexShrink: 0,
     "& .MuiIconButton-root": {
-      padding: "4px"
+      padding: theme.spacing(1)
     },
     ...settingRowChildrenSx(theme)
   });

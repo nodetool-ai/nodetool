@@ -229,21 +229,21 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
           tooltip="Commit (Enter)"
           tooltipPlacement="bottom"
           onClick={onCommit}
-          sx={{ padding: "4px", color: "success.main" }}
+          sx={{ padding: 1, color: "success.main" }}
         />
         <ToolbarIconButton
           icon={<CloseIcon sx={{ fontSize: 18 }} />}
           tooltip="Cancel (Esc)"
           tooltipPlacement="bottom"
           onClick={onCancel}
-          sx={{ padding: "4px", color: "error.main" }}
+          sx={{ padding: 1, color: "error.main" }}
         />
         <ToolbarIconButton
           icon={<RestartAltIcon sx={{ fontSize: 18 }} />}
           tooltip="Reset"
           tooltipPlacement="bottom"
           onClick={onReset}
-          sx={{ padding: "4px", color: SKETCH_COLORS.textSecondary }}
+          sx={{ padding: 1, color: SKETCH_COLORS.textSecondary }}
         />
       </FlexRow>
     </>
@@ -280,7 +280,7 @@ export const CropSettingsPanel = memo(function CropSettingsPanel({
           tooltipPlacement="bottom"
           disabled={!hasPendingCrop}
           onClick={onApply}
-          sx={{ padding: "4px", color: "success.main" }}
+          sx={{ padding: 1, color: "success.main" }}
         />
         <ToolbarIconButton
           icon={<CloseIcon sx={{ fontSize: 18 }} />}
@@ -288,7 +288,7 @@ export const CropSettingsPanel = memo(function CropSettingsPanel({
           tooltipPlacement="bottom"
           disabled={!hasPendingCrop}
           onClick={onCancel}
-          sx={{ padding: "4px", color: "error.main" }}
+          sx={{ padding: 1, color: "error.main" }}
         />
       </FlexRow>
     </>

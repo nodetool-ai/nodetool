@@ -422,7 +422,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
               >
                 <span
                   style={{
-                    fontSize: "var(--fontSizeSmaller)",
+                    fontSize: theme.fontSizeSmaller,
                     fontWeight: 600,
                     letterSpacing: "0.04em"
                   }}

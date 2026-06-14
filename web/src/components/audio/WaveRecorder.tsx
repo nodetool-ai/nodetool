@@ -133,7 +133,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
       {error && <div className="error">{error}</div>}
 
       {isDeviceListVisible && (
-        <div className="audio-device-list" style={{ margin: "6px" }}>
+        <div className="audio-device-list" style={{ margin: theme.spacing(1.5) }}>
           {audioInputDevices.length > 0 ? (
             <>
               <Text

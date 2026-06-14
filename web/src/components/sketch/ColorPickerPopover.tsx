@@ -157,7 +157,8 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
   const numSx = {
     "& .MuiInputBase-input": {
       fontSize: SKETCH_FONT.xs,
-      padding: "2px 4px",
+      py: 0.5,
+      px: 1,
       textAlign: "center" as const
     }
   };

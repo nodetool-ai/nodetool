@@ -31,7 +31,7 @@ const actionsRowStyles = (theme: Theme) =>
 
 const sectionLabelStyles = (theme: Theme) =>
   css({
-    fontSize: "var(--fontSizeSmaller)",
+    fontSize: theme.fontSizeSmaller,
     color: theme.vars.palette.text.secondary,
     userSelect: "none",
     paddingRight: theme.spacing(0.5)

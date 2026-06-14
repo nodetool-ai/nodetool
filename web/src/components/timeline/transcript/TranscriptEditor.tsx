@@ -438,7 +438,7 @@ const EditorSurface = styled("div")(({ theme }) => ({
   borderRadius: BORDER_RADIUS.md,
   background: theme.vars.palette.background.default,
   color: theme.vars.palette.text.primary,
-  padding: "8px 12px 12px",
+  padding: theme.spacing(2, 3, 3),
   fontSize: FONT_SIZE_SANS.body,
   lineHeight: 1.95,
   outline: "none",

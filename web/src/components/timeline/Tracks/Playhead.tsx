@@ -80,7 +80,7 @@ const pillStyles = (theme: Theme, dragging: boolean, hovered: boolean) =>
     color: "rgba(8, 9, 10, 0.92)",
     fontFamily:
       "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-    fontSize: "var(--fontSizeSmaller)",
+    fontSize: theme.fontSizeSmaller,
     fontWeight: 600,
     letterSpacing: "0",
     whiteSpace: "nowrap",

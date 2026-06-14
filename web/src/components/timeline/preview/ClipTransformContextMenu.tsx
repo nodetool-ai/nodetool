@@ -89,7 +89,7 @@ const ClipTransformContextMenu: React.FC<ClipTransformContextMenuProps> = ({
     >
       <FlexRow align="center" sx={{ gap: 1, px: 2, py: 1, mb: 0.5 }}>
         <TransformIcon sx={{ fontSize: 16, color: "primary.light" }} />
-        <Text sx={{ fontSize: "var(--fontSizeSmall)", fontWeight: 600, color: "text.primary" }}>
+        <Text sx={{ fontSize: theme.fontSizeSmall, fontWeight: 600, color: "text.primary" }}>
           Transform
         </Text>
       </FlexRow>

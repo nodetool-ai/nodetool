@@ -2,7 +2,7 @@
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
+import { useTheme, type Theme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import ContentCutOutlinedIcon from "@mui/icons-material/ContentCutOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
@@ -67,12 +67,13 @@ const containerStyles = css({
   overflow: "auto"
 });
 
-const sectionContentStyles = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: 2,
-  padding: "4px 0 12px"
-});
+const sectionContentStyles = (theme: Theme) =>
+  css({
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+    padding: theme.spacing(1, 0, 3)
+  });
 
 const inspectorPanelSx = {
   height: "100%",
@@ -304,7 +305,7 @@ export const TimelineInspector: React.FC = memo(() => {
         open={mediaOpen}
         onToggle={setMediaOpen}
       >
-        <FlexColumn css={sectionContentStyles}>
+        <FlexColumn css={sectionContentStyles(theme)}>
           <InspectorRow label="Type">
             <InspectorStaticValue value={clip.mediaType} />
           </InspectorRow>
@@ -321,7 +322,7 @@ export const TimelineInspector: React.FC = memo(() => {
         open={timingOpen}
         onToggle={setTimingOpen}
       >
-        <FlexColumn css={sectionContentStyles}>
+        <FlexColumn css={sectionContentStyles(theme)}>
           <InspectorRow label="Start">
             <InspectorPillInput
               value={formatTimecode(clip.startMs, fps)}
@@ -371,7 +372,7 @@ export const TimelineInspector: React.FC = memo(() => {
         open={renderOpen}
         onToggle={setRenderOpen}
       >
-        <FlexColumn css={sectionContentStyles}>
+        <FlexColumn css={sectionContentStyles(theme)}>
           {!isAudio && (
             <InspectorSliderRow
               label="Opacity"
@@ -458,7 +459,7 @@ export const TimelineInspector: React.FC = memo(() => {
             open={transformOpen}
             onToggle={setTransformOpen}
           >
-            <FlexColumn css={sectionContentStyles}>
+            <FlexColumn css={sectionContentStyles(theme)}>
               {(() => {
                 const t = clip.transform ?? IDENTITY_TRANSFORM;
                 const setTransform = (next: ClipTransform) =>
@@ -600,7 +601,7 @@ export const TimelineInspector: React.FC = memo(() => {
             open={colorOpen}
             onToggle={setColorOpen}
           >
-            <FlexColumn css={sectionContentStyles}>
+            <FlexColumn css={sectionContentStyles(theme)}>
               {(() => {
                 const color = findColorEffect(clip);
                 const enabled = color?.enabled ?? false;
@@ -704,7 +705,7 @@ export const TimelineInspector: React.FC = memo(() => {
             open={blurOpen}
             onToggle={setBlurOpen}
           >
-            <FlexColumn css={sectionContentStyles}>
+            <FlexColumn css={sectionContentStyles(theme)}>
               {(() => {
                 const blur = findBlurEffect(clip);
                 const enabled = blur?.enabled ?? false;
@@ -770,7 +771,7 @@ export const TimelineInspector: React.FC = memo(() => {
             open={transitionOpen}
             onToggle={setTransitionOpen}
           >
-            <FlexColumn css={sectionContentStyles}>
+            <FlexColumn css={sectionContentStyles(theme)}>
               {(() => {
                 const t = clip.transitionIn;
                 const type: "none" | "crossfade" = t?.type ?? "none";
@@ -842,7 +843,7 @@ export const TimelineInspector: React.FC = memo(() => {
         open={actionsOpen}
         onToggle={setActionsOpen}
       >
-        <FlexColumn css={sectionContentStyles} gap={1}>
+        <FlexColumn css={sectionContentStyles(theme)} gap={1}>
           <ClipActions clipId={clip.id} />
           <FlexRow gap={1} sx={{ px: 0.5, flexWrap: "wrap" }}>
             <EditorButton

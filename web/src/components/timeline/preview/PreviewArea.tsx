@@ -111,7 +111,7 @@ const controlBarStyles = (theme: Theme) =>
 const timecodeStyles = (theme: Theme) =>
   css({
     fontFamily: "monospace",
-    fontSize: "var(--fontSizeSmall)",
+    fontSize: theme.fontSizeSmall,
     color: theme.vars.palette.text.primary,
     letterSpacing: "0.05em",
     minWidth: 78,
@@ -121,7 +121,7 @@ const timecodeStyles = (theme: Theme) =>
 
 const fpsStyles = (theme: Theme) =>
   css({
-    fontSize: "var(--fontSizeSmaller)",
+    fontSize: theme.fontSizeSmaller,
     color: theme.vars.palette.text.disabled,
     minWidth: 36,
     textAlign: "right",
@@ -140,7 +140,7 @@ const scrubberStyles = css({
 const durationStyles = (theme: Theme) =>
   css({
     fontFamily: "monospace",
-    fontSize: "var(--fontSizeSmaller)",
+    fontSize: theme.fontSizeSmaller,
     color: theme.vars.palette.text.secondary,
     minWidth: 82,
     textAlign: "center",

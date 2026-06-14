@@ -90,7 +90,7 @@ const markerFlagStyles = (theme: Theme) =>
     gap: 2,
     height: 14,
     maxWidth: 140,
-    padding: "0 4px",
+    padding: theme.spacing(0, 1),
     borderRadius: `0 ${BORDER_RADIUS.xs} ${BORDER_RADIUS.xs} 0`,
     fontSize: FONT_SIZE_MONO.caption,
     lineHeight: "14px",
