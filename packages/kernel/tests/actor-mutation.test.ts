@@ -5,11 +5,15 @@
  * filtering.
  */
 // @ts-nocheck
+
+// 
 import { describe, it, expect } from "vitest";
 import { NodeActor, type NodeExecutor } from "../src/actor.js";
 import { NodeInbox } from "../src/inbox.js";
 import type { NodeAnalysis } from "../src/correlation-analysis.js";
 import type { NodeDescriptor, NodeUpdate } from "@nodetool-ai/protocol";
+import { EMPTY_LINEAGE } from "@nodetool-ai/protocol";
+import { iterationRootId } from "../src/correlation-analysis.js";
 
 const EMPTY_ANALYSIS: NodeAnalysis = {
   invocationScope: [],
@@ -365,5 +369,147 @@ describe("NodeActor._runCorrelatedImpl – scheduler", () => {
     inbox.markSourceDone("b");
     const result = await actor.run();
     expect(result.error).toMatch(/max_pending_messages_per_key/);
+  });
+});
+
+// --- Correlated lineage / mint helpers (direct unit coverage) ---------------
+
+const lineageEnv = (correlation_lineage) => ({
+  data: null,
+  metadata: {},
+  timestamp: 0,
+  event_id: "e",
+  correlation_lineage,
+  source_edge_id: "s"
+});
+const analysisWith = (invocationScope) => ({
+  invocationScope,
+  inputs: new Map(),
+  outputs: new Map()
+});
+const noop = { async process() { return {}; } };
+
+describe("NodeActor._computeInvocationLineage (single-handle fallback)", () => {
+  it("returns the lone data handle's lineage and undefined when ambiguous", () => {
+    const { actor } = createActor(makeNode(), new NodeInbox(), noop, {
+      listInputHandles: new Set(["lst"])
+    });
+    actor._lastEnvelopes = new Map([["a", lineageEnv({ fe: { index: 2 } })]]);
+    expect(actor._computeInvocationLineage()).toEqual({ fe: { index: 2 } });
+
+    // __control__ and list handles are excluded from the count.
+    actor._lastEnvelopes = new Map([
+      ["a", lineageEnv({ fe: { index: 2 } })],
+      ["__control__", lineageEnv({})],
+      ["lst", lineageEnv({})]
+    ]);
+    expect(actor._computeInvocationLineage()).toEqual({ fe: { index: 2 } });
+
+    actor._lastEnvelopes = new Map([
+      ["a", lineageEnv({})],
+      ["b", lineageEnv({})]
+    ]);
+    expect(actor._computeInvocationLineage()).toBeUndefined();
+
+    actor._lastEnvelopes = new Map();
+    expect(actor._computeInvocationLineage()).toBeUndefined();
+  });
+});
+
+describe("NodeActor._correlatedInvocationLineage", () => {
+  it("projects consumed envelopes onto the invocation scope", () => {
+    const { actor } = createActor(makeNode(), new NodeInbox(), noop, {
+      correlation: analysisWith(["fe:items"])
+    });
+    actor._lastEnvelopes = new Map([
+      ["a", lineageEnv({ "fe:items": { index: 3 }, other: { index: 1 } })]
+    ]);
+    expect(actor._correlatedInvocationLineage()).toEqual({
+      "fe:items": { index: 3 }
+    });
+  });
+
+  it("returns the empty lineage for an empty invocation scope", () => {
+    const { actor } = createActor(makeNode(), new NodeInbox(), noop, {
+      correlation: analysisWith([])
+    });
+    expect(actor._correlatedInvocationLineage()).toEqual(EMPTY_LINEAGE);
+  });
+});
+
+describe("NodeActor._correlatedOutputLineage", () => {
+  it("inherits invocation lineage for single outputs and mints for iteration outputs", () => {
+    const node = makeNode({
+      output_correlation: {
+        val: { kind: "single", source: "__execution__" },
+        iter: { kind: "iteration", source: "__execution__", group: "g" }
+      }
+    });
+    const { actor } = createActor(node, new NodeInbox(), noop, {
+      correlation: analysisWith(["fe:items"])
+    });
+    const inv = { "fe:items": { index: 0 } };
+    const perSlot = actor._correlatedOutputLineage(inv, ["val", "iter"]);
+
+    expect(perSlot.val).toEqual(inv); // single inherits
+    const root = iterationRootId(node.id, "iter", "g");
+    expect(perSlot.iter).toEqual({ ...inv, [root]: { index: 0 } });
+  });
+});
+
+describe("NodeActor._currentHints", () => {
+  it("returns undefined without an invocation lineage, else the hint shape", () => {
+    const node = makeNode({
+      output_correlation: { val: { kind: "single", source: "__execution__" } }
+    });
+    const { actor } = createActor(node, new NodeInbox(), noop, {
+      correlation: analysisWith(["fe:items"])
+    });
+
+    actor._currentInvocationLineage = undefined;
+    expect(actor._currentHints(["val"])).toBeUndefined();
+
+    actor._currentInvocationLineage = { "fe:items": { index: 0 } };
+    // No emitted handles → just the invocation lineage.
+    expect(actor._currentHints()).toEqual({
+      invocationLineage: { "fe:items": { index: 0 } }
+    });
+    // With emitted handles → per-slot lineage is attached too.
+    const hints = actor._currentHints(["val"]);
+    expect(hints.invocationLineage).toEqual({ "fe:items": { index: 0 } });
+    expect(hints.perSlotLineage.val).toEqual({ "fe:items": { index: 0 } });
+  });
+});
+
+describe("NodeActor._mintIterationToken", () => {
+  it("numbers tokens per (root, parentKey) without resetting", () => {
+    const { actor } = createActor(makeNode(), new NodeInbox(), noop);
+    expect(actor._mintIterationToken("r", "p")).toBe(0);
+    expect(actor._mintIterationToken("r", "p")).toBe(1);
+    expect(actor._mintIterationToken("r", "q")).toBe(0); // new parent key
+    expect(actor._mintIterationToken("r2", "p")).toBe(0); // new root
+  });
+});
+
+describe("NodeActor._mintIterationFrameOverrides", () => {
+  it("mints a token and overrides an `index` slot for iteration groups", () => {
+    const node = makeNode({
+      output_correlation: {
+        index: { kind: "iteration", source: "__execution__", group: "g" },
+        other: { kind: "single", source: "__execution__" }
+      }
+    });
+    const { actor } = createActor(node, new NodeInbox(), noop, {
+      correlation: analysisWith(["fe:items"])
+    });
+    actor._currentInvocationLineage = { "fe:items": { index: 0 } };
+
+    const overrides = actor._mintIterationFrameOverrides({ index: 99, other: 1 });
+    expect(overrides).toEqual({ index: 0 });
+    const root = iterationRootId(node.id, "index", "g");
+    expect(actor._lastMintedFrameTokens.get(root)).toBe(0);
+
+    // No iteration handles in the frame → null.
+    expect(actor._mintIterationFrameOverrides({ other: 1 })).toBeNull();
   });
 });
