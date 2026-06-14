@@ -8,7 +8,7 @@ import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
 import type { ImageRef, PropOptions } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import * as d from "typegpu/data";
-import { tagAsHybrid, tagAsContentCard } from "@nodetool-ai/nodes-utils";
+import { tagAsBrowserGpu, tagAsContentCard } from "@nodetool-ai/nodes-utils";
 import {
   sourcesLinearGradientV1,
   sourcesCheckerboardV1,
@@ -207,7 +207,7 @@ registerDeclaredProperty(CheckerboardNode, "color_a", colorProp("#ffffff", { lab
 registerDeclaredProperty(CheckerboardNode, "color_b", colorProp("#000000", { label: "Color B" }));
 registerDeclaredProperty(CheckerboardNode, "cell_size", intProp(32, { min: 1, max: 512, label: "Cell size (px)" }));
 
-export const LIB_IMAGE_GENERATORS_NODES = tagAsHybrid(tagAsContentCard([
+export const LIB_IMAGE_GENERATORS_NODES = tagAsBrowserGpu(tagAsContentCard([
   LinearGradientNode,
   RadialGradientNode,
   AngularGradientNode,

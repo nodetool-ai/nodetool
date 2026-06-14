@@ -30,6 +30,7 @@ import {
   collectNodeClasses,
   loadBrowserModules,
   normalizeGraphForKernel,
+  probeBrowserGpu,
   type BrowserGraphJobOptions,
   type BrowserGraphJobResult,
   type LoadedBrowserRunner,
@@ -82,6 +83,7 @@ export function __setBrowserRunnerLoader(
   loadModules = loader ?? defaultLoadModules;
   localRunnerPromise = null;
   cachedLocalRunner = undefined;
+  localGpuAvailable = undefined;
   cachedBrowserNodeTypes = undefined;
   workerDisabled = false;
 }
@@ -96,6 +98,10 @@ const defaultLoadModules = async (): Promise<LoadedModules | null> => {
 let loadModules: () => Promise<LoadedModules | null> = defaultLoadModules;
 let localRunnerPromise: Promise<LoadedBrowserRunner | null> | null = null;
 let cachedLocalRunner: LoadedBrowserRunner | null | undefined;
+// Whether this (main) thread has a usable WebGPU device. Resolved alongside the
+// runner so `browserSupportsSync` can gate GPU node types without going async.
+// Stays `undefined` until the probe completes (set before `cachedLocalRunner`).
+let localGpuAvailable: boolean | undefined;
 
 function loadLocalRunner(): Promise<LoadedBrowserRunner | null> {
   if (!localRunnerPromise) {
@@ -107,6 +113,10 @@ function loadLocalRunner(): Promise<LoadedBrowserRunner | null> {
           return null;
         }
         const runner = buildBrowserRunner(mods);
+        // Resolve GPU availability before the runner is observable, so the
+        // routing gate in browserSupportsSync sees a settled value.
+        localGpuAvailable =
+          runner.gpuNodeTypes.size === 0 ? true : await probeBrowserGpu();
         cachedLocalRunner = runner;
         return runner;
       } catch (error) {
@@ -165,11 +175,19 @@ async function ensureRunnerLoaded(): Promise<boolean> {
  */
 export function browserSupportsSync(type: string): boolean | undefined {
   if (usingWorker()) {
+    // The worker already withheld GPU types from its reported set when no
+    // WebGPU device was available, so this needs no extra gate.
     if (cachedBrowserNodeTypes === undefined) return undefined;
     return cachedBrowserNodeTypes?.has(type) ?? false;
   }
   if (cachedLocalRunner === undefined) return undefined;
-  return cachedLocalRunner?.registry.has(type) ?? false;
+  if (!cachedLocalRunner) return false;
+  // No GPU here → GPU shader nodes can't run client-side; force them to the
+  // server (which has Dawn) by reporting them as unsupported.
+  if (localGpuAvailable === false && cachedLocalRunner.gpuNodeTypes.has(type)) {
+    return false;
+  }
+  return cachedLocalRunner.registry.has(type);
 }
 
 /**

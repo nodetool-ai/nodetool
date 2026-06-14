@@ -39,6 +39,16 @@ function isServerOnlyDraw(nodeType: string): boolean {
   return nodeType === "lib.image.Mask";
 }
 
+// Background + GaussianNoise composite on the GPU (WebGPU in the browser);
+// RenderText uses Canvas2D / sharp and needs no GPU. Only the GPU ones must
+// route to the server when the browser lacks WebGPU — see `tagAsBrowserGpu`.
+function drawRequiresGpu(nodeType: string): boolean {
+  return (
+    nodeType === "lib.image.draw.Background" ||
+    nodeType === "lib.image.draw.GaussianNoise"
+  );
+}
+
 function createDrawNode(desc: Desc): NodeClass {
   const serverOnly = isServerOnlyDraw(desc.nodeType);
   const C = class extends BaseNode {
@@ -51,6 +61,11 @@ function createDrawNode(desc: Desc): NodeClass {
     static readonly platforms = serverOnly
       ? SERVER_PLATFORMS
       : NODE_AND_BROWSER_PLATFORMS;
+    static readonly requiresGpu: boolean | undefined = drawRequiresGpu(
+      desc.nodeType
+    )
+      ? true
+      : undefined;
     static readonly body: string | undefined = serverOnly
       ? undefined
       : "content_card";

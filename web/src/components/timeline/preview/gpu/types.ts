@@ -36,3 +36,20 @@ export interface CompositorInitResult {
   ok: boolean;
   reason?: string;
 }
+
+/**
+ * Common surface implemented by both the WebGPU compositor and the Canvas2D
+ * fallback, so the live preview and the offline renderer can drive either
+ * backend through one reference. See {@link createCompositor}.
+ */
+export interface TimelineCompositor {
+  init(canvas: HTMLCanvasElement): Promise<CompositorInitResult>;
+  /** Reference (sequence) resolution that `transform.position` is stored in. */
+  setReferenceSize(width: number, height: number): void;
+  resize(width: number, height: number): void;
+  setLayers(layers: CompositeLayer[]): void;
+  render(): void;
+  /** Resolve once all submitted GPU work has completed (no-op on Canvas2D). */
+  flush(): Promise<void>;
+  dispose(): void;
+}

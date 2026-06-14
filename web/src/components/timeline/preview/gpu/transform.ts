@@ -102,3 +102,50 @@ export function buildTransformMatrix(
   m[15] = 1;
   return m;
 }
+
+/** A 2D affine in `CanvasRenderingContext2D.setTransform` order. */
+export interface CanvasAffine {
+  a: number;
+  b: number;
+  c: number;
+  d: number;
+  e: number;
+  f: number;
+}
+
+/**
+ * Convert a clip-space transform matrix (from {@link buildTransformMatrix}) into
+ * the 2D affine that draws a `srcWidth × srcHeight` source image onto a
+ * `canvasWidth × canvasHeight` Canvas2D context with the same placement the
+ * WebGPU compositor produces. Use as:
+ *
+ *   const t = clipMatrixToCanvasAffine(m, src.w, src.h, cw, ch);
+ *   ctx.setTransform(t.a, t.b, t.c, t.d, t.e, t.f);
+ *   ctx.drawImage(source, 0, 0, src.w, src.h);
+ *
+ * The matrix maps an NDC quad in [-1,1]² to clip space; an image pixel
+ * `(ix, iy)` maps to `ndc = (2·ix/srcW − 1, 1 − 2·iy/srcH)`, then to clip space,
+ * then to canvas pixels via `px = (clip.x + 1)·W/2`, `py = (1 − clip.y)·H/2`.
+ * Composing those linear maps yields the affine below.
+ */
+export function clipMatrixToCanvasAffine(
+  m: Float32Array,
+  srcWidth: number,
+  srcHeight: number,
+  canvasWidth: number,
+  canvasHeight: number
+): CanvasAffine {
+  const halfW = canvasWidth / 2;
+  const halfH = canvasHeight / 2;
+  const sw = srcWidth || 1;
+  const sh = srcHeight || 1;
+
+  return {
+    a: (canvasWidth * m[0]) / sw,
+    b: (-canvasHeight * m[1]) / sw,
+    c: (-canvasWidth * m[4]) / sh,
+    d: (canvasHeight * m[5]) / sh,
+    e: halfW * (-m[0] + m[4] + m[12]) + halfW,
+    f: halfH - halfH * (-m[1] + m[5] + m[13])
+  };
+}

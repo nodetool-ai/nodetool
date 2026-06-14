@@ -1,4 +1,11 @@
-import { collectNodeClasses, normalizeGraphForKernel } from "../browserRunnerCore";
+import {
+  applyGpuCapability,
+  buildBrowserRunner,
+  capabilityFilteredBrowserNodeTypes,
+  collectNodeClasses,
+  normalizeGraphForKernel,
+  type LoadedModules
+} from "../browserRunnerCore";
 import type { WorkflowGraph } from "../../../stores/ApiTypes";
 
 function makeGraph(
@@ -162,6 +169,79 @@ describe("browserRunnerCore", () => {
       const result = normalizeGraphForKernel({} as WorkflowGraph);
       expect(result.nodes).toHaveLength(0);
       expect(result.edges).toHaveLength(0);
+    });
+  });
+
+  describe("applyGpuCapability", () => {
+    const browser = ["plain.A", "gpu.Shader", "audio.B"];
+    const gpu = new Set(["gpu.Shader"]);
+
+    it("keeps every type when a GPU is available", () => {
+      expect(applyGpuCapability(browser, gpu, true)).toEqual(browser);
+    });
+
+    it("drops GPU-requiring types when no GPU is available", () => {
+      expect(applyGpuCapability(browser, gpu, false)).toEqual([
+        "plain.A",
+        "audio.B"
+      ]);
+    });
+
+    it("is a no-op when there are no GPU types, even without a GPU", () => {
+      expect(applyGpuCapability(browser, new Set(), false)).toBe(browser);
+    });
+  });
+
+  describe("buildBrowserRunner", () => {
+    // Fake modules: a registry that accepts everything except server types,
+    // and node classes with/without the requiresGpu marker.
+    function fakeModules(): LoadedModules {
+      const serverTypes = new Set(["server.Only"]);
+      const registry = {
+        has: (t: string) => !serverTypes.has(t)
+      };
+      return {
+        wf: {
+          createBrowserRegistry: () => registry,
+          runBrowserWorkflow: (() => {}) as never
+        },
+        nodeClasses: [
+          { nodeType: "plain.A" },
+          { nodeType: "gpu.Shader", requiresGpu: true },
+          { nodeType: "server.Only", requiresGpu: true }
+        ]
+      } as unknown as LoadedModules;
+    }
+
+    it("collects only browser-capable GPU types into gpuNodeTypes", () => {
+      const runner = buildBrowserRunner(fakeModules());
+      expect(runner.browserNodeTypes).toEqual(["plain.A", "gpu.Shader"]);
+      // server.Only is requiresGpu but filtered out by platform → not counted.
+      expect([...runner.gpuNodeTypes]).toEqual(["gpu.Shader"]);
+    });
+
+    it("withholds GPU types from the capability-filtered set under jsdom (no WebGPU)", async () => {
+      const runner = buildBrowserRunner(fakeModules());
+      // jsdom exposes no navigator.gpu, so the probe resolves false.
+      const types = await capabilityFilteredBrowserNodeTypes(runner);
+      expect(types).toEqual(["plain.A"]);
+    });
+
+    it("returns all browser types when the graph uses no GPU nodes", async () => {
+      const serverTypes = new Set<string>();
+      const mods = {
+        wf: {
+          createBrowserRegistry: () => ({ has: (t: string) => !serverTypes.has(t) }),
+          runBrowserWorkflow: (() => {}) as never
+        },
+        nodeClasses: [{ nodeType: "plain.A" }, { nodeType: "plain.B" }]
+      } as unknown as LoadedModules;
+      const runner = buildBrowserRunner(mods);
+      expect(runner.gpuNodeTypes.size).toBe(0);
+      await expect(capabilityFilteredBrowserNodeTypes(runner)).resolves.toEqual([
+        "plain.A",
+        "plain.B"
+      ]);
     });
   });
 });

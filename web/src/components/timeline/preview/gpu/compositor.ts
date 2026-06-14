@@ -12,8 +12,10 @@ import {
 import type {
   CompositeLayer,
   CompositeSource,
-  CompositorInitResult
+  CompositorInitResult,
+  TimelineCompositor
 } from "./types";
+import { isSourceReady, sourceDimensions } from "./source";
 
 interface SourceTexture {
   texture: GPUTexture;
@@ -21,35 +23,6 @@ interface SourceTexture {
   height: number;
   source: CompositeSource;
   lastUploadKey: string;
-}
-
-function isSourceReady(source: CompositeSource): boolean {
-  if (source instanceof HTMLVideoElement) {
-    return source.readyState >= 2;
-  }
-  if (source instanceof HTMLImageElement) {
-    return source.complete && source.naturalWidth > 0;
-  }
-  return source.width > 0;
-}
-
-function sourceDimensions(source: CompositeSource): {
-  width: number;
-  height: number;
-} {
-  if (source instanceof HTMLVideoElement) {
-    return {
-      width: source.videoWidth || 0,
-      height: source.videoHeight || 0
-    };
-  }
-  if (source instanceof HTMLImageElement) {
-    return {
-      width: source.naturalWidth || 0,
-      height: source.naturalHeight || 0
-    };
-  }
-  return { width: source.width, height: source.height };
 }
 
 function uploadKey(source: CompositeSource): string {
@@ -77,7 +50,7 @@ function uploadKey(source: CompositeSource): string {
  * affine placement comes from {@link buildTransformMatrix}, converted to the
  * compositor's inverse-affine form.
  */
-export class WebGPUCompositor {
+export class WebGPUCompositor implements TimelineCompositor {
   private device: GPUDevice | null = null;
   private context: GPUCanvasContext | null = null;
   private canvasFormat: GPUTextureFormat = "rgba8unorm";
