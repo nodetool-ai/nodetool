@@ -77,6 +77,7 @@ import { TYPOGRAPHY, Text, Label, Caption } from "../ui_primitives";
 
 ### Usage
 
+{% raw %}
 ```tsx
 // Prefer primitives — they pick the right combo automatically
 <Text>Body copy</Text>               // sans.body — 15px / 400
@@ -88,6 +89,7 @@ import { TYPOGRAPHY, Text, Label, Caption } from "../ui_primitives";
 <Box sx={{ ...TYPOGRAPHY.sans.label }}>Filters</Box>
 <Box sx={{ ...TYPOGRAPHY.mono.code }}>{value}</Box>
 ```
+{% endraw %}
 
 ### Heading Collapse Rule
 
@@ -370,6 +372,7 @@ import { MOTION, reducedMotion } from "../ui_primitives";
 
 ### Usage
 
+{% raw %}
 ```tsx
 // Single property
 sx={{ transition: MOTION.all }}
@@ -379,6 +382,7 @@ sx={{ transition: MOTION.border }}
 sx={{ transition: `${MOTION.border}, ${MOTION.shadow}` }}
 sx={{ transition: `${MOTION.background}, ${MOTION.opacity}` }}
 ```
+{% endraw %}
 
 ### Accessibility — `prefers-reduced-motion` (WCAG 2.3.3)
 
