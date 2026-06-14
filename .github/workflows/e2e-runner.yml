@@ -10,8 +10,10 @@ on:
       - "web/src/e2e_runner/**"
       - "web/tests/e2e-runner/**"
       - "web/playwright.e2e-runner.config.ts"
-      - "packages/websocket/src/e2e-server.ts"
-      - "packages/websocket/src/test-ui-server.ts"
+      # The suite exercises the whole backend execution stack, so trigger on any
+      # package change (kernel, runtime, node-sdk, base-nodes, agents, chat,
+      # websocket, …) — not just the harness's own server files.
+      - "packages/**"
       - "examples/workflows/**"
       - ".github/workflows/e2e-runner.yml"
   pull_request:
@@ -22,8 +24,10 @@ on:
       - "web/src/e2e_runner/**"
       - "web/tests/e2e-runner/**"
       - "web/playwright.e2e-runner.config.ts"
-      - "packages/websocket/src/e2e-server.ts"
-      - "packages/websocket/src/test-ui-server.ts"
+      # The suite exercises the whole backend execution stack, so trigger on any
+      # package change (kernel, runtime, node-sdk, base-nodes, agents, chat,
+      # websocket, …) — not just the harness's own server files.
+      - "packages/**"
       - "examples/workflows/**"
       - ".github/workflows/e2e-runner.yml"
 
