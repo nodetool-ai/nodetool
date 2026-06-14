@@ -268,7 +268,7 @@ const ModelCompatibilityDialog: React.FC<ModelCompatibilityDialogProps> = ({
       }}
     >
       <div css={styles(theme)}>
-        <FlexColumn gap={2.5} sx={{ p: 3, pt: 0 }}>
+        <FlexColumn gap={3} sx={{ p: 3, pt: 0 }}>
           <FlexColumn className="compatibility-section" gap={1}>
             <FlexRow justify="space-between" align="center" className="section-header" fullWidth>
               <FlexRow gap={1} align="center">

@@ -639,7 +639,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
         selected={selected === null && !forceUnselect}
         onClick={handleSelectNull}
         sx={{
-          py: iconOnly ? 0.75 : 0.25,
+          py: iconOnly ? 1 : 0.5,
           justifyContent: iconOnly ? "center" : "flex-start",
           px: iconOnly ? 0 : 2,
           minHeight: iconOnly ? 52 : "auto",
@@ -731,7 +731,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                       <span
                         className={`model-menu__provider-badge model-menu__provider-badge--${b.label.toLowerCase()}`}
                         style={{
-                          padding: "1px 5px",
+                          padding: theme.spacing(0.5, 1.5),
                           fontSize: theme.vars.fontSizeTiny,
                           lineHeight: 1.1,
                           borderRadius: BORDER_RADIUS.sm,
@@ -769,7 +769,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                 sx={{
                   gap: 0.5,
                   opacity: enabled && available ? 1 : 0.5,
-                  py: iconOnly ? 0.75 : 0.25,
+                  py: iconOnly ? 1 : 0.5,
                   justifyContent: iconOnly ? "center" : "flex-start",
                   px: iconOnly ? 0 : 2,
                   minHeight: iconOnly ? 68 : "auto",
