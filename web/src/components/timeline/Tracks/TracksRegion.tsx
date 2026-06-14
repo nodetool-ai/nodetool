@@ -120,7 +120,7 @@ const trackCountChipStyles = (theme: Theme) =>
     marginLeft: "auto",
     minWidth: 18,
     height: 16,
-    padding: "0 5px",
+    padding: "0 6px",
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",

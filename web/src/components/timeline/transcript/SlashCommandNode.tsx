@@ -122,7 +122,7 @@ const Host = styled("span")(({ theme }) => ({
   },
   "& .slash-empty": {
     padding: "6px 8px",
-    fontSize: 12,
+    fontSize: "var(--fontSizeSmall)",
     color: theme.vars.palette.text.disabled
   }
 }));

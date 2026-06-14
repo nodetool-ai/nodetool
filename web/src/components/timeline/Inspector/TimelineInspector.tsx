@@ -71,7 +71,7 @@ const sectionContentStyles = css({
   display: "flex",
   flexDirection: "column",
   gap: 2,
-  padding: "4px 0 10px"
+  padding: "4px 0 12px"
 });
 
 const inspectorPanelSx = {

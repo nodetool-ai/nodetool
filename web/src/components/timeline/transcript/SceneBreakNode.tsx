@@ -30,7 +30,7 @@ const Row = styled("div")(({ theme }) => ({
   display: "flex",
   alignItems: "center",
   gap: 8,
-  margin: "10px 0",
+  margin: "12px 0",
   userSelect: "none",
   "& .line": {
     flex: 1,

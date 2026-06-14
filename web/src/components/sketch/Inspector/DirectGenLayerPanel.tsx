@@ -86,7 +86,7 @@ const DirectGenLayerPanelInner: React.FC<DirectGenLayerPanelProps> = ({
         boxShadow: "none"
       }}
     >
-      <FlexColumn gap={1.25} sx={{ px: 1, py: 1 }}>
+      <FlexColumn gap={1.5} sx={{ px: 1, py: 1 }}>
         <ImageModelSelect
           value={binding.model ?? ""}
           task={isImageToImage ? "image_to_image" : "text_to_image"}

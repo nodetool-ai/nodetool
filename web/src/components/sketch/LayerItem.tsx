@@ -408,7 +408,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
             align="center"
             justify="center"
             sx={{
-              gap: "3px",
+              gap: "4px",
               flexShrink: 0,
               width: 10,
               ml: "2px"

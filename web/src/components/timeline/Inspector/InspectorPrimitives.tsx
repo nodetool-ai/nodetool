@@ -130,8 +130,8 @@ InspectorHeader.displayName = "InspectorHeader";
 const identityWrapStyles = css({
   display: "flex",
   flexDirection: "column",
-  gap: 5,
-  padding: "10px 4px 14px"
+  gap: 6,
+  padding: "12px 4px 16px"
 });
 
 const identityNameStyles = (theme: Theme) =>
@@ -286,7 +286,7 @@ const pillWrapStyles = (theme: Theme, disabled: boolean, focused: boolean) =>
     alignItems: "center",
     gap: 4,
     height: 28,
-    padding: "0 10px",
+    padding: "0 12px",
     backgroundColor: theme.vars.palette.background.default,
     border: `1px solid ${
       focused ? theme.vars.palette.primary.main : "rgba(255, 255, 255, 0.05)"
@@ -480,7 +480,7 @@ InspectorToggleRow.displayName = "InspectorToggleRow";
 const sliderRowStyles = css({
   display: "flex",
   alignItems: "center",
-  gap: 10,
+  gap: 12,
   minHeight: 32,
   padding: "0 4px"
 });

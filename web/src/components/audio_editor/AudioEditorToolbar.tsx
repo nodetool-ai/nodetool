@@ -60,7 +60,7 @@ const Separator = () => (
       width: "1px",
       alignSelf: "stretch",
       mx: 0.5,
-      my: 0.25,
+      my: 0.5,
       backgroundColor: "var(--palette-divider)"
     }}
   />

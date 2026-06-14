@@ -192,7 +192,7 @@ const SketchCanvasSizePanel: React.FC<SketchCanvasSizePanelProps> = ({
           width: "100%",
           marginTop: 0.5,
           fontSize: SKETCH_FONT.sm,
-          "& .MuiSelect-select": { padding: "3px 8px" }
+          "& .MuiSelect-select": { padding: "4px 8px" }
         }}
         renderValue={() => {
           const match = CANVAS_PRESETS.find(

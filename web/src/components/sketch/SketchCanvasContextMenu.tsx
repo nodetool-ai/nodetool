@@ -453,7 +453,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             backgroundColor: theme.vars.palette.grey[900],
             backdropFilter: "blur(16px)",
             boxShadow: theme.shadows[12],
-            p: 1.25
+            p: 1.5
           }
         }
       }}

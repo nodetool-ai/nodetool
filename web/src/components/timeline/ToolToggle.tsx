@@ -38,14 +38,14 @@ const buttonStyles = (theme: Theme, active: boolean) =>
     alignItems: "center",
     gap: 6,
     height: 24,
-    padding: "0 10px 0 8px",
+    padding: "0 12px 0 8px",
     background: active ? theme.vars.palette.action.selected : "transparent",
     border: `1px solid ${active ? theme.vars.palette.divider : "transparent"}`,
     color: active
       ? theme.vars.palette.text.primary
       : theme.vars.palette.text.secondary,
     cursor: "pointer",
-    fontSize: 12,
+    fontSize: "var(--fontSizeSmall)",
     fontWeight: 500,
     letterSpacing: "0.01em",
     fontFamily: theme.typography.fontFamily,

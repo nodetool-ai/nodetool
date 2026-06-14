@@ -101,7 +101,7 @@ const Zoom: React.FC<ZoomProps> = ({
   <div className="zoom nodrag" style={{ position: "relative" }}>
     <Text id="zoom" className="slider-value">
       <span className={`${fontSize}`}>ZOOM: </span>
-      <span className={`${fontSize} value`} style={{ marginTop: "5px" }}>
+      <span className={`${fontSize} value`} style={{ marginTop: "6px" }}>
         {zoom}
       </span>
     </Text>

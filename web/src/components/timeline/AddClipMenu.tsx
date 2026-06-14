@@ -592,7 +592,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                       sx={{
                         color: "text.disabled",
                         textAlign: "right",
-                        fontSize: 10
+                        fontSize: "var(--fontSizeSmaller)"
                       }}
                     >
                       ↵ generate · ⇧↵ new line
@@ -632,7 +632,7 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                     sx={{
                       color: "text.disabled",
                       textAlign: "center",
-                      fontSize: 10
+                      fontSize: "var(--fontSizeSmaller)"
                     }}
                   >
                     - or use a workflow -
