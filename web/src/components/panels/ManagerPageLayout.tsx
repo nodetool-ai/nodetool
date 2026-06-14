@@ -7,7 +7,6 @@ import { useNavigate } from "react-router-dom";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { Box, EditorButton, FlexColumn, FlexRow } from "../ui_primitives";
-import { HEADER_HEIGHT } from "../../config/constants";
 
 interface ManagerPageLayoutProps {
   /** Icon shown in the tinted chip beside the title. */
@@ -24,22 +23,16 @@ interface ManagerPageLayoutProps {
    * model list) that own their own layout, sidebars, and scrolling.
    */
   padded?: boolean;
-  /**
-   * Drop the top offset that normally reserves space for the app header. Use on
-   * routes that render no header so the page sits flush against the top edge.
-   */
-  disableHeaderOffset?: boolean;
   children: React.ReactNode;
 }
 
-const styles = (theme: Theme, disableHeaderOffset: boolean) =>
+const styles = (theme: Theme) =>
   css({
     "&": {
       display: "flex",
       flexDirection: "column",
       width: "100%",
       height: "100%",
-      paddingTop: disableHeaderOffset ? 0 : `${HEADER_HEIGHT}px`,
       backgroundColor: theme.vars.palette.background.default
     },
     ".manager-page-hero": {
@@ -117,7 +110,6 @@ const ManagerPageLayout: React.FC<ManagerPageLayoutProps> = ({
   docsLabel = "Documentation",
   actions,
   padded = true,
-  disableHeaderOffset = false,
   children
 }) => {
   const theme = useTheme();
@@ -132,7 +124,7 @@ const ManagerPageLayout: React.FC<ManagerPageLayoutProps> = ({
   }, [navigate]);
 
   return (
-    <Box css={styles(theme, disableHeaderOffset)} className="manager-page">
+    <Box css={styles(theme)} className="manager-page">
       <header className="manager-page-hero">
         <EditorButton
           className="manager-page-back"

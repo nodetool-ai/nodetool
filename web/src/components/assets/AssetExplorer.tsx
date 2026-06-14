@@ -44,7 +44,6 @@ const AssetExplorer: React.FC = memo(() => {
       title="Assets"
       subtitle="Browse, organize, and preview your images, audio, video, and other files."
       padded={false}
-      disableHeaderOffset
     >
       <Box css={gridFillStyles}>
         <ContextMenuProvider>
