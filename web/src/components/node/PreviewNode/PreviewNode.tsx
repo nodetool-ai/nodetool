@@ -9,7 +9,10 @@ import type { Theme } from "@mui/material/styles";
 import isEqual from "fast-deep-equal";
 
 import { NodeData } from "../../../stores/NodeData";
-import { useNodeResultValue } from "../../../hooks/nodes/useNodeExecState";
+import { useNodeGenerations } from "../../../hooks/nodes/useNodeGenerations";
+import useResultsStore from "../../../stores/ResultsStore";
+import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
+import { outputOf } from "../../../utils/nodeGenerations";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { createAssetFile } from "../../../utils/createAssetFile";
@@ -308,15 +311,24 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
     [getEdges, props.id]
   );
 
-  // The connected source node's accumulated output is the single source.
-  // PreviewNode no longer emits a redundant `preview_update` for itself —
-  // the runner's `output_update` for the source already carries the value.
-  const rawSourceNodeValue = useNodeResultValue(
-    props.data.workflow_id,
-    incomingValueEdge?.source ?? "",
-    incomingValueEdge?.sourceHandle ?? undefined
+  // Live display reads this Preview node's OWN stream buffer (outputResults),
+  // which `output_update` appends to per chunk during a run, scoped to the
+  // focused job — same contract as OutputNode. The source's `output_update` is
+  // suppressed by the runner for handles with outgoing data edges, and the
+  // source's generation timeline only carries its final `process()` result
+  // (never streamed chunks), so reading the source would collapse a stream to
+  // one big object. The Preview node re-emits each incoming chunk on its own
+  // terminal `output` handle, so its buffer holds the full incremental stream.
+  const workflowId = props.data.workflow_id;
+  const focusedJob = useWorkflowRunsStore((s) => s.focusedJob[workflowId]);
+  const streamBuffer = useResultsStore((s) =>
+    focusedJob ? s.getOutputResult(workflowId, focusedJob, props.id) : undefined
   );
-  const sourceNodeValue = incomingValueEdge?.source ? rawSourceNodeValue : undefined;
+  const { current } = useNodeGenerations(workflowId, props.id);
+  const settledValue = useMemo(
+    () => (current ? outputOf(current) : undefined),
+    [current]
+  );
 
   // The kernel intentionally skips `output_update` for `nodetool.input.*`
   // and `nodetool.constant.*` nodes (runner.ts) since the client already
@@ -351,11 +363,17 @@ const PreviewNode: React.FC<PreviewNodeProps> = (props) => {
   );
 
   const displayResult = useMemo(
-    // Show every generation from the latest execution; for streaming
-    // outputs (e.g. `num_images=N`) this is the array accumulated under
-    // outputResults during the run.
-    () => sourceNodeValue ?? sourcePropertyValue ?? sourceFallbackValue,
-    [sourceNodeValue, sourcePropertyValue, sourceFallbackValue]
+    // Live stream buffer first (the per-chunk array accumulated under
+    // outputResults during the run — streaming text, `num_images=N`, etc.),
+    // then the property value for unrun input/constant sources, then the
+    // source's durable saved assets on reload, then this node's settled
+    // generation as a final fallback for non-asset scalar values.
+    () =>
+      streamBuffer ??
+      sourcePropertyValue ??
+      sourceFallbackValue ??
+      settledValue,
+    [streamBuffer, sourcePropertyValue, sourceFallbackValue, settledValue]
   );
 
   const previewOutput = useMemo(
