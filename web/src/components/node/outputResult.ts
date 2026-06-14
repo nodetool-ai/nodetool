@@ -41,7 +41,6 @@ export const getOutputFromResult = (result: unknown): unknown => {
 
   if (
     typeof result === "object" &&
-    result !== null &&
     "output" in result &&
     (result as Record<string, unknown>).output !== undefined
   ) {
@@ -73,7 +72,6 @@ export const getCopySource = (value: unknown): unknown => {
 
   if (
     typeof value === "object" &&
-    value !== null &&
     "type" in value &&
     (value as Record<string, unknown>).type === "text" &&
     typeof (value as Record<string, unknown>).data === "string"
@@ -83,7 +81,6 @@ export const getCopySource = (value: unknown): unknown => {
 
   if (
     typeof value === "object" &&
-    value !== null &&
     "output" in value &&
     (value as Record<string, unknown>).output !== undefined
   ) {
@@ -92,7 +89,6 @@ export const getCopySource = (value: unknown): unknown => {
 
   if (
     typeof value === "object" &&
-    value !== null &&
     "value" in value &&
     (value as Record<string, unknown>).value !== undefined
   ) {
