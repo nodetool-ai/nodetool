@@ -22,8 +22,12 @@ import { useAssetStore } from "../../../stores/AssetStore";
 import { getAssetUrl } from "../../../utils/assetHelpers";
 import { FONT_SIZE_SANS, FONT_WEIGHT, BORDER_RADIUS } from "../../ui_primitives";
 
-import { WebGPUCompositor } from "./gpu/compositor";
-import type { CompositeLayer, CompositorBlendMode } from "./gpu/types";
+import { createCompositor } from "./gpu/createCompositor";
+import type {
+  CompositeLayer,
+  CompositorBlendMode,
+  TimelineCompositor
+} from "./gpu/types";
 import { TransformGizmoOverlay } from "./TransformGizmoOverlay";
 import {
   clipSourceTimeSec,
@@ -236,7 +240,7 @@ export const PreviewCompositor: React.FC = memo(() => {
   const containerRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const compositorRef = useRef<WebGPUCompositor | null>(null);
+  const compositorRef = useRef<TimelineCompositor | null>(null);
   const captionRasterizerRef = useRef<CaptionRasterizer>(new CaptionRasterizer());
   const [gpuReady, setGpuReady] = useState(false);
   const [gpuFailed, setGpuFailed] = useState(false);
@@ -287,15 +291,13 @@ export const PreviewCompositor: React.FC = memo(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const compositor = new WebGPUCompositor();
-    compositor
-      .init(canvas)
-      .then((res) => {
+    createCompositor(canvas)
+      .then(({ compositor, init }) => {
         if (cancelled) {
           compositor.dispose();
           return;
         }
-        if (res.ok) {
+        if (init.ok) {
           compositorRef.current = compositor;
           setGpuReady(true);
         } else {
@@ -305,7 +307,6 @@ export const PreviewCompositor: React.FC = memo(() => {
       })
       .catch(() => {
         if (!cancelled) setGpuFailed(true);
-        compositor.dispose();
       });
 
     const rasterizer = captionRasterizerRef.current;
@@ -865,7 +866,7 @@ export const PreviewCompositor: React.FC = memo(() => {
             css={placeholderLayerStyles(theme)}
             style={{ zIndex: 1, color: "#c08000" }}
           >
-            <span style={{ fontSize: 12 }}>WebGPU not available</span>
+            <span style={{ fontSize: 12 }}>Preview rendering unavailable</span>
           </div>
         )}
 

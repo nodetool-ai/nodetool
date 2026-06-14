@@ -1,10 +1,10 @@
 /**
  * renderTimeline — offline, frame-by-frame export of a timeline to an MP4.
  *
- * The renderer drives the *same* {@link WebGPUCompositor} and the *same*
- * {@link computeActiveLayers} scene description as the live preview, so the
- * exported video is 1:1 with what playback showed. Instead of a real-time rAF
- * loop it:
+ * The renderer drives the *same* compositor (WebGPU, or the Canvas2D fallback
+ * via {@link createCompositor}) and the *same* {@link computeActiveLayers}
+ * scene description as the live preview, so the exported video is 1:1 with what
+ * playback showed. Instead of a real-time rAF loop it:
  *
  *   1. steps the playhead in exact `1 / fps` increments,
  *   2. seeks each video element to the precise source frame (waiting for
@@ -107,7 +107,8 @@ function makeImageLoader(): (url: string) => Promise<HTMLImageElement | null> {
 
 /**
  * Render the timeline and return the encoded MP4 bytes. Throws an
- * `AbortError` if `signal` is aborted, or an `Error` if WebGPU is unavailable.
+ * `AbortError` if `signal` is aborted, or an `Error` if no compositor backend
+ * (WebGPU or the Canvas2D fallback) can be initialised.
  */
 export async function renderTimeline(
   opts: RenderTimelineOptions
@@ -154,25 +155,24 @@ export async function renderTimeline(
       QUALITY_MEDIUM,
       AudioBufferSource: AudioBufferSourceCtor
     },
-    { WebGPUCompositor }
+    { createCompositor }
   ] = await Promise.all([
     import("mediabunny"),
-    import("../preview/gpu/compositor")
+    import("../preview/gpu/createCompositor")
   ]);
 
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
 
-  const compositor = new WebGPUCompositor();
+  const { compositor, init } = await createCompositor(canvas);
   const videoPool = new OffscreenVideoPool();
   const captionRasterizer = new CaptionRasterizer();
   const loadImage = makeImageLoader();
 
   try {
-    const init = await compositor.init(canvas);
     if (!init.ok) {
-      throw new Error(init.reason ?? "WebGPU compositor unavailable");
+      throw new Error(init.reason ?? "Timeline compositor unavailable");
     }
     compositor.resize(width, height);
 
