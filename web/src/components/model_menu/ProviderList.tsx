@@ -731,7 +731,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                       <span
                         className={`model-menu__provider-badge model-menu__provider-badge--${b.label.toLowerCase()}`}
                         style={{
-                          padding: "2px 6px",
+                          padding: theme.spacing(0.5, 1.5),
                           fontSize: theme.vars.fontSizeTiny,
                           lineHeight: 1.1,
                           borderRadius: BORDER_RADIUS.sm,
