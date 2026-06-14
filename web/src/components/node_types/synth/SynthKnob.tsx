@@ -11,6 +11,7 @@ import React, { memo, useCallback, useRef } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { BORDER_RADIUS, FONT_WEIGHT } from "../../ui_primitives";
 
 import {
   clamp,
@@ -60,15 +61,15 @@ export const synthKnobStyles = (theme: Theme) =>
     ".knob-face": {
       width: KNOB_SIZE,
       height: KNOB_SIZE,
-      borderRadius: "50%",
+      borderRadius: BORDER_RADIUS.circle,
       cursor: "ns-resize",
       touchAction: "none",
       backgroundColor: theme.vars.palette.grey[800],
       boxShadow: "inset 0 1px 2px rgba(0,0,0,0.5), 0 1px 1px rgba(0,0,0,0.3)"
     },
     ".knob-label": {
-      fontSize: theme.fontSizeTiny,
-      fontWeight: 500,
+      fontSize: theme.fontSizeSmaller,
+      fontWeight: FONT_WEIGHT.medium,
       color: theme.vars.palette.text.secondary,
       textTransform: "uppercase",
       letterSpacing: "0.05em",
@@ -77,7 +78,7 @@ export const synthKnobStyles = (theme: Theme) =>
     },
     ".knob-value": {
       fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeTiny,
+      fontSize: theme.fontSizeSmaller,
       fontVariantNumeric: "tabular-nums",
       color: theme.vars.palette.text.primary,
       lineHeight: 1,

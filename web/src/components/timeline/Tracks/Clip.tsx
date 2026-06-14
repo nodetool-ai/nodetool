@@ -39,7 +39,7 @@ import { useAssetStore } from "../../../stores/AssetStore";
 import { getAssetUrl } from "../../../utils/assetHelpers";
 import useErrorStore, { hasNodeError, nodeErrorToDisplayString } from "../../../stores/ErrorStore";
 import { type NodeKey } from "../../../stores/nodeKey";
-import { StatusIndicator } from "../../ui_primitives";
+import { StatusIndicator, BORDER_RADIUS } from "../../ui_primitives";
 import type { StatusType } from "../../ui_primitives/StatusIndicator";
 import { deriveClipStatus } from "../status/clipStatusReducer";
 import type { ClipGenerationState, ClipErrorState } from "../status/clipStatusReducer";
@@ -65,7 +65,7 @@ function isClipCompatibleWithTrack(
 
 const TRIM_HANDLE_WIDTH_PX = 8;
 const MIN_CLIP_WIDTH_PX = 4;
-const CLIP_RADIUS_PX = 6;
+const CLIP_RADIUS_PX = parseFloat(BORDER_RADIUS.md);
 /** Width below which we suppress secondary chrome (duration label). */
 const COMPACT_THRESHOLD_PX = 96;
 
@@ -135,7 +135,7 @@ const clipDotStyles = (accent: string) =>
   css({
     width: 6,
     height: 6,
-    borderRadius: "50%",
+    borderRadius: BORDER_RADIUS.circle,
     backgroundColor: accent,
     boxShadow: `0 0 0 1px rgba(0, 0, 0, 0.45)`,
     flexShrink: 0
@@ -143,7 +143,7 @@ const clipDotStyles = (accent: string) =>
 
 const clipNameStyles = (theme: Theme) =>
   css({
-    fontSize: 11,
+    fontSize: "var(--fontSizeSmaller)",
     fontWeight: 500,
     letterSpacing: "-0.005em",
     color: theme.vars.palette.text.primary,
@@ -162,7 +162,7 @@ const clipDurationStyles = (theme: Theme) =>
     flexShrink: 0,
     fontFamily:
       "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-    fontSize: 10,
+    fontSize: "var(--fontSizeSmaller)",
     fontWeight: 500,
     color: theme.vars.palette.text.secondary,
     letterSpacing: "0",
@@ -179,7 +179,7 @@ const filmstripStyles = css({
   gap: 1,
   pointerEvents: "none",
   zIndex: 0,
-  borderRadius: 3,
+  borderRadius: BORDER_RADIUS.xs,
   overflow: "hidden"
 });
 

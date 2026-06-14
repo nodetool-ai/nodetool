@@ -70,3 +70,19 @@ live preview, so an exported frame is identical to what playback showed:
 The renderer composites at the sequence's true `width × height` (clamped to even
 dimensions for H.264). mediabunny and the WebGPU compositor are dynamically
 imported only when an export runs, keeping the editor importable under jsdom.
+
+### Compositor backend & Canvas2D fallback
+
+Both the live preview and the offline renderer obtain their compositor through
+`createCompositor` (`preview/gpu/createCompositor.ts`), which prefers WebGPU and
+falls back to a `Canvas2DCompositor` (`preview/gpu/canvas2dCompositor.ts`) when
+WebGPU is unavailable — older browsers, locked-down environments, and headless
+CI where SwiftShader's WebGPU fails to initialise. The fallback reuses the exact
+placement math: `buildTransformMatrix` produces the clip-space matrix and
+`clipMatrixToCanvasAffine` converts it to the 2D affine handed to
+`ctx.setTransform`, so layer position / scale / rotation / contain-fit, opacity,
+blend modes, and border radius all match the GPU path. Color and blur effects
+are approximated with `ctx.filter`; the GPU-only effects (chroma key, vignette,
+sharpen) are skipped in the fallback. This keeps the timeline preview rendering
+and documentation screenshots capturing real frames without a GPU. The heavier
+WebGPU/typegpu bundle is dynamically imported only when `navigator.gpu` exists.

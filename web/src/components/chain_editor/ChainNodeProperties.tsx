@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import React, { createElement, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Box } from "../ui_primitives";
+import { Box, BORDER_RADIUS } from "../ui_primitives";
 import { FlexColumn } from "../ui_primitives/FlexColumn";
 import { FlexRow } from "../ui_primitives/FlexRow";
 import { Text } from "../ui_primitives/Text";
@@ -119,8 +119,8 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
                   </FlexRow>
                   <Box
                     sx={{
-                      p: 1.25,
-                      borderRadius: 1,
+                      p: 1.5,
+                      borderRadius: BORDER_RADIUS.xs,
                       border: `1px dashed ${theme.vars.palette.secondary.main}40`,
                       backgroundColor: `${theme.vars.palette.secondary.main}08`,
                     }}

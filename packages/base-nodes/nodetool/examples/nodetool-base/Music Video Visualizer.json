@@ -17,6 +17,27 @@
   "graph": {
     "nodes": [
       {
+        "id": "comment-intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# 🎵 Music Video Visualizer\n\nTurn a song into a music video. It transcribes the lyrics, reads the mood, generates frame images, and stitches them back to your audio.\n\n**Pipeline:** Audio → Transcribe → Mood agent → Frame prompts → Images → Video + Audio\n\n**Try this:** tweak visual style or genre, or raise the frame count."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 0,
+            "y": -220
+          },
+          "zIndex": 0,
+          "width": 460,
+          "height": 180,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "audio_track",
         "type": "nodetool.input.AudioInput",
         "data": {
@@ -25,6 +46,9 @@
             "uri": ""
           },
           "name": "audio_track"
+        },
+        "ui_properties": {
+          "title": "1️⃣ Song audio"
         }
       },
       {
@@ -33,6 +57,9 @@
         "data": {
           "value": "electronic ambient",
           "name": "genre_hint"
+        },
+        "ui_properties": {
+          "title": "Genre hint"
         }
       },
       {
@@ -41,6 +68,9 @@
         "data": {
           "value": "abstract geometric patterns, neon colors, flowing energy",
           "name": "visual_style"
+        },
+        "ui_properties": {
+          "title": "Visual style"
         }
       },
       {
@@ -49,15 +79,19 @@
         "data": {
           "value": "8",
           "name": "num_frames"
+        },
+        "ui_properties": {
+          "title": "Frame count"
         }
       },
       {
         "id": "transcription",
         "type": "nodetool.text.AutomaticSpeechRecognition",
         "data": {
-          "model": {
-            "type": "asr_model"
-          }
+          "model": {}
+        },
+        "ui_properties": {
+          "title": "2️⃣ Transcribe lyrics"
         }
       },
       {
@@ -68,16 +102,20 @@
           "transcription": "",
           "genre": "",
           "style": ""
+        },
+        "ui_properties": {
+          "title": "Build mood prompt"
         }
       },
       {
         "id": "mood_analysis",
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {
-            "type": "language_model"
-          },
+          "model": {},
           "system": "You are a creative director specializing in music visualization."
+        },
+        "ui_properties": {
+          "title": "3️⃣ Analyze mood"
         }
       },
       {
@@ -89,16 +127,20 @@
           "analysis": "",
           "genre": "",
           "style": ""
+        },
+        "ui_properties": {
+          "title": "Build frame prompt"
         }
       },
       {
         "id": "frame_prompts",
         "type": "nodetool.generators.ListGenerator",
         "data": {
-          "model": {
-            "type": "language_model"
-          },
+          "model": {},
           "max_tokens": 2048
+        },
+        "ui_properties": {
+          "title": "4️⃣ Generate frame prompts"
         }
       },
       {
@@ -106,19 +148,23 @@
         "type": "nodetool.control.ForEach",
         "data": {
           "input_list": []
-        }
+        },
+        "ui_properties": {}
       },
       {
         "id": "visual_frame",
         "type": "nodetool.image.TextToImage",
         "data": {
-          "model": {
-            "type": "image_model"
-          },
+          "model": {},
           "width": 1920,
           "height": 1080,
           "guidance_scale": 7.5,
           "num_inference_steps": 30
+        },
+        "ui_properties": {
+          "width": 384,
+          "height": 400,
+          "title": "5️⃣ Render frames"
         }
       },
       {
@@ -126,13 +172,19 @@
         "type": "nodetool.control.Collect",
         "data": {
           "input_item": []
-        }
+        },
+        "ui_properties": {}
       },
       {
         "id": "video_output",
         "type": "nodetool.video.FrameToVideo",
         "data": {
           "fps": 24.0
+        },
+        "ui_properties": {
+          "width": 416,
+          "height": 360,
+          "title": "6️⃣ Frames to video"
         }
       },
       {
@@ -141,30 +193,11 @@
         "data": {
           "volume": 1.0,
           "mix": false
-        }
-      },
-      {
-        "id": "video_out",
-        "type": "nodetool.output.Output",
-        "data": {
-          "name": "music_video",
-          "description": "Generated music video with reactive visuals"
-        }
-      },
-      {
-        "id": "frames_out",
-        "type": "nodetool.output.Output",
-        "data": {
-          "name": "visual_frames",
-          "description": "Individual visual frames for further editing"
-        }
-      },
-      {
-        "id": "mood_out",
-        "type": "nodetool.output.Output",
-        "data": {
-          "name": "mood_analysis",
-          "description": "Mood and energy analysis of the audio"
+        },
+        "ui_properties": {
+          "width": 416,
+          "height": 360,
+          "title": "7️⃣ Add audio"
         }
       }
     ],
@@ -280,27 +313,6 @@
         "sourceHandle": "output",
         "target": "final_video",
         "targetHandle": "audio"
-      },
-      {
-        "id": "e17",
-        "source": "final_video",
-        "sourceHandle": "output",
-        "target": "video_out",
-        "targetHandle": "value"
-      },
-      {
-        "id": "e18",
-        "source": "collected_frames",
-        "sourceHandle": "output",
-        "target": "frames_out",
-        "targetHandle": "value"
-      },
-      {
-        "id": "e19",
-        "source": "mood_analysis",
-        "sourceHandle": "text",
-        "target": "mood_out",
-        "targetHandle": "value"
       }
     ]
   },

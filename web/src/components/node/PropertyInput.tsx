@@ -11,7 +11,7 @@ import isEqual from "fast-deep-equal";
 import Close from "@mui/icons-material/Close";
 import Edit from "@mui/icons-material/Edit";
 import SettingsBackupRestoreIcon from "@mui/icons-material/SettingsBackupRestore";
-import { Tooltip, ToolbarIconButton, MOTION } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useNodes } from "../../contexts/NodeContext";
@@ -116,7 +116,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
       zIndex: 2,
       cursor: "pointer",
       padding: "1px",
-      borderRadius: "3px",
+      borderRadius: BORDER_RADIUS.sm,
       color: theme.vars.palette.text.secondary,
       "&:hover": {
         color: theme.vars.palette.primary.main,
@@ -134,7 +134,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
     ".property-input-form input": {
       padding: "2px 4px",
       border: `1px solid ${theme.vars.palette.grey[500]}`,
-      borderRadius: "3px",
+      borderRadius: BORDER_RADIUS.sm,
       background: "transparent",
       color: "inherit",
       fontSize: "inherit"
@@ -171,7 +171,7 @@ export type PropertyInputProps = {
   id: string;
   nodeType: string;
   data: NodeData;
-  value: any;
+  value: unknown;
   property: Property;
   propertyIndex?: string;
   controlKeyPressed?: boolean;
@@ -183,7 +183,7 @@ export type PropertyInputProps = {
   hideActionIcons?: boolean;
   /** True when an edge is connected to this property's target handle. */
   isConnected?: boolean;
-  onValueChange?: (value: any) => void;
+  onValueChange?: (value: unknown) => void;
 };
 
 const PropertyInput: React.FC<PropertyInputProps> = ({
@@ -349,7 +349,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
         const dynamicInputDefaults = node.data.dynamic_inputs || {};
         let defaultValue = dynamicInputDefaults?.[property.name]?.default;
         if (defaultValue === undefined) {
-          const nodeMetadata = metadata?.[node.type as string];
+          const nodeMetadata = node.type ? metadata?.[node.type] : undefined;
           if (nodeMetadata) {
             const propertyDef = nodeMetadata.properties.find(
               (prop: Property) => prop.name === property.name
@@ -366,7 +366,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
           });
         }
       } else {
-        const nodeMetadata = metadata?.[node.type as string];
+        const nodeMetadata = node.type ? metadata?.[node.type] : undefined;
         if (nodeMetadata) {
           const propertyDef = nodeMetadata.properties.find(
             (prop: Property) => prop.name === property.name

@@ -667,6 +667,11 @@ export class ListGeneratorNode extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt"];
 
+  // Emit `item`/`index` output_updates even when the handles are wired onward,
+  // so the node's bespoke list body can show items as they stream regardless
+  // of downstream connections.
+  static readonly alwaysEmitOutputUpdates = true;
+
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     item: { kind: "iteration", source: "__execution__", group: "items" },

@@ -21,7 +21,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import Switch from "@mui/material/Switch";
 
-import { NodeSlider, Tooltip, MOTION } from "../../ui_primitives";
+import { NodeSlider, Tooltip, MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT } from "../../ui_primitives";
 
 // ── Header ─────────────────────────────────────────────────────────────────
 
@@ -37,8 +37,8 @@ const eyebrowStyles = (theme: Theme) =>
   css({
     flex: "1 1 auto",
     color: theme.vars.palette.text.secondary,
-    fontSize: 11,
-    fontWeight: 600,
+    fontSize: FONT_SIZE_SANS.caption,
+    fontWeight: FONT_WEIGHT.semibold,
     letterSpacing: "0.12em",
     textTransform: "uppercase",
     userSelect: "none"
@@ -61,7 +61,7 @@ const headerIconButtonStyles = (theme: Theme) =>
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 6,
+    borderRadius: BORDER_RADIUS.md,
     transition: `background-color ${MOTION.fast}, color ${MOTION.fast}, border-color ${MOTION.fast}`,
     "&:hover": {
       backgroundColor: theme.vars.palette.action.hover,
@@ -127,19 +127,20 @@ InspectorHeader.displayName = "InspectorHeader";
 
 // ── Identity card ──────────────────────────────────────────────────────────
 
-const identityWrapStyles = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: 5,
-  padding: "10px 4px 14px"
-});
+const identityWrapStyles = (theme: Theme) =>
+  css({
+    display: "flex",
+    flexDirection: "column",
+    gap: theme.spacing(1.5),
+    padding: theme.spacing(3, 1, 4)
+  });
 
 const identityNameStyles = (theme: Theme) =>
   css({
     fontFamily:
       "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-    fontSize: 14,
-    fontWeight: 500,
+    fontSize: FONT_SIZE_MONO.strong,
+    fontWeight: FONT_WEIGHT.medium,
     color: theme.vars.palette.text.primary,
     lineHeight: 1.3,
     wordBreak: "break-all"
@@ -155,7 +156,7 @@ const identitySwatchStyles = (color: string) =>
   css({
     width: 8,
     height: 8,
-    borderRadius: 2,
+    borderRadius: BORDER_RADIUS.xs,
     flexShrink: 0,
     backgroundColor: color
   });
@@ -163,7 +164,7 @@ const identitySwatchStyles = (color: string) =>
 const identityMetaStyles = (theme: Theme) =>
   css({
     color: theme.vars.palette.text.secondary,
-    fontSize: 12,
+    fontSize: FONT_SIZE_MONO.code,
     lineHeight: 1.3
   });
 
@@ -180,7 +181,7 @@ export const ClipIdentityCard: React.FC<ClipIdentityCardProps> = memo(
     const theme = useTheme();
     const accent = accentColor ?? theme.vars.palette.secondary.main;
     return (
-      <div css={identityWrapStyles}>
+      <div css={identityWrapStyles(theme)}>
         <div css={identityNameStyles(theme)} title={name}>
           {name}
         </div>
@@ -211,8 +212,8 @@ const rowLabelStyles = (theme: Theme) =>
     flex: "1 1 auto",
     minWidth: 0,
     color: theme.vars.palette.text.secondary,
-    fontSize: 13,
-    fontWeight: 400,
+    fontSize: FONT_SIZE_SANS.label,
+    fontWeight: FONT_WEIGHT.normal,
     lineHeight: 1.3
   });
 
@@ -256,8 +257,8 @@ const staticValueStyles = (theme: Theme) =>
   css({
     fontFamily:
       "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-    fontSize: 12,
-    fontWeight: 500,
+    fontSize: FONT_SIZE_MONO.code,
+    fontWeight: FONT_WEIGHT.medium,
     color: theme.vars.palette.text.secondary,
     maxWidth: 160,
     overflow: "hidden",
@@ -286,12 +287,12 @@ const pillWrapStyles = (theme: Theme, disabled: boolean, focused: boolean) =>
     alignItems: "center",
     gap: 4,
     height: 28,
-    padding: "0 10px",
+    padding: theme.spacing(0, 3),
     backgroundColor: theme.vars.palette.background.default,
     border: `1px solid ${
       focused ? theme.vars.palette.primary.main : "rgba(255, 255, 255, 0.05)"
     }`,
-    borderRadius: 7,
+    borderRadius: BORDER_RADIUS.md,
     minWidth: 92,
     justifyContent: "flex-end",
     opacity: disabled ? 0.5 : 1,
@@ -313,8 +314,8 @@ const pillInputStyles = (theme: Theme) =>
     color: theme.vars.palette.text.primary,
     fontFamily:
       "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-    fontSize: 12,
-    fontWeight: 500,
+    fontSize: FONT_SIZE_MONO.code,
+    fontWeight: FONT_WEIGHT.medium,
     letterSpacing: "0",
     textAlign: "right",
     padding: 0,
@@ -326,8 +327,8 @@ const pillUnitStyles = (theme: Theme) =>
     color: theme.vars.palette.text.secondary,
     fontFamily:
       "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-    fontSize: 11,
-    fontWeight: 500,
+    fontSize: FONT_SIZE_MONO.caption,
+    fontWeight: FONT_WEIGHT.medium,
     flexShrink: 0
   });
 
@@ -443,7 +444,7 @@ const toggleSwitchSx = {
     boxShadow: "0 1px 2px rgba(0,0,0,0.4)"
   },
   "& .MuiSwitch-track": {
-    borderRadius: 10,
+    borderRadius: BORDER_RADIUS.pill,
     backgroundColor: "rgba(255,255,255,0.18)",
     opacity: 1
   }
@@ -477,21 +478,22 @@ InspectorToggleRow.displayName = "InspectorToggleRow";
 
 // ── Slider row ─────────────────────────────────────────────────────────────
 
-const sliderRowStyles = css({
-  display: "flex",
-  alignItems: "center",
-  gap: 10,
-  minHeight: 32,
-  padding: "0 4px"
-});
+const sliderRowStyles = (theme: Theme) =>
+  css({
+    display: "flex",
+    alignItems: "center",
+    gap: theme.spacing(3),
+    minHeight: 32,
+    padding: "0 4px"
+  });
 
 const sliderLabelStyles = (theme: Theme) =>
   css({
     flex: "0 1 auto",
     minWidth: 56,
     color: theme.vars.palette.text.secondary,
-    fontSize: 13,
-    fontWeight: 400,
+    fontSize: FONT_SIZE_SANS.label,
+    fontWeight: FONT_WEIGHT.normal,
     lineHeight: 1.3,
     overflow: "hidden",
     textOverflow: "ellipsis",
@@ -510,8 +512,8 @@ const sliderValueStyles = (theme: Theme) =>
     flex: "0 0 48px",
     fontFamily:
       "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-    fontSize: 11,
-    fontWeight: 500,
+    fontSize: FONT_SIZE_MONO.caption,
+    fontWeight: FONT_WEIGHT.medium,
     color: theme.vars.palette.text.secondary,
     textAlign: "right",
     fontVariantNumeric: "tabular-nums"
@@ -534,7 +536,7 @@ export const InspectorSliderRow: React.FC<InspectorSliderRowProps> = memo(
   ({ label, value, display, min, max, step, disabled, onChange }) => {
     const theme = useTheme();
     return (
-      <div css={sliderRowStyles}>
+      <div css={sliderRowStyles(theme)}>
         <span css={sliderLabelStyles(theme)} title={label}>
           {label}
         </span>
@@ -566,8 +568,8 @@ const sectionTitleStyles = (theme: Theme) =>
     alignItems: "center",
     gap: 8,
     color: theme.vars.palette.text.primary,
-    fontSize: 15,
-    fontWeight: 500,
+    fontSize: FONT_SIZE_SANS.body,
+    fontWeight: FONT_WEIGHT.medium,
     letterSpacing: "-0.005em"
   });
 

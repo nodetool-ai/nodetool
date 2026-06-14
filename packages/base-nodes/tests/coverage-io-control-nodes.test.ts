@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { mkdtemp, writeFile, readFile, mkdir, rm } from "node:fs/promises";
+import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
@@ -77,24 +77,10 @@ import {
   ConstantTTSModelNode,
   ConstantVideoModelNode,
   // workspace
-  GetWorkspaceDirNode,
-  ListWorkspaceFilesNode,
   ReadTextFileNode,
   WriteTextFileNode,
   ReadBinaryFileNode,
   WriteBinaryFileNode,
-  DeleteWorkspaceFileNode,
-  CreateWorkspaceDirectoryNode,
-  WorkspaceFileExistsNode,
-  GetWorkspaceFileInfoNode,
-  CopyWorkspaceFileNode,
-  MoveWorkspaceFileNode,
-  GetWorkspaceFileSizeNode,
-  IsWorkspaceFileNode,
-  IsWorkspaceDirectoryNode,
-  JoinWorkspacePathsNode,
-  SaveImageFileNode,
-  SaveVideoFileNode,
   // triggers
   WaitNode,
   ManualTriggerNode,
@@ -826,30 +812,6 @@ describe("workspace nodes — full coverage", () => {
     return mkdtemp(path.join(tmpdir(), "nodetool-ws-test-"));
   }
 
-  /** Patch a node so that workspace_dir appears in serialize() output */
-  function withWorkspace<
-    T extends { serialize: () => Record<string, unknown> }
-  >(node: T, workspace: string): T {
-    const origSerialize = node.serialize.bind(node);
-    node.serialize = () => ({ ...origSerialize(), workspace_dir: workspace });
-    return node;
-  }
-
-  it("GetWorkspaceDirNode returns workspace dir from inputs", async () => {
-    tmpDir = await freshDir();
-    const node = new GetWorkspaceDirNode();
-    node.assign({ workspace_dir: tmpDir });
-    const result = await node.process();
-    expect(result).toEqual({ output: tmpDir });
-  });
-
-  it("GetWorkspaceDirNode returns empty string as default", async () => {
-    const node = new GetWorkspaceDirNode();
-    const result = await node.process();
-    // Default workspace_dir is "" which is passed through as-is
-    expect(result).toEqual({ output: "" });
-  });
-
   it("WriteTextFileNode and ReadTextFileNode round-trip", async () => {
     tmpDir = await freshDir();
     const write = new WriteTextFileNode();
@@ -890,132 +852,13 @@ describe("workspace nodes — full coverage", () => {
   it("ReadBinaryFileNode and WriteBinaryFileNode round-trip", async () => {
     tmpDir = await freshDir();
     const b64 = Buffer.from("binary-data").toString("base64");
-    const __n242 = new WriteBinaryFileNode();
-    __n242.assign({ workspace_dir: tmpDir, path: "bin.dat", content: b64 });
-    await __n242.process();
-    const __n243 = new ReadBinaryFileNode();
-    __n243.assign({ workspace_dir: tmpDir, path: "bin.dat" });
-    const result = await __n243.process();
+    const write = new WriteBinaryFileNode();
+    write.assign({ workspace_dir: tmpDir, path: "bin.dat", content: b64 });
+    await write.process();
+    const read = new ReadBinaryFileNode();
+    read.assign({ workspace_dir: tmpDir, path: "bin.dat" });
+    const result = await read.process();
     expect(result.output).toBe(b64);
-  });
-
-  it("CreateWorkspaceDirectoryNode creates nested directories", async () => {
-    tmpDir = await freshDir();
-    const node = new CreateWorkspaceDirectoryNode();
-    node.assign({ workspace_dir: tmpDir, path: "a/b/c" });
-    const result = await node.process();
-    expect(result).toEqual({ output: "a/b/c" });
-    // verify existence
-    const exists = new WorkspaceFileExistsNode();
-    exists.assign({ workspace_dir: tmpDir, path: "a/b/c" });
-    expect(await exists.process()).toEqual({ output: true });
-  });
-
-  it("DeleteWorkspaceFileNode deletes a file", async () => {
-    tmpDir = await freshDir();
-    const __n244 = new WriteTextFileNode();
-    __n244.assign({ workspace_dir: tmpDir, path: "del.txt", content: "x" });
-    await __n244.process();
-    const __n245 = new DeleteWorkspaceFileNode();
-    __n245.assign({ workspace_dir: tmpDir, path: "del.txt" });
-    const result = await __n245.process();
-    expect(result).toEqual({ output: null });
-    const __n246 = new WorkspaceFileExistsNode();
-    __n246.assign({ workspace_dir: tmpDir, path: "del.txt" });
-    expect(await __n246.process()).toEqual({ output: false });
-  });
-
-  it("DeleteWorkspaceFileNode throws for dir without recursive", async () => {
-    tmpDir = await freshDir();
-    const __n247 = new CreateWorkspaceDirectoryNode();
-    __n247.assign({ workspace_dir: tmpDir, path: "mydir" });
-    await __n247.process();
-    const __n248 = new DeleteWorkspaceFileNode();
-    __n248.assign({ workspace_dir: tmpDir, path: "mydir" });
-    await expect(__n248.process()).rejects.toThrow("recursive");
-  });
-
-  it("DeleteWorkspaceFileNode deletes directory recursively", async () => {
-    tmpDir = await freshDir();
-    const __n249 = new WriteTextFileNode();
-    __n249.assign({ workspace_dir: tmpDir, path: "rdir/f.txt", content: "x" });
-    await __n249.process();
-    const __n250 = new DeleteWorkspaceFileNode();
-    __n250.assign({ workspace_dir: tmpDir, path: "rdir", recursive: true });
-    await __n250.process();
-    const __n251 = new WorkspaceFileExistsNode();
-    __n251.assign({ workspace_dir: tmpDir, path: "rdir" });
-    expect(await __n251.process()).toEqual({ output: false });
-  });
-
-  it("GetWorkspaceFileInfoNode returns file metadata", async () => {
-    tmpDir = await freshDir();
-    const __n252 = new WriteTextFileNode();
-    __n252.assign({
-      workspace_dir: tmpDir,
-      path: "info.txt",
-      content: "hello"
-    });
-    await __n252.process();
-    const __n253 = new GetWorkspaceFileInfoNode();
-    __n253.assign({ workspace_dir: tmpDir, path: "info.txt" });
-    const result = await __n253.process();
-    const info = result.output as Record<string, unknown>;
-    expect(info.name).toBe("info.txt");
-    expect(info.is_file).toBe(true);
-    expect(info.is_directory).toBe(false);
-    expect(info.size).toBe(5);
-    expect(typeof info.created).toBe("string");
-    expect(typeof info.modified).toBe("string");
-    expect(typeof info.accessed).toBe("string");
-  });
-
-  it("CopyWorkspaceFileNode copies a file", async () => {
-    tmpDir = await freshDir();
-    const __n254 = new WriteTextFileNode();
-    __n254.assign({
-      workspace_dir: tmpDir,
-      path: "src.txt",
-      content: "copy-me"
-    });
-    await __n254.process();
-    const __n255 = new CopyWorkspaceFileNode();
-    __n255.assign({
-      workspace_dir: tmpDir,
-      source: "src.txt",
-      destination: "dst.txt"
-    });
-    const result = await __n255.process();
-    expect(result).toEqual({ output: "dst.txt" });
-    const __n256 = new ReadTextFileNode();
-    __n256.assign({ workspace_dir: tmpDir, path: "dst.txt" });
-    const content = await __n256.process();
-    expect(content).toEqual({ output: "copy-me" });
-  });
-
-  it("MoveWorkspaceFileNode renames a file", async () => {
-    tmpDir = await freshDir();
-    const __n257 = new WriteTextFileNode();
-    __n257.assign({
-      workspace_dir: tmpDir,
-      path: "old.txt",
-      content: "move-me"
-    });
-    await __n257.process();
-    const __n258 = new MoveWorkspaceFileNode();
-    __n258.assign({
-      workspace_dir: tmpDir,
-      source: "old.txt",
-      destination: "new.txt"
-    });
-    const result = await __n258.process();
-    expect(result).toEqual({ output: "new.txt" });
-    const __n259 = new WorkspaceFileExistsNode();
-    __n259.assign({ workspace_dir: tmpDir, path: "old.txt" });
-    expect(await __n259.process()).toEqual({ output: false });
-    const __n260 = new ReadTextFileNode();
-    __n260.assign({ workspace_dir: tmpDir, path: "new.txt" });
-    expect(await __n260.process()).toEqual({ output: "move-me" });
   });
 
   it("workspace node defaults are accessible", () => {
@@ -1034,383 +877,27 @@ describe("workspace nodes — full coverage", () => {
       path: "",
       content: ""
     });
-    expect(new DeleteWorkspaceFileNode().serialize()).toEqual({
-      path: "",
-      recursive: false
-    });
-    expect(new CreateWorkspaceDirectoryNode().serialize()).toEqual({
-      path: ""
-    });
-    expect(new WorkspaceFileExistsNode().serialize()).toEqual({ path: "" });
-    expect(new GetWorkspaceFileInfoNode().serialize()).toEqual({ path: "" });
-    expect(new CopyWorkspaceFileNode().serialize()).toEqual({
-      source: "",
-      destination: ""
-    });
-    expect(new MoveWorkspaceFileNode().serialize()).toEqual({
-      source: "",
-      destination: ""
-    });
-    expect(new GetWorkspaceFileSizeNode().serialize()).toEqual({ path: "" });
-    expect(new IsWorkspaceFileNode().serialize()).toEqual({ path: "" });
-  });
-
-  it("GetWorkspaceFileSizeNode returns file size", async () => {
-    tmpDir = await freshDir();
-    const __n261 = new WriteTextFileNode();
-    __n261.assign({
-      workspace_dir: tmpDir,
-      path: "sized.txt",
-      content: "12345"
-    });
-    await __n261.process();
-    const __n262 = new GetWorkspaceFileSizeNode();
-    __n262.assign({ workspace_dir: tmpDir, path: "sized.txt" });
-    const result = await __n262.process();
-    expect(result).toEqual({ output: 5 });
-  });
-
-  it("GetWorkspaceFileSizeNode throws for directory", async () => {
-    tmpDir = await freshDir();
-    const __n263 = new CreateWorkspaceDirectoryNode();
-    __n263.assign({ workspace_dir: tmpDir, path: "adir" });
-    await __n263.process();
-    const __n264 = new GetWorkspaceFileSizeNode();
-    __n264.assign({ workspace_dir: tmpDir, path: "adir" });
-    await expect(__n264.process()).rejects.toThrow("not a file");
-  });
-
-  it("IsWorkspaceFileNode checks if path is file", async () => {
-    tmpDir = await freshDir();
-    const __n265 = new WriteTextFileNode();
-    __n265.assign({ workspace_dir: tmpDir, path: "f.txt", content: "x" });
-    await __n265.process();
-    const __n266 = new CreateWorkspaceDirectoryNode();
-    __n266.assign({ workspace_dir: tmpDir, path: "d" });
-    await __n266.process();
-    const __n267 = new IsWorkspaceFileNode();
-    __n267.assign({ workspace_dir: tmpDir, path: "f.txt" });
-    expect(await __n267.process()).toEqual({ output: true });
-    const __n268 = new IsWorkspaceFileNode();
-    __n268.assign({ workspace_dir: tmpDir, path: "d" });
-    expect(await __n268.process()).toEqual({ output: false });
-    const __n269 = new IsWorkspaceFileNode();
-    __n269.assign({ workspace_dir: tmpDir, path: "nope" });
-    expect(await __n269.process()).toEqual({ output: false });
-  });
-
-  it("IsWorkspaceDirectoryNode checks if path is directory", async () => {
-    tmpDir = await freshDir();
-    const __n270 = new WriteTextFileNode();
-    __n270.assign({ workspace_dir: tmpDir, path: "f.txt", content: "x" });
-    await __n270.process();
-    const __n271 = new CreateWorkspaceDirectoryNode();
-    __n271.assign({ workspace_dir: tmpDir, path: "d" });
-    await __n271.process();
-    const __n272 = new IsWorkspaceDirectoryNode();
-    __n272.assign({ workspace_dir: tmpDir, path: "d" });
-    expect(await __n272.process()).toEqual({ output: true });
-    const __n273 = new IsWorkspaceDirectoryNode();
-    __n273.assign({ workspace_dir: tmpDir, path: "f.txt" });
-    expect(await __n273.process()).toEqual({ output: false });
-    const __n274 = new IsWorkspaceDirectoryNode();
-    __n274.assign({ workspace_dir: tmpDir, path: "nope" });
-    expect(await __n274.process()).toEqual({ output: false });
-  });
-
-  it("IsWorkspaceDirectoryNode defaults", () => {
-    expect(new IsWorkspaceDirectoryNode().serialize()).toEqual({ path: "" });
-  });
-
-  it("JoinWorkspacePathsNode defaults", () => {
-    expect(new JoinWorkspacePathsNode().serialize()).toEqual({ paths: [] });
-  });
-
-  it("JoinWorkspacePathsNode with scalar string path", async () => {
-    tmpDir = await freshDir();
-    const __n275 = new JoinWorkspacePathsNode();
-    // assign coerces scalar string into ["not-array"] for list[str] prop,
-    // so paths = ["not-array"] and process succeeds with that as the joined path
-    __n275.assign({ workspace_dir: tmpDir, paths: "not-array" });
-    const result = await __n275.process();
-    expect(result.output).toBe("not-array");
-  });
-
-  it("JoinWorkspacePathsNode joins path parts", async () => {
-    tmpDir = await freshDir();
-    const __n276 = new JoinWorkspacePathsNode();
-    __n276.assign({ workspace_dir: tmpDir, paths: ["a", "b", "c.txt"] });
-    const result = await __n276.process();
-    expect(result).toEqual({ output: "a/b/c.txt" });
-  });
-
-  it("JoinWorkspacePathsNode throws for empty paths", async () => {
-    tmpDir = await freshDir();
-    const __n277 = new JoinWorkspacePathsNode();
-    __n277.assign({ workspace_dir: tmpDir, paths: [] });
-    await expect(__n277.process()).rejects.toThrow("empty");
-  });
-
-  it("ListWorkspaceFilesNode lists files", async () => {
-    tmpDir = await freshDir();
-    const __n278 = new WriteTextFileNode();
-    __n278.assign({ workspace_dir: tmpDir, path: "sub/a.txt", content: "a" });
-    await __n278.process();
-    const __n279 = new WriteTextFileNode();
-    __n279.assign({ workspace_dir: tmpDir, path: "sub/b.log", content: "b" });
-    await __n279.process();
-    const node = new ListWorkspaceFilesNode();
-    const results: string[] = [];
-    node.assign({ workspace_dir: tmpDir, path: "sub", pattern: "*.txt" });
-    for await (const item of node.genProcess()) {
-      if ("file" in item) results.push(String(item.file));
-    }
-    expect(results).toEqual(["sub/a.txt"]);
-  });
-
-  it("ListWorkspaceFilesNode recursive mode", async () => {
-    tmpDir = await freshDir();
-    const __n280 = new WriteTextFileNode();
-    __n280.assign({ workspace_dir: tmpDir, path: "top/a.txt", content: "a" });
-    await __n280.process();
-    const __n281 = new WriteTextFileNode();
-    __n281.assign({
-      workspace_dir: tmpDir,
-      path: "top/nested/b.txt",
-      content: "b"
-    });
-    await __n281.process();
-    const node = new ListWorkspaceFilesNode();
-    const results: string[] = [];
-    node.assign({
-      workspace_dir: tmpDir,
-      path: "top",
-      pattern: "*.txt",
-      recursive: true
-    });
-    for await (const item of node.genProcess()) {
-      if ("file" in item) results.push(String(item.file));
-    }
-    expect(results.sort()).toEqual(["top/a.txt", "top/nested/b.txt"]);
-  });
-
-  it("ListWorkspaceFilesNode defaults and process", async () => {
-    const node = new ListWorkspaceFilesNode();
-    expect(node.serialize()).toEqual({
-      path: ".",
-      pattern: "*",
-      recursive: false
-    });
-    const result = await node.process();
-    expect(result).toHaveProperty("file");
-    expect(result).toHaveProperty("files");
-    expect(Array.isArray(result.files)).toBe(true);
-  });
-
-  it("SaveImageFileNode defaults", () => {
-    const node = new SaveImageFileNode();
-    expect(node.serialize()).toMatchObject({
-      image: { type: "image", uri: "" },
-      folder: ".",
-      filename: "image.png",
-      overwrite: false
-    });
-  });
-
-  it("SaveVideoFileNode defaults", () => {
-    const node = new SaveVideoFileNode();
-    expect(node.serialize()).toMatchObject({
-      video: { type: "video", uri: "" },
-      folder: ".",
-      filename: "video.mp4",
-      overwrite: false
-    });
-  });
-
-  it("SaveImageFileNode saves image bytes and handles overwrite=false", async () => {
-    tmpDir = await freshDir();
-    const data = Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString("base64");
-    const node = withWorkspace(new SaveImageFileNode(), tmpDir);
-    // First save
-    node.assign({
-      image: { data },
-      folder: ".",
-      filename: "img.png",
-      overwrite: false
-    });
-    const r1 = await node.process();
-    const output1 = r1.output as Record<string, unknown>;
-    expect(output1.uri).toContain("img.png");
-    // Second save with same name — should get img_1.png
-    node.assign({
-      image: { data },
-      folder: ".",
-      filename: "img.png",
-      overwrite: false
-    });
-    const r2 = await node.process();
-    const output2 = r2.output as Record<string, unknown>;
-    expect(output2.uri).toContain("img_1.png");
-  });
-
-  it("SaveImageFileNode with overwrite=true", async () => {
-    tmpDir = await freshDir();
-    const data = Buffer.from([1, 2, 3]).toString("base64");
-    const node = new SaveImageFileNode();
-    node.assign({
-      workspace_dir: tmpDir,
-      image: { data },
-      folder: ".",
-      filename: "over.png",
-      overwrite: true
-    });
-    await node.process();
-    node.assign({
-      workspace_dir: tmpDir,
-      image: { data },
-      folder: ".",
-      filename: "over.png",
-      overwrite: true
-    });
-    const r2 = await node.process();
-    const output = r2.output as Record<string, unknown>;
-    expect(output.uri).toContain("over.png");
-    expect(String(output.uri)).not.toContain("_1");
-  });
-
-  it("SaveImageFileNode with Uint8Array data", async () => {
-    tmpDir = await freshDir();
-    const data = new Uint8Array([10, 20, 30]);
-    const node = new SaveImageFileNode();
-    node.assign({
-      workspace_dir: tmpDir,
-      image: { data },
-      folder: ".",
-      filename: "u8.png",
-      overwrite: true
-    });
-    const result = await node.process();
-    const output = result.output as Record<string, string>;
-    expect(output.uri).toContain("u8.png");
-  });
-
-  it("SaveImageFileNode with array data", async () => {
-    tmpDir = await freshDir();
-    const data = [10, 20, 30];
-    const node = new SaveImageFileNode();
-    node.assign({
-      workspace_dir: tmpDir,
-      image: { data },
-      folder: ".",
-      filename: "arr.png",
-      overwrite: true
-    });
-    const result = await node.process();
-    const output = result.output as Record<string, string>;
-    expect(output.uri).toContain("arr.png");
-  });
-
-  it("SaveImageFileNode with no data produces empty file", async () => {
-    tmpDir = await freshDir();
-    const node = new SaveImageFileNode();
-    node.assign({
-      workspace_dir: tmpDir,
-      image: {},
-      folder: ".",
-      filename: "empty.png",
-      overwrite: true
-    });
-    const result = await node.process();
-    const output = result.output as Record<string, string>;
-    expect(output.uri).toContain("empty.png");
-  });
-
-  it("SaveVideoFileNode saves video bytes and handles naming", async () => {
-    tmpDir = await freshDir();
-    const data = Buffer.from([0, 0, 0, 0x1c]).toString("base64");
-    const node = withWorkspace(new SaveVideoFileNode(), tmpDir);
-    node.assign({
-      video: { data },
-      folder: ".",
-      filename: "vid.mp4",
-      overwrite: false
-    });
-    const r1 = await node.process();
-    const output1 = r1.output as Record<string, unknown>;
-    expect(output1.uri).toContain("vid.mp4");
-    // Second save should increment
-    node.assign({
-      video: { data },
-      folder: ".",
-      filename: "vid.mp4",
-      overwrite: false
-    });
-    const r2 = await node.process();
-    const output2 = r2.output as Record<string, unknown>;
-    expect(output2.uri).toContain("vid_1.mp4");
-  });
-
-  it("SaveVideoFileNode with overwrite=true", async () => {
-    tmpDir = await freshDir();
-    const data = Buffer.from([1, 2]).toString("base64");
-    const node = new SaveVideoFileNode();
-    node.assign({
-      workspace_dir: tmpDir,
-      video: { data },
-      folder: ".",
-      filename: "over.mp4",
-      overwrite: true
-    });
-    await node.process();
-    node.assign({
-      workspace_dir: tmpDir,
-      video: { data },
-      folder: ".",
-      filename: "over.mp4",
-      overwrite: true
-    });
-    const r2 = await node.process();
-    const output = r2.output as Record<string, unknown>;
-    expect(String(output.uri)).toContain("over.mp4");
-    expect(String(output.uri)).not.toContain("_1");
   });
 
   it("workspace path validation rejects absolute paths", async () => {
     tmpDir = await freshDir();
-    const __n282 = new ReadTextFileNode();
-    __n282.assign({ workspace_dir: tmpDir, path: "/etc/passwd" });
-    await expect(__n282.process()).rejects.toThrow("Absolute");
+    const node = new ReadTextFileNode();
+    node.assign({ workspace_dir: tmpDir, path: "/etc/passwd" });
+    await expect(node.process()).rejects.toThrow("Absolute");
   });
 
   it("workspace path validation rejects parent traversal", async () => {
     tmpDir = await freshDir();
-    const __n283 = new ReadTextFileNode();
-    __n283.assign({ workspace_dir: tmpDir, path: "../etc/passwd" });
-    await expect(__n283.process()).rejects.toThrow("Parent directory");
+    const node = new ReadTextFileNode();
+    node.assign({ workspace_dir: tmpDir, path: "../etc/passwd" });
+    await expect(node.process()).rejects.toThrow("Parent directory");
   });
 
   it("workspace path validation rejects empty path", async () => {
     tmpDir = await freshDir();
-    const __n284 = new ReadTextFileNode();
-    __n284.assign({ workspace_dir: tmpDir, path: "" });
-    await expect(__n284.process()).rejects.toThrow("empty");
-  });
-
-  it("WorkspaceFileExistsNode returns true for existing file", async () => {
-    tmpDir = await freshDir();
-    const __n285 = new WriteTextFileNode();
-    __n285.assign({ workspace_dir: tmpDir, path: "ex.txt", content: "y" });
-    await __n285.process();
-    const __n286 = new WorkspaceFileExistsNode();
-    __n286.assign({ workspace_dir: tmpDir, path: "ex.txt" });
-    expect(await __n286.process()).toEqual({ output: true });
-  });
-
-  it("WorkspaceFileExistsNode returns false for missing file", async () => {
-    tmpDir = await freshDir();
-    const __n287 = new WorkspaceFileExistsNode();
-    __n287.assign({ workspace_dir: tmpDir, path: "missing.txt" });
-    expect(await __n287.process()).toEqual({ output: false });
+    const node = new ReadTextFileNode();
+    node.assign({ workspace_dir: tmpDir, path: "" });
+    await expect(node.process()).rejects.toThrow("empty");
   });
 });
 

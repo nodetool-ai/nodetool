@@ -69,6 +69,7 @@ import {
 } from "../../utils/exposedInputs";
 import ExposedLabeledInputs from "../node/ExposedLabeledInputs";
 import NodeHistoryViewer from "../node/NodeHistoryViewer";
+import { extractTextValue } from "../../utils/extractTextValue";
 
 const styles = (theme: Theme) =>
   css({
@@ -84,9 +85,12 @@ const styles = (theme: Theme) =>
     },
     // Text variant inherits the node body color instead of the dark media
     // backdrop — keeps text content visually flush with the rest of the
-    // node and matches the PreviewNode look.
+    // node and matches the PreviewNode look. The height is capped so a long
+    // (or streaming) generation scrolls inside the card instead of growing
+    // the node unbounded; the "expand" button opens the full text in a popup.
     "&[data-content-card-variant=\"text\"] .preview-area": {
-      backgroundColor: "transparent"
+      backgroundColor: "transparent",
+      maxHeight: theme.spacing(30)
     },
     // Preview keeps a minimum strip when the node is resized very small;
     // params (flex-shrink: 0) clip at the bottom via node-content-container.
@@ -354,26 +358,6 @@ const useMediaSrc = (
   return blobUrl || signedUrl || "";
 };
 
-const extractTextValue = (value: unknown): string => {
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => extractTextValue(item))
-      .filter((item) => item.length > 0)
-      .join("\n");
-  }
-  if (typeof value === "string") {
-    return value;
-  }
-  if (value && typeof value === "object") {
-    const v = value as Record<string, unknown>;
-    if (typeof v.value === "string") {return v.value;}
-    if (typeof v.text === "string") {return v.text;}
-    if (typeof v.data === "string") {return v.data;}
-    if (v.output !== undefined) {return extractTextValue(v.output);}
-  }
-  return "";
-};
-
 type ImagePreviewSource = string | Uint8Array;
 
 const isNumberArray = (value: unknown[]): value is number[] =>
@@ -501,7 +485,10 @@ const AudioPreview: React.FC<{ value: unknown }> = ({ value }) => {
 
 const TextPreview: React.FC<{ value: unknown }> = ({ value }) => {
   // Render via the same TextRenderer PreviewNode uses (markdown + theme
-  // typography) so the card and the preview node match visually.
+  // typography) so the card and the preview node match visually. The card's
+  // height is capped (see `.preview-area` CSS) so long/streaming text scrolls
+  // in place; the generations navigator's "Open full text" control
+  // (NodeHistoryViewer) opens the full text in a readable popup.
   const text = extractTextValue(value);
   return (
     <div

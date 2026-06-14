@@ -62,11 +62,12 @@ export const createMediaComposerStyles = (theme: Theme) =>
       border: "none",
       outline: "none",
       fontFamily: theme.fontFamily1,
-      fontSize: 16,
+      fontSize: "var(--fontSizeNormal)",
       lineHeight: "24px",
       boxSizing: "border-box",
       display: "block",
       overflowY: "hidden",
+      transition: `padding ${MOTION.normal}`,
       "&::placeholder": {
         color: theme.vars.palette.grey[500],
         fontStyle: "normal"
@@ -80,23 +81,53 @@ export const createMediaComposerStyles = (theme: Theme) =>
       width: "100%",
       padding: `0 ${theme.spacing(2)}`,
       boxSizing: "border-box",
-      flexWrap: "wrap"
+      // Trailing run actions must stay pinned to the right even when the
+      // collapsible cluster below shrinks to zero height, so the row itself
+      // does not wrap. The chip cluster wraps internally instead.
+      flexWrap: "nowrap"
     },
 
-    // Idle state: dim the border and footer controls while the composer is
-    // unfocused, brightening them back on focus. The textarea stays full
-    // opacity so the placeholder/prompt remains readable.
+    // The collapsible cluster of mode/model chips + primary action. Fills the
+    // row horizontally (flex:1) so the trailing actions stay right-aligned,
+    // and wraps its own chips when they overflow.
+    ".media-chip-main": {
+      flex: 1,
+      minWidth: 0,
+      display: "flex",
+      alignItems: "center",
+      gap: theme.spacing(1),
+      flexWrap: "wrap",
+      // Generous cap so an expanded multi-row chip cluster is never clipped;
+      // animates down to 0 when minimized.
+      maxHeight: 200,
+      opacity: 1,
+      overflow: "hidden",
+      transition: `max-height ${MOTION.normal}, opacity ${MOTION.normal}`
+    },
+
+    // Minimized state: the composer collapses to just the textarea + trailing
+    // run actions while unfocused and empty, expanding to the full chip row on
+    // focus. The border dims and the chip cluster animates away to zero height.
     ".media-compose-card.dimmed": {
       borderColor:
         theme.palette.mode === "light"
           ? theme.vars.palette.grey[800]
-          : theme.vars.palette.grey[900]
+          : theme.vars.palette.grey[900],
+      gap: theme.spacing(0.5)
     },
-    ".media-compose-card.dimmed .media-chip-row": {
-      opacity: 0.55
+    ".media-compose-card.dimmed .media-chip-main": {
+      maxHeight: 0,
+      opacity: 0,
+      pointerEvents: "none"
     },
-    ".media-compose-card .media-chip-row": {
-      transition: `opacity ${MOTION.normal}`
+    // Tighten the textarea to a slim single line while minimized.
+    ".media-compose-card.dimmed textarea.media-compose-input": {
+      paddingTop: theme.spacing(1.5),
+      paddingBottom: theme.spacing(1.5)
+    },
+    // Collapse the (empty) file-preview row so it adds no height when minimized.
+    ".media-compose-card.dimmed .media-file-preview-row:empty": {
+      display: "none"
     },
 
     ".media-chip-row .divider-dot": {
@@ -151,7 +182,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
       border: "none",
       cursor: "pointer",
       fontFamily: theme.fontFamily1,
-      fontSize: 14,
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 600,
       letterSpacing: 0.25,
       transition: `${MOTION.transform}, ${MOTION.shadow}, ${MOTION.opacity}`,

@@ -37,7 +37,7 @@ import { useKeyPressed } from "../../stores/KeyPressedStore";
 import RunGroupButton from "./RunGroupButton";
 import BypassGroupButton from "./BypassGroupButton";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import { Tooltip, ToolbarIconButton, Popover, MOTION } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, Popover, MOTION, BORDER_RADIUS } from "../ui_primitives";
 
 // constants
 const MIN_WIDTH = 200;
@@ -79,7 +79,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
     },
     height: "100%",
     display: "flex",
-    borderRadius: "3px",
+    borderRadius: BORDER_RADIUS.sm,
     // Header strip — transparent wrapper that holds the label and actions
     // and acts as a single hover hit region. Positioned just above the
     // group body so it never interferes with click-through to child nodes.
@@ -99,7 +99,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       display: "flex",
       alignItems: "center",
       padding: "0 8px",
-      borderRadius: "3px",
+      borderRadius: BORDER_RADIUS.sm,
       color: theme.vars.palette.common.white,
       ".title-sizer": {
         position: "absolute",
@@ -602,7 +602,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "10px",
+            gap: "12px",
             padding: "12px"
           }}
         >

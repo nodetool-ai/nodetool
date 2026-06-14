@@ -8,6 +8,7 @@
 export {
   StreamRunnerBase,
   ContainerFailureError,
+  PIPED_OUTPUT_ENV,
   type StreamRunnerOptions,
   type StreamOptions,
   type Slot

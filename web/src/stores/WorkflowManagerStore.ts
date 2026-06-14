@@ -744,7 +744,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
         const kieNodeTypes = [
           ...new Set(
-            (workflow.graph?.nodes ?? []).map((n) => n.type as string)
+            (workflow.graph?.nodes ?? []).map((n) => n.type)
           ),
         ].filter((t) => t.startsWith("kie."));
 

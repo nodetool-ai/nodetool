@@ -12,7 +12,8 @@ import {
   EditorButton,
   Box,
   EditorMenu,
-  EditorMenuItem
+  EditorMenuItem,
+  BORDER_RADIUS
 } from "../ui_primitives";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -38,7 +39,7 @@ const styles = (theme: Theme) =>
     },
     ".section-title": {
       fontSize: "var(--fontSizeSmall)",
-      fontWeight: 600,
+      fontWeight: 500,
       color: theme.vars.palette.text.primary,
       textTransform: "uppercase"
     },
@@ -48,7 +49,7 @@ const styles = (theme: Theme) =>
     ".add-swatch-button": {
       width: "24px",
       height: "24px",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       border: `1px dashed ${theme.vars.palette.grey[600]}`,
       cursor: "pointer",
       color: theme.vars.palette.grey[500],
@@ -61,7 +62,7 @@ const styles = (theme: Theme) =>
       gap: "8px",
       padding: "8px",
       backgroundColor: theme.vars.palette.grey[900],
-      borderRadius: "var(--rounded-md)"
+      borderRadius: BORDER_RADIUS.md
     },
     ".palette-header": {
       alignItems: "center",
@@ -69,7 +70,7 @@ const styles = (theme: Theme) =>
     },
     ".palette-name": {
       fontSize: "var(--fontSizeSmaller)",
-      fontWeight: 500,
+      fontWeight: 400,
       color: theme.vars.palette.grey[400]
     },
     ".empty-message": {
@@ -322,7 +323,7 @@ const SwatchPanel: React.FC<SwatchPanelProps> = ({
                       sx={{
                         width: 12,
                         height: 12,
-                        borderRadius: 0.5,
+                        borderRadius: BORDER_RADIUS.xs,
                         backgroundColor: color
                       }}
                     />

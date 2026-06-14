@@ -1296,7 +1296,7 @@ export class WorkflowRunner {
 
       this._emit({
         type: "edge_update",
-        workflow_id: this.jobId,
+        job_id: this.jobId,
         edge_id: edgeId,
         status: "completed",
         counter: this._edgeCounters.get(edgeId) ?? null
@@ -1441,7 +1441,7 @@ export class WorkflowRunner {
     this._edgeCounterDirty.delete(id);
     this._emit({
       type: "edge_update",
-      workflow_id: this.jobId,
+      job_id: this.jobId,
       edge_id: id,
       status: "active",
       counter
@@ -1457,7 +1457,7 @@ export class WorkflowRunner {
     for (const id of this._edgeCounterDirty) {
       this._emit({
         type: "edge_update",
-        workflow_id: this.jobId,
+        job_id: this.jobId,
         edge_id: id,
         status: "active",
         counter: this._edgeCounters.get(id) ?? null
@@ -1494,7 +1494,7 @@ export class WorkflowRunner {
         ) {
           this._emit({
             type: "edge_update",
-            workflow_id: this.jobId,
+            job_id: this.jobId,
             edge_id: edgeId,
             status: "drained",
             counter: this._edgeCounters.get(edgeId) ?? null

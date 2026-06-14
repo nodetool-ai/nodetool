@@ -26,7 +26,8 @@ import {
   Checkbox,
   Popover,
   LoadingSpinner,
-  MOTION
+  MOTION,
+  BORDER_RADIUS
 } from "../ui_primitives";
 import { CostStatCard } from "./CostStatCard";
 import { SpendOverTimeChart } from "./SpendOverTimeChart";
@@ -246,8 +247,8 @@ const CostsDashboard: React.FC = () => {
             <Text
               component="h1"
               sx={{
-                fontSize: "1.75rem",
-                fontWeight: 700,
+                fontSize: "var(--fontSizeBig)",
+                fontWeight: 600,
                 lineHeight: 1.1,
                 color: theme.vars.palette.text.primary
               }}
@@ -461,7 +462,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
                 align="center"
                 sx={{
                   padding: "1px 6px",
-                  borderRadius: "6px",
+                  borderRadius: BORDER_RADIUS.md,
                   backgroundColor: `${deltaColor}1F`
                 }}
               >
@@ -493,6 +494,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
           label="Top cost driver"
           icon={BarChartIcon}
           value={driver ? driver.label : "—"}
+          valueVariant="label"
           valueDotColor={driver ? providerColor(driver.providerId) : undefined}
           caption={
             driver

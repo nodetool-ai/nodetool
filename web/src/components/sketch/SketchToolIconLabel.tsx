@@ -6,7 +6,7 @@
 import React, { memo } from "react";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { alpha, useTheme } from "@mui/material/styles";
-import { FlexRow, Text, Box, MOTION } from "../ui_primitives";
+import { FlexRow, Text, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { SKETCH_FONT } from "./sketchStyles";
 
 export interface SketchToolIconLabelProps {
@@ -50,7 +50,7 @@ function SketchToolIconLabel({
         zIndex: 1,
         px: compact ? 0.35 : 0.5,
         py: compact ? 0.12 : 0.1,
-        borderRadius: 1,
+        borderRadius: BORDER_RADIUS.xs,
         backgroundColor: shortcutBg,
         fontSize: compact ? SKETCH_FONT.xs : SKETCH_FONT.sm,
         fontWeight: 600,
@@ -75,7 +75,7 @@ function SketchToolIconLabel({
         width: row ? 34 : "100%",
         height: row ? 34 : undefined,
         minHeight: row ? undefined : compact ? 30 : 38,
-        borderRadius: "2px",
+        borderRadius: BORDER_RADIUS.xs,
         backgroundColor: alpha(theme.palette.common.black, 0.22),
         boxSizing: "border-box",
         color: "primary.light",

@@ -10,7 +10,8 @@ import {
   Caption,
   LoadingSpinner,
   AlertBanner,
-  EditorButton
+  EditorButton,
+  BORDER_RADIUS
 } from "../ui_primitives";
 import PanelToolbar from "../panels/PanelToolbar";
 import { trpc } from "../../trpc/client";
@@ -305,7 +306,7 @@ const SandboxesPanel: React.FC = () => {
                         width: "100%",
                         height: VNC_IFRAME_HEIGHT_PX,
                         border: `1px solid ${theme.vars.palette.divider}`,
-                        borderRadius: theme.rounded.md,
+                        borderRadius: BORDER_RADIUS.md,
                         backgroundColor: "black",
                         "&:fullscreen": {
                           width: "100vw",
@@ -334,7 +335,7 @@ const SandboxesPanel: React.FC = () => {
                           maxHeight: TOOL_CALLS_MAX_HEIGHT_PX,
                           overflow: "auto",
                           border: `1px solid ${theme.vars.palette.divider}`,
-                          borderRadius: theme.rounded.md,
+                          borderRadius: BORDER_RADIUS.md,
                           p: 1
                         }}
                       >

@@ -1,9 +1,8 @@
 /** @jsxImportSource @emotion/react */
-/** Inpaint Here + Re-generate Stale Layers toolbar — see PR description. */
+/** Generate Layer + Re-generate Stale Layers toolbar — see PR description. */
 
 import React, { memo, useCallback, useState } from "react";
 import { useTheme } from "@mui/material/styles";
-import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 
@@ -16,59 +15,33 @@ import {
   Tooltip
 } from "../../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
-import { useSketchStore } from "../state/useSketchStore";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
-import { useInpaintHere } from "../../../hooks/sketch/useInpaintHere";
 import { useRegenerateStaleLayers } from "../../../hooks/sketch/useRegenerateStaleLayers";
 import { CreateGeneratedLayerDialog } from "./CreateGeneratedLayerDialog";
 
 const SketchAIToolbarInner: React.FC = () => {
   const theme = useTheme();
-  const hasActiveSelection = useSketchStore((s) => s.hasActiveSelection);
   // Derive the counts directly via Zustand selectors so we don't iterate
   // every binding on every render of the toolbar.
-  const staleCount = useSketchSessionStore(
-    (s) =>
-      Object.values(s.bindings).reduce(
-        (n, b) => n + (b.status === "stale" ? 1 : 0),
-        0
-      )
+  const staleCount = useSketchSessionStore((s) =>
+    Object.values(s.bindings).reduce(
+      (n, b) => n + (b.status === "stale" ? 1 : 0),
+      0
+    )
   );
-  const lockedCount = useSketchSessionStore(
-    (s) =>
-      Object.values(s.bindings).reduce(
-        (n, b) => n + (b.status === "locked" ? 1 : 0),
-        0
-      )
+  const lockedCount = useSketchSessionStore((s) =>
+    Object.values(s.bindings).reduce(
+      (n, b) => n + (b.status === "locked" ? 1 : 0),
+      0
+    )
   );
 
-  const { inpaintHere, isBusy: inpaintBusy } = useInpaintHere();
   const { regenerateStaleLayers, isBusy: regenBusy } =
     useRegenerateStaleLayers();
 
   const [error, setError] = useState<string | null>(null);
   const [confirmRegenOpen, setConfirmRegenOpen] = useState(false);
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
-
-  const handleInpaint = useCallback(async () => {
-    const result = await inpaintHere();
-    if (!result.ok) {
-      switch (result.reason) {
-        case "no-selection":
-          setError("Make a selection first to inpaint here.");
-          return;
-        case "no-document":
-          setError("No image document is open.");
-          return;
-        case "no-canvas":
-          setError("Canvas is not ready yet.");
-          return;
-        case "error":
-          setError(result.message ?? "Inpaint Here failed.");
-          return;
-      }
-    }
-  }, [inpaintHere]);
 
   const handleConfirmRegen = useCallback(async () => {
     setConfirmRegenOpen(false);
@@ -91,28 +64,6 @@ const SketchAIToolbarInner: React.FC = () => {
           flexWrap: "wrap"
         }}
       >
-        <Tooltip
-          title={
-            hasActiveSelection
-              ? "Inpaint Here — creates a new generated layer using the selection as a mask."
-              : "Make a selection to enable Inpaint Here."
-          }
-          delay={TOOLTIP_ENTER_DELAY}
-          placement="bottom"
-        >
-          <span>
-            <EditorButton
-              onClick={() => void handleInpaint()}
-              disabled={!hasActiveSelection || inpaintBusy}
-              size="small"
-              startIcon={<AutoFixHighIcon fontSize="small" />}
-              data-testid="sketch-action-inpaint-here"
-            >
-              Inpaint Here
-            </EditorButton>
-          </span>
-        </Tooltip>
-
         <Tooltip
           title="Generate Layer — bind a new layer to any workflow with an image output."
           delay={TOOLTIP_ENTER_DELAY}

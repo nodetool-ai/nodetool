@@ -157,55 +157,34 @@
         "targetHandle": "input_item"
       },
       {
-        "id": "21",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "1",
-        "targetHandle": "value"
-      },
-      {
         "id": "22",
         "source": "7",
         "sourceHandle": "output",
         "target": "19",
         "targetHandle": "input_item"
-      },
-      {
-        "id": "23",
-        "source": "19",
-        "sourceHandle": "output",
-        "target": "18",
-        "targetHandle": "value"
-      },
-      {
-        "id": "24",
-        "source": "12",
-        "sourceHandle": "text",
-        "target": "20",
-        "targetHandle": "value"
       }
     ],
     "nodes": [
       {
-        "id": "1",
-        "type": "nodetool.output.Output",
+        "id": "comment-intro",
+        "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "name": "album_covers",
-          "description": "Album covers with artist/title text"
+          "comment": "# 💿 Album Cover Creator\n\nFrom song lyrics (spoken or sung) to a finished album cover with title and artist text. Whisper transcribes, an agent designs the art, then text is rendered on top.\n\n**Pipeline:** Audio → Whisper → Agent → Text-to-Image → Add title & artist\n\n**Try this:** type lyrics directly, or change the genre and style inputs."
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 3600,
-            "y": 1055
+            "x": 0,
+            "y": -220
           },
           "zIndex": 0,
-          "width": 280,
+          "width": 460,
+          "height": 180,
           "selectable": true,
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "2",
@@ -253,7 +232,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Add title text"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -275,7 +255,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Album title"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -309,7 +290,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Add artist text"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -331,7 +313,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Artist name"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -352,7 +335,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Adjust brightness/contrast"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -362,9 +346,7 @@
         "id": "8",
         "type": "nodetool.image.TextToImage",
         "data": {
-          "model": {
-            "type": "image_model"
-          },
+          "model": {},
           "negative_prompt": "",
           "width": 1400,
           "height": 1400,
@@ -379,9 +361,11 @@
             "y": 709
           },
           "zIndex": 0,
-          "width": 280,
+          "width": 384,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "height": 400,
+          "title": "Render cover image"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -391,9 +375,7 @@
         "id": "9",
         "type": "nodetool.generators.ListGenerator",
         "data": {
-          "model": {
-            "type": "language_model"
-          },
+          "model": {},
           "input_text": "",
           "max_tokens": 2048
         },
@@ -405,7 +387,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Generate covers"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -425,7 +408,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Build image prompt"
         },
         "dynamic_properties": {
           "count": null,
@@ -455,7 +439,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Number of covers"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -465,9 +450,7 @@
         "id": "12",
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {
-            "type": "language_model"
-          },
+          "model": {},
           "system": "You are a creative director specializing in album artwork. Analyze music and suggest compelling visual concepts.",
           "image": {
             "type": "image",
@@ -495,7 +478,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Design cover concept"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -515,7 +499,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Build art brief"
         },
         "dynamic_properties": {
           "genre": null,
@@ -543,7 +528,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Genre"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -553,9 +539,7 @@
         "id": "15",
         "type": "nodetool.text.AutomaticSpeechRecognition",
         "data": {
-          "model": {
-            "type": "asr_model"
-          }
+          "model": {}
         },
         "ui_properties": {
           "position": {
@@ -565,7 +549,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Transcribe lyrics"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -593,7 +578,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Record/upload song"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -615,28 +601,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "18",
-        "type": "nodetool.output.Output",
-        "data": {
-          "name": "base_artwork",
-          "description": "Base artwork without text (for custom typography)"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 2980,
-            "y": 664
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "Style"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -650,27 +616,6 @@
           "position": {
             "x": 2640,
             "y": 673
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "20",
-        "type": "nodetool.output.Output",
-        "data": {
-          "name": "music_analysis",
-          "description": "Music analysis and visual concept brief"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1370,
-            "y": 310
           },
           "zIndex": 0,
           "width": 280,

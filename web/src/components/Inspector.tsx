@@ -18,6 +18,7 @@ import {
   CopyButton,
   EditorButton,
   MOTION,
+  BORDER_RADIUS,
   ScrollArea,
   Text,
   Tooltip,
@@ -38,6 +39,12 @@ import { useStoreWithEqualityFn } from "zustand/traditional";
 import RunSelectedNodesSection from "./inspector/RunSelectedNodesSection";
 import { colorForType } from "../config/data_types";
 import { IconForType } from "../config/IconForType";
+
+const DEFAULT_TYPE_METADATA: TypeMetadata = {
+  type: "any",
+  type_args: [],
+  optional: false
+};
 
 const styles = (theme: Theme) =>
   css({
@@ -65,7 +72,7 @@ const styles = (theme: Theme) =>
     ".inspector-head-icon": {
       width: 32,
       height: 32,
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       display: "grid",
       placeItems: "center",
       flexShrink: 0,
@@ -187,7 +194,7 @@ const styles = (theme: Theme) =>
       bottom: -1,
       height: 2,
       backgroundColor: theme.vars.palette.primary.main,
-      borderRadius: 2
+      borderRadius: BORDER_RADIUS.xs
     },
     ".inspector-tab.is-active .tab-count": {
       color: theme.vars.palette.primary.main
@@ -284,7 +291,7 @@ const styles = (theme: Theme) =>
       padding: "0.5em 0.75em",
       border: `1px solid ${theme.vars.palette.error.main}`,
       backgroundColor: "var(--palette-error-overlay)",
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.error.main
     },
@@ -350,7 +357,7 @@ const styles = (theme: Theme) =>
       letterSpacing: "0.02em",
       color: theme.vars.palette.text.secondary,
       padding: "2px 6px",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.action.hover
     },
 
@@ -378,7 +385,7 @@ const styles = (theme: Theme) =>
       letterSpacing: "0.02em",
       color: theme.vars.palette.text.secondary,
       padding: "2px 8px",
-      borderRadius: "var(--rounded-pill)",
+      borderRadius: BORDER_RADIUS.pill,
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`
     },
@@ -995,14 +1002,8 @@ const Inspector: React.FC = () => {
                     const dynamicInputMeta =
                       selectedNode.data.dynamic_inputs?.[name];
 
-                    const defaultTypeMetadata: TypeMetadata = {
-                      type: "any",
-                      type_args: [],
-                      optional: false
-                    };
-
                     let resolvedType: TypeMetadata =
-                      (dynamicInputMeta as TypeMetadata) || defaultTypeMetadata;
+                      (dynamicInputMeta as TypeMetadata) || DEFAULT_TYPE_METADATA;
 
                     if (incoming && !dynamicInputMeta) {
                       const sourceNode = findNode(incoming.source);

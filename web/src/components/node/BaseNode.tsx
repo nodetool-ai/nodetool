@@ -17,7 +17,7 @@ import {
   ResizeParams
 } from "@xyflow/react";
 import isEqual from "fast-deep-equal";
-import { Container } from "../ui_primitives";
+import { Container, BORDER_RADIUS, MOTION } from "../ui_primitives";
 import FalPricingFooter from "./FalPricingFooter";
 import KieCreditsFooter from "./KieCreditsFooter";
 import { NodeData } from "../../stores/NodeData";
@@ -48,6 +48,7 @@ import { NodeMetadata, Property, OutputSlot } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 import PlanningUpdateDisplay from "./PlanningUpdateDisplay";
 import ChunkDisplay from "./ChunkDisplay";
+import NodeTerminal from "./NodeTerminal";
 import NodeResizeHandle from "./NodeResizeHandle";
 import { useDelayedVisibility } from "../../hooks/useDelayedVisibility";
 
@@ -76,7 +77,7 @@ const BASE_HEIGHT = 0;
 const INCREMENT_PER_HANDLE = 25;
 /** Cap metadata-driven minHeight so many-handle types do not force huge boxes (collapse snapshot / RF measure). */
 const MAX_HANDLE_DRIVEN_MIN_HEIGHT_PX = 320;
-const MAX_NODE_WIDTH = 600;
+const MAX_NODE_WIDTH = 800;
 const GROUP_COLOR_OPACITY = 0.55;
 /** Shared floor for initial layout and user resizing. */
 const MIN_NODE_HEIGHT = 150;
@@ -206,7 +207,7 @@ const getAmbientBadgeStyle = (theme: Theme): React.CSSProperties => ({
   padding: "0 4px",
   display: "grid",
   placeItems: "center",
-  borderRadius: 8,
+  borderRadius: BORDER_RADIUS.lg,
   backgroundColor: theme.vars.palette.secondary.main,
   color: theme.vars.palette.secondary.contrastText,
   border: `1px solid ${theme.vars.palette.c_node_bg}`,
@@ -257,7 +258,7 @@ const getNodeStyles = (colors: string[]) =>
         padding: "var(--ring)",
         backgroundClip: "border-box",
         animation: `${gradientAnimationKeyframes} 5s ease-in-out infinite`,
-        transition: "opacity 0.5s ease-in-out"
+        transition: MOTION.opacity
       }
     },
 
@@ -414,7 +415,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       backgroundColor: theme.vars.palette.warning.main,
       color: theme.vars.palette.warning.contrastText,
       padding: "2px 8px",
-      borderRadius: 4,
+      borderRadius: BORDER_RADIUS.sm,
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       zIndex: 1000
@@ -431,11 +432,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       isConstantNode: type.startsWith("nodetool.constant"),
       isInputNode: type.startsWith("nodetool.input"),
       isOutputNode: type.startsWith("nodetool.output"),
-      isAgentNode: isAgentNodeType(type),
-      // Constant image/video nodes preview their media, so resizing should
-      // preserve the media's aspect ratio rather than distort it.
-      lockAspectRatio:
-        type === CONSTANT_IMAGE_NODE_TYPE || type === CONSTANT_VIDEO_NODE_TYPE
+      isAgentNode: isAgentNodeType(type)
     }),
     [type]
   );
@@ -488,6 +485,24 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     };
   }, [metadata.namespace]);
 
+  // Nodes that preview media (image/video) resize by keeping the *media's*
+  // aspect ratio, not the whole node box — the corner handle measures the live
+  // image and the surrounding chrome (header, sliders, outputs) at drag time.
+  // Output/preview nodes opt in too: they free-resize until media is present.
+  const hasMediaView = useMemo(() => {
+    if (
+      nodeType.isOutputNode ||
+      type === CONSTANT_IMAGE_NODE_TYPE ||
+      type === CONSTANT_VIDEO_NODE_TYPE
+    ) {
+      return true;
+    }
+    return (metadata.outputs ?? []).some((output) => {
+      const outputType = output.type?.type;
+      return outputType === "image" || outputType === "video";
+    });
+  }, [nodeType.isOutputNode, type, metadata.outputs]);
+
   const displayTitle = useMemo(
     () => resolveCodeNodeTitle(type, data.title, metadata.title),
     [data.title, metadata.title, type]
@@ -510,7 +525,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   );
 
   // Single subscription instead of 5 — one listener per node instead of five
-  const { result, chunk, toolCall, planningUpdate, task } = useNodeArtifacts(workflow_id, id);
+  const { result, chunk, terminal, toolCall, planningUpdate, task } =
+    useNodeArtifacts(workflow_id, id);
 
   // Optimize: Use memoized selectors that only perform O(E) filter operations when the
   // state.edges array reference actually changes (e.g. adding/removing edges), rather than
@@ -759,7 +775,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
     <NodeSelectionContext.Provider value={selected || isNodeHovered}>
     <Container
       css={isLoading ? [toolCallStyles, styles] : toolCallStyles}
-      className={styleProps.className}
+      className={`${styleProps.className}${terminal ? " has-terminal" : ""}`}
       sx={containerSx}
       onMouseEnter={handleNodeMouseEnter}
       onMouseLeave={handleNodeMouseLeave}
@@ -775,7 +791,8 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       <NodeResizeHandle
         minWidth={150}
         minHeight={styleProps.minHeight}
-        keepAspectRatio={nodeType.lockAspectRatio}
+        nodeId={id}
+        contentAware={hasMediaView}
       />
       <NodeHeader
         id={id}
@@ -828,13 +845,17 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       {selected && !hasToggleableResult && (
         <ResizeOverlay minHeight={styleProps.minHeight} />
       )}
-      {toolCall?.message && status === "running" && (
+      {!terminal && toolCall?.message && status === "running" && (
         <div className="tool-call-container">{toolCall.message}</div>
       )}
-      {planningUpdate && !task && (
+      {!terminal && planningUpdate && !task && (
         <PlanningUpdateDisplay planningUpdate={planningUpdate} />
       )}
-      {chunk && <ChunkDisplay chunk={chunk} />}
+      {!terminal && chunk && <ChunkDisplay chunk={chunk} />}
+      {/* Terminal-driving nodes (e.g. Claude Code) stream their raw pane via
+          terminal_update. It renders below the input/output handles so the
+          emulator never displaces them from their natural edge positions. */}
+      {terminal && <NodeTerminal terminal={terminal} />}
       {task && <TaskView task={task} />}
 
       {/* Agent control output handle - positioned at the bottom of Agent nodes */}

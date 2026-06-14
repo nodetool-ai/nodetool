@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Drawer } from "@mui/material";
-import { MOTION } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { Tooltip } from "../ui_primitives";
 import { useResizeBottomPanel } from "../../hooks/handlers/useResizeBottomPanel";
 import {
@@ -165,7 +165,7 @@ const styles = (theme: Theme) =>
         transform: "translate(-50%, -50%)",
         width: "40px",
         height: "4px",
-        borderRadius: "var(--rounded-xs)",
+        borderRadius: BORDER_RADIUS.xs,
         backgroundColor: theme.vars.palette.grey[600],
         opacity: 0.5,
         transition: MOTION.all
@@ -223,7 +223,7 @@ const styles = (theme: Theme) =>
       "& .status-dot": {
         width: "6px",
         height: "6px",
-        borderRadius: "50%",
+        borderRadius: BORDER_RADIUS.circle,
         backgroundColor: theme.vars.palette.success.main,
         flexShrink: 0,
         boxShadow: `0 0 6px ${theme.vars.palette.success.main}99`,

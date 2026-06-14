@@ -4,12 +4,10 @@
 import {
   hexToRgba,
   darkenHexColor,
-  lightenHexColor,
   adjustSaturation,
   createLinearGradient,
   simulateOpacity,
   NodeTypeCategory,
-  getNodeTypeCategory,
   getNodeCategoryColor,
   createMinimapNodeColorFn
 } from "../ColorUtils";
@@ -74,23 +72,6 @@ describe("ColorUtils", () => {
     it("should handle edge cases", () => {
       expect(darkenHexColor("#000000", 50)).toBe("#000000"); // Can't darken black
       expect(darkenHexColor("#ffffff", 100)).toBe("#cccccc"); // Max darkening
-    });
-  });
-
-  describe("lightenHexColor", () => {
-    it("should lighten hex colors by specified amount", () => {
-      expect(lightenHexColor("#000000", 100)).toBe("#2c2c2c");
-      expect(lightenHexColor("#808080", 50)).toBe("#bfbfbf");
-    });
-
-    it("should preserve CSS variables", () => {
-      expect(lightenHexColor("var(--color-primary)", 50)).toBe(
-        "var(--color-primary)"
-      );
-    });
-
-    it("should handle edge cases", () => {
-      expect(lightenHexColor("#ffffff", 50)).toBe("#ffffff"); // Can't lighten white
     });
   });
 
@@ -224,74 +205,6 @@ describe("ColorUtils", () => {
     it("should handle named colors", () => {
       const result = simulateOpacity("red", 0.5, "white");
       expect(result).toBe("#ff8080");
-    });
-  });
-
-  describe("getNodeTypeCategory", () => {
-    it("should categorize input nodes correctly", () => {
-      expect(getNodeTypeCategory("nodetool.input.StringInput")).toBe(
-        NodeTypeCategory.Input
-      );
-      expect(getNodeTypeCategory("nodetool.input.ImageInput")).toBe(
-        NodeTypeCategory.Input
-      );
-      expect(getNodeTypeCategory("nodetool.input.IntegerInput")).toBe(
-        NodeTypeCategory.Input
-      );
-    });
-
-    it("should categorize constant nodes correctly", () => {
-      expect(getNodeTypeCategory("nodetool.constant.String")).toBe(
-        NodeTypeCategory.Constant
-      );
-      expect(getNodeTypeCategory("nodetool.constant.Image")).toBe(
-        NodeTypeCategory.Constant
-      );
-      expect(getNodeTypeCategory("nodetool.constant.Integer")).toBe(
-        NodeTypeCategory.Constant
-      );
-    });
-
-    it("should categorize group nodes correctly", () => {
-      expect(
-        getNodeTypeCategory("nodetool.workflows.base_node.Group")
-      ).toBe(NodeTypeCategory.Group);
-      expect(getNodeTypeCategory("some.Group.Node")).toBe(
-        NodeTypeCategory.Group
-      );
-    });
-
-    it("should categorize comment nodes correctly", () => {
-      expect(
-        getNodeTypeCategory("nodetool.workflows.base_node.Comment")
-      ).toBe(NodeTypeCategory.Comment);
-      expect(getNodeTypeCategory("some.Comment.Node")).toBe(
-        NodeTypeCategory.Comment
-      );
-    });
-
-    it("should categorize output nodes correctly", () => {
-      expect(getNodeTypeCategory("nodetool.output.ImageOutput")).toBe(
-        NodeTypeCategory.Output
-      );
-      expect(getNodeTypeCategory("some.Output.Node")).toBe(
-        NodeTypeCategory.Output
-      );
-    });
-
-    it("should categorize undefined type as processing", () => {
-      expect(getNodeTypeCategory(undefined)).toBe(
-        NodeTypeCategory.Processing
-      );
-    });
-
-    it("should categorize other nodes as processing", () => {
-      expect(getNodeTypeCategory("nodetool.image.Resize")).toBe(
-        NodeTypeCategory.Processing
-      );
-      expect(getNodeTypeCategory("nodetool.text.Process")).toBe(
-        NodeTypeCategory.Processing
-      );
     });
   });
 

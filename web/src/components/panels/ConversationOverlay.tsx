@@ -7,7 +7,7 @@ import { useShallow } from "zustand/react/shallow";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import AddCommentOutlinedIcon from "@mui/icons-material/AddCommentOutlined";
 
-import { Text, Tooltip, FlexRow, MOTION } from "../ui_primitives";
+import { Text, Tooltip, FlexRow, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import ChatThreadView from "../chat/thread/ChatThreadView";
 import type { Message } from "../../stores/ApiTypes";
@@ -24,7 +24,7 @@ const styles = (theme: Theme) =>
     flexDirection: "column",
     minHeight: 0,
     maxHeight: "min(46vh, 460px)",
-    borderRadius: "16px",
+    borderRadius: BORDER_RADIUS.xxl,
     overflow: "hidden",
     background:
       theme.palette.mode === "light"
@@ -65,7 +65,7 @@ const styles = (theme: Theme) =>
       width: "26px",
       height: "26px",
       border: "none",
-      borderRadius: "999px",
+      borderRadius: BORDER_RADIUS.pill,
       background: "transparent",
       color: theme.vars.palette.grey[400],
       cursor: "pointer",

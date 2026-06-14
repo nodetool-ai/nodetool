@@ -188,7 +188,11 @@ export interface NodeProgress {
 
 export interface EdgeUpdate {
   type: "edge_update";
-  workflow_id: string;
+  // Both ids are stamped by the unified websocket runner if absent. The kernel
+  // emits `job_id` (the run id); `workflow_id` is backfilled from the active
+  // run. Edge animations are scoped per run, so consumers key off `job_id`.
+  workflow_id?: string;
+  job_id?: string;
   edge_id: string;
   status: string;
   counter?: number | null;
@@ -228,6 +232,30 @@ export interface LogUpdate {
   content: string;
   severity: Severity;
   workflow_id?: string | null;
+}
+
+/**
+ * Raw terminal output streamed from a node that drives an interactive
+ * terminal program (e.g. Claude Code in tmux). `content` carries the verbatim
+ * byte stream including ANSI escape sequences, intended for a client-side
+ * terminal emulator (xterm.js) — NOT for plain-text rendering. Kept separate
+ * from `Chunk` so text-chunk consumers never see escape sequences.
+ */
+export interface TerminalUpdate {
+  type: "terminal_update";
+  node_id: string;
+  workflow_id?: string | null;
+  /** Raw terminal output, including ANSI escape sequences. */
+  content: string;
+  /** Terminal grid size, for sizing the client-side emulator. */
+  cols?: number;
+  rows?: number;
+  /**
+   * When true, `content` is a full-screen snapshot: the client should reset
+   * its terminal state before writing (used on attach and to compact the
+   * stream after large bursts).
+   */
+  reset?: boolean;
 }
 
 export interface Notification {
@@ -611,6 +639,7 @@ export type ProcessingMessage =
   | SaveUpdate
   | BinaryUpdate
   | LogUpdate
+  | TerminalUpdate
   | Notification
   | ErrorMessage
   | ToolCallUpdate

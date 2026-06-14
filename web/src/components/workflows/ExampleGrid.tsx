@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 
-import { LoadingSpinner, ScrollArea, Text, Box, MOTION } from "../ui_primitives";
+import { LoadingSpinner, ScrollArea, Text, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { useCallback, useMemo, useState, useEffect, useRef, memo } from "react";
 import { Workflow, WorkflowList } from "../../stores/ApiTypes";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
@@ -23,7 +23,6 @@ import SearchBar from "./SearchBar";
 import TagFilter from "./TagFilter";
 import WorkflowCard from "./WorkflowCard";
 import GettingStartedStrip from "./GettingStartedStrip";
-import AppHeader from "../panels/AppHeader";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   isGettingStarted,
@@ -90,7 +89,7 @@ const styles = (theme: Theme) =>
         gap: "4px",
         "& .MuiButton-root": {
           marginLeft: "0 !important",
-          borderRadius: "4px !important",
+          borderRadius: `${BORDER_RADIUS.sm} !important`,
           minWidth: "80px",
           margin: "2px"
         }
@@ -109,7 +108,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       border: `1px solid ${theme.vars.palette.divider}`,
       background: theme.vars.palette.action.hover,
-      borderRadius: "20px !important",
+      borderRadius: `${BORDER_RADIUS.pill} !important`,
       "&:hover": {
         border: `1px solid ${theme.vars.palette.primary.main}`,
         background: theme.vars.palette.action.selected,
@@ -143,7 +142,7 @@ const styles = (theme: Theme) =>
       maxWidth: "640px",
       "& .MuiOutlinedInput-root": {
         background: theme.vars.palette.action.hover,
-        borderRadius: "var(--rounded-xl)",
+        borderRadius: BORDER_RADIUS.lg,
         "& .MuiOutlinedInput-notchedOutline": {
           borderColor: theme.vars.palette.divider
         },
@@ -493,18 +492,6 @@ const TemplateGrid = memo(function TemplateGrid() {
 
   return (
     <Box css={styles(theme)}>
-      <Box
-        className="actions-container"
-        sx={{
-          position: "absolute",
-          top: "32px",
-          left: 0,
-          right: 0,
-          zIndex: 1000
-        }}
-      >
-        <AppHeader />
-      </Box>
       <Box className="workflow-grid">
         <SearchBar
           inputValue={inputValue}

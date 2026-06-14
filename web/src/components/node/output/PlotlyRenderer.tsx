@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { Suspense, lazy, memo } from "react";
-import { LoadingSpinner, FlexRow } from "../../ui_primitives";
+import { LoadingSpinner, FlexRow, BORDER_RADIUS } from "../../ui_primitives";
 import type { PlotlyConfig } from "../../../stores/ApiTypes";
 import type { Data, Layout, Config, Frame } from "plotly.js";
 
@@ -26,7 +26,7 @@ const PlotlyRenderer: React.FC<PlotlyRendererProps> = ({ config }) => {
           justify="center"
           sx={{
             bgcolor: "action.hover",
-            borderRadius: 1
+            borderRadius: BORDER_RADIUS.xs
           }}
         >
           <LoadingSpinner size="small" />

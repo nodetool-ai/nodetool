@@ -6,7 +6,7 @@ import { memo } from "react";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
-import { FlexColumn, FlexRow, Text, ScrollArea, MOTION } from "../../ui_primitives";
+import { FlexColumn, FlexRow, Text, ScrollArea, MOTION, BORDER_RADIUS } from "../../ui_primitives";
 import type { TodoItem } from "../../../stores/ApiTypes";
 
 export const TODO_SIDEBAR_WIDTH = 280;
@@ -26,7 +26,7 @@ const styles = (theme: Theme) =>
     flexDirection: "column",
     minHeight: 0,
     ".todo-header": {
-      padding: "14px 16px 10px",
+      padding: theme.spacing(4, 4, 3),
       borderBottom: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`,
       display: "flex",
       alignItems: "baseline",
@@ -40,7 +40,7 @@ const styles = (theme: Theme) =>
     },
     ".todo-item": {
       padding: "8px 12px",
-      borderRadius: 6,
+      borderRadius: BORDER_RADIUS.md,
       display: "flex",
       alignItems: "flex-start",
       gap: 8,
@@ -53,7 +53,7 @@ const styles = (theme: Theme) =>
     },
     ".todo-icon": {
       fontSize: 18,
-      marginTop: 1,
+      marginTop: theme.spacing(0.5),
       flexShrink: 0
     },
     ".todo-icon.pending": { color: `rgb(${theme.vars.palette.common.whiteChannel} / 0.45)` },
@@ -72,7 +72,7 @@ const styles = (theme: Theme) =>
       opacity: 0.55
     },
     ".empty-state": {
-      padding: "32px 20px",
+      padding: theme.spacing(8, 6),
       textAlign: "center",
       opacity: 0.55
     },

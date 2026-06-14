@@ -30,6 +30,7 @@
 import {
   loadBrowserModules,
   buildBrowserRunner,
+  capabilityFilteredBrowserNodeTypes,
   normalizeGraphForKernel,
   type LoadedBrowserRunner
 } from "./browserRunnerCore";
@@ -60,10 +61,14 @@ const runnerPromise: Promise<LoadedBrowserRunner> = (async () => {
 })();
 
 runnerPromise.then(
-  (runner) =>
+  // Probe WebGPU here (workers expose navigator.gpu) and report only the types
+  // we can actually run: when no GPU device is available, the GPU shader node
+  // types are withheld so graphs using them route to the server (Dawn) instead
+  // of failing mid-run.
+  async (runner) =>
     self.postMessage({
       type: "ready",
-      browserNodeTypes: runner.browserNodeTypes
+      browserNodeTypes: await capabilityFilteredBrowserNodeTypes(runner)
     }),
   (error) =>
     self.postMessage({

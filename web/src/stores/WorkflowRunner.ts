@@ -27,6 +27,7 @@ import {
 } from "../lib/workflow/browserWorkflowRunner";
 import { uuidv4 } from "./uuidv4";
 import { useNotificationStore, Notification } from "./NotificationStore";
+import useOnboardingStore from "./OnboardingStore";
 import useMetadataStore from "./MetadataStore";
 import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
@@ -382,6 +383,7 @@ export const createWorkflowRunnerStore = (
       subgraphNodeIds?: Set<string>,
       concurrent?: boolean
     ) => {
+      useOnboardingStore.getState().markStep("run-workflow");
       const activeNodeTypes = nodes
         .filter((node) => !node.data?.bypassed)
         .map((node) => node.type)

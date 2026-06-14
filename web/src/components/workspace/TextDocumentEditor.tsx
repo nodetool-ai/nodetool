@@ -24,7 +24,8 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
-  LoadingSpinner
+  LoadingSpinner,
+  BORDER_RADIUS
 } from "../ui_primitives";
 
 interface TextDocumentEditorProps {
@@ -55,7 +56,7 @@ const styles = (theme: Theme) =>
     ".dirty-dot": {
       width: 8,
       height: 8,
-      borderRadius: "50%",
+      borderRadius: BORDER_RADIUS.circle,
       backgroundColor: theme.vars.palette.warning.main,
       flex: "0 0 auto"
     },

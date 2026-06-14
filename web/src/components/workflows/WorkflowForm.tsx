@@ -1,12 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { Text, Caption, TextInput, SelectField, AutocompleteTagInput, EditorButton, MOTION } from "../ui_primitives";
-import { useCallback, useEffect, useState, memo, useMemo } from "react";
+import { useCallback, useEffect, useRef, useState, memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
 import WorkspaceSelect from "../workspaces/WorkspaceSelect";
 import { isProduction } from "../../lib/env";
 
@@ -199,13 +200,21 @@ interface WorkflowFormProps {
 const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormProps) => {
   const [localWorkflow, setLocalWorkflow] = useState<Workflow>(workflow);
   const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
+  const getNodeStore = useWorkflowManager((state) => state.getNodeStore);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
   const theme = useTheme();
+  // Re-sync local form state only when a *different* workflow is opened — not on
+  // every new `workflow` reference. The parent selector builds this prop via
+  // `getWorkflow()`, which returns a fresh object on every store update, so
+  // depending on the object identity would reset the form (wiping in-progress
+  // edits) before the autosave round-trips.
+  const workflowId = workflow?.id;
   useEffect(() => {
     setLocalWorkflow(workflow || ({} as Workflow));
-  }, [workflow]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workflowId]);
 
   // Merge default suggestions with available tags from existing workflows
   const tagOptions = useMemo(() => {
@@ -213,48 +222,100 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
     return Array.from(allTags).sort();
   }, [availableTags]);
 
+  // Persist the form's metadata onto the workflow. When the workflow is open in
+  // the editor we merge onto its live node-store graph so a concurrent canvas
+  // edit isn't clobbered by the form's stale graph snapshot; otherwise we save
+  // the form's own copy.
+  const pendingRef = useRef<Workflow | null>(null);
+  const persist = useCallback(
+    (next: Workflow) => {
+      pendingRef.current = null;
+      const store = getNodeStore(next.id);
+      const base = store ? store.getState().getWorkflow() : next;
+      saveWorkflow({
+        ...base,
+        name: next.name,
+        description: next.description,
+        tags: next.tags,
+        run_mode: next.run_mode,
+        tool_name: next.tool_name,
+        workspace_id: next.workspace_id ?? null
+      }).catch((err) => {
+        // Surface autosave failures instead of swallowing them — a silent
+        // failure here is exactly what "my setting didn't save" looks like.
+        addNotification({
+          type: "error",
+          alert: true,
+          content: `Failed to save workflow: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+          dismissable: true
+        });
+      });
+    },
+    [getNodeStore, saveWorkflow, addNotification]
+  );
+
+  const debouncedPersist = useDebouncedCallback(persist, 600);
+
+  // Track the latest local value (for change-merging and unmount flush) without
+  // running side effects inside the state updater.
+  const latestRef = useRef(localWorkflow);
+  latestRef.current = localWorkflow;
+
+  // Flush a pending debounced save if the form unmounts before it fires (e.g.
+  // the user types then immediately closes the panel/modal).
+  useEffect(() => {
+    return () => {
+      if (pendingRef.current) persist(pendingRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Apply a field change to local state and schedule (or immediately run) the
+  // autosave. Discrete pickers (run mode, workspace) save immediately; free-text
+  // fields debounce so we don't save on every keystroke.
+  const applyChange = useCallback(
+    (patch: Partial<Workflow>, immediate = false) => {
+      const next = { ...latestRef.current, ...patch };
+      latestRef.current = next;
+      setLocalWorkflow(next);
+      if (immediate) {
+        debouncedPersist.cancel();
+        pendingRef.current = null;
+        persist(next);
+      } else {
+        pendingRef.current = next;
+        debouncedPersist(next);
+      }
+    },
+    [persist, debouncedPersist]
+  );
+
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const { name, value } = event.target;
-      setLocalWorkflow((prev: Workflow) => ({
-        ...prev,
-        [name]: value
-      }));
+      applyChange({ [name]: value });
     },
-    [setLocalWorkflow]
+    [applyChange]
   );
-
-  const handleSave = useCallback(async () => {
-    await saveWorkflow(localWorkflow);
-    addNotification({
-      type: "info",
-      alert: true,
-      content: "Workflow saved!",
-      dismissable: true
-    });
-    onClose();
-  }, [saveWorkflow, localWorkflow, addNotification, onClose]);
 
   const handleToolNameChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      const rawValue = event.target.value || "";
-      const sanitizedValue = rawValue.replace(/[^A-Za-z0-9_]/g, "");
-      setLocalWorkflow((prev: Workflow) => ({
-        ...prev,
-        tool_name: sanitizedValue
-      }));
+      const sanitizedValue = (event.target.value || "").replace(
+        /[^A-Za-z0-9_]/g,
+        ""
+      );
+      applyChange({ tool_name: sanitizedValue });
     },
-    []
+    [applyChange]
   );
 
   const handleWorkspaceChange = useCallback(
     (workspaceId: string | undefined) => {
-      setLocalWorkflow((prev: Workflow) => ({
-        ...prev,
-        workspace_id: workspaceId || null
-      }));
+      applyChange({ workspace_id: workspaceId || null }, true);
     },
-    []
+    [applyChange]
   );
 
   return (
@@ -288,7 +349,7 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
           value={localWorkflow.tags || []}
           onChange={(tags) => {
             const uniqueTags = Array.from(new Set(tags.map(t => t.trim().toLowerCase()).filter(t => t.length > 0)));
-            setLocalWorkflow((prev: Workflow) => ({ ...prev, tags: uniqueTags }));
+            applyChange({ tags: uniqueTags }, true);
           }}
           suggestions={tagOptions}
           placeholder="Type or select tags..."
@@ -306,12 +367,7 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
         <SelectField
           label="Run Mode"
           value={localWorkflow.run_mode || "workflow"}
-          onChange={(value) =>
-            setLocalWorkflow((prev: Workflow) => ({
-              ...prev,
-              run_mode: value
-            }))
-          }
+          onChange={(value) => applyChange({ run_mode: value }, true)}
           options={RUN_MODE_OPTIONS}
         />
 
@@ -349,10 +405,7 @@ const WorkflowForm = ({ workflow, onClose, availableTags = [] }: WorkflowFormPro
 
       <div className="button-container">
         <EditorButton className="cancel-button" onClick={onClose}>
-          Cancel
-        </EditorButton>
-        <EditorButton className="save-button" onClick={handleSave}>
-          Save Changes
+          Close
         </EditorButton>
       </div>
     </div>

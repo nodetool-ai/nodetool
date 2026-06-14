@@ -10,7 +10,7 @@ import DataObjectIcon from "@mui/icons-material/DataObject";
 import TableChartIcon from "@mui/icons-material/TableChart";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import { Asset } from "../../stores/ApiTypes";
-import { DeleteButton, Text, MOTION } from "../ui_primitives";
+import { DeleteButton, Text, MOTION, BORDER_RADIUS, FONT_WEIGHT } from "../ui_primitives";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { formatFileSize } from "../../utils/formatUtils";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -43,7 +43,7 @@ const styles = (theme: Theme) =>
       top: 0,
       bottom: 0,
       background: `linear-gradient(180deg, rgb(${theme.vars.palette.common.whiteChannel} / 0.045) 0%, rgb(${theme.vars.palette.common.blackChannel} / 0.18) 100%), ${theme.vars.palette.grey[800]}`,
-      borderRadius: "0.75em",
+      borderRadius: BORDER_RADIUS.lg,
       overflow: "hidden",
       contain: "layout style paint",
       border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`,
@@ -61,7 +61,7 @@ const styles = (theme: Theme) =>
       right: "0.6em",
       width: "1.4em",
       height: "1.4em",
-      borderRadius: "50%",
+      borderRadius: BORDER_RADIUS.circle,
       backgroundColor: theme.vars.palette.primary.main,
       backgroundImage:
         "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'><path d='M9 16.17 4.83 12l-1.41 1.41L9 19 21 7l-1.41-1.41z'/></svg>\")",
@@ -144,7 +144,7 @@ const styles = (theme: Theme) =>
       backgroundColor: "transparent",
       textAlign: "left",
       fontSize: theme.fontSizeSmall,
-      fontWeight: 500,
+      fontWeight: FONT_WEIGHT.medium,
       lineHeight: "1.25em",
       color: theme.vars.palette.grey[100],
       textOverflow: "ellipsis",
@@ -172,8 +172,8 @@ const styles = (theme: Theme) =>
     ".filetype": {
       top: "0.5em",
       left: "0.5em",
-      borderTopRightRadius: "0.4em",
-      borderTopLeftRadius: "0.4em",
+      borderTopRightRadius: BORDER_RADIUS.xs,
+      borderTopLeftRadius: BORDER_RADIUS.xs,
       backgroundColor: "rgba(0, 0, 0, 0.6)",
       backdropFilter: "blur(4px)",
       borderTop: "none !important"
@@ -181,13 +181,13 @@ const styles = (theme: Theme) =>
     ".filesize": {
       top: "2em",
       left: "0.5em",
-      borderBottomRightRadius: "0.4em",
-      borderBottomLeftRadius: "0.4em",
+      borderBottomRightRadius: BORDER_RADIUS.xs,
+      borderBottomLeftRadius: BORDER_RADIUS.xs,
       backgroundColor: "rgba(0, 0, 0, 0.6)",
       backdropFilter: "blur(4px)",
       color: theme.vars.palette.grey[100],
       fontSize: theme.fontSizeTiny,
-      fontWeight: 500
+      fontWeight: FONT_WEIGHT.medium
     },
     ".duration": {
       bottom: "2px",

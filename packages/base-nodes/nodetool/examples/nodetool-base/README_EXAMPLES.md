@@ -250,5 +250,15 @@ To add a new example:
 
 ## Gallery Thumbnail Generator (meta example)
 
-`gallery_thumbnail_generator_dsl.ts` — TypeScript DSL workflow that walks every `*.json` in this directory, asks an LLM to pick a domain-specific subject from each workflow's name/description/tags/node types, and generates a 16:9 thumbnail JPEG via OpenAI image generation. Outputs land in `../../assets/nodetool-base/<workflow name>.jpg` (next to the existing gallery thumbnails). Run with `npm run dev:nodetool -- run packages/base-nodes/nodetool/examples/nodetool-base/gallery_thumbnail_generator_dsl.ts` from the repo root, or `npx tsx <path-to-file>` for a one-off. Requires `OPENAI_API_KEY` and an Anthropic key for the subject model.
+`gallery_thumbnail_generator.ts` — walks every `*.json` in this directory, asks an LLM (OpenAI `gpt-5`) for a domain-specific icon concept from each workflow's name/description/tags/node types, then renders it as a flat neon UI-icon thumbnail with **FLUX.2 [klein]** (fal.ai). Each thumbnail is tinted by the workflow's gallery category (Image=violet, Video=magenta, Audio=amber, Multimodal=cyan, Agents=blue, Data & Web=green), mirroring `web/src/utils/templateCategories.ts`. Outputs land as PNG masters in `../../assets/nodetool-base/<workflow name>.png`; run `scripts/convert-thumbnails.ts` afterwards to encode the served `.jpg` cards (1280×720).
+
+```bash
+# from repo root — only missing masters by default
+npx tsx packages/base-nodes/nodetool/examples/nodetool-base/gallery_thumbnail_generator.ts
+#   --all            regenerate every workflow
+#   --only "Color"   regenerate workflows whose name matches
+npx tsx packages/base-nodes/scripts/convert-thumbnails.ts   # PNG masters → .jpg cards
+```
+
+Requires `OPENAI_API_KEY` and `FAL_API_KEY` in the local secret store.
 

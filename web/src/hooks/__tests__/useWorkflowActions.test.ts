@@ -253,12 +253,12 @@ describe("useWorkflowActions", () => {
   });
 
   describe("handleViewAllTemplates", () => {
-    it("navigates to templates page", () => {
+    it("navigates to the dashboard", () => {
       const { result } = renderHook(() => useWorkflowActions());
 
       result.current.handleViewAllTemplates();
 
-      expect(mockNavigate).toHaveBeenCalledWith("/templates");
+      expect(mockNavigate).toHaveBeenCalledWith("/dashboard");
     });
   });
 

@@ -117,9 +117,9 @@ const styles = (theme: Theme) =>
       display: "grid",
       gridTemplateColumns: "minmax(52px, auto) 1fr auto",
       alignItems: "center",
-      columnGap: theme.spacing(1.25),
-      rowGap: theme.spacing(0.75),
-      padding: `${theme.spacing(0.75)} ${theme.spacing(1)} ${theme.spacing(1)}`
+      columnGap: theme.spacing(1.5),
+      rowGap: theme.spacing(1),
+      padding: `${theme.spacing(1)} ${theme.spacing(1)} ${theme.spacing(1)}`
     },
     ".outputs-row": {
       flex: "0 0 auto"

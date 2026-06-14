@@ -20,9 +20,14 @@ import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlayb
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { getAssetUrl } from "../../../utils/assetHelpers";
+import { FONT_SIZE_SANS, FONT_WEIGHT, BORDER_RADIUS } from "../../ui_primitives";
 
-import { WebGPUCompositor } from "./gpu/compositor";
-import type { CompositeLayer, CompositorBlendMode } from "./gpu/types";
+import { createCompositor } from "./gpu/createCompositor";
+import type {
+  CompositeLayer,
+  CompositorBlendMode,
+  TimelineCompositor
+} from "./gpu/types";
 import { TransformGizmoOverlay } from "./TransformGizmoOverlay";
 import {
   clipSourceTimeSec,
@@ -78,20 +83,20 @@ const canvasStyles = css({
   display: "block"
 });
 
-const overlayBadgeStyles = (color: string) =>
+const overlayBadgeStyles = (theme: Theme, color: string) =>
   css({
     position: "absolute",
     top: 4,
     left: 4,
     zIndex: 9999,
-    fontSize: 9,
+    fontSize: FONT_SIZE_SANS.caption,
     lineHeight: 1,
-    padding: "2px 5px",
-    borderRadius: 3,
+    padding: theme.spacing(0.5, 1.5),
+    borderRadius: BORDER_RADIUS.xs,
     backgroundColor: color,
     color: "#fff",
     pointerEvents: "none",
-    fontWeight: 600,
+    fontWeight: FONT_WEIGHT.semibold,
     letterSpacing: 0.5,
     textTransform: "uppercase"
   });
@@ -106,7 +111,7 @@ const placeholderLayerStyles = (theme: Theme) =>
     flexDirection: "column",
     gap: 4,
     color: theme.vars.palette.text.disabled,
-    fontSize: 13,
+    fontSize: FONT_SIZE_SANS.label,
     userSelect: "none",
     pointerEvents: "none"
   });
@@ -235,7 +240,7 @@ export const PreviewCompositor: React.FC = memo(() => {
   const containerRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const compositorRef = useRef<WebGPUCompositor | null>(null);
+  const compositorRef = useRef<TimelineCompositor | null>(null);
   const captionRasterizerRef = useRef<CaptionRasterizer>(new CaptionRasterizer());
   const [gpuReady, setGpuReady] = useState(false);
   const [gpuFailed, setGpuFailed] = useState(false);
@@ -286,15 +291,13 @@ export const PreviewCompositor: React.FC = memo(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const compositor = new WebGPUCompositor();
-    compositor
-      .init(canvas)
-      .then((res) => {
+    createCompositor(canvas)
+      .then(({ compositor, init }) => {
         if (cancelled) {
           compositor.dispose();
           return;
         }
-        if (res.ok) {
+        if (init.ok) {
           compositorRef.current = compositor;
           setGpuReady(true);
         } else {
@@ -304,7 +307,6 @@ export const PreviewCompositor: React.FC = memo(() => {
       })
       .catch(() => {
         if (!cancelled) setGpuFailed(true);
-        compositor.dispose();
       });
 
     const rasterizer = captionRasterizerRef.current;
@@ -821,7 +823,9 @@ export const PreviewCompositor: React.FC = memo(() => {
           >
             <div css={placeholderLayerStyles(theme)}>
               <span style={{ fontSize: 24, opacity: 0.4 }}>▭</span>
-              <span style={{ fontSize: 11, opacity: 0.5 }}>{layer.name}</span>
+              <span style={{ fontSize: theme.fontSizeSmaller, opacity: 0.5 }}>
+                {layer.name}
+              </span>
             </div>
           </div>
         ))}
@@ -838,7 +842,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           .map((c) => (
             <div
               key={`stale-${c.id}`}
-              css={overlayBadgeStyles("#c08000")}
+              css={overlayBadgeStyles(theme, "#c08000")}
               style={{ zIndex: 9999 }}
             >
               stale
@@ -852,7 +856,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           .map((c) => (
             <div
               key={`gen-${c.id}`}
-              css={overlayBadgeStyles("#0055aa")}
+              css={overlayBadgeStyles(theme, "#0055aa")}
               style={{ zIndex: 9999 }}
             >
               generating…
@@ -864,14 +868,16 @@ export const PreviewCompositor: React.FC = memo(() => {
             css={placeholderLayerStyles(theme)}
             style={{ zIndex: 1, color: "#c08000" }}
           >
-            <span style={{ fontSize: 12 }}>WebGPU not available</span>
+            <span style={{ fontSize: theme.fontSizeSmall }}>
+              Preview rendering unavailable
+            </span>
           </div>
         )}
 
         {!hasAnything && !gpuFailed && (
           <div css={placeholderLayerStyles(theme)} style={{ zIndex: 1 }}>
             <span style={{ fontSize: 32, opacity: 0.15 }}>▶</span>
-            <span style={{ fontSize: 12, opacity: 0.25 }}>
+            <span style={{ fontSize: theme.fontSizeSmall, opacity: 0.25 }}>
               No media at {Math.round(currentTimeMs / 1000)}s
             </span>
           </div>

@@ -43,6 +43,11 @@ export function listRegisteredProviderIds(): string[] {
   return Array.from(_PROVIDER_REGISTRY.keys());
 }
 
+/** Remove a provider from the registry. Returns true if one was removed. */
+export function unregisterProvider(providerId: string): boolean {
+  return _PROVIDER_REGISTRY.delete(providerId);
+}
+
 /**
  * Build a fresh provider instance, resolving any unset credential kwargs via
  * `getSecret` first, then `process.env` as fallback. The caller owns any

@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { NodeProps } from "@xyflow/react";
+import { getCopySource, getOutputFromResult } from "../outputResult";
 import { Text, Container, MOTION } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -195,86 +196,6 @@ const styles = (theme: Theme) =>
     tableStyles(theme)
   ]);
 
-const getOutputFromResult = (result: unknown): unknown => {
-  if (result === null || result === undefined) {
-    return null;
-  }
-
-  if (Array.isArray(result)) {
-    const outputs = result.map((item: unknown) => {
-      if (
-        item &&
-        typeof item === "object" &&
-        "output" in item &&
-        (item as Record<string, unknown>).output !== undefined
-      ) {
-        return (item as Record<string, unknown>).output;
-      }
-      return item;
-    });
-
-    if (outputs.every((output): output is string => typeof output === "string")) {
-      return outputs.join("\n");
-    }
-    return outputs;
-  }
-
-  if (
-    typeof result === "object" &&
-    result !== null &&
-    "output" in result &&
-    (result as Record<string, unknown>).output !== undefined
-  ) {
-    return (result as Record<string, unknown>).output;
-  }
-
-  return result;
-};
-
-const getCopySource = (value: unknown): unknown => {
-  if (value === null || value === undefined) {
-    return value;
-  }
-
-  if (Array.isArray(value)) {
-    const flattened = value.map((item) => getCopySource(item));
-    if (flattened.every((entry): entry is string => typeof entry === "string")) {
-      return flattened.join("\n");
-    }
-    return flattened;
-  }
-
-  if (
-    typeof value === "object" &&
-    value !== null &&
-    "type" in value &&
-    (value as Record<string, unknown>).type === "text" &&
-    typeof (value as Record<string, unknown>).data === "string"
-  ) {
-    return (value as Record<string, unknown>).data;
-  }
-
-  if (
-    typeof value === "object" &&
-    value !== null &&
-    "output" in value &&
-    (value as Record<string, unknown>).output !== undefined
-  ) {
-    return getCopySource((value as Record<string, unknown>).output);
-  }
-
-  if (
-    typeof value === "object" &&
-    value !== null &&
-    "value" in value &&
-    (value as Record<string, unknown>).value !== undefined
-  ) {
-    return getCopySource((value as Record<string, unknown>).value);
-  }
-
-  return value;
-};
-
 interface OutputNodeProps extends NodeProps {
   data: NodeData;
   id: string;
@@ -441,7 +362,12 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
     >
       <div className={`output-node-content `}>
         <>
-          <NodeResizeHandle minWidth={150} minHeight={150} />
+          <NodeResizeHandle
+            minWidth={150}
+            minHeight={150}
+            nodeId={props.id}
+            contentAware
+          />
           <NodeHeader
             id={props.id}
             data={props.data}

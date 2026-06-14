@@ -8,7 +8,8 @@ import {
   NodeSlider,
   NodeSelect,
   NodeMenuItem,
-  Box
+  Box,
+  BORDER_RADIUS
 } from "../../ui_primitives";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
@@ -136,7 +137,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
             height: "32px",
             background: theme.vars.palette.action.hover,
             backdropFilter: theme.vars.palette.glass.blur,
-            borderRadius: "var(--rounded-lg)",
+            borderRadius: BORDER_RADIUS.md,
             border: `1px solid ${theme.vars.palette.divider}`,
             "& .MuiToggleButton-root": {
               border: "none",
@@ -157,7 +158,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
           <ToggleOption
             value="all"
             aria-label="show all models"
-            sx={{ px: 2, minWidth: "60px", borderRadius: "8px 0 0 8px" }}
+            sx={{ px: 2, minWidth: "60px", borderRadius: `${BORDER_RADIUS.md} 0 0 ${BORDER_RADIUS.md}` }}
           >
             All
           </ToggleOption>
@@ -171,7 +172,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
           <ToggleOption
             value="not_downloaded"
             aria-label="show available models only"
-            sx={{ px: 2, minWidth: "100px", borderRadius: "0 8px 8px 0" }}
+            sx={{ px: 2, minWidth: "100px", borderRadius: `0 ${BORDER_RADIUS.md} ${BORDER_RADIUS.md} 0` }}
           >
             Available
           </ToggleOption>
@@ -188,7 +189,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
               minWidth: 120,
               fontSize: "var(--fontSizeNormal)",
               background: theme.vars.palette.action.hover,
-              borderRadius: "var(--rounded-lg)",
+              borderRadius: BORDER_RADIUS.md,
               "& .MuiOutlinedInput-notchedOutline": {
                 borderColor: theme.vars.palette.divider
               },
@@ -242,7 +243,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
             ]}
             sx={{
               "& .MuiSlider-markLabel": {
-                fontSize: (theme) => theme.vars.fontSizeTiny
+                fontSize: "var(--fontSizeSmaller)"
               }
             }}
           />

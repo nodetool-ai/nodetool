@@ -11,8 +11,10 @@ import {
   OutputUpdate,
   EdgeUpdate,
   LogUpdate,
+  TerminalUpdate,
   LLMCallUpdate,
   StepResult,
+  TodoUpdate,
   Message,
   Chunk
 } from "./ApiTypes";
@@ -320,8 +322,10 @@ export type MsgpackData =
   | PlanningUpdate
   | OutputUpdate
   | StepResult
+  | TodoUpdate
   | EdgeUpdate
   | LLMCallUpdate
+  | TerminalUpdate
   | Notification;
 
 export const handleUpdate = (
@@ -340,6 +344,7 @@ export const handleUpdate = (
   const setError = useErrorStore.getState().setError;
   const setProgress = useResultsStore.getState().setProgress;
   const addChunk = useResultsStore.getState().addChunk;
+  const addTerminal = useResultsStore.getState().addTerminal;
   const setTask = useResultsStore.getState().setTask;
   const setToolCall = useResultsStore.getState().setToolCall;
   const appendToolResult = useResultsStore.getState().appendToolResult;
@@ -434,6 +439,30 @@ export const handleUpdate = (
     }
   }
 
+  // Agent nodes emit step_result / todo_update during a run. The chat path
+  // handles these separately; in the workflow path they were previously
+  // dropped (step_result was even in the union with no branch). Record them on
+  // the trace timeline alongside tool_call/tool_result so an agent node's
+  // progress is observable in the editor.
+  if (data.type === "step_result") {
+    const stepName = data.step?.name ?? data.step?.id ?? "";
+    appendTrace(
+      "step_result",
+      `Step ${stepName}${data.is_task_result ? " (task result)" : ""}${
+        data.error ? " — error" : ""
+      }`,
+      data
+    );
+  }
+
+  if (data.type === "todo_update") {
+    const todos = data.todos ?? [];
+    const done = todos.filter((t) => t.status === "completed").length;
+    appendTrace("todo_update", `Todos ${done}/${todos.length}`, data, {
+      nodeId: data.node_id ?? undefined
+    });
+  }
+
   if (data.type === "llm_call") {
     const tokensIn = data.tokens_input ?? 0;
     const tokensOut = data.tokens_output ?? 0;
@@ -512,6 +541,13 @@ export const handleUpdate = (
       messageJobId
     ) {
       addChunk(workflow.id, messageJobId, data.node_id, data.content);
+    }
+  }
+  if (data.type === "terminal_update") {
+    // Raw ANSI pane stream for the node-body terminal emulator. Routed to its
+    // own buffer (never the chunk buffer) so text consumers don't see escapes.
+    if (data.node_id && messageJobId) {
+      addTerminal(workflow.id, messageJobId, data.node_id, data);
     }
   }
   if (data.type === "job_update") {

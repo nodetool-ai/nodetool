@@ -43,6 +43,10 @@ import {
   type PythonBridge
 } from "@nodetool-ai/runtime";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
+import {
+  resolveWorkflowWorkspace,
+  buildWorkspaceExecutionContext
+} from "./lib/workflow-workspace.js";
 import { handleOpenAIRequest, type OpenAIApiOptions } from "./openai-api.js";
 import { handleOAuthRequest } from "./oauth-api.js";
 import {
@@ -667,11 +671,18 @@ export async function handleWorkflowRun(
     graph: runnableGraph
   });
 
+  const workspaceDir = await resolveWorkflowWorkspace(workflowId, userId);
   const runner = new WorkflowRunner(job.id, {
     resolveExecutor: (node) =>
       runtime.resolveExecutor(
         node as { id: string; type: string; [key: string]: unknown }
-      )
+      ),
+    executionContext: buildWorkspaceExecutionContext({
+      jobId: job.id,
+      workflowId,
+      userId,
+      workspaceDir
+    })
   });
   const result = await runner.run(
     { job_id: job.id, workflow_id: workflowId, params },

@@ -40,21 +40,21 @@ const styles = (theme: Theme) =>
     ".rthumb .mini": { position: "absolute", inset: 0 },
     ".nodes": {
       position: "absolute",
-      bottom: 8,
-      left: 8,
+      bottom: `${theme.spacing(1)}`,
+      left: `${theme.spacing(1)}`,
       display: "inline-flex",
       alignItems: "center",
-      gap: 6,
+      gap: `${theme.spacing(0.75)}`,
       fontFamily: theme.fontFamily2,
-      fontSize: 10,
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.secondary,
-      padding: "2px 7px",
+      padding: `${theme.spacing(0.25)} ${theme.spacing(0.875)}`,
       background: "rgba(8,9,10,0.7)",
-      borderRadius: 4
+      borderRadius: `${theme.spacing(0.5)}`
     },
     ".rmeta": { padding: "0 2px" },
     ".rname": {
-      fontSize: 14,
+      fontSize: "var(--fontSizeNormal)",
       color: theme.vars.palette.text.primary,
       fontWeight: 500,
       overflow: "hidden",
@@ -62,9 +62,9 @@ const styles = (theme: Theme) =>
       whiteSpace: "nowrap"
     },
     ".redit": {
-      fontSize: 12,
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.disabled,
-      marginTop: 2
+      marginTop: `${theme.spacing(0.25)}`
     }
   });
 

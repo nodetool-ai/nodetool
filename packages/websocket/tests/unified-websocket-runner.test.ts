@@ -604,6 +604,16 @@ describe("UnifiedWebSocketRunner", () => {
     expect(genProcessCalls).toBe(1);
     expect(sinkValues).toEqual(["first", "second"]);
 
+    // The Preview node is a display sink: its per-chunk output_updates must be
+    // relayed to the client so the preview streams incrementally instead of
+    // collapsing to a single final value.
+    const previewUpdates = ws.sentBytes
+      .map((b) => unpack(b) as Record<string, unknown>)
+      .filter(
+        (m) => m.type === "output_update" && m.node_id === "preview"
+      );
+    expect(previewUpdates.map((m) => m.value)).toEqual(["first", "second"]);
+
     await outputRunner.disconnect();
   });
 

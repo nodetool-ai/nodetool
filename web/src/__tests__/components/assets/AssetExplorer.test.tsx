@@ -12,11 +12,6 @@ jest.mock("../../../components/assets/AssetGrid", () => ({
   )
 }));
 
-jest.mock("../../../components/panels/AppHeader", () => ({
-  __esModule: true,
-  default: () => <div data-testid="app-header">app-header</div>
-}));
-
 jest.mock("../../../serverState/useAssets", () => ({
   __esModule: true,
   default: () => ({ folderFiles: [{ id: "a1" }, { id: "a2" }] })
@@ -32,13 +27,12 @@ jest.mock("react-router-dom", () => ({
 }));
 
 describe("AssetExplorer", () => {
-  it("renders AppHeader and AssetGrid with provided assets", () => {
+  it("renders AssetGrid with provided assets", () => {
     render(
       <ThemeProvider theme={ThemeNodetool}>
         <AssetExplorer />
       </ThemeProvider>
     );
-    expect(screen.getByTestId("app-header")).toBeInTheDocument();
     const grid = screen.getByTestId("asset-grid");
     expect(grid).toHaveTextContent("asset-grid:2");
   });

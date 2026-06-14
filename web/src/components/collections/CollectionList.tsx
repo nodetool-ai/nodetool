@@ -16,7 +16,8 @@ import {
   ListGroup,
   ListItemRow,
   Surface,
-  Text
+  Text,
+  BORDER_RADIUS
 } from "../ui_primitives";
 import { CollectionResponse } from "../../stores/ApiTypes";
 
@@ -149,7 +150,7 @@ const CollectionList = () => {
               background="transparent"
               sx={(theme) => ({
                 mt: 2,
-                borderRadius: 3,
+                borderRadius: BORDER_RADIUS.md,
                 p: 1,
                 border: `1px solid ${theme.vars.palette.divider}`
               })}

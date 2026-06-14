@@ -33,7 +33,8 @@ import {
   StatusIndicator,
   Text,
   Tooltip,
-  Box
+  Box,
+  BORDER_RADIUS
 } from "../ui_primitives";
 import type { LayerStatus } from "@nodetool-ai/image-editor";
 import { LAYER_STATUS_MAP } from "./Inspector/layerStatusMapping";
@@ -407,7 +408,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
             align="center"
             justify="center"
             sx={{
-              gap: "3px",
+              gap: 1,
               flexShrink: 0,
               width: 10,
               ml: "2px"
@@ -424,7 +425,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
                 sx={{
                   width: 5,
                   height: 5,
-                  borderRadius: "50%",
+                  borderRadius: BORDER_RADIUS.circle,
                   bgcolor:
                     layer.exposedAsInput === false
                       ? "info.main"
@@ -444,7 +445,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
                 sx={{
                   width: 5,
                   height: 5,
-                  borderRadius: "50%",
+                  borderRadius: BORDER_RADIUS.circle,
                   bgcolor:
                     layer.exposedAsOutput === false
                       ? "success.main"

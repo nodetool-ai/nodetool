@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { FC, useCallback, memo, useState, useMemo } from "react";
-import { ToolbarIconButton, DeleteButton, Chip, Box, EditorMenu, EditorMenuItem } from "../ui_primitives";
+import { ToolbarIconButton, DeleteButton, Chip, Box, EditorMenu, EditorMenuItem, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
@@ -49,16 +49,15 @@ const styles = (theme: Theme) =>
       height: "28px",
       minWidth: "28px",
       padding: 0,
-      borderRadius: "6px",
+      borderRadius: BORDER_RADIUS.xs,
       border: "none",
       backgroundColor: "transparent",
-      transition:
-        "background-color 140ms ease-out, color 140ms ease-out",
+      transition: MOTION.all,
 
       "& svg": {
-        fontSize: "var(--fontSizeNormal)",
+        fontSize: "var(--fontSizeSmall)",
         color: theme.vars.palette.text.secondary,
-        transition: "color 140ms ease-out"
+        transition: `color ${MOTION.fast}`
       },
 
       "&:hover": {
@@ -93,13 +92,13 @@ const styles = (theme: Theme) =>
       height: "28px",
       minWidth: "28px",
       padding: 0,
-      borderRadius: "6px",
+      borderRadius: BORDER_RADIUS.xs,
       border: "none",
       backgroundColor: "transparent",
       color: theme.vars.palette.error.main,
-      transition: "background-color 140ms ease-out",
+      transition: MOTION.all,
       "& svg": {
-        fontSize: "var(--fontSizeNormal)",
+        fontSize: "var(--fontSizeSmall)",
         color: theme.vars.palette.error.main
       },
       "&:hover": {
@@ -117,13 +116,13 @@ const styles = (theme: Theme) =>
 
     ".tools .active-tag-chip": {
       height: "20px",
-      fontSize: theme.fontSizeSmaller,
+      fontSize: "var(--fontSizeSmaller)",
       backgroundColor: theme.vars.palette.action.selected,
       color: theme.vars.palette.text.primary,
       border: "none",
       "& .MuiChip-deleteIcon": {
         color: theme.vars.palette.text.secondary,
-        fontSize: "var(--fontSizeNormal)",
+        fontSize: "var(--fontSizeSmall)",
         "&:hover": {
           color: theme.vars.palette.text.primary
         }
@@ -132,7 +131,7 @@ const styles = (theme: Theme) =>
 
     ".tools .clear-tags-button": {
       height: "20px",
-      fontSize: theme.fontSizeSmaller,
+      fontSize: "var(--fontSizeSmaller)",
       padding: "0 6px",
       minWidth: "auto",
       color: theme.vars.palette.text.secondary,

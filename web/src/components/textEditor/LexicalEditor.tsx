@@ -90,7 +90,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary
     },
     ".editor-list-ul, .editor-list-ol": {
-      paddingLeft: "20px",
+      paddingLeft: theme.spacing(6),
       margin: "4px 0"
     },
     ".editor-listitem": {

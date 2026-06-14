@@ -97,28 +97,34 @@ const Zoom: React.FC<ZoomProps> = ({
   zoom,
   onSliderChange,
   fontSize
-}): ReactElement => (
-  <div className="zoom nodrag" style={{ position: "relative" }}>
-    <Text id="zoom" className="slider-value">
-      <span className={`${fontSize}`}>ZOOM: </span>
-      <span className={`${fontSize} value`} style={{ marginTop: "5px" }}>
-        {zoom}
-      </span>
-    </Text>
-    <SliderBasic
-      className="zoom-slider nodrag"
-      value={zoom}
-      min={1}
-      max={100}
-      step={1}
-      size="small"
-      color="secondary"
-      aria-labelledby="discrete-slider"
-      valueLabelDisplay="off"
-      onChange={onSliderChange}
-    />
-  </div>
-);
+}): ReactElement => {
+  const theme = useTheme();
+  return (
+    <div className="zoom nodrag" style={{ position: "relative" }}>
+      <Text id="zoom" className="slider-value">
+        <span className={`${fontSize}`}>ZOOM: </span>
+        <span
+          className={`${fontSize} value`}
+          style={{ marginTop: theme.spacing(1.5) }}
+        >
+          {zoom}
+        </span>
+      </Text>
+      <SliderBasic
+        className="zoom-slider nodrag"
+        value={zoom}
+        min={1}
+        max={100}
+        step={1}
+        size="small"
+        color="secondary"
+        aria-labelledby="discrete-slider"
+        valueLabelDisplay="off"
+        onChange={onSliderChange}
+      />
+    </div>
+  );
+};
 
 async function download(filename: string, assetUrl: string) {
   if (!assetUrl) {

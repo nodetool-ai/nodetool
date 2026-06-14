@@ -35,19 +35,30 @@
         "ui_properties": {
           "className": "str"
         }
-      },
-      {
-        "id": "6aba7eed-dfbb-4d51-b830-4d42c8b8e761",
-        "source": "99c95069-03f6-4f45-bb66-ab3482f79496",
-        "sourceHandle": "text",
-        "target": "13",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "str"
-        }
       }
     ],
     "nodes": [
+      {
+        "id": "comment-intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# 🎧 Summarize Audio\n\nDrop in an audio clip: Whisper transcribes it, then an agent writes a concise summary.\n\n**Pipeline:** Audio → Transcribe → Summarize\n\n**Try this:** swap the ASR model or adjust the summary length."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": -109
+          },
+          "zIndex": 0,
+          "width": 460,
+          "height": 180,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
       {
         "id": "12",
         "type": "nodetool.input.AudioInput",
@@ -70,30 +81,8 @@
           "width": 226,
           "height": 338,
           "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "13",
-        "type": "nodetool.output.Output",
-        "data": {
-          "name": "summary",
-          "description": ""
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 926,
-            "y": 189
-          },
-          "zIndex": 0,
-          "width": 449,
-          "height": 390,
-          "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "1️⃣ Audio input"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -103,9 +92,7 @@
         "id": "3fb6a37e-7f5f-4cc5-9f13-51402a6e32ef",
         "type": "nodetool.text.AutomaticSpeechRecognition",
         "data": {
-          "model": {
-            "type": "asr_model"
-          }
+          "model": {}
         },
         "ui_properties": {
           "selected": false,
@@ -116,7 +103,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "2️⃣ Transcribe"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -127,9 +115,7 @@
         "type": "nodetool.agents.Summarizer",
         "data": {
           "system_prompt": "\n        You are an expert summarizer. Your task is to create clear, accurate, and concise summaries using Markdown for structuring.\n        Follow these guidelines:\n        1. Identify and include only the most important information.\n        2. Maintain factual accuracy - do not add or modify information.\n        3. Use clear, direct language.\n        4. Aim for approximately {self.max_tokens} tokens.\n        ",
-          "model": {
-            "type": "language_model"
-          },
+          "model": {},
           "image": {
             "type": "image",
             "uri": "",
@@ -154,7 +140,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "3️⃣ Summarize"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},

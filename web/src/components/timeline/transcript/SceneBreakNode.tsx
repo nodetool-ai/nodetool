@@ -22,7 +22,7 @@ import {
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 
 import { useTimelineStoreApi } from "../../../stores/timeline/TimelineInstance";
-import { MOTION } from "../../ui_primitives";
+import { MOTION, FONT_SIZE_SANS, FONT_WEIGHT, BORDER_RADIUS } from "../../ui_primitives";
 
 // ── Styles ──────────────────────────────────────────────────────────────────
 
@@ -30,7 +30,7 @@ const Row = styled("div")(({ theme }) => ({
   display: "flex",
   alignItems: "center",
   gap: 8,
-  margin: "10px 0",
+  margin: theme.spacing(3, 0),
   userSelect: "none",
   "& .line": {
     flex: 1,
@@ -42,9 +42,9 @@ const Row = styled("div")(({ theme }) => ({
     alignItems: "center",
     gap: 6,
     padding: "1px 8px",
-    borderRadius: 10,
-    fontSize: 11,
-    fontWeight: 600,
+    borderRadius: BORDER_RADIUS.pill,
+    fontSize: FONT_SIZE_SANS.caption,
+    fontWeight: FONT_WEIGHT.semibold,
     letterSpacing: "0.04em",
     color: theme.vars.palette.primary.contrastText,
     background: theme.vars.palette.primary.main
@@ -54,10 +54,10 @@ const Row = styled("div")(({ theme }) => ({
     background: "transparent",
     color: theme.vars.palette.text.disabled,
     cursor: "pointer",
-    fontSize: 14,
+    fontSize: FONT_SIZE_SANS.body,
     lineHeight: 1,
     padding: 2,
-    borderRadius: 4,
+    borderRadius: BORDER_RADIUS.sm,
     opacity: 0,
     transition: `opacity ${MOTION.fast}, color ${MOTION.fast}`
   },

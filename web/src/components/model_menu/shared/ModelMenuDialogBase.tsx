@@ -10,7 +10,7 @@ import {
   List,
   ListItemButton
 } from "@mui/material";
-import { Tooltip, Caption, Divider, LoadingSpinner, ToolbarIconButton, FlexRow, FlexColumn, Box, Collapse } from "../../ui_primitives";
+import { Tooltip, Caption, Divider, LoadingSpinner, ToolbarIconButton, FlexRow, FlexColumn, Box, Collapse, BORDER_RADIUS } from "../../ui_primitives";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import RefreshIcon from "@mui/icons-material/Refresh";
 
@@ -31,6 +31,11 @@ import {
   ModelMenuStoreHook,
   useModelMenuData
 } from "../../../stores/ModelMenuStore";
+import { useModelAvailability } from "../../../hooks/useModelAvailability";
+import {
+  firstAvailableIndex,
+  nextAvailableIndex
+} from "../../../utils/modelMenuNavigation";
 import type { ModelPack, UnifiedModel } from "../../../stores/ApiTypes";
 
 export interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
@@ -121,6 +126,71 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     },
     [onModelChange]
   );
+
+  // Keyboard navigation: the search input forwards arrow/enter keys here so the
+  // list can be driven without the mouse. activeIndex points into
+  // filteredModelsAdvanced; navigation skips unavailable rows.
+  const getAvailability = useModelAvailability();
+  const [activeIndex, setActiveIndex] = useState(-1);
+
+  const keyboardEnabled = customView !== "downloads";
+
+  const isRowAvailable = useCallback(
+    (index: number) => getAvailability(filteredModelsAdvanced[index]).available,
+    [filteredModelsAdvanced, getAvailability]
+  );
+
+  // Highlight the first available row whenever the visible list changes so that
+  // Enter selects the top-ranked match right after typing.
+  React.useEffect(() => {
+    setActiveIndex(
+      keyboardEnabled
+        ? firstAvailableIndex(filteredModelsAdvanced.length, isRowAvailable)
+        : -1
+    );
+  }, [filteredModelsAdvanced.length, keyboardEnabled, isRowAvailable]);
+
+  const stepActiveIndex = useCallback(
+    (dir: 1 | -1) => {
+      setActiveIndex((current) =>
+        nextAvailableIndex(
+          filteredModelsAdvanced.length,
+          current,
+          dir,
+          isRowAvailable
+        )
+      );
+    },
+    [filteredModelsAdvanced.length, isRowAvailable]
+  );
+
+  const handleArrowDown = useCallback(() => {
+    if (keyboardEnabled) {
+      stepActiveIndex(1);
+    }
+  }, [keyboardEnabled, stepActiveIndex]);
+
+  const handleArrowUp = useCallback(() => {
+    if (keyboardEnabled) {
+      stepActiveIndex(-1);
+    }
+  }, [keyboardEnabled, stepActiveIndex]);
+
+  const handleEnter = useCallback(() => {
+    if (!keyboardEnabled) {
+      return;
+    }
+    const model = filteredModelsAdvanced[activeIndex];
+    if (model && getAvailability(model).available) {
+      handleSelectModel(model);
+    }
+  }, [
+    keyboardEnabled,
+    filteredModelsAdvanced,
+    activeIndex,
+    getAvailability,
+    handleSelectModel
+  ]);
 
   const handleRefresh = useCallback(async () => {
     if (!refetch || isFetching) {
@@ -246,6 +316,9 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
               debounceTime={150}
               focusSearchInput
               focusOnTyping
+              onPressArrowDown={handleArrowDown}
+              onPressArrowUp={handleArrowUp}
+              onPressEnter={handleEnter}
               width="100%"
             />
           </Box>
@@ -339,8 +412,8 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
               selected={customView === "favorites"}
               onClick={handleSetFavoritesView}
               sx={{
-                py: isIconOnly ? 1 : 0.25,
-                borderRadius: 1,
+                py: isIconOnly ? 1 : 0.5,
+                borderRadius: BORDER_RADIUS.xs,
                 mx: 0,
                 mb: 0.5,
                 justifyContent: isIconOnly ? "center" : "flex-start",
@@ -416,8 +489,8 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
               selected={customView === "recent"}
               onClick={handleSetRecentView}
               sx={{
-                py: isIconOnly ? 1 : 0.25,
-                borderRadius: 1,
+                py: isIconOnly ? 1 : 0.5,
+                borderRadius: BORDER_RADIUS.xs,
                 mx: 0,
                 justifyContent: isIconOnly ? "center" : "flex-start",
                 minHeight: isIconOnly ? 40 : "auto",
@@ -493,8 +566,8 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                 selected={customView === "downloads"}
                 onClick={handleSetDownloadsView}
                 sx={{
-                  py: isIconOnly ? 1 : 0.25,
-                  borderRadius: 1,
+                  py: isIconOnly ? 1 : 0.5,
+                  borderRadius: BORDER_RADIUS.xs,
                   mx: 0,
                   mt: 0.5,
                   justifyContent: isIconOnly ? "center" : "flex-start",
@@ -627,6 +700,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                 searchTerm={search}
                 onGoToDownloads={hasDownloads ? handleSetDownloadsView : undefined}
                 hasDownloads={hasDownloads}
+                activeIndex={activeIndex}
               />
             )}
           </Box>

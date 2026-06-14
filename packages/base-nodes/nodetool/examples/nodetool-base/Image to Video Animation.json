@@ -63,43 +63,35 @@
         "sourceHandle": "output",
         "target": "2",
         "targetHandle": "negative_prompt"
-      },
-      {
-        "id": "8",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "1",
-        "targetHandle": "value"
       }
     ],
     "nodes": [
       {
-        "id": "1",
-        "type": "nodetool.output.Output",
+        "id": "comment-intro",
+        "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "name": "animated_clip",
-          "description": "AI-generated cinematic video based on the supplied reference frame"
+          "comment": "# 🎬 Image to Video Animation\n\nGenerate a still from a scene prompt, then animate it into a short cinematic clip.\n\n**Pipeline:** scene prompt → Text-to-Image → build motion prompt → Image-to-Video\n\n**Try this:** edit the scene, motion, or duration prompts. Pick image and video models first."
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 1310,
-            "y": 271
+            "x": 0,
+            "y": -220
           },
           "zIndex": 0,
-          "width": 280,
-          "selectable": true
+          "width": 460,
+          "height": 180,
+          "selectable": true,
+          "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "2",
         "type": "nodetool.video.ImageToVideo",
         "data": {
-          "model": {
-            "type": "video_model"
-          },
+          "model": {},
           "aspect_ratio": "16:9",
           "resolution": "1080p",
           "num_frames": 120,
@@ -113,8 +105,10 @@
             "y": 165
           },
           "zIndex": 0,
-          "width": 280,
-          "selectable": true
+          "width": 416,
+          "selectable": true,
+          "height": 360,
+          "title": "3️⃣ Animate to video"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -124,9 +118,7 @@
         "id": "3",
         "type": "nodetool.image.TextToImage",
         "data": {
-          "model": {
-            "type": "image_model"
-          },
+          "model": {},
           "negative_prompt": "",
           "width": 1280,
           "height": 720,
@@ -141,8 +133,10 @@
             "y": 510
           },
           "zIndex": 0,
-          "width": 280,
-          "selectable": true
+          "width": 384,
+          "selectable": true,
+          "height": 400,
+          "title": "2️⃣ Generate still"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -163,7 +157,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "1️⃣ Scene prompt"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -182,7 +177,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Build motion prompt"
         },
         "dynamic_properties": {
           "scene": null,
@@ -207,7 +203,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Motion prompt"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -228,7 +225,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Duration prompt"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -249,7 +247,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Negative prompt"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},

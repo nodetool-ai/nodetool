@@ -19,7 +19,7 @@ import {
   Slider,
   IconButton,
 } from "@mui/material";
-import { FlexColumn, FlexRow, Box, Text, EditorButton, Tooltip } from "../ui_primitives";
+import { FlexColumn, FlexRow, Box, Text, EditorButton, Tooltip, BORDER_RADIUS } from "../ui_primitives";
 import CloseIcon from "@mui/icons-material/Close";
 import {
   ColorMode,
@@ -157,7 +157,8 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
   const numSx = {
     "& .MuiInputBase-input": {
       fontSize: SKETCH_FONT.xs,
-      padding: "2px 3px",
+      py: 0.5,
+      px: 1,
       textAlign: "center" as const
     }
   };
@@ -178,8 +179,8 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
             bgcolor: SKETCH_COLORS.bgPrimary,
             border: "1px solid",
             borderColor: SKETCH_COLORS.border,
-            borderRadius: "6px",
-            p: "10px",
+            borderRadius: BORDER_RADIUS.sm,
+            p: SKETCH_SPACING.md,
             display: "flex",
             flexDirection: "column",
             gap: SKETCH_SPACING.lg,
@@ -211,7 +212,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
           position: "relative",
           width: `${SV_SIZE}px`,
           height: `${SV_SIZE}px`,
-          borderRadius: SKETCH_SIZE.borderRadius,
+          borderRadius: BORDER_RADIUS.sm,
           overflow: "hidden",
           cursor: "crosshair",
           flexShrink: 0
@@ -239,7 +240,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
           top: `${cursorY}px`,
           width: "10px",
           height: "10px",
-          borderRadius: "50%",
+          borderRadius: BORDER_RADIUS.circle,
           border: "2px solid #fff",
           boxShadow: "0 0 0 1px rgba(0,0,0,0.5)",
           transform: "translate(-50%, -50%)",
@@ -257,13 +258,13 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
           onChange={handleHueChange}
           sx={{
             height: `${HUE_HEIGHT}px`,
-            borderRadius: "3px",
+            borderRadius: BORDER_RADIUS.xs,
             padding: "0 !important",
             "& .MuiSlider-rail": {
               background: "linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%)",
               opacity: 1,
               height: `${HUE_HEIGHT}px`,
-              borderRadius: "3px"
+              borderRadius: BORDER_RADIUS.xs
             },
             "& .MuiSlider-track": { display: "none" },
             "& .MuiSlider-thumb": {
@@ -296,7 +297,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
                 background: `linear-gradient(to right, rgba(${r},${g},${b},0) 0%, rgba(${r},${g},${b},1) 100%)`,
                 opacity: 1,
                 height: "8px",
-                borderRadius: "3px"
+                borderRadius: BORDER_RADIUS.xs
               },
               "& .MuiSlider-track": { display: "none" },
               "& .MuiSlider-thumb": {
@@ -314,7 +315,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
       </Box>
 
       {/* Color preview: old → new */}
-      <FlexRow className="color-picker__preview" sx={{ gap: SKETCH_SPACING.xs, height: "20px", borderRadius: "3px", overflow: "hidden" }}>
+      <FlexRow className="color-picker__preview" sx={{ gap: SKETCH_SPACING.xs, height: "20px", borderRadius: BORDER_RADIUS.xs, overflow: "hidden" }}>
         <Box sx={{ flex: 1, backgroundColor: initialColor, border: "1px solid rgba(255,255,255,0.1)" }} />
         <Box sx={{ flex: 1, backgroundColor: color, border: "1px solid rgba(255,255,255,0.1)" }} />
       </FlexRow>

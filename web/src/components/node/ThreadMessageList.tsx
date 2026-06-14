@@ -25,7 +25,7 @@ const styles = (theme: Theme) =>
       fontFamily: theme.fontFamily2,
       background: `linear-gradient(135deg, rgba(${theme.vars.palette.primary.darkChannel} / 0.35) 0%, rgba(${theme.vars.palette.primary.mainChannel} / 0.12) 100%)`,
       border: `1px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.35)`,
-      borderRadius: "14px",
+      borderRadius: BORDER_RADIUS.xl,
       padding: "0.9em 1.1em",
       boxShadow: "0 8px 16px rgba(0 0 0 / 0.18)",
       position: "relative",
@@ -69,7 +69,7 @@ const styles = (theme: Theme) =>
     },
     ".messages li .tool-call__message pre": {
       backgroundColor: "rgba(0 0 0 / 0.35)",
-      borderRadius: "10px",
+      borderRadius: BORDER_RADIUS.lg,
       padding: "0.75em",
       marginTop: "0.8em",
       overflowX: "auto"
@@ -79,7 +79,7 @@ const styles = (theme: Theme) =>
     },
     ".messages": {
       listStyleType: "none",
-      padding: "14px"
+      padding: theme.spacing(4)
     },
     ".messages li.chat-message": {
       fontFamily: theme.fontFamily2,

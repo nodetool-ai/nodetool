@@ -1273,7 +1273,8 @@ export const createNodeStore = (
             // height) instead of inheriting the text variant's 320×220.
             const isAgentStyle =
               metadata.node_type === "nodetool.agents.Agent" ||
-              metadata.node_type === "openai.agents.RealtimeAgent";
+              metadata.node_type === "openai.agents.RealtimeAgent" ||
+              metadata.node_type === "nodetool.agents.ClaudeCodeAgent";
             let defaultStyle: { width: number; height?: number };
             if (isPreviewNode) {
               defaultStyle = { width: 400, height: 300 };
@@ -1281,6 +1282,8 @@ export const createNodeStore = (
               defaultStyle = { width: 450, height: 350 };
             } else if (isModel3DConstantNode) {
               defaultStyle = { width: 320, height: 320 };
+            } else if (metadata.node_type === "nodetool.agents.ClaudeCodeAgent") {
+              defaultStyle = { width: 480, height: 380 };
             } else if (isAgentStyle) {
               defaultStyle = { width: DEFAULT_NODE_WIDTH };
             } else if (metadata.node_type in BESPOKE_DEFAULT_HEIGHTS) {

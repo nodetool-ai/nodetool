@@ -525,7 +525,7 @@ const ProviderCard = memo(function ProviderCard({
             align="center"
             gap={1}
             sx={{
-              padding: theme.spacing(0.5, 2),
+                      padding: theme.spacing(0.5, 2),
               borderRadius: BORDER_RADIUS.pill,
               backgroundColor: `rgba(${
                 isConnected
@@ -538,7 +538,7 @@ const ProviderCard = memo(function ProviderCard({
               style={{
                 width: 6,
                 height: 6,
-                borderRadius: "50%",
+                borderRadius: BORDER_RADIUS.circle,
                 backgroundColor: isConnected
                   ? theme.vars.palette.success.main
                   : theme.vars.palette.error.main,
@@ -673,7 +673,7 @@ const GetStartedBanner = memo(function GetStartedBanner({
                   width: 28,
                   height: 28,
                   minWidth: 28,
-                  borderRadius: "50%",
+                  borderRadius: BORDER_RADIUS.circle,
                   border: `1px solid ${theme.vars.palette.divider}`,
                   fontSize: theme.fontSizeSmall,
                   fontWeight: 600,

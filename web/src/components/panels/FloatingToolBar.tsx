@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useMediaQuery } from "@mui/material";
 import { EditorMenu } from "../ui_primitives";
-import { Tooltip, Box, AlertBanner, MOTION } from "../ui_primitives";
+import { Tooltip, Box, AlertBanner, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -13,7 +13,7 @@ import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import PlayCircleIcon from "@mui/icons-material/PlayCircle";
 import BoltIcon from "@mui/icons-material/Bolt";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
-import LayoutIcon from "@mui/icons-material/ViewModule";
+import LayoutIcon from "@mui/icons-material/AutoFixHigh";
 import MapIcon from "@mui/icons-material/Map";
 import SaveIcon from "@mui/icons-material/Save";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -81,7 +81,7 @@ const containerStyles = (theme: Theme) =>
     display: "flex",
     flexDirection: "column",
     alignItems: "stretch",
-    gap: "8px"
+    gap: `${theme.spacing(1)}`
   });
 
 // Workflow controls embedded in the composer footer: an always-visible Run
@@ -102,7 +102,7 @@ const actionStyles = (theme: Theme) =>
       justifyContent: "center",
       border: "none",
       cursor: "pointer",
-      borderRadius: "999px",
+      borderRadius: BORDER_RADIUS.pill,
       transition: `${MOTION.background}, color ${MOTION.fast}`
     },
 
@@ -128,7 +128,7 @@ const actionStyles = (theme: Theme) =>
         height: "16px",
         padding: "0 4px",
         boxSizing: "border-box",
-        borderRadius: "999px",
+        borderRadius: BORDER_RADIUS.pill,
         backgroundColor: theme.vars.palette.primary.main,
         color: theme.vars.palette.primary.contrastText,
         border: `2px solid ${theme.vars.palette.grey[900]}`,
@@ -192,11 +192,11 @@ const actionStyles = (theme: Theme) =>
         height: "15px",
         padding: "0 3px",
         boxSizing: "border-box",
-        borderRadius: "999px",
+        borderRadius: BORDER_RADIUS.pill,
         backgroundColor: theme.vars.palette.grey[600],
         color: theme.vars.palette.grey[50],
         border: `2px solid ${theme.vars.palette.grey[900]}`,
-        fontSize: "var(--fontSizeTiny)",
+        fontSize: "var(--fontSizeSmaller)",
         fontWeight: 600,
         display: "flex",
         alignItems: "center",
@@ -280,14 +280,15 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   // view to surface them, so show them as a dismissible banner above the composer.
   const chatError = useGlobalChatStore((state) => state.error);
   const clearChatError = useGlobalChatStore((state) => state.clearError);
-  const [conversationCollapsed, setConversationCollapsed] = useState(false);
-  const prevCount = useRef(conversationCount);
+  // Start collapsed so opening a workflow with existing conversation history
+  // doesn't pop the overlay. It auto-reveals only when chat becomes busy in
+  // this session (the user sent a message / a generation is streaming).
+  const [conversationCollapsed, setConversationCollapsed] = useState(true);
   useEffect(() => {
-    if (conversationCount > prevCount.current || chatBusy) {
+    if (chatBusy) {
       setConversationCollapsed(false);
     }
-    prevCount.current = conversationCount;
-  }, [conversationCount, chatBusy]);
+  }, [chatBusy]);
 
   const hasConversation = conversationCount > 0 || chatBusy;
   const conversationOpen = hasConversation && !conversationCollapsed;
@@ -470,7 +471,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             severity="error"
             compact
             onClose={clearChatError}
-            sx={{ borderRadius: "12px" }}
+            sx={{ borderRadius: BORDER_RADIUS.xl }}
           >
             {chatError}
           </AlertBanner>

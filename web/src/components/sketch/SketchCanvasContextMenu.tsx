@@ -6,7 +6,7 @@ import {
   ButtonBase,
   Popover,
 } from "@mui/material";
-import { FlexColumn, FlexRow, Box, Text, Divider, ToolbarIconButton, MOTION } from "../ui_primitives";
+import { FlexColumn, FlexRow, Box, Text, Divider, ToolbarIconButton, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import DeselectIcon from "@mui/icons-material/Deselect";
 import RestoreIcon from "@mui/icons-material/Restore";
@@ -65,7 +65,7 @@ function ColorPreview({ label, color }: { label: string; color: string }) {
         sx={{
           width: 22,
           height: 22,
-          borderRadius: "7px",
+          borderRadius: BORDER_RADIUS.lg,
           border: "1px solid",
           borderColor: "var(--gray-700)",
           background: color
@@ -107,7 +107,7 @@ function SelectionMenuItem({
         width: "100%",
         px: 1,
         py: 0.5,
-        borderRadius: "6px",
+        borderRadius: BORDER_RADIUS.lg,
         justifyContent: "flex-start",
         textAlign: "left",
         opacity: disabled ? 0.4 : 1,
@@ -163,7 +163,7 @@ const ToolGridButton = memo(function ToolGridButton({
       sx={{
         position: "relative",
         minHeight: compact ? 44 : 64,
-        borderRadius: "8px",
+        borderRadius: BORDER_RADIUS.lg,
         border: "1px solid",
         borderColor: selected ? "primary.main" : "transparent",
         backgroundColor: selected
@@ -176,7 +176,7 @@ const ToolGridButton = memo(function ToolGridButton({
         display: "flex",
         flexDirection: "column",
         textAlign: "center",
-        transition: `all ${MOTION.fast}`,
+        transition: MOTION.all,
         width: "100%",
         "&:hover": {
           backgroundColor: selected
@@ -448,12 +448,12 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
           sx: {
             width: 620,
             maxWidth: "calc(100vw - 24px)",
-            borderRadius: "12px",
+            borderRadius: BORDER_RADIUS.lg,
             backgroundImage: "none",
             backgroundColor: theme.vars.palette.grey[900],
             backdropFilter: "blur(16px)",
             boxShadow: theme.shadows[12],
-            p: 1.25
+            p: 1.5
           }
         }
       }}
@@ -472,7 +472,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             boxSizing: "border-box",
             px: 1,
             py: 0.5,
-            borderRadius: "8px",
+            borderRadius: BORDER_RADIUS.lg,
             // border: "1px solid",
             // borderColor: alpha(theme.palette.primary.main, 0.28),
             // backgroundColor: alpha(theme.palette.primary.main, 0.1),
@@ -501,7 +501,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
                 flex: "0 0 auto",
                 px: 0.5,
                 py: 0.5,
-                borderRadius: "6px",
+                borderRadius: BORDER_RADIUS.lg,
                 border: "1px solid",
                 borderColor: theme.vars.palette.grey[600],
                 fontSize: SKETCH_FONT.sm,
@@ -562,7 +562,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
               minWidth: 0,
               minHeight: 360,
               height: "100%",
-              borderRadius: "8px",
+              borderRadius: BORDER_RADIUS.lg,
               px: 1,
               py: 1
             }}
@@ -627,7 +627,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
               <Box
                 className="sketch-context-menu__selection-actions"
                 sx={{
-                  borderRadius: "8px",
+                  borderRadius: BORDER_RADIUS.lg,
                   px: 0
                 }}
               >
@@ -690,7 +690,7 @@ const SketchCanvasContextMenu: React.FC<SketchCanvasContextMenuProps> = ({
             sx={{
               minWidth: 0,
               alignSelf: "stretch",
-              borderRadius: "8px",
+              borderRadius: BORDER_RADIUS.lg,
               px: 1,
               py: 1
             }}
