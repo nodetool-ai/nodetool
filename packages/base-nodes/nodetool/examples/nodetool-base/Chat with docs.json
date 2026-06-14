@@ -15,6 +15,28 @@
   "graph": {
     "nodes": [
       {
+        "id": "comment-intro",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# 💬 Chat with Docs\n\nAsk a question; hybrid vector search pulls relevant passages from your Chroma collection and a local LLM answers from them.\n\n**Pipeline:** Question → hybrid search → build prompt → LLM answer\n\n**Try this:** index your own docs into the collection, or swap the model."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 3,
+            "y": -200
+          },
+          "zIndex": 0,
+          "width": 460,
+          "height": 180,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
         "id": "9",
         "parent_id": null,
         "type": "nodetool.text.FormatText",
@@ -29,7 +51,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "Construct comprehensive prompt with retrieved context and query",
+          "title": "3️⃣ Build prompt",
           "selectable": true
         },
         "dynamic_properties": {
@@ -60,7 +82,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "2️⃣ Retrieve context"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -83,7 +106,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "1️⃣ Your question"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -122,27 +146,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "e67772ca-cbb6-4135-8067-ef92a28c65ab",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {},
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1359,
-            "y": 26
-          },
-          "zIndex": 0,
-          "width": 280,
-          "height": 1003,
-          "selectable": true
+          "selectable": true,
+          "title": "4️⃣ Answer with LLM"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -186,16 +191,6 @@
         "sourceHandle": "output",
         "target": "d83380c7-0d53-4cee-a52e-3189ace2f34c",
         "targetHandle": "prompt",
-        "ui_properties": {
-          "className": "str"
-        }
-      },
-      {
-        "id": "fd2ac76d-9ca5-4e1e-b13c-442bbbdda28d",
-        "source": "d83380c7-0d53-4cee-a52e-3189ace2f34c",
-        "sourceHandle": "text",
-        "target": "e67772ca-cbb6-4135-8067-ef92a28c65ab",
-        "targetHandle": "value",
         "ui_properties": {
           "className": "str"
         }

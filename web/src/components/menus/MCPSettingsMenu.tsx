@@ -173,7 +173,7 @@ const MCPSettingsMenu = () => {
                         {t.installed && t.url && (
                           <Text
                             className="description"
-                            sx={{ fontSize: "0.75rem !important" }}
+                            sx={{ fontSize: "var(--fontSizeSmall) !important" }}
                           >
                             {t.url}
                           </Text>

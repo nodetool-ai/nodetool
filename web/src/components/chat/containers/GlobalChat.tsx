@@ -16,7 +16,9 @@ import {
   EditorButton,
   MobileBottomSheet,
   ScrollArea,
-  ToolbarIconButton
+  ToolbarIconButton,
+  BORDER_RADIUS,
+  MOTION
 } from "../../ui_primitives";
 import ForumIcon from "@mui/icons-material/Forum";
 import AddIcon from "@mui/icons-material/Add";
@@ -596,12 +598,11 @@ const GlobalChat: React.FC = () => {
                   backdropFilter: "blur(14px)",
                   border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.08)`,
                   boxShadow: "0 10px 24px rgb(0 0 0 / 0.18)",
-                  borderRadius: 2.5,
+                  borderRadius: BORDER_RADIUS.md,
                   padding: "8px",
                   "&:hover": {
                     backgroundColor: `rgb(${theme.vars.palette.background.paperChannel} / 0.98)`
-                  },
-                  "& svg": { fontSize: "var(--fontSizeBig)" }
+                  }
                 }}
               >
                 <ForumIcon />
@@ -619,7 +620,7 @@ const GlobalChat: React.FC = () => {
                       size="small"
                       tabIndex={-1}
                       sx={{
-                        borderRadius: 2,
+                        borderRadius: BORDER_RADIUS.sm,
                         backgroundColor: `rgb(${theme.vars.palette.primary.mainChannel} / 0.12)`,
                         color: "primary.main",
                         "&:hover": {
@@ -652,7 +653,7 @@ const GlobalChat: React.FC = () => {
             sx={{
               flex: 1,
               marginLeft: !isMobile && sidebarOpen ? `${SIDEBAR_WIDTH}px` : 0,
-              transition: "margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              transition: `margin-left ${MOTION.slow}`,
               minWidth: 0,
               minHeight: 0,
               overflow: "hidden",

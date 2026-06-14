@@ -32,7 +32,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "Meeting Audio",
+          "title": "1️⃣ Meeting audio",
           "selectable": true
         },
         "dynamic_properties": {},
@@ -44,9 +44,7 @@
         "parent_id": null,
         "type": "nodetool.agents.Summarizer",
         "data": {
-          "model": {
-            "type": "language_model"
-          },
+          "model": {},
           "max_words": 150
         },
         "ui_properties": {
@@ -57,29 +55,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "4",
-        "parent_id": null,
-        "type": "nodetool.output.Output",
-        "data": {
-          "label": "Summary",
-          "name": "summary"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1000,
-            "y": 140
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "3️⃣ Summarize"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -90,97 +67,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": [
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "\ud83d\udcc4 "
-                },
-                {
-                  "text": "Meeting Transcript Summarizer",
-                  "bold": true,
-                  "size": "+"
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": ""
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "This workflow converts a meeting recording into concise notes."
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "\t1.\t"
-                },
-                {
-                  "text": "Audio Input: ",
-                  "bold": true
-                },
-                {
-                  "text": "Load a meeting recording."
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "\t2.\t"
-                },
-                {
-                  "text": "Transcription: ",
-                  "bold": true
-                },
-                {
-                  "text": "Speech is transcribed with OpenAI Whisper."
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "\t3.\t"
-                },
-                {
-                  "text": "Summarization: ",
-                  "bold": true
-                },
-                {
-                  "text": "The transcript is condensed into key points."
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "\t4.\t"
-                },
-                {
-                  "text": "Output: ",
-                  "bold": true
-                },
-                {
-                  "text": "A text node displays the final summary."
-                }
-              ]
-            }
-          ]
+          "comment": "# 📄 Meeting Transcript Summarizer\n\nTurn a meeting recording into a clean summary. Whisper transcribes the audio, then an agent condenses it.\n\n**Pipeline:** Audio → Transcribe → Summarize\n\n**Try this:** ask the summarizer for action items or decisions only."
         },
         "ui_properties": {
           "selected": false,
@@ -202,9 +89,7 @@
         "parent_id": null,
         "type": "nodetool.text.AutomaticSpeechRecognition",
         "data": {
-          "model": {
-            "type": "asr_model"
-          }
+          "model": {}
         },
         "ui_properties": {
           "selected": false,
@@ -214,7 +99,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "2️⃣ Transcribe"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -240,16 +126,6 @@
         "targetHandle": "audio",
         "ui_properties": {
           "className": "audio"
-        }
-      },
-      {
-        "id": "dc4a19e7-d08e-44be-8bc8-4016fceb531f",
-        "source": "3",
-        "sourceHandle": "text",
-        "target": "4",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "str"
         }
       }
     ]

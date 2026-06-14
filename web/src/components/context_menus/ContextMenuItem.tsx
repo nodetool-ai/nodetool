@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { ReactElement, ReactNode, memo } from "react";
 import { MenuItem } from "@mui/material";
-import { EditorButton, Tooltip, MOTION } from "../ui_primitives";
+import { EditorButton, Tooltip, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 interface ContextMenuItemProps {
@@ -50,7 +50,7 @@ const styles = (theme: Theme) =>
       margin: 0,
       padding: "0.2em 1em",
       maxWidth: "unset",
-      borderRadius: "0.2em",
+      borderRadius: BORDER_RADIUS.xs,
       fontFamily: theme.fontFamily1,
       textTransform: "none",
       fontSize: theme.fontSizeNormal,

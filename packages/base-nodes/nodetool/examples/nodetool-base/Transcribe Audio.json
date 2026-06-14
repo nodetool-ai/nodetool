@@ -20,7 +20,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Transcribe Audio\n\nConvert speech to text using the Whisper model with word-level timestamps.\n\n## Workflow:\n\n1. **Audio Input** - Record your voice or upload an audio file\n2. **Automatic Speech Recognition** - Processes the audio through Whisper model to generate transcription\n3. **String Output** - Displays the transcribed text\n\n## How to Use:\n- Record your voice using the audio input\n- Hit the run button\n- Read the transcription in the output"
+          "comment": "# 🎙️ Transcribe Audio\n\nDrop in an audio clip and Whisper converts the speech to text.\n\n**Pipeline:** Audio → Transcribe\n\n**Try this:** swap the ASR model or try a different language clip."
         },
         "ui_properties": {
           "selected": false,
@@ -54,29 +54,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "8",
-        "parent_id": null,
-        "type": "nodetool.output.Output",
-        "data": {
-          "name": "transcription",
-          "description": ""
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 670,
-            "y": 96
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "1️⃣ Audio input"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -87,9 +66,7 @@
         "parent_id": null,
         "type": "nodetool.text.AutomaticSpeechRecognition",
         "data": {
-          "model": {
-            "type": "asr_model"
-          }
+          "model": {}
         },
         "ui_properties": {
           "selected": false,
@@ -99,7 +76,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "2️⃣ Transcribe"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -115,16 +93,6 @@
         "targetHandle": "audio",
         "ui_properties": {
           "className": "audio"
-        }
-      },
-      {
-        "id": "144d485c-a6f5-45b3-9822-e6206dd36154",
-        "source": "c5191702-2a3c-440d-b3af-2db20e74a369",
-        "sourceHandle": "text",
-        "target": "8",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "str"
         }
       }
     ]

@@ -13,82 +13,11 @@
   "graph": {
     "nodes": [
       {
-        "id": "4",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "Final Chart Visualization"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1010,
-            "y": 50
-          },
-          "zIndex": 0,
-          "width": 280,
-          "height": 228,
-          "title": "Preview of the rendered chart image output. Displays the final visualization created by the workflow.",
-          "selectable": true
-        },
-        "dynamic_properties": {}
-      },
-      {
         "id": "787efe63-7062-4e02-b19f-0005aae88ea4",
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": [
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "Historical GDP Data Visualization Workflow",
-                  "bold": true,
-                  "size": "+"
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": ""
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "This workflow pulls historical GDP data from an HTTP source."
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "The file is converted to a Dataframe and then passed to the Chart Generator node."
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "The Chart Generator configures the data into a line chart format. "
-                }
-              ]
-            },
-            {
-              "type": "paragraph",
-              "children": [
-                {
-                  "text": "The model is instructed to create a line chart showing GDP trends over the century."
-                }
-              ]
-            }
-          ]
+          "comment": "# 📈 Data Visualization Pipeline\n\nFetch a CSV from the web, filter it, and let AI build a chart from a plain-English prompt.\n\n**Pipeline:** HTTP fetch → import CSV → filter → Chart Generator\n\n**Try this:** change the filter condition or the chart prompt (\"bar chart\", \"area chart\"). Pick a model on the generator."
         },
         "ui_properties": {
           "position": {
@@ -116,7 +45,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "1️⃣ Fetch GDP CSV"
         },
         "dynamic_properties": {}
       },
@@ -132,7 +62,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "2️⃣ Import as dataframe"
         },
         "dynamic_properties": {}
       },
@@ -150,7 +81,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "3️⃣ Filter to USA"
         },
         "dynamic_properties": {}
       },
@@ -159,9 +91,7 @@
         "parent_id": null,
         "type": "nodetool.generators.ChartGenerator",
         "data": {
-          "model": {
-            "type": "language_model"
-          },
+          "model": {},
           "prompt": "make a line graph of Value over Year",
           "max_tokens": 4096
         },
@@ -172,27 +102,10 @@
             "y": 328
           },
           "zIndex": 0,
-          "width": 280,
-          "selectable": true
-        },
-        "dynamic_properties": {}
-      },
-      {
-        "id": "2e9fd814-61bb-4e47-965f-ce14f300976a",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "plotly_config_output"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1400,
-            "y": 135
-          },
-          "zIndex": 0,
-          "width": 280,
-          "height": 465,
-          "selectable": true
+          "width": 384,
+          "selectable": true,
+          "height": 400,
+          "title": "4️⃣ Generate chart"
         },
         "dynamic_properties": {}
       }
@@ -217,30 +130,12 @@
         }
       },
       {
-        "id": "e826ed39-8e48-4f74-89bc-b430ef59a801",
-        "source": "fdbb9003-b2e6-4493-835c-9e7aa6d97ff1",
-        "sourceHandle": "output",
-        "target": "4",
-        "targetHandle": "value",
-        "ui_properties": null
-      },
-      {
         "id": "7dc0b333-4ca1-4474-82d5-e632cd5c3324",
         "source": "fdbb9003-b2e6-4493-835c-9e7aa6d97ff1",
         "sourceHandle": "output",
         "target": "d6a24f85-9177-4a3f-98d2-e0e638945f89",
         "targetHandle": "data",
         "ui_properties": null
-      },
-      {
-        "id": "1ace5f01-ecfd-406b-a9cf-8cb2bb0f5c13",
-        "source": "d6a24f85-9177-4a3f-98d2-e0e638945f89",
-        "sourceHandle": "output",
-        "target": "2e9fd814-61bb-4e47-965f-ce14f300976a",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "plotly_config"
-        }
       }
     ]
   },

@@ -5,7 +5,7 @@ import Actions from "./Actions";
 import { MaybeMarkdown } from "./markdown";
 import { outputStyles } from "./styles";
 import { Collapse } from "@mui/material";
-import { Box } from "../../ui_primitives";
+import { Box, BORDER_RADIUS } from "../../ui_primitives";
 import { ReasoningToggle } from "../../common/ReasoningToggle";
 
 type Props = {
@@ -71,7 +71,7 @@ const ThinkBlock: React.FC<{ content: string }> = memo(({ content }) => {
   // Memoize sx props to prevent recreation on every render
   const containerBoxStyle = useMemo(() => ({
     my: 1,
-    borderRadius: 1,
+    borderRadius: BORDER_RADIUS.xs,
     overflow: "hidden"
   }), []);
 

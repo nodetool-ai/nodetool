@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useCallback, memo } from "react";
-import { FlexRow, FlexColumn, ToolbarIconButton, Text, ScrollArea, SearchInput, NavButton, MOTION } from "../../ui_primitives";
+import { FlexRow, FlexColumn, ToolbarIconButton, Text, ScrollArea, SearchInput, NavButton, MOTION, BORDER_RADIUS, reducedMotion } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
 import AddIcon from "@mui/icons-material/Add";
@@ -91,7 +91,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     zIndex: 100,
                     display: isOpen ? "none" : "flex",
                     p: 0.75,
-                    borderRadius: 3,
+                    borderRadius: BORDER_RADIUS.md,
                     backgroundColor: `rgb(${theme.vars.palette.background.paperChannel} / 0.86)`,
                     backdropFilter: "blur(16px)",
                     border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.08)`,
@@ -138,7 +138,8 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     borderRight: "none",
                     boxShadow: "none",
                     transform: isOpen ? "translateX(0)" : `translateX(-${SIDEBAR_WIDTH}px)`,
-                    transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                    transition: `transform ${MOTION.slow}`,
+                    ...reducedMotion({ transition: MOTION.none }),
                     overflow: "hidden"
                 }}
             >
@@ -242,7 +243,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                                 pointerEvents: "none",
                                 color: theme.vars.palette.grey[500],
                                 border: `1px solid ${theme.vars.palette.grey[700]}`,
-                                borderRadius: "4px",
+                                borderRadius: BORDER_RADIUS.xs,
                                 px: 0.5,
                                 lineHeight: 1.4
                             }}

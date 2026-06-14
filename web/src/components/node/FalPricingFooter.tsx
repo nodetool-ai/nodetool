@@ -31,7 +31,8 @@ import {
   FlexRow,
   LoadingSpinner,
   ExternalLink,
-  MenuItemPrimitive
+  MenuItemPrimitive,
+  BORDER_RADIUS
 } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
 import type { NodeMetadata } from "../../stores/ApiTypes";
@@ -153,7 +154,7 @@ const FalPricingFooterInternal: React.FC<FalPricingFooterProps> = ({
       px: 1,
       py: 0,
       height: 20,
-      borderRadius: 1,
+      borderRadius: BORDER_RADIUS.xs,
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       lineHeight: 1.4,

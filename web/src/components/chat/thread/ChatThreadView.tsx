@@ -11,6 +11,7 @@ import React, {
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { BORDER_RADIUS, FONT_SIZE_SANS } from "../../ui_primitives";
 import {
   Message,
   PlanningUpdate,
@@ -136,7 +137,7 @@ const StatusFooter = memo<StatusFooterProps>(
               ) : null}
               <span
                 style={{
-                  fontSize: "var(--fontSizeNormal)",
+                  fontSize: FONT_SIZE_SANS.body,
                   color: theme.vars.palette.text.secondary,
                   fontStyle: "italic"
                 }}
@@ -149,7 +150,7 @@ const StatusFooter = memo<StatusFooterProps>(
               </span>
               <span
                 style={{
-                  fontSize: "var(--fontSizeSmall)",
+                  fontSize: FONT_SIZE_SANS.label,
                   color: theme.vars.palette.text.disabled,
                   fontVariantNumeric: "tabular-nums",
                   marginLeft: "auto"
@@ -186,7 +187,7 @@ const StatusFooter = memo<StatusFooterProps>(
                   bottom: "10px",
                   width: "2px",
                   background: `linear-gradient(to bottom, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main}44)`,
-                  borderRadius: "1px"
+                  borderRadius: BORDER_RADIUS.xs
                 }}
               />
               <div
@@ -196,7 +197,7 @@ const StatusFooter = memo<StatusFooterProps>(
                   top: "12px",
                   width: "10px",
                   height: "10px",
-                  borderRadius: "var(--rounded-circle)",
+                  borderRadius: BORDER_RADIUS.circle,
                   backgroundColor: theme.vars.palette.primary.main,
                   border: `2px solid ${theme.vars.palette.background.default}`,
                   boxShadow: `0 0 10px ${theme.vars.palette.primary.main}aa`,
@@ -206,9 +207,9 @@ const StatusFooter = memo<StatusFooterProps>(
               <div
                 className={`log-entry log-severity-${currentLogUpdate.severity || "info"}`}
                 style={{
-                  fontSize: "var(--fontSizeSmall)",
+                  fontSize: FONT_SIZE_SANS.label,
                   padding: "0.5rem 0.75rem",
-                  borderRadius: "var(--rounded-lg)",
+                  borderRadius: "var(--rounded-md)",
                   backgroundColor: "rgba(30, 35, 40, 0.4)",
                   border: `1px solid ${theme.vars.palette.action.disabledBackground}`,
                   color:

@@ -2,7 +2,7 @@
 import React from "react";
 import { useTheme } from "@mui/material/styles";
 import { EditorButton } from "../editor_ui";
-import { ToolbarIconButton, Box, MOTION } from "../ui_primitives";
+import { ToolbarIconButton, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import AddIcon from "@mui/icons-material/Add";
 import { FlexColumn } from "../ui_primitives/FlexColumn";
 
@@ -24,8 +24,8 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({ onClick, isHero = 
           mt: 3,
           px: 4,
           py: 1.5,
-          borderRadius: 2,
-          fontSize: theme.fontSizeNormal,
+          borderRadius: BORDER_RADIUS.sm,
+          fontSize: "var(--fontSizeNormal)",
           fontWeight: 600,
           textTransform: "none",
         }}
@@ -53,7 +53,7 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({ onClick, isHero = 
             borderColor: theme.vars.palette.primary.main,
             backgroundColor: `${theme.vars.palette.primary.main}12`,
           },
-          transition: `all ${MOTION.fast}`,
+          transition: MOTION.all,
         }}
       />
       <Box sx={{ width: 2, height: 8, backgroundColor: theme.vars.palette.divider }} />

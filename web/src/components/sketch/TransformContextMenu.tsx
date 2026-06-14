@@ -13,7 +13,8 @@ import {
   Divider,
   FlexRow,
   MenuItemPrimitive,
-  Text
+  Text,
+  BORDER_RADIUS
 } from "../ui_primitives";
 import { SKETCH_FONT } from "./sketchStyles";
 
@@ -77,7 +78,7 @@ const TransformContextMenu: React.FC<TransformContextMenuProps> = ({
       minWidth={200}
       paperSx={{
         maxWidth: 280,
-        borderRadius: "10px",
+        borderRadius: BORDER_RADIUS.lg,
         backgroundImage: "none",
         backgroundColor: theme.vars.palette.grey[900],
         backdropFilter: "blur(16px)",

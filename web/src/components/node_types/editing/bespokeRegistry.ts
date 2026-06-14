@@ -38,6 +38,9 @@ import FitBody, { FIT_NODE_TYPE } from "./FitBody";
 import GeneratorBody, { GENERATOR_NODE_TYPES } from "./GeneratorBody";
 import HSLAdjustBody, { HSL_ADJUST_NODE_TYPE } from "./HSLAdjustBody";
 import LevelsBody, { LEVELS_NODE_TYPE } from "./LevelsBody";
+import ListGeneratorBody, {
+  LIST_GENERATOR_NODE_TYPE
+} from "./ListGeneratorBody";
 import MaskBody, { MASK_NODE_TYPE } from "./MaskBody";
 import MasksExtractorBody, {
   MASKS_EXTRACTOR_NODE_TYPES
@@ -92,6 +95,7 @@ export const BESPOKE_BODY_REGISTRY: Readonly<
   [FIT_NODE_TYPE]: FitBody,
   [HSL_ADJUST_NODE_TYPE]: HSLAdjustBody,
   [LEVELS_NODE_TYPE]: LevelsBody,
+  [LIST_GENERATOR_NODE_TYPE]: ListGeneratorBody,
   [MASK_NODE_TYPE]: MaskBody,
   [OFFSET_NODE_TYPE]: OffsetBody,
   [OUTLINE_NODE_TYPE]: OutlineBody,
@@ -130,6 +134,9 @@ export const BESPOKE_DEFAULT_HEIGHTS: Readonly<Record<string, number>> = {
   [CONSTANT_SKETCH_NODE_TYPE]: 300,
   [CONSTANT_TIMELINE_NODE_TYPE]: 300,
   [CURVES_NODE_TYPE]: 520,
+  // List Generator: numbered, scrollable item list needs room to show several
+  // items as they stream in.
+  [LIST_GENERATOR_NODE_TYPE]: 340,
   // Generators: preview + color rows + up to 4 sliders need more than the
   // generic default to show all controls without resizing.
   ...Object.fromEntries(GENERATOR_NODE_TYPES.map((t) => [t, 460] as const)),

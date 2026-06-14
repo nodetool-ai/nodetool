@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
+import { isRawRgbaImage } from "@nodetool-ai/protocol";
 import type { VideoRef, StreamingInputs, StreamingOutputs } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { loadMediaRefBytes, mapPromptAssetsToInputs } from "@nodetool-ai/runtime";
@@ -137,6 +138,102 @@ function videoRef(data: Uint8Array, extras: Partial<VideoRef> = {}): VideoRef {
     data: Buffer.from(data).toString("base64"),
     ...extras
   };
+}
+
+/**
+ * Encode a sequence of frame refs into an H.264 MP4.
+ *
+ * Frames arrive in one of two shapes and the demuxer differs for each:
+ *   - In-flight **raw-RGBA** refs ({@link isRawRgbaImage}) carry uncompressed
+ *     pixels in `data` plus `width`/`height`. These are NOT a decodable image —
+ *     writing them to `frame_*.png` makes ffmpeg fail with "Invalid PNG
+ *     signature". They must be fed through the `rawvideo` demuxer instead.
+ *   - **Encoded** refs carry PNG/JPEG bytes (Uint8Array or base64 string),
+ *     which the `image2` demuxer reads from numbered files.
+ *
+ * A frame sequence from a single generator is homogeneous, so the encoding of
+ * the first usable frame selects the path; stray frames of the other kind (or
+ * with mismatched raw dimensions) are skipped.
+ */
+async function combineFramesToVideo(
+  frames: unknown[],
+  fps: number
+): Promise<Uint8Array> {
+  const isUsable = (f: unknown): boolean => {
+    if (!f || typeof f !== "object") return false;
+    if (isRawRgbaImage(f)) return f.data.length > 0;
+    return toBytes((f as { data?: Uint8Array | string }).data).length > 0;
+  };
+  const first = frames.find(isUsable);
+  if (!first) return new Uint8Array();
+
+  const inputDir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-ftv-in-"));
+  const outputDir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-ftv-out-"));
+  const outputPath = path.join(outputDir, "output.mp4");
+  try {
+    if (isRawRgbaImage(first)) {
+      const { width, height } = first;
+      const chunks: Buffer[] = [];
+      for (const f of frames) {
+        if (
+          isRawRgbaImage(f) &&
+          f.data.length > 0 &&
+          f.width === width &&
+          f.height === height
+        ) {
+          chunks.push(Buffer.from(f.data.buffer, f.data.byteOffset, f.data.byteLength));
+        }
+      }
+      const rawPath = path.join(inputDir, "frames.raw");
+      await fs.writeFile(rawPath, Buffer.concat(chunks));
+      await execFile(
+        "ffmpeg",
+        [
+          "-y",
+          "-f", "rawvideo",
+          "-pixel_format", "rgba",
+          "-video_size", `${width}x${height}`,
+          "-framerate", String(fps),
+          "-i", rawPath,
+          "-c:v", "libx264",
+          "-pix_fmt", "yuv420p",
+          outputPath
+        ],
+        { maxBuffer: 50 * 1024 * 1024 }
+      );
+    } else {
+      // Contiguous counter so skipped frames don't leave gaps in the numbered
+      // sequence (ffmpeg's image2 demuxer stops at the first missing number).
+      let written = 0;
+      for (const f of frames) {
+        if (!f || typeof f !== "object" || isRawRgbaImage(f)) continue;
+        const frameBytes = toBytes((f as { data?: Uint8Array | string }).data);
+        if (frameBytes.length === 0) continue;
+        written += 1;
+        await fs.writeFile(
+          path.join(inputDir, `frame_${String(written).padStart(6, "0")}.png`),
+          frameBytes
+        );
+      }
+      if (written === 0) return new Uint8Array();
+      await execFile(
+        "ffmpeg",
+        [
+          "-y",
+          "-framerate", String(fps),
+          "-i", path.join(inputDir, "frame_%06d.png"),
+          "-c:v", "libx264",
+          "-pix_fmt", "yuv420p",
+          outputPath
+        ],
+        { maxBuffer: 50 * 1024 * 1024 }
+      );
+    }
+    return new Uint8Array(await fs.readFile(outputPath));
+  } finally {
+    await fs.rm(inputDir, { recursive: true, force: true });
+    await fs.rm(outputDir, { recursive: true, force: true });
+  }
 }
 
 function modelConfig(props: Record<string, unknown>): {
@@ -947,46 +1044,8 @@ export class FrameToVideoNode extends BaseNode {
       return;
     }
 
-    const inputDir = await fs.mkdtemp(
-      path.join(os.tmpdir(), "nodetool-ftv-in-")
-    );
-    const outputDir = await fs.mkdtemp(
-      path.join(os.tmpdir(), "nodetool-ftv-out-")
-    );
-    const outputPath = path.join(outputDir, "output.mp4");
     try {
-      // Write each frame as a numbered PNG file. Use a contiguous counter
-      // (not the loop index) so skipped/empty frames don't leave gaps in the
-      // sequence — ffmpeg's image2 demuxer stops at the first missing number.
-      let written = 0;
-      for (const f of frames) {
-        if (!f || typeof f !== "object") continue;
-        const frameBytes = toBytes((f as { data?: Uint8Array | string }).data);
-        if (frameBytes.length === 0) continue;
-        written += 1;
-        await fs.writeFile(
-          path.join(inputDir, `frame_${String(written).padStart(6, "0")}.png`),
-          frameBytes
-        );
-      }
-      if (written === 0) {
-        await outputs.emit("output", videoRef(new Uint8Array()));
-        return;
-      }
-
-      await execFile(
-        "ffmpeg",
-        [
-          "-y",
-          "-framerate", String(fps),
-          "-i", path.join(inputDir, "frame_%06d.png"),
-          "-c:v", "libx264",
-          "-pix_fmt", "yuv420p",
-          outputPath
-        ],
-        { maxBuffer: 50 * 1024 * 1024 }
-      );
-      const result = new Uint8Array(await fs.readFile(outputPath));
+      const result = await combineFramesToVideo(frames, fps);
       await outputs.emit("output", videoRef(result));
     } catch (error) {
       throw new Error(
@@ -994,9 +1053,6 @@ export class FrameToVideoNode extends BaseNode {
           error instanceof Error ? error.message : String(error)
         }`
       );
-    } finally {
-      await fs.rm(inputDir, { recursive: true, force: true });
-      await fs.rm(outputDir, { recursive: true, force: true });
     }
   }
 
@@ -1005,43 +1061,9 @@ export class FrameToVideoNode extends BaseNode {
     const frames = Array.isArray(this.frame) ? (this.frame as unknown[]) : [];
     if (frames.length === 0) return { output: videoRef(new Uint8Array()) };
 
-    const inputDir = await fs.mkdtemp(
-      path.join(os.tmpdir(), "nodetool-ftv-in-")
-    );
-    const outputDir = await fs.mkdtemp(
-      path.join(os.tmpdir(), "nodetool-ftv-out-")
-    );
-    const outputPath = path.join(outputDir, "output.mp4");
+    const fps = Math.max(1, Number(this.fps ?? 30));
     try {
-      // Contiguous counter so skipped/empty frames don't leave gaps in the
-      // numbered sequence (ffmpeg's image2 demuxer stops at the first gap).
-      let written = 0;
-      for (const f of frames) {
-        if (!f || typeof f !== "object") continue;
-        const frameBytes = toBytes((f as { data?: Uint8Array | string }).data);
-        if (frameBytes.length === 0) continue;
-        written += 1;
-        await fs.writeFile(
-          path.join(inputDir, `frame_${String(written).padStart(6, "0")}.png`),
-          frameBytes
-        );
-      }
-      if (written === 0) return { output: videoRef(new Uint8Array()) };
-
-      const fps = Math.max(1, Number(this.fps ?? 30));
-      await execFile(
-        "ffmpeg",
-        [
-          "-y",
-          "-framerate", String(fps),
-          "-i", path.join(inputDir, "frame_%06d.png"),
-          "-c:v", "libx264",
-          "-pix_fmt", "yuv420p",
-          outputPath
-        ],
-        { maxBuffer: 50 * 1024 * 1024 }
-      );
-      const result = new Uint8Array(await fs.readFile(outputPath));
+      const result = await combineFramesToVideo(frames, fps);
       return { output: videoRef(result) };
     } catch (error) {
       throw new Error(
@@ -1049,9 +1071,6 @@ export class FrameToVideoNode extends BaseNode {
           error instanceof Error ? error.message : String(error)
         }`
       );
-    } finally {
-      await fs.rm(inputDir, { recursive: true, force: true });
-      await fs.rm(outputDir, { recursive: true, force: true });
     }
   }
 }

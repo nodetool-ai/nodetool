@@ -79,7 +79,7 @@ describe("PortalSetupFlow", () => {
         "sk-ant-test"
       );
       expect(onComplete).toHaveBeenCalledWith(
-        "anthropic:claude-sonnet-4-20250514"
+        "anthropic:claude-sonnet-4-6"
       );
     });
   });

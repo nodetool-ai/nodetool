@@ -29,17 +29,6 @@
         "edge_type": "data"
       },
       {
-        "id": "8df1db3c-8a72-4666-8b2b-0abbca21b40e",
-        "source": "6ababfd3-5743-4d7c-accd-97242130a8d8",
-        "sourceHandle": "chunk",
-        "target": "a5dc6d30-6902-4c1a-966e-c38e46125b50",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "chunk"
-        },
-        "edge_type": "data"
-      },
-      {
         "id": "a9f30c9f-03a2-459d-aec8-8cdc45f7c591",
         "source": "6ababfd3-5743-4d7c-accd-97242130a8d8",
         "sourceHandle": "__control__",
@@ -53,169 +42,7 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": {
-            "root": {
-              "children": [
-                {
-                  "children": [
-                    {
-                      "detail": 0,
-                      "format": 0,
-                      "mode": "normal",
-                      "style": "",
-                      "text": "🔎 Agent Google Search",
-                      "type": "text",
-                      "version": 1
-                    }
-                  ],
-                  "direction": "ltr",
-                  "format": "",
-                  "indent": 0,
-                  "type": "heading",
-                  "version": 1,
-                  "tag": "h1"
-                },
-                {
-                  "children": [
-                    {
-                      "detail": 0,
-                      "format": 0,
-                      "mode": "normal",
-                      "style": "",
-                      "text": "Let an Agent decide what to search for, then run the query through Google and stream the answer.",
-                      "type": "text",
-                      "version": 1
-                    }
-                  ],
-                  "direction": "ltr",
-                  "format": "",
-                  "indent": 0,
-                  "type": "paragraph",
-                  "version": 1,
-                  "textFormat": 0,
-                  "textStyle": ""
-                },
-                {
-                  "children": [
-                    {
-                      "detail": 0,
-                      "format": 1,
-                      "mode": "normal",
-                      "style": "",
-                      "text": "Pipeline:",
-                      "type": "text",
-                      "version": 1
-                    },
-                    {
-                      "detail": 0,
-                      "format": 0,
-                      "mode": "normal",
-                      "style": "",
-                      "text": " Agent generates a ",
-                      "type": "text",
-                      "version": 1
-                    },
-                    {
-                      "detail": 0,
-                      "format": 16,
-                      "mode": "normal",
-                      "style": "",
-                      "text": "search",
-                      "type": "text",
-                      "version": 1
-                    },
-                    {
-                      "detail": 0,
-                      "format": 0,
-                      "mode": "normal",
-                      "style": "",
-                      "text": " dynamic output → GoogleSearch runs the query → results stream back through the Agent's ",
-                      "type": "text",
-                      "version": 1
-                    },
-                    {
-                      "detail": 0,
-                      "format": 16,
-                      "mode": "normal",
-                      "style": "",
-                      "text": "chunk",
-                      "type": "text",
-                      "version": 1
-                    },
-                    {
-                      "detail": 0,
-                      "format": 0,
-                      "mode": "normal",
-                      "style": "",
-                      "text": " output into a Preview.",
-                      "type": "text",
-                      "version": 1
-                    }
-                  ],
-                  "direction": "ltr",
-                  "format": "",
-                  "indent": 0,
-                  "type": "paragraph",
-                  "version": 1,
-                  "textFormat": 1,
-                  "textStyle": ""
-                },
-                {
-                  "children": [
-                    {
-                      "detail": 0,
-                      "format": 1,
-                      "mode": "normal",
-                      "style": "",
-                      "text": "Try this:",
-                      "type": "text",
-                      "version": 1
-                    },
-                    {
-                      "detail": 0,
-                      "format": 0,
-                      "mode": "normal",
-                      "style": "",
-                      "text": " edit the prompt or system message, swap the model, or raise ",
-                      "type": "text",
-                      "version": 1
-                    },
-                    {
-                      "detail": 0,
-                      "format": 16,
-                      "mode": "normal",
-                      "style": "",
-                      "text": "num_results",
-                      "type": "text",
-                      "version": 1
-                    },
-                    {
-                      "detail": 0,
-                      "format": 0,
-                      "mode": "normal",
-                      "style": "",
-                      "text": " on the GoogleSearch node for a wider sweep.",
-                      "type": "text",
-                      "version": 1
-                    }
-                  ],
-                  "direction": "ltr",
-                  "format": "",
-                  "indent": 0,
-                  "type": "paragraph",
-                  "version": 1,
-                  "textFormat": 1,
-                  "textStyle": ""
-                }
-              ],
-              "direction": "ltr",
-              "format": "",
-              "indent": 0,
-              "type": "root",
-              "version": 1,
-              "textFormat": 1
-            }
-          }
+          "comment": "# 🔎 Agent Google Search\n\nAn agent picks a search query, runs it on Google, and streams the answer.\n\n**Pipeline:** Agent → Google Search\n\n**Try this:** change the agent's objective or model to research a different topic."
         },
         "ui_properties": {
           "position": {
@@ -236,9 +63,7 @@
         "id": "6ababfd3-5743-4d7c-accd-97242130a8d8",
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {
-            "type": "language_model"
-          },
+          "model": {},
           "system": "You are a an AI agent. \n\nBehavior\n- Understand the user's intent and the context of the task.\n- Break down the task into smaller steps.\n- Be precise, concise, and actionable.\n- Use tools to accomplish your goal. \n\nTool preambles\n- Outline the next step(s) you will perform.\n- After acting, summarize the outcome.\n\nRendering\n- Use Markdown to display media assets.\n- Display images, audio, and video assets using the appropriate Markdown.\n\nFile handling\n- Inputs and outputs are files in the /workspace directory.\n- Write outputs of code execution to the /workspace directory.\n",
           "prompt": "search for agent libs",
           "image": {
@@ -264,7 +89,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "1️⃣ Agent — picks a search query and streams the answer",
+          "title": "1️⃣ Agent picks query",
           "selectable": true,
           "bypassed": false
         },
@@ -285,28 +110,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "2️⃣ Google Search — runs the agent's query",
-          "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "a5dc6d30-6902-4c1a-966e-c38e46125b50",
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {},
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 360,
-            "y": 50
-          },
-          "zIndex": 0,
-          "width": 303,
-          "height": 606,
-          "title": "👁️ Preview — streamed agent response",
+          "title": "2️⃣ Run Google search",
           "selectable": true,
           "bypassed": false
         },

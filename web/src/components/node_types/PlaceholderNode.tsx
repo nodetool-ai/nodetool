@@ -23,7 +23,9 @@ import {
   FlexColumn,
   MOTION,
   Text,
-  Tooltip
+  Tooltip,
+  BORDER_RADIUS,
+  FONT_WEIGHT
 } from "../ui_primitives";
 
 const humanizeType = (type: string) => {
@@ -62,24 +64,24 @@ const styles = (theme: Theme) =>
       marginBottom: "0.1em"
     },
     ".missing-node-text": {
-      fontWeight: 600,
+      fontWeight: FONT_WEIGHT.semibold,
       textAlign: "center",
       color: theme.vars.palette.error.main,
       padding: 0,
       margin: ".5em 0 0"
     },
     ".search-button": {
-      fontSize: "var(--fontSizeTiny)",
+      fontSize: "var(--fontSizeSmaller)",
       lineHeight: "1.1em",
       minWidth: "unset"
     },
     ".install-button": {
       position: "relative",
-      fontSize: "var(--fontSizeTiny)",
+      fontSize: "var(--fontSizeSmaller)",
       lineHeight: "1.1em",
       minWidth: "unset",
       padding: "6px 12px",
-      borderRadius: 10,
+      borderRadius: BORDER_RADIUS.md,
       color:
         theme.vars?.palette?.primary?.contrastText ||
         "var(--palette-text-primary)",
@@ -87,7 +89,7 @@ const styles = (theme: Theme) =>
       backgroundSize: "200% 200%",
       border: `1px solid ${theme.vars.palette.action.selected}`,
       boxShadow: "0 6px 18px rgba(0,0,0,0.25)",
-      transition: `transform ${MOTION.normal}, ${MOTION.shadow}, background-position ${MOTION.slow}`,
+      transition: `${MOTION.transform}, ${MOTION.shadow}, background-position ${MOTION.slow}`,
       overflow: "hidden",
       "&::before": {
         content: "''",
@@ -99,7 +101,7 @@ const styles = (theme: Theme) =>
         background:
           "linear-gradient(120deg, rgba(255,255,255,0), rgba(255,255,255,0.35), rgba(255,255,255,0))",
         transform: "skewX(-20deg)",
-        transition: "left 400ms ease"
+        transition: `left ${MOTION.slow}`
       },
       "&:hover": {
         transform: "translateY(-1px)",

@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { EditorButton, Text, LoadingSpinner, Box } from "../ui_primitives";
+import { EditorButton, Text, LoadingSpinner, Box, BORDER_RADIUS } from "../ui_primitives";
 import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
 import {
   WaveRecorderProps,
@@ -44,7 +44,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
       minHeight: "50px",
       marginTop: "0.5em",
       "& button": {
-        fontSize: theme.fontSizeSmall,
+        fontSize: "var(--fontSizeSmall)",
         border: "0",
         padding: "2px",
         margin: ".5em",
@@ -60,7 +60,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
       ".audio-device-list": {
         position: "relative",
         maxWidth: "200px",
-        fontSize: theme.fontSizeTiny,
+        fontSize: "var(--fontSizeSmaller)",
         color: theme.vars.palette.grey[200]
       },
       ".device-select": {
@@ -100,7 +100,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
       },
       "& .error": {
         color: theme.vars.palette.error.main,
-        fontSize: theme.fontSizeTiny,
+        fontSize: "var(--fontSizeSmaller)",
         lineHeight: "1.1em"
       }
     });
@@ -168,7 +168,7 @@ const WaveRecorder = (props: WaveRecorderProps) => {
                 backgroundColor: "var(--palette-warning-main)",
                 color: "var(--palette-grey-900)",
                 padding: ".2em 0.5em",
-                borderRadius: "0.2em",
+                borderRadius: BORDER_RADIUS.xs,
                 zIndex: 100,
                 top: "0.5em",
                 left: "0.5em"

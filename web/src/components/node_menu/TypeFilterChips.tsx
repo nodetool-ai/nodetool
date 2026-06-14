@@ -6,7 +6,7 @@ import {
   Autocomplete,
   TextField
 } from "@mui/material";
-import { Tooltip, Text, Chip, EditorButton, Box, EditorMenu, MOTION } from "../ui_primitives";
+import { Tooltip, Text, Chip, EditorButton, Box, EditorMenu, MOTION, BORDER_RADIUS, FONT_WEIGHT } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import FilterListIcon from "@mui/icons-material/FilterList";
@@ -79,11 +79,11 @@ const typeFilterChipsStyles = (theme: Theme) =>
     ".provider-quick-chip": {
       height: "26px",
       fontSize: theme.fontSizeSmaller,
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       border: "1px solid transparent",
       backgroundColor: "transparent",
       color: theme.vars.palette.text.secondary,
-      transition: `all ${MOTION.fast}`,
+      transition: MOTION.all,
       "& .MuiChip-label": {
         paddingInline: theme.spacing(1)
       },
@@ -102,7 +102,8 @@ const typeFilterChipsStyles = (theme: Theme) =>
       textTransform: "uppercase",
       letterSpacing: "0.5px",
       marginInline: theme.spacing(0, 0.5),
-      whiteSpace: "nowrap"
+      whiteSpace: "nowrap",
+      fontWeight: FONT_WEIGHT.medium
     },
     ".filter-section": {
       display: "flex",
@@ -115,7 +116,8 @@ const typeFilterChipsStyles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       textTransform: "uppercase",
       padding: ".5em 0",
-      marginBottom: "1em"
+      marginBottom: "1em",
+      fontWeight: FONT_WEIGHT.medium
     },
     ".type-chips": {
       display: "flex",
@@ -126,12 +128,12 @@ const typeFilterChipsStyles = (theme: Theme) =>
       height: "26px",
       padding: theme.spacing(0, 0.5),
       fontSize: theme.fontSizeSmaller,
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       backgroundColor: "transparent",
       border: "1px solid transparent",
       color: theme.vars.palette.text.secondary,
       cursor: "pointer",
-      transition: `all ${MOTION.fast}`,
+      transition: MOTION.all,
       "& .MuiChip-label": {
         paddingInline: theme.spacing(0.5)
       },
@@ -164,7 +166,7 @@ const typeFilterChipsStyles = (theme: Theme) =>
     },
     ".more-filters-button": {
       textTransform: "none",
-      borderRadius: "var(--rounded-xl)",
+      borderRadius: BORDER_RADIUS.xl,
       fontSize: theme.fontSizeSmall,
       lineHeight: 1.2,
       padding: theme.spacing(1, 1),
@@ -182,7 +184,7 @@ const typeFilterChipsStyles = (theme: Theme) =>
     ".menu-title": {
       fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.primary,
-      fontWeight: 600,
+      fontWeight: FONT_WEIGHT.semibold,
       marginBottom: "4px"
     },
     ".menu-section-title": {
@@ -191,7 +193,7 @@ const typeFilterChipsStyles = (theme: Theme) =>
       textTransform: "uppercase",
       letterSpacing: "0.55px",
       marginBottom: "8px",
-      fontWeight: 600
+      fontWeight: FONT_WEIGHT.semibold
     },
     ".filter-menu-content": {
       minWidth: "390px",
@@ -412,7 +414,7 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
           open={menuOpen}
           onClose={handleCloseMenu}
           paperSx={{
-            borderRadius: "14px",
+            borderRadius: BORDER_RADIUS.xxl,
             backgroundImage: "none",
             overflow: "visible",
             border: (muiTheme) =>

@@ -12,7 +12,8 @@ import {
   TextInput,
   EditorButton,
   Box,
-  MOTION
+  MOTION,
+  BORDER_RADIUS
 } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -57,7 +58,7 @@ const styles = (theme: Theme) =>
     ".header-icon": {
       width: 36,
       height: 36,
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       background: `color-mix(in srgb, ${theme.vars.palette.primary.main} 15%, transparent)`,
       color: theme.vars.palette.primary.main,
       flexShrink: 0
@@ -74,7 +75,7 @@ const styles = (theme: Theme) =>
     },
     ".text-input": {
       "& .MuiOutlinedInput-root": {
-        borderRadius: "var(--rounded-lg)",
+        borderRadius: BORDER_RADIUS.lg,
         backgroundColor: theme.vars.palette.background.default,
         "& fieldset": {
           borderColor: theme.vars.palette.divider
@@ -93,7 +94,7 @@ const styles = (theme: Theme) =>
     },
     ".model-select": {
       "& button": {
-        borderRadius: "10px !important",
+        borderRadius: `${BORDER_RADIUS.lg} !important`,
         backgroundColor: `${theme.vars.palette.background.default} !important`,
         border: `1px solid ${theme.vars.palette.divider} !important`,
         "&:hover": {
@@ -110,7 +111,7 @@ const styles = (theme: Theme) =>
     ".error-box": {
       marginTop: theme.spacing(2),
       padding: theme.spacing(1.5),
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       background: `color-mix(in srgb, ${theme.vars.palette.error.main} 10%, transparent)`,
       border: `1px solid color-mix(in srgb, ${theme.vars.palette.error.main} 25%, transparent)`
     }

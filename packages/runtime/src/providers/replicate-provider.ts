@@ -28,6 +28,7 @@ import {
   getModelImageInputs,
   loadImageModels,
   loadVideoModels,
+  selectMaskImageInput,
   selectPrimaryImageInput
 } from "./manifest-models.js";
 
@@ -512,6 +513,18 @@ export class ReplicateProvider extends BaseProvider {
       input.num_inference_steps = params.numInferenceSteps;
     if (params.strength != null) input.strength = params.strength;
     if (params.seed != null) input.seed = params.seed;
+
+    if (params.mask && params.mask.length > 0) {
+      const maskUri = this.dataUri(params.mask, "image/png");
+      const allInputs = getModelImageInputs(
+        "@nodetool-ai/replicate-nodes",
+        "replicate-manifest.json",
+        params.model.id
+      );
+      const maskField = selectMaskImageInput(allInputs);
+      const fieldName = maskField?.apiName ?? "mask_url";
+      input[fieldName] = maskField?.isList ? [maskUri] : maskUri;
+    }
 
     log.debug("imageToImage", { model: params.model.id });
     const output = await this._client.run(

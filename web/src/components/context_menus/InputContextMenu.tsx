@@ -10,7 +10,7 @@ import { shallow } from "zustand/shallow";
 //mui
 import { InputAdornment, TextField } from "@mui/material";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Divider, Text, ToolbarIconButton, Box, ContextMenu } from "../ui_primitives";
+import { Divider, Text, ToolbarIconButton, Box, ContextMenu, BORDER_RADIUS } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 //icons
 import PushPinIcon from "@mui/icons-material/PushPin";
@@ -824,7 +824,7 @@ const InputContextMenu: React.FC = () => {
     ".icon-bg": {
       alignItems: "center",
       backgroundColor: theme.vars.palette.grey[900],
-      borderRadius: "0 0 3px 0",
+      borderRadius: `0 0 ${BORDER_RADIUS.xs} 0`,
       boxShadow: `inset 1px 1px 2px ${theme.vars.palette.action.disabledBackground}`,
       display: "flex",
       flexShrink: 0,

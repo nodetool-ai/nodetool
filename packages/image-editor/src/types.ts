@@ -43,7 +43,7 @@ export interface LayerVersion {
  * `kind` is optional in the persisted shape so documents written before this
  * field existed default to "workflow" on load.
  */
-export type LayerBindingKind = "workflow" | "text-to-image" | "image-to-image";
+export type LayerBindingKind = "workflow" | "text-to-image" | "image-to-image" | "inpaint";
 
 /**
  * Per-layer binding describing how the layer's pixels are generated. Carries
@@ -62,11 +62,15 @@ export interface LayerWorkflowBinding {
   workflowId?: string;
   selectedOutputNodeId?: string;
   paramOverrides?: Record<string, unknown>;
-  // Direct-gen fields (text-to-image / image-to-image) ───────────────────
+  // Direct-gen fields (text-to-image / image-to-image / inpaint) ──────────
   prompt?: string;
   provider?: string;
   model?: string;
   sourceLayerId?: string | null;
+  /** Pre-uploaded asset ID for the source image (used by the inpaint kind). */
+  sourceAssetId?: string | null;
+  /** Pre-uploaded asset ID for the mask image (used by the inpaint kind). */
+  maskAssetId?: string | null;
   width?: number;
   height?: number;
   strength?: number;

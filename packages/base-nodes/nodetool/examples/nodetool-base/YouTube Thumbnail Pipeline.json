@@ -17,6 +17,27 @@
   "graph": {
     "nodes": [
       {
+        "id": "comment-intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# 🖼️ YouTube Thumbnail Pipeline\n\nFrom a video title and topic, generate thumbnail concepts, render images, tune colors, and overlay text.\n\n**Pipeline:** Title + Topic → Concept prompts → Image → Color tune → Overlay text\n\n**Try this:** change the number of variations or the overlay text."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 100,
+            "y": -120
+          },
+          "zIndex": 0,
+          "width": 460,
+          "height": 180,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
         "id": "video_title",
         "type": "nodetool.input.StringInput",
         "data": {
@@ -31,7 +52,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Video title"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -52,7 +74,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Video topic"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -73,7 +96,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Overlay text"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -96,7 +120,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Variations"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -114,7 +139,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "1️⃣ Build concept prompt"
         },
         "dynamic_properties": {
           "count": "",
@@ -128,9 +154,7 @@
         "id": "thumbnail_prompts",
         "type": "nodetool.generators.ListGenerator",
         "data": {
-          "model": {
-            "type": "language_model"
-          },
+          "model": {},
           "max_tokens": 2048
         },
         "ui_properties": {
@@ -141,7 +165,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "2️⃣ Write thumbnail prompts"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -161,7 +186,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Loop over prompts"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -171,9 +197,7 @@
         "id": "base_thumbnail",
         "type": "nodetool.image.TextToImage",
         "data": {
-          "model": {
-            "type": "image_model"
-          },
+          "model": {},
           "width": 1280,
           "height": 720,
           "guidance_scale": 8.0,
@@ -187,8 +211,10 @@
             "y": 200
           },
           "zIndex": 0,
-          "width": 280,
-          "selectable": true
+          "width": 384,
+          "selectable": true,
+          "height": 400,
+          "title": "3️⃣ Generate image"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -209,7 +235,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "4️⃣ Tune brightness"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -230,7 +257,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Tune contrast"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -260,7 +288,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "5️⃣ Add main text"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -290,7 +319,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Add accent text"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -306,27 +336,6 @@
           "selected": false,
           "position": {
             "x": 3760,
-            "y": 200
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "output",
-        "type": "nodetool.output.Output",
-        "data": {
-          "name": "thumbnail_variations",
-          "description": "Collection of YouTube thumbnail variations for A/B testing"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 4140,
             "y": 200
           },
           "zIndex": 0,
@@ -422,13 +431,6 @@
         "sourceHandle": "output",
         "target": "collected_thumbnails",
         "targetHandle": "input_item"
-      },
-      {
-        "id": "e13",
-        "source": "collected_thumbnails",
-        "sourceHandle": "output",
-        "target": "output",
-        "targetHandle": "value"
       }
     ]
   },

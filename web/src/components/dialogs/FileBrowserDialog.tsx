@@ -38,7 +38,9 @@ import {
   Caption,
   SearchInput,
   TextInput,
-  ToolbarIconButton
+  ToolbarIconButton,
+  BORDER_RADIUS,
+  FONT_SIZE_SANS
 } from "../ui_primitives";
 
 export type SelectionMode = "file" | "directory";
@@ -65,7 +67,7 @@ const styles = (theme: Theme) =>
     ".file-browser-content": {
       minHeight: 0,
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: "0",
+      borderRadius: 0,
       overflow: "hidden",
       backgroundColor: theme.vars.palette.background.paper
     },
@@ -95,7 +97,7 @@ const styles = (theme: Theme) =>
     },
     // Tree View Styles
     ".MuiTreeItem-content": {
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.xs,
       padding: "4px 8px",
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover
@@ -783,7 +785,7 @@ function FileBrowserDialog({
                         }
                         sx={{
                           px: 1.5,
-                          fontSize: "var(--fontSizeNormal)",
+                          fontSize: FONT_SIZE_SANS.body,
                           "&:hover": {
                             backgroundColor: theme.vars.palette.action.hover,
                           },
@@ -798,7 +800,7 @@ function FileBrowserDialog({
                           <Text
                             size="small"
                             truncate
-                            sx={{ flex: 1, minWidth: 0, fontSize: "var(--fontSizeNormal)" }}
+                            sx={{ flex: 1, minWidth: 0, fontSize: FONT_SIZE_SANS.body }}
                           >
                             {file.name}
                           </Text>

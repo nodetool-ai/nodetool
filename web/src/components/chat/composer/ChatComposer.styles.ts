@@ -1,6 +1,6 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION } from "../../ui_primitives/tokens";
+import { MOTION, BORDER_RADIUS } from "../../ui_primitives/tokens";
 
 export const createStyles = (theme: Theme) =>
   css({
@@ -16,7 +16,7 @@ export const createStyles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       alignItems: "stretch",
-      borderRadius: 24,
+      borderRadius: BORDER_RADIUS.pill,
       boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
       padding: `${theme.spacing(1)} ${theme.spacing(1.5)}`,
       minHeight: "44px",
@@ -80,7 +80,7 @@ export const createStyles = (theme: Theme) =>
         top: "0",
         padding: theme.spacing(1),
         position: "relative",
-        borderRadius: 12
+        borderRadius: BORDER_RADIUS.lg
       }
 
       // Mobile styles handled via separate CSS file

@@ -11,7 +11,8 @@ import {
   Box,
   Text,
   Caption,
-  ScrollArea
+  ScrollArea,
+  BORDER_RADIUS
 } from "../../ui_primitives";
 import { useNodes } from "../../../contexts/NodeContext";
 import { NodeData } from "../../../stores/NodeData";
@@ -188,7 +189,7 @@ export const ComfyWorkflowLoader: React.FC<ComfyWorkflowLoaderProps> = memo(
               sx={{
                 border: "1px dashed",
                 borderColor: "divider",
-                borderRadius: 1,
+                borderRadius: BORDER_RADIUS.xs,
                 p: 1
               }}
             >

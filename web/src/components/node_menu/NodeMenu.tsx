@@ -20,7 +20,7 @@ import useNamespaceTree from "../../hooks/useNamespaceTree";
 import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useCreateNode } from "../../hooks/useCreateNode";
-import { FlexColumn, FlexRow, Chip, Box } from "../ui_primitives";
+import { FlexColumn, FlexRow, Box, BORDER_RADIUS } from "../ui_primitives";
 import { useShallow } from "zustand/react/shallow";
 
 const treeStyles = (theme: Theme) =>
@@ -49,7 +49,7 @@ const treeStyles = (theme: Theme) =>
       "100%": { opacity: 1 }
     },
     ".draggable-header": {
-      borderRadius: "16px 16px 0 0",
+      borderRadius: `${BORDER_RADIUS.xxl} ${BORDER_RADIUS.xxl} 0 0`,
       backgroundColor: theme.vars.palette.background.paper,
       width: "100%",
       minHeight: "1.5em",

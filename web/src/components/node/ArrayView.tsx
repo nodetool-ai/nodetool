@@ -1,6 +1,6 @@
 import React, { memo, useMemo } from "react";
 import { NPArray } from "../../stores/ApiTypes";
-import { Text, FlexColumn, Surface } from "../ui_primitives";
+import { Text, FlexColumn, Surface, BORDER_RADIUS } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
 
 interface ArrayViewProps {
@@ -30,7 +30,7 @@ const ArrayView: React.FC<ArrayViewProps> = ({ array }) => {
         <pre
           style={{
             padding: 8,
-            borderRadius: 4,
+            borderRadius: BORDER_RADIUS.sm,
             overflow: "auto",
             maxHeight: "200px"
           }}

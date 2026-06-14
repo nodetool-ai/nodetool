@@ -1,27 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { LAYER_TEMPLATE_SEED_IDS, SEEDED_LAYER_TEMPLATES } from "../src/seedLayerTemplates.js";
 import type {
   ImageDocument,
   LayerStatus,
-  LayerTemplateDefinition,
   LayerWorkflowBinding,
   SketchDocumentLike
 } from "../src/types.js";
 
 describe("image-editor shared types", () => {
-  it("exports three seeded layer templates", () => {
-    expect(SEEDED_LAYER_TEMPLATES).toHaveLength(3);
-    expect(SEEDED_LAYER_TEMPLATES.map((template) => template.id)).toEqual(
-      Object.values(LAYER_TEMPLATE_SEED_IDS)
-    );
-  });
-
-  it("seed templates are strongly typed", () => {
-    const templates: LayerTemplateDefinition[] = SEEDED_LAYER_TEMPLATES;
-    const kinds = templates.map((template) => template.kind).sort();
-    expect(kinds).toEqual(["background-remove", "inpaint", "text-to-image"]);
-  });
-
   it("supports binding a sketch-compatible document without redefining full sketch types", () => {
     interface MinimalSketchDocument extends SketchDocumentLike {
       metadata: { createdAt: string; updatedAt: string };

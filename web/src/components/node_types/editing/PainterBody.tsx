@@ -52,7 +52,10 @@ import {
   FlexRow,
   ToggleGroup,
   ToggleOption,
-  ToolbarIconButton
+  ToolbarIconButton,
+  BORDER_RADIUS,
+  MOTION,
+  FONT_WEIGHT
 } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import { NodeOutputs } from "../../node/NodeOutputs";
@@ -129,7 +132,7 @@ const styles = (theme: Theme) =>
       minWidth: 0,
       minHeight: 0,
       position: "relative",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
       // Solid letterbox around the canvas — distinguishes "outside the
       // paintable area" from the canvas itself, which carries the checker.
@@ -207,7 +210,7 @@ const styles = (theme: Theme) =>
         top: 0,
         width: 0,
         height: 0,
-        borderRadius: "50%",
+        borderRadius: BORDER_RADIUS.circle,
         border: `1px solid ${theme.vars.palette.common.white}`,
         outline: `1px solid ${theme.vars.palette.common.black}`,
         // Initial transform — overwritten by `updateBrushCursor` per-move.
@@ -215,7 +218,7 @@ const styles = (theme: Theme) =>
         transform: "translate(0, 0) translate(-50%, -50%)",
         pointerEvents: "none",
         opacity: 0,
-        transition: "opacity 80ms linear",
+        transition: MOTION.opacity,
         // `will-change: transform` hints the browser to give this its own
         // GPU layer up front so per-move transform writes don't churn.
         willChange: "transform",
@@ -232,7 +235,7 @@ const styles = (theme: Theme) =>
       gap: theme.spacing(1),
       padding: theme.spacing(1),
       margin: theme.spacing(0.5, 0),
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       background: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`,
       fontFamily: theme.fontFamily2,
@@ -264,7 +267,7 @@ const styles = (theme: Theme) =>
       width: 36,
       height: 36,
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       padding: 0,
       background: "transparent",
       cursor: "pointer",

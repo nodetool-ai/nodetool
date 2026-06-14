@@ -9,7 +9,7 @@ import {
   ListItem,
   ListItemText
 } from "@mui/material";
-import { Text, Caption, EditorButton, ToolbarIconButton, Chip, Box, ProgressBar, Collapse, MOTION, Card } from "../ui_primitives";
+import { Text, Caption, EditorButton, ToolbarIconButton, Chip, Box, ProgressBar, Collapse, MOTION, Card, BORDER_RADIUS } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DownloadIcon from "@mui/icons-material/Download";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -110,7 +110,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
         mb: 2,
         backgroundColor: "var(--palette-grey-900)",
         border: "1px solid var(--palette-grey-700)",
-        borderRadius: 2,
+        borderRadius: BORDER_RADIUS.sm,
         transition: MOTION.border,
         "&:hover": {
           borderColor: "var(--palette-grey-500)"
@@ -154,8 +154,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
                   size="small"
                   sx={{
                     backgroundColor: "var(--palette-grey-800)",
-                    color: "var(--palette-grey-200)",
-                    fontSize: "var(--fontSizeSmaller)"
+                    color: "var(--palette-grey-200)"
                   }}
                 />
               ))}
@@ -187,7 +186,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
               value={downloadProgress}
               showValue={false}
               sx={{
-                borderRadius: 3,
+                borderRadius: BORDER_RADIUS.lg,
                 backgroundColor: "var(--palette-grey-700)"
               }}
             />
@@ -246,7 +245,7 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
                   py: 0.5,
                   px: 1,
                   backgroundColor: "var(--palette-grey-800)",
-                  borderRadius: 1,
+                  borderRadius: BORDER_RADIUS.xs,
                   mb: 0.5
                 }}
               >

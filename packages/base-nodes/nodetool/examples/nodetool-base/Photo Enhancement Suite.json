@@ -16,18 +16,25 @@
   "graph": {
     "nodes": [
       {
-        "id": "1",
-        "parent_id": null,
-        "type": "nodetool.output.Output",
+        "id": "comment-intro",
+        "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "name": "enhanced_photos",
-          "value": null,
-          "description": "Collection of enhanced photos"
+          "comment": "# 📷 Photo Enhancement Suite\n\nBatch-enhance a folder of photos through a fixed retouch chain: auto-contrast, color, brightness, sharpening, and an AI polish pass.\n\n**Pipeline:** Folder → Auto-contrast → Color/Brightness → Sharpen → AI enhance\n\n**Try this:** adjust the brightness and color factors to taste."
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 0,
+            "y": -220
+          },
+          "zIndex": 0,
+          "width": 460,
+          "height": 180,
+          "selectable": true,
+          "bypassed": false
+        },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "2",
@@ -46,9 +53,7 @@
         "parent_id": null,
         "type": "nodetool.image.ImageToImage",
         "data": {
-          "model": {
-            "type": "image_model"
-          },
+          "model": {},
           "image": {
             "type": "image",
             "uri": "",
@@ -67,7 +72,11 @@
           "scheduler": "",
           "safety_check": true
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "width": 384,
+          "height": 400,
+          "title": "7️⃣ AI enhance"
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -87,7 +96,9 @@
           "amount": 1.2,
           "threshold": 0.0117647
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "6️⃣ Sharpen detail"
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -106,7 +117,9 @@
           },
           "amount": 1
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "5️⃣ Sharpen"
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -127,7 +140,9 @@
           "saturation": 1,
           "brightness": 1
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "4️⃣ Adjust color"
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -147,7 +162,9 @@
           "brightness": 0,
           "contrast": 1
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "3️⃣ Brightness/Contrast"
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -166,7 +183,9 @@
           },
           "cutoff": 2
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "2️⃣ Auto-contrast"
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -188,7 +207,9 @@
           ],
           "pattern": ""
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "1️⃣ Load photos"
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -202,7 +223,9 @@
           "value": "./photos",
           "description": "Folder containing photos to enhance"
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "Photo folder path"
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -218,7 +241,9 @@
           "min": 0.5,
           "max": 1.5
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "Brightness factor"
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -234,21 +259,9 @@
           "min": 0.5,
           "max": 2.0
         },
-        "ui_properties": {},
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "13",
-        "parent_id": null,
-        "type": "nodetool.output.Output",
-        "data": {
-          "name": "source_paths",
-          "value": null,
-          "description": "Original file paths for reference"
+        "ui_properties": {
+          "title": "Color factor"
         },
-        "ui_properties": {},
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -348,27 +361,11 @@
         "ui_properties": null
       },
       {
-        "id": "11",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "1",
-        "targetHandle": "value",
-        "ui_properties": null
-      },
-      {
         "id": "12",
         "source": "9",
         "sourceHandle": "path",
         "target": "14",
         "targetHandle": "input_item",
-        "ui_properties": null
-      },
-      {
-        "id": "13",
-        "source": "14",
-        "sourceHandle": "output",
-        "target": "13",
-        "targetHandle": "value",
         "ui_properties": null
       }
     ]

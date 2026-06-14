@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
-import { Text, FlexRow, AlertBanner, Surface, TextInput } from "../ui_primitives";
+import { Text, FlexRow, AlertBanner, Surface, TextInput, BORDER_RADIUS, FONT_WEIGHT } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
 import { getMousePosition } from "../../utils/MousePosition";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -219,7 +219,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
           maxWidth: "calc(100vw - 32px)",
           backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.9)`,
           backdropFilter: "blur(10px)",
-          borderRadius: 1,
+          borderRadius: BORDER_RADIUS.sm,
           overflow: "hidden"
         }}
       >
@@ -262,10 +262,10 @@ const AssetCreateFolderConfirmation: React.FC = () => {
             autoCorrect="off"
             spellCheck="false"
             sx={{
-              padding: "8px",
+              padding: "4px",
               "& input": {
                 fontFamily: theme.fontFamily1,
-                padding: "8px 12px"
+                padding: "4px 6px"
               }
             }}
           />
@@ -290,7 +290,7 @@ const AssetCreateFolderConfirmation: React.FC = () => {
             onClick={handleCreateFolder}
             sx={{
               color: "var(--palette-primary-main)",
-              fontWeight: 600
+              fontWeight: FONT_WEIGHT.semibold
             }}
           >
             {hasSelectedAssets ? "Move to New Folder" : "Create Folder"}

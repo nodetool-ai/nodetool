@@ -13,7 +13,7 @@ import OverallDownloadProgress from "../hugging_face/OverallDownloadProgress";
 import NotificationButton from "./NotificationButton";
 import { isProduction } from "../../lib/env";
 import { ThemeToggleButton } from "../ui_primitives/ThemeToggleButton";
-import { HelpButton, Box, MOTION } from "../ui_primitives";
+import { HelpButton, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -33,8 +33,8 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       backgroundColor: "transparent",
       border: "1px solid transparent",
-      borderRadius: "var(--rounded-md)",
-      transition: `color ${MOTION.fast}, ${MOTION.background}, transform 0ms`,
+      borderRadius: BORDER_RADIUS.md,
+      transition: `color ${MOTION.fast}, background ${MOTION.fast}, transform 0ms`,
       "&:hover": {
         color: theme.vars.palette.text.primary,
         backgroundColor: theme.vars.palette.action.hover,

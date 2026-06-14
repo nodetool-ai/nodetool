@@ -3,7 +3,7 @@ import { useState, DragEvent, useRef, useCallback, useEffect } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { MOTION } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, FONT_WEIGHT } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -20,12 +20,12 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       border: `3px dashed ${theme.vars.palette.primary.main}`,
-      borderRadius: "var(--rounded-lg)"
+      borderRadius: BORDER_RADIUS.lg
     },
     ".dragging-overlay-text": {
       color: theme.vars.palette.primary.main,
       fontSize: theme.fontSizeNormal,
-      fontWeight: 600,
+      fontWeight: FONT_WEIGHT.semibold,
       pointerEvents: "none",
       textTransform: "uppercase",
       letterSpacing: "0.05em"
@@ -41,8 +41,8 @@ const styles = (theme: Theme) =>
       margin: "0",
       border: "none",
       outline: "none",
-      borderRadius: "5px",
-      transition: `background ${MOTION.normal}`
+      borderRadius: BORDER_RADIUS.sm,
+      transition: `background ${MOTION.fast}`
     }
   });
 

@@ -25,7 +25,7 @@ import AudioPlayer from "../audio/AudioPlayer";
 import ThreadMessageList from "./ThreadMessageList";
 import CalendarEventView from "./CalendarEventView";
 import { List, ListItem, ListItemText } from "@mui/material";
-import { Container, EmptyState, LoadingSpinner } from "../ui_primitives";
+import { Container, EmptyState, LoadingSpinner, BORDER_RADIUS } from "../ui_primitives";
 import ListTable from "./DataTable/ListTable";
 import ImageView from "./ImageView";
 import AssetViewer from "../assets/AssetViewer";
@@ -908,7 +908,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                         seen
                       )}
                       sx={{
-                        borderRadius: 2,
+                        borderRadius: BORDER_RADIUS.sm,
                         bgcolor: "background.paper",
                         boxShadow: 1,
                         mb: 1,
@@ -958,7 +958,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                           key={key}
                           sx={{
                             alignItems: "flex-start",
-                            borderRadius: 2,
+                            borderRadius: BORDER_RADIUS.sm,
                             bgcolor: "background.paper",
                             boxShadow: 1,
                             mb: 1,
@@ -1035,7 +1035,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                               style={{
                                 margin: "0.5em 0.75em",
                                 padding: "0.4em 0.6em",
-                                borderRadius: 8,
+                                borderRadius: "var(--rounded-lg)",
                                 background: "rgba(255, 193, 7, 0.12)",
                                 border: "1px solid rgba(255, 193, 7, 0.35)",
                                 color: "rgba(255, 255, 255, 0.85)",

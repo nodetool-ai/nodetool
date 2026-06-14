@@ -49,37 +49,29 @@
         "sourceHandle": "modules",
         "target": "2",
         "targetHandle": "modules"
-      },
-      {
-        "id": "6",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "1",
-        "targetHandle": "value"
       }
     ],
     "nodes": [
       {
-        "id": "1",
-        "type": "nodetool.output.Output",
+        "id": "comment-intro",
+        "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "name": "learning_path_markdown",
-          "description": ""
+          "comment": "# 🎓 Learning Path Generator\n\nName a topic and a research agent searches the web to build a structured, module-by-module study plan.\n\n**Pipeline:** Topic → build prompt → Research agent (search + browse) → format as markdown\n\n**Try this:** change the topic, or edit the prompt to set the number of modules or difficulty. Pick a model on the agent first."
         },
         "ui_properties": {
-          "selected": true,
+          "selected": false,
           "position": {
-            "x": 1590,
-            "y": 485
+            "x": 0,
+            "y": -220
           },
           "zIndex": 0,
-          "width": 280,
+          "width": 460,
+          "height": 180,
           "selectable": true,
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "2",
@@ -95,7 +87,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "4️⃣ Format as markdown"
         },
         "dynamic_properties": {
           "topic": null,
@@ -109,9 +102,7 @@
         "id": "3",
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {
-            "type": "language_model"
-          },
+          "model": {},
           "tools": [
             {
               "type": "tool_name",
@@ -135,7 +126,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "3️⃣ Research the path"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {
@@ -201,7 +193,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "2️⃣ Build research prompt"
         },
         "dynamic_properties": {
           "topic": null
@@ -225,7 +218,8 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "bypassed": false
+          "bypassed": false,
+          "title": "1️⃣ Topic"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
