@@ -22,7 +22,8 @@ import {
 } from "./node-registry-setup.js";
 import {
   UnifiedWebSocketRunner,
-  type WebSocketConnection
+  type WebSocketConnection,
+  type UnifiedWebSocketRunnerOptions
 } from "./unified-websocket-runner.js";
 import { appRouter } from "./trpc/router.js";
 import { createContextFactory } from "./trpc/context.js";
@@ -903,6 +904,29 @@ export interface TestUiServerOptions extends HttpApiOptions {
   port?: number;
   host?: string;
   examplesDir?: string;
+  /**
+   * Called after built-in nodes are registered, before the server starts.
+   * Lets callers register extra node classes / metadata (e.g. an e2e harness
+   * registering test-only node types) on the same registry the runner uses.
+   */
+  configureRegistry?: (registry: NodeRegistry) => void;
+  /**
+   * Override LLM provider resolution. Defaults to a deterministic
+   * ScriptedProvider so agent/LLM workflows run without API keys. An e2e
+   * harness can pass a resolver that returns real providers when keys exist.
+   */
+  resolveProvider?: UnifiedWebSocketRunnerOptions["resolveProvider"];
+  /**
+   * Override executor resolution for unknown node types. Receives the registry
+   * so the default (registry.resolve) can be reused for known types.
+   */
+  resolveExecutor?: UnifiedWebSocketRunnerOptions["resolveExecutor"];
+  /**
+   * When true, unknown node types resolve to a permissive passthrough instead
+   * of failing graph hydration/execution. Lets the harness run CLI fixtures
+   * that use test-only node types such as `test.Input`.
+   */
+  passthroughUnknownNodes?: boolean;
 }
 
 function detectMetadataRootsFromPip(): string[] {
@@ -1186,6 +1210,7 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
   });
   registerBuiltInNodes(registry);
   applyProductionNodePolicy(registry);
+  options.configureRegistry?.(registry);
   const resolvedApiOptions: HttpApiOptions = {
     ...options,
     metadataRoots,
@@ -1194,7 +1219,48 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
     // examples directly from the filesystem without requiring Python metadata.
     ...(examplesDir ? { examplesDir } : {})
   };
-  const graphNodeTypeResolver = createGraphNodeTypeResolver(registry);
+  const baseGraphNodeTypeResolver = createGraphNodeTypeResolver(registry);
+  // When `passthroughUnknownNodes` is set, unknown node types (e.g. the
+  // `test.Input` placeholder used by CLI fixtures) resolve to a permissive
+  // synthetic type so graph hydration succeeds. The kernel already treats
+  // `test.Input` / `nodetool.input.*` as external inputs and dispatches the
+  // run params by node name; declaring `name` keeps that property through
+  // hydration.
+  const graphNodeTypeResolver: typeof baseGraphNodeTypeResolver = options
+    .passthroughUnknownNodes
+    ? {
+        resolveNodeType: async (nodeType: string) => {
+          const resolved =
+            await baseGraphNodeTypeResolver.resolveNodeType(nodeType);
+          if (resolved) return resolved;
+          return {
+            nodeType,
+            propertyTypes: { name: "str", value: "any" },
+            outputs: {},
+            supportsDynamicInputs: true,
+            descriptorDefaults: {}
+          };
+        }
+      }
+    : baseGraphNodeTypeResolver;
+
+  // Passthrough executor for unknown node types: echo inputs back so values
+  // flow downstream. For `test.Input` the kernel calls process({ value }) and
+  // dispatches the echoed `value` to each outgoing edge (falling back to the
+  // raw param value per handle when the source handle isn't echoed).
+  const passthroughExecutor = {
+    async process(inputs: Record<string, unknown>) {
+      return inputs;
+    }
+  };
+  const resolveExecutor: UnifiedWebSocketRunnerOptions["resolveExecutor"] =
+    options.resolveExecutor ??
+    ((node) => {
+      if (options.passthroughUnknownNodes && !registry.has(node.type)) {
+        return passthroughExecutor;
+      }
+      return registry.resolve(node);
+    });
   const trpcContextFactory = createContextFactory({
     registry,
     apiOptions: resolvedApiOptions,
@@ -1307,24 +1373,26 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
         log.error("WebSocket client error", error);
       });
       const runner = new UnifiedWebSocketRunner({
-        resolveExecutor: (node) => registry.resolve(node),
+        resolveExecutor,
         resolveNodeType: graphNodeTypeResolver,
-        resolveProvider: async (_providerId) =>
-          new ScriptedProvider([
-            autoScript({
-              plan: {
-                title: "Agent task",
-                steps: [
-                  {
-                    id: "s1",
-                    instructions: "Complete the objective",
-                    depends_on: []
-                  }
-                ]
-              },
-              text: "fake agent response from server"
-            })
-          ]),
+        resolveProvider:
+          options.resolveProvider ??
+          (async (_providerId) =>
+            new ScriptedProvider([
+              autoScript({
+                plan: {
+                  title: "Agent task",
+                  steps: [
+                    {
+                      id: "s1",
+                      instructions: "Complete the objective",
+                      depends_on: []
+                    }
+                  ]
+                },
+                text: "fake agent response from server"
+              })
+            ])),
         getNodeMetadata: (nodeType) => registry.getMetadata(nodeType)
       });
       log.info("WebSocket client connected");
