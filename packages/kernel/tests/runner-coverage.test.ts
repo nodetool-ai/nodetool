@@ -8,8 +8,29 @@
 
 import { describe, it, expect } from "vitest";
 import { WorkflowRunner } from "../src/runner.js";
+import { Graph } from "../src/graph.js";
 import type { NodeDescriptor, Edge, ControlEvent } from "@nodetool-ai/protocol";
 import type { NodeExecutor } from "../src/actor.js";
+
+type RunnerInternals = {
+  _graph: Graph;
+  _buildControlContext(nodeId: string): Record<string, unknown> | null;
+  _buildControlActionProperties(
+    node: NodeDescriptor
+  ): Record<string, Record<string, unknown>>;
+  _isOutputNode(node: NodeDescriptor): boolean;
+  _isExternalInputNode(node: NodeDescriptor): boolean;
+  _getExternalInputName(node: NodeDescriptor): string;
+};
+const internals = (r: WorkflowRunner) => r as unknown as RunnerInternals;
+const bareRunner = () =>
+  new WorkflowRunner("internals", {
+    resolveExecutor: () => ({
+      async process() {
+        return {};
+      }
+    })
+  });
 
 function simpleExecutor(
   fn: (inputs: Record<string, unknown>) => Record<string, unknown>
@@ -606,5 +627,212 @@ describe("WorkflowRunner – external workflow inputs", () => {
 
     expect(result.status).toBe("completed");
     expect(result.outputs.result).toEqual([10]);
+  });
+});
+
+describe("WorkflowRunner._buildControlActionProperties", () => {
+  it("maps declared types, infers from values, and attaches meta/default", () => {
+    const node: NodeDescriptor = {
+      id: "c",
+      type: "test.Controlled",
+      propertyTypes: {
+        i: "int",
+        f: "float",
+        b: "bool",
+        lst: "list[str]",
+        dct: "dict[str,int]",
+        s: "str"
+      },
+      properties: {
+        i: 5,
+        f: 1.5,
+        b: true,
+        lst: [],
+        dct: {},
+        s: "hi",
+        numNoType: 3,
+        floatNoType: 2.5,
+        boolNoType: false,
+        _hidden: 1,
+        undef: undefined
+      },
+      propertyMeta: { i: { description: "the i", min: 0, max: 10 } }
+    } as NodeDescriptor;
+
+    const result = internals(bareRunner())._buildControlActionProperties(node);
+
+    expect(result._hidden).toBeUndefined(); // underscore-prefixed skipped
+    expect(result.i).toEqual({
+      type: "integer",
+      description: "the i",
+      default: 5,
+      minimum: 0,
+      maximum: 10
+    });
+    expect(result.f).toEqual({
+      type: "number",
+      description: "Property 'f' (float)",
+      default: 1.5
+    });
+    expect(result.b).toEqual({
+      type: "boolean",
+      description: "Property 'b' (bool)",
+      default: true
+    });
+    expect(result.lst).toEqual({
+      type: "array",
+      description: "Property 'lst' (list[str])",
+      default: []
+    });
+    expect(result.dct).toEqual({
+      type: "object",
+      description: "Property 'dct' (dict[str,int])",
+      default: {}
+    });
+    expect(result.s.type).toBe("string");
+    // Type inferred from the value when no declared type is present:
+    expect(result.numNoType).toEqual({
+      type: "integer",
+      description: "Property 'numNoType' (integer)",
+      default: 3
+    });
+    expect(result.floatNoType.type).toBe("number");
+    expect(result.boolNoType).toEqual({
+      type: "boolean",
+      description: "Property 'boolNoType' (boolean)",
+      default: false
+    });
+    // undefined value → no default key
+    expect(result.undef).toEqual({
+      type: "string",
+      description: "Property 'undef' (string)"
+    });
+  });
+});
+
+describe("WorkflowRunner._buildControlContext", () => {
+  const withGraph = (nodes: NodeDescriptor[], edges: Edge[]) => {
+    const r = bareRunner();
+    internals(r)._graph = new Graph({ nodes, edges });
+    return internals(r);
+  };
+  const ctrlEdge = (source: string, target: string): Edge => ({
+    source,
+    sourceHandle: "ctrl",
+    target,
+    targetHandle: "__control__",
+    edge_type: "control"
+  });
+
+  it("returns null for a node with no outgoing control edges", () => {
+    const r = withGraph(
+      [
+        { id: "a", type: "t" },
+        { id: "b", type: "t" }
+      ],
+      [{ source: "a", sourceHandle: "out", target: "b", targetHandle: "in" }]
+    );
+    expect(r._buildControlContext("a")).toBeNull();
+  });
+
+  it("describes each controlled target with its properties and run action", () => {
+    const nodes: NodeDescriptor[] = [
+      { id: "ctrlr", type: "t" },
+      {
+        id: "tgt",
+        type: "test.Sink",
+        name: "Sink Title",
+        properties: { gain: 2, _secret: 9 },
+        propertyTypes: { gain: "int" },
+        propertyMeta: { gain: { description: "the gain", min: 1, max: 4 } }
+      }
+    ];
+    const r = withGraph(nodes, [ctrlEdge("ctrlr", "tgt")]);
+
+    const ctx = r._buildControlContext("ctrlr") as Record<
+      string,
+      Record<string, unknown>
+    >;
+    expect(ctx).not.toBeNull();
+    const tgt = ctx.tgt;
+    expect(tgt.node_id).toBe("tgt");
+    expect(tgt.node_type).toBe("test.Sink");
+    expect(tgt.node_title).toBe("Sink Title");
+    expect(tgt.properties).toEqual({
+      gain: { value: 2, type: "int", description: "the gain", min: 1, max: 4 }
+    });
+    expect(
+      (tgt.control_actions as Record<string, Record<string, unknown>>).run
+        .properties
+    ).toHaveProperty("gain");
+  });
+
+  it("falls back to the node id for the title when unnamed", () => {
+    const nodes: NodeDescriptor[] = [
+      { id: "ctrlr", type: "t" },
+      { id: "tgt", type: "t", properties: { a: 1 } }
+    ];
+    const r = withGraph(nodes, [ctrlEdge("ctrlr", "tgt")]);
+    const ctx = r._buildControlContext("ctrlr") as Record<
+      string,
+      Record<string, unknown>
+    >;
+    expect(ctx.tgt.node_title).toBe("tgt");
+  });
+});
+
+describe("WorkflowRunner – node predicates", () => {
+  const withGraph = (nodes: NodeDescriptor[], edges: Edge[]) => {
+    const r = bareRunner();
+    internals(r)._graph = new Graph({ nodes, edges });
+    return internals(r);
+  };
+
+  it("_isOutputNode is true only when a node has no outgoing DATA edges", () => {
+    const nodes: NodeDescriptor[] = [
+      { id: "a", type: "t" },
+      { id: "b", type: "t" },
+      { id: "sink", type: "t" }
+    ];
+    const edges: Edge[] = [
+      { source: "a", sourceHandle: "o", target: "sink", targetHandle: "i" },
+      // a's only OTHER outgoing edge is a control edge — must be ignored.
+      {
+        source: "a",
+        sourceHandle: "ctrl",
+        target: "b",
+        targetHandle: "__control__",
+        edge_type: "control"
+      }
+    ];
+    const r = withGraph(nodes, edges);
+    expect(r._isOutputNode(nodes[0])).toBe(false); // a has a data edge to sink
+    expect(r._isOutputNode(nodes[2])).toBe(true); // sink has no outgoing edges
+    // b has only an incoming control edge — no outgoing data edges → output.
+    expect(r._isOutputNode(nodes[1])).toBe(true);
+  });
+
+  it("_isExternalInputNode recognizes input node types", () => {
+    const r = internals(bareRunner());
+    expect(r._isExternalInputNode({ id: "x", type: "test.Input" })).toBe(true);
+    expect(
+      r._isExternalInputNode({ id: "x", type: "nodetool.input.Text" })
+    ).toBe(true);
+    expect(r._isExternalInputNode({ id: "x", type: "test.Other" })).toBe(false);
+  });
+
+  it("_getExternalInputName prefers a string properties.name, else node.name, else id", () => {
+    const r = internals(bareRunner());
+    expect(
+      r._getExternalInputName({
+        id: "x",
+        type: "test.Input",
+        properties: { name: "  fromProp  " }
+      } as NodeDescriptor)
+    ).toBe("fromProp");
+    expect(
+      r._getExternalInputName({ id: "x", type: "test.Input", name: "fromName" })
+    ).toBe("fromName");
+    expect(r._getExternalInputName({ id: "x", type: "test.Input" })).toBe("x");
   });
 });
