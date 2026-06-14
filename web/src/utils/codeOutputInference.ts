@@ -171,6 +171,51 @@ export function inferInputKeysFromCode(code: string): string[] | null {
   return inputs.length > 0 ? inputs : null;
 }
 
+// ---------------------------------------------------------------------------
+// Node-data derivation
+// ---------------------------------------------------------------------------
+
+interface CodeIOUpdates {
+  dynamic_outputs: Record<
+    string,
+    { type: string; type_args: never[]; optional: boolean }
+  >;
+  dynamic_properties: Record<string, unknown>;
+}
+
+/**
+ * Derive the `dynamic_outputs` / `dynamic_properties` node-data updates from the
+ * `code` property of a Code node. Inferred inputs preserve any existing value;
+ * inputs/outputs no longer referenced by the code are dropped.
+ *
+ * Shared by the inline property editor and the Monaco-based CodeBody so both
+ * keep the node's handles in sync with the code.
+ */
+export function deriveCodeIOUpdates(
+  code: string,
+  existingDynProps: Record<string, unknown> = {}
+): CodeIOUpdates {
+  const outputKeys = inferOutputKeysFromCode(code);
+  const inputKeys = inferInputKeysFromCode(code);
+
+  const dynamic_outputs: CodeIOUpdates["dynamic_outputs"] = {};
+  if (outputKeys) {
+    for (const key of outputKeys) {
+      dynamic_outputs[key] = { type: "any", type_args: [], optional: false };
+    }
+  }
+
+  const dynamic_properties: Record<string, unknown> = {};
+  if (inputKeys) {
+    for (const key of inputKeys) {
+      dynamic_properties[key] =
+        key in existingDynProps ? existingDynProps[key] : "";
+    }
+  }
+
+  return { dynamic_outputs, dynamic_properties };
+}
+
 /**
  * Collect binding names from a pattern node (handles destructuring).
  */
