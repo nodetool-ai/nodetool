@@ -62,6 +62,26 @@ test("workflow suite executes and records artifacts", async ({ page }) => {
   }
 
   writeFileSync(resolve(ARTIFACT_DIR, "results.json"), JSON.stringify(records, null, 2));
+
+  // Surface per-node errors (workflows can "complete" while individual nodes
+  // error on faked inputs) so they're visible in the CI log for iteration.
+  const nodeErrors: string[] = [];
+  for (const rec of records) {
+    for (const [nodeId, io] of Object.entries(rec.nodeIO ?? {})) {
+      if (io.error) {
+        nodeErrors.push(
+          `${rec.id} · ${io.node_type ?? nodeId}: ${String(io.error).slice(0, 200)}`
+        );
+      }
+    }
+  }
+  if (nodeErrors.length > 0) {
+    writeFileSync(resolve(ARTIFACT_DIR, "node-errors.log"), nodeErrors.join("\n"));
+    console.log(
+      `[e2e suite] ${nodeErrors.length} node error(s) across completed workflows:\n` +
+        nodeErrors.map((e) => `  ${e}`).join("\n")
+    );
+  }
   if (consoleErrors.length > 0) {
     writeFileSync(
       resolve(ARTIFACT_DIR, "console-errors.log"),
