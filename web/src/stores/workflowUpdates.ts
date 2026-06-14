@@ -14,6 +14,7 @@ import {
   TerminalUpdate,
   LLMCallUpdate,
   StepResult,
+  TodoUpdate,
   Message,
   Chunk
 } from "./ApiTypes";
@@ -321,6 +322,7 @@ export type MsgpackData =
   | PlanningUpdate
   | OutputUpdate
   | StepResult
+  | TodoUpdate
   | EdgeUpdate
   | LLMCallUpdate
   | TerminalUpdate
@@ -435,6 +437,30 @@ export const handleUpdate = (
     } else if (!data.node_id) {
       console.error("TaskUpdate has no node_id");
     }
+  }
+
+  // Agent nodes emit step_result / todo_update during a run. The chat path
+  // handles these separately; in the workflow path they were previously
+  // dropped (step_result was even in the union with no branch). Record them on
+  // the trace timeline alongside tool_call/tool_result so an agent node's
+  // progress is observable in the editor.
+  if (data.type === "step_result") {
+    const stepName = data.step?.name ?? data.step?.id ?? "";
+    appendTrace(
+      "step_result",
+      `Step ${stepName}${data.is_task_result ? " (task result)" : ""}${
+        data.error ? " — error" : ""
+      }`,
+      data
+    );
+  }
+
+  if (data.type === "todo_update") {
+    const todos = data.todos ?? [];
+    const done = todos.filter((t) => t.status === "completed").length;
+    appendTrace("todo_update", `Todos ${done}/${todos.length}`, data, {
+      nodeId: data.node_id ?? undefined
+    });
   }
 
   if (data.type === "llm_call") {
