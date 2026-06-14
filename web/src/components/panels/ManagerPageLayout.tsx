@@ -24,17 +24,22 @@ interface ManagerPageLayoutProps {
    * model list) that own their own layout, sidebars, and scrolling.
    */
   padded?: boolean;
+  /**
+   * Drop the top offset that normally reserves space for the app header. Use on
+   * routes that render no header so the page sits flush against the top edge.
+   */
+  disableHeaderOffset?: boolean;
   children: React.ReactNode;
 }
 
-const styles = (theme: Theme) =>
+const styles = (theme: Theme, disableHeaderOffset: boolean) =>
   css({
     "&": {
       display: "flex",
       flexDirection: "column",
       width: "100%",
       height: "100%",
-      paddingTop: `${HEADER_HEIGHT}px`,
+      paddingTop: disableHeaderOffset ? 0 : `${HEADER_HEIGHT}px`,
       backgroundColor: theme.vars.palette.background.default
     },
     ".manager-page-hero": {
@@ -112,6 +117,7 @@ const ManagerPageLayout: React.FC<ManagerPageLayoutProps> = ({
   docsLabel = "Documentation",
   actions,
   padded = true,
+  disableHeaderOffset = false,
   children
 }) => {
   const theme = useTheme();
@@ -126,7 +132,7 @@ const ManagerPageLayout: React.FC<ManagerPageLayoutProps> = ({
   }, [navigate]);
 
   return (
-    <Box css={styles(theme)} className="manager-page">
+    <Box css={styles(theme, disableHeaderOffset)} className="manager-page">
       <header className="manager-page-hero">
         <EditorButton
           className="manager-page-back"
