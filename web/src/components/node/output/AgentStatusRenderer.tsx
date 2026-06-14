@@ -86,7 +86,7 @@ export const AgentStatusRenderer: React.FC<Props> = memo(({ chunk }) => {
         display: "flex",
         alignItems: "flex-start",
         gap: 8,
-        padding: "6px 10px",
+        padding: "6px 12px",
         margin: "2px 8px",
         borderLeft: `2px solid ${color}`,
         background: `${color}14`,
@@ -102,7 +102,7 @@ export const AgentStatusRenderer: React.FC<Props> = memo(({ chunk }) => {
           display: "inline-flex",
           alignItems: "center",
           fontSize: "1em",
-          marginTop: 1
+          marginTop: 2
         }}
       >
         <IconFor kind={kind} severity={severity} />

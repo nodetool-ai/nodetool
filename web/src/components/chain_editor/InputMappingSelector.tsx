@@ -197,7 +197,7 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
                       onSetMapping(prop.name, null);
                     }}
                     icon={<CloseIcon sx={{ fontSize: 14, color: theme.vars.palette.secondary.main }} />}
-                    sx={{ p: 0.25 }}
+                    sx={{ p: 0.5 }}
                   />
                 </FlexRow>
               ) : (

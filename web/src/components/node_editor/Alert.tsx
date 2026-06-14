@@ -49,7 +49,7 @@ const styles = () =>
       minHeight: "unset",
       paddingTop: "6px",
       paddingBottom: "6px",
-      paddingLeft: "10px",
+      paddingLeft: "12px",
       paddingRight: "8px",
       alignItems: "flex-start",
       "& .MuiAlert-icon": {

@@ -88,7 +88,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(1),
-      paddingTop: theme.spacing(0.25)
+      paddingTop: theme.spacing(0.5)
     },
     ".wrap-label": {
       fontSize: theme.fontSizeSmaller,

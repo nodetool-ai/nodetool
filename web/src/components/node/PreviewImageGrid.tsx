@@ -531,7 +531,7 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
           >
             <ClearIcon fontSize="small" />
           </ToolbarIconButton>
-          <Box sx={{ fontSize: 12, color: "grey.400", ml: 1 }}>
+          <Box sx={{ fontSize: "var(--fontSizeSmall)", color: "grey.400", ml: 1 }}>
             {selectedIndices.size} selected
           </Box>
         </Box>

@@ -101,7 +101,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: 8,
-      padding: "5px 8px",
+      padding: `${theme.spacing(1.5)} ${theme.spacing(2)}`,
       cursor: "pointer",
       userSelect: "none",
       transition: MOTION.background,
@@ -121,7 +121,7 @@ const styles = (theme: Theme) =>
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
-      padding: "0 5px"
+      padding: `0 ${theme.spacing(1.5)}`
     },
     ".list-preview": {
       flex: 1,
@@ -142,7 +142,7 @@ const styles = (theme: Theme) =>
       transform: "rotate(90deg)"
     },
     ".list-full": {
-      padding: "0 8px 8px 34px",
+      padding: "0 8px 8px 32px",
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",
       fontSize: theme.fontSizeSmall,

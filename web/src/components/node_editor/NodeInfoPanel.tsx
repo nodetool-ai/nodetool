@@ -142,7 +142,7 @@ const styles = (theme: Theme) =>
     },
     "& .error-message": {
       marginTop: "8px",
-      padding: "8px 10px",
+      padding: `${theme.spacing(2)} ${theme.spacing(3)}`,
       backgroundColor: `${theme.vars.palette.error.main}15`,
       borderRadius: "var(--rounded-lg)",
       borderLeft: `3px solid ${theme.vars.palette.error.main}`
@@ -186,7 +186,7 @@ const styles = (theme: Theme) =>
       flex: 1,
       minWidth: "80px",
       fontSize: "var(--fontSizeSmall)",
-      padding: "6px 10px",
+      padding: `${theme.spacing(1.5)} ${theme.spacing(3)}`,
       borderRadius: "var(--rounded-md)",
       marginTop: "12px",
       "& .MuiButton-startIcon": {

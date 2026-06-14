@@ -152,7 +152,7 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
       <FlexRow
         gap={1.5}
         align="center"
-        padding={1.75}
+        padding={2}
         onClick={onToggleExpanded}
         sx={{ cursor: "pointer", "&:hover": { backgroundColor: theme.vars.palette.action.hover } }}
       >
