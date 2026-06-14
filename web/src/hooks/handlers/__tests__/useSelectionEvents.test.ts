@@ -16,11 +16,11 @@ describe("useSelectionEvents", () => {
   const mockScreenToFlowPosition = jest.fn().mockReturnValue({ x: 100, y: 200 });
   const mockReactFlowInstance = {
     screenToFlowPosition: mockScreenToFlowPosition,
-    flowToScreenPosition: jest.fn().mockImplementation((pos: any) => pos),
+    flowToScreenPosition: jest.fn().mockImplementation((pos: { x: number; y: number }) => pos),
     getIntersectingNodes: jest.fn().mockReturnValue([]),
     getNodes: jest.fn().mockReturnValue([]),
     getEdges: jest.fn().mockReturnValue([])
-  };
+  } as unknown as ReturnType<typeof useReactFlow>;
 
   const mockOpenContextMenu = jest.fn();
   const mockUpdateNode = jest.fn();
@@ -44,7 +44,7 @@ describe("useSelectionEvents", () => {
       openContextMenu: mockOpenContextMenu
     });
     // Use mockImplementation to properly call the selector function
-    mockedUseNodes.mockImplementation((selector: any) =>
+    mockedUseNodes.mockImplementation((selector: (state: Record<string, unknown>) => unknown) =>
       selector({
         updateNode: mockUpdateNode,
         setEdgeSelectionState: mockSetEdgeSelectionState
@@ -62,7 +62,7 @@ describe("useSelectionEvents", () => {
   it("returns all event handlers and refs", () => {
     const { result } = renderHook(() =>
       useSelectionEvents({
-        reactFlowInstance: mockReactFlowInstance as any,
+        reactFlowInstance: mockReactFlowInstance,
         onSelectionStartBase: mockOnSelectionStart,
         onSelectionEndBase: mockOnSelectionEnd,
         onSelectionDragStartBase: mockOnSelectionDragStart,
@@ -88,7 +88,7 @@ describe("useSelectionEvents", () => {
     it("opens context menu at event coordinates", () => {
       const { result } = renderHook(() =>
         useSelectionEvents({
-          reactFlowInstance: mockReactFlowInstance as any,
+          reactFlowInstance: mockReactFlowInstance,
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
@@ -122,7 +122,7 @@ describe("useSelectionEvents", () => {
     it("sets selection refs and calls base handler", () => {
       const { result } = renderHook(() =>
         useSelectionEvents({
-          reactFlowInstance: mockReactFlowInstance as any,
+          reactFlowInstance: mockReactFlowInstance,
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
@@ -149,7 +149,7 @@ describe("useSelectionEvents", () => {
     it("updates selection end ref and calls base handler", () => {
       const { result } = renderHook(() =>
         useSelectionEvents({
-          reactFlowInstance: mockReactFlowInstance as any,
+          reactFlowInstance: mockReactFlowInstance,
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
@@ -180,7 +180,7 @@ describe("useSelectionEvents", () => {
 
       const { result } = renderHook(() =>
         useSelectionEvents({
-          reactFlowInstance: mockReactFlowInstance as any,
+          reactFlowInstance: mockReactFlowInstance,
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
@@ -266,7 +266,7 @@ describe("useSelectionEvents", () => {
 
       const { result } = renderHook(() =>
         useSelectionEvents({
-          reactFlowInstance: mockReactFlowInstance as any,
+          reactFlowInstance: mockReactFlowInstance,
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
@@ -306,7 +306,7 @@ describe("useSelectionEvents", () => {
     it("delegates to base handler", () => {
       const { result } = renderHook(() =>
         useSelectionEvents({
-          reactFlowInstance: mockReactFlowInstance as any,
+          reactFlowInstance: mockReactFlowInstance,
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
@@ -331,7 +331,7 @@ describe("useSelectionEvents", () => {
     it("delegates to base handler", () => {
       const { result } = renderHook(() =>
         useSelectionEvents({
-          reactFlowInstance: mockReactFlowInstance as any,
+          reactFlowInstance: mockReactFlowInstance,
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
@@ -355,7 +355,7 @@ describe("useSelectionEvents", () => {
     it("clears selection refs", () => {
       const { result } = renderHook(() =>
         useSelectionEvents({
-          reactFlowInstance: mockReactFlowInstance as any,
+          reactFlowInstance: mockReactFlowInstance,
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
@@ -378,7 +378,7 @@ describe("useSelectionEvents", () => {
     it("does nothing when selection refs are null", () => {
       const { result } = renderHook(() =>
         useSelectionEvents({
-          reactFlowInstance: mockReactFlowInstance as any,
+          reactFlowInstance: mockReactFlowInstance,
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
@@ -410,7 +410,7 @@ describe("useSelectionEvents", () => {
 
       const { result } = renderHook(() =>
         useSelectionEvents({
-          reactFlowInstance: mockReactFlowInstance as any,
+          reactFlowInstance: mockReactFlowInstance,
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
@@ -442,7 +442,7 @@ describe("useSelectionEvents", () => {
 
       const { result } = renderHook(() =>
         useSelectionEvents({
-          reactFlowInstance: mockReactFlowInstance as any,
+          reactFlowInstance: mockReactFlowInstance,
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
@@ -474,7 +474,7 @@ describe("useSelectionEvents", () => {
 
       const { result } = renderHook(() =>
         useSelectionEvents({
-          reactFlowInstance: mockReactFlowInstance as any,
+          reactFlowInstance: mockReactFlowInstance,
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
@@ -497,7 +497,7 @@ describe("useSelectionEvents", () => {
     it("converts mouse event to flow coordinates", () => {
       const { result } = renderHook(() =>
         useSelectionEvents({
-          reactFlowInstance: mockReactFlowInstance as any,
+          reactFlowInstance: mockReactFlowInstance,
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
@@ -518,7 +518,7 @@ describe("useSelectionEvents", () => {
     it("uses fallback coordinates when event is null", () => {
       const { result } = renderHook(() =>
         useSelectionEvents({
-          reactFlowInstance: mockReactFlowInstance as any,
+          reactFlowInstance: mockReactFlowInstance,
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,
@@ -536,7 +536,7 @@ describe("useSelectionEvents", () => {
     it("handles partial event coordinates", () => {
       const { result } = renderHook(() =>
         useSelectionEvents({
-          reactFlowInstance: mockReactFlowInstance as any,
+          reactFlowInstance: mockReactFlowInstance,
           onSelectionStartBase: mockOnSelectionStart,
           onSelectionEndBase: mockOnSelectionEnd,
           onSelectionDragStartBase: mockOnSelectionDragStart,

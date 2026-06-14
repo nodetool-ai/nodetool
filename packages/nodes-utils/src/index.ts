@@ -19,6 +19,7 @@
 export {
   tagAsServer,
   tagAsHybrid,
+  tagAsBrowserGpu,
   tagAsUniversal,
   tagAsContentCard
 } from "./platform-tags.js";

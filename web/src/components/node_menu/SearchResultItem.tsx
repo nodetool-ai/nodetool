@@ -153,7 +153,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
       },
       ".provider-tag": {
         fontSize: "var(--fontSizeSmaller)",
-        padding: "2px 5px",
+        padding: `${theme.spacing(0.5)} ${theme.spacing(1.5)}`,
         borderRadius: BORDER_RADIUS.md,
         letterSpacing: "0.3px",
         opacity: 1,

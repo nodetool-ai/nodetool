@@ -12,6 +12,8 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import BuildIcon from "@mui/icons-material/Build";
 import OutputIcon from "@mui/icons-material/Output";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
+import ChecklistIcon from "@mui/icons-material/Checklist";
+import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import useTraceStore from "../../stores/TraceStore";
@@ -25,6 +27,8 @@ const EVENT_ICONS: Record<TraceEventType, React.ReactNode> = {
   llm_call: <AutoAwesomeIcon sx={{ fontSize: 14, color: "warning.main" }} />,
   tool_call: <BuildIcon sx={{ fontSize: 14, color: "secondary.main" }} />,
   tool_result: <BuildIcon sx={{ fontSize: 14, color: "secondary.light" }} />,
+  step_result: <TaskAltIcon sx={{ fontSize: 14, color: "success.light" }} />,
+  todo_update: <ChecklistIcon sx={{ fontSize: 14, color: "info.light" }} />,
   edge_active: <CallSplitIcon sx={{ fontSize: 14, color: "text.disabled" }} />,
   output: <OutputIcon sx={{ fontSize: 14, color: "primary.main" }} />,
 };

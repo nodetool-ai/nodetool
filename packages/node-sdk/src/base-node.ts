@@ -81,6 +81,13 @@ export type NodeClass = {
    * Platform type. Unset is treated as ["node"].
    */
   platforms?: readonly Platform[];
+  /**
+   * Requires a WebGPU device when run in the browser. The in-browser runner
+   * routes graphs containing these nodes to the server (where a GPU is always
+   * available via Dawn) when `navigator.gpu` is unavailable, instead of failing
+   * the run. Server execution is unaffected. Set via `tagAsBrowserGpu`.
+   */
+  requiresGpu?: boolean;
   deprecated: boolean;
   replacedBy?: string;
   metadataOutputTypes?: DeclaredOutputTypes;
@@ -242,6 +249,12 @@ export abstract class BaseNode {
    * explicitly. See `@nodetool-ai/protocol`'s Platform type.
    */
   static readonly platforms: readonly Platform[] | undefined = undefined;
+  /**
+   * Requires a WebGPU device in the browser (set via `tagAsBrowserGpu`). The
+   * in-browser runner routes graphs with these nodes to the server when
+   * `navigator.gpu` is unavailable. Unset/undefined means no GPU requirement.
+   */
+  static readonly requiresGpu: boolean | undefined = undefined;
   static readonly deprecated: boolean = false;
   static readonly replacedBy: string | undefined = undefined;
   static readonly metadataOutputTypes: DeclaredOutputTypes | undefined =

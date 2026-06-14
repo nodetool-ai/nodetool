@@ -6,6 +6,7 @@ import type { Theme } from "@mui/material/styles";
 import { LinearProgress } from "@mui/material";
 import { Collapse, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { PREVIEW_NODE_TYPE } from "../../constants/nodeTypes";
+import { getOutputFromResult } from "../node/outputResult";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
@@ -99,14 +100,6 @@ function useNodeExecState(workflowId: string | null, nodeId: string) {
   return { status, progress, result, isRunning, isCompleted, isError };
 }
 
-function getOutputFromResult(result: unknown): unknown {
-  if (result === undefined || result === null) return undefined;
-  if (typeof result === "object" && !Array.isArray(result) && "output" in (result as Record<string, unknown>)) {
-    return (result as Record<string, unknown>).output;
-  }
-  return result;
-}
-
 export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNodeCard({
   node, index, totalNodes, workflowId, previousNodes,
   onToggleExpanded, onUpdateProperty, onSetOutput, onSetInputMapping,
@@ -159,7 +152,7 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
       <FlexRow
         gap={1.5}
         align="center"
-        padding={1.75}
+        padding={2}
         onClick={onToggleExpanded}
         sx={{ cursor: "pointer", "&:hover": { backgroundColor: theme.vars.palette.action.hover } }}
       >
@@ -199,7 +192,7 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
       </FlexRow>
 
       {/* Result preview (visible even when collapsed) */}
-      {outputValue !== undefined && !isRunning && (
+      {outputValue != null && !isRunning && (
         <Box
           sx={{
             px: 2,

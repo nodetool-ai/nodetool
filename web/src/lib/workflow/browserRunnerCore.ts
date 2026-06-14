@@ -42,6 +42,13 @@ export interface LoadedBrowserRunner {
   registry: ReturnType<WorkflowRunnerModule["createBrowserRegistry"]>;
   /** Node types the registry can run client-side (browser platform). */
   browserNodeTypes: string[];
+  /**
+   * Browser-capable node types that require a WebGPU device (`requiresGpu`).
+   * When `navigator.gpu` is unavailable, the runner drops these from the
+   * browser-capable set so any graph using them routes to the server (where a
+   * GPU is always present via Dawn) instead of failing the run.
+   */
+  gpuNodeTypes: Set<string>;
   /** GPU-texture boundary resolve (browser GPU runs only). */
   resolveImageRefForTransport?: ResolveImageRefForTransport;
   /** Free the run's GPU textures (browser GPU runs only). */
@@ -256,17 +263,93 @@ export function buildBrowserRunner(mods: LoadedModules): LoadedBrowserRunner {
     .filter((t): t is string => typeof t === "string");
   const browserNodeTypes = candidates.filter((t) => registry.has(t));
   const filteredOut = candidates.filter((t) => !registry.has(t));
+  // Browser-capable types that need a WebGPU device (tagged via tagAsBrowserGpu).
+  const gpuNodeTypes = new Set(
+    (mods.nodeClasses as Array<{ nodeType?: unknown; requiresGpu?: unknown }>)
+      .filter(
+        (c) =>
+          c.requiresGpu === true &&
+          typeof c.nodeType === "string" &&
+          registry.has(c.nodeType)
+      )
+      .map((c) => c.nodeType as string)
+  );
   console.info(
     `[browserRunner] registry ready — ${browserNodeTypes.length}/${candidates.length} loaded node type(s) are browser-capable`,
-    { registered: browserNodeTypes, filteredOutByPlatform: filteredOut }
+    {
+      registered: browserNodeTypes,
+      filteredOutByPlatform: filteredOut,
+      requireWebGpu: [...gpuNodeTypes]
+    }
   );
   return {
     runBrowserWorkflow: mods.wf.runBrowserWorkflow,
     registry,
     browserNodeTypes,
+    gpuNodeTypes,
     resolveImageRefForTransport: mods.resolveImageRefForTransport,
     releaseRunTextures: mods.releaseRunTextures
   };
+}
+
+/**
+ * Pure: drop the GPU-requiring node types from `browserNodeTypes` when no
+ * WebGPU device is available. Graphs using them then route to the server.
+ */
+export function applyGpuCapability(
+  browserNodeTypes: string[],
+  gpuNodeTypes: ReadonlySet<string>,
+  gpuAvailable: boolean
+): string[] {
+  if (gpuAvailable || gpuNodeTypes.size === 0) return browserNodeTypes;
+  return browserNodeTypes.filter((t) => !gpuNodeTypes.has(t));
+}
+
+let gpuProbe: Promise<boolean> | null = null;
+
+/**
+ * Probe whether a usable WebGPU device is available in the current execution
+ * context (Web Worker or main thread). Cached for the context's lifetime.
+ * Resolves `false` when `navigator.gpu` is absent or no adapter can be
+ * acquired — the exact CI / locked-down-browser case the server fallback
+ * targets. Worker-safe: `navigator` exists in workers and is read off
+ * `globalThis` so this module stays DOM-free at type level.
+ */
+export function probeBrowserGpu(): Promise<boolean> {
+  if (!gpuProbe) {
+    gpuProbe = (async () => {
+      const nav = (
+        globalThis as {
+          navigator?: { gpu?: { requestAdapter(): Promise<unknown> } };
+        }
+      ).navigator;
+      const gpu = nav?.gpu;
+      if (!gpu) return false;
+      try {
+        return (await gpu.requestAdapter()) != null;
+      } catch {
+        return false;
+      }
+    })();
+  }
+  return gpuProbe;
+}
+
+/**
+ * The runner's browser-capable node types after applying the WebGPU capability
+ * probe: identical to `browserNodeTypes` when a GPU is present (or the graph
+ * uses no GPU nodes), with the GPU-requiring types removed otherwise.
+ */
+export async function capabilityFilteredBrowserNodeTypes(
+  runner: LoadedBrowserRunner
+): Promise<string[]> {
+  const gpuAvailable =
+    runner.gpuNodeTypes.size === 0 ? true : await probeBrowserGpu();
+  return applyGpuCapability(
+    runner.browserNodeTypes,
+    runner.gpuNodeTypes,
+    gpuAvailable
+  );
 }
 
 /**

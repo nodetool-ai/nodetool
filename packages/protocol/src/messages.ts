@@ -188,7 +188,11 @@ export interface NodeProgress {
 
 export interface EdgeUpdate {
   type: "edge_update";
-  workflow_id: string;
+  // Both ids are stamped by the unified websocket runner if absent. The kernel
+  // emits `job_id` (the run id); `workflow_id` is backfilled from the active
+  // run. Edge animations are scoped per run, so consumers key off `job_id`.
+  workflow_id?: string;
+  job_id?: string;
   edge_id: string;
   status: string;
   counter?: number | null;

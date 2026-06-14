@@ -7,7 +7,7 @@
 import { BaseNode, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
 import type { ImageRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { tagAsHybrid, tagAsContentCard } from "@nodetool-ai/nodes-utils";
+import { tagAsBrowserGpu, tagAsContentCard } from "@nodetool-ai/nodes-utils";
 import {
   maskApplyV1,
   maskFromImageV1,
@@ -94,7 +94,7 @@ class MaskInvertNode extends BaseNode {
 }
 registerDeclaredProperty(MaskInvertNode, "image", IMAGE_PROP);
 
-export const LIB_IMAGE_MASK_NODES = tagAsHybrid(tagAsContentCard([
+export const LIB_IMAGE_MASK_NODES = tagAsBrowserGpu(tagAsContentCard([
   MaskApplyNode,
   MaskFromImageNode,
   MaskInvertNode

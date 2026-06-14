@@ -710,11 +710,10 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
               {loadError.split("\n").map((line, i) => (
                 <Text
                   key={`${i}:${line}`}
-                  size="small"
+                  size={i === 0 ? "normal" : "small"}
                   color={i === 0 ? "error" : "secondary"}
                   sx={{
                     wordBreak: "break-word",
-                    fontSize: i === 0 ? "0.875rem" : "0.75rem",
                     opacity: i === 0 ? 1 : 0.8
                   }}
                 >

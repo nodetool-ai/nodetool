@@ -17,7 +17,7 @@ const chipStyles = (theme: Theme) =>
     alignItems: "center",
     gap: "0.25em",
     verticalAlign: "baseline",
-    margin: "0 1px",
+    margin: `0 ${theme.spacing(0.5)}`,
     padding: "0 0.4em",
     borderRadius: "var(--rounded-sm, 4px)",
     backgroundColor: theme.vars.palette.primary.main,
@@ -34,7 +34,7 @@ const previewStyles = (theme: Theme) =>
   css({
     display: "inline-flex",
     verticalAlign: "middle",
-    margin: "0 2px",
+    margin: `0 ${theme.spacing(0.5)}`,
     borderRadius: "var(--rounded-sm, 4px)",
     overflow: "hidden",
     border: `1px solid ${theme.vars.palette.primary.main}`,

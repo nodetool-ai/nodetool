@@ -119,7 +119,7 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
                   </FlexRow>
                   <Box
                     sx={{
-                      p: 1.25,
+                      p: 1.5,
                       borderRadius: BORDER_RADIUS.xs,
                       border: `1px dashed ${theme.vars.palette.secondary.main}40`,
                       backgroundColor: `${theme.vars.palette.secondary.main}08`,

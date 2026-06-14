@@ -7,7 +7,8 @@ import TextEditorModal from "./TextEditorModal";
 import isEqual from "fast-deep-equal";
 import { useNodes } from "../../contexts/NodeContext";
 import { useTheme } from "@mui/material/styles";
-import { CopyButton, Tooltip, ToolbarIconButton } from "../ui_primitives";
+import type { Theme } from "@mui/material/styles";
+import { CopyButton, ToolbarIconButton, SPACING } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { NodeTextField, editorClassNames, cn } from "../editor_ui";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
@@ -39,34 +40,35 @@ const determineCodeLanguage = (nodeType: string) => {
   return "text";
 };
 
-const propertyStyles = css({
-  ".property-row": {
-    width: "100%",
-    display: "flex",
-    flexDirection: "column"
-  },
-  ".property-row > .property-label": {
-    order: 1
-  },
-  ".value-container": {
-    width: "100%",
-    order: 2
-  },
-  ".string-action-buttons": {
-    position: "absolute",
-    right: 0,
-    top: "-3px",
-    opacity: 0.8,
-    zIndex: 10
-  },
-  ".string-action-buttons .MuiIconButton-root": {
-    margin: "0 0 0 5px",
-    padding: 0
-  },
-  ".string-action-buttons .MuiIconButton-root svg": {
-    fontSize: "var(--fontSizeSmall)"
-  }
-});
+const propertyStyles = (theme: Theme) =>
+  css({
+    ".property-row": {
+      width: "100%",
+      display: "flex",
+      flexDirection: "column"
+    },
+    ".property-row > .property-label": {
+      order: 1
+    },
+    ".value-container": {
+      width: "100%",
+      order: 2
+    },
+    ".string-action-buttons": {
+      position: "absolute",
+      right: 0,
+      top: "-3px",
+      opacity: 0.8,
+      zIndex: 10
+    },
+    ".string-action-buttons .MuiIconButton-root": {
+      margin: `0 0 0 ${theme.spacing(SPACING.sm)}`,
+      padding: 0
+    },
+    ".string-action-buttons .MuiIconButton-root svg": {
+      fontSize: "var(--fontSizeSmall)"
+    }
+  });
 
 const StringProperty = ({
   property,
@@ -150,7 +152,7 @@ const StringProperty = ({
   }
 
   return (
-    <div className="string-property" css={propertyStyles}>
+    <div className="string-property" css={propertyStyles(theme)}>
       <div
         className="property-row"
         onMouseEnter={() => setIsHovered(true)}

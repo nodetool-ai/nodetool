@@ -25,7 +25,7 @@ export const ChainConnector: React.FC<ChainConnectorProps> = ({
       <Box sx={{ width: 2, height: 12, backgroundColor: `${color}50` }} />
       <Box sx={{ width: 8, height: 8, borderRadius: "var(--rounded-circle)", backgroundColor: color }} />
       <Box sx={{ width: 2, height: 12, backgroundColor: `${color}50` }} />
-      <FlexRow gap={0.5} align="center" sx={{ mt: -0.25 }}>
+      <FlexRow gap={0.5} align="center" sx={{ mt: -0.5 }}>
         <ArrowDownwardIcon sx={{ fontSize: 12, color: theme.vars.palette.text.disabled }} />
         <Text size="tiny" color="secondary">{sourceOutput}</Text>
         <ArrowForwardIcon sx={{ fontSize: 10, color: theme.vars.palette.text.disabled }} />

@@ -6,7 +6,7 @@ import { filtersConvolve3x3V1 } from "@nodetool-ai/gpu/pool";
 import { pickImage } from "./lib-image-utils.js";
 import { runShaderNode } from "./lib-shader-utils.js";
 import { decodeRgba, rawRgbaImageRef } from "./image-io.js";
-import { tagAsHybrid, tagAsContentCard } from "@nodetool-ai/nodes-utils";
+import { tagAsBrowserGpu, tagAsContentCard } from "@nodetool-ai/nodes-utils";
 
 type Desc = {
   nodeType: string;
@@ -468,6 +468,6 @@ const DESCRIPTORS: readonly Desc[] = [
   }
 ];
 
-export const LIB_IMAGE_ENHANCE_NODES: NodeClass[] = tagAsHybrid(
+export const LIB_IMAGE_ENHANCE_NODES: NodeClass[] = tagAsBrowserGpu(
   tagAsContentCard(DESCRIPTORS.map(createEnhanceNode))
 );

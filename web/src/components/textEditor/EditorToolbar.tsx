@@ -56,7 +56,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".toolbar-button": {
-      padding: "3px",
+      padding: theme.spacing(1),
       color: `${theme.vars.palette.grey[300]} !important`,
       backgroundColor: "transparent !important",
       borderRadius: `${BORDER_RADIUS.lg} !important`,
