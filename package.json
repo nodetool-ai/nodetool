@@ -120,6 +120,8 @@
     "test:coverage:electron": "npm run test:coverage --workspace=electron",
     "test:coverage:mobile": "npm --prefix mobile run test:coverage",
     "test:integration": "npm test --workspace=@nodetool-ai/base-nodes -- example-workflows-execute",
+    "test:mutation": "for pkg in agents auth kernel node-sdk runtime security; do npm run test:mutation --workspace=packages/$pkg || true; done",
+    "mutation:score": "node scripts/mutation-score.mjs",
     "lint:web": "npm run lint --workspace=web",
     "lint:electron": "npm run lint --workspace=electron",
     "lint:mobile": "npm --prefix mobile run lint",
