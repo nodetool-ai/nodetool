@@ -1,4 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+// Capture the manager's logger so the watchdog's "needs restart" warning can be
+// asserted (it distinguishes the shutting-down early-return from the per-restart
+// bail, which are otherwise indistinguishable through startJob).
+const { warn } = vi.hoisted(() => ({ warn: vi.fn() }));
+vi.mock("@nodetool-ai/config", () => ({
+  createLogger: () => ({
+    warn,
+    info: () => {},
+    error: () => {},
+    debug: () => {}
+  })
+}));
+
 import {
   TriggerWorkflowManager,
   type StartJobFn,
@@ -307,5 +321,126 @@ describe("TriggerWorkflowManager — watchdog", () => {
     expect(mgr.isWorkflowRunning("wf-completed")).toBe(true);
     expect(mgr.isWorkflowRunning("wf-running")).toBe(true);
     mgr.stopWatchdog();
+  });
+});
+
+describe("TriggerWorkflowManager — shutdown & restart internals", () => {
+  type Internals = {
+    _shuttingDown: boolean;
+    _watchdogCheckInFlight: Promise<void> | null;
+    _watchdogCheck: () => Promise<void>;
+  };
+  const internals = (m: TriggerWorkflowManager): Internals =>
+    m as unknown as Internals;
+
+  let startJob: ReturnType<typeof vi.fn<StartJobFn>>;
+  let hasTriggerNodes: ReturnType<typeof vi.fn<HasTriggerNodesFn>>;
+  let manager: TriggerWorkflowManager;
+  let jobCounter: number;
+
+  beforeEach(() => {
+    TriggerWorkflowManager.resetInstance();
+    jobCounter = 0;
+    startJob = vi.fn(async () => {
+      jobCounter++;
+      return {
+        jobId: `job-${jobCounter}`,
+        completion: new Promise<void>(() => {})
+      };
+    });
+    hasTriggerNodes = vi.fn(async () => true);
+    manager = TriggerWorkflowManager.getInstance({ startJob, hasTriggerNodes });
+  });
+
+  afterEach(() => {
+    manager.stopWatchdog();
+    TriggerWorkflowManager.resetInstance();
+  });
+
+  it("joins an in-flight start instead of starting a second job", async () => {
+    // Both calls happen before the first start resolves, so the second must
+    // join the in-flight start (via _pendingStarts) rather than start again.
+    const p1 = manager.startTriggerWorkflow("wf-c", "u");
+    const p2 = manager.startTriggerWorkflow("wf-c", "u");
+    const [a, b] = await Promise.all([p1, p2]);
+
+    expect(a).toBe(b);
+    expect(startJob).toHaveBeenCalledTimes(1);
+  });
+
+  it("watchdog check does nothing while shutting down", async () => {
+    await manager.startTriggerWorkflow("wf-s", "u");
+    manager.getRunningWorkflow("wf-s")!.status = "failed";
+    internals(manager)._shuttingDown = true;
+    startJob.mockClear();
+    warn.mockClear();
+
+    await internals(manager)._watchdogCheck();
+
+    // The check returns before scanning for restarts: no restart, and not even
+    // the "needs restart" warning is logged.
+    expect(startJob).not.toHaveBeenCalled();
+    expect(warn).not.toHaveBeenCalled();
+  });
+
+  it("watchdog restarts only failed/completed jobs, not running or cancelled", async () => {
+    await manager.startTriggerWorkflow("wf-run", "u");
+    await manager.startTriggerWorkflow("wf-cancel", "u");
+    manager.getRunningWorkflow("wf-cancel")!.status = "cancelled";
+    startJob.mockClear();
+
+    await internals(manager)._watchdogCheck();
+
+    // A running job early-returns; a cancelled job is not a restart trigger.
+    expect(startJob).not.toHaveBeenCalled();
+  });
+
+  it("clears the shutting-down flag after shutdown completes", async () => {
+    await manager.shutdown();
+    expect(internals(manager)._shuttingDown).toBe(false);
+  });
+
+  it("shutdown waits for an in-flight watchdog check and then clears it", async () => {
+    let done = false;
+    internals(manager)._watchdogCheckInFlight = new Promise<void>((res) =>
+      setTimeout(() => {
+        done = true;
+        res();
+      }, 10)
+    );
+
+    await manager.shutdown();
+
+    expect(done).toBe(true);
+    expect(internals(manager)._watchdogCheckInFlight).toBe(null);
+  });
+
+  it("a restart loop in flight stops restarting once shutdown begins", async () => {
+    const int = internals(manager);
+    await manager.startTriggerWorkflow("wf-a", "u");
+    await manager.startTriggerWorkflow("wf-b", "u");
+    manager.getRunningWorkflow("wf-a")!.status = "failed";
+    manager.getRunningWorkflow("wf-b")!.status = "failed";
+
+    // Pause the first restart at its hasTriggerNodes await so shutdown can flip
+    // the shutting-down flag while the watchdog check is between iterations.
+    let releaseFirst!: () => void;
+    hasTriggerNodes.mockImplementationOnce(
+      () =>
+        new Promise<boolean>((res) => {
+          releaseFirst = () => res(true);
+        })
+    );
+    startJob.mockClear();
+
+    const check = int._watchdogCheck();
+    int._watchdogCheckInFlight = check;
+
+    const sd = manager.shutdown(); // sets _shuttingDown, awaits the in-flight check
+    releaseFirst(); // first restart finishes; the loop advances to wf-b
+    await Promise.all([check, sd]);
+
+    // wf-a was restarting when shutdown flipped the flag; wf-b is skipped.
+    expect(startJob).toHaveBeenCalledTimes(1);
   });
 });
