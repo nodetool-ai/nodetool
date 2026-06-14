@@ -8,7 +8,7 @@ import { ColumnDef, DataframeRef } from "../../stores/ApiTypes";
 import DataTable from "../node/DataTable/DataTable";
 import ColumnsManager from "../node/ColumnsManager";
 import DataframeEditorModal from "./DataframeEditorModal";
-import { ToolbarIconButton, EditorButton, ButtonGroup, MOTION } from "../ui_primitives";
+import { ToolbarIconButton, EditorButton, ButtonGroup, MOTION, SPACING } from "../ui_primitives";
 // icons
 import TableRowsIcon from "@mui/icons-material/TableRows";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
@@ -43,7 +43,7 @@ const styles = (theme: Theme) =>
       zIndex: 10
     },
     ".dataframe-action-buttons .MuiIconButton-root": {
-      margin: "0 0 0 6px",
+      margin: `0 0 0 ${theme.spacing(SPACING.sm)}`,
       padding: "0.2em",
       color: theme.vars.palette.primary.main,
       "&:hover": {
@@ -87,7 +87,7 @@ const styles = (theme: Theme) =>
       textAlign: "center",
       transition: MOTION.all,
       outline: `1px dashed ${theme.vars.palette.grey[600]}`,
-      margin: "6px 0",
+      margin: `${theme.spacing(SPACING.sm)} 0`,
       backgroundColor: alpha(theme.palette.common.black, 0.2),
       borderRadius: "var(--rounded-md)",
       display: "flex",

@@ -24,7 +24,7 @@ import TextDecreaseIcon from "@mui/icons-material/TextDecrease";
 import TextIncreaseIcon from "@mui/icons-material/TextIncrease";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
-import { Tooltip, LoadingSpinner, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, LoadingSpinner, MOTION, BORDER_RADIUS, SPACING } from "../ui_primitives";
 import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ListItemNode, ListNode } from "@lexical/list";
@@ -582,7 +582,9 @@ const styles = (theme: Theme) =>
           }
         },
         ".chat-view": {
-          padding: "0 12px 12px 12px !important",
+          padding: `0 ${theme.spacing(SPACING.lg)} ${theme.spacing(
+            SPACING.lg
+          )} ${theme.spacing(SPACING.lg)} !important`,
           minHeight: 0,
           flex: 1
         },
@@ -601,7 +603,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".button": {
-      padding: "6px",
+      padding: theme.spacing(SPACING.sm),
       minWidth: "32px",
       minHeight: "32px",
       cursor: "pointer",

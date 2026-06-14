@@ -12,7 +12,7 @@ import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import ConnectedBadge from "./ConnectedBadge";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
 import { Asset } from "../../stores/ApiTypes";
-import { Tooltip, EditorButton, NodeTextField, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, EditorButton, NodeTextField, MOTION, BORDER_RADIUS, SPACING } from "../ui_primitives";
 import AssetViewer from "../assets/AssetViewer";
 import LazyModel3DViewer from "../asset_viewer/LazyModel3DViewer";
 import { resolveAssetUri } from "../node/output/hooks";
@@ -26,7 +26,7 @@ const styles = (theme: Theme) =>
       flexDirection: "column"
     },
     "& .property-label": {
-      marginBottom: "6px"
+      marginBottom: theme.spacing(SPACING.sm)
     },
     ".drop-container": {
       position: "relative",

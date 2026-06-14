@@ -7,16 +7,18 @@ import { PropertyProps } from "../node/PropertyInput";
 import PropertyDropzone from "./PropertyDropzone";
 import { memo, useState } from "react";
 import isEqual from "fast-deep-equal";
-import { EditorButton, NodeTextField, MOTION } from "../ui_primitives";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
+import { EditorButton, NodeTextField, MOTION, SPACING } from "../ui_primitives";
 import { useNodes } from "../../contexts/NodeContext";
 import AudioVisualizer from "../common/AudioVisualizer";
 import { useRealtimeAudioStream } from "../../hooks/useRealtimeAudioStream";
 import type { NodeData } from "../../stores/NodeData";
 
-const styles = () =>
+const styles = (theme: Theme) =>
   css({
     "& .property-label": {
-      marginBottom: "6px"
+      marginBottom: theme.spacing(SPACING.sm)
     },
     "& .dropzone": {
       width: "100%"
@@ -67,6 +69,7 @@ const styles = () =>
   });
 
 const AudioProperty = (props: PropertyProps) => {
+  const theme = useTheme();
   const id = `audio-${props.property.name}-${props.propertyIndex}`;
   const { asset, uri } = useAsset({ audio: props.value });
   const showRecorder =
@@ -85,7 +88,7 @@ const AudioProperty = (props: PropertyProps) => {
 
   if (isRealtime) {
     return (
-      <div className="audio-property" css={styles()}>
+      <div className="audio-property" css={styles(theme)}>
         <div className="realtime-audio-controls">
           {isStreaming ? (
             <div
@@ -139,7 +142,7 @@ const AudioProperty = (props: PropertyProps) => {
   }
 
   return (
-    <div className="audio-property" css={styles()}>
+    <div className="audio-property" css={styles(theme)}>
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}
