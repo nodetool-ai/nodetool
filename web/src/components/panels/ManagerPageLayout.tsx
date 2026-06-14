@@ -7,7 +7,6 @@ import { useNavigate } from "react-router-dom";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { Box, EditorButton, FlexColumn, FlexRow } from "../ui_primitives";
-import { HEADER_HEIGHT } from "../../config/constants";
 
 interface ManagerPageLayoutProps {
   /** Icon shown in the tinted chip beside the title. */
@@ -34,7 +33,6 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       width: "100%",
       height: "100%",
-      paddingTop: `${HEADER_HEIGHT}px`,
       backgroundColor: theme.vars.palette.background.default
     },
     ".manager-page-hero": {

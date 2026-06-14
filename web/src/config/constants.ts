@@ -17,7 +17,7 @@ export const NOTIFICATION_TIMEOUT_MAX = 12000; // 12 seconds maximum
 export const NOTIFICATION_READING_WPM = 200; // average reading speed in words per minute
 
 // LAYOUT
-export const HEADER_HEIGHT = 40; // AppHeader toolbar height in px
+export const HEADER_HEIGHT = 40; // Workspace header toolbar height in px
 export const TOOLBAR_WIDTH = 50; // Vertical toolbar width in px
 export const PANEL_RESIZE_HANDLE_WIDTH = 6; // Resize handle hit area in px
 

@@ -83,7 +83,21 @@ const styles = (theme: Theme) =>
       maxWidth: "100vw",
       zIndex: 11000,
       margin: 0,
-      borderRadius: 0
+      borderRadius: 0,
+      position: "relative"
+    },
+    // The shared Dialog primitive wraps children in MUI's DialogContent, whose
+    // default padding would push the viewer down (gap on top) and inset the
+    // overlay controls. Make it a bare full-bleed, positioned container so the
+    // media fills the screen and the toolbar/close button anchor to the edges.
+    ".MuiDialogContent-root, .dialog-content": {
+      padding: 0,
+      margin: 0,
+      width: "100%",
+      height: "100%",
+      overflow: "hidden",
+      position: "relative",
+      display: "block"
     },
     ".current-folder": {
       top: "20px"
@@ -718,6 +732,30 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         fullWidth
         open={open}
         onClose={handleClose}
+        slotProps={{
+          // Override the primitive's default glass/rounded/bordered paper so the
+          // viewer is a true edge-to-edge fullscreen surface with no top gap.
+          paper: {
+            style: {
+              borderRadius: 0,
+              border: "none",
+              margin: 0,
+              width: "100vw",
+              maxWidth: "100vw",
+              height: "100vh",
+              maxHeight: "100vh",
+              overflow: "hidden",
+              position: "relative",
+              background: theme.vars.palette.grey[900],
+              backdropFilter: "none"
+            }
+          },
+          backdrop: {
+            style: {
+              backgroundColor: theme.vars.palette.grey[900]
+            }
+          }
+        }}
       >
         {/* Compare mode instruction bar */}
         {compareMode && !compareAssetB && (
