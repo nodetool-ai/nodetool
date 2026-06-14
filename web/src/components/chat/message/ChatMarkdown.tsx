@@ -5,7 +5,7 @@ import ReactMarkdown, { type Options } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import "../../../styles/markdown/nodetool-markdown.css";
-import { getSpacingPx } from "../../ui_primitives";
+import { getSpacingPx } from "../../ui_primitives/spacing";
 import { CodeBlock } from "./markdown_elements/CodeBlock";
 import { PreRenderer } from "./markdown_elements/PreRenderer";
 import "../../../styles/markdown/github-markdown.css";
