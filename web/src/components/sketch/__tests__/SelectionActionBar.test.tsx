@@ -4,14 +4,14 @@
 /**
  * Render tests for the floating selection action bar.
  *
- * Verifies the visibility gate (selection + bound document) and that the
- * Remove button is wired to the canvas-ref store's clearActiveLayer getter.
- * Exact pixel positioning is not asserted — the docToCss math mirrors the
- * TransformGizmo, which has its own coverage.
+ * Verifies the visibility gate (selection + bound document), the inline inpaint
+ * form (prompt + run), and that the Remove button is wired to the canvas-ref
+ * store's clearActiveLayer getter. Exact pixel positioning is not asserted —
+ * the docToCss math mirrors the TransformGizmo, which has its own coverage.
  */
 
 import React from "react";
-import { render, fireEvent } from "@testing-library/react";
+import { render, fireEvent, waitFor } from "@testing-library/react";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 
 import { SelectionActionBar } from "../SelectionActionBar";
@@ -20,9 +20,21 @@ import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore
 import { useSketchCanvasRefStore } from "../../../stores/sketch/SketchCanvasRefStore";
 import { createEmptyMask } from "../selection";
 
+// Heavy model picker — stub to keep model-fetching deps out of jsdom.
+jest.mock("../../properties/ImageModelSelect", () => ({
+  __esModule: true,
+  default: () => null
+}));
+
 // Avoid pulling the real inpaint hook (trpc + image-editor deps) into jsdom.
+const mockInpaint = jest.fn();
 jest.mock("../../../hooks/sketch/useInpaintHere", () => ({
-  useInpaintHere: () => ({ inpaintHere: jest.fn(), isBusy: false })
+  useInpaintHere: () => ({ inpaintHere: mockInpaint, isBusy: false })
+}));
+
+const mockStart = jest.fn();
+jest.mock("../../../hooks/sketch/useDirectGenJob", () => ({
+  useDirectGenJob: () => ({ start: mockStart, cancel: jest.fn() })
 }));
 
 class StubResizeObserver implements ResizeObserver {
@@ -57,16 +69,31 @@ function selectAll(): void {
   useSketchStore.getState().setSelection(mask);
 }
 
+/** Seed a direct-gen binding so the bar's model picker starts populated. */
+function seedModel(): void {
+  useSketchSessionStore.getState().upsertBinding({
+    layerId: "seed-binding",
+    kind: "inpaint",
+    prompt: "",
+    provider: "fake",
+    model: "flux-fill",
+    sourceLayerId: null,
+    status: "draft",
+    versions: []
+  });
+}
+
 beforeEach(() => {
+  mockInpaint.mockReset();
+  mockStart.mockReset();
   useSketchStore.setState((s) => ({
     ...s,
     activeTool: "select",
-    genMode: "generate",
     zoom: 1,
     pan: { x: 0, y: 0 }
   }));
   useSketchStore.getState().setSelection(null);
-  useSketchSessionStore.setState({ documentId: null });
+  useSketchSessionStore.setState({ documentId: null, bindings: {} });
   useSketchCanvasRefStore.getState().clearGetters();
 });
 
@@ -88,19 +115,37 @@ describe("<SelectionActionBar />", () => {
     selectAll();
     const { getByTestId, getByRole } = renderBar(containerRef());
     expect(getByTestId("sketch-selection-action-bar")).toBeTruthy();
-    expect(getByTestId("sketch-selection-generative-fill")).toBeTruthy();
+    expect(getByTestId("sketch-selection-inpaint-prompt")).toBeTruthy();
     expect(getByTestId("sketch-selection-inpaint")).toBeTruthy();
     expect(getByTestId("sketch-selection-remove")).toBeTruthy();
     expect(getByTestId("sketch-selection-refine-edge")).toBeTruthy();
     expect(getByRole("button", { name: "Dismiss selection" })).toBeTruthy();
   });
 
-  it("Inpaint switches the generation mode to inpaint", () => {
+  it("keeps Inpaint disabled until a prompt is typed", () => {
     useSketchSessionStore.setState({ documentId: "doc-1" });
+    seedModel();
     selectAll();
-    const { getByTestId } = renderBar(containerRef());
+    const { getByTestId, getByPlaceholderText } = renderBar(containerRef());
+    expect(getByTestId("sketch-selection-inpaint")).toBeDisabled();
+    fireEvent.change(getByPlaceholderText("Replace selection with…"), {
+      target: { value: "a blue sky" }
+    });
+    expect(getByTestId("sketch-selection-inpaint")).not.toBeDisabled();
+  });
+
+  it("runs the inpaint job when Inpaint is clicked", async () => {
+    mockInpaint.mockResolvedValue({ ok: true, layerId: "layer-1" });
+    useSketchSessionStore.setState({ documentId: "doc-1" });
+    seedModel();
+    selectAll();
+    const { getByTestId, getByPlaceholderText } = renderBar(containerRef());
+    fireEvent.change(getByPlaceholderText("Replace selection with…"), {
+      target: { value: "a blue sky" }
+    });
     fireEvent.click(getByTestId("sketch-selection-inpaint"));
-    expect(useSketchStore.getState().genMode).toBe("inpaint");
+    await waitFor(() => expect(mockInpaint).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockStart).toHaveBeenCalledWith("layer-1"));
   });
 
   it("Dismiss clears the active selection", () => {
