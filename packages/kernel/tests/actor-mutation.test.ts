@@ -513,3 +513,45 @@ describe("NodeActor._mintIterationFrameOverrides", () => {
     expect(actor._mintIterationFrameOverrides({ other: 1 })).toBeNull();
   });
 });
+
+describe("NodeActor._maybeCollapseForSlot", () => {
+  it("drops the innermost root for aggregate(innermost) outputs", () => {
+    const node = makeNode({
+      output_correlation: {
+        agg: { kind: "aggregate", source: "in", collapse: "innermost" },
+        plain: { kind: "single", source: "__execution__" }
+      }
+    });
+    const correlation = {
+      invocationScope: [],
+      inputs: new Map([["in", { scope: ["outer:items", "fe:items"] }]]),
+      outputs: new Map()
+    };
+    const { actor } = createActor(node, new NodeInbox(), noop, { correlation });
+    const hints = {
+      invocationLineage: { "outer:items": { index: 1 }, "fe:items": { index: 2 } }
+    };
+    expect(actor._maybeCollapseForSlot("agg", hints)).toEqual({
+      "outer:items": { index: 1 }
+    });
+    expect(actor._maybeCollapseForSlot("plain", hints)).toBeUndefined();
+  });
+});
+
+describe("NodeActor._maybeMintForSlot", () => {
+  it("mints a token for iteration outputs and ignores others", () => {
+    const node = makeNode({
+      output_correlation: {
+        iter: { kind: "iteration", source: "__execution__", group: "g" },
+        plain: { kind: "single", source: "__execution__" }
+      }
+    });
+    const { actor } = createActor(node, new NodeInbox(), noop, {
+      correlation: analysisWith([])
+    });
+    const lineage = actor._maybeMintForSlot("iter", { invocationLineage: {} });
+    const root = iterationRootId(node.id, "iter", "g");
+    expect(lineage[root]).toEqual({ index: 0 });
+    expect(actor._maybeMintForSlot("plain", {})).toBeUndefined();
+  });
+});

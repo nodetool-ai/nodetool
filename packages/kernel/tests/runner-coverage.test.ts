@@ -1358,3 +1358,59 @@ describe("WorkflowRunner._drainActiveEdges", () => {
     expect(drained[0]).toMatchObject({ edge_id: "e1" });
   });
 });
+
+describe("WorkflowRunner.run – job lifecycle and failure paths", () => {
+  it("propagates the request workflow_id into every job_update", async () => {
+    const runner = new WorkflowRunner("wfid", {
+      resolveExecutor: () => simpleExecutor((i) => i)
+    });
+    const result = await runner.run(
+      { job_id: "j", workflow_id: "wf-123", params: { x: 1 } },
+      {
+        nodes: [
+          { id: "in", type: "test.Input", name: "x" },
+          { id: "out", type: "test.Output", name: "r" }
+        ],
+        edges: [
+          { source: "in", sourceHandle: "value", target: "out", targetHandle: "value" }
+        ]
+      }
+    );
+    const jobMsgs = result.messages.filter(
+      (m) => (m as { type?: string }).type === "job_update"
+    ) as Array<{ workflow_id: unknown }>;
+    expect(jobMsgs.length).toBeGreaterThan(0);
+    for (const m of jobMsgs) expect(m.workflow_id).toBe("wf-123");
+  });
+
+  it("fails the run when pre-flight node validation reports issues", async () => {
+    const runner = new WorkflowRunner("vfail", {
+      resolveExecutor: () => simpleExecutor(() => ({})),
+      validateNode: (node) =>
+        node.id === "bad" ? [{ message: "missing field", property: "p" }] : []
+    });
+    const result = await runner.run(
+      { job_id: "jv" },
+      { nodes: [{ id: "bad", type: "test.Bad" }], edges: [] }
+    );
+    expect(result.status).toBe("failed");
+    expect(result.error).toMatch(/missing field/);
+  });
+
+  it("fails the run when correlation analysis reports an issue (data self-loop)", async () => {
+    const runner = new WorkflowRunner("cfail", {
+      resolveExecutor: () => simpleExecutor(() => ({}))
+    });
+    const result = await runner.run(
+      { job_id: "jc" },
+      {
+        nodes: [{ id: "a", type: "test.Node", outputs: { value: "any" } }],
+        edges: [
+          { source: "a", sourceHandle: "value", target: "a", targetHandle: "in" }
+        ]
+      }
+    );
+    expect(result.status).toBe("failed");
+    expect(result.error).toMatch(/Correlation analysis failed|Cycle/);
+  });
+});
