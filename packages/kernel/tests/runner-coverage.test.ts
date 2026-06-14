@@ -9,6 +9,7 @@
 import { describe, it, expect } from "vitest";
 import { WorkflowRunner } from "../src/runner.js";
 import { Graph, GraphValidationError } from "../src/graph.js";
+import { NodeInbox } from "../src/inbox.js";
 import type { NodeDescriptor, Edge, ControlEvent } from "@nodetool-ai/protocol";
 import type { NodeExecutor } from "../src/actor.js";
 
@@ -32,6 +33,15 @@ type RunnerInternals = {
   _flushEdgeCounters(): void;
   _emit(msg: unknown): void;
   _resolveInputNodes(name: string): NodeDescriptor[];
+  _inboxes: Map<string, NodeInbox>;
+  _sendMessages(
+    sourceNodeId: string,
+    outputs: Record<string, unknown>,
+    routingHints?: Record<string, unknown>
+  ): Promise<void>;
+  _sendEOS(nodeId: string): Promise<void>;
+  _routeControlOutput(sourceNodeId: string, controlOutput: unknown): Promise<void>;
+  _drainActiveEdges(): void;
 };
 const internals = (r: WorkflowRunner) => r as unknown as RunnerInternals;
 const bareRunner = () =>
@@ -1057,5 +1067,294 @@ describe("WorkflowRunner._resolveInputNodes", () => {
     expect(internals(r)._resolveInputNodes("alpha").map((n) => n.id)).toEqual(["in1"]);
     expect(internals(r)._resolveInputNodes("in2").map((n) => n.id)).toEqual(["in2"]);
     expect(internals(r)._resolveInputNodes("nope")).toEqual([]);
+  });
+});
+
+describe("WorkflowRunner._sendMessages – control-edge routing", () => {
+  const setup = (controllerOutHandle: string) => {
+    const r = bareRunner();
+    const inbox = new NodeInbox();
+    inbox.addUpstream("__control__", 1);
+    internals(r)._inboxes = new Map([["controlled", inbox]]);
+    internals(r)._graph = new Graph({
+      nodes: [
+        { id: "controller", type: "t" },
+        { id: "controlled", type: "t" }
+      ],
+      edges: [
+        {
+          source: "controller",
+          sourceHandle: controllerOutHandle,
+          target: "controlled",
+          targetHandle: "__control__",
+          edge_type: "control"
+        }
+      ]
+    });
+    return { r, inbox };
+  };
+
+  it("wraps a raw property dict as a run event", async () => {
+    const { r, inbox } = setup("cmd");
+    await internals(r)._sendMessages("controller", { cmd: { brightness: 5 } });
+    expect(inbox.drainHandle("__control__").map((e) => e.data)).toEqual([
+      { event_type: "run", properties: { brightness: 5 } }
+    ]);
+  });
+
+  it("unwraps a nested { properties } shape", async () => {
+    const { r, inbox } = setup("cmd");
+    await internals(r)._sendMessages("controller", {
+      cmd: { properties: { gain: 2 } }
+    });
+    expect(inbox.drainHandle("__control__").map((e) => e.data)).toEqual([
+      { event_type: "run", properties: { gain: 2 } }
+    ]);
+  });
+
+  it("passes through a value that already has a string event_type", async () => {
+    const { r, inbox } = setup("cmd");
+    const event = { event_type: "stop", properties: {} };
+    await internals(r)._sendMessages("controller", { cmd: event });
+    expect(inbox.drainHandle("__control__").map((e) => e.data)).toEqual([event]);
+  });
+
+  it("skips non-object and undefined control values", async () => {
+    const { r, inbox } = setup("cmd");
+    await internals(r)._sendMessages("controller", { cmd: "not-an-object" });
+    await internals(r)._sendMessages("controller", { other: 1 }); // no cmd
+    expect(inbox.drainHandle("__control__")).toEqual([]);
+  });
+});
+
+describe("WorkflowRunner._sendMessages – data delivery", () => {
+  it("delivers values to the target inbox and increments the edge counter", async () => {
+    const r = bareRunner();
+    const inbox = new NodeInbox();
+    inbox.addUpstream("in", 1);
+    internals(r)._inboxes = new Map([["b", inbox]]);
+    internals(r)._graph = new Graph({
+      nodes: [
+        { id: "a", type: "t", outputs: { value: "int" } },
+        { id: "b", type: "t" }
+      ],
+      edges: [
+        { id: "e1", source: "a", sourceHandle: "value", target: "b", targetHandle: "in" }
+      ]
+    });
+
+    await internals(r)._sendMessages("a", { value: 42, skip: undefined });
+
+    expect(inbox.drainHandle("in").map((e) => e.data)).toEqual([42]);
+    const edgeMsgs = internals(r)._messages.filter(
+      (m) => (m as { type?: string }).type === "edge_update"
+    );
+    expect(edgeMsgs).toHaveLength(1);
+    expect(edgeMsgs[0]).toMatchObject({ edge_id: "e1", counter: 1 });
+  });
+});
+
+describe("WorkflowRunner._sendMessages – output_update emission", () => {
+  const emitFor = async (
+    node: NodeDescriptor,
+    outputs: Record<string, unknown>,
+    extraNodes: NodeDescriptor[] = [],
+    extraEdges: Edge[] = []
+  ) => {
+    const r = bareRunner();
+    internals(r)._inboxes = new Map();
+    internals(r)._graph = new Graph({
+      nodes: [node, ...extraNodes],
+      edges: extraEdges
+    });
+    await internals(r)._sendMessages(node.id, outputs);
+    return internals(r)._messages.filter(
+      (m) => (m as { type?: string }).type === "output_update"
+    ) as Array<{ output_name: string; value: unknown; output_type: string }>;
+  };
+
+  it("maps an Output node's handle to its workflow name", async () => {
+    const msgs = await emitFor(
+      {
+        id: "o",
+        type: "nodetool.output.Output",
+        name: "ignored",
+        properties: { name: "result" },
+        outputs: { output: "int" }
+      },
+      { output: 7 }
+    );
+    expect(msgs).toHaveLength(1);
+    expect(msgs[0].output_name).toBe("result");
+    expect(msgs[0].value).toBe(7);
+    expect(msgs[0].output_type).toBe("int");
+  });
+
+  it("falls back to the handle when an Output node has no workflow name", async () => {
+    const msgs = await emitFor(
+      { id: "o", type: "x.output.Output", outputs: {} },
+      { output: 1 }
+    );
+    expect(msgs[0].output_name).toBe("output");
+  });
+
+  it("maps Preview nodes by workflow name and plain nodes by handle", async () => {
+    const prev = await emitFor(
+      {
+        id: "p",
+        type: "nodetool.workflows.base_node.Preview",
+        properties: { name: "peek" }
+      },
+      { output: 1 }
+    );
+    expect(prev[0].output_name).toBe("peek");
+
+    const plain = await emitFor({ id: "n", type: "test.Plain" }, { out: 5 });
+    expect(plain[0].output_name).toBe("out");
+  });
+
+  it("skips output_update for constant and input nodes", async () => {
+    expect(
+      await emitFor({ id: "c", type: "nodetool.constant.Number" }, { output: 1 })
+    ).toHaveLength(0);
+    expect(
+      await emitFor({ id: "i", type: "nodetool.input.Text" }, { output: "x" })
+    ).toHaveLength(0);
+  });
+
+  it("skips handles that have an outgoing data edge unless always_emit is set", async () => {
+    // Plain node with a data edge on "out" → suppressed.
+    const suppressed = await emitFor(
+      { id: "a", type: "test.Plain", outputs: { out: "any" } },
+      { out: 1 },
+      [{ id: "b", type: "t" }],
+      [{ source: "a", sourceHandle: "out", target: "b", targetHandle: "in" }]
+    );
+    expect(suppressed).toHaveLength(0);
+
+    // Same graph but always_emit_output_updates → emitted anyway.
+    const emitted = await emitFor(
+      {
+        id: "a",
+        type: "test.Plain",
+        outputs: { out: "any" },
+        always_emit_output_updates: true
+      } as NodeDescriptor,
+      { out: 1 },
+      [{ id: "b", type: "t" }],
+      [{ source: "a", sourceHandle: "out", target: "b", targetHandle: "in" }]
+    );
+    expect(emitted).toHaveLength(1);
+  });
+});
+
+describe("WorkflowRunner._sendEOS", () => {
+  it("closes data handles once, dedups control targets, and emits completed", async () => {
+    const r = bareRunner();
+    const inB = new NodeInbox();
+    inB.addUpstream("in", 1);
+    const inC = new NodeInbox();
+    inC.addUpstream("__control__", 2); // two controllers feed c
+    internals(r)._inboxes = new Map([
+      ["b", inB],
+      ["c", inC]
+    ]);
+    internals(r)._graph = new Graph({
+      nodes: [
+        { id: "a", type: "t" },
+        { id: "b", type: "t" },
+        { id: "c", type: "t" }
+      ],
+      edges: [
+        { id: "ed", source: "a", sourceHandle: "o", target: "b", targetHandle: "in" },
+        { source: "a", sourceHandle: "c1", target: "c", targetHandle: "__control__", edge_type: "control" },
+        { source: "a", sourceHandle: "c2", target: "c", targetHandle: "__control__", edge_type: "control" }
+      ]
+    });
+
+    await internals(r)._sendEOS("a");
+
+    expect(inB.isOpen("in")).toBe(false); // data handle closed
+    // Only one of c's two __control__ upstreams decremented (per-target dedup).
+    expect(inC.isOpen("__control__")).toBe(true);
+
+    const completed = internals(r)._messages.filter(
+      (m) =>
+        (m as { type?: string; status?: string }).type === "edge_update" &&
+        (m as { status?: string }).status === "completed"
+    );
+    expect(completed).toHaveLength(1);
+    expect(completed[0]).toMatchObject({ edge_id: "ed" });
+  });
+});
+
+describe("WorkflowRunner._routeControlOutput", () => {
+  const setup = () => {
+    const r = bareRunner();
+    const inbox = new NodeInbox();
+    inbox.addUpstream("__control__", 1);
+    internals(r)._inboxes = new Map([["controlled", inbox]]);
+    internals(r)._graph = new Graph({
+      nodes: [
+        { id: "ctrl", type: "t" },
+        { id: "controlled", type: "t" }
+      ],
+      edges: [
+        { source: "ctrl", sourceHandle: "c", target: "controlled", targetHandle: "__control__", edge_type: "control" }
+      ]
+    });
+    return { r, inbox };
+  };
+
+  it("wraps a raw dict, and unwraps a nested properties wrapper", async () => {
+    const { r, inbox } = setup();
+    await internals(r)._routeControlOutput("ctrl", { brightness: 9 });
+    await internals(r)._routeControlOutput("ctrl", { properties: { gain: 3 } });
+    expect(inbox.drainHandle("__control__").map((e) => e.data)).toEqual([
+      { event_type: "run", properties: { brightness: 9 } },
+      { event_type: "run", properties: { gain: 3 } }
+    ]);
+  });
+
+  it("ignores non-object control output", async () => {
+    const { r, inbox } = setup();
+    await internals(r)._routeControlOutput("ctrl", "nope");
+    await internals(r)._routeControlOutput("ctrl", null);
+    expect(inbox.drainHandle("__control__")).toEqual([]);
+  });
+});
+
+describe("WorkflowRunner._drainActiveEdges", () => {
+  it("posts a drained update for edges whose target still has buffered or open input", async () => {
+    const r = bareRunner();
+    const inB = new NodeInbox();
+    inB.addUpstream("in", 1);
+    await inB.put("in", 1); // buffered → active
+    const inC = new NodeInbox();
+    inC.addUpstream("in", 1);
+    inC.markSourceDone("in"); // not open, not buffered → quiet
+    internals(r)._inboxes = new Map([
+      ["b", inB],
+      ["c", inC]
+    ]);
+    internals(r)._graph = new Graph({
+      nodes: [
+        { id: "a", type: "t" },
+        { id: "b", type: "t" },
+        { id: "c", type: "t" }
+      ],
+      edges: [
+        { id: "e1", source: "a", sourceHandle: "o", target: "b", targetHandle: "in" },
+        { id: "e2", source: "a", sourceHandle: "o", target: "c", targetHandle: "in" }
+      ]
+    });
+
+    internals(r)._drainActiveEdges();
+
+    const drained = internals(r)._messages.filter(
+      (m) => (m as { status?: string }).status === "drained"
+    );
+    expect(drained).toHaveLength(1);
+    expect(drained[0]).toMatchObject({ edge_id: "e1" });
   });
 });
