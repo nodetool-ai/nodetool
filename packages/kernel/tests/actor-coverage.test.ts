@@ -606,3 +606,22 @@ describe("NodeActor._emitNodeStatus – provider cost without a context", () => 
     expect(completed!.provider_cost).toBeNull();
   });
 });
+
+describe("NodeActor._emitNodeStatus – non-object properties", () => {
+  it("emits null properties when node.properties is not an object", async () => {
+    const node = makeNode({ properties: "not-an-object" as never });
+    const inbox = new NodeInbox();
+    const executor: NodeExecutor = {
+      async process() {
+        return {};
+      }
+    };
+    const { actor, messages } = createActor(node, inbox, executor);
+    await actor.run();
+    const statusMsgs = messages.filter(
+      (m) => (m as NodeUpdate).type === "node_update"
+    ) as NodeUpdate[];
+    expect(statusMsgs.length).toBeGreaterThan(0);
+    for (const m of statusMsgs) expect(m.properties).toBeNull();
+  });
+});
