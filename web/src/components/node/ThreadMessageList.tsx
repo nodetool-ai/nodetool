@@ -79,7 +79,7 @@ const styles = (theme: Theme) =>
     },
     ".messages": {
       listStyleType: "none",
-      padding: "14px"
+      padding: "16px"
     },
     ".messages li.chat-message": {
       fontFamily: theme.fontFamily2,

@@ -291,7 +291,7 @@ const namespaceStyles = (theme: Theme) =>
     ".node-packs-info .MuiButton-root": {
       textTransform: "none",
       borderRadius: BORDER_RADIUS.lg,
-      padding: "6px 10px",
+      padding: "6px 12px",
       borderColor: theme.vars.palette.divider,
       color: theme.vars.palette.text.secondary,
       "&:hover": {

@@ -39,7 +39,7 @@ const styles = (theme: Theme) =>
       height: "100%",
       display: "flex",
       flexDirection: "column",
-      gap: theme.spacing(0.75),
+      gap: theme.spacing(1),
       padding: theme.spacing(1),
       minHeight: 0,
       borderRadius: BORDER_RADIUS.sm,

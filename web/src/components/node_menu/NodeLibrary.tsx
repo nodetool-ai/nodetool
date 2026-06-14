@@ -62,7 +62,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
     ".nl-count": {
       display: "inline-flex",
       alignItems: "center",
-      padding: "1px 7px",
+      padding: "1px 8px",
       borderRadius: "var(--rounded-sm)",
       backgroundColor: theme.vars.palette.action.selected,
       color: theme.vars.palette.text.secondary,

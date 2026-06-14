@@ -602,7 +602,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: "10px",
+            gap: "12px",
             padding: "12px"
           }}
         >
