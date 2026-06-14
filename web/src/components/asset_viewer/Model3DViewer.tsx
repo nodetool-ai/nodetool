@@ -714,7 +714,10 @@ const Model3DViewer: React.FC<Model3DViewerProps> = ({
                   color={i === 0 ? "error" : "secondary"}
                   sx={{
                     wordBreak: "break-word",
-                    fontSize: i === 0 ? "0.875rem" : "0.75rem",
+                    fontSize:
+                      i === 0
+                        ? "var(--fontSizeNormal)"
+                        : "var(--fontSizeSmall)",
                     opacity: i === 0 ? 1 : 0.8
                   }}
                 >

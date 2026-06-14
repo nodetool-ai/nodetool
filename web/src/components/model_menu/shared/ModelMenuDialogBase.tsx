@@ -412,7 +412,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
               selected={customView === "favorites"}
               onClick={handleSetFavoritesView}
               sx={{
-                py: isIconOnly ? 1 : 0.25,
+                py: isIconOnly ? 1 : 0.5,
                 borderRadius: BORDER_RADIUS.xs,
                 mx: 0,
                 mb: 0.5,
@@ -489,7 +489,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
               selected={customView === "recent"}
               onClick={handleSetRecentView}
               sx={{
-                py: isIconOnly ? 1 : 0.25,
+                py: isIconOnly ? 1 : 0.5,
                 borderRadius: BORDER_RADIUS.xs,
                 mx: 0,
                 justifyContent: isIconOnly ? "center" : "flex-start",
@@ -566,7 +566,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                 selected={customView === "downloads"}
                 onClick={handleSetDownloadsView}
                 sx={{
-                  py: isIconOnly ? 1 : 0.25,
+                  py: isIconOnly ? 1 : 0.5,
                   borderRadius: BORDER_RADIUS.xs,
                   mx: 0,
                   mt: 0.5,

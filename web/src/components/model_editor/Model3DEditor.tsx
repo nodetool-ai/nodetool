@@ -60,7 +60,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.grey[900]
     },
     ".editor-toolbar": {
-      padding: "6px 10px",
+      padding: "6px 12px",
       gap: "8px",
       alignItems: "center",
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
@@ -90,7 +90,7 @@ const styles = (theme: Theme) =>
       borderLeft: `1px solid ${theme.vars.palette.divider}`
     },
     ".panel-header": {
-      padding: "8px 10px",
+      padding: "8px 12px",
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       flexShrink: 0
     },
