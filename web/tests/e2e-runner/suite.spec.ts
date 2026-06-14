@@ -62,6 +62,16 @@ test("workflow suite executes and records artifacts", async ({ page }) => {
   }
 
   writeFileSync(resolve(ARTIFACT_DIR, "results.json"), JSON.stringify(records, null, 2));
+  if (consoleErrors.length > 0) {
+    writeFileSync(
+      resolve(ARTIFACT_DIR, "console-errors.log"),
+      consoleErrors.join("\n")
+    );
+    console.log(
+      `[e2e suite] ${consoleErrors.length} browser console error(s):\n` +
+        consoleErrors.map((e) => `  ${e}`).join("\n")
+    );
+  }
   const reportPath = generateReport(records, {
     outDir: ARTIFACT_DIR,
     title: "NodeTool E2E Workflow Report",

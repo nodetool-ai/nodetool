@@ -104,7 +104,6 @@ function extractArtifact(output: {
 }
 
 export class Harness {
-  private ws = new HarnessWsClient();
   private listeners = new Set<Listener>();
   private state: HarnessState = {
     manifest: [],
@@ -143,7 +142,6 @@ export class Harness {
       records: manifest.workflows.map(emptyRecord),
       state: "idle"
     });
-    await this.ws.connect();
   }
 
   /** Load and cache a workflow graph by file path. */
@@ -242,6 +240,23 @@ export class Harness {
       rec.startedAt = startedAt;
     });
 
+    // Connect a fresh WebSocket per workflow: the backend runner closes the
+    // connection when a job finishes, so reusing one socket across runs fails
+    // every run after the first with "WebSocket is not open".
+    const ws = new HarnessWsClient();
+    try {
+      await ws.connect();
+    } catch (err) {
+      const finishedAt = Date.now();
+      this.updateRecord(index, (rec) => {
+        rec.status = "error";
+        rec.finishedAt = finishedAt;
+        rec.durationMs = finishedAt - startedAt;
+        rec.error = err instanceof Error ? err.message : String(err);
+      });
+      return this.state.records[index];
+    }
+
     await new Promise<void>((resolve) => {
       const nodeStatus: Record<string, string> = {};
       let settled = false;
@@ -252,6 +267,7 @@ export class Harness {
         settled = true;
         window.clearTimeout(timer);
         unsubscribe();
+        ws.close();
         const finishedAt = Date.now();
         this.updateRecord(index, (rec) => {
           rec.status = status;
@@ -269,12 +285,12 @@ export class Harness {
         resolve();
       };
 
-      const unsubscribe = this.ws.onMessage((msg: WsEvent) => {
+      const unsubscribe = ws.onMessage((msg: WsEvent) => {
         this.handleEvent(index, msg, nodeStatus, finish);
       });
 
       try {
-        this.ws.send({ command: "run_job", data: { graph, params: ref.params } });
+        ws.send({ command: "run_job", data: { graph, params: ref.params } });
       } catch (err) {
         finish("error", err instanceof Error ? err.message : String(err));
       }
@@ -383,7 +399,6 @@ export class Harness {
   }
 
   dispose(): void {
-    this.ws.close();
     this.listeners.clear();
   }
 }
