@@ -2,7 +2,15 @@
  * Channel & ChannelManager tests – parity with Python channel.py behavior.
  */
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+
+// Capture the channel module's logger so the buffer-overflow warning can be
+// asserted (it is the only observable effect of the once-only drop guard).
+const { warn, error } = vi.hoisted(() => ({ warn: vi.fn(), error: vi.fn() }));
+vi.mock("@nodetool-ai/config", () => ({
+  createLogger: () => ({ warn, error, info: () => {}, debug: () => {} })
+}));
+
 import { Channel, ChannelManager, type ChannelStats } from "../src/channel.js";
 
 // Helper: collect all items from an async generator
@@ -436,5 +444,58 @@ describe("ChannelManager – closeAll closes channels", () => {
     expect(a.isClosed).toBe(true);
     expect(b.isClosed).toBe(true);
     expect(mgr.listChannels()).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Bounded buffer / drop semantics
+// ---------------------------------------------------------------------------
+
+describe("Channel – bounded buffer drops oldest", () => {
+  it("drops the oldest items when a stalled subscriber overflows its buffer", async () => {
+    warn.mockClear();
+    const ch = new Channel<number>("overflow", 2);
+
+    // Register a subscriber, then stall it: pull exactly one item so the
+    // generator parks at the `yield` (its buffer no longer has a waiter), then
+    // never pull again. Subsequent publishes accumulate in its buffer.
+    const gen = ch.subscribe("slow");
+    const firstPull = gen.next(); // pending until the prime is published
+    await ch.publish(0); // prime — delivered to the parked next()
+    expect((await firstPull).value).toBe(0);
+
+    // Buffer starts empty; limit is 2. Three of these overflow and drop oldest.
+    await ch.publish(1); // [1]
+    await ch.publish(2); // [1,2]
+    await ch.publish(3); // full -> drop 1 -> [2,3]  (first drop -> warns once)
+    await ch.publish(4); // drop 2 -> [3,4]
+    await ch.publish(5); // drop 3 -> [4,5]
+
+    // The warning fires exactly once across all drops (the dropped===1 guard).
+    expect(warn).toHaveBeenCalledTimes(1);
+
+    // Only the last `limit` items survive; 1,2,3 were dropped.
+    await ch.close();
+    const remaining: number[] = [];
+    for (let r = await gen.next(); !r.done; r = await gen.next()) {
+      remaining.push(r.value);
+    }
+    expect(remaining).toEqual([4, 5]);
+  });
+});
+
+describe("Channel – duplicate subscriber", () => {
+  it("rejects a second subscriber with the same id", async () => {
+    const ch = new Channel<number>("dup-sub", 4);
+    const gen = ch.subscribe("s1");
+    void gen.next(); // begin the generator so s1 registers (do not await — empty buffer parks it)
+    await new Promise((r) => setTimeout(r, 0));
+
+    const second = ch.subscribe("s1");
+    await expect(second.next()).rejects.toThrow(
+      /already has an active subscriber 's1'/
+    );
+
+    await ch.close();
   });
 });
