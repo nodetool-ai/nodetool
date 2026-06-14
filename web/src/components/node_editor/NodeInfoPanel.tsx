@@ -186,7 +186,7 @@ const styles = (theme: Theme) =>
       flex: 1,
       minWidth: "80px",
       fontSize: "var(--fontSizeSmall)",
-      padding: "6px 10px",
+      padding: "6px 12px",
       borderRadius: "var(--rounded-md)",
       marginTop: "12px",
       "& .MuiButton-startIcon": {
