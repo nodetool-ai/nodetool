@@ -8,7 +8,7 @@ import isEqual from "fast-deep-equal";
 import { useNodes } from "../../contexts/NodeContext";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { CopyButton, Tooltip, ToolbarIconButton, SPACING } from "../ui_primitives";
+import { CopyButton, ToolbarIconButton, SPACING } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { NodeTextField, editorClassNames, cn } from "../editor_ui";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
