@@ -24,7 +24,10 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import TuneIcon from "@mui/icons-material/Tune";
 
+import { Box } from "@mui/material";
+
 import {
+  BORDER_RADIUS,
   CloseButton,
   EditorButton,
   FlexRow,
@@ -277,7 +280,7 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
           zIndex: SKETCH_Z_INDEX.overlay + 5,
           pointerEvents: "auto",
           padding: theme.spacing(0.5),
-          borderRadius: theme.shape.borderRadius,
+          borderRadius: BORDER_RADIUS.md,
           backgroundColor: theme.vars.palette.grey[900],
           border: `1px solid ${theme.vars.palette.grey[700]}`,
           boxShadow: theme.shadows[6],
@@ -311,14 +314,16 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
               )
             }
           }}
-          sx={{ width: 200 }}
+          sx={{ width: 280 }}
         />
 
-        <ImageModelSelect
-          value={model}
-          task="image_to_image"
-          onChange={handleModelChange}
-        />
+        <Box sx={{ width: 120, flexShrink: 0 }}>
+          <ImageModelSelect
+            value={model}
+            task="image_to_image"
+            onChange={handleModelChange}
+          />
+        </Box>
 
         <Tooltip
           title="Inpaint — regenerate the selected region using your prompt and the selection as a mask."
