@@ -71,15 +71,12 @@ export class WaitNode extends BaseNode {
   static readonly nodeType = "nodetool.triggers.Wait";
   static readonly title = "Wait";
   static readonly description =
-    "Pause workflow execution for a fixed amount of time, then pass the input\n" +
-    "    through to the output.\n\n" +
+    "Pause workflow execution for a fixed delay, then pass the input through unchanged.\n" +
+    "    wait, delay, sleep, pause, throttle, timer, rate-limit\n\n" +
     "    Use cases:\n" +
-    "    - Rate-limiting or throttling between steps\n" +
-    "    - Waiting a fixed delay before continuing\n" +
-    "    - Spacing out polling or retry attempts\n\n" +
-    "    The input data is forwarded unchanged once the wait completes, along\n" +
-    "    with the resume timestamp and the actual number of seconds waited. A\n" +
-    "    timeout of 0 means no wait — the input passes through immediately.";
+    "    - Rate-limit or throttle between steps\n" +
+    "    - Wait a fixed delay before continuing\n" +
+    "    - Space out polling or retry attempts";
   static readonly inlineFields = [];
   static readonly inputFields = ["input"];
   static readonly metadataOutputTypes = {
@@ -133,15 +130,12 @@ export class ManualTriggerNode extends BaseNode {
   static readonly nodeType = "nodetool.triggers.ManualTrigger";
   static readonly title = "Manual Trigger";
   static readonly description =
-    "Trigger node that waits for manual events pushed via the API.\n\n" +
-    "    This trigger enables interactive workflows where events are pushed\n" +
-    "    programmatically through the workflow runner's input API. Each event\n" +
-    "    pushed to the trigger is emitted and processed by the workflow.\n\n" +
-    "    This trigger is useful for:\n" +
-    "    - Building chatbot-style workflows\n" +
+    "Wait for manual events pushed via the API to drive interactive workflows.\n" +
+    "    trigger, manual, api, interactive, event, push, chatbot\n\n" +
+    "    Use cases:\n" +
+    "    - Build chatbot-style workflows\n" +
     "    - Interactive processing pipelines\n" +
-    "    - Manual batch processing\n" +
-    "    - Testing and debugging workflows";
+    "    - Manual batch processing and testing";
   static readonly inlineFields = ["name"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
@@ -245,17 +239,12 @@ export class IntervalTriggerNode extends BaseNode {
   static readonly nodeType = "nodetool.triggers.IntervalTrigger";
   static readonly title = "Interval Trigger";
   static readonly description =
-    "Trigger node that fires at regular time intervals.\n\n" +
-    "    This trigger emits events at a configured interval, similar to a timer\n" +
-    "    or scheduler. Each event contains:\n" +
-    "    - The tick number (how many times the trigger has fired)\n" +
-    "    - The current timestamp\n" +
-    "    - The configured interval\n\n" +
-    "    This trigger is useful for:\n" +
+    "Fire events at regular time intervals, like a timer or scheduler.\n" +
+    "    trigger, interval, timer, schedule, cron, periodic, heartbeat\n\n" +
+    "    Use cases:\n" +
     "    - Periodic data collection or polling\n" +
     "    - Scheduled batch processing\n" +
-    "    - Heartbeat or keepalive workflows\n" +
-    "    - Time-based automation";
+    "    - Heartbeat or time-based automation";
   static readonly inlineFields = [];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
@@ -385,16 +374,12 @@ export class WebhookTriggerNode extends BaseNode {
   static readonly nodeType = "nodetool.triggers.WebhookTrigger";
   static readonly title = "Webhook Trigger";
   static readonly description =
-    "Trigger node that starts an HTTP server to receive webhook requests.\n\n" +
-    "    Each incoming HTTP request is emitted as an event containing:\n" +
-    "    - The request body (parsed as JSON if applicable)\n" +
-    "    - Request headers\n" +
-    "    - Query parameters\n" +
-    "    - HTTP method\n\n" +
-    "    This trigger is useful for:\n" +
-    "    - Receiving notifications from external services\n" +
-    "    - Building API endpoints that trigger workflows\n" +
-    "    - Integration with third-party webhook providers";
+    "Start an HTTP server and emit each incoming webhook request as an event.\n" +
+    "    trigger, webhook, http, server, api, request, integration\n\n" +
+    "    Use cases:\n" +
+    "    - Receive notifications from external services\n" +
+    "    - Build API endpoints that trigger workflows\n" +
+    "    - Integrate with third-party webhook providers";
   static readonly inlineFields = ["path"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
@@ -579,16 +564,12 @@ export class FileWatchTriggerNode extends BaseNode {
   static readonly nodeType = "nodetool.triggers.FileWatchTrigger";
   static readonly title = "File Watch Trigger";
   static readonly description =
-    "Trigger node that monitors filesystem changes.\n\n" +
-    "    This trigger monitors a directory or file for changes. When a change\n" +
-    "    is detected, an event is emitted containing:\n" +
-    "    - The path of the changed file\n" +
-    "    - The type of change (created, modified, deleted, moved)\n" +
-    "    - Timestamp of the event\n\n" +
-    "    This trigger is useful for:\n" +
-    "    - Processing files as they arrive in a directory\n" +
-    "    - Triggering workflows on configuration changes\n" +
-    "    - Building file-based automation pipelines";
+    "Monitor a directory or file and emit an event whenever a change is detected.\n" +
+    "    trigger, file, watch, filesystem, monitor, change, automation\n\n" +
+    "    Use cases:\n" +
+    "    - Process files as they arrive in a directory\n" +
+    "    - Trigger workflows on configuration changes\n" +
+    "    - Build file-based automation pipelines";
   static readonly inlineFields = ["path"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {

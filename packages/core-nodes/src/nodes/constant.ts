@@ -6,7 +6,7 @@ export class ConstantBaseNode extends BaseNode {
   static readonly nodeType = "nodetool.constant.Constant";
   static readonly title = "Constant";
   static readonly description =
-    "Base class for fixed-value nodes.\n\n    constant, parameter, default\n\n    Use cases:\n    - Provide static inputs to a workflow\n    - Hold configuration values\n    - Simplify testing with deterministic outputs";
+    "Base class for fixed-value nodes.\n    constant, parameter, default\n\n    Use cases:\n    - Provide static inputs to a workflow\n    - Hold configuration values\n    - Simplify testing with deterministic outputs";
 
   async process(): Promise<Record<string, unknown>> {
     return { output: null };
@@ -597,7 +597,8 @@ export class ConstantSelectNode extends BaseNode {
 export class ConstantImageSizeNode extends BaseNode {
   static readonly nodeType = "nodetool.constant.ImageSize";
   static readonly title = "Image Size";
-  static readonly description = "";
+  static readonly description =
+    "Represents a fixed image size constant in the workflow.\n    constant, image_size, resolution, width, height, dimensions\n\n    Use cases:\n    - Provide fixed output dimensions for image generation nodes\n    - Reference a standard resolution across the workflow\n    - Expose width and height as separate integer outputs";
   static readonly metadataOutputTypes = {
     image_size: "image_size",
     width: "int",
@@ -789,7 +790,7 @@ export class ConstantDateTimeNode extends BaseNode {
 
 export class ConstantASRModelNode extends BaseNode {
   static readonly nodeType = "nodetool.constant.ASRModelConstant";
-  static readonly title = "ASRModel Constant";
+  static readonly title = "ASR Model Constant";
   static readonly description =
     "Represents an automatic speech recognition model constant in the workflow.\n    asr, speech, recognition, transcription, model\n\n    Use cases:\n    - Provide a fixed ASR model for transcription\n    - Set default ASR model for the workflow\n    - Configure model selection without user input";
   static readonly metadataOutputTypes = {
@@ -875,7 +876,7 @@ export class ConstantLanguageModelNode extends BaseNode {
 
 export class ConstantTTSModelNode extends BaseNode {
   static readonly nodeType = "nodetool.constant.TTSModelConstant";
-  static readonly title = "TTSModel Constant";
+  static readonly title = "TTS Model Constant";
   static readonly description =
     "Represents a text-to-speech model constant in the workflow.\n    tts, speech, voice, model, audio\n\n    Use cases:\n    - Provide a fixed TTS model for speech synthesis\n    - Set default TTS model for the workflow\n    - Configure model selection without user input";
   static readonly metadataOutputTypes = {

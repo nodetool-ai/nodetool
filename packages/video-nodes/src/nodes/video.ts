@@ -430,7 +430,7 @@ export class ImageToVideoNode extends BaseNode {
   static readonly body = "content_card";
   static readonly title = "Image To Video";
   static readonly description =
-    "Generate videos from input images using any supported video provider.\n    Animates static images into dynamic video content with AI-powered motion.\n    video, image-to-video, i2v, animation, AI, generation, sora, veo";
+    "Animate static images into video with AI-powered motion using any supported video provider.\n    video, image-to-video, i2v, animation, ai, generation, sora, veo";
   static readonly metadataOutputTypes = {
     output: "video"
   };
@@ -653,7 +653,7 @@ export class LoadVideoAssetsNode extends BaseNode {
   static readonly nodeType = "nodetool.video.LoadVideoAssets";
   static readonly title = "Load Video Folder";
   static readonly description =
-    "Load video files from an asset folder.\n\n    video, assets, load";
+    "Load video files from an asset folder.\n    load, video, file, import";
   static readonly metadataOutputTypes = {
     video: "video",
     name: "str",
@@ -2554,7 +2554,7 @@ export class GetVideoInfoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.GetVideoInfo";
   static readonly title = "Get Video Info";
   static readonly description =
-    "Get metadata information about a video file.\n    Includes duration, resolution, frame rate, and codec.\n    video, info, metadata, duration, resolution, fps, codec, analysis";
+    "Get metadata about a video file including duration, resolution, frame rate, and codec.\n    video, info, metadata, duration, resolution, fps, codec, analysis";
   static readonly metadataOutputTypes = {
     duration: "float",
     width: "int",

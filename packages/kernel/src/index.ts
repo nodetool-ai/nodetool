@@ -40,10 +40,15 @@ export {
   type WorkflowRunnerOptions,
   type RunResult,
   type NodeValidationIssue,
-  type NodeValidator
+  type NodeValidator,
+  type OutputRoutingHints
 } from "./runner.js";
-export { Channel, ChannelManager, type ChannelStats } from "./channel.js";
-export { NodeInputs, NodeOutputs, type NodeOutputsOptions } from "./io.js";
+export {
+  NodeInputs,
+  NodeOutputs,
+  type NodeOutputsOptions,
+  type EmitOptions
+} from "./io.js";
 export {
   findNodeOrThrow,
   getNodeInputTypes,

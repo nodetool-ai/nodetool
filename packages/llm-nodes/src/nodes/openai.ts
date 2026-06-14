@@ -99,7 +99,7 @@ export class WebSearchNode extends BaseNode {
   static readonly inlineFields = ["query"];
   static readonly inputFields: string[] = [];
   static readonly description =
-    "🔍 OpenAI Web Search - Searches the web using OpenAI's web search capabilities.\n\n    This node uses an OpenAI model equipped with web search functionality\n    (like gpt-4o with search preview) to answer queries based on current web information.\n    Requires an OpenAI API key.";
+    "Search the web with OpenAI's web-search models to answer queries from current information.\n    openai, web, search, internet, browsing, current, realtime";
   static readonly metadataOutputTypes = {
     output: "str"
   };
@@ -978,10 +978,8 @@ export class RealtimeAgentNode extends BaseNode {
   static readonly body = "content_card";
   static readonly title = "Realtime Agent";
   static readonly description =
-    "Realtime conversational agent using OpenAI’s WebSocket Realtime API.\n" +
-    "Streams audio/text input and receives streaming text and audio responses with <300ms latency.\n" +
-    "realtime, streaming, openai, audio-input, text-output, websocket\n\n" +
-    "Uses a persistent WebSocket connection with server-side VAD for automatic turn detection.";
+    "Realtime conversational agent over OpenAI's WebSocket Realtime API, streaming audio/text in and text/audio responses out at low latency.\n" +
+    "    realtime, streaming, openai, audio-input, text-output, websocket";
   static readonly metadataOutputTypes = {
     chunk: "chunk",
     audio: "audio",
@@ -1302,10 +1300,8 @@ export class RealtimeTranscriptionNode extends BaseNode {
   static readonly inlineFields: string[] = [];
   static readonly inputFields = ["chunk"];
   static readonly description =
-    "Realtime speech-to-text using OpenAI's WebSocket Realtime API.\n" +
-    "Streams audio chunks in and receives transcription results in real-time.\n" +
-    "audio, transcription, stt, streaming, realtime, websocket, openai\n\n" +
-    "Uses server-side VAD for automatic speech segment detection.";
+    "Realtime speech-to-text over OpenAI's WebSocket Realtime API, streaming audio chunks in and transcription results out as they arrive.\n" +
+    "    audio, transcription, stt, streaming, realtime, websocket, openai";
   static readonly metadataOutputTypes = {
     text: "str",
     chunk: "chunk"

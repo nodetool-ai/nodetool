@@ -30,6 +30,7 @@ import type { ProcessingContext, NodeExecutor } from "@nodetool-ai/runtime";
 import { withNodeSpan } from "@nodetool-ai/runtime/tracing";
 import { NodeInbox, type MessageEnvelope } from "./inbox.js";
 import { NodeInputs, NodeOutputs } from "./io.js";
+import { WorkflowSuspendedError } from "./suspendable.js";
 import type { NodeAnalysis } from "./correlation-analysis.js";
 import {
   iterationRootId,
@@ -125,6 +126,16 @@ export function enumerateAllPendingKeys(
 export interface ActorResult {
   outputs: Record<string, unknown>;
   error?: string;
+  /**
+   * Set when the node raised `WorkflowSuspendedError`. The runner treats this
+   * as a distinct terminal outcome (suspended, not failed).
+   */
+  suspend?: {
+    nodeId: string;
+    reason: string;
+    state: Record<string, unknown>;
+    metadata: Record<string, unknown>;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -199,6 +210,15 @@ export class NodeActor {
    */
   private _cancelSignal: AbortSignal;
 
+  /**
+   * Callback wired by the runner to signal early end-of-stream for a single
+   * output slot (`outputs.complete(slot)`). Marks the slot's downstream edges
+   * done immediately, rather than waiting for the actor to finish.
+   */
+  private _signalSlotEos:
+    | ((nodeId: string, slot: string) => void)
+    | undefined;
+
   constructor(opts: {
     node: NodeDescriptor;
     inbox: NodeInbox;
@@ -214,6 +234,7 @@ export class NodeActor {
     controlContext?: Record<string, unknown> | null;
     correlation?: NodeAnalysis;
     cancelSignal?: AbortSignal;
+    signalSlotEos?: (nodeId: string, slot: string) => void;
   }) {
     this.node = opts.node;
     this.inbox = opts.inbox;
@@ -225,6 +246,7 @@ export class NodeActor {
     this._controlContext = opts.controlContext ?? null;
     this._correlation = opts.correlation;
     this._cancelSignal = opts.cancelSignal ?? new AbortController().signal;
+    this._signalSlotEos = opts.signalSlotEos;
   }
 
   // -----------------------------------------------------------------------
@@ -245,6 +267,7 @@ export class NodeActor {
 
   private async _runImpl(): Promise<ActorResult> {
     let errorMessage: string | undefined;
+    let suspend: ActorResult["suspend"] | undefined;
     this._executionContext?.clearProviderCost?.();
     try {
       // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
@@ -315,6 +338,9 @@ export class NodeActor {
             emitGroupFn: async (values, opts) => {
               await this._emitGroup(values, opts?.lineage);
             },
+            eosCallback: (slot: string) => {
+              this._signalSlotEos?.(this.node.id, slot || "output");
+            },
             dropFn: async (slot: string, envelope) => {
               // outputs.drop(slot, envelope) → send `lineage_done` on every
               // outgoing edge for `slot` at the envelope's projected key.
@@ -353,13 +379,30 @@ export class NodeActor {
         await this._runCorrelated(this._correlation);
       }
     } catch (err) {
-      errorMessage = err instanceof Error ? err.message : String(err);
-      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
-      log.error("Actor failed", {
-        nodeId: this.node.id,
-        type: this.node.type,
-        error: errorMessage
-      });
+      if (err instanceof WorkflowSuspendedError) {
+        // Suspension is a control-flow signal, not an error. Capture its
+        // payload so the runner can report a distinct "suspended" outcome.
+        suspend = {
+          nodeId: err.nodeId,
+          reason: err.reason,
+          state: err.state,
+          metadata: err.metadata
+        };
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+        log.info("Actor suspended", {
+          nodeId: this.node.id,
+          type: this.node.type,
+          reason: err.reason
+        });
+      } else {
+        errorMessage = err instanceof Error ? err.message : String(err);
+        // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+        log.error("Actor failed", {
+          nodeId: this.node.id,
+          type: this.node.type,
+          error: errorMessage
+        });
+      }
     } finally {
       // Always finalize, even on error (Python parity: gap #13)
       if (this._executor.finalize) {
@@ -369,6 +412,14 @@ export class NodeActor {
           // Swallow finalize errors — don't mask original error
         }
       }
+    }
+
+    if (suspend !== undefined) {
+      // Report the suspension as a distinct node status. The human reason
+      // rides on the status; `result` carries the saved state and `error`
+      // stays null since this is not a failure.
+      this._emitNodeStatus("suspended", suspend.state);
+      return { outputs: {}, suspend };
     }
 
     if (errorMessage !== undefined) {
@@ -1140,10 +1191,11 @@ export class NodeActor {
   /**
    * Build routing hints for the current invocation.
    *
-   * Under PR 2 only single-input single-edge buffered nodes inherit lineage.
-   * Under PR 3, when correlation analysis is available the actor mints
-   * per-slot lineage for iteration outputs and propagates invocation lineage
-   * for single/forward/chunk outputs.
+   * When correlation analysis is available and the invocation emitted handles,
+   * the actor mints per-slot lineage for those outputs and pairs it with the
+   * invocation lineage. Otherwise it forwards just the invocation lineage,
+   * which the runner applies to outputs that inherit the invocation scope.
+   * Returns undefined when no invocation lineage is known.
    */
   private _currentHints(
     emittedHandles?: ReadonlyArray<string>
@@ -1168,8 +1220,10 @@ export class NodeActor {
    * Compute the invocation lineage for the current set of consumed
    * envelopes. Returns undefined when the case is ambiguous.
    *
-   * PR 2 handles only the unambiguous "exactly one connected single-edge
-   * data input" case. PR 3 extends this with full multi-input merging.
+   * In correlated buffered mode the lineage comes from the correlation
+   * scheduler. Otherwise the lineage is taken from the sole consumed data
+   * envelope when exactly one non-control, non-list data handle was consumed;
+   * any other arity is ambiguous and yields undefined.
    *
    * The map is NOT cleared here so that streaming-input nodes that emit
    * multiple times per consumed envelope continue to inherit lineage on
