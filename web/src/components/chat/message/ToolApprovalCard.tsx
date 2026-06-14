@@ -22,14 +22,14 @@ const styles = (theme: Theme) =>
     border: `1px solid ${theme.vars.palette.warning.main}66`,
     borderRadius: "var(--rounded-lg)",
     background: `rgb(${theme.vars.palette.warning.mainChannel} / 0.06)`,
-    padding: "12px 16px",
+    padding: theme.spacing(3, 4),
     ".approval-tool": {
       fontFamily: theme.fontFamily2,
       color: theme.vars.palette.grey[0]
     },
     ".approval-args": {
       margin: 0,
-      padding: "8px 12px",
+      padding: theme.spacing(2, 3),
       borderRadius: "var(--rounded-md)",
       background: theme.vars.palette.grey[900],
       border: `1px solid ${theme.vars.palette.grey[800]}`,

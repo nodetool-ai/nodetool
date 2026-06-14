@@ -124,7 +124,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: 8,
-      padding: "12px 16px",
+      padding: theme.spacing(3, 4),
       cursor: "pointer",
       color: theme.vars.palette.grey[100],
       transition: MOTION.background,

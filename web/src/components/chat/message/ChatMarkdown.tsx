@@ -5,6 +5,7 @@ import ReactMarkdown, { type Options } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import "../../../styles/markdown/nodetool-markdown.css";
+import { getSpacingPx } from "../../ui_primitives";
 import { CodeBlock } from "./markdown_elements/CodeBlock";
 import { PreRenderer } from "./markdown_elements/PreRenderer";
 import "../../../styles/markdown/github-markdown.css";
@@ -27,8 +28,8 @@ const markdownStyles = css({
     alignItems: "center",
     backgroundColor: "var(--palette-grey-800)",
     color: "var(--palette-text-primary)",
-    paddingTop: "6px",
-    paddingBottom: "6px",
+    paddingTop: getSpacingPx(1.5),
+    paddingBottom: getSpacingPx(1.5),
     paddingLeft: "1em",
     paddingRight: "1em",
     borderTopLeftRadius: "8px",

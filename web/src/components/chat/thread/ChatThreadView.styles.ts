@@ -306,7 +306,7 @@ export const createStyles = (theme: Theme) => ({
       height: "10px",
       borderRadius: "var(--rounded-circle)",
       backgroundColor: theme.vars.palette.text.secondary,
-      margin: "0 6px"
+      margin: theme.spacing(0, 1.5)
     },
 
     ".node-status": {
@@ -373,7 +373,7 @@ export const createStyles = (theme: Theme) => ({
       textTransform: "uppercase",
       color: theme.vars.palette.primary.main,
       lineHeight: 1,
-      padding: "2px 6px",
+      padding: theme.spacing(0.5, 1.5),
       border: `1px solid ${theme.vars.palette.primary.main}55`,
       borderRadius: 3,
       background: "transparent",

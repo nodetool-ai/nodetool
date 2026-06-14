@@ -58,7 +58,7 @@ const menuStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "flex-start",
       gap: 8,
-      padding: "8px 16px",
+      padding: theme.spacing(2, 4),
       cursor: "pointer",
       color: theme.vars.palette.grey[100],
       transition: MOTION.background,

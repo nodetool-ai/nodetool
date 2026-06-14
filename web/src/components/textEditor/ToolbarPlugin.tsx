@@ -14,6 +14,7 @@ import {
   removeClassNamesFromElement
 } from "@lexical/utils";
 import { $patchStyleText } from "@lexical/selection";
+import { getSpacingPx } from "../ui_primitives";
 import { copyAsMarkdown } from "./exportMarkdown";
 import { INSERT_HORIZONTAL_RULE_COMMAND } from "./horizontalRuleCommand";
 
@@ -24,7 +25,7 @@ const toolbarStyles = css`
   padding: 4px 8px;
   border-radius: 3px;
   button {
-    padding: 2px 6px;
+    padding: ${getSpacingPx(0.5)} ${getSpacingPx(1.5)};
     min-width: 20px;
     font-size: var(--fontSizeSmall);
     border: none;

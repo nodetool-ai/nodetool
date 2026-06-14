@@ -214,7 +214,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                             "& .search-input .MuiInputBase-input": {
                                 paddingTop: "4px",
                                 paddingBottom: "4px",
-                                paddingRight: "32px",
+                                paddingRight: 8,
                                 height: "20px"
                             },
                             "& .search-input .MuiInputAdornment-root": {

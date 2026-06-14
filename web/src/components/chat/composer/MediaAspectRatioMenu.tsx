@@ -22,7 +22,7 @@ interface MediaAspectRatioMenuProps {
 
 const styles = (theme: Theme) =>
   css({
-    padding: "16px 16px",
+    padding: theme.spacing(4, 4),
     minWidth: 480,
     ".aspect-header": {
       color: theme.vars.palette.grey[400],
