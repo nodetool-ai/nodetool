@@ -109,6 +109,15 @@ const EXTERNAL_PREFIXES = [
   "nodetool.generators.web"
 ];
 
+// Provider-backed node classes that don't produce media outputs (so the
+// media-output heuristic misses them) but still need a real model/provider —
+// fake them by class name (last segment of the node type).
+const FAKE_NODE_CLASSES = new Set(["AutomaticSpeechRecognition"]);
+
+function isFakeByClass(nodeType: string): boolean {
+  return FAKE_NODE_CLASSES.has(nodeType.split(".").pop() ?? "");
+}
+
 interface FakeMeta {
   node_type?: string;
   required_settings?: string[] | null;
@@ -224,7 +233,12 @@ async function main(): Promise<void> {
         return { async process(inputs: Record<string, unknown>) { return inputs; } };
       }
       const meta = reg.getMetadata(node.type) as FakeMeta | undefined;
-      if (needsSecret(meta) || outputsMedia(meta) || isExternal(node.type)) {
+      if (
+        needsSecret(meta) ||
+        outputsMedia(meta) ||
+        isExternal(node.type) ||
+        isFakeByClass(node.type)
+      ) {
         return fakeExecutor(meta);
       }
       return reg.resolve(node);
