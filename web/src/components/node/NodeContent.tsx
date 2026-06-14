@@ -7,9 +7,10 @@ import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import NodePropertyForm from "./NodePropertyForm";
 import { isContentCardNode } from "../node_types/contentCardRegistry";
 import ContentCardBody from "../node_types/ContentCardBody";
+import CodeBody from "../node_types/CodeBody";
 import { getBespokeBody } from "../node_types/editing/bespokeRegistry";
 import HandleColumn from "./HandleColumn";
-import { isSnippetCodeNode } from "./codeNodeUi";
+import { isSnippetCodeNode, isCodeBodyNode } from "./codeNodeUi";
 import {
   resolveExposedInputNames,
   resolveInlineFieldNames
@@ -80,6 +81,19 @@ const NodeContent: React.FC<NodeContentProps> = ({
           properties={allProperties}
         />
       </FlexColumn>
+    );
+  }
+  if (isCodeBodyNode(nodeMetadata, data)) {
+    return (
+      <CodeBody
+        id={id}
+        nodeType={nodeType}
+        nodeMetadata={nodeMetadata}
+        data={data}
+        workflowId={workflowId}
+        status={status}
+        isOutputNode={isOutputNode}
+      />
     );
   }
   if (isContentCardNode(nodeMetadata)) {

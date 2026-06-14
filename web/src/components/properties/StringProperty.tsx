@@ -14,31 +14,7 @@ import { NodeTextField, editorClassNames, cn } from "../editor_ui";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import ConnectedBadge from "./ConnectedBadge";
 import { useInspectorHeaderSupplementalRegistration } from "../../hooks/useInspectorHeaderSupplemental";
-
-const determineCodeLanguage = (nodeType: string) => {
-  if (nodeType === "nodetool.code.ExecutePython") {
-    return "python";
-  }
-  if (
-    nodeType === "nodetool.code.ExecuteJavaScript" ||
-    nodeType === "nodetool.code.Code"
-  ) {
-    return "javascript";
-  }
-  if (nodeType === "nodetool.code.ExecuteBash") {
-    return "bash";
-  }
-  if (nodeType === "nodetool.code.ExecuteRuby") {
-    return "ruby";
-  }
-  if (
-    nodeType === "nodetool.code.ExecuteLua" ||
-    nodeType === "nodetool.code.EvaluateExpression"
-  ) {
-    return "lua";
-  }
-  return "text";
-};
+import { getCodeNodeLanguage } from "../node/codeNodeUi";
 
 const propertyStyles = (theme: Theme) =>
   css({
@@ -98,7 +74,7 @@ const StringProperty = ({
     [theme]
   );
 
-  const codeLanguage = determineCodeLanguage(nodeType);
+  const codeLanguage = getCodeNodeLanguage(nodeType);
   const stringValue = typeof value === "string" ? value : "";
 
   const toggleExpand = useCallback(() => {
