@@ -16,7 +16,7 @@ import {
 } from "@nodetool-ai/gpu/pool";
 import { pickImage, hsvToRgb } from "./lib-image-utils.js";
 import { runShaderNode } from "./lib-shader-utils.js";
-import { tagAsHybrid, tagAsContentCard } from "@nodetool-ai/nodes-utils";
+import { tagAsBrowserGpu, tagAsContentCard } from "@nodetool-ai/nodes-utils";
 
 function num(value: unknown, fallback: number): number {
   const n = Number(value);
@@ -1229,6 +1229,6 @@ const DESCRIPTORS: readonly Desc[] = [
   }
 ];
 
-export const LIB_IMAGE_COLOR_GRADING_NODES: readonly NodeClass[] = tagAsHybrid(
+export const LIB_IMAGE_COLOR_GRADING_NODES: readonly NodeClass[] = tagAsBrowserGpu(
   tagAsContentCard(DESCRIPTORS.map(createColorGradingNode))
 );
