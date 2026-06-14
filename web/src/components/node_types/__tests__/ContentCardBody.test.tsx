@@ -298,6 +298,23 @@ describe("ContentCardBody results", () => {
     expect(container).toHaveTextContent("first second");
   });
 
+  it("opens the full text in a popup from the generations navigator", async () => {
+    const user = userEvent.setup();
+    seedLiveGeneration("j1", { output: "first second" });
+
+    renderContentCard(metadataForOutput("str"));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    // The "Open full text" control lives in the generations navigator overlay.
+    await user.click(
+      screen.getByRole("button", { name: /open full text/i })
+    );
+
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("first second");
+  });
+
   it("shows a history navigator over persisted text generations", () => {
     const textAsset = (
       id: string,

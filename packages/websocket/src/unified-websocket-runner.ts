@@ -1841,15 +1841,21 @@ export class UnifiedWebSocketRunner {
 
           const meta = this.getNodeMetadata?.(nodeType);
 
-          // Relay output_update for Output-type nodes and for streaming or
-          // auto-saving generative nodes (FAL / Replicate / Kie / …) so the
-          // client receives one event per yielded item — the UI accumulates
-          // and renders each generation as it arrives.
+          // Relay output_update for display-sink nodes (Output, Preview) and
+          // for streaming or auto-saving generative nodes (FAL / Replicate /
+          // Kie / …) so the client receives one event per yielded item — the
+          // UI accumulates and renders each generation as it arrives. The
+          // Preview node re-emits each chunk it receives on its own terminal
+          // `output` handle; relaying those is what lets the preview stream
+          // incrementally instead of collapsing to the final value.
           if (outbound.type === "output_update") {
+            const isDisplaySink =
+              nodeType.includes("Output") ||
+              nodeType.endsWith(".Preview");
             const isStreamingLeaf =
               Boolean(meta?.is_streaming_output) ||
               Boolean(meta?.auto_save_asset);
-            if (!nodeType.includes("Output") && !isStreamingLeaf) continue;
+            if (!isDisplaySink && !isStreamingLeaf) continue;
             outputUpdateSeen = true;
           }
 
