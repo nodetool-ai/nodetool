@@ -99,7 +99,12 @@ const DynamicComfySchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       }}
     >
       {selected && <Toolbar id={id} selected={selected} dragging={dragging} />}
-      <NodeResizeHandle minWidth={180} minHeight={150} />
+      <NodeResizeHandle
+        minWidth={180}
+        minHeight={150}
+        nodeId={id}
+        contentAware
+      />
       <Box sx={{ position: "relative" }}>
         <NodeHeader
           id={id}
