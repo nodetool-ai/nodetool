@@ -24,8 +24,6 @@ type RunnerInternals = {
   _isOutputNode(node: NodeDescriptor): boolean;
   _isExternalInputNode(node: NodeDescriptor): boolean;
   _getExternalInputName(node: NodeDescriptor): string;
-  _analyzeStreaming(): void;
-  edgeStreams(edge: Edge): boolean;
   _detectMultiEdgeListInputs(): void;
   _validateNodes(): void;
   _filterInvalidEdges(): void;
@@ -855,42 +853,6 @@ describe("WorkflowRunner – node predicates", () => {
       r._getExternalInputName({ id: "x", type: "test.Input", name: "fromName" })
     ).toBe("fromName");
     expect(r._getExternalInputName({ id: "x", type: "test.Input" })).toBe("x");
-  });
-});
-
-describe("WorkflowRunner._analyzeStreaming / edgeStreams", () => {
-  const withGraph = (nodes: NodeDescriptor[], edges: Edge[]) => {
-    const r = bareRunner();
-    internals(r)._graph = new Graph({ nodes, edges });
-    return internals(r);
-  };
-
-  it("propagates streaming from a streaming-output source along data edges only", () => {
-    const nodes: NodeDescriptor[] = [
-      { id: "s", type: "t", is_streaming_output: true },
-      { id: "m", type: "t" },
-      { id: "sink", type: "t" },
-      { id: "plain", type: "t" },
-      { id: "p2", type: "t" }
-    ];
-    const e1: Edge = { id: "e1", source: "s", sourceHandle: "o", target: "m", targetHandle: "i" };
-    const e2: Edge = { id: "e2", source: "m", sourceHandle: "o", target: "sink", targetHandle: "i" };
-    const e3: Edge = { id: "e3", source: "plain", sourceHandle: "o", target: "p2", targetHandle: "i" };
-    const ec: Edge = {
-      id: "ec",
-      source: "s",
-      sourceHandle: "ctrl",
-      target: "p2",
-      targetHandle: "__control__",
-      edge_type: "control"
-    };
-    const r = withGraph(nodes, [e1, e2, e3, ec]);
-    r._analyzeStreaming();
-
-    expect(r.edgeStreams(e1)).toBe(true); // reachable from streaming source
-    expect(r.edgeStreams(e2)).toBe(true); // transitively reachable
-    expect(r.edgeStreams(e3)).toBe(false); // plain source, not streaming
-    expect(r.edgeStreams(ec)).toBe(false); // control edges are never streaming
   });
 });
 
