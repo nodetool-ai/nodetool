@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo } from "react";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import { DeleteButton, FlexRow, FlexColumn, Text, Caption, Tooltip, LoadingSpinner, EditorButton, ProgressBar, MOTION } from "../ui_primitives";
+import { DeleteButton, FlexRow, FlexColumn, Text, Caption, Tooltip, LoadingSpinner, EditorButton, ProgressBar, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { CollectionResponse } from "../../stores/ApiTypes";
 import {
   UseMutationResult,
@@ -147,7 +147,7 @@ const CollectionItem = ({
       borderStyle: "dashed",
       borderWidth: 2,
       borderColor: "primary.main",
-      borderRadius: 2,
+      borderRadius: BORDER_RADIUS.md,
       m: 0.5,
       width: "calc(100% - 8px)",
       boxShadow: "0 0 0 1px rgb(var(--mui-palette-primary-mainChannel) / 0.08)",
@@ -300,7 +300,7 @@ const CollectionItem = ({
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
-                borderRadius: 2,
+                borderRadius: BORDER_RADIUS.xs,
                 "&:hover": {
                   backgroundColor: "action.hover",
                   color: "text.primary"

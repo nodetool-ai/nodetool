@@ -131,11 +131,13 @@ export const useRightPanelStore = create<ResizePanelState>()(
     }),
     {
       name: "right-panel-storage",
-      version: 2,
+      version: 3,
+      // Visibility is selection-driven — the panel only opens while a node is
+      // selected. Persisting `isVisible` would re-open an empty inspector on a
+      // fresh load (no selection yet), so only the size/view are persisted.
       partialize: (state: ResizePanelState) => ({
         panel: {
           panelSize: state.panel.panelSize,
-          isVisible: state.panel.isVisible,
           activeView: state.panel.activeView
         }
       }),
@@ -161,10 +163,9 @@ export const useRightPanelStore = create<ResizePanelState>()(
                     Math.min(persistedPanel.panelSize, MAX_PANEL_SIZE)
                   )
                 : currentState.panel.panelSize,
-            isVisible:
-              typeof persistedPanel.isVisible === "boolean"
-                ? persistedPanel.isVisible
-                : currentState.panel.isVisible,
+            // Always start hidden; selection re-derives visibility. Ignore any
+            // legacy persisted `isVisible` (pre-v3) to avoid an empty panel.
+            isVisible: false,
             activeView: "inspector"
           }
         };

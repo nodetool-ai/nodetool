@@ -17,7 +17,8 @@ import {
   FlexRow,
   LabeledSwitch,
   Text,
-  TextInput
+  TextInput,
+  BORDER_RADIUS
 } from "../ui_primitives";
 import { isElectron } from "../../lib/env";
 import usePacksStore, {
@@ -80,7 +81,7 @@ const PackRow = memo(function PackRow({
         p: 1.5,
         border: "1px solid",
         borderColor: "divider",
-        borderRadius: 1
+        borderRadius: BORDER_RADIUS.xs
       }}
     >
       <FlexRow gap={1.5} align="center" justify="space-between" sx={{ flexWrap: "wrap" }}>
@@ -300,7 +301,7 @@ function PackagesMenu() {
 
       <FlexColumn
         gap={1}
-        sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1 }}
+        sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: BORDER_RADIUS.xs }}
       >
         <Text size="normal" weight={600}>
           Trust defaults

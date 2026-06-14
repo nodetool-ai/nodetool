@@ -439,6 +439,15 @@ async function startServer(): Promise<void> {
     NODE_PATH: backendNodePath,
     NODETOOL_OPTIONAL_NODE_MODULES: optionalNodeModules,
   };
+
+  // Log database configuration for debugging
+  const dbConfig = backendEnv.DB_PATH || backendEnv.DATABASE_URL;
+  if (dbConfig) {
+    logMessage(`Database configuration detected: ${dbConfig}`);
+  } else {
+    logMessage(`No database override set, using default path`);
+  }
+
   // Dev mode: spawn the backend as a SEPARATE Node process (child_process),
   // not Electron's utilityProcess. Electron's embedded V8 enables the heap
   // sandbox, which rejects the external ArrayBuffers that dawn.node returns
@@ -510,9 +519,6 @@ async function startServer(): Promise<void> {
  */
 function handleServerOutput(data: Buffer): void {
   const output = data.toString().trim();
-  // if (output) {
-  //   logMessage(output);
-  // }
 
   if (output.includes("KeychainAccessError")) {
     backendKeychainErrorSeen = true;

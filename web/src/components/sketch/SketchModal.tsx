@@ -60,7 +60,8 @@ import {
   TabPanel,
   Text,
   Tooltip,
-  Box
+  Box,
+  BORDER_RADIUS
 } from "../ui_primitives";
 
 function isPressureSketchTool(tool: SketchTool): boolean {
@@ -447,7 +448,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
                 height: "80vh",
                 maxHeight: "80vh",
                 zIndex: SKETCH_Z_INDEX.popover,
-                borderRadius: 2,
+                borderRadius: BORDER_RADIUS.xs,
                 border: `1px solid ${theme.vars.palette.grey[700]}`,
                 backgroundColor: theme.vars.palette.grey[800],
                 boxShadow: theme.shadows[12],

@@ -59,7 +59,7 @@ const createStyles = (theme: Theme, size: "sm" | "md", emphasis: "default" | "pr
         : "transparent",
     color: theme.vars.palette.grey[100],
     fontFamily: theme.fontFamily1,
-    fontSize: size === "sm" ? 13 : 14,
+    fontSize: size === "sm" ? "var(--fontSizeSmall)" : "var(--fontSizeNormal)",
     lineHeight: 1,
     cursor: "pointer",
     outline: "none",
@@ -133,7 +133,7 @@ const MediaControlChip = memo(
           disabled={disabled}
           aria-pressed={active || undefined}
         >
-          <FlexRow align="center" gap={hasLabel ? 0.75 : 0}>
+          <FlexRow align="center" gap={hasLabel ? 1 : 0}>
             {icon && <span className="media-chip-icon">{icon}</span>}
             {hasLabel && (
               <Text

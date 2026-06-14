@@ -1,5 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import { SPACING } from "../ui_primitives";
 import { useAsset } from "../../serverState/useAsset";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
@@ -30,6 +32,7 @@ const awaitingStyles = css({
 });
 
 const ImageProperty = (props: PropertyProps) => {
+  const theme = useTheme();
   const id = `image-${props.property.name}-${props.propertyIndex}`;
 
   const { asset, uri } = useAsset({ image: props.value });
@@ -45,7 +48,7 @@ const ImageProperty = (props: PropertyProps) => {
       className="image-property"
       css={css({
         "& .property-label": {
-          marginBottom: "5px"
+          marginBottom: theme.spacing(SPACING.sm)
         }
       })}
     >

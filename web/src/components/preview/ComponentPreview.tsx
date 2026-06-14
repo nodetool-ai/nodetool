@@ -13,7 +13,7 @@
 import React, { Suspense, useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
-import { Text, Caption, LoadingSpinner, Surface, Box, MOTION } from "../ui_primitives";
+import { Text, Caption, LoadingSpinner, Surface, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import {
   DataframeRef,
   NodeMetadata,
@@ -23,7 +23,6 @@ import {
 import useMetadataStore from "../../stores/MetadataStore";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 
-const AppHeader = React.lazy(() => import("../panels/AppHeader"));
 const CostsDashboard = React.lazy(() => import("../costs/CostsDashboard"));
 const ModelListIndex = React.lazy(
   () => import("../hugging_face/model_list/ModelListIndex")
@@ -334,20 +333,6 @@ const SAMPLE_IMAGE_B =
 
 // ─── Individual preview renderers ─────────────────────────────────────────────
 
-const PreviewAppHeader: React.FC = () => {
-  const theme = useTheme();
-  return (
-    <Box
-      data-preview="app-header"
-      sx={{ width: "100%", bgcolor: theme.palette.background.default }}
-    >
-      <Suspense fallback={<LoadingSpinner size="small" />}>
-        <AppHeader />
-      </Suspense>
-    </Box>
-  );
-};
-
 const PreviewDashboard: React.FC = () => (
   <FullscreenBox preview="dashboard">
     <Portal />
@@ -531,7 +516,7 @@ const PreviewNodeReadme: React.FC = () => {
           maxWidth: 720,
           mx: "auto",
           bgcolor: theme.palette.background.paper,
-          borderRadius: 2,
+          borderRadius: BORDER_RADIUS.xs,
           border: `1px solid ${theme.palette.divider}`,
           overflow: "hidden"
         }}
@@ -636,7 +621,7 @@ const PreviewIndex: React.FC = () => {
                   borderColor: theme.palette.primary.main,
                   boxShadow: `0 0 0 2px ${theme.palette.primary.main}22`
                 },
-                transition: `border-color ${MOTION.fast}, box-shadow ${MOTION.fast}`
+                transition: `${MOTION.border}, ${MOTION.shadow}`
               }}
             >
               <Text size="normal" weight={600} sx={{ mb: 0.5, display: "block" }}>
@@ -672,7 +657,6 @@ const PreviewIndex: React.FC = () => {
 // ─── Router component ──────────────────────────────────────────────────────────
 
 const COMPONENT_MAP: Record<string, React.FC> = {
-  "app-header": PreviewAppHeader,
   dashboard: PreviewDashboard,
   costs: PreviewCosts,
   models: PreviewModels,

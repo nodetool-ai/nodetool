@@ -7,6 +7,8 @@ export type TraceEventType =
   | "llm_call"
   | "tool_call"
   | "tool_result"
+  | "step_result"
+  | "todo_update"
   | "edge_active"
   | "output";
 

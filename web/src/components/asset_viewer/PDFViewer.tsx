@@ -11,7 +11,8 @@ import {
   LoadingSpinner,
   NodeSlider,
   Text,
-  ToolbarIconButton
+  ToolbarIconButton,
+  BORDER_RADIUS
 } from "../ui_primitives";
 import {
   NavigateBefore,
@@ -103,7 +104,7 @@ const styles = (theme: Theme) =>
       bottom: "1em",
       background: theme.vars.palette.grey[600],
       padding: "0.8em 1em",
-      borderRadius: "4px 4px 0 0",
+      borderRadius: BORDER_RADIUS.sm,
       zIndex: 1,
       alignItems: "center",
       gap: "1em",
@@ -116,7 +117,7 @@ const styles = (theme: Theme) =>
       bottom: "75px",
       background: theme.vars.palette.background.paper,
       padding: "0.2em",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       zIndex: 1
     },
     ".vertical-slider": {
@@ -231,7 +232,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
         >
           {pageComponent}
         </Document>
-        <FlexRow className="page-controls" align="center" gap={1} sx={{ position: "sticky", bottom: "1em", background: theme.vars.palette.grey[600], padding: "0.8em 1em", borderRadius: "4px 4px 0 0", zIndex: 1, minWidth: "200px", userSelect: "none" }}>
+        <FlexRow className="page-controls" align="center" gap={1} sx={{ position: "sticky", bottom: "1em", background: theme.vars.palette.grey[600], padding: "0.8em 1em", borderRadius: BORDER_RADIUS.sm, zIndex: 1, minWidth: "200px", userSelect: "none" }}>
           <ToolbarIconButton
             icon={<NavigateBefore />}
             tooltip="Previous page"

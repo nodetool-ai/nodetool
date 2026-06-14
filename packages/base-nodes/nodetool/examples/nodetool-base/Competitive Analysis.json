@@ -15,15 +15,23 @@
   "graph": {
     "nodes": [
       {
-        "id": "1",
+        "id": "comment-intro",
         "parent_id": null,
-        "type": "nodetool.output.Output",
+        "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "name": "competitive_analysis",
-          "value": "",
-          "description": ""
+          "comment": "# 🏆 Competitive Analysis\n\nProfile a company, pull competitor info from Google, then run SWOT and positioning analyses into one report.\n\n**Pipeline:** Company + competitor search → SWOT agent + Positioning agent → report\n\n**Try this:** swap in your own company profile or change which competitors are searched."
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 80,
+            "y": -200
+          },
+          "zIndex": 0,
+          "width": 460,
+          "height": 180,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -35,7 +43,16 @@
         "data": {
           "template": "# Competitive Analysis Report\n\n## Company Being Analyzed:\n{{ company }}\n\n## Market Overview:\n- Target Market: Remote teams and AI-forward companies\n- Market Size: Growing (project management market ~$4B)\n- Entry Stage: Early-stage with unique AI positioning\n\n## Competitive SWOT Analysis:\n{{ swot }}\n\n## Strategic Positioning:\n{{ positioning }}\n\n## Market Positioning Matrix:\n**Feature Richness vs. Ease of Use**\n\n```\n           Easy\n            |\n            | Asana\n            |---Monday.com\nComprehensive|  TaskFlow\n            | Jira\n            |_____ Hard\n          Simple      Complex\n```\n\n## Recommendations:\n1. **Differentiation:** Focus on AI-powered features competitors lack\n2. **Pricing:** Maintain competitive pricing with value-add AI features\n3. **Go-to-Market:** Target startups and remote teams (underserved by Asana)\n4. **Features:** Develop automation and AI capabilities as core differentiator\n5. **Positioning:** \"AI-first project management, designed for modern teams\"\n\n## Action Items:\n- Develop 2-3 killer AI features\n- Create customer success stories\n- Build content marketing around AI productivity\n- Consider strategic partnerships\n- Plan product roadmap to address market gaps\n\n## Timeline:\n- Q1: Strengthen AI features\n- Q2: Launch marketing campaign\n- Q3: Enterprise sales push\n- Q4: Year-end performance review\n"
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "🔟 Assemble report",
+          "position": {
+            "x": 1520,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {
           "company": null,
           "swot": null,
@@ -53,7 +70,16 @@
           "value": "\nCompany: TaskFlow AI\nProduct: AI-powered project management tool\nTarget Market: Remote teams and startups\nPrice Point: $29/month per user\nKey Features:\n- AI task prioritization\n- Automated report generation\n- Integration with 20+ tools\n- Real-time collaboration\n- Advanced analytics\nFounding: 2023\nTeam Size: 15 people\n",
           "description": "Your company/product information"
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "1️⃣ Company profile",
+          "position": {
+            "x": 80,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -84,7 +110,16 @@
           "thread_id": null,
           "max_tokens": 1200
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "7️⃣ SWOT analyst",
+          "position": {
+            "x": 1160,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -96,7 +131,16 @@
         "data": {
           "template": "Perform a SWOT analysis comparing this company to its competitors:\n\nYour Company:\n{{ company }}\n\nCompetitors (from Google Search):\n{{ competitors }}\n\nAnalyze:\n1. Strengths (vs competitors)\n2. Weaknesses (vs competitors)\n3. Opportunities in the market\n4. Threats from competition"
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "6️⃣ Build SWOT prompt",
+          "position": {
+            "x": 800,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {
           "company": null,
           "competitors": null
@@ -111,7 +155,16 @@
         "data": {
           "template": "Competitor Information from Search Results:\n\n## Asana\n{{ asana_info }}\n\n## Monday.com\n{{ monday_info }}\n\n## Jira\n{{ jira_info }}"
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "5️⃣ Combine competitor info",
+          "position": {
+            "x": 440,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {
           "asana_info": null,
           "monday_info": null,
@@ -128,7 +181,16 @@
           "keyword": "Asana project management pricing features",
           "num_results": 5
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "2️⃣ Search Asana",
+          "position": {
+            "x": 80,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -141,7 +203,16 @@
           "keyword": "Monday.com project management pricing features",
           "num_results": 5
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "3️⃣ Search Monday",
+          "position": {
+            "x": 80,
+            "y": 520
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -154,7 +225,16 @@
           "keyword": "Jira project management pricing features",
           "num_results": 5
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "4️⃣ Search Jira",
+          "position": {
+            "x": 80,
+            "y": 740
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -185,7 +265,16 @@
           "thread_id": null,
           "max_tokens": 1000
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "9️⃣ Positioning analyst",
+          "position": {
+            "x": 1160,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -197,7 +286,16 @@
         "data": {
           "template": "Based on this company profile and competitive landscape, provide:\n1. Current market positioning\n2. Recommended differentiation strategy\n3. Target niche or segment\n4. Pricing strategy recommendation\n5. Go-to-market recommendations\n\nCompany:\n{{ company }}\n\nCompetitors (from Google Search):\n{{ competitors }}"
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "8️⃣ Build positioning prompt",
+          "position": {
+            "x": 800,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {
           "company": null,
           "competitors": null
@@ -301,14 +399,6 @@
         "sourceHandle": "text",
         "target": "2",
         "targetHandle": "positioning",
-        "ui_properties": null
-      },
-      {
-        "id": "13",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "1",
-        "targetHandle": "value",
         "ui_properties": null
       }
     ]

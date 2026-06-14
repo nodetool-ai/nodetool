@@ -28,7 +28,7 @@ import {
   MenuItem,
   FormControl
 } from "@mui/material";
-import { FlexColumn, FlexRow, Box, Tooltip, Divider, Text, MOTION } from "../ui_primitives";
+import { FlexColumn, FlexRow, Box, Tooltip, Divider, Text, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
@@ -150,7 +150,7 @@ const OPS_ICON_SX = {
   width: 30,
   height: 30,
   padding: "4px",
-  borderRadius: "8px",
+  borderRadius: BORDER_RADIUS.lg,
   color: "grey.400",
   transition: `${MOTION.background}, color ${MOTION.fast}`,
   "&:hover": { backgroundColor: "grey.800", color: "grey.100" },
@@ -166,7 +166,7 @@ const ADD_ACTION_ICON_SX = {
   width: 26,
   height: 26,
   padding: 0,
-  borderRadius: "6px",
+  borderRadius: BORDER_RADIUS.lg,
   color: "grey.400",
   transition: `${MOTION.background}, color ${MOTION.fast}`,
   "&:hover": { backgroundColor: "grey.800", color: "grey.100" }
@@ -204,7 +204,7 @@ const styles = (theme: Theme) =>
       paddingBottom: 0,
       paddingLeft: 0,
       paddingRight: 0,
-      borderRadius: "6px",
+      borderRadius: BORDER_RADIUS.lg,
       cursor: "pointer",
       fontSize: SKETCH_FONT.md,
       minHeight: SKETCH_SIZE.layerItemHeight,
@@ -272,7 +272,7 @@ const styles = (theme: Theme) =>
     "& .layer-thumbnail": {
       width: SKETCH_SIZE.layerThumbnail,
       height: SKETCH_SIZE.layerThumbnail,
-      borderRadius: "2px",
+      borderRadius: BORDER_RADIUS.xs,
       border: `1px solid ${theme.vars.palette.grey[600]}`,
       ...SKETCH_CHECKERBOARD,
       objectFit: "contain",
@@ -282,7 +282,7 @@ const styles = (theme: Theme) =>
     "& .layer-thumbnail-empty": {
       width: SKETCH_SIZE.layerThumbnail,
       height: SKETCH_SIZE.layerThumbnail,
-      borderRadius: "2px",
+      borderRadius: BORDER_RADIUS.xs,
       border: `1px solid ${theme.vars.palette.grey[600]}`,
       ...SKETCH_CHECKERBOARD,
       flexShrink: 0,
@@ -303,7 +303,7 @@ const styles = (theme: Theme) =>
       alignSelf: "center",
       backgroundColor: alpha(theme.palette.common.black, 0.42),
       border: `1px solid ${theme.vars.palette.grey[700]}`,
-      borderRadius: "2px",
+      borderRadius: BORDER_RADIUS.xs,
       "& .MuiIconButton-root": {
         padding: "2px"
       }
@@ -958,7 +958,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                 width: 26,
                 height: 26,
                 padding: 0,
-                borderRadius: "6px",
+                borderRadius: BORDER_RADIUS.lg,
                 border: `1px solid ${theme.vars.palette.grey[500]}`,
                 background: `repeating-conic-gradient(${theme.vars.palette.grey[600]} 0% 25%, ${theme.vars.palette.grey[800]} 0% 50%) 50% / 8px 8px`,
                 "&:hover": { borderColor: theme.vars.palette.grey[300] }
@@ -978,7 +978,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                 width: 26,
                 height: 26,
                 padding: 0,
-                borderRadius: "6px",
+                borderRadius: BORDER_RADIUS.lg,
                 border: `1px solid ${theme.vars.palette.grey[500]}`,
                 backgroundColor: "#000000",
                 "&:hover": {
@@ -1001,7 +1001,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                 width: 26,
                 height: 26,
                 padding: 0,
-                borderRadius: "6px",
+                borderRadius: BORDER_RADIUS.lg,
                 border: `1px solid ${theme.vars.palette.grey[500]}`,
                 backgroundColor: "#ffffff",
                 "&:hover": {
@@ -1024,7 +1024,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
                 width: 26,
                 height: 26,
                 padding: 0,
-                borderRadius: "6px",
+                borderRadius: BORDER_RADIUS.lg,
                 border: `1px solid ${theme.vars.palette.grey[500]}`,
                 backgroundColor: "#808080",
                 "&:hover": {

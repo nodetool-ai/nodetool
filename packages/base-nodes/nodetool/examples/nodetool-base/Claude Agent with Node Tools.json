@@ -49,6 +49,28 @@
     ],
     "nodes": [
       {
+        "id": "comment-intro",
+        "parent_id": null,
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# 🛠️ Claude Agent with Node Tools\n\nThe agent calls Google and DuckDuckGo search nodes as tools via control edges, deciding when and how to search, then saves the result.\n\n**Pipeline:** Agent ↔ Google / DuckDuckGo search → save JSON\n\n**Try this:** change the agent's objective, or wire in more search nodes as tools."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 100,
+            "y": -120
+          },
+          "zIndex": 0,
+          "width": 460,
+          "height": 180,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "sync_mode": "on_any"
+      },
+      {
         "id": "claude-agent",
         "type": "nodetool.agents.Agent",
         "data": {
@@ -59,7 +81,7 @@
             "id": "claude-sonnet-4-6",
             "name": "Claude Sonnet 4.6"
           },
-          "system": "You are a research analyst. You have access to search tools \u2014 use them to gather real data before writing your report. Be specific and cite sources.",
+          "system": "You are a research analyst. You have access to search tools — use them to gather real data before writing your report. Be specific and cite sources.",
           "max_turns": 10,
           "tools": []
         },
@@ -70,7 +92,8 @@
           },
           "zIndex": 0,
           "width": 350,
-          "selectable": true
+          "selectable": true,
+          "title": "1️⃣ Agent picks searches"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -91,7 +114,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "Google Search"
+          "title": "2️⃣ Google Search"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -112,7 +135,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "DuckDuckGo Search"
+          "title": "3️⃣ DuckDuckGo Search"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -131,7 +154,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "4️⃣ Save result"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},

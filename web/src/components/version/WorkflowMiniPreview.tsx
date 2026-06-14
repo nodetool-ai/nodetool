@@ -7,7 +7,7 @@
  */
 
 import React, { useMemo } from "react";
-import { Caption, FlexColumn, Surface, Box, MOTION } from "../ui_primitives";
+import { Caption, FlexColumn, Surface, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { Graph } from "../../stores/ApiTypes";
 
 // Data structure that has graph - can be WorkflowVersion or Workflow
@@ -246,7 +246,7 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
           background: "linear-gradient(135deg, rgba(30,30,30,0.95) 0%, rgba(45,45,45,0.9) 100%)",
           border: "1px solid",
           borderColor: "rgba(255,255,255,0.08)",
-          borderRadius: 2,
+          borderRadius: BORDER_RADIUS.xs,
           transition: MOTION.all,
           "&:hover": {
             borderColor: "rgba(255,255,255,0.15)",
@@ -265,7 +265,7 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
               color: "rgba(255,255,255,0.4)",
               fontFamily: "var(--fontFamily2)",
               textAlign: "center",
-              fontSize: "var(--fontSizeTiny)",
+              fontSize: "var(--fontSizeSmaller)",
               lineHeight: "1.2",
               textTransform: "uppercase",
               letterSpacing: "0.1em"
@@ -286,7 +286,7 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
         background: "linear-gradient(135deg, rgba(20,22,28,0.98) 0%, rgba(35,37,42,0.95) 100%)",
         border: "1px solid",
         borderColor: "rgba(255,255,255,0.08)",
-        borderRadius: 2,
+        borderRadius: BORDER_RADIUS.xs,
         overflow: "hidden",
         position: "relative",
         transition: MOTION.all,

@@ -6,9 +6,7 @@ import React, { memo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import AppHeader from "./AppHeader";
 import { Box, EditorButton, FlexColumn, FlexRow } from "../ui_primitives";
-import { HEADER_HEIGHT } from "../../config/constants";
 
 interface ManagerPageLayoutProps {
   /** Icon shown in the tinted chip beside the title. */
@@ -35,7 +33,6 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       width: "100%",
       height: "100%",
-      paddingTop: `${HEADER_HEIGHT}px`,
       backgroundColor: theme.vars.palette.background.default
     },
     ".manager-page-hero": {
@@ -102,9 +99,8 @@ const styles = (theme: Theme) =>
 
 /**
  * Full-screen page chrome for the global managers (Models, Collections,
- * Workspaces). Renders the fixed AppHeader, a hero strip with a back button,
- * icon, title/subtitle, and optional actions, then hands the rest of the
- * viewport to its children.
+ * Workspaces). Renders a hero strip with a back button, icon, title/subtitle,
+ * and optional actions, then hands the rest of the viewport to its children.
  */
 const ManagerPageLayout: React.FC<ManagerPageLayoutProps> = ({
   icon,
@@ -129,7 +125,6 @@ const ManagerPageLayout: React.FC<ManagerPageLayoutProps> = ({
 
   return (
     <Box css={styles(theme)} className="manager-page">
-      <AppHeader />
       <header className="manager-page-hero">
         <EditorButton
           className="manager-page-back"

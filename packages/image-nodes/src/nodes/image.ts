@@ -20,7 +20,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  tagAsHybrid,
+  tagAsBrowserGpu,
   tagAsServer,
   tagAsContentCard
 } from "@nodetool-ai/nodes-utils";
@@ -2842,7 +2842,7 @@ export class VectorizeImageNode extends BaseNode {
 // GPU transform nodes: pure WebGPU pixel ops (no sharp) — runnable in the
 // browser and rendered as media content cards.
 const IMAGE_TRANSFORM_NODES = tagAsContentCard(
-  tagAsHybrid([
+  tagAsBrowserGpu([
     PasteNode,
     ScaleNode,
     ResizeNode,

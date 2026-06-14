@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { alphaSurfaceBg, alphaSurfaceCss } from "../AlphaSurface";
+import { alphaSurfaceBg } from "../AlphaSurface";
 
 describe("AlphaSurface", () => {
   describe("alphaSurfaceBg", () => {
@@ -30,19 +30,4 @@ describe("AlphaSurface", () => {
     });
   });
 
-  describe("alphaSurfaceCss", () => {
-    it("returns a serialized Emotion style object", () => {
-      expect(alphaSurfaceCss).toHaveProperty("styles");
-      expect(typeof alphaSurfaceCss.styles).toBe("string");
-    });
-
-    it("contains the checkerboard background-image", () => {
-      expect(alphaSurfaceCss.styles).toContain("background-image");
-      expect(alphaSurfaceCss.styles).toContain("linear-gradient");
-    });
-
-    it("contains background-color", () => {
-      expect(alphaSurfaceCss.styles).toContain("background-color");
-    });
-  });
 });

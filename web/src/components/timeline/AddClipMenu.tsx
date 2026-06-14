@@ -589,11 +589,11 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                       }}
                     />
                     <Caption
-                      sx={{
+                      sx={(theme) => ({
                         color: "text.disabled",
                         textAlign: "right",
-                        fontSize: 10
-                      }}
+                        fontSize: theme.fontSizeSmaller
+                      })}
                     >
                       ↵ generate · ⇧↵ new line
                     </Caption>
@@ -629,11 +629,11 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
                   </FlexColumn>
 
                   <Caption
-                    sx={{
+                    sx={(theme) => ({
                       color: "text.disabled",
                       textAlign: "center",
-                      fontSize: 10
-                    }}
+                      fontSize: theme.fontSizeSmaller
+                    })}
                   >
                     - or use a workflow -
                   </Caption>

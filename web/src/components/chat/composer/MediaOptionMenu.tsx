@@ -9,7 +9,8 @@ import {
   FlexRow,
   Popover,
   Text,
-  MOTION
+  MOTION,
+  BORDER_RADIUS
 } from "../../ui_primitives";
 
 export interface MediaOption<T extends string | number> {
@@ -44,7 +45,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: 8,
-      padding: "10px 16px",
+      padding: theme.spacing(3, 4),
       cursor: "pointer",
       color: theme.vars.palette.grey[100],
       transition: MOTION.background,
@@ -95,7 +96,7 @@ function MediaOptionMenuInternal<T extends string | number>({
       paperSx={{
         backgroundColor: theme.vars.palette.grey[900],
         border: `1px solid ${theme.vars.palette.grey[800]}`,
-        borderRadius: 2,
+        borderRadius: BORDER_RADIUS.sm,
         minWidth,
         boxShadow: "0 12px 40px rgba(0,0,0,0.45)"
       }}

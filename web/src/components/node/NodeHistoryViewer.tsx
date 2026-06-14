@@ -24,8 +24,10 @@ import { useNodeGenerations } from "../../hooks/nodes/useNodeGenerations";
 import { outputOf } from "../../utils/nodeGenerations";
 import type { Asset } from "../../stores/ApiTypes";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
-import { ToolbarIconButton, MOTION } from "../ui_primitives";
+import { CopyButton, Dialog, ToolbarIconButton, MOTION } from "../ui_primitives";
 import { MediaOverlaySuppressProvider } from "./MediaOverlayContext";
+import { TextRenderer } from "./output/TextRenderer";
+import { extractTextValue } from "../../utils/extractTextValue";
 
 interface NodeHistoryViewerProps {
   workflowId: string;
@@ -266,14 +268,21 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
     setMode((m) => (m === "single" ? "multi" : "single"));
   }, []);
 
-  // The fullscreen AssetViewer only renders media; text generations use the
-  // inline preview only.
+  // The fullscreen AssetViewer renders media; text generations open in a
+  // readable text popup instead. Both are triggered from the same overlay
+  // "open" control so the affordance lives in the generations navigator.
   const canOpenViewer =
     !!currentAsset && !showingLive && isMediaAsset(currentAsset);
+  const currentText = useMemo(
+    () => extractTextValue(valueToRender),
+    [valueToRender]
+  );
+  const hasTextToOpen = !canOpenViewer && currentText.trim().length > 0;
+  const canOpen = canOpenViewer || hasTextToOpen;
   const handleOpenViewer = useCallback(() => {
-    if (!canOpenViewer) return;
+    if (!canOpenViewer && !hasTextToOpen) return;
     setViewerOpen(true);
-  }, [canOpenViewer]);
+  }, [canOpenViewer, hasTextToOpen]);
 
   // Children (ImageView) render under this context: it suppresses their own
   // overlay/viewer and routes "open" here, so the viewer's gallery reflects the
@@ -472,12 +481,12 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
       <div className="node-history-overlay overlay-top-right">
         <div className="overlay-cluster">
           <ToolbarIconButton
-            title="Open in viewer"
+            title={hasTextToOpen ? "Open full text" : "Open in viewer"}
             size="small"
             onClick={handleOpenViewer}
-            disabled={!canOpenViewer}
+            disabled={!canOpen}
             className="overlay-icon-btn"
-            aria-label="Open in viewer"
+            aria-label={hasTextToOpen ? "Open full text" : "Open in viewer"}
           >
             <OpenInFullIcon />
           </ToolbarIconButton>
@@ -516,6 +525,21 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
           open={viewerOpen}
           onClose={handleCloseViewer}
         />
+      ) : hasTextToOpen ? (
+        <Dialog
+          open={viewerOpen}
+          onClose={handleCloseViewer}
+          title="Generated text"
+          minWidth="min(720px, 90vw)"
+          titleActions={<CopyButton value={currentText} tooltip="Copy text" />}
+        >
+          <div
+            className="text-popup nowheel"
+            style={{ maxHeight: "70vh", overflow: "auto" }}
+          >
+            <TextRenderer text={currentText} showActions={false} />
+          </div>
+        </Dialog>
       ) : null}
     </div>
   );

@@ -11,7 +11,8 @@ import {
   FlexColumn,
   EditorButton,
   CopyButton,
-  MOTION
+  MOTION,
+  BORDER_RADIUS
 } from "../../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import React from "react";
@@ -44,14 +45,14 @@ const styles = (theme: Theme) =>
       maxHeight: 340,
       overflowY: "auto",
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: theme.shape.borderRadius,
+      borderRadius: BORDER_RADIUS.xs,
       background: theme.vars.palette.action.hover,
       "&::-webkit-scrollbar": {
         width: 6
       },
       "&::-webkit-scrollbar-thumb": {
         background: theme.vars.palette.action.disabledBackground,
-        borderRadius: 3
+        borderRadius: BORDER_RADIUS.xs
       }
     },
     "& .node-list-item": {
@@ -163,6 +164,7 @@ const NodeList: React.FC<{
                       fontSize: "var(--fontSizeSmaller)",
                       fontWeight: 600,
                       px: 0.5,
+                      borderRadius: BORDER_RADIUS.xs,
                       background: theme.vars.palette.primary.main + "22",
                       borderColor: theme.vars.palette.primary.main + "44"
                     }}
@@ -238,7 +240,7 @@ const ModelCompatibilityDialog: React.FC<ModelCompatibilityDialogProps> = ({
                 background: theme.vars.palette.action.hover,
                 px: 1,
                 py: 0.5,
-                borderRadius: 1,
+                borderRadius: BORDER_RADIUS.xs,
                 border: `1px solid ${theme.vars.palette.divider}`
               }}
             >
@@ -257,7 +259,7 @@ const ModelCompatibilityDialog: React.FC<ModelCompatibilityDialogProps> = ({
         },
         paper: {
           sx: {
-            borderRadius: theme.vars.rounded.dialog,
+            borderRadius: BORDER_RADIUS.lg,
             background: theme.vars.palette.background.paper,
             border: `1px solid ${theme.vars.palette.divider}`,
             backgroundImage: "none"
@@ -266,7 +268,7 @@ const ModelCompatibilityDialog: React.FC<ModelCompatibilityDialogProps> = ({
       }}
     >
       <div css={styles(theme)}>
-        <FlexColumn gap={2.5} sx={{ p: 3, pt: 0 }}>
+        <FlexColumn gap={3} sx={{ p: 3, pt: 0 }}>
           <FlexColumn className="compatibility-section" gap={1}>
             <FlexRow justify="space-between" align="center" className="section-header" fullWidth>
               <FlexRow gap={1} align="center">
@@ -298,7 +300,7 @@ const ModelCompatibilityDialog: React.FC<ModelCompatibilityDialogProps> = ({
           </FlexColumn>
 
           <FlexRow justify="flex-end" sx={{ pt: 1.5, borderTop: `1px solid ${theme.vars.palette.grey[900]}` }}>
-            <EditorButton onClick={onClose} variant="contained" density="compact" sx={{ borderRadius: 2, fontWeight: 600, px: 3 }}>
+            <EditorButton onClick={onClose} variant="contained" density="compact" sx={{ borderRadius: BORDER_RADIUS.sm, fontWeight: 600, px: 3 }}>
               Got it
             </EditorButton>
           </FlexRow>

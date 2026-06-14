@@ -63,7 +63,7 @@ import {
 } from "./ScriptLane";
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 import { ToolToggle } from "../ToolToggle";
-import { FlexColumn, FlexRow } from "../../ui_primitives";
+import { FlexRow, FONT_SIZE_MONO, FONT_WEIGHT, BORDER_RADIUS } from "../../ui_primitives";
 import { deserializeDragData } from "../../../lib/dragdrop";
 import type { Asset } from "../../../stores/ApiTypes";
 import { assetMediaType } from "../dnd/assetToClipAdapter";
@@ -108,8 +108,8 @@ const tracksSectionHeaderStyles = (theme: Theme) =>
     backgroundColor: theme.vars.palette.background.paper,
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     color: theme.vars.palette.text.secondary,
-    fontSize: 10,
-    fontWeight: 600,
+    fontSize: FONT_SIZE_MONO.caption,
+    fontWeight: FONT_WEIGHT.semibold,
     letterSpacing: "0.08em",
     textTransform: "uppercase",
     userSelect: "none"
@@ -120,17 +120,17 @@ const trackCountChipStyles = (theme: Theme) =>
     marginLeft: "auto",
     minWidth: 18,
     height: 16,
-    padding: "0 5px",
+    padding: theme.spacing(0, 1.5),
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 4,
+    borderRadius: BORDER_RADIUS.sm,
     backgroundColor: theme.vars.palette.action.hover,
     color: theme.vars.palette.text.secondary,
     fontFamily:
       "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-    fontSize: 10,
-    fontWeight: 600,
+    fontSize: FONT_SIZE_MONO.caption,
+    fontWeight: FONT_WEIGHT.semibold,
     letterSpacing: "0"
   });
 

@@ -1,7 +1,7 @@
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { SvgIconProps } from "@mui/material/SvgIcon";
-import { Box, FlexRow, FlexColumn, Text } from "../ui_primitives";
+import { Box, FlexRow, FlexColumn, Text, BORDER_RADIUS } from "../ui_primitives";
 
 export interface CostStatCardProps {
   label: string;
@@ -15,6 +15,12 @@ export interface CostStatCardProps {
   caption: React.ReactNode;
   /** Optional emphasized badge (e.g. the +64% delta chip). */
   badge?: React.ReactNode;
+  /**
+   * `metric` (default) renders a big numeric headline.
+   * `label` renders an identifier-shaped value smaller and lets it wrap so
+   * long names (e.g. `kie.video.BytedanceSeedreamV4`) don't overflow.
+   */
+  valueVariant?: "metric" | "label";
 }
 
 const CostStatCardInternal: React.FC<CostStatCardProps> = ({
@@ -24,8 +30,10 @@ const CostStatCardInternal: React.FC<CostStatCardProps> = ({
   decimal,
   valueDotColor,
   caption,
-  badge
+  badge,
+  valueVariant = "metric"
 }) => {
+  const isLabel = valueVariant === "label";
   const theme = useTheme();
   return (
     <FlexColumn
@@ -33,8 +41,8 @@ const CostStatCardInternal: React.FC<CostStatCardProps> = ({
       sx={{
         flex: "1 1 0",
         minWidth: 200,
-        padding: "18px 20px",
-        borderRadius: "14px",
+        padding: theme.spacing(4, 6),
+        borderRadius: BORDER_RADIUS.xxl,
         backgroundColor: theme.vars.palette.background.paper,
         border: `1px solid ${theme.vars.palette.divider}`
       }}
@@ -58,7 +66,7 @@ const CostStatCardInternal: React.FC<CostStatCardProps> = ({
             justifyContent: "center",
             width: 26,
             height: 26,
-            borderRadius: "8px",
+            borderRadius: BORDER_RADIUS.lg,
             backgroundColor: theme.vars.palette.action.hover,
             color: theme.vars.palette.text.disabled
           }}
@@ -67,25 +75,31 @@ const CostStatCardInternal: React.FC<CostStatCardProps> = ({
         </Box>
       </FlexRow>
 
-      <FlexRow gap={1} align="center">
+      <FlexRow gap={1} align={isLabel ? "flex-start" : "center"} sx={{ minWidth: 0 }}>
         {valueDotColor && (
           <Box
             sx={{
               width: 11,
               height: 11,
-              borderRadius: "var(--rounded-sm)",
+              borderRadius: BORDER_RADIUS.sm,
               backgroundColor: valueDotColor,
-              flexShrink: 0
+              flexShrink: 0,
+              mt: isLabel ? "8px" : 0
             }}
           />
         )}
         <Text
           component="span"
           sx={{
-            fontSize: "2rem",
-            lineHeight: 1.05,
+            fontSize: isLabel ? "1.25rem" : "2rem",
+            lineHeight: isLabel ? 1.2 : 1.05,
             fontWeight: 600,
-            color: theme.vars.palette.text.primary
+            color: theme.vars.palette.text.primary,
+            minWidth: 0,
+            ...(isLabel && {
+              wordBreak: "break-word",
+              overflowWrap: "anywhere"
+            })
           }}
         >
           {value}
@@ -93,7 +107,7 @@ const CostStatCardInternal: React.FC<CostStatCardProps> = ({
             <Text
               component="span"
               sx={{
-                fontSize: "1.25rem",
+                fontSize: "var(--fontSizeBig)",
                 fontWeight: 600,
                 color: theme.vars.palette.text.disabled
               }}

@@ -8,7 +8,7 @@ import RedoIcon from "@mui/icons-material/Redo";
 import WrapTextIcon from "@mui/icons-material/WrapText";
 import SearchIcon from "@mui/icons-material/Search";
 import CodeIcon from "@mui/icons-material/Code";
-import { ToolbarIconButton, Box } from "../ui_primitives";
+import { ToolbarIconButton, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
 
 interface EditorToolbarProps {
   onUndo?: () => void;
@@ -56,11 +56,11 @@ const styles = (theme: Theme) =>
       }
     },
     ".toolbar-button": {
-      padding: "3px",
+      padding: theme.spacing(1),
       color: `${theme.vars.palette.grey[300]} !important`,
       backgroundColor: "transparent !important",
-      borderRadius: "8px !important",
-      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+      borderRadius: `${BORDER_RADIUS.lg} !important`,
+      transition: `${MOTION.all} !important`,
       "&:hover": {
         backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.1) !important`,
         color: `${theme.vars.palette.grey[100]} !important`,

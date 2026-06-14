@@ -9,6 +9,7 @@ import { createPortal } from "react-dom";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { BORDER_RADIUS } from "../../../ui_primitives";
 import { $createTextNode } from "lexical";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
@@ -39,7 +40,7 @@ const menuStyles = (theme: Theme) =>
     overflowY: "auto",
     background: theme.vars.palette.background.paper,
     border: `1px solid ${theme.vars.palette.divider}`,
-    borderRadius: "var(--rounded-sm, 4px)",
+    borderRadius: BORDER_RADIUS.sm,
     boxShadow: theme.shadows[6],
     padding: theme.spacing(0.5),
     zIndex: 2000,
@@ -48,7 +49,7 @@ const menuStyles = (theme: Theme) =>
       alignItems: "center",
       gap: theme.spacing(1),
       padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
-      borderRadius: "var(--rounded-sm, 4px)",
+      borderRadius: BORDER_RADIUS.sm,
       cursor: "pointer",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
@@ -62,7 +63,7 @@ const menuStyles = (theme: Theme) =>
       height: 28,
       flex: "0 0 auto",
       objectFit: "cover",
-      borderRadius: 3,
+      borderRadius: BORDER_RADIUS.xs,
       background: theme.vars.palette.grey[800]
     },
     ".asset-meta": {

@@ -14,7 +14,8 @@ import {
   FlexRow,
   Caption,
   ZoomControls,
-  StatusIndicator
+  StatusIndicator,
+  BORDER_RADIUS
 } from "../ui_primitives";
 import type { StatusType } from "../ui_primitives";
 import CloudIcon from "@mui/icons-material/Cloud";
@@ -35,7 +36,7 @@ const styles = (theme: Theme) =>
     ".dot": {
       width: 6,
       height: 6,
-      borderRadius: "50%"
+      borderRadius: BORDER_RADIUS.circle
     },
     ".dot-generating": {
       backgroundColor: theme.vars.palette.primary.main

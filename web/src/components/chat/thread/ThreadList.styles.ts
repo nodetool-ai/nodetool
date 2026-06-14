@@ -44,7 +44,7 @@ export const createStyles = (theme: Theme) =>
     ".thread-item": {
       position: "relative",
       padding: "0.35em 0.6em",
-      margin: "1px 0",
+      margin: theme.spacing(0.5, 0),
       fontSize: theme.fontSizeSmall,
       width: "100%",
       cursor: "pointer",

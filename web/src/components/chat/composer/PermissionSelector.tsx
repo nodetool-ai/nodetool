@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import CheckIcon from "@mui/icons-material/Check";
-import { Caption, FlexColumn, Popover, Text, MOTION } from "../../ui_primitives";
+import { Caption, FlexColumn, Popover, Text, MOTION, BORDER_RADIUS } from "../../ui_primitives";
 import MediaControlChip from "./MediaControlChip";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import type { PermissionMode } from "../../../stores/ApiTypes";
@@ -58,7 +58,7 @@ const menuStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "flex-start",
       gap: 8,
-      padding: "9px 16px",
+      padding: theme.spacing(2, 4),
       cursor: "pointer",
       color: theme.vars.palette.grey[100],
       transition: MOTION.background,
@@ -85,7 +85,7 @@ const dotCss = (color: string) =>
   css({
     width: 8,
     height: 8,
-    borderRadius: "50%",
+    borderRadius: BORDER_RADIUS.circle,
     flexShrink: 0,
     backgroundColor: color,
     boxShadow: `0 0 6px ${color}`
@@ -140,7 +140,7 @@ const PermissionSelector: React.FC = () => {
         paperSx={{
           backgroundColor: theme.vars.palette.grey[900],
           border: `1px solid ${theme.vars.palette.grey[800]}`,
-          borderRadius: 2,
+          borderRadius: BORDER_RADIUS.sm,
           boxShadow: "0 12px 40px rgba(0,0,0,0.45)"
         }}
       >
@@ -176,7 +176,7 @@ const PermissionSelector: React.FC = () => {
                 <FlexColumn gap={0.5} sx={{ flex: 1, minWidth: 0 }}>
                   <Text
                     size="small"
-                    weight={600}
+                    weight={500}
                     sx={{ color: "inherit", lineHeight: 1.25 }}
                   >
                     {m.label}

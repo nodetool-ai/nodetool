@@ -2,9 +2,9 @@
  * @jest-environment jsdom
  */
 /**
- * Tests for the top mode/prompt bar: the visibility gate (bound document),
- * the mode toggle (incl. disabled Outpaint/Edit), and that submitting in
- * Generate mode creates a text-to-image layer and runs the direct-gen job.
+ * Tests for the top prompt bar: the visibility gate (bound document) and that
+ * submitting creates a text-to-image layer and runs the direct-gen job for
+ * full-frame generation.
  */
 
 import React from "react";
@@ -19,11 +19,6 @@ import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore
 jest.mock("../../properties/ImageModelSelect", () => ({
   __esModule: true,
   default: () => null
-}));
-
-const mockInpaint = jest.fn();
-jest.mock("../../../hooks/sketch/useInpaintHere", () => ({
-  useInpaintHere: () => ({ inpaintHere: mockInpaint, isBusy: false })
 }));
 
 const mockStart = jest.fn();
@@ -55,11 +50,9 @@ function seedModel(): void {
 }
 
 beforeEach(() => {
-  mockInpaint.mockReset();
   mockStart.mockReset();
   useSketchStore.setState((s) => ({
     ...s,
-    genMode: "generate",
     panelsHidden: false
   }));
   useSketchSessionStore.setState({ documentId: null, name: "", bindings: {} });
@@ -78,31 +71,14 @@ describe("<ConnectedModePromptBar />", () => {
     expect(queryByTestId("sketch-mode-prompt-bar")).toBeNull();
   });
 
-  it("renders the bar, mode toggle, and submit with a bound document", () => {
+  it("renders the bar and submit with a bound document", () => {
     useSketchSessionStore.setState({ documentId: "doc-1", name: "portrait" });
     const { getByTestId } = renderBar();
     expect(getByTestId("sketch-mode-prompt-bar")).toBeTruthy();
-    expect(getByTestId("sketch-gen-mode-generate")).toBeTruthy();
-    expect(getByTestId("sketch-gen-mode-inpaint")).toBeTruthy();
     expect(getByTestId("sketch-gen-submit")).toBeTruthy();
   });
 
-  it("disables the unbacked Outpaint and Edit modes", () => {
-    useSketchSessionStore.setState({ documentId: "doc-1" });
-    const { getByTestId } = renderBar();
-    expect(getByTestId("sketch-gen-mode-outpaint")).toBeDisabled();
-    expect(getByTestId("sketch-gen-mode-edit")).toBeDisabled();
-    expect(getByTestId("sketch-gen-mode-generate")).not.toBeDisabled();
-  });
-
-  it("switches genMode when an enabled mode is picked", () => {
-    useSketchSessionStore.setState({ documentId: "doc-1" });
-    const { getByTestId } = renderBar();
-    fireEvent.click(getByTestId("sketch-gen-mode-inpaint"));
-    expect(useSketchStore.getState().genMode).toBe("inpaint");
-  });
-
-  it("keeps submit disabled in Generate mode until a prompt is typed", () => {
+  it("keeps submit disabled until a prompt is typed", () => {
     useSketchSessionStore.setState({ documentId: "doc-1" });
     seedModel();
     const { getByTestId, getByPlaceholderText } = renderBar();

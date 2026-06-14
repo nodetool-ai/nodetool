@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { Tooltip, Text, Divider, MOTION } from "../ui_primitives";
+import { Tooltip, Text, Divider, MOTION, BORDER_RADIUS, FONT_WEIGHT } from "../ui_primitives";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import { colorForType, descriptionForType } from "../../config/data_types";
 import { hexToRgba } from "../../utils/ColorUtils";
@@ -59,7 +59,7 @@ const nodeInfoStyles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary
     },
     ".replicate-status": {
-      fontWeight: 400,
+      fontWeight: FONT_WEIGHT.normal,
       width: "fit-content",
       color: theme.vars.palette.grey[0],
       display: "inline-flex",
@@ -75,8 +75,8 @@ const nodeInfoStyles = (theme: Theme) =>
       backgroundColor: "error.main"
     },
     ".node-description": {
-      fontWeight: 400,
-      fontSize: theme.fontSizeSmall,
+      fontWeight: FONT_WEIGHT.normal,
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.primary,
       whiteSpace: "pre-wrap",
       marginBottom: ".5em",
@@ -90,12 +90,12 @@ const nodeInfoStyles = (theme: Theme) =>
       }
     },
     ".node-tags span": {
-      fontWeight: 500,
+      fontWeight: FONT_WEIGHT.medium,
       fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.text.secondary,
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       padding: "4px 8px",
       textTransform: "uppercase",
       display: "inline-block",
@@ -107,8 +107,8 @@ const nodeInfoStyles = (theme: Theme) =>
       }
     },
     ".node-usecases": {
-      fontSize: theme.fontSizeSmaller,
-      fontWeight: 400,
+      fontSize: "var(--fontSizeSmaller)",
+      fontWeight: FONT_WEIGHT.normal,
       color: theme.vars.palette.text.secondary,
       lineHeight: "1.3em",
       ul: {
@@ -150,7 +150,7 @@ const nodeInfoStyles = (theme: Theme) =>
       display: "flex",
       justifyContent: "space-between",
       fontFamily: theme.fontFamily2,
-      fontSize: theme.fontSizeSmall,
+      fontSize: "var(--fontSizeSmall)",
       flexDirection: "row",
       gap: ".5em",
       cursor: "default"

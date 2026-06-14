@@ -3,7 +3,7 @@ import { memo, useState, useRef, useEffect } from "react";
 import {
   Modal
 } from "@mui/material";
-import { LoadingSpinner, Dialog, EditorButton, Box, TextInput } from "../ui_primitives";
+import { LoadingSpinner, Dialog, Box, TextInput, BORDER_RADIUS } from "../ui_primitives";
 // store
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 //css
@@ -214,7 +214,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                     padding: 4,
                     backgroundColor: theme.vars.palette.grey[800],
                     boxShadow: 24,
-                    borderRadius: 2,
+                    borderRadius: BORDER_RADIUS.lg,
                     border: 0,
                     outline: 0,
                     overflow: "hidden"

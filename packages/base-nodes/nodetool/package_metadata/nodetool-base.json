@@ -241,18 +241,6 @@
   ],
   "examples": [
     {
-      "id": "search-google-shopping",
-      "name": "Search - Google Shopping",
-      "description": "Claude Agent uses Google Shopping as a tool via control edges. The agent decides what to search and analyzes results.",
-      "tags": [
-        "search",
-        "google",
-        "shopping",
-        "serp",
-        "agent"
-      ]
-    },
-    {
       "id": "data_generator",
       "name": "Data Generator",
       "description": "Generate structured data using AI agents",
@@ -277,19 +265,6 @@
         "image",
         "photo",
         "batch processing"
-      ]
-    },
-    {
-      "id": "search-google-finance",
-      "name": "Search - Google Finance",
-      "description": "Claude Agent uses Google Finance as a tool via control edges. The agent decides what to search and analyzes results.",
-      "tags": [
-        "search",
-        "google",
-        "finance",
-        "stocks",
-        "serp",
-        "agent"
       ]
     },
     {
@@ -349,30 +324,6 @@
       "tags": [
         "video",
         "start"
-      ]
-    },
-    {
-      "id": "search-amazon-products",
-      "name": "Search - Amazon Products",
-      "description": "Claude Agent uses Amazon Search as a tool via control edges. The agent decides what to search and analyzes results.",
-      "tags": [
-        "search",
-        "amazon",
-        "products",
-        "serp",
-        "agent"
-      ]
-    },
-    {
-      "id": "search-google-images",
-      "name": "Search - Google Images",
-      "description": "Claude Agent uses Google Images as a tool via control edges. The agent decides what to search and analyzes results.",
-      "tags": [
-        "search",
-        "google",
-        "images",
-        "serp",
-        "agent"
       ]
     },
     {
@@ -496,37 +447,12 @@
       ]
     },
     {
-      "id": "search-google-scholar",
-      "name": "Search - Google Scholar",
-      "description": "Claude Agent uses Scholar Search as a tool via control edges. The agent decides what to search and analyzes results.",
-      "tags": [
-        "search",
-        "google",
-        "scholar",
-        "academic",
-        "serp",
-        "agent"
-      ]
-    },
-    {
       "id": "3527dcf2a7a811f09339000078c92dc5",
       "name": "Meeting Transcript Summarizer",
       "description": "Automatically transcribe a meeting recording and generate concise notes.",
       "tags": [
         "audio",
         "llm"
-      ]
-    },
-    {
-      "id": "search-google-trends",
-      "name": "Search - Google Trends",
-      "description": "Claude Agent uses Google Trends as a tool via control edges. The agent decides what to search and analyzes results.",
-      "tags": [
-        "search",
-        "google",
-        "trends",
-        "serp",
-        "agent"
       ]
     },
     {
@@ -643,30 +569,6 @@
       ]
     },
     {
-      "id": "search-google-jobs",
-      "name": "Search - Google Jobs",
-      "description": "Claude Agent uses Google Jobs as a tool via control edges. The agent decides what to search and analyzes results.",
-      "tags": [
-        "search",
-        "google",
-        "jobs",
-        "serp",
-        "agent"
-      ]
-    },
-    {
-      "id": "search-duckduckgo",
-      "name": "Search - DuckDuckGo",
-      "description": "Claude Agent uses DuckDuckGo Search as a tool via control edges. The agent decides what to search and analyzes results.",
-      "tags": [
-        "search",
-        "duckduckgo",
-        "web",
-        "privacy",
-        "agent"
-      ]
-    },
-    {
       "id": "06d8221c907e11f0a4240000006ab9b5",
       "name": "Realtime Agent",
       "description": "",
@@ -683,43 +585,6 @@
         "image",
         "start",
         "example"
-      ]
-    },
-    {
-      "id": "search-google-lens",
-      "name": "Search - Google Lens",
-      "description": "Claude Agent uses Google Lens as a tool via control edges. The agent decides what to search and analyzes results.",
-      "tags": [
-        "search",
-        "google",
-        "lens",
-        "visual",
-        "serp",
-        "agent"
-      ]
-    },
-    {
-      "id": "search-google-news",
-      "name": "Search - Google News",
-      "description": "Claude Agent uses Google News as a tool via control edges. The agent decides what to search and analyzes results.",
-      "tags": [
-        "search",
-        "google",
-        "news",
-        "serp",
-        "agent"
-      ]
-    },
-    {
-      "id": "search-youtube",
-      "name": "Search - YouTube",
-      "description": "Claude Agent uses YouTube Search as a tool via control edges. The agent decides what to search and analyzes results.",
-      "tags": [
-        "search",
-        "youtube",
-        "video",
-        "serp",
-        "agent"
       ]
     },
     {
@@ -767,32 +632,6 @@
         "data",
         "rag",
         "example"
-      ]
-    },
-    {
-      "id": "search-amazon-product-detail",
-      "name": "Search - Amazon Product Detail",
-      "description": "Claude Agent uses Amazon Product Detail as a tool via control edges. The agent decides what to search and analyzes results.",
-      "tags": [
-        "search",
-        "amazon",
-        "product",
-        "detail",
-        "serp",
-        "agent"
-      ]
-    },
-    {
-      "id": "search-google-maps",
-      "name": "Search - Google Maps",
-      "description": "Claude Agent uses Google Maps as a tool via control edges. The agent decides what to search and analyzes results.",
-      "tags": [
-        "search",
-        "google",
-        "maps",
-        "local",
-        "serp",
-        "agent"
       ]
     },
     {
@@ -883,18 +722,6 @@
       ]
     },
     {
-      "id": "search-yelp",
-      "name": "Search - Yelp",
-      "description": "Claude Agent uses Yelp Search as a tool via control edges. The agent decides what to search and analyzes results.",
-      "tags": [
-        "search",
-        "yelp",
-        "local",
-        "business",
-        "agent"
-      ]
-    },
-    {
       "id": "",
       "name": "Product Description Generator",
       "description": "Automatically generate marketing copy and product descriptions from product data.",
@@ -903,18 +730,6 @@
         "data",
         "research",
         "example"
-      ]
-    },
-    {
-      "id": "search-google-web",
-      "name": "Search - Google Web",
-      "description": "Claude Agent uses Google Search as a tool via control edges. The agent decides what to search and analyzes results.",
-      "tags": [
-        "search",
-        "google",
-        "web",
-        "serp",
-        "agent"
       ]
     }
   ]

@@ -6,7 +6,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Tooltip, CloseButton, MOTION } from "../ui_primitives";
+import { Tooltip, CloseButton, MOTION, SPACING } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import ImageDimensions from "../node/ImageDimensions";
@@ -27,7 +27,7 @@ const styles = (theme: Theme) =>
       marginBottom: "8px"
     },
     ".property-label": {
-      marginBottom: "5px"
+      marginBottom: theme.spacing(SPACING.sm)
     },
     ".image-grid": {
       display: "grid",
@@ -100,7 +100,7 @@ const styles = (theme: Theme) =>
       textAlign: "center",
       transition: MOTION.all,
       outline: `1px dashed ${theme.vars.palette.grey[600]}`,
-      margin: "5px 0",
+      margin: `${theme.spacing(SPACING.sm)} 0`,
       backgroundColor: `rgba(0, 0, 0, 0.2)`,
       borderRadius: "var(--rounded-md)",
       display: "flex",
@@ -500,7 +500,7 @@ const ImageListProperty = (props: PropertyProps) => {
               padding: "16px 8px",
               outline: "1px dashed rgba(255,255,255,0.1)",
               borderRadius: "var(--rounded-md)",
-              margin: "5px 0"
+              margin: `${theme.spacing(SPACING.sm)} 0`
             })}
           >
             Awaiting upstream

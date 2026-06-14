@@ -3,7 +3,7 @@ import { css, keyframes } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, type CSSProperties } from "react";
-import { MOTION } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS } from "../ui_primitives";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
@@ -37,10 +37,10 @@ const styles = (theme: Theme, fullWidth: boolean) =>
     ".welcome-eyebrow": {
       display: "flex",
       alignItems: "center",
-      gap: 8,
+      gap: `${theme.spacing(1)}`,
       textTransform: "uppercase" as const,
       letterSpacing: "0.12em",
-      fontSize: 12,
+      fontSize: "var(--fontSizeSmaller)",
       fontWeight: 500,
       color: theme.vars.palette.text.secondary,
       animation: `${rise} 500ms 80ms backwards`
@@ -48,7 +48,7 @@ const styles = (theme: Theme, fullWidth: boolean) =>
     ".welcome-eyebrow-dot": {
       width: 6,
       height: 6,
-      borderRadius: 9999,
+      borderRadius: BORDER_RADIUS.circle,
       background: theme.vars.palette.success.main,
       animation: `${pulse} 2.4s ease-in-out infinite`
     },
@@ -89,8 +89,8 @@ const styles = (theme: Theme, fullWidth: boolean) =>
       cursor: "pointer",
       background: theme.vars.palette.background.paper,
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: 12,
-      padding: 8,
+      borderRadius: BORDER_RADIUS.xl,
+      padding: `${theme.spacing(1)}`,
       color: "inherit",
       font: "inherit",
       position: "relative",
@@ -105,11 +105,11 @@ const styles = (theme: Theme, fullWidth: boolean) =>
     ".welcome-card-icon": {
       width: 32,
       height: 32,
-      borderRadius: 6,
+      borderRadius: BORDER_RADIUS.sm,
       display: "grid",
       placeItems: "center",
-      marginBottom: 8,
-      "& svg": { fontSize: 18 }
+      marginBottom: `${theme.spacing(1)}`,
+      "& svg": { fontSize: "var(--fontSizeBig)" }
     },
     ".welcome-card-title": {
       fontSize: "var(--fontSizeBig)",
@@ -118,8 +118,8 @@ const styles = (theme: Theme, fullWidth: boolean) =>
       color: theme.vars.palette.text.primary
     },
     ".welcome-card-blurb": {
-      marginTop: 2,
-      marginBottom: 8,
+      marginTop: `${theme.spacing(0.25)}`,
+      marginBottom: `${theme.spacing(1)}`,
       fontSize: "var(--fontSizeSmall)",
       lineHeight: 1.45,
       color: theme.vars.palette.text.secondary
@@ -127,8 +127,8 @@ const styles = (theme: Theme, fullWidth: boolean) =>
     ".welcome-card-node": {
       display: "inline-flex",
       alignItems: "center",
-      padding: "2px 8px",
-      borderRadius: 9999,
+      padding: `${theme.spacing(0.25)} ${theme.spacing(1)}`,
+      borderRadius: BORDER_RADIUS.pill,
       background: theme.vars.palette.action.selected,
       color: theme.vars.palette.text.secondary,
       fontFamily: theme.fontFamily2,
@@ -138,16 +138,16 @@ const styles = (theme: Theme, fullWidth: boolean) =>
     ".welcome-footer": {
       display: "flex",
       alignItems: "center",
-      gap: 8,
-      marginTop: 8,
+      gap: `${theme.spacing(1)}`,
+      marginTop: `${theme.spacing(1)}`,
       animation: `${rise} 700ms 480ms backwards`
     },
     ".welcome-skip": {
       background: "none",
       border: "none",
-      padding: "6px 10px",
-      borderRadius: 6,
-      fontSize: 13,
+      padding: `${theme.spacing(0.75)} ${theme.spacing(1.25)}`,
+      borderRadius: BORDER_RADIUS.sm,
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       cursor: "pointer",
       transition: `color ${MOTION.normal}, background ${MOTION.normal}`,
@@ -162,7 +162,7 @@ const styles = (theme: Theme, fullWidth: boolean) =>
       background: theme.vars.palette.divider
     },
     ".welcome-footer-hint": {
-      fontSize: 12,
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.disabled
     }
   });

@@ -6,7 +6,7 @@ import {
   Tab
 } from "@mui/material";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import { CloseButton, Text, Tooltip, Box, MOTION } from "../../ui_primitives";
+import { CloseButton, Text, Tooltip, Box, MOTION, BORDER_RADIUS } from "../../ui_primitives";
 import { useAppHeaderStore } from "../../../stores/AppHeaderStore";
 import DataTypesList from "./DataTypesList";
 import { useTheme } from "@mui/material/styles";
@@ -76,11 +76,11 @@ const helpStyles = (theme: Theme) =>
       "& .MuiTabs-indicator": {
         backgroundColor: "var(--palette-primary-main)",
         height: "3px",
-        borderRadius: "1.5px"
+        borderRadius: BORDER_RADIUS.xs
       },
       "& .MuiTab-root": {
         color: theme.vars.palette.grey[200],
-        transition: `color ${MOTION.normal}`,
+        transition: `color ${MOTION.fast}`,
         paddingBottom: "0em",
         "&.Mui-selected": {
           color: theme.vars.palette.grey[0]
@@ -107,7 +107,7 @@ const helpStyles = (theme: Theme) =>
       fontSize: "var(--fontSizeNormal)",
       fontWeight: 500,
       padding: "8px 14px",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       transition: MOTION.all,
       flexShrink: 0,
       "&:hover": {
@@ -120,10 +120,10 @@ const helpStyles = (theme: Theme) =>
         flexDirection: "column",
         alignItems: "flex-start",
         textTransform: "uppercase",
-        fontSize: theme.vars.fontSizeSmall,
+        fontSize: "var(--fontSizeSmall)",
         fontFamily: theme.vars.fontFamily2,
         lineHeight: 1.0,
-        fontWeight: 600,
+        fontWeight: 600
       },
       "& svg": {
         fontSize: "var(--fontSizeBig)",

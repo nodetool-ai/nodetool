@@ -5,7 +5,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
-import { MOTION } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS } from "../ui_primitives";
 
 interface EditableTitleProps {
   nodeId: string;
@@ -94,7 +94,7 @@ const EditableTitle = memo(function EditableTitle({
       borderTop: `1px solid ${theme.vars.palette.divider}`,
       borderLeft: `1px solid ${theme.vars.palette.divider}`,
       transform: "rotate(45deg)",
-      borderRadius: "2px 0 0 0"
+      borderRadius: `${BORDER_RADIUS.xs} 0 0 0`
     },
 
     // Decorative accent line on left
@@ -110,7 +110,7 @@ const EditableTitle = memo(function EditableTitle({
         ${theme.vars.palette.primary.main} 0%,
         ${theme.vars.palette.secondary.main} 100%
       )`,
-      borderRadius: "0 3px 3px 0",
+      borderRadius: `0 ${BORDER_RADIUS.sm} ${BORDER_RADIUS.sm} 0`,
       opacity: 0.7,
       transition: `opacity ${MOTION.normal}`
     },

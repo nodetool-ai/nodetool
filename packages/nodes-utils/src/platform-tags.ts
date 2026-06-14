@@ -70,6 +70,33 @@ export function tagAsUniversal<T extends readonly NodeClass[]>(classes: T): T {
 }
 
 /**
+ * Like {@link tagAsHybrid} (node + browser) but additionally marks the classes
+ * as requiring a WebGPU device in the browser. WebGPU shader nodes use this so
+ * the in-browser runner routes graphs containing them to the server — where a
+ * GPU is always available via Dawn — when `navigator.gpu` is missing, instead
+ * of failing the run. Server execution is unchanged.
+ *
+ * `requiresGpu` is stamped only on classes that end up browser-capable: a class
+ * already tagged server keeps its platforms and is left unmarked (it can't run
+ * in the browser anyway). Per-class `static requiresGpu` overrides win.
+ */
+export function tagAsBrowserGpu<T extends readonly NodeClass[]>(classes: T): T {
+  const tagged = tagWith(classes, NODE_AND_BROWSER_PLATFORMS);
+  for (const cls of tagged) {
+    const platforms = (cls as { platforms?: readonly Platform[] }).platforms;
+    if (!platforms?.includes("browser")) continue;
+    if ((cls as { requiresGpu?: unknown }).requiresGpu !== undefined) continue;
+    Object.defineProperty(cls, "requiresGpu", {
+      value: true,
+      writable: false,
+      configurable: true,
+      enumerable: true
+    });
+  }
+  return tagged;
+}
+
+/**
  * Stamp `static body = "content_card"` on every class in `classes` so the
  * editor renders them as a media content card (the image/video/audio preview
  * body) instead of the generic input/output layout. Leaves any class that

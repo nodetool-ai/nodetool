@@ -28,6 +28,7 @@ import {
 } from "../../../stores/timeline/TimelineInstance";
 import type { TimelineStoreApi } from "../../../stores/timeline/TimelineStore";
 import type { TimelinePlaybackStoreApi } from "../../../stores/timeline/TimelinePlaybackStore";
+import { FONT_SIZE_SANS, BORDER_RADIUS } from "../../ui_primitives";
 
 // ── Commands ──────────────────────────────────────────────────────────────────
 
@@ -67,12 +68,12 @@ const Host = styled("span")(({ theme }) => ({
     minWidth: 18,
     height: 20,
     padding: "0 4px",
-    borderRadius: 4,
+    borderRadius: BORDER_RADIUS.sm,
     border: `1px solid ${theme.vars.palette.divider}`,
     background: theme.vars.palette.action.hover,
     color: theme.vars.palette.text.secondary,
     fontStyle: "italic",
-    fontSize: 13,
+    fontSize: FONT_SIZE_SANS.label,
     lineHeight: "18px"
   },
   "& .slash-input": {
@@ -81,7 +82,7 @@ const Host = styled("span")(({ theme }) => ({
     background: "transparent",
     color: theme.vars.palette.primary.main,
     font: "inherit",
-    fontSize: 14,
+    fontSize: FONT_SIZE_SANS.body,
     minWidth: 40,
     width: 90,
     padding: 0
@@ -95,7 +96,7 @@ const Host = styled("span")(({ theme }) => ({
     padding: 4,
     listStyle: "none",
     minWidth: 220,
-    borderRadius: 8,
+    borderRadius: BORDER_RADIUS.lg,
     border: `1px solid ${theme.vars.palette.divider}`,
     background: theme.vars.palette.background.paper,
     boxShadow: theme.vars.shadows?.[6] ?? "0 6px 24px rgba(0,0,0,0.4)"
@@ -105,23 +106,23 @@ const Host = styled("span")(({ theme }) => ({
     flexDirection: "column",
     gap: 1,
     padding: "6px 8px",
-    borderRadius: 5,
+    borderRadius: BORDER_RADIUS.md,
     cursor: "pointer"
   },
   "& .slash-item.is-active": {
     background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.18)`
   },
   "& .slash-item .cmd-label": {
-    fontSize: 13,
+    fontSize: FONT_SIZE_SANS.label,
     color: theme.vars.palette.text.primary
   },
   "& .slash-item .cmd-hint": {
-    fontSize: 11,
+    fontSize: FONT_SIZE_SANS.caption,
     color: theme.vars.palette.text.disabled
   },
   "& .slash-empty": {
     padding: "6px 8px",
-    fontSize: 12,
+    fontSize: theme.fontSizeSmall,
     color: theme.vars.palette.text.disabled
   }
 }));

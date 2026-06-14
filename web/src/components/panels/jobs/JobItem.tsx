@@ -9,7 +9,8 @@ import {
   Tooltip,
   ToolbarIconButton,
   Box,
-  MOTION
+  MOTION,
+  BORDER_RADIUS
 } from "../../ui_primitives";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import BoltIcon from "@mui/icons-material/Bolt";
@@ -152,14 +153,15 @@ const StatusTile = memo(function StatusTile({
         width: TILE_SIZE,
         height: TILE_SIZE,
         flex: "0 0 auto",
-        borderRadius: "8px",
+        borderRadius: BORDER_RADIUS.lg,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         color: visual.fg,
         backgroundColor: visual.tint
           ? (theme) => alpha(theme.palette[visual.tint!].main, 0.16)
-          : "action.hover"
+          : "action.hover",
+        transition: MOTION.all
       }}
     >
       {visual.icon}
@@ -195,7 +197,7 @@ const AssetThumb = memo(function AssetThumb({ asset }: { asset: Asset }) {
           width: TILE_SIZE,
           height: TILE_SIZE,
           flex: "0 0 auto",
-          borderRadius: "8px",
+          borderRadius: BORDER_RADIUS.lg,
           overflow: "hidden",
           border: 1,
           borderColor: "divider",
@@ -337,7 +339,7 @@ const JobItem = ({ job }: { job: Job }) => {
         px: 1,
         py: 1,
         mb: 0.5,
-        borderRadius: "6px",
+        borderRadius: BORDER_RADIUS.md,
         cursor: "pointer",
         backgroundColor: isActive ? "action.selected" : "transparent",
         transition: `background-color ${MOTION.fast}`,

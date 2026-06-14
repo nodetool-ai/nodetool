@@ -26,13 +26,6 @@ import type {
 } from "../../types";
 import { SYMMETRY_DEFAULT_RAYS, cloneDefaultToolSettings } from "../../types";
 
-/**
- * Active AI generation mode driving the top mode/prompt bar. Only `generate`
- * (text-to-image) and `inpaint` (masked) have a real pipeline today; `outpaint`
- * and `edit` are reserved and rendered disabled until they have a backend.
- */
-export type SketchGenMode = "generate" | "inpaint" | "outpaint" | "edit";
-
 // ─── Private helpers ─────────────────────────────────────────────────────────
 
 const PRESSURE_OPTIONAL_KEYS = [
@@ -83,13 +76,6 @@ export interface ToolSlice {
   setActiveTool: (tool: SketchTool) => void;
 
   /**
-   * Active AI generation mode for the top mode/prompt bar. Transient UI state —
-   * not part of the persisted document snapshot.
-   */
-  genMode: SketchGenMode;
-  setGenMode: (mode: SketchGenMode) => void;
-
-  /**
    * Live tool settings — the runtime source of truth.
    * Stored separately from `document` so that brush/color changes do not
    * mutate the document object and do not trigger document re-renders.
@@ -138,11 +124,6 @@ export const createToolSlice: StateCreator<SketchStore, [], [], ToolSlice> = (
   activeTool: "select",
   setActiveTool: (tool: SketchTool) => set({ activeTool: tool }),
 
-  // Default to text-to-image: it needs no selection, so the primary action is
-  // usable on a fresh canvas (unlike inpaint, which requires a masked region).
-  genMode: "generate",
-  setGenMode: (mode: SketchGenMode) => set({ genMode: mode }),
-
   // Runtime source of truth for tool settings — NOT inside `document` so that
   // brush/color changes do not mutate the document object and do not trigger
   // the expensive document re-render cascade (compositing, autosave, etc.).
@@ -152,7 +133,10 @@ export const createToolSlice: StateCreator<SketchStore, [], [], ToolSlice> = (
     set((state) => ({
       toolSettings: {
         ...state.toolSettings,
-        brush: { ...state.toolSettings.brush, ...stripPressureFromPartial(settings) }
+        brush: {
+          ...state.toolSettings.brush,
+          ...stripPressureFromPartial(settings)
+        }
       }
     })),
 
@@ -160,7 +144,10 @@ export const createToolSlice: StateCreator<SketchStore, [], [], ToolSlice> = (
     set((state) => ({
       toolSettings: {
         ...state.toolSettings,
-        pencil: { ...state.toolSettings.pencil, ...stripPressureFromPartial(settings) }
+        pencil: {
+          ...state.toolSettings.pencil,
+          ...stripPressureFromPartial(settings)
+        }
       }
     })),
 
@@ -266,17 +253,34 @@ export const createToolSlice: StateCreator<SketchStore, [], [], ToolSlice> = (
         backgroundColor: oldFg,
         toolSettings: {
           ...ts,
-          brush: { ...ts.brush, color: mapForegroundLinkedToolColor(ts.brush.color, oldFg, oldBg) },
-          pencil: { ...ts.pencil, color: mapForegroundLinkedToolColor(ts.pencil.color, oldFg, oldBg) },
-          fill: { ...ts.fill, color: mapForegroundLinkedToolColor(ts.fill.color, oldFg, oldBg) },
+          brush: {
+            ...ts.brush,
+            color: mapForegroundLinkedToolColor(ts.brush.color, oldFg, oldBg)
+          },
+          pencil: {
+            ...ts.pencil,
+            color: mapForegroundLinkedToolColor(ts.pencil.color, oldFg, oldBg)
+          },
+          fill: {
+            ...ts.fill,
+            color: mapForegroundLinkedToolColor(ts.fill.color, oldFg, oldBg)
+          },
           shape: {
             ...ts.shape,
-            strokeColor: mapForegroundLinkedToolColor(ts.shape.strokeColor, oldFg, oldBg),
+            strokeColor: mapForegroundLinkedToolColor(
+              ts.shape.strokeColor,
+              oldFg,
+              oldBg
+            ),
             fillColor: mapDualWellToolColor(ts.shape.fillColor, oldFg, oldBg)
           },
           gradient: {
             ...ts.gradient,
-            startColor: mapForegroundLinkedToolColor(ts.gradient.startColor, oldFg, oldBg),
+            startColor: mapForegroundLinkedToolColor(
+              ts.gradient.startColor,
+              oldFg,
+              oldBg
+            ),
             endColor: mapDualWellToolColor(ts.gradient.endColor, oldFg, oldBg)
           }
         }

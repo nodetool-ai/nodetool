@@ -6,7 +6,7 @@ import { Popover } from "../ui_primitives";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTheme } from "@mui/material/styles";
-import { CopyButton, Text, Caption, NotificationBadge, ToolbarIconButton, Box, MOTION } from "../ui_primitives";
+import { CopyButton, Text, Caption, NotificationBadge, ToolbarIconButton, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { useShallow } from "zustand/react/shallow";
 
 const popoverStyles = css({
@@ -15,7 +15,7 @@ const popoverStyles = css({
   "& .copy-button": {
     position: "absolute",
     opacity: 0.8,
-    top: "5px",
+    top: "6px",
     right: "0px"
   }
 });
@@ -109,7 +109,7 @@ const NotificationButton: React.FC = React.memo(() => {
             },
             "&::-webkit-scrollbar-thumb": {
               backgroundColor: theme.vars.palette.grey[600],
-              borderRadius: "var(--rounded-sm)"
+              borderRadius: BORDER_RADIUS.sm
             }
           }}
         >
@@ -135,7 +135,7 @@ const NotificationButton: React.FC = React.memo(() => {
                   sx={{
                     p: 2,
                     mb: 1.5,
-                    borderRadius: 1.5,
+                    borderRadius: BORDER_RADIUS.md,
                     maxHeight: "100px",
                     overflow: "auto",
                     backgroundColor: `${theme.vars.palette.grey[800]}CC`,

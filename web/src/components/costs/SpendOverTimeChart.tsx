@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Box, FlexRow, FlexColumn, Text, MOTION } from "../ui_primitives";
+import { Box, FlexRow, FlexColumn, Text, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import {
   providerColor,
   providerLabel,
@@ -74,8 +74,8 @@ const SpendOverTimeChartInternal: React.FC<SpendOverTimeChartProps> = ({
       sx={{
         backgroundColor: theme.vars.palette.background.paper,
         border: `1px solid ${theme.vars.palette.divider}`,
-        borderRadius: "12px",
-        padding: "20px 24px 16px"
+        borderRadius: BORDER_RADIUS.xl,
+        padding: theme.spacing(6, 6, 4)
       }}
     >
       {/* header: title + legend */}
@@ -197,7 +197,7 @@ const SpendOverTimeChartInternal: React.FC<SpendOverTimeChartProps> = ({
                 <Box
                   sx={{
                     height: Math.max(barPx, visibleTotal > 0 ? 2 : 0),
-                    borderRadius: "5px 5px 0 0",
+                    borderRadius: BORDER_RADIUS.md + " " + BORDER_RADIUS.md + " 0 0",
                     overflow: "hidden",
                     display: "flex",
                     flexDirection: "column-reverse",
@@ -295,8 +295,8 @@ const BarTooltip: React.FC<{
         transform: "translateX(-50%)",
         zIndex: 5,
         minWidth: 168,
-        padding: "8px 10px",
-        borderRadius: "8px",
+        padding: theme.spacing(2, 3),
+        borderRadius: BORDER_RADIUS.lg,
         backgroundColor: theme.vars.palette.background.default,
         border: `1px solid ${theme.vars.palette.divider}`,
         boxShadow: "0 8px 24px rgba(0,0,0,0.45)",
@@ -317,7 +317,7 @@ const BarTooltip: React.FC<{
                   sx={{
                     width: 8,
                     height: 8,
-                    borderRadius: "2px",
+                    borderRadius: BORDER_RADIUS.xs,
                     backgroundColor: colorOf(id)
                   }}
                 />

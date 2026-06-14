@@ -18,7 +18,7 @@ const EASE_OUT_QUINT = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 import { useEffect, useState, useRef, useCallback, useMemo, memo } from "react";
 //mui
-import { EditorButton, Dialog, Text } from "../ui_primitives";
+import { EditorButton, Dialog, Text, MOTION, BORDER_RADIUS } from "../ui_primitives";
 //icons
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
@@ -83,7 +83,21 @@ const styles = (theme: Theme) =>
       maxWidth: "100vw",
       zIndex: 11000,
       margin: 0,
-      borderRadius: 0
+      borderRadius: 0,
+      position: "relative"
+    },
+    // The shared Dialog primitive wraps children in MUI's DialogContent, whose
+    // default padding would push the viewer down (gap on top) and inset the
+    // overlay controls. Make it a bare full-bleed, positioned container so the
+    // media fills the screen and the toolbar/close button anchor to the edges.
+    ".MuiDialogContent-root, .dialog-content": {
+      padding: 0,
+      margin: 0,
+      width: "100%",
+      height: "100%",
+      overflow: "hidden",
+      position: "relative",
+      display: "block"
     },
     ".current-folder": {
       top: "20px"
@@ -100,7 +114,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.background.paper,
       color: theme.vars.palette.text.primary,
       border: `1px solid ${theme.vars.palette.action.disabledBackground}`,
-      borderRadius: "var(--rounded-circle)",
+      borderRadius: BORDER_RADIUS.circle,
       padding: "0.3em"
     },
     ".actions button svg": {
@@ -130,7 +144,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[200],
       backgroundColor: theme.vars.palette.background.paper,
       border: `2px solid ${theme.vars.palette.action.disabledBackground}`,
-      transition: `transform 140ms ${EASE_OUT_QUINT}, background-color 140ms ease, color 140ms ease`
+      transition: `transform 140ms ${EASE_OUT_QUINT}, ${MOTION.background}, ${MOTION.opacity}`
     },
     ".prev-next-button:active": {
       transform: "scale(0.88)"
@@ -169,7 +183,7 @@ const styles = (theme: Theme) =>
       width: "100px",
       height: "100px",
       overflow: "hidden",
-      borderRadius: "0.6em",
+      borderRadius: BORDER_RADIUS.lg,
       border: `2px solid ${theme.vars.palette.primary.main}`,
       boxShadow: `0 0 0 4px rgb(${theme.vars.palette.primary.mainChannel} / 0.18), 0 12px 32px rgb(0 0 0 / 0.5)`,
       // Re-keyed by asset id on navigation, so this replays each time the
@@ -182,10 +196,10 @@ const styles = (theme: Theme) =>
       width: "120px",
       height: "80px",
       overflow: "hidden",
-      borderRadius: "0.5em",
+      borderRadius: BORDER_RADIUS.md,
       cursor: "pointer !important",
       willChange: "transform",
-      transition: `transform 200ms ${EASE_OUT_QUINT}, box-shadow 200ms ease`,
+      transition: `transform 200ms ${EASE_OUT_QUINT}, ${MOTION.shadow}`,
       // `backwards` keeps the from-state during the stagger delay but releases
       // the element afterward, so the hover transition below still applies.
       animation: `${thumbReveal} 320ms ${EASE_OUT_EXPO} backwards`
@@ -231,7 +245,7 @@ const styles = (theme: Theme) =>
       transform: "translateX(-50%)",
       padding: theme.spacing(1, 2),
       backgroundColor: theme.vars.palette.background.paper,
-      borderRadius: theme.shape.borderRadius,
+      borderRadius: BORDER_RADIUS.md,
       zIndex: 10001,
       color: theme.vars.palette.text.primary,
       fontSize: theme.fontSizeSmall
@@ -248,7 +262,7 @@ const styles = (theme: Theme) =>
       zIndex: 10001,
       padding: theme.spacing(1, 1.5),
       backgroundColor: theme.vars.palette.background.paper,
-      borderRadius: theme.shape.borderRadius,
+      borderRadius: BORDER_RADIUS.md,
       fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.text.primary
     },
@@ -350,7 +364,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
       backgroundColor: theme.vars.palette.background.paper,
       color: theme.vars.palette.text.primary,
       border: `1px solid ${theme.vars.palette.action.disabledBackground}`,
-      borderRadius: "50%",
+      borderRadius: BORDER_RADIUS.circle,
       padding: theme.spacing(0.5),
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
@@ -718,6 +732,30 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
         fullWidth
         open={open}
         onClose={handleClose}
+        slotProps={{
+          // Override the primitive's default glass/rounded/bordered paper so the
+          // viewer is a true edge-to-edge fullscreen surface with no top gap.
+          paper: {
+            style: {
+              borderRadius: 0,
+              border: "none",
+              margin: 0,
+              width: "100vw",
+              maxWidth: "100vw",
+              height: "100vh",
+              maxHeight: "100vh",
+              overflow: "hidden",
+              position: "relative",
+              background: theme.vars.palette.grey[900],
+              backdropFilter: "none"
+            }
+          },
+          backdrop: {
+            style: {
+              backgroundColor: theme.vars.palette.grey[900]
+            }
+          }
+        }}
       >
         {/* Compare mode instruction bar */}
         {compareMode && !compareAssetB && (

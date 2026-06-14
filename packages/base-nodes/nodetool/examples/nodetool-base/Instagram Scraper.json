@@ -16,15 +16,23 @@
   "graph": {
     "nodes": [
       {
-        "id": "1",
+        "id": "comment-intro",
         "parent_id": null,
-        "type": "nodetool.output.Output",
+        "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "name": "instagram_trends_report",
-          "value": null,
-          "description": ""
+          "comment": "# 📸 Instagram Scraper\n\nGive a focus area and an agent researches current Instagram trends, then summarizes the hashtags and themes.\n\n**Pipeline:** Focus → build prompt → Trend agent → summary\n\n**Try this:** change the focus topic or ask for posting ideas."
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 80,
+            "y": -200
+          },
+          "zIndex": 0,
+          "width": 460,
+          "height": 180,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -36,7 +44,16 @@
         "data": {
           "template": "\n# Instagram trend summary\n\n{% for t in trends %}\n## {{ t.hashtag }}\n{{ t.description }}\n\n{% endfor %}\n"
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "4️⃣ Format summary",
+          "position": {
+            "x": 1160,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {
           "trends": null
         },
@@ -66,7 +83,16 @@
           "system": "You are a research assistant.\n\nGoal\n- Conduct thorough research on the given objective\n- Use tools to gather information from multiple sources\n- Synthesize information into the structured output format specified\n\nTools Available\n- google_search: Search the web for information\n- browser: Navigate to URLs and extract content\n\nWorkflow\n1. Break down the research objective into specific queries\n2. Use google_search to find relevant sources\n3. Use browser to extract content from promising URLs\n4. Synthesize all findings into the requested output format\n\nOutput Format\n- Return a structured JSON object matching the defined output schema\n- Be thorough and cite sources where appropriate\n- Ensure all required fields are populated with accurate information\n",
           "mode": "plan"
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "3️⃣ Trend agent",
+          "position": {
+            "x": 800,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {
           "trends": {
@@ -109,7 +135,16 @@
         "data": {
           "template": "\nUse google_search and browser tools to analyze Instagram trends.\n\nTasks:\n1) Identify top 5 to 10 trending hashtags that are relevant to:\n   {{ focus }}\n\n2) For each hashtag:\n   - Use google_search to find at least one example post.\n   - Use the browser tool to inspect the post details and any public engagement signals\n     such as likes, comments, and caption patterns.\n\n3) Synthesize trends:\n   - Describe what content style is winning for each hashtag.\n   - Highlight patterns in visuals, captions, and calls to action.\n\nOutput format (JSON object):\n{\n  \"trends\": [\n    {\n      \"hashtag\": \"<hashtag string>\",\n      \"description\": \"<short explanation of why this trend matters>\"\n    },\n    ...\n  ]\n}\n"
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "2️⃣ Build prompt",
+          "position": {
+            "x": 440,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {
           "focus": null
         },
@@ -125,7 +160,16 @@
           "value": "current Instagram trends for tech and AI content",
           "description": "What to analyze trends for"
         },
-        "ui_properties": {},
+        "ui_properties": {
+          "title": "1️⃣ Focus",
+          "position": {
+            "x": 80,
+            "y": 80
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
         "dynamic_properties": {},
         "dynamic_outputs": {},
         "sync_mode": "on_any"
@@ -154,14 +198,6 @@
         "sourceHandle": "trends",
         "target": "2",
         "targetHandle": "trends",
-        "ui_properties": null
-      },
-      {
-        "id": "4",
-        "source": "2",
-        "sourceHandle": "output",
-        "target": "1",
-        "targetHandle": "value",
         "ui_properties": null
       }
     ]

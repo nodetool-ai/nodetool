@@ -34,7 +34,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "1️⃣ Topic"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -79,7 +80,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "🗄️ Create table"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -100,7 +102,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "2️⃣ Build prompt"
         },
         "dynamic_properties": {
           "TOPIC": ""
@@ -143,7 +146,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "3️⃣ Generate flashcards"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -162,7 +166,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "4️⃣ Save to database"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -185,29 +190,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "display_result",
-        "parent_id": null,
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "Flashcards Saved!"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 1516,
-            "y": 614
-          },
-          "zIndex": 0,
-          "width": 280,
-          "height": 485,
-          "selectable": true
+          "selectable": true,
+          "title": "5️⃣ Read all cards"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {},
@@ -217,7 +201,9 @@
         "id": "603e6bfa-2d6d-4aed-81a8-a533b8f77fad",
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
-        "data": {},
+        "data": {
+          "comment": "# 🃏 Flashcard Generator\n\nEnter a topic; an AI generates study flashcards, saves them to SQLite, and reads them back for review.\n\n**Pipeline:** Topic → generate cards → insert into SQLite → query all\n\n**Try this:** change the topic or the number of cards. Cards persist across runs."
+        },
         "ui_properties": {
           "selected": false,
           "position": {
@@ -225,8 +211,8 @@
             "y": 0
           },
           "zIndex": 0,
-          "width": 280,
-          "height": 1184,
+          "width": 460,
+          "height": 180,
           "selectable": true
         },
         "dynamic_properties": {},
@@ -307,16 +293,6 @@
         "targetHandle": "columns",
         "ui_properties": {
           "className": "record_type"
-        }
-      },
-      {
-        "id": "2f5ac40f-e957-442e-ab4d-bb93929483be",
-        "source": "query_all",
-        "sourceHandle": "row",
-        "target": "display_result",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "dict"
         }
       }
     ]

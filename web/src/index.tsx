@@ -48,7 +48,6 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import useAuth from "./stores/useAuth";
 import { isLocalhost } from "./lib/env";
 import { initKeyListeners } from "./stores/KeyPressedStore";
-import { HEADER_HEIGHT } from "./config/constants";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import { loadMetadata } from "./serverState/useMetadata";
 import { WorkflowManagerProvider } from "./contexts/WorkflowManagerContext";
@@ -63,7 +62,6 @@ const RunWarningDialog = React.lazy(
 
 import { installIpcLogBridge } from "./logging/ipcLogBridge";
 import MobileClassProvider from "./components/MobileClassProvider";
-const AppHeader = React.lazy(() => import("./components/panels/AppHeader"));
 import { SkipLinks } from "./components/ui_primitives/SkipLinks";
 
 import ChatComposerLayout from "./components/chat/containers/ChatComposerLayout";
@@ -89,9 +87,6 @@ const AssetExplorer = React.lazy(
 );
 const CollectionsExplorer = React.lazy(
   () => import("./components/collections/CollectionsExplorer")
-);
-const TemplateGrid = React.lazy(
-  () => import("./components/workflows/ExampleGrid")
 );
 const ChainEditorPage = React.lazy(
   () => import("./components/chain_editor/ChainEditorPage")
@@ -207,7 +202,7 @@ function getRoutes() {
                 }}
               >
                 <SkipLinks />
-                {/* No AppHeader on chat — GlobalChat has its own
+                {/* No header on chat — GlobalChat has its own
                     "Back to editor" control. */}
                 <div
                   id="main-content"
@@ -242,11 +237,9 @@ function getRoutes() {
               display: "flex",
               flexDirection: "column",
               width: "100%",
-              height: "100%",
-              paddingTop: HEADER_HEIGHT
+              height: "100%"
             }}
           >
-            <AppHeader />
             <SettingsPage />
           </div>
         </ProtectedRoute>
@@ -299,7 +292,6 @@ function getRoutes() {
       path: "assets",
       element: (
         <ProtectedRoute>
-          <PanelLeft />
           <AssetExplorer />
         </ProtectedRoute>
       )
@@ -309,15 +301,6 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <CollectionsExplorer />
-        </ProtectedRoute>
-      )
-    },
-    {
-      path: "templates",
-      element: (
-        <ProtectedRoute>
-          <PanelLeft />
-          <TemplateGrid />
         </ProtectedRoute>
       )
     },
@@ -363,7 +346,6 @@ function getRoutes() {
             }}
           >
             <SkipLinks />
-            <AppHeader />
             <ChainEditorPage />
           </div>
         </ProtectedRoute>
@@ -378,12 +360,10 @@ function getRoutes() {
               display: "flex",
               flexDirection: "column",
               width: "100%",
-              height: "100%",
-              paddingTop: HEADER_HEIGHT
+              height: "100%"
             }}
           >
             <SkipLinks />
-            <AppHeader />
             <React.Suspense fallback={<LoadingSpinner />}>
               <TimelineEditor />
             </React.Suspense>
@@ -400,12 +380,10 @@ function getRoutes() {
               display: "flex",
               flexDirection: "column",
               width: "100%",
-              height: "100%",
-              paddingTop: HEADER_HEIGHT
+              height: "100%"
             }}
           >
             <SkipLinks />
-            <AppHeader />
             <React.Suspense fallback={<LoadingSpinner />}>
               <SketchEditorPage />
             </React.Suspense>

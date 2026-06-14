@@ -225,7 +225,7 @@
 .react-flow__edge .react-flow__edge-text {
   visibility: visible !important;
   fill: var(--palette-grey-1000);
-  font-size: var(--fontSizeTinyer);
+  font-size: var(--fontSizeSmaller);
   transition: all 0.1s;
 }
 
@@ -579,7 +579,7 @@ ul.multi-outputs li::marker {
 }
 
 .handle-tooltip-type {
-  font-size: var(--fontSizeTinyer);
+  font-size: var(--fontSizeSmaller);
   font-family: var(--fontFamily2, monospace);
   opacity: 0.8;
   padding: 0 0.35em;

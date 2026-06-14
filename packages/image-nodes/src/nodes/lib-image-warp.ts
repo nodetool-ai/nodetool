@@ -35,7 +35,7 @@ import {
   type RunShaderOptions
 } from "./lib-shader-utils.js";
 import { decodeRgba } from "./image-io.js";
-import { tagAsHybrid, tagAsContentCard } from "@nodetool-ai/nodes-utils";
+import { tagAsBrowserGpu, tagAsContentCard } from "@nodetool-ai/nodes-utils";
 
 function num(value: unknown, fallback: number): number {
   const n = Number(value);
@@ -361,7 +361,7 @@ registerDeclaredProperty(
   floatProp(0.5, { min: -1, max: 1, label: "Amount", notes: "negative pinches" })
 );
 
-export const LIB_IMAGE_WARP_NODES = tagAsHybrid(tagAsContentCard([
+export const LIB_IMAGE_WARP_NODES = tagAsBrowserGpu(tagAsContentCard([
   OffsetNode,
   PadNode,
   TileNode,

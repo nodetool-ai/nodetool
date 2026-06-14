@@ -10,7 +10,7 @@ import { useIsWorkflowFavorite, useFavoriteWorkflowActions } from "../../stores/
 import { relativeTime } from "../../utils/formatDateAndTime";
 import StarIcon from "@mui/icons-material/Star";
 import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
-import { FavoriteButton, EditButton, EditorButton, FlexColumn, FlexRow, Text, Tooltip, Checkbox, Box } from "../ui_primitives";
+import { FavoriteButton, EditButton, EditorButton, FlexColumn, FlexRow, Text, Tooltip, Checkbox, Box, BORDER_RADIUS } from "../ui_primitives";
 
 interface WorkflowListItemProps {
   workflow: Workflow;
@@ -133,7 +133,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
     () => ({
       background: "transparent",
       border: "1px solid var(--palette-primary-main)",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       color: "inherit",
       padding: "4px 8px",
       fontSize: "inherit",
@@ -198,7 +198,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
                 sx={{
                   color: "grey.900",
                   backgroundColor: "grey.200",
-                  borderRadius: "1em",
+                  borderRadius: BORDER_RADIUS.pill,
                   padding: "0.15em 0.5em",
                   margin: "0.75em 0"
                 }}
@@ -292,11 +292,11 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             sx={{
               padding: "3px 10px",
               minWidth: "unset",
-              fontSize: "var(--fontSizeSmaller)",
+              fontSize: "var(--fontSizeSmall)",
               fontWeight: 600,
               textTransform: "none",
               lineHeight: 1.4,
-              borderRadius: "var(--rounded-sm)",
+              borderRadius: "var(--rounded-xs)",
               boxShadow: "none",
               backgroundColor: "action.selected",
               border: "1px solid",

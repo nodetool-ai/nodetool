@@ -1,5 +1,10 @@
 import { describe, expect, it } from "@jest/globals";
-import { containBaseScale, buildTransformMatrix, IDENTITY_TRANSFORM } from "../transform";
+import {
+  containBaseScale,
+  buildTransformMatrix,
+  clipMatrixToCanvasAffine,
+  IDENTITY_TRANSFORM
+} from "../transform";
 
 interface ClipTransform {
   position: { x: number; y: number };
@@ -189,5 +194,65 @@ describe("buildTransformMatrix", () => {
       expect(after.x).toBeCloseTo(before.x, 3);
       expect(after.y).toBeCloseTo(before.y, 3);
     });
+  });
+});
+
+describe("clipMatrixToCanvasAffine", () => {
+  // Apply the affine to an image-pixel corner the way Canvas2D would.
+  const apply = (
+    t: { a: number; b: number; c: number; d: number; e: number; f: number },
+    ix: number,
+    iy: number
+  ) => ({ x: t.a * ix + t.c * iy + t.e, y: t.b * ix + t.d * iy + t.f });
+
+  it("maps an identity full-frame source onto the whole canvas", () => {
+    const W = 100;
+    const H = 100;
+    const m = buildTransformMatrix(IDENTITY_TRANSFORM, { x: 1, y: 1 }, W, H);
+    const t = clipMatrixToCanvasAffine(m, W, H, W, H);
+    // top-left image pixel → top-left canvas pixel, bottom-right → bottom-right.
+    expect(apply(t, 0, 0).x).toBeCloseTo(0);
+    expect(apply(t, 0, 0).y).toBeCloseTo(0);
+    expect(apply(t, W, H).x).toBeCloseTo(W);
+    expect(apply(t, W, H).y).toBeCloseTo(H);
+  });
+
+  it("shifts the source right when position.x is positive", () => {
+    const W = 100;
+    const H = 100;
+    const m = buildTransformMatrix(
+      { ...IDENTITY_TRANSFORM, position: { x: 50, y: 0 } },
+      { x: 1, y: 1 },
+      W,
+      H
+    );
+    const t = clipMatrixToCanvasAffine(m, W, H, W, H);
+    // +50 px on a 100-wide reference is half the frame → 50 canvas px right.
+    expect(apply(t, 0, 0).x).toBeCloseTo(50);
+    expect(apply(t, W, H).x).toBeCloseTo(150);
+  });
+
+  it("contain-fits a square source onto a 16:9 canvas (pillarbox)", () => {
+    const W = 1920;
+    const H = 1080;
+    const src = 1080;
+    const base = containBaseScale(src, src, W, H);
+    const m = buildTransformMatrix(IDENTITY_TRANSFORM, base, W, H);
+    const t = clipMatrixToCanvasAffine(m, src, src, W, H);
+    // Source spans the full height and is horizontally centered.
+    const tl = apply(t, 0, 0);
+    const br = apply(t, src, src);
+    expect(tl.y).toBeCloseTo(0);
+    expect(br.y).toBeCloseTo(H);
+    expect(tl.x).toBeCloseTo((W - H) / 2);
+    expect(br.x).toBeCloseTo((W + H) / 2);
+  });
+
+  it("does not divide by zero for a zero-sized source", () => {
+    const m = buildTransformMatrix(IDENTITY_TRANSFORM, { x: 1, y: 1 }, 100, 100);
+    const t = clipMatrixToCanvasAffine(m, 0, 0, 100, 100);
+    for (const v of [t.a, t.b, t.c, t.d, t.e, t.f]) {
+      expect(Number.isFinite(v)).toBe(true);
+    }
   });
 });

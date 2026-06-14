@@ -23,6 +23,7 @@ import type { Theme } from "@mui/material/styles";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { BORDER_RADIUS, FONT_SIZE_MONO } from "../../ui_primitives";
 
 interface RulerColors {
   bg: string;
@@ -89,9 +90,9 @@ const markerFlagStyles = (theme: Theme) =>
     gap: 2,
     height: 14,
     maxWidth: 140,
-    padding: "0 3px",
-    borderRadius: "0 3px 3px 0",
-    fontSize: 9,
+    padding: theme.spacing(0, 1),
+    borderRadius: `0 ${BORDER_RADIUS.xs} ${BORDER_RADIUS.xs} 0`,
+    fontSize: FONT_SIZE_MONO.caption,
     lineHeight: "14px",
     whiteSpace: "nowrap",
     color: theme.vars.palette.primary.contrastText,
@@ -110,7 +111,7 @@ const markerFlagStyles = (theme: Theme) =>
       cursor: "pointer",
       padding: 0,
       margin: 0,
-      fontSize: 11,
+      fontSize: "var(--fontSizeSmaller)",
       lineHeight: 1
     },
     "&:hover .marker-delete": { display: "inline" }

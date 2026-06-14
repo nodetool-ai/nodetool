@@ -7,6 +7,10 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box, MOTION } from "../ui_primitives";
 import { memo, useMemo } from "react";
+import MediaAspectResizeControl from "./MediaAspectResizeControl";
+
+/** Upper bound shared with the edge resizer so the corner handle agrees with it. */
+const MAX_NODE_WIDTH = 800;
 
 interface NodeResizeHandleProps {
   minWidth: number;
@@ -14,6 +18,15 @@ interface NodeResizeHandleProps {
   onResize?: OnResize;
   /** Lock the width/height ratio while dragging the handle. */
   keepAspectRatio?: boolean;
+  /**
+   * Keep the node's *media* (image / video) aspect ratio instead of the whole
+   * node box, treating header/sliders/outputs as a fixed offset. Requires
+   * `nodeId`. Falls back to a free resize when the node holds no media.
+   */
+  contentAware?: boolean;
+  nodeId?: string;
+  /** Override the resize upper bound (defaults to the shared node width cap). */
+  maxWidth?: number;
 }
 
 const styles = (theme: Theme) =>
@@ -57,10 +70,25 @@ const NodeResizeHandle: React.FC<NodeResizeHandleProps> = memo(function NodeResi
   minWidth,
   minHeight,
   onResize,
-  keepAspectRatio
+  keepAspectRatio,
+  contentAware,
+  nodeId,
+  maxWidth = MAX_NODE_WIDTH
 }) {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
+
+  if (contentAware && nodeId) {
+    return (
+      <MediaAspectResizeControl
+        nodeId={nodeId}
+        minWidth={minWidth}
+        minHeight={minHeight}
+        maxWidth={maxWidth}
+      />
+    );
+  }
+
   return (
     <Box className="node-resize-handle" css={cssStyles}>
       <NodeResizeControl

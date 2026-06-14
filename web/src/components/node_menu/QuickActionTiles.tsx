@@ -120,7 +120,7 @@ const tileStyles = (theme: Theme) =>
     },
     ".constant-tile": {
       minHeight: "70px",
-      padding: "10px 6px",
+      padding: `${theme.spacing(3)} ${theme.spacing(1.5)}`,
       "& .tile-icon": {
         marginBottom: "4px",
         "& svg": {

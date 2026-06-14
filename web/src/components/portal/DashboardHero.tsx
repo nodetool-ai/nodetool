@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, type ReactNode } from "react";
-import { MOTION } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS } from "../ui_primitives";
 import WelcomeFlow from "./WelcomeFlow";
 import { wrapStyles } from "./dashboardChrome";
 import type { WelcomeTrackId } from "./welcomeTracks";
@@ -50,14 +50,14 @@ const heroStyles = (theme: Theme) =>
     ".hero-skip": {
       display: "inline-flex",
       alignItems: "center",
-      gap: 8,
+      gap: `${theme.spacing(1)}`,
       height: 34,
-      padding: "0 14px",
-      borderRadius: 7,
+      padding: `0 ${theme.spacing(1.75)}`,
+      borderRadius: BORDER_RADIUS.md,
       background: "transparent",
       color: theme.vars.palette.text.primary,
       border: `1px solid ${theme.vars.palette.divider}`,
-      fontSize: 13.5,
+      fontSize: "var(--fontSizeNormal)",
       cursor: "pointer",
       transition: `border-color ${MOTION.fast}, background ${MOTION.fast}`,
       "&:hover": {

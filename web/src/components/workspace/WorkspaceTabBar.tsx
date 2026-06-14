@@ -18,7 +18,7 @@ import {
 import { useWorkflowManager, useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
 import { colorForType } from "../../config/data_types";
 import { TOOLBAR_WIDTH } from "../../config/constants";
-import { MOTION } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS } from "../ui_primitives";
 import NotificationButton from "../panels/NotificationButton";
 import OpenMenu from "./OpenMenu";
 import WorkspaceTabItem from "./WorkspaceTabItem";
@@ -133,7 +133,7 @@ const styles = (theme: Theme) =>
     "& .dirty-dot": {
       width: "8px",
       height: "8px",
-      borderRadius: "50%",
+      borderRadius: BORDER_RADIUS.circle,
       backgroundColor: theme.vars.palette.warning.main,
       flexShrink: 0
     },
@@ -151,7 +151,7 @@ const styles = (theme: Theme) =>
       "& .MuiSvgIcon-root": {
         width: "14px",
         height: "14px",
-        fontSize: "14px"
+        fontSize: "var(--fontSizeNormal)"
       }
     },
 
@@ -201,8 +201,8 @@ const styles = (theme: Theme) =>
         cursor: "pointer",
         fontSize: "var(--fontSizeSmaller)",
         padding: "3px 12px",
-        "&:first-of-type": { borderRadius: "4px 0 0 4px", borderRight: "none" },
-        "&:last-of-type": { borderRadius: "0 4px 4px 0" },
+        "&:first-of-type": { borderRadius: `${BORDER_RADIUS.sm} 0 0 ${BORDER_RADIUS.sm}`, borderRight: "none" },
+        "&:last-of-type": { borderRadius: `0 ${BORDER_RADIUS.sm} ${BORDER_RADIUS.sm} 0` },
         "&.on": {
           color: theme.vars.palette.primary.contrastText,
           backgroundColor: theme.vars.palette.primary.main,

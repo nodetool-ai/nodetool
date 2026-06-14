@@ -68,7 +68,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".variables-hint": {
-      fontSize: "var(--fontSizeTiny)",
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.disabled,
       fontFamily: theme.fontFamily2,
       whiteSpace: "nowrap"

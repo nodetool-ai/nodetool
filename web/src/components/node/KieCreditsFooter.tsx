@@ -25,6 +25,7 @@ import {
   LoadingSpinner,
   ExternalLink,
   MenuItemPrimitive,
+  BORDER_RADIUS,
 } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
 import type { NodeMetadata, ProviderCost } from "../../stores/ApiTypes";
@@ -153,7 +154,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
       px: 1,
       py: 0,
       height: 20,
-      borderRadius: 1,
+      borderRadius: BORDER_RADIUS.xs,
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       lineHeight: 1.4,
@@ -203,7 +204,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
       >
         {pricing?.source === "live" && (
           <span
-            style={{ marginRight: 3, fontSize: "var(--fontSizeSmaller)", opacity: 0.85 }}
+            style={{ marginRight: 4, fontSize: "var(--fontSizeSmaller)", opacity: 0.85 }}
             aria-label="live price"
           >
             ●

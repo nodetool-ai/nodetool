@@ -69,7 +69,7 @@ import {
   useTimelineUIStoreApi,
   useTimelinePlaybackStoreApi
 } from "../../../stores/timeline/TimelineInstance";
-import { MOTION } from "../../ui_primitives";
+import { MOTION, FONT_SIZE_SANS, BORDER_RADIUS } from "../../ui_primitives";
 import type { TimelineClip, TimelineMarker } from "@nodetool-ai/timeline";
 
 type EditorMode = "script" | "write";
@@ -435,11 +435,11 @@ const SelectionHighlightPlugin: React.FC = () => {
 
 const EditorSurface = styled("div")(({ theme }) => ({
   border: `1px solid ${theme.vars.palette.divider}`,
-  borderRadius: 6,
+  borderRadius: BORDER_RADIUS.md,
   background: theme.vars.palette.background.default,
   color: theme.vars.palette.text.primary,
-  padding: "8px 12px 10px",
-  fontSize: 14,
+  padding: theme.spacing(2, 3, 3),
+  fontSize: FONT_SIZE_SANS.body,
   lineHeight: 1.95,
   outline: "none",
   flex: 1,
@@ -465,7 +465,7 @@ const EditorSurface = styled("div")(({ theme }) => ({
     width: 2,
     marginLeft: -1,
     background: theme.vars.palette.primary.main,
-    borderRadius: 1,
+    borderRadius: BORDER_RADIUS.xs,
     pointerEvents: "none",
     zIndex: 1,
     animation: "transcript-caret-blink 1.1s step-end infinite"
@@ -477,7 +477,7 @@ const EditorSurface = styled("div")(({ theme }) => ({
   "& p": { margin: "0 0 8px" },
   "& p:last-child": { marginBottom: 0 },
   "& .transcript-word": {
-    borderRadius: 3,
+    borderRadius: BORDER_RADIUS.xs,
     transition: `background-color ${MOTION.fast}, color ${MOTION.fast}`
   },
   "& .transcript-word--filler": {

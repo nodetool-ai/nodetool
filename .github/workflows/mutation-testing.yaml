@@ -1,0 +1,71 @@
+name: Mutation Testing
+
+# Runs Stryker mutation testing across the backend packages that have a
+# stryker.config.json and reports the aggregate mutation score. Mutation
+# testing is slow, so this runs on a weekly schedule (and on demand) rather
+# than on every push. Reporting only — it never fails the build on a low score.
+
+on:
+  schedule:
+    - cron: "0 4 * * 1" # Mondays at 04:00 UTC
+  workflow_dispatch:
+    inputs:
+      packages:
+        description: "Space-separated package names to run (default: all)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  mutation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install workspace dependencies
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+      - name: Build packages
+        run: npm run build:packages
+
+      - name: Run mutation testing
+        run: |
+          PKGS="${{ github.event.inputs.packages }}"
+          if [ -z "$PKGS" ]; then
+            PKGS="agents auth kernel node-sdk runtime security"
+          fi
+          echo "Running mutation testing for: $PKGS"
+          for pkg in $PKGS; do
+            echo "::group::stryker $pkg"
+            npm run test:mutation --workspace=packages/$pkg || echo "stryker run failed for $pkg (continuing)"
+            echo "::endgroup::"
+          done
+
+      - name: Report mutation score
+        if: always()
+        run: |
+          echo "## 🧬 Mutation Score" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          PKGS="${{ github.event.inputs.packages }}"
+          node scripts/mutation-score.mjs $PKGS >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload mutation reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-reports
+          path: packages/*/reports/mutation/
+          if-no-files-found: warn
+          retention-days: 30

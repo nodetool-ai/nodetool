@@ -20,7 +20,7 @@ import SubtitlesOutlinedIcon from "@mui/icons-material/SubtitlesOutlined";
 
 import type { TimelineTrack } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
-import { Popover, MenuItemPrimitive, MOTION } from "../../ui_primitives";
+import { Popover, MenuItemPrimitive, MOTION, BORDER_RADIUS } from "../../ui_primitives";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
@@ -30,16 +30,16 @@ const buttonStyles = (theme: Theme) =>
     alignItems: "center",
     gap: 6,
     height: 24,
-    padding: "0 10px 0 8px",
+    padding: theme.spacing(0, 3, 0, 2),
     background: "transparent",
     border: "1px solid transparent",
     color: theme.vars.palette.text.secondary,
     cursor: "pointer",
-    fontSize: 12,
+    fontSize: theme.fontSizeSmall,
     fontWeight: 500,
     letterSpacing: "0.01em",
     fontFamily: theme.typography.fontFamily,
-    borderRadius: 6,
+    borderRadius: BORDER_RADIUS.md,
     transition: `${MOTION.background}, color ${MOTION.fast}, ${MOTION.border}`,
     "&:hover": {
       backgroundColor: theme.vars.palette.action.hover,

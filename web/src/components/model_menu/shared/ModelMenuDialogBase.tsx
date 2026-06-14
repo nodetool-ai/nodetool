@@ -10,7 +10,7 @@ import {
   List,
   ListItemButton
 } from "@mui/material";
-import { Tooltip, Caption, Divider, LoadingSpinner, ToolbarIconButton, FlexRow, FlexColumn, Box, Collapse } from "../../ui_primitives";
+import { Tooltip, Caption, Divider, LoadingSpinner, ToolbarIconButton, FlexRow, FlexColumn, Box, Collapse, BORDER_RADIUS } from "../../ui_primitives";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import RefreshIcon from "@mui/icons-material/Refresh";
 
@@ -412,8 +412,8 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
               selected={customView === "favorites"}
               onClick={handleSetFavoritesView}
               sx={{
-                py: isIconOnly ? 1 : 0.25,
-                borderRadius: 1,
+                py: isIconOnly ? 1 : 0.5,
+                borderRadius: BORDER_RADIUS.xs,
                 mx: 0,
                 mb: 0.5,
                 justifyContent: isIconOnly ? "center" : "flex-start",
@@ -489,8 +489,8 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
               selected={customView === "recent"}
               onClick={handleSetRecentView}
               sx={{
-                py: isIconOnly ? 1 : 0.25,
-                borderRadius: 1,
+                py: isIconOnly ? 1 : 0.5,
+                borderRadius: BORDER_RADIUS.xs,
                 mx: 0,
                 justifyContent: isIconOnly ? "center" : "flex-start",
                 minHeight: isIconOnly ? 40 : "auto",
@@ -566,8 +566,8 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                 selected={customView === "downloads"}
                 onClick={handleSetDownloadsView}
                 sx={{
-                  py: isIconOnly ? 1 : 0.25,
-                  borderRadius: 1,
+                  py: isIconOnly ? 1 : 0.5,
+                  borderRadius: BORDER_RADIUS.xs,
                   mx: 0,
                   mt: 0.5,
                   justifyContent: isIconOnly ? "center" : "flex-start",

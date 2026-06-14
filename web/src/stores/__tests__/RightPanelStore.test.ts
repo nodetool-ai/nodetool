@@ -166,4 +166,39 @@ describe("RightPanelStore", () => {
       expect(panel.panelSize).toBe(60);
     });
   });
+
+  describe("persistence", () => {
+    it("does not persist isVisible (visibility is selection-driven)", () => {
+      const { setSize, setVisibility } = useRightPanelStore.getState();
+
+      act(() => {
+        setSize(400);
+        setVisibility(true);
+      });
+
+      const persisted = JSON.parse(
+        localStorage.getItem("right-panel-storage") ?? "{}"
+      );
+      expect(persisted.state.panel.panelSize).toBe(400);
+      expect(persisted.state.panel.isVisible).toBeUndefined();
+    });
+
+    it("rehydrates hidden even when a stored blob still carries isVisible: true", () => {
+      localStorage.setItem(
+        "right-panel-storage",
+        JSON.stringify({
+          state: { panel: { panelSize: 420, isVisible: true } },
+          version: 3
+        })
+      );
+
+      act(() => {
+        useRightPanelStore.persist.rehydrate();
+      });
+
+      const { panel } = useRightPanelStore.getState();
+      expect(panel.isVisible).toBe(false);
+      expect(panel.panelSize).toBe(420);
+    });
+  });
 });

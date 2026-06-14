@@ -218,7 +218,7 @@ const ImageSizeProperty = (props: PropertyProps) => {
         <Box
             className="matched-preset-label"
             sx={{
-                fontSize: 'var(--fontSizeTiny)',
+                fontSize: 'var(--fontSizeSmaller)',
                 color: 'text.secondary',
                 mt: -0.5,
                 lineHeight: 1,

@@ -89,7 +89,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary
     },
     ".quick-label": {
-      fontSize: "var(--fontSizeTiny)",
+      fontSize: "var(--fontSizeSmaller)",
       letterSpacing: "0.08em",
       textTransform: "uppercase",
       color: theme.vars.palette.text.disabled,
