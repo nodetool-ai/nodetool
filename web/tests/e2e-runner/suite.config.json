@@ -15,8 +15,8 @@
       "name": "Hello Reroute",
       "source": "cli-fixtures",
       "sourceFile": "examples/workflows/hello_reroute.json",
-      "params": {},
-      "expect": { "status": "completed" },
+      "params": { "text": "hello reroute e2e" },
+      "expect": { "status": "completed", "minOutputs": 1, "outputContains": "hello reroute e2e" },
       "tags": ["control", "deterministic"]
     },
     {
@@ -33,8 +33,8 @@
       "name": "If True Route",
       "source": "cli-fixtures",
       "sourceFile": "examples/workflows/if_true_route.json",
-      "params": {},
-      "expect": { "status": "completed" },
+      "params": { "payload": { "kind": "example", "value": 42 }, "condition": true },
+      "expect": { "status": "completed", "minOutputs": 1 },
       "tags": ["control", "deterministic"]
     },
     {
@@ -83,6 +83,7 @@
         "prompt": "Write one sentence about NodeTool workflows.",
         "model": { "provider": "openai", "id": "gpt-4o", "name": "GPT-4o" }
       },
+      "requiresSecrets": ["OPENAI_API_KEY"],
       "expect": { "status": "completed" },
       "tags": ["agent", "llm"]
     }
