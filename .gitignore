@@ -60,6 +60,9 @@ playwright-report/
 test-results/
 .last-run.json
 
+# Generated E2E workflow suite (built by web/tests/e2e-runner/prepareSuite.ts)
+web/public/e2e-suite/
+
 # Environment variables
 *.override.env
 

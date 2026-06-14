@@ -1,0 +1,80 @@
+name: E2E Workflow Runner
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "web/e2e-runner.html"
+      - "web/src/e2e_runner/**"
+      - "web/tests/e2e-runner/**"
+      - "web/playwright.e2e-runner.config.ts"
+      - "packages/websocket/src/e2e-server.ts"
+      - "packages/websocket/src/test-ui-server.ts"
+      - "examples/workflows/**"
+      - ".github/workflows/e2e-runner.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "web/e2e-runner.html"
+      - "web/src/e2e_runner/**"
+      - "web/tests/e2e-runner/**"
+      - "web/playwright.e2e-runner.config.ts"
+      - "packages/websocket/src/e2e-server.ts"
+      - "packages/websocket/src/test-ui-server.ts"
+      - "examples/workflows/**"
+      - ".github/workflows/e2e-runner.yml"
+
+jobs:
+  e2e-workflow-runner:
+    name: Run workflow suite in browser
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install system libraries (keytar + CPU Vulkan driver)
+        run: sudo apt-get update && sudo apt-get install -y libsecret-1-0 mesa-vulkan-drivers
+
+      - name: Install all workspace dependencies
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+      - name: Rebuild native modules
+        run: npm rebuild better-sqlite3
+
+      - name: Build backend packages
+        run: npm run build:packages
+
+      - name: Install Playwright Chromium browser
+        run: npx playwright install --with-deps chromium
+        working-directory: web
+
+      - name: Run E2E workflow suite
+        run: npm run test:e2e-runner
+        working-directory: web
+        env:
+          CI: "true"
+          # Optional provider keys — when present, agent/LLM workflows run for
+          # real; otherwise they fall back to a deterministic ScriptedProvider.
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+      - name: Upload E2E workflow report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-workflow-report
+          path: web/test-results/e2e-runner
+          retention-days: 14
