@@ -653,7 +653,7 @@ export class LoadVideoAssetsNode extends BaseNode {
   static readonly nodeType = "nodetool.video.LoadVideoAssets";
   static readonly title = "Load Video Folder";
   static readonly description =
-    "Load video files from an asset folder.\n\n    video, assets, load";
+    "Load video files from an asset folder.\n    load, video, file, import";
   static readonly metadataOutputTypes = {
     video: "video",
     name: "str",
