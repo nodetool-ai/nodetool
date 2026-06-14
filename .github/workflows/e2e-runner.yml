@@ -27,6 +27,9 @@ on:
       - "examples/workflows/**"
       - ".github/workflows/e2e-runner.yml"
 
+permissions:
+  contents: read
+
 jobs:
   e2e-workflow-runner:
     name: Run workflow suite in browser
