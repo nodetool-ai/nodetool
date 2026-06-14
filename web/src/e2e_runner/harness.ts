@@ -20,7 +20,10 @@ import type {
 } from "./types";
 
 const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled", "error"]);
-const RUN_TIMEOUT_MS = 120_000;
+// Faked nodes complete near-instantly; a tight per-run cap keeps the whole
+// 49-template suite within the Playwright test budget even when a template
+// hangs (e.g. a required input with no default/param).
+const RUN_TIMEOUT_MS = 25_000;
 
 export interface HarnessState {
   manifest: WorkflowRef[];

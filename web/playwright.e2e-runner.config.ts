@@ -17,7 +17,7 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/e2e-runner",
   testMatch: /suite\.spec\.ts$/,
-  timeout: 25 * 60_000,
+  timeout: 40 * 60_000,
   expect: { timeout: 15_000 },
   forbidOnly: !!process.env.CI,
   retries: 0,

@@ -16,7 +16,7 @@ import type { RunRecord } from "../../src/e2e_runner/types";
 test.describe.configure({ mode: "serial" });
 
 test("workflow suite executes and records artifacts", async ({ page }) => {
-  test.setTimeout(20 * 60_000);
+  test.setTimeout(35 * 60_000);
 
   const consoleErrors: string[] = [];
   page.on("console", (msg) => {
