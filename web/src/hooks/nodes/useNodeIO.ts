@@ -10,7 +10,6 @@
  * These hooks resolve that timeline and unwrap by the edge's `sourceHandle`,
  * so callers don't reimplement the resolution chain.
  */
-import { shallow } from "zustand/shallow";
 import { useShallow } from "zustand/react/shallow";
 import { useCallback, useMemo } from "react";
 import { useNodes } from "../../contexts/NodeContext";
@@ -113,18 +112,27 @@ export const useUpstreamValue = (
   inputName: string,
   constantFallback?: unknown
 ): unknown => {
-  const { upstreamEdges, findNode } = useNodes(
-    useMemo(
-      () => (state: NodeStoreState) => ({
-        upstreamEdges: state.edges.filter(
-          (e) => e.target === nodeId && (e.targetHandle ?? "") === inputName
-        ),
-        findNode: state.findNode
-      }),
-      [nodeId, inputName]
-    ),
-    shallow
-  );
+  const upstreamEdgesSelector = useMemo(() => {
+    let lastEdges: Edge[] | null = null;
+    let lastResult: Edge[] = [];
+    return (state: NodeStoreState) => {
+      if (state.edges === lastEdges) return lastResult;
+      lastEdges = state.edges;
+      const newResult = state.edges.filter(
+        (e) => e.target === nodeId && (e.targetHandle ?? "") === inputName
+      );
+      if (
+        lastResult.length === newResult.length &&
+        lastResult.every((edge, i) => edge === newResult[i])
+      ) {
+        return lastResult;
+      }
+      lastResult = newResult;
+      return lastResult;
+    };
+  }, [nodeId, inputName]);
+  const upstreamEdges = useNodes(upstreamEdgesSelector);
+  const findNode = useNodes((state) => state.findNode);
 
   const resolveCurrent = useCurrentGenerationResolver(workflowId);
 
@@ -169,10 +177,24 @@ export const useUpstreamValues = (
   inputNames: string[],
   constants?: Record<string, unknown>
 ): Record<string, unknown> => {
-  const edges = useNodes(
-    (state: NodeStoreState) => state.edges.filter((e) => e.target === nodeId),
-    shallow
-  );
+  const edgesSelector = useMemo(() => {
+    let lastEdges: Edge[] | null = null;
+    let lastResult: Edge[] = [];
+    return (state: NodeStoreState) => {
+      if (state.edges === lastEdges) return lastResult;
+      lastEdges = state.edges;
+      const newResult = state.edges.filter((e) => e.target === nodeId);
+      if (
+        lastResult.length === newResult.length &&
+        lastResult.every((edge, i) => edge === newResult[i])
+      ) {
+        return lastResult;
+      }
+      lastResult = newResult;
+      return lastResult;
+    };
+  }, [nodeId]);
+  const edges = useNodes(edgesSelector);
   const findNode = useNodes((state: NodeStoreState) => state.findNode);
 
   const edgesByHandle = useMemo(() => {
