@@ -1,126 +1,39 @@
-/** @jsxImportSource @emotion/react */
-import { css } from "@emotion/react";
-
-import React, { memo, useMemo } from "react";
+import React, { memo } from "react";
+import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
+import ManagerPageLayout from "../panels/ManagerPageLayout";
 import AssetGrid from "./AssetGrid";
-import { Box } from "../ui_primitives";
-import { useNavigate } from "react-router-dom";
-import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useAssets from "../../serverState/useAssets";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 
-const styles = (theme: Theme) =>
-  css({
-    "&": {
-      position: "relative",
-      display: "flex",
-      width: "100%",
-      height: "100%",
-      top: "0",
-      left: "0",
-      padding: "0",
-      backgroundColor: theme.vars.palette.c_editor_bg_color
-    },
-    ".asset-explorer": {
-      position: "relative",
-      width: "100%",
-      height: "100%",
-      left: "0",
-      top: "0",
-      paddingTop: "64px",
-      paddingLeft: "64px",
-      boxSizing: "border-box"
-    },
-    ".asset-explorer .asset-content-wrapper .asset-grid-content": {
-      width: "calc(100% - 60px) !important"
-    },
-    ".asset-menu": {
-      marginLeft: "1em",
-      marginBottom: "1em"
-    },
-    ".audio-controls-container": {
-      padding: "2em"
-    },
-    ".current-folder": {
-      position: "absolute",
-      top: "3.5em",
-      right: "2em",
-      textAlign: "right",
-      margin: "0",
-      padding: "0"
-    },
-    ".selected-asset-info": {
-      position: "absolute",
-      top: "5em",
-      right: "2em",
-      maxWidth: "500px",
-      textAlign: "right"
-    },
-    ".asset-size-slider": {
-      width: "200px",
-      maxWidth: "200px",
-      paddingLeft: ".5em"
-    },
-    ".dropzone": {
-      outline: "none",
-      margin: 0,
-      maxHeight: "calc(-100px + 100vh) !important"
-    },
-    ".infinite-scroll-component": {
-      border: 0
-    },
-    ".asset-explorer .file-upload-button": {
-      position: "absolute",
-      top: "-40px",
-      right: "1em",
-      marginRight: "auto",
-      height: "fit-content ",
-      width: "fit-content"
-    },
-    ".asset-actions": {
-      marginTop: ".2em",
-      marginLeft: "1em"
-    },
-    ".back-to-editor": {
-      top: "0.5em",
-      left: "1em !important"
-    },
-    ".close-button": {
-      position: "absolute",
-      top: ".75em",
-      right: "0.5em",
-      zIndex: 20
-    }
-  });
-
+/**
+ * Full-screen Assets page. Reachable from the logo menu; wraps the asset grid
+ * in the shared manager chrome (header + back button) so it stays consistent
+ * with the Collections, Models, and Workspaces pages.
+ */
 const AssetExplorer: React.FC = memo(() => {
-  const theme = useTheme();
-  const cssStyles = useMemo(() => styles(theme), [theme]);
   const { folderFiles } = useAssets();
-  const _navigate = useNavigate();
-  const currentWorkflowId = useWorkflowManager((state) => state.currentWorkflowId);
-  void _navigate;
-  void currentWorkflowId;
+
   return (
-    <Box css={cssStyles}>
-      <Box className="asset-explorer">
-        <ContextMenuProvider>
-          <AssetGrid
-            maxItemSize={10}
-            itemSpacing={2}
-            isHorizontal={true}
-            isFullscreenAssets={true}
-            initialFoldersPanelWidth={200}
-            sortedAssets={folderFiles}
-          />
-        </ContextMenuProvider>
-      </Box>
-    </Box>
+    <ManagerPageLayout
+      icon={<PermMediaOutlinedIcon sx={{ fontSize: 22 }} />}
+      title="Assets"
+      subtitle="Browse, organize, and preview your images, audio, video, and other files."
+      padded={false}
+    >
+      <ContextMenuProvider>
+        <AssetGrid
+          maxItemSize={10}
+          itemSpacing={2}
+          isHorizontal={true}
+          isFullscreenAssets={true}
+          initialFoldersPanelWidth={200}
+          sortedAssets={folderFiles}
+        />
+      </ContextMenuProvider>
+    </ManagerPageLayout>
   );
 });
 
-AssetExplorer.displayName = 'AssetExplorer';
+AssetExplorer.displayName = "AssetExplorer";
 
-export default memo(AssetExplorer);
+export default AssetExplorer;
