@@ -83,7 +83,9 @@ const styles = (theme: Theme) =>
       marginBottom: "0 !important",
       "& .MuiSelect-select": {
         fontSize: theme.fontSizeSmall,
-        padding: "2px 16px 2px 2px",
+        padding: `${theme.spacing(0.5)} ${theme.spacing(4)} ${theme.spacing(
+          0.5
+        )} ${theme.spacing(0.5)}`,
         minHeight: "unset"
       },
       "& .MuiInput-root": { marginTop: 0 },
@@ -91,7 +93,7 @@ const styles = (theme: Theme) =>
     },
     ".vis-btn, .del-btn": {
       justifySelf: "center",
-      padding: 4,
+      padding: theme.spacing(1),
       "& svg": {
         fontSize: 18
       }

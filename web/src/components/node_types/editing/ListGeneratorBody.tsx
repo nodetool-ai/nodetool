@@ -101,7 +101,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: 8,
-      padding: "6px 8px",
+      padding: `${theme.spacing(1.5)} ${theme.spacing(2)}`,
       cursor: "pointer",
       userSelect: "none",
       transition: MOTION.background,
@@ -121,7 +121,7 @@ const styles = (theme: Theme) =>
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
-      padding: "0 6px"
+      padding: `0 ${theme.spacing(1.5)}`
     },
     ".list-preview": {
       flex: 1,

@@ -11,7 +11,7 @@ const chipStyles = (theme: Theme, known: boolean) =>
     display: "inline-flex",
     alignItems: "center",
     verticalAlign: "baseline",
-    margin: "0 2px",
+    margin: `0 ${theme.spacing(0.5)}`,
     padding: "0 0.4em",
     borderRadius: "var(--rounded-sm, 4px)",
     border: `1px solid ${
