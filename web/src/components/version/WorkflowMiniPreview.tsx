@@ -265,7 +265,7 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
               color: "rgba(255,255,255,0.4)",
               fontFamily: "var(--fontFamily2)",
               textAlign: "center",
-              fontSize: "var(--fontSizeTiny)",
+              fontSize: "var(--fontSizeSmaller)",
               lineHeight: "1.2",
               textTransform: "uppercase",
               letterSpacing: "0.1em"

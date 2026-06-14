@@ -196,7 +196,7 @@ const actionStyles = (theme: Theme) =>
         backgroundColor: theme.vars.palette.grey[600],
         color: theme.vars.palette.grey[50],
         border: `2px solid ${theme.vars.palette.grey[900]}`,
-        fontSize: "var(--fontSizeTiny)",
+        fontSize: "var(--fontSizeSmaller)",
         fontWeight: 600,
         display: "flex",
         alignItems: "center",

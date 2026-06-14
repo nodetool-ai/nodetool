@@ -66,7 +66,7 @@ const styles = (theme: Theme) =>
       backdropFilter: "blur(24px) saturate(180%)",
       WebkitBackdropFilter: "blur(24px) saturate(180%)",
       color: theme.vars.palette.text.primary,
-      fontSize: "var(--fontSizeBigger)",
+      fontSize: "var(--fontSizeBig)",
       width: "92%",
       maxWidth: "2400px",
       height: "100%",

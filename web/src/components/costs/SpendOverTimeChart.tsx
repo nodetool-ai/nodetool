@@ -75,7 +75,7 @@ const SpendOverTimeChartInternal: React.FC<SpendOverTimeChartProps> = ({
         backgroundColor: theme.vars.palette.background.paper,
         border: `1px solid ${theme.vars.palette.divider}`,
         borderRadius: BORDER_RADIUS.xl,
-        padding: "20px 24px 16px"
+        padding: theme.spacing(6, 6, 4)
       }}
     >
       {/* header: title + legend */}
@@ -295,7 +295,7 @@ const BarTooltip: React.FC<{
         transform: "translateX(-50%)",
         zIndex: 5,
         minWidth: 168,
-        padding: "8px 10px",
+        padding: theme.spacing(2, 3),
         borderRadius: BORDER_RADIUS.lg,
         backgroundColor: theme.vars.palette.background.default,
         border: `1px solid ${theme.vars.palette.divider}`,

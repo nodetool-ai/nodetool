@@ -216,7 +216,7 @@ const modelListItemStyles = (theme: Theme) =>
       },
 
       "& .model-stats-item svg": {
-        fontSize: "var(--fontSizeTiny)"
+        fontSize: "var(--fontSizeSmaller)"
       },
 
       "& .model-actions": {

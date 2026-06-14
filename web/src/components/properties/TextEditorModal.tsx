@@ -236,7 +236,7 @@ const styles = (theme: Theme) =>
       backdropFilter: "blur(24px) saturate(180%)",
       WebkitBackdropFilter: "blur(24px) saturate(180%)",
       color: theme.vars.palette.text.primary,
-      fontSize: "var(--fontSizeBigger)",
+      fontSize: "var(--fontSizeBig)",
       width: "100%",
       maxWidth: "2400px",
       height: "100%",
@@ -306,7 +306,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.primary.main,
       background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`,
       border: `1px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.25)`,
-      svg: { fontSize: "var(--fontSizeBigger)" }
+      svg: { fontSize: "var(--fontSizeBig)" }
     },
     ".title-and-description": {
       display: "flex",
@@ -353,7 +353,7 @@ const styles = (theme: Theme) =>
       flexShrink: 0,
       padding: "0.1em 0.6em",
       borderRadius: BORDER_RADIUS.pill,
-      fontSize: "var(--fontSizeTiny)",
+      fontSize: "var(--fontSizeSmaller)",
       fontFamily: theme.fontFamily2,
       letterSpacing: "0.03em",
       color: theme.vars.palette.text.secondary,
@@ -569,7 +569,7 @@ const styles = (theme: Theme) =>
             color: theme.vars.palette.text.primary
           },
           ".assistant-sub": {
-            fontSize: "var(--fontSizeTiny)",
+            fontSize: "var(--fontSizeSmaller)",
             color: theme.vars.palette.text.disabled,
             overflow: "hidden",
             textOverflow: "ellipsis",
