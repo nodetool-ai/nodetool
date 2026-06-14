@@ -8,12 +8,14 @@
 
 import { describe, it, expect } from "vitest";
 import { WorkflowRunner } from "../src/runner.js";
-import { Graph } from "../src/graph.js";
+import { Graph, GraphValidationError } from "../src/graph.js";
 import type { NodeDescriptor, Edge, ControlEvent } from "@nodetool-ai/protocol";
 import type { NodeExecutor } from "../src/actor.js";
 
 type RunnerInternals = {
   _graph: Graph;
+  _messages: unknown[];
+  _multiEdgeListInputs: Map<string, Set<string>>;
   _buildControlContext(nodeId: string): Record<string, unknown> | null;
   _buildControlActionProperties(
     node: NodeDescriptor
@@ -21,6 +23,15 @@ type RunnerInternals = {
   _isOutputNode(node: NodeDescriptor): boolean;
   _isExternalInputNode(node: NodeDescriptor): boolean;
   _getExternalInputName(node: NodeDescriptor): string;
+  _analyzeStreaming(): void;
+  edgeStreams(edge: Edge): boolean;
+  _detectMultiEdgeListInputs(): void;
+  _validateNodes(): void;
+  _filterInvalidEdges(): void;
+  _incrementEdgeCounter(edge: Edge): void;
+  _flushEdgeCounters(): void;
+  _emit(msg: unknown): void;
+  _resolveInputNodes(name: string): NodeDescriptor[];
 };
 const internals = (r: WorkflowRunner) => r as unknown as RunnerInternals;
 const bareRunner = () =>
@@ -834,5 +845,217 @@ describe("WorkflowRunner – node predicates", () => {
       r._getExternalInputName({ id: "x", type: "test.Input", name: "fromName" })
     ).toBe("fromName");
     expect(r._getExternalInputName({ id: "x", type: "test.Input" })).toBe("x");
+  });
+});
+
+describe("WorkflowRunner._analyzeStreaming / edgeStreams", () => {
+  const withGraph = (nodes: NodeDescriptor[], edges: Edge[]) => {
+    const r = bareRunner();
+    internals(r)._graph = new Graph({ nodes, edges });
+    return internals(r);
+  };
+
+  it("propagates streaming from a streaming-output source along data edges only", () => {
+    const nodes: NodeDescriptor[] = [
+      { id: "s", type: "t", is_streaming_output: true },
+      { id: "m", type: "t" },
+      { id: "sink", type: "t" },
+      { id: "plain", type: "t" },
+      { id: "p2", type: "t" }
+    ];
+    const e1: Edge = { id: "e1", source: "s", sourceHandle: "o", target: "m", targetHandle: "i" };
+    const e2: Edge = { id: "e2", source: "m", sourceHandle: "o", target: "sink", targetHandle: "i" };
+    const e3: Edge = { id: "e3", source: "plain", sourceHandle: "o", target: "p2", targetHandle: "i" };
+    const ec: Edge = {
+      id: "ec",
+      source: "s",
+      sourceHandle: "ctrl",
+      target: "p2",
+      targetHandle: "__control__",
+      edge_type: "control"
+    };
+    const r = withGraph(nodes, [e1, e2, e3, ec]);
+    r._analyzeStreaming();
+
+    expect(r.edgeStreams(e1)).toBe(true); // reachable from streaming source
+    expect(r.edgeStreams(e2)).toBe(true); // transitively reachable
+    expect(r.edgeStreams(e3)).toBe(false); // plain source, not streaming
+    expect(r.edgeStreams(ec)).toBe(false); // control edges are never streaming
+  });
+});
+
+describe("WorkflowRunner._detectMultiEdgeListInputs", () => {
+  it("marks only list-typed handles that receive multiple data edges", () => {
+    const nodes: NodeDescriptor[] = [
+      { id: "a", type: "t" },
+      { id: "b", type: "t" },
+      {
+        id: "sink",
+        type: "t",
+        propertyTypes: { lst: "list[int]", scalar: "int" }
+      }
+    ];
+    const edges: Edge[] = [
+      { source: "a", sourceHandle: "o", target: "sink", targetHandle: "lst" },
+      { source: "b", sourceHandle: "o", target: "sink", targetHandle: "lst" },
+      { source: "a", sourceHandle: "o", target: "sink", targetHandle: "scalar" },
+      { source: "b", sourceHandle: "o", target: "sink", targetHandle: "scalar" },
+      // a control edge into the same list handle must not be counted
+      {
+        source: "a",
+        sourceHandle: "ctrl",
+        target: "sink",
+        targetHandle: "lst",
+        edge_type: "control"
+      }
+    ];
+    const r = bareRunner();
+    internals(r)._graph = new Graph({ nodes, edges });
+    internals(r)._detectMultiEdgeListInputs();
+
+    const marked = internals(r)._multiEdgeListInputs.get("sink");
+    expect(marked).toBeDefined();
+    expect(marked!.has("lst")).toBe(true);
+    expect(marked!.has("scalar")).toBe(false);
+  });
+});
+
+describe("WorkflowRunner._validateNodes", () => {
+  it("does nothing when no validator is configured", () => {
+    const r = bareRunner();
+    internals(r)._graph = new Graph({ nodes: [{ id: "a", type: "t" }], edges: [] });
+    expect(() => internals(r)._validateNodes()).not.toThrow();
+  });
+
+  it("passes incoming data-edge handles to the validator and aggregates issues", () => {
+    const seen: Array<{ id: string; handles: string[] }> = [];
+    const r = new WorkflowRunner("v", {
+      resolveExecutor: () => ({
+        async process() {
+          return {};
+        }
+      }),
+      validateNode: (node, handles) => {
+        seen.push({ id: node.id, handles: [...handles].sort() });
+        return node.id === "bad"
+          ? [{ message: "boom", property: "p" }]
+          : [];
+      }
+    });
+    const nodes: NodeDescriptor[] = [
+      { id: "src", type: "t" },
+      { id: "bad", type: "test.Bad" }
+    ];
+    const edges: Edge[] = [
+      { source: "src", sourceHandle: "o", target: "bad", targetHandle: "h1" },
+      { source: "src", sourceHandle: "o", target: "bad", targetHandle: "h2" }
+    ];
+    internals(r)._graph = new Graph({ nodes, edges });
+
+    let caught: GraphValidationError | undefined;
+    try {
+      internals(r)._validateNodes();
+    } catch (err) {
+      caught = err as GraphValidationError;
+    }
+    expect(caught).toBeInstanceOf(GraphValidationError);
+    expect(caught!.message).toMatch(/1 issue\(s\)/);
+    expect(caught!.message).toMatch(/boom on node "bad" \(test\.Bad\)/);
+    expect(caught!.issues).toEqual([
+      { nodeId: "bad", nodeType: "test.Bad", property: "p", message: "boom" }
+    ]);
+    // The "bad" node's two incoming data-edge handles were passed through.
+    expect(seen.find((s) => s.id === "bad")!.handles).toEqual(["h1", "h2"]);
+  });
+});
+
+describe("WorkflowRunner._filterInvalidEdges", () => {
+  it("drops edges that reference a missing node", () => {
+    const r = bareRunner();
+    internals(r)._graph = new Graph({
+      nodes: [{ id: "a", type: "t" }, { id: "b", type: "t" }],
+      edges: [
+        { source: "a", sourceHandle: "o", target: "b", targetHandle: "i" },
+        { source: "a", sourceHandle: "o", target: "ghost", targetHandle: "i" }
+      ]
+    });
+    internals(r)._filterInvalidEdges();
+    expect(internals(r)._graph.edges).toHaveLength(1);
+    expect(internals(r)._graph.edges[0].target).toBe("b");
+  });
+});
+
+describe("WorkflowRunner edge counters", () => {
+  it("emits the first edge_update immediately and flushes the throttled final", () => {
+    const r = bareRunner();
+    const edge: Edge = { id: "e1", source: "a", sourceHandle: "o", target: "b", targetHandle: "i" };
+
+    internals(r)._incrementEdgeCounter(edge); // counter 1 -> emitted
+    internals(r)._incrementEdgeCounter(edge); // counter 2 -> throttled (dirty)
+
+    const afterTwo = internals(r)._messages.filter(
+      (m) => (m as { type?: string }).type === "edge_update"
+    );
+    expect(afterTwo).toHaveLength(1);
+    expect(afterTwo[0]).toMatchObject({ edge_id: "e1", counter: 1, status: "active" });
+
+    internals(r)._flushEdgeCounters(); // emits the exact final counter
+    const all = internals(r)._messages.filter(
+      (m) => (m as { type?: string }).type === "edge_update"
+    );
+    expect(all).toHaveLength(2);
+    expect(all[1]).toMatchObject({ edge_id: "e1", counter: 2 });
+  });
+
+  it("derives an edge id from endpoints when the edge has no id", () => {
+    const r = bareRunner();
+    const edge: Edge = { source: "a", sourceHandle: "o", target: "b", targetHandle: "i" };
+    internals(r)._incrementEdgeCounter(edge);
+    const msg = internals(r)._messages.find(
+      (m) => (m as { type?: string }).type === "edge_update"
+    ) as { edge_id: string };
+    expect(msg.edge_id).toBe("a:o->b:i");
+  });
+});
+
+describe("WorkflowRunner._emit – audio-chunk firehose is not retained", () => {
+  it("retains ordinary messages but drops streamed audio-chunk output updates", () => {
+    const r = bareRunner();
+    const audio = {
+      type: "output_update",
+      value: { type: "chunk", content_type: "audio" }
+    };
+    const textChunk = {
+      type: "output_update",
+      value: { type: "chunk", content_type: "text" }
+    };
+    const noValue = { type: "output_update" };
+    const normal = { type: "node_update", status: "completed" };
+
+    internals(r)._emit(audio); // dropped
+    internals(r)._emit(textChunk); // retained (not audio)
+    internals(r)._emit(noValue); // retained (no value object)
+    internals(r)._emit(normal); // retained (not an output_update)
+
+    expect(internals(r)._messages).toEqual([textChunk, noValue, normal]);
+  });
+});
+
+describe("WorkflowRunner._resolveInputNodes", () => {
+  it("matches input nodes by external name or by id", () => {
+    const nodes: NodeDescriptor[] = [
+      { id: "in1", type: "test.Input", properties: { name: "alpha" } },
+      { id: "in2", type: "test.Input" }, // name falls back to id
+      { id: "mid", type: "t" }
+    ];
+    const edges: Edge[] = [
+      { source: "in1", sourceHandle: "value", target: "mid", targetHandle: "a" }
+    ];
+    const r = bareRunner();
+    internals(r)._graph = new Graph({ nodes, edges });
+
+    expect(internals(r)._resolveInputNodes("alpha").map((n) => n.id)).toEqual(["in1"]);
+    expect(internals(r)._resolveInputNodes("in2").map((n) => n.id)).toEqual(["in2"]);
+    expect(internals(r)._resolveInputNodes("nope")).toEqual([]);
   });
 });
