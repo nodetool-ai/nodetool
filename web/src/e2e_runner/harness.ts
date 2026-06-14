@@ -328,11 +328,19 @@ export class Harness {
           if (nodeId) {
             const status = String(msg.status ?? "");
             nodeStatus[nodeId] = status;
+            const isError = status === "error" || status === "failed";
+            const message =
+              typeof msg.error === "string" && msg.error.length > 0
+                ? msg.error
+                : null;
             rec.nodeIO[nodeId] = {
-              node_type: typeof msg.node_type === "string" ? msg.node_type : undefined,
+              node_type:
+                typeof msg.node_type === "string" ? msg.node_type : rec.nodeIO[nodeId]?.node_type,
               status,
               result: (msg as { result?: unknown }).result ?? rec.nodeIO[nodeId]?.result,
-              error: typeof msg.error === "string" ? msg.error : null
+              // Only treat a node as errored when its status says so — a
+              // node_update can carry a stale/empty error field while completing.
+              error: isError ? (message ?? status) : null
             };
           }
           break;
