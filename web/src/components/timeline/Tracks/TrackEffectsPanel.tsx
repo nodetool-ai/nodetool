@@ -917,7 +917,7 @@ const compTileStyles = (theme: Theme, accent?: string) =>
 
 const compTileLabelStyles = (theme: Theme) =>
   css({
-    fontSize: 10,
+    fontSize: theme.fontSizeSmaller,
     textTransform: "uppercase",
     letterSpacing: 0.4,
     color: theme.vars.palette.text.secondary
@@ -925,7 +925,7 @@ const compTileLabelStyles = (theme: Theme) =>
 
 const compTileValueStyles = (theme: Theme) =>
   css({
-    fontSize: 13,
+    fontSize: theme.fontSizeSmall,
     fontVariantNumeric: "tabular-nums",
     color: theme.vars.palette.text.primary,
     fontWeight: 500

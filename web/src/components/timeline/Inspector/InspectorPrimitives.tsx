@@ -127,12 +127,13 @@ InspectorHeader.displayName = "InspectorHeader";
 
 // ── Identity card ──────────────────────────────────────────────────────────
 
-const identityWrapStyles = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: 5,
-  padding: "10px 4px 14px"
-});
+const identityWrapStyles = (theme: Theme) =>
+  css({
+    display: "flex",
+    flexDirection: "column",
+    gap: theme.spacing(1.5),
+    padding: theme.spacing(3, 1, 4)
+  });
 
 const identityNameStyles = (theme: Theme) =>
   css({
@@ -180,7 +181,7 @@ export const ClipIdentityCard: React.FC<ClipIdentityCardProps> = memo(
     const theme = useTheme();
     const accent = accentColor ?? theme.vars.palette.secondary.main;
     return (
-      <div css={identityWrapStyles}>
+      <div css={identityWrapStyles(theme)}>
         <div css={identityNameStyles(theme)} title={name}>
           {name}
         </div>
@@ -286,7 +287,7 @@ const pillWrapStyles = (theme: Theme, disabled: boolean, focused: boolean) =>
     alignItems: "center",
     gap: 4,
     height: 28,
-    padding: "0 10px",
+    padding: theme.spacing(0, 3),
     backgroundColor: theme.vars.palette.background.default,
     border: `1px solid ${
       focused ? theme.vars.palette.primary.main : "rgba(255, 255, 255, 0.05)"
@@ -477,13 +478,14 @@ InspectorToggleRow.displayName = "InspectorToggleRow";
 
 // ── Slider row ─────────────────────────────────────────────────────────────
 
-const sliderRowStyles = css({
-  display: "flex",
-  alignItems: "center",
-  gap: 10,
-  minHeight: 32,
-  padding: "0 4px"
-});
+const sliderRowStyles = (theme: Theme) =>
+  css({
+    display: "flex",
+    alignItems: "center",
+    gap: theme.spacing(3),
+    minHeight: 32,
+    padding: "0 4px"
+  });
 
 const sliderLabelStyles = (theme: Theme) =>
   css({
@@ -534,7 +536,7 @@ export const InspectorSliderRow: React.FC<InspectorSliderRowProps> = memo(
   ({ label, value, display, min, max, step, disabled, onChange }) => {
     const theme = useTheme();
     return (
-      <div css={sliderRowStyles}>
+      <div css={sliderRowStyles(theme)}>
         <span css={sliderLabelStyles(theme)} title={label}>
           {label}
         </span>

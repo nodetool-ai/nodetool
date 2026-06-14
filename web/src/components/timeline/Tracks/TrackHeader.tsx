@@ -57,7 +57,7 @@ const headerStyles = (theme: Theme, heightPx: number) =>
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
-    padding: "10px 12px 12px",
+    padding: "12px 12px 12px",
     backgroundColor: theme.vars.palette.background.default,
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     overflow: "hidden",
@@ -422,7 +422,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
               >
                 <span
                   style={{
-                    fontSize: 10,
+                    fontSize: theme.fontSizeSmaller,
                     fontWeight: 600,
                     letterSpacing: "0.04em"
                   }}

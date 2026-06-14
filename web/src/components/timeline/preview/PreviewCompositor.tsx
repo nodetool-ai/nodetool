@@ -83,7 +83,7 @@ const canvasStyles = css({
   display: "block"
 });
 
-const overlayBadgeStyles = (color: string) =>
+const overlayBadgeStyles = (theme: Theme, color: string) =>
   css({
     position: "absolute",
     top: 4,
@@ -91,7 +91,7 @@ const overlayBadgeStyles = (color: string) =>
     zIndex: 9999,
     fontSize: FONT_SIZE_SANS.caption,
     lineHeight: 1,
-    padding: "2px 5px",
+    padding: theme.spacing(0.5, 1.5),
     borderRadius: BORDER_RADIUS.xs,
     backgroundColor: color,
     color: "#fff",
@@ -823,7 +823,9 @@ export const PreviewCompositor: React.FC = memo(() => {
           >
             <div css={placeholderLayerStyles(theme)}>
               <span style={{ fontSize: 24, opacity: 0.4 }}>▭</span>
-              <span style={{ fontSize: 11, opacity: 0.5 }}>{layer.name}</span>
+              <span style={{ fontSize: theme.fontSizeSmaller, opacity: 0.5 }}>
+                {layer.name}
+              </span>
             </div>
           </div>
         ))}
@@ -840,7 +842,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           .map((c) => (
             <div
               key={`stale-${c.id}`}
-              css={overlayBadgeStyles("#c08000")}
+              css={overlayBadgeStyles(theme, "#c08000")}
               style={{ zIndex: 9999 }}
             >
               stale
@@ -854,7 +856,7 @@ export const PreviewCompositor: React.FC = memo(() => {
           .map((c) => (
             <div
               key={`gen-${c.id}`}
-              css={overlayBadgeStyles("#0055aa")}
+              css={overlayBadgeStyles(theme, "#0055aa")}
               style={{ zIndex: 9999 }}
             >
               generating…
@@ -866,14 +868,16 @@ export const PreviewCompositor: React.FC = memo(() => {
             css={placeholderLayerStyles(theme)}
             style={{ zIndex: 1, color: "#c08000" }}
           >
-            <span style={{ fontSize: 12 }}>Preview rendering unavailable</span>
+            <span style={{ fontSize: theme.fontSizeSmall }}>
+              Preview rendering unavailable
+            </span>
           </div>
         )}
 
         {!hasAnything && !gpuFailed && (
           <div css={placeholderLayerStyles(theme)} style={{ zIndex: 1 }}>
             <span style={{ fontSize: 32, opacity: 0.15 }}>▶</span>
-            <span style={{ fontSize: 12, opacity: 0.25 }}>
+            <span style={{ fontSize: theme.fontSizeSmall, opacity: 0.25 }}>
               No media at {Math.round(currentTimeMs / 1000)}s
             </span>
           </div>

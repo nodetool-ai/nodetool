@@ -194,7 +194,7 @@ const VideoRecorder = (props: VideoRecorderProps) => {
       )}
 
       {isDeviceListVisible && (
-        <div className="device-list" style={{ margin: "5px" }}>
+        <div className="device-list" style={{ margin: theme.spacing(1.5) }}>
           {videoInputDevices.length > 0 ? (
             <>
               <Text
