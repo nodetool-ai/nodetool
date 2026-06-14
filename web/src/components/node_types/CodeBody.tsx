@@ -20,6 +20,7 @@ import React, {
   useState
 } from "react";
 import { css } from "@emotion/react";
+import { shallow } from "zustand/shallow";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type * as monaco from "monaco-editor";
@@ -45,6 +46,8 @@ import type { NodeData } from "../../stores/NodeData";
 import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
 import { useBespokePropertyWriter } from "../../hooks/nodes/useBespokePropertyWriter";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
+import { useNodes } from "../../contexts/NodeContext";
+import { deriveCodeIOUpdates } from "../../utils/codeOutputInference";
 import {
   getCodeNodeLanguage,
   codeLanguageLabel
@@ -202,6 +205,19 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
 
   const { handleAddProperty } = useDynamicProperty(id, data.dynamic_properties);
 
+  const { findNode, updateNodeData } = useNodes(
+    (state) => ({
+      findNode: state.findNode,
+      updateNodeData: state.updateNodeData
+    }),
+    shallow
+  );
+
+  // The universal Code node derives its input/output handles from the code
+  // itself (referenced-but-undeclared identifiers → inputs, last `return {…}`
+  // keys → outputs). Re-derive on every edit so the handles stay in sync.
+  const inferIO = nodeType === "nodetool.code.Code";
+
   const {
     MonacoEditor,
     monacoLoadError,
@@ -210,28 +226,73 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
     monacoOnMount
   } = useMonacoEditor();
 
+  // Monaco measures its container when the editor instance is created. Inside a
+  // ReactFlow node the body starts at zero size during the first layout passes,
+  // so creating the editor immediately leaves it stuck tiny. Gate creation on
+  // the editor area actually having a measured size, and relayout on resize.
+  const editorAreaRef = useRef<HTMLDivElement | null>(null);
+  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const [hasSize, setHasSize] = useState(false);
+
   useEffect(() => {
-    void loadMonacoIfNeeded();
-  }, [loadMonacoIfNeeded]);
+    const el = editorAreaRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      const ready = width > 0 && height > 0;
+      setHasSize(ready);
+      if (ready) {
+        editorRef.current?.layout({ width, height });
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Prefetch the bundle once sized so the editor appears without a load delay.
+  useEffect(() => {
+    if (hasSize) {
+      void loadMonacoIfNeeded();
+    }
+  }, [hasSize, loadMonacoIfNeeded]);
 
   // Refs keep Monaco's mount-time listeners pointing at the latest writer so
   // they don't capture stale closures.
   const setPropertyRef = useRef(setProperty);
   const completeRef = useRef(setPropertyComplete);
+  const inferRef = useRef({ inferIO, findNode, updateNodeData });
   useEffect(() => {
     setPropertyRef.current = setProperty;
     completeRef.current = setPropertyComplete;
-  }, [setProperty, setPropertyComplete]);
+    inferRef.current = { inferIO, findNode, updateNodeData };
+  }, [setProperty, setPropertyComplete, inferIO, findNode, updateNodeData]);
 
   const handleChange = useCallback((next: string | undefined) => {
     const code = next ?? "";
     setValue(code);
     setPropertyRef.current("code", code);
-  }, []);
+
+    const { inferIO, findNode, updateNodeData } = inferRef.current;
+    if (inferIO) {
+      const node = findNode(id);
+      const existingDynProps = (node?.data?.dynamic_properties || {}) as Record<
+        string,
+        unknown
+      >;
+      updateNodeData(id, deriveCodeIOUpdates(code, existingDynProps));
+    }
+  }, [id]);
 
   const handleEditorMount = useCallback(
     (editor: monaco.editor.IStandaloneCodeEditor) => {
       monacoOnMount(editor);
+      editorRef.current = editor;
+      // Lay out against the current container size immediately — the gate
+      // guarantees the area is measured by the time we mount.
+      const el = editorAreaRef.current;
+      if (el) {
+        editor.layout({ width: el.clientWidth, height: el.clientHeight });
+      }
       const focus = editor.onDidFocusEditorText(() => setIsFocused(true));
       const blur = editor.onDidBlurEditorText(() => {
         setIsFocused(false);
@@ -240,6 +301,9 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
       editor.onDidDispose(() => {
         focus.dispose();
         blur.dispose();
+        if (editorRef.current === editor) {
+          editorRef.current = null;
+        }
       });
     },
     [monacoOnMount]
@@ -260,8 +324,14 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
       setValue(next);
       setProperty("code", next);
       setPropertyComplete();
+      if (inferIO) {
+        const node = findNode(id);
+        const existingDynProps = (node?.data?.dynamic_properties ||
+          {}) as Record<string, unknown>;
+        updateNodeData(id, deriveCodeIOUpdates(next, existingDynProps));
+      }
     },
-    [setProperty, setPropertyComplete]
+    [setProperty, setPropertyComplete, inferIO, findNode, updateNodeData, id]
   );
 
   const isDynamic =
@@ -282,7 +352,7 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
           <div className="code-actions">
             <ToolbarIconButton
               tooltip="Open Editor"
-              icon={<OpenInFullIcon />}
+              icon={<OpenInFullIcon sx={{ fontSize: "0.875rem" }} />}
               onClick={toggleExpand}
               size="small"
             />
@@ -291,6 +361,7 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
         </div>
 
         <div
+          ref={editorAreaRef}
           className={cn(
             "editor-area",
             editorClassNames.nodrag,
@@ -299,7 +370,7 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
           onMouseDown={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          {MonacoEditor ? (
+          {MonacoEditor && hasSize ? (
             <MonacoEditor
               value={value}
               onChange={handleChange}

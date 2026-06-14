@@ -5,6 +5,26 @@ import CodeBody from "../CodeBody";
 import mockTheme from "../../../__mocks__/themeMock";
 import "@testing-library/jest-dom";
 
+// jsdom has no layout; report a real size so CodeBody's size-gate mounts Monaco.
+class SizedResizeObserver {
+  constructor(private cb: ResizeObserverCallback) {}
+  observe(el: Element) {
+    this.cb(
+      [
+        {
+          target: el,
+          contentRect: { width: 320, height: 200 } as DOMRectReadOnly
+        } as ResizeObserverEntry
+      ],
+      this as unknown as ResizeObserver
+    );
+  }
+  unobserve() {}
+  disconnect() {}
+}
+(globalThis as unknown as { ResizeObserver: typeof ResizeObserver }).ResizeObserver =
+  SizedResizeObserver as unknown as typeof ResizeObserver;
+
 const mockSetProperty = jest.fn();
 const mockSetPropertyComplete = jest.fn();
 
@@ -14,6 +34,17 @@ jest.mock("../../../hooks/nodes/useBespokePropertyWriter", () => ({
     setProperties: jest.fn(),
     setPropertyComplete: mockSetPropertyComplete
   }))
+}));
+
+const mockFindNode = jest.fn(() => ({ data: { dynamic_properties: {} } }));
+const mockUpdateNodeData = jest.fn();
+
+jest.mock("../../../contexts/NodeContext", () => ({
+  useNodes: (selector: (state: unknown) => unknown) =>
+    selector({
+      findNode: mockFindNode,
+      updateNodeData: mockUpdateNodeData
+    })
 }));
 
 jest.mock("../../../hooks/nodes/useDynamicProperty", () => ({
@@ -179,5 +210,35 @@ describe("CodeBody", () => {
   it("renders the dynamic property form for dynamic code nodes", () => {
     renderWithTheme(<CodeBody {...makeProps()} />);
     expect(screen.getByTestId("node-property-form")).toBeInTheDocument();
+  });
+
+  it("derives dynamic inputs/outputs from code for the universal Code node", () => {
+    renderWithTheme(
+      <CodeBody
+        {...makeProps({
+          nodeType: "nodetool.code.Code",
+          data: { properties: { code: "" } }
+        })}
+      />
+    );
+    const editor = screen.getByTestId("monaco");
+    fireEvent.change(editor, {
+      target: { value: "return { sum: a + b };" }
+    });
+
+    expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", {
+      dynamic_outputs: {
+        sum: { type: "any", type_args: [], optional: false }
+      },
+      dynamic_properties: { a: "", b: "" }
+    });
+  });
+
+  it("does not derive IO for non-universal code executors", () => {
+    renderWithTheme(<CodeBody {...makeProps()} />);
+    fireEvent.change(screen.getByTestId("monaco"), {
+      target: { value: "return { x: y };" }
+    });
+    expect(mockUpdateNodeData).not.toHaveBeenCalled();
   });
 });
