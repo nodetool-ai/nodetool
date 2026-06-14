@@ -34,11 +34,19 @@ async function waitForPort(host: string, port: number, timeoutMs: number): Promi
   while (Date.now() < deadline) {
     const ready = await new Promise<boolean>((res) => {
       const socket = net.createConnection({ host, port });
-      socket.once("connect", () => {
-        socket.end();
-        res(true);
-      });
-      socket.once("error", () => res(false));
+      let done = false;
+      const settle = (value: boolean) => {
+        if (done) return;
+        done = true;
+        socket.destroy();
+        res(value);
+      };
+      // Per-attempt timeout so a filtered/half-open port can't stall past the
+      // overall deadline.
+      socket.setTimeout(2_000);
+      socket.once("connect", () => settle(true));
+      socket.once("timeout", () => settle(false));
+      socket.once("error", () => settle(false));
     });
     if (ready) return;
     await new Promise((r) => setTimeout(r, 500));

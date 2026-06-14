@@ -125,7 +125,9 @@ async function main(): Promise<void> {
     `[e2e-server] Ready on http://${HOST}:${PORT} (${srv.info.metadataCount} nodes registered)` +
       (examplesDir ? ` examples=${examplesDir}` : "")
   );
-  // Signal readiness to the parent process (globalSetup detects this line).
+  // Human-readable readiness marker in the logs. The Playwright globalSetup
+  // gates on the backend accepting TCP connections (waitForPort), not on this
+  // line.
   process.stdout.write("[e2e-server] READY\n");
 }
 
