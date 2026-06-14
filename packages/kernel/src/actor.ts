@@ -59,9 +59,18 @@ export type { NodeExecutor };
  * parent key for a shorter scope, take the first `prefixLength` pairs.
  */
 export function trimKey(key: string, prefixLength: number): string {
+  // The three guards below are pure fast-paths: each returns exactly what the
+  // final `parts.slice(0, prefixLength).join(",")` would compute, so mutating
+  // any of them is equivalent.
+  //   - prefixLength === 0 → slice(0,0).join("") === ""
+  //   - key === ""         → split gives [""], 1 <= prefixLength → key === ""
+  //   - parts.length <= prefixLength → slice keeps every part → join === key
+  // Stryker disable next-line ConditionalExpression: equivalent fast-path (see above)
   if (prefixLength === 0) return "";
+  // Stryker disable next-line ConditionalExpression,StringLiteral: equivalent fast-path (see above)
   if (key === "") return "";
   const parts = key.split(",");
+  // Stryker disable next-line ConditionalExpression,EqualityOperator: equivalent fast-path (see above)
   if (parts.length <= prefixLength) return key;
   return parts.slice(0, prefixLength).join(",");
 }
