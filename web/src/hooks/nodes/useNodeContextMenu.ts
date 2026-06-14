@@ -123,7 +123,7 @@ export function useNodeContextMenu(): UseNodeContextMenuReturn {
 
   const handleFindTemplates = useCallback(() => {
     const nodeType = node?.type || "";
-    navigate(`/templates?node=${encodeURIComponent(nodeType)}`);
+    navigate(`/dashboard?node=${encodeURIComponent(nodeType)}`);
     closeContextMenu();
   }, [navigate, closeContextMenu, node?.type]);
 

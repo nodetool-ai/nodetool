@@ -91,7 +91,7 @@ const styles = (theme: Theme) =>
   });
 
 /**
- * The unified tabbed-document workspace, wrapped in the app chrome (AppHeader,
+ * The unified tabbed-document workspace, wrapped in the app chrome (tab bar,
  * left nav, bottom panel). The center keeps every open tab mounted (active
  * shown, others hidden) so editor state survives tab switches. The node
  * editor's docked inspector renders only while a workflow Edit tab is active.

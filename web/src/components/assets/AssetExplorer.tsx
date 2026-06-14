@@ -10,7 +10,6 @@ import useAssets from "../../serverState/useAssets";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import AppHeader from "../panels/AppHeader";
 
 const styles = (theme: Theme) =>
   css({
@@ -106,18 +105,6 @@ const AssetExplorer: React.FC = memo(() => {
   void currentWorkflowId;
   return (
     <Box css={cssStyles}>
-      <Box
-        className="actions-container"
-        sx={{
-          position: "absolute",
-          top: "32px",
-          left: 0,
-          right: 0,
-          zIndex: 1000
-        }}
-      >
-        <AppHeader />
-      </Box>
       <Box className="asset-explorer">
         <ContextMenuProvider>
           <AssetGrid

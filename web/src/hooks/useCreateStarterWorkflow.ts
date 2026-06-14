@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import type { Connection } from "@xyflow/react";
 import { useWorkflowManagerStore } from "../contexts/WorkflowManagerContext";
 import useMetadataStore from "../stores/MetadataStore";
+import useOnboardingStore from "../stores/OnboardingStore";
 import {
   WELCOME_TRACKS,
   STRING_NODE_TYPE,
@@ -27,6 +28,7 @@ export const useCreateStarterWorkflow = (): ((trackId: WelcomeTrackId) => void) 
       if (!track) {
         return;
       }
+      useOnboardingStore.getState().markStep("open-template");
 
       const manager = store.getState();
       const workflow = { ...manager.newWorkflow(), name: track.workflowName };

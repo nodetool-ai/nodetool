@@ -486,7 +486,7 @@ const GlobalChat: React.FC = () => {
         height: "100dvh", // Dynamic viewport height
         maxHeight: "100dvh",
         maxWidth: "100vw",
-        // No top padding needed since AppHeader is external now
+        // No top padding needed since header is external now
         // Add horizontal padding on desktop to avoid side panes
         paddingLeft: isMobile
           ? 0
