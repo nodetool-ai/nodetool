@@ -119,7 +119,7 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      padding: "40px 20px",
+      padding: "40px 24px",
       color: theme.vars.palette.text.secondary
     },
     ".footer-hints": {

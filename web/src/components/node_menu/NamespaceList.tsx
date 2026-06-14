@@ -291,7 +291,7 @@ const namespaceStyles = (theme: Theme) =>
     ".node-packs-info .MuiButton-root": {
       textTransform: "none",
       borderRadius: BORDER_RADIUS.lg,
-      padding: "6px 10px",
+      padding: "6px 12px",
       borderColor: theme.vars.palette.divider,
       color: theme.vars.palette.text.secondary,
       "&:hover": {
@@ -368,7 +368,7 @@ const NoSelectionContent = memo(function NoSelectionContent({
             marginBottom: "0.5em",
             textTransform: "none",
             lineHeight: "1.5",
-            padding: "15px"
+            padding: "16px"
           }}
         >
           Install additional node packs

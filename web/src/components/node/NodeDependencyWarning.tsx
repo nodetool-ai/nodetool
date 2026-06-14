@@ -18,7 +18,7 @@ const warningStyles = (theme: Theme) =>
   css({
     backgroundColor: `color-mix(in srgb, ${theme.vars.palette.warning.main} 15%, transparent)`,
     borderRadius: BORDER_RADIUS.xs,
-    padding: "8px 10px",
+    padding: "8px 12px",
     display: "flex",
     flexDirection: "column",
     gap: "4px",
@@ -63,7 +63,7 @@ const warningStyles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.primary.main,
       border: "none",
       borderRadius: BORDER_RADIUS.sm,
-      padding: "3px 10px",
+      padding: "4px 12px",
       cursor: "pointer",
       marginTop: "2px",
       "&:hover": {

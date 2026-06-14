@@ -142,7 +142,7 @@ const styles = (theme: Theme) =>
     },
     "& .error-message": {
       marginTop: "8px",
-      padding: "8px 10px",
+      padding: "8px 12px",
       backgroundColor: `${theme.vars.palette.error.main}15`,
       borderRadius: "var(--rounded-lg)",
       borderLeft: `3px solid ${theme.vars.palette.error.main}`

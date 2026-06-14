@@ -155,7 +155,7 @@ const typeFilterChipsStyles = (theme: Theme) =>
     ".filter-actions": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(1.25),
+      gap: theme.spacing(1.5),
       flexShrink: 0
     },
     ".node-count": {

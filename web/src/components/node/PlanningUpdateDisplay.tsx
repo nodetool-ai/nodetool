@@ -18,7 +18,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "0.5rem",
       width: "100%",
-      padding: "0.15rem 0"
+      padding: "2px 0"
     },
 
     ".planning-icon": {

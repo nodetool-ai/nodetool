@@ -19,7 +19,7 @@ const styles = (theme: Theme) =>
   css({
     position: "relative",
     marginTop: 6,
-    padding: "8px 10px",
+    padding: "8px 12px",
     borderRadius: "var(--rounded-buttonSmall)",
     border: `1px solid ${theme.vars.palette.primary.main}`,
     backgroundColor: `rgba(var(--palette-primary-mainChannel) / 0.12)`,
@@ -49,7 +49,7 @@ const styles = (theme: Theme) =>
     ".callout-icon": {
       fontSize: 16,
       color: theme.vars.palette.primary.main,
-      marginTop: 1,
+      marginTop: 2,
       flexShrink: 0
     },
     ".callout-close": {

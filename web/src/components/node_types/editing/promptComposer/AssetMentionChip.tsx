@@ -17,7 +17,7 @@ const chipStyles = (theme: Theme) =>
     alignItems: "center",
     gap: "0.25em",
     verticalAlign: "baseline",
-    margin: "0 1px",
+    margin: "0 2px",
     padding: "0 0.4em",
     borderRadius: "var(--rounded-sm, 4px)",
     backgroundColor: theme.vars.palette.primary.main,

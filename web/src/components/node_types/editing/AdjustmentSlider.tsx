@@ -100,7 +100,7 @@ export const adjustmentSliderStyles = (theme: Theme) =>
       minWidth: 46,
       textAlign: "right",
       lineHeight: 1,
-      padding: "3px 6px",
+      padding: "4px 6px",
       borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.grey[800]
     },

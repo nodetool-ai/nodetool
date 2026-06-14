@@ -106,7 +106,7 @@ const styles = (theme: Theme) =>
     "& .result-button": {
       display: "flex",
       alignItems: "center",
-      padding: "10px 16px",
+      padding: "12px 16px",
       minHeight: "44px",
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       "&:hover": {

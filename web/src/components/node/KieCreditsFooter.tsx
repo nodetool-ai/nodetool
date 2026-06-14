@@ -204,7 +204,7 @@ const KieCreditsFooterInternal: React.FC<KieCreditsFooterProps> = ({
       >
         {pricing?.source === "live" && (
           <span
-            style={{ marginRight: 3, fontSize: "var(--fontSizeSmaller)", opacity: 0.85 }}
+            style={{ marginRight: 4, fontSize: "var(--fontSizeSmaller)", opacity: 0.85 }}
             aria-label="live price"
           >
             ●
