@@ -245,6 +245,38 @@ describe("buildImageModels", () => {
   it("skips id-less entries", () => {
     expect(buildImageModels([{ outputType: "image" }], "p")).toEqual([]);
   });
+
+  it("tags entries that declare a mask image input with the inpainting task", () => {
+    const out = buildImageModels(
+      [
+        {
+          outputType: "image",
+          endpointId: "edit/with-mask",
+          inputFields: [
+            { name: "image_url", propType: "image" },
+            { name: "mask_url", propType: "image" }
+          ]
+        }
+      ],
+      "p"
+    );
+    expect(out[0].supportedTasks).toContain("inpainting");
+    expect(out[0].supportedTasks).toContain("image_to_image");
+  });
+
+  it("does not tag inpainting when no mask input is declared", () => {
+    const out = buildImageModels(
+      [
+        {
+          outputType: "image",
+          endpointId: "plain/edit",
+          inputFields: [{ name: "image_url", propType: "image" }]
+        }
+      ],
+      "p"
+    );
+    expect(out[0].supportedTasks).not.toContain("inpainting");
+  });
 });
 
 describe("loadManifest IO (via loadImageModels)", () => {

@@ -16,6 +16,7 @@ import { createLogger } from "@nodetool-ai/config";
 import type {
   ImageModel,
   ImageToImageParams,
+  InpaintingParams,
   ImageToVideoParams,
   LanguageModel,
   Message,
@@ -33,7 +34,8 @@ import {
   loadVideoModels,
   loadImageModels,
   getModelImageInputs,
-  selectPrimaryImageInput
+  selectPrimaryImageInput,
+  selectMaskImageInput
 } from "./manifest-models.js";
 import { OpenAIProvider } from "./openai-provider.js";
 import { AnthropicProvider } from "./anthropic-provider.js";
@@ -650,6 +652,48 @@ export class KieProvider extends BaseProvider {
 
     const modelId = params.model.id;
     log.debug("Kie imageToImage", { model: modelId, images: imageUrls.length });
+
+    const taskId = await submitTask(apiKey, modelId, input);
+    await pollUntilDone(apiKey, taskId);
+    return downloadResultBytes(apiKey, taskId);
+  }
+
+  /**
+   * Inpaint: regenerate the masked region of one or more source images. The
+   * source image(s) route to the model's primary image field; the mask routes
+   * to whatever mask field the model's schema declares (falling back to
+   * `mask_url`).
+   */
+  override async inpaint(
+    images: Uint8Array[],
+    params: InpaintingParams
+  ): Promise<Uint8Array> {
+    const apiKey = this.requireApiKey();
+    const imageUrls = await this.uploadImages(apiKey, images);
+    if (imageUrls.length === 0) {
+      throw new Error("The input image is empty.");
+    }
+
+    const input: Record<string, unknown> = {
+      prompt: params.prompt,
+      ...this.imageInput(params.model.id, imageUrls)
+    };
+    if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
+    if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
+
+    if (params.mask && params.mask.length > 0) {
+      const [maskUrl] = await this.uploadImages(apiKey, [params.mask]);
+      if (maskUrl) {
+        const maskField = selectMaskImageInput(
+          getModelImageInputs(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, params.model.id)
+        );
+        const fieldName = maskField?.apiName ?? "mask_url";
+        input[fieldName] = maskField?.isList ? [maskUrl] : maskUrl;
+      }
+    }
+
+    const modelId = params.model.id;
+    log.debug("Kie inpaint", { model: modelId, images: imageUrls.length });
 
     const taskId = await submitTask(apiKey, modelId, input);
     await pollUntilDone(apiKey, taskId);
