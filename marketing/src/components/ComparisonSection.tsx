@@ -59,7 +59,7 @@ export default function ComparisonSection({
           />
           <ComparisonCard
             competitor="A dozen browser tabs"
-            sentence="Midjourney, Runway, Photoshop, ElevenLabs, Suno — each in its own tab, none of them talking to each other. NodeTool wires them into one canvas you can run, share, and re-run."
+            sentence="Right now you're the integration layer — make an image in one tab, download it, paste it into the next for video, hop to another for a voiceover, by hand, every single run. NodeTool replaces that copy-paste relay with one canvas: wire the steps once, then re-run the whole chain on any new input."
             reducedMotion={reducedMotion}
             delay={0.1}
           />
