@@ -166,6 +166,23 @@ describe("<SelectionActionBar />", () => {
     expect(getByPlaceholderText("Describe the edit…")).toBeTruthy();
   });
 
+  it("shows mask refinement only in inpaint mode", () => {
+    useSketchSessionStore.setState({ documentId: "doc-1" });
+    selectAll();
+    const { getByTestId, queryByTestId } = renderBar(containerRef());
+
+    // Inpaint is the default mode → mask refinement is available.
+    expect(getByTestId("sketch-selection-refine-edge")).toBeTruthy();
+
+    // Edit mode runs on the whole frame, so the mask options disappear.
+    fireEvent.click(getByTestId("sketch-selection-mode-edit"));
+    expect(queryByTestId("sketch-selection-refine-edge")).toBeNull();
+
+    // Back to inpaint → they return.
+    fireEvent.click(getByTestId("sketch-selection-mode-inpaint"));
+    expect(getByTestId("sketch-selection-refine-edge")).toBeTruthy();
+  });
+
   it("Dismiss clears the active selection", () => {
     useSketchSessionStore.setState({ documentId: "doc-1" });
     selectAll();

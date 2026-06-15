@@ -179,6 +179,8 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
       setMode(next);
       setModel("");
       setProvider("");
+      // Mask refinement only applies to inpaint; close it when leaving.
+      if (next !== "inpaint") setRefineOpen(false);
     },
     [mode]
   );
@@ -429,22 +431,27 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
           </span>
         </Tooltip>
 
-        <Tooltip
-          title="Refine edge — feather, smooth, grow / shrink, or border the selection."
-          delay={TOOLTIP_ENTER_DELAY}
-          placement={placeAbove ? "top" : "bottom"}
-        >
-          <EditorButton
-            ref={refineAnchorRef}
-            variant="outlined"
-            size="small"
-            onClick={() => setRefineOpen((v) => !v)}
-            startIcon={<TuneIcon fontSize="small" />}
-            data-testid="sketch-selection-refine-edge"
+        {/* Mask options: shaping the selection only affects inpainting (the
+            selection is the mask). Edit mode runs on the whole frame, so hide
+            them there. */}
+        {mode === "inpaint" && (
+          <Tooltip
+            title="Refine mask — feather, smooth, grow / shrink, or border the selection used for inpainting."
+            delay={TOOLTIP_ENTER_DELAY}
+            placement={placeAbove ? "top" : "bottom"}
           >
-            Refine edge
-          </EditorButton>
-        </Tooltip>
+            <EditorButton
+              ref={refineAnchorRef}
+              variant="outlined"
+              size="small"
+              onClick={() => setRefineOpen((v) => !v)}
+              startIcon={<TuneIcon fontSize="small" />}
+              data-testid="sketch-selection-refine-edge"
+            >
+              Refine mask
+            </EditorButton>
+          </Tooltip>
+        )}
 
         <CloseButton
           tooltip="Dismiss selection"
@@ -455,16 +462,18 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
         />
       </FlexRow>
 
-      <RefineSelectionPopover
-        open={refineOpen}
-        anchorEl={refineAnchorRef.current}
-        onClose={() => setRefineOpen(false)}
-        settings={selectSettings}
-        onChange={setSelectSettings}
-        onFeatherSelection={() => void featherCurrentSelection()}
-        onSmoothSelectionBorders={() => void smoothCurrentSelectionBorders()}
-        onConvertSelectionToBorder={convertSelectionToBorderOutline}
-      />
+      {mode === "inpaint" && (
+        <RefineSelectionPopover
+          open={refineOpen}
+          anchorEl={refineAnchorRef.current}
+          onClose={() => setRefineOpen(false)}
+          settings={selectSettings}
+          onChange={setSelectSettings}
+          onFeatherSelection={() => void featherCurrentSelection()}
+          onSmoothSelectionBorders={() => void smoothCurrentSelectionBorders()}
+          onConvertSelectionToBorder={convertSelectionToBorderOutline}
+        />
+      )}
 
       <Toast
         open={error !== null}
