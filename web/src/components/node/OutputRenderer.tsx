@@ -731,6 +731,9 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           <video
             ref={videoRef}
             controls
+            // nodrag/nopan stop ReactFlow's drag from capturing the pointer so
+            // the native controls (scrub, volume) get the mouse events.
+            className="nodrag nopan"
             aria-label="Video output"
             style={{ width: "100%", height: "100%" }}
           />
