@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { Message } from "./ApiTypes";
 
-export type VibeCodingStatus =
+type VibeCodingStatus =
   | "idle"
   | "connecting"
   | "streaming"

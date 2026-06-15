@@ -12,7 +12,7 @@ import { trpcClient } from "../trpc/client";
 import { createErrorMessage } from "../utils/errorHandling";
 import { loadMetadata } from "../serverState/useMetadata";
 
-export type PackStatus = "loaded" | "skipped" | "error";
+type PackStatus = "loaded" | "skipped" | "error";
 
 export type SkipReason =
   | "not-allowed"
@@ -21,7 +21,7 @@ export type SkipReason =
   | "collision"
   | "no-node-type";
 
-export interface SkippedNode {
+interface SkippedNode {
   nodeType: string;
   reason: SkipReason;
 }
@@ -36,13 +36,13 @@ export interface PackInfo {
   error?: string;
 }
 
-export interface PackTrust {
+interface PackTrust {
   allowlist: string[];
   allowUnlisted: boolean;
 }
 
 /** A first-party pack shipped with NodeTool and its enabled state. */
-export interface BuiltinPack {
+interface BuiltinPack {
   id: string;
   name: string;
   description: string;

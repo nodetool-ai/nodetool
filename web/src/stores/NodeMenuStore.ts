@@ -23,7 +23,7 @@ export interface SplitNodeDescription {
   };
 }
 
-export interface OpenNodeMenuParams {
+interface OpenNodeMenuParams {
   x: number;
   y: number;
   dropType?: string;
@@ -33,7 +33,7 @@ export interface OpenNodeMenuParams {
   centerOnScreen?: boolean;
 }
 
-export type ProviderFilterType = "all" | "api" | "local";
+type ProviderFilterType = "all" | "api" | "local";
 
 export type NodeMenuStore = {
   isMenuOpen: boolean;

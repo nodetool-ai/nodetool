@@ -108,7 +108,7 @@ export const computeProvidersList = <TModel extends ModelSelectorModel>(
   return list;
 };
 
-export interface FilterModelsOptions {
+interface FilterModelsOptions {
   recentKeys?: readonly string[];
   favoriteKeys?: Iterable<string>;
 }
@@ -133,7 +133,7 @@ export type ModelMenuStoreHook<TModel extends ModelSelectorModel> = <Selected>(
   equalityFn?: (left: Selected, right: Selected) => boolean
 ) => Selected;
 
-export interface ModelMenuData<TModel extends ModelSelectorModel> {
+interface ModelMenuData<TModel extends ModelSelectorModel> {
   models: TModel[] | undefined;
   providers: string[];
   filteredModels: TModel[];
