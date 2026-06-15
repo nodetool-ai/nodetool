@@ -314,6 +314,7 @@ export class TriggerWorkflowManager {
       // A check fired from the interval may still be mid-restart; wait for
       // it so it cannot re-insert a freshly started job after we snapshot
       // the running set below.
+      // Stryker disable next-line ConditionalExpression: the true-direction is equivalent — awaiting a null in-flight handle and re-nulling it are both no-ops; the false-direction and the block are covered by the in-flight-wait test
       if (this._watchdogCheckInFlight) {
         await this._watchdogCheckInFlight;
         this._watchdogCheckInFlight = null;

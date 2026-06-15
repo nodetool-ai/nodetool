@@ -346,6 +346,7 @@ export class Graph {
       const handles = handlesByTarget.get(node.id);
       if (!handles) continue;
       const props = node.properties as Record<string, unknown> | undefined;
+      // Stryker disable next-line ConditionalExpression: defensive — fromDict/loadFromDict always normalize `properties` to an object before reaching here, so `!props` is never true and skipping vs not skipping is indistinguishable
       if (!props) continue;
       for (const handle of handles) {
         delete props[handle];

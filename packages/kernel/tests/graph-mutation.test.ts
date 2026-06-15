@@ -8,6 +8,7 @@ import { describe, it, expect } from "vitest";
 import {
   Graph,
   GraphValidationError,
+  withExplicitNodeFlags,
   type ResolvedNodeType
 } from "../src/graph.js";
 import type { Edge, NodeDescriptor } from "@nodetool-ai/protocol";
@@ -905,5 +906,262 @@ describe("Graph – final coverage (batch 10)", () => {
       .map((node) => node.id)
       .sort();
     expect(ids).toEqual(["g", "ingroup"]);
+  });
+});
+
+describe("withExplicitNodeFlags", () => {
+  it("defaults missing behavior flags to false and preserves set ones, copying edges", () => {
+    const graph = {
+      nodes: [
+        {
+          id: "set",
+          type: "t",
+          is_streaming_input: true,
+          is_streaming_output: true,
+          is_controlled: true,
+          is_join_node: true
+        },
+        { id: "unset", type: "t" }
+      ],
+      edges: [e("set", "out", "unset", "in")]
+    } as Parameters<typeof withExplicitNodeFlags>[0];
+
+    const hydrated = withExplicitNodeFlags(graph);
+
+    const set = hydrated.nodes.find((n) => n.id === "set")!;
+    expect(set.is_streaming_input).toBe(true);
+    expect(set.is_streaming_output).toBe(true);
+    expect(set.is_controlled).toBe(true);
+    expect(set.is_join_node).toBe(true);
+
+    const unset = hydrated.nodes.find((n) => n.id === "unset")!;
+    expect(unset.is_streaming_input).toBe(false);
+    expect(unset.is_streaming_output).toBe(false);
+    expect(unset.is_controlled).toBe(false);
+    expect(unset.is_join_node).toBe(false);
+
+    expect(hydrated.edges).toHaveLength(1);
+    expect(hydrated.edges[0]).toMatchObject({ source: "set", target: "unset" });
+  });
+});
+
+describe("Graph.loadFromDict – is_join_node hydration", () => {
+  const resolverFor = (over: Partial<ResolvedNodeType> = {}) => ({
+    resolveNodeType: (nodeType: string): ResolvedNodeType | null => ({
+      nodeType,
+      ...over
+    })
+  });
+
+  it("prefers the registry default, then the saved flag, then false", async () => {
+    const fromRegistry = await Graph.loadFromDict(
+      { nodes: [{ id: "a", type: "t" }], edges: [] },
+      { resolver: resolverFor({ descriptorDefaults: { is_join_node: true } }) }
+    );
+    expect(fromRegistry.findNode("a")!.is_join_node).toBe(true);
+
+    const fromSaved = await Graph.loadFromDict(
+      { nodes: [{ id: "a", type: "t", is_join_node: true }], edges: [] },
+      { resolver: resolverFor() }
+    );
+    expect(fromSaved.findNode("a")!.is_join_node).toBe(true);
+
+    const def = await Graph.loadFromDict(
+      { nodes: [{ id: "a", type: "t" }], edges: [] },
+      { resolver: resolverFor() }
+    );
+    expect(def.findNode("a")!.is_join_node).toBe(false);
+  });
+});
+
+describe("Graph.validateEdgeEndpoints – self-loops", () => {
+  it("rejects a self-loop edge, naming the edge by id when present", () => {
+    const g = new Graph({
+      nodes: [n("a", "t")],
+      edges: [e("a", "out", "a", "in", { id: "self1" })]
+    });
+    let caught: GraphValidationError | undefined;
+    try {
+      g.validateEdgeEndpoints();
+    } catch (err) {
+      caught = err as GraphValidationError;
+    }
+    expect(caught).toBeInstanceOf(GraphValidationError);
+    expect(caught!.message).toMatch(/Edge self1/);
+    expect(caught!.message).toMatch(/connects node "a" to itself/);
+    // The structured issue carries node/handle context, not an empty list.
+    expect(caught!.issues).toEqual([
+      { nodeId: "a", property: "in", message: "Self-loop edges are not supported" }
+    ]);
+  });
+
+  it("falls back to a source:handle->target:handle label when the edge has no id", () => {
+    const g = new Graph({
+      nodes: [n("a", "t")],
+      edges: [e("a", "out", "a", "in")]
+    });
+    expect(() => g.validateEdgeEndpoints()).toThrow(/Edge a:out->a:in/);
+  });
+});
+
+describe("Graph.validateEdgeTypes – scalar-into-list aggregation", () => {
+  it("accepts a scalar source feeding a typed list handle", () => {
+    const nodes = [
+      n("a", "t", { outputs: { out: "int" } }),
+      n("b", "t", { propertyTypes: { items: "list[int]" } })
+    ];
+    const g = new Graph({ nodes, edges: [e("a", "out", "b", "items")] });
+    expect(() => g.validateEdgeTypes()).not.toThrow();
+  });
+
+  it("accepts a scalar source feeding an untyped (bare) list handle", () => {
+    const nodes = [
+      n("a", "t", { outputs: { out: "int" } }),
+      n("b", "t", { propertyTypes: { items: "list" } })
+    ];
+    const g = new Graph({ nodes, edges: [e("a", "out", "b", "items")] });
+    expect(() => g.validateEdgeTypes()).not.toThrow();
+  });
+
+  it("rejects a scalar source incompatible with the list element type", () => {
+    const nodes = [
+      n("a", "t", { outputs: { out: "str" } }),
+      n("b", "t", { propertyTypes: { items: "list[int]" } })
+    ];
+    const g = new Graph({ nodes, edges: [e("a", "out", "b", "items", { id: "ed" })] });
+    expect(() => g.validateEdgeTypes()).toThrow(/Type mismatch on edge ed/);
+  });
+
+  it("accepts a list source feeding a list handle of the same element type", () => {
+    const nodes = [
+      n("a", "t", { outputs: { out: "list[int]" } }),
+      n("b", "t", { propertyTypes: { items: "list[int]" } })
+    ];
+    const g = new Graph({ nodes, edges: [e("a", "out", "b", "items")] });
+    expect(() => g.validateEdgeTypes()).not.toThrow();
+  });
+});
+
+describe("Graph.fromDict – edge-fed property pruning", () => {
+  it("deletes a node's saved default for an edge-fed handle by default", () => {
+    const graph = Graph.fromDict({
+      nodes: [
+        { id: "src", type: "t" },
+        { id: "dst", type: "t", properties: { in: "saved", keep: "yes" } }
+      ],
+      edges: [{ source: "src", sourceHandle: "out", target: "dst", targetHandle: "in" }]
+    });
+    const dst = graph.findNode("dst")!;
+    expect((dst.properties as Record<string, unknown>).in).toBeUndefined();
+    expect((dst.properties as Record<string, unknown>).keep).toBe("yes");
+  });
+
+  it("retains edge-fed defaults when pruning is disabled", () => {
+    const graph = Graph.fromDict(
+      {
+        nodes: [
+          { id: "src", type: "t" },
+          { id: "dst", type: "t", properties: { in: "saved" } }
+        ],
+        edges: [{ source: "src", sourceHandle: "out", target: "dst", targetHandle: "in" }]
+      },
+      { pruneEdgeProperties: false }
+    );
+    expect((graph.findNode("dst")!.properties as Record<string, unknown>).in).toBe(
+      "saved"
+    );
+  });
+
+  it("does not throw when an edge-fed target node has no properties", () => {
+    expect(() =>
+      Graph.fromDict({
+        nodes: [
+          { id: "src", type: "t" },
+          { id: "dst", type: "t" } // no properties object
+        ],
+        edges: [{ source: "src", sourceHandle: "out", target: "dst", targetHandle: "in" }]
+      })
+    ).not.toThrow();
+  });
+});
+
+describe("Graph._detectControlledNodes – data edges do not mark control", () => {
+  it("leaves a node uncontrolled when its only incoming edge is a data edge", () => {
+    const g = new Graph({
+      nodes: [n("a", "t"), n("b", "t")],
+      edges: [e("a", "out", "b", "in")]
+    });
+    expect(g.findNode("b")!.is_controlled).not.toBe(true);
+    expect(g.getControlledNodes()).toHaveLength(0);
+  });
+});
+
+describe("Graph.topologicalSort – only data edges define ordering", () => {
+  it("ignores control edges when computing levels", () => {
+    // data A->B orders B after A; a control B->A feedback edge must NOT be
+    // counted as a dependency (that would deadlock both into zero levels).
+    const g = new Graph({
+      nodes: [n("A", "t"), n("B", "t")],
+      edges: [e("A", "out", "B", "in"), ctrl("B", "A")]
+    });
+    const levels = g.topologicalSort().map((lvl) => lvl.map((node) => node.id));
+    expect(levels).toEqual([["A"], ["B"]]);
+  });
+});
+
+describe("Graph.validateEdgeTypes – propertyTypes wins over property descriptors", () => {
+  it("does not override an authoritative propertyTypes entry with a property's type descriptor", () => {
+    // propertyTypes says the handle is "int" (matches the source). A stale
+    // property descriptor {type:"str"} must not shadow it and force a mismatch.
+    const nodes = [
+      n("a", "t", { outputs: { out: "str" } }),
+      n("b", "t", {
+        propertyTypes: { in: "str" },
+        properties: { in: { type: "int" } }
+      })
+    ];
+    const g = new Graph({ nodes, edges: [e("a", "out", "b", "in")] });
+    expect(() => g.validateEdgeTypes()).not.toThrow();
+  });
+
+  it("ignores a property descriptor whose `type` is not a string", () => {
+    // The fallback only adopts a descriptor's `type` when it is a string.
+    // A non-string type (here a number) must be ignored, leaving the edge
+    // untyped and skipped — not fed into TypeMetadata.fromString.
+    const nodes = [
+      n("a", "t", { outputs: { out: "str" } }),
+      n("b", "t", { properties: { in: { type: 42 } } })
+    ];
+    const g = new Graph({ nodes, edges: [e("a", "out", "b", "in")] });
+    expect(() => g.validateEdgeTypes()).not.toThrow();
+  });
+});
+
+describe("Graph.loadFromDict – defers edge-property pruning until after resolution", () => {
+  it("keeps a saved default whose feeding edge is dropped when its source type is unresolved", async () => {
+    const resolver = {
+      resolveNodeType(nodeType: string): ResolvedNodeType | null {
+        if (nodeType === "missing") return null;
+        return { nodeType };
+      }
+    };
+    const g = await Graph.loadFromDict(
+      {
+        nodes: [
+          { id: "src", type: "missing" }, // dropped at resolution
+          { id: "dst", type: "t", properties: { in: "saved" } }
+        ],
+        edges: [
+          { source: "src", sourceHandle: "out", target: "dst", targetHandle: "in" }
+        ]
+      },
+      { resolver }
+    );
+    // src is dropped and its edge with it, so "in" is never edge-fed in the
+    // final graph: the saved default must survive (no premature pruning).
+    expect(g.findNode("src")).toBeUndefined();
+    expect((g.findNode("dst")!.properties as Record<string, unknown>).in).toBe(
+      "saved"
+    );
   });
 });
