@@ -6,7 +6,7 @@
  * accent color and extras (waveform selector, mode toggle, ADSR preview).
  */
 
-export type KnobUnit = "hz" | "s" | "db" | "x" | "";
+export type KnobUnit = "hz" | "s" | "ms" | "db" | "x" | "";
 
 export interface KnobSpec {
   name: string;
@@ -18,6 +18,8 @@ export interface KnobSpec {
   scale?: "linear" | "log";
   /** Range straddles 0 with a neutral midpoint — arc fills outward from it. */
   bipolar?: boolean;
+  /** Snap to whole numbers — for integer-typed properties (e.g. bit depth). */
+  integer?: boolean;
   unit?: KnobUnit;
 }
 
@@ -315,11 +317,20 @@ export const formatKnobValue = (spec: KnobSpec, value: number): string => {
       return value < 1
         ? `${Math.round(value * 1000)} ms`
         : `${value.toFixed(value < 10 ? 2 : 1)} s`;
+    case "ms":
+      return value >= 1000
+        ? `${(value / 1000).toFixed(2)} s`
+        : `${value < 10 ? value.toFixed(1) : Math.round(value)} ms`;
     case "db": {
       const sign = value > 0 ? "+" : "";
       return `${sign}${value.toFixed(1)} dB`;
     }
+    case "x":
+      return `${Math.round(value * 100) / 100}×`;
     default: {
+      if (spec.integer) {
+        return `${Math.round(value)}`;
+      }
       const rounded = Math.round(value * 100) / 100;
       const sign = spec.bipolar && rounded > 0 ? "+" : "";
       return `${sign}${rounded}`;

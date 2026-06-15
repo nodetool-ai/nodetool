@@ -96,6 +96,10 @@ export interface SynthKnobProps {
 }
 
 const roundForSpec = (spec: KnobSpec, v: number): number => {
+  // Integer-typed properties (bit depth, sample-rate reduction) must stay whole.
+  if (spec.integer) {
+    return Math.round(v);
+  }
   // Log specs span decades — keep 4 significant digits; linear specs keep
   // two decimals (enough for every current 0–10-ish range).
   if (spec.scale === "log") {
