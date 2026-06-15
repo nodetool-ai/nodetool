@@ -8,9 +8,10 @@ import {
   ListItemText,
   ListItemIcon
 } from "@mui/material";
-import { FlexRow, Tooltip, EmptyState, Box, BORDER_RADIUS } from "../ui_primitives";
+import { FlexRow, Tooltip, EmptyState, Box, Text, BORDER_RADIUS } from "../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 import FavoriteStar from "./FavoriteStar";
+import RecommendedDownloadRow from "./shared/RecommendedDownloadRow";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import {
   isLocalProvider,
@@ -18,6 +19,7 @@ import {
   isHuggingFaceInferenceProvider
 } from "../../utils/providerDisplay";
 import { ModelSelectorModel } from "../../stores/ModelMenuStore";
+import type { UnifiedModel } from "../../stores/ApiTypes";
 
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useModelAvailability } from "../../hooks/useModelAvailability";
@@ -26,6 +28,18 @@ import { useNavigate } from "react-router-dom";
 import type { Theme } from "@mui/material/styles";
 
 const ROW_HEIGHT = 50;
+const DOWNLOAD_ROW_HEIGHT = 56;
+const SECTION_HEADER_HEIGHT = 36;
+
+export type DownloadableModel = UnifiedModel & {
+  downloaded: boolean;
+  checking: boolean;
+};
+
+type ListRow<TModel> =
+  | { kind: "model"; model: TModel; modelIndex: number }
+  | { kind: "downloadHeader" }
+  | { kind: "download"; model: DownloadableModel };
 
 const LIST_ITEM_BUTTON_SX = { width: "100%", textAlign: "left" } as const;
 const LIST_ITEM_ICON_SX = { minWidth: 30 } as const;
@@ -120,21 +134,30 @@ export interface ModelListProps<TModel extends ModelSelectorModel> {
   models: TModel[];
   onSelect: (m: TModel) => void;
   searchTerm?: string;
-  /** Called when the user clicks the "Browse Downloads" CTA in the empty state */
-  onGoToDownloads?: () => void;
   /** Whether the dialog has recommended downloads available */
   hasDownloads?: boolean;
   /** Index of the keyboard-highlighted row (-1 when none). */
   activeIndex?: number;
+  /**
+   * Recommended models that can be downloaded, folded into the same list under
+   * an "Available to download" section. Downloaded ones are selectable in place.
+   */
+  downloadModels?: DownloadableModel[];
+  /** Select an already-downloaded recommended model. */
+  onDownloadSelect?: (m: UnifiedModel) => void;
+  /** Start downloading a recommended model. */
+  onDownloadStart?: (m: UnifiedModel) => void;
 }
 
 function ModelList<TModel extends ModelSelectorModel>({
   models,
   onSelect,
   searchTerm = "",
-  onGoToDownloads,
   hasDownloads = false,
-  activeIndex = -1
+  activeIndex = -1,
+  downloadModels = [],
+  onDownloadSelect,
+  onDownloadStart
 }: ModelListProps<TModel>) {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
   const getAvailability = useModelAvailability();
@@ -176,12 +199,42 @@ function ModelList<TModel extends ModelSelectorModel>({
     whiteSpace: "nowrap"
   }), [theme.vars.fontSizeTiny, theme.vars.palette.text.secondary]);
 
+  // Flatten selectable models + recommended downloads into one virtualized
+  // list. Model rows stay first and 1:1 with `models`, so a model's flat index
+  // equals its array index — keyboard navigation (activeIndex) maps directly.
+  const flatRows = useMemo<ListRow<TModel>[]>(() => {
+    const rows: ListRow<TModel>[] = models.map((model, modelIndex) => ({
+      kind: "model",
+      model,
+      modelIndex
+    }));
+    if (downloadModels.length > 0) {
+      rows.push({ kind: "downloadHeader" });
+      for (const model of downloadModels) {
+        rows.push({ kind: "download", model });
+      }
+    }
+    return rows;
+  }, [models, downloadModels]);
+
   const virtualizer = useVirtualizer({
-    count: models.length,
+    count: flatRows.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => ROW_HEIGHT,
+    estimateSize: (index) => {
+      const row = flatRows[index];
+      if (row.kind === "downloadHeader") return SECTION_HEADER_HEIGHT;
+      if (row.kind === "download") return DOWNLOAD_ROW_HEIGHT;
+      return ROW_HEIGHT;
+    },
     overscan: theme.virtualScroll.overscan.large,
-    getItemKey: (index) => `${models[index].provider}:${models[index].id}`,
+    getItemKey: (index) => {
+      const row = flatRows[index];
+      if (row.kind === "downloadHeader") return "download-header";
+      if (row.kind === "download") {
+        return `download:${row.model.provider ?? ""}:${row.model.id}:${row.model.path ?? ""}`;
+      }
+      return `${row.model.provider}:${row.model.id}`;
+    }
   });
 
   // Keep the keyboard-highlighted row scrolled into view.
@@ -202,8 +255,15 @@ function ModelList<TModel extends ModelSelectorModel>({
   }, [models, onSelect]);
 
   const renderRow = useCallback(
-    ({ index, style }: { index: number; style: React.CSSProperties }) => {
-      const m = models[index];
+    ({
+      m,
+      index,
+      style
+    }: {
+      m: TModel;
+      index: number;
+      style: React.CSSProperties;
+    }) => {
       const fav = isFavorite(m.provider || "", m.id || "");
       const { available, providerEnabled, hasKey } = getAvailability(m);
       const isActive = index === activeIndex;
@@ -314,7 +374,6 @@ function ModelList<TModel extends ModelSelectorModel>({
       );
     },
     [
-      models,
       isFavorite,
       getAvailability,
       activeIndex,
@@ -327,9 +386,57 @@ function ModelList<TModel extends ModelSelectorModel>({
     ]
   );
 
+  const renderFlatRow = useCallback(
+    (rowIndex: number, style: React.CSSProperties) => {
+      const row = flatRows[rowIndex];
+      if (row.kind === "model") {
+        return renderRow({ m: row.model, index: row.modelIndex, style });
+      }
+      if (row.kind === "downloadHeader") {
+        return (
+          <div style={style}>
+            <Box
+              sx={{
+                px: 1.5,
+                pt: 1.5,
+                pb: 0.5,
+                display: "flex",
+                alignItems: "flex-end",
+                height: "100%"
+              }}
+            >
+              <Text
+                sx={{
+                  fontSize: "var(--fontSizeSmall)",
+                  fontWeight: 600,
+                  color: "text.secondary",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.5
+                }}
+              >
+                Available to download
+              </Text>
+            </Box>
+          </div>
+        );
+      }
+      return (
+        <RecommendedDownloadRow
+          model={row.model}
+          downloaded={row.model.downloaded}
+          checking={row.model.checking}
+          onSelect={() => onDownloadSelect?.(row.model)}
+          onDownload={() => onDownloadStart?.(row.model)}
+          style={style}
+        />
+      );
+    },
+    [flatRows, renderRow, onDownloadSelect, onDownloadStart]
+  );
+
   return (
     <Box sx={{ height: "100%", minHeight: 320, overflow: "hidden" }}>
-      {models.length === 0 ? (
+      {flatRows.length === 0 ? (
         searchTerm.trim().length > 0 ? (
           <EmptyState
             variant="no-results"
@@ -361,8 +468,8 @@ function ModelList<TModel extends ModelSelectorModel>({
                 </Box>
               </>
             }
-            actionText="Browse Recommended Downloads"
-            onAction={onGoToDownloads}
+            actionText="Open Settings"
+            onAction={handleOpenSettings}
           />
         ) : (
           <EmptyState
@@ -411,19 +518,18 @@ function ModelList<TModel extends ModelSelectorModel>({
               position: "relative",
             }}
           >
-            {virtualizer.getVirtualItems().map((vi) =>
-              renderRow({
-                index: vi.index,
-                style: {
+            {virtualizer.getVirtualItems().map((vi) => (
+              <React.Fragment key={vi.key}>
+                {renderFlatRow(vi.index, {
                   position: "absolute",
                   top: 0,
                   left: 0,
                   width: "100%",
                   height: vi.size,
                   transform: `translateY(${vi.start}px)`,
-                },
-              })
-            )}
+                })}
+              </React.Fragment>
+            ))}
           </div>
         </div>
       )}

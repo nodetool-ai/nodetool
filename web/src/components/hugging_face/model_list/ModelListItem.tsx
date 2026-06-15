@@ -24,10 +24,12 @@ const ModelListItem: React.FC<
     showFileExplorerButton?: boolean;
     compatibility?: ModelCompatibilityResult;
     isCheckingCache?: boolean;
+    onSelect?: () => void;
   }
 > = ({
   model,
   onDownload,
+  onSelect,
   handleModelDelete,
   handleShowInExplorer,
   compactView = false,
@@ -53,6 +55,18 @@ const ModelListItem: React.FC<
     setDialogOpen(false);
   }, []);
 
+  const handleRowClick = useCallback(
+    (e: React.MouseEvent) => {
+      // Don't select when the click lands on a link or button inside the row
+      // (e.g. the HuggingFace name link or an action button).
+      if ((e.target as HTMLElement).closest("a, button")) {
+        return;
+      }
+      onSelect?.();
+    },
+    [onSelect]
+  );
+
   const compatibilityCounts = useMemo(() => {
     if (!compatibility) {return { total: 0 };}
     return {
@@ -72,12 +86,15 @@ const ModelListItem: React.FC<
       </Box>
     );
   }
+  const selectable = !!onSelect && !!model.downloaded;
   return (
     <Box
       css={modelListItemStyles(theme)}
       className={`model-list-item ${compactView ? "compact " : ""} ${
-        model.downloaded ? "downloaded" : ""
-      }`}
+        model.downloaded ? "downloaded " : ""
+      }${selectable ? "selectable" : ""}`}
+      onClick={selectable ? handleRowClick : undefined}
+      sx={selectable ? { cursor: "pointer" } : undefined}
     >
       <div className="model-content">
         <div className="model-top-row">
@@ -119,7 +136,11 @@ const ModelListItem: React.FC<
                   </>
                 );
 
-                if (!modelUrl) {
+                // When the row itself is selectable, render the name as plain
+                // text so clicking it selects the model instead of navigating
+                // to the repo. The HuggingFace link icon in the actions area
+                // still provides access to the repo page.
+                if (!modelUrl || selectable) {
                   return (
                     <div className="model-name-link no-link" title={full}>
                       {content}
@@ -237,6 +258,7 @@ const ModelListItem: React.FC<
             <ModelListItemActions
               model={model}
               onDownload={onDownload}
+              onSelect={onSelect}
               handleModelDelete={handleModelDelete}
               handleShowInExplorer={handleShowInExplorer}
               showFileExplorerButton={showFileExplorerButton}

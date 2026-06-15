@@ -68,6 +68,23 @@ const ModelProperty = (props: PropertyProps) => {
     props.nodeType
   );
 
+  // Provider-locked nodes (e.g. mlx.text_generation, document.SplitDocument)
+  // declare a concrete provider in their model field's default. Constrain the
+  // picker to that provider so it doesn't offer models the node can't run.
+  // Generic nodes (agents, generators, …) default to the `empty` sentinel (or
+  // no provider) → no constraint, all providers shown.
+  const lockedProviders = useMemo(() => {
+    const def = props.property.default;
+    const provider =
+      def && typeof def === "object"
+        ? (def as { provider?: string }).provider
+        : undefined;
+    if (!provider || provider === "empty") {
+      return undefined;
+    }
+    return [provider];
+  }, [props.property.default]);
+
   const modelClass = useMemo(
     () => `model-type-${modelType.replace(/\./g, "-")}`,
     [modelType]
@@ -109,6 +126,7 @@ const ModelProperty = (props: PropertyProps) => {
         <LanguageModelSelect
           onChange={props.onChange}
           value={props.value?.id || ""}
+          allowedProviders={lockedProviders}
           recommendedModels={recommendedModels}
           modelPacks={modelPacks}
         />
@@ -118,6 +136,7 @@ const ModelProperty = (props: PropertyProps) => {
         <EmbeddingModelSelect
           onChange={props.onChange}
           value={props.value?.id || ""}
+          allowedProviders={lockedProviders}
           recommendedModels={recommendedModels}
           modelPacks={modelPacks}
         />
@@ -195,7 +214,7 @@ const ModelProperty = (props: PropertyProps) => {
       );
     }
     return null;
-  }, [modelType, props.nodeType, props.onChange, props.value, imageTask, videoTask, model3dTask, recommendedModels, modelPacks]);
+  }, [modelType, props.nodeType, props.onChange, props.value, imageTask, videoTask, model3dTask, recommendedModels, modelPacks, lockedProviders]);
 
   if (isConnected) {
     return (
