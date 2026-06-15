@@ -115,26 +115,28 @@ describe("<SelectionActionBar />", () => {
     selectAll();
     const { getByTestId, getByRole } = renderBar(containerRef());
     expect(getByTestId("sketch-selection-action-bar")).toBeTruthy();
+    expect(getByTestId("sketch-selection-mode-edit")).toBeTruthy();
+    expect(getByTestId("sketch-selection-mode-inpaint")).toBeTruthy();
     expect(getByTestId("sketch-selection-inpaint-prompt")).toBeTruthy();
-    expect(getByTestId("sketch-selection-inpaint")).toBeTruthy();
+    expect(getByTestId("sketch-selection-generate")).toBeTruthy();
     expect(getByTestId("sketch-selection-remove")).toBeTruthy();
     expect(getByTestId("sketch-selection-refine-edge")).toBeTruthy();
     expect(getByRole("button", { name: "Dismiss selection" })).toBeTruthy();
   });
 
-  it("keeps Inpaint disabled until a prompt is typed", () => {
+  it("keeps the run button disabled until a prompt is typed", () => {
     useSketchSessionStore.setState({ documentId: "doc-1" });
     seedModel();
     selectAll();
     const { getByTestId, getByPlaceholderText } = renderBar(containerRef());
-    expect(getByTestId("sketch-selection-inpaint")).toBeDisabled();
+    expect(getByTestId("sketch-selection-generate")).toBeDisabled();
     fireEvent.change(getByPlaceholderText("Replace selection with…"), {
       target: { value: "a blue sky" }
     });
-    expect(getByTestId("sketch-selection-inpaint")).not.toBeDisabled();
+    expect(getByTestId("sketch-selection-generate")).not.toBeDisabled();
   });
 
-  it("runs the inpaint job when Inpaint is clicked", async () => {
+  it("runs the inpaint job (inpaint mode) when the run button is clicked", async () => {
     mockInpaint.mockResolvedValue({ ok: true, layerId: "layer-1" });
     useSketchSessionStore.setState({ documentId: "doc-1" });
     seedModel();
@@ -143,9 +145,25 @@ describe("<SelectionActionBar />", () => {
     fireEvent.change(getByPlaceholderText("Replace selection with…"), {
       target: { value: "a blue sky" }
     });
-    fireEvent.click(getByTestId("sketch-selection-inpaint"));
+    fireEvent.click(getByTestId("sketch-selection-generate"));
     await waitFor(() => expect(mockInpaint).toHaveBeenCalledTimes(1));
+    expect(mockInpaint).toHaveBeenCalledWith(
+      expect.objectContaining({ mode: "inpaint", prompt: "a blue sky" })
+    );
     await waitFor(() => expect(mockStart).toHaveBeenCalledWith("layer-1"));
+  });
+
+  it("switches to edit mode and dispatches an image-to-image edit", async () => {
+    mockInpaint.mockResolvedValue({ ok: true, layerId: "layer-2" });
+    useSketchSessionStore.setState({ documentId: "doc-1" });
+    seedModel();
+    selectAll();
+    const { getByTestId, getByPlaceholderText } = renderBar(containerRef());
+
+    // Switching mode clears the seeded model, so the run stays disabled until a
+    // new model would be picked — but the prompt placeholder must change.
+    fireEvent.click(getByTestId("sketch-selection-mode-edit"));
+    expect(getByPlaceholderText("Describe the edit…")).toBeTruthy();
   });
 
   it("Dismiss clears the active selection", () => {

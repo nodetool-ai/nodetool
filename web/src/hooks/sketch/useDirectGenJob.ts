@@ -98,38 +98,45 @@ export function useDirectGenJob(): UseDirectGenJobApi {
       sourceAssetId = binding.sourceAssetId;
       maskAssetId = binding.maskAssetId;
     } else if (binding.kind === "image-to-image") {
-      if (!binding.sourceLayerId) {
+      if (binding.sourceAssetId) {
+        // Selection-overlay "edit" path: the source composite is already
+        // uploaded as a throwaway asset on the binding.
+        sourceAssetId = binding.sourceAssetId;
+      } else if (!binding.sourceLayerId) {
         bindings.patchBinding(layerId, { status: "failed" });
         return;
-      }
-      const sourceLayer = sketch.document.layers.find(
-        (l) => l.id === binding.sourceLayerId
-      );
-      if (!sourceLayer) {
-        bindings.patchBinding(layerId, { status: "failed" });
-        return;
-      }
-      const fromUri = assetIdFromUri(sourceLayer.imageReference?.uri);
-      if (fromUri) {
-        sourceAssetId = fromUri;
       } else {
-        try {
-          const canvas = await exportLayer(sketch.document, sourceLayer.id);
-          if (!canvas) {
+        const sourceLayer = sketch.document.layers.find(
+          (l) => l.id === binding.sourceLayerId
+        );
+        if (!sourceLayer) {
+          bindings.patchBinding(layerId, { status: "failed" });
+          return;
+        }
+        const fromUri = assetIdFromUri(sourceLayer.imageReference?.uri);
+        if (fromUri) {
+          sourceAssetId = fromUri;
+        } else {
+          try {
+            const canvas = await exportLayer(sketch.document, sourceLayer.id);
+            if (!canvas) {
+              bindings.patchBinding(layerId, { status: "failed" });
+              return;
+            }
+            const blob = await canvasToBlob(canvas);
+            const file = new File(
+              [blob],
+              `${sourceLayer.name || "source"}.png`,
+              { type: "image/png" }
+            );
+            const uploaded = await useAssetStore
+              .getState()
+              .createAsset(file, undefined, undefined, undefined, "file");
+            sourceAssetId = uploaded.id;
+          } catch {
             bindings.patchBinding(layerId, { status: "failed" });
             return;
           }
-          const blob = await canvasToBlob(canvas);
-          const file = new File([blob], `${sourceLayer.name || "source"}.png`, {
-            type: "image/png"
-          });
-          const uploaded = await useAssetStore
-            .getState()
-            .createAsset(file, undefined, undefined, undefined, "file");
-          sourceAssetId = uploaded.id;
-        } catch {
-          bindings.patchBinding(layerId, { status: "failed" });
-          return;
         }
       }
     }
@@ -151,12 +158,23 @@ export function useDirectGenJob(): UseDirectGenJobApi {
       inFlight.delete(layerId);
     };
 
-    // The inpaint source/mask are throwaway uploads; once the backend is done
-    // with them (or never received them) they should not linger in the asset
-    // library. Best-effort — never block on cleanup.
-    const deleteInpaintTempAssets = () => {
-      if (binding.kind !== "inpaint") return;
-      for (const id of [binding.sourceAssetId, binding.maskAssetId]) {
+    // The selection-overlay source/mask are throwaway uploads; once the backend
+    // is done with them (or never received them) they should not linger in the
+    // asset library. Best-effort — never block on cleanup. The inspector-driven
+    // image-to-image path (which has a sourceLayerId) reuses real layer assets,
+    // so only the overlay path's uploads (no sourceLayerId) are cleaned up here.
+    const deleteTempUploads = () => {
+      const ids: Array<string | null | undefined> = [];
+      if (binding.kind === "inpaint") {
+        ids.push(binding.sourceAssetId, binding.maskAssetId);
+      } else if (
+        binding.kind === "image-to-image" &&
+        binding.sourceAssetId &&
+        !binding.sourceLayerId
+      ) {
+        ids.push(binding.sourceAssetId);
+      }
+      for (const id of ids) {
         if (id) {
           void useAssetStore
             .getState()
@@ -171,7 +189,7 @@ export function useDirectGenJob(): UseDirectGenJobApi {
       const store = useSketchSessionStore.getState();
       if (msg.error) {
         // rpc_response means the backend has finished reading the inputs.
-        deleteInpaintTempAssets();
+        deleteTempUploads();
         store.patchBinding(layerId, { status: "failed" });
         return;
       }
@@ -182,7 +200,7 @@ export function useDirectGenJob(): UseDirectGenJobApi {
         : [];
       const first = assetIds[0];
       if (!first) {
-        deleteInpaintTempAssets();
+        deleteTempUploads();
         store.patchBinding(layerId, { status: "failed" });
         return;
       }
@@ -192,7 +210,7 @@ export function useDirectGenJob(): UseDirectGenJobApi {
         // Providers return a full-frame image for inpainting. Clip it to the
         // selection mask so the new layer only overlays the inpainted region
         // and leaves the rest of the canvas to the layers below. This needs the
-        // mask asset, so it must run before deleteInpaintTempAssets().
+        // mask asset, so it must run before deleteTempUploads().
         if (binding.kind === "inpaint" && binding.maskAssetId) {
           try {
             const [generatedAsset, maskAsset] = await Promise.all([
@@ -232,7 +250,7 @@ export function useDirectGenJob(): UseDirectGenJobApi {
             // Fall back to the unmasked full-frame result.
           }
         }
-        deleteInpaintTempAssets();
+        deleteTempUploads();
 
         const asset = await useAssetStore.getState().get(finalAssetId);
         const url = getAssetUrl(asset) ?? `asset://${finalAssetId}.png`;
@@ -303,7 +321,7 @@ export function useDirectGenJob(): UseDirectGenJobApi {
     } catch {
       cleanup();
       // Send never reached the backend, so the uploads are orphaned.
-      deleteInpaintTempAssets();
+      deleteTempUploads();
       useSketchSessionStore
         .getState()
         .patchBinding(layerId, { status: "failed" });
