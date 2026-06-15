@@ -21,6 +21,7 @@ import React, {
   useState,
   type RefObject
 } from "react";
+import { keyframes } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -34,6 +35,7 @@ import {
   EditorButton,
   FlexRow,
   LoadingSpinner,
+  reducedMotion,
   TextInput,
   Toast,
   Tooltip
@@ -58,6 +60,16 @@ import { RefineSelectionPopover } from "./tool-settings-panels/refine-selection"
 const BAR_GAP = 12;
 /** Keep the bar this far inside the container edges. */
 const EDGE_MARGIN = 8;
+
+/**
+ * Calm breathing pulse for the in-progress "generating" treatment, shared by
+ * the action bar and the selection region so both read with the same motion
+ * while a generation is in flight.
+ */
+const generatingPulse = keyframes`
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+`;
 
 interface SelectionActionBarProps {
   containerRef: RefObject<HTMLDivElement | null>;
@@ -138,6 +150,15 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // start() resolves as soon as the RPC is sent — the actual generation runs
+  // for seconds afterwards and only surfaces through the binding status. Track
+  // the kicked-off layer so the in-progress treatment lasts the whole job.
+  const [jobLayerId, setJobLayerId] = useState<string | null>(null);
+  const jobStatus = useSketchSessionStore((s) =>
+    jobLayerId ? s.bindings[jobLayerId]?.status : undefined
+  );
+  const jobRunning = jobStatus === "queued" || jobStatus === "generating";
+
   const [refineOpen, setRefineOpen] = useState(false);
   const refineAnchorRef = useRef<HTMLButtonElement | null>(null);
 
@@ -195,6 +216,7 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
         mode
       });
       if (!result.ok) {
+        setJobLayerId(null);
         switch (result.reason) {
           case "no-selection":
             setError("Make a selection first.");
@@ -211,6 +233,7 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
         }
         return;
       }
+      setJobLayerId(result.layerId);
       await start(result.layerId);
       setPrompt("");
     } catch (e) {
@@ -230,7 +253,9 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
     setSelection(null);
   }, [setSelection]);
 
-  const isBusy = inpaintBusy || generating;
+  // inpaintBusy: composite/mask upload. generating: the start() await window.
+  // jobRunning: the backend job, the long part. Any of them = in progress.
+  const isBusy = inpaintBusy || generating || jobRunning;
   const generateDisabled = isBusy || !prompt.trim() || !model;
 
   // ── Visibility gate ──────────────────────────────────────────────────────
@@ -286,8 +311,71 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
     topCss = placeAbove ? topMid.y - BAR_GAP : bottomMid.y + BAR_GAP;
   }
 
+  // Bounding box of the selection in container CSS px, used to anchor the
+  // in-progress glow over the region being generated.
+  let regionStyle: { left: number; top: number; width: number; height: number } | null =
+    null;
+  if (bounds) {
+    const topLeft = docToCss(
+      bounds.x,
+      bounds.y,
+      docW,
+      docH,
+      zoom,
+      pan,
+      containerSize.w,
+      containerSize.h
+    );
+    regionStyle = {
+      left: topLeft.x,
+      top: topLeft.y,
+      width: bounds.width * zoom,
+      height: bounds.height * zoom
+    };
+  }
+
+  // Gently pulsing glow ring shared by the action bar and the selection region
+  // while a generation is in flight. Reduced motion holds it at a steady glow.
+  const ch = theme.vars.palette.primary.mainChannel;
+  const generatingRing = {
+    content: '""',
+    position: "absolute" as const,
+    inset: "-2px",
+    borderRadius: "inherit",
+    border: `1.5px solid rgba(${ch} / 0.9)`,
+    boxShadow: `0 0 12px rgba(${ch} / 0.5)`,
+    animation: `${generatingPulse} 1.6s ease-in-out infinite`,
+    pointerEvents: "none",
+    ...reducedMotion({ animation: "none", opacity: 0.7 })
+  };
+
   return (
     <>
+      {/* In-progress glow over the region being generated. Sits above the
+          marching-ants overlay (which still outlines the exact selection) and
+          just below the action bar. */}
+      {isBusy && regionStyle && (
+        <Box
+          aria-hidden
+          className="sketch-selection-processing"
+          data-testid="sketch-selection-processing"
+          sx={{
+            position: "absolute",
+            left: regionStyle.left,
+            top: regionStyle.top,
+            width: regionStyle.width,
+            height: regionStyle.height,
+            minWidth: 8,
+            minHeight: 8,
+            pointerEvents: "none",
+            zIndex: SKETCH_Z_INDEX.overlay + 4,
+            borderRadius: BORDER_RADIUS.sm,
+            backgroundColor: `rgba(${ch} / 0.1)`,
+            boxShadow: `inset 0 0 0 1px rgba(${ch} / 0.45)`,
+            "&::after": generatingRing
+          }}
+        />
+      )}
       <FlexRow
         className="sketch-selection-action-bar"
         data-testid="sketch-selection-action-bar"
@@ -305,7 +393,12 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
           backgroundColor: theme.vars.palette.grey[900],
           border: `1px solid ${theme.vars.palette.grey[700]}`,
           boxShadow: theme.shadows[6],
-          whiteSpace: "nowrap"
+          whiteSpace: "nowrap",
+          // Glowing rotating border while a generation is running. zIndex -1
+          // keeps it behind the opaque bar so only the outset frame shows.
+          ...(isBusy && {
+            "&::after": { ...generatingRing, zIndex: -1 }
+          })
         }}
         // Stop pointer-down from reaching the canvas so clicking the bar never
         // starts a stroke / new selection on the tool underneath.
