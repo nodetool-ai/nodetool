@@ -49,6 +49,7 @@ import type {
   TextToImageParams,
   TextToVideoParams,
   ImageToImageParams,
+  InpaintingParams,
   ImageToVideoParams
 } from "@nodetool-ai/runtime";
 import {
@@ -4777,7 +4778,7 @@ export class UnifiedWebSocketRunner {
       ]);
       if (!sourceBytes) throw new Error(`Source asset bytes not found: ${req.sourceAssetId}`);
       if (!maskBytes) throw new Error(`Mask asset bytes not found: ${req.maskAssetId}`);
-      const params: ImageToImageParams = {
+      const params: InpaintingParams = {
         model: imageModel,
         prompt: req.prompt,
         targetWidth: req.width ?? null,
@@ -4786,7 +4787,7 @@ export class UnifiedWebSocketRunner {
         numInferenceSteps: req.numInferenceSteps ?? null,
         mask: maskBytes
       };
-      images = await provider.imageToImages([sourceBytes], params, variations);
+      images = await provider.inpaintImages([sourceBytes], params, variations);
     } else {
       if (!req.sourceAssetId) {
         throw new Error("source_asset_id is required for image_edit");

@@ -387,6 +387,14 @@ export function buildImageModels(
     if (!id || seen.has(id)) continue;
     const name = nodeName(n);
     const tasks = explicitTasks(n) ?? inferImageTasks(name, id);
+    // Endpoints that declare a mask image input support inpainting (mask-guided
+    // editing). Tag them so the inpaint capability/picker can find them.
+    if (
+      !tasks.includes("inpainting") &&
+      selectMaskImageInput(manifestEntryImageInputs(n))
+    ) {
+      tasks.push("inpainting");
+    }
     // Image-typed entries always qualify. `dict`-typed entries (FAL endpoints
     // whose response schema is an object, e.g. clarity-upscaler) are salvaged
     // only when they're recognizable image transforms, so the picker can offer

@@ -141,6 +141,7 @@ export type {
   ImageTo3DParams,
   TextToImageParams,
   ImageToImageParams,
+  InpaintingParams,
   TextToVideoParams,
   ImageToVideoParams,
   ProviderStreamItem,

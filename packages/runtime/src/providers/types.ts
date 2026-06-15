@@ -148,8 +148,17 @@ export interface ImageToImageParams {
   strength?: number | null;
   seed?: number | null;
   scheduler?: string | null;
-  /** Mask image for inpainting — white pixels indicate the region to regenerate. */
-  mask?: Uint8Array | null;
+}
+
+/**
+ * Inpaint (mask-guided edit): regenerate the masked region of one or more
+ * source images according to a prompt. Identical to {@link ImageToImageParams}
+ * but the `mask` is required — endpoints are selected and routed by their
+ * declared mask field. White pixels in the mask mark the region to regenerate.
+ */
+export interface InpaintingParams extends ImageToImageParams {
+  /** Mask image — white pixels indicate the region to regenerate. */
+  mask: Uint8Array;
 }
 
 /**

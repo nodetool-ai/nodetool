@@ -4,6 +4,7 @@ import type {
   ImageModel,
   ImageTo3DParams,
   ImageToImageParams,
+  InpaintingParams,
   ImageToVideoParams,
   LanguageModel,
   LipSyncParams,
@@ -53,6 +54,7 @@ export type ProviderCapability =
   | "generate_messages"
   | "text_to_image"
   | "image_to_image"
+  | "inpainting"
   | "upscale_image"
   | "remove_background"
   | "relight_image"
@@ -100,6 +102,9 @@ export function providerCapabilities(
   // they reuse Image/VideoModel (advertised via each model's `supportedTasks`).
   // Advertise the provider-level capability when the concrete class overrides
   // the matching task method.
+  if (instance.inpaint !== BaseProvider.prototype.inpaint) {
+    capabilities.push("inpainting");
+  }
   if (instance.upscaleImage !== BaseProvider.prototype.upscaleImage) {
     capabilities.push("upscale_image");
   }
@@ -580,6 +585,39 @@ export abstract class BaseProvider {
     const results: Uint8Array[] = [];
     for (let i = 0; i < numImages; i++) {
       results.push(await this.imageToImage(images, params));
+    }
+    return results;
+  }
+
+  /**
+   * Inpaint: regenerate the masked region of one or more source images
+   * according to a prompt. Like {@link imageToImage} but mask-guided — the mask
+   * is routed to whatever mask input the target endpoint declares.
+   *
+   * The first image is the primary subject; the mask in `params.mask` marks the
+   * region to regenerate (white = regenerate).
+   */
+  async inpaint(
+    _images: Uint8Array[],
+    _params: InpaintingParams
+  ): Promise<Uint8Array> {
+    throw new Error(`${this.provider} does not support inpaint`);
+  }
+
+  /**
+   * Generate multiple inpaint results in one logical call.
+   *
+   * Default implementation calls inpaint() sequentially as a fallback.
+   * Providers that support native batch generation should override this.
+   */
+  async inpaintImages(
+    images: Uint8Array[],
+    params: InpaintingParams,
+    numImages: number
+  ): Promise<Uint8Array[]> {
+    const results: Uint8Array[] = [];
+    for (let i = 0; i < numImages; i++) {
+      results.push(await this.inpaint(images, params));
     }
     return results;
   }
