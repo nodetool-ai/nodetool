@@ -2,9 +2,11 @@
  * SelectionActionBar — floating contextual toolbar anchored to the active
  * selection (Photoshop-style). Appears below (or above, when near the bottom
  * edge) the selection's bounding box and surfaces the selection-driven
- * actions: an inline Inpaint form (prompt + model + run, using the selection as
- * a mask), Remove (clear masked pixels), and Refine edge (the existing
- * RefineSelectionPopover).
+ * actions: an Edit/Inpaint mode toggle with an inline form (prompt + model +
+ * run) — Edit runs image-to-image on the whole frame, Inpaint regenerates only
+ * the selected region using the selection as a mask — plus Remove (clear masked
+ * pixels) and Refine edge (the existing RefineSelectionPopover). The model
+ * picker filters to the chosen mode's models (inpainting vs image-to-image).
  *
  * Mounted inside SketchCanvasPresentation next to the TransformGizmo so it
  * shares the canvas container and stays viewport-aware (zoom / pan). Like the
@@ -42,7 +44,10 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useSketchStore } from "./state";
 import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
 import { useSketchCanvasRefStore } from "../../stores/sketch/SketchCanvasRefStore";
-import { useInpaintHere } from "../../hooks/sketch/useInpaintHere";
+import {
+  useInpaintHere,
+  type SelectionGenMode
+} from "../../hooks/sketch/useInpaintHere";
 import { useDirectGenJob } from "../../hooks/sketch/useDirectGenJob";
 import { getSelectionBounds } from "./selection";
 import type { Point } from "./types";
@@ -125,6 +130,7 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
   const { inpaintHere, isBusy: inpaintBusy } = useInpaintHere();
   const { start } = useDirectGenJob();
 
+  const [mode, setMode] = useState<SelectionGenMode>("inpaint");
   const [prompt, setPrompt] = useState("");
   const [seed] = useState(seedModelFromBindings);
   const [model, setModel] = useState(seed.model);
@@ -165,18 +171,31 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
     setProvider(v.provider);
   }, []);
 
-  const handleInpaint = useCallback(async () => {
+  // Switching mode changes which models qualify (inpainting vs image-to-image),
+  // so drop the current pick and let the user choose one valid for the new mode.
+  const handleModeChange = useCallback(
+    (next: SelectionGenMode) => {
+      if (next === mode) return;
+      setMode(next);
+      setModel("");
+      setProvider("");
+    },
+    [mode]
+  );
+
+  const handleGenerate = useCallback(async () => {
     setGenerating(true);
     try {
       const result = await inpaintHere({
         prompt: prompt.trim(),
         provider,
-        model
+        model,
+        mode
       });
       if (!result.ok) {
         switch (result.reason) {
           case "no-selection":
-            setError("Make a selection first to inpaint.");
+            setError("Make a selection first.");
             break;
           case "no-document":
             setError("No image document is open.");
@@ -185,7 +204,7 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
             setError("Canvas is not ready yet.");
             break;
           case "error":
-            setError(result.message ?? "Inpaint failed.");
+            setError(result.message ?? "Generation failed.");
             break;
         }
         return;
@@ -193,11 +212,11 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
       await start(result.layerId);
       setPrompt("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Inpaint failed.");
+      setError(e instanceof Error ? e.message : "Generation failed.");
     } finally {
       setGenerating(false);
     }
-  }, [inpaintHere, start, prompt, provider, model]);
+  }, [inpaintHere, start, prompt, provider, model, mode]);
 
   const handleRemove = useCallback(() => {
     if (clearActiveLayer) {
@@ -210,7 +229,7 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
   }, [setSelection]);
 
   const isBusy = inpaintBusy || generating;
-  const inpaintDisabled = isBusy || !prompt.trim() || !model;
+  const generateDisabled = isBusy || !prompt.trim() || !model;
 
   // ── Visibility gate ──────────────────────────────────────────────────────
   const bounds =
@@ -290,18 +309,55 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
         // starts a stroke / new selection on the tool underneath.
         onPointerDown={(e: React.PointerEvent) => e.stopPropagation()}
       >
-        {/* Inline inpaint: prompt + model + run, using the selection as a mask. */}
+        {/* Mode toggle: Edit (image-to-image, no mask) vs Inpaint (selection
+            as a mask). The picked mode drives the model filter and the run. */}
+        <FlexRow gap={0} sx={{ flexShrink: 0, mr: 0.5 }}>
+          <Tooltip
+            title="Edit — transform the whole frame from your prompt (image-to-image, no mask)."
+            delay={TOOLTIP_ENTER_DELAY}
+            placement={placeAbove ? "top" : "bottom"}
+          >
+            <EditorButton
+              variant={mode === "edit" ? "contained" : "outlined"}
+              size="small"
+              onClick={() => handleModeChange("edit")}
+              data-testid="sketch-selection-mode-edit"
+            >
+              Edit
+            </EditorButton>
+          </Tooltip>
+          <Tooltip
+            title="Inpaint — regenerate only the selected region, using the selection as a mask."
+            delay={TOOLTIP_ENTER_DELAY}
+            placement={placeAbove ? "top" : "bottom"}
+          >
+            <EditorButton
+              variant={mode === "inpaint" ? "contained" : "outlined"}
+              size="small"
+              onClick={() => handleModeChange("inpaint")}
+              data-testid="sketch-selection-mode-inpaint"
+            >
+              Inpaint
+            </EditorButton>
+          </Tooltip>
+        </FlexRow>
+
+        {/* Inline prompt + model + run for the selected mode. */}
         <TextInput
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Replace selection with…"
+          placeholder={
+            mode === "inpaint"
+              ? "Replace selection with…"
+              : "Describe the edit…"
+          }
           compact
-          aria-label="Inpaint prompt"
+          aria-label={mode === "inpaint" ? "Inpaint prompt" : "Edit prompt"}
           data-testid="sketch-selection-inpaint-prompt"
           onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey && !inpaintDisabled) {
+            if (e.key === "Enter" && !e.shiftKey && !generateDisabled) {
               e.preventDefault();
-              void handleInpaint();
+              void handleGenerate();
             }
           }}
           slotProps={{
@@ -320,13 +376,17 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
         <Box sx={{ width: 120, flexShrink: 0 }}>
           <ImageModelSelect
             value={model}
-            task="image_to_image"
+            task={mode === "inpaint" ? "inpainting" : "image_to_image"}
             onChange={handleModelChange}
           />
         </Box>
 
         <Tooltip
-          title="Inpaint — regenerate the selected region using your prompt and the selection as a mask."
+          title={
+            mode === "inpaint"
+              ? "Inpaint — regenerate the selected region using your prompt and the selection as a mask."
+              : "Edit — transform the whole frame from your prompt."
+          }
           delay={TOOLTIP_ENTER_DELAY}
           placement={placeAbove ? "top" : "bottom"}
         >
@@ -334,8 +394,8 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
             <EditorButton
               variant="contained"
               size="small"
-              onClick={() => void handleInpaint()}
-              disabled={inpaintDisabled}
+              onClick={() => void handleGenerate()}
+              disabled={generateDisabled}
               startIcon={
                 isBusy ? (
                   <LoadingSpinner inline size={14} color="inherit" />
@@ -343,9 +403,9 @@ const SelectionActionBarInner: React.FC<SelectionActionBarProps> = ({
                   <AutoAwesomeIcon fontSize="small" />
                 )
               }
-              data-testid="sketch-selection-inpaint"
+              data-testid="sketch-selection-generate"
             >
-              Inpaint
+              {mode === "inpaint" ? "Inpaint" : "Edit"}
             </EditorButton>
           </span>
         </Tooltip>

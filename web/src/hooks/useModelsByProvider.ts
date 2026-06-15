@@ -154,6 +154,7 @@ export const useLanguageModelsByProvider = (options?: {
 export type ImageModelTask =
   | "text_to_image"
   | "image_to_image"
+  | "inpainting"
   | "upscale"
   | "remove_background"
   | "relight"
@@ -171,6 +172,7 @@ export type VideoModelTask =
  * task qualify. A model with no tasks never matches a specialized picker.
  */
 const STRICT_MODEL_TASKS = new Set<string>([
+  "inpainting",
   "upscale",
   "remove_background",
   "relight",
