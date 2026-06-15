@@ -297,9 +297,11 @@ const PanelRight: React.FC = () => {
   const setVisibility = useRightPanelStore((state) => state.setVisibility);
 
   const { pathname } = useLocation();
-  const bottomPanelSize = useBottomPanelStore((state) => state.panel.panelSize);
-  const bottomPanelVisible = useBottomPanelStore(
-    (state) => state.panel.isVisible
+  const { bottomPanelSize, bottomPanelVisible } = useBottomPanelStore(
+    useShallow((state) => ({
+      bottomPanelSize: state.panel.panelSize,
+      bottomPanelVisible: state.panel.isVisible
+    }))
   );
   // Mirror PanelBottom: it mounts under /editor and /workspace, collapsing to
   // the header bar when not visible. Subtract whatever it actually occupies so
