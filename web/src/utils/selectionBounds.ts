@@ -1,6 +1,6 @@
 import type { Edge, Node, ReactFlowInstance, XYPosition } from "@xyflow/react";
 
-export type SelectionRect = {
+type SelectionRect = {
   x: number;
   y: number;
   width: number;

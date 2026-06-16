@@ -141,19 +141,20 @@ const RunningCard = memo(function RunningCard({
   now,
   onCancel,
   isFocused,
-  onFocus
+  onFocusJob
 }: {
   job: Job;
   now: number;
   onCancel: (id: string) => void;
   isFocused: boolean;
-  onFocus?: () => void;
+  onFocusJob?: (jobId: string) => void;
 }) {
   const theme = useTheme();
   const name = useJobName(job);
   const elapsed = formatClock(job.started_at, now);
+  const handleFocus = useCallback(() => onFocusJob?.(job.id), [onFocusJob, job.id]);
 
-  const focusableSx: SxProps<Theme> = onFocus
+  const focusableSx: SxProps<Theme> = onFocusJob
     ? {
         cursor: "pointer",
         "&:hover": {
@@ -219,18 +220,18 @@ const RunningCard = memo(function RunningCard({
     </Box>
   );
 
-  if (onFocus) {
+  if (onFocusJob) {
     return (
       <Box
         role="button"
         tabIndex={0}
         aria-label="Show run on canvas"
         aria-pressed={isFocused}
-        onClick={onFocus}
+        onClick={handleFocus}
         onKeyDown={(e: React.KeyboardEvent) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            onFocus();
+            handleFocus();
           }
         }}
         sx={{
@@ -428,6 +429,15 @@ const QueueOverlay = memo(function QueueOverlay() {
     [queryClient]
   );
 
+  const handleFocusJob = useCallback(
+    (jobId: string) => {
+      if (currentWorkflowId) {
+        useWorkflowRunsStore.getState().setFocusedJob(currentWorkflowId, jobId);
+      }
+    },
+    [currentWorkflowId]
+  );
+
   // Keep the panel mounted through the exit animation before unmounting.
   const [mounted, setMounted] = useState(hasJobs);
   useEffect(() => {
@@ -548,14 +558,7 @@ const QueueOverlay = memo(function QueueOverlay() {
                     now={now}
                     onCancel={handleCancel}
                     isFocused={isCurrentWf && job.id === focusedJob}
-                    onFocus={
-                      isCurrentWf
-                        ? () =>
-                            useWorkflowRunsStore
-                              .getState()
-                              .setFocusedJob(currentWorkflowId!, job.id)
-                        : undefined
-                    }
+                    onFocusJob={isCurrentWf ? handleFocusJob : undefined}
                   />
                 );
               })}

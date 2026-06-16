@@ -18,7 +18,7 @@ export const hexToRgb = (hex: string): string | null => {
   )}`;
 };
 
-export interface HighlightResult {
+interface HighlightResult {
   html: string;
   highlightedWords: string[];
 }

@@ -7,12 +7,12 @@ import { EdgeOverrideCollector, applyNodeOverrides } from "./edgeOverrides";
 type GetResult = (_workflowId: string, _nodeId: string) => unknown;
 type GetMetadata = (_nodeType: string) => NodeMetadata | undefined;
 
-export interface BlockedUpstream {
+interface BlockedUpstream {
   nodeId: string;
   title: string;
 }
 
-export interface RunSubgraph {
+interface RunSubgraph {
   /** Target node plus every non-generative upstream pulled into the run. */
   nodes: Node<NodeData>[];
   /** Edges whose endpoints are both in the subgraph. */

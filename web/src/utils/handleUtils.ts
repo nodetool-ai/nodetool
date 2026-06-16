@@ -50,7 +50,7 @@ function getSelectNodeEffectiveOutputType(
 /**
  * Represents an output handle (either static or dynamic)
  */
-export interface OutputHandle {
+interface OutputHandle {
   name: string;
   type: TypeMetadata;
   stream: boolean;
@@ -60,7 +60,7 @@ export interface OutputHandle {
 /**
  * Represents an input handle (either static or dynamic)
  */
-export interface InputHandle {
+interface InputHandle {
   name: string;
   type: TypeMetadata;
   isDynamic: boolean;

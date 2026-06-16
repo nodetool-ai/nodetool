@@ -13,7 +13,7 @@
 
 import type { TypeMetadata } from "../stores/ApiTypes";
 
-export type ComfyPromptNode = {
+type ComfyPromptNode = {
   class_type: string;
   inputs: Record<string, unknown>;
   _meta?: { title?: string };
@@ -28,7 +28,7 @@ export type ComfyDynInput = TypeMetadata & {
 };
 
 /** A literal input that the user may optionally expose as a typed handle. */
-export interface ComfyParam {
+interface ComfyParam {
   handle: string; // "<id>:<field>"
   nodeId: string;
   field: string;
