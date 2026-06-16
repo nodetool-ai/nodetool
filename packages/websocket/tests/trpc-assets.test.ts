@@ -12,6 +12,7 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       ...actual.Asset,
       find: vi.fn(),
       paginate: vi.fn(),
+      searchAssetsGlobal: vi.fn(),
       getChildren: vi.fn(),
       create: vi.fn()
     }
@@ -435,24 +436,48 @@ describe("assets router", () => {
 
   // ── search ──────────────────────────────────────────────────────
   describe("search", () => {
-    it("filters by name substring (case-insensitive)", async () => {
+    it("searches the whole library via searchAssetsGlobal, not just the first page", async () => {
       const a1 = makeAsset({ id: "a1", name: "Vacation.png" });
-      const a2 = makeAsset({ id: "a2", name: "notes.pdf" });
       const a3 = makeAsset({ id: "a3", name: "HOLIDAY vacation.jpg" });
-      (Asset.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([
-        [a1, a2, a3],
-        ""
-      ]);
+      (
+        Asset.searchAssetsGlobal as ReturnType<typeof vi.fn>
+      ).mockResolvedValue([[a1, a3], "", []]);
 
       const caller = createCaller(makeCtx());
       const result = await caller.assets.search({ query: "vacation" });
+
+      // The DB-level global search is what makes matches past page one
+      // reachable; paginate-then-filter used to drop them.
+      expect(Asset.searchAssetsGlobal).toHaveBeenCalledWith("user-1", "vacation", {
+        limit: 200
+      });
       expect(result.assets.map((a) => a.id)).toEqual(["a1", "a3"]);
       expect(result.total_count).toBe(2);
       expect(result.is_global_search).toBe(true);
     });
 
+    it("forwards content_type and page_size to the global search", async () => {
+      (
+        Asset.searchAssetsGlobal as ReturnType<typeof vi.fn>
+      ).mockResolvedValue([[], "", []]);
+
+      const caller = createCaller(makeCtx());
+      await caller.assets.search({
+        query: "cat",
+        content_type: "image",
+        page_size: 24
+      });
+
+      expect(Asset.searchAssetsGlobal).toHaveBeenCalledWith("user-1", "cat", {
+        contentType: "image",
+        limit: 24
+      });
+    });
+
     it("sets is_global_search=false when workflow_id is present", async () => {
-      (Asset.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([[], ""]);
+      (
+        Asset.searchAssetsGlobal as ReturnType<typeof vi.fn>
+      ).mockResolvedValue([[], "", []]);
 
       const caller = createCaller(makeCtx());
       const result = await caller.assets.search({
