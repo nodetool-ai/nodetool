@@ -20,6 +20,7 @@ npm test                 # Run all tests
 npm run test:watch       # Watch mode
 npm run test:coverage    # Coverage report
 npm run test:e2e         # E2E tests (requires backend on port 7777)
+npm run test:e2e-runner  # In-browser workflow harness (boots backend + Vite, runs the suite)
 ```
 
 ## Directory Structure
@@ -27,6 +28,7 @@ npm run test:e2e         # E2E tests (requires backend on port 7777)
 ```
 web/src/
 ├── components/    # React UI components (PascalCase .tsx files)
+├── e2e_runner/    # In-browser graph harness — runs workflows vs. real backend (see README.md)
 ├── stores/        # Zustand state stores (single-domain each)
 ├── hooks/         # Custom React hooks (useX naming)
 ├── contexts/      # React contexts wrapping Zustand stores
@@ -49,6 +51,7 @@ web/src/
 - **[ServerState](serverState/AGENTS.md)** — TanStack Query patterns, cache invalidation
 - **[Lib](lib/AGENTS.md)** — WebSocket, Supabase, frontend tool integration
 - **[Config](config/AGENTS.md)** — Constants, shortcuts, model definitions
+- **[E2E Runner](e2e_runner/README.md)** — In-browser graph harness: loads a workflow suite, runs each against the real backend on the actual ReactFlow canvas, records IO/traces/screenshots into an HTML report
 
 ## Key Technologies
 
