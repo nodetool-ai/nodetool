@@ -1,7 +1,8 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Asset } from "../../stores/ApiTypes";
 import { LoadingSpinner, ScrollArea } from "../ui_primitives";
 
@@ -42,22 +43,19 @@ const styles = (theme: Theme) =>
  */
 const TextViewer: React.FC<TextViewerProps> = ({ asset }) => {
   const theme = useTheme();
-  const [document, setDocument] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!asset?.get_url) {return;}
-    fetch(asset.get_url)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Failed to fetch: ${response.status}`);
-        }
-        return response.text();
-      })
-      .then((text) => {
-        setDocument(text);
-      })
-      .catch(console.error);
-  }, [asset?.get_url]);
+  const { data: document } = useQuery({
+    queryKey: ["asset-text", asset?.get_url],
+    queryFn: async () => {
+      const response = await fetch(asset!.get_url!);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch: ${response.status}`);
+      }
+      return response.text();
+    },
+    enabled: !!asset?.get_url,
+    staleTime: Infinity
+  });
 
   return (
     <ScrollArea className="output text-viewer" css={styles(theme)} direction="vertical">

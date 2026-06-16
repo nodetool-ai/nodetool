@@ -27,6 +27,7 @@ import { isElectron } from "../../../utils/browser";
 interface ModelListItemActionsProps {
   model: UnifiedModel;
   onDownload?: () => void;
+  onSelect?: () => void;
   handleModelDelete?: (modelId: string) => void;
   handleShowInExplorer?: (modelId: string) => void;
   showFileExplorerButton?: boolean;
@@ -36,6 +37,7 @@ interface ModelListItemActionsProps {
 export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
   model,
   onDownload,
+  onSelect,
   handleModelDelete,
   handleShowInExplorer,
   showFileExplorerButton = true,
@@ -67,6 +69,14 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
     }
   }, [handleModelDelete, model.id]);
 
+  const handleSelectClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onSelect?.();
+    },
+    [onSelect]
+  );
+
   return (
     <div className="actions-container">
       {isCheckingCache && !downloaded && (
@@ -97,7 +107,17 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
           Download
         </EditorButton>
       )}
-      {downloaded && (
+      {downloaded && onSelect && (
+        <EditorButton
+          className="model-select-button"
+          onClick={handleSelectClick}
+          variant="contained"
+          startIcon={<Check sx={{ fontSize: "1.25em" }} />}
+        >
+          Use
+        </EditorButton>
+      )}
+      {downloaded && !onSelect && (
         <Tooltip
           title={
             handleShowInExplorer && !isProduction && isElectron

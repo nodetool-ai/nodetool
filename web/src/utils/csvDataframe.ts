@@ -41,6 +41,6 @@ export const parseCsvToDataframe = (
 /** Serialize a DataframeRef back to delimited text (header + rows). */
 export const dataframeToCsv = (df: DataframeRef, delimiter: string): string => {
   const fields = (df.columns ?? []).map((c) => c.name);
-  const data = (df.data ?? []) as unknown[][];
+  const data = df.data ?? [];
   return Papa.unparse({ fields, data }, { delimiter });
 };

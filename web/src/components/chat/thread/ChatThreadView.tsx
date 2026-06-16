@@ -27,6 +27,7 @@ import { createStyles } from "./ChatThreadView.styles";
 import PlanningUpdateDisplay from "../../node/PlanningUpdateDisplay";
 import TaskUpdateDisplay from "../../node/TaskUpdateDisplay";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
+import { useElapsedTime } from "../../../hooks/useElapsedTime";
 
 interface ChatThreadViewProps {
   messages: Message[];
@@ -70,26 +71,6 @@ function formatElapsed(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}m ${s}s`;
-}
-
-function useElapsedTime(active: boolean): number {
-  const [elapsed, setElapsed] = useState(0);
-  const startRef = useRef<number>(0);
-
-  useEffect(() => {
-    if (!active) {
-      setElapsed(0);
-      return;
-    }
-    startRef.current = Date.now();
-    setElapsed(0);
-    const id = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
-    }, 1000);
-    return () => clearInterval(id);
-  }, [active]);
-
-  return elapsed;
 }
 
 interface StatusFooterProps {

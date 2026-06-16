@@ -91,46 +91,55 @@ const MiniMapNavigator: React.FC = () => {
     handleCloseSettings();
   }, [setColorMode, handleCloseSettings]);
 
+  const nodeStrokeColor = useCallback(
+    (node: Node) => {
+      if (node.selected) {
+        return theme.vars.palette.primary.main;
+      }
+      return isDarkMode ? "#475569" : "#cbd5e1";
+    },
+    [theme.vars.palette.primary.main, isDarkMode]
+  );
+
+  const legendItems = useMemo(
+    () => [
+      {
+        category: NodeTypeCategory.Input,
+        label: "Input Nodes",
+        color: getNodeCategoryColor(NodeTypeCategory.Input, isDarkMode)
+      },
+      {
+        category: NodeTypeCategory.Constant,
+        label: "Constant Nodes",
+        color: getNodeCategoryColor(NodeTypeCategory.Constant, isDarkMode)
+      },
+      {
+        category: NodeTypeCategory.Processing,
+        label: "Processing Nodes",
+        color: getNodeCategoryColor(NodeTypeCategory.Processing, isDarkMode)
+      },
+      {
+        category: NodeTypeCategory.Group,
+        label: "Group Nodes",
+        color: getNodeCategoryColor(NodeTypeCategory.Group, isDarkMode)
+      },
+      {
+        category: NodeTypeCategory.Comment,
+        label: "Comment Nodes",
+        color: getNodeCategoryColor(NodeTypeCategory.Comment, isDarkMode)
+      },
+      {
+        category: NodeTypeCategory.Output,
+        label: "Output Nodes",
+        color: getNodeCategoryColor(NodeTypeCategory.Output, isDarkMode)
+      }
+    ],
+    [isDarkMode]
+  );
+
   if (!visible) {
     return null;
   }
-
-  const legendItems: Array<{
-    category: NodeTypeCategory;
-    label: string;
-    color: string;
-  }> = [
-    {
-      category: NodeTypeCategory.Input,
-      label: "Input Nodes",
-      color: getNodeCategoryColor(NodeTypeCategory.Input, isDarkMode)
-    },
-    {
-      category: NodeTypeCategory.Constant,
-      label: "Constant Nodes",
-      color: getNodeCategoryColor(NodeTypeCategory.Constant, isDarkMode)
-    },
-    {
-      category: NodeTypeCategory.Processing,
-      label: "Processing Nodes",
-      color: getNodeCategoryColor(NodeTypeCategory.Processing, isDarkMode)
-    },
-    {
-      category: NodeTypeCategory.Group,
-      label: "Group Nodes",
-      color: getNodeCategoryColor(NodeTypeCategory.Group, isDarkMode)
-    },
-    {
-      category: NodeTypeCategory.Comment,
-      label: "Comment Nodes",
-      color: getNodeCategoryColor(NodeTypeCategory.Comment, isDarkMode)
-    },
-    {
-      category: NodeTypeCategory.Output,
-      label: "Output Nodes",
-      color: getNodeCategoryColor(NodeTypeCategory.Output, isDarkMode)
-    }
-  ];
 
   return (
     <>
@@ -145,12 +154,7 @@ const MiniMapNavigator: React.FC = () => {
             nodeColor={nodeColor}
             maskColor={maskColor}
             nodeStrokeWidth={2}
-            nodeStrokeColor={(node: Node) => {
-              if (node.selected) {
-                return theme.vars.palette.primary.main;
-              }
-              return isDarkMode ? "#475569" : "#cbd5e1";
-            }}
+            nodeStrokeColor={nodeStrokeColor}
             nodeBorderRadius={8}
             zoomable
             pannable

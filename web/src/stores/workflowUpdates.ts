@@ -328,6 +328,25 @@ export type MsgpackData =
   | TerminalUpdate
   | Notification;
 
+function extractJobId(data: MsgpackData): string | undefined {
+  if ("job_id" in data) {
+    const id = data.job_id;
+    return typeof id === "string" ? id : undefined;
+  }
+  return undefined;
+}
+
+function isAudioChunkValue(value: unknown): value is Chunk {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "type" in value &&
+    value.type === "chunk" &&
+    "content_type" in value &&
+    value.content_type === "audio"
+  );
+}
+
 export const handleUpdate = (
   workflow: WorkflowAttributes,
   data: MsgpackData,
@@ -378,8 +397,7 @@ export const handleUpdate = (
   // them so concurrent same-workflow runs stay isolated. The backend stamps
   // job_id on every data message; if it's absent, skip the per-job write rather
   // than writing a malformed key.
-  const messageJobId =
-    (data as { job_id?: string | null }).job_id ?? undefined;
+  const messageJobId = extractJobId(data);
 
   if (data.type === "edge_update") {
     const currentState = runnerStore.getState().state;
@@ -484,11 +502,7 @@ export const handleUpdate = (
     // Realtime audio streams emit ~50 chunks/s per node; logging/tracing each
     // one would copy the (capped) log array per chunk for entries nobody
     // reads. Skip audio chunks entirely.
-    const isAudioChunk =
-      typeof normalizedValue === "object" &&
-      normalizedValue !== null &&
-      (normalizedValue as { type?: unknown }).type === "chunk" &&
-      (normalizedValue as { content_type?: unknown }).content_type === "audio";
+    const isAudioChunk = isAudioChunkValue(normalizedValue);
 
     // output_update feeds the output-node stream buffer only. It does NOT
     // create or modify a live generation — generations are driven solely by
@@ -506,7 +520,7 @@ export const handleUpdate = (
       // React-free fast path to the playback worklet: deliver in this task,
       // not after the store→render→effect round trip. Same object identity
       // as the store append above, so playback dedupes the two paths.
-      publishRealtimeAudioChunk(data.node_id, normalizedValue as Chunk);
+      publishRealtimeAudioChunk(data.node_id, normalizedValue);
     }
 
     if (!isAudioChunk) {
@@ -829,8 +843,7 @@ export const handleUpdate = (
       timestamp: Date.now()
     });
     if (data.status === "booting") {
-      const predictionJobId =
-        (data as { job_id?: string | null }).job_id ?? undefined;
+      const predictionJobId = extractJobId(data);
       if (predictionJobId) {
         setStatus(workflow.id, predictionJobId, data.node_id, "booting");
       }
@@ -863,7 +876,7 @@ export const handleUpdate = (
     // concurrent same-workflow runs stay isolated. The backend stamps job_id on
     // every data message; if it's somehow absent, skip the per-job writes rather
     // than writing a malformed key.
-    const jobId = (update as { job_id?: string | null }).job_id ?? undefined;
+    const jobId = extractJobId(data);
 
     const normalizedNodeError = normalizeNodeError(update.error);
     if (normalizedNodeError) {

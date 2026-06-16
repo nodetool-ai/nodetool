@@ -10,6 +10,7 @@ import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { BORDER_RADIUS } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
 import { memo, useCallback, useEffect, useMemo } from "react";
+import { useShallow } from "zustand/react/shallow";
 import AssetGrid from "../assets/AssetGrid";
 import WorkflowList from "../workflows/WorkflowList";
 import WorkflowForm from "../workflows/WorkflowForm";
@@ -624,10 +625,15 @@ const PanelLeft: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const location = useLocation();
-  const activeWorkspaceTab = useWorkspaceTabsStore((state) => {
-    const activeTabId = state.activeTabId;
-    return state.tabs.find((tab) => tab.id === activeTabId) ?? null;
-  });
+  const { activeTabType, activeTabMode } = useWorkspaceTabsStore(
+    useShallow((state) => {
+      const tab = state.tabs.find((t) => t.id === state.activeTabId);
+      return {
+        activeTabType: tab?.type ?? null,
+        activeTabMode: tab?.mode ?? null
+      };
+    })
+  );
 
   const isStandaloneMode =
     location.pathname.startsWith("/standalone-chat") ||
@@ -642,8 +648,8 @@ const PanelLeft: React.FC = () => {
   const isWorkflowEditActive =
     location.pathname.startsWith("/editor/") ||
     (location.pathname.startsWith("/workspace") &&
-      activeWorkspaceTab?.type === "workflow" &&
-      activeWorkspaceTab.mode === "edit");
+      activeTabType === "workflow" &&
+      activeTabMode === "edit");
   const hasHeader = !isStandaloneMode && !isChatRoute;
 
   const {
@@ -655,16 +661,22 @@ const PanelLeft: React.FC = () => {
     handlePanelToggle
   } = useResizePanel("left");
 
-  const activeView =
-    usePanelStore((state) => state.panel.activeView) || "workflows";
-  const activeNodeCategory = usePanelStore(
-    (state) => state.panel.activeNodeCategory
+  const {
+    activeView: rawActiveView,
+    activeNodeCategory,
+    setActiveNodeCategory,
+    setVisibility,
+    setActiveView
+  } = usePanelStore(
+    useShallow((state) => ({
+      activeView: state.panel.activeView,
+      activeNodeCategory: state.panel.activeNodeCategory,
+      setActiveNodeCategory: state.setActiveNodeCategory,
+      setVisibility: state.setVisibility,
+      setActiveView: state.setActiveView
+    }))
   );
-  const setActiveNodeCategory = usePanelStore(
-    (state) => state.setActiveNodeCategory
-  );
-  const setVisibility = usePanelStore((state) => state.setVisibility);
-  const setActiveView = usePanelStore((state) => state.setActiveView);
+  const activeView = rawActiveView || "workflows";
 
   const displayActiveView: LeftPanelView =
     isWorkflowEditOnlyView(activeView) && !isWorkflowEditActive

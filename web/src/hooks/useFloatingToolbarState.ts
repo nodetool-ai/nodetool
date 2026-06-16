@@ -3,7 +3,7 @@ import { useState, useCallback } from "react";
 /**
  * State for managing various menus and dialogs in the floating toolbar.
  */
-export interface FloatingToolbarState {
+interface FloatingToolbarState {
   paneMenuOpen: boolean;
   actionsMenuAnchor: HTMLElement | null;
   advancedMenuAnchor: HTMLElement | null;
@@ -12,7 +12,7 @@ export interface FloatingToolbarState {
 /**
  * Actions for managing toolbar state.
  */
-export interface FloatingToolbarStateActions {
+interface FloatingToolbarStateActions {
   handleOpenPaneMenu: () => void;
   handleClosePaneMenu: () => void;
   handleOpenActionsMenu: (e: React.MouseEvent<HTMLElement>) => void;

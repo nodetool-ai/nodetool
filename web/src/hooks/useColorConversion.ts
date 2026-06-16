@@ -19,7 +19,7 @@ import {
 
 export type ColorMode = "hex" | "rgb" | "hsl" | "hsb" | "cmyk" | "lab";
 
-export interface ColorConversionState {
+interface ColorConversionState {
   hexInput: string;
   rgbInputs: RGB;
   hslInputs: HSL;
@@ -29,7 +29,7 @@ export interface ColorConversionState {
   alphaInput: number;
 }
 
-export interface ColorConversionHandlers {
+interface ColorConversionHandlers {
   handleHexChange: (value: string) => void;
   handleRgbChange: (component: "r" | "g" | "b", value: string) => void;
   handleHslChange: (component: "h" | "s" | "l", value: string) => void;
@@ -39,7 +39,7 @@ export interface ColorConversionHandlers {
   handleAlphaChange: (value: string) => void;
 }
 
-export interface UseColorConversionResult {
+interface UseColorConversionResult {
   state: ColorConversionState;
   handlers: ColorConversionHandlers;
 }

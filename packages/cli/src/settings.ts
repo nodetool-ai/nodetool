@@ -6,7 +6,6 @@ export interface ChatSettings {
   provider: string;
   model: string;
   enabledTools: string[];
-  workspace: string;
 }
 
 export const DEFAULT_SETTINGS: ChatSettings = {
@@ -43,8 +42,7 @@ export const DEFAULT_SETTINGS: ChatSettings = {
     "list_assets",
     "get_asset",
     "list_models"
-  ],
-  workspace: process.cwd()
+  ]
 };
 
 function detectDefaultProvider(): string {
@@ -72,18 +70,20 @@ const SETTINGS_DIR = join(homedir(), ".nodetool");
 const SETTINGS_FILE = join(SETTINGS_DIR, "chat-settings.json");
 
 /**
- * Drop any persisted agent-mode / planner fields from older settings files.
- * The unified chat agent has no mode toggle; we strip the legacy keys so a
- * stale value can't be passed through to anything that still reads them.
+ * Drop legacy fields from older settings files: agent-mode / planner toggles
+ * (the unified chat agent has no mode) and `workspace` (it now always defaults
+ * to the current directory and is never persisted).
  */
 function migrateSettings(raw: Record<string, unknown>): Record<string, unknown> {
   const {
     agentMode: _dropMode,
     agentPlanner: _dropPlanner,
+    workspace: _dropWorkspace,
     ...rest
   } = raw;
   void _dropMode;
   void _dropPlanner;
+  void _dropWorkspace;
   return rest;
 }
 
