@@ -17,7 +17,7 @@ export type NotificationType =
   | "job"
   | "success";
 
-export interface NotificationAction {
+interface NotificationAction {
   label: string;
   onClick: () => void | Promise<void>;
 }
