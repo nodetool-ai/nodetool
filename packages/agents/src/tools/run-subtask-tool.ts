@@ -49,9 +49,8 @@ export interface RunSubtaskToolOptions {
 }
 
 const RUN_SUBTASK_DESCRIPTION = [
-  "Spawn a focused subtask handled by a fresh agent loop. Modeled on Claude",
-  "Code's Task tool: the subtask returns the subagent's final assistant",
-  "message as plain text.",
+  "Spawn a focused subtask handled by a fresh agent loop. The subtask returns",
+  "the subagent's final assistant message as plain text.",
   "",
   "Call this when work warrants its own focused execution — research a",
   "question end-to-end, perform a multi-step transformation, draft a",

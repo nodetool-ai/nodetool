@@ -32,6 +32,11 @@ import { CompilerAgent } from "./compiler-agent.js";
 import { GraphPlanner } from "./graph-planner.js";
 import { AgentWorkflowRunner } from "./agent-workflow-runner.js";
 import type { Tool } from "./tools/base-tool.js";
+import { gateTools } from "./tools/tool-permissions.js";
+import {
+  SecurityMonitor,
+  createSecurityMonitorConsult
+} from "./security-monitor.js";
 import type { Task, TaskPlan } from "./types.js";
 import { DEFAULT_TOKEN_LIMIT } from "./constants.js";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
@@ -43,6 +48,7 @@ import {
   formatMemoryForPrompt,
   type LongTermMemory
 } from "./long-term-memory.js";
+import type { CompactionOptions } from "./context-compactor.js";
 
 // ---------------------------------------------------------------------------
 // Skill types and helpers
@@ -233,6 +239,14 @@ export interface AgentOptions {
    */
   autoPersistMemory?: boolean;
   /**
+   * Run an LLM synthesis pass over recalled memory before folding it into the
+   * prompt. Returns <=7 cited, query-relevant facts instead of raw items.
+   * Default false. The synthesis provider/model live on the
+   * {@link LongTermMemory} instance (typically the chat/extraction provider);
+   * when the LTM has none, this flag silently degrades to the raw recall path.
+   */
+  synthesizeRecall?: boolean;
+  /**
    * Use the graph-native planner: build a DAG of nodes directly instead of a
    * TaskPlan. Requires {@link registry}. When set, planning emits a workflow
    * graph executed by {@link AgentWorkflowRunner}.
@@ -246,6 +260,31 @@ export interface AgentOptions {
    * for generic AI nodes (TextToImage, TextToVideo, etc.).
    */
   providers?: Record<string, BaseProvider>;
+  /**
+   * Opt-in context compaction for the step-execution tool-calling loop.
+   * Default OFF: when omitted, no compactor is constructed and history
+   * trimming falls back to the lossless tool-result eviction path only —
+   * existing runs are byte-for-byte unchanged. Pass `{ enabled: true }` to
+   * summarize the older transcript once the running token estimate crosses the
+   * threshold. Threads through TaskExecutor / ParallelTaskExecutor to every
+   * StepExecutor. See {@link CompactionOptions}.
+   */
+  compaction?: CompactionOptions;
+  /**
+   * Opt-in autonomous security monitor. **Default DISABLED.**
+   *
+   * When `{ enabled: true }`, the agent builds an LLM judge (from its own
+   * provider + reasoning model) and consults it before every write / execute /
+   * external tool call. A `block` verdict stops the call with a structured
+   * error the agent loop already understands. Read-class tools are NEVER
+   * consulted. When omitted or `{ enabled: false }`, no monitor is constructed
+   * and the agent's tool array is passed through unchanged — existing runs are
+   * byte-for-byte identical.
+   *
+   * Note: this adds one extra non-streaming LLM round-trip per actionable tool
+   * call when enabled. The disabled path is unaffected.
+   */
+  securityMonitor?: { enabled: boolean };
 }
 
 export class Agent {
@@ -273,9 +312,12 @@ export class Agent {
   private readonly initialTask?: Task;
   private readonly longTermMemory: LongTermMemory | null;
   private readonly autoPersistMemory: boolean;
+  private readonly synthesizeRecall: boolean;
   private readonly useGraphPlanner: boolean;
   private readonly registry?: NodeRegistry;
   private readonly providers?: Record<string, BaseProvider>;
+  private readonly compaction?: CompactionOptions;
+  private readonly securityMonitorEnabled: boolean;
   /** The multi-task plan, set after planning. */
   taskPlan: TaskPlan | null = null;
 
@@ -303,12 +345,47 @@ export class Agent {
     this.initialTask = opts.task;
     this.longTermMemory = opts.longTermMemory ?? null;
     this.autoPersistMemory = opts.autoPersistMemory === true;
+    this.synthesizeRecall = opts.synthesizeRecall ?? false;
     this.useGraphPlanner = opts.useGraphPlanner === true;
     this.registry = opts.registry;
     this.providers = opts.providers;
+    this.compaction = opts.compaction;
+    this.securityMonitorEnabled = opts.securityMonitor?.enabled === true;
     if (opts.task) {
       this.task = opts.task;
     }
+  }
+
+  /**
+   * Build the tool array handed to the executors. When the security monitor is
+   * enabled, the tools are wrapped in a permission gate configured as a pure
+   * monitor pass (mode "auto" + always-allow approval), so the only added
+   * behavior is the LLM-judge consult before each actionable call. When
+   * disabled, the raw tool array is returned unchanged — existing runs are
+   * byte-for-byte identical.
+   */
+  private buildExecutorTools(): Tool[] {
+    if (!this.securityMonitorEnabled) return [...this.tools];
+    const monitor = new SecurityMonitor({
+      provider: this.provider,
+      model: this.reasoningModel ?? this.model
+    });
+    return gateTools(this.tools, {
+      mode: "auto",
+      sessionAllow: new Set<string>(),
+      requestApproval: async () => "allow",
+      securityMonitor: createSecurityMonitorConsult(monitor),
+      // The judge clears SOFT blocks only when it can see what the user
+      // actually asked for. At the Agent level the objective (plus any caller
+      // system prompt) is that intent signal — without it every SOFT block is
+      // permanently unclearable and the injection/scope-creep reasoning is blind.
+      recentTranscript: () => {
+        const parts: string[] = [];
+        if (this.systemPrompt) parts.push(this.systemPrompt);
+        parts.push(`User: ${this.objective}`);
+        return parts.join("\n\n");
+      }
+    });
   }
 
   /**
@@ -509,8 +586,15 @@ export class Agent {
     let memoryPrompt: string | null = null;
     if (this.longTermMemory && this.longTermMemory.isReady()) {
       try {
-        const recalled = await this.longTermMemory.recall(this.objective);
-        const block = formatMemoryForPrompt(recalled);
+        let block: string;
+        if (this.synthesizeRecall && this.longTermMemory.synthesisEnabled) {
+          const { items, facts } =
+            await this.longTermMemory.recallSynthesized(this.objective);
+          block = formatMemoryForPrompt(items, facts);
+        } else {
+          const recalled = await this.longTermMemory.recall(this.objective);
+          block = formatMemoryForPrompt(recalled);
+        }
         if (block) memoryPrompt = block;
       } catch (err) {
         log.warn("Long-term memory recall failed", {
@@ -620,12 +704,13 @@ export class Agent {
       provider: this.provider,
       model: this.model,
       context,
-      tools: [...this.tools],
+      tools: this.buildExecutorTools(),
       taskPlan,
       systemPrompt: mergedSystemPrompt,
       inputs: this.inputs,
       maxStepIterations: this.maxStepIterations,
-      maxTokenLimit: this.maxTokenLimit
+      maxTokenLimit: this.maxTokenLimit,
+      compaction: this.compaction
     });
 
     for await (const item of executor.execute()) {
@@ -731,7 +816,7 @@ export class Agent {
       provider: this.provider,
       model: this.model,
       registry: this.registry!,
-      tools: [...this.tools],
+      tools: this.buildExecutorTools(),
       context,
       systemPrompt,
       maxTokenLimit: this.maxTokenLimit,
@@ -781,14 +866,15 @@ export class Agent {
       provider: this.provider,
       model: this.model,
       context,
-      tools: [...this.tools],
+      tools: this.buildExecutorTools(),
       task,
       systemPrompt,
       inputs: this.inputs,
       maxSteps: this.maxSteps,
       maxStepIterations: this.maxStepIterations,
       maxTokenLimit: this.maxTokenLimit,
-      parallelExecution: true
+      parallelExecution: true,
+      compaction: this.compaction
     });
 
     for await (const item of executor.executeTasks()) {
