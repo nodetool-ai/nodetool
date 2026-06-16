@@ -11,6 +11,12 @@
  * NodeRegistry, ProcessingContext, sandbox client, …) are NOT included
  * here; they are wired up by their owning subsystem (e.g. base-nodes,
  * sandbox-tools, mcp-tools).
+ *
+ * In particular the recursive-decomposition primitive (`run_subtask`) and the
+ * read-only fan-out search primitive (`run_search`) are intentionally excluded:
+ * both take constructor args (provider, model, parentTools, forwardMessage) and
+ * are instantiated at their call sites (the websocket runner and the cli), not
+ * resolved by name from this zero-arg array.
  */
 
 import type { Tool } from "./base-tool.js";

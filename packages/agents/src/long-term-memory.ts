@@ -39,6 +39,13 @@ import {
   getDefaultVectorProvider,
   getProviderEmbeddingFunction
 } from "@nodetool-ai/vectorstore";
+import {
+  MEMORY_SYNTHESIS_SYSTEM_PROMPT,
+  buildMemorySynthesisUserPrompt,
+  parseSynthesisPayload,
+  formatSynthesizedMemoryForPrompt,
+  type SynthesizedFact
+} from "./prompts/memory-synthesis-prompt.js";
 
 const log = createLogger("nodetool.agents.long-term-memory");
 
@@ -90,6 +97,26 @@ export interface LongTermMemoryOptions {
   extractionProvider?: BaseProvider | null;
   /** Model for extraction calls. */
   extractionModel?: string;
+  /**
+   * Opt-in: run an LLM synthesis pass over recalled items (via
+   * {@link LongTermMemory.synthesize} / {@link LongTermMemory.recallSynthesized})
+   * to produce a small set of standalone, query-relevant, cited facts. Default
+   * `false`. When `true` but no synthesis provider/model is set, the class
+   * falls back to {@link extractionProvider} / {@link extractionModel}; if
+   * neither resolves, synthesis is skipped and raw recall is returned. recall()
+   * itself is never affected by this flag.
+   */
+  synthesizeRecall?: boolean;
+  /**
+   * Optional override for the synthesis LLM provider. Defaults to
+   * {@link extractionProvider}.
+   */
+  synthesisProvider?: BaseProvider | null;
+  /**
+   * Optional override for the synthesis model. Defaults to
+   * {@link extractionModel}.
+   */
+  synthesisModel?: string;
   /** Default number of items returned by recall(). */
   defaultK?: number;
   /**
@@ -374,6 +401,9 @@ export class LongTermMemory {
   private readonly embeddingFunction: EmbeddingFunction | null;
   private readonly extractionProvider: BaseProvider | null;
   private readonly extractionModel: string | null;
+  private readonly synthesizeRecall: boolean;
+  private readonly synthesisProvider: BaseProvider | null;
+  private readonly synthesisModel: string | null;
   private readonly defaultK: number;
   private readonly dedupeSimilarity: number;
   private readonly maxItems: number;
@@ -413,6 +443,10 @@ export class LongTermMemory {
 
     this.extractionProvider = opts.extractionProvider ?? null;
     this.extractionModel = opts.extractionModel ?? null;
+    this.synthesizeRecall = opts.synthesizeRecall ?? false;
+    this.synthesisProvider =
+      opts.synthesisProvider ?? opts.extractionProvider ?? null;
+    this.synthesisModel = opts.synthesisModel ?? opts.extractionModel ?? null;
     this.defaultK = opts.defaultK ?? DEFAULT_K;
     this.dedupeSimilarity = opts.dedupeSimilarity ?? DEFAULT_DEDUPE_SIMILARITY;
 
@@ -666,6 +700,76 @@ export class LongTermMemory {
     return top;
   }
 
+  /**
+   * Whether the optional LLM synthesis pass is wired up: the
+   * {@link LongTermMemoryOptions.synthesizeRecall} flag is set AND a synthesis
+   * provider+model resolve (either the explicit overrides or the extraction
+   * provider/model fallback). When false, {@link synthesize} is a no-op and
+   * {@link recallSynthesized} returns empty facts.
+   */
+  get synthesisEnabled(): boolean {
+    return (
+      this.synthesizeRecall &&
+      this.synthesisProvider !== null &&
+      this.synthesisModel !== null
+    );
+  }
+
+  /**
+   * Run an LLM synthesis pass over already-recalled items: distil them, in the
+   * context of `query`, into a small set (capped) of standalone, cited facts.
+   *
+   * Returns `[]` immediately when there's nothing to synthesize (no items) or
+   * synthesis isn't enabled — no LLM call is made in either case. Best-effort:
+   * any failure is logged at warn and yields `[]`, so a synthesis hiccup never
+   * breaks recall. Mirrors the call shape of {@link rememberConversation}.
+   */
+  async synthesize(
+    query: string,
+    items: LongTermMemoryItem[]
+  ): Promise<SynthesizedFact[]> {
+    if (items.length === 0) return [];
+    if (!this.synthesisEnabled) return [];
+
+    try {
+      const response = await this.synthesisProvider!.generateMessageTraced({
+        messages: [
+          { role: "system", content: MEMORY_SYNTHESIS_SYSTEM_PROMPT } as Message,
+          {
+            role: "user",
+            content: buildMemorySynthesisUserPrompt(query, items)
+          } as Message
+        ],
+        model: this.synthesisModel!,
+        tools: [],
+        maxTokens: 700
+      });
+      const raw = typeof response.content === "string" ? response.content : "";
+      return parseSynthesisPayload(raw, items.length);
+    } catch (err) {
+      log.warn("LTM synthesis failed", {
+        userId: this.userId,
+        error: err instanceof Error ? err.message : String(err)
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Convenience wrapper: {@link recall} the items relevant to `query`, then run
+   * {@link synthesize} over them. Returns both the raw items and the
+   * synthesized facts. recall() itself is unchanged — when synthesis is
+   * disabled, `facts` is `[]` and `items` is the normal recall output.
+   */
+  async recallSynthesized(
+    query: string,
+    opts: { k?: number } = {}
+  ): Promise<{ items: LongTermMemoryItem[]; facts: SynthesizedFact[] }> {
+    const items = await this.recall(query, opts);
+    const facts = await this.synthesize(query, items);
+    return { items, facts };
+  }
+
   /** All items, newest first. Useful for management UIs. */
   async list(opts: { limit?: number } = {}): Promise<LongTermMemoryItem[]> {
     if (!this.isReady()) return [];
@@ -853,6 +957,17 @@ export interface CreateDefaultLongTermMemoryOptions {
    */
   extractionModel?: string;
   /**
+   * Opt-in: run an LLM synthesis pass over raw recall results before they are
+   * injected into the prompt. Default off. The synthesis provider/model fall
+   * back to {@link synthesisProvider}/{@link synthesisModel}, then to the
+   * extraction provider/model.
+   */
+  synthesizeRecall?: boolean;
+  /** Provider for the synthesis pass. Falls back to {@link extractionProvider}. */
+  synthesisProvider?: BaseProvider | null;
+  /** Model for the synthesis pass. Falls back to {@link extractionModel}. */
+  synthesisModel?: string;
+  /**
    * Force-disable. Useful for tests; in production the env / setting gate
    * (`NODETOOL_MEMORY_ENABLED=0`) is the right knob.
    */
@@ -944,7 +1059,10 @@ export async function createDefaultLongTermMemory(
     embeddingModel,
     embeddingProvider: embeddingProvider ?? undefined,
     extractionProvider: opts.extractionProvider ?? null,
-    extractionModel: opts.extractionModel
+    extractionModel: opts.extractionModel,
+    synthesizeRecall: opts.synthesizeRecall,
+    synthesisProvider: opts.synthesisProvider,
+    synthesisModel: opts.synthesisModel
   });
   if (!memory.isReady()) return null;
   return memory;
@@ -962,8 +1080,21 @@ export async function createDefaultLongTermMemory(
  * structural signal that this region is reference data. It isn't a complete
  * defence against prompt injection, but it's the pattern Anthropic and
  * OpenAI both recommend for surfacing untrusted content.
+ *
+ * When `synthesized` is a non-empty array (from {@link LongTermMemory.synthesize}
+ * / {@link LongTermMemory.recallSynthesized}), the cited-facts renderer is used
+ * instead of the raw-item path — it keeps the SAME `<recalled-memories>`
+ * envelope, warning, and `&lt;`/`&gt;` escaping. When `synthesized` is
+ * null/undefined/empty, behavior is byte-for-byte the existing raw-item
+ * rendering, so single-arg callers are unaffected.
  */
-export function formatMemoryForPrompt(items: LongTermMemoryItem[]): string {
+export function formatMemoryForPrompt(
+  items: LongTermMemoryItem[],
+  synthesized?: SynthesizedFact[] | null
+): string {
+  if (synthesized && synthesized.length > 0) {
+    return formatSynthesizedMemoryForPrompt(synthesized);
+  }
   if (items.length === 0) return "";
   const lines: string[] = [
     "<recalled-memories>",

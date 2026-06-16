@@ -22,7 +22,7 @@ import readline from "node:readline";
 import type { BaseProvider, Message } from "@nodetool-ai/runtime";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import { processChat } from "@nodetool-ai/chat";
-import { RunSubtaskTool } from "@nodetool-ai/agents";
+import { RunSubtaskTool, RunSearchTool } from "@nodetool-ai/agents";
 import type { Tool } from "@nodetool-ai/agents/tool";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
@@ -44,6 +44,11 @@ export interface StdinModeOptions {
   registry?: NodeRegistry;
   /** Configured BaseProvider instances by id (passed through to subtasks). */
   agentProviders?: Record<string, BaseProvider>;
+  /**
+   * Opt-in: expose the read-only `run_search` fan-out primitive alongside
+   * `run_subtask`. Default OFF — current runs are unchanged.
+   */
+  enableReadOnlySearch?: boolean;
 }
 
 interface SlashCommand {
@@ -217,18 +222,30 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
   ): Tool[] => {
     if (!prov) return extras;
     const baseTools = extras.slice();
+    const forwardMessage = (msg: ProcessingMessage) => {
+      if (msg.type === "chunk") {
+        process.stdout.write((msg as { content?: string }).content ?? "");
+      } else if (msg.type === "tool_call_update") {
+        process.stderr.write(`[tool] ${(msg as { name: string }).name}\n`);
+      }
+    };
     const subtaskTool = new RunSubtaskTool({
       provider: prov,
       model: opts.model,
       parentTools: () => baseTools,
-      forwardMessage: (msg: ProcessingMessage) => {
-        if (msg.type === "chunk") {
-          process.stdout.write((msg as { content?: string }).content ?? "");
-        } else if (msg.type === "tool_call_update") {
-          process.stderr.write(`[tool] ${(msg as { name: string }).name}\n`);
-        }
-      }
+      forwardMessage
     });
+    // Read-only fan-out search (opt-in). Filters baseTools to its read-only
+    // allowlist internally, so passing the full snapshot is correct.
+    if (opts.enableReadOnlySearch) {
+      const searchTool = new RunSearchTool({
+        provider: prov,
+        model: opts.model,
+        parentTools: () => baseTools,
+        forwardMessage
+      });
+      return [searchTool, subtaskTool, ...baseTools];
+    }
     return [subtaskTool, ...baseTools];
   };
 

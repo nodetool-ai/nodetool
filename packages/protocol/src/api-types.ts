@@ -623,6 +623,13 @@ export interface Message {
    * Omitted defaults to `"default"`.
    */
   permission_mode?: "plan" | "default" | "auto" | null;
+  /**
+   * Opt-in: expose the read-only `run_search` fan-out primitive to the agent
+   * for this turn. When `true`, a `run_search` tool is added next to
+   * `run_subtask`; its child loop is restricted to read-only tools and cannot
+   * spawn further work. Omitted / `false` keeps the toolbelt unchanged.
+   */
+  enable_read_only_search?: boolean | null;
   agent_mode?: boolean | null;
   /**
    * When `agent_mode` is true, selects which planner the server uses:

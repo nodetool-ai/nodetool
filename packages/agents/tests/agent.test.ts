@@ -6,6 +6,13 @@ import { Agent, loadSkillsFromDirectory } from "../src/agent.js";
 import { parseFrontmatter } from "../src/agent.js";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { createMockContext } from "./_helpers/mock-context.js";
+import { LongTermMemory } from "../src/long-term-memory.js";
+import type { BaseProvider } from "@nodetool-ai/runtime";
+import {
+  SqliteVecProvider,
+  type EmbeddingFunction,
+  type VectorProvider
+} from "@nodetool-ai/vectorstore";
 
 // ---------------------------------------------------------------------------
 // Mock helpers (same pattern as agents.test.ts)
@@ -908,5 +915,273 @@ describe("Agent", () => {
     // Verify workspace was created
     const stat = await fs.stat(workspace);
     expect(stat.isDirectory()).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Agent + LLM memory synthesis (opt-in, default OFF)
+// ---------------------------------------------------------------------------
+
+describe("Agent synthesizeRecall wiring", () => {
+  // Deterministic bag-of-words embedder so recall returns the seeded item.
+  const VOCAB = ["typescript", "vitest", "user", "memory", "test"];
+  const fakeEmbedder: EmbeddingFunction = {
+    generate: async (texts) =>
+      texts.map((t) => {
+        const lower = t.toLowerCase();
+        const vec = VOCAB.map((w) => (lower.includes(w) ? 1 : 0));
+        const n = Math.sqrt(vec.reduce((s, x) => s + x * x, 0)) || 1;
+        return vec.map((x) => x / n);
+      })
+  };
+
+  let vecProvider: VectorProvider;
+  let dbPath: string;
+  let tmpWorkspace: string;
+
+  beforeEach(async () => {
+    dbPath = path.join(
+      os.tmpdir(),
+      `agent-synth-${Date.now()}-${Math.random().toString(36).slice(2)}.db`
+    );
+    vecProvider = new SqliteVecProvider({ dbPath });
+    tmpWorkspace = await fs.mkdtemp(path.join(os.tmpdir(), "agent-synth-ws-"));
+  });
+
+  afterEach(async () => {
+    try {
+      vecProvider.close();
+    } catch {}
+    for (const ext of ["", "-wal", "-shm"]) {
+      try {
+        await fs.unlink(dbPath + ext);
+      } catch {}
+    }
+    await fs.rm(tmpWorkspace, { recursive: true, force: true });
+  });
+
+  /** Fake synthesis provider that returns the given content string. */
+  function synthProvider(content: string) {
+    return {
+      generateMessageTraced: vi.fn(async () => ({
+        role: "assistant" as const,
+        content
+      }))
+    } as unknown as BaseProvider & {
+      generateMessageTraced: ReturnType<typeof vi.fn>;
+    };
+  }
+
+  async function seedMemory(
+    mem: LongTermMemory,
+    text = "User prefers TypeScript and uses Vitest"
+  ) {
+    await mem.remember(text, { kind: "preference", importance: 0.9 });
+  }
+
+  // A one-step plan; the planning system prompt is captured to inspect the
+  // folded-in memory block.
+  const plan = {
+    title: "T",
+    tasks: [
+      {
+        id: "task_1",
+        title: "T",
+        depends_on: [],
+        steps: [
+          {
+            id: "s1",
+            instructions: "Do it",
+            depends_on: [],
+            output_schema:
+              '{"type":"object","properties":{"ok":{"type":"boolean"}}}'
+          }
+        ]
+      }
+    ]
+  };
+
+  function planningProviderCapturingPrompt(capturedPrompts: string[]) {
+    const baseProvider = createMockProvider([
+      ...planCalls(plan),
+      [{ id: "tc_1", name: "finish_step", args: { ok: true } }]
+    ]);
+    return {
+      ...baseProvider,
+      generateMessages: async function* (opts: any) {
+        if (opts.messages?.[0]?.content) {
+          capturedPrompts.push(opts.messages[0].content);
+        }
+        yield* baseProvider.generateMessages(opts);
+      }
+    } as any;
+  }
+
+  it("with synthesizeRecall unset calls recall + single-arg format and never invokes synthesize", async () => {
+    const synth = synthProvider("[]");
+    const mem = new LongTermMemory({
+      userId: "user-1",
+      namespace: "agent-synth",
+      vectorProvider: vecProvider,
+      embeddingFunction: fakeEmbedder,
+      // synthesizeRecall unset -> disabled even though provider+model resolve
+      synthesisProvider: synth,
+      synthesisModel: "synth-model"
+    });
+    await seedMemory(mem);
+
+    const synthesizeSpy = vi.spyOn(mem, "synthesize");
+
+    const provider = planningProviderCapturingPrompt([]);
+    const agent = new Agent({
+      name: "no-synth-agent",
+      objective: "What does the user prefer for TypeScript and Vitest?",
+      provider,
+      model: "test-model",
+      workspace: tmpWorkspace,
+      skillDirs: [],
+      longTermMemory: mem
+      // synthesizeRecall omitted (default OFF)
+    });
+
+    const context = createMockContext();
+    for await (const _msg of agent.execute(context)) {
+      // consume
+    }
+
+    expect(synthesizeSpy).not.toHaveBeenCalled();
+    expect((synth as any).generateMessageTraced).not.toHaveBeenCalled();
+  });
+
+  it("with synthesizeRecall=true and a synthesis-enabled LTM folds the cited-facts block into the system prompt", async () => {
+    const synth = synthProvider(
+      JSON.stringify([
+        {
+          fact: "The user prefers TypeScript.",
+          utility: "apply_preference",
+          sources: [0]
+        }
+      ])
+    );
+    const mem = new LongTermMemory({
+      userId: "user-1",
+      namespace: "agent-synth",
+      vectorProvider: vecProvider,
+      embeddingFunction: fakeEmbedder,
+      synthesizeRecall: true,
+      synthesisProvider: synth,
+      synthesisModel: "synth-model"
+    });
+    await seedMemory(mem);
+    expect(mem.synthesisEnabled).toBe(true);
+
+    const capturedPrompts: string[] = [];
+    const provider = planningProviderCapturingPrompt(capturedPrompts);
+    const agent = new Agent({
+      name: "synth-agent",
+      objective: "What does the user prefer for TypeScript and Vitest?",
+      provider,
+      model: "test-model",
+      workspace: tmpWorkspace,
+      skillDirs: [],
+      longTermMemory: mem,
+      synthesizeRecall: true
+    });
+
+    const context = createMockContext();
+    for await (const _msg of agent.execute(context)) {
+      // consume
+    }
+
+    expect((synth as any).generateMessageTraced).toHaveBeenCalledTimes(1);
+    const firstPrompt = capturedPrompts[0] ?? "";
+    expect(firstPrompt).toContain("The user prefers TypeScript.");
+    expect(firstPrompt).toContain("(sources: 0)");
+    expect(firstPrompt).toContain("[apply_preference]");
+  });
+
+  it("with synthesizeRecall=true but a synthesis-DISABLED LTM degrades to raw recall (no synthesize call)", async () => {
+    // No synthesis/extraction provider -> synthesisEnabled is false.
+    const mem = new LongTermMemory({
+      userId: "user-1",
+      namespace: "agent-synth",
+      vectorProvider: vecProvider,
+      embeddingFunction: fakeEmbedder,
+      synthesizeRecall: true
+    });
+    await seedMemory(mem);
+    expect(mem.synthesisEnabled).toBe(false);
+
+    const synthesizeSpy = vi.spyOn(mem, "synthesize");
+
+    const capturedPrompts: string[] = [];
+    const provider = planningProviderCapturingPrompt(capturedPrompts);
+    const agent = new Agent({
+      name: "synth-disabled-agent",
+      objective: "What does the user prefer for TypeScript and Vitest?",
+      provider,
+      model: "test-model",
+      workspace: tmpWorkspace,
+      skillDirs: [],
+      longTermMemory: mem,
+      synthesizeRecall: true
+    });
+
+    const context = createMockContext();
+    for await (const _msg of agent.execute(context)) {
+      // consume
+    }
+
+    expect(synthesizeSpy).not.toHaveBeenCalled();
+    // Raw item rendered with its kind tag, not a synthesized [utility] tag.
+    const firstPrompt = capturedPrompts[0] ?? "";
+    expect(firstPrompt).toContain("[preference]");
+    expect(firstPrompt).toContain("User prefers TypeScript and uses Vitest");
+  });
+
+  it("run still succeeds when synthesize() throws — falls back to raw recall, not aborted", async () => {
+    const throwing = {
+      generateMessageTraced: vi.fn(async () => {
+        throw new Error("synthesis boom");
+      })
+    } as unknown as BaseProvider;
+    const mem = new LongTermMemory({
+      userId: "user-1",
+      namespace: "agent-synth",
+      vectorProvider: vecProvider,
+      embeddingFunction: fakeEmbedder,
+      synthesizeRecall: true,
+      synthesisProvider: throwing,
+      synthesisModel: "synth-model"
+    });
+    await seedMemory(mem);
+
+    const capturedPrompts: string[] = [];
+    const provider = planningProviderCapturingPrompt(capturedPrompts);
+    const agent = new Agent({
+      name: "synth-throw-agent",
+      objective: "What does the user prefer for TypeScript and Vitest?",
+      provider,
+      model: "test-model",
+      workspace: tmpWorkspace,
+      skillDirs: [],
+      longTermMemory: mem,
+      synthesizeRecall: true
+    });
+
+    const context = createMockContext();
+    let thrown = false;
+    try {
+      for await (const _msg of agent.execute(context)) {
+        // consume
+      }
+    } catch {
+      thrown = true;
+    }
+    expect(thrown).toBe(false);
+    expect(agent.taskPlan).not.toBeNull();
+    // Synthesis threw -> facts empty -> raw items rendered.
+    const firstPrompt = capturedPrompts[0] ?? "";
+    expect(firstPrompt).toContain("[preference]");
   });
 });

@@ -12,6 +12,9 @@
 
 import type { ProcessingContext, ProviderTool } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
+// Type-only import: keeps tool-permissions.ts free of provider/LLM runtime
+// deps and avoids any value-level import cycle with security-monitor.ts.
+import type { SecurityVerdict, PendingAction } from "../security-monitor.js";
 
 /** How risky a tool is, independent of the active mode. */
 export type PermissionCategory = "read" | "write" | "execute" | "external";
@@ -108,6 +111,10 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   // run_subtask spawns a child loop whose own tools are gated; the call
   // itself has no side effects, so it always runs.
   run_subtask: "read",
+  // run_search spawns a read-only child loop (read_file/glob/grep/
+  // list_directory/memory_read only); the call itself has no side effects, so
+  // it always runs ungated.
+  run_search: "read",
 
   // --- write: produces files / artifacts / costly media ---
   write_file: "write",
@@ -188,6 +195,22 @@ export interface PermissionGateOptions {
   sessionAllow: Set<string>;
   /** Round-trips an approval prompt to the UI and resolves with the answer. */
   requestApproval: RequestApproval;
+  /**
+   * Opt-in LLM-judge consult. When set, every actionable (non-read) tool call
+   * that the mode/approval logic would otherwise run is first vetted by the
+   * monitor; a `block` verdict stops execution with a structured error. This
+   * is a plain callback (NOT the monitor class) so the gate carries no
+   * provider/LLM dependency. Default undefined → GatedTool behaves exactly as
+   * before, byte-for-byte. Read-class tools are NEVER consulted, even when set.
+   */
+  securityMonitor?: (action: PendingAction) => Promise<SecurityVerdict>;
+  /**
+   * Optional accessor for the recent transcript text, forwarded into the
+   * monitor's {@link PendingAction.transcript} so SOFT-block user-intent
+   * clearing has evidence to reason over. Defaults to undefined → empty
+   * transcript. Only invoked when {@link securityMonitor} is set.
+   */
+  recentTranscript?: () => string;
 }
 
 /**
@@ -232,8 +255,15 @@ class GatedTool extends Tool {
     const category = permissionCategoryFor(this.inner.name);
     const decision = decidePermission(this.gate.mode, category);
 
-    if (decision === "allow") {
+    // Read-class tools are never consulted by the security monitor — go
+    // straight to the inner tool to guarantee that invariant even if a monitor
+    // is wired in.
+    if (category === "read") {
       return this.inner.process(context, params);
+    }
+
+    if (decision === "allow") {
+      return this.runInner(context, params, category);
     }
 
     if (decision === "block") {
@@ -248,7 +278,7 @@ class GatedTool extends Tool {
 
     // decision === "ask"
     if (this.gate.sessionAllow.has(this.inner.name)) {
-      return this.inner.process(context, params);
+      return this.runInner(context, params, category);
     }
 
     const answer = await this.gate.requestApproval({
@@ -271,6 +301,51 @@ class GatedTool extends Tool {
       this.gate.sessionAllow.add(this.inner.name);
     }
 
+    return this.runInner(context, params, category);
+  }
+
+  /**
+   * Single execution chokepoint for actionable (non-read) tool calls. When a
+   * security monitor is wired in, the call is vetted here — after the
+   * mode/approval logic has already said "run" — and a `block` verdict stops
+   * execution with a structured error mirroring the existing block/deny paths.
+   * Without a monitor, this is just `inner.process()`.
+   */
+  private async runInner(
+    context: ProcessingContext,
+    params: Record<string, unknown>,
+    category: PermissionCategory
+  ): Promise<unknown> {
+    const consult = this.gate.securityMonitor;
+    if (consult) {
+      const verdict = await consult({
+        name: this.inner.name,
+        category,
+        args: Tool.stripMessage(params),
+        transcript: this.gate.recentTranscript?.()
+      });
+      if (verdict.block) {
+        const reason = verdict.reason?.trim()
+          ? verdict.reason.trim()
+          : "the security monitor flagged this action as unsafe";
+        const remediation =
+          verdict.tier === "hard"
+            ? "This is a HARD block: it crosses a security boundary and cannot " +
+              "be cleared by user instruction. Do not retry; choose a safe " +
+              "alternative."
+            : "This is a SOFT block: it was flagged as destructive or " +
+              "high-reach. Do not retry the same call; if the user has " +
+              "explicitly and specifically authorized this exact action, " +
+              "surface that, otherwise propose a safer alternative.";
+        return {
+          error: "blocked_by_security_monitor",
+          message:
+            `The security monitor blocked \`${this.inner.name}\` ` +
+            `(tier: ${verdict.tier}, severity: ${verdict.severity}): ` +
+            `${reason}. ${remediation}`
+        };
+      }
+    }
     return this.inner.process(context, params);
   }
 }
