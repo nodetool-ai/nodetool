@@ -77,8 +77,8 @@ program
     "Provision an isolated Docker sandbox and expose its tools (file, shell, browser, desktop, search, messaging) to the agent"
   )
   .option(
-    "--read-only-search",
-    "Expose the read-only run_search fan-out primitive to the agent (default off)"
+    "--no-read-only-search",
+    "Disable the read-only run_search fan-out primitive (on by default)"
   )
   .option(
     "--sandbox-image <image>",
@@ -293,7 +293,7 @@ if (!process.stdin.isTTY) {
       extraTools: sandboxExtraTools,
       registry: cliRegistry,
       agentProviders: cliAgentProviders,
-      enableReadOnlySearch: opts.readOnlySearch === true
+      enableReadOnlySearch: opts.readOnlySearch !== false
     });
   } finally {
     if (sandboxStore) await sandboxStore.close();

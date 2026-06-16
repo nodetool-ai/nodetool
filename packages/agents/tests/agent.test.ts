@@ -1017,14 +1017,15 @@ describe("Agent synthesizeRecall wiring", () => {
     } as any;
   }
 
-  it("with synthesizeRecall unset calls recall + single-arg format and never invokes synthesize", async () => {
+  it("with synthesizeRecall=false skips synthesis and uses raw recall even when the LTM could synthesize", async () => {
     const synth = synthProvider("[]");
     const mem = new LongTermMemory({
       userId: "user-1",
       namespace: "agent-synth",
       vectorProvider: vecProvider,
       embeddingFunction: fakeEmbedder,
-      // synthesizeRecall unset -> disabled even though provider+model resolve
+      // LTM is synthesis-capable (provider + model present, default-on flag),
+      // so a clean run proves the Agent-level opt-out is what gates it.
       synthesisProvider: synth,
       synthesisModel: "synth-model"
     });
@@ -1040,8 +1041,8 @@ describe("Agent synthesizeRecall wiring", () => {
       model: "test-model",
       workspace: tmpWorkspace,
       skillDirs: [],
-      longTermMemory: mem
-      // synthesizeRecall omitted (default OFF)
+      longTermMemory: mem,
+      synthesizeRecall: false // explicit opt-out
     });
 
     const context = createMockContext();

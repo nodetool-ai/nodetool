@@ -130,8 +130,17 @@ const SAMPLE_ITEMS = [
 ];
 
 describe("LongTermMemory.synthesisEnabled", () => {
-  it("is false by default (synthesizeRecall unset) even with a provider configured", () => {
+  it("is true by default (synthesizeRecall unset) when a provider is configured", () => {
     const mem = createMemory({
+      synthesisProvider: fakeProvider("[]"),
+      synthesisModel: "fake-model"
+    });
+    expect(mem.synthesisEnabled).toBe(true);
+  });
+
+  it("is false when explicitly disabled (synthesizeRecall=false) despite a provider", () => {
+    const mem = createMemory({
+      synthesizeRecall: false,
       synthesisProvider: fakeProvider("[]"),
       synthesisModel: "fake-model"
     });
@@ -179,24 +188,24 @@ describe("createDefaultLongTermMemory synthesis forwarding", () => {
     else process.env["NODETOOL_MEMORY_EMBEDDING_MODEL"] = SAVED;
   });
 
-  it("forwards synthesizeRecall + provider/model so synthesis is actually enabled", async () => {
-    const mem = await createDefaultLongTermMemory({
-      userId: "user-1",
-      enabled: true,
-      extractionProvider: fakeProvider("[]"),
-      extractionModel: "extract-model",
-      synthesizeRecall: true
-    });
-    expect(mem).not.toBeNull();
-    expect(mem!.synthesisEnabled).toBe(true);
-  });
-
-  it("leaves synthesis OFF when synthesizeRecall is unset (default)", async () => {
+  it("enables synthesis by default (synthesizeRecall unset) when a provider resolves", async () => {
     const mem = await createDefaultLongTermMemory({
       userId: "user-1",
       enabled: true,
       extractionProvider: fakeProvider("[]"),
       extractionModel: "extract-model"
+    });
+    expect(mem).not.toBeNull();
+    expect(mem!.synthesisEnabled).toBe(true);
+  });
+
+  it("forwards synthesizeRecall=false so the helper can opt synthesis out", async () => {
+    const mem = await createDefaultLongTermMemory({
+      userId: "user-1",
+      enabled: true,
+      extractionProvider: fakeProvider("[]"),
+      extractionModel: "extract-model",
+      synthesizeRecall: false
     });
     expect(mem).not.toBeNull();
     expect(mem!.synthesisEnabled).toBe(false);
@@ -218,8 +227,9 @@ describe("LongTermMemory.synthesize", () => {
 
   it("returns [] when synthesisEnabled is false (no LLM call)", async () => {
     const p = fakeProvider("[]");
-    // synthesizeRecall unset -> disabled
+    // Explicitly opted out (default is on), so synthesize() short-circuits.
     const mem = createMemory({
+      synthesizeRecall: false,
       synthesisProvider: p,
       synthesisModel: "fake-model"
     });
@@ -426,8 +436,9 @@ describe("LongTermMemory.recallSynthesized", () => {
 
   it("returns empty facts but full items when synthesisEnabled is false (degrades gracefully)", async () => {
     const p = fakeProvider("[]");
-    // synthesizeRecall unset -> synthesisEnabled false
+    // Explicitly opted out (default is on) -> synthesisEnabled false
     const mem = createMemory({
+      synthesizeRecall: false,
       synthesisProvider: p,
       synthesisModel: "fake-model"
     });
