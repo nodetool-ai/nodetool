@@ -653,6 +653,15 @@ const Inspector: React.FC = () => {
     [multiNodeIds, updateNodeProperties]
   );
 
+  const multiPropertyChangeHandlers = useMemo(() => {
+    const map = new Map<string, (value: unknown) => void>();
+    for (const entry of multiPropertyEntries) {
+      const name = entry.property.name;
+      map.set(name, (newValue: unknown) => handleMultiPropertyChange(name, newValue));
+    }
+    return map;
+  }, [multiPropertyEntries, handleMultiPropertyChange]);
+
   const selectedNode = selectedNodes[0] || null;
   const metadata = selectedNode?.type
     ? getMetadata(selectedNode.type)
@@ -721,6 +730,17 @@ const Inspector: React.FC = () => {
       (p) => p.json_schema_extra?.hidden_in_inspector !== true
     );
   }, [metadata]);
+
+  const toggleVisibilityHandlers = useMemo(() => {
+    if (!selectedNode) return new Map<string, () => void>();
+    const map = new Map<string, () => void>();
+    for (const prop of visibleProperties) {
+      const nodeId = selectedNode.id;
+      const propName = prop.name;
+      map.set(propName, () => cycleExposedInputPlacement(nodeId, propName));
+    }
+    return map;
+  }, [selectedNode, visibleProperties, cycleExposedInputPlacement]);
 
   const tabCounts = useMemo(() => {
     if (!metadata) return {};
@@ -807,9 +827,7 @@ const Inspector: React.FC = () => {
                       data={nodesWithMetadata[0].node.data}
                       layout=""
                       inspectorBatchNodeIds={multiNodeIds}
-                      onValueChange={(newValue) =>
-                        handleMultiPropertyChange(property.name, newValue)
-                      }
+                      onValueChange={multiPropertyChangeHandlers.get(property.name)}
                     />
                     {isMixed && (
                       <Tooltip
@@ -949,13 +967,7 @@ const Inspector: React.FC = () => {
                     <PropertyVisibilityToggle
                       placement={exposurePlacement}
                       connected={connected}
-                      onToggle={() =>
-                        selectedNode &&
-                        cycleExposedInputPlacement(
-                          selectedNode.id,
-                          property.name
-                        )
-                      }
+                      onToggle={toggleVisibilityHandlers.get(property.name)!}
                     />
                   ) : null;
                   const headerActions = property.required ? (
