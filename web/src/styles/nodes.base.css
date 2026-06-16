@@ -45,6 +45,16 @@
     filter 0.2s ease-in-out, outline-color 0.18s ease;
 }
 
+/* A corner resize that repositions the node (every corner but bottom-right)
+   shifts the node's transform each frame. Like a selection drag, ReactFlow
+   never adds `.dragging`, so the transform transition above would tween the
+   origin ~180ms behind — the node visibly lags out of place and snaps back on
+   release. The media-aspect resize handle adds `node-resizing` for the gesture. */
+.react-flow.node-resizing .react-flow__node {
+  transition: background-color 0.08s ease, box-shadow 0.18s ease-in-out,
+    filter 0.2s ease-in-out, outline-color 0.18s ease;
+}
+
 .node-drag-handle {
   cursor: grabbing !important;
 }
