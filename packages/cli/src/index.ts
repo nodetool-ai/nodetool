@@ -175,7 +175,7 @@ if (opts.agent !== undefined) {
   );
 }
 
-const workspace = opts.workspace ?? settings.workspace;
+const workspace = opts.workspace ?? process.cwd();
 const enabledTools = opts.tools
   ? opts.tools.split(",").map((t) => t.trim())
   : settings.enabledTools;
