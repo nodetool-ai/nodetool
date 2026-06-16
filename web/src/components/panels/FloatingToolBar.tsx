@@ -268,18 +268,18 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   // Conversation overlay: floats above the composer, showing the active chat
   // thread. It surfaces dynamically — auto-opening whenever a new message
   // arrives or a generation starts — and can be collapsed back to a toggle.
-  const conversationCount = useGlobalChatStore((state) =>
-    state.currentThreadId
-      ? state.messageCache[state.currentThreadId]?.length ?? 0
-      : 0
-  );
-  const chatBusy = useGlobalChatStore(
-    (state) => state.status === "loading" || state.status === "streaming"
-  );
-  // Chat/media-generation errors land in the store but the canvas has no thread
-  // view to surface them, so show them as a dismissible banner above the composer.
-  const chatError = useGlobalChatStore((state) => state.error);
-  const clearChatError = useGlobalChatStore((state) => state.clearError);
+  const { conversationCount, chatBusy, chatError, clearChatError } =
+    useGlobalChatStore(
+      useShallow((state) => ({
+        conversationCount: state.currentThreadId
+          ? state.messageCache[state.currentThreadId]?.length ?? 0
+          : 0,
+        chatBusy:
+          state.status === "loading" || state.status === "streaming",
+        chatError: state.error,
+        clearChatError: state.clearError
+      }))
+    );
   // Start collapsed so opening a workflow with existing conversation history
   // doesn't pop the overlay. It auto-reveals only when chat becomes busy in
   // this session (the user sent a message / a generation is streaming).
