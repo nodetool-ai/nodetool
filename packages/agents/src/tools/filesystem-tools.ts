@@ -3,7 +3,7 @@
  * file I/O is abstracted behind {@link StorageAdapter}. Local FS, S3, and
  * Supabase backends all expose the same tool surface.
  *
- * Tool shape mirrors Claude Code:
+ * Tool shape:
  *   - `file_path` is the canonical arg name (workspace-relative storage key
  *     here, not an absolute filesystem path — the workspace adapter handles
  *     resolution against the configured root).

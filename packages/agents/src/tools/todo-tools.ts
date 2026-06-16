@@ -1,5 +1,5 @@
 /**
- * `todo_write` — Claude Code-style task checklist for an agent run.
+ * `todo_write` — task checklist for an agent run.
  *
  * The agent passes the *entire* todo list on every call (full replacement,
  * not patch). The list is stored per chat-thread and broadcast to the UI via

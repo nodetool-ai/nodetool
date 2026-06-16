@@ -67,7 +67,7 @@ import {
   EditFileTool,
   GlobTool,
   GrepTool
-} from "./claude-code-tools.js";
+} from "./edit-search-tools.js";
 import { TodoWriteTool } from "./todo-tools.js";
 
 export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
