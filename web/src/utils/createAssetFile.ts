@@ -114,10 +114,14 @@ const decodeBase64 = (value: string): Uint8Array => {
     }
   }
 
+  interface Base64Decoder {
+    from(data: string, encoding: string): Uint8Array;
+  }
+
   try {
     const BufferCtor = (globalThis as Record<string, unknown>).Buffer;
     if (BufferCtor && typeof BufferCtor === "function") {
-      const buffer = (BufferCtor as unknown as { from: (data: string, encoding: string) => Uint8Array }).from(cleaned, "base64");
+      const buffer = (BufferCtor as unknown as Base64Decoder).from(cleaned, "base64");
       return new Uint8Array(
         buffer.buffer,
         buffer.byteOffset,

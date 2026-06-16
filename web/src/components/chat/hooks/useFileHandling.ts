@@ -80,9 +80,13 @@ export const useFileHandling = () => {
         return new Promise<DroppedFile>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = () => {
+            if (typeof reader.result !== "string") {
+              reject(new Error(`Unexpected result type for: ${file.name}`));
+              return;
+            }
             resolve({
               id: generateFileId(),
-              dataUri: reader.result as string,
+              dataUri: reader.result,
               type: mimeType,
               name: file.name
             });
