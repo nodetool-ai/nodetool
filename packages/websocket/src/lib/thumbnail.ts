@@ -36,9 +36,25 @@ export function thumbnailKey(assetId: string): string {
   return `${assetId}_thumb.jpg`;
 }
 
+/**
+ * EXIF-rotate, then trim a uniform border. Outpaint / background-removal /
+ * segmentation results are often a small subject on a large transparent (or
+ * solid) canvas; JPEG can't store alpha, so that padding flattens to black and
+ * the subject ends up a speck in a black tile. Trimming frames the actual
+ * content. Best-effort: photos without a uniform border come back unchanged,
+ * and any trim failure falls back to the full frame.
+ */
+async function trimUniformBorder(bytes: Uint8Array): Promise<Buffer> {
+  try {
+    return await sharp(bytes).rotate().trim({ threshold: 10 }).toBuffer();
+  } catch {
+    return await sharp(bytes).rotate().toBuffer();
+  }
+}
+
 async function generateImageThumb(bytes: Uint8Array): Promise<Buffer> {
-  return sharp(bytes)
-    .rotate()
+  const source = await trimUniformBorder(bytes);
+  return sharp(source)
     .resize({
       width: THUMB_MAX_DIM,
       height: THUMB_MAX_DIM,
