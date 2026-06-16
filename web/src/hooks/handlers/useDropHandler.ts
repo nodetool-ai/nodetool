@@ -111,7 +111,7 @@ const isAssetResult = (value: unknown): value is Asset => {
  * );
  * ```
  */
-export interface UseDropHandlerResult {
+interface UseDropHandlerResult {
   onDrop: (event: React.DragEvent<HTMLDivElement>) => Promise<void>;
   onDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
 }

@@ -26,7 +26,7 @@ export type InpaintHereResult =
       message?: string;
     };
 
-export interface UseInpaintHereResult {
+interface UseInpaintHereResult {
   inpaintHere: (options: {
     prompt: string;
     provider: string;

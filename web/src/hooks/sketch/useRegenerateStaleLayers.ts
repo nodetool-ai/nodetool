@@ -23,7 +23,7 @@ export interface RegenerateStalePreflight {
   lockedLayerIds: string[];
 }
 
-export interface UseRegenerateStaleLayersResult {
+interface UseRegenerateStaleLayersResult {
   preflight: () => RegenerateStalePreflight;
   regenerateStaleLayers: () => Promise<{
     started: number;
