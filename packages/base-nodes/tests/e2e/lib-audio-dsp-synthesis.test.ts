@@ -65,11 +65,10 @@ describe("GainNode_", () => {
     expect(out.data.length).toBeGreaterThan(0);
   });
 
-  it("passes through when no audio data", async () => {
+  it("throws when no audio data", async () => {
     const node = new GainNode_();
     node.assign({ audio: {}, gain_db: 6 });
-    const res = await node.process();
-    expect(res.output).toEqual({});
+    await expect(node.process()).rejects.toThrow("No audio connected");
   });
 });
 

@@ -235,46 +235,40 @@ describe("lib-audio-dsp gaps", () => {
     expect(out.data[0][1]).toBeCloseTo(20, 3);
   });
 
-  it("LowPassFilter passes through with no data", async () => {
+  it("LowPassFilter throws with no data", async () => {
     const __n3 = new LowPassFilterNode();
     __n3.assign({ audio: {} });
-    const res = await __n3.process();
-    expect(res.output).toEqual({});
+    await expect(__n3.process()).rejects.toThrow("No audio connected");
   });
 
-  it("HighPassFilter passes through with no data", async () => {
+  it("HighPassFilter throws with no data", async () => {
     const __n4 = new HighPassFilterNode();
     __n4.assign({ audio: {} });
-    const res = await __n4.process();
-    expect(res.output).toEqual({});
+    await expect(__n4.process()).rejects.toThrow("No audio connected");
   });
 
-  it("HighShelfFilter passes through with no data", async () => {
+  it("HighShelfFilter throws with no data", async () => {
     const __n5 = new HighShelfFilterNode();
     __n5.assign({ audio: {} });
-    const res = await __n5.process();
-    expect(res.output).toEqual({});
+    await expect(__n5.process()).rejects.toThrow("No audio connected");
   });
 
-  it("LowShelfFilter passes through with no data", async () => {
+  it("LowShelfFilter throws with no data", async () => {
     const __n6 = new LowShelfFilterNode();
     __n6.assign({ audio: {} });
-    const res = await __n6.process();
-    expect(res.output).toEqual({});
+    await expect(__n6.process()).rejects.toThrow("No audio connected");
   });
 
-  it("PeakFilter passes through with no data", async () => {
+  it("PeakFilter throws with no data", async () => {
     const __n7 = new PeakFilterNode();
     __n7.assign({ audio: {} });
-    const res = await __n7.process();
-    expect(res.output).toEqual({});
+    await expect(__n7.process()).rejects.toThrow("No audio connected");
   });
 
-  it("Delay passes through with no data", async () => {
+  it("Delay throws with no data", async () => {
     const __n8 = new DelayNode_();
     __n8.assign({ audio: {} });
-    const res = await __n8.process();
-    expect(res.output).toEqual({});
+    await expect(__n8.process()).rejects.toThrow("No audio connected");
   });
 
   it("defaults() returns expected shape for all nodes", () => {
@@ -1790,11 +1784,10 @@ describe("lib-pedalboard-extra gaps", () => {
     expect((res.output as any).data.length).toBeGreaterThan(0);
   });
 
-  it("Bitcrush no data passes through", async () => {
+  it("Bitcrush no data throws", async () => {
     const __n119 = new BitcrushNode();
     __n119.assign({ audio: {} });
-    const res = await __n119.process();
-    expect(res.output).toEqual({});
+    await expect(__n119.process()).rejects.toThrow("No audio connected");
   });
 
   it("Compress", async () => {
@@ -1810,11 +1803,10 @@ describe("lib-pedalboard-extra gaps", () => {
     expect((res.output as any).data.length).toBeGreaterThan(0);
   });
 
-  it("Compress no data", async () => {
+  it("Compress no data throws", async () => {
     const __n121 = new CompressNode();
     __n121.assign({ audio: {} });
-    const res = await __n121.process();
-    expect(res.output).toEqual({});
+    await expect(__n121.process()).rejects.toThrow("No audio connected");
   });
 
   it("Distortion", async () => {
@@ -1824,11 +1816,10 @@ describe("lib-pedalboard-extra gaps", () => {
     expect((res.output as any).data.length).toBeGreaterThan(0);
   });
 
-  it("Distortion no data", async () => {
+  it("Distortion no data throws", async () => {
     const __n123 = new DistortionNode();
     __n123.assign({ audio: {} });
-    const res = await __n123.process();
-    expect(res.output).toEqual({});
+    await expect(__n123.process()).rejects.toThrow("No audio connected");
   });
 
   it("Limiter", async () => {
@@ -1838,11 +1829,10 @@ describe("lib-pedalboard-extra gaps", () => {
     expect((res.output as any).data.length).toBeGreaterThan(0);
   });
 
-  it("Limiter no data", async () => {
+  it("Limiter no data throws", async () => {
     const __n125 = new LimiterNode();
     __n125.assign({ audio: {} });
-    const res = await __n125.process();
-    expect(res.output).toEqual({});
+    await expect(__n125.process()).rejects.toThrow("No audio connected");
   });
 
   it("Reverb", async () => {
@@ -1858,11 +1848,10 @@ describe("lib-pedalboard-extra gaps", () => {
     expect((res.output as any).data.length).toBeGreaterThan(0);
   });
 
-  it("Reverb no data", async () => {
+  it("Reverb no data throws", async () => {
     const __n127 = new ReverbNode();
     __n127.assign({ audio: {} });
-    const res = await __n127.process();
-    expect(res.output).toEqual({});
+    await expect(__n127.process()).rejects.toThrow("No audio connected");
   });
 
   it("PitchShift semitones=0 passes through", async () => {
@@ -2710,7 +2699,7 @@ describe("lib-audio-dsp round 2", () => {
       audio: { uri: "", data: badWav.toString("base64") },
       gain_db: 0
     });
-    await expect(__n210.process()).rejects.toThrow("Invalid WAV");
+    await expect(__n210.process()).rejects.toThrow("Could not decode audio");
   });
 });
 
@@ -2946,7 +2935,7 @@ describe("lib-pedalboard-extra round 2", () => {
       },
       bit_depth: 8
     });
-    await expect(__n226.process()).rejects.toThrow("Invalid WAV");
+    await expect(__n226.process()).rejects.toThrow("Could not decode audio");
   });
 
   it("Distortion with invalid audio data throws", async () => {
