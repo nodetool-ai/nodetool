@@ -19,10 +19,14 @@ import {
 } from "@lexical/react/LexicalTypeaheadMenuPlugin";
 
 import { useAssetStore } from "../../../../stores/AssetStore";
+import { useRecentAssetsStore } from "../../../../stores/RecentAssetsStore";
 import type { Asset } from "../../../../stores/ApiTypes";
 import { $createAssetMentionNode } from "./AssetMentionNode";
 import { $insertAssetMention } from "./promptEditorState";
 import { assetToUri } from "./promptTokens";
+import { MentionAssetTile } from "./MentionAssetTile";
+
+type MentionTab = "recent" | "saved";
 
 class AssetTypeaheadOption extends MenuOption {
   asset: Asset;
@@ -34,105 +38,80 @@ class AssetTypeaheadOption extends MenuOption {
 
 const menuStyles = (theme: Theme) =>
   css({
-    minWidth: 220,
-    maxWidth: 320,
-    maxHeight: 260,
-    overflowY: "auto",
+    width: 380,
+    maxHeight: 320,
+    display: "flex",
+    flexDirection: "column",
     background: theme.vars.palette.background.paper,
     border: `1px solid ${theme.vars.palette.divider}`,
-    borderRadius: BORDER_RADIUS.sm,
+    borderRadius: BORDER_RADIUS.lg,
     boxShadow: theme.shadows[6],
-    padding: theme.spacing(0.5),
     zIndex: 2000,
-    ".asset-option": {
+    overflow: "hidden",
+    ".mention-tabs": {
+      flex: "0 0 auto",
       display: "flex",
-      alignItems: "center",
-      gap: theme.spacing(1),
-      padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
+      gap: theme.spacing(0.5),
+      padding: theme.spacing(0.5),
+      borderBottom: `1px solid ${theme.vars.palette.divider}`
+    },
+    ".mention-tab": {
+      flex: "0 0 auto",
+      padding: `${theme.spacing(0.5)} ${theme.spacing(1.5)}`,
+      border: "none",
       borderRadius: BORDER_RADIUS.sm,
-      cursor: "pointer",
+      background: "transparent",
+      color: theme.vars.palette.text.secondary,
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
-      color: theme.vars.palette.text.primary,
-      "&.selected": {
-        background: theme.vars.palette.action.selected
+      cursor: "pointer",
+      "&.active": {
+        background: theme.vars.palette.action.selected,
+        color: theme.vars.palette.text.primary
       }
     },
-    ".asset-thumb": {
-      width: 28,
-      height: 28,
-      flex: "0 0 auto",
-      objectFit: "cover",
-      borderRadius: BORDER_RADIUS.xs,
-      background: theme.vars.palette.grey[800]
-    },
-    ".asset-meta": {
-      minWidth: 0,
+    ".mention-grid": {
+      flex: "1 1 auto",
+      overflowY: "auto",
       display: "flex",
-      flexDirection: "column"
-    },
-    ".asset-name": {
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap"
-    },
-    ".asset-type": {
-      color: theme.vars.palette.text.secondary,
-      fontSize: theme.fontSizeSmaller
-    },
-    ".asset-empty": {
+      flexWrap: "wrap",
+      gap: theme.spacing(0.5),
       padding: theme.spacing(1),
+      alignContent: "flex-start"
+    },
+    ".mention-empty": {
+      padding: theme.spacing(2),
+      width: "100%",
+      textAlign: "center",
       color: theme.vars.palette.text.secondary,
+      fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall
     }
   });
 
-const AssetOptionRow: React.FC<{
-  option: AssetTypeaheadOption;
-  selected: boolean;
-  onClick: () => void;
-  onMouseEnter: () => void;
-}> = ({ option, selected, onClick, onMouseEnter }) => {
-  const { asset } = option;
-  return (
-    <div
-      className={`asset-option${selected ? " selected" : ""}`}
-      role="option"
-      aria-selected={selected}
-      tabIndex={0}
-      ref={option.setRefElement}
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={onClick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          onClick();
-        }
-      }}
-      onMouseEnter={onMouseEnter}
-    >
-      {asset.thumb_url ? (
-        <img className="asset-thumb" src={asset.thumb_url} alt="" />
-      ) : (
-        <span className="asset-thumb" />
-      )}
-      <span className="asset-meta">
-        <span className="asset-name">{asset.name || asset.id}</span>
-        <span className="asset-type">{asset.content_type}</span>
-      </span>
-    </div>
-  );
-};
-
 /**
- * `@`-triggered typeahead that searches assets and inserts an asset-mention
- * chip (encoded as `asset://<id>.<ext>`).
+ * `@`-triggered picker that inserts an asset-mention chip (encoded as
+ * `asset://<id>.<ext>`). Two buckets: **Recent** (assets used in this prompt
+ * session) and **Saved** (the asset library, searched by what's typed after
+ * `@`). Tiles are large and scannable, and their names rename in place,
+ * syncing back to the asset library via `AssetStore.update`.
  */
 const AssetMentionPlugin: React.FC = () => {
   const theme = useTheme();
   const [editor] = useLexicalComposerContext();
   const search = useAssetStore((state) => state.search);
+  const updateAsset = useAssetStore((state) => state.update);
+  const recentAssets = useRecentAssetsStore((state) => state.recentAssets);
+  const addRecentAsset = useRecentAssetsStore((state) => state.addRecentAsset);
+  const renameRecentAsset = useRecentAssetsStore(
+    (state) => state.renameRecentAsset
+  );
+
   const [queryString, setQueryString] = useState<string | null>(null);
-  const [assets, setAssets] = useState<Asset[]>([]);
+  const [savedAssets, setSavedAssets] = useState<Asset[]>([]);
+  const [activeTab, setActiveTab] = useState<MentionTab>(
+    recentAssets.length > 0 ? "recent" : "saved"
+  );
 
   const triggerFn = useBasicTypeaheadTriggerMatch("@", {
     minLength: 0,
@@ -141,20 +120,20 @@ const AssetMentionPlugin: React.FC = () => {
 
   useEffect(() => {
     if (queryString === null) {
-      setAssets([]);
+      setSavedAssets([]);
       return;
     }
     let active = true;
     const handle = setTimeout(() => {
-      search({ query: queryString, page_size: 8 })
+      search({ query: queryString, page_size: 24 })
         .then((result) => {
           if (active) {
-            setAssets(result.assets ?? []);
+            setSavedAssets(result.assets ?? []);
           }
         })
         .catch(() => {
           if (active) {
-            setAssets([]);
+            setSavedAssets([]);
           }
         });
     }, 150);
@@ -164,9 +143,21 @@ const AssetMentionPlugin: React.FC = () => {
     };
   }, [queryString, search]);
 
+  const filteredRecent = useMemo(() => {
+    const q = (queryString ?? "").trim().toLowerCase();
+    if (!q) {
+      return recentAssets;
+    }
+    return recentAssets.filter((a) =>
+      (a.name || a.id).toLowerCase().includes(q)
+    );
+  }, [recentAssets, queryString]);
+
+  const displayedAssets = activeTab === "recent" ? filteredRecent : savedAssets;
+
   const options = useMemo(
-    () => assets.map((asset) => new AssetTypeaheadOption(asset)),
-    [assets]
+    () => displayedAssets.map((asset) => new AssetTypeaheadOption(asset)),
+    [displayedAssets]
   );
 
   const onSelectOption = useCallback(
@@ -185,8 +176,28 @@ const AssetMentionPlugin: React.FC = () => {
         $insertAssetMention(node, nodeToReplace);
         closeMenu();
       });
+      addRecentAsset(selectedOption.asset);
     },
-    [editor]
+    [editor, addRecentAsset]
+  );
+
+  const handleRename = useCallback(
+    async (id: string, name: string) => {
+      // Reject collisions within the currently visible scope so two assets in
+      // the same bucket can't share a name.
+      const collision = displayedAssets.some(
+        (a) => a.id !== id && (a.name || a.id) === name
+      );
+      if (collision) {
+        throw new Error("Name already in use");
+      }
+      await updateAsset({ id, name });
+      renameRecentAsset(id, name);
+      setSavedAssets((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, name } : a))
+      );
+    },
+    [displayedAssets, updateAsset, renameRecentAsset]
   );
 
   return (
@@ -202,26 +213,53 @@ const AssetMentionPlugin: React.FC = () => {
         if (anchorElementRef.current === null) {
           return null;
         }
+        const emptyMessage =
+          activeTab === "recent"
+            ? queryString
+              ? "No recent assets match."
+              : "No assets used yet. Generate or drag one in."
+            : queryString
+              ? "No assets match."
+              : "Type to search your saved assets.";
         return createPortal(
           <div css={menuStyles(theme)} className="asset-mention-menu nowheel">
-            {options.length === 0 ? (
-              <div className="asset-empty">
-                {queryString ? "No matching assets" : "Type to search assets"}
-              </div>
-            ) : (
-              options.map((option, index) => (
-                <AssetOptionRow
-                  key={option.key}
-                  option={option}
-                  selected={index === selectedIndex}
+            <div className="mention-tabs" role="tablist">
+              {(["recent", "saved"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === tab}
+                  className={`mention-tab${activeTab === tab ? " active" : ""}`}
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
-                    setHighlightedIndex(index);
-                    selectOptionAndCleanUp(option);
+                    setActiveTab(tab);
+                    setHighlightedIndex(0);
                   }}
-                  onMouseEnter={() => setHighlightedIndex(index)}
-                />
-              ))
-            )}
+                >
+                  {tab === "recent" ? "Recent" : "Saved"}
+                </button>
+              ))}
+            </div>
+            <div className="mention-grid" role="listbox">
+              {options.length === 0 ? (
+                <div className="mention-empty">{emptyMessage}</div>
+              ) : (
+                options.map((option, index) => (
+                  <MentionAssetTile
+                    key={option.key}
+                    asset={option.asset}
+                    selected={index === selectedIndex}
+                    onSelect={() => {
+                      setHighlightedIndex(index);
+                      selectOptionAndCleanUp(option);
+                    }}
+                    onMouseEnter={() => setHighlightedIndex(index)}
+                    onRename={handleRename}
+                  />
+                ))
+              )}
+            </div>
           </div>,
           anchorElementRef.current
         );
