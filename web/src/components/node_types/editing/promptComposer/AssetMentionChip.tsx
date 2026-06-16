@@ -56,13 +56,13 @@ export const AssetMentionChip: React.FC<{
   const { assetId, ext } = parseAssetUri(uri);
   const kind = assetMediaKind(ext);
   const wantsPreview = kind === "image" || kind === "video";
-  // Resolve the preview from the store only when we weren't handed one (e.g.
-  // after reloading a saved prompt, where the chip starts from the URN alone).
-  const { data: resolved } = useAssetById(
-    wantsPreview && !thumb ? assetId : undefined
-  );
+  // Resolve from the store to (a) recover a preview URL when none was handed in
+  // (e.g. after reloading a saved prompt) and (b) keep the label in sync when
+  // the asset is renamed from the mention picker or asset library.
+  const { data: resolved } = useAssetById(assetId || undefined);
   const previewUrl =
     thumb || resolved?.thumb_url || resolved?.get_url || undefined;
+  const displayLabel = resolved?.name || label;
 
   if (wantsPreview && previewUrl) {
     return (
@@ -70,9 +70,9 @@ export const AssetMentionChip: React.FC<{
         css={previewStyles(theme)}
         className="asset-mention-chip asset-mention-preview nodrag"
         contentEditable={false}
-        title={label}
+        title={displayLabel}
       >
-        <img src={previewUrl} alt={label} />
+        <img src={previewUrl} alt={displayLabel} />
       </span>
     );
   }
@@ -93,7 +93,7 @@ export const AssetMentionChip: React.FC<{
       title={uri}
     >
       <Icon />
-      {label}
+      {displayLabel}
     </span>
   );
 };

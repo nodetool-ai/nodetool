@@ -19,6 +19,7 @@ import { mergeRegister } from "@lexical/utils";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 
 import { useAssetStore } from "../../../../stores/AssetStore";
+import { useRecentAssetsStore } from "../../../../stores/RecentAssetsStore";
 import type { Asset } from "../../../../stores/ApiTypes";
 import { $createAssetMentionNode } from "./AssetMentionNode";
 import { $insertAssetMention } from "./promptEditorState";
@@ -71,6 +72,12 @@ const insertAssets = (
       );
     }
   });
+  // Assets dragged into a prompt count as "used this session" — surface them
+  // first in the `@`-mention picker.
+  const { addRecentAsset } = useRecentAssetsStore.getState();
+  for (const asset of assets) {
+    addRecentAsset(asset);
+  }
 };
 
 const AssetDropPlugin: React.FC = () => {
