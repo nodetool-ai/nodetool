@@ -17,6 +17,7 @@ import {
 } from "@nodetool-ai/nodes-utils";
 import type { AudioRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { loadOfflineAudioContext } from "./audio-context.js";
 
 export interface WavData {
   samples: Float32Array;
@@ -26,6 +27,7 @@ export interface WavData {
 
 type AudioRefLike = {
   uri?: string;
+  asset_id?: string | null;
   data?: Uint8Array | string;
 };
 
@@ -74,6 +76,38 @@ export async function audioBytesAsync(
     }
   }
   return new Uint8Array();
+}
+
+/**
+ * Resolve an AudioRef to bytes, throwing a descriptive error when nothing
+ * playable can be loaded. Effect nodes use this instead of silently returning
+ * their input on empty bytes — a no-op effect is indistinguishable from a
+ * working one, so failure must be loud.
+ */
+export async function requireAudioBytes(
+  audio: unknown,
+  context?: ProcessingContext
+): Promise<Uint8Array> {
+  const bytes = await audioBytesAsync(audio, context);
+  if (bytes.length > 0) return bytes;
+
+  const ref = (audio && typeof audio === "object" ? audio : {}) as AudioRefLike;
+  if (!ref.uri && !ref.asset_id && !ref.data) {
+    throw new Error(
+      "No audio connected: this effect needs audio on its input, but none was provided."
+    );
+  }
+  if (ref.uri) {
+    throw new Error(
+      `Could not load audio from "${ref.uri}": it resolved to zero bytes. The file may be missing, empty, or stored somewhere this node can't reach.`
+    );
+  }
+  if (ref.asset_id) {
+    throw new Error(
+      `Could not load audio for asset "${ref.asset_id}": no inline data and no resolvable URI. The asset may be unavailable in this context.`
+    );
+  }
+  throw new Error("Could not load audio: the connected reference is empty (0 bytes).");
 }
 
 /** Strip a `file://` scheme from a URI, returning a plain filesystem path. */
@@ -355,4 +389,62 @@ export function decodeWav(audio: unknown): WavData {
  */
 export function tryDecodeWav(audio: unknown): WavData | null {
   return parseWavBytes(audioBytes(audio));
+}
+
+/**
+ * Decode arbitrary audio bytes (WAV, or any compressed format WebAudio can
+ * read — mp3, flac, ogg, m4a, …) into interleaved Float32 PCM.
+ *
+ * WAV is parsed directly. Anything else is decoded via WebAudio's
+ * `decodeAudioData`, which exists on Node (`node-web-audio-api`) and in
+ * Chromium Web Workers but not in Firefox/Safari workers — when it's
+ * unavailable on non-WAV input we throw an actionable error rather than the
+ * opaque "Invalid WAV file" from `decodeWav`.
+ *
+ * Effect/DSP nodes use this instead of `decodeWav` so a stored `.mp3`/`.flac`
+ * input is processed rather than rejected.
+ */
+export async function decodeAudioToWav(bytes: Uint8Array): Promise<WavData> {
+  const wav = parseWavBytes(bytes);
+  if (wav) return wav;
+
+  const Ctor = await loadOfflineAudioContext();
+  if (!Ctor) {
+    throw new Error(
+      "This audio isn't WAV and can't be decoded here — WebAudio is unavailable " +
+        "in this browser's worker (Firefox/Safari). Run this node on the server " +
+        "or convert the audio to WAV upstream."
+    );
+  }
+
+  // decodeAudioData wants a standalone ArrayBuffer; slice to the ref's exact
+  // byte range in case `bytes` is a view onto a larger pooled buffer.
+  const arrayBuffer = bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength
+  ) as ArrayBuffer;
+
+  // The constructor args don't affect decoding — decodeAudioData honors the
+  // file's own sample rate / channel count.
+  const ctx = new Ctor(1, 1, 44100);
+  let audioBuffer: AudioBuffer;
+  try {
+    audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+  } catch (error) {
+    throw new Error(
+      `Could not decode audio: the bytes are neither WAV nor a format WebAudio ` +
+        `can read (${error instanceof Error ? error.message : String(error)}).`
+    );
+  }
+
+  const numChannels = audioBuffer.numberOfChannels;
+  const frames = audioBuffer.length;
+  const samples = new Float32Array(frames * numChannels);
+  for (let ch = 0; ch < numChannels; ch++) {
+    const channel = audioBuffer.getChannelData(ch);
+    for (let i = 0; i < frames; i++) {
+      samples[i * numChannels + ch] = channel[i];
+    }
+  }
+  return { samples, sampleRate: audioBuffer.sampleRate, numChannels };
 }
