@@ -98,13 +98,13 @@ export interface LongTermMemoryOptions {
   /** Model for extraction calls. */
   extractionModel?: string;
   /**
-   * Opt-in: run an LLM synthesis pass over recalled items (via
+   * Run an LLM synthesis pass over recalled items (via
    * {@link LongTermMemory.synthesize} / {@link LongTermMemory.recallSynthesized})
    * to produce a small set of standalone, query-relevant, cited facts. Default
-   * `false`. When `true` but no synthesis provider/model is set, the class
-   * falls back to {@link extractionProvider} / {@link extractionModel}; if
-   * neither resolves, synthesis is skipped and raw recall is returned. recall()
-   * itself is never affected by this flag.
+   * `true`; pass `false` to opt out. When enabled but no synthesis
+   * provider/model is set, the class falls back to {@link extractionProvider} /
+   * {@link extractionModel}; if neither resolves, synthesis is skipped and raw
+   * recall is returned. recall() itself is never affected by this flag.
    */
   synthesizeRecall?: boolean;
   /**
@@ -443,7 +443,7 @@ export class LongTermMemory {
 
     this.extractionProvider = opts.extractionProvider ?? null;
     this.extractionModel = opts.extractionModel ?? null;
-    this.synthesizeRecall = opts.synthesizeRecall ?? false;
+    this.synthesizeRecall = opts.synthesizeRecall ?? true;
     this.synthesisProvider =
       opts.synthesisProvider ?? opts.extractionProvider ?? null;
     this.synthesisModel = opts.synthesisModel ?? opts.extractionModel ?? null;
@@ -957,10 +957,11 @@ export interface CreateDefaultLongTermMemoryOptions {
    */
   extractionModel?: string;
   /**
-   * Opt-in: run an LLM synthesis pass over raw recall results before they are
-   * injected into the prompt. Default off. The synthesis provider/model fall
-   * back to {@link synthesisProvider}/{@link synthesisModel}, then to the
-   * extraction provider/model.
+   * Run an LLM synthesis pass over raw recall results before they are injected
+   * into the prompt. Default on; pass `false` to opt out. The synthesis
+   * provider/model fall back to {@link synthesisProvider}/{@link synthesisModel},
+   * then to the extraction provider/model; if none resolve, synthesis is
+   * skipped and raw recall is used.
    */
   synthesizeRecall?: boolean;
   /** Provider for the synthesis pass. Falls back to {@link extractionProvider}. */

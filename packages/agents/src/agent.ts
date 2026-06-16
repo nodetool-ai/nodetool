@@ -241,9 +241,11 @@ export interface AgentOptions {
   /**
    * Run an LLM synthesis pass over recalled memory before folding it into the
    * prompt. Returns <=7 cited, query-relevant facts instead of raw items.
-   * Default false. The synthesis provider/model live on the
-   * {@link LongTermMemory} instance (typically the chat/extraction provider);
-   * when the LTM has none, this flag silently degrades to the raw recall path.
+   * Default ON: pass `false` to use the raw recall path. The synthesis
+   * provider/model live on the {@link LongTermMemory} instance (typically the
+   * chat/extraction provider); when the LTM has none, this silently degrades to
+   * raw recall regardless of the flag. Note that long-term memory itself is
+   * opt-in, so this only has any effect once memory is enabled.
    */
   synthesizeRecall?: boolean;
   /**
@@ -261,13 +263,12 @@ export interface AgentOptions {
    */
   providers?: Record<string, BaseProvider>;
   /**
-   * Opt-in context compaction for the step-execution tool-calling loop.
-   * Default OFF: when omitted, no compactor is constructed and history
-   * trimming falls back to the lossless tool-result eviction path only —
-   * existing runs are byte-for-byte unchanged. Pass `{ enabled: true }` to
-   * summarize the older transcript once the running token estimate crosses the
-   * threshold. Threads through TaskExecutor / ParallelTaskExecutor to every
-   * StepExecutor. See {@link CompactionOptions}.
+   * Context compaction for the step-execution tool-calling loop. Default ON:
+   * the older transcript is summarized once the running token estimate crosses
+   * the threshold (~70% of the step budget), keeping the system prompt + recent
+   * tail. Pass `{ enabled: false }` to fall back to the lossless tool-result
+   * eviction path only. Threads through TaskExecutor / ParallelTaskExecutor to
+   * every StepExecutor. See {@link CompactionOptions}.
    */
   compaction?: CompactionOptions;
   /**
@@ -345,7 +346,7 @@ export class Agent {
     this.initialTask = opts.task;
     this.longTermMemory = opts.longTermMemory ?? null;
     this.autoPersistMemory = opts.autoPersistMemory === true;
-    this.synthesizeRecall = opts.synthesizeRecall ?? false;
+    this.synthesizeRecall = opts.synthesizeRecall ?? true;
     this.useGraphPlanner = opts.useGraphPlanner === true;
     this.registry = opts.registry;
     this.providers = opts.providers;

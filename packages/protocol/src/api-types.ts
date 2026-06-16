@@ -624,10 +624,10 @@ export interface Message {
    */
   permission_mode?: "plan" | "default" | "auto" | null;
   /**
-   * Opt-in: expose the read-only `run_search` fan-out primitive to the agent
-   * for this turn. When `true`, a `run_search` tool is added next to
-   * `run_subtask`; its child loop is restricted to read-only tools and cannot
-   * spawn further work. Omitted / `false` keeps the toolbelt unchanged.
+   * The read-only `run_search` fan-out primitive — a `run_search` tool next to
+   * `run_subtask` whose child loop is restricted to read-only tools and cannot
+   * spawn further work. Enabled by default (omitted / `true`); send `false` to
+   * remove it from the toolbelt.
    */
   enable_read_only_search?: boolean | null;
   agent_mode?: boolean | null;

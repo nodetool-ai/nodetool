@@ -45,8 +45,8 @@ export interface StdinModeOptions {
   /** Configured BaseProvider instances by id (passed through to subtasks). */
   agentProviders?: Record<string, BaseProvider>;
   /**
-   * Opt-in: expose the read-only `run_search` fan-out primitive alongside
-   * `run_subtask`. Default OFF — current runs are unchanged.
+   * Expose the read-only `run_search` fan-out primitive alongside
+   * `run_subtask`. On by default; set `false` to remove it.
    */
   enableReadOnlySearch?: boolean;
 }
@@ -235,9 +235,9 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
       parentTools: () => baseTools,
       forwardMessage
     });
-    // Read-only fan-out search (opt-in). Filters baseTools to its read-only
-    // allowlist internally, so passing the full snapshot is correct.
-    if (opts.enableReadOnlySearch) {
+    // Read-only fan-out search (on by default). Filters baseTools to its
+    // read-only allowlist internally, so passing the full snapshot is correct.
+    if (opts.enableReadOnlySearch !== false) {
       const searchTool = new RunSearchTool({
         provider: prov,
         model: opts.model,

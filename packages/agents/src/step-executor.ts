@@ -328,12 +328,11 @@ export interface StepExecutorOptions {
    */
   upstreamMemoryKeys?: string[];
   /**
-   * Opt-in context compaction. When omitted (the default) no compaction
-   * occurs and history trimming falls back to the lossless tool-result
-   * eviction path only. When `{ enabled: true }` is supplied, the older
-   * portion of the transcript is summarized via one LLM call once the running
-   * token estimate crosses the threshold; the lossless eviction stays as the
-   * always-on fallback. See {@link CompactionOptions}.
+   * Context compaction. On by default: the older portion of the transcript is
+   * summarized via one LLM call once the running token estimate crosses the
+   * threshold, with the lossless tool-result eviction staying as the always-on
+   * fallback. Pass `{ enabled: false }` to disable summarization and rely on
+   * lossless eviction only. See {@link CompactionOptions}.
    */
   compaction?: CompactionOptions;
 }
@@ -380,10 +379,10 @@ export class StepExecutor {
     this.threadId = opts.threadId;
     this.upstreamMemoryKeys = opts.upstreamMemoryKeys ?? [];
 
-    // Opt-in context compaction. Only construct a compactor when explicitly
-    // enabled; otherwise it stays null and the loop's compaction branch is
-    // skipped entirely (lossless tool-result eviction remains the only path).
-    if (opts.compaction?.enabled) {
+    // Context compaction is on by default. Only skip the compactor when the
+    // caller explicitly disables it (`{ enabled: false }`); then it stays null
+    // and the lossless tool-result eviction remains the only trimming path.
+    if (opts.compaction?.enabled !== false) {
       this.compactor = new ContextCompactor({
         provider: this.provider,
         model: this.model,
@@ -391,10 +390,10 @@ export class StepExecutor {
         options: {
           enabled: true,
           thresholdTokens:
-            opts.compaction.thresholdTokens ??
+            opts.compaction?.thresholdTokens ??
             Math.floor(this.maxTokenLimit * COMPACTION_THRESHOLD_RATIO),
           keepRecent:
-            opts.compaction.keepRecent ?? DEFAULT_COMPACTION_KEEP_RECENT
+            opts.compaction?.keepRecent ?? DEFAULT_COMPACTION_KEEP_RECENT
         }
       });
     }

@@ -1452,7 +1452,7 @@ describe("StepExecutor", () => {
     expect(failedUpdates).toHaveLength(1);
   });
 
-  it("does not compact or emit compaction logs when compaction is undefined (default OFF)", async () => {
+  it("does not compact or emit compaction logs when explicitly disabled, even under a tiny threshold", async () => {
     const step: Step = {
       id: "step_no_compaction",
       instructions: "Use a tool across iterations then finish",
@@ -1514,8 +1514,11 @@ describe("StepExecutor", () => {
       context,
       provider,
       model: "test-model",
-      tools: [noopTool as unknown as Tool]
-      // compaction intentionally omitted → default OFF
+      tools: [noopTool as unknown as Tool],
+      // Explicitly disabled. The tiny threshold would trip compaction if it
+      // were on (or merely left at the default), so a clean run proves the
+      // opt-out actually suppresses the compactor.
+      compaction: { enabled: false, thresholdTokens: 1, keepRecent: 2 }
     });
 
     const messages: ProcessingMessage[] = [];
@@ -1635,5 +1638,82 @@ describe("StepExecutor", () => {
         (m as { content: string }).content.includes("Compacting earlier context")
     );
     expect(compactionLogs.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("compacts by default when `enabled` is omitted and the threshold trips", async () => {
+    const step: Step = {
+      id: "step_compaction_default",
+      instructions: "Loop with tools, compaction left at its default",
+      completed: false,
+      dependsOn: [],
+      outputSchema: JSON.stringify({
+        type: "object",
+        properties: { v: { type: "string" } }
+      }),
+      logs: []
+    };
+
+    const task: Task = {
+      id: "task_compaction_default",
+      title: "Compaction-default Test",
+      steps: [step]
+    };
+
+    let callCount = 0;
+    const summarySpy = vi.fn().mockResolvedValue({
+      role: "assistant",
+      content: "SCRIPTED DEFAULT SUMMARY"
+    });
+    const provider = {
+      ...createMockProvider(),
+      generateMessageTraced: summarySpy,
+      generateMessages: async function* () {
+        callCount++;
+        if (callCount <= 3) {
+          yield { id: `tc_${callCount}`, name: "bulky_tool", args: {} };
+        } else {
+          yield {
+            id: "tc_finish",
+            name: "finish_step",
+            args: { result: { v: "done" } }
+          };
+        }
+      }
+    } as unknown as BaseProvider;
+
+    const bulkyTool = {
+      name: "bulky_tool",
+      description: "Returns bulky output",
+      inputSchema: { type: "object" as const, properties: {}, required: [] },
+      process: vi.fn().mockResolvedValue({ data: "x".repeat(400) }),
+      userMessage: () => "Using bulky_tool",
+      toProviderTool: () => ({
+        name: "bulky_tool",
+        description: "Returns bulky output",
+        inputSchema: { type: "object", properties: {}, required: [] }
+      })
+    };
+
+    const context = createMockContext();
+    const executor = new StepExecutor({
+      task,
+      step,
+      context,
+      provider,
+      model: "test-model",
+      tools: [bulkyTool as unknown as Tool],
+      maxIterations: 12,
+      // `enabled` omitted on purpose: compaction is on by default, so the tiny
+      // threshold should still trip it without anyone flipping a switch.
+      compaction: { thresholdTokens: 1, keepRecent: 2 }
+    });
+
+    const messages: ProcessingMessage[] = [];
+    for await (const msg of executor.execute()) {
+      messages.push(msg);
+    }
+
+    expect(step.completed).toBe(true);
+    expect(summarySpy).toHaveBeenCalled();
   });
 });

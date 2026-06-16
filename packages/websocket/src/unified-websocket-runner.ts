@@ -2515,9 +2515,9 @@ export class UnifiedWebSocketRunner {
         ? data.permission_mode
         : "default";
 
-    // Opt-in: expose the read-only `run_search` fan-out primitive. Default OFF
-    // — when absent/false the toolbelt is byte-for-byte identical to today.
-    const enableReadOnlySearch = data.enable_read_only_search === true;
+    // Expose the read-only `run_search` fan-out primitive by default. A client
+    // can opt out by sending `enable_read_only_search: false`.
+    const enableReadOnlySearch = data.enable_read_only_search !== false;
 
     // Assemble the fixed, always-on toolbelt. There is no per-message tool
     // selection anymore — the agent reasons over the full toolbelt and the

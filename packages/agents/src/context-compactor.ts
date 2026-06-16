@@ -41,15 +41,16 @@ export const COMPACTION_THRESHOLD_RATIO = 0.7;
 export const DEFAULT_COMPACTION_KEEP_RECENT = 8;
 
 /**
- * Opt-in configuration for context compaction.
+ * Configuration for context compaction.
  *
- * Threading: `AgentOptions.compaction` → `TaskExecutor` → `StepExecutor`. When
- * omitted (the default) no compactor is constructed and history trimming falls
- * back to the lossless tool-result eviction path only.
+ * Threading: `AgentOptions.compaction` → `TaskExecutor` → `StepExecutor`.
+ * Compaction is on by default; set `enabled: false` (or omit the whole object
+ * and rely on the default) to control it. When disabled, history trimming
+ * falls back to the lossless tool-result eviction path only.
  */
 export interface CompactionOptions {
-  /** Master switch. When `false`/omitted, compaction never runs. */
-  enabled: boolean;
+  /** Master switch. Defaults to ON; set `false` to disable compaction. */
+  enabled?: boolean;
   /**
    * Estimated-token threshold above which the older prefix is summarized.
    * Defaults to ~70% of the step's `maxTokenLimit` when wired in StepExecutor.
