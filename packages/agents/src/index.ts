@@ -34,7 +34,7 @@ export {
   EditFileTool,
   GlobTool,
   GrepTool
-} from "./tools/claude-code-tools.js";
+} from "./tools/edit-search-tools.js";
 export { RunCodeTool } from "./tools/code-tools.js";
 export {
   TodoWriteTool,
