@@ -3,10 +3,12 @@
  * MentionAssetTile — a large, scannable asset tile for the `@`-mention picker.
  *
  * Larger than the asset-grid default so similar generations are easy to tell
- * apart: a thumbnail with the reference name below it, a media-type badge for
- * non-images, and inline rename (double-click the name, or the hover pencil).
- * Saving routes through `onRename`, which the picker wires to
- * `AssetStore.update({ id, name })` so the change syncs to the asset library.
+ * apart: a thumbnail with the reference name below it (clamped to two lines so
+ * the distinguishing tail of a name like `inpaint-result-3.png` survives), a
+ * play marker on video frames, and inline rename (double-click the name, or the
+ * pencil that floats on the thumbnail). Saving routes through `onRename`, which
+ * the picker wires to `AssetStore.update({ id, name })` so the change syncs to
+ * the asset library.
  */
 import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { css } from "@emotion/react";
@@ -18,8 +20,9 @@ import MovieIcon from "@mui/icons-material/Movie";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import FolderIcon from "@mui/icons-material/Folder";
 import EditIcon from "@mui/icons-material/Edit";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 
-import { BORDER_RADIUS, MOTION } from "../../../ui_primitives";
+import { BORDER_RADIUS, MOTION, reducedMotion } from "../../../ui_primitives";
 import type { Asset } from "../../../../stores/ApiTypes";
 
 const TILE_WIDTH = 112;
@@ -44,7 +47,7 @@ const mediaKindOf = (asset: Asset): MediaKind => {
   return "other";
 };
 
-const BADGE_ICON: Record<MediaKind, typeof ImageIcon> = {
+const MEDIA_ICON: Record<MediaKind, typeof ImageIcon> = {
   image: ImageIcon,
   video: MovieIcon,
   audio: AudiotrackIcon,
@@ -57,36 +60,66 @@ const styles = (theme: Theme) =>
     width: TILE_WIDTH,
     display: "flex",
     flexDirection: "column",
-    gap: theme.spacing(0.5),
+    gap: theme.spacing(0.75),
     padding: theme.spacing(0.5),
-    borderRadius: BORDER_RADIUS.sm,
+    borderRadius: BORDER_RADIUS.md,
     border: "1px solid transparent",
+    background: "transparent",
     cursor: "pointer",
-    transition: MOTION.all,
-    "&:hover, &.selected": {
-      borderColor: theme.vars.palette.primary.main,
+    transition: `${MOTION.border}, ${MOTION.background}, ${MOTION.shadow}`,
+    ...reducedMotion({ transition: MOTION.none }),
+
+    // Hover and selection read differently on purpose: hover is a quiet tint so
+    // the pointer has somewhere to land; selection (keyboard / active option) is
+    // a primary ring with a soft lift so it stays legible without a cursor.
+    "&:hover": {
+      borderColor: theme.vars.palette.divider,
       background: theme.vars.palette.action.hover
     },
-    "&:hover .rename-button": { opacity: 1 },
+    "&:hover .thumb img": { transform: "scale(1.06)" },
+    "&:hover .rename-button, &.selected .rename-button": { opacity: 1 },
+    "&.selected": {
+      borderColor: theme.vars.palette.primary.main,
+      background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`,
+      boxShadow: `0 6px 16px -6px rgba(${theme.vars.palette.primary.mainChannel} / 0.45)`
+    },
+
     ".thumb": {
       position: "relative",
       width: "100%",
       height: THUMB_HEIGHT,
-      borderRadius: BORDER_RADIUS.xs,
+      borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
       background: theme.vars.palette.grey[800],
+      // Hairline inset so dark-bordered images don't bleed into the tile.
+      boxShadow: `inset 0 0 0 1px ${theme.vars.palette.divider}`,
       display: "flex",
       alignItems: "center",
-      justifyContent: "center",
-      color: theme.vars.palette.text.secondary
+      justifyContent: "center"
     },
     ".thumb img": {
       width: "100%",
       height: "100%",
       objectFit: "cover",
-      display: "block"
+      display: "block",
+      transition: MOTION.transform,
+      ...reducedMotion({ transition: MOTION.none })
     },
-    ".thumb svg": { fontSize: 36 },
+    // A deliberate media token for thumbnail-less kinds (audio, files, folders)
+    // so they read as "this kind of asset", not "missing image".
+    ".media-icon": {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: 40,
+      height: 40,
+      borderRadius: BORDER_RADIUS.circle,
+      background: theme.vars.palette.grey[700],
+      color: theme.vars.palette.text.secondary
+    },
+    ".media-icon svg": { fontSize: 20 },
+
+    // Corner marker only where the frame can't speak for itself (video).
     ".badge": {
       position: "absolute",
       top: 4,
@@ -96,25 +129,57 @@ const styles = (theme: Theme) =>
       justifyContent: "center",
       width: 20,
       height: 20,
-      borderRadius: BORDER_RADIUS.xs,
-      background: "rgba(0, 0, 0, 0.6)",
-      color: "#fff"
+      borderRadius: BORDER_RADIUS.sm,
+      background: theme.vars.palette.background.paper,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      color: theme.vars.palette.text.primary
     },
     ".badge svg": { fontSize: 14 },
+
+    ".rename-button": {
+      position: "absolute",
+      bottom: 4,
+      right: 4,
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: 24,
+      height: 24,
+      padding: 0,
+      borderRadius: BORDER_RADIUS.sm,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      background: theme.vars.palette.background.paper,
+      color: theme.vars.palette.text.secondary,
+      cursor: "pointer",
+      opacity: 0,
+      transition: `${MOTION.opacity}, ${MOTION.background}, ${MOTION.border}`,
+      ...reducedMotion({ transition: MOTION.none })
+    },
+    ".rename-button:hover": {
+      color: theme.vars.palette.text.primary,
+      borderColor: theme.vars.palette.primary.main,
+      background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`
+    },
+    ".rename-button svg": { fontSize: 14 },
+
     ".name-row": {
       display: "flex",
-      alignItems: "center",
-      gap: theme.spacing(0.25),
-      minHeight: 18
+      alignItems: "flex-start",
+      // Two-line slot keeps thumbnails aligned whether a name wraps or not.
+      minHeight: 30,
+      paddingInline: 2
     },
     ".name": {
       flex: "1 1 auto",
       minWidth: 0,
+      display: "-webkit-box",
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: "vertical",
       overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap",
+      wordBreak: "break-word",
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmaller,
+      lineHeight: 1.35,
       color: theme.vars.palette.text.primary
     },
     ".name-input": {
@@ -122,35 +187,19 @@ const styles = (theme: Theme) =>
       minWidth: 0,
       width: "100%",
       boxSizing: "border-box",
-      padding: "1px 4px",
-      borderRadius: BORDER_RADIUS.xs,
+      padding: "2px 4px",
+      borderRadius: BORDER_RADIUS.sm,
       border: `1px solid ${theme.vars.palette.primary.main}`,
       background: theme.vars.palette.background.paper,
       color: theme.vars.palette.text.primary,
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmaller,
+      lineHeight: 1.35,
       outline: "none"
     },
     ".name-input.error": {
       borderColor: theme.vars.palette.error.main
-    },
-    ".rename-button": {
-      flex: "0 0 auto",
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: 0,
-      width: 16,
-      height: 16,
-      border: "none",
-      background: "transparent",
-      color: theme.vars.palette.text.secondary,
-      cursor: "pointer",
-      opacity: 0,
-      transition: MOTION.opacity
-    },
-    ".rename-button:hover": { color: theme.vars.palette.text.primary },
-    ".rename-button svg": { fontSize: 13 }
+    }
   });
 
 export interface MentionAssetTileProps {
@@ -178,7 +227,8 @@ export const MentionAssetTile: React.FC<MentionAssetTileProps> = ({
     kind === "image" || kind === "video"
       ? asset.thumb_url || asset.get_url || undefined
       : undefined;
-  const Badge = BADGE_ICON[kind];
+  const MediaIcon = MEDIA_ICON[kind];
+  const showPlayBadge = kind === "video" && !!previewUrl;
   const displayName = asset.name || asset.id;
 
   const [editing, setEditing] = useState(false);
@@ -233,12 +283,27 @@ export const MentionAssetTile: React.FC<MentionAssetTileProps> = ({
         {previewUrl ? (
           <img src={previewUrl} alt="" />
         ) : (
-          <Badge aria-hidden />
-        )}
-        {kind !== "image" && (
-          <span className="badge" aria-hidden>
-            <Badge />
+          <span className="media-icon" aria-hidden>
+            <MediaIcon />
           </span>
+        )}
+        {showPlayBadge && (
+          <span className="badge" aria-hidden>
+            <PlayArrowIcon />
+          </span>
+        )}
+        {!editing && (
+          <button
+            type="button"
+            className="rename-button"
+            aria-label={`Rename ${displayName}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              startEditing();
+            }}
+          >
+            <EditIcon />
+          </button>
         )}
       </div>
       <div className="name-row">
@@ -268,30 +333,17 @@ export const MentionAssetTile: React.FC<MentionAssetTileProps> = ({
             }}
           />
         ) : (
-          <>
-            <span
-              className="name"
-              title={displayName}
-              onClick={(e) => e.stopPropagation()}
-              onDoubleClick={(e) => {
-                e.stopPropagation();
-                startEditing();
-              }}
-            >
-              {displayName}
-            </span>
-            <button
-              type="button"
-              className="rename-button"
-              aria-label={`Rename ${displayName}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                startEditing();
-              }}
-            >
-              <EditIcon />
-            </button>
-          </>
+          <span
+            className="name"
+            title={displayName}
+            onClick={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              startEditing();
+            }}
+          >
+            {displayName}
+          </span>
         )}
       </div>
     </div>
