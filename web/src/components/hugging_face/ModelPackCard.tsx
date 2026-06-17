@@ -3,7 +3,7 @@
  * Shows title, description, total size, and allows one-click download of all models.
  */
 
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { memo, useState, useMemo, useEffect, useCallback } from "react";
 import {
   List,
   ListItem,
@@ -286,4 +286,4 @@ const ModelPackCard: React.FC<ModelPackCardProps> = ({
   );
 };
 
-export default ModelPackCard;
+export default memo(ModelPackCard);

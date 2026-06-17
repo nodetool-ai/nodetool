@@ -242,8 +242,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
     onPressArrowUp,
     onPressEnter,
     debouncedSetSearchTerm,
-    clearSearch,
-    searchResults
+    clearSearch
   ]);
 
   React.useEffect(() => {
