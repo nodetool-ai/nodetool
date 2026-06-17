@@ -116,6 +116,21 @@ function isNodeCategoryId(value: string): value is NodeCategoryId {
   return (VALID_NODE_CATEGORIES as readonly string[]).includes(value);
 }
 
+interface PersistedPanelShape {
+  panelSize?: unknown;
+  isVisible?: unknown;
+  activeView?: unknown;
+  activeNodeCategory?: unknown;
+}
+
+function isPersistedShape(value: unknown): value is { panel?: unknown } {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isPersistedPanelShape(value: unknown): value is PersistedPanelShape {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 const createInitialState = (): PanelState => {
   return {
     panelSize: DEFAULT_PANEL_SIZE,
@@ -237,16 +252,14 @@ export const usePanelStore = create<ResizePanelState>()(
         }
       }),
       merge: (persistedState, currentState) => {
-        if (!persistedState || typeof persistedState !== "object" || Array.isArray(persistedState)) {
+        if (!isPersistedShape(persistedState)) {
           return currentState;
         }
-        const persisted = persistedState as Record<string, unknown>;
-        const rawPanel = persisted.panel;
-        if (!rawPanel || typeof rawPanel !== "object" || Array.isArray(rawPanel)) {
+        if (!isPersistedPanelShape(persistedState.panel)) {
           return currentState;
         }
-        const persistedPanel = rawPanel as Record<string, unknown>;
-        const raw = persistedPanel.activeView as string | undefined;
+        const persistedPanel = persistedState.panel;
+        const raw = typeof persistedPanel.activeView === "string" ? persistedPanel.activeView : undefined;
 
         // Migrate legacy flat-list views: any node-category id now lives
         // under the "nodes" top-level view with that id selected as sub-tab.

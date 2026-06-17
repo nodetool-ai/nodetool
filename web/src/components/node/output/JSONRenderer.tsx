@@ -78,8 +78,23 @@ const jsonStyles = (theme: Theme) =>
     }
   });
 
+interface JsonDataEnvelope {
+  type: "json";
+  data: unknown;
+}
+
+function isJsonDataEnvelope(value: unknown): value is JsonDataEnvelope {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "type" in value &&
+    (value as { type: unknown }).type === "json" &&
+    "data" in value
+  );
+}
+
 type JSONRendererProps = {
-  value: { type: "json"; data: string } | object;
+  value: JsonDataEnvelope | object;
   showActions?: boolean;
 };
 
@@ -127,19 +142,13 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
 
     try {
       // Handle { type: "json", data: "..." } format
-      if (
-        typeof value === "object" &&
-        value !== null &&
-        "type" in value &&
-        (value as { type: string }).type === "json" &&
-        "data" in value
-      ) {
-        const data = (value as { data: unknown }).data;
+      if (isJsonDataEnvelope(value)) {
+        const { data } = value;
 
         // If data is already a string, try to parse and re-format
         if (typeof data === "string") {
           try {
-            const parsed = JSON.parse(data);
+            const parsed: unknown = JSON.parse(data);
             jsonString = JSON.stringify(parsed, null, 2);
           } catch {
             // If parsing fails, use the raw data string
@@ -149,7 +158,7 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
           // Data is bytes serialized as object with numeric keys - convert back to string
           const decodedString = byteArrayObjectToString(data);
           try {
-            const parsed = JSON.parse(decodedString);
+            const parsed: unknown = JSON.parse(decodedString);
             jsonString = JSON.stringify(parsed, null, 2);
           } catch {
             // JSON parsing failed, use decoded string as-is
@@ -161,7 +170,7 @@ export const JSONRenderer: React.FC<JSONRendererProps> = ({
             const bytes = new Uint8Array(data);
             const decodedString = new TextDecoder().decode(bytes);
             try {
-              const parsed = JSON.parse(decodedString);
+              const parsed: unknown = JSON.parse(decodedString);
               jsonString = JSON.stringify(parsed, null, 2);
             } catch {
               // JSON parsing failed, use decoded string as-is
