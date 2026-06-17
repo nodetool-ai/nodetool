@@ -61,7 +61,10 @@ export function agentMessageToNodeToolMessage(
           ? msg.tool_calls.map((tc) => {
               let args: Record<string, unknown> = {};
               try {
-                args = JSON.parse(tc.function.arguments);
+                const parsed: unknown = JSON.parse(tc.function.arguments);
+                if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+                  args = parsed as Record<string, unknown>;
+                }
               } catch {
                 // If parsing fails, leave args empty
               }

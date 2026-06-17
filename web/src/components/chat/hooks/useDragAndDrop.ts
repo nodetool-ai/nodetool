@@ -98,9 +98,17 @@ export const useDragAndDrop = (
             const assetJson = e.dataTransfer.getData("asset");
             if (assetJson) {
               try {
-                const asset: Asset = JSON.parse(assetJson);
-                if (asset.get_url) {
-                  droppedFiles.push(await assetToDroppedFile(asset));
+                const parsed: unknown = JSON.parse(assetJson);
+                if (
+                  typeof parsed === "object" &&
+                  parsed !== null &&
+                  "id" in parsed &&
+                  typeof (parsed as { id: unknown }).id === "string"
+                ) {
+                  const asset = parsed as Asset;
+                  if (asset.get_url) {
+                    droppedFiles.push(await assetToDroppedFile(asset));
+                  }
                 }
               } catch {
                 // Ignore parse errors
