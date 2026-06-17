@@ -79,6 +79,8 @@ npm run test --workspace=packages/kernel
 npm run test:watch --workspace=packages/kernel
 ```
 
+The in-browser workflow harness exercises the full backend end-to-end via `packages/websocket/src/e2e-server.ts` (real runner, in-memory DB, scripted-provider fallback). Run it from `web` with `npm run test:e2e-runner`. See **[web/src/e2e_runner/README.md](../web/src/e2e_runner/README.md)**.
+
 ## Package Dependency Order
 
 The packages have a strict dependency hierarchy. Lower packages are dependencies of higher ones:

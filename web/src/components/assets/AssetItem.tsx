@@ -140,15 +140,20 @@ const styles = (theme: Theme) =>
       width: "100%",
       height: "auto",
       maxHeight: "2.6em",
+      // Clamp to two lines so near-identical names (inpaint-result.png vs
+      // inpaint-result-1.png) keep their distinguishing tail instead of being
+      // cut to "inpaint-r…" on a single line.
+      display: "-webkit-box",
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: "vertical",
       overflow: "hidden",
+      wordBreak: "break-word",
       backgroundColor: "transparent",
       textAlign: "left",
       fontSize: theme.fontSizeSmall,
       fontWeight: FONT_WEIGHT.medium,
       lineHeight: "1.25em",
-      color: theme.vars.palette.grey[100],
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap"
+      color: theme.vars.palette.grey[100]
     },
     ".name.large": {
       fontSize: theme.fontSizeSmall,
@@ -587,7 +592,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
                 {formatFileSize(asset.size)}
               </Text>
             )}
-          {showName && assetItemSize > 2 && (
+          {showName && assetItemSize > 1 && (
             <Text
               aria-label={asset.name}
               data-microtip-position="bottom"

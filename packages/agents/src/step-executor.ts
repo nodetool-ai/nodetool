@@ -36,6 +36,12 @@ import { FinishStepTool } from "./tools/finish-step-tool.js";
 import { getMemoryTools } from "./tools/memory-tools.js";
 import { TOOL_CALL_ID_FIELD } from "./tools/subtask-fields.js";
 import { DEFAULT_TOKEN_LIMIT, MAX_TOOL_RESULT_CHARS } from "./constants.js";
+import {
+  ContextCompactor,
+  COMPACTION_THRESHOLD_RATIO,
+  DEFAULT_COMPACTION_KEEP_RECENT,
+  type CompactionOptions
+} from "./context-compactor.js";
 
 const log = createLogger("nodetool.agents.step-executor");
 
@@ -321,6 +327,14 @@ export interface StepExecutorOptions {
    * `step:<id>` keys — callers should not duplicate them here.
    */
   upstreamMemoryKeys?: string[];
+  /**
+   * Context compaction. On by default: the older portion of the transcript is
+   * summarized via one LLM call once the running token estimate crosses the
+   * threshold, with the lossless tool-result eviction staying as the always-on
+   * fallback. Pass `{ enabled: false }` to disable summarization and rely on
+   * lossless eviction only. See {@link CompactionOptions}.
+   */
+  compaction?: CompactionOptions;
 }
 
 export class StepExecutor {
@@ -350,6 +364,7 @@ export class StepExecutor {
   }> = [];
   private threadId?: string;
   private upstreamMemoryKeys: string[];
+  private compactor: ContextCompactor | null = null;
 
   constructor(opts: StepExecutorOptions) {
     this.task = opts.task;
@@ -363,6 +378,25 @@ export class StepExecutor {
     this.useFinishTask = opts.useFinishTask ?? false;
     this.threadId = opts.threadId;
     this.upstreamMemoryKeys = opts.upstreamMemoryKeys ?? [];
+
+    // Context compaction is on by default. Only skip the compactor when the
+    // caller explicitly disables it (`{ enabled: false }`); then it stays null
+    // and the lossless tool-result eviction remains the only trimming path.
+    if (opts.compaction?.enabled !== false) {
+      this.compactor = new ContextCompactor({
+        provider: this.provider,
+        model: this.model,
+        threadId: this.threadId,
+        options: {
+          enabled: true,
+          thresholdTokens:
+            opts.compaction?.thresholdTokens ??
+            Math.floor(this.maxTokenLimit * COMPACTION_THRESHOLD_RATIO),
+          keepRecent:
+            opts.compaction?.keepRecent ?? DEFAULT_COMPACTION_KEEP_RECENT
+        }
+      });
+    }
 
     // Load and sanitize the output schema
     this.resultSchema = this.loadResultSchema();
@@ -895,6 +929,21 @@ export class StepExecutor {
     // --- Standard multi-iteration loop ---
     while (!this.step.completed && this.iterations < this.maxIterations) {
       this.iterations++;
+
+      // Opt-in context compaction (lossy-but-summarized). When enabled and over
+      // threshold, fold the older transcript into a single summary message
+      // first. Runs before the always-on lossless eviction below, which then
+      // catches anything compaction left over budget.
+      if (this.compactor && this.compactor.shouldCompact(this.history)) {
+        yield {
+          type: "log_update",
+          node_id: this.step.id,
+          node_name: `Step: ${this.step.id}`,
+          content: "Compacting earlier context to stay within the token budget…",
+          severity: "info"
+        } satisfies LogUpdate;
+        this.history = await this.compactor.compact(this.history);
+      }
 
       // Drop oldest tool-result messages from history when over budget. Their
       // content is already in `context.memory`, so eviction is lossless and

@@ -62,14 +62,13 @@ export const downloadPreviewAssets = async ({
     _filters?: { name: string; extensions: string[] }[]
   ) => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
 
-  const electronApi =
-    (
-      window as unknown as {
-        electron?: { saveFile?: ElectronSaveFile };
-        api?: { saveFile?: ElectronSaveFile };
-      }
-    ).electron ||
-    (window as unknown as { api?: { saveFile?: ElectronSaveFile } }).api;
+  interface WindowWithElectronApi {
+    electron?: { saveFile?: ElectronSaveFile };
+    api?: { saveFile?: ElectronSaveFile };
+  }
+
+  const windowExt = window as unknown as WindowWithElectronApi;
+  const electronApi = windowExt.electron || windowExt.api;
 
   if (!assetFiles.length) {
     throw new Error("No assets generated for download");

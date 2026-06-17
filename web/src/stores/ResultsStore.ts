@@ -41,12 +41,22 @@ const TERMINAL_BUFFER_MAX = 512 * 1024;
  * audio at the synth nodes' 512-frame / 24 kHz chunks). */
 const MAX_AUDIO_STREAM_CHUNKS = 1024;
 
-const isAudioStreamChunk = (v: unknown): boolean => {
+interface AudioStreamChunk {
+  type: "chunk";
+  content_type: "audio";
+  [key: string]: unknown;
+}
+
+const isAudioStreamChunk = (v: unknown): v is AudioStreamChunk => {
   if (!v || typeof v !== "object") {
     return false;
   }
-  const c = v as Record<string, unknown>;
-  return c.type === "chunk" && c.content_type === "audio";
+  return (
+    "type" in v &&
+    v.type === "chunk" &&
+    "content_type" in v &&
+    v.content_type === "audio"
+  );
 };
 type ResultsStore = {
   outputResults: Record<NodeKey, unknown>;

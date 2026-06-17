@@ -322,16 +322,17 @@ export const assetsRouter = router({
     .input(searchInput)
     .output(searchOutput)
     .query(async ({ ctx, input }) => {
-      const [allAssets, nextCursor] = await Asset.paginate(ctx.userId, {
+      // Filter by name at the DB level across ALL of the user's assets. The
+      // previous implementation paginated the first `page_size` assets and then
+      // filtered those in memory, so anything past the first page (e.g. a "Cat"
+      // asset in a 500-item library) was never found.
+      const [matched] = await Asset.searchAssetsGlobal(ctx.userId, input.query, {
+        ...(input.content_type ? { contentType: input.content_type } : {}),
         limit: input.page_size
       });
-      const lowerQuery = input.query.toLowerCase();
-      const matched = allAssets.filter((a) =>
-        a.name.toLowerCase().includes(lowerQuery)
-      );
       return {
         assets: await Promise.all(matched.map((a) => toAssetResponse(a))),
-        next_cursor: nextCursor || null,
+        next_cursor: null,
         total_count: matched.length,
         is_global_search: input.workflow_id === undefined
       };

@@ -73,6 +73,22 @@ vi.mock("@nodetool-ai/agents", () => ({
     async process() {
       return null;
     }
+  },
+  RunSearchTool: class {
+    name = "run_search";
+    description = "run a read-only search";
+    inputSchema = { type: "object" };
+    constructor(_opts: unknown) {}
+    toProviderTool() {
+      return {
+        name: this.name,
+        description: this.description,
+        inputSchema: this.inputSchema
+      };
+    }
+    async process() {
+      return null;
+    }
   }
 }));
 

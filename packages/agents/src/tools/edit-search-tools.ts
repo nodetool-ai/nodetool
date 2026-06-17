@@ -1,10 +1,9 @@
 /**
- * Claude Code-style tools for agents: Edit, Glob, and Grep.
+ * File-editing and search tools for agents: Edit, Glob, and Grep.
  *
- * These mirror the standard Claude Code tool semantics:
- * - EditFileTool: exact string replacement in files (like Claude Code's Edit)
- * - GlobTool: file pattern matching (like Claude Code's Glob)
- * - GrepTool: content search with regex (like Claude Code's Grep)
+ * - EditFileTool: exact string replacement in files (and file creation)
+ * - GlobTool: file pattern matching, sorted by modification time
+ * - GrepTool: content search with regex
  */
 
 import {
@@ -31,7 +30,8 @@ export class EditFileTool extends Tool {
   readonly description =
     "Perform exact string replacements in a file. The old_string must match exactly " +
     "(including whitespace and indentation). Use replace_all to change every occurrence. " +
-    "Prefer this over write_file when modifying existing files — it only sends the diff.";
+    "Prefer this over write_file when modifying existing files — it only sends the diff. " +
+    "To create a new file, pass an empty old_string and the full file contents as new_string.";
   readonly inputSchema = {
     type: "object" as const,
     properties: {
@@ -41,7 +41,8 @@ export class EditFileTool extends Tool {
       },
       old_string: {
         type: "string" as const,
-        description: "The exact text to find and replace"
+        description:
+          "The exact text to find and replace. Pass an empty string to create a new file."
       },
       new_string: {
         type: "string" as const,
@@ -88,6 +89,33 @@ export class EditFileTool extends Tool {
       };
     }
 
+    // Empty old_string is the "create a new file" path. The file must not
+    // already exist.
+    if (oldString === "") {
+      let exists = false;
+      try {
+        await access(filePath);
+        exists = true;
+      } catch {
+        // File does not exist — the expected case for creation.
+      }
+      if (exists) {
+        return {
+          success: false,
+          error: "Cannot create new file — file already exists. Use a non-empty old_string to edit it."
+        };
+      }
+      try {
+        await writeFile(filePath, newString, "utf-8");
+        return { success: true, path: rawPath, created: true };
+      } catch (e) {
+        return {
+          success: false,
+          error: `Failed to create file: ${String(e)}`
+        };
+      }
+    }
+
     try {
       await access(filePath);
     } catch {
@@ -123,16 +151,27 @@ export class EditFileTool extends Tool {
         };
       }
 
+      // When deleting (empty new_string), also consume a trailing newline that
+      // belongs to the removed text so we don't leave a blank line behind.
+      let searchString = oldString;
+      if (
+        newString === "" &&
+        !oldString.endsWith("\n") &&
+        content.includes(oldString + "\n")
+      ) {
+        searchString = oldString + "\n";
+      }
+
       let newContent: string;
       if (replaceAll) {
-        newContent = content.split(oldString).join(newString);
+        newContent = content.split(searchString).join(newString);
       } else {
         // Replace only first occurrence
-        const firstIdx = content.indexOf(oldString);
+        const firstIdx = content.indexOf(searchString);
         newContent =
           content.slice(0, firstIdx) +
           newString +
-          content.slice(firstIdx + oldString.length);
+          content.slice(firstIdx + searchString.length);
       }
 
       await writeFile(filePath, newContent, "utf-8");
@@ -287,20 +326,41 @@ export class GlobTool extends Tool {
     }
 
     const maxDepth = pattern.includes("**") ? 20 : 5;
+    const LIMIT = 100;
+    const start = Date.now();
 
     try {
       const allFiles = await walkDir(searchDir, maxDepth);
       const regex = globToRegex(pattern);
-      const matches = allFiles
-        .map((f) => relative(searchDir, f))
-        .filter((rel) => regex.test(rel))
-        .sort();
+      const matchedAbs = allFiles.filter((f) =>
+        regex.test(relative(searchDir, f))
+      );
+
+      // Sort by modification time, most-recently-modified last, so the
+      // freshest files land nearest the end of the list the model reads.
+      const withMtime = await Promise.all(
+        matchedAbs.map(async (f) => {
+          let mtime = 0;
+          try {
+            mtime = (await stat(f)).mtimeMs;
+          } catch {
+            // Vanished between walk and stat — sort it to the front.
+          }
+          return { path: relative(searchDir, f), mtime };
+        })
+      );
+      withMtime.sort((a, b) => a.mtime - b.mtime || a.path.localeCompare(b.path));
+
+      const truncated = withMtime.length > LIMIT;
+      const files = withMtime.slice(0, LIMIT).map((m) => m.path);
 
       return {
         success: true,
         pattern,
-        match_count: matches.length,
-        files: matches.slice(0, 500) // Cap output size
+        match_count: withMtime.length,
+        truncated,
+        duration_ms: Date.now() - start,
+        files
       };
     } catch (e) {
       return {

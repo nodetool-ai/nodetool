@@ -140,6 +140,21 @@ export type {
   PermissionGateOptions
 } from "./tools/tool-permissions.js";
 export {
+  SecurityMonitor,
+  createSecurityMonitorConsult
+} from "./security-monitor.js";
+export type {
+  SecurityMonitorOptions,
+  SecurityVerdict,
+  SecuritySeverity,
+  SecurityTier,
+  PendingAction
+} from "./security-monitor.js";
+export {
+  SECURITY_MONITOR_SYSTEM_PROMPT,
+  buildSecurityMonitorUserPrompt
+} from "./prompts/security-monitor-prompt.js";
+export {
   registerTool,
   resolveTool,
   listTools,
@@ -202,6 +217,16 @@ export type {
   ForwardMessage
 } from "./tools/run-subtask-tool.js";
 export {
+  RunSearchTool,
+  READ_ONLY_TOOL_NAMES
+} from "./tools/run-search-tool.js";
+export type { RunSearchToolOptions } from "./tools/run-search-tool.js";
+export {
+  buildReadOnlySearchPrompt,
+  READ_ONLY_SEARCH_DESCRIPTION
+} from "./prompts/read-only-search-prompt.js";
+export type { SearchBreadth } from "./prompts/read-only-search-prompt.js";
+export {
   PlanBuilder,
   AddTaskTool,
   RemoveTaskTool,
@@ -237,6 +262,16 @@ export { wrapGeneratorsParallel } from "./utils/wrap-generators-parallel.js";
 // Core execution
 export { StepExecutor } from "./step-executor.js";
 export type { StepExecutorOptions } from "./step-executor.js";
+
+// Context compaction (opt-in, default OFF)
+export {
+  ContextCompactor,
+  estimateMessageTokens,
+  COMPACTION_THRESHOLD_RATIO,
+  DEFAULT_COMPACTION_KEEP_RECENT
+} from "./context-compactor.js";
+export type { CompactionOptions } from "./context-compactor.js";
+export { COMPACTION_SYSTEM_PROMPT } from "./prompts/compaction-prompt.js";
 export { AgentExecutor } from "./agent-executor.js";
 export type { AgentExecutorOptions } from "./agent-executor.js";
 
@@ -256,6 +291,13 @@ export type {
   CreateDefaultLongTermMemoryOptions,
   MemoryKind as LongTermMemoryKind
 } from "./long-term-memory.js";
+export {
+  formatSynthesizedMemoryForPrompt
+} from "./prompts/memory-synthesis-prompt.js";
+export type {
+  SynthesizedFact,
+  FactUtility
+} from "./prompts/memory-synthesis-prompt.js";
 export {
   LtmRecallTool,
   LtmRememberTool,

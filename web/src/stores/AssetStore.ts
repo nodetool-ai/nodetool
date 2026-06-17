@@ -580,6 +580,9 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     });
     const normalized = normalizeAssetUrls(data);
     get().add(normalized);
+    // Refresh the single-asset cache (keyed `["asset", id]` by useAssetById) so
+    // consumers like prompt asset-mention chips reflect renames immediately.
+    get().queryClient?.setQueryData(["asset", req.id], normalized);
     get().invalidateQueries(["assets", { parent_id: prev.parent_id }]);
     if (req.parent_id !== undefined && req.parent_id !== prev.parent_id) {
       get().invalidateQueries(["assets", { parent_id: req.parent_id }]);

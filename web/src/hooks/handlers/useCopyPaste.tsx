@@ -22,7 +22,7 @@ const isValidNode = (node: unknown): node is Node<NodeData> =>
 const isValidEdge = (edge: unknown): edge is Edge =>
   !!edge && typeof edge === "object" && "source" in edge && "target" in edge && typeof (edge as Edge).source === "string" && typeof (edge as Edge).target === "string";
 
-export interface UseCopyPasteResult {
+interface UseCopyPasteResult {
   handleCopy: (nodeId?: string) => Promise<{ nodesToCopy: Node<NodeData>[]; connectedEdges: Edge[] }>;
   handleCut: (nodeId?: string) => Promise<void>;
   handlePaste: () => Promise<void>;

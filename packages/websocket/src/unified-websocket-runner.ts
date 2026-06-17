@@ -73,7 +73,7 @@ import type {
   RpcErrorPayload
 } from "@nodetool-ai/protocol";
 import { Tool } from "@nodetool-ai/agents";
-import { RunSubtaskTool } from "@nodetool-ai/agents";
+import { RunSubtaskTool, RunSearchTool } from "@nodetool-ai/agents";
 import {
   getBuiltinTools,
   getAllMcpTools,
@@ -2515,6 +2515,10 @@ export class UnifiedWebSocketRunner {
         ? data.permission_mode
         : "default";
 
+    // Expose the read-only `run_search` fan-out primitive by default. A client
+    // can opt out by sending `enable_read_only_search: false`.
+    const enableReadOnlySearch = data.enable_read_only_search !== false;
+
     // Assemble the fixed, always-on toolbelt. There is no per-message tool
     // selection anymore — the agent reasons over the full toolbelt and the
     // permission gate (below) governs execution.
@@ -2593,6 +2597,20 @@ export class UnifiedWebSocketRunner {
           forwardMessage: forwardSubtaskMessage
         })
       );
+
+      // Read-only fan-out search (opt-in). Reuses the same forwarder and the
+      // baseTools snapshot — RunSearchTool internally filters baseTools to its
+      // read-only allowlist, so passing the full snapshot is correct.
+      if (enableReadOnlySearch) {
+        serverTools.unshift(
+          new RunSearchTool({
+            provider,
+            model,
+            parentTools: () => baseTools,
+            forwardMessage: forwardSubtaskMessage
+          })
+        );
+      }
     }
 
     const serverToolMap = new Map(serverTools.map((t) => [t.name, t]));

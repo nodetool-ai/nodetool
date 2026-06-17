@@ -7,10 +7,19 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box, MOTION } from "../ui_primitives";
 import { memo, useMemo } from "react";
-import MediaAspectResizeControl from "./MediaAspectResizeControl";
+import MediaAspectResizeControl, {
+  type ResizeCorner
+} from "./MediaAspectResizeControl";
 
 /** Upper bound shared with the edge resizer so the corner handle agrees with it. */
 const MAX_NODE_WIDTH = 800;
+
+const ASPECT_CORNERS: ResizeCorner[] = [
+  "bottom-right",
+  "bottom-left",
+  "top-right",
+  "top-left"
+];
 
 interface NodeResizeHandleProps {
   minWidth: number;
@@ -80,12 +89,18 @@ const NodeResizeHandle: React.FC<NodeResizeHandleProps> = memo(function NodeResi
 
   if (contentAware && nodeId) {
     return (
-      <MediaAspectResizeControl
-        nodeId={nodeId}
-        minWidth={minWidth}
-        minHeight={minHeight}
-        maxWidth={maxWidth}
-      />
+      <>
+        {ASPECT_CORNERS.map((corner) => (
+          <MediaAspectResizeControl
+            key={corner}
+            corner={corner}
+            nodeId={nodeId}
+            minWidth={minWidth}
+            minHeight={minHeight}
+            maxWidth={maxWidth}
+          />
+        ))}
+      </>
     );
   }
 

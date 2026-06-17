@@ -77,6 +77,10 @@ program
     "Provision an isolated Docker sandbox and expose its tools (file, shell, browser, desktop, search, messaging) to the agent"
   )
   .option(
+    "--no-read-only-search",
+    "Disable the read-only run_search fan-out primitive (on by default)"
+  )
+  .option(
     "--sandbox-image <image>",
     "Override the sandbox Docker image (default: nodetool/sandbox-agent:latest)"
   )
@@ -105,6 +109,7 @@ const opts = program.opts<{
   url?: string;
   sandbox?: boolean;
   sandboxImage?: string;
+  readOnlySearch?: boolean;
   traceFile?: string;
   traceStdout?: string | boolean;
 }>();
@@ -175,7 +180,7 @@ if (opts.agent !== undefined) {
   );
 }
 
-const workspace = opts.workspace ?? settings.workspace;
+const workspace = opts.workspace ?? process.cwd();
 const enabledTools = opts.tools
   ? opts.tools.split(",").map((t) => t.trim())
   : settings.enabledTools;
@@ -287,7 +292,8 @@ if (!process.stdin.isTTY) {
       wsUrl: opts.url,
       extraTools: sandboxExtraTools,
       registry: cliRegistry,
-      agentProviders: cliAgentProviders
+      agentProviders: cliAgentProviders,
+      enableReadOnlySearch: opts.readOnlySearch !== false
     });
   } finally {
     if (sandboxStore) await sandboxStore.close();

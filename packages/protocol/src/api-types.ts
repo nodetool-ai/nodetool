@@ -623,6 +623,13 @@ export interface Message {
    * Omitted defaults to `"default"`.
    */
   permission_mode?: "plan" | "default" | "auto" | null;
+  /**
+   * The read-only `run_search` fan-out primitive — a `run_search` tool next to
+   * `run_subtask` whose child loop is restricted to read-only tools and cannot
+   * spawn further work. Enabled by default (omitted / `true`); send `false` to
+   * remove it from the toolbelt.
+   */
+  enable_read_only_search?: boolean | null;
   agent_mode?: boolean | null;
   /**
    * When `agent_mode` is true, selects which planner the server uses:

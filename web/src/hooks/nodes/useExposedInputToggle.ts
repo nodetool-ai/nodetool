@@ -9,7 +9,7 @@ import {
   type ExposedInputPlacement
 } from "../../utils/exposedInputs";
 
-export interface UseExposedInputToggleResult {
+interface UseExposedInputToggleResult {
   canToggleExposed: (nodeId: string, propertyName: string) => boolean;
   getPlacement: (nodeId: string, propertyName: string) => ExposedInputPlacement | null;
   isPropertyExposed: (nodeId: string, propertyName: string) => boolean;
