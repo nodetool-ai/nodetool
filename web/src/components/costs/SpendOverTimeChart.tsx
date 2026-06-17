@@ -47,6 +47,11 @@ const SpendOverTimeChartInternal: React.FC<SpendOverTimeChartProps> = ({
     [activeProviders]
   );
 
+  const activeStackIds = useMemo(
+    () => stackOrder.filter(isActive),
+    [stackOrder, isActive]
+  );
+
   const { axisMax, ticks, legendTotals } = useMemo(() => {
     const totals: Record<string, number> = {};
     for (const p of providers) totals[p.id] = 0;
@@ -208,7 +213,7 @@ const SpendOverTimeChartInternal: React.FC<SpendOverTimeChartProps> = ({
                       : "none"
                   }}
                 >
-                  {stackOrder.filter(isActive).map((id) => {
+                  {activeStackIds.map((id) => {
                     const segPx =
                       ((day.values[id] ?? 0) / axisMax) * PLOT_HEIGHT;
                     if (segPx < 0.4) return null;
