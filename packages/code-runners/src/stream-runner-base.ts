@@ -45,6 +45,27 @@ export interface StreamRunnerOptions {
   mode?: "docker" | "subprocess";
   workspaceMountPath?: string | "host" | null;
   dockerWorkdir?: string | null;
+  /**
+   * Linux capabilities to drop from the container. Defaults to `["ALL"]` —
+   * code runners execute untrusted code and need no capabilities.
+   */
+  capDrop?: string[];
+  /**
+   * Docker `--security-opt` flags. Defaults to `["no-new-privileges"]` to
+   * block privilege escalation via setuid binaries.
+   */
+  securityOpt?: string[];
+  /**
+   * Mount the container root filesystem read-only. Default `false`. When
+   * enabled, a small writable tmpfs is mounted at `/tmp` so interpreters that
+   * need scratch space keep working.
+   */
+  readonlyRootfs?: boolean;
+  /**
+   * Mount the workspace bind read-only. Default `false`. Enable for runners
+   * that only need to read inputs and never write back to the workspace.
+   */
+  readonlyWorkspace?: boolean;
 }
 
 export interface StreamOptions {
@@ -91,6 +112,10 @@ export class StreamRunnerBase {
   public readonly mode: "docker" | "subprocess";
   public readonly workspaceMountPath: string | "host" | null;
   public readonly dockerWorkdir: string | null;
+  public readonly capDrop: string[];
+  public readonly securityOpt: string[];
+  public readonly readonlyRootfs: boolean;
+  public readonly readonlyWorkspace: boolean;
 
   // `protected` (not `private`) so subclasses that implement their own
   // `stream()` — e.g. ServerDockerRunner — can register their container and
@@ -107,7 +132,9 @@ export class StreamRunnerBase {
     this.memLimit = options?.memLimit ?? "256m";
     this.nanoCpus = options?.nanoCpus ?? 1_000_000_000;
     this.networkDisabled = options?.networkDisabled ?? true;
-    this.ipcMode = options?.ipcMode === undefined ? "host" : options.ipcMode;
+    // Private IPC namespace by default: never share the host's (or another
+    // container's) System V IPC / POSIX shared memory with untrusted code.
+    this.ipcMode = options?.ipcMode === undefined ? "private" : options.ipcMode;
     this.mode = options?.mode ?? "docker";
     this.workspaceMountPath =
       options?.workspaceMountPath === undefined
@@ -117,6 +144,10 @@ export class StreamRunnerBase {
       options?.dockerWorkdir === undefined
         ? "/workspace"
         : options.dockerWorkdir;
+    this.capDrop = options?.capDrop ?? ["ALL"];
+    this.securityOpt = options?.securityOpt ?? ["no-new-privileges"];
+    this.readonlyRootfs = options?.readonlyRootfs ?? false;
+    this.readonlyWorkspace = options?.readonlyWorkspace ?? false;
   }
 
   // ---- Public API --------------------------------------------------------
@@ -404,17 +435,26 @@ export class StreamRunnerBase {
     const workspaceMount = this._resolveWorkspaceMount(options?.workspaceDir);
     const binds: string[] = [];
     if (workspaceMount) {
-      binds.push(`${workspaceMount[0]}:${workspaceMount[1]}:rw`);
+      const mountMode = this.readonlyWorkspace ? "ro" : "rw";
+      binds.push(`${workspaceMount[0]}:${workspaceMount[1]}:${mountMode}`);
     }
     const workingDir = this._determineContainerWorkdir(workspaceMount);
 
-    // Create container
+    // Create container. Defense-in-depth for untrusted code: drop all Linux
+    // capabilities, block privilege escalation, and (optionally) lock down the
+    // root and workspace filesystems.
     const hostConfig: Dockerode.HostConfig = {
       Memory: this._parseMemLimit(this.memLimit),
       NanoCpus: this.nanoCpus,
       NetworkMode: this.networkDisabled ? "none" : undefined,
       Binds: binds.length > 0 ? binds : undefined,
-      IpcMode: this.ipcMode ?? undefined
+      IpcMode: this.ipcMode ?? undefined,
+      CapDrop: this.capDrop.length > 0 ? this.capDrop : undefined,
+      SecurityOpt: this.securityOpt.length > 0 ? this.securityOpt : undefined,
+      ReadonlyRootfs: this.readonlyRootfs || undefined,
+      // A read-only rootfs would break interpreters that need scratch space,
+      // so give them a small in-memory /tmp that never touches the host.
+      Tmpfs: this.readonlyRootfs ? { "/tmp": "rw,noexec,nosuid,size=64m" } : undefined
     };
 
     const container = await docker.createContainer({

@@ -203,7 +203,8 @@ export class ServerDockerRunner extends StreamRunnerBase {
     const hostWorkspace = this.getWorkspaceHostPath(options?.workspaceDir);
     const binds: string[] = [];
     if (hostWorkspace) {
-      binds.push(`${hostWorkspace}:/workspace:rw`);
+      const mountMode = this.readonlyWorkspace ? "ro" : "rw";
+      binds.push(`${hostWorkspace}:/workspace:${mountMode}`);
     }
 
     // Port binding: container port -> ephemeral host port
@@ -213,6 +214,10 @@ export class ServerDockerRunner extends StreamRunnerBase {
       NanoCpus: this.nanoCpus,
       Binds: binds.length > 0 ? binds : undefined,
       IpcMode: this.ipcMode ?? undefined,
+      CapDrop: this.capDrop.length > 0 ? this.capDrop : undefined,
+      SecurityOpt: this.securityOpt.length > 0 ? this.securityOpt : undefined,
+      ReadonlyRootfs: this.readonlyRootfs || undefined,
+      Tmpfs: this.readonlyRootfs ? { "/tmp": "rw,noexec,nosuid,size=64m" } : undefined,
       PortBindings: {
         [portKey]: [{ HostIp: this.hostIp, HostPort: "" }]
       }
