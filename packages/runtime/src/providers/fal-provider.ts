@@ -29,6 +29,7 @@ import type {
   LipSyncParams
 } from "./types.js";
 import { loadImageModels, loadVideoModels } from "./manifest-models.js";
+import { assertSafePublicHttpsUrl } from "./safe-url.js";
 
 const log = createLogger("nodetool.runtime.providers.fal");
 
@@ -829,6 +830,7 @@ function extractVideoUrl(result: Record<string, unknown>): string {
 }
 
 async function downloadBytes(url: string): Promise<Uint8Array> {
+  assertSafePublicHttpsUrl(url);
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to download FAL result: ${res.status}`);
   const buf = await res.arrayBuffer();
