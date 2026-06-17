@@ -30,7 +30,7 @@ type MonacoComponent = (props: {
 /**
  * Result object containing Monaco editor state and functions.
  */
-export type MonacoEditorResult = {
+type MonacoEditorResult = {
   /** The lazily-loaded Monaco editor component */
   MonacoEditor: MonacoComponent | null;
   /** Error message if Monaco failed to load */

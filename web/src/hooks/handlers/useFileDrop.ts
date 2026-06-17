@@ -18,7 +18,7 @@ import {
 /**
  * Configuration options for file drop handling.
  */
-export type FileDropProps = {
+type FileDropProps = {
   /** The type of files to accept: image, audio, video, document, or all */
   type: "image" | "audio" | "video" | "document" | "all";
   /** Whether to upload dropped files as assets to the server */
@@ -32,7 +32,7 @@ export type FileDropProps = {
 /**
  * Result object containing drag-and-drop handlers and upload state.
  */
-export type FileDropResult = {
+type FileDropResult = {
   /** Handler to attach to dragOver events (required to enable dropping) */
   onDragOver: DragEventHandler<HTMLDivElement>;
   /** Handler to attach to drop events */

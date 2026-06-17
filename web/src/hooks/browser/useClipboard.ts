@@ -3,7 +3,7 @@ import useSessionStateStore from "../../stores/SessionStateStore";
 import { copyAssetToClipboard } from "../../utils/clipboardUtils";
 import type {} from "../../window.d";
 
-export interface UseClipboardResult {
+interface UseClipboardResult {
   clipboardData: string | null;
   readClipboard: () => Promise<{ data: string | null; isValid: boolean }>;
   writeClipboard: (data: string, allowArbitrary?: boolean, formatJson?: boolean) => Promise<void>;

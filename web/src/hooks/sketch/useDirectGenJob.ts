@@ -44,7 +44,7 @@ interface DirectGenRpcResponse extends WebSocketMessage {
   error?: { code?: string; message?: string };
 }
 
-export interface UseDirectGenJobApi {
+interface UseDirectGenJobApi {
   start: (layerId: string) => Promise<void>;
   cancel: (layerId: string) => void;
 }

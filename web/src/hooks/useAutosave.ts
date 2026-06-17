@@ -23,7 +23,7 @@ export interface UseAutosaveOptions {
   isDirty: () => boolean;
 }
 
-export interface UseAutosaveReturn {
+interface UseAutosaveReturn {
   triggerAutosave: () => Promise<void>;
   saveBeforeRun: () => Promise<void>;
   lastAutosaveTime: number;
