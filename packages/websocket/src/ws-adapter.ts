@@ -1,5 +1,6 @@
 import type { WebSocket } from "@fastify/websocket";
 import type { WebSocketConnection } from "./unified-websocket-runner.js";
+import { WsMessageRateLimiter } from "./lib/ws-rate-limit.js";
 
 type WsFrame = {
   type: string;
@@ -17,10 +18,19 @@ export class WsAdapter implements WebSocketConnection {
   private queue: WsFrame[] = [];
   private waiters: Array<(frame: WsFrame) => void> = [];
 
-  constructor(private socket: WebSocket) {
+  constructor(
+    private socket: WebSocket,
+    private rateLimiter: WsMessageRateLimiter = new WsMessageRateLimiter()
+  ) {
     socket.on(
       "message",
       (raw: Buffer | ArrayBuffer | Buffer[], isBinary: boolean) => {
+        // Cap inbound message rate per connection — a flooding client is
+        // disconnected with a policy-violation code instead of being serviced.
+        if (!this.rateLimiter.allow()) {
+          this.handleRateLimitExceeded();
+          return;
+        }
         const bytes =
           raw instanceof Uint8Array ? raw : new Uint8Array(raw as ArrayBuffer);
         const frame: WsFrame = isBinary
@@ -53,6 +63,21 @@ export class WsAdapter implements WebSocketConnection {
       }
       this.waiters.length = 0;
     });
+  }
+
+  private handleRateLimitExceeded(): void {
+    this.clientState = "disconnected";
+    this.applicationState = "disconnected";
+    try {
+      this.socket.close(1008, "Message rate limit exceeded");
+    } catch {
+      // socket already closing/closed
+    }
+    const frame = { type: "websocket.disconnect" };
+    for (const waiter of this.waiters) {
+      waiter(frame);
+    }
+    this.waiters.length = 0;
   }
 
   async accept(): Promise<void> {}
