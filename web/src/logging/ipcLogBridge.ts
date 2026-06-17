@@ -51,7 +51,7 @@ const forward = (level: FrontendLogLevel, args: unknown[]) => {
  * No-op outside Electron (no `window.api.logging.log`): the native console is
  * left intact so plain-web logs aren't silently dropped.
  */
-export const installIpcLogBridge = () => {
+export const installIpcLogBridge = (): void => {
   if (installed) {
     return;
   }

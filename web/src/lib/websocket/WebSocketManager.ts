@@ -34,6 +34,19 @@ export interface WebSocketMessage {
   [key: string]: unknown;
 }
 
+export interface WebSocketManagerEvents {
+  open: () => void;
+  close: (code: number, reason: string, wasClean: boolean) => void;
+  error: (error: unknown) => void;
+  message: (data: unknown) => void;
+  messageSent: (message: WebSocketMessage) => void;
+  reconnecting: (attempt: number, maxAttempts: number) => void;
+  stateChange: (
+    newState: ConnectionState,
+    previousState: ConnectionState
+  ) => void;
+}
+
 interface ConnectionStateTransition {
   from: ConnectionState[];
   to: ConnectionState;
@@ -67,7 +80,7 @@ const STATE_TRANSITIONS: Record<string, ConnectionStateTransition> = {
   }
 };
 
-export class WebSocketManager extends EventEmitter {
+export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
   private config: Required<Omit<WebSocketConfig, "protocols">> & {
     protocols?: string | string[];
   };

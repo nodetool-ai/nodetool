@@ -26,7 +26,7 @@ const workflowSearchOptions = {
  * @param workflows - The array of workflows to search through
  * @returns A memoized Fuse instance for workflow search
  */
-export const useWorkflowSearch = (workflows: Workflow[]) => {
+export const useWorkflowSearch = (workflows: Workflow[]): Fuse<Workflow> => {
   return useMemo(() => {
     return new Fuse(workflows, workflowSearchOptions);
   }, [workflows]);
