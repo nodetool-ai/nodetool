@@ -23,6 +23,7 @@ import {
 import type { NodeMetadata } from "@nodetool-ai/node-sdk";
 import { registerTransformersJsProvider } from "@nodetool-ai/transformers-js-provider";
 import { bootstrapNodeRegistry } from "./node-registry-setup.js";
+import { corsOriginDelegate } from "./cors.js";
 import { zipExtensionDist } from "./lib/extension-dist.js";
 import {
   initTelemetry,
@@ -606,8 +607,8 @@ app.addHook("onRequest", async (req, reply) => {
   reply.status(401).send({ error: "Remote access requires authentication" });
 });
 
-// CORS
-await app.register(fastifyCors, { origin: true });
+// CORS — restrict to configured origins instead of reflecting any origin.
+await app.register(fastifyCors, { origin: corsOriginDelegate });
 
 // WebSocket support
 await app.register(fastifyWebSocket);
