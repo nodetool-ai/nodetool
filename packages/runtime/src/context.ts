@@ -601,9 +601,14 @@ export class FileStorageAdapter implements StorageAdapter {
     if (!nodeFsP) throw new Error("LocalStorage.list requires Node");
     const { readdir: rd, stat: st } = nodeFsP;
     const delimiter = opts.delimiter ?? null;
+    // Root prefixes ("", ".", "/") map to rootDir directly. normalizeStorageKey
+    // rejects "." and "/", so resolving them as keys throws and yields an empty
+    // listing — without this guard the workspace root could never be listed.
+    const isRoot = prefix === "" || prefix === "." || prefix === "/";
     const baseAbs = (() => {
+      if (isRoot) return this.rootDir;
       try {
-        return this.resolvePathFromKey(prefix || ".");
+        return this.resolvePathFromKey(prefix);
       } catch {
         return null;
       }
@@ -620,7 +625,7 @@ export class FileStorageAdapter implements StorageAdapter {
       } catch {
         return { entries: [], commonPrefixes: [] };
       }
-      const normalizedPrefix = prefix ? normalizeStorageKey(prefix) : "";
+      const normalizedPrefix = isRoot ? "" : normalizeStorageKey(prefix);
       for (const child of children) {
         const childKey = normalizedPrefix
           ? `${normalizedPrefix}/${child.name}`
