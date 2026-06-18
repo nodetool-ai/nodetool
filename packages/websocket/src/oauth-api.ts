@@ -8,6 +8,7 @@
 
 import { createHash, randomBytes } from "node:crypto";
 import { OAuthCredential } from "@nodetool-ai/models";
+import { OAuthClient } from "@nodetool-ai/runtime";
 
 // ── Constants ────────────────────────────────────────────────────────
 
@@ -21,6 +22,24 @@ const GITHUB_AUTHORIZATION_URL = "https://github.com/login/oauth/authorize";
 const GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token";
 const GITHUB_USER_URL = "https://api.github.com/user";
 const GITHUB_SCOPES = ["user:email", "read:user"];
+
+// OpenAI OAuth. Unlike HuggingFace there is no fixed public client id, so the
+// flow is opt-in: it activates only when OPENAI_OAUTH_CLIENT_ID is set
+// (mirroring how GitHub requires GITHUB_CLIENT_ID). Endpoints/scopes are
+// env-overridable so the same code works against OpenAI's published OAuth
+// server or a tenant-specific gateway.
+const OPENAI_AUTHORIZATION_URL =
+  process.env.OPENAI_OAUTH_AUTHORIZATION_URL ??
+  "https://auth.openai.com/oauth/authorize";
+const OPENAI_TOKEN_URL =
+  process.env.OPENAI_OAUTH_TOKEN_URL ?? "https://auth.openai.com/oauth/token";
+const OPENAI_USERINFO_URL =
+  process.env.OPENAI_OAUTH_USERINFO_URL ?? "https://auth.openai.com/userinfo";
+const OPENAI_SCOPES = (
+  process.env.OPENAI_OAUTH_SCOPES ?? "openid profile email offline_access"
+)
+  .split(/\s+/)
+  .filter(Boolean);
 
 const STATE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -804,6 +823,209 @@ async function handleGithubUser(
   }
 }
 
+// ── OpenAI Endpoints ─────────────────────────────────────────────────
+
+/** Build an OAuthClient for OpenAI, or null when OAuth is not configured. */
+function openaiOAuthClient(): OAuthClient | null {
+  const clientId = process.env.OPENAI_OAUTH_CLIENT_ID;
+  if (!clientId) return null;
+  return new OAuthClient({
+    config: {
+      authorizationEndpoint: OPENAI_AUTHORIZATION_URL,
+      tokenEndpoint: OPENAI_TOKEN_URL,
+      clientId,
+      scopes: OPENAI_SCOPES
+    }
+  });
+}
+
+/** Derive the public callback URL for a given provider from the request host. */
+function callbackUriFor(request: Request, provider: string): string {
+  let host = request.headers.get("host") ?? "localhost:7777";
+  if (host.includes("://")) {
+    host = host.split("://")[1];
+  }
+  if (host.startsWith("127.0.0.1")) {
+    host = host.replace("127.0.0.1", "localhost");
+  }
+  const scheme = host.includes("localhost") ? "http" : "https";
+  return `${scheme}://${host}/api/oauth/${provider}/callback`;
+}
+
+async function handleOpenAIStart(
+  request: Request,
+  getUserId: () => string
+): Promise<Response> {
+  if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+
+  const client = openaiOAuthClient();
+  if (!client) {
+    return errorResponse(
+      500,
+      "OpenAI OAuth is not configured. Set OPENAI_OAUTH_CLIENT_ID."
+    );
+  }
+
+  const userId = getUserId();
+  const { codeVerifier, codeChallenge } = generatePkcePair();
+  const state = generateState();
+  const redirectUri = callbackUriFor(request, "openai");
+
+  pruneExpiredStates();
+  oauthStateStore.set(state, {
+    userId,
+    codeVerifier,
+    redirectUri,
+    createdAt: Date.now()
+  });
+
+  const authUrl = client.buildAuthorizationUrl({
+    redirectUri,
+    state,
+    codeChallenge,
+    codeChallengeMethod: "S256"
+  });
+
+  return jsonResponse({ auth_url: authUrl });
+}
+
+async function handleOpenAICallback(request: Request): Promise<Response> {
+  if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+
+  const url = new URL(request.url);
+  const code = url.searchParams.get("code");
+  const state = url.searchParams.get("state");
+  const error = url.searchParams.get("error");
+  const errorDescription = url.searchParams.get("error_description");
+
+  if (error) {
+    return oauthHtmlResponse({
+      title: "OAuth Error",
+      success: false,
+      error,
+      errorDescription: errorDescription || "No description provided"
+    });
+  }
+
+  if (!code || !state) {
+    return oauthHtmlResponse({
+      title: "OAuth Error",
+      success: false,
+      error: "invalid_request",
+      errorDescription: "Missing required parameters (code or state)."
+    });
+  }
+
+  const stateData = oauthStateStore.get(state);
+  if (!stateData || Date.now() - stateData.createdAt > STATE_TTL_MS) {
+    if (stateData) oauthStateStore.delete(state);
+    return oauthHtmlResponse({
+      title: "OAuth Error",
+      success: false,
+      error: "invalid_state",
+      errorDescription:
+        "The authentication request has expired or is invalid. Please try again."
+    });
+  }
+
+  const { userId, codeVerifier, redirectUri } = stateData;
+  oauthStateStore.delete(state);
+
+  const client = openaiOAuthClient();
+  if (!client) {
+    return oauthHtmlResponse({
+      title: "OAuth Error",
+      success: false,
+      error: "configuration_error",
+      errorDescription: "OpenAI OAuth is not properly configured."
+    });
+  }
+
+  try {
+    const tokens = await client.exchangeAuthorizationCode({
+      code,
+      codeVerifier,
+      redirectUri
+    });
+
+    // Best-effort OIDC userinfo for a friendly account label. Failures fall
+    // back to an opaque, non-reversible account id derived from the token.
+    let username: string | null = null;
+    let accountId = String(Math.abs(hashCode(tokens.accessToken.slice(0, 24))));
+    try {
+      const infoRes = await fetch(OPENAI_USERINFO_URL, {
+        headers: { Authorization: `${tokens.tokenType} ${tokens.accessToken}` }
+      });
+      if (infoRes.ok) {
+        const info = (await infoRes.json()) as Record<string, unknown>;
+        username =
+          (info.email as string) ?? (info.name as string) ?? (info.sub as string) ?? null;
+        if (typeof info.sub === "string" && info.sub.length > 0) {
+          accountId = info.sub;
+        }
+      }
+    } catch {
+      // userinfo is optional — keep the fallback account id.
+    }
+
+    await OAuthCredential.upsert({
+      user_id: userId,
+      provider: "openai",
+      account_id: accountId,
+      access_token: tokens.accessToken,
+      refresh_token: tokens.refreshToken,
+      username,
+      token_type: tokens.tokenType,
+      scope: tokens.scope,
+      received_at: new Date(tokens.receivedAt).toISOString(),
+      expires_at:
+        tokens.expiresAt != null ? new Date(tokens.expiresAt).toISOString() : null
+    });
+
+    return oauthHtmlResponse({
+      title: "OAuth Success",
+      success: true,
+      username,
+      autoClose: true
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return oauthHtmlResponse({
+      title: "OAuth Error",
+      success: false,
+      error: "token_exchange_failed",
+      errorDescription: message
+    });
+  }
+}
+
+async function handleOpenAITokens(getUserId: () => string): Promise<Response> {
+  const userId = getUserId();
+  const credentials = await OAuthCredential.listForUserAndProvider(
+    userId,
+    "openai"
+  );
+  return jsonResponse({ tokens: credentials.map(toTokenMetadata) });
+}
+
+async function handleOpenAIDisconnect(
+  request: Request,
+  getUserId: () => string
+): Promise<Response> {
+  if (request.method !== "POST")
+    return errorResponse(405, "Method not allowed");
+
+  const userId = getUserId();
+  const credentials = await OAuthCredential.listForUserAndProvider(
+    userId,
+    "openai"
+  );
+  for (const credential of credentials) {
+    await credential.delete();
+  }
+  return jsonResponse({ success: true, removed: credentials.length });
+}
+
 // ── Simple hash helper (replicates Python's hash() for fallback) ─────
 
 function hashCode(str: string): number {
@@ -861,6 +1083,16 @@ export async function handleOAuthRequest(
       return handleGithubTokens(getUserId);
     case "/api/oauth/github/user":
       return handleGithubUser(request, getUserId);
+
+    // OpenAI
+    case "/api/oauth/openai/start":
+      return handleOpenAIStart(request, getUserId);
+    case "/api/oauth/openai/callback":
+      return handleOpenAICallback(request);
+    case "/api/oauth/openai/tokens":
+      return handleOpenAITokens(getUserId);
+    case "/api/oauth/openai/disconnect":
+      return handleOpenAIDisconnect(request, getUserId);
 
     default:
       return null;

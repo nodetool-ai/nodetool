@@ -214,3 +214,27 @@ All errors extend `OAuthError` and carry a stable `code`:
 > Note: `DEFAULT_OPENAI_OAUTH_CONFIG` endpoints are sensible placeholders.
 > Point `oauthConfig` at OpenAI's published authorization/token/revocation
 > endpoints and the client id registered for your application.
+
+## Two host integrations
+
+This subsystem (a localhost-callback flow that opens the OS browser) is the
+right fit for desktop/CLI hosts where the Node process can both open a browser
+and listen on loopback.
+
+The **web app** uses a complementary server-side flow that shares this module's
+protocol layer (`OAuthClient` + PKCE) but receives the redirect on the API
+server's own `/api/oauth/openai/callback` route rather than a per-login
+loopback server:
+
+- Backend: `packages/websocket/src/oauth-api.ts` exposes
+  `/api/oauth/openai/{start,callback,tokens,disconnect}`. `start` returns the
+  authorization URL (built via `OAuthClient`), `callback` exchanges the code and
+  persists tokens through the encrypted `OAuthCredential` model. It activates
+  only when `OPENAI_OAUTH_CLIENT_ID` is set (endpoints/scopes are env-overridable
+  via `OPENAI_OAUTH_AUTHORIZATION_URL`, `OPENAI_OAUTH_TOKEN_URL`,
+  `OPENAI_OAUTH_USERINFO_URL`, `OPENAI_OAUTH_SCOPES`).
+- Frontend: the **Settings → Integrations** panel
+  (`web/src/components/menus/RemoteSettingsMenu.tsx`) renders an
+  "OpenAI Authentication" section with **Connect with OpenAI** / **Disconnect**
+  buttons that open the auth URL and poll `/api/oauth/openai/tokens` for
+  completion.
