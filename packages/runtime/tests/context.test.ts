@@ -682,6 +682,28 @@ describe("FileStorageAdapter", () => {
       await rm(dir, { recursive: true, force: true });
     }
   });
+
+  it("lists the workspace root for every root prefix form", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nodetool-storage-root-"));
+    try {
+      const storage = new FileStorageAdapter(dir);
+      await storage.store("hello.txt", new Uint8Array([1, 2]));
+      await storage.store("sub/inner.txt", new Uint8Array([3]));
+
+      // "", ".", and "/" all denote the workspace root. normalizeStorageKey
+      // rejects "." and "/", so the listing must special-case them rather than
+      // resolving them as keys (which previously yielded an empty root).
+      for (const prefix of ["", ".", "/"]) {
+        const { entries, commonPrefixes } = await storage.list(prefix, {
+          delimiter: "/"
+        });
+        expect(entries.map((e) => e.key)).toEqual(["hello.txt"]);
+        expect(commonPrefixes).toEqual(["sub/"]);
+      }
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("ProcessingContext.resolveAssetBytes", () => {

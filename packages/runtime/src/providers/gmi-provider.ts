@@ -9,7 +9,10 @@ import type {
   VideoModel
 } from "./types.js";
 
-const GMI_BASE_URL = "https://api.gmicloud.ai/v1";
+// GMI Cloud's OpenAI-compatible inference gateway is served from
+// gmi-serving.com. The docs reference api.gmicloud.ai, but that hostname has
+// no DNS record — the live serving host is api.gmi-serving.com.
+const GMI_BASE_URL = "https://api.gmi-serving.com/v1";
 
 interface GMIProviderOptions {
   client?: OpenAI;
@@ -19,7 +22,7 @@ interface GMIProviderOptions {
 
 /**
  * GMI Cloud provider. Uses the OpenAI SDK against GMI Cloud's
- * OpenAI-compatible inference gateway at https://api.gmicloud.ai/v1, which
+ * OpenAI-compatible inference gateway at https://api.gmi-serving.com/v1, which
  * serves open-weight chat models (Llama, DeepSeek, Qwen, …) behind a single
  * API key. See https://docs.gmicloud.ai/quickstart.
  */

@@ -8,7 +8,7 @@ import type { BaseProvider } from "@nodetool-ai/runtime";
 import type { Message, ToolCall, ProviderStreamItem } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { Chunk } from "@nodetool-ai/protocol";
-import { Tool } from "@nodetool-ai/agents";
+import { Tool, truncateToolResult } from "@nodetool-ai/agents";
 // Pull `formatMemoryForPrompt` from the narrow `./memory` subpath so chat
 // consumers don't end up loading the full agents bundle (planners, graph
 // builder, sandbox, every tool class) just to render a memory block.
@@ -187,9 +187,11 @@ export async function processChat(opts: {
               const executed = await runTool(context, toolCall, tools);
               const result = (executed as ToolCall & { result: unknown }).result;
               callbacks?.onToolResult?.(toolCall, result);
-              return typeof result === "string"
-                ? result
-                : JSON.stringify(result, null, 2);
+              return truncateToolResult(
+                typeof result === "string"
+                  ? result
+                  : JSON.stringify(result, null, 2)
+              );
             }
           : undefined,
       signal
@@ -273,7 +275,9 @@ export async function processChat(opts: {
         messages.push({
           role: "tool",
           toolCallId: tc.id,
-          content: JSON.stringify(tc.result, defaultSerializer)
+          content: truncateToolResult(
+            JSON.stringify(tc.result, defaultSerializer) ?? ""
+          )
         });
       }
 

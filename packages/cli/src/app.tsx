@@ -23,16 +23,23 @@ import { ExecutionTree } from "./ExecutionTree.js";
 import { useExecutionState } from "./useExecutionState.js";
 import type { Message, ToolCall } from "@nodetool-ai/runtime";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
-import { ProcessingContext } from "@nodetool-ai/runtime";
+import { FileStorageAdapter, ProcessingContext } from "@nodetool-ai/runtime";
 import { processChat } from "@nodetool-ai/chat";
 import {
   RunSubtaskTool,
   getBuiltinTools,
   getAllMcpTools,
 } from "@nodetool-ai/agents";
-import { createProvider, DEFAULT_MODELS, KNOWN_PROVIDERS, WebSocketProvider } from "./providers.js";
+import { availableProviders, configuredProviderIds, createProvider, DEFAULT_MODELS, KNOWN_PROVIDERS, providerSecretKey, WebSocketProvider } from "./providers.js";
 import { WebSocketChatClient } from "./websocket-client.js";
 import { renderMarkdown } from "./markdown.js";
+import {
+  isBasicTool,
+  friendlyToolName,
+  formatToolParams,
+  formatToolResult,
+  formatToolDiff,
+} from "./tool-format.js";
 import { saveSettings } from "./settings.js";
 import { getSecret } from "@nodetool-ai/models";
 
@@ -75,7 +82,9 @@ interface AppProps {
 
 const COMMANDS = {
   "/help":     "Show available commands",
+  "/new":      "Start a new chat session",
   "/clear":    "Clear conversation history",
+  "/compact":  "Summarize conversation into retained context: /compact [instructions]",
   "/model":    "Set model: /model <model-id>",
   "/provider": "Set provider: /provider <name>",
   "/tools":    "List enabled tools",
@@ -105,19 +114,71 @@ function AssistantMessage({ content, rendered }: { content: string; rendered?: s
   );
 }
 
-function ToolMessage({ toolName, toolArgs, content }: { toolName: string; toolArgs?: Record<string, unknown>; content: string }) {
-  const argsStr = toolArgs
-    ? Object.entries(toolArgs)
+/**
+ * Renders one tool call — header (`● Verb(params)`), result summary, and (for
+ * edits) a diff. Shared by the committed transcript (ToolMessage) and the live
+ * in-progress area (LiveToolCall). When `running`, shows a spinner instead of
+ * waiting for a summary, so the call is visible while it executes.
+ */
+function ToolCallView({
+  name,
+  args,
+  summary,
+  running,
+}: {
+  name: string;
+  args?: Record<string, unknown>;
+  summary?: string;
+  running?: boolean;
+}) {
+  const isError = !!summary && summary.startsWith("Error");
+
+  if (isBasicTool(name)) {
+    const params = formatToolParams(name, args);
+    // Show the edit diff while running (from args) and after success.
+    const diff = !isError ? formatToolDiff(name, args) : null;
+    const maxDiffWidth = Math.max((process.stdout.columns ?? 80) - 8, 20);
+    return (
+      <Box flexDirection="column" marginTop={1}>
+        <Box>
+          <Text color="green">{"● "}</Text>
+          <Text bold>{friendlyToolName(name)}</Text>
+          <Text color="gray" dimColor>{"("}{params}{")"}</Text>
+          {running ? <Text color="gray" dimColor>{"  "}<Spinner type="dots" /></Text> : null}
+        </Box>
+        {summary ? (
+          <Box marginLeft={2}>
+            <Text color={isError ? "red" : "gray"} dimColor={!isError}>{"⎿  "}{summary}</Text>
+          </Box>
+        ) : null}
+        {diff?.map((line, i) => (
+          <Box key={i} marginLeft={5}>
+            <Text
+              color={line.sign === "+" ? "green" : line.sign === "-" ? "red" : "gray"}
+              dimColor={line.sign === " "}
+            >
+              {line.sign === " " ? "" : line.sign + " "}
+              {line.text.slice(0, maxDiffWidth)}
+            </Text>
+          </Box>
+        ))}
+      </Box>
+    );
+  }
+
+  const argsStr = args
+    ? Object.entries(args)
         .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
         .join(", ")
     : "";
-  const preview = content.split("\n").slice(0, 3).join(" ").slice(0, 200);
+  const preview = summary ? summary.split("\n").slice(0, 3).join(" ").slice(0, 200) : "";
   return (
     <Box flexDirection="column" marginTop={1}>
       <Box>
         <Text color="green">{"● "}</Text>
-        <Text bold>{toolName}</Text>
+        <Text bold>{name}</Text>
         {argsStr ? <Text color="gray" dimColor>{"("}{argsStr}{")"}</Text> : null}
+        {running ? <Text color="gray" dimColor>{"  "}<Spinner type="dots" /></Text> : null}
       </Box>
       {preview ? (
         <Box marginLeft={2}>
@@ -126,6 +187,30 @@ function ToolMessage({ toolName, toolArgs, content }: { toolName: string; toolAr
         </Box>
       ) : null}
     </Box>
+  );
+}
+
+function ToolMessage({ toolName, toolArgs, content }: { toolName: string; toolArgs?: Record<string, unknown>; content: string }) {
+  return <ToolCallView name={toolName} args={toolArgs} summary={content} />;
+}
+
+/** A tool call currently in flight (or just finished, pre-flush) for the live area. */
+interface LiveToolCall {
+  id: string;
+  name: string;
+  args?: Record<string, unknown>;
+  done: boolean;
+  result?: string;
+}
+
+function LiveToolCallItem({ tool }: { tool: LiveToolCall }) {
+  return (
+    <ToolCallView
+      name={tool.name}
+      args={tool.args}
+      summary={tool.result}
+      running={!tool.done}
+    />
   );
 }
 
@@ -152,20 +237,32 @@ function ChatMessageItem({ msg }: { msg: ChatMessage }) {
 
 const CMD_WIDTH = 14;
 
+/** A one-line hint telling the user which key to set for an unusable provider. */
+function missingKeyHint(provider: string): string {
+  const key = providerSecretKey(provider);
+  return key
+    ? `${provider}: no key — set ${key} (run: nodetool secrets store ${key})`
+    : `${provider}: unavailable`;
+}
+
 function AutocompleteMenu({
   matches,
   selectedIndex,
 }: {
-  matches: Array<{ cmd: string; desc: string }>;
+  matches: Array<{ cmd: string; desc: string; disabled?: boolean }>;
   selectedIndex: number;
 }) {
   return (
     <Box flexDirection="column" marginLeft={2}>
-      {matches.map(({ cmd, desc }, i) => {
+      {matches.map(({ cmd, desc, disabled }, i) => {
         const selected = i === selectedIndex;
         return (
           <Box key={cmd}>
-            <Text color={selected ? "cyan" : "gray"} bold={selected}>
+            <Text
+              color={disabled ? "gray" : selected ? "cyan" : "gray"}
+              bold={selected && !disabled}
+              dimColor={disabled}
+            >
               {selected ? "› " : "  "}{cmd.padEnd(CMD_WIDTH)}
             </Text>
             <Text color="gray" dimColor>
@@ -227,19 +324,50 @@ export function App({
   const [streaming, setStreaming] = useState(false);
   const [streamContent, setStreamContent] = useState("");
   const [streamLabel, setStreamLabel] = useState("");
-  // Buffer messages during streaming to avoid Ink <Static> artifacts
-  const pendingMessagesRef = useRef<ChatMessage[]>([]);
-  const streamingRef = useRef(false);
+  // Tool calls in flight this turn — rendered live (with a spinner) in the
+  // dynamic area so the user sees each call as it happens, then committed to
+  // the <Static> thread the moment their result arrives.
+  const [liveTools, setLiveTools] = useState<LiveToolCall[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const execState = useExecutionState();
   const [acIndex, setAcIndex] = useState(0);
   const [modelList, setModelList] = useState<Array<{ id: string; name: string }>>([]);
+  // Providers the user can actually select. Seeded synchronously from env keys
+  // (immediate, no flicker for env-configured providers), then refined with the
+  // encrypted secret store. Local/keyless providers are always included.
+  const [configuredProviders, setConfiguredProviders] = useState<Set<string>>(
+    () => new Set(availableProviders())
+  );
+  useEffect(() => {
+    let cancelled = false;
+    configuredProviderIds()
+      .then((ids) => { if (!cancelled) setConfiguredProviders(ids); })
+      .catch(() => { /* keep the env-seeded set */ });
+    return () => { cancelled = true; };
+  }, []);
 
   // Fetch available models when provider changes
   useEffect(() => {
     let cancelled = false;
-    createProvider(provider).then(async (prov) => {
+    (async () => {
+      let prov: Awaited<ReturnType<typeof createProvider>>;
+      try {
+        prov = await createProvider(provider);
+      } catch (err) {
+        // The provider couldn't be constructed — almost always a missing API
+        // key. Surface why (and how to fix it) instead of silently showing an
+        // empty model list.
+        if (cancelled) return;
+        setModelList([]);
+        await addMessage(
+          "system",
+          providerSecretKey(provider)
+            ? missingKeyHint(provider)
+            : `${provider}: ${err instanceof Error ? err.message : String(err)}`
+        );
+        return;
+      }
       try {
         const models = await prov.getAvailableLanguageModels();
         if (!cancelled) {
@@ -248,10 +376,9 @@ export function App({
       } catch {
         if (!cancelled) setModelList([]);
       }
-    }).catch(() => {
-      if (!cancelled) setModelList([]);
-    });
+    })();
     return () => { cancelled = true; };
+    // addMessage is a stable useCallback([]) — referenced like the WS effect below.
   }, [provider]);
 
   // WebSocket client state (when --url is passed)
@@ -292,37 +419,91 @@ export function App({
   const nextId = useRef(0);
   const genId = () => `msg-${++nextId.current}`;
 
-  // Add a message to the display history.
-  // During streaming, tool/system messages are buffered to avoid Ink <Static> artifacts.
-  // User and assistant messages (which mark start/end of a turn) are added immediately.
-  const addMessage = useCallback(async (role: ChatMessage["role"], content: string, opts?: { toolName?: string; toolArgs?: Record<string, unknown> }) => {
-    let rendered: string | undefined;
-    if (role === "assistant") {
-      rendered = await renderMarkdown(content);
-    }
-    const msg: ChatMessage = {
-      id: genId(),
-      role,
-      content,
-      rendered,
-      toolName: opts?.toolName,
-      toolArgs: opts?.toolArgs,
-    };
-    if (streamingRef.current && role !== "user" && role !== "assistant") {
-      pendingMessagesRef.current.push(msg);
-    } else {
-      setMessages(prev => [...prev, msg]);
-    }
-  }, []);
+  // Commits are serialized through this promise chain so an assistant
+  // segment's async markdown render can never land after a tool message that
+  // was added later — the thread always preserves real turn order.
+  const commitChainRef = useRef<Promise<void>>(Promise.resolve());
 
-  // Flush buffered messages when streaming ends
-  const flushPendingMessages = useCallback(() => {
-    if (pendingMessagesRef.current.length > 0) {
-      const pending = pendingMessagesRef.current;
-      pendingMessagesRef.current = [];
-      setMessages(prev => [...prev, ...pending]);
-    }
+  // Append a message to the visible thread. Every message commits to <Static>
+  // as soon as it's added, so the thread grows live during streaming and tool
+  // calls — like a normal chat conversation — instead of batching at turn end.
+  const addMessage = useCallback(
+    (
+      role: ChatMessage["role"],
+      content: string,
+      opts?: { toolName?: string; toolArgs?: Record<string, unknown> }
+    ): Promise<void> => {
+      const id = genId();
+      const p = commitChainRef.current
+        .then(async () => {
+          const rendered =
+            role === "assistant" ? await renderMarkdown(content) : undefined;
+          setMessages(prev => [
+            ...prev,
+            { id, role, content, rendered, toolName: opts?.toolName, toolArgs: opts?.toolArgs },
+          ]);
+        })
+        .catch(() => {});
+      commitChainRef.current = p;
+      return p;
+    },
+    []
+  );
+
+  // --- Live (in-flight) turn state ---------------------------------------
+
+  // The current uncommitted assistant text segment (since turn start or the
+  // last tool call), held in a ref so streaming callbacks can read/commit it.
+  const streamRef = useRef("");
+  const appendStream = useCallback((text: string) => {
+    streamRef.current += text;
+    setStreamContent(streamRef.current);
   }, []);
+  // Commit the current assistant segment to the thread and clear the buffer.
+  // setStreamContent("") (sync) and the chained setMessages (microtask) both
+  // flush before Ink's next paint, so the text hands off without a gap.
+  const commitStreamSegment = useCallback(() => {
+    const seg = streamRef.current;
+    streamRef.current = "";
+    setStreamContent("");
+    if (seg.trim()) void addMessage("assistant", seg);
+  }, [addMessage]);
+
+  // Show a tool call in the live area the moment it starts.
+  const startLiveTool = useCallback(
+    (id: string, name: string, args?: Record<string, unknown>) => {
+      setLiveTools(prev =>
+        prev.some(t => t.id === id)
+          ? prev
+          : [...prev, { id, name, args, done: false }]
+      );
+    },
+    []
+  );
+
+  // A tool finished: append it to the thread and drop it from the live area in
+  // the same chained commit, so it moves into <Static> in one render (no gap,
+  // ordered after any pending assistant segment).
+  const finishLiveTool = useCallback(
+    (
+      id: string,
+      name: string,
+      args: Record<string, unknown> | undefined,
+      summary: string
+    ) => {
+      const msgId = genId();
+      commitChainRef.current = commitChainRef.current
+        .then(() => {
+          setMessages(prev => [
+            ...prev,
+            { id: msgId, role: "tool", content: summary, toolName: name, toolArgs: args },
+          ]);
+          setLiveTools(prev => prev.filter(t => t.id !== id));
+        })
+        .catch(() => {});
+    },
+    []
+  );
 
   // Create tools from enabled list. The toolMap is keyed by canonical
   // tool `name` (matching what `BUILTIN_TOOL_CLASSES` exposes), so the
@@ -384,6 +565,28 @@ export function App({
     switch (cmd) {
       case "/help":
         setShowHelp(prev => !prev);
+        return true;
+
+      case "/new":
+        abortRef.current = true;
+        abortControllerRef.current?.abort();
+        abortControllerRef.current = null;
+        if (wsClientRef.current) {
+          wsClientRef.current.stop(threadId);
+        }
+        setMessages([{ id: genId(), role: "system", content: "New session started." }]);
+        chatHistoryRef.current = [];
+        setChatHistory([]);
+        setStreaming(false);
+        setLiveTools([]);
+        setError(null);
+        streamRef.current = "";
+        setStreamContent("");
+        setStreamLabel("");
+        setThreadId(crypto.randomUUID());
+        setShowHelp(false);
+        execState.reset();
+        submittingRef.current = false;
         return true;
 
       case "/clear":
@@ -449,7 +652,7 @@ export function App({
             });
 
             for await (const item of stream) {
-              if ("type" in item && item.type === "chunk" && typeof item.content === "string") {
+              if (item.type === "chunk" && typeof item.content === "string") {
                 summary += item.content;
               }
             }
@@ -503,6 +706,16 @@ export function App({
       case "/provider": {
         if (args[0]) {
           const newProvider = args[0].toLowerCase();
+          // Refuse curated providers that have no key — they're greyed out in
+          // the picker, so typing one shouldn't sneak past. Non-curated ids
+          // (e.g. vllm) are left to the registry / runtime error path.
+          if (
+            (KNOWN_PROVIDERS as readonly string[]).includes(newProvider) &&
+            !configuredProviders.has(newProvider)
+          ) {
+            addMessage("system", missingKeyHint(newProvider));
+            return true;
+          }
           const newModel = DEFAULT_MODELS[newProvider] ?? model;
           setProvider(newProvider);
           setModel(newModel);
@@ -525,7 +738,7 @@ export function App({
         }
         return false;
     }
-  }, [provider, model, enabledTools, addMessage, exit]);
+  }, [provider, model, enabledTools, addMessage, exit, configuredProviders, execState, threadId]);
 
   // ---------------------------------------------------------------------------
   // Chat submission
@@ -561,13 +774,21 @@ export function App({
     abortRef.current = false;
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
-    streamingRef.current = true;
+    streamRef.current = "";
     setStreaming(true);
     setStreamContent("");
     setStreamLabel("thinking");
 
     try {
-      const ctx = new ProcessingContext({ jobId: crypto.randomUUID(), userId: "1", workspaceDir, secretResolver: getSecret });
+      const ctx = new ProcessingContext({
+        jobId: crypto.randomUUID(),
+        userId: "1",
+        workspaceDir,
+        workspaceStorage: workspaceDir
+          ? new FileStorageAdapter(workspaceDir)
+          : null,
+        secretResolver: getSecret
+      });
       const tools = buildTools();
 
       // The unified chat loop is used for every turn — there is no longer a
@@ -581,23 +802,27 @@ export function App({
       if (wsClientRef.current && !extraTools?.length) {
         // --- Regular chat via WebSocket (server handles everything) ---
         const wsClient = wsClientRef.current;
-        let assistantContent = "";
         const toolSchemas = tools.map(t => t.toProviderTool());
         const pendingToolArgs = new Map<string, Record<string, unknown>>();
         for await (const event of wsClient.chat(trimmed, threadId, modelRef.current, providerRef.current, toolSchemas)) {
           if (abortRef.current) break;
           if (event.type === "chunk") {
-            assistantContent += event.content;
-            setStreamContent(assistantContent);
+            appendStream(event.content);
             setStreamLabel("streaming");
           } else if (event.type === "tool_call") {
             pendingToolArgs.set(event.id, event.args);
-            setStreamLabel(`tool: ${event.name}`);
+            commitStreamSegment(); // finalize any assistant text before the tool
+            startLiveTool(event.id, event.name, event.args);
+            setStreamLabel(`${friendlyToolName(event.name)}…`);
           } else if (event.type === "tool_result") {
-            const preview = event.content.length > 100 ? event.content.slice(0, 100) + "…" : event.content;
             const args = pendingToolArgs.get(event.id);
             pendingToolArgs.delete(event.id);
-            await addMessage("tool", preview, { toolName: event.name, toolArgs: args });
+            const display = isBasicTool(event.name)
+              ? formatToolResult(event.name, args, event.content)
+              : event.content.length > 100
+                ? event.content.slice(0, 100) + "…"
+                : event.content;
+            finishLiveTool(event.id, event.name, args, display);
             setStreamLabel("thinking");
           } else if (event.type === "error") {
             throw new Error(event.message);
@@ -605,9 +830,7 @@ export function App({
             break;
           }
         }
-        if (assistantContent) {
-          await addMessage("assistant", assistantContent);
-        }
+        commitStreamSegment(); // final assistant answer
 
       } else {
         // --- Direct provider (or wsClient inference + local tool execution) ---
@@ -625,7 +848,7 @@ export function App({
           if (msg.type === "chunk") {
             const text = (msg as { content?: string }).content;
             if (text) {
-              setStreamContent((s) => s + text);
+              appendStream(text);
               setStreamLabel("subtask");
             }
           } else if (msg.type === "tool_call_update") {
@@ -643,7 +866,6 @@ export function App({
           ...tools
         ];
 
-        let assistantContent = "";
         const updatedHistory = [...chatHistoryRef.current];
 
         await processChat({
@@ -657,27 +879,27 @@ export function App({
           callbacks: {
             onChunk: (text) => {
               if (abortRef.current) throw new Error("aborted");
-              assistantContent += text;
-              setStreamContent(assistantContent);
+              appendStream(text);
               setStreamLabel("streaming");
             },
             onToolCall: (tc: ToolCall) => {
-              setStreamLabel(`tool: ${tc.name}`);
+              commitStreamSegment(); // finalize any assistant text before the tool
+              startLiveTool(tc.id, tc.name, tc.args);
+              setStreamLabel(`${friendlyToolName(tc.name)}…`);
             },
             onToolResult: (tc: ToolCall, result: unknown) => {
-              const preview = typeof result === "string"
-                ? result
-                : JSON.stringify(result).slice(0, 100);
-              addMessage("tool", preview, { toolName: tc.name, toolArgs: tc.args });
+              const display = isBasicTool(tc.name)
+                ? formatToolResult(tc.name, tc.args, result)
+                : typeof result === "string"
+                  ? result
+                  : JSON.stringify(result).slice(0, 100);
+              finishLiveTool(tc.id, tc.name, tc.args, display);
             },
           },
         });
 
         setChatHistory(updatedHistory);
-
-        if (assistantContent) {
-          await addMessage("assistant", assistantContent);
-        }
+        commitStreamSegment(); // final assistant answer
       }
     } catch (err) {
       if (!abortRef.current) {
@@ -686,21 +908,24 @@ export function App({
         await addMessage("system", `Error: ${msg}`);
       }
     } finally {
-      streamingRef.current = false;
+      // Let every queued commit (final answer, tool results) land in <Static>
+      // before tearing down the live frame, so nothing is dropped mid-handoff.
+      await commitChainRef.current;
       setStreaming(false);
+      streamRef.current = "";
       setStreamContent("");
       setStreamLabel("");
-      flushPendingMessages();
+      setLiveTools([]); // drop any tool calls left unfinished by an abort
       submittingRef.current = false;
       abortControllerRef.current = null;
     }
-  }, [handleCommand, addMessage, flushPendingMessages, workspaceDir, enabledTools]);
+  }, [handleCommand, addMessage, appendStream, commitStreamSegment, startLiveTool, finishLiveTool, workspaceDir, enabledTools]);
 
   // ---------------------------------------------------------------------------
   // Keyboard: history navigation and tab completion
   // ---------------------------------------------------------------------------
   // Autocomplete: commands (/help, /provider, …) and arguments (/provider <name>)
-  type AcMatch = { cmd: string; desc: string; replaceAll?: string };
+  type AcMatch = { cmd: string; desc: string; replaceAll?: string; disabled?: boolean };
   let acMatches: AcMatch[] = [];
 
   if (!streaming && inputValue.startsWith("/")) {
@@ -720,11 +945,20 @@ export function App({
       if (cmd === "/provider") {
         acMatches = KNOWN_PROVIDERS
           .filter((p) => p.startsWith(arg))
-          .map((p) => ({
-            cmd: p,
-            desc: DEFAULT_MODELS[p] ?? "",
-            replaceAll: `/provider ${p}`,
-          }));
+          .map((p) => {
+            const disabled = !configuredProviders.has(p);
+            const key = providerSecretKey(p);
+            return {
+              cmd: p,
+              desc: disabled
+                ? key
+                  ? `needs ${key}`
+                  : "unavailable"
+                : DEFAULT_MODELS[p] ?? "",
+              replaceAll: `/provider ${p}`,
+              disabled,
+            };
+          });
       } else if (cmd === "/model") {
         acMatches = modelList
           .filter((m) => m.id.toLowerCase().startsWith(arg))
@@ -738,6 +972,26 @@ export function App({
   }
 
   const acOpen = acMatches.length > 0;
+
+  // The highlight only ever rests on a selectable (non-disabled) entry. If the
+  // raw index points at a disabled provider, resolve to the first enabled one;
+  // if every match is disabled, stay put so Enter can explain why.
+  const stepAcIndex = (from: number, dir: 1 | -1): number => {
+    const n = acMatches.length;
+    if (n === 0) return 0;
+    for (let s = 1; s <= n; s++) {
+      const i = (((from + dir * s) % n) + n) % n;
+      if (!acMatches[i]?.disabled) return i;
+    }
+    return from;
+  };
+  const acClampedIndex = Math.min(acIndex, Math.max(0, acMatches.length - 1));
+  const acSelectedIndex = acMatches[acClampedIndex]?.disabled
+    ? (() => {
+        const firstEnabled = acMatches.findIndex((m) => !m.disabled);
+        return firstEnabled === -1 ? acClampedIndex : firstEnabled;
+      })()
+    : acClampedIndex;
 
   useInput((input, key) => {
     // Escape or Ctrl+C: cancel streaming, or exit when idle
@@ -753,6 +1007,7 @@ export function App({
         setStreaming(false);
         setStreamContent("");
         setStreamLabel("");
+        setLiveTools([]);
         submittingRef.current = false;
       } else {
         saveSettings({ provider, model }).then(() => exit());
@@ -760,26 +1015,37 @@ export function App({
       return;
     }
 
-    if (streaming) return; // block other input while streaming
+    // While a response is streaming, keep the input editable for drafting the
+    // next message, but disable history/autocomplete controls until the current
+    // turn finishes.
+    if (streaming) return;
 
     // Autocomplete navigation
     if (acOpen) {
       if (key.upArrow) {
-        setAcIndex(i => (i <= 0 ? acMatches.length - 1 : i - 1));
+        setAcIndex(() => stepAcIndex(acSelectedIndex, -1));
         return;
       }
       if (key.downArrow) {
-        setAcIndex(i => (i >= acMatches.length - 1 ? 0 : i + 1));
+        setAcIndex(() => stepAcIndex(acSelectedIndex, 1));
         return;
       }
       if (key.tab) {
-        const selected = acMatches[acIndex] ?? acMatches[0];
+        const selected = acMatches[acSelectedIndex];
+        if (selected?.disabled) {
+          addMessage("system", missingKeyHint(selected.cmd));
+          return;
+        }
         if (selected) setInputValue(selected.replaceAll ?? selected.cmd + " ");
         setAcIndex(0);
         return;
       }
       if (key.return) {
-        const selected = acMatches[acIndex] ?? acMatches[0];
+        const selected = acMatches[acSelectedIndex];
+        if (selected?.disabled) {
+          addMessage("system", missingKeyHint(selected.cmd));
+          return;
+        }
         if (selected) {
           const completed = selected.replaceAll ?? selected.cmd + " ";
           // Submit when:
@@ -875,6 +1141,10 @@ export function App({
                 <Text>{truncated}</Text>
               </Box>
             ) : null}
+            {/* Tool calls in flight (and just-finished, pre-flush) for this turn. */}
+            {liveTools.map(tool => (
+              <LiveToolCallItem key={tool.id} tool={tool} />
+            ))}
             <Box>
               <Text color="gray" dimColor>{"  "}<Spinner type="dots" /> {streamLabel || "thinking"}</Text>
             </Box>
@@ -894,33 +1164,29 @@ export function App({
       {acOpen && (
         <AutocompleteMenu
           matches={acMatches}
-          selectedIndex={Math.min(acIndex, acMatches.length - 1)}
+          selectedIndex={acSelectedIndex}
         />
       )}
 
-      {/* Input area — hidden during streaming to avoid terminal artifacts */}
-      {!streaming && (
-        <>
-          <Box>
-            <Text color="gray" dimColor>{"─".repeat(process.stdout.columns ?? 80)}</Text>
-          </Box>
-          <Box>
-            <Text color="magenta" dimColor bold>{"❯ "}</Text>
-            <ReadlineInput
-              value={inputValue}
-              onChange={setInputValue}
-              onSubmit={handleSubmit}
-            />
-          </Box>
-          <Box>
-            <Text color="gray" dimColor>{"─".repeat(process.stdout.columns ?? 80)}</Text>
-          </Box>
-          {/* Status bar */}
-          <Box>
-            <Text color="gray" dimColor>{"  "}{statusParts}</Text>
-          </Box>
-        </>
-      )}
+      {/* Input area — stays visible/editable while streaming so the user can draft the next message. */}
+      <Box>
+        <Text color="gray" dimColor>{"─".repeat(process.stdout.columns ?? 80)}</Text>
+      </Box>
+      <Box>
+        <Text color="magenta" dimColor bold>{"❯ "}</Text>
+        <ReadlineInput
+          value={inputValue}
+          onChange={setInputValue}
+          onSubmit={handleSubmit}
+        />
+      </Box>
+      <Box>
+        <Text color="gray" dimColor>{"─".repeat(process.stdout.columns ?? 80)}</Text>
+      </Box>
+      {/* Status bar */}
+      <Box>
+        <Text color="gray" dimColor>{"  "}{statusParts}</Text>
+      </Box>
     </Box>
   );
 }

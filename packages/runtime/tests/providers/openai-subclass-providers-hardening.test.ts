@@ -32,7 +32,7 @@ const cases = [
   },
   {
     name: "gmi",
-    baseURL: "https://api.gmicloud.ai/v1",
+    baseURL: "https://api.gmi-serving.com/v1",
     id: "gmi",
     make: (opts?: object) =>
       new GMIProvider({ GMI_API_KEY: "k" }, opts as never)

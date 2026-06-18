@@ -171,7 +171,10 @@ Chat flags:
 -a, --agent [mode]       Agent mode: off | loop | plan | graph | multi-agent
                          (default: plan when --agent is given without a value)
 --no-agent               Force agent mode off
--p, --provider <name>    anthropic, openai, ollama, gemini, mistral, groq
+-p, --provider <name>    anthropic, openai, gemini, xai, groq, mistral, deepseek,
+                         moonshot, minimax, cerebras, together, openrouter,
+                         huggingface, replicate, kie, aki, ollama, lmstudio
+                         (any registry provider id also works, e.g. vllm, llama_cpp)
 -m, --model <id>         Model ID (e.g. claude-sonnet-4-6, gpt-5.4-mini)
 -w, --workspace <path>   Workspace directory for file tools
 --tools <list>           Comma-separated tool names

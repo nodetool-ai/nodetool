@@ -84,7 +84,7 @@ describe("GMIProvider", () => {
     ]);
 
     expect(mockFetch).toHaveBeenCalledWith(
-      "https://api.gmicloud.ai/v1/models",
+      "https://api.gmi-serving.com/v1/models",
       expect.objectContaining({
         headers: { Authorization: "Bearer k" }
       })

@@ -202,6 +202,41 @@ export class GroqProvider extends BaseProvider {
   }
 }
 
+// provider registry — mirrors the real runtime registry so the CLI's
+// registry-driven provider factory (createProvider / availableProviders /
+// buildConfiguredProviders) works against the stub. Tests that need different
+// behaviour override these via vi.mock("@nodetool-ai/runtime").
+const STUB_PROVIDER_SECRET_KEYS: Record<string, string | null> = {
+  anthropic: "ANTHROPIC_API_KEY",
+  openai: "OPENAI_API_KEY",
+  gemini: "GEMINI_API_KEY",
+  xai: "XAI_API_KEY",
+  groq: "GROQ_API_KEY",
+  mistral: "MISTRAL_API_KEY",
+  deepseek: "DEEPSEEK_API_KEY",
+  moonshot: "KIMI_API_KEY",
+  minimax: "MINIMAX_API_KEY",
+  cerebras: "CEREBRAS_API_KEY",
+  together: "TOGETHER_API_KEY",
+  openrouter: "OPENROUTER_API_KEY",
+  huggingface: "HF_TOKEN",
+  replicate: "REPLICATE_API_TOKEN",
+  kie: "KIE_API_KEY",
+  aki: "AKI_API_KEY",
+  ollama: null,
+  lmstudio: null
+};
+export const getProviderSecretKey = (id: string): string | null =>
+  STUB_PROVIDER_SECRET_KEYS[id] ?? null;
+export const listRegisteredProviderIds = (): string[] =>
+  Object.keys(STUB_PROVIDER_SECRET_KEYS);
+export const isProviderConfigured = async (id: string): Promise<boolean> => {
+  const key = STUB_PROVIDER_SECRET_KEYS[id];
+  return key == null ? true : Boolean(process.env[key]);
+};
+export const getProvider = async (id: string): Promise<BaseProvider> =>
+  new BaseProvider(id);
+
 // runtime helpers
 export class ProcessingContext {
   constructor(_opts?: unknown) {}

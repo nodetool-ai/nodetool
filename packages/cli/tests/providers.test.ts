@@ -10,6 +10,10 @@ vi.mock("@nodetool-ai/models", () => ({
   getSecret: vi.fn(async (key: string) => process.env[key] ?? null)
 }));
 
+// The CLI provider factory delegates construction and credential wiring to the
+// runtime provider registry. The mock below stands in for that registry: a
+// fixed set of registered ids, their secret-key names, and a FakeProvider that
+// records the id it was built for.
 vi.mock("@nodetool-ai/runtime", () => {
   class FakeProvider {
     constructor(public readonly id: string) {}
@@ -21,81 +25,89 @@ vi.mock("@nodetool-ai/runtime", () => {
     }
   }
 
+  const SECRET_KEYS: Record<string, string | null> = {
+    anthropic: "ANTHROPIC_API_KEY",
+    openai: "OPENAI_API_KEY",
+    gemini: "GEMINI_API_KEY",
+    xai: "XAI_API_KEY",
+    groq: "GROQ_API_KEY",
+    mistral: "MISTRAL_API_KEY",
+    deepseek: "DEEPSEEK_API_KEY",
+    moonshot: "KIMI_API_KEY",
+    minimax: "MINIMAX_API_KEY",
+    cerebras: "CEREBRAS_API_KEY",
+    together: "TOGETHER_API_KEY",
+    openrouter: "OPENROUTER_API_KEY",
+    huggingface: "HF_TOKEN",
+    replicate: "REPLICATE_API_TOKEN",
+    kie: "KIE_API_KEY",
+    aki: "AKI_API_KEY",
+    ollama: null,
+    lmstudio: null
+  };
+  const REGISTERED = Object.keys(SECRET_KEYS);
+
   return {
-    AnthropicProvider: class extends FakeProvider {
-      constructor(cfg: Record<string, unknown>) {
-        super("anthropic");
-        void cfg;
+    BaseProvider: FakeProvider,
+    listRegisteredProviderIds: vi.fn(() => REGISTERED),
+    getProviderSecretKey: vi.fn((id: string) => SECRET_KEYS[id] ?? null),
+    isProviderConfigured: vi.fn(async (id: string) => {
+      const key = SECRET_KEYS[id];
+      return key == null ? true : Boolean(process.env[key]);
+    }),
+    getProvider: vi.fn(async (id: string) => {
+      if (!(id in SECRET_KEYS)) {
+        throw new Error(`No provider registered for "${id}"`);
       }
-    },
-    OpenAIProvider: class extends FakeProvider {
-      constructor(cfg: Record<string, unknown>) {
-        super("openai");
-        void cfg;
+      // Mirror the real providers that enforce their key in the constructor
+      // (e.g. OpenRouter throws "OPENROUTER_API_KEY is required").
+      const key = SECRET_KEYS[id];
+      if (key != null && !process.env[key]) {
+        throw new Error(`${key} is required`);
       }
-    },
-    OllamaProvider: class extends FakeProvider {
-      constructor(cfg: Record<string, unknown>) {
-        super("ollama");
-        void cfg;
-      }
-    },
-    GeminiProvider: class extends FakeProvider {
-      constructor(cfg: Record<string, unknown>) {
-        super("gemini");
-        void cfg;
-      }
-    },
-    MistralProvider: class extends FakeProvider {
-      constructor(cfg: Record<string, unknown>) {
-        super("mistral");
-        void cfg;
-      }
-    },
-    GroqProvider: class extends FakeProvider {
-      constructor(cfg: Record<string, unknown>) {
-        super("groq");
-        void cfg;
-      }
-    },
-    MoonshotProvider: class extends FakeProvider {
-      constructor(cfg: Record<string, unknown>) {
-        super("moonshot");
-        void cfg;
-      }
-    },
-    OLLAMA_DEFAULT_URL: "http://127.0.0.1:11434",
-    LMSTUDIO_DEFAULT_URL: "http://127.0.0.1:1234",
-    BaseProvider: FakeProvider
+      return new FakeProvider(id);
+    })
   };
 });
 
 // ─── availableProviders ───────────────────────────────────────────────────────
 
+// Every hosted-provider secret key the CLI knows about. Cleared before each
+// test so the host environment can't leak a key (e.g. XAI_API_KEY) into the
+// deterministic assertions.
+const ALL_HOSTED_KEYS = [
+  "ANTHROPIC_API_KEY",
+  "OPENAI_API_KEY",
+  "GEMINI_API_KEY",
+  "XAI_API_KEY",
+  "GROQ_API_KEY",
+  "MISTRAL_API_KEY",
+  "DEEPSEEK_API_KEY",
+  "KIMI_API_KEY",
+  "MINIMAX_API_KEY",
+  "CEREBRAS_API_KEY",
+  "TOGETHER_API_KEY",
+  "OPENROUTER_API_KEY",
+  "HF_TOKEN",
+  "REPLICATE_API_TOKEN",
+  "KIE_API_KEY",
+  "AKI_API_KEY"
+];
+
 describe("availableProviders", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.unstubAllEnvs();
+    for (const key of ALL_HOSTED_KEYS) vi.stubEnv(key, "");
   });
 
-  it("returns only ollama when no API keys are set", async () => {
-    vi.stubEnv("ANTHROPIC_API_KEY", "");
-    vi.stubEnv("OPENAI_API_KEY", "");
-    vi.stubEnv("GEMINI_API_KEY", "");
-    vi.stubEnv("MISTRAL_API_KEY", "");
-    vi.stubEnv("GROQ_API_KEY", "");
-    vi.stubEnv("KIMI_API_KEY", "");
+  it("returns only local providers when no API keys are set", async () => {
     const { availableProviders } = await import("../src/providers.js");
     expect(availableProviders()).toEqual(["lmstudio", "ollama"]);
   });
 
   it("includes anthropic when ANTHROPIC_API_KEY is set", async () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "test-key");
-    vi.stubEnv("OPENAI_API_KEY", "");
-    vi.stubEnv("GEMINI_API_KEY", "");
-    vi.stubEnv("MISTRAL_API_KEY", "");
-    vi.stubEnv("GROQ_API_KEY", "");
-    vi.stubEnv("KIMI_API_KEY", "");
     const { availableProviders } = await import("../src/providers.js");
     const providers = availableProviders();
     expect(providers).toContain("anthropic");
@@ -103,56 +115,45 @@ describe("availableProviders", () => {
   });
 
   it("includes openai when OPENAI_API_KEY is set", async () => {
-    vi.stubEnv("ANTHROPIC_API_KEY", "");
     vi.stubEnv("OPENAI_API_KEY", "sk-test");
-    vi.stubEnv("GEMINI_API_KEY", "");
-    vi.stubEnv("MISTRAL_API_KEY", "");
-    vi.stubEnv("GROQ_API_KEY", "");
-    vi.stubEnv("KIMI_API_KEY", "");
     const { availableProviders } = await import("../src/providers.js");
     const providers = availableProviders();
     expect(providers).toContain("openai");
   });
 
-  it("includes all providers when all keys are set", async () => {
-    vi.stubEnv("ANTHROPIC_API_KEY", "a");
-    vi.stubEnv("OPENAI_API_KEY", "b");
-    vi.stubEnv("GEMINI_API_KEY", "c");
-    vi.stubEnv("MISTRAL_API_KEY", "d");
-    vi.stubEnv("GROQ_API_KEY", "e");
-    vi.stubEnv("KIMI_API_KEY", "f");
+  it("includes newly-added providers when their keys are set", async () => {
+    vi.stubEnv("XAI_API_KEY", "x");
+    vi.stubEnv("DEEPSEEK_API_KEY", "d");
+    vi.stubEnv("CEREBRAS_API_KEY", "c");
+    vi.stubEnv("TOGETHER_API_KEY", "t");
+    vi.stubEnv("OPENROUTER_API_KEY", "o");
     const { availableProviders } = await import("../src/providers.js");
     const providers = availableProviders();
-    expect(providers).toContain("anthropic");
-    expect(providers).toContain("openai");
-    expect(providers).toContain("gemini");
-    expect(providers).toContain("mistral");
-    expect(providers).toContain("groq");
-    expect(providers).toContain("moonshot");
-    expect(providers).toContain("ollama");
+    expect(providers).toContain("xai");
+    expect(providers).toContain("deepseek");
+    expect(providers).toContain("cerebras");
+    expect(providers).toContain("together");
+    expect(providers).toContain("openrouter");
   });
 
   it("ollama is always last in the list", async () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "a");
     vi.stubEnv("OPENAI_API_KEY", "b");
-    vi.stubEnv("GEMINI_API_KEY", "");
-    vi.stubEnv("MISTRAL_API_KEY", "");
-    vi.stubEnv("GROQ_API_KEY", "");
-    vi.stubEnv("KIMI_API_KEY", "");
     const { availableProviders } = await import("../src/providers.js");
     const providers = availableProviders();
     expect(providers[providers.length - 1]).toBe("ollama");
   });
 
-  it("always includes ollama and any configured env-backed providers", async () => {
+  it("always includes local providers and any configured env-backed providers", async () => {
     vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic");
-    vi.stubEnv("OPENAI_API_KEY", "");
     vi.stubEnv("GEMINI_API_KEY", "test-gemini");
-    vi.stubEnv("MISTRAL_API_KEY", "");
-    vi.stubEnv("GROQ_API_KEY", "");
-    vi.stubEnv("KIMI_API_KEY", "");
     const { availableProviders } = await import("../src/providers.js");
-    expect(availableProviders()).toEqual(["anthropic", "gemini", "lmstudio", "ollama"]);
+    expect(availableProviders()).toEqual([
+      "anthropic",
+      "gemini",
+      "lmstudio",
+      "ollama"
+    ]);
   });
 });
 
@@ -169,7 +170,18 @@ describe("KNOWN_PROVIDERS", () => {
       "gemini",
       "mistral",
       "groq",
-      "moonshot"
+      "moonshot",
+      "xai",
+      "deepseek",
+      "minimax",
+      "cerebras",
+      "together",
+      "openrouter",
+      "huggingface",
+      "replicate",
+      "kie",
+      "aki",
+      "lmstudio"
     ];
     for (const p of expected) {
       expect(KNOWN_PROVIDERS).toContain(p);
@@ -271,6 +283,68 @@ describe("createProvider", () => {
     const { createProvider } = await import("../src/providers.js");
     const provider = await createProvider("OPENAI");
     expect((provider as unknown as { id: string }).id).toBe("openai");
+  });
+
+  it("surfaces construction errors for a registered provider instead of silently using ollama", async () => {
+    // No OPENROUTER_API_KEY → the (registered) provider's constructor throws.
+    // The CLI must propagate that, NOT fall back to ollama and list ollama's
+    // models under the openrouter label.
+    vi.stubEnv("OPENROUTER_API_KEY", "");
+    const { createProvider } = await import("../src/providers.js");
+    await expect(createProvider("openrouter")).rejects.toThrow(
+      /OPENROUTER_API_KEY/
+    );
+  });
+
+  it("builds a registered provider once its key is configured", async () => {
+    vi.stubEnv("OPENROUTER_API_KEY", "sk-or-test");
+    const { createProvider } = await import("../src/providers.js");
+    const provider = await createProvider("openrouter");
+    expect((provider as unknown as { id: string }).id).toBe("openrouter");
+  });
+});
+
+// ─── providerSecretKey ─────────────────────────────────────────────────────────
+
+describe("configuredProviderIds", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.unstubAllEnvs();
+    for (const key of ALL_HOSTED_KEYS) vi.stubEnv(key, "");
+  });
+
+  it("includes only local providers when no keys are set", async () => {
+    const { configuredProviderIds } = await import("../src/providers.js");
+    const ids = await configuredProviderIds();
+    expect(ids.has("ollama")).toBe(true);
+    expect(ids.has("lmstudio")).toBe(true);
+    expect(ids.has("openrouter")).toBe(false);
+    expect(ids.has("anthropic")).toBe(false);
+  });
+
+  it("includes a hosted provider once its key is set", async () => {
+    vi.stubEnv("OPENROUTER_API_KEY", "sk-or-test");
+    const { configuredProviderIds } = await import("../src/providers.js");
+    const ids = await configuredProviderIds();
+    expect(ids.has("openrouter")).toBe(true);
+    expect(ids.has("ollama")).toBe(true);
+    expect(ids.has("anthropic")).toBe(false);
+  });
+});
+
+describe("providerSecretKey", () => {
+  it("returns the secret key for a hosted provider", async () => {
+    vi.resetModules();
+    const { providerSecretKey } = await import("../src/providers.js");
+    expect(providerSecretKey("openrouter")).toBe("OPENROUTER_API_KEY");
+    expect(providerSecretKey("XAI")).toBe("XAI_API_KEY");
+  });
+
+  it("returns null for local/keyless providers", async () => {
+    vi.resetModules();
+    const { providerSecretKey } = await import("../src/providers.js");
+    expect(providerSecretKey("ollama")).toBeNull();
+    expect(providerSecretKey("lmstudio")).toBeNull();
   });
 });
 

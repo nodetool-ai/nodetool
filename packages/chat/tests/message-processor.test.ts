@@ -286,6 +286,41 @@ describe("processChat", () => {
     expect(lastMsg.content).toBe("All done");
   });
 
+  it("caps oversized tool results so message content can't exceed provider limits", async () => {
+    // A tool that returns a multi-megabyte string — e.g. a broad grep over a
+    // large repo. Unbounded, this becomes a single message-content string that
+    // the provider rejects ("string too long"). It must be truncated.
+    class FloodTool extends Tool {
+      readonly name = "flood";
+      readonly description = "Returns a huge string";
+      readonly inputSchema = { type: "object", properties: {} };
+      async process(): Promise<unknown> {
+        return "Z".repeat(30_000_000);
+      }
+    }
+
+    const provider = createMockProvider([
+      [toolCall("tc1", "flood", {})],
+      [chunk("done")]
+    ]);
+
+    const result = await processChat({
+      userInput: "flood me",
+      messages: [],
+      model: "test-model",
+      provider,
+      context: createMockContext(),
+      tools: [new FloodTool()]
+    });
+
+    const toolMsg = result.find((m) => m.role === "tool");
+    expect(toolMsg).toBeDefined();
+    const content = toolMsg!.content as string;
+    // Bounded well under the original 30 MB and under provider string limits.
+    expect(content.length).toBeLessThan(100_000);
+    expect(content).toContain("truncated");
+  });
+
   it("handles chunks with null/undefined content", async () => {
     const provider = createMockProvider([
       [
