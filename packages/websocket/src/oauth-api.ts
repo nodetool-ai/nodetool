@@ -8,7 +8,7 @@
 
 import { createHash, randomBytes } from "node:crypto";
 import { OAuthCredential } from "@nodetool-ai/models";
-import { OAuthClient } from "@nodetool-ai/runtime";
+import { OAuthClient } from "@nodetool-ai/runtime/oauth";
 
 // ── Constants ────────────────────────────────────────────────────────
 

@@ -58,7 +58,7 @@ OpenAIOAuthProvider                orchestration + inherited OpenAI capabilities
 ## Usage
 
 ```ts
-import { createOpenAIOAuthProvider } from "@nodetool-ai/runtime";
+import { createOpenAIOAuthProvider } from "@nodetool-ai/runtime/oauth";
 
 const provider = createOpenAIOAuthProvider({
   clientId: process.env.OPENAI_OAUTH_CLIENT_ID!,
