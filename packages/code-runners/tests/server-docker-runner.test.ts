@@ -128,6 +128,35 @@ describe("ServerDockerRunner constructor", () => {
     expect(runner.nanoCpus).toBe(1_000_000_000);
   });
 
+  it("inherits hardening defaults from the base runner", () => {
+    const runner = new ServerDockerRunner({
+      image: "test:latest",
+      containerPort: 8080
+    });
+    expect(runner.ipcMode).toBe("private");
+    expect(runner.capDrop).toEqual(["ALL"]);
+    expect(runner.securityOpt).toEqual(["no-new-privileges"]);
+    expect(runner.readonlyRootfs).toBe(false);
+    expect(runner.readonlyWorkspace).toBe(false);
+  });
+
+  it("threads hardening overrides through to the base runner", () => {
+    const runner = new ServerDockerRunner({
+      image: "test:latest",
+      containerPort: 8080,
+      ipcMode: "shareable",
+      capDrop: ["NET_RAW"],
+      securityOpt: ["seccomp=unconfined"],
+      readonlyRootfs: true,
+      readonlyWorkspace: true
+    });
+    expect(runner.ipcMode).toBe("shareable");
+    expect(runner.capDrop).toEqual(["NET_RAW"]);
+    expect(runner.securityOpt).toEqual(["seccomp=unconfined"]);
+    expect(runner.readonlyRootfs).toBe(true);
+    expect(runner.readonlyWorkspace).toBe(true);
+  });
+
   it("normalizes endpointPath by adding leading slash", () => {
     const runner = new ServerDockerRunner({
       image: "test:latest",
