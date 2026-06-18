@@ -395,6 +395,95 @@ export function App({
         }
         return true;
 
+      case "/compact": {
+        const instructions = args.join(" ").trim();
+        const currentHistory = chatHistoryRef.current;
+        if (currentHistory.length === 0) {
+          addMessage("system", "Nothing to compact — conversation is empty.");
+          return true;
+        }
+        // Kick off async compaction without blocking the command handler
+        void (async () => {
+          setStreaming(true);
+          setStreamLabel("compacting");
+          try {
+            const prov = wsClientRef.current
+              ? new WebSocketProvider(
+                  wsClientRef.current,
+                  modelRef.current,
+                  providerRef.current
+                )
+              : await createProvider(providerRef.current);
+
+            // Build a transcript of the conversation for summarization
+            const transcript = currentHistory
+              .map((msg) => {
+                const role = msg.role;
+                let content = "";
+                if (typeof msg.content === "string") {
+                  content = msg.content;
+                } else if (Array.isArray(msg.content)) {
+                  content = msg.content
+                    .map((c) => (c.type === "text" ? c.text : ""))
+                    .join("");
+                }
+                if (msg.toolCalls && msg.toolCalls.length > 0) {
+                  content += "\n[Tool calls: " + msg.toolCalls.map((tc) => tc.name).join(", ") + "]";
+                }
+                return `${role}: ${content}`;
+              })
+              .join("\n\n");
+
+            const summaryPrompt = instructions
+              ? `Summarize the following conversation, focusing on: ${instructions}\n\n${transcript}\n\nProvide a concise summary that captures the key context, decisions, and state needed to continue this conversation effectively.`
+              : `Summarize the following conversation into a concise retained context. Include key decisions, current state, and any important information needed to continue.\n\n${transcript}`;
+
+            const summaryMessages: Message[] = [
+              { role: "user", content: summaryPrompt }
+            ];
+
+            let summary = "";
+            const stream = prov.generateMessagesTraced({
+              messages: summaryMessages,
+              model: modelRef.current,
+            });
+
+            for await (const item of stream) {
+              if ("type" in item && item.type === "chunk" && typeof item.content === "string") {
+                summary += item.content;
+              }
+            }
+
+            // Replace chat history with the summary as a system message
+            const compactedHistory: Message[] = [
+              {
+                role: "system",
+                content: `Previous conversation summary:\n${summary.trim()}`
+              }
+            ];
+            chatHistoryRef.current = compactedHistory;
+            setChatHistory(compactedHistory);
+
+            // Update visible messages to show the compacted state
+            setMessages(prev => [
+              ...prev,
+              {
+                id: genId(),
+                role: "system",
+                content: `Conversation compacted. ${instructions ? `Focus: ${instructions}. ` : ""}Previous context summarized and retained.`
+              }
+            ]);
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            await addMessage("system", `Compaction failed: ${msg}`);
+          } finally {
+            setStreaming(false);
+            setStreamLabel("");
+          }
+        })();
+        return true;
+      }
+
       case "/exit":
       case "/quit":
         await saveSettings({ provider, model });
