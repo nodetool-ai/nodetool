@@ -73,6 +73,7 @@ describe("FalProvider", () => {
     const fakePng = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
+      headers: new Headers(),
       arrayBuffer: () => Promise.resolve(fakePng.buffer)
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -120,6 +121,7 @@ describe("FalProvider", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
+        headers: new Headers(),
         arrayBuffer: () => Promise.resolve(new ArrayBuffer(4))
       })
     );
@@ -151,6 +153,7 @@ describe("FalProvider", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
+        headers: new Headers(),
         arrayBuffer: () => Promise.resolve(new ArrayBuffer(4))
       })
     );
@@ -196,6 +199,7 @@ describe("FalProvider", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
+        headers: new Headers(),
         arrayBuffer: () => Promise.resolve(new ArrayBuffer(4))
       })
     );
@@ -246,6 +250,7 @@ describe("FalProvider", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
+        headers: new Headers(),
         arrayBuffer: () => Promise.resolve(new ArrayBuffer(4))
       })
     );
@@ -285,6 +290,7 @@ describe("FalProvider", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
+        headers: new Headers(),
         arrayBuffer: () => Promise.resolve(new ArrayBuffer(4))
       })
     );
@@ -323,7 +329,7 @@ describe("FalProvider", () => {
     });
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({ ok: false, status: 500 })
+      vi.fn().mockResolvedValue({ ok: false, status: 500, headers: new Headers() })
     );
 
     const p = createProvider();
