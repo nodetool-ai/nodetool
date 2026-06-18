@@ -35,6 +35,7 @@ const cloudProviders = [
     { title: "Groq", url: "https://groq.com", LogoComponent: null, icon: Zap, color: "text-rose-400", bg: "bg-rose-500/10", border: "border-rose-500/20" },
     { title: "DeepSeek", url: "https://deepseek.com", LogoComponent: null, icon: Bot, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
     { title: "Cerebras", url: "https://cerebras.ai", LogoComponent: null, icon: Zap, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" },
+    { title: "GMI Cloud", url: "https://gmicloud.ai", LogoComponent: null, icon: Zap, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
     { title: "Together", url: "https://together.ai", LogoComponent: null, icon: Layers, color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/20" },
     { title: "Kie.ai", url: "https://kie.ai", LogoComponent: null, icon: Sparkles, color: "text-sky-400", bg: "bg-sky-500/10", border: "border-sky-500/20" },
     { title: "MiniMax", url: "https://www.minimaxi.com", LogoComponent: null, icon: ShieldCheck, color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/20" },
