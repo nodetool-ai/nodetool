@@ -17,10 +17,13 @@ import type {
 } from "@nodetool-ai/runtime";
 import {
   BaseProvider as BaseProviderClass,
+  createPythonBridge,
   getProvider,
   getProviderSecretKey,
   isProviderConfigured,
-  listRegisteredProviderIds
+  listRegisteredProviderIds,
+  PythonProvider,
+  registerProvider
 } from "@nodetool-ai/runtime";
 import type { Chunk } from "@nodetool-ai/protocol";
 import { getSecret } from "@nodetool-ai/models";
@@ -44,6 +47,7 @@ export const KNOWN_PROVIDERS = [
   "moonshot",
   "minimax",
   "cerebras",
+  "gmi",
   "together",
   "openrouter",
   "huggingface",
@@ -51,12 +55,25 @@ export const KNOWN_PROVIDERS = [
   "kie",
   "aki",
   "ollama",
-  "lmstudio"
+  "lmstudio",
+  "mlx"
 ] as const;
 export type KnownProvider = (typeof KNOWN_PROVIDERS)[number];
 
 /** Local providers that are always reachable without an API key. */
-const LOCAL_PROVIDERS: readonly string[] = ["lmstudio", "ollama"];
+const LOCAL_PROVIDERS: readonly string[] = ["lmstudio", "ollama", "mlx"];
+
+/**
+ * Providers served only through the local Python worker (no TS implementation).
+ * They aren't in the runtime registry until the stdio bridge connects and
+ * advertises them, so `createProvider` connects the bridge on demand for these.
+ */
+const PYTHON_ONLY_PROVIDERS: readonly string[] = ["mlx"];
+
+/** MLX (and other Python-local models) only run on Apple Silicon. */
+function isAppleSilicon(): boolean {
+  return process.platform === "darwin" && process.arch === "arm64";
+}
 
 /** Default model shown when switching to a provider in interactive mode. */
 export const DEFAULT_MODELS: Record<string, string> = {
@@ -70,6 +87,7 @@ export const DEFAULT_MODELS: Record<string, string> = {
   moonshot: "kimi-k2.7",
   minimax: "MiniMax-M2",
   cerebras: "llama-3.3-70b",
+  gmi: "meta-llama/Llama-3.3-70B-Instruct",
   together: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
   openrouter: "openai/gpt-5.4-mini",
   huggingface: "meta-llama/Llama-3.3-70B-Instruct",
@@ -77,15 +95,52 @@ export const DEFAULT_MODELS: Record<string, string> = {
   kie: "gpt-5-5",
   aki: "llama3_chat",
   ollama: "qwen-3.5:4b",
-  lmstudio: "qwen/qwen3.5-9b"
+  lmstudio: "qwen/qwen3.5-9b",
+  mlx: "mlx-community/Qwen3.5-0.8B-OptiQ-4bit"
 };
 
 /** Resolve a secret from the encrypted DB (user "1"); env fallback handled by the registry. */
 const resolveForUser1: GetSecret = (key) => getSecret(key, "1");
 
 /**
+ * Lazily spawn the local Python worker bridge and register the Python-only
+ * providers it advertises (e.g. `mlx`, local HuggingFace) into the runtime
+ * registry. Idempotent: the bridge is connected once per process and the
+ * promise cached. On failure the cache is cleared so a later call can retry,
+ * and the error is rethrown so the caller can explain why the provider is
+ * unavailable.
+ */
+let pythonProvidersPromise: Promise<void> | null = null;
+async function ensurePythonProvidersRegistered(): Promise<void> {
+  if (!pythonProvidersPromise) {
+    pythonProvidersPromise = (async () => {
+      const bridge = createPythonBridge();
+      await bridge.connect();
+      for (const info of await bridge.listProviders()) {
+        // Don't shadow a TS-native provider that owns the same id (e.g. the
+        // hosted HuggingFace provider vs. the Python local one).
+        if (listRegisteredProviderIds().includes(info.id)) continue;
+        registerProvider(info.id, PythonProvider as never, {
+          _bridge: bridge,
+          _id: info.id
+        });
+      }
+    })().catch((err) => {
+      pythonProvidersPromise = null;
+      throw err;
+    });
+  }
+  return pythonProvidersPromise;
+}
+
+/**
  * Build a provider instance by id, resolving credentials via the registry
  * (encrypted DB first, then `process.env`).
+ *
+ * Python-only providers (e.g. `mlx`) aren't in the registry until the local
+ * Python worker bridge connects, so they're registered on demand here. If the
+ * worker can't be started, the failure surfaces with a clear message rather
+ * than silently falling back to Ollama.
  *
  * An unknown/unregistered id (e.g. a typo) falls back to the local Ollama
  * daemon, preserving the CLI's historical default. A *registered* provider that
@@ -98,6 +153,23 @@ export async function createProvider(
   providerId: string
 ): Promise<BaseProvider> {
   const id = providerId.toLowerCase();
+  if (PYTHON_ONLY_PROVIDERS.includes(id) && !listRegisteredProviderIds().includes(id)) {
+    try {
+      await ensurePythonProvidersRegistered();
+    } catch (err) {
+      throw new Error(
+        `Provider "${id}" needs the local Python worker, which could not be started ` +
+          `(${err instanceof Error ? err.message : String(err)}). Ensure the nodetool ` +
+          `Python environment is installed and activated (e.g. \`conda activate nodetool\`).`
+      );
+    }
+    if (!listRegisteredProviderIds().includes(id)) {
+      throw new Error(
+        `Provider "${id}" is not available from the Python worker on this machine` +
+          (id === "mlx" && !isAppleSilicon() ? " (MLX requires Apple Silicon)." : ".")
+      );
+    }
+  }
   if (!listRegisteredProviderIds().includes(id)) {
     return getProvider("ollama", resolveForUser1);
   }
@@ -144,7 +216,13 @@ export async function buildConfiguredProviders(): Promise<
  */
 export async function configuredProviderIds(): Promise<Set<string>> {
   const flags = await Promise.all(
-    KNOWN_PROVIDERS.map((id) => isProviderConfigured(id, resolveForUser1))
+    KNOWN_PROVIDERS.map((id) => {
+      // mlx is keyless but registered lazily (via the Python bridge), so
+      // isProviderConfigured() reports false until the bridge connects. Treat
+      // it as selectable on the only platform that can run it.
+      if (id === "mlx") return Promise.resolve(isAppleSilicon());
+      return isProviderConfigured(id, resolveForUser1);
+    })
   );
   return new Set(KNOWN_PROVIDERS.filter((_, i) => flags[i]));
 }
@@ -161,6 +239,7 @@ export function availableProviders(): string[] {
     const key = getProviderSecretKey(id);
     if (key && process.env[key]) available.push(id);
   }
+  if (isAppleSilicon()) available.push("mlx");
   available.push("lmstudio");
   available.push("ollama");
   return available;
