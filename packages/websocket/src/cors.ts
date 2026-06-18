@@ -23,7 +23,9 @@ const DEFAULT_ALLOWED_ORIGIN_PATTERNS: RegExp[] = [
   /^https?:\/\/localhost(?::\d+)?$/,
   /^https?:\/\/127\.0\.0\.1(?::\d+)?$/,
   /^https?:\/\/\[::1\](?::\d+)?$/,
-  // Electron renderer (file:// documents report an "null" or "file://" origin)
+  // Electron renderer requests that carry a literal `file://` origin. (A
+  // `file://` document that sends `Origin: null` is handled by the
+  // missing-origin branch in isOriginAllowed, not this pattern.)
   /^file:\/\//
 ];
 
