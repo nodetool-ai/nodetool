@@ -46,6 +46,23 @@ export interface OpenAIOAuthProviderOptions {
   readonly pkce?: PKCEHelper;
   /** Builds an OpenAI SDK client from a bearer token. Injectable for tests. */
   readonly openAIClientFactory?: (accessToken: string) => OpenAI;
+  /**
+   * Override the OpenAI SDK `baseURL`. Used to point the inherited OpenAI
+   * capabilities at an alternate backend (e.g. the ChatGPT Codex routes).
+   * Ignored when a custom `openAIClientFactory` is supplied.
+   */
+  readonly apiBaseUrl?: string;
+  /**
+   * Static headers sent on every request (e.g. a Codex `originator`). Ignored
+   * when a custom `openAIClientFactory` is supplied.
+   */
+  readonly apiHeaders?: Readonly<Record<string, string>>;
+  /**
+   * Per-token headers derived from the current access token (e.g. the ChatGPT
+   * `chatgpt-account-id` decoded from the JWT). Recomputed whenever the bearer
+   * changes. Ignored when a custom `openAIClientFactory` is supplied.
+   */
+  readonly dynamicApiHeaders?: (accessToken: string) => Record<string, string>;
   readonly clock?: Clock;
   readonly logger?: Logger;
   /** Provider id reported to the rest of the system. Defaults to "openai". */
@@ -91,8 +108,19 @@ export class OpenAIOAuthProvider extends OpenAIProvider {
     this.browserLauncher = options.browserLauncher;
     this.callbackServerFactory = options.callbackServerFactory;
     this.pkce = options.pkce ?? new PKCEHelper();
+    const apiBaseUrl = options.apiBaseUrl;
+    const apiHeaders = options.apiHeaders;
+    const dynamicApiHeaders = options.dynamicApiHeaders;
     this.openAIClientFactory =
-      options.openAIClientFactory ?? ((accessToken) => new OpenAI({ apiKey: accessToken }));
+      options.openAIClientFactory ??
+      ((accessToken) => {
+        const headers = { ...(apiHeaders ?? {}), ...(dynamicApiHeaders?.(accessToken) ?? {}) };
+        return new OpenAI({
+          apiKey: accessToken,
+          ...(apiBaseUrl ? { baseURL: apiBaseUrl } : {}),
+          ...(Object.keys(headers).length > 0 ? { defaultHeaders: headers } : {})
+        });
+      });
     this.clock = options.clock ?? systemClock;
     this.oauthLogger = options.logger ?? createLogger("nodetool.runtime.oauth.provider");
     this.expirySkewMs = (options.expirySkewSeconds ?? 60) * 1000;
