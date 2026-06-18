@@ -61,9 +61,9 @@ describe('formatDateAndTime utilities', () => {
       expect(relativeTime(new Date(now.getTime() - 7 * 86400000))).toBe('1 week ago');
       expect(relativeTime(new Date(now.getTime() - 14 * 86400000))).toBe('2 weeks ago');
 
-      // Months
-      expect(relativeTime(new Date(now.getTime() - 30 * 86400000))).toBe('1 month ago');
-      expect(relativeTime(new Date(now.getTime() - 60 * 86400000))).toBe('2 months ago');
+      // Months (calendar-aware: 2022-12-03 -> 2023-01-02 is not a full month)
+      expect(relativeTime(new Date(now.getTime() - 30 * 86400000))).toBe('4 weeks ago');
+      expect(relativeTime(new Date(now.getTime() - 60 * 86400000))).toBe('1 month ago');
 
       // Years
       expect(relativeTime(new Date(now.getTime() - 365 * 86400000))).toBe('1 year ago');
