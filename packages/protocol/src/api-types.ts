@@ -852,6 +852,9 @@ export interface ResourceLimits {
 export const PROVIDER_IDS = {
   // Hosted LLM / multimodal APIs
   OPENAI: "openai",
+  // OpenAI via ChatGPT/Codex OAuth login (no API key — uses the stored
+  // Codex OAuth token and the chatgpt.com Codex backend).
+  CODEX: "codex",
   ANTHROPIC: "anthropic",
   GEMINI: "gemini",
   GROQ: "groq",
@@ -892,6 +895,39 @@ export const PROVIDER_IDS = {
 
 /** A provider identifier known to the registry above. */
 export type KnownProviderId = (typeof PROVIDER_IDS)[keyof typeof PROVIDER_IDS];
+
+/**
+ * Codex (ChatGPT-backed) OAuth constants, shared across packages so the login
+ * flow (`websocket`), the token resolver (`models`), and the provider
+ * (`runtime`) all agree without a cross-layer dependency. The client is the
+ * published public Codex CLI app — there is no client secret.
+ */
+export const CODEX_OAUTH_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann";
+export const CODEX_OAUTH_AUTHORIZATION_URL =
+  "https://auth.openai.com/oauth/authorize";
+export const CODEX_OAUTH_TOKEN_URL = "https://auth.openai.com/oauth/token";
+export const CODEX_OAUTH_REVOCATION_URL =
+  "https://auth.openai.com/oauth/revoke";
+export const CODEX_OAUTH_SCOPES = [
+  "openid",
+  "profile",
+  "email",
+  "offline_access"
+] as const;
+/** ChatGPT backend base URL the Codex routes live under. */
+export const CODEX_BACKEND_BASE_URL = "https://chatgpt.com/backend-api/codex";
+/** `originator` header the ChatGPT backend expects from a Codex client. */
+export const CODEX_DEFAULT_ORIGINATOR = "codex_cli_rs";
+/**
+ * Codex client version presented to the ChatGPT backend. The backend gates its
+ * model allowlist on this: too-old a version yields an empty `/models` list and
+ * "model not supported" on `/responses`. Must be ≥ the served models'
+ * `minimal_client_version`. Override via `CODEX_CLIENT_VERSION`.
+ */
+export const CODEX_CLIENT_VERSION = "0.124.0";
+/** Loopback port/path the Codex client's redirect URI is registered against. */
+export const CODEX_CALLBACK_PORT = 1455;
+export const CODEX_CALLBACK_PATH = "/auth/callback";
 
 /**
  * Provider identifier. Resolves to a known {@link PROVIDER_IDS} value with

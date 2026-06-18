@@ -4,7 +4,8 @@ import {
   generatePkcePair,
   generateState,
   oauthStateStore,
-  handleOAuthRequest
+  handleOAuthRequest,
+  closeActiveCodexCallbackServer
 } from "../src/oauth-api.js";
 
 function getUserId(): string {
@@ -245,35 +246,17 @@ describe("OAuth API: GitHub endpoints", () => {
   });
 });
 
-describe("OAuth API: OpenAI endpoints", () => {
+describe("OAuth API: OpenAI (Codex) endpoints", () => {
   beforeEach(() => {
     initTestDb();
     oauthStateStore.clear();
-    delete process.env.OPENAI_OAUTH_CLIENT_ID;
   });
 
-  afterEach(() => {
-    delete process.env.OPENAI_OAUTH_CLIENT_ID;
+  afterEach(async () => {
+    await closeActiveCodexCallbackServer();
   });
 
-  it("GET /api/oauth/openai/start returns error without OPENAI_OAUTH_CLIENT_ID", async () => {
-    const response = await handleOAuthRequest(
-      new Request("http://localhost:7777/api/oauth/openai/start", {
-        headers: { host: "localhost:7777" }
-      }),
-      "/api/oauth/openai/start",
-      getUserId
-    );
-
-    expect(response).not.toBeNull();
-    expect(response!.status).toBe(500);
-    const body = (await jsonBody(response!)) as { detail: string };
-    expect(body.detail).toContain("OPENAI_OAUTH_CLIENT_ID");
-  });
-
-  it("GET /api/oauth/openai/start returns a PKCE auth_url when configured", async () => {
-    process.env.OPENAI_OAUTH_CLIENT_ID = "test-openai-client-id";
-
+  it("GET /api/oauth/openai/start returns a Codex PKCE auth_url", async () => {
     const response = await handleOAuthRequest(
       new Request("http://localhost:7777/api/oauth/openai/start", {
         headers: { host: "localhost:7777" }
@@ -286,15 +269,20 @@ describe("OAuth API: OpenAI endpoints", () => {
     expect(response!.status).toBe(200);
     const body = (await jsonBody(response!)) as { auth_url: string };
     expect(body.auth_url).toContain("https://auth.openai.com/oauth/authorize");
-    expect(body.auth_url).toContain("client_id=test-openai-client-id");
+    // The published, secret-less Codex CLI client.
+    expect(body.auth_url).toContain(
+      "client_id=app_EMoamEEZ73f0CkXaXp7hrann"
+    );
     expect(body.auth_url).toContain("code_challenge=");
     expect(body.auth_url).toContain("code_challenge_method=S256");
     expect(body.auth_url).toContain("state=");
+    // Codex's pre-registered loopback redirect — not a server route.
     expect(body.auth_url).toContain(
-      "redirect_uri=http%3A%2F%2Flocalhost%3A7777%2Fapi%2Foauth%2Fopenai%2Fcallback"
+      "redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback"
     );
-    // Start must persist the CSRF state for the callback to validate against.
-    expect(oauthStateStore.size).toBe(1);
+    // Codex-specific authorization params.
+    expect(body.auth_url).toContain("codex_cli_simplified_flow=true");
+    expect(body.auth_url).toContain("id_token_add_organizations=true");
   });
 
   it("GET /api/oauth/openai/tokens returns empty list initially", async () => {
@@ -307,21 +295,6 @@ describe("OAuth API: OpenAI endpoints", () => {
     expect(response!.status).toBe(200);
     const body = (await jsonBody(response!)) as { tokens: unknown[] };
     expect(body.tokens).toEqual([]);
-  });
-
-  it("GET /api/oauth/openai/callback with invalid state returns error HTML", async () => {
-    const response = await handleOAuthRequest(
-      new Request(
-        "http://localhost:7777/api/oauth/openai/callback?code=abc&state=invalid"
-      ),
-      "/api/oauth/openai/callback",
-      getUserId
-    );
-
-    expect(response).not.toBeNull();
-    const html = await response!.text();
-    expect(html).toContain("Authentication Failed");
-    expect(html).toContain("expired or is invalid");
   });
 
   it("POST /api/oauth/openai/disconnect removes stored credentials", async () => {
