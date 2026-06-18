@@ -16,6 +16,17 @@
  */
 
 import { createLogger, type Logger } from "@nodetool-ai/config";
+import {
+  CODEX_OAUTH_CLIENT_ID,
+  CODEX_BACKEND_BASE_URL,
+  CODEX_CALLBACK_PORT,
+  CODEX_CALLBACK_PATH,
+  CODEX_OAUTH_AUTHORIZATION_URL,
+  CODEX_OAUTH_TOKEN_URL,
+  CODEX_OAUTH_REVOCATION_URL,
+  CODEX_OAUTH_SCOPES,
+  CODEX_DEFAULT_ORIGINATOR
+} from "@nodetool-ai/protocol";
 import { OAuthClient } from "./oauth-client.js";
 import { PKCEHelper } from "./pkce-helper.js";
 import { LocalCallbackServer } from "./local-callback-server.js";
@@ -140,11 +151,16 @@ export function createOpenAIOAuthProvider(
 //      a foreign originator is answered with 403.
 // These are configuration, not contracts — every value is override-able.
 
-/** Published public OAuth client id of the Codex CLI (no client secret). */
-export const CODEX_OAUTH_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann";
-
-/** ChatGPT backend base URL the Codex routes live under. */
-export const CODEX_BACKEND_BASE_URL = "https://chatgpt.com/backend-api/codex";
+// The Codex client id, endpoints, scopes, backend URL and loopback redirect are
+// the canonical constants in `@nodetool-ai/protocol` (shared with the login
+// flow and the token resolver). Re-exported here for the OAuth subsystem's
+// existing public surface.
+export {
+  CODEX_OAUTH_CLIENT_ID,
+  CODEX_BACKEND_BASE_URL,
+  CODEX_CALLBACK_PORT,
+  CODEX_CALLBACK_PATH
+};
 
 /**
  * `originator` the ChatGPT backend expects from a Codex client. A non-Codex
@@ -152,12 +168,8 @@ export const CODEX_BACKEND_BASE_URL = "https://chatgpt.com/backend-api/codex";
  * Override via `CODEX_ORIGINATOR` env for resilience if the backend tightens.
  */
 export const CODEX_ORIGINATOR =
-  (typeof process !== "undefined" && process.env?.CODEX_ORIGINATOR) || "codex_cli_rs";
-
-/** Loopback port the Codex client's redirect URI is registered against. */
-export const CODEX_CALLBACK_PORT = 1455;
-/** Path component of the Codex-registered redirect URI. */
-export const CODEX_CALLBACK_PATH = "/auth/callback";
+  (typeof process !== "undefined" && process.env?.CODEX_ORIGINATOR) ||
+  CODEX_DEFAULT_ORIGINATOR;
 
 /**
  * OAuth endpoint configuration for the Codex CLI client. Scopes and the extra
@@ -165,10 +177,10 @@ export const CODEX_CALLBACK_PATH = "/auth/callback";
  * by {@link createCodexOAuthProvider}.
  */
 export const DEFAULT_CODEX_OAUTH_CONFIG: Omit<OAuthClientConfig, "clientId"> = {
-  authorizationEndpoint: "https://auth.openai.com/oauth/authorize",
-  tokenEndpoint: "https://auth.openai.com/oauth/token",
-  revocationEndpoint: "https://auth.openai.com/oauth/revoke",
-  scopes: ["openid", "profile", "email", "offline_access"],
+  authorizationEndpoint: CODEX_OAUTH_AUTHORIZATION_URL,
+  tokenEndpoint: CODEX_OAUTH_TOKEN_URL,
+  revocationEndpoint: CODEX_OAUTH_REVOCATION_URL,
+  scopes: [...CODEX_OAUTH_SCOPES],
   extraAuthParams: {
     id_token_add_organizations: "true",
     codex_cli_simplified_flow: "true"

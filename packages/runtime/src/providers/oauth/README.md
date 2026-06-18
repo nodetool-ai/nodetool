@@ -221,18 +221,21 @@ This subsystem (a localhost-callback flow that opens the OS browser) is the
 right fit for desktop/CLI hosts where the Node process can both open a browser
 and listen on loopback.
 
-The **web app** uses a complementary server-side flow that shares this module's
-protocol layer (`OAuthClient` + PKCE) but receives the redirect on the API
-server's own `/api/oauth/openai/callback` route rather than a per-login
-loopback server:
+The **web app** drives the same Codex flow from the API server, sharing this
+module's protocol layer (`OAuthClient` + PKCE + `LocalCallbackServer`). Because
+the public Codex client only permits the loopback redirect
+`http://localhost:1455/auth/callback`, the redirect cannot bounce through a
+server route — the API process binds the Codex loopback listener itself:
 
 - Backend: `packages/websocket/src/oauth-api.ts` exposes
-  `/api/oauth/openai/{start,callback,tokens,disconnect}`. `start` returns the
-  authorization URL (built via `OAuthClient`), `callback` exchanges the code and
-  persists tokens through the encrypted `OAuthCredential` model. It activates
-  only when `OPENAI_OAUTH_CLIENT_ID` is set (endpoints/scopes are env-overridable
-  via `OPENAI_OAUTH_AUTHORIZATION_URL`, `OPENAI_OAUTH_TOKEN_URL`,
-  `OPENAI_OAUTH_USERINFO_URL`, `OPENAI_OAUTH_SCOPES`).
+  `/api/oauth/openai/{start,tokens,disconnect}`. `start` builds the Codex
+  authorization URL (`createCodexOAuthProvider`'s config — public client id, no
+  secret, Codex scopes/params), binds a one-shot `LocalCallbackServer` on port
+  1455, and returns the auth URL; the code exchange completes in the background
+  and persists tokens through the encrypted `OAuthCredential` model. The
+  published client id is overridable via `CODEX_OAUTH_CLIENT_ID`. Because it
+  binds loopback and relies on the same machine's browser, it is a same-machine
+  flow (desktop / local server).
 - Frontend: the **Settings → Integrations** panel
   (`web/src/components/menus/RemoteSettingsMenu.tsx`) renders an
   "OpenAI Authentication" section with **Connect with OpenAI** / **Disconnect**

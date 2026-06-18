@@ -39,6 +39,7 @@ import type { WebSocketChatClient } from "./websocket-client.js";
 export const KNOWN_PROVIDERS = [
   "anthropic",
   "openai",
+  "codex",
   "gemini",
   "xai",
   "groq",
@@ -79,6 +80,7 @@ function isAppleSilicon(): boolean {
 export const DEFAULT_MODELS: Record<string, string> = {
   anthropic: "claude-sonnet-4-6",
   openai: "gpt-5.4",
+  codex: "gpt-5.5",
   gemini: "gemini-2.5-flash",
   xai: "grok-4",
   groq: "llama-3.3-70b-versatile",
