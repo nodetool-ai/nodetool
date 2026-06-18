@@ -22,7 +22,7 @@
  */
 import { useCallback, useEffect, useRef } from "react";
 import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
-import { uuidv4 } from "../../stores/uuidv4";
+import { v4 as uuidv4 } from "uuid";
 import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
 import { reactFlowEdgeToGraphEdge } from "../../stores/reactFlowEdgeToGraphEdge";
 import {
