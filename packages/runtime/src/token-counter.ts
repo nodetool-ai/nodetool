@@ -38,34 +38,48 @@ const PACK_LIMIT = 4096;
 const RUN_LIMIT = 128;
 
 /**
- * Count BPE tokens in a string. Returns 0 for empty/nullish input.
+ * Split text into bounded pieces for encoding. Splitting *before* each
+ * whitespace run keeps the leading whitespace with each piece, so the cut
+ * points coincide with cl100k's own regex-piece boundaries — per-piece token
+ * counts therefore sum exactly for normal text. Whitespace-delimited pieces are
+ * packed up to {@link PACK_LIMIT} chars to keep the `encode` call count low; a
+ * single boundary-free run longer than {@link RUN_LIMIT} is hard-split.
  */
-export function countTokens(text: string | null | undefined): number {
-  if (!text) return 0;
-  const encoder = getEncoder();
-  let total = 0;
+function* encodingPieces(text: string): Generator<string> {
   let buf = "";
   for (const segment of text.split(/(?=\s)/)) {
     if (segment.length > RUN_LIMIT) {
       // A boundary-free run — hard-split it to bound the per-piece BPE cost.
       if (buf) {
-        total += encoder.encode(buf).length;
+        yield buf;
         buf = "";
       }
       for (let i = 0; i < segment.length; i += RUN_LIMIT) {
-        total += encoder.encode(segment.slice(i, i + RUN_LIMIT)).length;
+        yield segment.slice(i, i + RUN_LIMIT);
       }
       continue;
     }
     if (buf.length + segment.length > PACK_LIMIT) {
-      total += encoder.encode(buf).length;
+      yield buf;
       buf = segment;
     } else {
       buf += segment;
     }
   }
   if (buf) {
-    total += encoder.encode(buf).length;
+    yield buf;
+  }
+}
+
+/**
+ * Count BPE tokens in a string. Returns 0 for empty/nullish input.
+ */
+export function countTokens(text: string | null | undefined): number {
+  if (!text) return 0;
+  const encoder = getEncoder();
+  let total = 0;
+  for (const piece of encodingPieces(text)) {
+    total += encoder.encode(piece).length;
   }
   return total;
 }
@@ -73,11 +87,26 @@ export function countTokens(text: string | null | undefined): number {
 /**
  * Truncate text to at most `maxTokens` BPE tokens, decoding the kept prefix
  * back to a string. Returns "" when `maxTokens <= 0`.
+ *
+ * Encodes piece-by-piece (same splitting as {@link countTokens}) and stops once
+ * the budget is reached, so it never feeds a huge boundary-free run to `encode`
+ * in one shot — the input is bounded the same way the count is.
  */
 export function truncateToTokens(text: string, maxTokens: number): string {
   if (maxTokens <= 0) return "";
   const encoder = getEncoder();
-  const tokens = encoder.encode(text);
-  if (tokens.length <= maxTokens) return text;
-  return encoder.decode(tokens.slice(0, maxTokens));
+  const kept: number[] = [];
+  let truncated = false;
+  for (const piece of encodingPieces(text)) {
+    for (const token of encoder.encode(piece)) {
+      if (kept.length >= maxTokens) {
+        truncated = true;
+        break;
+      }
+      kept.push(token);
+    }
+    if (truncated) break;
+  }
+  // Within budget: return the original text untouched (no decode round-trip).
+  return truncated ? encoder.decode(kept) : text;
 }

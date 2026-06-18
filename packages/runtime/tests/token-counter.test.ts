@@ -67,4 +67,14 @@ describe("truncateToTokens", () => {
     expect(truncated.length).toBeLessThan(text.length);
     expect(countTokens(truncated)).toBeLessThanOrEqual(3);
   });
+
+  it(
+    "truncates a long unbroken run without pathological slowdown",
+    () => {
+      // Must not feed the whole boundary-free run to encode() in one shot.
+      const truncated = truncateToTokens("x".repeat(20000), 50);
+      expect(countTokens(truncated)).toBeLessThanOrEqual(50);
+    },
+    15000
+  );
 });
