@@ -31,11 +31,6 @@ export const NODE_MENU_HOVER_INFO_DELAY_MS = 250;
 // MODEL
 export const DEFAULT_MODEL = "gpt-oss:20b";
 
-// SEARCH
-export const SEARCH_DEBOUNCE_MS = 500;
-export const FUSE_THRESHOLD = 0.35;
-export const FUSE_MIN_MATCH_FACTOR = 0.5;
-
 // IMAGE PRESETS
 export type PresetOption = {
     label: string;

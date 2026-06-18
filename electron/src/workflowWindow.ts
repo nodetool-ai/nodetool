@@ -148,13 +148,4 @@ function createChatWindow(): BrowserWindow {
   return chatWindow;
 }
 
-/**
- * Checks if a window is a workflow window
- * @param window - The window to check
- * @returns True if the window is a workflow window
- */
-function isWorkflowWindow(window: BrowserWindow): boolean {
-  return workflowWindows.has(window.id);
-}
-
-export { createWorkflowWindow, createMiniAppWindow, createChatWindow, isWorkflowWindow };
+export { createWorkflowWindow, createMiniAppWindow, createChatWindow };

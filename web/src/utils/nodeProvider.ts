@@ -1,4 +1,4 @@
-export type ProviderKind = "api" | "local";
+type ProviderKind = "api" | "local";
 
 const namespaceToSecretKey: Record<string, string> = {
   openai: "OPENAI_API_KEY",
