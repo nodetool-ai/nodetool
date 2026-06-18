@@ -77,27 +77,6 @@ import {
 import { TodoWriteTool } from "./todo-tools.js";
 
 export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
-  // Search
-  GoogleSearchTool,
-  GoogleNewsTool,
-  GoogleImagesTool,
-  GoogleGroundedSearchTool,
-  OpenAIWebSearchTool,
-  DataForSEOSearchTool,
-  DataForSEONewsTool,
-  DataForSEOImagesTool,
-
-  // Generation
-  GoogleImageGenerationTool,
-  OpenAIImageGenerationTool,
-  OpenAITextToSpeechTool,
-
-  // Web
-  BrowserTool,
-  ScreenshotTool,
-  DownloadFileTool,
-  HttpRequestTool,
-
   // Filesystem (workspace-relative)
   ReadFileTool,
   WriteFileTool,
@@ -106,29 +85,50 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   GlobTool,
   GrepTool,
 
-  // Email
-  SearchEmailTool,
-  ArchiveEmailTool,
-  AddLabelToEmailTool,
-
-  // Compute
-  CalculatorTool,
-  RunCodeTool,
-  MiniJSAgentTool,
-  StatisticsTool,
-  GeometryTool,
-  TrigonometryTool,
-  ConversionTool,
-
   // Task tracking
   TodoWriteTool,
 
+  // Search
+  // GoogleSearchTool,
+  // GoogleNewsTool,
+  // GoogleImagesTool,
+  // GoogleGroundedSearchTool,
+  // OpenAIWebSearchTool,
+  // DataForSEOSearchTool,
+  // DataForSEONewsTool,
+  // DataForSEOImagesTool,
+
+  // Generation
+  // GoogleImageGenerationTool,
+  // OpenAIImageGenerationTool,
+  // OpenAITextToSpeechTool,
+
+  // Web
+  // BrowserTool,
+  // ScreenshotTool,
+  // DownloadFileTool,
+  // HttpRequestTool,
+
+  // Email
+  // SearchEmailTool,
+  // ArchiveEmailTool,
+  // AddLabelToEmailTool,
+
+  // Compute
+  // CalculatorTool,
+  // RunCodeTool,
+  // MiniJSAgentTool,
+  // StatisticsTool,
+  // GeometryTool,
+  // TrigonometryTool,
+  // ConversionTool,
+
   // Documents
-  ExtractPDFTextTool,
-  ExtractPDFTablesTool,
-  ConvertPDFToMarkdownTool,
-  ConvertMarkdownToPDFTool,
-  ConvertDocumentTool
+  // ExtractPDFTextTool,
+  // ExtractPDFTablesTool,
+  // ConvertPDFToMarkdownTool,
+  // ConvertMarkdownToPDFTool,
+  // ConvertDocumentTool
 ];
 
 /**
