@@ -55,11 +55,18 @@ describe("CodexProvider", () => {
     expect(models.map((m) => m.id)).toEqual(["gpt-5.5"]);
   });
 
-  it("advertises gpt-image-1 for text_to_image", async () => {
+  it("advertises the gpt-image models for text_to_image", async () => {
     const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
     const models = await provider.getAvailableImageModels();
-    expect(models.map((m) => m.id)).toEqual(["gpt-image-1"]);
-    expect(models[0].supportedTasks).toContain("text_to_image");
+    expect(models.map((m) => m.id)).toEqual([
+      "gpt-image-2",
+      "gpt-image-1.5",
+      "gpt-image-1",
+      "gpt-image-1-mini"
+    ]);
+    expect(models.every((m) => m.supportedTasks?.includes("text_to_image"))).toBe(
+      true
+    );
   });
 
   it("extracts PNG bytes from the image_generation_call output item", async () => {

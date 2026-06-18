@@ -148,14 +148,19 @@ export class CodexProvider extends OpenAIProvider {
   // --- Image generation (via the Responses image_generation tool) --------
 
   override async getAvailableImageModels(): Promise<ImageModel[]> {
+    // The Responses `image_generation` tool accepts a `model` field; every
+    // gpt-image variant the OpenAI image API exposes works against the Codex
+    // backend too (verified live).
     return [
-      {
-        id: "gpt-image-1",
-        name: "GPT Image 1",
-        provider: PROVIDER_IDS.CODEX,
-        supportedTasks: ["text_to_image"]
-      }
-    ];
+      { id: "gpt-image-2", name: "GPT Image 2" },
+      { id: "gpt-image-1.5", name: "GPT Image 1.5" },
+      { id: "gpt-image-1", name: "GPT Image 1" },
+      { id: "gpt-image-1-mini", name: "GPT Image 1 Mini" }
+    ].map((m) => ({
+      ...m,
+      provider: PROVIDER_IDS.CODEX,
+      supportedTasks: ["text_to_image"]
+    }));
   }
 
   /**
@@ -171,7 +176,10 @@ export class CodexProvider extends OpenAIProvider {
       ? `${params.prompt.trim()}\n\nDo not include: ${params.negativePrompt.trim()}`
       : params.prompt;
 
-    const imageTool: Record<string, unknown> = { type: "image_generation" };
+    const imageTool: Record<string, unknown> = {
+      type: "image_generation",
+      model: params.model.id
+    };
     const size = this.resolveImageSize(
       params.width ?? undefined,
       params.height ?? undefined
