@@ -109,6 +109,11 @@ export {
   unregisterProvider
 } from "./provider-registry.js";
 export type { GetSecret } from "./provider-registry.js";
+// OpenAI OAuth subsystem is intentionally NOT re-exported here. Its callback
+// server, browser launcher and keychain access are Node-only (they statically
+// import node:http / node:child_process), and this barrel is pulled into the
+// browser worker bundle via the runtime root. Import it from the dedicated
+// Node-only subpath instead: `@nodetool-ai/runtime/oauth`.
 import {
   registerProvider as registerBuiltinProvider,
   listRegisteredProviderIds as listBuiltinProviderIds,
