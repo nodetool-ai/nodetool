@@ -1,7 +1,8 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   isSafePublicHttpsUrl,
-  assertSafePublicHttpsUrl
+  assertSafePublicHttpsUrl,
+  safeFetch
 } from "../../src/providers/safe-url.js";
 
 describe("isSafePublicHttpsUrl", () => {
@@ -34,6 +35,12 @@ describe("isSafePublicHttpsUrl", () => {
     expect(isSafePublicHttpsUrl("https://db.local/x")).toBe(false);
   });
 
+  it("rejects trailing-dot hostname bypasses", () => {
+    expect(isSafePublicHttpsUrl("https://localhost./x")).toBe(false);
+    expect(isSafePublicHttpsUrl("https://db.local./x")).toBe(false);
+    expect(isSafePublicHttpsUrl("https://api.internal./x")).toBe(false);
+  });
+
   it("rejects RFC1918 and loopback IPv4 literals", () => {
     expect(isSafePublicHttpsUrl("https://127.0.0.1/x")).toBe(false);
     expect(isSafePublicHttpsUrl("https://10.0.0.5/x")).toBe(false);
@@ -53,6 +60,85 @@ describe("isSafePublicHttpsUrl", () => {
     expect(isSafePublicHttpsUrl("https://[fc00::1]/x")).toBe(false);
     expect(isSafePublicHttpsUrl("https://[fd12::1]/x")).toBe(false);
     expect(isSafePublicHttpsUrl("https://[fe80::1]/x")).toBe(false);
+  });
+
+  it("rejects link-local IPv6 across the whole fe80::/10 range", () => {
+    expect(isSafePublicHttpsUrl("https://[fe90::1]/x")).toBe(false);
+    expect(isSafePublicHttpsUrl("https://[fea0::1]/x")).toBe(false);
+    expect(isSafePublicHttpsUrl("https://[febf::1]/x")).toBe(false);
+  });
+
+  it("rejects IPv4-mapped/-compatible IPv6 literals to private ranges", () => {
+    // ::ffff:127.0.0.1 normalises to ::ffff:7f00:1
+    expect(isSafePublicHttpsUrl("https://[::ffff:127.0.0.1]/x")).toBe(false);
+    expect(isSafePublicHttpsUrl("https://[::ffff:10.0.0.1]/x")).toBe(false);
+    expect(isSafePublicHttpsUrl("https://[::ffff:169.254.0.1]/x")).toBe(false);
+    // IPv4-compatible ::127.0.0.1 normalises to ::7f00:1
+    expect(isSafePublicHttpsUrl("https://[::127.0.0.1]/x")).toBe(false);
+  });
+
+  it("still accepts IPv4-mapped IPv6 to public addresses", () => {
+    expect(isSafePublicHttpsUrl("https://[::ffff:8.8.8.8]/x")).toBe(true);
+  });
+});
+
+describe("safeFetch", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("rejects an unsafe initial URL without fetching", async () => {
+    const spy = vi.spyOn(globalThis, "fetch");
+    await expect(safeFetch("http://169.254.169.254/x")).rejects.toThrow(
+      /unsafe URL/
+    );
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("returns the response for a safe non-redirect URL", async () => {
+    const ok = new Response("body", { status: 200 });
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(ok);
+    const res = await safeFetch("https://fal.media/a.png");
+    expect(res.status).toBe(200);
+  });
+
+  it("validates redirect hops and refuses redirect to an internal host", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(null, {
+        status: 302,
+        headers: { location: "http://127.0.0.1:6379/" }
+      })
+    );
+    await expect(safeFetch("https://fal.media/a.png")).rejects.toThrow(
+      /unsafe URL/
+    );
+  });
+
+  it("follows a redirect to another safe host", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(null, {
+          status: 302,
+          headers: { location: "https://cdn.fal.media/final.png" }
+        })
+      )
+      .mockResolvedValueOnce(new Response("bytes", { status: 200 }));
+    const res = await safeFetch("https://fal.media/a.png");
+    expect(res.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("throws on a redirect loop exceeding the limit", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(null, {
+        status: 302,
+        headers: { location: "https://other.fal.media/loop.png" }
+      })
+    );
+    await expect(safeFetch("https://fal.media/a.png")).rejects.toThrow(
+      /Too many redirects/
+    );
   });
 });
 

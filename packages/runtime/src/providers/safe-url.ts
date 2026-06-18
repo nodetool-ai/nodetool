@@ -10,11 +10,27 @@
  *
  * This is an allowlist gate: only https URLs to apparently-public hosts pass.
  * The check is conservative — unparseable URLs, non-https schemes, and literal
- * IP addresses in loopback / link-local / RFC1918 / CGNAT ranges are refused.
- * DNS rebinding can still resolve a public name to a private address, so this
- * is defense-in-depth that complements network-level egress filtering rather
- * than a complete SSRF mitigation.
+ * IP addresses in loopback / link-local / RFC1918 / CGNAT ranges (including
+ * IPv4-mapped IPv6 literals) are refused. DNS rebinding can still resolve a
+ * public name to a private address, so this is defense-in-depth that
+ * complements network-level egress filtering rather than a complete SSRF
+ * mitigation. Redirects are validated per-hop by {@link safeFetch}.
  */
+
+/** True for IPv4 octet pairs in loopback / RFC1918 / link-local / CGNAT ranges. */
+function isPrivateIpv4(a: number, b: number): boolean {
+  // 0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8
+  if (a === 0 || a === 10 || a === 127) return true;
+  // 169.254.0.0/16 (link-local)
+  if (a === 169 && b === 254) return true;
+  // 172.16.0.0/12
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  // 192.168.0.0/16
+  if (a === 192 && b === 168) return true;
+  // 100.64.0.0/10 (CGNAT)
+  if (a === 100 && b >= 64 && b <= 127) return true;
+  return false;
+}
 
 /**
  * Return `true` when `url` is an https URL whose host is not a loopback,
@@ -30,9 +46,13 @@ export function isSafePublicHttpsUrl(url: string): boolean {
   if (parsed.protocol !== "https:") {
     return false;
   }
-  // Normalise IPv6 hostnames: WHATWG URL may return them with or without
-  // surrounding brackets depending on the runtime.
-  const host = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  // Normalise: strip IPv6 brackets (WHATWG URL may include them depending on
+  // the runtime) and any trailing dot (`localhost.` resolves the same as
+  // `localhost` but would dodge the exact/suffix checks below).
+  const host = parsed.hostname
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "")
+    .replace(/\.+$/, "");
   if (!host) return false;
   if (
     host === "localhost" ||
@@ -48,19 +68,28 @@ export function isSafePublicHttpsUrl(url: string): boolean {
   const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
   if (ipv4) {
     const [a, b] = ipv4.slice(1).map((n) => parseInt(n, 10));
-    // 0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16,
-    // 172.16.0.0/12, 192.168.0.0/16, 100.64.0.0/10 (CGNAT)
-    if (a === 0 || a === 10 || a === 127) return false;
-    if (a === 169 && b === 254) return false;
-    if (a === 172 && b >= 16 && b <= 31) return false;
-    if (a === 192 && b === 168) return false;
-    if (a === 100 && b >= 64 && b <= 127) return false;
+    if (isPrivateIpv4(a, b)) return false;
   }
-  // IPv6 literal — refuse loopback / ULA / link-local / unspecified ranges.
+  // IPv6 literal — refuse loopback / ULA / link-local / unspecified ranges, and
+  // unwrap IPv4-mapped/-compatible literals so they get the IPv4 treatment.
   if (host.includes(":")) {
     if (host === "::" || host === "::1") return false;
+    // IPv4-mapped (`::ffff:a.b.c.d`) or -compatible (`::a.b.c.d`) in dotted form.
+    const dotted = host.match(/:((?:\d{1,3}\.){3}\d{1,3})$/);
+    if (dotted) {
+      const [a, b] = dotted[1].split(".").map((n) => parseInt(n, 10));
+      if (isPrivateIpv4(a, b)) return false;
+    }
+    // Same, but the WHATWG parser normalises the trailing octets to two hex
+    // hextets (`::ffff:7f00:1`, `::7f00:1`); decode the embedded IPv4.
+    const hex = host.match(/^::(?:ffff:)?([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+    if (hex) {
+      const hi = parseInt(hex[1], 16);
+      if (isPrivateIpv4((hi >> 8) & 0xff, hi & 0xff)) return false;
+    }
     if (host.startsWith("fc") || host.startsWith("fd")) return false; // ULA fc00::/7
-    if (host.startsWith("fe80:")) return false; // link-local
+    // link-local fe80::/10 — first hextet spans fe80–febf, i.e. fe8x/fe9x/feax/febx.
+    if (/^fe[89ab]/.test(host)) return false;
   }
   return true;
 }
@@ -75,4 +104,29 @@ export function assertSafePublicHttpsUrl(url: string): void {
       `Refusing to fetch unsafe URL (must be https to a public host): ${url}`
     );
   }
+}
+
+/**
+ * `fetch` a provider-supplied URL with SSRF protection. The initial URL and
+ * every redirect hop are validated with {@link assertSafePublicHttpsUrl}, so a
+ * public host cannot redirect into an internal/loopback target or downgrade to
+ * http. Redirects are followed manually up to `maxRedirects`.
+ */
+export async function safeFetch(
+  url: string,
+  init?: RequestInit,
+  maxRedirects = 5
+): Promise<Response> {
+  let current = url;
+  for (let hop = 0; hop <= maxRedirects; hop++) {
+    assertSafePublicHttpsUrl(current);
+    const res = await fetch(current, { ...init, redirect: "manual" });
+    const location = res.headers.get("location");
+    if (res.status >= 300 && res.status < 400 && location) {
+      current = new URL(location, current).toString();
+      continue;
+    }
+    return res;
+  }
+  throw new Error(`Too many redirects while fetching: ${url}`);
 }
