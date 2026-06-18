@@ -17,7 +17,7 @@
  *   Ctrl+T             — transpose characters
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Text, useInput } from "ink";
 import chalk from "chalk";
 
@@ -57,10 +57,28 @@ export default function ReadlineInput({
   showCursor = true,
 }: ReadlineInputProps) {
   const [cursorOffset, setCursorOffset] = useState(value.length);
+  const previousValueRef = useRef(value);
+  const pendingCursorOffsetRef = useRef<number | null>(null);
 
-  // When value changes externally, move cursor to end
+  // Keep the cursor in bounds when the value changes. If the edit came from
+  // this component, preserve the cursor selected by update(); if the value was
+  // changed externally (for example history recall), move to the end.
   useEffect(() => {
-    setCursorOffset(value.length);
+    const previousValue = previousValueRef.current;
+    previousValueRef.current = value;
+
+    setCursorOffset((offset) => {
+      const pendingCursorOffset = pendingCursorOffsetRef.current;
+      pendingCursorOffsetRef.current = null;
+
+      if (pendingCursorOffset !== null) {
+        return Math.max(0, Math.min(pendingCursorOffset, value.length));
+      }
+      if (value !== previousValue) {
+        return value.length;
+      }
+      return Math.min(offset, value.length);
+    });
   }, [value]);
 
   const update = useCallback(
@@ -68,7 +86,10 @@ export default function ReadlineInput({
       const clamped = Math.max(0, Math.min(nextCursor, nextValue.length));
       setCursorOffset(clamped);
       if (nextValue !== value) {
+        pendingCursorOffsetRef.current = clamped;
         onChange(nextValue);
+      } else {
+        pendingCursorOffsetRef.current = null;
       }
     },
     [value, onChange]

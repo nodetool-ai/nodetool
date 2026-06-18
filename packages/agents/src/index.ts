@@ -252,7 +252,11 @@ export { buildSandbox, runInSandbox, serializeResult } from "./js-sandbox.js";
 export type { RunSandboxOptions, RunSandboxResult } from "./js-sandbox.js";
 
 // Constants
-export { DEFAULT_TOKEN_LIMIT, MAX_TOOL_RESULT_CHARS } from "./constants.js";
+export {
+  DEFAULT_TOKEN_LIMIT,
+  MAX_TOOL_RESULT_CHARS,
+  truncateToolResult
+} from "./constants.js";
 
 // Utilities
 export { extractJSON } from "./utils/json-parser.js";

@@ -17,7 +17,7 @@ import React from "react";
 import { App } from "./app.js";
 import { loadSettings } from "./settings.js";
 import { runStdinMode } from "./stdin.js";
-import { buildConfiguredProviders } from "./providers.js";
+import { buildConfiguredProviders, KNOWN_PROVIDERS } from "./providers.js";
 import { initDb, getSecret } from "@nodetool-ai/models";
 import { initMasterKey } from "@nodetool-ai/security";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
@@ -55,7 +55,7 @@ program
   )
   .option(
     "-p, --provider <provider>",
-    "LLM provider (anthropic, openai, ollama, gemini, mistral, groq)"
+    `LLM provider (${KNOWN_PROVIDERS.join(", ")})`
   )
   .option("-m, --model <model>", "Model ID")
   .option(

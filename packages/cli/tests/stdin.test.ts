@@ -33,6 +33,9 @@ vi.mock("@nodetool-ai/models", () => ({
 vi.mock("@nodetool-ai/runtime", () => ({
   ProcessingContext: class {
     constructor(_o?: unknown) {}
+  },
+  FileStorageAdapter: class {
+    constructor(_root?: string) {}
   }
 }));
 

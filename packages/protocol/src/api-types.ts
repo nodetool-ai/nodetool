@@ -865,6 +865,7 @@ export const PROVIDER_IDS = {
   TOGETHER: "together",
   CEREBRAS: "cerebras",
   EVOLINK: "evolink",
+  GMI: "gmi",
   // Media / 3D / utility APIs
   REPLICATE: "replicate",
   FAL_AI: "fal_ai",
