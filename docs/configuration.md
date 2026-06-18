@@ -161,6 +161,13 @@ Security notes:
 | `NODETOOL_VECTOR_PROVIDER` / `VECTORSTORE_DB_PATH` | Vector store config | no | Default backend is local SQLite-vec; switch to `pinecone` or `supabase` for remote. See [Indexing](indexing.md). |
 | `NODE_SUPABASE_URL` / `NODE_SUPABASE_KEY` / `NODE_SUPABASE_SCHEMA` / `NODE_SUPABASE_TABLE_PREFIX` | User/node Supabase config | `NODE_SUPABASE_KEY` | Kept separate from core Supabase credentials and tables |
 | `NODETOOL_ENABLE_TERMINAL_WS` | Opt-in terminal WebSocket | no | Leave unset in production |
+| `NODETOOL_RATE_LIMIT_DISABLED` | Disable per-IP HTTP rate limiting | no | Limiter is **on** by default; localhost is always exempt |
+| `NODETOOL_RATE_LIMIT_MAX` | Max HTTP requests per window per IP | no | Default `1000` |
+| `NODETOOL_RATE_LIMIT_WINDOW_MS` | Rate-limit window length (ms) | no | Default `60000` (1 minute) |
+| `NODETOOL_RATE_LIMIT_TRUST_PROXY` | Key the limiter by `X-Forwarded-For` (`req.ip`) instead of the socket address | no | Enable **only** behind a trusted proxy that sets the header |
+| `NODETOOL_WS_RATE_LIMIT_DISABLED` | Disable the per-connection WebSocket inbound message cap | no | Cap is **on** by default |
+| `NODETOOL_WS_RATE_LIMIT_MAX` | Max inbound WS messages per window per connection | no | Default `200`; over-cap clients are closed with code `1008` |
+| `NODETOOL_WS_RATE_LIMIT_WINDOW_MS` | WebSocket rate-limit window length (ms) | no | Default `1000` (1 second) |
 | `LOG_LEVEL` | Logging level | no | Defaults to `INFO` |
 | `RUNPOD_API_KEY` | RunPod deployments | yes | Used by CLI and providers |
 | `PROXY_BEARER_TOKEN` | Protects proxy admin endpoints | yes | Rotate regularly |

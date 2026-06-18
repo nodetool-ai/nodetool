@@ -44,6 +44,7 @@ import { handleMcpHttpRequest } from "./mcp-server.js";
 import Fastify, { type FastifyInstance } from "fastify";
 import fastifyWebSocket from "@fastify/websocket";
 import fastifyCors from "@fastify/cors";
+import fastifyRateLimit from "@fastify/rate-limit";
 import fastifyStatic from "@fastify/static";
 import { encode } from "@msgpack/msgpack";
 import { SupabaseAuthProvider, LocalAuthProvider } from "@nodetool-ai/auth";
@@ -53,6 +54,11 @@ import {
 } from "@trpc/server/adapters/fastify";
 import { appRouter, type AppRouter } from "./trpc/router.js";
 import { createContextFactory } from "./trpc/context.js";
+import {
+  getHttpRateLimitConfig,
+  rateLimitKey,
+  isRateLimitExempt
+} from "./lib/http-rate-limit.js";
 
 import websocketPlugin from "./plugins/websocket.js";
 import healthRoute from "./routes/health.js";
@@ -516,6 +522,30 @@ app.addHook("onRequest", async (request) => {
 app.addHook("onSend", async (request, reply) => {
   reply.header("X-Request-Id", request.id);
 });
+
+// ---------------------------------------------------------------------------
+// Per-IP HTTP rate limiting
+// ---------------------------------------------------------------------------
+// Registered before the auth hook so floods are rejected with 429 before any
+// token verification work. Localhost is exempt; tune via NODETOOL_RATE_LIMIT_*.
+const httpRateLimit = getHttpRateLimitConfig();
+if (httpRateLimit.enabled) {
+  await app.register(fastifyRateLimit, {
+    global: true,
+    max: httpRateLimit.max,
+    timeWindow: httpRateLimit.timeWindow,
+    keyGenerator: (req) => rateLimitKey(req, httpRateLimit.trustProxy),
+    allowList: (req) =>
+      isRateLimitExempt(rateLimitKey(req, httpRateLimit.trustProxy))
+  });
+  log.info("Per-IP HTTP rate limiting enabled", {
+    max: httpRateLimit.max,
+    timeWindowMs: httpRateLimit.timeWindow,
+    trustProxy: httpRateLimit.trustProxy
+  });
+} else {
+  log.info("Per-IP HTTP rate limiting disabled");
+}
 
 // ---------------------------------------------------------------------------
 // Auth
