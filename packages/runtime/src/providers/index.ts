@@ -23,6 +23,7 @@ import { OpenRouterProvider } from "./openrouter-provider.js";
 import { TogetherProvider } from "./together-provider.js";
 import { CerebrasProvider } from "./cerebras-provider.js";
 import { EvolinkProvider } from "./evolink-provider.js";
+import { GMIProvider } from "./gmi-provider.js";
 import { DeepSeekProvider } from "./deepseek-provider.js";
 import { XAIProvider } from "./xai-provider.js";
 import { LMStudioProvider } from "./lmstudio-provider.js";
@@ -57,6 +58,7 @@ export { OpenRouterProvider };
 export { TogetherProvider };
 export { CerebrasProvider };
 export { EvolinkProvider };
+export { GMIProvider };
 export { DeepSeekProvider };
 export { XAIProvider };
 export { LMStudioProvider };
@@ -109,6 +111,11 @@ export {
   unregisterProvider
 } from "./provider-registry.js";
 export type { GetSecret } from "./provider-registry.js";
+// OpenAI OAuth subsystem is intentionally NOT re-exported here. Its callback
+// server, browser launcher and keychain access are Node-only (they statically
+// import node:http / node:child_process), and this barrel is pulled into the
+// browser worker bundle via the runtime root. Import it from the dedicated
+// Node-only subpath instead: `@nodetool-ai/runtime/oauth`.
 import {
   registerProvider as registerBuiltinProvider,
   listRegisteredProviderIds as listBuiltinProviderIds,
@@ -177,6 +184,7 @@ registerBuiltinProvider(PROVIDER_IDS.OPENROUTER, OpenRouterProvider, { OPENROUTE
 registerBuiltinProvider(PROVIDER_IDS.TOGETHER, TogetherProvider, { TOGETHER_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.CEREBRAS, CerebrasProvider, { CEREBRAS_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.EVOLINK, EvolinkProvider, { EVOLINK_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.GMI, GMIProvider, { GMI_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.COHERE, CohereProvider, { COHERE_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.VOYAGE, VoyageProvider, { VOYAGE_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.JINA, JinaProvider, { JINA_API_KEY: "" });

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { initTestDb, OAuthCredential } from "@nodetool-ai/models";
 import {
   generatePkcePair,
@@ -242,6 +242,134 @@ describe("OAuth API: GitHub endpoints", () => {
       tokens: Array<Record<string, unknown>>;
     };
     expect(body.tokens).toEqual([]);
+  });
+});
+
+describe("OAuth API: OpenAI endpoints", () => {
+  beforeEach(() => {
+    initTestDb();
+    oauthStateStore.clear();
+    delete process.env.OPENAI_OAUTH_CLIENT_ID;
+  });
+
+  afterEach(() => {
+    delete process.env.OPENAI_OAUTH_CLIENT_ID;
+  });
+
+  it("GET /api/oauth/openai/start returns error without OPENAI_OAUTH_CLIENT_ID", async () => {
+    const response = await handleOAuthRequest(
+      new Request("http://localhost:7777/api/oauth/openai/start", {
+        headers: { host: "localhost:7777" }
+      }),
+      "/api/oauth/openai/start",
+      getUserId
+    );
+
+    expect(response).not.toBeNull();
+    expect(response!.status).toBe(500);
+    const body = (await jsonBody(response!)) as { detail: string };
+    expect(body.detail).toContain("OPENAI_OAUTH_CLIENT_ID");
+  });
+
+  it("GET /api/oauth/openai/start returns a PKCE auth_url when configured", async () => {
+    process.env.OPENAI_OAUTH_CLIENT_ID = "test-openai-client-id";
+
+    const response = await handleOAuthRequest(
+      new Request("http://localhost:7777/api/oauth/openai/start", {
+        headers: { host: "localhost:7777" }
+      }),
+      "/api/oauth/openai/start",
+      getUserId
+    );
+
+    expect(response).not.toBeNull();
+    expect(response!.status).toBe(200);
+    const body = (await jsonBody(response!)) as { auth_url: string };
+    expect(body.auth_url).toContain("https://auth.openai.com/oauth/authorize");
+    expect(body.auth_url).toContain("client_id=test-openai-client-id");
+    expect(body.auth_url).toContain("code_challenge=");
+    expect(body.auth_url).toContain("code_challenge_method=S256");
+    expect(body.auth_url).toContain("state=");
+    expect(body.auth_url).toContain(
+      "redirect_uri=http%3A%2F%2Flocalhost%3A7777%2Fapi%2Foauth%2Fopenai%2Fcallback"
+    );
+    // Start must persist the CSRF state for the callback to validate against.
+    expect(oauthStateStore.size).toBe(1);
+  });
+
+  it("GET /api/oauth/openai/tokens returns empty list initially", async () => {
+    const response = await handleOAuthRequest(
+      new Request("http://localhost:7777/api/oauth/openai/tokens"),
+      "/api/oauth/openai/tokens",
+      getUserId
+    );
+
+    expect(response!.status).toBe(200);
+    const body = (await jsonBody(response!)) as { tokens: unknown[] };
+    expect(body.tokens).toEqual([]);
+  });
+
+  it("GET /api/oauth/openai/callback with invalid state returns error HTML", async () => {
+    const response = await handleOAuthRequest(
+      new Request(
+        "http://localhost:7777/api/oauth/openai/callback?code=abc&state=invalid"
+      ),
+      "/api/oauth/openai/callback",
+      getUserId
+    );
+
+    expect(response).not.toBeNull();
+    const html = await response!.text();
+    expect(html).toContain("Authentication Failed");
+    expect(html).toContain("expired or is invalid");
+  });
+
+  it("POST /api/oauth/openai/disconnect removes stored credentials", async () => {
+    const now = new Date().toISOString();
+    await OAuthCredential.upsert({
+      user_id: "test-user-1",
+      provider: "openai",
+      account_id: "acc-openai",
+      access_token: "openai-access",
+      refresh_token: "openai-refresh",
+      token_type: "Bearer",
+      received_at: now
+    });
+
+    const before = await handleOAuthRequest(
+      new Request("http://localhost:7777/api/oauth/openai/tokens"),
+      "/api/oauth/openai/tokens",
+      getUserId
+    );
+    expect(((await jsonBody(before!)) as { tokens: unknown[] }).tokens).toHaveLength(1);
+
+    const disconnect = await handleOAuthRequest(
+      new Request("http://localhost:7777/api/oauth/openai/disconnect", {
+        method: "POST"
+      }),
+      "/api/oauth/openai/disconnect",
+      getUserId
+    );
+    expect(disconnect!.status).toBe(200);
+    const body = (await jsonBody(disconnect!)) as { success: boolean; removed: number };
+    expect(body.success).toBe(true);
+    expect(body.removed).toBe(1);
+
+    const after = await handleOAuthRequest(
+      new Request("http://localhost:7777/api/oauth/openai/tokens"),
+      "/api/oauth/openai/tokens",
+      getUserId
+    );
+    expect(((await jsonBody(after!)) as { tokens: unknown[] }).tokens).toEqual([]);
+  });
+
+  it("rejects a GET to the disconnect endpoint", async () => {
+    const response = await handleOAuthRequest(
+      new Request("http://localhost:7777/api/oauth/openai/disconnect"),
+      "/api/oauth/openai/disconnect",
+      getUserId
+    );
+    expect(response!.status).toBe(405);
   });
 });
 
