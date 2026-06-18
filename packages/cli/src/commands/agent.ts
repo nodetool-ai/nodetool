@@ -14,7 +14,11 @@ import { Command } from "commander";
 import * as yaml from "js-yaml";
 import chalk from "chalk";
 
-import { ProcessingContext, type BaseProvider } from "@nodetool-ai/runtime";
+import {
+  FileStorageAdapter,
+  ProcessingContext,
+  type BaseProvider
+} from "@nodetool-ai/runtime";
 import {
   Agent,
   FindModelTool,
@@ -479,6 +483,9 @@ async function runAgentCommand(file: string, opts: RunOptions): Promise<void> {
     jobId: `agent-${Date.now()}`,
     userId: "1",
     workspaceDir,
+    workspaceStorage: workspaceDir
+      ? new FileStorageAdapter(workspaceDir)
+      : null,
     secretResolver: getSecret
   });
   for (const [id, p] of Object.entries(configuredProviders)) {

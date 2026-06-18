@@ -15,12 +15,14 @@
  *   /resume <job_id>                  — resume a paused job
  *   /cancel <job_id>                  — cancel a running job
  *   /status [job_id]                  — get job/all-jobs status
+ *   /new                              — start a new chat session
+ *   /compact [instructions]           — summarize conversation into retained context
  *   /help                             — show available commands
  */
 
 import readline from "node:readline";
 import type { BaseProvider, Message } from "@nodetool-ai/runtime";
-import { ProcessingContext } from "@nodetool-ai/runtime";
+import { FileStorageAdapter, ProcessingContext } from "@nodetool-ai/runtime";
 import { processChat } from "@nodetool-ai/chat";
 import { RunSubtaskTool, RunSearchTool } from "@nodetool-ai/agents";
 import type { Tool } from "@nodetool-ai/agents/tool";
@@ -102,7 +104,8 @@ async function displayJobEvents(
 
 async function handleSlashCommand(
   cmd: SlashCommand,
-  wsClient: WebSocketChatClient
+  wsClient: WebSocketChatClient,
+  startNewSession: () => void
 ): Promise<void> {
   switch (cmd.name) {
     case "run": {
@@ -179,6 +182,11 @@ async function handleSlashCommand(
       return;
     }
 
+    case "new":
+      startNewSession();
+      process.stderr.write("New session started\n");
+      return;
+
     case "help":
       process.stdout.write(
         [
@@ -189,6 +197,8 @@ async function handleSlashCommand(
           "  /resume <job_id>                  — Resume a paused job",
           "  /cancel <job_id>                  — Cancel a running job",
           "  /status [job_id]                  — Get job status",
+          "  /new                              — Start a new chat session",
+          "  /compact [instructions]           — Summarize conversation into retained context",
           "  /help                             — Show this help",
           "",
           "Any other input is sent as a chat message.",
@@ -249,8 +259,13 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
     return [subtaskTool, ...baseTools];
   };
 
-  const threadId = crypto.randomUUID();
-  const chatHistory: Message[] = [];
+  let threadId = crypto.randomUUID();
+  let chatHistory: Message[] = [];
+
+  const startNewSession = () => {
+    threadId = crypto.randomUUID();
+    chatHistory = [];
+  };
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -261,11 +276,14 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
     const trimmed = line.trim();
     if (!trimmed) continue;
 
-    // Slash commands — only supported in WebSocket mode
+    // Slash commands — most are WebSocket-only, but /new is local session state.
     const cmd = parseSlashCommand(trimmed);
     if (cmd) {
-      if (wsClient) {
-        await handleSlashCommand(cmd, wsClient);
+      if (cmd.name === "new") {
+        startNewSession();
+        process.stderr.write("New session started\n");
+      } else if (wsClient) {
+        await handleSlashCommand(cmd, wsClient, startNewSession);
       } else {
         process.stderr.write(
           "Slash commands require --url (WebSocket mode).\n"
@@ -321,6 +339,9 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
           jobId: crypto.randomUUID(),
           userId: "1",
           workspaceDir: opts.workspaceDir,
+          workspaceStorage: opts.workspaceDir
+            ? new FileStorageAdapter(opts.workspaceDir)
+            : null,
           secretResolver: getSecret
         }),
         tools: buildDirectTools(prov, opts.extraTools),
@@ -341,6 +362,9 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
           jobId: crypto.randomUUID(),
           userId: "1",
           workspaceDir: opts.workspaceDir,
+          workspaceStorage: opts.workspaceDir
+            ? new FileStorageAdapter(opts.workspaceDir)
+            : null,
           secretResolver: getSecret
         }),
         tools: buildDirectTools(directProvider, opts.extraTools ?? []),
