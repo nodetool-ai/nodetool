@@ -77,6 +77,12 @@ const PROVIDERS: Provider[] = [
     capabilities: ["Fast Inference", "Chat", "Text Generation"],
   },
   {
+    name: "GMI Cloud",
+    description: "OpenAI-compatible inference for open-weight LLMs like Llama, DeepSeek, and Qwen.",
+    signupUrl: "https://console.gmicloud.ai/",
+    capabilities: ["Fast Inference", "Chat", "Text Generation"],
+  },
+  {
     name: "Gemini",
     description: "Google's multimodal AI models for text, image, audio, and video understanding.",
     signupUrl: "https://ai.google.dev/",

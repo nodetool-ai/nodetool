@@ -244,6 +244,11 @@ sec(
   "Cerebras API key for accessing fast LLM inference on Cerebras hardware. Get yours at https://cloud.cerebras.ai/"
 );
 sec(
+  "GMI_API_KEY",
+  "GMI Cloud",
+  "GMI Cloud API key for accessing open-weight LLMs through GMI's OpenAI-compatible inference API. Get yours at https://console.gmicloud.ai/"
+);
+sec(
   "TOGETHER_API_KEY",
   "Together",
   "Together AI API key for accessing open-source LLMs through Together's inference API. Get yours at https://api.together.ai/settings/api-keys"

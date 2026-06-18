@@ -22,6 +22,7 @@
     "src/python-worker-stderr.ts",
     "src/python-bridge-factory.ts",
     "src/providers/cerebras-provider.ts",
+    "src/providers/gmi-provider.ts",
     "src/providers/groq-provider.ts",
     "src/providers/xai-provider.ts",
     "src/providers/deepseek-provider.ts",

@@ -2,7 +2,7 @@
  * Tests for src/providers.ts
  * Provider factory: availableProviders, DEFAULT_MODELS, KNOWN_PROVIDERS, createProvider, WebSocketProvider.
  */
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -36,6 +36,7 @@ vi.mock("@nodetool-ai/runtime", () => {
     moonshot: "KIMI_API_KEY",
     minimax: "MINIMAX_API_KEY",
     cerebras: "CEREBRAS_API_KEY",
+    gmi: "GMI_API_KEY",
     together: "TOGETHER_API_KEY",
     openrouter: "OPENROUTER_API_KEY",
     huggingface: "HF_TOKEN",
@@ -45,18 +46,37 @@ vi.mock("@nodetool-ai/runtime", () => {
     ollama: null,
     lmstudio: null
   };
-  const REGISTERED = Object.keys(SECRET_KEYS);
+  // Mutable so registerProvider() (used by the lazy Python-bridge path for mlx)
+  // can add ids at runtime, mirroring the real registry.
+  const REGISTERED = new Set(Object.keys(SECRET_KEYS));
+
+  class FakePythonBridge {
+    async connect() {}
+    async listProviders() {
+      return [{ id: "mlx" }];
+    }
+  }
 
   return {
     BaseProvider: FakeProvider,
-    listRegisteredProviderIds: vi.fn(() => REGISTERED),
+    PythonProvider: class FakePythonProvider extends FakeProvider {
+      constructor(opts: { _id: string }) {
+        super(opts._id);
+      }
+    },
+    createPythonBridge: vi.fn(() => new FakePythonBridge()),
+    registerProvider: vi.fn((id: string) => {
+      REGISTERED.add(id);
+      if (!(id in SECRET_KEYS)) SECRET_KEYS[id] = null;
+    }),
+    listRegisteredProviderIds: vi.fn(() => Array.from(REGISTERED)),
     getProviderSecretKey: vi.fn((id: string) => SECRET_KEYS[id] ?? null),
     isProviderConfigured: vi.fn(async (id: string) => {
       const key = SECRET_KEYS[id];
       return key == null ? true : Boolean(process.env[key]);
     }),
     getProvider: vi.fn(async (id: string) => {
-      if (!(id in SECRET_KEYS)) {
+      if (!REGISTERED.has(id)) {
         throw new Error(`No provider registered for "${id}"`);
       }
       // Mirror the real providers that enforce their key in the constructor
@@ -69,6 +89,19 @@ vi.mock("@nodetool-ai/runtime", () => {
     })
   };
 });
+
+// MLX is gated on Apple Silicon. Pin the platform per test so assertions about
+// the local-provider list are deterministic regardless of the host machine.
+function stubPlatform(platform: NodeJS.Platform, arch: string) {
+  Object.defineProperty(process, "platform", { value: platform, configurable: true });
+  Object.defineProperty(process, "arch", { value: arch, configurable: true });
+}
+const REAL_PLATFORM = process.platform;
+const REAL_ARCH = process.arch;
+function restorePlatform() {
+  Object.defineProperty(process, "platform", { value: REAL_PLATFORM, configurable: true });
+  Object.defineProperty(process, "arch", { value: REAL_ARCH, configurable: true });
+}
 
 // ─── availableProviders ───────────────────────────────────────────────────────
 
@@ -99,7 +132,11 @@ describe("availableProviders", () => {
     vi.resetModules();
     vi.unstubAllEnvs();
     for (const key of ALL_HOSTED_KEYS) vi.stubEnv(key, "");
+    // Default to a non-Apple-Silicon host so mlx is excluded; the mlx-specific
+    // assertions below opt into Apple Silicon explicitly.
+    stubPlatform("linux", "x64");
   });
+  afterEach(restorePlatform);
 
   it("returns only local providers when no API keys are set", async () => {
     const { availableProviders } = await import("../src/providers.js");
@@ -155,6 +192,18 @@ describe("availableProviders", () => {
       "ollama"
     ]);
   });
+
+  it("includes mlx on Apple Silicon", async () => {
+    stubPlatform("darwin", "arm64");
+    const { availableProviders } = await import("../src/providers.js");
+    expect(availableProviders()).toContain("mlx");
+  });
+
+  it("excludes mlx on non-Apple-Silicon hosts", async () => {
+    stubPlatform("darwin", "x64");
+    const { availableProviders } = await import("../src/providers.js");
+    expect(availableProviders()).not.toContain("mlx");
+  });
 });
 
 // ─── KNOWN_PROVIDERS ──────────────────────────────────────────────────────────
@@ -175,6 +224,7 @@ describe("KNOWN_PROVIDERS", () => {
       "deepseek",
       "minimax",
       "cerebras",
+      "gmi",
       "together",
       "openrouter",
       "huggingface",
@@ -302,6 +352,12 @@ describe("createProvider", () => {
     const provider = await createProvider("openrouter");
     expect((provider as unknown as { id: string }).id).toBe("openrouter");
   });
+
+  it("registers mlx via the Python bridge on demand", async () => {
+    const { createProvider } = await import("../src/providers.js");
+    const provider = await createProvider("mlx");
+    expect((provider as unknown as { id: string }).id).toBe("mlx");
+  });
 });
 
 // ─── providerSecretKey ─────────────────────────────────────────────────────────
@@ -311,7 +367,9 @@ describe("configuredProviderIds", () => {
     vi.resetModules();
     vi.unstubAllEnvs();
     for (const key of ALL_HOSTED_KEYS) vi.stubEnv(key, "");
+    stubPlatform("linux", "x64");
   });
+  afterEach(restorePlatform);
 
   it("includes only local providers when no keys are set", async () => {
     const { configuredProviderIds } = await import("../src/providers.js");
@@ -320,6 +378,14 @@ describe("configuredProviderIds", () => {
     expect(ids.has("lmstudio")).toBe(true);
     expect(ids.has("openrouter")).toBe(false);
     expect(ids.has("anthropic")).toBe(false);
+    expect(ids.has("mlx")).toBe(false);
+  });
+
+  it("includes mlx on Apple Silicon without connecting the bridge", async () => {
+    stubPlatform("darwin", "arm64");
+    const { configuredProviderIds } = await import("../src/providers.js");
+    const ids = await configuredProviderIds();
+    expect(ids.has("mlx")).toBe(true);
   });
 
   it("includes a hosted provider once its key is set", async () => {
