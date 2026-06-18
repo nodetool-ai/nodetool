@@ -112,9 +112,11 @@ describe("WsAdapter rate limiting", () => {
     expect(adapter.clientState).toBe("disconnected");
 
     // The two allowed frames were queued before the cap was hit; the over-cap
-    // frame was dropped rather than serviced.
+    // frame was dropped, and a disconnect is queued so a later receive() resolves
+    // even though no waiter was pending when the cap was hit.
     expect((await adapter.receive()).type).toBe("websocket.message");
     expect((await adapter.receive()).type).toBe("websocket.message");
+    expect((await adapter.receive()).type).toBe("websocket.disconnect");
   });
 
   it("wakes pending waiters with a disconnect frame on rate-limit close", async () => {
@@ -132,5 +134,35 @@ describe("WsAdapter rate limiting", () => {
     const pending = adapter.receive(); // now waiting
     socket.emit("message", Buffer.from("b"), false); // exceeds cap → disconnect
     expect((await pending).type).toBe("websocket.disconnect");
+  });
+
+  it("queues a disconnect when the socket closes with no waiter pending", async () => {
+    const socket = makeSocket();
+    const adapter = new WsAdapter(socket as never);
+
+    // Socket drops while nothing is awaiting receive() — the next receive()
+    // must still resolve instead of hanging forever.
+    socket.emit("close");
+    expect(adapter.clientState).toBe("disconnected");
+    expect((await adapter.receive()).type).toBe("websocket.disconnect");
+  });
+
+  it("is idempotent across repeated close/error events", async () => {
+    const socket = makeSocket();
+    const adapter = new WsAdapter(socket as never);
+
+    socket.emit("close");
+    socket.emit("error", new Error("boom"));
+    socket.emit("close");
+
+    // Only one disconnect frame is queued despite multiple terminal events.
+    expect((await adapter.receive()).type).toBe("websocket.disconnect");
+    const pending = adapter.receive();
+    let settled = false;
+    void pending.then(() => {
+      settled = true;
+    });
+    await Promise.resolve();
+    expect(settled).toBe(false);
   });
 });
