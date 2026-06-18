@@ -26,6 +26,11 @@ import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import { corsOriginDelegate } from "./cors.js";
 import { zipExtensionDist } from "./lib/extension-dist.js";
 import {
+  resolveTrustLocalhost,
+  isLoopbackAddress,
+  parseTrustedProxies
+} from "./lib/localhost-trust.js";
+import {
   initTelemetry,
   createPythonBridge,
   logPythonWorkerStderr,
@@ -485,13 +490,24 @@ const isProduction = process.env["NODETOOL_ENV"] === "production";
 // In production, bind to all interfaces unless HOST is explicitly set
 const host = process.env["HOST"] ?? (isProduction ? "0.0.0.0" : "127.0.0.1");
 
+// Reverse proxies whose X-Forwarded-For header may be trusted to determine the
+// real client IP. Comma-separated IPs/CIDRs (e.g. "127.0.0.1,10.0.0.0/8").
+// When empty, X-Forwarded-For is NOT trusted: req.ip falls back to the socket
+// peer address so clients cannot spoof their origin via headers.
+const trustedProxies = parseTrustedProxies(
+  process.env["NODETOOL_TRUSTED_PROXIES"]
+);
+
 // ---------------------------------------------------------------------------
 // Fastify app
 // ---------------------------------------------------------------------------
 
 const app: FastifyInstance = (Fastify as any)({
   ...(httpsOptions ? { https: httpsOptions } : {}),
-  trustProxy: true,
+  // Only trust X-Forwarded-For from explicitly configured proxies. With no
+  // proxies configured this is `false`, so req.ip is the unspoofable socket
+  // peer address.
+  trustProxy: trustedProxies.length > 0 ? trustedProxies : false,
   bodyLimit: 100 * 1024 * 1024, // 100 MB
   logger: false,
   // tRPC's httpBatchLink encodes all batched procedure names into a single
@@ -563,6 +579,26 @@ const supabaseProvider = supabaseMode
   : null;
 const localProvider = supabaseProvider ? null : new LocalAuthProvider();
 
+// Auth is enforced whenever a remote identity provider is configured.
+const enforceAuth = supabaseMode;
+
+// Whether loopback connections may bypass auth as user "1". Explicit
+// NODETOOL_TRUST_LOCALHOST wins; otherwise this defaults off when auth is
+// enforced (so reverse-proxied/containerized deployments — where the proxy
+// connects from loopback — don't silently disable auth) and on for local dev.
+const trustLocalhost = resolveTrustLocalhost({
+  envValue: process.env["NODETOOL_TRUST_LOCALHOST"],
+  enforceAuth
+});
+
+if (enforceAuth && trustLocalhost) {
+  log.warn(
+    "NODETOOL_TRUST_LOCALHOST is enabled while auth is enforced: any " +
+      "connection from loopback (including a reverse proxy) bypasses " +
+      "authentication. Unset it unless the proxy is fully trusted."
+  );
+}
+
 app.decorateRequest("userId", null);
 
 app.addHook("onRequest", async (req, reply) => {
@@ -597,14 +633,16 @@ app.addHook("onRequest", async (req, reply) => {
     return;
   }
 
-  // Use req.socket.remoteAddress rather than req.ip because trustProxy: true
-  // makes req.ip reflect x-forwarded-for (spoofable).
-  const remoteAddr = req.socket.remoteAddress ?? "";
-  const isLocalhost = remoteAddr === "127.0.0.1" || remoteAddr === "::1";
+  // req.ip reflects X-Forwarded-For only when the request arrived through a
+  // configured trusted proxy (see NODETOOL_TRUSTED_PROXIES); otherwise it is
+  // the unspoofable socket peer address.
+  const clientIp = req.ip;
 
-  // Localhost connections always bypass auth — Supabase creds may be
-  // configured for storage/remote features without requiring local login.
-  if (isLocalhost) {
+  // Loopback connections bypass auth as user "1" only when explicitly trusted.
+  // Behind a reverse proxy/container/SSH tunnel the proxy itself connects from
+  // loopback, so this is gated by NODETOOL_TRUST_LOCALHOST (off by default when
+  // auth is enforced).
+  if (trustLocalhost && isLoopbackAddress(clientIp)) {
     req.userId = "1";
     return;
   }

@@ -524,9 +524,36 @@ saveAuthConfig(config);
 
 ---
 
+## Localhost Trust and Reverse Proxies
+
+By default the server bypasses authentication for connections from loopback
+(`127.0.0.1`/`::1`) and runs them as user `1`. This is convenient for the
+desktop app and local development, but **dangerous behind a reverse proxy,
+container network, or SSH tunnel**, where the proxy itself connects from
+loopback — a blanket bypass would silently disable auth in exactly the
+deployment that needs it.
+
+To make this safe:
+
+- The loopback bypass is gated by `NODETOOL_TRUST_LOCALHOST`. It defaults
+  **off** whenever auth is enforced (Supabase mode) and **on** otherwise. Set
+  it explicitly (`true`/`false`) to override.
+- `X-Forwarded-For` is trusted only for proxies listed in
+  `NODETOOL_TRUSTED_PROXIES` (comma-separated IPs/CIDRs). When unset, the
+  header is ignored and the unspoofable socket peer address is used to identify
+  the client, so a remote client cannot forge a loopback origin.
+
+```bash
+# Behind an nginx reverse proxy on the same host, enforcing Supabase auth:
+export SUPABASE_URL=... SUPABASE_KEY=...
+export NODETOOL_TRUSTED_PROXIES=127.0.0.1   # trust the local proxy's XFF
+# NODETOOL_TRUST_LOCALHOST stays off — clients must present a valid token.
+```
+
 ## Security Hardening
 
 - Production: set `AUTH_PROVIDER` to `supabase` or `static`, terminate TLS in front of all non-public endpoints, and rotate server/proxy tokens via your secrets manager.
+- Localhost trust: keep `NODETOOL_TRUST_LOCALHOST` off in any reverse-proxied or containerized deployment, and list only your real proxies in `NODETOOL_TRUSTED_PROXIES`.
 - Staging: disable terminal WebSocket (`NODETOOL_ENABLE_TERMINAL_WS` unset), keep asset buckets private or signed, and run workflows in subprocess or Docker isolation.
 - Development: keep `AUTH_PROVIDER=local` to isolated machines only and avoid storing real secrets in `.env.development`.
 

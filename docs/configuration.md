@@ -152,6 +152,8 @@ Security notes:
 | `ENV` | Environment name (`development`, `test`, `production`) | no | Defaults to `development` |
 | `AUTH_PROVIDER` | Auth mode (`none`, `local`, `static`, `supabase`) | no | See [Authentication](authentication.md) |
 | `SERVER_AUTH_TOKEN` | Static token for auth | yes | Generated automatically if unset |
+| `NODETOOL_TRUST_LOCALHOST` | Allow loopback connections to bypass auth as user `1` | no | Defaults **off** when auth is enforced (Supabase), **on** otherwise. Leave off behind a reverse proxy/SSH tunnel where the proxy connects from loopback. |
+| `NODETOOL_TRUSTED_PROXIES` | Reverse proxies whose `X-Forwarded-For` is trusted | no | Comma-separated IPs/CIDRs. When unset, `X-Forwarded-For` is ignored and the socket peer address is used. |
 | `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` | Provider access | yes | Set only the providers you use |
 | `HF_TOKEN` / `FAL_API_KEY` / `REPLICATE_API_TOKEN` | HuggingFace-family providers | yes | Optional per workflow |
 | `OLLAMA_API_URL` | Local Ollama base URL | no | Default `http://127.0.0.1:11434` |
