@@ -8,7 +8,7 @@
 
 import { createHash, randomBytes } from "node:crypto";
 import { OAuthCredential } from "@nodetool-ai/models";
-import { OAuthClient } from "@nodetool-ai/runtime/oauth";
+import { OAuthClient, extractChatGptAccountId } from "@nodetool-ai/runtime/oauth";
 
 // ── Constants ────────────────────────────────────────────────────────
 
@@ -951,7 +951,12 @@ async function handleOpenAICallback(request: Request): Promise<Response> {
     // Best-effort OIDC userinfo for a friendly account label. Failures fall
     // back to an opaque, non-reversible account id derived from the token.
     let username: string | null = null;
-    let accountId = String(Math.abs(hashCode(tokens.accessToken.slice(0, 24))));
+    // Prefer the ChatGPT account id embedded in the Codex access-token JWT — it
+    // is the stable identity the ChatGPT backend addresses accounts by. Falls
+    // back to the OIDC `sub`, then to an opaque token-derived id.
+    const chatgptAccountId = extractChatGptAccountId(tokens.accessToken);
+    let accountId =
+      chatgptAccountId ?? String(Math.abs(hashCode(tokens.accessToken.slice(0, 24))));
     try {
       const infoRes = await fetch(OPENAI_USERINFO_URL, {
         headers: { Authorization: `${tokens.tokenType} ${tokens.accessToken}` }
@@ -960,7 +965,9 @@ async function handleOpenAICallback(request: Request): Promise<Response> {
         const info = (await infoRes.json()) as Record<string, unknown>;
         username =
           (info.email as string) ?? (info.name as string) ?? (info.sub as string) ?? null;
-        if (typeof info.sub === "string" && info.sub.length > 0) {
+        // The ChatGPT account id, when present, is the canonical identity — keep
+        // it and only fall back to the OIDC `sub` otherwise.
+        if (!chatgptAccountId && typeof info.sub === "string" && info.sub.length > 0) {
           accountId = info.sub;
         }
       }
