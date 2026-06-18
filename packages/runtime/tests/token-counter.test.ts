@@ -21,22 +21,31 @@ describe("countTokens", () => {
     );
   });
 
-  it("counts a long, whitespace-broken input without pathological slowdown", () => {
-    // A long but natural string stays close to the exact (single-shot) count;
-    // the chunking only ever adds a small boundary over-count.
-    const text = "The quick brown fox jumps over the lazy dog. ".repeat(200);
+  it("is additive when split at a whitespace boundary", () => {
+    // The splitter breaks *before* whitespace so each piece keeps its leading
+    // space, matching cl100k's own regex-piece boundaries. Splitting the text
+    // before a space (so the second half keeps the leading space) is therefore
+    // exactly additive — the property the implementation relies on.
+    const a = "The quick brown fox";
+    const b = " jumps over the lazy dog.";
+    expect(countTokens(a + b)).toBe(countTokens(a) + countTokens(b));
+  });
+
+  it("counts a long, whitespace-broken input quickly", () => {
+    const text = "The quick brown fox jumps over the lazy dog. ".repeat(500);
     const start = Date.now();
     const count = countTokens(text);
-    expect(Date.now() - start).toBeLessThan(2000);
-    expect(count).toBeGreaterThan(1500);
+    expect(Date.now() - start).toBeLessThan(1000);
+    expect(count).toBeGreaterThan(4000);
   });
 
   it("handles a long unbroken run of identical characters quickly", () => {
-    // The degenerate case that makes js-tiktoken's BPE O(n²) — chunking keeps
-    // it bounded. Guards against regressing back to a multi-second encode.
+    // The degenerate case that makes js-tiktoken's per-piece BPE O(n²) — the
+    // hard-split keeps it bounded. Guards against regressing to a multi-second
+    // (or multi-minute) encode.
     const start = Date.now();
     const count = countTokens("x".repeat(20000));
-    expect(Date.now() - start).toBeLessThan(10000);
+    expect(Date.now() - start).toBeLessThan(2000);
     expect(count).toBeGreaterThan(0);
   });
 });

@@ -22,15 +22,20 @@ function getEncoder(): Tiktoken {
 }
 
 /**
- * js-tiktoken's pure-JS BPE is O(n²) within a single regex "piece", so an
- * unbroken run of identical characters (e.g. a 20k-char blob with no
- * whitespace) can take tens of seconds to encode. Splitting the input into
- * fixed-size chunks caps that worst case: normal text is already broken on
- * whitespace/punctuation by the cl100k regex, so the only cost is an occasional
- * token split at a chunk boundary — a sub-percent over-count that is harmless
- * for the budgeting / packing / eviction use cases this module serves.
+ * js-tiktoken's pure-JS BPE is O(n²) within a single regex "piece", so a long
+ * run of characters with no internal whitespace (a hash, base64 blob, or a
+ * `"x".repeat(20000)` tool result) can take tens of seconds to encode.
+ *
+ * To bound that, the input is split *before* each whitespace run so every piece
+ * keeps its leading whitespace — these boundaries coincide with cl100k's own
+ * regex-piece boundaries, so summing the per-piece counts is exact for normal
+ * text. Whitespace-delimited pieces are then packed up to {@link PACK_LIMIT}
+ * chars to keep the number of `encode` calls small; a single boundary-free run
+ * longer than {@link RUN_LIMIT} is hard-split, capping the worst case (~0.4s
+ * for a 50k-char unbroken run instead of minutes).
  */
-const ENCODE_CHUNK_CHARS = 1024;
+const PACK_LIMIT = 4096;
+const RUN_LIMIT = 128;
 
 /**
  * Count BPE tokens in a string. Returns 0 for empty/nullish input.
@@ -38,12 +43,29 @@ const ENCODE_CHUNK_CHARS = 1024;
 export function countTokens(text: string | null | undefined): number {
   if (!text) return 0;
   const encoder = getEncoder();
-  if (text.length <= ENCODE_CHUNK_CHARS) {
-    return encoder.encode(text).length;
-  }
   let total = 0;
-  for (let i = 0; i < text.length; i += ENCODE_CHUNK_CHARS) {
-    total += encoder.encode(text.slice(i, i + ENCODE_CHUNK_CHARS)).length;
+  let buf = "";
+  for (const segment of text.split(/(?=\s)/)) {
+    if (segment.length > RUN_LIMIT) {
+      // A boundary-free run — hard-split it to bound the per-piece BPE cost.
+      if (buf) {
+        total += encoder.encode(buf).length;
+        buf = "";
+      }
+      for (let i = 0; i < segment.length; i += RUN_LIMIT) {
+        total += encoder.encode(segment.slice(i, i + RUN_LIMIT)).length;
+      }
+      continue;
+    }
+    if (buf.length + segment.length > PACK_LIMIT) {
+      total += encoder.encode(buf).length;
+      buf = segment;
+    } else {
+      buf += segment;
+    }
+  }
+  if (buf) {
+    total += encoder.encode(buf).length;
   }
   return total;
 }
