@@ -37,7 +37,7 @@ const heroStyles = (theme: Theme) =>
       }
     },
     ".hero-composer": {
-      margin: "26px auto 0",
+      margin: "24px auto 0",
       maxWidth: 720
     },
     ".hero-foot": {

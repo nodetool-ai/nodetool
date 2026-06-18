@@ -165,7 +165,7 @@ const styles = (theme: Theme) => css`
   }
   
   .card-body {
-    padding: 20px;
+    padding: 24px;
     min-height: 120px;
     display: flex;
     flex-direction: column;

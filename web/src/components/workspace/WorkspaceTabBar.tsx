@@ -160,7 +160,7 @@ const styles = (theme: Theme) =>
       flexShrink: 0,
       display: "flex",
       alignItems: "center",
-      gap: "5px",
+      gap: "6px",
       padding: "0 14px",
       border: "none",
       borderRight: `1px solid ${theme.vars.palette.divider}`,
@@ -177,7 +177,7 @@ const styles = (theme: Theme) =>
       },
       "& .new-tab-caret": {
         fontSize: "var(--fontSizeSmall)",
-        marginLeft: "1px",
+        marginLeft: "2px",
         opacity: 0.75,
         lineHeight: 1
       },
@@ -200,7 +200,7 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.text.secondary,
         cursor: "pointer",
         fontSize: "var(--fontSizeSmaller)",
-        padding: "3px 12px",
+        padding: "4px 12px",
         "&:first-of-type": { borderRadius: `${BORDER_RADIUS.sm} 0 0 ${BORDER_RADIUS.sm}`, borderRight: "none" },
         "&:last-of-type": { borderRadius: `0 ${BORDER_RADIUS.sm} ${BORDER_RADIUS.sm} 0` },
         "&.on": {

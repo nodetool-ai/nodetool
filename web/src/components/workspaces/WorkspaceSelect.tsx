@@ -35,7 +35,7 @@ const styles = (theme: Theme) =>
         display: "flex",
         alignItems: "center",
         gap: theme.spacing(1.5),
-        padding: "10px 14px"
+        padding: "12px 16px"
       },
       "&.compact .MuiSelect-select": {
         padding: "4px 10px"
@@ -314,7 +314,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
                     opacity: 0.6
                   },
                   "& .MuiMenuItem-root": {
-                    padding: "10px 14px",
+                    padding: "12px 16px",
                     borderRadius: "var(--rounded-sm)",
                     margin: "2px 4px",
                     "&:hover": {

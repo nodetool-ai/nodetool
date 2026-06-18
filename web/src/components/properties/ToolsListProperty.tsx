@@ -185,7 +185,7 @@ const ToolsListProperty = (props: PropertyProps) => {
             onClick={handleToolClick}
             data-tool={entry.id}
             sx={{
-              padding: "1px",
+              padding: "2px",
               marginLeft: "0 !important",
               transition: `color ${MOTION.normal}`,
               color: "c_hl1",
@@ -207,7 +207,7 @@ const ToolsListProperty = (props: PropertyProps) => {
           size="small"
           onClick={openMenu}
           sx={{
-            padding: "1px",
+            padding: "2px",
             marginLeft: "0 !important",
             color: "palette-grey-400",
             "&:hover": {

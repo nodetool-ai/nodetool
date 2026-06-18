@@ -290,7 +290,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             title="Open workflow"
             density="compact"
             sx={{
-              padding: "3px 10px",
+              padding: "4px 12px",
               minWidth: "unset",
               fontSize: "var(--fontSizeSmall)",
               fontWeight: 600,

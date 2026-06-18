@@ -48,7 +48,7 @@ const styles = (theme: Theme) => css`
     color: ${theme.vars.palette.warning.main};
   }
   .content {
-    padding: 10px;
+    padding: 12px;
   }
 
   .close-button {
@@ -64,8 +64,8 @@ const styles = (theme: Theme) => css`
 
   .open-node-menu-button {
     color: ${"var(--palette-primary-main)"};
-    margin-top: 10px;
-    margin-right: 10px;
+    margin-top: 12px;
+    margin-right: 12px;
   }
 `;
 
@@ -130,7 +130,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
             density="compact"
             className="open-node-menu-button"
             onClick={handleOpenNodeMenu}
-            sx={{ marginTop: "10px" }}
+            sx={{ marginTop: "12px" }}
           >
             Search for similar nodes
           </EditorButton>
@@ -143,7 +143,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
           variant="contained"
           density="normal"
           onClick={handleAddNode}
-          sx={{ marginTop: "10px", marginRight: "10px" }}
+          sx={{ marginTop: "12px", marginRight: "12px" }}
         >
           Add Node
         </EditorButton>

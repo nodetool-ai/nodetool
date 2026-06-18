@@ -318,7 +318,7 @@ const SearchResultItem = memo(
                 width: "18px",
                 height: "18px",
                 margin: 0,
-                padding: "1px",
+                padding: "2px",
                 borderRadius: BORDER_RADIUS.sm
               }}
               svgProps={{ width: "14px", height: "14px" }}

@@ -25,8 +25,8 @@ const logoStyles = (
   css({
     display: "flex",
     alignItems: "center",
-    gap: "20px",
-    margin: "1px 0 0 0",
+    gap: "24px",
+    margin: "2px 0 0 0",
     ".nt": {
       fontFamily: theme.fontFamily1,
       fontWeight: 600,
@@ -35,7 +35,7 @@ const logoStyles = (
       height: height,
       backgroundColor: "transparent",
       opacity: opacity,
-      marginTop: "1px",
+      marginTop: "2px",
       transition: "opacity 1s ease-in-out .2s"
     },
     ".nodetool": {

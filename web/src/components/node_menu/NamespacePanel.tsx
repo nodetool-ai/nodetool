@@ -122,7 +122,7 @@ const namespacePanelStyles = (theme: Theme) =>
       lineHeight: 1.2,
       transition: `${MOTION.background}, ${MOTION.opacity}`,
       overflow: "hidden",
-      margin: "1px 0",
+      margin: "2px 0",
       borderRadius: "var(--rounded-md)"
     },
     "& .namespaces .list-item.disabled": {

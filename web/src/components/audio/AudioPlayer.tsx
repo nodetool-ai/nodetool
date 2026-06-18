@@ -79,7 +79,7 @@ const styles = (theme: Theme) =>
     button: {
       width: "25px !important",
       height: "25px !important",
-      padding: "10px",
+      padding: "12px",
       transition: "border",
       backgroundColor: "transparent",
       border: "1px solid rgba(70, 70, 70, 0.3)",

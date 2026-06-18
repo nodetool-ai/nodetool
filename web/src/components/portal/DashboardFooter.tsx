@@ -16,10 +16,10 @@ const styles = (theme: Theme) =>
       gap: 8,
       flexWrap: "wrap",
       minHeight: 46,
-      padding: "10px 40px",
+      padding: "12px 40px",
       fontSize: 12,
       color: theme.vars.palette.text.disabled,
-      [theme.breakpoints.down("sm")]: { padding: "10px 18px" }
+      [theme.breakpoints.down("sm")]: { padding: "12px 16px" }
     },
     ".foot-links button": {
       background: "none",

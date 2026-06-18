@@ -41,7 +41,7 @@ const Row = styled("div")(({ theme }) => ({
     display: "inline-flex",
     alignItems: "center",
     gap: 6,
-    padding: "1px 8px",
+    padding: "2px 8px",
     borderRadius: BORDER_RADIUS.pill,
     fontSize: FONT_SIZE_SANS.caption,
     fontWeight: FONT_WEIGHT.semibold,

@@ -100,7 +100,7 @@ const helpStyles = (theme: Theme) =>
     ".docs-button": {
       display: "flex",
       alignItems: "center",
-      gap: "10px",
+      gap: "12px",
       color: theme.vars.palette.secondary.contrastText,
       backgroundColor: theme.vars.palette.secondary.main,
       textDecoration: "none",
@@ -165,7 +165,7 @@ const helpStyles = (theme: Theme) =>
         marginTop: "2px",
         color: theme.vars.palette.grey[200],
         border: `1px solid ${theme.vars.palette.grey[600]}`,
-        padding: "1px 6px",
+        padding: "2px 6px",
         textAlign: "left",
         lineHeight: "1.3em",
         minWidth: "unset",

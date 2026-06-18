@@ -159,7 +159,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
             fontSize: theme.fontSizeSmaller,
             color: theme.vars.palette.text.disabled,
             lineHeight: 1.3,
-            marginTop: "1px",
+            marginTop: "2px",
             marginBottom: theme.spacing(0.5),
             userSelect: "none",
           })}

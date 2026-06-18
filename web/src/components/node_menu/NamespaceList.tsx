@@ -30,7 +30,7 @@ const namespaceStyles = (theme: Theme) =>
       height: "60vh",
       display: "flex",
       flexDirection: "column",
-      marginTop: "20px",
+      marginTop: "24px",
       overflow: "auto"
     },
     "& h4": {

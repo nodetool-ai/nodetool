@@ -631,7 +631,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".button-close": {
-      marginLeft: "3px",
+      marginLeft: "4px",
       border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.08)`,
       "&:hover": {
         backgroundColor: theme.vars.palette.error.main,

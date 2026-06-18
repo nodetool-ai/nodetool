@@ -217,7 +217,7 @@ const NodeItem = memo(
         () => ({
           backgroundColor: theme.vars.palette.grey[900],
           margin: "0",
-          padding: "1px",
+          padding: "2px",
           borderRadius: "0 0 2px 0",
           boxShadow: `inset 1px 1px 2px ${theme.vars.palette.action.disabledBackground}`,
           width: "20px",

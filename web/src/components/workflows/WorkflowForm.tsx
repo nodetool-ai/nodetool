@@ -99,7 +99,7 @@ const styles = (theme: Theme) =>
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeNormal,
       color: theme.vars.palette.text.primary,
-      padding: "10px 12px"
+      padding: "12px 12px"
     },
 
     ".MuiFormHelperText-root": {

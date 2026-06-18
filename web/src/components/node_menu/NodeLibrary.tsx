@@ -62,7 +62,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
     ".nl-count": {
       display: "inline-flex",
       alignItems: "center",
-      padding: "1px 8px",
+      padding: "2px 8px",
       borderRadius: "var(--rounded-sm)",
       backgroundColor: theme.vars.palette.action.selected,
       color: theme.vars.palette.text.secondary,
@@ -118,7 +118,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
-      padding: "1px 6px",
+      padding: "2px 6px",
       height: "18px",
       borderRadius: "var(--rounded-sm)",
       backgroundColor: theme.vars.palette.action.hover,

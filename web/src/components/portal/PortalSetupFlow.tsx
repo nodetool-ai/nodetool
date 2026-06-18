@@ -62,7 +62,7 @@ const styles = (theme: Theme) =>
       fontWeight: 600,
       textTransform: "uppercase" as const,
       letterSpacing: "0.05em",
-      padding: "1px 6px",
+      padding: "2px 6px",
       borderRadius: 9999,
       background: `color-mix(in srgb, ${theme.palette.primary.main} 18%, transparent)`,
       color: theme.palette.primary.main,

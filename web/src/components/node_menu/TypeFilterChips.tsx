@@ -202,7 +202,7 @@ const typeFilterChipsStyles = (theme: Theme) =>
     },
     ".filter-select": {
       width: "100%",
-      marginBottom: "10px",
+      marginBottom: "12px",
       "& .MuiInputBase-root": {
         fontSize: theme.fontSizeSmaller,
         padding: ".5em .75em"

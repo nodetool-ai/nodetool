@@ -126,7 +126,7 @@ function Sidebar({
         <div
           key={rec.id}
           style={{
-            padding: "10px 16px",
+            padding: "12px 16px",
             borderBottom: "1px solid #141d2e",
             background: i === state.currentIndex ? "#13203b" : "transparent"
           }}

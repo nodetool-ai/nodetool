@@ -109,7 +109,7 @@ export const tableStyles = (theme: Theme) =>
       borderRight: `1px solid ${theme.vars.palette.grey[900]}`
     },
     ".tabulator .tabulator-header .tabulator-col .tabulator-col-content": {
-      padding: "5px 0px 0px 2px"
+      padding: "6px 0px 0px 2px"
     },
 
     // Table action buttons

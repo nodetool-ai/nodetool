@@ -50,13 +50,13 @@ const scrollableContentStyles = (theme: Theme) =>
       padding: "0"
     },
     ".node-item-container": {
-      padding: "1px 6px"
+      padding: "2px 6px"
     },
     ".node": {
       display: "flex",
       alignItems: "center",
       margin: 0,
-      padding: "3px 6px",
+      padding: "4px 6px",
       borderRadius: "var(--rounded-md)",
       cursor: "pointer",
       transition: MOTION.background,

@@ -157,7 +157,7 @@ const cardStyles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       gap: "6px",
-      padding: "10px 12px 12px",
+      padding: "12px 12px 12px",
       flex: 1,
       minHeight: 0
     },
@@ -211,7 +211,7 @@ const cardStyles = (theme: Theme) =>
     ".chip-category": {
       display: "inline-flex",
       alignItems: "center",
-      gap: "5px",
+      gap: "6px",
       textTransform: "none",
       fontWeight: 600
     },
@@ -284,7 +284,7 @@ const WorkflowCard = ({
             backgroundColor: theme.vars.palette.grey[800],
             color: theme.vars.palette.text.primary,
             fontSize: "var(--fontSizeNormal)",
-            padding: "10px 14px",
+            padding: "12px 16px",
             maxWidth: 300,
             borderRadius: BORDER_RADIUS.lg,
             boxShadow: "0 4px 20px rgba(0, 0, 0, 0.3)"

@@ -20,7 +20,7 @@ const stripStyles = (theme: Theme) =>
     padding: "0 1.25em 1em",
     display: "flex",
     flexDirection: "column",
-    gap: "10px",
+    gap: "12px",
     ".strip-header": {
       display: "flex",
       alignItems: "baseline",

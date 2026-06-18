@@ -133,8 +133,8 @@ const styles = (
       gap: "8px",
       backgroundColor: theme.vars.palette.background.default,
       borderRight: `1px solid ${theme.vars.palette.divider}`,
-      paddingTop: "10px",
-      paddingBottom: "10px",
+      paddingTop: "12px",
+      paddingBottom: "12px",
 
       "& .toolbar-divider": {
         height: "1px",

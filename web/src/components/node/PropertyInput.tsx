@@ -115,7 +115,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
       transition: MOTION.opacity,
       zIndex: 2,
       cursor: "pointer",
-      padding: "1px",
+      padding: "2px",
       borderRadius: BORDER_RADIUS.sm,
       color: theme.vars.palette.text.secondary,
       "&:hover": {

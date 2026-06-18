@@ -47,7 +47,7 @@ const styles = (theme: Theme) =>
     ".trace-row": {
       display: "flex",
       alignItems: "flex-start",
-      padding: "3px 12px",
+      padding: "4px 12px",
       gap: 8,
       borderBottom: `1px solid ${theme.vars.palette.divider}22`,
       cursor: "pointer",

@@ -18,7 +18,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: 10,
       flexWrap: "wrap",
-      padding: "10px 0"
+      padding: "12px 0"
     },
     ".checklist-label": {
       fontFamily: theme.fontFamily2,

@@ -417,7 +417,7 @@ const OutputContextMenu: React.FC = () => {
     gap: "0.5em",
     margin: 0,
     minHeight: "28px",
-    padding: "1px 6px",
+    padding: "2px 6px",
     textAlign: "left",
     width: "100%",
     "&:hover": { backgroundColor: theme.vars.palette.action.hover },
@@ -430,7 +430,7 @@ const OutputContextMenu: React.FC = () => {
       flexShrink: 0,
       height: "18px",
       justifyContent: "center",
-      padding: "1px",
+      padding: "2px",
       width: "18px"
     },
     ".icon-bg svg": {

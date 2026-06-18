@@ -60,7 +60,7 @@ const segmentedSx = (theme: Theme): SxProps<Theme> => ({
   backgroundColor: theme.vars.palette.action.hover,
   border: `1px solid ${theme.vars.palette.divider}`,
   borderRadius: "var(--rounded-lg)",
-  padding: "3px",
+  padding: "4px",
   gap: "2px",
   "& .MuiToggleButton-root": {
     border: "none",
@@ -461,7 +461,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
                 gap={0.5}
                 align="center"
                 sx={{
-                  padding: "1px 6px",
+                  padding: "2px 6px",
                   borderRadius: BORDER_RADIUS.md,
                   backgroundColor: `${deltaColor}1F`
                 }}

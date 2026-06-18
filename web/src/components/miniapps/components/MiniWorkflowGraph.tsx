@@ -74,7 +74,7 @@ const graphStyles = css({
     display: "flex",
     alignItems: "center",
     gap: "4px",
-    padding: "3px 8px",
+    padding: "4px 8px",
     background: "var(--palette-background-default)",
     border: "1px solid var(--palette-divider)",
     borderRadius: "var(--rounded-sm)",

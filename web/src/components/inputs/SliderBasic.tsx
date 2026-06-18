@@ -8,7 +8,7 @@ import type { Theme } from "@mui/material/styles";
 const sliderBasicStyles = (theme: Theme) =>
   css({
     "&": {
-      marginTop: "3px",
+      marginTop: "4px",
       padding: "0"
     },
     ".MuiSlider-rail": {
