@@ -11,6 +11,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 import type { BaseProvider, Message } from "@nodetool-ai/runtime";
+import { countTokens } from "@nodetool-ai/runtime";
 import {
   ContextCompactor,
   estimateMessageTokens,
@@ -95,12 +96,12 @@ function makeSimpleHistory(count: number): Message[] {
 }
 
 describe("estimateMessageTokens", () => {
-  it("returns Math.ceil(JSON.stringify(messages).length / 4)", () => {
+  it("returns the js-tiktoken count of the serialized messages", () => {
     const messages: Message[] = [{ role: "user", content: "hello" }];
-    const expected = Math.ceil(JSON.stringify(messages).length / 4);
+    const expected = countTokens(JSON.stringify(messages));
     expect(estimateMessageTokens(messages)).toBe(expected);
     // Sanity: a known small fixture is deterministic.
-    expect(estimateMessageTokens([])).toBe(Math.ceil("[]".length / 4));
+    expect(estimateMessageTokens([])).toBe(countTokens("[]"));
   });
 });
 
