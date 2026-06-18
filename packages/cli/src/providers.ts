@@ -1,157 +1,168 @@
 /**
  * Provider factory for the chat CLI.
- * Creates the right BaseProvider instance based on name + available API keys.
+ *
+ * Construction and credential wiring are delegated to the runtime provider
+ * registry (`@nodetool-ai/runtime`), so every provider registered there is
+ * reachable from the CLI without a hand-maintained switch. The curated lists
+ * below (`KNOWN_PROVIDERS`, `DEFAULT_MODELS`) only drive the interactive
+ * autocomplete and default-model hints for the common chat providers.
  */
 
 import type {
   BaseProvider,
+  GetSecret,
   Message,
   ProviderStreamItem,
   ProviderTool
 } from "@nodetool-ai/runtime";
 import {
-  AnthropicProvider,
-  OpenAIProvider,
-  OllamaProvider,
-  GeminiProvider,
-  MistralProvider,
-  GroqProvider,
-  MoonshotProvider,
-  AkiProvider,
-  LMStudioProvider,
   BaseProvider as BaseProviderClass,
-  OLLAMA_DEFAULT_URL,
-  LMSTUDIO_DEFAULT_URL
+  getProvider,
+  getProviderSecretKey,
+  isProviderConfigured,
+  listRegisteredProviderIds
 } from "@nodetool-ai/runtime";
 import type { Chunk } from "@nodetool-ai/protocol";
 import { getSecret } from "@nodetool-ai/models";
 import type { WebSocketChatClient } from "./websocket-client.js";
 
+/**
+ * Chat-capable providers surfaced in interactive autocomplete (`/provider <tab>`)
+ * and the `--provider` help text. This is a curated subset of the registry —
+ * the well-known LLM chat APIs plus the local servers. Any other registered
+ * provider (evolink, vllm, llama_cpp, …) still works when passed explicitly via
+ * `--provider <id>`; it just isn't listed here.
+ */
 export const KNOWN_PROVIDERS = [
   "anthropic",
   "openai",
-  "ollama",
   "gemini",
-  "mistral",
-  "lmstudio",
+  "xai",
   "groq",
+  "mistral",
+  "deepseek",
   "moonshot",
-  "aki"
+  "minimax",
+  "cerebras",
+  "together",
+  "openrouter",
+  "huggingface",
+  "replicate",
+  "kie",
+  "aki",
+  "ollama",
+  "lmstudio"
 ] as const;
 export type KnownProvider = (typeof KNOWN_PROVIDERS)[number];
 
-/** Default models for each provider. */
+/** Local providers that are always reachable without an API key. */
+const LOCAL_PROVIDERS: readonly string[] = ["lmstudio", "ollama"];
+
+/** Default model shown when switching to a provider in interactive mode. */
 export const DEFAULT_MODELS: Record<string, string> = {
   anthropic: "claude-sonnet-4-6",
   openai: "gpt-5.4",
-  ollama: "qwen-3.5:4b",
   gemini: "gemini-2.5-flash",
-  mistral: "mistral-large-latest",
-  lmstudio: "qwen/qwen3.5-9b",
+  xai: "grok-4",
   groq: "llama-3.3-70b-versatile",
-  moonshot: "kimi-k2.5",
-  aki: "llama3_chat"
+  mistral: "mistral-large-latest",
+  deepseek: "deepseek-chat",
+  moonshot: "kimi-k2.7",
+  minimax: "MiniMax-M2",
+  cerebras: "llama-3.3-70b",
+  together: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+  openrouter: "openai/gpt-5.4-mini",
+  huggingface: "meta-llama/Llama-3.3-70B-Instruct",
+  replicate: "meta/meta-llama-3-70b-instruct",
+  kie: "gpt-5-5",
+  aki: "llama3_chat",
+  ollama: "qwen-3.5:4b",
+  lmstudio: "qwen/qwen3.5-9b"
 };
 
-/** Resolve a secret: encrypted DB first (user "1"), then env var. */
-async function resolveKey(key: string): Promise<string | undefined> {
-  return (await getSecret(key, "1")) ?? undefined;
-}
+/** Resolve a secret from the encrypted DB (user "1"); env fallback handled by the registry. */
+const resolveForUser1: GetSecret = (key) => getSecret(key, "1");
 
+/**
+ * Build a provider instance by id, resolving credentials via the registry
+ * (encrypted DB first, then `process.env`).
+ *
+ * An unknown/unregistered id (e.g. a typo) falls back to the local Ollama
+ * daemon, preserving the CLI's historical default. A *registered* provider that
+ * fails to construct — most commonly a missing API key, which several providers
+ * enforce in their constructor — surfaces its error to the caller rather than
+ * silently masquerading as Ollama (which would list Ollama's models under the
+ * requested provider).
+ */
 export async function createProvider(
   providerId: string
 ): Promise<BaseProvider> {
-  switch (providerId.toLowerCase()) {
-    case "anthropic":
-      return new AnthropicProvider({
-        ANTHROPIC_API_KEY: await resolveKey("ANTHROPIC_API_KEY")
-      });
-    case "openai":
-      return new OpenAIProvider({
-        OPENAI_API_KEY: await resolveKey("OPENAI_API_KEY")
-      });
-    case "ollama":
-      return new OllamaProvider({
-        OLLAMA_API_URL:
-          (await resolveKey("OLLAMA_API_URL")) ?? OLLAMA_DEFAULT_URL
-      });
-    case "gemini":
-      return new GeminiProvider({
-        GEMINI_API_KEY: await resolveKey("GEMINI_API_KEY")
-      });
-    case "lmstudio":
-      return new LMStudioProvider({}, { baseURL: LMSTUDIO_DEFAULT_URL })
-    case "mistral":
-      return new MistralProvider({
-        MISTRAL_API_KEY: await resolveKey("MISTRAL_API_KEY")
-      });
-    case "groq":
-      return new GroqProvider({
-        GROQ_API_KEY: await resolveKey("GROQ_API_KEY")
-      });
-    case "moonshot":
-      return new MoonshotProvider({
-        KIMI_API_KEY: await resolveKey("KIMI_API_KEY")
-      });
-    case "aki":
-      return new AkiProvider({
-        AKI_API_KEY: await resolveKey("AKI_API_KEY")
-      });
-    default:
-      return new OllamaProvider({
-        OLLAMA_API_URL:
-          (await resolveKey("OLLAMA_API_URL")) ?? OLLAMA_DEFAULT_URL
-      });
+  const id = providerId.toLowerCase();
+  if (!listRegisteredProviderIds().includes(id)) {
+    return getProvider("ollama", resolveForUser1);
   }
+  return getProvider(id, resolveForUser1);
+}
+
+/**
+ * The secret/env key a provider needs (e.g. `"OPENROUTER_API_KEY"`), or null
+ * for local/keyless providers. Used to tell the user which key to set when a
+ * provider can't be constructed.
+ */
+export function providerSecretKey(providerId: string): string | null {
+  return getProviderSecretKey(providerId.toLowerCase());
 }
 
 /**
  * Build a map of `{providerId -> BaseProvider}` for use by the agent's
- * `find_model` tool. Includes local providers (always reachable) plus any
- * hosted provider with a resolved API key in env or the secrets DB.
- *
- * Provider instances are constructed eagerly. If a key is wrong/expired,
- * the model-listing call inside `FindModelTool` is wrapped in try/catch
- * and the provider is silently skipped at lookup time.
+ * `find_model` tool and media tool dispatch. Includes every registered
+ * provider whose required credentials resolve (local providers have none, so
+ * they're always present). Construction failures are skipped silently.
  */
 export async function buildConfiguredProviders(): Promise<
   Record<string, BaseProvider>
 > {
   const result: Record<string, BaseProvider> = {};
-  // Local providers — always available.
-  result["ollama"] = await createProvider("ollama");
-  result["lmstudio"] = await createProvider("lmstudio");
-  // Hosted — include only when a key resolves.
-  const hostedChecks: Array<[string, string]> = [
-    ["anthropic", "ANTHROPIC_API_KEY"],
-    ["openai", "OPENAI_API_KEY"],
-    ["gemini", "GEMINI_API_KEY"],
-    ["mistral", "MISTRAL_API_KEY"],
-    ["groq", "GROQ_API_KEY"],
-    ["moonshot", "KIMI_API_KEY"],
-    ["aki", "AKI_API_KEY"]
-  ];
-  for (const [id, key] of hostedChecks) {
-    const value = await resolveKey(key);
-    if (value) {
-      result[id] = await createProvider(id);
+  for (const id of listRegisteredProviderIds()) {
+    try {
+      if (await isProviderConfigured(id, resolveForUser1)) {
+        result[id] = await getProvider(id, resolveForUser1);
+      }
+    } catch {
+      // Provider failed to construct (bad/missing config) — skip it.
     }
   }
   return result;
 }
 
-/** Check which providers have API keys configured (env only — fast sync check). */
+/**
+ * The set of chat providers currently usable: local/keyless providers plus any
+ * hosted provider whose key resolves from the encrypted DB or env. Async
+ * because it consults the secret store; the interactive picker uses this to
+ * disable providers that can't be selected. Mirrors `availableProviders()` but
+ * also picks up DB-stored keys (not just env).
+ */
+export async function configuredProviderIds(): Promise<Set<string>> {
+  const flags = await Promise.all(
+    KNOWN_PROVIDERS.map((id) => isProviderConfigured(id, resolveForUser1))
+  );
+  return new Set(KNOWN_PROVIDERS.filter((_, i) => flags[i]));
+}
+
+/**
+ * Which chat providers have credentials configured (env-only — a fast sync
+ * check used by autocomplete). Local providers are always listed, with
+ * `ollama` kept last for stable display ordering.
+ */
 export function availableProviders(): string[] {
   const available: string[] = [];
-  if (process.env["ANTHROPIC_API_KEY"]) available.push("anthropic");
-  if (process.env["OPENAI_API_KEY"]) available.push("openai");
-  if (process.env["GEMINI_API_KEY"]) available.push("gemini");
-  if (process.env["MISTRAL_API_KEY"]) available.push("mistral");
-  if (process.env["GROQ_API_KEY"]) available.push("groq");
-  if (process.env["KIMI_API_KEY"]) available.push("moonshot");
-  if (process.env["AKI_API_KEY"]) available.push("aki");
-  available.push("lmstudio"); // always available (local)
-  available.push("ollama"); // always available (local)
+  for (const id of KNOWN_PROVIDERS) {
+    if (LOCAL_PROVIDERS.includes(id)) continue;
+    const key = getProviderSecretKey(id);
+    if (key && process.env[key]) available.push(id);
+  }
+  available.push("lmstudio");
+  available.push("ollama");
   return available;
 }
 

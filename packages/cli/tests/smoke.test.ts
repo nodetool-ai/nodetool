@@ -18,13 +18,30 @@ describe("cli settings and provider helpers", () => {
 
   it("always includes ollama and any configured env-backed providers", async () => {
     vi.resetModules();
+    // Clear every hosted-provider key so the host env can't leak one into the
+    // assertion, then enable just anthropic + gemini.
+    for (const key of [
+      "ANTHROPIC_API_KEY",
+      "OPENAI_API_KEY",
+      "GEMINI_API_KEY",
+      "XAI_API_KEY",
+      "GROQ_API_KEY",
+      "MISTRAL_API_KEY",
+      "DEEPSEEK_API_KEY",
+      "KIMI_API_KEY",
+      "MINIMAX_API_KEY",
+      "CEREBRAS_API_KEY",
+      "TOGETHER_API_KEY",
+      "OPENROUTER_API_KEY",
+      "HF_TOKEN",
+      "REPLICATE_API_TOKEN",
+      "KIE_API_KEY",
+      "AKI_API_KEY"
+    ]) {
+      vi.stubEnv(key, "");
+    }
     vi.stubEnv("ANTHROPIC_API_KEY", "test-anthropic");
-    vi.stubEnv("OPENAI_API_KEY", "");
     vi.stubEnv("GEMINI_API_KEY", "test-gemini");
-    vi.stubEnv("MISTRAL_API_KEY", "");
-    vi.stubEnv("GROQ_API_KEY", "");
-    vi.stubEnv("KIMI_API_KEY", "");
-    vi.stubEnv("AKI_API_KEY", "");
 
     const { availableProviders } = await import("../src/providers.js");
 
