@@ -144,8 +144,10 @@ export class StreamRunnerBase {
       options?.dockerWorkdir === undefined
         ? "/workspace"
         : options.dockerWorkdir;
-    this.capDrop = options?.capDrop ?? ["ALL"];
-    this.securityOpt = options?.securityOpt ?? ["no-new-privileges"];
+    this.capDrop = options?.capDrop ? [...options.capDrop] : ["ALL"];
+    this.securityOpt = options?.securityOpt
+      ? [...options.securityOpt]
+      : ["no-new-privileges"];
     this.readonlyRootfs = options?.readonlyRootfs ?? false;
     this.readonlyWorkspace = options?.readonlyWorkspace ?? false;
   }
@@ -452,8 +454,10 @@ export class StreamRunnerBase {
       CapDrop: this.capDrop.length > 0 ? this.capDrop : undefined,
       SecurityOpt: this.securityOpt.length > 0 ? this.securityOpt : undefined,
       ReadonlyRootfs: this.readonlyRootfs || undefined,
-      // A read-only rootfs would break interpreters that need scratch space,
-      // so give them a small in-memory /tmp that never touches the host.
+      // A read-only rootfs would break interpreters that need scratch space, so
+      // give them a small in-memory /tmp that never touches the host. It is
+      // mounted noexec/nosuid: scratch data only, code cannot be executed from
+      // it — keep those flags when changing this.
       Tmpfs: this.readonlyRootfs ? { "/tmp": "rw,noexec,nosuid,size=64m" } : undefined
     };
 

@@ -160,6 +160,16 @@ describe("StreamRunnerBase constructor defaults", () => {
     expect(runner.readonlyWorkspace).toBe(true);
   });
 
+  it("clones capDrop/securityOpt so later option mutation can't change settings", () => {
+    const capDrop = ["NET_RAW"];
+    const securityOpt = ["no-new-privileges"];
+    const runner = new EchoRunner({ capDrop, securityOpt });
+    capDrop.push("ALL");
+    securityOpt.push("seccomp=unconfined");
+    expect(runner.capDrop).toEqual(["NET_RAW"]);
+    expect(runner.securityOpt).toEqual(["no-new-privileges"]);
+  });
+
   it("defaults workspaceMountPath to /workspace", () => {
     const runner = new EchoRunner();
     expect(runner.workspaceMountPath).toBe("/workspace");

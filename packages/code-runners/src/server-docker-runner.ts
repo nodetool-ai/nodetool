@@ -41,6 +41,16 @@ export interface ServerDockerRunnerOptions {
   readyTimeoutSeconds?: number;
   /** Path suffix appended to the endpoint URL. */
   endpointPath?: string;
+  /** IPC namespace mode. Defaults to "private" (see StreamRunnerOptions). */
+  ipcMode?: StreamRunnerOptions["ipcMode"];
+  /** Linux capabilities to drop. Defaults to ["ALL"]. */
+  capDrop?: StreamRunnerOptions["capDrop"];
+  /** Docker --security-opt flags. Defaults to ["no-new-privileges"]. */
+  securityOpt?: StreamRunnerOptions["securityOpt"];
+  /** Mount the container root filesystem read-only. Default false. */
+  readonlyRootfs?: StreamRunnerOptions["readonlyRootfs"];
+  /** Mount the workspace bind read-only. Default false. */
+  readonlyWorkspace?: StreamRunnerOptions["readonlyWorkspace"];
 }
 
 // ---------------------------------------------------------------------------
@@ -134,7 +144,12 @@ export class ServerDockerRunner extends StreamRunnerBase {
       memLimit: options.memLimit ?? "256m",
       nanoCpus: options.nanoCpus ?? 1_000_000_000,
       networkDisabled: false,
-      mode: "docker"
+      mode: "docker",
+      ipcMode: options.ipcMode,
+      capDrop: options.capDrop,
+      securityOpt: options.securityOpt,
+      readonlyRootfs: options.readonlyRootfs,
+      readonlyWorkspace: options.readonlyWorkspace
     };
     super(baseOptions);
 
