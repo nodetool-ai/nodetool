@@ -10,6 +10,7 @@ import type {
   StorageStat
 } from "./storage-adapter.js";
 import { isWithinRoot, normalizeStorageKey } from "./storage-keys.js";
+import { assertUploadWithinLimit } from "./storage-limits.js";
 
 /**
  * File-system storage adapter rooted to a single base directory.
@@ -73,6 +74,7 @@ export class FileStorageAdapter implements StorageAdapter {
     data: Uint8Array,
     _contentType?: string
   ): Promise<string> {
+    assertUploadWithinLimit(key, data.byteLength);
     const r = await this.rootPromise;
     const rel = normalizeStorageKey(key);
     await r.write(rel, Buffer.from(data), { mkdir: true, overwrite: true });

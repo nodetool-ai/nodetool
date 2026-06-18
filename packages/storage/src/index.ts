@@ -1,3 +1,9 @@
+// Upload size guard (shared by all backends)
+export {
+  getMaxUploadBytes,
+  assertUploadWithinLimit
+} from "./storage-limits.js";
+
 // Low-level key-based storage (bytes in, bytes out)
 export type { AbstractStorage } from "./abstract-storage.js";
 export { MemoryStorage } from "./memory-storage.js";
