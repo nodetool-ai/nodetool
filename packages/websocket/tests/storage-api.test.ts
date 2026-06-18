@@ -8,6 +8,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
 import { createStorageHandler } from "../src/storage-api.js";
+import { resetCorsConfig } from "../src/cors.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -314,5 +315,57 @@ describe("unknown routes", () => {
     const handler = makeHandler();
     const res = await handler(makeRequest("/api/other/thing"));
     expect(res.status).toBe(404);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cross-origin headers
+// ---------------------------------------------------------------------------
+
+describe("CORS headers", () => {
+  afterEach(() => {
+    delete process.env.NODETOOL_ALLOWED_ORIGINS;
+    resetCorsConfig();
+  });
+
+  it("always sets Cross-Origin-Resource-Policy so assets embed under COEP", async () => {
+    const handler = makeHandler();
+    await fs.writeFile(path.join(tmpDir, "asset.png"), "x");
+    const res = await handler(makeRequest("/api/storage/asset.png"));
+    expect(res.headers.get("Cross-Origin-Resource-Policy")).toBe(
+      "cross-origin"
+    );
+    expect(res.headers.get("Vary")).toBe("Origin");
+  });
+
+  it("reflects an allow-listed origin instead of returning *", async () => {
+    const handler = makeHandler();
+    await fs.writeFile(path.join(tmpDir, "asset.png"), "x");
+    const res = await handler(
+      makeRequest("/api/storage/asset.png", "GET", {
+        Origin: "http://localhost:3000"
+      })
+    );
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe(
+      "http://localhost:3000"
+    );
+    expect(res.headers.get("Timing-Allow-Origin")).toBe(
+      "http://localhost:3000"
+    );
+  });
+
+  it("omits Access-Control-Allow-Origin for a disallowed origin", async () => {
+    const handler = makeHandler();
+    await fs.writeFile(path.join(tmpDir, "asset.png"), "x");
+    const res = await handler(
+      makeRequest("/api/storage/asset.png", "GET", {
+        Origin: "https://evil.example.com"
+      })
+    );
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBeNull();
+    // CORP still present — `<img>`/`<video>` embedding does not need ACAO.
+    expect(res.headers.get("Cross-Origin-Resource-Policy")).toBe(
+      "cross-origin"
+    );
   });
 });
