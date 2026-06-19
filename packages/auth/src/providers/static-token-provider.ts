@@ -61,18 +61,21 @@ export class StaticTokenProvider extends AuthProvider {
   }
 
   async verifyToken(token: string): Promise<AuthResult> {
-    if (typeof token !== "string" || token.length < MIN_TOKEN_LENGTH) {
+    if (typeof token !== "string") {
       return { ok: false, error: "Invalid token" };
     }
 
-    const provided = Buffer.from(token);
+    const provided = Buffer.from(token, "utf-8");
+    if (provided.length < MIN_TOKEN_LENGTH) {
+      return { ok: false, error: "Invalid token" };
+    }
 
     // Compare against every configured token using a constant-time comparison
     // so verification time does not leak which (if any) token matched. We do
     // not short-circuit on the first match for the same reason.
     let matchedUserId: string | undefined;
     for (const [candidate, userId] of this.tokens) {
-      const expected = Buffer.from(candidate);
+      const expected = Buffer.from(candidate, "utf-8");
       if (
         provided.length === expected.length &&
         timingSafeEqual(provided, expected)
