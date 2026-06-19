@@ -89,6 +89,17 @@ const meta = (type: string): TypeMetadata => ({
   type_args: []
 });
 
+function isComfyPromptNode(value: unknown): value is ComfyPromptNode {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "class_type" in value &&
+    typeof value.class_type === "string" &&
+    "inputs" in value &&
+    typeof value.inputs === "object"
+  );
+}
+
 /** A ComfyUI input value `[sourceId, slot]` denotes a connection, not a literal. */
 export function isComfyConnection(value: unknown): boolean {
   return (
@@ -170,12 +181,7 @@ export function normalizeComfyPrompt(parsed: unknown): ComfyPrompt {
     throw new Error("Workflow is empty.");
   }
   for (const [id, node] of entries) {
-    if (
-      !node ||
-      typeof node !== "object" ||
-      typeof (node as ComfyPromptNode).class_type !== "string" ||
-      typeof (node as ComfyPromptNode).inputs !== "object"
-    ) {
+    if (!isComfyPromptNode(node)) {
       throw new Error(
         `Node "${id}" is not in API format (expected { class_type, inputs }).`
       );

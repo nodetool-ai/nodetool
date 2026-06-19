@@ -18,7 +18,7 @@ export const extractTextValue = (value: unknown): string => {
     return value;
   }
   if (value && typeof value === "object") {
-    const v = value as Record<string, unknown>;
+    const v = value as { value?: unknown; text?: unknown; data?: unknown; content?: unknown; output?: unknown };
     if (typeof v.value === "string") return v.value;
     if (typeof v.text === "string") return v.text;
     if (typeof v.data === "string") return v.data;

@@ -278,8 +278,8 @@ export class AgentSocketClient extends EventEmitter<AgentSocketEvents> {
       const envelope = {
         command,
         request_id: requestId,
-        ...(payload as Record<string, unknown>)
-      } as unknown as AgentClientMessage;
+        ...(payload as object),
+      } as AgentClientMessage;
 
       try {
         this.socket!.send(JSON.stringify(envelope));
