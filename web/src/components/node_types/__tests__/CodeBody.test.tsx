@@ -47,14 +47,6 @@ jest.mock("../../../contexts/NodeContext", () => ({
     })
 }));
 
-jest.mock("../../../hooks/nodes/useDynamicProperty", () => ({
-  useDynamicProperty: () => ({
-    handleAddProperty: jest.fn(),
-    handleDeleteProperty: jest.fn(),
-    handleUpdatePropertyName: jest.fn()
-  })
-}));
-
 // Stub Monaco with a textarea so we can drive onChange without the real editor.
 jest.mock("../../../hooks/editor/useMonacoEditor", () => ({
   useMonacoEditor: () => ({
@@ -103,11 +95,6 @@ jest.mock("../../node/NodeOutputs", () => ({
 jest.mock("../../node/NodeProgress", () => ({
   __esModule: true,
   default: () => <div data-testid="node-progress" />
-}));
-
-jest.mock("../../node/NodePropertyForm", () => ({
-  __esModule: true,
-  default: () => <div data-testid="node-property-form" />
 }));
 
 jest.mock("../../node/ExposedLabeledInputs", () => ({
@@ -207,9 +194,29 @@ describe("CodeBody", () => {
     );
   });
 
-  it("renders the dynamic property form for dynamic code nodes", () => {
+  it("shows an IO hint instead of add input/output buttons for dynamic code nodes", () => {
     renderWithTheme(<CodeBody {...makeProps()} />);
-    expect(screen.getByTestId("node-property-form")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /add input/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /add output/i })
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/connect a value to add an input/i)).toBeInTheDocument();
+  });
+
+  it("explains code-derived inputs/outputs for the universal Code node", () => {
+    renderWithTheme(
+      <CodeBody
+        {...makeProps({
+          nodeType: "nodetool.code.Code",
+          data: { properties: { code: "" } }
+        })}
+      />
+    );
+    expect(
+      screen.getByText(/reference an undefined variable to add an input/i)
+    ).toBeInTheDocument();
   });
 
   it("derives dynamic inputs/outputs from code for the universal Code node", () => {
