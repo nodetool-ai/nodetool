@@ -30,8 +30,8 @@ const profileCreateInput = z.object({
   image: z.string().min(1),
   spec: z.record(z.string(), z.unknown()).optional(),
   token_policy: z.enum(["generate", "fixed"]),
-  idle_timeout_minutes: z.number().int().nullable().optional(),
-  max_lifetime_minutes: z.number().int().nullable().optional()
+  idle_timeout_minutes: z.number().int().positive().nullable().optional(),
+  max_lifetime_minutes: z.number().int().positive().nullable().optional()
 });
 
 const idInput = z.object({ id: z.string().min(1) });

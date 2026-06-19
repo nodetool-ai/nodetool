@@ -152,3 +152,64 @@ describe("models.huggingfaceDelete scope=worker", () => {
     expect(deleteCachedModel).not.toHaveBeenCalled();
   });
 });
+
+describe("models.huggingfaceByType scope=worker", () => {
+  it("filters the worker's cached models by type via the bridge", async () => {
+    const listCachedModels = vi.fn().mockResolvedValue([
+      { id: "org/a", name: "org/a", repo_id: "org/a", type: "hf.text_to_image" },
+      { id: "org/b", name: "org/b", repo_id: "org/b", type: "hf.text_generation" }
+    ]);
+    const ctx = makeCtx({
+      pythonBridge: {
+        listCachedModels,
+        supportsModelManagement: () => true
+      } as never,
+      workerManager: {
+        getActiveWorker: vi.fn().mockResolvedValue(ATTACHED)
+      } as never
+    });
+    const caller = createCaller(ctx);
+    const result = await caller.models.huggingfaceByType({
+      model_type: "hf.text_to_image",
+      scope: "worker"
+    });
+    expect(listCachedModels).toHaveBeenCalledOnce();
+    expect(result.every((m) => m.type === "hf.text_to_image")).toBe(true);
+    expect(result.map((m) => m.repo_id)).toContain("org/a");
+  });
+
+  it("throws CONFLICT when no worker is attached", async () => {
+    const ctx = makeCtx({
+      pythonBridge: {
+        listCachedModels: vi.fn(),
+        supportsModelManagement: () => true
+      } as never,
+      workerManager: {
+        getActiveWorker: vi.fn().mockResolvedValue(null)
+      } as never
+    });
+    const caller = createCaller(ctx);
+    await expect(
+      caller.models.huggingfaceByType({
+        model_type: "hf.text_to_image",
+        scope: "worker"
+      })
+    ).rejects.toThrow(/No worker attached/i);
+  });
+});
+
+describe("worker scope when the server is not wired", () => {
+  it("huggingfaceList scope=worker fails INTERNAL_SERVER_ERROR (not CONFLICT)", async () => {
+    // No workerManager in context = server wiring problem, not a runtime state.
+    const ctx = makeCtx({
+      pythonBridge: {
+        listCachedModels: vi.fn(),
+        supportsModelManagement: () => true
+      } as never
+    });
+    const caller = createCaller(ctx);
+    await expect(
+      caller.models.huggingfaceList({ scope: "worker" })
+    ).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR" });
+  });
+});

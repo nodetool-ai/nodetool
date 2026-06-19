@@ -210,7 +210,14 @@ const modelScope = z.enum(["local", "worker"]).default("local");
 async function requireWorkerBridge(
   ctx: Pick<Context, "pythonBridge" | "workerManager">
 ): Promise<PythonBridge> {
-  const active = await ctx.workerManager?.getActiveWorker();
+  if (!ctx.workerManager) {
+    // Server wiring problem, not a runtime state the client can act on.
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Worker support is not configured on this server"
+    });
+  }
+  const active = await ctx.workerManager.getActiveWorker();
   if (!active) {
     throw new TRPCError({ code: "CONFLICT", message: "No worker attached" });
   }

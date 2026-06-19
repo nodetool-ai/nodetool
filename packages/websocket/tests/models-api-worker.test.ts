@@ -92,6 +92,17 @@ describe("GET /api/models/huggingface scope=worker", () => {
     expect(body.detail).toMatch(/No worker attached/i);
   });
 
+  it("returns 500 (not 409) when worker support is not configured", async () => {
+    // No workerManager in deps = server wiring problem, distinct from the
+    // runtime "no worker attached" 409.
+    const deps: ModelsApiDeps = { pythonBridge: fakeBridge() };
+
+    const res = await handleModelsApiRequest(listRequest("worker"), deps);
+    expect(res!.status).toBe(500);
+    const body = (await res!.json()) as { detail: string };
+    expect(body.detail).toMatch(/not configured/i);
+  });
+
   it("returns 409 when the attached worker image is too old", async () => {
     const deps: ModelsApiDeps = {
       pythonBridge: fakeBridge({ supportsModelManagement: () => false }),
