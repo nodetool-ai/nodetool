@@ -3,6 +3,9 @@
   "version": "0.7.0-rc.23",
   "description": "NodeTool document nodes \u2014 DOCX, EPUB, PPTX, PDF, generic document I/O",
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0 <23.0.0"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
