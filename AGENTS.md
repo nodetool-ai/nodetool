@@ -116,6 +116,7 @@ Before submitting a PR, review for:
 - **Decorator packages load from `dist/`**: `base-nodes`, `node-sdk`, `fal-nodes`, `replicate-nodes`, `elevenlabs-nodes`, `minimax-nodes` use decorators. After changing these, run `npm run build:packages` before running `npm run dev`.
 - **Package build order matters**: Always use `npm run build:packages` (builds in dependency order). Don't build individual packages with unbuilt dependencies.
 - **Mobile typecheck needs protocol**: Run `cd packages/protocol && npm run build` before `npm run typecheck:mobile`.
+- **`mobile/` is not a root workspace**: it keeps its own Expo/React Native deps, so its scripts use `npm --prefix mobile …` (not `npm --workspace=mobile …`, which would fail).
 - **WebSocket uses MsgPack, not JSON**: Use existing serialization helpers. Don't serialize WebSocket messages as JSON.
 - **Don't create WebSocket instances**: Use `GlobalWebSocketManager` singleton in the frontend.
 - **ES Modules everywhere**: All packages use `"type": "module"`. Compiled imports need `.js` extensions.
