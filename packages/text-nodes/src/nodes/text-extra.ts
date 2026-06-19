@@ -2,7 +2,11 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { Platform } from "@nodetool-ai/protocol";
 import type { OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { tagAsServer, renderTemplate } from "@nodetool-ai/nodes-utils";
+import {
+  tagAsServer,
+  renderTemplate,
+  base64ToBytes
+} from "@nodetool-ai/nodes-utils";
 import {
   loadNodeFsPromises,
   loadNodePath
@@ -1779,7 +1783,6 @@ export class HtmlToTextNode extends BaseNode {
 export class AutomaticSpeechRecognitionNode extends BaseNode {
   static readonly nodeType = "nodetool.text.AutomaticSpeechRecognition";
   static readonly body = "content_card";
-  static readonly platforms = NODE_ONLY;
   static readonly title = "Automatic Speech Recognition";
   static readonly description =
     "Transcribe audio to text using automatic speech recognition models.\n    audio, speech, recognition, transcription, ASR, whisper";
@@ -1846,9 +1849,9 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const { providerId, modelId } = modelConfig(this.serialize());
     const audio = (this.audio ?? {}) as Record<string, unknown>;
-    let bytes = new Uint8Array();
+    let bytes: Uint8Array = new Uint8Array();
     if (typeof audio.data === "string") {
-      bytes = Uint8Array.from(Buffer.from(audio.data, "base64"));
+      bytes = base64ToBytes(audio.data);
     } else if (audio.data instanceof Uint8Array) {
       bytes = new Uint8Array(audio.data);
     } else if (typeof audio.uri === "string" && audio.uri) {
