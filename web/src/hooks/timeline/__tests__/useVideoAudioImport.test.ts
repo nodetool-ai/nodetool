@@ -98,4 +98,33 @@ describe("importVideoWithAudio", () => {
       store.getState().clips.find((c) => c.mediaType === "audio")?.status
     ).toBe("failed");
   });
+
+  it("passes an abort signal to restFetch so the request can time out", async () => {
+    restFetchMock.mockReturnValue(new Promise(() => {})); // never resolves
+    const store = createTimelineStore();
+    store.getState().addTrack("video", "Video 1");
+    const videoTrackId = store.getState().tracks[0].id;
+
+    void importVideoWithAudio(store, makeVideoAsset(), videoTrackId, 0);
+    await Promise.resolve();
+
+    expect(restFetchMock).toHaveBeenCalledTimes(1);
+    const init = restFetchMock.mock.calls[0][1] as RequestInit;
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("marks the audio clip failed when the request is aborted/times out", async () => {
+    restFetchMock.mockRejectedValue(
+      Object.assign(new Error("aborted"), { name: "AbortError" })
+    );
+    const store = createTimelineStore();
+    store.getState().addTrack("video", "Video 1");
+    const videoTrackId = store.getState().tracks[0].id;
+
+    await importVideoWithAudio(store, makeVideoAsset(), videoTrackId, 0);
+
+    expect(
+      store.getState().clips.find((c) => c.mediaType === "audio")?.status
+    ).toBe("failed");
+  });
 });

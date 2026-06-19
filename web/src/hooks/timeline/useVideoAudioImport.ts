@@ -13,6 +13,9 @@ interface ExtractAudioResponse {
   asset?: { id: string; duration?: number | null };
 }
 
+/** Abort the extract-audio request if the server hasn't responded in time. */
+const EXTRACT_AUDIO_TIMEOUT_MS = 60_000;
+
 /**
  * Add a video clip on `videoTrackId` and, if the video has an audio track,
  * a linked audio clip on an audio track at the same position. The audio clip
@@ -52,10 +55,20 @@ export async function importVideoWithAudio(
 
   store.getState().addClips([videoClip, audioClip]);
 
+  // Abort the request if it hangs so the audio clip doesn't sit in
+  // "generating" forever; the abort surfaces as a rejection in the catch.
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    EXTRACT_AUDIO_TIMEOUT_MS
+  );
+
   try {
     const res = await restFetch(`/api/assets/${asset.id}/extract-audio`, {
-      method: "POST"
+      method: "POST",
+      signal: controller.signal
     });
+    clearTimeout(timeout);
     if (!res.ok) {
       store.getState().patchClip(audioClip.id, { status: "failed" });
       return;
@@ -86,6 +99,7 @@ export async function importVideoWithAudio(
       status: "generated"
     });
   } catch {
+    clearTimeout(timeout);
     store.getState().patchClip(audioClip.id, { status: "failed" });
   }
 }

@@ -390,6 +390,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   const trimClipEnd = useTimelineStore((s) => s.trimClipEnd);
   const splitClipAtTime = useTimelineStore((s) => s.splitClipAtTime);
   const unlinkClip = useTimelineStore((s) => s.unlinkClip);
+  const deleteSelected = useTimelineStore((s) => s.deleteSelected);
   const activeTool = useTimelineUIStore((s) => s.activeTool);
 
   // Source-duration cap for trim-end. Only enforced for audio clips —
@@ -669,7 +670,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     ]
   );
 
-  // ── Context menu (Unlink) ───────────────────────────────────────────────
+  // ── Context menu (Delete / Unlink) ──────────────────────────────────────
 
   const [contextMenuPos, setContextMenuPos] = useState<{
     x: number;
@@ -678,14 +679,14 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
 
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {
-      if (!clip?.linkId) {
-        return; // let the browser/native menu through for unlinked clips
+      if (!clip) {
+        return;
       }
       e.preventDefault();
       e.stopPropagation();
       setContextMenuPos({ x: e.clientX, y: e.clientY });
     },
-    [clip?.linkId]
+    [clip]
   );
 
   // ── Click (selection) ───────────────────────────────────────────────────
@@ -863,6 +864,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       contextMenuPos={contextMenuPos}
       onCloseContextMenu={() => setContextMenuPos(null)}
       onUnlink={() => unlinkClip(clip.id)}
+      onDelete={() => deleteSelected(new Set([clip.id]))}
     />
   );
 });
@@ -887,6 +889,7 @@ interface ClipBodyProps {
   contextMenuPos: { x: number; y: number } | null;
   onCloseContextMenu: () => void;
   onUnlink: () => void;
+  onDelete: () => void;
 }
 
 const ClipBody: React.FC<ClipBodyProps> = ({
@@ -908,7 +911,8 @@ const ClipBody: React.FC<ClipBodyProps> = ({
   cutMode,
   contextMenuPos,
   onCloseContextMenu,
-  onUnlink
+  onUnlink,
+  onDelete
 }) => {
   const theme = useTheme();
   const clipId = clip.id;
@@ -1125,6 +1129,7 @@ const ClipBody: React.FC<ClipBodyProps> = ({
           position={contextMenuPos}
           isLinked={Boolean(clip.linkId)}
           onUnlink={onUnlink}
+          onDelete={onDelete}
           onClose={onCloseContextMenu}
         />
       )}

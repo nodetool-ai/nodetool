@@ -15,6 +15,7 @@ describe("ClipContextMenu", () => {
           position={{ x: 10, y: 10 }}
           isLinked
           onUnlink={onUnlink}
+          onDelete={jest.fn()}
           onClose={onClose}
         />
       </ThemeProvider>
@@ -30,10 +31,49 @@ describe("ClipContextMenu", () => {
           position={{ x: 10, y: 10 }}
           isLinked={false}
           onUnlink={jest.fn()}
+          onDelete={jest.fn()}
           onClose={jest.fn()}
         />
       </ThemeProvider>
     );
     expect(screen.queryByText("Unlink")).toBeNull();
+  });
+
+  it("shows Delete and calls onDelete for a linked clip", async () => {
+    const onDelete = jest.fn();
+    const onClose = jest.fn();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ClipContextMenu
+          position={{ x: 10, y: 10 }}
+          isLinked
+          onUnlink={jest.fn()}
+          onDelete={onDelete}
+          onClose={onClose}
+        />
+      </ThemeProvider>
+    );
+    await userEvent.click(screen.getByText("Delete"));
+    expect(onDelete).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows Delete and calls onDelete for an unlinked clip", async () => {
+    const onDelete = jest.fn();
+    const onClose = jest.fn();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ClipContextMenu
+          position={{ x: 10, y: 10 }}
+          isLinked={false}
+          onUnlink={jest.fn()}
+          onDelete={onDelete}
+          onClose={onClose}
+        />
+      </ThemeProvider>
+    );
+    await userEvent.click(screen.getByText("Delete"));
+    expect(onDelete).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
