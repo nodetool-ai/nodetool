@@ -263,39 +263,16 @@ describe("ComposeGenerator", () => {
       expect(env).toContainEqual("OTHER=world");
     });
 
-    it("should include NODETOOL_WORKFLOWS when workflows specified", () => {
+    it("should never emit NODETOOL_WORKFLOWS even if a workflows array leaks in", () => {
       const dep = makeDeployment({
         container: {
           name: "worker-1",
           port: 9000,
+          // The `workflows` field was removed from the schema; assert that even
+          // a stray array never produces the dead env var.
           workflows: ["wf-1", "wf-2"]
-        }
+        } as DockerDeployment["container"]
       });
-      const gen = new ComposeGenerator(dep);
-      const parsed = yaml.load(gen.generate()) as Record<string, unknown>;
-      const services = parsed["services"] as Record<string, unknown>;
-      const svc = services["worker-1"] as Record<string, unknown>;
-      const env = svc["environment"] as string[];
-      expect(env).toContainEqual("NODETOOL_WORKFLOWS=wf-1,wf-2");
-    });
-
-    it("should not include NODETOOL_WORKFLOWS when workflows empty", () => {
-      const dep = makeDeployment({
-        container: { name: "worker-1", port: 9000, workflows: [] }
-      });
-      const gen = new ComposeGenerator(dep);
-      const parsed = yaml.load(gen.generate()) as Record<string, unknown>;
-      const services = parsed["services"] as Record<string, unknown>;
-      const svc = services["worker-1"] as Record<string, unknown>;
-      const env = svc["environment"] as string[];
-      const wfEnv = env.find((e: string) =>
-        e.startsWith("NODETOOL_WORKFLOWS=")
-      );
-      expect(wfEnv).toBeUndefined();
-    });
-
-    it("should not include NODETOOL_WORKFLOWS when workflows undefined", () => {
-      const dep = makeDeployment();
       const gen = new ComposeGenerator(dep);
       const parsed = yaml.load(gen.generate()) as Record<string, unknown>;
       const services = parsed["services"] as Record<string, unknown>;
