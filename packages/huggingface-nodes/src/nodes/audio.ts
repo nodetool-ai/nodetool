@@ -7,7 +7,6 @@ import {
   type MediaRef
 } from "../huggingface-base.js";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 const EMPTY_AUDIO = {
   type: "audio",
@@ -40,7 +39,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     title: "Model",
     description: "Automatic-speech-recognition model repo id."
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "audio",
@@ -48,7 +47,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     title: "Audio",
     description: "The audio to transcribe."
   })
-  declare audio: any;
+  declare audio: MediaRef;
 
   @prop({
     type: "bool",
@@ -56,7 +55,7 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     title: "Return Timestamps",
     description: "Also return per-chunk timestamps."
   })
-  declare return_timestamps: any;
+  declare return_timestamps: boolean;
 
   async process(
     context?: Parameters<BaseNode["process"]>[0]
@@ -110,7 +109,7 @@ export class AudioClassificationNode extends BaseNode {
     title: "Model",
     description: "Audio-classification model repo id."
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "audio",
@@ -118,7 +117,7 @@ export class AudioClassificationNode extends BaseNode {
     title: "Audio",
     description: "The audio to classify."
   })
-  declare audio: any;
+  declare audio: MediaRef;
 
   @prop({
     type: "int",
@@ -128,7 +127,7 @@ export class AudioClassificationNode extends BaseNode {
     min: 1,
     max: 100
   })
-  declare top_k: any;
+  declare top_k: number;
 
   async process(
     context?: Parameters<BaseNode["process"]>[0]

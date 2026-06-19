@@ -7,7 +7,6 @@ import {
   hfPipelineJson
 } from "../huggingface-base.js";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 // ---------------------------------------------------------------------------
 // Chat Completion
@@ -33,7 +32,7 @@ export class ChatCompletionNode extends BaseNode {
     description:
       "Conversational model repo id (e.g. meta-llama/Llama-3.1-8B-Instruct, Qwen/Qwen2.5-7B-Instruct, openai/gpt-oss-120b)."
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "str",
@@ -41,7 +40,7 @@ export class ChatCompletionNode extends BaseNode {
     title: "System",
     description: "Optional system prompt setting the assistant's behavior."
   })
-  declare system: any;
+  declare system: string;
 
   @prop({
     type: "str",
@@ -49,7 +48,7 @@ export class ChatCompletionNode extends BaseNode {
     title: "Prompt",
     description: "The user message to send to the model."
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "int",
@@ -59,7 +58,7 @@ export class ChatCompletionNode extends BaseNode {
     min: 1,
     max: 32768
   })
-  declare max_tokens: any;
+  declare max_tokens: number;
 
   @prop({
     type: "float",
@@ -69,7 +68,7 @@ export class ChatCompletionNode extends BaseNode {
     min: 0,
     max: 2
   })
-  declare temperature: any;
+  declare temperature: number;
 
   @prop({
     type: "float",
@@ -79,7 +78,7 @@ export class ChatCompletionNode extends BaseNode {
     min: 0,
     max: 1
   })
-  declare top_p: any;
+  declare top_p: number;
 
   async process(): Promise<Record<string, unknown>> {
     const token = getHfToken(this._secrets);
@@ -126,7 +125,7 @@ export class TextGenerationNode extends BaseNode {
     title: "Model",
     description: "Text-generation model repo id."
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "str",
@@ -134,7 +133,7 @@ export class TextGenerationNode extends BaseNode {
     title: "Prompt",
     description: "The text prompt to continue."
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "int",
@@ -144,7 +143,7 @@ export class TextGenerationNode extends BaseNode {
     min: 1,
     max: 8192
   })
-  declare max_new_tokens: any;
+  declare max_new_tokens: number;
 
   @prop({
     type: "float",
@@ -154,7 +153,7 @@ export class TextGenerationNode extends BaseNode {
     min: 0,
     max: 2
   })
-  declare temperature: any;
+  declare temperature: number;
 
   @prop({
     type: "bool",
@@ -162,7 +161,7 @@ export class TextGenerationNode extends BaseNode {
     title: "Return Full Text",
     description: "Include the prompt in the returned text."
   })
-  declare return_full_text: any;
+  declare return_full_text: boolean;
 
   async process(): Promise<Record<string, unknown>> {
     const token = getHfToken(this._secrets);
@@ -208,7 +207,7 @@ export class SummarizationNode extends BaseNode {
     title: "Model",
     description: "Summarization model repo id."
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "str",
@@ -216,7 +215,7 @@ export class SummarizationNode extends BaseNode {
     title: "Text",
     description: "The text to summarize."
   })
-  declare inputs: any;
+  declare inputs: string;
 
   @prop({
     type: "int",
@@ -226,7 +225,7 @@ export class SummarizationNode extends BaseNode {
     min: 0,
     max: 2048
   })
-  declare max_length: any;
+  declare max_length: number;
 
   @prop({
     type: "int",
@@ -236,7 +235,7 @@ export class SummarizationNode extends BaseNode {
     min: 0,
     max: 2048
   })
-  declare min_length: any;
+  declare min_length: number;
 
   async process(): Promise<Record<string, unknown>> {
     const token = getHfToken(this._secrets);
@@ -285,7 +284,7 @@ export class TranslationNode extends BaseNode {
     description:
       "Translation model repo id (e.g. facebook/nllb-200-distilled-600M, Helsinki-NLP/opus-mt-en-fr)."
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "str",
@@ -293,7 +292,7 @@ export class TranslationNode extends BaseNode {
     title: "Text",
     description: "The text to translate."
   })
-  declare inputs: any;
+  declare inputs: string;
 
   @prop({
     type: "str",
@@ -302,7 +301,7 @@ export class TranslationNode extends BaseNode {
     description:
       "Optional source language code for multilingual models (e.g. eng_Latn)."
   })
-  declare src_lang: any;
+  declare src_lang: string;
 
   @prop({
     type: "str",
@@ -311,7 +310,7 @@ export class TranslationNode extends BaseNode {
     description:
       "Optional target language code for multilingual models (e.g. fra_Latn)."
   })
-  declare tgt_lang: any;
+  declare tgt_lang: string;
 
   async process(): Promise<Record<string, unknown>> {
     const token = getHfToken(this._secrets);
@@ -356,7 +355,7 @@ export class FillMaskNode extends BaseNode {
     title: "Model",
     description: "Fill-mask model repo id."
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "str",
@@ -365,7 +364,7 @@ export class FillMaskNode extends BaseNode {
     description:
       "Text containing a mask token (e.g. [MASK] for BERT, <mask> for RoBERTa)."
   })
-  declare inputs: any;
+  declare inputs: string;
 
   async process(): Promise<Record<string, unknown>> {
     const token = getHfToken(this._secrets);
@@ -408,7 +407,7 @@ export class QuestionAnsweringNode extends BaseNode {
     title: "Model",
     description: "Question-answering model repo id."
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "str",
@@ -416,7 +415,7 @@ export class QuestionAnsweringNode extends BaseNode {
     title: "Question",
     description: "The question to answer."
   })
-  declare question: any;
+  declare question: string;
 
   @prop({
     type: "str",
@@ -424,7 +423,7 @@ export class QuestionAnsweringNode extends BaseNode {
     title: "Context",
     description: "The passage that contains the answer."
   })
-  declare context: any;
+  declare context: string;
 
   async process(): Promise<Record<string, unknown>> {
     const token = getHfToken(this._secrets);
@@ -477,7 +476,7 @@ export class TableQuestionAnsweringNode extends BaseNode {
     title: "Model",
     description: "Table-question-answering model repo id."
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "str",
@@ -485,7 +484,7 @@ export class TableQuestionAnsweringNode extends BaseNode {
     title: "Question",
     description: "The question to ask about the table."
   })
-  declare question: any;
+  declare question: string;
 
   @prop({
     type: "dict",
@@ -494,7 +493,7 @@ export class TableQuestionAnsweringNode extends BaseNode {
     description:
       "The table as an object mapping each column name to an array of string cell values."
   })
-  declare table: any;
+  declare table: Record<string, unknown>;
 
   async process(): Promise<Record<string, unknown>> {
     const token = getHfToken(this._secrets);
@@ -553,7 +552,7 @@ export class FeatureExtractionNode extends BaseNode {
     title: "Model",
     description: "Feature-extraction / embedding model repo id."
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "str",
@@ -561,7 +560,7 @@ export class FeatureExtractionNode extends BaseNode {
     title: "Text",
     description: "The text to embed."
   })
-  declare inputs: any;
+  declare inputs: string;
 
   @prop({
     type: "bool",
@@ -569,7 +568,7 @@ export class FeatureExtractionNode extends BaseNode {
     title: "Normalize",
     description: "L2-normalize the returned embedding."
   })
-  declare normalize: any;
+  declare normalize: boolean;
 
   async process(): Promise<Record<string, unknown>> {
     const token = getHfToken(this._secrets);
@@ -612,7 +611,7 @@ export class TextClassificationNode extends BaseNode {
     title: "Model",
     description: "Text-classification model repo id."
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "str",
@@ -620,7 +619,7 @@ export class TextClassificationNode extends BaseNode {
     title: "Text",
     description: "The text to classify."
   })
-  declare inputs: any;
+  declare inputs: string;
 
   async process(): Promise<Record<string, unknown>> {
     const token = getHfToken(this._secrets);
@@ -667,7 +666,7 @@ export class TokenClassificationNode extends BaseNode {
     title: "Model",
     description: "Token-classification / NER model repo id."
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "str",
@@ -675,7 +674,7 @@ export class TokenClassificationNode extends BaseNode {
     title: "Text",
     description: "The text to analyze."
   })
-  declare inputs: any;
+  declare inputs: string;
 
   @prop({
     type: "enum",
@@ -684,7 +683,7 @@ export class TokenClassificationNode extends BaseNode {
     description: "How to group sub-word tokens into entities.",
     values: ["none", "simple", "first", "average", "max"]
   })
-  declare aggregation_strategy: any;
+  declare aggregation_strategy: string;
 
   async process(): Promise<Record<string, unknown>> {
     const token = getHfToken(this._secrets);
@@ -728,7 +727,7 @@ export class ZeroShotClassificationNode extends BaseNode {
     title: "Model",
     description: "Zero-shot-classification model repo id."
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "str",
@@ -736,7 +735,7 @@ export class ZeroShotClassificationNode extends BaseNode {
     title: "Text",
     description: "The text to classify."
   })
-  declare inputs: any;
+  declare inputs: string;
 
   @prop({
     type: "str",
@@ -744,7 +743,7 @@ export class ZeroShotClassificationNode extends BaseNode {
     title: "Candidate Labels",
     description: "Comma-separated list of candidate labels."
   })
-  declare candidate_labels: any;
+  declare candidate_labels: string;
 
   @prop({
     type: "bool",
@@ -752,7 +751,7 @@ export class ZeroShotClassificationNode extends BaseNode {
     title: "Multi Label",
     description: "Allow multiple labels to be true at once."
   })
-  declare multi_label: any;
+  declare multi_label: boolean;
 
   async process(): Promise<Record<string, unknown>> {
     const token = getHfToken(this._secrets);
