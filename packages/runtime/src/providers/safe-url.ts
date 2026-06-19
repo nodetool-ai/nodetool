@@ -11,11 +11,54 @@
  * This is an allowlist gate: only https URLs to apparently-public hosts pass.
  * The check is conservative — unparseable URLs, non-https schemes, and literal
  * IP addresses in loopback / link-local / RFC1918 / CGNAT ranges (including
- * IPv4-mapped IPv6 literals) are refused. DNS rebinding can still resolve a
+ * IPv4-mapped IPv6 literals and IPv4 embedded in 6to4 / NAT64 transition
+ * addresses) are refused. DNS rebinding can still resolve a
  * public name to a private address, so this is defense-in-depth that
  * complements network-level egress filtering rather than a complete SSRF
  * mitigation. Redirects are validated per-hop by {@link safeFetch}.
  */
+
+/**
+ * Expand an IPv6 literal (already stripped of brackets, lower-cased) into its 8
+ * 16-bit hextets, handling `::` compression and a trailing dotted-quad. Returns
+ * `null` if `host` is not a well-formed IPv6 literal.
+ */
+function expandIpv6(host: string): number[] | null {
+  if (!host.includes(":")) return null;
+  // Rewrite a trailing dotted-quad (`...:a.b.c.d`) into two hex hextets so the
+  // rest of the parse only deals with `:`-separated groups.
+  const body = host.replace(/((?:\d{1,3}\.){3}\d{1,3})$/, (m) => {
+    const oct = m.split(".").map((n) => parseInt(n, 10));
+    if (oct.some((n) => n > 255)) return "\0"; // sentinel → fails group parse
+    const hex = (n: number) => n.toString(16).padStart(2, "0");
+    return `${hex(oct[0])}${hex(oct[1])}:${hex(oct[2])}${hex(oct[3])}`;
+  });
+  const halves = body.split("::");
+  if (halves.length > 2) return null;
+  const parseGroup = (s: string): number[] | null => {
+    if (s === "") return [];
+    const out: number[] = [];
+    for (const p of s.split(":")) {
+      if (!/^[0-9a-f]{1,4}$/.test(p)) return null;
+      out.push(parseInt(p, 16));
+    }
+    return out;
+  };
+  const head = parseGroup(halves[0]);
+  if (head === null) return null;
+  let hextets: number[];
+  if (halves.length === 2) {
+    const rest = parseGroup(halves[1]);
+    if (rest === null) return null;
+    const middle = 8 - head.length - rest.length;
+    if (middle < 0) return null;
+    hextets = [...head, ...new Array(middle).fill(0), ...rest];
+  } else {
+    hextets = head;
+  }
+  if (hextets.length !== 8) return null;
+  return hextets;
+}
 
 /** True for IPv4 octet pairs in loopback / RFC1918 / link-local / CGNAT ranges. */
 function isPrivateIpv4(a: number, b: number): boolean {
@@ -90,6 +133,30 @@ export function isSafePublicHttpsUrl(url: string): boolean {
     if (host.startsWith("fc") || host.startsWith("fd")) return false; // ULA fc00::/7
     // link-local fe80::/10 — first hextet spans fe80–febf, i.e. fe8x/fe9x/feax/febx.
     if (/^fe[89ab]/.test(host)) return false;
+    // Transition addresses that embed an IPv4 in the low/middle bits: 6to4
+    // (2002:WWXX:YYZZ::/16) and NAT64 (64:ff9b::/96). Decode the embedded IPv4
+    // and range-check it so a private/loopback target can't be smuggled in.
+    const hextets = expandIpv6(host);
+    if (hextets) {
+      let embedded: number | null = null; // (hi << 16) | lo of the embedded IPv4
+      if (hextets[0] === 0x2002) {
+        embedded = (hextets[1] << 16) | hextets[2];
+      } else if (
+        hextets[0] === 0x64 &&
+        hextets[1] === 0xff9b &&
+        hextets[2] === 0 &&
+        hextets[3] === 0 &&
+        hextets[4] === 0 &&
+        hextets[5] === 0
+      ) {
+        embedded = (hextets[6] << 16) | hextets[7];
+      }
+      if (embedded !== null) {
+        const a = (embedded >>> 24) & 0xff;
+        const b = (embedded >>> 16) & 0xff;
+        if (isPrivateIpv4(a, b)) return false;
+      }
+    }
   }
   return true;
 }
