@@ -559,6 +559,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             alignItems: "flex-start"
           }}
           fullWidth
+          data-testid="tracks-drop-area"
           onDragOver={handleEmptyAreaDragOver}
           onDrop={handleEmptyAreaDrop}
         >
