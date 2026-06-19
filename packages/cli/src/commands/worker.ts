@@ -121,6 +121,25 @@ function assertTarget(value: string): SupportedTarget {
   return value as SupportedTarget;
 }
 
+/**
+ * Parse an optional duration flag into a positive integer (or null when
+ * absent). Rejects non-numeric / zero / negative input up front so the reaper
+ * never gets a NaN or a negative timeout that would stop a worker immediately.
+ */
+function parsePositiveMinutes(
+  value: string | undefined,
+  flag: string
+): number | null {
+  if (value == null) {
+    return null;
+  }
+  const n = Number.parseInt(value, 10);
+  if (!Number.isInteger(n) || n <= 0) {
+    throw new Error(`Invalid ${flag} '${value}': expected a positive integer.`);
+  }
+  return n;
+}
+
 /** Build a profile `spec` JSON blob from the inline provisioning flags. */
 function specFromFlags(opts: {
   gpu?: string;
@@ -202,12 +221,14 @@ function registerProfile(worker: Command): void {
             image: opts.image,
             spec: specFromFlags(opts),
             token_policy: opts.tokenPolicy,
-            idle_timeout_minutes: opts.idleTimeout
-              ? Number.parseInt(opts.idleTimeout, 10)
-              : null,
-            max_lifetime_minutes: opts.maxLifetime
-              ? Number.parseInt(opts.maxLifetime, 10)
-              : null
+            idle_timeout_minutes: parsePositiveMinutes(
+              opts.idleTimeout,
+              "--idle-timeout"
+            ),
+            max_lifetime_minutes: parsePositiveMinutes(
+              opts.maxLifetime,
+              "--max-lifetime"
+            )
           });
           console.log(`Created worker profile '${created.name}'.`);
         }
@@ -304,12 +325,14 @@ function registerCreate(worker: Command): void {
               image: opts.image,
               spec: specFromFlags(opts),
               token_policy: opts.tokenPolicy,
-              idle_timeout_minutes: opts.idleTimeout
-                ? Number.parseInt(opts.idleTimeout, 10)
-                : null,
-              max_lifetime_minutes: opts.maxLifetime
-                ? Number.parseInt(opts.maxLifetime, 10)
-                : null
+              idle_timeout_minutes: parsePositiveMinutes(
+                opts.idleTimeout,
+                "--idle-timeout"
+              ),
+              max_lifetime_minutes: parsePositiveMinutes(
+                opts.maxLifetime,
+                "--max-lifetime"
+              )
             });
           }
 

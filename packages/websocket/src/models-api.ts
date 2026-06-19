@@ -53,7 +53,11 @@ export interface ModelsApiDeps {
 async function requireWorkerBridge(
   deps: ModelsApiDeps
 ): Promise<PythonBridge | Response> {
-  const active = await deps.workerManager?.getActiveWorker();
+  if (!deps.workerManager) {
+    // Server wiring problem, not a runtime state the client can act on.
+    return errorResponse(500, "Worker support is not configured on this server");
+  }
+  const active = await deps.workerManager.getActiveWorker();
   if (!active) {
     return errorResponse(409, "No worker attached");
   }
@@ -1135,7 +1139,11 @@ export async function relayWorkerDownload(
     }
   };
 
-  const active = await workerManager?.getActiveWorker();
+  if (!workerManager) {
+    fail("Worker support is not configured on this server");
+    return;
+  }
+  const active = await workerManager.getActiveWorker();
   if (!active) {
     fail("No worker attached");
     return;

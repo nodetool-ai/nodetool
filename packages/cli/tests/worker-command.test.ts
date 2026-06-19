@@ -207,6 +207,55 @@ describe("worker profile add", () => {
     ).rejects.toThrow("__exit_1");
     expect(createProfile).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ["non-numeric", "foo"],
+    ["zero", "0"],
+    ["negative", "-5"]
+  ])(
+    "rejects a %s --idle-timeout before persisting",
+    async (_label, value) => {
+      await expect(
+        run([
+          "worker",
+          "profile",
+          "add",
+          "x",
+          "--target",
+          "runpod",
+          "--image",
+          "img:1",
+          "--idle-timeout",
+          value
+        ])
+      ).rejects.toThrow("__exit_1");
+      expect(createProfile).not.toHaveBeenCalled();
+    }
+  );
+
+  it("passes a valid --idle-timeout / --max-lifetime through as integers", async () => {
+    await run([
+      "worker",
+      "profile",
+      "add",
+      "x",
+      "--target",
+      "runpod",
+      "--image",
+      "img:1",
+      "--idle-timeout",
+      "30",
+      "--max-lifetime",
+      "120"
+    ]);
+    expect(createProfile).toHaveBeenCalledTimes(1);
+    const input = createProfile.mock.calls[0]![0] as {
+      idle_timeout_minutes: number | null;
+      max_lifetime_minutes: number | null;
+    };
+    expect(input.idle_timeout_minutes).toBe(30);
+    expect(input.max_lifetime_minutes).toBe(120);
+  });
 });
 
 describe("worker profile list", () => {

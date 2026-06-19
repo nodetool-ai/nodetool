@@ -21,7 +21,11 @@ function makeManager(): Record<keyof WorkerManager, ReturnType<typeof vi.fn>> {
     attach: vi.fn(),
     detach: vi.fn(),
     getActiveWorker: vi.fn(),
-    reconcile: vi.fn()
+    reconcile: vi.fn(),
+    apiKeyStatus: vi.fn(),
+    resume: vi.fn(),
+    terminate: vi.fn(),
+    connectionInfo: vi.fn()
   } as unknown as Record<keyof WorkerManager, ReturnType<typeof vi.fn>>;
 }
 
@@ -59,8 +63,9 @@ function makeInstance(over: Partial<WorkerInstance> = {}): WorkerInstance {
 }
 
 function makeCtx(
-  manager: Record<keyof WorkerManager, ReturnType<typeof vi.fn>>,
-  repoint: ReturnType<typeof vi.fn>
+  manager: Record<keyof WorkerManager, ReturnType<typeof vi.fn>> | undefined,
+  repoint: ReturnType<typeof vi.fn>,
+  probe?: ReturnType<typeof vi.fn>
 ): Context {
   return {
     userId: "1",
@@ -68,10 +73,11 @@ function makeCtx(
     apiOptions: { metadataRoots: [], registry: {} as never } as never,
     pythonBridge: {} as never,
     getPythonBridgeReady: () => false,
-    workerManager: manager as unknown as WorkerManager,
+    workerManager: manager as unknown as WorkerManager | undefined,
     repointPythonBridge: repoint as unknown as (
       target: WorkerConnection | null
-    ) => void
+    ) => void,
+    probeWorkerHealth: probe as unknown as Context["probeWorkerHealth"]
   };
 }
 
@@ -221,6 +227,80 @@ describe("worker router", () => {
     const caller = createCaller(ctx);
     await expect(caller.worker.instances.list()).rejects.toMatchObject({
       code: "UNAUTHORIZED"
+    });
+  });
+
+  // ── lifecycle / status procedures ────────────────────────────────
+  describe("apiKeyStatus / resume / terminate / health", () => {
+    it("apiKeyStatus delegates to manager.apiKeyStatus", async () => {
+      const status = { runpod: true, vast: false };
+      manager.apiKeyStatus.mockResolvedValue(status);
+      const caller = createCaller(makeCtx(manager, repoint));
+      await expect(caller.worker.apiKeyStatus()).resolves.toEqual(status);
+      expect(manager.apiKeyStatus).toHaveBeenCalled();
+    });
+
+    it("resume delegates to manager.resume with the id", async () => {
+      const inst = makeInstance({ status: "running" });
+      manager.resume.mockResolvedValue(inst);
+      const caller = createCaller(makeCtx(manager, repoint));
+      const result = await caller.worker.resume({ id: "i1" });
+      expect(manager.resume).toHaveBeenCalledWith("i1");
+      expect(result).toMatchObject({ id: "i1", status: "running" });
+    });
+
+    it("terminate delegates to manager.terminate with the id", async () => {
+      manager.terminate.mockResolvedValue(undefined);
+      const caller = createCaller(makeCtx(manager, repoint));
+      await caller.worker.terminate({ id: "i1" });
+      expect(manager.terminate).toHaveBeenCalledWith("i1");
+    });
+
+    it("health probes the worker's connection via probeWorkerHealth", async () => {
+      const connection = { wsUrl: "wss://x", token: "t" };
+      manager.connectionInfo.mockResolvedValue(connection);
+      const probe = vi.fn().mockResolvedValue({ healthy: true });
+      const caller = createCaller(makeCtx(manager, repoint, probe));
+      const result = await caller.worker.health({ id: "i1" });
+      expect(manager.connectionInfo).toHaveBeenCalledWith("i1");
+      expect(probe).toHaveBeenCalledWith(connection);
+      expect(result).toEqual({ healthy: true });
+    });
+
+    it("health fails INTERNAL_SERVER_ERROR when no probe is wired", async () => {
+      manager.connectionInfo.mockResolvedValue({ wsUrl: "wss://x", token: "t" });
+      const caller = createCaller(makeCtx(manager, repoint));
+      await expect(caller.worker.health({ id: "i1" })).rejects.toMatchObject({
+        code: "INTERNAL_SERVER_ERROR"
+      });
+    });
+  });
+
+  // ── server-wiring guards ─────────────────────────────────────────
+  describe("configuration guards", () => {
+    it("fails INTERNAL_SERVER_ERROR when the worker manager is not wired", async () => {
+      const caller = createCaller(makeCtx(undefined, repoint));
+      await expect(caller.worker.instances.list()).rejects.toMatchObject({
+        code: "INTERNAL_SERVER_ERROR"
+      });
+    });
+
+    it.each([
+      ["zero", 0],
+      ["negative", -5]
+    ])("rejects a %s idle_timeout_minutes at the schema", async (_label, value) => {
+      manager.createProfile.mockResolvedValue(makeProfile());
+      const caller = createCaller(makeCtx(manager, repoint));
+      await expect(
+        caller.worker.profiles.create({
+          name: "x",
+          target: "runpod",
+          image: "img:1",
+          token_policy: "generate",
+          idle_timeout_minutes: value
+        })
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      expect(manager.createProfile).not.toHaveBeenCalled();
     });
   });
 });
