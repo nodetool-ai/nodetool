@@ -427,6 +427,69 @@ describe("chatProtocol", () => {
     expect(messages[1].id).not.toMatch(/^local-stream-/);
   });
 
+  it("does not wipe streamed text when an empty-string content frame arrives mid-stream", async () => {
+    let capturedState: any = {
+      status: "streaming",
+      currentThreadId: "thread-1",
+      threads: {
+        "thread-1": {
+          id: "thread-1",
+          title: "T",
+          updated_at: new Date().toISOString()
+        }
+      },
+      messageCache: {
+        "thread-1": [
+          { role: "user", type: "message", content: "Search the web" },
+          {
+            id: "local-stream-123-abc",
+            role: "assistant",
+            type: "message",
+            content: "Let me search for that."
+          }
+        ]
+      },
+      selectedModel: { provider: "", id: "" },
+      summarizeThread: jest.fn(),
+      updateThreadTitle: jest.fn()
+    };
+
+    const set = jest.fn((updater) => {
+      capturedState = {
+        ...capturedState,
+        ...(typeof updater === "function" ? updater(capturedState) : updater)
+      };
+    });
+
+    const get = () => capturedState;
+
+    await handleChatWebSocketMessage(
+      {
+        type: "message",
+        id: "server-msg-1",
+        role: "assistant",
+        thread_id: "thread-1",
+        created_at: new Date().toISOString(),
+        content: "",
+        tool_calls: [{ id: "call-1", name: "web_search", args: {} }]
+      } as any,
+      set,
+      get
+    );
+
+    const messages = capturedState.messageCache["thread-1"];
+    expect(messages).toHaveLength(2);
+    // The empty-string content must not clobber the accumulated streamed text.
+    expect(messages[1]).toEqual(
+      expect.objectContaining({
+        id: "server-msg-1",
+        role: "assistant",
+        content: "Let me search for that.",
+        tool_calls: [{ id: "call-1", name: "web_search", args: {} }]
+      })
+    );
+  });
+
   it("returns tool errors for unknown client tools", async () => {
     (FrontendToolRegistry.has as jest.Mock).mockReturnValue(false);
 
