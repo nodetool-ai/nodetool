@@ -7,7 +7,6 @@ import {
   videoRefFromBytes
 } from "../huggingface-base.js";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 // ---------------------------------------------------------------------------
 // Text to Video
@@ -34,7 +33,7 @@ export class TextToVideoNode extends BaseNode {
     title: "Model",
     description: "Text-to-video model repo id."
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "str",
@@ -42,7 +41,7 @@ export class TextToVideoNode extends BaseNode {
     title: "Prompt",
     description: "The text prompt describing the video."
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "str",
@@ -50,7 +49,7 @@ export class TextToVideoNode extends BaseNode {
     title: "Negative Prompt",
     description: "What the video should NOT contain."
   })
-  declare negative_prompt: any;
+  declare negative_prompt: string;
 
   @prop({
     type: "int",
@@ -60,7 +59,7 @@ export class TextToVideoNode extends BaseNode {
     min: 0,
     max: 300
   })
-  declare num_frames: any;
+  declare num_frames: number;
 
   @prop({
     type: "float",
@@ -70,7 +69,7 @@ export class TextToVideoNode extends BaseNode {
     min: 0,
     max: 30
   })
-  declare guidance_scale: any;
+  declare guidance_scale: number;
 
   @prop({
     type: "int",
@@ -80,7 +79,7 @@ export class TextToVideoNode extends BaseNode {
     min: 0,
     max: 100
   })
-  declare num_inference_steps: any;
+  declare num_inference_steps: number;
 
   @prop({
     type: "int",
@@ -90,7 +89,7 @@ export class TextToVideoNode extends BaseNode {
     min: -1,
     max: 4294967295
   })
-  declare seed: any;
+  declare seed: number;
 
   async process(): Promise<Record<string, unknown>> {
     const token = getHfToken(this._secrets);
