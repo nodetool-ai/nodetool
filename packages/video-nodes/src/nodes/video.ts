@@ -2475,7 +2475,7 @@ export class ExtractAudioVideoNode extends BaseNode {
 export class ExtractFrameVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.ExtractFrame";
   static readonly requiredRuntimes = ["ffmpeg"];
-  static readonly title = "Extract Frame";
+  static readonly title = "Extract Video Frame";
   static readonly description =
     "Extract a single frame from a video at a specific time position.\n    video, frame, extract, screenshot, thumbnail, capture";
   static readonly metadataOutputTypes = {
