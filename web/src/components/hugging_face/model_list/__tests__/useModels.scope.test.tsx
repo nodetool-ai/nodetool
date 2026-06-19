@@ -47,7 +47,6 @@ beforeEach(() => {
   ]);
   useHfCacheStatusStore.setState({ statuses: {} });
   useModelManagerStore.setState({
-    filterStatus: "all",
     modelSearchTerm: "",
     selectedModelType: "All",
     maxModelSizeGB: undefined
@@ -70,50 +69,5 @@ describe("useModels scope", () => {
       expect(result.current.allModels?.[0]?.repo_id).toBe("org/m")
     );
     expect(mockAll).not.toHaveBeenCalled();
-  });
-
-  it("worker scope ignores the LOCAL cache and trusts the model's downloaded flag", async () => {
-    const model = {
-      id: "org/m",
-      name: "org/m",
-      repo_id: "org/m",
-      type: "hf.text_generation",
-      downloaded: true
-    };
-    mockHuggingfaceList.mockResolvedValue([model]);
-    // Local cache reports this repo as NOT downloaded (it isn't present locally).
-    const cacheKey = getHfCacheKey(model as unknown as UnifiedModel);
-    useHfCacheStatusStore.setState({ statuses: { [cacheKey]: false } });
-    useModelManagerStore.setState({ filterStatus: "downloaded" });
-
-    const { result } = renderHook(() => useModels("worker"), { wrapper });
-    await waitFor(() =>
-      expect(result.current.allModels?.length).toBe(1)
-    );
-    // Despite the local cache saying false, the worker-cached model is shown.
-    expect(result.current.filteredModels.map((m) => m.repo_id)).toEqual([
-      "org/m"
-    ]);
-  });
-
-  it("local scope honors the LOCAL cache (hides a repo the cache says is absent)", async () => {
-    const model = {
-      id: "org/m",
-      name: "org/m",
-      repo_id: "org/m",
-      type: "hf.text_generation",
-      downloaded: true
-    };
-    mockAll.mockResolvedValue([model]);
-    const cacheKey = getHfCacheKey(model as unknown as UnifiedModel);
-    useHfCacheStatusStore.setState({ statuses: { [cacheKey]: false } });
-    useModelManagerStore.setState({ filterStatus: "downloaded" });
-
-    const { result } = renderHook(() => useModels("local"), { wrapper });
-    await waitFor(() =>
-      expect(result.current.allModels?.length).toBe(1)
-    );
-    // Local cache is authoritative here — the model is filtered out.
-    expect(result.current.filteredModels).toEqual([]);
   });
 });

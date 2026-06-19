@@ -14,8 +14,7 @@ import type {
 } from "../../../stores/ModelManagerStore";
 import { useQuery } from "@tanstack/react-query";
 import { openInExplorer, openOllamaPath } from "../../../utils/fileExplorer";
-import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
-import { getHfCacheKey, isHfModel } from "../../../utils/hfCache";
+import { isHfModel } from "../../../utils/hfCache";
 import { isLocalProvider } from "../../../utils/providerDisplay";
 import useMetadataStore from "../../../stores/MetadataStore";
 
@@ -131,7 +130,6 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
   const modelSearchTerm = useModelManagerStore((state) => state.modelSearchTerm);
   const selectedModelType = useModelManagerStore((state) => state.selectedModelType);
   const maxModelSizeGB = useModelManagerStore((state) => state.maxModelSizeGB);
-  const filterStatus = useModelManagerStore((state) => state.filterStatus);
   const sortField = useModelManagerStore((state) => state.sortField);
   const sortDirection = useModelManagerStore((state) => state.sortDirection);
   const addNotification = useNotificationStore(
@@ -139,16 +137,6 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
   );
   const source = useModelManagerStore((state) => state.source);
   const recommendedCatalog = useMetadataStore((state) => state.recommendedModels);
-  const cacheStatuses = useHfCacheStatusStore((state) => state.statuses);
-  // The local HF cache store only reflects the LOCAL filesystem. For the worker
-  // scope the cached-models list already carries authoritative `downloaded`
-  // flags (the worker forces them true), so we must ignore the local cache —
-  // otherwise a worker-cached repo absent locally is mislabeled "not downloaded".
-  // The recommended catalog and Hub results are browsed for download, so their
-  // on-disk state is the local cache (regardless of which scope a download would
-  // be routed to).
-  const useLocalCache =
-    scope === "local" || source === "recommended" || source === "hub";
 
   const {
     data: rawModels,
@@ -241,37 +229,6 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
       )
         {return false;}
 
-      const cacheKey = getHfCacheKey(model);
-      const cacheStatus = useLocalCache ? cacheStatuses[cacheKey] : undefined;
-      const isOllama = model.type === "llama_model";
-
-      // For Ollama models, they are always considered downloaded if returned by API
-      // For HF models, check cache status first, fall back to API's downloaded field
-      if (filterStatus === "downloaded") {
-        // Only show if confirmed downloaded
-        if (isOllama) {
-          // Ollama models are always downloaded
-        } else if (cacheStatus !== undefined) {
-          // Cache status is known — use it
-          if (!cacheStatus) {return false;}
-        } else if (!model.downloaded) {
-          // Cache status unknown — trust the API's downloaded field
-          return false;
-        }
-      } else if (filterStatus === "not_downloaded") {
-        // Only show if confirmed NOT downloaded
-        if (isOllama) {
-          // Ollama models are always downloaded, so exclude them
-          return false;
-        } else if (cacheStatus !== undefined) {
-          // Cache status is known — use it
-          if (cacheStatus) {return false;}
-        } else if (model.downloaded) {
-          // Cache status unknown — trust the API's downloaded field
-          return false;
-        }
-      }
-
       return true;
     };
     const filtered = allModels?.filter(filterModel) || [];
@@ -282,9 +239,6 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
     modelSearchTerm,
     selectedModelType,
     maxModelSizeGB,
-    filterStatus,
-    cacheStatuses,
-    useLocalCache,
     sortField,
     sortDirection
   ]);
@@ -342,33 +296,6 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
         )
           {return false;}
 
-        const cacheKey = getHfCacheKey(model);
-        const cacheStatus = useLocalCache ? cacheStatuses[cacheKey] : undefined;
-        const isOllama = model.type === "llama_model";
-
-        if (filterStatus === "downloaded") {
-          if (isOllama) {
-            // Ollama models are always downloaded
-          } else if (useLocalCache) {
-            if (cacheStatus !== true) {
-              return false;
-            }
-          } else if (!model.downloaded) {
-            // Worker scope: trust the list's authoritative downloaded flag.
-            return false;
-          }
-        } else if (filterStatus === "not_downloaded") {
-          if (isOllama) {
-            return false;
-          } else if (useLocalCache) {
-            if (cacheStatus !== false) {
-              return false;
-            }
-          } else if (model.downloaded) {
-            return false;
-          }
-        }
-
         return true;
       }) || [];
 
@@ -379,15 +306,7 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
     });
 
     return types;
-  }, [
-    allModels,
-    source,
-    modelSearchTerm,
-    maxModelSizeGB,
-    filterStatus,
-    cacheStatuses,
-    useLocalCache
-  ]);
+  }, [allModels, source, modelSearchTerm, maxModelSizeGB]);
 
   const modelCountsByType = useMemo(() => {
     const counts: Record<string, number> = {};

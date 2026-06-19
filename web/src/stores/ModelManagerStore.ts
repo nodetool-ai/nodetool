@@ -1,6 +1,5 @@
 import { create } from "zustand";
 
-export type ModelFilterStatus = "all" | "downloaded" | "not_downloaded";
 export type ModelSortField = "name" | "size" | "downloads" | "likes";
 export type ModelSortDirection = "asc" | "desc";
 /** Which model cache the manager is browsing: the local FS or an attached worker. */
@@ -19,7 +18,6 @@ interface ModelManagerState {
   modelSearchTerm: string;
   selectedModelType: string;
   maxModelSizeGB: number; // 0 means no limit
-  filterStatus: ModelFilterStatus;
   sortField: ModelSortField;
   sortDirection: ModelSortDirection;
   scope: ModelScope;
@@ -28,7 +26,6 @@ interface ModelManagerState {
   setModelSearchTerm: (term: string) => void;
   setSelectedModelType: (type: string) => void;
   setMaxModelSizeGB: (gb: number) => void;
-  setFilterStatus: (status: ModelFilterStatus) => void;
   setSortField: (field: ModelSortField) => void;
   setSortDirection: (direction: ModelSortDirection) => void;
   toggleSortDirection: () => void;
@@ -41,7 +38,6 @@ export const useModelManagerStore = create<ModelManagerState>((set) => ({
   modelSearchTerm: "",
   selectedModelType: "All",
   maxModelSizeGB: 0,
-  filterStatus: "all",
   sortField: "name",
   sortDirection: "asc",
   scope: "local",
@@ -50,7 +46,6 @@ export const useModelManagerStore = create<ModelManagerState>((set) => ({
   setModelSearchTerm: (term) => set({ modelSearchTerm: term }),
   setSelectedModelType: (type) => set({ selectedModelType: type }),
   setMaxModelSizeGB: (gb) => set({ maxModelSizeGB: gb }),
-  setFilterStatus: (status) => set({ filterStatus: status }),
   setSortField: (field) => set({ sortField: field }),
   setSortDirection: (direction) => set({ sortDirection: direction }),
   toggleSortDirection: () =>

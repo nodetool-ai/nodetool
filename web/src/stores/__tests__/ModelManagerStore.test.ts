@@ -8,7 +8,6 @@ describe("ModelManagerStore", () => {
       modelSearchTerm: "",
       selectedModelType: "All",
       maxModelSizeGB: 0,
-      filterStatus: "all",
       sortField: "name",
       sortDirection: "asc",
       scope: "local",
@@ -23,7 +22,6 @@ describe("ModelManagerStore", () => {
       expect(state.modelSearchTerm).toBe("");
       expect(state.selectedModelType).toBe("All");
       expect(state.maxModelSizeGB).toBe(0);
-      expect(state.filterStatus).toBe("all");
       expect(state.sortField).toBe("name");
       expect(state.sortDirection).toBe("asc");
     });
@@ -105,33 +103,6 @@ describe("ModelManagerStore", () => {
     });
   });
 
-  describe("filter status", () => {
-    test("should set filter status to downloaded", () => {
-      act(() => {
-        useModelManagerStore.getState().setFilterStatus("downloaded");
-      });
-
-      expect(useModelManagerStore.getState().filterStatus).toBe("downloaded");
-    });
-
-    test("should set filter status to not_downloaded", () => {
-      act(() => {
-        useModelManagerStore.getState().setFilterStatus("not_downloaded");
-      });
-
-      expect(useModelManagerStore.getState().filterStatus).toBe("not_downloaded");
-    });
-
-    test("should reset filter status to all", () => {
-      act(() => {
-        useModelManagerStore.getState().setFilterStatus("downloaded");
-        useModelManagerStore.getState().setFilterStatus("all");
-      });
-
-      expect(useModelManagerStore.getState().filterStatus).toBe("all");
-    });
-  });
-
   describe("sort field", () => {
     test("should set sort field", () => {
       act(() => {
@@ -199,7 +170,6 @@ describe("ModelManagerStore", () => {
         useModelManagerStore.getState().setModelSearchTerm("gpt");
         useModelManagerStore.getState().setSelectedModelType("text-generation");
         useModelManagerStore.getState().setMaxModelSizeGB(4);
-        useModelManagerStore.getState().setFilterStatus("downloaded");
       });
 
       const state = useModelManagerStore.getState();
@@ -207,7 +177,6 @@ describe("ModelManagerStore", () => {
       expect(state.modelSearchTerm).toBe("gpt");
       expect(state.selectedModelType).toBe("text-generation");
       expect(state.maxModelSizeGB).toBe(4);
-      expect(state.filterStatus).toBe("downloaded");
     });
   });
 });

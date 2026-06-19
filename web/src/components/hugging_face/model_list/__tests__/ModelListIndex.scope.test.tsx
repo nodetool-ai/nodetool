@@ -83,8 +83,7 @@ beforeEach(() => {
     scope: "local",
     source: "installed",
     modelSearchTerm: "",
-    selectedModelType: "All",
-    filterStatus: "all"
+    selectedModelType: "All"
   });
 });
 
@@ -133,8 +132,7 @@ describe("ModelListIndex scope toggle", () => {
 
   it("switching to Recommended sets the source and resets filters", async () => {
     useModelManagerStore.setState({
-      selectedModelType: "hf.text_generation",
-      filterStatus: "downloaded"
+      selectedModelType: "hf.text_generation"
     });
     renderIndex();
 
@@ -145,7 +143,6 @@ describe("ModelListIndex scope toggle", () => {
     const state = useModelManagerStore.getState();
     expect(state.source).toBe("recommended");
     expect(state.selectedModelType).toBe("All");
-    expect(state.filterStatus).toBe("all");
   });
 
   it("renders the recommended empty-state when source=recommended and the catalog is empty", () => {

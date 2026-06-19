@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { EditorButton, FlexColumn, FlexRow, Box, MOTION, BORDER_RADIUS } from "../../ui_primitives";
+import { FlexColumn, FlexRow, Box, MOTION, BORDER_RADIUS } from "../../ui_primitives";
 import { LoadingSpinner, Text } from "../../ui_primitives";
 import SearchOffIcon from "@mui/icons-material/SearchOff";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -139,8 +139,6 @@ const ModelListIndex: React.FC = () => {
   const setModelSearchTerm = useModelManagerStore(
     (state) => state.setModelSearchTerm
   );
-  const filterStatus = useModelManagerStore((state) => state.filterStatus);
-  const setFilterStatus = useModelManagerStore((state) => state.setFilterStatus);
   const scope = useModelManagerStore((state) => state.scope);
   const setScope = useModelManagerStore((state) => state.setScope);
   const source = useModelManagerStore((state) => state.source);
@@ -208,15 +206,8 @@ const ModelListIndex: React.FC = () => {
       setScope(nextScope);
       setModelSearchTerm("");
       setSelectedModelType("All");
-      setFilterStatus("all");
     },
-    [
-      scope,
-      setScope,
-      setModelSearchTerm,
-      setSelectedModelType,
-      setFilterStatus
-    ]
+    [scope, setScope, setModelSearchTerm, setSelectedModelType]
   );
 
   const handleSourceChange = useCallback(
@@ -230,9 +221,8 @@ const ModelListIndex: React.FC = () => {
       setSource(nextSource);
       setModelSearchTerm("");
       setSelectedModelType("All");
-      setFilterStatus("all");
     },
-    [source, setSource, setModelSearchTerm, setSelectedModelType, setFilterStatus]
+    [source, setSource, setModelSearchTerm, setSelectedModelType]
   );
 
   // Flatten the model list with headers for "All" view
@@ -318,26 +308,6 @@ const ModelListIndex: React.FC = () => {
 
     void ensureStatuses(requests);
   }, [ensureStatuses, visibleModels, cacheVersion, scope]);
-
-  // When filtering by download status, pre-fetch cache statuses for ALL models
-  // so filtering works correctly even for models not yet visible
-  useEffect(() => {
-    if (scope === "worker" || filterStatus === "all" || !allModels) {
-      return;
-    }
-
-    const requests = allModels
-      .map((model) => buildHfCacheRequest(model))
-      .filter(
-        (request): request is NonNullable<typeof request> => request !== null
-      );
-
-    if (requests.length === 0) {
-      return;
-    }
-
-    void ensureStatuses(requests);
-  }, [ensureStatuses, allModels, filterStatus, cacheVersion, scope]);
 
   // If the attached worker goes away (detach / instance gone) while the Worker
   // scope is active, fall back to Local. Otherwise the toggle is hidden and the
@@ -644,25 +614,6 @@ const ModelListIndex: React.FC = () => {
                     While this worker is attached, any model you download lands
                     on its volume.
                   </Text>
-                </>
-              ) : filterStatus === "downloaded" ? (
-                <>
-                  <DownloadIcon sx={{ fontSize: 48, opacity: 0.5 }} />
-                  <Text size="normal" weight={600} color="secondary" sx={{ display: "block" }}>
-                    No downloaded models
-                  </Text>
-                  <Text size="small" color="secondary" sx={{ display: "block" }}>
-                    Switch to &quot;All&quot; or &quot;Available&quot; to find
-                    models to download
-                  </Text>
-                  <EditorButton
-                    variant="outlined"
-                    density="compact"
-                    onClick={() => setFilterStatus("all")}
-                    sx={{ mt: 1 }}
-                  >
-                    Show all models
-                  </EditorButton>
                 </>
               ) : (
                 <>
