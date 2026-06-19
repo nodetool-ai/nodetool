@@ -49,6 +49,8 @@ export interface WorkerSpec {
   target: WorkerTarget;
   /** Provider-shaped GPU selector (e.g. "A40"). */
   gpu?: string;
+  /** Number of GPUs to request (GPU targets only). Defaults to 1. */
+  gpuCount?: number;
   /** vCPU count. */
   vcpu?: number;
   /**
