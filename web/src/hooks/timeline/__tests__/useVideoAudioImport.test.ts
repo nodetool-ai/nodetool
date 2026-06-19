@@ -8,7 +8,12 @@ jest.mock("../../../lib/rest-fetch", () => ({
   restFetch: (...args: unknown[]) => restFetchMock(...args)
 }));
 
-function makeVideoAsset(): Asset {
+const probeMock = jest.fn<(...args: unknown[]) => Promise<number | null>>();
+jest.mock("../../../utils/probeMediaDuration", () => ({
+  probeMediaDurationMs: (...args: unknown[]) => probeMock(...args)
+}));
+
+function makeVideoAsset(overrides: Partial<Asset> = {}): Asset {
   return {
     id: "vid-1",
     user_id: "u1",
@@ -19,13 +24,17 @@ function makeVideoAsset(): Asset {
     created_at: "2024-01-01T00:00:00Z",
     get_url: "https://cdn.example.com/clip.mp4",
     thumb_url: null,
-    duration: 5
+    duration: 5,
+    ...overrides
   } as Asset;
 }
 
 describe("importVideoWithAudio", () => {
   beforeEach(() => {
     restFetchMock.mockReset();
+    probeMock.mockReset();
+    // Default: not called for assets that already carry a duration.
+    probeMock.mockResolvedValue(null);
   });
 
   it("adds a video clip and a linked placeholder audio clip immediately", async () => {
@@ -111,6 +120,57 @@ describe("importVideoWithAudio", () => {
     expect(restFetchMock).toHaveBeenCalledTimes(1);
     const init = restFetchMock.mock.calls[0][1] as RequestInit;
     expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("corrects the video clip length from a media probe when the asset has no duration", async () => {
+    restFetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        has_audio: true,
+        asset: { id: "aud-1", duration: 30, content_type: "audio/wav" }
+      })
+    });
+    probeMock.mockResolvedValue(30_000);
+    const store = createTimelineStore();
+    store.getState().addTrack("video", "Video 1");
+    const videoTrackId = store.getState().tracks[0].id;
+
+    await importVideoWithAudio(
+      store,
+      makeVideoAsset({ duration: null }),
+      videoTrackId,
+      0
+    );
+
+    expect(probeMock).toHaveBeenCalledWith(
+      "https://cdn.example.com/clip.mp4",
+      "video"
+    );
+    const video = store
+      .getState()
+      .clips.find((c) => c.mediaType === "video");
+    expect(video?.durationMs).toBe(30_000);
+  });
+
+  it("does not probe when the asset already has a duration", async () => {
+    restFetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        has_audio: true,
+        asset: { id: "aud-1", duration: 5, content_type: "audio/wav" }
+      })
+    });
+    const store = createTimelineStore();
+    store.getState().addTrack("video", "Video 1");
+    const videoTrackId = store.getState().tracks[0].id;
+
+    await importVideoWithAudio(store, makeVideoAsset(), videoTrackId, 0);
+
+    expect(probeMock).not.toHaveBeenCalled();
+    const video = store
+      .getState()
+      .clips.find((c) => c.mediaType === "video");
+    expect(video?.durationMs).toBe(5000);
   });
 
   it("marks the audio clip failed when the request is aborted/times out", async () => {

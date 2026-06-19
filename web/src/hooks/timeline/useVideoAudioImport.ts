@@ -7,6 +7,8 @@ import {
 } from "../../stores/timeline/TimelineStore";
 import { assetToClip } from "../../components/timeline/dnd/assetToClipAdapter";
 import { restFetch } from "../../lib/rest-fetch";
+import { getAssetUrl } from "../../utils/assetHelpers";
+import { probeMediaDurationMs } from "../../utils/probeMediaDuration";
 
 interface ExtractAudioResponse {
   has_audio: boolean;
@@ -55,6 +57,30 @@ export async function importVideoWithAudio(
 
   store.getState().addClips([videoClip, audioClip]);
 
+  // Imported assets often have no server-side `duration` (the upload path does
+  // not probe media), so assetToClip falls back to a placeholder length. Read
+  // the real duration from the media and correct the video clip — and the
+  // still-pending audio placeholder — so the clip matches the actual video.
+  // Runs concurrently with extraction; awaited in `finally`.
+  const sourceUrl = getAssetUrl(asset);
+  const durationProbe =
+    asset.duration == null && sourceUrl
+      ? probeMediaDurationMs(sourceUrl, "video").then((realMs) => {
+          if (!realMs || realMs <= 0) {
+            return;
+          }
+          store.getState().patchClip(videoClip.id, { durationMs: realMs });
+          // Keep the placeholder audio aligned, but don't clobber the exact
+          // WAV duration once extraction has filled the clip in.
+          const audio = store
+            .getState()
+            .clips.find((c) => c.id === audioClip.id);
+          if (audio && !audio.currentAssetId) {
+            store.getState().patchClip(audioClip.id, { durationMs: realMs });
+          }
+        })
+      : Promise.resolve();
+
   // Abort the request if it hangs so the audio clip doesn't sit in
   // "generating" forever; the abort surfaces as a rejection in the catch.
   const controller = new AbortController();
@@ -101,6 +127,8 @@ export async function importVideoWithAudio(
   } catch {
     clearTimeout(timeout);
     store.getState().patchClip(audioClip.id, { status: "failed" });
+  } finally {
+    await durationProbe;
   }
 }
 
