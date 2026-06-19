@@ -3,6 +3,7 @@ import { LocalCallbackServer } from "../../../src/providers/oauth/local-callback
 import {
   AuthorizationDeniedError,
   CallbackTimeoutError,
+  OAuthError,
   StateMismatchError
 } from "../../../src/providers/oauth/errors.js";
 
@@ -64,6 +65,22 @@ describe("LocalCallbackServer", () => {
     await expect(
       server.waitForCode({ expectedState: "st", timeoutMs: 50 })
     ).rejects.toBeInstanceOf(CallbackTimeoutError);
+  });
+
+  it("rejects with the abort error when handed an already-aborted signal", async () => {
+    server = new LocalCallbackServer();
+    await server.listen();
+
+    const controller = new AbortController();
+    controller.abort();
+
+    // A pre-aborted signal must produce the correct abort error synchronously,
+    // not a TDZ ReferenceError, and must not leak the cleanup timer.
+    const err = await server
+      .waitForCode({ expectedState: "st", timeoutMs: 50_000, signal: controller.signal })
+      .then(() => null, (e) => e);
+    expect(err).toBeInstanceOf(OAuthError);
+    expect((err as OAuthError).message).toBe("Login aborted");
   });
 
   it("exposes a loopback redirect URI with the bound port", async () => {
