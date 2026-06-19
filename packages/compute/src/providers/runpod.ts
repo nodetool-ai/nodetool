@@ -65,6 +65,7 @@ export class RunpodPodProvider implements WorkerProvider {
       exposure: EXPOSURE,
       computeType: useGpu ? "GPU" : "CPU",
       gpuTypeIds: spec.gpu ? [spec.gpu] : undefined,
+      gpuCount: spec.gpuCount,
       vcpuCount: spec.vcpu,
       // Point HF model downloads at the persistent volume so they survive a
       // stop/resume; merge over any caller env (caller wins on conflict? no —

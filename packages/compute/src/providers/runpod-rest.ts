@@ -182,6 +182,23 @@ export function podProxyWsUrl(podId: string, internalPort: number): string {
 // High-level worker deploy
 // ---------------------------------------------------------------------------
 
+/**
+ * Default GPUs requested for a GPU pod. RunPod's REST API does not document a
+ * default for `gpuCount`, so we set it explicitly to avoid a "running" pod that
+ * was allocated zero GPUs. One GPU is the right default for a single worker.
+ */
+export const DEFAULT_GPU_COUNT = 1;
+
+/**
+ * Default vCPUs for a GPU pod. RunPod pairs vCPUs with the GPU on GPU pods, but
+ * leaving `vcpuCount` undefined relies on undocumented defaults; pin a sane
+ * value so the worker has CPU headroom for I/O and the bridge process.
+ */
+export const DEFAULT_GPU_VCPU_COUNT = 8;
+
+/** Default vCPUs for a CPU pod. */
+export const DEFAULT_CPU_VCPU_COUNT = 4;
+
 export interface DeployWorkerPodOptions {
   /** Pod name. */
   name: string;
@@ -196,6 +213,8 @@ export interface DeployWorkerPodOptions {
   computeType?: "CPU" | "GPU";
   vcpuCount?: number;
   gpuTypeIds?: string[];
+  /** GPUs per pod (GPU pods only). Defaults to {@link DEFAULT_GPU_COUNT}. */
+  gpuCount?: number;
   containerDiskInGb?: number;
   /** Persistent volume size in GB (mounted at `volumeMountPath`). */
   volumeInGb?: number;
@@ -231,12 +250,19 @@ export async function deployWorkerPod(
   const env: Record<string, string> = { ...(opts.env ?? {}) };
   if (opts.workerToken) env.NODETOOL_WORKER_TOKEN = opts.workerToken;
 
+  const isGpu = opts.computeType === "GPU";
   const spec: RunpodPodSpec = {
     name: opts.name,
     imageName: opts.image,
     computeType: opts.computeType ?? "CPU",
-    vcpuCount: opts.computeType === "GPU" ? undefined : (opts.vcpuCount ?? 4),
+    // Always pin vcpuCount explicitly rather than relying on RunPod defaults.
+    vcpuCount:
+      opts.vcpuCount ??
+      (isGpu ? DEFAULT_GPU_VCPU_COUNT : DEFAULT_CPU_VCPU_COUNT),
     gpuTypeIds: opts.gpuTypeIds,
+    // GPU pods must request an explicit gpuCount; without it RunPod may allocate
+    // zero GPUs while still reporting the pod as running.
+    ...(isGpu ? { gpuCount: opts.gpuCount ?? DEFAULT_GPU_COUNT } : {}),
     ports: [`${internalPort}/${exposure}`],
     env,
     containerDiskInGb: opts.containerDiskInGb ?? 20,
