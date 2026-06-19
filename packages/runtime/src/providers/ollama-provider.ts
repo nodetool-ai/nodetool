@@ -102,6 +102,11 @@ export class OllamaProvider extends BaseProvider {
     return { OLLAMA_API_URL: this.apiUrl };
   }
 
+  /** Release cached model metadata held by this provider. */
+  override async close(): Promise<void> {
+    this._modelInfoCache.clear();
+  }
+
   private _modelInfoCache = new Map<string, Record<string, unknown>>();
 
   /**

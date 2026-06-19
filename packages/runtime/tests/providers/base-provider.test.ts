@@ -317,3 +317,11 @@ describe("BaseProvider – getCapabilities", () => {
     expect(caps).toContain("generate_messages");
   });
 });
+
+describe("BaseProvider – close lifecycle", () => {
+  it("default close() is a safe, idempotent no-op", async () => {
+    const provider = new TestProvider();
+    await expect(provider.close()).resolves.toBeUndefined();
+    await expect(provider.close()).resolves.toBeUndefined();
+  });
+});

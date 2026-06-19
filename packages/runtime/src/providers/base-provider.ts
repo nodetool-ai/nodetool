@@ -207,6 +207,14 @@ export abstract class BaseProvider {
     return {};
   }
 
+  /**
+   * Release any resources held by this provider (HTTP connection pools, cached
+   * model metadata, child processes, etc.). Default is a no-op; providers that
+   * hold long-lived resources should override it. Safe to call more than once.
+   * Callers that own a provider instance should invoke this on shutdown.
+   */
+  async close(): Promise<void> {}
+
   async hasToolSupport(_model: string): Promise<boolean> {
     return true;
   }
