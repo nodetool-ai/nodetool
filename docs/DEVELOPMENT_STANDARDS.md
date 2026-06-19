@@ -83,7 +83,7 @@ The web app runs **React 18.2**; Electron renderer runs **React 19.1**. Mobile u
 - **`react-hooks/exhaustive-deps` is enforced** (oxlint, warn) — the primary `npm run lint`. Don't silence it with an eslint-disable; fix the dependency array or restructure. Treat new warnings as work to clear, not noise.
 - **Effect cleanup is mandatory** for any effect that creates a subscription, timer, controller, or listener. Effects that race must use an `AbortController` or an `isMounted` ref pattern (signal preferred).
 - **Don't pass inline functions** to memoized children. Use `useCallback` only when (a) the function is a dependency of an effect/memo, or (b) it's passed to a `React.memo`'d child.
-- **`useMemo` / `React.memo` only when measured.** Add only after observing a render problem in React DevTools. Premature memoization is forbidden because it adds maintenance cost.
+- **`useMemo` / `React.memo` only when measured.** Add only after observing a render problem in React DevTools. Premature memoization is forbidden because it adds maintenance cost. Corollary: the share of components *not* wrapped in `React.memo` is **not** a defect backlog to bulk-fix — `memo` only helps when a parent re-renders often AND the child's props are referentially stable, and otherwise just adds cost. Wrap a component only with a concrete, observed re-render to point at.
 - **No `useLayoutEffect`** unless you genuinely need synchronous DOM measurement before paint. Document why.
 - **Error boundaries** wrap every route and every async data section. **target**: a default error boundary at the route level emits a structured error event to telemetry.
 - **Suspense boundaries** wrap every lazy-loaded subtree, every TanStack Query suspense hook, and every `lazy()` component.
