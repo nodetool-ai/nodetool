@@ -93,6 +93,7 @@ export type {
 } from "./image-document.js";
 
 export { OAuthCredential } from "./oauth-credential.js";
+export { resolveCodexAccessToken } from "./codex-token.js";
 
 export { Prediction } from "./prediction.js";
 export type {

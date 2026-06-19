@@ -56,6 +56,7 @@ import meshyColorIcon from "@lobehub/icons-static-svg/icons/meshy-color.svg";
 import githubIcon from "@lobehub/icons-static-svg/icons/github.svg";
 import googleColorIcon from "@lobehub/icons-static-svg/icons/google-color.svg";
 import evolinkIcon from "../../icons/evolink.svg";
+import gmiIcon from "../../icons/gmi.svg";
 
 
 interface ProviderMeta {
@@ -132,6 +133,14 @@ const PROVIDER_META: ProviderMeta[] = [
     category: "other",
     docsUrl: "https://docs.evolink.ai",
     icon: evolinkIcon
+  },
+  {
+    key: "GMI_API_KEY",
+    name: "GMI Cloud",
+    description: "Open-weight LLMs through GMI's OpenAI-compatible API.",
+    category: "other",
+    docsUrl: "https://docs.gmicloud.ai/",
+    icon: gmiIcon
   },
   {
     key: "GROQ_API_KEY",

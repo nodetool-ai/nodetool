@@ -3,6 +3,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { AbstractStorage } from "./abstract-storage.js";
 import { normalizeStorageKey } from "./storage-keys.js";
+import { assertUploadWithinLimit } from "./storage-limits.js";
 
 /**
  * File-backed `AbstractStorage` that holds caller-controlled keys inside a
@@ -28,6 +29,7 @@ export class FileStorage implements AbstractStorage {
   }
 
   async upload(key: string, data: Buffer | Uint8Array): Promise<void> {
+    assertUploadWithinLimit(key, data.byteLength);
     const r = await this.getRoot();
     const rel = normalizeStorageKey(key);
     await r.write(rel, Buffer.isBuffer(data) ? data : Buffer.from(data), {

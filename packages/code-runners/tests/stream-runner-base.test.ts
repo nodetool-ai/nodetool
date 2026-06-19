@@ -117,9 +117,57 @@ describe("StreamRunnerBase constructor defaults", () => {
     expect(runner.networkDisabled).toBe(true);
   });
 
-  it("defaults ipcMode to host", () => {
+  it("defaults ipcMode to private", () => {
     const runner = new EchoRunner();
-    expect(runner.ipcMode).toBe("host");
+    expect(runner.ipcMode).toBe("private");
+  });
+
+  it("drops all capabilities by default", () => {
+    const runner = new EchoRunner();
+    expect(runner.capDrop).toEqual(["ALL"]);
+  });
+
+  it("blocks privilege escalation by default", () => {
+    const runner = new EchoRunner();
+    expect(runner.securityOpt).toEqual(["no-new-privileges"]);
+  });
+
+  it("defaults readonlyRootfs to false", () => {
+    const runner = new EchoRunner();
+    expect(runner.readonlyRootfs).toBe(false);
+  });
+
+  it("defaults readonlyWorkspace to false", () => {
+    const runner = new EchoRunner();
+    expect(runner.readonlyWorkspace).toBe(false);
+  });
+
+  it("accepts custom capDrop and securityOpt", () => {
+    const runner = new EchoRunner({
+      capDrop: ["NET_RAW"],
+      securityOpt: ["seccomp=unconfined"]
+    });
+    expect(runner.capDrop).toEqual(["NET_RAW"]);
+    expect(runner.securityOpt).toEqual(["seccomp=unconfined"]);
+  });
+
+  it("accepts readonly filesystem options", () => {
+    const runner = new EchoRunner({
+      readonlyRootfs: true,
+      readonlyWorkspace: true
+    });
+    expect(runner.readonlyRootfs).toBe(true);
+    expect(runner.readonlyWorkspace).toBe(true);
+  });
+
+  it("clones capDrop/securityOpt so later option mutation can't change settings", () => {
+    const capDrop = ["NET_RAW"];
+    const securityOpt = ["no-new-privileges"];
+    const runner = new EchoRunner({ capDrop, securityOpt });
+    capDrop.push("ALL");
+    securityOpt.push("seccomp=unconfined");
+    expect(runner.capDrop).toEqual(["NET_RAW"]);
+    expect(runner.securityOpt).toEqual(["no-new-privileges"]);
   });
 
   it("defaults workspaceMountPath to /workspace", () => {

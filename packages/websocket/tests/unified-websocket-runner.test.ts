@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { unpack } from "msgpackr";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { pack, unpack } from "msgpackr";
 import {
   UnifiedWebSocketRunner,
   type WebSocketConnection,
   type WebSocketReceiveFrame
 } from "../src/unified-websocket-runner.js";
+import { resetEnvironment } from "@nodetool-ai/config";
 import { initTestDb, Job } from "@nodetool-ai/models";
 
 class MockWebSocket implements WebSocketConnection {
@@ -734,5 +735,49 @@ describe("UnifiedWebSocketRunner", () => {
     expect(job?.status).toBe("cancelled");
 
     await runner.disconnect();
+  });
+});
+
+describe("UnifiedWebSocketRunner binary frame size guard", () => {
+  const KEY = "NODETOOL_WS_MAX_MESSAGE_BYTES";
+  let ws: MockWebSocket;
+  let runner: UnifiedWebSocketRunner;
+
+  beforeEach(async () => {
+    resetEnvironment();
+    delete process.env[KEY];
+    ws = new MockWebSocket();
+    runner = new UnifiedWebSocketRunner({ resolveExecutor });
+    await runner.connect(ws);
+  });
+
+  afterEach(async () => {
+    delete process.env[KEY];
+    resetEnvironment();
+    await runner.disconnect();
+  });
+
+  it("rejects an incoming binary frame larger than the limit", async () => {
+    process.env[KEY] = "16";
+    ws.queue.push({ type: "websocket.message", bytes: new Uint8Array(17) });
+    await expect(runner.receiveMessage()).rejects.toThrow(
+      /exceeds maximum size/
+    );
+  });
+
+  it("accepts a binary frame within the configured limit", async () => {
+    process.env[KEY] = String(1024 * 1024);
+    ws.queue.push({ type: "websocket.message", bytes: pack({ type: "ping" }) });
+    const msg = await runner.receiveMessage();
+    expect(msg?.type).toBe("ping");
+  });
+
+  it("honors NODETOOL_WS_MAX_MESSAGE_BYTES (a small cap rejects a valid frame)", async () => {
+    const payload = pack({ type: "ping", padding: "x".repeat(256) });
+    process.env[KEY] = String(payload.length - 1);
+    ws.queue.push({ type: "websocket.message", bytes: payload });
+    await expect(runner.receiveMessage()).rejects.toThrow(
+      /exceeds maximum size/
+    );
   });
 });

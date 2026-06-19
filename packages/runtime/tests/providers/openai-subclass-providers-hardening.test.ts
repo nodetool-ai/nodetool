@@ -9,6 +9,7 @@
  */
 import { describe, it, expect, vi } from "vitest";
 import { CerebrasProvider } from "../../src/providers/cerebras-provider.js";
+import { GMIProvider } from "../../src/providers/gmi-provider.js";
 import { GroqProvider } from "../../src/providers/groq-provider.js";
 import { XAIProvider } from "../../src/providers/xai-provider.js";
 import { DeepSeekProvider } from "../../src/providers/deepseek-provider.js";
@@ -28,6 +29,13 @@ const cases = [
     id: "cerebras",
     make: (opts?: object) =>
       new CerebrasProvider({ CEREBRAS_API_KEY: "k" }, opts as never)
+  },
+  {
+    name: "gmi",
+    baseURL: "https://api.gmi-serving.com/v1",
+    id: "gmi",
+    make: (opts?: object) =>
+      new GMIProvider({ GMI_API_KEY: "k" }, opts as never)
   },
   {
     name: "groq",

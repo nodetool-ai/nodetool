@@ -18,7 +18,7 @@ import type {
   ToolCall,
   ProviderStreamItem
 } from "@nodetool-ai/runtime";
-import { memoryKeys, withAgentSpanGen } from "@nodetool-ai/runtime";
+import { memoryKeys, withAgentSpanGen, countTokens } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
 import {
   TaskUpdateEvent,
@@ -421,10 +421,10 @@ export class StepExecutor {
   }
 
   /**
-   * Rough token estimate based on JSON serialized history length / 4.
+   * Token count of the serialized history via js-tiktoken (cl100k_base).
    */
   private estimateTokens(): number {
-    return Math.ceil(JSON.stringify(this.history).length / 4);
+    return countTokens(JSON.stringify(this.history));
   }
 
   /**
@@ -1000,9 +1000,9 @@ export class StepExecutor {
           message.toolCalls = toolCalls;
         }
 
-        // Estimate output tokens
-        this.outputTokensTotal += Math.ceil(
-          (content.length + JSON.stringify(toolCalls).length) / 4
+        // Count output tokens
+        this.outputTokensTotal += countTokens(
+          content + JSON.stringify(toolCalls)
         );
       } catch (e) {
         log.error("Step failed", { stepId: this.step.id, error: String(e) });
