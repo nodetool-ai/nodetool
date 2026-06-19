@@ -28,6 +28,7 @@ NodeTool is TypeScript-first. Strict mode is on everywhere (`tsconfig.base.json`
 ### Rules
 
 - **Strict mode is non-negotiable.** Never turn off `strict`, `noImplicitAny`, `strictNullChecks`, or `strictFunctionTypes` in any tsconfig.
+- **Documented tsconfig exception — `noUnusedLocals` / `noUnusedParameters`.** `tsconfig.base.json` enables both, but the node-implementation, codegen, and agent packages (`agents`, `cli`, `*-nodes`, `*-codegen`, `nodes-utils`, `workflow-runner`) override them to `false`. This is intentional: decorator-`declare`d node props, generated code, and interface-driven `process()` signatures routinely leave locals/params unused. Do not "fix" these overrides; keep new packages of the same kind consistent. All other packages inherit the strict base.
 - **No `any`** in new code. **target**: zero `any` in `web/src` and `electron/src`. The ESLint override that allows `any` in `packages/*` (see `eslint.config.mjs`) is a transitional concession — new code must use `unknown` + narrowing, generics, or proper types.
 - **Prefer `unknown` over `any`** at boundaries (parsed JSON, IPC, network). Narrow with a type guard or Zod schema before use.
 - **No non-null assertions (`!`)** except in tests. Use a type guard, `assertDefined()` helper, or an `if (!x) throw` check.
