@@ -1,3 +1,34 @@
+const BYTES_PER_KILOBYTE = 1024;
+
+/**
+ * Shared core for byte-size formatting. Guards against non-finite, negative,
+ * and out-of-range inputs (which would otherwise produce `NaN`/`undefined`
+ * labels from a naive `Math.log` + array index), then scales into the largest
+ * fitting unit.
+ *
+ * @param bytes - Size in bytes
+ * @param units - Unit labels from smallest to largest (e.g. ["B", "KB", ...])
+ * @param decimals - Number of decimal places (negative is clamped to 0)
+ * @param zeroLabel - Returned for 0, negative, or non-finite input
+ */
+export function formatByteSize(
+  bytes: number,
+  units: readonly string[],
+  decimals: number,
+  zeroLabel: string
+): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return zeroLabel;
+  }
+  const decimalPlaces = decimals < 0 ? 0 : decimals;
+  const rawIndex = Math.floor(Math.log(bytes) / Math.log(BYTES_PER_KILOBYTE));
+  const sizeIndex = Math.min(Math.max(rawIndex, 0), units.length - 1);
+  const value = bytes / Math.pow(BYTES_PER_KILOBYTE, sizeIndex);
+  return `${parseFloat(value.toFixed(decimalPlaces))} ${units[sizeIndex]}`;
+}
+
+const FILE_SIZE_UNITS = ["B", "KB", "MB", "GB", "TB", "PB"] as const;
+
 /**
  * Format bytes into human-readable file size
  * @param bytes - Size in bytes
@@ -5,15 +36,7 @@
  * @returns Formatted string like "1.2 MB", "345 KB", etc.
  */
 export function formatFileSize(bytes: number, decimals: number = 1): string {
-  if (bytes === 0) {return "0 B";}
-
-  const bytesPerKilobyte = 1024;
-  const decimalPlaces = decimals < 0 ? 0 : decimals;
-  const sizes = ["B", "KB", "MB", "GB", "TB", "PB"];
-
-  const sizeIndex = Math.floor(Math.log(bytes) / Math.log(bytesPerKilobyte));
-
-  return `${parseFloat((bytes / Math.pow(bytesPerKilobyte, sizeIndex)).toFixed(decimalPlaces))} ${sizes[sizeIndex]}`;
+  return formatByteSize(bytes, FILE_SIZE_UNITS, decimals, "0 B");
 }
 
 /**

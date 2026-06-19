@@ -75,7 +75,7 @@ import {
 import { supabase } from "../../lib/supabaseClient";
 
 let uuidCounter = 0;
-jest.mock("../uuidv4", () => ({ uuidv4: () => `id-${uuidCounter++}` }));
+jest.mock("uuid", () => ({ v4: () => `id-${uuidCounter++}` }));
 
 // Helper function to simulate server sending a message with proper data format
 const simulateServerMessage = (

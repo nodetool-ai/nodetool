@@ -21,7 +21,7 @@ jest.mock("../../env", () => ({ isLocalhost: true }));
 jest.mock("../../supabaseClient", () => ({
   supabase: { auth: { getSession: jest.fn() } }
 }));
-jest.mock("../../../stores/uuidv4", () => ({ uuidv4: () => "job-x" }));
+jest.mock("uuid", () => ({ v4: () => "job-x" }));
 jest.mock("../../../stores/BASE_URL", () => ({ BASE_URL: "http://localhost" }));
 jest.mock("../../../stores/MetadataStore", () => ({
   __esModule: true,

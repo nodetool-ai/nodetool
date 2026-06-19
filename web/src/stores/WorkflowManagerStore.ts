@@ -19,7 +19,7 @@ import { createErrorMessage } from "../utils/errorHandling";
 import { fetchLiveFalPricing } from "../utils/fetchLiveFalPricing";
 import { fetchLiveKiePricing } from "../utils/fetchLiveKiePricing";
 import useMetadataStore from "./MetadataStore";
-import { uuidv4 } from "./uuidv4";
+import { v4 as uuidv4 } from "uuid";
 import { QueryClient } from "@tanstack/react-query";
 import {
   fetchWorkflowById,

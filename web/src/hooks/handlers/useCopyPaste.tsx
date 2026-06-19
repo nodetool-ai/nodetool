@@ -2,7 +2,7 @@
 
 import { getMousePosition } from "../../utils/MousePosition";
 import { useReactFlow, Edge, Node } from "@xyflow/react";
-import { uuidv4 } from "../../stores/uuidv4";
+import { v4 as uuidv4 } from "uuid";
 import { NodeData } from "../../stores/NodeData";
 import { useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";

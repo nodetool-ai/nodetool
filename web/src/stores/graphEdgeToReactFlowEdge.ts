@@ -1,6 +1,6 @@
 import { Edge } from "@xyflow/react";
 import { Edge as GraphEdge } from "./ApiTypes";
-import { uuidv4 } from "./uuidv4";
+import { v4 as uuidv4 } from "uuid";
 
 export const CONTROL_HANDLE_ID = "__control__";
 

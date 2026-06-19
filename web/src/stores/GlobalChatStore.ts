@@ -36,7 +36,7 @@ import { DEFAULT_MODEL } from "../config/constants";
 import { ConnectionState } from "../lib/websocket/WebSocketManager";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import { FrontendToolRegistry } from "../lib/tools/frontendTools";
-import { uuidv4 } from "./uuidv4";
+import { v4 as uuidv4 } from "uuid";
 import { createChatPiSlice, type ChatPiSlice } from "./chatPi";
 import {
   handleChatWebSocketMessage,
