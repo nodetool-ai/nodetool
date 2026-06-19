@@ -780,4 +780,25 @@ describe("UnifiedWebSocketRunner binary frame size guard", () => {
       /exceeds maximum size/
     );
   });
+
+  it("rejects an incoming text frame larger than the limit", async () => {
+    process.env[KEY] = "16";
+    ws.queue.push({
+      type: "websocket.message",
+      text: JSON.stringify({ type: "ping", padding: "x".repeat(256) })
+    });
+    await expect(runner.receiveMessage()).rejects.toThrow(
+      /exceeds maximum size/
+    );
+  });
+
+  it("accepts a text frame within the configured limit", async () => {
+    process.env[KEY] = String(1024 * 1024);
+    ws.queue.push({
+      type: "websocket.message",
+      text: JSON.stringify({ type: "ping" })
+    });
+    const msg = await runner.receiveMessage();
+    expect(msg?.type).toBe("ping");
+  });
 });

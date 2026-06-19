@@ -1234,6 +1234,15 @@ export class UnifiedWebSocketRunner {
       return unpack(message.bytes) as Record<string, unknown>;
     }
     if (message.text) {
+      const maxBytes = getMaxWsMessageBytes();
+      const textBytes = Buffer.byteLength(message.text, "utf8");
+      if (textBytes > maxBytes) {
+        throw new Error(
+          `Incoming WebSocket message exceeds maximum size: ` +
+            `${textBytes} > ${maxBytes} bytes ` +
+            `(set NODETOOL_WS_MAX_MESSAGE_BYTES to raise the limit)`
+        );
+      }
       return JSON.parse(message.text) as Record<string, unknown>;
     }
     return null;
