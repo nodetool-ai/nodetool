@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { MOTION, Tooltip, BORDER_RADIUS } from "../ui_primitives";
 import BackspaceIcon from "@mui/icons-material/Backspace";
 import SearchIcon from "@mui/icons-material/Search";
@@ -132,6 +132,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
   width = 150
 }) => {
   const theme = useTheme();
+  const searchInputCss = useMemo(() => styles(theme), [theme]);
   const inputRef = useRef<HTMLInputElement>(null);
   const [localSearchTerm, setLocalSearchTerm] = useState(externalSearchTerm);
   const isControlOrMetaPressed = useKeyPressedStore(
@@ -252,7 +253,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
   return (
     <div
       className="search-input-container"
-      css={styles(theme)}
+      css={searchInputCss}
       style={{ maxWidth: maxWidth, width: typeof width === 'number' ? `${width}px` : width }}
     >
       <SearchIcon className="search-icon" />
