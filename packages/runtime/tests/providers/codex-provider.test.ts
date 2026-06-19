@@ -69,6 +69,80 @@ describe("CodexProvider", () => {
     );
   });
 
+  it("emits a terminal done chunk when the SSE stream closes early", async () => {
+    // A stream that yields one text delta and a tool call, then closes
+    // WITHOUT a `response.completed` event (connection dropped early).
+    const sse =
+      `data: ${JSON.stringify({ type: "response.output_text.delta", delta: "hi" })}\n\n` +
+      `data: ${JSON.stringify({ type: "response.output_item.added", item: { type: "function_call", id: "i1", call_id: "c1", name: "foo" } })}\n\n` +
+      `data: ${JSON.stringify({ type: "response.output_item.done", item: { type: "function_call", id: "i1" } })}\n\n`;
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(sse, {
+        status: 200,
+        headers: { "content-type": "text/event-stream" }
+      })
+    );
+    const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
+    const items = [];
+    for await (const item of provider.generateMessages({
+      messages: [{ role: "user", content: "hi" }],
+      model: "gpt-5.5"
+    })) {
+      items.push(item);
+    }
+    const last = items[items.length - 1];
+    expect(last).toMatchObject({ type: "chunk", done: true });
+    // Exactly one terminal chunk — not one per event.
+    const terminals = items.filter(
+      (i) => "done" in i && (i as { done?: boolean }).done
+    );
+    expect(terminals).toHaveLength(1);
+  });
+
+  it("omits empty output_text message items on tool round-trips", async () => {
+    let captured: Record<string, unknown> = {};
+    vi.spyOn(globalThis, "fetch").mockImplementation(
+      async (_url, init?: RequestInit) => {
+        captured = JSON.parse(String(init?.body));
+        return new Response(
+          `data: ${JSON.stringify({ type: "response.completed", response: {} })}\n\n`,
+          {
+            status: 200,
+            headers: { "content-type": "text/event-stream" }
+          }
+        );
+      }
+    );
+    const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
+    // An assistant turn that is purely a tool call (no text), followed by the
+    // tool result — the classic tool round-trip.
+    for await (const _ of provider.generateMessages({
+      messages: [
+        { role: "user", content: "call the tool" },
+        {
+          role: "assistant",
+          content: null,
+          toolCalls: [{ id: "c1", name: "foo", args: {} }]
+        },
+        { role: "tool", content: "result", toolCallId: "c1" }
+      ],
+      model: "gpt-5.5"
+    })) {
+      void _;
+    }
+    const input = captured.input as Array<Record<string, unknown>>;
+    // The assistant tool-call round must contribute a function_call, but no
+    // empty message item.
+    expect(input.some((i) => i.type === "function_call")).toBe(true);
+    const emptyMessages = input.filter(
+      (i) =>
+        i.type === "message" &&
+        Array.isArray(i.content) &&
+        (i.content as Array<{ text?: string }>).every((c) => !c.text)
+    );
+    expect(emptyMessages).toHaveLength(0);
+  });
+
   it("extracts PNG bytes from the image_generation_call output item", async () => {
     const png = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4]);
     const b64 = Buffer.from(png).toString("base64");
