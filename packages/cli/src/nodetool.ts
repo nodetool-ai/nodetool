@@ -45,10 +45,7 @@ import {
   resolvePythonNodeExecutor
 } from "@nodetool-ai/runtime";
 import { registerPackageCommands } from "./commands/package.js";
-import {
-  registerDeployCommands,
-  registerListGcpOptions
-} from "./commands/deploy.js";
+import { registerDeployCommands } from "./commands/deploy.js";
 import { registerHfCommands } from "./commands/models-hf.js";
 import { registerWorkerCommands } from "./commands/worker.js";
 import { registerRecommendedCommand } from "./commands/models-recommended.js";
@@ -1790,11 +1787,10 @@ registerPackageCommands(program);
 registerWorkerCommands(program);
 
 // ---------------------------------------------------------------------------
-// deploy / list-gcp-options — registered from commands/deploy.ts
+// deploy — registered from commands/deploy.ts
 // ---------------------------------------------------------------------------
 
 registerDeployCommands(program);
-registerListGcpOptions(program);
 registerAgentCommands(program);
 registerDbCommands(program);
 

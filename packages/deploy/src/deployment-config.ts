@@ -20,12 +20,7 @@ const log = createLogger("nodetool.deploy.config");
 // ============================================================================
 
 export const DeploymentType = {
-  DOCKER: "docker",
-  RUNPOD: "runpod",
-  GCP: "gcp",
-  FLY: "fly",
-  RAILWAY: "railway",
-  HUGGINGFACE: "huggingface"
+  DOCKER: "docker"
 } as const;
 export type DeploymentType =
   (typeof DeploymentType)[keyof typeof DeploymentType];
@@ -97,8 +92,7 @@ export const ContainerConfigSchema = z.object({
   name: z.string(),
   port: z.number().int(),
   gpu: z.string().optional(),
-  environment: z.record(z.string(), z.string()).optional(),
-  workflows: z.array(z.string()).optional()
+  environment: z.record(z.string(), z.string()).optional()
 });
 export type ContainerConfig = z.infer<typeof ContainerConfigSchema>;
 
@@ -201,259 +195,6 @@ export function dockerDeploymentGetServerUrl(d: DockerDeployment): string {
 export type SelfHostedDeployment = DockerDeployment;
 
 // ============================================================================
-// Platform-Specific State Schemas
-// ============================================================================
-
-export const FlyStateSchema = z.object({
-  last_deployed: z.string().nullable().optional().default(null),
-  status: DeploymentStatusEnum.default("unknown"),
-  url: z.string().nullable().optional().default(null),
-  app: z.string().nullable().optional().default(null),
-  region: z.string().nullable().optional().default(null)
-});
-export type FlyState = z.infer<typeof FlyStateSchema>;
-
-export const RailwayStateSchema = z.object({
-  last_deployed: z.string().nullable().optional().default(null),
-  status: DeploymentStatusEnum.default("unknown"),
-  url: z.string().nullable().optional().default(null),
-  project: z.string().nullable().optional().default(null),
-  service: z.string().nullable().optional().default(null),
-  image_tag: z.string().nullable().optional().default(null)
-});
-export type RailwayState = z.infer<typeof RailwayStateSchema>;
-
-export const HuggingFaceStateSchema = z.object({
-  last_deployed: z.string().nullable().optional().default(null),
-  status: DeploymentStatusEnum.default("unknown"),
-  repo: z.string().nullable().optional().default(null),
-  space_url: z.string().nullable().optional().default(null)
-});
-export type HuggingFaceState = z.infer<typeof HuggingFaceStateSchema>;
-
-// ============================================================================
-// Fly.io Deployment Schema
-// ============================================================================
-
-export const FlyDeploymentSchema = z.object({
-  type: z.literal("fly").default("fly"),
-  enabled: z.boolean().default(true),
-  app: z.string(),
-  region: z.string().default("iad"),
-  image: z.string(), // path to nodetool-image.yaml
-  environment: z.record(z.string(), z.string()).optional(),
-  volumes: z
-    .array(
-      z.object({
-        name: z.string(),
-        mount: z.string(),
-        size: z.number().int().default(10)
-      })
-    )
-    .optional(),
-  state: withEmptyDefault(FlyStateSchema)
-});
-export type FlyDeployment = z.infer<typeof FlyDeploymentSchema>;
-
-// ============================================================================
-// Railway Deployment Schema
-// ============================================================================
-
-export const RailwayDeploymentSchema = z.object({
-  type: z.literal("railway").default("railway"),
-  enabled: z.boolean().default(true),
-  project: z.string(),
-  service: z.string(),
-  image: z.string(),
-  environment: z.record(z.string(), z.string()).optional(),
-  state: withEmptyDefault(RailwayStateSchema)
-});
-export type RailwayDeployment = z.infer<typeof RailwayDeploymentSchema>;
-
-// ============================================================================
-// HuggingFace Spaces Deployment Schema
-// ============================================================================
-
-export const HuggingFaceDeploymentSchema = z.object({
-  type: z.literal("huggingface").default("huggingface"),
-  enabled: z.boolean().default(true),
-  repo: z.string(),
-  space_type: z.literal("docker").default("docker"),
-  hardware: z.string().optional(),
-  image: z.string(),
-  environment: z.record(z.string(), z.string()).optional(),
-  state: withEmptyDefault(HuggingFaceStateSchema)
-});
-export type HuggingFaceDeployment = z.infer<typeof HuggingFaceDeploymentSchema>;
-
-// ============================================================================
-// RunPod Deployment Schemas
-// ============================================================================
-
-export const RunPodBuildConfigSchema = z.object({
-  platform: z.string().default("linux/amd64"),
-  no_cache: z.boolean().default(false)
-});
-export type RunPodBuildConfig = z.infer<typeof RunPodBuildConfigSchema>;
-
-export const RunPodImageConfigSchema = z.object({
-  name: z.string(),
-  tag: z.string(),
-  registry: z.string().default("docker.io"),
-  build: withEmptyDefault(RunPodBuildConfigSchema)
-});
-export type RunPodImageConfig = z.infer<typeof RunPodImageConfigSchema>;
-
-export function runPodImageConfigFullName(image: RunPodImageConfig): string {
-  return `${image.name}:${image.tag}`;
-}
-
-export const RunPodTemplateConfigSchema = z.object({
-  name: z.string(),
-  gpu_types: z.array(z.string()).default([]),
-  data_centers: z.array(z.string()).default([]),
-  network_volume_id: z.string().optional(),
-  allowed_cuda_versions: z.array(z.string()).default([])
-});
-export type RunPodTemplateConfig = z.infer<typeof RunPodTemplateConfigSchema>;
-
-export const RunPodEndpointConfigSchema = z.object({
-  name: z.string(),
-  workers_min: z.number().int().default(0),
-  workers_max: z.number().int().default(3),
-  idle_timeout: z.number().int().default(60),
-  execution_timeout: z.number().int().optional(),
-  flashboot: z.boolean().default(false),
-  gpu_count: z.number().int().optional()
-});
-export type RunPodEndpointConfig = z.infer<typeof RunPodEndpointConfigSchema>;
-
-export const RunPodStateSchema = z.object({
-  template_id: z.string().nullable().optional().default(null),
-  endpoint_id: z.string().nullable().optional().default(null),
-  endpoint_url: z.string().nullable().optional().default(null),
-  last_deployed: z.string().nullable().optional().default(null),
-  status: DeploymentStatusEnum.default("unknown"),
-  last_build_hash: z.string().nullable().optional().default(null)
-});
-export type RunPodState = z.infer<typeof RunPodStateSchema>;
-
-export const RunPodDockerConfigSchema = z.object({
-  username: z.string().optional(),
-  registry: z.string().default("docker.io")
-});
-export type RunPodDockerConfig = z.infer<typeof RunPodDockerConfigSchema>;
-
-export const RunPodDeploymentSchema = z.object({
-  type: z.literal("runpod").default("runpod"),
-  enabled: z.boolean().default(true),
-  image: RunPodImageConfigSchema,
-  gpu_types: z.array(z.string()).default([]),
-  gpu_count: z.number().int().optional(),
-  cpu_flavors: z.array(z.string()).default([]),
-  vcpu_count: z.number().int().optional(),
-  data_centers: z.array(z.string()).default([]),
-  network_volume_id: z.string().optional(),
-  allowed_cuda_versions: z.array(z.string()).default([]),
-  docker: withEmptyDefault(RunPodDockerConfigSchema),
-  platform: z.string().default("linux/amd64"),
-  template_name: z.string().optional(),
-  compute_type: z.string().default("GPU"),
-  workers_min: z.number().int().default(0),
-  workers_max: z.number().int().default(3),
-  idle_timeout: z.number().int().default(5),
-  execution_timeout: z.number().int().optional(),
-  flashboot: z.boolean().default(false),
-  environment: z.record(z.string(), z.string()).optional(),
-  persistent_paths: PersistentPathsSchema.optional(),
-  workflows: z.array(z.string()).default([]),
-  state: withEmptyDefault(RunPodStateSchema)
-});
-export type RunPodDeployment = z.infer<typeof RunPodDeploymentSchema>;
-
-export function runPodDeploymentGetServerUrl(
-  d: RunPodDeployment
-): string | undefined {
-  return d.state.endpoint_url ?? undefined;
-}
-
-// ============================================================================
-// GCP Deployment Schemas
-// ============================================================================
-
-export const GCPBuildConfigSchema = z.object({
-  platform: z.string().default("linux/amd64")
-});
-export type GCPBuildConfig = z.infer<typeof GCPBuildConfigSchema>;
-
-export const GCPImageConfigSchema = z.object({
-  registry: z.string().default("us-docker.pkg.dev"),
-  repository: z.string(),
-  tag: z.string(),
-  build: withEmptyDefault(GCPBuildConfigSchema)
-});
-export type GCPImageConfig = z.infer<typeof GCPImageConfigSchema>;
-
-export function gcpImageConfigFullName(image: GCPImageConfig): string {
-  return `${image.registry}/${image.repository}:${image.tag}`;
-}
-
-export const GCPResourceConfigSchema = z.object({
-  cpu: z.string().default("4"),
-  memory: z.string().default("16Gi"),
-  min_instances: z.number().int().default(0),
-  max_instances: z.number().int().default(3),
-  concurrency: z.number().int().default(80),
-  timeout: z.number().int().default(3600),
-  gpu_type: z.string().optional(),
-  gpu_count: z.number().int().optional()
-});
-export type GCPResourceConfig = z.infer<typeof GCPResourceConfigSchema>;
-
-export const GCPStorageConfigSchema = z.object({
-  gcs_bucket: z.string().optional(),
-  gcs_mount_path: z.string().default("/mnt/gcs")
-});
-export type GCPStorageConfig = z.infer<typeof GCPStorageConfigSchema>;
-
-export const GCPIAMConfigSchema = z.object({
-  service_account: z.string().optional(),
-  allow_unauthenticated: z.boolean().default(false)
-});
-export type GCPIAMConfig = z.infer<typeof GCPIAMConfigSchema>;
-
-export const GCPStateSchema = z.object({
-  service_url: z.string().nullable().optional().default(null),
-  last_deployed: z.string().nullable().optional().default(null),
-  status: DeploymentStatusEnum.default("unknown"),
-  revision: z.string().nullable().optional().default(null)
-});
-export type GCPState = z.infer<typeof GCPStateSchema>;
-
-export const GCPDeploymentSchema = z.object({
-  type: z.literal("gcp").default("gcp"),
-  enabled: z.boolean().default(true),
-  project_id: z.string(),
-  region: z.string().default("us-central1"),
-  service_name: z.string(),
-  image: GCPImageConfigSchema,
-  resources: withEmptyDefault(GCPResourceConfigSchema),
-  storage: GCPStorageConfigSchema.optional(),
-  iam: withEmptyDefault(GCPIAMConfigSchema),
-  environment: z.record(z.string(), z.string()).optional(),
-  persistent_paths: PersistentPathsSchema.optional(),
-  workflows: z.array(z.string()).default([]),
-  state: withEmptyDefault(GCPStateSchema)
-});
-export type GCPDeployment = z.infer<typeof GCPDeploymentSchema>;
-
-export function gcpDeploymentGetServerUrl(
-  d: GCPDeployment
-): string | undefined {
-  return d.state.service_url ?? undefined;
-}
-
-// ============================================================================
 // Main Configuration Schemas
 // ============================================================================
 
@@ -469,14 +210,12 @@ export type DefaultsConfig = z.infer<typeof DefaultsConfigSchema>;
 
 /**
  * Discriminated union for deployment types.
+ *
+ * NodeTool only publishes a generic Docker self-host server. GPU workers are a
+ * separate subsystem (`@nodetool-ai/compute`), not a deployment target.
  */
 const AnyDeploymentSchema = z.discriminatedUnion("type", [
-  DockerDeploymentSchema,
-  RunPodDeploymentSchema,
-  GCPDeploymentSchema,
-  FlyDeploymentSchema,
-  RailwayDeploymentSchema,
-  HuggingFaceDeploymentSchema
+  DockerDeploymentSchema
 ]);
 export type AnyDeployment = z.infer<typeof AnyDeploymentSchema>;
 
@@ -493,23 +232,11 @@ function generateDeploymentMasterKey(): string {
 export function ensureDeploymentMasterKey(
   deployment: AnyDeployment
 ): boolean {
-  if (deployment.type === "docker") {
-    const env = deployment.container.environment ?? {};
-    if (env["SECRETS_MASTER_KEY"]) {
-      return false;
-    }
-    deployment.container.environment = {
-      ...env,
-      SECRETS_MASTER_KEY: generateDeploymentMasterKey()
-    };
-    return true;
-  }
-
-  const env = deployment.environment ?? {};
+  const env = deployment.container.environment ?? {};
   if (env["SECRETS_MASTER_KEY"]) {
     return false;
   }
-  deployment.environment = {
+  deployment.container.environment = {
     ...env,
     SECRETS_MASTER_KEY: generateDeploymentMasterKey()
   };
