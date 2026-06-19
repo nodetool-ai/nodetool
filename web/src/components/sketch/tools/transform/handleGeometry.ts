@@ -92,14 +92,6 @@ function midpoint(a: Point, b: Point): Point {
   };
 }
 
-function normalizeVector(dx: number, dy: number): Point {
-  const length = Math.hypot(dx, dy);
-  if (length <= 1e-9) {
-    return { x: 0, y: 0 };
-  }
-  return { x: dx / length, y: dy / length };
-}
-
 function pointInPolygon(pt: Point, polygon: Point[]): boolean {
   let inside = false;
   for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
