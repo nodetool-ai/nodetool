@@ -58,4 +58,76 @@ export default [
       "no-console": "off",
     },
   },
+  // Primitives-first guardrail: discourage importing raw MUI components outside
+  // the primitive layer. `warn` (not `error`) so the existing backlog of raw
+  // imports is surfaced for incremental migration without breaking lint.
+  // ui_primitives/ and editor_ui/ are the legitimate homes for raw MUI and are
+  // excluded below. See web/src/components/ui_primitives/STRATEGY.md.
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: [
+      "src/components/ui_primitives/**",
+      "src/components/editor_ui/**",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "warn",
+        {
+          paths: [
+            {
+              name: "@mui/material",
+              importNames: [
+                "Typography",
+                "Button",
+                "IconButton",
+                "Tooltip",
+                "CircularProgress",
+                "Chip",
+                "Dialog",
+                "Alert",
+                "Divider",
+                "Paper",
+                "Box",
+                "Menu",
+                "Popover",
+                "Select",
+                "Switch",
+                "Checkbox",
+                "Card",
+                "Drawer",
+              ],
+              message:
+                "Use the equivalent primitive from components/ui_primitives instead of raw MUI. See ui_primitives/STRATEGY.md.",
+            },
+          ],
+          patterns: [
+            {
+              group: [
+                "@mui/material/Typography",
+                "@mui/material/Button",
+                "@mui/material/IconButton",
+                "@mui/material/Tooltip",
+                "@mui/material/CircularProgress",
+                "@mui/material/Chip",
+                "@mui/material/Dialog",
+                "@mui/material/Alert",
+                "@mui/material/Divider",
+                "@mui/material/Paper",
+                "@mui/material/Box",
+                "@mui/material/Menu",
+                "@mui/material/Popover",
+                "@mui/material/Select",
+                "@mui/material/Switch",
+                "@mui/material/Checkbox",
+                "@mui/material/Card",
+                "@mui/material/Drawer",
+              ],
+              message:
+                "Use the equivalent primitive from components/ui_primitives instead of raw MUI. See ui_primitives/STRATEGY.md.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ];
