@@ -129,6 +129,49 @@ describe("safeFetch", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it("strips auth headers and body on a cross-origin redirect", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(null, {
+          status: 307,
+          headers: { location: "https://cdn.other.com/final.png" }
+        })
+      )
+      .mockResolvedValueOnce(new Response("bytes", { status: 200 }));
+    await safeFetch("https://fal.media/a.png", {
+      method: "POST",
+      body: "secret-payload",
+      headers: { Authorization: "Bearer token", "X-Trace": "keep-me" }
+    });
+    const secondInit = fetchMock.mock.calls[1][1] as RequestInit;
+    const headers = new Headers(secondInit.headers ?? undefined);
+    expect(headers.get("authorization")).toBeNull();
+    expect(headers.get("x-trace")).toBe("keep-me");
+    expect(secondInit.body).toBeUndefined();
+  });
+
+  it("preserves auth headers and body on a same-origin redirect", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(null, {
+          status: 307,
+          headers: { location: "https://fal.media/final.png" }
+        })
+      )
+      .mockResolvedValueOnce(new Response("bytes", { status: 200 }));
+    await safeFetch("https://fal.media/a.png", {
+      method: "POST",
+      body: "payload",
+      headers: { Authorization: "Bearer token" }
+    });
+    const secondInit = fetchMock.mock.calls[1][1] as RequestInit;
+    const headers = new Headers(secondInit.headers ?? undefined);
+    expect(headers.get("authorization")).toBe("Bearer token");
+    expect(secondInit.body).toBe("payload");
+  });
+
   it("throws on a redirect loop exceeding the limit", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(null, {

@@ -14,6 +14,7 @@
  */
 
 import { BaseProvider } from "./base-provider.js";
+import { safeFetch } from "./safe-url.js";
 import { createLogger } from "@nodetool-ai/config";
 import type {
   ImageTo3DParams,
@@ -321,7 +322,7 @@ export class MeshyProvider extends BaseProvider {
         `No model URL found in Meshy response for format: ${format}`
       );
     }
-    const dlRes = await fetch(modelUrl);
+    const dlRes = await safeFetch(modelUrl);
     if (!dlRes.ok) {
       const errText = await dlRes.text().catch(() => "");
       throw new Error(

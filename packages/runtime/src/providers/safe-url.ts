@@ -106,11 +106,34 @@ export function assertSafePublicHttpsUrl(url: string): void {
   }
 }
 
+/** Request headers that must not cross an origin boundary on a redirect. */
+const CROSS_ORIGIN_SENSITIVE_HEADERS = [
+  "authorization",
+  "cookie",
+  "proxy-authorization"
+];
+
+/**
+ * Return a copy of `init` with credentials and body stripped, for replay
+ * against a different origin. Mirrors browser behaviour: a cross-origin
+ * redirect must not forward `Authorization`/`Cookie` headers or the request
+ * body, both of which may carry secrets meant only for the original host.
+ */
+function stripCrossOriginCredentials(init: RequestInit): RequestInit {
+  const headers = new Headers(init.headers ?? undefined);
+  for (const name of CROSS_ORIGIN_SENSITIVE_HEADERS) headers.delete(name);
+  const next: RequestInit = { ...init, headers };
+  delete next.body;
+  return next;
+}
+
 /**
  * `fetch` a provider-supplied URL with SSRF protection. The initial URL and
  * every redirect hop are validated with {@link assertSafePublicHttpsUrl}, so a
  * public host cannot redirect into an internal/loopback target or downgrade to
- * http. Redirects are followed manually up to `maxRedirects`.
+ * http. Redirects are followed manually up to `maxRedirects`. When a redirect
+ * crosses to a different origin, auth headers and the request body are stripped
+ * so they are never leaked to the redirect target.
  */
 export async function safeFetch(
   url: string,
@@ -118,12 +141,19 @@ export async function safeFetch(
   maxRedirects = 5
 ): Promise<Response> {
   let current = url;
+  let currentInit: RequestInit = { ...init };
+  let currentOrigin = new URL(url).origin;
   for (let hop = 0; hop <= maxRedirects; hop++) {
     assertSafePublicHttpsUrl(current);
-    const res = await fetch(current, { ...init, redirect: "manual" });
+    const res = await fetch(current, { ...currentInit, redirect: "manual" });
     const location = res.headers.get("location");
     if (res.status >= 300 && res.status < 400 && location) {
-      current = new URL(location, current).toString();
+      const next = new URL(location, current);
+      if (next.origin !== currentOrigin) {
+        currentInit = stripCrossOriginCredentials(currentInit);
+      }
+      current = next.toString();
+      currentOrigin = next.origin;
       continue;
     }
     return res;
