@@ -80,6 +80,29 @@ describe("isSafePublicHttpsUrl", () => {
   it("still accepts IPv4-mapped IPv6 to public addresses", () => {
     expect(isSafePublicHttpsUrl("https://[::ffff:8.8.8.8]/x")).toBe(true);
   });
+
+  it("rejects private IPv4 embedded in 6to4 (2002::) addresses", () => {
+    // 2002:WWXX:YYZZ:: encodes a.b.c.d in the second/third hextets.
+    // 127.0.0.1 -> 7f00:0001
+    expect(isSafePublicHttpsUrl("https://[2002:7f00:1::]/x")).toBe(false);
+    // 10.0.0.5 -> 0a00:0005
+    expect(isSafePublicHttpsUrl("https://[2002:a00:5::]/x")).toBe(false);
+    // 169.254.169.254 -> a9fe:a9fe
+    expect(isSafePublicHttpsUrl("https://[2002:a9fe:a9fe::]/x")).toBe(false);
+  });
+
+  it("rejects private IPv4 embedded in NAT64 (64:ff9b::) addresses", () => {
+    // 64:ff9b::a.b.c.d / 64:ff9b::WWXX:YYZZ embeds IPv4 in the low 32 bits.
+    expect(isSafePublicHttpsUrl("https://[64:ff9b::127.0.0.1]/x")).toBe(false);
+    expect(isSafePublicHttpsUrl("https://[64:ff9b::7f00:1]/x")).toBe(false);
+    expect(isSafePublicHttpsUrl("https://[64:ff9b::192.168.1.1]/x")).toBe(false);
+  });
+
+  it("still accepts 6to4 / NAT64 wrapping public IPv4", () => {
+    // 8.8.8.8 -> 0808:0808
+    expect(isSafePublicHttpsUrl("https://[2002:808:808::]/x")).toBe(true);
+    expect(isSafePublicHttpsUrl("https://[64:ff9b::8.8.8.8]/x")).toBe(true);
+  });
 });
 
 describe("safeFetch", () => {
