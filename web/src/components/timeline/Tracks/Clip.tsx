@@ -48,6 +48,7 @@ import { useAudioPeaks } from "./useAudioPeaks";
 import { samplePeaksWindow } from "./audioPeaks";
 import { isCompatibleWithTrack } from "../dnd/assetToClipAdapter";
 import { clipSurfaceTint, clipBorderTint } from "./trackVisuals";
+import { ClipContextMenu } from "./ClipContextMenu";
 
 /** Clip-side wrapper: TimelineClip.mediaType also includes "overlay";
  *  treat those as video-track-compatible. */
@@ -388,6 +389,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   const trimClipStart = useTimelineStore((s) => s.trimClipStart);
   const trimClipEnd = useTimelineStore((s) => s.trimClipEnd);
   const splitClipAtTime = useTimelineStore((s) => s.splitClipAtTime);
+  const unlinkClip = useTimelineStore((s) => s.unlinkClip);
   const activeTool = useTimelineUIStore((s) => s.activeTool);
 
   // Source-duration cap for trim-end. Only enforced for audio clips —
@@ -667,6 +669,25 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     ]
   );
 
+  // ── Context menu (Unlink) ───────────────────────────────────────────────
+
+  const [contextMenuPos, setContextMenuPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      if (!clip?.linkId) {
+        return; // let the browser/native menu through for unlinked clips
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      setContextMenuPos({ x: e.clientX, y: e.clientY });
+    },
+    [clip?.linkId]
+  );
+
   // ── Click (selection) ───────────────────────────────────────────────────
 
   const handleClick = useCallback(
@@ -832,12 +853,16 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       handleDragPointerDown={handleDragPointerDown}
       handleClick={handleClick}
       handleKeyDown={handleKeyDown}
+      handleContextMenu={handleContextMenu}
       handleTrimStartPointerDown={handleTrimStartPointerDown}
       handleTrimStartPointerMove={handleTrimStartPointerMove}
       handleTrimEndPointerDown={handleTrimEndPointerDown}
       handleTrimEndPointerMove={handleTrimEndPointerMove}
       handleTrimPointerEnd={handleTrimPointerEnd}
       cutMode={activeTool === "cut"}
+      contextMenuPos={contextMenuPos}
+      onCloseContextMenu={() => setContextMenuPos(null)}
+      onUnlink={() => unlinkClip(clip.id)}
     />
   );
 });
@@ -852,12 +877,16 @@ interface ClipBodyProps {
   handleDragPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleClick: (e: React.MouseEvent<HTMLDivElement>) => void;
   handleKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
+  handleContextMenu: (e: React.MouseEvent<HTMLDivElement>) => void;
   handleTrimStartPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTrimStartPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTrimEndPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTrimEndPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   handleTrimPointerEnd: () => void;
   cutMode: boolean;
+  contextMenuPos: { x: number; y: number } | null;
+  onCloseContextMenu: () => void;
+  onUnlink: () => void;
 }
 
 const ClipBody: React.FC<ClipBodyProps> = ({
@@ -870,12 +899,16 @@ const ClipBody: React.FC<ClipBodyProps> = ({
   handleDragPointerDown,
   handleClick,
   handleKeyDown,
+  handleContextMenu,
   handleTrimStartPointerDown,
   handleTrimStartPointerMove,
   handleTrimEndPointerDown,
   handleTrimEndPointerMove,
   handleTrimPointerEnd,
-  cutMode
+  cutMode,
+  contextMenuPos,
+  onCloseContextMenu,
+  onUnlink
 }) => {
   const theme = useTheme();
   const clipId = clip.id;
@@ -991,6 +1024,7 @@ const ClipBody: React.FC<ClipBodyProps> = ({
       onPointerDown={handleDragPointerDown}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
+      onContextMenu={handleContextMenu}
       data-testid={`clip-${clipId}`}
       aria-selected={isSelected}
       role="option"
@@ -1085,6 +1119,15 @@ const ClipBody: React.FC<ClipBodyProps> = ({
             />
           </div>
         )}
+
+      {contextMenuPos && (
+        <ClipContextMenu
+          position={contextMenuPos}
+          isLinked={Boolean(clip.linkId)}
+          onUnlink={onUnlink}
+          onClose={onCloseContextMenu}
+        />
+      )}
     </div>
   );
 };
