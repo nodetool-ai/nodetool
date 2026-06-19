@@ -43,12 +43,25 @@ describe("isOriginAllowed — defaults", () => {
     expect(isOriginAllowed("file:///index.html")).toBe(true);
   });
 
+  it("allows the first-party nodetool.ai product domains over HTTPS", () => {
+    expect(isOriginAllowed("https://app.nodetool.ai")).toBe(true);
+    expect(isOriginAllowed("https://api.nodetool.ai")).toBe(true);
+    expect(isOriginAllowed("https://nodetool.ai")).toBe(true);
+    expect(isOriginAllowed("https://staging.app.nodetool.ai")).toBe(true);
+  });
+
   it("rejects unknown remote origins", () => {
     expect(isOriginAllowed("https://evil.example.com")).toBe(false);
     expect(isOriginAllowed("http://attacker.test")).toBe(false);
     // look-alike that must not match the localhost pattern
     expect(isOriginAllowed("http://localhost.evil.com")).toBe(false);
     expect(isOriginAllowed("http://127.0.0.1.evil.com")).toBe(false);
+    // look-alikes that must not match the nodetool.ai pattern
+    expect(isOriginAllowed("https://nodetool.ai.evil.com")).toBe(false);
+    expect(isOriginAllowed("https://notnodetool.ai")).toBe(false);
+    // HTTP (non-TLS) and ports are not part of the first-party default
+    expect(isOriginAllowed("http://app.nodetool.ai")).toBe(false);
+    expect(isOriginAllowed("https://app.nodetool.ai:8443")).toBe(false);
   });
 });
 
