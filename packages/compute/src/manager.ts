@@ -375,14 +375,19 @@ export class WorkerManager {
       }
 
       // Live-but-untracked: provider workers with no matching instance row.
+      // Only running/attached entries are cost orphans — a stopped/paused or
+      // terminated provider entry isn't burning GPU billing, so don't surface
+      // it for one-click stop-all.
       for (const entry of live) {
-        if (!trackedRefs.has(entry.providerRef)) {
-          orphans.push({
-            target,
-            providerRef: entry.providerRef,
-            status: entry.status,
-          });
+        if (trackedRefs.has(entry.providerRef)) continue;
+        if (entry.status === "stopped" || entry.status === "terminated") {
+          continue;
         }
+        orphans.push({
+          target,
+          providerRef: entry.providerRef,
+          status: entry.status,
+        });
       }
     }
 
