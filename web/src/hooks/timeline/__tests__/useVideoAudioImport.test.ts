@@ -3,7 +3,7 @@ import { createTimelineStore } from "../../../stores/timeline/TimelineStore";
 import type { Asset } from "../../../stores/ApiTypes";
 import { importVideoWithAudio } from "../useVideoAudioImport";
 
-const restFetchMock = jest.fn();
+const restFetchMock = jest.fn<(...args: unknown[]) => Promise<unknown>>();
 jest.mock("../../../lib/rest-fetch", () => ({
   restFetch: (...args: unknown[]) => restFetchMock(...args)
 }));
@@ -24,7 +24,9 @@ function makeVideoAsset(): Asset {
 }
 
 describe("importVideoWithAudio", () => {
-  beforeEach(() => restFetchMock.mockReset());
+  beforeEach(() => {
+    restFetchMock.mockReset();
+  });
 
   it("adds a video clip and a linked placeholder audio clip immediately", async () => {
     restFetchMock.mockReturnValue(new Promise(() => {})); // never resolves
