@@ -8,7 +8,7 @@
 import { randomUUID } from "node:crypto";
 import { createHash } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
-import { eq } from "drizzle-orm";
+import { Column, eq, getTableColumns, Table } from "drizzle-orm";
 import { getDb } from "./db.js";
 
 const log = createLogger("nodetool.models");
@@ -92,17 +92,28 @@ export function computeEtag(data: Record<string, unknown>): string {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Drizzle table type varies by dialect; any is required for the base-class pattern.
 export type DrizzleTable = any;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getTableColumn(table: DrizzleTable, colName: string): any {
-  return (table as Record<string, unknown>)[colName];
+// Drizzle's official column accessor. Returns undefined for objects that are
+// not real Drizzle tables (e.g. legacy/test doubles), in which case callers
+// fall back to enumerable keys.
+function drizzleColumns(table: DrizzleTable): Record<string, Column> | undefined {
+  return getTableColumns(table as Table) as Record<string, Column> | undefined;
+}
+
+function getTableColumn(table: DrizzleTable, colName: string): Column {
+  const cols = drizzleColumns(table);
+  const col = cols
+    ? cols[colName]
+    : ((table as Record<string, unknown>)[colName] as Column | undefined);
+  if (!col) {
+    throw new Error(`Column "${colName}" not found on the table schema.`);
+  }
+  return col;
 }
 
 function getColumnNames(table: DrizzleTable): string[] {
-  const cols = (table as unknown as Record<symbol, Record<string, unknown>>)[
-    Symbol.for("drizzle:Columns")
-  ];
+  const cols = drizzleColumns(table);
   if (cols) return Object.keys(cols);
-  return Object.keys(table).filter((k) => !k.startsWith("_"));
+  return Object.keys(table as object).filter((k) => !k.startsWith("_"));
 }
 
 export abstract class DBModel {
@@ -158,7 +169,11 @@ export abstract class DBModel {
       .insert(table)
       .values(row)
       .onConflictDoUpdate({
-        target: pkCol,
+        // pkCol is a generic Column; the SQLite builder's conflict target
+        // wants an IndexColumn, which it is at runtime.
+        target: pkCol as Parameters<
+          ReturnType<ReturnType<typeof db.insert>["values"]>["onConflictDoUpdate"]
+        >[0]["target"],
         set: row
       });
 
