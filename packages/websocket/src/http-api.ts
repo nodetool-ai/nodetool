@@ -5,8 +5,9 @@ import {
   type ServerResponse
 } from "node:http";
 import { gzipSync } from "node:zlib";
-import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync, promises as fsp } from "node:fs";
 import nodePath from "node:path";
+import os from "node:os";
 import { GZIP_THRESHOLD } from "./lib/compression.js";
 import { withCacheBuster } from "./lib/example-thumbnail.js";
 import {
@@ -56,6 +57,7 @@ import {
 import { handleFileRequest } from "./file-api.js";
 import { storeAssetWithThumbnail, thumbnailKey } from "./lib/thumbnail.js";
 import { getAssetAdapter } from "./lib/storage.js";
+import { probeHasAudio, extractAudioWav } from "./lib/media.js";
 import {
   packWorkflowsBundle,
   importWorkflowBundle,
@@ -1892,6 +1894,79 @@ export async function handleAssetsRoot(
   }
 
   return errorResponse(405, "Method not allowed");
+}
+
+/**
+ * POST /api/assets/:id/extract-audio
+ *
+ * Extracts the audio track of a video asset into a new audio (WAV) asset and
+ * returns it. If the video has no audio track, responds `{ has_audio: false }`
+ * with no asset. Used by the timeline to create a linked, independently
+ * editable audio clip when a video is imported.
+ */
+export async function handleExtractAudio(
+  request: Request,
+  options: HttpApiOptions,
+  assetId: string
+): Promise<Response> {
+  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
+
+  const source = (await Asset.get(assetId)) as Asset | null;
+  if (!source) {
+    return errorResponse(404, "Asset not found");
+  }
+  if (!source.content_type.startsWith("video/")) {
+    return errorResponse(400, "Asset is not a video");
+  }
+
+  const adapter = getAssetAdapter();
+  const sourceKey = getAssetFileName(source.id, source.content_type);
+  const videoBytes = await adapter.retrieve(adapter.uriForKey(sourceKey));
+  if (!videoBytes) {
+    return errorResponse(404, "Asset bytes not found");
+  }
+
+  // Probe + extract via a temp file (ffmpeg needs a path).
+  const dir = await fsp.mkdtemp(nodePath.join(os.tmpdir(), "nodetool-probe-"));
+  const probePath = nodePath.join(dir, "input");
+  let hasAudio = false;
+  try {
+    await fsp.writeFile(probePath, videoBytes);
+    hasAudio = await probeHasAudio(probePath);
+  } finally {
+    await fsp.rm(dir, { recursive: true, force: true });
+  }
+
+  if (!hasAudio) {
+    return jsonResponse({ has_audio: false });
+  }
+
+  const wavBytes = await extractAudioWav(videoBytes);
+
+  const audioAsset = (await Asset.create({
+    user_id: userId,
+    name: `${source.name} (audio)`,
+    content_type: "audio/wav",
+    parent_id: source.id,
+    workflow_id: source.workflow_id ?? null,
+    node_id: null,
+    job_id: null,
+    metadata: null,
+    size: wavBytes.byteLength
+  })) as Asset;
+
+  const audioKey = getAssetFileName(audioAsset.id, audioAsset.content_type);
+  await storeAssetWithThumbnail(
+    audioAsset.id,
+    audioKey,
+    wavBytes,
+    audioAsset.content_type
+  );
+
+  return jsonResponse({
+    has_audio: true,
+    asset: await toAssetResponse(audioAsset)
+  });
 }
 
 
