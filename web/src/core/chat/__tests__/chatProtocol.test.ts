@@ -427,7 +427,11 @@ describe("chatProtocol", () => {
     expect(messages[1].id).not.toMatch(/^local-stream-/);
   });
 
-  it("does not wipe streamed text when an empty-string content frame arrives mid-stream", async () => {
+  it("does not overwrite an earlier longer placeholder with a short finalized message (multi-tool-round dedup)", async () => {
+    // Regression: with two un-finalized local-stream-* placeholders, a short
+    // finalized message ("Searching") was matching the older longer placeholder
+    // ("Searching the web for results") via candidateNormalized.startsWith(incoming)
+    // and overwriting it instead of replacing the correct trailing placeholder.
     let capturedState: any = {
       status: "streaming",
       currentThreadId: "thread-1",
@@ -440,12 +444,27 @@ describe("chatProtocol", () => {
       },
       messageCache: {
         "thread-1": [
-          { role: "user", type: "message", content: "Search the web" },
+          { role: "user", type: "message", content: "Search twice" },
+          // Older placeholder from tool round 1 (longer text)
           {
-            id: "local-stream-123-abc",
+            id: "local-stream-100-aaa",
             role: "assistant",
             type: "message",
-            content: "Let me search for that."
+            content: "Searching the web for results about your query."
+          },
+          // Tool result from round 1 (server-authored, should be skipped)
+          {
+            id: "tool-result-1",
+            role: "tool",
+            type: "message",
+            content: "Found 10 results."
+          },
+          // Trailing placeholder from tool round 2 (shorter text)
+          {
+            id: "local-stream-200-bbb",
+            role: "assistant",
+            type: "message",
+            content: "Searching"
           }
         ]
       },
@@ -460,34 +479,37 @@ describe("chatProtocol", () => {
         ...(typeof updater === "function" ? updater(capturedState) : updater)
       };
     });
-
     const get = () => capturedState;
 
+    // Server finalizes tool round 2 with "Searching" — must replace local-stream-200-bbb
     await handleChatWebSocketMessage(
       {
         type: "message",
-        id: "server-msg-1",
+        id: "server-msg-2",
         role: "assistant",
         thread_id: "thread-1",
         created_at: new Date().toISOString(),
-        content: "",
-        tool_calls: [{ id: "call-1", name: "web_search", args: {} }]
+        content: "Searching",
+        tool_calls: [{ id: "call-2", name: "web_search", args: {} }]
       } as any,
       set,
       get
     );
 
     const messages = capturedState.messageCache["thread-1"];
-    expect(messages).toHaveLength(2);
-    // The empty-string content must not clobber the accumulated streamed text.
-    expect(messages[1]).toEqual(
-      expect.objectContaining({
-        id: "server-msg-1",
-        role: "assistant",
-        content: "Let me search for that.",
-        tool_calls: [{ id: "call-1", name: "web_search", args: {} }]
-      })
-    );
+    // Still 4 messages — placeholder B replaced, not A
+    expect(messages).toHaveLength(4);
+    // The older placeholder (A) must remain untouched
+    expect(messages[1]).toMatchObject({
+      id: "local-stream-100-aaa",
+      content: "Searching the web for results about your query."
+    });
+    // The trailing placeholder (B) must be replaced by the server message
+    expect(messages[3]).toMatchObject({
+      id: "server-msg-2",
+      content: "Searching"
+    });
+    expect(messages[3].id).not.toMatch(/^local-stream-/);
   });
 
   it("returns tool errors for unknown client tools", async () => {

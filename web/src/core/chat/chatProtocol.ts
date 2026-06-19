@@ -764,6 +764,11 @@ const extractTextContent = (message: Message): string => {
  * when it completes a plain reply and when it attaches tool_calls. Without this
  * reconciliation the placeholder and the finalized message both render, so the
  * same text appears twice. Returns -1 when the incoming message is genuinely new.
+ *
+ * Matching is anchored to the most-recently-appended local-stream-* placeholder.
+ * We never scan past it: in multi-tool turns there can be several un-finalized
+ * placeholders, and a short finalized message must not overwrite an older longer
+ * one by matching via the reverse startsWith direction.
  */
 const findStreamPlaceholderIndex = (
   messages: Message[],
@@ -793,33 +798,24 @@ const findStreamPlaceholderIndex = (
       continue;
     }
 
+    // This is the most-recently-appended local-stream-* placeholder.
+    // Evaluate it and stop — never scan past it to older placeholders.
     const candidateText = extractTextContent(candidate);
     const candidateNormalized = normalizeTextForComparison(candidateText);
-    // A finalizing server message with empty content (e.g. a tool_call frame
-    // with no text) must still replace the active local-stream placeholder
-    // rather than append beside it. The merge keeps the streamed text.
-    if (!incomingNormalized) {
-      if (isLocalStream && candidateNormalized && status === "streaming") {
-        return i;
-      }
-      continue;
-    }
-    if (!candidateNormalized) {
-      continue;
+    if (!candidateNormalized || !incomingNormalized) {
+      return -1;
     }
 
     if (
       candidateNormalized === incomingNormalized ||
-      incomingNormalized.startsWith(candidateNormalized) ||
-      candidateNormalized.startsWith(incomingNormalized)
+      incomingNormalized.startsWith(candidateNormalized)
     ) {
       return i;
     }
 
-    // If we were streaming and the most recent assistant message looks local,
-    // prefer replacing it even if trailing whitespace differs.
+    // Prefer replacing the trailing local placeholder even if trailing
+    // whitespace differs (streaming may not have flushed the final space).
     if (
-      i === messages.length - 1 &&
       (status === "streaming" || isLocalStream) &&
       candidateText &&
       incomingText
@@ -833,6 +829,9 @@ const findStreamPlaceholderIndex = (
         return i;
       }
     }
+
+    // No match at the trailing placeholder — the incoming is a new message.
+    return -1;
   }
   return -1;
 };
