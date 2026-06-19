@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useRef, useState, memo } from "react";
+import React, { useCallback, useRef, useState, memo, forwardRef } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { SxProps, Theme } from "@mui/material/styles";
@@ -101,7 +101,7 @@ const styles = (theme: Theme) => css`
   }
 `;
 
-export const SearchInput: React.FC<SearchInputProps> = memo(({
+export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>(({
   value,
   onChange,
   placeholder = "Search...",
@@ -117,7 +117,7 @@ export const SearchInput: React.FC<SearchInputProps> = memo(({
   clearTooltip = "Clear search",
   tooltipPlacement = "top",
   sx
-}) => {
+}, ref) => {
   const theme = useTheme();
   const [localValue, setLocalValue] = useState(value);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -180,6 +180,7 @@ export const SearchInput: React.FC<SearchInputProps> = memo(({
         autoFocus={autoFocus}
         fullWidth={fullWidth}
         sx={sx}
+        inputRef={ref}
         slotProps={{
           input: {
             startAdornment: (
@@ -210,7 +211,7 @@ export const SearchInput: React.FC<SearchInputProps> = memo(({
       />
     </div>
   );
-});
+}));
 
 SearchInput.displayName = "SearchInput";
 
