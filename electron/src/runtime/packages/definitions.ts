@@ -157,7 +157,7 @@ export const RUNTIME_PACKAGES: Record<RuntimePackageId, RuntimePackage> = {
     id: "claude",
     name: "Claude Code CLI",
     description:
-      "Anthropic's Claude Code CLI for autonomous AI coding tasks. Required by the Claude Code agent node.",
+      "Anthropic's Claude Code CLI for autonomous AI coding tasks. Required by the Claude Code agent node and the Claude Agent SDK LLM provider (subscription-based, no API key).",
     category: "tool",
     versionRange: "*",
     npmPackages: ["@anthropic-ai/claude-code"],
