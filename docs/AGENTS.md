@@ -423,6 +423,52 @@ const { emails } = agent.getResults() as { emails: string[] };
 
 ---
 
+## Claude Agent SDK
+
+`ClaudeAgentProvider` (`packages/runtime/src/providers/claude-agent-provider.ts`)
+is a **pure LLM provider** that reaches Claude through the local `claude` CLI
+(the Claude Agent SDK transport) instead of an API key. It sends no
+`ANTHROPIC_API_KEY`; the CLI authenticates with the machine's logged-in Claude
+subscription (credentials stored under `~/.claude`), so it bills against the
+subscription rather than per-token API spend.
+
+Internally it spawns the executable in non-interactive print mode
+(`claude -p --output-format stream-json --verbose --include-partial-messages`)
+and translates the CLI's newline-delimited JSON stream into the standard
+`ProviderStreamItem` stream (text + thinking chunks). The Claude Code agent loop
+is collapsed to a single, tool-free turn so it behaves like a plain chat
+completion:
+
+- `--system-prompt <prompt>` fully **replaces** the coding-agent preset with the
+  caller's system message (or a generic assistant prompt), giving vanilla LLM
+  behaviour rather than the Claude Code persona.
+- `--allowedTools ""` disables every built-in tool, and `--max-turns 1` keeps it
+  to one model call. `hasToolSupport()` returns `false` — the caller drives any
+  tool loop with a `tool_use`-returning provider (e.g. `AnthropicProvider`).
+
+Provider id: `claude_agent_sdk` (`PROVIDER_IDS.CLAUDE_AGENT_SDK`). It registers
+with no credential kwargs (auth lives in the CLI's store, so it is always
+"configured"; a missing CLI surfaces at call time) and is pruned from the cloud
+profile since it needs a local executable. Token usage is attributed to the
+concrete dated model the CLI resolves an alias to (captured from the
+`message_start` event) so cost maps onto Anthropic pricing.
+
+### Executable resolution & nested sessions
+
+The binary is resolved from `CLAUDE_CODE_EXECUTABLE` (explicit path) and
+otherwise `claude` on `PATH`. The desktop app ships `@anthropic-ai/claude-code`
+as a runtime package; server/dev users need `claude` installed and logged in.
+
+When NodeTool itself runs **under** Claude Code (e.g. Claude Code on the web),
+the inherited `CLAUDECODE` / `CLAUDE_CODE_*` / `CLAUDE_SESSION_*` /
+`CLAUDE_ENABLE_*` / `CLAUDE_AFTER_*` / `CLAUDE_AUTO_*` env vars are stripped from
+the spawned child so the nested CLI starts clean. `ANTHROPIC_BASE_URL` and
+`HTTP_PROXY` / `HTTPS_PROXY` are preserved for API routing. Because no tools are
+enabled, the provider never passes `--dangerously-skip-permissions`, so it
+avoids the SDK's refusal to run that flag as `uid=0`.
+
+---
+
 ## Related Pages
 
 - [Agent Memory System](agent-memory.md) — Unified memory across all agent types: API, propagation, examples
