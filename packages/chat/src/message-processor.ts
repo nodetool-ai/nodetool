@@ -188,9 +188,9 @@ export async function processChat(opts: {
               const result = (executed as ToolCall & { result: unknown }).result;
               callbacks?.onToolResult?.(toolCall, result);
               return truncateToolResult(
-                typeof result === "string"
+                (typeof result === "string"
                   ? result
-                  : JSON.stringify(result, null, 2)
+                  : JSON.stringify(result, null, 2)) ?? ""
               );
             }
           : undefined,
