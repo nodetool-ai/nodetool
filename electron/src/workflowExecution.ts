@@ -96,7 +96,7 @@ function writeResultToClipboard(workflow: Workflow, results: unknown[]) {
  * @param {Workflow} workflow - The workflow to execute
  * @returns {Promise<void>}
  */
-export async function runWorkflow(workflow: Workflow) {
+export async function runWorkflow(workflow: Workflow): Promise<void> {
   logMessage(
     `Starting workflow execution: ${workflow.name} (ID: ${workflow.id})`
   );

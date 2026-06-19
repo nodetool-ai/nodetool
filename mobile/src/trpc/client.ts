@@ -11,7 +11,7 @@
  * host configuration stays consistent.
  */
 
-import { createTRPCClient, httpBatchLink } from '@trpc/client';
+import { createTRPCClient, httpBatchLink, type TRPCClient, type TRPCLink } from '@trpc/client';
 import { createTRPCReact } from '@trpc/react-query';
 import superjson from 'superjson';
 import type { AppRouter } from '@nodetool-ai/websocket/trpc';
@@ -50,7 +50,7 @@ function hostRewriteFetch(
   return fetch(`${getApiHost()}${path}`, options);
 }
 
-export function createTrpcLinks() {
+export function createTrpcLinks(): TRPCLink<AppRouter>[] {
   return [
     httpBatchLink({
       url: `${getApiHost()}/trpc`,
@@ -62,6 +62,6 @@ export function createTrpcLinks() {
 }
 
 /** Vanilla client for Zustand stores and other non-React contexts. */
-export function createMobileTRPCClient() {
+export function createMobileTRPCClient(): Readonly<TRPCClient<AppRouter>> {
   return createTRPCClient<AppRouter>({ links: createTrpcLinks() });
 }

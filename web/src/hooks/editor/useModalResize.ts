@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type Dispatch, type SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type React from "react";
 
 interface UseModalResizeOptions {
   storageKey?: string;
@@ -7,7 +8,11 @@ interface UseModalResizeOptions {
   maxHeight?: number;
 }
 
-export function useModalResize(options: UseModalResizeOptions = {}) {
+export function useModalResize(options: UseModalResizeOptions = {}): Readonly<{
+  modalHeight: number;
+  setModalHeight: Dispatch<SetStateAction<number>>;
+  handleResizeMouseDown: (event: React.MouseEvent<HTMLDivElement>) => void;
+}> {
   const {
     storageKey = "textEditorModal_height",
     minHeight = 250,

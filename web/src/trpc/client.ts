@@ -2,7 +2,8 @@ import { createTRPCReact } from "@trpc/react-query";
 import {
   createTRPCClient,
   httpBatchLink,
-  loggerLink
+  loggerLink,
+  type TRPCClient
 } from "@trpc/client";
 import superjson from "superjson";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
@@ -20,7 +21,7 @@ async function authHeaders(): Promise<Record<string, string>> {
   return session ? { Authorization: `Bearer ${session.access_token}` } : {};
 }
 
-export function createTRPCHttpClient() {
+export function createTRPCHttpClient(): Readonly<TRPCClient<AppRouter>> {
   return createTRPCClient<AppRouter>({
     links: [
       loggerLink({
