@@ -52,7 +52,11 @@ export default [
     },
 
     rules: {
-      "@typescript-eslint/no-explicit-any": "off",
+      // Surface remaining `any` for incremental cleanup toward the documented
+      // "zero any in web/src" target (DEVELOPMENT_STANDARDS §1). Warn, not
+      // error, so the legacy backlog and intentional generic-constraint idioms
+      // don't break lint.
+      "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-unused-vars": "off",
       "no-console": "off",
