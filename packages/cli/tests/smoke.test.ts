@@ -45,6 +45,12 @@ describe("cli settings and provider helpers", () => {
 
     const { availableProviders } = await import("../src/providers.js");
 
-    expect(availableProviders()).toEqual(["anthropic", "gemini", "lmstudio", "ollama"]);
+    expect(availableProviders()).toEqual([
+      "anthropic",
+      "gemini",
+      "claude_agent_sdk",
+      "lmstudio",
+      "ollama"
+    ]);
   });
 });
