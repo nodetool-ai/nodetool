@@ -25,6 +25,32 @@ export interface S3StorageAdapterOptions {
   client?: S3Client;
 }
 
+/** Total upload attempts (1 initial + 2 retries) for transient S3 errors. */
+const UPLOAD_MAX_ATTEMPTS = 3;
+
+const delay = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Whether an S3 error is worth retrying: network/connection errors (no HTTP
+ * status), throttling, and 5xx server errors. Client errors (4xx other than
+ * 429) are permanent and surfaced immediately.
+ */
+function isRetryableS3Error(err: unknown): boolean {
+  const e = err as {
+    name?: string;
+    $retryable?: unknown;
+    $metadata?: { httpStatusCode?: number };
+  };
+  if (e?.$retryable) return true;
+  const status = e?.$metadata?.httpStatusCode;
+  if (typeof status === "number") {
+    return status === 429 || status >= 500;
+  }
+  const name = e?.name ?? "";
+  return /Throttl|Timeout|NetworkingError|ECONN|EPIPE|ETIMEDOUT/i.test(name);
+}
+
 /**
  * S3-backed storage adapter using `@aws-sdk/client-s3`.
  *
@@ -79,15 +105,35 @@ export class S3StorageAdapter implements StorageAdapter {
   ): Promise<string> {
     assertUploadWithinLimit(key, data.byteLength);
     const objectKey = joinStorageKey(this.prefix ?? undefined, key);
-    await this.getClient().send(
-      new PutObjectCommand({
-        Bucket: this.bucket,
-        Key: objectKey,
-        Body: data,
-        ...(contentType ? { ContentType: contentType } : {})
-      })
+    const client = this.getClient();
+    const command = new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: objectKey,
+      Body: data,
+      ...(contentType ? { ContentType: contentType } : {})
+    });
+
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= UPLOAD_MAX_ATTEMPTS; attempt++) {
+      try {
+        await client.send(command);
+        return `s3://${this.bucket}/${objectKey}`;
+      } catch (err) {
+        lastError = err;
+        if (attempt < UPLOAD_MAX_ATTEMPTS && isRetryableS3Error(err)) {
+          // Exponential backoff: 100ms, 200ms.
+          await delay(100 * 2 ** (attempt - 1));
+          continue;
+        }
+        break;
+      }
+    }
+    throw new Error(
+      `S3 upload failed for s3://${this.bucket}/${objectKey} after ${UPLOAD_MAX_ATTEMPTS} attempt(s): ${
+        lastError instanceof Error ? lastError.message : String(lastError)
+      }`,
+      { cause: lastError }
     );
-    return `s3://${this.bucket}/${objectKey}`;
   }
 
   uriForKey(key: string): string {
