@@ -18,12 +18,13 @@ import {
   audioRefFromBytes,
   audioRefFromWav,
   concatBytes,
+  decodeAudioToWav,
   encodePcm16Wav,
   encodeWav,
   parseWavBytes,
   readWavHeader,
+  requireAudioBytes,
   toBytes,
-  tryDecodeWav,
   uriToPath,
   type WavData
 } from "../lib/audio-wav.js";
@@ -491,15 +492,25 @@ export class NormalizeAudioNode extends BaseNode {
   declare audio: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const bytes = await audioBytesAsync(this.audio, context);
-    const wav = tryDecodeWav({ data: bytes });
-    if (!wav || wav.samples.length === 0) {
-      return { output: audioRefFromBytes(bytes) };
+    const bytes = await requireAudioBytes(this.audio, context);
+    const wav = await decodeAudioToWav(bytes);
+    if (wav.samples.length === 0) {
+      return {
+        output: audioRefFromWav(
+          encodeWav(wav.samples, wav.sampleRate, wav.numChannels)
+        )
+      };
     }
 
     let peak = 0;
     for (const sample of wav.samples) peak = Math.max(peak, Math.abs(sample));
-    if (peak === 0) return { output: audioRefFromBytes(bytes) };
+    if (peak === 0) {
+      return {
+        output: audioRefFromWav(
+          encodeWav(wav.samples, wav.sampleRate, wav.numChannels)
+        )
+      };
+    }
 
     const gain = 1 / peak;
     const normalized = new Float32Array(wav.samples.length);
@@ -809,15 +820,10 @@ export class SliceAudioNode extends BaseNode {
   declare end: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const bytes = await audioBytesAsync(this.audio, context);
+    const bytes = await requireAudioBytes(this.audio, context);
     const start = Math.max(0, Number(this.start ?? 0));
     const end = Number(this.end ?? 0);
-    const wav = parseWavBytes(bytes);
-    if (!wav) {
-      // Non-WAV: fall back to raw byte slicing.
-      const e = end <= 0 ? bytes.length : end;
-      return { output: audioRefFromBytes(bytes.slice(start, e)) };
-    }
+    const wav = await decodeAudioToWav(bytes);
     const { sampleRate, numChannels } = wav;
     const frames = wavFrameCount(wav);
     const startFrame = Math.min(frames, Math.round(start * sampleRate));
@@ -1040,10 +1046,9 @@ export class FadeInAudioNode extends BaseNode {
   declare duration: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const bytes = await audioBytesAsync(this.audio, context);
+    const bytes = await requireAudioBytes(this.audio, context);
     const duration = Math.max(0, Number(this.duration ?? 1));
-    const wav = parseWavBytes(bytes);
-    if (!wav) return { output: audioRefFromBytes(bytes) };
+    const wav = await decodeAudioToWav(bytes);
     const { sampleRate, numChannels } = wav;
     const frames = wavFrameCount(wav);
     const fadeFrames = Math.min(frames, Math.round(duration * sampleRate));
@@ -1095,10 +1100,9 @@ export class FadeOutAudioNode extends BaseNode {
   declare duration: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const bytes = await audioBytesAsync(this.audio, context);
+    const bytes = await requireAudioBytes(this.audio, context);
     const duration = Math.max(0, Number(this.duration ?? 1));
-    const wav = parseWavBytes(bytes);
-    if (!wav) return { output: audioRefFromBytes(bytes) };
+    const wav = await decodeAudioToWav(bytes);
     const { sampleRate, numChannels } = wav;
     const frames = wavFrameCount(wav);
     const fadeFrames = Math.min(frames, Math.round(duration * sampleRate));
@@ -1201,47 +1205,41 @@ export class AudioMixerNode extends BaseNode {
     if (tracks.length === 0)
       return { output: audioRefFromBytes(new Uint8Array()) };
 
-    // If every track is a valid WAV file with a matching layout, mix in
-    // Float32 sample space and emit a valid WAV so downstream nodes receive a
-    // playable file. Index-based mixing only lines up when sample rate and
-    // channel count match across tracks.
-    const parsed = tracks.map((bytes) => ({
-      wav: tryDecodeWav({ data: bytes }),
-      bytes
-    }));
-    const uniformWav =
-      parsed.every((p) => p.wav !== null) &&
-      parsed.every(
-        (p) =>
-          p.wav!.sampleRate === parsed[0].wav!.sampleRate &&
-          p.wav!.numChannels === parsed[0].wav!.numChannels
+    // Decode every track to PCM (WAV directly, or mp3/flac/… via WebAudio).
+    // Undecodable input throws instead of falling through to a meaningless
+    // byte-level average.
+    const wavs = await Promise.all(
+      tracks.map((bytes) => decodeAudioToWav(bytes))
+    );
+
+    // Index-based mixing only lines up when sample rate and channel count
+    // match across tracks; resampling is out of scope, so a mismatch is an
+    // error rather than a silently distorted mix.
+    const uniform = wavs.every(
+      (w) =>
+        w.sampleRate === wavs[0].sampleRate &&
+        w.numChannels === wavs[0].numChannels
+    );
+    if (!uniform) {
+      throw new Error(
+        "Audio Mixer requires all tracks to share the same sample rate and " +
+          "channel count. Resample or convert the inputs to a common format " +
+          "upstream before mixing."
       );
-    if (uniformWav) {
-      const wavs = parsed as Array<{ wav: WavData; bytes: Uint8Array }>;
-      const len = Math.max(...wavs.map((p) => p.wav.samples.length));
-      const mixed = new Float32Array(len);
-      for (let i = 0; i < len; i += 1) {
-        let total = 0;
-        for (const p of wavs) total += p.wav.samples[i] ?? 0;
-        mixed[i] = total / wavs.length;
-      }
-      return {
-        output: audioRefFromWav(
-          encodeWav(mixed, wavs[0].wav.sampleRate, wavs[0].wav.numChannels)
-        )
-      };
     }
 
-    // Fallback: byte-level averaging (preserves backward-compatible
-    // behavior for non-WAV / headerless byte streams).
-    const len = Math.max(...tracks.map((bytes) => bytes.length));
-    const out = new Uint8Array(len);
+    const len = Math.max(...wavs.map((w) => w.samples.length));
+    const mixed = new Float32Array(len);
     for (let i = 0; i < len; i += 1) {
       let total = 0;
-      for (const bytes of tracks) total += bytes[i] ?? 0;
-      out[i] = Math.max(0, Math.min(255, Math.round(total / tracks.length)));
+      for (const w of wavs) total += w.samples[i] ?? 0;
+      mixed[i] = total / wavs.length;
     }
-    return { output: audioRefFromBytes(out) };
+    return {
+      output: audioRefFromWav(
+        encodeWav(mixed, wavs[0].sampleRate, wavs[0].numChannels)
+      )
+    };
   }
 }
 
@@ -1289,15 +1287,10 @@ export class TrimAudioNode extends BaseNode {
   declare end: any;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const bytes = await audioBytesAsync(this.audio, context);
+    const bytes = await requireAudioBytes(this.audio, context);
     const start = Math.max(0, Number(this.start ?? 0));
     const end = Math.max(0, Number(this.end ?? 0));
-    const wav = parseWavBytes(bytes);
-    if (!wav) {
-      // Non-WAV fallback: treat start/end as raw byte offsets.
-      const e = end > 0 ? Math.max(start, end) : bytes.length;
-      return { output: audioRefFromBytes(bytes.slice(start, e)) };
-    }
+    const wav = await decodeAudioToWav(bytes);
     const { sampleRate, numChannels } = wav;
     const frames = wavFrameCount(wav);
     // start/end are absolute times in seconds; end <= 0 means "to the end".
@@ -1373,41 +1366,44 @@ export class ConcatAudioNode extends BaseNode {
     const parts = (
       await Promise.all(values.map((v) => audioBytesAsync(v, context)))
     ).filter((b) => b.length > 0);
-    return { output: concatAudio(parts) };
+    return { output: await concatAudio(parts) };
   }
 }
 
 type AudioRefResult = ReturnType<typeof audioRefFromBytes>;
 
 /**
- * Concatenate audio byte buffers. When every part is a WAV with a matching
- * layout, decode and join in sample space so the result is a single valid
- * WAV; otherwise fall back to raw byte concatenation.
+ * Concatenate audio byte buffers. Every part is decoded to PCM (WAV directly,
+ * or mp3/flac/… via WebAudio) and joined in sample space so the result is a
+ * single valid WAV. Undecodable input throws rather than silently emitting an
+ * unplayable byte concatenation, and mismatched layouts throw because joining
+ * differing sample rates without resampling would distort the audio.
  */
-function concatAudio(parts: Uint8Array[]): AudioRefResult {
+async function concatAudio(parts: Uint8Array[]): Promise<AudioRefResult> {
   if (parts.length === 0) return audioRefFromBytes(new Uint8Array());
-  const wavs = parts.map((b) => parseWavBytes(b));
-  const uniform =
-    wavs.every((w) => w !== null) &&
-    wavs.every(
-      (w) =>
-        w!.sampleRate === wavs[0]!.sampleRate &&
-        w!.numChannels === wavs[0]!.numChannels
-    );
-  if (uniform) {
-    const list = wavs as WavData[];
-    const total = list.reduce((s, w) => s + w.samples.length, 0);
-    const out = new Float32Array(total);
-    let pos = 0;
-    for (const w of list) {
-      out.set(w.samples, pos);
-      pos += w.samples.length;
-    }
-    return audioRefFromWav(
-      encodeWav(out, list[0].sampleRate, list[0].numChannels)
+  const list = await Promise.all(parts.map((b) => decodeAudioToWav(b)));
+  const uniform = list.every(
+    (w) =>
+      w.sampleRate === list[0].sampleRate &&
+      w.numChannels === list[0].numChannels
+  );
+  if (!uniform) {
+    throw new Error(
+      "Cannot concatenate audio with differing sample rates or channel " +
+        "counts. Convert the inputs to a common format upstream before " +
+        "joining."
     );
   }
-  return audioRefFromBytes(concatBytes(parts));
+  const total = list.reduce((s, w) => s + w.samples.length, 0);
+  const out = new Float32Array(total);
+  let pos = 0;
+  for (const w of list) {
+    out.set(w.samples, pos);
+    pos += w.samples.length;
+  }
+  return audioRefFromWav(
+    encodeWav(out, list[0].sampleRate, list[0].numChannels)
+  );
 }
 
 export class ConcatAudioListNode extends BaseNode {
@@ -1436,7 +1432,7 @@ export class ConcatAudioListNode extends BaseNode {
     const parts = (
       await Promise.all(audios.map((a) => audioBytesAsync(a, context)))
     ).filter((b) => b.length > 0);
-    return { output: concatAudio(parts) };
+    return { output: await concatAudio(parts) };
   }
 }
 
