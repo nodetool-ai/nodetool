@@ -51,6 +51,7 @@ import { createLogger } from "@nodetool-ai/config";
 
 import {
   BRIDGE_PROTOCOL_VERSION,
+  MIN_BRIDGE_PROTOCOL_VERSION,
   MIN_NODETOOL_CORE_VERSION
 } from "@nodetool-ai/protocol/bridge-protocol";
 
@@ -64,7 +65,11 @@ import type {
   PythonProviderInfo,
   PythonBridgeOptions,
   PythonWorkerLoadError,
-  PythonWorkerStatus
+  PythonWorkerStatus,
+  UnifiedModelLike,
+  ModelDownloadRequest,
+  ModelDownloadUpdate,
+  PythonBridge
 } from "./python-bridge-types.js";
 
 interface PendingRequest {
@@ -92,7 +97,10 @@ const DEFAULT_STATUS_TIMEOUT_MS = Number(
  * {@link _assertCanConnect} hook lets a transport refuse to connect (e.g. in
  * production).
  */
-export abstract class PythonBridgeBase extends EventEmitter {
+export abstract class PythonBridgeBase
+  extends EventEmitter
+  implements PythonBridge
+{
   protected _nodeMetadata: PythonNodeMetadata[] = [];
   protected _loadErrors: PythonWorkerLoadError[] = [];
   protected _workerStatus: PythonWorkerStatus | null = null;
@@ -170,21 +178,23 @@ export abstract class PythonBridgeBase extends EventEmitter {
           protocol_version?: number;
           load_errors?: PythonWorkerLoadError[];
         };
-        // Reject the discover promise if the worker's protocol is older
-        // than what this build of the JS runtime requires. Workers that
-        // pre-date the protocol_version field are treated as version 1
-        // (the initial protocol release) — they speak the same wire
-        // format as v1, they just don't announce it.
+        // Reject the discover promise only if the worker's protocol is below
+        // the HARD FLOOR (a real wire break). Workers at or above the floor
+        // but below BRIDGE_PROTOCOL_VERSION still connect — newer, additive
+        // features are gated per-capability (e.g. supportsModelManagement),
+        // so an older worker keeps running everything it understands. Workers
+        // that pre-date the protocol_version field are treated as version 1
+        // (the initial release) — same wire format, they just don't announce.
         const workerVersion =
           typeof data.protocol_version === "number"
             ? data.protocol_version
             : 1;
-        if (workerVersion < BRIDGE_PROTOCOL_VERSION) {
+        if (workerVersion < MIN_BRIDGE_PROTOCOL_VERSION) {
           this._pending.delete(requestId);
           pending.reject(
             new Error(
               `The installed nodetool-core speaks bridge protocol v${workerVersion}, ` +
-                `but this Nodetool build requires v${BRIDGE_PROTOCOL_VERSION}. ` +
+                `but this Nodetool build requires at least v${MIN_BRIDGE_PROTOCOL_VERSION}. ` +
                 `Please reinstall the Python environment from Settings → Packages ` +
                 `(Reinstall environment) — it will fetch nodetool-core>=${MIN_NODETOOL_CORE_VERSION}.`
             )
@@ -761,6 +771,88 @@ export abstract class PythonBridgeBase extends EventEmitter {
       dimensions
     });
     return (result as { embeddings: number[][] }).embeddings;
+  }
+
+  // ── Worker model management (HuggingFace cache) ───────────────────────
+
+  /**
+   * List the models cached on the worker's HF_HOME. Cache-only (no network):
+   * each entry is a UnifiedModel JSON with `downloaded` forced true. Requires a
+   * worker that speaks bridge protocol v2 ({@link supportsModelManagement}).
+   */
+  async listCachedModels(): Promise<UnifiedModelLike[]> {
+    const result = await this._providerCall("models.list_cached", {});
+    return (result as { models: UnifiedModelLike[] }).models;
+  }
+
+  /**
+   * Download a model onto the worker's persistent cache, streaming progress.
+   *
+   * The worker emits ordered `progress` frames (start → 0+ progress →
+   * completed) followed by a terminal `result`. Each `progress` frame's `data`
+   * is forwarded to {@link onProgress} verbatim; the promise resolves on the
+   * terminal `result` and rejects on an `error` frame.
+   *
+   * The request is registered in BOTH pending maps: `_pending` (with
+   * onProgress) so {@link _handleMessage} routes `progress` frames to the
+   * callback, and `_pendingStream` for the terminal `result`/`error`. Both are
+   * cleaned up on settle.
+   *
+   * Pass a stable `requestId` to make the download cancellable by a known key:
+   * {@link cancelModelDownload}(requestId) then reaches this exact download.
+   * Defaults to a random id when the caller has no need to cancel.
+   */
+  async downloadModel(
+    req: ModelDownloadRequest,
+    onProgress: (update: ModelDownloadUpdate) => void,
+    requestId: string = randomUUID()
+  ): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const settle = (fn: () => void) => {
+        this._pending.delete(requestId);
+        this._pendingStream.delete(requestId);
+        fn();
+      };
+      this._pending.set(requestId, {
+        resolve: () => undefined,
+        reject: () => undefined,
+        onProgress: (event) =>
+          onProgress(event as unknown as ModelDownloadUpdate)
+      });
+      this._pendingStream.set(requestId, {
+        resolve: () => settle(resolve),
+        reject: (err) => settle(() => reject(err)),
+        onChunk: () => {}
+      });
+      try {
+        this._send({ type: "models.download", request_id: requestId, data: req });
+      } catch (err) {
+        settle(() => reject(err instanceof Error ? err : new Error(String(err))));
+      }
+    });
+  }
+
+  /** Cancel an in-flight {@link downloadModel} by its request id. */
+  cancelModelDownload(requestId: string): void {
+    this.cancel(requestId);
+  }
+
+  /** Delete a cached model from the worker's HF_HOME. Returns whether it existed. */
+  async deleteCachedModel(repoId: string): Promise<boolean> {
+    const result = await this._providerCall("models.delete", { repo_id: repoId });
+    return Boolean((result as { deleted?: boolean }).deleted);
+  }
+
+  /**
+   * Whether the attached worker speaks bridge protocol v2+ and therefore
+   * supports the models.* RPC. This is the per-capability gate that lets an
+   * older v1 worker connect normally (it sits above the hard floor) and simply
+   * not expose worker model management — the Worker scope is hidden/disabled
+   * rather than erroring. `models.*` was introduced in protocol v2, so the
+   * floor here is a fixed 2, independent of BRIDGE_PROTOCOL_VERSION.
+   */
+  supportsModelManagement(): boolean {
+    return (this._workerStatus?.protocol_version ?? 0) >= 2;
   }
 
   protected async _providerCall(

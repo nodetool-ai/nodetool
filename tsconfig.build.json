@@ -33,6 +33,7 @@
     { "path": "packages/base-nodes" },
     { "path": "packages/dsl" },
     { "path": "packages/deploy" },
+    { "path": "packages/compute" },
     { "path": "packages/chat" },
     { "path": "packages/websocket" },
     { "path": "packages/cli" },
