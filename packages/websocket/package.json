@@ -54,7 +54,7 @@
     "@nodetool-ai/storage": "*",
     "@nodetool-ai/timeline": "*",
     "@nodetool-ai/vectorstore": "*",
-    "@mariozechner/pi-coding-agent": "^0.72.1",
+    "@mariozechner/pi-coding-agent": "^0.73.1",
     "@sinclair/typebox": "^0.34.0",
     "fastify": "^5.8.5",
     "fflate": "^0.8.2",
