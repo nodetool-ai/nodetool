@@ -2,6 +2,8 @@
 
 Visual AI workflow platform. TypeScript monorepo with React frontend, Electron desktop app, and Node.js backend.
 
+> _Last updated: 2026-06-19._ When the architecture, commands, or rules below drift from the codebase, update this file in the same PR.
+
 ## Critical Commands
 
 ```bash
