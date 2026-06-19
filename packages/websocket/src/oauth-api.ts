@@ -7,7 +7,19 @@
  */
 
 import { createHash, randomBytes } from "node:crypto";
+import { createLogger } from "@nodetool-ai/config";
 import { OAuthCredential } from "@nodetool-ai/models";
+import {
+  OAuthClient,
+  LocalCallbackServer,
+  extractChatGptAccountId,
+  CODEX_OAUTH_CLIENT_ID,
+  CODEX_CALLBACK_PORT,
+  CODEX_CALLBACK_PATH,
+  DEFAULT_CODEX_OAUTH_CONFIG
+} from "@nodetool-ai/runtime/oauth";
+
+const logger = createLogger("nodetool.websocket.oauth");
 
 // ── Constants ────────────────────────────────────────────────────────
 
@@ -21,6 +33,18 @@ const GITHUB_AUTHORIZATION_URL = "https://github.com/login/oauth/authorize";
 const GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token";
 const GITHUB_USER_URL = "https://api.github.com/user";
 const GITHUB_SCOPES = ["user:email", "read:user"];
+
+// OpenAI OAuth uses the public Codex CLI client (no client secret, no
+// per-deployment registration). The authorization server only accepts the
+// Codex-registered loopback redirect (http://localhost:1455/auth/callback), so
+// the browser is redirected to a local single-shot listener this process binds
+// rather than back to a server route. This is inherently a same-machine flow —
+// the listener must be reachable from the browser that completes the login.
+const OPENAI_USERINFO_URL =
+  process.env.OPENAI_OAUTH_USERINFO_URL ?? "https://auth.openai.com/userinfo";
+
+/** The Codex-registered loopback redirect the client id is bound to. */
+const CODEX_REDIRECT_URI = `http://localhost:${CODEX_CALLBACK_PORT}${CODEX_CALLBACK_PATH}`;
 
 const STATE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -804,6 +828,182 @@ async function handleGithubUser(
   }
 }
 
+// ── OpenAI (Codex) Endpoints ─────────────────────────────────────────
+//
+// The login uses the public Codex CLI OAuth client. Because the Codex client's
+// only registered redirect is the loopback http://localhost:1455/auth/callback,
+// the flow can't bounce back through a server route: `start` binds a one-shot
+// loopback listener on that port, returns the authorization URL for the UI to
+// open, and finishes the code exchange in the background. The UI reflects
+// success by polling `/api/oauth/openai/tokens`.
+
+/** Build the Codex OAuth client (public client id, no secret). */
+function codexOAuthClient(): OAuthClient {
+  const clientId = process.env.CODEX_OAUTH_CLIENT_ID || CODEX_OAUTH_CLIENT_ID;
+  return new OAuthClient({
+    config: { ...DEFAULT_CODEX_OAUTH_CONFIG, clientId }
+  });
+}
+
+/** The single in-flight login, so a re-click can supersede a stale listener. */
+let activeCodexLogin: {
+  server: LocalCallbackServer;
+  abort: AbortController;
+} | null = null;
+
+/** Abort and tear down any in-flight Codex login listener. Idempotent. */
+export async function closeActiveCodexCallbackServer(): Promise<void> {
+  const active = activeCodexLogin;
+  if (!active) return;
+  activeCodexLogin = null;
+  active.abort.abort();
+  await active.server.close().catch(() => {});
+}
+
+async function handleOpenAIStart(
+  request: Request,
+  getUserId: () => string
+): Promise<Response> {
+  if (request.method !== "GET") return errorResponse(405, "Method not allowed");
+
+  const userId = getUserId();
+  const client = codexOAuthClient();
+  const { codeVerifier, codeChallenge } = generatePkcePair();
+  const state = generateState();
+
+  // A new attempt supersedes any listener left over from an abandoned one.
+  await closeActiveCodexCallbackServer();
+
+  const server = new LocalCallbackServer({
+    host: "localhost",
+    port: CODEX_CALLBACK_PORT,
+    path: CODEX_CALLBACK_PATH
+  });
+  try {
+    await server.listen();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return errorResponse(
+      500,
+      `Could not start the OAuth callback listener on port ${CODEX_CALLBACK_PORT}: ${message}`
+    );
+  }
+
+  const abort = new AbortController();
+  activeCodexLogin = { server, abort };
+
+  const authUrl = client.buildAuthorizationUrl({
+    redirectUri: CODEX_REDIRECT_URI,
+    state,
+    codeChallenge,
+    codeChallengeMethod: "S256"
+  });
+
+  // Finish the exchange off the request path; the UI polls /tokens for success.
+  void completeCodexLogin({ server, client, state, codeVerifier, userId, abort });
+
+  return jsonResponse({ auth_url: authUrl });
+}
+
+/** Await the loopback redirect, exchange the code, and persist credentials. */
+async function completeCodexLogin(args: {
+  server: LocalCallbackServer;
+  client: OAuthClient;
+  state: string;
+  codeVerifier: string;
+  userId: string;
+  abort: AbortController;
+}): Promise<void> {
+  const { server, client, state, codeVerifier, userId, abort } = args;
+  try {
+    const { code } = await server.waitForCode({
+      expectedState: state,
+      timeoutMs: STATE_TTL_MS,
+      signal: abort.signal
+    });
+
+    const tokens = await client.exchangeAuthorizationCode({
+      code,
+      codeVerifier,
+      redirectUri: CODEX_REDIRECT_URI,
+      signal: abort.signal
+    });
+
+    // Prefer the ChatGPT account id embedded in the Codex access-token JWT — it
+    // is the stable identity the ChatGPT backend addresses accounts by. Falls
+    // back to the OIDC `sub`, then to an opaque token-derived id.
+    const chatgptAccountId = extractChatGptAccountId(tokens.accessToken);
+    let accountId =
+      chatgptAccountId ?? String(Math.abs(hashCode(tokens.accessToken.slice(0, 24))));
+    // Best-effort OIDC userinfo for a friendly account label.
+    let username: string | null = null;
+    try {
+      const infoRes = await fetch(OPENAI_USERINFO_URL, {
+        headers: { Authorization: `${tokens.tokenType} ${tokens.accessToken}` }
+      });
+      if (infoRes.ok) {
+        const info = (await infoRes.json()) as Record<string, unknown>;
+        username =
+          (info.email as string) ?? (info.name as string) ?? (info.sub as string) ?? null;
+        if (!chatgptAccountId && typeof info.sub === "string" && info.sub.length > 0) {
+          accountId = info.sub;
+        }
+      }
+    } catch {
+      // userinfo is optional — keep the fallback account id.
+    }
+
+    await OAuthCredential.upsert({
+      user_id: userId,
+      provider: "openai",
+      account_id: accountId,
+      access_token: tokens.accessToken,
+      refresh_token: tokens.refreshToken,
+      username,
+      token_type: tokens.tokenType,
+      scope: tokens.scope,
+      received_at: new Date(tokens.receivedAt).toISOString(),
+      expires_at:
+        tokens.expiresAt != null ? new Date(tokens.expiresAt).toISOString() : null
+    });
+    logger.info("Codex OAuth login completed", { accountId });
+  } catch (err) {
+    logger.warn("Codex OAuth login did not complete", {
+      error: err instanceof Error ? err.message : String(err)
+    });
+  } finally {
+    await server.close().catch(() => {});
+    if (activeCodexLogin?.server === server) activeCodexLogin = null;
+  }
+}
+
+async function handleOpenAITokens(getUserId: () => string): Promise<Response> {
+  const userId = getUserId();
+  const credentials = await OAuthCredential.listForUserAndProvider(
+    userId,
+    "openai"
+  );
+  return jsonResponse({ tokens: credentials.map(toTokenMetadata) });
+}
+
+async function handleOpenAIDisconnect(
+  request: Request,
+  getUserId: () => string
+): Promise<Response> {
+  if (request.method !== "POST")
+    return errorResponse(405, "Method not allowed");
+
+  const userId = getUserId();
+  const credentials = await OAuthCredential.listForUserAndProvider(
+    userId,
+    "openai"
+  );
+  for (const credential of credentials) {
+    await credential.delete();
+  }
+  return jsonResponse({ success: true, removed: credentials.length });
+}
+
 // ── Simple hash helper (replicates Python's hash() for fallback) ─────
 
 function hashCode(str: string): number {
@@ -861,6 +1061,14 @@ export async function handleOAuthRequest(
       return handleGithubTokens(getUserId);
     case "/api/oauth/github/user":
       return handleGithubUser(request, getUserId);
+
+    // OpenAI (Codex)
+    case "/api/oauth/openai/start":
+      return handleOpenAIStart(request, getUserId);
+    case "/api/oauth/openai/tokens":
+      return handleOpenAITokens(getUserId);
+    case "/api/oauth/openai/disconnect":
+      return handleOpenAIDisconnect(request, getUserId);
 
     default:
       return null;

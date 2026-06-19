@@ -44,7 +44,7 @@ const basename = (p: string): string =>
 const join = (...parts: string[]): string =>
   nodePath ? nodePath.join(...parts) : notOnNode("node:path.join");
 
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger, getByteLimitEnv } from "@nodetool-ai/config";
 
 import { PythonBridgeBase } from "./python-bridge-base.js";
 
@@ -79,8 +79,9 @@ type PythonLaunchCandidate = {
   source: string;
 };
 
-const MAX_BRIDGE_FRAME_SIZE = Number(
-  process.env["NODETOOL_BRIDGE_MAX_FRAME_SIZE"] ?? 256 * 1024 * 1024
+const MAX_BRIDGE_FRAME_SIZE = getByteLimitEnv(
+  "NODETOOL_BRIDGE_MAX_FRAME_SIZE",
+  256 * 1024 * 1024
 );
 const PYTHON_BRIDGE_ALLOWED_IN_PRODUCTION =
   process.env["NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION"] === "1";

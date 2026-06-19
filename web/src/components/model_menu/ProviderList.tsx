@@ -132,6 +132,7 @@ import inferenceIcon from "@lobehub/icons-static-svg/icons/inference.svg";
 import featherlessColorIcon from "@lobehub/icons-static-svg/icons/featherless-color.svg";
 import voyageColorIcon from "@lobehub/icons-static-svg/icons/voyage-color.svg";
 import zaiIcon from "@lobehub/icons-static-svg/icons/zai.svg";
+import gmiIcon from "../../icons/gmi.svg";
 
 // Chinese providers
 import alibabacloudColorIcon from "@lobehub/icons-static-svg/icons/alibabacloud-color.svg";
@@ -214,6 +215,7 @@ const providerIconMap: Record<string, string> = {
   stability: stabilityColorIcon,
   "stable-diffusion": stabilityColorIcon,
   cerebras: cerebrasColorIcon,
+  gmi: gmiIcon,
   moonshot: moonshotIcon,
   novita: novitaColorIcon,
   sambanova: sambanovaColorIcon,
@@ -463,6 +465,7 @@ const getProviderIconUrl = (provider: string): string | null => {
     bedrock: bedrockColorIcon,
     vertex: vertexaiColorIcon,
     cerebras: cerebrasColorIcon,
+    gmi: gmiIcon,
     fireworks: fireworksColorIcon,
     cloudflare: cloudflareColorIcon,
     moonshot: moonshotIcon,

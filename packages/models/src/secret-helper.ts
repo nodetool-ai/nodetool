@@ -15,6 +15,7 @@
 
 import { createLogger } from "@nodetool-ai/config";
 import { Secret } from "./secret.js";
+import { resolveCodexAccessToken } from "./codex-token.js";
 
 const log = createLogger("nodetool.models.secret-helper");
 
@@ -55,6 +56,20 @@ export async function getSecret(
   defaultValue?: string
 ): Promise<string | null> {
   const resolvedUserId = userId ?? "default";
+
+  // The Codex provider's bearer is not a stored Secret — it lives in the
+  // OAuthCredential table and may need a refresh. Resolve it directly.
+  if (key === "CODEX_ACCESS_TOKEN") {
+    try {
+      return await resolveCodexAccessToken(resolvedUserId);
+    } catch (err) {
+      log.error("Codex token resolution failed", {
+        userId: resolvedUserId,
+        error: String(err)
+      });
+      return null;
+    }
+  }
 
   if (FORCE_ENV_PRIORITY.has(key)) {
     const envVal = process.env[key];

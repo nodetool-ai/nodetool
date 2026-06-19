@@ -3,6 +3,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { packContext } from "../src/context-packer.js";
+import { countTokens } from "../src/token-counter.js";
 import type { Message } from "../src/providers/types.js";
 
 function msg(role: Message["role"], text: string): Message {
@@ -10,7 +11,7 @@ function msg(role: Message["role"], text: string): Message {
 }
 
 function estimateTokens(text: string): number {
-  return Math.ceil(text.length / 4);
+  return countTokens(text);
 }
 
 describe("T-MSG-1: packContext", () => {

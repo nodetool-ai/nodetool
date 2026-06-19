@@ -122,6 +122,7 @@ export const formatGenericProviderName = (provider?: string): string => {
   if (providerLower === "zai-org" || providerLower === "zai_org" || providerLower === "zai") {return "Z.AI";}
   if (providerLower === "moonshot" || providerLower === "kimi") {return "Moonshot AI";}
   if (providerLower === "minimax") {return "MiniMax";}
+  if (providerLower === "gmi") {return "GMI Cloud";}
   if (providerLower === "cohere") {return "Cohere";}
   if (providerLower === "voyage" || providerLower === "voyage-ai" || providerLower === "voyageai") {return "Voyage AI";}
   if (providerLower === "jina" || providerLower === "jina-ai" || providerLower === "jinaai") {return "Jina AI";}
@@ -211,6 +212,7 @@ export const getProviderUrl = (provider?: string): string | null => {
     {return "https://platform.moonshot.ai";}
   if (providerLower.includes("minimax"))
     {return "https://platform.minimax.io";}
+  if (providerLower === "gmi") {return "https://www.gmicloud.ai";}
   if (providerLower === "cohere") {return "https://cohere.com";}
   if (providerLower === "voyage" || providerLower === "voyage-ai" || providerLower === "voyageai")
     {return "https://www.voyageai.com";}

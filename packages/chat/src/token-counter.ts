@@ -3,23 +3,18 @@
  *
  * Port of src/nodetool/chat/token_counter.py.
  *
- * Since tiktoken is not available in JS, this uses a simple word-based
- * approximation: split by whitespace and apply a ~0.75 ratio to account
- * for sub-word tokenization.
+ * Token counts come from js-tiktoken (cl100k_base) via the shared
+ * `countTokens` helper in `@nodetool-ai/runtime`.
  */
 
+import { countTokens } from "@nodetool-ai/runtime";
 import type { Message, ToolCall } from "@nodetool-ai/runtime";
 
 /**
- * Approximate token count for a plain text string.
- *
- * Uses whitespace splitting as a proxy. Most LLM tokenizers produce roughly
- * 1.3 tokens per whitespace-delimited word, so we multiply by 1.33 and round.
+ * BPE token count for a plain text string.
  */
 export function countTextTokens(text: string | null | undefined): number {
-  if (!text) return 0;
-  const words = text.split(/\s+/).filter(Boolean);
-  return Math.ceil(words.length * 1.33);
+  return countTokens(text);
 }
 
 /**

@@ -8,7 +8,8 @@ import { pack, unpack } from "msgpackr";
 import {
   createLogger,
   getDefaultAssetsPath,
-  buildAssetUrl
+  buildAssetUrl,
+  getByteLimitEnv
 } from "@nodetool-ai/config";
 import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
@@ -100,6 +101,21 @@ import type { HttpApiOptions } from "./http-api.js";
 const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
 const MAX_ERROR_TEXT_LENGTH = 4000;
+
+/**
+ * Largest binary (MsgPack) frame accepted from a client before deserialization.
+ * MsgPack can amplify a small payload into a huge in-memory structure, so the
+ * raw byte length is bounded up front. Override with the
+ * `NODETOOL_WS_MAX_MESSAGE_BYTES` environment variable (value in bytes);
+ * default 256 MiB.
+ */
+const DEFAULT_MAX_WS_MESSAGE_BYTES = 256 * 1024 * 1024;
+function getMaxWsMessageBytes(): number {
+  return getByteLimitEnv(
+    "NODETOOL_WS_MAX_MESSAGE_BYTES",
+    DEFAULT_MAX_WS_MESSAGE_BYTES
+  );
+}
 
 /**
  * Return `true` when the given http(s) URL appears to point at a public
@@ -1207,6 +1223,14 @@ export class UnifiedWebSocketRunner {
     if (message.type === "websocket.disconnect") return null;
 
     if (message.bytes) {
+      const maxBytes = getMaxWsMessageBytes();
+      if (message.bytes.length > maxBytes) {
+        throw new Error(
+          `Incoming WebSocket message exceeds maximum size: ` +
+            `${message.bytes.length} > ${maxBytes} bytes ` +
+            `(set NODETOOL_WS_MAX_MESSAGE_BYTES to raise the limit)`
+        );
+      }
       return unpack(message.bytes) as Record<string, unknown>;
     }
     if (message.text) {

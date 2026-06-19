@@ -740,29 +740,158 @@ const applyAgentExecutionMessage = (
   return { update };
 };
 
+const normalizeTextForComparison = (text: string) =>
+  text.replace(/\r\n/g, "\n").replace(/\s+$/g, "");
+
+const extractTextContent = (message: Message): string => {
+  if (typeof message.content === "string") {
+    return message.content;
+  }
+  if (Array.isArray(message.content)) {
+    return message.content
+      .map((c) => (c.type === "text" ? c.text : ""))
+      .join("");
+  }
+  return "";
+};
+
+/**
+ * Locate the trailing local streaming placeholder (the `local-stream-*`
+ * assistant message that applyChunk builds from streamed text) that an incoming
+ * server-authored assistant message should replace rather than sit beside.
+ *
+ * The server re-sends the streamed text as a finalized assistant message — both
+ * when it completes a plain reply and when it attaches tool_calls. Without this
+ * reconciliation the placeholder and the finalized message both render, so the
+ * same text appears twice. Returns -1 when the incoming message is genuinely new.
+ */
+const findStreamPlaceholderIndex = (
+  messages: Message[],
+  msg: Message,
+  status: GlobalChatState["status"]
+): number => {
+  const incomingText = extractTextContent(msg);
+  const incomingNormalized = normalizeTextForComparison(incomingText);
+
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const candidate = messages[i];
+    if (candidate?.role !== "assistant") {
+      continue;
+    }
+    if (candidate.type !== "message") {
+      continue;
+    }
+
+    const candidateId = candidate.id ?? null;
+    const isLocalStream =
+      typeof candidateId === "string" &&
+      candidateId.startsWith("local-stream-");
+    const isServerAuthored =
+      !!candidate.created_at || (!!candidateId && !isLocalStream);
+
+    if (isServerAuthored) {
+      continue;
+    }
+
+    const candidateText = extractTextContent(candidate);
+    const candidateNormalized = normalizeTextForComparison(candidateText);
+    if (!candidateNormalized || !incomingNormalized) {
+      continue;
+    }
+
+    if (
+      candidateNormalized === incomingNormalized ||
+      incomingNormalized.startsWith(candidateNormalized) ||
+      candidateNormalized.startsWith(incomingNormalized)
+    ) {
+      return i;
+    }
+
+    // If we were streaming and the most recent assistant message looks local,
+    // prefer replacing it even if trailing whitespace differs.
+    if (
+      i === messages.length - 1 &&
+      (status === "streaming" || isLocalStream) &&
+      candidateText &&
+      incomingText
+    ) {
+      const candidateTrimmed = candidateText.trimEnd();
+      const incomingTrimmed = incomingText.trimEnd();
+      if (
+        candidateTrimmed === incomingTrimmed ||
+        incomingTrimmed.startsWith(candidateTrimmed)
+      ) {
+        return i;
+      }
+    }
+  }
+  return -1;
+};
+
+/**
+ * Replace the message at `index` with the incoming server message (merging so
+ * server fields like id/created_at/tool_calls win while keeping content when the
+ * server omits it), or append when no placeholder matched.
+ */
+const replaceStreamPlaceholderOrAppend = (
+  messages: Message[],
+  index: number,
+  msg: Message
+): Message[] => {
+  if (index < 0) {
+    return [...messages, msg];
+  }
+  const existing = messages[index];
+  const replacement: Message = {
+    ...existing,
+    ...msg,
+    content: msg.content ?? existing.content
+  };
+  return [
+    ...messages.slice(0, index),
+    replacement,
+    ...messages.slice(index + 1)
+  ];
+};
+
 const applyToolMessage = (
   state: GlobalChatState,
   threadId: string,
   messages: Message[],
   msg: Message
-) => ({
-  update: {
-    messageCache: {
-      ...state.messageCache,
-      [threadId]: [...messages, msg]
-    },
-    threads: state.threads[threadId]
-      ? updateThreadTimestamp(threadId, state.threads)
-      : state.threads,
-    ...(msg.role === "tool"
-      ? {
-          currentRunningToolCallId: null,
-          currentToolMessage: null,
-          statusMessage: null
-        }
-      : {})
-  }
-});
+) => {
+  // An assistant message carrying tool_calls finalizes the text the server just
+  // streamed, so replace the streaming placeholder instead of appending a second
+  // copy. Plain tool-result messages (role === "tool") never have a placeholder
+  // and are always appended.
+  const placeholderIndex =
+    msg.role === "assistant"
+      ? findStreamPlaceholderIndex(messages, msg, state.status)
+      : -1;
+  const updatedMessages = replaceStreamPlaceholderOrAppend(
+    messages,
+    placeholderIndex,
+    msg
+  );
+  return {
+    update: {
+      messageCache: {
+        ...state.messageCache,
+        [threadId]: updatedMessages
+      },
+      threads: state.threads[threadId]
+        ? updateThreadTimestamp(threadId, state.threads)
+        : state.threads,
+      ...(msg.role === "tool"
+        ? {
+            currentRunningToolCallId: null,
+            currentToolMessage: null,
+            statusMessage: null
+          }
+        : {})
+    }
+  };
+};
 
 const applyAssistantMessage = (
   state: GlobalChatState,
@@ -777,82 +906,15 @@ const applyAssistantMessage = (
       state.status === "streaming" ||
       state.status === "stopping");
 
-  const normalizeTextForComparison = (text: string) =>
-    text.replace(/\r\n/g, "\n").replace(/\s+$/g, "");
+  const incomingNormalized = normalizeTextForComparison(
+    extractTextContent(msg)
+  );
 
-  const extractTextContent = (message: Message): string => {
-    if (typeof message.content === "string") {
-      return message.content;
-    }
-    if (Array.isArray(message.content)) {
-      return message.content
-        .map((c) => (c.type === "text" ? c.text : ""))
-        .join("");
-    }
-    return "";
-  };
-
-  const incomingText =
-    typeof msg.content === "string"
-      ? msg.content
-      : Array.isArray(msg.content)
-      ? msg.content.map((c) => (c.type === "text" ? c.text : "")).join("")
-      : "";
-  const incomingNormalized = normalizeTextForComparison(incomingText);
-
-  const findStreamPlaceholderIndex = (): number => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const candidate = messages[i];
-      if (candidate?.role !== "assistant") {continue;}
-      if (candidate.type !== "message") {continue;}
-
-      const candidateId = candidate.id ?? null;
-      const isLocalStream =
-        typeof candidateId === "string" &&
-        candidateId.startsWith("local-stream-");
-      const isServerAuthored =
-        !!candidate.created_at || (!!candidateId && !isLocalStream);
-
-      if (isServerAuthored) {
-        continue;
-      }
-
-      const candidateText = extractTextContent(candidate);
-      const candidateNormalized = normalizeTextForComparison(candidateText);
-      if (!candidateNormalized || !incomingNormalized) {
-        continue;
-      }
-
-      if (
-        candidateNormalized === incomingNormalized ||
-        incomingNormalized.startsWith(candidateNormalized) ||
-        candidateNormalized.startsWith(incomingNormalized)
-      ) {
-        return i;
-      }
-
-      // If we were streaming and the most recent assistant message looks local,
-      // prefer replacing it even if trailing whitespace differs.
-      if (
-        i === messages.length - 1 &&
-        (state.status === "streaming" || isLocalStream) &&
-        candidateText &&
-        incomingText
-      ) {
-        const candidateTrimmed = candidateText.trimEnd();
-        const incomingTrimmed = incomingText.trimEnd();
-        if (
-          candidateTrimmed === incomingTrimmed ||
-          incomingTrimmed.startsWith(candidateTrimmed)
-        ) {
-          return i;
-        }
-      }
-    }
-    return -1;
-  };
-
-  const streamPlaceholderIndex = findStreamPlaceholderIndex();
+  const streamPlaceholderIndex = findStreamPlaceholderIndex(
+    messages,
+    msg,
+    state.status
+  );
 
   const isNewAssistantMessage =
     streamPlaceholderIndex < 0 &&
@@ -861,17 +923,11 @@ const applyAssistantMessage = (
 
   const updatedMessages = (() => {
     if (streamPlaceholderIndex >= 0) {
-      const existing = messages[streamPlaceholderIndex];
-      const replacement: Message = {
-        ...existing,
-        ...msg,
-        content: msg.content ?? existing.content
-      };
-      return [
-        ...messages.slice(0, streamPlaceholderIndex),
-        replacement,
-        ...messages.slice(streamPlaceholderIndex + 1)
-      ];
+      return replaceStreamPlaceholderOrAppend(
+        messages,
+        streamPlaceholderIndex,
+        msg
+      );
     }
 
     const currentLast = messages[messages.length - 1];
