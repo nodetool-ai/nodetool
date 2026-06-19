@@ -29,6 +29,32 @@ export class ContainerFailureError extends Error {
   }
 }
 
+/**
+ * Terminate a child process gracefully, then force-kill if it ignores SIGTERM.
+ * Without the SIGKILL escalation a runaway/hung subprocess (one that traps or
+ * ignores SIGTERM) survives timeouts and stop(), leaking CPU/memory.
+ */
+function terminateChild(child: ChildProcess, graceMs = 3000): void {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  try {
+    child.kill("SIGTERM");
+  } catch {
+    return;
+  }
+  const timer = setTimeout(() => {
+    if (child.exitCode === null && child.signalCode === null) {
+      try {
+        child.kill("SIGKILL");
+      } catch {
+        // ignore — process may have just exited
+      }
+    }
+  }, graceMs);
+  // Don't keep the event loop alive solely for the force-kill timer.
+  if (typeof timer.unref === "function") timer.unref();
+  child.once("exit", () => clearTimeout(timer));
+}
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -193,14 +219,10 @@ export class StreamRunnerBase {
       r();
     }
 
-    // Kill local subprocess if active
+    // Kill local subprocess if active (force-kill if it ignores SIGTERM)
     const child = this._activeChild;
     if (child && child.exitCode === null) {
-      try {
-        child.kill("SIGTERM");
-      } catch {
-        // ignore
-      }
+      terminateChild(child);
     }
 
     // Force-remove Docker container if active
@@ -728,13 +750,7 @@ export class StreamRunnerBase {
       if (this.timeoutSeconds > 0) {
         timeoutHandle = setTimeout(() => {
           timedOut = true;
-          try {
-            if (child.exitCode === null) {
-              child.kill("SIGTERM");
-            }
-          } catch {
-            // ignore
-          }
+          terminateChild(child);
         }, this.timeoutSeconds * 1000);
       }
 
@@ -779,13 +795,9 @@ export class StreamRunnerBase {
       if (timeoutHandle !== null) {
         clearTimeout(timeoutHandle);
       }
-      // Ensure child is terminated
-      try {
-        if (child.exitCode === null) {
-          child.kill("SIGTERM");
-        }
-      } catch {
-        // ignore
+      // Ensure child is terminated (force-kill if it ignores SIGTERM)
+      if (child.exitCode === null) {
+        terminateChild(child);
       }
       // Cleanup wrapper resources
       if (cleanupData !== null) {
