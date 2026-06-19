@@ -34,6 +34,7 @@ function binaryResponse(bytes: Uint8Array, status = 200): Response {
   return {
     ok: status >= 200 && status < 300,
     status,
+    headers: new Headers(),
     arrayBuffer: async () => bytes.buffer,
     text: async () => ""
   } as Response;
@@ -413,6 +414,7 @@ describe("Rodin HTTP flow", () => {
       .mockResolvedValueOnce({
         ok: false,
         status: 500,
+        headers: new Headers(),
         text: async () => {
           throw new Error("x");
         }

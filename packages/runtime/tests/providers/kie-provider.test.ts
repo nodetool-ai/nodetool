@@ -37,6 +37,7 @@ function mockKieFlow(uploadUrls: string[]) {
     // Final asset download.
     return {
       ok: true,
+      headers: new Headers(),
       arrayBuffer: async () => new Uint8Array([7, 7, 7]).buffer
     } as unknown as Response;
   });

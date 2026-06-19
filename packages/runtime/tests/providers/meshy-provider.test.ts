@@ -29,6 +29,7 @@ function binaryResponse(bytes: Uint8Array, status = 200): Response {
   return {
     ok: status >= 200 && status < 300,
     status,
+    headers: new Headers(),
     arrayBuffer: async () => bytes.buffer,
     text: async () => "",
     json: async () => ({})

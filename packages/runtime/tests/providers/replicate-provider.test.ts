@@ -204,6 +204,7 @@ describe("ReplicateProvider", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
+        headers: new Headers(),
         arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2]).buffer)
       })
     );
@@ -232,6 +233,7 @@ describe("ReplicateProvider", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
+        headers: new Headers(),
         arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2]).buffer)
       })
     );
@@ -264,6 +266,7 @@ describe("ReplicateProvider", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
+        headers: new Headers(),
         arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2]).buffer)
       })
     );
@@ -287,6 +290,7 @@ describe("ReplicateProvider", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
+        headers: new Headers(),
         arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2]).buffer)
       })
     );
@@ -316,6 +320,7 @@ describe("ReplicateProvider", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
+        headers: new Headers(),
         arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2]).buffer)
       })
     );
@@ -339,6 +344,7 @@ describe("ReplicateProvider", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
+        headers: new Headers(),
         arrayBuffer: () => Promise.resolve(fakeBytes.buffer)
       })
     );
