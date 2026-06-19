@@ -10,6 +10,7 @@ import type { Edge, NodeDescriptor } from "@nodetool-ai/protocol";
 import {
   analyzeCorrelation,
   CorrelationAnalysisError,
+  edgeKey,
   projectLineageKey as projectLineageKeyImport
 } from "../src/correlation-analysis.js";
 
@@ -1078,6 +1079,119 @@ describe("analyzeCorrelation – final guard branches", () => {
         analyzeCorrelation({ nodes, edges }),
         "strict-prefix sticky value"
       )
+    ).toBeUndefined();
+  });
+});
+
+describe("analyzeCorrelation – topo-sort survivor coverage", () => {
+  it("a self-loop with a downstream names only the self-looping node", () => {
+    // The self-edge alone is the cycle; the downstream B must reach the topo
+    // order normally and not be dragged into the reported cycle.
+    const nodes = [
+      node("A", "t", { outputs: { value: "any" } }),
+      node("B", "t", { outputs: { value: "any" } })
+    ];
+    const edges = [
+      dataEdge("A", "value", "A", "in", "e0"), // self-loop
+      dataEdge("A", "value", "B", "in", "e1") // downstream
+    ];
+    const result = analyzeCorrelation({ nodes, edges });
+    const cycle = issueWith(result, "Cycle detected");
+    expect(cycle).toBeDefined();
+    expect(cycle!.message).toMatch(/Involved nodes: A$/);
+  });
+
+  it("detects a cycle through a node that has more than one incoming edge", () => {
+    // B has two incoming edges (A->B and C->B). The incoming-count bookkeeping
+    // must add both; under-counting would let the topo sort drain B->C->B and
+    // hide the cycle entirely.
+    const nodes = [
+      node("A", "t", { outputs: { value: "any" } }),
+      node("B", "t", { outputs: { value: "any" } }),
+      node("C", "t", { outputs: { value: "any" } })
+    ];
+    const edges = [
+      dataEdge("A", "value", "B", "in", "e0"),
+      dataEdge("B", "value", "C", "in", "e1"),
+      dataEdge("C", "value", "B", "in2", "e2") // B <-> C cycle
+    ];
+    const result = analyzeCorrelation({ nodes, edges });
+    const cycle = issueWith(result, "Cycle detected");
+    expect(cycle).toBeDefined();
+    expect(cycle!.message).toMatch(/Involved nodes: B, C$/);
+  });
+
+  it("does not list a self-looping node twice when it is also in a larger cycle", () => {
+    // A self-loops and also participates in the A<->B cycle, so A is already in
+    // `remaining`; it must not be appended a second time.
+    const nodes = [
+      node("A", "t", { outputs: { value: "any" } }),
+      node("B", "t", { outputs: { value: "any" } })
+    ];
+    const edges = [
+      dataEdge("A", "value", "A", "in", "e0"), // self-loop
+      dataEdge("A", "value", "B", "in", "e1"),
+      dataEdge("B", "value", "A", "in2", "e2") // A <-> B cycle
+    ];
+    const result = analyzeCorrelation({ nodes, edges });
+    const cycle = issueWith(result, "Cycle detected");
+    expect(cycle).toBeDefined();
+    expect(cycle!.message).toMatch(/Involved nodes: A, B$/);
+  });
+});
+
+describe("analyzeCorrelation – data-edge filtering and unknown outputs", () => {
+  it("ignores control edges when indexing incoming edges per handle", () => {
+    // Two control edges into the same node must not be mistaken for a
+    // multi-edge data fan-in on the control handle.
+    const nodes = [
+      node("A", "t", { outputs: {} }),
+      node("B", "t", { outputs: {} }),
+      node("T", "t", { outputs: {} })
+    ];
+    const edges = [controlEdge("A", "T", "c1"), controlEdge("B", "T", "c2")];
+    const result = analyzeCorrelation({ nodes, edges });
+    expect(result.issues).toEqual([]);
+  });
+
+  it("assigns default edge facts for an edge whose source handle has no output analysis", () => {
+    const nodes = [
+      node("S", "t", { outputs: {} }), // declares no outputs
+      node("D", "t", { outputs: {} })
+    ];
+    const edge = dataEdge("S", "ghost", "D", "in", "e1");
+    const result = analyzeCorrelation({ nodes, edges: [edge] });
+
+    const facts = result.edges.get(edgeKey(edge));
+    expect(facts).toBeDefined();
+    expect(facts!.scope).toEqual([]);
+    expect(facts!.repeatsPerKey).toBe(false);
+  });
+});
+
+describe("analyzeCorrelation – single non-multi-edge repeats input", () => {
+  it("does not flag a lone repeats input that is neither multi-edge nor a strict prefix", () => {
+    // rep forwards F1's iteration scope as a chunk, so sink's only repeats input
+    // arrives at the invocation scope on a single edge: not a multi-edge list
+    // handle and not a strict prefix.
+    const nodes = [
+      iterSource("F1"),
+      node("rep", "t", {
+        outputs: { chunk: "any" },
+        output_correlation: { chunk: { kind: "chunk", source: "in" } }
+      }),
+      node("sink", "t", { input_mode: "buffered", outputs: {} })
+    ];
+    const edges = [
+      dataEdge("F1", "output", "rep", "in", "e0"),
+      dataEdge("rep", "chunk", "sink", "in", "e1")
+    ];
+    const result = analyzeCorrelation({ nodes, edges });
+
+    expect(result.nodes.get("sink")!.invocationScope).toEqual(["F1:items"]);
+    expect(issueWith(result, "is a multi-edge list handle")).toBeUndefined();
+    expect(
+      issueWith(result, "strict-prefix sticky value")
     ).toBeUndefined();
   });
 });

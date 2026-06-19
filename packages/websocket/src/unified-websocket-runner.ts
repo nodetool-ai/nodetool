@@ -8,7 +8,8 @@ import { pack, unpack } from "msgpackr";
 import {
   createLogger,
   getDefaultAssetsPath,
-  buildAssetUrl
+  buildAssetUrl,
+  getByteLimitEnv
 } from "@nodetool-ai/config";
 import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
@@ -49,6 +50,7 @@ import type {
   TextToImageParams,
   TextToVideoParams,
   ImageToImageParams,
+  InpaintingParams,
   ImageToVideoParams
 } from "@nodetool-ai/runtime";
 import {
@@ -72,7 +74,7 @@ import type {
   RpcErrorPayload
 } from "@nodetool-ai/protocol";
 import { Tool } from "@nodetool-ai/agents";
-import { RunSubtaskTool } from "@nodetool-ai/agents";
+import { RunSubtaskTool, RunSearchTool } from "@nodetool-ai/agents";
 import {
   getBuiltinTools,
   getAllMcpTools,
@@ -99,6 +101,21 @@ import type { HttpApiOptions } from "./http-api.js";
 const log = createLogger("nodetool.websocket.runner");
 const DATA_URI_PATTERN = /data:([^;,]+)?;base64,[A-Za-z0-9+/=\r\n]+/gi;
 const MAX_ERROR_TEXT_LENGTH = 4000;
+
+/**
+ * Largest binary (MsgPack) frame accepted from a client before deserialization.
+ * MsgPack can amplify a small payload into a huge in-memory structure, so the
+ * raw byte length is bounded up front. Override with the
+ * `NODETOOL_WS_MAX_MESSAGE_BYTES` environment variable (value in bytes);
+ * default 256 MiB.
+ */
+const DEFAULT_MAX_WS_MESSAGE_BYTES = 256 * 1024 * 1024;
+function getMaxWsMessageBytes(): number {
+  return getByteLimitEnv(
+    "NODETOOL_WS_MAX_MESSAGE_BYTES",
+    DEFAULT_MAX_WS_MESSAGE_BYTES
+  );
+}
 
 /**
  * Return `true` when the given http(s) URL appears to point at a public
@@ -817,8 +834,15 @@ interface ActiveJob {
   runner: WorkflowRunner;
   graph: HydratedGraphData;
   finished: boolean;
-  status: "running" | "completed" | "failed" | "cancelled";
+  status: "running" | "completed" | "failed" | "cancelled" | "suspended";
   error?: string;
+  /** Suspension detail when status is "suspended" (node + saved state). */
+  suspend?: {
+    node_id: string;
+    reason: string;
+    state: Record<string, unknown>;
+    metadata: Record<string, unknown>;
+  };
   streamTask?: Promise<void>;
   /** Running sum of node-level provider charges (e.g. kie credits) for this run. */
   providerCostTotal?: number;
@@ -1199,6 +1223,14 @@ export class UnifiedWebSocketRunner {
     if (message.type === "websocket.disconnect") return null;
 
     if (message.bytes) {
+      const maxBytes = getMaxWsMessageBytes();
+      if (message.bytes.length > maxBytes) {
+        throw new Error(
+          `Incoming WebSocket message exceeds maximum size: ` +
+            `${message.bytes.length} > ${maxBytes} bytes ` +
+            `(set NODETOOL_WS_MAX_MESSAGE_BYTES to raise the limit)`
+        );
+      }
       return unpack(message.bytes) as Record<string, unknown>;
     }
     if (message.text) {
@@ -1747,9 +1779,15 @@ export class UnifiedWebSocketRunner {
   private async streamJobMessages(
     active: ActiveJob,
     executePromise: Promise<{
-      status: "completed" | "failed" | "cancelled";
+      status: "completed" | "failed" | "cancelled" | "suspended";
       error?: string;
       outputs?: Record<string, unknown[]>;
+      suspend?: {
+        node_id: string;
+        reason: string;
+        state: Record<string, unknown>;
+        metadata: Record<string, unknown>;
+      };
     }>
   ): Promise<void> {
     let terminalSeen = false;
@@ -1767,6 +1805,7 @@ export class UnifiedWebSocketRunner {
       .then((result) => {
         active.status = result.status;
         active.error = result.error;
+        active.suspend = result.suspend;
         finalOutputs = result.outputs ?? {};
       })
       .catch((err) => {
@@ -1951,6 +1990,15 @@ export class UnifiedWebSocketRunner {
             job.markFailed(active.error ?? "Unknown error");
           } else if (active.status === "cancelled") {
             job.markCancelled();
+          } else if (active.status === "suspended") {
+            // A node paused the run (e.g. human-in-the-loop). Persist the
+            // saved state so the job can be resumed later.
+            job.markSuspended(
+              active.suspend?.node_id ?? "",
+              active.suspend?.reason ?? "",
+              active.suspend?.state,
+              active.suspend?.metadata
+            );
           }
         }
         job.cost =
@@ -2491,6 +2539,10 @@ export class UnifiedWebSocketRunner {
         ? data.permission_mode
         : "default";
 
+    // Expose the read-only `run_search` fan-out primitive by default. A client
+    // can opt out by sending `enable_read_only_search: false`.
+    const enableReadOnlySearch = data.enable_read_only_search !== false;
+
     // Assemble the fixed, always-on toolbelt. There is no per-message tool
     // selection anymore — the agent reasons over the full toolbelt and the
     // permission gate (below) governs execution.
@@ -2569,6 +2621,20 @@ export class UnifiedWebSocketRunner {
           forwardMessage: forwardSubtaskMessage
         })
       );
+
+      // Read-only fan-out search (opt-in). Reuses the same forwarder and the
+      // baseTools snapshot — RunSearchTool internally filters baseTools to its
+      // read-only allowlist, so passing the full snapshot is correct.
+      if (enableReadOnlySearch) {
+        serverTools.unshift(
+          new RunSearchTool({
+            provider,
+            model,
+            parentTools: () => baseTools,
+            forwardMessage: forwardSubtaskMessage
+          })
+        );
+      }
     }
 
     const serverToolMap = new Map(serverTools.map((t) => [t.name, t]));
@@ -4236,6 +4302,7 @@ export class UnifiedWebSocketRunner {
         .then((r) => {
           active.status = r.status;
           active.error = r.error;
+          active.suspend = r.suspend;
           finalOutputs = r.outputs ?? {};
         })
         .catch((err) => {
@@ -4322,6 +4389,13 @@ export class UnifiedWebSocketRunner {
             else if (active.status === "failed")
               job.markFailed(active.error ?? "Unknown error");
             else if (active.status === "cancelled") job.markCancelled();
+            else if (active.status === "suspended")
+              job.markSuspended(
+                active.suspend?.node_id ?? "",
+                active.suspend?.reason ?? "",
+                active.suspend?.state,
+                active.suspend?.metadata
+              );
           }
           job.cost =
             (active.providerCostTotal ?? 0) > 0
@@ -4746,7 +4820,7 @@ export class UnifiedWebSocketRunner {
       ]);
       if (!sourceBytes) throw new Error(`Source asset bytes not found: ${req.sourceAssetId}`);
       if (!maskBytes) throw new Error(`Mask asset bytes not found: ${req.maskAssetId}`);
-      const params: ImageToImageParams = {
+      const params: InpaintingParams = {
         model: imageModel,
         prompt: req.prompt,
         targetWidth: req.width ?? null,
@@ -4755,7 +4829,7 @@ export class UnifiedWebSocketRunner {
         numInferenceSteps: req.numInferenceSteps ?? null,
         mask: maskBytes
       };
-      images = await provider.imageToImages([sourceBytes], params, variations);
+      images = await provider.inpaintImages([sourceBytes], params, variations);
     } else {
       if (!req.sourceAssetId) {
         throw new Error("source_asset_id is required for image_edit");

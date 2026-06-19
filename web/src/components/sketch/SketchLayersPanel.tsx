@@ -1422,12 +1422,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           }
           handleLayerCtxClose();
         };
-        const handleCtxRename = () => {
-          if (ctxLayer) {
-            handleStartRename(ctxLayer.id, ctxLayer.name);
-          }
-          handleLayerCtxClose();
-        };
         const handleCtxClear = () => {
           onClearLayer();
           handleLayerCtxClose();
@@ -1462,14 +1456,6 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           if (ctxLayer) {
             onToggleAlphaLock(ctxLayer.id);
           }
-          handleLayerCtxClose();
-        };
-        const handleCtxTrim = () => {
-          onTrimLayerToBounds();
-          handleLayerCtxClose();
-        };
-        const handleCtxCropToVisible = () => {
-          onCropCanvasToActiveLayerVisiblePixels();
           handleLayerCtxClose();
         };
         const handleCtxCropToExtents = () => {

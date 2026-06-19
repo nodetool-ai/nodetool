@@ -41,6 +41,16 @@ export interface ServerDockerRunnerOptions {
   readyTimeoutSeconds?: number;
   /** Path suffix appended to the endpoint URL. */
   endpointPath?: string;
+  /** IPC namespace mode. Defaults to "private" (see StreamRunnerOptions). */
+  ipcMode?: StreamRunnerOptions["ipcMode"];
+  /** Linux capabilities to drop. Defaults to ["ALL"]. */
+  capDrop?: StreamRunnerOptions["capDrop"];
+  /** Docker --security-opt flags. Defaults to ["no-new-privileges"]. */
+  securityOpt?: StreamRunnerOptions["securityOpt"];
+  /** Mount the container root filesystem read-only. Default false. */
+  readonlyRootfs?: StreamRunnerOptions["readonlyRootfs"];
+  /** Mount the workspace bind read-only. Default false. */
+  readonlyWorkspace?: StreamRunnerOptions["readonlyWorkspace"];
 }
 
 // ---------------------------------------------------------------------------
@@ -134,7 +144,12 @@ export class ServerDockerRunner extends StreamRunnerBase {
       memLimit: options.memLimit ?? "256m",
       nanoCpus: options.nanoCpus ?? 1_000_000_000,
       networkDisabled: false,
-      mode: "docker"
+      mode: "docker",
+      ipcMode: options.ipcMode,
+      capDrop: options.capDrop,
+      securityOpt: options.securityOpt,
+      readonlyRootfs: options.readonlyRootfs,
+      readonlyWorkspace: options.readonlyWorkspace
     };
     super(baseOptions);
 
@@ -203,7 +218,8 @@ export class ServerDockerRunner extends StreamRunnerBase {
     const hostWorkspace = this.getWorkspaceHostPath(options?.workspaceDir);
     const binds: string[] = [];
     if (hostWorkspace) {
-      binds.push(`${hostWorkspace}:/workspace:rw`);
+      const mountMode = this.readonlyWorkspace ? "ro" : "rw";
+      binds.push(`${hostWorkspace}:/workspace:${mountMode}`);
     }
 
     // Port binding: container port -> ephemeral host port
@@ -213,6 +229,10 @@ export class ServerDockerRunner extends StreamRunnerBase {
       NanoCpus: this.nanoCpus,
       Binds: binds.length > 0 ? binds : undefined,
       IpcMode: this.ipcMode ?? undefined,
+      CapDrop: this.capDrop.length > 0 ? this.capDrop : undefined,
+      SecurityOpt: this.securityOpt.length > 0 ? this.securityOpt : undefined,
+      ReadonlyRootfs: this.readonlyRootfs || undefined,
+      Tmpfs: this.readonlyRootfs ? { "/tmp": "rw,noexec,nosuid,size=64m" } : undefined,
       PortBindings: {
         [portKey]: [{ HostIp: this.hostIp, HostPort: "" }]
       }

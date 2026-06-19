@@ -258,3 +258,103 @@ describe("NodeInbox – prepend", () => {
     expect(items).toEqual(["first", "second"]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// handles() / drainHandle()
+// ---------------------------------------------------------------------------
+
+describe("NodeInbox – handles()", () => {
+  it("lists every handle that has received data", async () => {
+    expect(new NodeInbox().handles()).toEqual([]);
+
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1);
+    inbox.addUpstream("b", 1);
+    await inbox.put("a", 1);
+    await inbox.put("b", 2);
+    expect(inbox.handles().sort()).toEqual(["a", "b"]);
+  });
+});
+
+describe("NodeInbox – drainHandle()", () => {
+  it("returns [] for an unknown or already-empty handle", async () => {
+    const inbox = new NodeInbox();
+    expect(inbox.drainHandle("missing")).toEqual([]);
+
+    inbox.addUpstream("a", 1);
+    await inbox.put("a", 1);
+    inbox.drainHandle("a"); // empties the buffer
+    expect(inbox.drainHandle("a")).toEqual([]); // existing handle, empty buffer
+  });
+
+  it("drains every buffered envelope and removes only this handle's arrival entries", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 2);
+    inbox.addUpstream("b", 1);
+
+    await inbox.put("a", 1); // arrival: [a]
+    await inbox.put("b", 2); // arrival: [a, b]
+    await inbox.put("a", 3); // arrival: [a, b, a]
+
+    const drained = inbox.drainHandle("a");
+    expect(drained.map((e) => e.data)).toEqual([1, 3]);
+
+    // A fresh "a" arrives after the drain. Because the drain removed a's stale
+    // arrival entries, b (which arrived earlier) is still read before the new a.
+    await inbox.put("a", 4); // arrival must be [b, a], not [..stale a.., a]
+    expect(inbox.tryPopAny()).toEqual(["b", 2]);
+    expect(inbox.tryPopAny()).toEqual(["a", 4]);
+    expect(inbox.tryPopAny()).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// lineage_done aggregation across keys (same edge)
+// ---------------------------------------------------------------------------
+
+describe("NodeInbox – lineage_done accumulates keys per edge", () => {
+  it("keeps earlier keys when a second key is recorded on the same edge", () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("value", 1);
+    const mk = (index: number) => ({
+      type: "lineage_done" as const,
+      source_edge_id: "e1",
+      output: "value",
+      lineage: { "fe:items": { index } }
+    });
+
+    inbox.signalLineageDone("value", mk(3), ["fe:items"]);
+    inbox.signalLineageDone("value", mk(4), ["fe:items"]);
+
+    // Both keys must remain recorded on the same edge's set.
+    expect(inbox.isEdgeDoneFor("e1", "fe:items=3")).toBe(true);
+    expect(inbox.isEdgeDoneFor("e1", "fe:items=4")).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// iterInput blocks on an open handle instead of ending at EOS
+// ---------------------------------------------------------------------------
+
+describe("NodeInbox – iterInput waits while upstreams remain open", () => {
+  it("does not end after draining the buffer when the handle is not done", async () => {
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1); // one open upstream — not done
+    await inbox.put("a", "x");
+
+    const gen = inbox.iterInput("a");
+    expect((await gen.next()).value).toBe("x");
+
+    // Buffer is now empty but the handle is still open: the next pull must block.
+    const pending = gen.next();
+    const raced = await Promise.race([
+      pending.then(() => "resolved"),
+      new Promise((r) => setTimeout(() => r("blocked"), 25))
+    ]);
+    expect(raced).toBe("blocked");
+
+    // New data unblocks it.
+    await inbox.put("a", "y");
+    expect((await pending).value).toBe("y");
+  });
+});

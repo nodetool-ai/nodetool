@@ -229,6 +229,7 @@ export type ProviderCapability =
   | "generate_messages"
   | "text_to_image"
   | "image_to_image"
+  | "inpainting"
   | "upscale_image"
   | "remove_background"
   | "relight_image"
@@ -600,9 +601,14 @@ export class FileStorageAdapter implements StorageAdapter {
     if (!nodeFsP) throw new Error("LocalStorage.list requires Node");
     const { readdir: rd, stat: st } = nodeFsP;
     const delimiter = opts.delimiter ?? null;
+    // Root prefixes ("", ".", "/") map to rootDir directly. normalizeStorageKey
+    // rejects "." and "/", so resolving them as keys throws and yields an empty
+    // listing — without this guard the workspace root could never be listed.
+    const isRoot = prefix === "" || prefix === "." || prefix === "/";
     const baseAbs = (() => {
+      if (isRoot) return this.rootDir;
       try {
-        return this.resolvePathFromKey(prefix || ".");
+        return this.resolvePathFromKey(prefix);
       } catch {
         return null;
       }
@@ -619,7 +625,7 @@ export class FileStorageAdapter implements StorageAdapter {
       } catch {
         return { entries: [], commonPrefixes: [] };
       }
-      const normalizedPrefix = prefix ? normalizeStorageKey(prefix) : "";
+      const normalizedPrefix = isRoot ? "" : normalizeStorageKey(prefix);
       for (const child of children) {
         const childKey = normalizedPrefix
           ? `${normalizedPrefix}/${child.name}`
@@ -2283,6 +2289,19 @@ export class ProcessingContext {
         return provider.imageToImage(coerceImageList(params), {
           prompt: String(params.prompt ?? ""),
           model: { id: req.model, name: req.model, provider: req.provider },
+          negativePrompt: params.negative_prompt as string | undefined,
+          targetWidth: params.target_width as number | undefined,
+          targetHeight: params.target_height as number | undefined,
+          aspectRatio: params.aspect_ratio as string | undefined,
+          resolution: params.resolution as string | undefined,
+          strength: params.strength as number | undefined,
+          quality: params.quality as string | undefined
+        });
+      case "inpainting":
+        return provider.inpaint(coerceImageList(params), {
+          prompt: String(params.prompt ?? ""),
+          model: { id: req.model, name: req.model, provider: req.provider },
+          mask: params.mask as Uint8Array,
           negativePrompt: params.negative_prompt as string | undefined,
           targetWidth: params.target_width as number | undefined,
           targetHeight: params.target_height as number | undefined,

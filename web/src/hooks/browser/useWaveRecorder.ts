@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { type Dispatch, type MutableRefObject, type SetStateAction, useEffect, useRef, useState, useCallback } from "react";
 import WaveSurfer from "wavesurfer.js";
 import RecordPlugin from "wavesurfer.js/dist/plugins/record";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
@@ -14,7 +14,22 @@ export type AudioDevice = {
   label: string;
 };
 
-export function useWaveRecorder({ onChange }: WaveRecorderProps) {
+export interface WaveRecorderReturn {
+  error: string | null;
+  setError: Dispatch<SetStateAction<string | null>>;
+  micRef: MutableRefObject<HTMLDivElement | null>;
+  handleRecord: () => void;
+  isRecording: boolean;
+  isLoading: boolean;
+  audioInputDevices: AudioDevice[];
+  audioOutputDevices: string[];
+  isDeviceListVisible: boolean;
+  toggleDeviceListVisibility: () => void;
+  selectedInputDeviceId: string;
+  handleInputDeviceChange: (deviceId: string) => void;
+}
+
+export function useWaveRecorder({ onChange }: WaveRecorderProps): Readonly<WaveRecorderReturn> {
   const defaultFileType = "webm";
   const { uploadAsset } = useAssetUpload();
   const workflow = useNodes((state) => state.workflow);

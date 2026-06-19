@@ -41,6 +41,11 @@ describe("agents index exports", () => {
     // Core execution
     expect(mod.StepExecutor).toBeDefined();
 
+    // Read-only fan-out search primitive
+    expect(mod.RunSearchTool).toBeDefined();
+    expect(mod.buildReadOnlySearchPrompt).toBeDefined();
+    expect(mod.READ_ONLY_SEARCH_DESCRIPTION).toBeDefined();
+
     // Agents
     expect(mod.Agent).toBeDefined();
 
@@ -48,5 +53,11 @@ describe("agents index exports", () => {
     expect(mod.TaskPlanner).toBeDefined();
     expect(mod.TaskExecutor).toBeDefined();
     expect(mod.ParallelTaskExecutor).toBeDefined();
+
+    // Security monitor (opt-in LLM judge)
+    expect(mod.SecurityMonitor).toBeDefined();
+    expect(mod.createSecurityMonitorConsult).toBeDefined();
+    expect(mod.SECURITY_MONITOR_SYSTEM_PROMPT).toBeDefined();
+    expect(mod.buildSecurityMonitorUserPrompt).toBeDefined();
   });
 });

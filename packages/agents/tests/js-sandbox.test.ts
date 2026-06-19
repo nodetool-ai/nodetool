@@ -386,7 +386,12 @@ describe("runInSandbox", () => {
       timeoutMs: 100
     });
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/timeout/i);
+    // The time limit is enforced by two mechanisms: the wall-clock race
+    // (surfaces as "timeout") and the CPU-budget interrupt handler (surfaces
+    // as "interrupted"). Which one trips first is load-dependent — under a
+    // starved event loop the interrupt can win — so accept either. Both mean
+    // the stall was stopped on time.
+    expect(result.error).toMatch(/timeout|interrupted/i);
   });
 
   it("serializes complex return values", async () => {

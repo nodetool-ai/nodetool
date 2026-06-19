@@ -3,20 +3,22 @@
  *
  * The in-browser workflow runner routes a sub-graph client-side only when
  * every node type is in a registry built with `createBrowserRegistry`, which
- * keeps a class iff `supportsPlatform(cls.platforms, "browser")`. The pure
- * sample-math groups are tagged `tagAsHybrid` (`["node","browser"]`); file
- * I/O, TTS, and the rubberband nodes stay server-only. This test pins that
- * contract in both directions: a server-only retag would silently drop the
- * hybrid nodes back to the server, and a hybrid retag of a node-only node
- * would crash in the browser.
+ * keeps a class iff `supportsPlatform(cls.platforms, "browser")`.
+ *
+ * Contract: only the realtime/synthesis streaming nodes run in the browser.
+ * Everything that decodes audio to PCM (the effects, DSP filters, and the
+ * sample/byte transforms) is server-only — decoding compressed input needs
+ * Node's `node-web-audio-api`, and stored `/api/storage/<key>` refs resolve
+ * reliably only against the server's storage. This test pins that in both
+ * directions: a browser retag of a decode node would crash in the browser, and
+ * a server retag of a streaming node would silently drop it back to the server.
  */
 import { describe, it, expect } from "vitest";
 import { supportsPlatform, type Platform } from "@nodetool-ai/protocol";
 import {
   AUDIO_NODES,
   LIB_AUDIO_DSP_NODES,
-  LIB_AUDIO_EFFECTS_HYBRID_NODES,
-  LIB_AUDIO_EFFECTS_SERVER_NODES,
+  LIB_AUDIO_EFFECTS_NODES,
   REALTIME_AUDIO_NODES,
   SYNTHESIS_NODES,
   AudioToChunksNode,
@@ -32,14 +34,19 @@ type NodeClassLike = {
   isStreamingInput?: boolean;
 };
 
-const HYBRID_GROUPS: Record<string, readonly unknown[]> = {
-  "lib.audio (dsp)": LIB_AUDIO_DSP_NODES,
-  "lib.audio (effects)": LIB_AUDIO_EFFECTS_HYBRID_NODES,
+/** Streaming nodes are the only audio nodes that run in the browser. */
+const BROWSER_GROUPS: Record<string, readonly unknown[]> = {
   "nodetool.audio.realtime": REALTIME_AUDIO_NODES,
   "nodetool.audio.synth": SYNTHESIS_NODES
 };
 
-const HYBRID_AUDIO_TYPES = [
+/** Everything that decodes audio to PCM is server-only. */
+const SERVER_GROUPS: Record<string, readonly unknown[]> = {
+  "lib.audio (dsp)": LIB_AUDIO_DSP_NODES,
+  "lib.audio (effects)": LIB_AUDIO_EFFECTS_NODES
+};
+
+const SERVER_ONLY_AUDIO_TYPES = [
   "nodetool.audio.Normalize",
   "nodetool.audio.OverlayAudio",
   "nodetool.audio.RemoveSilence",
@@ -56,12 +63,7 @@ const HYBRID_AUDIO_TYPES = [
   "nodetool.audio.Concat",
   "nodetool.audio.ConcatList",
   "nodetool.audio.ChunkToAudio",
-  "nodetool.audio.GetAudioInfo"
-];
-
-const SERVER_ONLY_TYPES = [
-  "lib.audio.PitchShift",
-  "lib.audio.TimeStretch",
+  "nodetool.audio.GetAudioInfo",
   "nodetool.audio.LoadAudioAssets",
   "nodetool.audio.LoadAudioFile",
   "nodetool.audio.LoadAudioFolder",
@@ -78,8 +80,8 @@ function byType(nodes: readonly unknown[]): Map<string, NodeClassLike> {
   return map;
 }
 
-describe("hybrid audio nodes declare browser platform support", () => {
-  for (const [group, nodes] of Object.entries(HYBRID_GROUPS)) {
+describe("streaming audio nodes declare browser platform support", () => {
+  for (const [group, nodes] of Object.entries(BROWSER_GROUPS)) {
     it(`${group} nodes are all browser-capable`, () => {
       expect(nodes.length).toBeGreaterThan(0);
       for (const cls of nodes as NodeClassLike[]) {
@@ -90,27 +92,24 @@ describe("hybrid audio nodes declare browser platform support", () => {
       }
     });
   }
-
-  it("the pure transforms in AUDIO_NODES are browser-capable", () => {
-    const all = byType(AUDIO_NODES);
-    for (const nodeType of HYBRID_AUDIO_TYPES) {
-      const cls = all.get(nodeType);
-      expect(cls, `${nodeType} must be registered`).toBeDefined();
-      expect(
-        supportsPlatform(cls?.platforms, "browser"),
-        `${nodeType} must support the browser platform`
-      ).toBe(true);
-    }
-  });
 });
 
-describe("server-only audio nodes do NOT declare browser support", () => {
-  it("file I/O, TTS and rubberband nodes stay off the browser", () => {
-    const all = byType([
-      ...AUDIO_NODES,
-      ...LIB_AUDIO_EFFECTS_SERVER_NODES
-    ]);
-    for (const nodeType of SERVER_ONLY_TYPES) {
+describe("decode-to-PCM audio nodes are server-only", () => {
+  for (const [group, nodes] of Object.entries(SERVER_GROUPS)) {
+    it(`${group} nodes do NOT declare browser support`, () => {
+      expect(nodes.length).toBeGreaterThan(0);
+      for (const cls of nodes as NodeClassLike[]) {
+        expect(
+          supportsPlatform(cls.platforms, "browser"),
+          `${cls.nodeType} must NOT support the browser platform`
+        ).toBe(false);
+      }
+    });
+  }
+
+  it("the AUDIO_NODES transforms and file/TTS nodes stay off the browser", () => {
+    const all = byType(AUDIO_NODES);
+    for (const nodeType of SERVER_ONLY_AUDIO_TYPES) {
       const cls = all.get(nodeType);
       expect(cls, `${nodeType} must be registered`).toBeDefined();
       expect(

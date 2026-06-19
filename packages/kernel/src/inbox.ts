@@ -483,7 +483,7 @@ export class NodeInbox {
    */
   drainHandle(handle: string): MessageEnvelope[] {
     const buf = this._buffers.get(handle);
-    if (!buf || buf.length === 0) return [];
+    if (!buf?.length) return [];
     const drained = buf.splice(0);
     this._arrival = this._arrival.filter((h) => h !== handle);
     this._notifyPutWaiters();

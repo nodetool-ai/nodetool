@@ -80,7 +80,7 @@ const blockToConstant = (
   };
 };
 
-export interface GenerationToCanvas {
+interface GenerationToCanvas {
   /** Tell the watcher to expect one media result and drop it on the canvas. */
   markGenerationStarted: () => void;
 }

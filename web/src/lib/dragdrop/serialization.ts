@@ -32,6 +32,37 @@ function isDragData(value: unknown): value is DragData {
   );
 }
 
+function isNodeMetadataLike(value: unknown): value is NodeMetadata {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "node_type" in value &&
+    typeof (value as NodeMetadata).node_type === "string"
+  );
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item): item is string => typeof item === "string");
+}
+
+function isAssetLike(value: unknown): value is Asset {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "id" in value &&
+    typeof (value as { id: unknown }).id === "string"
+  );
+}
+
+function isRecordWithId(value: unknown): value is { id: string; name: string } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "id" in value &&
+    typeof (value as { id: string }).id === "string"
+  );
+}
+
 /** Legacy key mapping for backward compatibility */
 const LEGACY_KEY_MAP: Record<DragDataType, string> = {
   "create-node": "create-node",
@@ -88,10 +119,9 @@ export function deserializeDragData(dataTransfer: DataTransfer): DragData | null
   if (createNode) {
     try {
       const payload: unknown = JSON.parse(createNode);
-      return {
-        type: "create-node",
-        payload: payload as NodeMetadata
-      };
+      if (isNodeMetadataLike(payload)) {
+        return { type: "create-node", payload };
+      }
     } catch {
       // Ignore parse errors
     }
@@ -101,12 +131,13 @@ export function deserializeDragData(dataTransfer: DataTransfer): DragData | null
   if (selectedAssetIds) {
     try {
       const ids: unknown = JSON.parse(selectedAssetIds);
-      if (!Array.isArray(ids)) return null;
-      return {
-        type: "assets-multiple",
-        payload: ids as string[],
-        metadata: { count: ids.length }
-      };
+      if (isStringArray(ids)) {
+        return {
+          type: "assets-multiple",
+          payload: ids,
+          metadata: { count: ids.length }
+        };
+      }
     } catch {
       // Ignore parse errors
     }
@@ -116,10 +147,9 @@ export function deserializeDragData(dataTransfer: DataTransfer): DragData | null
   if (asset) {
     try {
       const assetPayload: unknown = JSON.parse(asset);
-      return {
-        type: "asset",
-        payload: assetPayload as Asset
-      };
+      if (isAssetLike(assetPayload)) {
+        return { type: "asset", payload: assetPayload };
+      }
     } catch {
       // Ignore parse errors
     }
@@ -129,10 +159,12 @@ export function deserializeDragData(dataTransfer: DataTransfer): DragData | null
   if (sketch) {
     try {
       const sketchPayload: unknown = JSON.parse(sketch);
-      return {
-        type: "sketch",
-        payload: sketchPayload as DragData<"sketch">["payload"]
-      };
+      if (isRecordWithId(sketchPayload)) {
+        return {
+          type: "sketch",
+          payload: sketchPayload as DragData<"sketch">["payload"]
+        };
+      }
     } catch {
       // Ignore parse errors
     }
@@ -142,10 +174,12 @@ export function deserializeDragData(dataTransfer: DataTransfer): DragData | null
   if (timeline) {
     try {
       const timelinePayload: unknown = JSON.parse(timeline);
-      return {
-        type: "timeline",
-        payload: timelinePayload as DragData<"timeline">["payload"]
-      };
+      if (isRecordWithId(timelinePayload)) {
+        return {
+          type: "timeline",
+          payload: timelinePayload as DragData<"timeline">["payload"]
+        };
+      }
     } catch {
       // Ignore parse errors
     }

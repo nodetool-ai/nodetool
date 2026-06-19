@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { initTestDb, OAuthCredential } from "@nodetool-ai/models";
 import {
   generatePkcePair,
   generateState,
   oauthStateStore,
-  handleOAuthRequest
+  handleOAuthRequest,
+  closeActiveCodexCallbackServer
 } from "../src/oauth-api.js";
 
 function getUserId(): string {
@@ -242,6 +243,106 @@ describe("OAuth API: GitHub endpoints", () => {
       tokens: Array<Record<string, unknown>>;
     };
     expect(body.tokens).toEqual([]);
+  });
+});
+
+describe("OAuth API: OpenAI (Codex) endpoints", () => {
+  beforeEach(() => {
+    initTestDb();
+    oauthStateStore.clear();
+  });
+
+  afterEach(async () => {
+    await closeActiveCodexCallbackServer();
+  });
+
+  it("GET /api/oauth/openai/start returns a Codex PKCE auth_url", async () => {
+    const response = await handleOAuthRequest(
+      new Request("http://localhost:7777/api/oauth/openai/start", {
+        headers: { host: "localhost:7777" }
+      }),
+      "/api/oauth/openai/start",
+      getUserId
+    );
+
+    expect(response).not.toBeNull();
+    expect(response!.status).toBe(200);
+    const body = (await jsonBody(response!)) as { auth_url: string };
+    expect(body.auth_url).toContain("https://auth.openai.com/oauth/authorize");
+    // The published, secret-less Codex CLI client.
+    expect(body.auth_url).toContain(
+      "client_id=app_EMoamEEZ73f0CkXaXp7hrann"
+    );
+    expect(body.auth_url).toContain("code_challenge=");
+    expect(body.auth_url).toContain("code_challenge_method=S256");
+    expect(body.auth_url).toContain("state=");
+    // Codex's pre-registered loopback redirect — not a server route.
+    expect(body.auth_url).toContain(
+      "redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback"
+    );
+    // Codex-specific authorization params.
+    expect(body.auth_url).toContain("codex_cli_simplified_flow=true");
+    expect(body.auth_url).toContain("id_token_add_organizations=true");
+  });
+
+  it("GET /api/oauth/openai/tokens returns empty list initially", async () => {
+    const response = await handleOAuthRequest(
+      new Request("http://localhost:7777/api/oauth/openai/tokens"),
+      "/api/oauth/openai/tokens",
+      getUserId
+    );
+
+    expect(response!.status).toBe(200);
+    const body = (await jsonBody(response!)) as { tokens: unknown[] };
+    expect(body.tokens).toEqual([]);
+  });
+
+  it("POST /api/oauth/openai/disconnect removes stored credentials", async () => {
+    const now = new Date().toISOString();
+    await OAuthCredential.upsert({
+      user_id: "test-user-1",
+      provider: "openai",
+      account_id: "acc-openai",
+      access_token: "openai-access",
+      refresh_token: "openai-refresh",
+      token_type: "Bearer",
+      received_at: now
+    });
+
+    const before = await handleOAuthRequest(
+      new Request("http://localhost:7777/api/oauth/openai/tokens"),
+      "/api/oauth/openai/tokens",
+      getUserId
+    );
+    expect(((await jsonBody(before!)) as { tokens: unknown[] }).tokens).toHaveLength(1);
+
+    const disconnect = await handleOAuthRequest(
+      new Request("http://localhost:7777/api/oauth/openai/disconnect", {
+        method: "POST"
+      }),
+      "/api/oauth/openai/disconnect",
+      getUserId
+    );
+    expect(disconnect!.status).toBe(200);
+    const body = (await jsonBody(disconnect!)) as { success: boolean; removed: number };
+    expect(body.success).toBe(true);
+    expect(body.removed).toBe(1);
+
+    const after = await handleOAuthRequest(
+      new Request("http://localhost:7777/api/oauth/openai/tokens"),
+      "/api/oauth/openai/tokens",
+      getUserId
+    );
+    expect(((await jsonBody(after!)) as { tokens: unknown[] }).tokens).toEqual([]);
+  });
+
+  it("rejects a GET to the disconnect endpoint", async () => {
+    const response = await handleOAuthRequest(
+      new Request("http://localhost:7777/api/oauth/openai/disconnect"),
+      "/api/oauth/openai/disconnect",
+      getUserId
+    );
+    expect(response!.status).toBe(405);
   });
 });
 

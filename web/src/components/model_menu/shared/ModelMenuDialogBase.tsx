@@ -16,12 +16,20 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 
 import StarIcon from "@mui/icons-material/Star"; // Favorite
 import HistoryIcon from "@mui/icons-material/History"; // Recent
-import DownloadIcon from "@mui/icons-material/Download"; // Downloads
 import SearchInput from "../../search/SearchInput";
 import ModelFiltersBar from "../ModelFiltersBar";
 import ProviderList from "../ProviderList";
 import ModelList from "../ModelList";
-import RecommendedModelsView from "./RecommendedModelsView";
+import type { DownloadableModel } from "../ModelList";
+import ModelPackCard from "../../hugging_face/ModelPackCard";
+import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
+import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
+import {
+  buildHfCacheRequest,
+  canCheckHfCache,
+  getHfCacheKey,
+  isHfModel
+} from "../../../utils/hfCache";
 import useModelFiltersStore from "../../../stores/ModelFiltersStore";
 import {
   applyAdvancedModelFilters,
@@ -85,13 +93,19 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   const setSelectedProvider = storeHook((s) => s.setSelectedProvider);
 
   const [customView, setCustomView] = useState<
-    "favorites" | "recent" | "downloads" | null
+    "favorites" | "recent" | null
   >(null);
   const hasDownloads = !isProduction && (recommendedModels.length > 0 || modelPacks.length > 0);
 
+  const startDownload = useModelDownloadStore((s) => s.startDownload);
+  const cacheStatuses = useHfCacheStatusStore((s) => s.statuses);
+  const cachePending = useHfCacheStatusStore((s) => s.pending);
+  const cacheVersion = useHfCacheStatusStore((s) => s.version);
+  const ensureStatuses = useHfCacheStatusStore((s) => s.ensureStatuses);
+
   const isIconOnly = true;
 
-  const { providers: providersFromModels, filteredModels, favoriteModels, recentModels, totalCount } =
+  const { providers: providersFromModels, filteredModels, favoriteModels, recentModels } =
     useModelMenuData<TModel>(models || [], storeHook);
 
   const providers = modelData.providers ?? providersFromModels;
@@ -127,13 +141,100 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     [onModelChange]
   );
 
+  // Select a downloaded recommended model straight from the list. Recommended
+  // entries are UnifiedModel; project the shared fields onto the menu's model
+  // shape before handing it to onModelChange.
+  const handleSelectRecommended = useCallback(
+    (model: UnifiedModel) => {
+      onModelChange?.({
+        type: model.type ?? "",
+        id: model.id,
+        name: model.name,
+        provider: model.provider,
+        path: model.path ?? undefined
+      } as unknown as TModel);
+    },
+    [onModelChange]
+  );
+
+  const handleStartDownload = useCallback(
+    (model: UnifiedModel) => {
+      const repoId = model.repo_id || model.id;
+      startDownload(
+        repoId,
+        model.type ?? "",
+        model.path ?? undefined,
+        model.path ? undefined : (model.allow_patterns ?? undefined),
+        model.path ? undefined : (model.ignore_patterns ?? undefined)
+      );
+    },
+    [startDownload]
+  );
+
+  // Recommended models that can be downloaded, folded into the main list under
+  // an "Available to download" section. Skip ones already selectable (present in
+  // the provider list once on disk) and any non-downloadable cloud entries.
+  const selectableIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const m of models ?? []) {
+      set.add((m.id || "").toLowerCase());
+    }
+    return set;
+  }, [models]);
+
+  const downloadCandidates = useMemo<UnifiedModel[]>(() => {
+    if (!hasDownloads) return [];
+    const q = search.trim().toLowerCase();
+    return recommendedModels
+      .filter((m) => isHfModel(m) || m.type === "llama_model")
+      .filter((m) => !selectableIds.has((m.repo_id || m.id || "").toLowerCase()))
+      .filter((m) => {
+        if (!q) return true;
+        return (
+          m.name.toLowerCase().includes(q) ||
+          m.id.toLowerCase().includes(q) ||
+          (m.repo_id?.toLowerCase().includes(q) ?? false) ||
+          (m.tags?.some((tag) => tag.toLowerCase().includes(q)) ?? false)
+        );
+      });
+  }, [hasDownloads, recommendedModels, selectableIds, search]);
+
+  React.useEffect(() => {
+    const requests = downloadCandidates
+      .map(buildHfCacheRequest)
+      .filter((r): r is NonNullable<typeof r> => r !== null);
+    if (requests.length === 0) return;
+    void ensureStatuses(requests);
+  }, [ensureStatuses, downloadCandidates, cacheVersion]);
+
+  const downloadModels = useMemo<DownloadableModel[]>(() => {
+    return downloadCandidates.map((m) => {
+      const key = getHfCacheKey(m);
+      const downloaded =
+        m.downloaded === true ||
+        m.type === "llama_model" ||
+        !!cacheStatuses[key];
+      const checking =
+        canCheckHfCache(m) &&
+        (cachePending[key] || cacheStatuses[key] === undefined);
+      return { ...m, downloaded, checking };
+    });
+  }, [downloadCandidates, cacheStatuses, cachePending]);
+
+  const handleDownloadAllFromPack = useCallback(
+    (packModels: UnifiedModel[]) => {
+      packModels.forEach((m) => handleStartDownload(m));
+    },
+    [handleStartDownload]
+  );
+
   // Keyboard navigation: the search input forwards arrow/enter keys here so the
   // list can be driven without the mouse. activeIndex points into
   // filteredModelsAdvanced; navigation skips unavailable rows.
   const getAvailability = useModelAvailability();
   const [activeIndex, setActiveIndex] = useState(-1);
 
-  const keyboardEnabled = customView !== "downloads";
+  const keyboardEnabled = true;
 
   const isRowAvailable = useCallback(
     (index: number) => getAvailability(filteredModelsAdvanced[index]).available,
@@ -209,25 +310,12 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     setSelectedProvider(null);
   }, [setSelectedProvider]);
 
-  const handleSetDownloadsView = useCallback(() => {
-    setCustomView("downloads");
-    setSelectedProvider(null);
-  }, [setSelectedProvider]);
-
   // Reset custom view when provider changes
   React.useEffect(() => {
     if (selectedProvider !== null && customView !== null) {
       setCustomView(null);
     }
   }, [selectedProvider, customView]);
-
-  // Auto-switch to downloads when dialog opens, loading finishes, and there are no models
-  React.useEffect(() => {
-    if (open && !isLoading && totalCount === 0 && hasDownloads && customView !== "downloads") {
-      setCustomView("downloads");
-      setSelectedProvider(null);
-    }
-  }, [open, isLoading, totalCount, hasDownloads, customView, setCustomView, setSelectedProvider]);
 
   // Positioning logic mimicking Select.tsx
   const [positionConfig, setPositionConfig] = useState<{
@@ -560,85 +648,6 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                 </>
               )}
             </ListItemButton>
-            {hasDownloads && (
-              <ListItemButton
-                disableRipple
-                selected={customView === "downloads"}
-                onClick={handleSetDownloadsView}
-                sx={{
-                  py: isIconOnly ? 1 : 0.5,
-                  borderRadius: BORDER_RADIUS.xs,
-                  mx: 0,
-                  mt: 0.5,
-                  justifyContent: isIconOnly ? "center" : "flex-start",
-                  minHeight: isIconOnly ? 40 : "auto",
-                  px: isIconOnly ? 0 : 2
-                }}
-              >
-                {isIconOnly ? (
-                  <Tooltip title="Recommended downloads" placement="right">
-                    <FlexRow
-                      align="center"
-                      justify="center"
-                      sx={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: "var(--rounded-circle)",
-                        bgcolor:
-                          customView === "downloads"
-                            ? "primary.main"
-                            : "action.selected",
-                        border: `1px solid ${customView === "downloads" ? "transparent" : theme.vars.palette.divider}`
-                      }}
-                    >
-                      <DownloadIcon
-                        fontSize="small"
-                        sx={{
-                          fontSize: "var(--fontSizeBig)",
-                          color:
-                            customView === "downloads"
-                              ? "primary.contrastText"
-                              : "text.primary"
-                        }}
-                      />
-                    </FlexRow>
-                  </Tooltip>
-                ) : (
-                  <>
-                    <ListItemIcon sx={{ minWidth: 36 }}>
-                      <FlexRow
-                        align="center"
-                        justify="center"
-                        sx={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: "var(--rounded-sm)",
-                          bgcolor: "rgba(0,0,0,0.04)"
-                        }}
-                      >
-                        <DownloadIcon
-                          fontSize="small"
-                          sx={{
-                            fontSize: "var(--fontSizeBig)",
-                            color:
-                              customView === "downloads"
-                                ? "primary.main"
-                                : "text.secondary"
-                          }}
-                        />
-                      </FlexRow>
-                    </ListItemIcon>
-                    <ListItemText
-                      primary="Downloads"
-                      primaryTypographyProps={{
-                        fontSize: "var(--fontSizeNormal)",
-                        fontWeight: customView === "downloads" ? 600 : 400
-                      }}
-                    />
-                  </>
-                )}
-              </ListItemButton>
-            )}
           </List>
 
           <Divider sx={{ mx: 2, mb: 1, opacity: 0.6 }} />
@@ -686,23 +695,37 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
             bgcolor: "background.paper"
           }}
         >
+          {modelPacks.length > 0 && (
+            <Box
+              sx={{
+                px: 2,
+                pt: 1.5,
+                maxHeight: 180,
+                overflowY: "auto",
+                flexShrink: 0,
+                borderBottom: `1px solid ${theme.vars.palette.divider}`
+              }}
+            >
+              {modelPacks.map((pack) => (
+                <ModelPackCard
+                  key={pack.id}
+                  pack={pack}
+                  onDownloadAll={handleDownloadAllFromPack}
+                />
+              ))}
+            </Box>
+          )}
           <Box sx={{ flex: 1, overflow: "hidden" }}>
-            {customView === "downloads" ? (
-              <RecommendedModelsView
-                recommendedModels={recommendedModels}
-                modelPacks={modelPacks}
-                searchQuery={search}
-              />
-            ) : (
-              <ModelList<TModel>
-                models={filteredModelsAdvanced}
-                onSelect={handleSelectModel}
-                searchTerm={search}
-                onGoToDownloads={hasDownloads ? handleSetDownloadsView : undefined}
-                hasDownloads={hasDownloads}
-                activeIndex={activeIndex}
-              />
-            )}
+            <ModelList<TModel>
+              models={filteredModelsAdvanced}
+              onSelect={handleSelectModel}
+              searchTerm={search}
+              hasDownloads={hasDownloads}
+              activeIndex={activeIndex}
+              downloadModels={downloadModels}
+              onDownloadSelect={handleSelectRecommended}
+              onDownloadStart={handleStartDownload}
+            />
           </Box>
           {/* Footer removed */}
         </FlexColumn>

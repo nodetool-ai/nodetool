@@ -122,11 +122,10 @@ describe("BitcrushNode", () => {
     expect(out.data).toBeTruthy();
   });
 
-  it("passes through when no audio data", async () => {
+  it("throws when no audio data", async () => {
     const __n304 = new BitcrushNode();
     __n304.assign({ audio: {}, bit_depth: 8 });
-    const res = await __n304.process();
-    expect(res.output).toEqual({});
+    await expect(__n304.process()).rejects.toThrow("No audio connected");
   });
 });
 
@@ -146,11 +145,10 @@ describe("CompressNode", () => {
     expect(out.data).toBeTruthy();
   });
 
-  it("passes through when no audio data", async () => {
+  it("throws when no audio data", async () => {
     const __n306 = new CompressNode();
     __n306.assign({ audio: {} });
-    const res = await __n306.process();
-    expect(res.output).toEqual({});
+    await expect(__n306.process()).rejects.toThrow("No audio connected");
   });
 });
 
@@ -167,11 +165,10 @@ describe("DistortionNode", () => {
     expect(out.data).toBeTruthy();
   });
 
-  it("passes through when no audio data", async () => {
+  it("throws when no audio data", async () => {
     const __n308 = new DistortionNode();
     __n308.assign({ audio: {} });
-    const res = await __n308.process();
-    expect(res.output).toEqual({});
+    await expect(__n308.process()).rejects.toThrow("No audio connected");
   });
 });
 
@@ -189,11 +186,10 @@ describe("LimiterNode", () => {
     expect(out.data).toBeTruthy();
   });
 
-  it("passes through when no audio data", async () => {
+  it("throws when no audio data", async () => {
     const __n310 = new LimiterNode();
     __n310.assign({ audio: {} });
-    const res = await __n310.process();
-    expect(res.output).toEqual({});
+    await expect(__n310.process()).rejects.toThrow("No audio connected");
   });
 });
 
@@ -213,11 +209,10 @@ describe("ReverbNode", () => {
     expect(out.data).toBeTruthy();
   });
 
-  it("passes through when no audio data", async () => {
+  it("throws when no audio data", async () => {
     const __n312 = new ReverbNode();
     __n312.assign({ audio: {} });
-    const res = await __n312.process();
-    expect(res.output).toEqual({});
+    await expect(__n312.process()).rejects.toThrow("No audio connected");
   });
 });
 
@@ -233,11 +228,10 @@ describe("PitchShiftNode", () => {
     expect(res.output).toEqual(audio);
   });
 
-  it("passes through when no audio data", async () => {
+  it("throws when no audio data", async () => {
     const __n314 = new PitchShiftNode();
     __n314.assign({ audio: {}, semitones: 5 });
-    const res = await __n314.process();
-    expect(res.output).toEqual({});
+    await expect(__n314.process()).rejects.toThrow("No audio connected");
   });
 
   it("shifts pitch by semitones", async () => {
@@ -265,11 +259,10 @@ describe("TimeStretchNode", () => {
     expect(res.output).toEqual(audio);
   });
 
-  it("passes through when no audio data", async () => {
+  it("throws when no audio data", async () => {
     const __n317 = new TimeStretchNode();
     __n317.assign({ audio: {}, rate: 2.0 });
-    const res = await __n317.process();
-    expect(res.output).toEqual({});
+    await expect(__n317.process()).rejects.toThrow("No audio connected");
   });
 
   it("stretches audio at different rate", async () => {

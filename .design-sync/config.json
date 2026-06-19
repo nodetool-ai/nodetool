@@ -1,0 +1,165 @@
+{
+  "projectId": "8ef48e9d-d9e6-4de5-8913-a401b1ee7888",
+  "pkg": "nodetool",
+  "globalName": "NodeTool",
+  "shape": "package",
+  "extraEntries": [
+    "/Users/mg/workspace/nodetool/.design-sync/provider.tsx"
+  ],
+  "provider": {
+    "component": "DSProvider"
+  },
+  "entry": "src/components/ui_primitives/index.ts",
+  "srcDir": "src/components/ui_primitives",
+  "componentSrcMap": {
+    "ActionButtonGroup": "src/components/ui_primitives/ActionButtonGroup.tsx",
+    "AlertBanner": "src/components/ui_primitives/AlertBanner.tsx",
+    "Autocomplete": "src/components/ui_primitives/Autocomplete.tsx",
+    "AutocompleteTagInput": "src/components/ui_primitives/AutocompleteTagInput.tsx",
+    "Box": "src/components/ui_primitives/Box.tsx",
+    "Breadcrumbs": "src/components/ui_primitives/Breadcrumbs.tsx",
+    "ButtonGroup": "src/components/ui_primitives/ButtonGroup.tsx",
+    "Caption": "src/components/ui_primitives/Caption.tsx",
+    "Card": "src/components/ui_primitives/Card.tsx",
+    "Checkbox": "src/components/ui_primitives/Checkbox.tsx",
+    "CheckerDropzone": "src/components/ui_primitives/CheckerDropzone.tsx",
+    "Chip": "src/components/ui_primitives/Chip.tsx",
+    "CircularActionButton": "src/components/ui_primitives/CircularActionButton.tsx",
+    "CloseButton": "src/components/ui_primitives/CloseButton.tsx",
+    "Collapse": "src/components/ui_primitives/Collapse.tsx",
+    "CollapsibleSection": "src/components/ui_primitives/CollapsibleSection.tsx",
+    "ColorSwatch": "src/components/ui_primitives/ColorSwatch.tsx",
+    "ConfirmButton": "src/components/ui_primitives/ConfirmButton.tsx",
+    "Container": "src/components/ui_primitives/Container.tsx",
+    "ContextMenu": "src/components/ui_primitives/ContextMenu.tsx",
+    "CopyButton": "src/components/ui_primitives/CopyButton.tsx",
+    "CreateFab": "src/components/ui_primitives/CreateFab.tsx",
+    "DataTable": "src/components/ui_primitives/DataTable.tsx",
+    "DeleteButton": "src/components/ui_primitives/DeleteButton.tsx",
+    "Dialog": "src/components/ui_primitives/Dialog.tsx",
+    "DialogActionButtons": "src/components/ui_primitives/DialogActionButtons.tsx",
+    "Divider": "src/components/ui_primitives/Divider.tsx",
+    "DownloadButton": "src/components/ui_primitives/DownloadButton.tsx",
+    "DrawerPanel": "src/components/ui_primitives/DrawerPanel.tsx",
+    "DropZoneOverlay": "src/components/ui_primitives/DropZoneOverlay.tsx",
+    "DynamicInputButton": "src/components/ui_primitives/DynamicInputButton.tsx",
+    "EditButton": "src/components/ui_primitives/EditButton.tsx",
+    "EmptyState": "src/components/ui_primitives/EmptyState.tsx",
+    "ExpandCollapseButton": "src/components/ui_primitives/ExpandCollapseButton.tsx",
+    "ExternalLink": "src/components/ui_primitives/ExternalLink.tsx",
+    "FavoriteButton": "src/components/ui_primitives/FavoriteButton.tsx",
+    "FlexColumn": "src/components/ui_primitives/FlexColumn.tsx",
+    "FlexRow": "src/components/ui_primitives/FlexRow.tsx",
+    "FormField": "src/components/ui_primitives/FormField.tsx",
+    "HelpButton": "src/components/ui_primitives/HelpButton.tsx",
+    "HoverActionGroup": "src/components/ui_primitives/HoverActionGroup.tsx",
+    "InfoTooltip": "src/components/ui_primitives/InfoTooltip.tsx",
+    "KeyboardShortcutCard": "src/components/ui_primitives/KeyboardShortcutCard.tsx",
+    "Label": "src/components/ui_primitives/Label.tsx",
+    "LabeledSwitch": "src/components/ui_primitives/LabeledSwitch.tsx",
+    "LabeledToggle": "src/components/ui_primitives/LabeledToggle.tsx",
+    "ListGroup": "src/components/ui_primitives/ListGroup.tsx",
+    "ListItemRow": "src/components/ui_primitives/ListGroup.tsx",
+    "LoadingSpinner": "src/components/ui_primitives/LoadingSpinner.tsx",
+    "MenuItemPrimitive": "src/components/ui_primitives/MenuItemPrimitive.tsx",
+    "MetadataListRow": "src/components/ui_primitives/MetadataListRow.tsx",
+    "MobileBottomSheet": "src/components/ui_primitives/MobileBottomSheet.tsx",
+    "NavButton": "src/components/ui_primitives/NavButton.tsx",
+    "NodeSlider": "src/components/ui_primitives/NodeSlider.tsx",
+    "NotificationBadge": "src/components/ui_primitives/NotificationBadge.tsx",
+    "Overlay": "src/components/ui_primitives/Overlay.tsx",
+    "Panel": "src/components/ui_primitives/Panel.tsx",
+    "PlaybackButton": "src/components/ui_primitives/PlaybackButton.tsx",
+    "Popover": "src/components/ui_primitives/Popover.tsx",
+    "PositionedDialog": "src/components/ui_primitives/PositionedDialog.tsx",
+    "ProgressBar": "src/components/ui_primitives/ProgressBar.tsx",
+    "RefreshButton": "src/components/ui_primitives/RefreshButton.tsx",
+    "ResponsiveImage": "src/components/ui_primitives/ResponsiveImage.tsx",
+    "RunModelButton": "src/components/ui_primitives/RunModelButton.tsx",
+    "RunWorkflowButton": "src/components/ui_primitives/RunWorkflowButton.tsx",
+    "ScrollArea": "src/components/ui_primitives/ScrollArea.tsx",
+    "SearchInput": "src/components/ui_primitives/SearchInput.tsx",
+    "SectionHeader": "src/components/ui_primitives/SectionHeader.tsx",
+    "SelectField": "src/components/ui_primitives/SelectField.tsx",
+    "SelectableListItem": "src/components/ui_primitives/SelectableListItem.tsx",
+    "SelectionControls": "src/components/ui_primitives/SelectionControls.tsx",
+    "SettingsButton": "src/components/ui_primitives/SettingsButton.tsx",
+    "ShortcutHint": "src/components/ui_primitives/ShortcutHint.tsx",
+    "Skeleton": "src/components/ui_primitives/Skeleton.tsx",
+    "SkipLinks": "src/components/ui_primitives/SkipLinks.tsx",
+    "Stack": "src/components/ui_primitives/Stack.tsx",
+    "StateIconButton": "src/components/ui_primitives/StateIconButton.tsx",
+    "StatusIndicator": "src/components/ui_primitives/StatusIndicator.tsx",
+    "Surface": "src/components/ui_primitives/Surface.tsx",
+    "TabGroup": "src/components/ui_primitives/TabGroup.tsx",
+    "TabPanel": "src/components/ui_primitives/TabGroup.tsx",
+    "TagButton": "src/components/ui_primitives/TagButton.tsx",
+    "TagInput": "src/components/ui_primitives/TagInput.tsx",
+    "Text": "src/components/ui_primitives/Text.tsx",
+    "TextInput": "src/components/ui_primitives/TextInput.tsx",
+    "TextLink": "src/components/ui_primitives/TextLink.tsx",
+    "ThemeToggleButton": "src/components/ui_primitives/ThemeToggleButton.tsx",
+    "Toast": "src/components/ui_primitives/Toast.tsx",
+    "ToggleGroup": "src/components/ui_primitives/ToggleGroup.tsx",
+    "ToggleOption": "src/components/ui_primitives/ToggleGroup.tsx",
+    "ToolbarIconButton": "src/components/ui_primitives/ToolbarIconButton.tsx",
+    "Tooltip": "src/components/ui_primitives/Tooltip.tsx",
+    "TruncatedText": "src/components/ui_primitives/TruncatedText.tsx",
+    "UndoRedoButtons": "src/components/ui_primitives/UndoRedoButtons.tsx",
+    "UploadButton": "src/components/ui_primitives/UploadButton.tsx",
+    "VideoPlayer": "src/components/ui_primitives/VideoPlayer.tsx",
+    "ViewModeToggle": "src/components/ui_primitives/ViewModeToggle.tsx",
+    "WarningBanner": "src/components/ui_primitives/WarningBanner.tsx",
+    "ZoomControls": "src/components/ui_primitives/ZoomControls.tsx"
+  },
+  "libOverrides": {
+    "dts.mjs": "src-only .tsx DS — point ts-morph type entry at the ui_primitives barrel so props resolve from source instead of collapsing to [key:string]:unknown"
+  },
+  "overrides": {
+    "Dialog": {
+      "cardMode": "single",
+      "viewport": "540x420"
+    },
+    "PositionedDialog": {
+      "cardMode": "single",
+      "viewport": "540x420"
+    },
+    "DrawerPanel": {
+      "cardMode": "single",
+      "viewport": "440x420"
+    },
+    "MobileBottomSheet": {
+      "cardMode": "single",
+      "viewport": "420x420"
+    },
+    "Popover": {
+      "cardMode": "single",
+      "viewport": "380x260"
+    },
+    "ContextMenu": {
+      "cardMode": "single",
+      "viewport": "380x300"
+    },
+    "Tooltip": {
+      "cardMode": "single",
+      "viewport": "360x200"
+    },
+    "InfoTooltip": {
+      "cardMode": "single",
+      "viewport": "360x200"
+    },
+    "Overlay": {
+      "cardMode": "single",
+      "viewport": "440x320"
+    },
+    "DropZoneOverlay": {
+      "cardMode": "single",
+      "viewport": "440x320"
+    },
+    "Toast": {
+      "cardMode": "single",
+      "viewport": "440x220"
+    }
+  },
+  "readmeHeader": ".design-sync/conventions.md"
+}

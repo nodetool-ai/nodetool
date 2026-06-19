@@ -7,7 +7,6 @@
  *  - DurableInbox.append read-modify-write race
  *  - correlated scheduler dropping queued repeating-driver envelopes
  *  - root-scope chunk streams collapsing to "last value only"
- *  - Channel bufferLimit ignored / duplicate subscriberId stranding
  *  - Graph.fromDict deleting defaults for dropped edges
  *  - Graph.topologicalSort ordering on control edges
  *  - getDownstreamSubgraph duplicating edges for shared seed targets
@@ -22,7 +21,6 @@ import { NodeActor, type NodeExecutor } from "../src/actor.js";
 import { NodeInbox } from "../src/inbox.js";
 import { WorkflowRunner } from "../src/runner.js";
 import { DurableInbox } from "../src/durable-inbox.js";
-import { Channel } from "../src/channel.js";
 import { Graph } from "../src/graph.js";
 import { getDownstreamSubgraph } from "../src/graph-utils.js";
 import {
@@ -394,47 +392,6 @@ describe("DurableInbox — concurrent appends", () => {
     const pending = await inbox.getPending("h");
     expect(pending).toHaveLength(3);
     expect(pending.map((m) => m.payload)).toEqual(["a", "b", "c"]);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Channel: bufferLimit and duplicate subscriber ids
-// ---------------------------------------------------------------------------
-
-describe("Channel — buffer limit and subscriber identity", () => {
-  it("bounds a stalled subscriber's buffer by dropping the oldest items", async () => {
-    const ch = new Channel<number>("c", 2);
-    const gen = ch.subscribe("slow");
-
-    // First next() registers the subscriber and waits for data.
-    const first = gen.next();
-    await ch.publish(1);
-    expect((await first).value).toBe(1);
-
-    // Subscriber stalls; publishes beyond the limit drop the oldest.
-    await ch.publish(2);
-    await ch.publish(3);
-    await ch.publish(4);
-    await ch.close();
-
-    const rest: number[] = [];
-    for await (const v of { [Symbol.asyncIterator]: () => gen }) {
-      rest.push(v);
-    }
-    expect(rest).toEqual([3, 4]);
-  });
-
-  it("rejects a second live subscriber with the same id", async () => {
-    const ch = new Channel<number>("c");
-    const gen1 = ch.subscribe("dup");
-    const first = gen1.next();
-    await ch.publish(1);
-    await first;
-
-    const gen2 = ch.subscribe("dup");
-    await expect(gen2.next()).rejects.toThrow(/already has an active subscriber/);
-
-    await ch.close();
   });
 });
 

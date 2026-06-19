@@ -7,6 +7,7 @@ import {
 } from "../../../utils/modelFormatting";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
+import useMetadataStore from "../../../stores/MetadataStore";
 import type { ModelSortField, ModelSortDirection } from "../../../stores/ModelManagerStore";
 import { useQuery } from "@tanstack/react-query";
 import { openInExplorer, openOllamaPath } from "../../../utils/fileExplorer";
@@ -80,6 +81,11 @@ export const useModels = (): UseModelsResult => {
     (state) => state.addNotification
   );
   const cacheStatuses = useHfCacheStatusStore((state) => state.statuses);
+  // Recommended models declared by node packages (e.g. nodetool-mlx). The
+  // server's `models.all` only returns its curated list, provider models and
+  // the HF cache scan, so these Python-declared repos are missing until they
+  // happen to be downloaded. Merge them in so they're browsable/downloadable.
+  const recommendedModels = useMetadataStore((state) => state.recommendedModels);
 
   const {
     data: rawModels,
@@ -92,10 +98,28 @@ export const useModels = (): UseModelsResult => {
     refetchOnWindowFocus: false
   });
 
-  const allModels = useMemo(
-    () => rawModels?.filter(isManageableModel),
-    [rawModels]
-  );
+  const allModels = useMemo(() => {
+    if (!rawModels) {
+      return undefined;
+    }
+    const manageable = rawModels.filter(isManageableModel);
+    // Dedupe key matches the server's: repo/id + path. Drop provider so a
+    // cache-scanned entry (which carries downloaded state) wins over the
+    // recommended placeholder for the same repo.
+    const keyOf = (m: UnifiedModel) =>
+      `${m.repo_id || m.id || ""}::${m.path ?? ""}`;
+    const byKey = new Map<string, UnifiedModel>();
+    for (const m of recommendedModels) {
+      if (isManageableModel(m)) {
+        byKey.set(keyOf(m), m);
+      }
+    }
+    // API entries take precedence — they reflect what's actually on disk.
+    for (const m of manageable) {
+      byKey.set(keyOf(m), m);
+    }
+    return Array.from(byKey.values());
+  }, [rawModels, recommendedModels]);
 
   const groupedModels = useMemo(
     () => groupModelsByType(allModels || []),

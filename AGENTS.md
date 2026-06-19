@@ -255,6 +255,16 @@ npm run test:e2e           # Automatically starts servers
 # Terminal 3: cd web && npx playwright test
 ```
 
+### In-Browser Workflow Harness
+
+A browser-based graph harness that runs whole workflows against the **real** backend and renders the actual ReactFlow canvas per workflow, recording IO, traces, and screenshots into a self-contained HTML report. Frontend lives in `web/src/e2e_runner/`, backend in `packages/websocket/src/e2e-server.ts`. See **[web/src/e2e_runner/README.md](web/src/e2e_runner/README.md)**.
+
+```bash
+cd web
+npm run test:e2e-runner          # headless: boots backend + Vite, runs the suite
+npm run test:e2e-runner:headed   # watch it run in a browser
+```
+
 ### Electron E2E Tests
 
 ```bash

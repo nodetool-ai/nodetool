@@ -196,19 +196,19 @@ const makeMessageContent = (type: string, data: Uint8Array): MessageContent => {
 
   if (type === "image") {
     return {
-      type: "image_url",
-      image: { type: "image", uri: dataUri }
-    } as MessageContent;
+      type: "image_url" as const,
+      image: { type: "image" as const, uri: dataUri }
+    };
   } else if (type === "audio") {
     return {
-      type: "audio",
-      audio: { type: "audio", uri: dataUri }
-    } as MessageContent;
+      type: "audio" as const,
+      audio: { type: "audio" as const, uri: dataUri }
+    };
   } else if (type === "video") {
     return {
-      type: "video",
-      video: { type: "video", uri: dataUri }
-    } as MessageContent;
+      type: "video" as const,
+      video: { type: "video" as const, uri: dataUri }
+    };
   }
   throw new Error(`Unknown message content type: ${type}`);
 };
@@ -590,23 +590,16 @@ const applyOutputUpdate = (
   return noopUpdate;
 };
 
-type ToolCallUpdateWithMeta = ToolCallUpdate & {
-  tool_call_id?: string | number | null;
-  step_id?: string | null;
-  agent_execution_id?: string | null;
-};
-
 const applyToolCallUpdate = (
   state: GlobalChatState,
   update: ToolCallUpdate
 ): ReducerResult => {
-  const updateWithMeta = update as ToolCallUpdateWithMeta;
   const toolCallId =
-    updateWithMeta.tool_call_id != null
-      ? String(updateWithMeta.tool_call_id)
+    update.tool_call_id != null
+      ? String(update.tool_call_id)
       : null;
-  const agentExecutionId = updateWithMeta.agent_execution_id ?? null;
-  const stepId = updateWithMeta.step_id ?? null;
+  const agentExecutionId = update.agent_execution_id ?? null;
+  const stepId = update.step_id ?? null;
 
   // The LLM-authored status lives in args._message and is mirrored onto
   // `update.message`. Strip it from the args we display so the user doesn't
@@ -662,6 +655,10 @@ interface AgentExecutionMessage extends Message {
   execution_event_type?: string;
 }
 
+function isAgentExecutionMessage(msg: Message): msg is AgentExecutionMessage {
+  return msg.role === "agent_execution";
+}
+
 function isPlanningUpdateContent(content: unknown): content is PlanningUpdate {
   return (
     typeof content === "object" &&
@@ -696,7 +693,7 @@ const applyAgentExecutionMessage = (
   state: GlobalChatState,
   threadId: string,
   messages: Message[],
-  msg: Message
+  msg: AgentExecutionMessage
 ): ReducerResult => {
   const update: Partial<GlobalChatState> = {
     messageCache: {
@@ -708,17 +705,16 @@ const applyAgentExecutionMessage = (
       : state.threads
   };
 
-  const agentMsg = msg as AgentExecutionMessage;
   console.debug("applyAgentExecutionMessage:", {
-    execution_event_type: agentMsg.execution_event_type,
-    content_type: typeof agentMsg.content,
-    content_is_array: Array.isArray(agentMsg.content),
-    has_content: !!agentMsg.content
+    execution_event_type: msg.execution_event_type,
+    content_type: typeof msg.content,
+    content_is_array: Array.isArray(msg.content),
+    has_content: !!msg.content
   });
 
-  const content = agentMsg.content;
+  const content = msg.content;
 
-  if (agentMsg.execution_event_type === "planning_update") {
+  if (msg.execution_event_type === "planning_update") {
     console.debug("PlanningUpdate content:", content);
     if (isPlanningUpdateContent(content)) {
       update.currentPlanningUpdate = content;
@@ -726,7 +722,7 @@ const applyAgentExecutionMessage = (
     } else {
       console.warn("PlanningUpdate content is invalid:", content);
     }
-  } else if (agentMsg.execution_event_type === "task_update") {
+  } else if (msg.execution_event_type === "task_update") {
     if (isTaskUpdateContent(content)) {
       update.currentTaskUpdate = content;
       update.currentTaskUpdateThreadId = threadId;
@@ -735,7 +731,7 @@ const applyAgentExecutionMessage = (
         [threadId]: content
       };
     }
-  } else if (agentMsg.execution_event_type === "log_update") {
+  } else if (msg.execution_event_type === "log_update") {
     if (isLogUpdateContent(content)) {
       update.currentLogUpdate = content;
     }
@@ -744,29 +740,158 @@ const applyAgentExecutionMessage = (
   return { update };
 };
 
+const normalizeTextForComparison = (text: string) =>
+  text.replace(/\r\n/g, "\n").replace(/\s+$/g, "");
+
+const extractTextContent = (message: Message): string => {
+  if (typeof message.content === "string") {
+    return message.content;
+  }
+  if (Array.isArray(message.content)) {
+    return message.content
+      .map((c) => (c.type === "text" ? c.text : ""))
+      .join("");
+  }
+  return "";
+};
+
+/**
+ * Locate the trailing local streaming placeholder (the `local-stream-*`
+ * assistant message that applyChunk builds from streamed text) that an incoming
+ * server-authored assistant message should replace rather than sit beside.
+ *
+ * The server re-sends the streamed text as a finalized assistant message — both
+ * when it completes a plain reply and when it attaches tool_calls. Without this
+ * reconciliation the placeholder and the finalized message both render, so the
+ * same text appears twice. Returns -1 when the incoming message is genuinely new.
+ */
+const findStreamPlaceholderIndex = (
+  messages: Message[],
+  msg: Message,
+  status: GlobalChatState["status"]
+): number => {
+  const incomingText = extractTextContent(msg);
+  const incomingNormalized = normalizeTextForComparison(incomingText);
+
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const candidate = messages[i];
+    if (candidate?.role !== "assistant") {
+      continue;
+    }
+    if (candidate.type !== "message") {
+      continue;
+    }
+
+    const candidateId = candidate.id ?? null;
+    const isLocalStream =
+      typeof candidateId === "string" &&
+      candidateId.startsWith("local-stream-");
+    const isServerAuthored =
+      !!candidate.created_at || (!!candidateId && !isLocalStream);
+
+    if (isServerAuthored) {
+      continue;
+    }
+
+    const candidateText = extractTextContent(candidate);
+    const candidateNormalized = normalizeTextForComparison(candidateText);
+    if (!candidateNormalized || !incomingNormalized) {
+      continue;
+    }
+
+    if (
+      candidateNormalized === incomingNormalized ||
+      incomingNormalized.startsWith(candidateNormalized) ||
+      candidateNormalized.startsWith(incomingNormalized)
+    ) {
+      return i;
+    }
+
+    // If we were streaming and the most recent assistant message looks local,
+    // prefer replacing it even if trailing whitespace differs.
+    if (
+      i === messages.length - 1 &&
+      (status === "streaming" || isLocalStream) &&
+      candidateText &&
+      incomingText
+    ) {
+      const candidateTrimmed = candidateText.trimEnd();
+      const incomingTrimmed = incomingText.trimEnd();
+      if (
+        candidateTrimmed === incomingTrimmed ||
+        incomingTrimmed.startsWith(candidateTrimmed)
+      ) {
+        return i;
+      }
+    }
+  }
+  return -1;
+};
+
+/**
+ * Replace the message at `index` with the incoming server message (merging so
+ * server fields like id/created_at/tool_calls win while keeping content when the
+ * server omits it), or append when no placeholder matched.
+ */
+const replaceStreamPlaceholderOrAppend = (
+  messages: Message[],
+  index: number,
+  msg: Message
+): Message[] => {
+  if (index < 0) {
+    return [...messages, msg];
+  }
+  const existing = messages[index];
+  const replacement: Message = {
+    ...existing,
+    ...msg,
+    content: msg.content ?? existing.content
+  };
+  return [
+    ...messages.slice(0, index),
+    replacement,
+    ...messages.slice(index + 1)
+  ];
+};
+
 const applyToolMessage = (
   state: GlobalChatState,
   threadId: string,
   messages: Message[],
   msg: Message
-) => ({
-  update: {
-    messageCache: {
-      ...state.messageCache,
-      [threadId]: [...messages, msg]
-    },
-    threads: state.threads[threadId]
-      ? updateThreadTimestamp(threadId, state.threads)
-      : state.threads,
-    ...(msg.role === "tool"
-      ? {
-          currentRunningToolCallId: null,
-          currentToolMessage: null,
-          statusMessage: null
-        }
-      : {})
-  }
-});
+) => {
+  // An assistant message carrying tool_calls finalizes the text the server just
+  // streamed, so replace the streaming placeholder instead of appending a second
+  // copy. Plain tool-result messages (role === "tool") never have a placeholder
+  // and are always appended.
+  const placeholderIndex =
+    msg.role === "assistant"
+      ? findStreamPlaceholderIndex(messages, msg, state.status)
+      : -1;
+  const updatedMessages = replaceStreamPlaceholderOrAppend(
+    messages,
+    placeholderIndex,
+    msg
+  );
+  return {
+    update: {
+      messageCache: {
+        ...state.messageCache,
+        [threadId]: updatedMessages
+      },
+      threads: state.threads[threadId]
+        ? updateThreadTimestamp(threadId, state.threads)
+        : state.threads,
+      ...(msg.role === "tool"
+        ? {
+            currentRunningToolCallId: null,
+            currentToolMessage: null,
+            statusMessage: null
+          }
+        : {})
+    }
+  };
+};
 
 const applyAssistantMessage = (
   state: GlobalChatState,
@@ -781,82 +906,15 @@ const applyAssistantMessage = (
       state.status === "streaming" ||
       state.status === "stopping");
 
-  const normalizeTextForComparison = (text: string) =>
-    text.replace(/\r\n/g, "\n").replace(/\s+$/g, "");
+  const incomingNormalized = normalizeTextForComparison(
+    extractTextContent(msg)
+  );
 
-  const extractTextContent = (message: Message): string => {
-    if (typeof message.content === "string") {
-      return message.content;
-    }
-    if (Array.isArray(message.content)) {
-      return message.content
-        .map((c) => (c.type === "text" ? c.text : ""))
-        .join("");
-    }
-    return "";
-  };
-
-  const incomingText =
-    typeof msg.content === "string"
-      ? msg.content
-      : Array.isArray(msg.content)
-      ? msg.content.map((c) => (c.type === "text" ? c.text : "")).join("")
-      : "";
-  const incomingNormalized = normalizeTextForComparison(incomingText);
-
-  const findStreamPlaceholderIndex = (): number => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      const candidate = messages[i];
-      if (candidate?.role !== "assistant") {continue;}
-      if (candidate.type !== "message") {continue;}
-
-      const candidateId = candidate.id ?? null;
-      const isLocalStream =
-        typeof candidateId === "string" &&
-        candidateId.startsWith("local-stream-");
-      const isServerAuthored =
-        !!candidate.created_at || (!!candidateId && !isLocalStream);
-
-      if (isServerAuthored) {
-        continue;
-      }
-
-      const candidateText = extractTextContent(candidate);
-      const candidateNormalized = normalizeTextForComparison(candidateText);
-      if (!candidateNormalized || !incomingNormalized) {
-        continue;
-      }
-
-      if (
-        candidateNormalized === incomingNormalized ||
-        incomingNormalized.startsWith(candidateNormalized) ||
-        candidateNormalized.startsWith(incomingNormalized)
-      ) {
-        return i;
-      }
-
-      // If we were streaming and the most recent assistant message looks local,
-      // prefer replacing it even if trailing whitespace differs.
-      if (
-        i === messages.length - 1 &&
-        (state.status === "streaming" || isLocalStream) &&
-        candidateText &&
-        incomingText
-      ) {
-        const candidateTrimmed = candidateText.trimEnd();
-        const incomingTrimmed = incomingText.trimEnd();
-        if (
-          candidateTrimmed === incomingTrimmed ||
-          incomingTrimmed.startsWith(candidateTrimmed)
-        ) {
-          return i;
-        }
-      }
-    }
-    return -1;
-  };
-
-  const streamPlaceholderIndex = findStreamPlaceholderIndex();
+  const streamPlaceholderIndex = findStreamPlaceholderIndex(
+    messages,
+    msg,
+    state.status
+  );
 
   const isNewAssistantMessage =
     streamPlaceholderIndex < 0 &&
@@ -865,17 +923,11 @@ const applyAssistantMessage = (
 
   const updatedMessages = (() => {
     if (streamPlaceholderIndex >= 0) {
-      const existing = messages[streamPlaceholderIndex];
-      const replacement: Message = {
-        ...existing,
-        ...msg,
-        content: msg.content ?? existing.content
-      };
-      return [
-        ...messages.slice(0, streamPlaceholderIndex),
-        replacement,
-        ...messages.slice(streamPlaceholderIndex + 1)
-      ];
+      return replaceStreamPlaceholderOrAppend(
+        messages,
+        streamPlaceholderIndex,
+        msg
+      );
     }
 
     const currentLast = messages[messages.length - 1];
@@ -938,7 +990,7 @@ const applyMessage = (state: GlobalChatState, msg: Message): ReducerResult => {
   }
   const messages = state.messageCache[threadId] || [];
 
-  if (msg.role === "agent_execution") {
+  if (isAgentExecutionMessage(msg)) {
     return applyAgentExecutionMessage(state, threadId, messages, msg);
   }
 
@@ -1178,12 +1230,11 @@ export async function handleChatWebSocketMessage(
   };
 
   if (data.type === "job_update") {
-    const jobUpdate = data as JobUpdate;
     // Clear timeout on terminal job states
     if (
-      jobUpdate.status === "completed" ||
-      jobUpdate.status === "failed" ||
-      jobUpdate.status === "cancelled"
+      data.status === "completed" ||
+      data.status === "failed" ||
+      data.status === "cancelled"
     ) {
       const timeoutId = get().sendMessageTimeoutId;
       if (timeoutId !== null) {
@@ -1191,14 +1242,13 @@ export async function handleChatWebSocketMessage(
         set({ sendMessageTimeoutId: null });
       }
     }
-    applyReducer(applyJobUpdate, jobUpdate);
+    applyReducer(applyJobUpdate, data);
   } else if (data.type === "node_update") {
-    applyReducer(applyNodeUpdate, data as NodeUpdate);
+    applyReducer(applyNodeUpdate, data);
   } else if (data.type === "edge_update") {
-    applyReducer(applyEdgeUpdate, data as EdgeUpdate);
+    applyReducer(applyEdgeUpdate, data);
   } else if (data.type === "chunk") {
-    const chunk = data as Chunk;
-    if (chunk.done) {
+    if (data.done) {
       console.info("Received final chunk (done=true), clearing timeout");
       // Clear the safety timeout when generation completes
       const timeoutId = get().sendMessageTimeoutId;
@@ -1209,10 +1259,10 @@ export async function handleChatWebSocketMessage(
     }
     // Surface a progress message for media generation chunks so the UI
     // shows "Generating image…" / "Generating video…" instead of "Thinking…"
-    const mediaMeta = chunk.content_metadata?.media_generation as
+    const mediaMeta = data.content_metadata?.media_generation as
       | Record<string, unknown>
       | undefined;
-    if (mediaMeta && !chunk.done) {
+    if (mediaMeta && !data.done) {
       const mode = String(mediaMeta.mode ?? "");
       const model = mediaMeta.model ? String(mediaMeta.model) : "";
       const label =
@@ -1223,28 +1273,26 @@ export async function handleChatWebSocketMessage(
             : "Generating";
       set({ statusMessage: model ? `${label} with ${model}…` : `${label}…` });
     }
-    applyReducer(applyChunk, chunk);
+    applyReducer(applyChunk, data);
   } else if (data.type === "output_update") {
-    applyReducer(applyOutputUpdate, data as OutputUpdate);
+    applyReducer(applyOutputUpdate, data);
   } else if (data.type === "tool_call_update") {
-    applyReducer(applyToolCallUpdate, data as ToolCallUpdate);
+    applyReducer(applyToolCallUpdate, data);
   } else if (data.type === "todo_update") {
-    const todoData = data as TodoUpdate;
-    const threadId = todoData.thread_id ?? get().currentThreadId;
+    const threadId = data.thread_id ?? get().currentThreadId;
     if (threadId) {
       set((state) => ({
         todosByThread: {
           ...state.todosByThread,
-          [threadId]: todoData.todos ?? []
+          [threadId]: data.todos ?? []
         }
       }));
     }
   } else if (data.type === "message") {
-    const messageData = data as Message;
     const currentThreadId = get().currentThreadId;
-    const messageThreadId = messageData.thread_id ?? currentThreadId;
+    const messageThreadId = data.thread_id ?? currentThreadId;
     if (
-      messageData.role === "assistant" &&
+      data.role === "assistant" &&
       messageThreadId === currentThreadId
     ) {
       const timeoutId = get().sendMessageTimeoutId;
@@ -1253,14 +1301,13 @@ export async function handleChatWebSocketMessage(
         set({ sendMessageTimeoutId: null });
       }
     }
-    applyReducer(applyMessage, messageData);
+    applyReducer(applyMessage, data);
   } else if (data.type === "node_progress") {
-    applyReducer(applyNodeProgress, data as NodeProgress);
+    applyReducer(applyNodeProgress, data);
   } else if (data.type === "tool_call") {
-    const toolCallData = data as ToolCallMessage;
-    void executeToolCall(toolCallData, get, set, globalWebSocketManager);
+    void executeToolCall(data, get, set, globalWebSocketManager);
   } else if (data.type === "tool_approval_request") {
-    get().addPendingApproval(data as ToolApprovalRequestMessage);
+    get().addPendingApproval(data);
   } else if (data.type === "generation_stopped") {
     // Clear the safety timeout when generation is stopped
     const timeoutId = get().sendMessageTimeoutId;
@@ -1270,30 +1317,27 @@ export async function handleChatWebSocketMessage(
     }
     applyReducer(
       (_state) => applyGenerationStopped(),
-      data as GenerationStoppedUpdate
+      data
     );
-    const stoppedData = data as GenerationStoppedUpdate;
-    console.info("Generation stopped:", stoppedData.message);
+    console.info("Generation stopped:", data.message);
   } else if (data.type === "workflow_created" || data.type === "workflow_updated") {
-    const workflowData = data as WorkflowCreatedUpdate | WorkflowUpdatedUpdate;
     const threadId = get().currentThreadId;
-    if (threadId && workflowData.workflow_id) {
+    if (threadId && data.workflow_id) {
       set((state) => ({
         threadWorkflowId: {
           ...state.threadWorkflowId,
-          [threadId]: workflowData.workflow_id
+          [threadId]: data.workflow_id
         }
       }));
     }
-    console.debug(`${data.type}:`, workflowData.workflow_id);
+    console.debug(`${data.type}:`, data.workflow_id);
   } else if (data.type === "error") {
-    const errorData = data as ErrorMessage;
     // Clear the safety timeout on error
     const timeoutId = get().sendMessageTimeoutId;
     if (timeoutId !== null) {
       clearTimeout(timeoutId);
       set({ sendMessageTimeoutId: null });
     }
-    applyReducer((_state) => applyError(errorData.message), errorData);
+    applyReducer((_state) => applyError(data.message), data);
   }
 }

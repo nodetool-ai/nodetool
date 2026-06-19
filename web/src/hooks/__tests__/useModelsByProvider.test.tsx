@@ -115,6 +115,7 @@ describe("useImageModelsByProvider — task filter", () => {
   // untagged model standing in for an unclassified third-party (e.g. HF) model.
   const CATALOG = [
     { id: "fal-ai/flux/schnell", name: "Flux Schnell", provider: "fal_ai", supported_tasks: ["text_to_image", "image_to_image"] },
+    { id: "fal-ai/ideogram/v2/edit", name: "Ideogram Edit", provider: "fal_ai", supported_tasks: ["text_to_image", "image_to_image", "inpainting"] },
     { id: "fal-ai/image-apps-v2/relighting", name: "Relight", provider: "fal_ai", supported_tasks: ["relight"] },
     { id: "fal-ai/clarity-upscaler", name: "Clarity Upscaler", provider: "fal_ai", supported_tasks: ["upscale"] },
     { id: "fal-ai/bria/background/remove", name: "Bria BG Remove", provider: "fal_ai", supported_tasks: ["remove_background"] },
@@ -142,6 +143,17 @@ describe("useImageModelsByProvider — task filter", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.models.map((m) => m.id)).toEqual([
       "fal-ai/clarity-upscaler"
+    ]);
+  });
+
+  it("inpainting (strict) returns only models that declare the inpainting task", async () => {
+    const { result } = renderHook(
+      () => useImageModelsByProvider({ task: "inpainting" }),
+      { wrapper: wrapper() }
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.models.map((m) => m.id)).toEqual([
+      "fal-ai/ideogram/v2/edit"
     ]);
   });
 

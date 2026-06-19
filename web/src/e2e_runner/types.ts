@@ -1,0 +1,134 @@
+/**
+ * Shared types for the E2E workflow test runner.
+ * The runner loads a manifest of workflows, executes each against the real
+ * backend over the WebSocket protocol (JSON text mode), and records everything
+ * worth inspecting into a RunRecord per workflow.
+ */
+
+export type RunStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "error"
+  | "timeout"
+  | "skipped";
+
+/** A single workflow entry in the suite manifest. */
+export interface WorkflowRef {
+  /** Stable id (the source filename without extension). */
+  id: string;
+  /** Human-readable name. */
+  name: string;
+  /** Path of the graph JSON under the served suite dir (e.g. /e2e-suite/foo.json). */
+  file: string;
+  /** Run params keyed by input-node name. */
+  params: Record<string, unknown>;
+  /** Env var names that must be present for this workflow to run for real. */
+  requiresSecrets?: string[];
+  /** Optional assertions checked after the run completes. */
+  expect?: {
+    status?: RunStatus;
+    /** Substring that must appear in the stringified outputs. */
+    outputContains?: string;
+    /** Minimum number of output_update messages expected. */
+    minOutputs?: number;
+  };
+  tags?: string[];
+  /** Where the graph came from (cli-fixtures | shipped-examples | custom). */
+  source?: string;
+}
+
+export interface Manifest {
+  generatedAt: string;
+  /** Env var names detected at suite-build time (used to gate secret-requiring workflows). */
+  secretsAvailable: string[];
+  workflows: WorkflowRef[];
+}
+
+/** A decoded WebSocket message from the backend. */
+export interface WsEvent {
+  type?: string;
+  [key: string]: unknown;
+}
+
+export interface CapturedOutput {
+  node_id?: string;
+  node_name?: string;
+  output_name?: string;
+  output_type?: string;
+  value: unknown;
+}
+
+export interface CapturedLog {
+  ts: number;
+  level?: string;
+  content: string;
+  node_id?: string;
+}
+
+export interface CapturedArtifact {
+  name: string;
+  contentType: string;
+  /** Inline data URL when the value carried bytes/base64; otherwise omitted. */
+  dataUrl?: string;
+  /** Backend asset/storage URI when the value referenced one. */
+  uri?: string;
+}
+
+export interface NodeIO {
+  node_type?: string;
+  status?: string;
+  result?: unknown;
+  error?: string | null;
+}
+
+export interface RunRecord {
+  id: string;
+  name: string;
+  file: string;
+  source?: string;
+  tags?: string[];
+  status: RunStatus;
+  skipReason?: string;
+  startedAt: number | null;
+  finishedAt: number | null;
+  durationMs: number | null;
+  params: Record<string, unknown>;
+  jobId: string | null;
+  error: string | null;
+  outputs: CapturedOutput[];
+  logs: CapturedLog[];
+  artifacts: CapturedArtifact[];
+  /** Per-node final status + result, keyed by node id. */
+  nodeIO: Record<string, NodeIO>;
+  /** Full ordered event log (raw decoded messages). */
+  events: WsEvent[];
+  counts: {
+    nodes: number;
+    outputs: number;
+    errors: number;
+    edgeUpdates: number;
+  };
+  expectationFailures: string[];
+}
+
+/** The controller the harness exposes on `window.__E2E__` for the Playwright driver. */
+export interface E2EController {
+  ready: Promise<void>;
+  manifest: () => WorkflowRef[];
+  results: () => RunRecord[];
+  state: () => "loading" | "idle" | "running" | "done";
+  /** Run the next pending workflow; resolves with its record once settled. */
+  runNext: () => Promise<RunRecord | null>;
+  /** Run every remaining workflow sequentially. */
+  runAll: () => Promise<RunRecord[]>;
+  currentIndex: () => number;
+}
+
+declare global {
+  interface Window {
+    __E2E__?: E2EController;
+  }
+}

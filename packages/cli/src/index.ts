@@ -17,7 +17,7 @@ import React from "react";
 import { App } from "./app.js";
 import { loadSettings } from "./settings.js";
 import { runStdinMode } from "./stdin.js";
-import { buildConfiguredProviders } from "./providers.js";
+import { buildConfiguredProviders, KNOWN_PROVIDERS } from "./providers.js";
 import { initDb, getSecret } from "@nodetool-ai/models";
 import { initMasterKey } from "@nodetool-ai/security";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
@@ -55,7 +55,7 @@ program
   )
   .option(
     "-p, --provider <provider>",
-    "LLM provider (anthropic, openai, ollama, gemini, mistral, groq)"
+    `LLM provider (${KNOWN_PROVIDERS.join(", ")})`
   )
   .option("-m, --model <model>", "Model ID")
   .option(
@@ -75,6 +75,10 @@ program
   .option(
     "--sandbox",
     "Provision an isolated Docker sandbox and expose its tools (file, shell, browser, desktop, search, messaging) to the agent"
+  )
+  .option(
+    "--no-read-only-search",
+    "Disable the read-only run_search fan-out primitive (on by default)"
   )
   .option(
     "--sandbox-image <image>",
@@ -105,6 +109,7 @@ const opts = program.opts<{
   url?: string;
   sandbox?: boolean;
   sandboxImage?: string;
+  readOnlySearch?: boolean;
   traceFile?: string;
   traceStdout?: string | boolean;
 }>();
@@ -175,7 +180,7 @@ if (opts.agent !== undefined) {
   );
 }
 
-const workspace = opts.workspace ?? settings.workspace;
+const workspace = opts.workspace ?? process.cwd();
 const enabledTools = opts.tools
   ? opts.tools.split(",").map((t) => t.trim())
   : settings.enabledTools;
@@ -287,7 +292,8 @@ if (!process.stdin.isTTY) {
       wsUrl: opts.url,
       extraTools: sandboxExtraTools,
       registry: cliRegistry,
-      agentProviders: cliAgentProviders
+      agentProviders: cliAgentProviders,
+      enableReadOnlySearch: opts.readOnlySearch !== false
     });
   } finally {
     if (sandboxStore) await sandboxStore.close();

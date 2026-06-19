@@ -8,7 +8,7 @@ import { shallow } from "zustand/shallow";
 /**
  * Result object containing edge event handlers.
  */
-export type EdgeHandlersResult = {
+type EdgeHandlersResult = {
   /** Handler for mouse entering an edge (hover start) */
   onEdgeMouseEnter: (event: React.MouseEvent, edge: Edge) => void;
   /** Handler for mouse leaving an edge (hover end) */

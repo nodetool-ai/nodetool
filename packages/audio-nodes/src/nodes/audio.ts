@@ -5,7 +5,7 @@ import type {
   Platform
 } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { tagAsHybrid, tagAsServer } from "@nodetool-ai/nodes-utils";
+import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import {
   loadNodeFsPromises,
   loadNodePath
@@ -1684,11 +1684,12 @@ export class GetAudioInfoNode extends BaseNode {
 }
 
 /**
- * Pure sample/byte transforms — run on Node and in the browser workflow
- * runner (all byte access goes through `audioBytesAsync`, whose `file://`
- * branch is lazy and never taken in the browser).
+ * Sample/byte transforms — server-only. They decode their input to PCM (WAV
+ * directly, or compressed formats via WebAudio `decodeAudioData`), which needs
+ * Node's `node-web-audio-api`; stored `/api/storage/<key>` refs also resolve
+ * reliably only against the server's storage.
  */
-const AUDIO_HYBRID_NODES = tagAsHybrid([
+const AUDIO_TRANSFORM_NODES = tagAsServer([
   NormalizeAudioNode,
   OverlayAudioNode,
   RemoveSilenceNode,
@@ -1722,4 +1723,4 @@ const AUDIO_SERVER_NODES = tagAsServer([
   TextToSpeechNode
 ]);
 
-export const AUDIO_NODES = [...AUDIO_HYBRID_NODES, ...AUDIO_SERVER_NODES];
+export const AUDIO_NODES = [...AUDIO_TRANSFORM_NODES, ...AUDIO_SERVER_NODES];

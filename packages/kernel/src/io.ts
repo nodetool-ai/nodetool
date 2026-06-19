@@ -185,7 +185,8 @@ export interface NodeOutputsOptions {
 
   /**
    * Send `lineage_done` for `slot` at the projected key carried by
-   * `envelope`. Plumbed in PR 3 when correlated scheduling lands.
+   * `envelope`. Wired by the actor so a stream node calling `outputs.drop()`
+   * propagates the slot's done signal to downstream inboxes.
    */
   dropFn?: (slot: string, envelope: MessageEnvelope) => Promise<void>;
 
@@ -308,7 +309,8 @@ export class NodeOutputs {
 
   /**
    * Send `lineage_done` for `slot` at the projected key carried by
-   * `envelope`. No-op until PR 3's correlated scheduler is in place.
+   * `envelope`, via the actor's drop callback, so downstream inboxes learn the
+   * slot produced no value for this lineage.
    */
   async drop(slot: string, envelope: MessageEnvelope): Promise<void> {
     if (this._dropFn) {

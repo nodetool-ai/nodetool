@@ -36,7 +36,7 @@ import { DEFAULT_MODEL } from "../config/constants";
 import { ConnectionState } from "../lib/websocket/WebSocketManager";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import { FrontendToolRegistry } from "../lib/tools/frontendTools";
-import { uuidv4 } from "./uuidv4";
+import { v4 as uuidv4 } from "uuid";
 import { createChatPiSlice, type ChatPiSlice } from "./chatPi";
 import {
   handleChatWebSocketMessage,
@@ -60,7 +60,7 @@ type ChatStatus =
  *   is carried per-message via `media_generation`).
  * - "pi": the workspace-aware Pi coding agent over `/ws/agent`.
  */
-export type ChatMode = "chat" | "pi";
+type ChatMode = "chat" | "pi";
 
 export type StepToolCall = {
   id: string;
@@ -85,7 +85,7 @@ export type ApprovalDecision = "allow" | "allow_for_chat" | "deny";
  * A pending tool-approval request awaiting a user decision. Keyed by
  * `approval_id` in `pendingApprovals`.
  */
-export interface PendingApproval {
+interface PendingApproval {
   thread_id: string;
   tool_name: string;
   category: string;
@@ -94,7 +94,7 @@ export interface PendingApproval {
 }
 
 /** Server → client tool-approval request payload. */
-export interface ToolApprovalRequest {
+interface ToolApprovalRequest {
   type: "tool_approval_request";
   thread_id: string;
   approval_id: string;

@@ -22,6 +22,7 @@ import type {
   EncodedAudioResult,
   ImageModel,
   ImageToImageParams,
+  InpaintingParams,
   ImageToVideoParams,
   LanguageModel,
   Message,
@@ -980,6 +981,25 @@ export class OpenAIProvider extends BaseProvider {
     images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Uint8Array> {
+    return this.runImageEdit(images, params);
+  }
+
+  override async inpaint(
+    images: Uint8Array[],
+    params: InpaintingParams
+  ): Promise<Uint8Array> {
+    return this.runImageEdit(images, params, params.mask);
+  }
+
+  /**
+   * Shared OpenAI image-edit call for both image-to-image and inpaint. When
+   * `mask` is supplied the masked region is regenerated.
+   */
+  private async runImageEdit(
+    images: Uint8Array[],
+    params: ImageToImageParams,
+    mask?: Uint8Array
+  ): Promise<Uint8Array> {
     const sources = images.filter((b) => b && b.length > 0);
     if (sources.length === 0) {
       throw new Error("image must not be empty.");
@@ -1010,8 +1030,8 @@ export class OpenAIProvider extends BaseProvider {
     // mask's *transparent* pixels. Our masks use the opposite convention
     // (opaque/white alpha = edit region, matching FAL), so invert the alpha
     // channel before sending.
-    if (params.mask && params.mask.length > 0) {
-      const openAiMask = await this.toOpenAiEditMask(params.mask);
+    if (mask && mask.length > 0) {
+      const openAiMask = await this.toOpenAiEditMask(mask);
       request.mask = await toFile(Buffer.from(openAiMask), "mask.png", {
         type: "image/png"
       });

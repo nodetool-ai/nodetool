@@ -1,4 +1,12 @@
-/** Selection-driven Inpaint Here action — uses provider directly, no workflow. */
+/**
+ * Selection-driven generation — uses the provider directly, no workflow.
+ *
+ * Two modes, both flatten the canvas to a source image:
+ *  - "inpaint": also build a mask from the selection and create an `inpaint`
+ *    binding; the provider regenerates only the masked region.
+ *  - "edit": send the source image with no mask and create an `image-to-image`
+ *    binding; the provider transforms the whole frame from the prompt.
+ */
 
 import { useCallback, useRef, useState } from "react";
 
@@ -8,6 +16,8 @@ import { useSketchCanvasRefStore } from "../../stores/sketch/SketchCanvasRefStor
 import { useAssetStore } from "../../stores/AssetStore";
 import { selectionToMaskDataUrl } from "../../lib/sketch/selectionMaskImage";
 
+export type SelectionGenMode = "inpaint" | "edit";
+
 export type InpaintHereResult =
   | { ok: true; layerId: string }
   | {
@@ -16,11 +26,12 @@ export type InpaintHereResult =
       message?: string;
     };
 
-export interface UseInpaintHereResult {
+interface UseInpaintHereResult {
   inpaintHere: (options: {
     prompt: string;
     provider: string;
     model: string;
+    mode?: SelectionGenMode;
   }) => Promise<InpaintHereResult>;
   isBusy: boolean;
 }
@@ -40,7 +51,9 @@ export function useInpaintHere(): UseInpaintHereResult {
       prompt: string;
       provider: string;
       model: string;
+      mode?: SelectionGenMode;
     }): Promise<InpaintHereResult> => {
+      const mode = options.mode ?? "inpaint";
       if (busyRef.current) {
         return { ok: false, reason: "error", message: "Already running" };
       }
@@ -69,6 +82,37 @@ export function useInpaintHere(): UseInpaintHereResult {
         }
 
         const { width, height } = sketchState.document.canvas;
+
+        // Edit mode: transform the whole frame with no mask. Upload only the
+        // source composite and create an image-to-image binding.
+        if (mode === "edit") {
+          const sourceFile = await dataUrlToFile(
+            compositeDataUrl,
+            "edit-source.png"
+          );
+          const sourceAsset = await useAssetStore
+            .getState()
+            .createAsset(sourceFile, undefined, undefined, undefined, "file");
+
+          const newLayerId = useSketchStore
+            .getState()
+            .addLayer("Edit", "raster");
+
+          useSketchSessionStore.getState().upsertBinding({
+            layerId: newLayerId,
+            kind: "image-to-image",
+            prompt: options.prompt,
+            provider: options.provider,
+            model: options.model,
+            sourceAssetId: sourceAsset.id,
+            sourceLayerId: null,
+            status: "draft",
+            versions: []
+          });
+
+          return { ok: true, layerId: newLayerId };
+        }
+
         const maskDataUrl = selectionToMaskDataUrl(selection, width, height);
         if (!maskDataUrl) {
           return { ok: false, reason: "no-selection" };

@@ -1,11 +1,11 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { AudioRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { tagAsHybrid } from "@nodetool-ai/nodes-utils";
+import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import {
-  audioBytesAsync,
+  requireAudioBytes,
   audioRefFromWav,
-  decodeWav,
+  decodeAudioToWav,
   encodeWav,
   type WavData
 } from "../lib/audio-wav.js";
@@ -139,11 +139,10 @@ export class GainNode_ extends BaseNode {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const gainDb = Number(this.gain_db ?? 0);
 
-    const bytes = await audioBytesAsync(audio, context);
-    if (bytes.length === 0) return { output: audio };
+    const bytes = await requireAudioBytes(audio, context);
 
     // A gain is a plain per-sample multiply — no WebAudio context needed.
-    const wav = decodeWav({ data: bytes });
+    const wav = await decodeAudioToWav(bytes);
     const factor = Math.pow(10, gainDb / 20);
     const outSamples = new Float32Array(wav.samples.length);
     for (let i = 0; i < wav.samples.length; i++) {
@@ -219,10 +218,9 @@ export class DelayNode_ extends BaseNode {
     const feedback = Number(this.feedback ?? 0.3);
     const mix = Number(this.mix ?? 0.5);
 
-    const bytes = await audioBytesAsync(audio, context);
-    if (bytes.length === 0) return { output: audio };
+    const bytes = await requireAudioBytes(audio, context);
 
-    const wav = decodeWav({ data: bytes });
+    const wav = await decodeAudioToWav(bytes);
     const frameSamples = Math.floor(wav.samples.length / wav.numChannels);
     const delaySamples = Math.floor(delaySec * wav.sampleRate);
 
@@ -299,10 +297,9 @@ export class HighPassFilterNode extends BaseNode {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const cutoff = Number(this.cutoff_frequency_hz ?? 80);
 
-    const bytes = await audioBytesAsync(audio, context);
-    if (bytes.length === 0) return { output: audio };
+    const bytes = await requireAudioBytes(audio, context);
 
-    const output = await applyFilter(decodeWav({ data: bytes }), {
+    const output = await applyFilter(await decodeAudioToWav(bytes), {
       type: "highpass",
       frequency: cutoff
     });
@@ -350,10 +347,9 @@ export class LowPassFilterNode extends BaseNode {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const cutoff = Number(this.cutoff_frequency_hz ?? 5000);
 
-    const bytes = await audioBytesAsync(audio, context);
-    if (bytes.length === 0) return { output: audio };
+    const bytes = await requireAudioBytes(audio, context);
 
-    const output = await applyFilter(decodeWav({ data: bytes }), {
+    const output = await applyFilter(await decodeAudioToWav(bytes), {
       type: "lowpass",
       frequency: cutoff
     });
@@ -413,10 +409,9 @@ export class HighShelfFilterNode extends BaseNode {
     const cutoff = Number(this.cutoff_frequency_hz ?? 5000);
     const gainDb = Number(this.gain_db ?? 0);
 
-    const bytes = await audioBytesAsync(audio, context);
-    if (bytes.length === 0) return { output: audio };
+    const bytes = await requireAudioBytes(audio, context);
 
-    const output = await applyFilter(decodeWav({ data: bytes }), {
+    const output = await applyFilter(await decodeAudioToWav(bytes), {
       type: "highshelf",
       frequency: cutoff,
       gainDb
@@ -477,10 +472,9 @@ export class LowShelfFilterNode extends BaseNode {
     const cutoff = Number(this.cutoff_frequency_hz ?? 200);
     const gainDb = Number(this.gain_db ?? 0);
 
-    const bytes = await audioBytesAsync(audio, context);
-    if (bytes.length === 0) return { output: audio };
+    const bytes = await requireAudioBytes(audio, context);
 
-    const output = await applyFilter(decodeWav({ data: bytes }), {
+    const output = await applyFilter(await decodeAudioToWav(bytes), {
       type: "lowshelf",
       frequency: cutoff,
       gainDb
@@ -553,10 +547,9 @@ export class PeakFilterNode extends BaseNode {
     const q = Number(this.q_factor ?? 1.0);
     const gainDb = Number(this.gain_db ?? 0);
 
-    const bytes = await audioBytesAsync(audio, context);
-    if (bytes.length === 0) return { output: audio };
+    const bytes = await requireAudioBytes(audio, context);
 
-    const output = await applyFilter(decodeWav({ data: bytes }), {
+    const output = await applyFilter(await decodeAudioToWav(bytes), {
       type: "peaking",
       frequency: cutoff,
       q,
@@ -567,7 +560,9 @@ export class PeakFilterNode extends BaseNode {
   }
 }
 
-export const LIB_AUDIO_DSP_NODES = tagAsHybrid([
+// Server-only: these decode the input audio to PCM (WAV directly, or mp3/flac/
+// … via WebAudio `decodeAudioData`), which needs Node's `node-web-audio-api`.
+export const LIB_AUDIO_DSP_NODES = tagAsServer([
   GainNode_,
   DelayNode_,
   HighPassFilterNode,

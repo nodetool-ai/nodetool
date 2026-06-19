@@ -108,6 +108,7 @@ export default {
     "/node_modules/",
     "/dist/",
     "tests/e2e/",
+    "tests/e2e-runner/",
     "tests/benchmarks/",
     "tests/subgraph-e2e.spec.ts",
     // Shared helpers living inside __tests__ dirs — not suites themselves.

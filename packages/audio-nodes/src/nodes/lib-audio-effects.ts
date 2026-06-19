@@ -1,11 +1,11 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { tagAsHybrid, tagAsServer } from "@nodetool-ai/nodes-utils";
+import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import { importHidden } from "@nodetool-ai/config";
 import {
-  audioBytesAsync,
+  requireAudioBytes,
   audioRefFromWav,
-  decodeWav,
+  decodeAudioToWav,
   encodeWav,
   type WavData
 } from "../lib/audio-wav.js";
@@ -93,10 +93,9 @@ export class BitcrushNode extends BaseNode {
     const bitDepth = Number(this.bit_depth ?? 8);
     const srrFactor = Number(this.sample_rate_reduction ?? 1);
 
-    const bytes = await audioBytesAsync(audio, context);
-    if (bytes.length === 0) return { output: audio };
+    const bytes = await requireAudioBytes(audio, context);
 
-    const wav = decodeWav({ data: bytes });
+    const wav = await decodeAudioToWav(bytes);
     const result = processPerChannel(wav, (ch) => {
       // Number of quantization steps for the target bit depth. Guard against
       // bitDepth === 1 (the prop minimum), which would otherwise yield 0 and
@@ -193,10 +192,9 @@ export class CompressNode extends BaseNode {
     const attackMs = Number(this.attack ?? 5);
     const releaseMs = Number(this.release ?? 50);
 
-    const bytes = await audioBytesAsync(audio, context);
-    if (bytes.length === 0) return { output: audio };
+    const bytes = await requireAudioBytes(audio, context);
 
-    const wav = decodeWav({ data: bytes });
+    const wav = await decodeAudioToWav(bytes);
     const result = processPerChannel(wav, (ch, sr) => {
       const out = new Float32Array(ch.length);
       const attackCoeff = Math.exp(-1 / ((sr * attackMs) / 1000));
@@ -273,10 +271,9 @@ export class DistortionNode extends BaseNode {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const driveDb = Number(this.drive_db ?? 25);
 
-    const bytes = await audioBytesAsync(audio, context);
-    if (bytes.length === 0) return { output: audio };
+    const bytes = await requireAudioBytes(audio, context);
 
-    const wav = decodeWav({ data: bytes });
+    const wav = await decodeAudioToWav(bytes);
     const drive = Math.pow(10, driveDb / 20);
     const result = processPerChannel(wav, (ch) => {
       const out = new Float32Array(ch.length);
@@ -347,10 +344,9 @@ export class LimiterNode extends BaseNode {
     const thresholdDb = Number(this.threshold_db ?? -2);
     const releaseMs = Number(this.release_ms ?? 250);
 
-    const bytes = await audioBytesAsync(audio, context);
-    if (bytes.length === 0) return { output: audio };
+    const bytes = await requireAudioBytes(audio, context);
 
-    const wav = decodeWav({ data: bytes });
+    const wav = await decodeAudioToWav(bytes);
     const threshold = Math.pow(10, thresholdDb / 20);
     const result = processPerChannel(wav, (ch, sr) => {
       const out = new Float32Array(ch.length);
@@ -457,10 +453,9 @@ export class ReverbNode extends BaseNode {
     const wetLevel = Number(this.wet_level ?? 0.15);
     const dryLevel = Number(this.dry_level ?? 0.5);
 
-    const bytes = await audioBytesAsync(audio, context);
-    if (bytes.length === 0) return { output: audio };
+    const bytes = await requireAudioBytes(audio, context);
 
-    const wav = decodeWav({ data: bytes });
+    const wav = await decodeAudioToWav(bytes);
     const result = processPerChannel(wav, (ch, sr) => {
       // Schroeder reverb: 4 parallel comb filters -> 2 series allpass filters
       const baseCombDelays = [1557, 1617, 1491, 1422];
@@ -608,11 +603,10 @@ export class PitchShiftNode extends BaseNode {
     if (semitones === 0) {
       return { output: audio };
     }
-    const bytes = await audioBytesAsync(audio, context);
-    if (bytes.length === 0) return { output: audio };
+    const bytes = await requireAudioBytes(audio, context);
 
     const { createRubberbandWrapper } = await loadRubberband();
-    const wav = decodeWav({ data: bytes });
+    const wav = await decodeAudioToWav(bytes);
     const { samples, sampleRate, numChannels } = wav;
     const frameSamples = Math.floor(samples.length / numChannels);
 
@@ -740,11 +734,10 @@ export class TimeStretchNode extends BaseNode {
     if (rate === 1.0) {
       return { output: audio };
     }
-    const bytes = await audioBytesAsync(audio, context);
-    if (bytes.length === 0) return { output: audio };
+    const bytes = await requireAudioBytes(audio, context);
 
     const { createRubberbandWrapper } = await loadRubberband();
-    const wav = decodeWav({ data: bytes });
+    const wav = await decodeAudioToWav(bytes);
     const { samples, sampleRate, numChannels } = wav;
     const frameSamples = Math.floor(samples.length / numChannels);
 
@@ -893,10 +886,9 @@ export class NoiseGateNode extends BaseNode {
     const attackMs = Math.max(0.1, Number(this.attack_ms ?? 1));
     const releaseMs = Math.max(1, Number(this.release_ms ?? 100));
 
-    const bytes = await audioBytesAsync(audio, context);
-    if (bytes.length === 0) return { output: audio };
+    const bytes = await requireAudioBytes(audio, context);
 
-    const wav = decodeWav({ data: bytes });
+    const wav = await decodeAudioToWav(bytes);
     const thresholdLin = Math.pow(10, thresholdDb / 20);
 
     const result = processPerChannel(wav, (ch, sr) => {
@@ -1019,10 +1011,9 @@ export class PhaserNode extends BaseNode {
     const feedback = Number(this.feedback ?? 0);
     const mix = Number(this.mix ?? 0.5);
 
-    const bytes = await audioBytesAsync(audio, context);
-    if (bytes.length === 0) return { output: audio };
+    const bytes = await requireAudioBytes(audio, context);
 
-    const wav = decodeWav({ data: bytes });
+    const wav = await decodeAudioToWav(bytes);
     const result = processPerChannel(wav, (ch, sr) => {
       const out = new Float32Array(ch.length);
       // 4-stage first-order all-pass phaser
@@ -1078,24 +1069,22 @@ export class PhaserNode extends BaseNode {
 
 // ── Export ────────────────────────────────────────────────────────
 
-/** Pure-JS effects — run on Node and in the browser workflow runner. */
-export const LIB_AUDIO_EFFECTS_HYBRID_NODES = tagAsHybrid([
+/**
+ * All pedalboard effects run on the server. They decode the input audio to PCM
+ * (WAV directly, or mp3/flac/… via WebAudio `decodeAudioData`), which needs
+ * Node's `node-web-audio-api`; the rubberband-backed nodes additionally use a
+ * native/WASM addon that only loads on Node.
+ */
+export const LIB_AUDIO_EFFECTS_NODES = tagAsServer([
   BitcrushNode,
   CompressNode,
   DistortionNode,
   LimiterNode,
   ReverbNode,
   NoiseGateNode,
-  PhaserNode
-]);
-
-/** Rubberband-backed effects — native/WASM addon, Node only. */
-export const LIB_AUDIO_EFFECTS_SERVER_NODES = tagAsServer([
+  PhaserNode,
   PitchShiftNode,
   TimeStretchNode
 ]);
 
-export const LIB_PEDALBOARD_EXTRA_NODES = [
-  ...LIB_AUDIO_EFFECTS_HYBRID_NODES,
-  ...LIB_AUDIO_EFFECTS_SERVER_NODES
-];
+export const LIB_PEDALBOARD_EXTRA_NODES = LIB_AUDIO_EFFECTS_NODES;

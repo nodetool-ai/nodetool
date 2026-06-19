@@ -1,10 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
+import { type Dispatch, type SetStateAction, useCallback, useEffect, useState } from "react";
 
 interface UseFullscreenModeOptions {
   storageKey?: string;
 }
 
-export function useFullscreenMode(options: UseFullscreenModeOptions = {}) {
+export function useFullscreenMode(options: UseFullscreenModeOptions = {}): Readonly<{
+  isFullscreen: boolean;
+  setIsFullscreen: Dispatch<SetStateAction<boolean>>;
+  toggleFullscreen: () => void;
+}> {
   const { storageKey = "textEditorModal_fullscreen" } = options;
 
   const getInitialFullscreen = useCallback(() => {

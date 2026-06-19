@@ -21,6 +21,7 @@ import type {
 // Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
 const log = createLogger("nodetool.kernel.graph");
 import { isControlEdge, isDataEdge, TypeMetadata } from "@nodetool-ai/protocol";
+import { syntheticEdgeId } from "./edge-ids.js";
 
 // ---------------------------------------------------------------------------
 // Graph errors
@@ -345,6 +346,7 @@ export class Graph {
       const handles = handlesByTarget.get(node.id);
       if (!handles) continue;
       const props = node.properties as Record<string, unknown> | undefined;
+      // Stryker disable next-line ConditionalExpression: defensive — fromDict/loadFromDict always normalize `properties` to an object before reaching here, so `!props` is never true and skipping vs not skipping is indistinguishable
       if (!props) continue;
       for (const handle of handles) {
         delete props[handle];
@@ -815,7 +817,7 @@ export class Graph {
       // this guard also covers direct validate() callers and control edges.
       if (edge.source === edge.target) {
         throw new GraphValidationError(
-          `Edge ${edge.id ?? `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`} ` +
+          `Edge ${edge.id ?? syntheticEdgeId(edge.source, edge.sourceHandle, edge.target, edge.targetHandle)} ` +
             `connects node "${edge.source}" to itself; self-loop edges are not supported`,
           [
             {
@@ -929,7 +931,7 @@ export class Graph {
           targetType
         });
         throw new GraphValidationError(
-          `Type mismatch on edge ${edge.id ?? `${edge.source}:${edge.sourceHandle}->${edge.target}:${edge.targetHandle}`}: ` +
+          `Type mismatch on edge ${edge.id ?? syntheticEdgeId(edge.source, edge.sourceHandle, edge.target, edge.targetHandle)}: ` +
             `source outputs "${sourceType}" but target expects "${targetType}"`
         );
       }

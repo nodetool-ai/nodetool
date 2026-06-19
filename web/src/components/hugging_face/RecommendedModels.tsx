@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { EditorButton, FlexRow, Text, SearchInput, ListGroup } from "../ui_primitives";
 import { UnifiedModel } from "../../stores/ApiTypes";
 import ModelListItem from "./model_list/ModelListItem";
@@ -73,6 +73,21 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
     });
   }, [cacheStatuses, filteredModels]);
 
+  const handleDownload = useCallback(
+    (model: UnifiedModel) => {
+      startDownload(model);
+    },
+    [startDownload]
+  );
+
+  const downloadHandlers = useMemo(() => {
+    const map = new Map<string, () => void>();
+    for (const model of displayModels) {
+      map.set(model.id, () => handleDownload(model));
+    }
+    return map;
+  }, [displayModels, handleDownload]);
+
   if (!recommendedModels) {
     return <div>Loading…</div>;
   }
@@ -114,7 +129,7 @@ const RecommendedModelsInner: React.FC<RecommendedModelsProps> = ({
                 compactView={true}
                 key={model.id}
                 model={model}
-                onDownload={() => startDownload(model)}
+                onDownload={downloadHandlers.get(model.id)!}
                 isCheckingCache={isCheckingCache}
               />
             );

@@ -47,8 +47,8 @@ describe("NodeResizeHandle", () => {
     expect(resizeControlProps[0]?.keepAspectRatio).toBe(true);
   });
 
-  it("renders the media-aspect control when contentAware with a nodeId", () => {
-    const { queryByTestId } = render(
+  it("renders a media-aspect control on all four corners when contentAware with a nodeId", () => {
+    const { queryAllByTestId, queryByTestId } = render(
       <NodeResizeHandle
         minWidth={150}
         minHeight={100}
@@ -56,13 +56,22 @@ describe("NodeResizeHandle", () => {
         nodeId="node-1"
       />
     );
-    expect(queryByTestId("media-aspect-control")).not.toBeNull();
+    expect(queryAllByTestId("media-aspect-control")).toHaveLength(4);
     expect(queryByTestId("resize-control")).toBeNull();
-    expect(mediaControlProps[0]).toMatchObject({
-      nodeId: "node-1",
-      minWidth: 150,
-      minHeight: 100,
-      maxWidth: 800
+    expect(mediaControlProps).toHaveLength(4);
+    expect(mediaControlProps.map((p) => p.corner)).toEqual([
+      "bottom-right",
+      "bottom-left",
+      "top-right",
+      "top-left"
+    ]);
+    mediaControlProps.forEach((props) => {
+      expect(props).toMatchObject({
+        nodeId: "node-1",
+        minWidth: 150,
+        minHeight: 100,
+        maxWidth: 800
+      });
     });
   });
 

@@ -15,14 +15,16 @@
  *   /resume <job_id>                  — resume a paused job
  *   /cancel <job_id>                  — cancel a running job
  *   /status [job_id]                  — get job/all-jobs status
+ *   /new                              — start a new chat session
+ *   /compact [instructions]           — summarize conversation into retained context
  *   /help                             — show available commands
  */
 
 import readline from "node:readline";
 import type { BaseProvider, Message } from "@nodetool-ai/runtime";
-import { ProcessingContext } from "@nodetool-ai/runtime";
+import { FileStorageAdapter, ProcessingContext } from "@nodetool-ai/runtime";
 import { processChat } from "@nodetool-ai/chat";
-import { RunSubtaskTool } from "@nodetool-ai/agents";
+import { RunSubtaskTool, RunSearchTool } from "@nodetool-ai/agents";
 import type { Tool } from "@nodetool-ai/agents/tool";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
@@ -44,6 +46,11 @@ export interface StdinModeOptions {
   registry?: NodeRegistry;
   /** Configured BaseProvider instances by id (passed through to subtasks). */
   agentProviders?: Record<string, BaseProvider>;
+  /**
+   * Expose the read-only `run_search` fan-out primitive alongside
+   * `run_subtask`. On by default; set `false` to remove it.
+   */
+  enableReadOnlySearch?: boolean;
 }
 
 interface SlashCommand {
@@ -97,7 +104,8 @@ async function displayJobEvents(
 
 async function handleSlashCommand(
   cmd: SlashCommand,
-  wsClient: WebSocketChatClient
+  wsClient: WebSocketChatClient,
+  startNewSession: () => void
 ): Promise<void> {
   switch (cmd.name) {
     case "run": {
@@ -174,6 +182,11 @@ async function handleSlashCommand(
       return;
     }
 
+    case "new":
+      startNewSession();
+      process.stderr.write("New session started\n");
+      return;
+
     case "help":
       process.stdout.write(
         [
@@ -184,6 +197,8 @@ async function handleSlashCommand(
           "  /resume <job_id>                  — Resume a paused job",
           "  /cancel <job_id>                  — Cancel a running job",
           "  /status [job_id]                  — Get job status",
+          "  /new                              — Start a new chat session",
+          "  /compact [instructions]           — Summarize conversation into retained context",
           "  /help                             — Show this help",
           "",
           "Any other input is sent as a chat message.",
@@ -217,23 +232,40 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
   ): Tool[] => {
     if (!prov) return extras;
     const baseTools = extras.slice();
+    const forwardMessage = (msg: ProcessingMessage) => {
+      if (msg.type === "chunk") {
+        process.stdout.write((msg as { content?: string }).content ?? "");
+      } else if (msg.type === "tool_call_update") {
+        process.stderr.write(`[tool] ${(msg as { name: string }).name}\n`);
+      }
+    };
     const subtaskTool = new RunSubtaskTool({
       provider: prov,
       model: opts.model,
       parentTools: () => baseTools,
-      forwardMessage: (msg: ProcessingMessage) => {
-        if (msg.type === "chunk") {
-          process.stdout.write((msg as { content?: string }).content ?? "");
-        } else if (msg.type === "tool_call_update") {
-          process.stderr.write(`[tool] ${(msg as { name: string }).name}\n`);
-        }
-      }
+      forwardMessage
     });
+    // Read-only fan-out search (on by default). Filters baseTools to its
+    // read-only allowlist internally, so passing the full snapshot is correct.
+    if (opts.enableReadOnlySearch !== false) {
+      const searchTool = new RunSearchTool({
+        provider: prov,
+        model: opts.model,
+        parentTools: () => baseTools,
+        forwardMessage
+      });
+      return [searchTool, subtaskTool, ...baseTools];
+    }
     return [subtaskTool, ...baseTools];
   };
 
-  const threadId = crypto.randomUUID();
-  const chatHistory: Message[] = [];
+  let threadId = crypto.randomUUID();
+  let chatHistory: Message[] = [];
+
+  const startNewSession = () => {
+    threadId = crypto.randomUUID();
+    chatHistory = [];
+  };
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -244,11 +276,14 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
     const trimmed = line.trim();
     if (!trimmed) continue;
 
-    // Slash commands — only supported in WebSocket mode
+    // Slash commands — most are WebSocket-only, but /new is local session state.
     const cmd = parseSlashCommand(trimmed);
     if (cmd) {
-      if (wsClient) {
-        await handleSlashCommand(cmd, wsClient);
+      if (cmd.name === "new") {
+        startNewSession();
+        process.stderr.write("New session started\n");
+      } else if (wsClient) {
+        await handleSlashCommand(cmd, wsClient, startNewSession);
       } else {
         process.stderr.write(
           "Slash commands require --url (WebSocket mode).\n"
@@ -304,6 +339,9 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
           jobId: crypto.randomUUID(),
           userId: "1",
           workspaceDir: opts.workspaceDir,
+          workspaceStorage: opts.workspaceDir
+            ? new FileStorageAdapter(opts.workspaceDir)
+            : null,
           secretResolver: getSecret
         }),
         tools: buildDirectTools(prov, opts.extraTools),
@@ -324,6 +362,9 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
           jobId: crypto.randomUUID(),
           userId: "1",
           workspaceDir: opts.workspaceDir,
+          workspaceStorage: opts.workspaceDir
+            ? new FileStorageAdapter(opts.workspaceDir)
+            : null,
           secretResolver: getSecret
         }),
         tools: buildDirectTools(directProvider, opts.extraTools ?? []),

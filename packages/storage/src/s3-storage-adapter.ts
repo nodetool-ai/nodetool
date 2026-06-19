@@ -13,6 +13,7 @@ import type {
   StorageListResult,
   StorageStat
 } from "./storage-adapter.js";
+import { assertUploadWithinLimit } from "./storage-limits.js";
 import { joinStorageKey, normalizeStorageKey } from "./storage-keys.js";
 
 export interface S3StorageAdapterOptions {
@@ -76,6 +77,7 @@ export class S3StorageAdapter implements StorageAdapter {
     data: Uint8Array,
     contentType?: string
   ): Promise<string> {
+    assertUploadWithinLimit(key, data.byteLength);
     const objectKey = joinStorageKey(this.prefix ?? undefined, key);
     await this.getClient().send(
       new PutObjectCommand({

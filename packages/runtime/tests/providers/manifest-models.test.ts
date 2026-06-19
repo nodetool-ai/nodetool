@@ -63,8 +63,27 @@ describe("manifest-models task inference (FAL manifest)", () => {
     );
     expect(generators.length).toBeGreaterThan(0);
     for (const m of generators) {
-      expect(m.supportedTasks).toEqual(["text_to_image", "image_to_image"]);
+      // Every generator carries both generation tasks; mask-declaring endpoints
+      // additionally advertise inpainting (the only permitted extra).
+      const tasks = m.supportedTasks ?? [];
+      expect(tasks).toContain("text_to_image");
+      expect(tasks).toContain("image_to_image");
+      const extras = tasks.filter(
+        (t) => t !== "text_to_image" && t !== "image_to_image"
+      );
+      expect(extras.every((t) => t === "inpainting")).toBe(true);
     }
+  });
+
+  it("tags mask-declaring edit endpoints with the inpainting task", () => {
+    const inpainters = images.filter((m) =>
+      m.supportedTasks?.includes("inpainting")
+    );
+    expect(inpainters.length).toBeGreaterThan(0);
+    // ideogram/v2/edit declares a `mask_url` input.
+    expect(byId(images, "fal-ai/ideogram/v2/edit")?.supportedTasks).toContain(
+      "inpainting"
+    );
   });
 
   it("derives per-model option constraints from manifest enums", () => {

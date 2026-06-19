@@ -56,6 +56,9 @@ export const ChunkRenderer: React.FC<Props> = memo(({ chunk }) => {
         <video
           src={chunk.content as string}
           controls
+          // nodrag/nopan stop ReactFlow's drag from capturing the pointer so
+          // the native controls (scrub, volume) get the mouse events.
+          className="nodrag nopan"
           aria-label="Video output"
           style={{ width: "100%" }}
         />

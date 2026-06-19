@@ -18,7 +18,7 @@ export type CreateGeneratedLayerResult =
   | { ok: true; layerId: string }
   | { ok: false; reason: "no-document" | "busy" | "error"; message?: string };
 
-export interface UseCreateGeneratedLayerResult {
+interface UseCreateGeneratedLayerResult {
   createGeneratedLayer: (
     options: CreateGeneratedLayerOptions
   ) => Promise<CreateGeneratedLayerResult>;

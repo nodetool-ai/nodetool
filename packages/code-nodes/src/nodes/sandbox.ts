@@ -380,7 +380,7 @@ export class SandboxShellNode extends BaseNode {
   static readonly nodeType = "nodetool.sandbox.SandboxShell";
   static readonly title = "SandboxShell";
   static readonly description =
-    "Execute shell commands in an isolated sandbox session.";
+    "Execute shell commands in an isolated sandbox session.\n    sandbox, shell, command, terminal, bash, execute, isolated";
   static readonly inlineFields = ["command"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
@@ -452,7 +452,7 @@ export class SandboxFileNode extends BaseNode {
   static readonly nodeType = "nodetool.sandbox.SandboxFile";
   static readonly title = "SandboxFile";
   static readonly description =
-    "Read, write, search, and replace files inside a sandbox session.";
+    "Read, write, search, and replace files inside a sandbox session.\n    sandbox, file, read, write, search, replace, edit";
   static readonly inlineFields = ["action"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {

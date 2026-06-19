@@ -29,6 +29,9 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests",
 
+  /* The E2E workflow runner has its own config + backend (e2e-server). */
+  testIgnore: "**/e2e-runner/**",
+
   /* Maximum time one test can run */
   timeout: 60_000,
 

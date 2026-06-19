@@ -23,7 +23,7 @@ import {
   globalWebSocketManager,
   type WebSocketMessage
 } from "../websocket/GlobalWebSocketManager";
-import { uuidv4 } from "../../stores/uuidv4";
+import { v4 as uuidv4 } from "uuid";
 import { materializeBrowserOutputs } from "./materializeBrowserOutputs";
 import {
   buildBrowserRunner,

@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from "react";
+import React, { useMemo, useState, useCallback, useRef } from "react";
 import {
   Message,
   MessageContent,
@@ -290,9 +290,17 @@ export const MessageView: React.FC<
     return "";
   }, [message.content]);
 
+  const toggleCallbackRef = useRef(onToggleThought);
+  toggleCallbackRef.current = onToggleThought;
+  const toggleHandlerCache = useRef(new Map<string, () => void>());
   const createToggleHandler = useCallback((key: string) => {
-    return () => onToggleThought(key);
-  }, [onToggleThought]);
+    let handler = toggleHandlerCache.current.get(key);
+    if (!handler) {
+      handler = () => toggleCallbackRef.current(key);
+      toggleHandlerCache.current.set(key, handler);
+    }
+    return handler;
+  }, []);
 
   // Handle agent execution messages with consolidation
   if (message.role === "agent_execution") {

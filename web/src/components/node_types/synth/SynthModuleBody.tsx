@@ -27,6 +27,7 @@ import {
   SYNTH_MODULE_CONFIGS,
   type SynthAccent
 } from "./synthModules";
+import { AUDIO_EFFECT_CONFIGS } from "./audioEffectModules";
 import WaveformSelector, {
   waveformSelectorStyles
 } from "./WaveformSelector";
@@ -155,7 +156,7 @@ const SynthModuleBodyInner: React.FC<SynthModuleBodyProps> = ({
     [theme]
   );
 
-  const config = SYNTH_MODULE_CONFIGS[nodeType];
+  const config = SYNTH_MODULE_CONFIGS[nodeType] ?? AUDIO_EFFECT_CONFIGS[nodeType];
   const accentColor =
     theme.vars.palette[config?.accent ?? ACCENT_FALLBACK].main;
 

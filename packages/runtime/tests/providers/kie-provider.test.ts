@@ -121,6 +121,26 @@ describe("KieProvider — imageToImage", () => {
   });
 });
 
+describe("KieProvider — inpaint", () => {
+  it("routes the source to the primary field and the mask to the mask field", async () => {
+    const { createdInputs } = mockKieFlow([
+      "https://kie.cdn/src.png",
+      "https://kie.cdn/mask.png"
+    ]);
+    const provider = new KieProvider({ KIE_API_KEY: "k" });
+
+    // ideogram/v3-edit declares `image` (image_url) plus a `mask` (mask_url).
+    await provider.inpaint([new Uint8Array([1])], {
+      model: { id: "ideogram/v3-edit", name: "Ideogram Edit", provider: "kie" },
+      prompt: "edit the region",
+      mask: new Uint8Array([2])
+    });
+
+    expect(createdInputs[0].image_url).toBe("https://kie.cdn/src.png");
+    expect(createdInputs[0].mask_url).toBe("https://kie.cdn/mask.png");
+  });
+});
+
 describe("KieProvider — imageToVideo", () => {
   it("routes a single-frame model to image_url (schema-based)", async () => {
     const { createdInputs } = mockKieFlow(["https://kie.cdn/frame.png"]);

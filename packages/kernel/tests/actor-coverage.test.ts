@@ -502,3 +502,126 @@ describe("NodeActor – controlled mode edge cases", () => {
     expect(calls[1]).toEqual({ x: 10, y: 20, multiplier: 3 });
   });
 });
+
+describe("NodeActor – controlled mode survivors", () => {
+  it("stops processing run events after a stop event", async () => {
+    const node = makeNode({ is_controlled: true });
+    const inbox = new NodeInbox();
+    inbox.addUpstream("__control__", 1);
+
+    const calls: Array<Record<string, unknown>> = [];
+    const executor: NodeExecutor = {
+      async process(inputs) {
+        calls.push({ ...inputs });
+        return {};
+      }
+    };
+    const { actor } = createActor(node, inbox, executor);
+
+    await inbox.put("__control__", { event_type: "run" as const, properties: {} });
+    // An unrecognized event is neither run nor stop: it must be ignored.
+    await inbox.put("__control__", { event_type: "noop", properties: {} } as never);
+    await inbox.put("__control__", { event_type: "stop" as const });
+    // A run event after the stop must NOT be processed (the loop breaks).
+    await inbox.put("__control__", { event_type: "run" as const, properties: {} });
+    inbox.markSourceDone("__control__");
+
+    await actor.run();
+    expect(calls).toHaveLength(1);
+  });
+
+  it("merges node properties and dynamic_properties under control properties", async () => {
+    const node = makeNode({
+      is_controlled: true,
+      properties: { base: "B", over: "node" },
+      dynamic_properties: { dyn: "D" }
+    });
+    const inbox = new NodeInbox();
+    inbox.addUpstream("__control__", 1);
+
+    const calls: Array<Record<string, unknown>> = [];
+    const executor: NodeExecutor = {
+      async process(inputs) {
+        calls.push({ ...inputs });
+        return {};
+      }
+    };
+    const { actor } = createActor(node, inbox, executor);
+
+    await inbox.put("__control__", {
+      event_type: "run" as const,
+      properties: { over: "control" }
+    });
+    inbox.markSourceDone("__control__");
+
+    await actor.run();
+    expect(calls).toEqual([
+      { base: "B", dyn: "D", over: "control" }
+    ]);
+  });
+
+  it("waits for late-arriving data and re-queues control events held during the wait", async () => {
+    const node = makeNode({ is_controlled: true });
+    const inbox = new NodeInbox();
+    inbox.addUpstream("__control__", 1);
+    inbox.addUpstream("x", 1);
+
+    const calls: Array<Record<string, unknown>> = [];
+    const executor: NodeExecutor = {
+      async process(inputs) {
+        calls.push({ ...inputs });
+        return {};
+      }
+    };
+    const { actor } = createActor(node, inbox, executor);
+
+    const runPromise = actor.run(); // parks in _waitForDataInputs (x not buffered)
+    await new Promise((r) => setTimeout(r, 0));
+
+    // Control event arrives before the data: it must be held aside, not consumed.
+    await inbox.put("__control__", { event_type: "run" as const, properties: {} });
+    await inbox.put("x", 99); // satisfies the wait; held control event re-queued
+    await inbox.put("__control__", { event_type: "stop" as const });
+    inbox.markSourceDone("__control__");
+    inbox.markSourceDone("x");
+
+    await runPromise;
+    // The run event executed once, with the data that arrived during the wait.
+    expect(calls).toEqual([{ x: 99 }]);
+  });
+});
+
+describe("NodeActor._emitNodeStatus – provider cost without a context", () => {
+  it("reports null provider_cost when there is no execution context", async () => {
+    const node = makeNode({ is_streaming_input: true });
+    const inbox = new NodeInbox();
+    const executor: NodeExecutor = { async process() { return {}; } };
+    const { actor, messages } = createActor(node, inbox, executor);
+    await actor.run();
+    const completed = messages.find(
+      (m) =>
+        (m as NodeUpdate).type === "node_update" &&
+        (m as NodeUpdate).status === "completed"
+    ) as NodeUpdate | undefined;
+    expect(completed!.provider_cost).toBeNull();
+  });
+});
+
+describe("NodeActor._emitNodeStatus – non-object properties", () => {
+  it("emits null properties when node.properties is not an object", async () => {
+    const node = makeNode({ properties: "not-an-object" as never });
+    const inbox = new NodeInbox();
+    const executor: NodeExecutor = {
+      async process() {
+        return {};
+      }
+    };
+    const { actor, messages } = createActor(node, inbox, executor);
+    await actor.run();
+    const statusMsgs = messages.filter(
+      (m) => (m as NodeUpdate).type === "node_update"
+    ) as NodeUpdate[];
+    expect(statusMsgs.length).toBeGreaterThan(0);
+    for (const m of statusMsgs) expect(m.properties).toBeNull();
+  });
+});

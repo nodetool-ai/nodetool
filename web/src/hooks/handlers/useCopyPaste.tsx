@@ -2,7 +2,7 @@
 
 import { getMousePosition } from "../../utils/MousePosition";
 import { useReactFlow, Edge, Node } from "@xyflow/react";
-import { uuidv4 } from "../../stores/uuidv4";
+import { v4 as uuidv4 } from "uuid";
 import { NodeData } from "../../stores/NodeData";
 import { useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
@@ -22,7 +22,7 @@ const isValidNode = (node: unknown): node is Node<NodeData> =>
 const isValidEdge = (edge: unknown): edge is Edge =>
   !!edge && typeof edge === "object" && "source" in edge && "target" in edge && typeof (edge as Edge).source === "string" && typeof (edge as Edge).target === "string";
 
-export interface UseCopyPasteResult {
+interface UseCopyPasteResult {
   handleCopy: (nodeId?: string) => Promise<{ nodesToCopy: Node<NodeData>[]; connectedEdges: Edge[] }>;
   handleCut: (nodeId?: string) => Promise<void>;
   handlePaste: () => Promise<void>;

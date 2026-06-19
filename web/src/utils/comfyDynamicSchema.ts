@@ -13,7 +13,7 @@
 
 import type { TypeMetadata } from "../stores/ApiTypes";
 
-export type ComfyPromptNode = {
+type ComfyPromptNode = {
   class_type: string;
   inputs: Record<string, unknown>;
   _meta?: { title?: string };
@@ -28,7 +28,7 @@ export type ComfyDynInput = TypeMetadata & {
 };
 
 /** A literal input that the user may optionally expose as a typed handle. */
-export interface ComfyParam {
+interface ComfyParam {
   handle: string; // "<id>:<field>"
   nodeId: string;
   field: string;
@@ -88,6 +88,17 @@ const meta = (type: string): TypeMetadata => ({
   optional: false,
   type_args: []
 });
+
+function isComfyPromptNode(value: unknown): value is ComfyPromptNode {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "class_type" in value &&
+    typeof value.class_type === "string" &&
+    "inputs" in value &&
+    typeof value.inputs === "object"
+  );
+}
 
 /** A ComfyUI input value `[sourceId, slot]` denotes a connection, not a literal. */
 export function isComfyConnection(value: unknown): boolean {
@@ -170,12 +181,7 @@ export function normalizeComfyPrompt(parsed: unknown): ComfyPrompt {
     throw new Error("Workflow is empty.");
   }
   for (const [id, node] of entries) {
-    if (
-      !node ||
-      typeof node !== "object" ||
-      typeof (node as ComfyPromptNode).class_type !== "string" ||
-      typeof (node as ComfyPromptNode).inputs !== "object"
-    ) {
+    if (!isComfyPromptNode(node)) {
       throw new Error(
         `Node "${id}" is not in API format (expected { class_type, inputs }).`
       );

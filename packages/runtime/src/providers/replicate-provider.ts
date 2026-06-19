@@ -7,6 +7,7 @@ import type {
   EmbeddingModel,
   ImageModel,
   ImageToImageParams,
+  InpaintingParams,
   ImageToVideoParams,
   LanguageModel,
   Message,
@@ -514,19 +515,45 @@ export class ReplicateProvider extends BaseProvider {
     if (params.strength != null) input.strength = params.strength;
     if (params.seed != null) input.seed = params.seed;
 
+    log.debug("imageToImage", { model: params.model.id });
+    const output = await this._client.run(
+      params.model.id as `${string}/${string}`,
+      { input }
+    );
+    return this._fetchOutputBytes(output);
+  }
+
+  override async inpaint(
+    images: Uint8Array[],
+    params: InpaintingParams
+  ): Promise<Uint8Array> {
+    const input: Record<string, unknown> = this.imageInput(
+      params.model.id,
+      images
+    );
+    if (params.prompt) input.prompt = params.prompt;
+    if (params.negativePrompt) input.negative_prompt = params.negativePrompt;
+    if (params.guidanceScale != null)
+      input.guidance_scale = params.guidanceScale;
+    if (params.numInferenceSteps != null)
+      input.num_inference_steps = params.numInferenceSteps;
+    if (params.strength != null) input.strength = params.strength;
+    if (params.seed != null) input.seed = params.seed;
+
     if (params.mask && params.mask.length > 0) {
       const maskUri = this.dataUri(params.mask, "image/png");
-      const allInputs = getModelImageInputs(
-        "@nodetool-ai/replicate-nodes",
-        "replicate-manifest.json",
-        params.model.id
+      const maskField = selectMaskImageInput(
+        getModelImageInputs(
+          "@nodetool-ai/replicate-nodes",
+          "replicate-manifest.json",
+          params.model.id
+        )
       );
-      const maskField = selectMaskImageInput(allInputs);
       const fieldName = maskField?.apiName ?? "mask_url";
       input[fieldName] = maskField?.isList ? [maskUri] : maskUri;
     }
 
-    log.debug("imageToImage", { model: params.model.id });
+    log.debug("inpaint", { model: params.model.id });
     const output = await this._client.run(
       params.model.id as `${string}/${string}`,
       { input }

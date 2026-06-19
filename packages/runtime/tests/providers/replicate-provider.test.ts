@@ -281,6 +281,58 @@ describe("ReplicateProvider", () => {
     vi.unstubAllGlobals();
   });
 
+  it("inpaint routes the mask to the model's declared mask field", async () => {
+    const runMock = vi.fn().mockResolvedValue("https://replicate.dev/out.png");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2]).buffer)
+      })
+    );
+    const provider = createProvider({ run: runMock });
+
+    // stable-diffusion-inpainting declares `image` (primary) and `mask`.
+    await provider.inpaint([new Uint8Array([1, 2, 3])], {
+      model: {
+        id: "stability-ai/stable-diffusion-inpainting",
+        name: "SD Inpainting",
+        provider: "replicate"
+      },
+      prompt: "fill the hole",
+      mask: new Uint8Array([9, 9, 9])
+    });
+
+    const input = runMock.mock.calls[0][1].input;
+    expect(input.image).toMatch(/^data:image\/png;base64,/);
+    expect(input.mask).toMatch(/^data:image\/png;base64,/);
+
+    vi.unstubAllGlobals();
+  });
+
+  it("inpaint falls back to mask_url when the model declares no mask field", async () => {
+    const runMock = vi.fn().mockResolvedValue("https://replicate.dev/out.png");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2]).buffer)
+      })
+    );
+    const provider = createProvider({ run: runMock });
+
+    await provider.inpaint([new Uint8Array([1, 2, 3])], {
+      model: { id: "owner/unknown-model", name: "Unknown", provider: "replicate" },
+      prompt: "x",
+      mask: new Uint8Array([9, 9, 9])
+    });
+
+    const input = runMock.mock.calls[0][1].input;
+    expect(input.mask_url).toMatch(/^data:image\/png;base64,/);
+
+    vi.unstubAllGlobals();
+  });
+
   it("textToImage handles string URL output", async () => {
     const fakeBytes = new Uint8Array([0xff, 0xd8]);
     vi.stubGlobal(

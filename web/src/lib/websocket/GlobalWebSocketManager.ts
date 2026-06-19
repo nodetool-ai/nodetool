@@ -155,12 +155,15 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
         this.emit("message", message);
       });
 
-      this.wsManager.on("error", (error: Error) => {
+      this.wsManager.on("error", (error: unknown) => {
         console.error("GlobalWebSocketManager: Error:", error);
-        this.emit("error", error);
+        this.emit(
+          "error",
+          error instanceof Error ? error : new Error(String(error))
+        );
       });
 
-      this.wsManager.on("close", (code?: number, reason?: string) => {
+      this.wsManager.on("close", (code: number, reason: string) => {
         console.info("GlobalWebSocketManager: Disconnected");
         this.isConnected = false;
         this.isConnecting = false;

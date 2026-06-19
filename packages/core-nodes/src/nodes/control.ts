@@ -1037,7 +1037,7 @@ export class ZipNode extends BaseNode {
   static readonly nodeType = "nodetool.control.Zip";
   static readonly title = "Zip";
   static readonly description =
-    "Pair items from two independent iteration sources by matched index within the common parent.";
+    "Pair items from two independent iteration sources by matched index within the common parent.\n    zip, pair, combine, merge, join, index, stream, iterate\n\n    Use cases:\n    - Combine matching items from two parallel streams\n    - Pair inputs and outputs by position\n    - Merge two iteration sources into tuples";
   static readonly metadataOutputTypes = {
     left: "any",
     right: "any",
@@ -1228,7 +1228,7 @@ export class CrossNode extends BaseNode {
   static readonly nodeType = "nodetool.control.Cross";
   static readonly title = "Cross";
   static readonly description =
-    "Emit the cartesian product of two iteration sources within their common parent.";
+    "Emit the cartesian product of two iteration sources within their common parent.\n    cross, cartesian, product, combine, pairs, matrix, stream, iterate\n\n    Use cases:\n    - Generate every combination of two input sets\n    - Build a grid of parameter combinations\n    - Pair each item of one stream with all items of another";
   static readonly metadataOutputTypes = {
     left: "any",
     right: "any"

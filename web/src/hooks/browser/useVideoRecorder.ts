@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { type Dispatch, type MutableRefObject, type SetStateAction, useEffect, useRef, useState, useCallback } from "react";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { Asset } from "../../stores/ApiTypes";
 import { useNodes } from "../../contexts/NodeContext";
@@ -12,7 +12,27 @@ export type VideoDevice = {
   label: string;
 };
 
-export function useVideoRecorder({ onChange }: VideoRecorderProps) {
+export interface VideoRecorderReturn {
+  error: string | null;
+  setError: Dispatch<SetStateAction<string | null>>;
+  videoRef: MutableRefObject<HTMLVideoElement | null>;
+  handleRecord: () => void;
+  isRecording: boolean;
+  isPreviewing: boolean;
+  isLoading: boolean;
+  startPreview: () => Promise<void>;
+  stopStream: () => void;
+  videoInputDevices: VideoDevice[];
+  audioInputDevices: VideoDevice[];
+  isDeviceListVisible: boolean;
+  toggleDeviceListVisibility: () => void;
+  selectedVideoDeviceId: string;
+  selectedAudioDeviceId: string;
+  handleVideoDeviceChange: (deviceId: string) => void;
+  handleAudioDeviceChange: (deviceId: string) => void;
+}
+
+export function useVideoRecorder({ onChange }: VideoRecorderProps): Readonly<VideoRecorderReturn> {
   const defaultFileType = "webm";
   const { uploadAsset } = useAssetUpload();
   const workflow = useNodes((state) => state.workflow);

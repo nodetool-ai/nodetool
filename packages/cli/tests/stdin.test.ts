@@ -33,6 +33,9 @@ vi.mock("@nodetool-ai/models", () => ({
 vi.mock("@nodetool-ai/runtime", () => ({
   ProcessingContext: class {
     constructor(_o?: unknown) {}
+  },
+  FileStorageAdapter: class {
+    constructor(_root?: string) {}
   }
 }));
 
@@ -61,6 +64,22 @@ vi.mock("@nodetool-ai/agents", () => ({
   RunSubtaskTool: class {
     name = "run_subtask";
     description = "run a subtask";
+    inputSchema = { type: "object" };
+    constructor(_opts: unknown) {}
+    toProviderTool() {
+      return {
+        name: this.name,
+        description: this.description,
+        inputSchema: this.inputSchema
+      };
+    }
+    async process() {
+      return null;
+    }
+  },
+  RunSearchTool: class {
+    name = "run_search";
+    description = "run a read-only search";
     inputSchema = { type: "object" };
     constructor(_opts: unknown) {}
     toProviderTool() {

@@ -6,12 +6,12 @@
  */
 import { restFetch } from "../lib/rest-fetch";
 
-export interface ImportedBundleWorkflow {
+interface ImportedBundleWorkflow {
   id: string;
   name: string;
 }
 
-export interface ImportBundleResponse {
+interface ImportBundleResponse {
   workflows: ImportedBundleWorkflow[];
   imported: number;
   missing: string[];

@@ -420,13 +420,15 @@ const extractImagePreviewValues = (value: unknown): unknown[] => {
   return imageSourceFromValue(value) ? [value] : [];
 };
 
-const SingleImagePreview: React.FC<{ value: unknown }> = ({ value }) => {
-  const source = imageSourceFromValue(value);
-  if (source) {
-    return <ImageView source={source} />;
+const SingleImagePreview: React.FC<{ value: unknown }> = memo(
+  function SingleImagePreview({ value }) {
+    const source = imageSourceFromValue(value);
+    if (source) {
+      return <ImageView source={source} />;
+    }
+    return <OutputRenderer value={value} showTextActions={false} />;
   }
-  return <OutputRenderer value={value} showTextActions={false} />;
-};
+);
 
 const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => {
   const images = extractImagePreviewValues(value);

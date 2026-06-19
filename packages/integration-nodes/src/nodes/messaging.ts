@@ -10,7 +10,7 @@ export class DiscordBotTrigger extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = [];
   static readonly description =
-    "Trigger node that listens for Discord messages from a bot account.\n\n    This trigger connects to Discord using a bot token and emits events\n    for incoming messages.";
+    "Listen for Discord messages from a bot account and emit them as events.\n    discord, trigger, bot, messages, chat, events, listen";
   static readonly metadataOutputTypes = {
     message_id: "int",
     content: "str",
@@ -121,7 +121,7 @@ export class DiscordSendMessage extends BaseNode {
   static readonly inlineFields = ["channel_id"];
   static readonly inputFields = ["content"];
   static readonly description =
-    "Node that sends a message to a Discord channel using a bot token.";
+    "Send a message to a Discord channel using a bot token.\n    discord, send, message, bot, channel, chat, notify";
   static readonly metadataOutputTypes = {
     output: "dict[str, any]"
   };
@@ -223,7 +223,7 @@ export class TelegramBotTrigger extends BaseNode {
   static readonly inlineFields = [];
   static readonly inputFields = [];
   static readonly description =
-    "Trigger node that listens for Telegram messages using long polling.\n\n    This trigger connects to Telegram using a bot token and emits events\n    for incoming messages.";
+    "Listen for Telegram messages using long polling and emit them as events.\n    telegram, trigger, bot, messages, chat, events, listen";
   static readonly metadataOutputTypes = {
     update_id: "int",
     update_type: "str",
@@ -371,7 +371,7 @@ export class TelegramSendMessage extends BaseNode {
   static readonly inlineFields = ["chat_id"];
   static readonly inputFields = ["text"];
   static readonly description =
-    "Node that sends a message to a Telegram chat using a bot token.";
+    "Send a message to a Telegram chat using a bot token.\n    telegram, send, message, bot, chat, notify";
   static readonly metadataOutputTypes = {
     output: "dict[str, any]"
   };

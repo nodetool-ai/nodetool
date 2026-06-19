@@ -18,6 +18,7 @@ import type {
   ProviderStreamItem,
   TextToImageParams,
   ImageToImageParams,
+  InpaintingParams,
   TextToVideoParams,
   ImageToVideoParams,
   UpscaleImageParams,
@@ -28,6 +29,7 @@ import type {
   LipSyncParams
 } from "./types.js";
 import { loadImageModels, loadVideoModels } from "./manifest-models.js";
+import { safeFetch } from "./safe-url.js";
 
 const log = createLogger("nodetool.runtime.providers.fal");
 
@@ -422,16 +424,18 @@ if (update.status === "IN_PROGRESS") {
     return b.args;
   }
 
-  private async buildImageToImageArgs(
+  /**
+   * Configure a {@link FalArgsBuilder} with the shared image-edit inputs
+   * (source images + prompt + sampling knobs). Used by both image-to-image and
+   * inpaint; the latter additionally attaches a mask.
+   */
+  private buildEditBuilder(
     modelId: string,
-    images: Uint8Array[],
+    imageUrls: string[],
     params: ImageToImageParams
-  ): Promise<Record<string, unknown>> {
-    const urls = await this.uploadImages(images);
-    const maskUrls = params.mask ? await this.uploadImages([params.mask]) : [];
-
+  ): FalArgsBuilder {
     const b = new FalArgsBuilder(modelId);
-    b.attachAssets("image", urls)
+    b.attachAssets("image", imageUrls)
       .force("prompt", params.prompt)
       .set("output_format", "png")
       .set("negative_prompt", params.negativePrompt)
@@ -440,8 +444,33 @@ if (update.status === "IN_PROGRESS") {
       .set("strength", params.strength)
       .setImageSize(params.targetWidth, params.targetHeight)
       .setSize(params.aspectRatio, params.resolution);
-    if (maskUrls.length > 0) b.attachMask(maskUrls[0]);
     if (params.seed != null && params.seed !== -1) b.set("seed", params.seed);
+    return b;
+  }
+
+  private async buildImageToImageArgs(
+    modelId: string,
+    images: Uint8Array[],
+    params: ImageToImageParams
+  ): Promise<Record<string, unknown>> {
+    const urls = await this.uploadImages(images);
+    return this.buildEditBuilder(modelId, urls, params).args;
+  }
+
+  /**
+   * Build image-to-image args plus the inpaint mask. The mask is uploaded and
+   * attached to whatever mask field the endpoint declares (`mask_url`,
+   * `mask_image_url`, …) via {@link FalArgsBuilder.attachMask}.
+   */
+  private async buildInpaintArgs(
+    modelId: string,
+    images: Uint8Array[],
+    params: InpaintingParams
+  ): Promise<Record<string, unknown>> {
+    const urls = await this.uploadImages(images);
+    const b = this.buildEditBuilder(modelId, urls, params);
+    const [maskUrl] = await this.uploadImages([params.mask]);
+    if (maskUrl) b.attachMask(maskUrl);
     return b.args;
   }
 
@@ -508,6 +537,48 @@ if (update.status === "IN_PROGRESS") {
     });
     const data = (result.data ?? result) as Record<string, unknown>;
     return downloadBytes(extractImageUrl(data));
+  }
+
+  override async inpaint(
+    images: Uint8Array[],
+    params: InpaintingParams
+  ): Promise<Uint8Array> {
+    const client = await this.getClient();
+    const modelId = params.model.id;
+    const args = await this.buildInpaintArgs(modelId, images, params);
+    log.debug("FAL inpaint", { model: modelId });
+    const result = await client.subscribe(modelId, {
+      input: args,
+      logs: true,
+      onQueueUpdate: this.makeQueueUpdateHandler()
+    });
+    const data = (result.data ?? result) as Record<string, unknown>;
+    return downloadBytes(extractImageUrl(data));
+  }
+
+  override async inpaintImages(
+    images: Uint8Array[],
+    params: InpaintingParams,
+    numImages: number
+  ): Promise<Uint8Array[]> {
+    if (numImages <= 1) {
+      return [await this.inpaint(images, params)];
+    }
+    const client = await this.getClient();
+    const modelId = params.model.id;
+    const args = await this.buildInpaintArgs(modelId, images, params);
+    if (new FalArgsBuilder(modelId).has("num_images")) {
+      args.num_images = numImages;
+    }
+    log.debug("FAL inpaintImages", { model: modelId, numImages });
+    const result = await client.subscribe(modelId, {
+      input: args,
+      logs: true,
+      onQueueUpdate: this.makeQueueUpdateHandler()
+    });
+    const data = (result.data ?? result) as Record<string, unknown>;
+    const urls = extractImageUrls(data);
+    return Promise.all(urls.map(downloadBytes));
   }
 
   override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
@@ -759,7 +830,7 @@ function extractVideoUrl(result: Record<string, unknown>): string {
 }
 
 async function downloadBytes(url: string): Promise<Uint8Array> {
-  const res = await fetch(url);
+  const res = await safeFetch(url);
   if (!res.ok) throw new Error(`Failed to download FAL result: ${res.status}`);
   const buf = await res.arrayBuffer();
   return new Uint8Array(buf);

@@ -73,6 +73,7 @@ describe("FalProvider", () => {
     const fakePng = new Uint8Array([0x89, 0x50, 0x4e, 0x47]);
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
+      headers: new Headers(),
       arrayBuffer: () => Promise.resolve(fakePng.buffer)
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -120,6 +121,7 @@ describe("FalProvider", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
+        headers: new Headers(),
         arrayBuffer: () => Promise.resolve(new ArrayBuffer(4))
       })
     );
@@ -151,6 +153,7 @@ describe("FalProvider", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
+        headers: new Headers(),
         arrayBuffer: () => Promise.resolve(new ArrayBuffer(4))
       })
     );
@@ -196,6 +199,7 @@ describe("FalProvider", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
+        headers: new Headers(),
         arrayBuffer: () => Promise.resolve(new ArrayBuffer(4))
       })
     );
@@ -232,6 +236,50 @@ describe("FalProvider", () => {
     vi.unstubAllGlobals();
   });
 
+  // --- inpaint ---
+
+  it("inpaint attaches the mask to the endpoint's declared mask field", async () => {
+    const uploadMock = vi
+      .fn()
+      .mockResolvedValueOnce("https://fal.media/files/src.png")
+      .mockResolvedValueOnce("https://fal.media/files/mask.png");
+    const subscribeMock = vi.fn().mockResolvedValue({
+      data: { image: { url: "https://fal.ai/result.png" } }
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: new Headers(),
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(4))
+      })
+    );
+
+    const p = createProvider();
+    (p as any)._client = {
+      subscribe: subscribeMock,
+      storage: { upload: uploadMock }
+    };
+
+    // ideogram/v2/edit declares `image_url` (source) plus `mask_url`.
+    await p.inpaint([new Uint8Array([1, 2, 3, 4])], {
+      prompt: "fill",
+      model: {
+        id: "fal-ai/ideogram/v2/edit",
+        name: "Ideogram Edit",
+        provider: "fal_ai"
+      },
+      mask: new Uint8Array([5, 6, 7, 8])
+    });
+
+    expect(uploadMock).toHaveBeenCalledTimes(2);
+    const input = subscribeMock.mock.calls[0][1].input;
+    expect(input.image_url).toBe("https://fal.media/files/src.png");
+    expect(input.mask_url).toBe("https://fal.media/files/mask.png");
+
+    vi.unstubAllGlobals();
+  });
+
   // --- extractImageUrl edge cases ---
 
   it("textToImage handles response with result.image.url format", async () => {
@@ -242,6 +290,7 @@ describe("FalProvider", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
+        headers: new Headers(),
         arrayBuffer: () => Promise.resolve(new ArrayBuffer(4))
       })
     );
@@ -280,7 +329,7 @@ describe("FalProvider", () => {
     });
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue({ ok: false, status: 500 })
+      vi.fn().mockResolvedValue({ ok: false, status: 500, headers: new Headers() })
     );
 
     const p = createProvider();

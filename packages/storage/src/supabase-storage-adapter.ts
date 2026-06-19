@@ -6,6 +6,7 @@ import type {
   StorageStat
 } from "./storage-adapter.js";
 import { normalizeStorageKey } from "./storage-keys.js";
+import { assertUploadWithinLimit } from "./storage-limits.js";
 
 export interface SupabaseStorageAdapterOptions {
   url: string;
@@ -63,6 +64,7 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     data: Uint8Array,
     contentType?: string
   ): Promise<string> {
+    assertUploadWithinLimit(key, data.byteLength);
     const { error } = await this.getClient()
       .storage.from(this.bucket)
       .upload(key, data, {
