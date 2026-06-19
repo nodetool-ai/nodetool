@@ -14,6 +14,7 @@ export {
   readCachedHfModels,
   searchCachedHfModels,
   getModelsByHfType,
+  filterModelsByHfType,
   deleteCachedHfModel,
   getLlamaCppModelsFromCache,
   detectRepoPackaging

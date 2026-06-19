@@ -1499,6 +1499,65 @@ export async function searchCachedHfModels(
 // ---------------------------------------------------------------------------
 
 /**
+ * Filter an arbitrary list of models down to those matching a requested
+ * hf.* type, applying the same structural rules and heuristics used for
+ * local-cache scans. Useful for lists sourced elsewhere (e.g. a remote
+ * worker's model cache).
+ */
+export function filterModelsByHfType(
+  models: UnifiedModel[],
+  modelType: string
+): UnifiedModel[] {
+  const rules = HF_TYPE_STRUCTURAL_RULES[modelType] ?? {};
+  const fileOnly = rules.file_only ?? false;
+  const checkpoint =
+    rules.checkpoint ?? Object.values(_CHECKPOINT_BASES).includes(modelType);
+  const nestedCheckpoint = rules.nested_checkpoint ?? false;
+  const singleFileRepo = rules.single_file_repo ?? false;
+
+  const seen = new Set<string>();
+  const filtered: UnifiedModel[] = [];
+
+  for (const model of models) {
+    if (seen.has(model.id)) continue;
+
+    const repoLower = (model.repo_id ?? "").toLowerCase();
+    const pathValue = model.path ?? null;
+
+    if (fileOnly && pathValue == null) continue;
+
+    if (singleFileRepo) {
+      if (pathValue == null && repoLower.includes("gguf")) continue;
+      if (pathValue != null) {
+        const pathLower = pathValue.toLowerCase();
+        if (
+          !_isSingleFileDiffusionWeight(pathValue) &&
+          !pathLower.endsWith(".gguf")
+        ) {
+          continue;
+        }
+      }
+    }
+
+    if (checkpoint) {
+      if (!pathValue) continue;
+      if (pathValue.includes("/") && !nestedCheckpoint) continue;
+    }
+
+    // For non-file-oriented types, skip file-level entries to avoid duplicates
+    if (!fileOnly && !checkpoint && !singleFileRepo && pathValue != null)
+      continue;
+
+    if (!_matchesModelType(model, modelType)) continue;
+
+    filtered.push(model);
+    seen.add(model.id);
+  }
+
+  return filtered;
+}
+
+/**
  * Return cached Hugging Face models matching a requested hf.* type.
  *
  * The search is entirely offline: build a search config, scan cached repos/files,
@@ -1511,56 +1570,6 @@ export async function getModelsByHfType(
   const config = _buildSearchConfigForType(modelType) ?? {};
   const repoPattern = config.repo_pattern;
   const filenamePattern = config.filename_pattern;
-
-  function filterModels(models: UnifiedModel[]): UnifiedModel[] {
-    const rules = HF_TYPE_STRUCTURAL_RULES[modelType] ?? {};
-    const fileOnly = rules.file_only ?? false;
-    const checkpoint =
-      rules.checkpoint ?? Object.values(_CHECKPOINT_BASES).includes(modelType);
-    const nestedCheckpoint = rules.nested_checkpoint ?? false;
-    const singleFileRepo = rules.single_file_repo ?? false;
-
-    const seen = new Set<string>();
-    const filtered: UnifiedModel[] = [];
-
-    for (const model of models) {
-      if (seen.has(model.id)) continue;
-
-      const repoLower = (model.repo_id ?? "").toLowerCase();
-      const pathValue = model.path ?? null;
-
-      if (fileOnly && pathValue == null) continue;
-
-      if (singleFileRepo) {
-        if (pathValue == null && repoLower.includes("gguf")) continue;
-        if (pathValue != null) {
-          const pathLower = pathValue.toLowerCase();
-          if (
-            !_isSingleFileDiffusionWeight(pathValue) &&
-            !pathLower.endsWith(".gguf")
-          ) {
-            continue;
-          }
-        }
-      }
-
-      if (checkpoint) {
-        if (!pathValue) continue;
-        if (pathValue.includes("/") && !nestedCheckpoint) continue;
-      }
-
-      // For non-file-oriented types, skip file-level entries to avoid duplicates
-      if (!fileOnly && !checkpoint && !singleFileRepo && pathValue != null)
-        continue;
-
-      if (!_matchesModelType(model, modelType)) continue;
-
-      filtered.push(model);
-      seen.add(model.id);
-    }
-
-    return filtered;
-  }
 
   const offlineModels = await searchCachedHfModels(
     repoPattern
@@ -1575,7 +1584,7 @@ export async function getModelsByHfType(
       : null
   );
 
-  return filterModels(offlineModels);
+  return filterModelsByHfType(offlineModels, modelType);
 }
 
 // ---------------------------------------------------------------------------

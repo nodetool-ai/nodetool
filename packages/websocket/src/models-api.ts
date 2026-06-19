@@ -22,6 +22,7 @@ import {
 } from "@nodetool-ai/runtime";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import type { PythonBridge } from "@nodetool-ai/runtime";
+import type { WorkerManager } from "@nodetool-ai/compute";
 import {
   readCachedHfModels,
   searchCachedHfModels,
@@ -33,6 +34,42 @@ import {
 import type { UnifiedModel } from "@nodetool-ai/protocol";
 
 export type { UnifiedModel };
+
+/**
+ * Optional dependencies threaded into the model routes so worker-scoped
+ * requests can reach the attached worker. When absent, only `scope=local`
+ * (the default) works and worker-scope requests fail with a clear `409`.
+ */
+export interface ModelsApiDeps {
+  pythonBridge?: PythonBridge;
+  workerManager?: WorkerManager;
+}
+
+/**
+ * A `scope=worker` request needs an attached worker whose image speaks the
+ * `models.*` bridge protocol. Returns the bridge on success, or a 409 Response
+ * describing why the worker view is unavailable.
+ */
+async function requireWorkerBridge(
+  deps: ModelsApiDeps
+): Promise<PythonBridge | Response> {
+  if (!deps.workerManager) {
+    // Server wiring problem, not a runtime state the client can act on.
+    return errorResponse(500, "Worker support is not configured on this server");
+  }
+  const active = await deps.workerManager.getActiveWorker();
+  if (!active) {
+    return errorResponse(409, "No worker attached");
+  }
+  const bridge = deps.pythonBridge;
+  if (!bridge || !bridge.supportsModelManagement()) {
+    return errorResponse(
+      409,
+      "This worker's image is too old for model management. Upgrade the worker image."
+    );
+  }
+  return bridge;
+}
 
 interface RepoPath {
   repo_id: string;
@@ -697,7 +734,8 @@ async function fastCacheStatus(
 }
 
 export async function handleModelsApiRequest(
-  request: Request
+  request: Request,
+  deps: ModelsApiDeps = {}
 ): Promise<Response | null> {
   const url = new URL(request.url);
   const path = pathFromModelsPrefix(url.pathname);
@@ -783,7 +821,14 @@ export async function handleModelsApiRequest(
   }
 
   if (path === "/huggingface") {
+    const scope = url.searchParams.get("scope") ?? "local";
+
     if (request.method === "GET") {
+      if (scope === "worker") {
+        const bridge = await requireWorkerBridge(deps);
+        if (bridge instanceof Response) return bridge;
+        return jsonResponse(await bridge.listCachedModels());
+      }
       if (isProduction()) return jsonResponse([]);
       try {
         const models = await readCachedHfModels();
@@ -795,6 +840,11 @@ export async function handleModelsApiRequest(
     if (request.method === "DELETE") {
       const repoId = url.searchParams.get("repo_id");
       if (!repoId) return errorResponse(400, "Missing repo_id parameter");
+      if (scope === "worker") {
+        const bridge = await requireWorkerBridge(deps);
+        if (bridge instanceof Response) return bridge;
+        return jsonResponse(await bridge.deleteCachedModel(repoId));
+      }
       if (isProduction()) return jsonResponse(false);
       try {
         const deleted = await deleteCachedHfModel(repoId);
@@ -1017,4 +1067,117 @@ export function toUnifiedModelsFromLanguage(
   models: LanguageModel[]
 ): UnifiedModel[] {
   return models.map((model) => toUnifiedModel(model, "language_model"));
+}
+
+// ---------------------------------------------------------------------------
+// Worker-scoped model download relay
+// ---------------------------------------------------------------------------
+
+/** Minimal sink the relay writes JSON progress frames to (the /ws/download socket). */
+interface DownloadSocket {
+  send(data: string): void;
+}
+
+/** The `start_download` command JSON, with the optional `scope: "worker"` flag. */
+export interface StartDownloadCommand {
+  command: string;
+  repo_id?: string;
+  path?: string | null;
+  allow_patterns?: string[] | null;
+  ignore_patterns?: string[] | null;
+  model_type?: string | null;
+  scope?: string;
+}
+
+/**
+ * Relay a worker-scoped model download: forward each bridge `progress` frame
+ * onto the /ws/download socket using the same JSON shape the local download
+ * manager emits, so the web ModelDownloadStore consumes it unchanged.
+ *
+ * No attached worker (or an image too old for `models.*`) yields an `error`
+ * progress frame instead. A mid-download failure (e.g. the worker detaching)
+ * surfaces as an `error` frame too.
+ *
+ * `requestId` is the stable cancel key: it must match the id the web sends in
+ * `cancel_download` (`path ? repo_id + "/" + path : repo_id`) so the bridge can
+ * correlate a later `cancelModelDownload(requestId)` to this download. The
+ * default reproduces that composite so callers that don't track cancellation
+ * still get a sensible, matching id.
+ */
+export async function relayWorkerDownload(
+  socket: DownloadSocket,
+  bridge: PythonBridge | undefined,
+  workerManager: WorkerManager | undefined,
+  msg: StartDownloadCommand,
+  requestId: string = msg.path
+    ? `${msg.repo_id ?? ""}/${msg.path}`
+    : (msg.repo_id ?? "")
+): Promise<void> {
+  const repoId = msg.repo_id ?? "";
+  // The worker already emits a terminal `error`-status progress frame on
+  // failure (forwarded verbatim below); track it so the catch doesn't send a
+  // second, redundant error frame.
+  let sawError = false;
+  const fail = (error: string) => {
+    try {
+      socket.send(
+        JSON.stringify({
+          status: "error",
+          repo_id: repoId,
+          path: msg.path ?? null,
+          model_type: msg.model_type ?? null,
+          downloaded_bytes: 0,
+          total_bytes: 0,
+          downloaded_files: 0,
+          current_files: [],
+          total_files: 0,
+          error
+        })
+      );
+    } catch {
+      /* socket gone */
+    }
+  };
+
+  if (!workerManager) {
+    fail("Worker support is not configured on this server");
+    return;
+  }
+  const active = await workerManager.getActiveWorker();
+  if (!active) {
+    fail("No worker attached");
+    return;
+  }
+  if (!bridge || !bridge.supportsModelManagement()) {
+    fail("This worker's image is too old for model management.");
+    return;
+  }
+
+  try {
+    await bridge.downloadModel(
+      {
+        repo_id: repoId,
+        path: msg.path ?? null,
+        allow_patterns: msg.allow_patterns ?? null,
+        ignore_patterns: msg.ignore_patterns ?? null,
+        model_type: msg.model_type ?? null
+      },
+      (update) => {
+        if (update.status === "error") {
+          sawError = true;
+        }
+        try {
+          socket.send(JSON.stringify(update));
+        } catch {
+          /* socket gone */
+        }
+      },
+      requestId
+    );
+  } catch (err) {
+    // Suppress the redundant error frame if the worker already forwarded one.
+    if (!sawError) {
+      fail(err instanceof Error ? err.message : String(err));
+    }
+  }
 }

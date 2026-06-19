@@ -1264,7 +1264,9 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
   const trpcContextFactory = createContextFactory({
     registry,
     apiOptions: resolvedApiOptions,
-    pythonBridge: {} as Parameters<typeof createContextFactory>[0]["pythonBridge"],
+    pythonBridge: {} as Parameters<
+      typeof createContextFactory
+    >[0]["pythonBridge"],
     getPythonBridgeReady: () => false
   });
   const trpcHandler = createHTTPHandler({

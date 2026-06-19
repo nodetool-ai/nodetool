@@ -1,5 +1,8 @@
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
+import { TRPCError } from "@trpc/server";
+import type { Context } from "../context.js";
+import type { PythonBridge } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
 import {
   getProvider,
@@ -24,6 +27,7 @@ import {
   readCachedHfModels,
   searchCachedHfModels,
   getModelsByHfType,
+  filterModelsByHfType,
   deleteCachedHfModel,
   getHuggingfaceFileInfos
 } from "@nodetool-ai/huggingface";
@@ -174,6 +178,15 @@ const hfSearchInput = z.object({
   type: z.string().optional()
 });
 
+const hfHubSearchInput = z.object({
+  /** Free-text search passed to the Hub's `search` param. */
+  query: z.string().optional(),
+  /** HF pipeline tag filter, e.g. "audio-text-to-text". */
+  pipeline_tag: z.string().optional(),
+  /** Max results (Hub caps high; we keep it modest for the UI). */
+  limit: z.number().int().min(1).max(100).optional()
+});
+
 const hfByTypeInput = z.object({
   model_type: z.string().min(1)
 });
@@ -185,6 +198,38 @@ const tjsByTypeInput = z.object({
 const hfDeleteInput = z.object({
   repo_id: z.string().min(1)
 });
+
+/** Where a model route operates: the local cache (default) or an attached worker. */
+const modelScope = z.enum(["local", "worker"]).default("local");
+
+/**
+ * Resolve the worker bridge for a `scope: "worker"` request. Requires an
+ * attached worker whose image speaks the `models.*` bridge protocol; throws a
+ * CONFLICT otherwise so the UI can surface a clear reason.
+ */
+async function requireWorkerBridge(
+  ctx: Pick<Context, "pythonBridge" | "workerManager">
+): Promise<PythonBridge> {
+  if (!ctx.workerManager) {
+    // Server wiring problem, not a runtime state the client can act on.
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Worker support is not configured on this server"
+    });
+  }
+  const active = await ctx.workerManager.getActiveWorker();
+  if (!active) {
+    throw new TRPCError({ code: "CONFLICT", message: "No worker attached" });
+  }
+  if (!ctx.pythonBridge.supportsModelManagement()) {
+    throw new TRPCError({
+      code: "CONFLICT",
+      message:
+        "This worker's image is too old for model management. Upgrade the worker image."
+    });
+  }
+  return ctx.pythonBridge;
+}
 
 const ollamaModelSchema = z.object({
   type: z.string(),
@@ -553,6 +598,84 @@ async function getRecommendedModels(
     }
   }
   return filtered;
+}
+
+interface HfHubModel {
+  id?: string;
+  modelId?: string;
+  pipeline_tag?: string | null;
+  tags?: string[];
+  downloads?: number;
+  likes?: number;
+  trendingScore?: number;
+  gated?: boolean | string;
+}
+
+/** Map a HF Hub API model record onto our UnifiedModel shape. */
+function hubModelToUnified(
+  m: HfHubModel,
+  fallbackTag?: string
+): UnifiedModel | null {
+  const repoId = m.id ?? m.modelId;
+  if (!repoId) return null;
+  const tag = m.pipeline_tag ?? fallbackTag ?? undefined;
+  // Hub pipeline tags are dash-cased ("audio-text-to-text"); our model types
+  // are the same task underscore-cased and prefixed "hf.".
+  const type = tag ? `hf.${tag.replace(/-/g, "_")}` : "hf.model";
+  return {
+    id: repoId,
+    type,
+    name: repoId,
+    repo_id: repoId,
+    provider: "huggingface",
+    downloaded: false,
+    pipeline_tag: m.pipeline_tag ?? null,
+    tags: m.tags ?? null,
+    downloads: m.downloads ?? null,
+    likes: m.likes ?? null,
+    trending_score: m.trendingScore ?? null
+  };
+}
+
+/**
+ * Search the live HuggingFace Hub (https://huggingface.co/api/models) by
+ * free-text and/or pipeline tag. Returns downloadable repos sorted by
+ * popularity. Network/HTTP failures degrade to an empty list.
+ */
+async function searchHuggingFaceHub(
+  query: string | undefined,
+  pipelineTag: string | undefined,
+  limit: number
+): Promise<UnifiedModel[]> {
+  if (!query && !pipelineTag) return [];
+  const params = new URLSearchParams();
+  if (query) params.set("search", query);
+  if (pipelineTag) params.set("pipeline_tag", pipelineTag);
+  params.set("limit", String(limit));
+  params.set("sort", "downloads");
+  params.set("direction", "-1");
+
+  const headers: Record<string, string> = { Accept: "application/json" };
+  const token = process.env.HF_TOKEN || process.env.HUGGING_FACE_HUB_TOKEN;
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  try {
+    const res = await fetch(
+      `https://huggingface.co/api/models?${params.toString()}`,
+      { headers }
+    );
+    if (!res.ok) {
+      log.warn("HF Hub search failed: %d %s", res.status, res.statusText);
+      return [];
+    }
+    const data = (await res.json()) as HfHubModel[];
+    return data
+      .map((m) => hubModelToUnified(m, pipelineTag))
+      .filter((m): m is UnifiedModel => m !== null);
+  } catch (err) {
+    log.warn("HF Hub search error: %s", (err as Error).message);
+    return [];
+  }
 }
 
 function selectRecommended(
@@ -972,11 +1095,17 @@ export const modelsRouter = router({
     .query(async ({ ctx }) => getAllModels(ctx.userId)),
 
   /**
-   * HuggingFace cached models.
+   * HuggingFace cached models. `scope: "worker"` lists the attached worker's
+   * cache via the Python bridge; the default `"local"` scans the local FS.
    */
   huggingfaceList: protectedProcedure
+    .input(z.object({ scope: modelScope }).optional())
     .output(modelsListOutput)
-    .query(async () => {
+    .query(async ({ ctx, input }) => {
+      if (input?.scope === "worker") {
+        const bridge = await requireWorkerBridge(ctx);
+        return (await bridge.listCachedModels()) as UnifiedModel[];
+      }
       if (isProduction()) return [];
       try {
         return await readCachedHfModels();
@@ -986,12 +1115,17 @@ export const modelsRouter = router({
     }),
 
   /**
-   * Delete a HuggingFace cached model.
+   * Delete a HuggingFace cached model. `scope: "worker"` deletes from the
+   * attached worker's cache via the Python bridge.
    */
   huggingfaceDelete: protectedProcedure
-    .input(hfDeleteInput)
+    .input(hfDeleteInput.extend({ scope: modelScope }))
     .output(z.boolean())
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
+      if (input.scope === "worker") {
+        const bridge = await requireWorkerBridge(ctx);
+        return bridge.deleteCachedModel(input.repo_id);
+      }
       if (isProduction()) return false;
       try {
         return await deleteCachedHfModel(input.repo_id);
@@ -1023,12 +1157,39 @@ export const modelsRouter = router({
     }),
 
   /**
+   * Search the live HuggingFace Hub by free-text and/or pipeline tag.
+   * Unlike `huggingfaceSearch` (which only scans the local cache), this hits
+   * the online Hub so the Model Manager can browse & download any public repo.
+   */
+  huggingfaceHubSearch: protectedProcedure
+    .input(hfHubSearchInput)
+    .output(modelsListOutput)
+    .query(async ({ input }) => {
+      return await searchHuggingFaceHub(
+        input.query,
+        input.pipeline_tag,
+        input.limit ?? 50
+      );
+    }),
+
+  /**
    * HuggingFace models by type.
    */
   huggingfaceByType: protectedProcedure
-    .input(hfByTypeInput)
+    .input(hfByTypeInput.extend({ scope: modelScope }))
     .output(modelsListOutput)
-    .query(async ({ input }) => {
+    .query(async ({ ctx, input }) => {
+      if (input.scope === "worker") {
+        const bridge = await requireWorkerBridge(ctx);
+        // The worker sends full UnifiedModel JSON; the bridge types it loosely.
+        const cached = (await bridge.listCachedModels()) as unknown as Parameters<
+          typeof filterModelsByHfType
+        >[0];
+        return filterModelsByHfType(
+          cached,
+          input.model_type
+        ) as UnifiedModel[];
+      }
       try {
         return await getModelsByHfType(input.model_type);
       } catch {
