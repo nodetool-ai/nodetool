@@ -79,7 +79,8 @@ The web app runs **React 18.2**; Electron renderer runs **React 19.1**. Mobile u
 - **One default export per file** for components; named exports for hooks and utilities.
 - **Never mutate state.** Use immutable updates; pass new references.
 - **Stable keys** in lists — never use the array index when the list reorders. Use a stable ID.
-- **`useEffect` is for side effects only** (subscriptions, timers, DOM, network). **Never** use it to compute derived state — that's what `useMemo` or simple inline computation is for.
+- **`useEffect` is for side effects only** (subscriptions, timers, DOM, network). **Never** use it to compute derived state — that's what `useMemo` or simple inline computation is for. _Exception:_ mirroring a prop into editable local state (controlled→uncontrolled) and resetting state on an input change are legitimate effects — do not "convert" those to `useMemo`.
+- **`react-hooks/exhaustive-deps` is enforced** (oxlint, warn) — the primary `npm run lint`. Don't silence it with an eslint-disable; fix the dependency array or restructure. Treat new warnings as work to clear, not noise.
 - **Effect cleanup is mandatory** for any effect that creates a subscription, timer, controller, or listener. Effects that race must use an `AbortController` or an `isMounted` ref pattern (signal preferred).
 - **Don't pass inline functions** to memoized children. Use `useCallback` only when (a) the function is a dependency of an effect/memo, or (b) it's passed to a `React.memo`'d child.
 - **`useMemo` / `React.memo` only when measured.** Add only after observing a render problem in React DevTools. Premature memoization is forbidden because it adds maintenance cost.
