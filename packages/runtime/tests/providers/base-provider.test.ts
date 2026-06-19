@@ -286,3 +286,34 @@ describe("BaseProvider – default method behaviors", () => {
     ).rejects.toThrow("does not support");
   });
 });
+
+describe("BaseProvider – getCapabilities", () => {
+  it("defaults to message generation only when nothing is overridden", () => {
+    const caps = new TestProvider().getCapabilities();
+    expect(caps).toEqual(["generate_message", "generate_messages"]);
+  });
+
+  it("derives capabilities from overridden methods (heuristic path)", () => {
+    class ImageProvider extends TestProvider {
+      override async getAvailableImageModels() {
+        return [];
+      }
+    }
+    const caps = new ImageProvider().getCapabilities();
+    expect(caps).toContain("text_to_image");
+    expect(caps).toContain("image_to_image");
+  });
+
+  it("honors an explicit capability declaration (override seam)", () => {
+    class ExplicitProvider extends TestProvider {
+      protected override declaredCapabilities() {
+        return ["text_to_speech" as const];
+      }
+    }
+    const caps = new ExplicitProvider().getCapabilities();
+    // Explicit list is honored and message generation is always included.
+    expect(caps).toContain("text_to_speech");
+    expect(caps).toContain("generate_message");
+    expect(caps).toContain("generate_messages");
+  });
+});

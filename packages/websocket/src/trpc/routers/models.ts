@@ -8,7 +8,6 @@ import {
   getProvider,
   isProviderConfigured,
   listRegisteredProviderIds,
-  providerCapabilities,
   RECOMMENDED_MODELS,
   OLLAMA_DEFAULT_URL,
   LMSTUDIO_DEFAULT_URL,
@@ -988,7 +987,7 @@ export const modelsRouter = router({
         if (!instance) continue;
         infos.push({
           provider: providerId,
-          capabilities: providerCapabilities(instance)
+          capabilities: instance.getCapabilities()
         });
       }
       return infos;
