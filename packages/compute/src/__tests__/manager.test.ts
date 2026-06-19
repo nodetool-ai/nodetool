@@ -729,6 +729,27 @@ describe("WorkerManager — reconcile", () => {
     ]);
   });
 
+  it("does not flag stopped/paused untracked provider entries as cost orphans", async () => {
+    const { manager, provider } = makeManager();
+    await manager.createProfile(PROFILE_INPUT);
+    const tracked = await manager.provision("hf-a40"); // pod-1
+
+    // Provider reports the tracked pod plus untracked entries that are not
+    // burning GPU billing (paused/destroyed) — these must not be surfaced.
+    provider.liveList = [
+      { providerRef: tracked.provider_ref, status: "running" },
+      { providerRef: "pod-paused", status: "stopped" },
+      { providerRef: "pod-gone", status: "terminated" },
+      { providerRef: "pod-orphan", status: "running" },
+    ];
+
+    const summary = await manager.reconcile();
+
+    expect(summary.orphans).toEqual([
+      { target: "runpod", providerRef: "pod-orphan", status: "running" },
+    ]);
+  });
+
   it("returns a live-count and estimated-cost summary", async () => {
     const { manager, models, provider } = makeManager();
     await manager.createProfile(PROFILE_INPUT);
