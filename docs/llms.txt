@@ -76,8 +76,7 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [End-to-End Guide]({{ site.url }}/deployment-e2e-guide): Full production walkthrough.
 - [Self-Hosted]({{ site.url }}/self-hosted-deployment): Run on your own infra with Docker.
 - [Docker Resources]({{ site.url }}/docker-resource-management): GPU, memory, volumes.
-- [RunPod]({{ site.url }}/runpod-deployment): Serverless GPU deployment.
-- [Google Cloud Run]({{ site.url }}/gcp-deployment): GCP managed deployment.
+- [Worker Deployment]({{ site.url }}/worker-deployment): Rent GPU workers (RunPod, Vast), attach, tear down.
 - [Supabase]({{ site.url }}/supabase-deployment): Postgres + auth backend.
 
 ## CLI

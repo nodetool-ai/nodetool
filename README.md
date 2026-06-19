@@ -71,7 +71,7 @@ That's what vendor neutrality buys you:
 | **Document search** | Built-in vector store for indexing and querying your files |
 | **Real-time previews** | Live output at every node as the workflow runs |
 | **Custom nodes** | Extend in TypeScript or Python |
-| **Deploy anywhere** | Docker, RunPod, Google Cloud Run, or self-hosted |
+| **Deploy & scale** | Self-host with Docker; rent GPU workers (RunPod, Vast) |
 | **Cross-platform** | Desktop, web, CLI, and mobile |
 
 ## What people build with it
