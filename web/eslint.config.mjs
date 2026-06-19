@@ -128,6 +128,18 @@ export default [
           ],
         },
       ],
+      // Design-token guards (warn): discourage hardcoded values that have a
+      // named token. See docs/DESIGN.md and ui_primitives/tokens.ts.
+      "no-restricted-syntax": [
+        "warn",
+        {
+          // transition: "200ms ease" → use a MOTION token.
+          selector:
+            "Property[key.name='transition'] > Literal[value=/[0-9]+ms/]",
+          message:
+            "Use a MOTION token (MOTION.fast/normal/slow/all/…) instead of a hardcoded transition string. See ui_primitives/tokens.ts.",
+        },
+      ],
     },
   },
 ];
