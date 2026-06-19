@@ -22,7 +22,6 @@ import React, {
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import Menu from "@mui/material/Menu";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
@@ -49,6 +48,7 @@ import {
   LabeledSwitch,
   SelectField,
   NodeMenuItem,
+  EditorMenu,
   MOTION,
   BORDER_RADIUS,
   FONT_SIZE_SANS
@@ -1892,7 +1892,7 @@ export const TrackEffectsPanel: React.FC<TrackEffectsPanelProps> = memo(
             <AddIcon />
             Add
           </button>
-          <Menu
+          <EditorMenu
             anchorEl={addAnchor}
             open={!!addAnchor}
             onClose={handleCloseAdd}
@@ -1904,7 +1904,7 @@ export const TrackEffectsPanel: React.FC<TrackEffectsPanelProps> = memo(
                 {EFFECT_LABELS[t]}
               </NodeMenuItem>
             ))}
-          </Menu>
+          </EditorMenu>
         </FlexRow>
 
         {effects.length === 0 ? (
