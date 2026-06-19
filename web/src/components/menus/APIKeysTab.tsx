@@ -26,6 +26,7 @@ import {
   Card,
   Chip,
   Box,
+  EmptyState,
   BORDER_RADIUS,
   MOTION
 } from "../ui_primitives";
@@ -928,9 +929,11 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
       <GetStartedBanner theme={theme} />
 
       {!hasContent && lowerSearch && (
-        <Text sx={{ textAlign: "center", padding: theme.spacing(8), opacity: 0.6 }}>
-          No providers found matching &quot;{searchTerm}&quot;
-        </Text>
+        <EmptyState
+          variant="no-results"
+          title="No providers found"
+          description={`No providers match "${searchTerm}"`}
+        />
       )}
 
       {allRecommended.length > 0 && (
