@@ -49,7 +49,11 @@ import type {
 import type { Asset } from "../ApiTypes";
 import { assetToClip } from "../../components/timeline/dnd/assetToClipAdapter";
 import { trpcClient } from "../../trpc/client";
-import { migrateTranscriptToClips, reflowGenerated } from "./transcriptOps";
+import {
+  migrateTranscriptToClips,
+  reflowGenerated,
+  isTranscriptClip
+} from "./transcriptOps";
 
 // ── Snap threshold ─────────────────────────────────────────────────────────
 
@@ -74,6 +78,11 @@ export interface TimelineStoreState {
   markers: TimelineMarker[];
   /** Studio transcript lines (document state, persisted + undo-able). */
   transcript: TranscriptLine[];
+  /**
+   * Whether the script feature (transcript lane + transcript panel) is shown.
+   * Single source of truth, always a definite boolean post-normalization.
+   */
+  scriptEnabled: boolean;
 
   // ── Initialisation ───────────────────────────────────────────────────────
 
@@ -83,6 +92,8 @@ export interface TimelineStoreState {
   reset: () => void;
   /** Roll `baseUpdatedAt` forward after a successful server save. */
   setBaseUpdatedAt: (updatedAt: string) => void;
+  /** Show or hide the script feature (non-destructive; does not touch clips). */
+  setScriptEnabled: (enabled: boolean) => void;
 
   // ── Track mutations ──────────────────────────────────────────────────────
 
@@ -387,7 +398,7 @@ export interface TimelineStoreState {
 
 type PartializedState = Pick<
   TimelineStoreState,
-  "tracks" | "clips" | "markers" | "durationMs" | "transcript"
+  "tracks" | "clips" | "markers" | "durationMs" | "transcript" | "scriptEnabled"
 >;
 
 // ── Temporal equality (dedupe no-op sets) ───────────────────────────────────
@@ -438,7 +449,8 @@ function partializedEqual(
     shallowArrayEqual(pastState.tracks, currentState.tracks) &&
     shallowArrayEqual(pastState.clips, currentState.clips) &&
     shallowArrayEqual(pastState.markers, currentState.markers) &&
-    shallowArrayEqual(pastState.transcript, currentState.transcript)
+    shallowArrayEqual(pastState.transcript, currentState.transcript) &&
+    pastState.scriptEnabled === currentState.scriptEnabled
   );
 }
 
@@ -595,6 +607,7 @@ const emptyState: {
   clips: TimelineClip[];
   markers: TimelineMarker[];
   transcript: TranscriptLine[];
+  scriptEnabled: boolean;
 } = {
   sequenceId: null,
   baseUpdatedAt: null,
@@ -605,7 +618,8 @@ const emptyState: {
   tracks: [],
   clips: [],
   markers: [],
-  transcript: []
+  transcript: [],
+  scriptEnabled: false
 };
 
 // ── Factory ────────────────────────────────────────────────────────────────
@@ -657,7 +671,8 @@ export const createTimelineStore = (
               tracks,
               clips,
               markers: seq.markers,
-              transcript: []
+              transcript: [],
+              scriptEnabled: seq.scriptEnabled ?? clips.some(isTranscriptClip)
             });
             return;
           }
@@ -672,13 +687,16 @@ export const createTimelineStore = (
             tracks: seq.tracks,
             clips: seq.clips,
             markers: seq.markers,
-            transcript: []
+            transcript: [],
+            scriptEnabled: seq.scriptEnabled ?? seq.clips.some(isTranscriptClip)
           });
         },
 
         reset: () => set({ ...emptyState }),
 
         setBaseUpdatedAt: (updatedAt) => set({ baseUpdatedAt: updatedAt }),
+
+        setScriptEnabled: (enabled) => set({ scriptEnabled: enabled }),
 
         // ── Tracks ──────────────────────────────────────────────────────────
 
@@ -1464,7 +1482,8 @@ export const createTimelineStore = (
           clips: state.clips,
           markers: state.markers,
           durationMs: state.durationMs,
-          transcript: state.transcript
+          transcript: state.transcript,
+          scriptEnabled: state.scriptEnabled
         })
       }
     )
