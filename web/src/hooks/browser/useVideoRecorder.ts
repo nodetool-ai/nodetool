@@ -32,7 +32,7 @@ export interface VideoRecorderReturn {
   handleAudioDeviceChange: (deviceId: string) => void;
 }
 
-export function useVideoRecorder({ onChange }: VideoRecorderProps): VideoRecorderReturn {
+export function useVideoRecorder({ onChange }: VideoRecorderProps): Readonly<VideoRecorderReturn> {
   const defaultFileType = "webm";
   const { uploadAsset } = useAssetUpload();
   const workflow = useNodes((state) => state.workflow);

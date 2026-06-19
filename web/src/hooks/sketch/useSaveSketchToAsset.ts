@@ -14,10 +14,10 @@ import { useNotificationStore } from "../../stores/NotificationStore";
  * asset's bytes — metadata (the sketch link) is left untouched by the partial
  * update.
  */
-export function useSaveSketchToAsset(assetId: string | undefined): {
+export function useSaveSketchToAsset(assetId: string | undefined): Readonly<{
   save: () => Promise<void>;
   saving: boolean;
-} {
+}> {
   const updateAsset = useAssetStore((state) => state.update);
   const invalidateQueries = useAssetStore((state) => state.invalidateQueries);
   const [saving, setSaving] = useState(false);

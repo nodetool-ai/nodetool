@@ -29,7 +29,7 @@ export interface WaveRecorderReturn {
   handleInputDeviceChange: (deviceId: string) => void;
 }
 
-export function useWaveRecorder({ onChange }: WaveRecorderProps): WaveRecorderReturn {
+export function useWaveRecorder({ onChange }: WaveRecorderProps): Readonly<WaveRecorderReturn> {
   const defaultFileType = "webm";
   const { uploadAsset } = useAssetUpload();
   const workflow = useNodes((state) => state.workflow);

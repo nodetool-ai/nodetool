@@ -62,6 +62,6 @@ export function createTrpcLinks(): TRPCLink<AppRouter>[] {
 }
 
 /** Vanilla client for Zustand stores and other non-React contexts. */
-export function createMobileTRPCClient(): TRPCClient<AppRouter> {
+export function createMobileTRPCClient(): Readonly<TRPCClient<AppRouter>> {
   return createTRPCClient<AppRouter>({ links: createTrpcLinks() });
 }

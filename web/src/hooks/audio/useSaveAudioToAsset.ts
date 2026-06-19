@@ -16,10 +16,10 @@ import type { Asset } from "../../stores/ApiTypes";
  * sets the asset's content type to `audio/wav` regardless of the original
  * format. Invalidates the asset query so the viewer reloads the new audio.
  */
-export function useSaveAudioToAsset(asset: Asset | undefined): {
+export function useSaveAudioToAsset(asset: Asset | undefined): Readonly<{
   save: (sample: AudioSample) => Promise<void>;
   saving: boolean;
-} {
+}> {
   const updateAsset = useAssetStore((state) => state.update);
   const invalidateQueries = useAssetStore((state) => state.invalidateQueries);
   const [saving, setSaving] = useState(false);

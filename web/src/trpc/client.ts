@@ -21,7 +21,7 @@ async function authHeaders(): Promise<Record<string, string>> {
   return session ? { Authorization: `Bearer ${session.access_token}` } : {};
 }
 
-export function createTRPCHttpClient(): TRPCClient<AppRouter> {
+export function createTRPCHttpClient(): Readonly<TRPCClient<AppRouter>> {
   return createTRPCClient<AppRouter>({
     links: [
       loggerLink({
