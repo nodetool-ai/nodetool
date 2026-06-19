@@ -66,6 +66,13 @@ export interface StreamRunnerOptions {
    * that only need to read inputs and never write back to the workspace.
    */
   readonlyWorkspace?: boolean;
+  /**
+   * Docker `User` (uid[:gid] or name) the container process runs as. Defaults
+   * to `"1000:1000"` — untrusted code should never run as root (uid 0), even
+   * with capabilities dropped. Pass `null` to keep the image's default user
+   * (e.g. an image whose entrypoint already drops privileges).
+   */
+  user?: string | null;
 }
 
 export interface StreamOptions {
@@ -116,6 +123,7 @@ export class StreamRunnerBase {
   public readonly securityOpt: string[];
   public readonly readonlyRootfs: boolean;
   public readonly readonlyWorkspace: boolean;
+  public readonly user: string | null;
 
   // `protected` (not `private`) so subclasses that implement their own
   // `stream()` — e.g. ServerDockerRunner — can register their container and
@@ -150,6 +158,9 @@ export class StreamRunnerBase {
       : ["no-new-privileges"];
     this.readonlyRootfs = options?.readonlyRootfs ?? false;
     this.readonlyWorkspace = options?.readonlyWorkspace ?? false;
+    // Never run untrusted code as root (uid 0). `undefined` → non-root default;
+    // explicit `null` keeps the image's own user.
+    this.user = options?.user === undefined ? "1000:1000" : options.user;
   }
 
   // ---- Public API --------------------------------------------------------
@@ -466,6 +477,8 @@ export class StreamRunnerBase {
       Cmd: command,
       Env: Object.entries(environment).map(([k, v]) => `${k}=${v}`),
       WorkingDir: workingDir,
+      // Run as a non-root user so untrusted code cannot rely on uid 0.
+      User: this.user ?? undefined,
       OpenStdin: stdinStream !== null,
       Tty: false,
       HostConfig: hostConfig
