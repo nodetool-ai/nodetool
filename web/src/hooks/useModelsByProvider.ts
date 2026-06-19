@@ -16,6 +16,7 @@ import {
   useASRProviders,
   useVideoProviders
 } from "./useProviders";
+import { useWorkers } from "./useWorkers";
 
 /**
  * Collection of React Query hooks that bridge the UI to backend model endpoints.
@@ -433,14 +434,20 @@ export const useHuggingFaceImageModelsByProvider = (opts?: {
 }): ModelsByProviderResult<ImageModel> => {
   const baseData = useImageModelsByProvider(opts?.task ? { task: opts.task } : undefined);
 
+  // With a worker attached, nodes run on the worker, so the relevant cache
+  // (and the dialog's model list) is the worker's — query that instead of
+  // the local HF cache.
+  const { activeWorker } = useWorkers();
+  const scope = activeWorker ? ("worker" as const) : ("local" as const);
+
   const query = useQuery({
-    queryKey: ["hf-models", opts?.modelType ?? "none", opts?.task ?? "all"],
+    queryKey: ["hf-models", opts?.modelType ?? "none", opts?.task ?? "all", scope],
     enabled: !!opts?.modelType,
     queryFn: async () => {
       if (!opts?.modelType) {
         return [] as ImageModel[];
       }
-      const models = await fetchHfModelsByType(opts.modelType, opts.task);
+      const models = await fetchHfModelsByType(opts.modelType, scope);
       return models.map((model) => convertUnifiedToImageModel(model));
     },
     staleTime: 0,
@@ -473,9 +480,20 @@ export const useHuggingFaceImageModelsByProvider = (opts?: {
     [opts?.modelType, query, baseData]
   );
 
+  // Derive providers from the already-filtered HF models so the sidebar
+  // never shows unrelated API providers (Fal.ai, Gemini, etc.).
+  const providers = useMemo(() => {
+    const seen = new Set<string>();
+    for (const m of models) {
+      const p = m.provider ?? "";
+      if (p) seen.add(p);
+    }
+    return Array.from(seen);
+  }, [models]);
+
   return {
     models: models || [],
-    providers: baseData.providers ?? [],
+    providers,
     isLoading,
     isFetching,
     error,
@@ -485,10 +503,13 @@ export const useHuggingFaceImageModelsByProvider = (opts?: {
 
 const fetchHfModelsByType = async (
   modelType: string,
-  _task?: ImageModelTask
+  scope: "local" | "worker" = "local"
 ): Promise<UnifiedModel[]> => {
   const normalizedType = modelType.startsWith("hf.") ? modelType : `hf.${modelType}`;
-  return trpc.models.huggingfaceByType.query({ model_type: normalizedType }) as Promise<UnifiedModel[]>;
+  return trpc.models.huggingfaceByType.query({
+    model_type: normalizedType,
+    scope
+  }) as Promise<UnifiedModel[]>;
 };
 
 const convertUnifiedToImageModel = (model: UnifiedModel): ImageModel => {

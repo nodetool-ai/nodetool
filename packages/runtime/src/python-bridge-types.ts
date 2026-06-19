@@ -113,6 +113,14 @@ export interface PythonBridgeOptions {
    * otherwise wedge the reconnect loop forever. Default ~20000ms.
    */
   reconnectRpcTimeoutMs?: number;
+  /**
+   * Max time a model download may go without any progress frame before it is
+   * considered stalled, cancelled, and rejected (0 = no timeout). This is an
+   * inactivity timeout — the clock resets on every progress frame — so a large
+   * but steadily-progressing download is never killed, while a worker that
+   * hangs mid-download cannot leak its pending entries forever. Default ~5min.
+   */
+  downloadIdleTimeoutMs?: number;
 }
 
 export type StreamCallback = (chunk: Record<string, unknown>) => void;

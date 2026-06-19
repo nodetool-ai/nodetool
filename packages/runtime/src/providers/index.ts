@@ -11,6 +11,7 @@ export type { PricingTier, UsageInfo } from "./cost-calculator.js";
 export { OLLAMA_DEFAULT_URL, LMSTUDIO_DEFAULT_URL } from "./defaults.js";
 import { OLLAMA_DEFAULT_URL, LMSTUDIO_DEFAULT_URL } from "./defaults.js";
 import { AnthropicProvider } from "./anthropic-provider.js";
+import { ClaudeAgentProvider } from "./claude-agent-provider.js";
 import { GeminiProvider } from "./gemini-provider.js";
 import { LlamaProvider } from "./llama-provider.js";
 import { OpenAIProvider } from "./openai-provider.js";
@@ -47,6 +48,7 @@ import { FakeProvider } from "./fake-provider.js";
 export { BaseProvider, providerCapabilities } from "./base-provider.js";
 export type { ProviderCapability } from "./base-provider.js";
 export { AnthropicProvider };
+export { ClaudeAgentProvider };
 export { GeminiProvider };
 export { LlamaProvider };
 export { OpenAIProvider };
@@ -171,6 +173,12 @@ registerBuiltinProvider(PROVIDER_IDS.OPENAI, OpenAIProvider, { OPENAI_API_KEY: "
 // the stored OAuth credential by the host's getSecret) stands in for an API key.
 registerBuiltinProvider(PROVIDER_IDS.CODEX, CodexProvider, { CODEX_ACCESS_TOKEN: "" });
 registerBuiltinProvider(PROVIDER_IDS.ANTHROPIC, AnthropicProvider, { ANTHROPIC_API_KEY: "" });
+// Claude Agent SDK: Claude via the logged-in `claude` CLI subscription (no API
+// key). Registered with no credential kwargs — auth lives in the CLI's own
+// store, so the provider is always "configured"; a missing CLI surfaces at call
+// time. Pruned from the cloud profile (not in CLOUD_PROVIDER_IDS) since it needs
+// a local executable and subscription.
+registerBuiltinProvider(PROVIDER_IDS.CLAUDE_AGENT_SDK, ClaudeAgentProvider, {});
 registerBuiltinProvider(PROVIDER_IDS.GEMINI, GeminiProvider, { GEMINI_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.GROQ, GroqProvider, { GROQ_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.MISTRAL, MistralProvider, { MISTRAL_API_KEY: "" });

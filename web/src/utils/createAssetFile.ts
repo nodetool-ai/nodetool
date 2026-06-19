@@ -57,12 +57,8 @@ type CreateAssetFileOptions = {
 
 function isDataFrame(value: unknown): value is DataFrame {
   if (value === null || typeof value !== "object") return false;
-  return (
-    "columns" in value &&
-    Array.isArray(value.columns) &&
-    "data" in value &&
-    Array.isArray(value.data)
-  );
+  const obj = value as Record<string, unknown>;
+  return Array.isArray(obj.columns) && Array.isArray(obj.data);
 }
 
 function isTypedOutput(output: unknown): output is TypedOutput {
@@ -123,7 +119,7 @@ const decodeBase64 = (value: string): Uint8Array => {
   }
 
   try {
-    const BufferCtor = (globalThis as { Buffer?: unknown }).Buffer;
+    const BufferCtor = (globalThis as Record<string, unknown>).Buffer;
     if (BufferCtor && typeof BufferCtor === "function") {
       const buffer = (BufferCtor as unknown as Base64Decoder).from(cleaned, "base64");
       return new Uint8Array(
@@ -623,10 +619,11 @@ const unwrapNamedOutputs = (output: AssetOutput): AssetOutput | AssetOutput[] =>
   if (!output || typeof output !== "object" || Array.isArray(output)) {
     return output;
   }
-  if ("type" in output) {
-    return output;
+  const record = output as Record<string, unknown>;
+  if ("type" in record) {
+    return output; // already a typed output
   }
-  const values = Object.values(output as Record<string, unknown>);
+  const values = Object.values(record);
   if (values.length === 0) {
     return output;
   }

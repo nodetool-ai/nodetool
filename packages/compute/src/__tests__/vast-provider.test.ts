@@ -184,6 +184,27 @@ describe("VastProvider.provision", () => {
 
     expect(result.costUsd).toBe(0.31);
   });
+
+  it("constrains the offer search by the requested disk so the chosen offer can launch", async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ offers: [{ id: 555, gpu_name: "RTX 4090" }] })
+    );
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ success: true, new_contract: 9001 })
+    );
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse({ instances: readyInstance() })
+    );
+
+    const provider = new VastProvider(API_KEY);
+    await provider.provision(baseSpec({ disk: 250 }));
+
+    // The first call is the offer search; its query must require enough disk.
+    const [searchUrl, searchInit] = mockFetch.mock.calls[0];
+    expect(searchUrl).toBe("https://console.vast.ai/api/v0/bundles/");
+    const searchBody = JSON.parse((searchInit as RequestInit).body as string);
+    expect(searchBody.q.disk_space).toEqual({ gte: 250 });
+  });
 });
 
 describe("VastProvider.status", () => {

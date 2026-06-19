@@ -29,6 +29,7 @@ function binaryResponse(bytes: Uint8Array, status = 200): Response {
   return {
     ok: status >= 200 && status < 300,
     status,
+    headers: new Headers(),
     arrayBuffer: async () => bytes.buffer,
     text: async () => "",
     json: async () => ({})
@@ -353,6 +354,7 @@ describe("Meshy HTTP flow", () => {
       .mockResolvedValueOnce({
         ok: false,
         status: 500,
+        headers: new Headers(),
         text: async () => {
           throw new Error("nope");
         }
@@ -362,13 +364,32 @@ describe("Meshy HTTP flow", () => {
     );
   });
 
+  it("refuses to download from a private-IP model URL (SSRF guard)", async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ result: "t" }))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          status: "SUCCEEDED",
+          model_urls: { glb: "https://169.254.169.254/model.glb" }
+        })
+      );
+    await expect(provider().textTo3D(txt())).rejects.toThrow(/unsafe URL/);
+    // Submit + poll happened, but the download fetch was never attempted.
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("throws when the download itself fails", async () => {
     fetchMock
       .mockResolvedValueOnce(jsonResponse({ result: "t" }))
       .mockResolvedValueOnce(
         jsonResponse({ status: "SUCCEEDED", model_urls: { glb: "https://m/x.glb" } })
       )
-      .mockResolvedValueOnce({ ok: false, status: 404, text: async () => "missing" } as Response);
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        headers: new Headers(),
+        text: async () => "missing"
+      } as Response);
     await expect(provider().textTo3D(txt())).rejects.toThrow(
       "Failed to download Meshy result (404): missing"
     );

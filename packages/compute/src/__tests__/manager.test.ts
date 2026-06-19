@@ -620,6 +620,44 @@ describe("WorkerManager — attach / detach / getActiveWorker", () => {
     const { manager } = makeManager();
     expect(await manager.getActiveWorker()).toBeNull();
   });
+
+  it("stop clears the active-worker pointer when stopping the active worker", async () => {
+    const { manager, settings } = makeManager();
+    await manager.createProfile(PROFILE_INPUT);
+    const instance = await manager.provision("hf-a40");
+    await manager.attach(instance.id);
+
+    await manager.stop(instance.id);
+
+    expect(settings.store.has(ACTIVE_KEY)).toBe(false);
+    expect(await manager.getActiveWorker()).toBeNull();
+  });
+
+  it("stop leaves the pointer alone when stopping a non-active worker", async () => {
+    const { manager, settings } = makeManager();
+    await manager.createProfile(PROFILE_INPUT);
+    const active = await manager.provision("hf-a40");
+    const other = await manager.provision("hf-a40");
+    await manager.attach(active.id);
+
+    await manager.stop(other.id);
+
+    expect(settings.store.get(ACTIVE_KEY)).toBe(active.id);
+  });
+
+  it("getActiveWorker clears the pointer and returns null when the active instance was stopped out-of-band", async () => {
+    const { manager, models, settings } = makeManager();
+    await manager.createProfile(PROFILE_INPUT);
+    const instance = await manager.provision("hf-a40");
+    await manager.attach(instance.id);
+
+    // The instance is marked stopped without going through stop() (e.g. a
+    // reconcile in another process), leaving the pointer dangling.
+    models.instances.get(instance.id)!.status = "stopped";
+
+    expect(await manager.getActiveWorker()).toBeNull();
+    expect(settings.store.has(ACTIVE_KEY)).toBe(false);
+  });
 });
 
 describe("WorkerManager — reconcile", () => {
@@ -639,6 +677,21 @@ describe("WorkerManager — reconcile", () => {
     expect(models.instances.get(live.id)?.status).toBe("running");
     // The instance missing from the live list is marked stopped.
     expect(models.instances.get(dead.id)?.status).toBe("stopped");
+  });
+
+  it("clears the active-worker pointer when the active instance vanished from the provider", async () => {
+    const { manager, settings, provider } = makeManager();
+    await manager.createProfile(PROFILE_INPUT);
+    const dead = await manager.provision("hf-a40");
+    await manager.attach(dead.id);
+
+    // Provider reports nothing live; the active instance died out-of-band.
+    provider.liveList = [];
+
+    await manager.reconcile();
+
+    expect(settings.store.has("active_worker_instance_id")).toBe(false);
+    expect(await manager.getActiveWorker()).toBeNull();
   });
 
   it("does not touch already-stopped rows", async () => {
@@ -666,6 +719,27 @@ describe("WorkerManager — reconcile", () => {
     // Provider reports the tracked pod plus an untracked one.
     provider.liveList = [
       { providerRef: tracked.provider_ref, status: "running" },
+      { providerRef: "pod-orphan", status: "running" },
+    ];
+
+    const summary = await manager.reconcile();
+
+    expect(summary.orphans).toEqual([
+      { target: "runpod", providerRef: "pod-orphan", status: "running" },
+    ]);
+  });
+
+  it("does not flag stopped/paused untracked provider entries as cost orphans", async () => {
+    const { manager, provider } = makeManager();
+    await manager.createProfile(PROFILE_INPUT);
+    const tracked = await manager.provision("hf-a40"); // pod-1
+
+    // Provider reports the tracked pod plus untracked entries that are not
+    // burning GPU billing (paused/destroyed) — these must not be surfaced.
+    provider.liveList = [
+      { providerRef: tracked.provider_ref, status: "running" },
+      { providerRef: "pod-paused", status: "stopped" },
+      { providerRef: "pod-gone", status: "terminated" },
       { providerRef: "pod-orphan", status: "running" },
     ];
 

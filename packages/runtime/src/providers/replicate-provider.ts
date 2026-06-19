@@ -1,6 +1,7 @@
 import Replicate from "replicate";
 import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
+import { safeFetch } from "./safe-url.js";
 import type { Chunk } from "@nodetool-ai/protocol";
 import type {
   ASRModel,
@@ -468,7 +469,7 @@ export class ReplicateProvider extends BaseProvider {
 
     // String URL — fetch the bytes
     if (typeof target === "string") {
-      const res = await fetch(target);
+      const res = await safeFetch(target);
       if (!res.ok) throw new Error(`Failed to fetch output: ${res.status}`);
       return new Uint8Array(await res.arrayBuffer());
     }

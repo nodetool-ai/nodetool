@@ -254,6 +254,7 @@ export class WorkerManager {
       instance.target as WorkerTarget
     );
     await provider.stop(instance.provider_ref);
+    await this.clearActivePointerIfMatches(instance.id);
     return this.deps.updateWorkerInstance(instance.id, { status: "stopped" });
   }
 
@@ -290,10 +291,7 @@ export class WorkerManager {
       instance.target as WorkerTarget
     );
     await provider.terminate(instance.provider_ref);
-    const activeId = await this.deps.getSetting(ACTIVE_WORKER_KEY);
-    if (activeId === instance.id) {
-      await this.deps.deleteSetting(ACTIVE_WORKER_KEY);
-    }
+    await this.clearActivePointerIfMatches(instance.id);
     return this.deps.updateWorkerInstance(instance.id, {
       status: "terminated",
     });
@@ -368,6 +366,7 @@ export class WorkerManager {
           liveCount += 1;
           estimatedCostUsd += instance.estimated_cost_usd ?? 0;
         } else {
+          await this.clearActivePointerIfMatches(instance.id);
           await this.deps.updateWorkerInstance(instance.id, {
             status: "stopped",
           });
@@ -375,14 +374,19 @@ export class WorkerManager {
       }
 
       // Live-but-untracked: provider workers with no matching instance row.
+      // Only running/attached entries are cost orphans — a stopped/paused or
+      // terminated provider entry isn't burning GPU billing, so don't surface
+      // it for one-click stop-all.
       for (const entry of live) {
-        if (!trackedRefs.has(entry.providerRef)) {
-          orphans.push({
-            target,
-            providerRef: entry.providerRef,
-            status: entry.status,
-          });
+        if (trackedRefs.has(entry.providerRef)) continue;
+        if (entry.status === "stopped" || entry.status === "terminated") {
+          continue;
         }
+        orphans.push({
+          target,
+          providerRef: entry.providerRef,
+          status: entry.status,
+        });
       }
     }
 
@@ -435,16 +439,38 @@ export class WorkerManager {
     }
   }
 
-  /** Return the currently-attached instance, or null when none is attached. */
+  /**
+   * Return the currently-attached instance, or null when none is attached.
+   * Never returns a stopped/dead instance: if the pointer references a row that
+   * has since been stopped/terminated (or vanished), clear it and return null
+   * so consumers don't re-point the bridge at a worker that is no longer live.
+   */
   async getActiveWorker(): Promise<WorkerInstance | null> {
     const id = await this.deps.getSetting(ACTIVE_WORKER_KEY);
     if (!id) {
       return null;
     }
-    return this.deps.getWorkerInstance(id);
+    const instance = await this.deps.getWorkerInstance(id);
+    if (
+      !instance ||
+      instance.status === "stopped" ||
+      instance.status === "terminated"
+    ) {
+      await this.deps.deleteSetting(ACTIVE_WORKER_KEY);
+      return null;
+    }
+    return instance;
   }
 
   // --- Internals ----------------------------------------------------------
+
+  /** Drop the active-worker pointer if it currently references `instanceId`. */
+  private async clearActivePointerIfMatches(instanceId: string): Promise<void> {
+    const activeId = await this.deps.getSetting(ACTIVE_WORKER_KEY);
+    if (activeId === instanceId) {
+      await this.deps.deleteSetting(ACTIVE_WORKER_KEY);
+    }
+  }
 
   private async requireInstance(instanceId: string): Promise<WorkerInstance> {
     const instance = await this.deps.getWorkerInstance(instanceId);

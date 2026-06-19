@@ -31,4 +31,23 @@ describe("truncateToolResult", () => {
     expect(out.startsWith("z".repeat(10))).toBe(true);
     expect(out).toContain("truncated");
   });
+
+  it("does not split a surrogate pair at the cut", () => {
+    // Cap lands exactly between the two halves of the emoji at index 10-11.
+    const text = "abcdefghij" + "😀" + "z".repeat(100);
+    const out = truncateToolResult(text, 11);
+    // The kept prefix pulls back to the full emoji boundary (10 chars),
+    // never leaving the lone high surrogate at index 10.
+    const lastBodyCode = out.charCodeAt(9);
+    expect(lastBodyCode).toBe("j".charCodeAt(0));
+    expect(out.startsWith("abcdefghij\n\n")).toBe(true);
+    expect(out).not.toContain("\uD83D\n");
+  });
+
+  it("keeps a whole emoji when it fits before the cut", () => {
+    const text = "ab" + "😀" + "z".repeat(100);
+    // Cut at 4 keeps "ab😀" (4 UTF-16 units) intact.
+    const out = truncateToolResult(text, 4);
+    expect(out.startsWith("ab😀\n\n")).toBe(true);
+  });
 });

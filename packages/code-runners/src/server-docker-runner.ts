@@ -51,6 +51,8 @@ export interface ServerDockerRunnerOptions {
   readonlyRootfs?: StreamRunnerOptions["readonlyRootfs"];
   /** Mount the workspace bind read-only. Default false. */
   readonlyWorkspace?: StreamRunnerOptions["readonlyWorkspace"];
+  /** Non-root user the container runs as. Defaults to "1000:1000". */
+  user?: StreamRunnerOptions["user"];
 }
 
 // ---------------------------------------------------------------------------
@@ -149,7 +151,8 @@ export class ServerDockerRunner extends StreamRunnerBase {
       capDrop: options.capDrop,
       securityOpt: options.securityOpt,
       readonlyRootfs: options.readonlyRootfs,
-      readonlyWorkspace: options.readonlyWorkspace
+      readonlyWorkspace: options.readonlyWorkspace,
+      user: options.user
     };
     super(baseOptions);
 
@@ -243,6 +246,8 @@ export class ServerDockerRunner extends StreamRunnerBase {
       Cmd: command,
       Env: Object.entries(environment).map(([k, v]) => `${k}=${v}`),
       WorkingDir: "/workspace",
+      // Run as a non-root user so untrusted code cannot rely on uid 0.
+      User: this.user ?? undefined,
       OpenStdin: stdinStream !== null,
       Tty: false,
       ExposedPorts: { [portKey]: {} },

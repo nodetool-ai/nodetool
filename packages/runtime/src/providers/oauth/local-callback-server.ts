@@ -120,18 +120,8 @@ export class LocalCallbackServer {
 
     return new Promise<AuthorizationResult>((resolve, reject) => {
       let settled = false;
-      const timer = setTimeout(() => {
-        finish(() => reject(new CallbackTimeoutError()));
-      }, options.timeoutMs);
 
       const onAbort = () => finish(() => reject(new OAuthError("callback_timeout", "Login aborted")));
-      if (options.signal) {
-        if (options.signal.aborted) {
-          onAbort();
-          return;
-        }
-        options.signal.addEventListener("abort", onAbort, { once: true });
-      }
 
       const finish = (action: () => void) => {
         if (settled) return;
@@ -141,6 +131,10 @@ export class LocalCallbackServer {
         server.removeListener("request", onRequest);
         action();
       };
+
+      const timer = setTimeout(() => {
+        finish(() => reject(new CallbackTimeoutError()));
+      }, options.timeoutMs);
 
       const onRequest = (req: IncomingMessage, res: ServerResponse) => {
         // Reconstruct the URL; host header is irrelevant for loopback parsing.
@@ -182,6 +176,14 @@ export class LocalCallbackServer {
       };
 
       server.on("request", onRequest);
+
+      if (options.signal) {
+        if (options.signal.aborted) {
+          onAbort();
+          return;
+        }
+        options.signal.addEventListener("abort", onAbort, { once: true });
+      }
     });
   }
 

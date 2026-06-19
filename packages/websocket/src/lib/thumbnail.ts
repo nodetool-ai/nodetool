@@ -36,25 +36,8 @@ export function thumbnailKey(assetId: string): string {
   return `${assetId}_thumb.jpg`;
 }
 
-/**
- * EXIF-rotate, then trim a uniform border. Outpaint / background-removal /
- * segmentation results are often a small subject on a large transparent (or
- * solid) canvas; JPEG can't store alpha, so that padding flattens to black and
- * the subject ends up a speck in a black tile. Trimming frames the actual
- * content. Best-effort: photos without a uniform border come back unchanged,
- * and any trim failure falls back to the full frame.
- */
-async function trimUniformBorder(bytes: Uint8Array): Promise<Buffer> {
-  try {
-    return await sharp(bytes).rotate().trim({ threshold: 10 }).toBuffer();
-  } catch {
-    return await sharp(bytes).rotate().toBuffer();
-  }
-}
-
-async function generateImageThumb(bytes: Uint8Array): Promise<Buffer> {
-  const source = await trimUniformBorder(bytes);
-  return sharp(source)
+function resizeAndEncode(pipeline: sharp.Sharp): Promise<Buffer> {
+  return pipeline
     .resize({
       width: THUMB_MAX_DIM,
       height: THUMB_MAX_DIM,
@@ -63,6 +46,28 @@ async function generateImageThumb(bytes: Uint8Array): Promise<Buffer> {
     })
     .jpeg({ quality: THUMB_QUALITY, mozjpeg: true })
     .toBuffer();
+}
+
+/**
+ * EXIF-rotate, trim a uniform border, resize, and JPEG-encode in a single
+ * sharp pipeline — one decode and one encode of the source image.
+ *
+ * Trimming exists because outpaint / background-removal / segmentation results
+ * are often a small subject on a large transparent (or solid) canvas; JPEG
+ * can't store alpha, so that padding flattens to black and the subject ends up
+ * a speck in a black tile. Trimming frames the actual content. Best-effort:
+ * photos without a uniform border come back unchanged, and any trim failure
+ * (e.g. a fully uniform image trimmed to nothing) falls back to a single
+ * untrimmed pass.
+ */
+export async function generateImageThumb(bytes: Uint8Array): Promise<Buffer> {
+  try {
+    return await resizeAndEncode(
+      sharp(bytes).rotate().trim({ threshold: 10 })
+    );
+  } catch {
+    return await resizeAndEncode(sharp(bytes).rotate());
+  }
 }
 
 async function runFfmpegThumb(

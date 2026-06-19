@@ -3,6 +3,7 @@ import { DOWNLOAD_URL } from "./BASE_URL";
 import { QueryClient } from "@tanstack/react-query";
 import { trpc } from "../lib/trpc";
 import { useHfCacheStatusStore } from "./HfCacheStatusStore";
+import type { ModelScope } from "./ModelManagerStore";
 
 interface DownloadProgressMessage {
   repo_id?: string;
@@ -66,7 +67,8 @@ interface ModelDownloadStore {
     modelType: string,
     path?: string | null,
     allowPatterns?: string[] | null,
-    ignorePatterns?: string[] | null
+    ignorePatterns?: string[] | null,
+    scope?: ModelScope
   ) => void;
   cancelDownload: (id: string) => void;
   isDialogOpen: boolean;
@@ -404,7 +406,8 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     modelType: string,
     path?: string | null,
     allowPatterns?: string[] | null,
-    ignorePatterns?: string[] | null
+    ignorePatterns?: string[] | null,
+    scope: ModelScope = "local"
   ) => {
     if (path) {
       if (allowPatterns) {
@@ -448,7 +451,8 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
             path: path,
             allow_patterns: allowPatterns,
             ignore_patterns: ignorePatterns,
-            model_type: modelType
+            model_type: modelType,
+            scope
           })
         );
       } catch (error) {

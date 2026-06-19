@@ -187,10 +187,15 @@ export class VastProvider implements WorkerProvider {
   private async findOffer(
     spec: WorkerSpec
   ): Promise<{ id: string; dphTotal: number | undefined }> {
+    // Require the offer to have at least the disk we intend to allocate;
+    // otherwise the cheapest offer may not fit the requested disk and the
+    // subsequent launch is rejected.
+    const diskGb = spec.disk ?? DEFAULT_VOLUME_GB;
     const query: Record<string, unknown> = {
       rentable: { eq: true },
       verified: { eq: true },
       rented: { eq: false },
+      disk_space: { gte: diskGb },
     };
     if (spec.gpu) {
       query.gpu_name = { eq: spec.gpu };
