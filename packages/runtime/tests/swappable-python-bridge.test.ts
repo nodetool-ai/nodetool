@@ -199,7 +199,7 @@ describe("SwappableBridge", () => {
 
   it("does not throw when re-emitting 'error' with no listener", () => {
     const a = makeFake();
-    const swap = new SwappableBridge(a);
+    new SwappableBridge(a);
     // No "error" listener on swap → re-emit must be guarded, not throw.
     expect(() => a.emit("error", new Error("boom"))).not.toThrow();
   });
