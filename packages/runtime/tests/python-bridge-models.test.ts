@@ -195,4 +195,72 @@ describe("models.* bridge methods", () => {
     expect(frames).toHaveLength(1);
     expect(frames[0]!.request_id).toBe("req-123");
   });
+
+  it("cancel mid-download settles the promise and leaves no leaked entries", async () => {
+    // The worker streams a start frame then hangs — no terminal result/error
+    // ever arrives. Without active settling, both pending maps would leak and
+    // the promise would never resolve.
+    worker = await startFakeWorker(0, { protocolVersion: 2, downloadMode: "hang" });
+    bridge = new WebsocketPythonBridge({ wsUrl: `ws://127.0.0.1:${worker.port}` });
+    await bridge.connect();
+
+    const updates: ModelDownloadUpdate[] = [];
+    const downloadPromise = bridge.downloadModel(
+      { repo_id: "org/m" },
+      (u) => updates.push(u),
+      "org/m/model.bin"
+    );
+
+    // Wait for the start progress frame to confirm the download is in flight.
+    const start = Date.now();
+    while (updates.length === 0 && Date.now() - start < 2000) {
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    expect(updates.map((u) => u.status)).toEqual(["start"]);
+
+    // Cancel mid-download: the promise must reject promptly, not hang forever.
+    bridge.cancelModelDownload("org/m/model.bin");
+    await expect(downloadPromise).rejects.toThrow(/cancelled/i);
+
+    // No leaked pending entries on either map.
+    const pending = (
+      bridge as unknown as { _pending: Map<string, unknown> }
+    )._pending;
+    const pendingStream = (
+      bridge as unknown as { _pendingStream: Map<string, unknown> }
+    )._pendingStream;
+    expect(pending.size).toBe(0);
+    expect(pendingStream.size).toBe(0);
+
+    // A cancel frame reached the worker.
+    const cancelStart = Date.now();
+    while (worker.received("cancel").length === 0 && Date.now() - cancelStart < 2000) {
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    expect(worker.received("cancel")[0]!.request_id).toBe("org/m/model.bin");
+  });
+
+  it("downloadModel rejects and cleans up when the worker hangs (idle timeout)", async () => {
+    // Worker hangs after the start frame; a short idle timeout must reject the
+    // promise and clear both pending maps rather than leak them forever.
+    worker = await startFakeWorker(0, { protocolVersion: 2, downloadMode: "hang" });
+    bridge = new WebsocketPythonBridge({
+      wsUrl: `ws://127.0.0.1:${worker.port}`,
+      downloadIdleTimeoutMs: 150
+    });
+    await bridge.connect();
+
+    await expect(
+      bridge.downloadModel({ repo_id: "org/m" }, () => {})
+    ).rejects.toThrow(/stalled/i);
+
+    const pending = (
+      bridge as unknown as { _pending: Map<string, unknown> }
+    )._pending;
+    const pendingStream = (
+      bridge as unknown as { _pendingStream: Map<string, unknown> }
+    )._pendingStream;
+    expect(pending.size).toBe(0);
+    expect(pendingStream.size).toBe(0);
+  });
 });

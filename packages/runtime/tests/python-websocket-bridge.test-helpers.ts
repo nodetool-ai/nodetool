@@ -46,8 +46,11 @@ export interface FakeWorkerOptions {
    *  - "progress": one start frame, one progress frame, then a completed result
    *    (default)
    *  - "error": emit an error-status progress frame then a terminal error frame
+   *  - "hang": emit the start progress frame but never a terminal result/error,
+   *    so the download stays pending (simulates cancel mid-download / a hung
+   *    worker)
    */
-  downloadMode?: "progress" | "error";
+  downloadMode?: "progress" | "error" | "hang";
 }
 
 export interface FakeWorkerHandle {
@@ -274,6 +277,11 @@ export function startFakeWorker(
               total_files: 1
             }
           });
+          if (opts.downloadMode === "hang") {
+            // Emit the start frame above, then go silent — never a terminal
+            // result/error. The bridge must settle this itself (cancel/timeout).
+            break;
+          }
           send({
             type: "progress",
             request_id: requestId,
