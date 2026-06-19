@@ -95,3 +95,9 @@ __plans__
 
 # Chrome for Testing downloaded by @puppeteer/browsers for extension integration tests
 /chrome/
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
+.design-sync/previews/.tmp
