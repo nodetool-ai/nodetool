@@ -790,6 +790,34 @@ function getCreateSchemaSql(): string {
     CREATE INDEX IF NOT EXISTS "idx_image_document_user" ON "image_documents" ("user_id");
     CREATE INDEX IF NOT EXISTS "idx_image_document_project" ON "image_documents" ("project_id");
     CREATE INDEX IF NOT EXISTS "idx_image_document_updated" ON "image_documents" ("updated_at");
+    CREATE TABLE IF NOT EXISTS "worker_profiles" (
+      "id" text PRIMARY KEY NOT NULL,
+      "name" text NOT NULL,
+      "target" text NOT NULL,
+      "image" text NOT NULL,
+      "spec" text NOT NULL,
+      "token_policy" text NOT NULL,
+      "idle_timeout_minutes" integer,
+      "max_lifetime_minutes" integer,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_worker_profiles_name" ON "worker_profiles" ("name");
+    CREATE TABLE IF NOT EXISTS "worker_instances" (
+      "id" text PRIMARY KEY NOT NULL,
+      "profile_name" text NOT NULL,
+      "target" text NOT NULL,
+      "provider_ref" text NOT NULL,
+      "ws_url" text NOT NULL,
+      "encrypted_token" text,
+      "status" text NOT NULL,
+      "attached_to" text,
+      "created_at" text NOT NULL,
+      "last_activity_at" text NOT NULL,
+      "estimated_cost_usd" real
+    );
+    CREATE INDEX IF NOT EXISTS "idx_worker_instances_status" ON "worker_instances" ("status");
+    CREATE INDEX IF NOT EXISTS "idx_worker_instances_profile_name" ON "worker_instances" ("profile_name");
   `;
 }
 

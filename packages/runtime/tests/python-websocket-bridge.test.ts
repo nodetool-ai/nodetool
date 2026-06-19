@@ -6,228 +6,13 @@
  */
 
 import { describe, it, expect, afterEach } from "vitest";
-import { WebSocketServer, type WebSocket as WsServerSocket } from "ws";
 import * as net from "node:net";
 import { AddressInfo } from "node:net";
-import * as msgpack from "@msgpack/msgpack";
 
 import { WebsocketPythonBridge } from "../src/python-websocket-bridge.js";
 import { createPythonBridge } from "../src/python-bridge-factory.js";
-
-const FAKE_NODE = {
-  node_type: "fake.TestNode",
-  title: "Fake Test Node",
-  description: "A fake node for testing",
-  properties: [],
-  outputs: [{ name: "out", type: { type: "string" } }],
-  required_settings: []
-};
-
-interface FakeWorkerOptions {
-  /** When false, discover requests are silently ignored (no reply). */
-  answerDiscover?: boolean;
-  /** When false, worker.status requests are silently ignored (no reply). */
-  answerStatus?: boolean;
-  /** When false, execute requests are silently ignored (no reply). */
-  answerExecute?: boolean;
-  /**
-   * execute.stream behavior:
-   *  - "chunks": emit two chunks then the empty result terminator (default)
-   *  - "empty": emit only the empty result terminator (zero chunks)
-   */
-  streamMode?: "chunks" | "empty";
-}
-
-interface FakeWorkerHandle {
-  port: number;
-  /** Forcibly drop all currently-connected client sockets. */
-  dropConnections: () => void;
-  /** Close the server entirely. */
-  close: () => Promise<void>;
-  /** Number of discover requests the worker has answered. */
-  discoverCount: () => number;
-  /** Total number of client connections accepted over the worker's lifetime. */
-  connectionCount: () => number;
-  /**
-   * The `Authorization` header from each accepted handshake, in connection
-   * order. `undefined` when the client sent no such header. One entry per
-   * connection (so reconnects append further entries).
-   */
-  authHeaders: () => Array<string | undefined>;
-  /** Currently connected sockets. */
-  sockets: () => Set<WsServerSocket>;
-  /** Mutate behavior at runtime (e.g. start answering discover after a drop). */
-  setOptions: (opts: FakeWorkerOptions) => void;
-}
-
-/**
- * Start a fake worker on a specific port (or ephemeral when port === 0).
- * Returns once the server is listening.
- */
-function startFakeWorker(
-  port = 0,
-  initialOptions: FakeWorkerOptions = {}
-): Promise<FakeWorkerHandle> {
-  const wss = new WebSocketServer({ port });
-  const sockets = new Set<WsServerSocket>();
-  const authHeaders: Array<string | undefined> = [];
-  let discovers = 0;
-  let connections = 0;
-  const opts: Required<FakeWorkerOptions> = {
-    answerDiscover: initialOptions.answerDiscover ?? true,
-    answerStatus: initialOptions.answerStatus ?? true,
-    answerExecute: initialOptions.answerExecute ?? true,
-    streamMode: initialOptions.streamMode ?? "chunks"
-  };
-
-  wss.on("connection", (ws, request) => {
-    connections += 1;
-    // Record the handshake Authorization header (one entry per connection, so
-    // reconnects append). The header survives the WS upgrade on request.headers.
-    authHeaders.push(request.headers["authorization"]);
-    sockets.add(ws);
-    ws.binaryType = "nodebuffer";
-    ws.on("close", () => sockets.delete(ws));
-    ws.on("message", (raw: Buffer) => {
-      const msg = msgpack.decode(raw as Uint8Array) as Record<string, unknown>;
-      const type = msg.type as string;
-      const requestId = msg.request_id as string;
-      const send = (m: Record<string, unknown>) => {
-        ws.send(msgpack.encode(m));
-      };
-
-      switch (type) {
-        case "discover":
-          if (!opts.answerDiscover) break;
-          discovers += 1;
-          send({
-            type: "discover",
-            request_id: requestId,
-            data: {
-              nodes: [FAKE_NODE],
-              protocol_version: 1,
-              load_errors: []
-            }
-          });
-          break;
-        case "worker.status":
-          if (!opts.answerStatus) break;
-          send({
-            type: "result",
-            request_id: requestId,
-            data: {
-              transport: "websocket",
-              protocol_version: 1,
-              node_count: 1,
-              provider_count: 1,
-              namespaces: ["fake"],
-              load_errors: [],
-              max_frame_size: 256 * 1024 * 1024
-            }
-          });
-          break;
-        case "execute": {
-          if (!opts.answerExecute) break;
-          const data = msg.data as { fields?: Record<string, unknown> };
-          send({
-            type: "result",
-            request_id: requestId,
-            data: {
-              outputs: { out: (data.fields?.value as string) ?? "executed" },
-              blobs: {}
-            }
-          });
-          break;
-        }
-        case "execute.stream": {
-          if (opts.streamMode === "chunks") {
-            send({
-              type: "chunk",
-              request_id: requestId,
-              data: { outputs: { out: "chunk-1" }, blobs: {} }
-            });
-            send({
-              type: "chunk",
-              request_id: requestId,
-              data: { outputs: { out: "chunk-2" }, blobs: {} }
-            });
-          }
-          // Real worker contract: the stream terminates with an empty result
-          // frame ({outputs:{}, blobs:{}}), not a payload-bearing one.
-          send({
-            type: "result",
-            request_id: requestId,
-            data: { outputs: {}, blobs: {} }
-          });
-          break;
-        }
-        case "provider.list":
-          send({
-            type: "result",
-            request_id: requestId,
-            data: {
-              providers: [
-                { id: "fake-provider", capabilities: ["chat"], required_secrets: [] }
-              ]
-            }
-          });
-          break;
-        case "provider.stream": {
-          send({
-            type: "chunk",
-            request_id: requestId,
-            data: { content: "p-chunk-1" }
-          });
-          send({
-            type: "chunk",
-            request_id: requestId,
-            data: { content: "p-chunk-2" }
-          });
-          send({
-            type: "result",
-            request_id: requestId,
-            data: {}
-          });
-          break;
-        }
-        case "cancel":
-          // no-op
-          break;
-        default:
-          break;
-      }
-    });
-  });
-
-  return new Promise<FakeWorkerHandle>((resolve) => {
-    wss.on("listening", () => {
-      const addr = wss.address() as AddressInfo;
-      resolve({
-        port: addr.port,
-        dropConnections: () => {
-          for (const ws of sockets) {
-            // terminate() abruptly drops the TCP connection.
-            ws.terminate();
-          }
-          sockets.clear();
-        },
-        close: () =>
-          new Promise<void>((res) => {
-            for (const ws of sockets) ws.terminate();
-            sockets.clear();
-            wss.close(() => res());
-          }),
-        discoverCount: () => discovers,
-        connectionCount: () => connections,
-        authHeaders: () => authHeaders,
-        sockets: () => sockets,
-        setOptions: (next: FakeWorkerOptions) => {
-          Object.assign(opts, next);
-        }
-      });
-    });
-  });
-}
+import { BRIDGE_PROTOCOL_VERSION } from "@nodetool-ai/protocol/bridge-protocol";
+import { startFakeWorker, type FakeWorkerHandle } from "./python-websocket-bridge.test-helpers.js";
 
 /**
  * Start a raw TCP server that accepts the connection but never performs the
@@ -321,6 +106,25 @@ describe("WebsocketPythonBridge", () => {
     expect(result.blobs).toEqual({});
   });
 
+  it("emits 'activity' on each outbound RPC so the cost guard can keep last_activity_at fresh", async () => {
+    // The reaper measures idle time from last_activity_at; the bridge is the
+    // designated source of activity heartbeats. Every frame sent to the remote
+    // worker (execute, in particular) must surface as an "activity" event so the
+    // server can touch the attached worker instance and the idle window resets.
+    worker = await startFakeWorker();
+    bridge = new WebsocketPythonBridge({ wsUrl: `ws://127.0.0.1:${worker.port}` });
+    await bridge.connect();
+
+    let activity = 0;
+    bridge.on("activity", () => {
+      activity += 1;
+    });
+
+    await bridge.execute("fake.TestNode", { value: "hello" }, {}, {});
+
+    expect(activity).toBeGreaterThan(0);
+  });
+
   it("executeStream() yields streamed chunks", async () => {
     worker = await startFakeWorker();
     bridge = new WebsocketPythonBridge({ wsUrl: `ws://127.0.0.1:${worker.port}` });
@@ -355,7 +159,7 @@ describe("WebsocketPythonBridge", () => {
 
     const status = await bridge.getWorkerStatus();
     expect(status.transport).toBe("websocket");
-    expect(status.protocol_version).toBe(1);
+    expect(status.protocol_version).toBe(BRIDGE_PROTOCOL_VERSION);
   });
 
   it("_send throws when not connected", () => {
@@ -711,5 +515,132 @@ describe("WebsocketPythonBridge", () => {
       if (savedToken === undefined) delete process.env["NODETOOL_WORKER_TOKEN"];
       else process.env["NODETOOL_WORKER_TOKEN"] = savedToken;
     }
+  });
+
+  describe("setTarget", () => {
+    it("reconnects against the new url with a bearer header", async () => {
+      // Start on worker A, then re-point at worker B with a token. The bridge
+      // must close the A socket and open a fresh socket against B carrying the
+      // Authorization: Bearer header on the handshake.
+      worker = await startFakeWorker();
+      bridge = new WebsocketPythonBridge({
+        wsUrl: `ws://127.0.0.1:${worker.port}`,
+        maxReconnectDelayMs: 50
+      });
+      await bridge.connect();
+      expect(bridge.wsUrl).toBe(`ws://127.0.0.1:${worker.port}`);
+
+      const workerB = await startFakeWorker();
+      try {
+        let reconnected = false;
+        bridge.on("reconnected", () => {
+          reconnected = true;
+        });
+
+        bridge.setTarget(`ws://127.0.0.1:${workerB.port}`, "b-token");
+
+        await waitFor(() => reconnected, 10000);
+        expect(bridge.isConnected).toBe(true);
+        expect(bridge.wsUrl).toBe(`ws://127.0.0.1:${workerB.port}`);
+        // The new worker saw exactly one handshake, carrying the bearer header.
+        expect(workerB.authHeaders()).toEqual(["Bearer b-token"]);
+
+        // RPC now flows to worker B.
+        const result = await bridge.execute(
+          "fake.TestNode",
+          { value: "on-b" },
+          {},
+          {}
+        );
+        expect(result.outputs).toEqual({ out: "on-b" });
+      } finally {
+        await workerB.close();
+      }
+    });
+
+    it("is a no-op when the url is unchanged (no reconnect)", async () => {
+      worker = await startFakeWorker();
+      bridge = new WebsocketPythonBridge({
+        wsUrl: `ws://127.0.0.1:${worker.port}`,
+        maxReconnectDelayMs: 50
+      });
+      await bridge.connect();
+      expect(worker.connectionCount()).toBe(1);
+
+      let reconnected = false;
+      bridge.on("reconnected", () => {
+        reconnected = true;
+      });
+
+      bridge.setTarget(`ws://127.0.0.1:${worker.port}`, undefined);
+
+      // Give a reconnect ample time to (incorrectly) fire.
+      await new Promise((r) => setTimeout(r, 200));
+      expect(reconnected).toBe(false);
+      // No second handshake — the original socket was never torn down.
+      expect(worker.connectionCount()).toBe(1);
+      expect(bridge.isConnected).toBe(true);
+    });
+
+    it("sends no Authorization header when re-pointed with an empty token", async () => {
+      // Start authed against worker A, then re-point at worker B with an empty
+      // token: the new handshake must carry NO Authorization header.
+      worker = await startFakeWorker();
+      bridge = new WebsocketPythonBridge({
+        wsUrl: `ws://127.0.0.1:${worker.port}`,
+        workerToken: "a-token",
+        maxReconnectDelayMs: 50
+      });
+      await bridge.connect();
+      expect(worker.authHeaders()).toEqual(["Bearer a-token"]);
+
+      const workerB = await startFakeWorker();
+      try {
+        let reconnected = false;
+        bridge.on("reconnected", () => {
+          reconnected = true;
+        });
+
+        bridge.setTarget(`ws://127.0.0.1:${workerB.port}`, "");
+
+        await waitFor(() => reconnected, 10000);
+        expect(workerB.authHeaders()).toEqual([undefined]);
+      } finally {
+        await workerB.close();
+      }
+    });
+
+    it("rejects in-flight requests on the forced reconnect", async () => {
+      // Worker A accepts the socket and answers connect, but never answers
+      // execute, so the request stays pending. setTarget must reject it (the
+      // socket is torn down) rather than leaving it hung.
+      worker = await startFakeWorker(0, { answerExecute: false });
+      bridge = new WebsocketPythonBridge({
+        wsUrl: `ws://127.0.0.1:${worker.port}`,
+        maxReconnectDelayMs: 50
+      });
+      await bridge.connect();
+
+      let inflightError: Error | null = null;
+      const inflight = bridge
+        .execute("fake.TestNode", { value: "x" }, {}, {})
+        .catch((err: Error) => {
+          inflightError = err;
+        });
+      // Let the execute frame reach the worker before re-pointing.
+      await new Promise((r) => setTimeout(r, 50));
+
+      const workerB = await startFakeWorker();
+      try {
+        bridge.setTarget(`ws://127.0.0.1:${workerB.port}`, undefined);
+        await inflight;
+        expect(inflightError).not.toBeNull();
+        expect((inflightError as unknown as Error).message).not.toContain(
+          "Not connected"
+        );
+      } finally {
+        await workerB.close();
+      }
+    });
   });
 });
