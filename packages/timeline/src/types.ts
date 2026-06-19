@@ -43,6 +43,11 @@ export interface TimelineSequence {
    * autosave and export inherit it for free.
    */
   transcript?: TranscriptLine[];
+  /**
+   * When set, controls whether the script lane + transcript panel are shown.
+   * Unset on legacy sequences (treated as enabled if transcript clips exist).
+   */
+  scriptEnabled?: boolean;
   createdAt: string;
   updatedAt: string;
 }

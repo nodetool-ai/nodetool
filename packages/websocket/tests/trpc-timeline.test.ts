@@ -296,6 +296,69 @@ describe("timeline router", () => {
       expect(savedDocument.clips[1].linkId).toBe("lnk-x");
     });
 
+    it("persists scriptEnabled through update and returns it from get", async () => {
+      TS.findById.mockResolvedValue(makeSeq());
+      let savedDocumentJson = "";
+      TS.update.mockImplementation((_id, fields) => {
+        savedDocumentJson = (fields as { document: string }).document;
+        return Promise.resolve(
+          makeSeq({ document: savedDocumentJson })
+        );
+      });
+      const caller = createCaller(makeCtx());
+      await caller.timeline.update({
+        id: "seq-1",
+        document: {
+          tracks: [],
+          clips: [],
+          markers: [],
+          scriptEnabled: true
+        }
+      });
+      const savedDocument = JSON.parse(savedDocumentJson);
+      expect(savedDocument.scriptEnabled).toBe(true);
+
+      TS.findById.mockResolvedValue(
+        makeSeq({ id: "seq-1", document: savedDocumentJson })
+      );
+      const got = await caller.timeline.get({ id: "seq-1" });
+      expect(got.scriptEnabled).toBe(true);
+    });
+
+    it("persists a clip's speaker and paragraphId through the round-trip", async () => {
+      TS.findById.mockResolvedValue(makeSeq());
+      TS.update.mockResolvedValue(makeSeq());
+      const caller = createCaller(makeCtx());
+      await caller.timeline.update({
+        id: "seq-1",
+        document: {
+          tracks: [],
+          clips: [
+            {
+              id: "vo-1",
+              trackId: "a1",
+              name: "VO",
+              startMs: 0,
+              durationMs: 900,
+              mediaType: "audio",
+              sourceType: "generated",
+              status: "generated",
+              locked: false,
+              versions: [],
+              speaker: "Alice",
+              paragraphId: "para-1"
+            }
+          ],
+          markers: []
+        }
+      });
+      const savedDocument = JSON.parse(
+        TS.update.mock.calls[0][1].document as string
+      );
+      expect(savedDocument.clips[0].speaker).toBe("Alice");
+      expect(savedDocument.clips[0].paragraphId).toBe("para-1");
+    });
+
     it("rejects stale baseUpdatedAt", async () => {
       TS.findById.mockResolvedValue(
         makeSeq({ updated_at: "2026-01-02T00:00:00Z" })
