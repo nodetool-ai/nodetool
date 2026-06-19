@@ -325,6 +325,13 @@ export interface TimelineClip {
   paragraphId?: string;
   /** Source clip for image-to-image. Reads the source clip's currentAssetId at submit time. */
   sourceClipId?: string | null;
+  /**
+   * Links this clip to one or more sibling clips. Clips sharing a `linkId`
+   * move and trim together (e.g. a video clip and the audio extracted from it).
+   * Cleared by "Unlink", or automatically when a link group drops below two
+   * members. Independent from `sourceClipId` (image-to-image).
+   */
+  linkId?: string;
   width?: number;
   height?: number;
   strength?: number;
