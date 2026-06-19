@@ -45,15 +45,24 @@ const styles = (theme: Theme) => css`
       border-radius: 8px;
       background-color: ${theme.vars.palette.action.hover};
       transition: all 0.2s ease;
-      
+
       &:hover {
         background-color: ${theme.vars.palette.action.selected};
       }
-      
+
       &.Mui-focused {
         background-color: ${theme.vars.palette.action.selected};
         box-shadow: 0 0 0 2px ${theme.vars.palette.primary.main}40;
       }
+    }
+
+    /* Shared form-control sizing: value at the 15px body token, placeholder
+       softened to read as a muted hint rather than entered text. */
+    .MuiInputBase-input {
+      font-size: var(--fontSizeNormal);
+    }
+    .MuiInputBase-input::placeholder {
+      opacity: 0.6;
     }
     
     .MuiOutlinedInput-notchedOutline {
