@@ -37,6 +37,7 @@ import HandleColumn from "../node/HandleColumn";
 import { NodeInputs } from "../node/NodeInputs";
 import { NodeOutputs } from "../node/NodeOutputs";
 import NodeProgress from "../node/NodeProgress";
+import NodePropertyForm from "../node/NodePropertyForm";
 import ExposedLabeledInputs from "../node/ExposedLabeledInputs";
 import TextEditorModal from "../properties/TextEditorModal";
 
@@ -44,12 +45,14 @@ import type { NodeMetadata } from "../../stores/ApiTypes";
 import type { NodeData } from "../../stores/NodeData";
 import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
 import { useBespokePropertyWriter } from "../../hooks/nodes/useBespokePropertyWriter";
+import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import { useNodes } from "../../contexts/NodeContext";
 import { deriveCodeIOUpdates } from "../../utils/codeOutputInference";
 import {
   getCodeNodeLanguage,
   codeLanguageLabel,
-  getCodeNodeIOHint
+  getCodeNodeIOHint,
+  isCodeNode
 } from "../node/codeNodeUi";
 import { resolveExposedInputNames } from "../../utils/exposedInputs";
 
@@ -209,6 +212,8 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
     nodeId: id,
     nodeType
   });
+
+  const { handleAddProperty } = useDynamicProperty(id, data.dynamic_properties);
 
   const { findNode, updateNodeData } = useNodes(
     (state) => ({
@@ -416,9 +421,19 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
           properties={properties}
         />
 
-        {isDynamic && (
-          <div className="io-hint">{getCodeNodeIOHint(nodeType)}</div>
-        )}
+        {isDynamic &&
+          (isCodeNode(nodeType) ? (
+            <div className="io-hint">{getCodeNodeIOHint()}</div>
+          ) : (
+            <NodePropertyForm
+              id={id}
+              isDynamic={nodeMetadata.supports_dynamic_inputs}
+              supportsDynamicOutputs={nodeMetadata.supports_dynamic_outputs}
+              dynamicOutputs={data.dynamic_outputs || {}}
+              onAddProperty={handleAddProperty}
+              nodeType={nodeType}
+            />
+          ))}
 
         {!isOutputNode && (
           <div className="outputs-row">

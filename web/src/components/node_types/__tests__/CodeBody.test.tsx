@@ -47,6 +47,14 @@ jest.mock("../../../contexts/NodeContext", () => ({
     })
 }));
 
+jest.mock("../../../hooks/nodes/useDynamicProperty", () => ({
+  useDynamicProperty: () => ({
+    handleAddProperty: jest.fn(),
+    handleDeleteProperty: jest.fn(),
+    handleUpdatePropertyName: jest.fn()
+  })
+}));
+
 // Stub Monaco with a textarea so we can drive onChange without the real editor.
 jest.mock("../../../hooks/editor/useMonacoEditor", () => ({
   useMonacoEditor: () => ({
@@ -95,6 +103,11 @@ jest.mock("../../node/NodeOutputs", () => ({
 jest.mock("../../node/NodeProgress", () => ({
   __esModule: true,
   default: () => <div data-testid="node-progress" />
+}));
+
+jest.mock("../../node/NodePropertyForm", () => ({
+  __esModule: true,
+  default: () => <div data-testid="node-property-form" />
 }));
 
 jest.mock("../../node/ExposedLabeledInputs", () => ({
@@ -194,18 +207,15 @@ describe("CodeBody", () => {
     );
   });
 
-  it("shows an IO hint instead of add input/output buttons for dynamic code nodes", () => {
+  it("keeps the add input/output form for Execute* code nodes", () => {
     renderWithTheme(<CodeBody {...makeProps()} />);
+    expect(screen.getByTestId("node-property-form")).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /add input/i })
+      screen.queryByText(/reference an undefined variable to add an input/i)
     ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /add output/i })
-    ).not.toBeInTheDocument();
-    expect(screen.getByText(/connect a value to add an input/i)).toBeInTheDocument();
   });
 
-  it("explains code-derived inputs/outputs for the universal Code node", () => {
+  it("shows the IO hint instead of the form for the universal Code node", () => {
     renderWithTheme(
       <CodeBody
         {...makeProps({
@@ -217,6 +227,7 @@ describe("CodeBody", () => {
     expect(
       screen.getByText(/reference an undefined variable to add an input/i)
     ).toBeInTheDocument();
+    expect(screen.queryByTestId("node-property-form")).not.toBeInTheDocument();
   });
 
   it("derives dynamic inputs/outputs from code for the universal Code node", () => {
