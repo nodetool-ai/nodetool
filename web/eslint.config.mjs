@@ -146,6 +146,14 @@ export default [
           message:
             "Use a BORDER_RADIUS token (xs/sm/md/lg/xl/xxl/pill/circle) instead of a hardcoded px radius. See ui_primitives/tokens.ts.",
         },
+        {
+          // fontSize: "14px" / "0.85rem" → use a TYPOGRAPHY / FONT_SIZE token
+          // (or var(--fontSize*)). Icon sizing should use a token too.
+          selector:
+            "Property[key.name='fontSize'] > Literal[value=/^[0-9.]+(px|rem|em)$/]",
+          message:
+            "Use a TYPOGRAPHY/FONT_SIZE token or var(--fontSize*) instead of a hardcoded font size. See ui_primitives/tokens.ts and docs/DESIGN.md.",
+        },
       ],
     },
   },
