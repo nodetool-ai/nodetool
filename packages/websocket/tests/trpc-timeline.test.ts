@@ -250,6 +250,52 @@ describe("timeline router", () => {
       expect(savedDocument.clips[0].caption).toEqual(caption);
     });
 
+    it("persists a clip's linkId through the round-trip", async () => {
+      TS.findById.mockResolvedValue(makeSeq());
+      TS.update.mockResolvedValue(makeSeq());
+      const caller = createCaller(makeCtx());
+      await caller.timeline.update({
+        id: "seq-1",
+        document: {
+          tracks: [],
+          clips: [
+            {
+              id: "vid-1",
+              trackId: "v1",
+              name: "Video",
+              startMs: 0,
+              durationMs: 1000,
+              mediaType: "video",
+              sourceType: "imported",
+              status: "generated",
+              locked: false,
+              versions: [],
+              linkId: "lnk-x"
+            },
+            {
+              id: "aud-1",
+              trackId: "a1",
+              name: "Audio",
+              startMs: 0,
+              durationMs: 1000,
+              mediaType: "audio",
+              sourceType: "imported",
+              status: "generated",
+              locked: false,
+              versions: [],
+              linkId: "lnk-x"
+            }
+          ],
+          markers: []
+        }
+      });
+      const savedDocument = JSON.parse(
+        TS.update.mock.calls[0][1].document as string
+      );
+      expect(savedDocument.clips[0].linkId).toBe("lnk-x");
+      expect(savedDocument.clips[1].linkId).toBe("lnk-x");
+    });
+
     it("rejects stale baseUpdatedAt", async () => {
       TS.findById.mockResolvedValue(
         makeSeq({ updated_at: "2026-01-02T00:00:00Z" })

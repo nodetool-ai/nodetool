@@ -262,6 +262,10 @@ export const timelineClip = z
     /** TTS voice id for `text-to-audio` direct-gen clips. */
     voice: z.string().optional(),
     sourceClipId: z.string().nullable().optional(),
+    /** Shared id linking a video clip to its auto-extracted audio clip so they
+     * move/trim together. Without this field Zod strips it on every PATCH, so
+     * autosave/reload silently breaks the link. */
+    linkId: z.string().optional(),
     width: z.number().optional(),
     height: z.number().optional(),
     strength: z.number().optional(),
