@@ -77,4 +77,20 @@ describe("truncateToTokens", () => {
     },
     15000
   );
+
+  it("never ends in a lone surrogate or replacement char when cutting emoji", () => {
+    // A run of emoji (each a surrogate pair / 4-byte UTF-8) maximizes the
+    // chance a token boundary lands mid-character.
+    const text = "😀".repeat(200);
+    for (let maxTokens = 1; maxTokens <= 40; maxTokens++) {
+      const truncated = truncateToTokens(text, maxTokens);
+      const lastCode = truncated.charCodeAt(truncated.length - 1);
+      // No lone high surrogate at the end...
+      expect(lastCode >= 0xd800 && lastCode <= 0xdbff).toBe(false);
+      // ...and no trailing U+FFFD replacement character.
+      expect(lastCode).not.toBe(0xfffd);
+      // The kept prefix is well-formed: no replacement char anywhere.
+      expect(truncated).not.toContain("�");
+    }
+  });
 });

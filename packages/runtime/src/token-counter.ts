@@ -91,6 +91,11 @@ export function countTokens(text: string | null | undefined): number {
  * Encodes piece-by-piece (same splitting as {@link countTokens}) and stops once
  * the budget is reached, so it never feeds a huge boundary-free run to `encode`
  * in one shot — the input is bounded the same way the count is.
+ *
+ * A token boundary can fall in the middle of a multi-byte UTF-8 character, so
+ * decoding the kept prefix can leave a trailing U+FFFD replacement character or
+ * a lone UTF-16 surrogate. Any such trailing partial character is stripped so
+ * the result is always well-formed text.
  */
 export function truncateToTokens(text: string, maxTokens: number): string {
   if (maxTokens <= 0) return "";
@@ -108,5 +113,24 @@ export function truncateToTokens(text: string, maxTokens: number): string {
     if (truncated) break;
   }
   // Within budget: return the original text untouched (no decode round-trip).
-  return truncated ? encoder.decode(kept) : text;
+  if (!truncated) return text;
+  return stripTrailingPartialChar(encoder.decode(kept));
+}
+
+/**
+ * Drop a trailing partial character left by cutting at a token boundary: a
+ * U+FFFD replacement char (an incomplete UTF-8 sequence) or a lone high
+ * surrogate (an incomplete UTF-16 pair).
+ */
+function stripTrailingPartialChar(text: string): string {
+  let end = text.length;
+  while (end > 0) {
+    const code = text.charCodeAt(end - 1);
+    if (code === 0xfffd || (code >= 0xd800 && code <= 0xdbff)) {
+      end -= 1;
+    } else {
+      break;
+    }
+  }
+  return end === text.length ? text : text.slice(0, end);
 }
