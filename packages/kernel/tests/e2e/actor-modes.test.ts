@@ -172,12 +172,13 @@ describe("ACTOR-004: FullStreamingNode has both streaming flags", () => {
 // ---------------------------------------------------------------------------
 
 describe("ACTOR-005: on_any sync mode fires on each individual input", () => {
-  // SKIP: asserts the removed `on_any` mode plus runtime aggregation of
+  // SKIP (GAP-CORR-2, tracked in docs/correlation-design.md § Known gaps):
+  // asserts the removed `on_any` mode plus runtime aggregation of
   // multiple edges into one handle. Under the correlation redesign, multi-edge
   // into a non-list handle is rejected by analysis, and list[...] multi-edge
   // runtime aggregation is not yet implemented in NodeActor._runCorrelatedImpl
   // (it delivers only the last value). Re-enable when multi-edge list
-  // aggregation lands. See docs/correlation-design.md §4.
+  // aggregation lands. See docs/correlation-design.md §4 and § Known gaps.
   it.skip("IntAccumulator in on_any mode accumulates all inputs", async () => {
     const registry = makeRegistry();
     const runner = makeRunner(registry);
