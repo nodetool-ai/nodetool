@@ -170,6 +170,23 @@ describe("StreamRunnerBase constructor defaults", () => {
     expect(runner.securityOpt).toEqual(["no-new-privileges"]);
   });
 
+  it("runs as a non-root user by default", () => {
+    const runner = new EchoRunner();
+    expect(runner.user).toBe("1000:1000");
+    expect(runner.user).not.toBe("0");
+    expect(runner.user).not.toBe("root");
+  });
+
+  it("accepts a custom user", () => {
+    const runner = new EchoRunner({ user: "65534:65534" });
+    expect(runner.user).toBe("65534:65534");
+  });
+
+  it("accepts null user to keep the image default", () => {
+    const runner = new EchoRunner({ user: null });
+    expect(runner.user).toBeNull();
+  });
+
   it("defaults workspaceMountPath to /workspace", () => {
     const runner = new EchoRunner();
     expect(runner.workspaceMountPath).toBe("/workspace");
