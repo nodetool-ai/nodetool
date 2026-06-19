@@ -5,7 +5,7 @@
  * and consistent styling. Used for boolean selections.
  */
 
-import React, { memo } from "react";
+import React, { forwardRef, memo } from "react";
 import {
   Checkbox as MuiCheckbox,
   CheckboxProps as MuiCheckboxProps,
@@ -41,18 +41,16 @@ export interface CheckboxProps
  * // Compact size
  * <Checkbox label="Select" compact size="small" />
  */
-const CheckboxInternal: React.FC<CheckboxProps> = ({
-  label,
-  size = "medium",
-  compact = false,
-  labelProps,
-  sx,
-  ...props
-}) => {
+const CheckboxInternal = forwardRef<HTMLButtonElement, CheckboxProps>(
+  (
+    { label, size = "medium", compact = false, labelProps, sx, ...props },
+    ref
+  ) => {
   const theme = useTheme();
 
   const checkbox = (
     <MuiCheckbox
+      ref={ref}
       size={size}
       sx={{
         ...(compact && {
@@ -84,7 +82,8 @@ const CheckboxInternal: React.FC<CheckboxProps> = ({
   }
 
   return checkbox;
-};
+  }
+);
 
 export const Checkbox = memo(CheckboxInternal);
 Checkbox.displayName = "Checkbox";
