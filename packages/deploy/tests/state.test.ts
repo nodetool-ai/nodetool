@@ -46,8 +46,10 @@ async function writeTestConfig(
         container: { name: "nodetool", port: 8000 }
       },
       staging: {
-        type: "runpod",
-        image: { name: "nodetool/api", tag: "staging" }
+        type: "docker",
+        host: "server2",
+        image: { name: "nodetool/api", tag: "staging" },
+        container: { name: "nodetool-staging", port: 8000 }
       },
       dev: {
         type: "docker",
@@ -56,10 +58,10 @@ async function writeTestConfig(
         container: { name: "nodetool-dev", port: 8000 }
       },
       cloud: {
-        type: "gcp",
-        project_id: "my-project",
-        service_name: "nodetool",
-        image: { repository: "proj/repo", tag: "v1" }
+        type: "docker",
+        host: "server3",
+        image: { name: "nodetool/api", tag: "v1" },
+        container: { name: "nodetool-cloud", port: 8000 }
       }
     }
   };
@@ -136,19 +138,19 @@ describe("StateManager", () => {
       expect(state!.container_name).toBeNull();
     });
 
-    it("returns default state fields for runpod deployment", async () => {
+    it("returns default state fields for staging (docker) deployment", async () => {
       const state = await manager.readState("staging");
       expect(state).not.toBeNull();
-      expect(state!.template_id).toBeNull();
-      expect(state!.endpoint_id).toBeNull();
-      expect(state!.endpoint_url).toBeNull();
+      expect(state!.container_id).toBeNull();
+      expect(state!.container_name).toBeNull();
+      expect(state!.url).toBeNull();
     });
 
-    it("returns default state fields for gcp deployment", async () => {
+    it("returns default state fields for cloud (docker) deployment", async () => {
       const state = await manager.readState("cloud");
       expect(state).not.toBeNull();
-      expect(state!.service_url).toBeNull();
-      expect(state!.revision).toBeNull();
+      expect(state!.container_hash).toBeNull();
+      expect(state!.last_deployed).toBeNull();
     });
 
     it("returns default state for dev (docker) deployment", async () => {
@@ -209,29 +211,29 @@ describe("StateManager", () => {
       expect(state!.url).toBe("http://server1:8000");
     });
 
-    it("updates runpod state correctly", async () => {
+    it("updates staging (docker) state correctly", async () => {
       await manager.writeState("staging", {
         status: "running",
-        template_id: "tmpl-123",
-        endpoint_id: "ep-456",
-        endpoint_url: "https://api.runpod.io/v2/ep-456"
+        container_id: "container-123",
+        container_name: "nodetool-staging",
+        url: "http://server2:8000"
       });
       const state = await manager.readState("staging");
       expect(state!.status).toBe("running");
-      expect(state!.template_id).toBe("tmpl-123");
-      expect(state!.endpoint_url).toBe("https://api.runpod.io/v2/ep-456");
+      expect(state!.container_id).toBe("container-123");
+      expect(state!.url).toBe("http://server2:8000");
     });
 
-    it("updates gcp state correctly", async () => {
+    it("updates cloud (docker) state correctly", async () => {
       await manager.writeState("cloud", {
-        status: "serving",
-        service_url: "https://nodetool-abc.run.app",
-        revision: "nodetool-00001-abc"
+        status: "running",
+        container_name: "nodetool-cloud",
+        url: "http://server3:8000"
       });
       const state = await manager.readState("cloud");
-      expect(state!.status).toBe("serving");
-      expect(state!.service_url).toBe("https://nodetool-abc.run.app");
-      expect(state!.revision).toBe("nodetool-00001-abc");
+      expect(state!.status).toBe("running");
+      expect(state!.container_name).toBe("nodetool-cloud");
+      expect(state!.url).toBe("http://server3:8000");
     });
   });
 
@@ -359,17 +361,17 @@ describe("StateManager", () => {
       );
     });
 
-    it("clears runpod state to defaults", async () => {
+    it("clears staging (docker) state to defaults", async () => {
       await manager.writeState("staging", {
         status: "running",
-        template_id: "tmpl-123",
-        endpoint_id: "ep-456"
+        container_id: "container-123",
+        container_name: "nodetool-staging"
       });
       await manager.clearState("staging");
       const state = await manager.readState("staging");
       expect(state!.status).toBe("unknown");
-      expect(state!.template_id).toBeNull();
-      expect(state!.endpoint_id).toBeNull();
+      expect(state!.container_id).toBeNull();
+      expect(state!.container_name).toBeNull();
     });
   });
 
@@ -529,8 +531,10 @@ describe("createStateSnapshot", () => {
           container: { name: "c", port: 1 }
         },
         b: {
-          type: "runpod",
-          image: { name: "i", tag: "t" }
+          type: "docker",
+          host: "h2",
+          image: { name: "i", tag: "t" },
+          container: { name: "c2", port: 2 }
         }
       }
     });

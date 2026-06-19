@@ -7,16 +7,8 @@
 
 import { homedir } from "node:os";
 import { join } from "node:path";
-import type {
-  DockerDeployment,
-  RunPodDeployment,
-  GCPDeployment
-} from "./deployment-config.js";
-import {
-  DockerDeploymentSchema,
-  RunPodDeploymentSchema,
-  GCPDeploymentSchema
-} from "./deployment-config.js";
+import type { DockerDeployment } from "./deployment-config.js";
+import { DockerDeploymentSchema } from "./deployment-config.js";
 
 // ============================================================================
 // Common helper
@@ -59,8 +51,6 @@ export interface DockerConfigParams {
   containerPort?: number;
   /** GPU device(s) (e.g., "0" or "0,1"). */
   gpu?: string;
-  /** Workflow IDs to assign. */
-  workflows?: string[];
   /** Workspace folder path. */
   workspacePath?: string;
   /** HuggingFace cache folder path. */
@@ -102,97 +92,11 @@ export function configureDocker(
     container: {
       name: params.containerName ?? `nodetool-${name}`,
       port: params.containerPort ?? 8000,
-      gpu: params.gpu,
-      workflows: params.workflows
+      gpu: params.gpu
     },
     paths: {
       workspace: params.workspacePath ?? join(homedir(), ".nodetool-workspace"),
       hf_cache: params.hfCachePath ?? detectHfCacheDefault()
     }
-  });
-}
-
-// ============================================================================
-// RunPod configuration
-// ============================================================================
-
-export interface RunPodConfigParams {
-  /** Docker image name. */
-  imageName: string;
-  /** Docker image tag (default: "latest"). */
-  imageTag?: string;
-  /** Docker registry (default: "docker.io"). */
-  registry?: string;
-}
-
-/**
- * Configure a RunPod deployment from typed parameters.
- *
- * @param _name - Deployment name (unused, kept for API consistency).
- * @param params - Configuration parameters.
- * @returns A fully validated RunPodDeployment object.
- */
-export function configureRunPod(
-  _name: string,
-  params: RunPodConfigParams
-): RunPodDeployment {
-  return RunPodDeploymentSchema.parse({
-    type: "runpod",
-    image: {
-      name: params.imageName,
-      tag: params.imageTag ?? "latest",
-      registry: params.registry ?? "docker.io"
-    }
-  });
-}
-
-// ============================================================================
-// GCP configuration
-// ============================================================================
-
-export interface GCPConfigParams {
-  /** GCP Project ID. */
-  projectId: string;
-  /** GCP region (default: "us-central1"). */
-  region?: string;
-  /** Cloud Run service name. */
-  serviceName?: string;
-  /** Docker image repository (e.g., "project/repo/image"). */
-  imageRepository: string;
-  /** Docker image tag (default: "latest"). */
-  imageTag?: string;
-  /** CPU cores (default: "4"). */
-  cpu?: string;
-  /** Memory (default: "16Gi"). */
-  memory?: string;
-  /** Environment variables to set on the Cloud Run service. */
-  environment?: Record<string, string>;
-}
-
-/**
- * Configure a GCP deployment from typed parameters.
- *
- * @param name - Deployment name (used as default service name).
- * @param params - Configuration parameters.
- * @returns A fully validated GCPDeployment object.
- */
-export function configureGCP(
-  name: string,
-  params: GCPConfigParams
-): GCPDeployment {
-  return GCPDeploymentSchema.parse({
-    type: "gcp",
-    project_id: params.projectId,
-    region: params.region ?? "us-central1",
-    service_name: params.serviceName ?? name,
-    image: {
-      repository: params.imageRepository,
-      tag: params.imageTag ?? "latest"
-    },
-    resources: {
-      cpu: params.cpu ?? "4",
-      memory: params.memory ?? "16Gi"
-    },
-    environment: params.environment
   });
 }

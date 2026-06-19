@@ -220,3 +220,24 @@ describe("SliceTextNode unicode", () => {
     expect((await node.process()).output).toBe("😀");
   });
 });
+
+describe("AutomaticSpeechRecognitionNode platforms", () => {
+  it("is available in the production cloud (node + workers + edge)", async () => {
+    const { AutomaticSpeechRecognitionNode } = await import(
+      "@nodetool-ai/text-nodes"
+    );
+    const platforms = AutomaticSpeechRecognitionNode.platforms ?? [];
+    expect(platforms).toContain("node");
+    expect(platforms).toContain("workers");
+    expect(platforms).toContain("edge");
+  });
+
+  it("keeps filesystem-bound text nodes node-only", async () => {
+    const { SaveTextFileNode, SaveTextNode, LoadTextFolderNode } = await import(
+      "@nodetool-ai/text-nodes"
+    );
+    for (const cls of [SaveTextFileNode, SaveTextNode, LoadTextFolderNode]) {
+      expect(cls.platforms).toEqual(["node"]);
+    }
+  });
+});
