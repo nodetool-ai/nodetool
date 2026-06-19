@@ -88,35 +88,12 @@ export class WorkflowSyncer {
 export class DockerDeployer {
   constructor(_n?: string, _d?: unknown, _s?: unknown) {}
 }
-export class RunPodDeployer {
-  constructor(_n?: string, _d?: unknown, _s?: unknown) {}
-}
-export class GCPDeployer {
-  constructor(_n?: string, _d?: unknown, _s?: unknown) {}
-}
-export class FlyDeployer {
-  constructor(_n?: string, _d?: unknown, _s?: unknown) {}
-}
-export class RailwayDeployer {
-  constructor(_n?: string, _d?: unknown, _s?: unknown) {}
-}
-export class HuggingFaceDeployer {
-  constructor(_n?: string, _d?: unknown, _s?: unknown) {}
-}
 const schemaStub = {
   parse: (v: unknown) => v
 };
 export const DockerDeploymentSchema = schemaStub;
-export const FlyDeploymentSchema = schemaStub;
-export const HuggingFaceDeploymentSchema = schemaStub;
-export const RailwayDeploymentSchema = schemaStub;
-export const RunPodDeploymentSchema = schemaStub;
 export const configureDocker = (_n: string, _p: unknown) => ({ type: "docker" });
-export const configureGCP = (_n: string, _p: unknown) => ({ type: "gcp" });
-export const configureRunPod = (_n: string, _p: unknown) => ({ type: "runpod" });
 export const dockerDeploymentGetServerUrl = (_d?: unknown) => "http://localhost:8000";
-export const runPodDeploymentGetServerUrl = (_d?: unknown) => undefined;
-export const gcpDeploymentGetServerUrl = (_d?: unknown) => undefined;
 export const getDeploymentConfigPath = (): string => "/tmp/deployment.yaml";
 export async function initDeploymentConfig() {
   return { version: "2.0", defaults: {}, deployments: {} };
@@ -125,10 +102,6 @@ export async function loadDeploymentConfig() {
   return { version: "2.0", defaults: {}, deployments: {} };
 }
 export async function saveDeploymentConfig(_c?: unknown) {}
-export const GPUType = { ADA_24: "ADA_24" };
-export const ComputeType = { CPU: "CPU", GPU: "GPU" };
-export const CPUFlavor = { CPU_3C: "cpu3c" };
-export const DataCenter = { US_TEXAS_1: "US-TX-1" };
 
 // vectorstore
 export class CollectionNotFoundError extends Error {

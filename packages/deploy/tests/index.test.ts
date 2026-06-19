@@ -43,29 +43,6 @@ describe("deploy index exports", () => {
     expect(mod.safeShellQuote).toBeDefined();
     expect(mod.isLocalhost).toBeDefined();
 
-    // runpod
-    expect(mod.RunPodDeployer).toBeDefined();
-
-    // runpod-api
-    expect(mod.getRunpodEndpointByName).toBeDefined();
-    expect(mod.getRunpodTemplateByName).toBeDefined();
-    expect(mod.createOrUpdateRunpodEndpoint).toBeDefined();
-
-    // deploy-to-runpod
-    expect(mod.deployToRunpod).toBeDefined();
-
-    // gcp
-    expect(mod.GCPDeployer).toBeDefined();
-
-    // google-cloud-run-api
-    expect(mod.checkGcloudAuth).toBeDefined();
-    expect(mod.ensureGcloudAuth).toBeDefined();
-    expect(mod.CloudRunRegion).toBeDefined();
-
-    // deploy-to-gcp
-    expect(mod.deployToGcp).toBeDefined();
-    expect(mod.sanitizeServiceName).toBeDefined();
-
     // manager
     expect(mod.DeploymentManager).toBeDefined();
 
@@ -80,8 +57,6 @@ describe("deploy index exports", () => {
 
     // configure
     expect(mod.configureDocker).toBeDefined();
-    expect(mod.configureRunPod).toBeDefined();
-    expect(mod.configureGCP).toBeDefined();
 
     // auth
     expect(mod.generateSecureToken).toBeDefined();

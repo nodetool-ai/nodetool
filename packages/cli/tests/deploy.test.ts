@@ -135,16 +135,7 @@ vi.mock("@nodetool-ai/deploy", () => ({
     constructor(_c?: unknown, _d?: unknown) {}
   },
   DockerDeployer: class {},
-  RunPodDeployer: class {},
-  GCPDeployer: class {},
-  FlyDeployer: class {},
-  RailwayDeployer: class {},
-  HuggingFaceDeployer: class {},
   DockerDeploymentSchema: { parse: (v: unknown) => v },
-  FlyDeploymentSchema: { parse: (v: unknown) => v },
-  HuggingFaceDeploymentSchema: { parse: (v: unknown) => v },
-  RailwayDeploymentSchema: { parse: (v: unknown) => v },
-  RunPodDeploymentSchema: { parse: (v: unknown) => v },
   configureDocker: vi.fn((_n: string, _p: unknown) => ({
     type: "docker",
     host: "localhost",
@@ -153,19 +144,11 @@ vi.mock("@nodetool-ai/deploy", () => ({
     paths: {},
     state: {}
   })),
-  configureRunPod: vi.fn(),
-  configureGCP: vi.fn(),
   dockerDeploymentGetServerUrl: vi.fn(() => "http://localhost:8000"),
-  runPodDeploymentGetServerUrl: vi.fn(() => "http://runpod.example"),
-  gcpDeploymentGetServerUrl: vi.fn(() => "http://gcp.example"),
   getDeploymentConfigPath: vi.fn(() => "/tmp/deployment-test.yaml"),
   initDeploymentConfig,
   loadDeploymentConfig,
-  saveDeploymentConfig,
-  GPUType: { ADA_24: "ADA_24", AMPERE_80: "AMPERE_80" },
-  ComputeType: { CPU: "CPU", GPU: "GPU" },
-  CPUFlavor: { CPU_3C: "cpu3c" },
-  DataCenter: { US_TEXAS_1: "US-TX-1" }
+  saveDeploymentConfig
 }));
 
 class CollectionNotFoundError extends Error {
@@ -245,13 +228,10 @@ function captured(): { out: string; err: string } {
 }
 
 async function buildProgram(): Promise<Command> {
-  const { registerDeployCommands, registerListGcpOptions } = await import(
-    "../src/commands/deploy.js"
-  );
+  const { registerDeployCommands } = await import("../src/commands/deploy.js");
   const program = new Command();
   program.exitOverride();
   registerDeployCommands(program);
-  registerListGcpOptions(program);
   return program;
 }
 
@@ -613,25 +593,6 @@ describe("deploy users-reset-token", () => {
     process.env["NODETOOL_ADMIN_TOKEN"] = "test-token";
     await run(["deploy", "users-reset-token", "dev", "alice"]);
     expect(resetToken).toHaveBeenCalledWith("alice");
-  });
-});
-
-describe("list-gcp-options", () => {
-  it("prints tables by default", async () => {
-    await run(["list-gcp-options"]);
-    const { out } = captured();
-    expect(out).toContain("us-central1");
-    expect(out).toContain("ADA_24");
-  });
-
-  it("emits JSON with --json", async () => {
-    await run(["list-gcp-options", "--json"]);
-    const { out } = captured();
-    // Find JSON block in output
-    const lastJson = out.trim();
-    const parsed = JSON.parse(lastJson);
-    expect(parsed.gcp_regions).toContain("us-central1");
-    expect(parsed.runpod_gpu_types).toContain("ADA_24");
   });
 });
 
