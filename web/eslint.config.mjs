@@ -139,6 +139,13 @@ export default [
           message:
             "Use a MOTION token (MOTION.fast/normal/slow/all/…) instead of a hardcoded transition string. See ui_primitives/tokens.ts.",
         },
+        {
+          // borderRadius: "8px" → use a BORDER_RADIUS token (var(--rounded-*)).
+          selector:
+            "Property[key.name='borderRadius'] > Literal[value=/[1-9][0-9]*px$/]",
+          message:
+            "Use a BORDER_RADIUS token (xs/sm/md/lg/xl/xxl/pill/circle) instead of a hardcoded px radius. See ui_primitives/tokens.ts.",
+        },
       ],
     },
   },
