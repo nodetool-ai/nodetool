@@ -66,6 +66,7 @@ import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 import { ToolToggle } from "../ToolToggle";
 import { FlexRow, FONT_SIZE_MONO, FONT_WEIGHT, BORDER_RADIUS } from "../../ui_primitives";
 import { useHasScript } from "../../../hooks/timeline/useHasScript";
+import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport";
 import { deserializeDragData } from "../../../lib/dragdrop";
 import type { Asset } from "../../../stores/ApiTypes";
 import { assetMediaType } from "../dnd/assetToClipAdapter";
@@ -194,6 +195,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
     const addTrack = useTimelineStore((s) => s.addTrack);
     const addImportedClip = useTimelineStore((s) => s.addImportedClip);
+    const importVideoWithAudio = useVideoAudioImport();
 
     const scrollableRef = useRef<HTMLDivElement>(null);
 
@@ -243,9 +245,22 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         const newTrack =
           useTimelineStore.getState().tracks.slice(-1)[0];
         if (!newTrack) return;
-        addImportedClip(asset, newTrack.id, startMs);
+        // A video on a new video track also gets a linked audio clip
+        // (extracted from the video), matching the per-lane drop path.
+        if (mediaType === "video") {
+          void importVideoWithAudio(asset, newTrack.id, startMs);
+        } else {
+          addImportedClip(asset, newTrack.id, startMs);
+        }
       },
-      [isAssetDrag, scrollLeftPx, msPerPx, addTrack, addImportedClip]
+      [
+        isAssetDrag,
+        scrollLeftPx,
+        msPerPx,
+        addTrack,
+        addImportedClip,
+        importVideoWithAudio
+      ]
     );
 
     // Total scrollable width = max of durationMs or visible area
