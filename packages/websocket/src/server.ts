@@ -33,15 +33,24 @@ import {
 import {
   initTelemetry,
   createPythonBridge,
+  WebsocketPythonBridge,
+  SwappableBridge,
   logPythonWorkerStderr,
   type PythonBridge
 } from "@nodetool-ai/runtime";
 import { initMasterKey } from "@nodetool-ai/security";
 import {
+  WorkerManager,
+  startReaper,
+  type WorkerConnection
+} from "@nodetool-ai/compute";
+import {
+  getWorkerProfile,
   initDb,
   initPostgresDb,
   migrateSqliteDb,
-  runSeeds
+  runSeeds,
+  touchWorkerInstance
 } from "@nodetool-ai/models";
 import { registerPythonProviders } from "./models-api.js";
 import type { HttpApiOptions } from "./http-api.js";
@@ -60,6 +69,7 @@ import {
 } from "@trpc/server/adapters/fastify";
 import { appRouter, type AppRouter } from "./trpc/router.js";
 import { createContextFactory } from "./trpc/context.js";
+import type { WorkerHealth } from "./trpc/context.js";
 import {
   getHttpRateLimitConfig,
   rateLimitKey,
@@ -399,17 +409,126 @@ if (process.env["NODETOOL_ENV"] !== "production") {
 // Python bridge
 // ---------------------------------------------------------------------------
 
-const pythonBridge = createPythonBridge({
+const localBridge = createPythonBridge({
   workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]
     ? ["--namespaces", process.env["NODETOOL_WORKER_NAMESPACES"]]
     : []
 });
 
+// The ONE stable bridge reference handed to every consumer. It delegates to the
+// local bridge by default; attaching a worker swaps in a dedicated WebSocket
+// bridge to that worker (so ALL Python work — execution AND model management —
+// targets the worker's GPU) and detach swaps back. Because the reference is
+// stable and re-emits its target's events, consumers never re-read it and
+// listeners are wired exactly once.
+const pythonBridge = new SwappableBridge(localBridge);
+
 let pythonBridgeReady = false;
+
+// Worker bridge bookkeeping so it can be closed after swapping away. Only the
+// remote WebSocket bridge is tracked here; the local stdio bridge is owned by
+// `localBridge` above and never closed on swap.
+let workerBridge: WebsocketPythonBridge | null = null;
+const isLocalActive = (): boolean => pythonBridge.target === localBridge;
+const getPythonBridgeReady = (): boolean =>
+  isLocalActive() ? pythonBridgeReady : pythonBridge.isConnected;
+
+// ---------------------------------------------------------------------------
+// Worker provisioning (GPU workers via @nodetool-ai/compute)
+// ---------------------------------------------------------------------------
+
+const workerManager = new WorkerManager();
+
+/**
+ * Re-point the Python bridge for worker attach/detach by SWAPPING the
+ * SwappableBridge's target (a local stdio bridge cannot be re-pointed in place).
+ *
+ * On attach: build a dedicated WebSocket bridge to the worker, connect it
+ * (discover + status), swap it in as the target — so subsequent execution and
+ * model-management calls run on the worker — then close the previous worker
+ * bridge. Throws (failing the attach) if the worker can't be reached. On detach
+ * (`null`): swap back to the local bridge and dispose the worker bridge.
+ *
+ * `swap()` itself never connects or closes a bridge — lifecycle is owned here:
+ * connect before swapping in, close after swapping away.
+ */
+async function repointPythonBridge(
+  target: WorkerConnection | null
+): Promise<void> {
+  if (target) {
+    const next = new WebsocketPythonBridge({
+      wsUrl: target.wsUrl,
+      workerToken: target.token ?? undefined
+    });
+    try {
+      await next.connect();
+    } catch (err) {
+      next.close();
+      throw err;
+    }
+    const previous = workerBridge;
+    workerBridge = next;
+    pythonBridge.swap(next);
+    if (previous) previous.close();
+    log.info("Python bridge re-pointed to attached worker");
+    return;
+  }
+  const previous = workerBridge;
+  workerBridge = null;
+  pythonBridge.swap(localBridge);
+  if (previous) previous.close();
+  log.info("Python bridge re-pointed back to the local worker");
+}
+
+/** Bound for the readiness probe: TCP/WS handshake + discover RPC. */
+const WORKER_PROBE_TIMEOUT_MS = 8000;
+
+/**
+ * Probe a `running` worker's readiness by opening a transient bridge to its
+ * `{wsUrl, token}` — the same handshake attach performs — then closing it. A
+ * resolved connect (WS open + `discover` answered) means the worker process is
+ * actually serving, not merely that the pod's port is mapped. Never throws:
+ * failures (still booting, unreachable) report `{ healthy: false }`.
+ */
+async function probeWorkerHealth(
+  target: WorkerConnection
+): Promise<WorkerHealth> {
+  if (!target.wsUrl) {
+    return { healthy: false, error: "Worker has no WebSocket URL yet" };
+  }
+  const probe = new WebsocketPythonBridge({
+    wsUrl: target.wsUrl,
+    workerToken: target.token ?? undefined,
+    // One-shot probe: no reconnect, bounded handshake.
+    autoRestart: false,
+    startupTimeoutMs: WORKER_PROBE_TIMEOUT_MS,
+    reconnectRpcTimeoutMs: WORKER_PROBE_TIMEOUT_MS
+  });
+  // A probe must never escalate a socket 'error' into a crash.
+  probe.on("error", () => {});
+  try {
+    await probe.connect();
+    return {
+      healthy: true,
+      protocolVersion: probe.supportsModelManagement() ? 2 : 1
+    };
+  } catch (err) {
+    return {
+      healthy: false,
+      error: err instanceof Error ? err.message : String(err)
+    };
+  } finally {
+    try {
+      probe.close();
+    } catch {
+      /* best-effort cleanup */
+    }
+  }
+}
 
 function logPythonBridgeDiagnostics(context: string): void {
   const loadErrors = (
-    pythonBridge as {
+    localBridge as {
       getLoadErrors?: () => Array<{
         module: string;
         phase: string;
@@ -447,6 +566,27 @@ pythonBridge.on("error", (err: Error) => {
 pythonBridge.on("exit", (code: number) => {
   log.warn(`Python worker exited with code ${code}`);
   pythonBridgeReady = false;
+});
+
+// Keep the attached worker's `last_activity_at` fresh so the cost guard's
+// reaper measures idle time from real bridge traffic, not from creation. The
+// remote WebSocket bridge emits "activity" on every outbound frame; we touch
+// the active worker instance, throttled so high-frequency traffic doesn't turn
+// into a DB write per frame (the reaper runs every 60s; second-level freshness
+// is ample). A local stdio bridge never emits "activity", so this is inert
+// there. Failures are swallowed — a touch must never break execution.
+const WORKER_TOUCH_THROTTLE_MS = 10_000;
+let lastWorkerTouchAt = 0;
+pythonBridge.on("activity", () => {
+  const nowMs = Date.now();
+  if (nowMs - lastWorkerTouchAt < WORKER_TOUCH_THROTTLE_MS) return;
+  lastWorkerTouchAt = nowMs;
+  void workerManager
+    .getActiveWorker()
+    .then((active) => (active ? touchWorkerInstance(active.id) : undefined))
+    .catch(() => {
+      // best-effort: keeping the idle clock fresh must not crash the runner
+    });
 });
 
 // ---------------------------------------------------------------------------
@@ -780,7 +920,10 @@ const createContext = createContextFactory({
   registry,
   apiOptions,
   pythonBridge,
-  getPythonBridgeReady: () => pythonBridgeReady
+  getPythonBridgeReady,
+  workerManager,
+  repointPythonBridge,
+  probeWorkerHealth
 });
 
 await app.register(fastifyTRPCPlugin, {
@@ -810,9 +953,10 @@ await app.register(websocketPlugin, {
   registry,
   pythonBridge,
   apiOptions,
-  getPythonBridgeReady: () => pythonBridgeReady,
+  workerManager,
+  getPythonBridgeReady,
   ensurePythonBridge: async () => {
-    if (pythonBridgeReady) return;
+    if (getPythonBridgeReady()) return;
     log.info(`Lazily starting Python bridge [${startupMs()}]`);
     try {
       await pythonBridge.ensureConnected();
@@ -822,6 +966,13 @@ await app.register(websocketPlugin, {
         err instanceof Error ? err : new Error(String(err))
       );
       throw err;
+    }
+    // A worker bridge is connected eagerly on attach; readiness then derives
+    // from its live connection state. Only the local bridge does the one-time
+    // node-metadata registration below.
+    if (!isLocalActive()) {
+      log.info(`Worker Python bridge connected [${startupMs()}]`);
+      return;
     }
     pythonBridgeReady = true;
     log.info(`Python bridge lazy start completed [${startupMs()}]`);
@@ -1073,6 +1224,40 @@ app.listen({ port, host }, (err) => {
 });
 
 // ---------------------------------------------------------------------------
+// Worker cost guard — reconcile orphaned GPU pods on boot, then reap on a loop
+// ---------------------------------------------------------------------------
+
+const WORKER_REAPER_INTERVAL_MS = 60_000;
+
+workerManager
+  .reconcile()
+  .then((summary) => {
+    if (summary.liveCount > 0 || summary.orphans.length > 0) {
+      log.info(
+        `Worker reconcile: ${summary.liveCount} live, ` +
+          `${summary.orphans.length} orphaned, ~$${summary.estimatedCostUsd.toFixed(2)}`
+      );
+    }
+  })
+  .catch((reconcileErr) => {
+    log.warn(
+      "Worker reconcile failed at startup",
+      reconcileErr instanceof Error
+        ? reconcileErr
+        : new Error(String(reconcileErr))
+    );
+  });
+
+const stopReaper = startReaper(
+  {
+    manager: workerManager,
+    getProfile: (name) => getWorkerProfile(name),
+    now: () => Date.now()
+  },
+  WORKER_REAPER_INTERVAL_MS
+);
+
+// ---------------------------------------------------------------------------
 // Graceful shutdown — ensure child processes (Python worker, etc.) are killed
 // ---------------------------------------------------------------------------
 
@@ -1084,7 +1269,9 @@ async function shutdown(signal: string): Promise<void> {
   } catch {
     // best-effort cleanup
   }
-  pythonBridge.close();
+  stopReaper();
+  localBridge.close();
+  workerBridge?.close();
   try {
     await app.close();
   } catch {

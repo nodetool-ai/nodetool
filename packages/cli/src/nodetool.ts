@@ -50,6 +50,7 @@ import {
   registerListGcpOptions
 } from "./commands/deploy.js";
 import { registerHfCommands } from "./commands/models-hf.js";
+import { registerWorkerCommands } from "./commands/worker.js";
 import { registerRecommendedCommand } from "./commands/models-recommended.js";
 import { registerAgentCommands } from "./commands/agent.js";
 import { registerDbCommands } from "./commands/db.js";
@@ -1786,6 +1787,7 @@ mcp
 // ---------------------------------------------------------------------------
 
 registerPackageCommands(program);
+registerWorkerCommands(program);
 
 // ---------------------------------------------------------------------------
 // deploy / list-gcp-options — registered from commands/deploy.ts
