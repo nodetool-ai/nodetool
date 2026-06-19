@@ -189,6 +189,18 @@ export interface TimelineStoreState {
   addClips: (clips: TimelineClip[]) => void;
 
   /**
+   * Return the id of the first audio track, creating one named "Audio"
+   * (appended after existing tracks) if none exists.
+   */
+  getOrCreateAudioTrack: () => string;
+
+  /**
+   * Remove the `linkId` from every clip in the acted clip's link group,
+   * detaching them so they edit independently. No-op if the clip is unlinked.
+   */
+  unlinkClip: (clipId: string) => void;
+
+  /**
    * Create an imported clip from an Asset and insert it into the store.
    * The clip geometry is derived from the asset's content type and duration.
    * Use this action to add clips created by asset drag-and-drop.
@@ -608,6 +620,20 @@ export const createTimelineStore = (
             return { tracks: [...state.tracks, track] };
           }),
 
+        getOrCreateAudioTrack: () => {
+          const existing = get().tracks.find((t) => t.type === "audio");
+          if (existing) {
+            return existing.id;
+          }
+          const track = makeTrack({
+            type: "audio",
+            name: "Audio",
+            index: get().tracks.length
+          });
+          set((state) => ({ tracks: [...state.tracks, track] }));
+          return track.id;
+        },
+
         removeTrack: (trackId) =>
           set((state) => ({
             tracks: state.tracks.filter((t) => t.id !== trackId),
@@ -736,7 +762,6 @@ export const createTimelineStore = (
 
             if (!disableSnap && snapCandidates && msPerPx !== undefined) {
               newStartMs = snap(newStartMs, snapCandidates, SNAP_THRESHOLD_PX, msPerPx);
-              // Also try snapping the end
               const endSnap = snap(
                 newStartMs + clip.durationMs,
                 snapCandidates,
@@ -749,17 +774,34 @@ export const createTimelineStore = (
             }
 
             newStartMs = Math.max(0, newStartMs);
+            const appliedDelta = newStartMs - clip.startMs;
+            const linkedIds =
+              clip.linkId !== undefined
+                ? new Set(
+                    state.clips
+                      .filter(
+                        (c) => c.linkId === clip.linkId && c.id !== clipId
+                      )
+                      .map((c) => c.id)
+                  )
+                : null;
 
             return {
-              clips: state.clips.map((c) =>
-                c.id === clipId
-                  ? {
-                      ...c,
-                      startMs: newStartMs,
-                      trackId: toTrackId ?? c.trackId
-                    }
-                  : c
-              )
+              clips: state.clips.map((c) => {
+                if (c.id === clipId) {
+                  return {
+                    ...c,
+                    startMs: newStartMs,
+                    trackId: toTrackId ?? c.trackId
+                  };
+                }
+                // Linked siblings follow the same start delta but keep their
+                // own track — audio stays on the audio track.
+                if (linkedIds?.has(c.id)) {
+                  return { ...c, startMs: Math.max(0, c.startMs + appliedDelta) };
+                }
+                return c;
+              })
             };
           }),
 
@@ -825,17 +867,29 @@ export const createTimelineStore = (
             if (!clip) {
               return state;
             }
+            let primary: TimelineClip;
             try {
-              const trimmed = trimClip(clip, "start", deltaMs);
-              return {
-                clips: state.clips.map((c) =>
-                  c.id === clipId ? trimmed : c
-                )
-              };
+              primary = trimClip(clip, "start", deltaMs);
             } catch {
               // Guard: no-op if trim would produce invalid clip
               return state;
             }
+            const linkId = clip.linkId;
+            return {
+              clips: state.clips.map((c) => {
+                if (c.id === clipId) {
+                  return primary;
+                }
+                if (linkId !== undefined && c.linkId === linkId) {
+                  try {
+                    return trimClip(c, "start", deltaMs);
+                  } catch {
+                    return c;
+                  }
+                }
+                return c;
+              })
+            };
           }),
 
         trimClipEnd: (clipId, deltaMs, maxSourceDurationMs) =>
@@ -844,27 +898,37 @@ export const createTimelineStore = (
             if (!clip) {
               return state;
             }
+            // Clamp grow deltas so that outPointMs cannot exceed source
+            // duration. Never clamp a shrink.
+            let clampedDelta = deltaMs;
+            if (maxSourceDurationMs !== undefined && deltaMs > 0) {
+              const currentOutPointMs =
+                clip.outPointMs ?? (clip.inPointMs ?? 0) + clip.durationMs;
+              const maxGrow = maxSourceDurationMs - currentOutPointMs;
+              clampedDelta = Math.min(deltaMs, Math.max(0, maxGrow));
+            }
+            let primary: TimelineClip;
             try {
-              // Clamp grow deltas so that outPointMs cannot exceed source
-              // duration. Never clamp a shrink — an over-extended clip
-              // (outPointMs already past source end) must still shrink.
-              let clampedDelta = deltaMs;
-              if (maxSourceDurationMs !== undefined && deltaMs > 0) {
-                const currentOutPointMs =
-                  clip.outPointMs ?? (clip.inPointMs ?? 0) + clip.durationMs;
-                const maxGrow = maxSourceDurationMs - currentOutPointMs;
-                clampedDelta = Math.min(deltaMs, Math.max(0, maxGrow));
-              }
-              const trimmed = trimClip(clip, "end", clampedDelta);
-              return {
-                clips: state.clips.map((c) =>
-                  c.id === clipId ? trimmed : c
-                )
-              };
+              primary = trimClip(clip, "end", clampedDelta);
             } catch {
-              // Guard: no-op if trim would produce invalid clip
               return state;
             }
+            const linkId = clip.linkId;
+            return {
+              clips: state.clips.map((c) => {
+                if (c.id === clipId) {
+                  return primary;
+                }
+                if (linkId !== undefined && c.linkId === linkId) {
+                  try {
+                    return trimClip(c, "end", clampedDelta);
+                  } catch {
+                    return c;
+                  }
+                }
+                return c;
+              })
+            };
           }),
 
         splitClipAtTime: (clipId, atMs) =>
@@ -933,9 +997,19 @@ export const createTimelineStore = (
           })),
 
         deleteClip: (clipId) =>
-          set((state) => ({
-            clips: state.clips.filter((c) => c.id !== clipId)
-          })),
+          set((state) => {
+            const linkId = state.clips.find((c) => c.id === clipId)?.linkId;
+            let clips = state.clips.filter((c) => c.id !== clipId);
+            if (linkId !== undefined) {
+              const remaining = clips.filter((c) => c.linkId === linkId);
+              if (remaining.length < 2) {
+                clips = clips.map((c) =>
+                  c.linkId === linkId ? { ...c, linkId: undefined } : c
+                );
+              }
+            }
+            return { clips };
+          }),
 
         addClip: (clip) =>
           set((state) => ({
@@ -951,6 +1025,19 @@ export const createTimelineStore = (
           const clip = assetToClip(asset, trackId, startMs);
           set((state) => ({ clips: [...state.clips, clip] }));
         },
+
+        unlinkClip: (clipId) =>
+          set((state) => {
+            const linkId = state.clips.find((c) => c.id === clipId)?.linkId;
+            if (!linkId) {
+              return state;
+            }
+            return {
+              clips: state.clips.map((c) =>
+                c.linkId === linkId ? { ...c, linkId: undefined } : c
+              )
+            };
+          }),
 
         patchClip: (clipId, patch) =>
           set((state) => ({
