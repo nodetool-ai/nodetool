@@ -57,7 +57,11 @@ import {
 import { handleFileRequest } from "./file-api.js";
 import { storeAssetWithThumbnail, thumbnailKey } from "./lib/thumbnail.js";
 import { getAssetAdapter } from "./lib/storage.js";
-import { probeHasAudio, extractAudioWav } from "./lib/media.js";
+import {
+  probeHasAudio,
+  extractAudio,
+  MediaToolingMissingError
+} from "./lib/media.js";
 import {
   packWorkflowsBundle,
   importWorkflowBundle,
@@ -1915,6 +1919,10 @@ export async function handleExtractAudio(
   if (!source) {
     return errorResponse(404, "Asset not found");
   }
+  // Ownership guard: in multi-user mode an asset is only visible to its owner.
+  if (source.user_id !== userId) {
+    return errorResponse(404, "Asset not found");
+  }
   if (!source.content_type.startsWith("video/")) {
     return errorResponse(400, "Asset is not a video");
   }
@@ -1926,22 +1934,29 @@ export async function handleExtractAudio(
     return errorResponse(404, "Asset bytes not found");
   }
 
-  // Probe + extract via a temp file (ffmpeg needs a path).
-  const dir = await fsp.mkdtemp(nodePath.join(os.tmpdir(), "nodetool-probe-"));
-  const probePath = nodePath.join(dir, "input");
-  let hasAudio = false;
+  // Write the video bytes to a single temp input file, then probe + extract
+  // against that path (ffmpeg/ffprobe need a path).
+  const dir = await fsp.mkdtemp(nodePath.join(os.tmpdir(), "nodetool-extract-"));
+  const inputPath = nodePath.join(dir, "input");
+  let wavBytes: Uint8Array;
+  let durationMs: number | null;
   try {
-    await fsp.writeFile(probePath, videoBytes);
-    hasAudio = await probeHasAudio(probePath);
+    await fsp.writeFile(inputPath, videoBytes);
+    if (!(await probeHasAudio(inputPath))) {
+      return jsonResponse({ has_audio: false });
+    }
+    ({ bytes: wavBytes, durationMs } = await extractAudio(inputPath));
+  } catch (err) {
+    if (err instanceof MediaToolingMissingError) {
+      return errorResponse(
+        503,
+        "ffmpeg is required to extract audio from video. Install the ffmpeg runtime."
+      );
+    }
+    throw err;
   } finally {
     await fsp.rm(dir, { recursive: true, force: true });
   }
-
-  if (!hasAudio) {
-    return jsonResponse({ has_audio: false });
-  }
-
-  const wavBytes = await extractAudioWav(videoBytes);
 
   const audioAsset = (await Asset.create({
     user_id: userId,
@@ -1952,7 +1967,8 @@ export async function handleExtractAudio(
     node_id: null,
     job_id: null,
     metadata: null,
-    size: wavBytes.byteLength
+    size: wavBytes.byteLength,
+    duration: durationMs != null ? durationMs / 1000 : null
   })) as Asset;
 
   const audioKey = getAssetFileName(audioAsset.id, audioAsset.content_type);

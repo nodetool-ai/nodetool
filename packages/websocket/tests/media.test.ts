@@ -15,7 +15,11 @@ vi.mock("node:child_process", () => ({
   }
 }));
 
-import { probeHasAudio } from "../src/lib/media.js";
+import {
+  probeHasAudio,
+  probeDurationMs,
+  MediaToolingMissingError
+} from "../src/lib/media.js";
 
 describe("probeHasAudio", () => {
   // Each test fully replaces the mock behavior below, so no beforeEach reset is
@@ -32,10 +36,48 @@ describe("probeHasAudio", () => {
     expect(await probeHasAudio("/tmp/x.mp4")).toBe(false);
   });
 
-  it("returns false when ffprobe errors", async () => {
+  it("returns false when ffprobe errors generically", async () => {
     execFileMock.mockImplementation(() =>
       Promise.reject(new Error("not found"))
     );
     expect(await probeHasAudio("/tmp/x.mp4")).toBe(false);
+  });
+
+  it("throws MediaToolingMissingError when ffprobe binary is missing (ENOENT)", async () => {
+    execFileMock.mockImplementation(() => {
+      const err = new Error("spawn ffprobe ENOENT") as Error & {
+        code?: string;
+      };
+      err.code = "ENOENT";
+      return Promise.reject(err);
+    });
+    await expect(probeHasAudio("/tmp/x.mp4")).rejects.toBeInstanceOf(
+      MediaToolingMissingError
+    );
+  });
+});
+
+describe("probeDurationMs", () => {
+  it("parses ffprobe format=duration seconds into milliseconds", async () => {
+    execFileMock.mockResolvedValue({ stdout: "12.34\n", stderr: "" });
+    expect(await probeDurationMs("/tmp/x.wav")).toBe(12340);
+  });
+
+  it("returns null when ffprobe yields no parseable duration", async () => {
+    execFileMock.mockResolvedValue({ stdout: "N/A\n", stderr: "" });
+    expect(await probeDurationMs("/tmp/x.wav")).toBe(null);
+  });
+
+  it("throws MediaToolingMissingError when ffprobe binary is missing (ENOENT)", async () => {
+    execFileMock.mockImplementation(() => {
+      const err = new Error("spawn ffprobe ENOENT") as Error & {
+        code?: string;
+      };
+      err.code = "ENOENT";
+      return Promise.reject(err);
+    });
+    await expect(probeDurationMs("/tmp/x.wav")).rejects.toBeInstanceOf(
+      MediaToolingMissingError
+    );
   });
 });
