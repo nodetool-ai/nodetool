@@ -162,7 +162,7 @@ export const RUNTIME_PACKAGES: Record<RuntimePackageId, RuntimePackage> = {
     versionRange: "*",
     npmPackages: ["@anthropic-ai/claude-code"],
     packageNames: ["@anthropic-ai/claude-code"],
-    approxSizeMB: 50,
+    approxSizeMB: 230,
   }),
 
   "tensorflow-js": new NpmRuntimePackage({
