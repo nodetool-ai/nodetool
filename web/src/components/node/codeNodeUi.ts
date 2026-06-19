@@ -40,6 +40,19 @@ export function getCodeNodeLanguage(nodeType: string): string {
   }
 }
 
+/**
+ * Brief explanation of how the universal Code node's inputs and outputs are
+ * managed, shown in place of the generic "Add input" / "Add output" buttons.
+ * The Code node infers its handles from the code itself — undeclared
+ * identifiers become inputs and the keys of the returned object become
+ * outputs — so the manual buttons would be misleading. The language executors
+ * (Execute Python/JavaScript/Bash/Ruby/Lua) keep the buttons since their
+ * inputs are declared explicitly, not inferred.
+ */
+export function getCodeNodeIOHint(): string {
+  return "Reference an undefined variable to add an input. Return an object — its keys become outputs.";
+}
+
 /** Human label for a Monaco language id, shown in the code body toolbar. */
 export function codeLanguageLabel(language: string): string {
   switch (language) {
