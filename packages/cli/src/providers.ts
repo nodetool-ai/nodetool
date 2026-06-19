@@ -38,6 +38,7 @@ import type { WebSocketChatClient } from "./websocket-client.js";
  */
 export const KNOWN_PROVIDERS = [
   "anthropic",
+  "claude_agent_sdk",
   "openai",
   "codex",
   "gemini",
@@ -61,8 +62,17 @@ export const KNOWN_PROVIDERS = [
 ] as const;
 export type KnownProvider = (typeof KNOWN_PROVIDERS)[number];
 
-/** Local providers that are always reachable without an API key. */
-const LOCAL_PROVIDERS: readonly string[] = ["lmstudio", "ollama", "mlx"];
+/**
+ * Providers reachable without an API key: the local servers plus the Claude
+ * Agent SDK (which authenticates with the machine's logged-in `claude` CLI
+ * subscription instead of a key).
+ */
+const LOCAL_PROVIDERS: readonly string[] = [
+  "lmstudio",
+  "ollama",
+  "mlx",
+  "claude_agent_sdk"
+];
 
 /**
  * Providers served only through the local Python worker (no TS implementation).
@@ -79,6 +89,7 @@ function isAppleSilicon(): boolean {
 /** Default model shown when switching to a provider in interactive mode. */
 export const DEFAULT_MODELS: Record<string, string> = {
   anthropic: "claude-sonnet-4-6",
+  claude_agent_sdk: "sonnet",
   openai: "gpt-5.4",
   codex: "gpt-5.5",
   gemini: "gemini-2.5-flash",
@@ -242,6 +253,9 @@ export function availableProviders(): string[] {
     if (key && process.env[key]) available.push(id);
   }
   if (isAppleSilicon()) available.push("mlx");
+  // Keyless: surfaced like the local servers (the `claude` CLI carries its own
+  // subscription auth).
+  available.push("claude_agent_sdk");
   available.push("lmstudio");
   available.push("ollama");
   return available;

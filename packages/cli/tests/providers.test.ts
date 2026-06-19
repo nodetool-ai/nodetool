@@ -140,7 +140,11 @@ describe("availableProviders", () => {
 
   it("returns only local providers when no API keys are set", async () => {
     const { availableProviders } = await import("../src/providers.js");
-    expect(availableProviders()).toEqual(["lmstudio", "ollama"]);
+    expect(availableProviders()).toEqual([
+      "claude_agent_sdk",
+      "lmstudio",
+      "ollama"
+    ]);
   });
 
   it("includes anthropic when ANTHROPIC_API_KEY is set", async () => {
@@ -188,6 +192,7 @@ describe("availableProviders", () => {
     expect(availableProviders()).toEqual([
       "anthropic",
       "gemini",
+      "claude_agent_sdk",
       "lmstudio",
       "ollama"
     ]);
