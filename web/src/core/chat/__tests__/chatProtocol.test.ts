@@ -427,6 +427,89 @@ describe("chatProtocol", () => {
     expect(messages[1].id).not.toMatch(/^local-stream-/);
   });
 
+  it("does not let a short finalized message overwrite an unrelated longer placeholder across tool rounds", async () => {
+    // Rapid multi-tool turn: two un-finalized local-stream-* placeholders coexist.
+    // The first round streamed "Searching the web for cats" (placeholder A); a
+    // later round streamed "Searching" (placeholder B, the trailing one). The
+    // server now finalizes the trailing round as "Searching". A bidirectional
+    // startsWith match could let "Searching" replace the longer placeholder A
+    // (since A startsWith "Searching"), dropping a distinct message. The
+    // finalized message must replace only the trailing placeholder B.
+    let capturedState: any = {
+      status: "streaming",
+      currentThreadId: "thread-1",
+      threads: {
+        "thread-1": {
+          id: "thread-1",
+          title: "T",
+          updated_at: new Date().toISOString()
+        }
+      },
+      messageCache: {
+        "thread-1": [
+          { role: "user", type: "message", content: "Search the web" },
+          {
+            id: "local-stream-1-aaa",
+            role: "assistant",
+            type: "message",
+            content: "Searching the web for cats"
+          },
+          {
+            id: "local-stream-2-bbb",
+            role: "assistant",
+            type: "message",
+            content: "Searching"
+          }
+        ]
+      },
+      selectedModel: { provider: "", id: "" },
+      summarizeThread: jest.fn(),
+      updateThreadTitle: jest.fn()
+    };
+
+    const set = jest.fn((updater) => {
+      capturedState = {
+        ...capturedState,
+        ...(typeof updater === "function" ? updater(capturedState) : updater)
+      };
+    });
+
+    const get = () => capturedState;
+
+    await handleChatWebSocketMessage(
+      {
+        type: "message",
+        id: "server-msg-2",
+        role: "assistant",
+        thread_id: "thread-1",
+        created_at: new Date().toISOString(),
+        content: "Searching",
+        tool_calls: [{ id: "call-2", name: "web_search", args: {} }]
+      } as any,
+      set,
+      get
+    );
+
+    const messages = capturedState.messageCache["thread-1"];
+    expect(messages).toHaveLength(3);
+    // Placeholder A (the longer, unrelated message) is untouched.
+    expect(messages[1]).toEqual(
+      expect.objectContaining({
+        id: "local-stream-1-aaa",
+        content: "Searching the web for cats"
+      })
+    );
+    // Only the trailing placeholder B is replaced by the finalized server message.
+    expect(messages[2]).toEqual(
+      expect.objectContaining({
+        id: "server-msg-2",
+        content: "Searching",
+        tool_calls: [{ id: "call-2", name: "web_search", args: {} }]
+      })
+    );
+    expect(messages[2].id).not.toMatch(/^local-stream-/);
+  });
+
   it("returns tool errors for unknown client tools", async () => {
     (FrontendToolRegistry.has as jest.Mock).mockReturnValue(false);
 

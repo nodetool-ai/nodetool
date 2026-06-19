@@ -764,6 +764,18 @@ const extractTextContent = (message: Message): string => {
  * when it completes a plain reply and when it attaches tool_calls. Without this
  * reconciliation the placeholder and the finalized message both render, so the
  * same text appears twice. Returns -1 when the incoming message is genuinely new.
+ *
+ * Identity, not content, decides the target. The placeholder being finalized is
+ * always the *trailing* `local-stream-*` placeholder — the one applyChunk most
+ * recently appended. We therefore only ever consider that single placeholder
+ * (found by its stable id prefix) and never scan past it into earlier
+ * placeholders. In rapid multi-tool turns several un-finalized `local-stream-*`
+ * placeholders can coexist; a bidirectional content match could let a short
+ * finalized message ("Searching") overwrite an unrelated longer earlier
+ * placeholder ("Searching the web for…"), dropping a distinct message. Anchoring
+ * to the trailing placeholder makes the match unambiguous. Content is only used
+ * to confirm the finalized text extends (or equals) the placeholder before we
+ * replace it; otherwise the incoming message is treated as genuinely new.
  */
 const findStreamPlaceholderIndex = (
   messages: Message[],
@@ -786,31 +798,35 @@ const findStreamPlaceholderIndex = (
     const isLocalStream =
       typeof candidateId === "string" &&
       candidateId.startsWith("local-stream-");
-    const isServerAuthored =
-      !!candidate.created_at || (!!candidateId && !isLocalStream);
 
-    if (isServerAuthored) {
-      continue;
+    // The first assistant message walking back is the only candidate. If it is
+    // not a local-stream placeholder (it was authored/finalized by the server),
+    // the incoming message is genuinely new — stop rather than reaching past it
+    // to an earlier placeholder.
+    if (!isLocalStream) {
+      return -1;
     }
 
     const candidateText = extractTextContent(candidate);
     const candidateNormalized = normalizeTextForComparison(candidateText);
     if (!candidateNormalized || !incomingNormalized) {
-      continue;
+      return -1;
     }
 
+    // The finalized message must equal or extend the streamed placeholder text.
+    // We deliberately do NOT match when the placeholder is longer than the
+    // incoming text: a short finalized message must never replace a longer
+    // placeholder it does not actually finalize.
     if (
       candidateNormalized === incomingNormalized ||
-      incomingNormalized.startsWith(candidateNormalized) ||
-      candidateNormalized.startsWith(incomingNormalized)
+      incomingNormalized.startsWith(candidateNormalized)
     ) {
       return i;
     }
 
-    // If we were streaming and the most recent assistant message looks local,
-    // prefer replacing it even if trailing whitespace differs.
+    // While streaming, tolerate trailing-whitespace differences on the trailing
+    // placeholder (the finalized text may equal or extend it once trimmed).
     if (
-      i === messages.length - 1 &&
       (status === "streaming" || isLocalStream) &&
       candidateText &&
       incomingText
@@ -824,6 +840,9 @@ const findStreamPlaceholderIndex = (
         return i;
       }
     }
+
+    // Trailing placeholder exists but the incoming text does not finalize it.
+    return -1;
   }
   return -1;
 };
