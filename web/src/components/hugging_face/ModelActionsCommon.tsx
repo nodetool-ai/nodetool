@@ -44,12 +44,13 @@ export const HuggingFaceLink: React.FC<{
         className="model-external-link-icon huggingface-link"
         target="_blank"
         rel="noopener noreferrer"
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
         <img
           src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg"
           alt="Hugging Face"
           style={{
-            width: "1.5em",
+            width: "1.25em",
             height: "auto"
           }}
         />

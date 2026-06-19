@@ -29,7 +29,9 @@ export interface MissingModelNode {
 export function isModelEmpty(value: unknown): boolean {
   if (!value) return true;
   if (typeof value !== "object") return false;
-  const v = value as { id?: unknown; provider?: unknown };
+  const v = value as Record<string, unknown>;
+  // An unset model can be `{}`, `{ provider: "empty", id: "" }`, or missing
+  // either field — all mean "no model picked".
   return !v.id || v.provider === "empty" || v.provider === "";
 }
 
@@ -53,7 +55,10 @@ export function findMissingModelNodes(
     const metadata = getMetadata(node.type);
     if (!metadata?.properties) continue;
 
-    const properties = node.data?.properties ?? {};
+    const properties = (node.data?.properties ?? {}) as Record<
+      string,
+      unknown
+    >;
 
     for (const prop of metadata.properties) {
       const modelType = prop.type?.type;

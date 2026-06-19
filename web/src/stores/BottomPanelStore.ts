@@ -4,16 +4,22 @@ import { persist } from "zustand/middleware";
 /**
  * Bottom panel hosts secondary workflow tools that used to live in PanelRight.
  * Grouped into:
- *  - "run":      logs, sandboxes
- *  - "workflow": versions
+ *  - "run":      logs, jobs, sandboxes
+ *  - "workflow": versions, workspace
  *  - "debug":    trace
  *
  * Workflow settings and the agent panel now live in the left panel
  * (LeftPanelView "settings" / "agent"). The workflow assistant has been
- * removed entirely. The queue lives in the floating QueueOverlay and the
- * workspace explorer in the left panel, so neither has a bottom-panel tab.
+ * removed entirely.
  */
-export type BottomPanelView = "logs" | "sandboxes" | "versions" | "trace";
+export type BottomPanelView =
+  | "logs"
+  | "queue"
+  | "sandboxes"
+  | "workers"
+  | "versions"
+  | "workspace"
+  | "trace";
 
 type BottomPanelGroup = "run" | "workflow" | "debug";
 
@@ -22,11 +28,11 @@ export const BOTTOM_PANEL_GROUPS: ReadonlyArray<{
   label: string;
   views: readonly BottomPanelView[];
 }> = [
-  { id: "run", label: "Run", views: ["logs", "sandboxes"] },
+  { id: "run", label: "Run", views: ["logs", "queue", "sandboxes", "workers"] },
   {
     id: "workflow",
     label: "Workflow",
-    views: ["versions"]
+    views: ["versions", "workspace"]
   },
   { id: "debug", label: "Debug", views: ["trace"] }
 ];
