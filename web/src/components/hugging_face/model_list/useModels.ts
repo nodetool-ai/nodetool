@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { trpc } from "../../../lib/trpc";
 import { UnifiedModel } from "../../../stores/ApiTypes";
 import {
@@ -7,13 +7,70 @@ import {
 } from "../../../utils/modelFormatting";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
-import useMetadataStore from "../../../stores/MetadataStore";
-import type { ModelSortField, ModelSortDirection } from "../../../stores/ModelManagerStore";
+import type {
+  ModelSortField,
+  ModelSortDirection,
+  ModelScope
+} from "../../../stores/ModelManagerStore";
 import { useQuery } from "@tanstack/react-query";
 import { openInExplorer, openOllamaPath } from "../../../utils/fileExplorer";
 import { useHfCacheStatusStore } from "../../../stores/HfCacheStatusStore";
 import { getHfCacheKey, isHfModel } from "../../../utils/hfCache";
 import { isLocalProvider } from "../../../utils/providerDisplay";
+import useMetadataStore from "../../../stores/MetadataStore";
+
+/**
+ * HuggingFace Hub pipeline tags, shown as the fixed category list when browsing
+ * the Hub (where there are no results to derive categories from until a search
+ * runs). Dash-cased here; the sidebar/types use the underscore-prefixed
+ * `hf.<task>` form, and the Hub query maps the selected type back to this tag.
+ */
+const HF_HUB_PIPELINE_TAGS = [
+  "text-generation",
+  "text-classification",
+  "text2text-generation",
+  "fill-mask",
+  "token-classification",
+  "question-answering",
+  "zero-shot-classification",
+  "translation",
+  "summarization",
+  "feature-extraction",
+  "sentence-similarity",
+  "text-to-image",
+  "image-to-image",
+  "image-to-text",
+  "image-text-to-text",
+  "text-to-video",
+  "image-to-video",
+  "image-classification",
+  "object-detection",
+  "image-segmentation",
+  "depth-estimation",
+  "mask-generation",
+  "zero-shot-image-classification",
+  "visual-question-answering",
+  "document-question-answering",
+  "text-to-speech",
+  "text-to-audio",
+  "automatic-speech-recognition",
+  "audio-to-audio",
+  "audio-classification",
+  "audio-text-to-text",
+  "video-text-to-text",
+  "any-to-any"
+] as const;
+
+const HF_HUB_CATEGORY_TYPES = HF_HUB_PIPELINE_TAGS.map(
+  (tag) => `hf.${tag.replace(/-/g, "_")}`
+);
+
+/**
+ * Max results requested from the Hub per search. The Hub paginates beyond this,
+ * so a result count equal to the limit means "at least this many" — the UI
+ * labels it as a capped top-N rather than a definitive total.
+ */
+export const HUB_RESULT_LIMIT = 50;
 
 /**
  * The Models Manager only lists models that live on disk: downloadable
@@ -70,7 +127,7 @@ export interface UseModelsResult {
   handleShowInExplorer: (modelId: string) => Promise<void>;
 }
 
-export const useModels = (): UseModelsResult => {
+export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
   const modelSearchTerm = useModelManagerStore((state) => state.modelSearchTerm);
   const selectedModelType = useModelManagerStore((state) => state.selectedModelType);
   const maxModelSizeGB = useModelManagerStore((state) => state.maxModelSizeGB);
@@ -80,12 +137,18 @@ export const useModels = (): UseModelsResult => {
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
+  const source = useModelManagerStore((state) => state.source);
+  const recommendedCatalog = useMetadataStore((state) => state.recommendedModels);
   const cacheStatuses = useHfCacheStatusStore((state) => state.statuses);
-  // Recommended models declared by node packages (e.g. nodetool-mlx). The
-  // server's `models.all` only returns its curated list, provider models and
-  // the HF cache scan, so these Python-declared repos are missing until they
-  // happen to be downloaded. Merge them in so they're browsable/downloadable.
-  const recommendedModels = useMetadataStore((state) => state.recommendedModels);
+  // The local HF cache store only reflects the LOCAL filesystem. For the worker
+  // scope the cached-models list already carries authoritative `downloaded`
+  // flags (the worker forces them true), so we must ignore the local cache —
+  // otherwise a worker-cached repo absent locally is mislabeled "not downloaded".
+  // The recommended catalog and Hub results are browsed for download, so their
+  // on-disk state is the local cache (regardless of which scope a download would
+  // be routed to).
+  const useLocalCache =
+    scope === "local" || source === "recommended" || source === "hub";
 
   const {
     data: rawModels,
@@ -93,33 +156,60 @@ export const useModels = (): UseModelsResult => {
     isFetching,
     error
   } = useQuery({
-    queryKey: ["allModels"],
-    queryFn: () => trpc.models.all.query(),
+    queryKey: ["allModels", scope],
+    queryFn: (): Promise<UnifiedModel[]> =>
+      scope === "worker"
+        ? (trpc.models.huggingfaceList.query({
+            scope: "worker"
+          }) as Promise<UnifiedModel[]>)
+        : trpc.models.all.query(),
+    // The recommended catalog comes from already-loaded node metadata, so the
+    // on-disk query is unnecessary while browsing it.
+    enabled: source === "installed",
+    refetchOnWindowFocus: false
+  });
+
+  // Debounce the search term so each keystroke doesn't fire a Hub request.
+  const [debouncedSearch, setDebouncedSearch] = useState(modelSearchTerm);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(modelSearchTerm), 350);
+    return () => clearTimeout(t);
+  }, [modelSearchTerm]);
+
+  // In Hub mode, a selected `hf.<task>` type maps to the Hub's dash-cased
+  // pipeline tag (e.g. hf.audio_text_to_text → audio-text-to-text).
+  const hubPipelineTag = useMemo(() => {
+    if (source !== "hub" || !selectedModelType.startsWith("hf.")) {
+      return undefined;
+    }
+    return selectedModelType.slice(3).replace(/_/g, "-");
+  }, [source, selectedModelType]);
+
+  const {
+    data: hubModels,
+    isLoading: hubLoading,
+    isFetching: hubFetching,
+    error: hubError
+  } = useQuery({
+    queryKey: ["hubModels", debouncedSearch, hubPipelineTag],
+    queryFn: (): Promise<UnifiedModel[]> =>
+      trpc.models.huggingfaceHubSearch.query({
+        query: debouncedSearch || undefined,
+        pipeline_tag: hubPipelineTag,
+        limit: HUB_RESULT_LIMIT
+      }) as Promise<UnifiedModel[]>,
+    // Don't hit the Hub until there's something to search by.
+    enabled:
+      source === "hub" &&
+      (debouncedSearch.trim().length > 1 || hubPipelineTag !== undefined),
     refetchOnWindowFocus: false
   });
 
   const allModels = useMemo(() => {
-    if (!rawModels) {
-      return undefined;
-    }
-    const manageable = rawModels.filter(isManageableModel);
-    // Dedupe key matches the server's: repo/id + path. Drop provider so a
-    // cache-scanned entry (which carries downloaded state) wins over the
-    // recommended placeholder for the same repo.
-    const keyOf = (m: UnifiedModel) =>
-      `${m.repo_id || m.id || ""}::${m.path ?? ""}`;
-    const byKey = new Map<string, UnifiedModel>();
-    for (const m of recommendedModels) {
-      if (isManageableModel(m)) {
-        byKey.set(keyOf(m), m);
-      }
-    }
-    // API entries take precedence — they reflect what's actually on disk.
-    for (const m of manageable) {
-      byKey.set(keyOf(m), m);
-    }
-    return Array.from(byKey.values());
-  }, [rawModels, recommendedModels]);
+    if (source === "recommended") return recommendedCatalog;
+    if (source === "hub") return hubModels;
+    return rawModels?.filter(isManageableModel);
+  }, [source, recommendedCatalog, hubModels, rawModels]);
 
   const groupedModels = useMemo(
     () => groupModelsByType(allModels || []),
@@ -129,7 +219,10 @@ export const useModels = (): UseModelsResult => {
   const filteredModels: UnifiedModel[] = useMemo(() => {
     const filterModel = (model: UnifiedModel) => {
       const searchTerm = modelSearchTerm.toLowerCase();
+      // Hub results are already filtered server-side by the search query, so
+      // don't re-filter by text (avoids hiding valid hits during debounce).
       const matchesText =
+        source === "hub" ||
         model.name?.toLowerCase().includes(searchTerm) ||
         model.repo_id?.toLowerCase().includes(searchTerm);
       // When counting "filtered" models, we do NOT filter by type here if "All" is selected,
@@ -149,7 +242,7 @@ export const useModels = (): UseModelsResult => {
         {return false;}
 
       const cacheKey = getHfCacheKey(model);
-      const cacheStatus = cacheStatuses[cacheKey];
+      const cacheStatus = useLocalCache ? cacheStatuses[cacheKey] : undefined;
       const isOllama = model.type === "llama_model";
 
       // For Ollama models, they are always considered downloaded if returned by API
@@ -185,11 +278,13 @@ export const useModels = (): UseModelsResult => {
     return sortModels(filtered, sortField, sortDirection);
   }, [
     allModels,
+    source,
     modelSearchTerm,
     selectedModelType,
     maxModelSizeGB,
     filterStatus,
     cacheStatuses,
+    useLocalCache,
     sortField,
     sortDirection
   ]);
@@ -197,6 +292,12 @@ export const useModels = (): UseModelsResult => {
   const modelTypes = useMemo(() => {
     const allTypes = new Set<string>();
     allTypes.add("All");
+
+    // Hub mode: always offer the full pipeline-tag catalog so a category can be
+    // picked before any search has run.
+    if (source === "hub") {
+      HF_HUB_CATEGORY_TYPES.forEach((t) => allTypes.add(t));
+    }
 
     // Get unique types from all models
     allModels?.forEach((model) => {
@@ -206,12 +307,24 @@ export const useModels = (): UseModelsResult => {
     });
 
     return sortModelTypes(Array.from(allTypes));
-  }, [allModels]);
+  }, [allModels, source]);
 
     // Get available model types based on current filters (for sidebar visibility)
   const availableModelTypes = useMemo(() => {
     const types = new Set<string>();
     types.add("All");
+
+    // Hub mode: keep every pipeline-tag category visible (plus any from current
+    // results) so the user can always pick one to drive the search.
+    if (source === "hub") {
+      HF_HUB_CATEGORY_TYPES.forEach((t) => types.add(t));
+      allModels?.forEach((model) => {
+        if (model.type) {
+          types.add(model.type);
+        }
+      });
+      return types;
+    }
 
     // Get types from filtered models (excluding type filter)
     const modelsForTypeList =
@@ -230,19 +343,28 @@ export const useModels = (): UseModelsResult => {
           {return false;}
 
         const cacheKey = getHfCacheKey(model);
-        const cacheStatus = cacheStatuses[cacheKey];
+        const cacheStatus = useLocalCache ? cacheStatuses[cacheKey] : undefined;
         const isOllama = model.type === "llama_model";
 
         if (filterStatus === "downloaded") {
           if (isOllama) {
             // Ollama models are always downloaded
-          } else if (cacheStatus !== true) {
+          } else if (useLocalCache) {
+            if (cacheStatus !== true) {
+              return false;
+            }
+          } else if (!model.downloaded) {
+            // Worker scope: trust the list's authoritative downloaded flag.
             return false;
           }
         } else if (filterStatus === "not_downloaded") {
           if (isOllama) {
             return false;
-          } else if (cacheStatus !== false) {
+          } else if (useLocalCache) {
+            if (cacheStatus !== false) {
+              return false;
+            }
+          } else if (model.downloaded) {
             return false;
           }
         }
@@ -257,7 +379,15 @@ export const useModels = (): UseModelsResult => {
     });
 
     return types;
-  }, [allModels, modelSearchTerm, maxModelSizeGB, filterStatus, cacheStatuses]);
+  }, [
+    allModels,
+    source,
+    modelSearchTerm,
+    maxModelSizeGB,
+    filterStatus,
+    cacheStatuses,
+    useLocalCache
+  ]);
 
   const modelCountsByType = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -290,6 +420,12 @@ export const useModels = (): UseModelsResult => {
     }
   };
 
+  // Surface the loading/error state of whichever source is active.
+  const activeLoading =
+    source === "hub" ? hubLoading : source === "installed" ? isLoading : false;
+  const activeFetching = source === "hub" ? hubFetching : isFetching;
+  const activeError = source === "hub" ? hubError : error;
+
   return {
     modelTypes,
     availableModelTypes,
@@ -297,9 +433,9 @@ export const useModels = (): UseModelsResult => {
     allModels,
     groupedModels,
     filteredModels,
-    isLoading: isLoading,
-    isFetching: isFetching,
-    error: error,
+    isLoading: activeLoading,
+    isFetching: activeFetching,
+    error: activeError,
     handleShowInExplorer
   };
 };

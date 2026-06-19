@@ -3,6 +3,7 @@ import ModelMenuDialogBase from "./shared/ModelMenuDialogBase";
 import type { ImageModel, ModelPack, UnifiedModel } from "../../stores/ApiTypes";
 import { useHuggingFaceImageModelMenuStore } from "../../stores/ModelMenuStore";
 import { useHuggingFaceImageModelsByProvider } from "../../hooks/useModelsByProvider";
+import { useWorkerCachedModelIds } from "../../hooks/useWorkerCachedModels";
 import { trpc } from "../../lib/trpc";
 import { useQuery } from "@tanstack/react-query";
 
@@ -35,6 +36,7 @@ function HuggingFaceModelMenuDialog({
   modelPacks
 }: HuggingFaceModelMenuDialogProps) {
   const modelData = useHuggingFaceImageModelsByProvider({ task, modelType });
+  const workerCachedIds = useWorkerCachedModelIds();
 
   // Map to tRPC procedure key for recommended models
   const recommendedTask = useMemo(() => mapTaskToTrpcKey(task), [task]);
@@ -78,24 +80,30 @@ function HuggingFaceModelMenuDialog({
       }
     });
 
-    // Convert back to array and sort
-    const sortedModels = Array.from(uniqueModelsMap.values()).sort((a, b) => {
-      const aIsRecommended = recommendedModelIds.has(a.id || "");
-      const bIsRecommended = recommendedModelIds.has(b.id || "");
+    // Convert back to array, sort, and merge worker downloaded state
+    const sortedModels = Array.from(uniqueModelsMap.values())
+      .sort((a, b) => {
+        const aIsRecommended = recommendedModelIds.has(a.id || "");
+        const bIsRecommended = recommendedModelIds.has(b.id || "");
 
-      // Recommended models come first
-      if (aIsRecommended && !bIsRecommended) { return -1; }
-      if (!aIsRecommended && bIsRecommended) { return 1; }
+        if (aIsRecommended && !bIsRecommended) { return -1; }
+        if (!aIsRecommended && bIsRecommended) { return 1; }
 
-      // Within same category, sort alphabetically by name
-      return (a.name || "").localeCompare(b.name || "");
-    });
+        return (a.name || "").localeCompare(b.name || "");
+      })
+      .map((m) => {
+        if (workerCachedIds.size === 0) return m;
+        const key = m.path ? `${m.id}/${m.path}` : m.id;
+        return workerCachedIds.has(key)
+          ? ({ ...m, downloaded: true } as typeof m)
+          : m;
+      });
 
     return {
       ...modelData,
       models: sortedModels
     };
-  }, [modelData, recommendedModelIds]);
+  }, [modelData, recommendedModelIds, workerCachedIds]);
 
   return (
     <ModelMenuDialogBase<ImageModel>
