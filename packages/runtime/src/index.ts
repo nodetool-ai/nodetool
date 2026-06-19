@@ -52,6 +52,7 @@ export {
   type LlmUsage
 } from "./tracing-helpers.js";
 export { packContext, type PackedContext } from "./context-packer.js";
+export { countTokens, truncateToTokens } from "./token-counter.js";
 export {
   PythonStdioBridge,
   type PythonBridgeOptions,

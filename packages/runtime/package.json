@@ -24,6 +24,7 @@
     "@opentelemetry/sdk-trace-base": "^2.6.0",
     "@opentelemetry/semantic-conventions": "^1.40.0",
     "@pydantic/genai-prices": "^0.0.62",
+    "js-tiktoken": "^1.0.21",
     "openai": "^6.35.0",
     "replicate": "^1.4.0",
     "sharp": "^0.34.5",
@@ -41,6 +42,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./oauth": {
+      "nodetool-dev": "./src/providers/oauth/index.ts",
+      "types": "./dist/providers/oauth/index.d.ts",
+      "import": "./dist/providers/oauth/index.js",
+      "default": "./dist/providers/oauth/index.js"
     },
     "./context": {
       "nodetool-dev": "./src/context.ts",

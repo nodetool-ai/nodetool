@@ -652,7 +652,13 @@ export function App({
             });
 
             for await (const item of stream) {
-              if (item.type === "chunk" && typeof item.content === "string") {
+              // ProviderStreamItem is Chunk | ToolCall; ToolCall has no `type`,
+              // so guard the discriminant before narrowing to a Chunk.
+              if (
+                "type" in item &&
+                item.type === "chunk" &&
+                typeof item.content === "string"
+              ) {
                 summary += item.content;
               }
             }

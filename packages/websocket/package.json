@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@fastify/cors": "^10.0.2",
+    "@fastify/rate-limit": "^10.3.0",
     "@fastify/static": "^9.1.1",
     "@fastify/websocket": "^11.0.1",
     "@modelcontextprotocol/ext-apps": "^1.7.2",
