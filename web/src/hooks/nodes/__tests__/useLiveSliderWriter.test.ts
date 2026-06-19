@@ -62,8 +62,8 @@ jest.mock("../../../lib/workflow/browserWorkflowRunner", () => ({
   preloadBrowserRunner: jest.fn()
 }));
 
-jest.mock("../../../stores/uuidv4", () => ({
-  uuidv4: () => "preview-job-1"
+jest.mock("uuid", () => ({
+  v4: () => "preview-job-1"
 }));
 
 jest.mock("../../../stores/LiveRunStore", () => ({

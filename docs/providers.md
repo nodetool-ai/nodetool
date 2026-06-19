@@ -57,6 +57,7 @@ The capability system uses introspection to automatically detect which features 
 | Groq | `groq-provider.ts` | ✅ | ✅ | — | Ultra-fast inference via Groq LPU |
 | Mistral | `mistral-provider.ts` | ✅ | ✅ | — | Mistral & Mixtral models |
 | Cerebras | `cerebras-provider.ts` | ✅ | ✅ | — | High-throughput Cerebras inference |
+| GMI Cloud | `gmi-provider.ts` | ✅ | ✅ | — | OpenAI-compatible inference for open-weight LLMs (Llama, DeepSeek, Qwen); `GMI_API_KEY` |
 | OpenRouter | `openrouter-provider.ts` | ✅ | ✅ | model-dependent | 300+ models via one key. Includes image generation |
 | LM Studio | `lmstudio-provider.ts` | ✅ | model-dependent | model-dependent | Local LM Studio server (no API key needed) |
 | Together AI | `together-provider.ts` | ✅ | ✅ | — | Open-weight model hosting |
@@ -196,6 +197,7 @@ const params: TextToVideoParams = {
 | **Groq**         | `GROQ_API_KEY`        | -                               |
 | **Mistral**      | `MISTRAL_API_KEY`     | -                               |
 | **Cerebras**     | `CEREBRAS_API_KEY`    | -                               |
+| **GMI Cloud**    | `GMI_API_KEY`         | -                               |
 | **OpenRouter**   | `OPENROUTER_API_KEY`  | -                               |
 | **LM Studio**    | `LMSTUDIO_API_KEY` (optional) | `LMSTUDIO_API_URL` (default `http://127.0.0.1:1234`) |
 | **Together AI**  | `TOGETHER_API_KEY`    | -                               |
@@ -217,6 +219,7 @@ const params: TextToVideoParams = {
 - **Groq:** https://console.groq.com/keys
 - **Mistral:** https://console.mistral.ai/api-keys
 - **Cerebras:** https://cloud.cerebras.ai/
+- **GMI Cloud:** https://console.gmicloud.ai/
 - **OpenRouter:** https://openrouter.ai/keys
 - **Together AI:** https://api.together.xyz/settings/api-keys
 - **Moonshot (Kimi):** https://platform.moonshot.cn/console/api-keys

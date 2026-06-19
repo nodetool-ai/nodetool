@@ -1,5 +1,6 @@
 import type { JSX } from "react";
 import { UnifiedModel } from "../stores/ApiTypes";
+import { formatByteSize } from "./formatUtils";
 import ModelIcon from "../icons/data_types/nodetool/model.svg";
 import PetsIcon from "@mui/icons-material/Pets";
 
@@ -73,16 +74,23 @@ export const prettifyModelType = (type: string): JSX.Element | string => {
   );
 };
 
+const MODEL_BYTE_UNITS = [
+  "Bytes",
+  "KB",
+  "MB",
+  "GB",
+  "TB",
+  "PB",
+  "EB",
+  "ZB",
+  "YB"
+] as const;
+
 export const formatBytes = (bytes?: number): string => {
   if (bytes === undefined || bytes === null || isNaN(bytes)) {
     return "";
   }
-  if (bytes === 0) {return "0 Bytes";}
-  const bytesPerKilobyte = 1024;
-  const decimalPlaces = 2;
-  const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
-  const sizeIndex = Math.floor(Math.log(bytes) / Math.log(bytesPerKilobyte));
-  return parseFloat((bytes / Math.pow(bytesPerKilobyte, sizeIndex)).toFixed(decimalPlaces)) + " " + sizes[sizeIndex];
+  return formatByteSize(bytes, MODEL_BYTE_UNITS, 2, "0 Bytes");
 };
 
 export const groupModelsByType = (models: UnifiedModel[]): Record<string, UnifiedModel[]> => {

@@ -120,9 +120,6 @@ const applyAssetToLayer = async (
   }
 };
 
-const isActiveStatus = (status: string): boolean =>
-  status === "queued" || status === "running";
-
 const unsubscribeJob = (jobId: string): void => {
   const unsubscribe = jobSubscriptions.get(jobId);
   if (unsubscribe) {

@@ -1,7 +1,7 @@
 import { globalWebSocketManager } from "../websocket/GlobalWebSocketManager";
 import { isLocalhost } from "../env";
 import { supabase } from "../supabaseClient";
-import { uuidv4 } from "../../stores/uuidv4";
+import { v4 as uuidv4 } from "uuid";
 import { BASE_URL } from "../../stores/BASE_URL";
 import useMetadataStore from "../../stores/MetadataStore";
 import type { Edge, Node, WorkflowGraph } from "../../stores/ApiTypes";

@@ -25,7 +25,7 @@ import {
   runBrowserGraphJob,
   updateBrowserJobNodeProperties
 } from "../lib/workflow/browserWorkflowRunner";
-import { uuidv4 } from "./uuidv4";
+import { v4 as uuidv4 } from "uuid";
 import { useNotificationStore, Notification } from "./NotificationStore";
 import useOnboardingStore from "./OnboardingStore";
 import useMetadataStore from "./MetadataStore";

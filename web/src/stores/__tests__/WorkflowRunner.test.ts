@@ -1,7 +1,7 @@
 import { createWorkflowRunnerStore, deriveJobTitle } from "../WorkflowRunner";
 import useMetadataStore from "../MetadataStore";
 import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
-import { uuidv4 } from "../uuidv4";
+import { v4 as uuidv4 } from "uuid";
 import type { WorkflowAttributes } from "../ApiTypes";
 
 jest.mock("../../contexts/EditorInsertionContext", () => ({
@@ -79,8 +79,8 @@ jest.mock("../../queryClient", () => ({
   },
 }));
 
-jest.mock("../uuidv4", () => ({
-  uuidv4: jest.fn().mockReturnValue("test-job-id-123"),
+jest.mock("uuid", () => ({
+  v4: jest.fn().mockReturnValue("test-job-id-123"),
 }));
 
 describe("WorkflowRunner", () => {

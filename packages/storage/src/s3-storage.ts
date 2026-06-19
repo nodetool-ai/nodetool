@@ -12,6 +12,7 @@ import {
   HeadObjectCommand
 } from "@aws-sdk/client-s3";
 import type { AbstractStorage } from "./abstract-storage.js";
+import { assertUploadWithinLimit } from "./storage-limits.js";
 
 interface S3ClientLike {
   send(command: unknown): Promise<any>;
@@ -42,6 +43,7 @@ export class S3Storage implements AbstractStorage {
     data: Buffer | Uint8Array,
     contentType?: string
   ): Promise<void> {
+    assertUploadWithinLimit(key, data.byteLength);
     const client = await this.getClient();
     await client.send(
       new PutObjectCommand({

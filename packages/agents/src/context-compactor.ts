@@ -22,6 +22,7 @@
  */
 
 import type { BaseProvider, Message } from "@nodetool-ai/runtime";
+import { countTokens } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
 import {
   COMPACTION_SYSTEM_PROMPT,
@@ -64,15 +65,13 @@ export interface CompactionOptions {
 }
 
 /**
- * Rough token estimate based on JSON serialized message length / 4.
+ * Token count of the serialized messages via js-tiktoken (cl100k_base).
  *
  * Identical semantics to `StepExecutor.estimateTokens()` so the compaction
- * threshold is directly comparable to the step's own budget. Deliberately NOT
- * BPE-accurate — char/4 matches the existing per-iteration estimator and keeps
- * the hot loop free of js-tiktoken.
+ * threshold is directly comparable to the step's own budget.
  */
 export function estimateMessageTokens(messages: Message[]): number {
-  return Math.ceil(JSON.stringify(messages).length / 4);
+  return countTokens(JSON.stringify(messages));
 }
 
 export class ContextCompactor {

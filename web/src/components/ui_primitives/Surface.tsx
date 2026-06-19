@@ -74,9 +74,13 @@ export const Surface = memo(
     ) => {
       const theme = useTheme();
 
+      // Read backgrounds from theme.vars (CSS variables) so the active color
+      // scheme is honored. theme.palette.* is baked from the default scheme at
+      // createTheme time, so it would force the light value even in dark mode.
+      const palette = theme.vars?.palette ?? theme.palette;
       const bgMap = {
-        default: theme.palette.background.default,
-        paper: theme.palette.background.paper,
+        default: palette.background.default,
+        paper: palette.background.paper,
         transparent: "transparent",
       };
 
@@ -95,7 +99,7 @@ export const Surface = memo(
                 : padding,
             backgroundColor: bgMap[background],
             ...(bordered && {
-              border: `1px solid ${theme.palette.divider}`,
+              border: `1px solid ${palette.divider}`,
             }),
             ...(elevation === 0 && {
               boxShadow: "none",

@@ -20,6 +20,7 @@ import {
 import { createLogger } from "@nodetool-ai/config";
 import { uiToolSchemas } from "@nodetool-ai/protocol";
 import { z, toJSONSchema } from "zod";
+import { isOriginAllowed } from "../cors.js";
 import type { AgentTransport } from "./transport.js";
 
 const log = createLogger("nodetool.websocket.agent.mcp");
@@ -96,21 +97,6 @@ let serverPort: number | null = null;
  * multiple renderers were connected simultaneously.
  */
 const sessionTransports = new Map<string, AgentTransport>();
-
-/** Default CORS origins allowed to hit the MCP HTTP server. */
-const DEFAULT_ALLOWED_ORIGIN_PATTERNS: RegExp[] = [
-  /^https?:\/\/localhost(?::\d+)?$/,
-  /^https?:\/\/127\.0\.0\.1(?::\d+)?$/,
-  // Electron renderer
-  /^file:\/\//,
-];
-
-function isOriginAllowed(origin: string | undefined): boolean {
-  // MCP SDK clients (Claude/Codex) typically don't send an Origin header.
-  // In that case there's no browser enforcing CORS, so allow the request.
-  if (!origin) return true;
-  return DEFAULT_ALLOWED_ORIGIN_PATTERNS.some((re) => re.test(origin));
-}
 
 function readBody(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {

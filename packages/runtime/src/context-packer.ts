@@ -3,34 +3,28 @@
  *
  * Truncates a conversation to fit within a token budget.
  * Drops oldest messages first, keeping the most recent ones.
- * Uses a simple estimate: 1 token ~ 4 characters.
+ * Token counts come from js-tiktoken (see `./token-counter.ts`).
  */
 
 import type { Message, MessageContent } from "./providers/types.js";
-
-/** Rough estimate: 1 token ≈ 4 characters. */
-const CHARS_PER_TOKEN = 4;
+import { countTokens, truncateToTokens } from "./token-counter.js";
 
 /** Fixed token overhead for non-text content blocks (images, audio). */
-const NON_TEXT_BLOCK_CHARS = 100;
-
-function charsToTokens(chars: number): number {
-  return Math.ceil(chars / CHARS_PER_TOKEN);
-}
+const NON_TEXT_BLOCK_TOKENS = 25;
 
 function estimateMessageTokens(msg: Message): number {
   if (msg.content === null || msg.content === undefined) return 1;
-  if (typeof msg.content === "string") return charsToTokens(msg.content.length);
+  if (typeof msg.content === "string") return countTokens(msg.content);
   // MessageContent array
-  let chars = 0;
+  let tokens = 0;
   for (const part of msg.content as MessageContent[]) {
     if (part.type === "text") {
-      chars += part.text.length;
+      tokens += countTokens(part.text);
     } else {
-      chars += NON_TEXT_BLOCK_CHARS;
+      tokens += NON_TEXT_BLOCK_TOKENS;
     }
   }
-  return charsToTokens(chars);
+  return tokens;
 }
 
 export interface PackedContext {
@@ -52,14 +46,12 @@ export function packContext(
   maxTokens: number
 ): PackedContext {
   let sysPrompt = systemPrompt;
-  let sysTokens = charsToTokens(sysPrompt.length);
+  let sysTokens = countTokens(sysPrompt);
 
-  // If system prompt alone exceeds budget, truncate it
-  // Stryker disable next-line EqualityOperator: at sysTokens === maxTokens, `>=` truncates to maxChars >= the prompt length (a no-op slice) and sets sysTokens = maxTokens (already the case), so remaining is 0 either way — equivalent.
+  // If system prompt alone exceeds budget, truncate it to the budget.
   if (sysTokens > maxTokens) {
-    const maxChars = maxTokens * CHARS_PER_TOKEN;
-    sysPrompt = sysPrompt.slice(0, maxChars);
-    sysTokens = maxTokens;
+    sysPrompt = truncateToTokens(sysPrompt, maxTokens);
+    sysTokens = countTokens(sysPrompt);
   }
 
   let remaining = maxTokens - sysTokens;
