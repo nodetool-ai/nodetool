@@ -11,7 +11,8 @@ describe("ModelManagerStore", () => {
       filterStatus: "all",
       sortField: "name",
       sortDirection: "asc",
-      scope: "local"
+      scope: "local",
+      source: "installed"
     });
   });
 

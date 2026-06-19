@@ -23,7 +23,9 @@ export const useWorkerCachedModels = (): WorkerCachedModelsResult => {
   const { activeWorker } = useWorkers();
 
   const { data, isLoading } = useQuery<UnifiedModel[]>({
-    queryKey: ["worker-cached-models"],
+    // Segment by worker id so attaching to a different worker doesn't reuse the
+    // previous worker's cached-model list.
+    queryKey: ["worker-cached-models", activeWorker?.id ?? null],
     queryFn: () =>
       trpc.models.huggingfaceList.query({ scope: "worker" }) as Promise<
         UnifiedModel[]
