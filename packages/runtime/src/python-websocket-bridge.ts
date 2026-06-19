@@ -206,6 +206,19 @@ export class WebsocketPythonBridge extends PythonBridgeBase {
     this._reconnecting = false;
     this._reconnectDelayMs = INITIAL_RECONNECT_DELAY_MS;
 
+    // Abort any in-flight handshake. A CONNECTING socket lives only in the
+    // _openTransport closure, NOT in this._ws, so _teardownSocket can't reach
+    // it — and its finishSuccess, if left to fire, would set this._ws and
+    // clobber the socket we're about to open against the new target (leaving
+    // the bridge attached to the OLD worker url/token). This is exactly the
+    // provision→attach→setTarget flow. Aborting rejects that handshake and
+    // crash-safely tears down its CONNECTING socket.
+    if (this._abortHandshake) {
+      const abort = this._abortHandshake;
+      this._abortHandshake = null;
+      abort(new Error("Python worker re-pointed via setTarget"));
+    }
+
     // Tear down the current socket (detaches listeners → no spurious
     // _onUnexpectedClose) and reject in-flight requests, then drive a fresh
     // connect against the new target via the reconnect path.

@@ -48,12 +48,25 @@ export interface FakeWorkerOptions {
    *  - "error": emit an error-status progress frame then a terminal error frame
    */
   downloadMode?: "progress" | "error";
+  /**
+   * When true, the WebSocket upgrade is held until {@link
+   * FakeWorkerHandle.releaseUpgrade} is called. Lets a test keep a client's
+   * initial handshake in the CONNECTING state deterministically (e.g. to
+   * reproduce a late-resolving handshake racing setTarget).
+   */
+  gateUpgrade?: boolean;
 }
 
 export interface FakeWorkerHandle {
   port: number;
   /** Forcibly drop all currently-connected client sockets. */
   dropConnections: () => void;
+  /**
+   * Release a gated WebSocket upgrade (see {@link FakeWorkerOptions.gateUpgrade}).
+   * No-op when no upgrade is currently pending. Releases the most recent pending
+   * upgrade.
+   */
+  releaseUpgrade: () => void;
   /** Close the server entirely. */
   close: () => Promise<void>;
   /** Number of discover requests the worker has answered. */
@@ -82,7 +95,22 @@ export function startFakeWorker(
   port = 0,
   initialOptions: FakeWorkerOptions = {}
 ): Promise<FakeWorkerHandle> {
-  const wss = new WebSocketServer({ port });
+  // When gateUpgrade is set, verifyClient stashes the accept callback instead of
+  // calling it, so the WS upgrade hangs in CONNECTING until releaseUpgrade runs.
+  let pendingUpgrade: (() => void) | null = null;
+  const wss = new WebSocketServer(
+    initialOptions.gateUpgrade
+      ? {
+          port,
+          verifyClient: (
+            _info: unknown,
+            cb: (accept: boolean) => void
+          ) => {
+            pendingUpgrade = () => cb(true);
+          }
+        }
+      : { port }
+  );
   const sockets = new Set<WsServerSocket>();
   const authHeaders: Array<string | undefined> = [];
   const receivedByType = new Map<string, Array<Record<string, unknown>>>();
@@ -316,6 +344,11 @@ export function startFakeWorker(
             ws.terminate();
           }
           sockets.clear();
+        },
+        releaseUpgrade: () => {
+          const release = pendingUpgrade;
+          pendingUpgrade = null;
+          release?.();
         },
         close: () =>
           new Promise<void>((res) => {

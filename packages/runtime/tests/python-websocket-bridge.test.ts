@@ -610,6 +610,67 @@ describe("WebsocketPythonBridge", () => {
       }
     });
 
+    it("a late-resolving initial handshake cannot clobber the new target (provision→attach→setTarget)", async () => {
+      // Reproduce the provision→attach→setTarget race: the initial connect() to
+      // worker A is still mid-handshake (CONNECTING) when setTarget re-points at
+      // worker B. The A handshake's socket lives only in the _openTransport
+      // closure, so if setTarget fails to abort it, A's eventual finishSuccess
+      // sets this._ws and clobbers the B socket — leaving the bridge silently
+      // attached to the OLD worker. setTarget must abort that handshake.
+      const workerA = await startFakeWorker(0, { gateUpgrade: true });
+      const workerB = await startFakeWorker();
+      try {
+        bridge = new WebsocketPythonBridge({
+          wsUrl: `ws://127.0.0.1:${workerA.port}`,
+          workerToken: "a-token",
+          maxReconnectDelayMs: 50
+        });
+
+        // Kick off the initial connect; it hangs on A's gated upgrade. Swallow
+        // its rejection — setTarget aborts the handshake, which rejects connect().
+        const connectErr: { e: Error | null } = { e: null };
+        const connecting = bridge.connect().catch((e: Error) => {
+          connectErr.e = e;
+        });
+        // Let the bridge reach the CONNECTING state against worker A.
+        await new Promise((r) => setTimeout(r, 50));
+
+        let reconnected = false;
+        bridge.on("reconnected", () => {
+          reconnected = true;
+        });
+
+        // Re-point at B while A's handshake is still in flight.
+        bridge.setTarget(`ws://127.0.0.1:${workerB.port}`, "b-token");
+        await waitFor(() => reconnected, 10000);
+
+        // Now release A's long-stalled upgrade. A late finishSuccess on the old
+        // closure must NOT overwrite the live B socket.
+        workerA.releaseUpgrade();
+        await new Promise((r) => setTimeout(r, 100));
+        await connecting;
+
+        // The bridge is on B: url, token header, and the actual socket.
+        expect(bridge.isConnected).toBe(true);
+        expect(bridge.wsUrl).toBe(`ws://127.0.0.1:${workerB.port}`);
+        expect(workerB.authHeaders()).toEqual(["Bearer b-token"]);
+
+        const result = await bridge.execute(
+          "fake.TestNode",
+          { value: "on-b" },
+          {},
+          {}
+        );
+        expect(result.outputs).toEqual({ out: "on-b" });
+        // The execute reached worker B, never the clobbering worker A.
+        expect(workerB.received("execute")).toHaveLength(1);
+        expect(workerA.received("execute")).toHaveLength(0);
+      } finally {
+        await workerA.close();
+        await workerB.close();
+      }
+    });
+
     it("rejects in-flight requests on the forced reconnect", async () => {
       // Worker A accepts the socket and answers connect, but never answers
       // execute, so the request stays pending. setTarget must reject it (the
