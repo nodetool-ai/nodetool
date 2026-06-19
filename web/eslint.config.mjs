@@ -154,6 +154,14 @@ export default [
           message:
             "Use a TYPOGRAPHY/FONT_SIZE token or var(--fontSize*) instead of a hardcoded font size. See ui_primitives/tokens.ts and docs/DESIGN.md.",
         },
+        {
+          // padding/margin/gap: "10px" → snap to the 4px spacing grid (SPACING
+          // tokens in MUI sx; grid-aligned px in emotion css()).
+          selector:
+            "Property[key.name=/^(padding|margin|gap|rowGap|columnGap)$/] > Literal[value=/^[0-9]+px$/]",
+          message:
+            "Snap spacing to the 4px grid: use SPACING tokens in MUI sx, or grid-aligned px in emotion css(). See ui_primitives/spacing.ts and docs/DESIGN.md.",
+        },
       ],
     },
   },
