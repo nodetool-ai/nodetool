@@ -90,6 +90,9 @@ const DEFAULT_EXECUTE_TIMEOUT_MS = Number(
 const DEFAULT_STATUS_TIMEOUT_MS = Number(
   process.env["NODETOOL_PYTHON_STATUS_TIMEOUT_MS"] ?? 10000
 );
+const DEFAULT_DOWNLOAD_IDLE_TIMEOUT_MS = Number(
+  process.env["NODETOOL_PYTHON_DOWNLOAD_IDLE_TIMEOUT_MS"] ?? 5 * 60 * 1000
+);
 
 /**
  * Transport-agnostic Python bridge. Subclasses provide the transport via
@@ -801,29 +804,68 @@ export abstract class PythonBridgeBase
    * Pass a stable `requestId` to make the download cancellable by a known key:
    * {@link cancelModelDownload}(requestId) then reaches this exact download.
    * Defaults to a random id when the caller has no need to cancel.
+   *
+   * Unlike a plain provider RPC, this download is settled defensively: an
+   * inactivity timer (reset on every progress frame) rejects the promise if the
+   * worker hangs mid-download, and {@link cancelModelDownload} rejects it
+   * immediately. Either path clears BOTH pending maps so nothing leaks even when
+   * no terminal `result`/`error` ever arrives.
    */
   async downloadModel(
     req: ModelDownloadRequest,
     onProgress: (update: ModelDownloadUpdate) => void,
     requestId: string = randomUUID()
   ): Promise<void> {
+    const idleTimeoutMs =
+      this._options.downloadIdleTimeoutMs ?? DEFAULT_DOWNLOAD_IDLE_TIMEOUT_MS;
     return new Promise<void>((resolve, reject) => {
+      let settled = false;
+      let timer: NodeJS.Timeout | undefined;
       const settle = (fn: () => void) => {
+        if (settled) return;
+        settled = true;
+        if (timer) clearTimeout(timer);
         this._pending.delete(requestId);
         this._pendingStream.delete(requestId);
         fn();
       };
+      // Inactivity watchdog: a download making steady progress keeps resetting
+      // the clock, but a worker that goes silent mid-download is cancelled and
+      // rejected instead of leaking its pending entries forever.
+      const armIdleTimer = () => {
+        if (idleTimeoutMs <= 0) return;
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => {
+          try {
+            this.cancel(requestId);
+          } catch {
+            // Worker may already be gone; cancel is best-effort.
+          }
+          const stderrHint = this.getRecentStderrSummary(4);
+          settle(() =>
+            reject(
+              new Error(
+                `Model download "${requestId}" stalled: no progress for ${idleTimeoutMs}ms.` +
+                  (stderrHint ? ` Recent stderr: ${stderrHint}` : "")
+              )
+            )
+          );
+        }, idleTimeoutMs);
+      };
       this._pending.set(requestId, {
         resolve: () => undefined,
         reject: () => undefined,
-        onProgress: (event) =>
-          onProgress(event as unknown as ModelDownloadUpdate)
+        onProgress: (event) => {
+          armIdleTimer();
+          onProgress(event as unknown as ModelDownloadUpdate);
+        }
       });
       this._pendingStream.set(requestId, {
         resolve: () => settle(resolve),
         reject: (err) => settle(() => reject(err)),
         onChunk: () => {}
       });
+      armIdleTimer();
       try {
         this._send({ type: "models.download", request_id: requestId, data: req });
       } catch (err) {
@@ -832,9 +874,21 @@ export abstract class PythonBridgeBase
     });
   }
 
-  /** Cancel an in-flight {@link downloadModel} by its request id. */
+  /**
+   * Cancel an in-flight {@link downloadModel} by its request id. Sends the
+   * cancel frame AND settles the local promise immediately by rejecting it —
+   * the worker may never emit a terminal frame after a cancel (or may be hung),
+   * so we cannot rely on `result`/`error` to clean up. Rejecting through the
+   * pending-stream entry clears both pending maps; a no-op if the id is unknown.
+   */
   cancelModelDownload(requestId: string): void {
     this.cancel(requestId);
+    const streamReq = this._pendingStream.get(requestId);
+    if (streamReq) {
+      streamReq.reject(
+        new Error(`Model download "${requestId}" was cancelled.`)
+      );
+    }
   }
 
   /** Delete a cached model from the worker's HF_HOME. Returns whether it existed. */
