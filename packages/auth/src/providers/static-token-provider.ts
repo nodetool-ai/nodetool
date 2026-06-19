@@ -8,7 +8,15 @@
  *   - STATIC_AUTH_TOKENS: JSON object mapping tokens to user IDs
  */
 
+import { timingSafeEqual } from "node:crypto";
+
 import { AuthProvider, AuthResult, TokenType } from "../auth-provider.js";
+
+/**
+ * Minimum length (in bytes) for a presented token to be considered.
+ * Rejects empty or trivially short tokens before any comparison.
+ */
+const MIN_TOKEN_LENGTH = 16;
 
 export class StaticTokenProvider extends AuthProvider {
   private tokens: Map<string, string>;
@@ -53,9 +61,31 @@ export class StaticTokenProvider extends AuthProvider {
   }
 
   async verifyToken(token: string): Promise<AuthResult> {
-    const userId = this.tokens.get(token);
-    if (userId) {
-      return { ok: true, userId, tokenType: TokenType.STATIC };
+    if (typeof token !== "string") {
+      return { ok: false, error: "Invalid token" };
+    }
+
+    const provided = Buffer.from(token, "utf-8");
+    if (provided.length < MIN_TOKEN_LENGTH) {
+      return { ok: false, error: "Invalid token" };
+    }
+
+    // Compare against every configured token using a constant-time comparison
+    // so verification time does not leak which (if any) token matched. We do
+    // not short-circuit on the first match for the same reason.
+    let matchedUserId: string | undefined;
+    for (const [candidate, userId] of this.tokens) {
+      const expected = Buffer.from(candidate, "utf-8");
+      if (
+        provided.length === expected.length &&
+        timingSafeEqual(provided, expected)
+      ) {
+        matchedUserId = userId;
+      }
+    }
+
+    if (matchedUserId !== undefined) {
+      return { ok: true, userId: matchedUserId, tokenType: TokenType.STATIC };
     }
     return { ok: false, error: "Invalid token" };
   }
