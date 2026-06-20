@@ -324,7 +324,7 @@
       {
         "id": "3",
         "source": "7",
-        "sourceHandle": "output",
+        "sourceHandle": "text",
         "target": "6",
         "targetHandle": "asana_info",
         "ui_properties": null
@@ -332,7 +332,7 @@
       {
         "id": "4",
         "source": "8",
-        "sourceHandle": "output",
+        "sourceHandle": "text",
         "target": "6",
         "targetHandle": "monday_info",
         "ui_properties": null
@@ -340,7 +340,7 @@
       {
         "id": "5",
         "source": "9",
-        "sourceHandle": "output",
+        "sourceHandle": "text",
         "target": "6",
         "targetHandle": "jira_info",
         "ui_properties": null
