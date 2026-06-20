@@ -19,6 +19,7 @@ import {
   getContrastingTextColor
 } from "../../utils/colorConversion";
 import { useColorPickerStore, GradientValue } from "../../stores/ColorPickerStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import SaturationPicker from "./SaturationPicker";
 import HueSlider from "./HueSlider";
 import AlphaSlider from "./AlphaSlider";
@@ -189,6 +190,9 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
   const [activeTab, setActiveTab] = useState<TabType>("swatches");
   const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
   const copiedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
   const [gradient, setGradient] = useState<GradientValue>({
     type: "linear",
     angle: 90,
@@ -302,9 +306,12 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
         setCopiedFormat(format);
       } catch (error) {
         console.error("Failed to copy to clipboard:", error);
-        window.alert(
-          "Failed to copy the color to the clipboard. Please check your browser permissions and try again."
-        );
+        addNotification({
+          type: "error",
+          alert: true,
+          content:
+            "Failed to copy the color to the clipboard. Please check your browser permissions and try again."
+        });
         return;
       }
 
@@ -319,7 +326,7 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
         copiedTimeoutRef.current = null;
       }, 1500);
     },
-    [color, alpha]
+    [color, alpha, addNotification]
   );
 
   // Handle apply (save to recent and close)

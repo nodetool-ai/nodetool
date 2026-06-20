@@ -1,10 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useState, useCallback, useMemo, memo } from "react";
+import React, { useState, useCallback, useMemo, memo, useRef, useEffect } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import CheckIcon from "@mui/icons-material/Check";
 import {
   Caption,
   DeleteButton,
@@ -92,6 +93,18 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
 }) => {
   const theme = useTheme();
   const [selectedStopIndex, setSelectedStopIndex] = useState<number | null>(0);
+  const [copied, setCopied] = useState(false);
+  const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined
+  );
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const cssOutput = useMemo(() => gradientToCss(gradient), [gradient]);
 
@@ -262,6 +275,11 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
   const copyToClipboard = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(cssOutput);
+      setCopied(true);
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
+      copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error("Failed to copy to clipboard:", error);
     }
@@ -385,11 +403,11 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
           Add Stop
         </EditorButton>
         <EditorButton
-          startIcon={<ContentCopyIcon />}
+          startIcon={copied ? <CheckIcon /> : <ContentCopyIcon />}
           onClick={copyToClipboard}
           variant="outlined"
         >
-          Copy CSS
+          {copied ? "Copied!" : "Copy CSS"}
         </EditorButton>
       </FlexRow>
 
