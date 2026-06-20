@@ -337,8 +337,6 @@ export default function Home() {
                   className="w-full h-auto rounded-xl"
                   controls
                   playsInline
-                  preload="none"
-                  poster="/preview.png"
                 />
               </div>
             </motion.div>
