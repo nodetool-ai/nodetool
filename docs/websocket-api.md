@@ -13,7 +13,7 @@ NodeTool exposes a single WebSocket endpoint for workflow execution and live upd
 - **Auth**: Include a bearer token as a query parameter (`?api_key=<token>`) or rely on the same auth flow used by REST endpoints. Tokens are optional in `local`/`none` auth modes.
 - **Protocol**: Binary (MessagePack) or Text (JSON) frames. The server auto-detects frame type.
 
-See [`workflow_runner/js/workflow-runner.js`](../workflow_runner/js/workflow-runner.js) for a complete client implementation used by the bundled runner UI.
+See [`examples/workflow_runner/js/workflow-runner.js`](https://github.com/nodetool-ai/nodetool/blob/main/examples/workflow_runner/js/workflow-runner.js) for a complete client implementation used by the bundled runner UI.
 
 ## Encoding
 

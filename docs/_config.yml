@@ -128,6 +128,7 @@ header_pages:
 
 # Exclude from processing
 exclude:
+  # Build tooling
   - Gemfile
   - Gemfile.lock
   - node_modules
@@ -138,6 +139,25 @@ exclude:
   - .sass-cache/
   - .jekyll-cache/
   - gemfiles/
+  # Contributor / engineering docs — kept in the repo (referenced by CLAUDE.md),
+  # but NOT published to docs.nodetool.ai. These are not user-facing.
+  - README.md
+  - AGENTS.md
+  - DESIGN.md
+  - DEVELOPMENT_STANDARDS.md
+  - THEME.md
+  - CLOUD_NODE_CURATION.md
+  - AGENT_CLI_QUICKREF.md
+  - runpod_testing_guide.md
+  - runtime-package-interface.md
+  # Internal product/design specs (PRDs, drafts) — not for the public site.
+  - STUDIO_PRD.md
+  - STUDIO_MVP_PROMPT.md
+  - image-editor-prd.md
+  - timeline-editor-prd.md
+  - correlation-design.md
+  # Internal implementation plans & specs (agentic-worker instructions).
+  - superpowers/
 
 # Custom theme settings
 # Using custom futuristic dark theme located in _layouts, _includes, and assets

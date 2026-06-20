@@ -76,11 +76,11 @@ frame to `socket.send(JSON.stringify(update))` — the identical sink the local 
 
 ## Task 1.1 — Bump `BRIDGE_PROTOCOL_VERSION` to 2
 
-**File:** `/Users/mg/workspace/nodetool-core/src/nodetool/worker/__init__.py`
+**File:** `~/workspace/nodetool-core/src/nodetool/worker/__init__.py`
 
 ### Failing test
 
-**File:** `/Users/mg/workspace/nodetool-core/tests/worker/test_model_handler.py` (new)
+**File:** `~/workspace/nodetool-core/tests/worker/test_model_handler.py` (new)
 
 ```python
 """Tests for the models.* bridge handler."""
@@ -116,7 +116,7 @@ async def server():
 ### Run
 
 ```bash
-cd /Users/mg/workspace/nodetool-core && pytest tests/worker/test_model_handler.py::test_protocol_version_is_2 -q
+cd ~/workspace/nodetool-core && pytest tests/worker/test_model_handler.py::test_protocol_version_is_2 -q
 ```
 
 Expected (before): `AssertionError: assert 1 == 2`.
@@ -145,7 +145,7 @@ BRIDGE_PROTOCOL_VERSION = 2
 ### Commit
 
 ```bash
-cd /Users/mg/workspace/nodetool-core && git add -A && git commit -m "feat(worker): bump bridge protocol to v2 for models.* RPC"
+cd ~/workspace/nodetool-core && git add -A && git commit -m "feat(worker): bump bridge protocol to v2 for models.* RPC"
 ```
 
 ---
@@ -153,8 +153,8 @@ cd /Users/mg/workspace/nodetool-core && git add -A && git commit -m "feat(worker
 ## Task 1.2 — `models.list_cached` handler
 
 **Files:**
-- `/Users/mg/workspace/nodetool-core/src/nodetool/worker/model_handler.py` (new)
-- `/Users/mg/workspace/nodetool-core/src/nodetool/worker/protocol.py` (dispatch branch)
+- `~/workspace/nodetool-core/src/nodetool/worker/model_handler.py` (new)
+- `~/workspace/nodetool-core/src/nodetool/worker/protocol.py` (dispatch branch)
 
 ### Failing test
 
@@ -208,7 +208,7 @@ async def test_models_unknown_type(server):
 ### Run
 
 ```bash
-cd /Users/mg/workspace/nodetool-core && pytest tests/worker/test_model_handler.py -q
+cd ~/workspace/nodetool-core && pytest tests/worker/test_model_handler.py -q
 ```
 
 Expected (before): both tests error/fail — the worker replies `Unknown message type: models.list_cached`.
@@ -319,14 +319,14 @@ test_models_unknown_type PASSED
 ### Commit
 
 ```bash
-cd /Users/mg/workspace/nodetool-core && git add -A && git commit -m "feat(worker): models.list_cached + models.delete bridge handler"
+cd ~/workspace/nodetool-core && git add -A && git commit -m "feat(worker): models.list_cached + models.delete bridge handler"
 ```
 
 ---
 
 ## Task 1.3 — `models.download` with ordered progress frames
 
-**File:** `/Users/mg/workspace/nodetool-core/src/nodetool/worker/model_handler.py`
+**File:** `~/workspace/nodetool-core/src/nodetool/worker/model_handler.py`
 
 ### Failing test
 
@@ -384,7 +384,7 @@ async def test_models_download_emits_progress_then_result(server, monkeypatch):
 ### Run
 
 ```bash
-cd /Users/mg/workspace/nodetool-core && pytest tests/worker/test_model_handler.py::test_models_download_emits_progress_then_result -q
+cd ~/workspace/nodetool-core && pytest tests/worker/test_model_handler.py::test_models_download_emits_progress_then_result -q
 ```
 
 Expected (before): fails — `_handle_download` raises `NotImplementedError`.
@@ -529,14 +529,14 @@ async def _handle_download(
 Then the whole file:
 
 ```bash
-cd /Users/mg/workspace/nodetool-core && pytest tests/worker/test_model_handler.py -q
+cd ~/workspace/nodetool-core && pytest tests/worker/test_model_handler.py -q
 # → 5 passed
 ```
 
 ### Commit
 
 ```bash
-cd /Users/mg/workspace/nodetool-core && git add -A && git commit -m "feat(worker): models.download with ordered progress + cancel"
+cd ~/workspace/nodetool-core && git add -A && git commit -m "feat(worker): models.download with ordered progress + cancel"
 ```
 
 ---
@@ -546,12 +546,12 @@ cd /Users/mg/workspace/nodetool-core && git add -A && git commit -m "feat(worker
 ## Task 2.1 — Bump `BRIDGE_PROTOCOL_VERSION` + bridge types
 
 **Files:**
-- `/Users/mg/workspace/nodetool2/packages/protocol/src/bridge-protocol.ts`
-- `/Users/mg/workspace/nodetool2/packages/runtime/src/python-bridge-types.ts`
+- `~/workspace/nodetool2/packages/protocol/src/bridge-protocol.ts`
+- `~/workspace/nodetool2/packages/runtime/src/python-bridge-types.ts`
 
 ### Failing test
 
-**File:** `/Users/mg/workspace/nodetool2/packages/runtime/tests/python-bridge-models.test.ts` (new)
+**File:** `~/workspace/nodetool2/packages/runtime/tests/python-bridge-models.test.ts` (new)
 
 ```ts
 import { describe, it, expect } from "vitest";
@@ -567,7 +567,7 @@ describe("bridge protocol version", () => {
 ### Run
 
 ```bash
-cd /Users/mg/workspace/nodetool2/packages/runtime && npx vitest run tests/python-bridge-models.test.ts
+cd ~/workspace/nodetool2/packages/runtime && npx vitest run tests/python-bridge-models.test.ts
 ```
 
 Expected (before): `expected 1 to be 2`.
@@ -618,14 +618,14 @@ export interface ModelDownloadUpdate {
 ### Commit
 
 ```bash
-cd /Users/mg/workspace/nodetool2 && git add packages/protocol packages/runtime && git commit -m "feat(protocol): bump bridge protocol to v2; add model download types"
+cd ~/workspace/nodetool2 && git add packages/protocol packages/runtime && git commit -m "feat(protocol): bump bridge protocol to v2; add model download types"
 ```
 
 ---
 
 ## Task 2.2 — `listCachedModels` / `deleteCachedModel` / `supportsModelManagement`
 
-**File:** `/Users/mg/workspace/nodetool2/packages/runtime/src/python-bridge-base.ts`
+**File:** `~/workspace/nodetool2/packages/runtime/src/python-bridge-base.ts`
 
 ### Failing test
 
@@ -693,7 +693,7 @@ describe("models.* bridge methods", () => {
 ### Run
 
 ```bash
-cd /Users/mg/workspace/nodetool2/packages/runtime && npx vitest run tests/python-bridge-models.test.ts
+cd ~/workspace/nodetool2/packages/runtime && npx vitest run tests/python-bridge-models.test.ts
 ```
 
 Expected (before): `bridge.listCachedModels is not a function`.
@@ -744,14 +744,14 @@ export type UnifiedModelLike = Record<string, unknown> & {
 ### Commit
 
 ```bash
-cd /Users/mg/workspace/nodetool2 && git add packages/runtime && git commit -m "feat(runtime): listCachedModels/deleteCachedModel/supportsModelManagement bridge methods"
+cd ~/workspace/nodetool2 && git add packages/runtime && git commit -m "feat(runtime): listCachedModels/deleteCachedModel/supportsModelManagement bridge methods"
 ```
 
 ---
 
 ## Task 2.3 — `downloadModel(req, onProgress)` streaming
 
-**File:** `/Users/mg/workspace/nodetool2/packages/runtime/src/python-bridge-base.ts`
+**File:** `~/workspace/nodetool2/packages/runtime/src/python-bridge-base.ts`
 
 ### Failing test
 
@@ -797,7 +797,7 @@ it("downloadModel streams progress then resolves", async () => {
 ### Run
 
 ```bash
-cd /Users/mg/workspace/nodetool2/packages/runtime && npx vitest run tests/python-bridge-models.test.ts
+cd ~/workspace/nodetool2/packages/runtime && npx vitest run tests/python-bridge-models.test.ts
 ```
 
 Expected (before): `bridge.downloadModel is not a function`.
@@ -854,7 +854,7 @@ to `_pendingStream`. So register the request in **both** maps: `_pendingStream` 
 ### Commit
 
 ```bash
-cd /Users/mg/workspace/nodetool2 && git add packages/runtime && git commit -m "feat(runtime): downloadModel streaming bridge method with progress + cancel"
+cd ~/workspace/nodetool2 && git add packages/runtime && git commit -m "feat(runtime): downloadModel streaming bridge method with progress + cancel"
 ```
 
 ---
@@ -863,11 +863,11 @@ cd /Users/mg/workspace/nodetool2 && git add packages/runtime && git commit -m "f
 
 ## Task 3.1 — `scope: "worker"` on tRPC `models.huggingfaceList` / `huggingfaceDelete`
 
-**File:** `/Users/mg/workspace/nodetool2/packages/websocket/src/trpc/routers/models.ts`
+**File:** `~/workspace/nodetool2/packages/websocket/src/trpc/routers/models.ts`
 
 ### Failing test
 
-**File:** `/Users/mg/workspace/nodetool2/packages/websocket/tests/trpc-models-worker.test.ts` (new)
+**File:** `~/workspace/nodetool2/packages/websocket/tests/trpc-models-worker.test.ts` (new)
 (mirror `tests/trpc-models.test.ts`: `makeCtx` + `createCallerFactory`)
 
 ```ts
@@ -930,7 +930,7 @@ describe("models.huggingfaceList scope=worker", () => {
 ### Run
 
 ```bash
-cd /Users/mg/workspace/nodetool2/packages/websocket && npx vitest run tests/trpc-models-worker.test.ts
+cd ~/workspace/nodetool2/packages/websocket && npx vitest run tests/trpc-models-worker.test.ts
 ```
 
 Expected (before): input rejects `scope` (unknown key) / list ignores worker → fails.
@@ -1011,7 +1011,7 @@ Add `import { TRPCError } from "@trpc/server";` if absent.
 ### Commit
 
 ```bash
-cd /Users/mg/workspace/nodetool2 && git add packages/websocket && git commit -m "feat(server): scope=worker on models.huggingfaceList/Delete via bridge"
+cd ~/workspace/nodetool2 && git add packages/websocket && git commit -m "feat(server): scope=worker on models.huggingfaceList/Delete via bridge"
 ```
 
 ---
@@ -1019,12 +1019,12 @@ cd /Users/mg/workspace/nodetool2 && git add packages/websocket && git commit -m 
 ## Task 3.2 — Worker-download relay on `/ws/download`
 
 **Files:**
-- `/Users/mg/workspace/nodetool2/packages/websocket/src/plugins/websocket.ts`
-- `/Users/mg/workspace/nodetool2/packages/websocket/src/server.ts` (pass `workerManager` to the plugin)
+- `~/workspace/nodetool2/packages/websocket/src/plugins/websocket.ts`
+- `~/workspace/nodetool2/packages/websocket/src/server.ts` (pass `workerManager` to the plugin)
 
 ### Failing test
 
-**File:** `/Users/mg/workspace/nodetool2/packages/websocket/tests/ws-download-worker.test.ts` (new)
+**File:** `~/workspace/nodetool2/packages/websocket/tests/ws-download-worker.test.ts` (new)
 
 Drive the relay function directly (extract it so it's testable without a live socket):
 
@@ -1074,7 +1074,7 @@ describe("relayWorkerDownload", () => {
 ### Run
 
 ```bash
-cd /Users/mg/workspace/nodetool2/packages/websocket && npx vitest run tests/ws-download-worker.test.ts
+cd ~/workspace/nodetool2/packages/websocket && npx vitest run tests/ws-download-worker.test.ts
 ```
 
 Expected (before): module `ws-download-worker.js` does not exist.
@@ -1184,7 +1184,7 @@ Add `workerManager?: WorkerManager;` to `WebSocketPluginOptions` and import its 
 ### Commit
 
 ```bash
-cd /Users/mg/workspace/nodetool2 && git add packages/websocket && git commit -m "feat(server): relay worker model downloads onto /ws/download"
+cd ~/workspace/nodetool2 && git add packages/websocket && git commit -m "feat(server): relay worker model downloads onto /ws/download"
 ```
 
 ---
@@ -1193,11 +1193,11 @@ cd /Users/mg/workspace/nodetool2 && git add packages/websocket && git commit -m 
 
 ## Task 4.1 — `scope` in `ModelManagerStore`
 
-**File:** `/Users/mg/workspace/nodetool2/web/src/stores/ModelManagerStore.ts`
+**File:** `~/workspace/nodetool2/web/src/stores/ModelManagerStore.ts`
 
 ### Failing test
 
-**File:** `/Users/mg/workspace/nodetool2/web/src/stores/__tests__/ModelManagerStore.test.ts` (new)
+**File:** `~/workspace/nodetool2/web/src/stores/__tests__/ModelManagerStore.test.ts` (new)
 
 ```ts
 import { useModelManagerStore } from "../ModelManagerStore";
@@ -1215,7 +1215,7 @@ describe("ModelManagerStore scope", () => {
 ### Run
 
 ```bash
-cd /Users/mg/workspace/nodetool2/web && npm test -- src/stores/__tests__/ModelManagerStore.test.ts
+cd ~/workspace/nodetool2/web && npm test -- src/stores/__tests__/ModelManagerStore.test.ts
 ```
 
 Expected (before): `scope` is `undefined`.
@@ -1247,18 +1247,18 @@ export const useModelManagerStore = create<ModelManagerState>((set) => ({
 ### Commit
 
 ```bash
-cd /Users/mg/workspace/nodetool2 && git add web/src/stores/ModelManagerStore.ts web/src/stores/__tests__/ModelManagerStore.test.ts && git commit -m "feat(web): model scope state (local|worker) in ModelManagerStore"
+cd ~/workspace/nodetool2 && git add web/src/stores/ModelManagerStore.ts web/src/stores/__tests__/ModelManagerStore.test.ts && git commit -m "feat(web): model scope state (local|worker) in ModelManagerStore"
 ```
 
 ---
 
 ## Task 4.2 — `useModels(scope)`: scope-keyed query
 
-**File:** `/Users/mg/workspace/nodetool2/web/src/components/hugging_face/model_list/useModels.ts`
+**File:** `~/workspace/nodetool2/web/src/components/hugging_face/model_list/useModels.ts`
 
 ### Failing test
 
-**File:** `/Users/mg/workspace/nodetool2/web/src/components/hugging_face/model_list/__tests__/useModels.scope.test.ts` (new)
+**File:** `~/workspace/nodetool2/web/src/components/hugging_face/model_list/__tests__/useModels.scope.test.ts` (new)
 
 ```ts
 import { renderHook } from "@testing-library/react";
@@ -1294,7 +1294,7 @@ describe("useModels scope", () => {
 ### Run
 
 ```bash
-cd /Users/mg/workspace/nodetool2/web && npm test -- src/components/hugging_face/model_list/__tests__/useModels.scope.test.ts
+cd ~/workspace/nodetool2/web && npm test -- src/components/hugging_face/model_list/__tests__/useModels.scope.test.ts
 ```
 
 Expected (before): `useModels` takes no arg / never calls `huggingfaceList`.
@@ -1333,7 +1333,7 @@ export const useModels = (scope: ModelScope = "local"): UseModelsResult => {
 ### Commit
 
 ```bash
-cd /Users/mg/workspace/nodetool2 && git add web/src/components/hugging_face/model_list/useModels.ts web/src/components/hugging_face/model_list/__tests__/useModels.scope.test.ts && git commit -m "feat(web): useModels(scope) keys query on scope, worker hits huggingfaceList"
+cd ~/workspace/nodetool2 && git add web/src/components/hugging_face/model_list/useModels.ts web/src/components/hugging_face/model_list/__tests__/useModels.scope.test.ts && git commit -m "feat(web): useModels(scope) keys query on scope, worker hits huggingfaceList"
 ```
 
 ---
@@ -1341,12 +1341,12 @@ cd /Users/mg/workspace/nodetool2 && git add web/src/components/hugging_face/mode
 ## Task 4.3 — Scope toggle in `ModelListHeader` (ui_primitives only)
 
 **Files:**
-- `/Users/mg/workspace/nodetool2/web/src/components/hugging_face/model_list/ModelListHeader.tsx`
-- `/Users/mg/workspace/nodetool2/web/src/components/hugging_face/model_list/ModelListIndex.tsx`
+- `~/workspace/nodetool2/web/src/components/hugging_face/model_list/ModelListHeader.tsx`
+- `~/workspace/nodetool2/web/src/components/hugging_face/model_list/ModelListIndex.tsx`
 
 ### Failing test
 
-**File:** `/Users/mg/workspace/nodetool2/web/src/components/hugging_face/model_list/__tests__/ScopeToggle.test.tsx` (new)
+**File:** `~/workspace/nodetool2/web/src/components/hugging_face/model_list/__tests__/ScopeToggle.test.tsx` (new)
 
 ```tsx
 import { render, screen } from "@testing-library/react";
@@ -1380,7 +1380,7 @@ describe("ScopeToggle", () => {
 ### Run
 
 ```bash
-cd /Users/mg/workspace/nodetool2/web && npm test -- src/components/hugging_face/model_list/__tests__/ScopeToggle.test.tsx
+cd ~/workspace/nodetool2/web && npm test -- src/components/hugging_face/model_list/__tests__/ScopeToggle.test.tsx
 ```
 
 Expected (before): module `../ScopeToggle` does not exist.
@@ -1465,7 +1465,7 @@ const supported = activeWorker != null; // worker.status protocol gate is enforc
 ### Commit
 
 ```bash
-cd /Users/mg/workspace/nodetool2 && git add web/src/components/hugging_face/model_list && git commit -m "feat(web): Local/Worker scope toggle in ModelManager header"
+cd ~/workspace/nodetool2 && git add web/src/components/hugging_face/model_list && git commit -m "feat(web): Local/Worker scope toggle in ModelManager header"
 ```
 
 ---
@@ -1473,13 +1473,13 @@ cd /Users/mg/workspace/nodetool2 && git add web/src/components/hugging_face/mode
 ## Task 4.4 — Thread scope through download + delete
 
 **Files:**
-- `/Users/mg/workspace/nodetool2/web/src/stores/ModelDownloadStore.ts` (`startDownload` sends `scope`)
-- `/Users/mg/workspace/nodetool2/web/src/components/hugging_face/model_list/DeleteModelDialog.tsx` (delete + invalidate scope key)
-- `/Users/mg/workspace/nodetool2/web/src/components/hugging_face/model_list/ModelListIndex.tsx`
+- `~/workspace/nodetool2/web/src/stores/ModelDownloadStore.ts` (`startDownload` sends `scope`)
+- `~/workspace/nodetool2/web/src/components/hugging_face/model_list/DeleteModelDialog.tsx` (delete + invalidate scope key)
+- `~/workspace/nodetool2/web/src/components/hugging_face/model_list/ModelListIndex.tsx`
 
 ### Failing test
 
-**File:** `/Users/mg/workspace/nodetool2/web/src/stores/__tests__/ModelDownloadStore.scope.test.ts` (new)
+**File:** `~/workspace/nodetool2/web/src/stores/__tests__/ModelDownloadStore.scope.test.ts` (new)
 
 ```ts
 import { useModelDownloadStore } from "../ModelDownloadStore";
@@ -1503,7 +1503,7 @@ describe("startDownload scope", () => {
 ### Run
 
 ```bash
-cd /Users/mg/workspace/nodetool2/web && npm test -- src/stores/__tests__/ModelDownloadStore.scope.test.ts
+cd ~/workspace/nodetool2/web && npm test -- src/stores/__tests__/ModelDownloadStore.scope.test.ts
 ```
 
 Expected (before): `startDownload` has no `scope` arg; command lacks `scope`.
@@ -1546,7 +1546,7 @@ queryClient.invalidateQueries({ queryKey: ["allModels", scope] });
 ### Commit
 
 ```bash
-cd /Users/mg/workspace/nodetool2 && git add web/src/stores/ModelDownloadStore.ts web/src/components/hugging_face/model_list && git commit -m "feat(web): thread model scope through download + delete"
+cd ~/workspace/nodetool2 && git add web/src/stores/ModelDownloadStore.ts web/src/components/hugging_face/model_list && git commit -m "feat(web): thread model scope through download + delete"
 ```
 
 ---
@@ -1555,21 +1555,21 @@ cd /Users/mg/workspace/nodetool2 && git add web/src/stores/ModelDownloadStore.ts
 
 ```bash
 # Python
-cd /Users/mg/workspace/nodetool-core && pytest tests/worker/test_model_handler.py tests/worker/test_provider_handler.py -q
+cd ~/workspace/nodetool-core && pytest tests/worker/test_model_handler.py tests/worker/test_provider_handler.py -q
 
 # TS packages
-cd /Users/mg/workspace/nodetool2 && npm run typecheck && npm run lint
-cd /Users/mg/workspace/nodetool2/packages/runtime && npx vitest run
-cd /Users/mg/workspace/nodetool2/packages/websocket && npx vitest run
+cd ~/workspace/nodetool2 && npm run typecheck && npm run lint
+cd ~/workspace/nodetool2/packages/runtime && npx vitest run
+cd ~/workspace/nodetool2/packages/websocket && npx vitest run
 
 # Web
-cd /Users/mg/workspace/nodetool2/web && npm run typecheck && npm test -- src/components/hugging_face src/stores
+cd ~/workspace/nodetool2/web && npm run typecheck && npm test -- src/components/hugging_face src/stores
 ```
 
 Expected: all green. Then build packages so decorator/dist consumers pick up the bridge changes:
 
 ```bash
-cd /Users/mg/workspace/nodetool2 && npm run build:packages
+cd ~/workspace/nodetool2 && npm run build:packages
 ```
 
 ## Release follow-up (out of the TDD loop)
