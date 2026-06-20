@@ -1,0 +1,35 @@
+name: Docs Lint
+
+# Validates Markdown documentation. Runs only when Markdown changes.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**/*.md"
+      - ".github/workflows/docs-lint.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "**/*.md"
+      - ".github/workflows/docs-lint.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  link-check:
+    name: Markdown link check (relative links)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Check relative links in Markdown
+        # --offline checks only on-disk (relative) link targets, so the job is
+        # deterministic and never flakes on external URLs. Advisory for now
+        # (fail: false) while the existing docs backlog is cleaned up; flip to
+        # fail: true once the tree is green.
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --offline --no-progress --include-fragments "**/*.md"
+          fail: false

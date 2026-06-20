@@ -37,6 +37,43 @@ function videoRef(bytes: number[]) {
   };
 }
 
+/**
+ * Build a minimal mono 16-bit PCM WAV from int16 sample values. The concat
+ * nodes decode every input to PCM and join in sample space (non-audio bytes are
+ * rejected), so their fixtures must be real WAV files, not arbitrary bytes.
+ */
+function wavRef(samples: number[], sampleRate = 8000) {
+  const dataSize = samples.length * 2;
+  const buf = Buffer.alloc(44 + dataSize);
+  buf.write("RIFF", 0, "ascii");
+  buf.writeUInt32LE(36 + dataSize, 4);
+  buf.write("WAVE", 8, "ascii");
+  buf.write("fmt ", 12, "ascii");
+  buf.writeUInt32LE(16, 16); // fmt chunk size
+  buf.writeUInt16LE(1, 20); // PCM
+  buf.writeUInt16LE(1, 22); // mono
+  buf.writeUInt32LE(sampleRate, 24);
+  buf.writeUInt32LE(sampleRate * 2, 28); // byteRate = sampleRate * blockAlign
+  buf.writeUInt16LE(2, 32); // blockAlign = channels * bytesPerSample
+  buf.writeUInt16LE(16, 34); // bits per sample
+  buf.write("data", 36, "ascii");
+  buf.writeUInt32LE(dataSize, 40);
+  for (let i = 0; i < samples.length; i++) {
+    buf.writeInt16LE(samples[i], 44 + i * 2);
+  }
+  return { type: "audio", uri: "", data: buf.toString("base64") };
+}
+
+/** Read the int16 PCM samples out of a canonical 44-byte-header WAV buffer. */
+function samplesOf(wav: Buffer): number[] {
+  expect(wav.toString("ascii", 0, 4)).toBe("RIFF");
+  const samples: number[] = [];
+  for (let i = 44; i + 2 <= wav.length; i += 2) {
+    samples.push(wav.readInt16LE(i));
+  }
+  return samples;
+}
+
 // --- Audio node property tests ---
 
 describe("OverlayAudioNode — uses a/b properties (not audio_a/audio_b)", () => {
@@ -98,13 +135,13 @@ describe("ConcatAudioNode — fully dynamic inputs", () => {
   it("concatenates dynamic inputs in insertion order", async () => {
     const node = new ConcatAudioNode();
     node.assign({
-      audio_1: audioRef([1, 2]),
-      audio_2: audioRef([3, 4])
+      audio_1: wavRef([100, 200]),
+      audio_2: wavRef([300, 400])
     });
     const result = await node.process();
     const output = result.output as { data: string };
     const bytes = Buffer.from(output.data, "base64");
-    expect(Array.from(bytes)).toEqual([1, 2, 3, 4]);
+    expect(samplesOf(bytes)).toEqual([100, 200, 300, 400]);
   });
 });
 
@@ -112,12 +149,12 @@ describe("ConcatAudioListNode — uses audio_files property", () => {
   it("concatenates list of audio files", async () => {
     const node = new ConcatAudioListNode();
     node.assign({
-      audio_files: [audioRef([1, 2]), audioRef([3])]
+      audio_files: [wavRef([100, 200]), wavRef([300])]
     });
     const result = await node.process();
     const output = result.output as { data: string };
     const bytes = Buffer.from(output.data, "base64");
-    expect(Array.from(bytes)).toEqual([1, 2, 3]);
+    expect(samplesOf(bytes)).toEqual([100, 200, 300]);
   });
 });
 

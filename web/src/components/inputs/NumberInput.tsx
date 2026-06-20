@@ -1,11 +1,10 @@
 /** @jsxImportSource @emotion/react */
-import React, { useState, useEffect, useCallback, memo, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from "react";
 import { useCombo } from "../../stores/KeyPressedStore";
 import PropertyLabel from "../node/PropertyLabel";
 import { useTheme } from "@mui/material/styles";
 import RangeIndicator from "./RangeIndicator";
 import EditableInput from "./EditableInput";
-import { getMousePosition } from "../../utils/MousePosition";
 import { useDragHandling } from "../../hooks/useNumberInput";
 import DisplayValue from "./DisplayValue";
 import SpeedDisplay from "./SpeedDisplay";
@@ -92,7 +91,6 @@ const NumberInput: React.FC<InputProps> = (props) => {
   });
   const [inputIsFocused, setInputIsFocused] = useState(false);
   const [speedFactorState, setSpeedFactorState] = useState(1);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const {
     min,
     max,
@@ -201,8 +199,6 @@ const NumberInput: React.FC<InputProps> = (props) => {
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (e.button === 0) {
         setInputIsFocused(false);
-        // Set initial mouse position for the display
-        setMousePosition({ x: e.clientX, y: e.clientY });
 
         // Reset speed factor to default (no slowdown)
         setSpeedFactorState(1);
@@ -356,23 +352,12 @@ const NumberInput: React.FC<InputProps> = (props) => {
     };
   }, [state.isDragging, handleMouseMove, handleMouseUp]);
 
-  // Track mouse position during drag
-  useEffect(() => {
-    if (state.isDragging) {
-      const updateMousePos = () => {
-        const pos = getMousePosition();
-        setMousePosition(pos);
-      };
-      updateMousePos();
-      const interval = setInterval(updateMousePos, 16); // ~60fps
-      return () => clearInterval(interval);
-    }
-  }, [state.isDragging]);
+  const styles = useMemo(() => numberInputStyles(theme), [theme]);
 
   return (
     <div
       ref={containerRef}
-      css={numberInputStyles(theme)}
+      css={styles}
       className={`number-input ${props.inputType} ${
         inputIsFocused ? "focused" : ""
       } ${props.changed ? "changed" : ""}`}
@@ -446,7 +431,6 @@ const NumberInput: React.FC<InputProps> = (props) => {
         )}
       <SpeedDisplay
         speedFactor={speedFactorState}
-        mousePosition={mousePosition}
         isDragging={state.isDragging}
       />
     </div>
