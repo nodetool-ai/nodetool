@@ -64,12 +64,11 @@ export default function VideoGenerationSection({
           >
             <video
               src="/sora.mp4"
-              muted
+              autoPlay
               loop
+              muted
               playsInline
               controls
-              preload="none"
-              poster="/preview.png"
               className="w-full max-w-2xl mx-auto rounded-2xl shadow-2xl shadow-emerald-500/20 border border-white/10"
             />
           </motion.div>
