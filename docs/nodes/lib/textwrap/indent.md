@@ -31,5 +31,5 @@ Adds a prefix to the beginning of each line in the text.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.textwrap](../) namespace.
+Browse other nodes in the [lib.textwrap](./) namespace.
 

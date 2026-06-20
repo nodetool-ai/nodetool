@@ -34,4 +34,4 @@ Copy a file from source to destination path.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.os](../) namespace.
+Browse other nodes in the [lib.os](./) namespace.

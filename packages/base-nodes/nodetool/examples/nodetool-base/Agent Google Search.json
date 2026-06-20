@@ -20,7 +20,7 @@
       {
         "id": "d511b097-2af9-4cc4-a497-ec2452c8a609",
         "source": "6ababfd3-5743-4d7c-accd-97242130a8d8",
-        "sourceHandle": "search",
+        "sourceHandle": "text",
         "target": "d6a1dc18-d26c-45c4-9196-2d6524018b1b",
         "targetHandle": "keyword",
         "ui_properties": {

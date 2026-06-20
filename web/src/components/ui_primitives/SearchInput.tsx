@@ -1,8 +1,8 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useRef, useState, memo } from "react";
+import React, { useCallback, useRef, useState, memo, forwardRef } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
+import type { SxProps, Theme } from "@mui/material/styles";
 import { IconButton, Tooltip, InputAdornment, TextField } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -37,6 +37,8 @@ export interface SearchInputProps {
   clearTooltip?: string;
   /** Tooltip placement */
   tooltipPlacement?: "top" | "bottom" | "left" | "right";
+  /** Additional sx applied to the underlying TextField root. */
+  sx?: SxProps<Theme>;
 }
 
 const styles = (theme: Theme) => css`
@@ -99,7 +101,7 @@ const styles = (theme: Theme) => css`
   }
 `;
 
-export const SearchInput: React.FC<SearchInputProps> = memo(({
+export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>(({
   value,
   onChange,
   placeholder = "Search...",
@@ -113,8 +115,9 @@ export const SearchInput: React.FC<SearchInputProps> = memo(({
   className,
   fullWidth = false,
   clearTooltip = "Clear search",
-  tooltipPlacement = "top"
-}) => {
+  tooltipPlacement = "top",
+  sx
+}, ref) => {
   const theme = useTheme();
   const [localValue, setLocalValue] = useState(value);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -176,6 +179,8 @@ export const SearchInput: React.FC<SearchInputProps> = memo(({
         disabled={disabled}
         autoFocus={autoFocus}
         fullWidth={fullWidth}
+        sx={sx}
+        inputRef={ref}
         slotProps={{
           input: {
             startAdornment: (
@@ -206,7 +211,7 @@ export const SearchInput: React.FC<SearchInputProps> = memo(({
       />
     </div>
   );
-});
+}));
 
 SearchInput.displayName = "SearchInput";
 

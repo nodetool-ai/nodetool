@@ -37,5 +37,5 @@ Extract text blocks with their bounding boxes from a PDF.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pymupdf](../) namespace.
+Browse other nodes in the [lib.pymupdf](./) namespace.
 

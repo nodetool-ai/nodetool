@@ -3,6 +3,9 @@
   "version": "0.7.0-rc.23",
   "description": "Canonical blend-mode catalog and shared WGSL blend functions for NodeTool compositors (sketch, timeline, Compositor node)",
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0 <23.0.0"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

@@ -35,5 +35,5 @@ Select a random element from a list.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.random](../) namespace.
+Browse other nodes in the [lib.random](./) namespace.
 

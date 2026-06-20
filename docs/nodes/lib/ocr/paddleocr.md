@@ -38,5 +38,5 @@ Performs Optical Character Recognition (OCR) on images using PaddleOCR.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.ocr](../) namespace.
+Browse other nodes in the [lib.ocr](./) namespace.
 

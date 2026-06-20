@@ -3,12 +3,10 @@ layout: page
 title: "lib.array.io Nodes"
 ---
 
-
 This namespace contains 1 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[Save Array](savearray.md)** - Save a numpy array to a file in the specified folder.
-    array, save, file, storage
+- **[Save Array](savearray.md)**
 
-    Use cas...
+[Back to all nodes](../../../)

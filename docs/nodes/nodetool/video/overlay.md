@@ -33,4 +33,4 @@ Overlay one video on top of another, including audio overlay when available.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.video](../) namespace.
+Browse other nodes in the [nodetool.video](./) namespace.

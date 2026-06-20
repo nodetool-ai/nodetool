@@ -29,4 +29,4 @@ Concatenate multiple video files into a single video, including audio when avail
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.video](../) namespace.
+Browse other nodes in the [nodetool.video](./) namespace.

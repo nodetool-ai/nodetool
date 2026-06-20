@@ -37,5 +37,5 @@ Extract text content from a PDF file.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pdfplumber](../) namespace.
+Browse other nodes in the [lib.pdfplumber](./) namespace.
 

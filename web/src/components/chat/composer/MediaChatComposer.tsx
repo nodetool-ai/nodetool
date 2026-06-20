@@ -200,6 +200,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   collapsible = false
 }) => {
   const theme = useTheme();
+  const styles = useMemo(() => createMediaComposerStyles(theme), [theme]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [prompt, setPrompt] = useState("");
   const [focused, setFocused] = useState(false);
@@ -863,7 +864,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   );
 
   return (
-    <div css={createMediaComposerStyles(theme)} className="media-chat-composer">
+    <div css={styles} className="media-chat-composer">
       <div
         className={`media-compose-card${isDragging ? " dragging" : ""}${
           dimmed ? " dimmed" : ""

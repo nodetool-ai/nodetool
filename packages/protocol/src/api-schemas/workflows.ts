@@ -59,6 +59,27 @@ export const EMBEDDED_RUN_MODES = [
 // (strings, nulls, objects missing `id`/`type`) at the tRPC boundary while
 // remaining permissive about unknown fields added by clients or Python.
 
+// A single dynamic output's type metadata. Mirrors PropertyTypeMetadata in
+// api-types.ts: it must be an object carrying at least a `type` string, and
+// nests recursively through `type_args`. Validating this shape (instead of
+// z.unknown()) rejects malformed metadata — primitives, null, or entries
+// missing a type — at the tRPC boundary, while .passthrough() tolerates the
+// extra transport fields clients/Python may add.
+export const dynamicOutputTypeMetadata: z.ZodType = z.lazy(() =>
+  z
+    .object({
+      type: z.string(),
+      optional: z.boolean().optional(),
+      values: z
+        .array(z.union([z.string(), z.number()]))
+        .nullable()
+        .optional(),
+      type_args: z.array(dynamicOutputTypeMetadata).optional(),
+      type_name: z.string().nullable().optional()
+    })
+    .passthrough()
+);
+
 export const graphNode = z
   .object({
     id: z.string(),
@@ -67,7 +88,9 @@ export const graphNode = z
     data: z.unknown().optional(),
     ui_properties: z.unknown().optional(),
     dynamic_properties: z.record(z.string(), z.unknown()).optional(),
-    dynamic_outputs: z.record(z.string(), z.unknown()).optional()
+    dynamic_outputs: z
+      .record(z.string(), dynamicOutputTypeMetadata)
+      .optional()
   })
   .passthrough();
 

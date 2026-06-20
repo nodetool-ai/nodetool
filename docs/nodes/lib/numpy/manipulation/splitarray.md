@@ -37,5 +37,5 @@ Split an array into multiple sub-arrays along a specified axis.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.array.manipulation](../) namespace.
+Browse other nodes in the [lib.array.manipulation](./) namespace.
 

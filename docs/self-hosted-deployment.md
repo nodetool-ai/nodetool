@@ -1,6 +1,7 @@
 ---
 layout: page
 title: "Self-Hosted Deployment Guide"
+description: "Deploy NodeTool on your own infrastructure via Docker, SSH/systemd, or locally."
 ---
 
 This guide covers deploying NodeTool on your own infrastructure.

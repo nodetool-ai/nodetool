@@ -36,4 +36,4 @@ Tokenizes text into words or sentences.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.nlp](../) namespace.
+Browse other nodes in the [lib.nlp](./) namespace.

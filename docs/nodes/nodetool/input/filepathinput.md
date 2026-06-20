@@ -30,4 +30,4 @@ Accepts a local filesystem path (to a file or directory) as input for workflows.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.input](../) namespace.
+Browse other nodes in the [nodetool.input](./) namespace.

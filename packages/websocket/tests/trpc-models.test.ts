@@ -126,6 +126,10 @@ function makeProvider(
     getAvailableEmbeddingModels: vi.fn().mockResolvedValue([]),
     getAvailableVideoModels: vi.fn().mockResolvedValue([]),
     hasToolSupport: vi.fn().mockResolvedValue(true),
+    // The models router now reads capabilities via BaseProvider.getCapabilities()
+    // instead of reflecting over the instance; mirror the always-present base
+    // capabilities every provider declares.
+    getCapabilities: vi.fn(() => ["generate_message", "generate_messages"]),
     ...overrides
   };
 }

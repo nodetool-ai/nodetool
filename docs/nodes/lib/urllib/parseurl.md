@@ -35,5 +35,5 @@ Parse a URL into its components using ``urllib.parse.urlparse``.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.urllib](../) namespace.
+Browse other nodes in the [lib.urllib](./) namespace.
 

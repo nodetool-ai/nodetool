@@ -37,5 +37,5 @@ Extract metadata from PDF pages like dimensions, rotation, etc.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pdfplumber](../) namespace.
+Browse other nodes in the [lib.pdfplumber](./) namespace.
 

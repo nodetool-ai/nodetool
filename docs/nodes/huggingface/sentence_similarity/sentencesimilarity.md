@@ -36,5 +36,5 @@ Compares the similarity between two sentences.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.sentence_similarity](../) namespace.
+Browse other nodes in the [huggingface.sentence_similarity](./) namespace.
 

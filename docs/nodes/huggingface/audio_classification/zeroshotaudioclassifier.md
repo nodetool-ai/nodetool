@@ -37,5 +37,5 @@ Classifies audio into categories without the need for training data.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.audio_classification](../) namespace.
+Browse other nodes in the [huggingface.audio_classification](./) namespace.
 

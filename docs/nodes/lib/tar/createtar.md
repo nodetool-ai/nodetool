@@ -37,5 +37,5 @@ Create a tar archive from a directory.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.tar](../) namespace.
+Browse other nodes in the [lib.tar](./) namespace.
 

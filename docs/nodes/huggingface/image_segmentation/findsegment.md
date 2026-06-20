@@ -31,5 +31,5 @@ Extracts a specific segment from a list of segmentation masks.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.image_segmentation](../) namespace.
+Browse other nodes in the [huggingface.image_segmentation](./) namespace.
 

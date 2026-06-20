@@ -46,5 +46,5 @@ This node allows you to add text to images.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.image.draw](../) namespace.
+Browse other nodes in the [lib.image.draw](./) namespace.
 

@@ -36,5 +36,5 @@ Create a plot visualization of array data.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.array.visualization](../) namespace.
+Browse other nodes in the [lib.array.visualization](./) namespace.
 

@@ -30,4 +30,4 @@ Accepts a boolean (true/false) value as a parameter for workflows.  This input i
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.input](../) namespace.
+Browse other nodes in the [nodetool.input](./) namespace.

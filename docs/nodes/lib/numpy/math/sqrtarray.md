@@ -35,5 +35,5 @@ Calculates the square root of the input array element-wise.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.array.math](../) namespace.
+Browse other nodes in the [lib.array.math](./) namespace.
 

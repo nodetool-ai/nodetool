@@ -11,7 +11,7 @@ To build any example:
 – press Ctrl/⌘+Enter to run
 – add Preview nodes to inspect intermediate results
 
-<a id="pattern-1-simple-pipeline"></a>
+<span id="pattern-1-simple-pipeline"></span>
 
 ### Pattern 1: Simple Pipeline
 
@@ -38,7 +38,7 @@ graph TD
 
 ______________________________________________________________________
 
-<a id="pattern-2-agent-driven-generation"></a>
+<span id="pattern-2-agent-driven-generation"></span>
 
 ### Pattern 2: Agent-Driven Generation
 
@@ -71,7 +71,7 @@ graph TD
 
 ______________________________________________________________________
 
-<a id="pattern-3-streaming-with-multiple-previews"></a>
+<span id="pattern-3-streaming-with-multiple-previews"></span>
 
 ### Pattern 3: Streaming with Multiple Previews
 
@@ -121,7 +121,7 @@ graph TD
 
 ______________________________________________________________________
 
-<a id="pattern-4-rag-retrieval-augmented-generation"></a>
+<span id="pattern-4-rag-retrieval-augmented-generation"></span>
 
 ### Pattern 4: RAG (Retrieval-Augmented Generation)
 
@@ -177,7 +177,7 @@ graph TD
 
 ______________________________________________________________________
 
-<a id="pattern-5-database-persistence"></a>
+<span id="pattern-5-database-persistence"></span>
 
 ### Pattern 5: Database Persistence
 
@@ -225,7 +225,7 @@ graph TD
 
 ______________________________________________________________________
 
-<a id="pattern-6-email--web-integration"></a>
+<span id="pattern-6-email--web-integration"></span>
 
 ### Pattern 6: Email & Web Integration
 
@@ -261,7 +261,7 @@ graph TD
 
 ______________________________________________________________________
 
-<a id="pattern-7-realtime-processing"></a>
+<span id="pattern-7-realtime-processing"></span>
 
 ### Pattern 7: Realtime Processing
 
@@ -293,7 +293,7 @@ graph TD
 
 ______________________________________________________________________
 
-<a id="pattern-8-multi-modal-workflows"></a>
+<span id="pattern-8-multi-modal-workflows"></span>
 
 ### Pattern 8: Multi-Modal Workflows
 
@@ -326,7 +326,7 @@ graph TD
 
 ______________________________________________________________________
 
-<a id="pattern-9-advanced-image-processing"></a>
+<span id="pattern-9-advanced-image-processing"></span>
 
 ### Pattern 9: Advanced Image Processing
 
@@ -369,7 +369,7 @@ graph TD
 
 ______________________________________________________________________
 
-<a id="pattern-10-data-processing-pipeline"></a>
+<span id="pattern-10-data-processing-pipeline"></span>
 
 ### Pattern 10: Data Processing Pipeline
 
@@ -407,7 +407,7 @@ graph TD
 
 ______________________________________________________________________
 
-<a id="pattern-11-text-to-video"></a>
+<span id="pattern-11-text-to-video"></span>
 
 ### Pattern 11: Text-to-Video Generation
 
@@ -447,7 +447,7 @@ graph TD
 
 ______________________________________________________________________
 
-<a id="pattern-12-image-to-video"></a>
+<span id="pattern-12-image-to-video"></span>
 
 ### Pattern 12: Image-to-Video Generation
 
@@ -499,7 +499,7 @@ graph TD
 
 ______________________________________________________________________
 
-<a id="pattern-13-talking-avatar"></a>
+<span id="pattern-13-talking-avatar"></span>
 
 ### Pattern 13: Talking Avatar Generation
 
@@ -540,7 +540,7 @@ graph TD
 
 ______________________________________________________________________
 
-<a id="pattern-14-video-enhancement"></a>
+<span id="pattern-14-video-enhancement"></span>
 
 ### Pattern 14: Video Enhancement & Upscaling
 
@@ -577,7 +577,7 @@ graph TD
 
 ______________________________________________________________________
 
-<a id="pattern-15-storyboard-to-video"></a>
+<span id="pattern-15-storyboard-to-video"></span>
 
 ### Pattern 15: Storyboard to Video
 

@@ -303,7 +303,7 @@ function RunGraphic() {
                     <div className="w-2 h-2 rounded-full bg-slate-700" />
                     <div className="w-2 h-2 rounded-full bg-slate-700" />
                 </div>
-                <div className="text-[9px] font-medium text-slate-500 uppercase tracking-wider">Agent Trace</div>
+                <div className="text-[9px] font-medium text-slate-400 uppercase tracking-wider">Agent Trace</div>
             </div>
 
             <div className="flex-1 flex flex-col p-3 font-mono text-[10px] text-slate-400 gap-2 bg-[#0B0C10]">

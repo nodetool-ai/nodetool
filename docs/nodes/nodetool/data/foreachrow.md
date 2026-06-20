@@ -33,4 +33,4 @@ Iterate over rows of a dataframe.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.data](../) namespace.
+Browse other nodes in the [nodetool.data](./) namespace.

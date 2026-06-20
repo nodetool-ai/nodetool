@@ -39,5 +39,5 @@ Detects and localizes objects in images.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.object_detection](../) namespace.
+Browse other nodes in the [huggingface.object_detection](./) namespace.
 

@@ -33,4 +33,4 @@ Filters out None values from a stream.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.data](../) namespace.
+Browse other nodes in the [nodetool.data](./) namespace.

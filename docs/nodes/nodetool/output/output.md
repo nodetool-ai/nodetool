@@ -30,4 +30,4 @@ Generic output node for any type.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.output](../) namespace.
+Browse other nodes in the [nodetool.output](./) namespace.

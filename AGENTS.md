@@ -2,6 +2,8 @@
 
 Guidelines for working with code in this repository. These are linter-like rules and build/test instructions — not a code summary.
 
+> _Last updated: 2026-06-19._ Keep this in sync with the codebase; update it in the same PR when rules or commands change.
+
 > **Canonical standards live in [docs/DEVELOPMENT_STANDARDS.md](docs/DEVELOPMENT_STANDARDS.md).** That document is the single source of truth for enforceable rules and aspirational targets across TypeScript, React, Zustand, MUI, TanStack Query, ReactFlow, Fastify, Drizzle, Zod, Electron security, accessibility, performance, security, observability, error handling, git/PR hygiene, and dependency management. The rules in this file are the area-specific overlay — read both.
 
 ## Quick Navigation
@@ -116,6 +118,7 @@ Before submitting a PR, review for:
 - **Decorator packages load from `dist/`**: `base-nodes`, `node-sdk`, `fal-nodes`, `replicate-nodes`, `elevenlabs-nodes`, `minimax-nodes` use decorators. After changing these, run `npm run build:packages` before running `npm run dev`.
 - **Package build order matters**: Always use `npm run build:packages` (builds in dependency order). Don't build individual packages with unbuilt dependencies.
 - **Mobile typecheck needs protocol**: Run `cd packages/protocol && npm run build` before `npm run typecheck:mobile`.
+- **`mobile/` is not a root workspace**: it keeps its own Expo/React Native deps, so its scripts use `npm --prefix mobile …` (not `npm --workspace=mobile …`, which would fail).
 - **WebSocket uses MsgPack, not JSON**: Use existing serialization helpers. Don't serialize WebSocket messages as JSON.
 - **Don't create WebSocket instances**: Use `GlobalWebSocketManager` singleton in the frontend.
 - **ES Modules everywhere**: All packages use `"type": "module"`. Compiled imports need `.js` extensions.

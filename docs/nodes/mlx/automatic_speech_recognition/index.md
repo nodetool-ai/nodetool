@@ -3,12 +3,10 @@ layout: page
 title: "mlx.automatic_speech_recognition Nodes"
 ---
 
-
 This namespace contains 1 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[MLX Whisper](whisper.md)** - Transcribe an audio asset using MLX Whisper.
-    whisper, mlx, asr, speech-to-text
+- **[MLX Whisper](whisper.md)**
 
-    - Uses ML...
+[Back to all nodes](../../)

@@ -30,4 +30,4 @@ Resize an image to fit within specified dimensions while preserving aspect ratio
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.image](../) namespace.
+Browse other nodes in the [nodetool.image](./) namespace.

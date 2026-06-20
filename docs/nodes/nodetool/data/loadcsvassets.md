@@ -36,4 +36,4 @@ Load dataframes from an asset folder.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.data](../) namespace.
+Browse other nodes in the [nodetool.data](./) namespace.

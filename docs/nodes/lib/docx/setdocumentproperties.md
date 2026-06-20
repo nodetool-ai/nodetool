@@ -32,4 +32,4 @@ Sets document metadata properties
 
 ## Related Nodes
 
-Browse other nodes in the [lib.docx](../) namespace.
+Browse other nodes in the [lib.docx](./) namespace.

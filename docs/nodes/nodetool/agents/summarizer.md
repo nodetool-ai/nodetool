@@ -39,4 +39,4 @@ Generate concise summaries of text content using LLM providers with streaming ou
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.agents](../) namespace.
+Browse other nodes in the [nodetool.agents](./) namespace.

@@ -17,22 +17,6 @@ layout: default
     {{ content }}
   </div>
 
-  <div class="page-navigation">
-    {% if page.previous %}
-    <a href="{{ page.previous.url | relative_url }}" class="nav-link prev">
-      <span class="nav-arrow">←</span>
-      <span class="nav-text">{{ page.previous.title }}</span>
-    </a>
-    {% endif %}
-
-    {% if page.next %}
-    <a href="{{ page.next.url | relative_url }}" class="nav-link next">
-      <span class="nav-text">{{ page.next.title }}</span>
-      <span class="nav-arrow">→</span>
-    </a>
-    {% endif %}
-  </div>
-
   <div class="page-meta">
     <a class="edit-on-github" href="https://github.com/nodetool-ai/nodetool/edit/main/docs/{{ page.path }}" target="_blank" rel="noopener" aria-label="Edit this page on GitHub">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
@@ -40,8 +24,5 @@ layout: default
       </svg>
       <span>Edit this page on GitHub</span>
     </a>
-    {% if page.date %}
-    <span class="page-updated">Last updated {{ page.date | date: "%b %-d, %Y" }}</span>
-    {% endif %}
   </div>
 </article>

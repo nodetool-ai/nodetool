@@ -36,5 +36,5 @@ Calculates the similarity ratio between two strings.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.difflib](../) namespace.
+Browse other nodes in the [lib.difflib](./) namespace.
 

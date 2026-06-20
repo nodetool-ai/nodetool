@@ -34,5 +34,5 @@ Apply smoothing to reduce image noise and detail.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.image.filter](../) namespace.
+Browse other nodes in the [lib.image.filter](./) namespace.
 

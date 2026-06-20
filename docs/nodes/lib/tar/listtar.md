@@ -35,5 +35,5 @@ List contents of a tar archive.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.tar](../) namespace.
+Browse other nodes in the [lib.tar](./) namespace.
 

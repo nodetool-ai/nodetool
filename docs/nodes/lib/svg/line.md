@@ -39,4 +39,4 @@ Generate SVG line element with customizable endpoints and styling.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.svg](../) namespace.
+Browse other nodes in the [lib.svg](./) namespace.

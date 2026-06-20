@@ -37,4 +37,4 @@ Adjust input black point, gamma, and white point per RGB channel.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.image](../) namespace.
+Browse other nodes in the [nodetool.image](./) namespace.

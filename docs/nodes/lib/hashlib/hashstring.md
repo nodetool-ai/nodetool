@@ -36,5 +36,5 @@ Compute the cryptographic hash of a string using hashlib.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.hashlib](../) namespace.
+Browse other nodes in the [lib.hashlib](./) namespace.
 

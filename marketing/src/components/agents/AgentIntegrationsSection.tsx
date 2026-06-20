@@ -107,7 +107,7 @@ export default function AgentIntegrationsSection({
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
             Every tool in the{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-300 to-cyan-400">
+            <span className="text-white">
               creative kit.
             </span>
           </motion.h2>

@@ -14,6 +14,7 @@ export {
   getDb,
   getDbType,
   getRawDb,
+  pingDb,
   closeDb
 } from "./db.js";
 export type { DbDialect } from "./db.js";

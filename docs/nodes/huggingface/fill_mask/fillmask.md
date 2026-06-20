@@ -38,5 +38,5 @@ Fills in a masked token in a given text.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.fill_mask](../) namespace.
+Browse other nodes in the [huggingface.fill_mask](./) namespace.
 

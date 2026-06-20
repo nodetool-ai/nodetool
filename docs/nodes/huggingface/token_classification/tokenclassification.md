@@ -38,5 +38,5 @@ Performs token classification tasks such as Named Entity Recognition (NER).
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.token_classification](../) namespace.
+Browse other nodes in the [huggingface.token_classification](./) namespace.
 

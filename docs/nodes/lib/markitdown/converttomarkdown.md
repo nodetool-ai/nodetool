@@ -35,5 +35,5 @@ Converts various document formats to markdown using MarkItDown.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.convert](../) namespace.
+Browse other nodes in the [lib.convert](./) namespace.
 

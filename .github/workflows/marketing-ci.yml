@@ -1,0 +1,113 @@
+name: Marketing CI
+
+# Quality gate for the marketing site (Next.js, deployed via @opennextjs/cloudflare).
+# The marketing package has its own lockfile and is installed independently of the
+# root workspace, so this runs in marketing/ directly.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "marketing/**"
+      - ".github/workflows/marketing-ci.yml"
+  pull_request:
+    paths:
+      - "marketing/**"
+      - ".github/workflows/marketing-ci.yml"
+
+# Least-privilege token: this workflow only reads the repo to build/lint.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Typecheck, lint & build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: marketing
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+          cache-dependency-path: marketing/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build (Next.js)
+        run: npx next build
+
+  e2e:
+    name: Playwright smoke tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: marketing
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+          cache-dependency-path: marketing/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run smoke tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: marketing-playwright-report
+          path: marketing/playwright-report
+          retention-days: 7
+
+  lighthouse:
+    name: Lighthouse budget (informational)
+    runs-on: ubuntu-latest
+    # Performance numbers vary on shared runners; never block the PR on them.
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: marketing
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+          cache-dependency-path: marketing/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (Next.js)
+        run: npx next build
+
+      - name: Run Lighthouse CI
+        run: npx --yes @lhci/cli@0.14.x autorun

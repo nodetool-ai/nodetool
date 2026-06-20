@@ -196,7 +196,7 @@ export class Asset extends DBModel {
 
     const pathInfo = await Asset.getAssetPathInfo(
       userId,
-      items.map((a: Record<string, unknown>) => a.id)
+      items.map((a: Record<string, unknown>) => a.id as string)
     );
 
     const folderPaths: Array<Record<string, string>> = [];

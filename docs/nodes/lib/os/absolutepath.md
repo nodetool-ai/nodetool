@@ -33,4 +33,4 @@ Return the absolute path of a file or directory.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.os](../) namespace.
+Browse other nodes in the [lib.os](./) namespace.

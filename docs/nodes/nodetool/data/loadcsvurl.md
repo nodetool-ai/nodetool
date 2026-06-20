@@ -28,4 +28,4 @@ Load CSV file from URL.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.data](../) namespace.
+Browse other nodes in the [nodetool.data](./) namespace.

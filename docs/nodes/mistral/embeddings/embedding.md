@@ -40,4 +40,4 @@ Generate vector embeddings using Mistral AI.
 
 ## Related Nodes
 
-Browse other nodes in the [mistral.embeddings](../) namespace.
+Browse other nodes in the [mistral.embeddings](./) namespace.

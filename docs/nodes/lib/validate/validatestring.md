@@ -34,4 +34,4 @@ Run several common string checks at once and return one bool per check.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.validate](../) namespace.
+Browse other nodes in the [lib.validate](./) namespace.

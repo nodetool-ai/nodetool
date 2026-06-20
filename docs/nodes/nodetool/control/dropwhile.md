@@ -34,4 +34,4 @@ Drop items while a predicate is truthy, then pass everything after.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.control](../) namespace.
+Browse other nodes in the [nodetool.control](./) namespace.

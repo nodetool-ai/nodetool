@@ -41,4 +41,4 @@ Apply conservative mesh cleanup passes to remove obviously broken GLB triangle g
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.model3d](../) namespace.
+Browse other nodes in the [nodetool.model3d](./) namespace.

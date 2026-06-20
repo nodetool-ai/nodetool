@@ -37,5 +37,5 @@ Classifies images into categories without the need for training data.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.image_classification](../) namespace.
+Browse other nodes in the [huggingface.image_classification](./) namespace.
 

@@ -41,4 +41,4 @@ Trigger node that listens for Discord messages from a bot account.
 
 ## Related Nodes
 
-Browse other nodes in the [messaging.discord](../) namespace.
+Browse other nodes in the [messaging.discord](./) namespace.

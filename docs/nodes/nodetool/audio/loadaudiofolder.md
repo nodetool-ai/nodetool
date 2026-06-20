@@ -32,4 +32,4 @@ Load all audio files from a folder, optionally including subfolders.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.audio](../) namespace.
+Browse other nodes in the [nodetool.audio](./) namespace.

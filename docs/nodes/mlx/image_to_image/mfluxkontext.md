@@ -43,5 +43,5 @@ Generate images using Kontext reference image fusion on Apple Silicon.
 
 ## Related Nodes
 
-Browse other nodes in the [mlx.image_to_image](../) namespace.
+Browse other nodes in the [mlx.image_to_image](./) namespace.
 

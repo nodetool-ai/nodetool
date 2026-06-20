@@ -36,5 +36,5 @@ Encode a dictionary of parameters into a query string using
 
 ## Related Nodes
 
-Browse other nodes in the [lib.urllib](../) namespace.
+Browse other nodes in the [lib.urllib](./) namespace.
 

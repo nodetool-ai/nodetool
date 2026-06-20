@@ -3,6 +3,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import Tilt3D from "./Tilt3D";
 import { Mail, MapPin, ArrowRight } from "lucide-react";
+import { track } from "../lib/analytics";
 
 export default function ContactSection() {
   return (
@@ -22,7 +23,7 @@ export default function ContactSection() {
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
             Get in <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">
+            <span className="text-white">
               touch
             </span>
           </motion.h2>
@@ -32,7 +33,7 @@ export default function ContactSection() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-lg text-slate-400"
+            className="text-lg text-slate-300"
           >
             Questions, bug reports, feature requests. We&apos;re here to help.
           </motion.p>
@@ -47,7 +48,8 @@ export default function ContactSection() {
               content: (
                 <a
                   href="mailto:hello@nodetool.ai"
-                  className="text-xl font-medium text-white hover:text-blue-400 transition-colors flex items-center justify-center"
+                  onClick={() => track("Contact")}
+                  className="text-xl font-medium text-white hover:text-blue-400 transition-colors flex items-center justify-center focus-ring rounded"
                 >
                   hello@nodetool.ai
                   <ArrowRight className="w-5 h-5 ml-2 opacity-0 group-hover:opacity-100 transition-all transform group-hover:translate-x-1" />

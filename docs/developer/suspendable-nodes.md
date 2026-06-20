@@ -282,5 +282,5 @@ class WebhookWaitNode extends BaseNode {
 ## See Also
 
 - [Workflow Editor](../workflow-editor.md) - User guide for pause/resume controls
-- [Trigger Nodes](node-patterns.md#trigger-nodes) - Nodes that fire on external events
+- [Trigger Nodes](node-patterns.md) - Nodes that fire on external events
 - [Workflow API](../workflow-api.md) - API endpoints for workflow control

@@ -39,4 +39,4 @@ Generate 3D models from images using AI providers (Meshy, Rodin).
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.model3d](../) namespace.
+Browse other nodes in the [nodetool.model3d](./) namespace.

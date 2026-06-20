@@ -28,6 +28,7 @@ NodeTool is TypeScript-first. Strict mode is on everywhere (`tsconfig.base.json`
 ### Rules
 
 - **Strict mode is non-negotiable.** Never turn off `strict`, `noImplicitAny`, `strictNullChecks`, or `strictFunctionTypes` in any tsconfig.
+- **Documented tsconfig exception — `noUnusedLocals` / `noUnusedParameters`.** `tsconfig.base.json` enables both, but the node-implementation, codegen, and agent packages (`agents`, `cli`, `*-nodes`, `*-codegen`, `nodes-utils`, `workflow-runner`) override them to `false`. This is intentional: decorator-`declare`d node props, generated code, and interface-driven `process()` signatures routinely leave locals/params unused. Do not "fix" these overrides; keep new packages of the same kind consistent. All other packages inherit the strict base.
 - **No `any`** in new code. **target**: zero `any` in `web/src` and `electron/src`. The ESLint override that allows `any` in `packages/*` (see `eslint.config.mjs`) is a transitional concession — new code must use `unknown` + narrowing, generics, or proper types.
 - **Prefer `unknown` over `any`** at boundaries (parsed JSON, IPC, network). Narrow with a type guard or Zod schema before use.
 - **No non-null assertions (`!`)** except in tests. Use a type guard, `assertDefined()` helper, or an `if (!x) throw` check.
@@ -78,10 +79,11 @@ The web app runs **React 18.2**; Electron renderer runs **React 19.1**. Mobile u
 - **One default export per file** for components; named exports for hooks and utilities.
 - **Never mutate state.** Use immutable updates; pass new references.
 - **Stable keys** in lists — never use the array index when the list reorders. Use a stable ID.
-- **`useEffect` is for side effects only** (subscriptions, timers, DOM, network). **Never** use it to compute derived state — that's what `useMemo` or simple inline computation is for.
+- **`useEffect` is for side effects only** (subscriptions, timers, DOM, network). **Never** use it to compute derived state — that's what `useMemo` or simple inline computation is for. _Exception:_ mirroring a prop into editable local state (controlled→uncontrolled) and resetting state on an input change are legitimate effects — do not "convert" those to `useMemo`.
+- **`react-hooks/exhaustive-deps` is enforced** (oxlint, warn) — the primary `npm run lint`. Don't silence it with an eslint-disable; fix the dependency array or restructure. Treat new warnings as work to clear, not noise.
 - **Effect cleanup is mandatory** for any effect that creates a subscription, timer, controller, or listener. Effects that race must use an `AbortController` or an `isMounted` ref pattern (signal preferred).
 - **Don't pass inline functions** to memoized children. Use `useCallback` only when (a) the function is a dependency of an effect/memo, or (b) it's passed to a `React.memo`'d child.
-- **`useMemo` / `React.memo` only when measured.** Add only after observing a render problem in React DevTools. Premature memoization is forbidden because it adds maintenance cost.
+- **`useMemo` / `React.memo` only when measured.** Add only after observing a render problem in React DevTools. Premature memoization is forbidden because it adds maintenance cost. Corollary: the share of components *not* wrapped in `React.memo` is **not** a defect backlog to bulk-fix — `memo` only helps when a parent re-renders often AND the child's props are referentially stable, and otherwise just adds cost. Wrap a component only with a concrete, observed re-render to point at.
 - **No `useLayoutEffect`** unless you genuinely need synchronous DOM measurement before paint. Document why.
 - **Error boundaries** wrap every route and every async data section. **target**: a default error boundary at the route level emits a structured error event to telemetry.
 - **Suspense boundaries** wrap every lazy-loaded subtree, every TanStack Query suspense hook, and every `lazy()` component.
@@ -233,7 +235,25 @@ The node graph uses ReactFlow 12.10.0. The runtime semantics live in `@nodetool-
 ### target
 
 - Every new feature ships with at least one test at the lowest level it can fail (unit), and one integration test for cross-module concerns.
-- Mutation testing (Stryker or equivalent) on `@nodetool-ai/kernel` to verify tests actually catch regressions.
+- Mutation testing (Stryker or equivalent) verifies tests actually catch regressions.
+
+### Mutation testing policy
+
+Mutation testing (Stryker) runs via `npm run test:mutation` over the
+correctness- and security-critical packages: `agents`, `auth`, `config`,
+`kernel`, `node-sdk`, `runtime`, `security`, `storage`. Each has a
+`stryker.config.json` and a `test:mutation` script.
+
+- **Gated packages** (`auth`, `kernel`, `node-sdk`, `runtime`, `security`,
+  `agents`) set a `break` threshold — a drop below it fails the run.
+- **Report-only packages** (`config`, `storage`) were onboarded with
+  `break: null` while their suites are strengthened. Ratchet `break` upward as
+  the score improves; do not let it regress.
+- **Excluded:** integration-heavy packages like `websocket` are intentionally
+  not mutation-tested (their value is in end-to-end/contract tests). Revisit if
+  pure-logic modules there grow.
+
+Reports land in each package's gitignored `reports/mutation/` directory.
 
 ---
 

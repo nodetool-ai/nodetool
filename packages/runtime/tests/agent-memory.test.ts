@@ -126,4 +126,45 @@ describe("AgentMemory", () => {
     expect(aIdx).toBeGreaterThanOrEqual(0);
     expect(bIdx).toBeGreaterThan(aIdx);
   });
+
+  it("round-trips through snapshot() and restore() (durability seam)", () => {
+    const source = new AgentMemory();
+    source.set({
+      key: memoryKeys.task("t1"),
+      kind: "task_result",
+      value: { foo: "bar" },
+      createdAt: 123,
+      title: "Task One"
+    });
+    source.set({
+      key: memoryKeys.shared("note"),
+      kind: "shared",
+      value: "hello"
+    });
+
+    const snapshot = source.snapshot();
+
+    // Simulate a fresh process restoring from a persisted checkpoint.
+    const restored = new AgentMemory();
+    const seen: string[] = [];
+    restored.subscribe((e) => seen.push(e.key));
+    restored.restore(snapshot);
+
+    expect(restored.size()).toBe(2);
+    expect(restored.getValue("task:t1")).toEqual({ foo: "bar" });
+    expect(restored.get("task:t1")?.createdAt).toBe(123); // preserved
+    expect(restored.getValue("shared:note")).toBe("hello");
+    // Listeners fire for each restored entry so derived state can rebuild.
+    expect(seen).toEqual(["task:t1", "shared:note"]);
+  });
+
+  it("restore() overwrites existing keys", () => {
+    const m = new AgentMemory();
+    m.set({ key: "shared:x", kind: "shared", value: "old" });
+    m.restore([
+      { key: "shared:x", kind: "shared", value: "new", createdAt: 5 }
+    ]);
+    expect(m.getValue("shared:x")).toBe("new");
+    expect(m.size()).toBe(1);
+  });
 });

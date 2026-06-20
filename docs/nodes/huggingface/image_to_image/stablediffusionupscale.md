@@ -41,5 +41,5 @@ Upscales an image using Stable Diffusion 4x upscaler.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.image_to_image](../) namespace.
+Browse other nodes in the [huggingface.image_to_image](./) namespace.
 

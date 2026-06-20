@@ -36,5 +36,5 @@ Generate a random integer within a range.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.random](../) namespace.
+Browse other nodes in the [lib.random](./) namespace.
 

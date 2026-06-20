@@ -30,4 +30,4 @@ Accepts a reference to an audio asset for workflows, specified by an 'AudioRef'.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.input](../) namespace.
+Browse other nodes in the [nodetool.input](./) namespace.

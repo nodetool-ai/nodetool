@@ -29,4 +29,4 @@ Answer a natural-language question against a passage of context using the Tensor
 
 ## Related Nodes
 
-Browse other nodes in the [lib.tensorflow](../) namespace.
+Browse other nodes in the [lib.tensorflow](./) namespace.

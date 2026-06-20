@@ -30,4 +30,4 @@ Update properties of an existing Notion page.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.notion](../) namespace.
+Browse other nodes in the [lib.notion](./) namespace.

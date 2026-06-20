@@ -44,5 +44,5 @@ Generate text using locally cached MLX models on Apple Silicon.
 
 ## Related Nodes
 
-Browse other nodes in the [mlx.text_generation](../) namespace.
+Browse other nodes in the [mlx.text_generation](./) namespace.
 

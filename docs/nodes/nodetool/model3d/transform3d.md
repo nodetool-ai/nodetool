@@ -43,4 +43,4 @@ Apply translation, rotation, and scaling to a 3D model.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.model3d](../) namespace.
+Browse other nodes in the [nodetool.model3d](./) namespace.

@@ -18,7 +18,7 @@ export default function ComparisonSection({
     >
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
         <header className="mb-14 max-w-3xl">
-          <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-amber-300/80">
+          <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-blue-300/80">
             <span className="h-px w-8 bg-amber-300/60" />
             Comparison
           </div>
@@ -96,7 +96,7 @@ export default function ComparisonSection({
             </div>
 
             <div>
-              <div className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-amber-300/80">
+              <div className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-blue-300/80">
                 Where NodeTool fits
               </div>
               <h3 className="text-2xl md:text-3xl font-semibold text-white mb-5 tracking-tight">
@@ -144,13 +144,13 @@ function ComparisonCard({
       transition={{ duration: 0.5, delay }}
       className="relative bg-slate-950/70 p-8 lg:p-10 flex flex-col"
     >
-      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 mb-6">
+      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 mb-6">
         vs <span className="text-slate-300">{competitor}</span>
       </div>
 
       <p className="text-slate-200 leading-relaxed text-[1.025rem]">
         {before}
-        <span className="font-semibold text-amber-300">NodeTool</span>
+        <span className="font-semibold text-blue-300">NodeTool</span>
         {after}
       </p>
     </motion.article>

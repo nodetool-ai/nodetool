@@ -39,4 +39,4 @@ Generate SVG circle element with customizable position, radius, and styling.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.svg](../) namespace.
+Browse other nodes in the [lib.svg](./) namespace.

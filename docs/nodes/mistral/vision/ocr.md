@@ -39,4 +39,4 @@ Extract text from images using Mistral AI's Pixtral models.
 
 ## Related Nodes
 
-Browse other nodes in the [mistral.vision](../) namespace.
+Browse other nodes in the [mistral.vision](./) namespace.

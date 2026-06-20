@@ -28,6 +28,7 @@ class MockWebSocket {
   static CLOSED = 3;
 
   url: string;
+  options: { headers?: Record<string, string> } | undefined;
   binaryType: string = 'arraybuffer';
   readyState: number = MockWebSocket.CONNECTING;
   onopen: (() => void) | null = null;
@@ -35,8 +36,9 @@ class MockWebSocket {
   onmessage: ((event: { data: any }) => void) | null = null;
   onerror: ((event: { message: string }) => void) | null = null;
 
-  constructor(url: string) {
+  constructor(url: string, _protocols?: unknown, options?: { headers?: Record<string, string> }) {
     this.url = url;
+    this.options = options;
   }
 
   send = jest.fn();
@@ -65,8 +67,8 @@ let mockWebSocketInstance: MockWebSocket | null = null;
 
 // @ts-ignore
 global.WebSocket = class extends MockWebSocket {
-  constructor(url: string) {
-    super(url);
+  constructor(url: string, protocols?: unknown, options?: { headers?: Record<string, string> }) {
+    super(url, protocols, options);
     // oxlint-disable-next-line no-this-alias
     mockWebSocketInstance = this;
   }
@@ -109,6 +111,23 @@ describe('WebSocketManager', () => {
         timeoutInterval: 10000,
       });
       expect(manager.getState()).toBe('disconnected');
+    });
+
+    it('forwards Authorization headers to the WebSocket handshake', () => {
+      manager = new WebSocketManager({
+        url: 'ws://test',
+        headers: { Authorization: 'Bearer tok-123' },
+      });
+      void manager.connect();
+      expect(mockWebSocketInstance?.options?.headers).toEqual({
+        Authorization: 'Bearer tok-123',
+      });
+    });
+
+    it('opens without an options arg when no headers are given', () => {
+      manager = new WebSocketManager({ url: 'ws://test' });
+      void manager.connect();
+      expect(mockWebSocketInstance?.options).toBeUndefined();
     });
   });
 

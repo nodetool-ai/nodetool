@@ -1,6 +1,7 @@
 ---
 layout: page
 title: "Chat API"
+description: "NodeTool's chat endpoints — OpenAI-compatible HTTP plus WebSocket chat for local and remote clients."
 ---
 
 NodeTool provides both OpenAI-compatible HTTP endpoints and WebSocket endpoints for chat interactions:

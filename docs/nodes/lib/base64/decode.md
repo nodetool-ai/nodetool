@@ -34,5 +34,5 @@ Decodes Base64 text to plain string.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.base64](../) namespace.
+Browse other nodes in the [lib.base64](./) namespace.
 

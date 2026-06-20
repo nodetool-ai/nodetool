@@ -39,5 +39,5 @@ Detects objects in images without the need for training data.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.object_detection](../) namespace.
+Browse other nodes in the [huggingface.object_detection](./) namespace.
 

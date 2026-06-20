@@ -33,4 +33,4 @@ An individual AI agent that receives work from a TeamLead via control edges.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.team](../) namespace.
+Browse other nodes in the [nodetool.team](./) namespace.

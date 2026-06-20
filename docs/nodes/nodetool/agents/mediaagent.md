@@ -35,4 +35,4 @@ Prompt-driven media skill for model-based audio/video reasoning.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.agents](../) namespace.
+Browse other nodes in the [nodetool.agents](./) namespace.

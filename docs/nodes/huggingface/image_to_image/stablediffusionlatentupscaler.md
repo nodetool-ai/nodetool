@@ -37,5 +37,5 @@ Upscales Stable Diffusion latents (x2) using the SD Latent Upscaler pipeline.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.image_to_image](../) namespace.
+Browse other nodes in the [huggingface.image_to_image](./) namespace.
 

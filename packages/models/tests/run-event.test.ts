@@ -63,6 +63,19 @@ describe("RunEvent model", () => {
     expect(ev.node_id).toBeNull();
   });
 
+  it("assigns distinct sequential seqs to concurrent appends", async () => {
+    const N = 10;
+    const events = await Promise.all(
+      Array.from({ length: N }, () =>
+        RunEvent.appendEvent("race-run", "OutboxEnqueued", {})
+      )
+    );
+    const seqs = events.map((e) => e.seq).sort((a, b) => a - b);
+    // No collisions on the UNIQUE (run_id, seq) index: a contiguous 0..N-1 set.
+    expect(seqs).toEqual(Array.from({ length: N }, (_, i) => i));
+    expect(await RunEvent.getNextSeq("race-run")).toBe(N);
+  });
+
   it("creates an event with node_id", async () => {
     const ev = await RunEvent.appendEvent("r1", "NodeStarted", {}, "node-42");
     expect(ev.node_id).toBe("node-42");

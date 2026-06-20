@@ -39,5 +39,5 @@ Performs zero-shot classification on text.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.text_classification](../) namespace.
+Browse other nodes in the [huggingface.text_classification](./) namespace.
 

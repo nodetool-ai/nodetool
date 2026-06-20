@@ -36,4 +36,4 @@ Transform images using text prompts with any supported image provider. Automatic
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.image](../) namespace.
+Browse other nodes in the [nodetool.image](./) namespace.

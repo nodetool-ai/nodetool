@@ -29,4 +29,4 @@ Retrieve financial market data and stock information from Google Finance.
 
 ## Related Nodes
 
-Browse other nodes in the [search.google](../) namespace.
+Browse other nodes in the [search.google](./) namespace.

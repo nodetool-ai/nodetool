@@ -30,4 +30,4 @@ Paint an alpha mask on top of an image and output the mask.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.image](../) namespace.
+Browse other nodes in the [nodetool.image](./) namespace.

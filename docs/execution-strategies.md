@@ -1,6 +1,7 @@
 ---
 layout: page
 title: "Execution Strategies"
+description: "How NodeTool runs jobs — threaded, subprocess, and Docker execution strategies via the JobExecutionManager."
 ---
 
 

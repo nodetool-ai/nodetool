@@ -30,4 +30,4 @@ Search Google Images to find visual content or perform reverse image search.
 
 ## Related Nodes
 
-Browse other nodes in the [search.google](../) namespace.
+Browse other nodes in the [search.google](./) namespace.

@@ -5,7 +5,9 @@ title: "lib.rss Nodes"
 
 This namespace contains 2 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[Extract Feed Metadata](extractfeedmetadata.md)** - Extracts metadata from an RSS feed.
-- **[Fetch RSS Feed](fetchrssfeed.md)** - Fetches and parses an RSS feed from a URL.
+- **[Extract Feed Metadata](extractfeedmetadata.md)**
+- **[Fetch RSS Feed](fetchrssfeed.md)**
+
+[Back to all nodes](../../)

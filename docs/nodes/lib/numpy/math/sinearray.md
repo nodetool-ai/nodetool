@@ -35,5 +35,5 @@ Computes the sine of input angles in radians.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.array.math](../) namespace.
+Browse other nodes in the [lib.array.math](./) namespace.
 

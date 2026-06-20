@@ -60,7 +60,6 @@ Save time with these workflows:
 
 - [Meeting Transcript Summarizer](meeting-transcript-summarizer.md) - Auto-summarize meetings
 - [Categorize Mails](categorize-mails.md) - Organize emails automatically
-- [Summarize Newsletters](summarize-newsletters.md) - Extract key newsletter insights
 - [Summarize RSS](summarize-rss.md) - Stay updated with feed summaries
 - [Realtime Agent](realtime-agent.md) - Real-time AI assistance
 

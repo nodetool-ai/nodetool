@@ -38,5 +38,5 @@ Generates text descriptions from images.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.multimodal](../) namespace.
+Browse other nodes in the [huggingface.multimodal](./) namespace.
 

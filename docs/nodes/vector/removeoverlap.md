@@ -29,4 +29,4 @@ Removes overlapping words between consecutive strings in a list. Splits text int
 
 ## Related Nodes
 
-Browse other nodes in the [vector](../) namespace.
+Browse other nodes in the [vector](./) namespace.

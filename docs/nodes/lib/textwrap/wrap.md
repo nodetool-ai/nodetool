@@ -31,5 +31,5 @@ Wraps text to a specified width, returning a list of lines.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.textwrap](../) namespace.
+Browse other nodes in the [lib.textwrap](./) namespace.
 

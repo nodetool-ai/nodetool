@@ -425,7 +425,7 @@ Append to `electron/scripts/verify-bundle.mjs` (before its final success exit), 
 
 - [ ] **Step 3: Build packages, then run prepare-backend to stage**
 
-Run: `cd /Users/mg/workspace/nodetool2 && npm run build:packages >/dev/null 2>&1; cd electron && npm run prepare-backend 2>&1 | tail -5`
+Run: `cd ~/workspace/nodetool2 && npm run build:packages >/dev/null 2>&1; cd electron && npm run prepare-backend 2>&1 | tail -5`
 Expected: `Copied webgpu` appears in the output; exit 0.
 
 - [ ] **Step 4: Verify the staged binary is present**
@@ -811,12 +811,12 @@ if (result.status !== 0) {
 
 - [ ] **Step 2: Run it and confirm better-sqlite3 loads under system Node**
 
-Run: `cd electron && node scripts/rebuild-native.mjs && cd /Users/mg/workspace/nodetool2 && node -e "require('better-sqlite3'); console.log('better-sqlite3 loads on', process.versions.modules)"`
+Run: `cd electron && node scripts/rebuild-native.mjs && cd ~/workspace/nodetool2 && node -e "require('better-sqlite3'); console.log('better-sqlite3 loads on', process.versions.modules)"`
 Expected: prints `better-sqlite3 loads on 127` (system Node 22.x ABI), no `NODE_MODULE_VERSION` error.
 
 - [ ] **Step 3: Confirm the dev backend still boots (smoke)**
 
-Run: `cd /Users/mg/workspace/nodetool2 && timeout 25 npm run dev:server 2>&1 | grep -m1 -iE "listening|7777|ready" && echo OK`
+Run: `cd ~/workspace/nodetool2 && timeout 25 npm run dev:server 2>&1 | grep -m1 -iE "listening|7777|ready" && echo OK`
 Expected: server logs a ready/listening line (`OK`); no sqlite ABI error. (Ctrl-C / timeout ends it.)
 
 - [ ] **Step 4: Commit**

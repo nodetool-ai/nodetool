@@ -30,4 +30,4 @@ Check whether a value is a valid IPv4 or IPv6 address.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.validate](../) namespace.
+Browse other nodes in the [lib.validate](./) namespace.

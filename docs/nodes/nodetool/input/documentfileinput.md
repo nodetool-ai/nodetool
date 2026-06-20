@@ -31,4 +31,4 @@ Accepts a local file path pointing to a document and converts it into a 'Documen
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.input](../) namespace.
+Browse other nodes in the [nodetool.input](./) namespace.

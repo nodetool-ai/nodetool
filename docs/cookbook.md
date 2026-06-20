@@ -1,6 +1,7 @@
 ---
 layout: page
 title: "NodeTool Workflow Cookbook"
+description: "Reusable workflow patterns for the NodeTool canvas — core concepts, pipeline patterns, and worked end-to-end examples."
 ---
 
 Workflow patterns for the canvas.

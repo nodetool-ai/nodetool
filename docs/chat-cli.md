@@ -1,6 +1,7 @@
 ---
 layout: page
 title: "Chat CLI"
+description: "Use `nodetool chat`, the interactive terminal for conversing with models and running tools and agents."
 ---
 
 

@@ -48,4 +48,4 @@ Searches Gmail using Gmail-specific search operators and yields matching emails.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.mail](../) namespace.
+Browse other nodes in the [lib.mail](./) namespace.

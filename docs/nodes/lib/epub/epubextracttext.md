@@ -28,4 +28,4 @@ Extract plain text from an EPUB file by concatenating all chapters.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.epub](../) namespace.
+Browse other nodes in the [lib.epub](./) namespace.

@@ -33,4 +33,4 @@ Prompt-driven PowerPoint generation skill with PptxGenJS.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.agents](../) namespace.
+Browse other nodes in the [nodetool.agents](./) namespace.

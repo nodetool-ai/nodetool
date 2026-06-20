@@ -30,5 +30,5 @@ Removes any common leading whitespace from every line in text.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.textwrap](../) namespace.
+Browse other nodes in the [lib.textwrap](./) namespace.
 

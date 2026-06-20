@@ -26,4 +26,4 @@ _(none)_
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.workflows.base_node](../) namespace.
+Browse other nodes in the [nodetool.workflows.base_node](./) namespace.

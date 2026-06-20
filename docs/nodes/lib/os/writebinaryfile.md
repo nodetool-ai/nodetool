@@ -29,4 +29,4 @@ Write binary data (base64-encoded) to a file in the workspace.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.os](../) namespace.
+Browse other nodes in the [lib.os](./) namespace.

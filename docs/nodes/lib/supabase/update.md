@@ -31,4 +31,4 @@ Update records in a Supabase table.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.supabase](../) namespace.
+Browse other nodes in the [lib.supabase](./) namespace.

@@ -200,6 +200,15 @@ describe("WebSocketChatClient.chat", () => {
     expect((await p).value).toMatchObject({ type: "done" });
   });
 
+  it("terminates a waiting generator when the socket errors after connect", async () => {
+    const client = await makeConnectedClient();
+    const gen = client.chat("hi", "t1", "gpt-4o", "openai");
+    const p = gen.next();
+    // A post-connect error must unblock the waiter instead of hanging forever.
+    currentFakeWs.error(new Error("socket reset"));
+    expect((await p).value).toMatchObject({ type: "done" });
+  });
+
   it("yields output_update events", async () => {
     const client = await makeConnectedClient();
     const gen = client.chat("hi", "t1", "gpt-4o", "openai");

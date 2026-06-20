@@ -46,4 +46,4 @@ Download media from URLs using yt-dlp.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.video.download](../) namespace.
+Browse other nodes in the [lib.video.download](./) namespace.

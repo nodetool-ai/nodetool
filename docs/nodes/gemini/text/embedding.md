@@ -38,4 +38,4 @@ Generate vector representations of text for semantic analysis using Google's Gem
 
 ## Related Nodes
 
-Browse other nodes in the [gemini.text](../) namespace.
+Browse other nodes in the [gemini.text](./) namespace.

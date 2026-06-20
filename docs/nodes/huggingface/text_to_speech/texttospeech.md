@@ -36,5 +36,5 @@ A generic Text-to-Speech node that can work with various Hugging Face TTS models
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.text_to_speech](../) namespace.
+Browse other nodes in the [huggingface.text_to_speech](./) namespace.
 

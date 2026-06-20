@@ -33,4 +33,4 @@ Node that sends a message to a Telegram chat using a bot token.
 
 ## Related Nodes
 
-Browse other nodes in the [messaging.telegram](../) namespace.
+Browse other nodes in the [messaging.telegram](./) namespace.

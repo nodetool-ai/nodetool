@@ -44,5 +44,5 @@ Transforms existing images based on text prompts using AutoPipeline for Image-to
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.image_to_image](../) namespace.
+Browse other nodes in the [huggingface.image_to_image](./) namespace.
 

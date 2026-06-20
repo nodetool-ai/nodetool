@@ -1,6 +1,7 @@
 ---
 layout: page
 title: "NodeTool Chat Server"
+description: "Run `nodetool chat-server`, a chat-only HTTP API exposing OpenAI-compatible `/v1/chat/completions` and `/v1/models` endpoints."
 ---
 
 

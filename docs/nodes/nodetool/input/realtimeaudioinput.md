@@ -30,4 +30,4 @@ Accepts streaming audio data for workflows.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.input](../) namespace.
+Browse other nodes in the [nodetool.input](./) namespace.

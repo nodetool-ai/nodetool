@@ -33,5 +33,5 @@ Summarizes text using a Hugging Face model.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.summarization](../) namespace.
+Browse other nodes in the [huggingface.summarization](./) namespace.
 

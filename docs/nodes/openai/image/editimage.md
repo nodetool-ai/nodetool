@@ -37,4 +37,4 @@ Edit images using OpenAI's gpt-image-1 model.
 
 ## Related Nodes
 
-Browse other nodes in the [openai.image](../) namespace.
+Browse other nodes in the [openai.image](./) namespace.

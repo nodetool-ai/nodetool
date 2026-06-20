@@ -40,5 +40,5 @@ This node creates and adds Gaussian noise to an image.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.image.draw](../) namespace.
+Browse other nodes in the [lib.image.draw](./) namespace.
 
