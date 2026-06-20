@@ -13,7 +13,7 @@ NodeTool stores user assets, workflow artifacts, and temporary files through plu
 | Backend | Module | When it is used | Notes |
 |---------|--------|-----------------|-------|
 | In-memory | `@nodetool-ai/storage` / `src/memory-storage.ts` | Tests | Keeps data in process-local dictionaries. |
-| Local filesystem | `@nodetool-ai/storage` / `src/file-storage.ts` | Default for development when no cloud storage is configured | Stores assets under `Environment.get_asset_folder()` (defaults to `~/.config/nodetool/assets`). URLs are served via the API (`/storage/*`). |
+| Local filesystem | `@nodetool-ai/storage` / `src/file-storage.ts` | Default for development when no cloud storage is configured | Stores assets under `getDefaultAssetsPath()` (`@nodetool-ai/config` / `src/paths.ts`), which defaults to `~/.local/share/nodetool/assets` (XDG; `%APPDATA%\nodetool\assets` on Windows). Override with `ASSET_FOLDER` or `STORAGE_PATH`. URLs are served via the API (`/storage/*`). |
 | Supabase Storage | `@nodetool-ai/storage` / `src/supabase-storage.ts` | When `SUPABASE_URL` and `SUPABASE_KEY` are set | Uses a Supabase bucket for asset storage. Public buckets are recommended for direct URLs. |
 | Amazon S3 / S3-compatible | `@nodetool-ai/storage` / `src/s3-storage.ts` | Production, or when `S3_ACCESS_KEY_ID` or `S3_SECRET_ACCESS_KEY` are provided | Requires `S3_*` environment variables and optional custom endpoint for MinIO/Wasabi. |
 
@@ -26,7 +26,7 @@ Passing `use_s3: true` when obtaining asset storage forces S3 even in developmen
 | `ASSET_BUCKET` | Bucket name (S3) or Supabase Storage bucket name, or folder name (local). |
 | `ASSET_DOMAIN` | Public domain serving assets (S3 only). Not used for Supabase. |
 | `ASSET_TEMP_BUCKET` / `ASSET_TEMP_DOMAIN` | Optional separate bucket for temporary assets. |
-| `FONT_PATH`, `COMFY_FOLDER`, `VECTORSTORE_DB_PATH` | Additional paths for specific nodes (registered in `@nodetool-ai/websocket` / `src/settings-api.ts`). |
+| `FONT_PATH`, `COMFY_FOLDER`, `VECTORSTORE_DB_PATH` | Additional paths for specific nodes (registered in `@nodetool-ai/websocket` / `src/settings-registry.ts`). |
 
 For S3-compatible services, set:
 

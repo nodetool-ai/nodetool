@@ -329,7 +329,7 @@ diff working_workflow.json broken_workflow.json
 | **Preview nodes** | See intermediate data | Space → search "Preview" |
 | **Node click** | See error messages | Click red (failed) nodes |
 | **Console/DevTools** | View detailed logs | View → Developer Tools |
-| **JSON export** | Inspect workflow structure | File → Export |
+| **JSON export** | Inspect workflow structure | ⋮ menu → Download JSON |
 | **--verbose flag** | CLI debugging | `nodetool serve --verbose` |
 | **Log files** | Historical debugging | `~/.nodetool/logs/` |
 
