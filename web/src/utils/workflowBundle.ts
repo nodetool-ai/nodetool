@@ -18,6 +18,15 @@ interface ImportBundleResponse {
   checksum_mismatches: string[];
 }
 
+function isImportBundleResponse(data: unknown): data is ImportBundleResponse {
+  return (
+    data != null &&
+    typeof data === "object" &&
+    Array.isArray((data as Record<string, unknown>).workflows) &&
+    typeof (data as Record<string, unknown>).imported === "number"
+  );
+}
+
 function filenameFromDisposition(
   header: string | null,
   fallback: string
@@ -107,5 +116,8 @@ export async function importWorkflowBundle(
         : `Import failed (${res.status})`;
     throw new Error(detail);
   }
-  return data as ImportBundleResponse;
+  if (!isImportBundleResponse(data)) {
+    throw new Error("Unexpected response format from import endpoint");
+  }
+  return data;
 }
