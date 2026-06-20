@@ -92,8 +92,6 @@ A self-contained Mini-App launched from the tray. Maximum size 1200×900. Closin
 
 Standalone chat opened from the tray. Same content as [/standalone-chat]({{ '/user-interface#standalone-chat-window' | relative_url }}) but in its own window.
 
-![Chat Window](assets/screenshots/standalone-chat.png)
-
 ---
 
 ## System Tray

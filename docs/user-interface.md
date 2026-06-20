@@ -74,8 +74,6 @@ Docs: [Collections](collections.md) · [Indexing](indexing.md)
 
 Ready-to-use example workflows organized by tag and use case.
 
-![Templates Grid](assets/screenshots/templates-grid.png)
-
 Docs: [Templates Gallery](templates-gallery.md)
 
 ### Models Manager — `/models`
@@ -230,8 +228,6 @@ AI assistant built into NodeTool.
 | **Agent Mode** | Let the AI use tools and modify your canvas |
 
 ### Standalone Chat Window
-
-![Standalone Chat](assets/screenshots/standalone-chat.png)
 
 Access chat directly from the system tray for quick conversations:
 
