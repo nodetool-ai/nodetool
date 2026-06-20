@@ -233,7 +233,25 @@ The node graph uses ReactFlow 12.10.0. The runtime semantics live in `@nodetool-
 ### target
 
 - Every new feature ships with at least one test at the lowest level it can fail (unit), and one integration test for cross-module concerns.
-- Mutation testing (Stryker or equivalent) on `@nodetool-ai/kernel` to verify tests actually catch regressions.
+- Mutation testing (Stryker or equivalent) verifies tests actually catch regressions.
+
+### Mutation testing policy
+
+Mutation testing (Stryker) runs via `npm run test:mutation` over the
+correctness- and security-critical packages: `agents`, `auth`, `config`,
+`kernel`, `node-sdk`, `runtime`, `security`, `storage`. Each has a
+`stryker.config.json` and a `test:mutation` script.
+
+- **Gated packages** (`auth`, `kernel`, `node-sdk`, `runtime`, `security`,
+  `agents`) set a `break` threshold — a drop below it fails the run.
+- **Report-only packages** (`config`, `storage`) were onboarded with
+  `break: null` while their suites are strengthened. Ratchet `break` upward as
+  the score improves; do not let it regress.
+- **Excluded:** integration-heavy packages like `websocket` are intentionally
+  not mutation-tested (their value is in end-to-end/contract tests). Revisit if
+  pure-logic modules there grow.
+
+Reports land in each package's gitignored `reports/mutation/` directory.
 
 ---
 
