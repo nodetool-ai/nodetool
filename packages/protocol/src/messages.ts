@@ -177,6 +177,33 @@ export interface NodeUpdate {
   workflow_id?: string | null;
 }
 
+/**
+ * A generator committed one complete artifact (one `process()` result, or one
+ * `genProcess` stream-end). Authoritative variant carrier — never suppressed.
+ *
+ * The kernel actor emits a BARE event: `node_id`, `node_name`, `node_type`,
+ * `outputs`. `job_id` and `index` are stamped DOWNSTREAM by the relay (the
+ * unified websocket runner / browser runner), so both are optional on the wire
+ * — see the generation-events RFC §4.2 / §5 / Decision 8.
+ */
+export interface GenerationComplete {
+  type: "generation_complete";
+  node_id: string;
+  node_name: string;
+  node_type: string;
+  /**
+   * k-th committed generation of this node in this run. Stamped downstream by
+   * the relay (DB ordering on the server, arrival order in the browser), absent
+   * on the bare actor emit.
+   */
+  index?: number;
+  /** The complete result dict for this artifact (same shape as a process() return). */
+  outputs: Record<string, unknown>;
+  /** Stamped downstream by the runner relay, NOT by the actor. */
+  job_id?: string | null;
+  workflow_id?: string | null;
+}
+
 export interface NodeProgress {
   type: "node_progress";
   node_id: string;
@@ -206,6 +233,14 @@ export interface OutputUpdate {
   value: unknown;
   output_type: string;
   metadata: Record<string, unknown>;
+  /**
+   * NEW. "append" = `value` is a chunk to concatenate onto the live display
+   * buffer; "replace" = `value` is a whole snapshot that overwrites it. Absent
+   * ⇒ treated as "append" (today's behavior) for back-compat.
+   */
+  disposition?: "append" | "replace";
+  /** NEW (optional). Marks the final chunk of an append stream. */
+  done?: boolean;
   workflow_id?: string | null;
 }
 
@@ -633,6 +668,7 @@ export type WebSocketServerMessage =
 export type ProcessingMessage =
   | JobUpdate
   | NodeUpdate
+  | GenerationComplete
   | NodeProgress
   | EdgeUpdate
   | OutputUpdate

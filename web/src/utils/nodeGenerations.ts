@@ -35,6 +35,15 @@ export interface Generation {
   cost?: ProviderCost;
   error?: string;
   assetId?: string;
+  /**
+   * Per-(jobId) variant position, recovered at read time (no DB column); never
+   * a stored field on persisted gens. Persisted gens: derived from (createdAt,
+   * id) order within the job — `mergeGenerations` computes that order for its
+   * survival check but does not write `index` back onto the objects. Live gens:
+   * parsed from the `${jobId}#k` id scheme (`liveIndexOf`). Used only for
+   * live↔persisted reconciliation; never persisted to ResultsStore.
+   */
+  index?: number;
 }
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
@@ -65,27 +74,69 @@ export const assetToGeneration = (asset: Asset): Generation => ({
 });
 
 /**
- * One time-ordered list: all persisted generations followed by live
- * generations whose job has not yet persisted any asset (a live gen is
- * superseded once its assets land). Each backing is sorted oldest→newest by
- * createdAt; persisted (durable) generations always precede surviving live
- * ones so an in-flight run shows after the settled history.
+ * Recover a live generation's per-job variant index from its id. ResultsStore
+ * mints live ids as `index === 0 ? jobId : `${jobId}#${index}`` — so id === jobId
+ * is slot 0, a `${jobId}#k` suffix is slot k, and any index-less placeholder
+ * (a running/error settle merged onto the newest slot) is treated as slot 0.
+ */
+const liveIndexOf = (gen: Generation): number => {
+  if (typeof gen.index === "number") return gen.index;
+  if (gen.jobId == null) return 0;
+  if (gen.id === gen.jobId) return 0;
+  const prefix = `${gen.jobId}#`;
+  if (gen.id.startsWith(prefix)) {
+    const n = Number(gen.id.slice(prefix.length));
+    return Number.isFinite(n) ? n : 0;
+  }
+  return 0;
+};
+
+const KEY_SEP = "\u0000";
+const slotKey = (jobId: string, index: number) => `${jobId}${KEY_SEP}${index}`;
+
+/**
+ * One time-ordered list reconciled by (jobId, index): all persisted generations
+ * followed by the live generations that have NOT been superseded by a persisted
+ * asset at the same (jobId, index). A live variant survives until a persisted
+ * asset lands at its exact slot — so a multi-execution run shows all N live
+ * variants mid-run, and the live→persisted handoff is seamless (the persisted
+ * twin replaces the live one at the same slot, no flash, no premature collapse).
+ * Persisted index is recovered here from (createdAt, id) order within each job
+ * (no DB column); the id tie-break keeps same-ms assets stably ordered across
+ * renders. Persisted (durable) gens precede surviving live ones; both oldest→newest.
  */
 export const mergeGenerations = (
   persisted: Generation[],
   live: Generation[]
 ): Generation[] => {
-  const persistedJobs = new Set(
-    persisted.map((g) => g.jobId).filter(Boolean)
-  );
-  const survivingLive = live.filter(
-    (g) => !(g.jobId && persistedJobs.has(g.jobId))
-  );
-  const byCreatedAt = (a: Generation, b: Generation) =>
-    a.createdAt - b.createdAt;
+  const byCreatedAtThenId = (a: Generation, b: Generation) =>
+    a.createdAt - b.createdAt || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+
+  // Assign per-job persisted slots from (createdAt, id) order. Null-jobId
+  // assets are __solo__ singletons — never indexed, never reconciled.
+  const byJob = new Map<string, Generation[]>();
+  for (const g of persisted) {
+    if (g.jobId == null) continue;
+    const arr = byJob.get(g.jobId);
+    if (arr) arr.push(g);
+    else byJob.set(g.jobId, [g]);
+  }
+  const persistedSlots = new Set<string>(); // `${jobId}\u0000${index}`
+  for (const [jobId, group] of byJob) {
+    [...group].sort(byCreatedAtThenId).forEach((_g, i) => {
+      persistedSlots.add(slotKey(jobId, i));
+    });
+  }
+
+  // A live variant survives unless a persisted asset occupies its exact slot.
+  const survivingLive = live.filter((g) => {
+    if (g.jobId == null) return true;
+    return !persistedSlots.has(slotKey(g.jobId, liveIndexOf(g)));
+  });
+
   return [
-    ...[...persisted].sort(byCreatedAt),
-    ...[...survivingLive].sort(byCreatedAt)
+    ...[...persisted].sort(byCreatedAtThenId),
+    ...[...survivingLive].sort(byCreatedAtThenId)
   ];
 };
 
@@ -115,3 +166,101 @@ export const getCurrentOutput = (
   const current = getCurrentGeneration(generations, selectedId);
   return current ? outputOf(current, handle) : undefined;
 };
+
+/**
+ * A group of generations that belong to one workflow run. A regular generator
+ * driven by a stream/list is executed once per item; every execution emits a
+ * node_update sharing the run's job_id, so a multi-variant run persists N assets
+ * (and produces N live variants) all keyed by the same jobId. Generations with a
+ * null jobId (legacy/unjobbed assets) are never merged — each gets its own
+ * singleton run so unrelated assets can't collapse together.
+ */
+export interface RunGroup {
+  /** The run's job_id, or `__solo__:<generationId>` for a null-jobId singleton. */
+  jobId: string;
+  /** Earliest variant createdAt — the run's position on the timeline. */
+  createdAt: number;
+  /** Variants oldest→newest. */
+  variants: Generation[];
+  /** "running" if any variant is still running, "error" if any errored and none running, else "completed". */
+  status: "running" | "completed" | "error";
+  /** The latest variant — the run's cover/representative generation. */
+  cover: Generation;
+}
+
+/**
+ * Group a flat oldest→newest generation list into runs by jobId. Null-jobId
+ * generations become singleton runs (key `__solo__:<id>`). Runs are returned
+ * oldest→newest by createdAt (the run's earliest variant); variants within a
+ * run preserve the input order (already oldest→newest from mergeGenerations).
+ */
+export const groupByRun = (generations: Generation[]): RunGroup[] => {
+  const order: string[] = [];
+  const byKey = new Map<string, Generation[]>();
+  for (const gen of generations) {
+    const key = gen.jobId ? gen.jobId : `__solo__:${gen.id}`;
+    const existing = byKey.get(key);
+    if (existing) {
+      existing.push(gen);
+    } else {
+      byKey.set(key, [gen]);
+      order.push(key);
+    }
+  }
+  const runs: RunGroup[] = order.map((key) => {
+    const variants = byKey.get(key)!;
+    const createdAt = Math.min(...variants.map((v) => v.createdAt));
+    const hasRunning = variants.some((v) => v.status === "running");
+    const hasError = variants.some((v) => v.status === "error");
+    const status: RunGroup["status"] = hasRunning
+      ? "running"
+      : hasError
+        ? "error"
+        : "completed";
+    return {
+      jobId: key,
+      createdAt,
+      variants,
+      status,
+      cover: variants[variants.length - 1]
+    };
+  });
+  return runs.sort((a, b) => a.createdAt - b.createdAt);
+};
+
+/**
+ * The run containing the selected generation (matched by variant id); otherwise
+ * the latest run. Returns undefined for an empty list. Mirrors
+ * getCurrentGeneration's "selected ?? latest" semantics at the run level so a
+ * stale selected_generation falls back to the newest run's cover.
+ */
+export const getCurrentRun = (
+  runs: RunGroup[],
+  selectedId?: string
+): RunGroup | undefined => {
+  if (runs.length === 0) return undefined;
+  if (selectedId) {
+    const found = runs.find((r) => r.variants.some((v) => v.id === selectedId));
+    if (found) return found;
+  }
+  return runs[runs.length - 1];
+};
+
+/**
+ * Flatten a run to its display values: one value per variant via outputOf,
+ * with a single array-valued variant (the live num_images=N shape, one
+ * completed update whose outputs resolve to an array) spread so it counts as N
+ * values. Mirrors resolvePreviewValue's flatten in ContentCardBody so the
+ * streaming case (N variants, scalar each) and the single-array case render
+ * identically as N tiles. `null`/`undefined` values are dropped.
+ */
+export const runVariantValues = (
+  run: RunGroup,
+  handle?: string
+): unknown[] =>
+  run.variants
+    .flatMap((v) => {
+      const value = outputOf(v, handle);
+      return Array.isArray(value) ? value : [value];
+    })
+    .filter((value) => value !== undefined && value !== null);

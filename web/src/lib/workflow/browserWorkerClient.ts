@@ -12,7 +12,7 @@ import {
   type WebSocketMessage
 } from "../websocket/GlobalWebSocketManager";
 import { v4 as uuidv4 } from "uuid";
-import { materializeBrowserOutputs } from "./materializeBrowserOutputs";
+import { normalizeWorkerStreamMessage } from "./browserRunnerRelay";
 import type {
   BrowserGraphJobOptions,
   BrowserGraphJobResult
@@ -137,6 +137,11 @@ export function runBrowserGraphJobInWorker(
     // matching the main-thread and server paths. The canvas updates separately
     // via deliverLocal.
     const outputs: Record<string, unknown> = {};
+    // Per-node arrival counter for generation_complete.index. This run is one
+    // job, so node_id alone gives a per-(job, node) monotonic index. The browser
+    // path never persists (RFC Decision 9), so this is arrival-order only —
+    // identical to the main-thread fallback in browserWorkflowRunner.
+    const generationIndexByNode = new Map<string, number>();
     const cleanup = () => {
       if (settled) return;
       settled = true;
@@ -147,11 +152,7 @@ export function runBrowserGraphJobInWorker(
 
     const handleStreamMessage = (message: WebSocketMessage) => {
       const mutable = message as Record<string, unknown>;
-      if (message.type === "node_update" && mutable.result != null) {
-        mutable.result = materializeBrowserOutputs(mutable.result);
-      } else if (message.type === "output_update" && mutable.value != null) {
-        mutable.value = materializeBrowserOutputs(mutable.value);
-      }
+      normalizeWorkerStreamMessage(message, generationIndexByNode);
       globalWebSocketManager.deliverLocal(message);
 
       if (message.type === "node_update") {
