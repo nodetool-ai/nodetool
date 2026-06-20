@@ -11,8 +11,7 @@ namespace: "apify.scraping"
 
 ## Description
 
-Scrape YouTube videos, channels, and playlists.
-    Extract video metadata, comments, channel info, and statistics.
+Scrape YouTube videos, channels, and playlists — metadata, comments, channel info, and statistics.
     apify, youtube, video, scraping, social, media, channels
 
 ## Properties

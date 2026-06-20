@@ -99,7 +99,6 @@ exclude:
   - THEME.md
   - CLOUD_NODE_CURATION.md
   - AGENT_CLI_QUICKREF.md
-  - runpod_testing_guide.md
   - runtime-package-interface.md
   # Internal product/design specs (PRDs, drafts) — not for the public site.
   - STUDIO_PRD.md

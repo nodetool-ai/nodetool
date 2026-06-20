@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "TTSModel Input"
+title: "TTS Model Input"
 node_type: "nodetool.input.TTSModelInput"
 namespace: "nodetool.input"
 ---

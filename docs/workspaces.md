@@ -16,9 +16,11 @@ Workspaces make local file access explicit and controlled:
 
 ## Manage workspaces in the app
 
-1. Open **Settings** in the NodeTool desktop app.
-2. Go to the **Workspaces** tab.
-3. Add one or more workspace directories.
+Workspaces have their own full-screen page at `/workspaces` (not a Settings tab):
+
+1. Open the app menu (click the logo at the top of the left rail).
+2. Choose **Workspaces** (shown when workspaces are enabled).
+3. Add one or more workspace directories on the Workspaces page.
 
 After adding a workspace, NodeTool can browse files, list folders, and read/write files inside the configured root.
 

@@ -12,8 +12,7 @@ namespace: "nodetool.video"
 ## Description
 
 Load video files from an asset folder.
-
-    video, assets, load
+    load, video, file, import
 
 ## Properties
 

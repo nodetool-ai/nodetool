@@ -11,15 +11,12 @@ namespace: "nodetool.audio"
 
 ## Description
 
-Mix multiple audio tracks together. Add tracks dynamically with the
-"add audio input" button; wire a Gain node upstream of any track that
-needs a different level.
+Mix multiple audio tracks together. Add tracks dynamically with the “add audio input” button; wire a Gain node upstream of any track that needs a different level.
     audio, mix, combine, blend, layer, add, overlay
 
 ## Properties
 
-All inputs are dynamic — use the "add audio input" button on the node
-to add a named audio input handle. Each handle accepts an `audio` ref.
+_(none)_
 
 ## Outputs
 

@@ -22,6 +22,7 @@ Converts text to speech using OpenAI TTS models.
 | voice | `enum` |  | `alloy` |
 | input | `str` |  | `` |
 | speed | `float` |  | `1` |
+| instructions | `str` | Steer the voice's tone, emotion, and delivery (gpt-4o-mini-tts only). | `` |
 
 ## Outputs
 

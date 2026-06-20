@@ -22,7 +22,7 @@ Supabase provides both authentication and object storage for deployed NodeTool i
 
 - A **Supabase project** at [supabase.com](https://supabase.com)
 - Your project's **URL** and **service role key** from the Supabase dashboard
-- A NodeTool deployment target (self-hosted, RunPod, or GCP)
+- A NodeTool deployment target (self-hosted Docker server)
 
 ---
 
@@ -43,20 +43,22 @@ In your Supabase dashboard, go to **Storage** and create the following buckets:
 
 ### 2. Configure Environment Variables
 
-Add these variables to your deployment target's `env` section:
+Add these variables to your deployment target's `container.environment` section:
 
 ```yaml
-env:
-  # Supabase connection
-  SUPABASE_URL: https://your-project.supabase.co
-  SUPABASE_KEY: your-service-role-key
+container:
+  environment:
+    # Supabase connection (presence of both enables Supabase auth)
+    SUPABASE_URL: https://your-project.supabase.co
+    SUPABASE_KEY: your-service-role-key
 
-  # Storage buckets
-  ASSET_BUCKET: assets
-  ASSET_TEMP_BUCKET: assets-temp  # Optional
+    # Select Supabase as the STORAGE backend (default is "file").
+    # Setting only SUPABASE_URL/KEY enables Supabase AUTH but NOT storage.
+    NODETOOL_STORAGE_BACKEND: supabase
 
-  # Authentication provider
-  AUTH_PROVIDER: supabase
+    # Storage buckets
+    ASSET_BUCKET: assets
+    TEMP_BUCKET: assets-temp  # Optional
 ```
 
 Or set them as environment variables directly:
@@ -64,9 +66,9 @@ Or set them as environment variables directly:
 ```bash
 export SUPABASE_URL=https://your-project.supabase.co
 export SUPABASE_KEY=your-service-role-key
+export NODETOOL_STORAGE_BACKEND=supabase
 export ASSET_BUCKET=assets
-export ASSET_TEMP_BUCKET=assets-temp
-export AUTH_PROVIDER=supabase
+export TEMP_BUCKET=assets-temp
 ```
 
 ### 3. Deploy
@@ -81,7 +83,10 @@ nodetool deploy apply <target-name>
 
 ## Authentication
 
-When `AUTH_PROVIDER=supabase` is set, NodeTool uses Supabase JWTs for all API authentication:
+The server enables Supabase auth automatically when **both** `SUPABASE_URL` and
+`SUPABASE_KEY` are present. There is no `AUTH_PROVIDER` switch read by the server
+entrypoint — Supabase-vs-local auth is selected purely by the presence of those
+two variables. When set, NodeTool uses Supabase JWTs for all API authentication:
 
 - Users authenticate through Supabase (email/password, OAuth, magic link, etc.)
 - API requests require a valid JWT in the `Authorization` header:
@@ -90,28 +95,26 @@ When `AUTH_PROVIDER=supabase` is set, NodeTool uses Supabase JWTs for all API au
   ```
 - NodeTool validates tokens against your Supabase project automatically
 
-### Auth Provider Options
-
-| Provider | Use Case |
-|----------|----------|
-| `none` | Development only -- no authentication |
-| `local` | Local development with basic auth |
-| `static` | Service-to-service with a shared token (`SERVER_AUTH_TOKEN`) |
-| `supabase` | Production multi-user deployments |
+When `SUPABASE_URL`/`SUPABASE_KEY` are not set, the server falls back to a local
+auth provider.
 
 ---
 
 ## Storage Behavior
 
-### Provider Priority
+### Backend Selection
 
-NodeTool selects the storage backend based on available configuration:
+NodeTool selects the storage backend from `NODETOOL_STORAGE_BACKEND`
+(`file` | `s3` | `supabase`, default `file`):
 
-1. **Supabase** -- Used when both `SUPABASE_URL` and `SUPABASE_KEY` are set
-2. **S3** -- Used when S3 credentials are configured (and Supabase is not)
-3. **Local filesystem** -- Default fallback when no cloud storage is configured
+- **`file`** (default) -- local filesystem under the assets path.
+- **`s3`** -- requires `ASSET_BUCKET`/`TEMP_BUCKET` (plus `S3_REGION` / optional `S3_ENDPOINT`).
+- **`supabase`** -- requires `SUPABASE_URL`, `SUPABASE_KEY`, and `ASSET_BUCKET`/`TEMP_BUCKET`.
 
-If both S3 and Supabase variables are present, NodeTool prefers Supabase.
+Storage is **not** auto-selected from the presence of `SUPABASE_URL`/`SUPABASE_KEY`:
+those enable Supabase **auth**, but you must set `NODETOOL_STORAGE_BACKEND=supabase`
+to route **storage** through Supabase. The asset bucket is `ASSET_BUCKET` and the
+temp bucket is `TEMP_BUCKET`.
 
 ### Asset URLs
 

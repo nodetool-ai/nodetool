@@ -40,15 +40,14 @@ Available through provider nodes:
 
 ### Top 3D Generation Models
 
+Two cloud 3D runtime providers are available:
+
 | Model | Provider | Capabilities | Key Features |
 |-------|----------|-------------|--------------|
-| **Hunyuan3D V2/3.0** | Hunyuan | T2M/I2M | High-quality 3D meshes and textures |
-| **Trellis 2** | Trellis | T2M/I2M | Consistent geometry with textured output |
-| **TripoSR** | Tripo | I2M | Fast image-to-3D reconstruction |
-| **Shap-E** | OpenAI | T2M/I2M | Text or image prompt to 3D assets |
-| **Point-E** | OpenAI | T2M | Point cloud generation |
-| **Meshy AI** | Meshy | T2M/I2M | Textured mesh generation |
-| **Rodin AI** | Rodin | T2M/I2M | High fidelity 3D creation |
+| **Meshy AI** | Meshy (`MESHY_API_KEY`) | T2M/I2M | Textured mesh generation |
+| **Rodin AI** | Rodin (`RODIN_API_KEY`) | T2M/I2M | High fidelity 3D creation |
+
+Other 3D model families — Hunyuan3D, Trellis, TripoSR, Shap-E, Point-E — are run through HuggingFace / base-node 3D nodes rather than dedicated runtime providers. Their key names are node-level secret prompts in the editor, not backend providers. See [Providers](providers.md) for details.
 
 ### Top Video Generation Models
 
@@ -142,5 +141,5 @@ Many of these models are available through [kie.ai](https://kie.ai/), an AI prov
 - **[HuggingFace Integration](huggingface.md)** – Access 500,000+ models
 
 ### Advanced
-- **[Proxy & Self-Hosted](proxy.md)** – Secure deployments
+- **[Self-Hosted Deployment](self-hosted-deployment.md)** – Secure deployments
 - **[Deployment Guide](deployment.md)** – Cloud infrastructure

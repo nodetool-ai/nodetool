@@ -3,7 +3,7 @@ layout: page
 title: "nodetool.data Nodes"
 ---
 
-This namespace contains 30 node(s).
+This namespace contains 29 node(s).
 
 ## Nodes
 
@@ -11,7 +11,6 @@ This namespace contains 30 node(s).
 - **[Aggregate](aggregate.md)**
 - **[Append](append.md)**
 - **[Convert JSON to DataFrame](convertjsontodataframe.md)**
-- **[Convert JSON to DataFrame](jsontodataframe.md)**
 - **[Describe](describe.md)**
 - **[Drop Duplicates](dropduplicates.md)**
 - **[Drop NA](dropna.md)**

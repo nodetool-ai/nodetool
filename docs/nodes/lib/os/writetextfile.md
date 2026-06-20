@@ -12,7 +12,7 @@ namespace: "lib.os"
 ## Description
 
 Write text to a file in the workspace.
-    workspace, file, write, text, save
+    os, file, write, text, save
 
 ## Properties
 

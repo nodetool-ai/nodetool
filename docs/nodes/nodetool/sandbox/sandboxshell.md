@@ -12,6 +12,7 @@ namespace: "nodetool.sandbox"
 ## Description
 
 Execute shell commands in an isolated sandbox session.
+    sandbox, shell, command, terminal, bash, execute, isolated
 
 ## Properties
 

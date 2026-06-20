@@ -98,10 +98,19 @@ nodetool worker stop <instance-id>
 nodetool worker stop --all
 ```
 
-`worker create` prints the new instance id, its `wsUrl`, the generated bearer
+`worker create` prints the new instance id, its `wsUrl`, a **redacted** bearer
 token, and its status. With `--attach` it also points your bridge at the worker
-and prints `export NODETOOL_WORKER_URL=…` / `export NODETOOL_WORKER_TOKEN=…`
-lines you can source into a headless server.
+and prints `export NODETOOL_WORKER_URL=…`, followed by a commented hint for the
+token (the raw token is never printed to stdout):
+
+```bash
+export NODETOOL_WORKER_URL=wss://…
+# NODETOOL_WORKER_TOKEN was redacted; set it with:
+#   export NODETOOL_WORKER_TOKEN=$(nodetool worker token <instance-id>)
+```
+
+Retrieve the full token on demand with `nodetool worker token <id>`, which prints
+only the token so it pipes cleanly into `NODETOOL_WORKER_TOKEN`.
 
 ### CLI reference
 
@@ -117,6 +126,7 @@ nodetool worker create --profile <name> [--attach]
 nodetool worker create --target <t> --image <img> [--gpu <g>] [--attach]   # inline, one-off
 nodetool worker list [--json]
 nodetool worker status <id>          # refresh status from the provider
+nodetool worker token <id>           # print the decrypted bearer token (pipeable)
 nodetool worker stop <id>
 nodetool worker stop --all
 ```

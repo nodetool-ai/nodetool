@@ -64,7 +64,12 @@ The capability system uses introspection to automatically detect which features 
 | OpenRouter | `openrouter-provider.ts` | ✅ | ✅ | model-dependent | 300+ models via one key. Includes image generation |
 | LM Studio | `lmstudio-provider.ts` | ✅ | model-dependent | model-dependent | Local LM Studio server (no API key needed) |
 | Together AI | `together-provider.ts` | ✅ | ✅ | — | Open-weight model hosting |
-| Moonshot (Kimi) | `moonshot-provider.ts` | ✅ | ✅ | — | Kimi coding plan — Anthropic-compatible endpoint |
+| Moonshot (Kimi) | `moonshot-provider.ts` | ✅ | ✅ | — | Kimi coding plan — Anthropic-compatible endpoint; `KIMI_API_KEY` |
+| MiniMax | `minimax-provider.ts` | ✅ | ✅ | — | OpenAI-compatible chat; `MINIMAX_API_KEY` |
+| Codex (OpenAI OAuth) | `codex-provider.ts` | ✅ | ✅ | — | ChatGPT/Codex OAuth login — no API key; uses the stored `CODEX_ACCESS_TOKEN` |
+| Claude Agent SDK | `claude-agent-provider.ts` | ✅ | ✅ | ✅ | Spawns the `claude` CLI against your logged-in Claude subscription — no API key |
+| llama.cpp | `llama-provider.ts` | ✅ | model-dependent | model-dependent | Local llama.cpp server; set `LLAMA_CPP_URL` |
+| AKI | `aki-provider.ts` | ✅ | ✅ | — | OpenAI-compatible gateway; `AKI_API_KEY` |
 
 ### Video Generation Providers
 
@@ -101,19 +106,34 @@ Text-to-video and image-to-video providers available through the unified interfa
 | Suno | Music generation, extend, cover, remix | via kie.ai (`KIE_API_KEY`) |
 | ElevenLabs | TTS, dialogue, sound effects, audio isolation | `ELEVENLABS_API_KEY` or via kie.ai |
 
+### Other Media Providers
+
+| Provider | File | Capabilities | API Key |
+|----------|------|--------------|---------|
+| Topaz | `topaz-provider.ts` | Image upscaling | `TOPAZ_API_KEY` |
+| Reve | `reve-provider.ts` | Image generation | `REVE_API_KEY` |
+| AtlasCloud | `atlascloud-provider.ts` | Media generation | `ATLASCLOUD_API_KEY` |
+
+### Embedding & Reranking Providers
+
+| Provider | File | Capabilities | API Key |
+|----------|------|--------------|---------|
+| Cohere | `cohere-provider.ts` | Embeddings, reranking | `COHERE_API_KEY` |
+| Voyage AI | `voyage-provider.ts` | Embeddings | `VOYAGE_API_KEY` |
+| Jina AI | `jina-provider.ts` | Embeddings | `JINA_API_KEY` |
+
 ### 3D Generation Providers
+
+Two runtime providers handle text-to-3D and image-to-3D:
 
 | Provider | Capabilities | API Key |
 |----------|--------------|---------|
-| Hunyuan3D V2/3.0 | T2-3D, I2-3D | `HUNYUAN3D_API_KEY` |
-| Trellis 2 | T2-3D, I2-3D | `TRELLIS_API_KEY` |
-| TripoSR | I2-3D | `TRIPO_API_KEY` |
-| Shap-E | T2-3D, I2-3D | `SHAP_E_API_KEY` |
-| Point-E | T2-3D | `POINT_E_API_KEY` |
 | Meshy AI | T2-3D, I2-3D | `MESHY_API_KEY` |
 | Rodin AI | T2-3D, I2-3D | `RODIN_API_KEY` |
 
-Use the HuggingFace 3D nodes (`HFTextTo3D`, `HFImageTo3D`) or the generic nodes (`nodetool.3d.TextTo3D`, `nodetool.3d.ImageTo3D`) to switch providers.
+Other 3D model families (Hunyuan3D, Trellis, TripoSR, Shap-E, Point-E) are **not** runtime providers — they run through HuggingFace / base-node 3D nodes. Their key names (`HUNYUAN3D_API_KEY`, `TRELLIS_API_KEY`, `TRIPO_API_KEY`, `SHAP_E_API_KEY`, `POINT_E_API_KEY`) are node-level secret mappings (see `web/src/utils/nodeProvider.ts`) that the editor uses to prompt for a key when such a node needs one; they do not select a backend provider.
+
+Use the HuggingFace 3D nodes (`HFTextTo3D`, `HFImageTo3D`) or the generic nodes (`nodetool.3d.TextTo3D`, `nodetool.3d.ImageTo3D`).
 
 ### Multi-Provider Aggregators
 
@@ -205,6 +225,17 @@ const params: TextToVideoParams = {
 | **LM Studio**    | `LMSTUDIO_API_KEY` (optional) | `LMSTUDIO_API_URL` (default `http://127.0.0.1:1234`) |
 | **Together AI**  | `TOGETHER_API_KEY`    | -                               |
 | **Moonshot (Kimi)** | `KIMI_API_KEY`     | -                               |
+| **MiniMax**      | `MINIMAX_API_KEY`     | -                               |
+| **Codex (OpenAI OAuth)** | `CODEX_ACCESS_TOKEN` (OAuth) | -                  |
+| **Claude Agent SDK** | none (uses logged-in Claude CLI) | -                |
+| **AKI**          | `AKI_API_KEY`         | -                               |
+| **llama.cpp**    | -                     | `LLAMA_CPP_URL`                 |
+| **Topaz**        | `TOPAZ_API_KEY`       | -                               |
+| **Reve**         | `REVE_API_KEY`        | -                               |
+| **AtlasCloud**   | `ATLASCLOUD_API_KEY`  | -                               |
+| **Cohere**       | `COHERE_API_KEY`      | -                               |
+| **Voyage AI**    | `VOYAGE_API_KEY`      | -                               |
+| **Jina AI**      | `JINA_API_KEY`        | -                               |
 | **kie.ai**       | `KIE_API_KEY`         | -                               |
 
 
@@ -229,14 +260,14 @@ const params: TextToVideoParams = {
 - **LM Studio:** No key needed — download from https://lmstudio.ai and start a local server
 - **kie.ai:** https://kie.ai/ (unified multi-model access)
 
+3D runtime providers:
+
 | 3D Provider     | Required Variables    |
 | --------------- | --------------------- |
-| **Hunyuan3D**   | `HUNYUAN3D_API_KEY`   |
-| **Trellis**     | `TRELLIS_API_KEY`     |
-| **TripoSR**     | `TRIPO_API_KEY`       |
-| **Point-E**     | `POINT_E_API_KEY`     |
 | **Meshy AI**    | `MESHY_API_KEY`       |
 | **Rodin AI**    | `RODIN_API_KEY`       |
+
+The node-level 3D keys (`HUNYUAN3D_API_KEY`, `TRELLIS_API_KEY`, `TRIPO_API_KEY`, `SHAP_E_API_KEY`, `POINT_E_API_KEY`) are editor secret prompts for HuggingFace / base-node 3D nodes, not backend providers — see the 3D Generation Providers note above.
 
 ## Provider Development
 

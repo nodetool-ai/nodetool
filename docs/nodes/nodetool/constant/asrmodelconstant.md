@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "ASRModel Constant"
+title: "ASR Model Constant"
 node_type: "nodetool.constant.ASRModelConstant"
 namespace: "nodetool.constant"
 ---

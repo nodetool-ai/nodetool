@@ -95,7 +95,7 @@ Chat with AI models from your mobile device.
 
 ### How to Chat
 
-1. Tap the **Chat** icon in the header
+1. Tap the **Chat** button on the Workflows list screen
 2. Select a model (tap model name)
 3. Type your message
 4. Tap **Send**
@@ -112,13 +112,7 @@ Chat with AI models from your mobile device.
 
 ## Mini Apps
 
-Run your NodeTool workflows with a simplified mobile interface.
-
-### Mini Apps List
-
-Browse every mini-app published by your server.
-
-![Mini Apps List](assets/screenshots/screenshot-placeholder.svg)
+Run your NodeTool workflows with a simplified mobile interface. There is no separate "Mini Apps" screen — the home screen is the **Workflows** list (WorkflowsListScreen), and tapping a workflow opens the graph editor (GraphEditorScreen), which hosts the Mini-App runner for that workflow.
 
 ### What Are Mini Apps?
 
@@ -129,15 +123,11 @@ Mini Apps are workflows converted to simple interfaces. They hide the complexity
 
 ### Running a Mini App
 
-1. Open the **Mini Apps** screen
-2. Browse available apps
-3. Tap an app to open it
-4. Fill in the inputs:
-   - **Text fields** – Type your input
-   - **Number fields** – Enter values
-   - **Toggle switches** – Enable/disable options
-5. Tap **Run**
-6. View results below
+1. Open the **Workflows** list (the home screen)
+2. Tap a workflow to open it
+3. Fill in the inputs (text, number, boolean toggles, image, audio, …)
+4. Tap **Run**
+5. View results below
 
 ![Mini App Runner](assets/screenshots/screenshot-placeholder.svg)
 
@@ -146,14 +136,17 @@ Mini Apps are workflows converted to simple interfaces. They hide the complexity
 | Type | Description |
 |------|-------------|
 | Text | Single or multi-line text input |
-| Number | Numeric values |
+| Number | Integer or float values |
 | Boolean | On/off toggle switches |
+| Image | Image input |
+| Audio | Audio input |
+| File path | File reference |
 
 ---
 
 ## Mobile Graph Editor
 
-The mobile app includes a touch-friendly version of the workflow editor. It defaults to a vertical chain layout but supports pan-and-zoom editing for arbitrary graphs.
+The mobile app includes a touch-friendly version of the workflow editor. Workflows render as a vertical chain of cards that you scroll through — there is no free-form pan-and-zoom canvas.
 
 ### Overview
 
@@ -173,18 +166,18 @@ Tap the **+** button to open the full-screen node picker, which filters by input
 
 ### Linear Chain
 
-Most workflows render as a vertical chain of cards on mobile — easier to scroll and tap.
+Workflows render as a vertical chain of cards on mobile — easier to scroll and tap.
 
 ![Mobile Graph Editor — Chain](assets/screenshots/mobile-graph-editor-chain.png)
 
-Touch gestures:
+Interactions:
 
-| Gesture | Action |
-|---------|--------|
+| Action | Result |
+|--------|--------|
 | Tap a card | Open its properties |
-| Long-press | Grab and reorder |
-| Pinch | Zoom (when the graph view is in "free" mode) |
-| Two-finger drag | Pan the canvas |
+| Up / Down buttons on a card | Reorder it within the chain |
+| Duplicate / Remove buttons | Duplicate or delete the node |
+| **+** button | Add a node via the full-screen picker |
 
 ---
 
@@ -194,32 +187,32 @@ Configure the mobile app from the gear icon:
 
 ![Mobile Settings](assets/screenshots/screenshot-placeholder.svg)
 
-| Setting | Purpose |
+| Section | Purpose |
 |---------|---------|
-| Server URL | Which NodeTool server to talk to |
-| Test Connection | One-tap ping of the configured URL |
-| Default Language Model | Default LLM for new chat threads |
 | Appearance | Light / Dark / System theme |
-| Storage | Cached thread size and clear cache |
+| Server URL + Test Connection | Which NodeTool server to talk to, with a one-tap connectivity check |
+| Manage | Shortcuts to API Keys, Collections, and Jobs |
+| Account | Signed-in email and **Sign Out** |
 | About | App version, build info, links |
 
 ---
 
 ## Mobile Language Model Selection
 
-Tapping the model name at the top of a chat opens a searchable picker with every model offered by your server.
+Tapping the model name at the top of a chat opens a two-step picker:
+
+1. **Select a provider** — the providers your server reports as supporting message generation.
+2. **Select a model** — the models offered by that provider.
+
+A search box appears in either step once the list is long enough, and a back arrow returns from models to providers. There is no API-key gating, disabled styling, or docs links in this picker.
 
 ![Mobile Model Selection](assets/screenshots/screenshot-placeholder.svg)
 
-Providers without configured API keys are greyed out and linked to the docs for setup.
-
 ---
 
-## Tablet Dashboard
+## Screens
 
-On tablets the dashboard uses a two-column layout that shows the workflow list and the active thread side-by-side.
-
-![Tablet Dashboard](assets/screenshots/dashboard-tablet.png)
+The app is made up of 12 screens: Login, Workflows list, Graph editor, Settings, Chat, Language Model Selection, Assets, Asset Viewer, Secrets, Collections, Jobs, and Threads.
 
 ---
 

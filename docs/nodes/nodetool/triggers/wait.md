@@ -13,8 +13,8 @@ namespace: "nodetool.triggers"
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| timeout_seconds | `int` | Optional timeout in seconds (0 = wait indefinitely) | `0` |
-| input | `any` | Input data to pass through to the output when resumed | `` |
+| timeout_seconds | `int` | Seconds to wait before continuing (0 = no wait) | `0` |
+| input | `any` | Input data to pass through to the output after waiting | `` |
 
 ## Outputs
 

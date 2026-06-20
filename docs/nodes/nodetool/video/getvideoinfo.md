@@ -11,8 +11,7 @@ namespace: "nodetool.video"
 
 ## Description
 
-Get metadata information about a video file.
-    Includes duration, resolution, frame rate, and codec.
+Get metadata about a video file including duration, resolution, frame rate, and codec.
     video, info, metadata, duration, resolution, fps, codec, analysis
 
 ## Properties

@@ -19,6 +19,7 @@ Creates a silent audio file with a specified duration.
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | duration | `float` | The duration of the silence in seconds. | `1` |
+| sample_rate | `int` | Sample rate of the generated silence in Hz. | `44100` |
 
 ## Outputs
 

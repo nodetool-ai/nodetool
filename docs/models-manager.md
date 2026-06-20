@@ -12,7 +12,7 @@ The **Models Manager** helps you browse, download, and manage AI models availabl
 
 ## Opening the Manager
 
-Click the **Models** icon in the app header to open the Models Manager dialog. It shows all downloaded models, recommended models, and available models from configured providers.
+The Models Manager is a full page at the `/models` route — open it from the app navigation. It shows all downloaded models, recommended models, and available models from configured providers.
 
 ![Models Manager — Full View](assets/screenshots/models-list.png)
 
@@ -24,24 +24,23 @@ Click the **Models** icon in the app header to open the Models Manager dialog. I
 
 ### Filter by Type
 
-Use the type filters on the left to narrow the list:
+The sidebar on the left filters by **HuggingFace pipeline tag** rather than simplified labels. Tags include, for example:
 
-| Filter | Model Type | Example Use |
-|--------|-----------|-------------|
-| **LLM** | Large Language Models | Text generation, chat, reasoning |
-| **VLM** | Vision-Language Models | Image understanding, visual Q&A |
-| **Embedding** | Embedding Models | Vector search, similarity matching |
-| **Image Gen** | Image Generation | Text-to-image, image-to-image |
-| **Video Gen** | Video Generation | Text-to-video, image-to-video |
-| **Audio Gen** | Audio Generation | Music, sound effects |
-| **TTS** | Text-to-Speech | Voice synthesis, narration |
-| **ASR** | Automatic Speech Recognition | Transcription, dictation |
-| **Reranker** | Reranking Models | Search result refinement |
+| Pipeline tag | Example Use |
+|--------------|-------------|
+| `text-generation` | Text generation, chat, reasoning |
+| `text-to-image` | Text-to-image generation |
+| `image-to-image` | Image transformation |
+| `text-to-video` | Text-to-video generation |
+| `automatic-speech-recognition` | Transcription, dictation |
+| `text-to-speech` | Voice synthesis, narration |
+| `feature-extraction` | Embeddings / vector search |
+
+The available tags reflect what's actually present in your model list; each shows a count of matching models.
 
 ### Search and Sort
 
 - **Search by name** or repository to quickly find specific models
-- Toggle between **grid** and **list** layouts
 - **Favorites** -- Star frequently used models for quick access
 - **Recent** -- See models you've used recently
 
@@ -60,7 +59,7 @@ Use the type filters on the left to narrow the list:
 - Downloads continue in the background while you navigate the app
 - The bottom bar shows total progress, speed, and estimated time remaining
 - Click the Downloads bar to expand and see individual file progress
-- Downloads automatically retry on network failures (up to 5 attempts with exponential backoff)
+- The download WebSocket reconnects automatically on connection loss (up to 5 attempts with exponential backoff); this reconnection is separate from any per-file download behavior
 
 ### Storage Location
 

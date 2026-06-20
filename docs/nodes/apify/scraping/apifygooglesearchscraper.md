@@ -11,8 +11,7 @@ namespace: "apify.scraping"
 
 ## Description
 
-Scrape Google Search results using Apify's Google Search Scraper.
-    Extract organic results, ads, related searches, and more.
+Scrape Google Search results using Apify — organic results, ads, related searches, and more.
     apify, google, search, serp, scraping, seo
 
 ## Properties

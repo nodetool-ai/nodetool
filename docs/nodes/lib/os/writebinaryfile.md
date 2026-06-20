@@ -12,7 +12,7 @@ namespace: "lib.os"
 ## Description
 
 Write binary data (base64-encoded) to a file in the workspace.
-    workspace, file, write, binary, save
+    os, file, write, binary, save
 
 ## Properties
 

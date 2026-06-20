@@ -11,10 +11,8 @@ namespace: "messaging.discord"
 
 ## Description
 
-Trigger node that listens for Discord messages from a bot account.
-
-    This trigger connects to Discord using a bot token and emits events
-    for incoming messages.
+Listen for Discord messages from a bot account and emit them as events.
+    discord, trigger, bot, messages, chat, events, listen
 
 ## Properties
 

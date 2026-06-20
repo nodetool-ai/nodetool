@@ -32,7 +32,8 @@ Update records in a SQLite table.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `dict[str, any]` |  |
+| rows_affected | `int` |  |
+| message | `str` |  |
 
 ## Related Nodes
 

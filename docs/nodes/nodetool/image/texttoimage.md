@@ -23,7 +23,6 @@ Generate images from text prompts using any supported image provider. Automatica
 | negative_prompt | `str` | Text prompt describing what to avoid in the image | `` |
 | aspect_ratio | `str` | Aspect ratio of the generated image | `1:1` |
 | resolution | `str` | Output resolution (short edge in pixels) | `1K` |
-| timeout_seconds | `int` | Timeout in seconds for API calls (0 = use provider default) | `0` |
 
 ## Outputs
 

@@ -5,40 +5,63 @@ Quick reference for the `nodetool agent` command.
 ## Command Format
 
 ```bash
-nodetool agent --config <config.yaml> [OPTIONS]
+nodetool agent run <config.yaml> [--objective "..."] [OPTIONS]
+nodetool agent test <config.yaml>
+nodetool agent list <dir>
 ```
+
+The objective comes from `--objective`, piped stdin, or the YAML `objective:` field (in that priority order).
 
 ## Common Usage Patterns
 
-### Run Agent with Inline Prompt
+### Run an Agent with an Objective
 
 ```bash
-nodetool agent --config research-agent.yaml --prompt "Research AI trends in 2025"
+nodetool agent run research-agent.yaml --objective "Research AI trends in 2025"
 ```
 
-### Run Agent with Prompt from File
+### Provide the Objective via stdin
 
 ```bash
-nodetool agent --config code-assistant.yaml --prompt-file task.txt
+echo "Research AI trends in 2025" | nodetool agent run research-agent.yaml
 ```
 
-### Interactive Mode
+### Use the YAML's Default Objective
 
 ```bash
-nodetool agent --config content-creator.yaml --interactive
+nodetool agent run research-agent.yaml
 ```
 
-### Save Output to File
+### Capture the Result
+
+The result is written to stdout; the trace goes to stderr.
 
 ```bash
-nodetool agent --config agent.yaml --prompt "Task" --output result.txt
+nodetool agent run agent.yaml --objective "Task" > result.txt
 ```
 
-### JSONL Output for Automation
+### JSON Event Stream (on stderr)
 
 ```bash
-nodetool agent --config agent.yaml --prompt "Task" --jsonl > output.jsonl
+nodetool agent run agent.yaml --objective "Task" --json 2> events.jsonl
 ```
+
+### Validate a Config
+
+```bash
+nodetool agent test agent.yaml
+```
+
+## Run Options
+
+| Option | Description |
+|--------|-------------|
+| `-o, --objective <text>` | Objective (overrides stdin and the YAML default) |
+| `-p, --provider <id>` | Override the provider |
+| `-m, --model <id>` | Override the model |
+| `-w, --workspace <path>` | Override the workspace directory |
+| `--json` | Emit each event as a JSON line on stderr |
+| `-v, --verbose` | Include low-level chunk events in the trace |
 
 ## Minimal Configuration
 
@@ -50,56 +73,44 @@ system_prompt: |
 model:
   provider: openai
   id: gpt-4o-mini
-planning_agent:
-  enabled: true
 tools:
   - read_file
   - write_file
-max_tokens: 4096
+max_steps: 10
 ```
 
 ## Standard Tools
 
 | Tool | Purpose |
 |------|---------|
-| `write_file` | Write files in workspace |
-| `read_file` | Read files from workspace |
+| `write_file` | Write files in the workspace |
+| `read_file` | Read files from the workspace |
+| `edit_file` | Edit an existing file |
 | `list_directory` | List workspace contents |
-| `delete_file` | Delete workspace files |
+| `glob` | Match files by glob pattern |
+| `grep` | Search within files |
 | `google_search` | Search the web |
 | `browser` | Browse and extract web content |
-| `execute_code` | Run Python/JavaScript code |
-| `terminal` | Execute shell commands |
-| `grep` | Search within files |
-
-## Interactive Commands
-
-| Command | Description |
-|---------|-------------|
-| `/help` | Show available commands |
-| `/workspace` | Show workspace path and files |
-| `/tools` | List available tools |
-| `/config` | Show current configuration |
-| `/clear` | Clear conversation history |
-| `/save [file]` | Save conversation to file |
-| `/exit` | Exit interactive session |
+| `run_code` | Run code in a sandbox |
+| `generate_image` | Generate an image |
+| `generate_speech` | Generate speech audio |
+| `generate_video` | Generate a video |
 
 ## Model Recommendations
 
-| Task Type | Planning Agent | Main Agent | Temperature |
-|-----------|----------------|------------|-------------|
-| Analytical | gpt-4o-mini | gpt-4o | 0.0-0.3 |
-| General | gpt-4o-mini | gpt-4o | 0.7 |
-| Creative | gpt-4o-mini | gemini-2.0-flash | 0.9-1.0 |
-| Code | gpt-4o-mini | claude-3.5-sonnet | 0.3 |
+| Task Type | Planning Model | Main Model |
+|-----------|----------------|------------|
+| Analytical | gpt-4o-mini | gpt-4o |
+| General | gpt-4o-mini | gpt-4o |
+| Creative | gpt-4o-mini | gemini-2.0-flash |
+| Code | gpt-4o-mini | claude-sonnet-4-6 |
 
 ## Environment Variables
 
 ```bash
 export OPENAI_API_KEY=sk-...
 export ANTHROPIC_API_KEY=sk-ant-...
-export GOOGLE_API_KEY=...
-export NODETOOL_WORKSPACE=~/my-workspace
+export GEMINI_API_KEY=...
 ```
 
 ## Examples
@@ -107,39 +118,25 @@ export NODETOOL_WORKSPACE=~/my-workspace
 ### Research Task
 
 ```bash
-nodetool agent \
-  --config examples/agents/research-agent.yaml \
-  --prompt "Research quantum computing applications" \
-  --output research.md
+nodetool agent run examples/agents/research-agent.yaml \
+  --objective "Research quantum computing applications" > research.md
 ```
 
 ### Code Generation
 
 ```bash
-nodetool agent \
-  --config examples/agents/code-assistant.yaml \
-  --prompt "Create a Python script to analyze CSV files"
-```
-
-### Content Creation
-
-```bash
-nodetool agent \
-  --config examples/agents/content-creator.yaml \
-  --prompt "Write a blog post about AI workflows" \
-  --output blog-post.md
+nodetool agent run examples/agents/code-assistant.yaml \
+  --objective "Create a Python script to analyze CSV files"
 ```
 
 ### Automation Script
 
 ```bash
 #!/bin/bash
-# Daily research automation
 for topic in "AI" "ML" "Web3"; do
-  nodetool agent \
-    --config research-agent.yaml \
-    --prompt "Find latest news about $topic" \
-    --output "reports/${topic}-$(date +%Y%m%d).md"
+  nodetool agent run research-agent.yaml \
+    --objective "Find latest news about $topic" \
+    > "reports/${topic}-$(date +%Y%m%d).md"
 done
 ```
 
@@ -147,14 +144,13 @@ done
 
 | Problem | Solution |
 |---------|----------|
-| Task doesn't complete | Increase `max_iterations` in config |
-| Tool not found | Check tool name in available tools list |
-| Rate limiting | Use local models or add retry logic |
-| Performance issues | Use faster models for planning |
+| Config errors | Run `nodetool agent test agent.yaml` to validate provider, model, and tools |
+| Tool not found | Check the tool name against the available tools list (unknown names are ignored with a warning) |
+| Rate limiting | Use a local model (`ollama`) |
+| Slow planning | Use a faster planning model (`gpt-4o-mini`) |
 
 ## Links
 
 - **Full Documentation:** [agent-cli.md](agent-cli.md)
 - **Schema Reference:** [agent-config-schema.md](agent-config-schema.md)
 - **Examples:** [examples/agents/](examples/agents/)
-- **Implementation Guide:** [IMPLEMENTATION_GUIDE.md](IMPLEMENTATION_GUIDE.md)

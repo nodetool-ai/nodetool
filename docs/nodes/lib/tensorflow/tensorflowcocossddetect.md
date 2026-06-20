@@ -11,9 +11,8 @@ namespace: "lib.tensorflow"
 
 ## Description
 
-Detect objects in an image using the COCO-SSD model from TensorFlow.js.
-    Returns class name, score and bounding box ({x, y, width, height}) for each detection.
-    tensorflow, object detection, coco, ssd, bounding box
+Detect objects in an image using the COCO-SSD model from TensorFlow.js, returning class, score, and bounding box per detection.
+    tensorflow, object-detection, coco, ssd, bounding-box
 
 ## Properties
 

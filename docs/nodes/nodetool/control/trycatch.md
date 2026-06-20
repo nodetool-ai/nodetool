@@ -11,20 +11,20 @@ namespace: "nodetool.control"
 
 ## Description
 
-Error handling wrapper: passes the value through on success, or returns error info on failure.
-    control, error, try, catch, exception, handling, retry, flow-control
+Fallback wrapper: passes the value through when present, or emits the fallback with error info when the value is null/undefined (e.g. an upstream step produced nothing).
+    control, error, fallback, default, null, missing, flow-control
 
     Use cases:
-    - Gracefully handle errors in workflows
-    - Provide fallback values when operations fail
+    - Provide fallback values when an upstream step produced no value
+    - Detect missing values in workflows
     - Log error details for debugging
 
 ## Properties
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| value | `any` | The value to pass through. If this node receives an error signal, the fallback is used. | null |
-| fallback | `any` | Value to return if an error occurs. | null |
+| value | `any` | The value to pass through. When null/undefined, the fallback is used. | null |
+| fallback | `any` | Value to return when the input value is null/undefined. | null |
 
 ## Outputs
 

@@ -91,7 +91,7 @@ Execute your workflow and see the results. Click the Run button or press `Ctrl/â
 ### Job
 A single workflow execution. When you click Run, NodeTool creates a job that tracks progress, handles errors, and delivers results.
 
-*Technical: A single workflow execution instance managed by JobExecutionManager.*
+*Technical: A single workflow execution orchestrated by the kernel's `WorkflowRunner`, which runs each node as a `NodeActor`.*
 
 ### Streaming
 Receiving results progressively as they're generated, rather than waiting for everything to complete. Many AI nodes stream their output so you see progress in real-time.
@@ -108,7 +108,7 @@ How NodeTool runs your workflow â€“ either in the same process, a separate subpr
 ### Server
 The background process that actually runs your workflows. Servers connect to the server and execute jobs.
 
-*Technical: Process that runs workflows and exposes HTTP/WebSocket endpoints (often via `nodetool serve` or `nodetool serve --mode private`).*
+*Technical: Process that runs workflows and exposes HTTP/WebSocket endpoints (via `nodetool serve`, optionally with `--host`/`--port`).*
 
 ### API Server
 The backend service that handles requests, manages workflows, and coordinates servers.

@@ -31,7 +31,9 @@ Insert a record into a SQLite table.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `dict[str, any]` |  |
+| row_id | `int` |  |
+| rows_affected | `int` |  |
+| message | `str` |  |
 
 ## Related Nodes
 

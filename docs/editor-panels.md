@@ -12,21 +12,51 @@ The NodeTool [Workflow Editor]({{ '/workflow-editor' | relative_url }}) is surro
 
 ## Left Panel
 
-Opens from the icons down the left edge. It's a tabbed drawer — click an icon to expand, click the same icon to collapse.
+Opens from the icons down the left edge. It's a tabbed drawer — click an icon to expand, click the same icon to collapse. The top-level views are: **Nodes**, **Workflows**, **Sketches**, **Timelines**, **Settings**, **History**, **Favorites**, **Assets**, and **Agent**.
 
 ![Left Panel](assets/screenshots/screenshot-placeholder.svg)
 
+### Nodes Tab
+
+The node browser. Search and browse all available nodes, organized into sub-tabs (All, I/O, Image, Image AI, Video, Video AI, Audio, Audio AI, 3D, Agents, Control). Drag a node onto the canvas to add it.
+
+![Left Panel — Nodes](assets/screenshots/screenshot-placeholder.svg)
+
 ### Workflows Tab
 
-Your saved workflows grouped by workspace. Search, filter by tag, and double-click to open in a new tab.
+Your saved workflows. Search, filter, and double-click to open in a new tab.
 
 ![Left Panel — Workflows](assets/screenshots/screenshot-placeholder.svg)
 
-### Chat Tab
+### Sketches Tab
 
-A compact Global Chat embedded in the editor drawer. Perfect for asking the workflow assistant questions without leaving the canvas.
+Quick image sketches you can drop into the workflow, edited with the built-in layered sketch editor. See [Image Editor]({{ '/image-editor' | relative_url }}).
 
-![Left Panel — Chat](assets/screenshots/screenshot-placeholder.svg)
+![Left Panel — Sketches](assets/screenshots/screenshot-placeholder.svg)
+
+### Timelines Tab
+
+Timeline-based media arrangements used by the workflow.
+
+![Left Panel — Timelines](assets/screenshots/screenshot-placeholder.svg)
+
+### Settings Tab
+
+Workflow-level settings.
+
+![Left Panel — Settings](assets/screenshots/screenshot-placeholder.svg)
+
+### History Tab
+
+Recent edits and activity for the current workflow.
+
+![Left Panel — History](assets/screenshots/screenshot-placeholder.svg)
+
+### Favorites Tab
+
+Your starred nodes for quick access.
+
+![Left Panel — Favorites](assets/screenshots/screenshot-placeholder.svg)
 
 ### Assets Tab
 
@@ -34,29 +64,17 @@ Folder tree plus file grid. Drag a file onto the canvas to instantly create the 
 
 ![Left Panel — Assets](assets/screenshots/screenshot-placeholder.svg)
 
-### Collections Tab
+### Agent Tab
 
-Grouped documents used by RAG and search nodes. See [Collections]({{ '/collections' | relative_url }}).
+When Agent Mode is active, the agent plan, steps, and tool calls surface here.
 
-![Left Panel — Collections](assets/screenshots/collections-explorer.png)
-
-### Packs Tab
-
-Installed node packs and their health status. Click a pack to open its README.
-
-![Left Panel — Packs](assets/screenshots/screenshot-placeholder.svg)
-
-### VibeCoding Tab
-
-AI-assisted UI generator for mini-apps. See [VibeCoding]({{ '/vibecoding' | relative_url }}).
-
-![Left Panel — VibeCoding](assets/screenshots/screenshot-placeholder.svg)
+![Left Panel — Agent](assets/screenshots/screenshot-placeholder.svg)
 
 ---
 
 ## Right Panel (Inspector)
 
-Press `i` or click the icon in the top right to toggle. Contents switch based on what's selected on the canvas.
+Press `i` or click the icon in the top right to toggle. The right panel hosts only the **Inspector** — its contents switch based on what's selected on the canvas. (Logs, Queue, Trace, Version History, and Workspace are not here — they live in the [Bottom Panel](#bottom-panel).)
 
 ![Right Panel](assets/screenshots/screenshot-placeholder.svg)
 
@@ -72,67 +90,53 @@ When no node is selected, the Inspector shows workflow-level metadata: title, de
 
 ![Workflow Properties](assets/screenshots/screenshot-placeholder.svg)
 
-### Logs Tab
+---
+
+## Bottom Panel
+
+The bottom panel docks runtime diagnostics and secondary workflow tools. Drag its top edge to resize. Its views are grouped:
+
+- **Run** — Logs, Queue, Sandboxes, Workers
+- **Workflow** — Versions, Workspace
+- **Debug** — Trace
+
+![Bottom Panel](assets/screenshots/screenshot-placeholder.svg)
+
+### Logs
 
 Raw logs from the current run. Filter by level (`debug`, `info`, `warn`, `error`) and search.
 
 ![Log Panel](assets/screenshots/screenshot-placeholder.svg)
 
-### Jobs Tab
+### Queue
 
 Background jobs queued by your workflows — long-running fine-tunes, downloads, and batch runs.
 
 ![Jobs Panel](assets/screenshots/screenshot-placeholder.svg)
 
-### Agent Tab
+### Sandboxes & Workers
 
-When Agent Mode is active, the agent plan, steps, and tool calls surface here.
+The code-runner sandboxes and worker processes backing the current run.
 
-![Agent Panel](assets/screenshots/screenshot-placeholder.svg)
+![Sandboxes Panel](assets/screenshots/screenshot-placeholder.svg)
 
-### Trace Tab
+### Versions
 
-Per-node execution timing and cache hits. Useful for spotting slow nodes.
-
-![Trace Panel](assets/screenshots/screenshot-placeholder.svg)
-
-### Version History Tab
-
-Every save is versioned. Diff two versions, roll back, or branch a workflow into a new one.
+Every save is versioned. Review past versions and roll back.
 
 ![Version History](assets/screenshots/screenshot-placeholder.svg)
 
-### Workspace Tree
+### Workspace
 
 File hierarchy of the backing workspace (on local installs) or the assigned workspace (on server installs).
 
 ![Workspace Tree](assets/screenshots/screenshot-placeholder.svg)
 
----
+### Trace
 
-## Bottom Panel
-
-The bottom panel docks a terminal plus runtime diagnostics. Drag its top edge to resize.
-
-![Bottom Panel](assets/screenshots/screenshot-placeholder.svg)
-
-### Terminal
-
-A full-featured terminal (xterm.js) connected to the server-side workspace. Run shell commands, git operations, and scripts without leaving NodeTool.
-
-![Terminal](assets/screenshots/screenshot-placeholder.svg)
-
-### Execution Trace
-
-The full call tree of the most recent run. Click a node to jump to it on the canvas.
+The full execution trace of the most recent run — per-node timing and the call tree.
 
 ![Execution Tree](assets/screenshots/screenshot-placeholder.svg)
-
-### System Stats
-
-Live CPU, RAM, GPU, and disk IO. Helpful when debugging slow local models.
-
-![System Stats](assets/screenshots/screenshot-placeholder.svg)
 
 ---
 
@@ -142,16 +146,19 @@ An overlay on the canvas with the most-used runtime controls.
 
 ![Floating Toolbar](assets/screenshots/screenshot-placeholder.svg)
 
-| Button | State | Action |
-|--------|-------|--------|
-| ▶ Run | Idle | Start the workflow |
-| ⏸ Pause | Running | Pause without losing state |
-| ▶ Resume (blue) | Paused | Continue from the pause point |
-| ▶ Resume (purple) | Suspended | Resume a workflow waiting on external input |
-| ⏹ Stop | Running/Paused/Suspended | Cancel |
-| ⇄ Layout | Any | Auto-layout the graph |
-| 🔍 Fit | Any | Fit all nodes in the viewport |
-| ⋯ More | Any | Align, group, bypass, run from selection |
+| Button | When shown | Action |
+|--------|------------|--------|
+| ➕ Add node | Graph view | Open the node menu |
+| 💬 Conversation | When a conversation exists | Toggle the in-canvas conversation overlay |
+| ⏹ Stop | While running/paused/suspended | Cancel the run |
+| ▶ Run | Always | Run the workflow (shows elapsed time while running) |
+| ⇄ Auto Layout | Graph view | Auto-arrange the graph |
+| 💾 Save | Always | Save the workflow |
+| ⋮ More | Always | Overflow menu (see below) |
+
+The **⋮** overflow menu contains: **Chain View / Graph View** (toggle), **Instant Update** (on/off), **Resume** (when paused or suspended), **Stop** (while running), **Mini Map** (show/hide), **Download JSON**, and **Panels…** (on mobile).
+
+There is no separate Pause or Fit button in the toolbar.
 
 ---
 
@@ -168,16 +175,13 @@ A stack of toggles along the right canvas edge:
 
 ---
 
-## App Toolbar and App Header
+## App Menu (logo dropdown)
 
-Together these form the fixed top chrome of the editor:
+The logo at the top of the left rail opens the app menu: **Dashboard**, **Examples**, **Costs**, **Model Manager**, **Collections**, **Workspaces** (when enabled), **Settings**, **Help**, and **Downloads**.
 
-- **App Header** — logo, workspace switcher, models, assets, chat, settings, downloads.
-- **App Toolbar** — workflow title, run controls, save status, share.
+![App Menu](assets/screenshots/app-header.png)
 
-![App Header](assets/screenshots/app-header.png)
-
-See [User Interface → App Header]({{ '/user-interface#the-app-header' | relative_url }}) for details.
+See [User Interface → App Menu]({{ '/user-interface#the-app-menu' | relative_url }}) for details.
 
 ---
 
@@ -185,7 +189,7 @@ See [User Interface → App Header]({{ '/user-interface#the-app-header' | relati
 
 Every panel is a dockview tab — drag tabs between panels, out of panels to float them, or onto other tabs to stack them. The editor remembers your layout per workspace.
 
-To reset: open the command menu (`⌘K`), type "reset layout", and hit Enter.
+To reset: open the command menu (`Ctrl+K` / `⌘+K`), type "reset layout", and hit Enter.
 
 ---
 
@@ -193,5 +197,4 @@ To reset: open the command menu (`⌘K`), type "reset layout", and hit Enter.
 
 - [Workflow Editor]({{ '/workflow-editor' | relative_url }}) — building on the canvas
 - [Global Chat]({{ '/global-chat' | relative_url }}) — how the in-editor chat works
-- [VibeCoding]({{ '/vibecoding' | relative_url }}) — generate custom UIs from a workflow
 - [Configuration]({{ '/configuration' | relative_url }}) — settings that affect the editor

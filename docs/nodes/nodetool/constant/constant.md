@@ -12,7 +12,6 @@ namespace: "nodetool.constant"
 ## Description
 
 Base class for fixed-value nodes.
-
     constant, parameter, default
 
     Use cases:

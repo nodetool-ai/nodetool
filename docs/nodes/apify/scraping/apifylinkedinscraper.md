@@ -11,8 +11,7 @@ namespace: "apify.scraping"
 
 ## Description
 
-Scrape LinkedIn profiles, company pages, and job postings.
-    Extract professional information, connections, and company data.
+Scrape LinkedIn profiles, company pages, and job postings — professional info, connections, and company data.
     apify, linkedin, professional, social, scraping, profiles, jobs
 
 ## Properties

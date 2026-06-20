@@ -50,12 +50,12 @@ The `nodetool deploy` commands manage a single Docker server target driven by a
 2. **Initialize and add a target**:
    ```bash
    nodetool deploy init
-   nodetool deploy add my-server
+   nodetool deploy add my-server --type docker
    ```
    This scaffolds `deployment.yaml` using the schema in `@nodetool-ai/deploy`
    (`deployment-config.ts`). The single target `type` is `docker`; the entry
-   specifies the container image, environment variables, persistent paths, and
-   proxy settings.
+   specifies the container image, persistent paths, and environment variables
+   (under `container.environment`).
 3. **Review & plan** (no remote mutation):
    ```bash
    nodetool deploy list
@@ -105,18 +105,22 @@ or CLI, supported targets, and the cost guard in full.
 
 ## Server configuration
 
-`deployment.yaml` accepts these top-level keys (see `DockerDeployment` in
-`@nodetool-ai/deploy` `deployment-config.ts`):
+`deployment.yaml` accepts these top-level keys per deployment (see
+`DockerDeployment` in `@nodetool-ai/deploy` `deployment-config.ts`):
 
 - `type` – always `docker`
+- `enabled` – whether the deployment is active
+- `host` – Docker host (IP/hostname, or `localhost`)
+- `ssh` – SSH connection details for remote hosts (omit for local)
+- `paths` – workspace and HF cache paths
+- `persistent_paths` – persistent storage paths inside the container
 - `image` – container image name/tag/registry
-- `paths` – persistent storage paths
-- `container` – port, GPU configuration
-- `proxy` – proxy services (see the [Proxy Reference](proxy.md))
-- `env` – environment variables injected into the deployed container
+- `container` – name, port, GPU, and `environment` (env vars injected into the container)
+- `server_auth_token` – auto-generated bearer token for admin/sync calls
+- `state` – deployment state tracked by the deployer
 
-Store secrets (API keys, tokens) in `secrets.yaml` or environment variables; the
-deployer merges them at runtime without writing them to disk.
+Environment variables live under `container.environment`. Secrets such as
+`SECRETS_MASTER_KEY` are auto-generated into `container.environment` when missing.
 
 ---
 
@@ -125,7 +129,7 @@ deployer merges them at runtime without writing them to disk.
 ```bash
 # Health endpoint (no auth required)
 curl http://your-server:7777/health
-# Expected: {"status": "healthy"}
+# Expected: {"status": "ok", ...} (or "degraded" when a service is unhealthy)
 
 nodetool deploy status <name>
 nodetool deploy logs <name> --follow

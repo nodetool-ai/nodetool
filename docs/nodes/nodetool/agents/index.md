@@ -3,7 +3,7 @@ layout: page
 title: "nodetool.agents Nodes"
 ---
 
-This namespace contains 26 node(s).
+This namespace contains 27 node(s).
 
 ## Nodes
 
@@ -11,6 +11,7 @@ This namespace contains 26 node(s).
 - **[Agent Step](agentstep.md)**
 - **[Browser Agent](browseragent.md)**
 - **[Classifier](classifier.md)**
+- **[Claude Code Agent](claudecodeagent.md)**
 - **[Create Thread](createthread.md)**
 - **[Document Agent](documentagent.md)**
 - **[DOCX Agent](docxagent.md)**
@@ -22,10 +23,10 @@ This namespace contains 26 node(s).
 - **[HTML Agent](htmlagent.md)**
 - **[HTTP API Agent](httpapiagent.md)**
 - **[Image Agent](imageagent.md)**
+- **[Live Browser Agent](livebrowseragent.md)**
 - **[Media Agent](mediaagent.md)**
 - **[PDF-lib Agent](pdflibagent.md)**
 - **[PPTX Agent](pptxagent.md)**
-- **[Research Agent](researchagent.md)**
 - **[Shell Agent](shellagent.md)**
 - **[Spreadsheet Agent](spreadsheetagent.md)**
 - **[SQLite Agent](sqliteagent.md)**

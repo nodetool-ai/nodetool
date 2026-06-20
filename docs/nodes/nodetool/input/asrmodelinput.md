@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "ASRModel Input"
+title: "ASR Model Input"
 node_type: "nodetool.input.ASRModelInput"
 namespace: "nodetool.input"
 ---
