@@ -60,14 +60,21 @@ const TINY_PNG_BASE64 =
 /** A provider that returns deterministic scripted responses; ignores kwargs. */
 class FakeProvider extends ScriptedProvider {
   constructor(_kwargs?: Record<string, unknown>) {
+    const inner = autoScript({
+      plan: {
+        title: "Agent task",
+        steps: [{ id: "s1", instructions: "Complete the objective", depends_on: [] }]
+      },
+      text: "deterministic e2e response"
+    });
     super([
-      autoScript({
-        plan: {
-          title: "Agent task",
-          steps: [{ id: "s1", instructions: "Complete the objective", depends_on: [] }]
-        },
-        text: "deterministic e2e response"
-      })
+      (messages, tools) => {
+        // eslint-disable-next-line no-console
+        console.error(
+          `[SCRIPT-DBG] tools=[${tools.map((t) => t.name).join(",")}] roles=[${messages.map((m) => m.role).join(",")}]`
+        );
+        return inner(messages, tools);
+      }
     ]);
   }
 }
@@ -252,13 +259,17 @@ async function main(): Promise<void> {
       // Structural nodes (input/output/control) always run for real.
       if (isStructural(node.type)) return reg.resolve(node);
       const meta = reg.getMetadata(node.type) as FakeMeta | undefined;
-      if (
+      const fake =
         needsSecret(meta) ||
         outputsMedia(meta) ||
         inputsMedia(meta) ||
         isExternal(node.type) ||
-        isFakeByClass(node.type)
-      ) {
+        isFakeByClass(node.type);
+      // eslint-disable-next-line no-console
+      console.error(
+        `[EXEC-DBG] ${node.id} ${node.type} -> ${fake ? "FAKE" : "REAL"} (needsSecret=${needsSecret(meta)} outMedia=${outputsMedia(meta)} inMedia=${inputsMedia(meta)} ext=${isExternal(node.type)})`
+      );
+      if (fake) {
         return fakeExecutor(meta);
       }
       return reg.resolve(node);
