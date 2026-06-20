@@ -1,6 +1,6 @@
 # RFC: Generation Events — `generation_complete`, re-scoped `output_update`, autosave cutover
 
-**Status:** Draft for sign-off · **Owner:** runtime/web · **Repo:** `/Users/mg/workspace/nodetool`
+**Status:** Draft for sign-off · **Owner:** runtime/web
 
 > Every line/file reference below was re-verified against the working tree before this revision. Findings that were wrong-as-written (the double-save rationale, the actor `job_id` field, "`_messages` authoritative for autosave") are corrected in-body and catalogued in the **Addressed review notes** appendix. The scope was widened from "kernel→websocket→web-editor" to **all message consumers** (browser runner, mobile, CLI, mini-apps, timeline/sketch editors, chat) after a consumer census.
 
