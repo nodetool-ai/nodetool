@@ -6,8 +6,6 @@ description: "Browse ready-to-run example workflows and use them as starting poi
 
 The **Templates Gallery** is a curated library of example workflows you can run and customize without starting from scratch. Open it from the **Templates** button in the app header or by navigating to `/templates`.
 
-![Templates Grid](assets/screenshots/templates-grid.png)
-
 ---
 
 ## What's in the Gallery
