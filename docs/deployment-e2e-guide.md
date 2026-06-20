@@ -1,6 +1,7 @@
 ---
 layout: page
 title: "End-to-End Deployment Guide"
+description: "A practical runbook for deploying NodeTool end-to-end with `nodetool serve` — desktop, public, and private server modes."
 ---
 
 This guide is a practical runbook for deploying NodeTool end-to-end with the unified server entrypoint (`nodetool serve`).
