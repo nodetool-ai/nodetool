@@ -3,6 +3,9 @@
   "version": "0.7.0-rc.23",
   "description": "NodeTool LLM provider + agent nodes (OpenAI, Anthropic via agents SDK, Gemini, Mistral)",
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0 <23.0.0"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

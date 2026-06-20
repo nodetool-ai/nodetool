@@ -67,6 +67,19 @@ jobs:
       - name: Rebuild native modules
         run: npm rebuild better-sqlite3
 
+      - name: Run npm audit (advisory)
+        # Advisory only (continue-on-error) so a pre-existing vulnerability
+        # backlog doesn't block every PR, but high/critical issues in the
+        # production dependency closure are surfaced in the job summary.
+        continue-on-error: true
+        run: |
+          echo "::group::npm audit (production deps, high+)"
+          echo "## npm audit (production deps, high and critical)" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          npm audit --omit=dev --audit-level=high 2>&1 | tee -a $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "::endgroup::"
+
       - name: Check workspace dependency declarations
         # Fails fast if a production-closure package imports a @nodetool-ai/*
         # workspace package it does not declare in `dependencies`. Such imports

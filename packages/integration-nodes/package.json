@@ -3,6 +3,9 @@
   "version": "0.7.0-rc.23",
   "description": "NodeTool external-API integration nodes \u2014 HTTP, GraphQL, S3, Supabase, Notion, Twilio, Apify, mail, secrets, messaging, search",
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0 <23.0.0"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

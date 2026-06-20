@@ -4,6 +4,7 @@ import { css, keyframes } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box, Typography, Tooltip } from "@mui/material";
+import { reducedMotion } from "./tokens";
 import CircleIcon from "@mui/icons-material/Circle";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorIcon from "@mui/icons-material/Error";
@@ -24,7 +25,8 @@ const styles = (theme: Theme, pulse: boolean) =>
     gap: theme.spacing(1),
     ".status-icon": {
       fontSize: 12,
-      animation: pulse ? `${pulseAnimation} 2s infinite` : "none"
+      animation: pulse ? `${pulseAnimation} 2s infinite` : "none",
+      ...reducedMotion({ animation: "none" })
     },
     ".status-label": {
       fontSize: 12,
