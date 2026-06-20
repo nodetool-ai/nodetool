@@ -20,10 +20,40 @@ export const assetToOutputValue = (asset: Asset): Record<string, unknown> => {
       uri
     };
   }
+  if (ct.includes("json")) {
+    // Structured (generator) generations carry their full output value inline
+    // in metadata.json for fetch-free reload; the bytes hold the full copy.
+    const meta = asset.metadata as { json?: unknown } | null | undefined;
+    if (meta && meta.json !== undefined) {
+      return { type: "json", value: meta.json, uri } as Record<string, unknown>;
+    }
+    return { type: "json", uri };
+  }
   if (ct.includes("model") || asset.name?.toLowerCase().endsWith(".glb")) {
     return { type: "model_3d", uri, name: asset.name ?? undefined };
   }
   return { uri, type: "asset", name: asset.name ?? undefined };
+};
+
+/**
+ * The full output dict a structured (JSON) generation persisted, or undefined.
+ * Generator nodes (List/Data/Chart/SVG/StructuredOutput) save their whole
+ * `process()` output dict as an `application/json` asset with the value inline
+ * in `metadata.json` — returning it as the generation's `outputs` makes a
+ * reloaded generation mirror a live run, so per-handle reads (`outputOf`) and
+ * the content card resolve identically.
+ */
+const jsonGenerationOutputs = (
+  asset: Asset
+): Record<string, unknown> | undefined => {
+  const ct = asset.content_type ?? "";
+  if (!ct.includes("json")) return undefined;
+  const meta = asset.metadata as { json?: unknown } | null | undefined;
+  const json = meta?.json;
+  if (json && typeof json === "object" && !Array.isArray(json)) {
+    return json as Record<string, unknown>;
+  }
+  return undefined;
 };
 
 export interface Generation {
@@ -68,7 +98,9 @@ export const assetToGeneration = (asset: Asset): Generation => ({
   id: asset.id,
   jobId: asset.job_id ?? null,
   createdAt: asset.created_at ? Date.parse(asset.created_at) : 0,
-  outputs: { output: assetToOutputValue(asset) },
+  // A structured (JSON) generation reloads its whole output dict so per-handle
+  // reads mirror a live run; media/text assets stay a single `output` value.
+  outputs: jsonGenerationOutputs(asset) ?? { output: assetToOutputValue(asset) },
   status: "completed",
   assetId: asset.id
 });

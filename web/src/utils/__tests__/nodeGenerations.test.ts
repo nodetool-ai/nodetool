@@ -82,6 +82,20 @@ describe("assetToOutputValue", () => {
       uri: "http://x/t2.txt"
     });
   });
+
+  it("maps an application/json asset to its inline value", () => {
+    const jsonAsset = {
+      id: "jx",
+      content_type: "application/json",
+      get_url: "http://x/jx.json",
+      metadata: { json: { output: ["a", "b"], index: 1 } }
+    } as unknown as Asset;
+    expect(assetToOutputValue(jsonAsset)).toEqual({
+      type: "json",
+      value: { output: ["a", "b"], index: 1 },
+      uri: "http://x/jx.json"
+    });
+  });
 });
 
 describe("assetToGeneration", () => {
@@ -91,6 +105,37 @@ describe("assetToGeneration", () => {
     expect(g.jobId).toBe("j1");
     expect(g.status).toBe("completed");
     expect(g.outputs.output).toEqual({ type: "image", uri: "http://x/a1.png" });
+  });
+
+  it("reloads a JSON generation's whole output dict so per-handle reads mirror a live run", () => {
+    const jsonAsset = {
+      id: "jg",
+      job_id: "j9",
+      node_id: "n1",
+      content_type: "application/json",
+      get_url: "http://x/jg.json",
+      metadata: { json: { item: "z", index: 2, output: ["x", "y", "z"] } },
+      created_at: "2026-01-01T00:00:00Z"
+    } as unknown as Asset;
+    const g = assetToGeneration(jsonAsset);
+    expect(g.assetId).toBe("jg");
+    // outputs ARE the persisted dict (not wrapped under `output`), so a body
+    // reading the `output` handle gets the full list, same as a live run.
+    expect(g.outputs).toEqual({ item: "z", index: 2, output: ["x", "y", "z"] });
+    expect(outputOf(g, "output")).toEqual(["x", "y", "z"]);
+  });
+
+  it("falls back to a single output value when a JSON asset has no inline dict", () => {
+    const jsonAsset = {
+      id: "jg2",
+      job_id: "j9",
+      node_id: "n1",
+      content_type: "application/json",
+      get_url: "http://x/jg2.json",
+      created_at: "2026-01-01T00:00:00Z"
+    } as unknown as Asset;
+    const g = assetToGeneration(jsonAsset);
+    expect(g.outputs.output).toEqual({ type: "json", uri: "http://x/jg2.json" });
   });
 });
 

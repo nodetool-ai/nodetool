@@ -472,6 +472,12 @@ async function autoSaveAssets(
   }
   collect(result);
 
+  // Whether this result carries media at all — used to gate the structured
+  // (JSON) generation fallback below so a media node never also persists a
+  // redundant JSON copy of its output dict (true even on replay, where the
+  // media value already carries an asset_id and is skipped by the save loop).
+  const hasMedia = queue.length > 0;
+
   for (const assetValue of queue) {
     // Skip if already saved
     if (assetValue.asset_id) continue;
@@ -549,10 +555,12 @@ async function autoSaveAssets(
   // text content-card nodes get the same reload-surviving, browsable generation
   // history as media nodes. The text is stored both as the asset bytes and
   // (capped) inline in metadata so the UI can preview it without a fetch.
+  let savedText = false;
   const textKey = opts.textOutputName;
   if (textKey) {
     const textVal = result[textKey];
     if (typeof textVal === "string" && textVal.length > 0) {
+      savedText = true;
       const bytes = new TextEncoder().encode(textVal);
       const previewText = new TextDecoder().decode(
         bytes.slice(0, TEXT_GENERATION_PREVIEW_CAP)
@@ -580,6 +588,67 @@ async function autoSaveAssets(
           nodeId: opts.nodeId,
           error: String(err)
         });
+      }
+    }
+  }
+
+  // Structured (JSON) generation fallback. Nodes whose primary output is neither
+  // media nor a plain string — the generator family (List/Data/Chart/SVG/
+  // StructuredOutput), which emit lists, dicts, dataframes, chart configs, etc.
+  // — persist their whole output dict as an `application/json` asset so they get
+  // the same reload-surviving, browsable generation history as media/text nodes.
+  // The full value lives in the asset bytes; a copy is stored inline in
+  // `metadata.json` (when small enough) for fetch-free reload. Gated on
+  // !hasMedia && !savedText so media/text nodes never double-persist.
+  if (!hasMedia && !savedText) {
+    const structured: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(result)) {
+      if (value !== null && value !== undefined) structured[key] = value;
+    }
+    if (Object.keys(structured).length > 0) {
+      let serialized: string | null = null;
+      try {
+        serialized = JSON.stringify(structured);
+      } catch {
+        serialized = null;
+      }
+      if (serialized) {
+        const bytes = new TextEncoder().encode(serialized);
+        const asset = new Asset({
+          user_id: opts.userId,
+          workflow_id: opts.workflowId ?? null,
+          node_id: opts.nodeId,
+          job_id: opts.jobId,
+          name: `json_${opts.nodeId.slice(0, 8)}`,
+          content_type: "application/json",
+          parent_id: null
+        });
+        // Inline the full value only when it fits — a truncated JSON string
+        // would not parse on reload. Oversized values reload from the bytes.
+        const inline =
+          bytes.length <= TEXT_GENERATION_PREVIEW_CAP ? structured : undefined;
+        asset.metadata = {
+          ...(inline !== undefined ? { json: inline } : {}),
+          ...(typeof opts.generationIndex === "number"
+            ? { generation_index: opts.generationIndex }
+            : {})
+        };
+        const fileName = `${asset.id}.json`;
+        try {
+          await storeAssetWithThumbnail(
+            asset.id,
+            fileName,
+            bytes,
+            "application/json"
+          );
+          asset.size = bytes.length;
+          await asset.save();
+        } catch (err) {
+          log.warn("Auto-save JSON generation failed", {
+            nodeId: opts.nodeId,
+            error: String(err)
+          });
+        }
       }
     }
   }
@@ -1844,7 +1913,7 @@ export class UnifiedWebSocketRunner {
     // per-(job_id, node_id) monotonic index. DB-ordering reconciliation is a
     // later step (RFC Decision 8); this is the in-memory arrival order.
     const generationIndexByNode = new Map<string, number>();
-    // Arrival positions already autosaved in THIS run, keyed `${nodeId} ${index}`.
+    // Arrival positions already autosaved in THIS run, keyed `${nodeId} ${index}`.
     // A single generation_complete can persist several assets (a `list[image]`
     // output, or media + text), so dedupe by the event's arrival index — NOT by
     // a total asset count, which would under-save the next event (RFC D8).
@@ -1970,7 +2039,7 @@ export class UnifiedWebSocketRunner {
             // reaches runJob, so no browser autosave is introduced here.
             if (meta?.auto_save_asset && outbound.outputs != null) {
               const userId = this.userId ?? "1";
-              const slotKey = `${nodeId} ${arrivalIndex}`;
+              const slotKey = `${nodeId} ${arrivalIndex}`;
               // Warm the cross-run replay set once per node (on its first
               // generation_complete), then reconcile every later variant
               // against the in-memory set — one DB read per node, not per slot.

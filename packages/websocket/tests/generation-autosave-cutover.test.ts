@@ -122,6 +122,14 @@ const resolveNodeType: NodeTypeResolver = {
         descriptorDefaults: { name: "ListImageGen" }
       };
     }
+    if (nodeType === "test.JsonGen") {
+      return {
+        nodeType,
+        propertyTypes: { prompt: "any" },
+        outputs: { output: "any", index: "int" },
+        descriptorDefaults: { name: "JsonGen" }
+      };
+    }
     return null;
   }
 };
@@ -139,9 +147,22 @@ const listImageGenMeta = {
   outputs: [{ name: "images", type: { type: "list" } }]
 } as unknown as NodeMetadata;
 
+// A structured generator (mirrors the nodetool.generators.* family): primary
+// output is neither media nor a plain string, so the autosave persists the
+// whole output dict as one application/json asset.
+const jsonGenMeta = {
+  auto_save_asset: true,
+  primary_output: "output",
+  outputs: [
+    { name: "output", type: { type: "list" } },
+    { name: "index", type: { type: "int" } }
+  ]
+} as unknown as NodeMetadata;
+
 const getNodeMetadata = (nodeType: string): NodeMetadata | undefined => {
   if (nodeType === "test.ImageGen") return imageGenMeta;
   if (nodeType === "test.ListImageGen") return listImageGenMeta;
+  if (nodeType === "test.JsonGen") return jsonGenMeta;
   return undefined;
 };
 
@@ -175,6 +196,13 @@ function makeRunner() {
         return {
           async process() {
             return listImageOutput();
+          }
+        };
+      }
+      if (node.type === "test.JsonGen") {
+        return {
+          async process() {
+            return { output: ["x", "y", "z"], index: 2 };
           }
         };
       }
@@ -444,6 +472,46 @@ describe("autosave cutover (generation_complete → N assets)", () => {
       limit: 1000
     });
     expect(assets).toHaveLength(1);
+
+    await runner.disconnect();
+  });
+
+  it("persists a structured (non-media, non-text) output as one application/json generation", async () => {
+    // The generator family (List/Data/Chart/SVG/StructuredOutput) emits lists /
+    // dicts / dataframes — neither media nor a plain string. Their whole output
+    // dict persists as ONE application/json asset (the value inlined in
+    // metadata.json) so the node reloads its generation on reopen.
+    const runner = makeRunner();
+    await runner.connect(ws);
+    await runner.runJob({
+      job_id: "JOBJ",
+      workflow_id: "WFJ",
+      graph: {
+        nodes: [{ id: "gen", type: "test.JsonGen" }],
+        edges: []
+      }
+    });
+    await new Promise((r) => setTimeout(r, 200));
+
+    const gens = sentMsgs(ws).filter(
+      (m) => m.type === "generation_complete" && m.node_id === "gen"
+    );
+    expect(gens).toHaveLength(1);
+
+    const [assets] = await Asset.paginate("1", {
+      jobId: "JOBJ",
+      nodeId: "gen",
+      limit: 1000
+    });
+    // Exactly one JSON asset — no media, no text row.
+    expect(assets).toHaveLength(1);
+    expect(assets[0].content_type).toBe("application/json");
+    expect((assets[0].metadata as Record<string, unknown> | null)?.json).toEqual(
+      { output: ["x", "y", "z"], index: 2 }
+    );
+    expect(
+      (assets[0].metadata as Record<string, unknown> | null)?.generation_index
+    ).toBe(0);
 
     await runner.disconnect();
   });

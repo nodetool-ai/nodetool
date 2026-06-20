@@ -1440,16 +1440,19 @@ describe("ListGeneratorNode", () => {
     expect(result.output[0]).toBe("fruit_1");
   });
 
-  it("genProcess yields individual items", async () => {
+  it("genProcess yields individual items then a consolidated list", async () => {
     const n = new (ListGeneratorNode as any)();
     const results: any[] = [];
     n.assign({ prompt: "3 items" });
     for await (const chunk of n.genProcess()) {
       results.push(chunk);
     }
-    expect(results).toHaveLength(3);
+    // 3 per-item frames + 1 consolidating final frame carrying the whole list
+    // on the single `output` handle (drives the saved/reloaded generation).
+    expect(results).toHaveLength(4);
     expect(results[0]).toEqual({ item: expect.any(String), index: 0 });
     expect(results[2].index).toBe(2);
+    expect(results[3]).toEqual({ output: [results[0].item, results[1].item, results[2].item] });
   });
 
   function makeMockContextWithToolCallSequences(sequences: string[][]) {
@@ -1503,7 +1506,8 @@ describe("ListGeneratorNode", () => {
     expect(results).toEqual([
       { item: "First item", index: 0 },
       { item: "Second item", index: 1 },
-      { item: "Third item", index: 2 }
+      { item: "Third item", index: 2 },
+      { output: ["First item", "Second item", "Third item"] }
     ]);
   });
 

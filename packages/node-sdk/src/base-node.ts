@@ -75,6 +75,7 @@ export type NodeClass = {
   isJoinNode: boolean;
   supportsDynamicOutputs?: boolean;
   autoSaveAsset: boolean;
+  primaryOutput?: string;
   modelPacks?: unknown[];
   /**
    * Deployment platforms this node supports. See `@nodetool-ai/protocol`'s
@@ -242,6 +243,13 @@ export abstract class BaseNode {
   static readonly isJoinNode: boolean = false;
   static readonly supportsDynamicOutputs: boolean | undefined = undefined;
   static readonly autoSaveAsset: boolean = false;
+  /**
+   * Names the output slot that carries this node's "primary" generation — the
+   * value persisted as its saved generation and previewed by the content card.
+   * Unset falls back to the first declared output. See `auto_save_asset` and the
+   * autosave path in the websocket runner.
+   */
+  static readonly primaryOutput: string | undefined = undefined;
   static readonly modelPacks: unknown[] | undefined = undefined;
   /**
    * Deployment platforms this node supports. Defaults to ["node"]; nodes

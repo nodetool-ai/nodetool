@@ -186,7 +186,9 @@ const ListGeneratorBodyInner: React.FC<BespokeBodyProps> = ({
 
   const items = useMemo(() => {
     if (streamBuffer !== undefined) return toItems(streamBuffer);
-    return current ? toItems(outputOf(current)) : [];
+    // The settled generation carries the full list on the `output` handle
+    // (live: stream-end frame; reloaded: persisted JSON generation).
+    return current ? toItems(outputOf(current, "output")) : [];
   }, [streamBuffer, current]);
 
   // Accordion expand state, keyed by item index. Items start collapsed.
