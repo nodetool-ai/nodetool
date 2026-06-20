@@ -271,7 +271,7 @@ const VIDEO_ASPECT_RATIO_VALUES = [
   "3:4"
 ];
 const VIDEO_RESOLUTION_VALUES = ["720p", "1080p", "1440p", "4K"];
-const VIDEO_DURATION_VALUES = [2, 3, 4, 5, 6, 8];
+const VIDEO_DURATION_VALUES = [2, 3, 4, 5, 6, 8, 10, 12, 15];
 
 async function withTempFile(
   suffix: string,

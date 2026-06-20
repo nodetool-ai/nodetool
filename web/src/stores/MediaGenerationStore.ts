@@ -101,7 +101,7 @@ export const VIDEO_RESOLUTIONS: VideoResolution[] = [
   "1440p",
   "4K"
 ];
-export const VIDEO_DURATIONS: number[] = [2, 3, 4, 5, 6, 8];
+export const VIDEO_DURATIONS: number[] = [2, 3, 4, 5, 6, 8, 10, 12, 15];
 export const IMAGE_VARIATIONS: number[] = [1, 2, 4, 6, 8];
 
 /** Common voice ids surfaced as defaults across providers. */
