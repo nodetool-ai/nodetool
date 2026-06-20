@@ -50,6 +50,30 @@ function sentMsgs(ws: MockWS): Record<string, unknown>[] {
   return ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
 }
 
+// Poll until at least `count` sent messages match `predicate`, or time out.
+// Autosave is awaited inline before each generation_complete is relayed, so once
+// the events are out their assets are already persisted — making the matched
+// event count a reliable gate. Replaces fixed setTimeout delays that flaked
+// under CI load when N async events took longer than the delay to stream.
+async function waitForMessages(
+  ws: MockWS,
+  predicate: (m: Record<string, unknown>) => boolean,
+  count: number,
+  timeoutMs = 5000
+): Promise<Record<string, unknown>[]> {
+  const start = Date.now();
+  for (;;) {
+    const matched = sentMsgs(ws).filter(predicate);
+    if (matched.length >= count || Date.now() - start > timeoutMs) {
+      return matched;
+    }
+    await new Promise((r) => setTimeout(r, 10));
+  }
+}
+
+const isGen = (nodeId: string) => (m: Record<string, unknown>) =>
+  m.type === "generation_complete" && m.node_id === nodeId;
+
 // A valid 1x1 PNG so both the asset bytes store and the sharp thumbnail path
 // succeed cleanly (no swallowed thumbnail warning).
 const PNG_1x1 = new Uint8Array([
@@ -266,12 +290,8 @@ describe("autosave cutover (generation_complete → N assets)", () => {
       workflow_id: "WFN",
       graph: foreachGraph(["a", "b", "c", "d", "e", "f"])
     });
-    await new Promise((r) => setTimeout(r, 300));
-
     // Sanity: 6 generation_complete relayed for the gen node, indices 0..5.
-    const gens = sentMsgs(ws).filter(
-      (m) => m.type === "generation_complete" && m.node_id === "gen"
-    );
+    const gens = await waitForMessages(ws, isGen("gen"), 6);
     expect(gens).toHaveLength(6);
     expect(gens.map((g) => g.index)).toEqual([0, 1, 2, 3, 4, 5]);
 
@@ -305,12 +325,8 @@ describe("autosave cutover (generation_complete → N assets)", () => {
       workflow_id: "WFL",
       graph: foreachGraph(["a", "b", "c"], "test.ListImageGen")
     });
-    await new Promise((r) => setTimeout(r, 300));
-
     // 3 generation_complete (indices 0..2), each a list of 2 images.
-    const gens = sentMsgs(ws).filter(
-      (m) => m.type === "generation_complete" && m.node_id === "gen"
-    );
+    const gens = await waitForMessages(ws, isGen("gen"), 3);
     expect(gens).toHaveLength(3);
     expect(gens.map((g) => g.index)).toEqual([0, 1, 2]);
 
@@ -337,7 +353,7 @@ describe("autosave cutover (generation_complete → N assets)", () => {
       workflow_id: "WFLR",
       graph: foreachGraph(["a", "b", "c"], "test.ListImageGen")
     });
-    await new Promise((r) => setTimeout(r, 300));
+    await waitForMessages(ws, isGen("gen"), 3);
     await runner1.disconnect();
 
     const [afterFirst] = await Asset.paginate("1", {
@@ -355,7 +371,7 @@ describe("autosave cutover (generation_complete → N assets)", () => {
       workflow_id: "WFLR",
       graph: foreachGraph(["a", "b", "c"], "test.ListImageGen")
     });
-    await new Promise((r) => setTimeout(r, 300));
+    await waitForMessages(ws2, isGen("gen"), 3);
     await runner2.disconnect();
 
     const [afterReplay] = await Asset.paginate("1", {
@@ -378,7 +394,7 @@ describe("autosave cutover (generation_complete → N assets)", () => {
       workflow_id: "WFR",
       graph: foreachGraph(["a", "b", "c", "d", "e", "f"])
     });
-    await new Promise((r) => setTimeout(r, 300));
+    await waitForMessages(ws, isGen("gen"), 6);
     await runner1.disconnect();
 
     const [afterFirst] = await Asset.paginate("1", {
@@ -399,7 +415,7 @@ describe("autosave cutover (generation_complete → N assets)", () => {
       workflow_id: "WFR",
       graph: foreachGraph(["a", "b", "c", "d", "e", "f"])
     });
-    await new Promise((r) => setTimeout(r, 300));
+    await waitForMessages(ws2, isGen("gen"), 6);
     await runner2.disconnect();
 
     const [afterReplay] = await Asset.paginate("1", {
@@ -448,7 +464,16 @@ describe("autosave cutover (generation_complete → N assets)", () => {
         edges: []
       }
     });
-    await new Promise((r) => setTimeout(r, 200));
+    // Wait for the terminal node_update{completed} (it is relayed at/after the
+    // generation_complete), so both counts below are observed deterministically.
+    await waitForMessages(
+      ws,
+      (m) =>
+        m.type === "node_update" &&
+        m.node_id === "gen" &&
+        m.status === "completed",
+      1
+    );
 
     const msgs = sentMsgs(ws);
     // Exactly one generation_complete and one node_update{completed} for gen.
@@ -491,11 +516,7 @@ describe("autosave cutover (generation_complete → N assets)", () => {
         edges: []
       }
     });
-    await new Promise((r) => setTimeout(r, 200));
-
-    const gens = sentMsgs(ws).filter(
-      (m) => m.type === "generation_complete" && m.node_id === "gen"
-    );
+    const gens = await waitForMessages(ws, isGen("gen"), 1);
     expect(gens).toHaveLength(1);
 
     const [assets] = await Asset.paginate("1", {
