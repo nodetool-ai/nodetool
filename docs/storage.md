@@ -1,6 +1,7 @@
 ---
 layout: page
 title: "Storage Guide"
+description: "How NodeTool stores assets, workflow artifacts, and temporary files through pluggable backends (in-memory, local disk, S3)."
 ---
 
 

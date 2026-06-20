@@ -1,6 +1,7 @@
 ---
 layout: page
 title: "Workflow API Guide"
+description: "Create, query, and run NodeTool workflows over the Editor and Server REST APIs."
 ---
 
 
@@ -59,8 +60,8 @@ const outputs = await response.json();
 ## Streaming API
 
 The streaming API provides real-time job updates. See the WebSocket runner in
-[`workflow_runner/js/workflow-runner.js`](../workflow_runner/js/workflow-runner.js) for a complete example used by the
-bundled runner UI (`../workflow_runner/index.html`). On deployed servers, use `/workflows/{id}/run/stream` for SSE
+[`examples/workflow_runner/js/workflow-runner.js`](https://github.com/nodetool-ai/nodetool/blob/main/examples/workflow_runner/js/workflow-runner.js) for a complete example used by the
+bundled runner UI. On deployed servers, use `/workflows/{id}/run/stream` for SSE
 streaming; on the Editor API, prefer the WebSocket `/predict` endpoint for long-running jobs.
 
 Updates include:
@@ -130,8 +131,8 @@ For real-time streaming and job control over WebSocket, see the dedicated
 
 ## API Demo
 
-- Download the [HTML file](../../api-demo.html)
-- Open it in a browser locally.
+- Grab the [example runner](https://github.com/nodetool-ai/nodetool/tree/main/examples/workflow_runner) (`examples/workflow_runner`).
+- Open `index.html` in a browser locally.
 - Select the endpoint (local or `api.nodetool.ai` for alpha users).
 - Enter an API token from the NodeTool settings dialog.
 - Select a workflow and run it.

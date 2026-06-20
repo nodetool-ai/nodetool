@@ -1,7 +1,10 @@
 ---
 layout: page
 title: "Providers"
+description: "Connect NodeTool to OpenAI, Anthropic, Gemini, HuggingFace, FAL, Replicate, Ollama, vLLM and more — bring your own keys, switch providers without touching the graph."
 ---
+
+> **Provider setup & capabilities.** For the list of model families, see [Supported Models](models.md). New here? Start with [Models & Providers](models-and-providers.md).
 
 Providers are adapters between NodeTool nodes and specific AI services. Switch between OpenAI, Anthropic, Gemini, HuggingFace, FAL, KIE, Replicate, Ollama, vLLM, and others without changing the graph. You bring the keys.
 

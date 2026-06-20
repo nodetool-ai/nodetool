@@ -1,6 +1,7 @@
 ---
 layout: page
 title: "Terminal WebSocket Endpoint"
+description: "The development-only WebSocket endpoint that exposes an interactive host shell — keep it disabled in production."
 ---
 
 This document describes the WebSocket endpoint that exposes an interactive terminal connected to the host system shell. It is intended for development and debugging only and should stay disabled in production.

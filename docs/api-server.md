@@ -1,6 +1,7 @@
 ---
 layout: page
 title: "API Server Overview"
+description: "The unified NodeTool HTTP + WebSocket server — REST routes, workflow execution, and OpenAI-compatible `/v1` endpoints."
 ---
 
 

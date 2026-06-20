@@ -19,7 +19,35 @@ plugins:
   - jekyll-optional-front-matter
   - jekyll-readme-index
   - jekyll-titles-from-headings
-  - jekyll-mermaid
+  # Note: Mermaid is handled by the local _plugins/mermaid.rb tag (the gem
+  # double-loaded the script). The CDN URL lives under `mermaid.src` below.
+
+# Social / SEO defaults (consumed by jekyll-seo-tag)
+logo: /assets/logo.png
+twitter:
+  card: summary_large_image
+social:
+  name: NodeTool
+  links:
+    - https://github.com/nodetool-ai/nodetool
+    - https://discord.gg/WmQTWZRcYE
+
+# Default Open Graph / Twitter card image for every page. jekyll-seo-tag only
+# reads a *page-level* `image`, so we set one site-wide via front-matter
+# defaults; individual pages can override with their own `image:`.
+defaults:
+  - scope:
+      path: ""
+    values:
+      image: /assets/home.png
+  # Node reference pages are pure generated Markdown. Some node descriptions
+  # legitimately contain `{{ variable }}` / `{% ... %}` template syntax, which
+  # Jekyll would otherwise try to parse as Liquid (and warn/err on). They need
+  # no Liquid, so turn it off for the whole tree.
+  - scope:
+      path: "nodes"
+    values:
+      render_with_liquid: false
 
 # Plugin settings
 relative_links:
@@ -38,87 +66,10 @@ titles_from_headings:
   strip_title: false
   collections: false
 
-# Navigation (sidebar source of truth lives in _includes/sidebar.html;
-# this list mirrors section order for plugins and sitemap output)
-header_pages:
-  # Getting Started
-  - index.md
-  - comparisons.md
-  - installation.md
-  - getting-started.md
-  # Core Concepts
-  - key-concepts.md
-  - workflow-editor.md
-  - nodes/index.md
-  - global-chat-agents.md
-  - models-and-providers.md
-  - glossary.md
-  # Workflow Editor
-  - user-interface.md
-  - editor-panels.md
-  - chain-editor.md
-  - workflow-graph-view.md
-  - workflow-debugging.md
-  - image-editor.md
-  - templates-gallery.md
-  - vibecoding.md
-  # Chat & Agents
-  - global-chat.md
-  - agent-config-schema.md
-  - agent-memory.md
-  - long-term-memory.md
-  # Models & Providers
-  - models.md
-  - providers.md
-  - huggingface.md
-  - models-manager.md
-  # Examples
-  - cookbook.md
-  - workflows/index.md
-  # Configuration
-  - configuration.md
-  - storage.md
-  - vector-storage.md
-  - indexing.md
-  - collections.md
-  - workspaces.md
-  - asset-management.md
-  - authentication.md
-  - security-hardening.md
-  - proxy.md
-  # Deployment
-  - deployment.md
-  - deployment-e2e-guide.md
-  - self-hosted-deployment.md
-  - docker-resource-management.md
-  - worker-deployment.md
-  - supabase-deployment.md
-  # CLI
-  - cli.md
-  - chat-cli.md
-  - agent-cli.md
-  - chat-server.md
-  - api-server.md
-  - terminal-websocket.md
-  # API Reference
-  - api-reference.md
-  - workflow-api.md
-  - websocket-api.md
-  - chat-api.md
-  # Developers
-  - developer/index.md
-  - architecture.md
-  - packages.md
-  - python-bridge-protocol.md
-  - execution-strategies.md
-  - node-packs.md
-  # Apps
-  - desktop-app.md
-  - electron-views.md
-  - mobile-app.md
-  # Help
-  - troubleshooting.md
-  - tips-and-tricks.md
+# Navigation: the single source of truth is _includes/sidebar.html.
+# The custom theme does not use Jekyll's Minima-only `header_pages`, and
+# jekyll-sitemap already includes every page, so no mirrored list is kept here
+# (it only drifted out of sync with the sidebar).
 
 # Collections (optional, for organizing docs)
 # collections:
@@ -128,6 +79,7 @@ header_pages:
 
 # Exclude from processing
 exclude:
+  # Build tooling
   - Gemfile
   - Gemfile.lock
   - node_modules
@@ -138,6 +90,25 @@ exclude:
   - .sass-cache/
   - .jekyll-cache/
   - gemfiles/
+  # Contributor / engineering docs — kept in the repo (referenced by CLAUDE.md),
+  # but NOT published to docs.nodetool.ai. These are not user-facing.
+  - README.md
+  - AGENTS.md
+  - DESIGN.md
+  - DEVELOPMENT_STANDARDS.md
+  - THEME.md
+  - CLOUD_NODE_CURATION.md
+  - AGENT_CLI_QUICKREF.md
+  - runpod_testing_guide.md
+  - runtime-package-interface.md
+  # Internal product/design specs (PRDs, drafts) — not for the public site.
+  - STUDIO_PRD.md
+  - STUDIO_MVP_PROMPT.md
+  - image-editor-prd.md
+  - timeline-editor-prd.md
+  - correlation-design.md
+  # Internal implementation plans & specs (agentic-worker instructions).
+  - superpowers/
 
 # Custom theme settings
 # Using custom futuristic dark theme located in _layouts, _includes, and assets

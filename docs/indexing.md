@@ -1,6 +1,7 @@
 ---
 layout: page
 title: "Indexing & Vector Stores"
+description: "Ingest documents for semantic search and RAG with NodeTool's vector indexing pipeline — SQLite-vec by default, with pgvector and Pinecone options."
 ---
 
 

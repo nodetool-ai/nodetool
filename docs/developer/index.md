@@ -70,13 +70,6 @@ Export a `register(registry)` function from your package and NodeTool discovers 
 
 ---
 
-## Documentation Development
-
-- [Docs README](../README.md) -- How to build and serve the documentation site locally
-- [Theme Guide](../THEME.md) -- Notes on the custom docs theme
-
----
-
 ## Contributing
 
 Contribute to [NodeTool on GitHub](https://github.com/nodetool-ai/nodetool).
