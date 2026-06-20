@@ -2,6 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Download, Play, Code2, KeyRound, Layers } from "lucide-react";
 import { SmartDownloadButton } from "../app/SmartDownloadButton";
+import { track } from "../lib/analytics";
 
 export default function NodeToolHero() {
   return (
@@ -37,7 +38,7 @@ export default function NodeToolHero() {
             </span>
           </h1>
 
-          <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-400 md:text-lg">
+          <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-300 md:text-lg">
             One canvas. Every major model from every major provider, called
             with your own keys. Pay providers what they charge — no credits, no
             markup, no curated roster. When the next model ships, swap one node
@@ -51,14 +52,15 @@ export default function NodeToolHero() {
             />
             <a
               href="#demo-video"
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900/60 px-6 py-3.5 text-sm font-semibold text-slate-100 transition-all hover:border-slate-500 hover:bg-slate-800/60"
+              onClick={() => track("View Demo")}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900/60 px-6 py-3.5 text-sm font-semibold text-slate-100 transition-all hover:border-slate-500 hover:bg-slate-800/60 focus-ring"
             >
               <Play className="h-4 w-4" />
               See it in action
             </a>
           </div>
 
-          <ul className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-slate-400">
+          <ul className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-slate-300">
             <li className="flex items-center gap-1.5">
               <Layers className="h-3.5 w-3.5 text-fuchsia-400" />
               Every model. Your keys. Your canvas.
@@ -97,6 +99,7 @@ export default function NodeToolHero() {
               alt="NodeTool canvas: nodes for image, video, and text models wired together"
               className="block w-full rounded-xl"
               loading="eager"
+              decoding="async"
             />
           </div>
         </motion.div>
