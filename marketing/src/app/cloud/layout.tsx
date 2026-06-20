@@ -1,3 +1,4 @@
+import JsonLd from "../../components/JsonLd";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -23,5 +24,19 @@ export default function CloudLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return (
+    <>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Home", item: "https://nodetool.ai" },
+            { "@type": "ListItem", position: 2, name: "Cloud", item: "https://nodetool.ai/cloud" },
+          ],
+        }}
+      />
+      {children}
+    </>
+  );
 }
