@@ -20,7 +20,12 @@ import type {
 
 // Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
 const log = createLogger("nodetool.kernel.graph");
-import { isControlEdge, isDataEdge, TypeMetadata } from "@nodetool-ai/protocol";
+import {
+  isControlEdge,
+  isDataEdge,
+  migrateGraphNodeTypes,
+  TypeMetadata
+} from "@nodetool-ai/protocol";
 import { syntheticEdgeId } from "./edge-ids.js";
 
 // ---------------------------------------------------------------------------
@@ -204,9 +209,15 @@ export class Graph {
       throw new GraphValidationError("'edges' must be an array");
     }
 
+    // Rewrite removed node types (e.g. FormatText -> Prompt) before validation
+    // so legacy workflows keep loading. See NODE_TYPE_MIGRATIONS in protocol.
+    const migrated = migrateGraphNodeTypes(obj);
+    const migratedNodes = migrated.nodes as unknown[];
+    const migratedEdges = migrated.edges as unknown[];
+
     const validNodes: NodeDescriptor[] = [];
     const validNodeIds = new Set<string>();
-    for (const node of obj.nodes) {
+    for (const node of migratedNodes) {
       // Stryker disable next-line ConditionalExpression,LogicalOperator: the typeof/operator variants are equivalent — a non-object node yields {} after the spread below and is then dropped by the id/type guard
       if (!node || typeof node !== "object") {
         if (skipErrors) continue;
@@ -281,7 +292,7 @@ export class Graph {
     }
 
     const validEdges: Edge[] = [];
-    for (const edge of obj.edges) {
+    for (const edge of migratedEdges) {
       if (!edge || typeof edge !== "object") {
         if (skipErrors) continue;
         throw new GraphValidationError("Edge entries must be objects");

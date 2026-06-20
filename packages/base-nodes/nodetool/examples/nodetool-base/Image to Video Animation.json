@@ -163,9 +163,9 @@
       },
       {
         "id": "5",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "Transform the reference frame into a cinematic ocean scene. Scene: {{ scene }}. Motion: {{ motion }}. Duration: {{ duration }}. Keep the animation cohesive, with gentle camera movement and atmospheric particles."
+          "prompt": "Transform the reference frame into a cinematic ocean scene. Scene: {{ scene }}. Motion: {{ motion }}. Duration: {{ duration }}. Keep the animation cohesive, with gentle camera movement and atmospheric particles."
         },
         "ui_properties": {
           "position": {

@@ -213,9 +213,9 @@
       },
       {
         "id": "5",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "Encounter architect instructions:\n\nContext:\n- Biome: {{ biome }}\n- Difficulty profile: {{ difficulty }}\n- Design focus: {{ focus }}\n\nEnemy roster (JSON array). You must restrict selections to this roster:\n{{ roster }}\n\nResponsibilities:\n1. Build a three-wave encounter that escalates tension and difficulty.\n2. Only use enemies that match the biome \"Frostfang Tundra\".\n3. Track `danger_budget` by summing (danger * count) for each wave.\n4. Keep counts as integers and make sure spawn totals are realistic for the roster.\n5. Include tactical notes for each wave explaining positioning, synergies, or environmental hooks.\n\nStructure your output with these fields:\n- macro_strategy: Strategic vision.\n- waves: List of 3 waves, each with: wave, theme, danger_budget, spawn_total, tactics, and picks (name, role, count, rationale).\n- balance_notes: List of points about encounter stability and risk."
+          "prompt": "Encounter architect instructions:\n\nContext:\n- Biome: {{ biome }}\n- Difficulty profile: {{ difficulty }}\n- Design focus: {{ focus }}\n\nEnemy roster (JSON array). You must restrict selections to this roster:\n{{ roster }}\n\nResponsibilities:\n1. Build a three-wave encounter that escalates tension and difficulty.\n2. Only use enemies that match the biome \"Frostfang Tundra\".\n3. Track `danger_budget` by summing (danger * count) for each wave.\n4. Keep counts as integers and make sure spawn totals are realistic for the roster.\n5. Include tactical notes for each wave explaining positioning, synergies, or environmental hooks.\n\nStructure your output with these fields:\n- macro_strategy: Strategic vision.\n- waves: List of 3 waves, each with: wave, theme, danger_budget, spawn_total, tactics, and picks (name, role, count, rationale).\n- balance_notes: List of points about encounter stability and risk."
         },
         "ui_properties": {
           "position": {
@@ -446,9 +446,9 @@
       },
       {
         "id": "13",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "You are the encounter QA lead. Stress test the encounter plan below.\n\nContext:\n- Biome: {{ biome }}\n- Difficulty profile: {{ difficulty }}\n\nEncounter plan:\nStrategy: {{ strategy }}\nWaves: {{ waves }}\n\nDeliverables:\n1. Start with a short paragraph summarizing pacing and risk spikes.\n2. Provide a bullet list titled \"Risk Flags\" covering potential player pain points.\n3. Provide a bullet list titled \"Mitigations\" with concrete tuning or encounter scripting fixes.\nKeep the tone actionable and avoid markdown headers beyond the requested labels.\n"
+          "prompt": "You are the encounter QA lead. Stress test the encounter plan below.\n\nContext:\n- Biome: {{ biome }}\n- Difficulty profile: {{ difficulty }}\n\nEncounter plan:\nStrategy: {{ strategy }}\nWaves: {{ waves }}\n\nDeliverables:\n1. Start with a short paragraph summarizing pacing and risk spikes.\n2. Provide a bullet list titled \"Risk Flags\" covering potential player pain points.\n3. Provide a bullet list titled \"Mitigations\" with concrete tuning or encounter scripting fixes.\nKeep the tone actionable and avoid markdown headers beyond the requested labels.\n"
         },
         "ui_properties": {
           "position": {
@@ -505,9 +505,9 @@
       },
       {
         "id": "16",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "You are the lead encounter designer preparing a briefing for cross-functional teammates.\n\nEncounter context:\n- Biome: {{ biome }}\n- Difficulty profile: {{ difficulty }}\n- Design focus: {{ focus }}\n\nMacro strategy: {{ strategy }}\n\nWave plan (JSON):\n{{ waves }}\n\nQA review notes:\n{{ qa_review }}\n\nCompose markdown with sections:\n1. Overview (summarize macro strategy and player beats in 2-3 sentences)\n2. Wave Breakdown (subsections for each wave with theme, enemy list, danger budget, spawn total, and tactics)\n3. QA Calls To Action (two bullet lists: \"Risk Flags\" and \"Mitigation Actions\" based on the QA notes)\nEnd with a short reminder about next playtest goals.\n"
+          "prompt": "You are the lead encounter designer preparing a briefing for cross-functional teammates.\n\nEncounter context:\n- Biome: {{ biome }}\n- Difficulty profile: {{ difficulty }}\n- Design focus: {{ focus }}\n\nMacro strategy: {{ strategy }}\n\nWave plan (JSON):\n{{ waves }}\n\nQA review notes:\n{{ qa_review }}\n\nCompose markdown with sections:\n1. Overview (summarize macro strategy and player beats in 2-3 sentences)\n2. Wave Breakdown (subsections for each wave with theme, enemy list, danger budget, spawn total, and tactics)\n3. QA Calls To Action (two bullet lists: \"Risk Flags\" and \"Mitigation Actions\" based on the QA notes)\nEnd with a short reminder about next playtest goals.\n"
         },
         "ui_properties": {
           "position": {

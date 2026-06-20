@@ -88,9 +88,9 @@
       {
         "id": "format_prompt",
         "parent_id": null,
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "Generate 5 educational flashcards about {{TOPIC}}. Create clear questions with concise, accurate answers suitable for studying."
+          "prompt": "Generate 5 educational flashcards about {{TOPIC}}. Create clear questions with concise, accurate answers suitable for studying."
         },
         "ui_properties": {
           "selected": false,

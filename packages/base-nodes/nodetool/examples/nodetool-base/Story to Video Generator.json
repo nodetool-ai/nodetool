@@ -41,9 +41,9 @@
       {
         "id": "format_prompt",
         "parent_id": null,
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "Transform this story theme into a cinematic video prompt: {{THEME}}"
+          "prompt": "Transform this story theme into a cinematic video prompt: {{THEME}}"
         },
         "ui_properties": {
           "position": {
