@@ -8,12 +8,16 @@ The NodeTool mobile app is a React Native application built with Expo that enabl
 
 ## Technology Stack
 
-- **Framework**: React Native with Expo SDK 54
-- **Language**: TypeScript 5.9
+- **Framework**: React Native 0.85 with Expo SDK 56
+- **Language**: TypeScript 6
+- **UI runtime**: React 19
 - **Navigation**: React Navigation v7 (Native Stack)
-- **HTTP Client**: Axios
+- **Server state**: tRPC v11 client + TanStack Query v5 (REST via the global `fetch`; no Axios)
+- **Local state**: Zustand v5 stores
+- **Realtime**: WebSocket + MsgPack (`@msgpack/msgpack`)
+- **Auth**: Supabase + Google Sign-In
 - **Storage**: AsyncStorage
-- **UI**: React Native core components
+- **UI**: React Native core components (`StyleSheet`)
 
 ## Architecture Principles
 
@@ -44,50 +48,53 @@ Unlike the web app which uses environment variables and build-time configuration
 ```
 mobile/
 ├── src/
-│   ├── navigation/           # Navigation configuration
-│   │   └── types.ts         # TypeScript types for navigation
+│   ├── navigation/           # Navigation configuration + types
 │   │
 │   ├── screens/             # Screen components
-│   │   ├── MiniAppsListScreen.tsx   # List of available mini apps
-│   │   ├── MiniAppScreen.tsx        # Mini app execution screen
-│   │   ├── SettingsScreen.tsx       # Server configuration
-│   │   └── ChatScreen.tsx           # AI chat interface
+│   │   ├── WorkflowsListScreen.tsx     # List of available workflows
+│   │   ├── GraphEditorScreen.tsx       # Chain-based graph editor
+│   │   ├── ChatScreen.tsx              # AI chat interface
+│   │   ├── AssetsScreen.tsx            # Asset browser
+│   │   ├── AssetViewerScreen.tsx       # Single-asset viewer
+│   │   ├── CollectionsScreen.tsx       # RAG collections
+│   │   ├── JobsScreen.tsx              # Job history
+│   │   ├── ThreadsScreen.tsx           # Chat thread list
+│   │   ├── LanguageModelSelectionScreen.tsx
+│   │   ├── SecretsScreen.tsx           # API-key management
+│   │   ├── SettingsScreen.tsx          # Server configuration
+│   │   └── LoginScreen.tsx             # Supabase / Google sign-in
 │   │
-│   ├── components/          # Reusable components
-│   │   └── chat/           # Chat-specific components
-│   │       ├── index.ts           # Component exports
-│   │       ├── ChatView.tsx       # Main chat container
-│   │       ├── ChatComposer.tsx   # Input field + send button
-│   │       ├── ChatMessageList.tsx # Message list with auto-scroll
-│   │       ├── MessageView.tsx    # Individual message rendering
-│   │       ├── ChatMarkdown.tsx   # Markdown renderer
-│   │       └── LoadingIndicator.tsx # Pulsating animation
+│   ├── components/          # Reusable components (chat/, properties/, …)
 │   │
 │   ├── services/            # Service layer
-│   │   ├── api.ts          # API client with configurable host
-│   │   └── WebSocketManager.ts # WebSocket with reconnect
+│   │   ├── api.ts             # REST API client (fetch + ApiError/retry/timeout)
+│   │   ├── apiHost.ts         # Shared base-URL resolution
+│   │   ├── WebSocketService.ts # Singleton WS (workflow/job routing)
+│   │   ├── WebSocketManager.ts # Per-connection WS with reconnect (chat)
+│   │   └── supabase.ts        # Supabase client
 │   │
-│   ├── stores/              # State management
-│   │   ├── WorkflowRunner.ts # Workflow execution state
-│   │   └── ChatStore.ts      # Chat state (Zustand)
+│   ├── trpc/                # tRPC client + React Query provider
+│   │
+│   ├── stores/              # Zustand state
+│   │   ├── WorkflowRunner.ts      # Workflow execution state
+│   │   ├── ChatStore.ts           # Chat state
+│   │   ├── GraphEditorStore.ts    # Graph-editor chain state
+│   │   ├── MediaGenerationStore.ts # Image/video generation params
+│   │   ├── AuthStore.ts           # Auth/session state
+│   │   └── ThemeStore.ts          # Theme state
 │   │
 │   ├── hooks/               # Custom React hooks
-│   │   └── useMiniAppInputs.ts
 │   │
-│   └── types/              # TypeScript type definitions
-│       ├── index.ts        # Type exports
-│       ├── ApiTypes.ts     # API-generated types
-│       ├── miniapp.ts      # Mini app domain types
-│       ├── workflow.ts     # Workflow types
-│       └── chat.ts         # Chat-specific types
+│   └── types/              # TypeScript type definitions (ApiTypes, workflow, …)
 │
 ├── assets/                 # Images, icons, splash screens
 ├── App.tsx                # Root component with navigation
 ├── app.json               # Expo configuration
 ├── package.json           # Dependencies
 ├── tsconfig.json          # TypeScript configuration
-├── ARCHITECTURE.md        # Architecture documentation
-└── PRD_CHAT_FEATURE.md    # Chat feature PRD
+├── jest.config.js         # Jest + V8 coverage config
+├── AGENTS.md              # Agent quick reference
+└── ARCHITECTURE.md        # Architecture documentation
 ```
 
 ## Component Architecture
@@ -174,7 +181,7 @@ App
    ↓
 3. AsyncStorage.getItem('@nodetool_api_host')
    ↓
-4. Update axios client baseURL
+4. Cache the resolved host (used by both the fetch client and the tRPC client)
 ```
 
 ### Workflow List Flow
@@ -234,10 +241,15 @@ class ApiService {
 
 ### Features
 
-- **Configurable Base URL**: Updates axios instance when URL changes
+- **Configurable Base URL**: Resolved from AsyncStorage via `apiHost.ts`; shared by the `fetch` client and the tRPC client
 - **Persistent Storage**: Saves URL in AsyncStorage
-- **Error Handling**: Throws errors for component-level handling
-- **WebSocket URL Generation**: Converts HTTP URL to WS/WSS for future real-time features
+- **Error Handling**: REST `request()` throws a typed `ApiError` (carrying HTTP status/body), times out via `AbortController`, and retries transient 5xx/network failures while failing fast on 4xx
+- **WebSocket URL Generation**: Converts HTTP URL to WS/WSS for realtime workflow/chat streams
+
+> Most domain calls (workflows, assets, jobs, secrets, collections, threads, models)
+> go through the **tRPC client**; the raw `fetch` `request()` path is used for the
+> handful of REST-only endpoints such as `/api/nodes/metadata`, and `uploadAsset`
+> posts multipart `FormData` directly.
 
 ## Navigation Structure
 
@@ -479,25 +491,30 @@ const colors = {
 
 ## Testing Strategy
 
-### Unit Tests (Future)
+### Unit Tests
+
+Tests use Jest with `@testing-library/react-native` and live next to the code
+they cover (`*.test.ts`/`*.test.tsx`).
 
 ```bash
-# Install testing dependencies
-npm install --save-dev jest @testing-library/react-native
-
-# Run tests
-npm test
+npm test               # run the suite
+npm run test:coverage  # run with V8 coverage + thresholds
 ```
 
-Target coverage:
-- API service methods
-- Input parsing logic
-- Type conversions
+Covered today: chat UI components, property editors, hooks, the
+`ChatStore`/`WorkflowRunner`/`MediaGenerationStore`/`GraphEditorStore`/`AuthStore`
+stores, the `WebSocketManager`, and the REST `api` client
+(`ApiError`/retry/timeout, `uploadAsset`).
+
+Coverage runs with the **V8** provider (babel-plugin-istanbul's `test-exclude`
+is incompatible with the hoisted `minimatch` v9 in this monorepo).
+`coverageThreshold.global` is set below the measured numbers so the gate stays
+honest and enforceable; raise it as coverage grows.
 
 ### Integration Tests (Future)
 
 - Navigation flows
-- API integration
+- tRPC/REST integration
 - AsyncStorage operations
 
 ### Manual Testing Checklist
