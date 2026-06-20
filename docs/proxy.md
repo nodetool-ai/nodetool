@@ -1,6 +1,7 @@
 ---
 layout: page
 title: "Proxy Reference"
+description: "The NodeTool reverse proxy — on-demand Docker services, TLS/ACME via nginx, and prefix-based routing for self-hosted deployments."
 ---
 
 

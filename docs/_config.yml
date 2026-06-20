@@ -19,13 +19,31 @@ plugins:
   - jekyll-optional-front-matter
   - jekyll-readme-index
   - jekyll-titles-from-headings
-  - jekyll-mermaid
+  # Note: Mermaid is handled by the local _plugins/mermaid.rb tag (the gem
+  # double-loaded the script). The CDN URL lives under `mermaid.src` below.
 
-# Node reference pages are pure generated Markdown. Some node descriptions
-# legitimately contain `{{ variable }}` / `{% ... %}` template syntax, which
-# Jekyll would otherwise try to parse as Liquid (and warn/err on). They need
-# no Liquid, so turn it off for the whole tree.
+# Social / SEO defaults (consumed by jekyll-seo-tag)
+logo: /assets/logo.png
+twitter:
+  card: summary_large_image
+social:
+  name: NodeTool
+  links:
+    - https://github.com/nodetool-ai/nodetool
+    - https://discord.gg/WmQTWZRcYE
+
+# Default Open Graph / Twitter card image for every page. jekyll-seo-tag only
+# reads a *page-level* `image`, so we set one site-wide via front-matter
+# defaults; individual pages can override with their own `image:`.
 defaults:
+  - scope:
+      path: ""
+    values:
+      image: /assets/home.png
+  # Node reference pages are pure generated Markdown. Some node descriptions
+  # legitimately contain `{{ variable }}` / `{% ... %}` template syntax, which
+  # Jekyll would otherwise try to parse as Liquid (and warn/err on). They need
+  # no Liquid, so turn it off for the whole tree.
   - scope:
       path: "nodes"
     values:

@@ -5,11 +5,8 @@ gem "csv"
 gem "logger"
 gem "base64"
 
-# Jekyll core
+# Jekyll core (custom theme lives in _layouts / _includes / assets — no gem theme)
 gem "jekyll", "~> 4.3.0"
-
-# Theme
-gem "minima", "~> 2.5"
 
 # Jekyll plugins
 group :jekyll_plugins do
@@ -20,7 +17,8 @@ group :jekyll_plugins do
   gem "jekyll-optional-front-matter"
   gem "jekyll-readme-index"
   gem "jekyll-titles-from-headings"
-  gem "jekyll-mermaid"
+  # Mermaid is handled by the local _plugins/mermaid.rb tag (the jekyll-mermaid
+  # gem double-loaded the script).
 end
 
 # Windows and JRuby does not include zoneinfo files, so bundle the tzinfo-data gem
@@ -36,6 +34,3 @@ gem "wdm", "~> 0.1", :platforms => [:mingw, :x64_mingw, :mswin]
 # Lock `http_parser.rb` gem to `v0.6.x` on JRuby builds since newer versions of the gem
 # do not have a Java counterpart.
 gem "http_parser.rb", "~> 0.6.0", :platforms => [:jruby]
-
-# GitHub Pages (optional, uncomment if deploying to GitHub Pages)
-# gem "github-pages", group: :jekyll_plugins

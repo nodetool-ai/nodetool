@@ -1,6 +1,7 @@
 ---
 layout: page
 title: "WebSocket API"
+description: "Run workflows, stream results, and receive real-time updates over NodeTool's single WebSocket endpoint (MessagePack or JSON)."
 ---
 
 This document describes the WebSocket API used to run workflows, stream results, and receive real-time updates from the NodeTool backend.

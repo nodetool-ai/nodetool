@@ -1,6 +1,7 @@
 ---
 layout: page
 title: "NodeTool CLI"
+description: "The `nodetool` command-line interface — manage servers, workflows, jobs, assets, and secrets from your terminal."
 ---
 
 

@@ -4,9 +4,9 @@ title: "NodeTool Documentation"
 ---
 
 
-This directory contains the markdown files for the NodeTool documentation. The site is built using [Jekyll](https://jekyllrb.com/), a static site generator that converts markdown files into a complete website.
+This directory contains the markdown files for the NodeTool documentation. The site is built using [Jekyll](https://jekyllrb.com/), a static site generator that converts markdown files into a complete website, and deployed to <https://docs.nodetool.ai> via the `Deploy Jekyll site to Pages` GitHub Action (`.github/workflows/jekyll.yml`).
 
-The documentation features a custom-built **futuristic dark theme** with cyberpunk aesthetics, neon accents, and smooth animations. See [THEME.md](THEME.md) for complete theme documentation.
+The documentation uses a custom-built **dark theme** that mirrors the NodeTool app's palette (Inter type, a deep `#08090A` background, restrained blue/magenta accents). See [THEME.md](THEME.md) for complete theme documentation.
 
 ## Prerequisites
 
@@ -54,11 +54,24 @@ The built site will be in the `_site/` directory.
 
 ## Node Reference
 
-Rebuild the node references with:
+The per-node reference pages under `nodes/` are generated from the node sources.
+Regenerate them (and the namespace index) from the repo root:
 
 ```bash
-nodetool package node-docs
+npm run generate:node-docs    # regenerate node pages + rebuild nodes/index.md
+npm run generate:node-index   # rebuild nodes/index.md only (fast, reads from disk)
 ```
+
+`scripts/build-node-index.mjs` rebuilds `nodes/index.md` straight from the pages
+on disk, so totals and namespaces always match what's actually published.
+
+> **Known drift:** the on-disk directory layout (e.g. `lib/numpy`, `lib/pillow`,
+> `vector/sqlite-vec`) predates a namespace rename and no longer matches the
+> `namespace:` front matter (e.g. `lib.array`, `lib.image`, `vector.chroma`). The
+> index labels each entry by its (authoritative) front-matter namespace and links
+> to the real directory, so navigation works today. A full `generate:node-docs`
+> run against the current node registry is the proper fix and will realign the
+> directories.
 
 ## Bridge Protocol Documentation
 
@@ -100,14 +113,16 @@ docs/
 
 The custom dark theme includes:
 
-- **Cyberpunk Aesthetics**: Dark backgrounds with vibrant neon accents (cyan, magenta, purple)
-- **Animated Effects**: Pulsing grid background, scanline effect, neon glows
-- **Typography**: Orbitron for headings, Inter for body, JetBrains Mono for code
+- **Palette**: Deep `#08090A` background with restrained blue/magenta accents, matching the NodeTool app's `paletteDark.ts`
+- **Subtle effects**: A gently animated grid background (`.cyber-grid`)
+- **Typography**: Inter for headings and body, JetBrains Mono for code
 - **Interactive Elements**:
-  - Auto-generated copy buttons on code blocks
-  - Smooth scroll animations
-  - Active link highlighting
-  - Responsive mobile menu
+  - Client-side search over `/search.json` (press `/`)
+  - Auto-generated copy buttons on code blocks, plus "Copy page as Markdown"
+  - Collapsible sidebar with scroll persistence
+  - Reading-progress bar and back-to-top button
+  - Lazy-loaded content images
+  - Active link highlighting and responsive mobile menu
 - **Layouts**:
   - `home`: Homepage with hero section
   - `page`: Documentation pages with sidebar navigation
@@ -144,9 +159,10 @@ To customize colors, edit CSS variables in `assets/css/main.scss`:
 
 ```css
 :root {
-  --color-accent-cyan: #00d9ff;
-  --color-accent-magenta: #ff00ff;
-  --color-accent-purple: #bd00ff;
+  --color-bg-primary: #08090A;
+  --color-text-primary: #F7F8F8;
+  --color-accent-blue: #6690d4;
+  --color-accent-magenta: #E879F9;
   /* ... more variables */
 }
 ```
@@ -186,15 +202,11 @@ bundle exec jekyll clean
 
 ## GitHub Pages Deployment
 
-This site can be automatically deployed to GitHub Pages. GitHub will build the site using Jekyll when changes are pushed to the repository.
+The site deploys automatically via the **`Deploy Jekyll site to Pages`** GitHub Action (`.github/workflows/jekyll.yml`) on every push to `main` (and via manual `workflow_dispatch`). The workflow runs `bundle exec jekyll build` with `JEKYLL_ENV=production` and publishes `docs/_site` to GitHub Pages — it does **not** use the restricted branch-based Pages builder, so custom plugins under `_plugins/` are supported.
 
-To configure GitHub Pages:
-1. Go to repository Settings > Pages
-2. Select the branch containing the docs (usually `main`)
-3. Set the folder to `/docs`
-4. Save
+The published site is served at <https://docs.nodetool.ai> (see `CNAME`).
 
-The site will be available at `https://<username>.github.io/<repository>/` (or your configured custom domain)
+> Pages **Settings → Build and deployment → Source** must be set to **GitHub Actions** (not "Deploy from a branch").
 
 ## Theme Development
 

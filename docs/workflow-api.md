@@ -1,6 +1,7 @@
 ---
 layout: page
 title: "Workflow API Guide"
+description: "Create, query, and run NodeTool workflows over the Editor and Server REST APIs."
 ---
 
 
