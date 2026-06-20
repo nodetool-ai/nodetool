@@ -1,7 +1,10 @@
 ---
 layout: page
 title: "Supported Models"
+description: "Every model NodeTool runs — local engines (llama.cpp, MLX, GGUF) and cloud providers. Generic nodes work across all of them, so swapping a model never changes the graph."
 ---
+
+> **The model catalog.** For how to connect a provider, see [Providers](providers.md). For the desktop app's download panel, see [Models Manager](models-manager.md). New here? Start with [Models & Providers](models-and-providers.md).
 
 NodeTool runs models from many providers — proprietary and open. Generic nodes (TextToImage, Agent, RealtimeAgent, ...) work across providers, so swapping a model doesn't change the graph.
 
