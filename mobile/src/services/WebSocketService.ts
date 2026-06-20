@@ -16,10 +16,6 @@ import type { WebSocketMessageData } from '../types/chat';
 
 type MessageHandler = (message: Record<string, unknown>) => void;
 
-function maskApiKey(url: string): string {
-  return url.replace(/api_key=[^&]*/, 'api_key=***');
-}
-
 class WebSocketService {
   private static instance: WebSocketService | null = null;
   private wsManager: WebSocketManager | null = null;
@@ -69,15 +65,18 @@ class WebSocketService {
     this.wsManager?.destroy();
     this.currentPath = path;
 
-    let url = apiService.getWebSocketUrl(path);
+    // The auth token is sent as an Authorization header (see WebSocketManager)
+    // rather than a `?api_key=` query param, keeping it out of URLs/logs.
+    const url = apiService.getWebSocketUrl(path);
     const session = useAuthStore.getState().session;
-    if (session?.access_token) {
-      url += `?api_key=${session.access_token}`;
-    }
-    console.log('WebSocketService: Connecting to', maskApiKey(url));
+    const headers = session?.access_token
+      ? { Authorization: `Bearer ${session.access_token}` }
+      : undefined;
+    console.log('WebSocketService: Connecting to', url);
 
     const manager = new WebSocketManager({
       url,
+      headers,
       reconnect: true,
       reconnectInterval: 1000,
       reconnectDecay: 1.5,
