@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Session, User, Subscription, AuthError } from '@supabase/supabase-js';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { supabase, isSupabaseConfigured } from '../services/supabase';
+import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID } from '../services/authConfig';
 import { queryClient } from '../queryClient';
 
 export type AuthState = 'init' | 'loading' | 'logged_in' | 'logged_out' | 'error';
@@ -83,8 +84,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
 
     GoogleSignin.configure({
-      webClientId: '865599262139-mla1l0bqc3ss0frq085mcdpd6cbftvem.apps.googleusercontent.com',
-      iosClientId: '865599262139-dmfkvddphs7h1qu6dvrgj0t9aq656h84.apps.googleusercontent.com',
+      webClientId: GOOGLE_WEB_CLIENT_ID,
+      iosClientId: GOOGLE_IOS_CLIENT_ID,
     });
 
     set({ state: 'loading', error: null });
