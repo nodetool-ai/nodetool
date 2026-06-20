@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
+import CloudWaitlist from "../../components/CloudWaitlist";
 
 const ProvidersSection = dynamic(
   () => import("../../components/ProvidersSection"),
@@ -248,6 +249,12 @@ export default function CloudPage() {
                     Alpha preview · AGPL-3.0 source · BYOK for every provider ·
                     Self-host any time
                   </p>
+                  <div className="mt-5 max-w-md">
+                    <p className="mb-2 text-sm text-slate-300">
+                      Not ready yet? Get notified as Cloud opens up.
+                    </p>
+                    <CloudWaitlist />
+                  </div>
                 </div>
                 <div className="mt-6 inline-flex items-center gap-2 text-sm text-slate-400">
                   <span>Want to run it locally instead?</span>
