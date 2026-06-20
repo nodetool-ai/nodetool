@@ -96,7 +96,7 @@ type ResultsStore = {
     workflowId: string,
     nodeId: string,
     jobId: string,
-    patch: Partial<Generation>
+    patch: Partial<Generation> & { index?: number }
   ) => void;
   getLiveGenerations: (workflowId: string, nodeId: string) => Generation[];
   getProviderCost: (
@@ -481,37 +481,77 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     }));
   },
   /**
-   * Upsert a live generation for a node, keyed by `${workflowId}:${nodeId}`.
-   * A generation is identified within the node by its `jobId`: the first patch
-   * for a job creates a running generation, later patches merge into it.
+   * Upsert a live generation slot for a node, keyed by `${workflowId}:${nodeId}`
+   * and grouped by `jobId`. Pure index routing — no job-class policy here (that
+   * lives in the workflowUpdates reducer).
+   *
+   * - `patch.index` present → set/replace the variant at that slot. Variant 0
+   *   keeps `id === jobId` for back-compat with `selected_generation`; variant k
+   *   gets `${jobId}#${k}`. Creates the slot if absent, else merges in place.
+   * - `patch.index` absent → merge onto the NEWEST slot for this job (running
+   *   heartbeats, error settles). Creates slot 0 if the job has no slot yet;
+   *   never spawns a phantom `#k` variant.
    */
-  upsertLiveGeneration: (
-    workflowId: string,
-    nodeId: string,
-    jobId: string,
-    patch: Partial<Generation>
-  ) => {
+  upsertLiveGeneration: (workflowId, nodeId, jobId, patch) => {
     const key = `${workflowId}:${nodeId}`;
     set((state) => {
       const list = state.liveGenerations[key] ?? [];
-      const idx = list.findIndex((g) => g.jobId === jobId);
-      const base: Generation =
-        idx >= 0
-          ? list[idx]
-          : {
-              id: jobId,
-              jobId,
-              createdAt: patch.createdAt ?? 0,
-              outputs: {},
-              status: "running"
-            };
-      const next: Generation = { ...base, ...patch, id: base.id, jobId };
-      const updated =
-        idx >= 0
-          ? list.map((g, i) => (i === idx ? next : g))
-          : [...list, next];
+      // Strip the routing-only `index` before it can leak onto the stored
+      // Generation (which has no `index` field).
+      const { index, ...rest } = patch;
+
+      if (typeof index === "number") {
+        const id = index === 0 ? jobId : `${jobId}#${index}`;
+        const at = list.findIndex((g) => g.jobId === jobId && g.id === id);
+        if (at >= 0) {
+          const next: Generation = { ...list[at], ...rest, id, jobId };
+          return {
+            liveGenerations: {
+              ...state.liveGenerations,
+              [key]: list.map((g, i) => (i === at ? next : g))
+            }
+          };
+        }
+        const created: Generation = {
+          id,
+          jobId,
+          createdAt: rest.createdAt ?? Date.now(),
+          outputs: {},
+          status: "running",
+          ...rest
+        };
+        return {
+          liveGenerations: {
+            ...state.liveGenerations,
+            [key]: [...list, created]
+          }
+        };
+      }
+
+      // index-less → newest slot for this job, or create slot 0.
+      const idx = list.findLastIndex((g) => g.jobId === jobId);
+      if (idx < 0) {
+        const created: Generation = {
+          id: jobId,
+          jobId,
+          createdAt: rest.createdAt ?? Date.now(),
+          outputs: {},
+          status: "running",
+          ...rest
+        };
+        return {
+          liveGenerations: {
+            ...state.liveGenerations,
+            [key]: [...list, created]
+          }
+        };
+      }
+      const next: Generation = { ...list[idx], ...rest, id: list[idx].id, jobId };
       return {
-        liveGenerations: { ...state.liveGenerations, [key]: updated }
+        liveGenerations: {
+          ...state.liveGenerations,
+          [key]: list.map((g, i) => (i === idx ? next : g))
+        }
       };
     });
   },

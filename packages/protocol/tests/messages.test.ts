@@ -13,6 +13,7 @@ import type {
   MessageType,
   JobUpdate,
   NodeUpdate,
+  GenerationComplete,
   NodeProgress,
   EdgeUpdate,
   OutputUpdate,
@@ -169,6 +170,17 @@ function llmCallUpdate(): LLMCallUpdate {
   };
 }
 
+function generationComplete(): GenerationComplete {
+  return {
+    type: "generation_complete",
+    node_id: "n1",
+    node_name: "Gen",
+    node_type: "ns.Gen",
+    outputs: { image: { type: "image", uri: "memory://x" } }
+    // no index/job_id → asserts they're optional on the wire
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Collect all factory functions so we can iterate over them
 // ---------------------------------------------------------------------------
@@ -176,6 +188,7 @@ function llmCallUpdate(): LLMCallUpdate {
 const factories: Array<[MessageType, () => ProcessingMessage]> = [
   ["job_update", jobUpdate],
   ["node_update", nodeUpdate],
+  ["generation_complete", generationComplete],
   ["node_progress", nodeProgress],
   ["edge_update", edgeUpdate],
   ["output_update", outputUpdate],
@@ -211,8 +224,8 @@ describe("ProcessingMessage discriminator", () => {
     expect(new Set(types).size).toBe(types.length);
   });
 
-  it("has exactly 18 message types matching Python ProcessingMessage", () => {
-    expect(factories.length).toBe(18);
+  it("has exactly 19 message types matching Python ProcessingMessage", () => {
+    expect(factories.length).toBe(19);
   });
 });
 
@@ -245,6 +258,47 @@ describe("runtime narrowing via type field", () => {
     } else {
       throw new Error("narrowing failed");
     }
+  });
+
+  it("narrows GenerationComplete correctly", () => {
+    const msg: ProcessingMessage = generationComplete();
+    if (msg.type === "generation_complete") {
+      expect(msg.node_id).toBe("n1");
+      expect(msg.node_name).toBe("Gen");
+      expect(msg.node_type).toBe("ns.Gen");
+      expect(msg.outputs).toEqual({
+        image: { type: "image", uri: "memory://x" }
+      });
+    } else {
+      throw new Error("narrowing failed");
+    }
+  });
+});
+
+describe("GenerationComplete bare-wire form", () => {
+  it("emits no index/job_id on the bare actor form (stamped downstream)", () => {
+    const msg = generationComplete();
+    expect(msg.index).toBeUndefined();
+    expect(msg.job_id).toBeUndefined();
+    expect(msg.workflow_id).toBeUndefined();
+  });
+});
+
+describe("OutputUpdate disposition/done additive optionals", () => {
+  it("defaults disposition and done to undefined when omitted", () => {
+    const msg = outputUpdate();
+    expect(msg.disposition).toBeUndefined();
+    expect(msg.done).toBeUndefined();
+  });
+
+  it("accepts disposition='replace' and done=true", () => {
+    const msg: OutputUpdate = {
+      ...outputUpdate(),
+      disposition: "replace",
+      done: true
+    };
+    expect(msg.disposition).toBe("replace");
+    expect(msg.done).toBe(true);
   });
 });
 

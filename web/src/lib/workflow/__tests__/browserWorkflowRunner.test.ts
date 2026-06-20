@@ -229,6 +229,69 @@ describe("runBrowserGraphJob", () => {
     expect(result.success).toBe(false);
     expect(result.error).toBe("Aborted");
   });
+
+  it("stamps arrival-order index per (job, node) on generation_complete and normalizes outputs", async () => {
+    const deliver = jest.spyOn(globalWebSocketManager, "deliverLocal");
+    installFakeRunner(
+      makeGen(
+        [
+          {
+            type: "generation_complete",
+            node_id: "gen",
+            node_name: "gen",
+            node_type: "browser.Gen",
+            outputs: { image: "a" }
+          },
+          {
+            type: "generation_complete",
+            node_id: "gen",
+            node_name: "gen",
+            node_type: "browser.Gen",
+            outputs: { image: "b" }
+          },
+          {
+            type: "generation_complete",
+            node_id: "gen",
+            node_name: "gen",
+            node_type: "browser.Gen",
+            outputs: { image: "c" }
+          },
+          {
+            // A different node restarts the per-node counter at 0.
+            type: "generation_complete",
+            node_id: "other",
+            node_name: "other",
+            node_type: "browser.Gen",
+            outputs: { image: "z" }
+          }
+        ],
+        { status: "completed" }
+      )
+    );
+
+    const result = await runBrowserGraphJob({
+      graph: browserGraph("browser.Gen"),
+      workflowId: "wf-gc"
+    });
+    expect(result.success).toBe(true);
+
+    const gens = deliver.mock.calls
+      .map((c) => c[0] as Record<string, unknown>)
+      .filter((m) => m.type === "generation_complete");
+    expect(gens).toHaveLength(4);
+
+    const forGen = gens.filter((m) => m.node_id === "gen");
+    expect(forGen.map((m) => m.index)).toEqual([0, 1, 2]);
+    // outputs preserved through materialize (plain values pass through).
+    expect(forGen.map((m) => (m.outputs as Record<string, unknown>).image)).toEqual([
+      "a",
+      "b",
+      "c"
+    ]);
+
+    const forOther = gens.filter((m) => m.node_id === "other");
+    expect(forOther.map((m) => m.index)).toEqual([0]);
+  });
 });
 
 describe("collectNodeClasses", () => {

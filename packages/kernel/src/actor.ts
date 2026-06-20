@@ -355,6 +355,8 @@ export class NodeActor {
             this._executionContext
           );
           this._latestResult = nodeOutputs.collected();
+          // Site #5 (RFC §5): streaming-input run() — one committed result.
+          this._emitGenerationComplete(this._latestResult);
         } else {
           // Legacy fallback: call process() once with the node's own
           // property values, matching the defaults merge every other
@@ -368,6 +370,8 @@ export class NodeActor {
           );
           this._latestResult = outputs;
           await this._sendOutputs(this.node.id, outputs);
+          // Site #3 (RFC §5): legacy single process() — one committed result.
+          this._emitGenerationComplete(outputs);
         }
       } else if (this.node.is_controlled) {
         // Controlled mode: wait for control events from inbox
@@ -992,6 +996,12 @@ export class NodeActor {
         );
       }
       this._latestResult = { ...(this._streamingCollectedOutputs ?? {}) };
+      // Site #4 (RFC §5): genProcess stream-end — ONCE per stream, carrying the
+      // overwrite-merged _streamingCollectedOutputs. Per-yield partials stay on
+      // output_update (chunks); multi-artifact-per-output-slot streaming is OUT
+      // OF SCOPE (RFC §5 invariant / Decision 1 corollary). Under correlation
+      // this branch runs once per ready key → one generation_complete per key.
+      this._emitGenerationComplete(this._latestResult);
     } else {
       const outputs = await this._executor.process(
         inputs,
@@ -1003,6 +1013,9 @@ export class NodeActor {
         outputs,
         this._currentHints(Object.keys(outputs))
       );
+      // Site #1 (RFC §5): correlated process() — one per ready key, so N/run
+      // for a generator (the primary 6×-collapse fix).
+      this._emitGenerationComplete(outputs);
     }
   }
 
@@ -1289,6 +1302,8 @@ export class NodeActor {
         );
         this._latestResult = outputs;
         await this._sendOutputs(this.node.id, outputs);
+        // Site #2 (RFC §5): controlled-loop process() — one per "run" event.
+        this._emitGenerationComplete(outputs);
       }
     }
   }
@@ -1376,6 +1391,35 @@ export class NodeActor {
           ? (this.node.properties as Record<string, unknown>)
           : null,
       provider_cost: this._executionContext?.getProviderCost?.() ?? null
+    });
+  }
+
+  /**
+   * Emit a BARE `generation_complete` for one committed `process()` result
+   * (RFC §4.2 / §5). Routes through the same `_emitMessage` path as
+   * `node_update` (runner `_emit`), so it is NEVER edge-suppressed and is
+   * retained for replay. The actor stamps NO `job_id` and NO `index` — both
+   * are backfilled downstream by the relay (RFC Decision 8).
+   *
+   * Skips `nodetool.constant.*` / `nodetool.input.*` (the same set
+   * `_emitNodeStatus`'s `skipResult` rule covers): those nodes have no
+   * generation. List-valued results are carried as-is — no per-element
+   * fan-out happens in the actor (RFC Decision 1).
+   */
+  private _emitGenerationComplete(outputs: Record<string, unknown>): void {
+    if (
+      this.node.type.startsWith("nodetool.constant.") ||
+      this.node.type.startsWith("nodetool.input.")
+    ) {
+      return;
+    }
+    this._emitMessage({
+      type: "generation_complete",
+      node_id: this.node.id,
+      node_name: this.node.name ?? this.node.type,
+      node_type: this.node.type,
+      outputs
+      // NO job_id, NO index — the runner relay stamps them downstream.
     });
   }
 

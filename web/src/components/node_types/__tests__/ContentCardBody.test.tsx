@@ -54,40 +54,31 @@ jest.mock("../../../contexts/NodeContext", () => ({
     })
 }));
 
-jest.mock("../../node/OutputRenderer", () => {
-  const React = require("react");
-  return {
-    __esModule: true,
-    default: ({ value }: { value: unknown }) =>
-      React.createElement(
-        "pre",
-        { "data-testid": "output-renderer" },
-        JSON.stringify(value)
-      )
-  };
-});
+jest.mock("../../node/OutputRenderer", () => ({
+  __esModule: true,
+  default: ({ value }: { value: unknown }) =>
+    React.createElement(
+      "pre",
+      { "data-testid": "output-renderer" },
+      JSON.stringify(value)
+    )
+}));
 
-jest.mock("../../node/ImageView", () => {
-  const React = require("react");
-  return {
-    __esModule: true,
-    default: ({ source }: { source: unknown }) =>
-      React.createElement(
-        "div",
-        { "data-testid": "image-view" },
-        String(source)
-      )
-  };
-});
+jest.mock("../../node/ImageView", () => ({
+  __esModule: true,
+  default: ({ source }: { source: unknown }) =>
+    React.createElement(
+      "div",
+      { "data-testid": "image-view" },
+      String(source)
+    )
+}));
 
-jest.mock("../../assets/AssetViewer", () => {
-  const React = require("react");
-  return {
-    __esModule: true,
-    default: ({ open }: { open: boolean }) =>
-      open ? React.createElement("div", { "data-testid": "asset-viewer" }) : null
-  };
-});
+jest.mock("../../assets/AssetViewer", () => ({
+  __esModule: true,
+  default: ({ open }: { open: boolean }) =>
+    open ? React.createElement("div", { "data-testid": "asset-viewer" }) : null
+}));
 
 let mockRunnerState: "idle" | "running" = "idle";
 jest.mock("../../../stores/WorkflowRunner", () => ({
@@ -98,26 +89,23 @@ jest.mock("../../../stores/WorkflowRunner", () => ({
 // NodeInputs renders ReactFlow Handles, which need a ReactFlow context not
 // present in these unit tests. Mock it to a probe that surfaces the props
 // that decide whether dynamic inputs (and thus handles) get rendered.
-jest.mock("../../node/NodeInputs", () => {
-  const React = require("react");
-  return {
-    __esModule: true,
-    NodeInputs: (props: {
-      properties?: unknown[];
-      showDynamicInputs?: boolean;
-      editableDynamicInputs?: boolean;
-      defaultDynamicInputType?: { type?: string };
-    }) =>
-      React.createElement("div", {
-        "data-testid": "node-inputs",
-        "data-properties-count": String((props.properties ?? []).length),
-        "data-show-dynamic": String(props.showDynamicInputs !== false),
-        "data-editable-dynamic": String(!!props.editableDynamicInputs),
-        "data-default-type": props.defaultDynamicInputType?.type ?? ""
-      }),
-    default: () => null
-  };
-});
+jest.mock("../../node/NodeInputs", () => ({
+  __esModule: true,
+  NodeInputs: (props: {
+    properties?: unknown[];
+    showDynamicInputs?: boolean;
+    editableDynamicInputs?: boolean;
+    defaultDynamicInputType?: { type?: string };
+  }) =>
+    React.createElement("div", {
+      "data-testid": "node-inputs",
+      "data-properties-count": String((props.properties ?? []).length),
+      "data-show-dynamic": String(props.showDynamicInputs !== false),
+      "data-editable-dynamic": String(!!props.editableDynamicInputs),
+      "data-default-type": props.defaultDynamicInputType?.type ?? ""
+    }),
+  default: () => null
+}));
 
 const nodeData = {
   workflow_id: workflowId,
@@ -242,7 +230,10 @@ describe("ContentCardBody results", () => {
     expect(screen.getByLabelText("Previous output")).toBeInTheDocument();
   });
 
-  it("switches to grid mode and shows every generation as a thumbnail", async () => {
+  it("defaults to the variants grid for a multi-variant run, showing every variant", async () => {
+    // Two assets sharing one job_id = one run with two variants. The image
+    // content card defaults to the variants grid, reusing ImagePreview's
+    // `.image-grid-preview` so both variants render as image tiles.
     const assets = [fakeAsset("first", "job-99"), fakeAsset("second", "job-99")];
     seedAssets(assets);
     mockAssetHistory = assets;
@@ -250,9 +241,14 @@ describe("ContentCardBody results", () => {
 
     renderContentCard(metadataForOutput("image"));
 
-    await userEvent.click(screen.getByLabelText("Toggle view mode"));
-    const items = screen.getAllByRole("listitem");
-    expect(items).toHaveLength(2);
+    const tiles = screen.getAllByTestId("image-view");
+    expect(tiles).toHaveLength(2);
+    expect(tiles[0]).toHaveTextContent("first");
+    expect(tiles[1]).toHaveTextContent("second");
+
+    // Toggling cycles variants → runs; one job_id = a single run tile.
+    await userEvent.click(screen.getByLabelText("Toggle view"));
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
   });
 
   it("renders a pure transform's output without the gallery navigator", () => {
@@ -267,7 +263,7 @@ describe("ContentCardBody results", () => {
     expect(rendered[0]).toHaveTextContent("transformed.png");
     // ...but a non-auto-saving transform has no gallery to browse, so none of
     // the history-navigator controls are present.
-    expect(screen.queryByLabelText("Toggle view mode")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Toggle view")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Next output")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Previous output")).not.toBeInTheDocument();
   });

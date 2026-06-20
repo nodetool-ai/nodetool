@@ -25,6 +25,7 @@ import {
 } from "../websocket/GlobalWebSocketManager";
 import { v4 as uuidv4 } from "uuid";
 import { materializeBrowserOutputs } from "./materializeBrowserOutputs";
+import { stampGenerationIndex } from "./browserRunnerRelay";
 import {
   buildBrowserRunner,
   collectNodeClasses,
@@ -375,6 +376,10 @@ async function runBrowserGraphJobLocal(
   const jobId = options.jobId ?? uuidv4();
   const outputs: Record<string, unknown> = {};
   let nodeError: string | undefined;
+  // Per-node arrival counter for generation_complete.index. This run is one
+  // job, so node_id alone gives a per-(job, node) monotonic index. The browser
+  // path never persists (RFC Decision 9), so this is arrival-order only.
+  const generationIndexByNode = new Map<string, number>();
 
   const nodeTypes = (graph.nodes ?? [])
     .map((n) => (n as { type?: string }).type)
@@ -438,6 +443,15 @@ async function runBrowserGraphJobLocal(
       } else if (message.type === "output_update" && mutable.value != null) {
         if (resolve) mutable.value = await resolve(mutable.value);
         mutable.value = materializeBrowserOutputs(mutable.value);
+      } else if (message.type === "generation_complete") {
+        // Stamp an arrival-order index per (job, node); job_id/workflow_id were
+        // already stamped by runBrowserWorkflow. Normalize .outputs the same way
+        // node_update.result is so artifacts render identically (§8.5).
+        stampGenerationIndex(message, generationIndexByNode);
+        if (mutable.outputs != null) {
+          if (resolve) mutable.outputs = await resolve(mutable.outputs);
+          mutable.outputs = materializeBrowserOutputs(mutable.outputs);
+        }
       }
 
       globalWebSocketManager.deliverLocal(message);

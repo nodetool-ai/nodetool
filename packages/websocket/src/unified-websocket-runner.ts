@@ -440,6 +440,15 @@ async function autoSaveAssets(
      * media nodes.
      */
     textOutputName?: string;
+    /**
+     * The relay-stamped arrival `index` of the `generation_complete` event that
+     * triggered this save (RFC Decision 8 `(job_id, node_id, index)` key).
+     * Stamped onto each created asset's `metadata.generation_index` so a replay
+     * can dedupe by the exact slot — independent of how many assets a single
+     * event yields (a `list[image]` output, or media + text together, persists
+     * several rows for ONE arrival index).
+     */
+    generationIndex?: number;
   }
 ): Promise<void> {
   const queue: Record<string, unknown>[] = [];
@@ -508,6 +517,9 @@ async function autoSaveAssets(
       content_type: contentType,
       parent_id: null
     });
+    if (typeof opts.generationIndex === "number") {
+      asset.metadata = { generation_index: opts.generationIndex };
+    }
 
     const fileName = `${asset.id}.${ext}`;
     try {
@@ -554,7 +566,10 @@ async function autoSaveAssets(
         content_type: "text/plain",
         parent_id: null
       });
-      asset.metadata = { text: previewText };
+      asset.metadata =
+        typeof opts.generationIndex === "number"
+          ? { text: previewText, generation_index: opts.generationIndex }
+          : { text: previewText };
       const fileName = `${asset.id}.txt`;
       try {
         await storeAssetWithThumbnail(asset.id, fileName, bytes, "text/plain");
@@ -1824,6 +1839,16 @@ export class UnifiedWebSocketRunner {
     let terminalWithResultSeen = false;
     let outputUpdateSeen = false;
     let finalOutputs: Record<string, unknown[]> = {};
+    // Per-node arrival counter for `generation_complete.index` within this job.
+    // The function is scoped to one job, so keying by node_id alone yields a
+    // per-(job_id, node_id) monotonic index. DB-ordering reconciliation is a
+    // later step (RFC Decision 8); this is the in-memory arrival order.
+    const generationIndexByNode = new Map<string, number>();
+    // Arrival positions already autosaved in THIS run, keyed `${nodeId} ${index}`.
+    // A single generation_complete can persist several assets (a `list[image]`
+    // output, or media + text), so dedupe by the event's arrival index — NOT by
+    // a total asset count, which would under-save the next event (RFC D8).
+    const autosavedSlots = new Set<string>();
     await this.sendMessage({
       type: "job_update",
       status: "running",
@@ -1888,7 +1913,8 @@ export class UnifiedWebSocketRunner {
         // outputs that don't need to be relayed to the frontend.
         if (
           outbound.type === "output_update" ||
-          outbound.type === "node_update"
+          outbound.type === "node_update" ||
+          outbound.type === "generation_complete"
         ) {
           const nodeId = String(outbound.node_id ?? "");
           const graphNodes =
@@ -1910,6 +1936,71 @@ export class UnifiedWebSocketRunner {
 
           const meta = this.getNodeMetadata?.(nodeType);
 
+          // Stamp an arrival-order `index` on generation_complete, keyed per
+          // (job_id, node_id) (the function is job-scoped, so node_id alone
+          // suffices). job_id/workflow_id were already backfilled by the
+          // outbound spread above.
+          if (outbound.type === "generation_complete") {
+            const arrivalIndex = generationIndexByNode.get(nodeId) ?? 0;
+            outbound.index = arrivalIndex;
+            generationIndexByNode.set(nodeId, arrivalIndex + 1);
+
+            // Autosave one generation per generation_complete on the RAW outputs
+            // (before the normalize at the bottom of this block strips inline
+            // bytes), tagged { jobId, nodeId, index }. This is the autosave
+            // cutover (RFC §7, D3): persistence is driven per generation event,
+            // not by the terminal node_update{completed} — so an N-execution
+            // run persists N distinct generations.
+            //
+            // Replay dedupe (D8) is keyed on the event's arrival `index`, NOT on
+            // a total asset count: a single generation_complete can persist
+            // several assets (a `list[image]` output, or media + a text asset),
+            // so a count-vs-index gate would under-save the very first run. Two
+            // guards, both keyed by (nodeId, index):
+            //   - in-run: skip if this arrival slot was already saved this run;
+            //   - cross-run: skip if an asset for (jobId, nodeId) already carries
+            //     metadata.generation_index === arrivalIndex (a reconnect replay
+            //     re-streams the same events with arrivalIndex back at 0..N-1).
+            // Server-only (D9): this is the websocket runner; the browser never
+            // reaches runJob, so no browser autosave is introduced here.
+            if (meta?.auto_save_asset && outbound.outputs != null) {
+              const userId = this.userId ?? "1";
+              const slotKey = `${nodeId} ${arrivalIndex}`;
+              const alreadySavedThisRun = autosavedSlots.has(slotKey);
+              let alreadyPersisted = false;
+              if (!alreadySavedThisRun) {
+                const [persisted] = await Asset.paginate(userId, {
+                  jobId: active.jobId,
+                  nodeId,
+                  limit: 1000
+                });
+                alreadyPersisted = persisted.some(
+                  (a) =>
+                    (a.metadata as { generation_index?: unknown } | null)
+                      ?.generation_index === arrivalIndex
+                );
+              }
+              if (!alreadySavedThisRun && !alreadyPersisted) {
+                autosavedSlots.add(slotKey);
+                try {
+                  await autoSaveAssets(
+                    outbound.outputs as Record<string, unknown>,
+                    {
+                      userId,
+                      workflowId: active.workflowId,
+                      jobId: active.jobId,
+                      nodeId,
+                      textOutputName: primaryTextOutputName(meta),
+                      generationIndex: arrivalIndex
+                    }
+                  );
+                } catch (err) {
+                  log.warn("autoSaveAssets error", { error: String(err) });
+                }
+              }
+            }
+          }
+
           // Relay output_update for display-sink nodes (Output, Preview) and
           // for streaming or auto-saving generative nodes (FAL / Replicate /
           // Kie / …) so the client receives one event per yielded item — the
@@ -1928,30 +2019,6 @@ export class UnifiedWebSocketRunner {
             outputUpdateSeen = true;
           }
 
-          // Auto-save generated assets before normalization strips inline data
-          if (
-            outbound.type === "node_update" &&
-            outbound.status === "completed" &&
-            outbound.result != null
-          ) {
-            if (meta?.auto_save_asset) {
-              try {
-                await autoSaveAssets(
-                  outbound.result as Record<string, unknown>,
-                  {
-                    userId: this.userId ?? "1",
-                    workflowId: active.workflowId,
-                    jobId: active.jobId,
-                    nodeId: String(outbound.node_id ?? ""),
-                    textOutputName: primaryTextOutputName(meta)
-                  }
-                );
-              } catch (err) {
-                log.warn("autoSaveAssets error", { error: String(err) });
-              }
-            }
-          }
-
           await this._handleNodeProviderCost(active, outbound, nodeType);
 
           // Materialize binary assets to temp URLs before sending over WebSocket
@@ -1963,6 +2030,13 @@ export class UnifiedWebSocketRunner {
           if (outbound.type === "output_update" && outbound.value != null) {
             outbound.value = await active.context.normalizeOutputValue(
               outbound.value
+            );
+          }
+          // Normalize generation_complete.outputs the same way node_update.result
+          // is treated (raw bytes → temp URLs) before sending over the wire.
+          if (outbound.type === "generation_complete" && outbound.outputs != null) {
+            outbound.outputs = await active.context.normalizeOutputValue(
+              outbound.outputs
             );
           }
         }
