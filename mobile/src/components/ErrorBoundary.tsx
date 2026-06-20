@@ -1,6 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { reportError } from '../services/errorReporting';
 
 interface Props {
   children: ReactNode;
@@ -22,7 +23,10 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    reportError(error, {
+      source: 'ErrorBoundary',
+      extra: { componentStack: errorInfo.componentStack },
+    });
   }
 
   handleReset = () => {
