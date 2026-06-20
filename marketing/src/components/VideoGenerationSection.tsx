@@ -39,7 +39,7 @@ export default function VideoGenerationSection({
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
             AI Video <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">
+            <span className="text-white">
               Generation
             </span>
           </motion.h2>
@@ -64,11 +64,12 @@ export default function VideoGenerationSection({
           >
             <video
               src="/sora.mp4"
-              autoPlay
-              loop
               muted
+              loop
               playsInline
               controls
+              preload="none"
+              poster="/preview.png"
               className="w-full max-w-2xl mx-auto rounded-2xl shadow-2xl shadow-emerald-500/20 border border-white/10"
             />
           </motion.div>

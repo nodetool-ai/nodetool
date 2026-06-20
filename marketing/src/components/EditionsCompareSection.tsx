@@ -81,7 +81,7 @@ function Cell({ ok, value }: { ok: boolean; value: string }) {
       {ok ? (
         <Check className="h-4 w-4 mt-0.5 shrink-0 text-emerald-400" strokeWidth={2.5} />
       ) : (
-        <X className="h-4 w-4 mt-0.5 shrink-0 text-slate-500" strokeWidth={2.5} />
+        <X className="h-4 w-4 mt-0.5 shrink-0 text-slate-400" strokeWidth={2.5} />
       )}
       <span className="text-sm text-slate-300 leading-relaxed">{value}</span>
     </div>
@@ -120,7 +120,7 @@ function EditionHeader({
           <h3 className="text-base font-semibold tracking-tight text-white flex items-center gap-2">
             {title}
             {!isStudio && (
-              <span className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-200">
+              <span className="inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-blue-200">
                 Alpha
               </span>
             )}
@@ -139,7 +139,7 @@ function EditionHeader({
       {isStudio ? (
         <a
           href="/studio"
-          className="hidden sm:inline-flex items-center gap-1.5 rounded-md bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 px-3 py-1.5 text-xs font-semibold text-amber-200 transition-colors"
+          className="hidden sm:inline-flex items-center gap-1.5 rounded-md bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 px-3 py-1.5 text-xs font-semibold text-blue-200 transition-colors"
         >
           <Download className="h-3.5 w-3.5" />
           Download Studio
@@ -169,7 +169,7 @@ export default function EditionsCompareSection({
     >
       <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
         <header className="mb-12 max-w-3xl">
-          <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-amber-300/80">
+          <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-blue-300/80">
             <span className="h-px w-8 bg-amber-300/60" />
             Two editions, one open-source codebase
           </div>
@@ -213,7 +213,7 @@ export default function EditionsCompareSection({
               <ul className="space-y-2.5">
                 {rows.map((r) => (
                   <li key={`s-${r.label}`} className="grid grid-cols-[140px_1fr] gap-3">
-                    <span className="text-xs uppercase tracking-wider text-slate-500 mt-0.5">
+                    <span className="text-xs uppercase tracking-wider text-slate-400 mt-0.5">
                       {r.label}
                     </span>
                     <Cell ok={r.studio.ok} value={r.studio.value} />
@@ -236,7 +236,7 @@ export default function EditionsCompareSection({
               <ul className="space-y-2.5">
                 {rows.map((r) => (
                   <li key={`c-${r.label}`} className="grid grid-cols-[140px_1fr] gap-3">
-                    <span className="text-xs uppercase tracking-wider text-slate-500 mt-0.5">
+                    <span className="text-xs uppercase tracking-wider text-slate-400 mt-0.5">
                       {r.label}
                     </span>
                     <Cell ok={r.cloud.ok} value={r.cloud.value} />
@@ -253,7 +253,7 @@ export default function EditionsCompareSection({
             Cloud
           </a>{" "}
           to try it in 30 seconds, then move to{" "}
-          <a href="/studio" className="text-amber-300 hover:text-amber-200 underline underline-offset-2">
+          <a href="/studio" className="text-blue-300 hover:text-blue-200 underline underline-offset-2">
             Studio
           </a>{" "}
           when you want full local control. Your workflows are portable between
