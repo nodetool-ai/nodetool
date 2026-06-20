@@ -57,7 +57,7 @@ npm run build:packages  # Build backend packages
 ## Architecture
 
 ```
-packages/           # 24 npm workspace packages (TypeScript backend)
+packages/           # 55 npm workspace packages (TypeScript backend)
   protocol/         # Shared message types — base dependency for everything
   config/           # Configuration loading, logging
   security/         # Secret storage, encryption
@@ -76,7 +76,7 @@ packages/           # 24 npm workspace packages (TypeScript backend)
   vectorstore/      # SQLite-vec for RAG
   ...
 
-web/                # React 18 + Vite + MUI + Zustand + ReactFlow
+web/                # React 19 + Vite + MUI + Zustand + ReactFlow
 electron/           # Electron 39 desktop app
 mobile/             # React Native / Expo
 ```
