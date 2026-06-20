@@ -507,7 +507,7 @@ graph TD
   image_input["ImageInput (Face Photo)"]
   audio_input["AudioInput (Speech)"]
   output["Output"]
-  kling_avatar["KlingAIAvatarPro"]
+  kling_avatar["KlingVideoAiAvatarV2Pro"]
   image_input --> kling_avatar
   audio_input --> kling_avatar
   kling_avatar --> output
@@ -522,9 +522,9 @@ graph TD
 
 **Key Nodes**:
 
-- `KlingAIAvatarPro`: Pro-quality avatar generation
-- `KlingAIAvatarStandard`: Standard mode for faster generation
-- `InfinitalkV1`: Audio-driven video generation
+- `KlingVideoAiAvatarV2Pro`: Pro-quality avatar generation
+- `KlingVideoAiAvatarV2Standard`: Standard mode for faster generation
+- `Infinitalk`: Audio-driven video generation
 
 **Workflow**: Audio + Image → Talking Avatar
 
@@ -537,38 +537,38 @@ ______________________________________________________________________
 
 <span id="pattern-14-video-enhancement"></span>
 
-### Pattern 14: Video Enhancement & Upscaling
+### Pattern 14: Image Enhancement & Upscaling
 
-**Use Case**: Improve video quality and resolution
+**Use Case**: Improve image quality and resolution
 
-**Example**: HD Video Upscaling
+**Example**: HD Image Upscaling
 
 {% mermaid %}
 graph TD
-  video_input["VideoInput (Low Res)"]
+  image_input["ImageInput (Low Res)"]
   output["Output (High Res)"]
-  topaz_upscale["TopazVideoUpscale"]
-  video_input --> topaz_upscale
+  topaz_upscale["TopazUpscaleImage"]
+  image_input --> topaz_upscale
   topaz_upscale --> output
 {% endmermaid %}
 
 **When to Use**:
 
-- Upscale low-resolution videos
+- Upscale low-resolution images
 - Remove noise and artifacts
-- Enhance video quality
-- Prepare videos for high-resolution displays
+- Enhance image quality
+- Prepare images for high-resolution displays
 
 **Key Nodes**:
 
-- `TopazVideoUpscale`: AI-powered upscaling to 1080p or 4K
+- `TopazUpscaleImage`: AI-powered upscaling to higher resolutions
 - Denoise option: Reduces artifacts during upscaling
 
 **Configuration**:
 
-- Target resolutions: 1080p or 4K
-- Denoise: Enable for noisy input videos
-- Best for: Enhancing old footage, smartphone videos, web videos
+- Higher target resolutions for crisp output
+- Denoise: Enable for noisy input images
+- Best for: Enhancing old photos, smartphone images, web graphics
 
 ______________________________________________________________________
 
@@ -587,7 +587,7 @@ graph TD
   image2["ImageInput (Scene 2)"]
   image3["ImageInput (Scene 3)"]
   output["Output"]
-  sora_storyboard["Sora2ProStoryboard"]
+  sora_storyboard["Sora2ImageToVideoPro"]
   sora_storyboard --> output
   story_prompt --> sora_storyboard
   image1 --> sora_storyboard
@@ -604,7 +604,7 @@ graph TD
 
 **Key Nodes**:
 
-- `Sora2ProStoryboard`: OpenAI Sora 2 storyboard mode
+- `Sora2ImageToVideoPro`: OpenAI Sora 2 Pro keyframe-driven generation
 - Supports: 1-3 keyframe images
 - Output: Smooth transitions between scenes
 

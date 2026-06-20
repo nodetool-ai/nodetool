@@ -79,8 +79,8 @@ Nodes that support streaming output:
 |------|----------------|
 | **`Agent`** | LLM responses token by token |
 | **`ListGenerator`** | List items as they're generated |
-| **`RealtimeAgent`** | Audio + text responses simultaneously |
-| **`RealtimeWhisper`** | Transcription as audio arrives |
+| **`RealtimeAgent`** (`openai.agents.RealtimeAgent`) | Audio + text responses simultaneously |
+| **`RealtimeTranscription`** (`openai.agents.RealtimeTranscription`) | Transcription as audio arrives |
 | **`RealtimeAudioInput`** | Audio from an input source |
 
 ### Data Flow Patterns

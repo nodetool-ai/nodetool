@@ -76,6 +76,8 @@ NodeTool ships with extensive built-in nodes organized by provider:
 
 Browse the full node library in the [Node Reference](nodes/).
 
+> Anthropic (Claude), HuggingFace, and MLX are reached through the provider system and generic nodes (e.g. `nodetool.agents.Agent`), not as standalone TypeScript node namespaces. See [Providers](providers.md).
+
 ---
 
 ## Publishing Your Own Pack

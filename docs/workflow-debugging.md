@@ -91,7 +91,7 @@ Every NodeTool workflow is stored as JSON. Inspecting this JSON can help debug c
 ### Exporting Workflow JSON
 
 1. Open your workflow in the editor
-2. Use **File → Export** or press **Ctrl/⌘ + Shift + E**
+2. Open the floating toolbar's **⋮** menu and choose **Download JSON** (also available in the command menu)
 3. Save the `.json` file
 4. Open in any text editor or JSON viewer
 
