@@ -14,7 +14,7 @@ These apply to **every** deployment, regardless of environment:
 
 ### Network Security
 
-- **Require TLS** at the proxy or ingress layer. Use real certificates (e.g., Let's Encrypt) and redirect HTTP to HTTPS. See [Proxy Reference](proxy.md).
+- **Require TLS** at the proxy or ingress layer. Use real certificates (e.g., Let's Encrypt) and redirect HTTP to HTTPS.
 - **Restrict Docker access**: Run the proxy with a dedicated network (`docker_network`) and avoid exposing the Docker socket beyond the host.
 - **Firewall rules**: Only expose the ports you need (typically 443 for HTTPS). Block direct access to internal service ports.
 
@@ -129,6 +129,5 @@ Run through this checklist before any deployment goes live:
 - [Configuration Guide](configuration.md) -- Environment variables and settings
 - [Deployment Guide](deployment.md) -- Deployment overview and workflows
 - [Self-Hosted Deployment](self-hosted-deployment.md) -- Self-hosted setup details
-- [Proxy Reference](proxy.md) -- Reverse proxy and TLS configuration
 - [Docker Resource Management](docker-resource-management.md) -- Container resource limits
 - [Storage](storage.md) -- Storage backend configuration

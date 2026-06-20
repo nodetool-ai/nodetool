@@ -141,5 +141,5 @@ Many of these models are available through [kie.ai](https://kie.ai/), an AI prov
 - **[HuggingFace Integration](huggingface.md)** – Access 500,000+ models
 
 ### Advanced
-- **[Proxy & Self-Hosted](proxy.md)** – Secure deployments
+- **[Self-Hosted Deployment](self-hosted-deployment.md)** – Secure deployments
 - **[Deployment Guide](deployment.md)** – Cloud infrastructure

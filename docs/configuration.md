@@ -174,5 +174,4 @@ Use `nodetool settings show` to view resolved values and verify the merge order.
 
 - [Storage Guide](storage.md) – how asset storage backends are selected.  
 - [Deployment Guide](deployment.md) – passing environment variables in `deployment.yaml`.  
-- [Proxy Reference](proxy.md) – proxy bearer tokens and TLS configuration.  
 - [CLI Reference](cli.md) – settings-related commands.
