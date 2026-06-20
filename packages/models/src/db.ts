@@ -153,6 +153,27 @@ export function getRawDb(): Database.Database {
 }
 
 /**
+ * Verify the database connection is alive with a lightweight query.
+ * Dialect-aware: runs `select 1` over the PostgreSQL client, or a
+ * `quick_check` pragma against the SQLite connection. Throws if the
+ * database is not initialized or the check fails.
+ */
+export async function pingDb(): Promise<void> {
+  if (!_db)
+    throw new Error(
+      "Database not initialized. Call initDb() or initPostgresDb() first."
+    );
+  if (_dbType === "postgres") {
+    if (!_pgClient) throw new Error("PostgreSQL client not initialized.");
+    await _pgClient`select 1`;
+    return;
+  }
+  if (!_sqlite) throw new Error("SQLite database not initialized.");
+  // Fast integrity check — just verifies the connection is alive.
+  _sqlite.pragma("quick_check(1)");
+}
+
+/**
  * Apply pending SQLite migrations to a database file without initializing the
  * global Drizzle connection. Used by local backend startup before initDb().
  */
