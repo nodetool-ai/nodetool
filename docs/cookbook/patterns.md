@@ -23,7 +23,7 @@ To build any example:
 graph TD
   output["Output"]
   image_input["ImageInput"]
-  sharpen["Sharpen"]
+  sharpen["UnsharpMask"]
   auto_contrast["AutoContrast"]
   image_input --> sharpen
   sharpen --> auto_contrast
@@ -92,7 +92,7 @@ graph TD
   prompt_list_generator["ListGenerator"]
   designer_instructions_prompt["String (Designer Instructions)"]
   preview_prompts["Preview (Prompts)"]
-  mflux["MFlux"]
+  text_to_image["TextToImage"]
   strategy_llm --> strategy_preview
   strategy_template_prompt --> strategy_prompt_formatter
   strategy_prompt_formatter --> strategy_llm
@@ -102,8 +102,8 @@ graph TD
   movie_title_input --> strategy_prompt_formatter
   genre_input --> strategy_prompt_formatter
   prompt_list_generator --> preview_prompts
-  prompt_list_generator --> mflux
-  mflux --> image_preview
+  prompt_list_generator --> text_to_image
+  text_to_image --> image_preview
 {% endmermaid %}
 
 **When to Use**:
@@ -131,7 +131,7 @@ ______________________________________________________________________
 
 {% mermaid %}
 graph TD
-  chat_input["ChatInput"]
+  chat_input["StringInput"]
   output["Output (Answer)"]
   format_text["FormatText"]
   hybrid_search["HybridSearch"]
@@ -163,8 +163,8 @@ graph TD
   collection["Collection"]
   load_document["LoadDocumentFile"]
   extract_text["ExtractText"]
-  index_chunks["IndexTextChunks"]
-  sentence_splitter["SentenceSplitter"]
+  index_chunks["IndexTextChunk"]
+  sentence_splitter["SplitRecursively"]
   path_to_string["PathToString"]
   extract_text --> sentence_splitter
   load_document --> extract_text
@@ -236,8 +236,8 @@ ______________________________________________________________________
 {% mermaid %}
 graph TD
   gmail_search["GmailSearch"]
-  email_fields["EmailFields"]
-  summarizer_streaming["SummarizerStreaming"]
+  email_fields["Template"]
+  summarizer_streaming["Summarizer"]
   preview_summary["Preview (Summary)"]
   preview_body["Preview (Body)"]
   gmail_search --> email_fields
@@ -254,8 +254,8 @@ graph TD
 
 **Key Nodes**:
 
-- `GmailSearch`: Search Gmail with queries
-- `EmailFields`: Extract email metadata
+- `GmailSearch` (`lib.mail.GmailSearch`): Search Gmail with queries
+- `Template`: Format email fields into text (lib.mail also provides `AddLabel`, `MoveToArchive`, `SendEmail`)
 - `FetchRSSFeed`: Get RSS feed entries
 - `GetRequest`: Fetch web content
 
@@ -287,9 +287,8 @@ graph TD
 **Key Nodes**:
 
 - `RealtimeAudioInput`: Streaming audio input
-- `RealtimeAgent`: OpenAI Realtime API with streaming
-- `RealtimeWhisper`: Live transcription
-- `RealtimeTranscription`: OpenAI transcription streaming
+- `RealtimeAgent` (`openai.agents.RealtimeAgent`): OpenAI Realtime API with streaming
+- `RealtimeTranscription` (`openai.agents.RealtimeTranscription`): OpenAI transcription streaming
 
 ______________________________________________________________________
 
@@ -336,23 +335,20 @@ ______________________________________________________________________
 
 {% mermaid %}
 graph TD
-  stable_diffusion_control_net_img2img["StableDiffusionControlNetImg2Img"]
+  sd_img2img["StableDiffusionV3MediumImageToImage"]
   image_input_1["ImageInput"]
   image_input_2["ImageInput"]
   output["Output"]
-  canny["Canny"]
   image_to_text["ImageToText"]
   fit_1["Fit"]
   fit_2["Fit"]
-  stable_diffusion_control_net_img2img --> output
-  canny --> stable_diffusion_control_net_img2img
-  image_to_text --> stable_diffusion_control_net_img2img
+  sd_img2img --> output
+  image_to_text --> sd_img2img
   image_input_2 --> fit_1
   image_input_1 --> fit_2
-  fit_2 --> canny
   fit_2 --> image_to_text
-  image_input_2 --> stable_diffusion_control_net_img2img
-  fit_2 --> stable_diffusion_control_net_img2img
+  image_input_2 --> sd_img2img
+  fit_2 --> sd_img2img
 {% endmermaid %}
 
 **When to Use**:
@@ -363,9 +359,9 @@ graph TD
 
 **Key Techniques**:
 
-- **ControlNet**: Preserve structure with edge detection
-- **Image-to-Text**: Generate descriptions
-- **Img2Img**: Transform while maintaining composition
+- **Img2Img**: Transform while maintaining composition (`StableDiffusionV3MediumImageToImage`, or `StableDiffusion` / `StableDiffusionXL` for text-to-image)
+- **Image-to-Text**: Generate descriptions (`ImageToText`)
+- **Canny**: Edge detection preprocessing
 
 ______________________________________________________________________
 
@@ -419,7 +415,7 @@ ______________________________________________________________________
 graph TD
   string_input["StringInput (Prompt)"]
   output["Output"]
-  kling_text_to_video["KlingTextToVideo"]
+  kling_text_to_video["KlingVideoV16ProTextToVideo"]
   string_input --> kling_text_to_video
   kling_text_to_video --> output
 {% endmermaid %}
@@ -433,11 +429,10 @@ graph TD
 
 **Key Nodes**:
 
-- `KlingTextToVideo`: High-quality text-to-video (Kling 2.6)
-- `HailuoTextToVideoPro`: Professional quality (Hailuo 2.3)
+- `KlingVideoV16ProTextToVideo`: High-quality text-to-video (Kling 1.6 Pro)
+- `MinimaxHailuo23ProTextToVideo`: Professional quality (Hailuo 2.3)
 - `Sora2TextToVideo`: OpenAI Sora 2 model
-- `GrokImagineTextToVideo`: xAI Grok Imagine
-- `Wan26TextToVideo`: Alibaba Wan 2.6
+- `WanProTextToVideo`: Alibaba Wan
 
 **Configuration Tips**:
 
@@ -460,7 +455,7 @@ graph TD
   image_input["ImageInput"]
   string_input["StringInput (Motion Guide)"]
   output["Output"]
-  kling_image_to_video["KlingImageToVideo"]
+  kling_image_to_video["KlingVideoV16StandardImageToVideo"]
   image_input --> kling_image_to_video
   string_input --> kling_image_to_video
   kling_image_to_video --> output
@@ -475,10 +470,10 @@ graph TD
 
 **Key Nodes**:
 
-- `KlingImageToVideo`: Supports 1-3 source images
-- `HailuoImageToVideoPro`: High-quality animation
-- `SeedanceV1ProImageToVideo`: Bytedance 1.0 Pro
-- `Wan26ImageToVideo`: Alibaba Wan 2.6
+- `KlingVideoV16StandardImageToVideo`: Kling 1.6 Standard image-to-video
+- `MinimaxHailuo02ProImageToVideo`: High-quality animation (Hailuo 02 Pro)
+- `SeeDanceV15ProImageToVideo`: ByteDance SeeDance 1.5 Pro
+- `WanV225bImageToVideo`: Alibaba Wan 2.2
 
 **Advanced Pattern**: Multi-Image Animation
 
@@ -489,7 +484,7 @@ graph TD
   image3["ImageInput (Frame 3)"]
   motion_prompt["StringInput (Motion)"]
   output["Output"]
-  kling_i2v["KlingImageToVideo"]
+  kling_i2v["KlingVideoV16StandardImageToVideo"]
   kling_i2v --> output
   image1 --> kling_i2v
   image2 --> kling_i2v

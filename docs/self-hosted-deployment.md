@@ -1,18 +1,16 @@
 ---
 layout: page
 title: "Self-Hosted Deployment Guide"
-description: "Deploy NodeTool on your own infrastructure via Docker, SSH/systemd, or locally."
+description: "Deploy the NodeTool server on your own infrastructure with Docker."
 ---
 
 This guide covers deploying NodeTool on your own infrastructure.
 
 ## Overview
 
-Self-hosted deployment supports:
-
-1. **Docker**: Runs NodeTool in a container.
-2. **SSH**: Installs and runs NodeTool as a `systemd` user service on a remote host.
-3. **Local**: Same as SSH mode but on the local machine.
+Self-hosted deployment runs NodeTool in a **Docker** container — on `localhost`
+or on a remote host reached over SSH. Docker is the only supported deployment
+`type` (`SUPPORTED_TYPES = ["docker"]`).
 
 ## Deployment Configuration
 
@@ -24,6 +22,7 @@ Deployments are configured via `deployment.yaml`.
 deployments:
   my-server:
     type: docker
+    enabled: true
     host: 192.168.1.10
     ssh:
       user: ubuntu
@@ -40,53 +39,14 @@ deployments:
       tag: latest
 ```
 
-### SSH Deployment
-
-```yaml
-deployments:
-  my-ssh-server:
-    type: ssh
-    host: 192.168.1.11
-    ssh:
-      user: ubuntu
-      key_path: ~/.ssh/id_rsa
-    port: 8000
-    service_name: nodetool-8000
-    paths:
-      workspace: /home/ubuntu/nodetool
-      hf_cache: /home/ubuntu/.cache/huggingface
-```
-
-### Local Deployment
-
-```yaml
-deployments:
-  my-local-server:
-    type: local
-    host: localhost
-    port: 8000
-    service_name: nodetool-8000
-    paths:
-      workspace: /home/me/.nodetool-workspace
-      hf_cache: /home/me/.cache/huggingface/hub
-```
+For a local host, set `host: localhost` and omit the `ssh` block.
 
 ## Apply Flow
-
-### Docker Process
 
 1. **Directory Creation**: Ensures `workspace` and `hf_cache` directories exist.
 2. **Image Check**: Verifies the configured image exists locally/remote. `deploy apply` does not auto-pull.
 3. **Image Transfer**: For remote hosts, copies image to remote runtime if needed.
 4. **Container Management**: Restarts container with new configuration.
-5. **Health Check**: Verifies HTTP endpoint.
-
-### SSH/Local Process
-
-1. **Directory Creation**: Creates workspace and environment directories.
-2. **Node.js Setup**: Ensures Node.js 22.x is available.
-3. **Package Installation**: Installs npm dependencies and builds backend packages.
-4. **Service Management**: Creates and enables a user-level `systemd` service (`nodetool-<name>.service`).
 5. **Health Check**: Verifies HTTP endpoint.
 
 ## End-to-End: Local Docker Deployment
@@ -109,12 +69,11 @@ docker pull ghcr.io/nodetool-ai/nodetool:latest
 ### 1. Add Local Docker Deployment
 
 ```bash
-nodetool deploy add local
+nodetool deploy add local --type docker
 ```
 
-Use these values (or your own):
+`--type docker` is required. The command then prompts for the rest:
 
-- Deployment type: `docker`
 - Host address: `localhost`
 - Docker image name: `ghcr.io/nodetool-ai/nodetool`
 - Docker image tag: `latest`
@@ -135,13 +94,26 @@ Path meanings:
 nodetool deploy show local
 ```
 
-You should see:
+This dumps the deployment entry as YAML. You should see something like:
 
-- `Type: DeploymentType.DOCKER`
-- `Image: ghcr.io/nodetool-ai/nodetool:latest`
-- `Workspace: $HOME/.nodetool-workspace`
-- `HF Cache: $HOME/.cache/huggingface/hub`
-- endpoint URL at `http://localhost:8000`
+```yaml
+local:
+  type: docker
+  host: localhost
+  image:
+    name: ghcr.io/nodetool-ai/nodetool
+    tag: latest
+  container:
+    name: nodetool
+    port: 8000
+  paths:
+    workspace: <your workspace path>
+    hf_cache: <your HF cache path>
+```
+
+The server endpoint is at `http://localhost:8000`. The container EXPOSEs 7777;
+when `container.port` is `7777` the deployer maps it to host port `8000` (any
+other `container.port` is used as-is).
 
 You can also inspect the raw config:
 
@@ -227,14 +199,14 @@ nodetool deploy logs local --tail 200
 
 ## Manual Troubleshooting
 
-### Docker Logs
+### Container Logs
+
+```bash
+nodetool deploy logs local --tail 200
+```
+
+For a remote host you can also read the container logs directly:
 
 ```bash
 ssh user@host "docker logs nodetool-server"
-```
-
-### Shell Logs
-
-```bash
-ssh user@host "journalctl --user -u nodetool-server-01 -f"
 ```

@@ -98,20 +98,6 @@ Cancel a running job.
 }
 ```
 
-### `pause_job`
-
-Pause a running job.
-
-```json
-{
-  "command": "pause_job",
-  "data": {
-    "job_id": "<uuid>",
-    "workflow_id": "<uuid>"
-  }
-}
-```
-
 ### `resume_job`
 
 Resume a paused or suspended job.
@@ -171,6 +157,33 @@ Signal that a streaming input is complete.
     "input": "<input_name>",
     "handle": "<handle_name | null>"
   }
+}
+```
+
+### `update_node_properties`
+
+Update a node's properties on a running or pending job.
+
+```json
+{
+  "command": "update_node_properties",
+  "data": {
+    "job_id": "<uuid>",
+    "workflow_id": "<uuid>",
+    "node_id": "<uuid>",
+    "properties": { "<name>": "<value>" }
+  }
+}
+```
+
+### `clear_models`
+
+Ask the server to unload cached models and free memory.
+
+```json
+{
+  "command": "clear_models",
+  "data": {}
 }
 ```
 
@@ -289,23 +302,6 @@ Delivers a final output value from an output node.
 | `output_type` | `string` | Type descriptor (e.g. `"image"`, `"string"`) |
 | `metadata` | `object` | Additional metadata |
 | `workflow_id` | `string \| null` | Workflow UUID for routing |
-
-### `preview_update`
-
-Delivers an intermediate preview value during execution.
-
-```json
-{
-  "type": "preview_update",
-  "node_id": "<uuid>",
-  "value": { "type": "image", "data": "<binary>" }
-}
-```
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `node_id` | `string` | Node UUID |
-| `value` | `any` | Preview data (see [Value Types](#value-types)) |
 
 ### `edge_update`
 
@@ -476,7 +472,7 @@ Streams incremental text/media content from a node.
 
 ## Value Types
 
-Output and preview values are typically objects with a `type` discriminator:
+Output values are typically objects with a `type` discriminator:
 
 | Type | Shape | Description |
 |------|-------|-------------|
@@ -520,7 +516,7 @@ Client                              Server
   |<-- node_update (node A completed) |
   |                                   |
   |<---- node_update (node B running) |
-  |<---------- preview_update (B)     |
+  |<-------------- output_update (B)  |
   |<-- node_update (node B completed) |
   |                                   |
   |<---------- output_update (final)  |

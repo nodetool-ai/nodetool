@@ -4,11 +4,10 @@ title: "Architecture & Lifecycle"
 description: "How NodeTool's streaming architecture enables real-time feedback, cancellation, and deployment portability."
 ---
 
-Three core principles:
+Two core principles:
 
 1. **Streaming-first execution** — results stream as they generate; long-running jobs can be cancelled.
 2. **Unified runtime** — the same workflow JSON runs in the desktop app, headless server, RunPod endpoint, or Cloud Run.
-3. **Pluggable execution strategies** — threads (fast iteration), subprocesses (isolation), or Docker (deployment), switchable without changing the workflow.
 
 ---
 
@@ -68,15 +67,24 @@ Each node in a workflow runs as a `NodeActor` with one of four execution modes:
 | **Streaming output** | Produces outputs incrementally as they become available | Use for LLMs and generators that emit tokens/chunks over time (e.g., Agent, ListGenerator). |
 | **Controlled** | Manages its own execution lifecycle with cached input replay | Use for nodes that need custom control over when and how they process (e.g., loops, conditional retry). |
 
-### Sync Modes
+### Correlation-Aware Scheduling
 
-Sync modes determine when a node fires relative to its inputs:
+There is no `sync_mode` setting (the old `zip_all`/`on_any`/`sticky` modes were
+removed). Instead, the scheduler is **correlation-aware**: every value carries a
+correlation lineage describing which iteration/branch it came from, and the
+buffered actor path (`_runCorrelated` in `NodeActor`) fires a node once per
+*matched set* of correlated inputs.
 
-| Sync Mode | Behavior | Example |
-|-----------|----------|---------|
-| **zip_all** | Wait until **all** inputs have data, then fire with matched sets | A "Combine" node that needs both an image and a caption before it can proceed. |
-| **on_any** | Fire when **any** input receives data | A "Logger" node that logs every piece of data passing through, regardless of source. |
-| **sticky** | Remember the last value on inputs that haven't changed | A "Style Transfer" node where the style image is set once but content images stream through repeatedly. |
+- Inputs that share a correlation token are matched and processed together —
+  this is what the old `zip_all` mode approximated, but it is now driven by the
+  actual lineage of each value rather than a static flag.
+- Outputs declare how they relate to their inputs via **`outputCorrelation`**
+  (`forward`, `iteration`, `aggregate`, `single`), which tells the scheduler
+  whether an output is a passthrough, a new per-item iteration, a collapse of a
+  stream, or a one-shot value. Join nodes like `Zip` and `Cross` pair values
+  from independent iteration sources within their common parent scope.
+
+See [correlation-design.md](correlation-design.md) for the full model.
 
 ### ProcessingContext
 
@@ -92,25 +100,32 @@ The `ProcessingContext` provides the runtime environment for node execution:
 
 ## Job Lifecycle (run, stream, reconnect, cancel)
 
+Workflow execution uses the actor model: `WorkflowRunner` validates the graph,
+spawns one `NodeActor` per node, and routes values between actors over inboxes.
+Each actor runs in one of the four modes described above (Buffered, Streaming
+input, Streaming output, Controlled). There is no separate
+`JobExecutionManager` class or pluggable threaded/subprocess/docker "execution
+strategy" — actors run in-process and stream their results out.
+
 {% mermaid %}
 sequenceDiagram
     participant Client
     participant API as API Server
-    participant JEM as JobExecutionManager
-    participant Runner as Execution Strategy
+    participant Runner as WorkflowRunner
+    participant Actor as NodeActor (per node)
     participant Msg as Messaging/WS
 
     Client->>API: POST /api/workflows/{id}/run (stream=true)
-    API->>JEM: Create job + enqueue
-    JEM->>Runner: Start job (threaded/subprocess/docker)
-    Runner->>Msg: Emit streaming events
+    API->>Runner: Validate graph + spawn actors
+    Runner->>Actor: Dispatch inputs, run per execution mode
+    Actor->>Msg: Emit streaming events (node/edge updates)
     Msg-->>Client: token/output events
     Client-->>API: reconnect with thread/job id
-    API-->>Msg: resume stream from checkpoint
+    API-->>Msg: resume stream
     Client->>API: DELETE /api/workflows/{id}/run (cancel)
-    API->>JEM: cancel job
-    Runner-->>JEM: teardown and cleanup
-    JEM-->>Msg: end event
+    API->>Runner: cancel run
+    Runner-->>Actor: teardown and cleanup
+    Runner-->>Msg: end event
     Msg-->>Client: completion / cancelled status
 {% endmermaid %}
 
@@ -151,13 +166,6 @@ Agents can use a wide range of tools during execution:
 | **Data** | Calculator, math operations, vector DB queries |
 | **Documents** | PDF processing, email integration |
 | **AI** | MCP (Model Context Protocol) tools for external service integration |
-
-### Team Collaboration
-
-The agent system supports multi-agent coordination through:
-- **Team Executor** -- Orchestrates multiple agents working on related tasks
-- **Task Board** -- Message bus for inter-agent communication
-- **Edge Message Bus** -- Distributed communication for remote agent setups
 
 ---
 

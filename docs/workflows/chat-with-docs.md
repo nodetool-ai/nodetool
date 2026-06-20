@@ -7,6 +7,8 @@ title: "Chat with Docs"
 
 Document retrieval and question-answering using vector search and local LLMs.
 
+> This tutorial does not ship as an importable template. Build it manually by following the steps below.
+
 ## Tags
 
 chat, rag

@@ -8,6 +8,7 @@ description: "Copy-paste templates and common patterns for building TypeScript n
 
 ```ts
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 
 
 // SIMPLE PROCESSING NODE
@@ -45,7 +46,14 @@ export class MultiOutputNode extends BaseNode {
     if_false: "any",
   };
 
-  static readonly isStreamingOutput = true;
+  // Forward correlation: both outputs carry the `value` input's correlation
+  // token unchanged. Streaming behavior is inferred from this — there is no
+  // isStreamingOutput flag.
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    if_true: { kind: "forward", source: "value" },
+    if_false: { kind: "forward", source: "value" },
+  };
 
   @prop({ type: "bool", default: false, title: "Condition" })
   declare condition: any;
@@ -73,7 +81,13 @@ export class StreamingNode extends BaseNode {
     index: "int",
   };
 
-  static readonly isStreamingOutput = true;
+  // Each yielded item is a new correlated value (iteration). genProcess()
+  // is detected automatically — no isStreamingOutput flag.
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "iteration", source: "__execution__", group: "items" },
+    index: { kind: "iteration", source: "__execution__", group: "items" },
+  };
 
   @prop({ type: "list[any]", default: [], title: "Input List" })
   declare input_list: any;
@@ -101,8 +115,6 @@ export class CollectorNode extends BaseNode {
   static readonly metadataOutputTypes = {
     output: "list[any]",
   };
-
-  static readonly syncMode = "on_any" as const;
 
   private _items: unknown[] = [];
 
@@ -279,28 +291,44 @@ function audioRefFromBytes(data: Uint8Array, uri?: string): Record<string, unkno
 // Declare output types (required for UI connectors)
 static readonly metadataOutputTypes = { output: "str", count: "int" };
 
-// Enable dynamic input connectors
-static readonly isDynamic = true;
+// Enable dynamic (user-added) input connectors. Read/write extra inputs at
+// runtime with this.getDynamic(key) / this.setDynamic(key, value).
+static readonly supportsDynamicInputs = true;
 
 // Support dynamic output slots
 static readonly supportsDynamicOutputs = true;
 
-// Stream output to downstream nodes one-at-a-time
-static readonly isStreamingOutput = true;
+// Field split for the UI: inlineFields render compactly on the node body;
+// inputFields render as the larger expanded inputs.
+static readonly inlineFields = ["prompt"];
+static readonly inputFields = ["model"];
 
-// Accept streaming input
+// Input consumption mode (default is undefined → buffered):
+//   "buffered"   — collect a matched set of inputs, call process() once
+//   "stream"     — consume inputs as an async stream via run()
+//   "controlled" — node manages its own input/output flow
+static readonly inputMode = "buffered";
+
+// Accept streaming input (used together with inputMode = "stream")
 static readonly isStreamingInput = true;
 
-// Control when the node fires
-static readonly syncMode = "zip_all" as const;   // wait for all inputs (default)
-static readonly syncMode = "on_any" as const;     // fire on any single input
+// Per-output correlation. Drives scheduling and whether an output streams.
+//   forward   — output carries the source input's correlation token unchanged
+//   iteration — each emitted value is a fresh correlated item
+//   aggregate — collapse a stream into one value
+//   single    — one value per invocation, not correlated to a source
+static readonly outputCorrelation = {
+  output: { kind: "forward", source: "value" },
+};
 
 // Declare required secrets — injected onto this._secrets
 static readonly requiredSettings = ["OPENAI_API_KEY"];
-
-// Set basic fields shown first in UI
-static readonly basicFields = ["prompt", "model"];
 ```
+
+> There is no `isStreamingOutput`, `syncMode`, `isDynamic`, or `basicFields`
+> static field. Streaming is inferred from `outputCorrelation` (and from
+> defining `genProcess()`/`run()`); dynamic inputs use `supportsDynamicInputs`;
+> the field split uses `inlineFields`/`inputFields`.
 
 ## Lifecycle Hooks
 
@@ -392,7 +420,7 @@ input, output, load, save, read, write, import, export, download, upload
 ## Testing Pattern
 
 ```ts
-// packages/base-nodes/src/nodes/my-nodes.ts
+// packages/<your-pkg>/src/nodes/my-nodes.ts
 export class MyNode extends BaseNode {
   static readonly nodeType = "mypackage.MyNode";
   static readonly title = "My Node";

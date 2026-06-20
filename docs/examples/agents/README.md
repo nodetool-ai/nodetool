@@ -2,6 +2,13 @@
 
 This directory contains example YAML configuration files for the `nodetool agent` command.
 
+Run an example with `nodetool agent run <file>` and supply the objective with `--objective` (or pipe it via stdin, or
+set an `objective:` field in the YAML):
+
+```bash
+nodetool agent run <file>.yaml --objective "Your objective here"
+```
+
 ## Available Examples
 
 ### [research-agent.yaml](research-agent.yaml)
@@ -21,9 +28,8 @@ Autonomous research agent for gathering and synthesizing information from the we
 
 **Example:**
 ```bash
-nodetool agent \
-  --config examples/agents/research-agent.yaml \
-  --prompt "Research the latest developments in quantum computing"
+nodetool agent run research-agent.yaml \
+  --objective "Research the latest developments in quantum computing"
 ```
 
 ### [code-assistant.yaml](code-assistant.yaml)
@@ -36,17 +42,14 @@ AI coding assistant for development tasks, debugging, and code review.
 - Code refactoring and optimization
 - Explaining complex code
 
-**Tools:**
-- File operations
-- Code execution
-- Terminal access
-- File search (grep)
+> **Note:** this example's `tools:` list includes `execute_code` and `terminal`, which are **not** wired into the agent
+> CLI's tool registry — they are ignored at run time with a warning. For code execution use `run_code`; there is no
+> shell/terminal tool. Update the file to `run_code` (and remove `terminal`) before relying on code execution.
 
 **Example:**
 ```bash
-nodetool agent \
-  --config examples/agents/code-assistant.yaml \
-  --prompt "Create a Python script to parse CSV files and generate visualizations"
+nodetool agent run code-assistant.yaml \
+  --objective "Create a Python script to parse CSV files and generate visualizations"
 ```
 
 ### [content-creator.yaml](content-creator.yaml)
@@ -65,14 +68,13 @@ Creative writing agent for generating blog posts, marketing content, and documen
 
 **Example:**
 ```bash
-nodetool agent \
-  --config examples/agents/content-creator.yaml \
-  --prompt "Write a blog post about sustainable software development practices"
+nodetool agent run content-creator.yaml \
+  --objective "Write a blog post about sustainable software development practices"
 ```
 
 ### [minimal.yaml](minimal.yaml)
 
-Minimal agent configuration showing required fields only.
+Minimal agent configuration showing the core fields.
 
 **Use cases:**
 - Starting point for custom agents
@@ -81,9 +83,8 @@ Minimal agent configuration showing required fields only.
 
 **Example:**
 ```bash
-nodetool agent \
-  --config examples/agents/minimal.yaml \
-  --prompt "Summarize the main features of NodeTool"
+nodetool agent run minimal.yaml \
+  --objective "Summarize the main features of NodeTool"
 ```
 
 ## Creating Custom Agents
@@ -111,7 +112,8 @@ tools:
   - write_file
   - read_file
 
-max_tokens: 8192
+max_tokens: 128000
+max_steps: 10
 ```
 
 ### Best Practices
@@ -120,8 +122,8 @@ max_tokens: 8192
 2. **Be specific in system_prompt** about expected behavior and workflow
 3. **Choose appropriate models** for the task complexity and budget
 4. **Enable only necessary tools** to reduce complexity and improve focus
-5. **Set reasonable iteration limits** to prevent infinite loops
-6. **Test incrementally** with simple prompts before complex tasks
+5. **Set a reasonable `max_steps`** to bound task length
+6. **Test incrementally** with simple objectives before complex tasks
 
 ### Configuration Tips
 
@@ -132,45 +134,43 @@ max_tokens: 8192
 - Set expectations for output format and quality
 
 **Model Selection:**
-- **Planning agent**: Use fast, cost-effective models (gpt-4o-mini)
-- **Main agent**: Match model to task complexity
-  - Simple tasks: gpt-4o-mini, gemini-flash
-  - Complex reasoning: gpt-4o, claude-3.5-sonnet
-  - Code tasks: claude-3.5-sonnet (large context)
-  - Creative tasks: gemini-2.0-flash, claude-3.5-sonnet
+- **Planning model**: Use a fast, cost-effective model (gpt-4o-mini)
+- **Main model**: Match the model to task complexity
+  - Simple tasks: gpt-4o-mini, gemini-2.0-flash
+  - Complex reasoning: gpt-4o, claude-sonnet-4-6
+  - Code tasks: claude-sonnet-4-6 (large context)
 
 **Tool Configuration:**
 - Start minimal (read_file, write_file)
-- Add tools progressively based on needs
-- Document tool usage in system_prompt
+- Add tools progressively based on needs (e.g. `run_code`, `grep`, `google_search`, `browser`)
+- Document tool usage in the system_prompt
 
 **Parameters:**
-- **max_tokens**: 4096 (basic), 8192 (standard), 16384+ (complex)
-- **temperature**: 0.0-0.3 (analytical), 0.7 (balanced), 0.9-1.0 (creative)
-- **max_iterations**: 5-8 (simple), 10-15 (standard), 20+ (exploratory)
+- **max_tokens**: per-step context budget (default 128000)
+- **max_steps**: bound the number of steps (e.g. 5 simple, 10 standard, 20 complex)
 
 ## Testing Agents
 
-### Quick Test
+### Validate a Config
 
 ```bash
-nodetool agent --config your-agent.yaml --prompt "Simple test task"
+nodetool agent test your-agent.yaml
 ```
 
-### Interactive Testing
+This reports a missing `model.provider`/`model.id`, lists the resolved tools, and warns about unknown tool names.
+
+### Quick Run
 
 ```bash
-nodetool agent --config your-agent.yaml --interactive
+nodetool agent run your-agent.yaml --objective "Simple test task"
 ```
-
-This allows multi-turn conversations to test different scenarios.
 
 ### Automated Testing
 
 ```bash
-# Test multiple prompts
-for prompt in "Test 1" "Test 2" "Test 3"; do
-  nodetool agent --config your-agent.yaml --prompt "$prompt" --jsonl
+# Test multiple objectives
+for objective in "Test 1" "Test 2" "Test 3"; do
+  nodetool agent run your-agent.yaml --objective "$objective"
 done
 ```
 
@@ -186,40 +186,36 @@ For complete documentation, see:
 
 ### Agent doesn't complete tasks
 
-**Solution:** Increase max_iterations or improve system_prompt specificity
+**Solution:** Increase `max_steps` or improve `system_prompt` specificity.
 
 ```yaml
-max_iterations: 20  # Increase from default 10
+max_steps: 20  # Allow more steps
 ```
 
 ### Tool errors
 
-**Solution:** Verify tool is available and properly configured
-
-```bash
-nodetool agent --config agent.yaml --interactive
-> /tools  # List available tools
-```
+**Solution:** Verify the tool name against the available tools list. Unknown names are ignored with a warning;
+`nodetool agent test` reports them.
 
 ### Rate limiting
 
-**Solution:** Use local models or add retry logic
+**Solution:** Use a local model.
 
 ```yaml
 model:
   provider: ollama
-  id: llama3.2:3b  # Local model, no rate limits
+  id: llama3.2:3b
 ```
 
 ### Performance issues
 
-**Solution:** Use faster models for planning agent
+**Solution:** Use a faster model for planning.
 
 ```yaml
 planning_agent:
   model:
     provider: openai
-    id: gpt-4o-mini  # Fast and cost-effective
+    id: gpt-4o-mini
 ```
 
 ## Contributing
@@ -227,9 +223,9 @@ planning_agent:
 To add new example configurations:
 
 1. Create a descriptive YAML file (e.g., `data-analyst.yaml`)
-2. Include comprehensive system_prompt with clear instructions
-3. Choose appropriate model and tools
-4. Test thoroughly with various prompts
+2. Include a comprehensive system_prompt with clear instructions
+3. Choose an appropriate model and tools
+4. Validate with `nodetool agent test`, then run with sample objectives
 5. Update this README with the new example
 6. Submit a pull request
 

@@ -6,13 +6,11 @@ description: "Create, query, and run NodeTool workflows over the Editor and Serv
 
 
 
-NodeTool exposes workflow endpoints in two places:
+NodeTool exposes workflow REST endpoints under `/api/workflows` from a single server (`nodetool serve`):
+`/api/workflows` for CRUD and query operations, and `POST /api/workflows/{id}/run` to run a workflow.
 
-- The **Editor API** (`nodetool serve`) uses `/api/workflows` for CRUD and query operations backing the local app.  
-- The **Server API** (`nodetool serve --mode private`) uses `/workflows` and `/workflows/{id}/run` for deployed workflow execution.
-
-This page collects the basics from the project README. See [API Reference](api-reference.md#unified-endpoint-matrix) for
-the canonical endpoint matrix and auth requirements. When `AUTH_PROVIDER` is `static` or `supabase`, include
+This page collects the basics from the project README. See [API Reference](api-reference.md) for
+the canonical endpoint list and auth requirements. When `AUTH_PROVIDER` is `static` or `supabase`, include
 `Authorization: Bearer <token>`; tokens are optional only in `local`/`none` modes.
 
 ## Loading Workflows
@@ -52,82 +50,31 @@ const response = await fetch(
   }
 );
 
-const outputs = await response.json();
-// outputs is an object with one property for each output node in the workflow
-// the value is the output of the node, which can be a string, image, audio, etc.
+const body = await response.json();
+// body has the shape:
+// {
+//   "job_id": "<uuid>",
+//   "workflow_id": "<uuid>",
+//   "status": "completed" | "cancelled" | "failed",
+//   "outputs": { /* one property per output node, keyed by node name */ },
+//   "error": null,
+//   "message_count": 42,
+//   "background": false
+// }
+// outputs values can be a string, image, audio, etc.
 ```
 
-## Streaming API
-
-The streaming API provides real-time job updates. See the WebSocket runner in
-[`examples/workflow_runner/js/workflow-runner.js`](https://github.com/nodetool-ai/nodetool/blob/main/examples/workflow_runner/js/workflow-runner.js) for a complete example used by the
-bundled runner UI. On deployed servers, use `/workflows/{id}/run/stream` for SSE
-streaming; on the Editor API, prefer the WebSocket `/predict` endpoint for long-running jobs.
-
-Updates include:
-
-- `job_update` – overall job status
-- `node_update` – status of a specific node
-- `node_progress` – progress of a node
-
-```javascript
-const response = await fetch(
-  "http://localhost:7777/api/workflows/<workflow_id>/run?stream=true",
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer YOUR_TOKEN",
-    },
-    body: JSON.stringify({
-      params: params,
-    }),
-  }
-);
-
-const reader = response.body.getReader();
-const decoder = new TextDecoder();
-
-while (true) {
-  const { done, value } = await reader.read();
-  if (done) break;
-
-  const lines = decoder.decode(value).split("\n");
-  for (const line of lines) {
-    if (line.trim() === "") continue;
-
-    const message = JSON.parse(line);
-    switch (message.type) {
-      case "job_update":
-        console.log("Job status:", message.status);
-        if (message.status === "completed") {
-          console.log("Workflow completed:", message.result);
-        }
-        break;
-      case "node_progress":
-        console.log(
-          "Node progress:",
-          message.node_name,
-          (message.progress / message.total) * 100
-        );
-        break;
-      case "node_update":
-        console.log(
-          "Node update:",
-          message.node_name,
-          message.status,
-          message.error
-        );
-        break;
-    }
-  }
-}
-```
+`POST /api/workflows/{id}/run` runs the workflow to completion and returns a
+single JSON response — it does not stream. For real-time progress (job and node
+updates, incremental output), run the workflow over the WebSocket endpoint
+instead.
 
 ## WebSocket API
 
 For real-time streaming and job control over WebSocket, see the dedicated
-[WebSocket API](websocket-api.md) page.
+[WebSocket API](websocket-api.md) page. The reference client in
+[`examples/workflow_runner/js/workflow-runner.js`](https://github.com/nodetool-ai/nodetool/blob/main/examples/workflow_runner/js/workflow-runner.js)
+shows how to consume `job_update`, `node_update`, and `node_progress` messages.
 
 ## API Demo
 

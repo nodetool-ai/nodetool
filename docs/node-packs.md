@@ -71,10 +71,7 @@ NodeTool ships with extensive built-in nodes organized by provider:
 |---------|-----------|----------|
 | **nodetool** | Agents, audio, code, constants, control flow, data, documents, generators, images, input/output, text, video | Core processing nodes for any workflow |
 | **openai** | Agents, audio, image, text | GPT models, GPT-Image, Whisper, TTS |
-| **anthropic** | Text | Claude models |
 | **gemini** | Audio, image, text, video | Google Gemini multimodal models |
-| **huggingface** | 27+ categories | Thousands of open-source models |
-| **mlx** | ASR, image, text, TTS | Apple Silicon optimized models |
 | **lib** | 30+ utility categories | NumPy, Pillow, PDF, Excel, SQLite, HTTP, RSS, and more |
 
 Browse the full node library in the [Node Reference](nodes/).

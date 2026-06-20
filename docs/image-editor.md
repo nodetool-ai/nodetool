@@ -12,15 +12,17 @@ Edit images directly in NodeTool with a full-featured editor.
 
 ## Overview
 
-The Image Editor provides professional image editing tools without leaving your workflow. Edit images inline and see results immediately.
+The Image Editor is a layered, Photoshop-style raster editor built into NodeTool. Edit images inline and see results immediately.
 
 **Features:**
-- Non-destructive editing with unlimited undo/redo
-- Multiple drawing and shape tools
-- Crop, rotate, and flip operations
-- Brightness, contrast, and saturation adjustments
-- Brush painting with customizable size, color, and opacity
-- Export edited images back to your workflow or download
+- Layers with blend modes and per-layer opacity
+- Unlimited undo/redo
+- Painting tools: brush, pencil, eraser, fill, clone stamp, blur, gradient
+- Selection tools: rectangular marquee, magic wand
+- Shape tools: rectangle, ellipse, line, arrow
+- Crop and free transform
+- Eyedropper for sampling colors, swap/reset foreground/background colors
+- Export the composited result as PNG back to your workflow
 
 ---
 
@@ -42,292 +44,153 @@ For image input properties:
 
 ## Tools
 
-The Image Editor includes multiple tools organized in the left toolbar.
+The Image Editor includes multiple tools, selectable from the toolbar or by keyboard shortcut.
 
-### Selection Tool (Select)
+### Move Tool
 
-**Icon:** Hand/Cursor  
 **Shortcut:** `V`
 
-- Default tool for navigating the canvas
-- Pan around the image
-- No editing actions - just viewing
+Move the active layer (or selection contents). The default tool for repositioning content.
 
-**Use when:** You want to navigate without accidentally drawing.
+---
+
+### Selection Tools
+
+#### Rectangular Marquee
+
+**Shortcut:** `M`
+
+Drag to make a rectangular selection. Subsequent paint and edit operations are constrained to the selection. `Ctrl/⌘ + D` deselects.
+
+#### Magic Wand
+
+**Shortcut:** `W`
+
+Click to select contiguous regions of similar color.
 
 ---
 
 ### Crop Tool
 
-**Icon:** Crop rectangle  
 **Shortcut:** `C`
 
 Resize and reframe your image.
 
-**How to crop:**
-1. Click the **Crop** button
-2. Drag the corners and edges of the crop box
-3. Reposition the box by dragging inside it
-4. Click **✓ Apply** to commit, or **✗ Cancel** to abort
-
-**Tips:**
-- Maintain aspect ratio by shift-dragging corners
-- Fine-tune with keyboard arrows after placing the box
-- Crop is applied to the current canvas state (includes all previous edits)
+1. Press `C` (or click the **Crop** tool).
+2. Drag the corners and edges of the crop box.
+3. Press `Enter` to commit, or `Esc` to cancel.
 
 ---
 
-### Draw Tool (Brush)
+### Brush Tool
 
-**Icon:** Brush  
 **Shortcut:** `B`
 
-Paint freehand on the image.
+Paint freehand on the active layer.
 
 **Settings:**
-- **Brush Size:** Slider adjusts diameter (1-100 pixels)
-- **Color:** Click color swatch to open color picker
-- **Opacity:** Slider adjusts transparency (0-100%)
+- **Size:** `[` decreases, `]` increases
+- **Color:** uses the current foreground color
+- **Opacity:** press a digit `1`–`0` for a preset (e.g. `5` = 50%, `0` = 100%)
 
-**How to use:**
-1. Select Draw tool
-2. Adjust size, color, opacity as needed
-3. Click and drag on canvas to paint
-4. Release to finish the stroke
-
-**Use cases:**
-- Add annotations or highlights
-- Touch up small areas
-- Draw attention to specific regions
-- Create simple illustrations
+A **Pencil** variant (`P`) paints hard-edged strokes.
 
 ---
 
-### Erase Tool
+### Eraser Tool
 
-**Icon:** Eraser  
 **Shortcut:** `E`
 
-Remove painted content (returns to original image underneath).
-
-**Settings:**
-- **Eraser Size:** Same as brush size slider
-
-**How to use:**
-1. Select Erase tool
-2. Adjust size
-3. Drag over areas to erase painted strokes
-
-**Important:** Only erases drawn content, not original image pixels. To remove original image content, use crop or fill tools.
+Erase pixels on the active layer. Shares the size and opacity controls with the brush.
 
 ---
 
-### Fill Tool (Bucket)
+### Fill Tool
 
-**Icon:** Paint bucket  
 **Shortcut:** `G`
 
-Fill areas with solid color.
-
-**Settings:**
-- **Fill Color:** Click color swatch to choose
-
-**How to use:**
-1. Select Fill tool
-2. Choose fill color
-3. Click an area to fill
-
-**Behavior:** Fills contiguous regions of similar color. Tolerance determines how similar pixels must be to be filled.
+Flood-fill contiguous regions with the foreground color.
 
 ---
 
-### Text Tool
+### Gradient Tool
 
-**Icon:** T letter  
 **Shortcut:** `T`
 
-Add text overlays to images.
+Drag to draw a gradient between the foreground and background colors. (There is no text tool in this editor.)
 
-**How to use:**
-1. Select Text tool
-2. Click where you want text to appear
-3. Type your text
-4. Adjust font, size, color in the properties panel
-5. Click outside text box to finish
+---
 
-**Text properties:**
-- Font family
-- Font size
-- Text color
-- Bold, italic, underline
-- Alignment
+### Clone Stamp
+
+**Shortcut:** `S`
+
+Sample one part of the image and paint it elsewhere — useful for removing blemishes or duplicating detail. Set the source point first, then paint.
+
+---
+
+### Blur Tool
+
+**Shortcut:** `Q`
+
+Paint to soften and blur pixels under the brush.
+
+---
+
+### Eyedropper
+
+**Shortcut:** `I`
+
+Click anywhere on the canvas to sample a color into the foreground swatch.
 
 ---
 
 ### Shape Tools
 
-Draw geometric shapes on your image.
+Draw vector-style shapes onto a layer.
 
-#### Rectangle Tool
+| Tool | Shortcut |
+|------|----------|
+| Rectangle | `R` |
+| Ellipse | `O` |
+| Line | `L` |
+| Arrow | `A` |
 
-**Icon:** Rectangle  
-**Shortcut:** `R`
-
-Draw rectangles and squares.
-
-**How to use:**
-1. Select Rectangle tool
-2. Click and drag to create
-3. Hold `Shift` for perfect squares
-
-**Properties:**
-- Fill color and opacity
-- Stroke color and width
-
-#### Ellipse Tool
-
-**Icon:** Circle/Ellipse  
-**Shortcut:** `O`
-
-Draw circles and ellipses.
-
-**How to use:**
-1. Select Ellipse tool
-2. Click and drag to create
-3. Hold `Shift` for perfect circles
-
-**Properties:**
-- Fill color and opacity
-- Stroke color and width
-
-#### Line Tool
-
-**Icon:** Diagonal line  
-**Shortcut:** `L`
-
-Draw straight lines.
-
-**How to use:**
-1. Select Line tool
-2. Click starting point
-3. Click ending point (or drag)
-
-**Properties:**
-- Stroke color
-- Line width
-- Line cap style (round, square, butt)
-
-#### Arrow Tool
-
-**Icon:** Arrow  
-**Shortcut:** `A`
-
-Draw arrows to point at features.
-
-**How to use:**
-1. Select Arrow tool
-2. Click starting point (tail)
-3. Click ending point (head) or drag
-
-**Properties:**
-- Stroke color
-- Line width
-- Arrowhead style
-
-**Use cases:**
-- Point out specific features
-- Create diagrams or annotations
-- Show directions or flow
+Hold `Shift` while dragging to constrain proportions (squares, circles, 45° lines).
 
 ---
 
-## Quick Actions
+## Layers
 
-Actions in the top toolbar apply immediately.
+The editor is layer-based. Stack multiple layers, reorder them, toggle visibility, and composite them with blend modes.
 
-### Rotate
-
-**Rotate Clockwise (90°)**  
-**Icon:** ↻  
-**Shortcut:** `Ctrl/⌘ + ]`
-
-Rotates the entire canvas 90 degrees clockwise.
-
-**Rotate Counter-Clockwise (90°)**  
-**Icon:** ↺  
-**Shortcut:** `Ctrl/⌘ + [`
-
-Rotates the entire canvas 90 degrees counter-clockwise.
-
-**When to use:**
-- Fix image orientation
-- Portrait to landscape conversion
-- Correct camera rotation
+- **Blend modes** — choose how a layer combines with the layers beneath it (Normal, Multiply, Screen, Overlay, and more). In the Layers panel, `↑`/`↓` step through blend modes.
+- **Opacity** — set per-layer transparency.
+- **Layer via copy / cut** — `Ctrl/⌘ + J` copies the current selection to a new layer; `Ctrl/⌘ + Shift + J` cuts it to a new layer.
+- **Clear layer** — `Delete` or `Backspace` clears the active layer (or selection).
+- **Fill layer** — `Ctrl/⌘ + Backspace` fills with the background color; `Alt + Backspace` fills with the foreground color.
 
 ---
 
-### Flip
+## Free Transform
 
-**Flip Horizontal**  
-**Icon:** ⇆  
-**Shortcut:** `Ctrl/⌘ + H`
+**Shortcut:** `Ctrl/⌘ + T` (free transform) or `F` (transform tool)
 
-Mirrors image left-to-right.
+Scale, rotate, and reposition the active layer or selection with a transform box.
 
-**Flip Vertical**  
-**Icon:** ⇅  
-**Shortcut:** `Ctrl/⌘ + V`
-
-Mirrors image top-to-bottom.
-
-**Use cases:**
-- Create mirror effects
-- Fix reversed text or images
-- Symmetry adjustments
+- Press `Enter` to commit the transform, `Esc` to cancel.
+- Press `.` to reset the transform box to identity without committing.
+- `Ctrl/⌘ + Shift + T` repeats the last transform.
 
 ---
 
-### Adjustments
+## Colors
 
-Fine-tune image appearance with real-time adjustments.
+The editor maintains a **foreground** and **background** color.
 
-**How to access:**
-1. Click the **Adjustments** button (magic wand icon)
-2. Panel opens with three sliders
-
-#### Brightness
-
-**Range:** -100 to +100  
-**Default:** 0
-
-Makes the image lighter or darker.
-- **Negative values:** Darken the image
-- **Positive values:** Lighten the image
-
-#### Contrast
-
-**Range:** -100 to +100  
-**Default:** 0
-
-Adjusts the difference between light and dark areas.
-- **Negative values:** Reduce contrast (flatten)
-- **Positive values:** Increase contrast (more dramatic)
-
-#### Saturation
-
-**Range:** -100 to +100  
-**Default:** 0
-
-Controls color intensity.
-- **-100:** Grayscale (no color)
-- **0:** Original colors
-- **+100:** Hyper-saturated (vivid colors)
-
-**Tips:**
-- Adjustments are applied in real-time as you move sliders
-- Combine adjustments for complex effects
-- Use subtle adjustments for professional results
-- Reset all adjustments with the Reset button
+- `X` swaps the foreground and background colors.
+- `D` resets them to the defaults (black / white).
+- `Ctrl/⌘ + I` inverts the colors of the active layer.
 
 ---
 
@@ -338,8 +201,7 @@ The editor maintains a complete history of your changes.
 | Action | Shortcut | Description |
 |--------|----------|-------------|
 | **Undo** | `Ctrl/⌘ + Z` | Step backward through history |
-| **Redo** | `Ctrl/⌘ + Shift + Z` | Step forward through history |
-| **Reset** | Reset button | Clear all edits, return to original |
+| **Redo** | `Ctrl/⌘ + Shift + Z` (or `Ctrl/⌘ + Y`) | Step forward through history |
 
 **History tracking:**
 - Every action creates a history entry
@@ -359,23 +221,21 @@ Control your view of the canvas without affecting the image.
 
 | Action | Shortcut | Description |
 |--------|----------|-------------|
-| **Zoom In** | `Ctrl/⌘ + +` or scroll up | Magnify the view |
-| **Zoom Out** | `Ctrl/⌘ + -` or scroll down | Reduce the view |
-| **Fit to Screen** | `Ctrl/⌘ + 0` | Show entire image |
-| **Zoom to Selection** | `Ctrl/⌘ + 1` | Fill screen with selection |
-
-**Zoom levels:** 10% to 400%
+| **Zoom In** | `+` / `=` or scroll up | Magnify the view |
+| **Zoom Out** | `-` or scroll down | Reduce the view |
+| **Reset Zoom** | `Ctrl/⌘ + 0` | Fit the image to the viewport |
+| **Zoom 100%** | `Ctrl/⌘ + 1` | Show the image at actual pixel size |
 
 ### Pan Controls
 
 | Action | How |
 |--------|-----|
 | **Pan** | Space + drag, or middle-click drag |
-| **Pan with Select tool** | Click and drag background |
+| **Toggle panels** | `Tab` |
 
 **Tips:**
-- Use high zoom for detailed work (brushing, text editing)
-- Use fit-to-screen to see overall composition
+- Use high zoom for detailed work (brushing, retouching)
+- Use reset zoom to see the overall composition
 - Pan while zoomed to work on different areas
 
 ---
@@ -384,38 +244,21 @@ Control your view of the canvas without affecting the image.
 
 ### Save to Workflow
 
-**Button:** Save (disk icon)  
-**Shortcut:** `Ctrl/⌘ + S`
-
-Saves the edited image back to the node.
-- Updates the node's property or output with edited version
+Saves the composited image back to the node.
+- Updates the node's property or output with the edited version
 - Changes appear immediately in your workflow
-- Original image is preserved (non-destructive)
 
 **Use when:** You want to use the edited image in subsequent nodes.
 
-### Download Image
+### Export Image (PNG)
 
-**Button:** Download (arrow down icon)  
-**Shortcut:** `Ctrl/⌘ + D`
+Use the **Export Image** action to write the composited result as a PNG (all visible layers flattened, transparency preserved).
 
-Downloads the edited image to your computer.
-- Opens browser download dialog
-- Saves as PNG format (preserves transparency)
-- Default filename includes timestamp
+**Note:** `Ctrl/⌘ + D` is **Deselect**, not download — see the shortcuts below.
 
-**Use when:** You want a copy for external use.
+### Close
 
-### Close Without Saving
-
-**Button:** Close (X icon)  
-**Shortcut:** `Esc`
-
-Closes the editor without applying changes.
-- Discards all edits made in this session
-- Returns to workflow with original image unchanged
-
-**Confirmation:** If you have unsaved changes, you'll see a confirmation dialog.
+Closes the editor.
 
 ---
 
@@ -425,70 +268,92 @@ Closes the editor without applying changes.
 
 | Key | Tool |
 |-----|------|
-| `V` | Select |
+| `V` | Move |
+| `M` | Rectangular marquee select |
+| `W` | Magic wand select |
 | `C` | Crop |
-| `B` | Brush (Draw) |
+| `B` | Brush |
+| `P` | Pencil |
 | `E` | Eraser |
 | `G` | Fill |
-| `T` | Text |
+| `T` | Gradient |
+| `S` | Clone stamp |
+| `Q` | Blur |
+| `I` | Eyedropper |
+| `F` | Transform |
 | `R` | Rectangle |
-| `O` | Ellipse (circle) |
+| `O` | Ellipse |
 | `L` | Line |
 | `A` | Arrow |
 
-### Actions
+### Edit & Selection
 
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl/⌘ + Z` | Undo |
-| `Ctrl/⌘ + Shift + Z` | Redo |
-| `Ctrl/⌘ + ]` | Rotate clockwise |
-| `Ctrl/⌘ + [` | Rotate counter-clockwise |
-| `Ctrl/⌘ + H` | Flip horizontal |
-| `Ctrl/⌘ + V` | Flip vertical |
-| `Ctrl/⌘ + S` | Save |
-| `Ctrl/⌘ + D` | Download |
-| `Esc` | Close editor |
+| `Ctrl/⌘ + Shift + Z` (or `Ctrl/⌘ + Y`) | Redo |
+| `Ctrl/⌘ + C` / `X` / `V` | Copy / cut / paste |
+| `Ctrl/⌘ + A` | Select all |
+| `Ctrl/⌘ + D` | Deselect |
+| `Ctrl/⌘ + Shift + D` | Reselect |
+| `Ctrl/⌘ + Shift + I` | Invert selection |
+| `Ctrl/⌘ + T` | Free transform |
+| `Ctrl/⌘ + Shift + T` | Repeat last transform |
+| `Ctrl/⌘ + J` | Layer via copy |
+| `Ctrl/⌘ + Shift + J` | Layer via cut |
+| `Ctrl/⌘ + I` | Invert colors |
+| `Delete` / `Backspace` | Clear layer/selection |
+| `Ctrl/⌘ + Backspace` | Fill with background color |
+| `Alt + Backspace` | Fill with foreground color |
+| `Esc` | Cancel / deselect |
+
+### Colors & Brush
+
+| Shortcut | Action |
+|----------|--------|
+| `X` | Swap foreground/background colors |
+| `D` | Reset colors to default |
+| `[` / `]` | Decrease / increase tool size |
+| `1`–`0` | Set tool opacity preset (e.g. `0` = 100%) |
 
 ### Navigation
 
 | Shortcut | Action |
 |----------|--------|
-| `Ctrl/⌘ + +` | Zoom in |
-| `Ctrl/⌘ + -` | Zoom out |
-| `Ctrl/⌘ + 0` | Fit to screen |
+| `+` / `=` | Zoom in |
+| `-` | Zoom out |
+| `Ctrl/⌘ + 0` | Reset zoom (fit) |
+| `Ctrl/⌘ + 1` | Zoom to 100% |
+| `Tab` | Toggle panels |
 | `Space + drag` | Pan canvas |
 
 ---
 
 ## Common Workflows
 
-### Basic Image Correction
+### Retouching on a Separate Layer
 
-**Goal:** Fix brightness and orientation.
+**Goal:** Fix blemishes non-destructively.
 
 1. Open image in editor
-2. Click **Adjustments** (magic wand icon)
-3. Adjust **Brightness** slider to correct exposure
-4. Adjust **Contrast** for better definition
-5. If rotated wrong, use **Rotate** buttons
+2. Add a new layer above the image
+3. Select the **Clone Stamp** (`S`) and set a source point on clean pixels
+4. Paint over the blemish to cover it
+5. Adjust the layer opacity to blend if needed
 6. Click **Save** to apply
-
-**Time:** Under 30 seconds
 
 ---
 
 ### Adding Annotations
 
-**Goal:** Highlight specific areas with arrows and text.
+**Goal:** Highlight specific areas with arrows.
 
 1. Open image in editor
 2. Select **Arrow tool** (`A`)
 3. Draw arrows pointing at features of interest
-4. Select **Text tool** (`T`)
-5. Click near arrows to add explanatory text
-6. Adjust colors to ensure visibility
-7. Click **Save**
+4. Use the **Rectangle** (`R`) or **Ellipse** (`O`) tool to box areas
+5. Pick a high-contrast foreground color so markers stand out
+6. Click **Save**
 
 **Use cases:**
 - Tutorial images
@@ -503,11 +368,9 @@ Closes the editor without applying changes.
 
 1. Open image in editor
 2. Select **Crop tool** (`C`)
-3. Drag crop box to desired region
-4. Resize to preferred aspect ratio
-5. Click **✓ Apply**
-6. Optionally adjust brightness/contrast
-7. Click **Save** or **Download**
+3. Drag the crop box to the desired region
+4. Press `Enter` to commit
+5. Click **Save** or use **Export Image**
 
 **Use cases:**
 - Profile pictures
@@ -521,7 +384,7 @@ Closes the editor without applying changes.
 **Goal:** Remove small imperfections or add details.
 
 1. Open image in editor
-2. Zoom in to problem area (`Ctrl/⌘ + +`)
+2. Zoom in to the problem area (`+`)
 3. Select **Brush tool** (`B`)
 4. Adjust size to match area (small brush for precision)
 5. Select color matching nearby pixels
@@ -556,8 +419,7 @@ Closes the editor without applying changes.
 ### Quality Preservation
 
 - Editor maintains original image quality
-- Adjustments use high-quality algorithms
-- Saves as PNG to preserve transparency
+- Saves/exports as PNG to preserve transparency
 - No compression artifacts unless image is re-encoded
 
 ### Workflow Integration
@@ -614,8 +476,8 @@ Closes the editor without applying changes.
 **Symptoms:** Colors or quality change after save.
 
 **Solutions:**
-1. Check if adjustments were accidentally applied
-2. Reset adjustments sliders to 0 if needed
+1. Check whether a layer's blend mode or opacity changed the result
+2. Toggle layer visibility to isolate which layer changed the look
 3. Verify monitor color calibration
 4. PNG format preserves quality - no compression loss
 

@@ -28,43 +28,60 @@ This is useful for:
 
 ---
 
-## Using the Built-in WaitNode
+## The Built-in WaitNode (a delay, not a suspension)
 
-The simplest way to add suspension to a workflow is using the `WaitNode`:
+> **Important:** `WaitNode` (`nodetool.triggers.Wait`, in
+> `packages/automation-nodes/src/nodes/triggers.ts`) is **not** a suspendable
+> node. It is a simple in-process delay: `process()` sleeps for
+> `timeout_seconds` via `setTimeout`, then passes its input through. It does
+> **not** use `SuspendableState`, does **not** suspend or resume the workflow,
+> and does **not** wait for any external approval or callback. Use it for
+> rate-limiting and fixed delays. For true pause/resume, see
+> [Creating Custom Suspendable Nodes](#creating-custom-suspendable-nodes) below.
 
 ```typescript
-import { WaitNode } from "@nodetool-ai/base-nodes";
+import { WaitNode } from "@nodetool-ai/automation-nodes";
 
-// Create a wait node that suspends the workflow
+// A node that delays for a fixed number of seconds, then forwards `input`.
 const waitNode = new WaitNode();
-waitNode.timeout_seconds = 3600;  // Optional: timeout in seconds (0 = wait forever)
-waitNode.input = { request_id: "REQ-123", approver: "admin@example.com" };
+waitNode.timeout_seconds = 5;  // Seconds to wait (0 = no wait, pass through immediately)
+waitNode.input = { request_id: "REQ-123" };
 ```
 
 ### WaitNode Properties
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `timeout_seconds` | `number` | `0` | Timeout in seconds (0 = wait indefinitely) |
-| `input` | `any` | `""` | Input data to pass through to the output when resumed |
+| `timeout_seconds` | `number` | `0` | Seconds to wait before continuing. `0` = **no wait** (pass through immediately). |
+| `input` | `any` | `""` | Input data passed through to the output after the delay |
 
 ### WaitNode Output
 
-When resumed, the WaitNode outputs:
+After the delay, the WaitNode outputs:
 
 ```typescript
 {
   data: { /* input data passed through */ },
-  resumed_at: "2026-03-16T12:00:00.000Z",  // ISO timestamp of resumption
-  waited_seconds: 30.5                       // How long the workflow was suspended
+  resumed_at: "2026-03-16T12:00:00.000Z",  // ISO timestamp after the delay
+  waited_seconds: 5.0                        // Actual seconds slept
 }
 ```
+
+> The output field names (`resumed_at`, `waited_seconds`) read like suspension
+> semantics, but they only reflect the `setTimeout` delay — nothing was
+> suspended.
 
 ---
 
 ## Creating Custom Suspendable Nodes
 
-For more control, create your own suspendable node by extending `SuspendableNode`:
+True suspension is provided by the **`SuspendableState`** helper class (in
+`packages/kernel/src/suspendable.ts`, exported from `@nodetool-ai/kernel`).
+`SuspendableNode` is the *interface* that describes the capability;
+`SuspendableState` is the concrete implementation you compose into a node.
+Calling `suspendWorkflow(reason, state, metadata?)` throws a
+`WorkflowSuspendedError`, which the runner catches to persist state and pause
+the run.
 
 ```typescript
 import { SuspendableState } from "@nodetool-ai/kernel";

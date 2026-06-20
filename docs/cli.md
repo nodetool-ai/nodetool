@@ -31,6 +31,19 @@ npx --package=@nodetool-ai/cli nodetool-chat --agent
 - `nodetool <command> --help` — show command-specific options (e.g. `nodetool serve --help`).
 - `nodetool <group> --help` — list sub-commands for grouped tooling (e.g. `nodetool workflows --help`).
 
+## Global Options
+
+These flags work on any `nodetool` command and control [OpenTelemetry tracing](AGENTS.md):
+
+- `--trace-file <path>` — append every LLM/agent/workflow span to `<path>` as JSONL (analyzer-friendly).
+- `--trace-stdout [format]` — stream spans to stdout: `pretty` (default) or `json`.
+- `--no-trace-stdout` — disable stdout span output (overrides `NODETOOL_TRACE_STDOUT`).
+
+```bash
+nodetool --trace-file trace.jsonl run workflow.ts
+nodetool --trace-stdout pretty workflows run <id>
+```
+
 ## Core Commands
 
 ### `nodetool info`
@@ -188,9 +201,9 @@ Starts an interactive TUI chat session.
 
 - `-p, --provider <provider>` — LLM provider (e.g., `anthropic`, `openai`, `ollama`).
 - `-m, --model <model>` — model ID.
-- `-a, --agent` — enable agent mode with tool use.
-- `-u, --url <url>` — WebSocket server URL (default: connects to local server).
-- `-w, --workspace <path>` — workspace directory for file operations.
+- `-a, --agent` — **deprecated, no-op.** Every chat session runs the unified agent loop; this flag has no effect.
+- `-u, --url <url>` — WebSocket server URL (default: uses a local provider).
+- `-w, --workspace <path>` — workspace directory for file operations (default: current directory).
 - `--tools <tools>` — comma-separated list of enabled tools.
 
 **Examples:**
@@ -200,13 +213,10 @@ Starts an interactive TUI chat session.
 nodetool chat
 
 # Chat with a specific provider and model
-nodetool chat --provider anthropic --model claude-3-5-sonnet-20241022
+nodetool chat --provider anthropic --model claude-sonnet-4-6
 
-# Agent mode with tool use
-nodetool chat --agent --provider openai
-
-# Connect to a custom server
-nodetool chat --url ws://localhost:7777
+# Connect to a running server
+nodetool chat --url ws://localhost:7777/ws
 ```
 
 ## Workflow Management
@@ -215,7 +225,7 @@ nodetool chat --url ws://localhost:7777
 
 Manage workflows via the API.
 
-**Subcommands:** `list`, `get`, `run`
+**Subcommands:** `list`, `get`, `run`, `export-dsl`, `export-example`, `export-bundle`, `import-bundle`
 
 ```bash
 # List all workflows
@@ -227,6 +237,49 @@ nodetool workflows get <workflow_id>
 
 # Run a workflow (see above for full options)
 nodetool workflows run <workflow_id_or_file>
+
+# Export as a TypeScript DSL file (see above)
+nodetool workflows export-dsl <workflow_id_or_file>
+```
+
+#### `nodetool workflows export-example <workflow_id_or_file>`
+
+Export a workflow as a shipped template: materialize its referenced assets into the package's constant asset directory
+(rewriting refs to `package://<pkg>/<file>`) and write the example JSON.
+
+**Options:**
+
+- `--package <name>` — owning package (default `nodetool-base`).
+- `-o, --output <file>` — write the example JSON to this exact path.
+- `--include-remote` — also materialize http(s) and local-file refs.
+
+```bash
+nodetool workflows export-example <workflow_id>
+nodetool workflows export-example <id> --package nodetool-base
+nodetool workflows export-example workflow.json -o example.json
+```
+
+#### `nodetool workflows export-bundle <workflow_id_or_file...>`
+
+Export one or more workflows as a portable `.nodetool` bundle (a zip containing the graphs plus the bytes of every asset
+they reference), sharable as a single file.
+
+**Options:**
+
+- `-o, --output <file>` — output path (default `<name>.nodetool`).
+- `--include-remote` — also embed http(s) and local-file refs.
+
+```bash
+nodetool workflows export-bundle <id> [<id2> ...] -o my-pack.nodetool
+```
+
+#### `nodetool workflows import-bundle <bundle_file>`
+
+Import a `.nodetool` bundle into the local library: store its assets and create the workflows with refs rewritten to the
+imported assets.
+
+```bash
+nodetool workflows import-bundle my-pack.nodetool
 ```
 
 ## Job Management
@@ -323,6 +376,81 @@ Display current settings from environment variables.
 nodetool settings show
 nodetool settings show --json
 ```
+
+## Model Management
+
+### `nodetool models`
+
+List models and providers via the API.
+
+**Subcommands:**
+
+- `list` — list all models (recommended + provider + HuggingFace cached).
+- `providers` — list configured providers and their capabilities.
+- `recommended` — list recommended models.
+- `ollama` — list Ollama models.
+- `huggingface` — list HuggingFace cached models (`--query`, `--type` to filter).
+- `by-provider <provider>` — list models for a provider; `--kind` one of `llm`, `image`, `tts`, `asr`, `video`, `embedding` (default `llm`).
+
+**Examples:**
+
+```bash
+nodetool models list
+nodetool models providers
+nodetool models ollama
+nodetool models by-provider openai --kind image
+```
+
+## MCP Integration
+
+### `nodetool mcp`
+
+Install, remove, or inspect the NodeTool MCP server configuration for AI coding assistants (Claude Code, Codex,
+OpenCode).
+
+**Subcommands:** `install`, `uninstall`, `status`
+
+**Examples:**
+
+```bash
+# Install for all detected assistants (default URL http://127.0.0.1:7777/mcp)
+nodetool mcp install
+
+# Install for Claude Code only, with a custom URL
+nodetool mcp install --claude --url http://127.0.0.1:7777/mcp
+
+# Show installation status
+nodetool mcp status
+
+# Remove from all assistants
+nodetool mcp uninstall
+```
+
+The NodeTool server must be running (`nodetool serve`) for MCP to work.
+
+## Agents
+
+### `nodetool agent`
+
+Run YAML-defined autonomous agents from the command line.
+
+**Subcommands:** `run`, `test`, `list`
+
+```bash
+# Run an agent with an objective
+nodetool agent run agent.yaml --objective "Research AI trends"
+
+# Validate a config
+nodetool agent test agent.yaml
+
+# List configs in a directory
+nodetool agent list examples/agents/
+```
+
+See the [Agent CLI](agent-cli.md) reference for full details.
+
+> The `nodetool db` group (`migrate`, `status`, `baseline`, `rollback`) is documented under
+> [Database Migrations](#database-migrations) above.
 
 ## Tips
 
