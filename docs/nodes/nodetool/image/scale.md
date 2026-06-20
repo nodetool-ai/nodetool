@@ -29,4 +29,4 @@ Enlarge or shrink an image by a scale factor.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.image](../) namespace.
+Browse other nodes in the [nodetool.image](./) namespace.

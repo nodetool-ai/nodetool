@@ -5,6 +5,8 @@ title: "gemini.image Nodes"
 
 This namespace contains 1 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[Image Generation](imagegeneration.md)** - Generate an image using Google's Imagen model via the Gemini API.
+- **[Image Generation](imagegeneration.md)**
+
+[Back to all nodes](../../)

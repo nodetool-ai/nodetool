@@ -44,5 +44,5 @@ Generate images with depth guidance via the MFlux depth pipeline using local MLX
 
 ## Related Nodes
 
-Browse other nodes in the [mlx.image_to_image](../) namespace.
+Browse other nodes in the [mlx.image_to_image](./) namespace.
 

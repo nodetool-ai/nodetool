@@ -3,10 +3,10 @@ layout: page
 title: "huggingface.token_classification Nodes"
 ---
 
-
 This namespace contains 1 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[Token Classification](tokenclassification.md)** - Performs token classification tasks such as Named Entity Recognition (NER).
-    text, token class...
+- **[Token Classification](tokenclassification.md)**
+
+[Back to all nodes](../../)

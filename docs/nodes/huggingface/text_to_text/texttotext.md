@@ -46,5 +46,5 @@ Performs text-to-text generation tasks.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.text_to_text](../) namespace.
+Browse other nodes in the [huggingface.text_to_text](./) namespace.
 

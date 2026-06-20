@@ -31,4 +31,4 @@ Send a PATCH request with JSON body.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.http](../) namespace.
+Browse other nodes in the [lib.http](./) namespace.

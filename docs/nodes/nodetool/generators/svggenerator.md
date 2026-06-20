@@ -37,4 +37,4 @@ LLM Agent to create SVG elements based on user prompts.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.generators](../) namespace.
+Browse other nodes in the [nodetool.generators](./) namespace.

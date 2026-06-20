@@ -37,4 +37,4 @@ Keep only the largest disconnected triangle component of a 3D mesh.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.model3d](../) namespace.
+Browse other nodes in the [nodetool.model3d](./) namespace.

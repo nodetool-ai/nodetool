@@ -35,5 +35,5 @@ Percent-encode a string for safe use in URLs using ``urllib.parse.quote``.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.urllib](../) namespace.
+Browse other nodes in the [lib.urllib](./) namespace.
 

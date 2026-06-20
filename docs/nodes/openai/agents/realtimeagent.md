@@ -30,4 +30,4 @@ namespace: "openai.agents"
 
 ## Related Nodes
 
-Browse other nodes in the [openai.agents](../) namespace.
+Browse other nodes in the [openai.agents](./) namespace.

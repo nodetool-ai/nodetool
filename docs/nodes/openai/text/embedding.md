@@ -39,4 +39,4 @@ Generate vector representations of text for semantic analysis.
 
 ## Related Nodes
 
-Browse other nodes in the [openai.text](../) namespace.
+Browse other nodes in the [openai.text](./) namespace.

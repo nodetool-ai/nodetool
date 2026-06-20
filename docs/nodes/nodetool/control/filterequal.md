@@ -35,4 +35,4 @@ Pass items through only when they equal a target value.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.control](../) namespace.
+Browse other nodes in the [nodetool.control](./) namespace.

@@ -36,5 +36,5 @@ Adjusts image sharpness to enhance or reduce detail clarity.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.image.enhance](../) namespace.
+Browse other nodes in the [lib.image.enhance](./) namespace.
 

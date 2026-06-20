@@ -33,4 +33,4 @@ Extracts code blocks and their languages from markdown.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.markdown](../) namespace.
+Browse other nodes in the [lib.markdown](./) namespace.

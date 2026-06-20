@@ -36,5 +36,5 @@ Adjusts image contrast to modify light-dark differences.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.image.enhance](../) namespace.
+Browse other nodes in the [lib.image.enhance](./) namespace.
 

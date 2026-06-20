@@ -39,5 +39,5 @@ Upload a file to an FTP server.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.ftplib](../) namespace.
+Browse other nodes in the [lib.ftplib](./) namespace.
 

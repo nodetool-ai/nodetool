@@ -34,4 +34,4 @@ Generate videos from text prompts using Google's Veo models.
 
 ## Related Nodes
 
-Browse other nodes in the [gemini.video](../) namespace.
+Browse other nodes in the [gemini.video](./) namespace.

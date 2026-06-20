@@ -36,4 +36,4 @@ Error handling wrapper: passes the value through on success, or returns error in
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.control](../) namespace.
+Browse other nodes in the [nodetool.control](./) namespace.

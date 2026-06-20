@@ -30,4 +30,4 @@ Resize a video to a specific width and height.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.video](../) namespace.
+Browse other nodes in the [nodetool.video](./) namespace.

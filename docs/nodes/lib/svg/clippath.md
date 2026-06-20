@@ -34,4 +34,4 @@ Create clipping paths for SVG elements.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.svg](../) namespace.
+Browse other nodes in the [lib.svg](./) namespace.

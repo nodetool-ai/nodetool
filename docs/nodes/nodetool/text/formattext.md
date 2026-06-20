@@ -34,4 +34,4 @@ Replaces placeholders in a string with dynamic inputs using {{ variable }} or {v
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.text](../) namespace.
+Browse other nodes in the [nodetool.text](./) namespace.

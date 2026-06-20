@@ -36,5 +36,5 @@ Raises the base array to the power of the exponent element-wise.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.array.math](../) namespace.
+Browse other nodes in the [lib.array.math](./) namespace.
 

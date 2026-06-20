@@ -33,4 +33,4 @@ Load a 3D model file from disk.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.model3d](../) namespace.
+Browse other nodes in the [nodetool.model3d](./) namespace.

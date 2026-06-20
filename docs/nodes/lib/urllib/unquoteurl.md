@@ -35,5 +35,5 @@ Decode a percent-encoded URL string using ``urllib.parse.unquote``.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.urllib](../) namespace.
+Browse other nodes in the [lib.urllib](./) namespace.
 

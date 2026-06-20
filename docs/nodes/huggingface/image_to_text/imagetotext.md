@@ -38,5 +38,5 @@ Generates textual descriptions from images.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.image_to_text](../) namespace.
+Browse other nodes in the [huggingface.image_to_text](./) namespace.
 

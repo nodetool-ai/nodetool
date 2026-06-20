@@ -35,4 +35,4 @@ Execute arbitrary SQL statements for advanced operations.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.sqlite](../) namespace.
+Browse other nodes in the [lib.sqlite](./) namespace.

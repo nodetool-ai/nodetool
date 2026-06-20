@@ -35,4 +35,4 @@ Save a 3D model to an asset folder with customizable name format.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.model3d](../) namespace.
+Browse other nodes in the [nodetool.model3d](./) namespace.

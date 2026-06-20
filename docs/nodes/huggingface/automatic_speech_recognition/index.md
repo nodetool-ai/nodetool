@@ -3,14 +3,11 @@ layout: page
 title: "huggingface.automatic_speech_recognition Nodes"
 ---
 
-
 This namespace contains 2 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[Chunks To SRT](chunkstosrt.md)** - Convert audio chunks to SRT (SubRip Subtitle) format
-    subtitle, srt, whisper, transcription
+- **[Chunks To SRT](chunkstosrt.md)**
+- **[Whisper](whisper.md)**
 
- ...
-- **[Whisper](whisper.md)** - Convert speech to text
-    asr, automatic-speech-recognition, speech-to-text, translate, transcri...
+[Back to all nodes](../../)

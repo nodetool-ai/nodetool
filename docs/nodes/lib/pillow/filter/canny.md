@@ -36,5 +36,5 @@ Apply Canny edge detection to an image.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.image.filter](../) namespace.
+Browse other nodes in the [lib.image.filter](./) namespace.
 

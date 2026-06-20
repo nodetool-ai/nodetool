@@ -34,4 +34,4 @@ Reads an Excel worksheet into a pandas DataFrame.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.excel](../) namespace.
+Browse other nodes in the [lib.excel](./) namespace.

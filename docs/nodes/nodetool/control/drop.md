@@ -35,4 +35,4 @@ Skip the first N items of a stream, pass the rest through.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.control](../) namespace.
+Browse other nodes in the [nodetool.control](./) namespace.

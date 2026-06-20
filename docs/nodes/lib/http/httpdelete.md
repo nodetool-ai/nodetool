@@ -30,4 +30,4 @@ Send a DELETE request.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.http](../) namespace.
+Browse other nodes in the [lib.http](./) namespace.

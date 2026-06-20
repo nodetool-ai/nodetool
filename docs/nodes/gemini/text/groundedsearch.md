@@ -40,4 +40,4 @@ Search the web using Google's Gemini API with grounding capabilities.
 
 ## Related Nodes
 
-Browse other nodes in the [gemini.text](../) namespace.
+Browse other nodes in the [gemini.text](./) namespace.

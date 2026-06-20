@@ -35,5 +35,5 @@ Decompress zlib-compressed binary data.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.zlib](../) namespace.
+Browse other nodes in the [lib.zlib](./) namespace.
 

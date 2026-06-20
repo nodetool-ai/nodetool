@@ -45,5 +45,5 @@ Generates images from text prompts using Qwen-Image with support for GGUF quanti
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.text_to_image](../) namespace.
+Browse other nodes in the [huggingface.text_to_image](./) namespace.
 

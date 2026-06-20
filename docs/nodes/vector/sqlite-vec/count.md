@@ -30,5 +30,5 @@ Count the number of documents in a collection.
 
 ## Related Nodes
 
-Browse other nodes in the [vector.chroma](../) namespace.
+Browse other nodes in the [vector.chroma](./) namespace.
 

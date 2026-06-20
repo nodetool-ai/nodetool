@@ -37,4 +37,4 @@ Fetches content from a web page using a headless browser.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.browser](../) namespace.
+Browse other nodes in the [lib.browser](./) namespace.

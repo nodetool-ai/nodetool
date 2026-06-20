@@ -43,5 +43,5 @@ Transform an existing image using the MFLUX MLX implementation of FLUX.1.
 
 ## Related Nodes
 
-Browse other nodes in the [mlx.image_to_image](../) namespace.
+Browse other nodes in the [mlx.image_to_image](./) namespace.
 

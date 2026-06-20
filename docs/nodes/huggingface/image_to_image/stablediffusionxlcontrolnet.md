@@ -58,5 +58,5 @@ Generates images using Stable Diffusion XL with ControlNet guidance.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.image_to_image](../) namespace.
+Browse other nodes in the [huggingface.image_to_image](./) namespace.
 

@@ -35,5 +35,5 @@ MLX Spark text-to-speech.
 
 ## Related Nodes
 
-Browse other nodes in the [mlx.text_to_speech](../) namespace.
+Browse other nodes in the [mlx.text_to_speech](./) namespace.
 

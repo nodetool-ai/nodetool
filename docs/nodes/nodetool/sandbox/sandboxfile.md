@@ -29,4 +29,4 @@ Read, write, search, and replace files inside a sandbox session.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.sandbox](../) namespace.
+Browse other nodes in the [nodetool.sandbox](./) namespace.

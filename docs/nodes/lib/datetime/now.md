@@ -28,4 +28,4 @@ _(none)_
 
 ## Related Nodes
 
-Browse other nodes in the [lib.datetime](../) namespace.
+Browse other nodes in the [lib.datetime](./) namespace.

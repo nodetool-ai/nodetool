@@ -38,5 +38,5 @@ Accepts a reference to a specific data collection, typically within a vector dat
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.input](../) namespace.
+Browse other nodes in the [nodetool.input](./) namespace.
 

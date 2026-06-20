@@ -41,4 +41,4 @@ Perform boolean operations on 3D meshes.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.model3d](../) namespace.
+Browse other nodes in the [nodetool.model3d](./) namespace.

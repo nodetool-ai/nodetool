@@ -29,4 +29,4 @@ Applies a fade-in effect to the beginning of an audio file.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.audio](../) namespace.
+Browse other nodes in the [nodetool.audio](./) namespace.

@@ -37,5 +37,5 @@ Extract metadata from HTML content.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.html](../) namespace.
+Browse other nodes in the [lib.html](./) namespace.
 

@@ -35,5 +35,5 @@ Escape special characters in text into HTML-safe sequences.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.html](../) namespace.
+Browse other nodes in the [lib.html](./) namespace.
 

@@ -35,4 +35,4 @@ Generate videos from images using Google's Veo models.
 
 ## Related Nodes
 
-Browse other nodes in the [gemini.video](../) namespace.
+Browse other nodes in the [gemini.video](./) namespace.

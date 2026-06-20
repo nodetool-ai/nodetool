@@ -48,5 +48,5 @@ Generate images locally using the MFLUX MLX implementation of FLUX.1.
 
 ## Related Nodes
 
-Browse other nodes in the [mlx.text_to_image](../) namespace.
+Browse other nodes in the [mlx.text_to_image](./) namespace.
 

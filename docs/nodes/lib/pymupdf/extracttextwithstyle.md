@@ -37,5 +37,5 @@ Extract text with style information (font, size, color) from a PDF.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pymupdf](../) namespace.
+Browse other nodes in the [lib.pymupdf](./) namespace.
 

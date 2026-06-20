@@ -35,5 +35,5 @@ Converts an audio file to a Array for further processing.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.audio](../) namespace.
+Browse other nodes in the [nodetool.audio](./) namespace.
 

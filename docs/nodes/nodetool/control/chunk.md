@@ -35,4 +35,4 @@ Group every N items into a list and emit as a batch. Trailing partial batch is e
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.control](../) namespace.
+Browse other nodes in the [nodetool.control](./) namespace.

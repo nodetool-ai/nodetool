@@ -36,5 +36,5 @@ Converts a array object back to an audio file.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.array.conversion](../) namespace.
+Browse other nodes in the [lib.array.conversion](./) namespace.
 

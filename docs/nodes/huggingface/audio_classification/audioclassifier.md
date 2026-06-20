@@ -42,5 +42,5 @@ Classifies audio into predefined categories.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.audio_classification](../) namespace.
+Browse other nodes in the [huggingface.audio_classification](./) namespace.
 

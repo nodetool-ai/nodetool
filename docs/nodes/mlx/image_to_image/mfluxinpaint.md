@@ -43,5 +43,5 @@ Inpaint portions of an image locally using the MFLUX MLX implementation of FLUX.
 
 ## Related Nodes
 
-Browse other nodes in the [mlx.image_to_image](../) namespace.
+Browse other nodes in the [mlx.image_to_image](./) namespace.
 

@@ -1,19 +1,8 @@
 ---
 layout: page
-title: "lib.image Nodes"
+title: "lib.pillow.__init__ Nodes"
 ---
 
+This namespace contains 0 node(s).
 
-This namespace contains 2 node(s).
-
-## Available Nodes
-
-- **[Blend](blend.md)** - Blend two images with adjustable alpha mixing.
-    blend, mix, fade, transition
-
-    Use cases:
- ...
-- **[Composite](composite.md)** - Combine two images using a mask for advanced compositing.
-    composite, mask, blend, layering
-
- ...
+[Back to all nodes](../../../)

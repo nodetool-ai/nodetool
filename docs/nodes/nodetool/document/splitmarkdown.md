@@ -41,4 +41,4 @@ Splits markdown text by headers while preserving header hierarchy in metadata.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.document](../) namespace.
+Browse other nodes in the [nodetool.document](./) namespace.

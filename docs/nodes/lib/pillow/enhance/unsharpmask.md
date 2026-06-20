@@ -38,5 +38,5 @@ Sharpens images using the unsharp mask technique.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.image.enhance](../) namespace.
+Browse other nodes in the [lib.image.enhance](./) namespace.
 

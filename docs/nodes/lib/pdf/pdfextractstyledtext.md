@@ -29,4 +29,4 @@ Extract text spans with font name, size, bounding box, and color (always null; l
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pdf](../) namespace.
+Browse other nodes in the [lib.pdf](./) namespace.

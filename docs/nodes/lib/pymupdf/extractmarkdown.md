@@ -37,5 +37,5 @@ Convert PDF to Markdown format using pymupdf4llm.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pymupdf](../) namespace.
+Browse other nodes in the [lib.pymupdf](./) namespace.
 

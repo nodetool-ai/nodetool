@@ -40,4 +40,4 @@ Generate SVG rectangle element with customizable position, size, and styling.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.svg](../) namespace.
+Browse other nodes in the [lib.svg](./) namespace.

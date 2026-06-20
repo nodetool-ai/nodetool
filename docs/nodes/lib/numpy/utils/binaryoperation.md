@@ -30,5 +30,5 @@ No description available.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.array.utils](../) namespace.
+Browse other nodes in the [lib.array.utils](./) namespace.
 

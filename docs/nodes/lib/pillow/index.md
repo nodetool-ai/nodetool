@@ -1,21 +1,14 @@
 ---
 layout: page
-title: "Pillow Library Nodes"
-parent: Lib
+title: "lib.pillow Nodes"
 ---
 
-# Pillow Library Nodes
+This namespace contains 25 node(s).
 
-Pillow is an image processing library. NodeTool provides nodes for various Pillow operations.
+## Sub-namespaces
 
-## Submodules
+- **[draw](draw/)** - 3 node(s)
+- **[enhance](enhance/)** - 12 node(s)
+- **[filter](filter/)** - 10 node(s)
 
-- **[__init__](__init__/)** - Core image operations (blend, composite)
-- **[draw](draw/)** - Drawing operations (render text, background, Gaussian noise)
-- **[enhance](enhance/)** - Image enhancement (brightness, contrast, color, sharpen, etc.)
-- **[filter](filter/)** - Image filters (blur, canny, contour, edge detection, etc.)
-
-## See Also
-
-- [Lib overview](../) - All lib nodes
-- [Nodes overview](../../) - All node documentation
+[Back to all nodes](../../)

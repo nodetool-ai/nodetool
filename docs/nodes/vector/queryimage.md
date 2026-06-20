@@ -33,4 +33,4 @@ Query the index for similar images.
 
 ## Related Nodes
 
-Browse other nodes in the [vector](../) namespace.
+Browse other nodes in the [vector](./) namespace.

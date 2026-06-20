@@ -29,4 +29,4 @@ Extract text blocks with bounding boxes, useful for layout analysis.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pdf](../) namespace.
+Browse other nodes in the [lib.pdf](./) namespace.

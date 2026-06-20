@@ -30,4 +30,4 @@ Search Google Maps for places, businesses, and get location details.
 
 ## Related Nodes
 
-Browse other nodes in the [search.google](../) namespace.
+Browse other nodes in the [search.google](./) namespace.

@@ -37,5 +37,5 @@ Generates audio (music or sound effects) from text descriptions.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.text_to_audio](../) namespace.
+Browse other nodes in the [huggingface.text_to_audio](./) namespace.
 

@@ -32,4 +32,4 @@ Accepts an integer (whole number) as a parameter for workflows, typically constr
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.input](../) namespace.
+Browse other nodes in the [nodetool.input](./) namespace.

@@ -39,5 +39,5 @@ Answers questions or follows instructions given both an image and text.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.image_text_to_text](../) namespace.
+Browse other nodes in the [huggingface.image_text_to_text](./) namespace.
 

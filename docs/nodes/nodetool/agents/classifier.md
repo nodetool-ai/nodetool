@@ -39,4 +39,4 @@ Classify text into predefined or dynamic categories using LLM.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.agents](../) namespace.
+Browse other nodes in the [nodetool.agents](./) namespace.

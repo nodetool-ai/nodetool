@@ -30,4 +30,4 @@ Accepts an automatic speech recognition model as a parameter for workflows.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.input](../) namespace.
+Browse other nodes in the [nodetool.input](./) namespace.

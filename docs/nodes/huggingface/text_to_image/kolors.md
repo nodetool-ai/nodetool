@@ -45,5 +45,5 @@ Generates images from text prompts using Kolors, a large-scale text-to-image gen
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.text_to_image](../) namespace.
+Browse other nodes in the [huggingface.text_to_image](./) namespace.
 

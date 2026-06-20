@@ -34,4 +34,4 @@ Orchestrate a team of AI agents connected via control edges. Tasks are persisted
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.team](../) namespace.
+Browse other nodes in the [nodetool.team](./) namespace.

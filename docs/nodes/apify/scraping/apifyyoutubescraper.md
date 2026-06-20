@@ -34,4 +34,4 @@ Scrape YouTube videos, channels, and playlists.
 
 ## Related Nodes
 
-Browse other nodes in the [apify.scraping](../) namespace.
+Browse other nodes in the [apify.scraping](./) namespace.

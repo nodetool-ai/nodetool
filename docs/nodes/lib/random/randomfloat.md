@@ -36,5 +36,5 @@ Generate a random floating point number within a range.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.random](../) namespace.
+Browse other nodes in the [lib.random](./) namespace.
 

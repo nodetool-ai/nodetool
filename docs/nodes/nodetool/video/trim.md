@@ -30,4 +30,4 @@ Trim a video to a specific start and end time.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.video](../) namespace.
+Browse other nodes in the [nodetool.video](./) namespace.

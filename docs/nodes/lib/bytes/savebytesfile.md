@@ -30,5 +30,5 @@ Write raw bytes to a file on disk.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.bytes](../) namespace.
+Browse other nodes in the [lib.bytes](./) namespace.
 

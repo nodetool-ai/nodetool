@@ -33,4 +33,4 @@ Extracts tables from markdown and converts them to structured data.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.markdown](../) namespace.
+Browse other nodes in the [lib.markdown](./) namespace.

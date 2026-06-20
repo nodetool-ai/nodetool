@@ -35,5 +35,5 @@ Convert a array to a nested list structure.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.array.conversion](../) namespace.
+Browse other nodes in the [lib.array.conversion](./) namespace.
 

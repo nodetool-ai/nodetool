@@ -34,5 +34,5 @@ Load HuggingFace model for image-to-image generation from a repo_id.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.text_to_image](../) namespace.
+Browse other nodes in the [huggingface.text_to_image](./) namespace.
 

@@ -30,4 +30,4 @@ Accepts a reference to a dataframe asset for workflows.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.input](../) namespace.
+Browse other nodes in the [nodetool.input](./) namespace.

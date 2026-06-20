@@ -37,5 +37,5 @@ Estimates depth from a single image.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.depth_estimation](../) namespace.
+Browse other nodes in the [huggingface.depth_estimation](./) namespace.
 

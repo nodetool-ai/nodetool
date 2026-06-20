@@ -33,4 +33,4 @@ Extracts metadata from an RSS feed.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.rss](../) namespace.
+Browse other nodes in the [lib.rss](./) namespace.

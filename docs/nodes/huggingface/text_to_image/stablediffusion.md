@@ -56,5 +56,5 @@ Generates images from text prompts using Stable Diffusion.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.text_to_image](../) namespace.
+Browse other nodes in the [huggingface.text_to_image](./) namespace.
 

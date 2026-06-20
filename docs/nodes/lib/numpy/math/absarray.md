@@ -35,5 +35,5 @@ Compute the absolute value of each element in a array.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.array.math](../) namespace.
+Browse other nodes in the [lib.array.math](./) namespace.
 

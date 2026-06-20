@@ -30,4 +30,4 @@ Measures text length as characters, words, or lines.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.text](../) namespace.
+Browse other nodes in the [nodetool.text](./) namespace.

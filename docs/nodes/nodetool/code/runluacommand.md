@@ -38,4 +38,4 @@ Executes a single Lua command and buffers the output.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.code](../) namespace.
+Browse other nodes in the [nodetool.code](./) namespace.

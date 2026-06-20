@@ -35,5 +35,5 @@ Enhances image contrast by equalizing intensity distribution.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.image.enhance](../) namespace.
+Browse other nodes in the [lib.image.enhance](./) namespace.
 

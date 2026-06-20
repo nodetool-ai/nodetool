@@ -29,4 +29,4 @@ Rotate a video by a specified angle.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.video](../) namespace.
+Browse other nodes in the [nodetool.video](./) namespace.

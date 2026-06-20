@@ -32,4 +32,4 @@ Create a new conversation thread and return its ID.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.agents](../) namespace.
+Browse other nodes in the [nodetool.agents](./) namespace.

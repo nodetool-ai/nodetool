@@ -35,5 +35,5 @@ Convert HTML entities back to normal text.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.html](../) namespace.
+Browse other nodes in the [lib.html](./) namespace.
 

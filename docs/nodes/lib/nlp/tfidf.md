@@ -35,4 +35,4 @@ Computes TF-IDF scores for terms across multiple documents.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.nlp](../) namespace.
+Browse other nodes in the [lib.nlp](./) namespace.
