@@ -44,6 +44,7 @@ function LanguageModelMenuDialog({
       title="Select Language Model"
       searchPlaceholder="Search language models..."
       storeHook={useLanguageModelMenuStore}
+      modelType="language_model"
       recommendedModels={recommendedModels}
       modelPacks={modelPacks}
     />

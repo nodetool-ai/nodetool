@@ -37,6 +37,7 @@ function ImageModelMenuDialog({
       title="Select Image Model"
       searchPlaceholder="Search image models..."
       storeHook={useImageModelMenuStore}
+      modelType="image_model"
       recommendedModels={recommendedModels}
       modelPacks={modelPacks}
     />

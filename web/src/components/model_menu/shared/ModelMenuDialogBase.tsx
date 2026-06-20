@@ -66,6 +66,12 @@ export interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
   storeHook: ModelMenuStoreHook<TModel>;
   recommendedModels?: UnifiedModel[];
   modelPacks?: ModelPack[];
+  /**
+   * Modality key (e.g. "language_model") this picker sets defaults for. When
+   * provided, each model row shows a "pin as default" toggle wired to
+   * ModelPreferencesStore. Omitted for pickers without a default modality.
+   */
+  modelType?: string;
 }
 
 function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
@@ -78,7 +84,8 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   searchPlaceholder = "Search models...",
   storeHook,
   recommendedModels = [],
-  modelPacks = []
+  modelPacks = [],
+  modelType
 }: ModelMenuBaseProps<TModel>) {
   const { models, isLoading, isFetching, error: fetchedError, providerErrors, loadingProgress, refetch } = modelData;
 
@@ -725,6 +732,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
               downloadModels={downloadModels}
               onDownloadSelect={handleSelectRecommended}
               onDownloadStart={handleStartDownload}
+              modelType={modelType}
             />
           </Box>
           {/* Footer removed */}

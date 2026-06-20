@@ -34,6 +34,7 @@ function EmbeddingModelMenuDialog({
       title="Select Embedding Model"
       searchPlaceholder="Search embedding models..."
       storeHook={useEmbeddingModelMenuStore}
+      modelType="embedding_model"
       recommendedModels={recommendedModels}
       modelPacks={modelPacks}
     />
