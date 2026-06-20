@@ -4,6 +4,8 @@ title: "Models & Providers"
 description: "Local and cloud models in NodeTool."
 ---
 
+> **Overview / start here.** For the full catalog of model families see [Supported Models](models.md); for connecting and configuring each provider see [Providers](providers.md); for the desktop download panel see [Models Manager](models-manager.md).
+
 Run models locally, through cloud APIs with your own keys, or both in the same graph.
 
 ## Local vs. cloud

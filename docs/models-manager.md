@@ -4,6 +4,8 @@ title: "Models Manager"
 description: "Browse, download, and manage AI models for your NodeTool workflows."
 ---
 
+> **Desktop app panel** for downloading and managing local models. For the model catalog see [Supported Models](models.md); for provider keys see [Providers](providers.md).
+
 The **Models Manager** helps you browse, download, and manage AI models available on your system.
 
 ---
@@ -109,5 +111,5 @@ Configure API keys in **Settings > Providers**. See [Models & Providers](models-
 ## Next Steps
 
 - [Models & Providers](models-and-providers.md) -- Configure providers and API keys
-- [Installation](installation.md#hardware-requirements-by-task) -- Hardware requirements for local models
+- [Installation](installation.md#what-different-tasks-need) -- Hardware requirements for local models
 - [HuggingFace Integration](huggingface.md) -- Browse and use HuggingFace models
