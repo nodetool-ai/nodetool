@@ -32,4 +32,4 @@ _(none)_
 
 ## Related Nodes
 
-Browse other nodes in the [kie.dynamic_schema](../) namespace.
+Browse other nodes in the [kie.dynamic_schema](./) namespace.

@@ -399,7 +399,7 @@ function generateNodePage(meta) {
   lines.push("## Related Nodes");
   lines.push("");
   lines.push(
-    `Browse other nodes in the [${meta.namespace}](../) namespace.`
+    `Browse other nodes in the [${meta.namespace}](./) namespace.`
   );
   lines.push("");
 

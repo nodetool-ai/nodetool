@@ -35,4 +35,4 @@ Applies a peak filter to boost or cut a specific frequency range.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.audio](../) namespace.
+Browse other nodes in the [lib.audio](./) namespace.

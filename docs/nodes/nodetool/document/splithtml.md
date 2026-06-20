@@ -31,4 +31,4 @@ Split HTML content into semantic chunks based on HTML tags.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.document](../) namespace.
+Browse other nodes in the [nodetool.document](./) namespace.

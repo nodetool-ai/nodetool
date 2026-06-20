@@ -32,4 +32,4 @@ Accepts a reference to a 3D model asset for workflows, specified by a 'Model3DRe
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.input](../) namespace.
+Browse other nodes in the [nodetool.input](./) namespace.

@@ -31,5 +31,5 @@ Classifies text into predefined categories using a Hugging Face model.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.text_classification](../) namespace.
+Browse other nodes in the [huggingface.text_classification](./) namespace.
 

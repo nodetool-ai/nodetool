@@ -31,4 +31,4 @@ Rotate and/or flip an image in a single step.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.image](../) namespace.
+Browse other nodes in the [nodetool.image](./) namespace.

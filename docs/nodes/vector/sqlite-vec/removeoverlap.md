@@ -31,5 +31,5 @@ Removes overlapping words between consecutive strings in a list. Splits text int
 
 ## Related Nodes
 
-Browse other nodes in the [vector.chroma](../) namespace.
+Browse other nodes in the [vector.chroma](./) namespace.
 

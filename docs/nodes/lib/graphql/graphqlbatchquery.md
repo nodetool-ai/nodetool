@@ -31,4 +31,4 @@ Execute multiple GraphQL operations in a single batch request.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.graphql](../) namespace.
+Browse other nodes in the [lib.graphql](./) namespace.

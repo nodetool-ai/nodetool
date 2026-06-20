@@ -39,5 +39,5 @@ Starts a simple HTTP server inside Docker and streams logs.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.http_server](../) namespace.
+Browse other nodes in the [lib.http_server](./) namespace.
 

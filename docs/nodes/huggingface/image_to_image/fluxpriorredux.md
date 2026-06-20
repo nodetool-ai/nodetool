@@ -42,5 +42,5 @@ Performs image transformation using FLUX Prior Redux pipeline for image-conditio
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.image_to_image](../) namespace.
+Browse other nodes in the [huggingface.image_to_image](./) namespace.
 

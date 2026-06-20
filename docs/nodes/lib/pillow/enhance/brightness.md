@@ -36,5 +36,5 @@ Adjusts overall image brightness to lighten or darken.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.image.enhance](../) namespace.
+Browse other nodes in the [lib.image.enhance](./) namespace.
 

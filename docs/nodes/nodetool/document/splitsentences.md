@@ -39,5 +39,5 @@ Splits text into sentences using LangChain's SentenceTransformersTokenTextSplitt
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.document](../) namespace.
+Browse other nodes in the [nodetool.document](./) namespace.
 

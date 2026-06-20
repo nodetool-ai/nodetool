@@ -1,26 +1,20 @@
 ---
 layout: page
-title: "NumPy Library Nodes"
-parent: Lib
+title: "lib.numpy Nodes"
 ---
 
-# NumPy Library Nodes
+This namespace contains 38 node(s).
 
-NumPy is the fundamental package for scientific computing with Python. NodeTool provides nodes for various NumPy operations.
+## Sub-namespaces
 
-## Submodules
+- **[arithmetic](arithmetic/)** - 5 node(s)
+- **[conversion](conversion/)** - 7 node(s)
+- **[io](io/)** - 1 node(s)
+- **[manipulation](manipulation/)** - 6 node(s)
+- **[math](math/)** - 7 node(s)
+- **[reshaping](reshaping/)** - 4 node(s)
+- **[statistics](statistics/)** - 6 node(s)
+- **[utils](utils/)** - 1 node(s)
+- **[visualization](visualization/)** - 1 node(s)
 
-- **[arithmetic](arithmetic/)** - Basic arithmetic operations
-- **[conversion](conversion/)** - Type conversion utilities
-- **[io](io/)** - Input/output operations
-- **[manipulation](manipulation/)** - Array manipulation functions
-- **[math](math/)** - Mathematical functions
-- **[reshaping](reshaping/)** - Array reshaping operations
-- **[statistics](statistics/)** - Statistical functions
-- **[utils](utils/)** - Utility functions
-- **[visualization](visualization/)** - Visualization utilities
-
-## See Also
-
-- [Lib overview](../) - All lib nodes
-- [Nodes overview](../../) - All node documentation
+[Back to all nodes](../../)

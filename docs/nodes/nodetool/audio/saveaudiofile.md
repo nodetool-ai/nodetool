@@ -37,4 +37,4 @@ Write an audio file to disk.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.audio](../) namespace.
+Browse other nodes in the [nodetool.audio](./) namespace.

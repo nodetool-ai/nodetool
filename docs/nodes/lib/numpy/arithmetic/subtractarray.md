@@ -31,5 +31,5 @@ Subtracts the second array from the first.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.array.arithmetic](../) namespace.
+Browse other nodes in the [lib.array.arithmetic](./) namespace.
 

@@ -31,5 +31,5 @@ Divides the first array by the second.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.array.arithmetic](../) namespace.
+Browse other nodes in the [lib.array.arithmetic](./) namespace.
 

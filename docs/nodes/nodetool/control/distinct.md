@@ -34,4 +34,4 @@ Drop duplicate items from a stream. Optional key expression for grouping.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.control](../) namespace.
+Browse other nodes in the [nodetool.control](./) namespace.

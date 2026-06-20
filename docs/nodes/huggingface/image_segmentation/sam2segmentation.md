@@ -36,5 +36,5 @@ Performs semantic segmentation on images using SAM2 (Segment Anything Model 2).
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.image_segmentation](../) namespace.
+Browse other nodes in the [huggingface.image_segmentation](./) namespace.
 

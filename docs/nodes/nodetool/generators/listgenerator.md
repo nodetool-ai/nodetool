@@ -36,4 +36,4 @@ LLM Agent to create a stream of strings based on a user prompt.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.generators](../) namespace.
+Browse other nodes in the [nodetool.generators](./) namespace.

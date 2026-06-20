@@ -35,4 +35,4 @@ Execute a GraphQL query or mutation with Bearer token authentication.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.graphql](../) namespace.
+Browse other nodes in the [lib.graphql](./) namespace.

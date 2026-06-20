@@ -35,5 +35,5 @@ Apply a solarize effect to partially invert image tones.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.image.filter](../) namespace.
+Browse other nodes in the [lib.image.filter](./) namespace.
 

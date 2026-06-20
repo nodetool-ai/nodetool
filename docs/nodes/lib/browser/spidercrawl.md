@@ -50,4 +50,4 @@ Crawls websites following links and emitting URLs with optional HTML content.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.browser](../) namespace.
+Browse other nodes in the [lib.browser](./) namespace.

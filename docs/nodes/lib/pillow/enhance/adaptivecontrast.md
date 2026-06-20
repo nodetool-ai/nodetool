@@ -36,5 +36,5 @@ Applies localized contrast enhancement using adaptive techniques.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.image.enhance](../) namespace.
+Browse other nodes in the [lib.image.enhance](./) namespace.
 

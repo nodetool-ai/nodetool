@@ -50,4 +50,4 @@ Generate natural language responses using LLM providers and streams output.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.agents](../) namespace.
+Browse other nodes in the [nodetool.agents](./) namespace.

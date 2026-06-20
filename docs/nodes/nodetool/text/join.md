@@ -29,4 +29,4 @@ Joins a list of strings into a single string using a specified separator.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.text](../) namespace.
+Browse other nodes in the [nodetool.text](./) namespace.

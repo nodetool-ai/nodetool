@@ -32,5 +32,5 @@ Shortens text to fit within a width, using a placeholder if truncated.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.textwrap](../) namespace.
+Browse other nodes in the [lib.textwrap](./) namespace.
 

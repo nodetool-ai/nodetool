@@ -34,4 +34,4 @@ Scrape Instagram profiles, posts, comments, and hashtags.
 
 ## Related Nodes
 
-Browse other nodes in the [apify.scraping](../) namespace.
+Browse other nodes in the [apify.scraping](./) namespace.

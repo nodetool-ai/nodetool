@@ -36,4 +36,4 @@ Generate videos from input images using any supported video provider.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.video](../) namespace.
+Browse other nodes in the [nodetool.video](./) namespace.

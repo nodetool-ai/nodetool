@@ -33,4 +33,4 @@ Pass data through unchanged for tidier workflow layouts.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.control](../) namespace.
+Browse other nodes in the [nodetool.control](./) namespace.

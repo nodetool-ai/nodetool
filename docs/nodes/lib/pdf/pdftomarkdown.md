@@ -29,4 +29,4 @@ Convert PDF to Markdown, inferring headings from font size.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pdf](../) namespace.
+Browse other nodes in the [lib.pdf](./) namespace.

@@ -28,4 +28,4 @@ Check whether a value is a syntactically valid email address.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.validate](../) namespace.
+Browse other nodes in the [lib.validate](./) namespace.

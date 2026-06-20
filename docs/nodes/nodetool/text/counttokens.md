@@ -29,4 +29,4 @@ Counts the number of tokens in text using tiktoken.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.text](../) namespace.
+Browse other nodes in the [nodetool.text](./) namespace.

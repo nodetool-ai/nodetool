@@ -37,5 +37,5 @@ Extract plain text from a PDF document using PyMuPDF.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pymupdf](../) namespace.
+Browse other nodes in the [lib.pymupdf](./) namespace.
 

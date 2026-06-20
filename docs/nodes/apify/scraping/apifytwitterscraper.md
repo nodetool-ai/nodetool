@@ -33,4 +33,4 @@ Scrape Twitter/X posts, profiles, and followers.
 
 ## Related Nodes
 
-Browse other nodes in the [apify.scraping](../) namespace.
+Browse other nodes in the [apify.scraping](./) namespace.

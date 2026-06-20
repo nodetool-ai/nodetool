@@ -45,5 +45,5 @@ Generate images with MFlux ControlNet guidance using local MLX acceleration.
 
 ## Related Nodes
 
-Browse other nodes in the [mlx.image_to_image](../) namespace.
+Browse other nodes in the [mlx.image_to_image](./) namespace.
 

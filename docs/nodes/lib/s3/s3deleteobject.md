@@ -30,4 +30,4 @@ Deletes an object from an S3 bucket.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.s3](../) namespace.
+Browse other nodes in the [lib.s3](./) namespace.

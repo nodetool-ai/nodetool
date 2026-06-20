@@ -43,5 +43,5 @@ Kokoro is an open-weight, fast, and lightweight TTS model (~82M params) with Apa
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.text_to_speech](../) namespace.
+Browse other nodes in the [huggingface.text_to_speech](./) namespace.
 

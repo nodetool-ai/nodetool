@@ -35,4 +35,4 @@ Get metadata information about a video file.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.video](../) namespace.
+Browse other nodes in the [nodetool.video](./) namespace.

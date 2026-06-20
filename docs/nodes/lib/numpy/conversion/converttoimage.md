@@ -35,5 +35,5 @@ Convert array data to PIL Image format.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.array.conversion](../) namespace.
+Browse other nodes in the [lib.array.conversion](./) namespace.
 

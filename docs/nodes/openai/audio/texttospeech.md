@@ -31,4 +31,4 @@ Converts text to speech using OpenAI TTS models.
 
 ## Related Nodes
 
-Browse other nodes in the [openai.audio](../) namespace.
+Browse other nodes in the [openai.audio](./) namespace.

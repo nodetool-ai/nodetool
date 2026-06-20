@@ -47,5 +47,5 @@ Performs image inpainting/filling using FLUX Fill models with support for GGUF q
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.image_to_image](../) namespace.
+Browse other nodes in the [huggingface.image_to_image](./) namespace.
 

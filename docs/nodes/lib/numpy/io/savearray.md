@@ -46,5 +46,5 @@ Save a numpy array to a file in the specified folder.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.array.io](../) namespace.
+Browse other nodes in the [lib.array.io](./) namespace.
 

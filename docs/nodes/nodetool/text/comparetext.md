@@ -36,4 +36,4 @@ Compares two text values and reports ordering.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.text](../) namespace.
+Browse other nodes in the [nodetool.text](./) namespace.

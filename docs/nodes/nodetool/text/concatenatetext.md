@@ -29,4 +29,4 @@ Concatenates text inputs into a single output.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.text](../) namespace.
+Browse other nodes in the [nodetool.text](./) namespace.

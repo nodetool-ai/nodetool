@@ -30,4 +30,4 @@ Accepts a reference to a video asset for workflows, specified by a 'VideoRef'.  
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.input](../) namespace.
+Browse other nodes in the [nodetool.input](./) namespace.

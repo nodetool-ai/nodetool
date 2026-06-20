@@ -33,4 +33,4 @@ Executes Lua code with a local sandbox (no Docker).
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.code](../) namespace.
+Browse other nodes in the [nodetool.code](./) namespace.

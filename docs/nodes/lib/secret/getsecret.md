@@ -29,4 +29,4 @@ Get a secret value from configuration.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.secret](../) namespace.
+Browse other nodes in the [lib.secret](./) namespace.

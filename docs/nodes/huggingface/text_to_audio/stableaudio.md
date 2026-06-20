@@ -41,5 +41,5 @@ Generate audio using Stable Audio model based on text prompts. Features high-qua
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.text_to_audio](../) namespace.
+Browse other nodes in the [huggingface.text_to_audio](./) namespace.
 

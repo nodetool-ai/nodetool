@@ -34,4 +34,4 @@ Passthrough that logs each item to the console as a side effect.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.control](../) namespace.
+Browse other nodes in the [nodetool.control](./) namespace.

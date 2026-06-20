@@ -49,4 +49,4 @@ Generate speech audio from text using Google's Gemini text-to-speech models.
 
 ## Related Nodes
 
-Browse other nodes in the [gemini.audio](../) namespace.
+Browse other nodes in the [gemini.audio](./) namespace.

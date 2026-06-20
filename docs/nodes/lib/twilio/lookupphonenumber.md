@@ -35,4 +35,4 @@ Look up phone number information using the Twilio Lookup API.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.twilio](../) namespace.
+Browse other nodes in the [lib.twilio](./) namespace.

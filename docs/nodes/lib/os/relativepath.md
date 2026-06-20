@@ -34,4 +34,4 @@ Return a relative path to a target from a start directory.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.os](../) namespace.
+Browse other nodes in the [lib.os](./) namespace.

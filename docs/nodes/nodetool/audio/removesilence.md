@@ -33,4 +33,4 @@ Removes or shortens silence in an audio file with smooth transitions.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.audio](../) namespace.
+Browse other nodes in the [nodetool.audio](./) namespace.

@@ -34,4 +34,4 @@ Combine a grid of image tiles into a single image.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.grid](../) namespace.
+Browse other nodes in the [lib.grid](./) namespace.

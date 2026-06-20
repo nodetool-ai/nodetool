@@ -29,5 +29,5 @@ Return a random boolean value.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.random](../) namespace.
+Browse other nodes in the [lib.random](./) namespace.
 

@@ -44,5 +44,5 @@ Generate images using reference images with Flux Redux guidance on Apple Silicon
 
 ## Related Nodes
 
-Browse other nodes in the [mlx.image_to_image](../) namespace.
+Browse other nodes in the [mlx.image_to_image](./) namespace.
 

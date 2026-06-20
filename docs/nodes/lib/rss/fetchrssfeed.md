@@ -38,4 +38,4 @@ Fetches and parses an RSS feed from a URL.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.rss](../) namespace.
+Browse other nodes in the [lib.rss](./) namespace.

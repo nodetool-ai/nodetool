@@ -3,12 +3,10 @@ layout: page
 title: "lib.http_server Nodes"
 ---
 
-
 This namespace contains 1 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[Simple Http Server](simplehttpserver.md)** - Starts a simple HTTP server inside Docker and streams logs.
-    http, server, web
+- **[Simple Http Server](simplehttpserver.md)**
 
-    Emits the ...
+[Back to all nodes](../../)

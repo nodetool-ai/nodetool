@@ -33,4 +33,4 @@ Convert a FilePath object to a string.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.os](../) namespace.
+Browse other nodes in the [lib.os](./) namespace.

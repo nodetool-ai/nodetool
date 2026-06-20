@@ -46,5 +46,5 @@ Performs image editing using the Qwen Image Edit model with support for GGUF qua
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.image_to_image](../) namespace.
+Browse other nodes in the [huggingface.image_to_image](./) namespace.
 

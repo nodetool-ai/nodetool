@@ -25,8 +25,8 @@ Generates and edits images using the OmniGen model, supporting multimodal inputs
 
 | Property | Type | Description | Default |
 |----------|------|-------------|----------|
-| prompt | `str` | The text prompt for image generation. Use <img><|image_1|></img> placeholders to reference input images. | `A realistic photo of a young woman sitting on a sofa, holding a book and facing the camera.` |
-| input_images | `List[image]` | List of input images to use for editing or as reference. Referenced in prompt using <img><|image_1|></img>, <img><|image_2|></img>, etc. | `[]` |
+| prompt | `str` | The text prompt for image generation. Use &lt;img&gt;<|image_1|>&lt;/img&gt; placeholders to reference input images. | `A realistic photo of a young woman sitting on a sofa, holding a book and facing the camera.` |
+| input_images | `List[image]` | List of input images to use for editing or as reference. Referenced in prompt using &lt;img&gt;<|image_1|>&lt;/img&gt;, &lt;img&gt;<|image_2|>&lt;/img&gt;, etc. | `[]` |
 | height | `int` | Height of the generated image. | `1024` |
 | width | `int` | Width of the generated image. | `1024` |
 | guidance_scale | `float` | Guidance scale for generation. Higher values follow the prompt more closely. | `2.5` |
@@ -47,5 +47,5 @@ Generates and edits images using the OmniGen model, supporting multimodal inputs
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.image_to_image](../) namespace.
+Browse other nodes in the [huggingface.image_to_image](./) namespace.
 

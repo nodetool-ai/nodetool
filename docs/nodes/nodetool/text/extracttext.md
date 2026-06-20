@@ -30,4 +30,4 @@ Extracts a substring from input text.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.text](../) namespace.
+Browse other nodes in the [nodetool.text](./) namespace.

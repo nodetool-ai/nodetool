@@ -38,5 +38,5 @@ Finds close matches for a word within a list of possibilities.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.difflib](../) namespace.
+Browse other nodes in the [lib.difflib](./) namespace.
 

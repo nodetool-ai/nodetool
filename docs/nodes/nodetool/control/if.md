@@ -35,4 +35,4 @@ Conditionally executes one of two branches based on a condition.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.control](../) namespace.
+Browse other nodes in the [nodetool.control](./) namespace.

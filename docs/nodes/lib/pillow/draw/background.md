@@ -38,5 +38,5 @@ The Background Node creates a blank background.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.image.draw](../) namespace.
+Browse other nodes in the [lib.image.draw](./) namespace.
 

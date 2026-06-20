@@ -29,4 +29,4 @@ to add a named audio input handle. Each handle accepts an `audio` ref.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.audio](../) namespace.
+Browse other nodes in the [nodetool.audio](./) namespace.

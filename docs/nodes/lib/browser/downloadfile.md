@@ -33,4 +33,4 @@ Downloads a file from a URL and saves it to disk.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.browser](../) namespace.
+Browse other nodes in the [lib.browser](./) namespace.

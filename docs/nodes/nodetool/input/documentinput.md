@@ -36,4 +36,4 @@ Accepts a reference to a document asset for workflows, specified by a 'DocumentR
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.input](../) namespace.
+Browse other nodes in the [nodetool.input](./) namespace.

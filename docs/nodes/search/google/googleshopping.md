@@ -35,4 +35,4 @@ Search Google Shopping for products with filters and pricing information.
 
 ## Related Nodes
 
-Browse other nodes in the [search.google](../) namespace.
+Browse other nodes in the [search.google](./) namespace.

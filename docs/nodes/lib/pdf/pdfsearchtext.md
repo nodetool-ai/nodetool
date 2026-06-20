@@ -31,4 +31,4 @@ Search a PDF for a phrase and return each match with its page number and boundin
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pdf](../) namespace.
+Browse other nodes in the [lib.pdf](./) namespace.

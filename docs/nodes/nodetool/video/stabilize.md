@@ -30,4 +30,4 @@ Apply video stabilization to reduce camera shake and jitter.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.video](../) namespace.
+Browse other nodes in the [nodetool.video](./) namespace.

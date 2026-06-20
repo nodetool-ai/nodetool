@@ -35,5 +35,5 @@ Convert PIL Image to normalized tensor representation.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.array.conversion](../) namespace.
+Browse other nodes in the [lib.array.conversion](./) namespace.
 

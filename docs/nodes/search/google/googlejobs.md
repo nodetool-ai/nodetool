@@ -31,4 +31,4 @@ Search Google Jobs for employment opportunities and job listings.
 
 ## Related Nodes
 
-Browse other nodes in the [search.google](../) namespace.
+Browse other nodes in the [search.google](./) namespace.

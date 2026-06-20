@@ -30,5 +30,5 @@ Index multiple text chunks at once with aggregated embeddings from Ollama.
 
 ## Related Nodes
 
-Browse other nodes in the [vector.chroma](../) namespace.
+Browse other nodes in the [vector.chroma](./) namespace.
 

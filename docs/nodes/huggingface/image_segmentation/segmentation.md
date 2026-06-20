@@ -35,5 +35,5 @@ Performs semantic segmentation on images, identifying and labeling different reg
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.image_segmentation](../) namespace.
+Browse other nodes in the [huggingface.image_segmentation](./) namespace.
 

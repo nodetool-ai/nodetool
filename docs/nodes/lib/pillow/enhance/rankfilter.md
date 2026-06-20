@@ -37,5 +37,5 @@ Applies rank-based filtering to enhance or smooth image features.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.image.enhance](../) namespace.
+Browse other nodes in the [lib.image.enhance](./) namespace.
 

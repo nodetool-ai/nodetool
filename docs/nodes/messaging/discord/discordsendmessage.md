@@ -31,4 +31,4 @@ Node that sends a message to a Discord channel using a bot token.
 
 ## Related Nodes
 
-Browse other nodes in the [messaging.discord](../) namespace.
+Browse other nodes in the [messaging.discord](./) namespace.

@@ -37,5 +37,5 @@ Reranks pairs of text based on their semantic similarity.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.ranking](../) namespace.
+Browse other nodes in the [huggingface.ranking](./) namespace.
 

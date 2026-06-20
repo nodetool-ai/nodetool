@@ -28,4 +28,4 @@ Retrieve a Notion page and its properties.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.notion](../) namespace.
+Browse other nodes in the [lib.notion](./) namespace.

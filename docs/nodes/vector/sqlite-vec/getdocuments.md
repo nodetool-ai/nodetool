@@ -33,5 +33,5 @@ Get documents from a chroma collection.
 
 ## Related Nodes
 
-Browse other nodes in the [vector.chroma](../) namespace.
+Browse other nodes in the [vector.chroma](./) namespace.
 

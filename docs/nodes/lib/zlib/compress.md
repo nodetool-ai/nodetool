@@ -36,5 +36,5 @@ Compress binary data using the zlib algorithm.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.zlib](../) namespace.
+Browse other nodes in the [lib.zlib](./) namespace.
 

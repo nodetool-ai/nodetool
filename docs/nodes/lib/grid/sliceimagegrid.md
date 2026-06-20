@@ -35,4 +35,4 @@ Slice an image into a grid of tiles.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.grid](../) namespace.
+Browse other nodes in the [lib.grid](./) namespace.

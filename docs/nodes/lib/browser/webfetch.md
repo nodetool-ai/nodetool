@@ -34,4 +34,4 @@ Fetches HTML content from a URL and converts it to text.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.browser](../) namespace.
+Browse other nodes in the [lib.browser](./) namespace.

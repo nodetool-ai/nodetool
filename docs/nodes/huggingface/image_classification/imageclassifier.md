@@ -35,5 +35,5 @@ Classifies images into predefined categories.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.image_classification](../) namespace.
+Browse other nodes in the [huggingface.image_classification](./) namespace.
 

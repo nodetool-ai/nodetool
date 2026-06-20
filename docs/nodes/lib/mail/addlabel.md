@@ -29,4 +29,4 @@ Adds a label to a Gmail message.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.mail](../) namespace.
+Browse other nodes in the [lib.mail](./) namespace.

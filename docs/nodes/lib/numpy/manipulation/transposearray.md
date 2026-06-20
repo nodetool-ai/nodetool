@@ -35,5 +35,5 @@ Transpose the dimensions of the input array.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.array.manipulation](../) namespace.
+Browse other nodes in the [lib.array.manipulation](./) namespace.
 

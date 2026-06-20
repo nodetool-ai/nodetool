@@ -3,12 +3,11 @@ layout: page
 title: "huggingface.text_to_video Nodes"
 ---
 
-
 This namespace contains 2 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[CogVideoX](cogvideox.md)** - Generates videos from text prompts using CogVideoX, a large diffusion transformer model.
-    vide...
-- **[Wan (Text-to-Video)](wan_t2v.md)** - Generates videos from text prompts using Wan text-to-video pipeline.
-    video, generation, AI, t...
+- **[CogVideoX](cogvideox.md)**
+- **[Wan (Text-to-Video)](wan_t2v.md)**
+
+[Back to all nodes](../../)

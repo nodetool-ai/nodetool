@@ -27,5 +27,5 @@ Index a single embedding vector into a Chroma collection with optional metadata.
 
 ## Related Nodes
 
-Browse other nodes in the [vector.chroma](../) namespace.
+Browse other nodes in the [vector.chroma](./) namespace.
 

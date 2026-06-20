@@ -29,4 +29,4 @@ Aggregates audio chunks from an input stream into AudioRef objects.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.audio](../) namespace.
+Browse other nodes in the [nodetool.audio](./) namespace.

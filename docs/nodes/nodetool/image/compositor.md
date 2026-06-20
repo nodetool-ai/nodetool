@@ -28,4 +28,4 @@ Composite multiple image layers with per-layer opacity and blend mode.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.image](../) namespace.
+Browse other nodes in the [nodetool.image](./) namespace.

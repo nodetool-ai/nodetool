@@ -39,4 +39,4 @@ Send a plain text email via SMTP.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.mail](../) namespace.
+Browse other nodes in the [lib.mail](./) namespace.

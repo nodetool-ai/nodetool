@@ -3,12 +3,10 @@ layout: page
 title: "huggingface.fill_mask Nodes"
 ---
 
-
 This namespace contains 1 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[Fill Mask](fillmask.md)** - Fills in a masked token in a given text.
-    text, fill-mask, natural language processing
+- **[Fill Mask](fillmask.md)**
 
-    Us...
+[Back to all nodes](../../)

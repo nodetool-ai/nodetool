@@ -35,4 +35,4 @@ Shows a system notification.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.os](../) namespace.
+Browse other nodes in the [lib.os](./) namespace.

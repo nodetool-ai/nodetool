@@ -36,5 +36,5 @@ Bark is a text-to-audio model created by Suno. Bark can generate highly realisti
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.text_to_speech](../) namespace.
+Browse other nodes in the [huggingface.text_to_speech](./) namespace.
 

@@ -30,4 +30,4 @@ Search Google News to retrieve current news articles and headlines.
 
 ## Related Nodes
 
-Browse other nodes in the [search.google](../) namespace.
+Browse other nodes in the [search.google](./) namespace.

@@ -26,4 +26,4 @@ _(none)_
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.image](../) namespace.
+Browse other nodes in the [nodetool.image](./) namespace.

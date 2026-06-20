@@ -33,4 +33,4 @@ Scrape websites using Apify's Web Scraper actor.
 
 ## Related Nodes
 
-Browse other nodes in the [apify.scraping](../) namespace.
+Browse other nodes in the [apify.scraping](./) namespace.

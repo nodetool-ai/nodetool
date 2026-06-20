@@ -41,5 +41,5 @@ Performs image editing using FLUX Kontext models for context-aware image generat
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.image_to_image](../) namespace.
+Browse other nodes in the [huggingface.image_to_image](./) namespace.
 

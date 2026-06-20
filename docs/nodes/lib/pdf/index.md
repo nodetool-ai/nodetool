@@ -5,16 +5,18 @@ title: "lib.pdf Nodes"
 
 This namespace contains 11 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[PDF Extract Styled Text](pdfextractstyledtext.md)** - Extract text spans with font name, size, bounding box, and color (always null...
-- **[PDF Extract Tables](pdfextracttables.md)** - Detect and extract tables from a PDF by analysing text layout.
-- **[PDF Extract Text](pdfextracttext.md)** - Extract plain text from a PDF, preserving line breaks based on layout position.
-- **[PDF Extract Text (OCR)](pdfextracttextocr.md)** - Extract text from a PDF using OCR, suitable for scanned documents and image-b...
-- **[PDF Extract Text Blocks](pdfextracttextblocks.md)** - Extract text blocks with bounding boxes, useful for layout analysis.
-- **[PDF Page Count](pdfpagecount.md)** - Get the total number of pages in a PDF document.
-- **[PDF Page Metadata](pdfpagemetadata.md)** - Get dimensions and bounding box for each page.
-- **[PDF Page Screenshot](pdfpagescreenshot.md)** - Render PDF pages as PNG images.
-- **[PDF Rasterize (pdftoppm)](pdfrasterizepdftoppm.md)** - Rasterize PDF pages with poppler's pdftoppm. Higher fidelity than the PDFium-...
-- **[PDF Search Text](pdfsearchtext.md)** - Search a PDF for a phrase and return each match with its page number and boun...
-- **[PDF to Markdown](pdftomarkdown.md)** - Convert PDF to Markdown, inferring headings from font size.
+- **[PDF Extract Styled Text](pdfextractstyledtext.md)**
+- **[PDF Extract Tables](pdfextracttables.md)**
+- **[PDF Extract Text](pdfextracttext.md)**
+- **[PDF Extract Text (OCR)](pdfextracttextocr.md)**
+- **[PDF Extract Text Blocks](pdfextracttextblocks.md)**
+- **[PDF Page Count](pdfpagecount.md)**
+- **[PDF Page Metadata](pdfpagemetadata.md)**
+- **[PDF Page Screenshot](pdfpagescreenshot.md)**
+- **[PDF Rasterize (pdftoppm)](pdfrasterizepdftoppm.md)**
+- **[PDF Search Text](pdfsearchtext.md)**
+- **[PDF to Markdown](pdftomarkdown.md)**
+
+[Back to all nodes](../../)
