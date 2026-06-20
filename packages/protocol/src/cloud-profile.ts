@@ -113,7 +113,6 @@ export const CLOUD_NODE_ALLOWLIST: readonly string[] = [
   // Curated creative-text nodes.
   "nodetool.text.Prompt",
   "nodetool.text.Template",
-  "nodetool.text.FormatText",
   "nodetool.text.Concat",
   "nodetool.text.Join",
   "nodetool.text.Collect",

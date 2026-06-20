@@ -24,6 +24,7 @@ import {
 import { customEquality } from "./customEquality";
 
 import { Node as GraphNode, Edge as GraphEdge } from "./ApiTypes";
+import { migrateGraphNodeTypes } from "@nodetool-ai/protocol";
 import { autoLayout } from "../core/graph";
 import { isConnectable, isCollectType } from "../utils/TypeHandler";
 import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
@@ -229,16 +230,23 @@ export const createNodeStore = (
         const nodeTypes = useMetadataStore.getState().nodeTypes;
         const addNodeType = useMetadataStore.getState().addNodeType;
 
-        const unsanitizedNodes = workflow
-          ? (workflow.graph?.nodes || []).map((n: GraphNode) =>
-              graphNodeToReactFlowNode(workflow, n)
-            )
-          : [];
-        const unsanitizedEdges = workflow
-          ? (workflow.graph?.edges || []).map((e: GraphEdge) =>
-              graphEdgeToReactFlowEdge(e)
-            )
-          : [];
+        // Rewrite removed node types (e.g. FormatText -> Prompt) so legacy
+        // workflows load into the editor as their replacements.
+        const migratedGraph = workflow?.graph
+          ? migrateGraphNodeTypes(workflow.graph)
+          : undefined;
+        const unsanitizedNodes =
+          workflow && migratedGraph
+            ? (migratedGraph.nodes || []).map((n: GraphNode) =>
+                graphNodeToReactFlowNode(workflow, n)
+              )
+            : [];
+        const unsanitizedEdges =
+          workflow && migratedGraph
+            ? (migratedGraph.edges || []).map((e: GraphEdge) =>
+                graphEdgeToReactFlowEdge(e)
+              )
+            : [];
 
         const { nodes: sanitizedNodes, edges: sanitizedEdges } = sanitizeGraph(
           unsanitizedNodes,
