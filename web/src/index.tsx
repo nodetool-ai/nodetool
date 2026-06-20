@@ -88,6 +88,9 @@ const AssetExplorer = React.lazy(
 const CollectionsExplorer = React.lazy(
   () => import("./components/collections/CollectionsExplorer")
 );
+const ExamplesPage = React.lazy(
+  () => import("./components/portal/ExamplesPage")
+);
 const ChainEditorPage = React.lazy(
   () => import("./components/chain_editor/ChainEditorPage")
 );
@@ -301,6 +304,14 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <CollectionsExplorer />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "examples",
+      element: (
+        <ProtectedRoute>
+          <ExamplesPage />
         </ProtectedRoute>
       )
     },
