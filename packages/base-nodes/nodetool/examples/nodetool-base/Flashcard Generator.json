@@ -38,8 +38,7 @@
           "title": "1️⃣ Topic"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "create_table",
@@ -84,8 +83,7 @@
           "title": "🗄️ Create table"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "format_prompt",
@@ -108,8 +106,7 @@
         "dynamic_properties": {
           "TOPIC": ""
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "generate_flashcards",
@@ -150,8 +147,7 @@
           "title": "3️⃣ Generate flashcards"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "insert_flashcard",
@@ -170,8 +166,7 @@
           "title": "4️⃣ Save to database"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "query_all",
@@ -194,8 +189,7 @@
           "title": "5️⃣ Read all cards"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "603e6bfa-2d6d-4aed-81a8-a533b8f77fad",
@@ -216,8 +210,7 @@
           "selectable": true
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ],
     "edges": [

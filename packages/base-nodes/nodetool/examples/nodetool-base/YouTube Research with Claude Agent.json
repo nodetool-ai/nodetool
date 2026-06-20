@@ -59,8 +59,7 @@
           "height": 180
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "youtube-search-node",
@@ -80,8 +79,7 @@
           "title": "1️⃣ Search YouTube"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "format-prompt-node",
@@ -106,8 +104,7 @@
             "optional": false
           }
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "claude-agent-node",
@@ -136,8 +133,7 @@
           "title": "3️⃣ Claude research agent"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ]
   },

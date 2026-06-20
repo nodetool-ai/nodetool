@@ -82,8 +82,7 @@
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "input_genre",
@@ -105,8 +104,7 @@
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "input_character",
@@ -128,8 +126,7 @@
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "template_constant",
@@ -150,8 +147,7 @@
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "format_prompt",
@@ -173,8 +169,7 @@
           "CHARACTER": "",
           "SETTING": ""
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "list_generator",
@@ -195,8 +190,7 @@
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ]
   },

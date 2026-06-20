@@ -1,8 +1,8 @@
 {
   "id": "",
   "access": "private",
-  "created_at": "2026-05-07T05:34:27.426Z",
-  "updated_at": "2026-05-07T05:37:35.927Z",
+  "created_at": "2026-06-20T10:54:13.137Z",
+  "updated_at": "2026-06-20T11:03:18.793Z",
   "name": "Agent Google Search",
   "tool_name": null,
   "description": "Demonstrates an Agent using dynamic outputs to perform Google searches and display results.",
@@ -18,23 +18,23 @@
   "graph": {
     "edges": [
       {
-        "id": "d511b097-2af9-4cc4-a497-ec2452c8a609",
-        "source": "6ababfd3-5743-4d7c-accd-97242130a8d8",
-        "sourceHandle": "text",
-        "target": "d6a1dc18-d26c-45c4-9196-2d6524018b1b",
-        "targetHandle": "keyword",
-        "ui_properties": {
-          "className": "str"
-        },
-        "edge_type": "data"
-      },
-      {
         "id": "a9f30c9f-03a2-459d-aec8-8cdc45f7c591",
         "source": "6ababfd3-5743-4d7c-accd-97242130a8d8",
         "sourceHandle": "__control__",
         "target": "d6a1dc18-d26c-45c4-9196-2d6524018b1b",
         "targetHandle": "__control__",
         "edge_type": "control"
+      },
+      {
+        "id": "9f5a7f36-4226-48b2-90db-bcf2ca98ab21",
+        "source": "6ababfd3-5743-4d7c-accd-97242130a8d8",
+        "sourceHandle": "chunk",
+        "target": "daa79a05-7849-418d-98c3-f2a56912bef4",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "chunk"
+        },
+        "edge_type": "data"
       }
     ],
     "nodes": [
@@ -45,6 +45,7 @@
           "comment": "# 🔎 Agent Google Search\n\nAn agent picks a search query, runs it on Google, and streams the answer.\n\n**Pipeline:** Agent → Google Search\n\n**Try this:** change the agent's objective or model to research a different topic."
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": -473,
             "y": 81
@@ -56,14 +57,18 @@
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "6ababfd3-5743-4d7c-accd-97242130a8d8",
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {},
+          "model": {
+            "type": "language_model",
+            "id": "gemini-2.5-flash",
+            "provider": "gemini",
+            "name": "Gemini 2.5 Flash"
+          },
           "system": "You are a an AI agent. \n\nBehavior\n- Understand the user's intent and the context of the task.\n- Break down the task into smaller steps.\n- Be precise, concise, and actionable.\n- Use tools to accomplish your goal. \n\nTool preambles\n- Outline the next step(s) you will perform.\n- After acting, summarize the outcome.\n\nRendering\n- Use Markdown to display media assets.\n- Display images, audio, and video assets using the appropriate Markdown.\n\nFile handling\n- Inputs and outputs are files in the /workspace directory.\n- Write outputs of code execution to the /workspace directory.\n",
           "prompt": "search for agent libs",
           "image": {
@@ -83,6 +88,7 @@
           "max_tokens": 8192
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 50,
             "y": 50
@@ -94,8 +100,7 @@
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "d6a1dc18-d26c-45c4-9196-2d6524018b1b",
@@ -104,9 +109,10 @@
           "num_results": 10
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 52,
-            "y": 767
+            "x": 50,
+            "y": 347
           },
           "zIndex": 0,
           "width": 280,
@@ -115,8 +121,28 @@
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "daa79a05-7849-418d-98c3-f2a56912bef4",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "chunk"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 385,
+            "y": 49
+          },
+          "zIndex": 0,
+          "width": 351,
+          "height": 462,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       }
     ]
   },
@@ -130,5 +156,5 @@
   "required_providers": null,
   "required_models": null,
   "html_app": null,
-  "etag": "4e1d96a8ba623dd501f0089d8edc5821"
+  "etag": "873365fc9a2574dfbd797d315285f73e"
 }

@@ -95,8 +95,7 @@
           "overview": null,
           "modules": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "3",
@@ -175,8 +174,7 @@
             ],
             "type_name": null
           }
-        },
-        "sync_mode": "on_any"
+        }
       },
       {
         "id": "4",
@@ -199,8 +197,7 @@
         "dynamic_properties": {
           "topic": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "5",
@@ -222,8 +219,7 @@
           "title": "1️⃣ Topic"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ]
   },

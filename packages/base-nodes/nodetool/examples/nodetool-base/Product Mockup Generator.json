@@ -156,8 +156,7 @@
           "title": "Final color adjust"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "3",
@@ -178,8 +177,7 @@
           "title": "Brightness/Contrast"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "4",
@@ -209,8 +207,7 @@
           "title": "Image-to-image polish"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "5",
@@ -238,8 +235,7 @@
           "title": "Product image"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "6",
@@ -261,8 +257,7 @@
           "title": "Generate scene prompts"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "7",
@@ -286,8 +281,7 @@
           "name": null,
           "description": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "8",
@@ -325,8 +319,7 @@
           "title": "Scene concept agent"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "9",
@@ -351,8 +344,7 @@
           "audience": null,
           "count": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "10",
@@ -374,8 +366,7 @@
           "title": "Product name"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "11",
@@ -397,8 +388,7 @@
           "title": "Product description"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "12",
@@ -420,8 +410,7 @@
           "title": "Target audience"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "13",
@@ -445,8 +434,7 @@
           "title": "Scene count"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "15",
@@ -474,8 +462,7 @@
           "title": "Render mockups"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ]
   },

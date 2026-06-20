@@ -34,8 +34,7 @@
           "selectable": true
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "2",
@@ -79,8 +78,7 @@
             "type_args": [],
             "type_name": null
           }
-        },
-        "sync_mode": "on_any"
+        }
       },
       {
         "id": "3",
@@ -103,8 +101,7 @@
           "url": null,
           "label": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "4",
@@ -126,8 +123,7 @@
           "selectable": true
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "5",
@@ -149,8 +145,7 @@
           "selectable": true
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ],
     "edges": [

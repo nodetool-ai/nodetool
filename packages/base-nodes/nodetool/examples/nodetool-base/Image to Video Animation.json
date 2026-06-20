@@ -111,8 +111,7 @@
           "title": "3️⃣ Animate to video"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "3",
@@ -139,8 +138,7 @@
           "title": "2️⃣ Generate still"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "4",
@@ -161,8 +159,7 @@
           "title": "1️⃣ Scene prompt"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "5",
@@ -185,8 +182,7 @@
           "motion": null,
           "duration": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "6",
@@ -207,8 +203,7 @@
           "title": "Motion prompt"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "7",
@@ -229,8 +224,7 @@
           "title": "Duration prompt"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "8",
@@ -251,8 +245,7 @@
           "title": "Negative prompt"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ]
   },

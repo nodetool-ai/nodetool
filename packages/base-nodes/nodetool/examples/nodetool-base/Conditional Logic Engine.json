@@ -181,8 +181,7 @@
           "selectable": true
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "2",
@@ -209,8 +208,7 @@
           "route": null,
           "processing": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "3",
@@ -234,8 +232,7 @@
           "title": "1️⃣ Input value"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "4",
@@ -256,8 +253,7 @@
           "title": "Compare: > 100?"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "5",
@@ -278,8 +274,7 @@
           "title": "Compare: < 50?"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "6",
@@ -299,8 +294,7 @@
           "title": "Extreme? (OR)"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "7",
@@ -321,8 +315,7 @@
           "title": "Route label"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "8",
@@ -340,8 +333,7 @@
           "title": "Switch: high / other"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "9",
@@ -363,8 +355,7 @@
         "dynamic_properties": {
           "value": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "10",
@@ -386,8 +377,7 @@
         "dynamic_properties": {
           "text": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "11",
@@ -405,8 +395,7 @@
           "title": "Switch: low / medium"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "12",
@@ -428,8 +417,7 @@
         "dynamic_properties": {
           "value": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "13",
@@ -451,8 +439,7 @@
         "dynamic_properties": {
           "value": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ]
   },

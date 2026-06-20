@@ -34,8 +34,7 @@
           "selectable": true
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "7",
@@ -58,8 +57,7 @@
           "title": "1️⃣ Audio input"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "c5191702-2a3c-440d-b3af-2db20e74a369",
@@ -80,8 +78,7 @@
           "title": "2️⃣ Transcribe"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ],
     "edges": [

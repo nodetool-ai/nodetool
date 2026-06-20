@@ -34,8 +34,7 @@
           "selectable": true
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "2",
@@ -58,8 +57,7 @@
           "summary": null,
           "posts": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "3",
@@ -133,8 +131,7 @@
             ],
             "type_name": null
           }
-        },
-        "sync_mode": "on_any"
+        }
       },
       {
         "id": "4",
@@ -154,8 +151,7 @@
           "selectable": true
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ],
     "edges": [

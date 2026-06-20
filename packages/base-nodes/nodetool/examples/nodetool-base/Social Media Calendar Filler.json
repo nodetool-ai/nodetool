@@ -185,8 +185,7 @@
           "title": "Brand name"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "monthly_theme",
@@ -207,8 +206,7 @@
           "title": "Monthly theme"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "target_audience",
@@ -229,8 +227,7 @@
           "title": "Target audience"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "brand_voice",
@@ -251,8 +248,7 @@
           "title": "Brand voice"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "posts_per_week",
@@ -275,8 +271,7 @@
           "title": "Posts per week"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "calendar_prompt",
@@ -302,8 +297,7 @@
           "voice": "",
           "frequency": ""
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "content_plan",
@@ -324,8 +318,7 @@
           "title": "1️⃣ Plan calendar"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "content_generator",
@@ -346,8 +339,7 @@
           "voice": "",
           "theme": ""
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "post_prompts",
@@ -368,8 +360,7 @@
           "title": "2️⃣ Write post prompts"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "prompt_iterator",
@@ -387,8 +378,7 @@
           "title": "Loop over posts"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "post_image",
@@ -413,8 +403,7 @@
           "title": "3️⃣ Generate post image"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "collected_images",
@@ -431,8 +420,7 @@
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "caption_generator",
@@ -457,8 +445,7 @@
           "brand": "",
           "voice": ""
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "captions",
@@ -479,8 +466,7 @@
           "title": "4️⃣ Write captions"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "collected_captions",
@@ -497,8 +483,7 @@
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ]
   },

@@ -57,8 +57,7 @@
           "title": "1️⃣ Image"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "77a9cf98-c4c6-4585-930b-badbe641a662",
@@ -83,8 +82,7 @@
           "title": "2️⃣ Write a story"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "9f51da20-90d9-46a7-8131-c79ac63df648",
@@ -104,8 +102,7 @@
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "ffb9de38-7e20-4f07-afa8-6b2a0423315f",
@@ -127,8 +124,7 @@
           "title": "3️⃣ Narrate aloud"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ]
   },

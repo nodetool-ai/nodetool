@@ -119,8 +119,7 @@
           "key_issues": null,
           "recommendations": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "3",
@@ -142,8 +141,7 @@
           "title": "Subreddit"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "4",
@@ -222,8 +220,7 @@
             ],
             "type_name": null
           }
-        },
-        "sync_mode": "on_any"
+        }
       },
       {
         "id": "5",
@@ -246,8 +243,7 @@
           "subreddit": null,
           "focus_area": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "6",
@@ -269,8 +265,7 @@
           "title": "Focus area"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ]
   },

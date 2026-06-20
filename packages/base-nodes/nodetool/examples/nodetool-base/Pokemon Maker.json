@@ -87,8 +87,7 @@
         "dynamic_properties": {
           "animals": ""
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "2f773f4f-c863-4215-bb89-e8cc09e95472",
@@ -111,8 +110,7 @@
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "7613de08-0407-42aa-8dc8-3b7777e9529d",
@@ -135,8 +133,7 @@
           "title": "3️⃣ Generate prompts"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "b55c474e-e397-44a3-adc7-94bcf61eee35",
@@ -158,8 +155,7 @@
           "title": "4️⃣ Render creature"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ]
   },
