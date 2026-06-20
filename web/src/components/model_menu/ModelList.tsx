@@ -395,13 +395,12 @@ function ModelList<TModel extends ModelSelectorModel>({
       if (row.kind === "downloadHeader") {
         return (
           <div style={style}>
-            <Box
+            <FlexRow
+              align="flex-end"
               sx={{
                 px: 1.5,
                 pt: 1.5,
                 pb: 0.5,
-                display: "flex",
-                alignItems: "flex-end",
                 height: "100%"
               }}
             >
@@ -416,7 +415,7 @@ function ModelList<TModel extends ModelSelectorModel>({
               >
                 Available to download
               </Text>
-            </Box>
+            </FlexRow>
           </div>
         );
       }

@@ -1,3 +1,4 @@
+import JsonLd from "../../components/JsonLd";
 import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
@@ -54,5 +55,19 @@ export default function CreativesLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return (
+    <>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Home", item: "https://nodetool.ai" },
+            { "@type": "ListItem", position: 2, name: "Creatives", item: "https://nodetool.ai/creatives" },
+          ],
+        }}
+      />
+      {children}
+    </>
+  );
 }

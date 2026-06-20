@@ -1,6 +1,9 @@
 {
   "name": "@nodetool-ai/node-sdk",
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0 <23.0.0"
+  },
   "version": "0.7.0-rc.23",
   "description": "Node SDK: BaseNode, NodeRegistry, and example nodes",
   "main": "dist/index.js",

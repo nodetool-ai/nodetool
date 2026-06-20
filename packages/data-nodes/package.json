@@ -3,6 +3,9 @@
   "version": "0.7.0-rc.23",
   "description": "NodeTool data nodes \u2014 dataframes (CSV), RSS feeds, charts",
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0 <23.0.0"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
