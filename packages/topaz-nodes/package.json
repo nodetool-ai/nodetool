@@ -1,6 +1,9 @@
 {
   "name": "@nodetool-ai/topaz-nodes",
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0 <23.0.0"
+  },
   "version": "0.7.0-rc.23",
   "description": "Topaz Labs image and video enhancement nodes for the TS workflow runner",
   "main": "dist/index.js",

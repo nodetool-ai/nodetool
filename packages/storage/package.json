@@ -2,6 +2,9 @@
   "name": "@nodetool-ai/storage",
   "version": "0.7.0-rc.23",
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0 <23.0.0"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -14,6 +17,7 @@
   "scripts": {
     "build": "node ../../scripts/build-typescript-workspace.mjs",
     "test": "vitest run",
+    "test:mutation": "stryker run",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
@@ -24,9 +28,11 @@
     "@supabase/supabase-js": "^2.98.0"
   },
   "devDependencies": {
+    "@stryker-mutator/core": "^9.6.1",
+    "@stryker-mutator/vitest-runner": "^9.6.1",
     "@types/node": "^22.0.0",
-    "vitest": "^4.1.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.2"
   },
   "license": "MIT",
   "repository": {

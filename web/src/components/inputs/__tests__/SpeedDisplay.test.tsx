@@ -3,11 +3,11 @@
  *
  * Tests the SpeedDisplay component that shows drag slowdown factor percentage.
  * This component uses React Portal to render outside the DOM hierarchy and
- * falls back to regular rendering if portal creation fails.
+ * tracks mouse position internally via a mousemove listener + rAF.
  */
 
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { createPortal } from "react-dom";
 import { SpeedDisplay } from "../SpeedDisplay";
 
@@ -17,6 +17,10 @@ jest.mock("react-dom", () => ({
   createPortal: jest.fn()
 }));
 
+// Mock requestAnimationFrame to run synchronously in tests
+let rafCallback: FrameRequestCallback | null = null;
+const originalRAF = globalThis.requestAnimationFrame;
+const originalCAF = globalThis.cancelAnimationFrame;
 
 const mockCreatePortal = createPortal as jest.MockedFunction<typeof createPortal>;
 let mockLogWarn: jest.SpyInstance;
@@ -25,15 +29,21 @@ describe("SpeedDisplay", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockLogWarn = jest.spyOn(console, "warn").mockImplementation(() => {});
-    // Default: createPortal works normally
     mockCreatePortal.mockImplementation((node, _container) => {
-      // Return the node directly for testing
       return node as React.ReactPortal;
     });
+    globalThis.requestAnimationFrame = (cb: FrameRequestCallback) => {
+      rafCallback = cb;
+      return 1;
+    };
+    globalThis.cancelAnimationFrame = jest.fn();
   });
 
   afterEach(() => {
     mockLogWarn?.mockRestore();
+    globalThis.requestAnimationFrame = originalRAF;
+    globalThis.cancelAnimationFrame = originalCAF;
+    rafCallback = null;
   });
 
   describe("Visibility behavior", () => {
@@ -41,7 +51,6 @@ describe("SpeedDisplay", () => {
       const { container } = render(
         <SpeedDisplay
           speedFactor={0.5}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={false}
         />
       );
@@ -54,7 +63,6 @@ describe("SpeedDisplay", () => {
       const { container } = render(
         <SpeedDisplay
           speedFactor={0.999}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -67,7 +75,6 @@ describe("SpeedDisplay", () => {
       const { container } = render(
         <SpeedDisplay
           speedFactor={1.0}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -80,7 +87,6 @@ describe("SpeedDisplay", () => {
       const { container } = render(
         <SpeedDisplay
           speedFactor={0.5}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -93,7 +99,6 @@ describe("SpeedDisplay", () => {
       const { container } = render(
         <SpeedDisplay
           speedFactor={0.01}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -106,7 +111,6 @@ describe("SpeedDisplay", () => {
       const { container } = render(
         <SpeedDisplay
           speedFactor={0.998}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -121,7 +125,6 @@ describe("SpeedDisplay", () => {
       render(
         <SpeedDisplay
           speedFactor={0.5}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -133,7 +136,6 @@ describe("SpeedDisplay", () => {
       render(
         <SpeedDisplay
           speedFactor={0.1}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -145,7 +147,6 @@ describe("SpeedDisplay", () => {
       render(
         <SpeedDisplay
           speedFactor={0.01}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -157,7 +158,6 @@ describe("SpeedDisplay", () => {
       render(
         <SpeedDisplay
           speedFactor={0.99}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -169,7 +169,6 @@ describe("SpeedDisplay", () => {
       render(
         <SpeedDisplay
           speedFactor={0.001}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -181,7 +180,6 @@ describe("SpeedDisplay", () => {
       render(
         <SpeedDisplay
           speedFactor={0.956}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -195,7 +193,6 @@ describe("SpeedDisplay", () => {
       render(
         <SpeedDisplay
           speedFactor={0.5}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -210,7 +207,6 @@ describe("SpeedDisplay", () => {
       render(
         <SpeedDisplay
           speedFactor={0.5}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -221,7 +217,6 @@ describe("SpeedDisplay", () => {
 
   describe("Fallback behavior", () => {
     it("should fall back to regular rendering when createPortal throws", () => {
-      // Mock createPortal to throw an error
       mockCreatePortal.mockImplementation(() => {
         throw new Error("Portal creation failed");
       });
@@ -229,12 +224,10 @@ describe("SpeedDisplay", () => {
       const { container } = render(
         <SpeedDisplay
           speedFactor={0.5}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
 
-      // Should still render something (fallback)
       expect(container.firstChild).not.toBeNull();
       expect(mockLogWarn).toHaveBeenCalledWith(
         "Failed to create portal for SpeedDisplay:",
@@ -251,7 +244,6 @@ describe("SpeedDisplay", () => {
       render(
         <SpeedDisplay
           speedFactor={0.5}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -270,7 +262,6 @@ describe("SpeedDisplay", () => {
       render(
         <SpeedDisplay
           speedFactor={0.5}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -279,59 +270,24 @@ describe("SpeedDisplay", () => {
     });
   });
 
-  describe("Positioning", () => {
-    it("should apply correct left position based on mousePosition", () => {
+  describe("Mouse tracking", () => {
+    it("should update position on mousemove via rAF", () => {
       const { container } = render(
         <SpeedDisplay
           speedFactor={0.5}
-          mousePosition={{ x: 200, y: 100 }}
           isDragging={true}
         />
       );
 
       const display = container.querySelector("div");
-      expect(display?.style.left).toBe("175px"); // x - 25
-    });
 
-    it("should apply correct top position based on mousePosition", () => {
-      const { container } = render(
-        <SpeedDisplay
-          speedFactor={0.5}
-          mousePosition={{ x: 100, y: 200 }}
-          isDragging={true}
-        />
-      );
+      act(() => {
+        fireEvent.mouseMove(document, { clientX: 200, clientY: 300 });
+        if (rafCallback) rafCallback(0);
+      });
 
-      const display = container.querySelector("div");
-      expect(display?.style.top).toBe("230px"); // y + 30
-    });
-
-    it("should handle zero position values", () => {
-      const { container } = render(
-        <SpeedDisplay
-          speedFactor={0.5}
-          mousePosition={{ x: 0, y: 0 }}
-          isDragging={true}
-        />
-      );
-
-      const display = container.querySelector("div");
-      expect(display?.style.left).toBe("-25px"); // 0 - 25
-      expect(display?.style.top).toBe("30px"); // 0 + 30
-    });
-
-    it("should handle negative position values", () => {
-      const { container } = render(
-        <SpeedDisplay
-          speedFactor={0.5}
-          mousePosition={{ x: -50, y: -50 }}
-          isDragging={true}
-        />
-      );
-
-      const display = container.querySelector("div");
-      expect(display?.style.left).toBe("-75px"); // -50 - 25
-      expect(display?.style.top).toBe("-20px"); // -50 + 30
+      expect(display?.style.left).toBe("175px");
+      expect(display?.style.top).toBe("330px");
     });
   });
 
@@ -340,7 +296,6 @@ describe("SpeedDisplay", () => {
       const { container } = render(
         <SpeedDisplay
           speedFactor={0.5}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -353,7 +308,6 @@ describe("SpeedDisplay", () => {
       const { container } = render(
         <SpeedDisplay
           speedFactor={0.5}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -366,7 +320,6 @@ describe("SpeedDisplay", () => {
       const { container } = render(
         <SpeedDisplay
           speedFactor={0.5}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -379,7 +332,6 @@ describe("SpeedDisplay", () => {
       const { container } = render(
         <SpeedDisplay
           speedFactor={0.5}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -392,7 +344,6 @@ describe("SpeedDisplay", () => {
       const { container } = render(
         <SpeedDisplay
           speedFactor={0.5}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -405,7 +356,6 @@ describe("SpeedDisplay", () => {
       const { container } = render(
         <SpeedDisplay
           speedFactor={0.5}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -418,7 +368,6 @@ describe("SpeedDisplay", () => {
       const { container } = render(
         <SpeedDisplay
           speedFactor={0.5}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -430,16 +379,13 @@ describe("SpeedDisplay", () => {
 
   describe("Default values", () => {
     it("should not render when speedFactor is 1.0 (default parameter value)", () => {
-      // Test that the default parameter value works correctly
       const { container } = render(
         <SpeedDisplay
           speedFactor={1.0}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
 
-      // speedFactor of 1.0 means no slowdown, should not render
       expect(container.firstChild).toBeNull();
     });
   });
@@ -449,41 +395,11 @@ describe("SpeedDisplay", () => {
       render(
         <SpeedDisplay
           speedFactor={0.0001}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
 
-      // 0.0001 * 100 = 0.01%, toFixed(0) = "0"
       expect(screen.getByText("0%")).toBeInTheDocument();
-    });
-
-    it("should handle large position values", () => {
-      const { container } = render(
-        <SpeedDisplay
-          speedFactor={0.5}
-          mousePosition={{ x: 10000, y: 10000 }}
-          isDragging={true}
-        />
-      );
-
-      const display = container.querySelector("div");
-      expect(display?.style.left).toBe("9975px"); // 10000 - 25
-      expect(display?.style.top).toBe("10030px"); // 10000 + 30
-    });
-
-    it("should handle decimal position values", () => {
-      const { container } = render(
-        <SpeedDisplay
-          speedFactor={0.5}
-          mousePosition={{ x: 100.5, y: 200.7 }}
-          isDragging={true}
-        />
-      );
-
-      const display = container.querySelector("div");
-      expect(display?.style.left).toBe("75.5px"); // 100.5 - 25
-      expect(display?.style.top).toBe("230.7px"); // 200.7 + 30
     });
   });
 
@@ -492,20 +408,16 @@ describe("SpeedDisplay", () => {
       const { rerender } = render(
         <SpeedDisplay
           speedFactor={0.5}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
 
-      // First render
       expect(screen.getByText("50%")).toBeInTheDocument();
       const firstCallCount = mockCreatePortal.mock.calls.length;
 
-      // Re-render with same props
       rerender(
         <SpeedDisplay
           speedFactor={0.5}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -518,7 +430,6 @@ describe("SpeedDisplay", () => {
       const { rerender } = render(
         <SpeedDisplay
           speedFactor={0.5}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -528,7 +439,6 @@ describe("SpeedDisplay", () => {
       rerender(
         <SpeedDisplay
           speedFactor={0.25}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -540,7 +450,6 @@ describe("SpeedDisplay", () => {
       const { rerender, container } = render(
         <SpeedDisplay
           speedFactor={0.5}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );
@@ -550,7 +459,6 @@ describe("SpeedDisplay", () => {
       rerender(
         <SpeedDisplay
           speedFactor={0.5}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={false}
         />
       );
@@ -562,7 +470,6 @@ describe("SpeedDisplay", () => {
       const { rerender, container } = render(
         <SpeedDisplay
           speedFactor={0.5}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={false}
         />
       );
@@ -572,7 +479,6 @@ describe("SpeedDisplay", () => {
       rerender(
         <SpeedDisplay
           speedFactor={0.5}
-          mousePosition={{ x: 100, y: 100 }}
           isDragging={true}
         />
       );

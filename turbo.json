@@ -7,7 +7,9 @@
     "tsconfig.build.json",
     "eslint.config.mjs",
     ".nvmrc",
-    "package-lock.json"
+    "package-lock.json",
+    "scripts/build-typescript-workspace.mjs",
+    "scripts/copy-manifests.mjs"
   ],
   "globalEnv": ["NODE_ENV", "CI"],
   "tasks": {
