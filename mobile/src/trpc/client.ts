@@ -35,7 +35,7 @@ function authHeaders(): Record<string, string> {
  * host here keeps that single client (and the per-call vanilla client) pointed
  * at whatever host is configured now, without recreating either.
  */
-function hostRewriteFetch(
+async function hostRewriteFetch(
   input: RequestInfo | URL,
   options?: RequestInit
 ): Promise<Response> {
@@ -47,7 +47,12 @@ function hostRewriteFetch(
         : input.url;
   const trpcIndex = raw.lastIndexOf('/trpc');
   const path = trpcIndex >= 0 ? raw.slice(trpcIndex) : raw;
-  return fetch(`${getApiHost()}${path}`, options);
+  const response = await fetch(`${getApiHost()}${path}`, options);
+  // A rejected token means the session is dead — clear it and route to login.
+  if (response.status === 401 || response.status === 403) {
+    useAuthStore.getState().handleSessionExpired();
+  }
+  return response;
 }
 
 export function createTrpcLinks(): TRPCLink<AppRouter>[] {

@@ -4,7 +4,7 @@
  */
 
 interface MockManagerShape {
-  config: { url: string };
+  config: { url: string; headers?: Record<string, string> };
   callbacks: Record<string, ((...args: unknown[]) => void) | undefined>;
   connected: boolean;
   sent: unknown[];
@@ -21,12 +21,12 @@ jest.mock('./WebSocketManager', () => {
   const instances: MockManagerShape[] = [];
   class MockWebSocketManager {
     static instances = instances;
-    config: { url: string };
+    config: { url: string; headers?: Record<string, string> };
     callbacks: Record<string, ((...args: unknown[]) => void) | undefined> = {};
     connected = false;
     sent: unknown[] = [];
     destroyed = false;
-    constructor(config: { url: string }) {
+    constructor(config: { url: string; headers?: Record<string, string> }) {
       this.config = config;
       instances.push(this as unknown as MockManagerShape);
     }
@@ -80,11 +80,12 @@ beforeEach(() => {
 });
 
 describe('WebSocketService', () => {
-  it('connects with the auth token appended to the url', async () => {
+  it('connects with the auth token in an Authorization header, not the url', async () => {
     await webSocketService.ensureConnection('/ws');
 
     expect(managerInstances()).toHaveLength(1);
-    expect(latestManager().config.url).toBe('ws://test.local/ws?api_key=tok-123');
+    expect(latestManager().config.url).toBe('ws://test.local/ws');
+    expect(latestManager().config.headers).toEqual({ Authorization: 'Bearer tok-123' });
     expect(latestManager().isConnected()).toBe(true);
   });
 
@@ -161,6 +162,7 @@ describe('WebSocketService', () => {
 
     expect(first.destroyed).toBe(true);
     expect(managerInstances()).toHaveLength(2);
-    expect(latestManager().config.url).toBe('ws://test.local/other?api_key=tok-123');
+    expect(latestManager().config.url).toBe('ws://test.local/other');
+    expect(latestManager().config.headers).toEqual({ Authorization: 'Bearer tok-123' });
   });
 });

@@ -283,17 +283,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     set({ status: 'connecting' });
 
-    // Get WebSocket URL from API service
-    let wsUrl = apiService.getWebSocketUrl('/ws');
+    // Get WebSocket URL from API service. The auth token is sent as an
+    // Authorization header (see WebSocketManager) rather than a URL query
+    // param, so it doesn't leak into logs/proxies.
+    const wsUrl = apiService.getWebSocketUrl('/ws');
     const session = useAuthStore.getState().session;
-    if (session?.access_token) {
-      wsUrl += `?api_key=${session.access_token}`;
-    }
+    const headers = session?.access_token
+      ? { Authorization: `Bearer ${session.access_token}` }
+      : undefined;
     console.log('Connecting to chat WebSocket:', wsUrl);
 
     // Create WebSocket manager
     const wsManager = new WebSocketManager({
       url: wsUrl,
+      headers,
       reconnect: true,
       reconnectInterval: 1000,
       reconnectDecay: 1.5,
