@@ -16,6 +16,10 @@ on:
       - "marketing/**"
       - ".github/workflows/marketing-ci.yml"
 
+# Least-privilege token: this workflow only reads the repo to build/lint.
+permissions:
+  contents: read
+
 jobs:
   build:
     name: Typecheck, lint & build
