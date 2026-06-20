@@ -383,10 +383,14 @@
     transform: translateY(-2px);
   }
 
-  /* Focus ring fix on dark backgrounds */
+  /* Focus ring on dark backgrounds — only on keyboard focus (P6, WCAG 2.4.7).
+     Uses Action Blue per the design system. */
   .focus-ring {
     outline: none;
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4),
+  }
+  .focus-ring:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.95),
       0 0 0 4px rgba(2, 6, 23, 0.9);
   }
 
