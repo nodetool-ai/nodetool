@@ -68,9 +68,9 @@
       },
       {
         "id": "464a17c1-c916-4b24-8e23-856160732293",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "Create a 3 compelling Pokémons. \n\nDefine its primary types, signature ability, and a few key moves. How do these elements make it unique and balanced within the Pokémon world?\n\nDescribe its physical appearance, patterns, colors, and any special features. How does its design reflect its typing, abilities, and the animals it’s inspired by?\n\nTake inspiration from these animals: {{animals}}"
+          "prompt": "Create a 3 compelling Pokémons. \n\nDefine its primary types, signature ability, and a few key moves. How do these elements make it unique and balanced within the Pokémon world?\n\nDescribe its physical appearance, patterns, colors, and any special features. How does its design reflect its typing, abilities, and the animals it’s inspired by?\n\nTake inspiration from these animals: {{animals}}"
         },
         "ui_properties": {
           "selected": false,

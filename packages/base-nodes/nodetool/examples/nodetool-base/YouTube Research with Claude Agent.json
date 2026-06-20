@@ -83,9 +83,9 @@
       },
       {
         "id": "format-prompt-node",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "You are a YouTube research analyst. I searched YouTube for \"multi-agent frameworks 2026\" and found these results:\n\n{{ search_results }}\n\nPlease analyze these videos and provide:\n\n1. **Overview**: What are the main themes and topics covered?\n2. **Top Picks**: Which 3-5 videos seem most valuable and why?\n3. **Content Gaps**: What aspects of multi-agent frameworks are NOT well covered?\n4. **Creators to Watch**: Which channels stand out for quality content?\n5. **Summary**: A concise research brief synthesizing the key insights.\n\nBe specific — reference video titles, channels, and view counts in your analysis."
+          "prompt": "You are a YouTube research analyst. I searched YouTube for \"multi-agent frameworks 2026\" and found these results:\n\n{{ search_results }}\n\nPlease analyze these videos and provide:\n\n1. **Overview**: What are the main themes and topics covered?\n2. **Top Picks**: Which 3-5 videos seem most valuable and why?\n3. **Content Gaps**: What aspects of multi-agent frameworks are NOT well covered?\n4. **Creators to Watch**: Which channels stand out for quality content?\n5. **Summary**: A concise research brief synthesizing the key insights.\n\nBe specific — reference video titles, channels, and view counts in your analysis."
         },
         "ui_properties": {
           "position": {

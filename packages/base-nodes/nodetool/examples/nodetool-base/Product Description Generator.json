@@ -125,9 +125,9 @@
       },
       {
         "id": "2",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "# Product Description Package\n\n## Product: {{ product }}\n\n### Marketing Description (A/B Test Version 1):\n{{ marketing_desc }}\n\n### SEO-Optimized Description (A/B Test Version 2):\n{{ seo_desc }}\n\n### Key Features to Highlight:\n{{ features }}\n\n### Target Audience:\n{{ audience }}\n\n---\n**Usage Tips:**\n- Test both descriptions with your audience\n- Use Version 1 for social media and ads\n- Use Version 2 for website and search optimization\n"
+          "prompt": "# Product Description Package\n\n## Product: {{ product }}\n\n### Marketing Description (A/B Test Version 1):\n{{ marketing_desc }}\n\n### SEO-Optimized Description (A/B Test Version 2):\n{{ seo_desc }}\n\n### Key Features to Highlight:\n{{ features }}\n\n### Target Audience:\n{{ audience }}\n\n---\n**Usage Tips:**\n- Test both descriptions with your audience\n- Use Version 1 for social media and ads\n- Use Version 2 for website and search optimization\n"
         },
         "ui_properties": {
           "selected": false,
@@ -207,9 +207,9 @@
       },
       {
         "id": "5",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "Create a compelling product description for:\nProduct: {{ product }}\nFeatures: {{ features }}\nTarget Audience: {{ audience }}\n\nGenerate a 2-3 sentence marketing description that highlights benefits, not just features."
+          "prompt": "Create a compelling product description for:\nProduct: {{ product }}\nFeatures: {{ features }}\nTarget Audience: {{ audience }}\n\nGenerate a 2-3 sentence marketing description that highlights benefits, not just features."
         },
         "ui_properties": {
           "position": {
@@ -307,9 +307,9 @@
       },
       {
         "id": "9",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "Create an SEO-optimized product description for:\nProduct: {{ product }}\nFeatures: {{ features }}\n\nInclude relevant keywords naturally. Keep it 100-150 words."
+          "prompt": "Create an SEO-optimized product description for:\nProduct: {{ product }}\nFeatures: {{ features }}\n\nInclude relevant keywords naturally. Keep it 100-150 words."
         },
         "ui_properties": {
           "position": {

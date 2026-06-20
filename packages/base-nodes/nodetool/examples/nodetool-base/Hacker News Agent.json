@@ -39,9 +39,9 @@
       {
         "id": "2",
         "parent_id": null,
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "\n# Hacker News snapshot\n\n## Overview\n{{ summary }}\n\n{% for p in posts %}\n### {{ p.title }}\n{{ p.url }}\n\nTop comments:\n{% for c in p.top_comments %}\n- {{ c.author }}: {{ c.text }}\n{% endfor %}\n\n{% endfor %}\n"
+          "prompt": "\n# Hacker News snapshot\n\n## Overview\n{{ summary }}\n\n{% for p in posts %}\n### {{ p.title }}\n{{ p.url }}\n\nTop comments:\n{% for c in p.top_comments %}\n- {{ c.author }}: {{ c.text }}\n{% endfor %}\n\n{% endfor %}\n"
         },
         "ui_properties": {
           "title": "3️⃣ Format snapshot",
@@ -136,9 +136,9 @@
       {
         "id": "4",
         "parent_id": null,
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "\nScrape the front page of https://news.ycombinator.com/ and analyze activity.\n\nTasks:\n1) Identify the top 5 posts on the front page.\n2) For each post:\n   - Record title and url.\n   - Fetch the discussion thread with the browser tool.\n   - Extract the top 3 comments by score or prominence.\n   - For each comment, store text and author.\n\n3) Summarize the overall themes across the selected posts.\n\nOutput format (JSON):\n{\n  \"summary\": \"<high level summary of the 5 posts>\",\n  \"posts\": [\n    {\n      \"title\": \"<title>\",\n      \"url\": \"<url>\",\n      \"top_comments\": [\n        {\"text\": \"<comment text>\", \"author\": \"<username>\"},\n        ...\n      ]\n    },\n    ...\n  ]\n}\n"
+          "prompt": "\nScrape the front page of https://news.ycombinator.com/ and analyze activity.\n\nTasks:\n1) Identify the top 5 posts on the front page.\n2) For each post:\n   - Record title and url.\n   - Fetch the discussion thread with the browser tool.\n   - Extract the top 3 comments by score or prominence.\n   - For each comment, store text and author.\n\n3) Summarize the overall themes across the selected posts.\n\nOutput format (JSON):\n{\n  \"summary\": \"<high level summary of the 5 posts>\",\n  \"posts\": [\n    {\n      \"title\": \"<title>\",\n      \"url\": \"<url>\",\n      \"top_comments\": [\n        {\"text\": \"<comment text>\", \"author\": \"<username>\"},\n        ...\n      ]\n    },\n    ...\n  ]\n}\n"
         },
         "ui_properties": {
           "title": "1️⃣ Research instructions",

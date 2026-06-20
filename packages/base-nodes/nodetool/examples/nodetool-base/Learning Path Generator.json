@@ -75,9 +75,9 @@
       },
       {
         "id": "2",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "\n# Learning path: {{ topic }}\n\n## Overview\n{{ overview }}\n\n{% for m in modules %}\n### {{ m.title }}\n{{ m.description }}\n\nResources:\n{% for r in m.resources %}\n- {{ r }}\n{% endfor %}\n\n{% endfor %}\n"
+          "prompt": "\n# Learning path: {{ topic }}\n\n## Overview\n{{ overview }}\n\n{% for m in modules %}\n### {{ m.title }}\n{{ m.description }}\n\nResources:\n{% for r in m.resources %}\n- {{ r }}\n{% endfor %}\n\n{% endfor %}\n"
         },
         "ui_properties": {
           "position": {
@@ -178,9 +178,9 @@
       },
       {
         "id": "4",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "\nCreate a comprehensive learning path for the topic \"{{ topic }}\".\n\nRequirements:\n- Structure the path into 3 to 5 modules.\n- Each module must have:\n  - title\n  - description\n  - resources: a list of concrete web resources (URLs, docs, tutorials).\n\nFocus:\n- Keep the plan focused on the learner's core objective.\n- Order modules from beginner friendly to more advanced.\n\nOutput format:\nReturn a JSON object:\n{\n  \"topic\": \"<topic name>\",\n  \"overview\": \"<short overview of the full path>\",\n  \"modules\": [\n    {\n      \"title\": \"<module title>\",\n      \"description\": \"<what the learner will accomplish>\",\n      \"resources\": [\"<url1>\", \"<url2>\", ...]\n    },\n    ...\n  ]\n}\n"
+          "prompt": "\nCreate a comprehensive learning path for the topic \"{{ topic }}\".\n\nRequirements:\n- Structure the path into 3 to 5 modules.\n- Each module must have:\n  - title\n  - description\n  - resources: a list of concrete web resources (URLs, docs, tutorials).\n\nFocus:\n- Keep the plan focused on the learner's core objective.\n- Order modules from beginner friendly to more advanced.\n\nOutput format:\nReturn a JSON object:\n{\n  \"topic\": \"<topic name>\",\n  \"overview\": \"<short overview of the full path>\",\n  \"modules\": [\n    {\n      \"title\": \"<module title>\",\n      \"description\": \"<what the learner will accomplish>\",\n      \"resources\": [\"<url1>\", \"<url2>\", ...]\n    },\n    ...\n  ]\n}\n"
         },
         "ui_properties": {
           "selected": false,
