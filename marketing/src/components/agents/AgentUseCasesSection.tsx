@@ -197,7 +197,7 @@ export default function AgentUseCasesSection({
 
                   {/* Example */}
                   <div className="mt-auto pt-4 border-t border-white/5">
-                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">
+                    <p className="text-xs text-slate-400 uppercase tracking-wider mb-2">
                       Tell the agent
                     </p>
                     <p className="text-sm text-amber-300/80 italic">

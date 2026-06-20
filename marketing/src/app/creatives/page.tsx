@@ -305,7 +305,7 @@ export default function CreativesPage() {
                   <div className="w-3 h-3 rounded-full bg-rose-500/50" />
                   <div className="w-3 h-3 rounded-full bg-amber-500/50" />
                   <div className="w-3 h-3 rounded-full bg-emerald-500/50" />
-                  <span className="ml-4 text-xs text-slate-500 font-medium">
+                  <span className="ml-4 text-xs text-slate-400 font-medium">
                     Creative Workflow Canvas
                   </span>
                 </div>

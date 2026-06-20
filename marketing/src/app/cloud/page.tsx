@@ -260,7 +260,7 @@ export default function CloudPage() {
                   <span>Want to run it locally instead?</span>
                   <a
                     href="/studio"
-                    className="text-amber-300 hover:text-amber-200 underline underline-offset-2 font-medium"
+                    className="text-blue-300 hover:text-blue-200 underline underline-offset-2 font-medium"
                   >
                     Get NodeTool Studio →
                   </a>
@@ -380,7 +380,7 @@ export default function CloudPage() {
                 If any of these matter to you, install{" "}
                 <a
                   href="/studio"
-                  className="text-amber-300 hover:text-amber-200 underline underline-offset-2"
+                  className="text-blue-300 hover:text-blue-200 underline underline-offset-2"
                 >
                   NodeTool Studio
                 </a>{" "}

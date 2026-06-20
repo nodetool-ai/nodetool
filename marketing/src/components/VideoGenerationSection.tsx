@@ -49,7 +49,7 @@ export default function VideoGenerationSection({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-lg text-slate-400 leading-relaxed"
+            className="text-lg text-slate-300 leading-relaxed"
           >
             Generate video from text or images with Google Veo, Kling, Hailuo,
             and Wan — or run open-weight models on your own hardware.
@@ -71,6 +71,10 @@ export default function VideoGenerationSection({
               controls
               className="w-full max-w-2xl mx-auto rounded-2xl shadow-2xl shadow-emerald-500/20 border border-white/10"
             />
+            <p className="mt-3 text-xs text-slate-400">
+              Sample output, shown for illustration. Results depend on the model
+              and provider you choose.
+            </p>
           </motion.div>
         </div>
       </div>

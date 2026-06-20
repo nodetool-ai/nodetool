@@ -127,7 +127,7 @@ export default function AgentsGraphHero() {
                             </a>
                         </div>
 
-                        <div className="mt-8 flex items-center justify-center gap-6 text-sm text-slate-500 font-medium">
+                        <div className="mt-8 flex items-center justify-center gap-6 text-sm text-slate-400 font-medium">
                             <span className="flex items-center gap-2"><Command className="w-4 h-4" /> Open Source</span>
                             <span className="w-1 h-1 rounded-full bg-slate-700" />
                             <span>BYOK — pay providers direct</span>
@@ -236,7 +236,7 @@ function GraphVisualization() {
                     <div className="h-3 w-3 rounded-full bg-green-500/20 border border-green-500/50" />
                 </div>
 
-                <div className="absolute bottom-6 right-8 text-xs font-mono text-slate-500 uppercase tracking-widest">
+                <div className="absolute bottom-6 right-8 text-xs font-mono text-slate-400 uppercase tracking-widest">
                     Directing the shot • Step 3/5
                 </div>
 
@@ -407,7 +407,7 @@ function Node({ data, index }: { data: NodeData, index: number }) {
             <div className="space-y-2">
                 {data.meta.map((item, i) => (
                     <div key={i} className="flex justify-between text-xs items-center p-1.5 rounded bg-white/5 border border-white/5">
-                        <span className="text-slate-500">{item.label}</span>
+                        <span className="text-slate-400">{item.label}</span>
                         <span className="text-slate-300 font-medium">{item.value}</span>
                     </div>
                 ))}

@@ -221,7 +221,7 @@ export default function DeveloperCoreSection({
               <div>
                 <p className="text-sm text-slate-400 mb-2">npm package:</p>
                 <div className="rounded-lg bg-slate-950/90 p-4 text-xs text-slate-300 font-mono border border-slate-700/50 flex items-center justify-between gap-3">
-                  <code className="language-bash text-slate-500 line-through">npm install @nodetool-ai/kernel</code>
+                  <code className="language-bash text-slate-400 line-through">npm install @nodetool-ai/kernel</code>
                   <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300 ring-1 ring-amber-500/30 whitespace-nowrap">
                     coming soon
                   </span>
@@ -252,7 +252,7 @@ export default function DeveloperCoreSection({
               </span>
             </div>
             <CodeBlock code={basicUsageCode} language="typescript" />
-            <p className="mt-3 text-xs text-slate-500">
+            <p className="mt-3 text-xs text-slate-400">
               The @nodetool-ai packages aren&apos;t on npm yet — these imports
               work from a source checkout today and will work via npm install
               once published.
