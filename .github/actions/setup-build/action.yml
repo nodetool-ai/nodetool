@@ -1,0 +1,43 @@
+name: Setup and build backend
+description: >-
+  Set up Node (with npm cache), install system libraries, run npm ci, rebuild
+  native modules, and (optionally) build the backend packages. The calling job
+  must check out the repository first, since this is a local composite action.
+
+inputs:
+  extra-apt:
+    description: Extra apt packages to install, space-separated (e.g. CPU Vulkan driver).
+    required: false
+    default: ""
+  build-packages:
+    description: Whether to run `npm run build:packages`.
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version-file: ".nvmrc"
+        cache: "npm"
+
+    - name: Install system libraries
+      shell: bash
+      run: sudo apt-get update && sudo apt-get install -y libsecret-1-0 ${{ inputs.extra-apt }}
+
+    - name: Install all workspace dependencies
+      shell: bash
+      run: npm ci
+      env:
+        ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+    - name: Rebuild native modules
+      shell: bash
+      run: npm rebuild better-sqlite3
+
+    - name: Build backend packages
+      if: inputs.build-packages == 'true'
+      shell: bash
+      run: npm run build:packages

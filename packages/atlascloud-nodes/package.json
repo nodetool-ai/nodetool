@@ -1,6 +1,9 @@
 {
   "name": "@nodetool-ai/atlascloud-nodes",
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0 <23.0.0"
+  },
   "version": "0.7.0-rc.23",
   "description": "AtlasCloud.ai nodes for NodeTool — Seedance 2.0 video + GPT Image 2 / Nano Banana 2 / Nano Banana Pro image generation",
   "main": "dist/index.js",
