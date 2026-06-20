@@ -34,6 +34,7 @@ function TTSModelMenuDialog({
       title="Select TTS Model"
       searchPlaceholder="Search text-to-speech models..."
       storeHook={useTTSModelMenuStore}
+      modelType="tts_model"
       recommendedModels={recommendedModels}
       modelPacks={modelPacks}
     />

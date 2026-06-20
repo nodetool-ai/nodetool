@@ -34,6 +34,7 @@ function ASRModelMenuDialog({
       title="Select ASR Model"
       searchPlaceholder="Search speech-to-text models..."
       storeHook={useASRModelMenuStore}
+      modelType="asr_model"
       recommendedModels={recommendedModels}
       modelPacks={modelPacks}
     />
