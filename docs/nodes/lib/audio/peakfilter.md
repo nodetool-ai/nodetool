@@ -26,6 +26,7 @@ Applies a peak filter to boost or cut a specific frequency range.
 | audio | `audio` | The audio file to process. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 | cutoff_frequency_hz | `float` | The cutoff frequency of the band-pass filter in Hz. | `1000` |
 | q_factor | `float` | The Q factor, determining the width of the band. Higher values create narrower bands. | `1` |
+| gain_db | `float` | The gain to apply at the centre frequency, in dB. Positive values boost, negative values cut. | `0` |
 
 ## Outputs
 

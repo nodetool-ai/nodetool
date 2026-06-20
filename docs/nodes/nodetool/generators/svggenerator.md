@@ -25,8 +25,8 @@ LLM Agent to create SVG elements based on user prompts.
 |----------|------|-------------|---------|
 | model | `language_model` | The language model to use for SVG generation. | `{"type":"language_model","provider":"empty","id...` |
 | prompt | `str` | The user prompt for SVG generation | `` |
-| image | `image` | Image to use for generation | `{"type":"image","uri":"","asset_id":null,"data"...` |
-| audio | `audio` | Audio to use for generation | `{"type":"audio","uri":"","asset_id":null,"data"...` |
+| image | `list[image]` | Images to use for generation. Accepts a list, or a single Image (auto-wrapped). Each becomes a separate block in the message sent to the provider. | `[]` |
+| audio | `list[audio]` | Audio to use for generation. Accepts a list, or a single Audio (auto-wrapped). Each becomes a separate block in the message sent to the provider. | `[]` |
 | max_tokens | `int` | The maximum number of tokens to generate. | `8192` |
 
 ## Outputs

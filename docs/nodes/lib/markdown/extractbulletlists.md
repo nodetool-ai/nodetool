@@ -29,7 +29,7 @@ Extracts bulleted lists from markdown.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `list[dict[str, any]]` |  |
+| output | `list[list[dict[str, str]]]` |  |
 
 ## Related Nodes
 

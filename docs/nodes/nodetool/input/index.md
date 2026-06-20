@@ -3,16 +3,15 @@ layout: page
 title: "nodetool.input Nodes"
 ---
 
-This namespace contains 34 node(s).
+This namespace contains 33 node(s).
 
 ## Nodes
 
-- **[ASRModel Input](asrmodelinput.md)**
+- **[ASR Model Input](asrmodelinput.md)**
 - **[Asset Folder Input](assetfolderinput.md)**
 - **[Audio Input](audioinput.md)**
 - **[Audio List Input](audiolistinput.md)**
 - **[Boolean Input](booleaninput.md)**
-- **[Collection Input](collectioninput.md)**
 - **[Color Input](colorinput.md)**
 - **[Dataframe Input](dataframeinput.md)**
 - **[Document File Input](documentfileinput.md)**
@@ -37,7 +36,7 @@ This namespace contains 34 node(s).
 - **[String Input](stringinput.md)**
 - **[String List Input](stringlistinput.md)**
 - **[Text List Input](textlistinput.md)**
-- **[TTSModel Input](ttsmodelinput.md)**
+- **[TTS Model Input](ttsmodelinput.md)**
 - **[Video Input](videoinput.md)**
 - **[Video List Input](videolistinput.md)**
 - **[Video Model Input](videomodelinput.md)**

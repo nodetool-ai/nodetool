@@ -3,12 +3,10 @@ layout: page
 title: "nodetool.sandbox Nodes"
 ---
 
-This namespace contains 4 node(s).
+This namespace contains 2 node(s).
 
 ## Nodes
 
-- **[SandboxAgent](sandboxagent.md)**
-- **[SandboxBrowser](sandboxbrowser.md)**
 - **[SandboxFile](sandboxfile.md)**
 - **[SandboxShell](sandboxshell.md)**
 

@@ -11,16 +11,12 @@ namespace: "nodetool.text"
 
 ## Description
 
-Generate vector representations of text using any supported embedding provider.
-    Automatically routes to the appropriate backend (OpenAI, Gemini, Mistral).
+Generate vector representations of text using any supported embedding provider (OpenAI, Gemini, Mistral).
     embeddings, similarity, search, clustering, classification, vectors, semantic
 
-    Uses embedding models to create dense vector representations of text.
-    These vectors capture semantic meaning, enabling:
-    - Semantic search
-    - Text clustering
-    - Document classification
-    - Recommendation systems
+    Use cases:
+    - Semantic search and recommendation
+    - Text clustering and classification
     - Anomaly detection
     - Measuring text similarity and diversity
 

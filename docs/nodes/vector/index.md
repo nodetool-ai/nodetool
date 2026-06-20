@@ -3,11 +3,7 @@ layout: page
 title: "vector Nodes"
 ---
 
-This namespace contains 26 node(s).
-
-## Sub-namespaces
-
-- **[sqlite-vec](sqlite-vec/)** - 13 node(s)
+This namespace contains 13 node(s).
 
 ## Nodes
 

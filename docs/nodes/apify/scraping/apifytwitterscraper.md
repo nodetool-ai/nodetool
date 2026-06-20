@@ -11,8 +11,7 @@ namespace: "apify.scraping"
 
 ## Description
 
-Scrape Twitter/X posts, profiles, and followers.
-    Extract tweets, user information, and engagement metrics.
+Scrape Twitter/X posts, profiles, and followers — tweets, user information, and engagement metrics.
     apify, twitter, x, social, media, scraping, tweets, posts
 
 ## Properties

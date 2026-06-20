@@ -3,37 +3,29 @@ layout: page
 title: "nodetool.text Nodes"
 ---
 
-This namespace contains 66 node(s).
+This namespace contains 51 node(s).
 
 ## Nodes
 
 - **[Automatic Speech Recognition](automaticspeechrecognition.md)**
 - **[Capitalize Text](capitalizetext.md)**
 - **[Check Length](checklength.md)**
-- **[Check Length](haslength.md)**
 - **[Collapse Whitespace](collapsewhitespace.md)**
-- **[Collect](collect.md)**
 - **[Collect Text](collecttext.md)**
 - **[Compare Text](comparetext.md)**
-- **[Concatenate Text](concat.md)**
 - **[Concatenate Text](concatenatetext.md)**
-- **[Contains Text](contains.md)**
 - **[Contains Text](containstext.md)**
 - **[Count Tokens](counttokens.md)**
 - **[Embedding](embedding.md)**
 - **[Ends With](endswith.md)**
 - **[Equals](equals.md)**
 - **[Extract JSON](extractjson.md)**
-- **[Extract Regex Groups](extractregex.md)**
 - **[Extract Regex Groups](extractregexgroups.md)**
-- **[Extract Text](extract.md)**
 - **[Extract Text](extracttext.md)**
 - **[Filter Regex String](filterregexstring.md)**
 - **[Filter String](filterstring.md)**
-- **[Find All Regex Matches](findallregex.md)**
 - **[Find All Regex Matches](findallregexmatches.md)**
 - **[Find Regex Matches](findregexmatches.md)**
-- **[Find Regex Matches](regexmatch.md)**
 - **[Format Text](formattext.md)**
 - **[HTML to Text](htmltotext.md)**
 - **[Index Of](indexof.md)**
@@ -43,23 +35,17 @@ This namespace contains 66 node(s).
 - **[Load Text Folder](loadtextfolder.md)**
 - **[Measure Length](measurelength.md)**
 - **[Pad Text](padtext.md)**
-- **[Parse JSON String](parsejson.md)**
 - **[Parse JSON String](parsejsonstring.md)**
+- **[Prompt](prompt.md)**
 - **[Remove Punctuation](removepunctuation.md)**
-- **[Replace Text](replace.md)**
 - **[Replace Text](replacetext.md)**
-- **[Replace with Regex](regexreplace.md)**
 - **[Replace with Regex](replacewithregex.md)**
 - **[Save Text](savetext.md)**
 - **[Save Text File](savetextfile.md)**
-- **[Slice Text](slice.md)**
 - **[Slice Text](slicetext.md)**
 - **[Slugify](slugify.md)**
-- **[Split Text](split.md)**
 - **[Split Text](splittext.md)**
-- **[Split Text into Chunks](chunk.md)**
 - **[Split Text into Chunks](splittextintochunks.md)**
-- **[Split with Regex](regexsplit.md)**
 - **[Split with Regex](splitwithregex.md)**
 - **[Starts With](startswith.md)**
 - **[Strip Accents](stripaccents.md)**
@@ -71,7 +57,6 @@ This namespace contains 66 node(s).
 - **[To Uppercase](touppercase.md)**
 - **[Trim Whitespace](trimwhitespace.md)**
 - **[Truncate Text](truncatetext.md)**
-- **[Validate with Regex](regexvalidate.md)**
 - **[Validate with Regex](validatewithregex.md)**
 
 [Back to all nodes](../../)

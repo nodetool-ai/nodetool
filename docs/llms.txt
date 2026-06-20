@@ -68,7 +68,6 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [Asset Management]({{ site.url }}/asset-management): Files, images, datasets.
 - [Authentication]({{ site.url }}/authentication): Auth setup for hosted deployments.
 - [Security Hardening]({{ site.url }}/security-hardening): Production security guidance.
-- [Proxy]({{ site.url }}/proxy): HTTP/HTTPS proxy configuration.
 
 ## Deployment
 
@@ -84,9 +83,8 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [CLI Overview]({{ site.url }}/cli): `nodetool` command reference.
 - [Chat CLI]({{ site.url }}/chat-cli): Interactive chat with agent mode.
 - [Agent CLI]({{ site.url }}/agent-cli): Run agent configs from the terminal.
-- [Chat Server]({{ site.url }}/chat-server): Standalone chat WebSocket server.
+- [Chat Server]({{ site.url }}/chat-server): Serve the OpenAI-compatible chat API via `nodetool serve`.
 - [API Server]({{ site.url }}/api-server): REST + WebSocket API server.
-- [Terminal WebSocket]({{ site.url }}/terminal-websocket): Browser terminal protocol.
 
 ## API Reference
 
@@ -101,7 +99,7 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [Architecture]({{ site.url }}/architecture): Backend packages, kernel, runtime, providers.
 - [Packages]({{ site.url }}/packages): NPM workspace package map.
 - [Python Bridge Protocol]({{ site.url }}/python-bridge-protocol): Stdio msgpack bridge to Python nodes.
-- [Execution Strategies]({{ site.url }}/execution-strategies): Subprocess, Docker, in-process.
+- [Execution Strategies]({{ site.url }}/execution-strategies): Actor-model workflow execution and code-runner sandboxes.
 - [Custom Nodes]({{ site.url }}/developer/custom-nodes-guide): Implement BaseNode subclasses.
 - [Node Patterns]({{ site.url }}/developer/node-patterns): process / genProcess / streaming.
 - [Node Reference]({{ site.url }}/developer/node-reference): @prop, types, decorators.

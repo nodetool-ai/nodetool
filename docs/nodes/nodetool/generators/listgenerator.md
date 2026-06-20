@@ -33,6 +33,7 @@ LLM Agent to create a stream of strings based on a user prompt.
 |--------|------|-------------|
 | item | `str` |  |
 | index | `int` |  |
+| output | `list[str]` |  |
 
 ## Related Nodes
 

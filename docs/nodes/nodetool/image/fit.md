@@ -9,11 +9,6 @@ namespace: "nodetool.image"
 
 **Namespace:** `nodetool.image`
 
-## Description
-
-Resize an image to fit within specified dimensions while preserving aspect ratio.
-    image, resize, fit
-
 ## Properties
 
 | Property | Type | Description | Default |

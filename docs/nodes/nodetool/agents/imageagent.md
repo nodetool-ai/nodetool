@@ -19,7 +19,7 @@ Prompt-driven image skill for model-based image reasoning.
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | model | `language_model` | Model used for image prompts. | `{"type":"language_model","provider":"empty","id...` |
-| image | `image` | Optional image input for image reasoning tasks. | `{"type":"image","uri":"","asset_id":null,"data"...` |
+| image | `list[image]` | Optional image inputs for image reasoning tasks. Accepts a list, or a single Image (auto-wrapped). | `[]` |
 | prompt | `str` | Prompt describing the image task. | `` |
 | timeout_seconds | `int` | Maximum runtime for agent execution. | `90` |
 | max_output_chars | `int` | Maximum serialized output chars before truncation. | `120000` |

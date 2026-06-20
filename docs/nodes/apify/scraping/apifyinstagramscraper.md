@@ -11,8 +11,7 @@ namespace: "apify.scraping"
 
 ## Description
 
-Scrape Instagram profiles, posts, comments, and hashtags.
-    Extract user data, post details, engagement metrics, and more.
+Scrape Instagram profiles, posts, comments, and hashtags — user data, post details, and engagement metrics.
     apify, instagram, social, media, scraping, posts, profiles
 
 ## Properties

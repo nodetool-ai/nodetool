@@ -12,7 +12,7 @@ namespace: "lib.os"
 ## Description
 
 Read a binary file from the workspace as base64-encoded string.
-    workspace, file, read, binary
+    os, file, read, binary
 
 ## Properties
 

@@ -12,6 +12,7 @@ namespace: "nodetool.sandbox"
 ## Description
 
 Read, write, search, and replace files inside a sandbox session.
+    sandbox, file, read, write, search, replace, edit
 
 ## Properties
 

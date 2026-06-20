@@ -30,6 +30,7 @@ Classify text into predefined or dynamic categories using LLM.
 | image | `image` | Optional image to classify in context | `{"type":"image","uri":"","asset_id":null,"data"...` |
 | audio | `audio` | Optional audio to classify in context | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 | categories | `list[str]` | List of possible categories. If empty, LLM will determine categories. | `[]` |
+| max_tokens | `int` | The maximum number of tokens to generate. | `256` |
 
 ## Outputs
 

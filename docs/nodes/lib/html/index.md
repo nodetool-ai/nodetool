@@ -3,19 +3,17 @@ layout: page
 title: "lib.html Nodes"
 ---
 
-This namespace contains 10 node(s).
+This namespace contains 8 node(s).
 
 ## Nodes
 
 - **[Base Url](baseurl.md)**
 - **[Convert HTML to Text](converthtmltotext.md)**
-- **[Escape](escape.md)**
 - **[Extract Audio](extractaudio.md)**
 - **[Extract Images](extractimages.md)**
 - **[Extract Links](extractlinks.md)**
 - **[Extract Metadata](extractmetadata.md)**
 - **[Extract Videos](extractvideos.md)**
-- **[Unescape](unescape.md)**
 - **[Website Content Extractor](websitecontentextractor.md)**
 
 [Back to all nodes](../../)

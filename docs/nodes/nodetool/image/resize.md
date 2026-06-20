@@ -9,11 +9,6 @@ namespace: "nodetool.image"
 
 **Namespace:** `nodetool.image`
 
-## Description
-
-Change image dimensions to specified width and height.
-    image, resize
-
 ## Properties
 
 | Property | Type | Description | Default |

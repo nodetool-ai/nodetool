@@ -32,7 +32,33 @@ try {
   ts = require(path.join(repoRoot, "node_modules/typescript/lib/typescript.js"));
 }
 
-const nodesDir = path.join(repoRoot, "packages/base-nodes/src/nodes");
+// Node classes are defined across many workspace packages (core-nodes,
+// text-nodes, image-nodes, llm-nodes, automation-nodes, integration-nodes,
+// huggingface-nodes, …). They used to live under packages/base-nodes/src/nodes
+// before the multi-package refactor, so we now walk every package's src tree.
+// parseNodeFile only emits classes carrying `static readonly nodeType`, so
+// non-node source files are harmless and ignored.
+//
+// Note: a few packages (fal, replicate, together, topaz, atlascloud) build
+// their node classes dynamically from manifest JSON via factories and define
+// `nodeType` via Object.defineProperty — those are NOT statically parseable and
+// are therefore not covered by this generator.
+const packagesDir = path.join(repoRoot, "packages");
+const nodeSourceDirs = fs
+  .readdirSync(packagesDir, { withFileTypes: true })
+  .filter((e) => e.isDirectory())
+  .map((e) => path.join(packagesDir, e.name, "src"))
+  .filter((dir) => fs.existsSync(dir));
+
+const SKIP_DIRS = new Set([
+  "node_modules",
+  "dist",
+  "build",
+  "__tests__",
+  "tests",
+  "test",
+  "generated",
+]);
 
 // ---------------------------------------------------------------------------
 // TypeScript AST helpers
@@ -275,6 +301,7 @@ const byNamespace = new Map();
 
 function walkDir(dir, collect) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory() && SKIP_DIRS.has(entry.name)) continue;
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       walkDir(full, collect);
@@ -287,10 +314,16 @@ function walkDir(dir, collect) {
   }
 }
 
-walkDir(nodesDir, (node) => {
-  if (!byNamespace.has(node.namespace)) byNamespace.set(node.namespace, []);
-  byNamespace.get(node.namespace).push(node);
-});
+// De-dupe by nodeType — the same class can be re-exported from multiple files.
+const seenNodeTypes = new Set();
+for (const srcDir of nodeSourceDirs) {
+  walkDir(srcDir, (node) => {
+    if (seenNodeTypes.has(node.nodeType)) return;
+    seenNodeTypes.add(node.nodeType);
+    if (!byNamespace.has(node.namespace)) byNamespace.set(node.namespace, []);
+    byNamespace.get(node.namespace).push(node);
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Helpers

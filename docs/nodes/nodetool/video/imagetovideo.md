@@ -11,15 +11,14 @@ namespace: "nodetool.video"
 
 ## Description
 
-Generate videos from input images using any supported video provider.
-    Animates static images into dynamic video content with AI-powered motion.
-    video, image-to-video, i2v, animation, AI, generation, sora, veo
+Animate static images into video with AI-powered motion using any supported video provider.
+    video, image-to-video, i2v, animation, ai, generation, sora, veo
 
 ## Properties
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| image | `image` | The input image to animate into a video | `{"type":"image","uri":"","asset_id":null,"data"...` |
+| image | `list[image]` | Input image(s) to animate. The first image is the primary frame; additional images are used as references by providers that support multi-image input. | `[]` |
 | model | `video_model` | The video generation model to use | `{"type":"video_model","provider":"gemini","id":...` |
 | prompt | `str` | Optional text prompt to guide the video animation | `` |
 | negative_prompt | `str` | Text prompt describing what to avoid in the video | `` |

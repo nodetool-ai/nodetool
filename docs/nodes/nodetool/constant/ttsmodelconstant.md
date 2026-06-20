@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "TTSModel Constant"
+title: "TTS Model Constant"
 node_type: "nodetool.constant.TTSModelConstant"
 namespace: "nodetool.constant"
 ---

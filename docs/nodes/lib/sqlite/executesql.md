@@ -31,7 +31,11 @@ Execute arbitrary SQL statements for advanced operations.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `dict[str, any]` |  |
+| rows_affected | `int` |  |
+| last_row_id | `int` |  |
+| message | `str` |  |
+| rows | `list[dict[str, any]]` |  |
+| count | `int` |  |
 
 ## Related Nodes
 

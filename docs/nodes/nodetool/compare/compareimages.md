@@ -33,7 +33,9 @@ Compare two images side-by-side with an interactive slider.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `none` |  |
+| comparison | `any` |  |
+| score | `float` |  |
+| equal | `bool` |  |
 
 ## Related Nodes
 

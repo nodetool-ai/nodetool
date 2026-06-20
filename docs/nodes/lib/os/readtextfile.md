@@ -12,7 +12,7 @@ namespace: "lib.os"
 ## Description
 
 Read a text file from the workspace.
-    workspace, file, read, text
+    os, file, read, text
 
 ## Properties
 

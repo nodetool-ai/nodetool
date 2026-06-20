@@ -29,7 +29,7 @@ Extracts numbered lists from markdown.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `list[str]` |  |
+| output | `list[list[str]]` |  |
 
 ## Related Nodes
 

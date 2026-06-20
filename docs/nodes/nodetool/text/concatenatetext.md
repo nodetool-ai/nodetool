@@ -11,15 +11,12 @@ namespace: "nodetool.text"
 
 ## Description
 
-Concatenates text inputs into a single output.
-    text, combine, add, concatenate, merge, join, append
+Concatenates text inputs into a single output. Add inputs dynamically with the “add text input” button.
+    +, text, combine, add, concatenate, merge, join, append
 
 ## Properties
 
-| Property | Type | Description | Default |
-|----------|------|-------------|---------|
-| a | `str` | First text input. | `` |
-| b | `str` | Second text input. | `` |
+_(none)_
 
 ## Outputs
 

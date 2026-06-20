@@ -11,8 +11,7 @@ namespace: "apify.scraping"
 
 ## Description
 
-Scrape Amazon product data including prices, reviews, and ratings.
-    Extract product details, seller information, and customer reviews.
+Scrape Amazon product data including prices, ratings, seller information, and customer reviews.
     apify, amazon, ecommerce, products, scraping, prices, reviews
 
 ## Properties
