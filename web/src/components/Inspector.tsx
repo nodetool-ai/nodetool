@@ -16,7 +16,6 @@ import {
   Caption,
   CloseButton,
   CopyButton,
-  EditorButton,
   MOTION,
   BORDER_RADIUS,
   ScrollArea,
