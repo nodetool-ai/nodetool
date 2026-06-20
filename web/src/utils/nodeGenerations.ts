@@ -36,10 +36,12 @@ export interface Generation {
   error?: string;
   assetId?: string;
   /**
-   * Per-(jobId) variant position, recovered at read time (no DB column).
-   * Persisted gens: assigned in mergeGenerations from (createdAt, id) order
-   * within the job. Live gens: parsed from the `${jobId}#k` id scheme. Used
-   * only for live↔persisted reconciliation; never persisted to ResultsStore.
+   * Per-(jobId) variant position, recovered at read time (no DB column); never
+   * a stored field on persisted gens. Persisted gens: derived from (createdAt,
+   * id) order within the job — `mergeGenerations` computes that order for its
+   * survival check but does not write `index` back onto the objects. Live gens:
+   * parsed from the `${jobId}#k` id scheme (`liveIndexOf`). Used only for
+   * live↔persisted reconciliation; never persisted to ResultsStore.
    */
   index?: number;
 }

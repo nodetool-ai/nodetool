@@ -1849,6 +1849,11 @@ export class UnifiedWebSocketRunner {
     // output, or media + text), so dedupe by the event's arrival index — NOT by
     // a total asset count, which would under-save the next event (RFC D8).
     const autosavedSlots = new Set<string>();
+    // Cross-run replay dedupe: the `generation_index` values already persisted
+    // for a node by a PRIOR run. Warmed with ONE `Asset.paginate` on a node's
+    // first generation_complete, then reused for every later variant — so an
+    // N-variant run does one query per node, not one per variant (RFC D8).
+    const persistedIndexByNode = new Map<string, Set<number>>();
     await this.sendMessage({
       type: "job_update",
       status: "running",
@@ -1966,21 +1971,30 @@ export class UnifiedWebSocketRunner {
             if (meta?.auto_save_asset && outbound.outputs != null) {
               const userId = this.userId ?? "1";
               const slotKey = `${nodeId} ${arrivalIndex}`;
-              const alreadySavedThisRun = autosavedSlots.has(slotKey);
-              let alreadyPersisted = false;
-              if (!alreadySavedThisRun) {
+              // Warm the cross-run replay set once per node (on its first
+              // generation_complete), then reconcile every later variant
+              // against the in-memory set — one DB read per node, not per slot.
+              let persistedIndices = persistedIndexByNode.get(nodeId);
+              if (persistedIndices === undefined) {
                 const [persisted] = await Asset.paginate(userId, {
                   jobId: active.jobId,
                   nodeId,
                   limit: 1000
                 });
-                alreadyPersisted = persisted.some(
-                  (a) =>
-                    (a.metadata as { generation_index?: unknown } | null)
-                      ?.generation_index === arrivalIndex
-                );
+                persistedIndices = new Set<number>();
+                for (const a of persisted) {
+                  const gi = (
+                    a.metadata as { generation_index?: unknown } | null
+                  )?.generation_index;
+                  if (typeof gi === "number") persistedIndices.add(gi);
+                }
+                persistedIndexByNode.set(nodeId, persistedIndices);
               }
-              if (!alreadySavedThisRun && !alreadyPersisted) {
+
+              if (
+                !autosavedSlots.has(slotKey) &&
+                !persistedIndices.has(arrivalIndex)
+              ) {
                 autosavedSlots.add(slotKey);
                 try {
                   await autoSaveAssets(

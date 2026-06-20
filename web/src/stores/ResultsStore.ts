@@ -496,8 +496,9 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     const key = `${workflowId}:${nodeId}`;
     set((state) => {
       const list = state.liveGenerations[key] ?? [];
-      // Strip the routing-only `index` before it can leak onto the stored
-      // Generation (which has no `index` field).
+      // Strip the routing-only `index`: live generations recover their slot
+      // from the id scheme (`${jobId}#k`), so we deliberately don't store
+      // `index` on the live Generation even though the type permits it.
       const { index, ...rest } = patch;
 
       if (typeof index === "number") {
