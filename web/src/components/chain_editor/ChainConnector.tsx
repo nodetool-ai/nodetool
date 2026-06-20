@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
 import { useTheme } from "@mui/material/styles";
-import { Box } from "../ui_primitives";
+import { Box, BORDER_RADIUS } from "../ui_primitives";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { FlexRow } from "../ui_primitives/FlexRow";
@@ -23,7 +23,7 @@ export const ChainConnector: React.FC<ChainConnectorProps> = ({
   return (
     <FlexColumn align="center" sx={{ py: 0.5 }}>
       <Box sx={{ width: 2, height: 12, backgroundColor: `${color}50` }} />
-      <Box sx={{ width: 8, height: 8, borderRadius: "var(--rounded-circle)", backgroundColor: color }} />
+      <Box sx={{ width: 8, height: 8, borderRadius: BORDER_RADIUS.circle, backgroundColor: color }} />
       <Box sx={{ width: 2, height: 12, backgroundColor: `${color}50` }} />
       <FlexRow gap={0.5} align="center" sx={{ mt: -0.5 }}>
         <ArrowDownwardIcon sx={{ fontSize: 12, color: theme.vars.palette.text.disabled }} />

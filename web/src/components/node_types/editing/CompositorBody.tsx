@@ -36,8 +36,7 @@ import {
   DynamicInputButton,
   EditButton,
   FlexColumn,
-  FlexRow
-} from "../../ui_primitives";
+  FlexRow, BORDER_RADIUS } from "../../ui_primitives";
 import CompositorEditorModal from "../../compositor/CompositorEditorModal";
 import type { CompositorEditorLayer } from "../../compositor/types";
 import HandleColumn from "../../node/HandleColumn";
@@ -112,7 +111,7 @@ const styles = (theme: Theme) =>
       flex: "0 0 auto",
       minHeight: 160,
       maxHeight: 280,
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
       backgroundColor: theme.vars.palette.grey[900],
       display: "flex",

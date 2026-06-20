@@ -6,7 +6,7 @@ import {
   DialogTitle,
   useTheme
 } from "@mui/material";
-import { Dialog, EditorButton, FlexRow, LoadingSpinner } from "../../ui_primitives";
+import { Dialog, EditorButton, FlexRow, LoadingSpinner, BORDER_RADIUS } from "../../ui_primitives";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   isFileExplorerAvailable,
@@ -173,7 +173,7 @@ const DeleteModelDialog: React.FC<DeleteModelDialogProps> = ({
         },
         paper: {
           sx: {
-            borderRadius: "var(--rounded-xxl)",
+            borderRadius: BORDER_RADIUS.xxl,
             backgroundImage: "none"
           }
         }

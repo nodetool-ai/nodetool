@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Autocomplete, Chip, Box, MOTION } from "../ui_primitives";
+import { Autocomplete, Chip, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "fast-deep-equal";
@@ -25,7 +25,7 @@ const StringListProperty = (props: PropertyProps) => {
       padding: "2px 6px",
       minHeight: "32px",
       backgroundColor: "action.disabledBackground",
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       border: "1px solid var(--palette-grey-700)",
       color: "var(--palette-grey-100)",
       fontSize: "var(--fontSizeSmall)",

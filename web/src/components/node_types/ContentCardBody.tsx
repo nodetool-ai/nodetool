@@ -35,8 +35,7 @@ import {
   CheckerDropzone,
   DynamicInputButton,
   FlexRow,
-  VideoPlayer
-} from "../ui_primitives";
+  VideoPlayer, BORDER_RADIUS } from "../ui_primitives";
 import { NodeInputs } from "../node/NodeInputs";
 import HandleColumn from "../node/HandleColumn";
 import ImageView from "../node/ImageView";
@@ -98,7 +97,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       flex: "1 1 auto",
       minHeight: theme.spacing(6),
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       // Allow the handle column to extend past the preview's left edge so
       // the handle dots align with the card's outer edge (compensates for
       // the body's padding).
@@ -127,7 +126,7 @@ const styles = (theme: Theme) =>
       ".image-grid-tile": {
         aspectRatio: "1 / 1",
         minHeight: theme.spacing(8),
-        borderRadius: "var(--rounded-sm)",
+        borderRadius: BORDER_RADIUS.sm,
         overflow: "hidden"
       },
       ".image-grid-tile .image-output": {

@@ -9,8 +9,7 @@ import {
   Text,
   Tooltip,
   EditorButton,
-  LoadingSpinner
-} from "../../ui_primitives";
+  LoadingSpinner, BORDER_RADIUS } from "../../ui_primitives";
 import type { UnifiedModel } from "../../../stores/ApiTypes";
 import { useModelDownloadStore } from "../../../stores/ModelDownloadStore";
 import { DownloadProgress } from "../../hugging_face/DownloadProgress";
@@ -87,7 +86,7 @@ const RecommendedDownloadRow: React.FC<RecommendedDownloadRowProps> = ({
           height: "100%",
           minWidth: 0,
           cursor: downloaded ? "pointer" : "default",
-          borderRadius: "var(--rounded-sm)",
+          borderRadius: BORDER_RADIUS.sm,
           "&:hover": downloaded
             ? { background: theme.vars.palette.action.hover }
             : undefined

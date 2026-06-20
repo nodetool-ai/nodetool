@@ -24,7 +24,7 @@
 
 import { memo, useCallback, useEffect, useRef } from "react";
 import { Command, CommandInput } from "cmdk";
-import { Dialog, MOTION } from "../ui_primitives";
+import { Dialog, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { Caption, Text, Chip } from "../ui_primitives";
 import { css } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
@@ -46,7 +46,7 @@ const styles = (theme: Theme) =>
     },
     ".command-menu": {
       backgroundColor: theme.vars.palette.background.paper,
-      borderRadius: "var(--rounded-xl)",
+      borderRadius: BORDER_RADIUS.xl,
       border: `1px solid ${theme.vars.palette.divider}`,
       boxShadow: theme.shadows[8],
       overflow: "hidden"
@@ -65,7 +65,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "12px",
       padding: "12px 16px",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       cursor: "pointer",
       transition: MOTION.background,
       "&:hover, &[data-selected=true]": {
@@ -78,7 +78,7 @@ const styles = (theme: Theme) =>
     ".node-icon": {
       width: "32px",
       height: "32px",
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",

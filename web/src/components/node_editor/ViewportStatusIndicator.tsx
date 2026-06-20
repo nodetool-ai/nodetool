@@ -3,7 +3,7 @@ import {
   ListItemButton,
   ListItemText
 } from "@mui/material";
-import { Tooltip, ToolbarIconButton, Text, FlexRow, Box, Popover, ListGroup, MOTION } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, Text, FlexRow, Box, Popover, ListGroup, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { useViewport, useReactFlow } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
@@ -138,7 +138,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
       minWidth: "48px",
       textAlign: "center" as const,
       padding: "2px 6px",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       transition: `all ${MOTION.fast}`,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
@@ -159,7 +159,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
       zIndex: 10,
       backgroundColor: theme.vars.palette.Paper.paper,
       backdropFilter: "blur(8px)",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       border: `1px solid ${theme.vars.palette.divider}`,
       padding: "4px 8px",
       boxShadow: theme.shadows[4],

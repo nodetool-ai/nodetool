@@ -3,7 +3,7 @@ import React, { useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Box } from "../ui_primitives";
+import { Text, Box, BORDER_RADIUS } from "../ui_primitives";
 import { TaskUpdate } from "../../stores/ApiTypes";
 import StepView from "./StepView";
 
@@ -20,7 +20,7 @@ const styles = (theme: Theme) =>
     ".task-update-container": {
       marginBottom: "0.75rem",
       padding: "1rem",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       backgroundColor: theme.vars.palette.grey[900],
       border: `1px solid ${theme.vars.palette.primary.dark}`,
       borderLeft: `3px solid ${theme.vars.palette.primary.main}`
@@ -47,7 +47,7 @@ const styles = (theme: Theme) =>
       display: "inline-flex",
       alignItems: "center",
       padding: "0.25rem 0.625rem",
-      borderRadius: "var(--rounded-xl)",
+      borderRadius: BORDER_RADIUS.xl,
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       textTransform: "uppercase",

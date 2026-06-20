@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS } from "../ui_primitives";
 
 export const assetGridStyles = (theme: Theme) => {
   return css({
@@ -151,7 +151,7 @@ export const assetGridStyles = (theme: Theme) => {
       position: "relative",
       backgroundColor: "transparent",
       transition: MOTION.background,
-      borderRadius: "var(--rounded-xs)"
+      borderRadius: BORDER_RADIUS.xs
     },
     "& .dv-split-view-container.dv-horizontal > .dv-sash-container > .dv-sash":
       {

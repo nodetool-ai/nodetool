@@ -30,8 +30,7 @@ import {
   FlexColumn,
   CopyButton,
   LoadingSpinner,
-  ToolbarIconButton
-} from "../ui_primitives";
+  ToolbarIconButton, BORDER_RADIUS } from "../ui_primitives";
 import { editorClassNames, cn } from "../editor_ui";
 import HandleColumn from "../node/HandleColumn";
 import { NodeInputs } from "../node/NodeInputs";
@@ -125,7 +124,7 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       backgroundColor: "var(--palette-grey-600)",
       border: "1px solid var(--palette-grey-500)",
-      borderRadius: "var(--rounded-sm)"
+      borderRadius: BORDER_RADIUS.sm
     },
     ".editor-area:focus-within": {
       borderColor: "var(--palette-grey-400)"

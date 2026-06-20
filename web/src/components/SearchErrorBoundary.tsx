@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { Component } from "react";
 import type { ReactNode, ErrorInfo } from "react";
-import { EditorButton, Text, Box } from "./ui_primitives";
+import { EditorButton, Text, Box, BORDER_RADIUS } from "./ui_primitives";
 import { ThemeContext } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 
@@ -17,7 +17,7 @@ const searchErrorBoundaryStyles = (theme: Theme) =>
     textAlign: "center",
     background: theme.vars.palette.c_gray0,
     border: `1px solid ${theme.vars.palette.c_gray1}`,
-    borderRadius: "var(--rounded-lg)",
+    borderRadius: BORDER_RADIUS.lg,
     margin: "1rem",
     padding: "2rem",
 

@@ -7,7 +7,7 @@ import Prism from "prismjs";
 import "prismjs/components/prism-json";
 import DOMPurify from "dompurify";
 import type { Chunk } from "../../../stores/ApiTypes";
-import { MOTION } from "../../ui_primitives";
+import { MOTION, BORDER_RADIUS } from "../../ui_primitives";
 
 type Props = {
   chunk: Chunk;
@@ -21,7 +21,7 @@ const toolCallStyles = (theme: Theme) =>
       gap: ".25em",
       padding: ".4em .6em",
       margin: ".2em 0",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       border: `1px solid ${theme.vars.palette.divider}`,
       backgroundColor: theme.vars.palette.grey[900],
       fontFamily: theme.fontFamily2,
@@ -40,7 +40,7 @@ const toolCallStyles = (theme: Theme) =>
     ".badge": {
       flexShrink: 0,
       padding: "0 .4em",
-      borderRadius: "var(--rounded-xs)",
+      borderRadius: BORDER_RADIUS.xs,
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.primary.contrastText,
       fontSize: "var(--fontSizeSmaller)",
@@ -70,7 +70,7 @@ const toolCallStyles = (theme: Theme) =>
     ".args": {
       margin: 0,
       padding: ".4em .5em",
-      borderRadius: "var(--rounded-xs)",
+      borderRadius: BORDER_RADIUS.xs,
       backgroundColor: theme.vars.palette.background.default,
       color: theme.vars.palette.grey[100],
       whiteSpace: "pre-wrap",

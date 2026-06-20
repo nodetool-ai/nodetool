@@ -25,7 +25,7 @@ import { NodeData } from "../../stores/NodeData";
 import { NodeHeader } from "./NodeHeader";
 import { NodeOutputs } from "./NodeOutputs";
 import NodeResizeHandle from "./NodeResizeHandle";
-import { CopyButton, ToolbarIconButton, Container, MOTION } from "../ui_primitives";
+import { CopyButton, ToolbarIconButton, Container, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import TextEditorModal from "../properties/TextEditorModal";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
@@ -111,7 +111,7 @@ const styles = (theme: Theme) =>
       border: "none",
       outline: "none",
       background: "rgba(255,255,255,0.03)",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       color: theme.vars.palette.text.primary,
       fontFamily: theme.fontFamily1 || "'Inter', Arial, sans-serif",
       fontSize: theme.fontSizeSmaller || "0.75rem",

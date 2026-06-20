@@ -2,7 +2,7 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 
-import { EditorButton, Text, Divider, FlexRow, ContextMenu } from "../ui_primitives";
+import { EditorButton, Text, Divider, FlexRow, ContextMenu, BORDER_RADIUS } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -297,7 +297,7 @@ const PaneContextMenu: React.FC = () => {
             className: "context-menu pane-context-menu"
           }
         }}
-        paperSx={{ borderRadius: "var(--rounded-lg)", width: "240px" }}
+        paperSx={{ borderRadius: BORDER_RADIUS.lg, width: "240px" }}
       >
         <ContextMenuItem
           onClick={handlePasteAndClose}

@@ -19,8 +19,7 @@ import {
   NodeSlider,
   StateIconButton,
   ToggleGroup,
-  ToggleOption
-} from "../../ui_primitives";
+  ToggleOption, BORDER_RADIUS } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageView from "../../node/ImageView";
 import { NodeOutputs } from "../../node/NodeOutputs";
@@ -56,7 +55,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       flex: "1 1 auto",
       minHeight: 160,
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       overflow: "visible",
       backgroundColor: theme.vars.palette.grey[900],
       display: "flex",
@@ -82,7 +81,7 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.common.white,
         fontFamily: theme.fontFamily2,
         fontSize: theme.fontSizeSmaller,
-        borderRadius: "var(--rounded-sm)",
+        borderRadius: BORDER_RADIUS.sm,
         pointerEvents: "none"
       }
     },
@@ -137,7 +136,7 @@ const styles = (theme: Theme) =>
     ".preset-chip": {
       cursor: "pointer",
       padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       border: `1px solid ${theme.vars.palette.divider}`,
       background: "transparent",
       color: theme.vars.palette.text.primary,

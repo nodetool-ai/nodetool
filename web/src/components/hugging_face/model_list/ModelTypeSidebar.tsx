@@ -5,7 +5,7 @@ import {
   ListItemButton,
   ListItemText
 } from "@mui/material";
-import { Chip, Text, ToolbarIconButton, Box, MOTION } from "../../ui_primitives";
+import { Chip, Text, ToolbarIconButton, Box, MOTION, BORDER_RADIUS } from "../../ui_primitives";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { IconForType } from "../../../config/IconForType";
 import { prettifyModelType } from "../../../utils/modelFormatting";
@@ -88,7 +88,7 @@ const ModelTypeSidebar: React.FC = () => {
               key={type}
               sx={{
                 mb: 0.25,
-                borderRadius: "var(--rounded-lg)",
+                borderRadius: BORDER_RADIUS.lg,
                 overflow: "hidden"
               }}
               secondaryAction={
@@ -117,7 +117,7 @@ const ModelTypeSidebar: React.FC = () => {
               selected={isSelected}
               onClick={createModelTypeChangeHandler(type)}
               sx={{
-                  borderRadius: "var(--rounded-lg)",
+                  borderRadius: BORDER_RADIUS.lg,
                   padding: "5px 10px",
                   minWidth: 0,
                   gap: 1,

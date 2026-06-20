@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS } from "../ui_primitives";
 
 /**
  * Styles for the NumberInput component.
@@ -110,7 +110,7 @@ export const numberInputStyles = (theme: Theme) =>
       justifyContent: "center",
       backgroundColor: "transparent",
       border: `1px solid ${theme.vars.palette.grey[600]}`,
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       color: theme.vars.palette.grey[100],
       cursor: "pointer",
       padding: 0,
@@ -195,7 +195,7 @@ export const numberInputStyles = (theme: Theme) =>
       width: "100%",
       height: "4px",
       marginTop: 0,
-      borderRadius: "var(--rounded-xs)",
+      borderRadius: BORDER_RADIUS.xs,
       fontSize: "0.5em",
       minWidth: "1px"
     },
@@ -205,7 +205,7 @@ export const numberInputStyles = (theme: Theme) =>
       opacity: 1,
       backgroundColor: theme.vars.palette.grey[500],
       height: "100%",
-      borderRadius: "var(--rounded-xs)",
+      borderRadius: BORDER_RADIUS.xs,
 
       "&:hover": {
         backgroundColor: theme.vars.palette.primary.main

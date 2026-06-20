@@ -16,7 +16,7 @@ import Select from "@mui/material/Select";
 import type { SelectChangeEvent } from "@mui/material/Select";
 import ImageIcon from "@mui/icons-material/Image";
 
-import { CheckerDropzone, NodeSlider } from "../../ui_primitives";
+import { CheckerDropzone, NodeSlider, BORDER_RADIUS } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageRefPreview from "../../node/ImageRefPreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
@@ -57,7 +57,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       flex: "1 1 auto",
       minHeight: 160,
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
       backgroundColor: theme.vars.palette.grey[900],
       display: "flex",

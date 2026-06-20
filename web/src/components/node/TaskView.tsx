@@ -3,7 +3,7 @@ import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Card, ListGroup } from "../ui_primitives";
+import { Text, Card, ListGroup, BORDER_RADIUS } from "../ui_primitives";
 import { Task } from "../../stores/ApiTypes";
 import StepView from "./StepView";
 
@@ -12,7 +12,7 @@ const styles = (theme: Theme) =>
     ".task-container": {
       marginBottom: "1rem",
       padding: "1rem",
-      borderRadius: "var(--rounded-sm)"
+      borderRadius: BORDER_RADIUS.sm
     },
     ".task-title": {
       fontWeight: 600,

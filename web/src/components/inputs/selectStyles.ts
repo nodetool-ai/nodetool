@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS } from "../ui_primitives";
 
 /**
  * Styles for the Select component.
@@ -36,7 +36,7 @@ export const selectStyles = (theme: Theme) =>
       backdropFilter: "blur(10px)",
       border: `1px solid ${theme.vars.palette.divider}`,
       boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       zIndex: 10000
     },
 
@@ -51,7 +51,7 @@ export const selectStyles = (theme: Theme) =>
       color: "var(--text-primary)",
       transition: `all ${MOTION.fast}`,
       whiteSpace: "nowrap",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       marginBottom: "2px"
     },
 
@@ -89,7 +89,7 @@ export const selectStyles = (theme: Theme) =>
       border: `1px solid ${theme.vars.palette.divider}`,
       backgroundColor: theme.vars.palette.grey[900],
       fontSize: theme.fontSizeSmall,
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       cursor: "pointer",
       display: "flex",
       justifyContent: "space-between",
@@ -131,7 +131,7 @@ export const selectStyles = (theme: Theme) =>
       padding: "0 8px",
       backgroundColor: theme.vars.palette.grey[900],
       border: `1px solid ${theme.vars.palette.primary.main}`,
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       color: "var(--text-primary)",
       fontSize: theme.fontSizeSmall,
       outline: "none",
@@ -157,7 +157,7 @@ export const portalOptionsStyles = (theme: Theme) =>
       backdropFilter: "blur(10px)",
       border: `1px solid ${theme.vars.palette.divider}`,
       boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       zIndex: 10000
     },
 
@@ -172,7 +172,7 @@ export const portalOptionsStyles = (theme: Theme) =>
       color: "var(--text-primary)",
       transition: `all ${MOTION.fast}`,
       whiteSpace: "nowrap",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       marginBottom: "2px"
     },
 

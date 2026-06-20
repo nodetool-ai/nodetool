@@ -17,7 +17,7 @@ import { rankSearchNodes } from "../../utils/nodeSearch";
 import ClearIcon from "@mui/icons-material/Clear";
 import SearchIcon from "@mui/icons-material/Search";
 import NodeItem from "../node_menu/NodeItem";
-import { Text, ToolbarIconButton, Box, MOTION, ContextMenu } from "../ui_primitives";
+import { Text, ToolbarIconButton, Box, MOTION, ContextMenu, BORDER_RADIUS } from "../ui_primitives";
 import { useNodes } from "../../contexts/NodeContext";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import { useTheme } from "@mui/material/styles";
@@ -32,7 +32,7 @@ const menuStyles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       width: "320px",
-      borderRadius: "var(--rounded-xl)",
+      borderRadius: BORDER_RADIUS.xl,
       backgroundColor: theme.vars.palette.background.paper,
       border: `1px solid ${theme.vars.palette.divider}`,
       boxShadow: theme.shadows[8],
@@ -57,7 +57,7 @@ const scrollableContentStyles = (theme: Theme) =>
       alignItems: "center",
       margin: 0,
       padding: "3px 6px",
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       cursor: "pointer",
       transition: MOTION.background,
       ".node-button": {
@@ -70,7 +70,7 @@ const scrollableContentStyles = (theme: Theme) =>
       },
       ".icon-bg": {
         backgroundColor: "rgba(255,255,255,0.05) !important",
-        borderRadius: "var(--rounded-sm)",
+        borderRadius: BORDER_RADIUS.sm,
         padding: "2px",
         display: "flex",
         alignItems: "center",
@@ -87,7 +87,7 @@ const scrollableContentStyles = (theme: Theme) =>
     ".node.focused": {
       color: "var(--palette-primary-main)",
       backgroundColor: "action.selected",
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       boxShadow: `inset 0 0 0 1px ${theme.vars.palette.action.selected}`
     },
     ".Mui-disabled": {
@@ -358,7 +358,7 @@ const ConnectableNodes: React.FC = React.memo(function ConnectableNodes() {
             sx={{
                 "& .MuiOutlinedInput-root": {
                     backgroundColor: "action.disabledBackground",
-                    borderRadius: "var(--rounded-lg)",
+                    borderRadius: BORDER_RADIUS.lg,
                     "& .MuiOutlinedInput-notchedOutline": { borderColor: "action.selected" },
                     "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "action.focus" },
                     "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: theme.vars.palette.primary.main },

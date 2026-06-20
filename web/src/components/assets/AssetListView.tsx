@@ -12,7 +12,7 @@ import { getAssetCategory } from "./assetGridUtils";
 import FolderIcon from "@mui/icons-material/Folder";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { ExpandCollapseButton, EmptyState, Text, Box, MOTION } from "../ui_primitives";
+import { ExpandCollapseButton, EmptyState, Text, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { useSettingsStore } from "../../stores/SettingsStore";
 
 interface AssetListViewProps {
@@ -151,7 +151,7 @@ const styles = (theme: Theme) =>
       marginRight: "0.75em",
       width: "32px",
       height: "32px",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       backgroundSize: "cover",
       backgroundPosition: "center",
       backgroundRepeat: "no-repeat",
@@ -171,7 +171,7 @@ const styles = (theme: Theme) =>
         right: 0,
         bottom: 0,
         border: `1px solid ${theme.vars.palette.grey[500]}22`,
-        borderRadius: "var(--rounded-sm)",
+        borderRadius: BORDER_RADIUS.sm,
         pointerEvents: "none"
       }
     },

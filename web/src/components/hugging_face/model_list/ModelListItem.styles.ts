@@ -1,6 +1,6 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION } from "../../ui_primitives";
+import { MOTION, BORDER_RADIUS } from "../../ui_primitives";
 
 const modelListItemStyles = (theme: Theme) =>
   css({
@@ -12,7 +12,7 @@ const modelListItemStyles = (theme: Theme) =>
       maxHeight: "calc(100% - 0.75em)",
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       backgroundColor: "rgba(255,255,255,0.01)",
       transition: `${MOTION.background}, ${MOTION.border}`,
 
@@ -187,7 +187,7 @@ const modelListItemStyles = (theme: Theme) =>
         fontWeight: 500,
         marginLeft: "0.5em",
         padding: ".3em .8em",
-        borderRadius: "var(--rounded-xl)",
+        borderRadius: BORDER_RADIUS.xl,
         height: "auto",
         border: `1px solid ${theme.vars.palette.divider}`,
         transition: MOTION.all,

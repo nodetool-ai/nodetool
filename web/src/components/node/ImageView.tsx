@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { useMemo, useRef, useCallback, useState, useEffect } from "react";
-import { Text, ToolbarIconButton, MOTION } from "../ui_primitives";
+import { Text, ToolbarIconButton, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import AssetViewer from "../assets/AssetViewer";
@@ -202,7 +202,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
     width: "100%",
     height: "100%",
     minHeight: "80px",
-    borderRadius: "var(--rounded-sm)",
+    borderRadius: BORDER_RADIUS.sm,
     overflow: "hidden" as const,
     ...alphaSurfaceBg
   }), []);
@@ -224,7 +224,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
     padding: "4px",
     backgroundColor: "rgba(0, 0, 0, 0.6)",
     color: "var(--palette-grey-0)",
-    borderRadius: "var(--rounded-sm)",
+    borderRadius: BORDER_RADIUS.sm,
     "&:hover": {
       backgroundColor: "rgba(0, 0, 0, 0.85)"
     },
@@ -237,7 +237,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
     width: "100%",
     height: "100%",
     objectFit: "contain" as const,
-    borderRadius: "var(--rounded-sm)",
+    borderRadius: BORDER_RADIUS.sm,
     cursor: "pointer"
   }), []);
 

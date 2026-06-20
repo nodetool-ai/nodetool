@@ -25,7 +25,7 @@ import { useNodeGenerations } from "../../hooks/nodes/useNodeGenerations";
 import { outputOf, runVariantValues } from "../../utils/nodeGenerations";
 import type { Asset } from "../../stores/ApiTypes";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
-import { CopyButton, Dialog, ToolbarIconButton, MOTION } from "../ui_primitives";
+import { CopyButton, Dialog, ToolbarIconButton, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { MediaOverlaySuppressProvider } from "./MediaOverlayContext";
 import { TextRenderer } from "./output/TextRenderer";
 import { extractTextValue } from "../../utils/extractTextValue";
@@ -94,7 +94,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: 4,
       padding: "2px 4px",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       backgroundColor: "rgba(0, 0, 0, 0.55)",
       color: theme.vars.palette.common.white
     },
@@ -148,7 +148,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       aspectRatio: "1 / 1",
       backgroundColor: "rgba(0, 0, 0, 0.2)",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
       cursor: "pointer",
       border: `1px solid transparent`,
@@ -175,7 +175,7 @@ const styles = (theme: Theme) =>
       top: 2,
       right: 4,
       padding: "0 4px",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       backgroundColor: "rgba(0, 0, 0, 0.55)",
       fontSize: theme.fontSizeTiny,
       color: theme.vars.palette.common.white
@@ -661,7 +661,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
         <div className="node-history-overlay overlay-bottom-left">
           <span style={{
             padding: "2px 6px",
-            borderRadius: "var(--rounded-sm)",
+            borderRadius: BORDER_RADIUS.sm,
             backgroundColor: "rgba(0, 0, 0, 0.55)"
           }}>
             {infoText}

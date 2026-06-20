@@ -12,7 +12,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ImageIcon from "@mui/icons-material/Image";
 
-import { CheckerDropzone } from "../../ui_primitives";
+import { CheckerDropzone, BORDER_RADIUS } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageRefPreview from "../../node/ImageRefPreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
@@ -59,7 +59,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       flex: "1 1 auto",
       minHeight: 140,
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
       backgroundColor: theme.vars.palette.grey[900],
       display: "flex",

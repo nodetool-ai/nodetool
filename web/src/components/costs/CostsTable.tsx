@@ -58,7 +58,7 @@ const ProviderModel: React.FC<{
         sx={{
           width: 9,
           height: 9,
-          borderRadius: "var(--rounded-sm)",
+          borderRadius: BORDER_RADIUS.sm,
           flexShrink: 0,
           backgroundColor: providerColor(providerId)
         }}
@@ -235,7 +235,7 @@ const GroupRows: React.FC<{ rows: GroupRow[]; groupBy: GroupByKey }> = ({
                 sx={{
                   width: 9,
                   height: 9,
-                  borderRadius: "var(--rounded-sm)",
+                  borderRadius: BORDER_RADIUS.sm,
                   flexShrink: 0,
                   backgroundColor: providerColor(r.providerId)
                 }}
@@ -268,7 +268,7 @@ const GroupRows: React.FC<{ rows: GroupRow[]; groupBy: GroupByKey }> = ({
               sx={{
                 flex: 1,
                 height: 6,
-                borderRadius: "var(--rounded-sm)",
+                borderRadius: BORDER_RADIUS.sm,
                 backgroundColor: theme.vars.palette.action.hover,
                 overflow: "hidden"
               }}
@@ -277,7 +277,7 @@ const GroupRows: React.FC<{ rows: GroupRow[]; groupBy: GroupByKey }> = ({
                 sx={{
                   width: `${Math.max(r.share * 100, 1.5)}%`,
                   height: "100%",
-                  borderRadius: "var(--rounded-sm)",
+                  borderRadius: BORDER_RADIUS.sm,
                   backgroundColor: r.providerId
                     ? providerColor(r.providerId)
                     : theme.vars.palette.primary.main

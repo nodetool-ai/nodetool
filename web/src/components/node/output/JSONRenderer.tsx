@@ -9,6 +9,7 @@ import DOMPurify from "dompurify";
 import isEqual from "fast-deep-equal";
 import Actions from "./Actions";
 
+import { BORDER_RADIUS } from "../../ui_primitives";
 const jsonStyles = (theme: Theme) =>
   css({
     "&": {
@@ -28,7 +29,7 @@ const jsonStyles = (theme: Theme) =>
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",
       padding: ".5em",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.grey[900],
       color: theme.vars.palette.grey[100]
     },

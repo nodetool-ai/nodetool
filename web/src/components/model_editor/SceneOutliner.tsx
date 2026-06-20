@@ -9,7 +9,7 @@ import ViewInArIcon from "@mui/icons-material/ViewInAr";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import CategoryIcon from "@mui/icons-material/Category";
 import CameraAltIcon from "@mui/icons-material/CameraAlt";
-import { FlexColumn, FlexRow, Text, ScrollArea } from "../ui_primitives";
+import { FlexColumn, FlexRow, Text, ScrollArea, BORDER_RADIUS } from "../ui_primitives";
 import type { SceneTreeNode } from "./sceneTree";
 
 const styles = (theme: Theme) =>
@@ -25,7 +25,7 @@ const styles = (theme: Theme) =>
       gap: "4px",
       padding: "2px 8px",
       cursor: "pointer",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       userSelect: "none",
       color: theme.vars.palette.text.secondary,
       "&:hover": {

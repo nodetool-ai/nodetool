@@ -9,6 +9,7 @@ import React, { memo, useCallback } from "react";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 
+import { BORDER_RADIUS } from "../../ui_primitives";
 const GLYPH_W = 18;
 const GLYPH_H = 10;
 
@@ -36,7 +37,7 @@ export const waveformSelectorStyles = (theme: Theme) =>
       height: 20,
       padding: 0,
       border: "none",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       backgroundColor: "transparent",
       color: theme.vars.palette.text.secondary,
       cursor: "pointer",

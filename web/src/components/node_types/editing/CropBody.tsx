@@ -33,7 +33,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import type { SelectChangeEvent } from "@mui/material/Select";
 
-import { CheckerDropzone } from "../../ui_primitives";
+import { CheckerDropzone, BORDER_RADIUS } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
@@ -86,7 +86,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       flex: "1 1 auto",
       minHeight: 160,
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
       backgroundColor: theme.vars.palette.grey[900],
       display: "flex",
@@ -143,7 +143,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.common.white,
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       pointerEvents: "none"
     },
     ".controls": {
@@ -195,7 +195,7 @@ const styles = (theme: Theme) =>
       width: 22,
       height: 22,
       padding: 0,
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       border: `1px solid ${theme.vars.palette.divider}`,
       background: "transparent",
       color: theme.vars.palette.text.secondary,

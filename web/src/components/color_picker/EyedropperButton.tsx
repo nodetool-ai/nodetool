@@ -1,5 +1,5 @@
 import React, { useCallback, useState, memo } from "react";
-import { StateIconButton } from "../ui_primitives";
+import { StateIconButton, BORDER_RADIUS } from "../ui_primitives";
 import ColorizeIcon from "@mui/icons-material/Colorize";
 import type { Theme } from "@mui/material/styles";
 import { isEyeDropperSupported } from "./EyedropperButton.helpers";
@@ -50,7 +50,7 @@ const EyedropperButton: React.FC<EyedropperButtonProps> = ({
       size="small"
       className="eyedropper-button"
       sx={(theme: Theme) => ({
-        borderRadius: "var(--rounded-sm)",
+        borderRadius: BORDER_RADIUS.sm,
         backgroundColor: theme.vars.palette.grey[800],
         border: `1px solid ${theme.vars.palette.grey[700]}`,
         "&:hover": {

@@ -15,8 +15,7 @@ import {
   TextInput,
   ToggleGroup,
   ToggleOption,
-  Tooltip
-} from "../ui_primitives";
+  Tooltip, BORDER_RADIUS } from "../ui_primitives";
 import {
   GradientValue,
   GradientStop,
@@ -28,7 +27,7 @@ const styles = (theme: Theme) =>
     ".gradient-preview": {
       width: "100%",
       height: "60px",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       position: "relative",
       overflow: "hidden"
@@ -38,7 +37,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       height: "24px",
       backgroundColor: theme.vars.palette.grey[800],
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       marginTop: "8px"
     },
     ".stop-marker": {
@@ -47,7 +46,7 @@ const styles = (theme: Theme) =>
       height: "24px",
       transform: "translateX(-50%)",
       cursor: "pointer",
-      borderRadius: "var(--rounded-xs)",
+      borderRadius: BORDER_RADIUS.xs,
       border: `2px solid white`,
       boxShadow: "0 0 0 1px rgba(0,0,0,0.3)",
       "&:hover": {
@@ -62,7 +61,7 @@ const styles = (theme: Theme) =>
       marginTop: "12px",
       padding: "8px",
       backgroundColor: theme.vars.palette.grey[900],
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       fontSize: "var(--fontSizeSmaller)",
       fontFamily: "monospace",
       wordBreak: "break-all",

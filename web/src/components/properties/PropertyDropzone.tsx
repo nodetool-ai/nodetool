@@ -4,7 +4,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState, useRef, ChangeEvent } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
-import { Tooltip, ToolbarIconButton, MOTION, SPACING } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, MOTION, SPACING, BORDER_RADIUS } from "../ui_primitives";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import ImageDimensions from "../node/ImageDimensions";
 import { useTheme } from "@mui/material/styles";
@@ -75,7 +75,7 @@ const PropertyDropzone = ({
         outline: `1px dashed ${theme.vars.palette.divider}`,
         margin: `${theme.spacing(SPACING.sm)} 0`,
         backgroundColor: theme.vars.palette.Paper.overlay,
-        borderRadius: "var(--rounded-md)",
+        borderRadius: BORDER_RADIUS.md,
 
         "&:hover": {
           outline: `1px dashed ${theme.vars.palette.text.secondary}`,
@@ -113,7 +113,7 @@ const PropertyDropzone = ({
       },
       ".dropzone .image-preview-surface": {
         ...alphaSurfaceBg,
-        borderRadius: "var(--rounded-sm)",
+        borderRadius: BORDER_RADIUS.sm,
         overflow: "hidden"
       },
       ".dropzone img": {
@@ -122,7 +122,7 @@ const PropertyDropzone = ({
         maxHeight: "200px",
         objectFit: "contain",
         display: "block",
-        borderRadius: "var(--rounded-sm)"
+        borderRadius: BORDER_RADIUS.sm
       },
       ".prop-drop": {
         fontSize: theme.fontSizeTiny,

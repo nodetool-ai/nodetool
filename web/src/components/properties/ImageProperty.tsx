@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import { SPACING } from "../ui_primitives";
+import { SPACING, BORDER_RADIUS } from "../ui_primitives";
 import { useAsset } from "../../serverState/useAsset";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
@@ -14,7 +14,7 @@ import ImageRefPreview from "../node/ImageRefPreview";
 const connectedPreviewStyles = css({
   position: "relative",
   width: "100%",
-  borderRadius: "var(--rounded-md)",
+  borderRadius: BORDER_RADIUS.md,
   overflow: "hidden",
   border: "1px solid rgba(255,255,255,0.1)",
   display: "flex",

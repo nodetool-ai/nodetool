@@ -944,7 +944,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                               style={{
                                 margin: "0.5em 0.75em",
                                 padding: "0.4em 0.6em",
-                                borderRadius: "var(--rounded-lg)",
+                                borderRadius: BORDER_RADIUS.lg,
                                 background: "rgba(255, 193, 7, 0.12)",
                                 border: "1px solid rgba(255, 193, 7, 0.35)",
                                 color: "rgba(255, 255, 255, 0.85)",

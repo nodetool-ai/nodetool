@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, memo, useMemo, useRef, useEffect } from "react";
-import { EditorButton, Text, Tooltip, Box, MOTION } from "../ui_primitives";
+import { EditorButton, Text, Tooltip, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import {
   Folder as FolderIcon,
   NavigateNext as NavigateIcon
@@ -100,7 +100,7 @@ const styles = (theme: Theme) =>
       marginRight: "0.75em",
       width: "40px",
       height: "40px",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       backgroundSize: "cover",
       backgroundPosition: "center",
       backgroundRepeat: "no-repeat",
@@ -120,7 +120,7 @@ const styles = (theme: Theme) =>
         right: 0,
         bottom: 0,
         border: `1px solid ${theme.vars.palette.grey[500]}22`,
-        borderRadius: "var(--rounded-sm)",
+        borderRadius: BORDER_RADIUS.sm,
         pointerEvents: "none"
       }
     },
@@ -234,7 +234,7 @@ const GlobalSearchResults: React.FC<GlobalSearchResultsProps> = ({
     height: "20px",
     border: "2px solid " + "var(--palette-grey-500)",
     borderTop: "2px solid var(--palette-grey-100)",
-    borderRadius: "var(--rounded-circle)",
+    borderRadius: BORDER_RADIUS.circle,
     animation: "spin 1s linear infinite"
   }), []);
 

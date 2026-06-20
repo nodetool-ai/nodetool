@@ -14,7 +14,7 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect, memo } from "react";
-import { Tooltip, ToolbarIconButton } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, BORDER_RADIUS } from "../ui_primitives";
 import { SxProps, Theme, useTheme } from "@mui/material/styles";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
@@ -381,7 +381,7 @@ export const CopyAssetButton = memo<CopyAssetButtonProps>(
           padding: "4px",
           backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
           color: theme.vars.palette.common.white,
-          borderRadius: "var(--rounded-sm)",
+          borderRadius: BORDER_RADIUS.sm,
           "&:hover": {
             backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.85)`
           },

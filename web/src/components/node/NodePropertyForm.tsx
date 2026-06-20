@@ -7,7 +7,7 @@ import {
   DialogActions,
   MenuItem
 } from "@mui/material";
-import { FlexRow, EditorButton, Dialog } from "../ui_primitives";
+import { FlexRow, EditorButton, Dialog, BORDER_RADIUS } from "../ui_primitives";
 import { Add } from "@mui/icons-material";
 import { useState, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
@@ -221,7 +221,7 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
         fullWidth
         sx={{
           "& .MuiDialog-paper": {
-            borderRadius: "var(--rounded-xl)",
+            borderRadius: BORDER_RADIUS.xl,
             backgroundColor: theme.vars.palette.grey[1000]
           }
         }}
