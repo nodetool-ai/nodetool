@@ -47,7 +47,7 @@ export default function FeaturesSection({
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
             One canvas <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">
+            <span className="text-white">
               for the whole craft
             </span>
           </motion.h2>
@@ -82,7 +82,7 @@ export default function FeaturesSection({
                 <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50" />
                 <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
                 <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50" />
-                <div className="ml-4 text-xs text-slate-500 font-medium flex items-center gap-2">
+                <div className="ml-4 text-xs text-slate-400 font-medium flex items-center gap-2">
                   <MousePointer2 className="w-3 h-3" />
                   Workflow Editor
                 </div>

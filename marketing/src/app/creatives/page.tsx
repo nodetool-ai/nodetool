@@ -1,8 +1,7 @@
 "use client";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
-import Link from "next/link";
 import {
   Sparkles,
   Play,
@@ -20,8 +19,9 @@ import {
   Command,
   Monitor,
 } from "lucide-react";
-import { XMarkIcon, Bars3Icon } from "@heroicons/react/24/outline";
 import CommunitySection from "../../components/CommunitySection";
+import SiteHeader from "../../components/SiteHeader";
+import SiteFooter from "../../components/SiteFooter";
 
 
 type PersonaAccent = "rose" | "emerald" | "sky" | "amber";
@@ -178,28 +178,8 @@ const workflowExamples = [
   },
 ];
 
-const navigation = [
-  { name: "Home", href: "/" },
-  { name: "Features", href: "#features" },
-  { name: "Workflows", href: "#workflows" },
-  { name: "Community", href: "#community" },
-  { name: "Docs", href: "https://docs.nodetool.ai" },
-];
-
 export default function CreativesPage() {
   const [stars, setStars] = useState<number | null>(null);
-  const [hash, setHash] = useState<string>("");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  // Avoid background scroll while the mobile menu is open.
-  useEffect(() => {
-    if (!mobileMenuOpen) return;
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
-  }, [mobileMenuOpen]);
 
   useEffect(() => {
     fetch("https://api.github.com/repos/nodetool-ai/nodetool")
@@ -210,13 +190,6 @@ export default function CreativesPage() {
         }
       })
       .catch(() => { });
-  }, []);
-
-  useEffect(() => {
-    const update = () => setHash(window.location.hash);
-    update();
-    window.addEventListener("hashchange", update, { passive: true });
-    return () => window.removeEventListener("hashchange", update);
   }, []);
 
   return (
@@ -244,125 +217,7 @@ export default function CreativesPage() {
         />
       </div>
 
-      {/* Navigation — floating pill */}
-      <header>
-        <nav
-          className="fixed top-4 left-0 right-0 z-50"
-          aria-label="Primary"
-        >
-          <div className="mx-auto max-w-6xl px-4 lg:px-6">
-            <div className="flex items-center gap-3">
-              <div className="flex-1 flex items-center justify-between gap-4 rounded-full border border-white/10 bg-[#0a0a14]/85 backdrop-blur-xl px-3 sm:px-5 py-2.5 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.8)]">
-                <Link href="/" className="flex items-center gap-2 group pl-1">
-                  <Image
-                    src="/logo_small.png"
-                    alt="NodeTool"
-                    width={32}
-                    height={32}
-                    className="brightness-0 invert"
-                  />
-                  <span className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-400 to-cyan-400">
-                    nodetool
-                  </span>
-                </Link>
-
-                <ul className="hidden md:flex items-center gap-1">
-                  {navigation.map((item) => {
-                    const active = hash === item.href;
-                    return (
-                      <li key={item.name}>
-                        <a
-                          href={item.href}
-                          className={`px-4 py-1.5 text-sm font-medium rounded-full transition-all ${
-                            active
-                              ? "text-white"
-                              : "text-slate-400 hover:text-white"
-                          }`}
-                        >
-                          {item.name}
-                        </a>
-                      </li>
-                    );
-                  })}
-                </ul>
-
-                <button
-                  type="button"
-                  className="md:hidden rounded-md p-1.5 text-slate-300 hover:bg-white/5 transition-colors"
-                  onClick={() => setMobileMenuOpen(true)}
-                  aria-label="Open menu"
-                >
-                  <Bars3Icon className="h-5 w-5" aria-hidden="true" />
-                </button>
-              </div>
-
-              <a
-                href="https://github.com/nodetool-ai/nodetool"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden md:flex h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-[#0a0a14]/85 backdrop-blur-xl hover:bg-white/5 transition-colors"
-                aria-label="NodeTool on GitHub"
-              >
-                <Image
-                  src="/github-mark-white.svg"
-                  alt=""
-                  width={20}
-                  height={20}
-                />
-              </a>
-            </div>
-          </div>
-        </nav>
-        {/* Mobile menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden fixed inset-0 z-50" role="dialog" aria-modal="true">
-            <button
-              type="button"
-              className="absolute inset-0 bg-[#050510]/95"
-              onClick={() => setMobileMenuOpen(false)}
-              aria-label="Close menu"
-            />
-            <div className="absolute inset-y-0 right-0 w-full overflow-y-auto bg-[#050510] px-6 py-6 sm:max-w-sm border-l border-white/10">
-              <div className="flex items-center justify-between">
-                <Link href="/" className="flex items-center gap-2">
-                  <Image
-                    src="/logo_small.png"
-                    alt="NodeTool"
-                    width={40}
-                    height={40}
-                    className="brightness-0 invert"
-                  />
-                  <span className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-400 to-cyan-400">
-                    nodetool
-                  </span>
-                </Link>
-                <button
-                  type="button"
-                  className="rounded-md p-2 text-slate-300 hover:bg-white/5 transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                  aria-label="Close menu"
-                >
-                  <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                </button>
-              </div>
-              <div className="mt-6 flow-root">
-                <div className="space-y-2 py-6">
-                  {navigation.map((item) => (
-                    <a
-                      key={item.name}
-                      href={item.href}
-                      className="block px-3 py-3 text-base font-medium text-slate-200 hover:bg-white/5 hover:text-white rounded-lg transition-colors"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      {item.name}
-                    </a>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </header>
+      <SiteHeader />
 
       <div className="relative pt-28">
         {/* Hero Section */}
@@ -873,59 +728,7 @@ export default function CreativesPage() {
         </section>
       </div>
 
-      {/* Footer */}
-      <footer className="relative border-t border-white/5 bg-[#050510] py-10">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-slate-500">
-              <span className="text-rose-400">
-                Built with ❤️ by the NodeTool team
-              </span>
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-slate-500">
-              <Link href="/" className="hover:text-slate-300 transition-colors">
-                Home
-              </Link>
-              <a
-                href="https://github.com/nodetool-ai/nodetool"
-                className="hover:text-slate-300 transition-colors"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                GitHub
-              </a>
-              <a
-                href="https://discord.gg/WmQTWZRcYE"
-                className="hover:text-slate-300 transition-colors"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Discord
-              </a>
-              <a
-                href="https://docs.nodetool.ai"
-                className="hover:text-slate-300 transition-colors"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Docs
-              </a>
-              <Link
-                href="/privacy"
-                className="hover:text-slate-300 transition-colors"
-              >
-                Privacy
-              </Link>
-              <Link
-                href="/terms"
-                className="hover:text-slate-300 transition-colors"
-              >
-                Terms
-              </Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }
