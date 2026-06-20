@@ -2,6 +2,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Github, MessageCircle, Star } from "lucide-react";
+import { track } from "../lib/analytics";
 
 interface CommunitySectionProps {
   stars?: number | null;
@@ -29,7 +30,7 @@ const variants = {
     heading: (
       <>
         Join the{" "}
-        <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-amber-400">
+        <span className="text-white">
           community
         </span>
       </>
@@ -89,12 +90,13 @@ export default function CommunitySection({
                 href="https://github.com/nodetool-ai/nodetool"
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 rounded-xl bg-white text-slate-900 font-semibold ${v.githubHover} transition-colors shadow-lg group`}
+                onClick={() => track("Star GitHub")}
+                className={`w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 rounded-xl bg-white text-slate-900 font-semibold ${v.githubHover} transition-colors shadow-lg group focus-ring`}
               >
                 <Github className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
                 <span>Star on GitHub</span>
                 {typeof stars === "number" && (
-                  <div className="ml-3 pl-3 border-l border-slate-200 text-sm font-normal text-slate-500 flex items-center">
+                  <div className="ml-3 pl-3 border-l border-slate-200 text-sm font-normal text-slate-400 flex items-center">
                     <Star className="w-3 h-3 mr-1 text-amber-500 fill-amber-500" />
                     <span>
                       {stars > 1000 ? `${(stars / 1000).toFixed(1)}k` : stars}
@@ -107,7 +109,8 @@ export default function CommunitySection({
                 href="https://discord.gg/WmQTWZRcYE"
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 rounded-xl text-white font-semibold transition-colors ${v.discord} group`}
+                onClick={() => track("Join Discord")}
+                className={`w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 rounded-xl text-white font-semibold transition-colors ${v.discord} group focus-ring`}
               >
                 <MessageCircle className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
                 <span>Join Discord</span>

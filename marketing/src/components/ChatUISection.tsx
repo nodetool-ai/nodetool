@@ -35,7 +35,7 @@ export default function ChatUISection() {
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
             Run your workflows <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">
+            <span className="text-white">
               by chatting
             </span>
           </motion.h2>
@@ -67,7 +67,7 @@ export default function ChatUISection() {
                 <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50" />
                 <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
                 <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50" />
-                <div className="ml-4 text-xs text-slate-500 font-medium flex items-center gap-2">
+                <div className="ml-4 text-xs text-slate-400 font-medium flex items-center gap-2">
                   <Bot className="w-3 h-3" />
                   Chat Assistant
                 </div>

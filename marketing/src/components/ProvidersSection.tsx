@@ -41,7 +41,7 @@ export default function ProvidersSection({
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
             Use any provider <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">
+            <span className="text-white">
               you want
             </span>
           </motion.h2>
