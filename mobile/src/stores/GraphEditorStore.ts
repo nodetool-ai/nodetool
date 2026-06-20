@@ -67,6 +67,8 @@ interface GraphEditorState {
   // ---- Workflow info ----
   workflowId: string | null;
   workflowName: string;
+  /** True when the chain has unsaved edits since the last load/new/save. */
+  isDirty: boolean;
 
   // ---- UI state ----
   nodePickerVisible: boolean;
@@ -129,6 +131,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
 
   workflowId: null,
   workflowName: "Untitled Workflow",
+  isDirty: false,
 
   nodePickerVisible: false,
   insertAtIndex: -1,
@@ -218,7 +221,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
     const updated = [...chain];
     updated.splice(idx, 0, newNode);
 
-    set({ chain: updated, connections: buildConnections(updated) });
+    set({ chain: updated, connections: buildConnections(updated), isDirty: true });
   },
 
   removeNode: (nodeId) => {
@@ -236,7 +239,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
       node.inputMappings = cleaned;
     }
 
-    set({ chain: updated, connections: buildConnections(updated) });
+    set({ chain: updated, connections: buildConnections(updated), isDirty: true });
   },
 
   moveNode: (fromIndex, toIndex) => {
@@ -268,7 +271,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
       updated[i] = { ...updated[i], inputMappings: cleaned };
     }
 
-    set({ chain: updated, connections: buildConnections(updated) });
+    set({ chain: updated, connections: buildConnections(updated), isDirty: true });
   },
 
   duplicateNode: (nodeId) => {
@@ -286,7 +289,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
     };
     const updated = [...chain];
     updated.splice(idx + 1, 0, dup);
-    set({ chain: updated, connections: buildConnections(updated) });
+    set({ chain: updated, connections: buildConnections(updated), isDirty: true });
   },
 
   // ── Node editing ───────────────────────────────────────────────────
@@ -298,7 +301,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
           ? { ...n, properties: { ...n.properties, [name]: value } }
           : n
       );
-      return { chain };
+      return { chain, isDirty: true };
     });
   },
 
@@ -308,7 +311,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
       if (n.id !== nodeId) {return n;}
       return { ...n, selectedOutput: outputName };
     });
-    set({ chain: updated, connections: buildConnections(updated) });
+    set({ chain: updated, connections: buildConnections(updated), isDirty: true });
   },
 
   setInputMapping: (nodeId, inputName, source) => {
@@ -323,7 +326,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
         }
         return { ...n, inputMappings: mappings };
       });
-      return { chain, connections: buildConnections(chain) };
+      return { chain, connections: buildConnections(chain), isDirty: true };
     });
   },
 
@@ -332,7 +335,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
       const chain = state.chain.map((n) =>
         n.id === nodeId ? { ...n, inputMappings: {} } : n
       );
-      return { chain, connections: buildConnections(chain) };
+      return { chain, connections: buildConnections(chain), isDirty: true };
     });
   },
 
@@ -345,7 +348,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
           dynamicProperties: { ...n.dynamicProperties, [inputName]: null },
         };
       });
-      return { chain };
+      return { chain, isDirty: true };
     });
   },
 
@@ -359,7 +362,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
         delete inputMappings[inputName];
         return { ...n, dynamicProperties, inputMappings };
       });
-      return { chain, connections: buildConnections(chain) };
+      return { chain, connections: buildConnections(chain), isDirty: true };
     });
   },
 
@@ -484,6 +487,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
       workflowName: workflow.name,
       metadataByType: byType,
       allMetadata: metadata,
+      isDirty: false,
     });
   },
 
@@ -505,6 +509,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
           graph: graph as unknown as WorkflowGraphInput,
           access: "private",
         });
+        set({ isDirty: false });
         return result as unknown as Workflow;
       } else {
         const result = await apiService.createWorkflow({
@@ -514,7 +519,7 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
           access: "private",
         });
         const newId = (result as unknown as Workflow).id;
-        set({ workflowId: newId });
+        set({ workflowId: newId, isDirty: false });
         return result as unknown as Workflow;
       }
     } catch (err) {
@@ -529,11 +534,12 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
       connections: [],
       workflowId: null,
       workflowName: name ?? "Untitled Workflow",
+      isDirty: false,
     });
   },
 
   setWorkflowName: (name) => {
-    set({ workflowName: name });
+    set({ workflowName: name, isDirty: true });
   },
 
   rebuildConnections: () => {

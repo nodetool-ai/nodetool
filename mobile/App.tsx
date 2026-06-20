@@ -19,6 +19,7 @@ import ThreadsScreen from './src/screens/ThreadsScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { apiService } from './src/services/api';
 import { useTheme } from './src/hooks/useTheme';
+import { useReducedMotion } from './src/hooks/useReducedMotion';
 import { useAuthStore } from './src/stores/AuthStore';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { TRPCProvider } from './src/trpc/Provider';
@@ -27,6 +28,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   const { colors, isDark } = useTheme();
+  const reduceMotion = useReducedMotion();
   const [isReady, setIsReady] = useState(false);
   const authState = useAuthStore((s) => s.state);
   const initializeAuth = useAuthStore((s) => s.initialize);
@@ -84,7 +86,7 @@ export default function App() {
               contentStyle: {
                 backgroundColor: colors.background,
               },
-              animation: 'slide_from_right',
+              animation: reduceMotion ? 'none' : 'slide_from_right',
             }}
           >
             {isLoggedIn ? (
