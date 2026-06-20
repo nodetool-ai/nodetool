@@ -65,11 +65,6 @@
     },
     {
       "package_name": "nodetool-base",
-      "name": "Album Cover Creator.jpg",
-      "path": ""
-    },
-    {
-      "package_name": "nodetool-base",
       "name": "Learning Path Generator.jpg",
       "path": ""
     },
@@ -582,17 +577,6 @@
         "agent",
         "data",
         "rag",
-        "example"
-      ]
-    },
-    {
-      "id": "",
-      "name": "Album Cover Creator",
-      "description": "Create an album cover for a given song.",
-      "tags": [
-        "album-cover",
-        "art",
-        "design",
         "example"
       ]
     },
