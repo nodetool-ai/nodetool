@@ -44,6 +44,14 @@ const highlightStyle = css({
   animation: `${highlightPulse} 0.9s ease-out 3`
 });
 
+const HANDLE_POPUP_STYLE = { position: "absolute" as const, left: "0" };
+const PROPERTY_SPACER_STYLE = {
+  marginLeft: 8,
+  minHeight: 20,
+  display: "flex" as const,
+  alignItems: "center" as const
+};
+
 export type PropertyFieldProps = {
   id: string;
   value: unknown;
@@ -156,22 +164,6 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
     return isCollectType(property.type);
   }, [property.type]);
 
-  // Memoize inline styles to prevent recreation on every render
-  const handlePopupStyle = useMemo(
-    () => ({ position: "absolute" as const, left: "0" }),
-    []
-  );
-
-  const propertySpacerStyle = useMemo(
-    () => ({
-      marginLeft: 8,
-      minHeight: 20,
-      display: "flex" as const,
-      alignItems: "center" as const
-    }),
-    []
-  );
-
   const handleContextMenu = useCallback(
     (event: React.MouseEvent) => {
       event.preventDefault();
@@ -212,7 +204,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
       css={isHighlighted ? highlightStyle : undefined}
     >
       {showHandle && (
-        <div className="handle-popup" style={handlePopupStyle}>
+        <div className="handle-popup" style={HANDLE_POPUP_STYLE}>
           <HandleTooltip
             typeMetadata={property.type}
             paramName={property.name}
@@ -252,7 +244,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
           />
         </>
       ) : (
-        <div className="property-spacer" style={propertySpacerStyle}>
+        <div className="property-spacer" style={PROPERTY_SPACER_STYLE}>
           <PropertyLabel
             id={id}
             name={property.name}

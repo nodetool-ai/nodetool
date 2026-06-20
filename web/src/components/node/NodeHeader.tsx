@@ -42,6 +42,8 @@ export interface NodeHeaderProps {
 const EMPTY_NODE_LOGS: ReturnType<typeof useLogsStore.getState>["logsByNode"][string] =
   [];
 
+const ICON_BACKGROUND_STYLE = { background: "transparent" };
+
 export const NodeHeader: React.FC<NodeHeaderProps> = ({
   id,
   metadataTitle,
@@ -288,11 +290,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
     } as React.CSSProperties;
   }, [backgroundColor]);
 
-  // Neutral icon tile — no category tint.
-  const iconBackgroundStyle = useMemo(
-    () => ({ background: "transparent" }),
-    []
-  );
+  const iconBackgroundStyle = ICON_BACKGROUND_STYLE;
 
   // Memoize title padding style to prevent recreation on every render
   const titlePaddingStyle = useMemo(() => ({
