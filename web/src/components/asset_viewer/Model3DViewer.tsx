@@ -25,8 +25,7 @@ import {
   ToggleGroup,
   ToggleOption,
   FlexColumn,
-  FlexRow
-} from "../ui_primitives";
+  FlexRow, BORDER_RADIUS } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Canvas, useThree, ThreeEvent } from "@react-three/fiber";
@@ -167,7 +166,7 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       transform: "translateX(-50%)",
       padding: "0.5em",
       backgroundColor: "rgba(0, 0, 0, 0.7)",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       zIndex: 100,
       gap: "0.5em",
       alignItems: "center"
@@ -195,7 +194,7 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       padding: "1em 1.5em",
       maxWidth: "90%",
       backgroundColor: "rgba(0, 0, 0, 0.8)",
-      borderRadius: "var(--rounded-lg)"
+      borderRadius: BORDER_RADIUS.lg
     },
     ".fullscreen-close-button": {
       position: "absolute",

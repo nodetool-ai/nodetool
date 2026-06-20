@@ -10,8 +10,7 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
-  Text
-} from "../../ui_primitives";
+  Text, BORDER_RADIUS } from "../../ui_primitives";
 
 const SUPPORTED_FORMATS = [
   { label: "GGUF", primary: true },
@@ -41,7 +40,7 @@ const ModelsRightSidebar: React.FC = () => {
         variant="outlined"
         padding="normal"
         sx={{
-          borderRadius: "var(--rounded-lg)",
+          borderRadius: BORDER_RADIUS.lg,
           border: `1px solid ${theme.vars.palette.divider}`
         }}
       >
@@ -81,7 +80,7 @@ const ModelsRightSidebar: React.FC = () => {
         variant="outlined"
         padding="normal"
         sx={{
-          borderRadius: "var(--rounded-lg)",
+          borderRadius: BORDER_RADIUS.lg,
           border: `1px solid ${theme.vars.palette.divider}`
         }}
       >

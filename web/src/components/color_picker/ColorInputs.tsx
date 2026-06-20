@@ -4,7 +4,7 @@ import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { InputAdornment } from "@mui/material";
-import { TextInput } from "../ui_primitives";
+import { TextInput, BORDER_RADIUS } from "../ui_primitives";
 import { Box } from "../ui_primitives";
 import { useColorConversion } from "../../hooks/useColorConversion";
 import type { ColorMode } from "../../hooks/useColorConversion";
@@ -24,7 +24,7 @@ const styles = (theme: Theme) =>
     ".color-input": {
       "& .MuiInputBase-root": {
         backgroundColor: theme.vars.palette.grey[900],
-        borderRadius: "var(--rounded-sm)",
+        borderRadius: BORDER_RADIUS.sm,
         fontSize: "var(--fontSizeSmall)"
       },
       "& .MuiInputBase-input": {

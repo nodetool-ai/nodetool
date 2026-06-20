@@ -27,7 +27,7 @@ import {
   useNodesInitialized
 } from "@xyflow/react";
 import { create } from "zustand";
-import { Box } from "../ui_primitives";
+import { Box, BORDER_RADIUS } from "../ui_primitives";
 import useMetadataStore from "../../stores/MetadataStore";
 import { NodeData } from "../../stores/NodeData";
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
@@ -193,7 +193,7 @@ export const WorkflowGraphPreview: React.FC<WorkflowGraphPreviewProps> = ({
           alignItems: "center",
           justifyContent: "center",
           border: "1px solid var(--palette-divider)",
-          borderRadius: "var(--rounded-md)",
+          borderRadius: BORDER_RADIUS.md,
           color: "text.secondary",
           fontSize: "var(--fontSizeSmaller)"
         }}
@@ -209,7 +209,7 @@ export const WorkflowGraphPreview: React.FC<WorkflowGraphPreviewProps> = ({
         width,
         height,
         border: "1px solid var(--palette-divider)",
-        borderRadius: "var(--rounded-md)",
+        borderRadius: BORDER_RADIUS.md,
         overflow: "hidden",
         backgroundColor: "var(--palette-background-default)",
         // Nodes render with the real editor components but must be inert:

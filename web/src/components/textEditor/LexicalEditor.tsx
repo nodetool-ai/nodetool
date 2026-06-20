@@ -15,6 +15,7 @@ import { AutoLinkPlugin } from "./AutoLinkPlugin";
 import { HorizontalRulePlugin } from "./HorizontalRulePlugin";
 import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
 
+import { BORDER_RADIUS } from "../ui_primitives";
 const styles = (theme: Theme) =>
   css({
     "::highlight(findMatches)": {
@@ -52,14 +53,14 @@ const styles = (theme: Theme) =>
     ".editor-text-code": {
       backgroundColor: theme.vars.palette.action.selected,
       padding: "2px 4px",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall
     },
     ".editor-code": {
       backgroundColor: theme.vars.palette.action.disabledBackground,
       padding: "8px 12px",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall,
       margin: "8px 0",

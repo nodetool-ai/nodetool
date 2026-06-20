@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import React, { useMemo, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Caption, Box } from "../ui_primitives";
+import { Text, Caption, Box, BORDER_RADIUS } from "../ui_primitives";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import {
@@ -27,7 +27,7 @@ const styles = (theme: Theme) =>
     },
     ".preview-box": {
       padding: "16px",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       display: "flex",
       flexDirection: "column",
@@ -62,7 +62,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "6px",
       padding: "6px 8px",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.grey[900]
     },
     ".compliance-label": {
@@ -89,7 +89,7 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       gap: "4px",
       padding: "8px",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.grey[900]
     },
     ".cb-label": {
@@ -105,7 +105,7 @@ const styles = (theme: Theme) =>
     ".cb-swatch": {
       width: "24px",
       height: "24px",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       border: `1px solid ${theme.vars.palette.grey[700]}`
     }
   });

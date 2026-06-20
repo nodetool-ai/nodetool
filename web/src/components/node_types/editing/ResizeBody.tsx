@@ -15,7 +15,7 @@ import LinkIcon from "@mui/icons-material/Link";
 import LinkOffIcon from "@mui/icons-material/LinkOff";
 import ImageIcon from "@mui/icons-material/Image";
 
-import { CheckerDropzone, FlexRow, StateIconButton } from "../../ui_primitives";
+import { CheckerDropzone, FlexRow, StateIconButton, BORDER_RADIUS } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageView from "../../node/ImageView";
 import ImageRefPreview from "../../node/ImageRefPreview";
@@ -45,7 +45,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       flex: "1 1 auto",
       minHeight: 160,
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       overflow: "visible",
       backgroundColor: theme.vars.palette.grey[900],
       display: "flex",
@@ -71,7 +71,7 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.common.white,
         fontFamily: theme.fontFamily2,
         fontSize: theme.fontSizeSmaller,
-        borderRadius: "var(--rounded-sm)",
+        borderRadius: BORDER_RADIUS.sm,
         pointerEvents: "none"
       }
     },

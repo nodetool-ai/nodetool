@@ -3,7 +3,7 @@ import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, LoadingSpinner, Surface, FlexRow, MOTION } from "../ui_primitives";
+import { Text, LoadingSpinner, Surface, FlexRow, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
 import { Step } from "../../stores/ApiTypes";
@@ -12,7 +12,7 @@ const styles = (theme: Theme) =>
   css({
     ".step-item": {
       padding: "0.85rem 1rem",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.grey[800]}44`,
       transition: MOTION.all,

@@ -6,7 +6,7 @@ import isEqual from "fast-deep-equal";
 import { useQuery } from "@tanstack/react-query";
 import { FileInfo } from "../../stores/ApiTypes";
 import { trpcClient } from "../../trpc/client";
-import { Text, Caption, Box, EditorButton, Skeleton } from "../ui_primitives";
+import { Text, Caption, Box, EditorButton, Skeleton, BORDER_RADIUS } from "../ui_primitives";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import type { TreeViewBaseItem } from "@mui/x-tree-view/models";
 import { useTheme } from "@mui/material/styles";
@@ -86,7 +86,7 @@ const workspaceTreeStyles = (theme: Theme) =>
       flex: 1,
       overflowY: "auto",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       padding: "8px",
       backgroundColor: theme.vars.palette.grey[900]
     },
@@ -115,7 +115,7 @@ const workspaceTreeStyles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       backgroundColor: theme.vars.palette.grey[800],
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
       whiteSpace: "nowrap"
     },
@@ -159,7 +159,7 @@ const workspaceTreeStyles = (theme: Theme) =>
 
 const treeViewStyles = (theme: Theme) => ({
   ".MuiTreeItem-content": {
-    borderRadius: "var(--rounded-xs)",
+    borderRadius: BORDER_RADIUS.xs,
     padding: "4px 8px",
     userSelect: "none",
     cursor: "pointer"

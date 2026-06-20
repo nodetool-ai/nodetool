@@ -34,8 +34,7 @@ import {
   ToggleOption,
   EditorButton,
   CloseButton,
-  DownloadButton
-} from "../ui_primitives";
+  DownloadButton, BORDER_RADIUS } from "../ui_primitives";
 import SceneOutliner from "./SceneOutliner";
 import PropertiesPanel from "./PropertiesPanel";
 import { buildSceneTree } from "./sceneTree";
@@ -112,7 +111,7 @@ const styles = (theme: Theme) =>
       minWidth: "160px",
       backgroundColor: theme.vars.palette.background.paper,
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       boxShadow: theme.shadows[6]
     },
     ".add-dropdown .MuiButton-root": {
@@ -134,7 +133,7 @@ const styles = (theme: Theme) =>
       padding: "1em 1.5em",
       textAlign: "center",
       backgroundColor: "rgba(0,0,0,0.8)",
-      borderRadius: "var(--rounded-lg)"
+      borderRadius: BORDER_RADIUS.lg
     }
   });
 

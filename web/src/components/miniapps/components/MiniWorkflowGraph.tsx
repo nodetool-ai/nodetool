@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useMemo } from "react";
 import { css, keyframes } from "@emotion/react";
-import { Caption, Tooltip, Box, MOTION } from "../../ui_primitives";
+import { Caption, Tooltip, Box, MOTION, BORDER_RADIUS } from "../../ui_primitives";
 import useStatusStore from "../../../stores/StatusStore";
 import { nodeKey } from "../../../stores/nodeKey";
 import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
@@ -64,7 +64,7 @@ const graphStyles = css({
     height: `${CONTAINER_HEIGHT}px`,
     background: "color-mix(in srgb, var(--palette-background-paper), transparent 60%)",
     backdropFilter: "blur(12px)",
-    borderRadius: "var(--rounded-lg)",
+    borderRadius: BORDER_RADIUS.lg,
     border: "1px solid var(--palette-divider)",
     overflow: "hidden"
   },
@@ -77,7 +77,7 @@ const graphStyles = css({
     padding: "3px 8px",
     background: "var(--palette-background-default)",
     border: "1px solid var(--palette-divider)",
-    borderRadius: "var(--rounded-sm)",
+    borderRadius: BORDER_RADIUS.sm,
     fontSize: "var(--fontSizeSmaller)",
     whiteSpace: "nowrap",
     maxWidth: "90px",

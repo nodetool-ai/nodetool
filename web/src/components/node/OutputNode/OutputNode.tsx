@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { NodeProps } from "@xyflow/react";
 import { getCopySource, getOutputFromResult } from "../outputResult";
-import { Text, Container, MOTION } from "../../ui_primitives";
+import { Text, Container, MOTION, BORDER_RADIUS } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import isEqual from "fast-deep-equal";
@@ -92,7 +92,7 @@ const styles = (theme: Theme) =>
       },
       ".output-node-content > .content.scrollable::-webkit-scrollbar-thumb": {
         backgroundColor: theme.vars.palette.grey[500],
-        borderRadius: "var(--rounded-md)"
+        borderRadius: BORDER_RADIUS.md
       },
       ".output-node-content > .content.scrollable::-webkit-scrollbar-track": {
         backgroundColor: "transparent"

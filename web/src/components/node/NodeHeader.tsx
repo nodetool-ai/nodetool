@@ -121,7 +121,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           width: "20px",
           minWidth: "20px",
           height: "20px",
-          borderRadius: "var(--rounded-sm)",
+          borderRadius: BORDER_RADIUS.sm,
           display: "grid",
           placeItems: "center",
           marginRight: "4px",

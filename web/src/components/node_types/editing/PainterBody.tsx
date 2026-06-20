@@ -283,7 +283,7 @@ const styles = (theme: Theme) =>
     ".tools-row .toolbar-icon-button": {
       backgroundColor: theme.vars.palette.action.selected,
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.focus
       }

@@ -145,6 +145,7 @@ const registerFrontendTools = () => {
 };
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
 
+import { BORDER_RADIUS } from "./components/ui_primitives";
 installIpcLogBridge();
 
 if (isLocalhost) {
@@ -575,7 +576,7 @@ const AppWrapper = () => {
                         onClick={() => window.location.reload()}
                         style={{
                           padding: "8px 16px",
-                          borderRadius: "var(--rounded-md)",
+                          borderRadius: BORDER_RADIUS.md,
                           border: "1px solid var(--palette-divider)",
                           backgroundColor: "transparent",
                           color: "var(--palette-text-primary)",

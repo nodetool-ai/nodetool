@@ -9,7 +9,7 @@ import {
   ListItemText,
   useTheme
 } from "@mui/material";
-import { Divider, MobileBottomSheet } from "../ui_primitives";
+import { Divider, MobileBottomSheet, BORDER_RADIUS } from "../ui_primitives";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 
@@ -40,7 +40,7 @@ const styles = (theme: Theme) =>
   css({
     padding: "0 8px 16px 8px",
     ".menu-item": {
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       margin: "2px 0",
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover

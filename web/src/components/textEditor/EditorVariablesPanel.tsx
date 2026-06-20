@@ -6,7 +6,7 @@ import type React from "react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import AddIcon from "@mui/icons-material/Add";
 import DataObjectIcon from "@mui/icons-material/DataObject";
-import { Tooltip, MOTION } from "../ui_primitives";
+import { Tooltip, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import type { TemplateVariable, VariableSyntax } from "./templateVariables";
 
 interface EditorVariablesPanelProps {
@@ -62,7 +62,7 @@ const styles = (theme: Theme) =>
           content: "''",
           width: "5px",
           height: "5px",
-          borderRadius: "var(--rounded-circle)",
+          borderRadius: BORDER_RADIUS.circle,
           backgroundColor: theme.vars.palette.warning.main
         }
       }
@@ -84,7 +84,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "0.55em",
       padding: "0.3em 0.7em",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       cursor: "pointer",
       backgroundColor: `rgba(${theme.vars.palette.background.paperChannel} / 0.55)`,
       border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.06)`,
@@ -96,7 +96,7 @@ const styles = (theme: Theme) =>
       ".chip-dot": {
         width: "7px",
         height: "7px",
-        borderRadius: "var(--rounded-circle)",
+        borderRadius: BORDER_RADIUS.circle,
         flexShrink: 0,
         backgroundColor: theme.vars.palette.success.main,
         boxShadow: `0 0 6px rgba(${theme.vars.palette.success.mainChannel} / 0.5)`
@@ -142,7 +142,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "0.35em",
       padding: "0.3em 0.7em",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       cursor: "pointer",
       color: theme.vars.palette.text.secondary,
       background: "transparent",

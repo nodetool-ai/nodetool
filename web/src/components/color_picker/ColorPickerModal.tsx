@@ -5,7 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Caption, Tooltip, FlexRow, FlexColumn, EditorButton, TabGroup } from "../ui_primitives";
+import { Text, Caption, Tooltip, FlexRow, FlexColumn, EditorButton, TabGroup, BORDER_RADIUS } from "../ui_primitives";
 import type { TabItem } from "../ui_primitives";
 import { CloseButton } from "../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
@@ -45,7 +45,7 @@ const styles = (theme: Theme) =>
     },
     ".modal-content": {
       backgroundColor: theme.vars.palette.background.paper,
-      borderRadius: "var(--rounded-xl)",
+      borderRadius: BORDER_RADIUS.xl,
       border: `1px solid ${theme.vars.palette.grey[800]}`,
       boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
       width: "90%",
@@ -94,7 +94,7 @@ const styles = (theme: Theme) =>
     ".preview-swatch": {
       flex: 1,
       height: "48px",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       cursor: "pointer",
       position: "relative",
@@ -135,7 +135,7 @@ const styles = (theme: Theme) =>
       left: "50%",
       transform: "translate(-50%, -50%)",
       backgroundColor: "rgba(0,0,0,0.7)",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       padding: "4px 8px",
       color: "white",
       fontSize: "var(--fontSizeSmaller)",

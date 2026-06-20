@@ -6,7 +6,7 @@ import React from "react";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
 import { LanguageModel } from "../../../stores/ApiTypes";
 import { StateIconButton } from "../../ui_primitives/StateIconButton";
-import { MOTION } from "../../ui_primitives";
+import { MOTION, BORDER_RADIUS } from "../../ui_primitives";
 import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 
 const styles = (theme: Theme) =>
@@ -18,7 +18,7 @@ const styles = (theme: Theme) =>
     flexWrap: "wrap",
     minHeight: "44px",
     padding: "8px 12px",
-    borderRadius: "var(--rounded-xl)",
+    borderRadius: BORDER_RADIUS.xl,
     background: `linear-gradient(135deg, 
       ${theme.vars.palette.grey[900]}ee 0%, 
       ${theme.vars.palette.grey[800]}cc 50%, 
@@ -57,7 +57,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "4px",
       padding: "2px 4px",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       transition: MOTION.background,
 
       "&:hover": {
@@ -68,7 +68,7 @@ const styles = (theme: Theme) =>
     ".toolbar-group-primary": {
       background: `${theme.vars.palette.grey[800]}50`,
       padding: "4px 8px",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       border: `1px solid ${theme.vars.palette.grey[700]}40`,
       transition: `${MOTION.background}, ${MOTION.border}`,
 

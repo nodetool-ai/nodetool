@@ -20,8 +20,7 @@ import {
   Divider,
   FlexRow,
   MenuItemPrimitive,
-  Text
-} from "../../ui_primitives";
+  Text, BORDER_RADIUS } from "../../ui_primitives";
 
 export interface ClipTransformContextMenuProps {
   open: boolean;
@@ -79,7 +78,7 @@ const ClipTransformContextMenu: React.FC<ClipTransformContextMenuProps> = ({
       minWidth={200}
       paperSx={{
         maxWidth: 280,
-        borderRadius: "var(--rounded-lg)",
+        borderRadius: BORDER_RADIUS.lg,
         backgroundImage: "none",
         backgroundColor: theme.vars.palette.grey[900],
         backdropFilter: "blur(16px)",

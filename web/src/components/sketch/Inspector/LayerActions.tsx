@@ -22,7 +22,7 @@ import {
 } from "../../../stores/sketch/SketchSessionStore";
 import { useSketchStore } from "../state/useSketchStore";
 import { useGenerateLayer } from "../../../hooks/sketch/useGenerateLayer";
-import { ToolbarIconButton, FlexRow, Toast, Tooltip, MOTION } from "../../ui_primitives";
+import { ToolbarIconButton, FlexRow, Toast, Tooltip, MOTION, BORDER_RADIUS } from "../../ui_primitives";
 import { cn } from "../../editor_ui/editorUtils";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
@@ -56,7 +56,7 @@ const runButtonStyles = (theme: Theme) =>
     minHeight: 32,
     position: "relative",
     overflow: "visible",
-    borderRadius: "var(--rounded-xxl)",
+    borderRadius: BORDER_RADIUS.xxl,
     border: "none",
     boxShadow: `0 3px 12px ${theme.vars.palette.success.main}40, 0 0 14px ${theme.vars.palette.success.main}25`,
     backgroundColor: theme.vars.palette.primary.main,
@@ -68,7 +68,7 @@ const runButtonStyles = (theme: Theme) =>
     },
 
     "&:hover": {
-      borderRadius: "var(--rounded-circle)",
+      borderRadius: BORDER_RADIUS.circle,
       backgroundColor: theme.vars.palette.primary.light,
       boxShadow: `0 4px 14px ${theme.vars.palette.primary.main}60, 0 0 20px ${theme.vars.palette.success.main}40`
     },
@@ -82,7 +82,7 @@ const runButtonStyles = (theme: Theme) =>
     "&.running": {
       backgroundColor: theme.vars.palette.grey[800],
       color: theme.vars.palette.grey[100],
-      borderRadius: "var(--rounded-circle)",
+      borderRadius: BORDER_RADIUS.circle,
       boxShadow: `0 2px 8px ${theme.vars.palette.common.black}30`,
       "&::after": {
         content: '""',

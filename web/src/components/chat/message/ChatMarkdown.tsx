@@ -8,6 +8,7 @@ import "../../../styles/markdown/nodetool-markdown.css";
 import { getSpacingPx } from "../../ui_primitives/spacing";
 import { CodeBlock } from "./markdown_elements/CodeBlock";
 import { PreRenderer } from "./markdown_elements/PreRenderer";
+import { BORDER_RADIUS } from "../../ui_primitives";
 import "../../../styles/markdown/github-markdown.css";
 
 interface ChatMarkdownProps {
@@ -36,7 +37,7 @@ const markdownStyles = css({
     borderTopRightRadius: "8px"
   },
   pre: {
-    borderRadius: "var(--rounded-lg)",
+    borderRadius: BORDER_RADIUS.lg,
     borderTopLeftRadius: "0px",
     borderTopRightRadius: "0px",
     marginTop: "0px",

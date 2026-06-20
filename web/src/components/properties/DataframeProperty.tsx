@@ -8,7 +8,7 @@ import { ColumnDef, DataframeRef } from "../../stores/ApiTypes";
 import DataTable from "../node/DataTable/DataTable";
 import ColumnsManager from "../node/ColumnsManager";
 import DataframeEditorModal from "./DataframeEditorModal";
-import { ToolbarIconButton, EditorButton, ButtonGroup, MOTION, SPACING } from "../ui_primitives";
+import { ToolbarIconButton, EditorButton, ButtonGroup, MOTION, SPACING, BORDER_RADIUS } from "../ui_primitives";
 // icons
 import TableRowsIcon from "@mui/icons-material/TableRows";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
@@ -89,7 +89,7 @@ const styles = (theme: Theme) =>
       outline: `1px dashed ${theme.vars.palette.grey[600]}`,
       margin: `${theme.spacing(SPACING.sm)} 0`,
       backgroundColor: alpha(theme.palette.common.black, 0.2),
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       display: "flex",
       flexDirection: "column",
       alignItems: "center",

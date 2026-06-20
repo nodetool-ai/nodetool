@@ -190,7 +190,7 @@ const StatusFooter = memo<StatusFooterProps>(
                 style={{
                   fontSize: FONT_SIZE_SANS.label,
                   padding: "0.5rem 0.75rem",
-                  borderRadius: "var(--rounded-md)",
+                  borderRadius: BORDER_RADIUS.md,
                   backgroundColor: "rgba(30, 35, 40, 0.4)",
                   border: `1px solid ${theme.vars.palette.action.disabledBackground}`,
                   color:

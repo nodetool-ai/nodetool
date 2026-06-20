@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, useRef, useMemo } from "react";
-import { ToolbarIconButton } from "../ui_primitives";
+import { ToolbarIconButton, BORDER_RADIUS } from "../ui_primitives";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
@@ -85,7 +85,7 @@ const styles = (theme: Theme) =>
       fontWeight: 600,
       color: theme.vars.palette.common.white,
       backgroundColor: "rgba(0, 0, 0, 0.6)",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       zIndex: 15,
       pointerEvents: "none"
     },
@@ -111,7 +111,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeTiny,
       color: theme.vars.palette.grey[300],
       backgroundColor: "rgba(0, 0, 0, 0.5)",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       zIndex: 15,
       pointerEvents: "none"
     },

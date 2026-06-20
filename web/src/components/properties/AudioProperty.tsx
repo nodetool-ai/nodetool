@@ -9,7 +9,7 @@ import { memo, useState } from "react";
 import isEqual from "fast-deep-equal";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { EditorButton, NodeTextField, MOTION, SPACING } from "../ui_primitives";
+import { EditorButton, NodeTextField, MOTION, SPACING, BORDER_RADIUS } from "../ui_primitives";
 import { useNodes } from "../../contexts/NodeContext";
 import AudioVisualizer from "../common/AudioVisualizer";
 import { useRealtimeAudioStream } from "../../hooks/useRealtimeAudioStream";
@@ -44,7 +44,7 @@ const styles = (theme: Theme) =>
       }
     },
     "& .realtime-visualizer": {
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
       background: "rgba(0, 0, 0, 0.4)"
     },
@@ -53,7 +53,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       background: "rgba(0, 0, 0, 0.2)",
       border: "1px dashed rgba(255, 255, 255, 0.15)",
       color: "rgba(255, 255, 255, 0.4)",

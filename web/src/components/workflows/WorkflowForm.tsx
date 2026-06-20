@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Text, Caption, TextInput, SelectField, AutocompleteTagInput, EditorButton, MOTION } from "../ui_primitives";
+import { Text, Caption, TextInput, SelectField, AutocompleteTagInput, EditorButton, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { useCallback, useEffect, useRef, useState, memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -49,7 +49,7 @@ const styles = (theme: Theme) =>
       marginBottom: theme.spacing(3),
       padding: theme.spacing(2),
       backgroundColor: theme.vars.palette.action.hover,
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       border: `1px solid ${theme.vars.palette.divider}`
     },
 
@@ -75,7 +75,7 @@ const styles = (theme: Theme) =>
 
     ".MuiOutlinedInput-root": {
       backgroundColor: theme.vars.palette.background.paper,
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       transition: MOTION.all,
       "& .MuiOutlinedInput-notchedOutline": {
         borderColor: theme.vars.palette.divider,
@@ -118,7 +118,7 @@ const styles = (theme: Theme) =>
         "& .MuiPaper-root": {
           backgroundColor: theme.vars.palette.background.paper,
           color: theme.vars.palette.text.primary,
-          borderRadius: "var(--rounded-md)",
+          borderRadius: BORDER_RADIUS.md,
           border: `1px solid ${theme.vars.palette.divider}`
         },
         "& .MuiAutocomplete-option": {
@@ -162,7 +162,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall,
       fontWeight: 500,
       textTransform: "none",
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
         color: theme.vars.palette.text.primary
@@ -176,7 +176,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall,
       fontWeight: 600,
       textTransform: "none",
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       border: "none",
       boxShadow: "none",
       transition: MOTION.background,

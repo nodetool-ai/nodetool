@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo } from "react";
-import { Box } from "../ui_primitives";
+import { Box, BORDER_RADIUS } from "../ui_primitives";
 import LockIcon from "@mui/icons-material/Lock";
 
 interface EditorStatusBarProps {
@@ -70,7 +70,7 @@ const styles = (theme: Theme) =>
     ".stat-dot": {
       width: "3px",
       height: "3px",
-      borderRadius: "var(--rounded-circle)",
+      borderRadius: BORDER_RADIUS.circle,
       backgroundColor: `rgba(${theme.vars.palette.common.whiteChannel} / 0.15)`,
       flexShrink: 0
     },
@@ -89,7 +89,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "0.25em",
       padding: theme.spacing(0.5, 2),
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       fontSize: theme.fontSizeTiny,
       fontWeight: 500,
       letterSpacing: "0.03em",

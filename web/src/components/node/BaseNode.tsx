@@ -668,7 +668,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
           margin: "0.5em 1em",
           padding: "0.5em",
           background: "rgba(33, 150, 243, 0.1)",
-          borderRadius: "var(--rounded-sm)",
+          borderRadius: BORDER_RADIUS.sm,
           border: `1px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.2)`,
           fontSize: "0.75em",
           color: theme.vars.palette.primary.light,

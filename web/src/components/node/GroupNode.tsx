@@ -185,7 +185,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       boxShadow: `0 2px 8px ${theme.vars.palette.grey[900]}33`,
       border: `1px solid ${theme.vars.palette.grey[800]}`,
       padding: "0.75em 1em",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       fontSize: theme.fontSizeSmall,
       whiteSpace: "nowrap",
       zIndex: 100,

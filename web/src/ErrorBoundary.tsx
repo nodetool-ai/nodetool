@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import React, { useState } from "react";
 import { useRouteError } from "react-router-dom";
 import { ThemeProvider } from "@mui/material";
-import { CopyButton, Text, EditorButton, Box, MOTION } from "./components/ui_primitives";
+import { CopyButton, Text, EditorButton, Box, MOTION, BORDER_RADIUS } from "./components/ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -70,7 +70,7 @@ const errorBoundaryStyles = (theme: Theme) =>
       padding: "0.6em 2.5em",
       fontSize: "var(--fontSizeNormal)",
       fontWeight: 500,
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       textTransform: "none",
       "&:hover": {
         backgroundColor: theme.vars.palette.primary.dark
@@ -81,7 +81,7 @@ const errorBoundaryStyles = (theme: Theme) =>
       padding: "0.6em 1.5em",
       fontSize: "var(--fontSizeNormal)",
       fontWeight: 500,
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       textTransform: "none",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       color: theme.vars.palette.grey[100],
@@ -109,7 +109,7 @@ const errorBoundaryStyles = (theme: Theme) =>
       fontWeight: 500,
       padding: "0.45em 1em",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       transition: MOTION.all,
       "&:hover": {
         borderColor: theme.vars.palette.c_link,
@@ -158,7 +158,7 @@ const errorBoundaryStyles = (theme: Theme) =>
       boxSizing: "border-box",
       color: theme.vars.palette.grey[50],
       border: `1px solid ${theme.vars.palette.grey[800]}`,
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       fontFamily: "monospace",
       fontSize: "var(--fontSizeSmall)",
       padding: "1em",

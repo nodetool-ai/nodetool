@@ -5,8 +5,7 @@ import {
   ToolbarIconButton,
   NodeSlider,
   SelectField,
-  Box
-} from "../../ui_primitives";
+  Box, BORDER_RADIUS } from "../../ui_primitives";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import SearchInput from "../../search/SearchInput";
@@ -160,7 +159,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
                 height: 32,
                 minWidth: 92,
                 backgroundColor: theme.vars.palette.action.hover,
-                borderRadius: "var(--rounded-lg)",
+                borderRadius: BORDER_RADIUS.lg,
                 fontSize: "var(--fontSizeNormal)"
               },
               "& .MuiSelect-select": {

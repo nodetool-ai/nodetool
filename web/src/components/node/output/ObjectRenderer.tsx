@@ -3,7 +3,7 @@ import React, { memo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Box } from "../../ui_primitives";
+import { Text, Box, BORDER_RADIUS } from "../../ui_primitives";
 import isEqual from "fast-deep-equal";
 
 const objectStyles = (theme: Theme) =>
@@ -19,7 +19,7 @@ const objectStyles = (theme: Theme) =>
       flexDirection: "column",
       gap: "0.25em",
       padding: "0.5em",
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       backgroundColor: theme.vars.palette.action.hover,
       "&:last-child": {
         marginBottom: 0
