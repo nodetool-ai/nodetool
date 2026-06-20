@@ -159,8 +159,9 @@ describe("Gap #9 — OutputUpdate messages", () => {
     expect(outputMsgs.length).toBe(1); // Current behavior
     expect(outputMsgs[0].value).toBe("different");
 
-    // TODO: When the output node consumes the stream item-by-item,
-    // consecutive dedup should reduce 3 yields to 2 output_updates:
+    // Desired end-state (tracked in docs/KERNEL_PARITY_GAPS.md, gap #9): when
+    // the output node consumes the stream item-by-item, consecutive dedup
+    // should reduce 3 yields to 2 output_updates:
     // expect(outputMsgs.length).toBe(2); // "same" (once) + "different"
   });
 
@@ -316,7 +317,8 @@ describe("Gap #15 — Edge counter updates during input dispatch", () => {
     const completedMsgs = edgeMsgs.filter((m) => m.status === "completed");
     expect(completedMsgs.length).toBe(0); // Current behavior — input edges get no "completed"
 
-    // TODO: When gap #15 is fixed, drain_active_edges should emit "drained" or "completed":
+    // Desired end-state (tracked in docs/KERNEL_PARITY_GAPS.md, gap #15):
+    // drain_active_edges should emit "drained" or "completed" for input edges:
     // expect(completedMsgs.length).toBeGreaterThanOrEqual(1);
   });
 
@@ -400,7 +402,8 @@ describe("Gap #15 — Edge counter updates during input dispatch", () => {
     expect(eaCompleted.length).toBe(0); // Current behavior — no EOS for input edges
     expect(ebCompleted.length).toBe(0); // Current behavior — no EOS for input edges
 
-    // TODO: When fixed, input edges should also get "completed" or "drained":
+    // Desired end-state (tracked in docs/KERNEL_PARITY_GAPS.md, gap #15):
+    // input edges should also get "completed" or "drained":
     // expect(eaCompleted.length).toBeGreaterThanOrEqual(1);
     // expect(ebCompleted.length).toBeGreaterThanOrEqual(1);
   });

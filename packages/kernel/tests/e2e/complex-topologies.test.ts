@@ -197,10 +197,11 @@ describe("COMPLEX-007: Single source node, no edges", () => {
 // ---------------------------------------------------------------------------
 
 describe("COMPLEX-008: Error in middle node stops downstream processing", () => {
-  // SKIP: exposes a real error-propagation gap, not a stale test. When B throws,
+  // SKIP (GAP-CORR-1, tracked in docs/correlation-design.md § Known gaps):
+  // exposes a real error-propagation gap, not a stale test. When B throws,
   // its single edge into C's empty-scope handle closes without a value;
   // NodeActor._runCorrelatedImpl (actor.ts ~655) then fires C once with input
-  // defaults instead of skipping it. Per docs/correlation-design.md line 344 a
+  // defaults instead of skipping it. Per docs/correlation-design.md §6 a
   // *required* input that closes without a value should block the key (skip the
   // node); the actor does not yet honor required-vs-optional on empty-scope
   // close. Re-enable once that propagation is implemented.

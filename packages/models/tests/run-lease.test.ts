@@ -169,4 +169,60 @@ describe("RunLease model", () => {
     const count = await RunLease.cleanupExpired();
     expect(count).toBe(0);
   });
+
+  // ── concurrency & edge cases ──────────────────────────────────────
+
+  it("returns null when the same worker re-acquires its own valid lease", async () => {
+    // acquire() is not idempotent for the holder — a worker extending its hold
+    // must call renew(). A second acquire() while the lease is valid returns
+    // null even for the same worker.
+    const first = await RunLease.acquire("r1", "w1", 60);
+    expect(first).not.toBeNull();
+    const again = await RunLease.acquire("r1", "w1", 60);
+    expect(again).toBeNull();
+  });
+
+  it("lets exactly one of two racing acquires win", async () => {
+    const [a, b] = await Promise.all([
+      RunLease.acquire("r1", "w1", 60),
+      RunLease.acquire("r1", "w2", 60)
+    ]);
+    const winners = [a, b].filter((l) => l !== null);
+    expect(winners).toHaveLength(1);
+    // The losing acquire gets null; the DB holds exactly one lease for the run.
+    const stored = await RunLease.get<RunLease>("r1");
+    expect(stored).not.toBeNull();
+    expect(stored!.worker_id).toBe(winners[0]!.worker_id);
+  });
+
+  it("reclaiming an expired lease keeps run_id and refreshes timestamps", async () => {
+    const original = await RunLease.acquire("r1", "w1", 0);
+    expect(original).not.toBeNull();
+    await new Promise((r) => setTimeout(r, 10));
+
+    const reclaimed = await RunLease.acquire("r1", "w2", 60);
+    expect(reclaimed).not.toBeNull();
+    expect(reclaimed!.run_id).toBe("r1");
+    expect(reclaimed!.worker_id).toBe("w2");
+    expect(new Date(reclaimed!.expires_at).getTime()).toBeGreaterThan(
+      new Date(original!.expires_at).getTime()
+    );
+
+    // Only one row remains for the run after reclamation.
+    const stored = await RunLease.get<RunLease>("r1");
+    expect(stored!.worker_id).toBe("w2");
+  });
+
+  it("cleanupExpired removes only the expired subset", async () => {
+    await RunLease.acquire("active", "w1", 600);
+    await RunLease.acquire("dead1", "w2", 0);
+    await RunLease.acquire("dead2", "w3", 0);
+    await new Promise((r) => setTimeout(r, 10));
+
+    const count = await RunLease.cleanupExpired();
+    expect(count).toBe(2);
+    expect(await RunLease.get<RunLease>("active")).not.toBeNull();
+    expect(await RunLease.get<RunLease>("dead1")).toBeNull();
+    expect(await RunLease.get<RunLease>("dead2")).toBeNull();
+  });
 });
