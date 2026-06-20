@@ -49,16 +49,6 @@ defaults:
     values:
       render_with_liquid: false
 
-# Node reference pages are pure generated Markdown. Some node descriptions
-# legitimately contain `{{ variable }}` / `{% ... %}` template syntax, which
-# Jekyll would otherwise try to parse as Liquid (and warn/err on). They need
-# no Liquid, so turn it off for the whole tree.
-defaults:
-  - scope:
-      path: "nodes"
-    values:
-      render_with_liquid: false
-
 # Plugin settings
 relative_links:
   enabled: true
