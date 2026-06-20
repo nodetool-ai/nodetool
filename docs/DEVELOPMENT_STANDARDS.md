@@ -70,7 +70,7 @@ All packages use `"type": "module"`. The required runtime is **Node.js 22.22.1**
 
 ## 3. React
 
-The web app runs **React 18.2**; Electron renderer runs **React 19.1**. Mobile uses React Native + Expo. Treat React 19 features (use, transitions, async actions, Server Components — Electron only) as opt-in for the Electron tree; the web tree must remain compatible with 18.
+Both the web app and the Electron renderer run **React 19.2**. Mobile uses React Native + Expo. React 19 features (`use`, transitions, async actions) are available across the web and Electron trees.
 
 ### Rules
 
@@ -102,15 +102,15 @@ The web app runs **React 18.2**; Electron renderer runs **React 19.1**. Mobile u
 | `useLayoutEffect` | Measuring DOM before paint | Anything else |
 | `useMemo` | Expensive computation (>1ms) or referential stability for deps | Cheap pure functions |
 | `useCallback` | Dep of effect/memo, or prop to `React.memo` child | Function used only locally |
-| `useTransition` (R18) | Marking state updates as non-urgent | Urgent updates |
-| `useDeferredValue` (R18) | Defer expensive child renders | Anything else |
-| `use` (R19, Electron) | Reading a Promise/Context conditionally | Code that runs in web (R18) |
+| `useTransition` | Marking state updates as non-urgent | Urgent updates |
+| `useDeferredValue` | Defer expensive child renders | Anything else |
+| `use` (R19) | Reading a Promise/Context conditionally | Outside render or in a loop/condition that changes hook order |
 
 ---
 
 ## 4. Zustand
 
-Stores live in `web/src/stores/` (Zustand 4.5.7) and `electron/src/stores/` (Zustand 5.0.3). Both versions support the slice pattern and `subscribeWithSelector`.
+Stores live in `web/src/stores/` and `electron/src/stores/` (both on Zustand 5.0). The slice pattern and `subscribeWithSelector` are used throughout.
 
 ### Rules
 
@@ -134,7 +134,7 @@ Stores live in `web/src/stores/` (Zustand 4.5.7) and `electron/src/stores/` (Zus
 
 ## 5. MUI v7 + Emotion + UI Primitives
 
-The frontend uses **MUI v7.2.0** with Emotion. We enforce a **primitives-first** policy: all UI in `web/src/` (and Electron renderer) must use the primitives from `web/src/components/ui_primitives/`. Raw MUI imports are only allowed inside `ui_primitives/` and `editor_ui/`.
+The frontend uses **MUI v7.3** with Emotion. We enforce a **primitives-first** policy: all UI in `web/src/` (and Electron renderer) must use the primitives from `web/src/components/ui_primitives/`. Raw MUI imports are only allowed inside `ui_primitives/` and `editor_ui/`.
 
 See **[UI Primitives Strategy](../web/src/components/ui_primitives/STRATEGY.md)** for the full decision tree and **[Design System](DESIGN.md)** for the complete token reference (spacing, typography, border radius, motion, z-index).
 
