@@ -31,5 +31,5 @@ Collects a stream of text inputs into a single string.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.text](../) namespace.
+Browse other nodes in the [nodetool.text](./) namespace.
 

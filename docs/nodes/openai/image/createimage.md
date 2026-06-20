@@ -32,4 +32,4 @@ Generates images from textual descriptions.
 
 ## Related Nodes
 
-Browse other nodes in the [openai.image](../) namespace.
+Browse other nodes in the [openai.image](./) namespace.

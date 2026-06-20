@@ -30,4 +30,4 @@ Detect objects in an image using the COCO-SSD model from TensorFlow.js.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.tensorflow](../) namespace.
+Browse other nodes in the [lib.tensorflow](./) namespace.

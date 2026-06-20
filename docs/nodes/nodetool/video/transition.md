@@ -31,4 +31,4 @@ Create a transition effect between two videos, including audio transition when a
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.video](../) namespace.
+Browse other nodes in the [nodetool.video](./) namespace.

@@ -44,5 +44,5 @@ Selects up to 5 LoRA models to apply to a Stable Diffusion model.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.lora](../) namespace.
+Browse other nodes in the [huggingface.lora](./) namespace.
 

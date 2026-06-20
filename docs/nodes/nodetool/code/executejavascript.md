@@ -32,4 +32,4 @@ Executes JavaScript (Node.js) code with safety restrictions.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.code](../) namespace.
+Browse other nodes in the [nodetool.code](./) namespace.

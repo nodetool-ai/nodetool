@@ -38,5 +38,5 @@ Hybrid search combining semantic and keyword-based search for better retrieval. 
 
 ## Related Nodes
 
-Browse other nodes in the [vector.chroma](../) namespace.
+Browse other nodes in the [vector.chroma](./) namespace.
 

@@ -3,9 +3,13 @@ layout: page
 title: "nodetool.sandbox Nodes"
 ---
 
-This namespace contains 2 node(s).
+This namespace contains 4 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[SandboxFile](sandboxfile.md)** - Read, write, search, and replace files inside a sandbox session.
-- **[SandboxShell](sandboxshell.md)** - Execute shell commands in an isolated sandbox session.
+- **[SandboxAgent](sandboxagent.md)**
+- **[SandboxBrowser](sandboxbrowser.md)**
+- **[SandboxFile](sandboxfile.md)**
+- **[SandboxShell](sandboxshell.md)**
+
+[Back to all nodes](../../)

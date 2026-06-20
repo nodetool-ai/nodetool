@@ -34,4 +34,4 @@ Extract the base URL from a given URL.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.html](../) namespace.
+Browse other nodes in the [lib.html](./) namespace.

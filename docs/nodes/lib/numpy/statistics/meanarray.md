@@ -36,5 +36,5 @@ Compute the mean value along a specified axis of a array.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.array.statistics](../) namespace.
+Browse other nodes in the [lib.array.statistics](./) namespace.
 

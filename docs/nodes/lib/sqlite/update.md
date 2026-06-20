@@ -36,4 +36,4 @@ Update records in a SQLite table.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.sqlite](../) namespace.
+Browse other nodes in the [lib.sqlite](./) namespace.

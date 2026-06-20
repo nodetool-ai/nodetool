@@ -32,4 +32,4 @@ Prompt-driven browser skill with bounded tool validation and schema outputs.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.agents](../) namespace.
+Browse other nodes in the [nodetool.agents](./) namespace.

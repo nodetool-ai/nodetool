@@ -33,4 +33,4 @@ Load all images from a folder, optionally including subfolders.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.image](../) namespace.
+Browse other nodes in the [nodetool.image](./) namespace.

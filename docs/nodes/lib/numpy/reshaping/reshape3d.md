@@ -38,5 +38,5 @@ Reshape an array to a 3D shape without changing its data.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.array.reshaping](../) namespace.
+Browse other nodes in the [lib.array.reshaping](./) namespace.
 

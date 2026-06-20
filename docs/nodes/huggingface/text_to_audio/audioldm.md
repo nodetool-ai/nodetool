@@ -39,5 +39,5 @@ Generates audio using the AudioLDM model based on text prompts.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.text_to_audio](../) namespace.
+Browse other nodes in the [huggingface.text_to_audio](./) namespace.
 

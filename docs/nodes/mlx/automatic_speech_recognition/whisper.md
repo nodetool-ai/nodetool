@@ -40,5 +40,5 @@ Transcribe an audio asset using MLX Whisper.
 
 ## Related Nodes
 
-Browse other nodes in the [mlx.automatic_speech_recognition](../) namespace.
+Browse other nodes in the [mlx.automatic_speech_recognition](./) namespace.
 

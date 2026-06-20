@@ -5,7 +5,9 @@ title: "mistral.text Nodes"
 
 This namespace contains 2 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[Chat Complete](chatcomplete.md)** - Generate text using Mistral AI's chat completion models.
-- **[Code Complete](codecomplete.md)** - Generate code using Mistral AI's Codestral model.
+- **[Chat Complete](chatcomplete.md)**
+- **[Code Complete](codecomplete.md)**
+
+[Back to all nodes](../../)

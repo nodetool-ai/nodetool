@@ -33,4 +33,4 @@ Extract main content from a website, removing navigation, ads, and other non-ess
 
 ## Related Nodes
 
-Browse other nodes in the [lib.html](../) namespace.
+Browse other nodes in the [lib.html](./) namespace.

@@ -5,9 +5,11 @@ title: "lib.twilio Nodes"
 
 This namespace contains 4 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[Get Messages](getmessages.md)** - List recent SMS/MMS messages from a Twilio account.
-- **[Lookup Phone Number](lookupphonenumber.md)** - Look up phone number information using the Twilio Lookup API.
-- **[Send SMS](sendsms.md)** - Send an SMS message via the Twilio REST API.
-- **[Send WhatsApp](sendwhatsapp.md)** - Send a WhatsApp message via the Twilio REST API.
+- **[Get Messages](getmessages.md)**
+- **[Lookup Phone Number](lookupphonenumber.md)**
+- **[Send SMS](sendsms.md)**
+- **[Send WhatsApp](sendwhatsapp.md)**
+
+[Back to all nodes](../../)

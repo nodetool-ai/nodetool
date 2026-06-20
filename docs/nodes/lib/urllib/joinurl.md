@@ -36,5 +36,5 @@ Join a base URL with a relative URL using ``urllib.parse.urljoin``.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.urllib](../) namespace.
+Browse other nodes in the [lib.urllib](./) namespace.
 

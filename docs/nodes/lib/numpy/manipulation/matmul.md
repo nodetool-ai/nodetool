@@ -36,5 +36,5 @@ Perform matrix multiplication on two input arrays.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.array.manipulation](../) namespace.
+Browse other nodes in the [lib.array.manipulation](./) namespace.
 

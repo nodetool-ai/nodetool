@@ -30,5 +30,5 @@ Index a string with a Document ID to a collection.
 
 ## Related Nodes
 
-Browse other nodes in the [vector.chroma](../) namespace.
+Browse other nodes in the [vector.chroma](./) namespace.
 

@@ -35,5 +35,5 @@ Convert a single-element array to a scalar value.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.array.conversion](../) namespace.
+Browse other nodes in the [lib.array.conversion](./) namespace.
 

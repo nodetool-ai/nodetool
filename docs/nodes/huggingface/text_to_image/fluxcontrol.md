@@ -44,5 +44,5 @@ Generates images using FLUX Control models with depth or other control guidance.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.text_to_image](../) namespace.
+Browse other nodes in the [huggingface.text_to_image](./) namespace.
 

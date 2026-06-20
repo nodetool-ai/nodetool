@@ -45,5 +45,5 @@ Stream audio input to WhisperLive and emit real-time transcription.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.audio](../) namespace.
+Browse other nodes in the [nodetool.audio](./) namespace.
 

@@ -35,5 +35,5 @@ Enhances edge visibility by increasing contrast along boundaries.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.image.enhance](../) namespace.
+Browse other nodes in the [lib.image.enhance](./) namespace.
 

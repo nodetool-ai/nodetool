@@ -47,4 +47,4 @@ Trigger node that listens for Telegram messages using long polling.
 
 ## Related Nodes
 
-Browse other nodes in the [messaging.telegram](../) namespace.
+Browse other nodes in the [messaging.telegram](./) namespace.

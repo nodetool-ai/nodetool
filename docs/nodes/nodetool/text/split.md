@@ -36,5 +36,5 @@ Separates text into a list of strings based on a specified delimiter.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.text](../) namespace.
+Browse other nodes in the [nodetool.text](./) namespace.
 

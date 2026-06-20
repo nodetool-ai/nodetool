@@ -41,4 +41,4 @@ Generate code using Mistral AI's Codestral model.
 
 ## Related Nodes
 
-Browse other nodes in the [mistral.text](../) namespace.
+Browse other nodes in the [mistral.text](./) namespace.

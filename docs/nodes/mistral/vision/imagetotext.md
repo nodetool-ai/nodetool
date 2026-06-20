@@ -43,4 +43,4 @@ Analyze images and generate text descriptions using Mistral AI's Pixtral models.
 
 ## Related Nodes
 
-Browse other nodes in the [mistral.vision](../) namespace.
+Browse other nodes in the [mistral.vision](./) namespace.

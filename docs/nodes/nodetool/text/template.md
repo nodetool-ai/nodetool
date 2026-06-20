@@ -33,4 +33,4 @@ Uses template syntax to format strings with variables. Supports {{ variable }} a
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.text](../) namespace.
+Browse other nodes in the [nodetool.text](./) namespace.

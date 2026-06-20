@@ -47,5 +47,5 @@ Generates videos from text prompts using Wan text-to-video pipeline.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.text_to_video](../) namespace.
+Browse other nodes in the [huggingface.text_to_video](./) namespace.
 

@@ -28,4 +28,4 @@ Convert an image batch to a list of image references.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.image](../) namespace.
+Browse other nodes in the [nodetool.image](./) namespace.

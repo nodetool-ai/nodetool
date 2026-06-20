@@ -33,5 +33,5 @@ Load a Hugging Face image-text-to-text model/pipeline by repo_id.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.image_text_to_text](../) namespace.
+Browse other nodes in the [huggingface.image_text_to_text](./) namespace.
 

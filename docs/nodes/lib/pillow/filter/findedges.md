@@ -34,5 +34,5 @@ Detect and highlight edges in an image.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.image.filter](../) namespace.
+Browse other nodes in the [lib.image.filter](./) namespace.
 

@@ -34,5 +34,5 @@ Apply a contour filter to highlight image edges.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.image.filter](../) namespace.
+Browse other nodes in the [lib.image.filter](./) namespace.
 

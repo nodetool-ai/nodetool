@@ -35,4 +35,4 @@ Add list of values as new column to dataframe.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.data](../) namespace.
+Browse other nodes in the [nodetool.data](./) namespace.

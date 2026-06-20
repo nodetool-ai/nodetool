@@ -28,4 +28,4 @@ Lists all S3 buckets in the AWS account.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.s3](../) namespace.
+Browse other nodes in the [lib.s3](./) namespace.

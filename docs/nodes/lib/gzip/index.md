@@ -3,19 +3,11 @@ layout: page
 title: "lib.gzip Nodes"
 ---
 
-
 This namespace contains 2 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[Gzip Compress](gzipcompress.md)** - Compress bytes using gzip.
-    gzip, compress, bytes
+- **[Gzip Compress](gzipcompress.md)**
+- **[Gzip Decompress](gzipdecompress.md)**
 
-    Use cases:
-    - Reduce size of binary ...
-- **[Gzip Decompress](gzipdecompress.md)** - Decompress gzip data.
-    gzip, decompress, bytes
-
-    Use cases:
-    - Restore compressed files
-...
+[Back to all nodes](../../)

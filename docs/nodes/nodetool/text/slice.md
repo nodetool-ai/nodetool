@@ -44,5 +44,5 @@ Slices text using Python's slice notation (start:stop:step).
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.text](../) namespace.
+Browse other nodes in the [nodetool.text](./) namespace.
 

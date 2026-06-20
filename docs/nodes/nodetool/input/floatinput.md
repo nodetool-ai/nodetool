@@ -32,4 +32,4 @@ Accepts a floating-point number as a parameter for workflows, typically constrai
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.input](../) namespace.
+Browse other nodes in the [nodetool.input](./) namespace.

@@ -53,5 +53,5 @@ Convert speech to text
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.automatic_speech_recognition](../) namespace.
+Browse other nodes in the [huggingface.automatic_speech_recognition](./) namespace.
 

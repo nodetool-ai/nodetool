@@ -35,5 +35,5 @@ Node responsible for rendering chart configurations into image format using seab
 
 ## Related Nodes
 
-Browse other nodes in the [lib.seaborn](../) namespace.
+Browse other nodes in the [lib.seaborn](./) namespace.
 

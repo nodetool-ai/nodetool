@@ -34,5 +34,5 @@ Encodes text to Base64 format.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.base64](../) namespace.
+Browse other nodes in the [lib.base64](./) namespace.
 

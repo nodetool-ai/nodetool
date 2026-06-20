@@ -33,4 +33,4 @@ Collect items until the end of the stream and return them as a list.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.control](../) namespace.
+Browse other nodes in the [nodetool.control](./) namespace.

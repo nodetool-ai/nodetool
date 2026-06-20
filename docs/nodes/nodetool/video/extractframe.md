@@ -29,4 +29,4 @@ Extract a single frame from a video at a specific time position.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.video](../) namespace.
+Browse other nodes in the [nodetool.video](./) namespace.

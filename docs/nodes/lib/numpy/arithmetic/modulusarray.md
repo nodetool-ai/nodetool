@@ -36,5 +36,5 @@ Calculates the element-wise remainder of division.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.array.arithmetic](../) namespace.
+Browse other nodes in the [lib.array.arithmetic](./) namespace.
 

@@ -30,4 +30,4 @@ Call a PostgreSQL function via Supabase RPC.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.supabase](../) namespace.
+Browse other nodes in the [lib.supabase](./) namespace.

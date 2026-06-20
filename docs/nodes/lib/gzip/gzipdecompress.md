@@ -35,5 +35,5 @@ Decompress gzip data.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.gzip](../) namespace.
+Browse other nodes in the [lib.gzip](./) namespace.
 

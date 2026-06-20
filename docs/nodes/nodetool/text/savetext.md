@@ -35,4 +35,4 @@ Saves input text to a file in the assets folder.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.text](../) namespace.
+Browse other nodes in the [nodetool.text](./) namespace.

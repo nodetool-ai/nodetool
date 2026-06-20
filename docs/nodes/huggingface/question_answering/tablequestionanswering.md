@@ -41,5 +41,5 @@ Answers questions based on tabular data.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.question_answering](../) namespace.
+Browse other nodes in the [huggingface.question_answering](./) namespace.
 

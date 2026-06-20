@@ -45,5 +45,5 @@ Generates images using FLUX models with support for GGUF quantization for memory
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.text_to_image](../) namespace.
+Browse other nodes in the [huggingface.text_to_image](./) namespace.
 

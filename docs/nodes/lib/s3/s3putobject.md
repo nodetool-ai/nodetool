@@ -33,4 +33,4 @@ Uploads text content to an S3 object.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.s3](../) namespace.
+Browse other nodes in the [lib.s3](./) namespace.

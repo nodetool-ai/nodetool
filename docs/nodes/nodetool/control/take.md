@@ -35,4 +35,4 @@ Pass through the first N items of a stream and stop.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.control](../) namespace.
+Browse other nodes in the [nodetool.control](./) namespace.

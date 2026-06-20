@@ -3,12 +3,11 @@ layout: page
 title: "huggingface.lora Nodes"
 ---
 
-
 This namespace contains 2 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[LoRA Selector](loraselector.md)** - Selects up to 5 LoRA models to apply to a Stable Diffusion model.
-    lora, model customization, ...
-- **[LoRA XL Selector](loraselectorxl.md)** - Selects up to 5 LoRA models to apply to a Stable Diffusion XL model.
-    lora, model customizatio...
+- **[LoRA Selector](loraselector.md)**
+- **[LoRA XL Selector](loraselectorxl.md)**
+
+[Back to all nodes](../../)

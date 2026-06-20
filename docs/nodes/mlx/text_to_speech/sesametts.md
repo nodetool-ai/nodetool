@@ -33,5 +33,5 @@ MLX Sesame / CSM text-to-speech with reference audio cloning.
 
 ## Related Nodes
 
-Browse other nodes in the [mlx.text_to_speech](../) namespace.
+Browse other nodes in the [mlx.text_to_speech](./) namespace.
 

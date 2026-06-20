@@ -28,4 +28,4 @@ Classify an image with the MobileNet ImageNet model from TensorFlow.js.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.tensorflow](../) namespace.
+Browse other nodes in the [lib.tensorflow](./) namespace.

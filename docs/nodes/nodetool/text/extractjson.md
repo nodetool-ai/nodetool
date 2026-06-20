@@ -30,4 +30,4 @@ Extracts data from JSON using JSONPath expressions.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.text](../) namespace.
+Browse other nodes in the [nodetool.text](./) namespace.

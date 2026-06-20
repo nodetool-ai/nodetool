@@ -37,4 +37,4 @@ Applies a reverb effect to an audio file.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.audio](../) namespace.
+Browse other nodes in the [lib.audio](./) namespace.

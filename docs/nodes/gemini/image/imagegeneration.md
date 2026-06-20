@@ -35,4 +35,4 @@ Generate an image using Google's Imagen model via the Gemini API.
 
 ## Related Nodes
 
-Browse other nodes in the [gemini.image](../) namespace.
+Browse other nodes in the [gemini.image](./) namespace.

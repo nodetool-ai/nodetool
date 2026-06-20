@@ -29,4 +29,4 @@ Extract a single channel from an image as a grayscale preview.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.image](../) namespace.
+Browse other nodes in the [nodetool.image](./) namespace.

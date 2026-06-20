@@ -34,4 +34,4 @@ Scrape Amazon product data including prices, reviews, and ratings.
 
 ## Related Nodes
 
-Browse other nodes in the [apify.scraping](../) namespace.
+Browse other nodes in the [apify.scraping](./) namespace.

@@ -37,5 +37,5 @@ Extracts features from text using pre-trained models.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.feature_extraction](../) namespace.
+Browse other nodes in the [huggingface.feature_extraction](./) namespace.
 

@@ -36,5 +36,5 @@ Generate SVG rectangle element.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.svg](../) namespace.
+Browse other nodes in the [lib.svg](./) namespace.
 

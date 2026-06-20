@@ -40,5 +40,5 @@ Translates text from one language to another.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.translation](../) namespace.
+Browse other nodes in the [huggingface.translation](./) namespace.
 

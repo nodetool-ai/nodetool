@@ -42,5 +42,5 @@ Generates text based on a given prompt.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.text_generation](../) namespace.
+Browse other nodes in the [huggingface.text_generation](./) namespace.
 

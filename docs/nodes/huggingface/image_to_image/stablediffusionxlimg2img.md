@@ -58,5 +58,5 @@ Transforms existing images based on text prompts using Stable Diffusion XL.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.image_to_image](../) namespace.
+Browse other nodes in the [huggingface.image_to_image](./) namespace.
 

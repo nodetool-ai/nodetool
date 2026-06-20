@@ -35,4 +35,4 @@ Prompt-driven FFmpeg skill for audio/video editing, conversion, and packaging.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.agents](../) namespace.
+Browse other nodes in the [nodetool.agents](./) namespace.

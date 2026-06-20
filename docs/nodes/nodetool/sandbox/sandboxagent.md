@@ -25,4 +25,4 @@ _(none)_
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.sandbox](../) namespace.
+Browse other nodes in the [nodetool.sandbox](./) namespace.

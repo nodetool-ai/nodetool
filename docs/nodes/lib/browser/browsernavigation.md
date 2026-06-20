@@ -39,4 +39,4 @@ Navigates and interacts with web pages in a browser session.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.browser](../) namespace.
+Browse other nodes in the [lib.browser](./) namespace.

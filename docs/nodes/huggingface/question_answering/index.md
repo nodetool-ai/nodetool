@@ -3,12 +3,11 @@ layout: page
 title: "huggingface.question_answering Nodes"
 ---
 
-
 This namespace contains 2 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[Question Answering](questionanswering.md)** - Answers questions based on a given context.
-    text, question answering, natural language proces...
-- **[Table Question Answering](tablequestionanswering.md)** - Answers questions based on tabular data.
-    table, question answering, natural language processi...
+- **[Question Answering](questionanswering.md)**
+- **[Table Question Answering](tablequestionanswering.md)**
+
+[Back to all nodes](../../)

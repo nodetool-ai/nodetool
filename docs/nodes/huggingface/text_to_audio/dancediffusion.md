@@ -38,5 +38,5 @@ Generates audio using the DanceDiffusion model.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.text_to_audio](../) namespace.
+Browse other nodes in the [huggingface.text_to_audio](./) namespace.
 

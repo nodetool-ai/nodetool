@@ -31,4 +31,4 @@ namespace: "openai.text"
 
 ## Related Nodes
 
-Browse other nodes in the [openai.text](../) namespace.
+Browse other nodes in the [openai.text](./) namespace.

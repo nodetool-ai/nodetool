@@ -29,5 +29,5 @@ No description available.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.image_to_text](../) namespace.
+Browse other nodes in the [huggingface.image_to_text](./) namespace.
 

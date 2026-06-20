@@ -36,5 +36,5 @@ Automatically adjusts image contrast for enhanced visual quality.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.image.enhance](../) namespace.
+Browse other nodes in the [lib.image.enhance](./) namespace.
 

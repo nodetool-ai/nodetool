@@ -30,4 +30,4 @@ Save an image to specified asset folder with customizable name format.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.image](../) namespace.
+Browse other nodes in the [nodetool.image](./) namespace.

@@ -37,4 +37,4 @@ Create an SVG document and convert it to a raster image in one step.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.svg](../) namespace.
+Browse other nodes in the [lib.svg](./) namespace.

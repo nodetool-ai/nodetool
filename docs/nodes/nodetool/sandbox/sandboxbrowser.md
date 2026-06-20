@@ -29,4 +29,4 @@ Control the sandbox browser (navigate, inspect, click, input, and console action
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.sandbox](../) namespace.
+Browse other nodes in the [nodetool.sandbox](./) namespace.

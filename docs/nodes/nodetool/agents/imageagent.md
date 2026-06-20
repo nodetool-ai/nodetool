@@ -33,4 +33,4 @@ Prompt-driven image skill for model-based image reasoning.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.agents](../) namespace.
+Browse other nodes in the [nodetool.agents](./) namespace.

@@ -35,4 +35,4 @@ Prompt-driven SQLite skill with guarded query execution.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.agents](../) namespace.
+Browse other nodes in the [nodetool.agents](./) namespace.

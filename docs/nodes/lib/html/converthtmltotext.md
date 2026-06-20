@@ -34,4 +34,4 @@ Converts HTML to plain text by removing tags and decoding entities using Beautif
 
 ## Related Nodes
 
-Browse other nodes in the [lib.html](../) namespace.
+Browse other nodes in the [lib.html](./) namespace.

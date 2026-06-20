@@ -45,5 +45,5 @@ Generates images from text prompts using AutoPipeline for automatic pipeline sel
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.text_to_image](../) namespace.
+Browse other nodes in the [huggingface.text_to_image](./) namespace.
 

@@ -30,4 +30,4 @@ Executes a single Python command in Docker and buffers the output.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.code](../) namespace.
+Browse other nodes in the [nodetool.code](./) namespace.

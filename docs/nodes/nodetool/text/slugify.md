@@ -31,4 +31,4 @@ Converts text into a slug suitable for URLs or IDs.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.text](../) namespace.
+Browse other nodes in the [nodetool.text](./) namespace.

@@ -35,5 +35,5 @@ Enhances image detail by intensifying local pixel contrast.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.image.enhance](../) namespace.
+Browse other nodes in the [lib.image.enhance](./) namespace.
 

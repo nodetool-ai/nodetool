@@ -3,10 +3,10 @@ layout: page
 title: "lib.seaborn Nodes"
 ---
 
-
 This namespace contains 1 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[Chart Renderer](chartrenderer.md)** - Node responsible for rendering chart configurations into image format using seaborn.
-    chart, s...
+- **[Chart Renderer](chartrenderer.md)**
+
+[Back to all nodes](../../)

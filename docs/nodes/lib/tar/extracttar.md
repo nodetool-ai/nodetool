@@ -36,5 +36,5 @@ Extract a tar archive to a folder.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.tar](../) namespace.
+Browse other nodes in the [lib.tar](./) namespace.
 

@@ -31,4 +31,4 @@ Generate speech audio from text using any supported TTS provider. Automatically 
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.audio](../) namespace.
+Browse other nodes in the [nodetool.audio](./) namespace.

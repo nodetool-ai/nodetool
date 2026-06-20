@@ -37,4 +37,4 @@ Merge multiple meshes into a single GLB scene.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.model3d](../) namespace.
+Browse other nodes in the [nodetool.model3d](./) namespace.

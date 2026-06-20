@@ -37,4 +37,4 @@ Compare two images side-by-side with an interactive slider.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.compare](../) namespace.
+Browse other nodes in the [nodetool.compare](./) namespace.

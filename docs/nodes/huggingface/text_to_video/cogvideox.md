@@ -49,5 +49,5 @@ Generates videos from text prompts using CogVideoX, a large diffusion transforme
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.text_to_video](../) namespace.
+Browse other nodes in the [huggingface.text_to_video](./) namespace.
 

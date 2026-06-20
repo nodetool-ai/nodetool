@@ -31,4 +31,4 @@ Prompt-driven vector store skill for indexing and similarity search workflows.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.agents](../) namespace.
+Browse other nodes in the [nodetool.agents](./) namespace.

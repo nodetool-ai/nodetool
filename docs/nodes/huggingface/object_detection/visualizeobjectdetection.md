@@ -31,5 +31,5 @@ Visualizes object detection results on images.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.object_detection](../) namespace.
+Browse other nodes in the [huggingface.object_detection](./) namespace.
 

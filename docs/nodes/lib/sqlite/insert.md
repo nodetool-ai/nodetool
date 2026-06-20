@@ -35,4 +35,4 @@ Insert a record into a SQLite table.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.sqlite](../) namespace.
+Browse other nodes in the [lib.sqlite](./) namespace.

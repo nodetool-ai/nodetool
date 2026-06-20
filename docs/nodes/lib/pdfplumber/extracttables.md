@@ -39,5 +39,5 @@ Extract tables from a PDF file into dataframes.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pdfplumber](../) namespace.
+Browse other nodes in the [lib.pdfplumber](./) namespace.
 

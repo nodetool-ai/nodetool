@@ -36,5 +36,5 @@ Performs image super-resolution using the RealESRGAN model.
 
 ## Related Nodes
 
-Browse other nodes in the [huggingface.image_to_image](../) namespace.
+Browse other nodes in the [huggingface.image_to_image](./) namespace.
 

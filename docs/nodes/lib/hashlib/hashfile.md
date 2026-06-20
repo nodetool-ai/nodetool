@@ -37,5 +37,5 @@ Compute the cryptographic hash of a file.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.hashlib](../) namespace.
+Browse other nodes in the [lib.hashlib](./) namespace.
 
