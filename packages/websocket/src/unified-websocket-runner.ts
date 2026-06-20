@@ -1143,6 +1143,27 @@ export class UnifiedWebSocketRunner {
       this.activeJobs.delete(jobId);
     }
 
+    // Drain runs that were still queued (never started): the client is gone,
+    // so they will never run. Mark their persisted rows cancelled instead of
+    // leaving them as orphaned "scheduled" jobs in jobs.list.
+    for (
+      let queued = this.jobQueue.dequeue();
+      queued;
+      queued = this.jobQueue.dequeue()
+    ) {
+      const queuedId = queued.job_id;
+      if (!queuedId) continue;
+      try {
+        const job = await Job.get(queuedId);
+        if (job) {
+          job.markCancelled();
+          await job.save();
+        }
+      } catch (err) {
+        this.logError("disconnect queue cancellation failed", err);
+      }
+    }
+
     if (this.websocket) {
       try {
         await this.websocket.close();

@@ -56,6 +56,11 @@ export class WebSocketChatClient {
   async connect(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       const ws = new WebSocket(this.wsUrl);
+      // Guard so the connect promise settles exactly once: the "error" listener
+      // stays attached for the socket's lifetime, so without this a post-connect
+      // error would call reject() on an already-resolved promise and be silently
+      // swallowed (and an unhandled "error" event would otherwise crash Node).
+      let settled = false;
 
       ws.on("open", () => {
         this.ws = ws;
@@ -63,10 +68,23 @@ export class WebSocketChatClient {
         ws.send(
           JSON.stringify({ command: "set_mode", data: { mode: "text" } })
         );
-        resolve();
+        if (!settled) {
+          settled = true;
+          resolve();
+        }
       });
 
-      ws.on("error", (err) => reject(err));
+      ws.on("error", (err) => {
+        if (!settled) {
+          settled = true;
+          reject(err);
+          return;
+        }
+        // Error after a successful connect: tear down and unblock any waiting
+        // generators so they terminate instead of hanging forever.
+        this.ws = null;
+        this.drainWaiters();
+      });
 
       ws.on("message", (data: Buffer | string) => {
         try {
@@ -81,11 +99,16 @@ export class WebSocketChatClient {
 
       ws.on("close", () => {
         this.ws = null;
-        // Unblock all pending waiters
-        for (const waiter of this.contentWaiters) waiter(null);
-        this.contentWaiters = [];
+        this.drainWaiters();
       });
     });
+  }
+
+  /** Unblock all pending content waiters with null (stream end). */
+  private drainWaiters(): void {
+    const waiters = this.contentWaiters;
+    this.contentWaiters = [];
+    for (const waiter of waiters) waiter(null);
   }
 
   private handleMessage(msg: Record<string, unknown>): void {

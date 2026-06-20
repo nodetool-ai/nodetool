@@ -22,10 +22,7 @@ import type {
   TTSModel,
   VideoModel
 } from "@nodetool-ai/runtime";
-import {
-  RECOMMENDED_MODELS,
-  providerCapabilities
-} from "@nodetool-ai/runtime";
+import { RECOMMENDED_MODELS } from "@nodetool-ai/runtime";
 import type { RecommendedUnifiedModel } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 
@@ -253,9 +250,9 @@ export class FindModelTool extends Tool {
     for (const [providerId, instance] of providerEntries) {
       let supports: boolean;
       try {
-        supports = providerCapabilities(instance).includes(
-          capability as ProviderCapability
-        );
+        supports = instance
+          .getCapabilities()
+          .includes(capability as ProviderCapability);
       } catch {
         continue;
       }

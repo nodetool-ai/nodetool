@@ -11,7 +11,6 @@ import {
   type MediaRef
 } from "../huggingface-base.js";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 const EMPTY_IMAGE = {
   type: "image",
@@ -47,7 +46,7 @@ export class TextToImageNode extends BaseNode {
     description:
       "Text-to-image model repo id (e.g. black-forest-labs/FLUX.1-schnell, stabilityai/stable-diffusion-xl-base-1.0)."
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "str",
@@ -55,7 +54,7 @@ export class TextToImageNode extends BaseNode {
     title: "Prompt",
     description: "The text prompt describing the image."
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "str",
@@ -63,7 +62,7 @@ export class TextToImageNode extends BaseNode {
     title: "Negative Prompt",
     description: "What the image should NOT contain."
   })
-  declare negative_prompt: any;
+  declare negative_prompt: string;
 
   @prop({
     type: "int",
@@ -73,7 +72,7 @@ export class TextToImageNode extends BaseNode {
     min: 0,
     max: 2048
   })
-  declare width: any;
+  declare width: number;
 
   @prop({
     type: "int",
@@ -83,7 +82,7 @@ export class TextToImageNode extends BaseNode {
     min: 0,
     max: 2048
   })
-  declare height: any;
+  declare height: number;
 
   @prop({
     type: "float",
@@ -93,7 +92,7 @@ export class TextToImageNode extends BaseNode {
     min: 0,
     max: 30
   })
-  declare guidance_scale: any;
+  declare guidance_scale: number;
 
   @prop({
     type: "int",
@@ -103,7 +102,7 @@ export class TextToImageNode extends BaseNode {
     min: 0,
     max: 100
   })
-  declare num_inference_steps: any;
+  declare num_inference_steps: number;
 
   @prop({
     type: "int",
@@ -113,7 +112,7 @@ export class TextToImageNode extends BaseNode {
     min: -1,
     max: 4294967295
   })
-  declare seed: any;
+  declare seed: number;
 
   async process(): Promise<Record<string, unknown>> {
     const token = getHfToken(this._secrets);
@@ -174,7 +173,7 @@ export class ImageToImageNode extends BaseNode {
     title: "Model",
     description: "Image-to-image model repo id."
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "image",
@@ -182,7 +181,7 @@ export class ImageToImageNode extends BaseNode {
     title: "Image",
     description: "The source image to transform."
   })
-  declare image: any;
+  declare image: MediaRef;
 
   @prop({
     type: "str",
@@ -190,7 +189,7 @@ export class ImageToImageNode extends BaseNode {
     title: "Prompt",
     description: "Text prompt guiding the transformation."
   })
-  declare prompt: any;
+  declare prompt: string;
 
   @prop({
     type: "str",
@@ -198,7 +197,7 @@ export class ImageToImageNode extends BaseNode {
     title: "Negative Prompt",
     description: "What the result should NOT contain."
   })
-  declare negative_prompt: any;
+  declare negative_prompt: string;
 
   @prop({
     type: "float",
@@ -208,7 +207,7 @@ export class ImageToImageNode extends BaseNode {
     min: 0,
     max: 30
   })
-  declare guidance_scale: any;
+  declare guidance_scale: number;
 
   @prop({
     type: "int",
@@ -218,7 +217,7 @@ export class ImageToImageNode extends BaseNode {
     min: 0,
     max: 100
   })
-  declare num_inference_steps: any;
+  declare num_inference_steps: number;
 
   async process(
     context?: Parameters<BaseNode["process"]>[0]
@@ -276,7 +275,7 @@ export class ImageClassificationNode extends BaseNode {
     title: "Model",
     description: "Image-classification model repo id."
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "image",
@@ -284,7 +283,7 @@ export class ImageClassificationNode extends BaseNode {
     title: "Image",
     description: "The image to classify."
   })
-  declare image: any;
+  declare image: MediaRef;
 
   @prop({
     type: "int",
@@ -294,7 +293,7 @@ export class ImageClassificationNode extends BaseNode {
     min: 1,
     max: 100
   })
-  declare top_k: any;
+  declare top_k: number;
 
   async process(
     context?: Parameters<BaseNode["process"]>[0]
@@ -341,7 +340,7 @@ export class ImageSegmentationNode extends BaseNode {
     title: "Model",
     description: "Image-segmentation model repo id."
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "image",
@@ -349,7 +348,7 @@ export class ImageSegmentationNode extends BaseNode {
     title: "Image",
     description: "The image to segment."
   })
-  declare image: any;
+  declare image: MediaRef;
 
   async process(
     context?: Parameters<BaseNode["process"]>[0]
@@ -401,7 +400,7 @@ export class ObjectDetectionNode extends BaseNode {
     title: "Model",
     description: "Object-detection model repo id."
   })
-  declare model: any;
+  declare model: string;
 
   @prop({
     type: "image",
@@ -409,7 +408,7 @@ export class ObjectDetectionNode extends BaseNode {
     title: "Image",
     description: "The image to analyze."
   })
-  declare image: any;
+  declare image: MediaRef;
 
   @prop({
     type: "float",
@@ -419,7 +418,7 @@ export class ObjectDetectionNode extends BaseNode {
     min: 0,
     max: 1
   })
-  declare threshold: any;
+  declare threshold: number;
 
   async process(
     context?: Parameters<BaseNode["process"]>[0]

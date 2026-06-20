@@ -189,14 +189,6 @@
         "target": "4ca8874f-5caa-413c-a329-936d90358e8e",
         "targetHandle": "fps",
         "ui_properties": null
-      },
-      {
-        "id": "6f67faa9-9b15-4fd0-881f-93f4f93b735d",
-        "source": "abb8ee0b-dbf0-4969-8046-c2e690b7d1e4",
-        "sourceHandle": "event",
-        "target": "4ca8874f-5caa-413c-a329-936d90358e8e",
-        "targetHandle": "event",
-        "ui_properties": null
       }
     ]
   },

@@ -173,9 +173,47 @@ export abstract class BaseProvider {
     return [];
   }
 
+  /**
+   * Explicit capability declaration. Returns `null` by default, in which case
+   * {@link getCapabilities} derives capabilities by reflecting on which
+   * optional methods the concrete class overrides. Providers may override this
+   * to declare their capabilities directly — a robust alternative to method
+   * reflection when methods are wrapped, bound, or composed via mixins.
+   */
+  protected declaredCapabilities(): ProviderCapability[] | null {
+    return null;
+  }
+
+  /**
+   * The capabilities this provider exposes. Prefers an explicit declaration
+   * from {@link declaredCapabilities}; otherwise falls back to reflecting over
+   * overridden methods via {@link providerCapabilities}. Callers should use
+   * this instead of calling `providerCapabilities()` directly so explicit
+   * declarations are honored.
+   */
+  getCapabilities(): ProviderCapability[] {
+    const declared = this.declaredCapabilities();
+    if (declared) {
+      // Message generation is always available; ensure it is present.
+      const set = new Set<ProviderCapability>(declared);
+      set.add("generate_message");
+      set.add("generate_messages");
+      return [...set];
+    }
+    return providerCapabilities(this);
+  }
+
   getContainerEnv(): Record<string, string> {
     return {};
   }
+
+  /**
+   * Release any resources held by this provider (HTTP connection pools, cached
+   * model metadata, child processes, etc.). Default is a no-op; providers that
+   * hold long-lived resources should override it. Safe to call more than once.
+   * Callers that own a provider instance should invoke this on shutdown.
+   */
+  async close(): Promise<void> {}
 
   async hasToolSupport(_model: string): Promise<boolean> {
     return true;

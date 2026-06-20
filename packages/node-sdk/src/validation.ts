@@ -91,7 +91,8 @@ function isUnsetAsset(value: unknown): boolean {
   const hasAssetId = typeof assetId === "string" && assetId.length > 0;
   const hasTempId = typeof tempId === "string" && tempId.length > 0;
   const hasData =
-    data != null &&
+    data !== null &&
+    data !== undefined &&
     // Stryker disable next-line ConditionalExpression: forcing `typeof data === "string"` true is equivalent — for the only non-string with length 0 (an empty array) the next clause already drives hasData false.
     !(typeof data === "string" && data.length === 0) &&
     !(Array.isArray(data) && data.length === 0);

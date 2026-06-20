@@ -2,8 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { sql } from "drizzle-orm";
-import { getDb, getDbType, getRawDb } from "@nodetool-ai/models";
+import { pingDb } from "@nodetool-ai/models";
 
 const serverStartTime = Date.now();
 
@@ -31,13 +30,7 @@ const healthRoute: FastifyPluginAsync = async (app) => {
     let dbStatus: "ok" | "error" = "ok";
 
     try {
-      if (getDbType() === "postgres") {
-        await getDb().execute(sql`select 1`);
-      } else {
-        const raw = getRawDb();
-        // Fast integrity check — just verifies the connection is alive
-        raw.pragma("quick_check(1)");
-      }
+      await pingDb();
     } catch {
       dbStatus = "error";
     }

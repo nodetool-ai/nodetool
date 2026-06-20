@@ -5,8 +5,13 @@
  */
 
 import { eq, and, gt, lte, desc, asc } from "drizzle-orm";
-import { DBModel, createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import {
+  DBModel,
+  ModelChangeEvent,
+  ModelObserver,
+  createTimeOrderedUuid
+} from "./base-model.js";
+import { getDb, getDbType } from "./db.js";
 import { runEvents } from "./schema/run-events.js";
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -64,15 +69,22 @@ export class RunEvent extends DBModel {
     return rows[0].seq + 1;
   }
 
-  /** Append a new event with automatic sequence number. */
+  /**
+   * Append a new event with an automatic sequence number.
+   *
+   * The next-seq read and the insert run inside a single transaction so two
+   * concurrent appends for the same run can't compute the same seq and collide
+   * on the UNIQUE (run_id, seq) index. Mirrors RunLease.acquire's dual-dialect
+   * transaction pattern (better-sqlite3 transactions must be synchronous).
+   */
   static async appendEvent(
     runId: string,
     eventType: EventType,
     payload: Record<string, unknown>,
     nodeId?: string
   ): Promise<RunEvent> {
-    const seq = await RunEvent.getNextSeq(runId);
-    return RunEvent.create<RunEvent>({
+    const db = getDb();
+    const buildRow = (seq: number): Record<string, unknown> => ({
       id: createTimeOrderedUuid(),
       run_id: runId,
       seq,
@@ -81,6 +93,40 @@ export class RunEvent extends DBModel {
       node_id: nodeId ?? null,
       payload
     });
+
+    let row: Record<string, unknown>;
+    if (getDbType() === "sqlite") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      row = db.transaction((tx: any) => {
+        const existing = tx
+          .select({ seq: runEvents.seq })
+          .from(runEvents)
+          .where(eq(runEvents.run_id, runId))
+          .orderBy(desc(runEvents.seq))
+          .limit(1)
+          .get();
+        const r = buildRow(existing ? existing.seq + 1 : 0);
+        tx.insert(runEvents).values(r).run();
+        return r;
+      });
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      row = await db.transaction(async (tx: any) => {
+        const rows = await tx
+          .select({ seq: runEvents.seq })
+          .from(runEvents)
+          .where(eq(runEvents.run_id, runId))
+          .orderBy(desc(runEvents.seq))
+          .limit(1);
+        const r = buildRow(rows.length > 0 ? rows[0].seq + 1 : 0);
+        await tx.insert(runEvents).values(r);
+        return r;
+      });
+    }
+
+    const instance = new RunEvent(row);
+    ModelObserver.notify(instance, ModelChangeEvent.CREATED);
+    return instance;
   }
 
   /** Query events for a run with optional filters. */
