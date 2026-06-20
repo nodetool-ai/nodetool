@@ -23,7 +23,7 @@
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
     "@supabase/supabase-js": "^2.98.0",
-    "nodemailer": "^8.0.7",
+    "nodemailer": "^9.0.1",
     "yaml": "^2.9.0"
   },
   "devDependencies": {
