@@ -16,8 +16,36 @@ interface AuthStore {
   initialize: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
+  /**
+   * Called when the server rejects a request with 401/403: drop the local
+   * session and cached state and route back to login, without a network
+   * sign-out (the token is already invalid).
+   */
+  handleSessionExpired: () => void;
   clearError: () => void;
   cleanup: () => void;
+}
+
+/**
+ * Clear all user-bound client state on logout/expiry so the next account
+ * can't see the previous user's threads, messages, or cached queries.
+ */
+async function resetClientState(): Promise<void> {
+  try {
+    // Lazy import to avoid a circular dependency between auth and chat.
+    const chatModule = await import('./ChatStore');
+    const chatStore = chatModule.useChatStore;
+    chatStore.getState().disconnect();
+    chatStore.setState({
+      threads: {},
+      currentThreadId: null,
+      messageCache: {},
+      error: null,
+    });
+  } catch (err) {
+    console.warn('[AuthStore] failed to reset chat state', err);
+  }
+  queryClient.clear();
 }
 
 function formatAuthError(error: unknown, fallback: string): string {
@@ -142,26 +170,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         throw error;
       }
 
-      // Tear down the auth listener and clear any user-bound chat state so
-      // the next account can't see the previous user's threads/messages.
+      // Tear down the auth listener and clear any user-bound chat/query state
+      // so the next account can't see the previous user's data.
       get().cleanup();
-      try {
-        // Lazy import to avoid a circular dependency between auth/chat.
-        const chatModule = await import('./ChatStore');
-        const chatStore = chatModule.useChatStore;
-        chatStore.getState().disconnect();
-        chatStore.setState({
-          threads: {},
-          currentThreadId: null,
-          messageCache: {},
-          error: null,
-        });
-      } catch (err) {
-        console.warn('[AuthStore] failed to reset chat on signOut', err);
-      }
-
-      // Drop all cached server state so the next account starts clean.
-      queryClient.clear();
+      await resetClientState();
 
       set({
         session: null,
@@ -175,6 +187,23 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         error: formatAuthError(error, 'Failed to sign out'),
       });
     }
+  },
+
+  handleSessionExpired: () => {
+    // Already signed out — nothing to do (and avoids re-entrant loops when
+    // several in-flight requests all 401 at once).
+    if (!get().session) {
+      return;
+    }
+    console.warn('[AuthStore] session expired — clearing local session');
+    get().cleanup();
+    void resetClientState();
+    set({
+      session: null,
+      user: null,
+      state: 'logged_out',
+      error: 'Your session expired. Please sign in again.',
+    });
   },
 
   clearError: () => set({ error: null }),

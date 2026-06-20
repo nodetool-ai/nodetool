@@ -192,8 +192,14 @@ class ApiService {
         return (await response.json()) as T;
       } catch (error) {
         lastError = error;
-        // Retry network errors / aborts (no status) and 5xx; never 4xx.
         const status = error instanceof ApiError ? error.status : undefined;
+        // An expired/invalid session won't recover by retrying — drop it and
+        // route back to login.
+        if (status === 401 || status === 403) {
+          useAuthStore.getState().handleSessionExpired();
+          throw error;
+        }
+        // Retry network errors / aborts (no status) and 5xx; never other 4xx.
         const transient = status === undefined || status >= 500;
         if (!retriable || !transient || attempt === maxAttempts) {
           throw error;
