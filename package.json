@@ -60,7 +60,9 @@
     "packages/automation-nodes",
     "web",
     "electron",
-    "examples/chat_app"
+    "examples/chat_app",
+    "examples/nextjs-vercel",
+    "examples/nextjs-cloudflare"
   ],
   "scripts": {
     "postinstall": "node -e \"try{require('fs').unlinkSync('node_modules/.electron-native-rebuild-stamp')}catch{}\"",
