@@ -117,6 +117,26 @@ interface LoaderUse {
   options?: Record<string, unknown>;
 }
 
+/**
+ * Remotion's default `asset/resource` rule matches `.svg` regardless of query,
+ * so it would turn `foo.svg?react` into a URL (then React renders the URL string
+ * as a tag → crash). Exclude the `?react` query from it so our svgr rule owns it.
+ */
+function excludeReactQueryFromSvgAsset(rules: unknown[]): void {
+  for (const rule of rules) {
+    if (!rule || typeof rule !== "object") continue;
+    const r = rule as { type?: string; test?: unknown; resourceQuery?: unknown };
+    if (
+      r.type === "asset/resource" &&
+      r.test instanceof RegExp &&
+      r.test.test("x.svg") &&
+      r.resourceQuery == null
+    ) {
+      r.resourceQuery = { not: [/react/] };
+    }
+  }
+}
+
 /** Mutate Remotion's esbuild-loader rules in place to use a modern target. */
 function bumpEsbuildTargets(rules: unknown[]): void {
   for (const rule of rules) {
@@ -138,6 +158,7 @@ export const webpackOverride: WebpackOverrideFn = (config) => {
   const existingConditions = resolve.conditionNames ?? ["...", "browser"];
   const existingRules = config.module?.rules ?? [];
   bumpEsbuildTargets(existingRules as unknown[]);
+  excludeReactQueryFromSvgAsset(existingRules as unknown[]);
   return {
     ...config,
     // Top-level await (used by @nodetool-ai/config) needs webpack's experiment
