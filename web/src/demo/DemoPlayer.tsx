@@ -28,6 +28,7 @@ import { useStore } from "zustand";
 import { ThemeProvider, CssBaseline } from "@mui/material";
 import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 
 // Global side-effect styles so the graph renders identically to the editor.
 import "@xyflow/react/dist/style.css";
@@ -198,28 +199,32 @@ export function DemoPlayer({
   useEffect(() => () => engine.dispose(), [engine]);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
-        <InitColorSchemeScript attribute="class" defaultMode="dark" />
-        <CssBaseline />
-        <MenuProvider>
-          <WorkflowManagerProvider queryClient={queryClient}>
-            <ContextMenuProvider active={false}>
-              <NodeContext.Provider value={engine.nodeStore as NodeStore}>
-                <ReactFlowProvider>
-                  <div
-                    data-demo-player
-                    style={{ width: "100%", height: "100%", ...style }}
-                  >
-                    <DemoCanvas engine={engine} cast={cast} timeMs={timeMs} />
-                  </div>
-                </ReactFlowProvider>
-              </NodeContext.Provider>
-            </ContextMenuProvider>
-          </WorkflowManagerProvider>
-        </MenuProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    // Some node components (e.g. ApiKeyValidation) call react-router hooks like
+    // useNavigate; a MemoryRouter supplies the required Router context.
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
+          <InitColorSchemeScript attribute="class" defaultMode="dark" />
+          <CssBaseline />
+          <MenuProvider>
+            <WorkflowManagerProvider queryClient={queryClient}>
+              <ContextMenuProvider active={false}>
+                <NodeContext.Provider value={engine.nodeStore as NodeStore}>
+                  <ReactFlowProvider>
+                    <div
+                      data-demo-player
+                      style={{ width: "100%", height: "100%", ...style }}
+                    >
+                      <DemoCanvas engine={engine} cast={cast} timeMs={timeMs} />
+                    </div>
+                  </ReactFlowProvider>
+                </NodeContext.Provider>
+              </ContextMenuProvider>
+            </WorkflowManagerProvider>
+          </MenuProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </MemoryRouter>
   );
 }
 
