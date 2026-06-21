@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nodetool-example-workflow-runner",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-04-27",
+  // nodejs_compat: provides the Node built-ins the kernel/runtime stack
+  // lazy-loads. global_fetch_strictly_public: outbound fetch (e.g. LLM nodes)
+  // goes to the public internet, not Worker-to-Worker.
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "binding": "ASSETS",
+    "directory": ".open-next/assets"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

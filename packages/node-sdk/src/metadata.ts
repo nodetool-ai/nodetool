@@ -225,15 +225,21 @@ function walkForMetadataFiles(
 // Per-user cache dir — the shared system tmpdir is world-writable, so a
 // predictable path there would let another local user pre-seed poisoned
 // metadata or plant symlinks.
-const CACHE_DIR = IS_NODE
-  ? path.join(
-      // Stryker disable next-line ConditionalExpression,LogicalOperator: XDG_CACHE_HOME is unset in the test environment, so the homedir fallback always applies (equivalent).
-      process.env["XDG_CACHE_HOME"] || path.join(os.homedir(), ".cache"),
-      "nodetool",
-      "metadata-cache"
-    )
-  : // Stryker disable next-line StringLiteral: the non-Node branch is unreachable in the (Node) test environment, where IS_NODE is always true (dead branch).
-    "/tmp/nodetool-metadata-cache";
+// `IS_NODE` alone is not enough: Cloudflare Workers (`nodejs_compat`) set
+// `process.versions.node`, so IS_NODE is true, yet `importNodeBuiltin` returns
+// null there (workerd blocks the `new Function` dynamic import). Gate on the
+// builtins actually loading so this module-load const doesn't deref a null
+// `path`/`os` on the Workers isolate.
+const CACHE_DIR =
+  IS_NODE && path && os
+    ? path.join(
+        // Stryker disable next-line ConditionalExpression,LogicalOperator: XDG_CACHE_HOME is unset in the test environment, so the homedir fallback always applies (equivalent).
+        process.env["XDG_CACHE_HOME"] || path.join(os.homedir(), ".cache"),
+        "nodetool",
+        "metadata-cache"
+      )
+    : // Stryker disable next-line StringLiteral: the non-Node branch is unreachable in the (Node) test environment, where IS_NODE is always true (dead branch).
+      "/tmp/nodetool-metadata-cache";
 const CACHE_VERSION = 1;
 
 interface SerializedCacheEntry {
