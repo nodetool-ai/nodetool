@@ -201,6 +201,48 @@ npm run dev:nodetool -- run workflow.ts            # Run a TypeScript DSL file
 npm run dev:nodetool -- run workflow.ts --json     # Output results as JSON
 ```
 
+### nodetool debug (Workflow Debug Harness)
+
+Runs a workflow end-to-end on the **server** (headless kernel `WorkflowRunner`)
+and optionally in a **real browser** (Playwright driving the `e2e_runner`
+harness), then writes a self-contained debug bundle and prints an agent-friendly
+verdict. Built for iterative troubleshooting: run → read the report → edit → re-run.
+
+```bash
+# Server surface only (default) — accepts a workflow id, JSON file, or DSL .ts file
+npm run dev:nodetool -- debug <workflow_id>
+npm run dev:nodetool -- debug workflow.json --params '{"prompt":"hi"}'
+
+# Add the real-browser surface (needs web deps + `npx playwright install chromium`)
+npm run dev:nodetool -- debug <workflow_id> --browser
+
+# Print the full machine-readable report to stdout for an agent to parse
+npm run dev:nodetool -- debug <workflow_id> --json
+
+npm run dev:nodetool -- debug <id> --no-server --browser   # browser only
+npm run dev:nodetool -- debug <id> --out ./mydebug         # custom bundle dir
+npm run dev:nodetool -- debug <id> --timeout 60000         # per-surface timeout (ms)
+```
+
+The bundle (`nodetool-debug/<id>-<ts>/` by default) contains:
+
+```
+report.json        # the full DebugReport (workflow JSON, both surfaces, verdict)
+report.md          # human-readable summary
+workflow.json      # the resolved graph (runner shape)
+server/messages.jsonl   # every processing message (logs, node IO, outputs, errors)
+server/trace.jsonl      # OpenTelemetry spans (timing, tokens, cost)
+browser/record.json     # the browser RunRecord (events, logs, node IO, artifacts)
+browser/screenshot.png  # canvas screenshot of the finished graph
+browser/console-errors.log
+```
+
+Agents can also debug a workflow on a running server via the **`debug_workflow`**
+tool (runs the workflow + returns status, outputs, errors, job logs, and the
+graph overview in one call). The browser surface is exposed in `web/` as
+`npm run test:debug-harness` (env: `NODETOOL_DEBUG_GRAPH`, `NODETOOL_DEBUG_OUT`,
+`NODETOOL_DEBUG_PARAMS`).
+
 ### nodetool workflows
 
 Requires a running server (localhost:7777 or `--api-url`).

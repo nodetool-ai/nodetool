@@ -246,6 +246,83 @@ export class RunWorkflowTool extends Tool {
   }
 }
 
+/** Distill a workflow API record down to a graph overview for a debug report. */
+function summarizeWorkflowGraph(workflow: unknown): unknown {
+  if (!workflow || typeof workflow !== "object") return workflow;
+  const wf = workflow as Record<string, unknown>;
+  const graph = (wf.graph ?? wf) as Record<string, unknown>;
+  const nodes = Array.isArray(graph.nodes) ? (graph.nodes as Array<Record<string, unknown>>) : [];
+  const edges = Array.isArray(graph.edges) ? (graph.edges as Array<Record<string, unknown>>) : [];
+  return {
+    id: wf.id,
+    name: wf.name,
+    node_count: nodes.length,
+    edge_count: edges.length,
+    node_types: [...new Set(nodes.map((n) => String(n.type ?? "unknown")))],
+    nodes: nodes.map((n) => ({ id: n.id, type: n.type })),
+    edges
+  };
+}
+
+export class DebugWorkflowTool extends Tool {
+  readonly name = "debug_workflow";
+  readonly description =
+    "Run a workflow end-to-end and return a consolidated debug report: final " +
+    "status, outputs, error, job logs, and the workflow graph overview. Use this " +
+    "to troubleshoot a failing or misbehaving workflow and iterate on a fix.";
+  readonly inputSchema = {
+    type: "object" as const,
+    properties: {
+      workflow_id: {
+        type: "string" as const,
+        description: "The ID of the workflow to run and debug"
+      },
+      params: {
+        type: "object" as const,
+        description: "Input parameters keyed by input-node name"
+      },
+      include_graph: {
+        type: "boolean" as const,
+        description: "Include the workflow graph overview in the report (default true)"
+      },
+      log_limit: {
+        type: "number" as const,
+        description: "Maximum job log entries to include (default 200)"
+      }
+    },
+    required: ["workflow_id"]
+  };
+
+  async process(
+    context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    const workflowId = String(params["workflow_id"]);
+    const includeGraph = params["include_graph"] !== false;
+    const logLimit = Number(params["log_limit"] ?? 200);
+
+    const run = await apiPost(context, `/api/workflows/${workflowId}/run`, {
+      params: params["params"] ?? {}
+    });
+
+    const report: Record<string, unknown> = { workflow_id: workflowId, run };
+
+    const jobId = (run as Record<string, unknown>)?.["job_id"];
+    if (typeof jobId === "string") {
+      report["job"] = await apiGet(context, `/api/jobs/${jobId}`, { limit: logLimit });
+    }
+    if (includeGraph) {
+      const wf = await apiGet(context, `/api/workflows/${workflowId}`);
+      report["workflow"] = summarizeWorkflowGraph(wf);
+    }
+    return report;
+  }
+
+  userMessage(params: Record<string, unknown>): string {
+    return `Debugging workflow ${params["workflow_id"]}`;
+  }
+}
+
 export class ValidateWorkflowTool extends Tool {
   readonly name = "validate_workflow";
   readonly description =
@@ -767,6 +844,7 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
     new GetWorkflowTool(),
     new CreateWorkflowTool(),
     new RunWorkflowTool(),
+    new DebugWorkflowTool(),
     new ValidateWorkflowTool(),
     new GetExampleWorkflowTool(),
     new ExportWorkflowDigraphTool(),

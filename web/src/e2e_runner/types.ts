@@ -114,6 +114,16 @@ export interface RunRecord {
   expectationFailures: string[];
 }
 
+/** Options for an ad-hoc single-graph run (the debug harness path). */
+export interface AdHocRunOptions {
+  /** Stable id used in the record (defaults to a generated `adhoc-<ts>`). */
+  id?: string;
+  /** Human-readable name shown on the record. */
+  name?: string;
+  /** Override the per-run timeout (ms). */
+  timeoutMs?: number;
+}
+
 /** The controller the harness exposes on `window.__E2E__` for the Playwright driver. */
 export interface E2EController {
   ready: Promise<void>;
@@ -125,6 +135,17 @@ export interface E2EController {
   /** Run every remaining workflow sequentially. */
   runAll: () => Promise<RunRecord[]>;
   currentIndex: () => number;
+  /**
+   * Run a caller-supplied graph (not from the manifest) and resolve with its
+   * record once settled. Renders the graph on the canvas and captures the same
+   * logs / node IO / outputs / events as the suite path — the entry point the
+   * `nodetool debug` harness drives for the browser surface.
+   */
+  runGraph: (
+    graph: { nodes: unknown[]; edges: unknown[] },
+    params?: Record<string, unknown>,
+    options?: AdHocRunOptions
+  ) => Promise<RunRecord>;
 }
 
 declare global {
