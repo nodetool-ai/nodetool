@@ -10,7 +10,12 @@ import { useIsWorkflowFavorite, useFavoriteWorkflowActions } from "../../stores/
 import { relativeTime } from "../../utils/formatDateAndTime";
 import StarIcon from "@mui/icons-material/Star";
 import { TOOLTIP_ENTER_DELAY, TOOLTIP_ENTER_NEXT_DELAY } from "../../config/constants";
-import { FavoriteButton, EditButton, EditorButton, FlexColumn, FlexRow, Text, Tooltip, Checkbox, Box, BORDER_RADIUS } from "../ui_primitives";
+import { FavoriteButton, FlexColumn, FlexRow, Text, Tooltip, Checkbox, Box, BORDER_RADIUS, SPACING } from "../ui_primitives";
+
+// Single-click on the row opens the workflow. Double-clicking the name renames
+// it inline instead, so the open is deferred briefly to let a following
+// double-click cancel it.
+const OPEN_CLICK_DELAY_MS = 200;
 
 interface WorkflowListItemProps {
   workflow: Workflow;
@@ -50,6 +55,16 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
 
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const openTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cancelPendingOpen = useCallback(() => {
+    if (openTimerRef.current !== null) {
+      clearTimeout(openTimerRef.current);
+      openTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => () => cancelPendingOpen(), [cancelPendingOpen]);
 
   const handleToggleFavorite = useCallback(
     (_isFavorite: boolean) => {
@@ -58,31 +73,41 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
     [toggleFavorite, workflow.id]
   );
 
-  const handleEdit = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      onEdit(workflow);
-    },
-    [onEdit, workflow]
-  );
+  const handleRowClick = useCallback(() => {
+    if (isEditing) {
+      return;
+    }
+    if (showCheckboxes) {
+      onSelect(workflow);
+      return;
+    }
+    // Defer so a double-click on the name can cancel this and rename instead.
+    cancelPendingOpen();
+    openTimerRef.current = setTimeout(() => {
+      openTimerRef.current = null;
+      onOpenWorkflow(workflow);
+    }, OPEN_CLICK_DELAY_MS);
+  }, [isEditing, showCheckboxes, onSelect, onOpenWorkflow, cancelPendingOpen, workflow]);
 
-  const handleOpen = useCallback(
-    (e: React.MouseEvent) => {
+  const handleRowKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (isEditing || (e.key !== "Enter" && e.key !== " ")) {
+        return;
+      }
       e.preventDefault();
-      e.stopPropagation();
       onOpenWorkflow(workflow);
     },
-    [onOpenWorkflow, workflow]
+    [isEditing, onOpenWorkflow, workflow]
   );
 
   const handleNameDoubleClick = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
+      cancelPendingOpen();
       setIsEditing(true);
     },
-    []
+    [cancelPendingOpen]
   );
 
   const handleNameChange = useCallback(
@@ -116,6 +141,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
   const handleCheckboxClick = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
+      e.stopPropagation();
       onSelect(workflow);
     },
     [onSelect, workflow]
@@ -238,6 +264,11 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
         (isCurrent ? " current" : "") +
         (isFavorite ? " favorite" : "")
       }
+      role="button"
+      tabIndex={0}
+      aria-label={`Open workflow ${workflow.name}`}
+      onClick={handleRowClick}
+      onKeyDown={handleRowKeyDown}
       onContextMenu={handleContextMenu}
     >
       {showCheckboxes && (
@@ -283,33 +314,6 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
           </Text>
         )}
         <Box className="actions">
-          <EditorButton
-            className="open-button"
-            variant="contained"
-            onClick={handleOpen}
-            title="Open workflow"
-            density="compact"
-            sx={{
-              padding: "3px 10px",
-              minWidth: "unset",
-              fontSize: "var(--fontSizeSmall)",
-              fontWeight: 600,
-              textTransform: "none",
-              lineHeight: 1.4,
-              borderRadius: BORDER_RADIUS.xs,
-              boxShadow: "none",
-              backgroundColor: "action.selected",
-              border: "1px solid",
-              borderColor: "divider",
-              color: "text.primary",
-              "&:hover": {
-                boxShadow: "none",
-                backgroundColor: "action.hover"
-              }
-            }}
-          >
-            OPEN
-          </EditorButton>
           <FavoriteButton
             isFavorite={isFavorite}
             onToggle={handleToggleFavorite}
@@ -317,15 +321,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
             removeTooltip="Remove from favorites"
             buttonSize="small"
             className="favorite-button"
-            stopPropagation={false}
-          />
-          <EditButton
-            onClick={handleEdit}
-            tooltip="Edit workflow settings"
-            buttonSize="small"
-            className="edit-button"
-            nodrag={false}
-            sx={{ padding: "4px" }}
+            stopPropagation
           />
         </Box>
       </Box>
@@ -357,7 +353,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
           sx: {
             maxWidth: "none",
             minWidth: 360,
-            padding: "12px",
+            padding: SPACING.lg,
             "& .MuiTooltip-tooltip": {
               maxWidth: "none"
             }
