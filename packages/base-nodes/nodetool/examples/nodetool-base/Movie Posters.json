@@ -1,8 +1,8 @@
 {
   "id": "",
   "access": "private",
-  "created_at": "2026-04-27T11:20:53.184Z",
-  "updated_at": "2026-04-27T12:18:03.938Z",
+  "created_at": "2026-06-21T13:57:24.787Z",
+  "updated_at": "2026-06-21T21:16:27.375Z",
   "name": "Movie Posters",
   "tool_name": null,
   "description": "Create cinematic movie posters using AI image generation",
@@ -15,38 +15,6 @@
   "thumbnail_url": null,
   "graph": {
     "edges": [
-      {
-        "id": "5ada5828-b7b9-4a21-a0e7-04c315fa8d07",
-        "source": "strategy_template_prompt",
-        "sourceHandle": "output",
-        "target": "strategy_prompt_formatter",
-        "targetHandle": "prompt",
-        "edge_type": "data"
-      },
-      {
-        "id": "ed372108-44fe-4325-a615-c98f19282ade",
-        "source": "strategy_prompt_formatter",
-        "sourceHandle": "output",
-        "target": "strategy_llm",
-        "targetHandle": "prompt",
-        "edge_type": "data"
-      },
-      {
-        "id": "4f7df337-3a31-411d-9ec1-1af5ed3fbe1c",
-        "source": "strategy_llm",
-        "sourceHandle": "text",
-        "target": "prompt_list_generator",
-        "targetHandle": "input_text",
-        "edge_type": "data"
-      },
-      {
-        "id": "7dd2c9a0-81c3-4c18-a8d8-b02b9cb82c2e",
-        "source": "designer_instructions_prompt",
-        "sourceHandle": "output",
-        "target": "prompt_list_generator",
-        "targetHandle": "prompt",
-        "edge_type": "data"
-      },
       {
         "id": "bdf22e6b-0b03-4434-b628-210a75c1e2b6",
         "source": "audience_input",
@@ -81,11 +49,77 @@
         "edge_type": "data"
       },
       {
-        "id": "23e08a8d-fec1-4722-9bbf-81f4e5ca353a",
+        "id": "20ea6047-5cab-4a83-9981-4796d91abfeb",
+        "source": "923fb0f1-8bd4-406a-ba73-9ec3137c20cd",
+        "sourceHandle": "output",
+        "target": "prompt_list_generator",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "f02d1dd1-0297-41f8-a913-85a86692f5c8",
         "source": "prompt_list_generator",
         "sourceHandle": "item",
+        "target": "68bb0948-5e25-485e-81e1-9a1a7f2c1e92",
+        "targetHandle": "plot",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "2844bd3f-a3eb-49c8-9654-4ccee70d629a",
+        "source": "strategy_prompt_formatter",
+        "sourceHandle": "output",
+        "target": "04757c8a-dad6-48f3-a45f-459f54e26b7b",
+        "targetHandle": "instructions",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "c9bf0132-eb1f-4ced-94bd-ac71c06f2716",
+        "source": "04757c8a-dad6-48f3-a45f-459f54e26b7b",
+        "sourceHandle": "positioning",
+        "target": "923fb0f1-8bd4-406a-ba73-9ec3137c20cd",
+        "targetHandle": "positioning",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "d61bd3de-3300-4bf4-b50f-aa8d91966d88",
+        "source": "04757c8a-dad6-48f3-a45f-459f54e26b7b",
+        "sourceHandle": "audience_insight",
+        "target": "923fb0f1-8bd4-406a-ba73-9ec3137c20cd",
+        "targetHandle": "audience_insight",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "1413c180-2dc4-4d43-b43d-fa6f4724ef64",
+        "source": "68bb0948-5e25-485e-81e1-9a1a7f2c1e92",
+        "sourceHandle": "output",
         "target": "0276f606-d899-4487-be65-4615564507cc",
         "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "cd31829d-dfd2-4a04-b3ac-77e3e971a075",
+        "source": "movie_title_input",
+        "sourceHandle": "output",
+        "target": "68bb0948-5e25-485e-81e1-9a1a7f2c1e92",
+        "targetHandle": "title",
         "ui_properties": {
           "className": "str"
         },
@@ -97,13 +131,119 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎬 Movie Posters\n\nFrom a title, genre, and audience, design a batch of movie poster concepts. An agent writes a creative brief, then turns it into image prompts.\n\n**Pipeline:** Inputs → Strategy agent → Prompt list → Text-to-Image\n\n**Try this:** change the genre or audience to shift the visual tone."
+          "comment": {
+            "root": {
+              "children": [
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "🎬 Movie Posters",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": null,
+                  "format": "",
+                  "indent": 0,
+                  "type": "heading",
+                  "version": 1,
+                  "tag": "h1"
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "From a title, genre, and audience, design a batch of movie poster concepts. An agent writes a creative brief, then turns it into image prompts.",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": null,
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 0,
+                  "textStyle": ""
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 1,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "Pipeline:",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": " Inputs → Strategy agent → Prompt list → Text-to-Image",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": null,
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 1,
+                  "textStyle": ""
+                },
+                {
+                  "children": [
+                    {
+                      "detail": 0,
+                      "format": 1,
+                      "mode": "normal",
+                      "style": "",
+                      "text": "Try this:",
+                      "type": "text",
+                      "version": 1
+                    },
+                    {
+                      "detail": 0,
+                      "format": 0,
+                      "mode": "normal",
+                      "style": "",
+                      "text": " change the genre or audience to shift the visual tone.",
+                      "type": "text",
+                      "version": 1
+                    }
+                  ],
+                  "direction": null,
+                  "format": "",
+                  "indent": 0,
+                  "type": "paragraph",
+                  "version": 1,
+                  "textFormat": 1,
+                  "textStyle": ""
+                }
+              ],
+              "direction": null,
+              "format": "",
+              "indent": 0,
+              "type": "root",
+              "version": 1
+            }
+          }
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 4,
-            "y": -79
+            "x": 38,
+            "y": -194
           },
           "zIndex": 0,
           "width": 460,
@@ -115,67 +255,22 @@
         "dynamic_outputs": {}
       },
       {
-        "id": "strategy_llm",
-        "type": "nodetool.agents.Agent",
-        "data": {
-          "model": {},
-          "system": "You are a friendly assistant.",
-          "image": {},
-          "audio": {},
-          "voice": "none",
-          "tools": [],
-          "messages": [],
-          "max_tokens": 4096
-        },
-        "ui_properties": {
-          "position": {
-            "x": 710,
-            "y": 700
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "bypassed": false,
-          "title": "Creative strategy agent"
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "strategy_template_prompt",
-        "type": "nodetool.constant.String",
-        "data": {
-          "value": "You are a senior movie-poster strategist.  \n\nWrite a creative strategy for a fictional film called **“{{MOVIE_TITLE}}”** (Genre: **{{GENRE}}**, Audience: **{{PRIMARY_AUDIENCE}}**).  \n\nReturn only Markdown with the following sections, no commentary.  \n\n## Goal & Positioning  \n\n1–2 lines on what the poster must promise to the audience.  \n\n## Audience Insight  \n\n3–5 bullets: emotional drives, visual tastes, cultural touchpoints.  \n\n## Core Visual Concept  \n\nOne bold line: the “big idea” that excites this audience.  \n\n## Design System  \n\n- **Color Palette** – up to 5 items: Name + Hex + emotion.  \n\n- **Imagery** – ≤10 words: hero focus, composition, lighting style.  \n\n- **Typography** – 1–2 cues (font family + texture/mood).  \n\n"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 4,
-            "y": 141
-          },
-          "zIndex": 0,
-          "width": 454,
-          "height": 389,
-          "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
         "id": "strategy_prompt_formatter",
         "type": "nodetool.text.Prompt",
-        "data": {},
+        "data": {
+          "prompt": "You are a senior movie-poster strategist.  \n\nWrite a creative strategy for a fictional film:\nMovie title: {{ MOVIE_TITLE }}\nGenre: {{ GENRE }}\nPrimary Audience: {{ PRIMARY_AUDIENCE }}\n\nReturn only Markdown with the following sections, no commentary.  \n\nPositioning: 1–2 lines on what the poster must promise to the audience.  \nAudience Insight: emotional drives, visual tastes, cultural touchpoints.  \nCore Visual Concept: the “big idea” that excites this audience.  \n\nDesign:\n- Color Palette: up to 5 items: Name + Hex + emotion.  \n- Imagery: hero focus, composition, lighting style.  \n- Typography: font family + texture/mood\n\n"
+        },
         "ui_properties": {
           "position": {
-            "x": 400,
-            "y": 857
+            "x": 619,
+            "y": 123
           },
           "zIndex": 0,
-          "width": 280,
+          "width": 361,
+          "height": 563,
+          "title": "Build strategy prompt",
           "selectable": true,
-          "bypassed": false,
-          "title": "Build strategy prompt"
+          "bypassed": false
         },
         "dynamic_properties": {
           "MOVIE_TITLE": "Infinity",
@@ -192,15 +287,16 @@
           "name": "Movie Title"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 49,
-            "y": 555
+            "x": 279,
+            "y": 50
           },
           "zIndex": 0,
           "width": 280,
+          "title": "Movie title",
           "selectable": true,
-          "bypassed": false,
-          "title": "Movie title"
+          "bypassed": false
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -214,14 +310,14 @@
         },
         "ui_properties": {
           "position": {
-            "x": 48,
-            "y": 877
+            "x": 279,
+            "y": 330
           },
           "zIndex": 0,
           "width": 280,
+          "title": "Genre",
           "selectable": true,
-          "bypassed": false,
-          "title": "Genre"
+          "bypassed": false
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -235,14 +331,14 @@
         },
         "ui_properties": {
           "position": {
-            "x": 49,
-            "y": 1193
+            "x": 279,
+            "y": 610
           },
           "zIndex": 0,
           "width": 280,
+          "title": "Primary audience",
           "selectable": true,
-          "bypassed": false,
-          "title": "Primary audience"
+          "bypassed": false
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -252,37 +348,18 @@
         "type": "nodetool.generators.ListGenerator",
         "data": {
           "model": {},
-          "max_tokens": 4096
-        },
-        "ui_properties": {
-          "position": {
-            "x": 1050,
-            "y": 254
-          },
-          "zIndex": 0,
-          "width": 280,
-          "selectable": true,
-          "bypassed": false,
-          "title": "Generate poster prompts"
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "designer_instructions_prompt",
-        "type": "nodetool.constant.String",
-        "data": {
-          "value": "You are a senior movie-poster designer.  \n\nUsing the given strategy, create **3 cinematic image prompts** for poster concepts.  \n\nGuidelines:  \n- Start with the main subject (hero, scene, or symbol).  \n- Add composition (wide shot, close-up, collage, minimalist).  \n- Weave in genre cues and audience triggers.  \n- Apply the color palette and lighting mood.  \n- Add typography as “cinematic title text, [style]”.  \n- Keep ≤ 60 words per prompt.  \n- Exclude watermarks, real logos, or extra limbs.  "
+          "max_tokens": 100000
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 568,
-            "y": 234
+            "x": 1662,
+            "y": 237
           },
           "zIndex": 0,
-          "width": 403,
-          "height": 283,
+          "width": 456,
+          "height": 340,
+          "title": "Generate poster prompts",
           "selectable": true,
           "bypassed": false
         },
@@ -300,19 +377,114 @@
           "timeout_seconds": 0
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 1360,
-            "y": 242
+            "x": 2608,
+            "y": 187
           },
           "zIndex": 0,
-          "width": 384,
+          "width": 509,
+          "height": 588,
+          "title": "Render posters",
           "selectable": true,
-          "bypassed": false,
-          "height": 400,
-          "title": "Render posters"
+          "bypassed": false
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "68bb0948-5e25-485e-81e1-9a1a7f2c1e92",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "Cinematic movie poster in the genre {{ genre }} , ultra-high-end theatrical key art. A striking central subject dominates the composition, positioned with strong visual hierarchy. Dynamic lighting, dramatic atmosphere, rich color grading, detailed textures, and epic scale. Layered foreground, midground, and background elements create depth and storytelling. Subtle environmental details hint at the plot without revealing it.\n\nPlot: {{ plot }}\n\nLarge movie title \"{{ title }}\" prominently placed in the lower third, premium typography integrated into the scene. Tagline positioned above the title. Billing block, credits, studio logos, and release date arranged in authentic Hollywood poster layout. Balanced negative space, professional graphic design, award-winning poster composition."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 2148,
+            "y": 169
+          },
+          "zIndex": 0,
+          "width": 410,
+          "height": 555,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "plot": "",
+          "title": "Infinity",
+          "genre": ""
+        },
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "923fb0f1-8bd4-406a-ba73-9ec3137c20cd",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "write 5 plots for \npositioning: {{ positioning }}\naudience insight: {{ audience_insight }}\n"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1352,
+            "y": 304
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "positioning": "",
+          "audience_insight": ""
+        },
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "04757c8a-dad6-48f3-a45f-459f54e26b7b",
+        "type": "nodetool.generators.StructuredOutputGenerator",
+        "data": {
+          "system_prompt": "\nYou are a structured data generator focused on JSON outputs.\n\nGoal\n- Produce a high-quality JSON object that matches <JSON_SCHEMA> using the guidance in <INSTRUCTIONS> and any supplemental <CONTEXT>.\n\nOutput format (MANDATORY)\n- Output exactly ONE fenced code block labeled json containing ONLY the JSON object:\n\n  ```json\n  { ...single JSON object matching <JSON_SCHEMA>... }\n  ```\n\n- No additional prose before or after the block.\n\nGeneration rules\n- Invent plausible, internally consistent values when not explicitly provided.\n- Honor all constraints from <JSON_SCHEMA> (types, enums, ranges, formats).\n- Prefer ISO 8601 for dates/times when applicable.\n- Ensure numbers respect reasonable magnitudes and relationships described in <INSTRUCTIONS>.\n- Avoid referencing external sources; rely solely on the provided guidance.\n\nValidation\n- Ensure the final JSON validates against <JSON_SCHEMA> exactly.\n",
+          "model": {},
+          "context": "",
+          "max_tokens": 4096,
+          "image": [],
+          "audio": []
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1010,
+            "y": 299
+          },
+          "zIndex": 0,
+          "width": 282,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {
+          "positioning": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          },
+          "design": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          },
+          "audience_insight": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          },
+          "core_visual_concept": {
+            "type": "str",
+            "type_args": [],
+            "optional": false
+          }
+        }
       }
     ]
   },
@@ -326,5 +498,5 @@
   "required_providers": null,
   "required_models": null,
   "html_app": null,
-  "etag": "24f14de30fb53474db960ff03071c37d"
+  "etag": "402af2d8a379c78301d714678d723520"
 }

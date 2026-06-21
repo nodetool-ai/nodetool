@@ -1,11 +1,11 @@
 {
   "id": "",
   "access": "private",
-  "created_at": "2026-05-07T05:38:15.864Z",
-  "updated_at": "2026-05-07T06:26:21.809Z",
+  "created_at": "2026-06-21T16:03:52.969Z",
+  "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "AI Product Launch Video Generator",
   "tool_name": null,
-  "description": "Create a realistic 16:9 marketing video for a new product launch using the TextToVideo node.",
+  "description": "Create a realistic 16:9 marketing video for a new product launch using the ImageToVideo node.",
   "tags": [
     "business",
     "data",
@@ -17,18 +17,10 @@
   "graph": {
     "edges": [
       {
-        "id": "6",
-        "source": "3",
-        "sourceHandle": "text",
-        "target": "2",
-        "targetHandle": "prompt",
-        "edge_type": "data"
-      },
-      {
         "id": "01ff2dd6-973b-486d-aa3d-49047690ac60",
         "source": "5",
         "sourceHandle": "output",
-        "target": "3",
+        "target": "4",
         "targetHandle": "brief",
         "ui_properties": {
           "className": "str"
@@ -39,7 +31,7 @@
         "id": "1bf29f21-70b9-46e1-895b-b0270b558090",
         "source": "6",
         "sourceHandle": "output",
-        "target": "3",
+        "target": "4",
         "targetHandle": "audience",
         "ui_properties": {
           "className": "str"
@@ -50,10 +42,54 @@
         "id": "be968faa-0e7b-416f-b129-23e742d264bc",
         "source": "7",
         "sourceHandle": "output",
-        "target": "3",
+        "target": "4",
         "targetHandle": "features",
         "ui_properties": {
           "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "prompt-to-agent",
+        "source": "4",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "68208701-a9b9-4f60-8666-9deed353a089",
+        "source": "ada8f51f-0155-4178-a07c-9415be82534a",
+        "sourceHandle": "output",
+        "target": "3",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "cba6ce0e-77cb-4f46-89f1-926d790d4d39",
+        "source": "3",
+        "sourceHandle": "text",
+        "target": "97f03868-da4f-4604-b57e-5f2118847956",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "12e3b210-b6b1-4503-9edf-7980c3613d23",
+        "source": "ada8f51f-0155-4178-a07c-9415be82534a",
+        "sourceHandle": "output",
+        "target": "97f03868-da4f-4604-b57e-5f2118847956",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
         },
         "edge_type": "data"
       }
@@ -63,12 +99,12 @@
         "id": "comment-1",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎬 AI Product Launch Video Generator\n\nTurn a campaign brief into a cinematic launch clip. An agent writes a video prompt from your inputs, then a text-to-video model renders it.\n\n**Pipeline:** Brief + Audience + Features → Agent → Text-to-Video\n\n**Try this:** swap the video model or rewrite the agent's system prompt for a different tone."
+          "comment": "# 🎬 AI Product Launch Video Generator\n\nTurn a campaign brief and product image into a cinematic launch clip. A prompt node combines your inputs, an agent writes an image-to-video prompt, then an Image-to-Video model animates the product shot.\n\n**Pipeline:** Brief + Audience + Features + Image → Prompt → Agent → Image-to-Video\n\n**Try this:** choose a language model and video model, then swap the product image or rewrite the agent's system prompt for a different tone."
         },
         "ui_properties": {
           "position": {
             "x": -460,
-            "y": 0
+            "y": -247
           },
           "zIndex": 0,
           "width": 437,
@@ -80,31 +116,29 @@
         "dynamic_outputs": {}
       },
       {
-        "id": "2",
-        "type": "nodetool.video.TextToVideo",
+        "id": "4",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "model": {},
-          "aspect_ratio": "16:9",
-          "resolution": "720p",
-          "num_frames": 120,
-          "guidance_scale": 9,
-          "num_inference_steps": 40,
-          "seed": 12345
+          "prompt": "Using the text and image inputs, write a video prompt for a single 16:9 product shot. Give clear instructions on the animations and movements in the video.\n\nRules:\n- Present tense, visually concrete; one clear camera move and one primary subject action.\n- Include: subject, setting, time-of-day, camera language (framing, angle, lens, movement), composition cues, lighting, 3–5 color anchors, atmosphere/texture, and realistic motion cues.\n- Emphasize the product and key features naturally within the scene for the target audience and tone.\n- Finish with constraints: no on-screen text, no logos, no watermarks, no glitches, no distorted anatomy.\n\nInputs:\n- Campaign brief: {{ brief }}\n- Target audience: {{ audience }}\n- Key features: {{ features }}"
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 770,
-            "y": 886
+            "x": 390,
+            "y": -7
           },
           "zIndex": 0,
-          "width": 416,
-          "title": "5️⃣ Generate video",
+          "width": 486,
+          "height": 567,
+          "title": "4️⃣ Build prompt",
           "selectable": true,
-          "bypassed": false,
-          "height": 360
+          "bypassed": false
         },
-        "dynamic_properties": {},
+        "dynamic_properties": {
+          "brief": "Launch video for the Aurora Trail smart fitness watch, highlighting outdoor adventure tracking.",
+          "audience": "active millennials who enjoy weekend hiking and fitness challenges",
+          "features": "GPS navigation, heart-rate analytics, adaptive coaching, water resistance"
+        },
         "dynamic_outputs": {}
       },
       {
@@ -112,13 +146,7 @@
         "type": "nodetool.agents.Agent",
         "data": {
           "model": {},
-          "system": "You are a senior video prompt engineer for OpenAI Sora. Follow Sora best practices: describe the shot like a storyboard—subject, setting, action beats, and camera. Be specific about camera framing and movement (e.g., wide establishing, eye level, 50mm, slow push-in), depth cues, composition (rule of thirds, leading lines), lighting and color anchors (name 3–5 colors), and atmosphere/texture (mist, rain on asphalt). Keep motion simple and grounded with one clear camera move and one primary subject action. Support continuity and realism (plausible physics, natural motion, environmental interaction). Do not mention size/resolution or clip length; those are set via API, not prose. Use present tense and avoid abstract phrasing and meta commentary. If dialogue adds clarity, include a short 'Dialogue:' block; otherwise omit. End with constraints: no on-screen text, no logos, no watermarks, no glitches, no distorted anatomy.",
-          "image": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "data": null
-          },
+          "system": "You are a prompt engineer for video models.",
           "audio": {
             "type": "audio",
             "uri": "",
@@ -127,26 +155,22 @@
           },
           "history": [],
           "thread_id": null,
-          "max_tokens": 600,
-          "prompt": "Using the marketing inputs, write an OpenAI Sora prompt for a single 16:9 product launch shot.\n\nRules:\n- Do not specify resolution or duration in text (those are API parameters).\n- Present tense, visually concrete; one clear camera move and one primary subject action.\n- Include: subject, setting, time-of-day, camera language (framing, angle, lens, movement), composition cues, lighting, 3–5 color anchors, atmosphere/texture, and realistic motion cues.\n- Emphasize the product and key features naturally within the scene for the target audience and tone.\n- If useful, end with an optional Dialogue: block (short, natural lines) and/or Background Sound: line; otherwise omit.\n- Finish with constraints: no on-screen text, no logos, no watermarks, no glitches, no distorted anatomy.\n\nInputs:\n- Campaign brief: {{ brief }}\n- Target audience: {{ audience }}\n- Key features: {{ features }}"
+          "max_tokens": 100000
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 430,
-            "y": 362
+            "x": 936,
+            "y": 308
           },
           "zIndex": 0,
-          "width": 280,
-          "title": "4️⃣ Write video prompt",
+          "width": 457,
+          "height": 429,
+          "title": "5️⃣ Write video prompt",
           "selectable": true,
           "bypassed": false
         },
-        "dynamic_properties": {
-          "brief": "",
-          "audience": "",
-          "features": ""
-        },
+        "dynamic_properties": {},
         "dynamic_outputs": {}
       },
       {
@@ -159,8 +183,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 80,
-            "y": 0
+            "x": 50,
+            "y": -197
           },
           "zIndex": 0,
           "width": 280,
@@ -181,8 +205,8 @@
         },
         "ui_properties": {
           "position": {
-            "x": 80,
-            "y": 351
+            "x": 50,
+            "y": 83
           },
           "zIndex": 0,
           "width": 280,
@@ -203,14 +227,65 @@
         },
         "ui_properties": {
           "position": {
-            "x": 80,
-            "y": 702
+            "x": 50,
+            "y": 363
           },
           "zIndex": 0,
           "width": 280,
           "title": "3️⃣ Key features",
           "selectable": true,
           "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ada8f51f-0155-4178-a07c-9415be82534a",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "image_input_1",
+          "value": {
+            "uri": "/api/storage/4a816f674eda4358b8140c50917ae78e.bin",
+            "type": "image"
+          },
+          "description": ""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 643
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "97f03868-da4f-4604-b57e-5f2118847956",
+        "type": "nodetool.video.ImageToVideo",
+        "data": {
+          "model": {},
+          "negative_prompt": "",
+          "aspect_ratio": "16:9",
+          "resolution": "720p",
+          "duration": 8,
+          "timeout_seconds": 0
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1443,
+            "y": 357
+          },
+          "zIndex": 0,
+          "width": 739,
+          "height": 453,
+          "selectable": true,
+          "bypassed": false,
+          "selected_generation": "2059791e2f4e44e29db7d3424ab0ee18"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -227,5 +302,5 @@
   "required_providers": null,
   "required_models": null,
   "html_app": null,
-  "etag": "d549e72742c4b48c05edc9ecc47b4913"
+  "etag": "e31acfae86ee104dbf9df243c9ba6084"
 }
