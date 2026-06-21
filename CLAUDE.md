@@ -79,6 +79,8 @@ packages/           # 55 npm workspace packages (TypeScript backend)
 web/                # React 19 + Vite + MUI + Zustand + ReactFlow
 electron/           # Electron 39 desktop app
 mobile/             # React Native / Expo
+demo/               # Remotion harness for product-demo videos (replays recorded
+                    # graph-UI "casts"; see demo/README.md and web/src/demo/)
 ```
 
 ### Package Dependency Order
