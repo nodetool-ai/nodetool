@@ -20,7 +20,7 @@ const styles = (theme: Theme) =>
     position: "relative",
     marginTop: 6,
     padding: `${theme.spacing(2)} ${theme.spacing(3)}`,
-    borderRadius: "var(--rounded-buttonSmall)",
+    borderRadius: theme.rounded.buttonSmall,
     border: `1px solid ${theme.vars.palette.primary.main}`,
     backgroundColor: `rgba(var(--palette-primary-mainChannel) / 0.12)`,
     boxShadow: `0 0 12px 2px rgba(var(--palette-primary-mainChannel) / 0.35)`,

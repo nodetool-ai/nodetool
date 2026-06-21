@@ -125,7 +125,7 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       position: "relative",
       cursor: compact ? "grab" : "default",
       backgroundColor: backgroundColor,
-      borderRadius: compact ? "4px" : 0,
+      borderRadius: compact ? BORDER_RADIUS.sm : 0,
       overflow: "hidden"
     },
     ".canvas-container": {

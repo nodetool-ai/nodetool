@@ -60,7 +60,7 @@ const treeStyles = (theme: Theme) =>
       cursor: "grabbing"
     },
     ".node-menu-container": {
-      borderRadius: "0 0 16px 16px",
+      borderRadius: `0 0 ${BORDER_RADIUS.xxl} ${BORDER_RADIUS.xxl}`,
       padding: "0.45em 0px 0.75em 0.75em",
       width: "100%",
       maxHeight: "77vh",

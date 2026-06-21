@@ -6,7 +6,7 @@
  */
 
 import type { SxProps, Theme } from "@mui/material/styles";
-import { MOTION } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS } from "../ui_primitives";
 
 // ─── Color Tokens ─────────────────────────────────────────────────────────────
 // Semantic names tied to MUI's grey palette (dark theme).
@@ -62,7 +62,7 @@ export const SKETCH_SIZE = {
   layerThumbnail: "39.2px",
   panelWidth: "260px",
   iconButtonPad: "3px",
-  borderRadius: "4px"
+  borderRadius: BORDER_RADIUS.sm
 } as const;
 
 // ─── Tooltip delay ───────────────────────────────────────────────────────────
@@ -149,7 +149,7 @@ export const iconButtonCompactSx: SxProps<Theme> = {
 export const colorSwatchSx = {
   position: "relative",
   ...SKETCH_CHECKERBOARD,
-  borderRadius: "3px",
+  borderRadius: BORDER_RADIUS.sm,
   width: "24px",
   height: "24px",
   overflow: "hidden",

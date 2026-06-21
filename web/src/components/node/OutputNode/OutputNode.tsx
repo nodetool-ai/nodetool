@@ -45,7 +45,7 @@ const styles = (theme: Theme) =>
         minWidth: "150px",
         maxWidth: "unset",
         minHeight: "150px",
-        borderRadius: "var(--rounded-node)",
+        borderRadius: theme.rounded.node,
         border: `1px solid ${theme.vars.palette.grey[700]}`
       },
       "&.output-node": {

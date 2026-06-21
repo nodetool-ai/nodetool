@@ -30,7 +30,7 @@ const styles = (theme: Theme) =>
       minWidth: "300px",
       maxWidth: "unset",
       minHeight: "250px",
-      borderRadius: "var(--rounded-node)",
+      borderRadius: theme.rounded.node,
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       backgroundColor: theme.vars.palette.c_node_bg,
       position: "relative"

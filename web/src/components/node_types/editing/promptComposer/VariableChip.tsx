@@ -5,6 +5,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import { usePromptComposerContext } from "./promptComposerContext";
+import { BORDER_RADIUS } from "../../../ui_primitives";
 
 const chipStyles = (theme: Theme, known: boolean) =>
   css({
@@ -13,7 +14,7 @@ const chipStyles = (theme: Theme, known: boolean) =>
     verticalAlign: "baseline",
     margin: `0 ${theme.spacing(0.5)}`,
     padding: "0 0.4em",
-    borderRadius: "var(--rounded-sm, 4px)",
+    borderRadius: BORDER_RADIUS.sm,
     border: `1px solid ${
       known ? theme.vars.palette.success.main : theme.vars.palette.warning.main
     }`,

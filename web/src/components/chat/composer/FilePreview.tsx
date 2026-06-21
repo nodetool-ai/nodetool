@@ -2,6 +2,7 @@ import React from "react";
 import FileIcon from "@mui/icons-material/InsertDriveFile";
 import { ResponsiveImage } from "../../ui_primitives/ResponsiveImage";
 import { CloseButton } from "../../ui_primitives/CloseButton";
+import { BORDER_RADIUS } from "../../ui_primitives";
 import { DroppedFile } from "../types/chat.types";
 
 const isDisplayableImage = (uri: string) =>
@@ -21,7 +22,7 @@ export const FilePreview: React.FC<FilePreviewProps> = React.memo(({ file, onRem
         src={file.dataUri}
         alt={file.name}
         fit="cover"
-        borderRadius="4px"
+        borderRadius={BORDER_RADIUS.sm}
         showErrorFallback
         sx={{ width: "48px", height: "48px" }}
       />

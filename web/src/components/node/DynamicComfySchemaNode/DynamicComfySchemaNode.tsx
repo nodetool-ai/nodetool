@@ -84,7 +84,7 @@ const DynamicComfySchemaNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         minHeight: 100,
         padding: "0 !important",
         border: `1px solid ${COMFY_HEADER_COLOR}40`,
-        borderRadius: "var(--rounded-node)",
+        borderRadius: theme.rounded.node,
         backgroundColor: theme.vars.palette.c_node_bg,
         boxShadow: selected
           ? `0 0 0 2px ${COMFY_HEADER_COLOR}, 0 1px 10px rgba(0,0,0,0.5)`

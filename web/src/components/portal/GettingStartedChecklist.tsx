@@ -8,6 +8,7 @@ import useOnboardingStore, {
   type OnboardingStepId
 } from "../../stores/OnboardingStore";
 import { wrapStyles } from "./dashboardChrome";
+import { BORDER_RADIUS } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -34,7 +35,7 @@ const styles = (theme: Theme) =>
       gap: 7,
       height: 30,
       padding: "0 12px",
-      borderRadius: 9999,
+      borderRadius: BORDER_RADIUS.pill,
       border: `1px solid ${theme.vars.palette.divider}`,
       background: "transparent",
       color: theme.vars.palette.text.secondary,
@@ -56,7 +57,7 @@ const styles = (theme: Theme) =>
       display: "inline-flex",
       width: 15,
       height: 15,
-      borderRadius: 9999,
+      borderRadius: BORDER_RADIUS.circle,
       border: `1.5px solid ${theme.vars.palette.text.disabled}`,
       alignItems: "center",
       justifyContent: "center",
@@ -72,7 +73,7 @@ const styles = (theme: Theme) =>
       background: "none",
       border: "none",
       padding: "4px 8px",
-      borderRadius: 6,
+      borderRadius: BORDER_RADIUS.md,
       fontSize: 12,
       color: theme.vars.palette.text.disabled,
       cursor: "pointer",

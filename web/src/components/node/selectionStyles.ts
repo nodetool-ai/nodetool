@@ -109,7 +109,7 @@ export const getBaseNodeSelectionStyles = ({
       hasParent && !isLoading ? parentColor : theme.vars.palette.c_node_bg,
     backgroundImage:
       "linear-gradient(180deg, rgb(255 255 255 / 0.025) 0%, rgb(255 255 255 / 0.008) 18%, transparent 52%)",
-    borderRadius: "var(--rounded-node)",
+    borderRadius: theme.rounded.node,
     transition: `${MOTION.shadow}, outline-color ${MOTION.normal}, ${MOTION.border}`,
     "--node-primary-color": resolvedBaseColor,
     ...(hasToggleableResult
