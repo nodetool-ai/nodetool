@@ -49,7 +49,11 @@ import type {
 import type { Asset } from "../ApiTypes";
 import { assetToClip } from "../../components/timeline/dnd/assetToClipAdapter";
 import { trpcClient } from "../../trpc/client";
-import { migrateTranscriptToClips, reflowGenerated } from "./transcriptOps";
+import {
+  migrateTranscriptToClips,
+  reflowGenerated,
+  isTranscriptClip
+} from "./transcriptOps";
 
 // ── Snap threshold ─────────────────────────────────────────────────────────
 
@@ -74,6 +78,11 @@ export interface TimelineStoreState {
   markers: TimelineMarker[];
   /** Studio transcript lines (document state, persisted + undo-able). */
   transcript: TranscriptLine[];
+  /**
+   * Whether the script feature (transcript lane + transcript panel) is shown.
+   * Single source of truth, always a definite boolean post-normalization.
+   */
+  scriptEnabled: boolean;
 
   // ── Initialisation ───────────────────────────────────────────────────────
 
@@ -83,6 +92,8 @@ export interface TimelineStoreState {
   reset: () => void;
   /** Roll `baseUpdatedAt` forward after a successful server save. */
   setBaseUpdatedAt: (updatedAt: string) => void;
+  /** Show or hide the script feature (non-destructive; does not touch clips). */
+  setScriptEnabled: (enabled: boolean) => void;
 
   // ── Track mutations ──────────────────────────────────────────────────────
 
@@ -187,6 +198,18 @@ export interface TimelineStoreState {
 
   /** Add several pre-built clips in one update (one undo entry) — paste. */
   addClips: (clips: TimelineClip[]) => void;
+
+  /**
+   * Return the id of the first audio track, creating one named "Audio"
+   * (appended after existing tracks) if none exists.
+   */
+  getOrCreateAudioTrack: () => string;
+
+  /**
+   * Remove the `linkId` from every clip in the acted clip's link group,
+   * detaching them so they edit independently. No-op if the clip is unlinked.
+   */
+  unlinkClip: (clipId: string) => void;
 
   /**
    * Create an imported clip from an Asset and insert it into the store.
@@ -375,7 +398,7 @@ export interface TimelineStoreState {
 
 type PartializedState = Pick<
   TimelineStoreState,
-  "tracks" | "clips" | "markers" | "durationMs" | "transcript"
+  "tracks" | "clips" | "markers" | "durationMs" | "transcript" | "scriptEnabled"
 >;
 
 // ── Temporal equality (dedupe no-op sets) ───────────────────────────────────
@@ -426,7 +449,8 @@ function partializedEqual(
     shallowArrayEqual(pastState.tracks, currentState.tracks) &&
     shallowArrayEqual(pastState.clips, currentState.clips) &&
     shallowArrayEqual(pastState.markers, currentState.markers) &&
-    shallowArrayEqual(pastState.transcript, currentState.transcript)
+    shallowArrayEqual(pastState.transcript, currentState.transcript) &&
+    pastState.scriptEnabled === currentState.scriptEnabled
   );
 }
 
@@ -447,6 +471,78 @@ function splitAllClipsAt(
       next = next.filter((c) => c.id !== clip.id).concat([left, right]);
     } catch {
       // Skip clips where the split is invalid (e.g. boundary mismatch).
+    }
+  }
+  return next;
+}
+
+/**
+ * Split `targetIds` at absolute `atMs`, link-aware. When a split clip carries
+ * a `linkId`, every linked sibling that contains `atMs` is split at the same
+ * point so the link stays a pair on each side: all LEFT halves get one fresh
+ * linkId, all RIGHT halves another (so neither side is a 3-member group). A
+ * sibling that does not contain `atMs` (rare — links stay time-aligned) is
+ * left untouched and excluded from the new groups. `targetIds` is deduped so a
+ * sibling that is also a target is split only once.
+ */
+function splitClipsLinkAware(
+  clips: TimelineClip[],
+  atMs: number,
+  targetIds: string[]
+): TimelineClip[] {
+  const contains = (c: TimelineClip) =>
+    atMs > c.startMs && atMs < c.startMs + c.durationMs;
+
+  // Expand targets to include linked siblings that also contain atMs, deduped.
+  const toSplit = new Map<string, TimelineClip>();
+  for (const id of targetIds) {
+    const clip = clips.find((c) => c.id === id);
+    if (!clip || !contains(clip)) {
+      continue;
+    }
+    toSplit.set(clip.id, clip);
+    if (clip.linkId !== undefined) {
+      for (const sib of clips) {
+        if (sib.id !== clip.id && sib.linkId === clip.linkId && contains(sib)) {
+          toSplit.set(sib.id, sib);
+        }
+      }
+    }
+  }
+  if (toSplit.size === 0) {
+    return clips;
+  }
+
+  // One fresh linkId per original group, for each side. Lone (unlinked) clips
+  // keep no link on their halves.
+  const leftLinkByGroup = new Map<string, string>();
+  const rightLinkByGroup = new Map<string, string>();
+  const groupLink = (
+    map: Map<string, string>,
+    sourceLinkId: string
+  ): string => {
+    let id = map.get(sourceLinkId);
+    if (id === undefined) {
+      id = createTimeOrderedUuid();
+      map.set(sourceLinkId, id);
+    }
+    return id;
+  };
+
+  let next = [...clips];
+  for (const clip of toSplit.values()) {
+    try {
+      const [left, right] = splitClip(clip, atMs);
+      if (clip.linkId !== undefined) {
+        left.linkId = groupLink(leftLinkByGroup, clip.linkId);
+        right.linkId = groupLink(rightLinkByGroup, clip.linkId);
+      } else {
+        delete left.linkId;
+        delete right.linkId;
+      }
+      next = next.filter((c) => c.id !== clip.id).concat([left, right]);
+    } catch {
+      // atMs outside this clip's bounds — leave it untouched.
     }
   }
   return next;
@@ -511,6 +607,7 @@ const emptyState: {
   clips: TimelineClip[];
   markers: TimelineMarker[];
   transcript: TranscriptLine[];
+  scriptEnabled: boolean;
 } = {
   sequenceId: null,
   baseUpdatedAt: null,
@@ -521,7 +618,8 @@ const emptyState: {
   tracks: [],
   clips: [],
   markers: [],
-  transcript: []
+  transcript: [],
+  scriptEnabled: false
 };
 
 // ── Factory ────────────────────────────────────────────────────────────────
@@ -573,7 +671,8 @@ export const createTimelineStore = (
               tracks,
               clips,
               markers: seq.markers,
-              transcript: []
+              transcript: [],
+              scriptEnabled: seq.scriptEnabled ?? clips.some(isTranscriptClip)
             });
             return;
           }
@@ -588,13 +687,16 @@ export const createTimelineStore = (
             tracks: seq.tracks,
             clips: seq.clips,
             markers: seq.markers,
-            transcript: []
+            transcript: [],
+            scriptEnabled: seq.scriptEnabled ?? seq.clips.some(isTranscriptClip)
           });
         },
 
         reset: () => set({ ...emptyState }),
 
         setBaseUpdatedAt: (updatedAt) => set({ baseUpdatedAt: updatedAt }),
+
+        setScriptEnabled: (enabled) => set({ scriptEnabled: enabled }),
 
         // ── Tracks ──────────────────────────────────────────────────────────
 
@@ -607,6 +709,20 @@ export const createTimelineStore = (
             });
             return { tracks: [...state.tracks, track] };
           }),
+
+        getOrCreateAudioTrack: () => {
+          const existing = get().tracks.find((t) => t.type === "audio");
+          if (existing) {
+            return existing.id;
+          }
+          const track = makeTrack({
+            type: "audio",
+            name: "Audio",
+            index: get().tracks.length
+          });
+          set((state) => ({ tracks: [...state.tracks, track] }));
+          return track.id;
+        },
 
         removeTrack: (trackId) =>
           set((state) => ({
@@ -736,7 +852,6 @@ export const createTimelineStore = (
 
             if (!disableSnap && snapCandidates && msPerPx !== undefined) {
               newStartMs = snap(newStartMs, snapCandidates, SNAP_THRESHOLD_PX, msPerPx);
-              // Also try snapping the end
               const endSnap = snap(
                 newStartMs + clip.durationMs,
                 snapCandidates,
@@ -749,17 +864,34 @@ export const createTimelineStore = (
             }
 
             newStartMs = Math.max(0, newStartMs);
+            const appliedDelta = newStartMs - clip.startMs;
+            const linkedIds =
+              clip.linkId !== undefined
+                ? new Set(
+                    state.clips
+                      .filter(
+                        (c) => c.linkId === clip.linkId && c.id !== clipId
+                      )
+                      .map((c) => c.id)
+                  )
+                : null;
 
             return {
-              clips: state.clips.map((c) =>
-                c.id === clipId
-                  ? {
-                      ...c,
-                      startMs: newStartMs,
-                      trackId: toTrackId ?? c.trackId
-                    }
-                  : c
-              )
+              clips: state.clips.map((c) => {
+                if (c.id === clipId) {
+                  return {
+                    ...c,
+                    startMs: newStartMs,
+                    trackId: toTrackId ?? c.trackId
+                  };
+                }
+                // Linked siblings follow the same start delta but keep their
+                // own track — audio stays on the audio track.
+                if (linkedIds?.has(c.id)) {
+                  return { ...c, startMs: Math.max(0, c.startMs + appliedDelta) };
+                }
+                return c;
+              })
             };
           }),
 
@@ -799,22 +931,39 @@ export const createTimelineStore = (
             );
             const effectiveDelta = Math.max(snappedDelta, -minStartMs);
 
+            // Linked siblings of any selected clip that are NOT themselves
+            // selected must follow by the same delta (keeping their own track),
+            // so a multi-select drag or arrow-key nudge can't desync a link.
+            const selectedLinkIds = new Set<string>();
+            for (const c of state.clips) {
+              if (selectedIds.has(c.id) && c.linkId !== undefined) {
+                selectedLinkIds.add(c.linkId);
+              }
+            }
+
             return {
               clips: state.clips.map((c) => {
-                if (!selectedIds.has(c.id)) {
-                  return c;
-                }
-                if (c.id === primaryClipId) {
+                if (selectedIds.has(c.id)) {
+                  if (c.id === primaryClipId) {
+                    return {
+                      ...c,
+                      startMs: c.startMs + effectiveDelta,
+                      trackId: toTrackId ?? c.trackId
+                    };
+                  }
                   return {
                     ...c,
-                    startMs: c.startMs + effectiveDelta,
-                    trackId: toTrackId ?? c.trackId
+                    startMs: c.startMs + effectiveDelta
                   };
                 }
-                return {
-                  ...c,
-                  startMs: c.startMs + effectiveDelta
-                };
+                // Unselected linked sibling — shift it too, but keep its track.
+                if (c.linkId !== undefined && selectedLinkIds.has(c.linkId)) {
+                  return {
+                    ...c,
+                    startMs: Math.max(0, c.startMs + effectiveDelta)
+                  };
+                }
+                return c;
               })
             };
           }),
@@ -825,17 +974,25 @@ export const createTimelineStore = (
             if (!clip) {
               return state;
             }
+            const linkId = clip.linkId;
+            // All-or-nothing: compute the primary AND every linked sibling
+            // first. If any trim is invalid, abort so the link never desyncs.
+            const trimmed = new Map<string, TimelineClip>();
             try {
-              const trimmed = trimClip(clip, "start", deltaMs);
-              return {
-                clips: state.clips.map((c) =>
-                  c.id === clipId ? trimmed : c
-                )
-              };
+              trimmed.set(clip.id, trimClip(clip, "start", deltaMs));
+              if (linkId !== undefined) {
+                for (const c of state.clips) {
+                  if (c.id !== clipId && c.linkId === linkId) {
+                    trimmed.set(c.id, trimClip(c, "start", deltaMs));
+                  }
+                }
+              }
             } catch {
-              // Guard: no-op if trim would produce invalid clip
               return state;
             }
+            return {
+              clips: state.clips.map((c) => trimmed.get(c.id) ?? c)
+            };
           }),
 
         trimClipEnd: (clipId, deltaMs, maxSourceDurationMs) =>
@@ -844,98 +1001,136 @@ export const createTimelineStore = (
             if (!clip) {
               return state;
             }
+            // Clamp grow deltas so that outPointMs cannot exceed source
+            // duration. Never clamp a shrink.
+            let clampedDelta = deltaMs;
+            if (maxSourceDurationMs !== undefined && deltaMs > 0) {
+              const currentOutPointMs =
+                clip.outPointMs ?? (clip.inPointMs ?? 0) + clip.durationMs;
+              const maxGrow = maxSourceDurationMs - currentOutPointMs;
+              clampedDelta = Math.min(deltaMs, Math.max(0, maxGrow));
+            }
+            const linkId = clip.linkId;
+            // All-or-nothing: compute the primary AND every linked sibling
+            // first. If any trim is invalid, abort so the link never desyncs.
+            const trimmed = new Map<string, TimelineClip>();
             try {
-              // Clamp grow deltas so that outPointMs cannot exceed source
-              // duration. Never clamp a shrink — an over-extended clip
-              // (outPointMs already past source end) must still shrink.
-              let clampedDelta = deltaMs;
-              if (maxSourceDurationMs !== undefined && deltaMs > 0) {
-                const currentOutPointMs =
-                  clip.outPointMs ?? (clip.inPointMs ?? 0) + clip.durationMs;
-                const maxGrow = maxSourceDurationMs - currentOutPointMs;
-                clampedDelta = Math.min(deltaMs, Math.max(0, maxGrow));
+              trimmed.set(clip.id, trimClip(clip, "end", clampedDelta));
+              if (linkId !== undefined) {
+                for (const c of state.clips) {
+                  if (c.id !== clipId && c.linkId === linkId) {
+                    trimmed.set(c.id, trimClip(c, "end", clampedDelta));
+                  }
+                }
               }
-              const trimmed = trimClip(clip, "end", clampedDelta);
-              return {
-                clips: state.clips.map((c) =>
-                  c.id === clipId ? trimmed : c
-                )
-              };
             } catch {
-              // Guard: no-op if trim would produce invalid clip
               return state;
             }
+            return {
+              clips: state.clips.map((c) => trimmed.get(c.id) ?? c)
+            };
           }),
 
         splitClipAtTime: (clipId, atMs) =>
           set((state) => {
-            const clip = state.clips.find((c) => c.id === clipId);
-            if (!clip) {
-              return state;
-            }
-            try {
-              const [left, right] = splitClip(clip, atMs);
-              const withoutOriginal = state.clips.filter(
-                (c) => c.id !== clipId
-              );
-              return { clips: [...withoutOriginal, left, right] };
-            } catch {
-              // atMs is outside clip bounds — no-op
-              return state;
-            }
+            const next = splitClipsLinkAware(state.clips, atMs, [clipId]);
+            return next === state.clips ? state : { clips: next };
           }),
 
         splitSelectedAtPlayhead: (currentTimeMs, selectedIds) =>
           set((state) => {
-            // Collect only selected clips that contain the playhead
-            let nextClips = [...state.clips];
-            const toSplit = nextClips.filter(
-              (c) =>
-                (selectedIds.size === 0 || selectedIds.has(c.id)) &&
-                currentTimeMs > c.startMs &&
-                currentTimeMs < c.startMs + c.durationMs
+            // Target every selected clip containing the playhead (or all clips
+            // when nothing is selected). splitClipsLinkAware dedupes so a
+            // sibling that is also selected is split only once.
+            const targetIds = state.clips
+              .filter(
+                (c) =>
+                  (selectedIds.size === 0 || selectedIds.has(c.id)) &&
+                  currentTimeMs > c.startMs &&
+                  currentTimeMs < c.startMs + c.durationMs
+              )
+              .map((c) => c.id);
+            const next = splitClipsLinkAware(
+              state.clips,
+              currentTimeMs,
+              targetIds
             );
-            for (const clip of toSplit) {
-              try {
-                const [left, right] = splitClip(clip, currentTimeMs);
-                nextClips = nextClips
-                  .filter((c) => c.id !== clip.id)
-                  .concat([left, right]);
-              } catch {
-                // Skip clips where split is invalid
-              }
-            }
-            return { clips: nextClips };
+            return next === state.clips ? state : { clips: next };
           }),
 
         duplicateSelected: (selectedIds, offsetMs = 0) => {
           const newIds: string[] = [];
           set((state) => {
-            const newClips = state.clips
-              .filter((c) => selectedIds.has(c.id))
-              .map((c) => {
-                const id = createTimeOrderedUuid();
-                newIds.push(id);
-                return makeClip({
-                  ...c,
-                  id,
-                  startMs: c.startMs + c.durationMs + offsetMs
-                });
+            const sources = state.clips.filter((c) => selectedIds.has(c.id));
+            // Count how many members of each link group are being duplicated
+            // together — a fully-duplicated group keeps a link (under a fresh
+            // id so copies form their OWN group); a lone half loses its link.
+            const groupCount = new Map<string, number>();
+            for (const c of sources) {
+              if (c.linkId !== undefined) {
+                groupCount.set(c.linkId, (groupCount.get(c.linkId) ?? 0) + 1);
+              }
+            }
+            const freshLinkByGroup = new Map<string, string>();
+            const newClips = sources.map((c) => {
+              const id = createTimeOrderedUuid();
+              newIds.push(id);
+              let linkId: string | undefined;
+              if (c.linkId !== undefined && (groupCount.get(c.linkId) ?? 0) >= 2) {
+                let fresh = freshLinkByGroup.get(c.linkId);
+                if (fresh === undefined) {
+                  fresh = createTimeOrderedUuid();
+                  freshLinkByGroup.set(c.linkId, fresh);
+                }
+                linkId = fresh;
+              }
+              return makeClip({
+                ...c,
+                id,
+                startMs: c.startMs + c.durationMs + offsetMs,
+                linkId
               });
+            });
             return { clips: [...state.clips, ...newClips] };
           });
           return newIds;
         },
 
         deleteSelected: (selectedIds) =>
-          set((state) => ({
-            clips: state.clips.filter((c) => !selectedIds.has(c.id))
-          })),
+          set((state) => {
+            // Link ids touched by the removal — survivors that drop below two
+            // members are unlinked so they don't keep a dangling linkId.
+            const affectedLinkIds = new Set<string>();
+            for (const c of state.clips) {
+              if (selectedIds.has(c.id) && c.linkId !== undefined) {
+                affectedLinkIds.add(c.linkId);
+              }
+            }
+            let clips = state.clips.filter((c) => !selectedIds.has(c.id));
+            for (const linkId of affectedLinkIds) {
+              if (clips.filter((c) => c.linkId === linkId).length < 2) {
+                clips = clips.map((c) =>
+                  c.linkId === linkId ? { ...c, linkId: undefined } : c
+                );
+              }
+            }
+            return { clips };
+          }),
 
         deleteClip: (clipId) =>
-          set((state) => ({
-            clips: state.clips.filter((c) => c.id !== clipId)
-          })),
+          set((state) => {
+            const linkId = state.clips.find((c) => c.id === clipId)?.linkId;
+            let clips = state.clips.filter((c) => c.id !== clipId);
+            if (linkId !== undefined) {
+              const remaining = clips.filter((c) => c.linkId === linkId);
+              if (remaining.length < 2) {
+                clips = clips.map((c) =>
+                  c.linkId === linkId ? { ...c, linkId: undefined } : c
+                );
+              }
+            }
+            return { clips };
+          }),
 
         addClip: (clip) =>
           set((state) => ({
@@ -951,6 +1146,19 @@ export const createTimelineStore = (
           const clip = assetToClip(asset, trackId, startMs);
           set((state) => ({ clips: [...state.clips, clip] }));
         },
+
+        unlinkClip: (clipId) =>
+          set((state) => {
+            const linkId = state.clips.find((c) => c.id === clipId)?.linkId;
+            if (!linkId) {
+              return state;
+            }
+            return {
+              clips: state.clips.map((c) =>
+                c.linkId === linkId ? { ...c, linkId: undefined } : c
+              )
+            };
+          }),
 
         patchClip: (clipId, patch) =>
           set((state) => ({
@@ -1011,6 +1219,8 @@ export const createTimelineStore = (
               locked: false,
               currentAssetId: undefined,
               lastGeneratedHash: undefined,
+              // A lone duplicate is not linked to the source group.
+              linkId: undefined,
               versions: []
             });
             newClipId = newClip.id;
@@ -1272,7 +1482,8 @@ export const createTimelineStore = (
           clips: state.clips,
           markers: state.markers,
           durationMs: state.durationMs,
-          transcript: state.transcript
+          transcript: state.transcript,
+          scriptEnabled: state.scriptEnabled
         })
       }
     )

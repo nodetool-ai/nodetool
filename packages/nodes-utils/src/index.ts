@@ -18,6 +18,7 @@
 
 export {
   tagAsServer,
+  tagAsNode,
   tagAsHybrid,
   tagAsBrowserGpu,
   tagAsUniversal,

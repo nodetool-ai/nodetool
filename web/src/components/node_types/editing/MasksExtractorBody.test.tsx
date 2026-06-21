@@ -43,6 +43,7 @@ jest.mock("../../node/NodeProgress", () => ({
 }));
 
 jest.mock("../../ui_primitives", () => ({
+  BORDER_RADIUS: jest.requireActual("../../ui_primitives/tokens").BORDER_RADIUS,
   CheckerDropzone: ({ message }: { message: string }) => (
     <div data-testid="checker-dropzone">{message}</div>
   ),

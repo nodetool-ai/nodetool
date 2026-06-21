@@ -1,6 +1,6 @@
 ---
 name: unslop
-description: Strip "AI slop" from code and prose in this repo — over-engineered abstractions, defensive checks on trusted paths, narrating comments, dead error handlers, redundant types, useEffect-for-derived-data, raw MUI imports, whole-store Zustand subscriptions, throat-clearing prose. Use when reviewing your own diff before commit, when the user says "unslop this", or when refactoring AI-generated code in `web/`, `electron/`, `mobile/`, or `packages/`. Triggers on TypeScript/React/Zustand/MUI/TanStack Query files. Tailored to NodeTool's stack (React 19, Zustand 4.5, MUI v7 + ui_primitives, TanStack Query v5, Vitest/Jest, Drizzle).
+description: Strip "AI slop" from code and prose in this repo — over-engineered abstractions, defensive checks on trusted paths, narrating comments, dead error handlers, redundant types, useEffect-for-derived-data, raw MUI imports, whole-store Zustand subscriptions, throat-clearing prose. Use when reviewing your own diff before commit, when the user says "unslop this", or when refactoring AI-generated code in `web/`, `electron/`, `mobile/`, or `packages/`. Triggers on TypeScript/React/Zustand/MUI/TanStack Query files. Tailored to NodeTool's stack (React 19, Zustand 5, MUI v7 + ui_primitives, TanStack Query v5, Vitest/Jest, Drizzle).
 ---
 
 # Unslop
@@ -208,12 +208,12 @@ function NodeBadge({ node, ref, onSelect }: Props) {
 
 ## 6. Zustand slop
 
-NodeTool uses Zustand 4.5.7 with `shallow` equality. The rules in [`web/src/stores/AGENTS.md`](../../../web/src/stores/AGENTS.md) are not optional.
+NodeTool uses Zustand 5. Multi-key object selectors need `useShallow` (from `zustand/react/shallow`); the legacy `(selector, shallow)` second-argument form was removed in v5. The rules in [`web/src/stores/AGENTS.md`](../../../web/src/stores/AGENTS.md) are not optional.
 
 **Hunt for:**
 
 - `const store = useFooStore()` (whole-store subscription) — replace with a selector.
-- Multi-key selections that return a new object every render but **omit** `shallow` — every render re-runs subscribers.
+- Multi-key selections that return a new object every render but **omit** `useShallow` — every render re-runs subscribers.
 - `useFooStore.getState().x` inside render bodies (only acceptable inside event handlers / effects).
 - New `WebSocket(...)` instances anywhere in the web app — use `GlobalWebSocketManager`.
 - Components subscribing to a slice and then doing more filtering in render — push the filter into the selector.
@@ -374,7 +374,7 @@ Run through this before declaring a task done. Treat any "yes" as a slop sightin
 - [ ] Did I write `any`, `as any`, or `as unknown as` to silence the compiler?
 - [ ] Did I add `useEffect` to compute a value from props/state I already have?
 - [ ] Did I `useCallback`/`useMemo`/`React.memo` without a memoized consumer or measurable cost?
-- [ ] Did I subscribe to a whole Zustand store (`const s = useFooStore()`) or skip `shallow` on a multi-key selector?
+- [ ] Did I subscribe to a whole Zustand store (`const s = useFooStore()`) or skip `useShallow` on a multi-key selector?
 - [ ] Did I import a raw MUI component into a non-primitive file, or hardcode a color/spacing?
 - [ ] Did I write a `useEffect`+`fetch` instead of `useQuery`?
 - [ ] Does any new test assert implementation rather than user-visible behavior?

@@ -1,5 +1,40 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
+import { importHidden } from "@nodetool-ai/config";
+import type { Platform } from "@nodetool-ai/protocol";
+
+// SVGToImage rasterizes via the native `sharp` addon, so that one node is
+// Node-only (its per-class override below wins over the list-level tagAsServer;
+// the other SVG nodes are pure string generators and stay server-portable).
+const NODE_ONLY: readonly Platform[] = ["node"];
+
+/** Actionable error thrown by SVGToImage when the native `sharp` addon is absent. */
+const SHARP_UNAVAILABLE_MESSAGE =
+  "SVG to Image requires the native 'sharp' addon, which is only available on a " +
+  "Node server (install/reinstall sharp for this platform/arch — e.g. musl or a " +
+  "serverless target). It is not available in the browser/edge/workers.";
+
+// `sharp` is a native Node addon. Load it via a bundler-hidden import that
+// resolves null off-Node (browser/edge/workers) or when the addon is missing
+// (musl, unbundled serverless, ABI mismatch), so the caller throws a clear
+// actionable error rather than an opaque module-load throw. A rejected attempt
+// is never cached, so a fixed install is picked up on the next call.
+type SharpFn = typeof import("sharp");
+let _sharpPromise: Promise<SharpFn | null> | null = null;
+async function loadSharp(): Promise<SharpFn | null> {
+  if (!_sharpPromise) {
+    const attempt = (async (): Promise<SharpFn | null> => {
+      const mod = await importHidden<SharpFn | { default: SharpFn }>("sharp");
+      if (!mod) return null;
+      return (mod as { default?: SharpFn }).default ?? (mod as SharpFn);
+    })();
+    _sharpPromise = attempt;
+    attempt.catch(() => {
+      if (_sharpPromise === attempt) _sharpPromise = null;
+    });
+  }
+  return _sharpPromise.catch(() => null);
+}
 
 type SvgElementLike = {
   name: string;
@@ -757,6 +792,9 @@ export class DocumentLibNode extends BaseNode {
 
 export class SVGToImageLibNode extends BaseNode {
   static readonly nodeType = "lib.svg.SVGToImage";
+  // Native `sharp` rasterization — Node only. Overrides the LIB_SVG_NODES
+  // tagAsServer tag (per-class platforms always win over the list tagger).
+  static readonly platforms = NODE_ONLY;
   static readonly title = "SVG to Image";
   static readonly description =
     "Create an SVG document and convert it to a raster image in one step.\n    svg, document, raster, convert\n\n    Use cases:\n    - Create and rasterize SVG documents in a single operation\n    - Generate image files from SVG elements\n    - Convert vector graphics to bitmap format with custom dimensions";
@@ -813,7 +851,8 @@ export class SVGToImageLibNode extends BaseNode {
   declare scale: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const sharp = (await import("sharp")).default;
+    const sharp = await loadSharp();
+    if (!sharp) throw new Error(SHARP_UNAVAILABLE_MESSAGE);
     const content = normalizeContent(this.elements ?? []);
     const width = Number(this.width ?? 800);
     const height = Number(this.height ?? 600);

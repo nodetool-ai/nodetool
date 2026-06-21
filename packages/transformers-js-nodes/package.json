@@ -15,8 +15,10 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@nodetool-ai/audio-nodes": "*",
     "@nodetool-ai/config": "*",
     "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/runtime": "*"
   },
   "devDependencies": {

@@ -84,11 +84,16 @@ const styles = (theme: Theme) =>
     },
     // Text variant inherits the node body color instead of the dark media
     // backdrop — keeps text content visually flush with the rest of the
-    // node and matches the PreviewNode look. The height is capped so a long
-    // (or streaming) generation scrolls inside the card instead of growing
-    // the node unbounded; the "expand" button opens the full text in a popup.
+    // node and matches the PreviewNode look.
     "&[data-content-card-variant=\"text\"] .preview-area": {
-      backgroundColor: "transparent",
+      backgroundColor: "transparent"
+    },
+    // Cap the text preview height ONLY while the node is auto-sized, so a long
+    // (or streaming) generation scrolls inside the card instead of growing the
+    // node unbounded (the "expand" button opens the full text in a popup). Once
+    // the user resizes the node, the cap lifts and the preview fills the
+    // available height (`.preview-area` is flex: 1 1 auto).
+    "&[data-content-card-variant=\"text\"]:not([data-node-sized]) .preview-area": {
       maxHeight: theme.spacing(30)
     },
     // Preview keeps a minimum strip when the node is resized very small;
@@ -596,6 +601,14 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
     [primaryOutput]
   );
 
+  // Whether the user has explicitly resized the node (React Flow writes the
+  // dragged height onto `node.height`; it is undefined while auto-sized). When
+  // sized, the text preview drops its default height cap and fills the node.
+  const isNodeSized = useNodes((s) => {
+    const h = s.findNode(id)?.height;
+    return typeof h === "number" && h > 0;
+  });
+
   const result = useNodeResultValue(workflowId, id);
   const { lastJobAssets } = useNodeResultHistory(workflowId, id);
 
@@ -710,6 +723,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
       css={cssStyles}
       className="content-card-body node-drag-handle"
       data-content-card-variant={variant}
+      data-node-sized={isNodeSized ? "true" : undefined}
     >
       <div className="preview-area">
         {usesHistoryNavigator ? (

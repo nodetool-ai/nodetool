@@ -24,8 +24,13 @@
  *   Ctrl+Z / Ctrl+Y  → undo / redo
  * Shortcuts are skipped when focus is in a text input or contenteditable.
  *
- * Zoom: Ctrl+wheel on the lane area changes msPerPx, anchored at the cursor.
- * Horizontal scroll: native overflow-x scroll on the scrollable panel.
+ * Zoom: Ctrl/Cmd+wheel (or a trackpad pinch) on the lane area changes msPerPx,
+ *   anchored at the cursor.
+ * Horizontal scroll: a trackpad two-finger horizontal swipe or Shift+wheel
+ *   scrolls the lanes left/right. The handler takes the gesture over so the
+ *   browser's back/forward swipe never fires at the scroll edges; a plain
+ *   vertical wheel still scrolls the tracks list, and the native overflow-x
+ *   scrollbar stays available.
  */
 
 import React, { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -55,6 +60,7 @@ import { TrackLane } from "./TrackLane";
 import { TimeRuler } from "./TimeRuler";
 import { Playhead } from "./Playhead";
 import { AddTrackButton } from "./AddTrackButton";
+import { ScriptToggleButton } from "./ScriptToggleButton";
 import { TrackEffectsPanel } from "./TrackEffectsPanel";
 import {
   ScriptLane,
@@ -64,10 +70,13 @@ import {
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 import { ToolToggle } from "../ToolToggle";
 import { FlexRow, FONT_SIZE_MONO, FONT_WEIGHT, BORDER_RADIUS } from "../../ui_primitives";
+import { useHasScript } from "../../../hooks/timeline/useHasScript";
+import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport";
 import { deserializeDragData } from "../../../lib/dragdrop";
 import type { Asset } from "../../../stores/ApiTypes";
 import { assetMediaType } from "../dnd/assetToClipAdapter";
 import { buildTypedIndexMap } from "./trackVisuals";
+import { partitionTimelineWheel, normalizeWheelDeltaPx } from "./timelineWheel";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -146,7 +155,10 @@ const scrollableAreaStyles = css({
   flex: "1 1 auto",
   overflowX: "auto",
   overflowY: "hidden",
-  position: "relative"
+  position: "relative",
+  // Keep an over-scrolled horizontal swipe from triggering the browser's
+  // back/forward navigation (the wheel handler also preventDefaults).
+  overscrollBehaviorX: "contain"
 });
 
 const lanesContainerStyles = css({
@@ -167,6 +179,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
     const tracks = useTimelineStore((s) => s.tracks);
     const durationMs = useTimelineStore((s) => s.durationMs);
+    const hasScript = useHasScript();
 
     const msPerPx = useTimelineUIStore((s) => s.msPerPx);
     const scrollLeftPx = useTimelineUIStore((s) => s.scrollLeftPx);
@@ -191,6 +204,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
     const addTrack = useTimelineStore((s) => s.addTrack);
     const addImportedClip = useTimelineStore((s) => s.addImportedClip);
+    const importVideoWithAudio = useVideoAudioImport();
 
     const scrollableRef = useRef<HTMLDivElement>(null);
 
@@ -240,9 +254,22 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         const newTrack =
           useTimelineStore.getState().tracks.slice(-1)[0];
         if (!newTrack) return;
-        addImportedClip(asset, newTrack.id, startMs);
+        // A video on a new video track also gets a linked audio clip
+        // (extracted from the video), matching the per-lane drop path.
+        if (mediaType === "video") {
+          void importVideoWithAudio(asset, newTrack.id, startMs);
+        } else {
+          addImportedClip(asset, newTrack.id, startMs);
+        }
       },
-      [isAssetDrag, scrollLeftPx, msPerPx, addTrack, addImportedClip]
+      [
+        isAssetDrag,
+        scrollLeftPx,
+        msPerPx,
+        addTrack,
+        addImportedClip,
+        importVideoWithAudio
+      ]
     );
 
     // Total scrollable width = max of durationMs or visible area
@@ -265,10 +292,16 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       [setScrollLeftPx]
     );
 
-    // ── Zoom (wheel) ────────────────────────────────────────────────────────
+    // ── Zoom + horizontal scroll (wheel) ─────────────────────────────────────
     //
     // Attached as a native non-passive listener: React's onWheel is passive,
-    // so preventDefault() inside it can't stop the browser's pinch-zoom.
+    // so preventDefault() inside it can't stop the browser's pinch-zoom or its
+    // back/forward swipe. partitionTimelineWheel routes the gesture (see
+    // timelineWheel.ts): Ctrl/Cmd+wheel zooms, a horizontal trackpad swipe or
+    // Shift+wheel scrolls the lanes, and a plain vertical wheel is left to
+    // bubble to the tracks list's native vertical scroll. Setting el.scrollLeft
+    // fires the onScroll handler below, which syncs scrollLeftPx → ruler +
+    // playhead.
 
     // Anchor zoom at the cursor: remember which timeline time sat under the
     // pointer, then restore it to the same viewport x once the lanes have
@@ -282,9 +315,11 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       const el = scrollableRef.current;
       if (!el) return;
       const onWheel = (e: WheelEvent) => {
+        const { zoomDelta, scrollDelta } = partitionTimelineWheel(e);
+
         if (e.ctrlKey || e.metaKey) {
           e.preventDefault();
-          const factor = 1 + e.deltaY * ZOOM_SENSITIVITY;
+          const factor = 1 + zoomDelta * ZOOM_SENSITIVITY;
           const next = Math.min(
             MAX_MS_PER_PX,
             Math.max(MIN_MS_PER_PX, msPerPx * factor)
@@ -296,6 +331,26 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             cursorPx
           };
           setZoom(next);
+          return;
+        }
+
+        if (scrollDelta !== 0) {
+          // Take the gesture over so a horizontal swipe past the edge can't
+          // trigger the browser's back/forward navigation.
+          e.preventDefault();
+          const deltaPx = normalizeWheelDeltaPx(
+            scrollDelta,
+            e.deltaMode,
+            el.clientWidth
+          );
+          const maxScrollPx = Math.max(0, el.scrollWidth - el.clientWidth);
+          const nextScrollLeft = Math.min(
+            maxScrollPx,
+            Math.max(0, el.scrollLeft + deltaPx)
+          );
+          if (nextScrollLeft !== el.scrollLeft) {
+            el.scrollLeft = nextScrollLeft;
+          }
         }
       };
       el.addEventListener("wheel", onWheel, { passive: false });
@@ -475,7 +530,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           (t.heightPx ?? DEFAULT_TRACK_HEIGHT_PX) +
           (t.id === expandedFxTrackId ? FX_PANEL_HEIGHT_PX : 0),
         0
-      ) + SCRIPT_LANE_HEIGHT_PX;
+      ) + (hasScript ? SCRIPT_LANE_HEIGHT_PX : 0);
 
     // The script lane sits just above the first audio track (between video and
     // audio, Descript-style); if there's no audio track it goes last.
@@ -512,6 +567,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         >
           <ToolToggle />
           <div style={{ flex: "1 1 auto" }} />
+          <ScriptToggleButton />
           <AddTrackButton />
         </FlexRow>
 
@@ -540,6 +596,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             alignItems: "flex-start"
           }}
           fullWidth
+          data-testid="tracks-drop-area"
           onDragOver={handleEmptyAreaDragOver}
           onDrop={handleEmptyAreaDrop}
         >
@@ -547,7 +604,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           <div css={headerColumnStyles(theme)}>
             {tracks.map((track) => (
               <React.Fragment key={track.id}>
-                {track.id === scriptBeforeTrackId && <ScriptLaneHeader />}
+                {hasScript && track.id === scriptBeforeTrackId && (
+                  <ScriptLaneHeader />
+                )}
                 <TrackHeader track={track} typedIndex={typedIndexMap.get(track.id) ?? 1} />
                 {expandedFxTrackId === track.id && (
                   <div
@@ -557,7 +616,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                 )}
               </React.Fragment>
             ))}
-            {scriptBeforeTrackId === null && <ScriptLaneHeader />}
+            {hasScript && scriptBeforeTrackId === null && <ScriptLaneHeader />}
           </div>
 
           {/* Scrollable lanes */}
@@ -565,6 +624,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             ref={scrollableRef}
             css={scrollableAreaStyles}
             onScroll={handleScroll}
+            data-testid="tracks-scroll-area"
           >
             <div
               css={lanesContainerStyles}
@@ -572,7 +632,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             >
               {tracks.map((track) => (
                 <React.Fragment key={track.id}>
-                  {track.id === scriptBeforeTrackId && (
+                  {hasScript && track.id === scriptBeforeTrackId && (
                     <ScriptLane />
                   )}
                   <TrackLane track={track} />
@@ -591,7 +651,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                   )}
                 </React.Fragment>
               ))}
-              {scriptBeforeTrackId === null && (
+              {hasScript && scriptBeforeTrackId === null && (
                 <ScriptLane />
               )}
             </div>
