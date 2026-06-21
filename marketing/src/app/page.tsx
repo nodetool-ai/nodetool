@@ -12,7 +12,7 @@ import OwnershipSection from "../components/OwnershipSection";
 import DeploySection from "../components/DeploySection";
 import ModelSupportSection from "../components/ModelSupportSection";
 import ModelManagerSection from "../components/ModelManagerSection";
-import VideoGenerationSection from "../components/VideoGenerationSection";
+import TimelineEditorSection from "../components/TimelineEditorSection";
 import FeaturesSection from "../components/FeaturesSection";
 import NodeMenuSection from "../components/NodeMenuSection";
 import ChatUISection from "../components/ChatUISection";
@@ -20,6 +20,7 @@ import AssetManagerSection from "../components/AssetManagerSection";
 import CommunitySection from "../components/CommunitySection";
 import ContactSection from "../components/ContactSection";
 import ComparisonSection from "../components/ComparisonSection";
+import UseCasesShowcase from "../components/UseCasesShowcase";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { Download } from "lucide-react";
 import { SmartDownloadButton } from "./SmartDownloadButton";
@@ -343,15 +344,15 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Position the product first: "What NodeTool is" */}
-        <ComparisonSection reducedMotion={reducedMotion} />
-
-        {/* How it works (Build / Run / Deploy) — the 3-step mental model */}
+        {/* How it works (Build / Run / Edit) — the 3-step mental model */}
         <section aria-labelledby="how-title" className="rhythm-section pt-4">
           <div className={`${sectionContainer}`}>
             <BuildRunDeploy />
           </div>
         </section>
+
+        {/* Concrete proof right after the mental model: a complete, runnable workflow */}
+        <UseCasesShowcase />
 
         {/* What the canvas does */}
         <FeaturesSection />
@@ -359,14 +360,17 @@ export default function Home() {
         {/* What's in the canvas */}
         <NodeMenuSection />
 
-        {/* A flagship capability example */}
-        <VideoGenerationSection reducedMotion={reducedMotion} />
+        {/* Assemble the generated clips — built-in timeline editor */}
+        <TimelineEditorSection />
 
         {/* Asset Manager — companion to the canvas story */}
         <AssetManagerSection />
 
         {/* Alternate interface: drive workflows by chat (payoff after canvas) */}
         <ChatUISection />
+
+        {/* Position vs. the alternatives — sets up the BYOK / your-stack story that follows */}
+        <ComparisonSection reducedMotion={reducedMotion} />
 
         {/* Ownership block — three adjacent sections that share the BYOK / your-stack story */}
         <OwnershipSection reducedMotion={reducedMotion} />

@@ -89,10 +89,10 @@ export default function FeaturesSection({
               </div>
 
               <Image
-                src="/screen_canvas.png"
-                alt="Visual canvas showing a workflow"
+                src="/screen_workflow.png"
+                alt="Node workflow turning a campaign brief and product photo into a generated product video"
                 width={1400}
-                height={900}
+                height={892}
                 className="w-full h-auto opacity-90 transition-opacity group-hover:opacity-100"
                 loading="lazy"
               />
