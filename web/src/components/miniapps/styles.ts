@@ -1,6 +1,6 @@
 import { css } from "@emotion/react";
 import { Theme } from "@mui/material/styles";
-import { MOTION } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS } from "../ui_primitives";
 
 export const createStyles = (theme: Theme) => {
   const doubledRadius =
@@ -180,7 +180,7 @@ export const createStyles = (theme: Theme) => {
       minWidth: 220,
       maxWidth: 320,
       height: 6,
-      borderRadius: 99,
+      borderRadius: BORDER_RADIUS.pill,
       [theme.breakpoints.down("sm")]: {
         minWidth: 0,
         width: "100%"
@@ -188,7 +188,7 @@ export const createStyles = (theme: Theme) => {
     },
 
     ".hero-status .MuiLinearProgress-bar": {
-      borderRadius: 99
+      borderRadius: BORDER_RADIUS.pill
     },
 
     ".alert-stack": {
@@ -273,7 +273,7 @@ export const createStyles = (theme: Theme) => {
       display: "flex",
       flexDirection: "column",
       gap: theme.spacing(1.5),
-      animation: "resultCardEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+      animation: `resultCardEnter ${MOTION.slow} forwards`,
       opacity: 0
     },
 

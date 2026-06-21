@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css, SerializedStyles } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
+import { MOTION } from "../ui_primitives";
 
 export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
   return css`
@@ -72,7 +73,7 @@ export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
     a {
       color: ${theme.vars.palette.primary.main};
       text-decoration: none;
-      transition: color 0.2s ease;
+      transition: color ${MOTION.normal};
 
       &:hover {
         color: ${theme.vars.palette.primary.light};
@@ -125,7 +126,7 @@ export const getSharedSettingsStyles = (theme: Theme): SerializedStyles => {
         border-radius: 0.3em;
         padding: 0.3em 1em;
         font-size: ${theme.fontSizeNormal};
-        transition: border-color 0.2s ease;
+        transition: ${MOTION.border};
 
         &::before,
         &::after {

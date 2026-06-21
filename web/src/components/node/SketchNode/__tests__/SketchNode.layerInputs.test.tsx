@@ -51,6 +51,20 @@ jest.mock("@mui/material/styles", () => ({
   ...jest.requireActual("@mui/material/styles"),
   useTheme: () => ({
     spacing: (n: number) => `${n * 8}px`,
+    rounded: {
+      xs: "2px",
+      sm: "4px",
+      md: "6px",
+      lg: "8px",
+      xl: "12px",
+      xxl: "16px",
+      pill: "9999px",
+      circle: "50%",
+      dialog: "20px",
+      node: "8px",
+      buttonSmall: "4px",
+      buttonLarge: "6px"
+    },
     vars: {
       palette: {
         grey: { 0: "#fff", 100: "#eee", 400: "#aaa", 500: "#888", 900: "#000" },

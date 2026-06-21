@@ -8,7 +8,7 @@ import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import KeyRoundedIcon from "@mui/icons-material/KeyRounded";
 import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import { useProviders } from "../../hooks/useProviders";
-import { Text, EditorButton, ToolbarIconButton } from "../ui_primitives";
+import { Text, EditorButton, ToolbarIconButton, MOTION } from "../ui_primitives";
 
 const enter = keyframes({
   from: { opacity: 0, transform: "translateY(-4px)" },
@@ -20,14 +20,14 @@ const styles = (theme: Theme) =>
     position: "relative",
     marginTop: 6,
     padding: `${theme.spacing(2)} ${theme.spacing(3)}`,
-    borderRadius: "var(--rounded-buttonSmall)",
+    borderRadius: theme.rounded.buttonSmall,
     border: `1px solid ${theme.vars.palette.primary.main}`,
     backgroundColor: `rgba(var(--palette-primary-mainChannel) / 0.12)`,
     boxShadow: `0 0 12px 2px rgba(var(--palette-primary-mainChannel) / 0.35)`,
     display: "flex",
     flexDirection: "column",
     gap: 6,
-    animation: `${enter} 0.18s ease-out`,
+    animation: `${enter} ${MOTION.normal}`,
     // Arrow pointing up at the model selector above.
     "&::before": {
       content: '""',

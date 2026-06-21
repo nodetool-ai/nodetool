@@ -102,7 +102,7 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       minWidth: "250px",
       maxWidth: "unset",
       minHeight: "200px",
-      borderRadius: "var(--rounded-node)",
+      borderRadius: theme.rounded.node,
       border: `1px solid ${theme.vars.palette.grey[900]}`,
       backgroundColor: theme.vars.palette.c_node_bg,
       position: "relative",

@@ -52,7 +52,7 @@ const styles = (theme: Theme) =>
       minWidth: "200px",
       maxWidth: "600px",
       minHeight: "100px",
-      borderRadius: "var(--rounded-node)",
+      borderRadius: theme.rounded.node,
       border: `1px solid ${theme.vars.palette.grey[900]}`,
       backgroundColor: theme.vars.palette.c_node_bg
     },

@@ -206,7 +206,7 @@ const NodeItem = memo(
 
       const iconForTypeContainerStyle = useMemo(
         () => ({
-          borderRadius: "0 0 2px 0",
+          borderRadius: `0 0 ${BORDER_RADIUS.xs} 0`,
           marginLeft: "0",
           marginTop: "0"
         }),
@@ -218,7 +218,7 @@ const NodeItem = memo(
           backgroundColor: theme.vars.palette.grey[900],
           margin: "0",
           padding: "1px",
-          borderRadius: "0 0 2px 0",
+          borderRadius: `0 0 ${BORDER_RADIUS.xs} 0`,
           boxShadow: `inset 1px 1px 2px ${theme.vars.palette.action.disabledBackground}`,
           width: "20px",
           height: "20px"

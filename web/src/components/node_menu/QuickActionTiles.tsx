@@ -79,7 +79,7 @@ const tileStyles = (theme: Theme) =>
       position: "relative",
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.divider}`,
-      transition: "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
+      transition: `all ${MOTION.slow}`,
       minHeight: "30px",
       background: theme.vars.palette.background.paper,
       "&::before": {
@@ -111,7 +111,7 @@ const tileStyles = (theme: Theme) =>
       },
       "&:active": {
         transform: "scale(0.97) translateY(0)",
-        transition: "all 0.1s ease"
+        transition: `all ${MOTION.fast}`
       },
       "&.active": {
         borderColor: theme.vars.palette.primary.main,
@@ -136,7 +136,7 @@ const tileStyles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       marginBottom: "6px",
-      transition: "transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
+      transition: `transform ${MOTION.slow}`,
       "& svg": {
         fontSize: "var(--fontSizeBig)",
         filter: theme.palette.mode === "dark"

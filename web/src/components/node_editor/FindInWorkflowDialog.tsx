@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useEffect, useRef, useCallback } from "react";
 import { ListItem, ListItemButton } from "@mui/material";
-import { Text, Caption, Box, ListGroup, BORDER_RADIUS } from "../ui_primitives";
+import { Text, Caption, Box, ListGroup, BORDER_RADIUS, MOTION } from "../ui_primitives";
 import SearchIcon from "@mui/icons-material/Search";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
@@ -27,7 +27,7 @@ const styles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.xl,
       boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
       border: `1px solid ${theme.vars.palette.divider}`,
-      animation: "fadeIn 0.15s ease-out forwards",
+      animation: `fadeIn ${MOTION.fast} forwards`,
       overflow: "hidden"
     },
     "@keyframes fadeIn": {

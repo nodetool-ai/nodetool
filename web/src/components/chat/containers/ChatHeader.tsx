@@ -1,7 +1,7 @@
 import React from "react";
 import { ResetButton } from "../controls/ResetButton";
 import { MinimizeButton } from "../controls/MinimizeButton";
-import { FlexRow, Text } from "../../ui_primitives";
+import { FlexRow, Text, BORDER_RADIUS } from "../../ui_primitives";
 
 interface ChatHeaderProps {
   isMinimized: boolean;
@@ -34,7 +34,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       zIndex: 1,
       p: 0,
       height: "28px",
-      borderRadius: isMinimized ? "20px" : "12px 12px 0 0"
+      borderRadius: isMinimized
+        ? BORDER_RADIUS.xxl
+        : `${BORDER_RADIUS.xl} ${BORDER_RADIUS.xl} 0 0`
     }}
   >
     {!isMinimized && onReset && (

@@ -1,5 +1,6 @@
 import { NodeMetadata } from "../stores/ApiTypes";
 import { sanitizeText } from "./sanitize";
+import { MOTION } from "../components/ui_primitives";
 
 export const escapeHtml = (text: string): string => {
   return sanitizeText(text);
@@ -131,7 +132,7 @@ export const highlightText = (
         rgbColor || "255, 0, 0"
       }, ${opacity}%);${
         shouldColor ? `color: var(--palette-primary-main);` : ""
-      }transition: all 0.2s ease;">${escapeHtml(match.text)}</span>`
+      }transition: ${MOTION.all};">${escapeHtml(match.text)}</span>`
     );
 
     lastEnd = match.end + 1;

@@ -73,7 +73,7 @@ const styles = (theme: Theme) =>
       boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
       border: `1px solid ${theme.vars.palette.divider}`,
       overflow: "hidden",
-      animation: "slideIn 0.2s ease-out forwards",
+      animation: `slideIn ${MOTION.normal} forwards`,
       "& @keyframes slideIn": {
         "0%": { opacity: 0, transform: "translateX(20px)" },
         "100%": { opacity: 1, transform: "translateX(0)" }

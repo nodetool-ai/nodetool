@@ -236,7 +236,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
         width: 48,
         height: 48,
         objectFit: "cover",
-        borderRadius: 4
+        borderRadius: BORDER_RADIUS.sm
       }
     }
   });
