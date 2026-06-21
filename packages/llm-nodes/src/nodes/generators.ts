@@ -209,12 +209,20 @@ function hasProviderSupport(
 }
 
 const LIST_GENERATOR_SYSTEM_PROMPT =
-  "You generate a list by calling the `add_item` tool exactly once per item. " +
-  "Each call submits a single item as a short string. " +
-  "Continue calling `add_item` until all requested items have been emitted. " +
+  "You generate a list by calling the `add_item` tool once per item. " +
+  "Each call submits one item, which may be a single line or span multiple " +
+  "lines or paragraphs, as the request requires. " +
+  "Continue calling `add_item` until all requested items have been emitted, " +
+  "then stop. " +
   "If the user does not specify a count, emit 5 items. " +
-  "Do not output prose, explanations, or markdown — only emit tool calls. " +
-  "When the list is complete, stop without calling the tool again.";
+  "Use tool calls only — do not write the list as prose.";
+
+// Appended to the system prompt for a single retry when the model answers in
+// prose and emits no `add_item` calls, to push it into using the tool.
+const LIST_GENERATOR_ENFORCEMENT_PROMPT =
+  "Your previous response produced no items because you did not call the " +
+  "`add_item` tool. Build the list now by calling `add_item` once per item. " +
+  "Do not reply with prose or explanations — only emit `add_item` tool calls.";
 
 function makeAddItemTool(): ToolLike {
   return {
@@ -228,7 +236,9 @@ function makeAddItemTool(): ToolLike {
       properties: {
         item: {
           type: "string",
-          description: "The list item content (a single string)."
+          description:
+            "The content of one list item. It may be a single line or span " +
+            "multiple lines or paragraphs, as the request requires."
         }
       }
     },
@@ -244,7 +254,8 @@ async function* streamListItemsViaToolCalls(
   providerId: string,
   modelId: string,
   prompt: string,
-  maxTokens: number
+  maxTokens: number,
+  systemPrompt: string = LIST_GENERATOR_SYSTEM_PROMPT
 ): AsyncGenerator<string> {
   const provider = await (
     context as ProcessingContext & {
@@ -255,7 +266,7 @@ async function* streamListItemsViaToolCalls(
   const providerTools = toProviderTools([tool]);
 
   const messages: Message[] = [
-    { role: "system", content: LIST_GENERATOR_SYSTEM_PROMPT },
+    { role: "system", content: systemPrompt },
     { role: "user", content: prompt }
   ];
   const maxIterations = parseRequestedCount(prompt, 5);
@@ -762,16 +773,30 @@ export class ListGeneratorNode extends BaseNode {
       modelId
     ) {
       let index = 0;
-      for await (const item of streamListItemsViaToolCalls(
-        context,
-        providerId,
-        modelId,
-        userMessage,
-        Number(this.max_tokens ?? 128)
-      )) {
-        items.push(asText(item));
-        yield { item, index };
-        index += 1;
+      const maxTokens = Number(this.max_tokens ?? 128);
+      // Try the neutral prompt first. If the model answers in prose and emits no
+      // `add_item` calls (zero items), re-run once with an enforcement prompt
+      // that pushes it to use the tool before giving up.
+      const systemPrompts = [
+        LIST_GENERATOR_SYSTEM_PROMPT,
+        `${LIST_GENERATOR_SYSTEM_PROMPT}\n\n${LIST_GENERATOR_ENFORCEMENT_PROMPT}`
+      ];
+      for (const systemPrompt of systemPrompts) {
+        for await (const item of streamListItemsViaToolCalls(
+          context,
+          providerId,
+          modelId,
+          userMessage,
+          maxTokens,
+          systemPrompt
+        )) {
+          items.push(asText(item));
+          yield { item, index };
+          index += 1;
+        }
+        if (index > 0) {
+          break;
+        }
       }
       if (index === 0) {
         throw new Error(

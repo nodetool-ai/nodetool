@@ -1565,6 +1565,22 @@ describe("ListGeneratorNode", () => {
       "no add_item tool calls"
     );
   });
+
+  it("re-runs with an enforcement prompt when the first attempt yields no items", async () => {
+    const n = new (ListGeneratorNode as any)();
+    // First attempt: no tool calls (model answered in prose). The enforcement
+    // re-run then emits items, so the node recovers instead of throwing.
+    const mockContext = makeMockContextWithToolCallSequences([
+      [],
+      ["Recovered item"]
+    ]);
+    n.assign({
+      prompt: "Generate items",
+      model: { provider: "mock", id: "gpt-4" }
+    });
+    const result = await n.process(mockContext as any);
+    expect(result.output).toEqual(["Recovered item"]);
+  });
 });
 
 // ---- ChartGeneratorNode ----
