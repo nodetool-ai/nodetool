@@ -44,7 +44,7 @@ const steps = [
   {
     icon: Clapperboard,
     title: "Render the video",
-    body: "A text-to-video model animates the product photo from the agent's prompt into a finished, launch-ready clip.",
+    body: "A text-to-video model animates the product photo from the agent's prompt into a finished, ready-to-post clip.",
     detail: "Veo 3.1 · 16:9 · 720p · 8 seconds · rendered in ~44s",
   },
 ];
@@ -85,7 +85,7 @@ const models = [
   },
 ];
 
-export default function ProductLaunchVideoUseCase() {
+export default function ProductVideoUseCase() {
   return (
     <main className="relative min-h-screen overflow-hidden text-white bg-[#040408]">
       {/* Background */}
@@ -137,11 +137,11 @@ export default function ProductLaunchVideoUseCase() {
                 Marketing
               </div>
               <h1 className="mt-6 text-4xl md:text-6xl font-bold tracking-tight leading-[1.05]">
-                AI Product Launch Video Generator
+                Product Video Generator
               </h1>
               <p className="mt-6 text-lg md:text-xl text-slate-400 leading-relaxed">
                 Turn a campaign brief and a single product photo into a
-                cinematic, launch-ready 16:9 video. No editor, no agency, one
+                cinematic 16:9 product video. No editor, no agency, one
                 canvas you can re-run for every new product.
               </p>
             </motion.div>
@@ -220,7 +220,7 @@ export default function ProductLaunchVideoUseCase() {
                     Workflow Editor
                   </span>
                   <span className="ml-auto hidden text-xs font-medium text-slate-500 sm:block">
-                    AI Product Launch Video Generator
+                    Product Video Generator
                   </span>
                 </div>
                 <WorkflowGraph />
@@ -264,7 +264,7 @@ export default function ProductLaunchVideoUseCase() {
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
             <div className="mb-12 max-w-2xl">
               <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-                One photo in, a launch clip out
+                One photo in, a product clip out
               </h2>
               <p className="mt-4 text-lg text-slate-400 leading-relaxed">
                 The whole pipeline runs from a single product render. Same
@@ -397,7 +397,7 @@ export default function ProductLaunchVideoUseCase() {
         <section className="relative py-24">
           <div className="mx-auto max-w-3xl px-6 text-center">
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
-              Build your launch video
+              Build your product video
             </h2>
             <p className="mt-4 text-lg text-slate-400 leading-relaxed">
               Free, open source, and yours to run. Download Studio, open this

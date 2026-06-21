@@ -5,10 +5,8 @@ import Image from "next/image";
 import {
   Sparkles,
   Play,
-  Palette,
   Video,
   Music,
-  Camera,
   Layers,
   Wand2,
   ArrowRight,
@@ -22,85 +20,7 @@ import {
 import CommunitySection from "../../components/CommunitySection";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
-
-
-type PersonaAccent = "rose" | "emerald" | "sky" | "amber";
-
-const personaAccentMap: Record<
-  PersonaAccent,
-  {
-    text: string;
-    border: string;
-    iconBg: string;
-    glowRgba: string;
-    topGlow: string;
-  }
-> = {
-  rose: {
-    text: "text-rose-300",
-    border: "border-rose-500/40",
-    iconBg: "bg-rose-500/10",
-    glowRgba: "244, 63, 94",
-    topGlow: "rgba(244, 63, 94, 0.18)",
-  },
-  emerald: {
-    text: "text-emerald-300",
-    border: "border-emerald-500/40",
-    iconBg: "bg-emerald-500/10",
-    glowRgba: "16, 185, 129",
-    topGlow: "rgba(16, 185, 129, 0.18)",
-  },
-  sky: {
-    text: "text-sky-300",
-    border: "border-sky-500/40",
-    iconBg: "bg-sky-500/10",
-    glowRgba: "56, 189, 248",
-    topGlow: "rgba(56, 189, 248, 0.18)",
-  },
-  amber: {
-    text: "text-amber-300",
-    border: "border-amber-500/40",
-    iconBg: "bg-amber-500/10",
-    glowRgba: "245, 158, 11",
-    topGlow: "rgba(245, 158, 11, 0.18)",
-  },
-};
-
-const creativePersonas: Array<{
-  title: string;
-  description: string;
-  icon: typeof Video;
-  accent: PersonaAccent;
-}> = [
-  {
-    title: "Motion designers",
-    description:
-      "Wire Seedance, Veo, Kling, and Runway nodes for B-roll, transitions, and looks. Re-run the workflow when the brief changes.",
-    icon: Video,
-    accent: "rose",
-  },
-  {
-    title: "AI-native illustrators",
-    description:
-      "Mix Flux, Qwen Image, Ideogram, and gpt-image. Mask, inpaint, outpaint, relight, and upscale on the same canvas — no exporting between tools.",
-    icon: Palette,
-    accent: "emerald",
-  },
-  {
-    title: "Music & sound producers",
-    description:
-      "Compose with Suno, voice with ElevenLabs, transcribe with Whisper. Wire audio straight into your visual workflows.",
-    icon: Music,
-    accent: "sky",
-  },
-  {
-    title: "Photographers & retouchers",
-    description:
-      "Batch upscale, color-match, restyle. Wrap your repeatable retouching steps into a workflow you can re-run on the next shoot.",
-    icon: Camera,
-    accent: "amber",
-  },
-];
+import UseCasesShowcase from "../../components/UseCasesShowcase";
 
 // Features for creative professionals
 const creativeFeatures = [
@@ -147,37 +67,6 @@ const creativeFeatures = [
 ];
 
 // Workflow examples
-const workflowExamples = [
-  {
-    title: "Brand Asset Generator",
-    description:
-      "Generate consistent brand visuals, social media posts, and marketing materials with a single workflow.",
-    tags: ["Image Generation", "Branding", "Automation"],
-    gradient: "from-pink-500/20 to-rose-500/20",
-  },
-  {
-    title: "Video Thumbnail Pipeline",
-    description:
-      "Generate eye-catching thumbnails for your videos with one image-model node and a few editing nodes.",
-    tags: ["Video", "Thumbnails", "YouTube"],
-    gradient: "from-teal-500/20 to-purple-500/20",
-  },
-  {
-    title: "Audio to Visual Sync",
-    description:
-      "Create reactive visuals that respond to audio input, perfect for music videos and visualizers.",
-    tags: ["Audio", "Visual", "Sync"],
-    gradient: "from-cyan-500/20 to-blue-500/20",
-  },
-  {
-    title: "Photo Enhancement Suite",
-    description:
-      "Batch process photos with upscaling, color correction, and style transfer in one automated flow.",
-    tags: ["Photography", "Enhancement", "Batch"],
-    gradient: "from-amber-500/20 to-orange-500/20",
-  },
-];
-
 export default function CreativesPage() {
   const [stars, setStars] = useState<number | null>(null);
 
@@ -320,48 +209,8 @@ export default function CreativesPage() {
           </div>
         </section>
 
-        {/* Real Workflow Example */}
-        <section className="py-20 relative">
-          <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center mb-12 max-w-3xl mx-auto"
-            >
-              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-300/80 mb-3">
-                A real workflow
-              </div>
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 tracking-tight">
-                One product shot. Two scenes. A finished video.
-              </h2>
-              <p className="text-lg text-slate-400 leading-relaxed">
-                A reference image and two prompts feed Nano Banana Edit, then Veo 3.1 turns
-                the edits into a split-screen ad. Every step lives on the canvas, so you
-                can swap models, tweak prompts, and re-run instantly.
-              </p>
-            </motion.div>
-
-            <motion.figure
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="relative"
-            >
-              <div className="relative rounded-2xl border border-white/10 bg-slate-900/50 backdrop-blur overflow-hidden shadow-2xl shadow-rose-500/10">
-                <Image
-                  src="/creatives_workflow.png"
-                  alt="NodeTool canvas: a sneaker reference image plus two text prompts feeding two Nano Banana Edit nodes, then a Veo 3.1 Image-to-Video node producing a split-screen ad video"
-                  width={1672}
-                  height={941}
-                  className="w-full h-auto"
-                  priority
-                />
-              </div>
-            </motion.figure>
-          </div>
-        </section>
+        {/* Use cases — real workflows with their own walkthrough pages */}
+        <UseCasesShowcase />
 
         {/* Timeline Editor Section */}
         <section className="py-20 relative">
@@ -445,96 +294,6 @@ export default function CreativesPage() {
                   </p>
                 </motion.div>
               ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Creative Personas Section */}
-        <section className="py-24 relative">
-          <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center mb-16"
-            >
-              <h2 className="text-4xl md:text-6xl font-bold tracking-tight text-white mb-6">
-                Built for{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-300 via-emerald-300 to-cyan-400">
-                  working creatives
-                </span>
-              </h2>
-              <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-                Independent generative artists, motion designers, AI-native illustrators,
-                technical art directors, ComfyUI power users, and Weavy switchers — NodeTool
-                is the open canvas for your work.
-              </p>
-            </motion.div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-7">
-              {creativePersonas.map((persona, index) => {
-                const a = personaAccentMap[persona.accent];
-                return (
-                  <motion.div
-                    key={persona.title}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.08 }}
-                    className="group relative"
-                  >
-                    <div
-                      className={`relative h-full min-h-[420px] rounded-2xl border ${a.border} bg-[#0a0a14]/70 backdrop-blur-sm p-7 flex flex-col transition-all duration-500 hover:-translate-y-1.5 hover:bg-[#0a0a14]/40`}
-                      style={{
-                        boxShadow: `0 0 0 1px rgba(${a.glowRgba}, 0.07), 0 24px 70px -20px rgba(${a.glowRgba}, 0.26), 0 0 110px -25px rgba(${a.glowRgba}, 0.22)`,
-                      }}
-                    >
-                      {/* Inner top glow */}
-                      <div
-                        aria-hidden
-                        className="pointer-events-none absolute inset-0 rounded-2xl opacity-80 transition-opacity duration-500 group-hover:opacity-100"
-                        style={{
-                          background: `radial-gradient(140% 70% at 50% 0%, rgba(${a.glowRgba}, 0.11), transparent 60%)`,
-                        }}
-                      />
-                      {/* Diagonal sheen */}
-                      <div
-                        aria-hidden
-                        className="pointer-events-none absolute inset-0 rounded-2xl opacity-60 transition-opacity duration-500 group-hover:opacity-100 mix-blend-screen"
-                        style={{
-                          background: `linear-gradient(135deg, rgba(${a.glowRgba}, 0.05) 0%, transparent 45%, rgba(${a.glowRgba}, 0.03) 100%)`,
-                        }}
-                      />
-
-                      <div className="relative flex flex-col h-full">
-                        <div
-                          className={`flex h-14 w-14 items-center justify-center rounded-2xl border ${a.border} ${a.iconBg} mb-7 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}
-                          style={{
-                            boxShadow: `0 0 32px -4px rgba(${a.glowRgba}, 0.30), inset 0 0 12px rgba(${a.glowRgba}, 0.10)`,
-                          }}
-                        >
-                          <persona.icon className={`w-6 h-6 ${a.text}`} />
-                        </div>
-
-                        <h3 className="text-xl font-semibold text-white mb-3">
-                          {persona.title}
-                        </h3>
-                        <p className="text-slate-400 leading-relaxed text-[0.95rem] flex-1">
-                          {persona.description}
-                        </p>
-
-                        <div className="mt-6">
-                          <span
-                            className={`inline-flex h-9 w-9 items-center justify-center rounded-full border ${a.border} text-slate-300 transition-colors group-hover:bg-white/5 group-hover:text-white`}
-                          >
-                            <ArrowRight className="w-4 h-4" />
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
             </div>
           </div>
         </section>
@@ -630,79 +389,6 @@ export default function CreativesPage() {
                 </motion.div>
               ))}
             </div>
-          </div>
-        </section>
-
-        {/* Workflow Examples Section */}
-        <section id="workflows" className="py-24 relative">
-          <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center mb-16"
-            >
-              <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-                Workflow{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">
-                  starting points
-                </span>
-              </h2>
-              <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-                Real workflows for real creative work. Open one, swap models for the ones
-                you prefer, and make it yours.
-              </p>
-            </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {workflowExamples.map((workflow, index) => (
-                <motion.div
-                  key={workflow.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className="group"
-                >
-                  <div
-                    className={`relative h-full rounded-2xl border border-white/10 bg-gradient-to-br ${workflow.gradient} backdrop-blur-sm p-8 transition-all duration-300 hover:border-white/20 hover:shadow-2xl`}
-                  >
-                    <h3 className="text-xl font-semibold text-white mb-3">
-                      {workflow.title}
-                    </h3>
-                    <p className="text-slate-400 mb-6">
-                      {workflow.description}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {workflow.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="px-3 py-1 rounded-full text-xs font-medium bg-white/10 text-slate-300 border border-white/10"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.4 }}
-              className="mt-12 text-center"
-            >
-              <a
-                href="https://docs.nodetool.ai/workflows"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 hover:text-white transition-all"
-              >
-                Explore All Templates
-                <ArrowRight className="w-4 h-4" />
-              </a>
-            </motion.div>
           </div>
         </section>
 

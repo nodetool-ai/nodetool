@@ -2,19 +2,19 @@ import JsonLd from "../../../components/JsonLd";
 import type { Metadata, Viewport } from "next";
 
 const TITLE =
-  "AI Product Launch Video Generator | NodeTool use case";
+  "AI Product Video Generator | NodeTool use case";
 const DESCRIPTION =
-  "Turn a campaign brief and a single product photo into a cinematic 16:9 launch video. A prompt node combines your inputs, an agent directs the shot, and a text-to-video model renders it, all on one open canvas with your own keys.";
+  "Turn a campaign brief and a single product photo into a cinematic 16:9 product video. A prompt node combines your inputs, an agent directs the shot, and a text-to-video model renders it, all on one open canvas with your own keys.";
 
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
-    canonical: "/use-cases/ai-product-launch-video",
+    canonical: "/use-cases/product-video",
   },
   keywords: [
-    "AI product launch video",
+    "AI product video",
     "text to video workflow",
     "AI marketing video generator",
     "Veo workflow",
@@ -26,17 +26,17 @@ export const metadata: Metadata = {
   openGraph: {
     title: TITLE,
     description: DESCRIPTION,
-    url: "https://nodetool.ai/use-cases/ai-product-launch-video",
+    url: "https://nodetool.ai/use-cases/product-video",
     siteName: "NodeTool",
-    images: [{ url: "/smartwatch.png", alt: "AI-generated product launch video" }],
+    images: [{ url: "/smartwatch.png", alt: "AI-generated product video" }],
     locale: "en_US",
     type: "article",
   },
   twitter: {
     card: "summary_large_image",
-    title: "AI Product Launch Video Generator",
+    title: "AI Product Video Generator",
     description:
-      "From a campaign brief and a product photo to a cinematic launch video, on one open canvas.",
+      "From a campaign brief and a product photo to a cinematic product video, on one open canvas.",
     images: ["/smartwatch.png"],
   },
 };
@@ -63,8 +63,8 @@ export default function UseCaseLayout({
             {
               "@type": "ListItem",
               position: 3,
-              name: "AI Product Launch Video Generator",
-              item: "https://nodetool.ai/use-cases/ai-product-launch-video",
+              name: "AI Product Video Generator",
+              item: "https://nodetool.ai/use-cases/product-video",
             },
           ],
         }}

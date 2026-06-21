@@ -9,7 +9,6 @@ import SiteFooter from "../components/SiteFooter";
 import NodeToolHero from "../components/NodeToolHero";
 import BuildRunDeploy from "../components/BuildRunDeploy";
 import OwnershipSection from "../components/OwnershipSection";
-import DeploySection from "../components/DeploySection";
 import ModelSupportSection from "../components/ModelSupportSection";
 import ModelManagerSection from "../components/ModelManagerSection";
 import TimelineEditorSection from "../components/TimelineEditorSection";
@@ -379,9 +378,6 @@ export default function Home() {
 
         {/* Templates Gallery */}
         {/* <ExamplesGrid /> */}
-
-        {/* Self-host / deploy */}
-        <DeploySection reducedMotion={reducedMotion} />
 
         {/* Feature Modal (accessible) */}
         {selectedFeature && (

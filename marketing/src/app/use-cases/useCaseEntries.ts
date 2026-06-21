@@ -20,15 +20,25 @@ export type UseCaseEntry = {
 
 export const useCaseEntries: UseCaseEntry[] = [
   {
-    slug: "ai-product-launch-video",
-    title: "AI Product Launch Video Generator",
+    slug: "product-video",
+    title: "Product Video Generator",
     category: "Marketing",
     teaser:
-      "Turn a campaign brief and a single product photo into a cinematic 16:9 launch video. Your inputs feed a prompt, an agent directs the shot, and a text-to-video model renders it.",
+      "Turn a campaign brief and a single product photo into a cinematic 16:9 product video. Your inputs feed a prompt, an agent directs the shot, and a text-to-video model renders it.",
     pipeline: ["Brief", "Prompt", "Agent", "Text-to-Video"],
     video: "/product_video_example.mp4",
     poster: "/smartwatch.png",
     accent: "sky",
+  },
+  {
+    slug: "movie-poster",
+    title: "Movie Poster Generator",
+    category: "Design",
+    teaser:
+      "From a title, genre, and audience, the canvas writes a creative strategy and renders a batch of cinematic movie poster concepts, title, tagline, billing block and all.",
+    pipeline: ["Brief", "Strategy", "Concepts", "Key art"],
+    poster: "/poster-singularity-1.png",
+    accent: "violet",
   },
 ];
 
