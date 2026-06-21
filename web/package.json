@@ -97,6 +97,7 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e-runner": "playwright test -c playwright.e2e-runner.config.ts",
     "test:e2e-runner:headed": "playwright test -c playwright.e2e-runner.config.ts --headed",
+    "test:debug-harness": "playwright test -c playwright.debug-harness.config.ts",
     "e2e-suite:prepare": "tsx tests/e2e-runner/prepareSuite.ts",
     "typecheck": "tsc --noEmit",
     "upload-stock-images": "node scripts/upload-stock-images.js",

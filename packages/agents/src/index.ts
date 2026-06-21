@@ -89,6 +89,7 @@ export {
   GetWorkflowTool,
   CreateWorkflowTool,
   RunWorkflowTool,
+  DebugWorkflowTool,
   ValidateWorkflowTool,
   GetExampleWorkflowTool,
   ExportWorkflowDigraphTool,

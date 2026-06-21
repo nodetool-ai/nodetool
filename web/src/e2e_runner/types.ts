@@ -114,6 +114,16 @@ export interface RunRecord {
   expectationFailures: string[];
 }
 
+/** Options for an ad-hoc single-graph run (the debug harness path). */
+export interface AdHocRunOptions {
+  /** Stable id used in the record (defaults to a generated `adhoc-<ts>`). */
+  id?: string;
+  /** Human-readable name shown on the record. */
+  name?: string;
+  /** Override the per-run timeout (ms). */
+  timeoutMs?: number;
+}
+
 /** The controller the harness exposes on `window.__E2E__` for the Playwright driver. */
 export interface E2EController {
   ready: Promise<void>;
@@ -125,6 +135,36 @@ export interface E2EController {
   /** Run every remaining workflow sequentially. */
   runAll: () => Promise<RunRecord[]>;
   currentIndex: () => number;
+  /**
+   * Run a caller-supplied graph (not from the manifest) and resolve with its
+   * record once settled. Renders the graph on the canvas and captures the same
+   * logs / node IO / outputs / events as the suite path — the entry point the
+   * `nodetool debug` harness drives for the browser surface.
+   */
+  runGraph: (
+    graph: { nodes: unknown[]; edges: unknown[] },
+    params?: Record<string, unknown>,
+    options?: AdHocRunOptions
+  ) => Promise<RunRecord>;
+  /**
+   * Live snapshot of the in-flight ad-hoc run, for a driver that wants to
+   * capture the canvas at successive stages. `stage` increments on every
+   * status-bearing event (a node starting/finishing, the job settling) so the
+   * driver can screenshot only when the picture actually changed.
+   */
+  snapshot: () => RunSnapshot;
+}
+
+/** A point-in-time view of the current ad-hoc run. */
+export interface RunSnapshot {
+  /** True once the run has settled (completed/failed/error/timeout). */
+  settled: boolean;
+  /** Monotonic counter bumped on each status-bearing event. */
+  stage: number;
+  /** Current run status (running until settled). */
+  status: string;
+  /** Per-node status keyed by node id, for the current frame. */
+  nodeStatus: Record<string, string>;
 }
 
 declare global {

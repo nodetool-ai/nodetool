@@ -143,6 +143,7 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   // --- execute: runs arbitrary compute ---
   run_node: "execute",
   run_workflow: "execute",
+  debug_workflow: "execute",
   start_background_job: "execute",
   run_code: "execute",
   js: "execute",
