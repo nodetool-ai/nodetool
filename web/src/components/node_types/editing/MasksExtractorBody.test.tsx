@@ -103,8 +103,7 @@ jest.mock("../../ui_primitives", () => ({
     <button data-testid={`toggle-option-${value}`} {...props}>
       {children}
     </button>
-  ),
-  BORDER_RADIUS: jest.requireActual("../../ui_primitives/tokens").BORDER_RADIUS
+  )
 }));
 
 jest.mock("@mui/material/styles", () => ({
