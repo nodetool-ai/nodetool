@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo, useMemo, useCallback } from "react";
+import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import PropertyField from "./PropertyField";
 import { Property, NodeMetadata, TypeMetadata } from "../../stores/ApiTypes";
@@ -10,6 +10,11 @@ import { useConnectedEdgesSelector } from "../../hooks/nodes/useConnectedEdges";
 import useMetadataStore from "../../stores/MetadataStore";
 import { findOutputHandle } from "../../utils/handleUtils";
 
+
+const rootCss = css({
+  marginTop: "1em",
+  marginBottom: "0.5em"
+});
 
 export interface NodeInputsProps {
   id: string;
@@ -113,15 +118,6 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   showDynamicInputs = true,
   defaultDynamicInputType
 }) => {
-  const rootStyles = useMemo(
-    () =>
-      css({
-        marginTop: "1em",
-        marginBottom: "0.5em"
-      }),
-    []
-  );
-
   const tabableProperties = useMemo(
     () =>
       properties.filter((property) => {
@@ -144,13 +140,18 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
 
   const getMetadata = useMetadataStore((state) => state.getMetadata);
 
-  const isConnected = useCallback(
-    (handle: string) => {
-      // Edges are already filtered by target === id
-      return connectedEdges.some((edge) => edge.targetHandle === handle);
-    },
+  const connectedHandleSet = useMemo(
+    () => new Set(connectedEdges.map((edge) => edge.targetHandle)),
     [connectedEdges]
   );
+
+  const connectedEdgeByHandle = useMemo(() => {
+    const map = new Map<string, (typeof connectedEdges)[number]>();
+    for (const edge of connectedEdges) {
+      if (edge.targetHandle) map.set(edge.targetHandle, edge);
+    }
+    return map;
+  }, [connectedEdges]);
 
   const tabIndexMap = useMemo(() => {
     const map = new Map<string, number>();
@@ -160,7 +161,6 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
 
   const allInputs = useMemo(() => properties.map((property, index) => {
     const finalTabIndex = tabIndexMap.get(property.name) ?? -1;
-    const connected = isConnected(property.name);
 
     return (
       <NodeInput
@@ -174,10 +174,10 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
         showFields={showFields}
         showHandle={showHandle}
         tabIndex={finalTabIndex}
-        isConnected={connected}
+        isConnected={connectedHandleSet.has(property.name)}
       />
     );
-  }), [properties, tabIndexMap, isConnected, id, nodeType, layout, data, showFields, showHandle]);
+  }), [properties, tabIndexMap, connectedHandleSet, id, nodeType, layout, data, showFields, showHandle]);
 
   const dynamicInputs = useMemo(
     () => data?.dynamic_inputs || {},
@@ -186,9 +186,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
 
   const dynamicInputElements = useMemo(() => Object.entries(dynamicProperties).map(
     ([name], index) => {
-      const incoming = connectedEdges.find(
-        (edge) => edge.targetHandle === name
-      );
+      const incoming = connectedEdgeByHandle.get(name);
       const inputMeta = dynamicInputs[name];
 
       let resolvedType: TypeMetadata;
@@ -266,7 +264,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
     }
   ), [
     dynamicProperties,
-    connectedEdges,
+    connectedEdgeByHandle,
     dynamicInputs,
     id,
     nodeType,
@@ -279,7 +277,7 @@ export const NodeInputs: React.FC<NodeInputsProps> = ({
   ]);
 
   return (
-    <div className={`node-inputs node-drag-handle node-${id}`} css={rootStyles}>
+    <div className={`node-inputs node-drag-handle node-${id}`} css={rootCss}>
       {allInputs}
       {showDynamicInputs && dynamicInputElements}
     </div>
