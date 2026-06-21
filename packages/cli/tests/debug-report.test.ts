@@ -73,6 +73,39 @@ describe("buildVerdict", () => {
   });
 });
 
+describe("renderReportMarkdown with browser stages", () => {
+  it("lists the staged screenshots", () => {
+    const browser: BrowserRunReport = {
+      surface: "browser",
+      ok: true,
+      status: "completed",
+      error: null,
+      durationMs: 100,
+      summary: collectExecutionSummary([{ type: "job_update", status: "completed" }]),
+      consoleErrors: [],
+      screenshotFile: "browser/screenshot.png",
+      stages: [
+        { index: 0, status: "running", file: "browser/stages/00-running.png" },
+        { index: 1, status: "completed", file: "browser/stages/01-completed.png" }
+      ]
+    };
+    const report: DebugReport = {
+      generatedAt: "2026-06-21T00:00:00Z",
+      target: { ref: "wf.json", source: "json", workflowId: null, nodeCount: 1, edgeCount: 0 },
+      workflow: { nodes: [], edges: [] },
+      server: null,
+      browser,
+      verdict: buildVerdict(null, browser),
+      bundleDir: "/tmp/bundle"
+    };
+    const md = renderReportMarkdown(report);
+    expect(md).toContain("Stage screenshots");
+    expect(md).toContain("browser/stages/00-running.png");
+    expect(md).toContain("browser/stages/01-completed.png");
+    expect(md).toContain("Final screenshot:");
+  });
+});
+
 describe("renderReportMarkdown", () => {
   it("renders headline, target, surfaces and issues", () => {
     const server = serverReport({

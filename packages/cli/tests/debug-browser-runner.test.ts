@@ -45,6 +45,13 @@ describe("buildBrowserReport", () => {
     );
     writeFileSync(join(dir, "console-errors.log"), "TypeError: boom\n");
     writeFileSync(join(dir, "screenshot.png"), "fake-png-bytes");
+    writeFileSync(
+      join(dir, "stages.json"),
+      JSON.stringify([
+        { index: 0, status: "running", file: "stages/00-running.png" },
+        { index: 1, status: "completed", file: "stages/01-completed.png" }
+      ])
+    );
 
     const report = await buildBrowserReport(dir);
     expect(report.surface).toBe("browser");
@@ -56,6 +63,11 @@ describe("buildBrowserReport", () => {
     expect(report.recordFile).toBe("browser/record.json");
     expect(report.summary.outputs[0].value).toBe("hello debug harness");
     expect(report.unavailableReason).toBeUndefined();
+    // Staged screenshots are folded in with bundle-relative paths.
+    expect(report.stages).toEqual([
+      { index: 0, status: "running", file: "browser/stages/00-running.png" },
+      { index: 1, status: "completed", file: "browser/stages/01-completed.png" }
+    ]);
   });
 
   it("reports unavailable when no record was produced", async () => {

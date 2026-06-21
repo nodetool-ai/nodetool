@@ -234,6 +234,7 @@ server/messages.jsonl   # every processing message (logs, node IO, outputs, erro
 server/trace.jsonl      # OpenTelemetry spans (timing, tokens, cost)
 browser/record.json     # the browser RunRecord (events, logs, node IO, artifacts)
 browser/screenshot.png  # canvas screenshot of the finished graph
+browser/stages/         # canvas screenshots at each stage (initial → per node → settled)
 browser/console-errors.log
 ```
 

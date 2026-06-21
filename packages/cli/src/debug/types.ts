@@ -131,6 +131,16 @@ export interface ServerRunReport {
   traceFile?: string;
 }
 
+/** A canvas screenshot captured at one stage of the browser run. */
+export interface BrowserStageShot {
+  /** 0-based capture order. */
+  index: number;
+  /** Run status at capture time (running until the final frame). */
+  status: string;
+  /** Bundle-relative path to the screenshot. */
+  file: string;
+}
+
 export interface BrowserRunReport {
   surface: "browser";
   ok: boolean;
@@ -139,8 +149,10 @@ export interface BrowserRunReport {
   durationMs: number | null;
   summary: ExecutionSummary;
   consoleErrors: string[];
-  /** Bundle-relative path to the captured screenshot. */
+  /** Bundle-relative path to the final settled screenshot. */
   screenshotFile?: string;
+  /** Canvas screenshots captured at successive stages of the run. */
+  stages?: BrowserStageShot[];
   /** Bundle-relative path to the raw browser RunRecord JSON. */
   recordFile?: string;
   /** Set when the browser surface could not run (missing deps / browser). */

@@ -15,6 +15,7 @@ import type {
   E2EController,
   Manifest,
   RunRecord,
+  RunSnapshot,
   RunStatus,
   WorkflowRef,
   WsEvent
@@ -37,6 +38,8 @@ export interface HarnessState {
   adHocGraph: { nodes: unknown[]; edges: unknown[] } | null;
   /** Bumped each ad-hoc run so the canvas re-renders even though currentIndex is unchanged. */
   adHocNonce: number;
+  /** Monotonic stage counter for the in-flight ad-hoc run; bumped on status-bearing events. */
+  stage: number;
 }
 
 type Listener = (state: HarnessState) => void;
@@ -210,7 +213,8 @@ export class Harness {
     currentIndex: -1,
     nodeStatus: {},
     adHocGraph: null,
-    adHocNonce: 0
+    adHocNonce: 0,
+    stage: 0
   };
   private secretsAvailable: string[] = [];
   private graphCache = new Map<string, { nodes: unknown[]; edges: unknown[] }>();
@@ -465,13 +469,15 @@ export class Harness {
     rec.startedAt = startedAt;
 
     // Render the graph on the canvas and surface it in the sidebar/state.
+    // stage 1 marks the initial render before any node has reported.
     this.setState({
       state: "running",
       adHocGraph: graph,
       adHocNonce: this.state.adHocNonce + 1,
       nodeStatus: {},
       records: [rec],
-      currentIndex: 0
+      currentIndex: 0,
+      stage: 1
     });
 
     const ws = new HarnessWsClient();
@@ -504,13 +510,20 @@ export class Harness {
         rec.durationMs = rec.finishedAt - startedAt;
         if (error && !rec.error) rec.error = error;
         finalizeCounts(rec);
-        this.setState({ records: [rec], state: "done" });
+        this.setState({ records: [rec], state: "done", stage: this.state.stage + 1 });
         resolve();
       };
 
       const unsubscribe = ws.onMessage((msg: WsEvent) => {
         const terminal = reduceRecordEvent(rec, msg, nodeStatus);
-        this.setState({ records: [rec], nodeStatus: { ...nodeStatus } });
+        // A node starting/finishing or a job status change is a new visual
+        // stage worth a screenshot; chunks/edges/logs are not.
+        const advances = msg.type === "node_update" || msg.type === "job_update";
+        this.setState({
+          records: [rec],
+          nodeStatus: { ...nodeStatus },
+          ...(advances ? { stage: this.state.stage + 1 } : {})
+        });
         if (terminal) queueMicrotask(() => finish(terminal.status, terminal.error));
       });
 
@@ -524,6 +537,17 @@ export class Harness {
     return rec;
   }
 
+  /** Live view of the in-flight ad-hoc run, for staged screenshot capture. */
+  snapshot(): RunSnapshot {
+    const rec = this.state.records[0];
+    return {
+      settled: this.state.state === "done",
+      stage: this.state.stage,
+      status: rec?.status ?? this.state.state,
+      nodeStatus: this.state.nodeStatus
+    };
+  }
+
   controller(): E2EController {
     return {
       ready: Promise.resolve(),
@@ -533,7 +557,8 @@ export class Harness {
       runNext: () => this.runNext(),
       runAll: () => this.runAll(),
       currentIndex: () => this.state.currentIndex,
-      runGraph: (graph, params, options) => this.runGraph(graph, params, options)
+      runGraph: (graph, params, options) => this.runGraph(graph, params, options),
+      snapshot: () => this.snapshot()
     };
   }
 

@@ -146,6 +146,25 @@ export interface E2EController {
     params?: Record<string, unknown>,
     options?: AdHocRunOptions
   ) => Promise<RunRecord>;
+  /**
+   * Live snapshot of the in-flight ad-hoc run, for a driver that wants to
+   * capture the canvas at successive stages. `stage` increments on every
+   * status-bearing event (a node starting/finishing, the job settling) so the
+   * driver can screenshot only when the picture actually changed.
+   */
+  snapshot: () => RunSnapshot;
+}
+
+/** A point-in-time view of the current ad-hoc run. */
+export interface RunSnapshot {
+  /** True once the run has settled (completed/failed/error/timeout). */
+  settled: boolean;
+  /** Monotonic counter bumped on each status-bearing event. */
+  stage: number;
+  /** Current run status (running until settled). */
+  status: string;
+  /** Per-node status keyed by node id, for the current frame. */
+  nodeStatus: Record<string, string>;
 }
 
 declare global {

@@ -108,7 +108,13 @@ function browserSection(browser: BrowserRunReport): string[] {
     lines.push("", "**Console errors**");
     for (const err of browser.consoleErrors.slice(0, 20)) lines.push(`- ${err}`);
   }
-  if (browser.screenshotFile) lines.push("", `Screenshot: \`${browser.screenshotFile}\``);
+  if (browser.stages && browser.stages.length > 0) {
+    lines.push("", `**Stage screenshots** (${browser.stages.length})`);
+    for (const s of browser.stages) {
+      lines.push(`- \`${String(s.index).padStart(2, "0")}\` ${s.status} — \`${s.file}\``);
+    }
+  }
+  if (browser.screenshotFile) lines.push("", `Final screenshot: \`${browser.screenshotFile}\``);
   return lines;
 }
 

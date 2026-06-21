@@ -51,6 +51,13 @@ interface BrowserRecord {
   events?: Array<Record<string, unknown>>;
 }
 
+interface StageEntry {
+  index: number;
+  status: string;
+  /** Path relative to the browser out dir (e.g. "stages/00-running.png"). */
+  file: string;
+}
+
 function unavailable(reason: string): BrowserRunReport {
   return {
     surface: "browser",
@@ -156,5 +163,19 @@ export async function buildBrowserReport(
   if (existsSync(join(outDir, "screenshot.png"))) {
     report.screenshotFile = "browser/screenshot.png";
   }
+
+  if (existsSync(join(outDir, "stages.json"))) {
+    try {
+      const stages = JSON.parse(await readFile(join(outDir, "stages.json"), "utf8")) as StageEntry[];
+      report.stages = stages.map((s) => ({
+        index: s.index,
+        status: s.status,
+        file: `browser/${s.file}`
+      }));
+    } catch {
+      // A malformed stages manifest just means no staged screenshots.
+    }
+  }
+
   return report;
 }
