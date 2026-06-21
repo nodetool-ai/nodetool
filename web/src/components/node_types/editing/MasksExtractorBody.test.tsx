@@ -104,7 +104,6 @@ jest.mock("../../ui_primitives", () => ({
       {children}
     </button>
   ),
-  BORDER_RADIUS: jest.requireActual("../../ui_primitives/tokens").BORDER_RADIUS
 }));
 
 jest.mock("@mui/material/styles", () => ({
