@@ -6,11 +6,11 @@ import {
   MessageSquare,
   ImageIcon,
   Check,
-  Send,
-  Images,
-  Film,
-  AppWindow,
-  Globe,
+  Wand2,
+  Crop,
+  Paintbrush,
+  Scissors,
+  SlidersHorizontal,
 } from "lucide-react";
 
 type AccentColor = "blue" | "fuchsia" | "amber";
@@ -65,12 +65,12 @@ export default function BuildRunDeploy() {
 
         <Card
           step="03"
-          title="Publish anywhere"
-          icon={<Send className="h-6 w-6" />}
+          title="Edit and finish"
+          icon={<Wand2 className="h-6 w-6" />}
           accent="amber"
-          description="Send the output straight to a gallery, a video reel, a standalone app, or a live website. One canvas, every surface your audience sees."
+          description="Drop the generated image or clip into the built-in editors. Crop, mask, cut, and arrange on the timeline. Finish the piece without ever leaving the canvas."
         >
-          <DeployVisual />
+          <EditVisual />
         </Card>
       </div>
     </div>
@@ -225,47 +225,53 @@ function RunVisual() {
   );
 }
 
-function DeployTarget({
-  label,
-  icon,
-}: {
-  label: string;
-  icon: React.ReactNode;
-}) {
+function EditTool({ icon }: { icon: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-1.5">
-      <div className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-700/70 bg-slate-900/70 text-slate-200">
-        {icon}
-      </div>
-      <span className="text-[10px] font-medium text-slate-400">{label}</span>
+    <div className="flex h-7 w-7 items-center justify-center rounded-md border border-slate-700/70 bg-slate-900/70 text-slate-200">
+      {icon}
     </div>
   );
 }
 
-function DeployVisual() {
+function EditVisual() {
   return (
-    <div>
-      <div className="mb-3 flex items-center gap-2 text-[11px] font-medium">
-        <Check className="h-3 w-3 text-emerald-400" />
-        <span className="text-emerald-300">Published</span>
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center gap-3">
+        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-slate-800">
+          <img
+            src="/cat.png"
+            alt="Generated asset opened in the built-in editor"
+            className="h-full w-full object-cover"
+            loading="lazy"
+            decoding="async"
+          />
+          {/* Crop handles */}
+          <span className="pointer-events-none absolute left-0.5 top-0.5 h-2 w-2 border-l border-t border-amber-300/90" />
+          <span className="pointer-events-none absolute right-0.5 top-0.5 h-2 w-2 border-r border-t border-amber-300/90" />
+          <span className="pointer-events-none absolute bottom-0.5 left-0.5 h-2 w-2 border-b border-l border-amber-300/90" />
+          <span className="pointer-events-none absolute bottom-0.5 right-0.5 h-2 w-2 border-b border-r border-amber-300/90" />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[10px] uppercase tracking-wider text-slate-400">
+            Editors
+          </span>
+          <div className="flex gap-1.5">
+            <EditTool icon={<Crop className="h-3.5 w-3.5" />} />
+            <EditTool icon={<Paintbrush className="h-3.5 w-3.5" />} />
+            <EditTool icon={<Scissors className="h-3.5 w-3.5" />} />
+            <EditTool icon={<SlidersHorizontal className="h-3.5 w-3.5" />} />
+          </div>
+        </div>
       </div>
-      <div className="flex items-end justify-between gap-2 px-1">
-        <DeployTarget
-          label="Gallery"
-          icon={<Images className="h-5 w-5 text-fuchsia-300" />}
-        />
-        <DeployTarget
-          label="Video"
-          icon={<Film className="h-5 w-5 text-sky-400" />}
-        />
-        <DeployTarget
-          label="App"
-          icon={<AppWindow className="h-5 w-5 text-violet-400" />}
-        />
-        <DeployTarget
-          label="Website"
-          icon={<Globe className="h-5 w-5 text-emerald-300" />}
-        />
+
+      {/* Timeline — assemble the generated clips */}
+      <div className="relative rounded-md border border-slate-800 bg-slate-950/50 px-2 py-1.5">
+        <div className="flex items-center gap-1">
+          <div className="h-5 flex-[2] rounded-sm bg-sky-500/40" />
+          <div className="h-5 flex-[3] rounded-sm bg-fuchsia-500/40" />
+          <div className="h-5 flex-[1.5] rounded-sm bg-amber-500/40" />
+        </div>
+        <span className="pointer-events-none absolute inset-y-1 left-[42%] w-px bg-white/70" />
       </div>
     </div>
   );

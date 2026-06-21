@@ -363,6 +363,92 @@ export default function CreativesPage() {
           </div>
         </section>
 
+        {/* Timeline Editor Section */}
+        <section className="py-20 relative">
+          <div className="mx-auto max-w-7xl px-6 lg:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-12 max-w-3xl mx-auto"
+            >
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300/80 mb-3">
+                Built-in video editor
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 tracking-tight">
+                Generate AI video and audio straight onto the timeline.
+              </h2>
+              <p className="text-lg text-slate-400 leading-relaxed">
+                Type a prompt at the playhead, pick a model, and the new clip drops onto
+                the track — video and audio on one multi-track timeline. Trim, split, and
+                arrange like any editor, then export a finished cut without ever leaving
+                NodeTool.
+              </p>
+            </motion.div>
+
+            <motion.figure
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="relative"
+            >
+              <div className="relative rounded-2xl border border-white/10 bg-slate-900/50 backdrop-blur overflow-hidden shadow-2xl shadow-cyan-500/10">
+                <Image
+                  src="/creatives_timeline.png"
+                  alt="NodeTool's built-in timeline editor: a preview player above a multi-track timeline with AI-generated video clips on three video tracks and an audio waveform, plus a 'Generate a video at the playhead' prompt bar with a model selector and an Export button"
+                  width={2000}
+                  height={1220}
+                  className="w-full h-auto"
+                  loading="lazy"
+                />
+              </div>
+            </motion.figure>
+
+            <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                {
+                  title: "Generate at the playhead",
+                  description:
+                    "Prompt a model and the resulting clip lands on the track right under the playhead — no import step.",
+                  icon: Sparkles,
+                },
+                {
+                  title: "Multi-track video & audio",
+                  description:
+                    "AI video and AI audio sit on the same timeline. Stack tracks, trim, split, and rearrange clips.",
+                  icon: Layers,
+                },
+                {
+                  title: "Export a finished cut",
+                  description:
+                    "Render the whole sequence to a single video — the edit happens where you generate, not in another app.",
+                  icon: Download,
+                },
+              ].map((highlight, index) => (
+                <motion.div
+                  key={highlight.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  className="rounded-2xl border border-white/10 bg-[#0a0a14]/70 backdrop-blur-sm p-6"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center mb-4">
+                    <highlight.icon className="w-6 h-6 text-amber-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">
+                    {highlight.title}
+                  </h3>
+                  <p className="text-slate-400 leading-relaxed text-[0.95rem]">
+                    {highlight.description}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Creative Personas Section */}
         <section className="py-24 relative">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
