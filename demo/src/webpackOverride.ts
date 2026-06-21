@@ -14,6 +14,7 @@
  * gRPC package pulled in transitively), add its specifier to `IGNORE` below.
  */
 import path from "node:path";
+import webpack from "webpack";
 import type { WebpackOverrideFn } from "@remotion/bundler";
 
 // Remotion loads remotion.config.ts (which imports this file) as CJS, so
@@ -142,6 +143,15 @@ export const webpackOverride: WebpackOverrideFn = (config) => {
     // Top-level await (used by @nodetool-ai/config) needs webpack's experiment
     // enabled in addition to a TLA-capable esbuild target (see bumpEsbuildTargets).
     experiments: { ...config.experiments, topLevelAwait: true },
+    plugins: [
+      ...(config.plugins ?? []),
+      // resolve.alias does not intercept the `node:` scheme (same caveat Vite
+      // documents). Strip the prefix so the bare-name builtin aliases above
+      // resolve `node:fs` → `fs` → stub, etc.
+      new webpack.NormalModuleReplacementPlugin(/^node:/, (resource) => {
+        resource.request = resource.request.replace(/^node:/, "");
+      }),
+    ],
     module: {
       ...config.module,
       rules: [
