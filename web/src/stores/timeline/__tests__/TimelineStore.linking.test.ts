@@ -49,6 +49,73 @@ describe("getOrCreateAudioTrack", () => {
     expect(store.getState().getOrCreateAudioTrack()).toBe(existingId);
     expect(store.getState().tracks.filter((t) => t.type === "audio")).toHaveLength(1);
   });
+
+  it("reuses the audio track when the drop range is free", () => {
+    const store = createTimelineStore();
+    store.getState().addTrack("audio", "Audio 1");
+    const existingId = store.getState().tracks[0].id;
+    // A clip exists, but well after the requested range — no overlap.
+    store.getState().addClips([
+      makeClip({
+        trackId: existingId,
+        mediaType: "audio",
+        startMs: 10_000,
+        durationMs: 2000
+      })
+    ]);
+    expect(
+      store.getState().getOrCreateAudioTrack({ startMs: 0, durationMs: 5000 })
+    ).toBe(existingId);
+    expect(
+      store.getState().tracks.filter((t) => t.type === "audio")
+    ).toHaveLength(1);
+  });
+
+  it("creates a new audio track when the drop range overlaps an existing clip", () => {
+    const store = createTimelineStore();
+    store.getState().addTrack("audio", "Audio 1");
+    const existingId = store.getState().tracks[0].id;
+    store.getState().addClips([
+      makeClip({
+        trackId: existingId,
+        mediaType: "audio",
+        startMs: 0,
+        durationMs: 5000
+      })
+    ]);
+    // Requested range [3000, 8000) overlaps the existing [0, 5000) clip.
+    const id = store
+      .getState()
+      .getOrCreateAudioTrack({ startMs: 3000, durationMs: 5000 });
+    expect(id).not.toBe(existingId);
+    const track = store.getState().tracks.find((t) => t.id === id);
+    expect(track?.type).toBe("audio");
+    expect(
+      store.getState().tracks.filter((t) => t.type === "audio")
+    ).toHaveLength(2);
+  });
+
+  it("reuses a later free audio track instead of creating one", () => {
+    const store = createTimelineStore();
+    store.getState().addTrack("audio", "Audio 1");
+    store.getState().addTrack("audio", "Audio 2");
+    const [first, second] = store.getState().tracks;
+    // First track is occupied across the range; second is free.
+    store.getState().addClips([
+      makeClip({
+        trackId: first.id,
+        mediaType: "audio",
+        startMs: 0,
+        durationMs: 5000
+      })
+    ]);
+    expect(
+      store.getState().getOrCreateAudioTrack({ startMs: 1000, durationMs: 3000 })
+    ).toBe(second.id);
+    expect(
+      store.getState().tracks.filter((t) => t.type === "audio")
+    ).toHaveLength(2);
+  });
 });
 
 describe("linked move/trim/delete/unlink", () => {

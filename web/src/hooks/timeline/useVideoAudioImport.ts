@@ -37,12 +37,18 @@ export async function importVideoWithAudio(
 
   const videoClip = { ...assetToClip(asset, videoTrackId, startMs), linkId };
 
-  // Track existed before import? Used to decide whether to clean it up when
-  // the video turns out to have no audio.
-  const audioTrackPreexisted = store
-    .getState()
-    .tracks.some((t) => t.type === "audio");
-  const audioTrackId = store.getState().getOrCreateAudioTrack();
+  // Place the extracted audio on an audio track that is free at the drop
+  // position. If every existing audio track already has a clip overlapping
+  // this span, a new audio track is created. Remember whether THIS import
+  // created the track so it can be cleaned up if the video has no audio.
+  const trackIdsBefore = new Set(
+    store.getState().tracks.map((t) => t.id)
+  );
+  const audioTrackId = store.getState().getOrCreateAudioTrack({
+    startMs,
+    durationMs: videoClip.durationMs
+  });
+  const createdAudioTrack = !trackIdsBefore.has(audioTrackId);
 
   const audioClip = makeClip({
     trackId: audioTrackId,
@@ -107,7 +113,7 @@ export async function importVideoWithAudio(
       // and it is now empty.
       store.getState().deleteClip(audioClip.id);
       if (
-        !audioTrackPreexisted &&
+        createdAudioTrack &&
         !store.getState().clips.some((c) => c.trackId === audioTrackId)
       ) {
         store.getState().removeTrack(audioTrackId);

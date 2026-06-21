@@ -61,6 +61,10 @@ import { TimeRuler } from "./TimeRuler";
 import { Playhead } from "./Playhead";
 import { AddTrackButton } from "./AddTrackButton";
 import { ScriptToggleButton } from "./ScriptToggleButton";
+import {
+  TimelineScrollbar,
+  TIMELINE_SCROLLBAR_HEIGHT_PX
+} from "./TimelineScrollbar";
 import { TrackEffectsPanel } from "./TrackEffectsPanel";
 import {
   ScriptLane,
@@ -154,7 +158,11 @@ const headerColumnStyles = (theme: Theme) =>
 const scrollableAreaStyles = css({
   flex: "1 1 auto",
   overflowX: "auto",
-  overflowY: "hidden",
+  // Vertical scrolling lives here (not on the outer row) so the horizontal
+  // scrollbar stays pinned to the bottom of the visible viewport instead of
+  // sliding off-screen below a tall track stack. The header column's scrollTop
+  // is synced to this element so headers track the lanes vertically.
+  overflowY: "auto",
   position: "relative",
   // Keep an over-scrolled horizontal swipe from triggering the browser's
   // back/forward navigation (the wheel handler also preventDefaults).
@@ -178,7 +186,20 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const theme = useTheme();
 
     const tracks = useTimelineStore((s) => s.tracks);
-    const durationMs = useTimelineStore((s) => s.durationMs);
+    // Content extent for sizing the ruler / scroll width. The stored
+    // `durationMs` is not recomputed when clips are added or moved, so it can
+    // lag far behind the actual clips (it stays 0 for a freshly built
+    // timeline). Derive the real end from the clips so the scroll width — and
+    // thus the scrollbar — tracks zoom and content. The selector returns a
+    // single number, so this only re-renders when the max end changes.
+    const contentEndMs = useTimelineStore((s) => {
+      let maxEnd = s.durationMs;
+      for (const c of s.clips) {
+        const end = c.startMs + c.durationMs;
+        if (end > maxEnd) maxEnd = end;
+      }
+      return maxEnd;
+    });
     const hasScript = useHasScript();
 
     const msPerPx = useTimelineUIStore((s) => s.msPerPx);
@@ -207,6 +228,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const importVideoWithAudio = useVideoAudioImport();
 
     const scrollableRef = useRef<HTMLDivElement>(null);
+    const headerColumnRef = useRef<HTMLDivElement>(null);
 
     // ── Drop on empty area: auto-create a track of matching type ───────────
 
@@ -272,22 +294,37 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       ]
     );
 
-    // Total scrollable width = max of durationMs or visible area
+    // Total scrollable width from the real content extent, with a trailing pad
+    // so the last clip isn't flush against the edge.
     const totalWidthPx = Math.max(
-      durationMs / msPerPx + 200,
+      contentEndMs / msPerPx + 200,
       1000
     );
 
-    // Track area height minus toolbar + ruler
+    // Track area height minus toolbar + ruler + bottom scrollbar
     const TOOLBAR_HEIGHT = 36;
     const RULER_HEIGHT = 28;
-    const lanesHeight = Math.max(0, heightPx - TOOLBAR_HEIGHT - RULER_HEIGHT);
+    const lanesHeight = Math.max(
+      0,
+      heightPx - TOOLBAR_HEIGHT - RULER_HEIGHT - TIMELINE_SCROLLBAR_HEIGHT_PX
+    );
+
+    const scrollToLeft = useCallback((px: number) => {
+      if (scrollableRef.current) {
+        scrollableRef.current.scrollLeft = px;
+      }
+    }, []);
 
     // ── Scroll sync ────────────────────────────────────────────────────────
 
     const handleScroll = useCallback(
       (e: React.UIEvent<HTMLDivElement>) => {
         setScrollLeftPx(e.currentTarget.scrollLeft);
+        // Keep the header column vertically aligned with the lanes (the column
+        // clips its own overflow and is scrolled programmatically from here).
+        if (headerColumnRef.current) {
+          headerColumnRef.current.scrollTop = e.currentTarget.scrollTop;
+        }
       },
       [setScrollLeftPx]
     );
@@ -310,6 +347,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const zoomAnchorRef = useRef<{ timeMs: number; cursorPx: number } | null>(
       null
     );
+    // Previous scale, so a zoom from the buttons/slider (no cursor anchor) can
+    // keep the playhead pinned to the same viewport x as the lanes rescale.
+    const prevMsPerPxRef = useRef(msPerPx);
 
     useEffect(() => {
       const el = scrollableRef.current;
@@ -357,13 +397,51 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       return () => el.removeEventListener("wheel", onWheel);
     }, [msPerPx, setZoom]);
 
+    // The header column clips its overflow, so a wheel over it would otherwise
+    // do nothing. Forward a vertical wheel to the lanes scroller (whose onScroll
+    // syncs the column back), matching the pre-split behavior where the whole
+    // row scrolled together.
+    useEffect(() => {
+      const header = headerColumnRef.current;
+      if (!header) return;
+      const onWheel = (e: WheelEvent) => {
+        if (e.ctrlKey || e.metaKey) return;
+        const lanes = scrollableRef.current;
+        if (!lanes) return;
+        const max = Math.max(0, lanes.scrollHeight - lanes.clientHeight);
+        if (max <= 0) return;
+        e.preventDefault();
+        lanes.scrollTop = Math.min(
+          max,
+          Math.max(0, lanes.scrollTop + e.deltaY)
+        );
+      };
+      header.addEventListener("wheel", onWheel, { passive: false });
+      return () => header.removeEventListener("wheel", onWheel);
+    }, []);
+
     useLayoutEffect(() => {
       const el = scrollableRef.current;
+      const prevMsPerPx = prevMsPerPxRef.current;
+      prevMsPerPxRef.current = msPerPx;
+      if (!el) return;
+
+      // Ctrl+wheel set an explicit cursor anchor — keep that timeline point
+      // under the pointer.
       const anchor = zoomAnchorRef.current;
-      if (!el || !anchor) return;
-      zoomAnchorRef.current = null;
-      el.scrollLeft = Math.max(0, anchor.timeMs / msPerPx - anchor.cursorPx);
-    }, [msPerPx]);
+      if (anchor) {
+        zoomAnchorRef.current = null;
+        el.scrollLeft = Math.max(0, anchor.timeMs / msPerPx - anchor.cursorPx);
+        return;
+      }
+
+      // Otherwise this is a button/slider zoom: keep the playhead at the same
+      // viewport x while the lanes rescale ("zoom into the playhead").
+      if (prevMsPerPx === msPerPx) return;
+      const playMs = playbackStore.getState().currentTimeMs;
+      const playheadViewportPx = playMs / prevMsPerPx - el.scrollLeft;
+      el.scrollLeft = Math.max(0, playMs / msPerPx - playheadViewportPx);
+    }, [msPerPx, playbackStore]);
 
     // ── Keyboard shortcuts ─────────────────────────────────────────────────
     //
@@ -591,8 +669,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         <FlexRow
           sx={{
             height: lanesHeight,
-            overflowY: "auto",
-            overflowX: "hidden",
+            overflow: "hidden",
             alignItems: "flex-start"
           }}
           fullWidth
@@ -600,8 +677,13 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           onDragOver={handleEmptyAreaDragOver}
           onDrop={handleEmptyAreaDrop}
         >
-          {/* Header column */}
-          <div css={headerColumnStyles(theme)}>
+          {/* Header column — clips vertically; scrolled in sync with the lanes
+              via handleScroll so headers line up with their lanes. */}
+          <div
+            ref={headerColumnRef}
+            css={headerColumnStyles(theme)}
+            style={{ height: lanesHeight }}
+          >
             {tracks.map((track) => (
               <React.Fragment key={track.id}>
                 {hasScript && track.id === scriptBeforeTrackId && (
@@ -623,6 +705,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           <div
             ref={scrollableRef}
             css={scrollableAreaStyles}
+            style={{ height: lanesHeight }}
             onScroll={handleScroll}
             data-testid="tracks-scroll-area"
           >
@@ -657,6 +740,15 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             </div>
           </div>
         </FlexRow>
+
+        {/* ── Horizontal scrollbar (always visible, CapCut-style) ─────────── */}
+        <TimelineScrollbar
+          contentWidthPx={totalWidthPx}
+          viewportWidthPx={fxPanelWidth}
+          scrollLeftPx={scrollLeftPx}
+          leftInsetPx={TRACK_HEADER_WIDTH_PX}
+          onScrollTo={scrollToLeft}
+        />
 
         {/* Playhead overlay: spans ruler + lanes so the pill sits in the
          *  ruler. Positioned at the TracksRegion level so it isn't clipped

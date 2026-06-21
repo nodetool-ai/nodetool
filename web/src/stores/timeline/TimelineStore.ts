@@ -200,10 +200,20 @@ export interface TimelineStoreState {
   addClips: (clips: TimelineClip[]) => void;
 
   /**
-   * Return the id of the first audio track, creating one named "Audio"
-   * (appended after existing tracks) if none exists.
+   * Return the id of an audio track to drop an audio clip onto, creating one
+   * named "Audio" (appended after existing tracks) when needed.
+   *
+   * Without `range`, returns the first audio track (or creates one).
+   *
+   * With `range` ([startMs, startMs+durationMs)), returns the first audio track
+   * that is free across that span; if every audio track already has a clip
+   * overlapping it (or none exist), a fresh audio track is created so the new
+   * clip never overlaps an existing one.
    */
-  getOrCreateAudioTrack: () => string;
+  getOrCreateAudioTrack: (range?: {
+    startMs: number;
+    durationMs: number;
+  }) => string;
 
   /**
    * Remove the `linkId` from every clip in the acted clip's link group,
@@ -710,11 +720,29 @@ export const createTimelineStore = (
             return { tracks: [...state.tracks, track] };
           }),
 
-        getOrCreateAudioTrack: () => {
-          const existing = get().tracks.find((t) => t.type === "audio");
-          if (existing) {
-            return existing.id;
+        getOrCreateAudioTrack: (range) => {
+          const audioTracks = get().tracks.filter((t) => t.type === "audio");
+
+          // With a range, reuse an audio track only when it has room across the
+          // whole span; otherwise (all spans occupied, or no audio track yet)
+          // fall through and create a fresh one. Without a range, reuse the
+          // first audio track if any exists.
+          const reusable = range
+            ? audioTracks.find((track) => {
+                const endMs = range.startMs + range.durationMs;
+                return !get().clips.some(
+                  (c) =>
+                    c.trackId === track.id &&
+                    c.startMs < endMs &&
+                    c.startMs + c.durationMs > range.startMs
+                );
+              })
+            : audioTracks[0];
+
+          if (reusable) {
+            return reusable.id;
           }
+
           const track = makeTrack({
             type: "audio",
             name: "Audio",
