@@ -53,8 +53,7 @@
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "9d8850a4-c20f-4698-9cb4-e315c956aee6",
@@ -75,8 +74,7 @@
           "title": "2️⃣ Sharpen"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "4c9c6b63-646a-4da9-8794-abd180c59041",
@@ -97,8 +95,7 @@
           "title": "3️⃣ Auto contrast"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "0c458df1-e2b2-4662-a9aa-00f2ceaae799",
@@ -124,8 +121,7 @@
           "title": "1️⃣ Load image"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ]
   },

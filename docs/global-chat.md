@@ -151,8 +151,6 @@ NodeTool supports MCP for connecting to external tool servers. This enables inte
 
 ## Standalone Chat Window
 
-![Standalone Chat](assets/screenshots/standalone-chat.png)
-
 Access chat in a focused, dedicated window outside the main app:
 
 1. Click the NodeTool icon in your system tray

@@ -7,7 +7,7 @@ import { memo, useCallback } from "react";
 import { PropertyProps } from "../node/PropertyInput";
 import { ColumnDef } from "../../stores/ApiTypes";
 import ColumnsManager from "../node/ColumnsManager";
-import { EditorButton, ButtonGroup } from "../ui_primitives";
+import { EditorButton, ButtonGroup, BORDER_RADIUS } from "../ui_primitives";
 // icons
 import TableRowsIcon from "@mui/icons-material/TableRows";
 import isEqual from "fast-deep-equal";
@@ -36,7 +36,7 @@ const styles = (theme: Theme) =>
       margin: 0,
       gap: "0.25em",
       padding: ".1em 1em 0 .5em",
-      borderRadius: "var(--rounded-sm)"
+      borderRadius: BORDER_RADIUS.sm
     },
     "button:hover": {
       color: theme.vars.palette.grey[0]

@@ -31,4 +31,4 @@ Prompt-driven email skill for IMAP/SMTP and message processing tasks.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.agents](../) namespace.
+Browse other nodes in the [nodetool.agents](./) namespace.

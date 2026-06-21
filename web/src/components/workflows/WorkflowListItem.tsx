@@ -296,7 +296,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
               fontWeight: 600,
               textTransform: "none",
               lineHeight: 1.4,
-              borderRadius: "var(--rounded-xs)",
+              borderRadius: BORDER_RADIUS.xs,
               boxShadow: "none",
               backgroundColor: "action.selected",
               border: "1px solid",

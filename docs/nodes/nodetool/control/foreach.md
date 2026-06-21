@@ -34,4 +34,4 @@ Iterate over a list and emit each item sequentially.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.control](../) namespace.
+Browse other nodes in the [nodetool.control](./) namespace.

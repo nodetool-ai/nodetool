@@ -45,8 +45,6 @@ Cloud-only: open **Settings → Providers** and paste a key from [OpenAI](https:
 
 Open a template from the Dashboard.
 
-![Templates](assets/screenshots/templates-grid.png)
-
 ### Movie Posters
 
 1. Dashboard → Templates → **Movie Posters**.

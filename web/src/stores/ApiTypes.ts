@@ -25,6 +25,7 @@ import {
   FileInfo,
   FolderRef,
   FontRef,
+  GenerationComplete,
   HuggingFaceModel,
   ImageModel,
   ImageRef,
@@ -134,6 +135,7 @@ export type { ErrorMessage };
 export type { FileInfo };
 export type { FolderRef };
 export type { FontRef };
+export type { GenerationComplete };
 export type { HuggingFaceModel };
 export type { ImageModel };
 export type { ImageRef };

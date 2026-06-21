@@ -35,4 +35,4 @@ Applies a bitcrushing effect to an audio file, reducing bit depth and/or sample 
 
 ## Related Nodes
 
-Browse other nodes in the [lib.audio](../) namespace.
+Browse other nodes in the [lib.audio](./) namespace.

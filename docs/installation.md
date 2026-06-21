@@ -181,7 +181,7 @@ You should see your GPU model and driver version. NodeTool requires:
 
 **"CUDA out of memory"**
 - Close other GPU-intensive applications (browsers, games, other AI tools)
-- Use smaller/quantized models (see [Hardware Requirements](#hardware-requirements-by-task))
+- Use smaller/quantized models (see [Hardware Requirements](#what-different-tasks-need))
 - Reduce batch sizes in workflow settings
 - Check if another process is using GPU: `nvidia-smi` shows GPU memory usage
 

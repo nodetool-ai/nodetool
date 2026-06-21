@@ -29,8 +29,8 @@ Generate structured JSON objects from instructions using LLM providers.
 | instructions | `str` | Detailed instructions for the structured output. | `` |
 | context | `str` | Optional context to ground the generation. | `` |
 | max_tokens | `int` | The maximum number of tokens to generate. | `4096` |
-| image | `image` | Optional image to include in the generation request. | `{"type":"image","uri":"","asset_id":null,"data"...` |
-| audio | `audio` | Optional audio to include in the generation request. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
+| image | `list[image]` | Optional images to include in the generation request. Accepts a list, or a single Image (auto-wrapped). Each becomes a separate block in the message sent to the provider. | `[]` |
+| audio | `list[audio]` | Optional audio to include in the generation request. Accepts a list, or a single Audio (auto-wrapped). Each becomes a separate block in the message sent to the provider. | `[]` |
 
 ## Outputs
 
@@ -38,4 +38,4 @@ _(none)_
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.generators](../) namespace.
+Browse other nodes in the [nodetool.generators](./) namespace.

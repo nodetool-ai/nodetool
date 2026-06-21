@@ -40,4 +40,4 @@ Transcribe audio to text using Google's Gemini models.
 
 ## Related Nodes
 
-Browse other nodes in the [gemini.audio](../) namespace.
+Browse other nodes in the [gemini.audio](./) namespace.

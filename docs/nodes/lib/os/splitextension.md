@@ -29,8 +29,9 @@ Split a path into root and extension components.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `dict` |  |
+| root | `str` |  |
+| extension | `str` |  |
 
 ## Related Nodes
 
-Browse other nodes in the [lib.os](../) namespace.
+Browse other nodes in the [lib.os](./) namespace.

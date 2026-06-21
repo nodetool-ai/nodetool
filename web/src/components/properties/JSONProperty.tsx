@@ -6,7 +6,7 @@ import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
 import isEqual from "fast-deep-equal";
 import { useTheme } from "@mui/material/styles";
-import { CopyButton, LoadingSpinner, ToolbarIconButton, SPACING } from "../ui_primitives";
+import { CopyButton, LoadingSpinner, ToolbarIconButton, SPACING, BORDER_RADIUS } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import TextEditorModal from "./TextEditorModal";
 import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
@@ -172,7 +172,7 @@ const JSONProperty = (props: PropertyProps) => {
           overflow: "hidden",
           backgroundColor: "var(--palette-grey-600)",
           border: "1px solid var(--palette-grey-500)",
-          borderRadius: "var(--rounded-sm)"
+          borderRadius: BORDER_RADIUS.sm
         },
         ".editor-wrapper:focus-within": {
           borderColor: "var(--palette-grey-400)"

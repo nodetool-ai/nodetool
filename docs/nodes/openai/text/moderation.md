@@ -41,4 +41,4 @@ Check text content for potential policy violations using OpenAI's moderation API
 
 ## Related Nodes
 
-Browse other nodes in the [openai.text](../) namespace.
+Browse other nodes in the [openai.text](./) namespace.

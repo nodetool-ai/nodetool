@@ -22,9 +22,9 @@ The home screen. Search, recent workflows, templates, and quick chat.
 
 Docs: [Getting Started](getting-started.md)
 
-### Workflow Editor — `/editor/:workflow`
+### Workflow Editor — `/workspace`
 
-The main visual editor. Build workflows by connecting nodes on an infinite canvas, with panels on every edge: left drawer, right inspector, bottom diagnostics, floating toolbar, node menu, and tabs.
+The main visual editor. Build workflows by connecting nodes on an infinite canvas, with panels on every edge: left drawer, right inspector, bottom diagnostics, floating toolbar, node menu, and tabs. (The legacy `/editor/:workflow` URL redirects into this unified `/workspace` shell.)
 
 ![Workflow Editor](assets/screenshots/editor-empty-state.png)
 
@@ -70,11 +70,9 @@ Group related documents into indexable collections for RAG workflows.
 
 Docs: [Collections](collections.md) · [Indexing](indexing.md)
 
-### Templates Gallery — `/templates`
+### Examples / Templates — `/examples`
 
-Ready-to-use example workflows organized by tag and use case.
-
-![Templates Grid](assets/screenshots/templates-grid.png)
+Ready-to-use example workflows organized by tag and use case. Templates also surface on the Dashboard.
 
 Docs: [Templates Gallery](templates-gallery.md)
 
@@ -120,19 +118,21 @@ Five workspaces:
 
 ---
 
-## The App Header
+## The App Menu
 
-The header bar is your creative command center (always visible at the top):
+The logo at the top of the left rail opens the app menu — your navigation hub:
 
-![App Header](assets/screenshots/app-header.png)
+![App Menu](assets/screenshots/app-header.png)
 
-- **Logo/Title** – Click to return to Dashboard
-- **Models** – Manage your AI models (Flux, Qwen Image, etc.)
-- **Assets** – Access your media library
-- **Templates** – Browse creative workflow templates
-- **Chat** – Open conversational AI mode
+- **Dashboard** – Home screen
+- **Examples** – Browse ready-to-run example workflows
+- **Costs** – Usage and cost tracking
+- **Model Manager** – Manage your AI models (Flux, Qwen Image, etc.)
+- **Collections** – RAG document collections
+- **Workspaces** – Configure workspace folders (when enabled)
 - **Settings** – Configure API keys, preferences, account
-- **Download indicator** – Shows model/asset download progress
+- **Help** – Documentation and support
+- **Downloads** – Model/asset download progress
 
 ---
 
@@ -230,8 +230,6 @@ AI assistant built into NodeTool.
 | **Agent Mode** | Let the AI use tools and modify your canvas |
 
 ### Standalone Chat Window
-
-![Standalone Chat](assets/screenshots/standalone-chat.png)
 
 Access chat directly from the system tray for quick conversations:
 
@@ -343,7 +341,7 @@ Your layout is saved automatically. To reset:
 
 ## Command Menu
 
-Press `Alt+K` (Windows/Linux) or `⌘+K` (Mac) to open the **Command Menu**.
+Press `Ctrl+K` (Windows/Linux) or `⌘+K` (Mac) to open the **Command Menu**.
 
 ![Command Menu](assets/screenshots/screenshot-placeholder.svg)
 
@@ -376,7 +374,7 @@ Just start typing what you want!
 
 | Shortcut | Action |
 |----------|--------|
-| `Alt+K` / `⌘+K` | Command Menu |
+| `Ctrl+K` / `⌘+K` | Command Menu |
 | `Ctrl/⌘+N` | New workflow |
 | `Ctrl/⌘+O` | Open workflow |
 | `Ctrl/⌘+S` | Save |

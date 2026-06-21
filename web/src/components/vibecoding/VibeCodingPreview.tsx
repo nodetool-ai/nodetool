@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import CodeIcon from "@mui/icons-material/Code";
-import { RefreshButton, LoadingSpinner, Text, ToolbarIconButton, Box } from "../ui_primitives";
+import { RefreshButton, LoadingSpinner, Text, ToolbarIconButton, Box, BORDER_RADIUS } from "../ui_primitives";
 import { BASE_URL, UNIFIED_WS_URL } from "../../stores/BASE_URL";
 import { injectRuntimeConfig } from "./utils/extractHtml";
 import type { Theme } from "@mui/material/styles";
@@ -16,7 +16,7 @@ const createStyles = (theme: Theme) =>
       flexDirection: "column",
       height: "100%",
       backgroundColor: theme.palette.background.default,
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       overflow: "hidden"
     },
     ".preview-header": {

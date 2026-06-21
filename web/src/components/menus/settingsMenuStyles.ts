@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import type { CSSObject } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS } from "../ui_primitives";
 
 export const settingsStyles = (theme: Theme): CSSObject => ({
   display: "flex",
@@ -162,7 +162,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     cursor: "pointer",
     userSelect: "none",
     transition: `all ${MOTION.fast}`,
-    borderRadius: "var(--rounded-sm)",
+    borderRadius: BORDER_RADIUS.sm,
     outline: "none",
     "&:hover": {
       opacity: 1,
@@ -210,7 +210,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     },
     "&::-webkit-scrollbar-thumb": {
       background: theme.vars.palette.action.disabledBackground,
-      borderRadius: "var(--rounded-sm)"
+      borderRadius: BORDER_RADIUS.sm
     },
     "&::-webkit-scrollbar-thumb:hover": {
       background: theme.vars.palette.action.disabled
@@ -420,7 +420,7 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
     padding: "0.4em 0.6em",
     marginTop: "0",
     backgroundColor: theme.vars.palette.background.paper,
-    borderRadius: "var(--rounded-lg)",
+    borderRadius: BORDER_RADIUS.lg,
     transition: `background-color ${MOTION.normal}`,
     "&:hover": {
       backgroundColor: theme.vars.palette.background.default

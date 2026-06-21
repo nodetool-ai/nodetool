@@ -248,7 +248,7 @@ const treeStyles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmall)",
       background: theme.vars.palette.background.default,
       padding: "0.35rem 0.5rem",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       maxHeight: "20rem",
       overflow: "auto"
     },

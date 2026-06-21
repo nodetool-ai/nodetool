@@ -39,4 +39,4 @@ List recent SMS/MMS messages from a Twilio account.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.twilio](../) namespace.
+Browse other nodes in the [lib.twilio](./) namespace.

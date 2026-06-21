@@ -1,6 +1,6 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION } from "../../ui_primitives";
+import { MOTION, BORDER_RADIUS } from "../../ui_primitives";
 
 export const createStyles = (theme: Theme) => ({
   chatThreadViewRoot: css({
@@ -32,7 +32,7 @@ export const createStyles = (theme: Theme) => ({
     },
     "&::-webkit-scrollbar-thumb": {
       background: `${theme.vars.palette.action.disabled} !important`,
-      borderRadius: "var(--rounded-sm)"
+      borderRadius: BORDER_RADIUS.sm
     },
     "&::-webkit-scrollbar-thumb:hover": {
       background: `${theme.vars.palette.warning.main} !important`
@@ -51,7 +51,7 @@ export const createStyles = (theme: Theme) => ({
       fontSize: theme.fontSizeNormal,
       marginBottom: "0.5em",
       padding: "0.5em 0",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       position: "relative",
       display: "flex",
       flexDirection: "column",
@@ -263,7 +263,7 @@ export const createStyles = (theme: Theme) => ({
     ".error-message": {
       backgroundColor: theme.vars.palette.error.dark,
       border: `1px solid ${theme.vars.palette.error.main}`,
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       padding: "1em",
       color: theme.vars.palette.error.contrastText,
       "& .markdown": {
@@ -304,7 +304,7 @@ export const createStyles = (theme: Theme) => ({
     ".dot": {
       width: "10px",
       height: "10px",
-      borderRadius: "var(--rounded-circle)",
+      borderRadius: BORDER_RADIUS.circle,
       backgroundColor: theme.vars.palette.text.secondary,
       margin: theme.spacing(0, 1.5)
     },
@@ -518,7 +518,7 @@ export const createStyles = (theme: Theme) => ({
       gap: "0.5rem",
       marginBottom: "1.5rem",
       padding: "0.75rem",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`
     },

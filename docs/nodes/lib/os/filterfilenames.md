@@ -35,4 +35,4 @@ Filter a list of filenames using Unix shell-style wildcards.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.os](../) namespace.
+Browse other nodes in the [lib.os](./) namespace.

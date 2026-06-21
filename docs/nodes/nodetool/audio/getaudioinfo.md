@@ -32,4 +32,4 @@ Extract metadata from an audio file: duration, sample rate, channels, format.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.audio](../) namespace.
+Browse other nodes in the [nodetool.audio](./) namespace.

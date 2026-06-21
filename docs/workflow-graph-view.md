@@ -26,18 +26,11 @@ This makes it lightweight (~5× smaller bundle) and safe to expose behind a read
 
 ## Interactions
 
-The graph view supports the read-only subset of the editor:
+The graph view is fully static — it's a snapshot, not an interactive canvas. Nodes can't be dragged, connected, or selected; panning, scroll-zoom, pinch-zoom, and double-click-zoom are all disabled.
 
-| Action | How |
-|--------|-----|
-| Pan | Click-and-drag the canvas |
-| Zoom | `Ctrl/⌘` + scroll |
-| Fit view | Press `F` |
-| Hover a node | See its name and status |
-| Click a node | Open its read-only property panel |
-| Copy share link | Use the browser URL |
+The view **auto-fits the whole graph to the viewport once** when it loads, so the entire workflow is visible without any interaction. Running the workflow is not possible from this view — open it in the editor first.
 
-Running the workflow is not possible from this view — users must open it in the editor first.
+To pass a workflow inline (without a stored ID), supply base64-encoded workflow JSON via the `?data=` query parameter. Optional `?bg=` and `?padding=` parameters control the background color and fit padding.
 
 ---
 
@@ -56,12 +49,6 @@ You can embed the graph view inside another page with an iframe:
 ```
 
 For stored Markdown docs, take a screenshot instead so the graph is captured even when the server is offline.
-
----
-
-## Exporting a Graph Image
-
-From the read-only view, press `Shift+E` to download a PNG of the current viewport, or use the **Export** button in the header. The image includes the workflow title, so it's ready for blog posts and slides.
 
 ---
 

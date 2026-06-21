@@ -32,4 +32,4 @@ _(none)_
 
 ## Related Nodes
 
-Browse other nodes in the [lib.excel](../) namespace.
+Browse other nodes in the [lib.excel](./) namespace.

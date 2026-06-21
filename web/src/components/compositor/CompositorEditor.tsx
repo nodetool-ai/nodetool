@@ -24,8 +24,7 @@ import {
   FlexColumn,
   FlexRow,
   StateIconButton,
-  Text
-} from "../ui_primitives";
+  Text, BORDER_RADIUS } from "../ui_primitives";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import NumberInput from "../inputs/NumberInput";
 import LayerRow from "../node_types/editing/LayerRow";
@@ -99,7 +98,7 @@ const styles = (theme: Theme) =>
       gap: theme.spacing(0.5)
     },
     ".layer-slot": {
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       border: "1px solid transparent",
       cursor: "pointer",
       "&.selected": {

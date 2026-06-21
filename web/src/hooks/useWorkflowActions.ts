@@ -92,7 +92,7 @@ export const useWorkflowActions = (): WorkflowActions => {
   );
 
   const handleViewAllTemplates = useCallback(() => {
-    navigate("/dashboard");
+    navigate("/examples");
   }, [navigate]);
 
   return {

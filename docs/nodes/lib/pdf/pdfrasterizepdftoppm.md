@@ -32,4 +32,4 @@ Rasterize PDF pages with poppler's pdftoppm. Higher fidelity than the PDFium-bas
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pdf](../) namespace.
+Browse other nodes in the [lib.pdf](./) namespace.

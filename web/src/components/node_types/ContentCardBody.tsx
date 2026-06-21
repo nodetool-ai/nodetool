@@ -35,8 +35,7 @@ import {
   CheckerDropzone,
   DynamicInputButton,
   FlexRow,
-  VideoPlayer
-} from "../ui_primitives";
+  VideoPlayer, BORDER_RADIUS } from "../ui_primitives";
 import { NodeInputs } from "../node/NodeInputs";
 import HandleColumn from "../node/HandleColumn";
 import ImageView from "../node/ImageView";
@@ -86,11 +85,16 @@ const styles = (theme: Theme) =>
     },
     // Text variant inherits the node body color instead of the dark media
     // backdrop — keeps text content visually flush with the rest of the
-    // node and matches the PreviewNode look. The height is capped so a long
-    // (or streaming) generation scrolls inside the card instead of growing
-    // the node unbounded; the "expand" button opens the full text in a popup.
+    // node and matches the PreviewNode look.
     "&[data-content-card-variant=\"text\"] .preview-area": {
-      backgroundColor: "transparent",
+      backgroundColor: "transparent"
+    },
+    // Cap the text preview height ONLY while the node is auto-sized, so a long
+    // (or streaming) generation scrolls inside the card instead of growing the
+    // node unbounded (the "expand" button opens the full text in a popup). Once
+    // the user resizes the node, the cap lifts and the preview fills the
+    // available height (`.preview-area` is flex: 1 1 auto).
+    "&[data-content-card-variant=\"text\"]:not([data-node-sized]) .preview-area": {
       maxHeight: theme.spacing(30)
     },
     // Preview keeps a minimum strip when the node is resized very small;
@@ -99,7 +103,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       flex: "1 1 auto",
       minHeight: theme.spacing(6),
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       // Allow the handle column to extend past the preview's left edge so
       // the handle dots align with the card's outer edge (compensates for
       // the body's padding).
@@ -128,7 +132,7 @@ const styles = (theme: Theme) =>
       ".image-grid-tile": {
         aspectRatio: "1 / 1",
         minHeight: theme.spacing(8),
-        borderRadius: "var(--rounded-sm)",
+        borderRadius: BORDER_RADIUS.sm,
         overflow: "hidden"
       },
       ".image-grid-tile .image-output": {
@@ -540,6 +544,14 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
     [primaryOutput]
   );
 
+  // Whether the user has explicitly resized the node (React Flow writes the
+  // dragged height onto `node.height`; it is undefined while auto-sized). When
+  // sized, the text preview drops its default height cap and fills the node.
+  const isNodeSized = useNodes((s) => {
+    const h = s.findNode(id)?.height;
+    return typeof h === "number" && h > 0;
+  });
+
   const result = useNodeResultValue(workflowId, id);
   const { lastJobAssets } = useNodeResultHistory(workflowId, id);
 
@@ -637,11 +649,24 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
     [variant]
   );
 
+  // The in-card variants grid: render an ARRAY of variant values. Only image
+  // variants get this — ImagePreview grids an array via `.image-grid-preview`.
+  // Video/audio/model_3d omit it so NodeHistoryViewer falls back to its own
+  // `.thumb` grid.
+  const renderVariants = useCallback(
+    (values: unknown[]) =>
+      variant === "image" || variant === "image_mask" ? (
+        <PreviewArea variant={variant} value={values} />
+      ) : null,
+    [variant]
+  );
+
   return (
     <div
       css={cssStyles}
       className="content-card-body node-drag-handle"
       data-content-card-variant={variant}
+      data-node-sized={isNodeSized ? "true" : undefined}
     >
       <div className="preview-area">
         {usesHistoryNavigator ? (
@@ -650,6 +675,11 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
             nodeId={id}
             liveResult={liveResolvedResult}
             renderSingle={renderSingle}
+            renderVariants={
+              variant === "image" || variant === "image_mask"
+                ? renderVariants
+                : undefined
+            }
           />
         ) : (
           <PreviewArea variant={variant} value={fallbackPreviewValue} />

@@ -76,7 +76,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
       transition: MOTION.opacity,
       zIndex: 1,
       background: theme.vars.palette.background.paper,
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       padding: "4px 6px",
       boxShadow: `0 1px 4px ${theme.vars.palette.action.focus}`,
     },
@@ -89,7 +89,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
       fontSize: "var(--fontSizeBig)",
       cursor: "pointer",
       padding: 4,
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       color: theme.vars.palette.text.secondary,
       transition: `color ${MOTION.fast}, background ${MOTION.fast}`,
       "&:hover": {

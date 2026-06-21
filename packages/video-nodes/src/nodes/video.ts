@@ -19,6 +19,54 @@ type VideoRefLike = { uri?: string; data?: Uint8Array | string };
 type ImageRefLike = { uri?: string; data?: Uint8Array | string };
 const execFile = promisify(execFileCb);
 
+/**
+ * Whether `err` is a "binary not on PATH" failure (ffmpeg/ffprobe missing)
+ * rather than the tool running and reporting a filtergraph/codec error. A
+ * missing binary is never recoverable by retrying with simpler args, so
+ * callers must surface a clear install message instead of silently returning
+ * the input unchanged (a no-op effect is indistinguishable from a real one).
+ */
+function isMissingBinaryError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  return (err as { code?: unknown }).code === "ENOENT";
+}
+
+/** Actionable error for a missing ffmpeg binary, matching the audio pattern. */
+function ffmpegMissingError(): Error {
+  return new Error(
+    "ffmpeg is not installed or not on PATH. Install ffmpeg (the Package " +
+      "Manager UI can do this) to process video — these nodes shell out to " +
+      "ffmpeg/ffprobe and cannot run without it."
+  );
+}
+
+/** True for the actionable error produced by {@link ffmpegMissingError}. */
+function isFfmpegMissingError(err: unknown): boolean {
+  return (
+    err instanceof Error &&
+    err.message.startsWith("ffmpeg is not installed")
+  );
+}
+
+/**
+ * Run ffmpeg, translating a missing-binary failure (spawn ENOENT) into the
+ * actionable {@link ffmpegMissingError}. A genuine ffmpeg failure (non-zero
+ * exit) rejects unchanged so callers can fall back. Scoping the ENOENT check to
+ * the spawn itself — not the surrounding fs reads/writes — keeps an unrelated
+ * filesystem ENOENT from being mislabeled as a missing binary.
+ */
+async function execFfmpeg(
+  args: string[],
+  options: { maxBuffer?: number } = {}
+): Promise<void> {
+  try {
+    await execFile("ffmpeg", args, options);
+  } catch (error) {
+    if (isMissingBinaryError(error)) throw ffmpegMissingError();
+    throw error;
+  }
+}
+
 async function videoBytesAsync(video: unknown, context?: ProcessingContext): Promise<Uint8Array> {
   if (!video || typeof video !== "object") return new Uint8Array();
   const bytes = await loadMediaRefBytes(video as VideoRefLike, context);
@@ -186,8 +234,7 @@ async function combineFramesToVideo(
       }
       const rawPath = path.join(inputDir, "frames.raw");
       await fs.writeFile(rawPath, Buffer.concat(chunks));
-      await execFile(
-        "ffmpeg",
+      await execFfmpeg(
         [
           "-y",
           "-f", "rawvideo",
@@ -216,8 +263,7 @@ async function combineFramesToVideo(
         );
       }
       if (written === 0) return new Uint8Array();
-      await execFile(
-        "ffmpeg",
+      await execFfmpeg(
         [
           "-y",
           "-framerate", String(fps),
@@ -231,6 +277,9 @@ async function combineFramesToVideo(
     }
     return new Uint8Array(await fs.readFile(outputPath));
   } finally {
+    // execFfmpeg already maps a missing binary to a clear error; a genuine
+    // fs error (writing frames / reading output) propagates as itself rather
+    // than being mislabeled.
     await fs.rm(inputDir, { recursive: true, force: true });
     await fs.rm(outputDir, { recursive: true, force: true });
   }
@@ -271,7 +320,7 @@ const VIDEO_ASPECT_RATIO_VALUES = [
   "3:4"
 ];
 const VIDEO_RESOLUTION_VALUES = ["720p", "1080p", "1440p", "4K"];
-const VIDEO_DURATION_VALUES = [2, 3, 4, 5, 6, 8];
+const VIDEO_DURATION_VALUES = [2, 3, 4, 5, 6, 8, 10, 12, 15];
 
 async function withTempFile(
   suffix: string,
@@ -305,11 +354,15 @@ async function ffmpegTransform(
   try {
     const inputArgs = ["-y", "-i", mainInput.path];
     for (const other of others) inputArgs.push("-i", other.path);
-    await execFile("ffmpeg", [...inputArgs, ...args, outputPath], {
+    await execFfmpeg([...inputArgs, ...args, outputPath], {
       maxBuffer: 10 * 1024 * 1024
     });
     return new Uint8Array(await fs.readFile(outputPath));
-  } catch {
+  } catch (error) {
+    // A missing ffmpeg binary is unrecoverable — surface it. Every other
+    // failure (a filtergraph error, or no output produced) returns null so
+    // callers fall back to the unchanged input, exactly as before.
+    if (isFfmpegMissingError(error)) throw error;
     return null;
   } finally {
     await mainInput.cleanup();
@@ -2310,16 +2363,25 @@ export class AddAudioVideoNode extends BaseNode {
           maxBuffer: 50 * 1024 * 1024
         });
       } catch (error) {
+        if (isMissingBinaryError(error)) throw ffmpegMissingError();
         // Mixing requires an existing audio stream ([0:a]); videos without
         // one make ffmpeg fail. Fall back to plain replacement.
         if (!mix) throw error;
-        await execFile("ffmpeg", buildArgs(false), {
-          maxBuffer: 50 * 1024 * 1024
-        });
+        try {
+          await execFile("ffmpeg", buildArgs(false), {
+            maxBuffer: 50 * 1024 * 1024
+          });
+        } catch (retryError) {
+          if (isMissingBinaryError(retryError)) throw ffmpegMissingError();
+          throw retryError;
+        }
       }
       const result = new Uint8Array(await fs.readFile(outputPath));
       return { output: videoRef(result) };
-    } catch {
+    } catch (error) {
+      // A missing ffmpeg binary must surface clearly; genuine mux failures
+      // (incompatible streams, etc.) still fall back to the unchanged video.
+      if (isFfmpegMissingError(error)) throw error;
       return { output: videoRef(v) };
     } finally {
       await videoInput.cleanup();
@@ -2449,11 +2511,16 @@ export class ExtractAudioVideoNode extends BaseNode {
     );
     const outputPath = path.join(outputDir, "output.wav");
     try {
-      await execFile(
-        "ffmpeg",
-        ["-y", "-i", input.path, "-vn", "-acodec", "pcm_s16le", outputPath],
-        { maxBuffer: 50 * 1024 * 1024 }
-      );
+      try {
+        await execFile(
+          "ffmpeg",
+          ["-y", "-i", input.path, "-vn", "-acodec", "pcm_s16le", outputPath],
+          { maxBuffer: 50 * 1024 * 1024 }
+        );
+      } catch (error) {
+        if (isMissingBinaryError(error)) throw ffmpegMissingError();
+        throw error;
+      }
       const audioBytes = new Uint8Array(await fs.readFile(outputPath));
       const b64 = Buffer.from(audioBytes).toString("base64");
       return {

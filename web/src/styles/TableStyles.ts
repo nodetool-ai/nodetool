@@ -1,6 +1,6 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION } from "../components/ui_primitives";
+import { MOTION, BORDER_RADIUS } from "../components/ui_primitives";
 
 export const tableStyles = (theme: Theme) =>
   css({
@@ -36,7 +36,7 @@ export const tableStyles = (theme: Theme) =>
       },
       "&::-webkit-scrollbar-thumb": {
         background: theme.vars.palette.grey[600],
-        borderRadius: "var(--rounded-sm)"
+        borderRadius: BORDER_RADIUS.sm
       },
       "&::-webkit-scrollbar-thumb:hover": {
         background: theme.vars.palette.grey[500]
@@ -153,7 +153,7 @@ export const tableStyles = (theme: Theme) =>
     },
     ".tabulator .tabulator-cell.tabulator-editing.datetime input": {
       padding: ".5em",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       backgroundColor: theme.vars.palette.common.white
     },
     ".datetime": {
@@ -164,7 +164,7 @@ export const tableStyles = (theme: Theme) =>
         padding: 0,
         top: "0",
         right: ".5em",
-        borderRadius: "var(--rounded-lg)",
+        borderRadius: BORDER_RADIUS.lg,
         backgroundColor: theme.vars.palette.common.white,
         "&:hover svg": {
           color: theme.vars.palette.primary.main

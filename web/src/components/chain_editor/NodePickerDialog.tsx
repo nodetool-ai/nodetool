@@ -9,7 +9,7 @@ import React, { useState, useMemo, useCallback, useRef } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { InputAdornment } from "@mui/material";
-import { MOTION } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { Box } from "../ui_primitives";
 import SearchIcon from "@mui/icons-material/Search";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -239,7 +239,7 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           whiteSpace: "nowrap",
-                          borderRadius: "var(--rounded-sm)",
+                          borderRadius: BORDER_RADIUS.sm,
                         }}
                         role="button"
                         tabIndex={0}

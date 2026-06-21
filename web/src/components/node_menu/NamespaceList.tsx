@@ -156,7 +156,7 @@ const namespaceStyles = (theme: Theme) =>
       gap: "0.25em",
       fontSize: theme.fontSizeNormal,
       padding: theme.spacing(1, 1.5),
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       backgroundColor: theme.vars.palette.action.hover,
       margin: "1em .5em 0 0",
       border: `1px solid ${theme.vars.palette.divider}`
@@ -212,7 +212,7 @@ const namespaceStyles = (theme: Theme) =>
       ".node-button": {
         padding: "2px 4px",
         flexGrow: 1,
-        borderRadius: "var(--rounded-md)",
+        borderRadius: BORDER_RADIUS.md,
         minHeight: "24px",
         "&:hover": {
           backgroundColor: "transparent"

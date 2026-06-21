@@ -114,6 +114,47 @@ describe("S3StorageAdapter", () => {
       () => new S3StorageAdapter({ bucket: "", client: {} as any })
     ).toThrow(/bucket is required/);
   });
+
+  it("retries a transient upload error then succeeds", async () => {
+    const store = new Map<string, Uint8Array>();
+    let attempts = 0;
+    const client = {
+      send: vi.fn(async (cmd: any) => {
+        if (cmd.constructor.name === "PutObjectCommand") {
+          attempts++;
+          if (attempts < 3) {
+            const err: any = new Error("ServiceUnavailable");
+            err.$metadata = { httpStatusCode: 503 };
+            throw err;
+          }
+          store.set(`${cmd.input.Bucket}/${cmd.input.Key}`, new Uint8Array(cmd.input.Body));
+          return {};
+        }
+        throw new Error(`unexpected ${cmd.constructor.name}`);
+      })
+    } as any;
+    const storage = new S3StorageAdapter({ bucket: "b", client });
+    const uri = await storage.store("k.bin", new Uint8Array([1]));
+    expect(uri).toBe("s3://b/k.bin");
+    expect(attempts).toBe(3);
+  });
+
+  it("does not retry a permanent (4xx) upload error and surfaces it", async () => {
+    let attempts = 0;
+    const client = {
+      send: vi.fn(async () => {
+        attempts++;
+        const err: any = new Error("AccessDenied");
+        err.$metadata = { httpStatusCode: 403 };
+        throw err;
+      })
+    } as any;
+    const storage = new S3StorageAdapter({ bucket: "b", client });
+    await expect(storage.store("k.bin", new Uint8Array([1]))).rejects.toThrow(
+      /S3 upload failed.*AccessDenied/s
+    );
+    expect(attempts).toBe(1);
+  });
 });
 
 describe("SupabaseStorageAdapter", () => {

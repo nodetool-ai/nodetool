@@ -8,6 +8,7 @@ import {
   getDefaultTransformersJsCacheDir,
   importOptionalModule
 } from "@nodetool-ai/config";
+import { parseWavBytes } from "@nodetool-ai/audio-nodes";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 const execFileP = promisify(execFile);
@@ -318,61 +319,13 @@ export async function loadRawImage(
   return bytesToRawImage(bytes, ref?.mimeType);
 }
 
-/**
- * Parse 16-bit / 8-bit PCM WAV bytes into Float32 samples + metadata.
- *
- * Mirrors `parseWavBytes` in `@nodetool-ai/base-nodes` (`src/lib/audio-wav.ts`)
- * so behavior stays consistent with the rest of the audio stack. Inlined
- * here so this package does not have to take a runtime dependency on the
- * much larger base-nodes pack just for a WAV decoder; if the canonical
- * decoder ever changes, update both.
- */
-function parseWavBytes(bytes: Uint8Array): {
-  samples: Float32Array;
-  sampleRate: number;
-  numChannels: number;
-} | null {
-  if (bytes.length < 44) return null;
-  const buf = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  if (
-    buf.toString("ascii", 0, 4) !== "RIFF" ||
-    buf.toString("ascii", 8, 12) !== "WAVE"
-  ) {
-    return null;
-  }
-
-  const sampleRate = buf.readUInt32LE(24);
-  const bitsPerSample = buf.readUInt16LE(34);
-  const numChannels = buf.readUInt16LE(22);
-
-  let dataOffset = 36;
-  while (dataOffset < buf.length - 8) {
-    const chunkId = buf.toString("ascii", dataOffset, dataOffset + 4);
-    const chunkSize = buf.readUInt32LE(dataOffset + 4);
-    if (chunkId === "data") {
-      dataOffset += 8;
-      break;
-    }
-    // RIFF chunks are word-aligned: an odd-sized chunk is followed by a pad
-    // byte that is not counted in chunkSize. Skip it so we stay aligned.
-    dataOffset += 8 + chunkSize + (chunkSize & 1);
-  }
-
-  const bytesPerSample = bitsPerSample / 8;
-  if (bytesPerSample !== 1 && bytesPerSample !== 2) return null;
-  const totalSamples = Math.floor((buf.length - dataOffset) / bytesPerSample);
-  const samples = new Float32Array(totalSamples);
-
-  for (let i = 0; i < totalSamples; i++) {
-    const pos = dataOffset + i * bytesPerSample;
-    if (bitsPerSample === 16) {
-      samples[i] = buf.readInt16LE(pos) / 0x7fff;
-    } else if (bitsPerSample === 8) {
-      samples[i] = (buf.readUInt8(pos) - 128) / 128;
-    }
-  }
-  return { samples, sampleRate, numChannels };
-}
+// WAV decoding uses the canonical `parseWavBytes` from
+// `@nodetool-ai/audio-nodes` (imported above). It supports 8/16/24/32-bit
+// integer PCM, 32-bit IEEE float, and WAVE_FORMAT_EXTENSIBLE, returns
+// channel-interleaved Float32 samples, and is pure JS (no native addon /
+// subprocess), so it runs on every platform tier. The interleaved result
+// is downmixed to mono and resampled by the helpers below for the ASR /
+// audio-classification contract (Whisper-style 16 kHz mono Float32).
 
 /** Mix interleaved multi-channel samples down to mono by averaging channels. */
 function mixToMono(

@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useEffect, useRef, memo, useCallback, useMemo } from "react";
-import { Label } from "../ui_primitives";
+import { Label, BORDER_RADIUS } from "../ui_primitives";
 import { ColumnDef } from "../../stores/ApiTypes";
 import isEqual from "fast-deep-equal";
 import Column from "./Column";
@@ -76,7 +76,7 @@ const styles = (theme: Theme) =>
       height: "1.75em"
     },
     ".textfield .MuiInputBase-root": {
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       height: "1.75em"
     },
     ".textfield input": {
@@ -89,10 +89,10 @@ const styles = (theme: Theme) =>
       margin: "0",
       padding: "0",
       border: 0,
-      borderRadius: "var(--rounded-sm)"
+      borderRadius: BORDER_RADIUS.sm
     },
     ".select .MuiSelect-select": {
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       height: "1.75em",
       margin: "0",
       padding: "0.25em 0.5em",
@@ -110,7 +110,7 @@ const styles = (theme: Theme) =>
       width: "1em",
       minWidth: "1em",
       height: "1em",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[400],
       "&:hover": {

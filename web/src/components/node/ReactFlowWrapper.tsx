@@ -93,6 +93,30 @@ import { useConnectionEvents } from "../../hooks/handlers/useConnectionEvents";
 import type { NodeData } from "../../stores/NodeData";
 import { scheduleNodeInternalsRefresh } from "../../utils/scheduleNodeInternalsRefresh";
 
+const CONTAINER_STYLE = {
+  width: "100%",
+  height: "100%",
+  position: "absolute" as const,
+  backgroundColor: "var(--c_editor_bg_color)",
+  left: 0,
+  top: 0,
+  right: 0,
+  bottom: 0
+};
+
+const REACT_FLOW_STYLE = {
+  width: "100%",
+  height: "100%",
+  backgroundColor: "var(--c_editor_bg_color)"
+};
+
+const EDGE_TYPES = {
+  default: CustomEdge,
+  control: ControlEdge
+};
+
+const IS_APPLE_PLATFORM = /Mac|iPhone|iPad/.test(navigator.platform);
+
 interface ReactFlowWrapperProps {
   workflowId: string;
   active: boolean;
@@ -204,29 +228,6 @@ const ReactFlowWrapper = ({
       hintColor: isDark ? "rgba(148, 163, 184, 0.9)" : "rgba(71, 85, 105, 0.9)"
     };
   }, [theme.palette.mode, theme.vars.palette.primary.main]);
-
-  const containerStyle = useMemo(
-    () => ({
-      width: "100%",
-      height: "100%",
-      position: "absolute" as const,
-      backgroundColor: "var(--c_editor_bg_color)",
-      left: 0,
-      top: 0,
-      right: 0,
-      bottom: 0
-    }),
-    []
-  );
-
-  const reactFlowStyle = useMemo(
-    () => ({
-      width: "100%",
-      height: "100%",
-      backgroundColor: "var(--c_editor_bg_color)"
-    }),
-    []
-  );
 
   const backgroundStyle = useMemo(
     () => ({
@@ -420,13 +421,7 @@ const ReactFlowWrapper = ({
     [baseNodeTypes]
   );
 
-  const edgeTypes = useMemo(
-    () => ({
-      default: CustomEdge,
-      control: ControlEdge
-    }),
-    []
-  );
+  const edgeTypes = EDGE_TYPES;
 
   const {
     gridSnap,
@@ -756,11 +751,11 @@ const ReactFlowWrapper = ({
   }
 
   return (
-    <div style={containerStyle}>
+    <div style={CONTAINER_STYLE}>
       <ReactFlow
         className={reactFlowClasses}
         colorMode={isDarkMode ? "dark" : "light"}
-        style={reactFlowStyle}
+        style={REACT_FLOW_STYLE}
         onlyRenderVisibleElements={false}
         ref={ref}
         minZoom={MIN_ZOOM}
@@ -779,9 +774,9 @@ const ReactFlowWrapper = ({
         defaultViewport={storedViewport || undefined}
         onMoveEnd={handleMoveEnd}
         panOnDrag={panOnDrag}
-        panOnScroll={/Mac|iPhone|iPad/.test(navigator.platform)}
-        zoomOnPinch={/Mac|iPhone|iPad/.test(navigator.platform)}
-        zoomOnScroll={!/Mac|iPhone|iPad/.test(navigator.platform)}
+        panOnScroll={IS_APPLE_PLATFORM}
+        zoomOnPinch={IS_APPLE_PLATFORM}
+        zoomOnScroll={!IS_APPLE_PLATFORM}
         elevateEdgesOnSelect={true}
         connectionLineComponent={ConnectionLine}
         connectionRadius={connectionSnap}

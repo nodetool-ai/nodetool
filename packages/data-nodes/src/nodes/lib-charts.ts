@@ -1,5 +1,4 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import { asRows } from "./data.js";
 
 export class ChartRendererLibNode extends BaseNode {
@@ -262,6 +261,7 @@ export class ChartRendererLibNode extends BaseNode {
   }
 }
 
-export const LIB_SEABORN_NODES = tagAsServer([
-  ChartRendererLibNode
-]);
+// Node-only: chart rendering requires the native @napi-rs/canvas addon, which
+// V8-isolate runtimes (workers/edge) cannot load. Untagged → registry default
+// ["node"].
+export const LIB_SEABORN_NODES = [ChartRendererLibNode];

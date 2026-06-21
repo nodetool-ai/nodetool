@@ -595,6 +595,16 @@
     });
   }
 
+  // --- Lazy-load content images ----------------------------------------------
+  // Screenshots in docs pages can be hundreds of KB each; defer the ones below
+  // the fold. Scoped to article content so the home hero is never deferred.
+  function initLazyImages() {
+    document.querySelectorAll('.page-content img, .doc-page img').forEach((img) => {
+      if (!img.hasAttribute('loading')) img.setAttribute('loading', 'lazy');
+      if (!img.hasAttribute('decoding')) img.setAttribute('decoding', 'async');
+    });
+  }
+
   // --- Init ------------------------------------------------------------------
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
@@ -612,6 +622,7 @@
     initBackToTop();
     restoreSidebarScroll();
     initSearch();
+    initLazyImages();
 
     if (sidebar) {
       sidebar.addEventListener('scroll', persistSidebarScroll, { passive: true });

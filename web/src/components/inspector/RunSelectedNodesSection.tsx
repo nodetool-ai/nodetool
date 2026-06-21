@@ -12,8 +12,7 @@ import {
   FlexRow,
   ShortcutHint,
   Text,
-  MOTION
-} from "../ui_primitives";
+  MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
 import {
   MAX_RUNS,
@@ -45,13 +44,13 @@ const styles = (theme: Theme) =>
     },
     ".stepper-control": {
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       paddingLeft: theme.spacing(0.5),
       paddingRight: theme.spacing(0.5),
       backgroundColor: "transparent"
     },
     ".stepper-control .MuiButtonBase-root": {
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       "&:hover": {
         backgroundColor: "rgba(255,255,255,0.06)"
       }
@@ -72,7 +71,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.primary.contrastText,
       fontSize: theme.fontSizeNormal,
       fontWeight: 500,
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       transition: `background-color ${MOTION.fast}`,
       "&:hover": {
         backgroundColor: theme.vars.palette.primary.dark

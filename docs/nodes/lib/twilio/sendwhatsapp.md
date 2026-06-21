@@ -37,4 +37,4 @@ Send a WhatsApp message via the Twilio REST API.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.twilio](../) namespace.
+Browse other nodes in the [lib.twilio](./) namespace.

@@ -65,11 +65,6 @@
     },
     {
       "package_name": "nodetool-base",
-      "name": "Album Cover Creator.jpg",
-      "path": ""
-    },
-    {
-      "package_name": "nodetool-base",
       "name": "Learning Path Generator.jpg",
       "path": ""
     },
@@ -268,16 +263,6 @@
       ]
     },
     {
-      "id": "56e546a6-3fb8-40d3-85e4-d283af718bde",
-      "name": "AI Workflows on Reddit",
-      "description": "Find examples of AI workflows on Reddit and compile a markdown report.",
-      "tags": [
-        "reddit",
-        "research",
-        "ai"
-      ]
-    },
-    {
       "id": "music_video_visualizer_001",
       "name": "Music Video Visualizer",
       "description": "Create reactive visuals from audio tracks with mood-matched imagery. Transcribes audio, analyzes mood/energy, and generates visual frames synced to the music.",
@@ -365,16 +350,6 @@
       ]
     },
     {
-      "id": "summarize-newsletters",
-      "name": "Summarize Newsletters",
-      "description": "",
-      "tags": [
-        "email",
-        "start",
-        "example"
-      ]
-    },
-    {
       "id": "summarize-audio",
       "name": "Summarize Audio",
       "description": "Transcribe an audio file and summarize the text.",
@@ -386,32 +361,13 @@
       ]
     },
     {
-      "id": "autonomous_research_agent",
-      "name": "Autonomous Research Agent",
-      "description": "Use the Agent node to perform a lightweight market analysis with structured outputs defined through dynamic slots.",
-      "tags": [
-        "agent",
-        "business",
-        "research"
-      ]
-    },
-    {
       "id": "fac89302-e7ea-4415-b0a5-da2205da59d7",
       "name": "Concept Art Iteration Board",
-      "description": "Create a comprehensive learning path for a topic.",
+      "description": "Turn a creative brief, style, and mood into concept art variations. An agent sets the art direction, then a batch of images is generated.",
       "tags": [
         "concept-art",
-        "planning"
-      ]
-    },
-    {
-      "id": "1302ffe8a2f911f0b74c000014916b9c",
-      "name": "Categorize Mails",
-      "description": "Automatically categorize and organize emails using AI, showing the reasoning.",
-      "tags": [
-        "email",
-        "start",
-        "agent"
+        "planning",
+        "example"
       ]
     },
     {
@@ -434,16 +390,6 @@
         "marketing",
         "planning",
         "example"
-      ]
-    },
-    {
-      "id": "a0173b98-2bf1-481a-a94e-090cba8da1c6",
-      "name": "ChromaDB Research Agent",
-      "description": "Query a Chroma collection of papers.",
-      "tags": [
-        "chromadb",
-        "rag",
-        "research"
       ]
     },
     {
@@ -635,17 +581,6 @@
       ]
     },
     {
-      "id": "",
-      "name": "Album Cover Creator",
-      "description": "Create an album cover for a given song.",
-      "tags": [
-        "album-cover",
-        "art",
-        "design",
-        "example"
-      ]
-    },
-    {
       "id": "research_paper_summarizer",
       "name": "Research Paper Summarizer",
       "description": "Extract and summarize key findings from research papers and technical documents.",
@@ -679,15 +614,6 @@
       ]
     },
     {
-      "id": "af5a2636a78211f09af400006952c72c",
-      "name": "Chat with Docs",
-      "description": "An intelligent document retrieval and question-answering system that leverages vector search and local LLMs to provide accurate, context-aware responses based on your document collection.",
-      "tags": [
-        "chat",
-        "rag"
-      ]
-    },
-    {
       "id": "",
       "name": "Image to Video Animation",
       "description": "Generate a high-quality still from text, then animate it into a short cinematic clip.",
@@ -695,19 +621,6 @@
         "image",
         "video",
         "example"
-      ]
-    },
-    {
-      "id": "claude-agent-node-tools",
-      "name": "Claude Agent with Node Tools",
-      "description": "Claude Agent using control edges to call search nodes as tools. The agent decides when and how to search.",
-      "tags": [
-        "claude",
-        "agent",
-        "tools",
-        "control",
-        "search",
-        "research"
       ]
     },
     {

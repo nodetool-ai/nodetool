@@ -7,7 +7,10 @@ import {
   assetToGeneration,
   mergeGenerations,
   getCurrentGeneration,
-  type Generation
+  groupByRun,
+  getCurrentRun,
+  type Generation,
+  type RunGroup
 } from "../../utils/nodeGenerations";
 
 /**
@@ -39,10 +42,18 @@ export const useNodeGenerations = (workflowId: string, nodeId: string) => {
     () => getCurrentGeneration(generations, selectedId),
     [generations, selectedId]
   );
+  const runs = useMemo<RunGroup[]>(
+    () => groupByRun(generations),
+    [generations]
+  );
+  const currentRun = useMemo(
+    () => getCurrentRun(runs, selectedId),
+    [runs, selectedId]
+  );
   const select = useCallback(
     (id: string) => updateNodeData(nodeId, { selected_generation: id }),
     [updateNodeData, nodeId]
   );
 
-  return { generations, current, select };
+  return { generations, current, select, runs, currentRun };
 };

@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useRef, useState } from "react";
-import { MOTION, Tooltip } from "../ui_primitives";
+import { MOTION, Tooltip, BORDER_RADIUS } from "../ui_primitives";
 import BackspaceIcon from "@mui/icons-material/Backspace";
 import SearchIcon from "@mui/icons-material/Search";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
@@ -51,7 +51,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.primary,
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       transition: MOTION.all,
       boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
       fontSize: theme.fontSizeNormal,

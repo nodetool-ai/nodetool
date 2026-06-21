@@ -6,7 +6,7 @@ import {
   ListItemIcon,
   ListItemText
 } from "@mui/material";
-import { Divider, ToolbarIconButton, EditorMenu, EditorMenuItem } from "../ui_primitives";
+import { Divider, ToolbarIconButton, EditorMenu, EditorMenuItem, BORDER_RADIUS } from "../ui_primitives";
 import CopyAllIcon from "@mui/icons-material/CopyAll";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
@@ -193,7 +193,7 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
           horizontal: "right",
         }}
         paperSx={{
-          borderRadius: "var(--rounded-lg)",
+          borderRadius: BORDER_RADIUS.lg,
           minWidth: 200
         }}
       >

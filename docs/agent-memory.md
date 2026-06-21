@@ -5,7 +5,7 @@ permalink: /agent-memory
 description: "Unified, structured memory shared by every agent, task, and step in NodeTool — accessed via tool calls with progressive disclosure."
 ---
 
-**Navigation**: [Root AGENTS.md](../AGENTS.md) | [Agent System](AGENTS.md) → **Agent Memory** | [Long-Term Memory](long-term-memory.md)
+**Navigation**: [Chat & Agents](global-chat-agents.md) → **Agent Memory** | [Long-Term Memory](long-term-memory.md)
 
 > **Not the same as long-term memory.** This page describes per-run scratch space (`context.memory`) shared between steps inside one workflow. For durable, cross-session user memory injected into chat prompts, see [Long-Term Memory](long-term-memory.md).
 
@@ -560,7 +560,7 @@ Replacing it stripped the memory-tool documentation and the `finish_step` discip
 
 ## Related
 
-- [Agent System](AGENTS.md) — overall architecture
+- [Chat & Agents](global-chat-agents.md) — agents overview
 - `packages/runtime/src/agent-memory.ts` — `AgentMemory` implementation
 - `packages/agents/src/tools/memory-tools.ts` — `memory_list` / `memory_read` / `memory_write`
 - `packages/agents/tests/memory-propagation.test.ts` — end-to-end propagation tests including the tool round-trip

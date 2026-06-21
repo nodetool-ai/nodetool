@@ -29,6 +29,7 @@ Extract structured data from text content using LLM providers.
 | text | `str` | The text to extract data from | `` |
 | image | `image` | Optional image to assist extraction | `{"type":"image","uri":"","asset_id":null,"data"...` |
 | audio | `audio` | Optional audio to assist extraction | `{"type":"audio","uri":"","asset_id":null,"data"...` |
+| max_tokens | `int` | The maximum number of tokens to generate. | `1024` |
 
 ## Outputs
 
@@ -36,4 +37,4 @@ _(none)_
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.agents](../) namespace.
+Browse other nodes in the [nodetool.agents](./) namespace.

@@ -11,7 +11,8 @@ namespace: "messaging.telegram"
 
 ## Description
 
-Node that sends a message to a Telegram chat using a bot token.
+Send a message to a Telegram chat using a bot token.
+    telegram, send, message, bot, chat, notify
 
 ## Properties
 
@@ -33,4 +34,4 @@ Node that sends a message to a Telegram chat using a bot token.
 
 ## Related Nodes
 
-Browse other nodes in the [messaging.telegram](../) namespace.
+Browse other nodes in the [messaging.telegram](./) namespace.

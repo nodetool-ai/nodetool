@@ -87,32 +87,30 @@ nodetool package list --available    # fetch registry index
 
 Displays installed packages (local metadata) or remote entries hosted at the package index URL.
 
-### Install / Update / Uninstall
+### Initialize a Package
 
 ```bash
-nodetool package install <owner>/<repo>
-nodetool package update <owner>/<repo>
-nodetool package uninstall <owner>/<repo>
+nodetool package init
 ```
 
-These commands install the package, then refresh metadata caches stored under `~/.config/nodetool/packages`.
-
-### Scan Project
-
-```bash
-nodetool package scan [--verbose]
-```
-
-Inspects the current repository and generates node metadata.
+Scaffolds a new package in the current directory.
 
 ### Generate Documentation
 
 ```bash
-nodetool package docs --output-dir docs/nodes
-nodetool package docs --compact     # shorter summaries for LLM prompts
+nodetool package docs                 # single index.md in ./docs
+nodetool package docs --output-dir docs   # custom directory (default: docs)
+nodetool package docs --compact       # shorter summaries for LLM prompts
 ```
 
-Creates Markdown documentation for all nodes in the project.
+`package docs` writes a single `index.md` overview. For per-node Markdown pages, use `node-docs`:
+
+```bash
+nodetool package node-docs            # one page per node (default: docs/nodes)
+nodetool package workflow-docs        # docs for workflow examples (default: docs/workflows)
+```
+
+The full set of `package` subcommands is: `list`, `init`, `docs`, `node-docs`, and `workflow-docs`. (Note: the top-level `nodetool install` / `nodetool uninstall` commands configure the MCP server, not node packages.)
 
 ## Building Packages
 
@@ -139,10 +137,8 @@ npm run test
 1. Implement nodes under `src/nodes/` extending `BaseNode` with `@prop` decorators.
 2. Export all node classes and a registration function from `src/index.ts`.
 3. Run `npm run build` to compile.
-4. Run `nodetool package scan` to produce node metadata.
-5. Add example workflows in `examples/` and assets in `assets/` if relevant.
-6. Commit the generated metadata files.
-7. Publish to npm or provide a Git URL.
+4. Add example workflows in `examples/` and assets in `assets/` if relevant.
+5. Publish to npm or provide a Git URL.
 
 To add the package to the public index, create an entry in the [registry repository](https://github.com/nodetool-ai/nodetool-registry) so `package list --available` surfaces it.
 

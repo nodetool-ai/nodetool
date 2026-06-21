@@ -1,74 +1,31 @@
 "use client";
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import Image from "next/image";
-import dynamic from "next/dynamic";
-import SeoHeroContent from "../components/SeoHeroContent";
-const NodeToolHero = dynamic(() => import("../components/NodeToolHero"), {
-  ssr: false,
-});
-const BuildRunDeploy = dynamic(() => import("../components/BuildRunDeploy"), {
-  ssr: false,
-});
-const OwnershipSection = dynamic(
-  () => import("../components/OwnershipSection"),
-  { ssr: false }
-);
-const DeploySection = dynamic(() => import("../components/DeploySection"), {
-  ssr: false,
-});
-const ModelSupportSection = dynamic(
-  () => import("../components/ModelSupportSection"),
-  { ssr: false }
-);
-const ModelManagerSection = dynamic(
-  () => import("../components/ModelManagerSection"),
-  { ssr: false }
-);
-const VideoGenerationSection = dynamic(
-  () => import("../components/VideoGenerationSection"),
-  { ssr: false }
-);
-const FeaturesSection = dynamic(() => import("../components/FeaturesSection"), {
-  ssr: false,
-});
-const NodeMenuSection = dynamic(() => import("../components/NodeMenuSection"), {
-  ssr: false,
-});
-const ChatUISection = dynamic(() => import("../components/ChatUISection"), {
-  ssr: false,
-});
-const AssetManagerSection = dynamic(
-  () => import("../components/AssetManagerSection"),
-  { ssr: false }
-);
-const CommunitySection = dynamic(
-  () => import("../components/CommunitySection"),
-  { ssr: false }
-);
-const ContactSection = dynamic(() => import("../components/ContactSection"), {
-  ssr: false,
-});
-const ComparisonSection = dynamic(
-  () => import("../components/ComparisonSection"),
-  { ssr: false }
-);
-import { XMarkIcon, Bars3Icon } from "@heroicons/react/24/outline";
+// Static imports so every section is server-rendered into the HTML (P1).
+// These components are SSR-safe (no window/document at render, no ReactFlow);
+// the hidden duplicate-H1 SEO block has been retired in favour of this.
+import SiteHeader from "../components/SiteHeader";
+import SiteFooter from "../components/SiteFooter";
+import NodeToolHero from "../components/NodeToolHero";
+import BuildRunDeploy from "../components/BuildRunDeploy";
+import OwnershipSection from "../components/OwnershipSection";
+import DeploySection from "../components/DeploySection";
+import ModelSupportSection from "../components/ModelSupportSection";
+import ModelManagerSection from "../components/ModelManagerSection";
+import VideoGenerationSection from "../components/VideoGenerationSection";
+import FeaturesSection from "../components/FeaturesSection";
+import NodeMenuSection from "../components/NodeMenuSection";
+import ChatUISection from "../components/ChatUISection";
+import AssetManagerSection from "../components/AssetManagerSection";
+import CommunitySection from "../components/CommunitySection";
+import ContactSection from "../components/ContactSection";
+import ComparisonSection from "../components/ComparisonSection";
+import { XMarkIcon } from "@heroicons/react/24/outline";
 import { Download } from "lucide-react";
 import { SmartDownloadButton } from "./SmartDownloadButton";
+import { track } from "../lib/analytics";
 
 import { Feature, features } from "./features";
-
-
-const navigation = [
-  { name: "Studio", href: "/studio" },
-  { name: "Cloud", href: "/cloud" },
-  { name: "Agents", href: "/agents" },
-  { name: "Developers", href: "/developers" },
-  { name: "Features", href: "#features" },
-  { name: "Community", href: "#contact" },
-  { name: "Docs", href: "https://docs.nodetool.ai" },
-] as const;
 
 
 // Utility: common classes
@@ -188,22 +145,10 @@ function useReveal() {
 
 export default function Home() {
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
-  const [hash, setHash] = useState<string>("");
   const [stars, setStars] = useState<number | null>(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const parallaxRef = useRef<HTMLDivElement>(null);
   const reducedMotion = usePrefersReducedMotion();
   const heroRevealRef = useReveal();
-
-  // Avoid background scroll while the mobile menu is open.
-  useEffect(() => {
-    if (!mobileMenuOpen) return;
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
-  }, [mobileMenuOpen]);
 
   // Global section fly-in using IntersectionObserver + CSS transitions
   useEffect(() => {
@@ -233,15 +178,7 @@ export default function Home() {
     return () => obs.disconnect();
   }, [reducedMotion]);
 
-  // Track hash for navigation
-  useEffect(() => {
-    const update = () => setHash(window.location.hash);
-    update();
-    window.addEventListener("hashchange", update, { passive: true } as any);
-    return () => window.removeEventListener("hashchange", update as any);
-  }, []);
-
-  // Fetch GitHub stars
+  // Fetch GitHub stars (consumed by CommunitySection)
   useEffect(() => {
     fetch("https://api.github.com/repos/nodetool-ai/nodetool")
       .then((r) => r.json())
@@ -362,174 +299,8 @@ export default function Home() {
           <rect width="100%" height="100%" fill="url(#page-grid)" />
         </svg>
       </div>
-      {/* Nav */}
-      <header>
-        <nav
-          className="fixed top-0 left-0 right-0 z-50 border-b border-slate-800/60 bg-glass supports-[backdrop-filter]:bg-glass shadow-[0_1px_0_0_rgba(59,130,246,0.08)]"
-          aria-label="Primary"
-        >
-          <div className={`${sectionContainer} py-2 sm:py-4 lg:py-2`}>
-            <div className="relative flex items-center justify-center gap-6 w-full min-h-[44px] sm:min-h-[64px]">
-              {/* Logo: absolutely left */}
-              <div className="absolute left-0 flex items-center h-9 sm:h-10">
-                <a href="/" className={`group flex items-center gap-2 rounded`}>
-                  <Image
-                    src="/logo_small.png"
-                    alt="NodeTool"
-                    width={48}
-                    height={48}
-                    priority
-                    sizes="180px"
-                    className="h-8 w-8 sm:h-12 sm:w-12 brightness-0 invert transition-all duration-300 group-hover:brightness-100 group-hover:invert-0"
-                  />
-                  <span className="text-base sm:text-xl font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-300">
-                    nodetool
-                  </span>
-                </a>
-              </div>
-              {/* Navigation: centered */}
-              <ul className="hidden md:flex items-center gap-2 lg:gap-4 mx-auto rounded-full bg-slate-900/40 ring-1 ring-white/5 px-2 py-1 border border-slate-800/50">
-                {navigation.map((item) => {
-                  const active = hash === item.href;
-                  return (
-                    <li key={item.name} className="list-none">
-                      <a
-                        href={item.href}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-full lift ${active
-                          ? "bg-blue-600/25 text-blue-200 border border-blue-500/40"
-                          : "text-slate-300 hover:text-blue-200 hover:bg-slate-800/60"
-                          }`}
-                        aria-current={active ? "page" : undefined}
-                      >
-                        {item.name}
-                      </a>
-                    </li>
-                  );
-                })}
-              </ul>
-              {/* GitHub: absolutely right */}
-              <div className="absolute right-0 flex items-center gap-2 h-full">
-                {/* Mobile menu button */}
-                <button
-                  type="button"
-                  className="md:hidden rounded-md p-1.5 text-slate-300 hover:bg-slate-800/60 transition-colors"
-                  onClick={() => setMobileMenuOpen(true)}
-                  aria-label="Open menu"
-                >
-                  <Bars3Icon className="h-5 w-5" aria-hidden="true" />
-                </button>
-                <a
-                  href="https://github.com/nodetool-ai/nodetool"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hidden sm:inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/70 px-3.5 py-2 text-sm font-semibold text-slate-100 transition-all hover:border-slate-500 hover:bg-slate-800/70"
-                  aria-label="Star NodeTool on GitHub"
-                >
-                  <Image
-                    src="/github-mark-white.svg"
-                    alt=""
-                    width={18}
-                    height={18}
-                    role="presentation"
-                  />
-                  <span>Star on GitHub</span>
-                  {stars !== null && (
-                    <span className="ml-1 rounded-md bg-slate-800 px-1.5 py-0.5 text-xs font-medium text-slate-300">
-                      {stars >= 1000 ? `${(stars / 1000).toFixed(1)}k` : stars}
-                    </span>
-                  )}
-                </a>
-                <a
-                  href="https://github.com/nodetool-ai/nodetool"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="sm:hidden rounded-lg p-1 transition-all duration-200 hover:bg-slate-800/60"
-                  aria-label="NodeTool on GitHub"
-                >
-                  <Image
-                    src="/github-mark-white.svg"
-                    alt=""
-                    width={24}
-                    height={24}
-                    className="h-5 w-5"
-                    role="presentation"
-                  />
-                </a>
-              </div>
-            </div>
-            {/* Mobile-only persona links — surfaced so /creatives and /developers are reachable without opening the menu */}
-            <div className="md:hidden flex items-center justify-center gap-2 pt-1.5 pb-0.5">
-              <a
-                href="/agents"
-                className="px-3 py-1 text-xs font-medium rounded-full lift text-slate-300 bg-slate-900/40 ring-1 ring-white/5 border border-slate-800/50 hover:text-blue-200 hover:bg-slate-800/60"
-              >
-                Agents
-              </a>
-              <a
-                href="/creatives"
-                className="px-3 py-1 text-xs font-medium rounded-full lift text-slate-300 bg-slate-900/40 ring-1 ring-white/5 border border-slate-800/50 hover:text-blue-200 hover:bg-slate-800/60"
-              >
-                Creatives
-              </a>
-              <a
-                href="/developers"
-                className="px-3 py-1 text-xs font-medium rounded-full lift text-slate-300 bg-slate-900/40 ring-1 ring-white/5 border border-slate-800/50 hover:text-blue-200 hover:bg-slate-800/60"
-              >
-                Developers
-              </a>
-            </div>
-          </div>
-        </nav>
-        {/* Mobile menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden fixed inset-0 z-50" role="dialog" aria-modal="true">
-            <button
-              type="button"
-              className="absolute inset-0 bg-slate-950/90"
-              onClick={() => setMobileMenuOpen(false)}
-              aria-label="Close menu"
-            />
-            <div className="absolute inset-y-0 right-0 w-full overflow-y-auto bg-gradient-to-b from-slate-900 to-slate-950 px-6 py-6 sm:max-w-sm border-l border-slate-800/60">
-              <div className="flex items-center justify-between">
-                <a href="/" className="flex items-center gap-2">
-                  <Image
-                    src="/logo_small.png"
-                    alt="NodeTool"
-                    width={40}
-                    height={40}
-                    className="brightness-0 invert"
-                  />
-                  <span className="text-lg font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-300">
-                    nodetool
-                  </span>
-                </a>
-                <button
-                  type="button"
-                  className="rounded-md p-2 text-slate-300 hover:bg-slate-800/60 transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
-                  aria-label="Close menu"
-                >
-                  <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                </button>
-              </div>
-              <div className="mt-6 flow-root">
-                <div className="space-y-2 py-6">
-                  {navigation.map((item) => (
-                    <a
-                      key={item.name}
-                      href={item.href}
-                      className="block px-3 py-3 text-base font-medium text-slate-200 hover:bg-slate-800/60 hover:text-white rounded-lg transition-colors"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      {item.name}
-                    </a>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </header>
+      {/* Shared site header (P3) */}
+      <SiteHeader />
 
       <div
         id="content"
@@ -537,8 +308,6 @@ export default function Home() {
       >
         {/* Hero */}
         <section aria-labelledby="hero-title" className="pt-2 relative">
-          {/* Server-rendered SEO content for search engines */}
-          <SeoHeroContent />
           <div className={`${sectionContainer}`}>
             <div ref={heroRevealRef}>
               <NodeToolHero />
@@ -669,20 +438,21 @@ export default function Home() {
             >
               Put every model on one canvas.
             </h2>
-            <p className="mt-4 text-lg text-slate-400">
+            <p className="mt-4 text-lg text-slate-300">
               Free, open source, and yours to run. Download Studio and build
               your first workflow in minutes.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <SmartDownloadButton
                 icon={<Download className="h-5 w-5" />}
-                classNameOverride="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-900/40 transition-all hover:bg-blue-500 hover:shadow-blue-900/60"
+                classNameOverride="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-900/40 transition-all hover:bg-blue-500 hover:shadow-blue-900/60 focus-ring"
               />
               <a
                 href="https://github.com/nodetool-ai/nodetool"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900/60 px-6 py-3.5 text-sm font-semibold text-slate-100 transition-all hover:border-slate-500 hover:bg-slate-800/60"
+                onClick={() => track("Star GitHub")}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900/60 px-6 py-3.5 text-sm font-semibold text-slate-100 transition-all hover:border-slate-500 hover:bg-slate-800/60 focus-ring"
               >
                 View on GitHub
               </a>
@@ -691,74 +461,8 @@ export default function Home() {
         </section>
       </div>
 
-      {/* Footer */}
-      <footer className="relative border-t border-slate-800/50 bg-slate-950/80">
-        <div className="pointer-events-none absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-blue-800/40 to-transparent" />
-        <div className={`${sectionContainer} py-6`}>
-          <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <p className="flex items-center gap-2 text-sm text-slate-400">
-              <span className="text-rose-400" aria-hidden>
-                ♥
-              </span>
-              Open source today. The future is yours to build.
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-slate-400">
-              <a
-                href="https://github.com/nodetool-ai/nodetool"
-                className="inline-flex items-center gap-1.5 transition-colors hover:text-slate-100"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Image
-                  src="/github-mark-white.svg"
-                  alt=""
-                  width={14}
-                  height={14}
-                  role="presentation"
-                />
-                GitHub
-              </a>
-              <span className="text-slate-700">•</span>
-              <a
-                href="https://discord.gg/WmQTWZRcYE"
-                className="transition-colors hover:text-slate-100"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Discord
-              </a>
-              <span className="text-slate-700">•</span>
-              <a
-                href="#contact"
-                className="transition-colors hover:text-slate-100"
-              >
-                Community
-              </a>
-              <span className="text-slate-700">•</span>
-              <a
-                href="/imprint"
-                className="transition-colors hover:text-slate-100"
-              >
-                Imprint
-              </a>
-              <span className="text-slate-700">•</span>
-              <a
-                href="/privacy"
-                className="transition-colors hover:text-slate-100"
-              >
-                Privacy
-              </a>
-              <span className="text-slate-700">•</span>
-              <a
-                href="/terms"
-                className="transition-colors hover:text-slate-100"
-              >
-                Terms
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      {/* Shared site footer (P3) */}
+      <SiteFooter />
     </main>
   );
 }

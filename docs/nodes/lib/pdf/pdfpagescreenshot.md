@@ -30,4 +30,4 @@ Render PDF pages as PNG images.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pdf](../) namespace.
+Browse other nodes in the [lib.pdf](./) namespace.

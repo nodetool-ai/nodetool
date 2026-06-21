@@ -793,7 +793,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                         sx={{
                           width: 36,
                           height: 36,
-                          borderRadius: "var(--rounded-circle)",
+                          borderRadius: BORDER_RADIUS.circle,
                           bgcolor:
                             selected === p
                               ? "primary.main"
@@ -871,7 +871,7 @@ const ProviderList: React.FC<ProviderListProps> = ({
                                 width: 28,
                                 height: 28,
                                 flexShrink: 0,
-                                borderRadius: 'var(--rounded-sm)',
+                                borderRadius: BORDER_RADIUS.sm,
                                 bgcolor: isDarkMode && !isHFLogo ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
                                 opacity: available ? 1 : 0.5,
                               }}>

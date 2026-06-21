@@ -31,4 +31,4 @@ List documents in a directory.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.document](../) namespace.
+Browse other nodes in the [nodetool.document](./) namespace.

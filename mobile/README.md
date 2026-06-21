@@ -18,13 +18,24 @@ React Native mobile application for running NodeTool Mini Apps and AI Chat.
   - Support for text, number, and boolean inputs
 - Cross-platform support (iOS, Android, Web)
 
+## Tech Stack
+
+React Native 0.85 + Expo SDK 56, React 19, TypeScript 6. Server state via a
+tRPC v11 client + TanStack Query v5 (REST via the global `fetch` — no Axios),
+local state via Zustand v5, realtime via WebSocket + MsgPack, auth via Supabase
++ Google Sign-In. See [ARCHITECTURE.md](ARCHITECTURE.md) for details.
+
 ## Prerequisites
 
-- Node.js 20.x or later
-- npm or yarn
+- Node.js 22.22.1 (see the repo root `.nvmrc`; `nvm use`)
+- npm
 - Expo CLI
 - For iOS: Xcode (macOS only)
 - For Android: Android Studio
+
+> Mobile is **not** part of the npm workspaces. Its `typecheck` references the
+> backend package builds, so run `npm run build:packages` from the repo root
+> first. See [AGENTS.md](AGENTS.md).
 
 ## Installation
 
@@ -83,25 +94,29 @@ mobile/
 │   │   │   └── LoadingIndicator.tsx # Pulsating animation
 │   │   ├── properties/ # Input property components
 │   │   └── outputs/    # Output rendering components
-│   ├── navigation/     # Navigation configuration
-│   │   └── types.ts    # Navigation type definitions
+│   ├── navigation/     # Navigation configuration + types
 │   ├── screens/        # App screens
-│   │   ├── MiniAppsListScreen.tsx  # List of mini apps
-│   │   ├── MiniAppScreen.tsx       # Mini app detail/run screen
-│   │   ├── ChatScreen.tsx          # AI Chat screen
+│   │   ├── WorkflowsListScreen.tsx  # List of workflows
+│   │   ├── GraphEditorScreen.tsx    # Chain-based graph editor
+│   │   ├── ChatScreen.tsx           # AI Chat screen
+│   │   ├── AssetsScreen.tsx         # Asset browser
+│   │   ├── JobsScreen.tsx           # Job history
 │   │   ├── LanguageModelSelectionScreen.tsx # Model picker
-│   │   └── SettingsScreen.tsx      # Server settings
+│   │   ├── SettingsScreen.tsx       # Server settings
+│   │   └── LoginScreen.tsx          # Supabase / Google sign-in
 │   ├── services/       # API and WebSocket services
-│   │   ├── api.ts          # API client
-│   │   └── WebSocketManager.ts # WebSocket with msgpack
+│   │   ├── api.ts             # REST client (fetch + ApiError/retry/timeout)
+│   │   ├── WebSocketService.ts # Singleton WS (workflow/job routing)
+│   │   └── WebSocketManager.ts # Per-connection WS with msgpack (chat)
+│   ├── trpc/           # tRPC client + React Query provider
 │   ├── stores/         # State management (Zustand)
-│   │   ├── ChatStore.ts    # Chat state
-│   │   └── ThemeStore.ts   # Theme state
-│   └── types/          # TypeScript types
-│       ├── ApiTypes.ts     # Generated API types
-│       ├── chat.ts         # Chat types
-│       ├── miniapp.ts      # Mini app types
-│       └── workflow.ts     # Workflow types
+│   │   ├── ChatStore.ts          # Chat state
+│   │   ├── WorkflowRunner.ts     # Workflow execution state
+│   │   ├── GraphEditorStore.ts   # Graph-editor chain state
+│   │   ├── MediaGenerationStore.ts # Image/video params
+│   │   ├── AuthStore.ts          # Auth/session state
+│   │   └── ThemeStore.ts         # Theme state
+│   └── types/          # TypeScript types (ApiTypes, workflow, …)
 ├── App.tsx             # Main app component
 └── package.json        # Dependencies and scripts
 ```
@@ -137,10 +152,12 @@ For local development with a device/emulator:
 
 ## Development Notes
 
-This app reuses types and logic from the web application (`web/src/components/miniapps/`) for consistency:
-- Type definitions are adapted from `web/src/components/miniapps/types.ts`
-- API patterns follow `web/src/stores/ApiClient.ts`
-- Input handling logic mirrors `web/src/components/miniapps/hooks/useMiniAppInputs.ts`
+This app shares types and patterns with the web application and the backend protocol for
+consistency:
+- API/domain types come from the backend protocol via `src/types/ApiTypes.ts`.
+- Server state goes through a tRPC v11 client + TanStack Query v5; REST-only endpoints use
+  the `fetch`-based `services/api.ts` (no Axios).
+- See [AGENTS.md](AGENTS.md) for the stack, testing, and the npm-workspace note.
 
 ## Building for Production
 

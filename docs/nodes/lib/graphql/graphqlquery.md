@@ -34,4 +34,4 @@ Execute a GraphQL query or mutation against any endpoint.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.graphql](../) namespace.
+Browse other nodes in the [lib.graphql](./) namespace.

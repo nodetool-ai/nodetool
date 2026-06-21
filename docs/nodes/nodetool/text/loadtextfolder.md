@@ -34,4 +34,4 @@ Load all text files from a folder, optionally including subfolders.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.text](../) namespace.
+Browse other nodes in the [nodetool.text](./) namespace.

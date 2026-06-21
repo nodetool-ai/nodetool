@@ -39,4 +39,4 @@ Extract all links from HTML content with type classification.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.html](../) namespace.
+Browse other nodes in the [lib.html](./) namespace.

@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import React, { useMemo, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Tooltip, Box, MOTION } from "../ui_primitives";
+import { Text, Tooltip, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { CopyButton } from "../ui_primitives";
 import {
   HarmonyType,
@@ -46,7 +46,7 @@ const styles = (theme: Theme) =>
     ".harmony-color": {
       flex: 1,
       height: "32px",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       cursor: "pointer",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       display: "flex",

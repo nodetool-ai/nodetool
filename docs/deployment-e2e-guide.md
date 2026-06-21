@@ -1,15 +1,15 @@
 ---
 layout: page
 title: "End-to-End Deployment Guide"
+description: "A practical runbook for deploying NodeTool end-to-end with `nodetool serve` — desktop, public, and private server modes."
 ---
 
 This guide is a practical runbook for deploying NodeTool end-to-end with the unified server entrypoint (`nodetool serve`).
 
-It covers three production scenarios:
+It covers two production scenarios:
 
-1. Desktop app mode
-2. Public server mode (Supabase auth required)
-3. Private server mode (token-based auth, with optional user file/multi-user auth)
+1. Local / desktop runtime (no remote auth)
+2. Supabase-backed server (multi-user auth)
 
 ## What Runs in Production
 
@@ -19,14 +19,13 @@ The server entrypoint is:
 nodetool serve --host 0.0.0.0 --port 7777
 ```
 
-`nodetool serve` accepts `--host`, `--port`, and `--reload`. Use environment variables (or additional `nodetool serve` flags) to control mode/auth/features.
+`nodetool serve` accepts only `--host` and `--port`. Use environment variables to control auth and runtime behavior.
 
 Important runtime behavior:
 
-- Server mode is selected by `NODETOOL_SERVER_MODE` (`desktop`, `public`, `private`).
-- Auth provider is selected by `AUTH_PROVIDER`.
-- In `ENV=production`, `SECRETS_MASTER_KEY` is required.
-- Admin endpoints (`/admin/*`) are additionally protected by `X-Admin-Token` when `ADMIN_TOKEN` is set.
+- Auth is enabled automatically when **both** `SUPABASE_URL` and `SUPABASE_KEY` are set; otherwise the server uses a local auth provider. There is no `AUTH_PROVIDER` switch read by `serve`.
+- Production mode is selected by `NODETOOL_ENV=production` (the container also sets `NODE_ENV=production`). In production, `SECRETS_MASTER_KEY` is required.
+- `/health` and `/ready` require no authentication.
 
 ## Prerequisites
 
@@ -46,22 +45,12 @@ If you use Podman:
 podman build -t nodetool:local .
 ```
 
-## Scenario Matrix
+## 1) Local / Desktop Runtime (no remote auth)
 
-| Scenario | `NODETOOL_SERVER_MODE` | `AUTH_PROVIDER` | Notes |
-| --- | --- | --- | --- |
-| Desktop app | `desktop` | `local` or `none` | Broad feature set, local-first workflows |
-| Public server | `public` | `supabase` | Required by server validation |
-| Private server | `private` | `static`, `multi_user`, or `supabase` | Recommended for internal/self-hosted APIs |
-
-## 1) Desktop App Deployment
-
-Use this for local desktop runtime where the app talks to a local API server.
+Use this for local runtime where the app talks to a local API server. With no
+`SUPABASE_*` vars set, the server uses the local auth provider.
 
 ```bash
-export NODETOOL_SERVER_MODE=desktop
-export AUTH_PROVIDER=local
-export ENV=development
 export DB_PATH=/path/to/workspace/nodetool.db
 export HF_HOME=/path/to/hf-cache
 nodetool serve --host 127.0.0.1 --port 7777
@@ -71,21 +60,19 @@ Verify:
 
 ```bash
 curl -s http://127.0.0.1:7777/health
-curl -s http://127.0.0.1:7777/ping
+curl -s http://127.0.0.1:7777/ready
 ```
 
-## 2) Public Server Deployment (Supabase)
+## 2) Supabase-Backed Server
 
 Use this for internet-facing deployments where user auth is Supabase-backed.
+Setting both `SUPABASE_URL` and `SUPABASE_KEY` enables and enforces Supabase auth.
 
 ```bash
-export ENV=production
-export NODETOOL_SERVER_MODE=public
-export AUTH_PROVIDER=supabase
+export NODETOOL_ENV=production
 export SUPABASE_URL=https://<project>.supabase.co
 export SUPABASE_KEY=<service-role-or-server-key>
 export SECRETS_MASTER_KEY=<strong-random-secret>
-export ADMIN_TOKEN=<admin-token>
 export DB_PATH=/workspace/nodetool.db
 export HF_HOME=/hf-cache
 nodetool serve --host 0.0.0.0 --port 7777
@@ -95,57 +82,13 @@ Verify:
 
 ```bash
 curl -i http://<host>:7777/health
-curl -i http://<host>:7777/workflows
+curl -i http://<host>:7777/api/workflows
 ```
 
 Expected:
 
-- `/health` returns `200`.
-- `/workflows` without auth returns `401/403`.
-
-Admin verification:
-
-```bash
-curl -i http://<host>:7777/admin/cache/size \
-  -H "Authorization: Bearer <user-or-server-token>" \
-  -H "X-Admin-Token: <admin-token>"
-```
-
-## 3) Private Server Deployment
-
-Use this for private endpoints, internal APIs, and controlled deployments.
-
-### Static token auth (common)
-
-```bash
-export ENV=production
-export NODETOOL_SERVER_MODE=private
-export AUTH_PROVIDER=static
-export SERVER_AUTH_TOKEN=<strong-token>
-export SECRETS_MASTER_KEY=<strong-random-secret>
-export ADMIN_TOKEN=<admin-token>
-export DB_PATH=/workspace/nodetool.db
-export HF_HOME=/hf-cache
-nodetool serve --host 0.0.0.0 --port 7777
-```
-
-Call APIs:
-
-```bash
-curl -i http://<host>:7777/workflows \
-  -H "Authorization: Bearer <strong-token>"
-```
-
-### Multi-user/private user-file style
-
-If your deployment uses multi-user auth configuration, set:
-
-```bash
-export NODETOOL_SERVER_MODE=private
-export AUTH_PROVIDER=multi_user
-```
-
-and provide the corresponding user/auth backend configuration for your environment (see [Authentication](authentication.md#authentication-providers)).
+- `/health` returns `200` (no auth required).
+- `/api/workflows` without auth returns `401/403`.
 
 ## Containerized End-to-End Run
 
@@ -153,12 +96,8 @@ and provide the corresponding user/auth backend configuration for your environme
 
 ```bash
 docker run --rm -p 7777:7777 \
-  -e ENV=production \
-  -e NODETOOL_SERVER_MODE=private \
-  -e AUTH_PROVIDER=static \
-  -e SERVER_AUTH_TOKEN=<token> \
+  -e NODETOOL_ENV=production \
   -e SECRETS_MASTER_KEY=<secret> \
-  -e ADMIN_TOKEN=<admin-token> \
   -e DB_PATH=/workspace/nodetool.db \
   -e HF_HOME=/hf-cache \
   -v $(pwd)/workspace:/workspace \
@@ -166,16 +105,14 @@ docker run --rm -p 7777:7777 \
   nodetool:local
 ```
 
+To enable Supabase auth, add `-e SUPABASE_URL=… -e SUPABASE_KEY=…`.
+
 ### Podman
 
 ```bash
 podman run --rm -p 7777:7777 \
-  -e ENV=production \
-  -e NODETOOL_SERVER_MODE=private \
-  -e AUTH_PROVIDER=static \
-  -e SERVER_AUTH_TOKEN=<token> \
+  -e NODETOOL_ENV=production \
   -e SECRETS_MASTER_KEY=<secret> \
-  -e ADMIN_TOKEN=<admin-token> \
   -e DB_PATH=/workspace/nodetool.db \
   -e HF_HOME=/hf-cache \
   -v $(pwd)/workspace:/workspace \
@@ -200,7 +137,7 @@ nodetool deploy workflows list <deployment-name>
 Run synced workflow via REST:
 
 ```bash
-curl -s -X POST http://<host>:7777/workflows/<workflow-id>/run \
+curl -s -X POST http://<host>:7777/api/workflows/<workflow-id>/run \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{}'
@@ -208,11 +145,10 @@ curl -s -X POST http://<host>:7777/workflows/<workflow-id>/run \
 
 ## Production Checklist
 
-- `ENV=production`
+- `NODETOOL_ENV=production`
 - `SECRETS_MASTER_KEY` set
-- `AUTH_PROVIDER` matches mode constraints
-- `ADMIN_TOKEN` set (recommended)
-- `/health` and `/ping` are green
+- Supabase auth (`SUPABASE_URL` + `SUPABASE_KEY`) configured if you need remote auth
+- `/health` and `/ready` are green
 - Unauthorized access to protected endpoints returns `401/403`
 - Workflow sync and workflow run both succeed
 
@@ -225,10 +161,6 @@ Check `SECRETS_MASTER_KEY`:
 ```bash
 openssl rand -base64 32
 ```
-
-### `/admin/*` returns 403 in production
-
-Send the `X-Admin-Token` header with the configured `ADMIN_TOKEN`.
 
 ### E2E tests skip with “image not found”
 

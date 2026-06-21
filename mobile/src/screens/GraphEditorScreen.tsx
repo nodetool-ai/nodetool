@@ -51,6 +51,7 @@ const GraphEditorScreen: React.FC<Props> = ({ route, navigation }) => {
   const newWorkflow = useGraphEditorStore((s) => s.newWorkflow);
   const fetchMetadata = useGraphEditorStore((s) => s.fetchMetadata);
   const allMetadata = useGraphEditorStore((s) => s.allMetadata);
+  const isDirty = useGraphEditorStore((s) => s.isDirty);
 
   const workflowQuery = trpc.workflows.get.useQuery(
     { id: workflowId ?? "" },
@@ -116,6 +117,30 @@ const GraphEditorScreen: React.FC<Props> = ({ route, navigation }) => {
     const title = workflow?.name || "Workflow Editor";
     navigation.setOptions({ title });
   }, [navigation, workflow]);
+
+  // Warn before leaving with unsaved edits so a stray back-swipe can't
+  // silently discard the workflow.
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("beforeRemove", (e) => {
+      if (!isDirty) {
+        return;
+      }
+      e.preventDefault();
+      Alert.alert(
+        "Discard changes?",
+        "You have unsaved changes to this workflow.",
+        [
+          { text: "Keep editing", style: "cancel" },
+          {
+            text: "Discard",
+            style: "destructive",
+            onPress: () => navigation.dispatch(e.data.action),
+          },
+        ]
+      );
+    });
+    return unsubscribe;
+  }, [navigation, isDirty]);
 
   if (loading) {
     return (

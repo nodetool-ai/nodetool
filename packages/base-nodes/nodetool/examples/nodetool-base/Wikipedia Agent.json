@@ -34,8 +34,7 @@
           "selectable": true
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "2",
@@ -79,15 +78,14 @@
             "type_args": [],
             "type_name": null
           }
-        },
-        "sync_mode": "on_any"
+        }
       },
       {
         "id": "3",
         "parent_id": null,
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "\nYou are a Wikipedia style research and documentation agent.\n\nTask:\n1) Start from {{ url }}.\n2) Identify and crawl linked pages that are relevant to {{ label }}.\n3) Extract and organize information required to explain {{ label }} clearly to a technical audience.\n\nWriting requirements:\n- Produce a comprehensive markdown article suitable for a Wikipedia style page.\n- Include sections such as Overview, Background, Techniques, Practical considerations,\n  Limitations, and References.\n- Use neutral, precise language and avoid marketing tone.\n- Provide reference style bullet lists for key papers or standards.\n\nOutput format:\n- Return a JSON object with one key:\n  {\n    \"article_markdown\": \"<full markdown article>\"\n  }\n"
+          "prompt": "\nYou are a Wikipedia style research and documentation agent.\n\nTask:\n1) Start from {{ url }}.\n2) Identify and crawl linked pages that are relevant to {{ label }}.\n3) Extract and organize information required to explain {{ label }} clearly to a technical audience.\n\nWriting requirements:\n- Produce a comprehensive markdown article suitable for a Wikipedia style page.\n- Include sections such as Overview, Background, Techniques, Practical considerations,\n  Limitations, and References.\n- Use neutral, precise language and avoid marketing tone.\n- Provide reference style bullet lists for key papers or standards.\n\nOutput format:\n- Return a JSON object with one key:\n  {\n    \"article_markdown\": \"<full markdown article>\"\n  }\n"
         },
         "ui_properties": {
           "title": "3️⃣ Build prompt",
@@ -103,8 +101,7 @@
           "url": null,
           "label": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "4",
@@ -126,8 +123,7 @@
           "selectable": true
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "5",
@@ -149,8 +145,7 @@
           "selectable": true
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ],
     "edges": [

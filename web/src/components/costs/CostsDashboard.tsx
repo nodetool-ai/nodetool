@@ -59,7 +59,7 @@ const GROUP_OPTIONS: { value: GroupByKey; label: string }[] = [
 const segmentedSx = (theme: Theme): SxProps<Theme> => ({
   backgroundColor: theme.vars.palette.action.hover,
   border: `1px solid ${theme.vars.palette.divider}`,
-  borderRadius: "var(--rounded-lg)",
+  borderRadius: BORDER_RADIUS.lg,
   padding: "3px",
   gap: "2px",
   "& .MuiToggleButton-root": {
@@ -350,7 +350,7 @@ const CostsDashboard: React.FC = () => {
                     gap: "8px",
                     height: 38,
                     padding: "0 16px",
-                    borderRadius: "var(--rounded-lg)",
+                    borderRadius: BORDER_RADIUS.lg,
                     border: "none",
                     cursor: "pointer",
                     fontFamily: "inherit",
@@ -635,7 +635,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
           gap: "8px",
           height: 38,
           padding: "0 12px",
-          borderRadius: "var(--rounded-lg)",
+          borderRadius: BORDER_RADIUS.lg,
           cursor: "pointer",
           fontFamily: "inherit",
           fontSize: "var(--fontSizeSmall)",
@@ -727,7 +727,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
                       sx={{
                         width: 9,
                         height: 9,
-                        borderRadius: "var(--rounded-sm)",
+                        borderRadius: BORDER_RADIUS.sm,
                         backgroundColor: o.color
                       }}
                     />

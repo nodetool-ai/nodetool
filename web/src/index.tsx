@@ -88,6 +88,9 @@ const AssetExplorer = React.lazy(
 const CollectionsExplorer = React.lazy(
   () => import("./components/collections/CollectionsExplorer")
 );
+const ExamplesPage = React.lazy(
+  () => import("./components/portal/ExamplesPage")
+);
 const ChainEditorPage = React.lazy(
   () => import("./components/chain_editor/ChainEditorPage")
 );
@@ -142,6 +145,7 @@ const registerFrontendTools = () => {
 };
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
 
+import { BORDER_RADIUS } from "./components/ui_primitives";
 installIpcLogBridge();
 
 if (isLocalhost) {
@@ -301,6 +305,14 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <CollectionsExplorer />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "examples",
+      element: (
+        <ProtectedRoute>
+          <ExamplesPage />
         </ProtectedRoute>
       )
     },
@@ -564,7 +576,7 @@ const AppWrapper = () => {
                         onClick={() => window.location.reload()}
                         style={{
                           padding: "8px 16px",
-                          borderRadius: "var(--rounded-md)",
+                          borderRadius: BORDER_RADIUS.md,
                           border: "1px solid var(--palette-divider)",
                           backgroundColor: "transparent",
                           color: "var(--palette-text-primary)",

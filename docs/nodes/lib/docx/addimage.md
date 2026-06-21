@@ -31,4 +31,4 @@ Adds an image to the document
 
 ## Related Nodes
 
-Browse other nodes in the [lib.docx](../) namespace.
+Browse other nodes in the [lib.docx](./) namespace.

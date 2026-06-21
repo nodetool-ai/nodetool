@@ -11,7 +11,7 @@ namespace: "nodetool.video"
 
 ## Description
 
-Apply chroma key (green screen) effect to a video.
+Apply chroma key (green screen) effect to a video. The MP4 output has no alpha channel, so the keyed-out area renders black — composite it over a background with the Overlay node.
     video, chroma key, green screen, compositing
 
 ## Properties
@@ -31,4 +31,4 @@ Apply chroma key (green screen) effect to a video.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.video](../) namespace.
+Browse other nodes in the [nodetool.video](./) namespace.

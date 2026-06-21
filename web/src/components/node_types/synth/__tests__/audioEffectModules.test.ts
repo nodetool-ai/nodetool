@@ -5,11 +5,9 @@ import {
 import { formatKnobValue, type KnobSpec } from "../synthModules";
 import {
   BESPOKE_BODY_REGISTRY,
-  BESPOKE_DEFAULT_HEIGHTS,
-  isBespokeNode
+  BESPOKE_DEFAULT_HEIGHTS
 } from "../../editing/bespokeRegistry";
 import SynthModuleBody from "../SynthModuleBody";
-import type { NodeMetadata } from "../../../../stores/ApiTypes";
 
 const linear: KnobSpec = { name: "x", label: "X", min: 0, max: 10, default: 1 };
 
@@ -42,7 +40,6 @@ describe("audio effect configs", () => {
   it("routes every effect node type to the synth module body", () => {
     for (const t of AUDIO_EFFECT_NODE_TYPES) {
       expect(BESPOKE_BODY_REGISTRY[t]).toBe(SynthModuleBody);
-      expect(isBespokeNode({ node_type: t } as NodeMetadata)).toBe(true);
       expect(BESPOKE_DEFAULT_HEIGHTS[t]).toBeGreaterThan(0);
     }
   });

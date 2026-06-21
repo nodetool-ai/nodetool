@@ -33,7 +33,8 @@ export function useTimelineSave(): UseTimelineSaveResult {
         document: {
           tracks: state.tracks,
           clips: state.clips,
-          markers: state.markers
+          markers: state.markers,
+          scriptEnabled: state.scriptEnabled
         }
       });
       const updatedAt = (response as { updatedAt?: unknown } | undefined)

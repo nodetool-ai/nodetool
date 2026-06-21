@@ -28,4 +28,4 @@ Compute summary statistics for each numeric column: count, mean, std, min, 25%, 
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.data](../) namespace.
+Browse other nodes in the [nodetool.data](./) namespace.

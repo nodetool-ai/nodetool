@@ -32,8 +32,9 @@ Update records in a SQLite table.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `dict[str, any]` |  |
+| rows_affected | `int` |  |
+| message | `str` |  |
 
 ## Related Nodes
 
-Browse other nodes in the [lib.sqlite](../) namespace.
+Browse other nodes in the [lib.sqlite](./) namespace.

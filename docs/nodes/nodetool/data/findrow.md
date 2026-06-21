@@ -42,4 +42,4 @@ Find the first row in a dataframe that matches a given condition.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.data](../) namespace.
+Browse other nodes in the [nodetool.data](./) namespace.

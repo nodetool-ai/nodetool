@@ -12,8 +12,7 @@ namespace: "lib.tensorflow"
 ## Description
 
 Extract a fixed-length feature embedding from an image using the MobileNet penultimate layer.
-    Useful as input to a custom classifier or nearest-neighbour search.
-    tensorflow, image, embedding, features, mobilenet, transfer learning
+    tensorflow, image, embedding, features, mobilenet, transfer-learning
 
 ## Properties
 
@@ -27,4 +26,4 @@ _(none)_
 
 ## Related Nodes
 
-Browse other nodes in the [lib.tensorflow](../) namespace.
+Browse other nodes in the [lib.tensorflow](./) namespace.

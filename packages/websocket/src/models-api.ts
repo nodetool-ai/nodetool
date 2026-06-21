@@ -7,7 +7,6 @@ import {
   getProvider,
   isProviderConfigured,
   listRegisteredProviderIds,
-  providerCapabilities,
   RECOMMENDED_MODELS,
   OLLAMA_DEFAULT_URL,
   LMSTUDIO_DEFAULT_URL,
@@ -388,7 +387,7 @@ async function getProvidersInfo(userId = "1"): Promise<ProviderInfo[]> {
   for (const provider of await getAvailableProviderIds(userId)) {
     const instance = await instantiateProvider(provider, userId);
     if (!instance) continue;
-    infos.push({ provider, capabilities: providerCapabilities(instance) });
+    infos.push({ provider, capabilities: instance.getCapabilities() });
   }
   return infos;
 }

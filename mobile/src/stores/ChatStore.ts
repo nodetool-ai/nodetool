@@ -73,6 +73,7 @@ interface ChatState {
   addMessageToCache: (threadId: string, message: Message) => void;
   setStatus: (status: ChatStatus) => void;
   setError: (error: string | null) => void;
+  clearError: () => void;
 }
 
 // Tracks the in-flight safety timeout from sendMessage. Module-scoped so
@@ -282,17 +283,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     set({ status: 'connecting' });
 
-    // Get WebSocket URL from API service
-    let wsUrl = apiService.getWebSocketUrl('/ws');
+    // Get WebSocket URL from API service. The auth token is sent as an
+    // Authorization header (see WebSocketManager) rather than a URL query
+    // param, so it doesn't leak into logs/proxies.
+    const wsUrl = apiService.getWebSocketUrl('/ws');
     const session = useAuthStore.getState().session;
-    if (session?.access_token) {
-      wsUrl += `?api_key=${session.access_token}`;
-    }
+    const headers = session?.access_token
+      ? { Authorization: `Bearer ${session.access_token}` }
+      : undefined;
     console.log('Connecting to chat WebSocket:', wsUrl);
 
     // Create WebSocket manager
     const wsManager = new WebSocketManager({
       url: wsUrl,
+      headers,
       reconnect: true,
       reconnectInterval: 1000,
       reconnectDecay: 1.5,
@@ -437,15 +441,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       wsManager.send(messageToSend);
 
-      // Safety timeout - reset status if no response
+      // Safety timeout - surface an error if the server never responds, rather
+      // than silently dropping back to "connected" with no explanation.
       safetyTimeoutId = setTimeout(() => {
         safetyTimeoutId = null;
         const currentState = get();
         if (currentState.status === 'loading' || currentState.status === 'streaming') {
-          console.warn('Generation timeout - resetting status');
+          console.warn('Generation timeout - surfacing error');
           set({
-            status: 'connected',
+            status: 'error',
             statusMessage: null,
+            error: 'The response timed out. Please try again.',
           });
         }
       }, 5 * 60 * 1000);
@@ -616,6 +622,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   setError: (error: string | null) => {
     set({ error });
+  },
+
+  /**
+   * Dismiss the current error and return to a usable state so the user can
+   * retry — back to `connected` if the socket is still up, otherwise
+   * `disconnected` (the next send will reconnect).
+   */
+  clearError: () => {
+    const { wsManager } = get();
+    set({
+      error: null,
+      statusMessage: null,
+      status: wsManager?.isConnected() ? 'connected' : 'disconnected',
+    });
   },
 
   setSelectedModel: (model: LanguageModel) => {

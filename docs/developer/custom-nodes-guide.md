@@ -250,11 +250,11 @@ export class AddOffsetNode extends BaseNode {
 
 | Member                 | Type                              | Purpose |
 |------------------------|-----------------------------------|---------|
-| `metadataOutputTypes`  | `{ [name]: typeString }`          | Maps output handle name → NodeTool type string. Required if outputs are anything other than the default `output: any`. |
-| `isStreamingOutput`    | `boolean`                         | Marks the node as producing a stream — see [§11](#11-streaming-nodes-genprocess). |
-| `isStreamingInput`     | `boolean`                         | Marks the node as consuming a stream via the `run(...)` hook. |
-| `isDynamic`            | `boolean`                         | Allows users to add/remove handles in the UI; pair with `setDynamic` / `getDynamic`. |
-| `outputCorrelation`    | `{ [output]: OutputCorrelation }` | Controls per-iteration / per-chunk fan-out semantics. |
+| `metadataOutputTypes`    | `{ [name]: typeString }`          | Maps output handle name → NodeTool type string. Required if outputs are anything other than the default `output: any`. |
+| `isStreamingInput`       | `boolean`                         | Marks the node as consuming a stream via the `run(...)` hook (pair with `inputMode = "stream"`). |
+| `supportsDynamicInputs`  | `boolean`                         | Allows users to add/remove input handles in the UI; read/write them with `getDynamic` / `setDynamic`. |
+| `inputMode`              | `"buffered" \| "stream" \| "controlled"` | How inputs are consumed. Default (`undefined`) is buffered. |
+| `outputCorrelation`      | `{ [output]: OutputCorrelation }` | Controls per-iteration / per-chunk fan-out semantics. Streaming output is inferred from this (e.g. `forward`/`iteration` kinds) — there is **no** `isStreamingOutput` flag. |
 
 ### The `process` method
 
@@ -332,15 +332,19 @@ The `type` string in `@prop` and the values in `metadataOutputTypes` come from t
 
 Media flows through the graph as small reference objects, not as raw bytes. Import the types from `@nodetool-ai/node-sdk`:
 
+`@nodetool-ai/node-sdk` re-exports only `ImageRef`, `AudioRef`, `VideoRef`,
+`TextRef`, and `DataframeRef`. `DocumentRef` and `Model3DRef` are **not**
+re-exported by the SDK — import those from `@nodetool-ai/protocol`:
+
 ```ts
 import type {
   ImageRef,
   AudioRef,
   VideoRef,
   TextRef,
-  DocumentRef,
   DataframeRef
 } from "@nodetool-ai/node-sdk";
+import type { DocumentRef, Model3DRef } from "@nodetool-ai/protocol";
 ```
 
 | String         | TS type        | Use for |
@@ -440,6 +444,22 @@ await context.httpPost(url, { json: { foo: 1 } });
 
 ### Cache
 
+The per-job cache is exposed at `context.cache`. Both methods are **async**;
+`set` takes an optional TTL in seconds, and `get` takes only the key (it returns
+`undefined` on a miss — there is no default-value argument):
+
+```ts
+// CacheAdapter signatures:
+//   get(key: string): Promise<unknown | undefined>
+//   set(key: string, value: unknown, ttlSeconds?: number): Promise<void>
+const hit = await context.cache.get("my-key");
+if (hit !== undefined) return hit as Record<string, unknown>;
+const result = await expensive();
+await context.cache.set("my-key", result, 3600);  // expires after 1 hour
+```
+
+For node-result memoization, the convenience helpers wrap the same cache:
+
 ```ts
 const cached = await context.getCachedResult(this.nodeType, this.serialize());
 if (cached) return cached;
@@ -481,18 +501,21 @@ const n = context.get<number>("counter", 0);
 
 ## 11. Streaming nodes (`genProcess`)
 
-For nodes that produce results incrementally, override `genProcess` and set `isStreamingOutput`:
+For nodes that produce results incrementally, override `genProcess` and declare an iteration `outputCorrelation`. The base class detects that the subclass overrides `genProcess` and iterates it — there is no `isStreamingOutput` flag to set:
 
 ```ts
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type { OutputCorrelation } from "@nodetool-ai/protocol";
 
 export class WordStreamNode extends BaseNode {
   static readonly nodeType = "mypack.text.WordStream";
   static readonly title = "Word Stream";
   static readonly description = "Emit each word of the input as a separate event.";
   static readonly metadataOutputTypes = { word: "str" };
-  static readonly isStreamingOutput = true;
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    word: { kind: "iteration", source: "__execution__", group: "items" },
+  };
 
   @prop({ type: "str", default: "", title: "Text" })
   declare text: string;
@@ -523,7 +546,7 @@ static readonly outputCorrelation = {
 };
 ```
 
-`kind: "iteration"` means each yielded value advances downstream consumers; `kind: "single"` means the value is the run's final aggregate. See `OutputCorrelation` in `@nodetool-ai/node-sdk` for the full vocabulary.
+`kind: "iteration"` means each yielded value advances downstream consumers; `kind: "single"` means the value is the run's final aggregate. See the `OutputCorrelation` type in `@nodetool-ai/protocol` for the full vocabulary.
 
 ### Default behaviour
 

@@ -32,4 +32,4 @@ Search across all pages and databases the Notion integration has access to.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.notion](../) namespace.
+Browse other nodes in the [lib.notion](./) namespace.

@@ -26,6 +26,7 @@ import {
   Card,
   Chip,
   Box,
+  EmptyState,
   BORDER_RADIUS,
   MOTION
 } from "../ui_primitives";
@@ -454,7 +455,7 @@ const ProviderCard = memo(function ProviderCard({
         display: "flex",
         alignItems: "center",
         gap: theme.spacing(3),
-        borderRadius: "var(--rounded-lg)",
+        borderRadius: BORDER_RADIUS.lg,
         border: `1px solid ${theme.vars.palette.divider}`,
         backgroundColor: theme.vars.palette.background.paper,
         transition: `${MOTION.border}, ${MOTION.background}`,
@@ -472,7 +473,7 @@ const ProviderCard = memo(function ProviderCard({
           width: 48,
           height: 48,
           minWidth: 48,
-          borderRadius: "var(--rounded-lg)",
+          borderRadius: BORDER_RADIUS.lg,
           backgroundColor: theme.vars.palette.background.default,
           overflow: "hidden"
         }}
@@ -647,7 +648,7 @@ const GetStartedBanner = memo(function GetStartedBanner({
       variant="outlined"
       padding="comfortable"
       sx={{
-        borderRadius: "var(--rounded-xl)",
+        borderRadius: BORDER_RADIUS.xl,
         border: `1px solid ${theme.vars.palette.divider}`,
         backgroundColor: theme.vars.palette.background.paper,
         marginBottom: theme.spacing(6)
@@ -739,7 +740,7 @@ const SectionTitle = memo(function SectionTitle({
           fontWeight: 600,
           backgroundColor: theme.vars.palette.action.selected,
           padding: theme.spacing(0.5, 2),
-          borderRadius: "var(--rounded-sm)"
+          borderRadius: BORDER_RADIUS.sm
         }}
       >
         {count}
@@ -935,9 +936,11 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
       <GetStartedBanner theme={theme} />
 
       {!hasContent && lowerSearch && (
-        <Text sx={{ textAlign: "center", padding: theme.spacing(8), opacity: 0.6 }}>
-          No providers found matching &quot;{searchTerm}&quot;
-        </Text>
+        <EmptyState
+          variant="no-results"
+          title="No providers found"
+          description={`No providers match "${searchTerm}"`}
+        />
       )}
 
       {allRecommended.length > 0 && (
@@ -1047,7 +1050,7 @@ export const SecurityNotice = memo(function SecurityNotice() {
       variant="outlined"
       padding="normal"
       sx={{
-        borderRadius: "var(--rounded-lg)",
+        borderRadius: BORDER_RADIUS.lg,
         border: `1px solid ${theme.vars.palette.divider}`,
         backgroundColor: `rgba(${theme.vars.palette.success.mainChannel} / 0.06)`
       }}
@@ -1134,7 +1137,7 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
         variant="outlined"
         padding="normal"
         sx={{
-          borderRadius: "var(--rounded-lg)",
+          borderRadius: BORDER_RADIUS.lg,
           border: `1px solid ${theme.vars.palette.divider}`
         }}
       >
@@ -1149,7 +1152,7 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
               gap={0.75}
               sx={{
                 padding: theme.spacing(2, 2),
-                borderRadius: "var(--rounded-md)",
+                borderRadius: BORDER_RADIUS.md,
                 cursor: "pointer",
                 transition: MOTION.background,
                 "&:hover": {
@@ -1204,7 +1207,7 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
         variant="outlined"
         padding="normal"
         sx={{
-          borderRadius: "var(--rounded-lg)",
+          borderRadius: BORDER_RADIUS.lg,
           border: `1px solid ${theme.vars.palette.divider}`,
           background: `linear-gradient(135deg, rgba(${theme.vars.palette.primary.mainChannel} / 0.08) 0%, rgba(${theme.vars.palette.primary.mainChannel} / 0.02) 100%)`
         }}

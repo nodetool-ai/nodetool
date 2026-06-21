@@ -1,24 +1,27 @@
 /**
- * Mobile WebSocket Service
- * Adapted from web/src/lib/websocket/GlobalWebSocketManager.ts
+ * Mobile WebSocket Service — singleton router over a single shared connection.
+ *
+ * Mirrors web/src/lib/websocket/GlobalWebSocketManager.ts: it owns one
+ * {@link WebSocketManager} (which provides the robust transport — exponential
+ * backoff, connection timeout, and an outgoing message queue) and multiplexes
+ * incoming messages to subscribers keyed by `workflow_id` / `job_id` /
+ * `thread_id`. Consumers (e.g. WorkflowRunner) keep using `subscribe`/`send`
+ * unchanged; the duplicate hand-rolled reconnect logic that used to live here
+ * is gone.
  */
 import { apiService } from './api';
-import { encode, decode } from "@msgpack/msgpack";
 import { useAuthStore } from '../stores/AuthStore';
+import { WebSocketManager } from './WebSocketManager';
+import type { WebSocketMessageData } from '../types/chat';
 
 type MessageHandler = (message: Record<string, unknown>) => void;
 
 class WebSocketService {
   private static instance: WebSocketService | null = null;
-  private ws: WebSocket | null = null;
-  private messageHandlers: Map<string, Set<MessageHandler>> = new Map();
-  private isConnecting = false;
-  private isConnected = false;
-  private reconnectTimer: NodeJS.Timeout | null = null;
-  private reconnectAttempts = 0;
-
-  private maxReconnectAttempts = 5;
+  private wsManager: WebSocketManager | null = null;
   private currentPath: string | null = null;
+  private connectPromise: Promise<void> | null = null;
+  private messageHandlers: Map<string, Set<MessageHandler>> = new Map();
 
   private constructor() {
     // Private constructor for singleton
@@ -32,166 +35,105 @@ class WebSocketService {
   }
 
   /**
-   * Ensure WebSocket connection is established to a specific path
+   * Ensure a connection to `path` is established, reusing an existing one and
+   * de-duplicating concurrent callers. Switching paths tears down the old
+   * connection first.
    */
   async ensureConnection(path: string): Promise<void> {
-    if (this.isConnected && this.ws && this.currentPath === path) {
+    if (this.wsManager?.isConnected() && this.currentPath === path) {
       return;
     }
 
-    if (this.isConnected && this.ws && this.currentPath !== path) {
-      console.log(`WebSocketService: Switching connection from ${this.currentPath} to ${path}`);
-      this.disconnect();
+    if (this.wsManager && this.currentPath !== path) {
+      this.teardown();
     }
 
-    if (this.isConnecting) {
-      if (this.currentPath === path) {
-         // Wait for ongoing connection to same path
-         return new Promise((resolve) => {
-           const checkInterval = setInterval(() => {
-             if (this.isConnected && this.ws) {
-               clearInterval(checkInterval);
-               resolve();
-             }
-           }, 100);
-         });
-      } else {
-         // Force reconnect if path changed during connection (simplistic handling)
-         this.disconnect();
-      }
+    if (this.connectPromise && this.currentPath === path) {
+      return this.connectPromise;
     }
 
-    this.isConnecting = true;
-    this.connect(path);
-    
-    // Return a promise that resolves when connected
-    return new Promise((resolve, reject) => {
-      const checkInterval = setInterval(() => {
-        if (this.isConnected) {
-          clearInterval(checkInterval);
-          resolve();
-        } else if (!this.isConnecting && !this.isConnected) {
-          clearInterval(checkInterval);
-          reject(new Error('Failed to connect'));
-        }
-      }, 100);
-    });
-  }
-
-  private connect(path: string) {
+    this.connectPromise = this.establish(path);
     try {
-      this.currentPath = path;
-      let url = apiService.getWebSocketUrl(path);
-      const session = useAuthStore.getState().session;
-      if (session?.access_token) {
-        url += `?api_key=${session.access_token}`;
-      }
-      console.log('WebSocketService: Connecting to', url.replace(/api_key=.*/, 'api_key=***'));
-
-      this.ws = new WebSocket(url);
-      this.ws.binaryType = 'arraybuffer'; 
-
-      this.ws.onopen = () => {
-        console.log('WebSocketService: Connected');
-        this.isConnected = true;
-        this.isConnecting = false;
-        this.reconnectAttempts = 0;
-      };
-
-      this.ws.onmessage = (event) => {
-        // Handle both text and binary data
-        let data: Record<string, unknown> | undefined;
-        try {
-          if (typeof event.data === 'string') {
-             data = JSON.parse(event.data) as Record<string, unknown>;
-          } else if (event.data instanceof ArrayBuffer) {
-             data = decode(new Uint8Array(event.data)) as Record<string, unknown>;
-          } else if (event.data instanceof Blob) {
-             // In RN getting arrayBuffer from blob might be async or require FileReader
-             // But if we set binaryType='arraybuffer', we should get ArrayBuffer directly ideally?
-             // Creating a reader just in case RN returns Blob despite binaryType setting
-             // actually RN WebSocket might return Blob by default if not specified or even if specified?
-             // Let's assume arraybuffer works first. If not, we might need a Blob handling util.
-             // For now logging warning if we get Blob but expected ArrayBuffer
-             console.warn('WebSocketService: Received Blob, expected ArrayBuffer. Check implementation.');
-             return;
-          } else {
-             console.warn('WebSocketService: Unknown message type', typeof event.data);
-             return;
-          }
-
-          if (data) {
-             this.routeMessage(data);
-          }
-        } catch (e) {
-          console.error('WebSocketService: Failed to parse message', e);
-        }
-      };
-
-      this.ws.onerror = (error) => {
-        console.error('WebSocketService: Error', error);
-      };
-
-      this.ws.onclose = () => {
-        console.log('WebSocketService: Disconnected');
-        this.isConnected = false;
-        this.isConnecting = false;
-        this.ws = null;
-        this.handleReconnect();
-      };
-
-    } catch (error) {
-      console.error('WebSocketService: Failed to create connection', error);
-      this.isConnecting = false;
-      this.handleReconnect();
+      await this.connectPromise;
+    } finally {
+      this.connectPromise = null;
     }
   }
 
-  private handleReconnect() {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      const delay = 1000 * this.reconnectAttempts;
-      console.log(`WebSocketService: Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
-      
-      if (this.reconnectTimer) {clearTimeout(this.reconnectTimer);}
-      
-      this.reconnectTimer = setTimeout(() => {
-        if (this.currentPath) {
-          this.isConnecting = true;
-          this.connect(this.currentPath);
-        }
-      }, delay);
-    }
+  private async establish(path: string): Promise<void> {
+    // Drop any previous (failed/closed) manager before opening a new one.
+    this.wsManager?.destroy();
+    this.currentPath = path;
+
+    // The auth token is sent as an Authorization header (see WebSocketManager)
+    // rather than a `?api_key=` query param, keeping it out of URLs/logs.
+    const url = apiService.getWebSocketUrl(path);
+    const session = useAuthStore.getState().session;
+    const headers = session?.access_token
+      ? { Authorization: `Bearer ${session.access_token}` }
+      : undefined;
+    console.log('WebSocketService: Connecting to', url);
+
+    const manager = new WebSocketManager({
+      url,
+      headers,
+      reconnect: true,
+      reconnectInterval: 1000,
+      reconnectDecay: 1.5,
+      reconnectAttempts: 10,
+      timeoutInterval: 30000,
+    });
+    manager.setCallbacks({
+      onMessage: (data: WebSocketMessageData) =>
+        this.routeMessage(data as unknown as Record<string, unknown>),
+      onError: (error: Error) =>
+        console.error('WebSocketService: Error', error.message),
+      onClose: (code: number, reason: string) =>
+        console.log(`WebSocketService: Disconnected (code=${code}, reason=${reason})`),
+    });
+    this.wsManager = manager;
+
+    await manager.connect();
   }
 
   /**
-   * Route incoming message to registered handlers
+   * Route an incoming message to every subscriber whose key matches one of the
+   * message's routing ids. Each handler is invoked at most once even when the
+   * message carries several matching ids (e.g. both `workflow_id` and `job_id`).
    */
   private routeMessage(message: Record<string, unknown>): void {
-    // Route by workflow_id or job_id
-    const workflowId = message['workflow_id'];
-    const jobId = message['job_id'];
-    const routingKey = (typeof workflowId === 'string' ? workflowId : undefined)
-      ?? (typeof jobId === 'string' ? jobId : undefined);
+    const routingKeys = new Set<string>();
+    for (const field of ['workflow_id', 'job_id', 'thread_id'] as const) {
+      const value = message[field];
+      if (typeof value === 'string') {
+        routingKeys.add(value);
+      }
+    }
 
-    if (!routingKey) {
+    if (routingKeys.size === 0) {
       return;
     }
 
-    const handlers = this.messageHandlers.get(routingKey);
-    if (handlers && handlers.size > 0) {
-      handlers.forEach((handler) => {
+    const called = new Set<MessageHandler>();
+    routingKeys.forEach((key) => {
+      const handlers = this.messageHandlers.get(key);
+      handlers?.forEach((handler) => {
+        if (called.has(handler)) {
+          return;
+        }
+        called.add(handler);
         try {
           handler(message);
         } catch (error) {
           console.error('WebSocketService: Handler error:', error);
         }
       });
-    }
+    });
   }
 
   /**
-   * Register a message handler for a workflow or job
+   * Register a message handler for a workflow or job id. Returns an unsubscribe
+   * function.
    */
   subscribe(key: string, handler: MessageHandler): () => void {
     if (!this.messageHandlers.has(key)) {
@@ -199,9 +141,6 @@ class WebSocketService {
     }
     this.messageHandlers.get(key)!.add(handler);
 
-    console.log(`WebSocketService: Subscribed handler for ${key}`);
-
-    // Return unsubscribe function
     return () => {
       const handlers = this.messageHandlers.get(key);
       if (handlers) {
@@ -214,35 +153,29 @@ class WebSocketService {
   }
 
   /**
-   * Send a message through the WebSocket
+   * Send a message, connecting first if needed. The underlying manager queues
+   * the message if a reconnect is in progress rather than dropping it.
    */
   async send(message: unknown, path: string = '/ws'): Promise<void> {
     await this.ensureConnection(path);
 
-    if (!this.ws) {
+    if (!this.wsManager) {
       throw new Error('WebSocket not connected');
     }
 
-    // console.log('WebSocketService: Sending message', message);
-    // Encode with msgpack
-    const encoded = encode(message);
-    this.ws.send(encoded);
+    this.wsManager.send(message as { type: string });
   }
 
-  /**
-   * Disconnect the WebSocket
-   */
+  /** Tear down the transport but keep subscriptions for the next connection. */
+  private teardown(): void {
+    this.wsManager?.destroy();
+    this.wsManager = null;
+    this.currentPath = null;
+    this.connectPromise = null;
+  }
+
   disconnect(): void {
-    if (this.reconnectTimer) {clearTimeout(this.reconnectTimer);}
-    
-    if (this.ws) {
-      console.log('WebSocketService: Disconnecting');
-      this.ws.close(); // close() will trigger onclose which cleans up
-      this.ws = null;
-      this.currentPath = null;
-    }
-    this.isConnected = false;
-    this.isConnecting = false;
+    this.teardown();
   }
 }
 

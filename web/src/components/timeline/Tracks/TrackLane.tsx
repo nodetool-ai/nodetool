@@ -38,6 +38,7 @@ import {
   assetMediaType,
   isCompatibleWithTrack
 } from "../dnd/assetToClipAdapter";
+import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -125,6 +126,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
   const seek = useTimelinePlaybackStore((s) => s.seek);
   const setSelection = useTimelineUIStore((s) => s.setSelection);
   const addImportedClip = useTimelineStore((s) => s.addImportedClip);
+  const importVideoWithAudio = useVideoAudioImport();
 
   const heightPx = track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX;
 
@@ -278,7 +280,13 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       const dropX = e.clientX - rect.left;
       const startMs = Math.max(0, Math.round(dropX * msPerPx));
 
-      addImportedClip(asset, track.id, startMs);
+      // Video dropped on a video track: also create a linked audio clip from
+      // the video's audio track. Everything else imports as a single clip.
+      if (mediaType === "video" && track.type === "video") {
+        void importVideoWithAudio(asset, track.id, startMs);
+      } else {
+        addImportedClip(asset, track.id, startMs);
+      }
     },
     [
       isAssetDrag,
@@ -286,6 +294,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       track.id,
       msPerPx,
       addImportedClip,
+      importVideoWithAudio,
       showWarning
     ]
   );

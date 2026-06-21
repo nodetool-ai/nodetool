@@ -10,7 +10,7 @@ import DataObjectIcon from "@mui/icons-material/DataObject";
 import NotesIcon from "@mui/icons-material/Notes";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import { MOTION } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS } from "../ui_primitives";
 
 interface QuickStart {
   icon: React.ReactNode;
@@ -65,7 +65,7 @@ const styles = (theme: Theme) =>
     ".hero-badge": {
       width: "3em",
       height: "3em",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -106,7 +106,7 @@ const styles = (theme: Theme) =>
       gap: "0.75em",
       width: "100%",
       padding: "0.7em 0.85em",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       cursor: "pointer",
       textAlign: "left",
       color: theme.vars.palette.text.primary,

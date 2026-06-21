@@ -220,6 +220,31 @@ export default function RootLayout({
           }}
         />
 
+        {/* JSON-LD Structured Data for the homepage demo video */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "VideoObject",
+              "name": "NodeTool — the open creative AI workspace (demo)",
+              "description":
+                "A walkthrough of NodeTool: wiring image, video, audio, and text models from every major provider into one node-based canvas, called with your own keys.",
+              "thumbnailUrl": "https://nodetool.ai/preview.png",
+              "contentUrl": "https://nodetool.ai/demo.mp4",
+              "uploadDate": "2026-01-01",
+              "publisher": {
+                "@type": "Organization",
+                "name": "NodeTool",
+                "logo": {
+                  "@type": "ImageObject",
+                  "url": "https://nodetool.ai/logo.png"
+                }
+              }
+            })
+          }}
+        />
+
         <Script
           defer
           data-domain="nodetool.ai"

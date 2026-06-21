@@ -1,21 +1,10 @@
-import useStatusStore, { hashKey } from "../StatusStore";
+import useStatusStore from "../StatusStore";
 
 const JOB = "job1";
 
 describe("StatusStore", () => {
   beforeEach(() => {
     useStatusStore.setState({ statuses: {} });
-  });
-
-  describe("hashKey", () => {
-    it("should create a unique key from workflowId, jobId, and nodeId", () => {
-      expect(hashKey("workflow1", "job1", "node1")).toBe(
-        "workflow1:job1:node1"
-      );
-      expect(hashKey("workflow2", "job2", "node2")).toBe(
-        "workflow2:job2:node2"
-      );
-    });
   });
 
   describe("setStatus", () => {
@@ -181,7 +170,6 @@ describe("StatusStore", () => {
       setStatus("", "", "", "status");
 
       expect(getStatus("", "", "")).toBe("status");
-      expect(hashKey("", "", "")).toBe("::");
     });
 
     it("should handle special characters in workflowId and nodeId", () => {

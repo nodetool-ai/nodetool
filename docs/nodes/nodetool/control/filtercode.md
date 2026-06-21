@@ -34,4 +34,4 @@ Pass items through when a JavaScript predicate returns truthy.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.control](../) namespace.
+Browse other nodes in the [nodetool.control](./) namespace.

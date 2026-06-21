@@ -2,6 +2,9 @@
   "name": "@nodetool-ai/huggingface",
   "version": "0.7.0-rc.23",
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0 <23.0.0"
+  },
   "description": "HuggingFace integration: cache scanning, model discovery, artifact inspection, and downloads",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

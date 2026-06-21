@@ -35,4 +35,4 @@ Takes a screenshot of a web page or specific element.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.browser](../) namespace.
+Browse other nodes in the [lib.browser](./) namespace.

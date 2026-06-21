@@ -31,4 +31,4 @@ Add an audio track to a video, replacing or mixing with existing audio.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.video](../) namespace.
+Browse other nodes in the [nodetool.video](./) namespace.

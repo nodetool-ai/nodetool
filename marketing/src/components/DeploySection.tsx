@@ -27,7 +27,7 @@ export default function DeploySection({
           >
             <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6">
               Self host <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
+              <span className="text-white">
                 on VPS
               </span>
             </h2>
@@ -74,7 +74,7 @@ export default function DeploySection({
             </div>
 
             <div className="mt-10 pt-8 border-t border-white/5">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
                 Supported Providers
               </p>
               <div className="flex gap-8 grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition-all duration-300">
@@ -121,7 +121,7 @@ export default function DeploySection({
                   <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50" />
                   <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
                   <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50" />
-                  <div className="ml-auto text-xs text-slate-500 font-mono">
+                  <div className="ml-auto text-xs text-slate-400 font-mono">
                     deploy.sh
                   </div>
                 </div>
@@ -134,19 +134,19 @@ export default function DeploySection({
                       nodetool deploy --provider runpod
                     </span>
                   </div>
-                  <div className="text-slate-500 pt-2">
+                  <div className="text-slate-400 pt-2">
                     [+] Building workflow graph...{" "}
                     <span className="text-green-400">Done</span>
                   </div>
-                  <div className="text-slate-500">
+                  <div className="text-slate-400">
                     [+] Provisioning GPU instance (RTX 4090)...{" "}
                     <span className="text-green-400">Done</span>
                   </div>
-                  <div className="text-slate-500">
+                  <div className="text-slate-400">
                     [+] Syncing models (2.4GB)...{" "}
                     <span className="text-green-400">Done</span>
                   </div>
-                  <div className="text-slate-500 pb-2">
+                  <div className="text-slate-400 pb-2">
                     [+] Configuring endpoint...{" "}
                     <span className="text-green-400">Done</span>
                   </div>

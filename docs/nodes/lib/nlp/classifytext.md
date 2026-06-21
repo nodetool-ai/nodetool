@@ -36,4 +36,4 @@ Trains a Naive Bayes classifier and classifies text.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.nlp](../) namespace.
+Browse other nodes in the [lib.nlp](./) namespace.

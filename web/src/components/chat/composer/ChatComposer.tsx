@@ -42,6 +42,7 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
   toolbarNode
 }) => {
   const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [prompt, setPrompt] = useState("");
@@ -121,7 +122,7 @@ const ChatComposer: React.FC<ChatComposerProps> = memo(({
   );
 
   return (
-    <div css={createStyles(theme)} className="chat-composer">
+    <div css={styles} className="chat-composer">
       {/* Queued Message Widget */}
       <Collapse in={!!queuedMessage}>
         <FlexRow justify="flex-end" sx={{ px: 1, mb: 1 }}>

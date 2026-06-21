@@ -101,7 +101,7 @@ mobile/src/trpc/
 
 - [ ] **Step 1: Create and switch to feature branch**
 
-Run: `cd /Users/mg/workspace/nodetool && git checkout -b trpc-migration`
+Run: `cd ~/workspace/nodetool && git checkout -b trpc-migration`
 Expected: `Switched to a new branch 'trpc-migration'`
 
 - [ ] **Step 2: Verify branch is clean**
@@ -198,7 +198,7 @@ In `dependencies`:
 
 - [ ] **Step 7: Install**
 
-Run: `cd /Users/mg/workspace/nodetool && npm install`
+Run: `cd ~/workspace/nodetool && npm install`
 Expected: completes without errors; `package-lock.json` updates.
 
 - [ ] **Step 8: Commit**
@@ -439,7 +439,7 @@ export type AppRouter = typeof appRouter;
 
 - [ ] **Step 6: Verify typecheck passes**
 
-Run: `cd /Users/mg/workspace/nodetool && npm run typecheck --workspace=packages/websocket`
+Run: `cd ~/workspace/nodetool && npm run typecheck --workspace=packages/websocket`
 Expected: passes with no errors.
 
 - [ ] **Step 7: Commit**
@@ -470,7 +470,7 @@ export {};
 
 - [ ] **Step 2: Verify typecheck passes**
 
-Run: `cd /Users/mg/workspace/nodetool && npm run typecheck --workspace=packages/protocol`
+Run: `cd ~/workspace/nodetool && npm run typecheck --workspace=packages/protocol`
 Expected: passes.
 
 - [ ] **Step 3: Commit**
@@ -592,12 +592,12 @@ describe("tRPC Fastify mount", () => {
 
 - [ ] **Step 4: Run the test**
 
-Run: `cd /Users/mg/workspace/nodetool/packages/websocket && npm test -- src/trpc/__tests__/integration.test.ts`
+Run: `cd ~/workspace/nodetool/packages/websocket && npm test -- src/trpc/__tests__/integration.test.ts`
 Expected: PASS.
 
 - [ ] **Step 5: Verify typecheck passes**
 
-Run: `cd /Users/mg/workspace/nodetool && npm run typecheck --workspace=packages/websocket`
+Run: `cd ~/workspace/nodetool && npm run typecheck --workspace=packages/websocket`
 Expected: passes.
 
 - [ ] **Step 6: Commit**
@@ -729,7 +729,7 @@ In `packages/protocol/package.json`, replace the `exports` block with:
 
 - [ ] **Step 5: Verify typecheck passes across workspaces**
 
-Run: `cd /Users/mg/workspace/nodetool && npm run typecheck`
+Run: `cd ~/workspace/nodetool && npm run typecheck`
 Expected: passes. (If protocol isn't built, run `npm run build:packages` first.)
 
 - [ ] **Step 6: Commit**
@@ -866,12 +866,12 @@ import { TRPCProvider } from "./trpc/Provider";
 
 - [ ] **Step 4: Typecheck**
 
-Run: `cd /Users/mg/workspace/nodetool/web && npm run typecheck`
+Run: `cd ~/workspace/nodetool/web && npm run typecheck`
 Expected: passes.
 
 - [ ] **Step 5: Boot the dev server and verify no runtime errors**
 
-Run: `cd /Users/mg/workspace/nodetool && npm run dev`
+Run: `cd ~/workspace/nodetool && npm run dev`
 In another terminal: `curl http://127.0.0.1:7777/trpc/healthz`
 Expected: JSON response containing `{"result":{"data":{"json":{"ok":true}}}}`. Kill the dev server.
 
@@ -971,7 +971,7 @@ export * as costs from "./costs.js";
 
 - [ ] **Step 3: Typecheck**
 
-Run: `cd /Users/mg/workspace/nodetool && npm run typecheck --workspace=packages/protocol`
+Run: `cd ~/workspace/nodetool && npm run typecheck --workspace=packages/protocol`
 Expected: passes.
 
 - [ ] **Step 4: Commit**
@@ -1131,7 +1131,7 @@ describe("costs router", () => {
 
 - [ ] **Step 2: Run the tests and confirm they fail**
 
-Run: `cd /Users/mg/workspace/nodetool/packages/websocket && npm test -- src/trpc/routers/__tests__/costs.test.ts`
+Run: `cd ~/workspace/nodetool/packages/websocket && npm test -- src/trpc/routers/__tests__/costs.test.ts`
 Expected: FAIL with `caller.costs is undefined` (the router doesn't exist yet).
 
 ---
@@ -1261,12 +1261,12 @@ export type AppRouter = typeof appRouter;
 
 - [ ] **Step 3: Run the tests**
 
-Run: `cd /Users/mg/workspace/nodetool/packages/websocket && npm test -- src/trpc/routers/__tests__/costs.test.ts`
+Run: `cd ~/workspace/nodetool/packages/websocket && npm test -- src/trpc/routers/__tests__/costs.test.ts`
 Expected: all tests PASS.
 
 - [ ] **Step 4: Typecheck**
 
-Run: `cd /Users/mg/workspace/nodetool && npm run typecheck --workspace=packages/websocket`
+Run: `cd ~/workspace/nodetool && npm run typecheck --workspace=packages/websocket`
 Expected: passes.
 
 - [ ] **Step 5: Commit**
@@ -1316,7 +1316,7 @@ Note: when superjson is enabled, tRPC wraps inputs/outputs in `{ json: ..., meta
 
 - [ ] **Step 2: Run**
 
-Run: `cd /Users/mg/workspace/nodetool/packages/websocket && npm test -- src/trpc/__tests__/integration.test.ts`
+Run: `cd ~/workspace/nodetool/packages/websocket && npm test -- src/trpc/__tests__/integration.test.ts`
 Expected: PASS.
 
 - [ ] **Step 3: Commit**
@@ -1337,7 +1337,7 @@ git commit -m "test(trpc): integration smoke test for costs over Fastify"
 
 - [ ] **Step 1: Find current consumers**
 
-Run: `cd /Users/mg/workspace/nodetool && grep -rn "/api/costs" web/src electron/src mobile/src packages/cli packages/deploy`
+Run: `cd ~/workspace/nodetool && grep -rn "/api/costs" web/src electron/src mobile/src packages/cli packages/deploy`
 Record the list — these are the call sites to migrate.
 
 - [ ] **Step 2: For each consumer, replace the REST call with a tRPC call**
@@ -1376,12 +1376,12 @@ const { data } = trpc.costs.list.useQuery({
 
 - [ ] **Step 3: Typecheck web**
 
-Run: `cd /Users/mg/workspace/nodetool/web && npm run typecheck`
+Run: `cd ~/workspace/nodetool/web && npm run typecheck`
 Expected: passes. If the server package's dist doesn't exist yet, run `npm run build:packages` first.
 
 - [ ] **Step 4: Run web tests**
 
-Run: `cd /Users/mg/workspace/nodetool/web && npm test`
+Run: `cd ~/workspace/nodetool/web && npm test`
 Expected: passes. Any tests that mocked `/api/costs` via MSW should be rewritten to mock the tRPC HTTP endpoint. The MSW v2 pattern for a tRPC batch GET is:
 
 ```ts
@@ -1429,18 +1429,18 @@ await app.register(costsRoutes, routeOpts);
 
 Run:
 ```bash
-cd /Users/mg/workspace/nodetool
+cd ~/workspace/nodetool
 rm packages/websocket/src/routes/costs.ts packages/websocket/src/cost-api.ts
 ```
 
 - [ ] **Step 3: Typecheck**
 
-Run: `cd /Users/mg/workspace/nodetool && npm run typecheck --workspace=packages/websocket`
+Run: `cd ~/workspace/nodetool && npm run typecheck --workspace=packages/websocket`
 Expected: passes (no other file imports from `cost-api.ts` or `routes/costs.ts` — confirm with grep if in doubt).
 
 - [ ] **Step 4: Run all websocket tests**
 
-Run: `cd /Users/mg/workspace/nodetool/packages/websocket && npm test`
+Run: `cd ~/workspace/nodetool/packages/websocket && npm test`
 Expected: passes.
 
 - [ ] **Step 5: Commit**
@@ -1687,7 +1687,7 @@ Update Task 1.7's `trpc/client.ts` and `trpc/Provider.tsx` to import `isLocalhos
 
 - [ ] **Step 1: Find remaining consumers**
 
-Run: `cd /Users/mg/workspace/nodetool && grep -rn "from \"../api\"\|from \"../../api\"\|stores/ApiClient\|openapi-fetch" web/src`
+Run: `cd ~/workspace/nodetool && grep -rn "from \"../api\"\|from \"../../api\"\|stores/ApiClient\|openapi-fetch" web/src`
 Expected: empty (Phase 3 migrations plus Step 0 above should have removed every consumer).
 
 - [ ] **Step 2: If any remain, migrate them**
@@ -1725,7 +1725,7 @@ git grep "stores/ApiClient" web/src || rm web/src/stores/ApiClient.ts
 
 Run:
 ```
-cd /Users/mg/workspace/nodetool/web && npm run typecheck && npm test && npm run build
+cd ~/workspace/nodetool/web && npm run typecheck && npm test && npm run build
 ```
 Expected: all pass.
 
@@ -1747,7 +1747,7 @@ git commit -m "refactor(web): remove generated api.ts and openapi-fetch client"
 
 - [ ] **Step 1: Build mobile protocol dependency**
 
-Run: `cd /Users/mg/workspace/nodetool && cd packages/protocol && npm run build` (mobile's typecheck requires protocol built — per root CLAUDE.md).
+Run: `cd ~/workspace/nodetool && cd packages/protocol && npm run build` (mobile's typecheck requires protocol built — per root CLAUDE.md).
 
 - [ ] **Step 2: Create `mobile/src/trpc/client.ts`**
 
@@ -1795,7 +1795,7 @@ rm mobile/src/api.ts
 
 - [ ] **Step 5: Typecheck mobile**
 
-Run: `cd /Users/mg/workspace/nodetool/mobile && npm run typecheck`
+Run: `cd ~/workspace/nodetool/mobile && npm run typecheck`
 Expected: passes.
 
 - [ ] **Step 6: Commit**
@@ -1856,7 +1856,7 @@ They're now unused. Remove the `fetch`-based helpers at the top of `nodetool.ts`
 
 Run:
 ```
-cd /Users/mg/workspace/nodetool && npm run typecheck --workspace=packages/cli && npm test --workspace=packages/cli
+cd ~/workspace/nodetool && npm run typecheck --workspace=packages/cli && npm test --workspace=packages/cli
 ```
 Expected: passes.
 
@@ -1920,7 +1920,7 @@ Migrate any other fetch-based helpers in the file the same way.
 
 Run:
 ```
-cd /Users/mg/workspace/nodetool/electron && npm run typecheck && npm test
+cd ~/workspace/nodetool/electron && npm run typecheck && npm test
 ```
 Expected: passes.
 
@@ -1976,7 +1976,7 @@ export class AdminClient {
 
 Run:
 ```
-cd /Users/mg/workspace/nodetool && npm run typecheck --workspace=packages/deploy && npm test --workspace=packages/deploy
+cd ~/workspace/nodetool && npm run typecheck --workspace=packages/deploy && npm test --workspace=packages/deploy
 ```
 Expected: passes.
 
@@ -1998,7 +1998,7 @@ git commit -m "refactor(deploy): migrate admin-client and api-user-manager to @t
 
 - [ ] **Step 1: Grep for which `handleXxx` functions are still imported**
 
-Run: `cd /Users/mg/workspace/nodetool && grep -rn "handle[A-Z]" packages/websocket/src/routes`
+Run: `cd ~/workspace/nodetool && grep -rn "handle[A-Z]" packages/websocket/src/routes`
 
 The remaining handlers should be for: binary asset routes, binary storage routes, binary file routes, binary workspace read, workflow dsl/gradio export, nodes metadata. Everything else is dead code.
 
@@ -2013,12 +2013,12 @@ Keep:
 
 - [ ] **Step 3: Typecheck**
 
-Run: `cd /Users/mg/workspace/nodetool && npm run typecheck --workspace=packages/websocket`
+Run: `cd ~/workspace/nodetool && npm run typecheck --workspace=packages/websocket`
 Expected: passes.
 
 - [ ] **Step 4: Run websocket tests**
 
-Run: `cd /Users/mg/workspace/nodetool/packages/websocket && npm test`
+Run: `cd ~/workspace/nodetool/packages/websocket && npm test`
 Expected: all pass.
 
 - [ ] **Step 5: Commit**
@@ -2037,13 +2037,13 @@ git commit -m "refactor(websocket): shrink http-api.ts to REST-staying handlers 
 
 - [ ] **Step 1: For each file, verify no imports remain**
 
-Run: `cd /Users/mg/workspace/nodetool && for f in collection-api cost-api file-api models-api settings-api skills-api storage-api users-api workspace-api; do echo "=== $f ==="; grep -rn "\"../$f\"\|\"./$f\"\|from .*$f" packages/websocket/src; done`
+Run: `cd ~/workspace/nodetool && for f in collection-api cost-api file-api models-api settings-api skills-api storage-api users-api workspace-api; do echo "=== $f ==="; grep -rn "\"../$f\"\|\"./$f\"\|from .*$f" packages/websocket/src; done`
 Expected: each file has zero remaining imports from the rest of the codebase.
 
 - [ ] **Step 2: Delete each file with no imports**
 
 ```bash
-cd /Users/mg/workspace/nodetool
+cd ~/workspace/nodetool
 rm packages/websocket/src/cost-api.ts  # already deleted in Phase 2
 # Repeat for each file with no remaining imports
 ```
@@ -2056,7 +2056,7 @@ Keep the file but remove the functions now served by tRPC.
 
 Run:
 ```
-cd /Users/mg/workspace/nodetool && npm run typecheck --workspace=packages/websocket && npm test --workspace=packages/websocket
+cd ~/workspace/nodetool && npm run typecheck --workspace=packages/websocket && npm test --workspace=packages/websocket
 ```
 Expected: passes.
 
@@ -2077,7 +2077,7 @@ git commit -m "refactor(websocket): delete fully-migrated REST handler files"
 
 - [ ] **Step 1: List the surviving routes**
 
-Run: `cd /Users/mg/workspace/nodetool && ls packages/websocket/src/routes/`
+Run: `cd ~/workspace/nodetool && ls packages/websocket/src/routes/`
 
 For each file still present, verify it only exposes endpoints from the "stays REST" list:
 - `health.ts` ✓
@@ -2100,7 +2100,7 @@ For every deleted file, delete its import and its `await app.register(...)` line
 
 Run:
 ```
-cd /Users/mg/workspace/nodetool && npm run typecheck --workspace=packages/websocket && npm test --workspace=packages/websocket
+cd ~/workspace/nodetool && npm run typecheck --workspace=packages/websocket && npm test --workspace=packages/websocket
 ```
 Expected: passes.
 
@@ -2154,22 +2154,22 @@ git commit -m "chore(websocket): verify auth hook public-route list is correct p
 
 - [ ] **Step 1: Root check**
 
-Run: `cd /Users/mg/workspace/nodetool && npm run check`
+Run: `cd ~/workspace/nodetool && npm run check`
 Expected: typecheck + lint + test all pass across all workspaces.
 
 - [ ] **Step 2: Build every package**
 
-Run: `cd /Users/mg/workspace/nodetool && npm run build:packages`
+Run: `cd ~/workspace/nodetool && npm run build:packages`
 Expected: all packages build successfully.
 
 - [ ] **Step 3: Boot the dev server and smoke-test each client**
 
 ```bash
 # In terminal 1:
-cd /Users/mg/workspace/nodetool && npm run dev
+cd ~/workspace/nodetool && npm run dev
 
 # In terminal 2:
-cd /Users/mg/workspace/nodetool/web && npm start
+cd ~/workspace/nodetool/web && npm start
 # Navigate to http://localhost:3000, verify the app loads data correctly
 ```
 

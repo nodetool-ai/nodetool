@@ -67,8 +67,12 @@ vi.mock("node:child_process", async (importOriginal) => {
   return { ...original, execFile: mockExecFile };
 });
 
-const { RenderTimelineNode, TimelineTranscriptNode, AddClipsToTimelineNode } =
-  await import("../src/nodes/timeline.js");
+const {
+  RenderTimelineNode,
+  TimelineTranscriptNode,
+  AddClipsToTimelineNode,
+  extractedAudioLinkIds
+} = await import("../src/nodes/timeline.js");
 
 function ffmpegArgString(): string {
   return execFileCalls
@@ -185,6 +189,98 @@ describe("RenderTimelineNode", () => {
     expect(args).toContain("volume=-3dB");
     expect(args).toContain("amix=inputs=2");
     expect(context.resolveAssetBytes).toHaveBeenCalledTimes(3);
+  });
+
+  it("suppresses a linked video clip's embedded audio so only the extracted audio clip plays", async () => {
+    // A video clip and its extracted audio share a linkId. The audio comes
+    // from the audio-track clip (amix'd); the video's own muxed audio must NOT
+    // be mapped (that would double the audio / clip).
+    const seq = baseSequence();
+    seq.clips = [
+      {
+        id: "c1",
+        trackId: "t-video",
+        name: "Linked shot",
+        startMs: 0,
+        durationMs: 2000,
+        mediaType: "video",
+        sourceType: "imported",
+        status: "generated",
+        locked: false,
+        versions: [],
+        currentAssetId: "asset-v1",
+        linkId: "link-1"
+      } as never,
+      {
+        id: "c2",
+        trackId: "t-audio",
+        name: "Extracted audio",
+        startMs: 0,
+        durationMs: 2000,
+        mediaType: "audio",
+        sourceType: "imported",
+        status: "generated",
+        locked: false,
+        versions: [],
+        currentAssetId: "asset-a1",
+        linkId: "link-1"
+      } as never
+    ];
+    const context = stubContext(seq);
+    const node = new RenderTimelineNode();
+    node.assign({ timeline: { type: "timeline", id: "seq-1" } });
+    await node.process(context as never);
+
+    const segmentCalls = execFileCalls.filter(
+      (c) => c.cmd === "ffmpeg" && c.args.join(" ").includes("anullsrc")
+    );
+    // The video segment must use the silent-audio branch (anullsrc + map 1:a),
+    // not its own 0:a, even though ffprobe reports the source has audio.
+    const videoSegment = execFileCalls.find(
+      (c) =>
+        c.cmd === "ffmpeg" &&
+        c.args.includes("seg_0.mp4") === false &&
+        c.args.some((a) => a.endsWith("seg_0.mp4"))
+    );
+    expect(videoSegment).toBeTruthy();
+    const vArgs = videoSegment!.args.join(" ");
+    expect(vArgs).toContain("anullsrc");
+    expect(vArgs).toContain("-map 1:a");
+    expect(vArgs).not.toContain("-map 0:a");
+    expect(segmentCalls.length).toBeGreaterThan(0);
+  });
+
+  it("keeps a standalone video clip's embedded audio when it has no linked audio", async () => {
+    const seq = baseSequence();
+    seq.clips = [
+      {
+        id: "c1",
+        trackId: "t-video",
+        name: "Standalone shot",
+        startMs: 0,
+        durationMs: 2000,
+        mediaType: "video",
+        sourceType: "imported",
+        status: "generated",
+        locked: false,
+        versions: [],
+        currentAssetId: "asset-v1"
+      } as never
+    ];
+    const context = stubContext(seq);
+    const node = new RenderTimelineNode();
+    node.assign({ timeline: { type: "timeline", id: "seq-1" } });
+    await node.process(context as never);
+
+    const videoSegment = execFileCalls.find(
+      (c) =>
+        c.cmd === "ffmpeg" && c.args.some((a) => a.endsWith("seg_0.mp4"))
+    );
+    expect(videoSegment).toBeTruthy();
+    const vArgs = videoSegment!.args.join(" ");
+    // ffprobe reports audio, so its own 0:a is mapped (no silent-audio branch).
+    expect(vArgs).toContain("-map 0:a");
+    expect(vArgs).not.toContain("anullsrc");
   });
 
   it("can skip the audio mix", async () => {
@@ -349,6 +445,55 @@ describe("AddClipsToTimelineNode", () => {
     node.assign({ timeline: { type: "timeline", id: null }, clips: [] });
     await expect(node.process(stubContext(null) as never)).rejects.toThrow(
       /no image\/video\/audio clips/
+    );
+  });
+});
+
+describe("extractedAudioLinkIds", () => {
+  it("collects linkIds of audio-track audio clips that carry a linkId", () => {
+    const seq = baseSequence();
+    seq.clips = [
+      { ...seq.clips[0], trackId: "t-audio", mediaType: "audio", linkId: "L1" },
+      { ...seq.clips[1], trackId: "t-audio", mediaType: "audio", linkId: "L2" }
+    ] as never;
+    expect(extractedAudioLinkIds(seq as never)).toEqual(
+      new Set(["L1", "L2"])
+    );
+  });
+
+  it("ignores audio clips without a linkId and non-audio-track clips", () => {
+    const seq = baseSequence();
+    seq.clips = [
+      // audio on audio track but no link -> ignored
+      { ...seq.clips[0], trackId: "t-audio", mediaType: "audio" },
+      // video clip with a linkId on the video track -> ignored (not the audio rep)
+      { ...seq.clips[0], trackId: "t-video", mediaType: "video", linkId: "L3" },
+      // audio mediaType but sitting on a video track -> ignored
+      { ...seq.clips[0], trackId: "t-video", mediaType: "audio", linkId: "L4" }
+    ] as never;
+    expect(extractedAudioLinkIds(seq as never)).toEqual(new Set());
+  });
+
+  it("includes muted/hidden linked audio clips (presence still suppresses video audio)", () => {
+    const seq = baseSequence();
+    seq.clips = [
+      {
+        ...seq.clips[0],
+        trackId: "t-audio",
+        mediaType: "audio",
+        linkId: "L5",
+        muted: true
+      },
+      {
+        ...seq.clips[0],
+        trackId: "t-audio",
+        mediaType: "audio",
+        linkId: "L6",
+        hidden: true
+      }
+    ] as never;
+    expect(extractedAudioLinkIds(seq as never)).toEqual(
+      new Set(["L5", "L6"])
     );
   });
 });

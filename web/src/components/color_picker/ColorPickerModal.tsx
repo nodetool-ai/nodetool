@@ -5,7 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Caption, Tooltip, FlexRow, FlexColumn, EditorButton, TabGroup } from "../ui_primitives";
+import { Text, Caption, Tooltip, FlexRow, FlexColumn, EditorButton, TabGroup, BORDER_RADIUS } from "../ui_primitives";
 import type { TabItem } from "../ui_primitives";
 import { CloseButton } from "../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
@@ -19,6 +19,7 @@ import {
   getContrastingTextColor
 } from "../../utils/colorConversion";
 import { useColorPickerStore, GradientValue } from "../../stores/ColorPickerStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import SaturationPicker from "./SaturationPicker";
 import HueSlider from "./HueSlider";
 import AlphaSlider from "./AlphaSlider";
@@ -44,7 +45,7 @@ const styles = (theme: Theme) =>
     },
     ".modal-content": {
       backgroundColor: theme.vars.palette.background.paper,
-      borderRadius: "var(--rounded-xl)",
+      borderRadius: BORDER_RADIUS.xl,
       border: `1px solid ${theme.vars.palette.grey[800]}`,
       boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
       width: "90%",
@@ -93,7 +94,7 @@ const styles = (theme: Theme) =>
     ".preview-swatch": {
       flex: 1,
       height: "48px",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       cursor: "pointer",
       position: "relative",
@@ -134,7 +135,7 @@ const styles = (theme: Theme) =>
       left: "50%",
       transform: "translate(-50%, -50%)",
       backgroundColor: "rgba(0,0,0,0.7)",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       padding: "4px 8px",
       color: "white",
       fontSize: "var(--fontSizeSmaller)",
@@ -189,6 +190,9 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
   const [activeTab, setActiveTab] = useState<TabType>("swatches");
   const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
   const copiedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
   const [gradient, setGradient] = useState<GradientValue>({
     type: "linear",
     angle: 90,
@@ -302,9 +306,12 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
         setCopiedFormat(format);
       } catch (error) {
         console.error("Failed to copy to clipboard:", error);
-        window.alert(
-          "Failed to copy the color to the clipboard. Please check your browser permissions and try again."
-        );
+        addNotification({
+          type: "error",
+          alert: true,
+          content:
+            "Failed to copy the color to the clipboard. Please check your browser permissions and try again."
+        });
         return;
       }
 
@@ -319,7 +326,7 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
         copiedTimeoutRef.current = null;
       }, 1500);
     },
-    [color, alpha]
+    [color, alpha, addNotification]
   );
 
   // Handle apply (save to recent and close)

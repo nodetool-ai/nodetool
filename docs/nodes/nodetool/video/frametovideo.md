@@ -29,4 +29,4 @@ Combine a sequence of frames into a single video file.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.video](../) namespace.
+Browse other nodes in the [nodetool.video](./) namespace.

@@ -25,7 +25,7 @@ Slice a dataframe by rows using start and end indices.
 |----------|------|-------------|---------|
 | dataframe | `dataframe` | The input dataframe to be sliced. | `{"type":"dataframe","uri":"","asset_id":null,"d...` |
 | start_index | `int` | The starting index of the slice (inclusive). | `0` |
-| end_index | `int` | The ending index of the slice (exclusive). Use -1 for the last row. | `-1` |
+| end_index | `int` | The ending index of the slice (exclusive). Use -1 to slice through the end; other negative values count back from the end (e.g. -2 drops the last two rows). | `-1` |
 
 ## Outputs
 
@@ -35,4 +35,4 @@ Slice a dataframe by rows using start and end indices.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.data](../) namespace.
+Browse other nodes in the [nodetool.data](./) namespace.

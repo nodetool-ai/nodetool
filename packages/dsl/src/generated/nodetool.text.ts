@@ -697,19 +697,6 @@ export function collect(inputs: CollectInputs): DslNode<CollectOutputs, "output"
   return createNode("nodetool.text.Collect", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
-// Format Text — nodetool.text.FormatText
-export interface FormatTextInputs {
-  template?: Connectable<string>;
-}
-
-export interface FormatTextOutputs {
-  output: string;
-}
-
-export function formatText(inputs: FormatTextInputs): DslNode<FormatTextOutputs, "output"> {
-  return createNode("nodetool.text.FormatText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
-}
-
 // Template — nodetool.text.Template
 export interface TemplateInputs {
   string?: Connectable<string>;

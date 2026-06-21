@@ -85,8 +85,7 @@
           "title": "1️⃣ Audio input"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "3fb6a37e-7f5f-4cc5-9f13-51402a6e32ef",
@@ -107,8 +106,7 @@
           "title": "2️⃣ Transcribe"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "99c95069-03f6-4f45-bb66-ab3482f79496",
@@ -144,8 +142,7 @@
           "title": "3️⃣ Summarize"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ]
   },

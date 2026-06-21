@@ -11,7 +11,7 @@ You help users create and configure NodeTool agents — autonomous AI systems th
 Objective → Agent → (Skill resolution → Planning → Execution) → Result
 ```
 
-Three agent classes:
+Three agent classes (from `@nodetool-ai/agents`):
 - **Agent**: Multi-step with planning, tool use, iterative execution
 - **SimpleAgent**: Single-step with structured output schema
 - **AgentExecutor**: Lightweight value extraction
@@ -20,7 +20,10 @@ Three agent classes:
 
 ```yaml
 name: my-agent                    # lowercase, alphanumeric
-description: Agent purpose        # human-readable
+description: Agent purpose         # human-readable
+
+# Objective is optional here — it can be passed via --objective or stdin.
+objective: Research TypeScript ORMs and summarize findings
 
 system_prompt: |
   You are a [role].
@@ -29,153 +32,168 @@ system_prompt: |
   1. Task 1
   2. Task 2
 
-  Workflow:
-  1. Step 1
-  2. Step 2
-
   Constraints:
   - Always cite sources
   - Stay concise
 
 model:
-  provider: openai                # openai | anthropic | google | ollama
-  id: gpt-4o                     # model identifier
-  name: GPT-4o                   # display name (optional)
+  provider: openai                 # openai | anthropic | gemini | ollama | any registry id
+  id: gpt-5.4                      # model identifier
+  name: GPT-5.4                    # display name (optional)
 
 planning_agent:
-  enabled: true
+  enabled: true                    # set false to skip planning (single-pass)
   model:
     provider: openai
-    id: gpt-4o-mini              # use cheaper model for planning
+    id: gpt-5.4-mini               # cheaper model for planning
 
 tools:
   - google_search
   - browser
   - write_file
   - read_file
-  - execute_code
-  - terminal
+  - run_code
   - grep
 
-max_tokens: 8192
-context_window: 8192
-temperature: 0.7                  # 0.0-1.0 (analytical=0.0-0.3, creative=0.8-1.0)
-max_iterations: 10                # 5-20 depending on task complexity
+max_tokens: 8192                   # response/token budget (maxTokenLimit)
+max_steps: 10                      # number of plan steps (5-20 by complexity)
 
 workspace:
   path: ~/.nodetool-workspaces/my-agent
-  auto_create: true
+  auto_create: true                # default true
+
+# Optional: bias find_model toward specific providers/models.
+preferred_providers:
+  - anthropic
+  - openai
+preferred_models:
+  image_generation: gpt-image-2
+  language_model: claude-sonnet-4-6
 ```
 
 # Config Schema Reference
 
-| Field | Type | Required | Default | Notes |
-|-------|------|----------|---------|-------|
-| `name` | string | Yes | — | Lowercase alphanumeric |
-| `description` | string | No | — | Human-readable |
-| `system_prompt` | string | Yes | — | YAML multiline `\|` |
-| `model.provider` | enum | Yes | — | openai, anthropic, google, ollama |
-| `model.id` | string | Yes | — | Model identifier |
-| `model.name` | string | No | — | Display name |
-| `planning_agent.enabled` | bool | Yes | true | Must be true |
-| `planning_agent.model.*` | — | No | same as main | Override for planning |
-| `tools` | string[] | No | [read_file, write_file] | Available tools |
-| `max_tokens` | int | No | 8192 | Response limit |
-| `context_window` | int | No | 8192 | Context size |
-| `temperature` | float | No | 0.7 | 0.0–1.0 |
-| `max_iterations` | int | No | 10 | Execution loops |
-| `workspace.path` | string | No | ~/.nodetool-workspaces/<name> | Sandbox dir |
-| `workspace.auto_create` | bool | No | true | Create if missing |
+These are the fields the `nodetool agent` loader reads (loose schema — unknown keys are ignored):
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `name` | string | Agent name |
+| `description` | string | Human-readable |
+| `objective` | string | Default objective (overridden by `--objective`/stdin) |
+| `system_prompt` | string | YAML multiline `\|` |
+| `model.provider` | string | `openai`, `anthropic`, `gemini` (`google` is aliased to `gemini`), `ollama`, or any registry provider id |
+| `model.id` | string | Model identifier |
+| `model.name` | string | Display name (optional) |
+| `planning_agent.enabled` | bool | `false` → use main model for planning, no separate planner |
+| `planning_agent.model.*` | block | Override model used for planning |
+| `tools` | string[] | Tool names (see catalog below); unknown names are warned + skipped |
+| `max_tokens` | int | Token budget → `maxTokenLimit` |
+| `max_steps` | int | Plan steps → `maxSteps` |
+| `workspace.path` | string | Workspace dir (default: cwd) |
+| `workspace.auto_create` | bool | Create dir if missing (default true) |
+| `preferred_providers` | string[] | Default `provider_hint` for `find_model` |
+| `preferred_models` | map | `capability → model id(s)`, injected as `model_hint` |
 
 # CLI Commands
 
+The `nodetool agent` command has three subcommands. From source use `npm run dev:nodetool -- agent ...`; from a build use `nodetool agent ...`.
+
 ```bash
-# Run with prompt
-nodetool agent --config agent.yaml --prompt "Research TypeScript ORMs"
+# Run an agent — objective via flag, stdin, or `objective:` in the YAML
+nodetool agent run agent.yaml --objective "Research TypeScript ORMs"
+echo "Research TypeScript ORMs" | nodetool agent run agent.yaml
+nodetool agent run agent.yaml          # uses objective: from the YAML
 
-# From file
-nodetool agent --config agent.yaml --prompt-file task.txt
+# Override provider/model/workspace at runtime
+nodetool agent run agent.yaml -o "Task" --provider anthropic --model claude-sonnet-4-6
+nodetool agent run agent.yaml -o "Task" --workspace /tmp/run1
 
-# Interactive mode
-nodetool agent --config agent.yaml --interactive
+# Emit each event as JSON lines on stderr (analyzer-friendly)
+nodetool agent run agent.yaml -o "Task" --json
 
-# Save output
-nodetool agent --config agent.yaml --prompt "Task" --output result.md
+# Verbose trace (includes chunk/low-level events)
+nodetool agent run agent.yaml -o "Task" --verbose
 
-# JSONL output
-nodetool agent --config agent.yaml --prompt "Task" --jsonl
+# Save the final result to a file (it prints to stdout; trace goes to stderr)
+nodetool agent run agent.yaml -o "Task" > result.md
 
-# Verbose (debug)
-nodetool agent --config agent.yaml --prompt "Task" --verbose
+# Validate a config without running it (provider, model, tools)
+nodetool agent test agent.yaml
+
+# List YAML agent configs in a directory
+nodetool agent list ./agents
 ```
 
-## Interactive Commands
-| Command | Purpose |
-|---------|---------|
-| `/help` | Show commands |
-| `/workspace` | Show workspace path |
-| `/tools` | List available tools |
-| `/config` | Show configuration |
-| `/clear` | Clear history |
-| `/save [file]` | Save conversation |
-| `/exit` | Exit session |
+`run` flags: `-o, --objective <text>`, `-p, --provider <id>`, `-m, --model <id>`,
+`-w, --workspace <path>`, `--json`, `-v, --verbose`.
+
+The trace (planning, tool calls, step results) is written to **stderr**; the final
+result is written to **stdout**, so `> file` captures just the answer.
 
 # Available Tools
 
-| Tool | Description |
-|------|-------------|
-| `read_file` | Read file contents |
-| `write_file` | Write/create files |
-| `list_directory` | List directory contents |
-| `google_search` | Web search |
-| `google_news` | News search |
-| `google_images` | Image search |
-| `browser` | Browse web pages |
-| `screenshot` | Take screenshots |
-| `execute_code` | Run code snippets |
-| `terminal` | Shell commands |
-| `grep` | Search file contents |
-| `calculator` | Math calculations |
-| `statistics` | Statistical analysis |
-| `vec_text_search` | Vector text search |
-| `vec_index` | Index documents |
-| `vec_hybrid_search` | Hybrid vector search |
-| `extract_pdf_text` | Extract PDF text |
-| `convert_pdf_to_markdown` | PDF to Markdown |
+Tool names recognized in the YAML `tools:` list (resolved by the agent CLI). MCP
+tools configured on the machine are also auto-registered by name.
+
+| Category | Tools |
+|----------|-------|
+| Files | `read_file`, `write_file`, `edit_file`, `list_directory`, `glob`, `grep`, `download_file` |
+| Web | `google_search`, `google_news`, `google_images`, `browser`, `screenshot`, `http_request`, `openai_web_search`, `dataseo_search`, `dataseo_news` |
+| Code & math | `run_code`, `calculator`, `statistics`, `geometry`, `conversion` |
+| Documents | `extract_pdf_text`, `convert_pdf_to_markdown`, `convert_document` |
+| Media | `generate_image`, `edit_image`, `generate_video`, `animate_image`, `generate_speech`, `transcribe_audio`, `embed_text`, `openai_image_generation`, `openai_text_to_speech` |
+| Models | `find_model` (ranks models by capability; honors `preferred_providers`/`preferred_models`) |
+| Email | `search_email`, `archive_email` |
+
+> Note: there is no `terminal`, `execute_code`, `take_screenshot`, or `vec_*` tool.
+> Use `run_code` for code execution and `screenshot` for screenshots.
 
 # Model Recommendations
 
-| Use Case | Provider | Model | Notes |
-|----------|----------|-------|-------|
-| Planning (cheap) | openai | gpt-4o-mini | Fast, inexpensive |
-| Planning (cheap) | anthropic | claude-3-haiku | Fast alternative |
-| Planning (cheap) | google | gemini-2.0-flash | Google fast tier |
-| Main (powerful) | openai | gpt-4o | Best all-around |
-| Main (powerful) | anthropic | claude-3.5-sonnet | Strong reasoning |
-| Creative | any | any | temperature 0.8–1.0 |
-| Analytical | any | any | temperature 0.0–0.3 |
-| Local/offline | ollama | llama3, mistral | No API key needed |
+Use current model ids (the chat/agent CLIs default to these per provider):
+
+| Use Case | Provider | Model |
+|----------|----------|-------|
+| Main (powerful) | openai | gpt-5.4 |
+| Main (powerful) | anthropic | claude-sonnet-4-6 |
+| Planning (cheap) | openai | gpt-5.4-mini |
+| Planning (cheap) | gemini | gemini-2.5-flash |
+| Reasoning/code | anthropic | claude-sonnet-4-6 |
+| Local/offline | ollama | qwen-3.5:4b, llama3 |
+
+Run `nodetool models recommended` for the curated, up-to-date list.
 
 # Programmatic Usage (TypeScript)
 
 ```typescript
-import { Agent } from "@nodetool-ai/core";
+import { Agent } from "@nodetool-ai/agents";
+import {
+  ProcessingContext,
+  FileStorageAdapter,
+} from "@nodetool-ai/runtime";
 
 const agent = new Agent({
   name: "researcher",
   objective: "Research TypeScript ORMs",
-  provider: openaiProvider,
-  model: "gpt-4o",
+  provider: openaiProvider,         // a BaseProvider instance
+  model: "gpt-5.4",
   tools: [new GoogleSearchTool(), new BrowserTool(), new WriteFileTool()],
-  workspace: "/tmp/research",
+  systemPrompt: "You are a thorough research analyst.",
+  planningModel: "gpt-5.4-mini",
+  maxTokenLimit: 8192,
   maxSteps: 10,
-  maxStepIterations: 5,
+  workspace: "/tmp/research",
 });
 
-for await (const message of agent.execute(context)) {
-  if (message.type === "chunk") {
-    process.stdout.write(message.content);
-  }
+const ctx = new ProcessingContext({
+  jobId: `agent-${Date.now()}`,
+  userId: "1",
+  workspaceDir: "/tmp/research",
+  workspaceStorage: new FileStorageAdapter("/tmp/research"),
+});
+
+for await (const message of agent.execute(ctx)) {
+  if (message.type === "chunk") process.stdout.write(message.content);
 }
 ```
 
@@ -200,10 +218,9 @@ system_prompt: |
   1. Search for primary sources
   2. Cross-reference facts
   3. Write structured findings with citations
-model: { provider: openai, id: gpt-4o }
+model: { provider: openai, id: gpt-5.4 }
 tools: [google_search, browser, write_file]
-max_iterations: 15
-temperature: 0.3
+max_steps: 15
 ```
 
 ## Code Assistant
@@ -212,10 +229,9 @@ name: code-helper
 system_prompt: |
   You are a senior developer. Write clean, tested code.
   Always read existing code before modifying. Run tests after changes.
-model: { provider: anthropic, id: claude-3.5-sonnet }
-tools: [read_file, write_file, terminal, grep]
-max_iterations: 20
-temperature: 0.2
+model: { provider: anthropic, id: claude-sonnet-4-6 }
+tools: [read_file, write_file, edit_file, run_code, grep, glob]
+max_steps: 20
 ```
 
 ## Content Creator
@@ -224,26 +240,26 @@ name: content-writer
 system_prompt: |
   You are a professional content writer. Create engaging,
   well-structured content. Research thoroughly before writing.
-model: { provider: openai, id: gpt-4o }
+model: { provider: openai, id: gpt-5.4 }
 tools: [google_search, browser, write_file]
-max_iterations: 10
-temperature: 0.8
+max_steps: 10
 ```
 
 # Batch Automation
 
 ```bash
 for topic in "AI" "ML" "Web3"; do
-  nodetool agent --config research.yaml \
-    --prompt "Find latest news about $topic" \
-    --output "reports/${topic}.md"
+  nodetool agent run research.yaml \
+    --objective "Find latest news about $topic" \
+    > "reports/${topic}.md"
 done
 ```
 
 # Common Pitfalls
 
-- **Missing `planning_agent.enabled: true`**: Planning is required
-- **Too few iterations**: Complex tasks need `max_iterations: 15-20`
-- **Wrong temperature**: Analytical tasks fail with high temperature
-- **Missing tools**: Agent can't do what you ask if the tool isn't listed
-- **No workspace**: File tools need `workspace.auto_create: true`
+- **No objective**: provide it via `--objective`, stdin, or `objective:` in the YAML — the run errors without one.
+- **Wrong run syntax**: it's `nodetool agent run <yaml>`, not `--config <yaml>`. There is no interactive agent mode (`--interactive`) — use `nodetool chat` for that.
+- **Unknown tool names**: only the catalog above resolves; misspellings (e.g. `execute_code`, `terminal`) are skipped with a warning.
+- **Too few steps**: complex tasks need `max_steps: 15-20`.
+- **Missing tools**: the agent can't do what you ask if the tool isn't listed.
+- **`provider: google`**: accepted but normalized to `gemini`.

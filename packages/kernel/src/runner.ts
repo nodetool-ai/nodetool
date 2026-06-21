@@ -1290,7 +1290,11 @@ export class WorkflowRunner {
           output_name: outputName,
           value,
           output_type: declaredOutputs[handle] ?? "any",
-          metadata: {}
+          metadata: {},
+          // RFC §6: live display feed defaults to "append" (chunk-concatenate),
+          // matching today's hardcoded consumer behavior. Artifacts travel on
+          // generation_complete, so this is display-only.
+          disposition: "append"
         });
       }
     }

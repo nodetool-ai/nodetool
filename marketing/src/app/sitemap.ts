@@ -30,6 +30,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: now,
     },
     {
+      url: `${BASE_URL}/pricing`,
+      lastModified: now,
+    },
+    {
+      url: `${BASE_URL}/vs/comfyui`,
+      lastModified: now,
+    },
+    {
+      url: `${BASE_URL}/vs/weavy`,
+      lastModified: now,
+    },
+    {
       url: `${BASE_URL}/imprint`,
       lastModified: now,
     },

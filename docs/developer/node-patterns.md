@@ -14,7 +14,7 @@ This guide covers the key implementation patterns you will encounter when buildi
 
 The most common pattern. The node declares one or more `@prop` inputs and returns a single keyed output. Use **`metadataOutputTypes`** to tell the UI the output's type.
 
-This pattern is taken from `ConstantStringNode` in `base-nodes/src/nodes/constant.ts`:
+This pattern is taken from `ConstantStringNode` in `packages/core-nodes/src/nodes/constant.ts`:
 
 ```ts
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
@@ -50,9 +50,11 @@ Key points:
 
 When a node produces more than one output, list every key in **`metadataOutputTypes`**. Each key becomes a separate output connector in the UI.
 
-This pattern is taken from `IfNode` in `base-nodes/src/nodes/control.ts`:
+This pattern is taken from `IfNode` in `packages/core-nodes/src/nodes/control.ts`. It reads its inputs as a buffered set (`inputMode = "buffered"`) and routes the `value` input to whichever branch matches the condition. The **`outputCorrelation`** map declares that both outputs *forward* the `value` input — so each output carries the same correlation lineage as its source, which is how the scheduler knows the branch is a passthrough rather than a new value:
 
 ```ts
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
+
 export class IfNode extends BaseNode {
   static readonly nodeType = "nodetool.control.If";
   static readonly title = "If";
@@ -65,8 +67,11 @@ export class IfNode extends BaseNode {
     if_false: "any",
   };
 
-  static readonly isStreamingOutput = true;
-  static readonly syncMode = "zip_all" as const;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    if_true: { kind: "forward", source: "value" },
+    if_false: { kind: "forward", source: "value" },
+  };
 
   @prop({ type: "bool", default: false, title: "Condition" })
   declare condition: any;
@@ -75,10 +80,12 @@ export class IfNode extends BaseNode {
   declare value: any;
 
   async process(): Promise<Record<string, unknown>> {
-    if (this.condition) {
-      return { if_true: this.value, if_false: null };
+    const condition = Boolean(this.condition ?? false);
+    const value = this.value ?? null;
+    if (condition) {
+      return { if_true: value, if_false: null };
     }
-    return { if_true: null, if_false: this.value };
+    return { if_true: null, if_false: value };
   }
 }
 ```
@@ -86,7 +93,8 @@ export class IfNode extends BaseNode {
 Key points:
 
 - Every key declared in `metadataOutputTypes` must appear in the returned object.
-- Set `isStreamingOutput = true` when the node emits values that downstream nodes should process one at a time.
+- **`inputMode`** is one of `"buffered"` (collect a matched set of inputs, then call `process()` once), `"stream"` (consume inputs as an async stream via `run()`), or `"controlled"`. Most nodes leave it `undefined` (the default buffered behavior).
+- **`outputCorrelation`** maps each output to how it relates to its source input. A `{ kind: "forward", source: "<input>" }` entry means the output forwards that input's correlation token unchanged — there is no separate `isStreamingOutput` flag; streaming behavior is *inferred* from forward/iteration correlation.
 
 ---
 
@@ -94,9 +102,11 @@ Key points:
 
 For nodes that emit multiple results over time, implement **`genProcess()`** as an async generator. The engine calls `genProcess()` instead of `process()` when it is defined.
 
-This pattern is taken from `ForEachNode` in `base-nodes/src/nodes/control.ts`:
+This pattern is taken from `ForEachNode` in `packages/core-nodes/src/nodes/control.ts`. It buffers its input list, then emits each element as a separate *iteration* — `outputCorrelation` declares the outputs as `kind: "iteration"`, which mints a fresh correlation token per emitted item so downstream nodes treat each one as a distinct logical value:
 
 ```ts
+import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
+
 export class ForEachNode extends BaseNode {
   static readonly nodeType = "nodetool.control.ForEach";
   static readonly title = "For Each";
@@ -109,7 +119,11 @@ export class ForEachNode extends BaseNode {
     index: "int",
   };
 
-  static readonly isStreamingOutput = true;
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "iteration", source: "__execution__", group: "items" },
+    index: { kind: "iteration", source: "__execution__", group: "items" },
+  };
 
   @prop({ type: "list[any]", default: [], title: "Input List" })
   declare input_list: any;
@@ -132,15 +146,15 @@ Key points:
 
 - You must still provide a `process()` stub (it can return `{}`) — the base class requires it.
 - Each `yield` sends one batch of outputs to downstream nodes.
-- Set `isStreamingOutput = true` so the engine knows to iterate the generator.
+- `genProcess()` is detected automatically (the base class checks whether the subclass overrides it) — there is no `isStreamingOutput` flag to set. The `outputCorrelation` `iteration` kind tells the scheduler each yielded value is a new correlated item.
 
 ---
 
 ## Stateful Collector
 
-Some nodes accumulate values across multiple invocations within a single workflow run. Use **`syncMode = "on_any"`** (when the node should fire on each incoming value) and **`initialize()`** to reset state at the start of each run.
+Some nodes accumulate values across multiple invocations within a single workflow run. Hold the state in a private instance field and use **`initialize()`** to reset it at the start of each run.
 
-This pattern is taken from `CollectTextNode` in `base-nodes/src/nodes/text-extra.ts`:
+This pattern is taken from `CollectTextNode` in `packages/text-nodes/src/nodes/text-extra.ts`:
 
 ```ts
 export class CollectTextNode extends BaseNode {
@@ -176,9 +190,9 @@ export class CollectTextNode extends BaseNode {
 
 Key points:
 
-- **`syncMode`** controls when the node fires. `"zip_all"` (the default) waits for matched values on all inputs; `"on_any"` fires as soon as any single input arrives.
-- Private instance fields (like `_items`) hold state between invocations.
+- Private instance fields (like `_items`) hold state between invocations within a single run.
 - **`initialize()`** runs once at the start of each workflow execution -- use it to clear accumulated state.
+- The node instance is reused across the items it receives, so `process()` is called once per incoming value and appends to `_items`.
 
 ---
 
@@ -243,31 +257,23 @@ The same approach applies to audio refs (see `audioBytesAsync` in `audio.ts`). T
 
 Use `@prop` with `type: "enum"` and a **`values`** array to present a dropdown in the UI.
 
-This pattern is taken from `FilterNumberNode` in `base-nodes/src/nodes/numbers.ts`:
+This pattern is taken from `LengthTextNode` in `packages/text-nodes/src/nodes/text-extra.ts`:
 
 ```ts
 @prop({
   type: "enum",
-  default: "greater_than",
-  title: "Filter Type",
-  description: "The type of filter to apply",
-  values: [
-    "greater_than",
-    "less_than",
-    "equal_to",
-    "even",
-    "odd",
-    "positive",
-    "negative",
-  ],
+  default: "characters",
+  title: "Measure",
+  description: "Choose whether to count characters, words, or lines",
+  values: ["characters", "words", "lines"],
 })
-declare filter_type: any;
+declare measure: any;
 ```
 
 In your `process()` method, read and cast the value from `this`:
 
 ```ts
-const filterType = String(this.filter_type ?? "greater_than");
+const measure = String(this.measure ?? "characters");
 ```
 
 ---
@@ -276,7 +282,7 @@ const filterType = String(this.filter_type ?? "greater_than");
 
 Nodes that call external APIs declare the keys they need in **`requiredSettings`**. Before calling `process()`, the base class resolves each key from the runtime's secret store via `ProcessingContext.getSecret()` and exposes them as **`this._secrets`**.
 
-This pattern is adapted from the OpenAI nodes in `base-nodes/src/nodes/openai.ts`:
+This pattern is adapted from the OpenAI nodes in `packages/llm-nodes/src/nodes/openai.ts` (e.g. `openai.text.Embedding`, whose output type is `"list"`):
 
 ```ts
 export class EmbeddingNode extends BaseNode {
@@ -356,4 +362,4 @@ static readonly description =
 
 ### File Structure
 
-Nodes are organized by category in `packages/base-nodes/src/nodes/`. Each file exports an array of node classes (e.g., `CONTROL_NODES`, `TEXT_NODES`) and the package index registers them all. The system automatically discovers all registered classes inheriting from **`BaseNode`**.
+Nodes are organized by category across the node packages — `packages/core-nodes/` (constants, control flow, math), `packages/text-nodes/`, `packages/image-nodes/`, `packages/llm-nodes/`, `packages/automation-nodes/`, `packages/integration-nodes/`, and others. (The old `packages/base-nodes/src/nodes/` directory no longer holds individual node sources — it now only re-exports/aggregates.) Each file exports an array of node classes (e.g., `CONTROL_NODES`, `TEXT_NODES`) and the package index registers them all. The system automatically discovers all registered classes inheriting from **`BaseNode`**.

@@ -5,13 +5,14 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { hsbToRgb, rgbToHex } from "../../utils/colorConversion";
 
+import { BORDER_RADIUS } from "../ui_primitives";
 const styles = (theme: Theme) =>
   css({
     "&": {
       position: "relative",
       width: "100%",
       aspectRatio: "1",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       cursor: "crosshair",
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.grey[700]}`
@@ -25,7 +26,7 @@ const styles = (theme: Theme) =>
       position: "absolute",
       width: "16px",
       height: "16px",
-      borderRadius: "var(--rounded-circle)",
+      borderRadius: BORDER_RADIUS.circle,
       border: "2px solid white",
       boxShadow: "0 0 0 1px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.3)",
       transform: "translate(-50%, -50%)",

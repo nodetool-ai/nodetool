@@ -1,4 +1,4 @@
-import useResultsStore, { hashKey } from "../ResultsStore";
+import useResultsStore from "../ResultsStore";
 import { PlanningUpdate, ProviderCost, Task, ToolCallUpdate } from "../ApiTypes";
 
 describe("ResultsStore", () => {
@@ -21,14 +21,6 @@ describe("ResultsStore", () => {
     });
   });
 
-  describe("hashKey", () => {
-    it("should create correct hash key", () => {
-      expect(hashKey("wf-1", "job-1", "node-1")).toBe("wf-1:job-1:node-1");
-      expect(hashKey("workflow-123", "job-9", "node-abc")).toBe(
-        "workflow-123:job-9:node-abc"
-      );
-    });
-  });
 
   describe("outputResults", () => {
     it("should set output result for a node", () => {

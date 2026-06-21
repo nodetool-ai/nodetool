@@ -1,0 +1,28 @@
+---
+layout: null
+permalink: /llms-full.txt
+---
+# NodeTool Documentation — Full Text
+
+> {{ site.description }}
+
+This file concatenates the NodeTool guide documentation for LLM ingestion. The
+full per-node reference (900+ nodes) is omitted for size — browse it at
+{{ site.url }}/nodes/ or search at {{ site.url }}/search.json.
+
+{%- assign pages = site.pages | where_exp: "p", "p.url" | sort: "url" -%}
+{%- for p in pages -%}
+  {%- assign url = p.url -%}
+  {%- unless url contains "/nodes/" or url contains ".json" or url contains ".txt" or url contains ".xml" or url contains "404" -%}
+    {%- if p.content and p.content != "" -%}
+
+---
+
+# {{ p.title | default: p.name }}
+
+Source: {{ site.url }}{{ url }}
+
+{{ p.content | markdownify | strip_html | strip }}
+    {%- endif -%}
+  {%- endunless -%}
+{%- endfor -%}

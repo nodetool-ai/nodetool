@@ -33,4 +33,4 @@ Automatically adjusts column widths to fit content.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.excel](../) namespace.
+Browse other nodes in the [lib.excel](./) namespace.

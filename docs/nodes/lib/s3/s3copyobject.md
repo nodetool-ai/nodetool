@@ -32,4 +32,4 @@ Copies an object within or between S3 buckets.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.s3](../) namespace.
+Browse other nodes in the [lib.s3](./) namespace.

@@ -55,6 +55,7 @@ import { TrackLane } from "./TrackLane";
 import { TimeRuler } from "./TimeRuler";
 import { Playhead } from "./Playhead";
 import { AddTrackButton } from "./AddTrackButton";
+import { ScriptToggleButton } from "./ScriptToggleButton";
 import { TrackEffectsPanel } from "./TrackEffectsPanel";
 import {
   ScriptLane,
@@ -64,6 +65,8 @@ import {
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 import { ToolToggle } from "../ToolToggle";
 import { FlexRow, FONT_SIZE_MONO, FONT_WEIGHT, BORDER_RADIUS } from "../../ui_primitives";
+import { useHasScript } from "../../../hooks/timeline/useHasScript";
+import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport";
 import { deserializeDragData } from "../../../lib/dragdrop";
 import type { Asset } from "../../../stores/ApiTypes";
 import { assetMediaType } from "../dnd/assetToClipAdapter";
@@ -167,6 +170,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
     const tracks = useTimelineStore((s) => s.tracks);
     const durationMs = useTimelineStore((s) => s.durationMs);
+    const hasScript = useHasScript();
 
     const msPerPx = useTimelineUIStore((s) => s.msPerPx);
     const scrollLeftPx = useTimelineUIStore((s) => s.scrollLeftPx);
@@ -191,6 +195,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
     const addTrack = useTimelineStore((s) => s.addTrack);
     const addImportedClip = useTimelineStore((s) => s.addImportedClip);
+    const importVideoWithAudio = useVideoAudioImport();
 
     const scrollableRef = useRef<HTMLDivElement>(null);
 
@@ -240,9 +245,22 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         const newTrack =
           useTimelineStore.getState().tracks.slice(-1)[0];
         if (!newTrack) return;
-        addImportedClip(asset, newTrack.id, startMs);
+        // A video on a new video track also gets a linked audio clip
+        // (extracted from the video), matching the per-lane drop path.
+        if (mediaType === "video") {
+          void importVideoWithAudio(asset, newTrack.id, startMs);
+        } else {
+          addImportedClip(asset, newTrack.id, startMs);
+        }
       },
-      [isAssetDrag, scrollLeftPx, msPerPx, addTrack, addImportedClip]
+      [
+        isAssetDrag,
+        scrollLeftPx,
+        msPerPx,
+        addTrack,
+        addImportedClip,
+        importVideoWithAudio
+      ]
     );
 
     // Total scrollable width = max of durationMs or visible area
@@ -475,7 +493,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           (t.heightPx ?? DEFAULT_TRACK_HEIGHT_PX) +
           (t.id === expandedFxTrackId ? FX_PANEL_HEIGHT_PX : 0),
         0
-      ) + SCRIPT_LANE_HEIGHT_PX;
+      ) + (hasScript ? SCRIPT_LANE_HEIGHT_PX : 0);
 
     // The script lane sits just above the first audio track (between video and
     // audio, Descript-style); if there's no audio track it goes last.
@@ -512,6 +530,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         >
           <ToolToggle />
           <div style={{ flex: "1 1 auto" }} />
+          <ScriptToggleButton />
           <AddTrackButton />
         </FlexRow>
 
@@ -540,6 +559,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             alignItems: "flex-start"
           }}
           fullWidth
+          data-testid="tracks-drop-area"
           onDragOver={handleEmptyAreaDragOver}
           onDrop={handleEmptyAreaDrop}
         >
@@ -547,7 +567,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           <div css={headerColumnStyles(theme)}>
             {tracks.map((track) => (
               <React.Fragment key={track.id}>
-                {track.id === scriptBeforeTrackId && <ScriptLaneHeader />}
+                {hasScript && track.id === scriptBeforeTrackId && (
+                  <ScriptLaneHeader />
+                )}
                 <TrackHeader track={track} typedIndex={typedIndexMap.get(track.id) ?? 1} />
                 {expandedFxTrackId === track.id && (
                   <div
@@ -557,7 +579,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                 )}
               </React.Fragment>
             ))}
-            {scriptBeforeTrackId === null && <ScriptLaneHeader />}
+            {hasScript && scriptBeforeTrackId === null && <ScriptLaneHeader />}
           </div>
 
           {/* Scrollable lanes */}
@@ -572,7 +594,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             >
               {tracks.map((track) => (
                 <React.Fragment key={track.id}>
-                  {track.id === scriptBeforeTrackId && (
+                  {hasScript && track.id === scriptBeforeTrackId && (
                     <ScriptLane />
                   )}
                   <TrackLane track={track} />
@@ -591,7 +613,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                   )}
                 </React.Fragment>
               ))}
-              {scriptBeforeTrackId === null && (
+              {hasScript && scriptBeforeTrackId === null && (
                 <ScriptLane />
               )}
             </div>

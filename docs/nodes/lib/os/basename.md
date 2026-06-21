@@ -34,4 +34,4 @@ Get the base name component of a file path.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.os](../) namespace.
+Browse other nodes in the [lib.os](./) namespace.

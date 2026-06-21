@@ -31,8 +31,10 @@ Insert a record into a SQLite table.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `dict[str, any]` |  |
+| row_id | `int` |  |
+| rows_affected | `int` |  |
+| message | `str` |  |
 
 ## Related Nodes
 
-Browse other nodes in the [lib.sqlite](../) namespace.
+Browse other nodes in the [lib.sqlite](./) namespace.

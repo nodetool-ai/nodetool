@@ -33,8 +33,10 @@ Compare two images side-by-side with an interactive slider.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `none` |  |
+| comparison | `any` |  |
+| score | `float` |  |
+| equal | `bool` |  |
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.compare](../) namespace.
+Browse other nodes in the [nodetool.compare](./) namespace.

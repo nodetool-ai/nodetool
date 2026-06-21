@@ -10,15 +10,25 @@ For environment variable defaults and precedence, see the [Configuration Guide](
 
 ## Quick Start
 
-**Authentication is enabled by default!** The server automatically generates a secure token on first run.
+The running server enforces authentication when it is in **Supabase mode**
+(both `SUPABASE_URL` and `SUPABASE_KEY` set). Without those, it runs in
+**Local mode**: loopback connections are trusted and run as user `"1"`, while
+non-loopback requests are rejected.
 
 ```bash
-# Start the server
+# Start the server (Local mode — loopback trusted)
 nodetool serve
 
-# The token is automatically generated and displayed
-# Copy it from the console output to use with requests
+# Enable Supabase mode to enforce auth on every request
+export SUPABASE_URL=https://your-project.supabase.co
+export SUPABASE_KEY=your-service-role-key
+nodetool serve
 ```
+
+The `SERVER_AUTH_TOKEN` / `deployment.yaml` token described below is generated
+and consumed by the `@nodetool-ai/deploy` tooling; see
+[Authentication Modes](#authentication-modes) for how the server itself selects
+its mode.
 
 ---
 
@@ -58,12 +68,15 @@ server_auth_token: your-auto-generated-token-here
 
 ## Using the Token
 
-All API requests (except `/health` and `/ping`) require authentication when
-`AUTH_PROVIDER` is `static` or `supabase`. In local development (default
-`ENV=development` and `AUTH_PROVIDER=local`) the server accepts
-requests without a token for convenience.
+All API requests (except the public health endpoints `/health`, `/ready`, and
+`/api/health`) require authentication when the server is running in Supabase
+mode — that is, when **both** `SUPABASE_URL` and `SUPABASE_KEY` are set. When
+those are not set, the server runs in Local mode and accepts loopback
+connections without a token for convenience (see
+[Localhost Trust](#localhost-trust-and-reverse-proxies)); non-loopback requests
+are rejected with `401`.
 
-When authentication is enforced, send the static token in the header:
+When authentication is enforced, send the Supabase JWT in the header:
 
 ```bash
 # Get token from config file
@@ -104,21 +117,22 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 ---
 
-## Authentication Providers
+## Authentication Modes
 
-Choose the auth strategy via `AUTH_PROVIDER`:
+The running server does **not** read an `AUTH_PROVIDER` variable to choose a
+strategy. It selects its mode from the presence of Supabase credentials:
 
-```bash
-# Valid values:
-#  none      - no authentication; requests run as user "1"
-#  local     - development convenience; requests run as user "1"
-#  static    - pre-shared token only (server token)
-#  supabase  - validate Supabase JWTs
+- **Supabase mode** — enabled when **both** `SUPABASE_URL` and `SUPABASE_KEY`
+  are set. The server validates a Supabase JWT on every non-public request and
+  enforces auth.
+- **Local mode** — the default when those are not set. Loopback connections
+  bypass auth and run as user `"1"` (gated by `NODETOOL_TRUST_LOCALHOST`);
+  non-loopback requests are rejected with `401`.
 
-export AUTH_PROVIDER=supabase
-```
+> `AUTH_PROVIDER` is only written into deployed-container environments by the
+> `@nodetool-ai/deploy` tooling. The server itself never branches on it.
 
-Supabase configuration (when `AUTH_PROVIDER=supabase`):
+To enable Supabase mode:
 
 ```bash
 export SUPABASE_URL=https://your-project.supabase.co
@@ -127,17 +141,13 @@ export SUPABASE_KEY=your-service-role-key
 
 Behavior:
 
-- HTTP and WebSocket endpoints enforce auth when `AUTH_PROVIDER` is `static` or `supabase`.
-- With `supabase`, clients send `Authorization: Bearer <supabase_jwt>`. Static server tokens also work for admin endpoints where applicable.
-- With `local` or `none`, endpoints do not enforce auth and default to user `"1"`.
+- Both HTTP and WebSocket endpoints enforce auth in Supabase mode.
+- Clients send `Authorization: Bearer <supabase_jwt>`.
+- In Local mode, loopback connections default to user `"1"` and no token is required.
 
-Caching (Supabase):
-
-```bash
-# Optional tuning (fallback to REMOTE_AUTH_* keys for compatibility)
-export AUTH_CACHE_TTL=30     # seconds (0 disables caching)
-export AUTH_CACHE_MAX=1000   # cache size
-```
+Supabase token verification results are cached in-process. The cache defaults
+to a 60-second TTL and at most 2000 entries; these are constructor options on
+the provider and are not configurable via environment variables.
 
 > WebSockets use the same `Authorization` header semantics as HTTP when auth is enforced. A `?api_key=<token>` query parameter is also accepted as a fallback for WebSocket connections.
 
@@ -167,6 +177,12 @@ function saveAuthConfig(config: Record<string, unknown>): void;
 ```
 
 Token verification uses `crypto.timingSafeEqual` to prevent timing attacks.
+
+> Note: `@nodetool-ai/auth` also ships a `StaticTokenProvider` that reads
+> `STATIC_AUTH_TOKEN` / `STATIC_AUTH_TOKENS`. This is a distinct mechanism from
+> the deploy-package `SERVER_AUTH_TOKEN` flow, and the `StaticTokenProvider` is
+> **not** wired into the running websocket server — the server uses only the
+> Supabase / Local selection described in [Authentication Modes](#authentication-modes).
 
 ---
 
@@ -347,7 +363,8 @@ server {
 These endpoints do **not** require authentication:
 
 - `GET /health` - Health check
-- `GET /ping` - Ping check
+- `GET /ready` - Readiness check
+- `GET /api/health` - API health check
 
 This allows load balancers and monitoring systems to check service status without authentication.
 
@@ -357,27 +374,30 @@ This allows load balancers and monitoring systems to check service status withou
 
 ### 401 Unauthorized
 
-**Missing Authorization header:**
+In Supabase mode, requests without a valid token receive a `401` with an
+`error` field:
+
+**Missing token:**
 
 ```json
 {
-  "detail": "Authorization header required. Use 'Authorization: Bearer YOUR_TOKEN'"
+  "error": "Unauthorized"
 }
 ```
 
-**Invalid format:**
+**Invalid / rejected token:**
 
 ```json
 {
-  "detail": "Invalid authorization header format. Use 'Authorization: Bearer YOUR_TOKEN'"
+  "error": "<reason from the auth provider>"
 }
 ```
 
-**Wrong token:**
+**Non-loopback request when running in Local mode:**
 
 ```json
 {
-  "detail": "Invalid authentication token"
+  "error": "Remote access requires authentication"
 }
 ```
 
@@ -552,9 +572,9 @@ export NODETOOL_TRUSTED_PROXIES=127.0.0.1   # trust the local proxy's XFF
 
 ## Security Hardening
 
-- Production: set `AUTH_PROVIDER` to `supabase` or `static`, terminate TLS in front of all non-public endpoints, and rotate server/proxy tokens via your secrets manager.
+- Production: enable Supabase mode by setting `SUPABASE_URL` and `SUPABASE_KEY`, terminate TLS in front of all non-public endpoints, and rotate Supabase service-role keys via your secrets manager.
 - Localhost trust: keep `NODETOOL_TRUST_LOCALHOST` off in any reverse-proxied or containerized deployment, and list only your real proxies in `NODETOOL_TRUSTED_PROXIES`.
-- Staging: disable terminal WebSocket (`NODETOOL_ENABLE_TERMINAL_WS` unset), keep asset buckets private or signed, and run workflows in subprocess or Docker isolation.
-- Development: keep `AUTH_PROVIDER=local` to isolated machines only and avoid storing real secrets in `.env.development`.
+- Staging: keep asset buckets private or signed, and run workflows in subprocess or Docker isolation.
+- Development: restrict Local mode to isolated machines and avoid storing real secrets in `.env.development`.
 
 See [Security Hardening](security-hardening.md) for detailed checklists across dev, staging, and production.

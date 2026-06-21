@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useMemo, useRef, useEffect, useCallback } from "react";
-import { Text, Box, MOTION } from "../ui_primitives";
+import { Text, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListItem from "./WorkflowListItem";
@@ -170,7 +170,7 @@ const listStyles = (theme: Theme) =>
       right: "4px",
       transform: "none",
       backgroundColor: "rgba(0, 0, 0, 0.35)",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       padding: "4px 6px",
       backdropFilter: "blur(4px)",
       gap: "4px"
@@ -182,7 +182,7 @@ const listStyles = (theme: Theme) =>
       transform: "none",
       zIndex: 5,
       backgroundColor: "rgba(0, 0, 0, 0.35)",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       padding: "2px 6px"
     },
     ".date-header-row": {

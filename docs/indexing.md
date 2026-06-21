@@ -1,6 +1,7 @@
 ---
 layout: page
 title: "Indexing & Vector Stores"
+description: "Ingest documents for semantic search and RAG with NodeTool's vector indexing pipeline — SQLite-vec by default, with pgvector and Pinecone options."
 ---
 
 
@@ -11,13 +12,13 @@ NodeTool ships a lightweight ingestion pipeline for semantic search and retrieva
 
 - **Collection metadata** (`CollectionResponse` in `@nodetool-ai/protocol` `packages/protocol/src/api-types.ts`) stores ingest configuration, including an optional workflow ID.
 - **Vector store** -- the default backend is SQLite-vec (`@nodetool-ai/vectorstore` `packages/vectorstore/src/sqlite-vec-store.ts`). Embeddings flow through the `VectorProvider` abstraction — see [Vector Storage](vector-storage.md) for swapping backends (Pinecone, Supabase/pgvector).
-- **Indexing route** -- `indexFileToCollection()` (`@nodetool-ai/deploy` `packages/deploy/src/collection-routes.ts`) orchestrates ingestion based on collection metadata.
+- **Indexing route** -- `handleCollectionIndex()` (`@nodetool-ai/deploy` `packages/deploy/src/collection-routes.ts`) validates the upload and delegates the actual ingestion to a caller-supplied `indexFn` callback (typed `IndexFileToCollectionFn`). The route itself does not resolve collections or run workflows; that logic lives in the provided callback.
 
 ### Default Flow
 
-1. `indexFileToCollection()` resolves the target collection via `getCollection()` (`@nodetool-ai/vectorstore` `packages/vectorstore/src/index.ts`).
-2. If the collection specifies a custom workflow ID, the service executes it by constructing a `RunJobRequest` (`@nodetool-ai/protocol` `packages/protocol/src/api-types.ts`) with `CollectionInput` and `FileInput` nodes populated.
-3. Otherwise, it falls back to the default ingestion path, which splits the document with `splitDocument()` (`@nodetool-ai/vectorstore`), embeds it, and stores embeddings in SQLite-vec.
+1. The HTTP layer receives an uploaded file and calls `handleCollectionIndex()` with the collection name, file path, MIME type, and an `indexFn`.
+2. The `indexFn` callback performs the ingestion: it resolves the target collection (e.g. via `resolveCollection()` in `@nodetool-ai/vectorstore` `packages/vectorstore/src/index.ts`), splits the document with `splitDocument()`, embeds it, and stores embeddings in SQLite-vec.
+3. `handleCollectionIndex()` returns an `IndexResult` (`{ path, error }`) per file, or throws a `CollectionHttpError` on failure.
 
 ### Messages & Progress
 
@@ -47,8 +48,8 @@ Return values can include summaries, metadata, or alternate embeddings. Review `
 
 ## CLI & API Integration
 
-- `POST /collections/{name}/index` (see `@nodetool-ai/websocket` `packages/websocket/src/collection-api.ts`) triggers ingestion via HTTP.
-- The MCP server (`@nodetool-ai/websocket` `packages/websocket/src/mcp-server.ts`) exposes commands for IDE plug-ins to index assets.
+- `POST /api/collections/:name/index` (see `@nodetool-ai/websocket` `packages/websocket/src/collection-api.ts`) triggers ingestion via HTTP (multipart/form-data file upload).
+- The MCP server (`@nodetool-ai/websocket` `packages/websocket/src/mcp-server.ts`) exposes read-only collection tools — `get_collection`, `query_collection`, `list_collections`, `get_asset`, `list_assets` — for IDE plug-ins. It does **not** index assets.
 - Admin routes under `@nodetool-ai/deploy` `packages/deploy/src/admin-routes.ts` provide remote ingestion endpoints for deployed servers.
 
 ## Troubleshooting

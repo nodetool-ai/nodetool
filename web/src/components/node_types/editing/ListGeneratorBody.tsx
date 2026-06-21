@@ -8,6 +8,11 @@
  * `alwaysEmitOutputUpdates` so its `item` stream reaches the client even when
  * the handle is wired onward.
  *
+ * Each row collapses to a one-line preview; expanding it renders the item via
+ * `MarkdownRenderer`, which brings markdown formatting, a copy button, an
+ * internal scrollbar, and a fullscreen overlay viewer. The row header also
+ * exposes a copy button on hover so an item can be copied without expanding.
+ *
  * Value resolution mirrors OutputNode: prefer the live output-stream buffer
  * (scoped to the focused job), falling back to the node's settled generation.
  * The buffer interleaves the `item` (string) and `index` (int) handles, so we
@@ -25,7 +30,8 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { FlexColumn, FlexRow, LoadingSpinner, BORDER_RADIUS, MOTION, FONT_WEIGHT } from "../../ui_primitives";
+import { CopyButton, FlexColumn, FlexRow, LoadingSpinner, BORDER_RADIUS, MOTION, FONT_WEIGHT } from "../../ui_primitives";
+import MarkdownRenderer from "../../../utils/MarkdownRenderer";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import HandleColumn from "../../node/HandleColumn";
 import NodeProgress from "../../node/NodeProgress";
@@ -62,6 +68,18 @@ const toItems = (value: unknown): string[] => {
   }
   const single = pullString(value);
   return single !== undefined ? [single] : [];
+};
+
+/** First non-empty line, stripped of markdown markers, for the collapsed row. */
+const previewOf = (item: string): string => {
+  const firstLine = item.split("\n").find((l) => l.trim().length > 0) ?? "";
+  return firstLine
+    .replace(/^\s{0,3}#{1,6}\s+/, "") // headings
+    .replace(/^\s{0,3}[-*+]\s+/, "") // bullet list
+    .replace(/^\s{0,3}\d+\.\s+/, "") // ordered list
+    .replace(/^\s{0,3}>\s+/, "") // blockquote
+    .replace(/[*_`~]/g, "") // inline emphasis / code
+    .trim();
 };
 
 const styles = (theme: Theme) =>
@@ -132,6 +150,16 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall,
       color: theme.vars.palette.text.primary
     },
+    ".list-actions": {
+      flexShrink: 0,
+      display: "flex",
+      alignItems: "center",
+      opacity: 0,
+      transition: MOTION.opacity
+    },
+    ".list-head:hover .list-actions, .list-head:focus-within .list-actions": {
+      opacity: 1
+    },
     ".list-chevron": {
       flexShrink: 0,
       fontSize: 16,
@@ -142,9 +170,7 @@ const styles = (theme: Theme) =>
       transform: "rotate(90deg)"
     },
     ".list-full": {
-      padding: "0 8px 8px 32px",
-      whiteSpace: "pre-wrap",
-      wordBreak: "break-word",
+      padding: "0 4px 4px 4px",
       fontSize: theme.fontSizeSmall,
       color: theme.vars.palette.text.primary
     },
@@ -186,7 +212,9 @@ const ListGeneratorBodyInner: React.FC<BespokeBodyProps> = ({
 
   const items = useMemo(() => {
     if (streamBuffer !== undefined) return toItems(streamBuffer);
-    return current ? toItems(outputOf(current)) : [];
+    // The settled generation carries the full list on the `output` handle
+    // (live: stream-end frame; reloaded: persisted JSON generation).
+    return current ? toItems(outputOf(current, "output")) : [];
   }, [streamBuffer, current]);
 
   // Accordion expand state, keyed by item index. Items start collapsed.
@@ -250,12 +278,28 @@ const ListGeneratorBodyInner: React.FC<BespokeBodyProps> = ({
                   }}
                 >
                   <span className="list-index">{i + 1}</span>
-                  <span className="list-preview">{item}</span>
+                  <span className="list-preview">{previewOf(item)}</span>
+                  <span
+                    className="list-actions"
+                    role="presentation"
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  >
+                    <CopyButton
+                      value={item}
+                      tooltip="Copy item"
+                      buttonSize="small"
+                    />
+                  </span>
                   <ChevronRightRoundedIcon
                     className={`list-chevron${isOpen ? " expanded" : ""}`}
                   />
                 </div>
-                {isOpen && <div className="list-full">{item}</div>}
+                {isOpen && (
+                  <div className="list-full">
+                    <MarkdownRenderer content={item} />
+                  </div>
+                )}
               </div>
             );
           })}

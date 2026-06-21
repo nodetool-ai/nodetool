@@ -403,6 +403,9 @@ export class StructuredOutputGeneratorNode extends BaseNode {
   static readonly inputFields = ["system_prompt", "image", "audio"];
   static readonly supportsDynamicOutputs = true;
 
+  // Persist the generated JSON object as a generation so it reloads on reopen.
+  static readonly autoSaveAsset = true;
+
   @prop({
     type: "str",
     default:
@@ -559,6 +562,10 @@ export class DataGeneratorNode extends BaseNode {
   static readonly inlineFields = ["columns"];
   static readonly inputFields = ["prompt"];
 
+  // Persist the generated dataframe as a generation so it reloads on reopen.
+  static readonly autoSaveAsset = true;
+  static readonly primaryOutput = "dataframe";
+
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     record: { kind: "iteration", source: "__execution__", group: "items" },
@@ -662,7 +669,8 @@ export class ListGeneratorNode extends BaseNode {
     "LLM Agent to create a stream of strings based on a user prompt.\n    llm, text streaming\n\n    Use cases:\n    - Generating text from natural language descriptions\n    - Streaming responses from an LLM";
   static readonly metadataOutputTypes = {
     item: "str",
-    index: "int"
+    index: "int",
+    output: "list[str]"
   };
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt"];
@@ -672,10 +680,18 @@ export class ListGeneratorNode extends BaseNode {
   // of downstream connections.
   static readonly alwaysEmitOutputUpdates = true;
 
+  // Persist the full generated list as a generation so the node reloads its
+  // items when the workflow is reopened. `output` carries the whole list (see
+  // the consolidating final yield in genProcess); `item`/`index` stay per-item
+  // for live streaming and downstream iteration.
+  static readonly autoSaveAsset = true;
+  static readonly primaryOutput = "output";
+
   static readonly inputMode: InputMode = "buffered";
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     item: { kind: "iteration", source: "__execution__", group: "items" },
-    index: { kind: "iteration", source: "__execution__", group: "items" }
+    index: { kind: "iteration", source: "__execution__", group: "items" },
+    output: { kind: "single", source: "__execution__" }
   };
 
   @prop({
@@ -735,6 +751,9 @@ export class ListGeneratorNode extends BaseNode {
     const inputText = asText(this.input_text ?? "");
     const userMessage = [prompt, inputText].filter(Boolean).join("\n\n");
     const { providerId, modelId } = getModelConfig(this.serialize());
+    // Accumulate items so the stream-end frame can carry the whole list on the
+    // single `output` handle (drives the saved generation + reload).
+    const items: string[] = [];
 
     if (
       context &&
@@ -750,6 +769,7 @@ export class ListGeneratorNode extends BaseNode {
         userMessage,
         Number(this.max_tokens ?? 128)
       )) {
+        items.push(asText(item));
         yield { item, index };
         index += 1;
       }
@@ -758,14 +778,18 @@ export class ListGeneratorNode extends BaseNode {
           "Model returned no add_item tool calls — list is empty."
         );
       }
+      yield { output: items };
       return;
     }
 
     const seed = inputText || prompt || "item";
     const count = parseRequestedCount(userMessage, 5);
     for (let i = 0; i < count; i += 1) {
-      yield { item: `${seed}_${i + 1}`, index: i };
+      const item = `${seed}_${i + 1}`;
+      items.push(item);
+      yield { item, index: i };
     }
+    yield { output: items };
   }
 }
 
@@ -779,6 +803,10 @@ export class ChartGeneratorNode extends BaseNode {
   };
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt", "data"];
+
+  // Persist the generated chart config as a generation so it reloads on reopen.
+  static readonly autoSaveAsset = true;
+  static readonly primaryOutput = "output";
 
   @prop({
     type: "language_model",
@@ -1011,6 +1039,10 @@ export class SVGGeneratorNode extends BaseNode {
   };
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt", "image", "audio"];
+
+  // Persist the generated SVG elements as a generation so they reload on reopen.
+  static readonly autoSaveAsset = true;
+  static readonly primaryOutput = "output";
 
   @prop({
     type: "language_model",

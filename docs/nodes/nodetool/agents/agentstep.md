@@ -44,4 +44,4 @@ LLM step that inherits the workflow's configured model.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.agents](../) namespace.
+Browse other nodes in the [nodetool.agents](./) namespace.

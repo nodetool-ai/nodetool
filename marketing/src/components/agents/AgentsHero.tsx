@@ -71,7 +71,7 @@ export default function AgentsHero() {
               </a>
             </div>
 
-            <div className="mt-8 flex items-center justify-center gap-6 text-sm text-slate-500 font-medium">
+            <div className="mt-8 flex items-center justify-center gap-6 text-sm text-slate-400 font-medium">
               <span className="flex items-center gap-2">
                 <Command className="w-4 h-4" /> Open Source
               </span>
@@ -174,7 +174,7 @@ function AgentVisualization() {
           <div className="h-3 w-3 rounded-full bg-green-500/20 border border-green-500/50" />
         </div>
 
-        <div className="absolute bottom-6 right-8 text-xs font-mono text-slate-500 uppercase tracking-widest">
+        <div className="absolute bottom-6 right-8 text-xs font-mono text-slate-400 uppercase tracking-widest">
           Agent Active • Reasoning...
         </div>
       </motion.div>

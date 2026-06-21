@@ -30,4 +30,4 @@ Detect and extract tables from a PDF by analysing text layout.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pdf](../) namespace.
+Browse other nodes in the [lib.pdf](./) namespace.

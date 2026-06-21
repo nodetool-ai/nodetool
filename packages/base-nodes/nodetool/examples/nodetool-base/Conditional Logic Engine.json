@@ -181,14 +181,13 @@
           "selectable": true
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "2",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "## Conditional Logic Decision Result\n\n**Input Value:** {{ value }}\n\n**Condition Checks:**\n- Greater than 100? {{ gt_100 }}\n- Less than 50? {{ lt_50 }}\n- Combined (OR): {{ combined }}\n- Route Decision: {{ route }}\n\n**Processing Path:**\n{{ processing }}\n\n**Decision Logic:**\nThis workflow demonstrates:\n- Multiple condition evaluation\n- Logical operations (OR gate)\n- Conditional branching\n- Multi-path routing\n- Result aggregation"
+          "prompt": "## Conditional Logic Decision Result\n\n**Input Value:** {{ value }}\n\n**Condition Checks:**\n- Greater than 100? {{ gt_100 }}\n- Less than 50? {{ lt_50 }}\n- Combined (OR): {{ combined }}\n- Route Decision: {{ route }}\n\n**Processing Path:**\n{{ processing }}\n\n**Decision Logic:**\nThis workflow demonstrates:\n- Multiple condition evaluation\n- Logical operations (OR gate)\n- Conditional branching\n- Multi-path routing\n- Result aggregation"
         },
         "ui_properties": {
           "position": {
@@ -209,8 +208,7 @@
           "route": null,
           "processing": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "3",
@@ -234,8 +232,7 @@
           "title": "1️⃣ Input value"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "4",
@@ -256,8 +253,7 @@
           "title": "Compare: > 100?"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "5",
@@ -278,8 +274,7 @@
           "title": "Compare: < 50?"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "6",
@@ -299,8 +294,7 @@
           "title": "Extreme? (OR)"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "7",
@@ -321,8 +315,7 @@
           "title": "Route label"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "8",
@@ -340,14 +333,13 @@
           "title": "Switch: high / other"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "9",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "🔴 HIGH VALUE: {{ value }} is greater than 100. Priority processing engaged."
+          "prompt": "🔴 HIGH VALUE: {{ value }} is greater than 100. Priority processing engaged."
         },
         "ui_properties": {
           "position": {
@@ -363,14 +355,13 @@
         "dynamic_properties": {
           "value": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "10",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "{{ text }}"
+          "prompt": "{{ text }}"
         },
         "ui_properties": {
           "position": {
@@ -386,8 +377,7 @@
         "dynamic_properties": {
           "text": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "11",
@@ -405,14 +395,13 @@
           "title": "Switch: low / medium"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "12",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "🔵 LOW VALUE: {{ value }} is less than 50. Standard processing applied."
+          "prompt": "🔵 LOW VALUE: {{ value }} is less than 50. Standard processing applied."
         },
         "ui_properties": {
           "position": {
@@ -428,14 +417,13 @@
         "dynamic_properties": {
           "value": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "13",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "🟡 MEDIUM VALUE: {{ value }} is between 50 and 100. Balanced processing selected."
+          "prompt": "🟡 MEDIUM VALUE: {{ value }} is between 50 and 100. Balanced processing selected."
         },
         "ui_properties": {
           "position": {
@@ -451,8 +439,7 @@
         "dynamic_properties": {
           "value": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ]
   },

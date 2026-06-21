@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { keyframes } from "@emotion/react";
 
 import React, { useCallback, useMemo, useState, useEffect, memo } from "react";
-import { Tooltip, Text, Caption, EditorButton, LoadingSpinner, Chip, CloseButton, FlexRow, FlexColumn, CopyButton, Box } from "../ui_primitives";
+import { Tooltip, Text, Caption, EditorButton, LoadingSpinner, Chip, CloseButton, FlexRow, FlexColumn, CopyButton, Box, BORDER_RADIUS } from "../ui_primitives";
 import { ProgressBar } from "../ui_primitives/ProgressBar";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
@@ -16,7 +16,7 @@ const STALL_THRESHOLD_MS = 30000;
 const styles = (theme: Theme) =>
   css({
     width: "100%",
-    borderRadius: "var(--rounded-lg)",
+    borderRadius: BORDER_RADIUS.lg,
     padding: "0.75em 1em 1em",
     position: "relative",
     alignItems: "stretch",
@@ -47,7 +47,7 @@ const styles = (theme: Theme) =>
     },
     ".progress-bar-container": {
       height: "8px",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
       position: "relative",
       background: theme.vars.palette.action.hover,

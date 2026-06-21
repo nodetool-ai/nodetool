@@ -35,7 +35,17 @@ import isEqual from "fast-deep-equal";
 import { Chunk } from "../../stores/ApiTypes";
 import TaskView from "./TaskView";
 import { trpc } from "../../trpc/client";
-import { fromPersistedSketchEditorState } from "../../stores/sketch/persistence";
+import {
+  isRecord,
+  getSketchId,
+  isSketchDocumentLike,
+  unwrapSketchDocumentCandidate,
+  resolveSketchDocument,
+  getTimelineId,
+  isTimelineSequenceLike,
+  unwrapTimelineSequenceCandidate,
+  resolveTimelineSequence
+} from "./outputValueResolvers";
 import SketchRenderer from "../sketch/SketchRenderer";
 import type { SketchDocument } from "../sketch/types";
 import type { TimelineSequence } from "@nodetool-ai/timeline";
@@ -177,110 +187,6 @@ const stableKeyForOutputValue = (v: unknown): string => {
   return `other:${String(v)}`;
 };
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
-
-const getSketchId = (value: unknown): string | null => {
-  if (!isRecord(value)) {
-    return null;
-  }
-  return typeof value.id === "string" && value.id.length > 0
-    ? value.id
-    : null;
-};
-
-const isSketchDocumentLike = (value: unknown): boolean => {
-  if (!isRecord(value)) {
-    return false;
-  }
-  const canvas = value.canvas;
-  return (
-    isRecord(canvas) &&
-    typeof canvas.width === "number" &&
-    typeof canvas.height === "number" &&
-    Array.isArray(value.layers) &&
-    typeof value.activeLayerId === "string"
-  );
-};
-
-const unwrapSketchDocumentCandidate = (value: unknown, depth = 0): unknown => {
-  if (depth > 4 || isSketchDocumentLike(value) || !isRecord(value)) {
-    return value;
-  }
-  if (isRecord(value.document)) {
-    return unwrapSketchDocumentCandidate(value.document, depth + 1);
-  }
-  if ("sketch" in value) {
-    return unwrapSketchDocumentCandidate(value.sketch, depth + 1);
-  }
-  if (value.type === "sketch" && "data" in value) {
-    return unwrapSketchDocumentCandidate(value.data, depth + 1);
-  }
-  return value;
-};
-
-const resolveSketchDocument = (value: unknown): SketchDocument | null => {
-  const candidate = unwrapSketchDocumentCandidate(value);
-  if (!isSketchDocumentLike(candidate)) {
-    return null;
-  }
-  try {
-    return fromPersistedSketchEditorState(candidate).document;
-  } catch (error) {
-    console.warn("Could not render sketch document", error);
-    return null;
-  }
-};
-
-const getTimelineId = (value: unknown): string | null => {
-  if (!isRecord(value)) {
-    return null;
-  }
-  return typeof value.id === "string" && value.id.length > 0
-    ? value.id
-    : null;
-};
-
-const isTimelineSequenceLike = (value: unknown): value is TimelineSequence => {
-  if (!isRecord(value)) {
-    return false;
-  }
-  return (
-    typeof value.id === "string" &&
-    typeof value.name === "string" &&
-    typeof value.fps === "number" &&
-    typeof value.width === "number" &&
-    typeof value.height === "number" &&
-    typeof value.durationMs === "number" &&
-    Array.isArray(value.tracks) &&
-    Array.isArray(value.clips) &&
-    Array.isArray(value.markers)
-  );
-};
-
-const unwrapTimelineSequenceCandidate = (value: unknown, depth = 0): unknown => {
-  if (depth > 4 || isTimelineSequenceLike(value) || !isRecord(value)) {
-    return value;
-  }
-  if (isRecord(value.sequence)) {
-    return unwrapTimelineSequenceCandidate(value.sequence, depth + 1);
-  }
-  if (isRecord(value.document)) {
-    return unwrapTimelineSequenceCandidate(value.document, depth + 1);
-  }
-  if ("timeline" in value) {
-    return unwrapTimelineSequenceCandidate(value.timeline, depth + 1);
-  }
-  if (value.type === "timeline" && "data" in value) {
-    return unwrapTimelineSequenceCandidate(value.data, depth + 1);
-  }
-  return value;
-};
-
-const resolveTimelineSequence = (value: unknown): TimelineSequence | null => {
-  const candidate = unwrapTimelineSequenceCandidate(value);
-  return isTimelineSequenceLike(candidate) ? candidate : null;
-};
 
 const concatTextChunksSafely = (
   chunks: Chunk[]
@@ -1038,7 +944,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                               style={{
                                 margin: "0.5em 0.75em",
                                 padding: "0.4em 0.6em",
-                                borderRadius: "var(--rounded-lg)",
+                                borderRadius: BORDER_RADIUS.lg,
                                 background: "rgba(255, 193, 7, 0.12)",
                                 border: "1px solid rgba(255, 193, 7, 0.35)",
                                 color: "rgba(255, 255, 255, 0.85)",

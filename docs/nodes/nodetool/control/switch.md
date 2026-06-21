@@ -37,4 +37,4 @@ Multi-branch routing: match a value against cases and route to the matching outp
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.control](../) namespace.
+Browse other nodes in the [nodetool.control](./) namespace.

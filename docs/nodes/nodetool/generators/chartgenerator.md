@@ -36,4 +36,4 @@ LLM Agent to create Plotly Express charts based on natural language descriptions
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.generators](../) namespace.
+Browse other nodes in the [nodetool.generators](./) namespace.

@@ -29,4 +29,4 @@ Checks if text is empty or contains only whitespace.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.text](../) namespace.
+Browse other nodes in the [nodetool.text](./) namespace.

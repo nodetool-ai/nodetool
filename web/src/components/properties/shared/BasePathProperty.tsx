@@ -5,7 +5,7 @@ import isEqual from "fast-deep-equal";
 import PropertyLabel from "../../node/PropertyLabel";
 import { PropertyProps } from "../../node/PropertyInput";
 import { useTheme } from "@mui/material/styles";
-import { Text, MOTION } from "../../ui_primitives";
+import { Text, MOTION, BORDER_RADIUS } from "../../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import FileBrowserDialog from "../../dialogs/FileBrowserDialog";
 
@@ -50,7 +50,7 @@ const createPathPropertyStyles = (theme: Theme) =>
     ".path-picker__browse-button": {
       backgroundColor: theme.vars.palette.grey[600],
       border: `1px solid ${theme.vars.palette.grey[500]}`,
-      borderRadius: "var(--rounded-xs)",
+      borderRadius: BORDER_RADIUS.xs,
       color: theme.vars.palette.common.white,
       cursor: "pointer",
       padding: "2px 4px",
@@ -75,7 +75,7 @@ const createPathPropertyStyles = (theme: Theme) =>
     ".path-picker__reset-button": {
       backgroundColor: "transparent",
       border: "none",
-      borderRadius: "var(--rounded-circle)",
+      borderRadius: BORDER_RADIUS.circle,
       color: theme.vars.palette.grey[400],
       cursor: "pointer",
       padding: "4px 8px",

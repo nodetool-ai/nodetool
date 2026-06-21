@@ -33,26 +33,19 @@ Structured result (validated against output JSON schema)
 
 ### Agent Classes
 
-| Class | When to Use | Planning | Source |
-|---|---|---|---|
-| **Agent** | Multi-step objectives needing decomposition | Full DAG planning | `packages/agents/src/agent.ts` |
-| **SimpleAgent** | Single-step tasks with known output schema | No planning | `packages/agents/src/simple-agent.ts` |
-| **AgentExecutor** | Lightweight value extraction | No planning | `packages/agents/src/agent-executor.ts` |
+| Class | When to Use | Source |
+|---|---|---|
+| **Agent** | Multi-step objectives needing decomposition (full DAG planning + execution) | `packages/agents/src/agent.ts` |
+| **AgentExecutor** | Lightweight value extraction | `packages/agents/src/agent-executor.ts` |
+| **TaskPlanner** | Decompose an objective into a task DAG | `packages/agents/src/task-planner.ts` |
+| **TaskExecutor** | Walk the step DAG, respecting dependency order | `packages/agents/src/task-executor.ts` |
+| **StepExecutor** | Run the tool-calling loop for a single step | `packages/agents/src/step-executor.ts` |
 
-All agents extend **BaseAgent**:
-
-```ts
-abstract class BaseAgent {
-  readonly name: string;
-  readonly objective: string;
-  readonly provider: BaseProvider;   // LLM provider (OpenAI, Anthropic, Ollama, etc.)
-  readonly model: string;
-  readonly tools: Tool[];
-
-  abstract execute(context: ProcessingContext): AsyncGenerator<ProcessingMessage>;
-  abstract getResults(): unknown;
-}
-```
+The top-level **Agent** orchestrates planning (via `TaskPlanner`) and execution (via `TaskExecutor` →
+`StepExecutor`), then validates the final result against the output schema. Its constructor accepts a
+`provider` (`BaseProvider`), `model`, `tools`, `objective`, and the options in the
+[Configuration Reference](#configuration-reference) below. It exposes
+`execute(context): AsyncGenerator<ProcessingMessage>` and `getResults(): unknown`.
 
 ---
 
@@ -321,7 +314,7 @@ Matched skill instructions are prepended to the system prompt under an `# Agent 
 
 ## Workflow Nodes
 
-The agent system surfaces in the workflow editor through several node types defined in `base-nodes/src/nodes/agents.ts`:
+The agent system surfaces in the workflow editor through several node types defined in `packages/llm-nodes/src/nodes/agents.ts`:
 
 | Node | Purpose |
 |---|---|
@@ -360,7 +353,7 @@ const agent = new Agent({
   tools: [new GoogleSearchTool(), new BrowserTool(), new WriteFileTool()],
   workspace: "/tmp/research-output",
   maxSteps: 10,
-  maxStepIterations: 5,
+  maxStepIterations: 15,
 });
 
 for await (const message of agent.execute(context)) {
@@ -372,12 +365,14 @@ for await (const message of agent.execute(context)) {
 const result = agent.getResults();
 ```
 
-### Simple Agent (Single Step)
+### Agent with an Output Schema
+
+Pass an `outputSchema` to have the final result validated against a JSON schema:
 
 ```ts
-import { SimpleAgent } from "@nodetool-ai/agents";
+import { Agent } from "@nodetool-ai/agents";
 
-const agent = new SimpleAgent({
+const agent = new Agent({
   name: "extractor",
   objective: "Extract all email addresses from this text: ...",
   provider: openaiProvider,
@@ -414,7 +409,7 @@ const { emails } = agent.getResults() as { emails: string[] };
 | `systemPrompt` | `""` | Custom system instructions |
 | `maxTokenLimit` | `128000` | Token budget per step |
 | `maxSteps` | `10` | Maximum number of steps in a task |
-| `maxStepIterations` | `5` | Maximum LLM round-trips per step |
+| `maxStepIterations` | `15` | Maximum LLM round-trips per step |
 | `outputSchema` | — | JSON schema for the final result |
 | `workspace` | auto-generated | Directory for file artifacts |
 | `skills` | — | Explicit skill names to load |

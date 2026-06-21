@@ -20,7 +20,7 @@
         "source": "strategy_template_prompt",
         "sourceHandle": "output",
         "target": "strategy_prompt_formatter",
-        "targetHandle": "template",
+        "targetHandle": "prompt",
         "edge_type": "data"
       },
       {
@@ -139,8 +139,7 @@
           "title": "Creative strategy agent"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "strategy_template_prompt",
@@ -161,12 +160,11 @@
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "strategy_prompt_formatter",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {},
         "ui_properties": {
           "position": {
@@ -184,8 +182,7 @@
           "GENRE": "Science Fiction",
           "PRIMARY_AUDIENCE": "Gen-Z"
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "movie_title_input",
@@ -206,8 +203,7 @@
           "title": "Movie title"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "genre_input",
@@ -228,8 +224,7 @@
           "title": "Genre"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "audience_input",
@@ -250,8 +245,7 @@
           "title": "Primary audience"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "prompt_list_generator",
@@ -272,8 +266,7 @@
           "title": "Generate poster prompts"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "designer_instructions_prompt",
@@ -294,8 +287,7 @@
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "0276f606-d899-4487-be65-4615564507cc",
@@ -320,8 +312,7 @@
           "title": "Render posters"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ]
   },

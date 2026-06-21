@@ -34,4 +34,4 @@ Extracts headers and creates a document structure/outline.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.markdown](../) namespace.
+Browse other nodes in the [lib.markdown](./) namespace.

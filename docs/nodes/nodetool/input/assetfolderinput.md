@@ -30,4 +30,4 @@ Accepts an asset folder as a parameter for workflows.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.input](../) namespace.
+Browse other nodes in the [nodetool.input](./) namespace.

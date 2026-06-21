@@ -134,8 +134,7 @@
           "title": "Add text overlay"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "3",
@@ -157,8 +156,7 @@
           "title": "Tagline / extra text"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "4",
@@ -188,8 +186,7 @@
           "title": "Add colored label"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "5",
@@ -211,8 +208,7 @@
           "title": "Brand name"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "6",
@@ -237,8 +233,7 @@
           "title": "Brand color"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "7",
@@ -266,8 +261,7 @@
           "title": "Render logo image"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "8",
@@ -289,14 +283,13 @@
           "title": "Generate logo"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "9",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "\nYou are a creative director generating image prompts for brand assets.\n\nBrand: {{ brand_name }}\nDescription: {{ brand_description }}\n\nGenerate 4 different image prompts for social media posts. Each prompt should:\n- Be suitable for text-to-image AI generation\n- Reflect the brand's aesthetic and values\n- Work well as a background for text overlays\n- Be professional and eye-catching\n\nOutput format: Return each prompt on a separate line, no numbering or bullets.\nInclude prompts for: Instagram square post, LinkedIn banner, Twitter header, and a product announcement.\n"
+          "prompt": "\nYou are a creative director generating image prompts for brand assets.\n\nBrand: {{ brand_name }}\nDescription: {{ brand_description }}\n\nGenerate 4 different image prompts for social media posts. Each prompt should:\n- Be suitable for text-to-image AI generation\n- Reflect the brand's aesthetic and values\n- Work well as a background for text overlays\n- Be professional and eye-catching\n\nOutput format: Return each prompt on a separate line, no numbering or bullets.\nInclude prompts for: Instagram square post, LinkedIn banner, Twitter header, and a product announcement.\n"
         },
         "ui_properties": {
           "position": {
@@ -313,8 +306,7 @@
           "brand_name": null,
           "brand_description": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "10",
@@ -336,8 +328,7 @@
           "title": "Brand description"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ]
   },

@@ -12,7 +12,7 @@ namespace: "lib.os"
 ## Description
 
 Write text to a file in the workspace.
-    workspace, file, write, text, save
+    os, file, write, text, save
 
 ## Properties
 
@@ -31,4 +31,4 @@ Write text to a file in the workspace.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.os](../) namespace.
+Browse other nodes in the [lib.os](./) namespace.

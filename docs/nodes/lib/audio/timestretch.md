@@ -34,4 +34,4 @@ Changes the speed of an audio file without altering its pitch.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.audio](../) namespace.
+Browse other nodes in the [lib.audio](./) namespace.

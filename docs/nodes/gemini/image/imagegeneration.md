@@ -24,7 +24,7 @@ Generate an image using Google's Imagen model via the Gemini API.
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | prompt | `str` | The text prompt describing the image to generate. | `` |
-| model | `enum` | The image generation model to use | `imagen-3.0-generate-002` |
+| model | `enum` | The image generation model to use | `imagen-4.0-generate-001` |
 | image | `image` | The image to use as a base for the generation. | `{"type":"image","uri":"","asset_id":null,"data"...` |
 
 ## Outputs
@@ -35,4 +35,4 @@ Generate an image using Google's Imagen model via the Gemini API.
 
 ## Related Nodes
 
-Browse other nodes in the [gemini.image](../) namespace.
+Browse other nodes in the [gemini.image](./) namespace.

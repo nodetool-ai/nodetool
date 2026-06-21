@@ -137,4 +137,10 @@ export interface WebSocketConfig {
   reconnectDecay?: number;
   reconnectAttempts?: number;
   timeoutInterval?: number;
+  /**
+   * Extra headers for the connection handshake (React Native native only).
+   * Used to send `Authorization: Bearer <token>` so the auth token stays out
+   * of the URL.
+   */
+  headers?: Record<string, string>;
 }

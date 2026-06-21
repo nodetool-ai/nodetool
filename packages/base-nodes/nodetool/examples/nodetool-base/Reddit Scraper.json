@@ -97,9 +97,9 @@
       },
       {
         "id": "2",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "\n# Reddit analysis for r/{{ subreddit }}\n\n## Executive summary\n{{ summary }}\n\n- Posts analyzed: {{ posts }}\n\n## Key issues\n{% for issue in key_issues %}\n- {{ issue }}\n{% endfor %}\n\n## Recommendations\n{% for rec in recommendations %}\n- {{ rec }}\n{% endfor %}\n"
+          "prompt": "\n# Reddit analysis for r/{{ subreddit }}\n\n## Executive summary\n{{ summary }}\n\n- Posts analyzed: {{ posts }}\n\n## Key issues\n{% for issue in key_issues %}\n- {{ issue }}\n{% endfor %}\n\n## Recommendations\n{% for rec in recommendations %}\n- {{ rec }}\n{% endfor %}\n"
         },
         "ui_properties": {
           "position": {
@@ -119,8 +119,7 @@
           "key_issues": null,
           "recommendations": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "3",
@@ -142,8 +141,7 @@
           "title": "Subreddit"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "4",
@@ -222,14 +220,13 @@
             ],
             "type_name": null
           }
-        },
-        "sync_mode": "on_any"
+        }
       },
       {
         "id": "5",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "\nYou are an expert Reddit researcher specializing in customer feedback analysis.\n\nMission:\n- Analyze r/{{ subreddit }} to identify {{ focus_area }}.\n\nResearch approach:\n1) Use google_search with queries such as:\n   - \"site:reddit.com/r/{{ subreddit }} problem\"\n   - \"site:reddit.com/r/{{ subreddit }} issue\"\n   - \"site:reddit.com/r/{{ subreddit }} help\"\n\n2) For each promising post:\n   - Fetch the thread with the browser tool.\n   - Extract the core problem, context, and any workaround or solution patterns.\n\n3) Synthesize an overview and actionable insights.\n\nOutput format (JSON object):\n{\n  \"summary\": \"Brief 3 to 5 sentence overview of key findings\",\n  \"posts_analyzed\": <integer>,\n  \"key_issues\": [\"main problem 1\", \"main problem 2\", ...],\n  \"recommendations\": [\"suggested improvement 1\", \"suggested improvement 2\", ...]\n}\n"
+          "prompt": "\nYou are an expert Reddit researcher specializing in customer feedback analysis.\n\nMission:\n- Analyze r/{{ subreddit }} to identify {{ focus_area }}.\n\nResearch approach:\n1) Use google_search with queries such as:\n   - \"site:reddit.com/r/{{ subreddit }} problem\"\n   - \"site:reddit.com/r/{{ subreddit }} issue\"\n   - \"site:reddit.com/r/{{ subreddit }} help\"\n\n2) For each promising post:\n   - Fetch the thread with the browser tool.\n   - Extract the core problem, context, and any workaround or solution patterns.\n\n3) Synthesize an overview and actionable insights.\n\nOutput format (JSON object):\n{\n  \"summary\": \"Brief 3 to 5 sentence overview of key findings\",\n  \"posts_analyzed\": <integer>,\n  \"key_issues\": [\"main problem 1\", \"main problem 2\", ...],\n  \"recommendations\": [\"suggested improvement 1\", \"suggested improvement 2\", ...]\n}\n"
         },
         "ui_properties": {
           "position": {
@@ -246,8 +243,7 @@
           "subreddit": null,
           "focus_area": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "6",
@@ -269,8 +265,7 @@
           "title": "Focus area"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ]
   },

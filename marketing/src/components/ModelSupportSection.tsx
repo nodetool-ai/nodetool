@@ -97,7 +97,7 @@ export default function ModelSupportSection({
                         className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-6"
                     >
                         Every model.{" "}
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-400 to-blue-400">
+                        <span className="text-white">
                             Your keys.
                         </span>
                     </motion.h2>

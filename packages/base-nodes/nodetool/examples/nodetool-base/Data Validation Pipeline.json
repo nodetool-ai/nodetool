@@ -60,9 +60,9 @@
       },
       {
         "id": "2",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "# Data Validation Report\n\n## Input Summary:\n- **Format:** CSV\n- **Source:** User provided\n\n## Quality Analysis:\n{{ analysis }}\n\n"
+          "prompt": "# Data Validation Report\n\n## Input Summary:\n- **Format:** CSV\n- **Source:** User provided\n\n## Quality Analysis:\n{{ analysis }}\n\n"
         },
         "ui_properties": {
           "selected": false,
@@ -78,8 +78,7 @@
         "dynamic_properties": {
           "analysis": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "3",
@@ -114,14 +113,13 @@
           "title": "3️⃣ Analyze data quality"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "4",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "Analyze this CSV data and identify:\n1. Data quality issues\n2. Invalid records\n3. Missing values\n4. Type mismatches\n5. Recommendations for cleaning\n\nData:\n{{ data }}"
+          "prompt": "Analyze this CSV data and identify:\n1. Data quality issues\n2. Invalid records\n3. Missing values\n4. Type mismatches\n5. Recommendations for cleaning\n\nData:\n{{ data }}"
         },
         "ui_properties": {
           "selected": false,
@@ -137,8 +135,7 @@
         "dynamic_properties": {
           "data": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "5",
@@ -160,8 +157,7 @@
           "title": "1️⃣ Paste CSV data"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ]
   },

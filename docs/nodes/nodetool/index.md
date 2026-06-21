@@ -1,32 +1,33 @@
 ---
 layout: page
-title: "NodeTool Core Nodes"
+title: "nodetool Nodes"
 ---
 
-# NodeTool Core Nodes
+This namespace contains 379 node(s).
 
-NodeTool provides a set of core nodes for building AI workflows.
+## Sub-namespaces
 
-## Categories
+- **[agents](agents/)** - 27 node(s)
+- **[audio](audio/)** - 38 node(s)
+- **[code](code/)** - 19 node(s)
+- **[compare](compare/)** - 1 node(s)
+- **[constant](constant/)** - 30 node(s)
+- **[control](control/)** - 21 node(s)
+- **[data](data/)** - 29 node(s)
+- **[document](document/)** - 8 node(s)
+- **[generators](generators/)** - 5 node(s)
+- **[image](image/)** - 26 node(s)
+- **[input](input/)** - 33 node(s)
+- **[list](list/)** - 4 node(s)
+- **[model3d](model3d/)** - 17 node(s)
+- **[output](output/)** - 1 node(s)
+- **[sandbox](sandbox/)** - 2 node(s)
+- **[sketch](sketch/)** - 3 node(s)
+- **[test](test/)** - 22 node(s)
+- **[text](text/)** - 51 node(s)
+- **[timeline](timeline/)** - 3 node(s)
+- **[triggers](triggers/)** - 5 node(s)
+- **[video](video/)** - 31 node(s)
+- **[workflows](workflows/)** - 3 node(s)
 
-- **[agents](agents/)** - Agent-related functionality
-- **[audio](audio/)** - Audio processing nodes
-- **[boolean](boolean/)** - Boolean logic operations
-- **[code](code/)** - Code execution nodes
-- **[constant](constant/)** - Constant value nodes
-- **[control](control/)** - Control flow nodes
-- **[data](data/)** - Data manipulation nodes
-- **[dictionary](dictionary/)** - Dictionary operations
-- **[document](document/)** - Document processing
-- **[generators](generators/)** - Data generation nodes
-- **[image](image/)** - Image processing nodes
-- **[input](input/)** - Input nodes for various data types
-- **[list](list/)** - List operations
-- **[output](output/)** - Output nodes for results
-- **[text](text/)** - Text processing nodes
-- **[video](video/)** - Video processing nodes
-- **[workspace](workspace/)** - Workspace and file operations
-
-## See Also
-
-- [Nodes overview](../) - All node documentation
+[Back to all nodes](../)

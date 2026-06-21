@@ -36,4 +36,4 @@ Converts text content between different document formats using pandoc.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.convert.pandoc](../) namespace.
+Browse other nodes in the [lib.convert.pandoc](./) namespace.

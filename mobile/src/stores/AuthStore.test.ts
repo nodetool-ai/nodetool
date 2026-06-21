@@ -150,6 +150,34 @@ describe('AuthStore', () => {
     expect(useAuthStore.getState().error).toBe('oops');
   });
 
+  it('handleSessionExpired clears the session and routes to logged_out', () => {
+    useAuthStore.setState({
+      session: { access_token: 't' } as never,
+      user: { id: 'u' } as never,
+      state: 'logged_in',
+    });
+
+    act(() => {
+      useAuthStore.getState().handleSessionExpired();
+    });
+
+    expect(useAuthStore.getState().state).toBe('logged_out');
+    expect(useAuthStore.getState().session).toBeNull();
+    expect(useAuthStore.getState().user).toBeNull();
+    expect(useAuthStore.getState().error).toMatch(/session expired/i);
+  });
+
+  it('handleSessionExpired is a no-op when already signed out', () => {
+    useAuthStore.setState({ session: null, state: 'logged_out', error: null });
+
+    act(() => {
+      useAuthStore.getState().handleSessionExpired();
+    });
+
+    expect(useAuthStore.getState().error).toBeNull();
+    expect(useAuthStore.getState().state).toBe('logged_out');
+  });
+
   it('cleanup unsubscribes from auth changes', async () => {
     mockGetSession.mockResolvedValue({ data: { session: null }, error: null });
 

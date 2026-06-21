@@ -1,6 +1,9 @@
 {
   "name": "@nodetool-ai/transformers-js-nodes",
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0 <23.0.0"
+  },
   "version": "0.7.0-rc.23",
   "description": "Hugging Face Transformers.js nodes for nodetool — run NLP, vision, and audio models locally via ONNX Runtime",
   "main": "dist/index.js",
@@ -12,8 +15,10 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@nodetool-ai/audio-nodes": "*",
     "@nodetool-ai/config": "*",
     "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/runtime": "*"
   },
   "devDependencies": {

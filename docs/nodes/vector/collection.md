@@ -29,4 +29,4 @@ Get or create a named vector database collection for storing embeddings.
 
 ## Related Nodes
 
-Browse other nodes in the [vector](../) namespace.
+Browse other nodes in the [vector](./) namespace.

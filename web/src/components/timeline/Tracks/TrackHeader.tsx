@@ -37,6 +37,7 @@ import {
   trackTypeMeta,
   trackTypeAccent
 } from "./trackVisuals";
+import ConfirmDialog from "../../dialogs/ConfirmDialog";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -221,6 +222,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
 
   const [editingName, setEditingName] = useState(false);
   const [localName, setLocalName] = useState(track.name);
+  const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleNameDoubleClick = useCallback(() => {
@@ -332,6 +334,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
   }, [toggleExpandedFx, track.id]);
 
   return (
+    <>
     <div
       css={headerStyles(theme, heightPx)}
       data-testid={`track-header-${track.id}`}
@@ -459,13 +462,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
           <button
             type="button"
             css={iconButtonStyles(theme, true)}
-            onClick={() => {
-              if (
-                window.confirm(`Remove track "${track.name}" and all its clips?`)
-              ) {
-                removeTrack(track.id);
-              }
-            }}
+            onClick={() => setConfirmRemoveOpen(true)}
             aria-label="Remove track"
           >
             <DeleteOutlineOutlinedIcon />
@@ -485,6 +482,16 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
         aria-orientation="horizontal"
       />
     </div>
+    <ConfirmDialog
+      open={confirmRemoveOpen}
+      onClose={() => setConfirmRemoveOpen(false)}
+      onConfirm={() => removeTrack(track.id)}
+      title="Remove track"
+      content={`Remove track "${track.name}" and all its clips?`}
+      confirmText="Remove"
+      cancelText="Cancel"
+    />
+    </>
   );
 });
 

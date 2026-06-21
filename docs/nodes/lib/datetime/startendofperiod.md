@@ -32,4 +32,4 @@ Return the start and end of the given period (day, week, month, year).
 
 ## Related Nodes
 
-Browse other nodes in the [lib.datetime](../) namespace.
+Browse other nodes in the [lib.datetime](./) namespace.

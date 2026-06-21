@@ -33,4 +33,4 @@ Difference between two dates (date_a − date_b) expressed in the given unit.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.datetime](../) namespace.
+Browse other nodes in the [lib.datetime](./) namespace.

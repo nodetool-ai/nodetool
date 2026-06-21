@@ -32,4 +32,4 @@ Downloads an object's content as text from S3.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.s3](../) namespace.
+Browse other nodes in the [lib.s3](./) namespace.

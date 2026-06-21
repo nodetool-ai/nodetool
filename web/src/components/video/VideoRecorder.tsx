@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { EditorButton, Text, LoadingSpinner, Box } from "../ui_primitives";
+import { EditorButton, Text, LoadingSpinner, Box, BORDER_RADIUS } from "../ui_primitives";
 import SettingsInputComponentIcon from "@mui/icons-material/SettingsInputComponent";
 import {
   VideoRecorderProps,
@@ -78,7 +78,7 @@ const VideoRecorder = (props: VideoRecorderProps) => {
         width: "100%",
         maxHeight: "200px",
         backgroundColor: theme.vars.palette.grey[900],
-        borderRadius: "var(--rounded-sm)",
+        borderRadius: BORDER_RADIUS.sm,
         objectFit: "contain"
       },
       ".device-list": {
@@ -95,7 +95,7 @@ const VideoRecorder = (props: VideoRecorderProps) => {
         "& .custom-select": {
           backgroundColor: theme.vars.palette.grey[700],
           color: theme.vars.palette.grey[100],
-          borderRadius: "var(--rounded-sm)",
+          borderRadius: BORDER_RADIUS.sm,
           border: `1px solid ${theme.vars.palette.grey[600]}`
         },
         "& .select-header": {

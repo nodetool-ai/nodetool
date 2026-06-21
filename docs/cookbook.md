@@ -1,6 +1,7 @@
 ---
 layout: page
 title: "NodeTool Workflow Cookbook"
+description: "Reusable workflow patterns for the NodeTool canvas — core concepts, pipeline patterns, and worked end-to-end examples."
 ---
 
 Workflow patterns for the canvas.
@@ -30,14 +31,13 @@ Highlights:
 | I want to… | Pattern | Key nodes |
 |------------|---------|-----------|
 | Generate creative content | 2 (Agent-Driven Generation) | `Agent`, `ListGenerator`, image/audio generators |
-| Transform images with AI | 9 (Advanced Image Processing) | `StableDiffusionControlNet`, `Canny`, `ImageToText` |
-| Generate videos from text | 11 (Text-to-Video) | `KlingTextToVideo`, `HailuoTextToVideoPro`, `Sora2TextToVideo` |
-| Animate images to video | 12 (Image-to-Video) | `KlingImageToVideo`, `HailuoImageToVideoPro`, `Wan26ImageToVideo` |
-| Create talking avatars | 13 (Talking Avatar) | `KlingAIAvatarPro`, `KlingAIAvatarStandard`, `InfinitalkV1` |
-| Enhance video quality | 14 (Video Enhancement) | `TopazVideoUpscale` |
-| Convert storyboards to video | 15 (Storyboard to Video) | `Sora2ProStoryboard` |
-| Build a voice interface | 7 (Realtime Processing) | `RealtimeAudioInput`, `RealtimeAgent` |
+| Transform images with AI | 9 (Advanced Image Processing) | `StableDiffusion`, `StableDiffusionXL`, `Canny`, `ImageToText` |
+| Generate videos from text | 11 (Text-to-Video) | `KlingVideoV16ProTextToVideo`, `MinimaxHailuo23ProTextToVideo`, `Sora2TextToVideo` |
+| Animate images to video | 12 (Image-to-Video) | `KlingVideoV16StandardImageToVideo`, `MinimaxHailuo02ProImageToVideo`, `SeeDanceV15ProImageToVideo`, `WanV225bImageToVideo` |
+| Create talking avatars | 13 (Talking Avatar) | `KlingVideoAiAvatarV2Pro`, `Infinitalk` |
+| Enhance image quality | 14 (Image Enhancement) | `TopazUpscaleImage` |
+| Build a voice interface | 7 (Realtime Processing) | `RealtimeAgent`, `RealtimeTranscription` |
 | Fetch and visualize data | 10 (Data Processing Pipeline) | `GetRequest`, `ImportCSV`, `ChartGenerator` |
-| Process emails automatically | 6 (Email Integration) | `GmailSearch`, `EmailFields`, `Classifier`/`Summarizer` |
+| Process emails automatically | 6 (Email Integration) | `GmailSearch`, `Template`, `Classifier`/`Summarizer` |
 | Store data persistently | 5 (Database Persistence) | `CreateTable`, `Insert`, `Query` |
-| Answer questions about documents | 4 (RAG) | `IndexTextChunks`, `HybridSearch`, `Agent` |
+| Answer questions about documents | 4 (RAG) | `IndexTextChunk`, `HybridSearch`, `Agent` |

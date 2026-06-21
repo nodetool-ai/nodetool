@@ -14,21 +14,21 @@ These apply to **every** deployment, regardless of environment:
 
 ### Network Security
 
-- **Require TLS** at the proxy or ingress layer. Use real certificates (e.g., Let's Encrypt) and redirect HTTP to HTTPS. See [Proxy Reference](proxy.md).
+- **Require TLS** at the proxy or ingress layer. Use real certificates (e.g., Let's Encrypt) and redirect HTTP to HTTPS.
 - **Restrict Docker access**: Run the proxy with a dedicated network (`docker_network`) and avoid exposing the Docker socket beyond the host.
 - **Firewall rules**: Only expose the ports you need (typically 443 for HTTPS). Block direct access to internal service ports.
 
 ### Authentication
 
-- **Never run `AUTH_PROVIDER=none` or `local`** outside isolated dev environments.
-- Use `static` (with `SERVER_AUTH_TOKEN`) or `supabase` for any network-accessible deployment. See [Authentication](authentication.md).
-- **Rotate tokens regularly** -- set calendar reminders to rotate `SERVER_AUTH_TOKEN` and Supabase service role keys.
+- **Enforce auth on any network-accessible deployment.** The server enforces authentication only when it is in Supabase mode — that is, when **both** `SUPABASE_URL` and `SUPABASE_KEY` are set. Without them it runs in Local mode and trusts loopback connections. See [Authentication](authentication.md#authentication-modes).
+- **Lock down localhost trust.** Behind a reverse proxy or in a container, set `NODETOOL_TRUST_LOCALHOST=false` (it already defaults off when auth is enforced) and list only your real proxies in `NODETOOL_TRUSTED_PROXIES`, so a proxy connecting from loopback cannot silently bypass auth.
+- **Rotate keys regularly** -- set calendar reminders to rotate Supabase service-role keys.
 
 ### Secrets Management
 
 - **Keep secrets out of Git**: Load provider API keys and tokens from environment variables or a secrets manager.
 - **Never commit `.env` files** with secrets. Add `.env` to `.gitignore`.
-- Store deployment secrets in `secrets.yaml` (not checked into version control) or use your platform's secrets manager (AWS Secrets Manager, GCP Secret Manager, etc.).
+- Provide the encryption master key (`SECRETS_MASTER_KEY`, or `AWS_SECRETS_MASTER_KEY_NAME` for AWS Secrets Manager) on every server so they share one key, and store all other deployment secrets in your platform's secrets manager.
 
 ### Resource Limits
 
@@ -46,7 +46,6 @@ Local development has the lowest risk but still deserves basic hygiene:
 |--------|---------|
 | Bind to localhost only | Use `127.0.0.1` for all services; avoid publishing container ports to the LAN |
 | Use temporary tokens | Generate throwaway tokens for demos; clear `~/.config/nodetool/deployment.yaml` when finished |
-| Disable unused services | Set `NODETOOL_ENABLE_TERMINAL_WS=` to disable the Terminal WebSocket if not needed |
 | Don't expose to the internet | Never use `ngrok` or similar tunneling without authentication in place |
 
 ---
@@ -72,7 +71,8 @@ Production deployments require the strictest security posture:
 
 ### Authentication & Authorization
 
-- **Enforce `AUTH_PROVIDER=supabase`** for multi-user deployments, or `static` with long, rotated tokens for service-to-service traffic only
+- **Enable Supabase mode** (set both `SUPABASE_URL` and `SUPABASE_KEY`) for any multi-user or network-accessible deployment so every request is authenticated
+- Keep `NODETOOL_TRUST_LOCALHOST` off and restrict `NODETOOL_TRUSTED_PROXIES` to your real proxy addresses
 - Use **dedicated service accounts** for each deployment; avoid shared credentials
 - Keep `proxy.yaml` free of embedded secrets -- distribute bearer tokens via your secrets manager
 
@@ -110,7 +110,8 @@ Production deployments require the strictest security posture:
 Run through this checklist before any deployment goes live:
 
 - [ ] TLS enabled with valid certificates
-- [ ] `AUTH_PROVIDER` is not `none` or `local`
+- [ ] Supabase mode enabled (`SUPABASE_URL` + `SUPABASE_KEY` set) for any network-accessible deployment
+- [ ] `NODETOOL_TRUST_LOCALHOST` off and `NODETOOL_TRUSTED_PROXIES` scoped to real proxies
 - [ ] All API keys loaded from env vars or secrets manager (not hardcoded)
 - [ ] Container resource limits configured
 - [ ] Docker socket not exposed to containers
@@ -128,6 +129,5 @@ Run through this checklist before any deployment goes live:
 - [Configuration Guide](configuration.md) -- Environment variables and settings
 - [Deployment Guide](deployment.md) -- Deployment overview and workflows
 - [Self-Hosted Deployment](self-hosted-deployment.md) -- Self-hosted setup details
-- [Proxy Reference](proxy.md) -- Reverse proxy and TLS configuration
 - [Docker Resource Management](docker-resource-management.md) -- Container resource limits
 - [Storage](storage.md) -- Storage backend configuration

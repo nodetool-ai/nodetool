@@ -96,7 +96,7 @@
       },
       {
         "id": "mood_analyzer",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {},
         "dynamic_properties": {
           "transcription": "",
@@ -120,7 +120,7 @@
       },
       {
         "id": "frame_prompt_generator",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {},
         "dynamic_properties": {
           "count": "",

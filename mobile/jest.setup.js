@@ -8,6 +8,21 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 // Mock react-native-url-polyfill (side-effect import in services/supabase.ts)
 jest.mock('react-native-url-polyfill/auto', () => ({}));
 
+// Mock expo-secure-store (native keychain not available in Jest) with a simple
+// in-memory store so the secureStorage adapter can be exercised.
+jest.mock('expo-secure-store', () => {
+  const store = new Map();
+  return {
+    getItemAsync: jest.fn(async (k) => (store.has(k) ? store.get(k) : null)),
+    setItemAsync: jest.fn(async (k, v) => {
+      store.set(k, v);
+    }),
+    deleteItemAsync: jest.fn(async (k) => {
+      store.delete(k);
+    }),
+  };
+});
+
 // Mock expo-constants (used for Supabase config and app version)
 jest.mock('expo-constants', () => ({
   __esModule: true,

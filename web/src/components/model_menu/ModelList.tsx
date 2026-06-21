@@ -11,6 +11,7 @@ import {
 import { FlexRow, Tooltip, EmptyState, Box, Text, BORDER_RADIUS } from "../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 import FavoriteStar from "./FavoriteStar";
+import DefaultModelPin from "./DefaultModelPin";
 import RecommendedDownloadRow from "./shared/RecommendedDownloadRow";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import {
@@ -42,7 +43,7 @@ type ListRow<TModel> =
   | { kind: "download"; model: DownloadableModel };
 
 const LIST_ITEM_BUTTON_SX = { width: "100%", textAlign: "left" } as const;
-const LIST_ITEM_ICON_SX = { minWidth: 30 } as const;
+const LIST_ITEM_ICON_SX = { minWidth: 64, gap: 0.25 } as const;
 const FLEX_ROW_SX = { overflow: "hidden", minWidth: 0 } as const;
 const MODEL_NAME_STYLE: React.CSSProperties = {
   overflow: "hidden",
@@ -81,6 +82,9 @@ const listStyles = (theme: Theme) =>
       color: theme.vars.palette.text.disabled
     },
     "& .MuiListItemButton-root:hover .favorite-star": {
+      opacity: 1
+    },
+    "& .MuiListItemButton-root:hover .default-pin": {
       opacity: 1
     },
     "& .model-menu__model-item.is-active": {
@@ -147,6 +151,12 @@ export interface ModelListProps<TModel extends ModelSelectorModel> {
   onDownloadSelect?: (m: UnifiedModel) => void;
   /** Start downloading a recommended model. */
   onDownloadStart?: (m: UnifiedModel) => void;
+  /**
+   * Modality key (e.g. "language_model") this picker sets defaults for. When
+   * provided, each row shows a "pin as default" toggle next to the favorite
+   * star. Omitted for pickers with no per-modality default (e.g. raw HF).
+   */
+  modelType?: string;
 }
 
 function ModelList<TModel extends ModelSelectorModel>({
@@ -157,7 +167,8 @@ function ModelList<TModel extends ModelSelectorModel>({
   activeIndex = -1,
   downloadModels = [],
   onDownloadSelect,
-  onDownloadStart
+  onDownloadStart,
+  modelType
 }: ModelListProps<TModel>) {
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
   const getAvailability = useModelAvailability();
@@ -290,6 +301,13 @@ function ModelList<TModel extends ModelSelectorModel>({
             >
               <ListItemIcon sx={LIST_ITEM_ICON_SX}>
                 <FavoriteStar provider={m.provider} id={m.id} size="small" />
+                <DefaultModelPin
+                  modelType={modelType}
+                  provider={m.provider}
+                  id={m.id}
+                  name={m.name}
+                  size="small"
+                />
               </ListItemIcon>
               <ListItemText
                 primary={
@@ -382,7 +400,8 @@ function ModelList<TModel extends ModelSelectorModel>({
       badgeWithIconStyle,
       secondaryTextStyle,
       searchTerm,
-      theme.vars.palette.primary.main
+      theme.vars.palette.primary.main,
+      modelType
     ]
   );
 
@@ -395,13 +414,12 @@ function ModelList<TModel extends ModelSelectorModel>({
       if (row.kind === "downloadHeader") {
         return (
           <div style={style}>
-            <Box
+            <FlexRow
+              align="flex-end"
               sx={{
                 px: 1.5,
                 pt: 1.5,
                 pb: 0.5,
-                display: "flex",
-                alignItems: "flex-end",
                 height: "100%"
               }}
             >
@@ -416,7 +434,7 @@ function ModelList<TModel extends ModelSelectorModel>({
               >
                 Available to download
               </Text>
-            </Box>
+            </FlexRow>
           </div>
         );
       }

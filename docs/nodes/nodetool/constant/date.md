@@ -30,4 +30,4 @@ Make a date object from year, month, day.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.constant](../) namespace.
+Browse other nodes in the [nodetool.constant](./) namespace.

@@ -34,4 +34,4 @@ Download videos from YouTube/Bilibili/Twitter and other sites via yt-dlp.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.agents](../) namespace.
+Browse other nodes in the [nodetool.agents](./) namespace.

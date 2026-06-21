@@ -35,8 +35,7 @@
           "title": "1️⃣ Mic input"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "a2a7cb00-0409-4f9a-85f1-c8b53f880bc8",
@@ -60,8 +59,7 @@
           "title": "2️⃣ Realtime agent"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "13a2eff9-154c-441e-b31b-6afbe732e1d5",
@@ -182,8 +180,7 @@
           "selectable": true
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ],
     "edges": [

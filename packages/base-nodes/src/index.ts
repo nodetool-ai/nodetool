@@ -76,7 +76,6 @@ export {
   ConcatTextNode,
   JoinTextNode,
   CollectTextNode,
-  FormatTextNode,
   PromptNode,
   TemplateTextNode,
   ReplaceTextNode,

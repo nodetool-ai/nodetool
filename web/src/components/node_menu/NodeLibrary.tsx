@@ -14,7 +14,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 
-import { Text, thinScrollbarStyles, MOTION, FONT_WEIGHT } from "../ui_primitives";
+import { Text, thinScrollbarStyles, MOTION, FONT_WEIGHT, BORDER_RADIUS } from "../ui_primitives";
 import NodeLibraryRow from "./NodeLibraryRow";
 import NodeInfo from "./NodeInfo";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -63,7 +63,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       display: "inline-flex",
       alignItems: "center",
       padding: "1px 8px",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.action.selected,
       color: theme.vars.palette.text.secondary,
       fontSize: "var(--fontSizeSmall)",
@@ -77,7 +77,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       gap: theme.spacing(1),
       margin: theme.spacing(0, isMobile ? 1 : 1.5, 1, isMobile ? 1 : 1.5),
       padding: theme.spacing(1, 1),
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       backgroundColor: theme.vars.palette.background.paper,
       border: `1px solid ${theme.vars.palette.divider}`,
       transition: `border-color ${MOTION.fast}`,
@@ -106,7 +106,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
         padding: 2,
         border: "none",
         background: "transparent",
-        borderRadius: "var(--rounded-sm)",
+        borderRadius: BORDER_RADIUS.sm,
         color: theme.vars.palette.text.secondary,
         cursor: "pointer",
         "&:hover": { color: theme.vars.palette.text.primary },
@@ -120,7 +120,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       justifyContent: "center",
       padding: "1px 6px",
       height: "18px",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`,
       color: theme.vars.palette.text.secondary,
@@ -191,7 +191,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       padding: theme.spacing(1, 1, 1, 1),
       border: "none",
       background: "transparent",
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       color: theme.vars.palette.text.secondary,
       fontSize: "var(--fontSizeSmall)",
       lineHeight: 1.2,

@@ -200,6 +200,17 @@ async function runJob(msg: RunMessage): Promise<void> {
             await resolve(message.value),
             transfer
           );
+        } else if (
+          message.type === "generation_complete" &&
+          message.outputs != null
+        ) {
+          // Same read-back/transfer as node_update.result so a committed
+          // artifact carrying a GPU-texture ref crosses postMessage as a
+          // cloneable, transferable bitmap (RFC §8.5).
+          message.outputs = await attachPreviewBitmaps(
+            await resolve(message.outputs),
+            transfer
+          );
         }
       }
       enqueue(message, transfer);
