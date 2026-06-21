@@ -21,7 +21,7 @@
  * `OutputRenderer` for now and get bespoke previews in PR 5.
  */
 
-import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -42,7 +42,8 @@ import ImageView from "../node/ImageView";
 import OutputRenderer from "../node/OutputRenderer";
 import { NodeOutputs } from "../node/NodeOutputs";
 import NodeProgress from "../node/NodeProgress";
-import { useSignedUrl, getMimeTypeFromUri, toUint8Array } from "../node/output";
+import { getMimeTypeFromUri } from "../node/output";
+import { useMediaSrc } from "../../hooks/nodes/useMediaSrc";
 import { TextRenderer } from "../node/output/TextRenderer";
 import AudioPlayer from "../audio/AudioPlayer";
 
@@ -302,64 +303,6 @@ const resolvePreviewValue = (
 
   if (values.length === 0) return undefined;
   return values.length === 1 ? values[0] : values;
-};
-
-/**
- * Resolve a stable URL for a media value carrying either a stored asset URI
- * or in-memory bytes. Returns a signed URL when the value has a non-memory
- * URI, or an object-URL when bytes are present, or "" while nothing is loaded.
- */
-type MediaKind = "audio" | "video";
-
-const useMediaSrc = (
-  value: unknown,
-  kind: MediaKind,
-  fallbackMime?: string
-): string => {
-  const v =
-    value && typeof value === "object"
-      ? (value as Record<string, unknown>)
-      : null;
-  // Accept either a direct URI string or an object with a `uri` field.
-  const rawUri =
-    typeof value === "string" && value && !value.startsWith("memory://")
-      ? value
-      : v && typeof v.uri === "string" && !v.uri.startsWith("memory://")
-        ? (v.uri as string)
-        : undefined;
-  const signedUrl = useSignedUrl(rawUri);
-
-  const data = v?.data;
-  // Pick a content-type for the Blob so WaveSurfer / <video> can decode.
-  // Order: explicit caller mime → MIME from URI → `<kind>/<metadata.format>`.
-  // `format` is an extension ("mp4", "wav") so it must be combined with the
-  // caller-supplied kind — never assume audio.
-  const format = (v?.metadata as { format?: string } | undefined)?.format;
-  const blobMime =
-    fallbackMime ||
-    (rawUri ? getMimeTypeFromUri(rawUri) : "") ||
-    (format ? `${kind}/${format}` : "") ||
-    "";
-
-  const [blobUrl, setBlobUrl] = useState<string>("");
-  useEffect(() => {
-    // Shared helper handles Uint8Array, ArrayBuffer, ArrayBufferView, and
-    // plain number[] — and returns a copy backed by a non-shared ArrayBuffer
-    // suitable for Blob construction.
-    const bytes = toUint8Array(data);
-    if (bytes && bytes.byteLength > 0) {
-      const blob = blobMime
-        ? new Blob([bytes], { type: blobMime })
-        : new Blob([bytes]);
-      const url = URL.createObjectURL(blob);
-      setBlobUrl(url);
-      return () => URL.revokeObjectURL(url);
-    }
-    setBlobUrl("");
-    return undefined;
-  }, [data, blobMime]);
-
-  return blobUrl || signedUrl || "";
 };
 
 type ImagePreviewSource = string | Uint8Array;
