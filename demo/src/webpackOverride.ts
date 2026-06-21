@@ -21,8 +21,20 @@ import type { WebpackOverrideFn } from "@remotion/bundler";
 // Remotion always runs with cwd at this directory (see package.json scripts).
 const DEMO_ROOT = process.cwd();
 const STUBS = path.resolve(DEMO_ROOT, "../web/vite-node-stubs");
+const PKGS = path.resolve(DEMO_ROOT, "../packages");
 /** Runtime target for the `@web-demo` facade (typed via tsconfig paths). */
 const WEB_DEMO_ENTRY = path.resolve(DEMO_ROOT, "../web/src/demo/index.ts");
+
+/**
+ * Generated pricing JSON aliased as bare specifiers, mirroring web/vite.config.ts.
+ * The web code imports these as modules (declared ambiently in web/src/fal-*.d.ts).
+ */
+const GENERATED_JSON: Record<string, string> = {
+  "@nodetool/fal-node-type-pricing": "fal-nodes/src/generated/fal-node-type-pricing.json",
+  "@nodetool/fal-unit-pricing-catalog": "fal-nodes/src/generated/fal-unit-pricing.json",
+  "@nodetool/kie-node-type-pricing": "kie-nodes/src/generated/kie-node-type-pricing.json",
+  "@nodetool/kie-unit-pricing-catalog": "kie-nodes/src/generated/kie-unit-pricing.json",
+};
 
 /** Built-in → stub file (browser-safe partial implementations). */
 const STUBBED: Record<string, string> = {
@@ -85,6 +97,9 @@ function buildAlias(): Record<string, string> {
     alias[`${spec}$`] = spec === "@nodetool-ai/runtime/tracing"
       ? path.join(STUBS, "tracing-stub.js")
       : empty;
+  }
+  for (const [spec, rel] of Object.entries(GENERATED_JSON)) {
+    alias[`${spec}$`] = path.join(PKGS, rel);
   }
   return alias;
 }
