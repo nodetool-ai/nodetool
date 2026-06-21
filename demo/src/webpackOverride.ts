@@ -14,13 +14,15 @@
  * gRPC package pulled in transitively), add its specifier to `IGNORE` below.
  */
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import type { WebpackOverrideFn } from "@remotion/bundler";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const STUBS = path.resolve(here, "../../web/vite-node-stubs");
+// Remotion loads remotion.config.ts (which imports this file) as CJS, so
+// `import.meta.url` is unavailable. Anchor on the demo project root instead —
+// Remotion always runs with cwd at this directory (see package.json scripts).
+const DEMO_ROOT = process.cwd();
+const STUBS = path.resolve(DEMO_ROOT, "../web/vite-node-stubs");
 /** Runtime target for the `@web-demo` facade (typed via tsconfig paths). */
-const WEB_DEMO_ENTRY = path.resolve(here, "../../web/src/demo/index.ts");
+const WEB_DEMO_ENTRY = path.resolve(DEMO_ROOT, "../web/src/demo/index.ts");
 
 /** Built-in → stub file (browser-safe partial implementations). */
 const STUBBED: Record<string, string> = {
