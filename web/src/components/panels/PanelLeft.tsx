@@ -39,7 +39,12 @@ import {
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import ContextMenus from "../context_menus/ContextMenus";
 import { useLocation, useNavigate } from "react-router-dom";
-import { TOOLTIP_ENTER_DELAY, TOOLBAR_WIDTH, PANEL_RESIZE_HANDLE_WIDTH } from "../../config/constants";
+import {
+  TOOLTIP_ENTER_DELAY,
+  TOOLBAR_WIDTH,
+  PANEL_RESIZE_HANDLE_WIDTH,
+  LEFT_PANEL_MIN_DRAWER_WIDTH
+} from "../../config/constants";
 import ThemeToggle from "../ui/ThemeToggle";
 import PanelHeadline from "../ui/PanelHeadline";
 import { ScrollArea, Tooltip, MobileBottomSheet, MOTION } from "../ui_primitives";
@@ -771,8 +776,11 @@ const PanelLeft: React.FC = () => {
             role="region"
             aria-label="Left panel"
             style={{
-              width: `${Math.max(panelSize - TOOLBAR_WIDTH, 250)}px`,
-              minWidth: "250px"
+              width: `${Math.max(
+                panelSize - TOOLBAR_WIDTH,
+                LEFT_PANEL_MIN_DRAWER_WIDTH
+              )}px`,
+              minWidth: `${LEFT_PANEL_MIN_DRAWER_WIDTH}px`
             }}
             onKeyDown={(e) => {
               if (
