@@ -28,18 +28,21 @@ For every workflow create/edit request, follow this sequence:
 | Tool | Purpose | Key params |
 |------|---------|-----------|
 | `ui_search_nodes` | Find node types | `query`, `include_properties=true`, `include_outputs=true`, `limit` |
+| `ui_search_models` | Find models for a model property | `query`, `type` (e.g. `language_model`) |
 | `ui_add_node` | Add single node | `id`, `position`, `type` (use `node_type` from search) |
 | `ui_graph` | Bulk add nodes+edges | `nodes[]`, `edges[]` (hidden tool, but callable) |
 | `ui_connect_nodes` | Connect two nodes | `source_id`, `source_handle`, `target_id`, `target_handle` |
-| `ui_update_node_data` | Set node properties | `node_id`, `data={properties: {key: value}}` |
+| `ui_update_node_data` | Set node properties / sync mode | `node_id`, `data={properties: {…}, sync_mode: "on_all"}` |
 | `ui_get_graph` | Read graph + validation | Returns nodes, edges, and validation results |
 | `ui_delete_node` | Remove a node | `node_id` |
 | `ui_delete_edge` | Remove a connection | `edge_id` |
 | `ui_move_node` | Reposition a node | `node_id`, `position` |
 | `ui_set_node_title` | Rename a node | `node_id`, `title` |
-| `ui_set_node_sync_mode` | Set input mode | `node_id`, `mode` (`on_any` or `on_all`) |
 | `ui_open_workflow` | Open workflow tab | `workflow_id` |
 | `ui_run_workflow` | Execute workflow | `workflow_id`, `params` |
+
+> Set a node's `sync_mode` through `ui_update_node_data` (`data.sync_mode`) — there
+> is no dedicated sync-mode tool.
 
 ## Node Data Fields
 
@@ -63,16 +66,16 @@ When using `ui_add_node` or `ui_graph`, the `data` object supports:
 | `nodetool.audio` | Load, Mix, Encode | Audio processing |
 | `nodetool.video` | Load, Extract, Metadata, Frames | Video processing |
 | `nodetool.control` | If, ForEach, Collect, Switch | Control flow |
-| `nodetool.constants` | String, Integer, Float, Boolean | Constant values |
-| `nodetool.input` | FloatInput, StringInput, ImageInput | Workflow parameters |
+| `nodetool.constant` | String, Integer, Float, Bool, Image, Audio | Constant values |
+| `nodetool.input` | FloatInput, StringInput, ImageInput, ChatInput | Workflow parameters |
 | `nodetool.output` | Output, Preview | Results and debugging |
-| `nodetool.generators` | ListGenerator, TextGenerator | LLM-backed generators |
+| `nodetool.generators` | ListGenerator, DataGenerator, ChartGenerator | LLM-backed generators |
 
 ## Library Namespaces (`lib.*`)
 
-`lib.pdf` (extract text/images), `lib.sqlite` (database ops), `lib.browser` (web browsing, screenshots), `lib.os` (file system), `lib.svg` (vector graphics), `lib.markdown` (parsing), `lib.ocr` (text recognition), `lib.audio_dsp` (filters, spectral), `lib.seaborn` (charts), `lib.excel` (spreadsheets), `lib.docx` (Word docs)
+`lib.pdf` (extract text/images), `lib.http` (web requests), `lib.sqlite` (database ops), `lib.browser` (web browsing, screenshots), `lib.os` (file system), `lib.datetime` (dates/times), `lib.svg` (vector graphics), `lib.markdown` (parsing), `lib.ocr` (text recognition), `lib.excel` (spreadsheets), `lib.docx` (Word docs), `lib.charts` (charts)
 
-> **Note:** `lib.http`, `lib.json`, `lib.math`, `lib.date`, `lib.uuid`, `nodetool.boolean`, `nodetool.list`, `nodetool.dictionary`, `nodetool.numbers`, and all `skills.*` nodes have been removed. Use the **Code node** (`nodetool.code.Code`) with built-in snippet library instead.
+> **Note:** `lib.json`, `lib.math`, `lib.uuid`, `nodetool.boolean`, `nodetool.dictionary`, `nodetool.numbers`, and all `skills.*` nodes have been removed — use the **Code node** (`nodetool.code.Code`) with its built-in snippet library for JSON/math/uuid logic. (`lib.http` and `nodetool.list` — `Range`, `RepeatEach`, `RepeatValue`, `Tile` — still exist; date/time is now `lib.datetime`.)
 
 ## External Service Namespaces
 
@@ -84,9 +87,8 @@ When using `ui_add_node` or `ui_graph`, the `data` object supports:
 | `openai.*` | GPT, GPT-Image, embeddings, TTS |
 | `gemini.*` | Google Gemini models |
 | `mistral.*` | Mistral models |
-| `search.*` | Web search integrations |
-| `vector.*` | ChromaDB and FAISS vector stores |
-| `skills.*` | LLM-backed skill nodes |
+| `search.google.*` | Web search integrations |
+| `vector.*` | Vector store nodes (SQLite-vec default; Chroma/Pinecone/Supabase backends) |
 
 ## Data Types
 
@@ -122,10 +124,11 @@ Edges enforce type compatibility. Use `any` type for flexible connections.
 **Key concept**: Add Preview nodes at intermediate stages for debugging and monitoring.
 
 ## Pattern 4: RAG (Retrieval-Augmented Generation)
-**Shape**: ChatInput → HybridSearch + FormatText → Agent → Output
+**Shape**: ChatInput → vector.HybridSearch + FormatText → Agent → Output
 **Use for**: Question-answering over documents, factual accuracy from specific sources.
-**Index flow**: ListFiles → LoadDocument → ExtractText → SentenceSplitter → IndexTextChunks
-**Query flow**: ChatInput → HybridSearch → FormatText → Agent → Output
+**Index flow**: lib.os.ListFiles → LoadDocumentFile → SplitRecursively → vector.IndexTextChunk
+**Query flow**: ChatInput → vector.HybridSearch → FormatText → Agent → Output
+**Note**: RAG nodes are the single `vector.*` namespace (e.g. `vector.QueryText`, `vector.HybridSearch`, `vector.IndexTextChunk`); there is no `vector.chroma.*`/`vector.faiss.*`.
 
 ## Pattern 5: Database Persistence
 **Shape**: Input → FormatText → DataGenerator → Insert → Query → Preview
@@ -155,25 +158,31 @@ Edges enforce type compatibility. Use `any` type for flexible connections.
 **Shape**: GetRequest → ImportCSV → Filter → ChartGenerator → Preview
 **Use for**: Fetch external data, transform datasets, auto-generate visualizations.
 
+> **Video/image generation nodes live under `kie.video.*`, `kie.image.*`,
+> `kie.audio.*`** (e.g. `kie.video.Kling26TextToVideo`,
+> `kie.video.Hailuo02TextToVideoPro`). Exact model nodes change as providers add
+> models — always `ui_search_nodes` for the current node type rather than typing
+> a name from memory.
+
 ## Pattern 11: Text-to-Video
-**Shape**: StringInput (prompt) → video generation node → Output
-**Key nodes**: KlingTextToVideo, HailuoTextToVideoPro, Sora2TextToVideo, Wan26TextToVideo
+**Shape**: StringInput (prompt) → `kie.video.*` text-to-video node → Output
+**Find nodes**: search `"text to video"` (Kling, Hailuo, Sora, Wan, Bytedance families)
 **Config**: Duration 5-10s, Resolution 768P (fast) or 1080P (quality), Aspect 16:9/9:16/1:1
 
 ## Pattern 12: Image-to-Video
-**Shape**: ImageInput + StringInput (motion guide) → video generation → Output
-**Key nodes**: KlingImageToVideo (1-3 images), HailuoImageToVideoPro, Wan26ImageToVideo
+**Shape**: ImageInput + StringInput (motion guide) → `kie.video.*` image-to-video node → Output
+**Find nodes**: search `"image to video"`
 
 ## Pattern 13: Talking Avatar
-**Shape**: ImageInput (face) + AudioInput (speech) → avatar generation → Output
-**Key nodes**: KlingAIAvatarPro, KlingAIAvatarStandard, InfinitalkV1
+**Shape**: ImageInput (face) + AudioInput (speech) → avatar generation node → Output
+**Find nodes**: search `"avatar"` or `"lip sync"`
 
 ## Pattern 14: Video Enhancement
-**Shape**: VideoInput → TopazVideoUpscale → Output
-**Use for**: Upscale to 1080p/4K, denoise, enhance old footage.
+**Shape**: VideoInput → upscale node → Output
+**Find nodes**: search `"upscale"` / `"video enhance"` (e.g. Topaz family)
 
 ## Pattern 15: Storyboard to Video
-**Shape**: StringInput (story) + ImageInputs (scenes 1-3) → Sora2ProStoryboard → Output
+**Shape**: StringInput (story) + ImageInputs (scenes) → storyboard video node → Output
 **Use for**: Narrative videos from keyframes, scene transitions.
 
 ## Agent Tool Pattern
@@ -263,52 +272,62 @@ Write workflows as TypeScript with full type safety and IDE autocompletion using
 
 ## Basic Pattern
 ```typescript
-import { workflow, constant, libMath } from "@nodetool-ai/dsl";
+import { workflow, constant, text, agents } from "@nodetool-ai/dsl";
 
-// Create nodes — each returns a DslNode with typed .output handle
-const a = constant.float({ value: 3.14 });
-const b = constant.float({ value: 2.0 });
+// Create nodes — call node.output() to get a connectable handle.
+const greeting = constant.string({ value: "hello world" });
 
-// Connect by passing output handles as inputs
-const sum = libMath.add({ a: a.output, b: b.output });
+// Connect by passing output handles as inputs.
+const shout = text.toUppercase({ text: greeting.output() });
+const summary = agents.summarizer({ text: shout.output() });
 
-// Build workflow graph (traces all connections)
-const wf = workflow(sum);
+// Build the workflow graph (traces all connections).
+const wf = workflow(summary);
 console.log(JSON.stringify(wf));
 ```
 
 ## Key Concepts
-- **OutputHandle**: `node.output` is a symbolic reference, not a value. Pass it to create edges.
-- **Connectable**: Every input accepts either a literal value or an OutputHandle.
-- **Multi-output nodes**: Use `node.out.slotName` (e.g., `ifNode.out.if_true`).
-- **workflow()**: Traces from terminal nodes via BFS, produces serializable JSON.
-- **run()**: Executes a workflow in-process using WorkflowRunner.
-- **runGraph()**: Shorthand — calls `workflow()` then `run()`.
+- **`node.output()`** is a function — call it to get the default output handle. It is NOT a property (`node.output`).
+- **Named slots**: `node.output("if_true")` for a specific output of a multi-output node.
+- **Connectable**: every input accepts either a literal value or an output handle.
+- **`workflow(...terminals)`**: traces from terminal nodes via BFS, returns serializable JSON `{ nodes, edges }`.
+- **`run(wf, opts?)`**: executes a workflow in-process via WorkflowRunner; returns the result.
+- **`runGraph(...terminals)`**: shorthand — `run(workflow(...terminals))`.
 
 ## DSL Namespaces
+Namespaces mirror node namespaces. Common ones:
+
 | Import | Example |
 |--------|---------|
-| `constant` | `constant.float({ value: 5 })` |
-| `libMath` | `libMath.add({ a: 1, b: 2 })` |
-| `text` | `text.concat({ a: "hi", b: " there" })` |
+| `constant` | `constant.float({ value: 5 })`, `constant.string({ value: "x" })` |
+| `text` | `text.toUppercase({ text: "hi" })`, `text.split({ ... })` |
 | `image` | `image.resize({ ... })` |
-| `control` | `control.if_({ condition: true, value: x })` |
-| `agents` | `agents.agent({ prompt: "..." })` |
-| `list` | `list.length({ values: items.output })` |
+| `control` | `control.if_({ condition: true, value: x })`, `control.forEach({ ... })` |
+| `agents` | `agents.agent({ ... })`, `agents.summarizer({ text })` |
+| `data` | `data.filter({ ... })` |
+| `vector` | `vector.hybridSearch({ ... })` |
+| `libHttp` | `libHttp.getJSON({ url })`, `libHttp.getText({ url })` |
+| `code` | `code.code({ ... })` — JS sandbox for math/JSON/list logic |
 
-## Diamond Pattern (shared dependencies)
+> There is no `libMath` or `list` namespace. Use the **Code node** (`code.code`) for
+> arithmetic/JSON/list operations.
+
+## Multi-Output (If / ForEach)
 ```typescript
-const shared = constant.float({ value: 10 });
-const left = libMath.add({ a: shared.output, b: 1 });
-const right = libMath.multiply({ a: shared.output, b: 2 });
-const final = libMath.add({ a: left.output, b: right.output });
-const wf = workflow(final); // shared appears once, 4 edges
+import { control } from "@nodetool-ai/dsl";
+
+const branch = control.if_({ condition: true, value: "hello" });
+branch.output("if_true");   // → output handle for the true branch
+branch.output("if_false");  // → output handle for the false branch
 ```
 
-## Multi-Output (If/ForEach)
+## Shared Dependencies (diamond)
 ```typescript
-const branch = control.if_({ condition: true, value: "hello" });
-// Use .out for named slots:
-branch.out.if_true   // → OutputHandle
-branch.out.if_false  // → OutputHandle
+import { workflow, constant, text } from "@nodetool-ai/dsl";
+
+const shared = constant.string({ value: "abc" });
+const upper = text.toUppercase({ text: shared.output() });
+const lower = text.toLowercase({ text: shared.output() });
+const joined = text.concat({ a: upper.output(), b: lower.output() });
+const wf = workflow(joined); // `shared` appears once; edges fan out
 ```

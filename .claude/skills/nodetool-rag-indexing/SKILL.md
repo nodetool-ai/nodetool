@@ -1,6 +1,6 @@
 ---
 name: nodetool-rag-indexing
-description: Set up RAG pipelines, vector indexing, document ingestion, ChromaDB/FAISS/SQLite-vec search, and knowledge base creation in NodeTool. Use when user asks about RAG, document indexing, vector search, chat with documents, knowledge base, embeddings, or collection management.
+description: Set up RAG pipelines, vector indexing, document ingestion, vector search, and knowledge base creation in NodeTool. Use when user asks about RAG, document indexing, vector search, chat with documents, knowledge base, embeddings, or collection management.
 ---
 
 You help users build Retrieval-Augmented Generation (RAG) pipelines in NodeTool.
@@ -8,195 +8,143 @@ You help users build Retrieval-Augmented Generation (RAG) pipelines in NodeTool.
 # RAG Architecture
 
 ```
-INDEXING:  Documents → Extract → Split → Embed → Store (vector DB)
-QUERY:    Question → Embed → Search → Format → LLM → Answer
+INDEXING:  Documents → Load → Split → Embed → Store (vector collection)
+QUERY:     Question → Embed → Search → Format → LLM → Answer
 ```
 
-# Vector Store Options
+# Vector Store Backends
 
-| Backend | Best For | Config |
-|---------|----------|--------|
-| **SQLite-vec** | Default, local, embedded | `DB_PATH` (automatic) |
-| **ChromaDB** | Production, remote | `CHROMA_URL`, `CHROMA_PATH` |
-| **FAISS** | High-speed similarity | In-memory or file-backed |
+NodeTool's vector store (`@nodetool-ai/vectorstore`) is backend-pluggable. The
+workflow nodes are the same regardless of backend — you pick the backend via
+configuration.
 
-# Indexing Pipeline
+| Backend | Best for | Notes |
+|---------|----------|-------|
+| **SQLite-vec** | Default, local, embedded | No external service |
+| **ChromaDB** | Self-host / remote | `CHROMA_URL`, `CHROMA_PATH`, `CHROMA_TOKEN` |
+| **Pinecone** | Managed cloud | API-key based |
+| **Supabase (pgvector)** | Postgres-backed | Pairs with Supabase auth/storage |
 
-## Default Flow (automatic)
+There are **no FAISS nodes**; the backends above cover local and hosted use.
+
+# Vector Nodes (`vector.*`)
+
+All RAG nodes live under the single `vector.*` namespace (not `vector.chroma.*`
+or `vector.faiss.*`).
+
+| Node | Purpose |
+|------|---------|
+| `vector.Collection` | Reference/select a collection by name (the collection ref other nodes consume) |
+| `vector.IndexTextChunk` | Index a single text chunk with its embedding |
+| `vector.IndexString` | Index a string value |
+| `vector.IndexAggregatedText` | Index aggregated text |
+| `vector.IndexEmbedding` | Index a precomputed embedding |
+| `vector.IndexImage` | Index an image |
+| `vector.QueryText` | Vector similarity search over text |
+| `vector.QueryImage` | Vector similarity search over images |
+| `vector.HybridSearch` | Vector + keyword search (best accuracy) |
+| `vector.GetDocuments` | Retrieve specific documents |
+| `vector.Count` | Count documents in a collection |
+| `vector.Peek` | Preview collection contents |
+| `vector.RemoveOverlap` | De-duplicate overlapping chunks in results |
+
+Query nodes (`QueryText`, `QueryImage`, `HybridSearch`) output `ids`,
+`documents`, `metadatas`, and `distances` (HybridSearch also returns `scores`).
+
+# Document Loading & Splitting (`nodetool.document.*`, `lib.os.*`)
+
+| Node | Namespace | Purpose |
+|------|-----------|---------|
+| `ListFiles` | `lib.os` | Enumerate files in a directory |
+| `LoadDocumentFile` | `nodetool.document` | Load a PDF/DOCX/TXT/MD into a document |
+| `SplitRecursively` | `nodetool.document` | Recursive character/token splitting (general purpose) |
+| `SplitMarkdown` | `nodetool.document` | Split Markdown by structure |
+| `SplitHTML` / `SplitJSON` | `nodetool.document` | Structure-aware splitting |
+| `SplitDocument` | `nodetool.document` | Split a loaded document |
+
+## Chunk Size Guidance
+
+| Content type | Chunk size | Overlap |
+|--------------|-----------|---------|
+| Technical docs | 200-500 tokens | 50 tokens |
+| Prose/articles | 300-600 tokens | 75 tokens |
+| Code | 100-300 tokens | 25 tokens |
+
+# Indexing — Workflow Pattern
 
 ```
-File → splitDocument() → embed → store in SQLite-vec
+ListFiles → LoadDocumentFile → SplitRecursively → IndexTextChunk(collection)
 ```
 
-The `indexFileToCollection()` function orchestrates:
-1. Resolve collection via `getCollection()`
-2. If custom workflow exists: execute it
-3. Fallback: `splitDocument()` → embed → store
+Pair every index/query node with a `vector.Collection` node (or a collection
+name) so they target the same store. Use the **same embedding model** for
+indexing and querying.
 
-## CLI / API Indexing
+# Indexing — HTTP API
 
 ```bash
-# Index via HTTP API
-curl -X POST http://localhost:7777/collections/<name>/index \
+# Index a file into a collection
+curl -X POST http://localhost:7777/api/collections/<name>/index \
   -H "Authorization: Bearer TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"file_path": "/path/to/document.pdf"}'
 ```
 
-## Workflow-Based Indexing
+The server resolves the collection, runs its ingestion workflow if one is
+registered, otherwise falls back to split → embed → store.
 
-Build a workflow with these nodes:
-
-**Input nodes:**
-- `nodetool.input.StringInput` — collection name
-- `nodetool.input.StringInput` — file path
-
-**Processing chain:**
-```
-ListFiles → LoadDocument → ExtractText → SentenceSplitter → IndexTextChunks
-```
-
-| Node | Namespace | Purpose |
-|------|-----------|---------|
-| `ListFiles` | `lib.os` | Enumerate files in directory |
-| `LoadDocument` | `nodetool.text` | Load PDF/DOCX/TXT/MD |
-| `ExtractText` | `lib.pdf` | Extract text from PDFs |
-| `SentenceSplitter` | `nodetool.text` | Split into chunks |
-| `IndexTextChunks` | `vector.chroma` or `vector.faiss` | Store embeddings |
-
-## Chunk Size Guidance
-
-| Content Type | Chunk Size | Overlap |
-|-------------|-----------|---------|
-| Technical docs | 200-500 tokens | 50 tokens |
-| Prose/articles | 300-600 tokens | 75 tokens |
-| Code | 100-300 tokens | 25 tokens |
-| Q&A pairs | Per question | None |
-
-# Query Pipeline
-
-Build a workflow with these nodes:
+# Query — Workflow Pattern
 
 ```
-ChatInput → HybridSearch → FormatText → Agent → Output
+ChatInput → HybridSearch(collection, top_k) → FormatText → Agent → Output
 ```
 
 | Node | Purpose |
 |------|---------|
-| `ChatInput` | User question input |
-| `HybridSearch` | Vector + keyword search (best accuracy) |
-| `TextSearch` | Vector-only search (faster) |
-| `FormatText` | Format results as context for LLM |
-| `Agent` | Generate answer from context + question |
-| `Output` | Return answer |
+| `ChatInput` | User question |
+| `vector.HybridSearch` | Vector + keyword retrieval (best accuracy) |
+| `vector.QueryText` | Vector-only retrieval (faster) |
+| `FormatText` | Build the context string for the LLM |
+| `Agent` | Generate the answer from context + question |
+| `Output` | Return the answer |
 
-## Search Types
+# Complete RAG Example
 
-| Type | Node | Accuracy | Speed |
-|------|------|----------|-------|
-| **Hybrid** | `vector.chroma.HybridSearch` | Best | Slower |
-| **Vector** | `vector.chroma.TextSearch` | Good | Fast |
-| **FAISS** | `vector.faiss.Search` | Good | Fastest |
+## Index
+```
+ListFiles("/docs/") → LoadDocumentFile → SplitRecursively(chunk_size=400, overlap=50)
+                                                  ↓
+                                  IndexTextChunk(collection="my-docs")
+```
 
-# ChromaDB Nodes (`vector.chroma.*`)
-
-| Node | Purpose |
-|------|---------|
-| `CreateCollection` | Create a new collection |
-| `DeleteCollection` | Delete a collection |
-| `ListCollections` | List all collections |
-| `GetCollection` | Get collection details |
-| `IndexTextChunks` | Index text chunks with embeddings |
-| `IndexDocuments` | Index full documents |
-| `TextSearch` | Vector similarity search |
-| `HybridSearch` | Vector + keyword search |
-| `DeleteDocuments` | Remove documents from collection |
-| `GetDocuments` | Retrieve specific documents |
-| `UpdateDocuments` | Update document content |
-| `Count` | Count documents in collection |
-| `Peek` | Preview collection contents |
-
-# FAISS Nodes (`vector.faiss.*`)
-
-| Node | Purpose |
-|------|---------|
-| `CreateIndex` | Create FAISS index |
-| `AddVectors` | Add vectors to index |
-| `Search` | Similarity search |
-| `Save` | Save index to disk |
-| `Load` | Load index from disk |
-| `Remove` | Remove vectors |
-| `Count` | Count vectors |
+## Query
+```
+ChatInput("What is...?") → HybridSearch(collection="my-docs", top_k=5)
+                                  ↓
+                         FormatText(template="Context:\n{documents}\n\nQuestion: {query}")
+                                  ↓
+                         Agent(model=gpt-5.4, system="Answer using only the context provided.")
+                                  ↓
+                         Output
+```
 
 # Environment Variables
 
 ```bash
-# ChromaDB
-CHROMA_URL=                          # Remote Chroma URL (leave empty for local)
+# ChromaDB backend (only when using Chroma — SQLite-vec needs no config)
+CHROMA_URL=                          # Remote Chroma URL (empty = local)
 CHROMA_PATH=~/.local/share/nodetool/chroma  # Local storage path
 CHROMA_TOKEN=                        # Optional auth token
-
-# Embedding model (defaults to sentence-transformers)
-# Configure via model selection in IndexTextChunks node
 ```
 
-# Complete RAG Example (Workflow Pattern)
-
-## Step 1: Index Documents
-```
-StringInput("my-docs") → CreateCollection
-                          ↓
-ListFiles("/docs/") → ForEach → LoadDocument → ExtractText
-                                                    ↓
-                                    SentenceSplitter(chunk_size=400, overlap=50)
-                                                    ↓
-                                    IndexTextChunks(collection="my-docs")
-```
-
-## Step 2: Query
-```
-ChatInput("What is...?") → HybridSearch(collection="my-docs", top_k=5)
-                                    ↓
-                           FormatText(template="Context:\n{results}\n\nQuestion: {query}")
-                                    ↓
-                           Agent(model=gpt-4o, system="Answer using only the context provided.")
-                                    ↓
-                           Output
-```
-
-# Custom Ingestion Workflows
-
-For non-standard documents, create a custom workflow with:
-- **Input**: `CollectionInput(name=...)` + `FileInput(path=...)`
-- **Processing**: Custom extraction, metadata enrichment, specialized chunking
-- **Output**: Summaries, metadata, or alternate embeddings
-
-Register the workflow as the collection's ingestion handler.
-
-# Collection Management
-
-```bash
-# List collections
-nodetool collections list
-
-# Create collection
-nodetool collections create my-docs
-
-# Index files
-nodetool collections index my-docs /path/to/files/
-
-# Search
-nodetool collections search my-docs "query text"
-
-# Delete
-nodetool collections delete my-docs
-```
+The embedding model is chosen on the index/query nodes via model selection
+(e.g. `text-embedding-3-small`, or a local sentence-transformers model).
 
 # Common Pitfalls
 
-- **Embedding model mismatch**: Use the same embedding model for indexing and search
-- **Chunks too large**: LLM context gets diluted; keep to 200-500 tokens
-- **Chunks too small**: Loss of context; sentences get fragmented
-- **No overlap**: Related content split across chunks; use 10-20% overlap
-- **Not checking results**: Always test search quality before building full pipeline
-- **Missing collection**: Index before querying — empty collection returns nothing
+- **Embedding model mismatch**: use the same embedding model for indexing and search.
+- **Chunks too large**: dilute the LLM context — keep to 200-500 tokens.
+- **Chunks too small**: sentences get fragmented; use 10-20% overlap.
+- **Empty collection**: index before querying — an unindexed collection returns nothing.
+- **Wrong node names**: it's `vector.IndexTextChunk` / `vector.QueryText` / `vector.HybridSearch`, not `IndexTextChunks` / `TextSearch`, and there is no `vector.chroma.*`/`vector.faiss.*` namespace.
+- **No `nodetool collections` CLI**: manage collections through the editor UI or the `/api/collections/...` endpoints.

@@ -9,16 +9,23 @@ You help users configure AI model providers and select the right models for thei
 
 | Provider | Type | Key Env Var | Models |
 |----------|------|-------------|--------|
-| **OpenAI** | Cloud | `OPENAI_API_KEY` | GPT-4o, GPT-3.5, GPT-Image, TTS, Whisper |
-| **Anthropic** | Cloud | `ANTHROPIC_API_KEY` | Claude 4.6, Claude 4.5, Haiku |
-| **Google** | Cloud | `GEMINI_API_KEY` | Gemini 2.0, Veo, Nano Banana |
-| **Ollama** | Local | `OLLAMA_API_URL` | Llama 3, Mistral, Qwen, any GGUF |
+| **OpenAI** | Cloud | `OPENAI_API_KEY` | GPT-5.4 / GPT-5.4-mini, GPT-Image, TTS, Whisper |
+| **Anthropic** | Cloud | `ANTHROPIC_API_KEY` | Claude Sonnet 4.6, Haiku |
+| **Gemini (Google)** | Cloud | `GEMINI_API_KEY` | Gemini 2.5, Veo, Nano Banana |
+| **xAI** | Cloud | `XAI_API_KEY` | Grok 4 |
+| **Ollama** | Local | `OLLAMA_API_URL` | Qwen, Llama 3, Mistral, any GGUF |
 | **HuggingFace** | Local/Cloud | `HF_TOKEN` | 1000+ models, auto-download |
 | **FAL** | Cloud | `FAL_API_KEY` | Fast image/video generation |
 | **Replicate** | Cloud | `REPLICATE_API_TOKEN` | Community models |
 | **vLLM** | Local | `VLLM_API_URL` | Self-hosted, OpenAI-compatible |
 | **llama.cpp** | Local | — | GGUF models, CPU/GPU |
 | **MLX** | Local | — | Apple Silicon optimized |
+
+Other registered chat providers (any of these is valid for `-p/--provider`):
+`groq`, `mistral`, `deepseek`, `moonshot`, `minimax`, `cerebras`, `together`,
+`openrouter`, `codex`, `claude_agent_sdk`, `lmstudio`. Run `nodetool models
+providers` to see configured providers and `nodetool models recommended` for the
+curated model list.
 
 # API Key Setup
 
@@ -47,11 +54,11 @@ export OLLAMA_API_URL=http://localhost:11434
 
 | Need | Model | Provider | Notes |
 |------|-------|----------|-------|
-| Best quality | GPT-4o, Claude 4.6 | OpenAI, Anthropic | Highest capability |
-| Good balance | GPT-4o-mini, Claude Haiku | OpenAI, Anthropic | Fast + cheap |
-| Local/private | Llama 3 70B, Qwen 32B | Ollama | No data leaves machine |
+| Best quality | gpt-5.4, claude-sonnet-4-6 | OpenAI, Anthropic | Highest capability |
+| Good balance | gpt-5.4-mini, gemini-2.5-flash | OpenAI, Gemini | Fast + cheap |
+| Local/private | Llama 3.3 70B, Qwen 3.5 | Ollama | No data leaves machine |
 | Lightweight local | Llama 3 8B, Mistral 7B | Ollama | Low memory |
-| Code | Claude 4.6, GPT-4o | Anthropic, OpenAI | Best for coding |
+| Code | claude-sonnet-4-6, gpt-5.4 | Anthropic, OpenAI | Best for coding |
 
 ## Image Generation
 
@@ -60,7 +67,7 @@ export OLLAMA_API_URL=http://localhost:11434
 | Best quality | FLUX.2 Dev | HuggingFace, FAL | State-of-art |
 | Fast | FLUX Schnell | HuggingFace | Quick iterations |
 | Versatile | SDXL | HuggingFace | Many LoRAs available |
-| API-based | GPT-Image 3 | OpenAI | No local GPU needed |
+| API-based | GPT Image 2, Nano Banana | OpenAI, Gemini/KIE | No local GPU needed |
 
 ## Video Generation
 
@@ -150,32 +157,58 @@ These nodes work with any provider — just select the model:
 
 # Custom Provider Development
 
+Providers extend `BaseProvider` from `@nodetool-ai/runtime` (not `@nodetool-ai/core`).
+Both `generateMessage` and `generateMessages` take a single **args object**.
+
 ```typescript
-import { BaseProvider, ProviderId, Message, ProviderStreamItem, LanguageModel } from "@nodetool-ai/core";
+import {
+  BaseProvider,
+  type ProviderId,
+  type Message,
+  type ProviderStreamItem,
+  type ProviderTool,
+  type LanguageModel,
+} from "@nodetool-ai/runtime";
 
 export class MyProvider extends BaseProvider {
+  private apiKey: string;
+
   constructor(kwargs: Record<string, unknown> = {}) {
     super("my_provider" as ProviderId);
-    this.apiKey = kwargs.MY_API_KEY ?? process.env.MY_API_KEY ?? "";
+    this.apiKey = String(kwargs["MY_API_KEY"] ?? process.env.MY_API_KEY ?? "");
   }
 
-  static requiredSecrets(): string[] {
+  static override requiredSecrets(): string[] {
     return ["MY_API_KEY"];
   }
 
-  async *generateMessages(
-    messages: Message[],
-    model: string
-  ): AsyncIterable<ProviderStreamItem> {
-    // Call your API, yield chunks
-    yield { type: "chunk", content: "response text" };
+  // Non-streaming: return a single assistant Message.
+  async generateMessage(args: {
+    messages: Message[];
+    model: string;
+    tools?: ProviderTool[];
+  }): Promise<Message> {
+    // Call your API with args.messages / args.model …
+    return { role: "assistant", content: "response text" };
   }
 
-  async getAvailableLanguageModels(): Promise<LanguageModel[]> {
+  // Streaming: yield ProviderStreamItem chunks.
+  async *generateMessages(args: {
+    messages: Message[];
+    model: string;
+    tools?: ProviderTool[];
+  }): AsyncGenerator<ProviderStreamItem> {
+    yield { type: "chunk", content: "response text", done: false };
+  }
+
+  override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
     return [{ id: "my-model", name: "My Model", provider: "my_provider" }];
   }
 }
 ```
+
+Register it with `registerProvider("my_provider", MyProvider)` from
+`@nodetool-ai/runtime`.
 
 # Provider Capabilities
 
@@ -197,4 +230,4 @@ export class MyProvider extends BaseProvider {
 - **Gated HF models**: Must accept terms on hub.huggingface.co first
 - **GPU memory**: Large models need 8-24GB VRAM; use quantized versions
 - **Rate limits**: Cloud providers have rate limits; implement retries or use local
-- **Model ID mismatch**: Use exact model ID from provider (e.g., `gpt-4o` not `gpt4o`)
+- **Model ID mismatch**: Use the exact model ID from the provider (e.g., `gpt-5.4`, `claude-sonnet-4-6`) — `nodetool models by-provider <provider>` lists them
