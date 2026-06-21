@@ -3,7 +3,7 @@
   "access": "private",
   "created_at": "2026-06-21T16:03:52.969Z",
   "updated_at": "2026-06-21T16:55:51.256Z",
-  "name": "AI Product Launch Video Generator",
+  "name": "Product Video Generator",
   "tool_name": null,
   "description": "Create a realistic 16:9 marketing video for a new product launch using the ImageToVideo node.",
   "tags": [

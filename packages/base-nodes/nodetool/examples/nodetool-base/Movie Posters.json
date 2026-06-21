@@ -2,7 +2,7 @@
   "id": "",
   "access": "private",
   "created_at": "2026-06-21T13:57:24.787Z",
-  "updated_at": "2026-06-21T21:16:27.375Z",
+  "updated_at": "2026-06-21T22:36:58.355Z",
   "name": "Movie Posters",
   "tool_name": null,
   "description": "Create cinematic movie posters using AI image generation",
@@ -115,11 +115,76 @@
         "edge_type": "data"
       },
       {
-        "id": "cd31829d-dfd2-4a04-b3ac-77e3e971a075",
+        "id": "genre_input-e28b581f-8dda-4fbc-8365-da9f22aa350d",
+        "source": "genre_input",
+        "sourceHandle": "output",
+        "target": "e28b581f-8dda-4fbc-8365-da9f22aa350d",
+        "targetHandle": "input_value",
+        "edge_type": "data"
+      },
+      {
+        "id": "e28b581f-8dda-4fbc-8365-da9f22aa350d-923fb0f1-8bd4-406a-ba73-9ec3137c20cd",
+        "source": "e28b581f-8dda-4fbc-8365-da9f22aa350d",
+        "sourceHandle": "output",
+        "target": "923fb0f1-8bd4-406a-ba73-9ec3137c20cd",
+        "targetHandle": "genre",
+        "edge_type": "data"
+      },
+      {
+        "id": "98707bc7-6c54-4b89-894d-86e65e5cdba9",
+        "source": "e28b581f-8dda-4fbc-8365-da9f22aa350d",
+        "sourceHandle": "output",
+        "target": "68bb0948-5e25-485e-81e1-9a1a7f2c1e92",
+        "targetHandle": "genre",
+        "ui_properties": {
+          "className": "any"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "movie_title_input-dd61b3bb-e050-4598-83e9-effbd91478ae",
         "source": "movie_title_input",
+        "sourceHandle": "output",
+        "target": "dd61b3bb-e050-4598-83e9-effbd91478ae",
+        "targetHandle": "input_value",
+        "edge_type": "data"
+      },
+      {
+        "id": "dd61b3bb-e050-4598-83e9-effbd91478ae-923fb0f1-8bd4-406a-ba73-9ec3137c20cd",
+        "source": "dd61b3bb-e050-4598-83e9-effbd91478ae",
+        "sourceHandle": "output",
+        "target": "923fb0f1-8bd4-406a-ba73-9ec3137c20cd",
+        "targetHandle": "title",
+        "edge_type": "data"
+      },
+      {
+        "id": "3c3a71e1-4c46-4895-93d7-7cf2356e235e",
+        "source": "dd61b3bb-e050-4598-83e9-effbd91478ae",
         "sourceHandle": "output",
         "target": "68bb0948-5e25-485e-81e1-9a1a7f2c1e92",
         "targetHandle": "title",
+        "ui_properties": {
+          "className": "any"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "090b632c-8a78-4713-803a-ab457f715c5a",
+        "source": "04757c8a-dad6-48f3-a45f-459f54e26b7b",
+        "sourceHandle": "design",
+        "target": "68bb0948-5e25-485e-81e1-9a1a7f2c1e92",
+        "targetHandle": "design",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "ad36005f-efb1-43fa-93af-5102c55085bd",
+        "source": "04757c8a-dad6-48f3-a45f-459f54e26b7b",
+        "sourceHandle": "core_visual_concept",
+        "target": "68bb0948-5e25-485e-81e1-9a1a7f2c1e92",
+        "targetHandle": "core_visual_concept",
         "ui_properties": {
           "className": "str"
         },
@@ -283,7 +348,7 @@
         "id": "movie_title_input",
         "type": "nodetool.input.StringInput",
         "data": {
-          "value": "Infinity",
+          "value": "Singularity",
           "name": "Movie Title"
         },
         "ui_properties": {
@@ -305,10 +370,11 @@
         "id": "genre_input",
         "type": "nodetool.input.StringInput",
         "data": {
-          "value": "Science Fiction",
+          "value": "Sci-Fi",
           "name": "Genre"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 279,
             "y": 330
@@ -326,10 +392,11 @@
         "id": "audience_input",
         "type": "nodetool.input.StringInput",
         "data": {
-          "value": "Gen-Z",
+          "value": "AI Enthusiasts",
           "name": "Primary Audience"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 279,
             "y": 610
@@ -377,7 +444,7 @@
           "timeout_seconds": 0
         },
         "ui_properties": {
-          "selected": false,
+          "selected": true,
           "position": {
             "x": 2608,
             "y": 187
@@ -396,7 +463,7 @@
         "id": "68bb0948-5e25-485e-81e1-9a1a7f2c1e92",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "Cinematic movie poster in the genre {{ genre }} , ultra-high-end theatrical key art. A striking central subject dominates the composition, positioned with strong visual hierarchy. Dynamic lighting, dramatic atmosphere, rich color grading, detailed textures, and epic scale. Layered foreground, midground, and background elements create depth and storytelling. Subtle environmental details hint at the plot without revealing it.\n\nPlot: {{ plot }}\n\nLarge movie title \"{{ title }}\" prominently placed in the lower third, premium typography integrated into the scene. Tagline positioned above the title. Billing block, credits, studio logos, and release date arranged in authentic Hollywood poster layout. Balanced negative space, professional graphic design, award-winning poster composition."
+          "prompt": "Cinematic movie poster in the genre {{ genre }}. A striking central subject dominates the composition, positioned with strong visual hierarchy. \n\nSynopsis: {{ synopsis }}\nVisual Concept: {{ core_visual_concept }}\nDesign: {{ design }}\n\n\nLarge movie title \"{{ title }}\" prominently placed in the lower third, premium typography integrated into the scene. Tagline positioned above the title. Billing block, credits, studio logos, and release date arranged in authentic Hollywood poster layout. Balanced negative space, professional graphic design, award-winning poster composition."
         },
         "ui_properties": {
           "selected": false,
@@ -411,9 +478,11 @@
           "bypassed": false
         },
         "dynamic_properties": {
-          "plot": "",
-          "title": "Infinity",
-          "genre": ""
+          "title": "",
+          "genre": "",
+          "design": "",
+          "core_visual_concept": "",
+          "synopsis": ""
         },
         "dynamic_outputs": {}
       },
@@ -421,7 +490,7 @@
         "id": "923fb0f1-8bd4-406a-ba73-9ec3137c20cd",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "write 5 plots for \npositioning: {{ positioning }}\naudience insight: {{ audience_insight }}\n"
+          "prompt": "synopsis for the movie {{ title }}\ngenre: {{ genre }}\npositioned to: {{ positioning }}\naudience insight: {{ audience_insight }}\n"
         },
         "ui_properties": {
           "selected": false,
@@ -436,7 +505,9 @@
         },
         "dynamic_properties": {
           "positioning": "",
-          "audience_insight": ""
+          "audience_insight": "",
+          "title": "",
+          "genre": ""
         },
         "dynamic_outputs": {}
       },
@@ -452,7 +523,6 @@
           "audio": []
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": 1010,
             "y": 299
@@ -466,25 +536,59 @@
         "dynamic_outputs": {
           "positioning": {
             "type": "str",
-            "type_args": [],
-            "optional": false
+            "optional": false,
+            "type_args": []
           },
           "design": {
             "type": "str",
-            "type_args": [],
-            "optional": false
+            "optional": false,
+            "type_args": []
           },
           "audience_insight": {
             "type": "str",
-            "type_args": [],
-            "optional": false
+            "optional": false,
+            "type_args": []
           },
           "core_visual_concept": {
             "type": "str",
-            "type_args": [],
-            "optional": false
+            "optional": false,
+            "type_args": []
           }
         }
+      },
+      {
+        "id": "e28b581f-8dda-4fbc-8365-da9f22aa350d",
+        "type": "nodetool.control.Reroute",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1231,
+            "y": 641
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "dd61b3bb-e050-4598-83e9-effbd91478ae",
+        "type": "nodetool.control.Reroute",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 1210,
+            "y": 591
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       }
     ]
   },
@@ -498,5 +602,5 @@
   "required_providers": null,
   "required_models": null,
   "html_app": null,
-  "etag": "402af2d8a379c78301d714678d723520"
+  "etag": "c20ab9c0d0a33c79c4ec768459e5a0aa"
 }
