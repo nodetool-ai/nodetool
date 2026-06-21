@@ -173,13 +173,6 @@ export const BESPOKE_DEFAULT_HEIGHTS: Readonly<Record<string, number>> = {
   [AUDIO_OUT_NODE_TYPE]: 220
 };
 
-export const isBespokeNode = (
-  metadata: NodeMetadata | undefined
-): boolean => {
-  const t = metadata?.node_type;
-  return !!t && t in BESPOKE_BODY_REGISTRY;
-};
-
 export const getBespokeBody = (
   metadata: NodeMetadata | undefined
 ): BespokeBodyComponent | undefined => {

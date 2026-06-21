@@ -36,9 +36,6 @@ type StatusStore = {
   clearJobStatuses: (workflowId: string, jobId: string) => void;
 };
 
-/** @deprecated kept as a re-export of `nodeKey` for backwards compatibility. */
-export const hashKey = nodeKey;
-
 const useStatusStore = create<StatusStore>((set, get) => ({
   statuses: {},
 

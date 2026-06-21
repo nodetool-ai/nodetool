@@ -1,6 +1,5 @@
 import {
   BESPOKE_BODY_REGISTRY,
-  isBespokeNode,
   getBespokeBody
 } from "../bespokeRegistry";
 import type { NodeMetadata } from "../../../../stores/ApiTypes";
@@ -30,30 +29,6 @@ describe("bespokeRegistry", () => {
       for (const nodeType of knownTypes) {
         expect(nodeType in BESPOKE_BODY_REGISTRY).toBe(true);
       }
-    });
-  });
-
-  describe("isBespokeNode", () => {
-    it("returns true for a registered node type", () => {
-      const firstKey = Object.keys(BESPOKE_BODY_REGISTRY)[0];
-      const metadata = { node_type: firstKey } as NodeMetadata;
-      expect(isBespokeNode(metadata)).toBe(true);
-    });
-
-    it("returns false for an unregistered node type", () => {
-      const metadata = {
-        node_type: "nodetool.nonexistent.Node"
-      } as NodeMetadata;
-      expect(isBespokeNode(metadata)).toBe(false);
-    });
-
-    it("returns false for undefined metadata", () => {
-      expect(isBespokeNode(undefined)).toBe(false);
-    });
-
-    it("returns false when node_type is missing", () => {
-      const metadata = {} as NodeMetadata;
-      expect(isBespokeNode(metadata)).toBe(false);
     });
   });
 
