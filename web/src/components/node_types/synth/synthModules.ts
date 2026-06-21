@@ -29,6 +29,13 @@ export interface EnumToggleSpec {
   options: ReadonlyArray<{ value: string; label: string }>;
 }
 
+/** Boolean on/off toggle for a `bool` property (e.g. compressor auto gain). */
+export interface BoolToggleSpec {
+  name: string;
+  label: string;
+  default: boolean;
+}
+
 /** Palette key used for the module's accent (knob arcs, waveform icons). */
 export type SynthAccent =
   | "primary"
@@ -49,6 +56,8 @@ export interface SynthModuleConfig {
   waveform?: { name: string; default: string; options: readonly string[] };
   /** Generic enum toggle (e.g. VCF lowpass/highpass). */
   modeToggle?: EnumToggleSpec;
+  /** Boolean on/off toggles for `bool` properties (e.g. auto makeup gain). */
+  toggles?: readonly BoolToggleSpec[];
   /** Render the ADSR envelope preview above the knobs. */
   adsrPreview?: boolean;
 }

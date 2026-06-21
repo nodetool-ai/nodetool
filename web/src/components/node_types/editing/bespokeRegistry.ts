@@ -168,12 +168,14 @@ export const BESPOKE_DEFAULT_HEIGHTS: Readonly<Record<string, number>> = {
       return [t, 96 + extras + knobRows * 84] as const;
     })
   ),
-  // Audio effects: same knob faceplate as synth modules (single audio jack).
+  // Audio effects: same knob faceplate as synth modules (single audio jack),
+  // plus a row per boolean toggle (e.g. compressor/limiter auto gain).
   ...Object.fromEntries(
     AUDIO_EFFECT_NODE_TYPES.map((t) => {
       const c = AUDIO_EFFECT_CONFIGS[t];
       const knobRows = Math.ceil(c.knobs.length / 3);
-      return [t, 96 + knobRows * 84] as const;
+      const toggleRows = c.toggles?.length ?? 0;
+      return [t, 96 + toggleRows * 28 + knobRows * 84] as const;
     })
   ),
   // Audio Out: label strip + transport buttons + visualizer.

@@ -43,6 +43,15 @@ describe("audio effect configs", () => {
       expect(BESPOKE_DEFAULT_HEIGHTS[t]).toBeGreaterThan(0);
     }
   });
+
+  it("exposes an auto-gain toggle (default on) on the dynamics processors", () => {
+    for (const t of ["lib.audio.Compress", "lib.audio.Limiter"]) {
+      const toggles = AUDIO_EFFECT_CONFIGS[t].toggles ?? [];
+      const autoGain = toggles.find((g) => g.name === "auto_gain");
+      expect(autoGain).toBeDefined();
+      expect(autoGain?.default).toBe(true);
+    }
+  });
 });
 
 describe("knob value formatting", () => {

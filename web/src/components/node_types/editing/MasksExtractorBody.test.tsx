@@ -103,7 +103,7 @@ jest.mock("../../ui_primitives", () => ({
     <button data-testid={`toggle-option-${value}`} {...props}>
       {children}
     </button>
-  ),
+  )
 }));
 
 jest.mock("@mui/material/styles", () => ({
