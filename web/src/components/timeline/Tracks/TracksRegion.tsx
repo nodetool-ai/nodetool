@@ -24,8 +24,13 @@
  *   Ctrl+Z / Ctrl+Y  → undo / redo
  * Shortcuts are skipped when focus is in a text input or contenteditable.
  *
- * Zoom: Ctrl+wheel on the lane area changes msPerPx, anchored at the cursor.
- * Horizontal scroll: native overflow-x scroll on the scrollable panel.
+ * Zoom: Ctrl/Cmd+wheel (or a trackpad pinch) on the lane area changes msPerPx,
+ *   anchored at the cursor.
+ * Horizontal scroll: a trackpad two-finger horizontal swipe or Shift+wheel
+ *   scrolls the lanes left/right. The handler takes the gesture over so the
+ *   browser's back/forward swipe never fires at the scroll edges; a plain
+ *   vertical wheel still scrolls the tracks list, and the native overflow-x
+ *   scrollbar stays available.
  */
 
 import React, { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -71,6 +76,7 @@ import { deserializeDragData } from "../../../lib/dragdrop";
 import type { Asset } from "../../../stores/ApiTypes";
 import { assetMediaType } from "../dnd/assetToClipAdapter";
 import { buildTypedIndexMap } from "./trackVisuals";
+import { partitionTimelineWheel, normalizeWheelDeltaPx } from "./timelineWheel";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -149,7 +155,10 @@ const scrollableAreaStyles = css({
   flex: "1 1 auto",
   overflowX: "auto",
   overflowY: "hidden",
-  position: "relative"
+  position: "relative",
+  // Keep an over-scrolled horizontal swipe from triggering the browser's
+  // back/forward navigation (the wheel handler also preventDefaults).
+  overscrollBehaviorX: "contain"
 });
 
 const lanesContainerStyles = css({
@@ -283,10 +292,16 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       [setScrollLeftPx]
     );
 
-    // ── Zoom (wheel) ────────────────────────────────────────────────────────
+    // ── Zoom + horizontal scroll (wheel) ─────────────────────────────────────
     //
     // Attached as a native non-passive listener: React's onWheel is passive,
-    // so preventDefault() inside it can't stop the browser's pinch-zoom.
+    // so preventDefault() inside it can't stop the browser's pinch-zoom or its
+    // back/forward swipe. partitionTimelineWheel routes the gesture (see
+    // timelineWheel.ts): Ctrl/Cmd+wheel zooms, a horizontal trackpad swipe or
+    // Shift+wheel scrolls the lanes, and a plain vertical wheel is left to
+    // bubble to the tracks list's native vertical scroll. Setting el.scrollLeft
+    // fires the onScroll handler below, which syncs scrollLeftPx → ruler +
+    // playhead.
 
     // Anchor zoom at the cursor: remember which timeline time sat under the
     // pointer, then restore it to the same viewport x once the lanes have
@@ -300,9 +315,11 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       const el = scrollableRef.current;
       if (!el) return;
       const onWheel = (e: WheelEvent) => {
+        const { zoomDelta, scrollDelta } = partitionTimelineWheel(e);
+
         if (e.ctrlKey || e.metaKey) {
           e.preventDefault();
-          const factor = 1 + e.deltaY * ZOOM_SENSITIVITY;
+          const factor = 1 + zoomDelta * ZOOM_SENSITIVITY;
           const next = Math.min(
             MAX_MS_PER_PX,
             Math.max(MIN_MS_PER_PX, msPerPx * factor)
@@ -314,6 +331,26 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             cursorPx
           };
           setZoom(next);
+          return;
+        }
+
+        if (scrollDelta !== 0) {
+          // Take the gesture over so a horizontal swipe past the edge can't
+          // trigger the browser's back/forward navigation.
+          e.preventDefault();
+          const deltaPx = normalizeWheelDeltaPx(
+            scrollDelta,
+            e.deltaMode,
+            el.clientWidth
+          );
+          const maxScrollPx = Math.max(0, el.scrollWidth - el.clientWidth);
+          const nextScrollLeft = Math.min(
+            maxScrollPx,
+            Math.max(0, el.scrollLeft + deltaPx)
+          );
+          if (nextScrollLeft !== el.scrollLeft) {
+            el.scrollLeft = nextScrollLeft;
+          }
         }
       };
       el.addEventListener("wheel", onWheel, { passive: false });
@@ -587,6 +624,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             ref={scrollableRef}
             css={scrollableAreaStyles}
             onScroll={handleScroll}
+            data-testid="tracks-scroll-area"
           >
             <div
               css={lanesContainerStyles}
