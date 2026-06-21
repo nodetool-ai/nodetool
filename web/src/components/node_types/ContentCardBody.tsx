@@ -89,14 +89,17 @@ const styles = (theme: Theme) =>
     "&[data-content-card-variant=\"text\"] .preview-area": {
       backgroundColor: "transparent"
     },
-    // Cap the text preview height ONLY while the node is auto-sized, so a long
-    // (or streaming) generation scrolls inside the card instead of growing the
-    // node unbounded (the "expand" button opens the full text in a popup). Once
-    // the user resizes the node, the cap lifts and the preview fills the
-    // available height (`.preview-area` is flex: 1 1 auto).
-    "&[data-content-card-variant=\"text\"]:not([data-node-sized]) .preview-area": {
-      maxHeight: theme.spacing(30)
-    },
+    // Cap the text preview height ONLY while it is actively streaming and the
+    // node is still auto-sized, so a long generation scrolls inside the card
+    // instead of growing the node unbounded line-by-line during the run. Once
+    // the generation completes (or the user resizes the node), the cap lifts
+    // and the preview grows to fit / fills the available height
+    // (`.preview-area` is flex: 1 1 auto). The "expand" button still opens the
+    // full text in a popup for very long results.
+    "&[data-content-card-variant=\"text\"][data-streaming]:not([data-node-sized]) .preview-area":
+      {
+        maxHeight: theme.spacing(30)
+      },
     // Preview keeps a minimum strip when the node is resized very small;
     // params (flex-shrink: 0) clip at the bottom via node-content-container.
     ".preview-area": {
@@ -667,6 +670,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
       className="content-card-body node-drag-handle"
       data-content-card-variant={variant}
       data-node-sized={isNodeSized ? "true" : undefined}
+      data-streaming={status === "running" ? "true" : undefined}
     >
       <div className="preview-area">
         {usesHistoryNavigator ? (

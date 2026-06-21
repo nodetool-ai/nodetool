@@ -12,7 +12,7 @@ export const outputStyles = (theme: Theme, hasActions = true) =>
       width: "100%",
       padding: ".25em",
       overflow: "auto",
-      fontSize: "var(--fontSizeSmaller)",
+      fontSize: "var(--fontSizeSmall)",
       userSelect: "text",
       cursor: "text"
     },

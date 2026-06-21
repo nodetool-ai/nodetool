@@ -85,7 +85,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       whiteSpace: "pre-wrap",
       wordBreak: "break-word",
-      fontFamily: theme.fontFamily2,
+      fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
       lineHeight: 1.5,
       color: theme.vars.palette.text.primary,
@@ -96,7 +96,7 @@ const styles = (theme: Theme) =>
       top: theme.spacing(1),
       left: theme.spacing(1),
       color: theme.vars.palette.text.disabled,
-      fontFamily: theme.fontFamily2,
+      fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
       pointerEvents: "none"
     },
