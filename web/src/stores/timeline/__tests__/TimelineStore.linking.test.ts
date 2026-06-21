@@ -1,6 +1,6 @@
 import { describe, it, expect } from "@jest/globals";
 import { createTimelineStore } from "../TimelineStore";
-import { makeTrack, makeClip } from "@nodetool-ai/timeline";
+import { makeClip } from "@nodetool-ai/timeline";
 
 function storeWithLinkedPair() {
   const store = createTimelineStore();
@@ -199,7 +199,7 @@ describe("duplicate remaps linkId (FIX 3)", () => {
 
 describe("split link-aware (FIX 4)", () => {
   it("splitClipAtTime splits the linked sibling too, forming two new pairs", () => {
-    const { store, videoId, audioId } = storeWithLinkedPair();
+    const { store, videoId } = storeWithLinkedPair();
     // Both clips span 1000..6000; split at 3000 (inside both).
     store.getState().splitClipAtTime(videoId, 3000);
     const clips = store.getState().clips;
