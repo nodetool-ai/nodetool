@@ -24,6 +24,8 @@ jest.mock("@mui/material", () => ({
 // Mock ui_primitives used by ErrorBoundary
 jest.mock("../components/ui_primitives", () => ({
   MOTION: jest.requireActual("../components/ui_primitives/tokens").MOTION,
+  BORDER_RADIUS: jest.requireActual("../components/ui_primitives/tokens")
+    .BORDER_RADIUS,
   CopyButton: ({ value }: { value: string }) => (
     <button data-testid="copy-button">Copy: {String(value).substring(0, 20)}</button>
   ),
