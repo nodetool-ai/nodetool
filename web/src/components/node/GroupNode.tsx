@@ -48,6 +48,18 @@ const HEADER_HEIGHT = 32;
 // Hex fallback used when group_color is unset or stored as a CSS var token
 // (hexToRgba can't compute alpha on `var(--…)`, which produces invalid CSS).
 const DEFAULT_GROUP_HEX = "#9ca3af";
+const POPOVER_COLUMN_STYLE: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "12px",
+  padding: "12px"
+};
+const POPOVER_ROW_STYLE: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "12px"
+};
 
 // Returns an opaque 6-digit hex. Catches three failure modes from saved data:
 //   - missing / empty                  → default
@@ -598,23 +610,9 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         onClose={handleMenuClose}
         placement="bottom-right"
       >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "12px",
-            padding: "12px"
-          }}
-        >
+        <div style={POPOVER_COLUMN_STYLE}>
           {hasChildren && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: "12px"
-              }}
-            >
+            <div style={POPOVER_ROW_STYLE}>
               <span
                 style={{
                   fontFamily: theme.fontFamily1,
@@ -630,14 +628,7 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
               />
             </div>
           )}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: "12px"
-            }}
-          >
+          <div style={POPOVER_ROW_STYLE}>
             <span
               style={{
                 fontFamily: theme.fontFamily1,

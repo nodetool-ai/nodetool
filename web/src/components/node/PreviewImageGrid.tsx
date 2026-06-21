@@ -17,6 +17,123 @@ import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 
 export type ImageSource = Uint8Array | string;
 
+interface ImageTileProps {
+  img: ImageSource;
+  idx: number;
+  url: string | undefined;
+  isSelected: boolean;
+  selectionMode: boolean;
+  showActions: boolean;
+  onDoubleClick: ((index: number) => void) | undefined;
+  onOpenViewer: (url: string) => void;
+  onDownload: (index: number, event: React.MouseEvent) => void;
+  onOpenInViewer: (index: number, event: React.MouseEvent) => void;
+  onToggleSelect: (index: number, event: React.MouseEvent) => void;
+}
+
+const ImageTile = memo<ImageTileProps>(({
+  img,
+  idx,
+  url,
+  isSelected,
+  selectionMode,
+  showActions,
+  onDoubleClick,
+  onOpenViewer,
+  onDownload,
+  onOpenInViewer,
+  onToggleSelect
+}) => {
+  const handleDownloadClick = useCallback((e: React.MouseEvent) => onDownload(idx, e), [onDownload, idx]);
+  const handleOpenClick = useCallback((e: React.MouseEvent) => onOpenInViewer(idx, e), [onOpenInViewer, idx]);
+  const handleCheckboxClick = useCallback((e: React.MouseEvent) => onToggleSelect(idx, e), [onToggleSelect, idx]);
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      className={`tile ${isSelected ? "selected" : ""}`}
+      onDoubleClick={() => {
+        if (selectionMode) return;
+        if (onDoubleClick) {
+          onDoubleClick(idx);
+        } else if (url) {
+          onOpenViewer(url);
+        }
+      }}
+      onClick={(e) => {
+        if (selectionMode) {
+          onToggleSelect(idx, e);
+        }
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          if (selectionMode) {
+            const syntheticEvent = { stopPropagation: () => {}, shiftKey: e.shiftKey } as React.MouseEvent<HTMLDivElement>;
+            onToggleSelect(idx, syntheticEvent);
+          } else if (onDoubleClick) {
+            onDoubleClick(idx);
+          } else if (url) {
+            onOpenViewer(url);
+          }
+        }
+      }}
+    >
+      {url ? (
+        <img
+          className="img"
+          src={url}
+          alt={`image-${idx + 1}`}
+          loading="lazy"
+          draggable={false}
+        />
+      ) : (
+        <div className="placeholder">IMAGE</div>
+      )}
+      {showActions && !selectionMode && (
+        <div className="tile-actions">
+          <CopyAssetButton
+            contentType="image/png"
+            url={url || ""}
+            className="tile-action-btn"
+          />
+          <ToolbarIconButton
+            tooltip="Download"
+            tooltipPlacement="top"
+            icon={<DownloadIcon />}
+            className="tile-action-btn"
+            size="small"
+            onClick={handleDownloadClick}
+            ariaLabel={`Download image ${idx + 1}`}
+          />
+          <ToolbarIconButton
+            tooltip="Open in Viewer (double-click)"
+            tooltipPlacement="top"
+            icon={<OpenInNewIcon />}
+            className="tile-action-btn"
+            size="small"
+            onClick={handleOpenClick}
+            ariaLabel={`Open image ${idx + 1} in viewer`}
+          />
+        </div>
+      )}
+      {selectionMode && (
+        <Checkbox
+          className="select-checkbox"
+          checked={isSelected}
+          onClick={handleCheckboxClick}
+          icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
+          checkedIcon={<CheckBoxIcon fontSize="small" />}
+          sx={{ padding: "2px" }}
+        />
+      )}
+    </div>
+  );
+});
+ImageTile.displayName = "ImageTile";
+
 export interface PreviewImageGridProps {
   images: ImageSource[];
   onDoubleClick?: (index: number) => void;
@@ -318,6 +435,11 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
 
   const showSelectionFeatures = enableSelection && images.length >= 2;
 
+  const openViewer = useCallback((url: string) => {
+    setViewerUrl(url);
+    setViewerOpen(true);
+  }, []);
+
   // Map each ImageSource to a persistent URL. Strings map to themselves.
   const urlMapRef = useRef<Map<ImageSource, string>>(new Map());
   const [_version, setVersion] = useState(0); // force rerender when map changes
@@ -362,8 +484,6 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
     }
 
     if (changed) { setVersion((v) => v + 1); }
-
-    // Cleanup all on unmount
     return () => {
       const urlMap = urlMapRef.current;
       if (urlMap && urlMap.size) {
@@ -381,6 +501,10 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
     };
   }, [images]);
 
+  const gridStyle = useMemo(() => ({
+    gridTemplateColumns: `repeat(auto-fill, minmax(${itemSize}px, 1fr))`
+  }), [itemSize]);
+
   return (
     <div className="preview-image-grid" css={gridCss} ref={containerRef}>
       {/* Selection mode toggle button */}
@@ -397,112 +521,28 @@ const PreviewImageGrid: React.FC<PreviewImageGridProps> = ({
 
       <div
         className="grid"
-        style={useMemo(() => ({
-          gridTemplateColumns: `repeat(auto-fill, minmax(${itemSize}px, 1fr))`
-        }), [itemSize])}
+        style={gridStyle}
       >
         {images.map((img, idx) => {
-          // Skip null/undefined images
           if (img === null || img === undefined) {
             return null;
           }
-          const isSelected = selectedIndices.has(idx);
-          // Use stable key: for strings use the URL, for Uint8Array use index
           const key = typeof img === 'string' ? img : `bytes-${idx}`;
           return (
-            <div
+            <ImageTile
               key={key}
-              role="button"
-              tabIndex={0}
-              className={`tile ${isSelected ? "selected" : ""}`}
-              onDoubleClick={() => {
-                if (selectionMode) { return; }
-                if (onDoubleClick) {
-                  onDoubleClick(idx);
-                } else {
-                  // Default: open in viewer
-                  const url = urlMapRef.current.get(img);
-                  if (url) {
-                    setViewerUrl(url);
-                    setViewerOpen(true);
-                  }
-                }
-              }}
-              onClick={(e) => {
-                if (selectionMode) {
-                  toggleSelect(idx, e);
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (selectionMode) {
-                    // Synthesize a minimal mouse event for keyboard-driven selection
-                    const syntheticEvent = { stopPropagation: () => {}, shiftKey: e.shiftKey } as React.MouseEvent<HTMLDivElement>;
-                    toggleSelect(idx, syntheticEvent);
-                  } else if (onDoubleClick) {
-                    onDoubleClick(idx);
-                  } else {
-                    const url = urlMapRef.current.get(img);
-                    if (url) {
-                      setViewerUrl(url);
-                      setViewerOpen(true);
-                    }
-                  }
-                }
-              }}
-            >
-              {urlMapRef.current.get(img) ? (
-                <img
-                  className="img"
-                  src={urlMapRef.current.get(img) as string}
-                  alt={`image-${idx + 1}`}
-                  loading="lazy"
-                  draggable={false}
-                />
-              ) : (
-                <div className="placeholder">IMAGE</div>
-              )}
-              {/* Action buttons on hover */}
-              {showActions && !selectionMode && (
-                <div className="tile-actions">
-                  <CopyAssetButton
-                    contentType="image/png"
-                    url={urlMapRef.current.get(img) || ""}
-                    className="tile-action-btn"
-                  />
-                  <ToolbarIconButton
-                    tooltip="Download"
-                    tooltipPlacement="top"
-                    icon={<DownloadIcon />}
-                    className="tile-action-btn"
-                    size="small"
-                    onClick={(e) => handleDownloadImage(idx, e)}
-                    ariaLabel={`Download image ${idx + 1}`}
-                  />
-                  <ToolbarIconButton
-                    tooltip="Open in Viewer (double-click)"
-                    tooltipPlacement="top"
-                    icon={<OpenInNewIcon />}
-                    className="tile-action-btn"
-                    size="small"
-                    onClick={(e) => handleOpenInViewer(idx, e)}
-                    ariaLabel={`Open image ${idx + 1} in viewer`}
-                  />
-                </div>
-              )}
-              {selectionMode && (
-                <Checkbox
-                  className="select-checkbox"
-                  checked={isSelected}
-                  onClick={(e) => toggleSelect(idx, e)}
-                  icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
-                  checkedIcon={<CheckBoxIcon fontSize="small" />}
-                  sx={{ padding: "2px" }}
-                />
-              )}
-            </div>
+              img={img}
+              idx={idx}
+              url={urlMapRef.current.get(img)}
+              isSelected={selectedIndices.has(idx)}
+              selectionMode={selectionMode}
+              showActions={showActions}
+              onDoubleClick={onDoubleClick}
+              onOpenViewer={openViewer}
+              onDownload={handleDownloadImage}
+              onOpenInViewer={handleOpenInViewer}
+              onToggleSelect={toggleSelect}
+            />
           );
         })}
       </div>
