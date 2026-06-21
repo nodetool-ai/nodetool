@@ -107,7 +107,7 @@ declare item: unknown;
 
 private collected: unknown[] = [];
 
-initialize(): void {
+async initialize(): Promise<void> {
   this.collected = []; // reset per run
 }
 
@@ -151,9 +151,9 @@ async process(): Promise<Record<string, unknown>> {
 
 ## Lifecycle Hooks
 ```typescript
-initialize(): void { }    // once at start of run
-preProcess(): void { }    // before each process() call
-finalize(): void { }      // after all processing
+async initialize(): Promise<void> { }   // once at start of run
+async preProcess(): Promise<void> { }   // before each process() call
+async finalize(): Promise<void> { }     // after all processing
 ```
 
 # Optional Static Properties

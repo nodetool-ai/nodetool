@@ -43,7 +43,7 @@ nodetool deploy destroy <name>    # Tear down
 
 ```bash
 # Required
-ENV=production
+NODETOOL_ENV=production
 NODETOOL_SERVER_MODE=private      # desktop | private | public
 
 # Auth (pick one)
@@ -93,7 +93,7 @@ deployments:
 ```bash
 docker run --gpus all --memory 8g --cpus 4 \
   -p 7777:7777 \
-  -e ENV=production \
+  -e NODETOOL_ENV=production \
   -e NODETOOL_SERVER_MODE=private \
   -e AUTH_PROVIDER=static \
   -e SERVER_AUTH_TOKEN=<token> \
@@ -214,7 +214,7 @@ nodetool deploy workflows run <deployment> <workflow-id>
 
 # Production Checklist
 
-- [ ] Set `ENV=production`
+- [ ] Set `NODETOOL_ENV=production`
 - [ ] Set strong `SECRETS_MASTER_KEY`
 - [ ] Set `ADMIN_TOKEN`
 - [ ] Configure `AUTH_PROVIDER` (never `none` in prod)
@@ -222,8 +222,8 @@ nodetool deploy workflows run <deployment> <workflow-id>
 - [ ] Configure API keys for needed providers
 - [ ] Set resource limits (memory, CPU, GPU)
 - [ ] Mount persistent volumes for workspace and model cache
-- [ ] Set up health monitoring (`GET /health`)
-- [ ] Configure logging (`LOG_LEVEL=INFO`)
+- [ ] Set up health monitoring (`GET /health`, `GET /ready`)
+- [ ] Configure logging (`NODETOOL_LOG_LEVEL=info`)
 - [ ] Set up backups for `DB_PATH`
 
 # Common Pitfalls
