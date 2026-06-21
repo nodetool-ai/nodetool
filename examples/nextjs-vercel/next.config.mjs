@@ -8,8 +8,9 @@ const nextConfig = {
     "@nodetool-ai/kernel",
     "@nodetool-ai/runtime",
     "@nodetool-ai/node-sdk",
+    "@nodetool-ai/nodes-utils",
     "@nodetool-ai/core-nodes",
-    "@nodetool-ai/nodes-utils"
+    "@nodetool-ai/llm-nodes"
   ]
 };
 

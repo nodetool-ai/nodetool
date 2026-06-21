@@ -12,8 +12,10 @@
   },
   "dependencies": {
     "@nodetool-ai/core-nodes": "*",
+    "@nodetool-ai/llm-nodes": "*",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/runtime": "*",
     "@nodetool-ai/workflow-runner": "*",
     "next": "^15.5.18",
     "react": "^19.2.0",

@@ -64,27 +64,43 @@ Notes:
 - `next.config.mjs` marks the `@nodetool-ai/*` packages as
   `serverExternalPackages` so Vercel runs them as real Node modules.
 
-## Add an LLM node (server-side secrets)
+## LLM example (server-side secrets) — included
 
 The real advantage of running server-side is that **API keys never reach the
-browser**. To add a fetch-based LLM node:
+browser**. This example already wires that up:
 
-1. Import its group in `lib/registry.ts` (alongside the core groups) — LLM/HTTP
-   nodes are tagged `node + workers + edge`, so they survive `forPlatform`.
-2. Provide secrets per request via the handler's `createContext` hook:
+- **`lib/registry.ts`** registers `OPENAI_NODES` when `includeLlm` is set. They
+  are tagged `node + workers + edge`, so they survive `forPlatform`. (We use the
+  `@nodetool-ai/llm-nodes/openai` subpath — it imports cleanly, without the
+  native OS-keychain chain that the `agents` nodes pull in.)
+- **`app/api/run/route.ts`** supplies secrets per request via the handler's
+  `createContext` hook:
 
-   ```ts
-   import { createWorkflowHandler } from "@nodetool-ai/workflow-runner";
-   import { ProcessingContext } from "@nodetool-ai/runtime/context";
+  ```ts
+  createContext: () =>
+    new ProcessingContext({
+      jobId: crypto.randomUUID(),
+      secretResolver: envSecretResolver(process.env), // reads OPENAI_API_KEY
+      retainMessageQueue: false
+    })
+  ```
 
-   const handler = createWorkflowHandler({
-     registry: createEdgeRegistry("node"),
-     platform: "node",
-     createContext: () =>
-       new ProcessingContext({
-         environment: { OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "" }
-       })
-   });
-   ```
+  Each node declares its `requiredSettings` (e.g. `OPENAI_API_KEY`); the runtime
+  resolves them through the context's `secretResolver` before `process()`, so
+  the key is read from `process.env` on the server only.
 
-   Set `OPENAI_API_KEY` in the Vercel project's Environment Variables.
+The **"OpenAI Web Search"** sample (`openai.text.WebSearch`) demonstrates it.
+Set the key and deploy:
+
+```bash
+# locally
+echo "OPENAI_API_KEY=sk-..." > .env.local
+npm run dev
+
+# on Vercel
+vercel env add OPENAI_API_KEY
+```
+
+Without the key, the run streams a clear `OPENAI_API_KEY is not configured`
+error instead of crashing — the node still registers and passes platform
+validation; only the provider call fails.
