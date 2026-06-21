@@ -16,7 +16,7 @@ When a user reports a problem, work through this in order:
 - [ ] **Model availability**: Is the model downloaded/API key set?
 - [ ] **File paths**: Do referenced files exist and have correct permissions?
 - [ ] **API keys**: Are provider keys configured? (`nodetool secrets store KEY`)
-- [ ] **Logs**: Check `~/.nodetool/logs/` or `--log-level debug`
+- [ ] **Logs**: Check `~/.nodetool/logs/` or run with `NODETOOL_LOG_LEVEL=debug`
 
 # Node Status Colors
 
@@ -67,7 +67,7 @@ When a user reports a problem, work through this in order:
 
 **Fix**:
 - Improve the prompt (be specific, add examples)
-- Use a more capable model (gpt-4o, claude-3.5-sonnet)
+- Use a more capable model (gpt-5.4, claude-sonnet-4-6)
 - Lower temperature for factual tasks (0.0–0.3)
 - Add few-shot examples in system prompt
 - Use RAG to ground answers in source documents
@@ -77,11 +77,11 @@ When a user reports a problem, work through this in order:
 **Symptoms**: HybridSearch or TextSearch returns empty results
 
 **Check**:
-1. Was the collection actually indexed? (`nodetool collections list`)
+1. Was the collection actually indexed? Inspect it with a `vector.Count` / `vector.Peek` node, or the editor's collection view.
 2. Does the embedding model match between indexing and search?
 3. Test search directly with a simple query
 4. Review chunking — very small or very large chunks reduce quality
-5. Check `CHROMA_PATH` or `CHROMA_URL` configuration
+5. For the Chroma backend, check `CHROMA_PATH` / `CHROMA_URL` (SQLite-vec, the default, needs no config)
 
 ## API Key Errors
 
@@ -124,7 +124,7 @@ export OPENAI_API_KEY=sk-...
 
 **Check**:
 1. `deployment.yaml` syntax (valid YAML?)
-2. All required env vars set? (`ENV`, `AUTH_PROVIDER`, `SECRETS_MASTER_KEY`)
+2. All required env vars set? (`NODETOOL_ENV`, `AUTH_PROVIDER`, `SECRETS_MASTER_KEY`)
 3. Docker running? (`docker ps`)
 4. Port already in use? (`lsof -i :7777`)
 5. Volume mount paths exist?
@@ -143,8 +143,8 @@ Add Preview nodes at each stage to isolate where data breaks.
 # Desktop app logs
 ls ~/.nodetool/logs/
 
-# CLI verbose mode
-nodetool serve --log-level debug
+# CLI verbose mode (logging is controlled by an env var, not a serve flag)
+NODETOOL_LOG_LEVEL=debug nodetool serve
 
 # Browser DevTools
 # View → Developer Tools → Console tab
