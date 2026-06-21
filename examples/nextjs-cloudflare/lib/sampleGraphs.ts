@@ -75,5 +75,24 @@ export const SAMPLE_GRAPHS: SampleGraph[] = [
         }
       ]
     }
+  },
+  {
+    id: "openai-websearch",
+    label: "OpenAI Web Search (needs key)",
+    description:
+      "Answer a query with OpenAI's web-search model. The key is read from OPENAI_API_KEY in the Worker env (never the browser). Without the key the run streams a clear 'OPENAI_API_KEY is not configured' error.",
+    graph: {
+      nodes: [
+        {
+          id: "search",
+          type: "openai.text.WebSearch",
+          name: "answer",
+          properties: {
+            query: "In one sentence, what is the NodeTool AI workflow platform?"
+          }
+        }
+      ],
+      edges: []
+    }
   }
 ];

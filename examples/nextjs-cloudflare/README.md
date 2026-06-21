@@ -71,31 +71,46 @@ npx wrangler login
 npm run deploy       # opennextjs-cloudflare build && deploy
 ```
 
-## Add an LLM node (server-side secrets)
+## LLM example (server-side secrets) — included
 
 The real advantage of running server-side is that **API keys never reach the
-browser**. To add a fetch-based LLM node:
+browser**. This example already wires that up:
 
-1. Import its group in `lib/registry.ts` (alongside the core groups) — LLM/HTTP
-   nodes are tagged `node + workers + edge`, so they survive `forPlatform`.
-2. Provide secrets per request via the handler's `createContext` hook, reading
-   from the Worker env:
+- **`lib/registry.ts`** registers `OPENAI_NODES` when `includeLlm` is set. They
+  are tagged `node + workers + edge`, so they survive `forPlatform`. We use the
+  `@nodetool-ai/llm-nodes/openai` subpath — `openai.text.WebSearch` calls OpenAI
+  with the global `fetch`, so it bundles cleanly for workerd, and it avoids the
+  native OS-keychain chain that the `agents` nodes pull in.
+- **`app/api/run/route.ts`** supplies secrets per request via the handler's
+  `createContext` hook:
 
-   ```ts
-   import { createWorkflowHandler } from "@nodetool-ai/workflow-runner";
-   import { ProcessingContext } from "@nodetool-ai/runtime/context";
-   import { getCloudflareContext } from "@opennextjs/cloudflare";
+  ```ts
+  createContext: () =>
+    new ProcessingContext({
+      jobId: crypto.randomUUID(),
+      secretResolver: envSecretResolver(process.env), // reads OPENAI_API_KEY
+      retainMessageQueue: false
+    })
+  ```
 
-   const handler = createWorkflowHandler({
-     registry: createEdgeRegistry("workers"),
-     platform: "workers",
-     createContext: () => {
-       const { env } = getCloudflareContext();
-       return new ProcessingContext({
-         environment: { OPENAI_API_KEY: env.OPENAI_API_KEY ?? "" }
-       });
-     }
-   });
-   ```
+  Each node declares its `requiredSettings` (e.g. `OPENAI_API_KEY`); the runtime
+  resolves them through the context's `secretResolver` before `process()`. Under
+  OpenNext + `nodejs_compat`, Worker vars and secrets are surfaced on
+  `process.env`. (Prefer explicit bindings? Swap the resolver to read from
+  `getCloudflareContext().env`.)
 
-   Add the secret with `npx wrangler secret put OPENAI_API_KEY`.
+The **"OpenAI Web Search"** sample (`openai.text.WebSearch`) demonstrates it:
+
+```bash
+# locally — .dev.vars is read by wrangler/OpenNext during preview
+echo "OPENAI_API_KEY=sk-..." > .dev.vars
+npm run preview
+
+# deployed
+npx wrangler secret put OPENAI_API_KEY
+npm run deploy
+```
+
+Without the key, the run streams a clear `OPENAI_API_KEY is not configured`
+error instead of crashing — the node still registers and passes platform
+validation; only the provider call fails.
