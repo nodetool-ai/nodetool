@@ -23,7 +23,8 @@ import {
   bytesToBase64,
   decodeRgba,
   loadSharp,
-  rawRgbaImageRef
+  rawRgbaImageRef,
+  SHARP_UNAVAILABLE_MESSAGE
 } from "./image-io.js";
 
 // ─── Sketch document shapes (minimal, tolerant of legacy payloads) ──────────
@@ -374,6 +375,7 @@ export class CreateSketchNode extends BaseNode {
       throw new Error("CreateSketch: image input is empty");
     }
     const sharp = await loadSharp();
+    if (!sharp) throw new Error(SHARP_UNAVAILABLE_MESSAGE);
     const png = new Uint8Array(
       await sharp(rgba, { raw: { width, height, channels: 4 } })
         .png()

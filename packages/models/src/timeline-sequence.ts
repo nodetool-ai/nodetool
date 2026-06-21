@@ -16,6 +16,8 @@ export interface TimelineDocument {
   markers: TimelineMarker[];
   /** Studio transcript lines. Optional for documents written before Studio. */
   transcript?: TranscriptLine[];
+  /** Whether the script lane + transcript panel are shown. Unset on legacy. */
+  scriptEnabled?: boolean;
 }
 
 export class TimelineSequence extends DBModel {
@@ -85,6 +87,7 @@ export class TimelineSequence extends DBModel {
       clips: doc.clips,
       markers: doc.markers,
       transcript: doc.transcript ?? [],
+      scriptEnabled: doc.scriptEnabled,
       createdAt: this.created_at,
       updatedAt: this.updated_at
     };
@@ -98,7 +101,8 @@ export class TimelineSequence extends DBModel {
       tracks: seq.tracks,
       clips: seq.clips,
       markers: seq.markers,
-      transcript: seq.transcript ?? []
+      transcript: seq.transcript ?? [],
+      scriptEnabled: seq.scriptEnabled
     };
     return new TimelineSequence({
       id: seq.id,

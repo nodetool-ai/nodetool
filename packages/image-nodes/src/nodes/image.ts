@@ -8,7 +8,11 @@ import {
   compositeImageLayers,
   type LayerTransform2D
 } from "@nodetool-ai/gpu/node";
-import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
+import type {
+  InputMode,
+  OutputCorrelation,
+  Platform
+} from "@nodetool-ai/protocol";
 import { RAW_RGBA_MIME, isRawRgbaImage } from "@nodetool-ai/protocol";
 import type { ImageRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
@@ -16,9 +20,15 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 // provider / python-bridge stack) so this module can bundle for the browser.
 import { loadMediaRefBytes } from "@nodetool-ai/runtime/media-ref-bytes";
 import { mapPromptAssetsToInputs } from "@nodetool-ai/runtime/prompt-asset-refs";
-import { promises as fs } from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+// node:fs / node:path / node:url are loaded lazily (only by the node-only
+// Load/Save/Folder nodes below) so a workers/edge bundle of this module never
+// statically resolves a Node built-in. The nodes that reach these are tagged
+// `static platforms = NODE_ONLY`.
+import {
+  loadNodeFsPromises,
+  loadNodePath,
+  loadNodeUrl
+} from "@nodetool-ai/nodes-utils";
 import {
   tagAsBrowserGpu,
   tagAsServer,
@@ -41,7 +51,15 @@ import {
 } from "@nodetool-ai/gpu/pool";
 import { IS_NODE } from "@nodetool-ai/config";
 import { runShaderNode, runRecipeNode } from "./lib-shader-utils.js";
-import { decodeRgba, rawRgbaImageRef, loadSharp } from "./image-io.js";
+import {
+  decodeRgba,
+  rawRgbaImageRef,
+  loadSharp,
+  SHARP_UNAVAILABLE_MESSAGE
+} from "./image-io.js";
+
+/** Filesystem / sharp-bound nodes that only run on a full Node runtime. */
+const NODE_ONLY: readonly Platform[] = ["node"];
 
 type ImageRefLike = {
   uri?: string;
@@ -90,9 +108,10 @@ function normalizeImageList(value: unknown): ImageRefLike[] {
   );
 }
 
-function filePath(uriOrPath: string): string {
+async function filePath(uriOrPath: string): Promise<string> {
   if (uriOrPath.startsWith("file://")) {
     try {
+      const { fileURLToPath } = await loadNodeUrl();
       return fileURLToPath(new URL(uriOrPath));
     } catch {
       // Fallback for non-standard URIs like file://C:\path
@@ -232,6 +251,7 @@ async function metadataFor(
 ): Promise<{ width: number | undefined; height: number | undefined }> {
   try {
     const sharp = await loadSharp();
+    if (!sharp) throw new Error(SHARP_UNAVAILABLE_MESSAGE);
     const md = await sharp(bytes).metadata();
     return {
       width: md.width ?? undefined,
@@ -252,6 +272,7 @@ export class LoadImageFileNode extends BaseNode {
   };
   static readonly inlineFields = ["path"];
   static readonly inputFields = [];
+  static readonly platforms = NODE_ONLY;
 
   @prop({
     type: "str",
@@ -262,7 +283,8 @@ export class LoadImageFileNode extends BaseNode {
   declare path: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const p = filePath(String(this.path ?? ""));
+    const fs = await loadNodeFsPromises();
+    const p = await filePath(String(this.path ?? ""));
     const data = new Uint8Array(await fs.readFile(p));
     const meta = await metadataFor(data);
     return {
@@ -295,6 +317,7 @@ export class LoadImageFolderNode extends BaseNode {
     path: { kind: "iteration", source: "__execution__", group: "items" },
     images: { kind: "single", source: "__execution__" }
   };
+  static readonly platforms = NODE_ONLY;
 
   @prop({
     type: "str",
@@ -343,14 +366,16 @@ export class LoadImageFolderNode extends BaseNode {
   }
 
   private async *_loadImages(): AsyncGenerator<Record<string, unknown>> {
+    const fs = await loadNodeFsPromises();
+    const path = await loadNodePath();
     const raw = this.folder;
     const folder =
       typeof raw === "string" && raw.length > 0
         ? raw.startsWith("file:")
-          ? filePath(raw)
+          ? await filePath(raw)
           : raw
         : typeof raw === "object" && raw !== null && typeof (raw as Record<string, unknown>).uri === "string" && ((raw as Record<string, unknown>).uri as string).length > 0
-          ? filePath((raw as Record<string, unknown>).uri as string)
+          ? await filePath((raw as Record<string, unknown>).uri as string)
           : "";
     if (!folder) return;
     const extensions: string[] = Array.isArray(this.extensions)
@@ -426,6 +451,7 @@ export class SaveImageFileImageNode extends BaseNode {
   };
   static readonly inlineFields = ["filename"];
   static readonly inputFields = ["image"];
+  static readonly platforms = NODE_ONLY;
 
   @prop({
     type: "image",
@@ -468,9 +494,11 @@ export class SaveImageFileImageNode extends BaseNode {
   declare overwrite: any;
 
   async process(): Promise<Record<string, unknown>> {
+    const fs = await loadNodeFsPromises();
+    const path = await loadNodePath();
     const folder = String(this.folder ?? ".");
     const filename = dateName(String(this.filename ?? "image.png"));
-    let p = filePath(path.resolve(folder, filename));
+    let p = await filePath(path.resolve(folder, filename));
     await fs.mkdir(path.dirname(p), { recursive: true });
 
     if (!this.overwrite) {
@@ -512,6 +540,7 @@ export class LoadImageAssetsNode extends BaseNode {
     name: { kind: "iteration", source: "__execution__", group: "items" },
     images: { kind: "single", source: "__execution__" }
   };
+  static readonly platforms = NODE_ONLY;
 
   @prop({
     type: "folder",
@@ -553,6 +582,7 @@ export class SaveImageNode extends BaseNode {
   };
   static readonly inlineFields = ["name"];
   static readonly inputFields = ["image"];
+  static readonly platforms = NODE_ONLY;
 
   @prop({
     type: "image",
@@ -624,6 +654,8 @@ export class SaveImageNode extends BaseNode {
     }
 
     // Fallback: write to filesystem
+    const fs = await loadNodeFsPromises();
+    const path = await loadNodePath();
     const folder = typeof this.folder === "string" ? this.folder : ".";
     const full = path.resolve(folder, name);
     await fs.mkdir(path.dirname(full), { recursive: true });
@@ -653,6 +685,7 @@ export class GetMetadataNode extends BaseNode {
   };
   static readonly inlineFields = [];
   static readonly inputFields = ["image"];
+  static readonly platforms = NODE_ONLY;
 
   @prop({
     type: "image",
@@ -673,6 +706,7 @@ export class GetMetadataNode extends BaseNode {
     const bytes = await imageBytesAsync(image, context);
     try {
       const sharp = await loadSharp();
+      if (!sharp) throw new Error(SHARP_UNAVAILABLE_MESSAGE);
       const md = await sharp(bytes).metadata();
       const formatMap: Record<string, string> = {
         jpeg: "JPEG",
@@ -2438,6 +2472,7 @@ export class PainterNode extends BaseNode {
   };
   static readonly inlineFields = ["mask_data"];
   static readonly inputFields = ["image"];
+  static readonly platforms = NODE_ONLY;
 
   @prop({
     type: "image",
@@ -2517,6 +2552,7 @@ export class PainterNode extends BaseNode {
       );
       try {
         const sharp = await loadSharp();
+        if (!sharp) throw new Error(SHARP_UNAVAILABLE_MESSAGE);
         const blank = await sharp({
           create: {
             width: w,
@@ -2548,6 +2584,7 @@ export class PainterNode extends BaseNode {
     // Re-encode the mask as PNG to normalize and pick up dimensions.
     try {
       const sharp = await loadSharp();
+      if (!sharp) throw new Error(SHARP_UNAVAILABLE_MESSAGE);
       const out = await sharp(maskBytes, { failOn: "none" })
         .png()
         .toBuffer();
@@ -2857,9 +2894,14 @@ const IMAGE_TRANSFORM_NODES = tagAsContentCard(
   ])
 );
 
-// Node-only nodes: filesystem I/O (Load/Save), provider/AI generation, the
-// Dawn-only Compositor, and the canvas editors. Tagged server so the browser
-// runner never tries to execute them client-side.
+// Non-browser nodes. `tagAsServer` declares node+workers+edge, but it skips any
+// class that already declares `static platforms` — the filesystem/sharp-bound
+// members below pin themselves to `NODE_ONLY` (they cannot run on the workers /
+// edge V8 isolates: no fs, no native addons). The pure-JS list nodes
+// (BatchToList, ImagesToList) and the provider/HTTP generation nodes
+// (TextToImage, ImageToImage, Upscale, RemoveBackground, Relight, Vectorize)
+// keep the full server set — they only touch sharp via metadataFor, which
+// degrades to undefined dimensions off-Node.
 const IMAGE_SERVER_NODES = tagAsServer([
   LoadImageFileNode,
   LoadImageFolderNode,
