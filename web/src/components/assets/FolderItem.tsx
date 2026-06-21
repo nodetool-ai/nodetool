@@ -93,7 +93,7 @@ const styles = (theme: Theme) =>
       top: 1,
       border: "none",
       color: theme.vars.palette.grey[400],
-      transition: "opacity 0.2s .2s ease"
+      transition: `opacity ${MOTION.normal} .2s`
     },
     ".delete-button:hover": {
       border: "none",

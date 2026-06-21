@@ -8,7 +8,7 @@ import useOnboardingStore, {
   type OnboardingStepId
 } from "../../stores/OnboardingStore";
 import { wrapStyles } from "./dashboardChrome";
-import { BORDER_RADIUS } from "../ui_primitives";
+import { BORDER_RADIUS, MOTION } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -41,7 +41,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       fontSize: 13,
       cursor: "pointer",
-      transition: "border-color 0.15s ease, color 0.15s ease",
+      transition: `border-color ${MOTION.fast}, color ${MOTION.fast}`,
       "&:hover": {
         borderColor: theme.vars.palette.action.focus,
         color: theme.vars.palette.text.primary

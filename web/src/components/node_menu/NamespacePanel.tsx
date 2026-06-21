@@ -21,7 +21,7 @@ const namespacePanelStyles = (theme: Theme) =>
       marginRight: "0.5em",
       marginLeft: "0.5em",
       position: "relative",
-      transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)"
+      transition: MOTION.all
     },
     "&.collapsed": {
       width: 0,

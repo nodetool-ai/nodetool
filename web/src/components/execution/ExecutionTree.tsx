@@ -18,7 +18,7 @@ import React, { memo, useMemo, useState, useCallback } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, FlexRow, FlexColumn, BORDER_RADIUS } from "../ui_primitives";
+import { Text, FlexRow, FlexColumn, BORDER_RADIUS, MOTION } from "../ui_primitives";
 import type {
   ExecutionTreeState,
   TaskState,
@@ -103,7 +103,7 @@ const treeStyles = (theme: Theme) =>
 
     "@media (prefers-reduced-motion: no-preference)": {
       ".tree-planning-entry, .tree-task, .tree-step, .tree-plan-header": {
-        animation: "treeItemEnter 220ms ease-out both"
+        animation: `treeItemEnter ${MOTION.normal} both`
       }
     },
 

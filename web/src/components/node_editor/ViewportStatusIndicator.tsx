@@ -166,7 +166,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
       userSelect: "none" as const,
       pointerEvents: shouldShowPanel ? ("auto" as const) : ("none" as const),
       opacity: shouldShowPanel ? 1 : 0,
-      transition: "opacity 0.2s ease-in-out"
+      transition: `opacity ${MOTION.normal}`
     }),
     [shouldShowPanel, theme.vars.palette.Paper.paper, theme.vars.palette.divider, theme.shadows]
   );

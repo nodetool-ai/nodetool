@@ -20,7 +20,7 @@ import useNamespaceTree from "../../hooks/useNamespaceTree";
 import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useCreateNode } from "../../hooks/useCreateNode";
-import { FlexColumn, FlexRow, Box, BORDER_RADIUS } from "../ui_primitives";
+import { FlexColumn, FlexRow, Box, BORDER_RADIUS, MOTION } from "../ui_primitives";
 import { useShallow } from "zustand/react/shallow";
 
 const treeStyles = (theme: Theme) =>
@@ -40,9 +40,8 @@ const treeStyles = (theme: Theme) =>
       boxShadow: "0 24px 48px rgba(0, 0, 0, 0.05), 0 8px 16px rgba(0,0,0,0.02)",
       backgroundColor: theme.vars.palette.background.paper,
       backdropFilter: theme.vars.palette.glass.blur,
-      transition:
-        "background-color 0.1s ease-out, box-shadow 0.1s ease-out, border-color 0.2s ease-out",
-      animation: "fadeIn 0.1s ease-out forwards"
+      transition: `background-color ${MOTION.fast}, box-shadow ${MOTION.fast}, border-color ${MOTION.normal}`,
+      animation: `fadeIn ${MOTION.fast} forwards`
     },
     "@keyframes fadeIn": {
       "0%": { opacity: 0 },

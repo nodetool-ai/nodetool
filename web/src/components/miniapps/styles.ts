@@ -273,7 +273,7 @@ export const createStyles = (theme: Theme) => {
       display: "flex",
       flexDirection: "column",
       gap: theme.spacing(1.5),
-      animation: "resultCardEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+      animation: `resultCardEnter ${MOTION.slow} forwards`,
       opacity: 0
     },
 

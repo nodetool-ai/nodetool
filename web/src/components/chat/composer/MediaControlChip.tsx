@@ -7,7 +7,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import { BORDER_RADIUS, FlexRow, Text } from "../../ui_primitives";
+import { BORDER_RADIUS, FlexRow, Text, MOTION } from "../../ui_primitives";
 
 interface MediaControlChipProps {
   /** Leading icon (e.g. clock, aspect, resolution). */
@@ -63,8 +63,7 @@ const createStyles = (theme: Theme, size: "sm" | "md", emphasis: "default" | "pr
     lineHeight: 1,
     cursor: "pointer",
     outline: "none",
-    transition:
-      "background-color 160ms ease, border-color 160ms ease, color 160ms ease",
+    transition: `background-color ${MOTION.normal}, border-color ${MOTION.normal}, color ${MOTION.normal}`,
     whiteSpace: "nowrap",
     flexShrink: truncate ? 1 : 0,
     minWidth: truncate ? 0 : undefined,
