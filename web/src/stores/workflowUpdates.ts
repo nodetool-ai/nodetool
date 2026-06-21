@@ -705,9 +705,7 @@ export const handleUpdate = (
       const runState = mapJobStatusToRunState(job.status);
       if (runState) {
         const runsStore = useWorkflowRunsStore.getState();
-        const known = runsStore
-          .getRuns(workflow.id)
-          .some((r) => r.jobId === job.job_id);
+        const known = runsStore.hasRun(workflow.id, job.job_id);
         if (!known) {
           runsStore.recordRun({
             jobId: job.job_id,
