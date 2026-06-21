@@ -22,6 +22,7 @@ import useResultsStore from "../stores/ResultsStore";
 import useStatusStore from "../stores/StatusStore";
 import useWorkflowRunsStore from "../stores/WorkflowRunsStore";
 import { useNotificationStore, type Notification } from "../stores/NotificationStore";
+import useAuth from "../stores/useAuth";
 import { createNodeStore, type NodeStore } from "../stores/NodeStore";
 import { handleUpdate, type MsgpackData } from "../stores/workflowUpdates";
 import type { WorkflowRunner, WorkflowRunnerStore } from "../stores/WorkflowRunner";
@@ -62,6 +63,16 @@ export function seedCastMetadata(metadata: Record<string, NodeMetadata>): void {
   store.setMetadata({ ...store.metadata, ...metadata });
 }
 
+/**
+ * Seed a placeholder logged-in user. Output/asset components (e.g. AssetViewer
+ * via useAssets) throw when no user is present; the demo has no real auth.
+ */
+function seedDemoAuth(): void {
+  if (useAuth.getState().user === null) {
+    useAuth.setState({ user: { id: "demo" }, state: "logged_in" });
+  }
+}
+
 /** Count of events whose timestamp is `<= timeMs` (events are sorted by `t`). */
 function countAppliedAt(events: CastEvent[], timeMs: number): number {
   // Linear scan is fine at demo scale (hundreds–low thousands of events) and
@@ -98,6 +109,7 @@ export class DemoEngine {
     // Metadata must be seeded before the node store is built so its graph
     // sanitization sees the real node shapes.
     seedCastMetadata(cast.metadata);
+    seedDemoAuth();
     this.nodeStore = createNodeStore(cast.workflow);
     this.pristineNodes = clone(this.nodeStore.getState().nodes);
     this.pristineEdges = clone(this.nodeStore.getState().edges);
