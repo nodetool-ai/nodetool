@@ -63,7 +63,7 @@ Each node does one thing.
 
 ### Node Structure
 
-![Node Anatomy](assets/screenshots/screenshot-placeholder.svg)
+![Node Anatomy](assets/screenshots/editor-node-canvas.png)
 
 - **Header** (top) - Name, drag to move
 - **Inputs** (left circles) - Data in
@@ -154,8 +154,6 @@ When you drag a connection and release on **empty space**, the **Connection Menu
 
 ### Watching Progress
 
-![Workflow Progress](assets/screenshots/screenshot-placeholder.svg)
-
 - **Streaming nodes** show output as it's generated
 - **Preview nodes** display intermediate results
 - **Node borders** indicate status (running, complete, error)
@@ -200,7 +198,7 @@ Suspended workflows are useful for:
 
 ### Missing Models
 
-![Missing Model Indicator](assets/screenshots/screenshot-placeholder.svg)
+![Missing Model Indicator](assets/screenshots/recommended-models.png)
 
 If a node needs an AI model you haven't installed:
 1. Click the **"Missing Model"** indicator on the node
@@ -213,13 +211,11 @@ If a node needs an AI model you haven't installed:
 
 ### Auto Layout
 
-![Auto Layout Before/After](assets/screenshots/screenshot-placeholder.svg)
+![Auto Layout Toolbar](assets/screenshots/editor-floating-toolbar.png)
 
 Click the **Auto Layout** button in the floating toolbar to automatically arrange your nodes in a clean, readable layout. The editor also auto-arranges nodes when Global Chat creates or modifies workflows. (There is no keyboard shortcut for auto-layout — it's a toolbar button only.)
 
 ### Grouping Nodes
-
-![Node Groups](assets/screenshots/screenshot-placeholder.svg)
 
 Select multiple nodes and press `Ctrl/⌘ + G` to group them. Groups:
 - Keep related nodes together
@@ -239,7 +235,7 @@ Select multiple nodes and press `Ctrl/⌘ + G` to group them. Groups:
 
 ### Multiple Workflows
 
-![Workflow Tabs](assets/screenshots/screenshot-placeholder.svg)
+![Workflow Tabs](assets/screenshots/editor-tabs-bar.png)
 
 - Open multiple workflows in **tabs** at the top
 - Switch with `Ctrl/⌘ + 1-9` or click the tab
@@ -250,8 +246,6 @@ Select multiple nodes and press `Ctrl/⌘ + G` to group them. Groups:
 Access these views by clicking icons on the left rail: **Nodes**, **Workflows**, **Sketches**, **Timelines**, **Settings**, **History**, **Favorites**, **Assets**, and **Agent**. See [Editor Panels → Left Panel](editor-panels.md#left-panel) for details on each.
 
 ### Right Panel (Inspector)
-
-![Inspector Panel](assets/screenshots/screenshot-placeholder.svg)
 
 Press `i` to toggle the **Inspector** panel, which shows:
 - Detailed properties for selected nodes
@@ -266,7 +260,7 @@ The right panel hosts only the Inspector. Logs, Queue, Trace, Version History, a
 
 ### The Node Menu
 
-![Node Menu Open](assets/screenshots/screenshot-placeholder.svg)
+![Node Menu Open](assets/screenshots/editor-node-menu.png)
 
 Press `Space` to open, then:
 
@@ -288,7 +282,7 @@ Get help on any node:
 
 ## Context Menus
 
-![Context Menu on Node](assets/screenshots/screenshot-placeholder.svg)
+![Context Menu](assets/screenshots/editor-context-menu.png)
 
 Right-click for options anywhere:
 
@@ -319,7 +313,7 @@ Click the edit icon on image outputs or properties to open the full-featured edi
 
 ### Color Picker
 
-![Color Picker Modal](assets/screenshots/screenshot-placeholder.svg)
+![Color Picker Modal](assets/screenshots/color-picker.png)
 
 The professional color picker appears when selecting colors in properties:
 
