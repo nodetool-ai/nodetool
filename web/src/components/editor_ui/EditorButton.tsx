@@ -15,6 +15,7 @@ import { useTheme } from "@mui/material/styles";
 import { useEditorScope } from "./EditorUiContext";
 import { editorClassNames, cn } from "./editorUtils";
 
+import { BORDER_RADIUS } from "../ui_primitives";
 export interface EditorButtonProps extends Omit<ButtonProps, "size"> {
   /**
    * Density variant
@@ -64,7 +65,7 @@ export const EditorButton = forwardRef<HTMLButtonElement, EditorButtonProps>(
           height: size ? undefined : height,
           minWidth: "auto",
           padding: "4px 8px",
-          borderRadius: "var(--rounded-md)",
+          borderRadius: BORDER_RADIUS.md,
           textTransform: "none",
           ...sx
         }}

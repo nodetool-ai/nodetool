@@ -34,4 +34,4 @@ Shifts the pitch of an audio file without changing its duration.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.audio](../) namespace.
+Browse other nodes in the [lib.audio](./) namespace.

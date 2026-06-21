@@ -35,4 +35,4 @@ Applies a high shelf filter to boost or cut high frequencies.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.audio](../) namespace.
+Browse other nodes in the [lib.audio](./) namespace.

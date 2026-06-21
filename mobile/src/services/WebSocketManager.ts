@@ -74,6 +74,7 @@ export class WebSocketManager {
       reconnectDecay: config.reconnectDecay ?? 1.5,
       reconnectAttempts: config.reconnectAttempts ?? 10,
       timeoutInterval: config.timeoutInterval ?? 30000,
+      headers: config.headers ?? {},
     };
   }
 
@@ -353,7 +354,14 @@ export class WebSocketManager {
       this.connectionRejector = reject;
 
       try {
-        this.ws = new WebSocket(this.config.url);
+        // React Native's WebSocket accepts a third `options.headers` argument
+        // on native platforms; this is how we pass `Authorization` so the auth
+        // token never appears in the URL. Headers are ignored on web, where the
+        // server's `?api_key=` fallback would be needed instead.
+        const hasHeaders = Object.keys(this.config.headers).length > 0;
+        this.ws = hasHeaders
+          ? new WebSocket(this.config.url, undefined, { headers: this.config.headers })
+          : new WebSocket(this.config.url);
         // Set binary type for msgpack
         this.ws.binaryType = 'arraybuffer';
         this.setupEventHandlers();

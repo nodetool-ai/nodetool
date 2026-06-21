@@ -30,4 +30,4 @@ Retrieve all blocks (content) of a Notion page.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.notion](../) namespace.
+Browse other nodes in the [lib.notion](./) namespace.

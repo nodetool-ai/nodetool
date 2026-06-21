@@ -30,4 +30,4 @@ HTML-escape, trim, and lowercase/normalise a string. Also emits the normalised e
 
 ## Related Nodes
 
-Browse other nodes in the [lib.validate](../) namespace.
+Browse other nodes in the [lib.validate](./) namespace.

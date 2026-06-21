@@ -86,7 +86,27 @@ const styles = (theme: Theme) =>
     }
   });
 
-const DashboardTemplates: React.FC = () => {
+// In full-page (/examples) mode the section owns the viewport and scrolls,
+// rather than flowing inline among the dashboard's other sections.
+const fullPageStyles = css({
+  flex: 1,
+  minHeight: 0,
+  overflowY: "auto",
+  paddingTop: 24,
+  paddingBottom: 32
+});
+
+interface DashboardTemplatesProps {
+  /**
+   * Render as the standalone /examples page: show every example (no cap),
+   * own the scroll, and drop the dashboard-only "Browse all"/"More…" links.
+   */
+  fullPage?: boolean;
+}
+
+const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
+  fullPage = false
+}) => {
   const theme = useTheme();
   const loadTemplates = useWorkflowManager((state) => state.loadTemplates);
   const { handleExampleClick, handleViewAllTemplates, loadingExampleId } =
@@ -152,14 +172,15 @@ const DashboardTemplates: React.FC = () => {
     });
   }, [allTemplates, category, query]);
 
-  const visible = filtered.slice(0, MAX_VISIBLE);
-  const countLabel =
-    query.trim() || category !== "all"
+  const visible = fullPage ? filtered : filtered.slice(0, MAX_VISIBLE);
+  const countLabel = fullPage
+    ? `${filtered.length} example${filtered.length === 1 ? "" : "s"}`
+    : query.trim() || category !== "all"
       ? `${filtered.length} match${filtered.length === 1 ? "" : "es"}`
       : `hand-picked · ${Math.min(filtered.length, MAX_VISIBLE)}`;
 
   return (
-    <section css={styles(theme)}>
+    <section css={fullPage ? [styles(theme), fullPageStyles] : styles(theme)}>
       <div css={wrapStyles(theme)}>
         <SectionHeader title="Start from a template" count={countLabel}>
           <DashboardSearchBox
@@ -170,7 +191,11 @@ const DashboardTemplates: React.FC = () => {
             kbd="/"
             aria-label="Search templates"
           />
-          <SectionLink onClick={handleViewAllTemplates}>Browse all</SectionLink>
+          {!fullPage && (
+            <SectionLink onClick={handleViewAllTemplates}>
+              Browse all
+            </SectionLink>
+          )}
         </SectionHeader>
 
         <div className="cats">
@@ -206,9 +231,15 @@ const DashboardTemplates: React.FC = () => {
               </button>
             );
           })}
-          <button type="button" className="cat" onClick={handleViewAllTemplates}>
-            More…
-          </button>
+          {!fullPage && (
+            <button
+              type="button"
+              className="cat"
+              onClick={handleViewAllTemplates}
+            >
+              More…
+            </button>
+          )}
         </div>
 
         {isLoading ? (

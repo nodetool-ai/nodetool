@@ -28,4 +28,4 @@ Get the frames per second (FPS) of a video file.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.video](../) namespace.
+Browse other nodes in the [nodetool.video](./) namespace.

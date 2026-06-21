@@ -32,4 +32,4 @@ Converts PDF, DOCX, or HTML to markdown text.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.convert](../) namespace.
+Browse other nodes in the [lib.convert](./) namespace.

@@ -39,4 +39,4 @@ Deconstructs a chat message object into its individual fields.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.input](../) namespace.
+Browse other nodes in the [nodetool.input](./) namespace.

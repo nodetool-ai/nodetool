@@ -39,4 +39,4 @@ Extracts named entities and parts of speech using compromise.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.nlp](../) namespace.
+Browse other nodes in the [lib.nlp](./) namespace.

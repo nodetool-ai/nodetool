@@ -1,6 +1,7 @@
 ---
 layout: page
 title: "Storage Guide"
+description: "How NodeTool stores assets, workflow artifacts, and temporary files through pluggable backends (in-memory, local disk, S3)."
 ---
 
 
@@ -12,7 +13,7 @@ NodeTool stores user assets, workflow artifacts, and temporary files through plu
 | Backend | Module | When it is used | Notes |
 |---------|--------|-----------------|-------|
 | In-memory | `@nodetool-ai/storage` / `src/memory-storage.ts` | Tests | Keeps data in process-local dictionaries. |
-| Local filesystem | `@nodetool-ai/storage` / `src/file-storage.ts` | Default for development when no cloud storage is configured | Stores assets under `Environment.get_asset_folder()` (defaults to `~/.config/nodetool/assets`). URLs are served via the API (`/storage/*`). |
+| Local filesystem | `@nodetool-ai/storage` / `src/file-storage.ts` | Default for development when no cloud storage is configured | Stores assets under `getDefaultAssetsPath()` (`@nodetool-ai/config` / `src/paths.ts`), which defaults to `~/.local/share/nodetool/assets` (XDG; `%APPDATA%\nodetool\assets` on Windows). Override with `ASSET_FOLDER` or `STORAGE_PATH`. URLs are served via the API (`/storage/*`). |
 | Supabase Storage | `@nodetool-ai/storage` / `src/supabase-storage.ts` | When `SUPABASE_URL` and `SUPABASE_KEY` are set | Uses a Supabase bucket for asset storage. Public buckets are recommended for direct URLs. |
 | Amazon S3 / S3-compatible | `@nodetool-ai/storage` / `src/s3-storage.ts` | Production, or when `S3_ACCESS_KEY_ID` or `S3_SECRET_ACCESS_KEY` are provided | Requires `S3_*` environment variables and optional custom endpoint for MinIO/Wasabi. |
 
@@ -25,7 +26,7 @@ Passing `use_s3: true` when obtaining asset storage forces S3 even in developmen
 | `ASSET_BUCKET` | Bucket name (S3) or Supabase Storage bucket name, or folder name (local). |
 | `ASSET_DOMAIN` | Public domain serving assets (S3 only). Not used for Supabase. |
 | `ASSET_TEMP_BUCKET` / `ASSET_TEMP_DOMAIN` | Optional separate bucket for temporary assets. |
-| `FONT_PATH`, `COMFY_FOLDER`, `VECTORSTORE_DB_PATH` | Additional paths for specific nodes (registered in `@nodetool-ai/websocket` / `src/settings-api.ts`). |
+| `FONT_PATH`, `COMFY_FOLDER`, `VECTORSTORE_DB_PATH` | Additional paths for specific nodes (registered in `@nodetool-ai/websocket` / `src/settings-registry.ts`). |
 
 For S3-compatible services, set:
 
@@ -39,7 +40,7 @@ For S3-compatible services, set:
 Temp storage returns a location for scratch files, mirroring asset storage:
 
 - Memory storage in tests.
-- Local filesystem under `~/.config/nodetool/temp`.
+- Local filesystem under the NodeTool data dir (`~/.local/share/nodetool/temp`; `%APPDATA%\nodetool\temp` on Windows).
 - Supabase bucket when `SUPABASE_URL`/`SUPABASE_KEY` and `ASSET_TEMP_BUCKET` are set.
 - S3 bucket when configured.
 
@@ -81,10 +82,11 @@ Memoisation is wired up inside `ProcessingContext` (`@nodetool-ai/runtime` / `sr
 
 ## Accessing Storage in Workflows
 
-Workflows interact with storage through the `ProcessingContext` helper:
+Workflows interact with storage through `ProcessingContext` (`@nodetool-ai/runtime` / `src/context.ts`):
 
-- `ProcessingContext.asset_url(key)` (`@nodetool-ai/runtime` / `src/context.ts`) -- returns a public URL for an asset.
-- `ProcessingContext.download_asset(asset, stream)` (`@nodetool-ai/runtime` / `src/context.ts`) -- streams asset contents.
+- `resolveAssetBytes(assetId)` -- loads the raw bytes for an asset.
+- `assetsToStorageUrl(value)` -- rewrites asset references in a value to storage URLs.
+- `downloadFile(url)` -- fetches file contents from a URL.
 - NodeTool automatically mounts the asset folder into Docker and subprocess execution strategies so nodes can access assets on disk.
 
 ## Deployment Considerations
@@ -98,7 +100,7 @@ Workflows interact with storage through the `ProcessingContext` helper:
 - **Missing asset URLs** – confirm `ASSET_DOMAIN` or `NODETOOL_API_URL` is set; the API uses these to build absolute URLs.
 - **S3 authentication errors** – verify credentials and endpoint configuration in settings/secrets; run `nodetool settings show --secrets`.
 - **Local file permissions** – ensure the configured asset folder is writable by the user running the service (especially in Docker).
-- **Docker jobs cannot access assets** – mount the asset directory into the server container and ensure `Environment.get_asset_folder()` points to the mounted path.
+- **Docker jobs cannot access assets** – mount the asset directory into the server container and ensure the assets path (`getDefaultAssetsPath()`, overridable via `ASSET_FOLDER`/`STORAGE_PATH`) points to the mounted path.
 
 ## Related Documentation
 

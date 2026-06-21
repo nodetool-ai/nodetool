@@ -10,6 +10,8 @@ import {
   drizzle as drizzleSqlite,
   type BetterSQLite3Database
 } from "drizzle-orm/better-sqlite3";
+import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import type { Sql } from "postgres";
 import * as schema from "./schema/index.js";
 import * as pgSchema from "./schema-pg/index.js";
 import {
@@ -19,11 +21,19 @@ import {
 
 export type DbDialect = "sqlite" | "postgres";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- union of BetterSQLite3Database and PostgresJsDatabase
-let _db: any = null;
+/**
+ * A Drizzle database instance backed by either SQLite (better-sqlite3) or
+ * PostgreSQL (postgres.js). The two dialects expose the same query-builder
+ * surface (`select`/`insert`/`update`/`delete`), so callers can work with
+ * either transparently.
+ */
+export type NodetoolDatabase =
+  | BetterSQLite3Database<typeof schema>
+  | PostgresJsDatabase<typeof pgSchema>;
+
+let _db: NodetoolDatabase | null = null;
 let _sqlite: Database.Database | null = null;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- postgres.js Sql instance
-let _pgClient: any = null;
+let _pgClient: Sql | null = null;
 let _dbType: DbDialect = "sqlite";
 
 /**
@@ -109,16 +119,18 @@ export function initTestDb(): BetterSQLite3Database<typeof schema> {
 
 /**
  * Get the current database instance.
- * Returns `any` so callers work transparently with both SQLite and PostgreSQL.
- * Throws if not initialized.
+ *
+ * Typed as the SQLite query builder because the two dialects expose the same
+ * `select`/`insert`/`update`/`delete` surface and the model layer is written
+ * against it (a PostgreSQL connection returns the same API, with promises that
+ * the existing `await`s resolve transparently). Throws if not initialized.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function getDb(): any {
+export function getDb(): BetterSQLite3Database<typeof schema> {
   if (!_db)
     throw new Error(
       "Database not initialized. Call initDb() or initPostgresDb() first."
     );
-  return _db;
+  return _db as BetterSQLite3Database<typeof schema>;
 }
 
 /**
@@ -138,6 +150,27 @@ export function getRawDb(): Database.Database {
       "SQLite database not initialized. Raw access is only available for SQLite."
     );
   return _sqlite;
+}
+
+/**
+ * Verify the database connection is alive with a lightweight query.
+ * Dialect-aware: runs `select 1` over the PostgreSQL client, or a
+ * `quick_check` pragma against the SQLite connection. Throws if the
+ * database is not initialized or the check fails.
+ */
+export async function pingDb(): Promise<void> {
+  if (!_db)
+    throw new Error(
+      "Database not initialized. Call initDb() or initPostgresDb() first."
+    );
+  if (_dbType === "postgres") {
+    if (!_pgClient) throw new Error("PostgreSQL client not initialized.");
+    await _pgClient`select 1`;
+    return;
+  }
+  if (!_sqlite) throw new Error("SQLite database not initialized.");
+  // Fast integrity check — just verifies the connection is alive.
+  _sqlite.pragma("quick_check(1)");
 }
 
 /**
@@ -790,6 +823,34 @@ function getCreateSchemaSql(): string {
     CREATE INDEX IF NOT EXISTS "idx_image_document_user" ON "image_documents" ("user_id");
     CREATE INDEX IF NOT EXISTS "idx_image_document_project" ON "image_documents" ("project_id");
     CREATE INDEX IF NOT EXISTS "idx_image_document_updated" ON "image_documents" ("updated_at");
+    CREATE TABLE IF NOT EXISTS "worker_profiles" (
+      "id" text PRIMARY KEY NOT NULL,
+      "name" text NOT NULL,
+      "target" text NOT NULL,
+      "image" text NOT NULL,
+      "spec" text NOT NULL,
+      "token_policy" text NOT NULL,
+      "idle_timeout_minutes" integer,
+      "max_lifetime_minutes" integer,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_worker_profiles_name" ON "worker_profiles" ("name");
+    CREATE TABLE IF NOT EXISTS "worker_instances" (
+      "id" text PRIMARY KEY NOT NULL,
+      "profile_name" text NOT NULL,
+      "target" text NOT NULL,
+      "provider_ref" text NOT NULL,
+      "ws_url" text NOT NULL,
+      "encrypted_token" text,
+      "status" text NOT NULL,
+      "attached_to" text,
+      "created_at" text NOT NULL,
+      "last_activity_at" text NOT NULL,
+      "estimated_cost_usd" real
+    );
+    CREATE INDEX IF NOT EXISTS "idx_worker_instances_status" ON "worker_instances" ("status");
+    CREATE INDEX IF NOT EXISTS "idx_worker_instances_profile_name" ON "worker_instances" ("profile_name");
   `;
 }
 

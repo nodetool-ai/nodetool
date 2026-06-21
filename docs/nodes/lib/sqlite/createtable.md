@@ -39,4 +39,4 @@ Create a new SQLite table with specified columns.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.sqlite](../) namespace.
+Browse other nodes in the [lib.sqlite](./) namespace.

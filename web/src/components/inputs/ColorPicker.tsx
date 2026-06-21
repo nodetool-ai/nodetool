@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useState, useRef } from "react";
 import { Popover, Button } from "@mui/material";
-import { Tooltip, MOTION } from "../ui_primitives";
+import { Tooltip, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { colorPickerColors } from "../../constants/colors";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { ColorPickerModal } from "../color_picker";
@@ -20,7 +20,7 @@ const styles = (theme: Theme) =>
       justifyContent: "center"
     },
     ".open-colors-button": {
-      borderRadius: "var(--rounded-circle)",
+      borderRadius: BORDER_RADIUS.circle,
       backgroundColor: "transparent",
       border: `1px solid ${theme.vars.palette.grey[600] || "rgba(100, 100, 100, 0.75)"}`,
       padding: 0,
@@ -45,7 +45,7 @@ const colorMatrixStyle = (theme: Theme) =>
     width: "100%",
     maxWidth: "300px",
     ".pick-color-button": {
-      borderRadius: "var(--rounded-circle)",
+      borderRadius: BORDER_RADIUS.circle,
       border: `1px solid ${theme.vars.palette.grey[900] || "rgba(0, 0, 0, 0.75)"}`,
       minWidth: "unset",
       minHeight: "unset",
@@ -179,7 +179,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
                 ? { 'data-color-null': 'true' }
                 : { 'data-color': cellColor })}
               sx={{
-                borderRadius: "var(--rounded-circle)",
+                borderRadius: BORDER_RADIUS.circle,
                 cursor: "pointer",
                 "&:hover": {
                   transform: "scale(1.1)"

@@ -122,7 +122,7 @@ The graph is a DAG — data flows one way, no cycles. The runner schedules the o
 
 | Component | Role |
 |-----------|------|
-| **Graph** | Nodes + connections. Build with `graph()`, execute with `run_graph()`. |
+| **Graph** | Nodes + connections. Build with `workflow(...)`, execute with `run(...)` or `runGraph(...)` (`@nodetool-ai/dsl` `packages/dsl/src/core.ts`). |
 | **DSL** | [TypeScript DSL](developer/ts-dsl-guide.md) (`@nodetool-ai/dsl`) — typed factories for building graphs in code. |
 | **WorkflowRunner** | The runner. Schedules nodes, manages GPU, streams progress. |
 | **ProcessingContext** | Runtime — user, auth, assets, cache (`@nodetool-ai/runtime`). |

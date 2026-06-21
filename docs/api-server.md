@@ -1,6 +1,7 @@
 ---
 layout: page
 title: "API Server Overview"
+description: "The unified NodeTool HTTP + WebSocket server — REST routes, workflow execution, and OpenAI-compatible `/v1` endpoints."
 ---
 
 
@@ -15,11 +16,10 @@ The server is implemented in the `@nodetool-ai/websocket` package (`packages/web
 - **`unified-websocket-runner.ts`** – Handles WebSocket connections for workflow execution and chat.
 - **`http-api.ts`** – Core REST API routes (workflows, jobs, assets, etc.).
 - **`models-api.ts`** – Model management and provider registration.
-- **`settings-api.ts`** – Settings and configuration endpoints.
+- **`settings-registry.ts`** – Settings and configuration handling.
 - **`storage-api.ts`** – File upload and asset storage endpoints.
 - **`mcp-server.ts`** – Model Context Protocol (MCP) server integration.
-- **`openai-api.ts`** – OpenAI-compatible `/v1/chat/completions` endpoint.
-- **`debug-api.ts`** – Debug endpoints (local development only).
+- **`openai-api.ts`** – OpenAI-compatible `/v1/chat/completions` and `/v1/models` endpoints.
 
 ## Running the Server
 
@@ -62,6 +62,18 @@ The server is configured via environment variables:
 GET /health
 ```
 
-Returns `200 OK` with `{ status: "ok" }` when the server is ready.
+Returns `200 OK` when healthy (`503` when degraded) with a JSON body:
 
-For mode and deployment setup, see [Deployment Guide](deployment.md) and [Authentication](authentication.md#authentication-providers).
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-06-20T00:00:00.000Z",
+  "uptime": 123,
+  "services": { "database": "ok", "server": "ok" }
+}
+```
+
+`GET /ready` is a simple liveness probe (always `200` with `{ "status": "ok" }`),
+and `GET /api/health` returns `{ version, uptime }`. None require authentication.
+
+For deployment setup, see [Deployment Guide](deployment.md) and [Authentication](authentication.md#authentication-providers).

@@ -34,4 +34,4 @@ Pass items through while a predicate is truthy. Stops at the first failure.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.control](../) namespace.
+Browse other nodes in the [nodetool.control](./) namespace.

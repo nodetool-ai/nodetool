@@ -12,7 +12,6 @@ namespace: "nodetool.constant"
 ## Description
 
 Base class for fixed-value nodes.
-
     constant, parameter, default
 
     Use cases:
@@ -30,4 +29,4 @@ _(none)_
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.constant](../) namespace.
+Browse other nodes in the [nodetool.constant](./) namespace.

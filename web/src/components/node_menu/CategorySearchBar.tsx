@@ -6,7 +6,7 @@ import { forwardRef, memo, useCallback } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 
-import { ToolbarIconButton, MOTION } from "../ui_primitives";
+import { ToolbarIconButton, MOTION, BORDER_RADIUS } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -15,7 +15,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: theme.spacing(1),
       padding: theme.spacing(1, 1),
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       background: theme.vars.palette.background.paper,
       border: `1px solid ${theme.vars.palette.divider}`,
       transition: `border-color ${MOTION.fast}`,

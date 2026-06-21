@@ -156,8 +156,7 @@
           "title": "Final color adjust"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "3",
@@ -178,8 +177,7 @@
           "title": "Brightness/Contrast"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "4",
@@ -209,8 +207,7 @@
           "title": "Image-to-image polish"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "5",
@@ -238,8 +235,7 @@
           "title": "Product image"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "6",
@@ -261,14 +257,13 @@
           "title": "Generate scene prompts"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "7",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "\nConvert these scene concepts into image generation prompts.\n\nScene Concepts: {{ scenes }}\nProduct: {{ name }} - {{ description }}\n\nFor each scene, create a detailed image prompt that:\n- Describes the complete scene with the product\n- Specifies lighting (soft, dramatic, natural, studio)\n- Includes realistic shadows and reflections\n- Mentions surface materials and textures\n- Uses professional product photography style\n\nOutput format: One complete prompt per line, no numbering.\nMake each prompt suitable for high-quality product photography.\n"
+          "prompt": "\nConvert these scene concepts into image generation prompts.\n\nScene Concepts: {{ scenes }}\nProduct: {{ name }} - {{ description }}\n\nFor each scene, create a detailed image prompt that:\n- Describes the complete scene with the product\n- Specifies lighting (soft, dramatic, natural, studio)\n- Includes realistic shadows and reflections\n- Mentions surface materials and textures\n- Uses professional product photography style\n\nOutput format: One complete prompt per line, no numbering.\nMake each prompt suitable for high-quality product photography.\n"
         },
         "ui_properties": {
           "position": {
@@ -286,8 +281,7 @@
           "name": null,
           "description": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "8",
@@ -325,14 +319,13 @@
           "title": "Scene concept agent"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "9",
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "\nYou are a product photography director.\n\nProduct: {{ name }}\nDescription: {{ description }}\nTarget Audience: {{ audience }}\n\nCreate {{ count }} unique scene concepts for product photography mockups.\n\nInclude a variety of settings:\n- Studio shots (clean backgrounds, professional lighting)\n- Lifestyle scenes (product in use)\n- Environmental/outdoor settings\n- Flat lay compositions\n- Detail/close-up angles\n\nFor each scene, describe:\n1. Setting/environment\n2. Lighting style\n3. Props and complementary elements\n4. Mood/atmosphere\n5. Camera angle suggestion\n\nOutput format: Return each complete scene description on a separate line, no numbering.\n"
+          "prompt": "\nYou are a product photography director.\n\nProduct: {{ name }}\nDescription: {{ description }}\nTarget Audience: {{ audience }}\n\nCreate {{ count }} unique scene concepts for product photography mockups.\n\nInclude a variety of settings:\n- Studio shots (clean backgrounds, professional lighting)\n- Lifestyle scenes (product in use)\n- Environmental/outdoor settings\n- Flat lay compositions\n- Detail/close-up angles\n\nFor each scene, describe:\n1. Setting/environment\n2. Lighting style\n3. Props and complementary elements\n4. Mood/atmosphere\n5. Camera angle suggestion\n\nOutput format: Return each complete scene description on a separate line, no numbering.\n"
         },
         "ui_properties": {
           "position": {
@@ -351,8 +344,7 @@
           "audience": null,
           "count": null
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "10",
@@ -374,8 +366,7 @@
           "title": "Product name"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "11",
@@ -397,8 +388,7 @@
           "title": "Product description"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "12",
@@ -420,8 +410,7 @@
           "title": "Target audience"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "13",
@@ -445,8 +434,7 @@
           "title": "Scene count"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "15",
@@ -474,8 +462,7 @@
           "title": "Render mockups"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ]
   },

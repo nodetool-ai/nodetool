@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useEffect, useRef, useCallback } from "react";
 import { ListItem, ListItemButton } from "@mui/material";
-import { Text, Caption, Box, ListGroup } from "../ui_primitives";
+import { Text, Caption, Box, ListGroup, BORDER_RADIUS } from "../ui_primitives";
 import SearchIcon from "@mui/icons-material/Search";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
@@ -24,7 +24,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       backgroundColor: theme.vars.palette.background.paper,
-      borderRadius: "var(--rounded-xl)",
+      borderRadius: BORDER_RADIUS.xl,
       boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
       border: `1px solid ${theme.vars.palette.divider}`,
       animation: "fadeIn 0.15s ease-out forwards",
@@ -57,7 +57,7 @@ const styles = (theme: Theme) =>
       padding: "8px 12px",
       fontSize: "var(--fontSizeNormal)",
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       backgroundColor: theme.vars.palette.background.default,
       color: theme.vars.palette.text.primary,
       outline: "none",
@@ -144,7 +144,7 @@ const styles = (theme: Theme) =>
       minWidth: "28px",
       height: "28px",
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.background.default,
       color: theme.vars.palette.text.secondary,
       cursor: "pointer",

@@ -20,7 +20,7 @@ Extracts a section of an audio file.
 |----------|------|-------------|---------|
 | audio | `audio` | The audio file. | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 | start | `float` | The start time in seconds. | `0` |
-| end | `float` | The end time in seconds. | `1` |
+| end | `float` | The end time in seconds. 0 or less slices to the end. | `1` |
 
 ## Outputs
 
@@ -30,4 +30,4 @@ Extracts a section of an audio file.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.audio](../) namespace.
+Browse other nodes in the [nodetool.audio](./) namespace.

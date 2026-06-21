@@ -6,7 +6,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Tooltip, Text, CloseButton, MOTION, SPACING } from "../ui_primitives";
+import { Tooltip, Text, CloseButton, MOTION, SPACING, BORDER_RADIUS } from "../ui_primitives";
 import AudioFileIcon from "@mui/icons-material/AudioFile";
 import isEqual from "fast-deep-equal";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
@@ -38,7 +38,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       width: "100%",
       backgroundColor: `rgba(0, 0, 0, 0.2)`,
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       transition: MOTION.all,
@@ -104,7 +104,7 @@ const styles = (theme: Theme) =>
       outline: `1px dashed ${theme.vars.palette.grey[600]}`,
       margin: `${theme.spacing(SPACING.sm)} 0`,
       backgroundColor: `rgba(0, 0, 0, 0.2)`,
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       display: "flex",
       alignItems: "center",
       justifyContent: "center",

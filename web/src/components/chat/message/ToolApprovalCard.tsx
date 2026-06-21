@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { EditorButton } from "../../editor_ui";
-import { Caption, FlexColumn, FlexRow, Text } from "../../ui_primitives";
+import { Caption, FlexColumn, FlexRow, Text, BORDER_RADIUS } from "../../ui_primitives";
 import { formatToolName } from "../../../utils/formatUtils";
 import type { ApprovalDecision } from "../../../stores/GlobalChatStore";
 
@@ -20,7 +20,7 @@ interface ToolApprovalCardProps {
 const styles = (theme: Theme) =>
   css({
     border: `1px solid ${theme.vars.palette.warning.main}66`,
-    borderRadius: "var(--rounded-lg)",
+    borderRadius: BORDER_RADIUS.lg,
     background: `rgb(${theme.vars.palette.warning.mainChannel} / 0.06)`,
     padding: theme.spacing(3, 4),
     ".approval-tool": {
@@ -30,7 +30,7 @@ const styles = (theme: Theme) =>
     ".approval-args": {
       margin: 0,
       padding: theme.spacing(2, 3),
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       background: theme.vars.palette.grey[900],
       border: `1px solid ${theme.vars.palette.grey[800]}`,
       color: theme.vars.palette.grey[200],

@@ -35,4 +35,4 @@ namespace: "nodetool.triggers"
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.triggers](../) namespace.
+Browse other nodes in the [nodetool.triggers](./) namespace.

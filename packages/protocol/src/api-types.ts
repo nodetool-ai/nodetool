@@ -856,6 +856,9 @@ export const PROVIDER_IDS = {
   // Codex OAuth token and the chatgpt.com Codex backend).
   CODEX: "codex",
   ANTHROPIC: "anthropic",
+  // Claude via the Claude Agent SDK / `claude` CLI (no API key — uses the
+  // machine's logged-in Claude subscription, spawning the CLI as a subprocess).
+  CLAUDE_AGENT_SDK: "claude_agent_sdk",
   GEMINI: "gemini",
   GROQ: "groq",
   MISTRAL: "mistral",

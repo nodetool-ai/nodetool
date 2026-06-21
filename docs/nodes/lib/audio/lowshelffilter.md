@@ -35,4 +35,4 @@ Applies a low shelf filter to boost or cut low frequencies.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.audio](../) namespace.
+Browse other nodes in the [lib.audio](./) namespace.

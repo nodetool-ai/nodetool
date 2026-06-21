@@ -1,8 +1,8 @@
 {
   "id": "",
   "access": "private",
-  "created_at": "2026-05-06T18:08:15.970Z",
-  "updated_at": "2026-05-06T19:01:42.996Z",
+  "created_at": "2026-06-20T20:37:16.758Z",
+  "updated_at": "2026-06-20T20:47:57.446Z",
   "name": "Creative Story Ideas",
   "tool_name": null,
   "description": "A beginner-friendly template demonstrating core NodeTool concepts: inputs, templates, LLM agents, streaming, and outputs. Generate creative story ideas based on your preferences.",
@@ -18,44 +18,33 @@
   "graph": {
     "edges": [
       {
-        "id": "edge_genre_to_format",
-        "source": "input_genre",
-        "sourceHandle": "output",
-        "target": "format_prompt",
-        "targetHandle": "GENRE",
-        "ui_properties": {
-          "className": "str"
-        },
-        "edge_type": "data"
-      },
-      {
-        "id": "edge_character_to_format",
+        "id": "9afc4cec-d75c-4e96-bd12-a59e1daddfdd",
         "source": "input_character",
         "sourceHandle": "output",
-        "target": "format_prompt",
-        "targetHandle": "CHARACTER",
+        "target": "8132bc91-b872-4976-8bbf-b3548eff3b06",
+        "targetHandle": "character",
         "ui_properties": {
           "className": "str"
         },
         "edge_type": "data"
       },
       {
-        "id": "edge_template_to_format",
-        "source": "template_constant",
-        "sourceHandle": "output",
-        "target": "format_prompt",
-        "targetHandle": "template",
-        "ui_properties": {
-          "className": "str"
-        },
-        "edge_type": "data"
-      },
-      {
-        "id": "edge_format_to_generator",
-        "source": "format_prompt",
+        "id": "13e055f9-e4f9-4b71-993b-5bb05322a880",
+        "source": "8132bc91-b872-4976-8bbf-b3548eff3b06",
         "sourceHandle": "output",
         "target": "list_generator",
         "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "4db2e527-5002-4cf9-a2c5-7ebfac318164",
+        "source": "input_genre",
+        "sourceHandle": "output",
+        "target": "8132bc91-b872-4976-8bbf-b3548eff3b06",
+        "targetHandle": "genre",
         "ui_properties": {
           "className": "str"
         },
@@ -82,8 +71,7 @@
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "input_genre",
@@ -94,9 +82,10 @@
           "value": "Fantasy"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 50,
-            "y": 852
+            "y": 85
           },
           "zIndex": 0,
           "width": 280,
@@ -105,8 +94,7 @@
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "input_character",
@@ -117,9 +105,10 @@
           "value": "Reluctant Hero"
         },
         "ui_properties": {
+          "selected": false,
           "position": {
             "x": 50,
-            "y": 403
+            "y": 365
           },
           "zIndex": 0,
           "width": 280,
@@ -128,75 +117,59 @@
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "template_constant",
-        "type": "nodetool.constant.String",
-        "data": {
-          "value": "Generate 5 creative story ideas with the following criteria:\n\nGenre: {{GENRE}}\nMain Character: {{CHARACTER}}\n\nFor each story idea, provide:\n1. A catchy title\n2. A two-sentence premise\n3. One unique twist or hook\n\nMake each idea distinct and engaging!"
-        },
-        "ui_properties": {
-          "position": {
-            "x": 50,
-            "y": 50
-          },
-          "zIndex": 0,
-          "width": 280,
-          "height": 263,
-          "title": "📝 Prompt template",
-          "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "format_prompt",
-        "type": "nodetool.text.FormatText",
-        "data": {},
-        "ui_properties": {
-          "position": {
-            "x": 390,
-            "y": 450
-          },
-          "zIndex": 0,
-          "width": 280,
-          "title": "3️⃣ Fill template",
-          "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {
-          "GENRE": "",
-          "CHARACTER": "",
-          "SETTING": ""
-        },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "list_generator",
         "type": "nodetool.generators.ListGenerator",
         "data": {
-          "model": {},
+          "model": {
+            "type": "language_model",
+            "id": "",
+            "provider": "",
+            "name": ""
+          },
           "max_tokens": 2048
         },
         "ui_properties": {
+          "selected": false,
           "position": {
-            "x": 700,
-            "y": 428
+            "x": 740,
+            "y": 65
           },
           "zIndex": 0,
-          "width": 280,
+          "width": 405,
+          "height": 449,
           "title": "4️⃣ Generate 5 ideas",
           "selectable": true,
           "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "8132bc91-b872-4976-8bbf-b3548eff3b06",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "Generate 5 creative story ideas with the following criteria:\n\nGenre: {{ genre }}\nMain Character: {{ character }}\n\nFor each story idea, provide:\n1. A catchy title\n2. A two-sentence premise\n3. One unique twist or hook\n\nMake each idea distinct and engaging!"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 390,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 320,
+          "height": 449,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "genre": "",
+          "character": ""
+        },
+        "dynamic_outputs": {}
       }
     ]
   },
@@ -210,5 +183,5 @@
   "required_providers": null,
   "required_models": null,
   "html_app": null,
-  "etag": "923f8f75f5e8c3d39c58c9a6f98597c3"
+  "etag": "7257ac13540fb7071a32ea91226d7c8e"
 }

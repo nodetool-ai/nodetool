@@ -36,7 +36,7 @@ const treeStyles = (theme: Theme) =>
       zIndex: 20000,
       // Glassmorphism container
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: "var(--rounded-xxl)",
+      borderRadius: BORDER_RADIUS.xxl,
       boxShadow: "0 24px 48px rgba(0, 0, 0, 0.05), 0 8px 16px rgba(0,0,0,0.02)",
       backgroundColor: theme.vars.palette.background.paper,
       backdropFilter: theme.vars.palette.glass.blur,

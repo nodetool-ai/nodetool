@@ -145,6 +145,32 @@ const executeComboCallbacks = (
   }
   const pressedKeysString = Array.from(pressedKeys).sort().join("+");
   const activeElement = document.activeElement;
+
+  // Escape releases focus from a text editor inside the workflow canvas.
+  // Pressing Escape is the natural "I'm done editing" gesture, but native
+  // <textarea>/<input>, contentEditable, and Monaco editors do NOT blur
+  // themselves on Escape. Focus then stays trapped in the in-node editor, and
+  // because all suppression keys off `isEditableElement(document.activeElement)`
+  // every canvas/global shortcut (delete, copy, space-to-pan, …) is silently
+  // suppressed — the user perceives this as "keyboard shortcuts stopped
+  // working" until they happen to click the empty pane (the only existing
+  // recovery, in handlePointerDown). Blurring here is the keyboard equivalent:
+  // it hands control back to the canvas so shortcuts work again.
+  //
+  // Skipped when the editor already handled Escape itself (defaultPrevented) —
+  // e.g. a Lexical `@`-mention typeahead closes on the first Escape and should
+  // keep focus; a second Escape (nothing left to dismiss) is not prevented and
+  // falls through to blur. Scoped to the workflow editor so unrelated inputs
+  // (search box, chat composer) keep their own Escape behavior.
+  if (
+    pressedKeysString === "escape" &&
+    !event?.defaultPrevented &&
+    isEditableElement(activeElement) &&
+    isWorkflowEditorElement(activeElement)
+  ) {
+    activeElement.blur();
+  }
+
   const options = resolveComboRegistration(pressedKeysString);
 
   if (!options) {

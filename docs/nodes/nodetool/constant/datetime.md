@@ -36,4 +36,4 @@ Make a datetime object from year, month, day, hour, minute, second.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.constant](../) namespace.
+Browse other nodes in the [nodetool.constant](./) namespace.

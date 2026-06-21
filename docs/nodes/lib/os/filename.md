@@ -28,4 +28,4 @@ Get file name without path.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.os](../) namespace.
+Browse other nodes in the [lib.os](./) namespace.

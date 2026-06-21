@@ -514,6 +514,47 @@ describe("processChat", () => {
     expect(recall).not.toHaveBeenCalled();
   });
 
+  it("tolerates a void/undefined tool result in the inline onToolCall path", async () => {
+    // A tool returning undefined makes JSON.stringify produce primitive
+    // `undefined`. Without a `?? ""` guard, truncateToolResult would read
+    // `.length` on undefined and throw, killing the whole turn.
+    class VoidTool extends Tool {
+      readonly name = "void";
+      readonly description = "Returns nothing";
+      readonly inputSchema = { type: "object", properties: {} };
+      async process(): Promise<unknown> {
+        return undefined;
+      }
+    }
+
+    let inlineResult: string | undefined;
+    // Provider that drives the inline onToolCall callback (the path providers
+    // like the Codex/Anthropic SDK use to execute tools mid-stream).
+    const provider = {
+      ...createMockProvider([[chunk("done")]]),
+      generateMessagesTraced: async function* (args: any) {
+        if (args.onToolCall) {
+          inlineResult = await args.onToolCall("void", {});
+        }
+        yield chunk("done");
+      }
+    } as any;
+
+    const result = await processChat({
+      userInput: "do nothing",
+      messages: [],
+      model: "test-model",
+      provider,
+      context: createMockContext(),
+      tools: [new VoidTool()]
+    });
+
+    expect(inlineResult).toBe("");
+    const lastMsg = result[result.length - 1];
+    expect(lastMsg.role).toBe("assistant");
+    expect(lastMsg.content).toBe("done");
+  });
+
   it("returns empty assistant message when only thinking chunks are present", async () => {
     const provider = createMockProvider([
       [thinkingChunk("only thinking, no visible output")]

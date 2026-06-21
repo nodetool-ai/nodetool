@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
 
-import { Caption, Text, MOTION } from "../ui_primitives";
+import { Caption, Text, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import FavoriteButton from "../ui_primitives/FavoriteButton";
 import { IconForType } from "../../config/IconForType";
 import { colorForType } from "../../config/data_types";
@@ -21,7 +21,7 @@ const rowStyles = (theme: Theme) =>
       width: "100%",
       height: "100%",
       padding: theme.spacing(0.5, 1),
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       cursor: "grab",
       userSelect: "none",
       boxSizing: "border-box",
@@ -125,7 +125,7 @@ const NodeLibraryRow = memo<NodeLibraryRowProps>(
       () => ({
         background: tileBg,
         border: tileBorder,
-        borderRadius: "var(--rounded-md)"
+        borderRadius: BORDER_RADIUS.md
       }),
       [tileBg, tileBorder]
     );

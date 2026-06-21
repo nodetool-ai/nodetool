@@ -87,7 +87,7 @@ This document describes the architecture of NodeTool — a visual AI workflow pl
 
 ```
 nodetool/
-├── packages/               # TypeScript backend monorepo (26 packages)
+├── packages/               # TypeScript backend monorepo (55 packages)
 │   ├── protocol/           #   Shared types & message definitions (Zod)
 │   ├── config/             #   Environment & settings management
 │   ├── security/           #   Encryption, secrets, master key
@@ -112,7 +112,10 @@ nodetool/
 │   ├── fal-nodes/          #   FAL AI integration nodes
 │   ├── fal-codegen/        #   Code generator for FAL nodes
 │   ├── elevenlabs-nodes/   #   ElevenLabs voice synthesis nodes
-│   └── minimax-nodes/      #   MiniMax TTS, music, image, and video nodes
+│   ├── minimax-nodes/      #   MiniMax TTS, music, image, and video nodes
+│   └── ...                 #   Additional provider packs (kie, topaz, reve,
+│                           #   atlascloud, together), sandbox, compute, gpu,
+│                           #   timeline, sdk, workflow-runner, and node packs
 ├── web/                    # React web application (Vite + MUI)
 ├── electron/               # Electron desktop shell
 ├── mobile/                 # React Native mobile app (Expo)
@@ -142,7 +145,7 @@ nodetool/
 
 ## Backend Architecture
 
-The backend is a TypeScript monorepo of 26 npm workspace packages. Each package has a focused responsibility and explicit dependencies.
+The backend is a TypeScript monorepo of 55 npm workspace packages. Each package has a focused responsibility and explicit dependencies.
 
 ### Package Dependency Graph
 
@@ -438,11 +441,11 @@ The executor type used also controls which `NodeActor` execution mode fires (buf
 
 | Layer | Technology | Version |
 |---|---|---|
-| UI Framework | React | 18.2 |
-| Language | TypeScript | 5.7 |
-| Bundler | Vite | 6.4 |
+| UI Framework | React | 19.2 |
+| Language | TypeScript | 5.9 |
+| Bundler | Vite | 8.0 |
 | Component Library | Material-UI (MUI) | v7 |
-| State Management | Zustand | 4.5 |
+| State Management | Zustand | 5.0 |
 | Server State | TanStack Query (React Query) | v5 |
 | Graph Editor | @xyflow/react (React Flow) | v12 |
 | Routing | React Router | v7 |
@@ -452,7 +455,7 @@ The executor type used also controls which `NodeActor` execution mode fires (buf
 | 3D Visualization | React Three Fiber + Three.js | — |
 | Panel Layout | Dockview | — |
 | Testing | Jest + React Testing Library | 29.7 |
-| E2E Testing | Playwright | 1.57 |
+| E2E Testing | Playwright | 1.60 |
 
 ### Application Shell & Routing
 
@@ -500,7 +503,7 @@ All routes except `/login` and dev routes are wrapped in `ProtectedRoute`.
 
 The frontend uses a multi-layer state management approach:
 
-**Zustand stores (55+)** manage client-side state. Major stores:
+**Zustand stores (90+)** manage client-side state. Major stores:
 
 | Store | Responsibility |
 |---|---|
@@ -617,7 +620,7 @@ Heavy components (PanelLeft, PanelRight, PanelBottom, Dashboard, Chat, Editor) a
 
 The Electron shell (`electron/`) wraps the web UI for desktop use:
 
-- **Electron** 35.7.5 with **Vite** for the renderer process
+- **Electron** 39 with **Vite** for the renderer process
 - Uses `contextBridge` for secure IPC — `nodeIntegration` is disabled
 - `electron-builder` for packaging (Windows, macOS, Linux including Flatpak)
 - `electron-updater` for auto-updates
@@ -631,7 +634,7 @@ The Electron shell (`electron/`) wraps the web UI for desktop use:
 
 The React Native mobile app (`mobile/`) enables users to browse and run mini-apps:
 
-- **Expo SDK 54** with React Native 0.81
+- **Expo SDK 56** with React Native 0.85
 - **React Navigation** (native-stack) for screen transitions
 - **Zustand** for state management (WorkflowRunner, ChatStore)
 - **Axios** for HTTP, custom `WebSocketManager` with msgpack for real-time chat
@@ -832,4 +835,4 @@ cd web && npm test
 cd web && npm run test:e2e
 ```
 
-CI/CD is managed through 19 GitHub Actions workflows covering unit tests, E2E tests, code quality, security auditing, accessibility, performance monitoring, and release automation.
+CI/CD is managed through 26 GitHub Actions workflows covering unit tests, E2E tests, code quality, security auditing, accessibility, performance monitoring, and release automation.

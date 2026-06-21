@@ -11,10 +11,8 @@ namespace: "messaging.telegram"
 
 ## Description
 
-Trigger node that listens for Telegram messages using long polling.
-
-    This trigger connects to Telegram using a bot token and emits events
-    for incoming messages.
+Listen for Telegram messages using long polling and emit them as events.
+    telegram, trigger, bot, messages, chat, events, listen
 
 ## Properties
 
@@ -47,4 +45,4 @@ Trigger node that listens for Telegram messages using long polling.
 
 ## Related Nodes
 
-Browse other nodes in the [messaging.telegram](../) namespace.
+Browse other nodes in the [messaging.telegram](./) namespace.

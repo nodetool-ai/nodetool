@@ -3,7 +3,7 @@ layout: page
 title: "Node Reference"
 ---
 
-Complete reference documentation for all 581 NodeTool nodes across 70 namespaces.
+Complete reference documentation for all 720 NodeTool nodes across 92 namespaces.
 
 ## Namespaces
 
@@ -11,12 +11,24 @@ Complete reference documentation for all 581 NodeTool nodes across 70 namespaces
 
 - **[apify.scraping](apify/scraping/)** - 7 node(s)
 
+### elevenlabs
+
+- **[elevenlabs](elevenlabs/)** - 5 node(s)
+
+### fal
+
+- **[fal.dynamic](fal/dynamic/)** - 2 node(s)
+
 ### gemini
 
 - **[gemini.audio](gemini/audio/)** - 2 node(s)
 - **[gemini.image](gemini/image/)** - 1 node(s)
 - **[gemini.text](gemini/text/)** - 2 node(s)
 - **[gemini.video](gemini/video/)** - 2 node(s)
+
+### huggingface
+
+- **[huggingface](huggingface/)** - 19 node(s)
 
 ### kie
 
@@ -27,6 +39,7 @@ Complete reference documentation for all 581 NodeTool nodes across 70 namespaces
 - **[lib.audio](lib/audio/)** - 16 node(s)
 - **[lib.browser](lib/browser/)** - 5 node(s)
 - **[lib.charts](lib/charts/)** - 1 node(s)
+- **[lib.comfy](lib/comfy/)** - 1 node(s)
 - **[lib.convert](lib/convert/)** - 1 node(s)
 - **[lib.convert.pandoc](lib/convert/pandoc/)** - 2 node(s)
 - **[lib.datetime](lib/datetime/)** - 5 node(s)
@@ -37,6 +50,14 @@ Complete reference documentation for all 581 NodeTool nodes across 70 namespaces
 - **[lib.grid](lib/grid/)** - 2 node(s)
 - **[lib.html](lib/html/)** - 8 node(s)
 - **[lib.http](lib/http/)** - 7 node(s)
+- **[lib.image.channel](lib/image/channel/)** - 2 node(s)
+- **[lib.image.color](lib/image/color/)** - 7 node(s)
+- **[lib.image.draw](lib/image/draw/)** - 5 node(s)
+- **[lib.image.effects](lib/image/effects/)** - 5 node(s)
+- **[lib.image.filter](lib/image/filter/)** - 5 node(s)
+- **[lib.image.keyer](lib/image/keyer/)** - 2 node(s)
+- **[lib.image.mask](lib/image/mask/)** - 3 node(s)
+- **[lib.image.warp](lib/image/warp/)** - 8 node(s)
 - **[lib.mail](lib/mail/)** - 4 node(s)
 - **[lib.markdown](lib/markdown/)** - 6 node(s)
 - **[lib.nlp](lib/nlp/)** - 7 node(s)
@@ -61,6 +82,10 @@ Complete reference documentation for all 581 NodeTool nodes across 70 namespaces
 - **[messaging.discord](messaging/discord/)** - 2 node(s)
 - **[messaging.telegram](messaging/telegram/)** - 2 node(s)
 
+### minimax
+
+- **[minimax](minimax/)** - 6 node(s)
+
 ### mistral
 
 - **[mistral.embeddings](mistral/embeddings/)** - 1 node(s)
@@ -69,38 +94,58 @@ Complete reference documentation for all 581 NodeTool nodes across 70 namespaces
 
 ### nodetool
 
-- **[nodetool.agents](nodetool/agents/)** - 25 node(s)
+- **[nodetool.agents](nodetool/agents/)** - 27 node(s)
 - **[nodetool.audio](nodetool/audio/)** - 23 node(s)
+- **[nodetool.audio.realtime](nodetool/audio/realtime/)** - 6 node(s)
+- **[nodetool.audio.synth](nodetool/audio/synth/)** - 9 node(s)
 - **[nodetool.code](nodetool/code/)** - 19 node(s)
 - **[nodetool.compare](nodetool/compare/)** - 1 node(s)
-- **[nodetool.constant](nodetool/constant/)** - 28 node(s)
-- **[nodetool.control](nodetool/control/)** - 17 node(s)
-- **[nodetool.data](nodetool/data/)** - 30 node(s)
+- **[nodetool.constant](nodetool/constant/)** - 30 node(s)
+- **[nodetool.control](nodetool/control/)** - 21 node(s)
+- **[nodetool.data](nodetool/data/)** - 29 node(s)
 - **[nodetool.document](nodetool/document/)** - 8 node(s)
 - **[nodetool.generators](nodetool/generators/)** - 5 node(s)
-- **[nodetool.image](nodetool/image/)** - 22 node(s)
+- **[nodetool.image](nodetool/image/)** - 26 node(s)
 - **[nodetool.input](nodetool/input/)** - 33 node(s)
+- **[nodetool.list](nodetool/list/)** - 4 node(s)
 - **[nodetool.model3d](nodetool/model3d/)** - 17 node(s)
 - **[nodetool.output](nodetool/output/)** - 1 node(s)
 - **[nodetool.sandbox](nodetool/sandbox/)** - 2 node(s)
-- **[nodetool.team](nodetool/team/)** - 2 node(s)
-- **[nodetool.text](nodetool/text/)** - 50 node(s)
+- **[nodetool.sketch](nodetool/sketch/)** - 3 node(s)
+- **[nodetool.test](nodetool/test/)** - 22 node(s)
+- **[nodetool.text](nodetool/text/)** - 51 node(s)
+- **[nodetool.timeline](nodetool/timeline/)** - 3 node(s)
 - **[nodetool.triggers](nodetool/triggers/)** - 5 node(s)
-- **[nodetool.video](nodetool/video/)** - 29 node(s)
+- **[nodetool.video](nodetool/video/)** - 31 node(s)
 - **[nodetool.workflows.base_node](nodetool/workflows/base_node/)** - 1 node(s)
+- **[nodetool.workflows.subgraph](nodetool/workflows/subgraph/)** - 1 node(s)
 - **[nodetool.workflows.workflow_node](nodetool/workflows/workflow_node/)** - 1 node(s)
 
 ### openai
 
 - **[openai.agents](openai/agents/)** - 2 node(s)
 - **[openai.audio](openai/audio/)** - 3 node(s)
-- **[openai.image](openai/image/)** - 2 node(s)
+- **[openai.image](openai/image/)** - 3 node(s)
 - **[openai.text](openai/text/)** - 3 node(s)
+
+### reve
+
+- **[reve](reve/)** - 3 node(s)
 
 ### search
 
 - **[search.google](search/google/)** - 8 node(s)
 
+### transformers
+
+- **[transformers](transformers/)** - 16 node(s)
+
 ### vector
 
 - **[vector](vector/)** - 13 node(s)
+
+### xai
+
+- **[xai.image](xai/image/)** - 1 node(s)
+- **[xai.text](xai/text/)** - 2 node(s)
+- **[xai.vision](xai/vision/)** - 1 node(s)

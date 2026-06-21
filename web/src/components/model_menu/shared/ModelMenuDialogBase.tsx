@@ -66,6 +66,12 @@ export interface ModelMenuBaseProps<TModel extends ModelSelectorModel> {
   storeHook: ModelMenuStoreHook<TModel>;
   recommendedModels?: UnifiedModel[];
   modelPacks?: ModelPack[];
+  /**
+   * Modality key (e.g. "language_model") this picker sets defaults for. When
+   * provided, each model row shows a "pin as default" toggle wired to
+   * ModelPreferencesStore. Omitted for pickers without a default modality.
+   */
+  modelType?: string;
 }
 
 function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
@@ -78,7 +84,8 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
   searchPlaceholder = "Search models...",
   storeHook,
   recommendedModels = [],
-  modelPacks = []
+  modelPacks = [],
+  modelType
 }: ModelMenuBaseProps<TModel>) {
   const { models, isLoading, isFetching, error: fetchedError, providerErrors, loadingProgress, refetch } = modelData;
 
@@ -517,7 +524,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                     sx={{
                       width: 36,
                       height: 36,
-                      borderRadius: "var(--rounded-circle)",
+                      borderRadius: BORDER_RADIUS.circle,
                       bgcolor:
                         customView === "favorites"
                           ? "primary.main"
@@ -546,7 +553,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                       sx={{
                         width: 28,
                         height: 28,
-                        borderRadius: "var(--rounded-sm)",
+                        borderRadius: BORDER_RADIUS.sm,
                         bgcolor: "rgba(0,0,0,0.04)"
                       }}
                     >
@@ -593,7 +600,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                     sx={{
                       width: 36,
                       height: 36,
-                      borderRadius: "var(--rounded-circle)",
+                      borderRadius: BORDER_RADIUS.circle,
                       bgcolor:
                         customView === "recent"
                           ? "primary.main"
@@ -622,7 +629,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
                       sx={{
                         width: 28,
                         height: 28,
-                        borderRadius: "var(--rounded-sm)",
+                        borderRadius: BORDER_RADIUS.sm,
                         bgcolor: "rgba(0,0,0,0.04)"
                       }}
                     >
@@ -725,6 +732,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
               downloadModels={downloadModels}
               onDownloadSelect={handleSelectRecommended}
               onDownloadStart={handleStartDownload}
+              modelType={modelType}
             />
           </Box>
           {/* Footer removed */}

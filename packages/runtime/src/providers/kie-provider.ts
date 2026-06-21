@@ -12,6 +12,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import type { Chunk } from "@nodetool-ai/protocol";
 import { BaseProvider } from "./base-provider.js";
+import { safeFetch } from "./safe-url.js";
 import { createLogger } from "@nodetool-ai/config";
 import type {
   ImageModel,
@@ -200,7 +201,7 @@ async function downloadResultBytes(
   const resultData = JSON.parse(resultJsonStr) as Record<string, unknown>;
   const resultUrls = resultData.resultUrls as string[];
   if (!resultUrls?.length) throw new Error("No resultUrls in Kie resultJson");
-  const dlRes = await fetch(resultUrls[0]);
+  const dlRes = await safeFetch(resultUrls[0]);
   if (!dlRes.ok) {
     throw new Error(`Failed to download from ${resultUrls[0]}`);
   }

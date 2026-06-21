@@ -5,13 +5,15 @@ title: "nodetool.document Nodes"
 
 This namespace contains 8 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[List Documents](listdocuments.md)** - List documents in a directory.
-- **[Load Document File](loaddocumentfile.md)** - Read a document from disk.
-- **[Save Document File](savedocumentfile.md)** - Write a document to disk.
-- **[Split Document](splitdocument.md)** - Split text semantically.
-- **[Split HTML](splithtml.md)** - Split HTML content into semantic chunks based on HTML tags.
-- **[Split JSON](splitjson.md)** - Split JSON content into semantic chunks.
-- **[Split Markdown](splitmarkdown.md)** - Splits markdown text by headers while preserving header hierarchy in metadata.
-- **[Split Recursively](splitrecursively.md)** - Splits text recursively using LangChain's RecursiveCharacterTextSplitter.
+- **[List Documents](listdocuments.md)**
+- **[Load Document File](loaddocumentfile.md)**
+- **[Save Document File](savedocumentfile.md)**
+- **[Split Document](splitdocument.md)**
+- **[Split HTML](splithtml.md)**
+- **[Split JSON](splitjson.md)**
+- **[Split Markdown](splitmarkdown.md)**
+- **[Split Recursively](splitrecursively.md)**
+
+[Back to all nodes](../../)

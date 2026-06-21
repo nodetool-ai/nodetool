@@ -224,6 +224,56 @@ describe("Gap #3 – type compatibility checking (validateEdgeTypes)", () => {
   });
 });
 
+describe("validateDataEdgeSourceHandles", () => {
+  it("throws when a data edge references an unknown output handle", () => {
+    const nodes = [
+      makeNode("a", { outputs: { out: "image" } }),
+      makeNode("b", { properties: { in: { type: "image" } } })
+    ];
+    const edges = [makeEdge("a", "missing", "b", "in")];
+    const graph = new Graph({ nodes, edges });
+    expect(() => graph.validateDataEdgeSourceHandles()).toThrow(
+      GraphValidationError
+    );
+    expect(() => graph.validateDataEdgeSourceHandles()).toThrow(
+      /unknown output "missing"/
+    );
+  });
+
+  it("accepts an edge from a declared output handle", () => {
+    const nodes = [
+      makeNode("a", { outputs: { out: "image" } }),
+      makeNode("b", { properties: { in: { type: "image" } } })
+    ];
+    const edges = [makeEdge("a", "out", "b", "in")];
+    const graph = new Graph({ nodes, edges });
+    expect(() => graph.validateDataEdgeSourceHandles()).not.toThrow();
+  });
+
+  it("skips nodes without static output metadata", () => {
+    const nodes = [
+      makeNode("a"), // no outputs declared
+      makeNode("b", { properties: { in: { type: "image" } } })
+    ];
+    const edges = [makeEdge("a", "anything", "b", "in")];
+    const graph = new Graph({ nodes, edges });
+    expect(() => graph.validateDataEdgeSourceHandles()).not.toThrow();
+  });
+
+  it("skips nodes that declare dynamic outputs", () => {
+    const nodes = [
+      makeNode("a", {
+        outputs: { out: "image" },
+        dynamic_outputs: { extra: { type: "str" } }
+      }),
+      makeNode("b", { properties: { in: { type: "image" } } })
+    ];
+    const edges = [makeEdge("a", "extra", "b", "in")];
+    const graph = new Graph({ nodes, edges });
+    expect(() => graph.validateDataEdgeSourceHandles()).not.toThrow();
+  });
+});
+
 // ===========================================================================
 // Gap #14: Graph Deserialization
 // ===========================================================================

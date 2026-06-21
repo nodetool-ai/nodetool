@@ -2,7 +2,7 @@
 import { css, keyframes } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Box, FlexColumn, FlexRow, Text, Tooltip, MOTION } from "../ui_primitives";
+import { Box, FlexColumn, FlexRow, Text, Tooltip, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import type { SxProps } from "@mui/material/styles";
 import LayersIcon from "@mui/icons-material/Layers";
 import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
@@ -54,7 +54,7 @@ const progressStyles = (theme: Theme) =>
   css({
     position: "relative",
     height: "4px",
-    borderRadius: "var(--rounded-pill)",
+    borderRadius: BORDER_RADIUS.pill,
     overflow: "hidden",
     backgroundColor: "rgba(255,255,255,0.07)",
     "&::after": {
@@ -86,7 +86,7 @@ const useJobName = (job: Job): string => {
 const cardSx: SxProps<Theme> = {
   backgroundColor: "grey.800",
   border: "1px solid rgba(255,255,255,0.05)",
-  borderRadius: "var(--rounded-lg)",
+  borderRadius: BORDER_RADIUS.lg,
   px: 1.5,
   py: 1
 };
@@ -97,7 +97,7 @@ const Dot = ({ color = "primary.main" }: { color?: string }) => (
       width: 8,
       height: 8,
       flex: "0 0 auto",
-      borderRadius: "var(--rounded-circle)",
+      borderRadius: BORDER_RADIUS.circle,
       backgroundColor: color
     }}
   />
@@ -127,7 +127,7 @@ const IconButton = ({
         color: "text.secondary",
         cursor: "pointer",
         p: 0.25,
-        borderRadius: "var(--rounded-sm)",
+        borderRadius: BORDER_RADIUS.sm,
         "&:hover": { color: hoverColor }
       }}
     >
@@ -243,7 +243,7 @@ const RunningCard = memo(function RunningCard({
           "&:focus-visible": {
             outline: `2px solid ${theme.vars.palette.primary.main}`,
             outlineOffset: "2px",
-            borderRadius: "var(--rounded-lg)"
+            borderRadius: BORDER_RADIUS.lg
           }
         }}
       >
@@ -352,7 +352,7 @@ const overlayStyles = (theme: Theme) =>
     zIndex: theme.zIndex.drawer,
     backgroundColor: theme.vars.palette.grey[900],
     border: `1px solid ${theme.vars.palette.grey[800]}`,
-    borderRadius: "var(--rounded-xl)",
+    borderRadius: BORDER_RADIUS.xl,
     boxShadow: "0 8px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)",
     overflow: "hidden",
     transformOrigin: "top left",

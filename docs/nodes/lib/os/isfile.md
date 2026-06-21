@@ -28,4 +28,4 @@ Check if path is a file.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.os](../) namespace.
+Browse other nodes in the [lib.os](./) namespace.

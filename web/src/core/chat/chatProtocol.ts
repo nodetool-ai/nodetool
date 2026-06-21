@@ -795,7 +795,16 @@ const findStreamPlaceholderIndex = (
 
     const candidateText = extractTextContent(candidate);
     const candidateNormalized = normalizeTextForComparison(candidateText);
-    if (!candidateNormalized || !incomingNormalized) {
+    // A finalizing server message with empty content (e.g. a tool_call frame
+    // with no text) must still replace the active local-stream placeholder
+    // rather than append beside it. The merge keeps the streamed text.
+    if (!incomingNormalized) {
+      if (isLocalStream && candidateNormalized && status === "streaming") {
+        return i;
+      }
+      continue;
+    }
+    if (!candidateNormalized) {
       continue;
     }
 
@@ -842,10 +851,18 @@ const replaceStreamPlaceholderOrAppend = (
     return [...messages, msg];
   }
   const existing = messages[index];
+  // Keep the accumulated content when the server omits it (null/undefined) or
+  // sends an empty string — an empty content frame must not wipe streamed text.
+  const incomingContent =
+    msg.content === null ||
+    msg.content === undefined ||
+    msg.content === ""
+      ? existing.content
+      : msg.content;
   const replacement: Message = {
     ...existing,
     ...msg,
-    content: msg.content ?? existing.content
+    content: incomingContent
   };
   return [
     ...messages.slice(0, index),

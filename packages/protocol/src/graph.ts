@@ -220,3 +220,119 @@ export interface HydratedGraphData {
   nodes: HydratedNodeDescriptor[];
   edges: Edge[];
 }
+
+// ---------------------------------------------------------------------------
+// Backward-compat node-type migrations
+// ---------------------------------------------------------------------------
+
+/** A removed node type and the replacement it is rewritten to on load. */
+export interface NodeTypeMigration {
+  /** Deprecated node_type to match. */
+  from: string;
+  /** Replacement node_type. */
+  to: string;
+  /**
+   * Static property (and connection handle) renames, old name -> new name.
+   * Applied to the node's `data`/`properties` and to any incoming edge whose
+   * `targetHandle` matches an old name.
+   */
+  renameProperties?: Record<string, string>;
+}
+
+/**
+ * Node types removed in favor of a replacement. Old workflows keep loading
+ * because {@link migrateGraphNodeTypes} rewrites these on every graph load
+ * (server-side in `Graph.fromDict`, client-side when a workflow enters the
+ * editor store).
+ */
+export const NODE_TYPE_MIGRATIONS: readonly NodeTypeMigration[] = [
+  // FormatText was identical to Prompt apart from its input field name.
+  {
+    from: "nodetool.text.FormatText",
+    to: "nodetool.text.Prompt",
+    renameProperties: { template: "prompt" }
+  }
+];
+
+const MIGRATION_BY_FROM: ReadonlyMap<string, NodeTypeMigration> = new Map(
+  NODE_TYPE_MIGRATIONS.map((m) => [m.from, m])
+);
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** Return a renamed copy of `container`, or undefined if nothing changed. */
+function renameKeys(
+  container: unknown,
+  renames: Record<string, string>
+): Record<string, unknown> | undefined {
+  if (!isPlainObject(container)) return undefined;
+  let next: Record<string, unknown> | undefined;
+  for (const [from, to] of Object.entries(renames)) {
+    if (from in container && !(to in container)) {
+      next ??= { ...container };
+      next[to] = next[from];
+      delete next[from];
+    }
+  }
+  return next;
+}
+
+/** A raw workflow graph shape loose enough for migration before validation. */
+export interface MigratableGraph {
+  nodes?: unknown;
+  edges?: unknown;
+}
+
+/**
+ * Rewrite removed node types in a raw workflow graph to their replacements
+ * (see {@link NODE_TYPE_MIGRATIONS}). Pure and non-mutating: returns the same
+ * reference when nothing matched, otherwise a shallow copy with only the
+ * changed nodes, edges, and their `data`/`properties` cloned. Cheap enough to
+ * call on every load.
+ */
+export function migrateGraphNodeTypes<T extends MigratableGraph>(graph: T): T {
+  if (!isPlainObject(graph) || !Array.isArray(graph.nodes)) return graph;
+
+  const handleRenamesByNodeId = new Map<string, Record<string, string>>();
+  let changed = false;
+
+  const nodes = graph.nodes.map((node) => {
+    if (!isPlainObject(node) || typeof node.type !== "string") return node;
+    const migration = MIGRATION_BY_FROM.get(node.type);
+    if (!migration) return node;
+    changed = true;
+    const next: Record<string, unknown> = { ...node, type: migration.to };
+    if (migration.renameProperties) {
+      const renamedData = renameKeys(next.data, migration.renameProperties);
+      if (renamedData) next.data = renamedData;
+      const renamedProps = renameKeys(next.properties, migration.renameProperties);
+      if (renamedProps) next.properties = renamedProps;
+      if (typeof next.id === "string") {
+        handleRenamesByNodeId.set(next.id, migration.renameProperties);
+      }
+    }
+    return next;
+  });
+
+  if (!changed) return graph;
+
+  let edges = graph.edges;
+  if (handleRenamesByNodeId.size > 0 && Array.isArray(edges)) {
+    edges = edges.map((edge) => {
+      if (!isPlainObject(edge) || typeof edge.target !== "string") return edge;
+      const renames = handleRenamesByNodeId.get(edge.target);
+      if (
+        renames &&
+        typeof edge.targetHandle === "string" &&
+        edge.targetHandle in renames
+      ) {
+        return { ...edge, targetHandle: renames[edge.targetHandle] };
+      }
+      return edge;
+    });
+  }
+
+  return { ...graph, nodes, edges } as T;
+}

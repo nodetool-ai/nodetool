@@ -18,8 +18,7 @@ import {
   FlexColumn,
   FlexRow,
   ToggleGroup,
-  ToggleOption
-} from "../../ui_primitives";
+  ToggleOption, BORDER_RADIUS } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageView from "../../node/ImageView";
 import ImageRefPreview from "../../node/ImageRefPreview";
@@ -65,7 +64,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       flex: "1 1 auto",
       minHeight: 160,
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
       backgroundColor: theme.vars.palette.grey[900],
       display: "flex",

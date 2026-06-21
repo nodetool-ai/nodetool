@@ -11,7 +11,8 @@ namespace: "messaging.discord"
 
 ## Description
 
-Node that sends a message to a Discord channel using a bot token.
+Send a message to a Discord channel using a bot token.
+    discord, send, message, bot, channel, chat, notify
 
 ## Properties
 
@@ -31,4 +32,4 @@ Node that sends a message to a Discord channel using a bot token.
 
 ## Related Nodes
 
-Browse other nodes in the [messaging.discord](../) namespace.
+Browse other nodes in the [messaging.discord](./) namespace.

@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "TTSModel Input"
+title: "TTS Model Input"
 node_type: "nodetool.input.TTSModelInput"
 namespace: "nodetool.input"
 ---
@@ -30,4 +30,4 @@ Accepts a text-to-speech model as a parameter for workflows.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.input](../) namespace.
+Browse other nodes in the [nodetool.input](./) namespace.

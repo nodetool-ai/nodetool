@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Text, Caption, TextInput, SelectField, AutocompleteTagInput, EditorButton, MOTION } from "../ui_primitives";
+import { Text, Caption, TextInput, SelectField, AutocompleteTagInput, EditorButton, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { useCallback, useEffect, useRef, useState, memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -49,7 +49,7 @@ const styles = (theme: Theme) =>
       marginBottom: theme.spacing(3),
       padding: theme.spacing(2),
       backgroundColor: theme.vars.palette.action.hover,
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       border: `1px solid ${theme.vars.palette.divider}`
     },
 
@@ -62,25 +62,20 @@ const styles = (theme: Theme) =>
       marginBottom: theme.spacing(2)
     },
     
-    // Form controls — both FormControl and TextField
+    // Form controls — both FormControl and TextField. Spacing only; the input
+    // and its floating label are owned by the ui_primitives (TextInput,
+    // SelectField, AutocompleteTagInput) — don't restyle the label here or it
+    // breaks the resting-label-as-placeholder morph.
     ".MuiFormControl-root, .MuiTextField-root": {
       marginBottom: theme.spacing(2),
       "&:last-child": {
         marginBottom: 0
       }
     },
-    
-    ".MuiFormLabel-root": {
-      fontSize: theme.fontSizeSmall,
-      fontWeight: 500,
-      color: theme.vars.palette.text.secondary,
-      marginBottom: theme.spacing(1),
-      display: "block"
-    },
-    
+
     ".MuiOutlinedInput-root": {
       backgroundColor: theme.vars.palette.background.paper,
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       transition: MOTION.all,
       "& .MuiOutlinedInput-notchedOutline": {
         borderColor: theme.vars.palette.divider,
@@ -95,11 +90,12 @@ const styles = (theme: Theme) =>
       }
     },
     
+    // Only the dark-section essentials: brand font + light text for contrast on
+    // the grey[900] field. Size and vertical padding stay at the primitive /
+    // MUI defaults so the floating label centres correctly.
     ".MuiOutlinedInput-input": {
       fontFamily: theme.fontFamily1,
-      fontSize: theme.fontSizeNormal,
-      color: theme.vars.palette.text.primary,
-      padding: "10px 12px"
+      color: theme.vars.palette.text.primary
     },
 
     ".MuiFormHelperText-root": {
@@ -122,7 +118,7 @@ const styles = (theme: Theme) =>
         "& .MuiPaper-root": {
           backgroundColor: theme.vars.palette.background.paper,
           color: theme.vars.palette.text.primary,
-          borderRadius: "var(--rounded-md)",
+          borderRadius: BORDER_RADIUS.md,
           border: `1px solid ${theme.vars.palette.divider}`
         },
         "& .MuiAutocomplete-option": {
@@ -166,7 +162,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall,
       fontWeight: 500,
       textTransform: "none",
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
         color: theme.vars.palette.text.primary
@@ -180,7 +176,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmall,
       fontWeight: 600,
       textTransform: "none",
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       border: "none",
       boxShadow: "none",
       transition: MOTION.background,

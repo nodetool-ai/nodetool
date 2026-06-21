@@ -101,7 +101,7 @@ See [Indexing](indexing.md) for detailed setup instructions.
 
 ## Storage
 
-Assets are stored locally in your user directory (`~/.nodetool/`) by default. You keep full control of your data.
+Assets are stored locally under the NodeTool data directory (`~/.local/share/nodetool/assets` on macOS/Linux; `%APPDATA%\nodetool\assets` on Windows) by default. You keep full control of your data.
 
 For deployed instances, assets can be stored in:
 - **S3-compatible storage** -- AWS S3, MinIO, or compatible services

@@ -9,6 +9,16 @@ namespace: "nodetool.constant"
 
 **Namespace:** `nodetool.constant`
 
+## Description
+
+Represents a fixed image size constant in the workflow.
+    constant, image_size, resolution, width, height, dimensions
+
+    Use cases:
+    - Provide fixed output dimensions for image generation nodes
+    - Reference a standard resolution across the workflow
+    - Expose width and height as separate integer outputs
+
 ## Properties
 
 | Property | Type | Description | Default |
@@ -25,4 +35,4 @@ namespace: "nodetool.constant"
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.constant](../) namespace.
+Browse other nodes in the [nodetool.constant](./) namespace.

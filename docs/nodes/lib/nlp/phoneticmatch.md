@@ -36,4 +36,4 @@ Computes phonetic codes for words using Soundex, Metaphone, or Double Metaphone.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.nlp](../) namespace.
+Browse other nodes in the [lib.nlp](./) namespace.

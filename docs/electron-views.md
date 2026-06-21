@@ -4,7 +4,7 @@ title: "Desktop App Views"
 description: "Windows, dialogs, menus, and tray surfaces unique to the NodeTool Electron desktop app."
 ---
 
-The NodeTool desktop app is built on Electron. It reuses the web app for all workflow editing but adds a handful of native surfaces: a boot splash, install wizard, package manager, log viewer, tray menu, pinned windows, and a native menu bar.
+The NodeTool desktop app is built on Electron. It reuses the web app for all workflow editing but adds a handful of native surfaces: a boot splash, package manager, log viewer, tray menu, pinned windows, and a native menu bar.
 
 This page catalogs every desktop-only view with screenshots. Everything inside the main window is covered by [User Interface]({{ '/user-interface' | relative_url }}) and [Workflow Editor]({{ '/workflow-editor' | relative_url }}).
 
@@ -18,19 +18,7 @@ A minimal splash appears while the embedded Python runtime, backend server, and 
 
 The splash streams progress messages — "Starting Python…", "Warming models…", "Connecting to server…". It closes the moment the backend reports ready.
 
----
-
-## Install Wizard
-
-On first launch (or after a major upgrade), the Install Wizard sets up the optional components NodeTool needs to run local models:
-
-- **Conda** environment with the required Python version
-- **Node packs** selected by the user
-- **AI runtimes** (torch, MLX, llama.cpp) appropriate for the detected hardware
-
-![Install Wizard](assets/screenshots/screenshot-placeholder.svg)
-
-You can re-run the wizard at any time from the **Package Manager** window — useful when you add a new node pack or upgrade your GPU.
+There is no separate install wizard — the embedded Python environment and packages are checked and set up in the background at startup, and node packs and runtimes are managed from the **Package Manager** window.
 
 ---
 
@@ -55,12 +43,7 @@ A persistent window that tails the backend log. Helpful for debugging without dr
 
 ![Log Viewer](assets/screenshots/screenshot-placeholder.svg)
 
-The log viewer supports:
-
-- **Log level filters** — `debug`, `info`, `warn`, `error`.
-- **Component filters** — backend, Python worker, web bridge, IPC.
-- **Search** with regex and highlight.
-- **Jump to file** — click a line to open its source in your editor (if `EDITOR` is configured).
+Each row is color-coded by severity — `info`, `warning`, or `error`. The viewer is a straightforward table tail with no level/component filters, search, or jump-to-source.
 
 ---
 
@@ -92,8 +75,6 @@ A self-contained Mini-App launched from the tray. Maximum size 1200×900. Closin
 
 Standalone chat opened from the tray. Same content as [/standalone-chat]({{ '/user-interface#standalone-chat-window' | relative_url }}) but in its own window.
 
-![Chat Window](assets/screenshots/standalone-chat.png)
-
 ---
 
 ## System Tray
@@ -104,13 +85,16 @@ The tray icon stays running while NodeTool is active and exposes quick actions:
 
 | Action | What it does |
 |--------|--------------|
-| Open Dashboard | Bring up the main window |
-| Open Chat | Launch the standalone chat window |
-| Run Mini-App… | Submenu of mini-apps published from your workflows |
-| Settings | Native settings window |
+| Show NodeTool | Bring up the main window |
+| Chat | Launch the standalone chat window |
+| Mini Apps | Submenu of mini-apps published from your workflows |
 | Package Manager | Open the Package Manager window |
 | Log Viewer | Tail the backend log |
+| Settings | Native settings window |
+| Open Log File | Open the raw log file in the OS file handler |
 | Quit NodeTool | Stop the backend and exit |
+
+Above these actions the tray shows non-clickable status lines (server and managed-service state) plus a **Managed Model Services** submenu — for example a Llama.cpp entry to Install / Start / Stop the local server and toggle "Start on App Startup" — along with **Start Service** / **Stop Service** to control the backend and an **On Close Behavior** submenu.
 
 ---
 
@@ -120,32 +104,45 @@ On macOS and Windows a native menu bar is attached to the main window.
 
 ![Menu Bar](assets/screenshots/screenshot-placeholder.svg)
 
+On macOS the app menu (**NodeTool**) holds the standard About / Services / Hide / **Quit** items; **Quit** uses the platform default and has no explicit accelerator in the menu.
+
 ### File
 
 | Item | Shortcut | Action |
 |------|----------|--------|
-| New Workflow | `Ctrl/⌘ + T` | Open a blank workflow in a new tab |
 | Save | `Ctrl/⌘ + S` | Save the active workflow |
+| New Workflow | `Ctrl/⌘ + T` | Open a blank workflow in a new tab |
 | Close Tab | `Ctrl/⌘ + W` | Close the active editor tab |
-| Quit | `Ctrl/⌘ + Q` | Exit the app |
 
 ### Edit
 
-Standard Undo, Redo, Cut, Copy, Paste, Select All, Delete — all mapped to the same shortcuts used on the canvas.
+Undo, Redo, Cut, Copy, Paste, Duplicate, Duplicate Vertical, Group, Select All, Align, and Align with Spacing — mapped to the same shortcuts used on the canvas.
 
 ### View
 
+| Item | Shortcut | Action |
+|------|----------|--------|
+| Fit View | `Ctrl/⌘ + 0` | Fit the graph to the viewport |
+| Reset Zoom | | Reset the canvas zoom |
+| Zoom In | | Zoom the canvas in |
+| Zoom Out | | Zoom the canvas out |
+| Toggle Fullscreen | | Enter/exit fullscreen |
+
+### Tools
+
 | Item | Action |
 |------|--------|
-| Settings | Open the native settings window |
+| Chat | Open the standalone chat window |
 | Package Manager | Open the Package Manager window |
 | Log Viewer | Open the Log Viewer window |
-| Reload | Reload the main window |
-| Toggle DevTools | Useful for debugging custom node UIs |
+| Performance Monitor | Open the performance monitor window |
+| Settings | Open the native settings window |
+
+There is no in-menu Reload or DevTools item; DevTools toggles with `Ctrl/⌘ + Shift + I` and only in unpackaged (dev) builds.
 
 ### Window / Help
 
-Platform-standard items — switch windows, open the docs, show version info.
+**Window** offers the platform-standard Minimize. **Help** has **Learn More** (opens https://nodetool.ai) and **System Information** (a native dialog with app, OS, and runtime versions).
 
 ---
 

@@ -223,7 +223,7 @@ const styles = (theme: Theme) =>
         height: "28px",
         padding: 0,
         color: theme.vars.palette.text.secondary,
-        borderRadius: "var(--rounded-md)",
+        borderRadius: BORDER_RADIUS.md,
         "&:hover": {
           color: theme.vars.palette.text.primary,
           backgroundColor: theme.vars.palette.action.hover

@@ -1,0 +1,84 @@
+name: Docs CI
+
+# Validates the documentation site on pull requests: it must build, every
+# internal link and image must resolve, and no internal/engineering docs may
+# leak into the published output. Deployment stays in jekyll.yml.
+
+on:
+  pull_request:
+    paths:
+      - "docs/**"
+      - "scripts/generate-node-docs.mjs"
+      - "scripts/build-node-index.mjs"
+      - ".github/workflows/docs-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-check:
+    runs-on: ubuntu-latest
+    env:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+          working-directory: ./docs
+
+      - name: Build with Jekyll
+        run: bundle exec jekyll build
+        working-directory: ./docs
+        env:
+          JEKYLL_ENV: production
+
+      - name: Check internal links and images
+        run: |
+          gem install html-proofer --no-document
+          htmlproofer ./_site \
+            --disable-external \
+            --allow-hash-href \
+            --ignore-missing-alt \
+            --no-enforce-https
+        working-directory: ./docs
+
+      - name: Guard — no internal docs or developer paths in the published site
+        run: |
+          set -euo pipefail
+          site=docs/_site
+          fail=0
+
+          # Internal/engineering pages must be excluded from the build.
+          for f in STUDIO_PRD STUDIO_MVP_PROMPT DEVELOPMENT_STANDARDS DESIGN \
+                   AGENTS THEME CLOUD_NODE_CURATION image-editor-prd \
+                   timeline-editor-prd correlation-design runtime-package-interface; do
+            if [ -e "$site/$f.html" ]; then
+              echo "::error::Internal doc leaked into the site: $f.html"
+              fail=1
+            fi
+          done
+
+          if [ -d "$site/superpowers" ]; then
+            echo "::error::Internal planning docs leaked: superpowers/ is published"
+            fail=1
+          fi
+
+          # Developer home paths must never appear in built HTML.
+          if grep -rIl "/Users/" "$site" >/dev/null 2>&1; then
+            echo "::error::Developer home path (/Users/...) found in built HTML:"
+            grep -rIl "/Users/" "$site" || true
+            fail=1
+          fi
+
+          if [ "$fail" -ne 0 ]; then
+            echo "Docs privacy guard failed."
+            exit 1
+          fi
+          echo "Privacy guard passed: no internal docs or developer paths in the site."

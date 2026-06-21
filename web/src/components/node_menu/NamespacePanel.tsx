@@ -40,7 +40,7 @@ const namespacePanelStyles = (theme: Theme) =>
       height: "100%",
       maxHeight: "calc(min(750px, 80vh))",
       padding: "0.5em",
-      borderRadius: "var(--rounded-xl)",
+      borderRadius: BORDER_RADIUS.xl,
       border: `1px solid ${theme.vars.palette.divider}`,
       backgroundColor: "transparent"
     },
@@ -123,7 +123,7 @@ const namespacePanelStyles = (theme: Theme) =>
       transition: `${MOTION.background}, ${MOTION.opacity}`,
       overflow: "hidden",
       margin: "1px 0",
-      borderRadius: "var(--rounded-md)"
+      borderRadius: BORDER_RADIUS.md
     },
     "& .namespaces .list-item.disabled": {
       backgroundColor: "transparent",

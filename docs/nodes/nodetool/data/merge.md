@@ -34,4 +34,4 @@ Merge two dataframes along columns.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.data](../) namespace.
+Browse other nodes in the [nodetool.data](./) namespace.

@@ -43,7 +43,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
       gap: compact ? theme.spacing(1) : 0,
       padding: compact ? theme.spacing(1, 1) : theme.spacing(3, 3),
       margin: compact ? theme.spacing(0.5, 0) : theme.spacing(0.5, 0),
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       cursor: "pointer",
       transition: MOTION.all,
       border: "1px solid transparent",

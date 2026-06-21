@@ -5,13 +5,14 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { hsbToRgb, rgbToHex } from "../../utils/colorConversion";
 
+import { BORDER_RADIUS } from "../ui_primitives";
 const styles = (theme: Theme, orientation: "horizontal" | "vertical") =>
   css({
     "&": {
       position: "relative",
       width: orientation === "horizontal" ? "100%" : "24px",
       height: orientation === "horizontal" ? "24px" : "100%",
-      borderRadius: "var(--rounded-xl)",
+      borderRadius: BORDER_RADIUS.xl,
       cursor: "pointer",
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.grey[700]}`
@@ -25,7 +26,7 @@ const styles = (theme: Theme, orientation: "horizontal" | "vertical") =>
       position: "absolute",
       width: orientation === "horizontal" ? "8px" : "100%",
       height: orientation === "horizontal" ? "100%" : "8px",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       border: "2px solid white",
       boxShadow: "0 0 0 1px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.3)",
       transform: orientation === "horizontal" ? "translateX(-50%)" : "translateY(-50%)",

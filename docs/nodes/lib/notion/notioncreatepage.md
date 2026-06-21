@@ -33,4 +33,4 @@ Create a new page in a Notion database or as a child of another page.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.notion](../) namespace.
+Browse other nodes in the [lib.notion](./) namespace.

@@ -790,4 +790,54 @@ describe('ChatStore', () => {
       expect(useChatStore.getState().selectedModel).toEqual(model2);
     });
   });
+
+  describe('clearError', () => {
+    it('clears the error and returns to connected when the socket is up', async () => {
+      await useChatStore.getState().connect();
+      useChatStore.setState({ status: 'error', error: 'boom', statusMessage: 'x' });
+
+      useChatStore.getState().clearError();
+
+      const state = useChatStore.getState();
+      expect(state.error).toBeNull();
+      expect(state.statusMessage).toBeNull();
+      expect(state.status).toBe('connected');
+    });
+
+    it('returns to disconnected when there is no live socket', () => {
+      useChatStore.setState({ status: 'error', error: 'boom', wsManager: null });
+
+      useChatStore.getState().clearError();
+
+      expect(useChatStore.getState().status).toBe('disconnected');
+      expect(useChatStore.getState().error).toBeNull();
+    });
+  });
+
+  describe('sendMessage safety timeout', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('surfaces a timeout error if the server never responds', async () => {
+      await useChatStore.getState().connect();
+      await useChatStore.getState().createNewThread();
+
+      await useChatStore.getState().sendMessage(
+        [{ type: 'text', text: 'Hello' } as any],
+        'Hello'
+      );
+      expect(useChatStore.getState().status).toBe('loading');
+
+      jest.advanceTimersByTime(5 * 60 * 1000);
+
+      const state = useChatStore.getState();
+      expect(state.status).toBe('error');
+      expect(state.error).toMatch(/timed out/i);
+    });
+  });
 });

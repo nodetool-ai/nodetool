@@ -144,7 +144,8 @@ describe("ModelDownloadStore", () => {
         path: undefined,
         allow_patterns: undefined,
         ignore_patterns: undefined,
-        model_type: "hf.model"
+        model_type: "hf.model",
+        scope: "local"
       })
     );
 

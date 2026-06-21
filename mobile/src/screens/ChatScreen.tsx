@@ -100,6 +100,8 @@ export default function ChatScreen({ navigation, route }: Props) {
             onPress={() => navigation.navigate('LanguageModelSelection')}
             style={[styles.modelButton, { backgroundColor: colors.primaryMuted }]}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`Select model, currently ${selectedModel ? selectedModel.name : 'none selected'}`}
           >
             <Text style={[styles.modelButtonText, { color: colors.primary }]} numberOfLines={1}>
               {selectedModel ? selectedModel.name : 'Model'}
@@ -110,7 +112,9 @@ export default function ChatScreen({ navigation, route }: Props) {
             onPress={handleOpenThreads}
             style={styles.headerButton}
             activeOpacity={0.7}
+            accessibilityRole="button"
             accessibilityLabel="View past conversations"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons name="time-outline" size={22} color={colors.text} />
           </TouchableOpacity>
@@ -118,7 +122,9 @@ export default function ChatScreen({ navigation, route }: Props) {
             onPress={handleNewChat}
             style={styles.headerButton}
             activeOpacity={0.7}
+            accessibilityRole="button"
             accessibilityLabel="Start new conversation"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons name="add-circle-outline" size={24} color={colors.text} />
           </TouchableOpacity>

@@ -29,4 +29,4 @@ Fetch the schema of a GraphQL endpoint via introspection query.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.graphql](../) namespace.
+Browse other nodes in the [lib.graphql](./) namespace.

@@ -6,7 +6,7 @@ import React, { memo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import { Box, EditorButton, FlexColumn, FlexRow } from "../ui_primitives";
+import { Box, EditorButton, FlexColumn, FlexRow, BORDER_RADIUS } from "../ui_primitives";
 
 interface ManagerPageLayoutProps {
   /** Icon shown in the tinted chip beside the title. */
@@ -55,7 +55,7 @@ const styles = (theme: Theme) =>
       height: 44,
       minWidth: 44,
       flexShrink: 0,
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.12)`,
       color: theme.vars.palette.primary.main
     },

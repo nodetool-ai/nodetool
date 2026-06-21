@@ -3,7 +3,7 @@ import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import isEqual from "fast-deep-equal";
-import { Tooltip } from "../components/ui_primitives";
+import { Tooltip, BORDER_RADIUS } from "../components/ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../config/constants";
 import { datatypeByName, normalizeTypeName } from "./data_types";
 
@@ -133,7 +133,7 @@ const iconStyles = (_theme: Theme) => ({
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: "var(--rounded-sm)"
+    borderRadius: BORDER_RADIUS.sm
   },
   "& svg": {
     width: "100%",

@@ -1,10 +1,11 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useState, useCallback, useMemo, memo } from "react";
+import React, { useState, useCallback, useMemo, memo, useRef, useEffect } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import CheckIcon from "@mui/icons-material/Check";
 import {
   Caption,
   DeleteButton,
@@ -15,8 +16,7 @@ import {
   TextInput,
   ToggleGroup,
   ToggleOption,
-  Tooltip
-} from "../ui_primitives";
+  Tooltip, BORDER_RADIUS } from "../ui_primitives";
 import {
   GradientValue,
   GradientStop,
@@ -28,7 +28,7 @@ const styles = (theme: Theme) =>
     ".gradient-preview": {
       width: "100%",
       height: "60px",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       position: "relative",
       overflow: "hidden"
@@ -38,7 +38,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       height: "24px",
       backgroundColor: theme.vars.palette.grey[800],
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       marginTop: "8px"
     },
     ".stop-marker": {
@@ -47,7 +47,7 @@ const styles = (theme: Theme) =>
       height: "24px",
       transform: "translateX(-50%)",
       cursor: "pointer",
-      borderRadius: "var(--rounded-xs)",
+      borderRadius: BORDER_RADIUS.xs,
       border: `2px solid white`,
       boxShadow: "0 0 0 1px rgba(0,0,0,0.3)",
       "&:hover": {
@@ -62,7 +62,7 @@ const styles = (theme: Theme) =>
       marginTop: "12px",
       padding: "8px",
       backgroundColor: theme.vars.palette.grey[900],
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       fontSize: "var(--fontSizeSmaller)",
       fontFamily: "monospace",
       wordBreak: "break-all",
@@ -92,6 +92,18 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
 }) => {
   const theme = useTheme();
   const [selectedStopIndex, setSelectedStopIndex] = useState<number | null>(0);
+  const [copied, setCopied] = useState(false);
+  const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined
+  );
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const cssOutput = useMemo(() => gradientToCss(gradient), [gradient]);
 
@@ -262,6 +274,11 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
   const copyToClipboard = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(cssOutput);
+      setCopied(true);
+      if (copiedTimeoutRef.current) {
+        clearTimeout(copiedTimeoutRef.current);
+      }
+      copiedTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error("Failed to copy to clipboard:", error);
     }
@@ -385,11 +402,11 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
           Add Stop
         </EditorButton>
         <EditorButton
-          startIcon={<ContentCopyIcon />}
+          startIcon={copied ? <CheckIcon /> : <ContentCopyIcon />}
           onClick={copyToClipboard}
           variant="outlined"
         >
-          Copy CSS
+          {copied ? "Copied!" : "Copy CSS"}
         </EditorButton>
       </FlexRow>
 

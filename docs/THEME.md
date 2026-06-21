@@ -1,209 +1,114 @@
 ---
 layout: page
-title: "NodeTool Theme"
+title: "NodeTool Docs Theme"
 ---
 
-A custom Jekyll theme designed specifically for the NodeTool documentation with a cyberpunk-inspired, futuristic aesthetic.
+A custom Jekyll theme built for the NodeTool documentation: a calm, dark,
+high-contrast reading environment that matches the NodeTool app's palette.
 
-## Features
+> This page documents the docs theme for contributors. It is **not** published
+> to docs.nodetool.ai (see the `exclude:` list in `_config.yml`).
 
-### Visual Design
+## Visual design
 
-- **Dark Color Scheme**: Deep dark backgrounds (#0a0e17) with vibrant neon accents
-- **Cyberpunk Aesthetics**: Animated grid background and scanline effects
-- **Neon Accent Colors**:
-  - Cyan (#00d9ff) - Primary accent
-  - Magenta (#ff00ff) - Secondary accent
-  - Purple (#bd00ff) - Tertiary accent
-  - Electric Blue (#4d9eff) - Quaternary accent
-  - Green (#00ff9f) - Code highlights
+### Color scheme
+
+The palette mirrors the NodeTool web app's `paletteDark.ts`. All colors are CSS
+variables in `assets/css/main.scss`:
+
+| Token | Value | Use |
+|-------|-------|-----|
+| `--color-bg-primary` | `#08090A` | Page background |
+| `--color-bg-secondary` | `#101113` | Cards, panels |
+| `--color-bg-tertiary` | `#1B1D21` | Insets, code blocks |
+| `--color-text-primary` | `#F7F8F8` | Body text |
+| `--color-text-secondary` | `#D4D6DB` | Secondary text |
+| `--color-text-muted` | `#8A8F98` | Captions, hints |
+| `--color-text-link` | `#93C5FD` | Links |
+| `--color-accent-blue` | `#6690d4` | Primary accent |
+| `--color-accent-cyan` | `#22D3EE` | Accent |
+| `--color-accent-magenta` | `#E879F9` | Accent / gradient end |
+| `--color-accent-green` | `#50FA7B` | Success / code accents |
+
+A subtle animated grid (`.cyber-grid`) sits behind the content; accents are used
+sparingly for links, active nav, and gradients (`#6690d4 → #E879F9`).
 
 ### Typography
 
-- **Headings**: Orbitron font family for that futuristic tech feel
-- **Body Text**: Inter for excellent readability
-- **Code**: JetBrains Mono for crisp code display
+- **Headings & body**: Inter (`--font-heading` / `--font-body`)
+- **Code**: JetBrains Mono (`--font-mono`)
 
-### Interactive Elements
+Fonts load from Google Fonts with `preconnect` for both Inter and JetBrains Mono.
 
-- **Smooth Animations**: All transitions use cubic-bezier easing for polished feel
-- **Glow Effects**: Neon glow on hover states and interactive elements
-- **Copy Buttons**: Auto-added to all code blocks with smooth feedback
-- **Scroll Animations**: Fade-in animations for content sections
-- **Logo Glitch**: Subtle cyberpunk glitch effect on the logo
+### Interactive features (`assets/js/theme.js`, vanilla JS, no dependencies)
 
-### Layout Components
-
-#### Header
-
-- Sticky navigation that stays visible while scrolling
-- Glassmorphism effect with backdrop blur
+- Client-side search over `/search.json` (press <kbd>/</kbd>)
+- Copy buttons on code blocks
+- "Copy page as Markdown" button
+- Collapsible sidebar sections with scroll/position persistence
+- Reading-progress bar and back-to-top button
+- Active-link highlighting and smooth in-page anchor scrolling
+- Lazy-loading of in-content images
 - Responsive mobile menu
-- Social links to GitHub and Discord
 
-#### Sidebar
+## Layout components
 
-- Fixed navigation for documentation pages
-- Organized by sections: Getting Started, Core Features, Models & Providers, Reference, Advanced
-- Active link highlighting
-- Smooth scrolling with custom scrollbar styling
+| Component | File | Notes |
+|-----------|------|-------|
+| Base layout | `_layouts/default.html` | Header, footer, grid background, fonts, SEO, analytics; loads Mermaid only on pages with a diagram |
+| Page layout | `_layouts/page.html` | Title, content, "Edit on GitHub" |
+| Home layout | `_layouts/home.html` | Hero + landing content |
+| Redirect layout | `_layouts/redirect.html` | Meta-refresh for moved pages |
+| Header | `_includes/header.html` | Sticky nav, search, social links |
+| Sidebar | `_includes/sidebar.html` | Sectioned documentation navigation |
+| Footer | `_includes/footer.html` | Link columns |
 
-#### Footer
+Diagrams use a local Liquid tag — `{% raw %}{% mermaid %}…{% endmermaid %}{% endraw %}`
+— defined in `_plugins/mermaid.rb`. Mermaid itself is loaded once, only on pages
+that contain a diagram.
 
-- Multi-column grid layout
-- Quick links to all major documentation sections
-- Animated neon glow effect on top border
-
-#### Content Area
-
-- Maximum width for optimal reading (900px)
-- Syntax highlighting for code blocks
-- Styled tables with hover effects
-- Custom blockquote styling
-- Enhanced image display with borders and shadows
-
-### Responsive Design
-
-- **Desktop**: Full sidebar + content layout
-- **Tablet** (≤1024px): Narrower sidebar
-- **Mobile** (≤768px): Collapsible sidebar, hamburger menu
-
-## File Structure
+## File structure
 
 ```
 docs/
-├── _layouts/
-│   ├── default.html    # Base layout with header, footer, and background effects
-│   ├── page.html       # Documentation page layout with sidebar
-│   └── home.html       # Homepage layout with hero section
-├── _includes/
-│   ├── header.html     # Site header with navigation
-│   ├── footer.html     # Site footer with links
-│   └── sidebar.html    # Documentation sidebar navigation
+├── _config.yml          # Jekyll configuration, plugins, excludes, SEO defaults
+├── _plugins/
+│   └── mermaid.rb       # Local {% raw %}{% mermaid %}{% endraw %} tag (emits the diagram div only)
+├── _layouts/            # default, page, home, redirect
+├── _includes/           # header, footer, sidebar
 ├── assets/
-│   ├── css/
-│   │   └── style.scss  # Main stylesheet with all theme styles
-│   └── js/
-│       └── theme.js    # Interactive JavaScript features
-└── _config.yml         # Jekyll configuration
+│   ├── css/main.scss    # Theme stylesheet (compiled to main.css)
+│   ├── js/theme.js      # Interactive features
+│   ├── icons/           # Provider SVG icons
+│   └── screenshots/     # Product screenshots
+├── search.json          # Liquid-generated search index
+├── llms.txt             # Curated LLM index
+└── llms-full.txt        # Full guide text for LLM ingestion
 ```
 
-## Usage
-
-### Running Locally
+## Running locally
 
 ```bash
-# Install dependencies
+cd docs
 bundle install
-
-# Build the site
-bundle exec jekyll build
-
-# Serve locally with auto-rebuild
-bundle exec jekyll serve
-
-# Visit http://localhost:4000/docs
+bundle exec jekyll serve --livereload   # http://localhost:4000
 ```
 
-### Adding New Pages
+## Customization
 
-Create a new markdown file with front matter:
-
-```markdown
----
-layout: page
-title: "Your Page Title"
----
-
-# Your Page Title
-
-Your content here...
-```
-
-### Layouts
-
-- **home**: Use for the main index page (includes hero section)
-- **page**: Use for documentation pages (includes sidebar)
-- **default**: Base layout (rarely used directly)
-
-### Customization
-
-#### Colors
-
-Edit CSS variables in `assets/css/style.scss`:
-
-```css
-:root {
-  --color-accent-cyan: #00d9ff;
-  --color-accent-magenta: #ff00ff;
-  /* ... more variables */
-}
-```
-
-#### Sidebar Navigation
-
-Edit `_includes/sidebar.html` to modify the navigation structure.
-
-#### Header Links
-
-Edit `_includes/header.html` to change top navigation items.
-
-## Browser Support
-
-- Chrome/Edge (latest)
-- Firefox (latest)
-- Safari (latest)
-- Mobile browsers (iOS Safari, Chrome Mobile)
-
-## Performance Features
-
-- Optimized animations using CSS transforms
-- Lazy loading for scroll animations
-- Minimal JavaScript footprint
-- CSS variables for consistent theming
-- Preconnect to Google Fonts for faster loading
+- **Colors / spacing / type**: edit the CSS variables at the top of
+  `assets/css/main.scss`.
+- **Sidebar navigation**: edit `_includes/sidebar.html`.
+- **Top-nav links**: edit `_includes/header.html`.
+- **SEO / social defaults**: edit `_config.yml` (`logo`, `twitter`, `social`,
+  and the default `image` under `defaults`).
 
 ## Accessibility
 
-- Semantic HTML structure
-- ARIA labels on interactive elements
-- Keyboard navigation support
-- High contrast text (WCAG AA compliant)
-- Focus indicators on interactive elements
-
-## Special Effects
-
-### Cyber Grid
-
-Animated grid pattern in the background that pulses gently.
-
-### Scanline
-
-Vertical scanline that travels down the page for that retro-futuristic CRT effect.
-
-### Glow Effects
-
-Neon glow on:
-
-- Links on hover
-- Active navigation items
-- Code block borders
-- Social media icons
-- Logo text
-
-### Animations
-
-- Fade-in on scroll for content sections
-- Bracket pulse on logo hover
-- Button transitions
-- Navigation underline effects
-
-## Credits
-
-- Fonts: Google Fonts (Orbitron, Inter, JetBrains Mono)
-- Icons: Inline SVG from various open sources
-- Design: Custom cyberpunk/futuristic theme for NodeTool
+- Semantic HTML, skip-to-content link, ARIA labels on interactive controls
+- Keyboard navigation and visible focus states
+- High-contrast text intended to meet WCAG AA
 
 ## License
 
-This theme is part of the NodeTool project and follows the same AGPL-3.0 license.
+Part of the NodeTool project, under AGPL-3.0.

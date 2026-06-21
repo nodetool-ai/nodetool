@@ -38,4 +38,4 @@ Analyzes sentiment of text using natural's SentimentAnalyzer.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.nlp](../) namespace.
+Browse other nodes in the [lib.nlp](./) namespace.

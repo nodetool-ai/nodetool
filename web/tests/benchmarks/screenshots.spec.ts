@@ -224,14 +224,6 @@ async function gotoPage(
   await assertNoErrorBoundary(page);
 }
 
-async function ensureVisibleText(
-  page: Page,
-  text: string | RegExp,
-  timeout = 15000
-): Promise<void> {
-  await page.getByText(text).first().waitFor({ state: "visible", timeout });
-}
-
 /**
  * Waits for transient loading indicators to disappear before capture.
  * Uses a shorter timeout than text waits because these indicators should clear
@@ -296,30 +288,7 @@ async function waitForScreenshotReady(
       await ensureNoVisibleProgress(page);
       break;
     }
-    case "asset-editor.png": {
-      await ensureVisibleText(page, /edit:\s*portrait_sunset\.jpg/i);
-      await ensureNoVisibleProgress(page);
-      break;
-    }
-    case "node-test-page.png": {
-      await ensureVisibleText(page, /node integration tests/i);
-      await ensureVisibleText(page, /run all/i);
-      await ensureNoVisibleProgress(page);
-      break;
-    }
-    case "templates-grid.png": {
-      // The page lists examples sourced from the bundled JSON files; wait for
-      // any recognisable template heading or the search box to appear.
-      await page
-        .getByPlaceholder(/search templates/i)
-        .first()
-        .waitFor({ state: "visible", timeout: 15000 })
-        .catch(() => {});
-      await ensureNoVisibleProgress(page);
-      break;
-    }
     case "global-chat-interface.png":
-    case "standalone-chat.png":
     case "chat-mobile.png": {
       // The chat input composer is the most stable landmark on every chat view.
       await page
@@ -473,27 +442,12 @@ if (process.env.JEST_WORKER_ID) {
       await saveScreenshot(page, "global-chat-interface.png");
     });
 
-    test("Standalone chat", async ({ page }) => {
-      test.skip(shouldSkip("standalone-chat.png"), "Already captured");
-      await gotoPage(page, "/standalone-chat/thread-story");
-      await waitForScreenshotReady(page, "standalone-chat.png");
-      await saveScreenshot(page, "standalone-chat.png");
-    });
-
     test("Chat – mobile (375×812)", async ({ page }) => {
       test.skip(shouldSkip("chat-mobile.png"), "Already captured");
       await page.setViewportSize({ width: 375, height: 812 });
       await gotoPage(page, "/chat/thread-story");
       await waitForScreenshotReady(page, "chat-mobile.png");
       await saveScreenshot(page, "chat-mobile.png");
-    });
-
-    // ── Templates ───────────────────────────────────────────────────────────
-    test("Templates", async ({ page }) => {
-      test.skip(shouldSkip("templates-grid.png"), "Already captured");
-      await gotoPage(page, "/templates");
-      await waitForScreenshotReady(page, "templates-grid.png");
-      await saveScreenshot(page, "templates-grid.png");
     });
 
     test("Login", async ({ page }) => {
@@ -546,13 +500,6 @@ if (process.env.JEST_WORKER_ID) {
       await gotoPage(page, "/assets");
       await waitForScreenshotReady(page, "asset-explorer.png");
       await saveScreenshot(page, "asset-explorer.png");
-    });
-
-    test("Asset editor", async ({ page }) => {
-      test.skip(shouldSkip("asset-editor.png"), "Already captured");
-      await gotoPage(page, "/assets/edit/asset-photo1");
-      await waitForScreenshotReady(page, "asset-editor.png");
-      await saveScreenshot(page, "asset-editor.png");
     });
 
     // ── Collections ─────────────────────────────────────────────────────────
@@ -643,13 +590,6 @@ if (process.env.JEST_WORKER_ID) {
       // to settle so the captured frame doesn't show ghosted text.
       await waitForAnimation(page, 1500);
       await saveScreenshot(page, "component-models.png");
-    });
-
-    test("Node test page", async ({ page }) => {
-      test.skip(shouldSkip("node-test-page.png"), "Already captured");
-      await gotoPage(page, "/node-test");
-      await waitForScreenshotReady(page, "node-test-page.png");
-      await saveScreenshot(page, "node-test-page.png");
     });
 
     // ── Editor surfaces (panels, toolbars, modals) ─────────────────────────

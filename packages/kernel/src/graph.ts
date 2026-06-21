@@ -20,7 +20,12 @@ import type {
 
 // Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
 const log = createLogger("nodetool.kernel.graph");
-import { isControlEdge, isDataEdge, TypeMetadata } from "@nodetool-ai/protocol";
+import {
+  isControlEdge,
+  isDataEdge,
+  migrateGraphNodeTypes,
+  TypeMetadata
+} from "@nodetool-ai/protocol";
 import { syntheticEdgeId } from "./edge-ids.js";
 
 // ---------------------------------------------------------------------------
@@ -204,9 +209,15 @@ export class Graph {
       throw new GraphValidationError("'edges' must be an array");
     }
 
+    // Rewrite removed node types (e.g. FormatText -> Prompt) before validation
+    // so legacy workflows keep loading. See NODE_TYPE_MIGRATIONS in protocol.
+    const migrated = migrateGraphNodeTypes(obj);
+    const migratedNodes = migrated.nodes as unknown[];
+    const migratedEdges = migrated.edges as unknown[];
+
     const validNodes: NodeDescriptor[] = [];
     const validNodeIds = new Set<string>();
-    for (const node of obj.nodes) {
+    for (const node of migratedNodes) {
       // Stryker disable next-line ConditionalExpression,LogicalOperator: the typeof/operator variants are equivalent — a non-object node yields {} after the spread below and is then dropped by the id/type guard
       if (!node || typeof node !== "object") {
         if (skipErrors) continue;
@@ -281,7 +292,7 @@ export class Graph {
     }
 
     const validEdges: Edge[] = [];
-    for (const edge of obj.edges) {
+    for (const edge of migratedEdges) {
       if (!edge || typeof edge !== "object") {
         if (skipErrors) continue;
         throw new GraphValidationError("Edge entries must be objects");
@@ -802,8 +813,52 @@ export class Graph {
    */
   validate(): void {
     this.validateEdgeEndpoints();
+    this.validateDataEdgeSourceHandles();
     this.validateControlEdges();
     this.validateEdgeTypes();
+  }
+
+  /**
+   * Verify that every data edge's `sourceHandle` is a declared output of its
+   * source node. Without this, an edge wired to a nonexistent output handle
+   * passes validation and then silently never delivers a value at runtime
+   * (`validateEdgeTypes` skips it for lack of a source type), leaving the
+   * target node waiting forever.
+   *
+   * Only enforced when the source node declares a non-empty static `outputs`
+   * map and does not produce dynamic outputs (whose handles aren't known
+   * statically). Nodes without output metadata are left untouched.
+   */
+  validateDataEdgeSourceHandles(): void {
+    for (const edge of this.edges) {
+      if (!isDataEdge(edge)) continue;
+      const sourceNode = this._nodeIndex.get(edge.source);
+      // Endpoint existence is enforced by validateEdgeEndpoints().
+      if (!sourceNode) continue;
+      const outputs = sourceNode.outputs;
+      if (!outputs || Object.keys(outputs).length === 0) continue;
+      if (
+        sourceNode.dynamic_outputs &&
+        Object.keys(sourceNode.dynamic_outputs).length > 0
+      ) {
+        continue;
+      }
+      if (!(edge.sourceHandle in outputs)) {
+        throw new GraphValidationError(
+          `Edge ${edge.id ?? syntheticEdgeId(edge.source, edge.sourceHandle, edge.target, edge.targetHandle)} ` +
+            `references unknown output "${edge.sourceHandle}" on node "${edge.source}"` +
+            `${sourceNode.type ? ` (${sourceNode.type})` : ""}`,
+          [
+            {
+              nodeId: edge.source,
+              nodeType: sourceNode.type,
+              property: edge.sourceHandle,
+              message: `Unknown output "${edge.sourceHandle}"`
+            }
+          ]
+        );
+      }
+    }
   }
 
   /**

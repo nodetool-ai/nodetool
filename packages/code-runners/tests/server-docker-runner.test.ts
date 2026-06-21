@@ -138,6 +138,7 @@ describe("ServerDockerRunner constructor", () => {
     expect(runner.securityOpt).toEqual(["no-new-privileges"]);
     expect(runner.readonlyRootfs).toBe(false);
     expect(runner.readonlyWorkspace).toBe(false);
+    expect(runner.user).toBe("1000:1000");
   });
 
   it("threads hardening overrides through to the base runner", () => {
@@ -148,13 +149,15 @@ describe("ServerDockerRunner constructor", () => {
       capDrop: ["NET_RAW"],
       securityOpt: ["seccomp=unconfined"],
       readonlyRootfs: true,
-      readonlyWorkspace: true
+      readonlyWorkspace: true,
+      user: "2000:2000"
     });
     expect(runner.ipcMode).toBe("shareable");
     expect(runner.capDrop).toEqual(["NET_RAW"]);
     expect(runner.securityOpt).toEqual(["seccomp=unconfined"]);
     expect(runner.readonlyRootfs).toBe(true);
     expect(runner.readonlyWorkspace).toBe(true);
+    expect(runner.user).toBe("2000:2000");
   });
 
   it("normalizes endpointPath by adding leading slash", () => {

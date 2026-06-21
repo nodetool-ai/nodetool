@@ -36,15 +36,14 @@
           "title": "1️⃣ Story theme"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "format_prompt",
         "parent_id": null,
-        "type": "nodetool.text.FormatText",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "template": "Transform this story theme into a cinematic video prompt: {{THEME}}"
+          "prompt": "Transform this story theme into a cinematic video prompt: {{THEME}}"
         },
         "ui_properties": {
           "position": {
@@ -59,8 +58,7 @@
         "dynamic_properties": {
           "THEME": ""
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "prompt_engineer_agent",
@@ -82,8 +80,7 @@
           "title": "2️⃣ Engineer video prompt"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "video_generator",
@@ -110,8 +107,7 @@
           "title": "3️⃣ Generate video"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "7ccd9809-860d-4551-94d1-a0a1c9c6814a",
@@ -131,8 +127,7 @@
           "selectable": true
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "1ea43f6c-cdba-4194-93db-b0ce982c5456",
@@ -156,8 +151,7 @@
           "selectable": true
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ],
     "edges": [

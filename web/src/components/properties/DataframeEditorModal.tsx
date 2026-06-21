@@ -315,7 +315,7 @@ const styles = (theme: Theme) =>
         height: "2.25em",
         fontSize: "var(--fontSizeNormal)",
         backgroundColor: `rgba(${theme.vars.palette.background.paperChannel} / 0.5)`,
-        borderRadius: "var(--rounded-md)"
+        borderRadius: BORDER_RADIUS.md
       },
       "& .MuiInputBase-input": {
         padding: "0.35em 0.5em"

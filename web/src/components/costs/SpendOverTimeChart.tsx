@@ -110,7 +110,7 @@ const SpendOverTimeChartInternal: React.FC<SpendOverTimeChartProps> = ({
                 sx={{
                   width: 9,
                   height: 9,
-                  borderRadius: "var(--rounded-sm)",
+                  borderRadius: BORDER_RADIUS.sm,
                   backgroundColor: p.color,
                   flexShrink: 0
                 }}

@@ -31,4 +31,4 @@ Parse a date string/number/Date and format it. Supports tokens YYYY, MM, DD, HH,
 
 ## Related Nodes
 
-Browse other nodes in the [lib.datetime](../) namespace.
+Browse other nodes in the [lib.datetime](./) namespace.

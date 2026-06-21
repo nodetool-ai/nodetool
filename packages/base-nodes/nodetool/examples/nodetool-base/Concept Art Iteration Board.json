@@ -1,29 +1,116 @@
 {
-  "id": "fac89302-e7ea-4415-b0a5-da2205da59d7",
-  "access": "public",
-  "created_at": "2026-01-09T22:48:14.854202",
-  "updated_at": "2026-01-09T22:48:14.854202",
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-20T11:20:20.064Z",
+  "updated_at": "2026-06-20T20:19:48.531Z",
   "name": "Concept Art Iteration Board",
   "tool_name": null,
-  "description": "Create a comprehensive learning path for a topic.",
+  "description": "Turn a creative brief, style, and mood into concept art variations. An agent sets the art direction, then a batch of images is generated.",
   "tags": [
     "concept-art",
-    "planning"
+    "planning",
+    "example"
   ],
   "thumbnail": null,
   "thumbnail_url": null,
   "graph": {
+    "edges": [
+      {
+        "id": "9",
+        "source": "5",
+        "sourceHandle": "item",
+        "target": "4",
+        "targetHandle": "prompt",
+        "edge_type": "data"
+      },
+      {
+        "id": "8b8c3cf8-65f5-4720-b991-cb60e66216c7",
+        "source": "c1c46bfe-d52b-445b-b9d4-b0141e5bb944",
+        "sourceHandle": "output",
+        "target": "5",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "9a48c27a-12d6-4803-b25e-1642ffb2f1bc",
+        "source": "8",
+        "sourceHandle": "text",
+        "target": "c1c46bfe-d52b-445b-b9d4-b0141e5bb944",
+        "targetHandle": "direction",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "9a2b1077-8193-4199-9bf5-5326cc011abd",
+        "source": "11",
+        "sourceHandle": "output",
+        "target": "c1c46bfe-d52b-445b-b9d4-b0141e5bb944",
+        "targetHandle": "style",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "2dc7048a-d002-4965-9bc2-1e8636602768",
+        "source": "10",
+        "sourceHandle": "output",
+        "target": "77560ab1-75f1-4208-aa4f-66732f56e22b",
+        "targetHandle": "brief",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "6aebf5fa-46c4-46cd-af13-268d79f623c0",
+        "source": "11",
+        "sourceHandle": "output",
+        "target": "77560ab1-75f1-4208-aa4f-66732f56e22b",
+        "targetHandle": "style",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "106c53fb-2e91-4b6b-9ca7-e1a08197b663",
+        "source": "12",
+        "sourceHandle": "output",
+        "target": "77560ab1-75f1-4208-aa4f-66732f56e22b",
+        "targetHandle": "mood",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e88012e0-5290-49a0-bc04-4b2cb3971211",
+        "source": "77560ab1-75f1-4208-aa4f-66732f56e22b",
+        "sourceHandle": "output",
+        "target": "8",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      }
+    ],
     "nodes": [
       {
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🖼️ Concept Art Iteration Board\n\nTurn a brief, style, and mood into a grid of concept art variations. An agent sets the art direction, then a batch of images is generated and tiled.\n\n**Pipeline:** Brief + Style + Mood → Agent → Build prompts → Text-to-Image → Grid\n\n**Try this:** raise the count for more variations, or change the style and mood."
+          "comment": "# 🖼️ Concept Art Iteration Board\n\nTurn a brief, style, and mood into concept art variations. An agent sets the art direction, then a batch of images is generated.\n\n**Pipeline:** Brief + Style + Mood → Agent → Build prompts → Text-to-Image\n\n**Try this:** change the style and mood, or edit the prompt to generate more variations."
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 0,
+            "x": -25,
             "y": -220
           },
           "zIndex": 0,
@@ -36,41 +123,16 @@
         "dynamic_outputs": {}
       },
       {
-        "id": "2",
-        "parent_id": null,
-        "type": "lib.grid.CombineImageGrid",
-        "data": {
-          "tiles": [],
-          "columns": 3
-        },
-        "ui_properties": {
-          "width": 384,
-          "height": 400,
-          "title": "Combine into grid"
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "3",
-        "parent_id": null,
-        "type": "nodetool.control.Collect",
-        "data": {
-          "input_item": []
-        },
-        "ui_properties": {},
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
         "id": "4",
-        "parent_id": null,
         "type": "nodetool.image.TextToImage",
         "data": {
-          "model": {},
-          "prompt": "A cat holding a sign that says hello world",
+          "model": {
+            "type": "image_model",
+            "id": "",
+            "provider": "",
+            "name": "",
+            "path": ""
+          },
           "negative_prompt": "",
           "width": 1024,
           "height": 1024,
@@ -80,75 +142,60 @@
           "safety_check": true
         },
         "ui_properties": {
-          "width": 384,
-          "height": 400,
-          "title": "Render concept art"
+          "position": {
+            "x": 2054,
+            "y": 95
+          },
+          "zIndex": 0,
+          "width": 461,
+          "height": 489,
+          "title": "Render concept art",
+          "selectable": true,
+          "bypassed": false,
+          "selected_generation": "8200a9c8-6d27-4298-9e02-19b2df7abfa0"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "5",
-        "parent_id": null,
         "type": "nodetool.generators.ListGenerator",
         "data": {
-          "model": {},
-          "prompt": "",
+          "model": {
+            "type": "language_model",
+            "id": "",
+            "provider": "",
+            "name": ""
+          },
           "input_text": "",
           "max_tokens": 2048
         },
         "ui_properties": {
-          "title": "Generate variations"
+          "position": {
+            "x": 1634,
+            "y": 194
+          },
+          "zIndex": 0,
+          "width": 390,
+          "height": 292,
+          "title": "Generate variations",
+          "selectable": true,
+          "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "6",
-        "parent_id": null,
-        "type": "nodetool.text.FormatText",
-        "data": {
-          "template": "\nBased on this art direction, generate {{ count }} unique concept art prompts.\n\nArt Direction: {{ direction }}\nBase Style: {{ style }}\n\nEach prompt should:\n- Explore a different interpretation or angle\n- Maintain the core concept but vary composition/pose/mood\n- Be detailed enough for high-quality image generation\n- Include specific lighting and atmosphere descriptions\n\nOutput format: One prompt per line, no numbering or bullets.\n"
-        },
-        "ui_properties": {
-          "title": "Build image prompts"
-        },
-        "dynamic_properties": {
-          "count": null,
-          "direction": null,
-          "style": null
-        },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "7",
-        "parent_id": null,
-        "type": "nodetool.input.IntegerInput",
-        "data": {
-          "name": "num_variations",
-          "value": 6,
-          "description": "Number of concept variations (4, 6, 9 for good grids)",
-          "min": 2,
-          "max": 12
-        },
-        "ui_properties": {
-          "title": "Number of variations"
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "8",
-        "parent_id": null,
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {},
+          "model": {
+            "type": "language_model",
+            "id": "",
+            "provider": "",
+            "name": ""
+          },
           "system": "You are an experienced concept art director. Provide detailed, inspiring art direction.",
-          "prompt": "",
           "image": {
             "type": "image",
             "uri": "",
@@ -168,33 +215,22 @@
           "max_tokens": 1024
         },
         "ui_properties": {
-          "title": "Set art direction"
+          "position": {
+            "x": 837,
+            "y": 329
+          },
+          "zIndex": 0,
+          "width": 319,
+          "height": 207,
+          "title": "Set art direction",
+          "selectable": true,
+          "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "9",
-        "parent_id": null,
-        "type": "nodetool.text.FormatText",
-        "data": {
-          "template": "\nYou are a creative director for concept art.\n\nCreative Brief: {{ brief }}\nArt Style: {{ style }}\nMood: {{ mood }}\n\nExpand this brief into detailed art direction including:\n1. Visual composition suggestions\n2. Color palette recommendations\n3. Key design elements to explore\n4. Silhouette and shape language ideas\n5. Reference inspirations (describe, don't link)\n\nBe specific and actionable for a concept artist.\n"
-        },
-        "ui_properties": {
-          "title": "Build direction prompt"
-        },
-        "dynamic_properties": {
-          "brief": null,
-          "style": null,
-          "mood": null
-        },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "10",
-        "parent_id": null,
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "creative_brief",
@@ -202,15 +238,22 @@
           "description": "The creative brief describing the concept"
         },
         "ui_properties": {
-          "title": "Brief"
+          "selected": false,
+          "position": {
+            "x": 50,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Brief",
+          "selectable": true,
+          "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "11",
-        "parent_id": null,
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "art_style",
@@ -218,15 +261,21 @@
           "description": "Desired art style and medium"
         },
         "ui_properties": {
-          "title": "Style"
+          "position": {
+            "x": 50,
+            "y": 330
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Style",
+          "selectable": true,
+          "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "12",
-        "parent_id": null,
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "mood_keywords",
@@ -234,193 +283,78 @@
           "description": "Key mood/atmosphere words"
         },
         "ui_properties": {
-          "title": "Mood"
+          "position": {
+            "x": 50,
+            "y": 610
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "Mood",
+          "selectable": true,
+          "bypassed": false
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
-        "id": "16",
-        "parent_id": null,
-        "type": "nodetool.agents.Agent",
+        "id": "c1c46bfe-d52b-445b-b9d4-b0141e5bb944",
+        "type": "nodetool.text.Prompt",
         "data": {
-          "model": {},
-          "system": "You are a senior concept art director providing feedback for iteration.",
-          "prompt": "",
-          "image": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          },
-          "audio": {
-            "type": "audio",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          },
-          "history": [],
-          "thread_id": "",
-          "max_tokens": 1024
+          "prompt": "\nBased on this art direction, generate 4 unique concept art prompts.\n\nArt Direction: {{ direction }}\nBase Style: {{ style }}\n\nEach prompt should:\n- Explore a different interpretation or angle\n- Maintain the core concept but vary composition/pose/mood\n- Be detailed enough for high-quality image generation\n- Include specific lighting and atmosphere descriptions\n\nOutput format: One prompt per line, no numbering or bullets.\n"
         },
         "ui_properties": {
-          "title": "Suggest more directions"
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      },
-      {
-        "id": "17",
-        "parent_id": null,
-        "type": "nodetool.text.FormatText",
-        "data": {
-          "template": "\nReview these concept art explorations as a creative director.\n\nOriginal Brief: {{ brief }}\nArt Direction Used: {{ direction }}\nNumber of Variations: {{ count }}\n\nProvide constructive feedback including:\n1. Which directions show the most promise and why\n2. Elements that work well across variations\n3. Areas that could be pushed further\n4. Specific suggestions for the next iteration round\n5. Color and composition notes\n\nBe specific and actionable for guiding the next iteration.\n"
-        },
-        "ui_properties": {
-          "title": "Build variation prompt"
+          "position": {
+            "x": 1186,
+            "y": 98
+          },
+          "zIndex": 0,
+          "width": 418,
+          "height": 563,
+          "selectable": true,
+          "bypassed": false
         },
         "dynamic_properties": {
-          "brief": null,
-          "direction": null,
-          "count": null
+          "direction": "",
+          "style": ""
         },
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
-      }
-    ],
-    "edges": [
-      {
-        "id": "1",
-        "source": "7",
-        "sourceHandle": "output",
-        "target": "6",
-        "targetHandle": "count",
-        "ui_properties": null
+        "dynamic_outputs": {}
       },
       {
-        "id": "2",
-        "source": "10",
-        "sourceHandle": "output",
-        "target": "9",
-        "targetHandle": "brief",
-        "ui_properties": null
-      },
-      {
-        "id": "3",
-        "source": "11",
-        "sourceHandle": "output",
-        "target": "9",
-        "targetHandle": "style",
-        "ui_properties": null
-      },
-      {
-        "id": "4",
-        "source": "12",
-        "sourceHandle": "output",
-        "target": "9",
-        "targetHandle": "mood",
-        "ui_properties": null
-      },
-      {
-        "id": "5",
-        "source": "9",
-        "sourceHandle": "output",
-        "target": "8",
-        "targetHandle": "prompt",
-        "ui_properties": null
-      },
-      {
-        "id": "6",
-        "source": "8",
-        "sourceHandle": "text",
-        "target": "6",
-        "targetHandle": "direction",
-        "ui_properties": null
-      },
-      {
-        "id": "7",
-        "source": "11",
-        "sourceHandle": "output",
-        "target": "6",
-        "targetHandle": "style",
-        "ui_properties": null
-      },
-      {
-        "id": "8",
-        "source": "6",
-        "sourceHandle": "output",
-        "target": "5",
-        "targetHandle": "prompt",
-        "ui_properties": null
-      },
-      {
-        "id": "9",
-        "source": "5",
-        "sourceHandle": "item",
-        "target": "4",
-        "targetHandle": "prompt",
-        "ui_properties": null
-      },
-      {
-        "id": "10",
-        "source": "4",
-        "sourceHandle": "output",
-        "target": "3",
-        "targetHandle": "input_item",
-        "ui_properties": null
-      },
-      {
-        "id": "11",
-        "source": "3",
-        "sourceHandle": "output",
-        "target": "2",
-        "targetHandle": "tiles",
-        "ui_properties": null
-      },
-      {
-        "id": "15",
-        "source": "10",
-        "sourceHandle": "output",
-        "target": "17",
-        "targetHandle": "brief",
-        "ui_properties": null
-      },
-      {
-        "id": "16",
-        "source": "8",
-        "sourceHandle": "text",
-        "target": "17",
-        "targetHandle": "direction",
-        "ui_properties": null
-      },
-      {
-        "id": "17",
-        "source": "7",
-        "sourceHandle": "output",
-        "target": "17",
-        "targetHandle": "count",
-        "ui_properties": null
-      },
-      {
-        "id": "18",
-        "source": "17",
-        "sourceHandle": "output",
-        "target": "16",
-        "targetHandle": "prompt",
-        "ui_properties": null
+        "id": "77560ab1-75f1-4208-aa4f-66732f56e22b",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "\nYou are a creative director for concept art.\n\nCreative Brief: {{ brief }}\nArt Style: {{ style }}\nMood: {{ mood }}\n\nExpand this brief into detailed art direction including:\n1. Visual composition suggestions\n2. Color palette recommendations\n3. Key design elements to explore\n4. Silhouette and shape language ideas\n5. Reference inspirations (describe, don't link)\n\nBe specific and actionable for a concept artist.\n"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 400,
+            "y": 297
+          },
+          "zIndex": 0,
+          "width": 377,
+          "height": 571,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "brief": "",
+          "style": "",
+          "mood": ""
+        },
+        "dynamic_outputs": {}
       }
     ]
   },
   "input_schema": null,
   "output_schema": null,
-  "settings": null,
+  "settings": {},
   "package_name": "nodetool-base",
   "path": null,
-  "run_mode": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
   "required_providers": null,
-  "required_models": null
+  "required_models": null,
+  "html_app": null,
+  "etag": "f0822a809691b6862751bcf5c4642e57"
 }

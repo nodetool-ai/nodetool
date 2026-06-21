@@ -39,7 +39,9 @@
     },
     "extra": {
       "supabaseUrl": "https://zmytgmyiwfmdajmxjbag.supabase.co",
-      "supabaseAnonKey": "sb_publishable_sGCndMc7Ku5J6Bct80D9WQ_Ik96Qu9a"
+      "supabaseAnonKey": "sb_publishable_sGCndMc7Ku5J6Bct80D9WQ_Ik96Qu9a",
+      "googleWebClientId": "865599262139-mla1l0bqc3ss0frq085mcdpd6cbftvem.apps.googleusercontent.com",
+      "googleIosClientId": "865599262139-dmfkvddphs7h1qu6dvrgj0t9aq656h84.apps.googleusercontent.com"
     },
     "plugins": [
       "expo-web-browser",

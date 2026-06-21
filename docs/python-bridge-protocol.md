@@ -48,7 +48,7 @@ The payload is a MessagePack object with this envelope shape:
 4. TypeScript sends `discover`
 5. Python responds with node metadata, protocol version, and any load errors
 6. TypeScript optionally requests `worker.status`
-7. Workflow execution uses `execute`, `cancel`, and `provider.*` messages
+7. Workflow execution uses `execute` / `execute.stream`, `cancel`, `provider.*`, and (on v2+ workers) `models.*` messages
 
 ## Message types
 
@@ -114,13 +114,20 @@ Possible response types:
 - `result`
 - `error`
 
+### `execute.stream`
+
+Executes a Python node that streams results. Same request data as `execute`
+(`node_type`, `fields`, `secrets`, `blobs`), but the worker emits zero or more
+`chunk` messages (each carrying partial `outputs`/`blobs`) followed by a
+terminal `result` or `error`.
+
 ### `cancel`
 
 Requests cooperative cancellation for an in-flight `execute` or streaming provider request.
 
 ### `provider.*`
 
-Used for Python-only providers. Current message families include:
+Used for Python-only providers. The message families the TS bridge implements:
 
 - `provider.list`
 - `provider.models`
@@ -128,13 +135,21 @@ Used for Python-only providers. Current message families include:
 - `provider.stream`
 - `provider.text_to_image`
 - `provider.image_to_image`
-- `provider.text_to_video`
-- `provider.text_to_audio`
 - `provider.tts`
 - `provider.asr`
 - `provider.embedding`
 
-Streaming providers emit zero or more `chunk` messages followed by a terminal `result` or `error`.
+Streaming providers (`provider.stream`, `provider.tts`) emit zero or more `chunk` messages followed by a terminal `result` or `error`.
+
+### `models.*`
+
+Worker model management (HuggingFace cache). These were introduced in bridge
+protocol **v2** and are gated by `supportsModelManagement()` — a v1 worker
+simply does not expose them (see [Versioning](#versioning)).
+
+- `models.list_cached` — list models cached on the worker's `HF_HOME` (cache-only, no network)
+- `models.download` — download a model onto the worker cache, streaming ordered `progress` frames then a terminal `result`
+- `models.delete` — delete a cached model; returns whether it existed
 
 ## Result, error, chunk, and progress
 
@@ -211,12 +226,26 @@ This matters because metadata may exist for a Python node even if its module fai
 
 ## Versioning
 
-The JS runtime and Python worker both speak `BRIDGE_PROTOCOL_VERSION`.
+The JS runtime and Python worker each report a `BRIDGE_PROTOCOL_VERSION`. Two
+distinct numbers govern compatibility (see `packages/protocol/src/bridge-protocol.ts`):
+
+- **`BRIDGE_PROTOCOL_VERSION`** — the protocol the JS runtime currently speaks
+  (presently `2`).
+- **`MIN_BRIDGE_PROTOCOL_VERSION`** — the *hard floor* (presently `1`). The JS
+  runtime rejects a worker only if it reports a protocol **below** this floor.
 
 Compatibility rules:
 
-- older worker protocol than the JS runtime requires: fail startup
-- newer worker protocol: warn and assume backward compatibility
+- **Older worker, at or above the floor** — connects normally. It does **not**
+  fail startup. Additive features the worker predates are gated per-capability:
+  a v1 worker connects fine and simply doesn't expose the `models.*` family
+  (gated by `supportsModelManagement()`, which requires v2+). Workers that
+  predate the `protocol_version` field are treated as v1.
+- **Worker below `MIN_BRIDGE_PROTOCOL_VERSION`** — rejected at `discover` with
+  an actionable error (reinstall the Python environment). This is the only
+  startup-failing case, reserved for genuine wire breaks.
+- **Newer worker protocol than the JS runtime** — the runtime warns and assumes
+  backward compatibility.
 
 ## Notes for contributors
 

@@ -29,8 +29,9 @@ Split a path into directory and file components.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `dict` |  |
+| dirname | `str` |  |
+| basename | `str` |  |
 
 ## Related Nodes
 
-Browse other nodes in the [lib.os](../) namespace.
+Browse other nodes in the [lib.os](./) namespace.

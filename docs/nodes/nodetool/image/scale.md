@@ -9,11 +9,6 @@ namespace: "nodetool.image"
 
 **Namespace:** `nodetool.image`
 
-## Description
-
-Enlarge or shrink an image by a scale factor.
-    image, resize, scale
-
 ## Properties
 
 | Property | Type | Description | Default |
@@ -29,4 +24,4 @@ Enlarge or shrink an image by a scale factor.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.image](../) namespace.
+Browse other nodes in the [nodetool.image](./) namespace.

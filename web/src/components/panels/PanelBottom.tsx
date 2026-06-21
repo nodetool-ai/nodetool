@@ -3,8 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Drawer } from "@mui/material";
-import { MOTION, BORDER_RADIUS } from "../ui_primitives";
-import { Tooltip } from "../ui_primitives";
+import { Tooltip, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { useResizeBottomPanel } from "../../hooks/handlers/useResizeBottomPanel";
 import {
   BOTTOM_PANEL_GROUPS,
@@ -16,8 +15,13 @@ import { useLocation } from "react-router-dom";
 import isEqual from "fast-deep-equal";
 import TracePanel from "./TracePanel";
 import LogPanel from "./LogPanel";
+import QueuePanel from "./jobs/QueuePanel";
 import SandboxesPanel from "../dashboard/SandboxesPanel";
+import WorkersPanel from "../workers/WorkersPanel";
+import WorkerStatusIndicator from "../workers/WorkerStatusIndicator";
+import WorkspaceTree from "../workspaces/WorkspaceTree";
 import { VersionHistoryPanel } from "../version";
+import PanelHeadline from "../ui/PanelHeadline";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { isProduction } from "../../lib/env";
@@ -30,6 +34,7 @@ import {
   Node as GraphNode,
   Edge as GraphEdge
 } from "../../stores/ApiTypes";
+import { useRunningJobs } from "../../hooks/useRunningJobs";
 import { useSystemStatsStore } from "../../stores/systemStatsHandler";
 import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
 import { BASE_URL } from "../../stores/BASE_URL";
@@ -40,7 +45,11 @@ import TimelineIcon from "@mui/icons-material/Timeline";
 import ArticleIcon from "@mui/icons-material/Article";
 import DesktopWindowsIcon from "@mui/icons-material/DesktopWindows";
 import HistoryIcon from "@mui/icons-material/History";
+import FolderIcon from "@mui/icons-material/Folder";
+import PlaylistPlayIcon from "@mui/icons-material/PlaylistPlay";
+import MemoryIcon from "@mui/icons-material/Memory";
 
+const workspacesEnabled = !isProduction;
 const sandboxesEnabled = !isProduction;
 
 const HEADER_HEIGHT = 32;
@@ -113,17 +122,35 @@ interface ViewSpec {
 
 const VIEW_SPECS: Record<BottomPanelView, ViewSpec> = {
   logs: { id: "logs", label: "Logs", icon: <ArticleIcon />, enabled: true },
+  queue: {
+    id: "queue",
+    label: "Queue",
+    icon: <PlaylistPlayIcon />,
+    enabled: true
+  },
   sandboxes: {
     id: "sandboxes",
     label: "Sandboxes",
     icon: <DesktopWindowsIcon />,
     enabled: sandboxesEnabled
   },
+  workers: {
+    id: "workers",
+    label: "Workers",
+    icon: <MemoryIcon />,
+    enabled: true
+  },
   versions: {
     id: "versions",
     label: "Versions",
     icon: <HistoryIcon />,
     enabled: true
+  },
+  workspace: {
+    id: "workspace",
+    label: "Workspace",
+    icon: <FolderIcon />,
+    enabled: workspacesEnabled
   },
   trace: {
     id: "trace",
@@ -338,12 +365,14 @@ const styles = (theme: Theme) =>
 interface TabButtonProps {
   spec: ViewSpec;
   active: boolean;
+  count?: number;
   onClick: () => void;
 }
 
 const TabButton = memo(function TabButton({
   spec,
   active,
+  count,
   onClick
 }: TabButtonProps) {
   return (
@@ -357,6 +386,9 @@ const TabButton = memo(function TabButton({
       >
         {spec.icon}
         <span>{spec.label}</span>
+        {count !== undefined && count > 0 && (
+          <span className="tab-count">{count}</span>
+        )}
       </button>
     </Tooltip>
   );
@@ -414,8 +446,27 @@ const PanelBodyContent = memo(function PanelBodyContent({
   switch (activeView) {
     case "logs":
       return <LogPanel />;
+    case "queue":
+      return (
+        <Box
+          className="queue-panel"
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            width: "100%",
+            height: "100%",
+            overflow: "hidden",
+            padding: "0 1em"
+          }}
+        >
+          <PanelHeadline title="Queue" />
+          <QueuePanel />
+        </Box>
+      );
     case "sandboxes":
       return sandboxesEnabled ? <SandboxesPanel /> : null;
+    case "workers":
+      return <WorkersPanel />;
     case "versions":
       return currentWorkflowId ? (
         <VersionHistoryPanel
@@ -423,6 +474,15 @@ const PanelBodyContent = memo(function PanelBodyContent({
           onRestore={handleRestoreVersion}
           onClose={closeView}
         />
+      ) : null;
+    case "workspace":
+      return workspacesEnabled ? (
+        <Box
+          className="workspace-panel"
+          sx={{ width: "100%", height: "100%", overflow: "hidden" }}
+        >
+          <WorkspaceTree />
+        </Box>
       ) : null;
     case "trace":
       return <TracePanel />;
@@ -455,14 +515,18 @@ const PanelBottom: React.FC = () => {
     currentWorkflowId
   );
 
+  const { data: allJobs } = useRunningJobs();
+  const queuedCount =
+    allJobs?.filter((j) => j.status === "queued").length ?? 0;
+
   const systemStats = useSystemStatsStore((state) => state.stats);
 
   useCombo(["Control", "Shift", "T"], () => handlePanelToggle("trace"), false);
   useCombo(["l"], () => handlePanelToggle("logs"), false);
 
   // Production-disabled-view safeguard: if a previous session persisted a
-  // gated-off view (sandboxes), migrate the store to "logs" so the active
-  // view and the rendered body stay in sync.
+  // gated-off view (workspace/sandboxes), migrate the store to "logs" so the
+  // active view and the rendered body stay in sync.
   useEffect(() => {
     if (!VIEW_SPECS[activeView]?.enabled) {
       setActiveView("logs");
@@ -543,6 +607,7 @@ const PanelBottom: React.FC = () => {
               <span>{isConnected ? "connected" : "offline"}</span>
               <span className="sep" aria-hidden>·</span>
               <span>{workerLabel}</span>
+              <WorkerStatusIndicator />
             </div>
             <div className="tab-rail" role="tablist">
               {enabledViews.map((view) => (
@@ -550,6 +615,7 @@ const PanelBottom: React.FC = () => {
                   key={view}
                   spec={VIEW_SPECS[view]}
                   active={isVisible && activeView === view}
+                  count={view === "queue" ? queuedCount : undefined}
                   onClick={() => handlePanelToggle(view)}
                 />
               ))}

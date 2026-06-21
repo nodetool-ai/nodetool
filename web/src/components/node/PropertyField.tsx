@@ -21,18 +21,14 @@ import useModelCalloutStore from "../../stores/ModelCalloutStore";
 import { isModelEmpty } from "../../utils/findMissingModelNodes";
 import ModelSetupCallout from "./ModelSetupCallout";
 
-const highlightPulse = keyframes({
-  "0%": {
-    boxShadow:
-      "0 0 0 0 rgba(var(--palette-primary-mainChannel) / 0.9), 0 0 18px 4px rgba(var(--palette-primary-mainChannel) / 0.8)"
+const highlightBlink = keyframes({
+  "0%, 100%": {
+    outlineColor: "var(--palette-primary-light)",
+    boxShadow: "0 0 18px 4px rgba(var(--palette-primary-mainChannel) / 0.85)"
   },
-  "70%": {
-    boxShadow:
-      "0 0 0 10px rgba(var(--palette-primary-mainChannel) / 0), 0 0 26px 8px rgba(var(--palette-primary-mainChannel) / 0.35)"
-  },
-  "100%": {
-    boxShadow:
-      "0 0 0 0 rgba(var(--palette-primary-mainChannel) / 0), 0 0 18px 4px rgba(var(--palette-primary-mainChannel) / 0.7)"
+  "50%": {
+    outlineColor: "rgba(var(--palette-primary-mainChannel) / 0)",
+    boxShadow: "0 0 18px 4px rgba(var(--palette-primary-mainChannel) / 0)"
   }
 });
 
@@ -40,9 +36,18 @@ const highlightStyle = css({
   borderRadius: "var(--rounded-buttonSmall)",
   outline: "2px solid var(--palette-primary-light)",
   outlineOffset: 2,
-  boxShadow: "0 0 18px 4px rgba(var(--palette-primary-mainChannel) / 0.7)",
-  animation: `${highlightPulse} 0.9s ease-out 3`
+  // Blink the outline + glow fully on and off to draw the eye to an unset
+  // model. Runs until the highlight store clears it (HIGHLIGHT_DURATION_MS).
+  animation: `${highlightBlink} 0.55s ease-in-out infinite`
 });
+
+const HANDLE_POPUP_STYLE = { position: "absolute" as const, left: "0" };
+const PROPERTY_SPACER_STYLE = {
+  marginLeft: 8,
+  minHeight: 20,
+  display: "flex" as const,
+  alignItems: "center" as const
+};
 
 export type PropertyFieldProps = {
   id: string;
@@ -156,22 +161,6 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
     return isCollectType(property.type);
   }, [property.type]);
 
-  // Memoize inline styles to prevent recreation on every render
-  const handlePopupStyle = useMemo(
-    () => ({ position: "absolute" as const, left: "0" }),
-    []
-  );
-
-  const propertySpacerStyle = useMemo(
-    () => ({
-      marginLeft: 8,
-      minHeight: 20,
-      display: "flex" as const,
-      alignItems: "center" as const
-    }),
-    []
-  );
-
   const handleContextMenu = useCallback(
     (event: React.MouseEvent) => {
       event.preventDefault();
@@ -212,7 +201,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
       css={isHighlighted ? highlightStyle : undefined}
     >
       {showHandle && (
-        <div className="handle-popup" style={handlePopupStyle}>
+        <div className="handle-popup" style={HANDLE_POPUP_STYLE}>
           <HandleTooltip
             typeMetadata={property.type}
             paramName={property.name}
@@ -252,7 +241,7 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
           />
         </>
       ) : (
-        <div className="property-spacer" style={propertySpacerStyle}>
+        <div className="property-spacer" style={PROPERTY_SPACER_STYLE}>
           <PropertyLabel
             id={id}
             name={property.name}

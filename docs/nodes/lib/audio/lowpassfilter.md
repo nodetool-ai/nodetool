@@ -34,4 +34,4 @@ Applies a low-pass filter to attenuate frequencies above a cutoff point.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.audio](../) namespace.
+Browse other nodes in the [lib.audio](./) namespace.

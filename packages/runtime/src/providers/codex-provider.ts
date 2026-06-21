@@ -320,11 +320,17 @@ export class CodexProvider extends OpenAIProvider {
           });
         }
       }
+      // Skip empty message items: an assistant tool-call round carries its
+      // payload in the function_call items above and has no text of its own.
+      // Emitting an empty output_text on every round-trip both bloats the
+      // request and can confuse the backend.
+      const text = textOf(m.content);
+      if (!text) continue;
       const partType = m.role === "assistant" ? "output_text" : "input_text";
       input.push({
         type: "message",
         role: m.role,
-        content: [{ type: partType, text: textOf(m.content) }]
+        content: [{ type: partType, text }]
       });
     }
 
@@ -399,6 +405,7 @@ export class CodexProvider extends OpenAIProvider {
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
+    let sawTerminal = false;
 
     try {
       for (;;) {
@@ -425,12 +432,22 @@ export class CodexProvider extends OpenAIProvider {
           }
 
           for (const item of this.handleEvent(event, pending, args.model)) {
+            if (!("args" in item) && item.done) {
+              sawTerminal = true;
+            }
             yield item;
           }
         }
       }
     } finally {
       reader.releaseLock();
+    }
+
+    // The SSE connection can close without a `response.completed` event (e.g.
+    // the server drops the stream early). Consumers rely on a terminal
+    // `done: true` chunk to know the turn is over, so synthesize one.
+    if (!sawTerminal) {
+      yield { type: "chunk", content: "", done: true } as Chunk;
     }
   }
 

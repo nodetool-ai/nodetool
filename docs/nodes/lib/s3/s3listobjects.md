@@ -32,4 +32,4 @@ Lists objects in an S3 bucket with optional prefix filter.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.s3](../) namespace.
+Browse other nodes in the [lib.s3](./) namespace.

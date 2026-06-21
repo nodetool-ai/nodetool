@@ -440,6 +440,15 @@ async function autoSaveAssets(
      * media nodes.
      */
     textOutputName?: string;
+    /**
+     * The relay-stamped arrival `index` of the `generation_complete` event that
+     * triggered this save (RFC Decision 8 `(job_id, node_id, index)` key).
+     * Stamped onto each created asset's `metadata.generation_index` so a replay
+     * can dedupe by the exact slot — independent of how many assets a single
+     * event yields (a `list[image]` output, or media + text together, persists
+     * several rows for ONE arrival index).
+     */
+    generationIndex?: number;
   }
 ): Promise<void> {
   const queue: Record<string, unknown>[] = [];
@@ -462,6 +471,12 @@ async function autoSaveAssets(
     }
   }
   collect(result);
+
+  // Whether this result carries media at all — used to gate the structured
+  // (JSON) generation fallback below so a media node never also persists a
+  // redundant JSON copy of its output dict (true even on replay, where the
+  // media value already carries an asset_id and is skipped by the save loop).
+  const hasMedia = queue.length > 0;
 
   for (const assetValue of queue) {
     // Skip if already saved
@@ -508,6 +523,9 @@ async function autoSaveAssets(
       content_type: contentType,
       parent_id: null
     });
+    if (typeof opts.generationIndex === "number") {
+      asset.metadata = { generation_index: opts.generationIndex };
+    }
 
     const fileName = `${asset.id}.${ext}`;
     try {
@@ -537,10 +555,12 @@ async function autoSaveAssets(
   // text content-card nodes get the same reload-surviving, browsable generation
   // history as media nodes. The text is stored both as the asset bytes and
   // (capped) inline in metadata so the UI can preview it without a fetch.
+  let savedText = false;
   const textKey = opts.textOutputName;
   if (textKey) {
     const textVal = result[textKey];
     if (typeof textVal === "string" && textVal.length > 0) {
+      savedText = true;
       const bytes = new TextEncoder().encode(textVal);
       const previewText = new TextDecoder().decode(
         bytes.slice(0, TEXT_GENERATION_PREVIEW_CAP)
@@ -554,7 +574,10 @@ async function autoSaveAssets(
         content_type: "text/plain",
         parent_id: null
       });
-      asset.metadata = { text: previewText };
+      asset.metadata =
+        typeof opts.generationIndex === "number"
+          ? { text: previewText, generation_index: opts.generationIndex }
+          : { text: previewText };
       const fileName = `${asset.id}.txt`;
       try {
         await storeAssetWithThumbnail(asset.id, fileName, bytes, "text/plain");
@@ -565,6 +588,67 @@ async function autoSaveAssets(
           nodeId: opts.nodeId,
           error: String(err)
         });
+      }
+    }
+  }
+
+  // Structured (JSON) generation fallback. Nodes whose primary output is neither
+  // media nor a plain string — the generator family (List/Data/Chart/SVG/
+  // StructuredOutput), which emit lists, dicts, dataframes, chart configs, etc.
+  // — persist their whole output dict as an `application/json` asset so they get
+  // the same reload-surviving, browsable generation history as media/text nodes.
+  // The full value lives in the asset bytes; a copy is stored inline in
+  // `metadata.json` (when small enough) for fetch-free reload. Gated on
+  // !hasMedia && !savedText so media/text nodes never double-persist.
+  if (!hasMedia && !savedText) {
+    const structured: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(result)) {
+      if (value !== null && value !== undefined) structured[key] = value;
+    }
+    if (Object.keys(structured).length > 0) {
+      let serialized: string | null = null;
+      try {
+        serialized = JSON.stringify(structured);
+      } catch {
+        serialized = null;
+      }
+      if (serialized) {
+        const bytes = new TextEncoder().encode(serialized);
+        const asset = new Asset({
+          user_id: opts.userId,
+          workflow_id: opts.workflowId ?? null,
+          node_id: opts.nodeId,
+          job_id: opts.jobId,
+          name: `json_${opts.nodeId.slice(0, 8)}`,
+          content_type: "application/json",
+          parent_id: null
+        });
+        // Inline the full value only when it fits — a truncated JSON string
+        // would not parse on reload. Oversized values reload from the bytes.
+        const inline =
+          bytes.length <= TEXT_GENERATION_PREVIEW_CAP ? structured : undefined;
+        asset.metadata = {
+          ...(inline !== undefined ? { json: inline } : {}),
+          ...(typeof opts.generationIndex === "number"
+            ? { generation_index: opts.generationIndex }
+            : {})
+        };
+        const fileName = `${asset.id}.json`;
+        try {
+          await storeAssetWithThumbnail(
+            asset.id,
+            fileName,
+            bytes,
+            "application/json"
+          );
+          asset.size = bytes.length;
+          await asset.save();
+        } catch (err) {
+          log.warn("Auto-save JSON generation failed", {
+            nodeId: opts.nodeId,
+            error: String(err)
+          });
+        }
       }
     }
   }
@@ -1143,6 +1227,27 @@ export class UnifiedWebSocketRunner {
       this.activeJobs.delete(jobId);
     }
 
+    // Drain runs that were still queued (never started): the client is gone,
+    // so they will never run. Mark their persisted rows cancelled instead of
+    // leaving them as orphaned "scheduled" jobs in jobs.list.
+    for (
+      let queued = this.jobQueue.dequeue();
+      queued;
+      queued = this.jobQueue.dequeue()
+    ) {
+      const queuedId = queued.job_id;
+      if (!queuedId) continue;
+      try {
+        const job = await Job.get(queuedId);
+        if (job) {
+          job.markCancelled();
+          await job.save();
+        }
+      } catch (err) {
+        this.logError("disconnect queue cancellation failed", err);
+      }
+    }
+
     if (this.websocket) {
       try {
         await this.websocket.close();
@@ -1234,6 +1339,15 @@ export class UnifiedWebSocketRunner {
       return unpack(message.bytes) as Record<string, unknown>;
     }
     if (message.text) {
+      const maxBytes = getMaxWsMessageBytes();
+      const textBytes = Buffer.byteLength(message.text, "utf8");
+      if (textBytes > maxBytes) {
+        throw new Error(
+          `Incoming WebSocket message exceeds maximum size: ` +
+            `${textBytes} > ${maxBytes} bytes ` +
+            `(set NODETOOL_WS_MAX_MESSAGE_BYTES to raise the limit)`
+        );
+      }
       return JSON.parse(message.text) as Record<string, unknown>;
     }
     return null;
@@ -1794,6 +1908,21 @@ export class UnifiedWebSocketRunner {
     let terminalWithResultSeen = false;
     let outputUpdateSeen = false;
     let finalOutputs: Record<string, unknown[]> = {};
+    // Per-node arrival counter for `generation_complete.index` within this job.
+    // The function is scoped to one job, so keying by node_id alone yields a
+    // per-(job_id, node_id) monotonic index. DB-ordering reconciliation is a
+    // later step (RFC Decision 8); this is the in-memory arrival order.
+    const generationIndexByNode = new Map<string, number>();
+    // Arrival positions already autosaved in THIS run, keyed `${nodeId} ${index}`.
+    // A single generation_complete can persist several assets (a `list[image]`
+    // output, or media + text), so dedupe by the event's arrival index — NOT by
+    // a total asset count, which would under-save the next event (RFC D8).
+    const autosavedSlots = new Set<string>();
+    // Cross-run replay dedupe: the `generation_index` values already persisted
+    // for a node by a PRIOR run. Warmed with ONE `Asset.paginate` on a node's
+    // first generation_complete, then reused for every later variant — so an
+    // N-variant run does one query per node, not one per variant (RFC D8).
+    const persistedIndexByNode = new Map<string, Set<number>>();
     await this.sendMessage({
       type: "job_update",
       status: "running",
@@ -1858,7 +1987,8 @@ export class UnifiedWebSocketRunner {
         // outputs that don't need to be relayed to the frontend.
         if (
           outbound.type === "output_update" ||
-          outbound.type === "node_update"
+          outbound.type === "node_update" ||
+          outbound.type === "generation_complete"
         ) {
           const nodeId = String(outbound.node_id ?? "");
           const graphNodes =
@@ -1880,6 +2010,80 @@ export class UnifiedWebSocketRunner {
 
           const meta = this.getNodeMetadata?.(nodeType);
 
+          // Stamp an arrival-order `index` on generation_complete, keyed per
+          // (job_id, node_id) (the function is job-scoped, so node_id alone
+          // suffices). job_id/workflow_id were already backfilled by the
+          // outbound spread above.
+          if (outbound.type === "generation_complete") {
+            const arrivalIndex = generationIndexByNode.get(nodeId) ?? 0;
+            outbound.index = arrivalIndex;
+            generationIndexByNode.set(nodeId, arrivalIndex + 1);
+
+            // Autosave one generation per generation_complete on the RAW outputs
+            // (before the normalize at the bottom of this block strips inline
+            // bytes), tagged { jobId, nodeId, index }. This is the autosave
+            // cutover (RFC §7, D3): persistence is driven per generation event,
+            // not by the terminal node_update{completed} — so an N-execution
+            // run persists N distinct generations.
+            //
+            // Replay dedupe (D8) is keyed on the event's arrival `index`, NOT on
+            // a total asset count: a single generation_complete can persist
+            // several assets (a `list[image]` output, or media + a text asset),
+            // so a count-vs-index gate would under-save the very first run. Two
+            // guards, both keyed by (nodeId, index):
+            //   - in-run: skip if this arrival slot was already saved this run;
+            //   - cross-run: skip if an asset for (jobId, nodeId) already carries
+            //     metadata.generation_index === arrivalIndex (a reconnect replay
+            //     re-streams the same events with arrivalIndex back at 0..N-1).
+            // Server-only (D9): this is the websocket runner; the browser never
+            // reaches runJob, so no browser autosave is introduced here.
+            if (meta?.auto_save_asset && outbound.outputs != null) {
+              const userId = this.userId ?? "1";
+              const slotKey = `${nodeId} ${arrivalIndex}`;
+              // Warm the cross-run replay set once per node (on its first
+              // generation_complete), then reconcile every later variant
+              // against the in-memory set — one DB read per node, not per slot.
+              let persistedIndices = persistedIndexByNode.get(nodeId);
+              if (persistedIndices === undefined) {
+                const [persisted] = await Asset.paginate(userId, {
+                  jobId: active.jobId,
+                  nodeId,
+                  limit: 1000
+                });
+                persistedIndices = new Set<number>();
+                for (const a of persisted) {
+                  const gi = (
+                    a.metadata as { generation_index?: unknown } | null
+                  )?.generation_index;
+                  if (typeof gi === "number") persistedIndices.add(gi);
+                }
+                persistedIndexByNode.set(nodeId, persistedIndices);
+              }
+
+              if (
+                !autosavedSlots.has(slotKey) &&
+                !persistedIndices.has(arrivalIndex)
+              ) {
+                autosavedSlots.add(slotKey);
+                try {
+                  await autoSaveAssets(
+                    outbound.outputs as Record<string, unknown>,
+                    {
+                      userId,
+                      workflowId: active.workflowId,
+                      jobId: active.jobId,
+                      nodeId,
+                      textOutputName: primaryTextOutputName(meta),
+                      generationIndex: arrivalIndex
+                    }
+                  );
+                } catch (err) {
+                  log.warn("autoSaveAssets error", { error: String(err) });
+                }
+              }
+            }
+          }
+
           // Relay output_update for display-sink nodes (Output, Preview) and
           // for streaming or auto-saving generative nodes (FAL / Replicate /
           // Kie / …) so the client receives one event per yielded item — the
@@ -1898,30 +2102,6 @@ export class UnifiedWebSocketRunner {
             outputUpdateSeen = true;
           }
 
-          // Auto-save generated assets before normalization strips inline data
-          if (
-            outbound.type === "node_update" &&
-            outbound.status === "completed" &&
-            outbound.result != null
-          ) {
-            if (meta?.auto_save_asset) {
-              try {
-                await autoSaveAssets(
-                  outbound.result as Record<string, unknown>,
-                  {
-                    userId: this.userId ?? "1",
-                    workflowId: active.workflowId,
-                    jobId: active.jobId,
-                    nodeId: String(outbound.node_id ?? ""),
-                    textOutputName: primaryTextOutputName(meta)
-                  }
-                );
-              } catch (err) {
-                log.warn("autoSaveAssets error", { error: String(err) });
-              }
-            }
-          }
-
           await this._handleNodeProviderCost(active, outbound, nodeType);
 
           // Materialize binary assets to temp URLs before sending over WebSocket
@@ -1933,6 +2113,13 @@ export class UnifiedWebSocketRunner {
           if (outbound.type === "output_update" && outbound.value != null) {
             outbound.value = await active.context.normalizeOutputValue(
               outbound.value
+            );
+          }
+          // Normalize generation_complete.outputs the same way node_update.result
+          // is treated (raw bytes → temp URLs) before sending over the wire.
+          if (outbound.type === "generation_complete" && outbound.outputs != null) {
+            outbound.outputs = await active.context.normalizeOutputValue(
+              outbound.outputs
             );
           }
         }

@@ -9,6 +9,7 @@ import {
   ToolResultUpdate,
   PlanningUpdate,
   OutputUpdate,
+  GenerationComplete,
   EdgeUpdate,
   LogUpdate,
   TerminalUpdate,
@@ -127,6 +128,29 @@ const workflowSubscriptions = new Map<string, WorkflowSubscription>();
 // different workflows don't ping-pong a shared id and repeatedly wipe the
 // trace timeline.
 const traceRunJobIds = new Map<string, string | null>();
+
+// Per-(jobId, node_id) "a generation_complete landed this run" set. Gates the
+// node_update{completed} fallback so a generator (which emits N
+// generation_complete) does NOT also synthesize a phantom from its collapsed
+// node_update.result, while a non-generator (or an old server, §12) — which
+// emits no generation_complete — still gets its single live generation.
+// Relies on actor emit order (§5): generation_complete precedes the node's
+// terminal node_update{completed}, so the flag is set before the fallback reads it.
+const sawGenerationCompleteKeys = new Set<string>();
+const genKey = (jobId: string, nodeId: string) => `${jobId}:${nodeId}`;
+
+// Drop every saw-flag belonging to a finished run. The flags are only needed
+// during the run (between the gen_completes and the terminal
+// node_update{completed} fallback read), so clearing them on the job terminal
+// AND on a reused-jobId fresh-run start keeps the set from growing unbounded
+// across a long session (real runs use fresh UUID jobIds, so the fresh-run
+// clear alone never matches a prior run's keys).
+const clearSawGenerationCompleteFor = (jobId: string): void => {
+  const prefix = `${jobId}:`;
+  for (const k of sawGenerationCompleteKeys) {
+    if (k.startsWith(prefix)) sawGenerationCompleteKeys.delete(k);
+  }
+};
 
 /**
  * Append one event to the global TraceStore (the LLM/agent debug timeline shown
@@ -321,6 +345,7 @@ export type MsgpackData =
   | TaskUpdate
   | PlanningUpdate
   | OutputUpdate
+  | GenerationComplete
   | StepResult
   | TodoUpdate
   | EdgeUpdate
@@ -546,6 +571,24 @@ export const handleUpdate = (
     }
   }
 
+  if (data.type === "generation_complete") {
+    // The sole generation driver: a generator committed one complete artifact.
+    const jobId = extractJobId(data);
+    if (jobId) {
+      sawGenerationCompleteKeys.add(genKey(jobId, data.node_id));
+      // Silent jobs (slider scrubs) reuse one jobId across frames — pin slot 0
+      // (replace) so a scrub stays ONE preview (D2/§9). Otherwise use the
+      // relay-stamped index. outputs are already normalized at the relay — pass
+      // through, do NOT re-coerce.
+      const slot = isSilentJob(jobId) ? 0 : data.index ?? 0;
+      upsertLiveGeneration(workflow.id, data.node_id, jobId, {
+        index: slot,
+        status: "completed",
+        outputs: data.outputs
+      });
+    }
+  }
+
   if (data.type === "chunk") {
     // Binary (audio) chunk payloads don't belong in the text-chunk channel.
     if (
@@ -581,6 +624,14 @@ export const handleUpdate = (
       )
     ) {
       flushAudioAppends();
+      // The run is over: its saw-generation_complete flags are no longer read
+      // (the terminal node_update fallback already ran). Drop them so the set
+      // doesn't accumulate one dead entry per generator node per run for the
+      // life of the session. Skip silent scrub jobs — they reuse one jobId and
+      // never finalize between frames.
+      if (job.job_id && !silentJob) {
+        clearSawGenerationCompleteFor(job.job_id);
+      }
     }
     // The per-workflow runner represents the single full run. Concurrent
     // inline/per-node jobs share this workflow_id but have their own job_id, so
@@ -630,6 +681,12 @@ export const handleUpdate = (
       ) {
         traceRunJobIds.set(workflow.id, incomingTraceJobId);
         useTraceStore.getState().startRun(new Date().toISOString());
+        // Clear the saw-generation_complete flags for this incoming job so a
+        // reused jobId can't poison the next run's node_update{completed}
+        // fallback (a stale flag would suppress a legitimate synthesis).
+        if (job.job_id) {
+          clearSawGenerationCompleteFor(job.job_id);
+        }
       }
     } else if (job.status === "suspended") {
       newState = "suspended";
@@ -979,23 +1036,38 @@ export const handleUpdate = (
           update.status === "starting" ||
           update.status === "booting"
         ) {
-          upsertLiveGeneration(workflow.id, update.node_id, jobId, {
-            createdAt: Date.now(),
-            status: "running"
-          });
+          // Placeholder so a node shows a spinner before its first artifact
+          // (generation_complete only fires at commit). A silent scrub reuses
+          // one jobId per frame → pin slot 0 (replace), else go index-less so
+          // the first generation_complete{index:0} settles this slot in place.
+          upsertLiveGeneration(
+            workflow.id,
+            update.node_id,
+            jobId,
+            silent
+              ? { index: 0, createdAt: Date.now(), status: "running" }
+              : { createdAt: Date.now(), status: "running" }
+          );
         } else if (update.status === "completed") {
-          const raw = update.result;
-          const outputs: Record<string, unknown> =
-            typeof raw === "object" && raw !== null && !Array.isArray(raw)
-              ? (raw as Record<string, unknown>)
-              : raw !== undefined && raw !== null
-                ? { output: raw }
-                : {};
-          upsertLiveGeneration(workflow.id, update.node_id, jobId, {
-            status: "completed",
-            outputs,
-            cost: update.provider_cost ?? undefined
-          });
+          // Fallback only: non-generator nodes never emit generation_complete,
+          // and an old server (§12 version skew) emits none either. Synthesize
+          // ONE live generation from node_update.result ONLY if no
+          // generation_complete landed for this (jobId, node_id) this run.
+          // Index-less → settles the running placeholder in place (newest slot).
+          if (!sawGenerationCompleteKeys.has(genKey(jobId, update.node_id))) {
+            const raw = update.result;
+            const outputs: Record<string, unknown> =
+              typeof raw === "object" && raw !== null && !Array.isArray(raw)
+                ? (raw as Record<string, unknown>)
+                : raw !== undefined && raw !== null
+                  ? { output: raw }
+                  : {};
+            upsertLiveGeneration(workflow.id, update.node_id, jobId, {
+              status: "completed",
+              outputs,
+              cost: update.provider_cost ?? undefined
+            });
+          }
           appendTrace(
             "node_complete",
             `${update.node_name || update.node_id}`,

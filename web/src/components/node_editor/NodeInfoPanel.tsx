@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useCallback, useEffect, useState } from "react";
 import { shallow } from "zustand/shallow";
-import { Tooltip, Text, EditorButton, FlexRow, CloseButton, Box, MOTION } from "../ui_primitives";
+import { Tooltip, Text, EditorButton, FlexRow, CloseButton, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { useReactFlow, useViewport } from "@xyflow/react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -69,7 +69,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       backgroundColor: theme.vars.palette.background.paper,
-      borderRadius: "var(--rounded-xl)",
+      borderRadius: BORDER_RADIUS.xl,
       boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
       border: `1px solid ${theme.vars.palette.divider}`,
       overflow: "hidden",
@@ -109,7 +109,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       padding: "2px 6px",
       textTransform: "uppercase",
       display: "inline-block",
@@ -144,7 +144,7 @@ const styles = (theme: Theme) =>
       marginTop: "8px",
       padding: `${theme.spacing(2)} ${theme.spacing(3)}`,
       backgroundColor: `${theme.vars.palette.error.main}15`,
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       borderLeft: `3px solid ${theme.vars.palette.error.main}`
     },
     "& .error-text": {
@@ -162,7 +162,7 @@ const styles = (theme: Theme) =>
       display: "block",
       margin: "0 -4px",
       padding: "2px 8px",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       backgroundColor: "transparent",
       color: "var(--palette-grey-400)",
       fontSize: "var(--fontSizeSmaller)",
@@ -187,7 +187,7 @@ const styles = (theme: Theme) =>
       minWidth: "80px",
       fontSize: "var(--fontSizeSmall)",
       padding: `${theme.spacing(1.5)} ${theme.spacing(3)}`,
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       marginTop: "12px",
       "& .MuiButton-startIcon": {
         marginRight: "4px"

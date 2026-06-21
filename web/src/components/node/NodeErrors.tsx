@@ -86,7 +86,7 @@ const errorStyles = (theme: Theme) =>
   css({
     position: "relative",
     backgroundColor: theme.vars.palette.error.main,
-    borderRadius: "var(--rounded-xs)",
+    borderRadius: BORDER_RADIUS.xs,
     padding: theme.spacing(3),
     transition: `background-color ${MOTION.normal}`,
     display: "flex",

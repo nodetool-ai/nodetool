@@ -22,7 +22,6 @@ import React, {
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import Menu from "@mui/material/Menu";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
@@ -41,6 +40,12 @@ import type {
 } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import {
+  DEVICE_WIDTHS,
+  EFFECT_LABELS,
+  AUDIO_EFFECT_TYPES,
+  VIDEO_EFFECT_TYPES
+} from "./trackEffectsConstants";
+import {
   FlexColumn,
   FlexRow,
   NodeSlider,
@@ -49,6 +54,7 @@ import {
   LabeledSwitch,
   SelectField,
   NodeMenuItem,
+  EditorMenu,
   MOTION,
   BORDER_RADIUS,
   FONT_SIZE_SANS
@@ -85,17 +91,6 @@ const deviceRackStyles = (theme: Theme) =>
   });
 
 // Per-effect-type card width (Ableton-style fixed-width "devices").
-const DEVICE_WIDTHS: Record<TrackEffect["type"], number> = {
-  gain: 200,
-  eq3: 420,
-  filter: 240,
-  compressor: 380,
-  colorCorrection: 320,
-  videoBlur: 220,
-  sharpen: 240,
-  vignette: 260,
-  chromaKey: 280
-};
 
 const effectCardStyles = (
   theme: Theme,
@@ -215,33 +210,6 @@ const paramValueStyles = (theme: Theme) =>
   });
 
 // ── Effect labels ───────────────────────────────────────────────────────────
-
-const EFFECT_LABELS: Record<TrackEffect["type"], string> = {
-  gain: "Gain",
-  eq3: "3-Band EQ",
-  filter: "Filter",
-  compressor: "Compressor",
-  colorCorrection: "Color",
-  videoBlur: "Blur",
-  sharpen: "Sharpen",
-  vignette: "Vignette",
-  chromaKey: "Chroma Key"
-};
-
-const AUDIO_EFFECT_TYPES: TrackEffect["type"][] = [
-  "gain",
-  "eq3",
-  "filter",
-  "compressor"
-];
-
-const VIDEO_EFFECT_TYPES: TrackEffect["type"][] = [
-  "colorCorrection",
-  "videoBlur",
-  "sharpen",
-  "vignette",
-  "chromaKey"
-];
 
 // ── Parameter row ───────────────────────────────────────────────────────────
 
@@ -1892,7 +1860,7 @@ export const TrackEffectsPanel: React.FC<TrackEffectsPanelProps> = memo(
             <AddIcon />
             Add
           </button>
-          <Menu
+          <EditorMenu
             anchorEl={addAnchor}
             open={!!addAnchor}
             onClose={handleCloseAdd}
@@ -1904,7 +1872,7 @@ export const TrackEffectsPanel: React.FC<TrackEffectsPanelProps> = memo(
                 {EFFECT_LABELS[t]}
               </NodeMenuItem>
             ))}
-          </Menu>
+          </EditorMenu>
         </FlexRow>
 
         {effects.length === 0 ? (

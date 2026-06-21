@@ -809,7 +809,7 @@ const InputContextMenu: React.FC = () => {
     alignItems: "center",
     backgroundColor: "transparent",
     border: 0,
-    borderRadius: "var(--rounded-md)",
+    borderRadius: BORDER_RADIUS.md,
     color: "text.primary",
     cursor: "pointer",
     display: "flex",
@@ -861,7 +861,7 @@ const InputContextMenu: React.FC = () => {
       transformOrigin={{ vertical: "top", horizontal: "left" }}
       marginThreshold={0}
       paperSx={{
-        borderRadius: "var(--rounded-xl)",
+        borderRadius: BORDER_RADIUS.xl,
         backgroundColor: theme.vars.palette.background.paper,
         border: `1px solid ${theme.vars.palette.divider}`,
         boxShadow: theme.shadows[8],
@@ -890,7 +890,7 @@ const InputContextMenu: React.FC = () => {
           sx={{
             "& .MuiOutlinedInput-root": {
               backgroundColor: "action.disabledBackground",
-              borderRadius: "var(--rounded-md)",
+              borderRadius: BORDER_RADIUS.md,
               fontSize: "var(--fontSizeSmall)",
               height: 30,
               "& .MuiOutlinedInput-notchedOutline": {
@@ -1023,7 +1023,7 @@ const InputContextMenu: React.FC = () => {
           "& .node": {
             margin: 0,
             padding: "0 2px",
-            borderRadius: "var(--rounded-md)",
+            borderRadius: BORDER_RADIUS.md,
             cursor: "pointer",
             "&:hover": { backgroundColor: theme.vars.palette.action.hover },
             ".node-button": { padding: 0 },

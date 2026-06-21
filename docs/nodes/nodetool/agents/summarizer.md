@@ -29,6 +29,7 @@ Generate concise summaries of text content using LLM providers with streaming ou
 | text | `str` | The text to summarize | `` |
 | image | `image` | Optional image to condition the summary | `{"type":"image","uri":"","asset_id":null,"data"...` |
 | audio | `audio` | Optional audio to condition the summary | `{"type":"audio","uri":"","asset_id":null,"data"...` |
+| max_sentences | `int` | Approximate number of sentences for the summary. | `3` |
 
 ## Outputs
 
@@ -39,4 +40,4 @@ Generate concise summaries of text content using LLM providers with streaming ou
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.agents](../) namespace.
+Browse other nodes in the [nodetool.agents](./) namespace.

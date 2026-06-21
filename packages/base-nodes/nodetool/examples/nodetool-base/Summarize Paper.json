@@ -33,8 +33,7 @@
           "title": "3️⃣ Extract text"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "5",
@@ -55,8 +54,7 @@
           "title": "2️⃣ Download PDF"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "6",
@@ -82,8 +80,7 @@
           "title": "4️⃣ Summarize"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "f78b004b-a8fa-469e-9112-774c22fd81f5",
@@ -105,8 +102,7 @@
           "title": "1️⃣ Paper URL"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "e927bd8f-eca7-434a-b94f-818ed5d6681a",
@@ -126,8 +122,7 @@
           "selectable": true
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ],
     "edges": [

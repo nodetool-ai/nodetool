@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useMemo } from "react";
-import { Text, Box } from "../ui_primitives";
+import { Text, Box, BORDER_RADIUS } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { Asset } from "../../stores/ApiTypes";
@@ -38,7 +38,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       maxHeight: "140px",
       objectFit: "contain",
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       marginBottom: "0.5em",
       backgroundColor: theme.vars.palette.grey[800]
     },

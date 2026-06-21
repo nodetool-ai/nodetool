@@ -14,6 +14,20 @@ export interface ApiErrorShape extends DefaultErrorShape {
   };
 }
 
+/**
+ * Best-effort reverse mapping so errors thrown as raw TRPCError (without an
+ * explicit apiCode cause) still get a consistent apiCode in the response shape.
+ * Routers that use throwApiError() provide an exact code; this is the fallback.
+ */
+const API_CODE_BY_TRPC_CODE: Partial<Record<TRPCError["code"], ApiErrorCode>> = {
+  NOT_FOUND: ApiErrorCode.NOT_FOUND,
+  CONFLICT: ApiErrorCode.ALREADY_EXISTS,
+  BAD_REQUEST: ApiErrorCode.INVALID_INPUT,
+  UNAUTHORIZED: ApiErrorCode.UNAUTHORIZED,
+  FORBIDDEN: ApiErrorCode.FORBIDDEN,
+  INTERNAL_SERVER_ERROR: ApiErrorCode.INTERNAL_ERROR
+};
+
 export function errorFormatter({
   shape,
   error
@@ -30,7 +44,7 @@ export function errorFormatter({
     ...shape,
     data: {
       ...shape.data,
-      apiCode: cause?.apiCode ?? null,
+      apiCode: cause?.apiCode ?? API_CODE_BY_TRPC_CODE[error.code] ?? null,
       zodError
     }
   };

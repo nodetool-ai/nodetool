@@ -34,4 +34,4 @@ Extracts all links from markdown text.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.markdown](../) namespace.
+Browse other nodes in the [lib.markdown](./) namespace.

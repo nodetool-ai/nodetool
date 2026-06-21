@@ -11,8 +11,7 @@ namespace: "apify.scraping"
 
 ## Description
 
-Scrape websites using Apify's Web Scraper actor.
-    Extracts data from web pages using CSS selectors or custom JavaScript.
+Scrape websites using Apify's Web Scraper actor, extracting data via CSS selectors or custom JavaScript.
     apify, scraping, web, data, extraction, crawler
 
 ## Properties
@@ -33,4 +32,4 @@ Scrape websites using Apify's Web Scraper actor.
 
 ## Related Nodes
 
-Browse other nodes in the [apify.scraping](../) namespace.
+Browse other nodes in the [apify.scraping](./) namespace.

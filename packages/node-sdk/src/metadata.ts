@@ -102,6 +102,11 @@ export interface NodeMetadata {
   always_emit_output_updates?: boolean;
   supports_dynamic_outputs?: boolean;
   auto_save_asset?: boolean;
+  /**
+   * Names the output slot carrying the node's primary generation (persisted
+   * value + content-card preview). Absent falls back to the first output.
+   */
+  primary_output?: string;
   model_packs?: unknown[];
   /**
    * Deployment platforms this node supports. Absent or empty values are

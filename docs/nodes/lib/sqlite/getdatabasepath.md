@@ -33,4 +33,4 @@ Get the full path to a SQLite database file.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.sqlite](../) namespace.
+Browse other nodes in the [lib.sqlite](./) namespace.

@@ -2,30 +2,37 @@ import React, { useCallback } from "react";
 import {
   Text,
   FlexRow,
-  ToggleGroup,
-  ToggleOption,
   ToolbarIconButton,
   NodeSlider,
-  NodeSelect,
-  NodeMenuItem,
-  Box,
-  BORDER_RADIUS
-} from "../../ui_primitives";
+  SelectField,
+  Box, BORDER_RADIUS } from "../../ui_primitives";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
-import type { SelectChangeEvent } from "@mui/material/Select";
 import SearchInput from "../../search/SearchInput";
-import {
-  useModelManagerStore,
-  ModelFilterStatus
+import { useModelManagerStore } from "../../../stores/ModelManagerStore";
+import type {
+  ModelSortField,
+  ModelScope,
+  ModelSource
 } from "../../../stores/ModelManagerStore";
-import type { ModelSortField } from "../../../stores/ModelManagerStore";
 import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import { useShallow } from "zustand/react/shallow";
+import { ScopeToggle } from "./ScopeToggle";
+import { SourceToggle } from "./SourceToggle";
+import { HUB_RESULT_LIMIT } from "./useModels";
 
 interface ModelListHeaderProps {
   totalCount: number;
   filteredCount: number;
+  scope: ModelScope;
+  onScopeChange: (scope: ModelScope) => void;
+  source: ModelSource;
+  onSourceChange: (source: ModelSource) => void;
+  /** Attached worker display name, or null when no worker is attached. */
+  workerName: string | null;
+  /** Whether the attached worker supports model management. */
+  workerSupported: boolean;
 }
 
 const SORT_OPTIONS: { value: ModelSortField; label: string }[] = [
@@ -35,17 +42,30 @@ const SORT_OPTIONS: { value: ModelSortField; label: string }[] = [
   { value: "likes", label: "Likes" }
 ];
 
+/** Thin vertical separator used to group the toolbar's control clusters. */
+const dividerSx = (theme: Theme) => ({
+  alignSelf: "center",
+  width: "1px",
+  height: 22,
+  flexShrink: 0,
+  backgroundColor: theme.vars.palette.divider
+});
+
 const ModelListHeader: React.FC<ModelListHeaderProps> = ({
   totalCount,
-  filteredCount
+  filteredCount,
+  scope,
+  onScopeChange,
+  source,
+  onSourceChange,
+  workerName,
+  workerSupported
 }) => {
   const {
     modelSearchTerm,
     setModelSearchTerm,
     maxModelSizeGB,
     setMaxModelSizeGB,
-    filterStatus,
-    setFilterStatus,
     sortField,
     setSortField,
     sortDirection,
@@ -56,8 +76,6 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
       setModelSearchTerm: state.setModelSearchTerm,
       maxModelSizeGB: state.maxModelSizeGB,
       setMaxModelSizeGB: state.setMaxModelSizeGB,
-      filterStatus: state.filterStatus,
-      setFilterStatus: state.setFilterStatus,
       sortField: state.sortField,
       setSortField: state.setSortField,
       sortDirection: state.sortDirection,
@@ -71,18 +89,9 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
     setMaxModelSizeGB(v);
   };
 
-  const handleToggleChange = (
-    _: React.MouseEvent<HTMLElement>,
-    newValue: ModelFilterStatus
-  ) => {
-    if (newValue !== null) {
-      setFilterStatus(newValue);
-    }
-  };
-
   const handleSortFieldChange = useCallback(
-    (event: SelectChangeEvent<unknown>) => {
-      setSortField(event.target.value as ModelSortField);
+    (value: string) => {
+      setSortField(value as ModelSortField);
     },
     [setSortField]
   );
@@ -112,98 +121,76 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
           color="secondary"
           sx={{ whiteSpace: "nowrap", mr: "auto", ml: 2 }}
         >
-          {(() => {
-            if (filterStatus === "downloaded") {
-              return `${filteredCount} downloaded / ${totalCount} total`;
-            }
-            if (filterStatus === "not_downloaded") {
-              return `${filteredCount} available / ${totalCount} total`;
-            }
-            if (filteredCount !== totalCount) {
-              return `${filteredCount} of ${totalCount} models`;
-            }
-            return `${totalCount} models`;
-          })()}
+          {source === "hub"
+            ? filteredCount >= HUB_RESULT_LIMIT
+              ? `Top ${HUB_RESULT_LIMIT} results`
+              : `${filteredCount} result${filteredCount === 1 ? "" : "s"}`
+            : filteredCount !== totalCount
+              ? `${filteredCount} of ${totalCount} models`
+              : `${totalCount} models`}
         </Text>
 
-        <ToggleGroup
-          value={filterStatus}
-          exclusive
-          onChange={handleToggleChange}
-          aria-label="filter models"
-          size="small"
-          compact
-          sx={{
-            height: "32px",
-            background: theme.vars.palette.action.hover,
-            backdropFilter: theme.vars.palette.glass.blur,
-            borderRadius: BORDER_RADIUS.md,
-            border: `1px solid ${theme.vars.palette.divider}`,
-            "& .MuiToggleButton-root": {
-              border: "none",
-              color: theme.vars.palette.text.secondary,
-              "&.Mui-selected": {
-                backgroundColor: theme.vars.palette.action.selected,
-                color: theme.vars.palette.text.primary,
-                "&:hover": {
-                  backgroundColor: theme.vars.palette.action.activatedOpacity
-                }
-              },
-              "&:hover": {
-                backgroundColor: theme.vars.palette.action.hover
-              }
-            }
-          }}
-        >
-          <ToggleOption
-            value="all"
-            aria-label="show all models"
-            sx={{ px: 2, minWidth: "60px", borderRadius: `${BORDER_RADIUS.md} 0 0 ${BORDER_RADIUS.md}` }}
-          >
-            All
-          </ToggleOption>
-          <ToggleOption
-            value="downloaded"
-            aria-label="show downloaded models only"
-            sx={{ px: 2, minWidth: "100px" }}
-          >
-            Downloaded
-          </ToggleOption>
-          <ToggleOption
-            value="not_downloaded"
-            aria-label="show available models only"
-            sx={{ px: 2, minWidth: "100px", borderRadius: `0 ${BORDER_RADIUS.md} ${BORDER_RADIUS.md} 0` }}
-          >
-            Available
-          </ToggleOption>
-        </ToggleGroup>
+        <SourceToggle source={source} onChange={onSourceChange} />
 
-        <FlexRow align="center" gap={0.5}>
-          <NodeSelect
-            value={sortField}
-            onChange={handleSortFieldChange}
-            density="compact"
-            aria-label="Sort models by"
+        <ScopeToggle
+          scope={scope}
+          onChange={onScopeChange}
+          workerName={workerName}
+          supported={workerSupported}
+        />
+
+        <Box sx={dividerSx(theme)} />
+
+        <FlexRow align="center" gap={1.25}>
+          <Text size="small" color="secondary" sx={{ whiteSpace: "nowrap" }}>
+            Sort
+          </Text>
+          {/* General SelectField (not the editor-scoped NodeSelect, which
+              forces an 11px font via .nt-editor-scope-node). The fit-content
+              wrapper defeats SelectField's internal `FormControl fullWidth` so
+              the control shrink-wraps its value and the chevron sits right after
+              the text. Toolbar look (32px pill, divider border, chevron tint) is
+              applied here via descendant selectors. */}
+          <Box
             sx={{
-              height: "32px",
-              minWidth: 120,
-              fontSize: "var(--fontSizeNormal)",
-              background: theme.vars.palette.action.hover,
-              borderRadius: BORDER_RADIUS.md,
+              display: "inline-flex",
+              width: "fit-content",
+              "& .MuiInputBase-root": {
+                height: 32,
+                minWidth: 92,
+                backgroundColor: theme.vars.palette.action.hover,
+                borderRadius: BORDER_RADIUS.lg,
+                fontSize: "var(--fontSizeNormal)"
+              },
+              "& .MuiSelect-select": {
+                display: "flex",
+                alignItems: "center",
+                minHeight: 0,
+                boxSizing: "border-box",
+                padding: "0 30px 0 12px",
+                lineHeight: 1
+              },
               "& .MuiOutlinedInput-notchedOutline": {
                 borderColor: theme.vars.palette.divider
               },
-              "& .MuiSelect-select": {
-                py: 0.5
+              "&:hover .MuiOutlinedInput-notchedOutline": {
+                borderColor: theme.vars.palette.text.secondary
+              },
+              "& .MuiSelect-icon": {
+                color: theme.vars.palette.text.secondary,
+                right: 6
               }
             }}
           >
-            {SORT_OPTIONS.map((option) => (
-              <NodeMenuItem key={option.value} value={option.value}>
-                {option.label}
-              </NodeMenuItem>
-            ))}
-          </NodeSelect>
+            <SelectField
+              label="Sort models by"
+              hideLabel
+              variant="outlined"
+              value={sortField}
+              onChange={handleSortFieldChange}
+              options={SORT_OPTIONS}
+            />
+          </Box>
           <ToolbarIconButton
             icon={
               sortDirection === "asc" ? (
@@ -225,29 +212,52 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
           />
         </FlexRow>
 
-        <Box sx={{ width: 160, minWidth: 160, mt: 1 }}>
-          <NodeSlider
-            aria-label="Max model size in GB"
-            value={maxModelSizeGB}
-            onChange={handleSliderChange}
-            valueLabelDisplay="auto"
-            valueLabelFormat={(value) => (value === 0 ? "All" : `${value} GB`)}
-            step={1}
-            min={0}
-            max={50}
-            marks={[
-              { value: 0, label: "All" },
-              { value: 8, label: "8G" },
-              { value: 15, label: "15G" },
-              { value: 30, label: "30G" }
-            ]}
+        <Box sx={dividerSx(theme)} />
+
+        {/* Max-size limit: a labeled, mark-free slider with the current value
+            shown inline. The old version used always-on tick marks that bled
+            into the row below and lacked a label. */}
+        <FlexRow align="center" gap={1.25} sx={{ flexShrink: 0 }}>
+          <Text
+            size="small"
+            color="secondary"
+            sx={{ whiteSpace: "nowrap" }}
+          >
+            Max size
+          </Text>
+          <Box
             sx={{
-              "& .MuiSlider-markLabel": {
-                fontSize: "var(--fontSizeSmaller)"
-              }
+              width: 124,
+              px: "6px",
+              boxSizing: "border-box",
+              display: "flex",
+              alignItems: "center"
             }}
-          />
-        </Box>
+          >
+            <NodeSlider
+              aria-label="Max model size in GB"
+              value={maxModelSizeGB}
+              onChange={handleSliderChange}
+              valueLabelDisplay="auto"
+              valueLabelFormat={(value) => (value === 0 ? "All" : `${value} GB`)}
+              step={1}
+              min={0}
+              max={50}
+            />
+          </Box>
+          <Text
+            size="small"
+            sx={{
+              whiteSpace: "nowrap",
+              minWidth: 46,
+              textAlign: "right",
+              fontVariantNumeric: "tabular-nums",
+              color: theme.vars.palette.text.primary
+            }}
+          >
+            {maxModelSizeGB === 0 ? "All" : `${maxModelSizeGB} GB`}
+          </Text>
+        </FlexRow>
       </FlexRow>
     </>
   );

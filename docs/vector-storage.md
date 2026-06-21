@@ -109,7 +109,7 @@ const provider = new SupabaseProvider({
 
 ## Where it's used
 
-- **Workflow nodes** — every node under `vector.*` in `@nodetool-ai/base-nodes` (`packages/base-nodes/src/nodes/vector.ts`) goes through the default provider.
+- **Workflow nodes** — every node under `vector.*` in `@nodetool-ai/core-nodes` (`packages/core-nodes/src/nodes/vector.ts`) goes through the default provider.
 - **Collections REST/tRPC API** — `packages/websocket/src/trpc/routers/collections.ts` and `packages/websocket/src/collection-api.ts`.
 - **Agent tools** — `VecTextSearchTool`, `VecHybridSearchTool`, `VecRecursiveSplitAndIndexTool`, etc. in `packages/agents/src/tools/vector-tools.ts`.
 

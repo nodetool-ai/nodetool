@@ -39,4 +39,4 @@ Accepts a selection from a predefined set of options as a parameter for workflow
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.input](../) namespace.
+Browse other nodes in the [nodetool.input](./) namespace.

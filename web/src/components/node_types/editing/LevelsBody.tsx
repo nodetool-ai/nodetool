@@ -24,7 +24,7 @@ import React, {
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { ToggleGroup, ToggleOption } from "../../ui_primitives";
+import { ToggleGroup, ToggleOption, BORDER_RADIUS } from "../../ui_primitives";
 import ImageIcon from "@mui/icons-material/Image";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 
@@ -89,7 +89,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       flex: "1 1 auto",
       minHeight: 160,
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
       backgroundColor: theme.vars.palette.grey[900],
       display: "flex",
@@ -106,7 +106,7 @@ const styles = (theme: Theme) =>
       flex: "0 0 auto",
       position: "relative",
       backgroundColor: theme.vars.palette.grey[900],
-      borderRadius: "var(--rounded-sm)",
+      borderRadius: BORDER_RADIUS.sm,
       padding: theme.spacing(0.5),
       display: "flex",
       flexDirection: "column",

@@ -31,4 +31,4 @@ Extract text from a PDF using OCR, suitable for scanned documents and image-base
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pdf](../) namespace.
+Browse other nodes in the [lib.pdf](./) namespace.

@@ -32,4 +32,4 @@ Add (or subtract, when amount is negative) a number of time units to a date.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.datetime](../) namespace.
+Browse other nodes in the [lib.datetime](./) namespace.

@@ -16,6 +16,7 @@
  */
 
 import { BaseProvider } from "./base-provider.js";
+import { safeFetch } from "./safe-url.js";
 import { createLogger } from "@nodetool-ai/config";
 import type {
   ImageTo3DParams,
@@ -337,7 +338,7 @@ export class RodinProvider extends BaseProvider {
         `No download URL in Rodin response: ${JSON.stringify(info)}`
       );
     }
-    const dlRes = await fetch(downloadUrl);
+    const dlRes = await safeFetch(downloadUrl);
     if (!dlRes.ok) {
       const errText = await dlRes.text().catch(() => "");
       throw new Error(

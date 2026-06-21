@@ -28,4 +28,4 @@ Converts a mono audio signal to stereo.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.audio](../) namespace.
+Browse other nodes in the [nodetool.audio](./) namespace.

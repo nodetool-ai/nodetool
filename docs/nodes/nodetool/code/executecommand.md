@@ -34,4 +34,4 @@ Executes a single shell command inside a Docker container.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.code](../) namespace.
+Browse other nodes in the [nodetool.code](./) namespace.

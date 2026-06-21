@@ -6,33 +6,36 @@ This document describes the complete YAML schema for NodeTool agent configuratio
 
 ```yaml
 # REQUIRED FIELDS
-name: string                    # Agent identifier
-system_prompt: string           # Agent behavior instructions
-model: ModelConfig              # Primary model configuration
-planning_agent: PlanningConfig  # Planning agent (must be enabled)
+model: ModelConfig              # Primary model: provider + id required
 
 # OPTIONAL FIELDS
+name: string                    # Agent identifier
 description: string             # Human-readable description
+system_prompt: string           # Agent behavior instructions
+objective: string               # Default objective (if no --objective/stdin)
+planning_agent: PlanningConfig  # Planning agent (enabled: false → use main model)
 tools: list[string]             # Available tool names
-max_tokens: integer             # Maximum response length
-context_window: integer         # Context window size
-temperature: float              # Response randomness (0.0-1.0)
-max_iterations: integer         # Maximum planning cycles
+max_tokens: integer             # Per-step context token budget (default 128000)
+max_steps: integer              # Maximum number of steps in the task
+preferred_providers: list[string]            # Provider ids to prefer for find_model
+preferred_models: map[string, string|list]   # capability → preferred model id(s)
 workspace: WorkspaceConfig      # Workspace configuration
 ```
 
+> The runner accepts only the fields above. `context_window`, `temperature`, and `max_iterations` are **not** used —
+> earlier versions of this doc listed them, but they are ignored. Use `max_steps` to bound the number of steps and
+> `max_tokens` for the per-step context budget.
+
+`provider`, `model`, and `objective` can be supplied or overridden from the command line
+(`--provider`, `--model`, `--objective`); the objective also falls back to piped stdin.
+
 ## Field Definitions
 
-### name (required)
+### name (optional)
 
 **Type:** `string`
 
-**Description:** Unique identifier for the agent. Used for logging and workspace naming.
-
-**Constraints:**
-- Must be alphanumeric with hyphens/underscores
-- Should be lowercase
-- No spaces or special characters
+**Description:** Identifier for the agent. Used in the trace header and by `agent list` / `agent test`.
 
 **Examples:**
 ```yaml
@@ -58,7 +61,21 @@ description: Content creation and copywriting agent
 
 ---
 
-### system_prompt (required)
+### objective (optional)
+
+**Type:** `string`
+
+**Description:** Default objective for the agent. Used only when neither the `--objective` flag nor piped stdin supplies
+one. The priority order is: `--objective` flag → stdin → this `objective:` field.
+
+**Example:**
+```yaml
+objective: Research the latest developments in quantum computing
+```
+
+---
+
+### system_prompt (optional)
 
 **Type:** `string` (supports multiline)
 
@@ -116,9 +133,9 @@ model:
 **Supported providers:**
 - `openai` — OpenAI models
 - `anthropic` — Anthropic Claude models
-- `google` — Google Gemini models
+- `gemini` — Google Gemini models (the aliases `google` and `googleai` are normalized to `gemini`)
 - `ollama` — Local Ollama models
-- Custom providers as configured
+- Other registry providers as configured
 
 **Examples:**
 ```yaml
@@ -131,13 +148,13 @@ model:
 # Anthropic
 model:
   provider: anthropic
-  id: claude-3-5-sonnet-20241022
-  name: Claude 3.5 Sonnet
+  id: claude-sonnet-4-6
+  name: Claude Sonnet
 
-# Google
+# Gemini (google / googleai are aliases for gemini)
 model:
-  provider: google
-  id: gemini-2.0-flash-exp
+  provider: gemini
+  id: gemini-2.0-flash
   name: Gemini 2.0 Flash
 
 # Local Ollama
@@ -148,39 +165,38 @@ model:
 
 ---
 
-### planning_agent (required)
+### planning_agent (optional)
 
 **Type:** `PlanningConfig` object
 
-**Description:** Configuration for the planning agent that coordinates task execution. Must always be enabled.
+**Description:** Configures the model used for the planning phase. Optional — when omitted, planning uses the main
+model. When `enabled: false`, planning also falls back to the main model. There is no requirement that planning be
+enabled.
 
 **Structure:**
 ```yaml
 planning_agent:
-  enabled: boolean  # REQUIRED: Must be true
-  model: ModelConfig  # REQUIRED: Model for planning
+  enabled: boolean    # false → plan with the main model
+  model: ModelConfig  # model used for the planning phase
 ```
 
 **Best practices:**
 - Use fast, cost-effective models for planning
-- Planning model can differ from main agent model
-- Recommended: `gpt-4o-mini`, `claude-3-haiku`, `gemini-flash`
+- The planning model can differ from the main model
+- Recommended: `gpt-4o-mini`, a small Claude model, or a Gemini Flash model
 
 **Examples:**
 ```yaml
-# Using GPT-4o Mini for cost-effective planning
+# Use GPT-4o Mini for cost-effective planning
 planning_agent:
   enabled: true
   model:
     provider: openai
     id: gpt-4o-mini
 
-# Using Claude Haiku for fast planning
+# Disable the separate planning model; plan with the main model
 planning_agent:
-  enabled: true
-  model:
-    provider: anthropic
-    id: claude-3-haiku-20240307
+  enabled: false
 ```
 
 ---
@@ -191,29 +207,38 @@ planning_agent:
 
 **Description:** List of tool names available to the agent. Tools extend agent capabilities beyond pure language model responses.
 
-**Default:** Basic file operations (`read_file`, `write_file`)
+**Default:** No tools (empty list).
 
-**Available tools:**
+**Available tools** (the name in `tools:` must match the registry key):
 
 **File Operations:**
-- `write_file` — Write content to files in workspace
-- `read_file` — Read file contents from workspace
+- `write_file` — Write content to files in the workspace
+- `read_file` — Read file contents from the workspace
+- `edit_file` — Edit an existing file
 - `list_directory` — List directory contents
-- `delete_file` — Delete files from workspace
+- `glob` — Match files by glob pattern
+- `grep` — Search for patterns within files
 
 **Web Research:**
-- `google_search` — Search the web for information
+- `google_search` — Search the web (also `google_news`, `google_images`)
 - `browser` — Browse URLs and extract web content
+- `download_file`, `http_request`
 
 **Code Execution:**
-- `execute_code` — Run Python/JavaScript code in sandbox
-- `terminal` — Execute shell commands in workspace
+- `run_code` — Run code in a sandbox
 
-**Additional:**
-- `grep` — Search for patterns within files
-- `image_generation` — Generate images
-- `audio_generation` — Generate audio
-- `video_generation` — Generate videos
+**Media Generation:**
+- `generate_image`, `edit_image`, `animate_image`
+- `generate_speech`, `transcribe_audio`
+- `generate_video`
+
+**Other:**
+- `find_model`, `calculator`, `statistics`, `geometry`, `conversion`
+- `extract_pdf_text`, `convert_pdf_to_markdown`, `convert_document`
+- NodeTool MCP tools (workflows, nodes, jobs, assets, models)
+
+> There is no `delete_file` or `terminal` tool. Unknown tool names are ignored at run time with a warning;
+> `nodetool agent test <file>` reports them.
 
 **Examples:**
 ```yaml
@@ -233,8 +258,8 @@ tools:
 tools:
   - read_file
   - write_file
-  - execute_code
-  - terminal
+  - edit_file
+  - run_code
   - grep
 ```
 
@@ -244,95 +269,64 @@ tools:
 
 **Type:** `integer`
 
-**Description:** Maximum number of tokens the agent can generate in a single response.
+**Description:** The per-step **context** token budget, passed to the executor as `maxTokenLimit`. As the conversation
+approaches this budget, the executor enters a conclusion stage and summarizes older messages. This is **not** a cap on
+how many tokens a single response generates.
 
-**Default:** `8192`
-
-**Range:** `1` to model's maximum (varies by model)
-
-**Recommendations:**
-- Simple tasks: `4096`
-- Standard tasks: `8192`
-- Complex tasks: `16384`
-- Very long outputs: `32768+` (model dependent)
+**Default:** `128000`
 
 **Examples:**
 ```yaml
-max_tokens: 4096   # Conservative
-max_tokens: 8192   # Standard
-max_tokens: 16384  # Extended
+max_tokens: 64000    # Smaller context budget
+max_tokens: 128000   # Default
+max_tokens: 200000   # Large context (Claude)
 ```
 
 ---
 
-### context_window (optional)
+### max_steps (optional)
 
 **Type:** `integer`
 
-**Description:** Size of the context window for the conversation. Determines how much prior conversation and context the agent can see.
-
-**Default:** `8192`
-
-**Model limits:**
-- GPT-4o: 128,000
-- Claude 3.5 Sonnet: 200,000
-- Gemini 2.0: 2,000,000
-- Local models: varies
+**Description:** Maximum number of steps in the planned task.
 
 **Examples:**
 ```yaml
-context_window: 4096    # Small context
-context_window: 8192    # Standard
-context_window: 32768   # Large context
-context_window: 200000  # Very large (Claude)
+max_steps: 5    # Quick tasks
+max_steps: 10   # Standard
+max_steps: 20   # Complex tasks
 ```
 
 ---
 
-### temperature (optional)
+### preferred_providers (optional)
 
-**Type:** `float`
+**Type:** `list[string]`
 
-**Description:** Controls randomness/creativity in agent responses. Higher values make output more random and creative.
+**Description:** Provider ids to prefer when the `find_model` tool ranks results. The first entry becomes the default
+provider hint when the LLM omits one. These preferences are also surfaced in the system prompt.
 
-**Default:** `0.7`
-
-**Range:** `0.0` to `1.0` (some models support up to `2.0`)
-
-**Recommendations:**
-- `0.0-0.3`: Analytical, deterministic tasks (code, data analysis)
-- `0.4-0.7`: Balanced, general-purpose tasks
-- `0.8-1.0`: Creative tasks (writing, brainstorming)
-
-**Examples:**
 ```yaml
-temperature: 0.0  # Deterministic
-temperature: 0.3  # Focused, precise
-temperature: 0.7  # Balanced (default)
-temperature: 0.9  # Creative
+preferred_providers:
+  - anthropic
+  - openai
 ```
 
 ---
 
-### max_iterations (optional)
+### preferred_models (optional)
 
-**Type:** `integer`
+**Type:** `map[string, string | list[string]]`
 
-**Description:** Maximum number of planning and execution cycles the agent can perform. Prevents infinite loops while allowing task completion.
+**Description:** Map of capability to preferred model id(s). When a `find_model` call matches a capability, the value is
+injected as the `model_hint`.
 
-**Default:** `10`
-
-**Recommendations:**
-- Simple tasks: `5-8`
-- Standard tasks: `10-15`
-- Complex tasks: `15-20`
-- Exploratory tasks: `20+`
-
-**Examples:**
 ```yaml
-max_iterations: 5   # Quick tasks
-max_iterations: 10  # Standard (default)
-max_iterations: 20  # Complex tasks
+preferred_models:
+  image: black-forest-labs/flux-schnell
+  tts:
+    - openai/tts-1
+    - openai/tts-1-hd
 ```
 
 ---
@@ -351,8 +345,8 @@ workspace:
 ```
 
 **Default:**
-- `path`: `~/.nodetool-workspaces/<agent-name>`
-- `auto_create`: `true`
+- `path`: the current working directory (or `--workspace` if passed)
+- `auto_create`: the directory is created unless `auto_create: false`
 
 **Examples:**
 ```yaml
@@ -360,15 +354,15 @@ workspace:
 workspace:
   auto_create: true
 
-# Custom workspace path
+# Custom workspace path (tilde is expanded)
 workspace:
   path: ~/my-projects/agent-workspace
   auto_create: true
 
-# Specific project workspace
+# Absolute path, do not auto-create
 workspace:
-  path: /tmp/research-$(date +%Y%m%d)
-  auto_create: true
+  path: /tmp/research
+  auto_create: false
 ```
 
 ---
@@ -433,77 +427,32 @@ tools:
   - read_file
   - list_directory
 
-max_tokens: 8192
-context_window: 8192
-temperature: 0.7
-max_iterations: 15
+max_tokens: 128000
+max_steps: 15
 
 workspace:
-  path: ~/.nodetool-workspaces/research
+  path: ~/research-workspace
   auto_create: true
 ```
 
-## Validation
+## Validating a Config
 
-### Required Fields Check
+There is no separate validation step or required-field enforcement at parse time — only `model.provider` and
+`model.id` are needed to run, and `objective` must come from the YAML, `--objective`, or stdin. Use the built-in
+`test` subcommand to check a config before running it:
 
-```python
-required_fields = [
-    "name",
-    "system_prompt",
-    "model",
-    "planning_agent"
-]
-
-# model must have:
-model_required = ["provider", "id"]
-
-# planning_agent must have:
-planning_required = ["enabled", "model"]
+```bash
+nodetool agent test research-assistant.yaml
 ```
 
-### Common Validation Errors
+It reports a missing `model.provider` or `model.id`, lists the resolved tools, warns about unknown tool names, and
+tries to instantiate the provider. Unknown tool names do not abort a run — they are simply ignored with a warning.
 
-**Missing required fields:**
-```
-Error: Missing required field 'system_prompt'
-```
+## Path Expansion
 
-**Invalid model configuration:**
-```
-Error: model.provider is required
-Error: model.id is required
-```
-
-**Planning agent not enabled:**
-```
-Error: planning_agent.enabled must be true
-```
-
-**Invalid tool name:**
-```
-Error: Unknown tool 'invalid_tool'
-```
-
-**Invalid value ranges:**
-```
-Error: temperature must be between 0.0 and 1.0
-Error: max_tokens must be positive
-Error: max_iterations must be at least 1
-```
-
-## Environment Variables
-
-Configuration values can reference environment variables:
-
-```yaml
-model:
-  provider: openai
-  id: ${OPENAI_MODEL:-gpt-4o}  # Default to gpt-4o if not set
-
-workspace:
-  path: ${WORKSPACE_DIR:-~/.nodetool-workspaces}/agent
-```
+`workspace.path` supports leading-tilde (`~`) expansion to the home directory. There is **no** `${VAR}` /
+`${VAR:-default}` environment-variable interpolation inside the YAML — set provider/model via the YAML fields or the
+`--provider` / `--model` flags instead.
 
 ## Migration from Old Format
 

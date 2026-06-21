@@ -17,6 +17,46 @@ import {
   setCachedApiHost,
 } from './apiHost';
 
+const DEFAULT_TIMEOUT_MS = 30_000;
+const UPLOAD_TIMEOUT_MS = 60_000;
+const MAX_RETRIES = 2;
+
+/** Error carrying the HTTP status so callers can branch on it (e.g. 401 → re-auth). */
+export class ApiError extends Error {
+  readonly status: number;
+  readonly body: string;
+  constructor(status: number, body: string) {
+    super(`Request failed (${status})${body ? `: ${body}` : ''}`);
+    this.name = 'ApiError';
+    this.status = status;
+    this.body = body;
+  }
+}
+
+/** `fetch` with an abort-based timeout so requests can't hang forever on a flaky network. */
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function isRetriableMethod(method: string | undefined): boolean {
+  const m = (method ?? 'GET').toUpperCase();
+  return m === 'GET' || m === 'HEAD';
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export type Asset = components["schemas"]["Asset"];
 export type AssetList = components["schemas"]["AssetList"];
 export type AssetUpdateRequest = components["schemas"]["AssetUpdateRequest"];
@@ -126,24 +166,48 @@ class ApiService {
       : {};
   }
 
-  private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  private async request<T>(
+    path: string,
+    init: RequestInit = {},
+    timeoutMs: number = DEFAULT_TIMEOUT_MS
+  ): Promise<T> {
     const headers = new Headers(init.headers);
     const authHeaders = await this.authHeaders();
     Object.entries(authHeaders).forEach(([key, value]) => {
       headers.set(key, value);
     });
 
-    const response = await fetch(`${getSharedApiHost()}${path}`, {
-      ...init,
-      headers,
-    });
+    const url = `${getSharedApiHost()}${path}`;
+    const retriable = isRetriableMethod(init.method);
+    const maxAttempts = retriable ? MAX_RETRIES + 1 : 1;
 
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`Request failed (${response.status}): ${text}`);
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const response = await fetchWithTimeout(url, { ...init, headers }, timeoutMs);
+        if (!response.ok) {
+          const text = await response.text().catch(() => '');
+          throw new ApiError(response.status, text);
+        }
+        return (await response.json()) as T;
+      } catch (error) {
+        lastError = error;
+        const status = error instanceof ApiError ? error.status : undefined;
+        // An expired/invalid session won't recover by retrying — drop it and
+        // route back to login.
+        if (status === 401 || status === 403) {
+          useAuthStore.getState().handleSessionExpired();
+          throw error;
+        }
+        // Retry network errors / aborts (no status) and 5xx; never other 4xx.
+        const transient = status === undefined || status >= 500;
+        if (!retriable || !transient || attempt === maxAttempts) {
+          throw error;
+        }
+        await delay(Math.min(1000 * 2 ** (attempt - 1), 8000));
+      }
     }
-
-    return await response.json() as T;
+    throw lastError instanceof Error ? lastError : new Error('Request failed');
   }
 
   async loadApiHost(): Promise<string> {
@@ -361,24 +425,21 @@ class ApiService {
       parent_id: params.parentId,
     }));
 
-    const session = (await import('../stores/AuthStore')).useAuthStore.getState().session;
-    const headers: Record<string, string> = {
-      'Content-Type': 'multipart/form-data',
-    };
-    if (session?.access_token) {
-      headers['Authorization'] = `Bearer ${session.access_token}`;
-    }
+    // Do NOT set Content-Type here: React Native derives the multipart boundary
+    // from the FormData body, and setting the header manually drops it so the
+    // server can't parse the upload.
+    const headers = new Headers(await this.authHeaders());
 
-    const response = await fetch(`${getSharedApiHost()}/api/assets`, {
-      method: 'POST',
-      headers,
-      body: formData,
-    });
+    const response = await fetchWithTimeout(
+      `${getSharedApiHost()}/api/assets`,
+      { method: 'POST', headers, body: formData },
+      UPLOAD_TIMEOUT_MS
+    );
     if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`Upload failed (${response.status}): ${text}`);
+      const text = await response.text().catch(() => '');
+      throw new ApiError(response.status, text);
     }
-    return await response.json() as Asset;
+    return (await response.json()) as Asset;
   }
 
   async deleteAsset(id: string): Promise<void> {

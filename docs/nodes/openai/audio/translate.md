@@ -29,4 +29,4 @@ Translates speech in audio to English text.
 
 ## Related Nodes
 
-Browse other nodes in the [openai.audio](../) namespace.
+Browse other nodes in the [openai.audio](./) namespace.

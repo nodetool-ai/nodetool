@@ -35,4 +35,4 @@ Converts speech to text using OpenAI's speech-to-text API.
 
 ## Related Nodes
 
-Browse other nodes in the [openai.audio](../) namespace.
+Browse other nodes in the [openai.audio](./) namespace.

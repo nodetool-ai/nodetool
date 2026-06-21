@@ -12,7 +12,7 @@ namespace: "lib.os"
 ## Description
 
 Read a text file from the workspace.
-    workspace, file, read, text
+    os, file, read, text
 
 ## Properties
 
@@ -29,4 +29,4 @@ Read a text file from the workspace.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.os](../) namespace.
+Browse other nodes in the [lib.os](./) namespace.

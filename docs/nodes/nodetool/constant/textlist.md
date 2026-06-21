@@ -33,4 +33,4 @@ Represents a list of text strings in the workflow.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.constant](../) namespace.
+Browse other nodes in the [nodetool.constant](./) namespace.

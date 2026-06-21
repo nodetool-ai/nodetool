@@ -137,7 +137,7 @@ export default function AgentUseCasesSection({
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
             Agents your studio{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-300 to-cyan-400">
+            <span className="text-white">
               actually ships with.
             </span>
           </motion.h2>
@@ -197,7 +197,7 @@ export default function AgentUseCasesSection({
 
                   {/* Example */}
                   <div className="mt-auto pt-4 border-t border-white/5">
-                    <p className="text-xs text-slate-500 uppercase tracking-wider mb-2">
+                    <p className="text-xs text-slate-400 uppercase tracking-wider mb-2">
                       Tell the agent
                     </p>
                     <p className="text-sm text-amber-300/80 italic">

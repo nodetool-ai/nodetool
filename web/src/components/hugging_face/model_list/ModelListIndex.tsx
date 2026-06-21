@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { EditorButton, FlexColumn, FlexRow, Box, MOTION, BORDER_RADIUS } from "../../ui_primitives";
+import { FlexColumn, FlexRow, Box, MOTION, BORDER_RADIUS } from "../../ui_primitives";
 import { LoadingSpinner, Text } from "../../ui_primitives";
 import SearchOffIcon from "@mui/icons-material/SearchOff";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -13,6 +13,7 @@ import { useModels } from "./useModels";
 import ModelListHeader from "./ModelListHeader";
 import ModelTypeSidebar from "./ModelTypeSidebar";
 import DeleteModelDialog from "./DeleteModelDialog";
+import { useWorkers } from "../../../hooks/useWorkers";
 import { prettifyModelType } from "../../../utils/modelFormatting";
 import { IconForType } from "../../../config/IconForType";
 import { useModelManagerStore } from "../../../stores/ModelManagerStore";
@@ -131,9 +132,19 @@ const ModelListIndex: React.FC = () => {
   const theme = useTheme();
   const [modelToDelete, setModelToDelete] = useState<string | null>(null);
   const selectedModelType = useModelManagerStore((state) => state.selectedModelType);
+  const setSelectedModelType = useModelManagerStore(
+    (state) => state.setSelectedModelType
+  );
   const modelSearchTerm = useModelManagerStore((state) => state.modelSearchTerm);
-  const filterStatus = useModelManagerStore((state) => state.filterStatus);
-  const setFilterStatus = useModelManagerStore((state) => state.setFilterStatus);
+  const setModelSearchTerm = useModelManagerStore(
+    (state) => state.setModelSearchTerm
+  );
+  const scope = useModelManagerStore((state) => state.scope);
+  const setScope = useModelManagerStore((state) => state.setScope);
+  const source = useModelManagerStore((state) => state.source);
+  const setSource = useModelManagerStore((state) => state.setSource);
+  const { activeWorker } = useWorkers();
+  const workerName = activeWorker?.profile_name ?? activeWorker?.id ?? null;
   const [visibleRange, setVisibleRange] = useState({ start: 0, stop: -1 });
   const cacheStatuses = useHfCacheStatusStore((state) => state.statuses);
   const cachePending = useHfCacheStatusStore((state) => state.pending);
@@ -148,7 +159,7 @@ const ModelListIndex: React.FC = () => {
     isFetching,
     error,
     handleShowInExplorer
-  } = useModels();
+  } = useModels(scope);
 
   const startDownload = useModelDownloadStore((state) => state.startDownload);
   const openDialog = useModelDownloadStore((state) => state.openDialog);
@@ -168,16 +179,50 @@ const ModelListIndex: React.FC = () => {
       const path = model.path ?? null;
       const allowPatterns = path ? null : model.allow_patterns ?? null;
       const ignorePatterns = path ? null : model.ignore_patterns ?? null;
+      // Route to the attached worker whenever one is attached — that's where
+      // the model is needed (execution runs there). The Local/Worker view
+      // toggle only changes what you SEE, not where downloads land.
+      const downloadScope = activeWorker ? "worker" : "local";
       startDownload(
         repoId,
         model.type ?? "",
         path ?? undefined,
         allowPatterns,
-        ignorePatterns
+        ignorePatterns,
+        downloadScope
       );
       openDialog();
     },
-    [startDownload, openDialog]
+    [startDownload, openDialog, activeWorker]
+  );
+
+  const handleScopeChange = useCallback(
+    (nextScope: typeof scope) => {
+      if (nextScope === scope) {
+        return;
+      }
+      // Filters and search are scope-specific; reset them so the new view
+      // does not inherit stale cross-scope state.
+      setScope(nextScope);
+      setModelSearchTerm("");
+      setSelectedModelType("All");
+    },
+    [scope, setScope, setModelSearchTerm, setSelectedModelType]
+  );
+
+  const handleSourceChange = useCallback(
+    (nextSource: typeof source) => {
+      if (nextSource === source) {
+        return;
+      }
+      // The installed and recommended catalogs are different datasets; reset the
+      // view filters so the new one starts clean instead of inheriting stale
+      // type/status selections.
+      setSource(nextSource);
+      setModelSearchTerm("");
+      setSelectedModelType("All");
+    },
+    [source, setSource, setModelSearchTerm, setSelectedModelType]
   );
 
   // Flatten the model list with headers for "All" view
@@ -246,6 +291,11 @@ const ModelListIndex: React.FC = () => {
   }, [flattenedList, visibleRange]);
 
   useEffect(() => {
+    // The HF cache store scans the LOCAL filesystem; for the worker scope the
+    // list already carries authoritative downloaded flags, so skip it.
+    if (scope === "worker") {
+      return;
+    }
     const requests = visibleModels
       .map((model) => buildHfCacheRequest(model))
       .filter(
@@ -257,27 +307,16 @@ const ModelListIndex: React.FC = () => {
     }
 
     void ensureStatuses(requests);
-  }, [ensureStatuses, visibleModels, cacheVersion]);
+  }, [ensureStatuses, visibleModels, cacheVersion, scope]);
 
-  // When filtering by download status, pre-fetch cache statuses for ALL models
-  // so filtering works correctly even for models not yet visible
+  // If the attached worker goes away (detach / instance gone) while the Worker
+  // scope is active, fall back to Local. Otherwise the toggle is hidden and the
+  // worker-scoped query keeps erroring with no in-session way back.
   useEffect(() => {
-    if (filterStatus === "all" || !allModels) {
-      return;
+    if (scope === "worker" && workerName == null) {
+      setScope("local");
     }
-
-    const requests = allModels
-      .map((model) => buildHfCacheRequest(model))
-      .filter(
-        (request): request is NonNullable<typeof request> => request !== null
-      );
-
-    if (requests.length === 0) {
-      return;
-    }
-
-    void ensureStatuses(requests);
-  }, [ensureStatuses, allModels, filterStatus, cacheVersion]);
+  }, [scope, workerName, setScope]);
 
   if (isLoading) {
     return (
@@ -361,6 +400,12 @@ const ModelListIndex: React.FC = () => {
         <ModelListHeader
           totalCount={allModels?.length || 0}
           filteredCount={filteredModels.length}
+          scope={scope}
+          onScopeChange={handleScopeChange}
+          source={source}
+          onSourceChange={handleSourceChange}
+          workerName={workerName}
+          workerSupported={workerName != null}
         />
       </Box>
       <Box className="main">
@@ -472,12 +517,15 @@ const ModelListIndex: React.FC = () => {
                   const compatibility = getModelCompatibility(item.model);
                   const cacheKey = getHfCacheKey(item.model);
                   const isCacheableHf = canCheckHfCache(item.model);
+                  // Worker scope: the local cache store is irrelevant — trust
+                  // the list's downloaded flag and never show a cache spinner.
                   const isCheckingCache =
+                    scope !== "worker" &&
                     isCacheableHf &&
                     (cachePending[cacheKey] ||
                       cacheStatuses[cacheKey] === undefined);
                   const isDownloaded =
-                    item.model.type === "llama_model"
+                    item.model.type === "llama_model" || scope === "worker"
                       ? !!item.model.downloaded
                       : cacheStatuses[cacheKey] !== undefined
                         ? !!cacheStatuses[cacheKey]
@@ -534,24 +582,38 @@ const ModelListIndex: React.FC = () => {
                     Try a different search term or adjust your filters
                   </Text>
                 </>
-              ) : filterStatus === "downloaded" ? (
+              ) : source === "hub" ? (
                 <>
                   <DownloadIcon sx={{ fontSize: 48, opacity: 0.5 }} />
-                  <Text size="normal" weight={600} color="secondary" sx={{ display: "block" }}>
-                    No downloaded models
+                  <Text size="normal" weight={600} color="secondary">
+                    Search the HuggingFace Hub
                   </Text>
-                  <Text size="small" color="secondary" sx={{ display: "block" }}>
-                    Switch to &quot;All&quot; or &quot;Available&quot; to find
-                    models to download
+                  <Text size="small" color="secondary">
+                    Type a name above, or pick a category, to browse and download
+                    any public model from huggingface.co.
                   </Text>
-                  <EditorButton
-                    variant="outlined"
-                    density="compact"
-                    onClick={() => setFilterStatus("all")}
-                    sx={{ mt: 1 }}
-                  >
-                    Show all models
-                  </EditorButton>
+                </>
+              ) : source === "recommended" ? (
+                <>
+                  <DownloadIcon sx={{ fontSize: 48, opacity: 0.5 }} />
+                  <Text size="normal" weight={600} color="secondary">
+                    No recommended models
+                  </Text>
+                  <Text size="small" color="secondary">
+                    Recommended models are gathered from the nodes you have
+                    installed. Add nodes that run models to see suggestions here.
+                  </Text>
+                </>
+              ) : scope === "worker" ? (
+                <>
+                  <DownloadIcon sx={{ fontSize: 48, opacity: 0.5 }} />
+                  <Text size="normal" weight={600} color="secondary">
+                    No models cached on this worker yet
+                  </Text>
+                  <Text size="small" color="secondary">
+                    While this worker is attached, any model you download lands
+                    on its volume.
+                  </Text>
                 </>
               ) : (
                 <>
@@ -571,6 +633,7 @@ const ModelListIndex: React.FC = () => {
           <DeleteModelDialog
             modelId={modelToDelete}
             onClose={handleCancelDelete}
+            scope={scope}
           />
         </Box>
 

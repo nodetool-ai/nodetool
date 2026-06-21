@@ -31,4 +31,4 @@ Prompt-driven HTTP API skill for calling REST/GraphQL endpoints.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.agents](../) namespace.
+Browse other nodes in the [nodetool.agents](./) namespace.

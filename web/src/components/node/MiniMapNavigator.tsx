@@ -16,7 +16,7 @@ import {
   ListItemText,
   ListItemIcon
 } from "@mui/material";
-import { Text, ToolbarIconButton, FlexRow, Popover } from "../ui_primitives";
+import { Text, ToolbarIconButton, FlexRow, Popover, BORDER_RADIUS } from "../ui_primitives";
 import PaletteIcon from "@mui/icons-material/Palette";
 import LegendToggleIcon from "@mui/icons-material/LegendToggle";
 import CheckIcon from "@mui/icons-material/Check";
@@ -163,7 +163,7 @@ const MiniMapNavigator: React.FC = () => {
                 ? theme.vars.palette.grey[900]
                 : theme.vars.palette.grey[100],
               border: `1px solid ${borderColor}`,
-              borderRadius: "var(--rounded-lg)"
+              borderRadius: BORDER_RADIUS.lg
             }}
           />
 
@@ -185,7 +185,7 @@ const MiniMapNavigator: React.FC = () => {
                   padding: "2px",
                   backgroundColor: theme.vars.palette.background.paper,
                   border: `1px solid ${borderColor}`,
-                  borderRadius: "var(--rounded-sm)",
+                  borderRadius: BORDER_RADIUS.sm,
                   "&:hover": {
                     backgroundColor: theme.vars.palette.action.hover
                   }
@@ -202,7 +202,7 @@ const MiniMapNavigator: React.FC = () => {
                 padding: "2px",
                 backgroundColor: theme.vars.palette.background.paper,
                 border: `1px solid ${borderColor}`,
-                borderRadius: "var(--rounded-sm)",
+                borderRadius: BORDER_RADIUS.sm,
                 "&:hover": {
                   backgroundColor: theme.vars.palette.action.hover
                 }
@@ -222,7 +222,7 @@ const MiniMapNavigator: React.FC = () => {
         placement="bottom-right"
         paperSx={{
           minWidth: 180,
-          borderRadius: "var(--rounded-lg)"
+          borderRadius: BORDER_RADIUS.lg
         }}
       >
         <List dense disablePadding>
@@ -287,7 +287,7 @@ const MiniMapNavigator: React.FC = () => {
         placement="bottom-right"
         paperSx={{
           minWidth: 180,
-          borderRadius: "var(--rounded-lg)"
+          borderRadius: BORDER_RADIUS.lg
         }}
       >
         <div style={{ padding: 8 }}>
@@ -317,7 +317,7 @@ const MiniMapNavigator: React.FC = () => {
                   sx={{
                     px: 1,
                     py: 0.5,
-                    borderRadius: "var(--rounded-sm)",
+                    borderRadius: BORDER_RADIUS.sm,
                     "&:hover": {
                       backgroundColor: theme.vars.palette.action.hover
                     }
@@ -328,7 +328,7 @@ const MiniMapNavigator: React.FC = () => {
                       width: "12px",
                       height: "12px",
                       backgroundColor: item.color,
-                      borderRadius: "var(--rounded-xs)",
+                      borderRadius: BORDER_RADIUS.xs,
                       marginRight: 8,
                       flexShrink: 0
                     }}

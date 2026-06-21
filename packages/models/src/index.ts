@@ -14,6 +14,7 @@ export {
   getDb,
   getDbType,
   getRawDb,
+  pingDb,
   closeDb
 } from "./db.js";
 export type { DbDialect } from "./db.js";
@@ -36,7 +37,9 @@ export {
   teamTasks,
   appSettings,
   timelineSequences,
-  imageDocuments
+  imageDocuments,
+  workerProfiles,
+  workerInstances
 } from "./schema/index.js";
 
 // ── Drizzle Schema (PostgreSQL) ─────────────────────────────────────
@@ -78,6 +81,37 @@ export {
 } from "./secret-helper.js";
 
 export { Setting } from "./setting.js";
+
+export {
+  createWorkerProfile,
+  getWorkerProfile,
+  listWorkerProfiles,
+  updateWorkerProfile,
+  deleteWorkerProfile
+} from "./worker-profiles.js";
+export type {
+  WorkerProfile,
+  WorkerTarget,
+  TokenPolicy,
+  CreateWorkerProfileInput,
+  WorkerProfilePatch
+} from "./worker-profiles.js";
+
+export {
+  createWorkerInstance,
+  getWorkerInstance,
+  listWorkerInstances,
+  updateWorkerInstance,
+  touchWorkerInstance,
+  deleteWorkerInstance
+} from "./worker-instances.js";
+export type {
+  WorkerInstance,
+  WorkerStatus,
+  CreateWorkerInstanceInput,
+  WorkerInstancePatch,
+  ListWorkerInstancesOptions
+} from "./worker-instances.js";
 
 export { TimelineSequence } from "./timeline-sequence.js";
 export type { TimelineDocument } from "./timeline-sequence.js";

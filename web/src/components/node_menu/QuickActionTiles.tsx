@@ -8,7 +8,7 @@ import type {
   DragEvent as ReactDragEvent,
   KeyboardEvent as ReactKeyboardEvent
 } from "react";
-import { Tooltip, Text, thinScrollbarStyles, MOTION } from "../ui_primitives";
+import { Tooltip, Text, thinScrollbarStyles, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useShallow } from "zustand/react/shallow";
@@ -74,7 +74,7 @@ const tileStyles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       padding: "12px 8px",
-      borderRadius: "var(--rounded-xl)",
+      borderRadius: BORDER_RADIUS.xl,
       cursor: "pointer",
       position: "relative",
       overflow: "hidden",

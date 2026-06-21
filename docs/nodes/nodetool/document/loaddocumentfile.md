@@ -28,4 +28,4 @@ Read a document from disk.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.document](../) namespace.
+Browse other nodes in the [nodetool.document](./) namespace.

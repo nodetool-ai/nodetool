@@ -11,11 +11,8 @@ namespace: "openai.text"
 
 ## Description
 
-🔍 OpenAI Web Search - Searches the web using OpenAI's web search capabilities.
-
-    This node uses an OpenAI model equipped with web search functionality
-    (like gpt-4o with search preview) to answer queries based on current web information.
-    Requires an OpenAI API key.
+Search the web with OpenAI's web-search models to answer queries from current information.
+    openai, web, search, internet, browsing, current, realtime
 
 ## Properties
 
@@ -31,4 +28,4 @@ namespace: "openai.text"
 
 ## Related Nodes
 
-Browse other nodes in the [openai.text](../) namespace.
+Browse other nodes in the [openai.text](./) namespace.

@@ -10,7 +10,7 @@ import React, { useMemo, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import { GraphDiff } from "../../utils/graphDiff";
 import { Graph, Node } from "../../stores/ApiTypes";
-import { Caption, FlexColumn, FlexRow, Surface, Tooltip } from "../ui_primitives";
+import { Caption, FlexColumn, FlexRow, Surface, Tooltip, BORDER_RADIUS } from "../ui_primitives";
 
 interface GraphVisualDiffProps {
   diff: GraphDiff;
@@ -345,7 +345,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
         >
           {diff.addedNodes.length > 0 && (
             <FlexRow align="center" gap={0.5}>
-              <Surface sx={{ width: 8, height: 8, borderRadius: "var(--rounded-circle)", bgcolor: theme.palette.success.main }} />
+              <Surface sx={{ width: 8, height: 8, borderRadius: BORDER_RADIUS.circle, bgcolor: theme.palette.success.main }} />
               <Caption sx={{ fontSize: "var(--fontSizeSmaller)" }}>
                 {diff.addedNodes.length}
               </Caption>
@@ -353,7 +353,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
           )}
           {diff.removedNodes.length > 0 && (
             <FlexRow align="center" gap={0.5}>
-              <Surface sx={{ width: 8, height: 8, borderRadius: "var(--rounded-circle)", bgcolor: theme.palette.error.main }} />
+              <Surface sx={{ width: 8, height: 8, borderRadius: BORDER_RADIUS.circle, bgcolor: theme.palette.error.main }} />
               <Caption sx={{ fontSize: "var(--fontSizeSmaller)" }}>
                 {diff.removedNodes.length}
               </Caption>
@@ -361,7 +361,7 @@ export const GraphVisualDiff: React.FC<GraphVisualDiffProps> = ({
           )}
           {diff.modifiedNodes.length > 0 && (
             <FlexRow align="center" gap={0.5}>
-              <Surface sx={{ width: 8, height: 8, borderRadius: "var(--rounded-circle)", bgcolor: theme.palette.warning.main }} />
+              <Surface sx={{ width: 8, height: 8, borderRadius: BORDER_RADIUS.circle, bgcolor: theme.palette.warning.main }} />
               <Caption sx={{ fontSize: "var(--fontSizeSmaller)" }}>
                 {diff.modifiedNodes.length}
               </Caption>

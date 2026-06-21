@@ -29,6 +29,32 @@ export class ContainerFailureError extends Error {
   }
 }
 
+/**
+ * Terminate a child process gracefully, then force-kill if it ignores SIGTERM.
+ * Without the SIGKILL escalation a runaway/hung subprocess (one that traps or
+ * ignores SIGTERM) survives timeouts and stop(), leaking CPU/memory.
+ */
+function terminateChild(child: ChildProcess, graceMs = 3000): void {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  try {
+    child.kill("SIGTERM");
+  } catch {
+    return;
+  }
+  const timer = setTimeout(() => {
+    if (child.exitCode === null && child.signalCode === null) {
+      try {
+        child.kill("SIGKILL");
+      } catch {
+        // ignore — process may have just exited
+      }
+    }
+  }, graceMs);
+  // Don't keep the event loop alive solely for the force-kill timer.
+  if (typeof timer.unref === "function") timer.unref();
+  child.once("exit", () => clearTimeout(timer));
+}
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -66,6 +92,13 @@ export interface StreamRunnerOptions {
    * that only need to read inputs and never write back to the workspace.
    */
   readonlyWorkspace?: boolean;
+  /**
+   * Docker `User` (uid[:gid] or name) the container process runs as. Defaults
+   * to `"1000:1000"` — untrusted code should never run as root (uid 0), even
+   * with capabilities dropped. Pass `null` to keep the image's default user
+   * (e.g. an image whose entrypoint already drops privileges).
+   */
+  user?: string | null;
 }
 
 export interface StreamOptions {
@@ -116,6 +149,7 @@ export class StreamRunnerBase {
   public readonly securityOpt: string[];
   public readonly readonlyRootfs: boolean;
   public readonly readonlyWorkspace: boolean;
+  public readonly user: string | null;
 
   // `protected` (not `private`) so subclasses that implement their own
   // `stream()` — e.g. ServerDockerRunner — can register their container and
@@ -150,6 +184,9 @@ export class StreamRunnerBase {
       : ["no-new-privileges"];
     this.readonlyRootfs = options?.readonlyRootfs ?? false;
     this.readonlyWorkspace = options?.readonlyWorkspace ?? false;
+    // Never run untrusted code as root (uid 0). `undefined` → non-root default;
+    // explicit `null` keeps the image's own user.
+    this.user = options?.user === undefined ? "1000:1000" : options.user;
   }
 
   // ---- Public API --------------------------------------------------------
@@ -193,14 +230,10 @@ export class StreamRunnerBase {
       r();
     }
 
-    // Kill local subprocess if active
+    // Kill local subprocess if active (force-kill if it ignores SIGTERM)
     const child = this._activeChild;
     if (child && child.exitCode === null) {
-      try {
-        child.kill("SIGTERM");
-      } catch {
-        // ignore
-      }
+      terminateChild(child);
     }
 
     // Force-remove Docker container if active
@@ -466,6 +499,8 @@ export class StreamRunnerBase {
       Cmd: command,
       Env: Object.entries(environment).map(([k, v]) => `${k}=${v}`),
       WorkingDir: workingDir,
+      // Run as a non-root user so untrusted code cannot rely on uid 0.
+      User: this.user ?? undefined,
       OpenStdin: stdinStream !== null,
       Tty: false,
       HostConfig: hostConfig
@@ -728,13 +763,7 @@ export class StreamRunnerBase {
       if (this.timeoutSeconds > 0) {
         timeoutHandle = setTimeout(() => {
           timedOut = true;
-          try {
-            if (child.exitCode === null) {
-              child.kill("SIGTERM");
-            }
-          } catch {
-            // ignore
-          }
+          terminateChild(child);
         }, this.timeoutSeconds * 1000);
       }
 
@@ -779,13 +808,9 @@ export class StreamRunnerBase {
       if (timeoutHandle !== null) {
         clearTimeout(timeoutHandle);
       }
-      // Ensure child is terminated
-      try {
-        if (child.exitCode === null) {
-          child.kill("SIGTERM");
-        }
-      } catch {
-        // ignore
+      // Ensure child is terminated (force-kill if it ignores SIGTERM)
+      if (child.exitCode === null) {
+        terminateChild(child);
       }
       // Cleanup wrapper resources
       if (cleanupData !== null) {

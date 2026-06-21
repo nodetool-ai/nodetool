@@ -13,10 +13,6 @@
 import type {
   DeploymentConfig,
   DockerDeployment,
-  GCPDeployment,
-  FlyDeployment,
-  RailwayDeployment,
-  HuggingFaceDeployment,
   SSHConfig,
   AnyDeployment
 } from "./deployment-config.js";
@@ -119,22 +115,6 @@ export class DeploymentManager {
         const d = deployment as DockerDeployment;
         info.host = d.host;
         info.container = d.container.name;
-      } else if (deployment.type === "runpod") {
-        info.pod_id = state?.["pod_id"] ? String(state["pod_id"]) : null;
-      } else if (deployment.type === "gcp") {
-        const d = deployment as GCPDeployment;
-        info.project = d.project_id;
-        info.region = d.region;
-      } else if (deployment.type === "fly") {
-        const d = deployment as FlyDeployment;
-        info.host = `fly.io/${d.app}`;
-      } else if (deployment.type === "railway") {
-        const d = deployment as RailwayDeployment;
-        info.host = `railway/${d.project}`;
-        info.service = d.service;
-      } else if (deployment.type === "huggingface") {
-        const d = deployment as HuggingFaceDeployment;
-        info.host = `huggingface.co/${d.repo}`;
       }
 
       deployments.push(info);
@@ -246,26 +226,6 @@ export class DeploymentManager {
 
           if (!d.container) {
             results.errors.push(`${deploymentName}: No container configured`);
-            results.valid = false;
-          }
-        } else if (deployment.type === "fly") {
-          const d = deployment as FlyDeployment;
-          if (!d.app) {
-            results.errors.push(`${deploymentName}: No app name configured`);
-            results.valid = false;
-          }
-        } else if (deployment.type === "railway") {
-          const d = deployment as RailwayDeployment;
-          if (!d.project || !d.service) {
-            results.errors.push(
-              `${deploymentName}: Project and service are required`
-            );
-            results.valid = false;
-          }
-        } else if (deployment.type === "huggingface") {
-          const d = deployment as HuggingFaceDeployment;
-          if (!d.repo) {
-            results.errors.push(`${deploymentName}: No repo configured`);
             results.valid = false;
           }
         }

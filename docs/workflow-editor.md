@@ -35,7 +35,7 @@ Your infinite workspace.
 | Pan | `Space` + drag, or right-click drag |
 | Zoom | `Ctrl/⌘` + scroll |
 | Fit everything | `F` |
-| Reset zoom | `Ctrl/⌘ + 0` |
+| Reset zoom (to 50%) | `Ctrl/⌘ + 0` |
 
 **The grid** helps align nodes. Turn on **Snap to Grid** in View menu.
 
@@ -215,7 +215,7 @@ If a node needs an AI model you haven't installed:
 
 ![Auto Layout Before/After](assets/screenshots/screenshot-placeholder.svg)
 
-Click the **Auto Layout** button (or press `L`) to automatically arrange your nodes in a clean, readable layout. The editor also auto-arranges nodes when Global Chat creates or modifies workflows.
+Click the **Auto Layout** button in the floating toolbar to automatically arrange your nodes in a clean, readable layout. The editor also auto-arranges nodes when Global Chat creates or modifies workflows. (There is no keyboard shortcut for auto-layout — it's a toolbar button only.)
 
 ### Grouping Nodes
 
@@ -247,15 +247,7 @@ Select multiple nodes and press `Ctrl/⌘ + G` to group them. Groups:
 
 ### Left Panel
 
-Access these views by clicking icons on the left:
-
-| Icon | Panel | Purpose |
-|------|-------|---------|
-| 📂 | Workflows | Your saved workflows |
-| 💬 | Chat | Global Chat |
-| 📁 | Assets | Your files |
-| 📚 | Collections | RAG document collections |
-| 📦 | Packs | Installed node packs |
+Access these views by clicking icons on the left rail: **Nodes**, **Workflows**, **Sketches**, **Timelines**, **Settings**, **History**, **Favorites**, **Assets**, and **Agent**. See [Editor Panels → Left Panel](editor-panels.md#left-panel) for details on each.
 
 ### Right Panel (Inspector)
 
@@ -266,7 +258,7 @@ Press `i` to toggle the **Inspector** panel, which shows:
 - Input/output documentation
 - Validation errors and warnings
 
-See [Editor Panels → Right Panel](editor-panels.md#right-panel-inspector) for every tab (Inspector, Logs, Jobs, Agent, Trace, Version History, Workspace).
+The right panel hosts only the Inspector. Logs, Queue, Trace, Version History, and Workspace live in the [Bottom Panel](editor-panels.md#bottom-panel).
 
 ---
 
@@ -364,14 +356,13 @@ The professional color picker appears when selecting colors in properties:
 | `Ctrl/⌘ + D` | Duplicate horizontally |
 | `Ctrl/⌘ + Shift + D` | Duplicate vertically |
 | `Ctrl/⌘ + G` | Group selection |
-| `Ctrl/⌘ + 0` | Reset zoom to 100% |
+| `Ctrl/⌘ + 0` | Reset zoom to 50% |
 | `Ctrl/⌘ + 1-9` | Switch to tab 1-9 |
 | `A` | Align selected nodes |
 | `Shift + A` | Align and distribute |
 | `Arrow keys` | Nudge selected nodes |
 | `Delete` / `Backspace` | Delete selection |
 | `i` | Toggle Inspector |
-| `1-5` | Open left panel menus |
 
 ---
 

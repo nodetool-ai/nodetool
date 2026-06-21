@@ -8,7 +8,7 @@ import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useAssetSearch } from "../../serverState/useAssetSearch";
-import { Tooltip, MOTION } from "../ui_primitives";
+import { Tooltip, MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -45,7 +45,7 @@ const styles = (theme: Theme) =>
       appearance: "none",
       color: "var(--palette-text-primary)",
       backgroundColor: "var(--palette-grey-800)",
-      borderRadius: "var(--rounded-lg)",
+      borderRadius: BORDER_RADIUS.lg,
       transition: MOTION.all
     },
     "input[type='text']:focus": {
@@ -99,7 +99,7 @@ const styles = (theme: Theme) =>
       height: "16px",
       border: "2px solid var(--palette-grey-500)",
       borderTop: "2px solid var(--palette-grey-100)",
-      borderRadius: "var(--rounded-circle)",
+      borderRadius: BORDER_RADIUS.circle,
       animation: "spin 1s linear infinite"
     },
     "@keyframes spin": {

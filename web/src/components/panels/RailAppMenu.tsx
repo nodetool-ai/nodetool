@@ -9,6 +9,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import DownloadIcon from "@mui/icons-material/Download";
 import SpaceDashboardOutlinedIcon from "@mui/icons-material/SpaceDashboardOutlined";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import PaidOutlinedIcon from "@mui/icons-material/PaidOutlined";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
@@ -89,6 +90,11 @@ const RailAppMenu: React.FC = () => {
 
   const goDashboard = useCallback(() => {
     navigate("/dashboard");
+    close();
+  }, [navigate, close]);
+
+  const goExamples = useCallback(() => {
+    navigate("/examples");
     close();
   }, [navigate, close]);
 
@@ -179,6 +185,11 @@ const RailAppMenu: React.FC = () => {
             label="Dashboard"
             icon={<SpaceDashboardOutlinedIcon />}
             onClick={goDashboard}
+          />
+          <MenuItemPrimitive
+            label="Examples"
+            icon={<AutoAwesomeOutlinedIcon />}
+            onClick={goExamples}
           />
           <MenuItemPrimitive
             label="Costs"

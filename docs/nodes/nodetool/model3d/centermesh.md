@@ -34,4 +34,4 @@ Center a mesh at the origin.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.model3d](../) namespace.
+Browse other nodes in the [nodetool.model3d](./) namespace.

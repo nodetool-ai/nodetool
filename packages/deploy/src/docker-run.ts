@@ -43,7 +43,6 @@ interface ContainerConfig {
   port: number;
   gpu?: string;
   environment?: Record<string, string>;
-  workflows?: string[];
 }
 
 /** Docker image configuration. */
@@ -227,11 +226,6 @@ export class DockerRunGenerator {
       if (!env["AUTH_PROVIDER"]) {
         env["AUTH_PROVIDER"] = "static";
       }
-    }
-
-    // Add workflow IDs if specified
-    if (this.container.workflows && this.container.workflows.length > 0) {
-      env["NODETOOL_WORKFLOWS"] = this.container.workflows.join(",");
     }
 
     // Add authentication token for self-hosted deployments

@@ -31,4 +31,4 @@ Prompt-driven spreadsheet skill for CSV/XLSX processing.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.agents](../) namespace.
+Browse other nodes in the [nodetool.agents](./) namespace.

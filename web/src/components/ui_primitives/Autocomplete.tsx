@@ -103,11 +103,23 @@ function AutocompleteInternal<
         error={error}
         helperText={helperText}
         sx={{
-          ...(compact && {
-            "& .MuiInputBase-input": {
-              fontSize: theme.fontSizeSmall,
-            },
-          }),
+          // Same form-control sizing as TextInput/SelectField: the value renders
+          // at the body token (15px) regardless of `compact` — compact only
+          // tightens height (via size="small"), never shrinks the text.
+          "& .MuiInputBase-input": {
+            fontSize: theme.fontSizeNormal || "15px",
+          },
+          // Resting label doubles as the placeholder hint — soften it (and let
+          // MUI own its sizing/centering). It returns to full strength once
+          // shrunk into the notch.
+          "& .MuiInputLabel-root:not(.MuiInputLabel-shrink)": {
+            opacity: 0.6,
+          },
+          // The native placeholder (shown when there's no label, or when focused
+          // with a label) should read as a muted hint too, not entered text.
+          "& .MuiInputBase-input::placeholder": {
+            opacity: 0.6,
+          },
         }}
       />
     );

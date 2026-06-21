@@ -33,4 +33,4 @@ Prompt-driven PDF processing skill with pdf-lib and complementary tooling.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.agents](../) namespace.
+Browse other nodes in the [nodetool.agents](./) namespace.

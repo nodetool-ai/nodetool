@@ -625,6 +625,105 @@ describe("KeyPressedStore", () => {
     });
   });
 
+  describe("escape releases in-canvas editor focus", () => {
+    // Regression: focus left in an in-node text editor (textarea, contentEditable,
+    // Monaco) keeps every canvas/global shortcut suppressed, because suppression
+    // keys off document.activeElement being editable. Native editors do not blur
+    // themselves on Escape, so without this the only recovery was clicking the
+    // empty pane. Escape now hands focus back to the canvas.
+
+    const renderEditorInCanvas = (editable: HTMLElement) => {
+      const renderer = document.createElement("div");
+      renderer.classList.add("react-flow__renderer");
+      renderer.appendChild(editable);
+      document.body.appendChild(renderer);
+      return renderer;
+    };
+
+    const pressEscape = (target: HTMLElement, defaultPrevented = false) => {
+      const event = new KeyboardEvent("keydown", {
+        key: "Escape",
+        cancelable: true
+      });
+      Object.defineProperty(event, "target", { value: target });
+      if (defaultPrevented) {
+        event.preventDefault();
+      }
+      act(() => {
+        useKeyPressedStore.getState().setKeysPressed({ escape: true }, event);
+      });
+    };
+
+    it("blurs a focused in-canvas textarea so canvas shortcuts resume", () => {
+      const textarea = document.createElement("textarea");
+      const renderer = renderEditorInCanvas(textarea);
+      textarea.focus();
+      expect(document.activeElement).toBe(textarea);
+
+      pressEscape(textarea);
+
+      expect(document.activeElement).not.toBe(textarea);
+
+      document.body.removeChild(renderer);
+    });
+
+    it("blurs a focused in-canvas Monaco editor on Escape", () => {
+      const monacoRoot = document.createElement("div");
+      monacoRoot.className = "monaco-editor";
+      const textarea = document.createElement("textarea");
+      monacoRoot.appendChild(textarea);
+      const renderer = renderEditorInCanvas(monacoRoot);
+      textarea.focus();
+
+      pressEscape(textarea);
+
+      expect(document.activeElement).not.toBe(textarea);
+
+      document.body.removeChild(renderer);
+    });
+
+    it("keeps focus when the editor already handled Escape (defaultPrevented)", () => {
+      const textarea = document.createElement("textarea");
+      const renderer = renderEditorInCanvas(textarea);
+      textarea.focus();
+
+      pressEscape(textarea, true);
+
+      expect(document.activeElement).toBe(textarea);
+
+      document.body.removeChild(renderer);
+    });
+
+    it("does not blur inputs outside the workflow canvas", () => {
+      const input = document.createElement("input");
+      document.body.appendChild(input);
+      input.focus();
+      expect(document.activeElement).toBe(input);
+
+      pressEscape(input);
+
+      expect(document.activeElement).toBe(input);
+
+      document.body.removeChild(input);
+    });
+
+    it("still fires the escape combo while blurring the editor", () => {
+      const callback = jest.fn();
+      const dispose = registerComboCallback("escape", { callback });
+      const textarea = document.createElement("textarea");
+      const renderer = renderEditorInCanvas(textarea);
+      textarea.focus();
+
+      pressEscape(textarea);
+
+      expect(callback).toHaveBeenCalledTimes(1);
+      expect(document.activeElement).not.toBe(textarea);
+
+      dispose();
+      document.body.removeChild(renderer);
+    });
+  });
+
   describe("helper functions", () => {
     it("isKeyPressed returns correct value", () => {
       const { setKeysPressed, isKeyPressed } = useKeyPressedStore.getState();

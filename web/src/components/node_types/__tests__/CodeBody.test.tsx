@@ -207,9 +207,27 @@ describe("CodeBody", () => {
     );
   });
 
-  it("renders the dynamic property form for dynamic code nodes", () => {
+  it("keeps the add input/output form for Execute* code nodes", () => {
     renderWithTheme(<CodeBody {...makeProps()} />);
     expect(screen.getByTestId("node-property-form")).toBeInTheDocument();
+    expect(
+      screen.queryByText(/reference an undefined variable to add an input/i)
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the IO hint instead of the form for the universal Code node", () => {
+    renderWithTheme(
+      <CodeBody
+        {...makeProps({
+          nodeType: "nodetool.code.Code",
+          data: { properties: { code: "" } }
+        })}
+      />
+    );
+    expect(
+      screen.getByText(/reference an undefined variable to add an input/i)
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("node-property-form")).not.toBeInTheDocument();
   });
 
   it("derives dynamic inputs/outputs from code for the universal Code node", () => {

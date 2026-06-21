@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "ASRModel Constant"
+title: "ASR Model Constant"
 node_type: "nodetool.constant.ASRModelConstant"
 namespace: "nodetool.constant"
 ---
@@ -33,4 +33,4 @@ Represents an automatic speech recognition model constant in the workflow.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.constant](../) namespace.
+Browse other nodes in the [nodetool.constant](./) namespace.

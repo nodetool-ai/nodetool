@@ -1,5 +1,5 @@
 import React, { memo, useCallback } from "react";
-import { Divider, ContextMenu } from "../ui_primitives";
+import { Divider, ContextMenu, BORDER_RADIUS } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 import { useNodeContextMenu } from "../../hooks/nodes/useNodeContextMenu";
 import GroupRemoveIcon from "@mui/icons-material/GroupRemove";
@@ -189,7 +189,7 @@ const NodeContextMenu: React.FC = () => {
       onClose={closeContextMenu}
       onContextMenu={(event) => event.preventDefault()}
       position={menuPosition}
-      paperSx={{ borderRadius: "var(--rounded-lg)" }}
+      paperSx={{ borderRadius: BORDER_RADIUS.lg }}
     >
       {menuItems.filter(Boolean)}
     </ContextMenu>

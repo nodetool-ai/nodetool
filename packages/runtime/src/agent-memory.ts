@@ -208,4 +208,20 @@ export class AgentMemory {
   snapshot(): MemoryEntry[] {
     return [...this.entries.values()];
   }
+
+  /**
+   * Rehydrate from a prior {@link snapshot}. This is the durability seam:
+   * callers can persist `snapshot()` to disk/DB at checkpoints and rebuild the
+   * store after a crash or process restart, without coupling AgentMemory to
+   * any particular storage backend.
+   *
+   * Each entry is written through {@link set}, so its original `createdAt` is
+   * preserved and listeners are notified (reactive consumers can rebuild
+   * derived state). Existing keys are overwritten.
+   */
+  restore(entries: readonly MemoryEntry[]): void {
+    for (const entry of entries) {
+      this.set({ ...entry });
+    }
+  }
 }

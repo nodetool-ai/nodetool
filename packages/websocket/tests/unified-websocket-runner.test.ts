@@ -736,6 +736,54 @@ describe("UnifiedWebSocketRunner", () => {
 
     await runner.disconnect();
   });
+
+  it("cancels still-queued runs on disconnect instead of orphaning them", async () => {
+    await initTestDb();
+    const prev = process.env.MAX_CONCURRENT_RUNS_PER_WORKFLOW;
+    process.env.MAX_CONCURRENT_RUNS_PER_WORKFLOW = "1";
+    try {
+      let release!: () => void;
+      const gate = new Promise<void>((r2) => {
+        release = r2;
+      });
+      const r = new UnifiedWebSocketRunner({
+        resolveExecutor: () => ({
+          async process() {
+            await gate;
+            return {};
+          }
+        })
+      });
+      await r.connect(ws);
+      const graph = {
+        nodes: [
+          {
+            id: "n1",
+            type: "nodetool.constant.String",
+            name: "nodetool.constant.String",
+            properties: { value: "x" }
+          }
+        ],
+        edges: []
+      };
+      await Job.create({ id: "RUN_A", workflow_id: "wf", user_id: "1", status: "scheduled" });
+      await Job.create({ id: "RUN_B", workflow_id: "wf", user_id: "1", status: "scheduled" });
+
+      await r.runJob({ job_id: "RUN_A", workflow_id: "wf", graph, concurrent: true });
+      await r.runJob({ job_id: "RUN_B", workflow_id: "wf", graph, concurrent: true });
+      await new Promise((res) => setTimeout(res, 20));
+
+      // RUN_B is queued behind RUN_A (cap of 1). Disconnecting must cancel it.
+      await r.disconnect();
+      release();
+
+      const queuedJob = await Job.get<Job>("RUN_B");
+      expect(queuedJob?.status).toBe("cancelled");
+    } finally {
+      if (prev === undefined) delete process.env.MAX_CONCURRENT_RUNS_PER_WORKFLOW;
+      else process.env.MAX_CONCURRENT_RUNS_PER_WORKFLOW = prev;
+    }
+  });
 });
 
 describe("UnifiedWebSocketRunner binary frame size guard", () => {
@@ -779,5 +827,26 @@ describe("UnifiedWebSocketRunner binary frame size guard", () => {
     await expect(runner.receiveMessage()).rejects.toThrow(
       /exceeds maximum size/
     );
+  });
+
+  it("rejects an incoming text frame larger than the limit", async () => {
+    process.env[KEY] = "16";
+    ws.queue.push({
+      type: "websocket.message",
+      text: JSON.stringify({ type: "ping", padding: "x".repeat(256) })
+    });
+    await expect(runner.receiveMessage()).rejects.toThrow(
+      /exceeds maximum size/
+    );
+  });
+
+  it("accepts a text frame within the configured limit", async () => {
+    process.env[KEY] = String(1024 * 1024);
+    ws.queue.push({
+      type: "websocket.message",
+      text: JSON.stringify({ type: "ping" })
+    });
+    const msg = await runner.receiveMessage();
+    expect(msg?.type).toBe("ping");
   });
 });

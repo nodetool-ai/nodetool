@@ -39,4 +39,4 @@ Add text elements to SVG.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.svg](../) namespace.
+Browse other nodes in the [lib.svg](./) namespace.

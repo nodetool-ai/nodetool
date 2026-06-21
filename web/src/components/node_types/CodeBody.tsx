@@ -30,8 +30,7 @@ import {
   FlexColumn,
   CopyButton,
   LoadingSpinner,
-  ToolbarIconButton
-} from "../ui_primitives";
+  ToolbarIconButton, BORDER_RADIUS } from "../ui_primitives";
 import { editorClassNames, cn } from "../editor_ui";
 import HandleColumn from "../node/HandleColumn";
 import { NodeInputs } from "../node/NodeInputs";
@@ -50,7 +49,9 @@ import { useNodes } from "../../contexts/NodeContext";
 import { deriveCodeIOUpdates } from "../../utils/codeOutputInference";
 import {
   getCodeNodeLanguage,
-  codeLanguageLabel
+  codeLanguageLabel,
+  getCodeNodeIOHint,
+  isCodeNode
 } from "../node/codeNodeUi";
 import { resolveExposedInputNames } from "../../utils/exposedInputs";
 
@@ -123,7 +124,7 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       backgroundColor: "var(--palette-grey-600)",
       border: "1px solid var(--palette-grey-500)",
-      borderRadius: "var(--rounded-sm)"
+      borderRadius: BORDER_RADIUS.sm
     },
     ".editor-area:focus-within": {
       borderColor: "var(--palette-grey-400)"
@@ -144,6 +145,14 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       alignItems: "flex-start",
       cursor: "text"
+    },
+    ".io-hint": {
+      flex: "0 0 auto",
+      padding: `${theme.spacing(0.25)} ${theme.spacing(0.5)}`,
+      fontFamily: theme.fontFamily1,
+      fontSize: theme.fontSizeSmaller,
+      lineHeight: 1.4,
+      color: theme.vars.palette.text.secondary
     },
     ".outputs-row": {
       flex: "0 0 auto"
@@ -411,16 +420,19 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
           properties={properties}
         />
 
-        {isDynamic && (
-          <NodePropertyForm
-            id={id}
-            isDynamic={nodeMetadata.supports_dynamic_inputs}
-            supportsDynamicOutputs={nodeMetadata.supports_dynamic_outputs}
-            dynamicOutputs={data.dynamic_outputs || {}}
-            onAddProperty={handleAddProperty}
-            nodeType={nodeType}
-          />
-        )}
+        {isDynamic &&
+          (isCodeNode(nodeType) ? (
+            <div className="io-hint">{getCodeNodeIOHint()}</div>
+          ) : (
+            <NodePropertyForm
+              id={id}
+              isDynamic={nodeMetadata.supports_dynamic_inputs}
+              supportsDynamicOutputs={nodeMetadata.supports_dynamic_outputs}
+              dynamicOutputs={data.dynamic_outputs || {}}
+              onAddProperty={handleAddProperty}
+              nodeType={nodeType}
+            />
+          ))}
 
         {!isOutputNode && (
           <div className="outputs-row">

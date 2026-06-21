@@ -29,4 +29,4 @@ Extract plain text from a PDF, preserving line breaks based on layout position.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.pdf](../) namespace.
+Browse other nodes in the [lib.pdf](./) namespace.

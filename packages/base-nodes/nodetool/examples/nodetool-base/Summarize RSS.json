@@ -30,8 +30,7 @@
           "selectable": true
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "3fd0dc61-7a0f-4a2d-900a-cbbbd35ddfcc",
@@ -52,8 +51,7 @@
           "title": "1️⃣ Fetch RSS feed"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "98cc0ca5-7361-44d7-9e74-c47c0def5aeb",
@@ -74,8 +72,7 @@
           "title": "2️⃣ Collect titles"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       },
       {
         "id": "0659612a-1a3b-471b-b397-6ec97e33882f",
@@ -100,8 +97,7 @@
           "title": "3️⃣ Summarize"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {},
-        "sync_mode": "on_any"
+        "dynamic_outputs": {}
       }
     ],
     "edges": [

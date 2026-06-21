@@ -29,8 +29,8 @@ Extracts numbered lists from markdown.
 
 | Output | Type | Description |
 |--------|------|-------------|
-| output | `list[str]` |  |
+| output | `list[list[str]]` |  |
 
 ## Related Nodes
 
-Browse other nodes in the [lib.markdown](../) namespace.
+Browse other nodes in the [lib.markdown](./) namespace.

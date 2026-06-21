@@ -7,6 +7,7 @@
     "build": "opennextjs-cloudflare build",
     "start": "next start --port 3001",
     "lint": "next lint",
+    "test:e2e": "playwright test",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
@@ -41,6 +42,7 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.0",
     "@types/lodash": "^4.17.15",
     "@types/node": "^20",
     "@types/react": "^18",

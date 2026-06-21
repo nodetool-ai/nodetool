@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import JsonLd from "../../components/JsonLd";
 
 export const metadata: Metadata = {
   title: "NodeTool for Developers | Open-Source AI Workflow SDK & API",
@@ -57,5 +58,32 @@ export default function DevelopersLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return (
+    <>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "SoftwareSourceCode",
+          name: "NodeTool",
+          description:
+            "Open-source creative AI workspace. TypeScript SDK and REST API; write custom nodes in TypeScript or Python, drive the canvas from a CLI, and generate workflows in code.",
+          codeRepository: "https://github.com/nodetool-ai/nodetool",
+          programmingLanguage: ["TypeScript", "Python"],
+          license: "https://github.com/nodetool-ai/nodetool/blob/main/LICENSE",
+          url: "https://nodetool.ai/developers",
+        }}
+      />
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Home", item: "https://nodetool.ai" },
+            { "@type": "ListItem", position: 2, name: "Developers", item: "https://nodetool.ai/developers" },
+          ],
+        }}
+      />
+      {children}
+    </>
+  );
 }

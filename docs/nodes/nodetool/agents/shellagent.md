@@ -30,4 +30,4 @@ Reusable prompt-driven skill backed by execute_bash.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.agents](../) namespace.
+Browse other nodes in the [nodetool.agents](./) namespace.

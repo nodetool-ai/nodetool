@@ -552,7 +552,7 @@ const styles = (theme: Theme) =>
             justifyContent: "center",
             width: "1.9em",
             height: "1.9em",
-            borderRadius: "var(--rounded-md)",
+            borderRadius: BORDER_RADIUS.md,
             color: theme.vars.palette.primary.main,
             background: `rgba(${theme.vars.palette.primary.mainChannel} / 0.14)`,
             svg: { fontSize: "var(--fontSizeNormal)" }

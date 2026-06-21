@@ -34,4 +34,4 @@ Checks if text starts with a specified prefix.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.text](../) namespace.
+Browse other nodes in the [nodetool.text](./) namespace.

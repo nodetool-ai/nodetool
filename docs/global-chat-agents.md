@@ -4,7 +4,7 @@ title: "Global Chat & Agents"
 description: "Run workflows from chat, enable autonomous agents, and expose them through APIs."
 ---
 
-Global Chat runs workflows, streams results, and switches to agent mode when a task needs planning. Jump to the right reference below.
+Global Chat runs workflows, streams results, and runs the unified agent loop on every turn — the assistant plans and calls tools on its own as a task needs it. Jump to the right reference below.
 
 ## Core guides
 
@@ -19,8 +19,8 @@ Global Chat runs workflows, streams results, and switches to agent mode when a t
 1. **Run any saved workflow from chat**  
    Save the workflow in the editor, open Global Chat, and choose a **workflow** in the composer.
 
-2. **Enable Agent Mode for planning tasks**  
-   Switch to Agent Mode to let the LLM break goals into tasks. See the [Agent guide](global-chat.md#agent-mode).
+2. **Let the agent plan complex tasks**  
+   The unified agent loop runs on every turn — the LLM decomposes goals into tasks and calls tools as needed. See the [Agent guide](global-chat.md#agent-mode).
 
 3. **Run autonomous agents from command line**  
    Use the [Agent CLI](agent-cli.md) to run agents for fully automated task execution.

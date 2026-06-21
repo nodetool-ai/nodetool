@@ -723,3 +723,22 @@ Removed from production behavior:
    execution errors.
 
 3. **Python worker rollout.** Python bridge compatibility remains a rollout concern for Python-backed nodes that need full output correlation metadata, lineage, `lineage_done`, and `lineage_scope_closed`.
+
+## Known gaps and skipped tests
+
+These gaps are covered by `it.skip` regression tests that are kept (not
+deleted) so the desired behavior is documented and the test re-enables the
+moment the gap is closed. Each skipped test references the gap id below.
+
+- **GAP-CORR-1 — required-input empty-scope close.** When a required input
+  edge closes without ever delivering a value (an upstream node throws, or an
+  input stream finishes with no push), `NodeActor._runCorrelatedImpl` fires the
+  node once with input defaults instead of skipping it. Per §6, a *required*
+  input that closes without a value should block the key (skip the node).
+  Skipped tests: `e2e/complex-topologies.test.ts` (COMPLEX-008),
+  `e2e/runner-lifecycle.test.ts` (RUNNER-008).
+
+- **GAP-CORR-2 — multi-edge list aggregation.** Multiple edges feeding one
+  `list[...]` handle are not yet aggregated at runtime; `_runCorrelatedImpl`
+  delivers only the last value. (Multi-edge into a non-list handle is rejected
+  by analysis — see §4.) Skipped test: `e2e/actor-modes.test.ts` (ACTOR-005).

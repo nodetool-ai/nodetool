@@ -1,7 +1,7 @@
 import 'react-native-url-polyfill/auto';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { secureStorageAdapter } from './secureStorage';
 
 /**
  * Supabase client configuration for the mobile app.
@@ -41,7 +41,7 @@ export const supabase: SupabaseClient = createClient(
   SUPABASE_ANON_KEY,
   {
     auth: {
-      storage: AsyncStorage,
+      storage: secureStorageAdapter,
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: false,

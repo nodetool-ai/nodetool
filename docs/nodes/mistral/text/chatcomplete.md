@@ -41,4 +41,4 @@ Generate text using Mistral AI's chat completion models.
 
 ## Related Nodes
 
-Browse other nodes in the [mistral.text](../) namespace.
+Browse other nodes in the [mistral.text](./) namespace.

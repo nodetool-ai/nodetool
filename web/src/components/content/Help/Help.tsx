@@ -146,7 +146,7 @@ const helpStyles = (theme: Theme) =>
       },
       "&::-webkit-scrollbar-thumb": {
         background: theme.vars.palette.grey[500],
-        borderRadius: "var(--rounded-sm)"
+        borderRadius: BORDER_RADIUS.sm
       },
       "&::-webkit-scrollbar-thumb:hover": {
         background: theme.vars.palette.grey[400]

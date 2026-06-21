@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useMemo } from "react";
 
+import { BORDER_RADIUS } from "../ui_primitives";
 interface GhostNodeProps {
   position: { x: number; y: number };
   label: string | null;
@@ -41,7 +42,7 @@ const GhostNode = memo(function GhostNode({
       badge: {
         width: "56px",
         height: "56px",
-        borderRadius: "var(--rounded-xxl)",
+        borderRadius: BORDER_RADIUS.xxl,
         border: `1.6px solid ${theme.badgeBorder}`,
         background: theme.badgeBackground,
         boxShadow: theme.badgeShadow,
@@ -55,7 +56,7 @@ const GhostNode = memo(function GhostNode({
       },
       labelContainer: {
         padding: "6px 12px",
-        borderRadius: "var(--rounded-xl)",
+        borderRadius: BORDER_RADIUS.xl,
         background: theme.labelBackground,
         boxShadow: "0 12px 32px rgba(15, 23, 42, 0.25)",
         fontSize: "var(--fontSizeSmall)",

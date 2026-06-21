@@ -32,7 +32,7 @@ export function applyDefaultModels(
     if (!MODEL_TYPES.has(modelType)) continue;
 
     const current = result[prop.name] as
-      | { provider?: unknown; id?: unknown }
+      | Record<string, unknown>
       | null
       | undefined;
     const isEmpty =

@@ -13,8 +13,7 @@ import {
   Box,
   Divider,
   LoadingSpinner,
-  MOTION
-} from "../ui_primitives";
+  MOTION, BORDER_RADIUS } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -30,7 +29,7 @@ const styles = (theme: Theme) =>
   css({
     ".workspace-select": {
       backgroundColor: "transparent",
-      borderRadius: "var(--rounded-md)",
+      borderRadius: BORDER_RADIUS.md,
       "& .MuiSelect-select": {
         display: "flex",
         alignItems: "center",
@@ -269,7 +268,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
                   maxWidth: "min(600px, calc(100vw - 32px))",
                   backgroundColor: theme.vars.palette.background.paper,
                   border: `1px solid ${theme.vars.palette.divider}`,
-                  borderRadius: "var(--rounded-md)",
+                  borderRadius: BORDER_RADIUS.md,
                   mt: 0.5,
                   "& .workspace-option": {
                     display: "flex",
@@ -315,7 +314,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
                   },
                   "& .MuiMenuItem-root": {
                     padding: "10px 14px",
-                    borderRadius: "var(--rounded-sm)",
+                    borderRadius: BORDER_RADIUS.sm,
                     margin: "2px 4px",
                     "&:hover": {
                       backgroundColor: theme.vars.palette.action.hover

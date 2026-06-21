@@ -1,5 +1,5 @@
 {
-  "$comment": "E2E suite config. The harness runs every workflow graph discovered in sourceDir against the e2e-server, which fakes all providers (LLM + external/media nodes return type-correct placeholder outputs). prepareSuite.ts reads each template's embedded params; add per-id overrides below when a template needs specific inputs. ids are slugified from the filename (e.g. 'Album Cover Creator' -> 'album-cover-creator').",
+  "$comment": "E2E suite config. The harness runs every workflow graph discovered in sourceDir against the e2e-server, which fakes all providers (LLM + external/media nodes return type-correct placeholder outputs). prepareSuite.ts reads each template's embedded params; add per-id overrides below when a template needs specific inputs. ids are slugified from the filename (e.g. 'Movie Posters' -> 'movie-posters').",
   "sourceDir": "packages/base-nodes/nodetool/examples/nodetool-base",
   "$exclude_comment": "data-visualization-pipeline uses a nodetool.data.Filter condition with backtick-quoted column names (`Country Code`) that the Filter expression parser rejects ('Unexpected character'). That's a real node/template limitation unrelated to provider faking; excluded here and worth a separate fix.",
   "exclude": ["data-visualization-pipeline"],

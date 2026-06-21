@@ -4,6 +4,7 @@ import { css, keyframes } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Box, CircularProgress, Typography } from "@mui/material";
+import { reducedMotion } from "./tokens";
 
 const pulse = keyframes`
   0%, 80%, 100% {
@@ -36,7 +37,8 @@ const styles = (theme: Theme, variant: string, size: string) =>
       animation: `${pulse} 1.4s infinite ease-in-out`,
       "&:nth-of-type(1)": { animationDelay: "-0.32s" },
       "&:nth-of-type(2)": { animationDelay: "-0.16s" },
-      "&:nth-of-type(3)": { animationDelay: "0s" }
+      "&:nth-of-type(3)": { animationDelay: "0s" },
+      ...reducedMotion({ animation: "none", opacity: 0.6 })
     },
     ".loading-text": {
       color: theme.vars?.palette?.text?.secondary ?? theme.palette.text.secondary,

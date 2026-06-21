@@ -10,15 +10,18 @@
 
   {% seo %}
 
+  <link rel="icon" type="image/png" href="{{ '/assets/logo.png' | relative_url }}">
+  <link rel="apple-touch-icon" href="{{ '/assets/logo.png' | relative_url }}">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.min.js"></script>
-  <script>
-    mermaid.initialize({
-      theme: 'dark',
-    });
-  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  {%- comment -%} Load Mermaid once, and only on pages that contain a diagram. {%- endcomment -%}
+  {% if content contains 'class="mermaid"' %}
+  <script src="{{ site.mermaid.src }}"></script>
+  <script>mermaid.initialize({ startOnLoad: true, theme: 'dark' });</script>
+  {% endif %}
 
   <!-- Privacy-friendly analytics by Plausible -->
   <script async src="https://plausible.io/js/pa--LQx7hc8XEljtA5SNcvkM.js"></script>

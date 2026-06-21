@@ -31,4 +31,4 @@ Prompt-driven filesystem skill for file inspection and transformations.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.agents](../) namespace.
+Browse other nodes in the [nodetool.agents](./) namespace.

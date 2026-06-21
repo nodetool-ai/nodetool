@@ -34,4 +34,4 @@ Generate videos from text prompts using any supported video provider. Automatica
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.video](../) namespace.
+Browse other nodes in the [nodetool.video](./) namespace.

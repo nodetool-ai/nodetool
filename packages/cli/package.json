@@ -3,6 +3,9 @@
   "version": "0.7.0-rc.23",
   "description": "NodeTool chat CLI — interactive AI chat with agent mode and tool support",
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0 <23.0.0"
+  },
   "main": "dist/index.js",
   "bin": {
     "nodetool-chat": "dist/index.js",
@@ -18,6 +21,7 @@
   "dependencies": {
     "@nodetool-ai/config": "*",
     "@nodetool-ai/agents": "*",
+    "@nodetool-ai/compute": "*",
     "@nodetool-ai/deploy": "*",
     "@nodetool-ai/huggingface": "*",
     "@nodetool-ai/vectorstore": "*",

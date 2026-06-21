@@ -123,7 +123,25 @@ const AutocompleteTagInputInternal: React.FC<AutocompleteTagInputProps> = ({
         getOptionLabel={getOptionLabel}
         renderOption={renderOption}
         renderInput={(params) => (
-          <TextField {...params} label={label} placeholder={placeholder} />
+          <TextField
+            {...params}
+            label={label}
+            placeholder={placeholder}
+            sx={{
+              // Shared form-control sizing with TextInput/SelectField: value at
+              // the 15px body token, resting label + placeholder softened to read
+              // as hints (full strength once the label shrinks into the notch).
+              "& .MuiInputBase-input": {
+                fontSize: theme.fontSizeNormal || "15px"
+              },
+              "& .MuiInputLabel-root:not(.MuiInputLabel-shrink)": {
+                opacity: 0.6
+              },
+              "& .MuiInputBase-input::placeholder": {
+                opacity: 0.6
+              }
+            }}
+          />
         )}
       />
       {description && (

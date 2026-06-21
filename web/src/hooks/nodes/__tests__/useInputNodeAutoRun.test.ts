@@ -550,7 +550,7 @@ describe("useInputNodeAutoRun", () => {
       },
       {
         id: "format-1",
-        type: "nodetool.text.FormatText",
+        type: "nodetool.text.Prompt",
         data: { properties: {} }
       }
     ];
@@ -558,7 +558,7 @@ describe("useInputNodeAutoRun", () => {
     const literalEdges = [
       { source: "input-1", target: "format-1", sourceHandle: "output", targetHandle: "GENRE" },
       { source: "input-2", target: "format-1", sourceHandle: "output", targetHandle: "CHARACTER" },
-      { source: "template-1", target: "format-1", sourceHandle: "output", targetHandle: "template" }
+      { source: "template-1", target: "format-1", sourceHandle: "output", targetHandle: "prompt" }
     ];
 
     mockUseNodes.mockReturnValue({
@@ -612,7 +612,7 @@ describe("useInputNodeAutoRun", () => {
     );
 
     expect(formatNode.data.properties.CHARACTER).toBe("Reluctant Hero");
-    expect(formatNode.data.properties.template).toBe("template text");
+    expect(formatNode.data.properties.prompt).toBe("template text");
   });
 
   describe("instantUpdate setting", () => {

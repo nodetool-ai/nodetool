@@ -32,4 +32,4 @@ Query a Notion database with optional filter and sort.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.notion](../) namespace.
+Browse other nodes in the [lib.notion](./) namespace.

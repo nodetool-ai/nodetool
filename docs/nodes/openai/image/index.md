@@ -3,9 +3,12 @@ layout: page
 title: "openai.image Nodes"
 ---
 
-This namespace contains 2 node(s).
+This namespace contains 3 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[Create Image](createimage.md)** - Generates images from textual descriptions.
-- **[Edit Image](editimage.md)** - Edit images using OpenAI's gpt-image-1 model.
+- **[Create Image](createimage.md)**
+- **[Edit Image](editimage.md)**
+- **[Image Variation](imagevariation.md)**
+
+[Back to all nodes](../../)

@@ -28,4 +28,4 @@ Get file last modified timestamp.
 
 ## Related Nodes
 
-Browse other nodes in the [lib.os](../) namespace.
+Browse other nodes in the [lib.os](./) namespace.

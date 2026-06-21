@@ -96,7 +96,7 @@
       {
         "id": "6046a17f-2fe2-4884-bedc-b995b6e8ffbe",
         "source": "2ed27bde-9299-4088-a169-156b1ea5552f",
-        "sourceHandle": "output",
+        "sourceHandle": "dataframe",
         "target": "2",
         "targetHandle": "value",
         "ui_properties": null

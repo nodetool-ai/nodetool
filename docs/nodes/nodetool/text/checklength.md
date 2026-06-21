@@ -31,4 +31,4 @@ Checks if text length meets specified conditions.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.text](../) namespace.
+Browse other nodes in the [nodetool.text](./) namespace.

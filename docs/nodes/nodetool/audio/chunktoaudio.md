@@ -11,15 +11,14 @@ namespace: "nodetool.audio"
 
 ## Description
 
-Aggregates audio chunks from an input stream into AudioRef objects.
-    audio, stream, chunk, aggregate, collect, batch
+Converts audio chunks from an input stream into AudioRef objects.
+    audio, stream, chunk, convert
 
 ## Properties
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | chunk | `chunk` | Stream of audio chunks | `{"type":"chunk","node_id":null,"thread_id":null...` |
-| batch_size | `int` | Number of chunks to aggregate per output | `50` |
 
 ## Outputs
 
@@ -29,4 +28,4 @@ Aggregates audio chunks from an input stream into AudioRef objects.
 
 ## Related Nodes
 
-Browse other nodes in the [nodetool.audio](../) namespace.
+Browse other nodes in the [nodetool.audio](./) namespace.
