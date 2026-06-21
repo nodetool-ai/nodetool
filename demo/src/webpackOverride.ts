@@ -89,12 +89,44 @@ function buildAlias(): Record<string, string> {
   return alias;
 }
 
+/**
+ * esbuild target for the loader. Remotion defaults to `chrome85`, which rejects
+ * top-level await (used by `@nodetool-ai/config`). The render runs in a modern
+ * headless Chrome, so bump it to a TLA-capable target.
+ */
+const ESBUILD_TARGET = "chrome109";
+
+interface LoaderUse {
+  loader?: string;
+  options?: Record<string, unknown>;
+}
+
+/** Mutate Remotion's esbuild-loader rules in place to use a modern target. */
+function bumpEsbuildTargets(rules: unknown[]): void {
+  for (const rule of rules) {
+    if (!rule || typeof rule !== "object") continue;
+    const use = (rule as { use?: unknown }).use;
+    if (!Array.isArray(use)) continue;
+    for (const entry of use) {
+      if (!entry || typeof entry !== "object") continue;
+      const u = entry as LoaderUse;
+      if (typeof u.loader === "string" && u.loader.includes("esbuild-loader") && u.options) {
+        u.options = { ...u.options, target: ESBUILD_TARGET };
+      }
+    }
+  }
+}
+
 export const webpackOverride: WebpackOverrideFn = (config) => {
   const resolve = config.resolve ?? {};
   const existingConditions = resolve.conditionNames ?? ["...", "browser"];
   const existingRules = config.module?.rules ?? [];
+  bumpEsbuildTargets(existingRules as unknown[]);
   return {
     ...config,
+    // Top-level await (used by @nodetool-ai/config) needs webpack's experiment
+    // enabled in addition to a TLA-capable esbuild target (see bumpEsbuildTargets).
+    experiments: { ...config.experiments, topLevelAwait: true },
     module: {
       ...config.module,
       rules: [
@@ -117,6 +149,15 @@ export const webpackOverride: WebpackOverrideFn = (config) => {
       conditionNames: Array.from(
         new Set(["nodetool-dev", ...existingConditions, "browser", "..."])
       ),
+      // NodeTool packages use the TS ESM convention of importing source files
+      // with a `.js` extension (e.g. `./node-import.js` → `node-import.ts`).
+      // Vite resolves this natively; webpack needs an explicit extensionAlias.
+      extensionAlias: {
+        ".js": [".ts", ".tsx", ".js", ".jsx"],
+        ".mjs": [".mts", ".mjs"],
+        ".cjs": [".cts", ".cjs"],
+        ...(resolve.extensionAlias ?? {}),
+      },
       alias: {
         ...(resolve.alias ?? {}),
         ...buildAlias(),
