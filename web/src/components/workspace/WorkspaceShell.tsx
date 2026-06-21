@@ -6,8 +6,13 @@ import type { Theme } from "@mui/material/styles";
 
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { usePanelStore } from "../../stores/PanelStore";
 import { useWorkspaceMenuShortcuts } from "../../hooks/useWorkspaceMenuShortcuts";
-import { HEADER_HEIGHT, TOOLBAR_WIDTH } from "../../config/constants";
+import {
+  HEADER_HEIGHT,
+  TOOLBAR_WIDTH,
+  LEFT_PANEL_MIN_DRAWER_WIDTH
+} from "../../config/constants";
 import WorkspaceTabBar from "./WorkspaceTabBar";
 import TabContent from "./TabContent";
 import { Caption } from "../ui_primitives";
@@ -106,6 +111,8 @@ const WorkspaceShell = () => {
     (state) => state.setCurrentWorkflowId
   );
   const openWorkflows = useWorkflowManager((state) => state.openWorkflows);
+  const panelVisible = usePanelStore((state) => state.panel.isVisible);
+  const panelSize = usePanelStore((state) => state.panel.panelSize);
 
   // Cmd+W ("Close Tab") closes the active tab for every surface, not just the
   // node editor.
@@ -115,6 +122,18 @@ const WorkspaceShell = () => {
     () => tabs.find((tab) => tab.id === activeTabId) ?? null,
     [tabs, activeTabId]
   );
+
+  // The left rail (PanelLeft) is position:fixed, so its open drawer normally
+  // floats over the content. For the timeline that covers the start of the
+  // tracks and makes dropping assets onto them hard, so when a timeline tab is
+  // active we reserve the drawer's width and let the content sit beside it.
+  // Other surfaces (node editor, etc.) keep the overlay so the canvas stays
+  // full-bleed. The width here mirrors PanelLeft's drawer sizing.
+  const contentMarginLeft =
+    activeTab?.type === "timeline" && panelVisible
+      ? TOOLBAR_WIDTH +
+        Math.max(panelSize - TOOLBAR_WIDTH, LEFT_PANEL_MIN_DRAWER_WIDTH)
+      : TOOLBAR_WIDTH;
 
   // Keep the WorkflowManager's "current workflow" aligned with the active
   // workflow tab so the docked panels and run state target the right graph.
@@ -141,7 +160,10 @@ const WorkspaceShell = () => {
         </Suspense>
 
         <div className="workspace-center">
-          <div className="workspace-content">
+          <div
+            className="workspace-content"
+            style={{ marginLeft: contentMarginLeft }}
+          >
             {tabs.length === 0 && (
               <div className="workspace-empty">
                 <Caption color="secondary">
