@@ -182,8 +182,19 @@ export interface DebugReport {
 export interface DebugOptions {
   /** Run the headless server surface. Default true. */
   server?: boolean;
-  /** Run the real-browser surface (Playwright). Default false. */
+  /** Run the real-browser surface (Playwright). Expensive; default false. */
   browser?: boolean;
+  /**
+   * Capture an OpenTelemetry trace of the server run (timing/tokens/cost).
+   * Expensive — loads the OTel SDK and adds per-span overhead. Default false.
+   */
+  trace?: boolean;
+  /**
+   * On the browser surface, capture a canvas screenshot at every stage of the
+   * run instead of only the final frame. Expensive; implies `browser`. Default
+   * false.
+   */
+  stages?: boolean;
   /** Input params keyed by input-node name. */
   params?: Record<string, unknown>;
   /** Bundle output directory. When omitted a timestamped dir is generated. */

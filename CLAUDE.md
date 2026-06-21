@@ -208,13 +208,20 @@ and optionally in a **real browser** (Playwright driving the `e2e_runner`
 harness), then writes a self-contained debug bundle and prints an agent-friendly
 verdict. Built for iterative troubleshooting: run → read the report → edit → re-run.
 
+The cheap server run (workflow JSON + all messages/logs/outputs/errors) is on by
+default. The **expensive** parts are opt-in flags: `--browser` (Playwright +
+Chromium), `--trace` (OpenTelemetry SDK + span overhead), `--stages` (a
+screenshot per run stage).
+
 ```bash
 # Server surface only (default) — accepts a workflow id, JSON file, or DSL .ts file
 npm run dev:nodetool -- debug <workflow_id>
 npm run dev:nodetool -- debug workflow.json --params '{"prompt":"hi"}'
 
-# Add the real-browser surface (needs web deps + `npx playwright install chromium`)
-npm run dev:nodetool -- debug <workflow_id> --browser
+# Opt into the expensive parts:
+npm run dev:nodetool -- debug <id> --trace                 # OTel trace (timing/tokens/cost)
+npm run dev:nodetool -- debug <id> --browser               # real-browser surface (Playwright)
+npm run dev:nodetool -- debug <id> --stages                # per-stage screenshots (implies --browser)
 
 # Print the full machine-readable report to stdout for an agent to parse
 npm run dev:nodetool -- debug <workflow_id> --json
@@ -231,10 +238,10 @@ report.json        # the full DebugReport (workflow JSON, both surfaces, verdict
 report.md          # human-readable summary
 workflow.json      # the resolved graph (runner shape)
 server/messages.jsonl   # every processing message (logs, node IO, outputs, errors)
-server/trace.jsonl      # OpenTelemetry spans (timing, tokens, cost)
-browser/record.json     # the browser RunRecord (events, logs, node IO, artifacts)
+server/trace.jsonl      # OpenTelemetry spans (timing, tokens, cost) — only with --trace
+browser/record.json     # the browser RunRecord (events, logs, node IO, artifacts) — only with --browser
 browser/screenshot.png  # canvas screenshot of the finished graph
-browser/stages/         # canvas screenshots at each stage (initial → per node → settled)
+browser/stages/         # canvas screenshots at each stage — only with --stages
 browser/console-errors.log
 ```
 

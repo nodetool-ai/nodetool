@@ -21,6 +21,9 @@ import type { RunRecord, RunSnapshot } from "../../src/e2e_runner/types";
 const GRAPH_PATH = process.env.NODETOOL_DEBUG_GRAPH;
 const OUT_DIR = process.env.NODETOOL_DEBUG_OUT;
 const PARAMS_JSON = process.env.NODETOOL_DEBUG_PARAMS;
+/** Opt-in: capture a screenshot at every run stage (expensive). */
+const CAPTURE_STAGES =
+  process.env.NODETOOL_DEBUG_STAGES === "1" || process.env.NODETOOL_DEBUG_STAGES === "true";
 
 const POLL_MS = 120;
 /** Don't snap more often than this even if stages tick fast. */
@@ -76,7 +79,7 @@ test("debug harness runs the target workflow", async ({ page }) => {
     return;
   }
 
-  mkdirSync(resolve(OUT_DIR, "stages"), { recursive: true });
+  mkdirSync(CAPTURE_STAGES ? resolve(OUT_DIR, "stages") : OUT_DIR, { recursive: true });
   const raw = JSON.parse(readFileSync(GRAPH_PATH, "utf8")) as {
     graph?: { nodes: unknown[]; edges: unknown[] };
     nodes?: unknown[];
@@ -108,23 +111,33 @@ test("debug harness runs the target workflow", async ({ page }) => {
   let record: RunRecord;
   let stages: StageShot[] = [];
   try {
-    // Start the run but DON'T await it here, so we can screenshot mid-flight.
-    await page.evaluate(
-      ([g, p]) => {
-        (window as unknown as { __DEBUG_RUN__?: Promise<RunRecord> }).__DEBUG_RUN__ =
+    if (CAPTURE_STAGES) {
+      // Start the run but DON'T await it here, so we can screenshot mid-flight.
+      await page.evaluate(
+        ([g, p]) => {
+          (window as unknown as { __DEBUG_RUN__?: Promise<RunRecord> }).__DEBUG_RUN__ =
+            window.__E2E__!.runGraph(
+              g as { nodes: unknown[]; edges: unknown[] },
+              p as Record<string, unknown>
+            );
+        },
+        [graph, params] as const
+      );
+      stages = await captureStages(page, resolve(OUT_DIR, "stages"));
+      record = (await page.evaluate(
+        () => (window as unknown as { __DEBUG_RUN__: Promise<RunRecord> }).__DEBUG_RUN__
+      )) as RunRecord;
+    } else {
+      // Cheap default: run to completion, capture only the final frame below.
+      record = (await page.evaluate(
+        ([g, p]) =>
           window.__E2E__!.runGraph(
             g as { nodes: unknown[]; edges: unknown[] },
             p as Record<string, unknown>
-          );
-      },
-      [graph, params] as const
-    );
-
-    stages = await captureStages(page, resolve(OUT_DIR, "stages"));
-
-    record = (await page.evaluate(
-      () => (window as unknown as { __DEBUG_RUN__: Promise<RunRecord> }).__DEBUG_RUN__
-    )) as RunRecord;
+          ),
+        [graph, params] as const
+      )) as RunRecord;
+    }
   } catch (err) {
     // Surface the failure as an error record rather than failing the spec — the
     // CLI wants the artifacts regardless of how the run ended.
@@ -154,7 +167,9 @@ test("debug harness runs the target workflow", async ({ page }) => {
   await page.screenshot({ path: resolve(OUT_DIR, "screenshot.png") });
 
   writeFileSync(resolve(OUT_DIR, "record.json"), JSON.stringify(record, null, 2));
-  writeFileSync(resolve(OUT_DIR, "stages.json"), JSON.stringify(stages, null, 2));
+  if (CAPTURE_STAGES) {
+    writeFileSync(resolve(OUT_DIR, "stages.json"), JSON.stringify(stages, null, 2));
+  }
   if (consoleErrors.length > 0) {
     writeFileSync(resolve(OUT_DIR, "console-errors.log"), consoleErrors.join("\n"));
   }

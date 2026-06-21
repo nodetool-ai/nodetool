@@ -21,7 +21,7 @@ describe("registerDebugCommands", () => {
     expect(debugCommand().description()).toMatch(/end-to-end/i);
   });
 
-  it("exposes the surface, params, out, timeout and json options", () => {
+  it("exposes the surface, opt-in cost, params, out, timeout and json options", () => {
     const flags = debugCommand()
       .options.map((o) => o.long)
       .filter(Boolean);
@@ -29,12 +29,21 @@ describe("registerDebugCommands", () => {
       expect.arrayContaining([
         "--no-server",
         "--browser",
+        "--trace",
+        "--stages",
         "--params",
         "--out",
         "--timeout",
         "--json"
       ])
     );
+  });
+
+  it("defaults the expensive surfaces (browser/trace/stages) off", () => {
+    const opts = debugCommand().opts<{ browser?: boolean; trace?: boolean; stages?: boolean }>();
+    expect(opts.browser).toBeUndefined();
+    expect(opts.trace).toBeUndefined();
+    expect(opts.stages).toBeUndefined();
   });
 
   it("defaults server on and browser off", () => {

@@ -13,6 +13,8 @@ import type { Command } from "commander";
 interface DebugCliOptions {
   server?: boolean;
   browser?: boolean;
+  trace?: boolean;
+  stages?: boolean;
   params?: string;
   out?: string;
   timeout?: number;
@@ -26,7 +28,18 @@ export function registerDebugCommands(program: Command): void {
       "Run a workflow end-to-end (server and/or browser) and collect a full debug bundle"
     )
     .option("--no-server", "Skip the headless server surface")
-    .option("--browser", "Also run the workflow in a real browser (Playwright)")
+    .option(
+      "--browser",
+      "Also run the workflow in a real browser (Playwright) — expensive"
+    )
+    .option(
+      "--trace",
+      "Capture an OpenTelemetry trace of the server run (timing/tokens/cost) — expensive"
+    )
+    .option(
+      "--stages",
+      "Capture a canvas screenshot at every browser run stage (implies --browser) — expensive"
+    )
     .option("--params <json>", "JSON params string keyed by input-node name")
     .option(
       "--out <dir>",
@@ -62,6 +75,8 @@ export function registerDebugCommands(program: Command): void {
           {
             server: opts.server,
             browser: opts.browser ?? false,
+            trace: opts.trace ?? false,
+            stages: opts.stages ?? false,
             params,
             ...(opts.out ? { outDir: opts.out } : {}),
             ...(opts.timeout ? { timeoutMs: opts.timeout } : {})
@@ -111,7 +126,10 @@ function printSummary(report: {
     for (const issue of report.verdict.issues) console.log(`  - ${issue}`);
   }
   if (report.bundleDir) {
+    const parts = ["report.md / report.json", "workflow.json"];
+    if (report.server) parts.push("server/");
+    if (report.browser && !report.browser.unavailableReason) parts.push("browser/");
     console.log(`\nDebug bundle: ${report.bundleDir}`);
-    console.log(`  report.md / report.json · workflow.json · server/ · browser/`);
+    console.log(`  ${parts.join(" · ")}`);
   }
 }

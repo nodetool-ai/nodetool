@@ -39,6 +39,8 @@ export interface BrowserRunInput {
   params: Record<string, unknown>;
   /** Bundle dir for the browser surface; record/screenshot/console land here. */
   outDir: string;
+  /** Capture a screenshot at every run stage (expensive) vs. only the final frame. */
+  captureStages?: boolean;
   timeoutMs?: number;
   /** Stream the Playwright child's stdout/stderr through. */
   onLog?: (line: string) => void;
@@ -90,7 +92,8 @@ export async function runInBrowser(input: BrowserRunInput): Promise<BrowserRunRe
     ...process.env,
     NODETOOL_DEBUG_GRAPH: graphPath,
     NODETOOL_DEBUG_OUT: input.outDir,
-    NODETOOL_DEBUG_PARAMS: JSON.stringify(input.params ?? {})
+    NODETOOL_DEBUG_PARAMS: JSON.stringify(input.params ?? {}),
+    ...(input.captureStages ? { NODETOOL_DEBUG_STAGES: "1" } : {})
   };
 
   const exitCode = await new Promise<number>((resolvePromise) => {

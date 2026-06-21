@@ -201,10 +201,12 @@ program
     "Disable stdout span output (overrides NODETOOL_TRACE_STDOUT)"
   )
   .hook("preAction", async (thisCommand, actionCommand) => {
-    // The `debug` command owns telemetry: it routes spans into its bundle's
-    // trace.jsonl via its own initTelemetry call. Initializing here first would
-    // win the one-shot init and drop the file sink, so skip it for debug.
-    if (actionCommand?.name() === "debug") return;
+    // With `--trace`, the `debug` command owns telemetry: it routes spans into
+    // its bundle's trace.jsonl via its own initTelemetry call. Initializing here
+    // first would win the one-shot init and drop that file sink, so skip it.
+    // Without `--trace`, fall through so the global --trace-file/--trace-stdout
+    // flags still work for a debug run.
+    if (actionCommand?.name() === "debug" && actionCommand.opts()["trace"]) return;
     const opts = thisCommand.opts<{
       traceFile?: string;
       traceStdout?: string | boolean;

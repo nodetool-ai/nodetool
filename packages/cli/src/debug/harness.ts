@@ -39,7 +39,10 @@ export async function runDebug(
   deps: DebugHarnessDeps
 ): Promise<DebugReport> {
   const runServer = options.server ?? true;
-  const runBrowser = options.browser ?? false;
+  // `--stages` is a browser-surface modifier, so opting into it implies the
+  // browser surface.
+  const runBrowser = (options.browser ?? false) || (options.stages ?? false);
+  const captureTrace = options.trace ?? false;
   const log = deps.onLog ?? (() => {});
 
   const resolved = await resolveTarget(ref, deps.loadFromDb);
@@ -63,11 +66,15 @@ export async function runDebug(
     log("Running workflow on the server surface…");
     const serverDir = join(outDir, "server");
     await mkdir(serverDir, { recursive: true });
-    const tracePath = join(serverDir, "trace.jsonl");
-    // Route span output into the bundle. No-op if telemetry was already
-    // initialized; the `debug` command skips the global telemetry init so this
-    // call wins and the file sink is registered.
-    await initTelemetry({ traceFile: tracePath, silent: true });
+
+    // Tracing is opt-in (`--trace`): loading the OTel SDK and processing spans
+    // is real overhead. When enabled, route span output into the bundle — this
+    // wins because the `debug` command skips the global telemetry init.
+    let tracePath: string | null = null;
+    if (captureTrace) {
+      tracePath = join(serverDir, "trace.jsonl");
+      await initTelemetry({ traceFile: tracePath, silent: true });
+    }
 
     const outcome = await runOnServer({
       graph: resolved.graph,
@@ -98,6 +105,7 @@ export async function runDebug(
       graph: resolved.graph,
       params,
       outDir: browserDir,
+      captureStages: options.stages ?? false,
       timeoutMs: options.timeoutMs,
       onLog: log
     });
