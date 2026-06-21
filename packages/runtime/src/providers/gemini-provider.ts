@@ -78,6 +78,18 @@ interface GeminiModelEntry {
   supportedGenerationMethods?: string[];
 }
 
+interface GeminiVideoOperation {
+  name?: string;
+  done?: boolean;
+  error?: { message?: string; code?: number; status?: string };
+  response?: {
+    generateVideoResponse?: {
+      generatedSamples?: Array<{ video?: { uri?: string } }>;
+    };
+    generatedVideos?: Array<{ video?: { uri?: string } }>;
+  };
+}
+
 // Gemini's function-declaration schema is a strict subset of OpenAPI 3.0.
 // It rejects JSON-Schema-only fields like `additionalProperties`, `$schema`,
 // `$id`, `$ref`, `definitions`, `patternProperties`, etc. Any one of these
@@ -1133,6 +1145,81 @@ export class GeminiProvider extends BaseProvider {
     return { text };
   }
 
+  private buildVideoParameters(
+    params: TextToVideoParams | ImageToVideoParams
+  ): Record<string, unknown> {
+    const parameters: Record<string, unknown> = {};
+    if (params.negativePrompt) {
+      parameters.negativePrompt = params.negativePrompt;
+    }
+    if (params.aspectRatio) {
+      parameters.aspectRatio = params.aspectRatio;
+    }
+    if (params.resolution) {
+      parameters.resolution = params.resolution;
+    }
+    if (params.durationSeconds != null) {
+      parameters.durationSeconds = params.durationSeconds;
+    }
+    if (params.seed != null) {
+      parameters.seed = params.seed;
+    }
+    return parameters;
+  }
+
+  private getVideoUri(operation: GeminiVideoOperation): string | undefined {
+    return (
+      operation.response?.generateVideoResponse?.generatedSamples?.[0]?.video
+        ?.uri ?? operation.response?.generatedVideos?.[0]?.video?.uri
+    );
+  }
+
+  private async waitForVideoOperation(
+    operation: GeminiVideoOperation,
+    timeoutSeconds?: number | null
+  ): Promise<GeminiVideoOperation> {
+    const maxWait =
+      timeoutSeconds && timeoutSeconds > 0 ? timeoutSeconds * 1000 : 600_000;
+    const pollInterval = 10_000;
+    let elapsed = 0;
+    let current = operation;
+
+    while (!current.done && elapsed < maxWait) {
+      await new Promise((resolve) => setTimeout(resolve, pollInterval));
+      elapsed += pollInterval;
+
+      if (!current.name) {
+        throw new Error("No operation name for polling");
+      }
+      const pollResp = await this._fetch(`${GEMINI_API_BASE}/${current.name}`, {
+        headers: { "x-goog-api-key": this.apiKey }
+      });
+      if (!pollResp.ok) {
+        const errText = await pollResp.text();
+        throw new Error(`Poll failed ${pollResp.status}: ${errText}`);
+      }
+      current = (await pollResp.json()) as GeminiVideoOperation;
+    }
+
+    if (!current.done) {
+      throw new Error("Video generation timed out");
+    }
+    if (current.error?.message) {
+      throw new Error(`Gemini video generation failed: ${current.error.message}`);
+    }
+    return current;
+  }
+
+  private async downloadGeminiVideo(videoUri: string): Promise<Uint8Array> {
+    const response = await this._fetch(videoUri, {
+      headers: { "x-goog-api-key": this.apiKey }
+    });
+    if (!response.ok) {
+      throw new Error(`Video download failed: ${response.status}`);
+    }
+    return new Uint8Array(await response.arrayBuffer());
+  }
+
   // ---------------------------------------------------------------------------
   // Text-to-video (Veo models — async operation with polling)
   // ---------------------------------------------------------------------------
@@ -1152,20 +1239,22 @@ export class GeminiProvider extends BaseProvider {
     const body: Record<string, unknown> = {
       instances: [{ prompt: params.prompt }]
     };
-    const parameters: Record<string, unknown> = {};
-    if (params.negativePrompt)
-      parameters.negativePrompt = params.negativePrompt;
-    if (params.aspectRatio) parameters.aspectRatio = params.aspectRatio;
-    if (params.seed != null) parameters.seed = params.seed;
-    if (Object.keys(parameters).length > 0) body.parameters = parameters;
+    const parameters = this.buildVideoParameters(params);
+    if (Object.keys(parameters).length > 0) {
+      body.parameters = parameters;
+    }
 
-    // Initiate async generation
-    const url = `${GEMINI_API_BASE}/models/${modelId}:generateVideos?key=${this.apiKey}`;
-    const response = await this._fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
+    const response = await this._fetch(
+      `${GEMINI_API_BASE}/models/${modelId}:predictLongRunning`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": this.apiKey
+        },
+        body: JSON.stringify(body)
+      }
+    );
 
     if (!response.ok) {
       const errText = await response.text();
@@ -1174,46 +1263,15 @@ export class GeminiProvider extends BaseProvider {
       );
     }
 
-    const operation = (await response.json()) as {
-      name?: string;
-      done?: boolean;
-      response?: {
-        generatedVideos?: Array<{ video?: { uri?: string } }>;
-      };
-    };
-
-    // Poll for completion
-    const maxWait =
-      params.timeoutSeconds && params.timeoutSeconds > 0
-        ? params.timeoutSeconds * 1000
-        : 600_000; // default 10 minutes
-    const pollInterval = 10_000;
-    let elapsed = 0;
-    let current = operation;
-
-    while (!current.done && elapsed < maxWait) {
-      await new Promise((r) => setTimeout(r, pollInterval));
-      elapsed += pollInterval;
-
-      if (!current.name) throw new Error("No operation name for polling");
-      const pollUrl = `${GEMINI_API_BASE}/${current.name}?key=${this.apiKey}`;
-      const pollResp = await this._fetch(pollUrl);
-      if (!pollResp.ok) {
-        const errText = await pollResp.text();
-        throw new Error(`Poll failed ${pollResp.status}: ${errText}`);
-      }
-      current = (await pollResp.json()) as typeof operation;
+    const operation = await this.waitForVideoOperation(
+      (await response.json()) as GeminiVideoOperation,
+      params.timeoutSeconds
+    );
+    const videoUri = this.getVideoUri(operation);
+    if (!videoUri) {
+      throw new Error("No video URI in response");
     }
-
-    if (!current.done) throw new Error("Video generation timed out");
-
-    const videoUri = current.response?.generatedVideos?.[0]?.video?.uri;
-    if (!videoUri) throw new Error("No video URI in response");
-
-    // Download the video
-    const dlResp = await this._fetch(`${videoUri}&key=${this.apiKey}`);
-    if (!dlResp.ok) throw new Error(`Video download failed: ${dlResp.status}`);
-    return new Uint8Array(await dlResp.arrayBuffer());
+    return this.downloadGeminiVideo(videoUri);
   }
 
   // ---------------------------------------------------------------------------
@@ -1236,30 +1294,34 @@ export class GeminiProvider extends BaseProvider {
       );
     }
 
-    const imageBase64 = Buffer.from(image).toString("base64");
     const prompt = params.prompt ?? "Animate this image";
-
     const body: Record<string, unknown> = {
       instances: [
         {
           prompt,
-          image: { bytesBase64Encoded: imageBase64, mimeType: "image/png" }
+          image: {
+            bytesBase64Encoded: Buffer.from(image).toString("base64"),
+            mimeType: "image/png"
+          }
         }
       ]
     };
-    const parameters: Record<string, unknown> = {};
-    if (params.negativePrompt)
-      parameters.negativePrompt = params.negativePrompt;
-    if (params.aspectRatio) parameters.aspectRatio = params.aspectRatio;
-    if (params.seed != null) parameters.seed = params.seed;
-    if (Object.keys(parameters).length > 0) body.parameters = parameters;
+    const parameters = this.buildVideoParameters(params);
+    if (Object.keys(parameters).length > 0) {
+      body.parameters = parameters;
+    }
 
-    const url = `${GEMINI_API_BASE}/models/${modelId}:generateVideos?key=${this.apiKey}`;
-    const response = await this._fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
+    const response = await this._fetch(
+      `${GEMINI_API_BASE}/models/${modelId}:predictLongRunning`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": this.apiKey
+        },
+        body: JSON.stringify(body)
+      }
+    );
 
     if (!response.ok) {
       const errText = await response.text();
@@ -1268,45 +1330,15 @@ export class GeminiProvider extends BaseProvider {
       );
     }
 
-    const operation = (await response.json()) as {
-      name?: string;
-      done?: boolean;
-      response?: {
-        generatedVideos?: Array<{ video?: { uri?: string } }>;
-      };
-    };
-
-    // Poll for completion
-    const maxWait =
-      params.timeoutSeconds && params.timeoutSeconds > 0
-        ? params.timeoutSeconds * 1000
-        : 600_000; // default 10 minutes
-    const pollInterval = 10_000;
-    let elapsed = 0;
-    let current = operation;
-
-    while (!current.done && elapsed < maxWait) {
-      await new Promise((r) => setTimeout(r, pollInterval));
-      elapsed += pollInterval;
-
-      if (!current.name) throw new Error("No operation name for polling");
-      const pollUrl = `${GEMINI_API_BASE}/${current.name}?key=${this.apiKey}`;
-      const pollResp = await this._fetch(pollUrl);
-      if (!pollResp.ok) {
-        const errText = await pollResp.text();
-        throw new Error(`Poll failed ${pollResp.status}: ${errText}`);
-      }
-      current = (await pollResp.json()) as typeof operation;
+    const operation = await this.waitForVideoOperation(
+      (await response.json()) as GeminiVideoOperation,
+      params.timeoutSeconds
+    );
+    const videoUri = this.getVideoUri(operation);
+    if (!videoUri) {
+      throw new Error("No video URI in response");
     }
-
-    if (!current.done) throw new Error("Image-to-video generation timed out");
-
-    const videoUri = current.response?.generatedVideos?.[0]?.video?.uri;
-    if (!videoUri) throw new Error("No video URI in response");
-
-    const dlResp = await this._fetch(`${videoUri}&key=${this.apiKey}`);
-    if (!dlResp.ok) throw new Error(`Video download failed: ${dlResp.status}`);
-    return new Uint8Array(await dlResp.arrayBuffer());
+    return this.downloadGeminiVideo(videoUri);
   }
 
   // ---------------------------------------------------------------------------

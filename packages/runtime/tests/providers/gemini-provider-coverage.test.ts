@@ -1075,9 +1075,11 @@ describe("GeminiProvider – textToVideo", () => {
           name: "operations/123",
           done: true,
           response: {
-            generatedVideos: [
-              { video: { uri: "https://example.com/video.mp4" } }
-            ]
+            generateVideoResponse: {
+              generatedSamples: [
+                { video: { uri: "https://example.com/video.mp4" } }
+              ]
+            }
           }
         })
       )
@@ -1100,6 +1102,12 @@ describe("GeminiProvider – textToVideo", () => {
     });
 
     expect(result).toBeInstanceOf(Uint8Array);
+    expect(fetchFn.mock.calls[0][0]).toContain(
+      "/models/veo-2.0-generate-001:predictLongRunning"
+    );
+    expect(fetchFn.mock.calls[0][1].headers["x-goog-api-key"]).toBe("k");
+    expect(fetchFn.mock.calls[1][0]).toBe("https://example.com/video.mp4");
+    expect(fetchFn.mock.calls[1][1].headers["x-goog-api-key"]).toBe("k");
   });
 
   it("throws when no video URI in response", async () => {
@@ -1107,7 +1115,7 @@ describe("GeminiProvider – textToVideo", () => {
       makeFetchResponse({
         name: "operations/123",
         done: true,
-        response: { generatedVideos: [] }
+        response: { generateVideoResponse: { generatedSamples: [] } }
       })
     );
 
@@ -1153,9 +1161,11 @@ describe("GeminiProvider – imageToVideo", () => {
           name: "operations/456",
           done: true,
           response: {
-            generatedVideos: [
-              { video: { uri: "https://example.com/video.mp4" } }
-            ]
+            generateVideoResponse: {
+              generatedSamples: [
+                { video: { uri: "https://example.com/video.mp4" } }
+              ]
+            }
           }
         })
       )
@@ -1173,13 +1183,19 @@ describe("GeminiProvider – imageToVideo", () => {
     const provider = new GeminiProvider({ GEMINI_API_KEY: "k" }, { fetchFn });
     const result = await provider.imageToVideo([new Uint8Array([1, 2, 3])], {
       model: { id: "veo-2.0-generate-001", name: "test", provider: "gemini" },
-      prompt: "animate this"
+      prompt: "animate this",
+      durationSeconds: 8
     });
 
     expect(result).toBeInstanceOf(Uint8Array);
-    // Verify image was included in request
+    expect(fetchFn.mock.calls[0][0]).toContain(
+      "/models/veo-2.0-generate-001:predictLongRunning"
+    );
     const body = JSON.parse(fetchFn.mock.calls[0][1].body);
-    expect(body.instances[0].image).toBeDefined();
-    expect(body.instances[0].image.mimeType).toBe("image/png");
+    expect(body.instances[0].image).toEqual({
+      bytesBase64Encoded: Buffer.from([1, 2, 3]).toString("base64"),
+      mimeType: "image/png"
+    });
+    expect(body.parameters.durationSeconds).toBe(8);
   });
 });
