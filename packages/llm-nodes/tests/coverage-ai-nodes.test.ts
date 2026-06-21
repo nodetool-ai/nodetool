@@ -462,6 +462,7 @@ describe("AgentNode", () => {
 
   it("defaults", () => {
     expectMetadataDefaults(AgentNode);
+    expect(metadataDefaults(AgentNode).max_tokens).toBe(16384);
   });
 
   it("requires a model selection", async () => {
@@ -517,7 +518,7 @@ describe("AgentNode", () => {
     expect(result.audio).toBeNull();
   });
 
-  it("substitutes {{variable}} dynamic properties in prompt and system", async () => {
+  it("does not accept dynamic input variables", async () => {
     const n = new (AgentNode as any)();
     let capturedMessages: any[] = [];
     const mockProvider = {
@@ -533,8 +534,6 @@ describe("AgentNode", () => {
         };
       }
     };
-    // Undeclared properties land in dynamicProps because the Agent node sets
-    // supportsDynamicInputs, so they are available as template variables.
     n.assign({
       system: "Tone: {{ tone|upper }}.",
       prompt: "Hello {{ name }}!",
@@ -542,14 +541,16 @@ describe("AgentNode", () => {
       tone: "formal",
       model: { provider: "test", id: "m1" }
     });
+    expect(AgentNode.supportsDynamicInputs).toBe(false);
+    expect(n.dynamicProps.size).toBe(0);
     await n.process({ getProvider: async () => mockProvider } as any);
     expect(capturedMessages[0]).toEqual({
       role: "system",
-      content: "Tone: FORMAL."
+      content: "Tone: {{ tone|upper }}."
     });
     const lastUser = capturedMessages[capturedMessages.length - 1];
     expect(lastUser.role).toBe("user");
-    expect(lastUser.content[0].text).toBe("Hello Ada!");
+    expect(lastUser.content[0].text).toBe("Hello {{ name }}!");
   });
 
   it("prepares python-style messages including thread history, history, image, and audio", async () => {

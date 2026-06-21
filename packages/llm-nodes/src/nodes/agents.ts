@@ -23,7 +23,7 @@ import {
   hydrateBuiltinAgentTool,
   hydrateBuiltinAgentTools
 } from "./agent-tool-hydration.js";
-import { tagAsServer, renderTemplate } from "@nodetool-ai/nodes-utils";
+import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
 type MessagePart = { type?: string; text?: string };
 type ThreadLike = { id: string; title: string; messages: Message[] };
@@ -46,6 +46,7 @@ export type ToolLike = {
 const THREAD_STORE = new Map<string, ThreadLike>();
 const log = createLogger("nodetool.base-nodes.agents");
 const DEFAULT_SYSTEM_PROMPT = "You are a friendly assistant";
+const AGENT_DEFAULT_MAX_TOKENS = 16_384;
 const EXTRACTOR_SYSTEM_PROMPT = [
   "You are a precise structured data extractor.",
   "Return exactly one JSON object and no additional prose.",
@@ -1958,7 +1959,7 @@ export class AgentNode extends BaseNode {
   static readonly autoSaveAsset = true;
   static readonly title: string = "Agent";
   static readonly description: string =
-    "Generate natural language responses using LLM providers and streams output.\n    llm, text-generation, chatbot, question-answering, streaming\n\n    Dynamic properties are substituted as {{variable}} (or {variable})\n    placeholders in both the prompt and system text. Add a property named\n    `subject` and write `Classify: {{subject}}` in the prompt — the wired\n    value replaces the placeholder at run time. Jinja-style filters are\n    supported: {{subject|upper}}, {{text|truncate(100)}}, etc. Unknown\n    placeholders are left intact.";
+    "Generate natural language responses using LLM providers and streams output.\n    llm, text-generation, chatbot, question-answering, streaming";
   static readonly metadataOutputTypes = {
     text: "str",
     chunk: "chunk",
@@ -1967,11 +1968,6 @@ export class AgentNode extends BaseNode {
   };
   static readonly inlineFields = [];
   static readonly inputFields = ["prompt", "image", "audio"];
-  // Dynamic properties are user-named template inputs substituted as
-  // {{variable}} placeholders in the prompt/system text (see the class
-  // description). Flagging this lets the node body expose the "Add input"
-  // affordance and round-trips the values through dynamicProps.
-  static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
   // Streamed outputs: each yielded chunk/thinking/audio is a distinct
   // iteration step. Without this, the analyzer defaults to `single`, which
@@ -2495,10 +2491,10 @@ export class AgentNode extends BaseNode {
 
   @prop({
     type: "int",
-    default: 8192,
+    default: AGENT_DEFAULT_MAX_TOKENS,
     title: "Max Tokens",
     description:
-      "Upper bound on the number of tokens the model may generate per response (the model's reply, not the prompt). Higher values allow longer answers but cost more and take longer; very low values may cause the model to truncate mid‑sentence. This is also the maxTokenLimit passed to plan and multi-agent executors. Typical values: 1024 for short answers, 4096–8192 for normal use, 16k+ for long‑form generation. Must be within the chosen model's context window.",
+      "Upper bound on generated tokens per response, including visible output and any reasoning/thinking tokens used by reasoning models. Higher values allow longer answers and more thinking headroom but cost more and take longer; very low values may truncate reasoning or the final answer. This is also the maxTokenLimit passed to plan and multi-agent executors. Typical values: 1024 for short answers, 8192–16384 for normal agent use, 32k+ for long-form or heavy reasoning. Must be within the chosen model's context window.",
     min: 1,
     max: 100000
   })
@@ -2569,12 +2565,8 @@ export class AgentNode extends BaseNode {
       return;
     }
 
-    const dynamicVars = Object.fromEntries(this.dynamicProps);
-    const prompt = renderTemplate(asText(this.prompt ?? ""), dynamicVars);
-    let system = renderTemplate(
-      asText(this.system ?? DEFAULT_SYSTEM_PROMPT),
-      dynamicVars
-    );
+    const prompt = asText(this.prompt ?? "");
+    let system = asText(this.system ?? DEFAULT_SYSTEM_PROMPT);
     const images = this.image;
     const audios = this.audio;
     const historyInput = this.history;
@@ -2584,7 +2576,7 @@ export class AgentNode extends BaseNode {
           .filter((item): item is Message => item !== null)
       : [];
     const threadId = String(this.thread_id ?? "").trim();
-    const maxTokens = Number(this.max_tokens ?? 8192);
+    const maxTokens = Number(this.max_tokens ?? AGENT_DEFAULT_MAX_TOKENS);
     const maxTurns = Math.max(1, Number(this.max_turns ?? 100));
     const tools: ToolLike[] = await this.buildTools(context);
 
@@ -2999,12 +2991,8 @@ export class AgentNode extends BaseNode {
     providerId: string,
     modelId: string
   ): AsyncGenerator<Record<string, unknown>> {
-    const dynamicVars = Object.fromEntries(this.dynamicProps);
-    const prompt = renderTemplate(asText(this.prompt ?? ""), dynamicVars);
-    const system = renderTemplate(
-      asText(this.system ?? DEFAULT_SYSTEM_PROMPT),
-      dynamicVars
-    );
+    const prompt = asText(this.prompt ?? "");
+    const system = asText(this.system ?? DEFAULT_SYSTEM_PROMPT);
     const rawTools: ToolLike[] = await this.buildTools(context);
     const structuredSchema = getStructuredOutputSchema(this);
 
@@ -3027,7 +3015,7 @@ export class AgentNode extends BaseNode {
       model: modelId,
       tools: agentTools,
       systemPrompt: system,
-      maxTokenLimit: Number(this.max_tokens ?? 8192),
+      maxTokenLimit: Number(this.max_tokens ?? AGENT_DEFAULT_MAX_TOKENS),
       outputSchema: structuredSchema ?? undefined,
       planningModel: modelId,
       maxSteps: 10,
