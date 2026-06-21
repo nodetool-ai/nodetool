@@ -117,6 +117,32 @@ to make those components bundle for the browser:
 If a render fails on a server-only module, add its specifier to the `IGNORE`
 list in `webpackOverride.ts`.
 
+## First render & troubleshooting
+
+The first `npm run studio` / `render` downloads a headless Chromium and bundles
+the web components — give it a minute. Bundling the real app under webpack (vs.
+Vite) is the one place that can need tuning, because web source uses a few
+Vite-specific constructs. The override already handles the common ones:
+
+- **`*.svg?react`** (svgr icons) — handled via `@svgr/webpack` in
+  `webpackOverride.ts`.
+- **Node built-ins** on server code paths — stubbed (see above).
+
+If a render still fails, the error names the gap. Add the matching rule/alias to
+`webpackOverride.ts`:
+
+- a Vite query import (`?worker`, `?raw`, `?url`) → add a webpack rule for that
+  `resourceQuery`;
+- `import.meta.glob` → replace with explicit imports (it is Vite-only);
+- a server-only package → add it to `IGNORE`.
+
+**Fallback:** if direct-embed bundling is more than you want to chase, the same
+player is served as a standalone page at `web/demo.html` (run `npm start` in
+`web/`). You can drive that page from Remotion via an `<IFrame>` + the
+`window.nodetoolDemo.seek(ms)` API instead of embedding the component — at the
+cost of some CSS-animation determinism. The cast format, recorder, and player
+are identical either way.
+
 ## Determinism notes
 
 - Frame state is a pure function of `timeMs` — forward seeks apply incrementally,

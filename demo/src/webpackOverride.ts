@@ -90,8 +90,24 @@ function buildAlias(): Record<string, string> {
 export const webpackOverride: WebpackOverrideFn = (config) => {
   const resolve = config.resolve ?? {};
   const existingConditions = resolve.conditionNames ?? ["...", "browser"];
+  const existingRules = config.module?.rules ?? [];
   return {
     ...config,
+    module: {
+      ...config.module,
+      rules: [
+        ...existingRules,
+        // Web imports icons as React components via Vite's svgr query
+        // (`import Icon from "./x.svg?react"`). Webpack needs @svgr/webpack to
+        // match the same `?react` resource query. Plain `.svg` imports keep
+        // Remotion's default (asset URL) handling.
+        {
+          test: /\.svg$/,
+          resourceQuery: /react/,
+          use: ["@svgr/webpack"],
+        },
+      ],
+    },
     resolve: {
       ...resolve,
       // `nodetool-dev` first so package `exports` map to `src/*.ts`. The "..."
