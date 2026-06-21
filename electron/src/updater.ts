@@ -8,8 +8,6 @@ import { getMainWindow } from "./state";
 import { IpcChannels } from "./types.d";
 import { getUpdateChannel, readSettingsAsync } from "./settings";
 
-let updateAvailable: boolean = false;
-
 /**
  * Auto-updater Module
  *
@@ -185,7 +183,6 @@ function setupAutoUpdaterEvents(): void {
   autoUpdater.on("update-available", async (info: UpdateInfo) => {
     try {
       logMessage(`Update available: ${info.version}`);
-      updateAvailable = true;
       const mainWindow = getMainWindow();
       if (mainWindow) {
         const releaseUrl = `https://github.com/nodetool-ai/nodetool/releases/tag/v${info.version}`;
@@ -308,6 +305,4 @@ function setupAutoUpdaterEvents(): void {
   });
 }
 
-const isUpdateAvailable = () => updateAvailable;
-
-export { setupAutoUpdater, isUpdateAvailable };
+export { setupAutoUpdater };
