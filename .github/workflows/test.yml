@@ -22,21 +22,12 @@ on:
   pull_request:
     branches:
       - main
-    paths:
-      - "web/**"
-      - "electron/**"
-      - "packages/**"
-      - "mobile/**"
-      - "examples/**"
-      - "scripts/**"
-      - "package.json"
-      - "package-lock.json"
-      - "tsconfig.json"
-      - "tsconfig.*.json"
-      - "turbo.json"
-      - ".nvmrc"
-      - ".github/workflows/test.yml"
-      - ".github/workflows/quality-checks.yml"
+    # No `paths` filter here: this workflow's "Quality Gate" job is a REQUIRED
+    # status check. A path-filtered required check is left Pending (never runs)
+    # when a PR push/merge touches no matching path — e.g. a clean "merge main"
+    # commit — which blocks the PR and auto-merge indefinitely. Running the gate
+    # on every PR keeps the required check from getting stuck. (The `push` to
+    # main above keeps its path filter — there is no required-check to block.)
 
 jobs:
   quality:
