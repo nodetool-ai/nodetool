@@ -107,29 +107,31 @@ A cast is just JSON. After recording you can:
 
 The composition imports `DemoPlayer` from `web/src` and renders it inline, so the
 node UI is part of Remotion's DOM and its animations are frame-deterministic.
-`demo/src/webpackOverride.ts` reproduces the two things `web/vite.config.ts` does
-to make those components bundle for the browser:
+This is verified end-to-end (`npm run render` produces an MP4 of the sample).
+`demo/src/webpackOverride.ts` reproduces what `web/vite.config.ts` does so the
+components bundle for the browser:
 
-1. the `nodetool-dev` export condition (so `@nodetool-ai/*` resolve to TS source), and
-2. browser-safe stubs for the Node built-ins the kernel references on server
-   paths the render never executes (reusing `web/vite-node-stubs/`).
+1. the `nodetool-dev` export condition (so `@nodetool-ai/*` resolve to TS source);
+2. `extensionAlias` so TS-ESM `./x.js` imports resolve to `x.ts`;
+3. a `node:`-scheme strip plugin + browser-safe built-in stubs (reusing
+   `web/vite-node-stubs/`) for kernel server paths the render never runs;
+4. a bumped esbuild target + `topLevelAwait` for `@nodetool-ai/config`;
+5. an `@svgr/webpack` rule for `*.svg?react` icons (and excluding that query from
+   Remotion's default asset rule);
+6. the generated `@nodetool/{fal,kie}-*-pricing` JSON aliases.
 
-If a render fails on a server-only module, add its specifier to the `IGNORE`
-list in `webpackOverride.ts`.
+`DemoPlayer` also wraps the tree in a `MemoryRouter` (node components use
+react-router hooks). If a render fails on a server-only module, add its specifier
+to the `IGNORE` list in `webpackOverride.ts`.
 
 ## First render & troubleshooting
 
 The first `npm run studio` / `render` downloads a headless Chromium and bundles
-the web components — give it a minute. Bundling the real app under webpack (vs.
-Vite) is the one place that can need tuning, because web source uses a few
-Vite-specific constructs. The override already handles the common ones:
-
-- **`*.svg?react`** (svgr icons) — handled via `@svgr/webpack` in
-  `webpackOverride.ts`.
-- **Node built-ins** on server code paths — stubbed (see above).
-
-If a render still fails, the error names the gap. Add the matching rule/alias to
-`webpackOverride.ts`:
+the web components — give it a minute. The sample renders cleanly today; the
+override already handles every Vite↔webpack parity gap in the current node UI
+(see the list above). A new cast that pulls in a node type the sample doesn't
+could surface another gap — if so, the error names it. Add the matching
+rule/alias to `webpackOverride.ts`:
 
 - a Vite query import (`?worker`, `?raw`, `?url`) → add a webpack rule for that
   `resourceQuery`;

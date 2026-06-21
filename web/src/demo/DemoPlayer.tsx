@@ -27,8 +27,9 @@ import { useStore } from "zustand";
 
 import { ThemeProvider, CssBaseline } from "@mui/material";
 import InitColorSchemeScript from "@mui/material/InitColorSchemeScript";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
+import { TRPCProvider } from "../trpc/Provider";
+import { queryClient } from "../queryClient";
 
 // Global side-effect styles so the graph renders identically to the editor.
 import "@xyflow/react/dist/style.css";
@@ -179,14 +180,6 @@ export function DemoPlayer({
   resolveAssetUrl,
   style,
 }: DemoPlayerProps): React.JSX.Element {
-  const queryClient = useMemo(
-    () =>
-      new QueryClient({
-        defaultOptions: { queries: { retry: false, enabled: false } },
-      }),
-    []
-  );
-
   const resolveRef = useRef(resolveAssetUrl);
   resolveRef.current = resolveAssetUrl;
 
@@ -202,7 +195,7 @@ export function DemoPlayer({
     // Some node components (e.g. ApiKeyValidation) call react-router hooks like
     // useNavigate; a MemoryRouter supplies the required Router context.
     <MemoryRouter>
-      <QueryClientProvider client={queryClient}>
+      <TRPCProvider>
         <ThemeProvider theme={ThemeNodetool} defaultMode="dark">
           <InitColorSchemeScript attribute="class" defaultMode="dark" />
           <CssBaseline />
@@ -223,7 +216,7 @@ export function DemoPlayer({
             </WorkflowManagerProvider>
           </MenuProvider>
         </ThemeProvider>
-      </QueryClientProvider>
+      </TRPCProvider>
     </MemoryRouter>
   );
 }
