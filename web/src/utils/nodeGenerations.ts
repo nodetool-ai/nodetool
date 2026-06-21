@@ -11,21 +11,19 @@ export const assetToOutputValue = (asset: Asset): Record<string, unknown> => {
   if (ct.startsWith("video/")) return { type: "video", uri };
   if (ct.startsWith("audio/")) return { type: "audio", uri };
   if (ct.startsWith("text/")) {
-    // Text generations carry the (capped) text inline in metadata so the
-    // preview renders without a fetch; the full text lives in the asset bytes.
-    const meta = asset.metadata as { text?: unknown } | null | undefined;
+    // Capped text inline in metadata for fetch-free preview; full text in asset bytes.
+    const text = asset.metadata?.text;
     return {
       type: "text",
-      text: typeof meta?.text === "string" ? meta.text : "",
+      text: typeof text === "string" ? text : "",
       uri
     };
   }
   if (ct.includes("json")) {
-    // Structured (generator) generations carry their full output value inline
-    // in metadata.json for fetch-free reload; the bytes hold the full copy.
-    const meta = asset.metadata as { json?: unknown } | null | undefined;
-    if (meta && meta.json !== undefined) {
-      return { type: "json", value: meta.json, uri } as Record<string, unknown>;
+    // Full output value inline in metadata.json for fetch-free reload.
+    const json = asset.metadata?.json;
+    if (json !== undefined) {
+      return { type: "json", value: json, uri };
     }
     return { type: "json", uri };
   }
@@ -48,8 +46,7 @@ const jsonGenerationOutputs = (
 ): Record<string, unknown> | undefined => {
   const ct = asset.content_type ?? "";
   if (!ct.includes("json")) return undefined;
-  const meta = asset.metadata as { json?: unknown } | null | undefined;
-  const json = meta?.json;
+  const json = asset.metadata?.json;
   if (json && typeof json === "object" && !Array.isArray(json)) {
     return json as Record<string, unknown>;
   }
