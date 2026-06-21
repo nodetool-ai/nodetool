@@ -8,7 +8,11 @@ export function useAssetDownload(params: {
   const { currentAsset, url } = params;
 
   const handleDownload = useCallback(() => {
-    const downloadUrl = url || (currentAsset && currentAsset.get_url);
+    // Prefer the current asset's own URL over the `url` prop: in a gallery the
+    // viewer updates `currentAsset` as you navigate while `url` stays pinned to
+    // the asset the viewer opened with, so `url`-first downloads the wrong one.
+    // Fall back to `url` only when there is no asset (e.g. a raw data URL).
+    const downloadUrl = (currentAsset && currentAsset.get_url) || url;
     if (!downloadUrl) {return;}
 
     const link = document.createElement("a");
