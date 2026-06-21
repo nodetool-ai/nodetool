@@ -262,6 +262,10 @@ export const timelineClip = z
     /** TTS voice id for `text-to-audio` direct-gen clips. */
     voice: z.string().optional(),
     sourceClipId: z.string().nullable().optional(),
+    /** Shared id linking a video clip to its auto-extracted audio clip so they
+     * move/trim together. Without this field Zod strips it on every PATCH, so
+     * autosave/reload silently breaks the link. */
+    linkId: z.string().optional(),
     width: z.number().optional(),
     height: z.number().optional(),
     strength: z.number().optional(),
@@ -299,7 +303,13 @@ export const timelineClip = z
     transitionIn: clipTransition.optional(),
     /** Word-level caption data; present only on caption clips. Without this
      * field Zod strips it on every PATCH, so autosave erases captions. */
-    caption: clipCaption.optional()
+    caption: clipCaption.optional(),
+    /** Speaker label for transcript clips. Without this field Zod strips it on
+     * every PATCH, so autosave erases the speaker. */
+    speaker: z.string().optional(),
+    /** Paragraph grouping id for transcript clips. Without this field Zod strips
+     * it on every PATCH, so autosave silently breaks paragraph grouping. */
+    paragraphId: z.string().optional()
   });
 export type TimelineClip = z.infer<typeof timelineClip>;
 
@@ -307,7 +317,8 @@ export const timelineDocument = z.object({
   tracks: z.array(timelineTrack),
   clips: z.array(timelineClip),
   markers: z.array(timelineMarker),
-  transcript: z.array(transcriptLine).optional()
+  transcript: z.array(transcriptLine).optional(),
+  scriptEnabled: z.boolean().optional()
 });
 export type TimelineDocument = z.infer<typeof timelineDocument>;
 
@@ -326,6 +337,7 @@ export const timelineSequenceResponse = z.object({
   clips: z.array(timelineClip),
   markers: z.array(timelineMarker),
   transcript: z.array(transcriptLine).optional(),
+  scriptEnabled: z.boolean().optional(),
   createdAt: z.string(),
   updatedAt: z.string()
 });

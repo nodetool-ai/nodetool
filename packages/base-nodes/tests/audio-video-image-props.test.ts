@@ -3,6 +3,7 @@
  * These verify that the renamed properties (commit 86c4a62d5 / 480d281e1)
  * are correctly wired in process() methods.
  */
+import { spawnSync } from "node:child_process";
 import { describe, it, expect } from "vitest";
 import {
   OverlayAudioNode,
@@ -20,6 +21,24 @@ import {
 } from "../src/index.js";
 
 // --- Helpers ---
+
+/**
+ * Whether the `ffmpeg` binary is on PATH. The video effect nodes shell out to
+ * ffmpeg and, as of the codec-hardening pass, a MISSING binary throws a clear
+ * "ffmpeg is not installed" error instead of silently passing the input video
+ * through unprocessed. Tests that exercise those nodes are gated on this so
+ * they run meaningfully where ffmpeg exists and skip (not false-fail) where it
+ * doesn't — e.g. the CI quality gate, which has no ffmpeg installed.
+ */
+function ffmpegAvailable(): boolean {
+  try {
+    const r = spawnSync("ffmpeg", ["-version"], { stdio: "ignore" });
+    return !r.error && r.status === 0;
+  } catch {
+    return false;
+  }
+}
+const HAS_FFMPEG = ffmpegAvailable();
 
 function audioRef(bytes: number[]) {
   return {
@@ -246,11 +265,13 @@ describe("FrameToVideoNode — uses frame property (not frames)", () => {
 });
 
 describe("BlurVideoNode — uses strength property (not radius)", () => {
-  it("accepts strength parameter without error", async () => {
+  // Requires ffmpeg: the node shells out to it. With ffmpeg present, an invalid
+  // (3-byte) input makes ffmpeg fail and the node falls back to the input bytes
+  // (a genuine-failure fallback, distinct from a missing binary), so output is
+  // defined and the `strength` property name is exercised. Skipped when ffmpeg
+  // is absent, where the node now correctly throws instead of passing through.
+  it.skipIf(!HAS_FFMPEG)("accepts strength parameter without error", async () => {
     const node = new BlurVideoNode();
-    // BlurVideoNode uses ffmpeg, which won't be available in unit tests,
-    // but we verify the node reads the correct property name.
-    // When ffmpeg is not available, it falls back to returning original bytes.
     node.assign({
       video: videoRef([1, 2, 3]),
       strength: 5
@@ -261,7 +282,7 @@ describe("BlurVideoNode — uses strength property (not radius)", () => {
 });
 
 describe("ChromaKeyVideoNode — uses key_color property (not color)", () => {
-  it("accepts key_color parameter", async () => {
+  it.skipIf(!HAS_FFMPEG)("accepts key_color parameter", async () => {
     const node = new ChromaKeyVideoNode();
     node.assign({
       video: videoRef([1, 2, 3]),

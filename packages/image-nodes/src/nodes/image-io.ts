@@ -66,17 +66,47 @@ function stripDataUrlPrefix(data: string): string {
 /* ------------------------------ sharp (lazy) ------------------------------ */
 
 type SharpFn = typeof import("sharp");
-let _sharpPromise: Promise<SharpFn> | null = null;
-/** Lazily load `sharp` via a bundler-hidden import; throws off Node. */
-export async function loadSharp(): Promise<SharpFn> {
+let _sharpPromise: Promise<SharpFn | null> | null = null;
+
+/**
+ * Actionable error for a missing/broken `sharp` native addon. Used by the
+ * Node-only codec entry points when {@link loadSharp} resolves null on Node
+ * (the addon failed to load) and no Canvas fallback applies.
+ */
+export const SHARP_UNAVAILABLE_MESSAGE =
+  "The 'sharp' image codec is unavailable. It is a native addon that must be " +
+  "installed for this runtime (run `npm install sharp` in the server install, " +
+  "or reinstall it for your platform/arch — e.g. musl or a serverless target). " +
+  "In the browser/edge this node has no native codec.";
+
+/**
+ * Lazily load `sharp` via a bundler-hidden import. Resolves `null` — never
+ * throws an opaque module-load error — when sharp is unavailable: off Node
+ * (browser/edge), or on Node when the native addon can't load (musl, unbundled
+ * serverless, ABI mismatch, partial install). A rejected attempt is never
+ * cached, so a fixed install is picked up on the next call; a `null` result is
+ * cached because the addon won't appear later in the same process. Callers must
+ * handle `null` with a working fallback or a clear, actionable error.
+ */
+export async function loadSharp(): Promise<SharpFn | null> {
   if (!_sharpPromise) {
-    _sharpPromise = (async () => {
+    // Let a thrown import (broken addon: musl, ABI mismatch, partial install)
+    // reject the attempt so the `.catch` below drops it from the cache and a
+    // later, fixed install is picked up. A legitimate off-Node `null` resolves
+    // and is cached — the addon won't appear later in the same process.
+    const attempt = (async (): Promise<SharpFn | null> => {
       const mod = await importHidden<SharpFn | { default: SharpFn }>("sharp");
-      if (!mod) throw new Error("sharp requires Node (not available in browser)");
+      if (!mod) return null;
       return (mod as { default?: SharpFn }).default ?? (mod as SharpFn);
     })();
+    _sharpPromise = attempt;
+    attempt.catch(() => {
+      if (_sharpPromise === attempt) _sharpPromise = null;
+    });
   }
-  return _sharpPromise;
+  // Never surface an opaque module-load error to callers; report a broken addon
+  // as `null`. The cache reset above already ran on the rejected attempt.
+  return _sharpPromise.catch(() => null);
 }
 
 /* ------------------------------ byte loading ------------------------------ */
@@ -175,6 +205,15 @@ async function decodeBytesBrowser(bytes: Uint8Array): Promise<RawRgba> {
 /** Decode encoded image bytes to straight-alpha RGBA via sharp (Node). */
 async function decodeBytesNode(bytes: Uint8Array): Promise<RawRgba> {
   const sharp = await loadSharp();
+  if (!sharp) {
+    // sharp missing/broken on this Node target — fall back to Canvas when the
+    // runtime has one (e.g. a Node build with OffscreenCanvas), else fail loud.
+    if (typeof OffscreenCanvas !== "undefined" &&
+        typeof createImageBitmap !== "undefined") {
+      return decodeBytesBrowser(bytes);
+    }
+    throw new Error(SHARP_UNAVAILABLE_MESSAGE);
+  }
   const { data, info } = await sharp(bytes, { failOn: "none" })
     .ensureAlpha()
     .raw()
@@ -240,6 +279,15 @@ async function encodeRgbaNode(
   height: number
 ): Promise<Uint8Array> {
   const sharp = await loadSharp();
+  if (!sharp) {
+    // sharp missing/broken on this Node target — fall back to Canvas when the
+    // runtime has one, else fail loud. (Canvas always emits 4-channel PNG; the
+    // 3-channel removeAlpha optimization is sharp-only and not load-bearing.)
+    if (typeof OffscreenCanvas !== "undefined") {
+      return encodeRgbaBrowser(data, width, height);
+    }
+    throw new Error(SHARP_UNAVAILABLE_MESSAGE);
+  }
   let allOpaque = true;
   for (let i = 3; i < data.length; i += 4) {
     if (data[i] !== 255) {
