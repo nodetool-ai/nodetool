@@ -273,5 +273,6 @@ export const sampleCast: DemoCast = {
   },
   events,
   assets: [],
-  viewport: { x: 60, y: 40, zoom: 0.85 },
+  // Centers the two nodes (graph bbox ~x[40,760] y[80,350]) in a 1920×1080 frame.
+  viewport: { x: 560, y: 300, zoom: 1.3 },
 };
