@@ -39,6 +39,7 @@ interface DocumentSnapshot {
   clips: TimelineStoreState["clips"];
   markers: TimelineStoreState["markers"];
   transcript: TimelineStoreState["transcript"];
+  scriptEnabled: TimelineStoreState["scriptEnabled"];
 }
 
 // `durationMs` is intentionally NOT tracked: the PATCH schema has no
@@ -50,7 +51,8 @@ const pickSnapshot = (state: TimelineStoreState): DocumentSnapshot => ({
   tracks: state.tracks,
   clips: state.clips,
   markers: state.markers,
-  transcript: state.transcript
+  transcript: state.transcript,
+  scriptEnabled: state.scriptEnabled
 });
 
 // Sequence ids whose load migrated a legacy transcript onto clips. The
@@ -114,7 +116,8 @@ export function useTimelineAutosave(
             tracks: snapshot.tracks,
             clips: snapshot.clips,
             markers: snapshot.markers,
-            transcript: snapshot.transcript
+            transcript: snapshot.transcript,
+            scriptEnabled: snapshot.scriptEnabled
           }
         });
         const updatedAt = (response as { updatedAt?: unknown } | undefined)
@@ -193,6 +196,8 @@ export function useTimelineAutosave(
     let lastMarkers: TimelineStoreState["markers"] | null = initial.markers;
     let lastTranscript: TimelineStoreState["transcript"] | null =
       initial.transcript;
+    let lastScriptEnabled: TimelineStoreState["scriptEnabled"] =
+      initial.scriptEnabled;
 
     // A sequence loaded before this hook subscribed may still owe its
     // one-time migration save.
@@ -208,7 +213,8 @@ export function useTimelineAutosave(
         state.tracks === lastTracks &&
         state.clips === lastClips &&
         state.markers === lastMarkers &&
-        state.transcript === lastTranscript;
+        state.transcript === lastTranscript &&
+        state.scriptEnabled === lastScriptEnabled;
       if (docUnchanged) return;
       const isLoad = state.sequenceId !== lastSequenceId;
       lastSequenceId = state.sequenceId;
@@ -216,6 +222,7 @@ export function useTimelineAutosave(
       lastClips = state.clips;
       lastMarkers = state.markers;
       lastTranscript = state.transcript;
+      lastScriptEnabled = state.scriptEnabled;
       if (isLoad && !consumeMigratedLoad(state.sequenceId)) {
         // Loading a sequence is not an edit: re-baseline without scheduling
         // a redundant PATCH of the document we just fetched.

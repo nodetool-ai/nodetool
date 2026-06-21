@@ -227,7 +227,11 @@ export const timelineRouter = router({
             current.markers,
           transcript:
             (input.document.transcript as TimelineDocument["transcript"]) ??
-            current.transcript
+            current.transcript,
+          scriptEnabled:
+            (input.document.scriptEnabled as
+              | TimelineDocument["scriptEnabled"]
+              | undefined) ?? current.scriptEnabled
         };
         fields.document = JSON.stringify(merged);
       }

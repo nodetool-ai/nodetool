@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import { bridge } from "../lib/bridge.js";
 import type { HttpApiOptions } from "../http-api.js";
-import { handleAssetsRoot } from "../http-api.js";
+import { handleAssetsRoot, handleExtractAudio } from "../http-api.js";
 import { loadPythonPackageMetadata } from "@nodetool-ai/node-sdk";
 import { ApiErrorCode, apiError } from "../error-codes.js";
 
@@ -212,6 +212,14 @@ const assetsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   app.post("/api/assets", async (req, reply) => {
     await bridge(req, reply, (request) =>
       handleAssetsRoot(request, apiOptions)
+    );
+  });
+
+  // Extract a video asset's audio track into a new audio asset.
+  app.post("/api/assets/:id/extract-audio", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    await bridge(req, reply, (request) =>
+      handleExtractAudio(request, apiOptions, id)
     );
   });
 };
