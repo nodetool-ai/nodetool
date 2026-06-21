@@ -22,7 +22,7 @@ import {
   type TimelineSequence,
   type TimelineTrack
 } from "@nodetool-ai/timeline";
-import { tagAsServer } from "@nodetool-ai/nodes-utils";
+import { tagAsNode } from "@nodetool-ai/nodes-utils";
 import { execFile as execFileCb } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
@@ -713,7 +713,7 @@ export class AddClipsToTimelineNode extends BaseNode {
   }
 }
 
-export const TIMELINE_NODES = tagAsServer([
+export const TIMELINE_NODES = tagAsNode([
   RenderTimelineNode,
   TimelineTranscriptNode,
   AddClipsToTimelineNode

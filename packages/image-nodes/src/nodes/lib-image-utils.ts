@@ -5,16 +5,40 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 // this module stays browser-bundle-safe (the GPU color-grading node imports the
 // pure helpers below); only the two Node-only float-RGB helpers touch it.
 type SharpFn = typeof import("sharp");
-let _sharpPromise: Promise<SharpFn> | null = null;
-async function loadSharp(): Promise<SharpFn> {
+let _sharpPromise: Promise<SharpFn | null> | null = null;
+
+/**
+ * Actionable error for a missing/broken `sharp` native addon, thrown by the
+ * float-RGB helpers when {@link loadSharp} resolves null.
+ */
+const SHARP_UNAVAILABLE_MESSAGE =
+  "The 'sharp' image codec is unavailable. It is a native addon that must be " +
+  "installed for this runtime (run `npm install sharp` in the server install, " +
+  "or reinstall it for your platform/arch). This node requires sharp and has no " +
+  "browser/edge fallback.";
+
+/**
+ * Lazily load `sharp`. Resolves `null` — never throws an opaque module-load
+ * error — off Node (browser/edge) or when the Node native addon can't load. A
+ * rejected attempt is never cached. Callers throw a clear error on null.
+ */
+async function loadSharp(): Promise<SharpFn | null> {
   if (!_sharpPromise) {
-    _sharpPromise = (async () => {
+    // Let a thrown import (broken addon) reject the attempt so the `.catch`
+    // below drops it from the cache and a later, fixed install is picked up. A
+    // legitimate off-Node `null` resolves and is cached.
+    const attempt = (async (): Promise<SharpFn | null> => {
       const mod = await importHidden<SharpFn | { default: SharpFn }>("sharp");
-      if (!mod) throw new Error("sharp requires Node (not available in browser)");
+      if (!mod) return null;
       return (mod as { default?: SharpFn }).default ?? (mod as SharpFn);
     })();
+    _sharpPromise = attempt;
+    attempt.catch(() => {
+      if (_sharpPromise === attempt) _sharpPromise = null;
+    });
   }
-  return _sharpPromise;
+  // Never surface an opaque module-load error; report a broken addon as `null`.
+  return _sharpPromise.catch(() => null);
 }
 
 export type ImageRefLike = {
@@ -161,6 +185,7 @@ export function hsvToRgb(
 
 export async function toFloatRGB(buf: Buffer): Promise<FloatRGBResult> {
   const sharp = await loadSharp();
+  if (!sharp) throw new Error(SHARP_UNAVAILABLE_MESSAGE);
   const img = sharp(buf, { failOn: "none" });
   const meta = await img.metadata();
   const hasAlpha = meta.channels === 4 || meta.hasAlpha;
@@ -201,5 +226,6 @@ export async function fromFloatRGB(
     if (alpha) out[i * channels + 3] = alpha[i];
   }
   const sharp = await loadSharp();
+  if (!sharp) throw new Error(SHARP_UNAVAILABLE_MESSAGE);
   return sharp(out, { raw: { width, height, channels } }).png().toBuffer();
 }
