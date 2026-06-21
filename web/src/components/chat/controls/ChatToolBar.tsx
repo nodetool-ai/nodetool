@@ -27,7 +27,7 @@ const styles = (theme: Theme) =>
     border: `1px solid ${theme.vars.palette.grey[700]}80`,
     boxShadow: `0 4px 24px -4px ${theme.vars.palette.grey[900]}4d, 
                 inset 0 1px 0 ${theme.vars.palette.grey[600]}40`,
-    transition: "border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+    transition: `border-color ${MOTION.slow}, box-shadow ${MOTION.slow}`,
     position: "relative",
     overflow: "visible",
 

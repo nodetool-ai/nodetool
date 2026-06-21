@@ -74,7 +74,7 @@ const tileStyles = (theme: Theme) =>
       position: "relative",
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.divider}`,
-      transition: "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
+      transition: `all ${MOTION.slow}`,
       minHeight: "64px",
       background: theme.vars.palette.background.paper,
       "&::before": {
@@ -105,7 +105,7 @@ const tileStyles = (theme: Theme) =>
       },
       "&:active": {
         transform: "scale(0.97) translateY(0)",
-        transition: "all 0.1s ease"
+        transition: `all ${MOTION.fast}`
       }
     },
     ".tile-icon": {

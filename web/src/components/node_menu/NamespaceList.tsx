@@ -99,7 +99,7 @@ const namespaceStyles = (theme: Theme) =>
       alignItems: "stretch",
       gap: "1em",
       opacity: 0,
-      animation: "fadeIn 0.4s ease-in forwards",
+      animation: `fadeIn ${MOTION.slow} forwards`,
       animationDelay: ".5s",
       visibility: "hidden",
       overflow: "hidden"

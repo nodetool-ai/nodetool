@@ -45,7 +45,7 @@ const styles = (theme: Theme) =>
         minWidth: "150px",
         maxWidth: "unset",
         minHeight: "150px",
-        borderRadius: "var(--rounded-node)",
+        borderRadius: theme.rounded.node,
         border: `1px solid ${theme.vars.palette.grey[700]}`
       },
       "&.output-node": {
@@ -168,7 +168,7 @@ const styles = (theme: Theme) =>
         transform: "translate(-50%, -50%)",
         zIndex: 0,
         color: theme.vars.palette.grey[200],
-        transition: "opacity 0.2s 1s ease-out"
+        transition: `opacity ${MOTION.normal} 1s`
       },
       "&:hover .hint": {
         opacity: 0.7

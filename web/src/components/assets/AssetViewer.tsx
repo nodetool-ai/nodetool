@@ -188,7 +188,7 @@ const styles = (theme: Theme) =>
       boxShadow: `0 0 0 4px rgb(${theme.vars.palette.primary.mainChannel} / 0.18), 0 12px 32px rgb(0 0 0 / 0.5)`,
       // Re-keyed by asset id on navigation, so this replays each time the
       // centered frame changes — a quick confident pop, no bounce.
-      animation: `${activePop} 300ms ${EASE_OUT_EXPO}`
+      animation: `${activePop} ${MOTION.slow}`
     },
     ".prev-next-items .item": {
       backgroundColor: theme.vars.palette.background.paper,
@@ -202,7 +202,7 @@ const styles = (theme: Theme) =>
       transition: `transform 200ms ${EASE_OUT_QUINT}, ${MOTION.shadow}`,
       // `backwards` keeps the from-state during the stagger delay but releases
       // the element afterward, so the hover transition below still applies.
-      animation: `${thumbReveal} 320ms ${EASE_OUT_EXPO} backwards`
+      animation: `${thumbReveal} ${MOTION.slow} backwards`
     },
     ".prev-next-items .item:hover": {
       transform: "translateY(-6px) scale(1.06)",
@@ -212,7 +212,7 @@ const styles = (theme: Theme) =>
     // Press feedback: quick dip on click before the frame slides to center.
     ".prev-next-items .item:active": {
       transform: "translateY(-1px) scale(0.95)",
-      transition: `transform 90ms ${EASE_OUT_QUINT}`,
+      transition: MOTION.transform,
       zIndex: 5
     },
     // Cascade from the center outward: nearest-to-center frame leads.

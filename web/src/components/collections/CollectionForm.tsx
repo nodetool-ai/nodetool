@@ -41,7 +41,7 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(2, 3),
       background: theme.vars.palette.background.paper,
       position: "relative",
-      animation: `${slideIn} 0.25s ease-out`,
+      animation: `${slideIn} ${MOTION.normal}`,
       boxSizing: "border-box"
     },
     ".close-button": {

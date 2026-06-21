@@ -79,6 +79,8 @@ packages/           # 55 npm workspace packages (TypeScript backend)
 web/                # React 19 + Vite + MUI + Zustand + ReactFlow
 electron/           # Electron 39 desktop app
 mobile/             # React Native / Expo
+demo/               # Remotion harness for product-demo videos (replays recorded
+                    # graph-UI "casts"; see demo/README.md and web/src/demo/)
 ```
 
 ### Package Dependency Order
@@ -200,6 +202,56 @@ npm run dev:nodetool -- serve --port 8080          # Custom port
 npm run dev:nodetool -- run workflow.ts            # Run a TypeScript DSL file
 npm run dev:nodetool -- run workflow.ts --json     # Output results as JSON
 ```
+
+### nodetool debug (Workflow Debug Harness)
+
+Runs a workflow end-to-end on the **server** (headless kernel `WorkflowRunner`)
+and optionally in a **real browser** (Playwright driving the `e2e_runner`
+harness), then writes a self-contained debug bundle and prints an agent-friendly
+verdict. Built for iterative troubleshooting: run → read the report → edit → re-run.
+
+The cheap server run (workflow JSON + all messages/logs/outputs/errors) is on by
+default. The **expensive** parts are opt-in flags: `--browser` (Playwright +
+Chromium), `--trace` (OpenTelemetry SDK + span overhead), `--stages` (a
+screenshot per run stage).
+
+```bash
+# Server surface only (default) — accepts a workflow id, JSON file, or DSL .ts file
+npm run dev:nodetool -- debug <workflow_id>
+npm run dev:nodetool -- debug workflow.json --params '{"prompt":"hi"}'
+
+# Opt into the expensive parts:
+npm run dev:nodetool -- debug <id> --trace                 # OTel trace (timing/tokens/cost)
+npm run dev:nodetool -- debug <id> --browser               # real-browser surface (Playwright)
+npm run dev:nodetool -- debug <id> --stages                # per-stage screenshots (implies --browser)
+
+# Print the full machine-readable report to stdout for an agent to parse
+npm run dev:nodetool -- debug <workflow_id> --json
+
+npm run dev:nodetool -- debug <id> --no-server --browser   # browser only
+npm run dev:nodetool -- debug <id> --out ./mydebug         # custom bundle dir
+npm run dev:nodetool -- debug <id> --timeout 60000         # per-surface timeout (ms)
+```
+
+The bundle (`nodetool-debug/<id>-<ts>/` by default) contains:
+
+```
+report.json        # the full DebugReport (workflow JSON, both surfaces, verdict)
+report.md          # human-readable summary
+workflow.json      # the resolved graph (runner shape)
+server/messages.jsonl   # every processing message (logs, node IO, outputs, errors)
+server/trace.jsonl      # OpenTelemetry spans (timing, tokens, cost) — only with --trace
+browser/record.json     # the browser RunRecord (events, logs, node IO, artifacts) — only with --browser
+browser/screenshot.png  # canvas screenshot of the finished graph
+browser/stages/         # canvas screenshots at each stage — only with --stages
+browser/console-errors.log
+```
+
+Agents can also debug a workflow on a running server via the **`debug_workflow`**
+tool (runs the workflow + returns status, outputs, errors, job logs, and the
+graph overview in one call). The browser surface is exposed in `web/` as
+`npm run test:debug-harness` (env: `NODETOOL_DEBUG_GRAPH`, `NODETOOL_DEBUG_OUT`,
+`NODETOOL_DEBUG_PARAMS`).
 
 ### nodetool workflows
 

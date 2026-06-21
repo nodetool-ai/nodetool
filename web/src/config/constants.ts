@@ -20,6 +20,7 @@ export const NOTIFICATION_READING_WPM = 200; // average reading speed in words p
 export const HEADER_HEIGHT = 40; // Workspace header toolbar height in px
 export const TOOLBAR_WIDTH = 50; // Vertical toolbar width in px
 export const PANEL_RESIZE_HANDLE_WIDTH = 6; // Resize handle hit area in px
+export const LEFT_PANEL_MIN_DRAWER_WIDTH = 250; // Min width of the left panel drawer (excludes toolbar) in px
 
 // EDITOR
 export const DUPLICATE_SPACING = 50;

@@ -68,7 +68,7 @@ const EditableTitle = memo(function EditableTitle({
       inset 0 1px 0 ${theme.vars.palette.divider}
     `,
     zIndex: 10,
-    animation: `${fadeSlideIn} 0.25s ease-out`,
+    animation: `${fadeSlideIn} ${MOTION.normal}`,
     transition: MOTION.all,
     cursor: "text",
 

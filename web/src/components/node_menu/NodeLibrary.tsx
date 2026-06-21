@@ -230,7 +230,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
           top: "22%",
           bottom: "22%",
           width: "2px",
-          borderRadius: "0 2px 2px 0",
+          borderRadius: `0 ${BORDER_RADIUS.xs} ${BORDER_RADIUS.xs} 0`,
           backgroundColor: theme.vars.palette.primary.main
         }
       },

@@ -34,7 +34,7 @@ import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 
-import { DynamicInputButton } from "../../ui_primitives";
+import { DynamicInputButton, BORDER_RADIUS } from "../../ui_primitives";
 import { NodeInputs } from "../../node/NodeInputs";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
@@ -73,7 +73,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       flex: "1 1 auto",
       minHeight: 90,
-      borderRadius: "var(--rounded-sm, 4px)",
+      borderRadius: BORDER_RADIUS.sm,
       border: `1px solid ${theme.vars.palette.divider}`,
       background: theme.vars.palette.background.default,
       padding: theme.spacing(1),
@@ -116,7 +116,7 @@ const styles = (theme: Theme) =>
     ".variable-insert-chip": {
       cursor: "pointer",
       padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
-      borderRadius: "var(--rounded-sm, 4px)",
+      borderRadius: BORDER_RADIUS.sm,
       border: `1px solid ${theme.vars.palette.divider}`,
       background: "transparent",
       color: theme.vars.palette.text.primary,

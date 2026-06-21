@@ -34,6 +34,9 @@ import ConstantTimelineBody, {
 import CropBody, { CROP_NODE_TYPE } from "./CropBody";
 import CurvesBody, { CURVES_NODE_TYPE } from "./CurvesBody";
 import DropShadowBody, { DROP_SHADOW_NODE_TYPE } from "./DropShadowBody";
+import ExtractVideoFrameBody, {
+  EXTRACT_VIDEO_FRAME_NODE_TYPE
+} from "./ExtractVideoFrameBody";
 import FitBody, { FIT_NODE_TYPE } from "./FitBody";
 import GeneratorBody, { GENERATOR_NODE_TYPES } from "./GeneratorBody";
 import HSLAdjustBody, { HSL_ADJUST_NODE_TYPE } from "./HSLAdjustBody";
@@ -96,6 +99,7 @@ export const BESPOKE_BODY_REGISTRY: Readonly<
   [CROP_NODE_TYPE]: CropBody,
   [CURVES_NODE_TYPE]: CurvesBody,
   [DROP_SHADOW_NODE_TYPE]: DropShadowBody,
+  [EXTRACT_VIDEO_FRAME_NODE_TYPE]: ExtractVideoFrameBody,
   [FIT_NODE_TYPE]: FitBody,
   [HSL_ADJUST_NODE_TYPE]: HSLAdjustBody,
   [LEVELS_NODE_TYPE]: LevelsBody,
@@ -141,6 +145,9 @@ export const BESPOKE_DEFAULT_HEIGHTS: Readonly<Record<string, number>> = {
   [CONSTANT_SKETCH_NODE_TYPE]: 300,
   [CONSTANT_TIMELINE_NODE_TYPE]: 300,
   [CURVES_NODE_TYPE]: 520,
+  // Extract Video Frame: video preview + scrubber + transport row + Frame /
+  // Timecode footer + the extracted image output.
+  [EXTRACT_VIDEO_FRAME_NODE_TYPE]: 380,
   // List Generator: numbered, scrollable item list needs room to show several
   // items as they stream in.
   [LIST_GENERATOR_NODE_TYPE]: 340,
@@ -161,12 +168,14 @@ export const BESPOKE_DEFAULT_HEIGHTS: Readonly<Record<string, number>> = {
       return [t, 96 + extras + knobRows * 84] as const;
     })
   ),
-  // Audio effects: same knob faceplate as synth modules (single audio jack).
+  // Audio effects: same knob faceplate as synth modules (single audio jack),
+  // plus a row per boolean toggle (e.g. compressor/limiter auto gain).
   ...Object.fromEntries(
     AUDIO_EFFECT_NODE_TYPES.map((t) => {
       const c = AUDIO_EFFECT_CONFIGS[t];
       const knobRows = Math.ceil(c.knobs.length / 3);
-      return [t, 96 + knobRows * 84] as const;
+      const toggleRows = c.toggles?.length ?? 0;
+      return [t, 96 + toggleRows * 28 + knobRows * 84] as const;
     })
   ),
   // Audio Out: label strip + transport buttons + visualizer.

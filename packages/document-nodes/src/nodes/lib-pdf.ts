@@ -8,7 +8,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { ParseResult } from "@llamaindex/liteparse";
-import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -1194,7 +1193,12 @@ export class PdfExtractOcrNode extends BaseNode {
 // Export
 // ---------------------------------------------------------------------------
 
-export const LIB_PDF_NODES = tagAsServer([
+// Node-only: every node depends on native pdfium (via @llamaindex/liteparse →
+// @hyzyla/pdfium) and sharp, and PdfToppmNode spawns `pdftoppm` via
+// node:child_process + os.tmpdir(). Workers/edge have no native addons and no
+// subprocess, so these can never run there. Untagged → registry default
+// ["node"].
+export const LIB_PDF_NODES = [
   PdfPageCountNode,
   PdfExtractTextNode,
   PdfExtractMarkdownNode,
@@ -1206,4 +1210,4 @@ export const LIB_PDF_NODES = tagAsServer([
   PdfToppmNode,
   PdfSearchTextNode,
   PdfExtractOcrNode
-]);
+];

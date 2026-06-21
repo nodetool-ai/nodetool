@@ -184,6 +184,7 @@ export const AUDIO_EFFECT_CONFIGS: Readonly<Record<string, SynthModuleConfig>> =
       label: "COMP",
       accent: "warning",
       inputs: ["audio"],
+      toggles: [{ name: "auto_gain", label: "Auto Gain", default: true }],
       knobs: [
         {
           name: "threshold",
@@ -233,6 +234,7 @@ export const AUDIO_EFFECT_CONFIGS: Readonly<Record<string, SynthModuleConfig>> =
       label: "LIMIT",
       accent: "warning",
       inputs: ["audio"],
+      toggles: [{ name: "auto_gain", label: "Auto Gain", default: true }],
       knobs: [
         {
           name: "threshold_db",

@@ -3965,7 +3965,10 @@ describe("lib-audio-effects signal verification", () => {
     const audio = shortSine(8000, 0.1);
 
     const node = new LimiterNode();
-    node.assign({ audio, threshold_db: -12, release_ms: 50 });
+    // auto_gain defaults on (it makes the limiter a maximizer, lifting peaks
+    // up to 0 dBFS); disable it here to assert the underlying limiting caps
+    // peaks at the threshold.
+    node.assign({ audio, threshold_db: -12, release_ms: 50, auto_gain: false });
     const res = await node.process();
     const outputSamples = decodeTestWav(res.output as { data: string }).samples;
 

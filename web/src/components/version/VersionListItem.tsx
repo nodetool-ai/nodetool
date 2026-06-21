@@ -10,7 +10,7 @@ import {
   Restore as RestoreIcon,
   Compare as CompareIcon
 } from "@mui/icons-material";
-import { Caption, Chip, DeleteButton, LoadingSpinner, Text, Tooltip, ToolbarIconButton } from "../ui_primitives";
+import { Caption, Chip, DeleteButton, LoadingSpinner, Text, Tooltip, ToolbarIconButton, MOTION } from "../ui_primitives";
 import { SaveType } from "../../stores/VersionHistoryStore";
 import { formatDistanceToNow, format } from "date-fns";
 import { WorkflowVersion } from "../../stores/ApiTypes";
@@ -239,7 +239,7 @@ const VersionListItem = React.memo(function VersionListItem({
       <style>{`
         .version-list-item .version-item-actions {
           opacity: 0;
-          transition: opacity 0.15s ease;
+          transition: ${MOTION.opacity};
         }
         .version-list-item:hover .version-item-actions {
           opacity: 1;

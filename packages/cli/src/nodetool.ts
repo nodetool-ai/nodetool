@@ -51,6 +51,7 @@ import { registerWorkerCommands } from "./commands/worker.js";
 import { registerRecommendedCommand } from "./commands/models-recommended.js";
 import { registerAgentCommands } from "./commands/agent.js";
 import { registerDbCommands } from "./commands/db.js";
+import { registerDebugCommands } from "./commands/debug.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -199,7 +200,13 @@ program
     "--no-trace-stdout",
     "Disable stdout span output (overrides NODETOOL_TRACE_STDOUT)"
   )
-  .hook("preAction", async (thisCommand) => {
+  .hook("preAction", async (thisCommand, actionCommand) => {
+    // With `--trace`, the `debug` command owns telemetry: it routes spans into
+    // its bundle's trace.jsonl via its own initTelemetry call. Initializing here
+    // first would win the one-shot init and drop that file sink, so skip it.
+    // Without `--trace`, fall through so the global --trace-file/--trace-stdout
+    // flags still work for a debug run.
+    if (actionCommand?.name() === "debug" && actionCommand.opts()["trace"]) return;
     const opts = thisCommand.opts<{
       traceFile?: string;
       traceStdout?: string | boolean;
@@ -1793,6 +1800,7 @@ registerWorkerCommands(program);
 registerDeployCommands(program);
 registerAgentCommands(program);
 registerDbCommands(program);
+registerDebugCommands(program);
 
 // ---------------------------------------------------------------------------
 

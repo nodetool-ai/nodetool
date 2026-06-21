@@ -6,6 +6,7 @@ import { findOutputHandle, findInputHandle } from "../utils/handleUtils";
 import { NodeData } from "../stores/NodeData";
 import { REROUTE_NODE_TYPE } from "../constants/nodeTypes";
 import { nodeKey, edgeKey } from "../stores/nodeKey";
+import { MOTION } from "../components/ui_primitives";
 
 /**
  * Options for processing edges in the workflow graph.
@@ -303,7 +304,7 @@ function useStructurallyProcessedEdges({
           // A4: unselected edges use 1.5px stroke. Selected edges are
           // promoted to 2px + glow in CustomEdge (CSS controls hover/selected).
           strokeWidth: 1.5,
-          transition: "stroke 180ms ease-out, stroke-width 120ms ease-out, filter 180ms ease-out"
+          transition: `stroke ${MOTION.normal}, stroke-width ${MOTION.fast}, filter ${MOTION.normal}`
         },
         data: {
           ...edge.data,

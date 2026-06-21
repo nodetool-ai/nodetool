@@ -54,6 +54,15 @@ export interface TimelineUIState {
    */
   expandedFxTrackId: string | null;
 
+  /** Id of the track currently being drag-reordered, or null. */
+  draggingTrackId: string | null;
+  /**
+   * The drop target during a track drag: which track row the pointer is over
+   * and whether the dragged track would land before or after it. Null when no
+   * valid target is hovered (e.g. over a different-type track).
+   */
+  trackDropTarget: { trackId: string; position: "before" | "after" } | null;
+
   // ── Selection ────────────────────────────────────────────────────────────
 
   /** Replace the selection with a single clip. */
@@ -107,6 +116,17 @@ export interface TimelineUIState {
   setExpandedFxTrackId: (trackId: string | null) => void;
   /** Toggle the inline DSP chain editor for the given track. */
   toggleExpandedFx: (trackId: string) => void;
+
+  // ── Track drag-reorder ─────────────────────────────────────────────────────
+
+  /** Begin dragging a track; clears any stale drop target. */
+  beginTrackDrag: (trackId: string) => void;
+  /** Set (or clear, with null) the current drop target during a track drag. */
+  setTrackDropTarget: (
+    target: { trackId: string; position: "before" | "after" } | null
+  ) => void;
+  /** End a track drag, clearing both the dragged id and the drop target. */
+  endTrackDrag: () => void;
 }
 
 export const MIN_MS_PER_PX = 0.5;
@@ -124,6 +144,8 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
   scrollLeftPx: 0,
   fullscreen: false,
   expandedFxTrackId: null,
+  draggingTrackId: null,
+  trackDropTarget: null,
   selectClip: (id) => set({ selectedClipIds: new Set([id]) }),
 
   addToSelection: (id) =>
@@ -184,7 +206,14 @@ export const createTimelineUIStore = (): TimelineUIStoreApi =>
     set((state) => ({
       expandedFxTrackId:
         state.expandedFxTrackId === trackId ? null : trackId
-    }))
+    })),
+
+  beginTrackDrag: (trackId) =>
+    set({ draggingTrackId: trackId, trackDropTarget: null }),
+
+  setTrackDropTarget: (target) => set({ trackDropTarget: target }),
+
+  endTrackDrag: () => set({ draggingTrackId: null, trackDropTarget: null })
   }));
 
 // Context-bound hooks are defined against the active instance in the instance

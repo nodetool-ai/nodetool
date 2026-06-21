@@ -357,10 +357,10 @@ const overlayStyles = (theme: Theme) =>
     overflow: "hidden",
     transformOrigin: "top left",
     '&[data-state="open"]': {
-      animation: `${panelEnter} 200ms cubic-bezier(0.16, 1, 0.3, 1) both`
+      animation: `${panelEnter} ${MOTION.normal} both`
     },
     '&[data-state="closed"]': {
-      animation: `${panelExit} 160ms cubic-bezier(0.16, 1, 0.3, 1) both`
+      animation: `${panelExit} ${MOTION.normal} both`
     },
     "@media (prefers-reduced-motion: reduce)": {
       animation: "none",

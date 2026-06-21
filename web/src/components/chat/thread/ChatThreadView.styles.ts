@@ -339,7 +339,7 @@ export const createStyles = (theme: Theme) => ({
 
     ".tool-call-card": {
       border: "none",
-      borderRadius: 4,
+      borderRadius: BORDER_RADIUS.sm,
       background: "transparent",
       padding: "0",
       marginBottom: 0
@@ -354,7 +354,7 @@ export const createStyles = (theme: Theme) => ({
     ".tool-call-card.run-subtask": {
       border: `1px solid ${theme.vars.palette.divider}`,
       borderLeft: `2px solid ${theme.vars.palette.primary.main}`,
-      borderRadius: 6,
+      borderRadius: BORDER_RADIUS.md,
       padding: theme.spacing(0.5, 1),
       background: `${theme.vars.palette.primary.main}0a`,
       marginBottom: theme.spacing(0.5)
@@ -375,7 +375,7 @@ export const createStyles = (theme: Theme) => ({
       lineHeight: 1,
       padding: theme.spacing(0.5, 1.5),
       border: `1px solid ${theme.vars.palette.primary.main}55`,
-      borderRadius: 3,
+      borderRadius: BORDER_RADIUS.sm,
       background: "transparent",
       flexShrink: 0
     },
@@ -487,7 +487,7 @@ export const createStyles = (theme: Theme) => ({
       margin: 0,
       padding: theme.spacing(1, 1.5),
       background: theme.vars.palette.background.default,
-      borderRadius: 6,
+      borderRadius: BORDER_RADIUS.md,
       color: theme.vars.palette.text.secondary,
       border: `1px solid ${theme.vars.palette.divider}`,
       overflowX: "auto"

@@ -60,6 +60,7 @@
     "packages/automation-nodes",
     "web",
     "electron",
+    "demo",
     "examples/chat_app",
     "examples/nextjs-vercel",
     "examples/nextjs-cloudflare"

@@ -10,10 +10,12 @@
  */
 import { HarnessWsClient } from "./wsClient";
 import type {
+  AdHocRunOptions,
   CapturedArtifact,
   E2EController,
   Manifest,
   RunRecord,
+  RunSnapshot,
   RunStatus,
   WorkflowRef,
   WsEvent
@@ -32,6 +34,12 @@ export interface HarnessState {
   currentIndex: number;
   /** Per-node visual status for the currently rendered workflow, keyed by node id. */
   nodeStatus: Record<string, string>;
+  /** A caller-supplied graph being run ad-hoc (debug harness), rendered instead of a manifest entry. */
+  adHocGraph: { nodes: unknown[]; edges: unknown[] } | null;
+  /** Bumped each ad-hoc run so the canvas re-renders even though currentIndex is unchanged. */
+  adHocNonce: number;
+  /** Monotonic stage counter for the in-flight ad-hoc run; bumped on status-bearing events. */
+  stage: number;
 }
 
 type Listener = (state: HarnessState) => void;
@@ -106,6 +114,96 @@ function extractArtifact(output: {
   return null;
 }
 
+/** Signals a terminal job_update; carries the final status + error. */
+interface TerminalSignal {
+  status: RunStatus;
+  error?: string;
+}
+
+/**
+ * Fold a single decoded WS event into a RunRecord, mutating `rec` and the live
+ * `nodeStatus` map. Returns a terminal signal when the run has settled.
+ *
+ * Shared verbatim by the manifest-driven suite path (`handleEvent`) and the
+ * ad-hoc debug path (`runGraph`) so both capture identical record shapes.
+ */
+function reduceRecordEvent(
+  rec: RunRecord,
+  msg: WsEvent,
+  nodeStatus: Record<string, string>
+): TerminalSignal | null {
+  rec.events.push(msg);
+  switch (msg.type) {
+    case "job_update": {
+      if (typeof msg.job_id === "string" && msg.job_id) rec.jobId = msg.job_id;
+      const status = String(msg.status ?? "");
+      if (typeof msg.error === "string" && msg.error) rec.error = msg.error;
+      if (TERMINAL_STATUSES.has(status)) {
+        return {
+          status: status as RunStatus,
+          error: typeof msg.error === "string" ? msg.error : undefined
+        };
+      }
+      break;
+    }
+    case "node_update": {
+      const nodeId = String(msg.node_id ?? "");
+      if (nodeId) {
+        const status = String(msg.status ?? "");
+        nodeStatus[nodeId] = status;
+        const isError = status === "error" || status === "failed";
+        const message =
+          typeof msg.error === "string" && msg.error.length > 0 ? msg.error : null;
+        rec.nodeIO[nodeId] = {
+          node_type:
+            typeof msg.node_type === "string" ? msg.node_type : rec.nodeIO[nodeId]?.node_type,
+          status,
+          result: (msg as { result?: unknown }).result ?? rec.nodeIO[nodeId]?.result,
+          // Only treat a node as errored when its status says so — a
+          // node_update can carry a stale/empty error field while completing.
+          error: isError ? (message ?? status) : null
+        };
+      }
+      break;
+    }
+    case "output_update": {
+      const output = {
+        node_id: typeof msg.node_id === "string" ? msg.node_id : undefined,
+        node_name: typeof msg.node_name === "string" ? msg.node_name : undefined,
+        output_name: typeof msg.output_name === "string" ? msg.output_name : undefined,
+        output_type: typeof msg.output_type === "string" ? msg.output_type : undefined,
+        value: (msg as { value?: unknown }).value
+      };
+      rec.outputs.push(output);
+      const artifact = extractArtifact(output);
+      if (artifact) rec.artifacts.push(artifact);
+      break;
+    }
+    case "log_update": {
+      rec.logs.push({
+        ts: Date.now(),
+        level: typeof msg.severity === "string" ? msg.severity : undefined,
+        content: asString((msg as { content?: unknown }).content ?? msg),
+        node_id: typeof msg.node_id === "string" ? msg.node_id : undefined
+      });
+      break;
+    }
+    default:
+      break;
+  }
+  return null;
+}
+
+/** Recompute the rollup counts on a settled record. */
+function finalizeCounts(rec: RunRecord): void {
+  rec.counts = {
+    nodes: Object.keys(rec.nodeIO).length,
+    outputs: rec.outputs.length,
+    errors: Object.values(rec.nodeIO).filter((n) => n.error).length,
+    edgeUpdates: rec.events.filter((e) => e.type === "edge_update").length
+  };
+}
+
 export class Harness {
   private listeners = new Set<Listener>();
   private state: HarnessState = {
@@ -113,7 +211,10 @@ export class Harness {
     records: [],
     state: "loading",
     currentIndex: -1,
-    nodeStatus: {}
+    nodeStatus: {},
+    adHocGraph: null,
+    adHocNonce: 0,
+    stage: 0
   };
   private secretsAvailable: string[] = [];
   private graphCache = new Map<string, { nodes: unknown[]; edges: unknown[] }>();
@@ -173,6 +274,16 @@ export class Harness {
     ref: WorkflowRef;
     graph: { nodes: unknown[]; edges: unknown[] };
   } | null> {
+    if (this.state.adHocGraph) {
+      const ref: WorkflowRef = {
+        id: "adhoc",
+        name: "ad-hoc graph",
+        file: "",
+        params: {},
+        source: "custom"
+      };
+      return { ref, graph: this.state.adHocGraph };
+    }
     const idx = this.state.currentIndex;
     if (idx < 0 || idx >= this.state.manifest.length) return null;
     const ref = this.state.manifest[idx];
@@ -277,12 +388,7 @@ export class Harness {
           rec.finishedAt = finishedAt;
           rec.durationMs = finishedAt - startedAt;
           if (error && !rec.error) rec.error = error;
-          rec.counts = {
-            nodes: Object.keys(rec.nodeIO).length,
-            outputs: rec.outputs.length,
-            errors: Object.values(rec.nodeIO).filter((n) => n.error).length,
-            edgeUpdates: rec.events.filter((e) => e.type === "edge_update").length
-          };
+          finalizeCounts(rec);
           this.applyExpectations(rec, ref);
         });
         resolve();
@@ -309,68 +415,10 @@ export class Harness {
     finish: (status: RunStatus, error?: string) => void
   ): void {
     this.updateRecord(index, (rec) => {
-      rec.events.push(msg);
-      switch (msg.type) {
-        case "job_update": {
-          if (typeof msg.job_id === "string" && msg.job_id) rec.jobId = msg.job_id;
-          const status = String(msg.status ?? "");
-          if (typeof msg.error === "string" && msg.error) rec.error = msg.error;
-          if (TERMINAL_STATUSES.has(status)) {
-            // Defer finish() until after this record mutation is committed.
-            queueMicrotask(() =>
-              finish(status as RunStatus, typeof msg.error === "string" ? msg.error : undefined)
-            );
-          }
-          break;
-        }
-        case "node_update": {
-          const nodeId = String(msg.node_id ?? "");
-          if (nodeId) {
-            const status = String(msg.status ?? "");
-            nodeStatus[nodeId] = status;
-            const isError = status === "error" || status === "failed";
-            const message =
-              typeof msg.error === "string" && msg.error.length > 0
-                ? msg.error
-                : null;
-            rec.nodeIO[nodeId] = {
-              node_type:
-                typeof msg.node_type === "string" ? msg.node_type : rec.nodeIO[nodeId]?.node_type,
-              status,
-              result: (msg as { result?: unknown }).result ?? rec.nodeIO[nodeId]?.result,
-              // Only treat a node as errored when its status says so — a
-              // node_update can carry a stale/empty error field while completing.
-              error: isError ? (message ?? status) : null
-            };
-          }
-          break;
-        }
-        case "output_update": {
-          const output = {
-            node_id: typeof msg.node_id === "string" ? msg.node_id : undefined,
-            node_name: typeof msg.node_name === "string" ? msg.node_name : undefined,
-            output_name:
-              typeof msg.output_name === "string" ? msg.output_name : undefined,
-            output_type:
-              typeof msg.output_type === "string" ? msg.output_type : undefined,
-            value: (msg as { value?: unknown }).value
-          };
-          rec.outputs.push(output);
-          const artifact = extractArtifact(output);
-          if (artifact) rec.artifacts.push(artifact);
-          break;
-        }
-        case "log_update": {
-          rec.logs.push({
-            ts: Date.now(),
-            level: typeof msg.severity === "string" ? msg.severity : undefined,
-            content: asString((msg as { content?: unknown }).content ?? msg),
-            node_id: typeof msg.node_id === "string" ? msg.node_id : undefined
-          });
-          break;
-        }
-        default:
-          break;
+      const terminal = reduceRecordEvent(rec, msg, nodeStatus);
+      if (terminal) {
+        // Defer finish() until after this record mutation is committed.
+        queueMicrotask(() => finish(terminal.status, terminal.error));
       }
     });
     this.setState({ nodeStatus: { ...nodeStatus } });
@@ -397,6 +445,109 @@ export class Harness {
     rec.expectationFailures = failures;
   }
 
+  /**
+   * Run a caller-supplied graph that isn't part of the manifest. Renders it on
+   * the canvas, executes it against the backend over a fresh WebSocket, and
+   * resolves with a fully-populated RunRecord once the job settles. This is the
+   * browser surface the `nodetool debug` harness drives.
+   */
+  async runGraph(
+    graph: { nodes: unknown[]; edges: unknown[] },
+    params: Record<string, unknown> = {},
+    options: AdHocRunOptions = {}
+  ): Promise<RunRecord> {
+    const ref: WorkflowRef = {
+      id: options.id ?? `adhoc-${Date.now()}`,
+      name: options.name ?? "ad-hoc graph",
+      file: "",
+      params,
+      source: "custom"
+    };
+    const rec = emptyRecord(ref);
+    const startedAt = Date.now();
+    rec.status = "running";
+    rec.startedAt = startedAt;
+
+    // Render the graph on the canvas and surface it in the sidebar/state.
+    // stage 1 marks the initial render before any node has reported.
+    this.setState({
+      state: "running",
+      adHocGraph: graph,
+      adHocNonce: this.state.adHocNonce + 1,
+      nodeStatus: {},
+      records: [rec],
+      currentIndex: 0,
+      stage: 1
+    });
+
+    const ws = new HarnessWsClient();
+    try {
+      await ws.connect();
+    } catch (err) {
+      rec.status = "error";
+      rec.finishedAt = Date.now();
+      rec.durationMs = rec.finishedAt - startedAt;
+      rec.error = err instanceof Error ? err.message : String(err);
+      this.setState({ records: [rec], state: "done" });
+      return rec;
+    }
+
+    const nodeStatus: Record<string, string> = {};
+    const timeoutMs = options.timeoutMs ?? RUN_TIMEOUT_MS;
+
+    await new Promise<void>((resolve) => {
+      let settled = false;
+      const timer = window.setTimeout(() => finish("timeout"), timeoutMs);
+
+      const finish = (status: RunStatus, error?: string) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timer);
+        unsubscribe();
+        ws.close();
+        rec.status = status;
+        rec.finishedAt = Date.now();
+        rec.durationMs = rec.finishedAt - startedAt;
+        if (error && !rec.error) rec.error = error;
+        finalizeCounts(rec);
+        this.setState({ records: [rec], state: "done", stage: this.state.stage + 1 });
+        resolve();
+      };
+
+      const unsubscribe = ws.onMessage((msg: WsEvent) => {
+        const terminal = reduceRecordEvent(rec, msg, nodeStatus);
+        // A node starting/finishing or a job status change is a new visual
+        // stage worth a screenshot; chunks/edges/logs are not.
+        const advances = msg.type === "node_update" || msg.type === "job_update";
+        this.setState({
+          records: [rec],
+          nodeStatus: { ...nodeStatus },
+          ...(advances ? { stage: this.state.stage + 1 } : {})
+        });
+        if (terminal) queueMicrotask(() => finish(terminal.status, terminal.error));
+      });
+
+      try {
+        ws.send({ command: "run_job", data: { graph, params } });
+      } catch (err) {
+        finish("error", err instanceof Error ? err.message : String(err));
+      }
+    });
+
+    return rec;
+  }
+
+  /** Live view of the in-flight ad-hoc run, for staged screenshot capture. */
+  snapshot(): RunSnapshot {
+    const rec = this.state.records[0];
+    return {
+      settled: this.state.state === "done",
+      stage: this.state.stage,
+      status: rec?.status ?? this.state.state,
+      nodeStatus: this.state.nodeStatus
+    };
+  }
+
   controller(): E2EController {
     return {
       ready: Promise.resolve(),
@@ -405,7 +556,9 @@ export class Harness {
       state: () => this.state.state,
       runNext: () => this.runNext(),
       runAll: () => this.runAll(),
-      currentIndex: () => this.state.currentIndex
+      currentIndex: () => this.state.currentIndex,
+      runGraph: (graph, params, options) => this.runGraph(graph, params, options),
+      snapshot: () => this.snapshot()
     };
   }
 

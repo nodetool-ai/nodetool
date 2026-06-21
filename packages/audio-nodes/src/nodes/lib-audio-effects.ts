@@ -185,14 +185,31 @@ export class CompressNode extends BaseNode {
   })
   declare release: any;
 
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Auto Gain",
+    description:
+      "Apply automatic makeup gain to compensate for the level lost to compression, keeping the output roughly as loud as the input."
+  })
+  declare auto_gain: any;
+
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const thresholdDb = Number(this.threshold ?? -20);
     const ratio = Number(this.ratio ?? 4);
     const attackMs = Number(this.attack ?? 5);
     const releaseMs = Number(this.release ?? 50);
+    const autoGain = this.auto_gain !== false;
 
     const bytes = await requireAudioBytes(audio, context);
+
+    // Makeup gain: half of the reduction a 0 dBFS peak would receive — the
+    // usual "auto" heuristic. It restores most of the loudness lost to
+    // compression while staying clear of clipping the way full compensation
+    // (referenced to 0 dBFS) would on under-compressed transients.
+    const makeupDb = autoGain ? (-thresholdDb * (1 - 1 / ratio)) / 2 : 0;
+    const makeup = Math.pow(10, makeupDb / 20);
 
     const wav = await decodeAudioToWav(bytes);
     const result = processPerChannel(wav, (ch, sr) => {
@@ -214,9 +231,9 @@ export class CompressNode extends BaseNode {
           const dbOver = 20 * Math.log10(envelope / thresholdLin);
           const dbReduction = dbOver * (1 - 1 / ratio);
           const gainReduction = Math.pow(10, -dbReduction / 20);
-          out[i] = ch[i] * gainReduction;
+          out[i] = ch[i] * gainReduction * makeup;
         } else {
-          out[i] = ch[i];
+          out[i] = ch[i] * makeup;
         }
       }
       return out;
@@ -339,15 +356,29 @@ export class LimiterNode extends BaseNode {
   })
   declare release_ms: any;
 
+  @prop({
+    type: "bool",
+    default: true,
+    title: "Auto Gain",
+    description:
+      "Apply automatic makeup gain so the limited peaks reach 0 dBFS, turning the headroom below the ceiling into added loudness (maximizer behaviour)."
+  })
+  declare auto_gain: any;
+
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const audio = (this.audio ?? {}) as Record<string, unknown>;
     const thresholdDb = Number(this.threshold_db ?? -2);
     const releaseMs = Number(this.release_ms ?? 250);
+    const autoGain = this.auto_gain !== false;
 
     const bytes = await requireAudioBytes(audio, context);
 
     const wav = await decodeAudioToWav(bytes);
     const threshold = Math.pow(10, thresholdDb / 20);
+    // Makeup gain brings the ceiling up to 0 dBFS. Limited peaks sit at
+    // `threshold`, so scaling by 1/threshold normalizes them to full scale
+    // without pushing past it.
+    const makeup = autoGain ? 1 / threshold : 1;
     const result = processPerChannel(wav, (ch, sr) => {
       const out = new Float32Array(ch.length);
       const releaseCoeff = Math.exp(-1 / ((sr * releaseMs) / 1000));
@@ -364,7 +395,7 @@ export class LimiterNode extends BaseNode {
           gainReduction =
             releaseCoeff * gainReduction + (1 - releaseCoeff) * 1.0;
         }
-        out[i] = ch[i] * gainReduction;
+        out[i] = ch[i] * gainReduction * makeup;
       }
       return out;
     });

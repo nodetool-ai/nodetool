@@ -239,6 +239,7 @@ function Canvas({
 }) {
   const [graph, setGraph] = useState<RenderGraph | null>(null);
   const idx = state.currentIndex;
+  const adHocNonce = state.adHocNonce;
 
   useEffect(() => {
     let cancelled = false;
@@ -251,7 +252,7 @@ function Canvas({
     return () => {
       cancelled = true;
     };
-  }, [harness, idx]);
+  }, [harness, idx, adHocNonce]);
 
   if (!graph) {
     return (

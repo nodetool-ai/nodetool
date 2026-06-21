@@ -169,7 +169,7 @@ const RailAppMenu: React.FC = () => {
             width="22px"
             height="22px"
             fontSize="1em"
-            borderRadius="4px"
+            borderRadius={BORDER_RADIUS.sm}
           />
         </button>
       </Tooltip>

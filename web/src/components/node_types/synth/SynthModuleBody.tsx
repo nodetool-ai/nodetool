@@ -235,6 +235,15 @@ const SynthModuleBodyInner: React.FC<SynthModuleBodyProps> = ({
     [config, pushLive, setProperty, setPropertyComplete]
   );
 
+  const handleToggleChange = useCallback(
+    (name: string, value: boolean) => {
+      setProperty(name, value);
+      pushLive(name, value);
+      setPropertyComplete();
+    },
+    [pushLive, setProperty, setPropertyComplete]
+  );
+
   if (!config) {
     return null;
   }
@@ -290,6 +299,24 @@ const SynthModuleBodyInner: React.FC<SynthModuleBodyProps> = ({
           ))}
         </ToggleGroup>
       )}
+
+      {config.toggles?.map((t) => {
+        const on =
+          props[t.name] === undefined ? t.default : Boolean(props[t.name]);
+        return (
+          <ToggleGroup
+            key={t.name}
+            className="mode-toggle nodrag"
+            size="small"
+            exclusive
+            value={on ? t.name : null}
+            onChange={() => handleToggleChange(t.name, !on)}
+            aria-label={t.label}
+          >
+            <ToggleOption value={t.name}>{t.label}</ToggleOption>
+          </ToggleGroup>
+        );
+      })}
 
       {config.adsrPreview && (
         <div className="adsr-preview">
