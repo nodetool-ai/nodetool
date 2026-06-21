@@ -19,7 +19,8 @@ import {
   loadImageBytes,
   toBase64Ref,
   toArrayBuffer,
-  loadSharp
+  loadSharp,
+  SHARP_UNAVAILABLE_MESSAGE
 } from "./image-io.js";
 
 type Desc = {
@@ -123,6 +124,7 @@ function createDrawNode(desc: Desc): NodeClass {
 
       if (t === "lib.image.Mask") {
         const sharp = await loadSharp();
+        if (!sharp) throw new Error(SHARP_UNAVAILABLE_MESSAGE);
         const fg = await loadImageBytes(
           (this as any).foreground ??
             (this as unknown as Record<string, unknown>).foreground ??
@@ -224,6 +226,7 @@ function createDrawNode(desc: Desc): NodeClass {
 
         // Node: composite an SVG <text> over the image with sharp.
         const sharp = await loadSharp();
+        if (!sharp) throw new Error(SHARP_UNAVAILABLE_MESSAGE);
         const textAnchor =
           align === "center" ? "middle" : align === "right" ? "end" : "start";
         const escapedText = text

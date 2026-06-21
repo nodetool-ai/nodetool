@@ -243,6 +243,12 @@ export interface WavHeader {
   sampleRate: number;
   numChannels: number;
   bitsPerSample: number;
+  /**
+   * The effective WAVE format tag: 1 = integer PCM, 3 = IEEE float. A
+   * WAVE_FORMAT_EXTENSIBLE (0xFFFE) header is resolved to its underlying
+   * 1 or 3 via the SubFormat GUID.
+   */
+  audioFormat: number;
   /** Byte offset of the start of the `data` chunk payload. */
   dataOffset: number;
   /** Length of the `data` chunk payload in bytes (clamped to the buffer). */
@@ -269,6 +275,7 @@ export function readWavHeader(bytes: Uint8Array): WavHeader | null {
   let sampleRate = 0;
   let numChannels = 0;
   let bitsPerSample = 0;
+  let audioFormat = 0;
   let dataOffset = -1;
   let dataSize = 0;
 
@@ -278,9 +285,16 @@ export function readWavHeader(bytes: Uint8Array): WavHeader | null {
     const chunkSize = view.getUint32(offset + 4, true);
     const body = offset + 8;
     if (chunkId === "fmt " && body + 16 <= bytes.length) {
+      audioFormat = view.getUint16(body, true);
       numChannels = view.getUint16(body + 2, true);
       sampleRate = view.getUint32(body + 4, true);
       bitsPerSample = view.getUint16(body + 14, true);
+      // WAVE_FORMAT_EXTENSIBLE carries the real PCM/float tag in the first
+      // two bytes of its SubFormat GUID (at fmt body + 24); unwrap it so
+      // downstream sees a plain 1 (int) or 3 (float).
+      if (audioFormat === 0xfffe && body + 26 <= bytes.length) {
+        audioFormat = view.getUint16(body + 24, true);
+      }
     } else if (chunkId === "data") {
       // `fmt ` always precedes `data` in a well-formed file, so the format
       // fields are populated by the time we get here.
@@ -294,22 +308,45 @@ export function readWavHeader(bytes: Uint8Array): WavHeader | null {
   if (dataOffset < 0) return null;
   const available = bytes.length - dataOffset;
   if (dataSize <= 0 || dataSize > available) dataSize = available;
-  return { sampleRate, numChannels, bitsPerSample, dataOffset, dataSize };
+  return {
+    sampleRate,
+    numChannels,
+    bitsPerSample,
+    audioFormat,
+    dataOffset,
+    dataSize
+  };
 }
 
 /**
  * Parse already-loaded WAV bytes into Float32 samples (channel-interleaved).
- * Returns null when the input is not a valid RIFF/WAVE file.
- * Supports 16-bit and 8-bit PCM. Subchunks are traversed, so non-standard
- * layouts with `LIST`/`JUNK`/etc. before the `data` chunk work correctly.
+ * Returns null when the input is not a valid RIFF/WAVE file or carries a
+ * format this decoder doesn't handle (caller then falls back to WebAudio /
+ * ffmpeg).
+ *
+ * Supported: integer PCM at 8/16/24/32-bit and IEEE float at 32-bit — the
+ * formats `encodeWav`, ffmpeg, and common recorders emit. This is the only
+ * decode path with no native-addon or subprocess dependency, so keeping it
+ * broad lets edge/workers/browser runtimes decode without ffmpeg. Subchunks
+ * are traversed, so layouts with `LIST`/`JUNK`/etc. before `data` work.
  */
 export function parseWavBytes(bytes: Uint8Array): WavData | null {
   const header = readWavHeader(bytes);
   if (!header) return null;
-  const { sampleRate, numChannels, bitsPerSample, dataOffset, dataSize } =
+  const { sampleRate, numChannels, bitsPerSample, audioFormat, dataOffset, dataSize } =
     header;
   const bytesPerSample = bitsPerSample / 8;
-  if (bytesPerSample !== 1 && bytesPerSample !== 2) return null;
+
+  // format 3 = IEEE float (32-bit only); format 1 (or a 0 tag from minimal
+  // encoders) = integer PCM at 8/16/24/32-bit. Anything else → null.
+  const isFloat = audioFormat === 3 && bitsPerSample === 32;
+  const isPcm =
+    (audioFormat === 1 || audioFormat === 0) &&
+    (bitsPerSample === 8 ||
+      bitsPerSample === 16 ||
+      bitsPerSample === 24 ||
+      bitsPerSample === 32);
+  if (!isFloat && !isPcm) return null;
 
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const totalSamples = Math.floor(dataSize / bytesPerSample);
@@ -317,10 +354,18 @@ export function parseWavBytes(bytes: Uint8Array): WavData | null {
 
   for (let i = 0; i < totalSamples; i++) {
     const pos = dataOffset + i * bytesPerSample;
-    if (bitsPerSample === 16) {
+    if (isFloat) {
+      samples[i] = view.getFloat32(pos, true);
+    } else if (bitsPerSample === 16) {
       samples[i] = view.getInt16(pos, true) / 0x7fff;
     } else if (bitsPerSample === 8) {
       samples[i] = (bytes[pos] - 128) / 128;
+    } else if (bitsPerSample === 24) {
+      let v = bytes[pos] | (bytes[pos + 1] << 8) | (bytes[pos + 2] << 16);
+      if (v & 0x800000) v -= 0x1000000; // sign-extend 24-bit
+      samples[i] = v / 0x7fffff;
+    } else {
+      samples[i] = view.getInt32(pos, true) / 0x7fffffff; // 32-bit int PCM
     }
   }
 
@@ -437,24 +482,42 @@ export async function decodeAudioToWav(bytes: Uint8Array): Promise<WavData> {
   const viaFfmpeg = await tryFfmpegDecodeToWav(bytes);
   if (viaFfmpeg) return viaFfmpeg;
 
-  if (Ctor) {
-    const detail =
-      webAudioError instanceof Error
-        ? webAudioError.message
-        : String(webAudioError);
-    const hint = IS_NODE
-      ? " Install ffmpeg (the Package Manager UI can do this) to decode formats like WebM/Opus."
-      : "";
+  // Nothing decoded it. Throw a reason that fits the runtime — every branch
+  // keeps the "Could not decode audio" prefix that callers/tests match on.
+  const WAV_FORMATS = "WAV (8/16/24/32-bit PCM or 32-bit float)";
+  if (IS_NODE) {
+    const reason = Ctor
+      ? `WebAudio can't read it (${
+          webAudioError instanceof Error
+            ? webAudioError.message
+            : String(webAudioError)
+        }) and ffmpeg is unavailable`
+      : "WebAudio (node-web-audio-api) could not be loaded and ffmpeg is unavailable";
     throw new Error(
-      `Could not decode audio: the bytes are neither WAV nor a format WebAudio ` +
-        `can read (${detail}).${hint}`
+      `Could not decode audio: input is not ${WAV_FORMATS} — ${reason}. ` +
+        `Install ffmpeg (the Package Manager UI can do this) to decode formats ` +
+        `like WebM/Opus, mp3, or m4a, or convert the audio to WAV upstream.`
     );
   }
 
+  if (Ctor) {
+    throw new Error(
+      `Could not decode audio: the bytes are neither WAV nor a format WebAudio ` +
+        `can read (${
+          webAudioError instanceof Error
+            ? webAudioError.message
+            : String(webAudioError)
+        }).`
+    );
+  }
+
+  // Browser worker without WebAudio (Firefox/Safari), or an Edge/Workers
+  // runtime with no WebAudio and no subprocess — only the pure-JS WAV path
+  // is available here.
   throw new Error(
-    "This audio isn't WAV and can't be decoded here — WebAudio is unavailable " +
-      "in this browser's worker (Firefox/Safari). Run this node on the server " +
-      "or convert the audio to WAV upstream."
+    `Could not decode audio: this runtime can only decode ${WAV_FORMATS} directly. ` +
+      `Convert the audio to WAV upstream, or run this node on a Node server where ` +
+      `ffmpeg can decode compressed formats.`
   );
 }
 

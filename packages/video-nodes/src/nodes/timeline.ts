@@ -22,7 +22,7 @@ import {
   type TimelineSequence,
   type TimelineTrack
 } from "@nodetool-ai/timeline";
-import { tagAsServer } from "@nodetool-ai/nodes-utils";
+import { tagAsNode } from "@nodetool-ai/nodes-utils";
 import { execFile as execFileCb } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
@@ -157,6 +157,33 @@ function mixableAudioClips(seq: TimelineSequence): TimelineClip[] {
     .sort((a, b) => a.startMs - b.startMs);
 }
 
+/**
+ * linkIds of audio-track clips that are the detached audio representation of a
+ * video clip. The mere presence of such a clip means the linked video's own
+ * muxed audio must be suppressed (the editor mutes the video element; audio
+ * comes only from audio-track clips). This is intentionally NOT gated on
+ * mute/hidden — those govern whether the audio clip is mixed in, not whether
+ * the video's embedded audio resurfaces. If the user deletes the audio clip,
+ * the store auto-unlinks the lone survivor, clearing the video's linkId, so the
+ * video's audio returns on its own.
+ */
+export function extractedAudioLinkIds(seq: TimelineSequence): Set<string> {
+  const tracks = trackById(seq.tracks);
+  const ids = new Set<string>();
+  for (const clip of seq.clips) {
+    const track = tracks.get(clip.trackId);
+    if (
+      track?.type === "audio" &&
+      clip.mediaType === "audio" &&
+      typeof clip.linkId === "string" &&
+      clip.linkId.length > 0
+    ) {
+      ids.add(clip.linkId);
+    }
+  }
+  return ids;
+}
+
 /** Scale + letterbox to the sequence frame, normalize fps and pixel format. */
 function segmentVideoFilter(width: number, height: number, fps: number): string {
   return (
@@ -177,8 +204,15 @@ async function encodeSegment(opts: {
   width: number;
   height: number;
   fps: number;
+  /**
+   * Drop the clip's own muxed audio in favor of silence, because a linked
+   * audio-track clip supplies this video's audio in the final mix. Mapping
+   * both would double the audio.
+   */
+  suppressEmbeddedAudio?: boolean;
 }): Promise<void> {
-  const { clip, srcPath, segPath, width, height, fps } = opts;
+  const { clip, srcPath, segPath, width, height, fps, suppressEmbeddedAudio } =
+    opts;
   const durationS = clip.durationMs / 1000;
   const filter = segmentVideoFilter(width, height, fps);
   const silentAudio = [
@@ -222,7 +256,9 @@ async function encodeSegment(opts: {
     return;
   }
 
-  const hasAudio = await ffprobeHasAudio(srcPath);
+  const hasAudio = suppressEmbeddedAudio
+    ? false
+    : await ffprobeHasAudio(srcPath);
   const seek: string[] = [];
   if (typeof clip.inPointMs === "number" && clip.inPointMs > 0) {
     seek.push("-ss", String(clip.inPointMs / 1000));
@@ -322,6 +358,7 @@ export class RenderTimelineNode extends BaseNode {
 
     const videoClips = renderableVideoClips(seq);
     const audioClips = this.include_audio === false ? [] : mixableAudioClips(seq);
+    const suppressedLinkIds = extractedAudioLinkIds(seq);
     if (videoClips.length === 0 && audioClips.length === 0) {
       throw new Error(
         `Timeline "${seq.name}" has no renderable clips with media — generate or import clip media first`
@@ -345,7 +382,18 @@ export class RenderTimelineNode extends BaseNode {
         const srcPath = path.join(workDir, `src_${i}`);
         await fs.writeFile(srcPath, bytes);
         const segPath = path.join(workDir, `seg_${i}.mp4`);
-        await encodeSegment({ clip, srcPath, segPath, width, height, fps });
+        const suppressEmbeddedAudio =
+          typeof clip.linkId === "string" &&
+          suppressedLinkIds.has(clip.linkId);
+        await encodeSegment({
+          clip,
+          srcPath,
+          segPath,
+          width,
+          height,
+          fps,
+          suppressEmbeddedAudio
+        });
         segments.push(segPath);
       }
 
@@ -665,7 +713,7 @@ export class AddClipsToTimelineNode extends BaseNode {
   }
 }
 
-export const TIMELINE_NODES = tagAsServer([
+export const TIMELINE_NODES = tagAsNode([
   RenderTimelineNode,
   TimelineTranscriptNode,
   AddClipsToTimelineNode

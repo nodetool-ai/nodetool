@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@mozilla/readability": "^0.6.0",
+    "@nodetool-ai/config": "*",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",

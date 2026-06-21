@@ -25,6 +25,7 @@
 import type { NodeClass } from "@nodetool-ai/node-sdk";
 import {
   ALL_PLATFORMS,
+  DEFAULT_PLATFORMS,
   NODE_AND_BROWSER_PLATFORMS,
   SERVER_PLATFORMS,
   type Platform
@@ -49,6 +50,19 @@ function tagWith<T extends readonly NodeClass[]>(
 /** Tag every class in `classes` as supporting node + workers + edge. */
 export function tagAsServer<T extends readonly NodeClass[]>(classes: T): T {
   return tagWith(classes, SERVER_PLATFORMS);
+}
+
+/**
+ * Tag every class in `classes` as supporting **only** the node tier — the
+ * (otherwise implicit) most-restrictive default. Use for nodes that spawn a
+ * subprocess (ffmpeg, ffprobe, yt-dlp, …) or write os.tmpdir() temp files:
+ * the workers (Cloudflare V8) and edge (Vercel/Deno) tiers have no subprocess
+ * and no filesystem, so offering them there is a guaranteed runtime failure.
+ * Stamping it explicitly documents the intent rather than relying on the
+ * unset default. Leaves any class with its own `static platforms` alone.
+ */
+export function tagAsNode<T extends readonly NodeClass[]>(classes: T): T {
+  return tagWith(classes, DEFAULT_PLATFORMS);
 }
 
 /**

@@ -47,6 +47,7 @@ import { TimelineProvider } from "../../stores/timeline/TimelineInstance";
 import { PreviewArea } from "./preview/PreviewArea";
 import { TimelineInspector } from "./Inspector/TimelineInspector";
 import { TranscriptPanel } from "./TranscriptPanel";
+import { useHasScript } from "../../hooks/timeline/useHasScript";
 import { ActivityIndicator } from "./ActivityIndicator";
 import {
   useGeneratingCount,
@@ -238,6 +239,9 @@ const InspectorRegion: React.FC = () => {
 
 const TranscriptRegion: React.FC = () => {
   const theme = useTheme();
+  const hasScript = useHasScript();
+
+  if (!hasScript) return null;
 
   return (
     <FlexColumn
