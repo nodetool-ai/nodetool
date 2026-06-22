@@ -7,12 +7,14 @@ jest.mock("../../../contexts/NodeContext", () => ({
 }));
 
 const mockUpdateNodeData = jest.fn();
+const mockUpdateEdgeHandle = jest.fn();
 
 describe("useDynamicProperty", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (useNodes as jest.Mock).mockReturnValue({
-      updateNodeData: mockUpdateNodeData
+      updateNodeData: mockUpdateNodeData,
+      updateEdgeHandle: mockUpdateEdgeHandle
     });
   });
 
@@ -160,6 +162,23 @@ describe("useDynamicProperty", () => {
           other: "value2"
         }
       });
+    });
+
+    it("updates connected edges so the renamed handle keeps its connection", () => {
+      const dynamicProperties = { oldName: "value1" };
+      const { result } = renderHook(() =>
+        useDynamicProperty("node-1", dynamicProperties)
+      );
+
+      act(() => {
+        result.current.handleUpdatePropertyName("oldName", "newName");
+      });
+
+      expect(mockUpdateEdgeHandle).toHaveBeenCalledWith(
+        "node-1",
+        "oldName",
+        "newName"
+      );
     });
 
     it("handles renaming to the same name", () => {

@@ -6,8 +6,9 @@ export const useDynamicProperty = (
   nodeId: string,
   dynamicProperties: Record<string, unknown>
 ) => {
-  const { updateNodeData } = useNodes((state) => ({
-    updateNodeData: state.updateNodeData
+  const { updateNodeData, updateEdgeHandle } = useNodes((state) => ({
+    updateNodeData: state.updateNodeData,
+    updateEdgeHandle: state.updateEdgeHandle
   }), shallow);
 
   const handleDeleteProperty = useCallback(
@@ -46,8 +47,12 @@ export const useDynamicProperty = (
       updateNodeData(nodeId, {
         dynamic_properties: updatedDynamicProperties
       });
+
+      // Dynamic properties are rendered as input handles, so keep any
+      // connected edges pointing at the renamed handle instead of dropping it.
+      updateEdgeHandle(nodeId, oldPropertyName, newPropertyName);
     },
-    [dynamicProperties, nodeId, updateNodeData]
+    [dynamicProperties, nodeId, updateNodeData, updateEdgeHandle]
   );
 
   return {
