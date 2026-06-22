@@ -2536,8 +2536,17 @@ export class PromptNode extends BaseNode {
   })
   declare prompt: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const props: Record<string, unknown> = Object.fromEntries(this.dynamicProps);
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    // Variables set by a Set Variable node upstream live on the shared
+    // ProcessingContext. Merge them in first so `{{ name }}` resolves against
+    // them, with this node's own dynamic inputs taking precedence on conflict.
+    const contextVars = context?.getVariables() ?? {};
+    const props: Record<string, unknown> = {
+      ...contextVars,
+      ...Object.fromEntries(this.dynamicProps)
+    };
     return { output: renderTemplate(String(this.prompt ?? ""), props) };
   }
 }

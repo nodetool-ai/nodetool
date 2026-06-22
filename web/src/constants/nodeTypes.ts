@@ -25,6 +25,10 @@ export const STRING_NODE_TYPE = "nodetool.constant.String";
 export const CONSTANT_IMAGE_NODE_TYPE = "nodetool.constant.Image";
 export const CONSTANT_VIDEO_NODE_TYPE = "nodetool.constant.Video";
 
+// --- Variable nodes --------------------------------------------------------
+export const SET_VARIABLE_NODE_TYPE = "nodetool.variable.SetVariable";
+export const GET_VARIABLE_NODE_TYPE = "nodetool.variable.GetVariable";
+
 // --- Dynamic-schema nodes --------------------------------------------------
 export const DYNAMIC_FAL_NODE_TYPE = "fal.DynamicFal";
 export const DYNAMIC_KIE_NODE_TYPE = "kie.dynamic_schema.KieAI";

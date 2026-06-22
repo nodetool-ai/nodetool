@@ -1243,6 +1243,21 @@ export class ProcessingContext {
     }
   }
 
+  /** Whether a shared variable with this name has been set. */
+  hasVariable(key: string): boolean {
+    return Object.prototype.hasOwnProperty.call(this._variables, key);
+  }
+
+  /**
+   * Snapshot of all shared variables (name → value). Used by nodes that
+   * resolve variable references against the workflow's shared context — e.g.
+   * the Prompt node merges these into its `{{ name }}` template variables so a
+   * Set Variable node upstream can supply values without an explicit wire.
+   */
+  getVariables(): Record<string, unknown> {
+    return { ...this._variables };
+  }
+
   async storeStepResult(key: string, value: unknown): Promise<string> {
     this._variables[key] = value;
     return "";

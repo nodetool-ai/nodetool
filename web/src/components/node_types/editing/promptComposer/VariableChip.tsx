@@ -31,20 +31,23 @@ const chipStyles = (theme: Theme, known: boolean) =>
 
 export const VariableChip: React.FC<{ expr: string }> = ({ expr }) => {
   const theme = useTheme();
-  const { knownVariables } = usePromptComposerContext();
-  // The leading identifier (before any filter) is the dynamic-input name.
+  const { knownVariables, upstreamVariables } = usePromptComposerContext();
+  // The leading identifier (before any filter) is the variable name.
   const name = expr.split("|")[0].trim();
-  const known = knownVariables.has(name);
+  const isInput = knownVariables.has(name);
+  const isUpstream = upstreamVariables.has(name);
+  const known = isInput || isUpstream;
+  const title = known
+    ? isUpstream && !isInput
+      ? `Variable "${name}" — set by an upstream Set Variable node`
+      : `Variable "${name}"`
+    : `"${name}" has no matching input — add it as a variable or set it upstream`;
   return (
     <span
       css={chipStyles(theme, known)}
       className="prompt-variable-chip nodrag"
       contentEditable={false}
-      title={
-        known
-          ? `Variable "${name}"`
-          : `"${name}" has no matching input — add it as a variable`
-      }
+      title={title}
     >
       {expr}
     </span>

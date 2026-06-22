@@ -2,6 +2,7 @@ export * from "./nodes/control.js";
 export * from "./nodes/compare.js";
 export * from "./nodes/constant.js";
 export * from "./nodes/list.js";
+export * from "./nodes/variable.js";
 export * from "./nodes/input.js";
 export * from "./nodes/subgraph.js";
 export * from "./nodes/workflow.js";
