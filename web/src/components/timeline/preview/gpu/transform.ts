@@ -50,12 +50,39 @@ export function containBaseScale(
  * Position is in sequence pixels relative to the canvas center.
  * Anchor is normalized [0,1] (0.5 = quad center).
  */
+/**
+ * Memoize the last computed matrix per input tuple. `buildTransformMatrix`
+ * runs once per layer per frame with trig; for the common case of an unchanged
+ * transform/base (a clip sitting still) we return the cached Float32Array
+ * instead of recomputing. The cache is keyed by a small string built from the
+ * inputs and bounded so it can't grow unbounded across many distinct clips.
+ */
+const matrixCache = new Map<string, Float32Array>();
+const MATRIX_CACHE_MAX = 64;
+
+function matrixCacheKey(
+  t: ClipTransform,
+  base: { x: number; y: number },
+  width: number,
+  height: number
+): string {
+  return (
+    `${t.position.x},${t.position.y},${t.scale.x},${t.scale.y},` +
+    `${t.rotation},${t.anchor.x},${t.anchor.y},` +
+    `${base.x},${base.y},${width},${height}`
+  );
+}
+
 export function buildTransformMatrix(
   transform: ClipTransform,
   base: { x: number; y: number },
   width: number,
   height: number
 ): Float32Array {
+  const cacheKey = matrixCacheKey(transform, base, width, height);
+  const cached = matrixCache.get(cacheKey);
+  if (cached) return cached;
+
   const sx = base.x * transform.scale.x;
   const sy = base.y * transform.scale.y;
   const cos = Math.cos(transform.rotation);
@@ -100,6 +127,15 @@ export function buildTransformMatrix(
   m[13] = ty + ay - (m[1] * ax + m[5] * ay);
   m[14] = 0;
   m[15] = 1;
+
+  // Bound the cache: evict the oldest entry (insertion order) when full. The
+  // returned matrix is treated as read-only by all callers, so sharing it is
+  // safe.
+  if (matrixCache.size >= MATRIX_CACHE_MAX) {
+    const oldest = matrixCache.keys().next().value;
+    if (oldest !== undefined) matrixCache.delete(oldest);
+  }
+  matrixCache.set(cacheKey, m);
   return m;
 }
 
