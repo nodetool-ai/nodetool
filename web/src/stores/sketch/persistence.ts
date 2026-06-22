@@ -8,8 +8,6 @@ import {
   type SketchTool
 } from "../../components/sketch/types";
 
-export const DEFAULT_SKETCH_DOCUMENT_WIDTH = 1024;
-export const DEFAULT_SKETCH_DOCUMENT_HEIGHT = 1024;
 export const DEFAULT_SKETCH_ACTIVE_TOOL: SketchTool = "brush";
 export const DEFAULT_SKETCH_ZOOM = 1;
 export const DEFAULT_SKETCH_PAN: Point = { x: 0, y: 0 };

@@ -25,7 +25,7 @@ interface PendingNodeCreateState {
 }
 
 /** Maximum age (ms) for a pending request before the bridge discards it. */
-export const PENDING_NODE_CREATE_MAX_AGE_MS = 1500;
+const PENDING_NODE_CREATE_MAX_AGE_MS = 1500;
 
 const usePendingNodeCreateStore = create<PendingNodeCreateState>((set, get) => ({
   pending: null,
