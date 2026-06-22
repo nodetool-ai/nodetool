@@ -7,6 +7,7 @@ export const contentType = ogContentType;
 export default function Image() {
   return ogImage(
     "NodeTool vs ComfyUI",
-    "The studio around the node editor — every modality, every provider."
+    "The studio around the node editor — every modality, every provider.",
+    { image: "screen_canvas.png", accent: "blue", eyebrow: "Comparison" }
   );
 }

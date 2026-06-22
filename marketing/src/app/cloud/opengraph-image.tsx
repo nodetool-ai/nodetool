@@ -6,7 +6,8 @@ export const contentType = ogContentType;
 
 export default function Image() {
   return ogImage(
-    "NodeTool Cloud",
-    "Visual AI workflows in your browser. Zero setup, BYOK."
+    "Visual AI workflows in your browser",
+    "Zero setup, no GPU. Bring your own keys to every provider.",
+    { image: "screen_chat.png", accent: "cyan", eyebrow: "Cloud — Alpha" }
   );
 }

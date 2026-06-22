@@ -28,7 +28,6 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
     url: "https://nodetool.ai/use-cases/product-video",
     siteName: "NodeTool",
-    images: [{ url: "/smartwatch.png", alt: "AI-generated product video" }],
     locale: "en_US",
     type: "article",
   },
@@ -37,7 +36,6 @@ export const metadata: Metadata = {
     title: "AI Product Video Generator",
     description:
       "From a campaign brief and a product photo to a cinematic product video, on one open canvas.",
-    images: ["/smartwatch.png"],
   },
 };
 

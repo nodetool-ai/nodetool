@@ -6,7 +6,8 @@ export const contentType = ogContentType;
 
 export default function Image() {
   return ogImage(
-    "NodeTool Studio",
-    "AI workflows that run on your machine. Local-first, BYOK."
+    "AI that runs on your machine",
+    "Local-first desktop app. Ollama, MLX, and GGUF models offline. BYOK.",
+    { image: "screen_model_manager.png", accent: "emerald", eyebrow: "Studio" }
   );
 }

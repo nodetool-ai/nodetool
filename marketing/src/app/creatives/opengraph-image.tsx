@@ -6,7 +6,8 @@ export const contentType = ogContentType;
 
 export default function Image() {
   return ogImage(
-    "NodeTool for creatives",
-    "Image, music & video in one open studio. Every model, your keys."
+    "One open studio for every medium",
+    "Image, music & video on one canvas. Every model, your keys.",
+    { image: "creatives_workflow.png", accent: "violet", eyebrow: "For creatives" }
   );
 }

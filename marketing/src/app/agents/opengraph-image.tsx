@@ -6,7 +6,8 @@ export const contentType = ogContentType;
 
 export default function Image() {
   return ogImage(
-    "Agents for creative work",
-    "An art director that never sleeps, on your canvas."
+    "An art director that never sleeps",
+    "Drop an agent on the canvas, hand it a brief, watch it ship the work.",
+    { image: "screen_workflow.png", accent: "rose", eyebrow: "Agents" }
   );
 }
