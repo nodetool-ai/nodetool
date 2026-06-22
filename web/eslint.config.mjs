@@ -151,6 +151,21 @@ export default [
             "Use a BORDER_RADIUS token (xs/sm/md/lg/xl/xxl/pill/circle) instead of a hardcoded px radius. See ui_primitives/tokens.ts.",
         },
         {
+          // borderRadius: 8 (magic number) → use a BORDER_RADIUS token. The
+          // px-string rule above misses numeric literals; 0 (flush) is allowed.
+          selector: "Property[key.name='borderRadius'] > Literal[value>0]",
+          message:
+            "Use a BORDER_RADIUS token (xs/sm/md/lg/xl/xxl/pill/circle) instead of a magic-number radius. See ui_primitives/tokens.ts and docs/DESIGN.md §4.",
+        },
+        {
+          // borderRadius: "var(--rounded-lg)" raw string → use the BORDER_RADIUS
+          // constant (or theme.rounded.* for semantic aliases) in TSX.
+          selector:
+            "Property[key.name='borderRadius'] > Literal[value=/var\\(--rounded/]",
+          message:
+            "Use a BORDER_RADIUS constant (or theme.rounded.*) instead of a raw var(--rounded-*) string in TSX. See docs/DESIGN.md §4.",
+        },
+        {
           // fontSize: "14px" / "0.85rem" → use a TYPOGRAPHY / FONT_SIZE token
           // (or var(--fontSize*)). Icon sizing should use a token too.
           selector:
@@ -165,6 +180,27 @@ export default [
             "Property[key.name=/^(padding|margin|gap|rowGap|columnGap)$/] > Literal[value=/^[0-9]+px$/]",
           message:
             "Snap spacing to the 4px grid: use SPACING tokens in MUI sx, or grid-aligned px in emotion css(). See ui_primitives/spacing.ts and docs/DESIGN.md.",
+        },
+        {
+          // zIndex: 9999 (magic integer) → use Z_INDEX.* or theme.zIndex.*.
+          // 0 (normal flow) and negative values (UnaryExpression) are allowed.
+          selector: "Property[key.name='zIndex'] > Literal[value>0]",
+          message:
+            "Use a Z_INDEX token (base/raised/dropdown/sticky/overlay/modal/tooltip/toast) or theme.zIndex.* instead of a magic z-index integer. See ui_primitives/tokens.ts and docs/DESIGN.md §6.",
+        },
+        {
+          // fontWeight: 700 / "bold" / 300 → only 400/500/600 (FONT_WEIGHT.*).
+          selector:
+            "Property[key.name='fontWeight'] > Literal[value=/^(100|200|300|700|800|900|bold|bolder|lighter)$/]",
+          message:
+            "Use FONT_WEIGHT.normal/medium/semibold (400/500/600). 700/bold/300 are not sanctioned weights. See docs/DESIGN.md §1.",
+        },
+        {
+          // color/background/border/shadow: "#abc" / "rgb(…)" → theme.vars.palette.*.
+          selector:
+            "Property[key.name=/^(color|background|backgroundColor|borderColor|borderTopColor|borderRightColor|borderBottomColor|borderLeftColor|outlineColor|fill|stroke|boxShadow|textDecorationColor|caretColor|columnRuleColor)$/] > Literal[value=/#[0-9a-fA-F]+|rgba?\\(/]",
+          message:
+            "Use a theme.vars.palette.* token instead of a hardcoded hex/rgb color. New colors go in paletteDark.ts + paletteLight.ts as c_*. See docs/DESIGN.md §3.",
         },
       ],
     },
