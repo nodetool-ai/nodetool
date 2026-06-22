@@ -1,8 +1,16 @@
 import useResultsStore from "../ResultsStore";
+import type { TerminalUpdate } from "../ApiTypes";
 
 const WF = "wf-1";
 const JOB = "job-1";
 const NODE = "node-1";
+
+const term = (overrides: Partial<TerminalUpdate> = {}): TerminalUpdate => ({
+  type: "terminal_update",
+  node_id: NODE,
+  content: "",
+  ...overrides
+});
 
 const resetStore = () =>
   useResultsStore.setState({
@@ -149,8 +157,8 @@ describe("ResultsStore — chunks", () => {
 describe("ResultsStore — terminal", () => {
   it("addTerminal appends content", () => {
     const s = useResultsStore.getState();
-    s.addTerminal(WF, JOB, NODE, { content: "line1\n", cols: 80, rows: 24 });
-    s.addTerminal(WF, JOB, NODE, { content: "line2\n" });
+    s.addTerminal(WF, JOB, NODE, term({ content: "line1\n", cols: 80, rows: 24 }));
+    s.addTerminal(WF, JOB, NODE, term({ content: "line2\n" }));
     const t = useResultsStore.getState().getTerminal(WF, JOB, NODE);
     expect(t?.buffer).toBe("line1\nline2\n");
     expect(t?.version).toBe(0);
@@ -158,15 +166,15 @@ describe("ResultsStore — terminal", () => {
 
   it("addTerminal with reset replaces buffer and bumps version", () => {
     const s = useResultsStore.getState();
-    s.addTerminal(WF, JOB, NODE, { content: "old" });
-    s.addTerminal(WF, JOB, NODE, { content: "new-snapshot", reset: true });
+    s.addTerminal(WF, JOB, NODE, term({ content: "old" }));
+    s.addTerminal(WF, JOB, NODE, term({ content: "new-snapshot", reset: true }));
     const t = useResultsStore.getState().getTerminal(WF, JOB, NODE);
     expect(t?.buffer).toBe("new-snapshot");
     expect(t?.version).toBe(1);
   });
 
   it("addTerminal uses default cols/rows when not provided", () => {
-    useResultsStore.getState().addTerminal(WF, JOB, NODE, { content: "x" });
+    useResultsStore.getState().addTerminal(WF, JOB, NODE, term({ content: "x" }));
     const t = useResultsStore.getState().getTerminal(WF, JOB, NODE);
     expect(t?.cols).toBe(80);
     expect(t?.rows).toBe(24);
