@@ -27,6 +27,7 @@ import { useTheme } from "@mui/material/styles";
 import ThreadList from "../thread/ThreadList";
 import { useParams, useNavigate } from "react-router-dom";
 import ChatView from "./ChatView";
+import ChatErrorBanner from "./ChatErrorBanner";
 import WelcomePlaceholder from "./WelcomePlaceholder";
 import useGlobalChatStore, {
   useThreadsQuery
@@ -523,10 +524,17 @@ const GlobalChat: React.FC = () => {
         sx={{ height: "100%", maxHeight: "100%" }}
       >
         {!alertDismissed && error && (
-          <AlertBanner
-          className="global-chat-status-alert"
-          severity="error"
-          onClose={() => setAlertDismissed(true)}
+          <ChatErrorBanner
+            className="global-chat-status-alert"
+            error={error}
+            onClose={() => setAlertDismissed(true)}
+            onRetry={() => {
+              setAlertDismissed(true);
+              connect().catch((err) => {
+                console.error("Retry connection failed:", err);
+              });
+            }}
+            retryLabel="Retry"
             sx={{
               position: "absolute",
               top: "5rem",
@@ -537,25 +545,7 @@ const GlobalChat: React.FC = () => {
               zIndex: 1001,
               flexShrink: 0
             }}
-          >
-            <FlexRow gap={1} align="center" wrap>
-              <Text size="small" component="span">
-                {error}
-              </Text>
-              <EditorButton
-                onClick={() => {
-                  setAlertDismissed(true);
-                  connect().catch((err) => {
-                    console.error("Retry connection failed:", err);
-                  });
-                }}
-                variant="outlined"
-                sx={{ ml: "auto", whiteSpace: "nowrap" }}
-              >
-                Retry
-              </EditorButton>
-            </FlexRow>
-          </AlertBanner>
+          />
         )}
 
         <FlexRow
