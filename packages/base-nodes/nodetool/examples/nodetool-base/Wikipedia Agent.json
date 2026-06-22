@@ -2,7 +2,7 @@
   "id": "0b43765f-3ad4-47f4-bfdc-818100b458fd",
   "access": "public",
   "created_at": "2026-01-09T22:48:14.855627",
-  "updated_at": "2026-01-09T22:48:14.855627",
+  "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Wikipedia Agent",
   "tool_name": null,
   "description": "Wikipedia style research and documentation agent.",
@@ -54,7 +54,7 @@
               "name": "browser"
             }
           ],
-          "max_tokens": 8192,
+          "max_tokens": 100000,
           "prompt": "",
           "system": "You are a research assistant.\n\nGoal\n- Conduct thorough research on the given objective\n- Use tools to gather information from multiple sources\n- Synthesize information into the structured output format specified\n\nTools Available\n- google_search: Search the web for information\n- browser: Navigate to URLs and extract content\n\nWorkflow\n1. Break down the research objective into specific queries\n2. Use google_search to find relevant sources\n3. Use browser to extract content from promising URLs\n4. Synthesize all findings into the requested output format\n\nOutput Format\n- Return a structured JSON object matching the defined output schema\n- Be thorough and cite sources where appropriate\n- Ensure all required fields are populated with accurate information\n",
           "mode": "plan"
@@ -98,8 +98,8 @@
           "selectable": true
         },
         "dynamic_properties": {
-          "url": null,
-          "label": null
+          "url": "https://en.wikipedia.org/wiki/Fine-tuning_(deep_learning)",
+          "label": "LLM fine tuning"
         },
         "dynamic_outputs": {}
       },

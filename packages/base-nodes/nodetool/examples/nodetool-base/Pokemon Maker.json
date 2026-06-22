@@ -2,7 +2,7 @@
   "id": "pokemon-maker",
   "access": "private",
   "created_at": "2026-01-18T08:52:36.769859",
-  "updated_at": "2026-01-18T08:57:04.462867",
+  "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Pokemon Maker",
   "tool_name": null,
   "description": "",
@@ -85,7 +85,7 @@
           "bypassed": false
         },
         "dynamic_properties": {
-          "animals": ""
+          "animals": "lion, eagle, dragon, bear"
         },
         "dynamic_outputs": {}
       },
@@ -118,7 +118,7 @@
         "data": {
           "model": {},
           "input_text": "",
-          "max_tokens": 4096
+          "max_tokens": 100000
         },
         "ui_properties": {
           "selected": false,

@@ -2,7 +2,7 @@
   "id": "music_video_visualizer_001",
   "access": "public",
   "created_at": "2026-01-09T00:00:00Z",
-  "updated_at": "2026-01-09T00:00:00Z",
+  "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Music Video Visualizer",
   "tool_name": null,
   "description": "Create reactive visuals from audio tracks with mood-matched imagery. Transcribes audio, analyzes mood/energy, and generates visual frames synced to the music.",
@@ -45,7 +45,8 @@
             "type": "audio",
             "uri": ""
           },
-          "name": "audio_track"
+          "name": "audio_track",
+          "description": "The song or audio track to visualize"
         },
         "ui_properties": {
           "title": "1️⃣ Song audio"
@@ -56,7 +57,8 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "value": "electronic ambient",
-          "name": "genre_hint"
+          "name": "genre_hint",
+          "description": "Musical genre to guide the visual mood"
         },
         "ui_properties": {
           "title": "Genre hint"
@@ -67,7 +69,8 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "value": "abstract geometric patterns, neon colors, flowing energy",
-          "name": "visual_style"
+          "name": "visual_style",
+          "description": "Visual aesthetic for the generated frames"
         },
         "ui_properties": {
           "title": "Visual style"
@@ -78,7 +81,8 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "value": "8",
-          "name": "num_frames"
+          "name": "num_frames",
+          "description": "How many visual frames to generate"
         },
         "ui_properties": {
           "title": "Frame count"
@@ -99,9 +103,9 @@
         "type": "nodetool.text.Prompt",
         "data": {},
         "dynamic_properties": {
-          "transcription": "",
-          "genre": "",
-          "style": ""
+          "transcription": "Drifting through the night, lights blur into color, we rise on the wave of sound",
+          "genre": "electronic ambient",
+          "style": "abstract geometric patterns, neon colors, flowing energy"
         },
         "ui_properties": {
           "title": "Build mood prompt"
@@ -123,10 +127,10 @@
         "type": "nodetool.text.Prompt",
         "data": {},
         "dynamic_properties": {
-          "count": "",
-          "analysis": "",
-          "genre": "",
-          "style": ""
+          "count": "8",
+          "analysis": "Dreamy, weightless energy that builds toward a euphoric, glowing climax",
+          "genre": "electronic ambient",
+          "style": "abstract geometric patterns, neon colors, flowing energy"
         },
         "ui_properties": {
           "title": "Build frame prompt"
@@ -137,7 +141,7 @@
         "type": "nodetool.generators.ListGenerator",
         "data": {
           "model": {},
-          "max_tokens": 2048
+          "max_tokens": 100000
         },
         "ui_properties": {
           "title": "4️⃣ Generate frame prompts"

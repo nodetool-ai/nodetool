@@ -2,7 +2,7 @@
   "id": "story_to_video_generator",
   "access": "public",
   "created_at": "2025-10-12T21:09:45.374626",
-  "updated_at": "2025-10-12T21:09:45.374655",
+  "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Story to Video Generator",
   "tool_name": null,
   "description": "Transform story ideas into cinematic AI-generated videos. An agent crafts detailed visual prompts optimized for video generation, then creates the video using Gemini Veo.",
@@ -23,7 +23,8 @@
         "type": "nodetool.input.StringInput",
         "data": {
           "name": "story_theme",
-          "value": "A lone astronaut discovering an ancient alien civilization on Mars"
+          "value": "A lone astronaut discovering an ancient alien civilization on Mars",
+          "description": "One-line story idea to turn into a video"
         },
         "ui_properties": {
           "position": {
@@ -53,10 +54,10 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "Build prompt"
+          "title": "2️⃣ Build prompt"
         },
         "dynamic_properties": {
-          "THEME": ""
+          "THEME": "A lone astronaut discovering an ancient alien civilization on Mars"
         },
         "dynamic_outputs": {}
       },
@@ -67,7 +68,7 @@
         "data": {
           "model": {},
           "system": "You are a professional video prompt engineer specializing in cinematic AI video generation. Your job is to transform story ideas into detailed, visually compelling prompts optimized for AI video models like Gemini Veo.\n\nGuidelines:\n- Focus on visual elements: camera movements, lighting, colors, atmosphere\n- Include specific details about setting, action, and mood\n- Use cinematic language (e.g., 'tracking shot', 'golden hour lighting', 'slow motion')\n- Keep prompts under 150 words but rich with visual detail\n- Avoid abstract concepts; make everything concrete and visual\n- Consider composition, framing, and movement",
-          "max_tokens": 300
+          "max_tokens": 100000
         },
         "ui_properties": {
           "position": {
@@ -77,7 +78,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "2️⃣ Engineer video prompt"
+          "title": "3️⃣ Engineer video prompt"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -104,7 +105,7 @@
           "width": 416,
           "selectable": true,
           "height": 360,
-          "title": "3️⃣ Generate video"
+          "title": "4️⃣ Generate video"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -139,7 +140,7 @@
             "type": "file_path",
             "path": "/Users/mg/Desktop/ghibli"
           },
-          "description": ""
+          "description": "Optional local folder to save generated videos"
         },
         "ui_properties": {
           "position": {
@@ -148,7 +149,8 @@
           },
           "zIndex": 0,
           "width": 280,
-          "selectable": true
+          "selectable": true,
+          "title": "Output folder"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}

@@ -2,7 +2,7 @@
   "id": "",
   "access": "private",
   "created_at": "2026-06-20T11:20:20.064Z",
-  "updated_at": "2026-06-20T20:19:48.531Z",
+  "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Concept Art Iteration Board",
   "tool_name": null,
   "description": "Turn a creative brief, style, and mood into concept art variations. An agent sets the art direction, then a batch of images is generated.",
@@ -149,7 +149,7 @@
           "zIndex": 0,
           "width": 461,
           "height": 489,
-          "title": "Render concept art",
+          "title": "8️⃣ Render concept art",
           "selectable": true,
           "bypassed": false,
           "selected_generation": "8200a9c8-6d27-4298-9e02-19b2df7abfa0"
@@ -168,7 +168,7 @@
             "name": ""
           },
           "input_text": "",
-          "max_tokens": 2048
+          "max_tokens": 100000
         },
         "ui_properties": {
           "position": {
@@ -178,7 +178,7 @@
           "zIndex": 0,
           "width": 390,
           "height": 292,
-          "title": "Generate variations",
+          "title": "7️⃣ Generate variations",
           "selectable": true,
           "bypassed": false
         },
@@ -212,7 +212,7 @@
           },
           "history": [],
           "thread_id": "",
-          "max_tokens": 1024
+          "max_tokens": 100000
         },
         "ui_properties": {
           "position": {
@@ -222,7 +222,7 @@
           "zIndex": 0,
           "width": 319,
           "height": 207,
-          "title": "Set art direction",
+          "title": "5️⃣ Set art direction",
           "selectable": true,
           "bypassed": false
         },
@@ -245,7 +245,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "Brief",
+          "title": "1️⃣ Brief",
           "selectable": true,
           "bypassed": false
         },
@@ -267,7 +267,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "Style",
+          "title": "2️⃣ Style",
           "selectable": true,
           "bypassed": false
         },
@@ -289,7 +289,7 @@
           },
           "zIndex": 0,
           "width": 280,
-          "title": "Mood",
+          "title": "3️⃣ Mood",
           "selectable": true,
           "bypassed": false
         },
@@ -310,12 +310,13 @@
           "zIndex": 0,
           "width": 418,
           "height": 563,
+          "title": "6️⃣ Build variation prompts",
           "selectable": true,
           "bypassed": false
         },
         "dynamic_properties": {
-          "direction": "",
-          "style": ""
+          "direction": "Ancient tree-spirit guardian rendered as painterly fantasy concept art with dramatic rim lighting and rich, mossy greens.",
+          "style": "Digital painting, concept art style, painterly, dramatic lighting, rich colors"
         },
         "dynamic_outputs": {}
       },
@@ -334,13 +335,14 @@
           "zIndex": 0,
           "width": 377,
           "height": 571,
+          "title": "4️⃣ Build art-direction prompt",
           "selectable": true,
           "bypassed": false
         },
         "dynamic_properties": {
-          "brief": "",
-          "style": "",
-          "mood": ""
+          "brief": "A mystical forest guardian - ancient tree spirit protecting enchanted woods. Fantasy RPG character design.",
+          "style": "Digital painting, concept art style, painterly, dramatic lighting, rich colors",
+          "mood": "mysterious, ancient, powerful, serene, magical"
         },
         "dynamic_outputs": {}
       }

@@ -2,7 +2,7 @@
   "id": "competitive_analysis",
   "access": "public",
   "created_at": "2025-11-22T16:54:18.095690",
-  "updated_at": "2025-11-22T16:54:18.095690",
+  "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Competitive Analysis",
   "tool_name": null,
   "description": "Analyze competitor offerings and market positioning for strategic planning. Fetches competitor information from Google search results.",
@@ -53,9 +53,9 @@
           "selectable": true
         },
         "dynamic_properties": {
-          "company": null,
-          "swot": null,
-          "positioning": null
+          "company": "TaskFlow AI — AI-powered project management tool for remote teams and startups, $29/month per user.",
+          "swot": "Strengths: AI task prioritization and automation. Weaknesses: smaller team and brand. Opportunities: underserved startups. Threats: incumbents with bigger budgets.",
+          "positioning": "AI-first project management designed for modern remote teams; differentiate on automation and analytics, target startups underserved by Asana."
         },
         "dynamic_outputs": {}
       },
@@ -105,7 +105,7 @@
           },
           "history": [],
           "thread_id": null,
-          "max_tokens": 1200
+          "max_tokens": 100000
         },
         "ui_properties": {
           "title": "7️⃣ SWOT analyst",
@@ -138,8 +138,8 @@
           "selectable": true
         },
         "dynamic_properties": {
-          "company": null,
-          "competitors": null
+          "company": "TaskFlow AI — AI-powered project management tool for remote teams and startups, $29/month per user.",
+          "competitors": "Asana, Monday.com, and Jira — established project management platforms with broad feature sets and large user bases."
         },
         "dynamic_outputs": {}
       },
@@ -161,9 +161,9 @@
           "selectable": true
         },
         "dynamic_properties": {
-          "asana_info": null,
-          "monday_info": null,
-          "jira_info": null
+          "asana_info": "Asana: work management platform, timelines and boards, from ~$10.99/user/month, strong for cross-team coordination.",
+          "monday_info": "Monday.com: visual Work OS with automations and dashboards, from ~$9/user/month, highly customizable.",
+          "jira_info": "Jira: issue tracking built for software teams, agile boards and sprints, from ~$7.75/user/month."
         },
         "dynamic_outputs": {}
       },
@@ -254,7 +254,7 @@
           },
           "history": [],
           "thread_id": null,
-          "max_tokens": 1000
+          "max_tokens": 100000
         },
         "ui_properties": {
           "title": "9️⃣ Positioning analyst",
@@ -287,8 +287,8 @@
           "selectable": true
         },
         "dynamic_properties": {
-          "company": null,
-          "competitors": null
+          "company": "TaskFlow AI — AI-powered project management tool for remote teams and startups, $29/month per user.",
+          "competitors": "Asana, Monday.com, and Jira — established project management platforms with broad feature sets and large user bases."
         },
         "dynamic_outputs": {}
       }

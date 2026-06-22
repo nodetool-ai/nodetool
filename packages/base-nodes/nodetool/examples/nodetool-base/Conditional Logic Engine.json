@@ -2,7 +2,7 @@
   "id": "",
   "access": "private",
   "created_at": "2026-01-10T00:16:41.254909",
-  "updated_at": "2026-01-10T00:17:04.186127",
+  "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Conditional Logic Engine",
   "tool_name": null,
   "description": "Workflow that demonstrates multi-branch decision logic with value routing.",
@@ -201,12 +201,12 @@
           "title": "📋 Decision report"
         },
         "dynamic_properties": {
-          "value": null,
-          "gt_100": null,
-          "lt_50": null,
-          "combined": null,
-          "route": null,
-          "processing": null
+          "value": "75",
+          "gt_100": "false",
+          "lt_50": "false",
+          "combined": "false",
+          "route": "MEDIUM_VALUE",
+          "processing": "🟡 MEDIUM VALUE: 75 is between 50 and 100. Balanced processing selected."
         },
         "dynamic_outputs": {}
       },
@@ -353,7 +353,7 @@
           "title": "🔴 High message"
         },
         "dynamic_properties": {
-          "value": null
+          "value": "75"
         },
         "dynamic_outputs": {}
       },
@@ -375,7 +375,7 @@
           "title": "Selected message"
         },
         "dynamic_properties": {
-          "text": null
+          "text": "🟡 MEDIUM VALUE: 75 is between 50 and 100. Balanced processing selected."
         },
         "dynamic_outputs": {}
       },
@@ -415,7 +415,7 @@
           "title": "🔵 Low message"
         },
         "dynamic_properties": {
-          "value": null
+          "value": "75"
         },
         "dynamic_outputs": {}
       },
@@ -437,7 +437,7 @@
           "title": "🟡 Medium message"
         },
         "dynamic_properties": {
-          "value": null
+          "value": "75"
         },
         "dynamic_outputs": {}
       }

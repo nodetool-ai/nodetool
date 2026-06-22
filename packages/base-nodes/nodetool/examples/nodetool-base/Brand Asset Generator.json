@@ -2,7 +2,7 @@
   "id": "",
   "access": "private",
   "created_at": "2026-01-10T00:37:56.360348",
-  "updated_at": "2026-01-10T00:37:59.372383",
+  "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Brand Asset Generator",
   "tool_name": null,
   "description": "Generate brand assets for a given brand.",
@@ -131,7 +131,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Add text overlay"
+          "title": "9️⃣ Add text overlay"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -153,7 +153,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Tagline / extra text"
+          "title": "8️⃣ Tagline / extra text"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -183,7 +183,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Add colored label"
+          "title": "7️⃣ Add colored label"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -205,7 +205,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Brand name"
+          "title": "1️⃣ Brand name"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -230,7 +230,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Brand color"
+          "title": "6️⃣ Brand color"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -258,7 +258,7 @@
           "selectable": true,
           "bypassed": false,
           "height": 400,
-          "title": "Render logo image"
+          "title": "5️⃣ Render logo image"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -269,7 +269,7 @@
         "data": {
           "model": {},
           "input_text": "",
-          "max_tokens": 2048
+          "max_tokens": 100000
         },
         "ui_properties": {
           "position": {
@@ -280,7 +280,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Generate logo"
+          "title": "4️⃣ Generate logo prompts"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -300,11 +300,11 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Build image prompt"
+          "title": "3️⃣ Build image prompt"
         },
         "dynamic_properties": {
-          "brand_name": null,
-          "brand_description": null
+          "brand_name": "TechFlow",
+          "brand_description": "A modern tech startup focused on productivity tools. Clean, minimal aesthetic with futuristic vibes."
         },
         "dynamic_outputs": {}
       },
@@ -325,7 +325,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Brand description"
+          "title": "2️⃣ Brand description"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}

@@ -2,7 +2,7 @@
   "id": "",
   "access": "private",
   "created_at": "2025-12-21T13:33:59.006334",
-  "updated_at": "2025-12-21T13:35:35.096121",
+  "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Data Validation Pipeline",
   "tool_name": null,
   "description": "Validate and clean data for quality assurance before processing.",
@@ -100,7 +100,7 @@
           },
           "history": [],
           "thread_id": null,
-          "max_tokens": 800
+          "max_tokens": 100000
         },
         "ui_properties": {
           "position": {
