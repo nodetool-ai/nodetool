@@ -8,6 +8,6 @@ export default function Image() {
   return ogImage(
     "AI that runs on your machine",
     "Local-first desktop app. Ollama, MLX, and GGUF models offline. BYOK.",
-    { image: "screen_model_manager.png", accent: "emerald", eyebrow: "Studio" }
+    { image: "screen_assets.png", accent: "emerald", eyebrow: "Studio" }
   );
 }

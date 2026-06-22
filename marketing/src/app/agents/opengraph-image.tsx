@@ -8,6 +8,6 @@ export default function Image() {
   return ogImage(
     "An art director that never sleeps",
     "Drop an agent on the canvas, hand it a brief, watch it ship the work.",
-    { image: "screen_workflow.png", accent: "rose", eyebrow: "Agents" }
+    { image: "screen_canvas.png", accent: "rose", eyebrow: "Agents" }
   );
 }
