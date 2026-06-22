@@ -22,10 +22,21 @@ import AssetViewer from "../assets/AssetViewer";
 import BitmapCanvas from "./BitmapCanvas";
 import { useNodeResultHistory } from "../../hooks/nodes/useNodeResultHistory";
 import { useNodeGenerations } from "../../hooks/nodes/useNodeGenerations";
-import { outputOf, runVariantValues } from "../../utils/nodeGenerations";
+import { outputOf } from "../../utils/nodeGenerations";
+import type { Generation, RunGroup } from "../../utils/nodeGenerations";
 import type { Asset } from "../../stores/ApiTypes";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
-import { CopyButton, Dialog, ToolbarIconButton, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import {
+  CopyButton,
+  Dialog,
+  StatusIndicator,
+  ToolbarIconButton,
+  MOTION,
+  BORDER_RADIUS,
+  TYPOGRAPHY
+} from "../ui_primitives";
+import type { StatusType } from "../ui_primitives";
+import { relativeTime } from "../../utils/formatDateAndTime";
 import { MediaOverlaySuppressProvider } from "./MediaOverlayContext";
 import { TextRenderer } from "./output/TextRenderer";
 import { extractTextValue } from "../../utils/extractTextValue";
@@ -42,16 +53,16 @@ interface NodeHistoryViewerProps {
    * only manages history navigation and overlay controls.
    */
   renderSingle: (value: unknown) => React.ReactNode;
-  /**
-   * Render an ARRAY of variant values as the in-card variants grid.
-   * ContentCardBody supplies this for image variants so the grid reuses
-   * ImagePreview/.image-grid-preview. When omitted, the variants view falls
-   * back to NodeHistoryViewer's own `.thumb` grid (video / audio).
-   */
-  renderVariants?: (values: unknown[]) => React.ReactNode;
 }
 
-type View = "runs" | "variants" | "single";
+/**
+ * Two — and only two — views. `single` is one large preview with a linear pager
+ * over the whole flat generation timeline; `grid` is the entire history laid out
+ * as one scrollable grid, grouped into a section per run. The old third mode
+ * (separate "runs" vs "variants" grids reached through a 3-way cyclic toggle) is
+ * gone: runs are now visual sections inside the single grid.
+ */
+type View = "grid" | "single";
 
 const MEDIA_PREFIXES = ["image/", "video/", "audio/"] as const;
 
@@ -66,6 +77,14 @@ const formatDuration = (seconds: number | null | undefined): string => {
   const m = Math.floor(total / 60);
   const s = total % 60;
   return `${m}:${s.toString().padStart(2, "0")}`;
+};
+
+/** Map a run's aggregate status onto the StatusIndicator's vocabulary. Completed
+ *  runs render no indicator (the common, quiet case). */
+const runStatusType = (status: RunGroup["status"]): StatusType | null => {
+  if (status === "running") return "info";
+  if (status === "error") return "error";
+  return null;
 };
 
 const styles = (theme: Theme) =>
@@ -135,14 +154,43 @@ const styles = (theme: Theme) =>
       minWidth: 0,
       display: "flex"
     },
+    // The grid is a vertical stack of run sections; each section grids its own
+    // variants. One scroll container for the whole history.
     ".grid": {
       flex: 1,
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))",
-      gap: 4,
+      display: "flex",
+      flexDirection: "column",
+      gap: 8,
       padding: 4,
       overflow: "auto",
       alignContent: "start"
+    },
+    ".run-section": {
+      display: "flex",
+      flexDirection: "column",
+      gap: 4
+    },
+    ".run-header": {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      padding: "0 2px",
+      color: theme.vars.palette.text.secondary,
+      ...TYPOGRAPHY.sans.caption
+    },
+    ".run-header .run-time": {
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    },
+    ".run-header .run-count": {
+      ...TYPOGRAPHY.mono.caption,
+      color: theme.vars.palette.text.secondary
+    },
+    ".run-tiles": {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))",
+      gap: 4
     },
     ".thumb": {
       position: "relative",
@@ -170,16 +218,6 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.common.white,
       textShadow: "0 0 2px rgba(0,0,0,0.8)"
     },
-    ".thumb-count": {
-      position: "absolute",
-      top: 2,
-      right: 4,
-      padding: "0 4px",
-      borderRadius: BORDER_RADIUS.sm,
-      backgroundColor: "rgba(0, 0, 0, 0.55)",
-      fontSize: theme.fontSizeTiny,
-      color: theme.vars.palette.common.white
-    },
     ".thumb.selected": {
       borderColor: theme.vars.palette.primary.main
     }
@@ -189,8 +227,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
   workflowId,
   nodeId,
   liveResult,
-  renderSingle,
-  renderVariants
+  renderSingle
 }) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
@@ -201,6 +238,9 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
     nodeId
   );
 
+  const latestRun = runs.length > 0 ? runs[runs.length - 1] : undefined;
+  const latestRunJobId = latestRun?.jobId ?? null;
+
   // Auto-focus a newly started run. The persisted `selected_generation` pins the
   // view to a run; after browsing it points at a PRIOR run, so a fresh run would
   // not take focus until manually switched. When the latest run's job changes (a
@@ -208,8 +248,6 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
   // focus to the latest run. Skips the initial render (preserves a restored
   // selection on reload) and never fires while a run grows in place (same jobId →
   // within-run pins and deliberate old-run browsing between runs both survive).
-  const latestRun = runs.length > 0 ? runs[runs.length - 1] : undefined;
-  const latestRunJobId = latestRun?.jobId ?? null;
   const prevLatestRunJobIdRef = useRef<string | null | undefined>(undefined);
   useEffect(() => {
     const prev = prevLatestRunJobIdRef.current;
@@ -228,16 +266,31 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
   const { assetHistory } = useNodeResultHistory(workflowId, nodeId);
   const isRunning = useWebsocketRunner((s) => s.state === "running");
 
-  // Per-run user override of the view. `null` means "no explicit choice — use
-  // the derived default for the current run". Keyed by the run's jobId so a
-  // toggle/grid-tap wins only within the run it was made for; switching runs
-  // (or a fresh run) falls back to the derived default again.
-  const [userView, setUserView] = useState<{
-    jobId: string;
-    view: View;
-  } | null>(null);
+  // Single sticky view choice. Defaults to `single`; the user toggles it and it
+  // stays put (no per-run override, no auto-default flipping) — except the one
+  // deliberate auto-switch below (a finished batch opens the grid).
+  const [view, setView] = useState<View>("single");
   const [viewerOpen, setViewerOpen] = useState(false);
   const [imageDims, setImageDims] = useState<{ width: number; height: number } | null>(null);
+
+  // Auto-open the grid the moment a batch (a run with >1 generation) FINISHES,
+  // so all variants are visible at once. Fires once per jobId and skips the
+  // initial mount (a reload must not yank a restored single selection into the
+  // grid). A toggle back to single is respected — it won't re-fire for the same
+  // run; the next batch fires again.
+  const didMountRef = useRef(false);
+  const autoGriddedJobIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+    if (!latestRun || latestRun.status === "running") return;
+    if (latestRun.variants.length <= 1) return;
+    if (autoGriddedJobIdRef.current === latestRun.jobId) return;
+    autoGriddedJobIdRef.current = latestRun.jobId;
+    setView("grid");
+  }, [latestRun]);
 
   const mediaAssets = useMemo<Asset[]>(
     () => assetHistory.filter(isMediaAsset),
@@ -250,61 +303,25 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
 
   const hasHistory = generations.length > 0;
 
-  // Set the user's explicit view choice for the CURRENT run. A no-op when there
-  // is no run (nothing to scope the choice to).
-  const setView = useCallback(
-    (next: View) => {
-      if (!currentRun) return;
-      setUserView({ jobId: currentRun.jobId, view: next });
-    },
-    [currentRun]
-  );
-
-  // Pager scope and indices. In single view the pager steps variants when the
-  // current run has >1, else steps runs.
-  const variants = useMemo(
-    () => currentRun?.variants ?? [],
-    [currentRun]
-  );
-  const runIndex = Math.max(
+  // Flat linear pager indices. The pager always steps the whole timeline in
+  // chronological order, wrapping — one predictable behavior regardless of how
+  // generations are grouped into runs.
+  const currentIndex = Math.max(
     0,
-    runs.findIndex((r) => r === currentRun)
+    generations.findIndex((g) => g.id === current?.id)
   );
-  const variantIndex = Math.max(
-    0,
-    variants.findIndex((v) => v.id === current?.id)
-  );
-  const pagerScope: "variants" | "runs" =
-    variants.length > 1 ? "variants" : "runs";
+  // Run context for the single-view caption (which run, which position in it).
+  const runIndex = Math.max(0, runs.findIndex((r) => r === currentRun));
+  const withinRunIndex = currentRun
+    ? currentRun.variants.findIndex((v) => v.id === current?.id)
+    : -1;
 
-  // While a run is in progress and the live result is non-null, show the
-  // live result (the in-flight preview) and freeze pagination. Once the run
-  // completes and assets persist, the new generation becomes current and we
-  // return to history mode.
+  // While a run is in progress and the live result is non-null, show the live
+  // in-flight preview (single) and freeze pagination. Once the run completes and
+  // assets persist, the new generation becomes current and (for batches) the
+  // grid auto-opens.
   const showingLive = isRunning && liveResult != null;
-
-  // Derive the view. The default re-evaluates every render, so a run that grows
-  // from 1 to N variants under a STABLE jobId (the live streaming case) flips to
-  // the variants grid as soon as it settles — without an effect that would miss
-  // the in-place growth. A per-run user override (toggle / grid-tap) wins, but
-  // only for the run it was made for. The live preview is always rendered single
-  // (the grids are additive on top of history, never a replacement for the
-  // in-flight preview).
-  const defaultView: View =
-    currentRun && currentRun.variants.length > 1 ? "variants" : "single";
-  const override =
-    userView && currentRun && userView.jobId === currentRun.jobId
-      ? userView.view
-      : null;
-  // Only force the single in-flight preview when the current run has <=1 live
-  // variant — the normal single-image streaming case. A multi-execution run
-  // (variants popping live, variants.length > 1) falls through to
-  // override ?? defaultView, and defaultView is already "variants" when the
-  // current run has >1 variant, so the grid shows the tiles arriving live.
-  const effectiveView: View =
-    showingLive && variants.length <= 1
-      ? "single"
-      : (override ?? defaultView);
+  const effectiveView: View = showingLive ? "single" : view;
 
   // Full Asset for the current generation (when persisted), used by the viewer,
   // download, and the info badge.
@@ -349,31 +366,19 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
 
   const step = useCallback(
     (delta: number) => {
-      if (pagerScope === "variants") {
-        if (variants.length <= 1) return;
-        const i = (variantIndex + delta + variants.length) % variants.length;
-        select(variants[i].id);
-      } else {
-        if (runs.length <= 1) return;
-        const i = (runIndex + delta + runs.length) % runs.length;
-        select(runs[i].cover.id);
-      }
+      if (generations.length <= 1) return;
+      const i =
+        (currentIndex + delta + generations.length) % generations.length;
+      select(generations[i].id);
     },
-    [pagerScope, variants, variantIndex, runs, runIndex, select]
+    [generations, currentIndex, select]
   );
   const handlePrev = useCallback(() => step(-1), [step]);
   const handleNext = useCallback(() => step(1), [step]);
 
   const handleToggleView = useCallback(() => {
-    if (effectiveView === "single") {
-      setView(variants.length > 1 ? "variants" : "runs");
-    } else if (effectiveView === "variants") {
-      setView("runs");
-    } else {
-      if (currentRun) select(currentRun.cover.id);
-      setView("single");
-    }
-  }, [effectiveView, variants.length, currentRun, select, setView]);
+    setView((v) => (v === "single" ? "grid" : "single"));
+  }, []);
 
   // The fullscreen AssetViewer renders media; text generations open in a
   // readable text popup instead. Both are triggered from the same overlay
@@ -403,37 +408,18 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
     setViewerOpen(false);
   }, []);
 
-  const handleSelectThumb = useCallback(
-    (index: number) => {
-      if (effectiveView === "runs") {
-        const run = runs[index];
-        if (!run) return;
-        // Record the target run's view choice against ITS jobId, not the
-        // outgoing run's — selecting the cover makes it the current run, but
-        // setView closes over the run that was current when this ran.
-        select(run.cover.id);
-        setUserView({
-          jobId: run.jobId,
-          view: run.variants.length > 1 ? "variants" : "single"
-        });
-      } else {
-        const v = variants[index];
-        if (!v) return;
-        select(v.id);
-        setView("single");
-      }
-    },
-    [effectiveView, runs, variants, select, setView]
-  );
-
+  // Every grid tile carries its generation id; clicking one selects that
+  // generation (which also feeds it downstream) and drops to single view.
   const handleGridClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       const thumb = (e.target as HTMLElement).closest<HTMLElement>(".thumb");
       if (!thumb) return;
-      const idx = Number(thumb.dataset.index);
-      if (!Number.isNaN(idx)) handleSelectThumb(idx);
+      const genId = thumb.dataset.genId;
+      if (!genId) return;
+      select(genId);
+      setView("single");
     },
-    [handleSelectThumb]
+    [select]
   );
 
   const fallbackThumbStyle = useMemo<React.CSSProperties>(
@@ -483,24 +469,73 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
   }
 
   const showPagination =
-    effectiveView === "single" &&
-    !showingLive &&
-    (pagerScope === "variants" ? variants.length > 1 : runs.length > 1);
+    effectiveView === "single" && !showingLive && generations.length > 1;
   const showInfoBadge = effectiveView === "single";
 
-  // Bottom-left info string.
-  const infoText = (() => {
+  // Bottom-left info string: run context (which run / position-in-run) folded
+  // together with the dimensions / duration / "Live" detail, joined by "·".
+  const runContext = (() => {
+    if (!currentRun) return "";
+    const meaningful = runs.length > 1 || currentRun.variants.length > 1;
+    if (!meaningful) return "";
+    const pos = withinRunIndex >= 0 ? withinRunIndex + 1 : 1;
+    return `Run ${runIndex + 1} · ${pos}/${currentRun.variants.length}`;
+  })();
+  const detailText = (() => {
     if (showingLive) return "Live";
     if (!currentAsset) return "";
     if (currentAsset.content_type?.startsWith("image/")) {
-      if (imageDims) return `${imageDims.width}x${imageDims.height}`;
-      return "";
+      return imageDims ? `${imageDims.width}x${imageDims.height}` : "";
     }
     if (currentAsset.duration != null) {
       return formatDuration(currentAsset.duration);
     }
     return "";
   })();
+  const infoText = [runContext, detailText].filter(Boolean).join(" · ");
+
+  const renderThumb = (gen: Generation, label: string | null) => {
+    const value = outputOf(gen) as { type?: string; uri?: string } | undefined;
+    const asset = gen.assetId ? assetById.get(gen.assetId) : undefined;
+    const kind = value?.type;
+    const alt = asset?.name || gen.id;
+    const imgUrl = asset?.thumb_url || asset?.get_url || value?.uri || "";
+    const previewBitmap = isBitmapImage(value)
+      ? (value.bitmap as ImageBitmap)
+      : undefined;
+    const videoThumb = asset?.thumb_url;
+    const videoUrl = asset?.get_url || value?.uri || "";
+    const selected = gen.id === current?.id;
+    return (
+      <div
+        key={gen.id}
+        className={`thumb${selected ? " selected" : ""}`}
+        role="listitem"
+        data-gen-id={gen.id}
+      >
+        {kind === "image" && imgUrl ? (
+          <img src={imgUrl} alt={alt} />
+        ) : kind === "image" && previewBitmap ? (
+          <BitmapCanvas bitmap={previewBitmap} aria-label={alt} />
+        ) : kind === "video" && (videoThumb || videoUrl) ? (
+          videoThumb ? (
+            <img src={videoThumb} alt={alt} />
+          ) : (
+            <video
+              src={`${videoUrl}#t=0.1`}
+              preload="metadata"
+              muted
+              playsInline
+              aria-label={alt}
+            />
+          )
+        ) : (
+          <div style={fallbackThumbStyle}>{kind || "asset"}</div>
+        )}
+        {label ? <span className="thumb-label">{label}</span> : null}
+      </div>
+    );
+  };
 
   return (
     <div css={cssStyles} className="node-history-viewer">
@@ -511,77 +546,43 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
               {renderSingle(valueToRender)}
             </div>
           </MediaOverlaySuppressProvider>
-        ) : effectiveView === "variants" && renderVariants && currentRun ? (
-          <MediaOverlaySuppressProvider value={overlayValue}>
-            <div style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
-              {renderVariants(runVariantValues(currentRun))}
-            </div>
-          </MediaOverlaySuppressProvider>
         ) : (
-          // RUNS grid, or the VARIANTS fallback `.thumb` grid when
-          // renderVariants is absent (video / audio). The runs grid iterates
-          // runs (cover + xN badge); the variants grid iterates the current
-          // run's variants.
+          // The full history as one grid, grouped into a section per run. Each
+          // section headers the run (relative time · ×N · status) and grids its
+          // variants; every tile is uniformly clickable → select + single view.
           <div
             className="grid nodrag nopan"
             role="list"
-            aria-label={effectiveView === "runs" ? "Runs" : "Output history"}
+            aria-label="Generations"
             onClick={handleGridClick}
           >
-            {(effectiveView === "runs"
-              ? runs.map((r) => ({ gen: r.cover, count: r.variants.length }))
-              : variants.map((v) => ({ gen: v, count: 1 }))
-            ).map((item, i) => {
-              const gen = item.gen;
-              const value = outputOf(gen) as
-                | { type?: string; uri?: string }
-                | undefined;
-              const asset = gen.assetId ? assetById.get(gen.assetId) : undefined;
-              const kind = value?.type;
-              const label = asset?.name || gen.id;
-              const imgUrl = asset?.thumb_url || asset?.get_url || value?.uri || "";
-              const previewBitmap = isBitmapImage(value)
-                ? (value.bitmap as ImageBitmap)
-                : undefined;
-              const videoThumb = asset?.thumb_url;
-              const videoUrl = asset?.get_url || value?.uri || "";
-              const selected =
-                effectiveView === "runs"
-                  ? i === runIndex
-                  : gen.id === current?.id;
+            {runs.map((run) => {
+              const multi = run.variants.length > 1;
+              const statusType = runStatusType(run.status);
               return (
-                <div
-                  key={gen.id}
-                  className={`thumb${selected ? " selected" : ""}`}
-                  role="listitem"
-                  data-index={i}
-                >
-                  {kind === "image" && imgUrl ? (
-                    <img src={imgUrl} alt={label} />
-                  ) : kind === "image" && previewBitmap ? (
-                    <BitmapCanvas bitmap={previewBitmap} aria-label={label} />
-                  ) : kind === "video" && (videoThumb || videoUrl) ? (
-                    videoThumb ? (
-                      <img src={videoThumb} alt={label} />
-                    ) : (
-                      <video
-                        src={`${videoUrl}#t=0.1`}
-                        preload="metadata"
-                        muted
-                        playsInline
-                        aria-label={label}
+                <section key={run.jobId} className="run-section">
+                  <header className="run-header">
+                    <span className="run-time">
+                      {relativeTime(new Date(run.createdAt))}
+                    </span>
+                    {multi ? (
+                      <span className="run-count">{`×${run.variants.length}`}</span>
+                    ) : null}
+                    {statusType ? (
+                      <StatusIndicator
+                        status={statusType}
+                        showIcon
+                        pulse={run.status === "running"}
+                        tooltip={run.status}
                       />
-                    )
-                  ) : (
-                    <div style={fallbackThumbStyle}>
-                      {kind || "asset"}
-                    </div>
-                  )}
-                  {effectiveView === "runs" && item.count > 1 ? (
-                    <span className="thumb-count">{`x${item.count}`}</span>
-                  ) : null}
-                  <span className="thumb-label">{i + 1}</span>
-                </div>
+                    ) : null}
+                  </header>
+                  <div className="run-tiles">
+                    {run.variants.map((gen, i) =>
+                      renderThumb(gen, multi ? `${i + 1}` : null)
+                    )}
+                  </div>
+                </section>
               );
             })}
           </div>
@@ -612,9 +613,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
                 <KeyboardArrowLeftIcon />
               </ToolbarIconButton>
               <span className="overlay-count">
-                {pagerScope === "variants"
-                  ? `${variantIndex + 1} / ${variants.length}`
-                  : `${runIndex + 1} / ${runs.length}`}
+                {`${currentIndex + 1} / ${generations.length}`}
               </span>
               <ToolbarIconButton
                 title="Next"
@@ -656,7 +655,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
         </div>
       </div>
 
-      {/* bottom-left: dimensions / duration / Live */}
+      {/* bottom-left: run context / dimensions / duration / Live */}
       {showInfoBadge && infoText ? (
         <div className="node-history-overlay overlay-bottom-left">
           <span style={{

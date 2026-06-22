@@ -58,6 +58,20 @@ const renderSingle = (value: unknown) => (
 const renderWithProviders = (ui: React.ReactElement) =>
   render(<ThemeProvider theme={mockTheme}>{ui}</ThemeProvider>);
 
+// Fresh renderSingle identity per render so the memo-wrapped component actually
+// re-renders on rerender (the real app re-renders via the Zustand subscription;
+// the mocked hook is static).
+const viewer = () => (
+  <ThemeProvider theme={mockTheme}>
+    <NodeHistoryViewer
+      workflowId="wf1"
+      nodeId="node-a"
+      liveResult={null}
+      renderSingle={(v) => renderSingle(v)}
+    />
+  </ThemeProvider>
+);
+
 const makeAsset = (
   id: string,
   contentType = "image/png",
@@ -160,11 +174,10 @@ describe("NodeHistoryViewer", () => {
     expect(screen.queryByLabelText("Toggle view")).not.toBeInTheDocument();
   });
 
-  it("renders the current (latest) variant in single view with a 1/N counter (one run)", () => {
-    // All three share one jobId → one run, three variants. With renderSingle
-    // selected to a single variant the navigator stays in single view (the
-    // default variants grid only applies when no variant is selected); here we
-    // assert the variant-scoped pager.
+  it("renders the current (latest) generation in single view with a global i/N counter", () => {
+    // Three generations (one run). The default view is single — no auto-default
+    // to a grid — so the latest generation shows immediately with the GLOBAL
+    // pager counter (3 / 3), without any toggle.
     setGenerations(
       [makeGen("a1", 1), makeGen("a2", 2), makeGen("a3", 3)],
       "a3"
@@ -179,16 +192,13 @@ describe("NodeHistoryViewer", () => {
       />
     );
 
-    // Default view is the variants grid (>1 variant in the current run). The
-    // toggle cycles variants → runs → single, so two clicks reach single view
-    // and the variant pager.
-    fireEvent.click(screen.getByLabelText("Toggle view"));
-    fireEvent.click(screen.getByLabelText("Toggle view"));
     expect(screen.getByText("3 / 3")).toBeInTheDocument();
     expect(screen.getByTestId("single-body")).toHaveTextContent("a3.png");
   });
 
-  it("steps variants within a run when Next/Previous are clicked", () => {
+  it("steps the flat timeline linearly within a run (Next/Previous wrap)", () => {
+    // Three variants of one run. The pager steps the flat list, not a
+    // run-scoped sub-list — one predictable behavior.
     const select = setGenerations(
       [makeGen("a1", 1), makeGen("a2", 2), makeGen("a3", 3)],
       "a1"
@@ -203,20 +213,17 @@ describe("NodeHistoryViewer", () => {
       />
     );
 
-    // Switch to single view to expose the variant pager (default is the
-    // variants grid; toggle cycles variants → runs → single).
-    fireEvent.click(screen.getByLabelText("Toggle view"));
-    fireEvent.click(screen.getByLabelText("Toggle view"));
-    // current is variant a1 (index 0); Next moves to a2.
+    // current is a1 (index 0); Next → a2.
     fireEvent.click(screen.getByLabelText("Next output"));
     expect(select).toHaveBeenCalledWith("a2");
-    // Previous wraps to the last variant a3.
+    // Previous from a1 wraps to the last generation a3.
     fireEvent.click(screen.getByLabelText("Previous output"));
     expect(select).toHaveBeenCalledWith("a3");
   });
 
-  it("steps runs when each generation is its own run", () => {
-    // Distinct jobIds → three runs, one variant each. Pager is run-scoped.
+  it("steps the flat timeline linearly across runs (Next/Previous wrap)", () => {
+    // Distinct jobIds → three runs, one variant each. The SAME linear pager
+    // crosses run boundaries — no more context-dependent stepping.
     const select = setGenerations(
       [makeRunGen("a1", "j1", 1), makeRunGen("a2", "j2", 2), makeRunGen("a3", "j3", 3)],
       "a1"
@@ -231,11 +238,10 @@ describe("NodeHistoryViewer", () => {
       />
     );
 
-    // Single run-per-generation → default single view, run-scoped pager.
     fireEvent.click(screen.getByLabelText("Next output"));
     expect(select).toHaveBeenCalledWith("a2");
     fireEvent.click(screen.getByLabelText("Previous output"));
-    // Previous from run a1 wraps to the last run a3.
+    // Previous from a1 wraps to the last generation a3.
     expect(select).toHaveBeenCalledWith("a3");
   });
 
@@ -277,50 +283,12 @@ describe("NodeHistoryViewer", () => {
     expect(screen.queryByLabelText("Previous output")).not.toBeInTheDocument();
   });
 
-  it("renders the variants grid mid-run when the current run has >1 live variant", () => {
-    // A multi-execution run: variants pop in live under one jobId. Even while
-    // showingLive (run in progress + non-null liveResult), the grid must show
-    // the N tiles rather than freezing on the single in-flight preview. With no
-    // renderVariants supplied the viewer falls back to its own `.thumb` grid
-    // labeled "Output history".
-    setGenerations([
-      makeGen("a1", 1),
-      makeGen("a2", 2),
-      makeGen("a3", 3)
-    ]);
+  it("shows the live in-flight preview during a multi-variant batch, not the grid", () => {
+    // A multi-execution batch streams variants in under one jobId. While the run
+    // is in progress the single in-flight preview is shown; the grid only opens
+    // once the batch FINISHES (see the auto-open-grid test).
+    setGenerations([makeGen("a1", 1), makeGen("a2", 2), makeGen("a3", 3)]);
     mockUseWebsocketRunner.mockReturnValue({ state: "running" });
-
-    const liveResult = { type: "image", uri: "live-preview.png" };
-    renderWithProviders(
-      <NodeHistoryViewer
-        workflowId="wf1"
-        nodeId="node-a"
-        liveResult={liveResult}
-        renderSingle={renderSingle}
-      />
-    );
-
-    expect(
-      screen.getByRole("list", { name: "Output history" })
-    ).toBeInTheDocument();
-    // The single in-flight preview is NOT rendered — the grid supersedes it.
-    expect(screen.queryByTestId("single-body")).not.toBeInTheDocument();
-  });
-
-  it("invokes renderVariants mid-run for a multi-variant run when supplied", () => {
-    // When the caller supplies renderVariants (image variants), the grid path
-    // uses it directly — proving the live multi-variant run reaches the
-    // renderVariants branch (NodeHistoryViewer.tsx:482), not the single preview.
-    setGenerations([
-      makeGen("a1", 1),
-      makeGen("a2", 2),
-      makeGen("a3", 3)
-    ]);
-    mockUseWebsocketRunner.mockReturnValue({ state: "running" });
-
-    const renderVariants = jest.fn((values: unknown[]) => (
-      <div data-testid="variants-grid" data-count={values.length} />
-    ));
 
     renderWithProviders(
       <NodeHistoryViewer
@@ -328,20 +296,21 @@ describe("NodeHistoryViewer", () => {
         nodeId="node-a"
         liveResult={{ type: "image", uri: "live-preview.png" }}
         renderSingle={renderSingle}
-        renderVariants={renderVariants}
       />
     );
 
-    expect(renderVariants).toHaveBeenCalled();
-    const grid = screen.getByTestId("variants-grid");
-    expect(grid).toHaveAttribute("data-count", "3");
-    expect(screen.queryByTestId("single-body")).not.toBeInTheDocument();
+    expect(screen.getByTestId("single-body")).toHaveTextContent(
+      "live-preview.png"
+    );
+    expect(
+      screen.queryByRole("list", { name: "Generations" })
+    ).not.toBeInTheDocument();
   });
 
-  it("defaults to the variants grid for a multi-variant run", () => {
-    // One run with 3 variants → default view is the variants grid. With no
-    // renderVariants supplied the viewer falls back to its own `.thumb` grid
-    // labeled "Output history".
+  it("defaults a multi-variant run to single view on mount (no surprise grid)", () => {
+    // On a fresh mount (e.g. a reload) a finished batch stays in single view —
+    // the restored selection is preserved; the grid auto-opens only on a live
+    // batch FINISH during the session, never on mount.
     setGenerations([makeGen("a1", 1), makeGen("a2", 2), makeGen("a3", 3)]);
 
     renderWithProviders(
@@ -353,66 +322,48 @@ describe("NodeHistoryViewer", () => {
       />
     );
 
-    expect(
-      screen.getByRole("list", { name: "Output history" })
-    ).toBeInTheDocument();
-    expect(screen.queryByTestId("single-body")).not.toBeInTheDocument();
-  });
-
-  it("auto-switches to the variants grid as a streaming run grows under one jobId", () => {
-    // The core streaming scenario: the card is already mounted and the run grows
-    // from 1 variant to N under a CONSTANT jobId. The default must re-evaluate
-    // as variants accrue — not just on a jobId change — so the variants grid
-    // appears once the run settles, without a manual toggle.
-    setGenerations([makeGen("a1", 1)]);
-    const { rerender } = renderWithProviders(
-      <NodeHistoryViewer
-        workflowId="wf1"
-        nodeId="node-a"
-        liveResult={null}
-        renderSingle={renderSingle}
-      />
-    );
-    // One variant → single view.
     expect(screen.getByTestId("single-body")).toBeInTheDocument();
     expect(
-      screen.queryByRole("list", { name: "Output history" })
+      screen.queryByRole("list", { name: "Generations" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("auto-opens the grid when a multi-variant run finishes", () => {
+    // Mount with a single generation (single view), then a batch finishes under
+    // one jobId: the grid auto-opens to show all variants at once.
+    setGenerations([makeGen("a1", 1)]);
+    const { rerender } = render(viewer());
+    expect(screen.getByTestId("single-body")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("list", { name: "Generations" })
     ).not.toBeInTheDocument();
 
-    // Two more variants stream in under the SAME jobId (job-a). In the real app
-    // the hook's store subscription re-renders the component; here the mocked
-    // hook can't, so a fresh renderSingle identity forces the memo through to
-    // re-read the updated generations (the view derivation itself is plain
-    // computation, so it re-evaluates on any re-render — no effect to miss it).
+    // Two more variants land under the SAME jobId (job-a), run completed.
     setGenerations([makeGen("a1", 1), makeGen("a2", 2), makeGen("a3", 3)]);
-    rerender(
-      <ThemeProvider theme={mockTheme}>
-        <NodeHistoryViewer
-          workflowId="wf1"
-          nodeId="node-a"
-          liveResult={null}
-          renderSingle={(value) => (
-            <div data-testid="single-body">{JSON.stringify(value)}</div>
-          )}
-        />
-      </ThemeProvider>
-    );
+    rerender(viewer());
 
-    // The grid now defaults on, no toggle required.
     expect(
-      screen.getByRole("list", { name: "Output history" })
+      screen.getByRole("list", { name: "Generations" })
     ).toBeInTheDocument();
     expect(screen.queryByTestId("single-body")).not.toBeInTheDocument();
   });
 
-  it("toggles variants → runs → single", () => {
-    // Two runs (j1 ×1 variant, j2 ×2 variants); current run is j2 → defaults to
-    // the variants grid. Toggling cycles variants → runs → single.
-    setGenerations([
-      makeRunGen("a1", "j1", 1),
-      makeRunGen("a2", "j2", 2),
-      makeRunGen("a3", "j2", 3)
-    ]);
+  it("stays in single view when a single-variant run finishes", () => {
+    // A new single-variant run is not a batch → the grid does not auto-open.
+    setGenerations([makeRunGen("a1", "j1", 1)]);
+    const { rerender } = render(viewer());
+
+    setGenerations([makeRunGen("a1", "j1", 1), makeRunGen("a2", "j2", 2)]);
+    rerender(viewer());
+
+    expect(screen.getByTestId("single-body")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("list", { name: "Generations" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("toggles between grid and single with one button", () => {
+    setGenerations([makeGen("a1", 1), makeGen("a2", 2), makeGen("a3", 3)]);
 
     renderWithProviders(
       <NodeHistoryViewer
@@ -423,19 +374,21 @@ describe("NodeHistoryViewer", () => {
       />
     );
 
-    // Default: variants grid (current run j2 has 2 variants).
-    expect(
-      screen.getByRole("list", { name: "Output history" })
-    ).toBeInTheDocument();
-    // → runs grid.
+    // Default single → grid.
+    expect(screen.getByTestId("single-body")).toBeInTheDocument();
     fireEvent.click(screen.getByLabelText("Toggle view"));
-    expect(screen.getByRole("list", { name: "Runs" })).toBeInTheDocument();
-    // → single.
+    expect(
+      screen.getByRole("list", { name: "Generations" })
+    ).toBeInTheDocument();
+    // grid → single.
     fireEvent.click(screen.getByLabelText("Toggle view"));
     expect(screen.getByTestId("single-body")).toBeInTheDocument();
   });
 
-  it("renders one runs-grid tile per run with an xN badge for multi-variant runs", () => {
+  it("groups the grid into a section per run with an xN count for multi-variant runs", () => {
+    // Two runs: j1 (1 variant) and j2 (2 variants). The grid renders one tile
+    // per generation (3 total) grouped under run headers; the j2 section shows
+    // an "×2" count badge.
     setGenerations([
       makeRunGen("a1", "j1", 1),
       makeRunGen("a2", "j2", 2),
@@ -451,16 +404,13 @@ describe("NodeHistoryViewer", () => {
       />
     );
 
-    // From the default variants grid, toggle to the runs grid.
     fireEvent.click(screen.getByLabelText("Toggle view"));
-    const tiles = screen.getAllByRole("listitem");
-    // Two runs → two tiles. The j2 run (2 variants) shows an "x2" badge.
-    expect(tiles).toHaveLength(2);
-    expect(screen.getByText("x2")).toBeInTheDocument();
+    // One tile per generation across all runs.
+    expect(screen.getAllByRole("listitem")).toHaveLength(3);
+    expect(screen.getByText("×2")).toBeInTheDocument();
   });
 
-  it("selecting a runs-grid tile selects its cover and opens that run", () => {
-    // Single-variant runs so the tile click drops straight to single view.
+  it("selecting a grid tile selects that generation and drops to single", () => {
     const select = setGenerations([
       makeRunGen("a1", "j1", 1),
       makeRunGen("a2", "j2", 2),
@@ -476,7 +426,6 @@ describe("NodeHistoryViewer", () => {
       />
     );
 
-    // Three single-variant runs → default single view; toggle to the runs grid.
     fireEvent.click(screen.getByLabelText("Toggle view"));
     const tiles = screen.getAllByRole("listitem");
     fireEvent.click(tiles[0]);
