@@ -652,18 +652,6 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
     [variant]
   );
 
-  // The in-card variants grid: render an ARRAY of variant values. Only image
-  // variants get this — ImagePreview grids an array via `.image-grid-preview`.
-  // Video/audio/model_3d omit it so NodeHistoryViewer falls back to its own
-  // `.thumb` grid.
-  const renderVariants = useCallback(
-    (values: unknown[]) =>
-      variant === "image" || variant === "image_mask" ? (
-        <PreviewArea variant={variant} value={values} />
-      ) : null,
-    [variant]
-  );
-
   return (
     <div
       css={cssStyles}
@@ -679,11 +667,6 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
             nodeId={id}
             liveResult={liveResolvedResult}
             renderSingle={renderSingle}
-            renderVariants={
-              variant === "image" || variant === "image_mask"
-                ? renderVariants
-                : undefined
-            }
           />
         ) : (
           <PreviewArea variant={variant} value={fallbackPreviewValue} />

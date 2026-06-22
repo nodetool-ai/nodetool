@@ -230,10 +230,10 @@ describe("ContentCardBody results", () => {
     expect(screen.getByLabelText("Previous output")).toBeInTheDocument();
   });
 
-  it("defaults to the variants grid for a multi-variant run, showing every variant", async () => {
-    // Two assets sharing one job_id = one run with two variants. The image
-    // content card defaults to the variants grid, reusing ImagePreview's
-    // `.image-grid-preview` so both variants render as image tiles.
+  it("shows the latest variant in single view and the run's variants in the grid", async () => {
+    // Two assets sharing one job_id = one run with two variants. On mount the
+    // card shows the latest variant in single view; toggling to the grid reveals
+    // both variants as tiles grouped under the run's section.
     const assets = [fakeAsset("first", "job-99"), fakeAsset("second", "job-99")];
     seedAssets(assets);
     mockAssetHistory = assets;
@@ -241,14 +241,14 @@ describe("ContentCardBody results", () => {
 
     renderContentCard(metadataForOutput("image"));
 
-    const tiles = screen.getAllByTestId("image-view");
-    expect(tiles).toHaveLength(2);
-    expect(tiles[0]).toHaveTextContent("first");
-    expect(tiles[1]).toHaveTextContent("second");
+    // Single view defaults on: only the latest variant renders.
+    const single = screen.getAllByTestId("image-view");
+    expect(single).toHaveLength(1);
+    expect(single[0]).toHaveTextContent("second");
 
-    // Toggling cycles variants → runs; one job_id = a single run tile.
+    // Toggle to the grid: both variants render as tiles in the one run section.
     await userEvent.click(screen.getByLabelText("Toggle view"));
-    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+    expect(screen.getAllByRole("listitem")).toHaveLength(2);
   });
 
   it("renders a pure transform's output without the gallery navigator", () => {
