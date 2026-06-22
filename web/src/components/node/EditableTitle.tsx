@@ -4,37 +4,56 @@ import { memo, useCallback, useMemo, useState } from "react";
 import { useNodes } from "../../contexts/NodeContext";
 import { useTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
-import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
-import { MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, reducedMotion } from "../ui_primitives";
 
 interface EditableTitleProps {
   nodeId: string;
   title: string;
 }
 
-// Subtle pulse animation for the connector
-const pulseGlow = keyframes`
-  0%, 100% {
-    opacity: 0.6;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.1);
-  }
+// Quiet entrance: fade only, so notes appear without drawing the eye.
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
 `;
 
-// Fade in animation for the container
-const fadeSlideIn = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-`;
+// Match a single emoji: keycap (#/*/digit + optional VS16 + U+20E3), flag (two
+// regional indicators), or a pictographic base plus any ZWJ sequence, skin-tone
+// modifiers and variation selectors. Color-emoji glyphs ignore CSS `color`, so
+// each match is wrapped to be desaturated (see .note-emoji).
+const EMOJI =
+  /[#*0-9]\uFE0F?\u20E3|\p{RI}\p{RI}|\p{Extended_Pictographic}(?:\u200D\p{Extended_Pictographic}|\p{Emoji_Modifier}|\uFE0F)*/u;
+const EMOJI_SPLIT = new RegExp(`(${EMOJI.source})`, "gu");
+
+// A standalone keycap emoji (digit/#/* + keycap). These read as step indices
+// in the example notes, so we promote them to a clean numbered badge.
+const KEYCAP = /^[#*0-9]\uFE0F?\u20E3$/u;
+
+// Split the title into runs: keycap markers become crisp step badges, other
+// emoji are desaturated so their native colors don't clash, and plain text is
+// left untouched. Keeps notes legible and on-theme.
+function renderTitleText(title: string) {
+  return title
+    .split(EMOJI_SPLIT)
+    .filter((part) => part !== "")
+    .map((part, i) => {
+      if (KEYCAP.test(part)) {
+        return (
+          <span key={i} className="step-badge">
+            {part.replace(/[\uFE0F\u20E3]/gu, "")}
+          </span>
+        );
+      }
+      if (EMOJI.test(part)) {
+        return (
+          <span key={i} className="note-emoji">
+            {part}
+          </span>
+        );
+      }
+      return <span key={i}>{part}</span>;
+    });
+}
 
 const EditableTitle = memo(function EditableTitle({
   nodeId,
@@ -46,78 +65,50 @@ const EditableTitle = memo(function EditableTitle({
 
   const styles = useMemo(() => css({
     position: "absolute",
-    top: "calc(100% + 12px)",
+    top: "calc(100% + 10px)",
     left: "8px",
-    right: "8px",
-    width: "auto",
-    minHeight: "2.5em",
-    borderRadius: BORDER_RADIUS.xl,
-    // Glass-morphism background with theme color
+    // Hug the content rather than stretching to node width, so a short note is
+    // a tidy chip instead of a wide near-empty box.
+    width: "fit-content",
+    minWidth: "120px",
+    maxWidth: "calc(100% - 16px)",
+    borderRadius: BORDER_RADIUS.lg,
+    // Flat, slightly recessed surface so the note reads as metadata, not a card.
     background: theme.vars.palette.c_bg_comment,
-    backdropFilter: theme.vars.palette.glass.blur,
-    WebkitBackdropFilter: theme.vars.palette.glass.blur,
-    display: "flex",
-    flexDirection: "column",
-    padding: "12px 16px",
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "6px 12px",
     gap: 0,
-    // Elegant border with theme divider
     border: `1px solid ${theme.vars.palette.divider}`,
-    boxShadow: `
-      0 4px 24px ${theme.vars.palette.c_black}66,
-      0 1px 2px ${theme.vars.palette.c_black}33,
-      inset 0 1px 0 ${theme.vars.palette.divider}
-    `,
+    boxShadow: `0 1px 2px ${theme.vars.palette.c_black}33`,
     zIndex: 10,
-    animation: `${fadeSlideIn} ${MOTION.normal}`,
-    transition: MOTION.all,
+    animation: `${fadeIn} ${MOTION.normal}`,
+    transition: MOTION.border,
     cursor: "text",
+    ...reducedMotion({ animation: "none" }),
 
     "&:hover": {
-      border: `1px solid ${theme.vars.palette.grey[600]}`,
-      boxShadow: `
-        0 8px 32px ${theme.vars.palette.c_black}80,
-        0 2px 4px ${theme.vars.palette.c_black}4D,
-        inset 0 1px 0 ${theme.vars.palette.divider}
-      `,
-      transform: "translateY(-1px)"
+      borderColor: theme.vars.palette.grey[600]
     },
 
-    // Connector arrow pointing to the node
+    // Small tail connecting the note to the node above.
     "&::before": {
       content: '""',
       position: "absolute",
-      top: "-8px",
-      left: "24px",
-      width: "16px",
-      height: "16px",
+      top: "-4px",
+      left: "16px",
+      width: "8px",
+      height: "8px",
       background: theme.vars.palette.c_bg_comment,
       borderTop: `1px solid ${theme.vars.palette.divider}`,
       borderLeft: `1px solid ${theme.vars.palette.divider}`,
-      transform: "rotate(45deg)",
-      borderRadius: `${BORDER_RADIUS.xs} 0 0 0`
-    },
-
-    // Decorative accent line on left
-    "&::after": {
-      content: '""',
-      position: "absolute",
-      left: "0",
-      top: "12px",
-      bottom: "12px",
-      width: "3px",
-      background: `linear-gradient(
-        180deg,
-        ${theme.vars.palette.primary.main} 0%,
-        ${theme.vars.palette.secondary.main} 100%
-      )`,
-      borderRadius: `0 ${BORDER_RADIUS.sm} ${BORDER_RADIUS.sm} 0`,
-      opacity: 0.7,
-      transition: `opacity ${MOTION.normal}`
+      transform: "rotate(45deg)"
     },
 
     // Textarea styling
     "& textarea": {
-      width: "100%",
+      flex: 1,
+      minWidth: "160px",
       minHeight: "1.4em",
       border: "none",
       outline: "none",
@@ -136,68 +127,11 @@ const EditableTitle = memo(function EditableTitle({
       }
     },
 
-    // Header with icon
-    ".comment-header": {
-      display: "flex",
-      alignItems: "center",
-      gap: "6px",
-      marginBottom: "6px",
-      opacity: 0.5,
-      fontSize: "var(--fontSizeSmaller)",
-      fontWeight: 600,
-      textTransform: "uppercase",
-      letterSpacing: "0.08em",
-      color: theme.vars.palette.primary.light,
-      transition: `opacity ${MOTION.normal}`,
-      ".icon": {
-        fontSize: "var(--fontSizeSmall)"
-      }
-    },
-
-    "&:hover .comment-header": {
-      opacity: 0.8
-    },
-
-    // Remove button styling
-    ".remove-title": {
-      position: "absolute",
-      right: "8px",
-      top: "8px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      width: "22px",
-      height: "22px",
-      color: theme.vars.palette.grey[500],
-      backgroundColor: "transparent",
-      border: "1px solid transparent",
-      borderRadius: BORDER_RADIUS.md,
-      cursor: "pointer",
-      padding: 0,
-      margin: 0,
-      opacity: 0,
-      transform: "scale(0.9)",
-      transition: `all ${MOTION.fast}`,
-      ".icon": {
-        fontSize: "var(--fontSizeNormal)"
-      },
-      "&:hover": {
-        color: theme.vars.palette.error.main,
-        backgroundColor: `${theme.vars.palette.error.main}1A`,
-        border: `1px solid ${theme.vars.palette.error.main}4D`,
-        transform: "scale(1)"
-      }
-    },
-
-    "&:hover .remove-title": {
-      opacity: 1,
-      transform: "scale(1)"
-    },
-
     // Title text styling
     ".title": {
       pointerEvents: "none",
-      width: "100%",
+      minWidth: 0,
+      flex: 1,
       color: theme.vars.palette.text.secondary,
       fontSize: "var(--fontSizeSmall)",
       lineHeight: "1.5",
@@ -207,18 +141,59 @@ const EditableTitle = memo(function EditableTitle({
       whiteSpace: "pre-wrap"
     },
 
-    // Connector dot/indicator
-    ".connector-dot": {
-      position: "absolute",
-      top: "-15px",
-      left: "30px",
-      width: "6px",
-      height: "6px",
+    // Numbered step badge promoted from a keycap emoji — a crisp circular index.
+    ".step-badge": {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
+      width: "16px",
+      height: "16px",
+      marginRight: "6px",
       borderRadius: BORDER_RADIUS.circle,
-      background: theme.vars.palette.primary.main,
-      boxShadow: `0 0 8px ${theme.vars.palette.primary.main}`,
-      animation: `${pulseGlow} 2s ease-in-out infinite`,
-      opacity: 0.8
+      background: theme.vars.palette.grey[700],
+      color: theme.vars.palette.grey[100],
+      fontSize: "var(--fontSizeSmaller)",
+      fontWeight: 600,
+      lineHeight: 1
+    },
+
+    // Other emoji render in harsh native colors that clash with the muted note.
+    // Color glyphs ignore `color`, so desaturate them to a dimmed neutral grey.
+    ".note-emoji": {
+      filter: "grayscale(1) brightness(0.6)"
+    },
+
+    // Remove button — sits inline after the text, surfacing on hover so it never
+    // overlaps the content of a narrow chip.
+    ".remove-title": {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
+      width: "18px",
+      height: "18px",
+      marginLeft: "8px",
+      color: theme.vars.palette.grey[500],
+      backgroundColor: "transparent",
+      border: "none",
+      borderRadius: BORDER_RADIUS.sm,
+      cursor: "pointer",
+      padding: 0,
+      opacity: 0,
+      transition: `${MOTION.opacity}, ${MOTION.background}`,
+      ...reducedMotion({ transition: MOTION.none }),
+      ".icon": {
+        fontSize: "var(--fontSizeSmall)"
+      },
+      "&:hover": {
+        color: theme.vars.palette.error.main,
+        backgroundColor: `${theme.vars.palette.error.main}1A`
+      }
+    },
+
+    "&:hover .remove-title": {
+      opacity: 1
     }
   }), [theme]);
 
@@ -265,11 +240,6 @@ const EditableTitle = memo(function EditableTitle({
       css={styles}
       onDoubleClick={handleDoubleClick}
     >
-      <div className="connector-dot" />
-      <div className="comment-header">
-        <ChatBubbleOutlineIcon className="icon" />
-        <span>Note</span>
-      </div>
       {isEditing ? (
         <textarea
           defaultValue={title}
@@ -283,7 +253,7 @@ const EditableTitle = memo(function EditableTitle({
         />
       ) : (
         <>
-          <div className="title">{title}</div>
+          <div className="title">{renderTitleText(title)}</div>
           <button
             type="button"
             className="remove-title"
