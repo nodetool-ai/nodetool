@@ -143,8 +143,9 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
     Array<{ id: string; startMs: number; durationMs: number }>
   >([]);
   /** Coalesces selection updates to one per animation frame. */
-  const rbRafIdRef = useRef<number | null>(null);
-  const rbPendingRef = useRef<{ startMs: number; endMs: number } | null>(null);
+  const rbLastAppliedRef = useRef<{ startMs: number; endMs: number } | null>(
+    null
+  );
   const [rubberBand, setRubberBand] = React.useState<RubberBandRect | null>(
     null
   );
@@ -177,9 +178,6 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
     return () => {
       if (warningTimerRef.current !== null) {
         clearTimeout(warningTimerRef.current);
-      }
-      if (rbRafIdRef.current !== null) {
-        cancelAnimationFrame(rbRafIdRef.current);
       }
     };
   }, []);
@@ -361,28 +359,32 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
     [clearSelection, msPerPx, seek, track.id]
   );
 
-  // Apply the pending rubber-band selection. Runs at most once per animation
-  // frame (scheduled from pointermove) so a fast drag doesn't fire setSelection
-  // — and the O(n) overlap filter — on every pointer event.
-  const flushRubberBandSelection = useCallback(() => {
-    rbRafIdRef.current = null;
-    const pending = rbPendingRef.current;
-    if (!pending) {
-      return;
-    }
-    const { startMs, endMs } = pending;
-    const selected = rbTrackClipsRef.current
-      .filter((c) => {
-        const clipEnd = c.startMs + c.durationMs;
-        return clipEnd > startMs && c.startMs < endMs;
-      })
-      .map((c) => c.id);
+  // Apply the rubber-band selection for the given content-space range. Deduped
+  // by range: pointer events that don't change the band (sub-pixel jitter, the
+  // browser already coalesces moves to ~one per frame) skip the O(n) overlap
+  // filter and the setSelection call entirely.
+  const applyRubberBandSelection = useCallback(
+    (startMs: number, endMs: number) => {
+      const last = rbLastAppliedRef.current;
+      if (last && last.startMs === startMs && last.endMs === endMs) {
+        return;
+      }
+      rbLastAppliedRef.current = { startMs, endMs };
 
-    // Shift+band unions with the selection snapshotted at pointerdown;
-    // a plain band replaces the selection.
-    const base = rbBaseSelectionRef.current;
-    setSelection(base ? [...new Set([...base, ...selected])] : selected);
-  }, [setSelection]);
+      const selected = rbTrackClipsRef.current
+        .filter((c) => {
+          const clipEnd = c.startMs + c.durationMs;
+          return clipEnd > startMs && c.startMs < endMs;
+        })
+        .map((c) => c.id);
+
+      // Shift+band unions with the selection snapshotted at pointerdown;
+      // a plain band replaces the selection.
+      const base = rbBaseSelectionRef.current;
+      setSelection(base ? [...new Set([...base, ...selected])] : selected);
+    },
+    [setSelection]
+  );
 
   const handleLanePointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -402,34 +404,20 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
       // Compute which clips overlap the rubber-band. The lane renders inside
       // the scrolling lanes container, so lane-local coordinates are already
-      // content-space — no scroll offset. Defer the actual selection filter to
-      // the next animation frame.
+      // content-space — no scroll offset.
       const rbStartMs = left * msPerPx;
-      rbPendingRef.current = {
-        startMs: rbStartMs,
-        endMs: rbStartMs + width * msPerPx
-      };
-      if (rbRafIdRef.current === null) {
-        rbRafIdRef.current = requestAnimationFrame(flushRubberBandSelection);
-      }
+      applyRubberBandSelection(rbStartMs, rbStartMs + width * msPerPx);
     },
-    [msPerPx, flushRubberBandSelection]
+    [msPerPx, applyRubberBandSelection]
   );
 
   const handleLanePointerUp = useCallback(() => {
     isRubberBandingRef.current = false;
     rbBaseSelectionRef.current = null;
-    // Apply any selection still pending from the last pointermove frame so the
-    // final band contents stick even if pointerup beats the scheduled frame.
-    if (rbRafIdRef.current !== null) {
-      cancelAnimationFrame(rbRafIdRef.current);
-      rbRafIdRef.current = null;
-      flushRubberBandSelection();
-    }
-    rbPendingRef.current = null;
+    rbLastAppliedRef.current = null;
     rbTrackClipsRef.current = [];
     setRubberBand(null);
-  }, [flushRubberBandSelection]);
+  }, []);
 
   // ── Right-click context menu ────────────────────────────────────────────
 
