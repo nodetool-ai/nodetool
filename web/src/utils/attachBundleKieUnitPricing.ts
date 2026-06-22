@@ -2,6 +2,17 @@ import type { KieUnitPricing, NodeMetadata } from "../stores/ApiTypes";
 import kieNodeTypePricingBundle from "@nodetool/kie-node-type-pricing";
 import kieUnitPricingCatalog from "@nodetool/kie-unit-pricing-catalog";
 
+function isKieUnitPricing(value: unknown): value is KieUnitPricing {
+  if (value == null || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.model_id === "string" &&
+    typeof v.unit_price === "number" &&
+    typeof v.billing_unit === "string" &&
+    v.currency === "credits"
+  );
+}
+
 function readStringField(obj: unknown, key: string): string | undefined {
   if (obj == null || typeof obj !== "object") {
     return undefined;
@@ -42,11 +53,13 @@ export const attachBundleKieUnitPricing = (
     if (!md || pricing == null) {
       continue;
     }
-    const bundleEntry = pricing as KieUnitPricing;
+    if (!isKieUnitPricing(pricing)) {
+      continue;
+    }
 
     if (md.kie_unit_pricing == null) {
       md.kie_unit_pricing = {
-        ...bundleEntry,
+        ...pricing,
         source: "bundle",
         checked_at: checkedAt,
       };
@@ -62,7 +75,7 @@ export const attachBundleKieUnitPricing = (
     if (hasDate) {
       continue;
     }
-    if (existing.model_id !== bundleEntry.model_id) {
+    if (existing.model_id !== pricing.model_id) {
       continue;
     }
     md.kie_unit_pricing = {
