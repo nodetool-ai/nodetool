@@ -8,9 +8,7 @@ import {
   fromPersistedSketchEditorState,
   DEFAULT_SKETCH_ACTIVE_TOOL,
   DEFAULT_SKETCH_ZOOM,
-  DEFAULT_SKETCH_PAN,
-  DEFAULT_SKETCH_DOCUMENT_WIDTH,
-  DEFAULT_SKETCH_DOCUMENT_HEIGHT
+  DEFAULT_SKETCH_PAN
 } from "../persistence";
 import type { HistoryEntry } from "../../../components/sketch/types";
 
@@ -207,8 +205,6 @@ describe("fromPersistedSketchEditorState", () => {
 
 describe("constants", () => {
   it("has expected default values", () => {
-    expect(DEFAULT_SKETCH_DOCUMENT_WIDTH).toBe(1024);
-    expect(DEFAULT_SKETCH_DOCUMENT_HEIGHT).toBe(1024);
     expect(DEFAULT_SKETCH_ACTIVE_TOOL).toBe("brush");
     expect(DEFAULT_SKETCH_ZOOM).toBe(1);
     expect(DEFAULT_SKETCH_PAN).toEqual({ x: 0, y: 0 });

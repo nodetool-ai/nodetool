@@ -106,6 +106,18 @@ function normalizeImageList(value: unknown): ImageRefLike[] {
   );
 }
 
+/**
+ * Normalize a video input that may be a single VideoRef or a list of refs into
+ * an array, dropping non-object entries. Lets a concat input accept either a
+ * single wired video or a `list<video>` from an upstream loop/list node.
+ */
+function normalizeVideoList(value: unknown): VideoRefLike[] {
+  const items = Array.isArray(value) ? value : value != null ? [value] : [];
+  return items.filter(
+    (item): item is VideoRefLike => !!item && typeof item === "object"
+  );
+}
+
 function filePath(uriOrPath: string): string {
   if (uriOrPath.startsWith("file://")) {
     try {
@@ -1142,7 +1154,7 @@ export class ConcatVideoNode extends BaseNode {
   static readonly body = "content_card";
   static readonly title = "Concatenate Video";
   static readonly description =
-    "Concatenate multiple video files into a single video, including audio when available. Add inputs dynamically with the “add video input” button.\n    video, concat, merge, combine, audio, +";
+    "Concatenate multiple video files into a single video, including audio when available. Add inputs dynamically with the “add video input” button, or wire a list of videos into a single input.\n    video, concat, merge, combine, audio, +";
   static readonly requiredRuntimes = ["ffmpeg"];
   static readonly metadataOutputTypes = {
     output: "video"
@@ -1152,7 +1164,9 @@ export class ConcatVideoNode extends BaseNode {
   static readonly supportsDynamicInputs = true;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const inputValues = Array.from(this.dynamicProps.values());
+    const inputValues = Array.from(this.dynamicProps.values()).flatMap(
+      (value) => normalizeVideoList(value)
+    );
     const parts: Uint8Array[] = [];
     for (const input of inputValues) {
       const bytes = await videoBytesAsync(input, context);

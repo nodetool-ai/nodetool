@@ -1,6 +1,4 @@
-import usePendingNodeCreateStore, {
-  PENDING_NODE_CREATE_MAX_AGE_MS
-} from "../PendingNodeCreateStore";
+import usePendingNodeCreateStore from "../PendingNodeCreateStore";
 import type { NodeMetadata } from "../ApiTypes";
 
 const fakeMeta = (node_type: string): NodeMetadata =>
@@ -30,7 +28,7 @@ describe("PendingNodeCreateStore", () => {
   });
 
   it("consume returns null for expired requests", () => {
-    const old = Date.now() - PENDING_NODE_CREATE_MAX_AGE_MS - 100;
+    const old = Date.now() - 1500 - 100;
     usePendingNodeCreateStore.setState({
       pending: { metadata: fakeMeta("a"), requestedAt: old }
     });

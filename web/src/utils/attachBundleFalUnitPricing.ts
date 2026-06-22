@@ -2,6 +2,17 @@ import type { FalUnitPricing, NodeMetadata } from "../stores/ApiTypes";
 import falNodeTypePricingBundle from "@nodetool/fal-node-type-pricing";
 import falUnitPricingCatalog from "@nodetool/fal-unit-pricing-catalog";
 
+function isFalUnitPricing(value: unknown): value is FalUnitPricing {
+  if (value == null || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.endpoint_id === "string" &&
+    typeof v.unit_price === "number" &&
+    typeof v.billing_unit === "string" &&
+    typeof v.currency === "string"
+  );
+}
+
 function readStringField(obj: unknown, key: string): string | undefined {
   if (obj == null || typeof obj !== "object") {
     return undefined;
@@ -52,11 +63,13 @@ export const attachBundleFalUnitPricing = (
     if (!md || pricing == null) {
       continue;
     }
-    const bundleEntry = pricing as FalUnitPricing;
+    if (!isFalUnitPricing(pricing)) {
+      continue;
+    }
 
     if (md.fal_unit_pricing == null) {
       md.fal_unit_pricing = {
-        ...bundleEntry,
+        ...pricing,
         source: "bundle",
         checked_at: checkedAt,
       };
@@ -72,7 +85,7 @@ export const attachBundleFalUnitPricing = (
     if (hasDate) {
       continue;
     }
-    if (existing.endpoint_id !== bundleEntry.endpoint_id) {
+    if (existing.endpoint_id !== pricing.endpoint_id) {
       continue;
     }
     md.fal_unit_pricing = {

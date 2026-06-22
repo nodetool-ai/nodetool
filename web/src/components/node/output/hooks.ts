@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { packageAssetHttpPath, isBitmapImage } from "@nodetool-ai/protocol";
-import { Asset, AssetRef } from "../../../stores/ApiTypes";
+import { Asset } from "../../../stores/ApiTypes";
 import { BASE_URL } from "../../../stores/BASE_URL";
 import { trpc } from "../../../trpc/client";
 import { bitmapToPngDataUrl } from "../../../lib/workflow/materializeBrowserOutputs";

@@ -2434,9 +2434,9 @@ export class FilterRegexStringNode extends BaseNode {
 export class ConcatTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Concat";
   static readonly body = "content_card";
-  static readonly title = "Concatenate Text";
+  static readonly title = "Concat";
   static readonly description =
-    "Concatenates text inputs into a single output. Add inputs dynamically with the “add text input” button.\n    +, text, combine, add, concatenate, merge, join, append";
+    "Concatenates text inputs into a single output. Add inputs dynamically with the “add text input” button, or wire a list of strings into a single input.\n    +, text, combine, add, concatenate, merge, join, append";
   static readonly metadataOutputTypes = {
     output: "str"
   };
@@ -2445,8 +2445,12 @@ export class ConcatTextNode extends BaseNode {
   static readonly supportsDynamicInputs = true;
 
   async process(): Promise<Record<string, unknown>> {
+    // A dynamic input may carry a single value or a list<str> from an upstream
+    // loop/list node — flatten so list elements concatenate in order instead of
+    // stringifying the whole array as "a,b,c".
     return {
       output: Array.from(this.dynamicProps.values())
+        .flatMap((value) => (Array.isArray(value) ? value : [value]))
         .map((value) => String(value ?? ""))
         .join("")
     };

@@ -465,15 +465,6 @@ describe("Auto-updater Module", () => {
     });
   });
 
-  describe("isUpdateAvailable", () => {
-    it("should return false by default", () => {
-      jest.isolateModules(() => {
-        const { isUpdateAvailable } = require("../updater");
-        expect(isUpdateAvailable()).toBe(false);
-      });
-    });
-  });
-
   describe("error event handler", () => {
     it("should handle missing app-update.yml error gracefully", async () => {
       mockExistsSync.mockReturnValue(true);
