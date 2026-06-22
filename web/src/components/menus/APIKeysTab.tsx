@@ -790,12 +790,23 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     return results;
   }, [safeSecrets, lowerSearch]);
 
+  // Connected providers float to their own section at the top.
+  const connected = useMemo(
+    () => matchedProviders.filter((p) => p.secret.is_configured),
+    [matchedProviders]
+  );
   const recommended = useMemo(
-    () => matchedProviders.filter((p) => p.meta.category === "recommended"),
+    () =>
+      matchedProviders.filter(
+        (p) => p.meta.category === "recommended" && !p.secret.is_configured
+      ),
     [matchedProviders]
   );
   const others = useMemo(
-    () => matchedProviders.filter((p) => p.meta.category === "other"),
+    () =>
+      matchedProviders.filter(
+        (p) => p.meta.category === "other" && !p.secret.is_configured
+      ),
     [matchedProviders]
   );
 
@@ -929,7 +940,8 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     [others, unconfiguredOthers]
   );
 
-  const hasContent = allRecommended.length > 0 || allOthers.length > 0;
+  const hasContent =
+    connected.length > 0 || allRecommended.length > 0 || allOthers.length > 0;
 
   return (
     <FlexColumn sx={{ gap: "1.5rem" }}>
@@ -941,6 +953,28 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
           title="No providers found"
           description={`No providers match "${searchTerm}"`}
         />
+      )}
+
+      {connected.length > 0 && (
+        <div>
+          <SectionTitle
+            title="Connected Providers"
+            count={connected.length}
+            theme={theme}
+          />
+          <FlexColumn sx={{ gap: theme.spacing(2) }}>
+            {connected.map(({ secret, meta }) => (
+              <ProviderCard
+                key={meta.key}
+                secret={secret}
+                meta={meta}
+                onConnect={handleConnect}
+                onManage={handleManage}
+                onDelete={handleDelete}
+              />
+            ))}
+          </FlexColumn>
+        </div>
       )}
 
       {allRecommended.length > 0 && (
