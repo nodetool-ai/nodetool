@@ -35,7 +35,8 @@ import {
   ToolbarIconButton,
   MOTION,
   BORDER_RADIUS,
-  TYPOGRAPHY
+  TYPOGRAPHY,
+  Z_INDEX
 } from "../ui_primitives";
 import type { StatusType } from "../ui_primitives";
 import { relativeTime } from "../../utils/formatDateAndTime";
@@ -226,14 +227,23 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.common.white,
       textShadow: "0 0 2px rgba(0,0,0,0.8)"
     },
+    // The focused generation: a prominent OUTSET glow ring (clearly stronger than
+    // the 1px hover border) so the current selection is unmistakable at a glance.
     ".thumb.selected": {
-      borderColor: theme.vars.palette.primary.main
+      borderColor: theme.vars.palette.primary.main,
+      boxShadow: `0 0 0 2px ${theme.vars.palette.primary.main}`,
+      zIndex: Z_INDEX.raised
     },
     // Multi-select export membership: a distinct INSET ring (separate from the
     // focused .selected border) so a tile can be both the focused generation and
     // a member of the downstream set at once.
     ".thumb.in-set": {
       boxShadow: `inset 0 0 0 2px ${theme.vars.palette.secondary.main}`
+    },
+    // Both at once: stack the focused outset ring and the in-set membership ring
+    // so neither cascade rule clobbers the other.
+    ".thumb.selected.in-set": {
+      boxShadow: `0 0 0 2px ${theme.vars.palette.primary.main}, inset 0 0 0 2px ${theme.vars.palette.secondary.main}`
     },
     // Pick-order badge: the 1-based position of a tile within the export set.
     ".pick-badge": {
@@ -476,6 +486,13 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
 
   const handleToggleView = useCallback(() => {
     setView((v) => (v === "single" ? "grid" : "single"));
+  }, []);
+
+  // ReactFlow selects/deselects the enclosing node on pointer down. The grid is
+  // an interactive control inside the node, so swallow pointer-down here: tile
+  // clicks pick a generation without also toggling the node's selection.
+  const stopNodeSelection = useCallback((e: React.PointerEvent) => {
+    e.stopPropagation();
   }, []);
 
   // The fullscreen AssetViewer renders media; text generations open in a
@@ -741,6 +758,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
             role="listbox"
             aria-multiselectable={hasDownstream || undefined}
             aria-label="Generations"
+            onPointerDown={stopNodeSelection}
             onClick={handleGridClick}
             onKeyDown={handleGridKeyDown}
           >
