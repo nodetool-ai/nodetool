@@ -713,7 +713,8 @@ export const workflowsRouter = router({
           return {
             version: null,
             message: "Autosave skipped (rate limited)",
-            skipped: true
+            skipped: true,
+            persisted: false
           };
         }
       }
@@ -740,7 +741,8 @@ export const workflowsRouter = router({
             return {
               version: null,
               message: "Autosave skipped (no changes)",
-              skipped: true
+              skipped: true,
+              persisted: true
             };
           }
         } catch {
@@ -783,7 +785,8 @@ export const workflowsRouter = router({
       return {
         version,
         message: "Autosaved successfully",
-        skipped: false
+        skipped: false,
+        persisted: true
       };
     }),
 

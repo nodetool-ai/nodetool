@@ -19,6 +19,24 @@ jest.mock("../../trpc/client", () => ({
   }
 }));
 
+// Mock the node-store accessor so we can drive the dirty-flag reset logic.
+// `mock`-prefixed names are allowed inside jest.mock factories.
+const mockSetWorkflowDirty = jest.fn();
+let mockNodes: unknown = [];
+let mockEdges: unknown = [];
+let mockWorkflowRef: unknown = {};
+const mockGetNodeStore = jest.fn(() => ({
+  getState: () => ({
+    nodes: mockNodes,
+    edges: mockEdges,
+    workflow: mockWorkflowRef,
+    setWorkflowDirty: mockSetWorkflowDirty
+  })
+}));
+jest.mock("../../stores/workflowUpdates", () => ({
+  getNodeStore: () => mockGetNodeStore()
+}));
+
 // Create a wrapper with QueryClientProvider
 const createTestWrapper = (): React.FC<{ children: React.ReactNode }> => {
   const queryClient = new QueryClient({
@@ -90,8 +108,14 @@ describe("useAutosave", () => {
     mockAutosaveMutate.mockResolvedValue({
       version: { id: "v1", version: 1, workflow_id: "test-workflow", save_type: "autosave", created_at: new Date().toISOString() },
       message: "Saved",
-      skipped: false
+      skipped: false,
+      persisted: true
     });
+
+    mockNodes = [];
+    mockEdges = [];
+    mockWorkflowRef = {};
+    mockGetNodeStore.mockClear();
   });
 
   afterEach(() => {
@@ -255,6 +279,72 @@ describe("useAutosave", () => {
 
       expect(consoleSpy).toHaveBeenCalledWith("Autosave failed:", expect.any(Error));
       consoleSpy.mockRestore();
+    });
+
+    it("clears the dirty flag after a persisted save with no edits during save", async () => {
+      const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createTestWrapper() });
+
+      await act(async () => {
+        await result.current.triggerAutosave();
+      });
+
+      expect(mockSetWorkflowDirty).toHaveBeenCalledWith(false);
+    });
+
+    it("clears the dirty flag on a no-change skip (persisted, skipped)", async () => {
+      mockAutosaveMutate.mockResolvedValue({
+        version: null,
+        message: "Autosave skipped (no changes)",
+        skipped: true,
+        persisted: true
+      });
+
+      const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createTestWrapper() });
+
+      await act(async () => {
+        await result.current.triggerAutosave();
+      });
+
+      expect(mockSetWorkflowDirty).toHaveBeenCalledWith(false);
+    });
+
+    it("keeps the dirty flag when the save is not persisted (rate limited)", async () => {
+      mockAutosaveMutate.mockResolvedValue({
+        version: null,
+        message: "Autosave skipped (rate limited)",
+        skipped: true,
+        persisted: false
+      });
+
+      const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createTestWrapper() });
+
+      await act(async () => {
+        await result.current.triggerAutosave();
+      });
+
+      expect(mockSetWorkflowDirty).not.toHaveBeenCalled();
+    });
+
+    it("keeps the dirty flag when the user edits during the save", async () => {
+      // Simulate an edit landing while the save is in flight by swapping the
+      // node-store's `nodes` reference inside the awaited mutation.
+      mockAutosaveMutate.mockImplementation(async () => {
+        mockNodes = [{ id: "2" }];
+        return {
+          version: { id: "v1", version: 1, workflow_id: "test-workflow", save_type: "autosave" },
+          message: "Saved",
+          skipped: false,
+          persisted: true
+        };
+      });
+
+      const { result } = renderHook(() => useAutosave(createMockOptions()), { wrapper: createTestWrapper() });
+
+      await act(async () => {
+        await result.current.triggerAutosave();
+      });
+
+      expect(mockSetWorkflowDirty).not.toHaveBeenCalled();
     });
   });
 

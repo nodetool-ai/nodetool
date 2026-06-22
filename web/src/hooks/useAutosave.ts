@@ -16,6 +16,7 @@ import { useNotificationStore } from "../stores/NotificationStore";
 import { Node, Edge, Workflow } from "../stores/ApiTypes";
 import { v4 as uuidv4 } from "uuid";
 import { trpcClient } from "../trpc/client";
+import { getNodeStore } from "../stores/workflowUpdates";
 
 export interface UseAutosaveOptions {
   workflowId: string | null;
@@ -39,6 +40,7 @@ interface AutosaveResponse {
   } | null;
   message: string;
   skipped: boolean;
+  persisted: boolean;
 }
 
 /**
@@ -107,7 +109,12 @@ export const useAutosave = (options: UseAutosaveOptions): UseAutosaveReturn => {
       }
     ): Promise<AutosaveResponse> => {
       if (!workflowId) {
-        return { version: null, message: "no workflow", skipped: true };
+        return {
+          version: null,
+          message: "no workflow",
+          skipped: true,
+          persisted: false
+        };
       }
 
       const graph = (options?.graph ?? { nodes: [], edges: [] }) as {
@@ -156,10 +163,32 @@ export const useAutosave = (options: UseAutosaveOptions): UseAutosaveReturn => {
 
     isSavingRef.current = true;
 
+    // Snapshot the node store's state references before the awaited save. Every
+    // NodeStore mutation produces new `nodes`/`edges`/`workflow` references, so
+    // reference equality after the await tells us whether the user edited the
+    // graph while the save was in flight (same pattern as saveWorkflow).
+    const nodeStore = getNodeStore(workflowId!);
+    const stateBefore = nodeStore?.getState();
+
     try {
       const result = await callAutosaveEndpoint("autosave", {
         graph: workflow.graph
       });
+
+      // Clear the dirty flag once the graph is persisted (a real save or a
+      // no-change skip), but only if the user hasn't edited during the save.
+      // Without this the dirty flag stays set forever and the interval keeps
+      // re-triggering autosaves of unchanged graphs.
+      if (result.persisted && nodeStore && stateBefore) {
+        const current = nodeStore.getState();
+        const editedDuringSave =
+          current.nodes !== stateBefore.nodes ||
+          current.edges !== stateBefore.edges ||
+          current.workflow !== stateBefore.workflow;
+        if (!editedDuringSave) {
+          current.setWorkflowDirty(false);
+        }
+      }
 
       if (result.skipped) {
         return;

@@ -271,7 +271,12 @@ const versionInfo = z.object({
 export const autosaveOutput = z.object({
   version: versionInfo.nullable(),
   message: z.string(),
-  skipped: z.boolean()
+  skipped: z.boolean(),
+  // Whether the workflow graph is now persisted on the server. True for a real
+  // save and for a no-change skip (graph already matches the latest version);
+  // false for a rate-limited skip (nothing was written). Lets the client clear
+  // its dirty flag only when the current graph is safely stored.
+  persisted: z.boolean()
 });
 export type AutosaveOutput = z.infer<typeof autosaveOutput>;
 
