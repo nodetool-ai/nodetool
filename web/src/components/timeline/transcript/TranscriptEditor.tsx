@@ -399,7 +399,9 @@ const ScriptCaretPlugin: React.FC<{ visible: boolean }> = ({ visible }) => {
         const end = Number(el.dataset.end);
         if (timeMs >= start && timeMs < end) {
           target = el;
-          fraction = end > start ? (timeMs - start) / (end - start) : 0;
+          // The enclosing check guarantees start <= timeMs < end, so end > start
+          // and the denominator is always positive.
+          fraction = (timeMs - start) / (end - start);
           break;
         }
       }
