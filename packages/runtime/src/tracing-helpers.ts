@@ -66,22 +66,31 @@ export interface LlmUsage {
 }
 
 /**
- * Per-call usage slot. Providers' `trackUsage` writes into the active slot
- * via {@link setLastUsage}, and the traced wrapper reads it via
- * {@link consumeLastUsage} so it can attach the numbers to its span and
- * `llm_call` event.
+ * Per-call slot carrying the in-flight LLM call's side state: token usage and
+ * the exact request payload sent to the provider.
+ *
+ * Providers' `trackUsage` writes usage via {@link setLastUsage}; providers'
+ * `recordRequestPayload` writes the wire payload via {@link setLastRequest}.
+ * The traced wrapper reads both back ({@link consumeLastUsage},
+ * {@link peekLastRequest}) so it can attach usage to its span and, on failure,
+ * log precisely what was sent.
  *
  * We use AsyncLocalStorage rather than an instance field so concurrent calls
  * on the same provider instance don't clobber each other.
  */
-const usageStore = new AsyncLocalStorage<{ usage: LlmUsage | null }>();
+interface CallSlot {
+  usage: LlmUsage | null;
+  request: unknown;
+}
+const usageStore = new AsyncLocalStorage<CallSlot>();
 
 /**
- * Run `fn` inside a fresh usage slot. `consumeLastUsage()` afterwards returns
- * whatever the deepest `setLastUsage()` call wrote.
+ * Run `fn` inside a fresh per-call slot. `consumeLastUsage()` /
+ * `peekLastRequest()` afterwards return whatever the deepest provider hook
+ * wrote.
  */
 export function withUsageCapture<T>(fn: () => Promise<T>): Promise<T> {
-  return usageStore.run({ usage: null }, fn);
+  return usageStore.run({ usage: null, request: null }, fn);
 }
 
 /** Provider hook: record token usage for the in-flight LLM call. */
@@ -105,6 +114,21 @@ export function peekLastUsage(): LlmUsage | null {
 }
 
 /**
+ * Provider hook: record the exact payload sent to the provider for the
+ * in-flight LLM call. The traced wrapper reads this back via
+ * {@link peekLastRequest} to log precisely what was sent on failure.
+ */
+export function setLastRequest(request: unknown): void {
+  const slot = usageStore.getStore();
+  if (slot) slot.request = request;
+}
+
+/** Read (without clearing) the request payload recorded in this async context. */
+export function peekLastRequest(): unknown {
+  return usageStore.getStore()?.request ?? null;
+}
+
+/**
  * Create a per-call usage slot that survives across async-generator yields.
  *
  * `AsyncLocalStorage.run()` only persists across awaits within its callback,
@@ -115,11 +139,13 @@ export function peekLastUsage(): LlmUsage | null {
 export function createUsageSlot(): {
   runInSlot: <T>(fn: () => Promise<T>) => Promise<T>;
   getUsage: () => LlmUsage | null;
+  getRequest: () => unknown;
 } {
-  const slot: { usage: LlmUsage | null } = { usage: null };
+  const slot: CallSlot = { usage: null, request: null };
   return {
     runInSlot: <T>(fn: () => Promise<T>) => usageStore.run(slot, fn),
-    getUsage: () => slot.usage
+    getUsage: () => slot.usage,
+    getRequest: () => slot.request
   };
 }
 

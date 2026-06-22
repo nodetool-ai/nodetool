@@ -33,11 +33,14 @@ import { getTracer } from "../telemetry.js";
 import {
   withUsageCapture,
   setLastUsage,
+  setLastRequest,
   consumeLastUsage,
   peekLastUsage,
+  peekLastRequest,
   createUsageSlot,
   type LlmUsage
 } from "../tracing-helpers.js";
+import { logProviderRequestFailure } from "./provider-request-log.js";
 import type { Span } from "@opentelemetry/api";
 import { SpanStatusCode } from "@opentelemetry/api";
 import { createLogger, getAssetFilePath } from "@nodetool-ai/config";
@@ -163,6 +166,17 @@ export abstract class BaseProvider {
 
   protected emitMessage(msg: unknown): void {
     if (this._emitMessage) this._emitMessage(msg);
+  }
+
+  /**
+   * Record the exact payload this provider is about to send to the upstream
+   * API. Call this right before the network request in `generateMessage` /
+   * `generateMessages`. On failure, the traced wrappers log precisely what was
+   * sent (secrets redacted, large fields truncated). Safe to call even outside
+   * a traced call — it is a no-op when no capture slot is active.
+   */
+  protected recordRequestPayload(payload: unknown): void {
+    setLastRequest(payload);
   }
 
   protected constructor(provider: ProviderId) {
@@ -393,17 +407,30 @@ export abstract class BaseProvider {
     let result: Message | undefined;
     let error: string | undefined;
     let usage: LlmUsage | null = null;
+    let requestPayload: unknown = null;
     try {
       // withUsageCapture creates a per-call AsyncLocalStorage slot so
       // trackUsage() in the provider hands its numbers back to us.
       result = await withUsageCapture(async () => {
-        const r = await doCall();
-        usage = consumeLastUsage();
-        return r;
+        try {
+          const r = await doCall();
+          usage = consumeLastUsage();
+          return r;
+        } finally {
+          // Read the recorded wire payload while still inside the capture slot.
+          requestPayload = peekLastRequest();
+        }
       });
       return result;
     } catch (err) {
       error = String(err);
+      logProviderRequestFailure({
+        provider: this.provider,
+        model: args.model,
+        request: requestPayload,
+        nodetoolArgs: { model: args.model, messages: args.messages, tools: args.tools },
+        error: err
+      });
       throw err;
     } finally {
       this.emitMessage({
@@ -481,7 +508,7 @@ export abstract class BaseProvider {
 
     // Per-call usage slot survives across the generator's yields by wrapping
     // each `next()` call in `runInSlot`.
-    const { runInSlot, getUsage } = createUsageSlot();
+    const { runInSlot, getUsage, getRequest } = createUsageSlot();
     const tracer = getTracer();
     const source = tracer
       ? this._tracedStream(args, tracer)
@@ -516,6 +543,17 @@ export abstract class BaseProvider {
       });
     } catch (err) {
       error = String(err);
+      logProviderRequestFailure({
+        provider: this.provider,
+        model: args.model,
+        request: getRequest(),
+        nodetoolArgs: {
+          model: args.model,
+          messages: args.messages,
+          tools: (args as Record<string, unknown>).tools
+        },
+        error: err
+      });
       throw err;
     } finally {
       // If the consumer cancelled early (broke out of for-await, threw, or

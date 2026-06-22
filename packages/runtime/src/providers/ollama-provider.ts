@@ -442,6 +442,7 @@ export class OllamaProvider extends BaseProvider {
 
     log.debug("Ollama request", { model: args.model });
 
+    this.recordRequestPayload(request);
     const response = await this.postJson<{ message?: OllamaChatMessage }>(
       "/api/chat",
       request
@@ -540,6 +541,7 @@ export class OllamaProvider extends BaseProvider {
 
     log.debug("Ollama request", { model: args.model });
 
+    this.recordRequestPayload(request);
     const response = await this._fetch(`${this.apiUrl}/api/chat`, {
       method: "POST",
       headers: { "content-type": "application/json" },

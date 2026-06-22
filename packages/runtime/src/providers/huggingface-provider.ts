@@ -316,13 +316,15 @@ export class HuggingFaceProvider extends BaseProvider {
 
     log.debug("HuggingFace chatCompletion", { model: args.model });
 
-    const response = await client.chatCompletion({
+    const requestPayload = {
       model: args.model,
       messages: hfMessages,
       max_tokens: args.maxTokens ?? 4096,
       ...(args.temperature != null ? { temperature: args.temperature } : {}),
       ...(args.topP != null ? { top_p: args.topP } : {})
-    });
+    };
+    this.recordRequestPayload(requestPayload);
+    const response = await client.chatCompletion(requestPayload);
 
     const choice = response?.choices?.[0];
     if (!choice) {
@@ -364,13 +366,15 @@ export class HuggingFaceProvider extends BaseProvider {
 
     log.debug("HuggingFace chatCompletionStream", { model: args.model });
 
-    const stream = client.chatCompletionStream({
+    const requestPayload = {
       model: args.model,
       messages: hfMessages,
       max_tokens: args.maxTokens ?? 4096,
       ...(args.temperature != null ? { temperature: args.temperature } : {}),
       ...(args.topP != null ? { top_p: args.topP } : {})
-    });
+    };
+    this.recordRequestPayload(requestPayload);
+    const stream = client.chatCompletionStream(requestPayload);
 
     for await (const chunk of stream) {
       const choice = chunk?.choices?.[0];

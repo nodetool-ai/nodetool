@@ -383,6 +383,7 @@ export class CodexProvider extends OpenAIProvider {
     const body = this.buildRequestBody(args);
     this.codexLogger.debug("Codex responses request", { model: args.model });
 
+    this.recordRequestPayload(body);
     const res = await fetch(`${CODEX_BACKEND_BASE_URL}/responses`, {
       method: "POST",
       headers: this.buildHeaders(),

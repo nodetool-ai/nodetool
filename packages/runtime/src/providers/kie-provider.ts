@@ -451,6 +451,7 @@ export class KieProvider extends BaseProvider {
       request.tool_choice = this.responseToolChoice(args.toolChoice) ?? "auto";
     }
 
+    this.recordRequestPayload(request);
     const response = (await (client.responses.create as unknown as (
       body: Record<string, unknown>,
       options?: { signal?: AbortSignal }
@@ -494,6 +495,7 @@ export class KieProvider extends BaseProvider {
       request.tool_choice = this.responseToolChoice(args.toolChoice) ?? "auto";
     }
 
+    this.recordRequestPayload(request);
     const stream = (await (client.responses.create as unknown as (
       body: Record<string, unknown>,
       options?: { signal?: AbortSignal }

@@ -732,6 +732,7 @@ export class OpenAIProvider extends BaseProvider {
 
     log.debug("OpenAI request", { model });
 
+    this.recordRequestPayload(request);
     const stream = (await this.getClient().chat.completions.create(
       request as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming
     )) as AsyncIterable<any> & { close?: () => Promise<void> };
@@ -872,6 +873,7 @@ export class OpenAIProvider extends BaseProvider {
 
     log.debug("OpenAI request", { model });
 
+    this.recordRequestPayload(request);
     const completion = await this.getClient().chat.completions.create(
       request as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming
     );
