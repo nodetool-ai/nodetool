@@ -589,6 +589,74 @@ describe("workflows router", () => {
       expect(result.skipped).toBe(true);
     });
 
+    it("skips creating a version when the graph is unchanged since the latest snapshot", async () => {
+      const graph = {
+        nodes: [
+          {
+            id: "n1",
+            type: "test.Node",
+            data: { a: 1 },
+            ui_properties: { position: { x: 0, y: 0 }, selected: false }
+          }
+        ],
+        edges: []
+      };
+      const wf = makeWorkflow({ id: "wf-dedup", user_id: "user-1", graph });
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
+      // Latest snapshot is identical except for transient selection state.
+      const latest = makeVersion({
+        id: "ver-1",
+        workflow_id: "wf-dedup",
+        version: 3,
+        graph: {
+          nodes: [
+            {
+              id: "n1",
+              type: "test.Node",
+              data: { a: 1 },
+              ui_properties: { position: { x: 0, y: 0 }, selected: true }
+            }
+          ],
+          edges: []
+        }
+      });
+      (WorkflowVersion.listForWorkflow as ReturnType<typeof vi.fn>).mockResolvedValue([latest]);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.autosave({ id: "wf-dedup", graph });
+
+      expect(result.skipped).toBe(true);
+      expect(result.message).toBe("Autosave skipped (no changes)");
+      expect(WorkflowVersion.nextVersion).not.toHaveBeenCalled();
+    });
+
+    it("creates a version when the graph differs from the latest snapshot", async () => {
+      const wf = makeWorkflow({ id: "wf-changed", user_id: "user-1" });
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
+      const latest = makeVersion({
+        id: "ver-1",
+        workflow_id: "wf-changed",
+        version: 1,
+        graph: { nodes: [], edges: [] }
+      });
+      (WorkflowVersion.listForWorkflow as ReturnType<typeof vi.fn>).mockResolvedValue([latest]);
+      (WorkflowVersion.nextVersion as ReturnType<typeof vi.fn>).mockResolvedValue(2);
+      (WorkflowVersion.pruneOldVersions as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.autosave({
+        id: "wf-changed",
+        graph: {
+          nodes: [{ id: "n1", type: "test.Node", data: {}, ui_properties: {} }],
+          edges: []
+        }
+      });
+
+      expect(result.skipped).toBe(false);
+      expect(result.message).toBe("Autosaved successfully");
+      expect(WorkflowVersion.nextVersion).toHaveBeenCalled();
+    });
+
     it("throws NOT_FOUND when workflow does not exist", async () => {
       (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
       const caller = createCaller(makeCtx());
