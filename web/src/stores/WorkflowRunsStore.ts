@@ -58,6 +58,8 @@ type WorkflowRunsActions = {
   getFocusedJob: (wf: string) => string | undefined;
   /** Object.values of runs[wf] or []. */
   getRuns: (wf: string) => RunMeta[];
+  /** Check if a specific run exists for a workflow. */
+  hasRun: (wf: string, jobId: string) => boolean;
   /**
    * Remove a run. If it was the focused job, re-focus to the newest still-
    * present running run, then the newest present run, then clear focus.
@@ -122,6 +124,11 @@ const useWorkflowRunsStore = create<WorkflowRunsStore>((set, get) => ({
 
   getRuns: (wf: string): RunMeta[] => {
     return Object.values(get().runs[wf] ?? {});
+  },
+
+  hasRun: (wf: string, jobId: string): boolean => {
+    const wfRuns = get().runs[wf];
+    return wfRuns !== undefined && wfRuns[jobId] !== undefined;
   },
 
   removeRun: (wf: string, jobId: string) => {
