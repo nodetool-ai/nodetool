@@ -84,7 +84,7 @@ buffered actor path (`_runCorrelated` in `NodeActor`) fires a node once per
   stream, or a one-shot value. Join nodes like `Zip` and `Cross` pair values
   from independent iteration sources within their common parent scope.
 
-See [correlation-design.md](correlation-design.md) for the full model.
+See [correlation-design.md](https://github.com/nodetool-ai/nodetool/blob/main/docs/correlation-design.md) for the full model.
 
 ### ProcessingContext
 
