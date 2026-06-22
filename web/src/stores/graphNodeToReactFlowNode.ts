@@ -112,6 +112,7 @@ export function graphNodeToReactFlowNode(
       model_id: ui_properties?.model_id,
       endpoint_id: ui_properties?.endpoint_id,
       selected_generation: ui_properties?.selected_generation,
+      selected_generations: ui_properties?.selected_generations,
       ...(expandedHeightPxForData != null
         ? { expandedHeightPx: expandedHeightPxForData }
         : {})

@@ -46,11 +46,15 @@ jest.mock("../../../contexts/NodeContext", () => ({
     selector: (state: {
       updateNodeData: () => void;
       findNode: (id: string) => unknown;
+      edges: unknown[];
     }) => unknown
   ) =>
     selector({
       updateNodeData: jest.fn(),
-      findNode: (id: string) => ({ id, data: {} })
+      findNode: (id: string) => ({ id, data: {} }),
+      // NodeHistoryViewer (rendered by ContentCardBody) subscribes to outgoing
+      // edges to detect a downstream list consumer; none here.
+      edges: []
     })
 }));
 
@@ -248,7 +252,7 @@ describe("ContentCardBody results", () => {
 
     // Toggle to the grid: both variants render as tiles in the one run section.
     await userEvent.click(screen.getByLabelText("Toggle view"));
-    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+    expect(screen.getAllByRole("option")).toHaveLength(2);
   });
 
   it("renders a pure transform's output without the gallery navigator", () => {

@@ -1,11 +1,24 @@
 import type { Node, Edge } from "@xyflow/react";
 import type { NodeData } from "../../../stores/NodeData";
+
+jest.mock("../../../core/graph", () => ({ subgraph: jest.fn() }));
+jest.mock("../../../stores/nodeGenerationAccessor", () => ({
+  getNodeGenerations: jest.fn(() => []),
+  getNodeSelectedOutputs: jest.fn(() => undefined)
+}));
+
 import {
   findExternalInputEdges,
   applyPropertyOverrides,
   browserRunnablePrefix,
-  collectCachedValuesForSubgraph
+  collectCachedValuesForSubgraph,
+  buildDownstreamRunGraph
 } from "../buildDownstreamRunGraph";
+import { subgraph } from "../../../core/graph";
+import { getNodeSelectedOutputs } from "../../../stores/nodeGenerationAccessor";
+
+const mockSubgraph = subgraph as jest.Mock;
+const mockGetNodeSelectedOutputs = getNodeSelectedOutputs as jest.Mock;
 
 function mkNode(id: string, type = "nodetool.test.Node"): Node<NodeData> {
   return {
@@ -194,5 +207,77 @@ describe("browserRunnablePrefix", () => {
     };
     const result = browserRunnablePrefix(graph, isBrowser);
     expect(result.nodes.map((n) => n.id).sort()).toEqual(["a", "b"]);
+  });
+});
+
+describe("buildDownstreamRunGraph multi-select ForEach replay injection", () => {
+  const selectedValues = [
+    { uri: "a.png", type: "image" },
+    { uri: "b.png", type: "image" }
+  ];
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetNodeSelectedOutputs.mockReturnValue(undefined);
+  });
+
+  // A downstream subgraph rooted at `start`; an external multi-select source
+  // `gen-x` feeds the target node's handle from outside the subgraph.
+  const runFor = (targetHandle: string) => {
+    const start = mkNode("start");
+    const target = mkNode("node-t", "proc.Plain");
+    const genX = mkNode("gen-x", "gen.Image");
+    const allNodes = [start, target, genX];
+    const allEdges = [
+      mkEdge("start", "node-t", { sourceHandle: "output", targetHandle: "in" }),
+      mkEdge("gen-x", "node-t", { sourceHandle: "output", targetHandle })
+    ];
+    // The downstream subgraph from `start` includes start + target only.
+    mockSubgraph.mockReturnValue({
+      nodes: [start, target],
+      edges: [allEdges[0]]
+    });
+    mockGetNodeSelectedOutputs.mockImplementation((_wf: string, src: string) =>
+      src === "gen-x" ? selectedValues : undefined
+    );
+    const findNode = (id: string) => allNodes.find((n) => n.id === id);
+    return buildDownstreamRunGraph({
+      nodeId: "start",
+      nodes: allNodes,
+      edges: allEdges,
+      workflowId: "wf1",
+      findNode
+    });
+  };
+
+  const expectForEach = (
+    built: ReturnType<typeof buildDownstreamRunGraph>,
+    targetHandle: string
+  ): void => {
+    expect(built).not.toBeNull();
+    const replay = built!.nodes.find(
+      (n) => n.type === "nodetool.control.ForEach"
+    )!;
+    expect(replay).toBeDefined();
+    expect(replay.data.properties.input_list).toEqual(selectedValues);
+
+    const replayEdge = built!.edges.find((e) => e.source === replay.id)!;
+    expect(replayEdge).toBeDefined();
+    expect(replayEdge.sourceHandle).toBe("output");
+    expect(replayEdge.target).toBe("node-t");
+    expect(replayEdge.targetHandle).toBe(targetHandle);
+
+    // The multi-select source isn't injected as a static override and the
+    // streamed handle carries no cached value.
+    const target = built!.nodes.find((n) => n.id === "node-t")!;
+    expect(target.data.properties[targetHandle]).toBeUndefined();
+  };
+
+  it("injects a ForEach replay into a LIST target handle", () => {
+    expectForEach(runFor("tiles"), "tiles");
+  });
+
+  it("injects a ForEach replay into a SCALAR target handle too (no list gate)", () => {
+    expectForEach(runFor("input"), "input");
   });
 });

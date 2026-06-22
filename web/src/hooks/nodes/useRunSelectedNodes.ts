@@ -7,10 +7,14 @@ import {
   useWebsocketRunner
 } from "../../stores/WorkflowRunner";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
-import { getNodeGenerations } from "../../stores/nodeGenerationAccessor";
+import {
+  getNodeGenerations,
+  getNodeSelectedOutputs
+} from "../../stores/nodeGenerationAccessor";
 import { getCurrentGeneration } from "../../utils/nodeGenerations";
 import { useNodeStoreRef } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
+import { buildReplayForEach } from "../../utils/replayStream";
 import {
   EdgeOverrideCollector,
   applyNodeOverrides
@@ -100,10 +104,42 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
       // upstreams. The collector aggregates multiple edges into one list/collect
       // handle — see EdgeOverrideCollector — so two images wired to a single
       // list[image] handle aren't collapsed to one (last-write-wins).
+      const getMetadata = useMetadataStore.getState().getMetadata;
       const collector = new EdgeOverrideCollector();
+      // Synthetic ForEach replay nodes (and edges) injected for multi-select
+      // external sources; appended to the run graph below. Keyed by id to dedup.
+      const replayNodesById = new Map<string, Node<NodeData>>();
+      const replayEdges: Edge[] = [];
       for (const edge of externalInputEdges) {
         const targetHandle = edge.targetHandle;
         if (!targetHandle) {
+          continue;
+        }
+
+        // Multi-select STREAM: when the upstream source has 2+ generations
+        // selected, prune it and inject a ForEach replay node (input_list = the
+        // selected values) that streams the N values into this target handle as
+        // N iteration-correlated emissions — identical to a live generation. No
+        // list-type gate.
+        const selected = getNodeSelectedOutputs(
+          workflow.id,
+          edge.source,
+          edge.sourceHandle,
+          findNode(edge.source)?.data?.selected_generations
+        );
+        if (selected && selected.length > 0) {
+          const { node, edge: replayEdge } = buildReplayForEach({
+            sourceId: edge.source,
+            sourceHandle: edge.sourceHandle,
+            targetId: edge.target,
+            targetHandle,
+            values: selected,
+            workflowId: workflow.id
+          });
+          if (!replayNodesById.has(node.id)) {
+            replayNodesById.set(node.id, node);
+            replayEdges.push(replayEdge);
+          }
           continue;
         }
 
@@ -120,14 +156,18 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
         collector.add(edge.target, targetHandle, value);
       }
 
-      const nodePropertyOverrides = collector.resolve(
-        findNode,
-        useMetadataStore.getState().getMetadata
-      );
+      const nodePropertyOverrides = collector.resolve(findNode, getMetadata);
 
-      const nodesWithCachedValues = selectedNodes.map((n: Node<NodeData>) =>
-        applyNodeOverrides(n, nodePropertyOverrides.get(n.id))
-      );
+      const nodesWithCachedValues = [
+        ...selectedNodes.map((n: Node<NodeData>) =>
+          applyNodeOverrides(n, nodePropertyOverrides.get(n.id))
+        ),
+        ...replayNodesById.values()
+      ];
+
+      // The injected ForEach replay edges aren't in the original graph; append
+      // them so the runner wires each replay node into its target.
+      const edgesForRun = [...selectedEdges, ...replayEdges];
 
       console.info(
         `Running workflow from ${selectedNodes.length} selected node(s) × ${totalRuns} run(s)`,
@@ -184,7 +224,7 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
             {},
             workflow,
             nodesWithCachedValues,
-            selectedEdges,
+            edgesForRun,
             undefined,
             selectedNodeIds,
             true

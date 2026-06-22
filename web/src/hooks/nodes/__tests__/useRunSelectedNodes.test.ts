@@ -32,6 +32,14 @@ jest.mock("../../../utils/edgeValue", () => ({
   }))
 }));
 
+// Multi-select stream source. getNodeGenerations is unused on this path (the
+// hook resolves the value list through getNodeSelectedOutputs); default the
+// selection to "none" so the existing single-selection tests are untouched.
+jest.mock("../../../stores/nodeGenerationAccessor", () => ({
+  getNodeGenerations: jest.fn(() => []),
+  getNodeSelectedOutputs: jest.fn(() => undefined)
+}));
+
 
 import { useNodeStoreRef } from "../../../contexts/NodeContext";
 import useMetadataStore from "../../../stores/MetadataStore";
@@ -42,6 +50,7 @@ import {
 } from "../../../stores/WorkflowRunner";
 import useResultsStore from "../../../stores/ResultsStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
+import { getNodeSelectedOutputs } from "../../../stores/nodeGenerationAccessor";
 
 const mockUseNodeStoreRef = useNodeStoreRef as jest.Mock;
 const mockUseWebsocketRunner = useWebsocketRunner as jest.Mock;
@@ -50,6 +59,7 @@ const mockUseResultsStore = useResultsStore as unknown as jest.Mock;
 const mockUseNotificationStore = useNotificationStore as unknown as jest.Mock;
 const mockMetadataGetState = (useMetadataStore as unknown as { getState: jest.Mock }).getState;
 const mockResolveExternalEdgeValue = resolveExternalEdgeValue as jest.Mock;
+const mockGetNodeSelectedOutputs = getNodeSelectedOutputs as jest.Mock;
 
 type RunnerState = {
   state: "idle" | "running" | "error" | "cancelled" | "connecting";
@@ -142,6 +152,9 @@ describe("useRunSelectedNodes", () => {
     mockFindNode.mockImplementation((id: string) =>
       [nodeA, nodeB, nodeC].find((n) => n.id === id)
     );
+
+    // Default: no source has a multi-select set (single-selection behavior).
+    mockGetNodeSelectedOutputs.mockReturnValue(undefined);
   });
 
   it("only includes selected nodes in the nodes passed to run", async () => {
@@ -426,5 +439,104 @@ describe("useRunSelectedNodes", () => {
     });
 
     expect(mockRun).toHaveBeenCalledTimes(32);
+  });
+
+  describe("multi-select ForEach replay injection", () => {
+    const selectedValues = [
+      { uri: "a.png", type: "image" },
+      { uri: "b.png", type: "image" }
+    ];
+
+    // A selected target node fed by a NON-selected external multi-select source.
+    const setup = (targetHandle: string): { genX: { id: string } } => {
+      const genX = {
+        id: "gen-x",
+        type: "gen.Image",
+        data: { properties: {} },
+        selected: false
+      };
+      const target = {
+        id: "node-t",
+        type: "proc.Plain",
+        data: { properties: {} },
+        selected: true
+      };
+      const edges = [
+        {
+          id: "ext",
+          source: "gen-x",
+          target: "node-t",
+          sourceHandle: "output",
+          targetHandle
+        }
+      ];
+      mockGetSelectedNodes.mockReturnValue([target]);
+      mockFindNode.mockImplementation((id: string) =>
+        [genX, target].find((n) => n.id === id)
+      );
+      mockUseNodeStoreRef.mockReturnValue({
+        getState: () => ({
+          nodes: [genX, target],
+          edges,
+          workflow: defaultWorkflow,
+          findNode: mockFindNode,
+          getSelectedNodes: mockGetSelectedNodes
+        })
+      });
+      // The source has 2+ selected generations → the value list to stream.
+      mockGetNodeSelectedOutputs.mockImplementation(
+        (_wf: string, src: string) =>
+          src === "gen-x" ? selectedValues : undefined
+      );
+      return { genX };
+    };
+
+    const expectForEachInjected = (targetHandle: string): void => {
+      expect(mockRun).toHaveBeenCalledTimes(1);
+      const nodesPassedToRun = mockRun.mock.calls[0][2];
+      const edgesPassedToRun = mockRun.mock.calls[0][3];
+
+      const replay = nodesPassedToRun.find(
+        (n: { type?: string }) => n.type === "nodetool.control.ForEach"
+      );
+      expect(replay).toBeDefined();
+      expect(replay.data.properties.input_list).toEqual(selectedValues);
+
+      const replayEdge = edgesPassedToRun.find(
+        (e: { source: string }) => e.source === replay.id
+      );
+      expect(replayEdge).toBeDefined();
+      expect(replayEdge.sourceHandle).toBe("output");
+      expect(replayEdge.target).toBe("node-t");
+      expect(replayEdge.targetHandle).toBe(targetHandle);
+
+      // The multi-select source is pruned: never streamed as a static override
+      // and not part of the run node set (it isn't selected).
+      const target = nodesPassedToRun.find(
+        (n: { id: string }) => n.id === "node-t"
+      );
+      expect(target.data.properties[targetHandle]).toBeUndefined();
+      expect(
+        nodesPassedToRun.some((n: { id: string }) => n.id === "gen-x")
+      ).toBe(false);
+    };
+
+    it("injects a ForEach replay into a LIST target handle", async () => {
+      setup("tiles");
+      const { result } = renderHook(() => useRunSelectedNodes());
+      await act(async () => {
+        await result.current.runSelectedNodes();
+      });
+      expectForEachInjected("tiles");
+    });
+
+    it("injects a ForEach replay into a SCALAR target handle too (no list gate)", async () => {
+      setup("input");
+      const { result } = renderHook(() => useRunSelectedNodes());
+      await act(async () => {
+        await result.current.runSelectedNodes();
+      });
+      expectForEachInjected("input");
+    });
   });
 });

@@ -10,6 +10,10 @@ import { groupByRun, getCurrentRun } from "../../../utils/nodeGenerations";
 const mockUseNodeResultHistory = jest.fn();
 const mockUseWebsocketRunner = jest.fn();
 const mockUseNodeGenerations = jest.fn();
+// The NodeContext store the viewer subscribes to (edges). Default: no outgoing
+// edges → no downstream consumer → multi-select modifiers inert. Tests override
+// it to wire an outgoing edge, which enables multi-select for ANY consumer.
+const mockNodeStoreState = jest.fn();
 
 jest.mock("../../../hooks/nodes/useNodeResultHistory", () => {
   const actual = jest.requireActual("../../../hooks/nodes/useNodeResultHistory");
@@ -22,6 +26,13 @@ jest.mock("../../../hooks/nodes/useNodeResultHistory", () => {
 
 jest.mock("../../../hooks/nodes/useNodeGenerations", () => ({
   useNodeGenerations: (...args: unknown[]) => mockUseNodeGenerations(...args)
+}));
+
+// The viewer reads this node's OUTGOING edges from NodeContext (to decide whether
+// a downstream consumer exists). The single-select tests have no outgoing edge,
+// so a store with no edges suffices — the multi-select modifiers stay inert.
+jest.mock("../../../contexts/NodeContext", () => ({
+  useNodes: (selector: (s: unknown) => unknown) => selector(mockNodeStoreState())
 }));
 
 jest.mock("../../../stores/WorkflowRunner", () => ({
@@ -134,7 +145,10 @@ const setGenerations = (generations: Generation[], selectedId?: string) => {
     current,
     select,
     runs,
-    currentRun
+    currentRun,
+    selectedIds: [],
+    toggleSelected: jest.fn(),
+    setSelected: jest.fn()
   });
   return select;
 };
@@ -151,12 +165,16 @@ beforeEach(() => {
     workflowId: "wf1"
   });
   mockUseWebsocketRunner.mockReturnValue({ state: "idle" });
+  mockNodeStoreState.mockReturnValue({ edges: [] });
   mockUseNodeGenerations.mockReturnValue({
     generations: [],
     current: undefined,
     select: jest.fn(),
     runs: [],
-    currentRun: undefined
+    currentRun: undefined,
+    selectedIds: [],
+    toggleSelected: jest.fn(),
+    setSelected: jest.fn()
   });
 });
 
@@ -303,7 +321,7 @@ describe("NodeHistoryViewer", () => {
       "live-preview.png"
     );
     expect(
-      screen.queryByRole("list", { name: "Generations" })
+      screen.queryByRole("listbox", { name: "Generations" })
     ).not.toBeInTheDocument();
   });
 
@@ -324,7 +342,7 @@ describe("NodeHistoryViewer", () => {
 
     expect(screen.getByTestId("single-body")).toBeInTheDocument();
     expect(
-      screen.queryByRole("list", { name: "Generations" })
+      screen.queryByRole("listbox", { name: "Generations" })
     ).not.toBeInTheDocument();
   });
 
@@ -335,7 +353,7 @@ describe("NodeHistoryViewer", () => {
     const { rerender } = render(viewer());
     expect(screen.getByTestId("single-body")).toBeInTheDocument();
     expect(
-      screen.queryByRole("list", { name: "Generations" })
+      screen.queryByRole("listbox", { name: "Generations" })
     ).not.toBeInTheDocument();
 
     // Two more variants land under the SAME jobId (job-a), run completed.
@@ -343,7 +361,7 @@ describe("NodeHistoryViewer", () => {
     rerender(viewer());
 
     expect(
-      screen.getByRole("list", { name: "Generations" })
+      screen.getByRole("listbox", { name: "Generations" })
     ).toBeInTheDocument();
     expect(screen.queryByTestId("single-body")).not.toBeInTheDocument();
   });
@@ -358,7 +376,7 @@ describe("NodeHistoryViewer", () => {
 
     expect(screen.getByTestId("single-body")).toBeInTheDocument();
     expect(
-      screen.queryByRole("list", { name: "Generations" })
+      screen.queryByRole("listbox", { name: "Generations" })
     ).not.toBeInTheDocument();
   });
 
@@ -378,7 +396,7 @@ describe("NodeHistoryViewer", () => {
     expect(screen.getByTestId("single-body")).toBeInTheDocument();
     fireEvent.click(screen.getByLabelText("Toggle view"));
     expect(
-      screen.getByRole("list", { name: "Generations" })
+      screen.getByRole("listbox", { name: "Generations" })
     ).toBeInTheDocument();
     // grid → single.
     fireEvent.click(screen.getByLabelText("Toggle view"));
@@ -406,7 +424,7 @@ describe("NodeHistoryViewer", () => {
 
     fireEvent.click(screen.getByLabelText("Toggle view"));
     // One tile per generation across all runs.
-    expect(screen.getAllByRole("listitem")).toHaveLength(3);
+    expect(screen.getAllByRole("option")).toHaveLength(3);
     expect(screen.getByText("×2")).toBeInTheDocument();
   });
 
@@ -427,7 +445,7 @@ describe("NodeHistoryViewer", () => {
     );
 
     fireEvent.click(screen.getByLabelText("Toggle view"));
-    const tiles = screen.getAllByRole("listitem");
+    const tiles = screen.getAllByRole("option");
     fireEvent.click(tiles[0]);
     expect(select).toHaveBeenCalledWith("a1");
     expect(screen.getByTestId("single-body")).toBeInTheDocument();
@@ -510,7 +528,10 @@ describe("NodeHistoryViewer — auto-focus latest run", () => {
       current,
       select,
       runs,
-      currentRun
+      currentRun,
+      selectedIds: [],
+      toggleSelected: jest.fn(),
+      setSelected: jest.fn()
     });
   };
 
@@ -557,5 +578,246 @@ describe("NodeHistoryViewer — auto-focus latest run", () => {
     setMock([makeRunGen("a1", "j1", 1), makeRunGen("a2", "j1", 2)], "a1", select);
     rerender(wrap());
     expect(select).not.toHaveBeenCalled();
+  });
+
+  it("clears the multi-select export set when a new run appears", () => {
+    const setSelected = jest.fn();
+    const setMockWithSet = (generations: Generation[], selectedIds: string[]) => {
+      const runs = groupByRun(generations);
+      const currentRun = getCurrentRun(runs, "a1");
+      mockUseNodeGenerations.mockReturnValue({
+        generations,
+        current: generations.find((g) => g.id === "a1") ?? generations[0],
+        select: jest.fn(),
+        runs,
+        currentRun,
+        selectedIds,
+        toggleSelected: jest.fn(),
+        setSelected
+      });
+    };
+    // Mount pinned to run j1 with a multi-select set on it.
+    setMockWithSet([makeRunGen("a1", "j1", 1)], ["a1"]);
+    const { rerender } = render(wrap());
+    expect(setSelected).not.toHaveBeenCalled(); // mount: nothing cleared
+
+    // A new run j2 appears — the stale j1 export set must be cleared so it isn't
+    // silently fed downstream, even though the selection still resolves to j1.
+    setMockWithSet(
+      [makeRunGen("a1", "j1", 1), makeRunGen("a2", "j2", 2)],
+      ["a1"]
+    );
+    rerender(wrap());
+    expect(setSelected).toHaveBeenCalledWith([]);
+  });
+
+  it("does not clear the export set while a run grows in place (same jobId)", () => {
+    const setSelected = jest.fn();
+    const setMockWithSet = (generations: Generation[], selectedIds: string[]) => {
+      const runs = groupByRun(generations);
+      mockUseNodeGenerations.mockReturnValue({
+        generations,
+        current: generations[generations.length - 1],
+        select: jest.fn(),
+        runs,
+        currentRun: getCurrentRun(runs, undefined),
+        selectedIds,
+        toggleSelected: jest.fn(),
+        setSelected
+      });
+    };
+    setMockWithSet([makeGen("a1", 1)], ["a1"]);
+    const { rerender } = render(wrap());
+    // Same job-a gains a variant — not a new run, so the set is preserved.
+    setMockWithSet([makeGen("a1", 1), makeGen("a2", 2)], ["a1"]);
+    rerender(wrap());
+    expect(setSelected).not.toHaveBeenCalled();
+  });
+});
+
+describe("NodeHistoryViewer — grid multi-select export set", () => {
+  // The selected set is fed downstream as a STREAM (a synthetic ForEach replay),
+  // valid live behavior for ANY consumer — so multi-select is gated solely on
+  // whether this node has an outgoing edge, with no list-vs-scalar distinction.
+
+  // Wire a single outgoing edge from this node to a downstream consumer.
+  const wireDownstream = () => {
+    mockNodeStoreState.mockReturnValue({
+      edges: [
+        {
+          source: "node-a",
+          sourceHandle: "output",
+          target: "consumer",
+          targetHandle: "in"
+        }
+      ]
+    });
+  };
+
+  // No outgoing edge → no downstream consumer → modifiers inert.
+  const wireNoDownstream = () => {
+    mockNodeStoreState.mockReturnValue({ edges: [] });
+  };
+
+  const setGensWithSelection = (
+    generations: Generation[],
+    selectedIds: string[]
+  ) => {
+    const current = generations[generations.length - 1];
+    const runs = groupByRun(generations);
+    const currentRun = getCurrentRun(runs, undefined);
+    const select = jest.fn();
+    const toggleSelected = jest.fn();
+    const setSelected = jest.fn();
+    mockUseNodeGenerations.mockReturnValue({
+      generations,
+      current,
+      select,
+      runs,
+      currentRun,
+      selectedIds,
+      toggleSelected,
+      setSelected
+    });
+    return { select, toggleSelected, setSelected };
+  };
+
+  const grid = () => (
+    <ThemeProvider theme={mockTheme}>
+      <NodeHistoryViewer
+        workflowId="wf1"
+        nodeId="node-a"
+        liveResult={null}
+        renderSingle={(v) => renderSingle(v)}
+      />
+    </ThemeProvider>
+  );
+
+  const openGrid = () => fireEvent.click(screen.getByLabelText("Toggle view"));
+
+  it("Cmd+click on a tile toggles export-set membership (does not drop to single) when a downstream consumer exists", () => {
+    wireDownstream();
+    const { toggleSelected, select } = setGensWithSelection(
+      [makeGen("a1", 1), makeGen("a2", 2), makeGen("a3", 3)],
+      []
+    );
+    render(grid());
+    openGrid();
+    const tiles = screen.getAllByRole("option");
+    fireEvent.click(tiles[1], { metaKey: true });
+    expect(toggleSelected).toHaveBeenCalledWith("a2");
+    expect(select).not.toHaveBeenCalled();
+    // Still in grid view.
+    expect(
+      screen.getByRole("listbox", { name: "Generations" })
+    ).toBeInTheDocument();
+  });
+
+  it("Shift+click selects the inclusive range from the anchor when a downstream consumer exists", () => {
+    wireDownstream();
+    const { setSelected } = setGensWithSelection(
+      [makeGen("a1", 1), makeGen("a2", 2), makeGen("a3", 3)],
+      []
+    );
+    render(grid());
+    openGrid();
+    const tiles = screen.getAllByRole("option");
+    // A Cmd+click sets the anchor at index 0 WITHOUT leaving the grid (a plain
+    // click would drop to single view and unmount the tiles)…
+    fireEvent.click(tiles[0], { metaKey: true });
+    // …then shift-click index 2 → inclusive range [a1, a2, a3].
+    fireEvent.click(tiles[2], { shiftKey: true });
+    expect(setSelected).toHaveBeenCalledWith(["a1", "a2", "a3"]);
+  });
+
+  it("Shift+click ranges over the grid RENDER order, not the flat timeline (multi-run)", () => {
+    wireDownstream();
+    // Flat timeline (createdAt order) is gA, gB, gC — but the grid groups by run,
+    // so it paints run j1 (gA, gC) then run j2 (gB): render order gA, gC, gB.
+    const gA = makeRunGen("gA", "j1", 1);
+    const gC = makeRunGen("gC", "j1", 4);
+    const gB = makeRunGen("gB", "j2", 2);
+    const { setSelected } = setGensWithSelection([gA, gB, gC], []);
+    render(grid());
+    openGrid();
+    const tiles = screen.getAllByRole("option");
+    // Tiles paint in run-grouped order, diverging from the flat timeline.
+    expect(tiles.map((t) => t.getAttribute("data-gen-id"))).toEqual([
+      "gA",
+      "gC",
+      "gB"
+    ]);
+    // Anchor at the first tile, then sweep to the last → the range must follow
+    // the VISIBLE order [gA, gC, gB], not the flat timeline [gA, gB, gC].
+    fireEvent.click(tiles[0], { metaKey: true });
+    fireEvent.click(tiles[2], { shiftKey: true });
+    expect(setSelected).toHaveBeenCalledWith(["gA", "gC", "gB"]);
+  });
+
+  it("modifier clicks degrade to a plain select when NO downstream consumer exists", () => {
+    wireNoDownstream();
+    const { toggleSelected, select } = setGensWithSelection(
+      [makeGen("a1", 1), makeGen("a2", 2)],
+      []
+    );
+    render(grid());
+    openGrid();
+    const tiles = screen.getAllByRole("option");
+    fireEvent.click(tiles[1], { metaKey: true });
+    expect(toggleSelected).not.toHaveBeenCalled();
+    expect(select).toHaveBeenCalledWith("a2");
+  });
+
+  it("renders pick-order badges, aria-selected, and the downstream caption for the export set", () => {
+    wireDownstream();
+    setGensWithSelection(
+      [makeGen("a1", 1), makeGen("a2", 2), makeGen("a3", 3)],
+      ["a3", "a1"]
+    );
+    render(grid());
+    openGrid();
+    const tiles = screen.getAllByRole("option");
+    // a1 is the 2nd pick, a3 is the 1st pick; a2 is not a member.
+    const byGen = (id: string) =>
+      tiles.find((t) => t.getAttribute("data-gen-id") === id)!;
+    expect(byGen("a1")).toHaveAttribute("aria-selected", "true");
+    expect(byGen("a2")).toHaveAttribute("aria-selected", "false");
+    expect(byGen("a3")).toHaveAttribute("aria-selected", "true");
+    expect(byGen("a1")).toHaveTextContent("2");
+    expect(byGen("a3")).toHaveTextContent("1");
+    // The caption is shown (>=2 members) in the grid view.
+    expect(screen.getByText("2 → downstream")).toBeInTheDocument();
+  });
+
+  it("shows the downstream caption in single view too", () => {
+    wireDownstream();
+    setGensWithSelection(
+      [makeGen("a1", 1), makeGen("a2", 2)],
+      ["a1", "a2"]
+    );
+    render(grid());
+    // Default single view — caption must still be visible.
+    expect(screen.getByTestId("single-body")).toBeInTheDocument();
+    expect(screen.getByText("2 → downstream")).toBeInTheDocument();
+  });
+
+  it("shows no caption and no export-set chrome when there is no downstream consumer", () => {
+    wireNoDownstream();
+    setGensWithSelection(
+      [makeGen("a1", 1), makeGen("a2", 2), makeGen("a3", 3)],
+      ["a3", "a1"]
+    );
+    render(grid());
+    openGrid();
+    // No downstream consumer: a stale selected set must not promise a feed.
+    expect(screen.queryByText("2 → downstream")).not.toBeInTheDocument();
+    const tiles = screen.getAllByRole("option");
+    // aria-selected falls back to single-selection (the focused generation),
+    // never the export set; no pick badges.
+    const byGen = (id: string) =>
+      tiles.find((t) => t.getAttribute("data-gen-id") === id)!;
+    expect(byGen("a1")).toHaveAttribute("aria-selected", "false");
+    expect(byGen("a3")).toHaveAttribute("aria-selected", "true"); // = current
+    expect(byGen("a1")).not.toHaveTextContent("2");
   });
 });

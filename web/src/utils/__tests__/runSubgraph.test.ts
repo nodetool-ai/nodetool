@@ -230,4 +230,145 @@ describe("buildRunSubgraph", () => {
     });
     expect(sub.blocked).toHaveLength(1);
   });
+
+  describe("multi-select (getSelectedOutputs) ForEach replay injection", () => {
+    // The target has a `tiles` list[image] handle and a scalar `input` handle.
+    const getMetadataWithList = (type: string): NodeMetadata =>
+      ({
+        auto_save_asset: type.startsWith("gen."),
+        title: type,
+        properties:
+          type === "proc.Plain"
+            ? [
+                {
+                  name: "tiles",
+                  type: {
+                    type: "list",
+                    type_args: [{ type: "image", type_args: [] }]
+                  }
+                },
+                { name: "input", type: { type: "image", type_args: [] } }
+              ]
+            : []
+      }) as unknown as NodeMetadata;
+
+    const selectedValues = [
+      { uri: "a.png", type: "image" },
+      { uri: "b.png", type: "image" }
+    ];
+
+    const expectReplay = (
+      sub: ReturnType<typeof buildRunSubgraph>,
+      targetHandle: string
+    ): void => {
+      // Source pruned: not submitted, not blocked.
+      expect(sub.blocked).toEqual([]);
+      expect(sub.nodeIds).toEqual(new Set(["t"]));
+
+      // A single synthetic ForEach replay node carries the selected values as
+      // its input_list; its output edge streams into the target handle.
+      const replay = sub.nodes.find(
+        (n) => n.type === "nodetool.control.ForEach"
+      )!;
+      expect(replay).toBeDefined();
+      expect(replay.data.properties.input_list).toEqual(selectedValues);
+
+      const replayEdge = sub.edges.find((e) => e.source === replay.id)!;
+      expect(replayEdge).toBeDefined();
+      expect(replayEdge.sourceHandle).toBe("output");
+      expect(replayEdge.target).toBe("t");
+      expect(replayEdge.targetHandle).toBe(targetHandle);
+
+      // The source node is not part of the run; no real edge from it remains.
+      expect(sub.nodes.some((n) => n.id === "g")).toBe(false);
+      expect(sub.edges.some((e) => e.source === "g")).toBe(false);
+
+      // No static override is injected on the target for the streamed handle.
+      const submitted = sub.nodes.find((n) => n.id === "t")!;
+      expect(submitted.data.properties[targetHandle]).toBeUndefined();
+    };
+
+    it("injects a ForEach replay stream into a LIST target and prunes the source", () => {
+      const target = node("t", "proc.Plain");
+      const generator = node("g", "gen.Image");
+      const sub = buildRunSubgraph({
+        targetId: "t",
+        nodes: [target, generator],
+        edges: [edge("e", "g", "t", "tiles")],
+        workflowId: WF,
+        getResult: noResults,
+        getMetadata: getMetadataWithList,
+        getSelectedOutputs: (_wf, src, handle) =>
+          src === "g" && handle === "output" ? selectedValues : undefined
+      });
+      expectReplay(sub, "tiles");
+    });
+
+    it("injects a ForEach replay stream into a SCALAR target too (no list gate)", () => {
+      const target = node("t", "proc.Plain");
+      const generator = node("g", "gen.Image");
+      const sub = buildRunSubgraph({
+        targetId: "t",
+        nodes: [target, generator],
+        edges: [edge("e", "g", "t", "input")],
+        workflowId: WF,
+        getResult: noResults,
+        getMetadata: getMetadataWithList,
+        getSelectedOutputs: (_wf, src, handle) =>
+          src === "g" && handle === "output" ? selectedValues : undefined
+      });
+      expectReplay(sub, "input");
+    });
+
+    it("ignores an empty multi-select set (falls through to the single cached value)", () => {
+      const target = node("t", "proc.Plain");
+      const generator = node("g", "gen.Image");
+      const getResult = (_wf: string, src: string) =>
+        src === "g" ? { output: { uri: "focused.png", type: "image" } } : undefined;
+      const sub = buildRunSubgraph({
+        targetId: "t",
+        nodes: [target, generator],
+        edges: [edge("e", "g", "t", "tiles")],
+        workflowId: WF,
+        getResult,
+        getMetadata: getMetadataWithList,
+        getSelectedOutputs: () => []
+      });
+
+      // No ForEach injected; the single focused generation wins via the override.
+      expect(
+        sub.nodes.some((n) => n.type === "nodetool.control.ForEach")
+      ).toBe(false);
+      const submitted = sub.nodes.find((n) => n.id === "t")!;
+      expect(submitted.data.properties.tiles).toEqual({
+        uri: "focused.png",
+        type: "image"
+      });
+    });
+
+    it("dedups one replay node when a multi-select source feeds the same target handle twice", () => {
+      const target = node("t", "proc.Plain");
+      const generator = node("g", "gen.Image");
+      const sub = buildRunSubgraph({
+        targetId: "t",
+        nodes: [target, generator],
+        edges: [
+          edge("e1", "g", "t", "tiles"),
+          edge("e2", "g", "t", "tiles")
+        ],
+        workflowId: WF,
+        getResult: noResults,
+        getMetadata: getMetadataWithList,
+        getSelectedOutputs: (_wf, src, handle) =>
+          src === "g" && handle === "output" ? selectedValues : undefined
+      });
+
+      const replays = sub.nodes.filter(
+        (n) => n.type === "nodetool.control.ForEach"
+      );
+      expect(replays).toHaveLength(1);
+      const replayEdges = sub.edges.filter((e) => e.source === replays[0].id);
+      expect(replayEdges).toHaveLength(1);
+    });
+  });
 });
