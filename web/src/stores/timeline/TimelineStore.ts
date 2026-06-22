@@ -454,6 +454,22 @@ function partializedEqual(
   pastState: PartializedState,
   currentState: PartializedState
 ): boolean {
+  // Fast path: when every array slice is the same reference (the common case
+  // for a scalar-only change or a guard-returned no-op), skip the O(n)
+  // element-wise comparisons entirely and only check the scalars.
+  if (
+    pastState.tracks === currentState.tracks &&
+    pastState.clips === currentState.clips &&
+    pastState.markers === currentState.markers &&
+    pastState.transcript === currentState.transcript
+  ) {
+    return (
+      pastState.durationMs === currentState.durationMs &&
+      pastState.scriptEnabled === currentState.scriptEnabled
+    );
+  }
+  // `&&` short-circuits, so a diverging earlier slice avoids scanning later
+  // ones; `shallowArrayEqual` itself returns immediately on reference equality.
   return (
     pastState.durationMs === currentState.durationMs &&
     shallowArrayEqual(pastState.tracks, currentState.tracks) &&
@@ -462,6 +478,32 @@ function partializedEqual(
     shallowArrayEqual(pastState.transcript, currentState.transcript) &&
     pastState.scriptEnabled === currentState.scriptEnabled
   );
+}
+
+// ── Single-item field-patch helper (pure) ───────────────────────────────────
+
+/**
+ * Map `items`, applying `patch` to the element whose `id` matches. Returns the
+ * SAME array reference when the target is absent or the patch is shallow-equal
+ * to the current field values, so callers can `return state` on a no-op and
+ * avoid a needless allocation + subscriber re-render. Unchanged elements keep
+ * their object identity (only the matched element is re-created).
+ */
+function patchById<T extends { id: string }>(
+  items: T[],
+  id: string,
+  patch: Partial<T>
+): T[] {
+  const target = items.find((it) => it.id === id);
+  if (!target) {
+    return items;
+  }
+  const keys = Object.keys(patch) as Array<keyof T>;
+  const unchanged = keys.every((k) => Object.is(target[k], patch[k]));
+  if (unchanged) {
+    return items;
+  }
+  return items.map((it) => (it.id === id ? { ...it, ...patch } : it));
 }
 
 // ── Scene split/merge helpers (pure) ───────────────────────────────────────
@@ -771,46 +813,40 @@ export const createTimelineStore = (
           }),
 
         setTrackHeight: (trackId, heightPx) =>
-          set((state) => ({
-            tracks: state.tracks.map((t) =>
-              t.id === trackId ? { ...t, heightPx } : t
-            )
-          })),
+          set((state) => {
+            const tracks = patchById(state.tracks, trackId, { heightPx });
+            return tracks === state.tracks ? state : { tracks };
+          }),
 
         setTrackVisible: (trackId, visible) =>
-          set((state) => ({
-            tracks: state.tracks.map((t) =>
-              t.id === trackId ? { ...t, visible } : t
-            )
-          })),
+          set((state) => {
+            const tracks = patchById(state.tracks, trackId, { visible });
+            return tracks === state.tracks ? state : { tracks };
+          }),
 
         setTrackLocked: (trackId, locked) =>
-          set((state) => ({
-            tracks: state.tracks.map((t) =>
-              t.id === trackId ? { ...t, locked } : t
-            )
-          })),
+          set((state) => {
+            const tracks = patchById(state.tracks, trackId, { locked });
+            return tracks === state.tracks ? state : { tracks };
+          }),
 
         setTrackMuted: (trackId, muted) =>
-          set((state) => ({
-            tracks: state.tracks.map((t) =>
-              t.id === trackId ? { ...t, muted } : t
-            )
-          })),
+          set((state) => {
+            const tracks = patchById(state.tracks, trackId, { muted });
+            return tracks === state.tracks ? state : { tracks };
+          }),
 
         setTrackSolo: (trackId, solo) =>
-          set((state) => ({
-            tracks: state.tracks.map((t) =>
-              t.id === trackId ? { ...t, solo } : t
-            )
-          })),
+          set((state) => {
+            const tracks = patchById(state.tracks, trackId, { solo });
+            return tracks === state.tracks ? state : { tracks };
+          }),
 
         setTrackName: (trackId, name) =>
-          set((state) => ({
-            tracks: state.tracks.map((t) =>
-              t.id === trackId ? { ...t, name } : t
-            )
-          })),
+          set((state) => {
+            const tracks = patchById(state.tracks, trackId, { name });
+            return tracks === state.tracks ? state : { tracks };
+          }),
 
         // ── Track DSP effects ─────────────────────────────────────────────
 
@@ -1189,11 +1225,28 @@ export const createTimelineStore = (
           }),
 
         patchClip: (clipId, patch) =>
-          set((state) => ({
-            clips: state.clips.map((c) =>
-              c.id === clipId ? { ...c, ...patch } : c
-            )
-          })),
+          set((state) => {
+            const clip = state.clips.find((c) => c.id === clipId);
+            // Clip gone → nothing to patch. Return the SAME state so no
+            // subscriber re-renders and no undo entry is pushed.
+            if (!clip) {
+              return state;
+            }
+            // Shallow-equal patch → the result would be value-identical, so
+            // skip the array allocation entirely.
+            const keys = Object.keys(patch) as Array<keyof TimelineClip>;
+            const unchanged = keys.every((k) =>
+              Object.is(clip[k], patch[k])
+            );
+            if (unchanged) {
+              return state;
+            }
+            return {
+              clips: state.clips.map((c) =>
+                c.id === clipId ? { ...c, ...patch } : c
+              )
+            };
+          }),
 
         restoreVersion: (clipId, versionId) =>
           set((state) => {
@@ -1264,25 +1317,36 @@ export const createTimelineStore = (
         },
 
         setClipLocked: (clipId, locked) =>
-          set((state) => ({
-            clips: state.clips.map((c) =>
-              c.id === clipId ? { ...c, locked } : c
-            )
-          })),
+          set((state) => {
+            const clips = patchById(state.clips, clipId, { locked });
+            return clips === state.clips ? state : { clips };
+          }),
 
         replaceClipOutput: (clipId, assetId) =>
-          set((state) => ({
-            clips: state.clips.map((c) =>
-              c.id === clipId ? { ...c, currentAssetId: assetId } : c
-            )
-          })),
+          set((state) => {
+            const clips = patchById(state.clips, clipId, {
+              currentAssetId: assetId
+            });
+            return clips === state.clips ? state : { clips };
+          }),
 
         markClipsStaleForWorkflow: (workflowId) =>
-          set((state) => ({
-            clips: state.clips.map((c) =>
-              c.workflowId === workflowId ? { ...c, status: "stale" } : c
-            )
-          })),
+          set((state) => {
+            // Skip the allocation when nothing actually changes status.
+            const hasChange = state.clips.some(
+              (c) => c.workflowId === workflowId && c.status !== "stale"
+            );
+            if (!hasChange) {
+              return state;
+            }
+            return {
+              clips: state.clips.map((c) =>
+                c.workflowId === workflowId && c.status !== "stale"
+                  ? { ...c, status: "stale" }
+                  : c
+              )
+            };
+          }),
 
         setParamOverride: (clipId, inputNodeName, value) =>
           set((state) => ({
@@ -1450,11 +1514,22 @@ export const createTimelineStore = (
         },
 
         setTranscriptAndClips: (patch) =>
-          set((state) => ({
-            transcript: patch.transcript ?? state.transcript,
-            clips: patch.clips ?? state.clips,
-            durationMs: patch.durationMs ?? state.durationMs
-          })),
+          set((state) => {
+            const transcript = patch.transcript ?? state.transcript;
+            const clips = patch.clips ?? state.clips;
+            const durationMs = patch.durationMs ?? state.durationMs;
+            // Transcript ripple/reflow ops return the SAME array reference when
+            // nothing changed; skip the state update entirely so a no-op edit
+            // doesn't re-render subscribers or push an undo entry.
+            if (
+              transcript === state.transcript &&
+              clips === state.clips &&
+              durationMs === state.durationMs
+            ) {
+              return state;
+            }
+            return { transcript, clips, durationMs };
+          }),
 
         addMarker: (timeMs, label) =>
           set((state) => ({

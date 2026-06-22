@@ -1,6 +1,8 @@
 import { describe, expect, it, beforeEach, jest } from "@jest/globals";
 import { act, renderHook, waitFor } from "@testing-library/react";
 
+import { makeTrack } from "@nodetool-ai/timeline";
+
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import {
   useTimelineAutosave,
@@ -381,6 +383,38 @@ describe("useTimelineAutosave", () => {
 
     act(() => {
       jest.advanceTimersByTime(500);
+    });
+    expect(updateMutate).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips a redundant save when an edit reverts to the last-saved document", async () => {
+    seedSequence();
+    renderHook(() => useTimelineAutosave({ debounceMs: 50 }));
+
+    // Edit + save: tracks become [video].
+    act(() => {
+      useTimelineStore.getState().addTrack("video");
+    });
+    act(() => {
+      jest.advanceTimersByTime(60);
+    });
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
+
+    const saved = useTimelineStore.getState();
+    const savedTracks = saved.tracks;
+    const savedClips = saved.clips;
+
+    // An edit (new tracks ref) followed, before the debounce fires, by a revert
+    // to the exact saved document references must NOT produce a second PATCH:
+    // the debounced flush sees the pending snapshot equals the last-saved one.
+    act(() => {
+      useTimelineStore.setState({ tracks: [...savedTracks, makeTrack({ type: "audio" })] });
+    });
+    act(() => {
+      useTimelineStore.setState({ tracks: savedTracks, clips: savedClips });
+    });
+    act(() => {
+      jest.advanceTimersByTime(200);
     });
     expect(updateMutate).toHaveBeenCalledTimes(1);
   });

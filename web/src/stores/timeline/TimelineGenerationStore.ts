@@ -18,7 +18,6 @@
  */
 
 import { create } from "zustand";
-import { useShallow } from "zustand/react/shallow";
 import { makeClipVersion } from "@nodetool-ai/timeline";
 import type { TimelineClip } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "./TimelineStore";
@@ -48,6 +47,19 @@ interface TimelineGenerationStoreState {
   clipJobs: Record<string, ClipJobState>;
   /** jobId → clipId (reverse lookup for incoming job-update events) */
   jobToClip: Record<string, string>;
+
+  /**
+   * Derived membership lists, maintained in state so they keep a STABLE
+   * reference across progress-only ticks. They are recomputed only by actions
+   * that can change a job's *status* (register / status-update / clear), never
+   * by {@link updateJobProgress}, so frequent progress updates don't churn the
+   * identity of these arrays (and the selectors that read them). When a
+   * recompute yields the same membership, the previous array reference is kept.
+   */
+  /** clipIds of jobs that are queued or running, in insertion order. */
+  generatingClipIds: string[];
+  /** clipIds of jobs that have failed, in insertion order. */
+  failedClipIds: string[];
 
   /**
    * Register a new generation job for a clip.
@@ -147,6 +159,60 @@ const persistClipJobs = (clipJobs: Record<string, ClipJobState>): void => {
   }
 };
 
+// ── Derived membership (status-only) ─────────────────────────────────────────
+
+const isGenerating = (job: ClipJobState): boolean =>
+  job.status === "queued" || job.status === "running";
+
+const isFailed = (job: ClipJobState): boolean => job.status === "failed";
+
+/** clipIds matching `predicate`, in the map's iteration order. */
+function deriveIds(
+  clipJobs: Record<string, ClipJobState>,
+  predicate: (job: ClipJobState) => boolean
+): string[] {
+  const ids: string[] = [];
+  for (const id of Object.keys(clipJobs)) {
+    if (predicate(clipJobs[id])) {
+      ids.push(id);
+    }
+  }
+  return ids;
+}
+
+/** Same-membership check (order-insensitive) so a stable reference is reused. */
+function sameMembership(a: string[], b: string[]): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  const set = new Set(a);
+  return b.every((id) => set.has(id));
+}
+
+/**
+ * Recompute `generatingClipIds` / `failedClipIds` from `clipJobs`, but reuse the
+ * previous array reference when the membership set is unchanged. This is what
+ * keeps the selectors stable across progress-only updates (which never call
+ * this) and across status updates that don't move a clip in/out of a list.
+ */
+function deriveMembership(
+  clipJobs: Record<string, ClipJobState>,
+  prev: Pick<
+    TimelineGenerationStoreState,
+    "generatingClipIds" | "failedClipIds"
+  >
+): { generatingClipIds: string[]; failedClipIds: string[] } {
+  const nextGenerating = deriveIds(clipJobs, isGenerating);
+  const nextFailed = deriveIds(clipJobs, isFailed);
+  return {
+    generatingClipIds: sameMembership(prev.generatingClipIds, nextGenerating)
+      ? prev.generatingClipIds
+      : nextGenerating,
+    failedClipIds: sameMembership(prev.failedClipIds, nextFailed)
+      ? prev.failedClipIds
+      : nextFailed
+  };
+}
+
 // ── Store ──────────────────────────────────────────────────────────────────
 
 export const useTimelineGenerationStore =
@@ -159,6 +225,8 @@ export const useTimelineGenerationStore =
     return {
       clipJobs: persistedClipJobs,
       jobToClip: persistedJobToClip,
+      generatingClipIds: deriveIds(persistedClipJobs, isGenerating),
+      failedClipIds: deriveIds(persistedClipJobs, isFailed),
 
       registerJob: (clipId, jobId, workflowId) => {
         const jobState: ClipJobState = {
@@ -181,7 +249,8 @@ export const useTimelineGenerationStore =
           }
           return {
             clipJobs: nextClipJobs,
-            jobToClip: nextJobToClip
+            jobToClip: nextJobToClip,
+            ...deriveMembership(nextClipJobs, state)
           };
         });
 
@@ -225,7 +294,8 @@ export const useTimelineGenerationStore =
           const nextClipJobs = { ...state.clipJobs, [clipId]: updated };
           persistClipJobs(nextClipJobs);
           return {
-            clipJobs: nextClipJobs
+            clipJobs: nextClipJobs,
+            ...deriveMembership(nextClipJobs, state)
           };
         });
 
@@ -308,7 +378,11 @@ export const useTimelineGenerationStore =
         delete newClipJobs[clipId];
 
         persistClipJobs(newClipJobs);
-        set({ clipJobs: newClipJobs, jobToClip: newJobToClip });
+        set((state) => ({
+          clipJobs: newClipJobs,
+          jobToClip: newJobToClip,
+          ...deriveMembership(newClipJobs, state)
+        }));
       },
 
       getClipJobState: (clipId) => get().clipJobs[clipId],
@@ -355,26 +429,18 @@ export const useFailedCount = (): number =>
 
 /**
  * Returns an array of clip IDs with active (queued/running) jobs.
+ *
+ * Reads the membership list maintained in state, which only changes identity
+ * when a job's *status* moves in/out of "queued"/"running" — progress ticks
+ * keep the same reference, so consumers (e.g. ActivityIndicator) don't
+ * re-render on every progress update.
  */
 export const useGeneratingClipIds = (): string[] =>
-  useTimelineGenerationStore(
-    useShallow((state) =>
-      Object.keys(state.clipJobs).filter(
-        (id) =>
-          state.clipJobs[id].status === "queued" ||
-          state.clipJobs[id].status === "running"
-      )
-    )
-  );
+  useTimelineGenerationStore((state) => state.generatingClipIds);
 
 /**
- * Returns an array of clip IDs with failed jobs.
+ * Returns an array of clip IDs with failed jobs. Stable across progress ticks
+ * (see {@link useGeneratingClipIds}).
  */
 export const useFailedClipIds = (): string[] =>
-  useTimelineGenerationStore(
-    useShallow((state) =>
-      Object.keys(state.clipJobs).filter(
-        (id) => state.clipJobs[id].status === "failed"
-      )
-    )
-  );
+  useTimelineGenerationStore((state) => state.failedClipIds);
