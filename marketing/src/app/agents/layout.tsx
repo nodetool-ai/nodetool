@@ -1,10 +1,17 @@
 import JsonLd from "../../components/JsonLd";
 import type { Metadata } from "next";
 
+const TITLE = "Agents for creative work | NodeTool";
+const DESCRIPTION =
+  "An art director that never sleeps. Drop an agent on the canvas, give it a brief, and watch it plan the shot, pick the model, generate variants, and hand the cut to the next node. Wire image, video, music, and voice models — Flux, Seedance, Veo, Kling, Suno, ElevenLabs — into agents that ship your work. Open source, BYOK, runs on your machine.";
+
 export const metadata: Metadata = {
-  title: "Agents for creative work | NodeTool",
-  description:
-    "An art director that never sleeps. Drop an agent on the canvas, give it a brief, and watch it plan the shot, pick the model, generate variants, and hand the cut to the next node. Wire image, video, music, and voice models — Flux, Seedance, Veo, Kling, Suno, ElevenLabs — into agents that ship your work. Open source, BYOK, runs on your machine.",
+  title: TITLE,
+  description: DESCRIPTION,
+  metadataBase: new URL("https://nodetool.ai"),
+  alternates: {
+    canonical: "/agents",
+  },
   keywords: [
     "creative AI agents",
     "art director agent",
@@ -19,6 +26,19 @@ export const metadata: Metadata = {
     "node-based creative pipeline",
     "Flux Seedance Veo Suno ElevenLabs",
   ],
+  openGraph: {
+    title: TITLE,
+    description: DESCRIPTION,
+    url: "https://nodetool.ai/agents",
+    siteName: "NodeTool",
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
 };
 
 export default function AgentsLayout({

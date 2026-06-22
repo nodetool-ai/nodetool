@@ -4,54 +4,35 @@ const BASE_URL = "https://nodetool.ai";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
-  return [
-    {
-      url: `${BASE_URL}/`,
-      lastModified: now,
-    },
-    {
-      url: `${BASE_URL}/studio`,
-      lastModified: now,
-    },
-    {
-      url: `${BASE_URL}/cloud`,
-      lastModified: now,
-    },
-    {
-      url: `${BASE_URL}/agents`,
-      lastModified: now,
-    },
-    {
-      url: `${BASE_URL}/creatives`,
-      lastModified: now,
-    },
-    {
-      url: `${BASE_URL}/developers`,
-      lastModified: now,
-    },
-    {
-      url: `${BASE_URL}/pricing`,
-      lastModified: now,
-    },
-    {
-      url: `${BASE_URL}/vs/comfyui`,
-      lastModified: now,
-    },
-    {
-      url: `${BASE_URL}/vs/weavy`,
-      lastModified: now,
-    },
-    {
-      url: `${BASE_URL}/imprint`,
-      lastModified: now,
-    },
-    {
-      url: `${BASE_URL}/privacy`,
-      lastModified: now,
-    },
-    {
-      url: `${BASE_URL}/terms`,
-      lastModified: now,
-    },
+
+  type Entry = {
+    path: string;
+    priority: number;
+    changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"];
+  };
+
+  // Ordered by importance so the priority/changeFrequency hints stay obvious.
+  const entries: Entry[] = [
+    { path: "/", priority: 1.0, changeFrequency: "weekly" },
+    { path: "/studio", priority: 0.9, changeFrequency: "weekly" },
+    { path: "/cloud", priority: 0.9, changeFrequency: "weekly" },
+    { path: "/pricing", priority: 0.8, changeFrequency: "weekly" },
+    { path: "/agents", priority: 0.8, changeFrequency: "monthly" },
+    { path: "/creatives", priority: 0.8, changeFrequency: "monthly" },
+    { path: "/developers", priority: 0.8, changeFrequency: "monthly" },
+    { path: "/vs/comfyui", priority: 0.7, changeFrequency: "monthly" },
+    { path: "/vs/weavy", priority: 0.7, changeFrequency: "monthly" },
+    { path: "/use-cases/product-video", priority: 0.6, changeFrequency: "monthly" },
+    { path: "/use-cases/movie-poster", priority: 0.6, changeFrequency: "monthly" },
+    { path: "/imprint", priority: 0.3, changeFrequency: "yearly" },
+    { path: "/privacy", priority: 0.3, changeFrequency: "yearly" },
+    { path: "/terms", priority: 0.3, changeFrequency: "yearly" },
   ];
+
+  return entries.map((entry) => ({
+    url: `${BASE_URL}${entry.path}`,
+    lastModified: now,
+    changeFrequency: entry.changeFrequency,
+    priority: entry.priority,
+  }));
 }
