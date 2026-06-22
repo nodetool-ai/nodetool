@@ -213,7 +213,7 @@ const AddMenu = ({ onAdd }: AddMenuProps) => {
       return;
     }
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      if (ref.current && e.target instanceof Node && !ref.current.contains(e.target)) {
         setOpen(false);
       }
     };
@@ -411,12 +411,11 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
   // Delete key removes the selected object.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
+      if (!(e.target instanceof HTMLElement)) return;
       const typing =
-        target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.isContentEditable);
+        e.target.tagName === "INPUT" ||
+        e.target.tagName === "TEXTAREA" ||
+        e.target.isContentEditable;
       if (typing) {
         return;
       }

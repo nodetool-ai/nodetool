@@ -149,9 +149,9 @@ const Select: React.FC<SelectProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      const isInsideSelect = selectRef.current?.contains(target);
-      const isInsideDropdown = optionsRef.current?.contains(target);
+      if (!(event.target instanceof Node)) return;
+      const isInsideSelect = selectRef.current?.contains(event.target);
+      const isInsideDropdown = optionsRef.current?.contains(event.target);
       
       if (activeSelect === id && !isInsideSelect && !isInsideDropdown) {
         close();

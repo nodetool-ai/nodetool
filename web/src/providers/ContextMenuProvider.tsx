@@ -72,11 +72,11 @@ export function ContextMenuProvider({
 
   const clickOutsideHandler = useCallback(
     (className: string) => (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (!target) {
+      if (!(event.target instanceof HTMLElement)) {
         closeContextMenu();
         return;
       }
+      const target = event.target;
 
       const shouldIgnoreClassClick =
         className &&

@@ -7,7 +7,8 @@ export function useClickOutsideDeselect(
 ) {
   const handleClickOutside = useCallback(
     (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
+      if (!(e.target instanceof HTMLElement)) return;
+      const target = e.target;
       if (
         !target.classList.contains("selected-asset-info") &&
         classNames.some((cn) => target.classList.contains(cn))

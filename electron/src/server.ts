@@ -836,7 +836,7 @@ export function showItemInFolder(fullPath: string): void {
  * Creates a new workflow window for a specific workflow
  * @param workflowId - ID of the workflow to run
  */
-export async function runApp(workflowId: string) {
+export async function runApp(workflowId: string): Promise<void> {
   logMessage(`Running app with workflow ID: ${workflowId}`);
   createWorkflowWindow(workflowId);
 }

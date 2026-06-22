@@ -29,7 +29,7 @@ export function useConnectableNodes<Selected>(
 export function useConnectableNodes<Selected>(
   selector?: (state: ConnectableNodesState) => Selected,
   _equalityFn?: (a: Selected, b: Selected) => boolean
-) {
+): ConnectableNodesState | Selected {
   const context = useContext(ConnectableNodesContext);
   if (!context) {
     throw new Error(

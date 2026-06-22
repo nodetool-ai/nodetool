@@ -234,8 +234,8 @@ export const autoLayout = async (
     if (typeof document === "undefined") return 40;
     const el = document.querySelector(
       `.react-flow__node[data-id="${CSS.escape(nodeId)}"] .title-container`
-    ) as HTMLElement | null;
-    if (!el) return 40;
+    );
+    if (!(el instanceof HTMLElement)) return 40;
     return el.offsetHeight + 12; // 12px = top offset gap
   };
 

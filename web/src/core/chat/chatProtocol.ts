@@ -1222,7 +1222,7 @@ export async function handleChatWebSocketMessage(
   data: MsgpackData,
   set: ChatStateSetter,
   get: ChatStateGetter
-) {
+): Promise<void> {
   const currentState = get();
 
   if (currentState.status === "stopping") {

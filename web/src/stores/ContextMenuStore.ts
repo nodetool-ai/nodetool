@@ -46,7 +46,7 @@ export function useContextMenu<Selected>(
 export function useContextMenu<Selected>(
   selector?: (state: ContextMenuContextType) => Selected,
   _equalityFn?: (a: Selected, b: Selected) => boolean
-) {
+): ContextMenuContextType | Selected {
   const context = useContext(ContextMenuContext);
   if (context === undefined) {
     throw new Error("useContextMenu must be used within a ContextMenuProvider");

@@ -474,9 +474,11 @@ const handleHashRoute = () => {
 handleHashRoute();
 
 const router = createBrowserRouter(getRoutes());
-const root = ReactDOM.createRoot(
-  document.getElementById("root") as HTMLElement
-);
+const rootEl = document.getElementById("root");
+if (!rootEl) {
+  throw new Error("Missing #root element");
+}
+const root = ReactDOM.createRoot(rootEl);
 
 const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
