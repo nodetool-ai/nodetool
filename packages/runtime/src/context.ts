@@ -13,6 +13,7 @@
 import type { AssetRef, ProcessingMessage, ProviderCost } from "@nodetool-ai/protocol";
 import { packageAssetHttpPath, parsePackageAssetUri } from "@nodetool-ai/protocol";
 import { AgentMemory } from "./agent-memory.js";
+import { VariableChannel } from "./variable-channel.js";
 import { encodeRawImageRef } from "./image-codec.js";
 import { inlineTextAssetRefs } from "./prompt-asset-refs.js";
 import { importNodeBuiltin } from "@nodetool-ai/config";
@@ -890,6 +891,10 @@ export class ProcessingContext {
   readonly memory: AgentMemory = new AgentMemory();
   /** Variables shared across node execution. */
   private _variables: Record<string, unknown>;
+  /** Named async channels backing Set/Get Variable (see {@link getChannel}). */
+  private _channels = new Map<string, VariableChannel>();
+  /** Remaining Set Variable writers per channel; channel closes at zero. */
+  private _channelWriters = new Map<string, number>();
   /** Optional async secret resolver. */
   private _secretResolver:
     | ((
@@ -1256,6 +1261,65 @@ export class ProcessingContext {
    */
   getVariables(): Record<string, unknown> {
     return { ...this._variables };
+  }
+
+  // -----------------------------------------------------------------------
+  // Variable channels (Set/Get Variable)
+  // -----------------------------------------------------------------------
+
+  /**
+   * Declare how many Set Variable nodes write to `name`. The runner calls this
+   * before any actor runs so a channel with no writers can close immediately
+   * (readers get end-of-stream instead of hanging).
+   */
+  registerChannelWriters(name: string, count: number): void {
+    this._channelWriters.set(
+      name,
+      (this._channelWriters.get(name) ?? 0) + count
+    );
+  }
+
+  /**
+   * Get (or lazily create) the named variable channel. A channel created for a
+   * name with no registered writers is returned already closed, so a reader
+   * referencing an undefined variable resolves immediately rather than waiting
+   * forever.
+   */
+  getChannel<T = unknown>(name: string): VariableChannel<T> {
+    let channel = this._channels.get(name);
+    if (!channel) {
+      channel = new VariableChannel();
+      this._channels.set(name, channel);
+      if ((this._channelWriters.get(name) ?? 0) === 0) {
+        channel.close();
+      }
+    }
+    return channel as VariableChannel<T>;
+  }
+
+  /**
+   * Record that one Set Variable writer for `name` has finished. When the last
+   * writer finishes, the channel closes — readers drain the buffered values
+   * then end. The runner calls this from each Set Variable actor's completion.
+   */
+  markChannelWriterDone(name: string): void {
+    const remaining = (this._channelWriters.get(name) ?? 0) - 1;
+    this._channelWriters.set(name, Math.max(0, remaining));
+    if (remaining <= 0) {
+      this.getChannel(name).close();
+    }
+  }
+
+  /** Close every channel — a teardown backstop so no reader is left waiting. */
+  closeAllChannels(): void {
+    for (const channel of this._channels.values()) {
+      channel.close();
+    }
+  }
+
+  /** Whether any Set Variable node was registered as writing to `name`. */
+  hasChannelWriters(name: string): boolean {
+    return (this._channelWriters.get(name) ?? 0) > 0;
   }
 
   async storeStepResult(key: string, value: unknown): Promise<string> {

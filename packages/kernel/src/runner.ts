@@ -26,6 +26,9 @@ import { TypeMetadata } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.kernel.runner");
 
+/** Node type that publishes to a variable channel (see runtime VariableChannel). */
+const SET_VARIABLE_NODE_TYPE = "nodetool.variable.SetVariable";
+
 /**
  * Minimum interval between edge_update emissions per edge. The first message
  * on an edge always emits (it starts the flow animation); afterwards the
@@ -498,6 +501,9 @@ export class WorkflowRunner {
         );
       }
 
+      // Register Set Variable writers so variable channels know when to close.
+      this._registerVariableChannels();
+
       // Process graph (spawn actors)
       await this._processGraph();
 
@@ -849,6 +855,37 @@ export class WorkflowRunner {
    * After delivery, mark them as done (EOS) since input nodes produce exactly
    * one value.
    */
+  /** Variable-channel name a Set Variable node publishes to (its `name` prop). */
+  private _variableChannelName(node: NodeDescriptor): string {
+    const props =
+      node.properties && typeof node.properties === "object"
+        ? (node.properties as Record<string, unknown>)
+        : {};
+    const raw = props.name;
+    return typeof raw === "string" ? raw.trim() : "";
+  }
+
+  /**
+   * Tell the context how many Set Variable writers each channel has, before any
+   * actor runs. A channel with no writers then closes on first read so readers
+   * (Get Variable streams, Prompt awaits) end cleanly instead of hanging.
+   */
+  private _registerVariableChannels(): void {
+    const ctx = this._options.executionContext;
+    if (!ctx || typeof ctx.registerChannelWriters !== "function") {
+      return;
+    }
+    for (const node of this._graph.nodes) {
+      if (node.type !== SET_VARIABLE_NODE_TYPE) {
+        continue;
+      }
+      const name = this._variableChannelName(node);
+      if (name) {
+        ctx.registerChannelWriters(name, 1);
+      }
+    }
+  }
+
   private async _dispatchInputs(
     params: Record<string, unknown>
   ): Promise<void> {
@@ -1028,6 +1065,18 @@ export class WorkflowRunner {
           // After actor completes, send EOS to all downstream inboxes
           await this._sendEOS(node.id);
 
+          // A Set Variable writer finished — when the last writer for a channel
+          // is done, the context closes it so readers (Get Variable / Prompt)
+          // drain and end instead of waiting forever.
+          if (node.type === SET_VARIABLE_NODE_TYPE) {
+            const channelName = this._variableChannelName(node);
+            if (channelName) {
+              this._options.executionContext?.markChannelWriterDone?.(
+                channelName
+              );
+            }
+          }
+
           // The actor's run loop is gone — it can no longer answer control
           // events. Mark it so future sendControlEvent calls reject fast
           // rather than hang, and reject any response still waiting on it
@@ -1065,6 +1114,11 @@ export class WorkflowRunner {
 
     // Wait for all actors to complete
     await Promise.all(actorPromises);
+
+    // Backstop: release any reader still waiting on a channel (e.g. a writer
+    // that errored before publishing). Non-cyclic graphs are already closed by
+    // markChannelWriterDone above.
+    this._options.executionContext?.closeAllChannels?.();
 
     // Check for in-flight messages after all actors complete (Python parity: _check_pending_inbox_work)
     const pendingNodes = this._checkPendingInboxWork();

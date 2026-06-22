@@ -5,6 +5,7 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   tagAsServer,
   renderTemplate,
+  referencedVariables,
   base64ToBytes
 } from "@nodetool-ai/nodes-utils";
 import {
@@ -2543,15 +2544,28 @@ export class PromptNode extends BaseNode {
   async process(
     context?: ProcessingContext
   ): Promise<Record<string, unknown>> {
-    // Variables set by a Set Variable node upstream live on the shared
-    // ProcessingContext. Merge them in first so `{{ name }}` resolves against
-    // them, with this node's own dynamic inputs taking precedence on conflict.
-    const contextVars = context?.getVariables() ?? {};
-    const props: Record<string, unknown> = {
-      ...contextVars,
-      ...Object.fromEntries(this.dynamicProps)
-    };
-    return { output: renderTemplate(String(this.prompt ?? ""), props) };
+    const template = String(this.prompt ?? "");
+    const props: Record<string, unknown> = Object.fromEntries(
+      this.dynamicProps
+    );
+
+    // Resolve `{{ name }}` references against variable channels: wait for the
+    // first value published by a Set Variable node anywhere in the graph. Only
+    // names with a registered writer are awaited (others are left intact), and
+    // the node's own dynamic inputs take precedence on conflict.
+    if (context) {
+      const pending = referencedVariables(template)
+        .filter((name) => !(name in props) && context.hasChannelWriters(name))
+        .map(async (name) => {
+          const value = await context.getChannel(name).first();
+          if (value !== undefined) {
+            props[name] = value;
+          }
+        });
+      await Promise.all(pending);
+    }
+
+    return { output: renderTemplate(template, props) };
   }
 }
 

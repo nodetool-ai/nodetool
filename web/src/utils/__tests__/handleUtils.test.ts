@@ -173,6 +173,32 @@ describe("handleUtils", () => {
         isDynamic: false
       });
     });
+
+    it("uses the persisted dynamic type for a Get Variable output", () => {
+      const node = createMockNode("get", { output: mockDynamicTypeMetadata });
+      const metadata: NodeMetadata = {
+        ...mockNodeMetadata,
+        node_type: "nodetool.variable.GetVariable",
+        outputs: [{ name: "output", type: mockTypeMetadata, stream: false }]
+      };
+      const handle = findOutputHandle(node, "output", metadata);
+
+      expect(handle?.type).toEqual(mockDynamicTypeMetadata);
+      expect(handle?.isDynamic).toBe(true);
+    });
+
+    it("falls back to the static type for a Get Variable with no inferred type", () => {
+      const node = createMockNode("get");
+      const metadata: NodeMetadata = {
+        ...mockNodeMetadata,
+        node_type: "nodetool.variable.GetVariable",
+        outputs: [{ name: "output", type: mockTypeMetadata, stream: false }]
+      };
+      const handle = findOutputHandle(node, "output", metadata);
+
+      expect(handle?.type).toEqual(mockTypeMetadata);
+      expect(handle?.isDynamic).toBe(false);
+    });
   });
 
   describe("findInputHandle", () => {

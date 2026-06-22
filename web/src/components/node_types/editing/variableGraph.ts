@@ -1,16 +1,17 @@
 /**
  * Pure graph helpers for the Set Variable / Get Variable nodes.
  *
- * A Set Variable node writes a value onto the workflow's shared processing
- * context; a Get Variable node (or a Prompt node referencing `{{ name }}`)
- * reads it. Because execution follows the graph's edges, a reader only sees a
- * variable when its Set Variable node is *upstream* of it. These helpers walk
- * the edges backwards from a node and collect the names that Set Variable
- * ancestors declare, so the editor can offer exactly those variables.
+ * A Set Variable node publishes a value onto a named channel; a Get Variable
+ * node (or a Prompt node referencing `{{ name }}`) reads it. The channel is
+ * shared by the whole run, so a variable defined by any Set Variable node is
+ * readable anywhere in the workflow — the editor offers every defined variable
+ * regardless of graph position. A variable's type is inferred from whatever is
+ * wired into its Set Variable's `value` input, so reads are type-checked.
  *
  * Kept free of React / store imports so it is trivially unit-testable.
  */
 import { SET_VARIABLE_NODE_TYPE } from "../../../constants/nodeTypes";
+import type { TypeMetadata } from "../../../stores/ApiTypes";
 
 export interface VariableGraphNode {
   id: string;
@@ -21,7 +22,22 @@ export interface VariableGraphNode {
 export interface VariableGraphEdge {
   source: string;
   target: string;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
 }
+
+/** Fallback type for an unconnected or conflicting variable. */
+export const ANY_TYPE: TypeMetadata = {
+  type: "any",
+  optional: false,
+  type_args: []
+};
+
+/** Resolve the type of a source node's output handle (for type inference). */
+export type OutputTypeResolver = (
+  sourceId: string,
+  sourceHandle: string
+) => TypeMetadata | undefined;
 
 /** The literal variable name configured on a Set Variable node, or "". */
 export const readVariableName = (
@@ -32,48 +48,63 @@ export const readVariableName = (
 };
 
 /**
- * Names of variables set by Set Variable nodes upstream (transitive
- * ancestors) of `nodeId`. Returns a de-duplicated, alphabetically sorted list.
+ * Names of every variable defined by a Set Variable node anywhere in the
+ * workflow. Returns a de-duplicated, alphabetically sorted list.
  */
-export const collectUpstreamVariableNames = (
-  nodeId: string,
-  nodes: readonly VariableGraphNode[],
-  edges: readonly VariableGraphEdge[]
+export const collectVariableNames = (
+  nodes: readonly VariableGraphNode[]
 ): string[] => {
-  const nodeById = new Map(nodes.map((n) => [n.id, n] as const));
-  const edgesByTarget = new Map<string, VariableGraphEdge[]>();
-  for (const edge of edges) {
-    const list = edgesByTarget.get(edge.target);
-    if (list) {
-      list.push(edge);
-    } else {
-      edgesByTarget.set(edge.target, [edge]);
-    }
-  }
-
   const names = new Set<string>();
-  const visited = new Set<string>();
-  const stack: string[] = [nodeId];
-  while (stack.length > 0) {
-    const current = stack.pop() as string;
-    for (const edge of edgesByTarget.get(current) ?? []) {
-      const sourceId = edge.source;
-      if (visited.has(sourceId)) {
-        continue;
-      }
-      visited.add(sourceId);
-      const sourceNode = nodeById.get(sourceId);
-      if (sourceNode?.type === SET_VARIABLE_NODE_TYPE) {
-        const name = readVariableName(sourceNode);
-        if (name) {
-          names.add(name);
-        }
-      }
-      // Keep walking past the setter so chained Set Variable nodes upstream of
-      // it are also discovered.
-      stack.push(sourceId);
+  for (const node of nodes) {
+    if (node.type !== SET_VARIABLE_NODE_TYPE) {
+      continue;
+    }
+    const name = readVariableName(node);
+    if (name) {
+      names.add(name);
+    }
+  }
+  return [...names].sort((a, b) => a.localeCompare(b));
+};
+
+/**
+ * Infer each variable's type from whatever is wired into the matching Set
+ * Variable's `value` input. Unconnected → `any`. Two setters of one name with
+ * different types collapse to `any` (a conflict the editor can surface).
+ */
+export const inferVariableTypes = (
+  nodes: readonly VariableGraphNode[],
+  edges: readonly VariableGraphEdge[],
+  resolveOutputType: OutputTypeResolver
+): Map<string, TypeMetadata> => {
+  const valueEdgeByTarget = new Map<string, VariableGraphEdge>();
+  for (const edge of edges) {
+    if (edge.targetHandle === "value") {
+      valueEdgeByTarget.set(edge.target, edge);
     }
   }
 
-  return [...names].sort((a, b) => a.localeCompare(b));
+  const result = new Map<string, TypeMetadata>();
+  const conflicted = new Set<string>();
+  for (const node of nodes) {
+    if (node.type !== SET_VARIABLE_NODE_TYPE) {
+      continue;
+    }
+    const name = readVariableName(node);
+    if (!name || conflicted.has(name)) {
+      continue;
+    }
+    const edge = valueEdgeByTarget.get(node.id);
+    const type =
+      (edge && resolveOutputType(edge.source, edge.sourceHandle ?? "")) ||
+      ANY_TYPE;
+    const existing = result.get(name);
+    if (existing && existing.type !== type.type) {
+      result.set(name, ANY_TYPE);
+      conflicted.add(name);
+    } else {
+      result.set(name, type);
+    }
+  }
+  return result;
 };

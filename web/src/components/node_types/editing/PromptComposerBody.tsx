@@ -60,7 +60,7 @@ import {
 } from "./promptComposer/promptEditorState";
 import { variablesInPrompt } from "./promptComposer/promptTokens";
 import { PromptComposerContext } from "./promptComposer/promptComposerContext";
-import { useUpstreamVariableNames } from "./useUpstreamVariables";
+import { useGraphVariableNames } from "./useGraphVariables";
 import { PROMPT_NODE_TYPE } from "../../../constants/nodeTypes";
 
 const styles = (theme: Theme) =>
@@ -139,9 +139,9 @@ const styles = (theme: Theme) =>
       lineHeight: 1.4,
       "&:hover": { borderColor: theme.vars.palette.primary.main }
     },
-    // Variables set by an upstream Set Variable node: accent the border so they
-    // read as "comes from elsewhere in the graph" rather than a local input.
-    ".variable-insert-chip--upstream": {
+    // Variables defined by a Set Variable node: accent the border so they read
+    // as "comes from elsewhere in the graph" rather than a local input.
+    ".variable-insert-chip--graph": {
       borderColor: theme.vars.palette.info.main,
       color: theme.vars.palette.info.main
     },
@@ -156,13 +156,14 @@ const composerTheme = {
 /** A variable offered in the insert bar, tagged by where it resolves from. */
 interface InsertableVariable {
   name: string;
-  /** "input" → the node's own dynamic input; "upstream" → a Set Variable node. */
-  source: "input" | "upstream";
+  /** "input" → the node's own dynamic input; "graph" → a Set Variable node. */
+  source: "input" | "graph";
 }
 
 /**
  * Quick-insert bar: one chip per available variable (dynamic inputs first,
- * then variables set by upstream Set Variable nodes) + the add-variable button.
+ * then variables defined by Set Variable nodes anywhere in the workflow) + the
+ * add-variable button.
  */
 const VariableInsertBar: React.FC<{
   variables: InsertableVariable[];
@@ -186,17 +187,17 @@ const VariableInsertBar: React.FC<{
           key={name}
           type="button"
           className={`variable-insert-chip nodrag${
-            source === "upstream" ? " variable-insert-chip--upstream" : ""
+            source === "graph" ? " variable-insert-chip--graph" : ""
           }`}
           onClick={() => insertVariable(name)}
           aria-label={
-            source === "upstream"
-              ? `Insert upstream variable ${name}`
+            source === "graph"
+              ? `Insert variable ${name} set by a Set Variable node`
               : `Insert variable ${name}`
           }
           title={
-            source === "upstream"
-              ? `Set by an upstream Set Variable node`
+            source === "graph"
+              ? `Set by a Set Variable node`
               : undefined
           }
         >
@@ -248,31 +249,31 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
     [variableNames]
   );
 
-  // Variables set by Set Variable nodes upstream of this prompt. They resolve
-  // at runtime from the shared processing context, so they're offered as
-  // insertable chips and treated as "known" even without a dynamic input.
-  const upstreamVariableNames = useUpstreamVariableNames(id);
-  const upstreamVariables = useMemo(
-    () => new Set(upstreamVariableNames),
-    [upstreamVariableNames]
+  // Variables defined by Set Variable nodes anywhere in the workflow. They
+  // resolve at runtime from the shared processing context, so they're offered
+  // as insertable chips and treated as "known" even without a dynamic input.
+  const graphVariableNames = useGraphVariableNames();
+  const graphVariables = useMemo(
+    () => new Set(graphVariableNames),
+    [graphVariableNames]
   );
   const promptComposerContextValue = useMemo(
-    () => ({ knownVariables, upstreamVariables }),
-    [knownVariables, upstreamVariables]
+    () => ({ knownVariables, graphVariables }),
+    [knownVariables, graphVariables]
   );
 
-  // Insert-bar entries: the node's own inputs first, then upstream variables
-  // that aren't already covered by an input of the same name.
+  // Insert-bar entries: the node's own inputs first, then variables defined by
+  // Set Variable nodes that aren't already covered by an input of the same name.
   const insertableVariables = useMemo(
     () => [
       ...variableNames.map(
         (name) => ({ name, source: "input" as const })
       ),
-      ...upstreamVariableNames
+      ...graphVariableNames
         .filter((name) => !knownVariables.has(name))
-        .map((name) => ({ name, source: "upstream" as const }))
+        .map((name) => ({ name, source: "graph" as const }))
     ],
-    [variableNames, upstreamVariableNames, knownVariables]
+    [variableNames, graphVariableNames, knownVariables]
   );
 
   const { handleAddProperty, handleDeleteProperty, handleUpdatePropertyName } =

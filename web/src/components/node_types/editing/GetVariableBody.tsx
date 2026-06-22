@@ -2,18 +2,16 @@
 /**
  * GetVariableBody — bespoke body for `nodetool.variable.GetVariable`.
  *
- * Reads a value from the workflow's shared processing context. Variables live
- * on a context shared by the whole run, but execution follows the graph's
- * edges, so a value is only guaranteed to be set by the time this node runs if
- * the Set Variable node is *upstream*. The picker therefore offers exactly the
- * variables set upstream of this node, and the body explains that rule. Connect
- * the `trigger` input downstream of the Set Variable to establish the ordering.
+ * Reads a variable channel by name. The picker offers every variable published
+ * by a Set Variable node anywhere in the workflow; the node waits for the first
+ * value then streams the rest, so no ordering wire is needed.
  */
 
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useEffect, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { shallow } from "zustand/shallow";
 
 import { SelectField, BORDER_RADIUS } from "../../ui_primitives";
 import type { SelectOption } from "../../ui_primitives";
@@ -24,7 +22,12 @@ import NodeProgress from "../../node/NodeProgress";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
-import { useUpstreamVariableNames } from "./useUpstreamVariables";
+import { useNodes } from "../../../contexts/NodeContext";
+import {
+  useGraphVariableNames,
+  useGraphVariableTypes
+} from "./useGraphVariables";
+import { ANY_TYPE } from "./variableGraph";
 import { GET_VARIABLE_NODE_TYPE } from "../../../constants/nodeTypes";
 
 const styles = (theme: Theme) =>
@@ -96,23 +99,42 @@ const GetVariableBodyInner: React.FC<GetVariableBodyProps> = ({
       ? (data.properties.name as string)
       : "";
 
-  const upstreamVariableNames = useUpstreamVariableNames(id);
+  const graphVariableNames = useGraphVariableNames();
+
+  // Adopt the variable's inferred type on the output handle so downstream
+  // connections are type-checked. The type is persisted to `dynamic_outputs`
+  // (read back by findOutputHandle's Get Variable case).
+  const variableTypes = useGraphVariableTypes();
+  const outputType = useMemo(
+    () => (currentName ? variableTypes.get(currentName) : undefined) ?? ANY_TYPE,
+    [variableTypes, currentName]
+  );
+  const updateNodeData = useNodes((state) => state.updateNodeData, shallow);
+  useEffect(() => {
+    const stored = data.dynamic_outputs?.output;
+    if (stored?.type === outputType.type) {
+      return;
+    }
+    updateNodeData(id, {
+      dynamic_outputs: { ...(data.dynamic_outputs ?? {}), output: outputType }
+    });
+  }, [id, outputType, data.dynamic_outputs, updateNodeData]);
 
   const options = useMemo<SelectOption[]>(() => {
-    const opts: SelectOption[] = upstreamVariableNames.map((name) => ({
+    const opts: SelectOption[] = graphVariableNames.map((name) => ({
       value: name,
       label: name
     }));
-    // Keep a stored-but-no-longer-upstream value visible (and selected) so the
-    // user can see it needs reconnecting rather than having it silently vanish.
-    if (currentName && !upstreamVariableNames.includes(currentName)) {
+    // Keep a stored value whose Set Variable node no longer exists visible (and
+    // selected) so it doesn't silently vanish from the picker.
+    if (currentName && !graphVariableNames.includes(currentName)) {
       opts.unshift({
         value: currentName,
-        label: `${currentName} (not set upstream)`
+        label: `${currentName} (no Set Variable node)`
       });
     }
     return opts;
-  }, [upstreamVariableNames, currentName]);
+  }, [graphVariableNames, currentName]);
 
   const { setProperty, setPropertyComplete } = useBespokePropertyWriter({
     nodeId: id,
@@ -132,9 +154,9 @@ const GetVariableBodyInner: React.FC<GetVariableBodyProps> = ({
       <HandleColumn id={id} properties={triggerProperty} />
 
       <div className="explanation">
-        Reads a variable set by a Set Variable node. Only variables set
-        upstream of this node are available — connect the trigger input
-        downstream of the Set Variable so this node runs after the value is set.
+        Reads a variable published by any Set Variable node in this workflow. It
+        waits for the first value, then streams every value the setter
+        publishes — no ordering wire needed.
       </div>
 
       {options.length > 0 ? (
@@ -151,14 +173,17 @@ const GetVariableBodyInner: React.FC<GetVariableBodyProps> = ({
         </div>
       ) : (
         <div className="empty-hint">
-          No variables set upstream. Connect this node downstream of a Set
-          Variable node to choose one.
+          No variables defined yet. Add a Set Variable node to this workflow to
+          choose one.
         </div>
       )}
 
       {!isOutputNode && (
         <div className="outputs-row">
-          <NodeOutputs id={id} outputs={nodeMetadata.outputs} />
+          {/* The single `output` handle is rendered from dynamic_outputs (set
+              above to the inferred variable type); passing the static output
+              too would duplicate the handle. */}
+          <NodeOutputs id={id} outputs={[]} />
         </div>
       )}
 

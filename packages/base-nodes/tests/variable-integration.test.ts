@@ -13,8 +13,6 @@ function makeRegistry(): NodeRegistry {
 
 function makeRunner(registry: NodeRegistry, jobId: string): WorkflowRunner {
   return new WorkflowRunner(jobId, {
-    // The shared context is what Set/Get Variable read & write; every
-    // production runner path supplies one (websocket server, CLI, browser).
     executionContext: new ProcessingContext({ jobId }),
     resolveExecutor: (node) => {
       if (!registry.has(node.type)) {
@@ -29,29 +27,32 @@ function makeRunner(registry: NodeRegistry, jobId: string): WorkflowRunner {
   });
 }
 
-describe("integration: Set/Get Variable + Prompt over the shared context", () => {
-  it("a downstream Get Variable reads what an upstream Set Variable wrote", async () => {
+// Get Variable is a streaming-output source; in a real graph these descriptor
+// fields are hydrated from the node class metadata.
+const getVariable = (id: string, name: string): NodeDescriptor =>
+  ({
+    id,
+    type: "nodetool.variable.GetVariable",
+    properties: { name },
+    is_streaming_output: true,
+    output_correlation: {
+      output: { kind: "iteration", source: "__execution__", group: "channel" }
+    }
+  }) as unknown as NodeDescriptor;
+
+describe("integration: variable channels (no ordering edge needed)", () => {
+  it("a Get Variable reads what a Set Variable publishes, with no edge between them", async () => {
     const nodes: NodeDescriptor[] = [
       {
         id: "set",
         type: "nodetool.variable.SetVariable",
         properties: { name: "subject", value: "a dragon" }
       },
-      {
-        id: "get",
-        type: "nodetool.variable.GetVariable",
-        properties: { name: "subject" }
-      },
+      getVariable("get", "subject"),
       { id: "sink", type: RerouteNode.nodeType, name: "got" }
     ];
+    // The only edge wires Get → sink; the channel orders set-before-read.
     const edges: Edge[] = [
-      // ordering edge: Get Variable runs after Set Variable
-      {
-        source: "set",
-        sourceHandle: "output",
-        target: "get",
-        targetHandle: "trigger"
-      },
       {
         source: "get",
         sourceHandle: "output",
@@ -60,8 +61,8 @@ describe("integration: Set/Get Variable + Prompt over the shared context", () =>
       }
     ];
 
-    const result = await makeRunner(makeRegistry(), "var-get-1").run(
-      { job_id: "var-get-1", params: {} },
+    const result = await makeRunner(makeRegistry(), "vc-get").run(
+      { job_id: "vc-get", params: {} },
       { nodes, edges }
     );
 
@@ -69,7 +70,7 @@ describe("integration: Set/Get Variable + Prompt over the shared context", () =>
     expect(result.outputs.got).toContain("a dragon");
   });
 
-  it("a downstream Prompt resolves {{ name }} from the shared context", async () => {
+  it("a Prompt resolves {{ name }} from a channel, with no edge to the setter", async () => {
     const nodes: NodeDescriptor[] = [
       {
         id: "set",
@@ -84,15 +85,6 @@ describe("integration: Set/Get Variable + Prompt over the shared context", () =>
       { id: "sink", type: RerouteNode.nodeType, name: "rendered" }
     ];
     const edges: Edge[] = [
-      // ordering-only edge into an unreferenced dynamic input so the Prompt
-      // runs after the variable is set; {{ subject }} still resolves from the
-      // shared context rather than this edge's value.
-      {
-        source: "set",
-        sourceHandle: "output",
-        target: "prompt",
-        targetHandle: "_order"
-      },
       {
         source: "prompt",
         sourceHandle: "output",
@@ -101,12 +93,34 @@ describe("integration: Set/Get Variable + Prompt over the shared context", () =>
       }
     ];
 
-    const result = await makeRunner(makeRegistry(), "var-prompt-1").run(
-      { job_id: "var-prompt-1", params: {} },
+    const result = await makeRunner(makeRegistry(), "vc-prompt").run(
+      { job_id: "vc-prompt", params: {} },
       { nodes, edges }
     );
 
     expect(result.status).toBe("completed");
     expect(result.outputs.rendered).toContain("Describe a dragon in detail");
+  });
+
+  it("a Get Variable for an unset name emits nothing and completes (no hang)", async () => {
+    const nodes: NodeDescriptor[] = [
+      getVariable("get", "nobody"),
+      { id: "sink", type: RerouteNode.nodeType, name: "got" }
+    ];
+    const edges: Edge[] = [
+      {
+        source: "get",
+        sourceHandle: "output",
+        target: "sink",
+        targetHandle: "input_value"
+      }
+    ];
+
+    const result = await makeRunner(makeRegistry(), "vc-empty").run(
+      { job_id: "vc-empty", params: {} },
+      { nodes, edges }
+    );
+
+    expect(result.status).toBe("completed");
   });
 });
