@@ -8,6 +8,7 @@ import useContextMenu from "../../stores/ContextMenuStore";
 import StringProperty from "../properties/StringProperty";
 import DataframeProperty from "../properties/DataframeProperty";
 import isEqual from "fast-deep-equal";
+import { isFieldRelevantDataEqual } from "./propertyFieldEquality";
 import Close from "@mui/icons-material/Close";
 import Edit from "@mui/icons-material/Edit";
 import SettingsBackupRestoreIcon from "@mui/icons-material/SettingsBackupRestore";
@@ -573,4 +574,29 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   );
 };
 
-export default memo(PropertyInput, isEqual);
+export default memo(PropertyInput, (prev, next) => {
+  if (
+    prev.id !== next.id ||
+    prev.nodeType !== next.nodeType ||
+    prev.propertyIndex !== next.propertyIndex ||
+    prev.controlKeyPressed !== next.controlKeyPressed ||
+    prev.isInspector !== next.isInspector ||
+    prev.tabIndex !== next.tabIndex ||
+    prev.isDynamicProperty !== next.isDynamicProperty ||
+    prev.hideActionIcons !== next.hideActionIcons ||
+    prev.isConnected !== next.isConnected ||
+    prev.onValueChange !== next.onValueChange
+  ) {
+    return false;
+  }
+  if (!isEqual(prev.inspectorBatchNodeIds, next.inspectorBatchNodeIds)) {
+    return false;
+  }
+  if (!isFieldRelevantDataEqual(prev.data, next.data, prev.isDynamicProperty)) {
+    return false;
+  }
+  if (!isEqual(prev.value, next.value)) {
+    return false;
+  }
+  return isEqual(prev.property, next.property);
+});

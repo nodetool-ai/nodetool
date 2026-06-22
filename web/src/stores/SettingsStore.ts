@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { isMac } from "../utils/platform";
 
 interface AutosaveSettings {
   enabled: boolean;
@@ -92,7 +93,10 @@ interface SettingsStore {
 export const defaultSettings: Settings = {
   gridSnap: 1,
   connectionSnap: 20,
-  panControls: "LMB",
+  // On Mac the trackpad already pans (two-finger scroll) and zooms (pinch), so
+  // left-drag is free to rubber-band select — the Figma/Sketch convention Mac
+  // users expect. "RMB" mode makes left-drag select and moves pan to RMB/MMB.
+  panControls: isMac() ? "RMB" : "LMB",
   selectionMode: "partial",
   workflowOrder: "name",
   dashboardWorkflowView: "grid",

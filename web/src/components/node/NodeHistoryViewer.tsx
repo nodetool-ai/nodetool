@@ -737,7 +737,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
           // variants; every tile is uniformly clickable → select + single view.
           <div
             ref={gridRef}
-            className="grid nodrag nopan"
+            className="grid nodrag nopan nowheel"
             role="listbox"
             aria-multiselectable={hasDownstream || undefined}
             aria-label="Generations"
