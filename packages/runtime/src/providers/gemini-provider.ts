@@ -492,6 +492,7 @@ export class GeminiProvider extends BaseProvider {
     log.debug("Gemini request", { model });
 
     const url = `${GEMINI_API_BASE}/models/${model}:generateContent?key=${this.apiKey}`;
+    this.recordRequestPayload(body);
     const response = await this._fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -563,6 +564,7 @@ export class GeminiProvider extends BaseProvider {
     log.debug("Gemini request", { model });
 
     const url = `${GEMINI_API_BASE}/models/${model}:streamGenerateContent?alt=sse&key=${this.apiKey}`;
+    this.recordRequestPayload(body);
     const response = await this._fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

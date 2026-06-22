@@ -182,6 +182,13 @@ export class ClaudeAgentProvider extends BaseProvider {
       model: args.model
     });
 
+    this.recordRequestPayload({
+      executable: this.executablePath,
+      args: cliArgs,
+      model: args.model,
+      systemPrompt,
+      prompt
+    });
     const child = this.spawnFn(this.executablePath, cliArgs, {
       env: this.buildEnv(),
       stdio: ["pipe", "pipe", "pipe"]

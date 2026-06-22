@@ -119,17 +119,24 @@ export class PythonProvider extends BaseProvider {
     frequencyPenalty?: number;
   }): Promise<Message> {
     const wireMessages = args.messages.map(serializeMessage);
-    const result = await this._bridge.providerGenerate(
-      this._pythonProviderId,
-      wireMessages,
-      args.model,
-      {
+    const requestPayload = {
+      provider: this._pythonProviderId,
+      messages: wireMessages,
+      model: args.model,
+      options: {
         secrets: this._secrets,
         tools: args.tools,
         max_tokens: args.maxTokens,
         temperature: args.temperature,
         top_p: args.topP
       }
+    };
+    this.recordRequestPayload(requestPayload);
+    const result = await this._bridge.providerGenerate(
+      this._pythonProviderId,
+      wireMessages,
+      args.model,
+      requestPayload.options
     );
     return deserializeMessage(result);
   }
@@ -148,17 +155,24 @@ export class PythonProvider extends BaseProvider {
   }): AsyncGenerator<ProviderStreamItem> {
     const wireMessages = args.messages.map(serializeMessage);
 
-    for await (const chunk of this._bridge.providerStream(
-      this._pythonProviderId,
-      wireMessages,
-      args.model,
-      {
+    const requestPayload = {
+      provider: this._pythonProviderId,
+      messages: wireMessages,
+      model: args.model,
+      options: {
         secrets: this._secrets,
         tools: args.tools,
         max_tokens: args.maxTokens,
         temperature: args.temperature,
         top_p: args.topP
       }
+    };
+    this.recordRequestPayload(requestPayload);
+    for await (const chunk of this._bridge.providerStream(
+      this._pythonProviderId,
+      wireMessages,
+      args.model,
+      requestPayload.options
     )) {
       if (chunk.type === "tool_call") {
         yield {
