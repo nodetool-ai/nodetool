@@ -344,6 +344,58 @@ export default function useConnectionHandlers() {
           return;
         }
 
+        // Create a dynamic input named after the upstream node and connect the
+        // dropped edge to it.
+        const createDynamicInputFromConnection = (): void => {
+          const sourceNodeName =
+            connectNode.data?.title ||
+            connectNode.type?.split(".").pop() ||
+            connectHandleId ||
+            "";
+          const dynamicProps = node.data?.dynamic_properties || {};
+
+          // Find a unique name if the property already exists
+          let propertyName = sourceNodeName;
+          let counter = 1;
+          while (dynamicProps[propertyName]) {
+            propertyName = `${sourceNodeName}_${counter}`;
+            counter++;
+          }
+
+          if (!dynamicProps[propertyName]) {
+            updateNodeData(nodeId, {
+              dynamic_properties: { ...dynamicProps, [propertyName]: "" }
+            });
+          }
+
+          // handleOnConnect derives the edge className from the source handle.
+          handleOnConnect({
+            source: connectNodeId || "",
+            sourceHandle: connectHandleId || "",
+            target: nodeId,
+            targetHandle: propertyName
+          });
+        };
+
+        // Explicit drop on the "+ Add another variable / input" button
+        // (DynamicInputButton): always create a NEW dynamic input named after
+        // the upstream node, instead of auto-binding to an existing handle the
+        // way a node-body drop would.
+        const droppedOnAddDynamicInputButton =
+          htmlTarget.closest(".dynamic-input-button") !== null;
+        if (
+          droppedOnAddDynamicInputButton &&
+          nodeMetadata.supports_dynamic_inputs &&
+          connectDirection === "source" &&
+          node.type !== "fal.DynamicFal" &&
+          node.type !== DYNAMIC_KIE_NODE_TYPE &&
+          node.type !== "kie.DynamicKie"
+        ) {
+          createDynamicInputFromConnection();
+          endConnecting();
+          return;
+        }
+
         if (
           nodeMetadata.supports_dynamic_outputs &&
           connectDirection === "target"
@@ -529,42 +581,7 @@ export default function useConnectionHandlers() {
           node.type !== DYNAMIC_KIE_NODE_TYPE &&
           node.type !== "kie.DynamicKie"
         ) {
-          // Use the source node's name as the property name
-          const sourceNodeName =
-            connectNode.data?.title ||
-            connectNode.type?.split(".").pop() ||
-            connectHandleId ||
-            "";
-          const dynamicProps = node.data?.dynamic_properties || {};
-
-          // Find a unique name if the property already exists
-          let propertyName = sourceNodeName;
-          let counter = 1;
-          while (dynamicProps[propertyName]) {
-            propertyName = `${sourceNodeName}_${counter}`;
-            counter++;
-          }
-
-          const newConnection = {
-            source: connectNodeId || "",
-            sourceHandle: connectHandleId || "",
-            target: nodeId,
-            targetHandle: propertyName,
-            className: Slugify(connectType?.type || "")
-          };
-
-          // Create the dynamic property
-          if (!dynamicProps[propertyName]) {
-            const updatedProps = {
-              ...dynamicProps,
-              [propertyName]: ""
-            };
-            updateNodeData(nodeId, {
-              dynamic_properties: updatedProps
-            });
-          }
-
-          handleOnConnect(newConnection);
+          createDynamicInputFromConnection();
           endConnecting();
           return;
         }
