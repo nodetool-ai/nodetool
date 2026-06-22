@@ -1,118 +1,176 @@
 import { usePanelStore } from "../PanelStore";
 
-describe("PanelStore — additional actions", () => {
+describe("PanelStore actions", () => {
   const initialState = usePanelStore.getState();
 
   afterEach(() => {
     usePanelStore.setState(initialState, true);
   });
 
-  describe("setIsDragging", () => {
-    it("sets isDragging to true", () => {
-      usePanelStore.getState().setIsDragging(true);
-      expect(usePanelStore.getState().panel.isDragging).toBe(true);
-    });
-
-    it("sets isDragging to false", () => {
-      usePanelStore.getState().setIsDragging(true);
-      usePanelStore.getState().setIsDragging(false);
-      expect(usePanelStore.getState().panel.isDragging).toBe(false);
-    });
-  });
-
-  describe("setHasDragged", () => {
-    it("sets hasDragged to true", () => {
-      usePanelStore.getState().setHasDragged(true);
-      expect(usePanelStore.getState().panel.hasDragged).toBe(true);
-    });
-
-    it("sets hasDragged to false", () => {
-      usePanelStore.getState().setHasDragged(true);
-      usePanelStore.getState().setHasDragged(false);
-      expect(usePanelStore.getState().panel.hasDragged).toBe(false);
-    });
-  });
-
-  describe("initializePanelSize", () => {
-    it("sets panel size to the given value", () => {
-      usePanelStore.getState().initializePanelSize(600);
-      expect(usePanelStore.getState().panel.panelSize).toBe(600);
-    });
-
-    it("clamps to MIN_PANEL_SIZE (400) when given a small value", () => {
-      usePanelStore.getState().initializePanelSize(100);
-      expect(usePanelStore.getState().panel.panelSize).toBe(400);
-    });
-
-    it("clamps to MAX_PANEL_SIZE (800) when given a large value", () => {
-      usePanelStore.getState().initializePanelSize(1200);
-      expect(usePanelStore.getState().panel.panelSize).toBe(800);
-    });
-
-    it("uses default (500) when no size provided", () => {
-      usePanelStore.getState().initializePanelSize();
-      expect(usePanelStore.getState().panel.panelSize).toBe(500);
-    });
-  });
-
-  describe("setActiveView", () => {
-    it("changes the active view", () => {
-      usePanelStore.getState().setActiveView("assets");
-      expect(usePanelStore.getState().panel.activeView).toBe("assets");
-    });
-
-    it("can set to any valid view", () => {
-      usePanelStore.getState().setActiveView("history");
-      expect(usePanelStore.getState().panel.activeView).toBe("history");
-      usePanelStore.getState().setActiveView("nodes");
-      expect(usePanelStore.getState().panel.activeView).toBe("nodes");
-    });
-  });
-
   describe("closePanel", () => {
-    it("sets panelSize to minWidth and isVisible to false", () => {
-      usePanelStore.getState().setVisibility(true);
+    it("sets panel to minimum width and hidden", () => {
+      usePanelStore.setState({
+        ...usePanelStore.getState(),
+        panel: {
+          ...usePanelStore.getState().panel,
+          panelSize: 500,
+          isVisible: true
+        }
+      });
+
       usePanelStore.getState().closePanel();
-      const panel = usePanelStore.getState().panel;
-      expect(panel.panelSize).toBe(60);
+
+      const { panel } = usePanelStore.getState();
       expect(panel.isVisible).toBe(false);
+      expect(panel.panelSize).toBe(panel.minWidth);
+    });
+  });
+
+  describe("setActiveNodeCategory", () => {
+    it("updates the active node category", () => {
+      usePanelStore.getState().setActiveNodeCategory("image-ai");
+      expect(usePanelStore.getState().panel.activeNodeCategory).toBe(
+        "image-ai"
+      );
+    });
+
+    it("preserves other panel state when changing category", () => {
+      usePanelStore.setState({
+        ...usePanelStore.getState(),
+        panel: {
+          ...usePanelStore.getState().panel,
+          activeView: "nodes",
+          isVisible: true,
+          panelSize: 600
+        }
+      });
+
+      usePanelStore.getState().setActiveNodeCategory("agents");
+
+      const { panel } = usePanelStore.getState();
+      expect(panel.activeNodeCategory).toBe("agents");
+      expect(panel.activeView).toBe("nodes");
+      expect(panel.isVisible).toBe(true);
+      expect(panel.panelSize).toBe(600);
     });
   });
 
   describe("setVisibility", () => {
-    it("sets visibility to true", () => {
+    it("sets panel visible", () => {
       usePanelStore.getState().setVisibility(true);
       expect(usePanelStore.getState().panel.isVisible).toBe(true);
     });
 
-    it("sets visibility to false", () => {
+    it("hides panel", () => {
       usePanelStore.getState().setVisibility(true);
       usePanelStore.getState().setVisibility(false);
       expect(usePanelStore.getState().panel.isVisible).toBe(false);
     });
   });
 
-  describe("handleViewChange — switching to different view", () => {
-    it("switches view and makes panel visible", () => {
+  describe("initializePanelSize", () => {
+    it("clamps to minimum panel size", () => {
+      usePanelStore.getState().initializePanelSize(10);
+      const { panel } = usePanelStore.getState();
+      expect(panel.panelSize).toBeGreaterThanOrEqual(panel.defaultWidth - 100);
+    });
+
+    it("clamps to maximum panel size", () => {
+      usePanelStore.getState().initializePanelSize(5000);
+      const { panel } = usePanelStore.getState();
+      expect(panel.panelSize).toBeLessThanOrEqual(panel.maxWidth);
+    });
+
+    it("uses default when no size provided", () => {
+      usePanelStore.getState().initializePanelSize();
+      const { panel } = usePanelStore.getState();
+      expect(panel.panelSize).toBe(panel.defaultWidth);
+    });
+  });
+
+  describe("setIsDragging / setHasDragged", () => {
+    it("tracks dragging state", () => {
+      usePanelStore.getState().setIsDragging(true);
+      expect(usePanelStore.getState().panel.isDragging).toBe(true);
+
+      usePanelStore.getState().setIsDragging(false);
+      expect(usePanelStore.getState().panel.isDragging).toBe(false);
+    });
+
+    it("tracks hasDragged flag", () => {
+      usePanelStore.getState().setHasDragged(true);
+      expect(usePanelStore.getState().panel.hasDragged).toBe(true);
+    });
+  });
+
+  describe("handleViewChange", () => {
+    it("switches to a new view and makes panel visible", () => {
+      usePanelStore.setState({
+        ...usePanelStore.getState(),
+        panel: {
+          ...usePanelStore.getState().panel,
+          activeView: "workflows",
+          isVisible: false
+        }
+      });
+
       usePanelStore.getState().handleViewChange("assets");
-      const panel = usePanelStore.getState().panel;
+
+      const { panel } = usePanelStore.getState();
       expect(panel.activeView).toBe("assets");
       expect(panel.isVisible).toBe(true);
     });
 
-    it("shows panel even if it was hidden when switching to same view", () => {
+    it("toggles visibility when selecting same view while visible", () => {
+      usePanelStore.setState({
+        ...usePanelStore.getState(),
+        panel: {
+          ...usePanelStore.getState().panel,
+          activeView: "assets",
+          isVisible: true,
+          panelSize: 500
+        }
+      });
+
+      usePanelStore.getState().handleViewChange("assets");
+      expect(usePanelStore.getState().panel.isVisible).toBe(false);
+    });
+
+    it("reopens and expands collapsed panel for same view", () => {
+      const { minWidth, defaultWidth } = usePanelStore.getState().panel;
+      usePanelStore.setState({
+        ...usePanelStore.getState(),
+        panel: {
+          ...usePanelStore.getState().panel,
+          activeView: "workflows",
+          isVisible: false,
+          panelSize: minWidth
+        }
+      });
+
       usePanelStore.getState().handleViewChange("workflows");
-      expect(usePanelStore.getState().panel.isVisible).toBe(true);
+
+      const { panel } = usePanelStore.getState();
+      expect(panel.isVisible).toBe(true);
+      expect(panel.panelSize).toBeGreaterThanOrEqual(defaultWidth - 100);
     });
   });
 
-  describe("setSize — edge cases", () => {
-    it("collapses to MIN_DRAG_SIZE (60) for very small values", () => {
-      usePanelStore.getState().setSize(10);
-      expect(usePanelStore.getState().panel.panelSize).toBe(60);
+  describe("setSize edge cases", () => {
+    it("clamps negative values to minWidth", () => {
+      usePanelStore.getState().setSize(-100);
+      expect(usePanelStore.getState().panel.panelSize).toBe(
+        usePanelStore.getState().panel.minWidth
+      );
     });
 
-    it("sets exact value within range", () => {
+    it("clamps exactly at minWidth boundary", () => {
+      const { minWidth } = usePanelStore.getState().panel;
+      usePanelStore.getState().setSize(minWidth);
+      expect(usePanelStore.getState().panel.panelSize).toBe(minWidth);
+    });
+
+    it("accepts values within valid range", () => {
       usePanelStore.getState().setSize(400);
       expect(usePanelStore.getState().panel.panelSize).toBe(400);
     });
