@@ -66,6 +66,7 @@ That's what vendor neutrality buys you:
 | **Node-based canvas** | Drag-and-drop nodes with type-safe connections |
 | **Image, video, audio, text** | Unified workflows across every modality |
 | **Editing tools as nodes** | Mask, inpaint, outpaint, relight, upscale, layers, compositing |
+| **Video editor** | Multi-track timeline — sequence, composite, and AI-generate clips, then export to MP4 |
 | **Runs on your machine** | Ollama, MLX (Apple Silicon), and GGUF for local inference |
 | **BYOK everywhere** | OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, ElevenLabs, HuggingFace |
 | **Document search** | Built-in vector store for indexing and querying your files |
@@ -79,11 +80,19 @@ That's what vendor neutrality buys you:
 The workspace is a canvas, not a wizard. A few of the patterns we see most often:
 
 - **Image generation and editing** — FLUX.2, Nano Banana Pro, GPT-Image 3, plus mask, inpaint, outpaint, relight, and upscale as first-class nodes.
-- **Video** — Seedance, Sora 2 Pro, Veo 3.1, Wan 2.6, Hailuo 2.3, Kling 2.6. Text-to-video, image-to-video, and video-to-video pipelines.
+- **Video** — Seedance, Sora 2 Pro, Veo 3.1, Wan 2.6, Hailuo 2.3, Kling 2.6. Text-to-video, image-to-video, and video-to-video pipelines, cut together on a multi-track timeline.
 - **Voice and audio** — Whisper for transcription, ElevenLabs and OpenAI TTS for speech, audio analysis and editing as nodes.
 - **Document search** — point a workflow at a folder, embed it, query it. RAG without writing the plumbing.
 - **Multi-step agents** — agents are a capability inside the workspace, not a separate product. Wire one into a graph when a step needs to plan, decide, or call tools.
 - **Mini-apps** — share a workflow as an interactive web app others can run.
+
+## Video editor
+
+A generation-aware, multi-track timeline lives right next to the canvas. Drop in your own footage or bind a workflow to a clip — a text-to-image, image-to-video, or text-to-speech pipeline — and generate it in place. Change a parameter and the clip regenerates; tweak the bound workflow and the clip flags itself stale. Composite a live preview across video, audio, and overlay tracks, then export the whole sequence to MP4.
+
+![NodeTool Video Editor](screen_video_editor.png)
+
+See the [Video Editor guide](https://docs.nodetool.ai/video-editor) for the full tour.
 
 ## Models
 
@@ -134,6 +143,7 @@ ______________________________________________________________________
 ## Documentation
 
 - **[Getting Started](https://docs.nodetool.ai/getting-started)** — Build your first workflow
+- **[Video Editor](https://docs.nodetool.ai/video-editor)** — Sequence and AI-generate clips on a timeline
 - **[Node Packs](https://docs.nodetool.ai/packs)** — Available nodes and integrations
 - **[Custom Nodes](https://docs.nodetool.ai/developer/custom-nodes-guide)** — Extend NodeTool
 - **[Deployment](https://docs.nodetool.ai/deployment)** — Share your work
