@@ -2,7 +2,7 @@
   "id": "",
   "access": "private",
   "created_at": "2026-04-27T10:40:44.797Z",
-  "updated_at": "2026-04-27T10:54:12.044Z",
+  "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Audio To Image",
   "tool_name": null,
   "description": "Transform spoken descriptions into images with this workflow. Record or upload audio, which is transcribed by Whisper and then visualized by Stable Diffusion. Perfect for quickly generating images from verbal ideas without typing.",
@@ -66,7 +66,7 @@
         "type": "nodetool.input.AudioInput",
         "data": {
           "name": "description",
-          "description": "",
+          "description": "Speak or upload an audio clip describing the image you want.",
           "value": {
             "asset_id": "6cba4e9efc884854a3939f62007fd9bf",
             "uri": "/api/storage/6cba4e9efc884854a3939f62007fd9bf.bin",

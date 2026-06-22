@@ -2,7 +2,7 @@
   "id": "",
   "access": "private",
   "created_at": "2025-12-21T11:30:57.781935",
-  "updated_at": "2025-12-21T11:37:14.182699",
+  "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Game Encounter Planner Agent",
   "tool_name": null,
   "description": "Coordinate a squad of AI agents to design, critique, and brief a Frostfang Tundra combat encounter using StructuredOutputGenerator for robust schema enforcement.",
@@ -429,7 +429,7 @@
           },
           "history": [],
           "thread_id": null,
-          "max_tokens": 600
+          "max_tokens": 100000
         },
         "ui_properties": {
           "position": {
@@ -488,7 +488,7 @@
           },
           "history": [],
           "thread_id": null,
-          "max_tokens": 900
+          "max_tokens": 100000
         },
         "ui_properties": {
           "position": {

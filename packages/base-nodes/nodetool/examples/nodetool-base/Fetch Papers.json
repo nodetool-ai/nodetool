@@ -2,7 +2,7 @@
   "id": "8c588b4cf3c711efb8fd000014c2afa2",
   "access": "public",
   "created_at": "2025-02-25T23:40:11.956239",
-  "updated_at": "2025-02-25T23:40:11.956244",
+  "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Fetch Papers",
   "description": "This workflow automatically fetches and downloads research papers from the Awesome Transformers GitHub repository. It extracts paper links from the README.md file, filters for actual papers, and downloads them to a specified folder. Ideal for researchers and AI enthusiasts who want to stay updated with the latest transformer model papers.",
   "tags": [

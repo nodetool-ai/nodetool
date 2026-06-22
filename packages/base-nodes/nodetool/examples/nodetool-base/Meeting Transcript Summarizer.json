@@ -2,7 +2,7 @@
   "id": "3527dcf2a7a811f09339000078c92dc5",
   "access": "public",
   "created_at": "2025-10-12T22:16:23.220272",
-  "updated_at": "2025-10-12T22:16:23.220287",
+  "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Meeting Transcript Summarizer",
   "tool_name": null,
   "description": "Automatically transcribe a meeting recording and generate concise notes.",

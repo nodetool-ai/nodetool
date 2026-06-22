@@ -2,7 +2,7 @@
   "id": "",
   "access": "private",
   "created_at": "2026-01-10T00:39:13.851672",
-  "updated_at": "2026-01-10T00:39:36.845279",
+  "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Product Mockup Generator",
   "tool_name": null,
   "description": "Generate product mockups for a given product.",
@@ -232,7 +232,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Product image"
+          "title": "3️⃣ Product image"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -243,7 +243,7 @@
         "data": {
           "model": {},
           "input_text": "",
-          "max_tokens": 2048
+          "max_tokens": 100000
         },
         "ui_properties": {
           "position": {
@@ -254,7 +254,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Generate scene prompts"
+          "title": "9️⃣ Generate scene prompts"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -274,12 +274,12 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Build image prompt"
+          "title": "8️⃣ Build image prompt"
         },
         "dynamic_properties": {
-          "scenes": null,
-          "name": null,
-          "description": null
+          "scenes": "Studio shot on a matte black surface with soft key lighting; lifestyle scene on a wooden desk beside a laptop",
+          "name": "Premium Wireless Headphones",
+          "description": "Sleek, modern wireless headphones with noise cancellation. Matte black finish with silver accents."
         },
         "dynamic_outputs": {}
       },
@@ -305,7 +305,7 @@
           },
           "history": [],
           "thread_id": "",
-          "max_tokens": 2048
+          "max_tokens": 100000
         },
         "ui_properties": {
           "position": {
@@ -316,7 +316,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Scene concept agent"
+          "title": "7️⃣ Scene concept agent"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -336,13 +336,13 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Build scene prompt"
+          "title": "6️⃣ Build scene prompt"
         },
         "dynamic_properties": {
-          "name": null,
-          "description": null,
-          "audience": null,
-          "count": null
+          "name": "Premium Wireless Headphones",
+          "description": "Sleek, modern wireless headphones with noise cancellation. Matte black finish with silver accents.",
+          "audience": "Tech-savvy professionals, music enthusiasts, remote workers",
+          "count": "6"
         },
         "dynamic_outputs": {}
       },
@@ -363,7 +363,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Product name"
+          "title": "1️⃣ Product name"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -385,7 +385,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Product description"
+          "title": "5️⃣ Product description"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -407,7 +407,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Target audience"
+          "title": "4️⃣ Target audience"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -431,7 +431,7 @@
           "width": 280,
           "selectable": true,
           "bypassed": false,
-          "title": "Scene count"
+          "title": "2️⃣ Scene count"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -459,7 +459,7 @@
           "selectable": true,
           "bypassed": false,
           "height": 400,
-          "title": "Render mockups"
+          "title": "🔟 Render mockups"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}

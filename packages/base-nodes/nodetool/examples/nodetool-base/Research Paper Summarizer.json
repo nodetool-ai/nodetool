@@ -2,7 +2,7 @@
   "id": "research_paper_summarizer",
   "access": "public",
   "created_at": "2025-11-22T16:54:18.095690",
-  "updated_at": "2025-11-22T16:54:18.095690",
+  "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Research Paper Summarizer",
   "tool_name": null,
   "description": "Extract and summarize key findings from research papers and technical documents.",
@@ -52,8 +52,8 @@
           "selectable": true
         },
         "dynamic_properties": {
-          "findings": null,
-          "technical": null
+          "findings": "The Transformer replaces recurrence with self-attention, achieving state-of-the-art translation quality with far better training parallelism.",
+          "technical": "Multi-head self-attention plus position-wise feed-forward layers, positional encodings, and layer normalization, trained without recurrence or convolution."
         },
         "dynamic_outputs": {}
       },
@@ -81,7 +81,7 @@
           },
           "history": [],
           "thread_id": null,
-          "max_tokens": 1000
+          "max_tokens": 100000
         },
         "ui_properties": {
           "title": "3️⃣ Extract findings",
@@ -114,7 +114,7 @@
           "selectable": true
         },
         "dynamic_properties": {
-          "paper": null
+          "paper": "Attention Is All You Need — proposes the Transformer, a sequence model based solely on attention, achieving state-of-the-art machine translation with faster training."
         },
         "dynamic_outputs": {}
       },
@@ -164,7 +164,7 @@
           },
           "history": [],
           "thread_id": null,
-          "max_tokens": 800
+          "max_tokens": 100000
         },
         "ui_properties": {
           "title": "5️⃣ Technical summary",
@@ -197,7 +197,7 @@
           "selectable": true
         },
         "dynamic_properties": {
-          "paper": null
+          "paper": "Attention Is All You Need — proposes the Transformer, a sequence model based solely on attention, achieving state-of-the-art machine translation with faster training."
         },
         "dynamic_outputs": {}
       }
