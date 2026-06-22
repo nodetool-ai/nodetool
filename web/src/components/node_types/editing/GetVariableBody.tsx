@@ -2,12 +2,11 @@
 /**
  * GetVariableBody — bespoke body for `nodetool.variable.GetVariable`.
  *
- * Reads a value from the workflow's shared processing context. Variables live
- * on a context shared by the whole run, but execution follows the graph's
- * edges, so a value is only guaranteed to be set by the time this node runs if
- * the Set Variable node is *upstream*. The picker therefore offers exactly the
- * variables set upstream of this node, and the body explains that rule. Connect
- * the `trigger` input downstream of the Set Variable to establish the ordering.
+ * Reads a value from the workflow's shared processing context. The context is
+ * shared by the whole run, so the picker offers every variable defined by a Set
+ * Variable node anywhere in the workflow. Whether the value is *set in time*
+ * still depends on execution order (which follows the edges), so the body
+ * reminds the user to run the Set Variable first via the `trigger` input.
  */
 
 import React, { memo, useCallback, useMemo } from "react";
@@ -24,7 +23,7 @@ import NodeProgress from "../../node/NodeProgress";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
-import { useUpstreamVariableNames } from "./useUpstreamVariables";
+import { useGraphVariableNames } from "./useGraphVariables";
 import { GET_VARIABLE_NODE_TYPE } from "../../../constants/nodeTypes";
 
 const styles = (theme: Theme) =>
@@ -96,23 +95,23 @@ const GetVariableBodyInner: React.FC<GetVariableBodyProps> = ({
       ? (data.properties.name as string)
       : "";
 
-  const upstreamVariableNames = useUpstreamVariableNames(id);
+  const graphVariableNames = useGraphVariableNames();
 
   const options = useMemo<SelectOption[]>(() => {
-    const opts: SelectOption[] = upstreamVariableNames.map((name) => ({
+    const opts: SelectOption[] = graphVariableNames.map((name) => ({
       value: name,
       label: name
     }));
-    // Keep a stored-but-no-longer-upstream value visible (and selected) so the
-    // user can see it needs reconnecting rather than having it silently vanish.
-    if (currentName && !upstreamVariableNames.includes(currentName)) {
+    // Keep a stored value whose Set Variable node no longer exists visible (and
+    // selected) so it doesn't silently vanish from the picker.
+    if (currentName && !graphVariableNames.includes(currentName)) {
       opts.unshift({
         value: currentName,
-        label: `${currentName} (not set upstream)`
+        label: `${currentName} (no Set Variable node)`
       });
     }
     return opts;
-  }, [upstreamVariableNames, currentName]);
+  }, [graphVariableNames, currentName]);
 
   const { setProperty, setPropertyComplete } = useBespokePropertyWriter({
     nodeId: id,
@@ -132,9 +131,9 @@ const GetVariableBodyInner: React.FC<GetVariableBodyProps> = ({
       <HandleColumn id={id} properties={triggerProperty} />
 
       <div className="explanation">
-        Reads a variable set by a Set Variable node. Only variables set
-        upstream of this node are available — connect the trigger input
-        downstream of the Set Variable so this node runs after the value is set.
+        Reads a variable set by any Set Variable node in this workflow. Make
+        sure that node runs before this one — connect it upstream of the trigger
+        input — so the value is set in time.
       </div>
 
       {options.length > 0 ? (
@@ -151,8 +150,8 @@ const GetVariableBodyInner: React.FC<GetVariableBodyProps> = ({
         </div>
       ) : (
         <div className="empty-hint">
-          No variables set upstream. Connect this node downstream of a Set
-          Variable node to choose one.
+          No variables defined yet. Add a Set Variable node to this workflow to
+          choose one.
         </div>
       )}
 

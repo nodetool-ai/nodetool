@@ -2,20 +2,18 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { GetVariableBody } from "../GetVariableBody";
-import { useUpstreamVariableNames } from "../useUpstreamVariables";
+import { useGraphVariableNames } from "../useGraphVariables";
 import mockTheme from "../../../../__mocks__/themeMock";
 import "@testing-library/jest-dom";
 
 const mockSetProperty = jest.fn();
 const mockSetPropertyComplete = jest.fn();
 
-jest.mock("../useUpstreamVariables", () => ({
-  useUpstreamVariableNames: jest.fn(() => [])
+jest.mock("../useGraphVariables", () => ({
+  useGraphVariableNames: jest.fn(() => [])
 }));
-const mockUseUpstreamVariableNames =
-  useUpstreamVariableNames as jest.MockedFunction<
-    typeof useUpstreamVariableNames
-  >;
+const mockUseGraphVariableNames =
+  useGraphVariableNames as jest.MockedFunction<typeof useGraphVariableNames>;
 
 jest.mock("../../../../hooks/nodes/useBespokePropertyWriter", () => ({
   useBespokePropertyWriter: jest.fn(() => ({
@@ -65,28 +63,30 @@ const makeProps = (overrides: Record<string, unknown> = {}) => ({
 describe("GetVariableBody", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseUpstreamVariableNames.mockReturnValue([]);
+    mockUseGraphVariableNames.mockReturnValue([]);
   });
 
-  it("explains the upstream-only behaviour", () => {
+  it("explains that it reads a variable set anywhere in the workflow", () => {
     renderWithTheme(<GetVariableBody {...makeProps()} />);
     expect(
-      screen.getByText(/Only variables set\s+upstream of this node are available/i)
+      screen.getByText(
+        /Reads a variable set by any Set Variable node in this workflow/i
+      )
     ).toBeInTheDocument();
   });
 
-  it("shows a hint when no variables are set upstream", () => {
+  it("shows a hint when no variables are defined", () => {
     renderWithTheme(<GetVariableBody {...makeProps()} />);
     expect(
-      screen.getByText(/No variables set upstream/i)
+      screen.getByText(/No variables defined yet/i)
     ).toBeInTheDocument();
   });
 
-  it("renders the picker (not the hint) when variables are set upstream", () => {
-    mockUseUpstreamVariableNames.mockReturnValue(["alpha", "beta"]);
+  it("renders the picker (not the hint) when variables are defined", () => {
+    mockUseGraphVariableNames.mockReturnValue(["alpha", "beta"]);
     renderWithTheme(<GetVariableBody {...makeProps()} />);
     expect(
-      screen.queryByText(/No variables set upstream/i)
+      screen.queryByText(/No variables defined yet/i)
     ).not.toBeInTheDocument();
     // The Variable picker label is shown.
     expect(screen.getByText("Variable")).toBeInTheDocument();
