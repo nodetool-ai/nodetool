@@ -60,6 +60,7 @@ import {
 } from "./promptComposer/promptEditorState";
 import { variablesInPrompt } from "./promptComposer/promptTokens";
 import { PromptComposerContext } from "./promptComposer/promptComposerContext";
+import { useUpstreamVariableNames } from "./useUpstreamVariables";
 import { PROMPT_NODE_TYPE } from "../../../constants/nodeTypes";
 
 const styles = (theme: Theme) =>
@@ -138,6 +139,12 @@ const styles = (theme: Theme) =>
       lineHeight: 1.4,
       "&:hover": { borderColor: theme.vars.palette.primary.main }
     },
+    // Variables set by an upstream Set Variable node: accent the border so they
+    // read as "comes from elsewhere in the graph" rather than a local input.
+    ".variable-insert-chip--upstream": {
+      borderColor: theme.vars.palette.info.main,
+      color: theme.vars.palette.info.main
+    },
     ".dynamic-inputs": { flex: "0 0 auto" },
     ".outputs-row": { flex: "0 0 auto" }
   });
@@ -146,12 +153,22 @@ const composerTheme = {
   paragraph: "composer-paragraph"
 };
 
-/** Quick-insert bar: one chip per dynamic input + the add-variable button. */
+/** A variable offered in the insert bar, tagged by where it resolves from. */
+interface InsertableVariable {
+  name: string;
+  /** "input" → the node's own dynamic input; "upstream" → a Set Variable node. */
+  source: "input" | "upstream";
+}
+
+/**
+ * Quick-insert bar: one chip per available variable (dynamic inputs first,
+ * then variables set by upstream Set Variable nodes) + the add-variable button.
+ */
 const VariableInsertBar: React.FC<{
-  variableNames: string[];
+  variables: InsertableVariable[];
   showLabel: boolean;
   onAdd: () => void;
-}> = ({ variableNames, showLabel, onAdd }) => {
+}> = ({ variables, showLabel, onAdd }) => {
   const [editor] = useLexicalComposerContext();
   const insertVariable = useCallback(
     (name: string) => {
@@ -164,13 +181,24 @@ const VariableInsertBar: React.FC<{
   return (
     <div className="variable-bar">
       {showLabel && <span className="variable-bar-label">Variables</span>}
-      {variableNames.map((name) => (
+      {variables.map(({ name, source }) => (
         <button
           key={name}
           type="button"
-          className="variable-insert-chip nodrag"
+          className={`variable-insert-chip nodrag${
+            source === "upstream" ? " variable-insert-chip--upstream" : ""
+          }`}
           onClick={() => insertVariable(name)}
-          aria-label={`Insert variable ${name}`}
+          aria-label={
+            source === "upstream"
+              ? `Insert upstream variable ${name}`
+              : `Insert variable ${name}`
+          }
+          title={
+            source === "upstream"
+              ? `Set by an upstream Set Variable node`
+              : undefined
+          }
         >
           {`{{ ${name} }}`}
         </button>
@@ -219,9 +247,32 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
     () => new Set(variableNames),
     [variableNames]
   );
+
+  // Variables set by Set Variable nodes upstream of this prompt. They resolve
+  // at runtime from the shared processing context, so they're offered as
+  // insertable chips and treated as "known" even without a dynamic input.
+  const upstreamVariableNames = useUpstreamVariableNames(id);
+  const upstreamVariables = useMemo(
+    () => new Set(upstreamVariableNames),
+    [upstreamVariableNames]
+  );
   const promptComposerContextValue = useMemo(
-    () => ({ knownVariables }),
-    [knownVariables]
+    () => ({ knownVariables, upstreamVariables }),
+    [knownVariables, upstreamVariables]
+  );
+
+  // Insert-bar entries: the node's own inputs first, then upstream variables
+  // that aren't already covered by an input of the same name.
+  const insertableVariables = useMemo(
+    () => [
+      ...variableNames.map(
+        (name) => ({ name, source: "input" as const })
+      ),
+      ...upstreamVariableNames
+        .filter((name) => !knownVariables.has(name))
+        .map((name) => ({ name, source: "upstream" as const }))
+    ],
+    [variableNames, upstreamVariableNames, knownVariables]
   );
 
   const { handleAddProperty, handleDeleteProperty, handleUpdatePropertyName } =
@@ -328,7 +379,7 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
           </div>
 
           <VariableInsertBar
-            variableNames={variableNames}
+            variables={insertableVariables}
             showLabel={promptReferencesVariable}
             onAdd={handleAddVariable}
           />

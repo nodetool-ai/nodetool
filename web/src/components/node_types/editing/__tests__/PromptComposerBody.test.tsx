@@ -3,12 +3,21 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PromptComposerBody } from "../PromptComposerBody";
+import { useUpstreamVariableNames } from "../useUpstreamVariables";
 import mockTheme from "../../../../__mocks__/themeMock";
 import "@testing-library/jest-dom";
 
 const mockSetProperties = jest.fn();
 const mockSetPropertyComplete = jest.fn();
 const mockAddProperty = jest.fn();
+
+jest.mock("../useUpstreamVariables", () => ({
+  useUpstreamVariableNames: jest.fn(() => [])
+}));
+const mockUseUpstreamVariableNames =
+  useUpstreamVariableNames as jest.MockedFunction<
+    typeof useUpstreamVariableNames
+  >;
 
 jest.mock("../../../../hooks/nodes/useBespokePropertyWriter", () => ({
   useBespokePropertyWriter: jest.fn(() => ({
@@ -80,6 +89,7 @@ const makeProps = (overrides: Record<string, unknown> = {}) => ({
 describe("PromptComposerBody", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseUpstreamVariableNames.mockReturnValue([]);
   });
 
   it("shows the composer placeholder when the prompt is empty", () => {
@@ -140,6 +150,32 @@ describe("PromptComposerBody", () => {
       />
     );
     expect(screen.queryByText("Variables")).not.toBeInTheDocument();
+  });
+
+  it("offers an insert chip for a variable set by an upstream Set Variable node", () => {
+    mockUseUpstreamVariableNames.mockReturnValue(["theme"]);
+    renderWithTheme(
+      <PromptComposerBody
+        {...makeProps({
+          data: { properties: { prompt: "" }, dynamic_properties: {} }
+        })}
+      />
+    );
+    expect(
+      screen.getByLabelText("Insert upstream variable theme")
+    ).toBeInTheDocument();
+  });
+
+  it("does not duplicate a variable that is both an input and set upstream", () => {
+    mockUseUpstreamVariableNames.mockReturnValue(["subject"]);
+    renderWithTheme(<PromptComposerBody {...makeProps()} />);
+    // The dynamic input "subject" wins; no separate upstream chip is added.
+    expect(
+      screen.getByLabelText("Insert variable subject")
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Insert upstream variable subject")
+    ).not.toBeInTheDocument();
   });
 
   it("renders an inline image preview for an asset URN in the prompt", async () => {

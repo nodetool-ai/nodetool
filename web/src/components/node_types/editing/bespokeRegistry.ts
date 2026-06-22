@@ -39,6 +39,7 @@ import ExtractVideoFrameBody, {
 } from "./ExtractVideoFrameBody";
 import FitBody, { FIT_NODE_TYPE } from "./FitBody";
 import GeneratorBody, { GENERATOR_NODE_TYPES } from "./GeneratorBody";
+import GetVariableBody, { GET_VARIABLE_NODE_TYPE } from "./GetVariableBody";
 import HSLAdjustBody, { HSL_ADJUST_NODE_TYPE } from "./HSLAdjustBody";
 import LevelsBody, { LEVELS_NODE_TYPE } from "./LevelsBody";
 import ListGeneratorBody, {
@@ -101,6 +102,7 @@ export const BESPOKE_BODY_REGISTRY: Readonly<
   [DROP_SHADOW_NODE_TYPE]: DropShadowBody,
   [EXTRACT_VIDEO_FRAME_NODE_TYPE]: ExtractVideoFrameBody,
   [FIT_NODE_TYPE]: FitBody,
+  [GET_VARIABLE_NODE_TYPE]: GetVariableBody,
   [HSL_ADJUST_NODE_TYPE]: HSLAdjustBody,
   [LEVELS_NODE_TYPE]: LevelsBody,
   [LIST_GENERATOR_NODE_TYPE]: ListGeneratorBody,
