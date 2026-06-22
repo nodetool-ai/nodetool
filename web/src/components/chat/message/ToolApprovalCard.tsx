@@ -58,6 +58,7 @@ const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
   onResolve
 }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
 
   const argsText = useMemo(() => {
     try {
@@ -83,7 +84,7 @@ const ToolApprovalCard: React.FC<ToolApprovalCardProps> = ({
   );
 
   return (
-    <div css={styles(theme)} className="tool-approval-card" role="group">
+    <div css={cssStyles} className="tool-approval-card" role="group">
       <FlexColumn gap={1}>
         {message && <Text size="normal">{message}</Text>}
         <FlexRow gap={0.5} align="center">

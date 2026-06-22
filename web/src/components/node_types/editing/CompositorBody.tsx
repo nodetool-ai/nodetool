@@ -17,13 +17,12 @@
  * entries are fed in for each dynamic input.
  */
 
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import type { Edge } from "@xyflow/react";
 import ImageIcon from "@mui/icons-material/Image";
-import { shallow } from "zustand/shallow";
-
 import {
   type BlendMode,
   BLEND_MODES,
@@ -54,6 +53,7 @@ import {
 
 import type { NodeMetadata, Property } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
+import type { NodeStoreState } from "../../../stores/NodeStore";
 import { useNodes, useNodeStoreRef } from "../../../contexts/NodeContext";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useNodeOutput, useUpstreamValues } from "../../../hooks/nodes/useNodeIO";
@@ -214,10 +214,16 @@ const CompositorBodyInner: React.FC<CompositorBodyProps> = ({
 
   // ── Edge / upstream resolution for per-layer thumbnails ──────────
   // `edges` is still needed when deleting a layer (to drop its edge).
-  const edges = useNodes(
-    (state) => state.edges.filter((e) => e.target === id),
-    shallow
-  );
+  const edgesCacheRef = useRef<{ src: unknown; result: Edge[] }>({ src: undefined, result: [] });
+  const edgesSelector = useMemo(() => {
+    return (state: NodeStoreState) => {
+      if (state.edges === edgesCacheRef.current.src) return edgesCacheRef.current.result;
+      const filtered = state.edges.filter((e) => e.target === id);
+      edgesCacheRef.current = { src: state.edges, result: filtered };
+      return filtered;
+    };
+  }, [id]);
+  const edges = useNodes(edgesSelector);
 
   // Resolve each layer's upstream image through the shared resolver, which
   // reads all three result channels (outputResults / results / previews) plus
