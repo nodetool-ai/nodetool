@@ -130,7 +130,9 @@
       {
         "id": "concept_generator",
         "type": "nodetool.text.Prompt",
-        "data": {},
+        "data": {
+          "prompt": "Write {{ count }} distinct YouTube thumbnail image prompts for this video.\n\nVideo title: {{ title }}\nVideo topic: {{ topic }}\n\nEach prompt must describe one bold, high-contrast 16:9 thumbnail: a clear focal subject, expressive composition, dramatic lighting, and a vivid color palette that pops at small sizes. Vary the concept, angle, and mood across the {{ count }} prompts. Leave clear negative space for an overlaid text headline. Do not include any words, letters, logos, or watermarks in the image itself."
+        },
         "ui_properties": {
           "selected": false,
           "position": {
