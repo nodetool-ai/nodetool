@@ -1,9 +1,19 @@
 import {
   collectVariableNames,
+  inferVariableTypes,
   readVariableName,
+  ANY_TYPE,
+  type VariableGraphEdge,
   type VariableGraphNode
 } from "../variableGraph";
+import type { TypeMetadata } from "../../../../stores/ApiTypes";
 import { SET_VARIABLE_NODE_TYPE } from "../../../../constants/nodeTypes";
+
+const typeMeta = (type: string): TypeMetadata => ({
+  type,
+  optional: false,
+  type_args: []
+});
 
 const setNode = (id: string, name: string): VariableGraphNode => ({
   id,
@@ -75,5 +85,56 @@ describe("collectVariableNames", () => {
 
   it("returns an empty list when there are no Set Variable nodes", () => {
     expect(collectVariableNames([plain("a"), plain("b")])).toEqual([]);
+  });
+});
+
+describe("inferVariableTypes", () => {
+  const edge = (
+    source: string,
+    target: string,
+    targetHandle = "value",
+    sourceHandle = "output"
+  ): VariableGraphEdge => ({ source, target, sourceHandle, targetHandle });
+
+  it("infers a variable's type from the source feeding its value input", () => {
+    const nodes = [plain("src"), setNode("s1", "subject")];
+    const edges = [edge("src", "s1")];
+    const types = inferVariableTypes(nodes, edges, () => typeMeta("image"));
+    expect(types.get("subject")).toEqual(typeMeta("image"));
+  });
+
+  it("falls back to any when the value input is unconnected", () => {
+    const nodes = [setNode("s1", "subject")];
+    const types = inferVariableTypes(nodes, [], () => typeMeta("str"));
+    expect(types.get("subject")).toEqual(ANY_TYPE);
+  });
+
+  it("only resolves from the value input handle", () => {
+    const nodes = [plain("src"), setNode("s1", "subject")];
+    // Edge targets the trigger handle, not value → no type to infer.
+    const edges = [edge("src", "s1", "trigger")];
+    const types = inferVariableTypes(nodes, edges, () => typeMeta("str"));
+    expect(types.get("subject")).toEqual(ANY_TYPE);
+  });
+
+  it("collapses conflicting types for the same name to any", () => {
+    const nodes = [
+      plain("a"),
+      setNode("s1", "x"),
+      plain("b"),
+      setNode("s2", "x")
+    ];
+    const edges = [edge("a", "s1"), edge("b", "s2")];
+    const types = inferVariableTypes(nodes, edges, (sourceId) =>
+      sourceId === "a" ? typeMeta("str") : typeMeta("int")
+    );
+    expect(types.get("x")).toEqual(ANY_TYPE);
+  });
+
+  it("keeps the type when two setters agree", () => {
+    const nodes = [plain("a"), setNode("s1", "x"), plain("b"), setNode("s2", "x")];
+    const edges = [edge("a", "s1"), edge("b", "s2")];
+    const types = inferVariableTypes(nodes, edges, () => typeMeta("str"));
+    expect(types.get("x")).toEqual(typeMeta("str"));
   });
 });

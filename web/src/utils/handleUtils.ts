@@ -6,6 +6,7 @@ import {
   Property,
   TypeMetadata
 } from "../stores/ApiTypes";
+import { GET_VARIABLE_NODE_TYPE } from "../constants/nodeTypes";
 
 /**
  * Node types that output an enum-like type based on their instance properties.
@@ -92,6 +93,21 @@ export function findOutputHandle(
         type: getSelectNodeEffectiveOutputType(node),
         stream: staticOutput.stream,
         isDynamic: false
+      };
+    }
+
+    // Get Variable's output adopts the variable's inferred type, persisted on
+    // the node by GetVariableBody, so reads are type-checked downstream.
+    if (
+      handleName === "output" &&
+      metadata.node_type === GET_VARIABLE_NODE_TYPE
+    ) {
+      const inferred = node.data.dynamic_outputs?.output;
+      return {
+        name: staticOutput.name,
+        type: inferred ?? staticOutput.type,
+        stream: true,
+        isDynamic: Boolean(inferred)
       };
     }
 

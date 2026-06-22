@@ -2,18 +2,30 @@ import React from "react";
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { GetVariableBody } from "../GetVariableBody";
-import { useGraphVariableNames } from "../useGraphVariables";
+import {
+  useGraphVariableNames,
+  useGraphVariableTypes
+} from "../useGraphVariables";
 import mockTheme from "../../../../__mocks__/themeMock";
 import "@testing-library/jest-dom";
 
 const mockSetProperty = jest.fn();
 const mockSetPropertyComplete = jest.fn();
+const mockUpdateNodeData = jest.fn();
 
 jest.mock("../useGraphVariables", () => ({
-  useGraphVariableNames: jest.fn(() => [])
+  useGraphVariableNames: jest.fn(() => []),
+  useGraphVariableTypes: jest.fn(() => new Map())
 }));
 const mockUseGraphVariableNames =
   useGraphVariableNames as jest.MockedFunction<typeof useGraphVariableNames>;
+const mockUseGraphVariableTypes =
+  useGraphVariableTypes as jest.MockedFunction<typeof useGraphVariableTypes>;
+
+jest.mock("../../../../contexts/NodeContext", () => ({
+  useNodes: (selector: (state: { updateNodeData: jest.Mock }) => unknown) =>
+    selector({ updateNodeData: mockUpdateNodeData })
+}));
 
 jest.mock("../../../../hooks/nodes/useBespokePropertyWriter", () => ({
   useBespokePropertyWriter: jest.fn(() => ({
@@ -64,13 +76,36 @@ describe("GetVariableBody", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseGraphVariableNames.mockReturnValue([]);
+    mockUseGraphVariableTypes.mockReturnValue(new Map());
   });
 
-  it("explains that it reads a variable set anywhere in the workflow", () => {
+  it("persists the inferred variable type onto its output handle", () => {
+    mockUseGraphVariableNames.mockReturnValue(["subject"]);
+    mockUseGraphVariableTypes.mockReturnValue(
+      new Map([
+        ["subject", { type: "image", optional: false, type_args: [] }]
+      ])
+    );
+    renderWithTheme(
+      <GetVariableBody
+        {...makeProps({ data: { properties: { name: "subject" } } })}
+      />
+    );
+    expect(mockUpdateNodeData).toHaveBeenCalledWith(
+      "get-1",
+      expect.objectContaining({
+        dynamic_outputs: expect.objectContaining({
+          output: expect.objectContaining({ type: "image" })
+        })
+      })
+    );
+  });
+
+  it("explains that it reads a variable published anywhere in the workflow", () => {
     renderWithTheme(<GetVariableBody {...makeProps()} />);
     expect(
       screen.getByText(
-        /Reads a variable set by any Set Variable node in this workflow/i
+        /Reads a variable published by any Set Variable node in this workflow/i
       )
     ).toBeInTheDocument();
   });

@@ -2,17 +2,16 @@
 /**
  * GetVariableBody — bespoke body for `nodetool.variable.GetVariable`.
  *
- * Reads a value from the workflow's shared processing context. The context is
- * shared by the whole run, so the picker offers every variable defined by a Set
- * Variable node anywhere in the workflow. Whether the value is *set in time*
- * still depends on execution order (which follows the edges), so the body
- * reminds the user to run the Set Variable first via the `trigger` input.
+ * Reads a variable channel by name. The picker offers every variable published
+ * by a Set Variable node anywhere in the workflow; the node waits for the first
+ * value then streams the rest, so no ordering wire is needed.
  */
 
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useCallback, useEffect, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { shallow } from "zustand/shallow";
 
 import { SelectField, BORDER_RADIUS } from "../../ui_primitives";
 import type { SelectOption } from "../../ui_primitives";
@@ -23,7 +22,12 @@ import NodeProgress from "../../node/NodeProgress";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
-import { useGraphVariableNames } from "./useGraphVariables";
+import { useNodes } from "../../../contexts/NodeContext";
+import {
+  useGraphVariableNames,
+  useGraphVariableTypes
+} from "./useGraphVariables";
+import { ANY_TYPE } from "./variableGraph";
 import { GET_VARIABLE_NODE_TYPE } from "../../../constants/nodeTypes";
 
 const styles = (theme: Theme) =>
@@ -97,6 +101,25 @@ const GetVariableBodyInner: React.FC<GetVariableBodyProps> = ({
 
   const graphVariableNames = useGraphVariableNames();
 
+  // Adopt the variable's inferred type on the output handle so downstream
+  // connections are type-checked. The type is persisted to `dynamic_outputs`
+  // (read back by findOutputHandle's Get Variable case).
+  const variableTypes = useGraphVariableTypes();
+  const outputType = useMemo(
+    () => (currentName ? variableTypes.get(currentName) : undefined) ?? ANY_TYPE,
+    [variableTypes, currentName]
+  );
+  const updateNodeData = useNodes((state) => state.updateNodeData, shallow);
+  useEffect(() => {
+    const stored = data.dynamic_outputs?.output;
+    if (stored?.type === outputType.type) {
+      return;
+    }
+    updateNodeData(id, {
+      dynamic_outputs: { ...(data.dynamic_outputs ?? {}), output: outputType }
+    });
+  }, [id, outputType, data.dynamic_outputs, updateNodeData]);
+
   const options = useMemo<SelectOption[]>(() => {
     const opts: SelectOption[] = graphVariableNames.map((name) => ({
       value: name,
@@ -131,9 +154,9 @@ const GetVariableBodyInner: React.FC<GetVariableBodyProps> = ({
       <HandleColumn id={id} properties={triggerProperty} />
 
       <div className="explanation">
-        Reads a variable set by any Set Variable node in this workflow. Make
-        sure that node runs before this one — connect it upstream of the trigger
-        input — so the value is set in time.
+        Reads a variable published by any Set Variable node in this workflow. It
+        waits for the first value, then streams every value the setter
+        publishes — no ordering wire needed.
       </div>
 
       {options.length > 0 ? (
@@ -157,7 +180,10 @@ const GetVariableBodyInner: React.FC<GetVariableBodyProps> = ({
 
       {!isOutputNode && (
         <div className="outputs-row">
-          <NodeOutputs id={id} outputs={nodeMetadata.outputs} />
+          {/* The single `output` handle is rendered from dynamic_outputs (set
+              above to the inferred variable type); passing the static output
+              too would duplicate the handle. */}
+          <NodeOutputs id={id} outputs={[]} />
         </div>
       )}
 
