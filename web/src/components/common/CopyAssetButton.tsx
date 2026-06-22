@@ -14,7 +14,7 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect, memo } from "react";
-import { Tooltip, ToolbarIconButton, BORDER_RADIUS } from "../ui_primitives";
+import { ToolbarIconButton, BORDER_RADIUS } from "../ui_primitives";
 import { SxProps, Theme, useTheme } from "@mui/material/styles";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";

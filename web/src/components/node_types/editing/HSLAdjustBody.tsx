@@ -18,7 +18,6 @@ import ImageIcon from "@mui/icons-material/Image";
 
 import { CheckerDropzone, NodeSlider, BORDER_RADIUS } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
-import ImageView from "../../node/ImageView";
 import ImageRefPreview from "../../node/ImageRefPreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
@@ -124,19 +123,6 @@ const styles = (theme: Theme) =>
       flex: "0 0 auto"
     }
   });
-
-const extractImageRef = (
-  value: unknown
-): { uri?: string; data?: unknown } => {
-  if (!value || typeof value !== "object") {
-    return {};
-  }
-  const v = value as Record<string, unknown>;
-  return {
-    uri: typeof v.uri === "string" ? (v.uri as string) : undefined,
-    data: v.data
-  };
-};
 
 const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
   <ImageRefPreview

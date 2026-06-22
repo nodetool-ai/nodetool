@@ -1353,7 +1353,7 @@ export class ConcatAudioNode extends BaseNode {
   static readonly body = "content_card";
   static readonly title = "Concatenate Audio";
   static readonly description =
-    "Concatenates audio files together. Add inputs dynamically with the “add audio input” button.\n    audio, edit, join, +";
+    "Concatenates audio files together. Add inputs dynamically with the “add audio input” button, or wire a list of audio into a single input.\n    audio, edit, join, +";
   static readonly metadataOutputTypes = {
     output: "audio"
   };
@@ -1362,7 +1362,11 @@ export class ConcatAudioNode extends BaseNode {
   static readonly supportsDynamicInputs = true;
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const values = Array.from(this.dynamicProps.values());
+    // Each dynamic input may be a single audio ref or a list<audio> from an
+    // upstream loop/list node — flatten so list elements concatenate in order.
+    const values = Array.from(this.dynamicProps.values()).flatMap((v) =>
+      Array.isArray(v) ? v : [v]
+    );
     const parts = (
       await Promise.all(values.map((v) => audioBytesAsync(v, context)))
     ).filter((b) => b.length > 0);

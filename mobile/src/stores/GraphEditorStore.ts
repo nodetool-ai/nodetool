@@ -93,8 +93,6 @@ interface GraphEditorState {
     inputName: string,
     source: InputSource | null
   ) => void;
-  /** Clear all input mappings for a node. */
-  clearInputMappings: (nodeId: string) => void;
   /** Add a dynamic input to a dynamic node (e.g. Code). */
   addDynamicInput: (nodeId: string, inputName: string) => void;
   /** Remove a dynamic input from a dynamic node. */
@@ -108,13 +106,10 @@ interface GraphEditorState {
 
   // ---- Actions: workflow ----
   loadWorkflow: (workflow: Workflow, metadata: NodeMetadata[]) => void;
-  toWorkflowGraph: () => ReturnType<typeof chainToGraph>;
   saveWorkflow: () => Promise<Workflow | null>;
   newWorkflow: (name?: string) => void;
   setWorkflowName: (name: string) => void;
 
-  // ---- Derived helpers ----
-  rebuildConnections: () => void;
 }
 
 // ── Store implementation ─────────────────────────────────────────────
@@ -330,15 +325,6 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
     });
   },
 
-  clearInputMappings: (nodeId) => {
-    set((state) => {
-      const chain = state.chain.map((n) =>
-        n.id === nodeId ? { ...n, inputMappings: {} } : n
-      );
-      return { chain, connections: buildConnections(chain), isDirty: true };
-    });
-  },
-
   addDynamicInput: (nodeId, inputName) => {
     set((state) => {
       const chain = state.chain.map((n) => {
@@ -491,11 +477,6 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
     });
   },
 
-  toWorkflowGraph: () => {
-    const { chain, connections } = get();
-    return chainToGraph(chain, connections);
-  },
-
   saveWorkflow: async () => {
     const { workflowId, workflowName, chain, connections } = get();
     const graph = chainToGraph(chain, connections);
@@ -540,10 +521,5 @@ export const useGraphEditorStore = create<GraphEditorState>((set, get) => ({
 
   setWorkflowName: (name) => {
     set({ workflowName: name, isDirty: true });
-  },
-
-  rebuildConnections: () => {
-    const { chain } = get();
-    set({ connections: buildConnections(chain) });
   },
 }));

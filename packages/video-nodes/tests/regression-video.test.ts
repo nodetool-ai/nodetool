@@ -128,7 +128,8 @@ const {
   AddAudioVideoNode,
   ChromaKeyVideoNode,
   SaveVideoNode,
-  FrameToVideoNode
+  FrameToVideoNode,
+  ConcatVideoNode
 } = await import("@nodetool-ai/video-nodes");
 
 function videoRef(bytes: number[]) {
@@ -834,5 +835,55 @@ describe("FrameToVideoNode — numbers frames contiguously despite gaps", () => 
     } finally {
       writeSpy.mockRestore();
     }
+  });
+});
+
+// ─── Concat — accepts dynamic single inputs AND list<video> inputs ───────────
+
+describe("ConcatVideoNode — flattens list inputs", () => {
+  function outputBytes(result: Record<string, unknown>): Uint8Array {
+    const out = result.output as { data?: string };
+    return new Uint8Array(Buffer.from(out.data ?? "", "base64"));
+  }
+
+  it("unpacks a single dynamic input holding a list of one video", async () => {
+    const node = new ConcatVideoNode();
+    // One dynamic input wired to a list<video> with a single element. Without
+    // flattening this is treated as one non-video object → empty output.
+    node.setDynamic("videos", [videoRef([1, 2, 3, 4])]);
+
+    const result = await node.process();
+
+    expect(Array.from(outputBytes(result))).toEqual([1, 2, 3, 4]);
+    // Single resolved part → fast path, no ffmpeg invocation.
+    expect(ffmpegCalls()).toHaveLength(0);
+  });
+
+  it("concatenates a list of multiple videos from one input", async () => {
+    const node = new ConcatVideoNode();
+    node.setDynamic("videos", [videoRef([1, 2]), videoRef([3, 4])]);
+
+    // ffmpeg is mocked to throw, but the concat demuxer must be invoked,
+    // proving the list was flattened into multiple parts.
+    await expect(node.process()).rejects.toThrow(/Concatenating videos failed/);
+    expect(ffmpegArgString()).toContain("concat");
+  });
+
+  it("mixes a single-video input with a list input", async () => {
+    const node = new ConcatVideoNode();
+    node.setDynamic("intro", videoRef([1]));
+    node.setDynamic("clips", [videoRef([2]), videoRef([3])]);
+
+    await expect(node.process()).rejects.toThrow(/Concatenating videos failed/);
+    expect(ffmpegArgString()).toContain("concat");
+  });
+
+  it("still concatenates separate single-video inputs (back-compat)", async () => {
+    const node = new ConcatVideoNode();
+    node.setDynamic("a", videoRef([1]));
+    node.setDynamic("b", videoRef([2]));
+
+    await expect(node.process()).rejects.toThrow(/Concatenating videos failed/);
+    expect(ffmpegArgString()).toContain("concat");
   });
 });

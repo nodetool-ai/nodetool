@@ -1,5 +1,5 @@
 import React, { useMemo, useCallback, memo, useRef } from "react";
-import { Handle, Position, useNodeConnections } from "@xyflow/react";
+import { Handle, Position } from "@xyflow/react";
 import useConnectionStore from "../../stores/ConnectionStore";
 import { useShallow } from "zustand/react/shallow";
 import { Slugify } from "../../utils/TypeHandler";
@@ -94,8 +94,6 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, displayName }) => {
       }
     };
   }, []);
-
-  const connections = useNodeConnections({ handleType: "source", handleId: output.name });
 
   const isConnectable = useMemo(() => {
     if (!effectiveConnectType || connectDirection !== "target") {

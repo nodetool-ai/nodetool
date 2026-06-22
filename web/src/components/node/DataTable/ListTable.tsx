@@ -205,7 +205,7 @@ const ListTable: React.FC<ListTableProps> = ({
     <div className="listtable nowheel nodrag" css={tableStyles(theme)}>
       <TableActions
         tabulator={tabulator}
-        data={data as unknown as TableData}
+        data={data}
         selectedRows={selectedRows}
         onChangeRows={onChangeRows as unknown as (newData: TableData) => void}
         showSelect={showSelect}

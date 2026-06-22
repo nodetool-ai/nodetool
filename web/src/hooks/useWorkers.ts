@@ -88,7 +88,7 @@ export interface ReconcileSummary {
 }
 
 /** Hierarchical query keys so a single action can target the right cache. */
-export const workerQueryKeys = {
+const workerQueryKeys = {
   all: ["workers"] as const,
   profiles: ["workers", "profiles"] as const,
   instances: ["workers", "instances"] as const,

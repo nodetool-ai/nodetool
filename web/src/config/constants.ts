@@ -3,7 +3,6 @@ export const VERSION = "0.7.0-rc.23";
 
 // TOOLTIPS
 export const TOOLTIP_ENTER_DELAY = 700;
-export const TOOLTIP_LEAVE_DELAY = 0;
 export const TOOLTIP_ENTER_NEXT_DELAY = 350;
 
 // NOTIFICATIONS

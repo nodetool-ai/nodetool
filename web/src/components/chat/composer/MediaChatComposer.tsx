@@ -30,7 +30,7 @@ import TuneIcon from "@mui/icons-material/Tune";
 import LayersIcon from "@mui/icons-material/Layers";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 
-import { FlexRow, Text, Tooltip } from "../../ui_primitives";
+import { FlexRow, Text } from "../../ui_primitives";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import useMediaGenerationStore, {
   IMAGE_ASPECT_RATIOS,
@@ -77,7 +77,6 @@ import { useDragAndDrop } from "../hooks/useDragAndDrop";
 import { useKeyPressed } from "../../../stores/KeyPressedStore";
 import { useMessageQueue } from "../../../hooks/useMessageQueue";
 import { createMediaComposerStyles } from "./MediaChatComposer.styles";
-import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import { StopGenerationButton } from "./StopGenerationButton";
 import PermissionSelector from "./PermissionSelector";

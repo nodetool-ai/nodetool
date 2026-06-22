@@ -107,19 +107,6 @@ const styles = (theme: Theme) =>
     }
   });
 
-const extractImageRef = (
-  value: unknown
-): { uri?: string; data?: unknown } => {
-  if (!value || typeof value !== "object") {
-    return {};
-  }
-  const v = value as Record<string, unknown>;
-  return {
-    uri: typeof v.uri === "string" ? (v.uri as string) : undefined,
-    data: v.data
-  };
-};
-
 const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => (
   <ImageRefPreview
     value={value}

@@ -12,7 +12,6 @@ import { IconForType } from "../../config/IconForType";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import { OpenInNew } from "@mui/icons-material";
 import { NodeLogsDialog } from "./NodeLogs";
-import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { BORDER_RADIUS, FlexRow, Tooltip, ToolbarIconButton, MOTION } from "../ui_primitives";
 
 export interface NodeHeaderProps {
@@ -50,9 +49,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
   title,
   hasParent,
   backgroundColor,
-  selected,
   iconType,
-  iconBaseColor,
   showIcon = true,
   data,
   workflowId,

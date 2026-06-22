@@ -34,7 +34,12 @@ import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 
-import { DynamicInputButton, BORDER_RADIUS } from "../../ui_primitives";
+import {
+  DynamicInputButton,
+  BORDER_RADIUS,
+  MOTION,
+  reducedMotion
+} from "../../ui_primitives";
 import { NodeInputs } from "../../node/NodeInputs";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
@@ -75,9 +80,17 @@ const styles = (theme: Theme) =>
       minHeight: 90,
       borderRadius: BORDER_RADIUS.sm,
       border: `1px solid ${theme.vars.palette.divider}`,
-      background: theme.vars.palette.background.default,
+      // Blend into the node body by default; only recess into a higher-contrast
+      // well (and accent the border) once the field is focused for editing.
+      background: "transparent",
       padding: theme.spacing(1),
-      overflow: "auto"
+      overflow: "auto",
+      transition: `${MOTION.background}, ${MOTION.border}`,
+      ...reducedMotion({ transition: MOTION.none }),
+      "&:focus-within": {
+        background: theme.vars.palette.background.default,
+        borderColor: theme.vars.palette.primary.main
+      }
     },
     ".composer-input": {
       outline: "none",
