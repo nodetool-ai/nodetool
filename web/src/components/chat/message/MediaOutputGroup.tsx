@@ -25,6 +25,9 @@ import {
   isVideoContent
 } from "./MediaOutputGroup.helpers";
 
+const VIDEO_STYLE: React.CSSProperties = { width: "100%", height: "100%" };
+const AUDIO_STYLE: React.CSSProperties = { width: "100%", padding: "12px" };
+
 type ChatMessageWithMedia = Message & {
   media_generation?: MediaGenerationRequest | null;
 };
@@ -249,7 +252,7 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
                   preload="metadata"
                   playsInline
                   aria-label="Generated video"
-                  style={{ width: "100%", height: "100%" }}
+                  style={VIDEO_STYLE}
                 />
               </div>
             );
@@ -264,7 +267,7 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
                   controls
                   preload="metadata"
                   aria-label="Generated audio"
-                  style={{ width: "100%", padding: "12px" }}
+                  style={AUDIO_STYLE}
                 />
               </div>
             );

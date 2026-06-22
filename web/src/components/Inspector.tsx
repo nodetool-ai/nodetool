@@ -566,16 +566,23 @@ const Inspector: React.FC = () => {
       return [];
     }
     const [first, ...rest] = nodesWithMetadata;
+    const signatureCache = new Map<object, string>();
+    const typeSignatureOf = (type: object): string => {
+      let sig = signatureCache.get(type);
+      if (sig === undefined) {
+        sig = JSON.stringify(type);
+        signatureCache.set(type, sig);
+      }
+      return sig;
+    };
     const otherPropertySignatures = new Set<string>();
     for (const { metadata } of rest) {
       for (const prop of metadata.properties) {
-        const typeSignature = JSON.stringify(prop.type);
-        otherPropertySignatures.add(`${prop.name}:${typeSignature}`);
+        otherPropertySignatures.add(`${prop.name}:${typeSignatureOf(prop.type)}`);
       }
     }
     return first.metadata.properties.filter((property) => {
-      const typeSignature = JSON.stringify(property.type);
-      return otherPropertySignatures.has(`${property.name}:${typeSignature}`);
+      return otherPropertySignatures.has(`${property.name}:${typeSignatureOf(property.type)}`);
     });
   }, [isMultiSelect, nodesWithMetadata]);
 
