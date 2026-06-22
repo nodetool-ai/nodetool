@@ -26,6 +26,8 @@ import { outputOf } from "../../utils/nodeGenerations";
 import type { Generation, RunGroup } from "../../utils/nodeGenerations";
 import type { Asset } from "../../stores/ApiTypes";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
+import { useNodes } from "../../contexts/NodeContext";
+import { useShallow } from "zustand/react/shallow";
 import {
   CopyButton,
   Dialog,
@@ -202,6 +204,12 @@ const styles = (theme: Theme) =>
       border: `1px solid transparent`,
       "&:hover": {
         borderColor: theme.vars.palette.primary.main
+      },
+      // Keyboard focus (roving tabindex) — a token-based ring distinct from the
+      // hover/selected/in-set treatments so the focused option is always visible.
+      "&:focus-visible": {
+        outline: `2px solid ${theme.vars.palette.primary.main}`,
+        outlineOffset: -2
       }
     },
     ".thumb img, .thumb video, .thumb canvas": {
@@ -220,6 +228,45 @@ const styles = (theme: Theme) =>
     },
     ".thumb.selected": {
       borderColor: theme.vars.palette.primary.main
+    },
+    // Multi-select export membership: a distinct INSET ring (separate from the
+    // focused .selected border) so a tile can be both the focused generation and
+    // a member of the downstream set at once.
+    ".thumb.in-set": {
+      boxShadow: `inset 0 0 0 2px ${theme.vars.palette.secondary.main}`
+    },
+    // Pick-order badge: the 1-based position of a tile within the export set.
+    ".pick-badge": {
+      position: "absolute",
+      top: 2,
+      left: 2,
+      minWidth: 16,
+      height: 16,
+      padding: "0 4px",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: BORDER_RADIUS.sm,
+      backgroundColor: theme.vars.palette.secondary.main,
+      color: theme.vars.palette.secondary.contrastText,
+      fontSize: theme.fontSizeTiny,
+      fontVariantNumeric: "tabular-nums",
+      lineHeight: 1
+    },
+    ".downstream-caption": {
+      position: "absolute",
+      zIndex: 10,
+      pointerEvents: "none",
+      bottom: 6,
+      right: 6,
+      ...TYPOGRAPHY.sans.caption
+    },
+    ".downstream-caption .caption-pill": {
+      display: "inline-block",
+      padding: "2px 6px",
+      borderRadius: BORDER_RADIUS.sm,
+      backgroundColor: theme.vars.palette.secondary.main,
+      color: theme.vars.palette.secondary.contrastText
     }
   });
 
@@ -233,10 +280,53 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
   const cssStyles = useMemo(() => styles(theme), [theme]);
   // Generation timeline drives selection (oldest→newest, current = selected ?? latest).
   // `runs` groups variants by job; `currentRun` is the selected variant's run.
-  const { generations, current, select, runs, currentRun } = useNodeGenerations(
-    workflowId,
-    nodeId
+  // `selectedIds` is the ordered multi-select export set fed downstream as a stream.
+  const {
+    generations,
+    current,
+    select,
+    runs,
+    currentRun,
+    selectedIds,
+    toggleSelected,
+    setSelected
+  } = useNodeGenerations(workflowId, nodeId);
+
+  // Whether this node has ANY downstream consumer — only then do the multi-select
+  // modifiers do anything. The selected set is fed downstream as a STREAM (a
+  // synthetic ForEach replay yields the N values, iteration-correlated), which is
+  // valid live behavior for any consumer, so no list-type gating: any outgoing
+  // edge enables it.
+  const hasDownstream = useNodes(
+    useShallow((s) => s.edges.some((e) => e.source === nodeId))
   );
+
+  // Pick-order lookup: generation id -> 1-based position in the export set.
+  const pickOrder = useMemo(() => {
+    const map = new Map<string, number>();
+    selectedIds.forEach((id, i) => map.set(id, i + 1));
+    return map;
+  }, [selectedIds]);
+
+  // The order the grid actually paints: tiles grouped by run (runs.flatMap),
+  // which can DIVERGE from the flat chronological `generations` array (e.g. a
+  // run with mixed persisted+live variants lands its live tail at the end of
+  // `generations` but contiguous in its run section). Shift-range and roving
+  // focus must walk THIS order so a swept range matches the visible tiles.
+  const flatTiles = useMemo(() => runs.flatMap((r) => r.variants), [runs]);
+
+  // Anchor index (into `flatTiles`, the render order) for shift-click range
+  // selection; advanced by every plain/modifier click and keyboard activation.
+  const anchorIndexRef = useRef<number>(-1);
+
+  // Roving tabindex: exactly one tile is in the tab order at a time; arrows move
+  // it over `flatTiles`. Falls back to the focused generation, then the first tile.
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const activeGenId =
+    activeId && flatTiles.some((g) => g.id === activeId)
+      ? activeId
+      : current?.id ?? flatTiles[0]?.id ?? null;
 
   const latestRun = runs.length > 0 ? runs[runs.length - 1] : undefined;
   const latestRunJobId = latestRun?.jobId ?? null;
@@ -254,13 +344,21 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
     prevLatestRunJobIdRef.current = latestRunJobId;
     if (prev === undefined) return; // initial render — keep any restored selection
     if (prev === latestRunJobId) return; // same latest run — no new run appeared
+    // A genuinely new run appeared. Supersede any prior multi-select export set
+    // so stale members from an earlier run aren't silently fed downstream — this
+    // must fire even when focus does NOT advance (an unset selection already
+    // resolves `currentRun` to the new latest run, so the focus check below is
+    // skipped, yet the prior export set would otherwise persist).
+    if (selectedIds.length > 0) {
+      setSelected([]);
+    }
     if (currentRun && latestRun && currentRun.jobId !== latestRun.jobId) {
       // Selection is stale (an older run); follow the new latest run. The ref is
       // already updated, so the resulting re-render (currentRun changes) re-runs
       // this effect with prev === latestRunJobId and no-ops — no loop.
       select(latestRun.cover.id);
     }
-  }, [latestRunJobId, currentRun, latestRun, select]);
+  }, [latestRunJobId, currentRun, latestRun, select, setSelected, selectedIds]);
   // Parallel read of the durable assets solely for the fullscreen viewer,
   // download, and the dimensions/duration badge — those need the full Asset.
   const { assetHistory } = useNodeResultHistory(workflowId, nodeId);
@@ -408,18 +506,93 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
     setViewerOpen(false);
   }, []);
 
-  // Every grid tile carries its generation id; clicking one selects that
-  // generation (which also feeds it downstream) and drops to single view.
+  // Move keyboard focus to the tile for `id` (roving tabindex). The tiles are
+  // all mounted, so a DOM query inside the grid is enough; no element-ref map.
+  const focusTile = useCallback((id: string | null) => {
+    if (!id) return;
+    const tiles = gridRef.current?.querySelectorAll<HTMLElement>(".thumb");
+    tiles?.forEach((t) => {
+      if (t.dataset.genId === id) t.focus();
+    });
+  }, []);
+
+  // Every grid tile carries its generation id. Three click modes (the modifier
+  // ones only when this node has a downstream consumer — otherwise a modifier
+  // click degrades to a plain click):
+  //   plain          → focus that generation + single view
+  //   Cmd/Ctrl+click → toggle export-set membership, stay in grid
+  //   Shift+click    → select the inclusive range [anchor..clicked] over the grid
+  //                    RENDER order (`flatTiles`) as the export set, stay in grid
+  // Every mode advances the range anchor + the roving-focus active tile.
   const handleGridClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       const thumb = (e.target as HTMLElement).closest<HTMLElement>(".thumb");
       if (!thumb) return;
       const genId = thumb.dataset.genId;
       if (!genId) return;
-      select(genId);
-      setView("single");
+      const clickedIndex = flatTiles.findIndex((g) => g.id === genId);
+      setActiveId(genId);
+      const modifier =
+        hasDownstream && (e.metaKey || e.ctrlKey || e.shiftKey);
+      if (!modifier) {
+        select(genId);
+        setView("single");
+        anchorIndexRef.current = clickedIndex;
+        return;
+      }
+      if (e.shiftKey) {
+        const anchor =
+          anchorIndexRef.current >= 0 ? anchorIndexRef.current : clickedIndex;
+        const [lo, hi] =
+          anchor <= clickedIndex ? [anchor, clickedIndex] : [clickedIndex, anchor];
+        setSelected(flatTiles.slice(lo, hi + 1).map((g) => g.id));
+      } else {
+        toggleSelected(genId);
+      }
+      anchorIndexRef.current = clickedIndex;
     },
-    [select]
+    [flatTiles, hasDownstream, select, setSelected, toggleSelected]
+  );
+
+  // Keyboard on a focused tile:
+  //   Arrow/Home/End → roving focus over the grid render order (`flatTiles`)
+  //   Space/Enter    → toggle export-set membership when a downstream consumer
+  //                    exists; otherwise both keys mirror a plain click
+  const handleGridKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      const thumb = (e.target as HTMLElement).closest<HTMLElement>(".thumb");
+      if (!thumb) return;
+      const genId = thumb.dataset.genId;
+      if (!genId) return;
+      const index = flatTiles.findIndex((g) => g.id === genId);
+
+      let nextIndex: number | null = null;
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") nextIndex = index + 1;
+      else if (e.key === "ArrowLeft" || e.key === "ArrowUp") nextIndex = index - 1;
+      else if (e.key === "Home") nextIndex = 0;
+      else if (e.key === "End") nextIndex = flatTiles.length - 1;
+      if (nextIndex !== null) {
+        e.preventDefault();
+        const clamped = Math.max(0, Math.min(flatTiles.length - 1, nextIndex));
+        const nextId = flatTiles[clamped]?.id ?? null;
+        setActiveId(nextId);
+        focusTile(nextId);
+        return;
+      }
+
+      if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
+      e.preventDefault();
+      setActiveId(genId);
+      anchorIndexRef.current = index;
+      if (hasDownstream) {
+        toggleSelected(genId);
+      } else {
+        // No downstream consumer: both Enter and Space mirror a plain click.
+        select(genId);
+        setView("single");
+      }
+    },
+    [flatTiles, hasDownstream, select, toggleSelected, focusTile]
   );
 
   const fallbackThumbStyle = useMemo<React.CSSProperties>(
@@ -506,11 +679,22 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
     const videoThumb = asset?.thumb_url;
     const videoUrl = asset?.get_url || value?.uri || "";
     const selected = gen.id === current?.id;
+    const pick = pickOrder.get(gen.id);
+    // Export-set chrome (ring/badge/aria-selected) is shown ONLY when this node
+    // has a downstream consumer — otherwise a stale `selected_generations` (e.g.
+    // after the downstream edge was removed) would promise a stream feed the
+    // runtime won't deliver. Kept in lockstep with the run paths, which prune the
+    // source and inject the synthetic ForEach replay only when wired downstream.
+    const inSet = hasDownstream && pick !== undefined;
     return (
       <div
         key={gen.id}
-        className={`thumb${selected ? " selected" : ""}`}
-        role="listitem"
+        className={`thumb${selected ? " selected" : ""}${
+          inSet ? " in-set" : ""
+        }`}
+        role="option"
+        tabIndex={gen.id === activeGenId ? 0 : -1}
+        aria-selected={hasDownstream ? inSet : selected}
         data-gen-id={gen.id}
       >
         {kind === "image" && imgUrl ? (
@@ -533,6 +717,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
           <div style={fallbackThumbStyle}>{kind || "asset"}</div>
         )}
         {label ? <span className="thumb-label">{label}</span> : null}
+        {inSet ? <span className="pick-badge">{pick}</span> : null}
       </div>
     );
   };
@@ -551,16 +736,24 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
           // section headers the run (relative time · ×N · status) and grids its
           // variants; every tile is uniformly clickable → select + single view.
           <div
+            ref={gridRef}
             className="grid nodrag nopan"
-            role="list"
+            role="listbox"
+            aria-multiselectable={hasDownstream || undefined}
             aria-label="Generations"
             onClick={handleGridClick}
+            onKeyDown={handleGridKeyDown}
           >
             {runs.map((run) => {
               const multi = run.variants.length > 1;
               const statusType = runStatusType(run.status);
               return (
-                <section key={run.jobId} className="run-section">
+                <section
+                  key={run.jobId}
+                  className="run-section"
+                  role="group"
+                  aria-label={relativeTime(new Date(run.createdAt))}
+                >
                   <header className="run-header">
                     <span className="run-time">
                       {relativeTime(new Date(run.createdAt))}
@@ -665,6 +858,16 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
           }}>
             {infoText}
           </span>
+        </div>
+      ) : null}
+
+      {/* bottom-right: the export-set size fed downstream as a stream. Always
+          visible (single AND grid) so the set is never hidden behind a view.
+          Gated on `hasDownstream` so the caption never promises a feed that the
+          runtime won't actually deliver to a disconnected node. */}
+      {hasDownstream && selectedIds.length >= 2 ? (
+        <div className="downstream-caption">
+          <span className="caption-pill">{`${selectedIds.length} → downstream`}</span>
         </div>
       ) : null}
 

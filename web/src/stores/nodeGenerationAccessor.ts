@@ -4,6 +4,7 @@ import {
   assetToGeneration,
   mergeGenerations,
   getCurrentOutput,
+  selectedOutputValues,
   type Generation
 } from "../utils/nodeGenerations";
 
@@ -35,3 +36,31 @@ export const getNodeCurrentOutput = (
   handle?: string
 ): unknown =>
   getCurrentOutput(getNodeGenerations(workflowId, nodeId), selectedId, handle);
+
+/**
+ * The selected (pick-ordered, completed, num_images-flattened) value list for a
+ * source node's edge handle from its multi-select set, read from the merged
+ * timeline. Returns undefined when fewer than 2 generations are selected
+ * (single-selection behavior is unchanged) or when nothing in the set qualifies
+ * (selectedOutputValues yields []). The partial-run paths feed this list as the
+ * `input_list` of a synthetic ForEach replay node so the downstream receives the
+ * set as a STREAM of N iteration-correlated emissions — identical to a live
+ * generation of those N items. A single focused generation (or no selection)
+ * resolves through the normal single-value path unchanged.
+ */
+export const getNodeSelectedOutputs = (
+  workflowId: string,
+  sourceId: string,
+  handle: string | null | undefined,
+  selectedGenerations: string[] | undefined
+): unknown[] | undefined => {
+  if (!selectedGenerations || selectedGenerations.length < 2) {
+    return undefined;
+  }
+  const values = selectedOutputValues(
+    getNodeGenerations(workflowId, sourceId),
+    selectedGenerations,
+    handle ?? undefined
+  );
+  return values.length > 0 ? values : undefined;
+};

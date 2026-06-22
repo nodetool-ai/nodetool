@@ -11,10 +11,14 @@
  */
 import { Node, Edge } from "@xyflow/react";
 import { subgraph } from "../../core/graph";
-import { getNodeGenerations } from "../../stores/nodeGenerationAccessor";
+import {
+  getNodeGenerations,
+  getNodeSelectedOutputs
+} from "../../stores/nodeGenerationAccessor";
 import { getCurrentGeneration } from "../../utils/nodeGenerations";
 import { NodeData } from "../../stores/NodeData";
 import { resolveExternalEdgeValue } from "../../utils/edgeValue";
+import { buildReplayForEach } from "../../utils/replayStream";
 
 /**
  * Finds all edges that cross the boundary into a subgraph (from outside to
@@ -217,8 +221,48 @@ export const buildDownstreamRunGraph = ({
     return outputs;
   };
 
+  // Multi-select STREAM: when an external upstream has 2+ generations selected,
+  // prune it and inject a ForEach replay node (input_list = the selected values)
+  // that streams the N values into the target handle as N iteration-correlated
+  // emissions — identical to a live generation. No list-type gate. These edges
+  // are excluded from the single-value cached-override collection below.
+  const replayNodesById = new Map<string, Node<NodeData>>();
+  const replayEdges: Edge[] = [];
+  const replayedEdgeIds = new Set<string>();
+  for (const edge of externalInputEdges) {
+    const targetHandle = edge.targetHandle;
+    if (!targetHandle) {
+      continue;
+    }
+    const selected = getNodeSelectedOutputs(
+      workflowId,
+      edge.source,
+      edge.sourceHandle,
+      findNode(edge.source)?.data?.selected_generations
+    );
+    if (selected && selected.length > 0) {
+      const { node, edge: replayEdge } = buildReplayForEach({
+        sourceId: edge.source,
+        sourceHandle: edge.sourceHandle,
+        targetId: edge.target,
+        targetHandle,
+        values: selected,
+        workflowId
+      });
+      if (!replayNodesById.has(node.id)) {
+        replayNodesById.set(node.id, node);
+        replayEdges.push(replayEdge);
+      }
+      replayedEdgeIds.add(edge.id);
+    }
+  }
+
+  const cachedInputEdges = externalInputEdges.filter(
+    (edge) => !replayedEdgeIds.has(edge.id)
+  );
+
   const propertyOverrides = collectCachedValuesForSubgraph(
-    externalInputEdges,
+    cachedInputEdges,
     workflowId,
     getResultFromGeneration,
     findNode
@@ -234,8 +278,8 @@ export const buildDownstreamRunGraph = ({
   ).reduce((sum, props) => sum + Object.keys(props).length, 0);
 
   return {
-    nodes: nodesWithCachedValues,
-    edges: downstream.edges,
+    nodes: [...nodesWithCachedValues, ...replayNodesById.values()],
+    edges: [...downstream.edges, ...replayEdges],
     nodesWithOverrides: propertyOverrides.size,
     totalPropertiesInjected
   };

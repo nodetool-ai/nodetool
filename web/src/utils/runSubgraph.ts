@@ -3,9 +3,15 @@ import { NodeData } from "../stores/NodeData";
 import { NodeMetadata } from "../stores/ApiTypes";
 import { resolveExternalEdgeValue } from "./edgeValue";
 import { EdgeOverrideCollector, applyNodeOverrides } from "./edgeOverrides";
+import { buildReplayForEach } from "./replayStream";
 
 type GetResult = (_workflowId: string, _nodeId: string) => unknown;
 type GetMetadata = (_nodeType: string) => NodeMetadata | undefined;
+type GetSelectedOutputs = (
+  _workflowId: string,
+  _sourceId: string,
+  _sourceHandle: string | null | undefined
+) => unknown[] | undefined;
 
 interface BlockedUpstream {
   nodeId: string;
@@ -48,7 +54,8 @@ export const buildRunSubgraph = ({
   edges,
   workflowId,
   getResult,
-  getMetadata
+  getMetadata,
+  getSelectedOutputs
 }: {
   targetId: string;
   nodes: Node<NodeData>[];
@@ -56,6 +63,16 @@ export const buildRunSubgraph = ({
   workflowId: string;
   getResult: GetResult;
   getMetadata: GetMetadata;
+  /**
+   * Optional per-edge multi-select stream: the value list a source node would
+   * emit to one edge handle when 2+ generations are selected. Consulted BEFORE
+   * the normal single-value resolution. When it yields a non-empty list, the
+   * source is pruned and a synthetic ForEach replay node is injected whose
+   * `input_list` is that list, streaming the N values into the target handle as
+   * N iteration-correlated emissions (identical to a live generation). No
+   * list-type gate — streaming N items to ANY consumer is valid live behavior.
+   */
+  getSelectedOutputs?: GetSelectedOutputs;
 }): RunSubgraph => {
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
   const findNode = (id: string): Node<NodeData> | undefined => nodeById.get(id);
@@ -71,6 +88,12 @@ export const buildRunSubgraph = ({
   const collector = new EdgeOverrideCollector();
   const blocked: BlockedUpstream[] = [];
   const blockedSeen = new Set<string>();
+  // Synthetic ForEach replay nodes (and their edges) injected for multi-select
+  // sources. They are not part of the original graph, so append them explicitly
+  // to the returned subgraph — keyed by id to dedup a source feeding the same
+  // target handle twice.
+  const replayNodesById = new Map<string, Node<NodeData>>();
+  const replayEdges: Edge[] = [];
 
   const stack: string[] = [targetId];
   while (stack.length) {
@@ -79,6 +102,33 @@ export const buildRunSubgraph = ({
     for (const edge of inbound) {
       if (!edge.targetHandle) {
         continue;
+      }
+
+      // Multi-select STREAM: when the source has 2+ generations selected, prune
+      // it and inject a ForEach replay node that streams the selected values
+      // into this target handle as N iteration-correlated emissions — identical
+      // to a live generation of those N items. No list-type gate.
+      if (getSelectedOutputs) {
+        const selected = getSelectedOutputs(
+          workflowId,
+          edge.source,
+          edge.sourceHandle
+        );
+        if (selected && selected.length > 0) {
+          const { node, edge: replayEdge } = buildReplayForEach({
+            sourceId: edge.source,
+            sourceHandle: edge.sourceHandle,
+            targetId: currentId,
+            targetHandle: edge.targetHandle,
+            values: selected,
+            workflowId
+          });
+          if (!replayNodesById.has(node.id)) {
+            replayNodesById.set(node.id, node);
+            replayEdges.push(replayEdge);
+          }
+          continue;
+        }
       }
 
       const { value, hasValue } = resolveExternalEdgeValue(
@@ -127,9 +177,13 @@ export const buildRunSubgraph = ({
     (e) => included.has(e.source) && included.has(e.target)
   );
 
+  // Append synthetic ForEach replay nodes/edges: they aren't in the original
+  // graph (their target is already included), so the edge filter above skips
+  // them. Their ids are namespaced ("replay:…") so they never collide with a
+  // real node id.
   return {
-    nodes: subgraphNodes,
-    edges: subgraphEdges,
+    nodes: [...subgraphNodes, ...replayNodesById.values()],
+    edges: [...subgraphEdges, ...replayEdges],
     nodeIds: included,
     blocked
   };
