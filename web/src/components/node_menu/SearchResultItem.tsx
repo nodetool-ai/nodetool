@@ -3,7 +3,7 @@ import { memo, useCallback, forwardRef, useState, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Box, Collapse, MOTION, BORDER_RADIUS, FONT_WEIGHT } from "../ui_primitives";
+import { Text, Box, Collapse, MOTION, BORDER_RADIUS, FONT_WEIGHT, Z_INDEX } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -49,7 +49,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
       border: "1px solid transparent",
       backgroundColor: "transparent",
       position: "relative",
-      zIndex: 1,
+      zIndex: Z_INDEX.raised,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
         border: `1px solid ${theme.vars.palette.divider}`
@@ -57,7 +57,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
       "&.expanded": {
         backgroundColor: theme.vars.palette.action.hover,
         border: `1px solid ${theme.vars.palette.divider}`,
-        zIndex: 10
+        zIndex: Z_INDEX.dropdown
       },
       "&.keyboard-selected": {
         backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.15)",
@@ -164,7 +164,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         left: 0,
         right: 0,
         top: "100%",
-        zIndex: 100,
+        zIndex: Z_INDEX.overlay,
         padding: theme.spacing(0, 3, 3, 3)
       },
       ".io-info": {

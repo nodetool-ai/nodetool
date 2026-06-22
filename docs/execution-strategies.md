@@ -15,7 +15,7 @@ This page covers two distinct mechanisms that are easy to conflate:
    not the workflow.
 
 See also [Architecture](architecture.md) for the system overview and
-[Automatic Message Correlation](correlation-design.md) for the lineage model
+[Automatic Message Correlation](https://github.com/nodetool-ai/nodetool/blob/main/docs/correlation-design.md) for the lineage model
 the scheduler relies on.
 
 ## Workflow Execution: the actor model
@@ -113,7 +113,7 @@ with empty inputs.
 
 Inbox safety limits (`max_pending_keys`, `max_pending_messages_per_key`) abort
 the run if pending keys grow without bound — typically a missing upstream close.
-See [correlation-design.md](correlation-design.md) for the full model: lineage
+See [correlation-design.md](https://github.com/nodetool-ai/nodetool/blob/main/docs/correlation-design.md) for the full model: lineage
 as root-id → item-token maps, static scope analysis, and done / dropped-key /
 scope-close propagation.
 
@@ -206,6 +206,6 @@ runner, then collect its streamed output.
 ## Related
 
 - [Architecture](architecture.md) — system components, message types, job lifecycle.
-- [Automatic Message Correlation](correlation-design.md) — lineage, scopes, and the scheduler design.
+- [Automatic Message Correlation](https://github.com/nodetool-ai/nodetool/blob/main/docs/correlation-design.md) — lineage, scopes, and the scheduler design.
 - `packages/kernel/` — `runner.ts`, `actor.ts`, `inbox.ts`, `correlation-analysis.ts`.
 - `packages/code-runners/` — sandboxed code execution runners.

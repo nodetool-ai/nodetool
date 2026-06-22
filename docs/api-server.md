@@ -76,4 +76,4 @@ Returns `200 OK` when healthy (`503` when degraded) with a JSON body:
 `GET /ready` is a simple liveness probe (always `200` with `{ "status": "ok" }`),
 and `GET /api/health` returns `{ version, uptime }`. None require authentication.
 
-For deployment setup, see [Deployment Guide](deployment.md) and [Authentication](authentication.md#authentication-providers).
+For deployment setup, see [Deployment Guide](deployment.md) and [Authentication](authentication.md#authentication-modes).

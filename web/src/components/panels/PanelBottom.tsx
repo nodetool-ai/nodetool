@@ -166,7 +166,7 @@ const styles = (theme: Theme) =>
     bottom: "0",
     left: "0",
     right: "0",
-    zIndex: 1100,
+    zIndex: theme.zIndex.appBar,
     ".panel-container": {
       flexShrink: 0,
       position: "relative",
@@ -176,7 +176,7 @@ const styles = (theme: Theme) =>
       height: "6px",
       width: "100%",
       position: "absolute",
-      zIndex: 1200,
+      zIndex: theme.zIndex.drawer,
       top: "-3px",
       left: "0",
       backgroundColor: "transparent",

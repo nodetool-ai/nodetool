@@ -91,7 +91,7 @@
     "dev:server:dist": "turbo run dev --filter=@nodetool-ai/websocket",
     "dev:watch": "npm run dev",
     "dev:watch:server": "npm run dev:server",
-    "lint": "oxlint packages/*/src web/src electron mobile/src",
+    "lint": "oxlint packages/*/src web/src electron mobile/src && npm run lint:design --workspace=web",
     "lint:fix": "oxlint packages/*/src web/src electron mobile/src --fix",
     "lint:packages": "oxlint packages/*/src",
     "lint:eslint": "eslint packages/*/src",

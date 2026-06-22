@@ -26,6 +26,7 @@ jest.mock('../../ui_primitives', () => {
   return {
     __esModule: true,
     MOTION: jest.requireActual('../../ui_primitives/tokens').MOTION,
+    Z_INDEX: jest.requireActual('../../ui_primitives/tokens').Z_INDEX,
     CopyButton,
     Text,
     Tooltip,

@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useCallback, memo } from "react";
-import { FlexRow, FlexColumn, ToolbarIconButton, Text, ScrollArea, SearchInput, NavButton, MOTION, BORDER_RADIUS, reducedMotion } from "../../ui_primitives";
+import { FlexRow, FlexColumn, ToolbarIconButton, Text, ScrollArea, SearchInput, NavButton, MOTION, BORDER_RADIUS, reducedMotion, Z_INDEX } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
 import AddIcon from "@mui/icons-material/Add";
@@ -88,7 +88,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     position: "absolute",
                     top: 18,
                     left: 18,
-                    zIndex: 100,
+                    zIndex: Z_INDEX.overlay,
                     display: isOpen ? "none" : "flex",
                     p: 0.75,
                     borderRadius: BORDER_RADIUS.md,
@@ -133,7 +133,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     top: 0,
                     left: 0,
                     width: SIDEBAR_WIDTH,
-                    zIndex: 100,
+                    zIndex: Z_INDEX.overlay,
                     backgroundColor: theme.vars.palette.grey[1000],
                     borderRight: "none",
                     boxShadow: "none",
