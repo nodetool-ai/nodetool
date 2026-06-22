@@ -81,6 +81,13 @@ export interface LlmUsage {
 interface CallSlot {
   usage: LlmUsage | null;
   request: unknown;
+  /**
+   * Set while a non-chat modality call (image/video/audio/3D/embedding) is
+   * being failure-logged. Lets nested calls — e.g. a batch helper delegating
+   * to its singular method — reuse the parent slot so a failure is logged once,
+   * at the outermost call. See {@link withModalityCapture}.
+   */
+  modality?: boolean;
 }
 const usageStore = new AsyncLocalStorage<CallSlot>();
 
@@ -126,6 +133,24 @@ export function setLastRequest(request: unknown): void {
 /** Read (without clearing) the request payload recorded in this async context. */
 export function peekLastRequest(): unknown {
   return usageStore.getStore()?.request ?? null;
+}
+
+/**
+ * Run a non-chat modality call (image/video/audio/3D/embedding) inside a fresh
+ * per-call slot so `recordRequestPayload` and `peekLastRequest` work the same
+ * way they do for chat. `fn` receives whether a modality capture was already
+ * active in this async context: nested calls (a batch helper delegating to its
+ * singular method) reuse the parent slot and pass `true`, so the caller can log
+ * a failure exactly once — at the outermost call.
+ */
+export function withModalityCapture<T>(
+  fn: (alreadyActive: boolean) => Promise<T>
+): Promise<T> {
+  const existing = usageStore.getStore();
+  if (existing?.modality) return fn(true);
+  return usageStore.run({ usage: null, request: null, modality: true }, () =>
+    fn(false)
+  );
 }
 
 /**

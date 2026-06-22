@@ -32,6 +32,7 @@ import type { UsageInfo } from "./cost-calculator.js";
 import { getTracer } from "../telemetry.js";
 import {
   withUsageCapture,
+  withModalityCapture,
   setLastUsage,
   setLastRequest,
   consumeLastUsage,
@@ -181,6 +182,57 @@ export abstract class BaseProvider {
 
   protected constructor(provider: ProviderId) {
     this.provider = provider;
+    this.installModalityFailureLogging();
+  }
+
+  /**
+   * Chat already records what it sent and logs it on failure through
+   * {@link generateMessageTraced} / {@link generateMessagesTraced}. The
+   * non-chat modalities (image/video/audio/3D/embedding) are called directly,
+   * so wrap every one a concrete provider actually overrides with the same
+   * central failure logging.
+   *
+   * We replace methods on the instance (not the prototype), and only the ones
+   * that differ from the base — so an unsupported modality keeps its base
+   * "does not support" throw and never logs a spurious failure. Providers may
+   * additionally call {@link recordRequestPayload} to log the exact wire body;
+   * otherwise the call arguments are logged (binary buffers reduced to size
+   * markers, secrets redacted).
+   */
+  private installModalityFailureLogging(): void {
+    const proto = BaseProvider.prototype as unknown as Record<string, unknown>;
+    const self = this as unknown as Record<string, unknown>;
+
+    for (const name of MODALITY_PROMISE_METHODS) {
+      const fn = self[name];
+      if (typeof fn !== "function" || fn === proto[name]) continue;
+      const original = fn as (...args: unknown[]) => Promise<unknown>;
+      self[name] = (...args: unknown[]): Promise<unknown> =>
+        withModalityCapture(async (alreadyActive) => {
+          try {
+            return await original.apply(this, args);
+          } catch (err) {
+            if (!alreadyActive) {
+              logProviderRequestFailure({
+                provider: this.provider,
+                model: extractModelId(args),
+                request: peekLastRequest(),
+                nodetoolArgs: args,
+                error: err
+              });
+            }
+            throw err;
+          }
+        });
+    }
+
+    for (const name of MODALITY_GENERATOR_METHODS) {
+      const fn = self[name];
+      if (typeof fn !== "function" || fn === proto[name]) continue;
+      const original = fn as (...args: unknown[]) => AsyncGenerator<unknown>;
+      self[name] = (...args: unknown[]): AsyncGenerator<unknown> =>
+        wrapModalityGenerator(this, original, args);
+    }
   }
 
   static requiredSecrets(): string[] {
@@ -938,6 +990,100 @@ export abstract class BaseProvider {
     }
 
     return uri;
+  }
+}
+
+/**
+ * Promise-returning non-chat modality methods wrapped with central failure
+ * logging. Batch helpers are included; nested delegation to their singular
+ * method is logged once (see {@link withModalityCapture}).
+ */
+const MODALITY_PROMISE_METHODS = [
+  "textToImage",
+  "textToImages",
+  "imageToImage",
+  "imageToImages",
+  "inpaint",
+  "inpaintImages",
+  "upscaleImage",
+  "removeBackground",
+  "relightImage",
+  "vectorizeImage",
+  "textToSpeechEncoded",
+  "automaticSpeechRecognition",
+  "textToVideo",
+  "imageToVideo",
+  "videoToVideo",
+  "lipSync",
+  "textTo3D",
+  "imageTo3D",
+  "generateEmbedding"
+] as const;
+
+/** Async-generator non-chat modality methods wrapped with failure logging. */
+const MODALITY_GENERATOR_METHODS = ["textToSpeech"] as const;
+
+/**
+ * Best-effort model id for failure logging. Modality params carry the model
+ * either as a plain string (ASR, embeddings) or as a model object with an `id`
+ * (image/video tasks). Returns "unknown" when neither is present.
+ */
+function extractModelId(args: unknown[]): string {
+  for (const arg of args) {
+    if (!arg || typeof arg !== "object") continue;
+    const model = (arg as { model?: unknown }).model;
+    if (typeof model === "string") return model;
+    if (model && typeof model === "object") {
+      const id = (model as { id?: unknown }).id;
+      if (typeof id === "string") return id;
+    }
+  }
+  return "unknown";
+}
+
+/**
+ * Drive a provider's async-generator modality method (e.g. textToSpeech)
+ * through a per-call slot — so `recordRequestPayload` is visible across yields —
+ * and log centrally if it throws. The slot is wrapped around each `next()`
+ * because AsyncLocalStorage does not persist across generator suspension.
+ */
+async function* wrapModalityGenerator(
+  provider: BaseProvider,
+  original: (...args: unknown[]) => AsyncGenerator<unknown>,
+  args: unknown[]
+): AsyncGenerator<unknown> {
+  const { runInSlot, getRequest } = createUsageSlot();
+  const source = original.apply(provider, args);
+  let exhausted = false;
+  try {
+    while (true) {
+      const result = await runInSlot(() => source.next());
+      if (result.done) {
+        exhausted = true;
+        return result.value;
+      }
+      yield result.value;
+    }
+  } catch (err) {
+    logProviderRequestFailure({
+      provider: provider.provider,
+      model: extractModelId(args),
+      request: getRequest(),
+      nodetoolArgs: args,
+      error: err
+    });
+    throw err;
+  } finally {
+    if (!exhausted) {
+      await runInSlot(
+        () =>
+          source.return?.(undefined as never) ??
+          Promise.resolve({
+            done: true,
+            value: undefined
+          } as IteratorResult<unknown>)
+      ).catch(() => {});
+    }
   }
 }
 
