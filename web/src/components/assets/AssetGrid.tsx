@@ -120,7 +120,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   isFullscreenAssets,
   isMobile = false
 }) => {
-  const { error, folderFilesFiltered } = useAssets();
+  const { error, folderFilesFiltered, folderTree } = useAssets();
   const {
     setOpenAsset,
     setSelectedAssetIds,
@@ -149,6 +149,16 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   const openMenuType = useContextMenuStore((state) => state.openMenuType);
 
   const theme = useTheme();
+
+  // Folders are always shown in fullscreen; in the sidebar they follow the
+  // user's toggle. Either way, hide the tree entirely when there are no
+  // folders to show.
+  const hasFolders = useMemo(
+    () => !!folderTree && Object.keys(folderTree).length > 0,
+    [folderTree]
+  );
+  const effectiveFoldersVisible =
+    hasFolders && (Boolean(isFullscreenAssets) || foldersVisible);
 
   // Dockview panel components are defined below; handlers for files live inside the Files panel
 
@@ -251,66 +261,32 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     const api = dockviewApiRef.current;
     if (!api || isMobile) return;
     const existing = api.getPanel("asset-folders");
-    if (foldersVisible && !existing) {
+    if (effectiveFoldersVisible && !existing) {
       addFoldersPanel(api);
-    } else if (!foldersVisible && existing) {
+    } else if (!effectiveFoldersVisible && existing) {
       api.removePanel(existing);
     }
-  }, [foldersVisible, isMobile, addFoldersPanel]);
+  }, [effectiveFoldersVisible, isMobile, addFoldersPanel]);
 
   const onReady = useCallback(
     (event: DockviewReadyEvent) => {
       const { api } = event;
       dockviewApiRef.current = api;
 
-      if (isMobile) {
-        // On mobile, skip the folders panel — just show files with breadcrumb nav
-        api.addPanel({
-          id: "asset-files",
-          component: "asset-files",
-          title: "Files",
-          params: { isHorizontal, itemSpacing }
-        });
-        return;
-      }
-
-      // Add folders panel first with an initial size
-      const foldersPanel: IDockviewPanelWithGroup = api.addPanel({
-        id: "asset-folders",
-        component: "asset-folders",
-        title: "Folders",
-        ...(isFullscreenAssets
-          ? { initialWidth: FOLDERS_PANEL_WIDTH }
-          : { initialHeight: FOLDERS_PANEL_HEIGHT })
-      });
-
-      // Add files panel positioned relative to folders
+      // The files panel is always present; the folders panel is added next to
+      // it (and kept in sync) by addFoldersPanel / the effect above.
       api.addPanel({
         id: "asset-files",
         component: "asset-files",
         title: "Files",
-        params: { isHorizontal, itemSpacing },
-        position: {
-          referencePanel: "asset-folders",
-          direction: isFullscreenAssets ? "right" : "below"
-        }
+        params: { isHorizontal, itemSpacing }
       });
 
-      // Enforce initial size
-      const applyInitialSize = () => {
-        const groupApi =
-          foldersPanel?.group?.api ?? foldersPanel?.group;
-        if (groupApi && typeof groupApi.setSize === "function") {
-          if (isFullscreenAssets) {
-            groupApi.setSize({ width: FOLDERS_PANEL_WIDTH });
-          } else {
-            groupApi.setSize({ height: FOLDERS_PANEL_HEIGHT });
-          }
-        }
-      };
-      applyInitialSize();
+      if (!isMobile && effectiveFoldersVisible) {
+        addFoldersPanel(api);
+      }
     },
-    [isFullscreenAssets, isHorizontal, itemSpacing, isMobile]
+    [isHorizontal, itemSpacing, isMobile, effectiveFoldersVisible, addFoldersPanel]
   );
 
   return (
@@ -339,7 +315,11 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         />
       )}
       {!isMobile && (
-        <AssetActionsMenu maxItemSize={maxItemSize} onUploadFiles={uploadFiles} />
+        <AssetActionsMenu
+          maxItemSize={maxItemSize}
+          onUploadFiles={uploadFiles}
+          isFullscreenAssets={isFullscreenAssets}
+        />
       )}
       {!isMobile && (
         <StorageAnalytics

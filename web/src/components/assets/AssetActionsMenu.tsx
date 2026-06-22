@@ -16,6 +16,7 @@ import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import FilterCenterFocusIcon from "@mui/icons-material/FilterCenterFocus";
 import AssetSearchInput from "./AssetSearchInput";
 import AssetActions from "./AssetActions";
 import SearchErrorBoundary from "../SearchErrorBoundary";
@@ -82,12 +83,25 @@ const TYPE_FILTER_ICONS: Record<TypeFilterKey, React.ReactNode> = {
   other: <MoreHorizIcon />
 };
 
+const fullscreenFiltersStyles = css({
+  "&": {
+    width: "auto",
+    flex: "1 1 auto",
+    margin: 0
+  }
+});
+
 interface AssetActionsMenuProps {
   maxItemSize: number;
   onUploadFiles?: (files: File[]) => void;
+  isFullscreenAssets?: boolean;
 }
 
-const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUploadFiles }) => {
+const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
+  maxItemSize,
+  onUploadFiles,
+  isFullscreenAssets = false
+}) => {
   const setSelectedAssetIds = useAssetGridStore(
     (state) => state.setSelectedAssetIds
   );
@@ -112,6 +126,9 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
   const [workflowSearch, setWorkflowSearch] = useState("");
 
   const load = useWorkflowManager((state) => state.load);
+  const currentWorkflowId = useWorkflowManager(
+    (state) => state.currentWorkflowId
+  );
   const { data: workflowData } = useQuery<WorkflowList, Error>({
     queryKey: ["workflows"],
     queryFn: async () => load("", 200)
@@ -135,10 +152,25 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
     (next: TypeFilterKey) => setTypeFilter(next),
     [setTypeFilter]
   );
-  const { folderFiles } = useAssets();
+  const { folderFiles, folderTree } = useAssets();
   const { handleSelectAllAssets, handleDeselectAssets } =
     useAssetSelection(folderFiles);
   const [expanded, setExpanded] = useState(false);
+
+  const hasFolders = useMemo(
+    () => !!folderTree && Object.keys(folderTree).length > 0,
+    [folderTree]
+  );
+  // In fullscreen the filter row is always visible; in the sidebar it is
+  // toggled by the tune button.
+  const showFilters = expanded || isFullscreenAssets;
+  const showCurrentWorkflowButton = Boolean(currentWorkflowId);
+  const currentWorkflowActive =
+    workflowFilter !== null && workflowFilter === currentWorkflowId;
+
+  const handleToggleCurrentWorkflow = useCallback(() => {
+    setWorkflowFilter(currentWorkflowActive ? null : currentWorkflowId);
+  }, [currentWorkflowActive, currentWorkflowId, setWorkflowFilter]);
 
   const onLocalSearchChange = useCallback(
     (newSearchTerm: string) => {
@@ -154,7 +186,19 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
     TYPE_FILTERS.find((f) => f.key === typeFilter)?.label ?? "All";
 
   return (
-    <Box className="asset-menu" sx={{ width: "100%" }}>
+    <Box
+      className="asset-menu"
+      sx={{
+        width: "100%",
+        ...(isFullscreenAssets && {
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          columnGap: 1,
+          rowGap: 0.5
+        })
+      }}
+    >
       <FlexRow
         className="asset-menu-toolbar"
         align="center"
@@ -166,20 +210,24 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
           "& .MuiSvgIcon-root": { fontSize: 14 }
         }}
       >
-        <ToolbarIconButton
-          icon={<TuneIcon />}
-          tooltip={expanded ? "Hide filters" : "Show filters"}
-          onClick={() => setExpanded((prev) => !prev)}
-          tooltipPlacement="top"
-          nodrag={false}
-        />
-        <ToolbarIconButton
-          icon={foldersVisible ? <FolderIcon /> : <FolderOffIcon />}
-          tooltip={foldersVisible ? "Hide folders" : "Show folders"}
-          onClick={toggleFoldersVisible}
-          tooltipPlacement="top"
-          nodrag={false}
-        />
+        {!isFullscreenAssets && (
+          <ToolbarIconButton
+            icon={<TuneIcon />}
+            tooltip={expanded ? "Hide filters" : "Show filters"}
+            onClick={() => setExpanded((prev) => !prev)}
+            tooltipPlacement="top"
+            nodrag={false}
+          />
+        )}
+        {!isFullscreenAssets && hasFolders && (
+          <ToolbarIconButton
+            icon={foldersVisible ? <FolderIcon /> : <FolderOffIcon />}
+            tooltip={foldersVisible ? "Hide folders" : "Show folders"}
+            onClick={toggleFoldersVisible}
+            tooltipPlacement="top"
+            nodrag={false}
+          />
+        )}
         <ToolbarIconButton
           tooltip="Filter by type"
           onClick={(e) => setTypeFilterAnchor(e.currentTarget)}
@@ -207,6 +255,24 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
             <ArrowDropDownIcon />
           </FlexRow>
         </ToolbarIconButton>
+        {showCurrentWorkflowButton && (
+          <ToolbarIconButton
+            icon={<FilterCenterFocusIcon />}
+            tooltip={
+              currentWorkflowActive
+                ? "Showing this workflow's assets"
+                : "Show this workflow's assets"
+            }
+            onClick={handleToggleCurrentWorkflow}
+            tooltipPlacement="top"
+            nodrag={false}
+            sx={{
+              color: currentWorkflowActive
+                ? "var(--palette-primary-main)"
+                : undefined
+            }}
+          />
+        )}
         <ToolbarIconButton
           tooltip={workflowFilter ? `Workflow: ${activeWorkflowName}` : "Filter by workflow"}
           onClick={(e) => setWorkflowFilterAnchor(e.currentTarget)}
@@ -323,10 +389,14 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({ maxItemSize, onUplo
         </Box>
       </Popover>
 
-      {expanded && (
+      {showFilters && (
         <Box
           className="asset-menu-with-global-search"
-          css={styles(theme)}
+          css={
+            isFullscreenAssets
+              ? [styles(theme), fullscreenFiltersStyles]
+              : styles(theme)
+          }
         >
           <SearchErrorBoundary fallbackTitle="Search Input Error">
             <AssetSearchInput
