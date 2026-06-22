@@ -9,6 +9,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useConnectedEdgesSelector } from "../../hooks/nodes/useConnectedEdges";
 import useMetadataStore from "../../stores/MetadataStore";
 import { findOutputHandle } from "../../utils/handleUtils";
+import { isFieldRelevantDataEqual } from "./propertyFieldEquality";
 
 
 const rootCss = css({
@@ -66,45 +67,78 @@ interface NodeInputProps {
   isConnected: boolean;
 }
 
-const NodeInput: React.FC<NodeInputProps> = memo(function NodeInput({
-  id,
-  nodeType,
-  layout,
-  property,
-  propertyIndex,
-  data,
-  showFields,
-  showHandle,
-  tabIndex,
-  isDynamicProperty,
-  isConnected
-}) {
-  // Resolve the current value for this input. Use dynamic_properties for
-  // dynamic inputs; otherwise use properties. Fallback to the property's
-  // default when undefined to avoid runtime errors.
-  const resolvedValue = isDynamicProperty
-    ? data?.dynamic_properties?.[property.name] ?? property.default
-    : data?.properties?.[property.name] ?? property.default;
+// Resolve the current value for an input. Use dynamic_properties for dynamic
+// inputs; otherwise use properties. Fallback to the property's default when
+// undefined to avoid runtime errors. Shared by render and the memo comparator
+// so the two never drift.
+const resolveInputValue = (props: NodeInputProps): unknown =>
+  props.isDynamicProperty
+    ? props.data?.dynamic_properties?.[props.property.name] ??
+      props.property.default
+    : props.data?.properties?.[props.property.name] ?? props.property.default;
 
-  return (
-    <PropertyField
-      key={`${isDynamicProperty ? "dynamic-" : ""}${property.name}-${id}`}
-      id={id}
-      value={resolvedValue}
-      nodeType={nodeType}
-      layout={layout}
-      property={property}
-      propertyIndex={propertyIndex}
-      showFields={showFields}
-      showHandle={showHandle}
-      tabIndex={tabIndex}
-      isDynamicProperty={isDynamicProperty}
-      data={data}
-      isConnected={isConnected}
-    />
-  );
-},
-isEqual);
+const NodeInput: React.FC<NodeInputProps> = memo(
+  function NodeInput(props) {
+    const {
+      id,
+      nodeType,
+      layout,
+      property,
+      propertyIndex,
+      data,
+      showFields,
+      showHandle,
+      tabIndex,
+      isDynamicProperty,
+      isConnected
+    } = props;
+
+    return (
+      <PropertyField
+        key={`${isDynamicProperty ? "dynamic-" : ""}${property.name}-${id}`}
+        id={id}
+        value={resolveInputValue(props)}
+        nodeType={nodeType}
+        layout={layout}
+        property={property}
+        propertyIndex={propertyIndex}
+        showFields={showFields}
+        showHandle={showHandle}
+        tabIndex={tabIndex}
+        isDynamicProperty={isDynamicProperty}
+        data={data}
+        isConnected={isConnected}
+      />
+    );
+  },
+  // Compare only what this field renders from, not the whole node `data`
+  // (which made every field re-render — and deep-walk the full blob — when a
+  // single sibling property changed).
+  (prev, next) => {
+    if (
+      prev.id !== next.id ||
+      prev.nodeType !== next.nodeType ||
+      prev.layout !== next.layout ||
+      prev.propertyIndex !== next.propertyIndex ||
+      prev.showFields !== next.showFields ||
+      prev.showHandle !== next.showHandle ||
+      prev.tabIndex !== next.tabIndex ||
+      prev.isDynamicProperty !== next.isDynamicProperty ||
+      prev.isConnected !== next.isConnected ||
+      prev.onDeleteProperty !== next.onDeleteProperty ||
+      prev.onUpdatePropertyName !== next.onUpdatePropertyName
+    ) {
+      return false;
+    }
+    if (!isFieldRelevantDataEqual(prev.data, next.data, prev.isDynamicProperty)) {
+      return false;
+    }
+    if (!isEqual(prev.property, next.property)) {
+      return false;
+    }
+    return isEqual(resolveInputValue(prev), resolveInputValue(next));
+  }
+);
 
 export const NodeInputs: React.FC<NodeInputsProps> = ({
   id,

@@ -108,6 +108,16 @@ function useStructurallyProcessedEdges({
     const REROUTE_INPUT = "input_value";
     const REROUTE_OUTPUT = "output";
 
+    // Precompute the single incoming edge feeding each Reroute node's input so
+    // chasing a reroute chain is O(1) per hop instead of an O(E) `edges.find`
+    // (which made reroute-heavy graphs O(E²) on every structural recompute).
+    const rerouteInputEdgeByTarget = new Map<string, Edge>();
+    for (const edge of edges) {
+      if (edge.targetHandle === REROUTE_INPUT && !rerouteInputEdgeByTarget.has(edge.target)) {
+        rerouteInputEdgeByTarget.set(edge.target, edge);
+      }
+    }
+
     // Optimization: Build maps for O(1) dataType lookups instead of repeated find() calls
     const dataTypeBySlug = new Map(dataTypes.map((dt) => [dt.slug, dt]));
     const dataTypeByValue = new Map(dataTypes.map((dt) => [dt.value, dt]));
@@ -153,10 +163,7 @@ function useStructurallyProcessedEdges({
         if (visited.has(currentNode.id)) {break;}
         visited.add(currentNode.id);
 
-        const incoming = edges.find(
-          (e) =>
-            e.target === currentNode!.id && e.targetHandle === REROUTE_INPUT
-        );
+        const incoming = rerouteInputEdgeByTarget.get(currentNode.id);
         if (!incoming) {break;}
         currentNode = getNode(incoming.source);
         currentHandle = incoming.sourceHandle || "";

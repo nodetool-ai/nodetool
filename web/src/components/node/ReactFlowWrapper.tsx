@@ -91,6 +91,7 @@ import { useNodeEvents } from "../../hooks/handlers/useNodeEvents";
 import { useSelectionEvents } from "../../hooks/handlers/useSelectionEvents";
 import { useConnectionEvents } from "../../hooks/handlers/useConnectionEvents";
 import type { NodeData } from "../../stores/NodeData";
+import type { NodeStoreState } from "../../stores/NodeStore";
 import { scheduleNodeInternalsRefresh } from "../../utils/scheduleNodeInternalsRefresh";
 
 const CONTAINER_STYLE = {
@@ -622,22 +623,33 @@ const ReactFlowWrapper = ({
   }, [activeGradientKeys]);
 
   // Stable selector: only updates when the set of selected IDs actually changes,
-  // not on every position update during drag.
-  const selectedNodeIds = useNodes(
-    useCallback(
-      (state) =>
-        state.nodes.reduce((set, node) => {
-          if (node.selected) set.add(node.id);
-          return set;
-        }, new Set<string>()),
-      []
-    ),
-    (a, b) => {
-      if (a.size !== b.size) return false;
-      for (const id of a) if (!b.has(id)) return false;
-      return true;
-    }
-  );
+  // not on every position update during drag. The selector itself runs on every
+  // NodeStore update (drag frames, panning, edge ops); cache by `nodes` identity
+  // so store updates that don't touch the nodes array (viewport, edge changes)
+  // reuse the previous Set instead of re-scanning all nodes.
+  const selectedNodeIdsSelector = useMemo(() => {
+    let lastNodes: NodeStoreState["nodes"] | null = null;
+    let lastResult = new Set<string>();
+    return (state: NodeStoreState) => {
+      if (state.nodes === lastNodes) {
+        return lastResult;
+      }
+      lastNodes = state.nodes;
+      const set = new Set<string>();
+      for (const node of state.nodes) {
+        if (node.selected) {
+          set.add(node.id);
+        }
+      }
+      lastResult = set;
+      return set;
+    };
+  }, []);
+  const selectedNodeIds = useNodes(selectedNodeIdsSelector, (a, b) => {
+    if (a.size !== b.size) return false;
+    for (const id of a) if (!b.has(id)) return false;
+    return true;
+  });
 
   // Track previous selectedNodeIds to skip edge processing when selection hasn't changed
   const prevSelectedNodeIdsRef = useRef<Set<string> | null>(null);
