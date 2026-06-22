@@ -27,9 +27,6 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
     url: "https://nodetool.ai/use-cases/movie-poster",
     siteName: "NodeTool",
-    images: [
-      { url: "/poster-singularity-1.png", alt: "AI-generated cinematic movie poster" },
-    ],
     locale: "en_US",
     type: "article",
   },
@@ -38,7 +35,6 @@ export const metadata: Metadata = {
     title: "AI Movie Poster Generator",
     description:
       "From a title, genre, and audience to a batch of cinematic poster concepts, on one open canvas.",
-    images: ["/poster-singularity-1.png"],
   },
 };
 

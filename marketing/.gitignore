@@ -24,6 +24,9 @@
 .DS_Store
 *.pem
 
+# generated OG screenshots (run `npm run og:screenshots` to regenerate)
+/public/og/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
