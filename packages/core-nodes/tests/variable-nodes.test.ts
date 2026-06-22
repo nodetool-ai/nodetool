@@ -6,116 +6,115 @@ function makeContext(): ProcessingContext {
   return new ProcessingContext({ jobId: "variable-test" });
 }
 
+async function drain(
+  gen: AsyncGenerator<Record<string, unknown>>
+): Promise<unknown[]> {
+  const out: unknown[] = [];
+  for await (const item of gen) {
+    out.push(item.output);
+  }
+  return out;
+}
+
 describe("SetVariableNode", () => {
-  it("writes the value to the shared processing context", async () => {
+  it("publishes the value to its channel and passes it through", async () => {
     const ctx = makeContext();
+    ctx.registerChannelWriters("greeting", 1);
+
     const node = new SetVariableNode();
     node.assign({ name: "greeting", value: "hello" });
-
     const result = await node.process(ctx);
 
     expect(result.output).toBe("hello");
-    expect(ctx.get("greeting")).toBe("hello");
-    expect(ctx.hasVariable("greeting")).toBe(true);
-  });
-
-  it("passes the value through to the output unchanged", async () => {
-    const ctx = makeContext();
-    const node = new SetVariableNode();
-    const value = { nested: [1, 2, 3] };
-    node.assign({ name: "payload", value });
-
-    const result = await node.process(ctx);
-
-    expect(result.output).toBe(value);
-    expect(ctx.get("payload")).toBe(value);
+    ctx.markChannelWriterDone("greeting");
+    expect(await ctx.getChannel("greeting").first()).toBe("hello");
   });
 
   it("trims surrounding whitespace from the variable name", async () => {
     const ctx = makeContext();
+    ctx.registerChannelWriters("spaced", 1);
     const node = new SetVariableNode();
     node.assign({ name: "  spaced  ", value: 7 });
 
     await node.process(ctx);
 
-    expect(ctx.get("spaced")).toBe(7);
+    expect(await ctx.getChannel("spaced").first()).toBe(7);
   });
 
   it("throws when the variable name is empty", async () => {
-    const ctx = makeContext();
     const node = new SetVariableNode();
     node.assign({ name: "   ", value: "x" });
-
-    await expect(node.process(ctx)).rejects.toThrow(
+    await expect(node.process(makeContext())).rejects.toThrow(
       /non-empty variable name/
     );
   });
 });
 
 describe("GetVariableNode", () => {
-  it("reads a value written earlier on the same context", async () => {
+  it("streams every value published to its channel", async () => {
     const ctx = makeContext();
-    const setter = new SetVariableNode();
-    setter.assign({ name: "topic", value: "robots" });
-    await setter.process(ctx);
+    ctx.registerChannelWriters("topic", 1);
+    const ch = ctx.getChannel("topic");
+    ch.send("a");
+    ch.send("b");
+    ch.close();
 
-    const getter = new GetVariableNode();
-    getter.assign({ name: "topic" });
-    const result = await getter.process(ctx);
-
-    expect(result.output).toBe("robots");
+    const node = new GetVariableNode();
+    node.assign({ name: "topic" });
+    expect(await drain(node.genProcess(ctx))).toEqual(["a", "b"]);
   });
 
-  it("returns null for a variable that was never set", async () => {
+  it("emits nothing for a name no one sets", async () => {
     const ctx = makeContext();
-    const getter = new GetVariableNode();
-    getter.assign({ name: "missing" });
-
-    const result = await getter.process(ctx);
-
-    expect(result.output).toBeNull();
+    const node = new GetVariableNode();
+    node.assign({ name: "missing" });
+    expect(await drain(node.genProcess(ctx))).toEqual([]);
   });
 
-  it("ignores the trigger input value", async () => {
+  it("waits for a value, then ends when the last writer closes", async () => {
     const ctx = makeContext();
-    ctx.set("color", "blue");
+    ctx.registerChannelWriters("late", 1);
 
-    const getter = new GetVariableNode();
-    getter.assign({ name: "color", trigger: "anything" });
-    const result = await getter.process(ctx);
+    const node = new GetVariableNode();
+    node.assign({ name: "late" });
+    const collected = drain(node.genProcess(ctx));
 
-    expect(result.output).toBe("blue");
+    ctx.getChannel("late").send("v1");
+    ctx.markChannelWriterDone("late"); // closes the channel
+
+    expect(await collected).toEqual(["v1"]);
+  });
+
+  it("emits nothing when there is no context", async () => {
+    const node = new GetVariableNode();
+    node.assign({ name: "x" });
+    expect(await drain(node.genProcess())).toEqual([]);
   });
 
   it("throws when the variable name is empty", async () => {
-    const ctx = makeContext();
-    const getter = new GetVariableNode();
-    getter.assign({ name: "" });
-
-    await expect(getter.process(ctx)).rejects.toThrow(
+    const node = new GetVariableNode();
+    node.assign({ name: "" });
+    await expect(node.genProcess(makeContext()).next()).rejects.toThrow(
       /non-empty variable name/
     );
   });
 });
 
-describe("Set/Get Variable round trip", () => {
-  it("shares variables across nodes through one context", async () => {
+describe("Set/Get Variable round trip over a channel", () => {
+  it("a reader sees values regardless of who runs first", async () => {
     const ctx = makeContext();
+    ctx.registerChannelWriters("subject", 1);
 
-    const setName = new SetVariableNode();
-    setName.assign({ name: "subject", value: "a wizard" });
-    await setName.process(ctx);
+    // Reader subscribes before the writer publishes.
+    const getter = new GetVariableNode();
+    getter.assign({ name: "subject" });
+    const collected = drain(getter.genProcess(ctx));
 
-    const setMood = new SetVariableNode();
-    setMood.assign({ name: "mood", value: "mysterious" });
-    await setMood.process(ctx);
+    const setter = new SetVariableNode();
+    setter.assign({ name: "subject", value: "a wizard" });
+    await setter.process(ctx);
+    ctx.markChannelWriterDone("subject");
 
-    const getSubject = new GetVariableNode();
-    getSubject.assign({ name: "subject" });
-    const getMood = new GetVariableNode();
-    getMood.assign({ name: "mood" });
-
-    expect((await getSubject.process(ctx)).output).toBe("a wizard");
-    expect((await getMood.process(ctx)).output).toBe("mysterious");
+    expect(await collected).toEqual(["a wizard"]);
   });
 });
