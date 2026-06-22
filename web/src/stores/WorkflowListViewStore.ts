@@ -20,7 +20,7 @@ interface WorkflowListViewState {
 export const useWorkflowListViewStore = create<WorkflowListViewState>()(
   persist(
     (set) => ({
-      showGraphPreview: true,
+      showGraphPreview: false,
       sortBy: "date" satisfies SortBy,
       selectedTags: [],
       actions: {
