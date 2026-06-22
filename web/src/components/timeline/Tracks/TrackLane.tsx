@@ -136,6 +136,15 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
   const rbStartRef = useRef({ x: 0, y: 0 });
   /** Selection snapshot taken at pointerdown when Shift is held (union mode). */
   const rbBaseSelectionRef = useRef<Set<string> | null>(null);
+  /** This track's clips snapshotted at pointerdown — the clip list doesn't
+   *  change during a rubber-band gesture, so we avoid filtering the full clip
+   *  array twice on every pointermove. */
+  const rbTrackClipsRef = useRef<
+    Array<{ id: string; startMs: number; durationMs: number }>
+  >([]);
+  /** Coalesces selection updates to one per animation frame. */
+  const rbRafIdRef = useRef<number | null>(null);
+  const rbPendingRef = useRef<{ startMs: number; endMs: number } | null>(null);
   const [rubberBand, setRubberBand] = React.useState<RubberBandRect | null>(
     null
   );
@@ -163,11 +172,14 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
     null
   );
 
-  // Clear any pending warning timer on unmount
+  // Clear any pending warning timer / scheduled selection frame on unmount
   useEffect(() => {
     return () => {
       if (warningTimerRef.current !== null) {
         clearTimeout(warningTimerRef.current);
+      }
+      if (rbRafIdRef.current !== null) {
+        cancelAnimationFrame(rbRafIdRef.current);
       }
     };
   }, []);
@@ -320,6 +332,18 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
         );
       }
 
+      // Snapshot this track's clips once — they don't move during the band
+      // gesture, so the hit-test on pointermove reads from this list instead of
+      // re-filtering the global clip array each frame.
+      rbTrackClipsRef.current = useTimelineStore
+        .getState()
+        .clips.filter((c) => c.trackId === track.id)
+        .map((c) => ({
+          id: c.id,
+          startMs: c.startMs,
+          durationMs: c.durationMs
+        }));
+
       e.currentTarget.setPointerCapture(e.pointerId);
       const rect = e.currentTarget.getBoundingClientRect();
       const localX = e.clientX - rect.left;
@@ -334,8 +358,31 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       const timeMs = Math.round(localX * msPerPx);
       seek(timeMs);
     },
-    [clearSelection, msPerPx, seek]
+    [clearSelection, msPerPx, seek, track.id]
   );
+
+  // Apply the pending rubber-band selection. Runs at most once per animation
+  // frame (scheduled from pointermove) so a fast drag doesn't fire setSelection
+  // — and the O(n) overlap filter — on every pointer event.
+  const flushRubberBandSelection = useCallback(() => {
+    rbRafIdRef.current = null;
+    const pending = rbPendingRef.current;
+    if (!pending) {
+      return;
+    }
+    const { startMs, endMs } = pending;
+    const selected = rbTrackClipsRef.current
+      .filter((c) => {
+        const clipEnd = c.startMs + c.durationMs;
+        return clipEnd > startMs && c.startMs < endMs;
+      })
+      .map((c) => c.id);
+
+    // Shift+band unions with the selection snapshotted at pointerdown;
+    // a plain band replaces the selection.
+    const base = rbBaseSelectionRef.current;
+    setSelection(base ? [...new Set([...base, ...selected])] : selected);
+  }, [setSelection]);
 
   const handleLanePointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -355,35 +402,34 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
       // Compute which clips overlap the rubber-band. The lane renders inside
       // the scrolling lanes container, so lane-local coordinates are already
-      // content-space — no scroll offset.
+      // content-space — no scroll offset. Defer the actual selection filter to
+      // the next animation frame.
       const rbStartMs = left * msPerPx;
-      const rbEndMs = rbStartMs + width * msPerPx;
-
-      // Read clips lazily to avoid subscribing to the full array in render
-      const clips = useTimelineStore.getState().clips.filter(
-        (c) => c.trackId === track.id
-      );
-      const selected = clips
-        .filter((c) => {
-          const clipStart = c.startMs;
-          const clipEnd = c.startMs + c.durationMs;
-          return clipEnd > rbStartMs && clipStart < rbEndMs;
-        })
-        .map((c) => c.id);
-
-      // Shift+band unions with the selection snapshotted at pointerdown;
-      // a plain band replaces the selection.
-      const base = rbBaseSelectionRef.current;
-      setSelection(base ? [...new Set([...base, ...selected])] : selected);
+      rbPendingRef.current = {
+        startMs: rbStartMs,
+        endMs: rbStartMs + width * msPerPx
+      };
+      if (rbRafIdRef.current === null) {
+        rbRafIdRef.current = requestAnimationFrame(flushRubberBandSelection);
+      }
     },
-    [msPerPx, track.id, setSelection]
+    [msPerPx, flushRubberBandSelection]
   );
 
   const handleLanePointerUp = useCallback(() => {
     isRubberBandingRef.current = false;
     rbBaseSelectionRef.current = null;
+    // Apply any selection still pending from the last pointermove frame so the
+    // final band contents stick even if pointerup beats the scheduled frame.
+    if (rbRafIdRef.current !== null) {
+      cancelAnimationFrame(rbRafIdRef.current);
+      rbRafIdRef.current = null;
+      flushRubberBandSelection();
+    }
+    rbPendingRef.current = null;
+    rbTrackClipsRef.current = [];
     setRubberBand(null);
-  }, []);
+  }, [flushRubberBandSelection]);
 
   // ── Right-click context menu ────────────────────────────────────────────
 
