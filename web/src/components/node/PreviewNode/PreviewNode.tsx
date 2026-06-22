@@ -122,7 +122,10 @@ const styles = (theme: Theme) =>
         {
           height: "fit-content !important"
         },
-      // header — keep full hit target; stack above NodeOutputs' right column (z-index 3)
+      // header — keep full hit target; stack above NodeOutputs' right column (z-index 3).
+      // Pad the title clear of the node's rounded top corners (radius
+      // `--rounded-node`); with padding:0 the flush-left title was clipped at the
+      // top-left where the corner curve cuts into the glyphs.
       ".node-header": {
         position: "relative",
         zIndex: 4,
@@ -131,7 +134,7 @@ const styles = (theme: Theme) =>
         top: 0,
         left: 0,
         margin: 0,
-        padding: 0,
+        padding: "3px 8px 0",
         border: 0
       },
       "& .react-flow__resize-control.handle.bottom.right": {

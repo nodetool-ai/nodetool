@@ -274,27 +274,27 @@ const Vector3Row = ({
 // materials). These helpers read/write a property only when it is actually
 // present with the expected runtime type, so the panel adapts to whatever
 // material the selected mesh carries without `any`.
-const getNumberProp = (obj: object, key: string): number | undefined => {
-  const v = (obj as Record<string, unknown>)[key];
+const getNumberProp = (obj: Record<string, unknown>, key: string): number | undefined => {
+  const v = obj[key];
   return typeof v === "number" ? v : undefined;
 };
 
-const setNumberProp = (obj: object, key: string, value: number): void => {
-  (obj as Record<string, unknown>)[key] = value;
+const setNumberProp = (obj: Record<string, unknown>, key: string, value: number): void => {
+  obj[key] = value;
 };
 
-const getColorProp = (obj: object, key: string): THREE.Color | undefined => {
-  const v = (obj as Record<string, unknown>)[key];
+const getColorProp = (obj: Record<string, unknown>, key: string): THREE.Color | undefined => {
+  const v = obj[key];
   return v instanceof THREE.Color ? v : undefined;
 };
 
-const getBoolProp = (obj: object, key: string): boolean | undefined => {
-  const v = (obj as Record<string, unknown>)[key];
+const getBoolProp = (obj: Record<string, unknown>, key: string): boolean | undefined => {
+  const v = obj[key];
   return typeof v === "boolean" ? v : undefined;
 };
 
-const setBoolProp = (obj: object, key: string, value: boolean): void => {
-  (obj as Record<string, unknown>)[key] = value;
+const setBoolProp = (obj: Record<string, unknown>, key: string, value: boolean): void => {
+  obj[key] = value;
 };
 
 interface MaterialNumberSpec {

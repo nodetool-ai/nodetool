@@ -31,7 +31,6 @@ import React, {
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import ImageIcon from "@mui/icons-material/Image";
 import BrushIcon from "@mui/icons-material/Brush";
 import SvgIcon, { type SvgIconProps } from "@mui/material/SvgIcon";
 
@@ -47,15 +46,13 @@ import RedoIcon from "@mui/icons-material/Redo";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 
 import {
-  CheckerDropzone,
   FlexColumn,
   FlexRow,
   ToggleGroup,
   ToggleOption,
   ToolbarIconButton,
   BORDER_RADIUS,
-  MOTION,
-  FONT_WEIGHT
+  MOTION
 } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import { NodeOutputs } from "../../node/NodeOutputs";

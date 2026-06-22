@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import { LoadingSpinner, Text, Box, ProgressBar } from "../ui_primitives";
@@ -11,7 +11,6 @@ import MiniAppResults from "./components/MiniAppResults";
 import MiniAppInputsForm from "./components/MiniAppInputsForm";
 import { useMiniAppInputs } from "./hooks/useMiniAppInputs";
 import { useMiniAppRunner } from "./hooks/useMiniAppRunner";
-import { clampNumber } from "./utils";
 import { createStyles } from "./styles";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useQuery } from "@tanstack/react-query";
@@ -51,8 +50,7 @@ const StandaloneMiniApp: React.FC = () => {
     runnerState,
     statusMessage,
     results,
-    progress,
-    resetWorkflowState
+    progress
   } = useMiniAppRunner(workflow);
 
   const clearResults = useMiniAppsStore((state) => state.clearResults);
@@ -81,64 +79,6 @@ const StandaloneMiniApp: React.FC = () => {
   useEffect(() => {
     setSubmitError(null);
   }, [workflowId]);
-
-  const _handleSubmit = useCallback(async () => {
-    if (!workflow) {
-      return;
-    }
-
-    setSubmitError(null);
-
-    try {
-      resetWorkflowState(workflow.id);
-
-      const params = inputDefinitions.reduce<Record<string, unknown>>(
-        (accumulator, definition) => {
-          const value = inputValues[definition.data.name];
-
-          if (value === undefined) {
-            return accumulator;
-          }
-
-          if (
-            (definition.kind === "integer" || definition.kind === "float") &&
-            typeof value === "number"
-          ) {
-            const normalized =
-              definition.kind === "integer" ? Math.round(value) : value;
-            accumulator[definition.data.name] = clampNumber(
-              normalized,
-              definition.data.min,
-              definition.data.max
-            );
-            return accumulator;
-          }
-
-          accumulator[definition.data.name] = value;
-          return accumulator;
-        },
-        {}
-      );
-
-      await runWorkflow(params, workflow, workflowNodes, workflowEdges);
-    } catch (error) {
-      console.error("Failed to run workflow", error);
-      setSubmitError(
-        error instanceof Error ? error.message : "Failed to run workflow"
-      );
-    }
-  }, [
-    inputDefinitions,
-    inputValues,
-    resetWorkflowState,
-    runWorkflow,
-    workflow,
-    workflowEdges,
-    workflowNodes
-  ]);
-
-  const _isSubmitDisabled =
-    !workflow || runnerState === "running" || runnerState === "connecting";
 
   const activeNodeStore = useWorkflowManager((state) =>
     state.currentWorkflowId

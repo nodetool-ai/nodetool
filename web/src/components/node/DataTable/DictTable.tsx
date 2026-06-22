@@ -185,7 +185,7 @@ const DictTable: React.FC<DictTableProps> = ({
     <div className="dicttable nowheel nodrag" css={tableStyles(theme)}>
       <TableActions
         tabulator={tabulator}
-        data={data as unknown as TableData}
+        data={data}
         selectedRows={selectedRows}
         showSelect={showSelect}
         setShowSelect={setShowSelect}

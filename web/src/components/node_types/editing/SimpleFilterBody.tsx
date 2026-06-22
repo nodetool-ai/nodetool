@@ -23,7 +23,6 @@ import {
   ToggleGroup,
   ToggleOption, BORDER_RADIUS } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
-import ImageView from "../../node/ImageView";
 import ImageRefPreview from "../../node/ImageRefPreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
@@ -34,7 +33,6 @@ import {
   useNodeOutput,
   useUpstreamValue
 } from "../../../hooks/nodes/useNodeIO";
-import { asImageRef } from "../../../utils/imageRef";
 
 type SimpleFilterTab = "before" | "after";
 
