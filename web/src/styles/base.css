@@ -55,6 +55,15 @@ ul li {
   pointer-events: none;
 }
 
+/* Suppress native text selection while box-selecting nodes (Shift+drag).
+   The class is toggled on <body> by useSelectionEvents for the duration of
+   the marquee gesture, so normal text selection/copy stays available
+   otherwise. */
+body.is-marquee-selecting .react-flow {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 /* Pane */
 .react-flow__pane.selection {
   cursor: default;
