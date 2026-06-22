@@ -197,7 +197,7 @@ const ChatView = ({
   const handleSendMessage = useCallback(
     async (
       content: MessageContent[],
-      prompt: string,
+      _prompt: string,
       mediaGeneration?: MediaGenerationRequest
     ) => {
       try {

@@ -20,8 +20,6 @@ import DataArrayIcon from "@mui/icons-material/DataArray";
 import EditIcon from "@mui/icons-material/Edit";
 
 import { useDuplicateNodes } from "../../hooks/useDuplicate";
-import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { getMousePosition } from "../../utils/MousePosition";
 import { useNodes } from "../../contexts/NodeContext";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
@@ -47,9 +45,6 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
   const nodeData = node?.data as NodeData | undefined;
   const duplicateNodes = useDuplicateNodes();
   const removeFromGroup = useRemoveFromGroup();
-  const openDocumentation = useNodeMenuStore(
-    (state) => state.openDocumentation
-  );
   const { handlers, conditions } = useNodeContextMenu();
   const { runFromHere, isWorkflowRunning } = useRunFromHere(node as Node<NodeData> | null);
 
@@ -71,14 +66,6 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
       duplicateNodes();
     }
   }, [nodeId, getNode, duplicateNodes]);
-
-  const _handleOpenDocumentation = useCallback(() => {
-    const mousePosition = getMousePosition();
-    openDocumentation(node?.type || "", {
-      x: mousePosition.x,
-      y: mousePosition.y
-    });
-  }, [node?.type, openDocumentation]);
 
   const handleToggleBypass = useCallback(() => {
     if (nodeId !== null) {
