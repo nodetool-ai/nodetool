@@ -162,11 +162,45 @@ function clipRoundedRect(
 }
 
 /**
+ * Memoize the built filter string per `(clipEffects, trackEffects)` array
+ * identity. Both arrays are stable references on the clip/track until edited,
+ * so a clip sitting still reuses its string across every frame instead of
+ * rebuilding it per layer per frame. The outer WeakMap is keyed on the clip
+ * effects array; the inner on the track effects array.
+ */
+const FILTER_NONE_KEY = Object.freeze([]) as readonly never[];
+const filterCache = new WeakMap<
+  object,
+  WeakMap<object, string>
+>();
+
+function filterForEffects(
+  clipEffects: ClipEffect[] | undefined,
+  trackEffects: TrackEffect[] | undefined
+): string {
+  // Normalize undefined to a shared sentinel so both keys are always objects
+  // the WeakMaps can hold.
+  const clipKey = (clipEffects ?? FILTER_NONE_KEY) as object;
+  const trackKey = (trackEffects ?? FILTER_NONE_KEY) as object;
+  let inner = filterCache.get(clipKey);
+  if (inner) {
+    const hit = inner.get(trackKey);
+    if (hit !== undefined) return hit;
+  } else {
+    inner = new WeakMap<object, string>();
+    filterCache.set(clipKey, inner);
+  }
+  const result = computeFilterForEffects(clipEffects, trackEffects);
+  inner.set(trackKey, result);
+  return result;
+}
+
+/**
  * Approximate the clip + track color/blur effects with a CSS `filter` string.
  * This is a best-effort fallback — it covers the common brightness / contrast /
  * saturation / hue / blur adjustments and ignores the GPU-only effects.
  */
-function filterForEffects(
+function computeFilterForEffects(
   clipEffects: ClipEffect[] | undefined,
   trackEffects: TrackEffect[] | undefined
 ): string {

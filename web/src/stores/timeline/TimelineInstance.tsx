@@ -72,18 +72,38 @@ export const attachUiPruning = (
 ): (() => void) =>
   doc.subscribe((state, prev) => {
     if (state.clips === prev.clips) return;
-    const ids = new Set(state.clips.map((c) => c.id));
+
     const uiState = ui.getState();
-    if (uiState.hoveredClipId && !ids.has(uiState.hoveredClipId)) {
+    const hovered = uiState.hoveredClipId;
+    const selected = uiState.selectedClipIds;
+    const ws = uiState.wordSelection;
+
+    // Pruning drops UI references to clips that no longer exist. When the UI
+    // references nothing (the common case during generation/drag/status
+    // ticks), there is nothing to prune — skip the O(n) id-scan entirely.
+    if (hovered === null && selected.size === 0 && ws === null) {
+      return;
+    }
+
+    // A referenced clip can only vanish on a removal (delete / undo / track
+    // removal / sequence load). Build the id set once and prune the few
+    // referenced ids that are gone.
+    const ids = new Set(state.clips.map((c) => c.id));
+
+    if (hovered !== null && !ids.has(hovered)) {
       uiState.setHoveredClipId(null);
     }
-    const selected = [...uiState.selectedClipIds];
-    const valid = selected.filter((id) => ids.has(id));
-    if (valid.length !== selected.length) {
-      uiState.setSelection(valid);
+    if (selected.size > 0) {
+      const selectedArr = [...selected];
+      const valid = selectedArr.filter((id) => ids.has(id));
+      if (valid.length !== selectedArr.length) {
+        uiState.setSelection(valid);
+      }
     }
-    const ws = uiState.wordSelection;
-    if (ws && (!ids.has(ws.anchor.clipId) || !ids.has(ws.focus.clipId))) {
+    if (
+      ws !== null &&
+      (!ids.has(ws.anchor.clipId) || !ids.has(ws.focus.clipId))
+    ) {
       uiState.clearWordSelection();
     }
   });

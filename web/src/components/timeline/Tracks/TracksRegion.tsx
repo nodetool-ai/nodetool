@@ -190,14 +190,31 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     // `durationMs` is not recomputed when clips are added or moved, so it can
     // lag far behind the actual clips (it stays 0 for a freshly built
     // timeline). Derive the real end from the clips so the scroll width — and
-    // thus the scrollbar — tracks zoom and content. The selector returns a
-    // single number, so this only re-renders when the max end changes.
+    // thus the scrollbar — tracks zoom and content.
+    //
+    // The selector returns a single number, so Zustand already bails out of
+    // re-rendering when the max end is unchanged. To also avoid the O(n) scan
+    // on every unrelated store change, we cache the result keyed on the
+    // `clips` array + `durationMs` identity and only recompute when either
+    // actually changes (clips is replaced immutably on every edit).
+    const contentEndCacheRef = useRef<{
+      clips: unknown;
+      durationMs: number;
+      value: number;
+    }>({ clips: null, durationMs: -1, value: 0 });
     const contentEndMs = useTimelineStore((s) => {
+      const cache = contentEndCacheRef.current;
+      if (cache.clips === s.clips && cache.durationMs === s.durationMs) {
+        return cache.value;
+      }
       let maxEnd = s.durationMs;
       for (const c of s.clips) {
         const end = c.startMs + c.durationMs;
         if (end > maxEnd) maxEnd = end;
       }
+      cache.clips = s.clips;
+      cache.durationMs = s.durationMs;
+      cache.value = maxEnd;
       return maxEnd;
     });
     const hasScript = useHasScript();

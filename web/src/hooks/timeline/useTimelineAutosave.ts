@@ -72,6 +72,26 @@ export function markTimelineLoadMigrated(sequenceId: string): void {
 const consumeMigratedLoad = (sequenceId: string): boolean =>
   migratedLoads.delete(sequenceId);
 
+/**
+ * Whether two snapshots carry the same persisted document. Compares the slice
+ * references (and scriptEnabled) — the store's mutations return the SAME array
+ * reference on a no-op, so reference equality is a correct, O(1) dirty check.
+ * `baseUpdatedAt` is excluded: a successful save rolls it forward without the
+ * document changing, and that must not count as dirty.
+ */
+const sameDocument = (
+  a: DocumentSnapshot | null,
+  b: DocumentSnapshot | null
+): boolean =>
+  a !== null &&
+  b !== null &&
+  a.sequenceId === b.sequenceId &&
+  a.tracks === b.tracks &&
+  a.clips === b.clips &&
+  a.markers === b.markers &&
+  a.transcript === b.transcript &&
+  a.scriptEnabled === b.scriptEnabled;
+
 export interface UseTimelineAutosaveOptions {
   debounceMs?: number;
 }
@@ -85,6 +105,11 @@ export function useTimelineAutosave(
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingRef = useRef<DocumentSnapshot | null>(null);
   const inFlightRef = useRef(false);
+  // The document slices last persisted (or last loaded) successfully. A pending
+  // snapshot whose slices all match these is a no-op — an edit that reverted to
+  // the saved state, or a non-document set that slipped past — and is skipped so
+  // we don't PATCH bytes the server already holds.
+  const lastSavedRef = useRef<DocumentSnapshot | null>(null);
 
   useEffect(() => {
     let scheduleFn: () => void = () => {};
@@ -130,6 +155,9 @@ export function useTimelineAutosave(
         ) {
           store.getState().setBaseUpdatedAt(updatedAt);
         }
+        // Record what we just persisted so a later edit that reverts to this
+        // exact document is recognised as a no-op and not re-sent.
+        lastSavedRef.current = snapshot;
         succeeded = true;
       } catch (error) {
         console.error("Timeline autosave failed:", error);
@@ -173,6 +201,10 @@ export function useTimelineAutosave(
       const pending = pendingRef.current;
       pendingRef.current = null;
       if (!pending || !pending.sequenceId) return;
+      // Skip a save whose document matches what we last persisted: an edit that
+      // round-tripped back to the saved state, or the setBaseUpdatedAt write
+      // looping back through the subscriber.
+      if (sameDocument(pending, lastSavedRef.current)) return;
       void runSave(pending);
     };
 
@@ -225,7 +257,9 @@ export function useTimelineAutosave(
       lastScriptEnabled = state.scriptEnabled;
       if (isLoad && !consumeMigratedLoad(state.sequenceId)) {
         // Loading a sequence is not an edit: re-baseline without scheduling
-        // a redundant PATCH of the document we just fetched.
+        // a redundant PATCH of the document we just fetched. Record it as the
+        // saved baseline so a later edit that reverts to it is a no-op.
+        lastSavedRef.current = pickSnapshot(state);
         return;
       }
       pendingRef.current = pickSnapshot(state);

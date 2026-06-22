@@ -351,10 +351,16 @@ export const useTimelineTranscriptStore = create<TimelineTranscriptStoreState>(
       setSpeaker: (clipIds, speaker) => {
         const store = useTimelineStore.getState();
         const ids = new Set(clipIds);
-        const value = speaker.trim();
+        const value = speaker.trim() || undefined;
+        // Skip the rewrite when every target already holds this speaker — only
+        // rewrite the affected clips, leaving the rest object-identical.
+        const hasChange = store.clips.some(
+          (c) => ids.has(c.id) && c.speaker !== value
+        );
+        if (!hasChange) return;
         store.setTranscriptAndClips({
           clips: store.clips.map((c) =>
-            ids.has(c.id) ? { ...c, speaker: value || undefined } : c
+            ids.has(c.id) && c.speaker !== value ? { ...c, speaker: value } : c
           )
         });
       },

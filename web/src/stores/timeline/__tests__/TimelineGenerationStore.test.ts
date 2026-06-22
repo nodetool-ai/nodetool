@@ -268,6 +268,82 @@ describe("TimelineGenerationStore", () => {
     });
   });
 
+  describe("derived id-list stability (perf)", () => {
+    it("keeps the generating id list reference across progress-only updates", () => {
+      act(() => {
+        useTimelineGenerationStore.getState().registerJob("clip-1", "job-1", "wf-1");
+        useTimelineGenerationStore.getState().updateJobStatus("job-1", "running");
+      });
+
+      const before = useTimelineGenerationStore.getState().generatingClipIds;
+      expect(before).toEqual(["clip-1"]);
+
+      act(() => {
+        useTimelineGenerationStore.getState().updateJobProgress("job-1", 25);
+        useTimelineGenerationStore.getState().updateJobProgress("job-1", 75);
+      });
+
+      const after = useTimelineGenerationStore.getState().generatingClipIds;
+      // Progress ticks must NOT change the identity of the membership list.
+      expect(after).toBe(before);
+    });
+
+    it("keeps the failed id list reference across unrelated progress updates", () => {
+      act(() => {
+        useTimelineGenerationStore.getState().registerJob("clip-1", "job-1", "wf-1");
+        useTimelineGenerationStore.getState().registerJob("clip-2", "job-2", "wf-1");
+        useTimelineGenerationStore
+          .getState()
+          .updateJobStatus("job-2", "failed", { errorMessage: "x" });
+      });
+
+      const before = useTimelineGenerationStore.getState().failedClipIds;
+      expect(before).toEqual(["clip-2"]);
+
+      act(() => {
+        useTimelineGenerationStore.getState().updateJobProgress("job-1", 50);
+      });
+
+      expect(useTimelineGenerationStore.getState().failedClipIds).toBe(before);
+    });
+
+    it("changes the generating id list reference when membership changes", () => {
+      act(() => {
+        useTimelineGenerationStore.getState().registerJob("clip-1", "job-1", "wf-1");
+      });
+      const before = useTimelineGenerationStore.getState().generatingClipIds;
+
+      act(() => {
+        useTimelineGenerationStore.getState().registerJob("clip-2", "job-2", "wf-1");
+      });
+      const after = useTimelineGenerationStore.getState().generatingClipIds;
+
+      expect(after).not.toBe(before);
+      expect(after).toEqual(["clip-1", "clip-2"]);
+    });
+
+    it("moves a clip from generating to failed when its status changes", () => {
+      act(() => {
+        useTimelineGenerationStore.getState().registerJob("clip-1", "job-1", "wf-1");
+        useTimelineGenerationStore.getState().updateJobStatus("job-1", "running");
+      });
+      expect(useTimelineGenerationStore.getState().generatingClipIds).toEqual([
+        "clip-1"
+      ]);
+      expect(useTimelineGenerationStore.getState().failedClipIds).toEqual([]);
+
+      act(() => {
+        useTimelineGenerationStore
+          .getState()
+          .updateJobStatus("job-1", "failed", { errorMessage: "boom" });
+      });
+      expect(useTimelineGenerationStore.getState().generatingClipIds).toEqual([]);
+      expect(useTimelineGenerationStore.getState().failedClipIds).toEqual([
+        "clip-1"
+      ]);
+    });
+  });
+
   describe("clearJob", () => {
     it("removes the job entry", () => {
       act(() => {

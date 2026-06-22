@@ -75,12 +75,16 @@ export class AudioGraph {
   }
 
   async loadBuffer(assetId: string, url: string): Promise<AudioBuffer | null> {
-    if (this.bufferCache.has(assetId)) {
-      const buffer = this.bufferCache.get(assetId)!;
-      // Touch as most-recent for LRU ordering.
-      this.bufferCache.delete(assetId);
-      this.bufferCache.set(assetId, buffer);
-      return buffer;
+    const cachedBuffer = this.bufferCache.get(assetId);
+    if (cachedBuffer) {
+      // LRU touch (delete+reinsert) only matters when eviction is imminent.
+      // While the cache has spare capacity nothing is evicted, so skip the
+      // reorder churn on the hot path.
+      if (this.bufferCache.size >= BUFFER_CACHE_MAX) {
+        this.bufferCache.delete(assetId);
+        this.bufferCache.set(assetId, cachedBuffer);
+      }
+      return cachedBuffer;
     }
     if (this.loadingPromises.has(assetId)) {
       return this.loadingPromises.get(assetId)!;

@@ -109,6 +109,31 @@ function drawCaption(
  */
 export class CaptionRasterizer {
   private cache = new Map<string, ImageBitmap>();
+  /**
+   * Memoize the content signature per caption object identity. A
+   * `ResolvedCaption` is rebuilt each frame the *content* changes, so an
+   * unchanged reference means an unchanged signature — let us skip the
+   * per-word string rebuild on cache hits (the hot path while a single word is
+   * highlighted across many frames).
+   */
+  private signatureByRef = new WeakMap<
+    ResolvedCaption,
+    { width: number; height: number; signature: string }
+  >();
+
+  private signatureFor(
+    caption: ResolvedCaption,
+    width: number,
+    height: number
+  ): string {
+    const memo = this.signatureByRef.get(caption);
+    if (memo && memo.width === width && memo.height === height) {
+      return memo.signature;
+    }
+    const signature = captionSignature(caption, width, height);
+    this.signatureByRef.set(caption, { width, height, signature });
+    return signature;
+  }
 
   rasterize(
     caption: ResolvedCaption,
@@ -119,7 +144,7 @@ export class CaptionRasterizer {
     if (typeof OffscreenCanvas === "undefined") return null;
     if (width <= 0 || height <= 0) return null;
 
-    const key = captionSignature(caption, width, height);
+    const key = this.signatureFor(caption, width, height);
     const hit = this.cache.get(key);
     if (hit) return hit;
 
