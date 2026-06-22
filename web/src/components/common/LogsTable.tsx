@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Text, Tooltip, ToolbarIconButton, Card, Popover, FlexColumn, FlexRow, MOTION } from "../ui_primitives";
+import { Text, Tooltip, ToolbarIconButton, Card, Popover, FlexColumn, FlexRow, MOTION, Z_INDEX } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -174,7 +174,7 @@ const tableStyles = (theme: Theme) =>
       position: "absolute",
       bottom: 16,
       right: 16,
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       backgroundColor: theme.vars.palette.grey[800],
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       boxShadow: "0 4px 12px rgba(0, 0, 0, 0.4)",

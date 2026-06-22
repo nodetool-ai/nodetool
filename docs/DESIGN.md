@@ -17,6 +17,15 @@ Single reference for every design token and visual rule in NodeTool. All fronten
 - Theme: [`web/src/components/themes/ThemeNodetool.tsx`](../web/src/components/themes/ThemeNodetool.tsx)
 - Palettes: [`paletteDark.ts`](../web/src/components/themes/paletteDark.ts) / [`paletteLight.ts`](../web/src/components/themes/paletteLight.ts)
 
+**Enforcement:** Most of these rules are linted. The default `npm run lint`
+(oxlint) can't express the design-token AST checks, so they run through ESLint
+as a dedicated gate: `web/eslint.design.config.mjs` (rules shared from
+`web/eslint.design.mjs`) is invoked by `npm run lint:design` and chained into
+the root `npm run lint`. Today all design-token rules are **warnings** — they
+surface the migration backlog without breaking the build. Promote a category to
+`error` once it reaches zero violations (e.g. `fontWeight`, already clean) to
+lock it in.
+
 ---
 
 ## 1. Typography

@@ -20,7 +20,7 @@ import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlayb
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { formatTimecode } from "../Inspector/InspectorPrimitives.helpers";
-import { MOTION } from "../../ui_primitives";
+import { MOTION, Z_INDEX } from "../../ui_primitives";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -45,7 +45,7 @@ const hitAreaStyles = (theme: Theme, dragging: boolean) =>
     cursor: dragging ? "grabbing" : "ew-resize",
     touchAction: "none",
     pointerEvents: "auto",
-    zIndex: 10,
+    zIndex: Z_INDEX.dropdown,
     "&::before": {
       content: '""',
       position: "absolute",

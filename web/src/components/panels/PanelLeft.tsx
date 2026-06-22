@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import {
   useMediaQuery
 } from "@mui/material";
-import { ToolbarIconButton, FlexColumn, Box } from "../ui_primitives";
+import { ToolbarIconButton, FlexColumn, Box, Z_INDEX } from "../ui_primitives";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { BORDER_RADIUS } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
@@ -92,7 +92,7 @@ const styles = (
     height: `calc(100vh - var(--workspace-rail-top, ${headerHeight}px))`,
     display: "flex",
     flexDirection: "row",
-    zIndex: 1100,
+    zIndex: theme.zIndex.appBar,
 
     ".drawer-content": {
       marginTop: "40px",
@@ -115,7 +115,7 @@ const styles = (
       border: 0,
       borderRadius: 0,
       cursor: "ew-resize",
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       transition: MOTION.all,
 
       "&:hover": {
@@ -460,7 +460,7 @@ const mobileLauncherStyles = (theme: Theme, hasHeader: boolean) =>
     position: "fixed",
     top: `${hasHeader ? MOBILE_LAUNCHER_TOP : MOBILE_LAUNCHER_TOP_STANDALONE}px`,
     left: 8,
-    zIndex: 1100,
+    zIndex: theme.zIndex.appBar,
     backgroundColor: theme.vars.palette.background.paper,
     color: theme.vars.palette.text.primary,
     border: `1px solid ${theme.vars.palette.divider}`,
