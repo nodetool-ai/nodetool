@@ -2286,13 +2286,38 @@ export class UnifiedWebSocketRunner {
       active.runner.cancel();
     }
     active.status = "cancelled";
+
+    // Persist the cancellation to the DB and announce it right away, mirroring
+    // the queued branch and the tRPC jobs.cancel path. The runner's own cleanup
+    // can lag (it drains in-flight messages before its .finally() persists), so
+    // without this the persisted row stays "running" and jobs.list — which the
+    // Queue panel reads from — keeps reporting the job as running even though
+    // the toolbar Stop already fired. Marking it cancelled here, plus the
+    // job_update below, lets clients refetch and reflect the stop immediately.
+    const cancelledWorkflowId = workflowId ?? active.workflowId ?? null;
+    try {
+      const job = await Job.get(jobId);
+      if (job && job.status !== "cancelled") {
+        job.markCancelled();
+        await job.save();
+      }
+    } catch (err) {
+      this.logError("cancel persistence failed", err);
+    }
+    await this.sendMessage({
+      type: "job_update",
+      status: "cancelled",
+      job_id: jobId,
+      workflow_id: cancelledWorkflowId
+    });
+
     // Do NOT set active.finished = true here. Let the runner's cancellation
     // propagate through executePromise's .finally() callback so that
     // streamJobMessages can drain remaining messages and persist job state.
     return {
       message: "Job cancellation requested",
       job_id: jobId,
-      workflow_id: workflowId ?? active.workflowId ?? ""
+      workflow_id: cancelledWorkflowId ?? ""
     };
   }
 
