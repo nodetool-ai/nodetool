@@ -4,7 +4,15 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
-import { Fragment, memo, useCallback, useMemo, useState } from "react";
+import {
+  Fragment,
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import type { DragEvent, KeyboardEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -265,7 +273,14 @@ export const CreateTimelineButton = memo(function CreateTimelineButton() {
 const TimelineListPanel = () => {
   const theme = useTheme();
   const [filterValue, setFilterValue] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
   const { data, isLoading, isError, error } = useTimelines();
+
+  // Focus the filter on open so users can immediately type to search,
+  // matching the workflows list panel.
+  useEffect(() => {
+    searchRef.current?.focus();
+  }, []);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const activeTabId = useWorkspaceTabsStore((state) => state.activeTabId);
   const setVisibility = usePanelStore((state) => state.setVisibility);
@@ -310,6 +325,7 @@ const TimelineListPanel = () => {
     <FlexColumn fullHeight fullWidth gap={0} css={styles(theme)}>
       <div className="timeline-search">
         <CategorySearchBar
+          ref={searchRef}
           value={filterValue}
           onChange={setFilterValue}
           placeholder="Search timelines..."

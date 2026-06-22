@@ -4,7 +4,15 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import BrushOutlinedIcon from "@mui/icons-material/BrushOutlined";
-import { Fragment, memo, useCallback, useMemo, useState } from "react";
+import {
+  Fragment,
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import type { DragEvent, KeyboardEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -270,6 +278,13 @@ export const CreateSketchButton = memo(function CreateSketchButton() {
 const SketchListPanel = () => {
   const theme = useTheme();
   const [filterValue, setFilterValue] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // Focus the filter on open so users can immediately type to search,
+  // matching the workflows list panel.
+  useEffect(() => {
+    searchRef.current?.focus();
+  }, []);
   const { data, isLoading, isError, error } = trpc.sketch.list.useQuery(
     {},
     { staleTime: 30_000 }
@@ -318,6 +333,7 @@ const SketchListPanel = () => {
     <FlexColumn fullHeight fullWidth gap={0} css={styles(theme)}>
       <div className="sketch-search">
         <CategorySearchBar
+          ref={searchRef}
           value={filterValue}
           onChange={setFilterValue}
           placeholder="Search sketches..."
