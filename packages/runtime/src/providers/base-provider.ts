@@ -816,6 +816,15 @@ export abstract class BaseProvider {
     return null;
   }
 
+  /**
+   * True when this provider streams raw PCM via {@link textToSpeech}. Providers
+   * that only return encoded audio files (e.g. FAL/KIE) leave the base method in
+   * place and are consumed via {@link textToSpeechEncoded} instead.
+   */
+  supportsStreamingTextToSpeech(): boolean {
+    return this.textToSpeech !== BaseProvider.prototype.textToSpeech;
+  }
+
   async automaticSpeechRecognition(_args: {
     audio: Uint8Array;
     model: string;

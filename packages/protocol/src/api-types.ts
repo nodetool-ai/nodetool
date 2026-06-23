@@ -876,6 +876,7 @@ export const PROVIDER_IDS = {
   REPLICATE: "replicate",
   FAL_AI: "fal_ai",
   KIE: "kie",
+  ELEVENLABS: "elevenlabs",
   TOPAZ: "topaz",
   REVE: "reve",
   ATLASCLOUD: "atlascloud",

@@ -93,6 +93,7 @@ const pathToFileURL = (p: string): URL =>
   nodeUrl ? nodeUrl.pathToFileURL(p) : notOnNode("node:url.pathToFileURL");
 import type { BaseProvider } from "./providers/base-provider.js";
 import type {
+  EncodedAudioResult,
   Message,
   MessageContent,
   ProviderStreamItem
@@ -2482,6 +2483,46 @@ export class ProcessingContext {
       const output = await this.dispatchCapability(provider, req);
       this.emitPrediction("completed", req, id, output, undefined, startedAt);
       return output;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.emitPrediction("failed", req, id, null, message, startedAt);
+      throw error;
+    }
+  }
+
+  /**
+   * Whether a provider streams raw PCM for text-to-speech. When false, the
+   * caller should use {@link textToSpeechEncoded} (the provider returns an
+   * encoded audio file rather than samples).
+   */
+  async providerSupportsStreamingTTS(providerId: string): Promise<boolean> {
+    const provider = await this.getProvider(providerId);
+    return provider.supportsStreamingTextToSpeech();
+  }
+
+  /**
+   * Generate speech as an encoded audio file (mp3/wav/…). Returns null when the
+   * provider doesn't implement the encoded path. Used for providers (FAL, KIE,
+   * ElevenLabs) that return audio files instead of streaming PCM.
+   */
+  async textToSpeechEncoded(
+    req: ProviderPredictionRequest
+  ): Promise<EncodedAudioResult | null> {
+    const id = randomUUID();
+    const startedAt = Date.now();
+    this.emitPrediction("running", req, id, null, undefined, startedAt);
+    try {
+      const provider = await this.getProvider(req.provider);
+      const params = req.params ?? {};
+      const result = await provider.textToSpeechEncoded({
+        text: String(params.text ?? ""),
+        model: req.model,
+        voice: params.voice as string | undefined,
+        speed: params.speed as number | undefined,
+        audioFormat: params.audioFormat as string | undefined
+      });
+      this.emitPrediction("completed", req, id, null, undefined, startedAt);
+      return result;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.emitPrediction("failed", req, id, null, message, startedAt);
