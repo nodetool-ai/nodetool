@@ -172,7 +172,7 @@ export function createAssetDragImage(
       padding: ${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)};
       min-width: 20px;
       text-align: center;
-      font-size: 12px;
+      font-size: var(--fontSizeSmall);
       font-weight: bold;
       border: 2px solid var(--palette-background-paper);
       z-index: 1000;

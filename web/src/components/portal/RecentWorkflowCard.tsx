@@ -49,7 +49,7 @@ const styles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.secondary,
       padding: `${theme.spacing(0.25)} ${theme.spacing(0.875)}`,
-      background: "rgba(8,9,10,0.7)",
+      background: theme.vars.palette.c_scrim,
       borderRadius: `${theme.spacing(0.5)}`
     },
     ".rmeta": { padding: `0 ${getSpacingPx(SPACING.micro)}` },

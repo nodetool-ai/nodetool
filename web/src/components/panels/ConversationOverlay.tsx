@@ -76,7 +76,7 @@ const styles = (theme: Theme) =>
       display: "inline-flex",
       alignItems: "center",
       color: theme.vars.palette.grey[600],
-      "& svg": { fontSize: "18px" }
+      "& svg": { fontSize: "var(--fontSizeBig)" }
     },
 
     ".convo-overlay-body": {
@@ -99,7 +99,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[400],
       cursor: "pointer",
       transition: `${MOTION.background}, color ${MOTION.fast}`,
-      "& svg": { fontSize: "18px" },
+      "& svg": { fontSize: "var(--fontSizeBig)" },
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[800],
         color: theme.vars.palette.grey[100]

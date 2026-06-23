@@ -110,7 +110,7 @@ const styles = (theme: Theme) =>
       resize: "none",
       border: "none",
       outline: "none",
-      background: "rgba(255,255,255,0.03)",
+      background: theme.vars.palette.c_overlay_subtle,
       borderRadius: BORDER_RADIUS.sm,
       color: theme.vars.palette.text.primary,
       fontFamily: theme.fontFamily1 || "'Inter', Arial, sans-serif",
@@ -121,7 +121,7 @@ const styles = (theme: Theme) =>
       overflowY: "auto",
       transition: MOTION.background,
       "&:focus": {
-        background: "rgba(255,255,255,0.06)"
+        background: theme.vars.palette.c_overlay
       },
       "&:read-only": {
         opacity: 0.7,

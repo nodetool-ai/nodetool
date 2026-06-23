@@ -75,9 +75,9 @@ const TRUNCATION_STYLE: React.CSSProperties = {
   margin: "0.5em 0.75em",
   padding: "0.4em 0.6em",
   borderRadius: BORDER_RADIUS.lg,
-  background: "rgba(255, 193, 7, 0.12)",
-  border: "1px solid rgba(255, 193, 7, 0.35)",
-  color: "rgba(255, 255, 255, 0.85)",
+  background: "rgba(var(--palette-warning-mainChannel) / 0.12)",
+  border: "1px solid rgba(var(--palette-warning-mainChannel) / 0.35)",
+  color: "var(--palette-text-primary)",
   fontSize: "0.85em"
 };
 

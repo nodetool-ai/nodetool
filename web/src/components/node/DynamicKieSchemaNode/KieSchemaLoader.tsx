@@ -173,10 +173,10 @@ export const KieSchemaLoader: React.FC<KieSchemaLoaderProps> = memo(
             onClick={() => void handleLoad(true)}
             sx={{
               padding: getSpacingPx(SPACING.xs),
-              color: "rgba(255, 255, 255, 0.5)",
+              color: "var(--palette-text-secondary)",
               "&:hover": {
-                color: "rgba(255, 255, 255, 0.9)",
-                backgroundColor: "rgba(255, 255, 255, 0.08)"
+                color: "var(--palette-text-primary)",
+                backgroundColor: "var(--palette-c_overlay)"
               }
             }}
           >

@@ -33,18 +33,18 @@ const styles = (theme: Theme) => css`
   }
 
   h1 {
-    font-size: 1.5rem;
+    font-size: var(--fontSizeBig);
     margin-bottom: 1rem;
     color: ${theme.vars.palette.primary.main};
   }
 
   .loading {
-    font-size: 1rem;
+    font-size: var(--fontSizeNormal);
     color: ${theme.vars.palette.text.secondary};
   }
 
   .warning {
-    font-size: 1rem;
+    font-size: var(--fontSizeNormal);
     color: ${theme.vars.palette.warning.main};
   }
   .content {
@@ -57,7 +57,7 @@ const styles = (theme: Theme) => css`
     right: 5px;
     background: none;
     border: none;
-    font-size: 1.2rem;
+    font-size: var(--fontSizeBig);
     cursor: pointer;
     color: ${theme.vars.palette.text.secondary};
   }

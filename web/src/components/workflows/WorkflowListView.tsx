@@ -169,7 +169,7 @@ const listStyles = (theme: Theme) =>
       top: "4px",
       right: "4px",
       transform: "none",
-      backgroundColor: "rgba(0, 0, 0, 0.35)",
+      backgroundColor: theme.vars.palette.c_scrim_soft,
       borderRadius: BORDER_RADIUS.sm,
       padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.sm)}`,
       backdropFilter: "blur(4px)",
@@ -181,7 +181,7 @@ const listStyles = (theme: Theme) =>
       right: "5px",
       transform: "none",
       zIndex: 5,
-      backgroundColor: "rgba(0, 0, 0, 0.35)",
+      backgroundColor: theme.vars.palette.c_scrim_soft,
       borderRadius: BORDER_RADIUS.sm,
       padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`
     },

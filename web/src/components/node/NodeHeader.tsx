@@ -168,8 +168,8 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           fontWeight: 600,
           letterSpacing: "0.02em",
           color: "var(--palette-text-primary)",
-          backgroundColor: "rgba(255, 255, 255, 0.12)",
-          border: "1px solid rgba(255, 255, 255, 0.12)",
+          backgroundColor: "var(--palette-c_overlay_strong)",
+          border: "1px solid var(--palette-c_overlay_strong)",
           flexShrink: 0
         },
         ".node-title-input": {
@@ -356,10 +356,10 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
             sx={{
               padding: getSpacingPx(SPACING.micro),
               marginLeft: getSpacingPx(SPACING.micro),
-              color: "rgba(255, 255, 255, 0.4)",
+              color: "text.disabled",
               "&:hover": {
                 color: "primary.light",
-                backgroundColor: "rgba(255, 255, 255, 0.05)"
+                backgroundColor: "var(--palette-c_overlay)"
               }
             }}
           >

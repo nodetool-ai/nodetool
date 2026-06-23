@@ -224,16 +224,16 @@ export function createDragCountBadge(count: number): HTMLElement {
   dragImage.style.cssText = `
     position: absolute;
     top: -99999px;
-    background-color: #222;
-    color: #999;
-    border: 3px solid #333;
+    background-color: var(--palette-background-paper);
+    color: var(--palette-grey-300);
+    border: 3px solid var(--palette-grey-800);
     border-radius: 4px;
     height: 40px;
     width: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
+    font-size: var(--fontSizeBig);
     font-weight: bold;
   `;
   return dragImage;

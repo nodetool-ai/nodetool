@@ -87,7 +87,7 @@ const errorBoundaryStyles = (theme: Theme) =>
       color: theme.vars.palette.grey[100],
       "&:hover": {
         borderColor: theme.vars.palette.grey[500],
-        background: "rgba(255,255,255,0.03)"
+        background: theme.vars.palette.c_overlay_subtle
       }
     },
 
@@ -114,7 +114,7 @@ const errorBoundaryStyles = (theme: Theme) =>
       "&:hover": {
         borderColor: theme.vars.palette.c_link,
         color: theme.vars.palette.c_link,
-        background: "rgba(255,255,255,0.03)"
+        background: theme.vars.palette.c_overlay_subtle
       }
     },
 

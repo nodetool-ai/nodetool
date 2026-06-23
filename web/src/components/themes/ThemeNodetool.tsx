@@ -293,7 +293,7 @@ const ThemeNodetool = createTheme({
     MuiTooltip: {
       styleOverrides: {
         tooltip: ({ theme }) => ({
-          backgroundColor: "rgba(12, 13, 16, 0.96)",
+          backgroundColor: "var(--palette-c_scrim_strong)",
           backdropFilter: "blur(8px)",
           border: `1px solid ${theme.vars.palette.divider}`,
           color: theme.vars.palette.text.primary,
@@ -306,7 +306,7 @@ const ThemeNodetool = createTheme({
             "0 8px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)"
         }),
         arrow: () => ({
-          color: "rgba(12, 13, 16, 0.96)"
+          color: "var(--palette-c_scrim_strong)"
         })
       }
     },

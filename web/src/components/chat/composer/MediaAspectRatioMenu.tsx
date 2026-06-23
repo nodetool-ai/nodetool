@@ -50,10 +50,10 @@ const styles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.lg,
       transition: MOTION.background,
       "&:hover": {
-        backgroundColor: "rgba(255,255,255,0.04)"
+        backgroundColor: theme.vars.palette.c_overlay_subtle
       },
       "&.selected": {
-        backgroundColor: "rgba(89, 135, 255, 0.12)"
+        backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.12)"
       }
     },
     ".aspect-glyph": {
@@ -138,7 +138,7 @@ const MediaAspectRatioMenu: React.FC<MediaAspectRatioMenuProps> = ({
         backgroundColor: theme.vars.palette.grey[900],
         border: `1px solid ${theme.vars.palette.grey[800]}`,
         borderRadius: BORDER_RADIUS.md,
-        boxShadow: "0 12px 40px rgba(0,0,0,0.45)"
+        boxShadow: `0 12px 40px ${theme.vars.palette.c_scrim}`
       }}
     >
       <div css={cssStyles} role="dialog" aria-label="Aspect ratio">

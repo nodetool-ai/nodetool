@@ -47,7 +47,7 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       contain: "layout style paint",
       border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`,
-      boxShadow: "0 8px 18px rgb(0 0 0 / 0.18)",
+      boxShadow: `0 8px 18px ${theme.vars.palette.c_scrim_soft}`,
       transition: `${MOTION.shadow}, ${MOTION.border}`
     },
     "&.selected .asset": {
@@ -69,14 +69,14 @@ const styles = (theme: Theme) =>
       backgroundPosition: "center",
       backgroundRepeat: "no-repeat",
       zIndex: 2001,
-      boxShadow: "0 2px 6px rgb(0 0 0 / 0.4)"
+      boxShadow: `0 2px 6px ${theme.vars.palette.c_scrim}`
     },
     ".asset::after": {
       content: '""',
       position: "absolute",
       inset: 0,
       pointerEvents: "none",
-      background: "linear-gradient(180deg, rgb(255 255 255 / 0.06), transparent 32%)"
+      background: `linear-gradient(180deg, ${theme.vars.palette.c_overlay}, transparent 32%)`
     },
     ".asset .image, .asset .image-aspect-ratio": {
       position: "absolute",
@@ -95,7 +95,7 @@ const styles = (theme: Theme) =>
       willChange: "opacity"
     },
     "&:hover .asset": {
-      boxShadow: "0 16px 30px rgb(0 0 0 / 0.18)",
+      boxShadow: `0 16px 30px ${theme.vars.palette.c_scrim_soft}`,
       borderColor: `rgb(${theme.vars.palette.common.whiteChannel} / 0.1)`
     },
     "&:hover .asset .image": {
@@ -179,7 +179,7 @@ const styles = (theme: Theme) =>
       left: "0.5em",
       borderTopRightRadius: BORDER_RADIUS.xs,
       borderTopLeftRadius: BORDER_RADIUS.xs,
-      backgroundColor: "rgba(0, 0, 0, 0.6)",
+      backgroundColor: theme.vars.palette.c_scrim,
       backdropFilter: "blur(4px)",
       borderTop: "none !important"
     },
@@ -188,7 +188,7 @@ const styles = (theme: Theme) =>
       left: "0.5em",
       borderBottomRightRadius: BORDER_RADIUS.xs,
       borderBottomLeftRadius: BORDER_RADIUS.xs,
-      backgroundColor: "rgba(0, 0, 0, 0.6)",
+      backgroundColor: theme.vars.palette.c_scrim,
       backdropFilter: "blur(4px)",
       color: theme.vars.palette.grey[100],
       fontSize: theme.fontSizeTiny,
@@ -298,7 +298,7 @@ const videoIconOverlayStyle: React.CSSProperties = {
   color: "white",
   fontSize: "3em",
   opacity: 0.8,
-  filter: "drop-shadow(0px 0px 4px rgba(0,0,0,0.5))",
+  filter: "drop-shadow(0px 0px 4px var(--palette-c_scrim))",
   zIndex: 10
 };
 

@@ -52,10 +52,10 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[100],
       transition: MOTION.background,
       "&:hover:not(.disabled)": {
-        backgroundColor: "rgba(255,255,255,0.06)"
+        backgroundColor: theme.vars.palette.c_overlay
       },
       "&.selected": {
-        backgroundColor: "rgba(255,255,255,0.04)"
+        backgroundColor: theme.vars.palette.c_overlay_subtle
       },
       "&.disabled": {
         opacity: 0.45,
@@ -101,7 +101,7 @@ function MediaOptionMenuInternal<T extends string | number>({
         border: `1px solid ${theme.vars.palette.grey[800]}`,
         borderRadius: BORDER_RADIUS.sm,
         minWidth,
-        boxShadow: "0 12px 40px rgba(0,0,0,0.45)"
+        boxShadow: `0 12px 40px ${theme.vars.palette.c_scrim}`
       }}
     >
       <div css={cssStyles} role="menu">

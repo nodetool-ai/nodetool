@@ -13,7 +13,7 @@ const modelListItemStyles = (theme: Theme) =>
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.lg,
-      backgroundColor: "rgba(255,255,255,0.01)",
+      backgroundColor: theme.vars.palette.c_overlay_subtle,
       transition: `${MOTION.background}, ${MOTION.border}`,
 
       "&:hover": {

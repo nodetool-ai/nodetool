@@ -90,7 +90,7 @@ const styles = (theme: Theme) =>
       backgroundImage: `linear-gradient(135deg, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main})`,
       backgroundSize: "200% 200%",
       border: `1px solid ${theme.vars.palette.action.selected}`,
-      boxShadow: "0 6px 18px rgba(0,0,0,0.25)",
+      boxShadow: `0 6px 18px ${theme.vars.palette.c_scrim_soft}`,
       transition: `${MOTION.transform}, ${MOTION.shadow}, background-position ${MOTION.slow}`,
       overflow: "hidden",
       "&::before": {
@@ -101,13 +101,13 @@ const styles = (theme: Theme) =>
         width: "50%",
         height: "100%",
         background:
-          "linear-gradient(120deg, rgba(255,255,255,0), rgba(255,255,255,0.35), rgba(255,255,255,0))",
+          `linear-gradient(120deg, transparent, ${theme.vars.palette.c_overlay_strong}, transparent)`,
         transform: "skewX(-20deg)",
         transition: `left ${MOTION.slow}`
       },
       "&:hover": {
         transform: "translateY(-1px)",
-        boxShadow: "0 10px 24px rgba(0,0,0,0.32)",
+        boxShadow: `0 10px 24px ${theme.vars.palette.c_scrim_soft}`,
         backgroundPosition: "100% 0"
       },
       "&:hover::before": {

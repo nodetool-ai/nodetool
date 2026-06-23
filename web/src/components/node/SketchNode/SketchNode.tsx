@@ -215,14 +215,14 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       gap: getSpacingPx(SPACING.xs),
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: "rgba(0,0,0,0.45)",
+      backgroundColor: theme.vars.palette.c_scrim,
       opacity: 0,
       transition: `opacity ${MOTION.normal}`
     },
     ".edit-overlay-label": {
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 500,
-      color: "rgba(255,255,255,0.85)",
+      color: theme.vars.palette.c_white,
       letterSpacing: "0.02em"
     },
     ".hint": {

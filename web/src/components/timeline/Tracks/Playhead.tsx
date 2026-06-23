@@ -88,7 +88,7 @@ const pillStyles = (theme: Theme, dragging: boolean, hovered: boolean) =>
     justifyContent: "center",
     borderRadius: PILL_HEIGHT_PX / 2,
     backgroundColor: theme.vars.palette.secondary.main,
-    color: "rgba(8, 9, 10, 0.92)",
+    color: theme.vars.palette.secondary.contrastText,
     fontFamily:
       "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
     fontSize: theme.fontSizeSmaller,
@@ -97,8 +97,8 @@ const pillStyles = (theme: Theme, dragging: boolean, hovered: boolean) =>
     whiteSpace: "nowrap",
     boxShadow:
       dragging || hovered
-        ? `0 0 0 3px ${theme.vars.palette.secondary.main}33, 0 4px 12px rgba(0,0,0,0.4)`
-        : "0 2px 6px rgba(0,0,0,0.35)",
+        ? `0 0 0 3px ${theme.vars.palette.secondary.main}33, 0 4px 12px ${theme.vars.palette.c_scrim}`
+        : `0 2px 6px ${theme.vars.palette.c_scrim_soft}`,
     transition: `box-shadow ${MOTION.fast}`,
     pointerEvents: "none"
   });

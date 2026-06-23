@@ -243,7 +243,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
           "&:hover": {
             color: theme.vars.palette.common.white,
             opacity: 0.85,
-            backgroundColor: "rgba(255, 255, 255, 0.08)"
+            backgroundColor: theme.vars.palette.c_overlay
           }
         },
         ".inspector-header-toolbar .copy-button:not(.inspector-supplemental-action) svg": {

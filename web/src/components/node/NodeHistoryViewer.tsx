@@ -121,7 +121,7 @@ const styles = (theme: Theme) =>
       gap: 4,
       padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`,
       borderRadius: BORDER_RADIUS.sm,
-      backgroundColor: "rgba(0, 0, 0, 0.55)",
+      backgroundColor: theme.vars.palette.c_scrim,
       color: theme.vars.palette.common.white
     },
     ".overlay-top-left": {
@@ -202,7 +202,7 @@ const styles = (theme: Theme) =>
     ".thumb": {
       position: "relative",
       aspectRatio: "1 / 1",
-      backgroundColor: "rgba(0, 0, 0, 0.2)",
+      backgroundColor: theme.vars.palette.c_scrim_soft,
       borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
       cursor: "pointer",
@@ -892,7 +892,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
           <span style={{
             padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
             borderRadius: BORDER_RADIUS.sm,
-            backgroundColor: "rgba(0, 0, 0, 0.55)"
+            backgroundColor: "var(--palette-c_scrim)"
           }}>
             {infoText}
           </span>

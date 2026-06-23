@@ -96,7 +96,7 @@ const styles = (theme: Theme) =>
       transition: `color ${MOTION.fast}, background-color ${MOTION.fast}`,
       "&:hover": {
         color: theme.vars.palette.text.primary,
-        backgroundColor: "rgba(255,255,255,0.03)"
+        backgroundColor: theme.vars.palette.c_overlay_subtle
       },
       "&.active": {
         color: theme.vars.palette.text.primary,
@@ -146,7 +146,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.disabled,
       "&:hover": {
         color: theme.vars.palette.text.primary,
-        backgroundColor: "rgba(255,255,255,0.08)"
+        backgroundColor: theme.vars.palette.c_overlay
       },
       "& .MuiSvgIcon-root": {
         width: "14px",

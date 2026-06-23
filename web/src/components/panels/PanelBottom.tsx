@@ -300,13 +300,13 @@ const styles = (theme: Theme) =>
           color: theme.vars.palette.text.disabled
         },
         "&:hover": {
-          backgroundColor: "rgba(255,255,255,0.03)",
+          backgroundColor: theme.vars.palette.c_overlay_subtle,
           color: theme.vars.palette.text.primary,
           "& svg": { color: theme.vars.palette.text.secondary }
         },
         "&.active": {
           color: theme.vars.palette.text.primary,
-          backgroundColor: "rgba(255,255,255,0.04)",
+          backgroundColor: theme.vars.palette.c_overlay_subtle,
           "& svg": { color: theme.vars.palette.primary.main },
           "&::before": {
             content: '""',
@@ -571,7 +571,9 @@ const PanelBottom: React.FC = () => {
             width: "100%",
             borderTop: `1px solid ${theme.vars.palette.divider}`,
             backgroundColor: theme.vars.palette.background.default,
-            boxShadow: isVisible ? "0 -4px 10px rgba(0, 0, 0, 0.3)" : "none",
+            boxShadow: isVisible
+              ? `0 -4px 10px ${theme.vars.palette.c_scrim_soft}`
+              : "none",
             overflow: "hidden",
             transition: `height ${MOTION.normal}`
           }

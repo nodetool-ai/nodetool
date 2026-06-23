@@ -214,6 +214,14 @@ export const paletteLight: PaletteOptions = {
   c_editor_grid_color: "#EDE6DA",
   c_editor_axis_color: "#E6E2DE",
   c_selection_rect: "rgba(94, 154, 143, 0.12)",
+  // Media/dialog scrims — intentionally dark in both schemes
+  c_scrim_soft: "rgba(0, 0, 0, 0.3)",
+  c_scrim: "rgba(0, 0, 0, 0.6)",
+  c_scrim_strong: "rgba(0, 0, 0, 0.85)",
+  // Subtle raised-surface tints (black-on-light)
+  c_overlay_subtle: "rgba(0, 0, 0, 0.03)",
+  c_overlay: "rgba(0, 0, 0, 0.05)",
+  c_overlay_strong: "rgba(0, 0, 0, 0.1)",
   c_provider_api: "#2C415A",
   c_provider_local: "#2E5B4E",
   c_provider_hf: "#6D4B6F",

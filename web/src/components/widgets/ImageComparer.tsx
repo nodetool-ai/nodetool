@@ -64,7 +64,7 @@ const styles = (theme: Theme) =>
     ".divider-line": {
       position: "absolute",
       backgroundColor: theme.vars.palette.common.white,
-      boxShadow: "0 0 4px rgba(0,0,0,0.5)",
+      boxShadow: `0 0 4px ${theme.vars.palette.c_scrim}`,
       zIndex: 10,
       pointerEvents: "none"
     },
@@ -84,7 +84,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmaller,
       fontWeight: 600,
       color: theme.vars.palette.common.white,
-      backgroundColor: "rgba(0, 0, 0, 0.6)",
+      backgroundColor: theme.vars.palette.c_scrim,
       borderRadius: BORDER_RADIUS.sm,
       zIndex: 15,
       pointerEvents: "none"
@@ -110,7 +110,7 @@ const styles = (theme: Theme) =>
       padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       fontSize: theme.fontSizeTiny,
       color: theme.vars.palette.grey[300],
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      backgroundColor: theme.vars.palette.c_scrim,
       borderRadius: BORDER_RADIUS.sm,
       zIndex: 15,
       pointerEvents: "none"
@@ -136,11 +136,11 @@ const styles = (theme: Theme) =>
       bottom: "8px",
       right: "24px",
       zIndex: 50,
-      backgroundColor: "rgba(0, 0, 0, 0.6)",
+      backgroundColor: theme.vars.palette.c_scrim,
       color: theme.vars.palette.common.white,
       padding: getSpacingPx(SPACING.xs),
       "&:hover": {
-        backgroundColor: "rgba(0, 0, 0, 0.8)"
+        backgroundColor: theme.vars.palette.c_scrim_strong
       }
     }
   });

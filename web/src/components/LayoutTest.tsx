@@ -113,7 +113,7 @@ const styles = (theme: Theme) => css`
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: var(--fontSizeBig);
     font-weight: 700;
     color: white;
   }
@@ -182,13 +182,13 @@ const styles = (theme: Theme) => css`
   }
   
   .demo-label {
-    font-size: 12px;
+    font-size: var(--fontSizeSmall);
     color: ${theme.vars.palette.text.secondary};
     min-width: 70px;
   }
   
   .demo-value {
-    font-size: 12px;
+    font-size: var(--fontSizeSmall);
     color: ${theme.vars.palette.primary.main};
     font-family: monospace;
     background: ${theme.vars.palette.grey[800]};

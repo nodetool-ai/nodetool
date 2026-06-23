@@ -95,7 +95,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     backgroundColor: `rgb(${theme.vars.palette.background.paperChannel} / 0.86)`,
                     backdropFilter: "blur(16px)",
                     border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.08)`,
-                    boxShadow: "0 14px 30px rgb(0 0 0 / 0.18)",
+                    boxShadow: `0 14px 30px ${theme.vars.palette.c_scrim_soft}`,
                     transition: `all ${MOTION.slow}`
                 }}
             >
@@ -149,7 +149,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         position: "absolute",
                         inset: 0,
                         pointerEvents: "none",
-                        background: "linear-gradient(180deg, rgb(255 255 255 / 0.025), transparent 22%)"
+                        background: "linear-gradient(180deg, var(--palette-c_overlay_subtle), transparent 22%)"
                     }}
                 />
                 {/* Header with collapse button */}

@@ -143,13 +143,13 @@ const handleStyles = css({
   position: "absolute",
   pointerEvents: "auto",
   touchAction: "none",
-  backgroundColor: "rgba(200, 200, 200, 0.9)",
-  border: "1px solid rgba(0, 0, 0, 0.12)",
+  backgroundColor: "var(--palette-c_overlay_strong)",
+  border: "1px solid var(--palette-c_scrim_soft)",
   borderRadius: BORDER_RADIUS.xs,
   transition: MOTION.background,
   boxSizing: "border-box",
   "&:hover, &.active": {
-    backgroundColor: "rgba(66, 165, 245, 0.35)"
+    backgroundColor: "rgba(var(--palette-info-mainChannel) / 0.35)"
   }
 });
 

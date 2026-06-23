@@ -48,7 +48,7 @@ const styles = (theme: Theme) =>
     ".actions .button": {
       width: "1.75em",
       height: "1.75em",
-      backgroundColor: "rgba(153, 153, 153, 0.67)",
+      backgroundColor: theme.vars.palette.c_overlay_strong,
       color: theme.vars.palette.grey[900],
       borderRadius: BORDER_RADIUS.sm,
       padding: getSpacingPx(SPACING.micro)

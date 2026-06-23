@@ -81,7 +81,7 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
         backgroundColor: 'background.paper',
         '& .MuiListSubheader-root': {
           lineHeight: '32px',
-          backgroundColor: '#1E1E1E',
+          backgroundColor: 'background.paper',
           backgroundImage: 'none',
           fontWeight: 600,
           color: 'primary.light',
@@ -95,9 +95,9 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
         p: 1,
         position: 'sticky',
         top: 0,
-        backgroundColor: '#1E1E1E',
+        backgroundColor: 'background.paper',
         zIndex: 11,
-        borderBottom: '1px solid rgba(255,255,255,0.1)',
+        borderBottom: '1px solid var(--palette-c_overlay_strong)',
         height: '48px',
         boxSizing: 'border-box'
       }}>
@@ -112,7 +112,7 @@ export const ImageSizePresetsMenu: React.FC<ImageSizePresetsMenuProps> = ({
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <Search sx={{ fontSize: '1rem' }} />
+                <Search sx={{ fontSize: "var(--fontSizeNormal)" }} />
               </InputAdornment>
             ),
             sx: { 

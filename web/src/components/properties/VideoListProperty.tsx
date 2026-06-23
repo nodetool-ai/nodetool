@@ -37,7 +37,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       width: "100%",
       paddingTop: "56.25%", // 16:9 aspect ratio
-      backgroundColor: "rgba(0, 0, 0, 0.2)",
+      backgroundColor: theme.vars.palette.c_scrim_soft,
       borderRadius: BORDER_RADIUS.md,
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
@@ -71,7 +71,7 @@ const styles = (theme: Theme) =>
       right: "2px",
       opacity: 0,
       transition: `opacity ${MOTION.normal}`,
-      backgroundColor: "rgba(0, 0, 0, 0.7)",
+      backgroundColor: theme.vars.palette.c_scrim,
       color: theme.vars.palette.grey[100],
       padding: getSpacingPx(SPACING.micro),
       width: "20px",
@@ -95,7 +95,7 @@ const styles = (theme: Theme) =>
       transition: MOTION.all,
       outline: `1px dashed ${theme.vars.palette.grey[600]}`,
       margin: `${theme.spacing(SPACING.sm)} 0`,
-      backgroundColor: "rgba(0, 0, 0, 0.2)",
+      backgroundColor: theme.vars.palette.c_scrim_soft,
       borderRadius: BORDER_RADIUS.md,
       display: "flex",
       alignItems: "center",
@@ -103,7 +103,7 @@ const styles = (theme: Theme) =>
       cursor: "pointer",
       "&:hover": {
         outline: `1px dashed ${theme.vars.palette.grey[400]}`,
-        backgroundColor: "rgba(0, 0, 0, 0.3)"
+        backgroundColor: theme.vars.palette.c_scrim_soft
       },
       "&.drag-over": {
         backgroundColor: theme.vars.palette.grey[600],
