@@ -165,3 +165,59 @@ describe("KieProvider — imageToVideo", () => {
     expect(createdInputs[0].duration).toBe(5);
   });
 });
+
+describe("KieProvider — TTS", () => {
+  it("discovers TTS models from the manifest", async () => {
+    const p = new KieProvider({ KIE_API_KEY: "k" });
+    const models = await p.getAvailableTTSModels();
+    expect(models.length).toBeGreaterThan(0);
+    expect(models.every((m) => m.provider === "kie")).toBe(true);
+  });
+
+  it("does not stream PCM (uses the encoded path)", () => {
+    expect(
+      new KieProvider({ KIE_API_KEY: "k" }).supportsStreamingTextToSpeech()
+    ).toBe(false);
+  });
+
+  it("textToSpeechEncoded runs the job flow and returns the audio bytes", async () => {
+    const mp3 = new Uint8Array([0xff, 0xfb, 0x90, 0x00]);
+    const created: Array<Record<string, unknown>> = [];
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      const u = String(url);
+      if (u.includes("/jobs/createTask")) {
+        created.push(
+          JSON.parse(String(init?.body)) as Record<string, unknown>
+        );
+        return jsonResponse({ data: { taskId: "t1" } });
+      }
+      if (u.includes("/jobs/recordInfo")) {
+        return jsonResponse({
+          data: {
+            state: "success",
+            resultJson: JSON.stringify({
+              resultUrls: ["https://kie.result/out.mp3"]
+            })
+          }
+        });
+      }
+      return {
+        ok: true,
+        headers: new Headers(),
+        arrayBuffer: async () => mp3.buffer
+      } as unknown as Response;
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const p = new KieProvider({ KIE_API_KEY: "k" });
+    const result = await p.textToSpeechEncoded({
+      text: "hello",
+      model: "elevenlabs/text-to-speech-multilingual-v2",
+      voice: "James"
+    });
+    expect(result?.mimeType).toBe("audio/mpeg");
+    expect(result?.data).toEqual(mp3);
+    expect((created[0].input as Record<string, unknown>).text).toBe("hello");
+    expect((created[0].input as Record<string, unknown>).voice).toBe("James");
+  });
+});

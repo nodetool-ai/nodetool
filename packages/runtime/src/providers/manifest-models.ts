@@ -8,7 +8,7 @@
  */
 
 import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
-import type { ImageModel, VideoModel } from "./types.js";
+import type { ImageModel, TTSModel, VideoModel } from "./types.js";
 
 // Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.manifest-models");
@@ -48,6 +48,8 @@ interface ManifestNode {
   className?: string;
   /** "image" | "video" | "audio" | ... */
   outputType?: string;
+  /** FAL groups nodes by source module, e.g. "text_to_speech". */
+  moduleName?: string;
   /** Explicit task set declared by manifests that know model capabilities. */
   supportedTasks?: string[];
   /** FAL ships per-endpoint input schemas; used to derive option constraints. */
@@ -405,6 +407,53 @@ export function buildImageModels(
       (n.outputType === "dict" && tasks.length > 0);
     if (!qualifies) continue;
     seen.set(id, { id, name, provider, supportedTasks: tasks });
+  }
+
+  return [...seen.values()];
+}
+
+/**
+ * Is this manifest entry a text-to-speech model? FAL tags TTS endpoints with
+ * `moduleName: "text_to_speech"`; KIE has no module grouping, so we fall back to
+ * an explicit task or a "text-to-speech"/"tts" hint in the id/name. The
+ * `outputType === "audio"` guard keeps music / sound-effect audio nodes out.
+ */
+export function isTTSNode(n: ManifestNode): boolean {
+  if (n.outputType !== "audio") return false;
+  if (n.moduleName === "text_to_speech") return true;
+  if (explicitTasks(n)?.includes("text_to_speech")) return true;
+  const hay = `${nodeId(n)} ${nodeName(n)}`.toLowerCase();
+  return matchesAny(hay, "text-to-speech", "text to speech", "texttospeech", "tts");
+}
+
+export function loadTTSModels(
+  packageName: string,
+  exportPath: string,
+  provider: string
+): TTSModel[] {
+  return buildTTSModels(loadManifest(packageName, exportPath), provider);
+}
+
+/** Pure transform: manifest nodes → deduplicated TTS models with voice lists. */
+export function buildTTSModels(
+  manifest: ManifestNode[],
+  provider: string
+): TTSModel[] {
+  const seen = new Map<string, TTSModel>();
+
+  for (const n of manifest) {
+    if (!isTTSNode(n)) continue;
+    const id = nodeId(n);
+    if (!id || seen.has(id)) continue;
+    // Preset voices come from an enumerated `voice` (or `speaker`) field.
+    // Models that take a free-form voice id / reference audio have none.
+    const voices = enumValuesFor(n, "voice") ?? enumValuesFor(n, "speaker");
+    seen.set(id, {
+      id,
+      name: nodeName(n),
+      provider: provider as TTSModel["provider"],
+      ...(voices ? { voices } : {})
+    });
   }
 
   return [...seen.values()];
