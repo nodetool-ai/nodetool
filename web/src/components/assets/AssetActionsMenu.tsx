@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { useCallback, useMemo, useState } from "react";
-import TuneIcon from "@mui/icons-material/Tune";
+import SearchIcon from "@mui/icons-material/Search";
 import FolderIcon from "@mui/icons-material/Folder";
 import FolderOffIcon from "@mui/icons-material/FolderOff";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
@@ -33,6 +33,7 @@ import {
   SearchInput,
   FlexRow,
   Box,
+  Divider,
   BORDER_RADIUS,
   FONT_SIZE_SANS,
   MOTION
@@ -164,13 +165,9 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
   // In fullscreen the filter row is always visible; in the sidebar it is
   // toggled by the tune button.
   const showFilters = expanded || isFullscreenAssets;
-  const showCurrentWorkflowButton = Boolean(currentWorkflowId);
+  const showCurrentWorkflowItem = Boolean(currentWorkflowId);
   const currentWorkflowActive =
     workflowFilter !== null && workflowFilter === currentWorkflowId;
-
-  const handleToggleCurrentWorkflow = useCallback(() => {
-    setWorkflowFilter(currentWorkflowActive ? null : currentWorkflowId);
-  }, [currentWorkflowActive, currentWorkflowId, setWorkflowFilter]);
 
   const onLocalSearchChange = useCallback(
     (newSearchTerm: string) => {
@@ -206,17 +203,19 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
         sx={{
           px: 0.5,
           py: 0.5,
-          "& .MuiIconButton-root": { padding: "4px" },
+          "& .MuiIconButton-root": { padding: 0.5 },
           "& .MuiSvgIcon-root": { fontSize: 14 }
         }}
       >
+        {/* View group: search & sort, folder visibility (sidebar only) */}
         {!isFullscreenAssets && (
           <ToolbarIconButton
-            icon={<TuneIcon />}
-            tooltip={expanded ? "Hide filters" : "Show filters"}
+            icon={<SearchIcon />}
+            tooltip={expanded ? "Hide search & sort" : "Search & sort"}
             onClick={() => setExpanded((prev) => !prev)}
             tooltipPlacement="top"
             nodrag={false}
+            active={expanded}
           />
         )}
         {!isFullscreenAssets && hasFolders && (
@@ -226,13 +225,20 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
             onClick={toggleFoldersVisible}
             tooltipPlacement="top"
             nodrag={false}
+            active={foldersVisible}
           />
         )}
+        {!isFullscreenAssets && (
+          <Divider orientation="vertical" flexItem sx={{ my: 0.5 }} />
+        )}
+
+        {/* Filter group: by type, by workflow */}
         <ToolbarIconButton
           tooltip="Filter by type"
           onClick={(e) => setTypeFilterAnchor(e.currentTarget)}
           tooltipPlacement="top"
           nodrag={false}
+          active={typeFilterActive}
           sx={{
             borderRadius: BORDER_RADIUS.sm,
             px: 0.5,
@@ -255,54 +261,35 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
             <ArrowDropDownIcon />
           </FlexRow>
         </ToolbarIconButton>
-        {showCurrentWorkflowButton && (
-          <ToolbarIconButton
-            icon={<FilterCenterFocusIcon />}
-            tooltip={
-              currentWorkflowActive
-                ? "Showing this workflow's assets"
-                : "Show this workflow's assets"
-            }
-            onClick={handleToggleCurrentWorkflow}
-            tooltipPlacement="top"
-            nodrag={false}
-            sx={{
-              color: currentWorkflowActive
-                ? "var(--palette-primary-main)"
-                : undefined
-            }}
-          />
-        )}
         <ToolbarIconButton
-          tooltip={workflowFilter ? `Workflow: ${activeWorkflowName}` : "Filter by workflow"}
+          tooltip={
+            workflowFilter
+              ? `Workflow: ${activeWorkflowName}`
+              : "Filter by workflow"
+          }
           onClick={(e) => setWorkflowFilterAnchor(e.currentTarget)}
           tooltipPlacement="top"
           nodrag={false}
+          active={Boolean(workflowFilter)}
           sx={{
             borderRadius: BORDER_RADIUS.sm,
             px: 0.5,
-            gap: 0.5,
-            fontSize: FONT_SIZE_SANS.label,
-            color: workflowFilter
-              ? "var(--palette-primary-main)"
-              : undefined
+            gap: 0.25,
+            color: workflowFilter ? "var(--palette-primary-main)" : undefined
           }}
         >
-          <FlexRow align="center" gap={0.5}>
+          <FlexRow
+            align="center"
+            gap={0.25}
+            sx={{ "& .MuiSvgIcon-root": { fontSize: 18 } }}
+          >
             <AccountTreeIcon />
-            <span
-              style={{
-                maxWidth: 80,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap"
-              }}
-            >
-              {activeWorkflowName ?? "Workflow"}
-            </span>
             <ArrowDropDownIcon />
           </FlexRow>
         </ToolbarIconButton>
+
+        {/* Action group: pinned to the right */}
+        <Box sx={{ flexGrow: 1 }} />
         <ToolbarIconButton
           icon={<CreateNewFolderIcon />}
           tooltip="Create folder"
@@ -361,6 +348,19 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
           />
         </Box>
         <Box sx={{ overflowY: "auto", maxHeight: 240 }}>
+          {showCurrentWorkflowItem && (
+            <MenuItemPrimitive
+              label="Current workflow"
+              icon={<FilterCenterFocusIcon />}
+              selected={currentWorkflowActive}
+              onClick={() => {
+                setWorkflowFilter(currentWorkflowId);
+                setWorkflowFilterAnchor(null);
+                setWorkflowSearch("");
+              }}
+              dense
+            />
+          )}
           <MenuItemPrimitive
             label="All workflows"
             icon={<FilterAltOffIcon />}
