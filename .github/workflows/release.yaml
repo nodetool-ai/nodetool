@@ -35,7 +35,7 @@ jobs:
       has_changes: ${{ steps.check.outputs.has_changes }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -80,7 +80,7 @@ jobs:
       update_linux_manifest: ${{ steps.meta.outputs.update_linux_manifest }}
       ref: ${{ github.sha }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - id: meta
         name: Resolve release metadata
@@ -152,7 +152,7 @@ jobs:
       UPDATE_LINUX_MANIFEST: ${{ needs.preflight.outputs.update_linux_manifest }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.preflight.outputs.ref }}
 
@@ -736,7 +736,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.preflight.outputs.ref }}
 

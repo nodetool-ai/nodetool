@@ -14,7 +14,7 @@ import {
 } from "../../ui_primitives";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import KeyRoundedIcon from "@mui/icons-material/KeyRounded";
-import { memo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguageModelProviders } from "../../../hooks/useProviders";
 
@@ -108,6 +108,7 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
   onSuggestionClick
 }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const navigate = useNavigate();
   const { providers, isLoading, error } = useLanguageModelProviders();
 
@@ -128,7 +129,7 @@ const WelcomePlaceholder: React.FC<WelcomePlaceholderProps> = ({
   const noProvider = !isLoading && !error && providers.length === 0;
 
   return (
-    <div css={styles(theme)}>
+    <div css={cssStyles}>
       <div className="welcome-inner">
         {noProvider ? (
           <FlexColumn align="center" gap={1.5} sx={{ textAlign: "center" }}>

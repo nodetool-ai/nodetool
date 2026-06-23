@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React from "react";
+import React, { useMemo } from "react";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
 import { LanguageModel } from "../../../stores/ApiTypes";
 import { StateIconButton } from "../../ui_primitives/StateIconButton";
@@ -115,27 +115,29 @@ const ChatToolBar: React.FC<ChatToolBarProps> = ({
   embedded = false
 }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
+  const embeddedOverride = useMemo(() => embedded ? css({
+    background: "transparent",
+    backdropFilter: "none",
+    border: "none",
+    boxShadow: "none",
+    padding: "0",
+    minHeight: "auto",
+    width: "auto",
+    flex: 1,
+    "&:hover": {
+      border: "none",
+      boxShadow: "none"
+    },
+    "&::before": {
+      display: "none"
+    }
+  }) : null, [embedded]);
 
   const hasModelSection = onModelChange;
 
   return (
-    <div className={`chat-tool-bar ${embedded ? "embedded" : ""}`} css={[styles(theme), embedded && css({
-      background: "transparent",
-      backdropFilter: "none",
-      border: "none",
-      boxShadow: "none",
-      padding: "0",
-      minHeight: "auto",
-      width: "auto",
-      flex: 1,
-      "&:hover": {
-        border: "none",
-        boxShadow: "none"
-      },
-      "&::before": {
-        display: "none"
-      }
-    })]}>
+    <div className={`chat-tool-bar ${embedded ? "embedded" : ""}`} css={[cssStyles, embeddedOverride]}>
       {/* Model Selection Group */}
       {hasModelSection && (
         <div className={`toolbar-group ${!embedded ? "toolbar-group-primary" : ""}`}>

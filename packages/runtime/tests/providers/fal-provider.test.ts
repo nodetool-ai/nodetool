@@ -418,3 +418,53 @@ describe("FalProvider — TTS", () => {
     vi.unstubAllGlobals();
   });
 });
+
+describe("FalProvider — music", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("advertises text_to_music and discovers music models", async () => {
+    const p = createProvider();
+    expect(p.getCapabilities()).toContain("text_to_music");
+    const models = await p.getAvailableMusicModels();
+    expect(models.length).toBeGreaterThan(0);
+    expect(models.every((m) => m.provider === "fal_ai")).toBe(true);
+    expect(
+      models.every((m) => m.supportedTasks?.includes("text_to_music"))
+    ).toBe(true);
+  });
+
+  it("textToMusic subscribes with the prompt and downloads the audio", async () => {
+    const subscribeMock = vi.fn().mockResolvedValue({
+      data: { audio: { url: "https://fal.ai/song.mp3" } }
+    });
+    const mp3 = new Uint8Array([0xff, 0xfb, 0x90, 0x00]);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: new Headers(),
+        arrayBuffer: () => Promise.resolve(mp3.buffer)
+      })
+    );
+
+    const p = createProvider("key");
+    (p as any)._client = { subscribe: subscribeMock };
+
+    const result = await p.textToMusic({
+      model: {
+        id: "cassetteai/music-generator",
+        name: "Cassette",
+        provider: "fal_ai"
+      },
+      prompt: "upbeat synthwave",
+      durationSeconds: 12
+    });
+    expect(result.mimeType).toBe("audio/mpeg");
+    expect(result.data).toEqual(mp3);
+    expect(subscribeMock.mock.calls[0][1].input.prompt).toBe("upbeat synthwave");
+
+    vi.unstubAllGlobals();
+  });
+});

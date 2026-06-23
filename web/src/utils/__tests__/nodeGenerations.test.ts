@@ -4,11 +4,8 @@ import {
   assetToGeneration,
   mergeGenerations,
   getCurrentGeneration,
-  getCurrentOutput,
   groupByRun,
   getCurrentRun,
-  runVariantValues,
-  getSelectedGenerations,
   selectedOutputValues,
   type Generation
 } from "../nodeGenerations";
@@ -344,13 +341,7 @@ describe("getCurrentGeneration", () => {
   });
 });
 
-describe("getCurrentOutput", () => {
-  it("returns the current generation's output for a handle", () => {
-    expect(getCurrentOutput(list, "g1", "output")).toBe("first");
-  });
-});
-
-describe("groupByRun / getCurrentRun / runVariantValues", () => {
+describe("groupByRun / getCurrentRun", () => {
   const mkGen = (
     id: string,
     jobId: string | null,
@@ -456,131 +447,63 @@ describe("groupByRun / getCurrentRun / runVariantValues", () => {
       expect(getCurrentRun(runs)?.jobId).toBe("j2");
     });
   });
-
-  describe("runVariantValues", () => {
-    it("returns N scalar values for N scalar variants, in order", () => {
-      const run = groupByRun([
-        mkGen("a", "j1", 1, "completed", { output: "imgA" }),
-        mkGen("b", "j1", 2, "completed", { output: "imgB" }),
-        mkGen("c", "j1", 3, "completed", { output: "imgC" })
-      ])[0];
-      expect(runVariantValues(run)).toEqual(["imgA", "imgB", "imgC"]);
-    });
-
-    it("spreads a single array-valued variant (num_images=N live) to N values", () => {
-      const run = groupByRun([
-        mkGen("a", "j1", 1, "completed", { output: ["i1", "i2", "i3"] })
-      ])[0];
-      expect(runVariantValues(run)).toEqual(["i1", "i2", "i3"]);
-      expect(runVariantValues(run)).toHaveLength(3);
-    });
-
-    it("drops null/undefined variant outputs", () => {
-      const run = groupByRun([
-        mkGen("a", "j1", 1, "completed", { output: "imgA" }),
-        mkGen("b", "j1", 2, "running", { output: null }),
-        mkGen("c", "j1", 3, "completed", {})
-      ])[0];
-      expect(runVariantValues(run)).toEqual(["imgA"]);
-    });
-
-    it("respects the named handle on multi-key variant outputs", () => {
-      const run = groupByRun([
-        mkGen("a", "j1", 1, "completed", { image: "imgA", mask: "maskA" }),
-        mkGen("b", "j1", 2, "completed", { image: "imgB", mask: "maskB" })
-      ])[0];
-      expect(runVariantValues(run, "image")).toEqual(["imgA", "imgB"]);
-    });
-  });
 });
 
-describe("getSelectedGenerations / selectedOutputValues", () => {
+describe("selectedOutputValues", () => {
   const mkGen = (
     id: string,
     status: Generation["status"] = "completed",
     outputs: Record<string, unknown> = { output: id }
   ): Generation => ({ id, jobId: "j1", createdAt: 1, outputs, status });
 
-  describe("getSelectedGenerations", () => {
-    const gens = [mkGen("a"), mkGen("b"), mkGen("c")];
-
-    it("returns [] when nothing is selected", () => {
-      expect(getSelectedGenerations(gens, undefined)).toEqual([]);
-      expect(getSelectedGenerations(gens, [])).toEqual([]);
-    });
-
-    it("returns matches in STORED pick order, not timeline order", () => {
-      // pick order c, a — not the a,b,c timeline order
-      expect(getSelectedGenerations(gens, ["c", "a"]).map((g) => g.id)).toEqual([
-        "c",
-        "a"
-      ]);
-    });
-
-    it("drops ids absent from the generations list (stale picks)", () => {
-      expect(
-        getSelectedGenerations(gens, ["b", "gone", "a"]).map((g) => g.id)
-      ).toEqual(["b", "a"]);
-    });
-
-    it("keeps all statuses (running members included)", () => {
-      const withRunning = [mkGen("a", "running"), mkGen("b")];
-      expect(
-        getSelectedGenerations(withRunning, ["a", "b"]).map((g) => g.id)
-      ).toEqual(["a", "b"]);
-    });
+  it("returns [] when nothing is selected", () => {
+    expect(selectedOutputValues([mkGen("a")], undefined)).toEqual([]);
+    expect(selectedOutputValues([mkGen("a")], [])).toEqual([]);
   });
 
-  describe("selectedOutputValues", () => {
-    it("returns [] when nothing is selected", () => {
-      expect(selectedOutputValues([mkGen("a")], undefined)).toEqual([]);
-      expect(selectedOutputValues([mkGen("a")], [])).toEqual([]);
-    });
+  it("maps selected (pick-ordered) completed generations to their handle value", () => {
+    const gens = [
+      mkGen("a", "completed", { output: "imgA" }),
+      mkGen("b", "completed", { output: "imgB" }),
+      mkGen("c", "completed", { output: "imgC" })
+    ];
+    expect(selectedOutputValues(gens, ["c", "a"])).toEqual(["imgC", "imgA"]);
+  });
 
-    it("maps selected (pick-ordered) completed generations to their handle value", () => {
-      const gens = [
-        mkGen("a", "completed", { output: "imgA" }),
-        mkGen("b", "completed", { output: "imgB" }),
-        mkGen("c", "completed", { output: "imgC" })
-      ];
-      expect(selectedOutputValues(gens, ["c", "a"])).toEqual(["imgC", "imgA"]);
-    });
+  it("keeps only completed selections (drops running/error members)", () => {
+    const gens = [
+      mkGen("a", "completed", { output: "imgA" }),
+      mkGen("b", "running", { output: "imgB" }),
+      mkGen("c", "error", { output: "imgC" })
+    ];
+    expect(selectedOutputValues(gens, ["a", "b", "c"])).toEqual(["imgA"]);
+  });
 
-    it("keeps only completed selections (drops running/error members)", () => {
-      const gens = [
-        mkGen("a", "completed", { output: "imgA" }),
-        mkGen("b", "running", { output: "imgB" }),
-        mkGen("c", "error", { output: "imgC" })
-      ];
-      expect(selectedOutputValues(gens, ["a", "b", "c"])).toEqual(["imgA"]);
-    });
+  it("spreads an array-valued generation one level (num_images flatten)", () => {
+    const gens = [
+      mkGen("a", "completed", { output: ["i1", "i2"] }),
+      mkGen("b", "completed", { output: "i3" })
+    ];
+    expect(selectedOutputValues(gens, ["a", "b"])).toEqual(["i1", "i2", "i3"]);
+  });
 
-    it("spreads an array-valued generation one level (num_images flatten)", () => {
-      const gens = [
-        mkGen("a", "completed", { output: ["i1", "i2"] }),
-        mkGen("b", "completed", { output: "i3" })
-      ];
-      expect(selectedOutputValues(gens, ["a", "b"])).toEqual(["i1", "i2", "i3"]);
-    });
+  it("drops null/undefined holes", () => {
+    const gens = [
+      mkGen("a", "completed", { output: "imgA" }),
+      mkGen("b", "completed", { output: null }),
+      mkGen("c", "completed", {})
+    ];
+    expect(selectedOutputValues(gens, ["a", "b", "c"])).toEqual(["imgA"]);
+  });
 
-    it("drops null/undefined holes", () => {
-      const gens = [
-        mkGen("a", "completed", { output: "imgA" }),
-        mkGen("b", "completed", { output: null }),
-        mkGen("c", "completed", {})
-      ];
-      expect(selectedOutputValues(gens, ["a", "b", "c"])).toEqual(["imgA"]);
-    });
-
-    it("respects the named handle on multi-key outputs", () => {
-      const gens = [
-        mkGen("a", "completed", { image: "imgA", mask: "maskA" }),
-        mkGen("b", "completed", { image: "imgB", mask: "maskB" })
-      ];
-      expect(selectedOutputValues(gens, ["a", "b"], "image")).toEqual([
-        "imgA",
-        "imgB"
-      ]);
-    });
+  it("respects the named handle on multi-key outputs", () => {
+    const gens = [
+      mkGen("a", "completed", { image: "imgA", mask: "maskA" }),
+      mkGen("b", "completed", { image: "imgB", mask: "maskB" })
+    ];
+    expect(selectedOutputValues(gens, ["a", "b"], "image")).toEqual([
+      "imgA",
+      "imgB"
+    ]);
   });
 });

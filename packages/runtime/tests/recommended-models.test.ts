@@ -10,13 +10,14 @@
 import { describe, it, expect } from "vitest";
 import { RECOMMENDED_MODELS } from "../src/recommended-models.js";
 
-const MODALITIES = ["language", "image", "tts", "asr", "video"];
+const MODALITIES = ["language", "image", "tts", "asr", "video", "music"];
 const TYPES = [
   "language_model",
   "embedding_model",
   "image_model",
   "asr_model",
   "tts_model",
+  "music_model",
   "video_model"
 ];
 const TASKS = [

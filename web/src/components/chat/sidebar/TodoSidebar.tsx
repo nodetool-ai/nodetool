@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
@@ -90,6 +90,7 @@ const STATUS_ICONS = {
 
 export const TodoSidebar: React.FC<TodoSidebarProps> = memo(({ todos }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const counts = todos.reduce(
     (acc, t) => {
       acc[t.status] += 1;
@@ -99,7 +100,7 @@ export const TodoSidebar: React.FC<TodoSidebarProps> = memo(({ todos }) => {
   );
 
   return (
-    <aside className="todo-sidebar" css={styles(theme)}>
+    <aside className="todo-sidebar" css={cssStyles}>
       <FlexRow className="todo-header" align="baseline" justify="space-between">
         <Text
           size="small"

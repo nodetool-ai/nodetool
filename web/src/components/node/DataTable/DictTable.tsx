@@ -132,9 +132,9 @@ const DictTable: React.FC<DictTableProps> = ({
   );
 
   const onChangeRows = useCallback(
-    (newData: Record<string, DictCellValue>) => {
-      if (onDataChange) {
-        onDataChange(newData);
+    (newData: TableData) => {
+      if (onDataChange && !Array.isArray(newData)) {
+        onDataChange(newData as Record<string, DictCellValue>);
       }
     },
     [onDataChange]
@@ -193,7 +193,7 @@ const DictTable: React.FC<DictTableProps> = ({
         setShowRowNumbers={() => {}}
         editable={editable}
         dataframeColumns={[]}
-        onChangeRows={onChangeRows as unknown as (newData: TableData) => void}
+        onChangeRows={onChangeRows}
       />
       <div ref={tableRef} className="dicttable" />
     </div>

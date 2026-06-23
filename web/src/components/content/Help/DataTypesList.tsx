@@ -1,8 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
-import type { SyntheticEvent } from "react";
+import { useMemo, type SyntheticEvent } from "react";
 
 import {
   CollapsibleSection,
@@ -31,33 +30,32 @@ const DataTypesList = ({
   const theme = useTheme();
   const types = dataTypes;
 
-  const styles = (theme: Theme) =>
-    css({
-      "&": {
-        padding: "0 .5em 0 0",
-        backgroundColor: "transparent"
-      },
-      ".datatype-list": {
-        padding: "1em",
-        height: "500px",
-        overflowY: "auto"
-      },
-      ".help-item": {
-        padding: ".5em 0",
-        borderBottom: "1px solid var(--palette-grey-600)"
-      },
-      h5: {
-        color: "var(--palette-grey-200)",
-        fontSize: "1em",
-        paddingLeft: "1em",
-        "&:hover": {
-          color: "var(--palette-grey-100)"
-        }
+  const cssStyles = useMemo(() => css({
+    "&": {
+      padding: "0 .5em 0 0",
+      backgroundColor: "transparent"
+    },
+    ".datatype-list": {
+      padding: "1em",
+      height: "500px",
+      overflowY: "auto"
+    },
+    ".help-item": {
+      padding: ".5em 0",
+      borderBottom: "1px solid var(--palette-grey-600)"
+    },
+    h5: {
+      color: "var(--palette-grey-200)",
+      fontSize: "1em",
+      paddingLeft: "1em",
+      "&:hover": {
+        color: "var(--palette-grey-100)"
       }
-  });
+    }
+  }), []);
 
   return (
-    <div className="datatypes" css={styles(theme)}>
+    <div className="datatypes" css={cssStyles}>
       <CollapsibleSection
         title={
           <Text size="normal" weight={600} color="secondary">

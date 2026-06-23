@@ -124,6 +124,7 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
   mediaContents
 }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const gen = message.media_generation ?? null;
 
   // Derive a title from the message prompt when possible
@@ -154,7 +155,7 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
             : "count-many";
 
   return (
-    <div css={styles(theme)} className="media-output-group">
+    <div css={cssStyles} className="media-output-group">
       <div className="media-output-header">
         <FlexColumn gap={0.5} sx={{ minWidth: 0 }}>
           <Text size="normal" weight={600} truncate>

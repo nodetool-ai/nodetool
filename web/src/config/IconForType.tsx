@@ -81,6 +81,7 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   torch_tensor: tensor,
   tts_model: audio,
   asr_model: audio,
+  music_model: audio,
   video_model: video,
   union,
   video,

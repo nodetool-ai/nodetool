@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo, useCallback } from "react";
+import React, { memo, useCallback, useMemo } from "react";
 import {
   FormControl,
   Select,
@@ -148,6 +148,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
     compact = false
   }) {
     const theme = useTheme();
+    const cssStyles = useMemo(() => styles(theme), [theme]);
     const queryClient = useQueryClient();
     const addNotification = useNotificationStore(
       (state) => state.addNotification
@@ -210,7 +211,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
 
     if (isLoading) {
       return (
-        <FlexRow css={styles(theme)} gap={1} align="center" sx={{ py: 1 }}>
+        <FlexRow css={cssStyles} gap={1} align="center" sx={{ py: 1 }}>
           <LoadingSpinner size="small" />
           <Text size="small" color="secondary">
             Loading…
@@ -221,7 +222,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
 
     if (error) {
       return (
-        <Box css={styles(theme)}>
+        <Box css={cssStyles}>
           <Text size="small" color="error" sx={{ mb: 1 }}>
             Unable to load workspaces
           </Text>
@@ -253,7 +254,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
 
     return (
       <>
-        <FormControl fullWidth={fullWidth} css={styles(theme)}>
+        <FormControl fullWidth={fullWidth} css={cssStyles}>
           <Select
             className={`workspace-select${compact ? " compact" : ""}`}
             value={value || ""}

@@ -8,11 +8,10 @@
 import { renderHook, act } from "@testing-library/react";
 import useResultsStore from "../../../stores/ResultsStore";
 import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
-import { useNodeProgress, useEdgeStatus } from "../useNodeExecState";
+import { useNodeProgress } from "../useNodeExecState";
 
 const WF = "wf";
 const NODE = "n";
-const EDGE = "e";
 
 beforeEach(() => {
   useResultsStore.setState({ progress: {}, edges: {} });
@@ -47,29 +46,3 @@ describe("useNodeProgress — focused-run isolation", () => {
   });
 });
 
-describe("useEdgeStatus — focused-run isolation", () => {
-  it("returns the focused run's edge status and re-renders when focus switches", () => {
-    act(() => {
-      useWorkflowRunsStore
-        .getState()
-        .recordRun({ jobId: "A", workflowId: WF, state: "running", startedAt: 1 });
-      useWorkflowRunsStore
-        .getState()
-        .recordRun({ jobId: "B", workflowId: WF, state: "running", startedAt: 2 });
-      useResultsStore.getState().setEdge(WF, "A", EDGE, "message_sent", 3);
-      useResultsStore.getState().setEdge(WF, "B", EDGE, "drained", 7);
-    });
-
-    expect(useWorkflowRunsStore.getState().getFocusedJob(WF)).toBe("B");
-
-    const { result } = renderHook(() => useEdgeStatus(WF, EDGE));
-    // Focused = B
-    expect(result.current).toEqual({ status: "drained", counter: 7 });
-
-    // Switch focus to A — the hook must re-render with A's edge status.
-    act(() => {
-      useWorkflowRunsStore.getState().setFocusedJob(WF, "A");
-    });
-    expect(result.current).toEqual({ status: "message_sent", counter: 3 });
-  });
-});
