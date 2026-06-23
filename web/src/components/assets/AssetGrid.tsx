@@ -30,7 +30,6 @@ import { useShallow } from "zustand/react/shallow";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useAuth from "../../stores/useAuth";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import StorageAnalytics from "./StorageAnalytics";
 import {
   DockviewApi,
   DockviewReact,
@@ -119,6 +118,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   isHorizontal,
   sortedAssets,
   isFullscreenAssets,
+  initialFoldersPanelWidth = FOLDERS_PANEL_WIDTH,
   isMobile = false
 }) => {
   const { error, folderFilesFiltered, folderTree } = useAssets();
@@ -132,7 +132,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     selectedFolderId,
     currentAudioAsset,
     currentFolderId,
-    currentFolder,
     foldersVisible
   } = useAssetGridStore(
     useShallow((state) => ({
@@ -145,7 +144,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       selectedFolderId: state.selectedFolderId,
       currentAudioAsset: state.currentAudioAsset,
       currentFolderId: state.currentFolderId,
-      currentFolder: state.currentFolder,
       foldersVisible: state.foldersVisible
     }))
   );
@@ -256,20 +254,20 @@ const AssetGrid: React.FC<AssetGridProps> = ({
             }
           : undefined,
         ...(isFullscreenAssets
-          ? { initialWidth: FOLDERS_PANEL_WIDTH }
+          ? { initialWidth: initialFoldersPanelWidth }
           : { initialHeight: FOLDERS_PANEL_HEIGHT })
       });
 
       const groupApi = foldersPanel?.group?.api ?? foldersPanel?.group;
       if (groupApi && typeof groupApi.setSize === "function") {
         if (isFullscreenAssets) {
-          groupApi.setSize({ width: FOLDERS_PANEL_WIDTH });
+          groupApi.setSize({ width: initialFoldersPanelWidth });
         } else {
           groupApi.setSize({ height: FOLDERS_PANEL_HEIGHT });
         }
       }
     },
-    [isFullscreenAssets]
+    [isFullscreenAssets, initialFoldersPanelWidth]
   );
 
   useEffect(() => {
@@ -334,12 +332,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
           maxItemSize={maxItemSize}
           onUploadFiles={uploadFiles}
           isFullscreenAssets={isFullscreenAssets}
-        />
-      )}
-      {!isMobile && (
-        <StorageAnalytics
-          assets={sortedAssets || folderFilesFiltered || []}
-          currentFolder={currentFolder}
         />
       )}
       {!isMobile && (

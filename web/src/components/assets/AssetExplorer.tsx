@@ -4,6 +4,7 @@ import React, { memo } from "react";
 import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import ManagerPageLayout from "../panels/ManagerPageLayout";
 import AssetGrid from "./AssetGrid";
+import StorageAnalytics from "./StorageAnalytics";
 import { Box } from "../ui_primitives";
 import useAssets from "../../serverState/useAssets";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
@@ -44,6 +45,7 @@ const AssetExplorer: React.FC = memo(() => {
       title="Assets"
       subtitle="Browse, organize, and preview your images, audio, video, and other files."
       padded={false}
+      actions={<StorageAnalytics assets={folderFiles} />}
     >
       <Box css={gridFillStyles}>
         <ContextMenuProvider>
@@ -52,7 +54,7 @@ const AssetExplorer: React.FC = memo(() => {
             itemSpacing={2}
             isHorizontal={true}
             isFullscreenAssets={true}
-            initialFoldersPanelWidth={200}
+            initialFoldersPanelWidth={300}
             sortedAssets={folderFiles}
           />
         </ContextMenuProvider>

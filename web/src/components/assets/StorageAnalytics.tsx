@@ -3,66 +3,52 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useMemo, memo } from "react";
-import { Text, Box } from "../ui_primitives";
+import { Box } from "../ui_primitives";
 import { useLocation } from "react-router-dom";
 import { Asset } from "../../stores/ApiTypes";
 import { formatFileSize } from "../../utils/formatUtils";
 
 interface StorageAnalyticsProps {
   assets: Asset[];
-  currentFolder?: Asset | null;
 }
 
+// Rendered in the manager hero's actions slot (right of the title), so it lays
+// out in flow as a compact summary row instead of floating over the toolbar.
 const styles = (theme: Theme) =>
   css({
     "&": {
-      position: "absolute",
-      top: "7em",
-      right: "2em",
-      minWidth: "200px",
-      maxWidth: "300px",
       display: "flex",
       alignItems: "center",
-      justifyContent: "flex-end",
-      gap: "1em",
-      padding: "0.5em 1em",
-      backgroundColor: "transparent",
-      borderRadius: "0.25em",
-      margin: "0",
+      gap: theme.spacing(3),
       fontSize: theme.fontSizeSmaller,
-      textAlign: "right"
-    },
-    ".folder-info": {
-      color: theme.vars.palette.grey[200],
-      fontWeight: 500
+      whiteSpace: "nowrap"
     },
     ".storage-stats": {
-      minWidth: "120px",
-      color: "var(--palette-primary-main)",
-      fontSize: theme.fontSizeNormal,
       display: "flex",
       alignItems: "flex-end",
-      gap: "1em"
+      gap: theme.spacing(3)
     },
     ".stat-item": {
       display: "flex",
       flexDirection: "column",
-      alignItems: "center"
+      alignItems: "flex-start",
+      gap: theme.spacing(0.5)
     },
     ".stat-label": {
       color: theme.vars.palette.grey[400],
       fontSize: theme.fontSizeTiny,
-      textTransform: "uppercase"
+      textTransform: "uppercase",
+      letterSpacing: "0.06em",
+      lineHeight: 1
     },
     ".stat-value": {
-      color: theme.vars.palette.grey[0]
+      color: theme.vars.palette.grey[0],
+      fontSize: theme.fontSizeSmall,
+      lineHeight: 1.1
     }
   });
 
-const StorageAnalytics: React.FC<StorageAnalyticsProps> = ({
-  assets,
-  currentFolder
-}) => {
+const StorageAnalytics: React.FC<StorageAnalyticsProps> = ({ assets }) => {
   const location = useLocation();
   const theme = useTheme();
   const analyticsStyles = useMemo(() => styles(theme), [theme]);
@@ -93,10 +79,6 @@ const StorageAnalytics: React.FC<StorageAnalyticsProps> = ({
 
   return (
     <Box css={analyticsStyles} className="storage-analytics">
-      <Text className="folder-info">
-        {currentFolder?.name || "ASSETS"}
-      </Text>
-
       <div className="storage-stats">
         <div className="stat-item">
           <span className="stat-label">Total Size</span>
@@ -119,13 +101,9 @@ const StorageAnalytics: React.FC<StorageAnalyticsProps> = ({
   );
 };
 
-// Memoize component to prevent unnecessary re-renders when parent components update
-// StorageAnalytics performs calculations and should only re-render when assets or currentFolder changes
+// Memoize so the summary only recomputes when the asset list identity changes.
 const arePropsEqual = (prevProps: StorageAnalyticsProps, nextProps: StorageAnalyticsProps) => {
-  return (
-    prevProps.assets === nextProps.assets &&
-    prevProps.currentFolder === nextProps.currentFolder
-  );
+  return prevProps.assets === nextProps.assets;
 };
 
 export default memo(StorageAnalytics, arePropsEqual);

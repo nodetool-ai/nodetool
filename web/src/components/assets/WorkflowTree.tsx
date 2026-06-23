@@ -3,8 +3,8 @@ import { css } from "@emotion/react";
 
 import React, { memo, useCallback, useMemo, useState } from "react";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import CircleIcon from "@mui/icons-material/Circle";
 import { useQuery } from "@tanstack/react-query";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -24,25 +24,41 @@ import { WorkflowList, Workflow } from "../../stores/ApiTypes";
 // Show the inline search field once the list grows past this many workflows.
 const SEARCH_THRESHOLD = 8;
 
+// Shared with the FOLDERS tree so both navigators read as one component: same
+// row height, hover, selected treatment, and a leading-icon column the names
+// align to. The section header matches the FOLDERS root (icon + uppercase
+// label, left-aligned); only the collapse chevron is added on the right since
+// the workflow list is long.
+const ROW_HEIGHT = "1.5rem";
+const ICON_SLOT = "18px";
+
 const styles = (theme: Theme) =>
   css({
     "&.workflow-tree": {
-      padding: ".25em 0 1em .5em"
+      padding: ".25em .5em 1em .5em"
     },
     ".root-row": {
       display: "flex",
       alignItems: "center",
-      gap: ".25rem",
-      height: "1.5rem",
+      gap: ".4em",
+      height: ROW_HEIGHT,
+      paddingLeft: "2px",
       cursor: "pointer",
-      userSelect: "none"
+      userSelect: "none",
+      borderRadius: BORDER_RADIUS.md,
+      transition: MOTION.background
+    },
+    ".root-row:hover": {
+      backgroundColor: theme.vars.palette.action.hover
     },
     ".root-row .root-icon": {
-      width: "18px",
-      height: "18px",
-      color: theme.vars.palette.grey[400]
+      width: ICON_SLOT,
+      height: ICON_SLOT,
+      color: theme.vars.palette.grey[400],
+      flexShrink: 0
     },
     ".root-row .root-label": {
+      flex: 1,
       fontSize: theme.fontSizeSmall,
       textTransform: "uppercase",
       letterSpacing: "0.08em",
@@ -50,22 +66,25 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[400]
     },
     ".root-row .expand-icon": {
-      width: "20px",
-      height: "20px",
-      color: theme.vars.palette.grey[400],
+      width: "16px",
+      height: "16px",
+      color: theme.vars.palette.grey[500],
       transition: `transform ${MOTION.normal}`,
       transform: "rotate(-90deg)"
     },
     "&.expanded .root-row .expand-icon": {
       transform: "rotate(0deg)"
     },
+    ".search-row": {
+      padding: ".25em 0 .25em 0"
+    },
     ".workflow-leaf": {
       display: "flex",
       alignItems: "center",
       gap: ".4em",
-      height: "1.5rem",
-      paddingLeft: "1.5rem",
-      paddingRight: ".5em",
+      height: ROW_HEIGHT,
+      paddingLeft: ".75rem",
+      paddingRight: ".25em",
       cursor: "pointer",
       borderRadius: BORDER_RADIUS.md,
       transition: `${MOTION.background}, color ${MOTION.fast}`
@@ -73,11 +92,17 @@ const styles = (theme: Theme) =>
     ".workflow-leaf:hover": {
       backgroundColor: theme.vars.palette.action.hover
     },
-    ".workflow-leaf .leaf-icon": {
-      width: "8px",
-      height: "8px",
-      color: theme.vars.palette.grey[500],
+    ".workflow-leaf .leaf-icon-slot": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: ICON_SLOT,
       flexShrink: 0
+    },
+    ".workflow-leaf .leaf-icon": {
+      width: "14px",
+      height: "14px",
+      color: theme.vars.palette.grey[500]
     },
     ".workflow-leaf .leaf-name": {
       margin: 0,
@@ -91,19 +116,25 @@ const styles = (theme: Theme) =>
     ".workflow-leaf.selected": {
       backgroundColor: "rgba(var(--palette-primary-main-channel) / 0.12)"
     },
-    ".workflow-leaf.selected .leaf-icon, .workflow-leaf.selected .leaf-name": {
+    ".workflow-leaf.selected .leaf-icon": {
+      color: theme.vars.palette.primary.main
+    },
+    ".workflow-leaf.selected .leaf-name": {
       color: theme.vars.palette.primary.main,
       fontWeight: 600
     },
-    ".search-row": {
-      padding: ".25em 1.5rem .25em 0"
-    },
     ".empty-row": {
-      paddingLeft: "1.5rem",
+      paddingLeft: "1.75rem",
       color: theme.vars.palette.grey[500],
-      fontSize: theme.fontSizeSmall
+      fontSize: theme.fontSizeSmaller
     }
   });
+
+// Compact the shared SearchInput so it sits as a tree control, not a hero field.
+const searchInputSx = {
+  "& .MuiInputBase-root": { minHeight: "28px", height: "28px" },
+  "& .MuiInputBase-input": { fontSize: "var(--fontSizeSmaller)", py: 0 }
+};
 
 /**
  * Sibling of the FOLDERS tree shown in the fullscreen asset navigator. Lists
@@ -153,9 +184,9 @@ const WorkflowTree: React.FC = () => {
   return (
     <Box className={`workflow-tree ${expanded ? "expanded" : ""}`} css={treeStyles}>
       <div className="root-row" onClick={() => setExpanded((prev) => !prev)}>
-        <ExpandMoreIcon className="expand-icon" />
         <AccountTreeIcon className="root-icon" />
         <span className="root-label">Workflows</span>
+        <ExpandMoreIcon className="expand-icon" />
       </div>
 
       <Collapse in={expanded} timeout="auto" unmountOnExit>
@@ -167,6 +198,7 @@ const WorkflowTree: React.FC = () => {
               placeholder="Search workflows..."
               fullWidth
               size="small"
+              sx={searchInputSx}
             />
           </div>
         )}
@@ -183,7 +215,9 @@ const WorkflowTree: React.FC = () => {
               }`}
               onClick={() => handleSelect(workflow)}
             >
-              <CircleIcon className="leaf-icon" />
+              <span className="leaf-icon-slot">
+                <AccountTreeOutlinedIcon className="leaf-icon" />
+              </span>
               <Text className="leaf-name">{workflow.name}</Text>
             </div>
           ))

@@ -33,7 +33,8 @@ import {
   Divider,
   BORDER_RADIUS,
   FONT_SIZE_SANS,
-  MOTION
+  MOTION,
+  SPACING
 } from "../ui_primitives";
 import { TYPE_FILTERS, TypeFilterKey } from "../../utils/formatUtils";
 import isEqual from "fast-deep-equal";
@@ -155,20 +156,22 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
           display: "flex",
           flexWrap: "wrap",
           alignItems: "center",
-          columnGap: 1,
-          rowGap: 0.5
+          columnGap: 2,
+          rowGap: 1,
+          px: 2,
+          py: 1
         })
       }}
     >
       <FlexRow
         className="asset-menu-toolbar"
         align="center"
-        gap={0.5}
+        gap={0.75}
         wrap
         sx={{
           px: 0.5,
           py: 0.5,
-          "& .MuiIconButton-root": { padding: "4px" },
+          "& .MuiIconButton-root": { padding: SPACING.sm },
           "& .MuiSvgIcon-root": { fontSize: 16 }
         }}
       >
@@ -222,8 +225,8 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
         )}
 
         {/* Actions: create & add assets */}
-        <FlexRow align="center" gap={0.5} sx={{ ml: "auto" }}>
-          <Divider orientation="vertical" flexItem sx={{ my: 0.5 }} />
+        <FlexRow align="center" gap={0.5} sx={{ ml: "auto", pl: 0.5 }}>
+          <Divider orientation="vertical" flexItem sx={{ my: 0.5, mr: 0.5 }} />
           <ToolbarIconButton
             icon={<CreateNewFolderIcon />}
             tooltip="Create folder"
@@ -276,7 +279,7 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
               onLocalSearchChange={onLocalSearchChange}
               focusOnTyping={false}
               focusSearchInput={false}
-              width={333}
+              width={240}
             />
           </SearchErrorBoundary>
           <AssetActions
