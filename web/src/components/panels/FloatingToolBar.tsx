@@ -113,7 +113,7 @@ const dockStyles = (theme: Theme) =>
       color: theme.vars.palette.grey[500],
       cursor: "grab",
       transition: `${MOTION.background}, color ${MOTION.fast}`,
-      "& svg": { fontSize: "18px" },
+      "& svg": { fontSize: "var(--fontSizeBig)" },
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[800],
         color: theme.vars.palette.grey[200]

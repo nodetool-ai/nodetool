@@ -76,7 +76,7 @@ const styles = (theme: Theme) =>
       display: "inline-flex",
       alignItems: "center",
       color: theme.vars.palette.grey[600],
-      "& svg": { fontSize: "18px" }
+      "& svg": { fontSize: "var(--fontSizeBig)" }
     },
 
     ".convo-overlay-body": {
