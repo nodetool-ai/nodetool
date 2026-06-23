@@ -25,7 +25,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           # Fetch the full ref so we can push back to the triggering branch.
           ref: ${{ github.ref }}

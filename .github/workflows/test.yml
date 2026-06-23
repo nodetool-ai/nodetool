@@ -44,7 +44,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Node, install deps, build packages
         uses: ./.github/actions/setup-build
@@ -59,7 +59,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Node, install deps, build packages
         # mesa-vulkan-drivers ships lavapipe (CPU Vulkan ICD) so headless

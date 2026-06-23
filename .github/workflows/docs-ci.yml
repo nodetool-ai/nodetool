@@ -24,7 +24,7 @@ jobs:
       LC_ALL: C.UTF-8
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
