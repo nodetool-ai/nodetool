@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useCallback, memo } from "react";
+import { useCallback, useMemo, memo } from "react";
 import {
   Node,
   Edge,
@@ -194,6 +194,7 @@ const ChatView = ({
   showConversationHeader = false
 }: ChatViewProps) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const handleSendMessage = useCallback(
     async (
       content: MessageContent[],
@@ -239,7 +240,7 @@ const ChatView = ({
   const showTodoSidebar = todos.length > 0;
 
   return (
-    <div className="chat-view" css={styles(theme)}>
+    <div className="chat-view" css={cssStyles}>
       <div className="chat-main">
         <div className="chat-thread-container">
           {showConversationHeader && (
