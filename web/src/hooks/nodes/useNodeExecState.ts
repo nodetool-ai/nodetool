@@ -121,22 +121,6 @@ export function useNodeExecutionDuration(
   );
 }
 
-// ── Edge status ──────────────────────────────────────────────────────────────
-
-/**
- * Reactive hook that returns the status of a workflow edge in the workflow's
- * focused run. Note: the second parameter is `edgeId`, not `nodeId`.
- */
-export function useEdgeStatus(
-  workflowId: string,
-  edgeId: string
-): { status: string; counter?: number } | undefined {
-  const jobId = useWorkflowRunsStore((s) => s.focusedJob[workflowId]);
-  return useResultsStore((s) =>
-    jobId ? s.getEdge(workflowId, jobId, edgeId) : undefined
-  );
-}
-
 // ── Provider cost ────────────────────────────────────────────────────────────
 
 /**
