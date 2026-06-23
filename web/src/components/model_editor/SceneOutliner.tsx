@@ -9,7 +9,7 @@ import ViewInArIcon from "@mui/icons-material/ViewInAr";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import CategoryIcon from "@mui/icons-material/Category";
 import CameraAltIcon from "@mui/icons-material/CameraAlt";
-import { FlexColumn, FlexRow, Text, ScrollArea, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { FlexColumn, Text, ScrollArea, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import type { SceneTreeNode } from "./sceneTree";
 
 const styles = (theme: Theme) =>

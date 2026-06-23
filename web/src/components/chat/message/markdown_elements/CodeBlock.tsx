@@ -99,7 +99,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
                 onClick={handleInsert}
                 title="Insert into editor"
                 style={{
-                  padding: "12px 24px",
+                  padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xxl)}`,
                   fontSize: FONT_SIZE_SANS.caption,
                   borderRadius: BORDER_RADIUS.xs,
                   border: "1px solid var(--palette-grey-700)",

@@ -1,6 +1,6 @@
 import { css } from "@emotion/react";
 import { Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, getSpacingPx } from "../ui_primitives";
 
 export const createStyles = (theme: Theme) => {
   const doubledRadius =
