@@ -13,6 +13,7 @@ import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import { ConnectableNodesProvider } from "../../providers/ConnectableNodesProvider";
 import KeyboardProvider from "../KeyboardProvider";
 import FloatingToolBar from "../panels/FloatingToolBar";
+import WorkflowAutosave from "./WorkflowAutosave";
 import QueueOverlay from "../panels/QueueOverlay";
 import StatusMessage from "../panels/StatusMessage";
 import NodeCreateBridge from "../editor/NodeCreateBridge";
@@ -76,6 +77,7 @@ const WorkflowEditorSurface = ({
 
   return (
     <NodeContext.Provider value={nodeStore}>
+      <WorkflowAutosave workflowId={workflowId} />
       <ReactFlowProvider>
         <ContextMenuProvider>
           <ConnectableNodesProvider>

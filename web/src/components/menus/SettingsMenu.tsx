@@ -976,7 +976,7 @@ function SettingsPage() {
                       >
                         <SelectField
                           label="Autosave Interval (minutes)"
-                          value={settings.autosave?.intervalMinutes ?? 10}
+                          value={settings.autosave?.intervalMinutes ?? 20}
                           variant="standard"
                           onChange={(v) =>
                             updateAutosaveSettings({

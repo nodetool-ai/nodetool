@@ -4,7 +4,7 @@ import { isMac } from "../utils/platform";
 
 interface AutosaveSettings {
   enabled: boolean;
-  intervalMinutes: number; // 1-60, default 10
+  intervalMinutes: number; // 1-60, default 20
   saveBeforeRun: boolean;
   saveOnClose: boolean;
   maxVersionsPerWorkflow: number; // default 50
@@ -14,7 +14,7 @@ interface AutosaveSettings {
 
 export const defaultAutosaveSettings: AutosaveSettings = {
   enabled: true,
-  intervalMinutes: 10,
+  intervalMinutes: 20,
   saveBeforeRun: true,
   saveOnClose: true,
   maxVersionsPerWorkflow: 50,

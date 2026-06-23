@@ -114,6 +114,7 @@ describe("useFloatingToolbarActions", () => {
       getState: jest.fn(() => ({
         nodes: [],
         edges: [],
+        workflowIsDirty: false,
         getWorkflow: jest.fn(() => mockWorkflow)
       }))
     } as any);
@@ -241,7 +242,61 @@ describe("useFloatingToolbarActions", () => {
       expect(mockRun).toHaveBeenCalled();
     });
 
-    it("does not create an autosave version when running", async () => {
+    const enableSaveBeforeRun = () => {
+      mockUseSettingsStore.mockImplementation((selector) => {
+        const state = {
+          settings: {
+            autosave: { saveBeforeRun: true, maxVersionsPerWorkflow: 10 }
+          }
+        };
+        if (typeof selector === "function") {
+          return selector(state as any);
+        }
+        return state.settings as any;
+      });
+    };
+
+    const setDirty = (dirty: boolean) => {
+      mockUseNodeStoreRef.mockReturnValue({
+        getState: jest.fn(() => ({
+          nodes: [],
+          edges: [],
+          workflowIsDirty: dirty,
+          getWorkflow: jest.fn(() => mockWorkflow)
+        }))
+      } as any);
+    };
+
+    it("autosaves on run start when dirty and saveBeforeRun is enabled", async () => {
+      enableSaveBeforeRun();
+      setDirty(true);
+      mockGetWorkflow.mockReturnValue({
+        ...mockWorkflow,
+        graph: { nodes: [{ id: "node-1" }], edges: [] }
+      } as any);
+
+      const { result } = renderHook(() => useFloatingToolbarActions());
+
+      await act(async () => {
+        await result.current.handleRun();
+      });
+
+      expect(mockTriggerAutosave).toHaveBeenCalledWith(
+        "workflow-123",
+        expect.any(Object),
+        "checkpoint",
+        expect.objectContaining({
+          description: "Before execution",
+          force: true,
+          maxVersions: 10
+        })
+      );
+      expect(mockRun).toHaveBeenCalled();
+    });
+
+    it("does not autosave on run start when nothing changed", async () => {
+      enableSaveBeforeRun();
+      setDirty(false);
       mockGetWorkflow.mockReturnValue({
         ...mockWorkflow,
         graph: { nodes: [{ id: "node-1" }], edges: [] }
@@ -257,7 +312,21 @@ describe("useFloatingToolbarActions", () => {
       expect(mockRun).toHaveBeenCalled();
     });
 
-    it("saves workflow after execution", async () => {
+    it("does not autosave on run start when saveBeforeRun is disabled", async () => {
+      // Default settings mock has saveBeforeRun: false.
+      setDirty(true);
+
+      const { result } = renderHook(() => useFloatingToolbarActions());
+
+      await act(async () => {
+        await result.current.handleRun();
+      });
+
+      expect(mockTriggerAutosave).not.toHaveBeenCalled();
+      expect(mockRun).toHaveBeenCalled();
+    });
+
+    it("does not save the workflow after execution", async () => {
       const { result } = renderHook(() => useFloatingToolbarActions());
 
       await act(async () => {
@@ -265,11 +334,10 @@ describe("useFloatingToolbarActions", () => {
       });
 
       act(() => {
-        jest.advanceTimersByTime(100);
+        jest.advanceTimersByTime(200);
       });
 
-      expect(mockGetWorkflow).toHaveBeenCalledWith("workflow-123");
-      expect(mockSaveWorkflow).toHaveBeenCalled();
+      expect(mockSaveWorkflow).not.toHaveBeenCalled();
     });
   });
 

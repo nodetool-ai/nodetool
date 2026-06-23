@@ -287,7 +287,7 @@ export const useAutosave = (options: UseAutosaveOptions): UseAutosaveReturn => {
       return;
     }
 
-    const intervalMs = (autosaveSettings?.intervalMinutes ?? 10) * 60 * 1000;
+    const intervalMs = (autosaveSettings?.intervalMinutes ?? 20) * 60 * 1000;
 
     const scheduleNextAutosave = () => {
       intervalTimeoutRef.current = setTimeout(async () => {

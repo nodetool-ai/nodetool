@@ -5,6 +5,7 @@ import { useRunningJobs } from "./useRunningJobs";
 import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useSettingsStore } from "../stores/SettingsStore";
+import { triggerAutosaveForWorkflow } from "./useAutosave";
 import useMetadataStore from "../stores/MetadataStore";
 import { useRunWarningStore } from "../stores/RunWarningStore";
 import { useModelCalloutStore } from "../stores/ModelCalloutStore";
@@ -79,6 +80,7 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
   const getWorkflowById = useWorkflowManager((state) => state.getWorkflow);
   const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
 
+  const autosave = useSettingsStore((state) => state.settings.autosave);
   const confirmLargeRun = useSettingsStore(
     (state) => state.settings.confirmLargeRun
   );
@@ -106,15 +108,23 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
 
   const handleRun = useCallback(async () => {
     const doRun = async () => {
+      // Autosave on run start, but only when there are unsaved changes. The
+      // autosave endpoint dedupes by content, so this never adds a redundant
+      // version. (force only bypasses the time rate-limit, not the dedup.)
+      if (autosave?.saveBeforeRun && nodeStore.getState().workflowIsDirty) {
+        const w = getWorkflowById(workflow.id);
+        if (w?.graph?.nodes && w.graph.nodes.length > 0) {
+          await triggerAutosaveForWorkflow(workflow.id, w.graph, "checkpoint", {
+            description: "Before execution",
+            force: true,
+            maxVersions: autosave.maxVersionsPerWorkflow
+          });
+        }
+      }
+
       // Access current state directly to avoid re-renders on every node drag
       const { nodes, edges } = nodeStore.getState();
       run({}, workflow, nodes, edges, undefined, undefined, true);
-      setTimeout(() => {
-        const w = getWorkflowById(workflow.id);
-        if (w) {
-          saveWorkflow(w);
-        }
-      }, 100);
     };
 
     // Catch nodes with no model set before the run fails on the server. Select
@@ -185,7 +195,7 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     workflow,
     nodeStore,
     getWorkflowById,
-    saveWorkflow,
+    autosave,
     confirmLargeRun,
     largeRunThreshold,
     requestRunConfirmation,
