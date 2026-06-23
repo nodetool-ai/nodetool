@@ -66,7 +66,6 @@ export class ComfyWorkflowNode extends BaseNode {
     "Run a ComfyUI workflow on a ComfyUI server.\n    comfy, comfyui, workflow, image, diffusion\n\n    Use cases:\n    - Generate images with an existing ComfyUI workflow\n    - Call a local or remote ComfyUI server (RunPod, etc.)\n    - Embed ComfyUI generation inside a NodeTool workflow";
   static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
-  static readonly isStreamingOutput = true;
   static readonly metadataOutputTypes = {
     output: "dict[str, any]"
   };

@@ -282,9 +282,12 @@ for (const file of files) {
     if ((py.required_settings?.length ?? 0) > 0) {
       desiredStatics.set("requiredSettings", `  static readonly requiredSettings = ${jsLiteral(py.required_settings)};`);
     }
-    if (py.is_streaming_output) {
-      desiredStatics.set("isStreamingOutput", "  static readonly isStreamingOutput = true;");
-    }
+    // NOTE: isStreamingOutput is intentionally never written. Streaming-output
+    // is purely structural (a genProcess override or forward/iteration/chunk
+    // outputCorrelation; see hasStreamingOutput in node-sdk) — the static flag
+    // was removed. It stays in `managedStaticNames` so this sync actively
+    // strips any leftover `static readonly isStreamingOutput` from synced node
+    // sources rather than leaving stragglers.
     if (py.is_dynamic) {
       desiredStatics.set("isDynamic", "  static readonly isDynamic = true;");
     }

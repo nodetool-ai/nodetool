@@ -16,17 +16,6 @@ class Plain extends BaseNode {
 }
 
 describe("hasStreamingOutput resolution order", () => {
-  it("returns true when the static isStreamingOutput flag is set", () => {
-    class Flagged extends BaseNode {
-      static readonly nodeType = "test.Flagged";
-      static readonly isStreamingOutput = true;
-      async process() {
-        return {};
-      }
-    }
-    expect(hasStreamingOutput(Flagged)).toBe(true);
-  });
-
   it("returns true when a subclass overrides genProcess", () => {
     class Gen extends BaseNode {
       static readonly nodeType = "test.Gen";
@@ -77,52 +66,14 @@ describe("hasStreamingOutput resolution order", () => {
     }
   );
 
-  it("lets an explicit false opt out of genProcess/correlation inference", () => {
-    class OptOut extends BaseNode {
-      static readonly nodeType = "test.OptOut";
-      static readonly isStreamingOutput = false;
-      static readonly outputCorrelation = {
-        out: { kind: "forward", source: "in" }
-      };
-      async process() {
-        return {};
-      }
-      async *genProcess() {
-        yield { a: 1 };
-      }
-    }
-    expect(hasStreamingOutput(OptOut)).toBe(false);
-  });
-
-  it("inherits an explicit flag declared on an ancestor below BaseNode", () => {
-    class StreamBase extends BaseNode {
-      static readonly nodeType = "test.StreamBase";
-      static readonly isStreamingOutput = true;
-      async process() {
-        return {};
-      }
-    }
-    class StreamChild extends StreamBase {
-      static readonly nodeType = "test.StreamChild";
-    }
-    expect(hasStreamingOutput(StreamChild)).toBe(true);
-  });
-
-  it("does not treat another module copy's BaseNode default as an opt-out", () => {
-    // vitest can load two copies of base-node.js (vite graph + node ESM
-    // cache). Simulate a class extending the *other* copy's BaseNode root:
-    // same global marker, same own isStreamingOutput=false default.
+  it("returns true when a genProcess override inherits from a non-BaseNode root", () => {
+    // A class extending something other than this module's BaseNode still
+    // streams if it defines its own genProcess generator (purely structural).
     class ForeignBaseNode {
-      static readonly isStreamingOutput = false;
       async *genProcess() {
         yield {};
       }
     }
-    Object.defineProperty(
-      ForeignBaseNode,
-      Symbol.for("nodetool.node-sdk.base-node"),
-      { value: true }
-    );
     class ForeignStreamer extends ForeignBaseNode {
       static readonly nodeType = "test.ForeignStreamer";
       async *genProcess() {
