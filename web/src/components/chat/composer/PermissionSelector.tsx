@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import CheckIcon from "@mui/icons-material/Check";
-import { Caption, FlexColumn, Popover, Text, MOTION, BORDER_RADIUS } from "../../ui_primitives";
+import { Caption, FlexColumn, Popover, Text, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
 import MediaControlChip from "./MediaControlChip";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import type { PermissionMode } from "../../../stores/ApiTypes";
@@ -46,10 +46,10 @@ const dotColor = (theme: Theme, tone: ModeItem["tone"]): string => {
 
 const menuStyles = (theme: Theme) =>
   css({
-    padding: "8px 0",
+    padding: `${getSpacingPx(SPACING.md)} 0`,
     minWidth: 260,
     ".permission-menu-header": {
-      padding: "8px 16px 4px",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xs)}`,
       color: theme.vars.palette.grey[400],
       textTransform: "uppercase",
       letterSpacing: 1

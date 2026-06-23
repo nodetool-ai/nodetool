@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useMediaQuery } from "@mui/material";
 import { EditorMenu } from "../ui_primitives";
-import { Tooltip, Box, AlertBanner, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, Box, AlertBanner, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
@@ -91,9 +91,9 @@ const actionStyles = (theme: Theme) =>
   css({
     display: "inline-flex",
     alignItems: "center",
-    gap: "4px",
-    marginLeft: "6px",
-    paddingLeft: "8px",
+    gap: getSpacingPx(SPACING.xs),
+    marginLeft: getSpacingPx(SPACING.sm),
+    paddingLeft: getSpacingPx(SPACING.md),
     borderLeft: `1px solid ${theme.vars.palette.divider}`,
 
     "& button": {
@@ -110,8 +110,8 @@ const actionStyles = (theme: Theme) =>
       position: "relative",
       minWidth: "36px",
       height: "36px",
-      padding: "0 10px",
-      gap: "4px",
+      padding: `0 ${getSpacingPx(SPACING.lg)}`, // was 0 10px
+      gap: getSpacingPx(SPACING.xs),
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.primary.contrastText,
       "& svg": { fontSize: "20px" },
@@ -126,7 +126,7 @@ const actionStyles = (theme: Theme) =>
         right: "-3px",
         minWidth: "16px",
         height: "16px",
-        padding: "0 4px",
+        padding: `0 ${getSpacingPx(SPACING.xs)}`,
         boxSizing: "border-box",
         borderRadius: BORDER_RADIUS.pill,
         backgroundColor: theme.vars.palette.primary.main,
@@ -190,7 +190,7 @@ const actionStyles = (theme: Theme) =>
         right: "-2px",
         minWidth: "15px",
         height: "15px",
-        padding: "0 3px",
+        padding: `0 ${getSpacingPx(SPACING.xs)}`, // was 0 3px
         boxSizing: "border-box",
         borderRadius: BORDER_RADIUS.pill,
         backgroundColor: theme.vars.palette.grey[600],

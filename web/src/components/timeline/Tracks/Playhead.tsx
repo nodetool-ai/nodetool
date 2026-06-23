@@ -31,7 +31,7 @@ import {
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { formatTimecode } from "../Inspector/InspectorPrimitives.helpers";
-import { MOTION, Z_INDEX } from "../../ui_primitives";
+import { MOTION, Z_INDEX, SPACING, getSpacingPx } from "../../ui_primitives";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -82,7 +82,7 @@ const pillStyles = (theme: Theme, dragging: boolean, hovered: boolean) =>
     left: "50%",
     transform: "translateX(-50%)",
     height: PILL_HEIGHT_PX,
-    padding: "0 8px",
+    padding: `0 ${getSpacingPx(SPACING.md)}`,
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",

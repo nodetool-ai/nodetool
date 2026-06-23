@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import SaveIcon from "@mui/icons-material/Save";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import { CloseButton, Dialog, EditorButton, Text, Tooltip, Box, Toast, BORDER_RADIUS } from "../ui_primitives";
+import { CloseButton, Dialog, EditorButton, Text, Tooltip, Box, Toast, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useVibeCodingStore } from "../../stores/VibeCodingStore";
 import { trpcClient } from "../../trpc/client";
@@ -24,19 +24,19 @@ const createStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      padding: "12px 16px",
+      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
       borderBottom: `1px solid ${theme.palette.divider}`,
       backgroundColor: theme.palette.background.paper
     },
     ".panel-title": {
       display: "flex",
       alignItems: "center",
-      gap: "12px"
+      gap: getSpacingPx(SPACING.lg)
     },
     ".panel-actions": {
       display: "flex",
       alignItems: "center",
-      gap: "8px"
+      gap: getSpacingPx(SPACING.md)
     },
     ".panel-content": {
       flex: 1,

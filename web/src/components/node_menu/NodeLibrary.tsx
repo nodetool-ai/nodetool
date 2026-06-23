@@ -14,7 +14,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 
-import { Text, thinScrollbarStyles, MOTION, FONT_WEIGHT, BORDER_RADIUS, SPACING } from "../ui_primitives";
+import { Text, thinScrollbarStyles, MOTION, FONT_WEIGHT, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import NodeLibraryRow from "./NodeLibraryRow";
 import NodeInfo from "./NodeInfo";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -62,7 +62,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
     ".nl-count": {
       display: "inline-flex",
       alignItems: "center",
-      padding: "1px 8px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`, // was 1px 8px
       borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.action.selected,
       color: theme.vars.palette.text.secondary,
@@ -123,7 +123,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
-      padding: "1px 6px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`, // was 1px 6px
       height: "18px",
       borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.action.hover,
@@ -181,7 +181,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       flexShrink: 0,
       display: "flex",
       flexDirection: "column",
-      gap: "2px",
+      gap: getSpacingPx(SPACING.micro),
       padding: theme.spacing(
         SPACING.xs,
         SPACING.xs,

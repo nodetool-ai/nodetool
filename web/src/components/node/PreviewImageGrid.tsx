@@ -12,7 +12,7 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { ImageComparer } from "../widgets";
 import AssetViewer from "../assets/AssetViewer";
 import { CopyAssetButton } from "../common/CopyAssetButton";
-import { Checkbox, Dialog, Tooltip, EditorButton, ToolbarIconButton, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Checkbox, Dialog, Tooltip, EditorButton, ToolbarIconButton, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
 
 export type ImageSource = Uint8Array | string;
@@ -126,7 +126,7 @@ const ImageTile = memo<ImageTileProps>(({
           onClick={handleCheckboxClick}
           icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
           checkedIcon={<CheckBoxIcon fontSize="small" />}
-          sx={{ padding: "2px" }}
+          sx={{ padding: getSpacingPx(SPACING.micro) }}
         />
       )}
     </div>
@@ -185,7 +185,7 @@ const styles = (theme: Theme, gap: number) =>
       position: "absolute",
       top: 6,
       left: 6,
-      padding: "2px 6px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
       fontSize: "var(--fontSizeSmaller)",
       borderRadius: BORDER_RADIUS.sm,
       background: `rgba(${theme.vars.palette.background.defaultChannel} / 0.5)`,
@@ -197,7 +197,7 @@ const styles = (theme: Theme, gap: number) =>
       left: 0,
       right: 0,
       bottom: 0,
-      padding: "4px 6px",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.sm)}`,
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.primary,
       background:
@@ -269,7 +269,7 @@ const styles = (theme: Theme, gap: number) =>
       transform: "translateX(-50%)",
       display: "flex",
       gap: 8,
-      padding: "8px 16px",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`,
       backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.85)`,
       borderRadius: BORDER_RADIUS.lg,
       zIndex: 100,
@@ -289,7 +289,7 @@ const styles = (theme: Theme, gap: number) =>
       color: theme.vars.palette.common.white,
       fontSize: "var(--fontSizeSmaller)",
       textTransform: "none",
-      padding: "2px 8px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
       minWidth: "unset",
       "&:hover": {
         backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.8)`

@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import React, { useMemo, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Caption, Box, BORDER_RADIUS } from "../ui_primitives";
+import { Text, Caption, Box, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import {
@@ -18,20 +18,20 @@ const styles = (theme: Theme) =>
     "&": {
       display: "flex",
       flexDirection: "column",
-      gap: "12px"
+      gap: getSpacingPx(SPACING.lg)
     },
     ".preview-section": {
       display: "flex",
       flexDirection: "column",
-      gap: "8px"
+      gap: getSpacingPx(SPACING.md)
     },
     ".preview-box": {
-      padding: "16px",
+      padding: getSpacingPx(SPACING.xl),
       borderRadius: BORDER_RADIUS.lg,
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       display: "flex",
       flexDirection: "column",
-      gap: "4px"
+      gap: getSpacingPx(SPACING.xs)
     },
     ".preview-label": {
       fontSize: "var(--fontSizeSmaller)",
@@ -50,18 +50,18 @@ const styles = (theme: Theme) =>
       fontSize: "var(--fontSizeBig)",
       fontWeight: 600,
       textAlign: "center",
-      margin: "8px 0"
+      margin: `${getSpacingPx(SPACING.md)} 0`
     },
     ".compliance-grid": {
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
-      gap: "8px"
+      gap: getSpacingPx(SPACING.md)
     },
     ".compliance-item": {
       display: "flex",
       alignItems: "center",
-      gap: "6px",
-      padding: "6px 8px",
+      gap: getSpacingPx(SPACING.sm),
+      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.grey[900]
     },
@@ -70,25 +70,25 @@ const styles = (theme: Theme) =>
       flex: 1
     },
     ".color-blindness-section": {
-      marginTop: "8px"
+      marginTop: getSpacingPx(SPACING.md)
     },
     ".color-blindness-title": {
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       color: theme.vars.palette.grey[400],
-      marginBottom: "8px",
+      marginBottom: getSpacingPx(SPACING.md),
       textTransform: "uppercase"
     },
     ".color-blindness-grid": {
       display: "grid",
       gridTemplateColumns: "repeat(3, 1fr)",
-      gap: "8px"
+      gap: getSpacingPx(SPACING.md)
     },
     ".color-blindness-preview": {
       display: "flex",
       flexDirection: "column",
-      gap: "4px",
-      padding: "8px",
+      gap: getSpacingPx(SPACING.xs),
+      padding: getSpacingPx(SPACING.md),
       borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.grey[900]
     },
@@ -99,7 +99,7 @@ const styles = (theme: Theme) =>
     },
     ".cb-colors": {
       display: "flex",
-      gap: "4px",
+      gap: getSpacingPx(SPACING.xs),
       justifyContent: "center"
     },
     ".cb-swatch": {

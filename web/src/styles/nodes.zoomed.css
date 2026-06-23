@@ -19,7 +19,7 @@
 /* Tighten header and hide decorative icon */
 .react-flow.zoomed-out .react-flow__node .node-header {
   min-height: 18px !important;
-  padding: 0 4px !important;
+  padding: 0 var(--spacing-xs) !important;
   opacity: 0.9;
 }
 .react-flow.zoomed-out .react-flow__node .node-header .icon-container {

@@ -11,8 +11,8 @@
   width: auto;
   min-height: 18px;
   border: 0;
-  padding: 0 8px;
-  margin-bottom: 8px;
+  padding: 0 var(--spacing-md);
+  margin-bottom: var(--spacing-md);
   line-height: 18px;
 }
 
@@ -68,7 +68,7 @@
   content: " ⚠";
   color: var(--palette-error-main, #f44336);
   font-size: 0.85em;
-  margin-left: 2px;
+  margin-left: var(--spacing-micro);
 }
 /* Subtle ring on the actual input control inside the row.
    Targets common MUI/native form controls so the affected widget — not the
@@ -89,7 +89,7 @@
 }
 
 .node-property .react-flow__handle {
-  margin-top: 2px;
+  margin-top: var(--spacing-micro);
 }
 
 /* Connected property: label left, link icon right, single row */

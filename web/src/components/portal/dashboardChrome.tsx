@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { forwardRef, memo, type ReactNode } from "react";
-import { MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 
 /** Shared horizontal rhythm for the dashboard: a centered column that the hero
  *  background and section borders bleed past, while content stays aligned. */
@@ -11,9 +11,9 @@ export const wrapStyles = (theme: Theme) =>
   css({
     maxWidth: 1240,
     margin: "0 auto",
-    padding: "0 40px",
+    padding: `0 ${getSpacingPx(10)}`, // 40px — off-scale layout gutter, preserved exactly
     [theme.breakpoints.down("sm")]: {
-      padding: "0 18px"
+      padding: `0 ${getSpacingPx(SPACING.xl)}` // was 18px
     }
   });
 

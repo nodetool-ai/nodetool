@@ -5,7 +5,7 @@ import ReactMarkdown, { type Options } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import "../../../styles/markdown/nodetool-markdown.css";
-import { getSpacingPx } from "../../ui_primitives/spacing";
+import { SPACING, getSpacingPx } from "../../ui_primitives/spacing";
 import { CodeBlock } from "./markdown_elements/CodeBlock";
 import { PreRenderer } from "./markdown_elements/PreRenderer";
 import { BORDER_RADIUS } from "../../ui_primitives";
@@ -49,7 +49,7 @@ const markdownStyles = css({
 const REMARK_PLUGINS: Options["remarkPlugins"] = [remarkGfm];
 const REHYPE_PLUGINS: Options["rehypePlugins"] = [rehypeRaw];
 
-const audioSpanCss = css({ display: "inline-flex", alignItems: "center", gap: "8px", verticalAlign: "middle" });
+const audioSpanCss = css({ display: "inline-flex", alignItems: "center", gap: getSpacingPx(SPACING.md), verticalAlign: "middle" });
 const audioCss = css({ height: "32px" });
 
 const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({

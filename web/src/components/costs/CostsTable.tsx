@@ -1,7 +1,7 @@
 import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
-import { Box, FlexRow, FlexColumn, Text, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Box, FlexRow, FlexColumn, Text, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { CostNodeIcon } from "./CostNodeIcon";
 import {
   groupExecutions,
@@ -84,8 +84,8 @@ const ExecutionRows: React.FC<{ rows: Execution[] }> = ({ rows }) => {
             display: "grid",
             gridTemplateColumns: EXEC_GRID,
             alignItems: "center",
-            columnGap: "16px",
-            padding: "12px 24px",
+            columnGap: getSpacingPx(SPACING.xl),
+            padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xxl)}`,
             borderTop: `1px solid ${theme.vars.palette.divider}`,
             transition: MOTION.background,
             "&:hover": { backgroundColor: theme.vars.palette.action.hover }
@@ -221,8 +221,8 @@ const GroupRows: React.FC<{ rows: GroupRow[]; groupBy: GroupByKey }> = ({
             display: "grid",
             gridTemplateColumns: GROUP_GRID,
             alignItems: "center",
-            columnGap: "16px",
-            padding: "12px 24px",
+            columnGap: getSpacingPx(SPACING.xl),
+            padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xxl)}`,
             borderTop: `1px solid ${theme.vars.palette.divider}`,
             transition: MOTION.background,
             "&:hover": { backgroundColor: theme.vars.palette.action.hover }
@@ -323,8 +323,8 @@ const CostsTableInternal: React.FC<CostsTableProps> = ({
     display: "grid",
     gridTemplateColumns: isExecution ? EXEC_GRID : GROUP_GRID,
     alignItems: "center",
-    columnGap: "16px",
-    padding: "12px 24px"
+    columnGap: getSpacingPx(SPACING.xl),
+    padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xxl)}`
   } as const;
 
   return (
@@ -350,7 +350,7 @@ const CostsTableInternal: React.FC<CostsTableProps> = ({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "flex-end",
-                gap: "2px"
+                gap: getSpacingPx(SPACING.micro)
               }}
             >
               <HeaderText align="right">When</HeaderText>
@@ -391,7 +391,7 @@ const CostsTableInternal: React.FC<CostsTableProps> = ({
       )}
 
       {executions.length === 0 && (
-        <Box sx={{ padding: "32px 24px", textAlign: "center" }}>
+        <Box sx={{ padding: `${getSpacingPx(SPACING.xxxl)} ${getSpacingPx(SPACING.xxl)}`, textAlign: "center" }}>
           <Text size="small" color="secondary">
             No executions match the current filters.
           </Text>

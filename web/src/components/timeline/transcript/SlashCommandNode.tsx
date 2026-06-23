@@ -28,7 +28,7 @@ import {
 } from "../../../stores/timeline/TimelineInstance";
 import type { TimelineStoreApi } from "../../../stores/timeline/TimelineStore";
 import type { TimelinePlaybackStoreApi } from "../../../stores/timeline/TimelinePlaybackStore";
-import { FONT_SIZE_SANS, BORDER_RADIUS } from "../../ui_primitives";
+import { FONT_SIZE_SANS, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
 
 // ── Commands ──────────────────────────────────────────────────────────────────
 
@@ -59,7 +59,7 @@ const Host = styled("span")(({ theme }) => ({
   position: "relative",
   display: "inline-flex",
   alignItems: "center",
-  gap: 4,
+  gap: getSpacingPx(SPACING.xs),
   verticalAlign: "baseline",
   "& .slash-chip": {
     display: "inline-flex",
@@ -67,7 +67,7 @@ const Host = styled("span")(({ theme }) => ({
     justifyContent: "center",
     minWidth: 18,
     height: 20,
-    padding: "0 4px",
+    padding: `0 ${getSpacingPx(SPACING.xs)}`,
     borderRadius: BORDER_RADIUS.sm,
     border: `1px solid ${theme.vars.palette.divider}`,
     background: theme.vars.palette.action.hover,
@@ -93,7 +93,7 @@ const Host = styled("span")(({ theme }) => ({
     left: 0,
     zIndex: 20,
     margin: 0,
-    padding: 4,
+    padding: getSpacingPx(SPACING.xs),
     listStyle: "none",
     minWidth: 220,
     borderRadius: BORDER_RADIUS.lg,
@@ -104,8 +104,8 @@ const Host = styled("span")(({ theme }) => ({
   "& .slash-item": {
     display: "flex",
     flexDirection: "column",
-    gap: 1,
-    padding: "6px 8px",
+    gap: getSpacingPx(SPACING.micro), // was 1px
+    padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
     borderRadius: BORDER_RADIUS.md,
     cursor: "pointer"
   },
@@ -121,7 +121,7 @@ const Host = styled("span")(({ theme }) => ({
     color: theme.vars.palette.text.disabled
   },
   "& .slash-empty": {
-    padding: "6px 8px",
+    padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
     fontSize: theme.fontSizeSmall,
     color: theme.vars.palette.text.disabled
   }

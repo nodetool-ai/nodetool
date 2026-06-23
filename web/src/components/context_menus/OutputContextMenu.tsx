@@ -3,7 +3,7 @@ import { shallow } from "zustand/shallow";
 //mui
 import { InputAdornment, TextField } from "@mui/material";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Divider, Text, ToolbarIconButton, Box, ContextMenu, BORDER_RADIUS } from "../ui_primitives";
+import { Divider, Text, ToolbarIconButton, Box, ContextMenu, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { PREVIEW_NODE_TYPE, REROUTE_NODE_TYPE } from "../../constants/nodeTypes";
 import { useTheme } from "@mui/material/styles";
 //icons
@@ -417,7 +417,7 @@ const OutputContextMenu: React.FC = () => {
     gap: "0.5em",
     margin: 0,
     minHeight: "28px",
-    padding: "1px 6px",
+    padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`, // was 1px 6px
     textAlign: "left",
     width: "100%",
     "&:hover": { backgroundColor: theme.vars.palette.action.hover },
@@ -430,7 +430,7 @@ const OutputContextMenu: React.FC = () => {
       flexShrink: 0,
       height: "18px",
       justifyContent: "center",
-      padding: "1px",
+      padding: getSpacingPx(SPACING.micro), // was 1px
       width: "18px"
     },
     ".icon-bg svg": {
@@ -459,9 +459,9 @@ const OutputContextMenu: React.FC = () => {
           maxHeight: `calc(100vh - ${menuPosition.y}px)`,
           minWidth: "320px",
           overflow: "hidden",
-          padding: "4px",
+          padding: getSpacingPx(SPACING.xs),
           "& .MuiDivider-root": {
-            margin: "4px 0",
+            margin: `${getSpacingPx(SPACING.xs)} 0`,
             borderColor: theme.vars.palette.divider
           }
         }}
@@ -583,7 +583,7 @@ const OutputContextMenu: React.FC = () => {
             "& .node-item-container": { py: 0 },
             "& .node": {
               margin: 0,
-              padding: "0 2px",
+              padding: `0 ${getSpacingPx(SPACING.micro)}`,
               borderRadius: BORDER_RADIUS.md,
               cursor: "pointer",
               "&:hover": { backgroundColor: theme.vars.palette.action.hover },

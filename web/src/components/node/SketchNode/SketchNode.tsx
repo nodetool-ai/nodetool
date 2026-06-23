@@ -22,7 +22,7 @@ import React, {
   useEffect
 } from "react";
 import { Handle, NodeProps, NodeToolbar, Position } from "@xyflow/react";
-import { Box, Text, MOTION } from "../../ui_primitives";
+import { Box, Text, MOTION, SPACING, getSpacingPx } from "../../ui_primitives";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -212,7 +212,7 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       bottom: 0,
       display: "flex",
       flexDirection: "column",
-      gap: "4px",
+      gap: getSpacingPx(SPACING.xs),
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: "rgba(0,0,0,0.45)",

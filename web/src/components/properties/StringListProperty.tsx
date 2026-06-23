@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Autocomplete, Chip, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Autocomplete, Chip, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "fast-deep-equal";
@@ -22,7 +22,7 @@ const StringListProperty = (props: PropertyProps) => {
 
   const autocompleteSx = useMemo(() => ({
     "& .MuiInputBase-root": {
-      padding: "2px 6px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
       minHeight: "32px",
       backgroundColor: "action.disabledBackground",
       borderRadius: BORDER_RADIUS.md,
@@ -46,7 +46,7 @@ const StringListProperty = (props: PropertyProps) => {
       border: "none"
     },
     "& .MuiAutocomplete-tag": {
-      margin: "2px"
+      margin: getSpacingPx(SPACING.micro)
     }
   }), [theme.vars.palette.background.defaultChannel]);
 
@@ -57,7 +57,7 @@ const StringListProperty = (props: PropertyProps) => {
     border: "1px solid var(--palette-grey-600)",
     "& .MuiChip-label": {
       fontSize: "var(--fontSizeSmall)",
-      padding: "0 8px"
+      padding: `0 ${getSpacingPx(SPACING.md)}`
     },
     "& .MuiChip-deleteIcon": {
       color: "var(--palette-grey-400)",
@@ -70,7 +70,7 @@ const StringListProperty = (props: PropertyProps) => {
 
   const textFieldSx = useMemo(() => ({
     "& .MuiInputBase-input": {
-      padding: "2px 4px !important",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)} !important`,
       fontSize: "var(--fontSizeSmall)",
       color: "var(--palette-grey-100)",
       "&::placeholder": {

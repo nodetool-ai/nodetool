@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { FC, useCallback, memo, useState, useMemo } from "react";
-import { ToolbarIconButton, DeleteButton, Chip, Box, EditorMenu, EditorMenuItem, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { ToolbarIconButton, DeleteButton, Chip, Box, EditorMenu, EditorMenuItem, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
@@ -32,14 +32,14 @@ const styles = (theme: Theme) =>
     ".tools": {
       display: "flex",
       flexDirection: "column",
-      gap: "8px",
-      padding: "0 10px"
+      gap: getSpacingPx(SPACING.md),
+      padding: `0 ${getSpacingPx(SPACING.lg)}` // was 0 10px
     },
 
     ".tools .buttons-row": {
       display: "flex",
       flexDirection: "row",
-      gap: "2px",
+      gap: getSpacingPx(SPACING.micro),
       alignItems: "center",
       width: "100%"
     },
@@ -110,7 +110,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "row",
       flexWrap: "wrap",
-      gap: "4px",
+      gap: getSpacingPx(SPACING.xs),
       alignItems: "center"
     },
 
@@ -132,7 +132,7 @@ const styles = (theme: Theme) =>
     ".tools .clear-tags-button": {
       height: "20px",
       fontSize: "var(--fontSizeSmaller)",
-      padding: "0 6px",
+      padding: `0 ${getSpacingPx(SPACING.sm)}`,
       minWidth: "auto",
       color: theme.vars.palette.text.secondary,
       "&:hover": {
@@ -143,7 +143,7 @@ const styles = (theme: Theme) =>
     ".tag-menu-item": {
       display: "flex",
       alignItems: "center",
-      gap: "8px",
+      gap: getSpacingPx(SPACING.md),
       minWidth: "120px"
     },
     ".tag-menu-item .check-icon": {

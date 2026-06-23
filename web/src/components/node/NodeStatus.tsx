@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { memo } from "react";
-import { Text } from "../ui_primitives";
+import { Text, SPACING, getSpacingPx } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
 interface NodeStatusProps {
   status?: string;
@@ -17,7 +17,7 @@ const NodeStatus: React.FC<NodeStatusProps> = ({ status }) => {
       color="warning"
       css={css({
         maxWidth: "250px",
-        padding: "4px 12px"
+        padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`
       })}
     >
       Model is booting, taking minutes.

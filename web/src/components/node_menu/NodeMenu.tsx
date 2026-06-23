@@ -20,7 +20,7 @@ import useNamespaceTree from "../../hooks/useNamespaceTree";
 import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useCreateNode } from "../../hooks/useCreateNode";
-import { FlexColumn, FlexRow, Box, BORDER_RADIUS, MOTION } from "../ui_primitives";
+import { FlexColumn, FlexRow, Box, BORDER_RADIUS, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
 import { useShallow } from "zustand/react/shallow";
 
 const treeStyles = (theme: Theme) =>
@@ -287,7 +287,7 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
                 gap={1.5}
                 align="center"
                 className="search-row"
-                sx={{ marginLeft: "-3px", width: "100%" }}
+                sx={{ marginLeft: `-${getSpacingPx(SPACING.xs)}`, width: "100%" }} // was -3px
               >
                 <SearchInput
                   focusSearchInput={focusSearchInput}

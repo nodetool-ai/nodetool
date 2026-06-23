@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import {
   useMediaQuery
 } from "@mui/material";
-import { ToolbarIconButton, FlexColumn, Box, Z_INDEX } from "../ui_primitives";
+import { ToolbarIconButton, FlexColumn, Box, Z_INDEX, SPACING, getSpacingPx } from "../ui_primitives";
 import { useResizePanel } from "../../hooks/handlers/useResizePanel";
 import { BORDER_RADIUS } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
@@ -95,7 +95,7 @@ const styles = (
     zIndex: theme.zIndex.appBar,
 
     ".drawer-content": {
-      marginTop: "40px",
+      marginTop: getSpacingPx(10), // 40px
       height: "calc(100% - 40px)",
       backgroundColor: theme.vars.palette.background.default,
       borderRight: `1px solid ${theme.vars.palette.divider}`,
@@ -135,15 +135,15 @@ const styles = (
       flexShrink: 0,
       display: "flex",
       flexDirection: "column",
-      gap: "8px",
+      gap: getSpacingPx(SPACING.md),
       backgroundColor: theme.vars.palette.background.default,
       borderRight: `1px solid ${theme.vars.palette.divider}`,
-      paddingTop: "10px",
-      paddingBottom: "10px",
+      paddingTop: getSpacingPx(SPACING.lg), // was 10px
+      paddingBottom: getSpacingPx(SPACING.lg), // was 10px
 
       "& .toolbar-divider": {
         height: "1px",
-        margin: "8px 10px",
+        margin: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`, // was 8px 10px
         backgroundColor: theme.vars.palette.divider
       },
 
@@ -465,7 +465,7 @@ const mobileLauncherStyles = (theme: Theme, hasHeader: boolean) =>
     color: theme.vars.palette.text.primary,
     border: `1px solid ${theme.vars.palette.divider}`,
     boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-    padding: "8px",
+    padding: getSpacingPx(SPACING.md),
     borderRadius: BORDER_RADIUS.lg,
     "&:hover": {
       backgroundColor: theme.vars.palette.action.hover
@@ -486,12 +486,12 @@ const mobileHeaderExtrasStyles = (theme: Theme) =>
   css({
     display: "flex",
     flexWrap: "wrap",
-    gap: "4px",
-    padding: "8px 12px",
+    gap: getSpacingPx(SPACING.xs),
+    padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,
     overflowX: "auto",
     WebkitOverflowScrolling: "touch",
     "& .tab-button": {
-      padding: "6px 10px",
+      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`, // was 6px 10px
       borderRadius: BORDER_RADIUS.lg,
       color: theme.vars.palette.text.secondary,
       minWidth: "auto",

@@ -9,7 +9,7 @@ import { memo, useState } from "react";
 import isEqual from "fast-deep-equal";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { EditorButton, NodeTextField, MOTION, SPACING, BORDER_RADIUS } from "../ui_primitives";
+import { EditorButton, NodeTextField, MOTION, SPACING, BORDER_RADIUS, getSpacingPx } from "../ui_primitives";
 import { useNodes } from "../../contexts/NodeContext";
 import AudioVisualizer from "../common/AudioVisualizer";
 import { useRealtimeAudioStream } from "../../hooks/useRealtimeAudioStream";
@@ -29,18 +29,18 @@ const styles = (theme: Theme) =>
     "& .realtime-audio-controls": {
       display: "flex",
       flexDirection: "column",
-      gap: "6px"
+      gap: getSpacingPx(SPACING.sm)
     },
     "& .controls-row": {
       display: "flex",
-      gap: "6px",
+      gap: getSpacingPx(SPACING.sm),
       alignItems: "center"
     },
     "& .sample-rate-input": {
       width: "80px",
       "& .MuiInputBase-input": {
         fontSize: "0.8em",
-        padding: "6px 8px"
+        padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`
       }
     },
     "& .realtime-visualizer": {

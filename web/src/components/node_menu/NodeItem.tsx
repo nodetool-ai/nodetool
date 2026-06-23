@@ -1,6 +1,6 @@
 import { memo, useCallback, forwardRef, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Tooltip, Text, ToolbarIconButton, FlexRow, Box, BORDER_RADIUS, FONT_WEIGHT } from "../ui_primitives";
+import { Tooltip, Text, ToolbarIconButton, FlexRow, Box, BORDER_RADIUS, FONT_WEIGHT, SPACING, getSpacingPx } from "../ui_primitives";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import CheckIcon from "@mui/icons-material/Check";
@@ -217,7 +217,7 @@ const NodeItem = memo(
         () => ({
           backgroundColor: theme.vars.palette.grey[900],
           margin: "0",
-          padding: "1px",
+          padding: getSpacingPx(SPACING.micro), // was 1px
           borderRadius: `0 0 ${BORDER_RADIUS.xs} 0`,
           boxShadow: `inset 1px 1px 2px ${theme.vars.palette.action.disabledBackground}`,
           width: "20px",
@@ -233,7 +233,7 @@ const NodeItem = memo(
 
       const favoriteButtonSx = useMemo(
         () => ({
-          padding: "2px",
+          padding: getSpacingPx(SPACING.micro),
           marginLeft: "auto",
           opacity: isFavorite ? 1 : 0.5,
           color: isFavorite ? "warning.main" : "text.secondary",
@@ -306,7 +306,7 @@ const NodeItem = memo(
                     sx={{
                       fontSize: "var(--fontSizeBig)",
                       color: theme.vars.palette.primary.main,
-                      padding: "2px"
+                      padding: getSpacingPx(SPACING.micro)
                     }}
                   />
                 )}
@@ -319,7 +319,7 @@ const NodeItem = memo(
                 delay={TOOLTIP_ENTER_DELAY}
                 slotProps={{
                   popper: { sx: { zIndex: 9999 } },
-                  tooltip: { sx: { bgcolor: "grey.800", color: "grey.100", maxWidth: 350, padding: "16px" } }
+                  tooltip: { sx: { bgcolor: "grey.800", color: "grey.100", maxWidth: 350, padding: getSpacingPx(SPACING.xl) } }
                 }}
               >
                 <div style={iconContainerStyle}>

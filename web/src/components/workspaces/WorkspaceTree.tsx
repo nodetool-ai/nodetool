@@ -6,7 +6,7 @@ import isEqual from "fast-deep-equal";
 import { useQuery } from "@tanstack/react-query";
 import { FileInfo } from "../../stores/ApiTypes";
 import { trpcClient } from "../../trpc/client";
-import { Text, Caption, Box, EditorButton, Skeleton, BORDER_RADIUS, MOTION } from "../ui_primitives";
+import { Text, Caption, Box, EditorButton, Skeleton, BORDER_RADIUS, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import type { TreeViewBaseItem } from "@mui/x-tree-view/models";
 import { useTheme } from "@mui/material/styles";
@@ -48,15 +48,15 @@ const workspaceTreeStyles = (theme: Theme) =>
     display: "flex",
     flexDirection: "column",
     height: "100%",
-    padding: "12px",
+    padding: getSpacingPx(SPACING.lg),
     overflow: "hidden",
-    gap: "12px",
+    gap: getSpacingPx(SPACING.lg),
 
     ".workspace-header": {
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      paddingBottom: "4px",
+      paddingBottom: getSpacingPx(SPACING.xs),
       borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
     },
 
@@ -71,7 +71,7 @@ const workspaceTreeStyles = (theme: Theme) =>
     ".workspace-selector": {
       display: "flex",
       alignItems: "center",
-      gap: "8px"
+      gap: getSpacingPx(SPACING.md)
     },
 
     ".settings-button": {
@@ -87,13 +87,13 @@ const workspaceTreeStyles = (theme: Theme) =>
       overflowY: "auto",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       borderRadius: BORDER_RADIUS.md,
-      padding: "8px",
+      padding: getSpacingPx(SPACING.md),
       backgroundColor: theme.vars.palette.grey[900]
     },
 
     ".tree-actions": {
       display: "flex",
-      gap: "8px"
+      gap: getSpacingPx(SPACING.md)
     },
 
     ".open-folder-button": {
@@ -110,8 +110,8 @@ const workspaceTreeStyles = (theme: Theme) =>
     ".breadcrumb": {
       display: "flex",
       alignItems: "center",
-      gap: "2px",
-      padding: "4px 8px",
+      gap: getSpacingPx(SPACING.micro),
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       backgroundColor: theme.vars.palette.grey[800],
@@ -122,7 +122,7 @@ const workspaceTreeStyles = (theme: Theme) =>
 
     ".breadcrumb-segment": {
       cursor: "pointer",
-      padding: "1px 4px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`, // was 1px 4px
       borderRadius: BORDER_RADIUS.sm,
       transition: `color ${MOTION.fast}, background-color ${MOTION.fast}`,
       overflow: "hidden",
@@ -144,23 +144,23 @@ const workspaceTreeStyles = (theme: Theme) =>
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      gap: "8px",
-      padding: "24px 16px",
+      gap: getSpacingPx(SPACING.md),
+      padding: `${getSpacingPx(SPACING.xxl)} ${getSpacingPx(SPACING.xl)}`,
       textAlign: "center"
     },
 
     ".skeleton-tree": {
       display: "flex",
       flexDirection: "column",
-      gap: "6px",
-      padding: "4px 0"
+      gap: getSpacingPx(SPACING.sm),
+      padding: `${getSpacingPx(SPACING.xs)} 0`
     }
   });
 
 const treeViewStyles = (theme: Theme) => ({
   ".MuiTreeItem-content": {
     borderRadius: BORDER_RADIUS.xs,
-    padding: "4px 8px",
+    padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
     userSelect: "none",
     cursor: "pointer"
   },
@@ -316,7 +316,7 @@ const FileLabel: React.FC<{ name: string; isDir: boolean }> = ({
     style={{
       display: "inline-flex",
       alignItems: "center",
-      gap: "6px"
+      gap: getSpacingPx(SPACING.sm)
     }}
   >
     {getFileIcon(name, isDir)}

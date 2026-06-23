@@ -33,7 +33,9 @@ import {
   NodeMenuItem,
   Panel,
   Text,
-  Toast
+  Toast,
+  SPACING,
+  getSpacingPx
 } from "../../ui_primitives";
 import { trackTypeAccent } from "../Tracks/trackVisuals";
 import {
@@ -63,7 +65,7 @@ const containerStyles = css({
   minWidth: 0,
   maxWidth: "100%",
   boxSizing: "border-box",
-  padding: "8px 12px 24px",
+  padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xxl)}`,
   overflow: "auto"
 });
 

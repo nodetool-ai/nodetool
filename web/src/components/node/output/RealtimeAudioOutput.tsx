@@ -3,7 +3,12 @@ import React, { useCallback, useRef } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { EditorButton, ButtonGroup } from "../../ui_primitives";
+import {
+  EditorButton,
+  ButtonGroup,
+  SPACING,
+  getSpacingPx
+} from "../../ui_primitives";
 import { Chunk } from "../../../stores/ApiTypes";
 import AudioVisualizer from "../../common/AudioVisualizer";
 import { useWebsocketRunner } from "../../../stores/WorkflowRunner";
@@ -29,13 +34,13 @@ const styles = (theme: Theme) =>
     ".controls": {
       display: "flex",
       gap: "0.5em",
-      marginBottom: "6px"
+      marginBottom: getSpacingPx(SPACING.sm)
     },
     ".time": {
       color: theme.vars.palette.grey[300],
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
-      marginBottom: "4px"
+      marginBottom: getSpacingPx(SPACING.xs)
     }
   });
 

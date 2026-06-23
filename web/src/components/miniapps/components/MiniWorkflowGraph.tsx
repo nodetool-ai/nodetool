@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React, { useMemo } from "react";
 import { css, keyframes } from "@emotion/react";
-import { Caption, Tooltip, Box, MOTION, BORDER_RADIUS } from "../../ui_primitives";
+import { Caption, Tooltip, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
 import useStatusStore from "../../../stores/StatusStore";
 import { nodeKey } from "../../../stores/nodeKey";
 import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
@@ -73,8 +73,8 @@ const graphStyles = css({
     position: "absolute",
     display: "flex",
     alignItems: "center",
-    gap: "4px",
-    padding: "3px 8px",
+    gap: getSpacingPx(SPACING.xs),
+    padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`, // was 3px 8px
     background: "var(--palette-background-default)",
     border: "1px solid var(--palette-divider)",
     borderRadius: BORDER_RADIUS.sm,

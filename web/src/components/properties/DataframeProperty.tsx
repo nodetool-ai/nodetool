@@ -8,7 +8,7 @@ import { ColumnDef, DataframeRef } from "../../stores/ApiTypes";
 import DataTable from "../node/DataTable/DataTable";
 import ColumnsManager from "../node/ColumnsManager";
 import DataframeEditorModal from "./DataframeEditorModal";
-import { ToolbarIconButton, EditorButton, ButtonGroup, MOTION, SPACING, BORDER_RADIUS } from "../ui_primitives";
+import { ToolbarIconButton, EditorButton, ButtonGroup, MOTION, SPACING, BORDER_RADIUS, getSpacingPx } from "../ui_primitives";
 // icons
 import TableRowsIcon from "@mui/icons-material/TableRows";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
@@ -109,7 +109,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      gap: "4px",
+      gap: getSpacingPx(SPACING.xs),
       padding: "1em"
     },
     ".dropzone-content svg": {

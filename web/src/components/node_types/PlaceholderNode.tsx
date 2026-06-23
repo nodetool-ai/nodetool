@@ -25,7 +25,9 @@ import {
   Text,
   Tooltip,
   BORDER_RADIUS,
-  FONT_WEIGHT
+  FONT_WEIGHT,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 
 const humanizeType = (type: string) => {
@@ -80,7 +82,7 @@ const styles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmaller)",
       lineHeight: "1.1em",
       minWidth: "unset",
-      padding: "6px 12px",
+      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`,
       borderRadius: BORDER_RADIUS.md,
       color:
         theme.vars?.palette?.primary?.contrastText ||
@@ -337,7 +339,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
         </Text>
       </Tooltip>
 
-      <FlexColumn gap={1} align="center" className="node-actions" sx={{ margin: "8px 0" }}>
+      <FlexColumn gap={1} align="center" className="node-actions" sx={{ margin: `${getSpacingPx(SPACING.md)} 0` }}>
         {disabledPack ? (
           <Tooltip
             title={`This node is part of the ${disabledPack.name} pack, which is currently disabled. Enable it to load the node.`}

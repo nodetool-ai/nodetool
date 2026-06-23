@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { Text, BORDER_RADIUS, ListGroup, MOTION } from "../ui_primitives";
+import { Text, BORDER_RADIUS, ListGroup, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
 import RenderNamespaces from "./RenderNamespaces";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useShallow } from "zustand/react/shallow";
@@ -122,7 +122,7 @@ const namespacePanelStyles = (theme: Theme) =>
       lineHeight: 1.2,
       transition: `${MOTION.background}, ${MOTION.opacity}`,
       overflow: "hidden",
-      margin: "1px 0",
+      margin: `${getSpacingPx(SPACING.micro)} 0`, // was 1px 0
       borderRadius: BORDER_RADIUS.md
     },
     "& .namespaces .list-item.disabled": {

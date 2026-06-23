@@ -3,6 +3,7 @@ import { memo, useCallback, useState, useMemo } from "react";
 import Select from "../inputs/Select";
 import DictTable, { DictDataType } from "../node/DataTable/DictTable";
 import PropertyLabel from "../node/PropertyLabel";
+import { SPACING, getSpacingPx } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
 
 const detectTypeFromDict = (dict: unknown) => {
@@ -49,7 +50,7 @@ const DictProperty = (props: PropertyProps) => {
 
   const property = props.property;
 
-  const containerStyle = useMemo(() => ({ marginBottom: "8px" }), []);
+  const containerStyle = useMemo(() => ({ marginBottom: getSpacingPx(SPACING.md) }), []);
 
   if (props.nodeType !== "nodetool.constant.Dict") {
     return (

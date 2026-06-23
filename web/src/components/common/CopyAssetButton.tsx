@@ -14,7 +14,7 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect, memo } from "react";
-import { ToolbarIconButton, BORDER_RADIUS } from "../ui_primitives";
+import { ToolbarIconButton, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { SxProps, Theme, useTheme } from "@mui/material/styles";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
@@ -378,7 +378,7 @@ export const CopyAssetButton = memo<CopyAssetButtonProps>(
         sx={{
           width: 24,
           height: 24,
-          padding: "4px",
+          padding: getSpacingPx(SPACING.xs),
           backgroundColor: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
           color: theme.vars.palette.common.white,
           borderRadius: BORDER_RADIUS.sm,

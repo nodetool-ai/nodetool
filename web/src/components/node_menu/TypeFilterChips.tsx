@@ -6,7 +6,7 @@ import {
   Autocomplete,
   TextField
 } from "@mui/material";
-import { Tooltip, Text, Chip, EditorButton, Box, EditorMenu, MOTION, BORDER_RADIUS, FONT_WEIGHT } from "../ui_primitives";
+import { Tooltip, Text, Chip, EditorButton, Box, EditorMenu, MOTION, BORDER_RADIUS, FONT_WEIGHT, SPACING, getSpacingPx } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import FilterListIcon from "@mui/icons-material/FilterList";
@@ -179,30 +179,30 @@ const typeFilterChipsStyles = (theme: Theme) =>
       }
     },
     ".menu-header": {
-      marginBottom: "12px"
+      marginBottom: getSpacingPx(SPACING.lg)
     },
     ".menu-title": {
       fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.primary,
       fontWeight: FONT_WEIGHT.semibold,
-      marginBottom: "4px"
+      marginBottom: getSpacingPx(SPACING.xs)
     },
     ".menu-section-title": {
       fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       textTransform: "uppercase",
       letterSpacing: "0.55px",
-      marginBottom: "8px",
+      marginBottom: getSpacingPx(SPACING.md),
       fontWeight: FONT_WEIGHT.semibold
     },
     ".filter-menu-content": {
       minWidth: "390px",
       maxWidth: "480px",
-      padding: "16px"
+      padding: getSpacingPx(SPACING.xl)
     },
     ".filter-select": {
       width: "100%",
-      marginBottom: "10px",
+      marginBottom: getSpacingPx(SPACING.lg), // was 10px
       "& .MuiInputBase-root": {
         fontSize: theme.fontSizeSmaller,
         padding: ".5em .75em"
@@ -212,8 +212,8 @@ const typeFilterChipsStyles = (theme: Theme) =>
       },
       "& .MuiAutocomplete-option": {
         minHeight: "30px",
-        paddingTop: "2px",
-        paddingBottom: "2px",
+        paddingTop: getSpacingPx(SPACING.micro),
+        paddingBottom: getSpacingPx(SPACING.micro),
         fontSize: theme.fontSizeSmaller
       }
     }

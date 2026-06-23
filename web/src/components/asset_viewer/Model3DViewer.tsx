@@ -25,7 +25,7 @@ import {
   ToggleGroup,
   ToggleOption,
   FlexColumn,
-  FlexRow, BORDER_RADIUS } from "../ui_primitives";
+  FlexRow, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Canvas, useThree, ThreeEvent } from "@react-three/fiber";
@@ -175,7 +175,7 @@ const styles = (theme: Theme, compact: boolean, backgroundColor: string) =>
       minWidth: "100px",
       "& .MuiSelect-select": {
         color: theme.vars.palette.grey[100],
-        padding: "4px 8px",
+        padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
         fontSize: "var(--fontSizeSmall)"
       },
       "& .MuiOutlinedInput-notchedOutline": {

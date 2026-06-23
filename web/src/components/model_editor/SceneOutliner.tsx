@@ -9,7 +9,7 @@ import ViewInArIcon from "@mui/icons-material/ViewInAr";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import CategoryIcon from "@mui/icons-material/Category";
 import CameraAltIcon from "@mui/icons-material/CameraAlt";
-import { FlexColumn, FlexRow, Text, ScrollArea, BORDER_RADIUS } from "../ui_primitives";
+import { FlexColumn, FlexRow, Text, ScrollArea, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import type { SceneTreeNode } from "./sceneTree";
 
 const styles = (theme: Theme) =>
@@ -22,8 +22,8 @@ const styles = (theme: Theme) =>
     ".outliner-row": {
       display: "flex",
       alignItems: "center",
-      gap: "4px",
-      padding: "2px 8px",
+      gap: getSpacingPx(SPACING.xs),
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
       cursor: "pointer",
       borderRadius: BORDER_RADIUS.sm,
       userSelect: "none",
@@ -54,7 +54,7 @@ const styles = (theme: Theme) =>
     },
     ".visibility-toggle svg": { fontSize: "var(--fontSizeNormal)" },
     ".empty": {
-      padding: "12px 8px"
+      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.md)}`
     }
   });
 

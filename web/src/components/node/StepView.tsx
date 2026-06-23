@@ -3,7 +3,16 @@ import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, LoadingSpinner, Surface, FlexRow, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import {
+  Text,
+  LoadingSpinner,
+  Surface,
+  FlexRow,
+  MOTION,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
+} from "../ui_primitives";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
 import { Step } from "../../stores/ApiTypes";
@@ -38,7 +47,7 @@ const styles = (theme: Theme) =>
       gap: "0.85rem"
     },
     ".step-status-icon": {
-      marginTop: "2px",
+      marginTop: getSpacingPx(SPACING.micro),
       color: theme.vars.palette.grey[600],
       fontSize: "var(--fontSizeBig)",
       flexShrink: 0

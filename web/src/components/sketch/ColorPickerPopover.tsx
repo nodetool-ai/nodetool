@@ -19,7 +19,7 @@ import {
   Slider,
   IconButton,
 } from "@mui/material";
-import { FlexColumn, FlexRow, Box, Text, EditorButton, Tooltip, BORDER_RADIUS } from "../ui_primitives";
+import { FlexColumn, FlexRow, Box, Text, EditorButton, Tooltip, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import CloseIcon from "@mui/icons-material/Close";
 import {
   ColorMode,
@@ -342,7 +342,7 @@ const ColorPickerPopover: React.FC<ColorPickerPopoverProps> = ({
           inputProps={{ maxLength: 7 }}
           sx={{
             "& .MuiInputBase-root": { fontSize: SKETCH_FONT.sm, height: "22px" },
-            "& .MuiInputBase-input": { padding: "2px 4px", textAlign: "center" }
+            "& .MuiInputBase-input": { padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`, textAlign: "center" }
           }}
         />
       )}

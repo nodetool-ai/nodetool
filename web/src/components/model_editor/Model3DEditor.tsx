@@ -34,7 +34,7 @@ import {
   ToggleOption,
   EditorButton,
   CloseButton,
-  DownloadButton, BORDER_RADIUS } from "../ui_primitives";
+  DownloadButton, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import SceneOutliner from "./SceneOutliner";
 import PropertiesPanel from "./PropertiesPanel";
 import { buildSceneTree } from "./sceneTree";
@@ -60,7 +60,7 @@ const styles = (theme: Theme) =>
     },
     ".editor-toolbar": {
       padding: theme.spacing(1.5, 3),
-      gap: "8px",
+      gap: getSpacingPx(SPACING.md),
       alignItems: "center",
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       backgroundColor: theme.vars.palette.background.paper,
@@ -106,8 +106,8 @@ const styles = (theme: Theme) =>
       top: "100%",
       left: 0,
       zIndex: 50,
-      marginTop: "4px",
-      padding: "4px",
+      marginTop: getSpacingPx(SPACING.xs),
+      padding: getSpacingPx(SPACING.xs),
       minWidth: "160px",
       backgroundColor: theme.vars.palette.background.paper,
       border: `1px solid ${theme.vars.palette.divider}`,

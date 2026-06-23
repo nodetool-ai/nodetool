@@ -1,6 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo, useMemo } from "react";
-import { Text, FlexRow, Box, BORDER_RADIUS } from "../ui_primitives";
+import {
+  Text,
+  FlexRow,
+  Box,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
+} from "../ui_primitives";
 import isEqual from "fast-deep-equal";
 import { useNodeExecutionDuration } from "../../hooks/nodes/useNodeExecState";
 
@@ -57,7 +64,7 @@ const NodeExecutionTime: React.FC<NodeExecutionTimeProps> = ({
         position: "absolute",
         top: -20,
         right: 4,
-        padding: "2px 8px",
+        padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
         backgroundColor: isError ? "error.dark" : "success.dark",
         borderRadius: BORDER_RADIUS.xs,
         zIndex: 1000,
@@ -78,7 +85,7 @@ const NodeExecutionTime: React.FC<NodeExecutionTimeProps> = ({
           sx={{
             fontFamily: "monospace",
             fontWeight: 600,
-            marginLeft: "4px"
+            marginLeft: getSpacingPx(SPACING.xs)
           }}
         >
           {formatDuration(duration)}

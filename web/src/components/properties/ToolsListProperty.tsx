@@ -3,7 +3,7 @@ import {
   ListItemIcon,
   ListItemText
 } from "@mui/material";
-import { ToolbarIconButton, FlexRow, Checkbox, EditorMenu, EditorMenuItem, MOTION } from "../ui_primitives";
+import { ToolbarIconButton, FlexRow, Checkbox, EditorMenu, EditorMenuItem, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import isEqual from "fast-deep-equal";
@@ -185,7 +185,7 @@ const ToolsListProperty = (props: PropertyProps) => {
             onClick={handleToolClick}
             data-tool={entry.id}
             sx={{
-              padding: "1px",
+              padding: getSpacingPx(SPACING.micro), // was 1px
               marginLeft: "0 !important",
               transition: `color ${MOTION.normal}`,
               color: "c_hl1",
@@ -207,7 +207,7 @@ const ToolsListProperty = (props: PropertyProps) => {
           size="small"
           onClick={openMenu}
           sx={{
-            padding: "1px",
+            padding: getSpacingPx(SPACING.micro), // was 1px
             marginLeft: "0 !important",
             color: "palette-grey-400",
             "&:hover": {

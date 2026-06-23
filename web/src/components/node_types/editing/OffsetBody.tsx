@@ -14,7 +14,7 @@ import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import ImageIcon from "@mui/icons-material/Image";
 
-import { CheckerDropzone, BORDER_RADIUS } from "../../ui_primitives";
+import { CheckerDropzone, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
 import HandleColumn from "../../node/HandleColumn";
 import ImageRefPreview from "../../node/ImageRefPreview";
 import { NodeOutputs } from "../../node/NodeOutputs";
@@ -102,7 +102,7 @@ const styles = (theme: Theme) =>
     },
     ".wrap-row .MuiToggleButton-root": {
       fontSize: theme.fontSizeSmaller,
-      padding: "2px 8px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
       textTransform: "none"
     },
     ".outputs-row": {

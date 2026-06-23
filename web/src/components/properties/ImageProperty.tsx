@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import { SPACING, BORDER_RADIUS } from "../ui_primitives";
+import { SPACING, BORDER_RADIUS, getSpacingPx } from "../ui_primitives";
 import { useAsset } from "../../serverState/useAsset";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
@@ -28,7 +28,7 @@ const awaitingStyles = css({
   color: "rgba(255,255,255,0.3)",
   fontSize: "var(--fontSizeSmall)",
   textAlign: "center",
-  padding: "16px 8px"
+  padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)}`
 });
 
 const ImageProperty = (props: PropertyProps) => {

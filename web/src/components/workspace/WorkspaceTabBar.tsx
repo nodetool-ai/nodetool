@@ -18,7 +18,7 @@ import {
 import { useWorkflowManager, useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
 import { colorForType } from "../../config/data_types";
 import { TOOLBAR_WIDTH } from "../../config/constants";
-import { MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import NotificationButton from "../panels/NotificationButton";
 import OpenMenu from "./OpenMenu";
 import WorkspaceTabItem from "./WorkspaceTabItem";
@@ -84,11 +84,11 @@ const styles = (theme: Theme) =>
       WebkitAppRegion: "no-drag",
       display: "flex",
       alignItems: "center",
-      gap: "8px",
+      gap: getSpacingPx(SPACING.md),
       minWidth: "150px",
       maxWidth: "240px",
       flex: "0 0 auto",
-      padding: "0 10px 0 14px",
+      padding: `0 ${getSpacingPx(SPACING.lg)} 0 ${getSpacingPx(SPACING.xl)}`, // was 0 10px 0 14px
       cursor: "pointer",
       color: theme.vars.palette.text.secondary,
       borderRight: `1px solid ${theme.vars.palette.divider}`,
@@ -160,8 +160,8 @@ const styles = (theme: Theme) =>
       flexShrink: 0,
       display: "flex",
       alignItems: "center",
-      gap: "5px",
-      padding: "0 14px",
+      gap: getSpacingPx(SPACING.sm), // was 5px
+      padding: `0 ${getSpacingPx(SPACING.xl)}`,
       border: "none",
       borderRight: `1px solid ${theme.vars.palette.divider}`,
       background: "transparent",
@@ -177,7 +177,7 @@ const styles = (theme: Theme) =>
       },
       "& .new-tab-caret": {
         fontSize: "var(--fontSizeSmall)",
-        marginLeft: "1px",
+        marginLeft: getSpacingPx(SPACING.micro), // was 1px
         opacity: 0.75,
         lineHeight: 1
       },
@@ -191,8 +191,8 @@ const styles = (theme: Theme) =>
       WebkitAppRegion: "no-drag",
       display: "flex",
       alignItems: "center",
-      gap: "2px",
-      padding: "6px 10px",
+      gap: getSpacingPx(SPACING.micro),
+      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`, // was 6px 10px
       flexShrink: 0,
       "& button": {
         border: `1px solid ${theme.vars.palette.divider}`,
@@ -200,7 +200,7 @@ const styles = (theme: Theme) =>
         color: theme.vars.palette.text.secondary,
         cursor: "pointer",
         fontSize: "var(--fontSizeSmaller)",
-        padding: "3px 12px",
+        padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`, // was 3px 12px
         "&:first-of-type": { borderRadius: `${BORDER_RADIUS.sm} 0 0 ${BORDER_RADIUS.sm}`, borderRight: "none" },
         "&:last-of-type": { borderRadius: `0 ${BORDER_RADIUS.sm} ${BORDER_RADIUS.sm} 0` },
         "&.on": {
@@ -216,7 +216,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       flexShrink: 0,
-      paddingRight: "4px",
+      paddingRight: getSpacingPx(SPACING.xs),
       "& .MuiIconButton-root, & .MuiButtonBase-root": {
         minWidth: "28px",
         width: "28px",

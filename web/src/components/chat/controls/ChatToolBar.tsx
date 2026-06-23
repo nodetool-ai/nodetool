@@ -6,7 +6,7 @@ import React from "react";
 import LanguageModelSelect from "../../properties/LanguageModelSelect";
 import { LanguageModel } from "../../../stores/ApiTypes";
 import { StateIconButton } from "../../ui_primitives/StateIconButton";
-import { MOTION, BORDER_RADIUS } from "../../ui_primitives";
+import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
 import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 
 const styles = (theme: Theme) =>
@@ -14,10 +14,10 @@ const styles = (theme: Theme) =>
     display: "flex",
     alignItems: "center",
     width: "100%",
-    gap: "6px",
+    gap: getSpacingPx(SPACING.sm),
     flexWrap: "wrap",
     minHeight: "44px",
-    padding: "8px 12px",
+    padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,
     borderRadius: BORDER_RADIUS.xl,
     background: `linear-gradient(135deg, 
       ${theme.vars.palette.grey[900]}ee 0%, 
@@ -55,8 +55,8 @@ const styles = (theme: Theme) =>
     ".toolbar-group": {
       display: "flex",
       alignItems: "center",
-      gap: "4px",
-      padding: "2px 4px",
+      gap: getSpacingPx(SPACING.xs),
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`,
       borderRadius: BORDER_RADIUS.lg,
       transition: MOTION.background,
 
@@ -67,7 +67,7 @@ const styles = (theme: Theme) =>
 
     ".toolbar-group-primary": {
       background: `${theme.vars.palette.grey[800]}50`,
-      padding: "4px 8px",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.lg,
       border: `1px solid ${theme.vars.palette.grey[700]}40`,
       transition: `${MOTION.background}, ${MOTION.border}`,
@@ -86,7 +86,7 @@ const styles = (theme: Theme) =>
         transparent 0%, 
         ${theme.vars.palette.grey[600]}60 50%, 
         transparent 100%)`,
-      margin: "0 8px",
+      margin: `0 ${getSpacingPx(SPACING.md)}`,
       flexShrink: 0
     },
 

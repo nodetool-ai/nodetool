@@ -8,7 +8,7 @@ import type {
   DragEvent as ReactDragEvent,
   KeyboardEvent as ReactKeyboardEvent
 } from "react";
-import { Tooltip, Text, thinScrollbarStyles, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, Text, thinScrollbarStyles, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useShallow } from "zustand/react/shallow";
@@ -38,7 +38,7 @@ const tileStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      padding: "0 4px",
+      padding: `0 ${getSpacingPx(SPACING.xs)}`,
       "& h5": {
         margin: 0,
         fontSize: "var(--fontSizeNormal)",
@@ -53,19 +53,19 @@ const tileStyles = (theme: Theme) =>
       display: "grid",
       gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
       gridAutoRows: "1fr",
-      gap: "8px",
+      gap: getSpacingPx(SPACING.md),
       alignContent: "start",
       overflow: "visible",
-      padding: "2px"
+      padding: getSpacingPx(SPACING.micro)
     },
     ".constants-container": {
       display: "grid",
       gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))",
       gridAutoRows: "1fr",
-      gap: "8px",
+      gap: getSpacingPx(SPACING.md),
       alignContent: "start",
-      marginTop: "12px",
-      padding: "2px",
+      marginTop: getSpacingPx(SPACING.lg),
+      padding: getSpacingPx(SPACING.micro),
       ...thinScrollbarStyles(theme)
     },
     ".quick-tile": {
@@ -73,7 +73,7 @@ const tileStyles = (theme: Theme) =>
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      padding: "12px 8px",
+      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.xl,
       cursor: "pointer",
       position: "relative",
@@ -122,7 +122,7 @@ const tileStyles = (theme: Theme) =>
       minHeight: "70px",
       padding: `${theme.spacing(3)} ${theme.spacing(1.5)}`,
       "& .tile-icon": {
-        marginBottom: "4px",
+        marginBottom: getSpacingPx(SPACING.xs),
         "& svg": {
           fontSize: "var(--fontSizeBig)"
         }
@@ -135,7 +135,7 @@ const tileStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      marginBottom: "6px",
+      marginBottom: getSpacingPx(SPACING.sm),
       transition: `transform ${MOTION.slow}`,
       "& svg": {
         fontSize: "var(--fontSizeBig)",
@@ -273,7 +273,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
     () => ({
       fontSize: "var(--fontSizeSmaller)" as const,
       opacity: 0.75,
-      marginTop: "4px"
+      marginTop: getSpacingPx(SPACING.xs)
     }),
     []
   );
@@ -281,8 +281,8 @@ const QuickActionTiles = memo(function QuickActionTiles() {
   // Memoize constants header style
   const constantsHeaderStyle = useMemo(
     () => ({
-      marginTop: "16px",
-      marginBottom: "8px"
+      marginTop: getSpacingPx(SPACING.xl),
+      marginBottom: getSpacingPx(SPACING.md)
     }),
     []
   );

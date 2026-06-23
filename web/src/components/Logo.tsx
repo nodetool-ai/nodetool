@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback, memo } from "react";
 import { DATA_TYPES } from "../config/data_types";
 import { useColorScheme, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { MOTION } from "./ui_primitives";
+import { MOTION, SPACING, getSpacingPx } from "./ui_primitives";
 
 const randomDatatype = () => {
   return DATA_TYPES[Math.floor(Math.random() * DATA_TYPES.length)];
@@ -25,8 +25,8 @@ const logoStyles = (
   css({
     display: "flex",
     alignItems: "center",
-    gap: "20px",
-    margin: "1px 0 0 0",
+    gap: getSpacingPx(SPACING.xxl), // was 20px
+    margin: `${getSpacingPx(SPACING.micro)} 0 0 0`, // was 1px 0 0 0
     ".nt": {
       fontFamily: theme.fontFamily1,
       fontWeight: 600,
@@ -35,7 +35,7 @@ const logoStyles = (
       height: height,
       backgroundColor: "transparent",
       opacity: opacity,
-      marginTop: "1px",
+      marginTop: getSpacingPx(SPACING.micro), // was 1px
       transition: "opacity 1s ease-in-out .2s"
     },
     ".nodetool": {

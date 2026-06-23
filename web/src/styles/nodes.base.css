@@ -135,8 +135,8 @@
   position: relative;
   width: calc(100% + 10px);
   height: 20px;
-  padding: 0px 2px;
-  margin: 4px -5px 0;
+  padding: 0px var(--spacing-micro);
+  margin: var(--spacing-xs) calc(-1 * var(--spacing-sm)) 0; /* was 5px */
   background: var(--c_node_menu);
 }
 

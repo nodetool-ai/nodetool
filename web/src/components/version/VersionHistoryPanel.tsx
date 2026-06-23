@@ -28,7 +28,9 @@ import {
   Text,
   ToggleGroup,
   ToggleOption,
-  Tooltip
+  Tooltip,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 
 interface VersionHistoryPanelProps {
@@ -249,7 +251,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
           backgroundColor: "var(--palette-background-default)",
           width: "100%",
           height: "100%",
-          padding: "24px"
+          padding: getSpacingPx(SPACING.xxl)
         }}
       >
         <FlexColumn align="center" justify="center" fullHeight>
@@ -344,7 +346,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
 
       {isCompareMode && !compareVersionId && (
         <div style={{
-          padding: "4px 12px",
+          padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`,
           backgroundColor: "rgba(2, 136, 209, 0.08)"
         }}>
           <Caption size="tiny" color="primary">
@@ -374,7 +376,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
           }}
         >
           {versions.length === 0 ? (
-            <div style={{ padding: "16px", textAlign: "center" }}>
+            <div style={{ padding: getSpacingPx(SPACING.xl), textAlign: "center" }}>
               <Text color="secondary">No versions saved yet</Text>
               <Caption size="tiny" color="muted">
                 Save your workflow to create a version
@@ -406,7 +408,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
             flex: 1,
             minWidth: 0,
             overflow: "auto",
-            padding: "16px 20px"
+            padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xxl)}` // was 16px 20px
           }}
         >
           {diff && selectedVersion && compareVersion ? (
@@ -447,7 +449,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
             </FlexColumn>
           ) : selectedVersion ? (
             <FlexColumn gap={2}>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: getSpacingPx(SPACING.md), flexWrap: "wrap" }}>
                 <Text size="bigger" weight={600}>
                   v{selectedVersion.version}
                 </Text>
@@ -496,7 +498,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
                 height={320}
               />
 
-              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              <div style={{ display: "flex", gap: getSpacingPx(SPACING.md), marginTop: getSpacingPx(SPACING.md) }}>
                 <EditorButton
                   density="compact"
                   variant="contained"

@@ -4,7 +4,7 @@ import {
   FormControlLabel,
   Slider
 } from "@mui/material";
-import { FlexRow, Box, Text, Tooltip, EditorButton, ToolbarIconButton } from "../../ui_primitives";
+import { FlexRow, Box, Text, Tooltip, EditorButton, ToolbarIconButton, SPACING, getSpacingPx } from "../../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
@@ -120,7 +120,7 @@ export const MoveSettingsPanel = memo(function MoveSettingsPanel({
           checked={autoSelect}
           onChange={(e) => onAutoSelectChange(e.target.checked)}
           size="small"
-          sx={{ padding: "2px 4px" }}
+          sx={{ padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}` }}
         />
       }
       label={
@@ -169,7 +169,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
             checked={autoSelect}
             onChange={(e) => onAutoSelectChange(e.target.checked)}
             size="small"
-            sx={{ padding: "2px 4px" }}
+            sx={{ padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}` }}
           />
         }
         label={
@@ -223,7 +223,7 @@ export const TransformSettingsPanel = memo(function TransformSettingsPanel({
         <Text className="setting-label">Rotation</Text>
         <Text className="setting-value">{rotDeg}°</Text>
       </Box>
-      <FlexRow sx={{ gap: "2px", ml: 1 }}>
+      <FlexRow sx={{ gap: getSpacingPx(SPACING.micro), ml: 1 }}>
         <ToolbarIconButton
           icon={<CheckIcon sx={{ fontSize: 18 }} />}
           tooltip="Commit (Enter)"
@@ -273,7 +273,7 @@ export const CropSettingsPanel = memo(function CropSettingsPanel({
         Drag to outline the crop. Drag edges or corners to adjust. Press Enter
         or Apply to crop the canvas.
       </Text>
-      <FlexRow sx={{ gap: "2px", ml: 1 }}>
+      <FlexRow sx={{ gap: getSpacingPx(SPACING.micro), ml: 1 }}>
         <ToolbarIconButton
           icon={<CheckIcon sx={{ fontSize: 18 }} />}
           tooltip="Apply crop (Enter)"

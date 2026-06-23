@@ -87,8 +87,8 @@
     "lint:fix": "oxlint src --fix",
     "lint:eslint": "eslint src",
     "lint:eslint:fix": "eslint src --fix",
-    "lint:design": "eslint --config eslint.design.config.mjs src",
-    "lint:design:fix": "eslint --config eslint.design.config.mjs src --fix",
+    "lint:design": "eslint --config eslint.design.config.mjs src && node scripts/lint-spacing-css.mjs",
+    "lint:design:fix": "eslint --config eslint.design.config.mjs src --fix && node scripts/lint-spacing-css.mjs",
     "check": "tsc && eslint src && jest",
     "test": "TZ=UTC jest --forceExit",
     "test:summary": "jest --reporters=\"summary\" --forceExit",
@@ -104,7 +104,8 @@
     "typecheck": "tsc --noEmit",
     "upload-stock-images": "node scripts/upload-stock-images.js",
     "screenshots": "playwright test tests/benchmarks/screenshots.spec.ts --project=chromium",
-    "screenshots:force": "FORCE_SCREENSHOTS=true playwright test tests/benchmarks/screenshots.spec.ts --project=chromium"
+    "screenshots:force": "FORCE_SCREENSHOTS=true playwright test tests/benchmarks/screenshots.spec.ts --project=chromium",
+    "lint:spacing-css": "node scripts/lint-spacing-css.mjs"
   },
   "browserslist": {
     "production": [

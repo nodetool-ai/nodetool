@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Text, Tooltip, ToolbarIconButton, Card, Popover, FlexColumn, FlexRow, MOTION, Z_INDEX } from "../ui_primitives";
+import { Text, Tooltip, ToolbarIconButton, Card, Popover, FlexColumn, FlexRow, MOTION, Z_INDEX, SPACING, getSpacingPx } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -70,7 +70,7 @@ const tableStyles = (theme: Theme) =>
       height: 32,
       backgroundColor: theme.vars.palette.grey[900],
       borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
-      padding: "0 12px",
+      padding: `0 ${getSpacingPx(SPACING.lg)}`,
       fontWeight: 500,
       color: theme.vars.palette.grey[400],
       fontSize: "var(--fontSizeSmaller)",
@@ -84,7 +84,7 @@ const tableStyles = (theme: Theme) =>
       gap: 8,
       alignItems: "center",
       height: 36,
-      padding: "0 12px",
+      padding: `0 ${getSpacingPx(SPACING.lg)}`,
       borderBottom: `1px solid ${theme.vars.palette.grey[850] || theme.vars.palette.grey[900]}`,
       backgroundColor: "transparent",
       transition: MOTION.background,
@@ -313,7 +313,7 @@ const RowItem = memo(({
             tooltip="Copy log to clipboard"
             tooltipPlacement="top"
             className="copy-btn"
-            sx={{ padding: "2px" }}
+            sx={{ padding: getSpacingPx(SPACING.micro) }}
           />
           {row.data !== undefined && row.data !== null && (
             <>
@@ -322,7 +322,7 @@ const RowItem = memo(({
                 tooltip="View log data"
               onClick={handleClick}
               size="small"
-              sx={{ padding: "2px" }}
+              sx={{ padding: getSpacingPx(SPACING.micro) }}
             />
               <Popover
                 open={open}

@@ -6,7 +6,14 @@ import { NodeData } from "../../stores/NodeData";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import isEqual from "fast-deep-equal";
-import { Tooltip, Container, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import {
+  Tooltip,
+  Container,
+  MOTION,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
+} from "../ui_primitives";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { DATA_TYPES } from "../../config/data_types";
@@ -58,7 +65,7 @@ const titleStyles = (theme: Theme) =>
     background: hexToRgba(theme.vars.palette.c_node_bg as string, 0.85),
     backdropFilter: theme.vars.palette.glass.blur,
     WebkitBackdropFilter: theme.vars.palette.glass.blur,
-    padding: "2px 6px",
+    padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
     borderRadius: BORDER_RADIUS.sm,
     border: `1px solid ${theme.vars.palette.divider}`,
     cursor: "default",

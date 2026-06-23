@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 
 import React, { useMemo, useRef, useCallback, useState, useEffect } from "react";
-import { Text, ToolbarIconButton, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Text, ToolbarIconButton, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import AssetViewer from "../assets/AssetViewer";
@@ -213,7 +213,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
     right: 40, // Leave space for history button in parent ResultOverlay
     zIndex: 10,
     display: "flex",
-    gap: "4px",
+    gap: getSpacingPx(SPACING.xs),
     opacity: 0,
     transition: `opacity ${MOTION.normal}`
   }), []);
@@ -221,7 +221,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
   const iconButtonStyle = useMemo(() => ({
     width: 24,
     height: 24,
-    padding: "4px",
+    padding: getSpacingPx(SPACING.xs),
     backgroundColor: "rgba(0, 0, 0, 0.6)",
     color: "var(--palette-grey-0)",
     borderRadius: BORDER_RADIUS.sm,

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
-import { Text, FlexRow, AlertBanner, Surface, TextInput, BORDER_RADIUS, FONT_WEIGHT } from "../ui_primitives";
+import { Text, FlexRow, AlertBanner, Surface, TextInput, BORDER_RADIUS, FONT_WEIGHT, SPACING, getSpacingPx } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
 import { getMousePosition } from "../../utils/MousePosition";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -262,10 +262,10 @@ const AssetCreateFolderConfirmation: React.FC = () => {
             autoCorrect="off"
             spellCheck="false"
             sx={{
-              padding: "4px",
+              padding: getSpacingPx(SPACING.xs),
               "& input": {
                 fontFamily: theme.fontFamily1,
-                padding: "4px 6px"
+                padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.sm)}`
               }
             }}
           />

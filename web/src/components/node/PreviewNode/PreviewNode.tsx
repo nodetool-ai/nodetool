@@ -4,7 +4,14 @@ import { css } from "@emotion/react";
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { Handle, NodeProps, Position, useReactFlow } from "@xyflow/react";
 import { getCopySource, getOutputFromResult } from "../outputResult";
-import { Text, Container, MOTION, BORDER_RADIUS } from "../../ui_primitives";
+import {
+  Text,
+  Container,
+  MOTION,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
+} from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import isEqual from "fast-deep-equal";
@@ -134,7 +141,7 @@ const styles = (theme: Theme) =>
         top: 0,
         left: 0,
         margin: 0,
-        padding: "3px 8px 0",
+        padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)} 0`, // was 3px 8px 0
         border: 0
       },
       "& .react-flow__resize-control.handle.bottom.right": {

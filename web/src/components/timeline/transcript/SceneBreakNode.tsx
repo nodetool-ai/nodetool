@@ -22,14 +22,14 @@ import {
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 
 import { useTimelineStoreApi } from "../../../stores/timeline/TimelineInstance";
-import { MOTION, FONT_SIZE_SANS, FONT_WEIGHT, BORDER_RADIUS } from "../../ui_primitives";
+import { MOTION, FONT_SIZE_SANS, FONT_WEIGHT, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
 
 // ── Styles ──────────────────────────────────────────────────────────────────
 
 const Row = styled("div")(({ theme }) => ({
   display: "flex",
   alignItems: "center",
-  gap: 8,
+  gap: getSpacingPx(SPACING.md),
   margin: theme.spacing(3, 0),
   userSelect: "none",
   "& .line": {
@@ -40,8 +40,8 @@ const Row = styled("div")(({ theme }) => ({
   "& .label": {
     display: "inline-flex",
     alignItems: "center",
-    gap: 6,
-    padding: "1px 8px",
+    gap: getSpacingPx(SPACING.sm),
+    padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`, // was 1px 8px
     borderRadius: BORDER_RADIUS.pill,
     fontSize: FONT_SIZE_SANS.caption,
     fontWeight: FONT_WEIGHT.semibold,
@@ -56,7 +56,7 @@ const Row = styled("div")(({ theme }) => ({
     cursor: "pointer",
     fontSize: FONT_SIZE_SANS.body,
     lineHeight: 1,
-    padding: 2,
+    padding: getSpacingPx(SPACING.micro),
     borderRadius: BORDER_RADIUS.sm,
     opacity: 0,
     transition: `opacity ${MOTION.fast}, color ${MOTION.fast}`

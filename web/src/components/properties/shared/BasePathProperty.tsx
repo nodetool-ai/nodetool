@@ -5,7 +5,7 @@ import isEqual from "fast-deep-equal";
 import PropertyLabel from "../../node/PropertyLabel";
 import { PropertyProps } from "../../node/PropertyInput";
 import { useTheme } from "@mui/material/styles";
-import { Text, MOTION, BORDER_RADIUS } from "../../ui_primitives";
+import { Text, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import FileBrowserDialog from "../../dialogs/FileBrowserDialog";
 
@@ -42,7 +42,7 @@ const createPathPropertyStyles = (theme: Theme) =>
     ".path-picker__inputs": {
       display: "flex",
       alignItems: "center",
-      gap: "8px",
+      gap: getSpacingPx(SPACING.md),
       minHeight: "20px",
       flex: 1
     },
@@ -53,7 +53,7 @@ const createPathPropertyStyles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.xs,
       color: theme.vars.palette.common.white,
       cursor: "pointer",
-      padding: "2px 4px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`,
       height: "100%",
       transition: MOTION.all,
       "&:hover": {
@@ -78,7 +78,7 @@ const createPathPropertyStyles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.circle,
       color: theme.vars.palette.grey[400],
       cursor: "pointer",
-      padding: "4px 8px",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       minWidth: "20px",
       height: "24px",
       display: "flex",

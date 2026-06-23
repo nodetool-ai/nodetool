@@ -7,7 +7,9 @@ import {
   Caption,
   Popover,
   MOTION,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
 } from "../../ui_primitives";
 import type { AspectRatioOption } from "../../../stores/MediaGenerationStore";
 
@@ -40,7 +42,7 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       alignItems: "center",
       gap: 6,
-      padding: "8px 4px",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xs)}`,
       background: "transparent",
       border: "none",
       cursor: "pointer",

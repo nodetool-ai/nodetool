@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 
 /**
  * Styles for the NumberInput component.
@@ -43,7 +43,7 @@ export const numberInputStyles = (theme: Theme) =>
       width: "100%",
       marginBottom: 0,
       minHeight: "18px",
-      marginTop: "-1px"
+      marginTop: `-${getSpacingPx(SPACING.micro)}` // was -1px
     },
 
     ".value-container": {
@@ -88,7 +88,7 @@ export const numberInputStyles = (theme: Theme) =>
     ".number-stepper": {
       display: "inline-flex",
       alignItems: "center",
-      gap: "2px",
+      gap: getSpacingPx(SPACING.micro),
       marginLeft: "auto",
       opacity: 0,
       pointerEvents: "none",

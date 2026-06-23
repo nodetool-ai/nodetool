@@ -40,7 +40,9 @@ import {
   TextInput,
   ToolbarIconButton,
   BORDER_RADIUS,
-  FONT_SIZE_SANS
+  FONT_SIZE_SANS,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 
 export type SelectionMode = "file" | "directory";
@@ -93,12 +95,12 @@ const styles = (theme: Theme) =>
     ".folder-tree": {
       overflowY: "auto",
       flex: 1,
-      padding: "8px"
+      padding: getSpacingPx(SPACING.md)
     },
     // Tree View Styles
     ".MuiTreeItem-content": {
       borderRadius: BORDER_RADIUS.xs,
-      padding: "4px 8px",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover
       },

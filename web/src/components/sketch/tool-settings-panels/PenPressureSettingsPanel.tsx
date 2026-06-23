@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import { Slider, Switch } from "@mui/material";
-import { FlexRow, Box, Text } from "../../ui_primitives";
+import { FlexRow, Box, Text, SPACING, getSpacingPx } from "../../ui_primitives";
 import { sketchSliderSx } from "../sketchStyles";
 import { SketchModeToggle, SketchModeOption } from "./SketchModeToggle";
 import {
@@ -122,7 +122,7 @@ export const PenPressureSettingsPanel = memo(function PenPressureSettingsPanel({
           {curveRow}
         </FlexRow>
       ) : (
-        <Box sx={{ mb: "4px" }}>
+        <Box sx={{ mb: getSpacingPx(SPACING.xs) }}>
           {affectsGroup}
           {lightEndRow}
           {curveRow}

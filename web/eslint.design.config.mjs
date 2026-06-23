@@ -9,6 +9,7 @@
 import tsParser from "@typescript-eslint/parser";
 import {
   designTokenIgnores,
+  designTokensPlugin,
   noRestrictedImports,
   noRestrictedSyntax,
 } from "./eslint.design.mjs";
@@ -32,7 +33,7 @@ export default [
   {
     files: ["src/**/*.{ts,tsx}"],
     ignores: designTokenIgnores,
-    plugins: directiveStubs,
+    plugins: { ...directiveStubs, "design-tokens": designTokensPlugin },
     // This gate only reports the design-token guardrails; it is not the place
     // to flag unused disable directives for rules it intentionally stubs out.
     linterOptions: {
@@ -52,6 +53,9 @@ export default [
       "@typescript-eslint/no-require-imports": "off",
       "no-restricted-imports": noRestrictedImports,
       "no-restricted-syntax": noRestrictedSyntax,
+      // Spacing is fully migrated (zero violations) — locked in as an error so
+      // any new raw-px padding/margin/gap fails the gate. See docs/DESIGN.md §2.
+      "design-tokens/spacing-tokens": "error",
     },
   },
 ];

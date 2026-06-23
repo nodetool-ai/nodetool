@@ -7,7 +7,9 @@ import {
   FlexRow,
   Popover,
   ToolbarIconButton,
-  Z_INDEX
+  Z_INDEX,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 import {
   AlignHorizontalCenter,
@@ -257,7 +259,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
           left: "50%",
           transform: "translateX(-50%)",
           zIndex: Z_INDEX.dropdown,
-          padding: "6px 8px",
+          padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
           backgroundColor: "var(--palette-grey-800)",
           borderRadius: BORDER_RADIUS.md,
           boxShadow: 1

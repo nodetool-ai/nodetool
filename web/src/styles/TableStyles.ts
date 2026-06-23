@@ -1,6 +1,6 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS } from "../components/ui_primitives";
+import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../components/ui_primitives";
 
 export const tableStyles = (theme: Theme) =>
   css({
@@ -49,7 +49,7 @@ export const tableStyles = (theme: Theme) =>
       // display: "inline-block",
       right: "5em",
       width: "6px",
-      margin: "0 -3px",
+      margin: `0 -${getSpacingPx(SPACING.xs)}`, // was 0 -3px
       zIndex: 11,
       verticalAlign: "middle"
     },
@@ -105,11 +105,11 @@ export const tableStyles = (theme: Theme) =>
     },
     // Frozen column
     ".tabulator-row .tabulator-cell.tabulator-frozen": {
-      paddingLeft: "2px !important",
+      paddingLeft: `${getSpacingPx(SPACING.micro)} !important`,
       borderRight: `1px solid ${theme.vars.palette.grey[900]}`
     },
     ".tabulator .tabulator-header .tabulator-col .tabulator-col-content": {
-      padding: "5px 0px 0px 2px"
+      padding: `${getSpacingPx(SPACING.sm)} 0 0 ${getSpacingPx(SPACING.micro)}` // was 5px 0px 0px 2px
     },
 
     // Table action buttons
@@ -134,7 +134,7 @@ export const tableStyles = (theme: Theme) =>
         gap: "0.35em"
       },
       "& button": {
-        padding: "4px",
+        padding: getSpacingPx(SPACING.xs),
         width: "28px",
         height: "28px",
         "& svg": {

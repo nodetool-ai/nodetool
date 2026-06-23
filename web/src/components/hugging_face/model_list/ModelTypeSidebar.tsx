@@ -5,7 +5,7 @@ import {
   ListItemButton,
   ListItemText
 } from "@mui/material";
-import { Chip, Text, ToolbarIconButton, Box, MOTION, BORDER_RADIUS } from "../../ui_primitives";
+import { Chip, Text, ToolbarIconButton, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { IconForType } from "../../../config/IconForType";
 import { prettifyModelType } from "../../../utils/modelFormatting";
@@ -118,7 +118,7 @@ const ModelTypeSidebar: React.FC = () => {
               onClick={createModelTypeChangeHandler(type)}
               sx={{
                   borderRadius: BORDER_RADIUS.lg,
-                  padding: "5px 10px",
+                  padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`, // was 5px 10px
                   minWidth: 0,
                   gap: 1,
                   transition: `${MOTION.background}, color ${MOTION.fast}`,

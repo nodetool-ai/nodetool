@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Text, Caption, TextInput, SelectField, AutocompleteTagInput, EditorButton, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Text, Caption, TextInput, SelectField, AutocompleteTagInput, EditorButton, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { useCallback, useEffect, useRef, useState, memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -158,7 +158,7 @@ const styles = (theme: Theme) =>
     ".cancel-button": {
       backgroundColor: "transparent",
       color: theme.vars.palette.text.secondary,
-      padding: "8px 20px",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xxl)}`, // was 8px 20px
       fontSize: theme.fontSizeSmall,
       fontWeight: 500,
       textTransform: "none",
@@ -172,7 +172,7 @@ const styles = (theme: Theme) =>
     ".save-button": {
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.primary.contrastText,
-      padding: "8px 28px",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xxxl)}`, // was 8px 28px
       fontSize: theme.fontSizeSmall,
       fontWeight: 600,
       textTransform: "none",

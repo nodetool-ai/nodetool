@@ -11,7 +11,7 @@ import React, {
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { BORDER_RADIUS, FONT_SIZE_SANS } from "../../ui_primitives";
+import { BORDER_RADIUS, FONT_SIZE_SANS, SPACING, getSpacingPx } from "../../ui_primitives";
 import {
   Message,
   PlanningUpdate,
@@ -109,8 +109,8 @@ const StatusFooter = memo<StatusFooterProps>(
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "8px",
-                padding: "4px 0"
+                gap: getSpacingPx(SPACING.md),
+                padding: `${getSpacingPx(SPACING.xs)} 0`
               }}
             >
               {status === "loading" && progress === 0 ? (
@@ -553,7 +553,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  gap: "8px"
+                  gap: getSpacingPx(SPACING.md)
                 }}
               >
                 {threadApprovals.map(([approvalId, approval]) => (
