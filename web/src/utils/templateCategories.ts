@@ -48,9 +48,6 @@ export const TOP_CATEGORIES: TemplateCategory[] = [
   }
 ];
 
-const TOP_TAG_SET = new Set(TOP_CATEGORIES.flatMap((c) => c.tags));
-
-// Tags promoted to a category — never shown in the More overflow.
 const HIDDEN_TAGS = new Set(["start", "getting-started", "example"]);
 
 const GETTING_STARTED_TAGS = ["getting-started", "start"];
@@ -90,29 +87,3 @@ export const workflowsForCategory = (
   return workflows.filter((w) => matchesCategory(w, category));
 };
 
-export const overflowTagsWithCounts = (
-  groupedTags: Record<string, Workflow[]>
-): Array<{ tag: string; count: number }> => {
-  const out: Array<{ tag: string; count: number }> = [];
-  for (const [tag, list] of Object.entries(groupedTags)) {
-    if (TOP_TAG_SET.has(tag) || HIDDEN_TAGS.has(tag)) {
-      continue;
-    }
-    if (list.length < 2) {
-      continue;
-    }
-    out.push({ tag, count: list.length });
-  }
-  out.sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
-  return out;
-};
-
-export const categoryCounts = (
-  workflows: Workflow[]
-): Record<string, number> => {
-  const counts: Record<string, number> = {};
-  for (const cat of TOP_CATEGORIES) {
-    counts[cat.id] = workflows.filter((w) => matchesCategory(w, cat)).length;
-  }
-  return counts;
-};

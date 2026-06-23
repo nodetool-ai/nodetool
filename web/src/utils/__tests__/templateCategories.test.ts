@@ -5,8 +5,6 @@ import {
   TOP_CATEGORIES,
   isGettingStarted,
   workflowsForCategory,
-  overflowTagsWithCounts,
-  categoryCounts,
 } from "../templateCategories";
 import type { Workflow } from "../../stores/ApiTypes";
 
@@ -84,67 +82,3 @@ describe("workflowsForCategory", () => {
   });
 });
 
-describe("overflowTagsWithCounts", () => {
-  it("excludes tags that belong to top categories", () => {
-    const grouped: Record<string, Workflow[]> = {
-      image: [makeWorkflow(["image"]), makeWorkflow(["image"])],
-      "custom-tag": [makeWorkflow(["custom-tag"]), makeWorkflow(["custom-tag"])],
-    };
-    const result = overflowTagsWithCounts(grouped);
-    expect(result.find((r) => r.tag === "image")).toBeUndefined();
-    expect(result.find((r) => r.tag === "custom-tag")).toBeDefined();
-  });
-
-  it("excludes hidden tags (getting-started, start)", () => {
-    const grouped: Record<string, Workflow[]> = {
-      "getting-started": [makeWorkflow([]), makeWorkflow([])],
-      start: [makeWorkflow([]), makeWorkflow([])],
-      other: [makeWorkflow([]), makeWorkflow([])],
-    };
-    const result = overflowTagsWithCounts(grouped);
-    expect(result.find((r) => r.tag === "getting-started")).toBeUndefined();
-    expect(result.find((r) => r.tag === "start")).toBeUndefined();
-  });
-
-  it("excludes tags with fewer than 2 workflows", () => {
-    const grouped: Record<string, Workflow[]> = {
-      rare: [makeWorkflow([])],
-      common: [makeWorkflow([]), makeWorkflow([])],
-    };
-    const result = overflowTagsWithCounts(grouped);
-    expect(result.find((r) => r.tag === "rare")).toBeUndefined();
-    expect(result.find((r) => r.tag === "common")).toBeDefined();
-  });
-
-  it("sorts by count descending, then alphabetically", () => {
-    const grouped: Record<string, Workflow[]> = {
-      beta: [makeWorkflow([]), makeWorkflow([]), makeWorkflow([])],
-      alpha: [makeWorkflow([]), makeWorkflow([]), makeWorkflow([])],
-      gamma: [makeWorkflow([]), makeWorkflow([])],
-    };
-    const result = overflowTagsWithCounts(grouped);
-    expect(result[0].tag).toBe("alpha");
-    expect(result[1].tag).toBe("beta");
-    expect(result[2].tag).toBe("gamma");
-  });
-});
-
-describe("categoryCounts", () => {
-  it("returns counts for each top category", () => {
-    const workflows = [
-      makeWorkflow(["image"]),
-      makeWorkflow(["image"]),
-      makeWorkflow(["video"]),
-    ];
-    const counts = categoryCounts(workflows);
-    expect(counts["image"]).toBe(2);
-    expect(counts["video"]).toBe(1);
-  });
-
-  it("returns 0 for categories with no matches", () => {
-    const counts = categoryCounts([]);
-    for (const cat of TOP_CATEGORIES) {
-      expect(counts[cat.id]).toBe(0);
-    }
-  });
-});

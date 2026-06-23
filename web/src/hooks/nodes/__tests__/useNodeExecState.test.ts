@@ -10,13 +10,11 @@ import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
 import {
   useNodeStatus,
   useNodeProgress,
-  useEdgeStatus
 } from "../useNodeExecState";
 
 const WF = "wf-test";
 const JOB = "job-1";
 const NODE = "node-1";
-const EDGE = "edge-1";
 
 beforeEach(() => {
   // Reset relevant slices of each store to a clean state
@@ -102,33 +100,3 @@ describe("useNodeProgress", () => {
   });
 });
 
-describe("useEdgeStatus", () => {
-  it("returns undefined when no edge status has been set", () => {
-    const { result } = renderHook(() => useEdgeStatus(WF, EDGE));
-    expect(result.current).toBeUndefined();
-  });
-
-  it("returns the edge status object that was set in the store", () => {
-    act(() => {
-      useResultsStore.getState().setEdge(WF, JOB, EDGE, "active", 1);
-    });
-    const { result } = renderHook(() => useEdgeStatus(WF, EDGE));
-    expect(result.current).toEqual({ status: "active", counter: 1 });
-  });
-
-  it("re-renders when the edge status changes", () => {
-    const { result } = renderHook(() => useEdgeStatus(WF, EDGE));
-    expect(result.current).toBeUndefined();
-
-    act(() => {
-      useResultsStore.getState().setEdge(WF, JOB, EDGE, "idle");
-    });
-    expect(result.current?.status).toBe("idle");
-
-    act(() => {
-      useResultsStore.getState().setEdge(WF, JOB, EDGE, "active", 2);
-    });
-    expect(result.current?.status).toBe("active");
-    expect(result.current?.counter).toBe(2);
-  });
-});

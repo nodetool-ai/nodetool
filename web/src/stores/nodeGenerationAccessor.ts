@@ -3,7 +3,6 @@ import { useWorkflowAssetStore } from "./WorkflowAssetStore";
 import {
   assetToGeneration,
   mergeGenerations,
-  getCurrentOutput,
   selectedOutputValues,
   type Generation
 } from "../utils/nodeGenerations";
@@ -27,15 +26,6 @@ export const getNodeGenerations = (
     .getLiveGenerations(workflowId, nodeId);
   return mergeGenerations(persisted, live);
 };
-
-/** Current output for a node, honoring its persisted selection. */
-export const getNodeCurrentOutput = (
-  workflowId: string,
-  nodeId: string,
-  selectedId?: string,
-  handle?: string
-): unknown =>
-  getCurrentOutput(getNodeGenerations(workflowId, nodeId), selectedId, handle);
 
 /**
  * The selected (pick-ordered, completed, num_images-flattened) value list for a
