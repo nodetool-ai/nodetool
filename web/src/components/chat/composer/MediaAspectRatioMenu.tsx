@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -125,6 +125,7 @@ const MediaAspectRatioMenu: React.FC<MediaAspectRatioMenuProps> = ({
   onChange
 }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   return (
     <Popover
       open={open}
@@ -138,7 +139,7 @@ const MediaAspectRatioMenu: React.FC<MediaAspectRatioMenuProps> = ({
         boxShadow: "0 12px 40px rgba(0,0,0,0.45)"
       }}
     >
-      <div css={styles(theme)} role="dialog" aria-label="Aspect ratio">
+      <div css={cssStyles} role="dialog" aria-label="Aspect ratio">
         <Caption className="aspect-header" size="small">
           Aspect Ratio
         </Caption>

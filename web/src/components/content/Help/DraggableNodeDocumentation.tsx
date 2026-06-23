@@ -92,6 +92,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const panelSize = usePanelStore((state) => state.panel.panelSize);
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const handleAddNode = useCallback(() => {
     if (nodeMetadata && nodeRef.current) {
       const rect = nodeRef.current.getBoundingClientRect();
@@ -159,7 +160,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
 
   return (
     <Draggable handle=".handle" defaultPosition={position} nodeRef={nodeRef}>
-      <div css={styles(theme)} ref={nodeRef}>
+      <div css={cssStyles} ref={nodeRef}>
         <div className="handle"></div>
         <button type="button" className="close-button" onClick={onClose}>
           ×

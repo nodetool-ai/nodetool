@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -87,6 +87,7 @@ function MediaOptionMenuInternal<T extends string | number>({
   minWidth = 200
 }: MediaOptionMenuProps<T>) {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   return (
     <Popover
       open={open}
@@ -101,7 +102,7 @@ function MediaOptionMenuInternal<T extends string | number>({
         boxShadow: "0 12px 40px rgba(0,0,0,0.45)"
       }}
     >
-      <div css={styles(theme)} role="menu">
+      <div css={cssStyles} role="menu">
         {header && (
           <Caption className="option-menu-header" size="small">
             {header}
