@@ -28,6 +28,8 @@ import type { Asset } from "../../stores/ApiTypes";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useNodes } from "../../contexts/NodeContext";
 import { useShallow } from "zustand/react/shallow";
+import { serializeDragData } from "../../lib/dragdrop/serialization";
+import { useDragDropStore } from "../../lib/dragdrop/store";
 import {
   CopyButton,
   Dialog,
@@ -703,6 +705,20 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
     // runtime won't deliver. Kept in lockstep with the run paths, which prune the
     // source and inject the synthetic ForEach replay only when wired downstream.
     const inSet = hasDownstream && pick !== undefined;
+    // A completed, persisted generation can be dragged out as its asset — e.g.
+    // onto a Collection node to curate it for further processing.
+    const dragProps = asset
+      ? {
+          draggable: true,
+          onDragStart: (e: React.DragEvent) => {
+            const data = { type: "asset" as const, payload: asset };
+            serializeDragData(data, e.dataTransfer);
+            e.dataTransfer.effectAllowed = "move";
+            useDragDropStore.getState().setActiveDrag(data);
+          },
+          onDragEnd: () => useDragDropStore.getState().clearDrag()
+        }
+      : {};
     return (
       <div
         key={gen.id}
@@ -713,14 +729,15 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
         tabIndex={gen.id === activeGenId ? 0 : -1}
         aria-selected={hasDownstream ? inSet : selected}
         data-gen-id={gen.id}
+        {...dragProps}
       >
         {kind === "image" && imgUrl ? (
-          <img src={imgUrl} alt={alt} />
+          <img src={imgUrl} alt={alt} draggable={false} />
         ) : kind === "image" && previewBitmap ? (
           <BitmapCanvas bitmap={previewBitmap} aria-label={alt} />
         ) : kind === "video" && (videoThumb || videoUrl) ? (
           videoThumb ? (
-            <img src={videoThumb} alt={alt} />
+            <img src={videoThumb} alt={alt} draggable={false} />
           ) : (
             <video
               src={`${videoUrl}#t=0.1`}
@@ -728,6 +745,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
               muted
               playsInline
               aria-label={alt}
+              draggable={false}
             />
           )
         ) : (
