@@ -222,7 +222,7 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
     ".edit-overlay-label": {
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 500,
-      color: theme.vars.palette.common.white,
+      color: theme.vars.palette.c_white,
       letterSpacing: "0.02em"
     },
     ".hint": {
