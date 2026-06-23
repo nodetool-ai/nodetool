@@ -11,7 +11,8 @@
  * (the same value shape that flows over `output_update`), so they round-trip in
  * the saved graph and resolve on reload via their durable `asset_id`.
  */
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo } from "react";
+import { shallow } from "zustand/shallow";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -32,7 +33,7 @@ import { NodeOutputs } from "../../node/NodeOutputs";
 import NodeProgress from "../../node/NodeProgress";
 
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
-import { useNodeStoreRef } from "../../../contexts/NodeContext";
+import { useNodeStoreRef, useNodes } from "../../../contexts/NodeContext";
 import { useAssetUpload } from "../../../serverState/useAssetUpload";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
@@ -41,13 +42,15 @@ import type { Asset } from "../../../stores/ApiTypes";
 import {
   appendItems,
   assetToItem,
+  collectionElementType,
   collectionType,
   readItems,
   type CollectionItem
 } from "../../../utils/collectionItems";
+import { COLLECTION_NODE_TYPE } from "../../../constants/nodeTypes";
 import type { BespokeBodyProps } from "./bespokeRegistry";
 
-export const COLLECTION_NODE_TYPE = "nodetool.control.Collection";
+export { COLLECTION_NODE_TYPE };
 
 const styles = (theme: Theme) =>
   css({
@@ -202,6 +205,27 @@ const CollectionBodyInner: React.FC<BespokeBodyProps> = ({
     [data.properties?.items]
   );
   const lockedType = collectionType(items);
+
+  // Narrow the `output` handle to the collection's media type (image/video/
+  // audio) so its color, tooltip, and connection validation reflect what it
+  // emits. Persisted on `dynamic_outputs.output` and read back by the
+  // output-type-inference registry (same mechanism as Get Variable).
+  const updateNodeData = useNodes((s) => s.updateNodeData, shallow);
+  useEffect(() => {
+    const desired = collectionElementType(items);
+    const current = data.dynamic_outputs?.output;
+    if (desired) {
+      if (current?.type === desired.type) return;
+      updateNodeData(id, {
+        dynamic_outputs: { ...(data.dynamic_outputs ?? {}), output: desired }
+      });
+    } else {
+      if (!current) return;
+      const next = { ...(data.dynamic_outputs ?? {}) };
+      delete next.output;
+      updateNodeData(id, { dynamic_outputs: next });
+    }
+  }, [id, items, data.dynamic_outputs, updateNodeData]);
 
   /** Read the freshest items from the store (async drops can race the prop). */
   const currentItems = useCallback((): CollectionItem[] => {

@@ -1,6 +1,7 @@
 import {
   appendItems,
   assetToItem,
+  collectionElementType,
   collectionType,
   outputValueToItem,
   readItems,
@@ -120,6 +121,30 @@ describe("collectionItems", () => {
     it("reads only record items from arbitrary values", () => {
       expect(readItems([img("a"), "junk", null, 5])).toEqual([img("a")]);
       expect(readItems(undefined)).toEqual([]);
+    });
+  });
+
+  describe("collectionElementType", () => {
+    it.each(["image", "video", "audio"])(
+      "narrows the output handle to %s for a media collection",
+      (kind) => {
+        expect(collectionElementType([{ type: kind, uri: "u" }])).toEqual({
+          type: kind,
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        });
+      }
+    );
+
+    it("returns null for an empty collection", () => {
+      expect(collectionElementType([])).toBeNull();
+    });
+
+    it("returns null for non-narrowable kinds (stays any)", () => {
+      expect(collectionElementType([{ type: "text", uri: "u" }])).toBeNull();
+      expect(collectionElementType([{ type: "json", uri: "u" }])).toBeNull();
     });
   });
 });

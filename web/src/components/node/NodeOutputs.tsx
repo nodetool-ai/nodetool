@@ -64,7 +64,11 @@ const NodeOutputs: React.FC<NodeOutputsProps> = ({
     const dyn = Object.entries(dynamicOutputs || {}).map(
       ([name, type]) => ({ name, type, stream: false } as OutputSlot)
     );
-    return [...outputs, ...dyn];
+    // A dynamic output supersedes a static one of the same name (e.g. a node
+    // that re-types its `output` handle via `dynamic_outputs`), so the handle
+    // isn't rendered twice.
+    const dynNames = new Set(dyn.map((d) => d.name));
+    return [...outputs.filter((o) => !dynNames.has(o.name)), ...dyn];
   }, [outputs, dynamicOutputs]);
 
   if (allOutputs.length === 0) {

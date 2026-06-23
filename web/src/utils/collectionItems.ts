@@ -7,7 +7,7 @@
  * and that every downstream media consumer already understands, so a curated
  * collection is drop-in compatible with the rest of the graph.
  */
-import type { Asset } from "../stores/ApiTypes";
+import type { Asset, TypeMetadata } from "../stores/ApiTypes";
 import { assetToOutputValue } from "./nodeGenerations";
 
 export interface CollectionItem {
@@ -108,4 +108,30 @@ export const appendItems = (
 export const readItems = (value: unknown): CollectionItem[] => {
   if (!Array.isArray(value)) return [];
   return value.filter(isRecord) as CollectionItem[];
+};
+
+/**
+ * Media kinds whose item `type` is also a canonical graph data-type, so the
+ * Collection's output handle can be narrowed from `any` to the concrete type.
+ * Non-media kinds (text/json/model_3d/asset) stay `any` — their ref shape
+ * doesn't cleanly map to a single downstream input type.
+ */
+const NARROWABLE_KINDS: ReadonlySet<string> = new Set(["image", "video", "audio"]);
+
+/**
+ * The effective output element type for a collection, or null to keep the
+ * declared `any` (empty collection, or a non-narrowable kind).
+ */
+export const collectionElementType = (
+  items: readonly CollectionItem[]
+): TypeMetadata | null => {
+  const kind = collectionType(items);
+  if (!kind || !NARROWABLE_KINDS.has(kind)) return null;
+  return {
+    type: kind,
+    optional: false,
+    values: null,
+    type_args: [],
+    type_name: null
+  };
 };
