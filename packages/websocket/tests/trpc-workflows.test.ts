@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";
@@ -624,6 +624,36 @@ describe("workflows router", () => {
 
       const caller = createCaller(makeCtx());
       const result = await caller.workflows.autosave({ id: "wf-dedup", graph });
+
+      expect(result.skipped).toBe(true);
+      expect(result.persisted).toBe(true);
+      expect(result.message).toBe("Autosave skipped (no changes)");
+      expect(WorkflowVersion.nextVersion).not.toHaveBeenCalled();
+    });
+
+    it("skips a redundant version even for forced saves (before-run checkpoint)", async () => {
+      const graph = {
+        nodes: [{ id: "n1", type: "test.Node", data: { a: 1 }, ui_properties: {} }],
+        edges: []
+      };
+      const wf = makeWorkflow({ id: "wf-ckpt", user_id: "user-1", graph });
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
+      const latest = makeVersion({
+        id: "ver-1",
+        workflow_id: "wf-ckpt",
+        version: 5,
+        graph
+      });
+      (WorkflowVersion.listForWorkflow as ReturnType<typeof vi.fn>).mockResolvedValue([latest]);
+
+      const caller = createCaller(makeCtx());
+      // force + checkpoint save_type — must still dedup on identical content.
+      const result = await caller.workflows.autosave({
+        id: "wf-ckpt",
+        graph,
+        save_type: "checkpoint",
+        force: true
+      });
 
       expect(result.skipped).toBe(true);
       expect(result.message).toBe("Autosave skipped (no changes)");

@@ -10,6 +10,7 @@ import nodePath from "node:path";
 import os from "node:os";
 import { GZIP_THRESHOLD } from "./lib/compression.js";
 import { withCacheBuster } from "./lib/example-thumbnail.js";
+import { graphsEquivalent } from "./lib/graph-equivalence.js";
 import {
   loadExampleGraph,
   defaultExamplePackageName,
@@ -765,7 +766,8 @@ export async function handleWorkflowAutosave(
       return jsonResponse({
         version: null,
         message: "Autosave skipped (rate limited)",
-        skipped: true
+        skipped: true,
+        persisted: false
       });
     }
   }
@@ -777,6 +779,25 @@ export async function handleWorkflowAutosave(
     workflow.access = body.access;
   await workflow.save();
   lastAutosaveTime.set(workflowId, Date.now());
+
+  // Skip a redundant version when the graph is unchanged since the latest
+  // snapshot. Applies even to forced saves: `force` only bypasses the time
+  // rate-limit above, not content dedup.
+  try {
+    const [latest] = await WorkflowVersion.listForWorkflow(workflowId, {
+      limit: 1
+    });
+    if (latest && graphsEquivalent(latest.graph, graph)) {
+      return jsonResponse({
+        version: null,
+        message: "Autosave skipped (no changes)",
+        skipped: true,
+        persisted: true
+      });
+    }
+  } catch {
+    // non-fatal — fall through and snapshot if the version lookup fails
+  }
 
   // Create a version and prune old ones if WorkflowVersion table is available
   let version: JsonObject | null = null;
@@ -807,7 +828,8 @@ export async function handleWorkflowAutosave(
   return jsonResponse({
     version,
     message: "Autosaved successfully",
-    skipped: false
+    skipped: false,
+    persisted: true
   });
 }
 

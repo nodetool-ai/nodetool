@@ -729,25 +729,24 @@ export const workflowsRouter = router({
       lastAutosaveTime.set(input.id, Date.now());
 
       // Skip creating a redundant version when the graph is unchanged since the
-      // latest snapshot. Interval autosave keeps firing while the client's dirty
-      // flag is set, so without this it produces a stream of identical versions.
-      // Forced saves (checkpoints, before-run, before-close) still snapshot.
-      if (!force) {
-        try {
-          const [latest] = await WorkflowVersion.listForWorkflow(input.id, {
-            limit: 1
-          });
-          if (latest && graphsEquivalent(latest.graph, input.graph)) {
-            return {
-              version: null,
-              message: "Autosave skipped (no changes)",
-              skipped: true,
-              persisted: true
-            };
-          }
-        } catch {
-          // non-fatal — fall through and snapshot if the version lookup fails
+      // latest snapshot. This applies even to forced saves (before-run/close
+      // checkpoints): `force` only bypasses the time rate-limit above, not
+      // content dedup — if the graph already matches the latest version, that
+      // version is already a valid restore point, so a duplicate adds nothing.
+      try {
+        const [latest] = await WorkflowVersion.listForWorkflow(input.id, {
+          limit: 1
+        });
+        if (latest && graphsEquivalent(latest.graph, input.graph)) {
+          return {
+            version: null,
+            message: "Autosave skipped (no changes)",
+            skipped: true,
+            persisted: true
+          };
         }
+      } catch {
+        // non-fatal — fall through and snapshot if the version lookup fails
       }
 
       let version: {
