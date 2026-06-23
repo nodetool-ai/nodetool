@@ -8,10 +8,11 @@
  * the current text.
  *
  * The OnChangePlugin is mocked to capture the editor's change handler so the
- * test can drive an edit without fighting Lexical/contentEditable in jsdom, and
- * promptEditorState is mocked so the captured serialized text is controllable.
- * These mocks would interfere with the content-loading assertions in
- * PromptComposerBody.test.tsx, so they live in this separate file.
+ * test can drive an edit without simulating typing into Lexical's
+ * contentEditable in jsdom; $serializePrompt is overridden so the captured
+ * serialized text is controllable (the rest of promptEditorState is kept real
+ * via requireActual). The asset-mention/drop plugins are stubbed out — they're
+ * irrelevant to the commit behaviour and only add weight to the render.
  */
 import React from "react";
 import { render, act } from "@testing-library/react";
@@ -34,11 +35,25 @@ jest.mock("@lexical/react/LexicalOnChangePlugin", () => ({
   }
 }));
 
-// Controls what the editor serializes to; reassigned per test.
+// Controls what the editor serializes to; reassigned per test. Only
+// $serializePrompt is overridden so it doesn't need a live Lexical read
+// context — the other exports stay real (the asset plugins import
+// $insertAssetMention from here).
 let mockSerialized = "";
 jest.mock("../promptComposer/promptEditorState", () => ({
-  $serializePrompt: () => mockSerialized,
-  $setPromptFromString: () => {}
+  ...jest.requireActual("../promptComposer/promptEditorState"),
+  $serializePrompt: () => mockSerialized
+}));
+
+// The asset typeahead/drop plugins don't participate in committing the prompt;
+// stub them so the editor stays light.
+jest.mock("../promptComposer/AssetMentionPlugin", () => ({
+  __esModule: true,
+  default: () => null
+}));
+jest.mock("../promptComposer/AssetDropPlugin", () => ({
+  __esModule: true,
+  default: () => null
 }));
 
 jest.mock("../../../../hooks/nodes/useBespokePropertyWriter", () => ({
@@ -76,11 +91,6 @@ jest.mock("../../../node/NodeProgress", () => ({
   default: () => <div data-testid="node-progress" />
 }));
 
-jest.mock("../../../../stores/AssetStore", () => ({
-  useAssetStore: (selector: (state: unknown) => unknown) =>
-    selector({ search: jest.fn().mockResolvedValue({ assets: [] }), get: jest.fn() })
-}));
-
 const renderWithTheme = (ui: React.ReactElement) => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } }
@@ -111,7 +121,7 @@ const makeProps = (initialPrompt: string) =>
   }) as unknown as Parameters<typeof PromptComposerBody>[0];
 
 // A stand-in for Lexical's EditorState whose `read` simply runs the callback;
-// the real serialization is mocked, so no Lexical context is required.
+// $serializePrompt is mocked, so no Lexical context is required.
 const fakeEditorState = { read: (cb: () => void) => cb() };
 
 describe("PromptComposerBody store commit", () => {
