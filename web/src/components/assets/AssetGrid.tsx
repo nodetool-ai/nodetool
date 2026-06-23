@@ -27,6 +27,7 @@ import { Asset } from "../../stores/ApiTypes";
 import AssetViewer from "./AssetViewer";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useShallow } from "zustand/react/shallow";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useAuth from "../../stores/useAuth";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import StorageAnalytics from "./StorageAnalytics";
@@ -46,9 +47,9 @@ import PanelErrorBoundary from "../common/PanelErrorBoundary";
 import { formatFileSize } from "../../utils/formatUtils";
 
 const panelComponents = {
-  "asset-folders": () => (
+  "asset-folders": (props: IDockviewPanelProps) => (
     <PanelErrorBoundary>
-      <AssetFoldersPanel />
+      <AssetFoldersPanel {...props} />
     </PanelErrorBoundary>
   ),
   "asset-files": (props: IDockviewPanelProps) => (
@@ -125,6 +126,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     setOpenAsset,
     setSelectedAssetIds,
     setRenameDialogOpen,
+    setWorkflowFilter,
     openAsset,
     selectedAssetIds,
     selectedFolderId,
@@ -137,6 +139,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       setOpenAsset: state.setOpenAsset,
       setSelectedAssetIds: state.setSelectedAssetIds,
       setRenameDialogOpen: state.setRenameDialogOpen,
+      setWorkflowFilter: state.setWorkflowFilter,
       openAsset: state.openAsset,
       selectedAssetIds: state.selectedAssetIds,
       selectedFolderId: state.selectedFolderId,
@@ -146,6 +149,17 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       foldersVisible: state.foldersVisible
     }))
   );
+  const currentWorkflowId = useWorkflowManager(
+    (state) => state.currentWorkflowId
+  );
+
+  // Default asset scope per surface: the in-editor sidebar follows the current
+  // workflow (re-asserted whenever the open workflow changes), while the
+  // fullscreen page opens on the global/all-assets view. A manual pick (a
+  // folder or another workflow) holds until one of these inputs changes.
+  useEffect(() => {
+    setWorkflowFilter(isFullscreenAssets ? null : currentWorkflowId ?? null);
+  }, [isFullscreenAssets, currentWorkflowId, setWorkflowFilter]);
   const openMenuType = useContextMenuStore((state) => state.openMenuType);
 
   const theme = useTheme();
@@ -234,6 +248,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         id: "asset-folders",
         component: "asset-folders",
         title: "Folders",
+        params: { isFullscreenAssets: Boolean(isFullscreenAssets) },
         position: api.getPanel("asset-files")
           ? {
               referencePanel: "asset-files",

@@ -15,8 +15,6 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
-import AccountTreeIcon from "@mui/icons-material/AccountTree";
-import FilterCenterFocusIcon from "@mui/icons-material/FilterCenterFocus";
 import AssetSearchInput from "./AssetSearchInput";
 import AssetActions from "./AssetActions";
 import SearchErrorBoundary from "../SearchErrorBoundary";
@@ -30,18 +28,15 @@ import {
   UploadButton,
   Popover,
   MenuItemPrimitive,
-  SearchInput,
   FlexRow,
   Box,
+  Divider,
   BORDER_RADIUS,
   FONT_SIZE_SANS,
   MOTION
 } from "../ui_primitives";
 import { TYPE_FILTERS, TypeFilterKey } from "../../utils/formatUtils";
 import isEqual from "fast-deep-equal";
-import { useQuery } from "@tanstack/react-query";
-import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import { WorkflowList, Workflow } from "../../stores/ApiTypes";
 
 const styles = (theme: Theme) =>
   css({
@@ -117,36 +112,9 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
   );
   const typeFilter = useAssetGridStore((state) => state.typeFilter);
   const setTypeFilter = useAssetGridStore((state) => state.setTypeFilter);
-  const workflowFilter = useAssetGridStore((state) => state.workflowFilter);
-  const setWorkflowFilter = useAssetGridStore((state) => state.setWorkflowFilter);
-  const [typeFilterAnchor, setTypeFilterAnchor] =
-    useState<HTMLElement | null>(null);
-  const [workflowFilterAnchor, setWorkflowFilterAnchor] =
-    useState<HTMLElement | null>(null);
-  const [workflowSearch, setWorkflowSearch] = useState("");
-
-  const load = useWorkflowManager((state) => state.load);
-  const currentWorkflowId = useWorkflowManager(
-    (state) => state.currentWorkflowId
+  const [typeFilterAnchor, setTypeFilterAnchor] = useState<HTMLElement | null>(
+    null
   );
-  const { data: workflowData } = useQuery<WorkflowList, Error>({
-    queryKey: ["workflows"],
-    queryFn: async () => load("", 200)
-  });
-
-  const workflowSearchLower = useMemo(() => workflowSearch.toLowerCase(), [workflowSearch]);
-
-  const filteredWorkflows: Workflow[] = useMemo(
-    () =>
-      workflowData?.workflows?.filter((w: Workflow) =>
-        w.name.toLowerCase().includes(workflowSearchLower)
-      ) ?? [],
-    [workflowData?.workflows, workflowSearchLower]
-  );
-
-  const activeWorkflowName = workflowFilter
-    ? (workflowData?.workflows?.find((w: Workflow) => w.id === workflowFilter)?.name ?? "Workflow")
-    : null;
 
   const handleTypeFilterChange = useCallback(
     (next: TypeFilterKey) => setTypeFilter(next),
@@ -164,13 +132,6 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
   // In fullscreen the filter row is always visible; in the sidebar it is
   // toggled by the tune button.
   const showFilters = expanded || isFullscreenAssets;
-  const showCurrentWorkflowButton = Boolean(currentWorkflowId);
-  const currentWorkflowActive =
-    workflowFilter !== null && workflowFilter === currentWorkflowId;
-
-  const handleToggleCurrentWorkflow = useCallback(() => {
-    setWorkflowFilter(currentWorkflowActive ? null : currentWorkflowId);
-  }, [currentWorkflowActive, currentWorkflowId, setWorkflowFilter]);
 
   const onLocalSearchChange = useCallback(
     (newSearchTerm: string) => {
@@ -203,22 +164,15 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
         className="asset-menu-toolbar"
         align="center"
         gap={0.5}
+        wrap
         sx={{
           px: 0.5,
           py: 0.5,
           "& .MuiIconButton-root": { padding: "4px" },
-          "& .MuiSvgIcon-root": { fontSize: 14 }
+          "& .MuiSvgIcon-root": { fontSize: 16 }
         }}
       >
-        {!isFullscreenAssets && (
-          <ToolbarIconButton
-            icon={<TuneIcon />}
-            tooltip={expanded ? "Hide filters" : "Show filters"}
-            onClick={() => setExpanded((prev) => !prev)}
-            tooltipPlacement="top"
-            nodrag={false}
-          />
-        )}
+        {/* Browse: toggle the folder navigator (sidebar only) */}
         {!isFullscreenAssets && hasFolders && (
           <ToolbarIconButton
             icon={foldersVisible ? <FolderIcon /> : <FolderOffIcon />}
@@ -226,96 +180,64 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
             onClick={toggleFoldersVisible}
             tooltipPlacement="top"
             nodrag={false}
+            active={foldersVisible}
           />
         )}
+
+        {/* Filter: asset type (labeled to avoid icon guessing) */}
         <ToolbarIconButton
           tooltip="Filter by type"
           onClick={(e) => setTypeFilterAnchor(e.currentTarget)}
           tooltipPlacement="top"
           nodrag={false}
+          active={typeFilterActive}
           sx={{
             borderRadius: BORDER_RADIUS.sm,
             px: 0.5,
             gap: 0.5,
-            fontSize: FONT_SIZE_SANS.label,
-            color: typeFilterActive
-              ? "var(--palette-primary-main)"
-              : undefined
+            fontSize: FONT_SIZE_SANS.label
           }}
         >
           <FlexRow
             align="center"
             gap={0.5}
-            sx={{
-              "& .MuiSvgIcon-root": { fontSize: 18 }
-            }}
+            sx={{ "& .MuiSvgIcon-root": { fontSize: 18 } }}
           >
             {TYPE_FILTER_ICONS[typeFilter]}
             <span>{typeFilterLabel}</span>
             <ArrowDropDownIcon />
           </FlexRow>
         </ToolbarIconButton>
-        {showCurrentWorkflowButton && (
+
+        {/* Search, sort & resize (sidebar only; always shown in fullscreen) */}
+        {!isFullscreenAssets && (
           <ToolbarIconButton
-            icon={<FilterCenterFocusIcon />}
-            tooltip={
-              currentWorkflowActive
-                ? "Showing this workflow's assets"
-                : "Show this workflow's assets"
-            }
-            onClick={handleToggleCurrentWorkflow}
+            icon={<TuneIcon />}
+            tooltip={expanded ? "Hide search & sort" : "Search, sort & resize"}
+            onClick={() => setExpanded((prev) => !prev)}
             tooltipPlacement="top"
             nodrag={false}
-            sx={{
-              color: currentWorkflowActive
-                ? "var(--palette-primary-main)"
-                : undefined
-            }}
+            active={expanded}
           />
         )}
-        <ToolbarIconButton
-          tooltip={workflowFilter ? `Workflow: ${activeWorkflowName}` : "Filter by workflow"}
-          onClick={(e) => setWorkflowFilterAnchor(e.currentTarget)}
-          tooltipPlacement="top"
-          nodrag={false}
-          sx={{
-            borderRadius: BORDER_RADIUS.sm,
-            px: 0.5,
-            gap: 0.5,
-            fontSize: FONT_SIZE_SANS.label,
-            color: workflowFilter
-              ? "var(--palette-primary-main)"
-              : undefined
-          }}
-        >
-          <FlexRow align="center" gap={0.5}>
-            <AccountTreeIcon />
-            <span
-              style={{
-                maxWidth: 80,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap"
-              }}
-            >
-              {activeWorkflowName ?? "Workflow"}
-            </span>
-            <ArrowDropDownIcon />
-          </FlexRow>
-        </ToolbarIconButton>
-        <ToolbarIconButton
-          icon={<CreateNewFolderIcon />}
-          tooltip="Create folder"
-          onClick={() => setCreateFolderDialogOpen(true)}
-          tooltipPlacement="top"
-          nodrag={false}
-        />
-        <UploadButton
-          onFileSelect={(files) => onUploadFiles?.(files)}
-          iconVariant="file"
-          tooltip="Upload files"
-          multiple
-        />
+
+        {/* Actions: create & add assets */}
+        <FlexRow align="center" gap={0.5} sx={{ ml: "auto" }}>
+          <Divider orientation="vertical" flexItem sx={{ my: 0.5 }} />
+          <ToolbarIconButton
+            icon={<CreateNewFolderIcon />}
+            tooltip="Create folder"
+            onClick={() => setCreateFolderDialogOpen(true)}
+            tooltipPlacement="top"
+            nodrag={false}
+          />
+          <UploadButton
+            onFileSelect={(files) => onUploadFiles?.(files)}
+            iconVariant="file"
+            tooltip="Upload files"
+            multiple
+          />
+        </FlexRow>
       </FlexRow>
 
       <Popover
@@ -338,55 +260,6 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
             dense
           />
         ))}
-      </Popover>
-
-      <Popover
-        open={Boolean(workflowFilterAnchor)}
-        anchorEl={workflowFilterAnchor}
-        onClose={() => {
-          setWorkflowFilterAnchor(null);
-          setWorkflowSearch("");
-        }}
-        placement="bottom-left"
-        paperSx={{ py: 0.5, minWidth: 220, maxHeight: 320 }}
-      >
-        <Box sx={{ px: 1, pb: 0.5, pt: 0.5 }}>
-          <SearchInput
-            value={workflowSearch}
-            onChange={setWorkflowSearch}
-            placeholder="Search workflows..."
-            autoFocus
-            fullWidth
-            size="small"
-          />
-        </Box>
-        <Box sx={{ overflowY: "auto", maxHeight: 240 }}>
-          <MenuItemPrimitive
-            label="All workflows"
-            icon={<FilterAltOffIcon />}
-            selected={workflowFilter === null}
-            onClick={() => {
-              setWorkflowFilter(null);
-              setWorkflowFilterAnchor(null);
-              setWorkflowSearch("");
-            }}
-            dense
-          />
-          {filteredWorkflows.map((workflow) => (
-            <MenuItemPrimitive
-              key={workflow.id}
-              label={workflow.name}
-              icon={<AccountTreeIcon />}
-              selected={workflowFilter === workflow.id}
-              onClick={() => {
-                setWorkflowFilter(workflow.id);
-                setWorkflowFilterAnchor(null);
-                setWorkflowSearch("");
-              }}
-              dense
-            />
-          ))}
-        </Box>
       </Popover>
 
       {showFilters && (
