@@ -16,9 +16,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
-const { NODE_RUNTIME_VERSION, nodeArchive, nodeBinaryName } = require(
-  "./node-runtime.constants.cjs"
-);
+const {
+  NODE_RUNTIME_VERSION,
+  nodeArchive,
+  nodeBinaryName,
+  npmDirInArchive,
+  NPM_RUNTIME_DIR,
+} = require("./node-runtime.constants.cjs");
 
 const ELECTRON_DIR = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const CACHE_ROOT = path.join(ELECTRON_DIR, ".node-runtime", NODE_RUNTIME_VERSION);
@@ -58,7 +62,7 @@ function expectedChecksum(shasumsText, archiveName) {
   throw new Error(`No SHASUMS entry for ${archiveName}`);
 }
 
-function extractBinary(archivePath, info, destBinary) {
+function extractRuntime(archivePath, info, platform, destDir) {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "node-rt-"));
   try {
     if (info.ext === "zip") {
@@ -73,10 +77,19 @@ function extractBinary(archivePath, info, destBinary) {
       const r = spawnSync("tar", ["-xzf", archivePath, "-C", tmp], { stdio: "inherit" });
       if (r.status !== 0) throw new Error("tar extraction failed");
     }
-    const extracted = path.join(tmp, info.binaryInArchive);
-    fs.mkdirSync(path.dirname(destBinary), { recursive: true });
-    fs.copyFileSync(extracted, destBinary);
+    fs.mkdirSync(destDir, { recursive: true });
+
+    // node binary
+    const destBinary = path.join(destDir, nodeBinaryName(platform));
+    fs.copyFileSync(path.join(tmp, info.binaryInArchive), destBinary);
     if (info.ext !== "zip") fs.chmodSync(destBinary, 0o755);
+
+    // npm package — bundled so JS installs never depend on a system npm.
+    const destNpm = path.join(destDir, NPM_RUNTIME_DIR);
+    fs.rmSync(destNpm, { recursive: true, force: true });
+    fs.cpSync(path.join(tmp, npmDirInArchive(platform, info.dir)), destNpm, {
+      recursive: true,
+    });
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
@@ -86,7 +99,8 @@ async function fetchTarget({ platform, arch }) {
   const info = nodeArchive(platform, arch);
   const destDir = path.join(CACHE_ROOT, `${platform}-${arch}`);
   const destBinary = path.join(destDir, nodeBinaryName(platform));
-  if (fs.existsSync(destBinary)) {
+  const destNpm = path.join(destDir, NPM_RUNTIME_DIR);
+  if (fs.existsSync(destBinary) && fs.existsSync(destNpm)) {
     console.log(`  cached: ${platform}-${arch}`);
     return;
   }
@@ -103,11 +117,11 @@ async function fetchTarget({ platform, arch }) {
   const archivePath = path.join(os.tmpdir(), info.archive);
   await fsp.writeFile(archivePath, archiveBuf);
   try {
-    extractBinary(archivePath, info, destBinary);
+    extractRuntime(archivePath, info, platform, destDir);
   } finally {
     await fsp.rm(archivePath, { force: true });
   }
-  console.log(`  -> ${destBinary}`);
+  console.log(`  -> ${destBinary} (+ npm)`);
 }
 
 async function main() {
