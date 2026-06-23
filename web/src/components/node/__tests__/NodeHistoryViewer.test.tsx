@@ -509,6 +509,44 @@ describe("NodeHistoryViewer", () => {
     // Viewer opens on the currently-selected generation's asset.
     expect(viewer).toHaveAttribute("data-current-asset", "a2");
   });
+
+  it("orders the gallery by the grid RENDER order, not assetHistory's newest-first sort", () => {
+    // Flat timeline (createdAt order) is gA, gB, gC — but the grid groups by run,
+    // so it paints run j1 (gA, gC) then run j2 (gB): render order gA, gC, gB.
+    // assetHistory arrives newest-first (gC, gB, gA), as the real hook sorts it.
+    // The gallery must follow the VISIBLE grid order so double-clicking a tile
+    // into the viewer keeps the history's grouping and ordering.
+    const gA = makeRunGen("gA", "j1", 1);
+    const gC = makeRunGen("gC", "j1", 4);
+    const gB = makeRunGen("gB", "j2", 2);
+    setGenerations([gA, gC, gB], "gA");
+    const newestFirst = [makeAsset("gC"), makeAsset("gB"), makeAsset("gA")];
+    mockUseNodeResultHistory.mockReturnValue({
+      assetHistory: newestFirst,
+      historyCount: 3,
+      lastJobAssets: newestFirst,
+      lastJobId: "j1",
+      isLoading: false,
+      refresh: jest.fn(),
+      workflowId: "wf1"
+    });
+
+    renderWithProviders(
+      <NodeHistoryViewer
+        workflowId="wf1"
+        nodeId="node-a"
+        liveResult={null}
+        renderSingle={renderSingle}
+      />
+    );
+
+    fireEvent.click(screen.getByLabelText("Open in viewer"));
+
+    const viewer = screen.getByTestId("asset-viewer-open");
+    // Run-grouped render order, NOT the flat timeline and NOT newest-first.
+    expect(viewer).toHaveAttribute("data-gallery-ids", "gA,gC,gB");
+    expect(viewer).toHaveAttribute("data-current-asset", "gA");
+  });
 });
 
 describe("NodeHistoryViewer — auto-focus latest run", () => {

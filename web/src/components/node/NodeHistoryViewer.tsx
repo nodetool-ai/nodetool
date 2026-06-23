@@ -400,13 +400,22 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
     setView("grid");
   }, [latestRun]);
 
-  const mediaAssets = useMemo<Asset[]>(
-    () => assetHistory.filter(isMediaAsset),
-    [assetHistory]
-  );
   const assetById = useMemo(
     () => new Map(assetHistory.map((a) => [a.id, a])),
     [assetHistory]
+  );
+  // The fullscreen gallery navigates in the SAME order the history paints —
+  // runs oldest→newest, variants oldest→newest within each run (`flatTiles`) —
+  // so opening a tile into the viewer keeps the history's grouping and ordering
+  // instead of reverting to `assetHistory`'s flat newest-first sort. Each tile
+  // resolves to its persisted Asset via `assetById`; live-only or non-media
+  // tiles drop out (the viewer only renders persisted media anyway).
+  const mediaAssets = useMemo<Asset[]>(
+    () =>
+      flatTiles
+        .map((gen) => (gen.assetId ? assetById.get(gen.assetId) : undefined))
+        .filter((a): a is Asset => a !== undefined && isMediaAsset(a)),
+    [flatTiles, assetById]
   );
 
   const hasHistory = generations.length > 0;
