@@ -16,7 +16,6 @@
 import React, {
   memo,
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState
@@ -48,7 +47,6 @@ import type { NodeMetadata, Property } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useDynamicProperty } from "../../../hooks/nodes/useDynamicProperty";
-import { debounce } from "../../../utils/lodashAlternatives";
 
 import { AssetMentionNode } from "./promptComposer/AssetMentionNode";
 import { VariableNode, $createVariableNode } from "./promptComposer/VariableNode";
@@ -231,7 +229,7 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
-  const { setProperties, setPropertyComplete } = useBespokePropertyWriter({
+  const { setProperties } = useBespokePropertyWriter({
     nodeId: id,
     nodeType
   });
@@ -320,34 +318,34 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
     []
   );
 
-  const writePrompt = useMemo(
-    () =>
-      debounce((text: string) => {
-        if (text === lastWrittenRef.current) {
-          return;
-        }
-        lastWrittenRef.current = text;
-        setProperties({ prompt: text });
-        setPropertyComplete();
-      }, 400),
-    [setProperties, setPropertyComplete]
+  // Commit the serialized prompt to the store on every edit. Writing
+  // synchronously — rather than behind a debounce — guarantees a run (manual or
+  // auto) always reads the current text. A debounced write let a run fired
+  // within the debounce window send the node's *previous* prompt downstream,
+  // producing the intermittent stale-value bug. The equality guard skips
+  // redundant writes from selection-only editor changes (Lexical's
+  // OnChangePlugin fires for those too); auto-run is still coalesced downstream
+  // by useNodeAutoRun's own debounce.
+  const commitPrompt = useCallback(
+    (text: string) => {
+      if (text === lastWrittenRef.current) {
+        return;
+      }
+      lastWrittenRef.current = text;
+      setProperties({ prompt: text });
+    },
+    [setProperties]
   );
-
-  useEffect(() => {
-    return () => {
-      writePrompt.cancel();
-    };
-  }, [writePrompt]);
 
   const handleEditorChange = useCallback(
     (editorState: EditorState) => {
       editorState.read(() => {
         const serialized = $serializePrompt();
         setPromptText(serialized);
-        writePrompt(serialized);
+        commitPrompt(serialized);
       });
     },
-    [writePrompt]
+    [commitPrompt]
   );
 
   const promptProperties = useMemo<Property[]>(() => [], []);
