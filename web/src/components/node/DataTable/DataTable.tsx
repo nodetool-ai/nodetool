@@ -22,6 +22,7 @@ import "tabulator-tables/dist/css/tabulator_midnight.css";
 import { DataframeRef, ColumnDef } from "../../../stores/ApiTypes";
 
 import TableActions from "./TableActions";
+import type { TableData } from "./TableActions";
 import { integerEditor, floatEditor, datetimeEditor } from "./DataTableEditors";
 import { format, isValid, parseISO } from "date-fns";
 import { tableStyles } from "../../../styles/TableStyles";
@@ -32,6 +33,12 @@ import isEqual from "fast-deep-equal";
  * Union type for all possible cell values in a DataFrame column
  */
 export type DataframeCellValue = string | number | boolean | null | undefined;
+
+/**
+ * Union type for all possible cell values across all table types
+ * (DataFrame, List, Dict). Superset of DataframeCellValue — includes Date.
+ */
+export type CellValue = string | number | boolean | Date | null | undefined;
 
 /**
  * Row data for list-style tables (array-based)
@@ -47,7 +54,7 @@ export interface DictTableRow {
 }
 
 /**
- * New data passed to onChangeRows callback
+ * New data passed to onChangeRows callback (DataFrame-specific)
  */
 export type TableDataChange = DictTableRow[] | Record<string, DictTableRow>;
 
@@ -164,12 +171,13 @@ const DataTable: React.FC<DataTableProps> = ({
   }, [dataframe.columns, dataframe.data]);
 
   const onChangeRows = useCallback(
-    (newData: TableDataChange) => {
+    (newData: TableData) => {
       if (onChange && Array.isArray(newData)) {
+        const rows = newData as DictTableRow[];
         const currentDf = dataframeRef.current;
         onChange({
           ...currentDf,
-          data: newData.map(
+          data: rows.map(
             (row) => currentDf.columns?.map((col) => row[col.name]) || []
           )
         });
