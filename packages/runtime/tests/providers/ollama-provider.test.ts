@@ -109,6 +109,13 @@ describe("OllamaProvider", () => {
       content: "done",
       toolCalls: [{ id: "tool_1", name: "sum", args: { a: 1, b: 2 } }]
     });
+
+    // keep_alive is sent so large models stay resident between turns.
+    const sentBody = JSON.parse(
+      (fetchFn.mock.calls[fetchFn.mock.calls.length - 1][1] as RequestInit)
+        .body as string
+    );
+    expect(sentBody.keep_alive).toBe("10m");
   });
 
   it("streams chunks and tool calls from NDJSON", async () => {
@@ -145,6 +152,37 @@ describe("OllamaProvider", () => {
       { type: "chunk", content: "Hel", done: false },
       { id: "tool_1", name: "lookup", args: { q: "x" } },
       { type: "chunk", content: "lo", done: false },
+      { type: "chunk", content: "", done: true }
+    ]);
+  });
+
+  it("surfaces reasoning-model thinking tokens as thinking chunks", async () => {
+    const fetchFn = vi.fn().mockResolvedValue(
+      streamResponse([
+        { message: { content: "", thinking: "Let me" }, done: false },
+        { message: { content: "", thinking: " think" }, done: false },
+        { message: { content: "Hi" }, done: false },
+        { message: { content: "" }, done: true }
+      ])
+    );
+
+    const provider = new OllamaProvider(
+      { OLLAMA_API_URL: "http://localhost:11434" },
+      { fetchFn: fetchFn as unknown as typeof fetch }
+    );
+
+    const out: Array<unknown> = [];
+    for await (const item of provider.generateMessages({
+      model: "gpt-oss:20b",
+      messages: [{ role: "user", content: "hi" }]
+    })) {
+      out.push(item);
+    }
+
+    expect(out).toEqual([
+      { type: "chunk", content: "Let me", done: false, thinking: true },
+      { type: "chunk", content: " think", done: false, thinking: true },
+      { type: "chunk", content: "Hi", done: false },
       { type: "chunk", content: "", done: true }
     ]);
   });

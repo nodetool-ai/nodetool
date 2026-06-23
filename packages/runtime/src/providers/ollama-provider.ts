@@ -29,6 +29,9 @@ type OllamaToolCall = {
 type OllamaChatMessage = {
   role?: string;
   content?: string;
+  // Reasoning models (e.g. gpt-oss, deepseek-r1) stream their chain of thought
+  // here while `content` stays empty until reasoning finishes.
+  thinking?: string;
   images?: string[];
   tool_calls?: OllamaToolCall[];
 };
@@ -83,6 +86,14 @@ export class OllamaProvider extends BaseProvider {
   }
 
   readonly apiUrl: string;
+  /**
+   * How long Ollama keeps the model resident after a request. Without this,
+   * large models (e.g. the default gpt-oss:20b) get evicted between turns and
+   * pay a multi-second reload on every message. Override with OLLAMA_KEEP_ALIVE
+   * (accepts Ollama's duration syntax, e.g. "30m", "-1" to keep forever, "0" to
+   * unload immediately).
+   */
+  readonly keepAlive: string;
   private _fetch: typeof fetch;
 
   constructor(
@@ -95,6 +106,8 @@ export class OllamaProvider extends BaseProvider {
       throw new Error("OLLAMA_API_URL is required");
     }
     this.apiUrl = apiUrl.replace(/\/+$/, "");
+    const keepAlive = process.env.OLLAMA_KEEP_ALIVE?.trim();
+    this.keepAlive = keepAlive && keepAlive.length > 0 ? keepAlive : "10m";
     this._fetch = options.fetchFn ?? globalThis.fetch.bind(globalThis);
   }
 
@@ -395,6 +408,7 @@ export class OllamaProvider extends BaseProvider {
       messages: await Promise.all(
         args.messages.map((m) => this.convertMessage(m))
       ),
+      keep_alive: this.keepAlive,
       options: {
         num_predict: args.maxTokens ?? 8192
       }
@@ -575,6 +589,19 @@ export class OllamaProvider extends BaseProvider {
             done?: boolean;
           };
           const message = event.message ?? {};
+
+          // Reasoning models stream their chain of thought in `thinking` while
+          // `content` stays empty. Surface it as a thinking chunk so the UI
+          // shows activity instead of appearing frozen until the answer lands.
+          if (typeof message.thinking === "string" && message.thinking) {
+            const thinkingChunk: Chunk = {
+              type: "chunk",
+              content: message.thinking,
+              done: false,
+              thinking: true
+            };
+            yield thinkingChunk;
+          }
 
           if (!useToolEmulation) {
             for (const tc of this.toToolCalls(message.tool_calls)) {
