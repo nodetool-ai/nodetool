@@ -8,9 +8,9 @@ import { persist } from "zustand/middleware";
  *  - "workflow": versions, workspace
  *  - "debug":    trace
  *
- * Workflow settings and the agent panel now live in the left panel
- * (LeftPanelView "settings" / "agent"). The workflow assistant has been
- * removed entirely.
+ * Workflow settings live in the left panel (LeftPanelView "settings"). Chat
+ * now lives in the draggable canvas dock (FloatingToolBar), not a left-panel
+ * view. The workflow assistant has been removed entirely.
  */
 export type BottomPanelView =
   | "logs"

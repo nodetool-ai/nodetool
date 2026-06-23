@@ -33,6 +33,7 @@ import { useFindInWorkflowStore } from "../../stores/FindInWorkflowStore";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 import { areNodesEqualIgnoringPosition } from "../../utils/nodeEquality";
 import { usePanelStore } from "../../stores/PanelStore";
+import { useCanvasChatDockStore } from "../../stores/CanvasChatDockStore";
 
 // Icons — Workflow
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
@@ -524,6 +525,9 @@ const PanelCommands = memo(function PanelCommands() {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   const rightPanelToggle = useRightPanelStore((state) => state.handleViewChange);
   const leftPanelToggle = usePanelStore((state) => state.handleViewChange);
+  const toggleConversation = useCanvasChatDockStore(
+    (state) => state.toggleConversation
+  );
 
   return (
     <Command.Group heading="Panels">
@@ -538,9 +542,9 @@ const PanelCommands = memo(function PanelCommands() {
         <SettingsRoundedIcon /> Toggle Workflow Settings
       </Command.Item>
       <Command.Item
-        onSelect={() => executeAndClose(() => leftPanelToggle("agent"))}
+        onSelect={() => executeAndClose(() => toggleConversation())}
       >
-        <ChatRoundedIcon /> Toggle Agent
+        <ChatRoundedIcon /> Toggle Conversation
       </Command.Item>
       <Command.Item
         onSelect={() => executeAndClose(() => leftPanelToggle("assets"))}

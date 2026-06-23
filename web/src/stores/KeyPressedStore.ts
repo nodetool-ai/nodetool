@@ -16,7 +16,7 @@ import { useStoreWithEqualityFn } from "zustand/traditional";
 import { shallow } from "zustand/shallow";
 import { KeyboardContext } from "../components/KeyboardProvider";
 import { isEditableElement } from "../utils/browser";
-import { usePanelStore } from "./PanelStore";
+import { useCanvasChatDockStore } from "./CanvasChatDockStore";
 
 // Allowed key combinations for HTMLTextAreaElement
 const ALLOWED_TEXTAREA_COMBOS: Array<{
@@ -544,15 +544,14 @@ const useCombo = (
   }, [memoizedCombo, preventDefault, active, keyboardActive, scope]);
 };
 
-const agentCallback = () => {
-  const { handleViewChange } = usePanelStore.getState();
-  handleViewChange("agent");
+const toggleConversationCallback = () => {
+  useCanvasChatDockStore.getState().toggleConversation();
 };
 
-// Lower-case 'o' — toggles the left-panel Agent view.
+// Lower-case 'o' — toggles the canvas chat conversation overlay.
 registerComboCallback("o", {
   preventDefault: false,
-  callback: agentCallback
+  callback: toggleConversationCallback
 });
 
 export {
