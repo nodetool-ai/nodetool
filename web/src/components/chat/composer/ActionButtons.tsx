@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useCallback, memo, useMemo } from "react";
-import { Tooltip, Text } from "../../ui_primitives";
+import { Tooltip, Text, SPACING, getSpacingPx } from "../../ui_primitives";
 import { SendMessageButton } from "./SendMessageButton";
 import { StopGenerationButton } from "./StopGenerationButton";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
@@ -25,7 +25,7 @@ const styles = (_theme: Theme) =>
     display: "flex",
     alignItems: "center",
     gap: 8,
-    padding: "6px",
+    padding: getSpacingPx(SPACING.sm),
     "& .button-wrapper": {
       display: "inline-flex",
       alignItems: "center"

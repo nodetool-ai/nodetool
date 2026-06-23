@@ -7,7 +7,7 @@ import {
   DialogActions
 } from "@mui/material";
 import AnnouncementIcon from "@mui/icons-material/Announcement";
-import { Dialog, CloseButton, Text, FlexColumn, Divider, EditorButton, Box } from "../ui_primitives";
+import { Dialog, CloseButton, Text, FlexColumn, Divider, EditorButton, Box, SPACING, getSpacingPx } from "../ui_primitives";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { DownloadProgress } from "./DownloadProgress";
 import { useTheme } from "@mui/material/styles";
@@ -27,7 +27,7 @@ import { isElectron } from "../../utils/browser";
 const styles = (theme: Theme) =>
   css({
     ".download-actions": {
-      padding: "8px 24px 16px",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xxl)} ${getSpacingPx(SPACING.xl)}`,
       justifyContent: "space-between",
       alignItems: "center",
       color: "inherit",

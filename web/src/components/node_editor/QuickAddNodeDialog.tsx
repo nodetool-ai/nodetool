@@ -24,7 +24,7 @@
 
 import { memo, useCallback, useEffect, useRef } from "react";
 import { Command, CommandInput } from "cmdk";
-import { Dialog, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Dialog, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { Caption, Text, Chip } from "../ui_primitives";
 import { css } from "@emotion/react";
 import { useTheme, type Theme } from "@mui/material/styles";
@@ -52,19 +52,19 @@ const styles = (theme: Theme) =>
       overflow: "hidden"
     },
     ".command-input": {
-      padding: "16px",
+      padding: getSpacingPx(SPACING.xl),
       borderBottom: `1px solid ${theme.vars.palette.divider}`
     },
     ".command-list": {
       maxHeight: "400px",
       overflowY: "auto",
-      padding: "8px"
+      padding: getSpacingPx(SPACING.md)
     },
     ".command-item": {
       display: "flex",
       alignItems: "center",
-      gap: "12px",
-      padding: "12px 16px",
+      gap: getSpacingPx(SPACING.lg),
+      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
       borderRadius: BORDER_RADIUS.lg,
       cursor: "pointer",
       transition: MOTION.background,
@@ -108,7 +108,7 @@ const styles = (theme: Theme) =>
     ".node-meta": {
       display: "flex",
       alignItems: "center",
-      gap: "8px"
+      gap: getSpacingPx(SPACING.md)
     },
     ".namespace-chip": {
       fontSize: "var(--fontSizeSmaller)",
@@ -126,7 +126,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      padding: "8px 16px",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`,
       borderTop: `1px solid ${theme.vars.palette.divider}`,
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.secondary
@@ -334,11 +334,11 @@ const QuickAddNodeDialog: React.FC<QuickAddNodeDialogProps> = ({
               {searchResults.length} {searchResults.length === 1 ? "node" : "nodes"}
             </Caption>
             <Caption>
-              <span style={{ marginRight: "12px" }}>
+              <span style={{ marginRight: getSpacingPx(SPACING.lg) }}>
                 <kbd>↑↓</kbd> Navigate
               </span>
               <kbd>Enter</kbd> Select
-              <span style={{ marginLeft: "12px" }}>
+              <span style={{ marginLeft: getSpacingPx(SPACING.lg) }}>
                 <kbd>Esc</kbd> Close
               </span>
             </Caption>

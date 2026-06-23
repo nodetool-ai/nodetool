@@ -1,6 +1,7 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { scrollbarStyles, MOTION } from "../../ui_primitives/tokens";
+import { SPACING, getSpacingPx } from "../../ui_primitives/spacing";
 
 export const createStyles = (theme: Theme) =>
   css({
@@ -120,7 +121,7 @@ export const createStyles = (theme: Theme) =>
 
     ".delete-button": {
       opacity: 0,
-      padding: "4px",
+      padding: getSpacingPx(SPACING.xs),
       minWidth: "unset",
       color: theme.vars.palette.grey[200],
       transition: `${MOTION.opacity}, ${MOTION.transform}`,

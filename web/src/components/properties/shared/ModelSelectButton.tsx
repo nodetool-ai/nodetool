@@ -3,7 +3,7 @@ import type { SxProps, Theme } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useEditorScope } from "../../editor_ui";
-import { FlexColumn, FlexRow, Text, Caption, Tooltip, EditorButton, MOTION } from "../../ui_primitives";
+import { FlexColumn, FlexRow, Text, Caption, Tooltip, EditorButton, MOTION, SPACING, getSpacingPx } from "../../ui_primitives";
 
 interface ModelSelectButtonProps {
   label: React.ReactNode;
@@ -76,7 +76,7 @@ const ModelSelectButton = memo(forwardRef<HTMLButtonElement, ModelSelectButtonPr
             lineHeight: 1.2,
             minHeight: "28px",
             height: "auto",
-            padding: "4px 8px",
+            padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
             width: "100%",
             transition: MOTION.all,
             "&:hover": {
@@ -96,7 +96,7 @@ const ModelSelectButton = memo(forwardRef<HTMLButtonElement, ModelSelectButtonPr
               textAlign: "left",
               flexGrow: 1,
               overflow: "hidden",
-              marginRight: "4px"
+              marginRight: getSpacingPx(SPACING.xs)
             }}
           >
             <Text
@@ -132,7 +132,7 @@ const ModelSelectButton = memo(forwardRef<HTMLButtonElement, ModelSelectButtonPr
               opacity: 0.7,
               flexShrink: 0,
               ml: 0,
-              mr: "-4px"
+              mr: `-${getSpacingPx(SPACING.xs)}`
             }}
           />
         </EditorButton>

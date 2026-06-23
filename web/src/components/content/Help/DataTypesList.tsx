@@ -7,7 +7,9 @@ import {
   CollapsibleSection,
   FlexColumn,
   FlexRow,
-  Text
+  Text,
+  SPACING,
+  getSpacingPx
 } from "../../ui_primitives";
 import { DataType } from "../../../config/data_types";
 import { IconForType } from "../../../config/IconForType";
@@ -88,7 +90,7 @@ const DataTypesList = ({
                   width: "50px",
                   height: "50px",
                   color: type.textColor,
-                  padding: "8px"
+                  padding: getSpacingPx(SPACING.md)
                 }}
               />
               <FlexColumn

@@ -2,7 +2,7 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 
-import { EditorButton, Text, Divider, FlexRow, ContextMenu, BORDER_RADIUS } from "../ui_primitives";
+import { EditorButton, Text, Divider, FlexRow, ContextMenu, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import ContextMenuItem from "./ContextMenuItem";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
@@ -332,7 +332,7 @@ const PaneContextMenu: React.FC = () => {
             align="center"
             sx={{
               gap: "0.5em",
-              padding: "4px 16px",
+              padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xl)}`,
               color: "text.secondary",
               fontSize: "var(--fontSizeSmaller)",
               fontWeight: 600,

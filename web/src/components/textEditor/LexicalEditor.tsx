@@ -15,7 +15,7 @@ import { AutoLinkPlugin } from "./AutoLinkPlugin";
 import { HorizontalRulePlugin } from "./HorizontalRulePlugin";
 import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
 
-import { BORDER_RADIUS } from "../ui_primitives";
+import { BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 const styles = (theme: Theme) =>
   css({
     "::highlight(findMatches)": {
@@ -52,18 +52,18 @@ const styles = (theme: Theme) =>
     },
     ".editor-text-code": {
       backgroundColor: theme.vars.palette.action.selected,
-      padding: "2px 4px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`,
       borderRadius: BORDER_RADIUS.sm,
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall
     },
     ".editor-code": {
       backgroundColor: theme.vars.palette.action.disabledBackground,
-      padding: "8px 12px",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,
       borderRadius: BORDER_RADIUS.sm,
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmall,
-      margin: "8px 0",
+      margin: `${getSpacingPx(SPACING.md)} 0`,
       display: "block",
       overflowX: "auto"
     },
@@ -85,17 +85,17 @@ const styles = (theme: Theme) =>
     },
     ".editor-quote": {
       borderLeft: `4px solid ${theme.vars.palette.action.selected}`,
-      paddingLeft: "12px",
-      margin: "8px 0",
+      paddingLeft: getSpacingPx(SPACING.lg),
+      margin: `${getSpacingPx(SPACING.md)} 0`,
       fontStyle: "italic",
       color: theme.vars.palette.text.secondary
     },
     ".editor-list-ul, .editor-list-ol": {
       paddingLeft: theme.spacing(6),
-      margin: "4px 0"
+      margin: `${getSpacingPx(SPACING.xs)} 0`
     },
     ".editor-listitem": {
-      margin: "2px 0"
+      margin: `${getSpacingPx(SPACING.micro)} 0`
     },
     ".editor": {
       "&.word-wrap": {

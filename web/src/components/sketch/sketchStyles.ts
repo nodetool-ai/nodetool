@@ -6,7 +6,7 @@
  */
 
 import type { SxProps, Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 
 // ─── Color Tokens ─────────────────────────────────────────────────────────────
 // Semantic names tied to MUI's grey palette (dark theme).
@@ -193,8 +193,8 @@ export const settingRowChildrenSx = (t: Theme) => ({
       minWidth: "80px",
       // Minimal clearance — the thumb may touch label/value at the
       // extremes but the wider gap looked airy and disconnected.
-      marginLeft: "2px",
-      marginRight: "2px",
+      marginLeft: getSpacingPx(SPACING.micro),
+      marginRight: getSpacingPx(SPACING.micro),
     },
   },
   // Opt-in wider slider for the primary "Size" control. Doubling its
@@ -259,8 +259,8 @@ export const sketchToolSettingsContainerSx: SxProps<Theme> = (theme) => {
         minWidth: "60px",
         width: "100%",
         maxWidth: "100%",
-        marginLeft: "2px",
-        marginRight: "2px",
+        marginLeft: getSpacingPx(SPACING.micro),
+        marginRight: getSpacingPx(SPACING.micro),
       },
       "& .setting-label": {
         fontSize: SKETCH_FONT.sm,

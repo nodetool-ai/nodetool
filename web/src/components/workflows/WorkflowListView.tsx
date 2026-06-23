@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useMemo, useRef, useEffect, useCallback } from "react";
-import { Text, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Text, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import WorkflowListItem from "./WorkflowListItem";
@@ -47,7 +47,7 @@ const listStyles = (theme: Theme) =>
       display: "flex",
       flexDirection: "row",
       alignItems: "center",
-      margin: "0 0 2px",
+      margin: `0 0 ${getSpacingPx(SPACING.micro)}`,
       width: "100%",
       cursor: "pointer",
       outline: "none",
@@ -87,7 +87,7 @@ const listStyles = (theme: Theme) =>
       position: "relative"
     },
     ".workflow:not(.with-preview):not(.hide-date) .preview-container": {
-      paddingRight: "84px"
+      paddingRight: `calc(${getSpacingPx(SPACING.xxl)} * 2 + ${getSpacingPx(SPACING.xxxl)} + ${getSpacingPx(SPACING.xs)})` // was 84px
     },
     ".name": {
       fontSize: theme.fontSizeSmall,
@@ -112,7 +112,7 @@ const listStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "flex-start",
-      gap: "4px",
+      gap: getSpacingPx(SPACING.xs),
       width: "76px",
       flexShrink: 0,
       padding: "0",
@@ -146,12 +146,12 @@ const listStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "flex-end",
-      gap: "4px",
+      gap: getSpacingPx(SPACING.xs),
       zIndex: 10,
       opacity: 0,
       transition: MOTION.opacity,
       background: `linear-gradient(to right, transparent, rgb(${theme.vars.palette.background.defaultChannel} / 0.96) 16px)`,
-      paddingLeft: "24px",
+      paddingLeft: getSpacingPx(SPACING.xxl),
       button: {
         opacity: 1,
         color: theme.vars.palette.text.secondary,
@@ -171,9 +171,9 @@ const listStyles = (theme: Theme) =>
       transform: "none",
       backgroundColor: "rgba(0, 0, 0, 0.35)",
       borderRadius: BORDER_RADIUS.sm,
-      padding: "4px 6px",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.sm)}`,
       backdropFilter: "blur(4px)",
-      gap: "4px"
+      gap: getSpacingPx(SPACING.xs)
     },
     // Preview mode - date at top right with higher z-index
     ".workflow.with-preview .date-container": {
@@ -183,11 +183,11 @@ const listStyles = (theme: Theme) =>
       zIndex: 5,
       backgroundColor: "rgba(0, 0, 0, 0.35)",
       borderRadius: BORDER_RADIUS.sm,
-      padding: "2px 6px"
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`
     },
     ".date-header-row": {
       width: "100%",
-      padding: "0 12px 4px 0",
+      padding: `0 ${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xs)} 0`,
       alignItems: "flex-end",
       borderBottom: "1px solid var(--palette-divider)"
     },

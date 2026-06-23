@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { Fade } from "@mui/material";
-import { Text, Tooltip, LoadingSpinner, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Text, Tooltip, LoadingSpinner, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
@@ -80,7 +80,7 @@ const cardStyles = (theme: Theme) =>
     ".loading-text": {
       color: theme.vars.palette.primary.main,
       fontSize: "var(--fontSizeNormal)",
-      marginTop: "12px",
+      marginTop: getSpacingPx(SPACING.lg),
       textAlign: "center",
       fontWeight: 500
     },
@@ -120,7 +120,7 @@ const cardStyles = (theme: Theme) =>
       backgroundColor: "rgba(0, 0, 0, 0.6)",
       backdropFilter: "blur(4px)",
       color: theme.vars.palette.grey[200],
-      padding: "4px 8px",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.xs,
       textTransform: "uppercase"
     },
@@ -130,14 +130,14 @@ const cardStyles = (theme: Theme) =>
       left: "8px",
       display: "none",
       flexDirection: "column",
-      gap: "4px",
+      gap: getSpacingPx(SPACING.xs),
       maxWidth: "calc(100% - 80px)",
       zIndex: 5
     },
     ".matched-item": {
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
-      padding: "4px 8px",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.xs,
       backgroundColor: theme.vars.palette.grey[100],
       color: theme.vars.palette.grey[900]
@@ -156,8 +156,8 @@ const cardStyles = (theme: Theme) =>
     ".card-content": {
       display: "flex",
       flexDirection: "column",
-      gap: "6px",
-      padding: "10px 12px 12px",
+      gap: getSpacingPx(SPACING.sm),
+      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.lg)}`, // was 10px 12px 12px
       flex: 1,
       minHeight: 0
     },
@@ -193,15 +193,15 @@ const cardStyles = (theme: Theme) =>
     ".chips-container": {
       display: "flex",
       flexWrap: "wrap",
-      gap: "4px",
+      gap: getSpacingPx(SPACING.xs),
       marginTop: "auto",
-      paddingTop: "6px"
+      paddingTop: getSpacingPx(SPACING.sm)
     },
     ".chip": {
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 500,
       letterSpacing: "0.3px",
-      padding: "2px 8px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.pill,
       color: theme.vars.palette.text.secondary,
       background: theme.vars.palette.action.hover,
@@ -211,7 +211,7 @@ const cardStyles = (theme: Theme) =>
     ".chip-category": {
       display: "inline-flex",
       alignItems: "center",
-      gap: "5px",
+      gap: getSpacingPx(SPACING.sm), // was 5px
       textTransform: "none",
       fontWeight: 600
     },
@@ -284,7 +284,7 @@ const WorkflowCard = ({
             backgroundColor: theme.vars.palette.grey[800],
             color: theme.vars.palette.text.primary,
             fontSize: "var(--fontSizeNormal)",
-            padding: "10px 14px",
+            padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`, // was 10px 14px
             maxWidth: 300,
             borderRadius: BORDER_RADIUS.lg,
             boxShadow: "0 4px 20px rgba(0, 0, 0, 0.3)"

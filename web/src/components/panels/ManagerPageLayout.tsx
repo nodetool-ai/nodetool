@@ -6,7 +6,7 @@ import React, { memo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import { Box, EditorButton, FlexColumn, FlexRow, BORDER_RADIUS } from "../ui_primitives";
+import { Box, EditorButton, FlexColumn, FlexRow, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 
 interface ManagerPageLayoutProps {
   /** Icon shown in the tinted chip beside the title. */
@@ -72,7 +72,7 @@ const styles = (theme: Theme) =>
     },
     ".manager-page-subtitle": {
       margin: 0,
-      marginTop: "2px",
+      marginTop: getSpacingPx(SPACING.micro),
       fontSize: theme.fontSizeSmall,
       lineHeight: 1.4,
       color: theme.vars.palette.text.secondary

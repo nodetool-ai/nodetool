@@ -9,7 +9,7 @@ import {
   ListItemText,
   useTheme
 } from "@mui/material";
-import { Divider, MobileBottomSheet, BORDER_RADIUS } from "../ui_primitives";
+import { Divider, MobileBottomSheet, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 
@@ -38,10 +38,10 @@ import { shallow } from "zustand/shallow";
 
 const styles = (theme: Theme) =>
   css({
-    padding: "0 8px 16px 8px",
+    padding: `0 ${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)}`,
     ".menu-item": {
       borderRadius: BORDER_RADIUS.lg,
-      margin: "2px 0",
+      margin: `${getSpacingPx(SPACING.micro)} 0`,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover
       },
@@ -70,15 +70,15 @@ const styles = (theme: Theme) =>
       textTransform: "uppercase",
       letterSpacing: "0.05em",
       color: theme.vars.palette.text.secondary,
-      padding: "12px 16px 6px 16px",
+      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.xl)}`,
       "&:first-of-type": {
-        paddingTop: "4px"
+        paddingTop: getSpacingPx(SPACING.xs)
       }
     }
   });
 
 // Memoized divider style to prevent object creation on each render
-const dividerSx = { margin: "12px 0" } as const;
+const dividerSx = { margin: `${getSpacingPx(SPACING.lg)} 0` } as const;
 
 interface MobilePaneMenuProps {
   open: boolean;

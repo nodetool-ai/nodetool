@@ -145,7 +145,7 @@ const registerFrontendTools = () => {
 };
 import { useModelDownloadStore } from "./stores/ModelDownloadStore";
 
-import { BORDER_RADIUS } from "./components/ui_primitives";
+import { BORDER_RADIUS, SPACING, getSpacingPx } from "./components/ui_primitives";
 installIpcLogBridge();
 
 if (isLocalhost) {
@@ -537,7 +537,7 @@ const AppWrapper = () => {
                         justifyContent: "center",
                         alignItems: "center",
                         height: "100vh",
-                        gap: "16px"
+                        gap: getSpacingPx(SPACING.xl)
                       }}
                     >
                       <LoadingSpinner size="large" />
@@ -560,7 +560,7 @@ const AppWrapper = () => {
                         alignItems: "center",
                         height: "100vh",
                         flexDirection: "column",
-                        gap: "12px"
+                        gap: getSpacingPx(SPACING.lg)
                       }}
                     >
                       <span
@@ -575,7 +575,7 @@ const AppWrapper = () => {
                         type="button"
                         onClick={() => window.location.reload()}
                         style={{
-                          padding: "8px 16px",
+                          padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`,
                           borderRadius: BORDER_RADIUS.md,
                           border: "1px solid var(--palette-divider)",
                           backgroundColor: "transparent",
@@ -603,7 +603,7 @@ const AppWrapper = () => {
                               alignItems: "center",
                               height: "100vh",
                               width: "100%",
-                              gap: "16px"
+                              gap: getSpacingPx(SPACING.xl)
                             }}
                           >
                             <LoadingSpinner size="large" />

@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import React, { memo, useContext, useMemo } from "react";
 import { titleizeString } from "../../utils/titleizeString";
 import isEqual from "fast-deep-equal";
-import { Tooltip } from "../ui_primitives";
+import { Tooltip, SPACING, getSpacingPx } from "../ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { TypeMetadata } from "../../stores/ApiTypes";
 import HandleTooltip from "../HandleTooltip";
@@ -159,7 +159,7 @@ const PropertyLabel: React.FC<PropertyLabelProps> = ({
             fontSize: theme.fontSizeSmaller,
             color: theme.vars.palette.text.disabled,
             lineHeight: 1.3,
-            marginTop: "1px",
+            marginTop: getSpacingPx(SPACING.micro), // was 1px
             marginBottom: theme.spacing(0.5),
             userSelect: "none",
           })}

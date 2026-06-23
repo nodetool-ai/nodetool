@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo } from "react";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
-import { DeleteButton, FlexRow, FlexColumn, Text, Caption, Tooltip, LoadingSpinner, EditorButton, ProgressBar, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { DeleteButton, FlexRow, FlexColumn, Text, Caption, Tooltip, LoadingSpinner, EditorButton, ProgressBar, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { CollectionResponse } from "../../stores/ApiTypes";
 import {
   UseMutationResult,
@@ -168,7 +168,7 @@ const CollectionItem = ({
   const containerStyle = useMemo(() => ({
     display: "flex",
     alignItems: "center",
-    gap: "12px",
+    gap: getSpacingPx(SPACING.lg),
     width: "100%"
   }), []);
 

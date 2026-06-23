@@ -6,7 +6,7 @@ import { memo, useState, useEffect, useCallback } from "react";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import ReplaceIcon from "@mui/icons-material/FindReplace";
-import { CloseButton, NodeTextField, ToolbarIconButton, Box, BORDER_RADIUS } from "../ui_primitives";
+import { CloseButton, NodeTextField, ToolbarIconButton, Box, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 
 const MAX_SEARCH_LENGTH = 1000;
 
@@ -106,7 +106,7 @@ const styles = (theme: Theme) =>
       textAlign: "center"
     },
     ".toolbar-button": {
-      padding: "4px",
+      padding: getSpacingPx(SPACING.xs),
       marginRight: "0",
       color: `${theme.vars.palette.grey[200]} !important`,
       backgroundColor: "transparent !important",

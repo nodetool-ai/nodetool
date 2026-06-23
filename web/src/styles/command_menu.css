@@ -11,7 +11,7 @@
   width: 100%;
   border-radius: var(--rounded-xl);
   overflow: hidden;
-  padding: 8px;
+  padding: var(--spacing-md);
   color: var(--palette-grey-800);
   box-shadow: 0 20px 68px var(--palette-grey-1000);
   background: var(--palette-grey-900);
@@ -20,8 +20,8 @@
 
 [cmdk-input] {
   width: calc(100% - 32px);
-  margin: 16px;
-  padding: 12px 16px;
+  margin: var(--spacing-xl);
+  padding: var(--spacing-lg) var(--spacing-xl);
   font-size: var(--fontSizeBig);
   border: none;
   outline: none;
@@ -49,14 +49,14 @@
   font-size: var(--fontSizeNormal);
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 16px;
+  gap: var(--spacing-lg);
+  padding: 0 var(--spacing-xl);
   color: var(--palette-grey-100);
   user-select: none;
   will-change: background, color;
   transition: all 150ms ease;
   border-radius: var(--rounded-lg);
-  margin: 0 8px;
+  margin: 0 var(--spacing-md);
 }
 
 [cmdk-item][data-selected="true"] {
@@ -109,7 +109,7 @@
   user-select: none;
   font-size: var(--fontSizeSmall);
   font-weight: 600;
-  margin: 16px 16px 8px;
+  margin: var(--spacing-xl) var(--spacing-xl) var(--spacing-md);
   color: var(--palette-grey-500);
   text-transform: uppercase;
   letter-spacing: 0.06em;

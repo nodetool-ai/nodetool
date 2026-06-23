@@ -56,6 +56,7 @@ jest.mock("@mui/material/Box", () => ({
 // Mock the ToolbarIconButton and NodeTextField components
 jest.mock("../../ui_primitives", () => ({
   ...jest.requireActual("../../ui_primitives/tokens"),
+  ...jest.requireActual("../../ui_primitives/spacing"),
   CloseButton: ({ onClick, buttonSize, tooltip, className }: any) => (
     <button
       onClick={onClick}

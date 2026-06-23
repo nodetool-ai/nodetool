@@ -1,7 +1,7 @@
 import React, { memo } from "react";
 //mui
 import { MenuItem } from "@mui/material";
-import { Text, Divider, ContextMenu } from "../ui_primitives";
+import { Text, Divider, ContextMenu, SPACING, getSpacingPx } from "../ui_primitives";
 import { shallow } from "zustand/shallow";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import ContextMenuItem from "./ContextMenuItem";
@@ -263,7 +263,7 @@ const PropertyContextMenuComponent: React.FC = () => {
           <Text
             size="small"
             sx={{
-              padding: "4px 0"
+              padding: `${getSpacingPx(SPACING.xs)} 0`
             }}
           >
             {description}

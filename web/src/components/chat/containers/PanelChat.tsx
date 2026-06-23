@@ -11,7 +11,9 @@ import {
   Caption,
   FlexColumn,
   FlexRow,
-  Text
+  Text,
+  SPACING,
+  getSpacingPx
 } from "../../ui_primitives";
 import { ChatSidebar } from "../sidebar/ChatSidebar";
 import type { ThreadInfo } from "../types/thread.types";
@@ -236,7 +238,7 @@ const PanelChat: React.FC = () => {
       sx={{
         overflow: "hidden",
         minHeight: 0,
-        pb: "20px",
+        pb: getSpacingPx(SPACING.xxl), // was 20px
         "& .chat-view": { paddingLeft: 0 },
         "& .chat-main": { paddingRight: 0 },
         "& .media-attach-btn": { display: "none" }

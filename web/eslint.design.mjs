@@ -119,14 +119,12 @@ export const noRestrictedSyntax = [
     message:
       "Use a TYPOGRAPHY/FONT_SIZE token or var(--fontSize*) instead of a hardcoded font size. See ui_primitives/tokens.ts and docs/DESIGN.md.",
   },
-  {
-    // padding/margin/gap: "10px" → snap to the 4px spacing grid (SPACING tokens
-    // in MUI sx; grid-aligned px in emotion css()).
-    selector:
-      "Property[key.name=/^(padding|margin|gap|rowGap|columnGap)$/] > Literal[value=/^[0-9]+px$/]",
-    message:
-      "Snap spacing to the 4px grid: use SPACING tokens in MUI sx, or grid-aligned px in emotion css(). See ui_primitives/spacing.ts and docs/DESIGN.md.",
-  },
+  // NOTE: Spacing (padding/margin/gap) is NOT handled here. A `no-restricted-syntax`
+  // selector can only see object-literal `Property > Literal` nodes, which misses
+  // (a) shorthand strings ("8px 12px"), (b) MUI sx short props (p/px/mt/…), and
+  // (c) raw px inside `styled`/`css` template literals. The richer
+  // `design-tokens/spacing-tokens` custom rule below covers all of those. See
+  // eslint.design.mjs → spacingTokensRule and docs/DESIGN.md §2.
   {
     // zIndex: 9999 (magic integer) → use Z_INDEX.* or theme.zIndex.*.
     // 0 (normal flow) and negative values (UnaryExpression) are allowed.
@@ -152,3 +150,135 @@ export const noRestrictedSyntax = [
       "Use a theme.vars.palette.* token instead of a hardcoded hex/rgb color. New colors go in paletteDark.ts + paletteLight.ts as c_*. See docs/DESIGN.md §3.",
   },
 ];
+
+// ---------------------------------------------------------------------------
+// Spacing custom rule (DESIGN.md §2 — 4px grid, SPACING/PADDING/MARGIN/GAP).
+//
+// `no-restricted-syntax` only matches object-literal `Property > Literal`
+// nodes, so it cannot see shorthand strings, MUI sx short props, or px values
+// embedded in `styled`/`css` template literals. This rule covers all three:
+//
+//   1. Object props   { padding: "8px" }      sx + emotion css({}) objects
+//   2. Short props    { p: "8px", mt: "4px" } MUI sx system shorthands
+//   3. Template CSS    css`padding: 8px;`      styled-components / emotion css``
+//
+// Any non-zero px spacing value is reported — full token migration means even
+// grid-aligned px ("8px") must become a token. `0` / `0px` (flush) is allowed.
+// ---------------------------------------------------------------------------
+
+// Every spacing-related object key: full names, logical props, and MUI sx
+// short props (p/px/mt/…). Short props are only flagged when the value is a
+// px string, which makes a non-spacing collision (e.g. `{ p: 0.5 }`) impossible.
+export const SPACING_PROP_KEYS = new Set([
+  "padding",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+  "paddingInline",
+  "paddingBlock",
+  "paddingInlineStart",
+  "paddingInlineEnd",
+  "paddingBlockStart",
+  "paddingBlockEnd",
+  "paddingX",
+  "paddingY",
+  "margin",
+  "marginTop",
+  "marginRight",
+  "marginBottom",
+  "marginLeft",
+  "marginInline",
+  "marginBlock",
+  "marginInlineStart",
+  "marginInlineEnd",
+  "marginBlockStart",
+  "marginBlockEnd",
+  "marginX",
+  "marginY",
+  "gap",
+  "rowGap",
+  "columnGap",
+  "gridGap",
+  "gridRowGap",
+  "gridColumnGap",
+  // MUI sx system shorthands
+  "p",
+  "pt",
+  "pr",
+  "pb",
+  "pl",
+  "px",
+  "py",
+  "m",
+  "mt",
+  "mr",
+  "mb",
+  "ml",
+  "mx",
+  "my",
+]);
+
+// A CSS spacing declaration carrying a px value, for scanning template-literal
+// CSS text. Matches `padding: 8px`, `margin-top: 12px`, `gap: 4px 8px`, etc.
+const CSS_SPACING_DECL =
+  /(?:^|[;{}\n])\s*(?:padding|margin|gap|row-gap|column-gap|grid-gap|grid-row-gap|grid-column-gap)(?:-(?:top|right|bottom|left|inline|block)(?:-(?:start|end))?)?\s*:\s*[^;{}]*?\d+(?:\.\d+)?px/i;
+
+// True when the string contains at least one non-zero px value. `0px` is flush
+// and always allowed.
+const hasNonZeroPx = (value) => {
+  const re = /(\d+(?:\.\d+)?)px/g;
+  let m;
+  while ((m = re.exec(value)) !== null) {
+    if (parseFloat(m[1]) !== 0) return true;
+  }
+  return false;
+};
+
+const SPACING_MESSAGE =
+  "Use a spacing token instead of a raw px value for padding/margin/gap. In MUI sx use a numeric token (SPACING.md, PADDING.normal, …); in emotion css()/styled use getSpacingPx(SPACING.md) or createPadding(theme, …). See ui_primitives/spacing.ts and docs/DESIGN.md §2.";
+
+export const spacingTokensRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description:
+        "Enforce SPACING/PADDING/MARGIN/GAP tokens for padding, margin, and gap (DESIGN.md §2).",
+    },
+    schema: [],
+    messages: { raw: SPACING_MESSAGE },
+  },
+  create(context) {
+    const keyName = (key) => {
+      if (!key) return null;
+      if (key.type === "Identifier") return key.name;
+      if (key.type === "Literal") return String(key.value);
+      return null;
+    };
+    return {
+      Property(node) {
+        const name = keyName(node.key);
+        if (!name || !SPACING_PROP_KEYS.has(name)) return;
+        const value = node.value;
+        if (
+          value.type === "Literal" &&
+          typeof value.value === "string" &&
+          hasNonZeroPx(value.value)
+        ) {
+          context.report({ node: value, messageId: "raw" });
+        }
+      },
+      TemplateElement(node) {
+        const raw = node.value.raw;
+        if (CSS_SPACING_DECL.test(raw) && hasNonZeroPx(raw)) {
+          context.report({ node, messageId: "raw" });
+        }
+      },
+    };
+  },
+};
+
+// Local plugin exposing the spacing rule for the design gate config.
+export const designTokensPlugin = {
+  rules: { "spacing-tokens": spacingTokensRule },
+};

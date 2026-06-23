@@ -36,7 +36,9 @@ import {
   MOTION,
   BORDER_RADIUS,
   TYPOGRAPHY,
-  Z_INDEX
+  Z_INDEX,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 import type { StatusType } from "../ui_primitives";
 import { relativeTime } from "../../utils/formatDateAndTime";
@@ -115,7 +117,7 @@ const styles = (theme: Theme) =>
       display: "inline-flex",
       alignItems: "center",
       gap: 4,
-      padding: "2px 4px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`,
       borderRadius: BORDER_RADIUS.sm,
       backgroundColor: "rgba(0, 0, 0, 0.55)",
       color: theme.vars.palette.common.white
@@ -177,7 +179,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: 6,
-      padding: "0 2px",
+      padding: `0 ${getSpacingPx(SPACING.micro)}`,
       color: theme.vars.palette.text.secondary,
       ...TYPOGRAPHY.sans.caption
     },
@@ -252,7 +254,7 @@ const styles = (theme: Theme) =>
       left: 2,
       minWidth: 16,
       height: 16,
-      padding: "0 4px",
+      padding: `0 ${getSpacingPx(SPACING.xs)}`,
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
@@ -273,7 +275,7 @@ const styles = (theme: Theme) =>
     },
     ".downstream-caption .caption-pill": {
       display: "inline-block",
-      padding: "2px 6px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
       borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.secondary.main,
       color: theme.vars.palette.secondary.contrastText
@@ -870,7 +872,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
       {showInfoBadge && infoText ? (
         <div className="node-history-overlay overlay-bottom-left">
           <span style={{
-            padding: "2px 6px",
+            padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
             borderRadius: BORDER_RADIUS.sm,
             backgroundColor: "rgba(0, 0, 0, 0.55)"
           }}>

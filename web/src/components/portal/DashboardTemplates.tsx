@@ -14,7 +14,12 @@ import {
   getCategoryForWorkflow
 } from "../../utils/templateCategories";
 import WorkflowCard from "../workflows/WorkflowCard";
-import { LoadingSpinner, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import {
+  LoadingSpinner,
+  MOTION,
+  BORDER_RADIUS,
+  getSpacingPx
+} from "../ui_primitives";
 import {
   wrapStyles,
   SectionHeader,
@@ -80,7 +85,7 @@ const styles = (theme: Theme) =>
     ".tpl-loading, .tpl-empty": {
       display: "flex",
       justifyContent: "center",
-      padding: "40px 0",
+      padding: `${getSpacingPx(10)} 0`, // was 40px 0
       color: theme.vars.palette.text.secondary,
       fontSize: 14
     }

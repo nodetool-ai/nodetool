@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useMemo, useCallback, useEffect, useState } from "react";
 import { shallow } from "zustand/shallow";
-import { Tooltip, Text, EditorButton, FlexRow, CloseButton, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, Text, EditorButton, FlexRow, CloseButton, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { useReactFlow, useViewport } from "@xyflow/react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -82,26 +82,26 @@ const styles = (theme: Theme) =>
     "& .panel-content": {
       flex: 1,
       overflowY: "auto",
-      padding: "12px 16px"
+      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`
     },
     "& .node-name": {
       fontSize: "var(--fontSizeNormal)",
       fontWeight: 600,
       color: theme.vars.palette.text.primary,
       wordBreak: "break-word",
-      marginBottom: "4px"
+      marginBottom: getSpacingPx(SPACING.xs)
     },
     "& .node-description": {
       fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       lineHeight: 1.5,
-      marginTop: "8px"
+      marginTop: getSpacingPx(SPACING.md)
     },
     "& .node-tags": {
       display: "flex",
       flexWrap: "wrap",
-      gap: "4px",
-      marginTop: "8px"
+      gap: getSpacingPx(SPACING.xs),
+      marginTop: getSpacingPx(SPACING.md)
     },
     "& .node-tags span": {
       fontWeight: 500,
@@ -110,7 +110,7 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.sm,
-      padding: "2px 6px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
       textTransform: "uppercase",
       display: "inline-block",
       cursor: "pointer",
@@ -124,24 +124,24 @@ const styles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       lineHeight: 1.5,
-      marginTop: "8px",
+      marginTop: getSpacingPx(SPACING.md),
       "& h5": {
         fontSize: "var(--fontSizeSmaller)",
         fontWeight: 600,
         color: theme.vars.palette.text.primary,
-        marginBottom: "4px",
+        marginBottom: getSpacingPx(SPACING.xs),
         textTransform: "uppercase"
       },
       "& ul": {
         margin: 0,
         paddingLeft: "1em",
         "& li": {
-          marginBottom: "2px"
+          marginBottom: getSpacingPx(SPACING.micro)
         }
       }
     },
     "& .error-message": {
-      marginTop: "8px",
+      marginTop: getSpacingPx(SPACING.md),
       padding: `${theme.spacing(2)} ${theme.spacing(3)}`,
       backgroundColor: `${theme.vars.palette.error.main}15`,
       borderRadius: BORDER_RADIUS.lg,
@@ -156,12 +156,12 @@ const styles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.disabled,
       fontFamily: "monospace",
-      marginTop: "8px"
+      marginTop: getSpacingPx(SPACING.md)
     },
     "& .namespace-button": {
       display: "block",
-      margin: "0 -4px",
-      padding: "2px 8px",
+      margin: `0 -${getSpacingPx(SPACING.xs)}`,
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.sm,
       backgroundColor: "transparent",
       color: "var(--palette-grey-400)",
@@ -188,9 +188,9 @@ const styles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmall)",
       padding: `${theme.spacing(1.5)} ${theme.spacing(3)}`,
       borderRadius: BORDER_RADIUS.md,
-      marginTop: "12px",
+      marginTop: getSpacingPx(SPACING.lg),
       "& .MuiButton-startIcon": {
-        marginRight: "4px"
+        marginRight: getSpacingPx(SPACING.xs)
       }
     }
   });

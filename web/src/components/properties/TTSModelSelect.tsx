@@ -12,6 +12,7 @@ import { trpc } from "../../lib/trpc";
 import Select from "../inputs/Select";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
+import { SPACING, getSpacingPx } from "../ui_primitives";
 
 interface TTSModelSelectProps {
   onChange: (value: TTSModelValue) => void;
@@ -145,7 +146,7 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
   const containerStyle = useMemo(() => ({
     display: "flex" as const,
     flexDirection: "column" as const,
-    gap: "4px"
+    gap: getSpacingPx(SPACING.xs)
   }), []);
 
   return (

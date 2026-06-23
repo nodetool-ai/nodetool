@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { memo } from "react";
 
 interface ImageDimensionsProps {
@@ -16,7 +16,7 @@ const styles = css({
   transform: "translateX(-50%)",
   zIndex: "var(--zIndexFab)",
   display: "flex",
-  gap: "4px",
+  gap: getSpacingPx(SPACING.xs),
   transition: `opacity ${MOTION.normal}`,
   pointerEvents: "none",
   backgroundColor: "rgba(0, 0, 0, 0.4)",

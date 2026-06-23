@@ -10,7 +10,9 @@ import {
   Popover,
   Text,
   MOTION,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
 } from "../../ui_primitives";
 
 export interface MediaOption<T extends string | number> {
@@ -34,9 +36,9 @@ interface MediaOptionMenuProps<T extends string | number> {
 
 const styles = (theme: Theme) =>
   css({
-    padding: "8px 0",
+    padding: `${getSpacingPx(SPACING.md)} 0`,
     ".option-menu-header": {
-      padding: "8px 16px 4px",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xs)}`,
       color: theme.vars.palette.grey[400],
       textTransform: "uppercase",
       letterSpacing: 1

@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState } from "react";
-import { CopyButton, DeleteButton, DownloadButton, EmptyState, ScrollArea } from "../ui_primitives";
+import { CopyButton, DeleteButton, DownloadButton, EmptyState, ScrollArea, SPACING, getSpacingPx } from "../ui_primitives";
 import PanelToolbar from "./PanelToolbar";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -47,7 +47,7 @@ const styles = (theme: Theme) =>
     ".trace-row": {
       display: "flex",
       alignItems: "flex-start",
-      padding: "3px 12px",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`, // was 3px 12px
       gap: 8,
       borderBottom: `1px solid ${theme.vars.palette.divider}22`,
       cursor: "pointer",
@@ -75,7 +75,7 @@ const styles = (theme: Theme) =>
       wordBreak: "break-word",
     },
     ".trace-detail": {
-      padding: "8px 12px 8px 80px",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.md)} ${getSpacingPx(20)}`, // 80px
       backgroundColor: `${theme.vars.palette.background.paper}`,
       borderBottom: `1px solid ${theme.vars.palette.divider}44`,
       "& pre": {

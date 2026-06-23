@@ -36,7 +36,7 @@ import {
   computeReorderedTrackIds,
   type TrackDropPosition
 } from "./trackReorder";
-import { Tooltip, MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT } from "../../ui_primitives";
+import { Tooltip, MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT, SPACING, getSpacingPx } from "../../ui_primitives";
 import {
   DEFAULT_TRACK_HEIGHT_PX as SHARED_DEFAULT_TRACK_HEIGHT_PX,
   FX_PANEL_HEIGHT_PX
@@ -72,7 +72,7 @@ const headerStyles = (theme: Theme, heightPx: number) =>
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
-    padding: "12px 12px 12px",
+    padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.lg)}`,
     backgroundColor: theme.vars.palette.background.default,
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     overflow: "hidden",
@@ -83,7 +83,7 @@ const topRowStyles = css({
   display: "flex",
   flexDirection: "row",
   alignItems: "center",
-  gap: 8,
+  gap: getSpacingPx(SPACING.md),
   minWidth: 0
 });
 
@@ -91,8 +91,8 @@ const dragHandleStyles = (theme: Theme) =>
   css({
     flexShrink: 0,
     width: 16,
-    marginLeft: -6,
-    marginRight: -2,
+    marginLeft: `-${getSpacingPx(SPACING.sm)}`,
+    marginRight: `-${getSpacingPx(SPACING.micro)}`,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -146,7 +146,7 @@ const nameWrapStyles = css({
   display: "flex",
   flexDirection: "row",
   alignItems: "center",
-  gap: 6
+  gap: getSpacingPx(SPACING.sm)
 });
 
 const nameInputStyles = (theme: Theme) =>
@@ -176,7 +176,7 @@ const indexChipStyles = (theme: Theme) =>
   css({
     flexShrink: 0,
     height: 18,
-    padding: "0 6px",
+    padding: `0 ${getSpacingPx(SPACING.sm)}`,
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
@@ -195,8 +195,8 @@ const controlsRowStyles = css({
   display: "flex",
   flexDirection: "row",
   alignItems: "center",
-  gap: 2,
-  marginLeft: -4 // align icon edges flush with the type glyph
+  gap: getSpacingPx(SPACING.micro),
+  marginLeft: `-${getSpacingPx(SPACING.xs)}` // align icon edges flush with the type glyph
 });
 
 const iconButtonStyles = (theme: Theme, active = true) =>

@@ -70,7 +70,9 @@ import {
   Text,
   Surface,
   Chip,
-  MOTION
+  MOTION,
+  SPACING,
+  getSpacingPx
 } from "./ui_primitives";
 
 // Additional icons
@@ -83,7 +85,7 @@ const styles = (theme: Theme) => css`
   
   .layout-header {
     background: linear-gradient(135deg, ${theme.vars.palette.grey[900]} 0%, ${theme.vars.palette.grey[800]} 100%);
-    padding: 32px;
+    padding: ${getSpacingPx(SPACING.xxxl)};
     border-bottom: 1px solid ${theme.vars.palette.divider};
   }
   
@@ -94,13 +96,13 @@ const styles = (theme: Theme) => css`
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 16px;
+    gap: ${getSpacingPx(SPACING.xl)};
   }
-  
+
   .header-title {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: ${getSpacingPx(SPACING.xl)};
   }
   
   .logo-accent {
@@ -119,13 +121,13 @@ const styles = (theme: Theme) => css`
   .main-content {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 24px;
+    padding: ${getSpacingPx(SPACING.xxl)};
   }
-  
+
   .tabs-container {
     background: ${theme.vars.palette.background.paper};
     border-radius: 12px;
-    margin-bottom: 24px;
+    margin-bottom: ${getSpacingPx(SPACING.xxl)};
     overflow: hidden;
     border: 1px solid ${theme.vars.palette.divider};
   }
@@ -133,7 +135,7 @@ const styles = (theme: Theme) => css`
   .component-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 24px;
+    gap: ${getSpacingPx(SPACING.xxl)};
   }
   
   .component-card {
@@ -151,7 +153,7 @@ const styles = (theme: Theme) => css`
   
   .card-header {
     background: ${theme.vars.palette.grey[800]};
-    padding: 16px 20px;
+    padding: ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xxl)}; /* was 16px 20px */
     border-bottom: 1px solid ${theme.vars.palette.divider};
     display: flex;
     justify-content: space-between;
@@ -165,17 +167,17 @@ const styles = (theme: Theme) => css`
   }
   
   .card-body {
-    padding: 20px;
+    padding: ${getSpacingPx(SPACING.xxl)}; /* was 20px */
     min-height: 120px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: ${getSpacingPx(SPACING.xl)};
   }
-  
+
   .demo-row {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: ${getSpacingPx(SPACING.lg)};
     flex-wrap: wrap;
   }
   
@@ -190,7 +192,7 @@ const styles = (theme: Theme) => css`
     color: ${theme.vars.palette.primary.main};
     font-family: monospace;
     background: ${theme.vars.palette.grey[800]};
-    padding: 2px 8px;
+    padding: ${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)};
     border-radius: 4px;
   }
 `;

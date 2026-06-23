@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useCallback, useState, useRef, useMemo } from "react";
 import { Popover, Button } from "@mui/material";
-import { Tooltip, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { colorPickerColors } from "../../constants/colors";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { ColorPickerModal } from "../color_picker";
@@ -54,7 +54,7 @@ const colorMatrixStyle = (theme: Theme) =>
     },
     ".custom-button": {
       width: "100%",
-      marginTop: "8px",
+      marginTop: getSpacingPx(SPACING.md),
       fontSize: "var(--fontSizeSmaller)",
       textTransform: "none"
     }

@@ -6,7 +6,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Tooltip, Text, CloseButton, MOTION, SPACING, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, Text, CloseButton, MOTION, SPACING, BORDER_RADIUS, getSpacingPx } from "../ui_primitives";
 import DescriptionIcon from "@mui/icons-material/Description";
 import isEqual from "fast-deep-equal";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
@@ -23,7 +23,7 @@ const styles = (theme: Theme) =>
   css({
     ".text-list-property": {
       width: "100%",
-      marginBottom: "8px"
+      marginBottom: getSpacingPx(SPACING.md)
     },
     ".property-label": {
       marginBottom: theme.spacing(SPACING.sm)
@@ -31,8 +31,8 @@ const styles = (theme: Theme) =>
     ".text-grid": {
       display: "flex",
       flexDirection: "column",
-      gap: "8px",
-      marginTop: "8px"
+      gap: getSpacingPx(SPACING.md),
+      marginTop: getSpacingPx(SPACING.md)
     },
     ".text-item": {
       position: "relative",
@@ -42,10 +42,10 @@ const styles = (theme: Theme) =>
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       transition: MOTION.all,
-      padding: "8px 12px",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,
       display: "flex",
       alignItems: "center",
-      gap: "8px",
+      gap: getSpacingPx(SPACING.md),
       "&:hover": {
         borderColor: theme.vars.palette.grey[500],
         ".remove-button": {
@@ -76,7 +76,7 @@ const styles = (theme: Theme) =>
       transition: `opacity ${MOTION.normal}`,
       backgroundColor: `rgba(0, 0, 0, 0.7)`,
       color: theme.vars.palette.grey[100],
-      padding: "2px",
+      padding: getSpacingPx(SPACING.micro),
       width: "20px",
       height: "20px",
       flexShrink: 0,

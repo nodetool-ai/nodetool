@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import React, { useMemo, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Tooltip, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Text, Tooltip, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { CopyButton } from "../ui_primitives";
 import {
   HarmonyType,
@@ -17,12 +17,12 @@ const styles = (theme: Theme) =>
     "&": {
       display: "flex",
       flexDirection: "column",
-      gap: "12px"
+      gap: getSpacingPx(SPACING.lg)
     },
     ".harmony-section": {
       display: "flex",
       flexDirection: "column",
-      gap: "6px"
+      gap: getSpacingPx(SPACING.sm)
     },
     ".harmony-header": {
       display: "flex",
@@ -37,11 +37,11 @@ const styles = (theme: Theme) =>
     ".harmony-description": {
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.grey[500],
-      marginTop: "2px"
+      marginTop: getSpacingPx(SPACING.micro)
     },
     ".harmony-colors": {
       display: "flex",
-      gap: "4px"
+      gap: getSpacingPx(SPACING.xs)
     },
     ".harmony-color": {
       flex: 1,

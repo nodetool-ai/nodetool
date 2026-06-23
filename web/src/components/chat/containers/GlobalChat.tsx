@@ -18,7 +18,9 @@ import {
   ScrollArea,
   ToolbarIconButton,
   BORDER_RADIUS,
-  MOTION
+  MOTION,
+  SPACING,
+  getSpacingPx
 } from "../../ui_primitives";
 import ForumIcon from "@mui/icons-material/Forum";
 import AddIcon from "@mui/icons-material/Add";
@@ -589,7 +591,7 @@ const GlobalChat: React.FC = () => {
                   border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.08)`,
                   boxShadow: "0 10px 24px rgb(0 0 0 / 0.18)",
                   borderRadius: BORDER_RADIUS.md,
-                  padding: "8px",
+                  padding: getSpacingPx(SPACING.md),
                   "&:hover": {
                     backgroundColor: `rgb(${theme.vars.palette.background.paperChannel} / 0.98)`
                   }

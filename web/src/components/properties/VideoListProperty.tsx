@@ -6,7 +6,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Tooltip, CloseButton, MOTION, SPACING, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, CloseButton, MOTION, SPACING, BORDER_RADIUS, getSpacingPx } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import { isElectron } from "../../utils/browser";
@@ -22,7 +22,7 @@ const styles = (theme: Theme) =>
   css({
     ".video-list-property": {
       width: "100%",
-      marginBottom: "8px"
+      marginBottom: getSpacingPx(SPACING.md)
     },
     ".property-label": {
       marginBottom: theme.spacing(SPACING.sm)
@@ -30,8 +30,8 @@ const styles = (theme: Theme) =>
     ".video-grid": {
       display: "grid",
       gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
-      gap: "8px",
-      marginTop: "8px"
+      gap: getSpacingPx(SPACING.md),
+      marginTop: getSpacingPx(SPACING.md)
     },
     ".video-item": {
       position: "relative",
@@ -73,7 +73,7 @@ const styles = (theme: Theme) =>
       transition: `opacity ${MOTION.normal}`,
       backgroundColor: "rgba(0, 0, 0, 0.7)",
       color: theme.vars.palette.grey[100],
-      padding: "2px",
+      padding: getSpacingPx(SPACING.micro),
       width: "20px",
       height: "20px",
       zIndex: 2,

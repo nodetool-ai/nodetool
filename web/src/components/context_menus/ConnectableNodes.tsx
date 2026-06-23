@@ -17,7 +17,7 @@ import { rankSearchNodes } from "../../utils/nodeSearch";
 import ClearIcon from "@mui/icons-material/Clear";
 import SearchIcon from "@mui/icons-material/Search";
 import NodeItem from "../node_menu/NodeItem";
-import { Text, ToolbarIconButton, Box, MOTION, ContextMenu, BORDER_RADIUS } from "../ui_primitives";
+import { Text, ToolbarIconButton, Box, MOTION, ContextMenu, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { useNodes } from "../../contexts/NodeContext";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import { useTheme } from "@mui/material/styles";
@@ -50,18 +50,18 @@ const scrollableContentStyles = (theme: Theme) =>
       padding: "0"
     },
     ".node-item-container": {
-      padding: "1px 6px"
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}` // was 1px 6px
     },
     ".node": {
       display: "flex",
       alignItems: "center",
       margin: 0,
-      padding: "3px 6px",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.sm)}`, // was 3px 6px
       borderRadius: BORDER_RADIUS.md,
       cursor: "pointer",
       transition: MOTION.background,
       ".node-button": {
-        padding: "0 6px",
+        padding: `0 ${getSpacingPx(SPACING.sm)}`,
         flexGrow: 1,
         "& .MuiTypography-root": {
           fontSize: theme.fontSizeSmall,
@@ -71,7 +71,7 @@ const scrollableContentStyles = (theme: Theme) =>
       ".icon-bg": {
         backgroundColor: "rgba(255,255,255,0.05) !important",
         borderRadius: BORDER_RADIUS.sm,
-        padding: "2px",
+        padding: getSpacingPx(SPACING.micro),
         display: "flex",
         alignItems: "center",
         justifyContent: "center"
@@ -111,7 +111,7 @@ const fixedHeaderStyles = (theme: Theme) =>
     zIndex: theme.zIndex.modal + 1,
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     "&.connectable-nodes-header": {
-      padding: "12px 16px"
+      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`
     }
   });
 

@@ -1,6 +1,7 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { MOTION, BORDER_RADIUS } from "../../ui_primitives/tokens";
+import { SPACING, getSpacingPx } from "../../ui_primitives/spacing";
 
 export const createStyles = (theme: Theme) =>
   css({
@@ -131,7 +132,7 @@ export const createStyles = (theme: Theme) =>
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
           maxWidth: "52px",
-          marginTop: "2px"
+          marginTop: getSpacingPx(SPACING.micro)
         }
       }
     }

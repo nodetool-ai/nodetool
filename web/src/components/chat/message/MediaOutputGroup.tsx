@@ -12,7 +12,7 @@ import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
 import SpeedIcon from "@mui/icons-material/Speed";
 import TuneIcon from "@mui/icons-material/Tune";
 import LayersIcon from "@mui/icons-material/Layers";
-import { BORDER_RADIUS, FlexColumn, FlexRow, Text, FONT_SIZE_SANS } from "../../ui_primitives";
+import { BORDER_RADIUS, FlexColumn, FlexRow, Text, FONT_SIZE_SANS, SPACING, getSpacingPx } from "../../ui_primitives";
 import ImageView from "../../node/ImageView";
 import type {
   Message,
@@ -26,7 +26,7 @@ import {
 } from "./MediaOutputGroup.helpers";
 
 const VIDEO_STYLE: React.CSSProperties = { width: "100%", height: "100%" };
-const AUDIO_STYLE: React.CSSProperties = { width: "100%", padding: "12px" };
+const AUDIO_STYLE: React.CSSProperties = { width: "100%", padding: getSpacingPx(SPACING.lg) };
 
 type ChatMessageWithMedia = Message & {
   media_generation?: MediaGenerationRequest | null;
@@ -68,7 +68,7 @@ const styles = (theme: Theme) =>
       display: "inline-flex",
       alignItems: "center",
       gap: 4,
-      padding: "2px 8px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.pill,
       background: "rgba(255,255,255,0.04)",
       color: theme.vars.palette.text.secondary,

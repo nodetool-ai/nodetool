@@ -61,7 +61,9 @@ import {
   Text,
   Tooltip,
   Box,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 
 function isPressureSketchTool(tool: SketchTool): boolean {
@@ -232,7 +234,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
             wrap
             gap={1}
             sx={{
-              rowGap: "4px"
+              rowGap: getSpacingPx(SPACING.xs)
             }}
           >
             <Tooltip
@@ -288,7 +290,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
         ) : null}
 
         {/* ── Actions (right-aligned) ── */}
-        <FlexRow align="center" sx={{ gap: "2px" }}>
+        <FlexRow align="center" sx={{ gap: getSpacingPx(SPACING.micro) }}>
           <Tooltip title={`Undo (${displayCombo("undo")})`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <span style={{ display: 'inline-flex' }}>
               <IconButton size="small" aria-label="Undo" onClick={() => editorRef.current?.undo()} disabled={!canUndo}>
@@ -316,7 +318,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
             </IconButton>
           </Tooltip>
 
-          <Divider orientation="vertical" flexItem sx={{ mx: "4px" }} />
+          <Divider orientation="vertical" flexItem sx={{ mx: getSpacingPx(SPACING.xs) }} />
 
           <Tooltip title={`Symmetry: ${symmetryLabel}`} enterDelay={SKETCH_TOOLTIP_DELAY_MS} enterNextDelay={SKETCH_TOOLTIP_DELAY_MS}>
             <IconButton
@@ -367,7 +369,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
             )}
           </Menu>
 
-          <Divider orientation="vertical" flexItem sx={{ mx: "4px" }} />
+          <Divider orientation="vertical" flexItem sx={{ mx: getSpacingPx(SPACING.xs) }} />
 
           {confirmDiscard ? (
             <>

@@ -1,5 +1,5 @@
 import React, { useCallback, useState, memo } from "react";
-import { Tooltip, Caption, LoadingSpinner, ToolbarIconButton, Box } from "../../ui_primitives";
+import { Tooltip, Caption, LoadingSpinner, ToolbarIconButton, Box, SPACING, getSpacingPx } from "../../ui_primitives";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { useNodes } from "../../../contexts/NodeContext";
 import { BASE_URL } from "../../../stores/BASE_URL";
@@ -141,7 +141,7 @@ export const FalSchemaLoader: React.FC<FalSchemaLoaderProps> = memo(({
           disabled={loading}
           onClick={() => void handleLoad(true)}
           sx={{
-            padding: "4px",
+            padding: getSpacingPx(SPACING.xs),
             color: "rgba(255, 255, 255, 0.5)",
             "&:hover": {
               color: "rgba(255, 255, 255, 0.9)",

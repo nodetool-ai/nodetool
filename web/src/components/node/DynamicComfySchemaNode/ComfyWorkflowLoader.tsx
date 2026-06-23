@@ -12,7 +12,9 @@ import {
   Text,
   Caption,
   ScrollArea,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
 } from "../../ui_primitives";
 import { useNodes } from "../../../contexts/NodeContext";
 import { NodeData } from "../../../stores/NodeData";
@@ -155,7 +157,7 @@ export const ComfyWorkflowLoader: React.FC<ComfyWorkflowLoaderProps> = memo(
             size="small"
             onClick={() => setOpen(true)}
             sx={{
-              padding: "4px",
+              padding: getSpacingPx(SPACING.xs),
               color: "rgba(255, 255, 255, 0.5)",
               "&:hover": {
                 color: "rgba(255, 255, 255, 0.9)",

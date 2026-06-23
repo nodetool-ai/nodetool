@@ -39,7 +39,7 @@ import { useAssetStore } from "../../../stores/AssetStore";
 import { getAssetUrl } from "../../../utils/assetHelpers";
 import useErrorStore, { hasNodeError, nodeErrorToDisplayString } from "../../../stores/ErrorStore";
 import { type NodeKey } from "../../../stores/nodeKey";
-import { StatusIndicator, BORDER_RADIUS } from "../../ui_primitives";
+import { StatusIndicator, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
 import type { StatusType } from "../../ui_primitives/StatusIndicator";
 import { deriveClipStatus } from "../status/clipStatusReducer";
 import type { ClipGenerationState, ClipErrorState } from "../status/clipStatusReducer";
@@ -126,8 +126,8 @@ const clipHeaderRowStyles = css({
   height: 18,
   display: "flex",
   alignItems: "center",
-  gap: 6,
-  padding: "0 8px",
+  gap: getSpacingPx(SPACING.sm),
+  padding: `0 ${getSpacingPx(SPACING.md)}`,
   pointerEvents: "none",
   zIndex: 4
 });
@@ -177,7 +177,7 @@ const filmstripStyles = css({
   top: 20,
   bottom: 6,
   display: "flex",
-  gap: 1,
+  gap: getSpacingPx(SPACING.micro), // was 1px
   pointerEvents: "none",
   zIndex: 0,
   borderRadius: BORDER_RADIUS.xs,

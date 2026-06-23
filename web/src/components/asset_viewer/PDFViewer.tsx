@@ -12,7 +12,8 @@ import {
   NodeSlider,
   Text,
   ToolbarIconButton,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  getSpacingPx
 } from "../ui_primitives";
 import {
   NavigateBefore,
@@ -47,7 +48,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       height: "100%",
       overflow: "hidden",
-      paddingRight: "50px",
+      paddingRight: getSpacingPx(12.5), // 50px — off-scale layout pad, preserved exactly
       backgroundColor: "transparent"
     },
     ".pdf-document": {
@@ -216,7 +217,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ asset, url }) => {
 
   return (
     <FlexRow className="pdf-viewer" css={styles(theme)} fullWidth sx={{ height: "calc(100% - 120px)", marginTop: "1em", position: "relative" }}>
-      <FlexColumn className="content-wrapper" fullWidth fullHeight align="center" sx={{ flex: 1, overflow: "hidden", paddingRight: "50px", backgroundColor: "transparent" }}>
+      <FlexColumn className="content-wrapper" fullWidth fullHeight align="center" sx={{ flex: 1, overflow: "hidden", paddingRight: getSpacingPx(12.5), backgroundColor: "transparent" }}>
         {asset?.content_type && (
           <Text size="small" className="content-type">
             {asset.content_type}

@@ -10,7 +10,7 @@ import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import TableRowsIcon from "@mui/icons-material/TableRows";
 import SearchIcon from "@mui/icons-material/Search";
 import { InputAdornment } from "@mui/material";
-import { Tooltip, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
 import Markdown from "react-markdown";
 
@@ -135,7 +135,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "0.5em",
       backgroundColor: `rgba(${theme.vars.palette.background.paperChannel} / 0.4)`,
-      padding: "4px 8px",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.lg,
       border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.04)`,
       "& + .toolbar-group": {

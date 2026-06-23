@@ -10,7 +10,7 @@ import DataObjectIcon from "@mui/icons-material/DataObject";
 import TableChartIcon from "@mui/icons-material/TableChart";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import { Asset } from "../../stores/ApiTypes";
-import { DeleteButton, Text, MOTION, BORDER_RADIUS, FONT_WEIGHT } from "../ui_primitives";
+import { DeleteButton, Text, MOTION, BORDER_RADIUS, FONT_WEIGHT, SPACING, getSpacingPx } from "../ui_primitives";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { formatFileSize } from "../../utils/formatUtils";
 import { useSettingsStore } from "../../stores/SettingsStore";
@@ -120,7 +120,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeTiny,
       color: theme.vars.palette.grey[0],
       lineHeight: "0.95em",
-      margin: "2px 0 4px 2px"
+      margin: `${getSpacingPx(SPACING.micro)} 0 ${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.micro)}`
     },
     ".info": {
       position: "absolute",

@@ -14,6 +14,7 @@ import {
   LanguageModel,
   TodoItem
 } from "../../../stores/ApiTypes";
+import { SPACING, getSpacingPx } from "../../ui_primitives";
 import ChatThreadView from "../thread/ChatThreadView";
 import { ConversationHeader } from "./ConversationHeader";
 import ChatInputSection, { type ChatComposerVariant } from "./ChatInputSection";
@@ -64,12 +65,12 @@ const styles = (theme: Theme) =>
       alignSelf: "center"
     },
     ".chat-controls": {
-      padding: "0 16px 0 0",
+      padding: `0 ${getSpacingPx(SPACING.xl)} 0 0`,
       marginTop: "auto",
       zIndex: 10,
       display: "flex",
       alignItems: "center",
-      gap: "8px"
+      gap: getSpacingPx(SPACING.md)
     },
     ".chat-composer-wrapper": {
       flex: 1,

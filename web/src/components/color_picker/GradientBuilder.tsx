@@ -16,7 +16,7 @@ import {
   TextInput,
   ToggleGroup,
   ToggleOption,
-  Tooltip, BORDER_RADIUS } from "../ui_primitives";
+  Tooltip, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import {
   GradientValue,
   GradientStop,
@@ -39,7 +39,7 @@ const styles = (theme: Theme) =>
       height: "24px",
       backgroundColor: theme.vars.palette.grey[800],
       borderRadius: BORDER_RADIUS.sm,
-      marginTop: "8px"
+      marginTop: getSpacingPx(SPACING.md)
     },
     ".stop-marker": {
       position: "absolute",
@@ -59,8 +59,8 @@ const styles = (theme: Theme) =>
       }
     },
     ".css-output": {
-      marginTop: "12px",
-      padding: "8px",
+      marginTop: getSpacingPx(SPACING.lg),
+      padding: getSpacingPx(SPACING.md),
       backgroundColor: theme.vars.palette.grey[900],
       borderRadius: BORDER_RADIUS.sm,
       fontSize: "var(--fontSizeSmaller)",
@@ -301,7 +301,7 @@ const GradientBuilder: React.FC<GradientBuilderProps> = React.memo(({
         sx={{
           "& .MuiToggleButton-root": {
             fontSize: "var(--fontSizeSmaller)",
-            padding: "4px 12px",
+            padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`,
             textTransform: "none"
           }
         }}

@@ -13,7 +13,7 @@ import {
   Box,
   Divider,
   LoadingSpinner,
-  MOTION, BORDER_RADIUS } from "../ui_primitives";
+  MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -34,10 +34,10 @@ const styles = (theme: Theme) =>
         display: "flex",
         alignItems: "center",
         gap: theme.spacing(1.5),
-        padding: "10px 14px"
+        padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}` // was 10px 14px
       },
       "&.compact .MuiSelect-select": {
-        padding: "4px 10px"
+        padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}` // was 4px 10px
       },
       "& .MuiOutlinedInput-notchedOutline": {
         borderColor: theme.vars.palette.divider,
@@ -274,7 +274,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
                   "& .workspace-option": {
                     display: "flex",
                     alignItems: "center",
-                    gap: "12px",
+                    gap: getSpacingPx(SPACING.lg),
                     width: "100%",
                     overflow: "hidden"
                   },
@@ -301,7 +301,7 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
                   "& .create-option": {
                     display: "flex",
                     alignItems: "center",
-                    gap: "8px",
+                    gap: getSpacingPx(SPACING.md),
                     color: theme.vars.palette.text.secondary,
                     fontSize: "var(--fontSizeNormal)",
                     fontWeight: 400
@@ -309,14 +309,14 @@ const WorkspaceSelect: React.FC<WorkspaceSelectProps> = memo(
                   "& .default-badge": {
                     color: theme.vars.palette.text.disabled,
                     fontSize: "var(--fontSizeNormal)",
-                    marginLeft: "4px",
+                    marginLeft: getSpacingPx(SPACING.xs),
                     verticalAlign: "middle",
                     opacity: 0.6
                   },
                   "& .MuiMenuItem-root": {
-                    padding: "10px 14px",
+                    padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`, // was 10px 14px
                     borderRadius: BORDER_RADIUS.sm,
-                    margin: "2px 4px",
+                    margin: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`,
                     "&:hover": {
                       backgroundColor: theme.vars.palette.action.hover
                     },

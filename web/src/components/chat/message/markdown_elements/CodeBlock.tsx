@@ -6,7 +6,7 @@ import {
   oneLight
 } from "react-syntax-highlighter/dist/esm/styles/prism";
 import SyntaxHighlighter from "react-syntax-highlighter/dist/esm/prism";
-import { CopyButton, BORDER_RADIUS, FONT_SIZE_SANS } from "../../../ui_primitives";
+import { CopyButton, BORDER_RADIUS, FONT_SIZE_SANS, SPACING, getSpacingPx } from "../../../ui_primitives";
 import { useIsDarkMode } from "../../../../hooks/useIsDarkMode";
 import isEqual from "fast-deep-equal";
 
@@ -91,7 +91,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
       <div css={cssStyles} className="code-block-container">
         <div className="code-block-header">
           <span className="code-block-language">{match ? match[1] : ""}</span>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: getSpacingPx(SPACING.md), alignItems: "center" }}>
             {typeof onInsert === "function" && (
               <button
                 type="button"
@@ -99,7 +99,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
                 onClick={handleInsert}
                 title="Insert into editor"
                 style={{
-                  padding: "12px 24px",
+                  padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xxl)}`,
                   fontSize: FONT_SIZE_SANS.caption,
                   borderRadius: BORDER_RADIUS.xs,
                   border: "1px solid var(--palette-grey-700)",

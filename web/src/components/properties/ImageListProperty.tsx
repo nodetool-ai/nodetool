@@ -6,7 +6,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Tooltip, CloseButton, MOTION, SPACING, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, CloseButton, MOTION, SPACING, BORDER_RADIUS, getSpacingPx } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import ImageDimensions from "../node/ImageDimensions";
@@ -24,7 +24,7 @@ const styles = (theme: Theme) =>
   css({
     ".image-list-property": {
       width: "100%",
-      marginBottom: "8px"
+      marginBottom: getSpacingPx(SPACING.md)
     },
     ".property-label": {
       marginBottom: theme.spacing(SPACING.sm)
@@ -32,8 +32,8 @@ const styles = (theme: Theme) =>
     ".image-grid": {
       display: "grid",
       gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))",
-      gap: "8px",
-      marginTop: "8px"
+      gap: getSpacingPx(SPACING.md),
+      marginTop: getSpacingPx(SPACING.md)
     },
     ".image-item": {
       position: "relative",
@@ -79,7 +79,7 @@ const styles = (theme: Theme) =>
       transition: `opacity ${MOTION.normal}`,
       backgroundColor: `rgba(0, 0, 0, 0.7)`,
       color: theme.vars.palette.grey[100],
-      padding: "2px",
+      padding: getSpacingPx(SPACING.micro),
       width: "20px",
       height: "20px",
       zIndex: 2,
@@ -497,7 +497,7 @@ const ImageListProperty = (props: PropertyProps) => {
               color: "rgba(255,255,255,0.3)",
               fontSize: "var(--fontSizeSmall)",
               textAlign: "center",
-              padding: "16px 8px",
+              padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)}`,
               outline: "1px dashed rgba(255,255,255,0.1)",
               borderRadius: BORDER_RADIUS.md,
               margin: `${theme.spacing(SPACING.sm)} 0`

@@ -1,4 +1,5 @@
 import { Asset } from "../../stores/ApiTypes";
+import { SPACING, getSpacingPx } from "../../components/ui_primitives";
 
 // Helper to get z-index for stack
 const getZIndex = (index: number, total: number) => total - index;
@@ -64,7 +65,7 @@ export function createAssetDragImage(
       border-radius: 8px;
       display: flex;
       align-items: center;
-      padding: 8px;
+      padding: ${getSpacingPx(SPACING.md)};
       box-sizing: border-box;
       box-shadow: 0 4px 12px rgba(0,0,0,0.25);
       z-index: ${getZIndex(index, stackAssets.length)};
@@ -85,7 +86,7 @@ export function createAssetDragImage(
           height: 48px;
           object-fit: cover;
           border-radius: 4px;
-          margin-right: 12px;
+          margin-right: ${getSpacingPx(SPACING.lg)};
           flex-shrink: 0;
           background-color: var(--palette-background-default);
         `;
@@ -97,7 +98,7 @@ export function createAssetDragImage(
           width: 48px;
           height: 48px;
           border-radius: 4px;
-          margin-right: 12px;
+          margin-right: ${getSpacingPx(SPACING.lg)};
           flex-shrink: 0;
           background-color: var(--palette-grey-800);
           display: flex;
@@ -133,7 +134,7 @@ export function createAssetDragImage(
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        margin-bottom: 2px;
+        margin-bottom: ${getSpacingPx(SPACING.micro)};
       `;
       infoDiv.appendChild(name);
 
@@ -168,7 +169,7 @@ export function createAssetDragImage(
       background-color: var(--palette-primary-main);
       color: var(--palette-primary-contrastText);
       border-radius: 12px;
-      padding: 2px 8px;
+      padding: ${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)};
       min-width: 20px;
       text-align: center;
       font-size: 12px;

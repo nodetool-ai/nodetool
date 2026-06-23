@@ -11,7 +11,9 @@ import {
   FlexColumn,
   FlexRow,
   Text,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
 } from "../../ui_primitives";
 import type { UnifiedModel } from "../../../stores/ApiTypes";
 
@@ -95,7 +97,7 @@ const LocalModelsHero: React.FC<LocalModelsHeroProps> = ({ models }) => {
               }
               sx={{
                 alignSelf: "flex-start",
-                marginTop: "2px",
+                marginTop: getSpacingPx(SPACING.micro),
                 paddingLeft: 0,
                 paddingRight: 0,
                 fontSize: "var(--fontSizeSmaller)"
@@ -159,7 +161,7 @@ const Stat: React.FC<StatProps> = ({ value, label, icon }) => {
         sx={{
           opacity: 0.55,
           fontSize: "var(--fontSizeSmaller)",
-          marginTop: "2px",
+          marginTop: getSpacingPx(SPACING.micro),
           whiteSpace: "nowrap"
         }}
       >

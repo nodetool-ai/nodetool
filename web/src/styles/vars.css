@@ -3,6 +3,19 @@
   --fontFamily1: Inter, Arial, sans-serif;
   --fontFamily2: "JetBrains Mono", Inter, Arial, sans-serif;
 
+  /* Spacing — 4px grid (mirrors SPACING_PX in ui_primitives/spacing.ts).
+     Use these in .css files for every padding/margin/gap value. In TSX use the
+     SPACING/PADDING/MARGIN/GAP tokens instead. See docs/DESIGN.md §2. */
+  --spacing-none: 0;
+  --spacing-micro: 2px;
+  --spacing-xs: 4px;
+  --spacing-sm: 6px;
+  --spacing-md: 8px;
+  --spacing-lg: 12px;
+  --spacing-xl: 16px;
+  --spacing-xxl: 24px;
+  --spacing-xxxl: 32px;
+
   /* General */
   --c_background: var(--palette-c_background);
   --c_node_menu: var(--palette-c_node_menu);

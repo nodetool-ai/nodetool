@@ -9,7 +9,7 @@ import React, { useState, useMemo, useCallback, useRef } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { InputAdornment } from "@mui/material";
-import { MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { Box } from "../ui_primitives";
 import SearchIcon from "@mui/icons-material/Search";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -232,7 +232,7 @@ export const NodePickerDialog: React.FC<NodePickerDialogProps> = ({
                           width: "100%",
                           height: vi.size,
                           transform: `translateY(${vi.start}px)`,
-                          padding: "0 8px",
+                          padding: `0 ${getSpacingPx(SPACING.md)}`,
                           display: "flex",
                           alignItems: "center",
                           cursor: "pointer",

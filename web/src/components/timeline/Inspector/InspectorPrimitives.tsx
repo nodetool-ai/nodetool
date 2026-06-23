@@ -21,7 +21,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import Switch from "@mui/material/Switch";
 
-import { NodeSlider, Tooltip, MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT } from "../../ui_primitives";
+import { NodeSlider, Tooltip, MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT, SPACING, getSpacingPx } from "../../ui_primitives";
 
 // ── Header ─────────────────────────────────────────────────────────────────
 
@@ -30,7 +30,7 @@ const headerStyles = css({
   alignItems: "center",
   gap: 8,
   height: 36,
-  padding: "0 4px 0 4px"
+  padding: `0 ${getSpacingPx(SPACING.xs)} 0 ${getSpacingPx(SPACING.xs)}`
 });
 
 const eyebrowStyles = (theme: Theme) =>
@@ -204,7 +204,7 @@ const rowStyles = css({
   alignItems: "center",
   gap: 8,
   minHeight: 32,
-  padding: "0 4px"
+  padding: `0 ${getSpacingPx(SPACING.xs)}`
 });
 
 const rowLabelStyles = (theme: Theme) =>
@@ -425,7 +425,7 @@ const toggleSwitchSx = {
   padding: 0,
   "& .MuiSwitch-switchBase": {
     padding: 0,
-    margin: "2px",
+    margin: getSpacingPx(SPACING.micro),
     transitionDuration: "180ms",
     "&.Mui-checked": {
       transform: "translateX(16px)",
@@ -484,7 +484,7 @@ const sliderRowStyles = (theme: Theme) =>
     alignItems: "center",
     gap: theme.spacing(3),
     minHeight: 32,
-    padding: "0 4px"
+    padding: `0 ${getSpacingPx(SPACING.xs)}`
   });
 
 const sliderLabelStyles = (theme: Theme) =>
@@ -607,7 +607,7 @@ export const InspectorDivider: React.FC = memo(() => {
       style={{
         height: 1,
         backgroundColor: theme.vars.palette.divider,
-        margin: "4px 0"
+        margin: `${getSpacingPx(SPACING.xs)} 0`
       }}
       role="separator"
     />

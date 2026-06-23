@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React from "react";
-import { CloseButton, Dialog, BORDER_RADIUS } from "../ui_primitives";
+import { CloseButton, Dialog, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -51,7 +51,7 @@ const styles = (theme: Theme) =>
       backgroundColor: "rgba(153, 153, 153, 0.67)",
       color: theme.vars.palette.grey[900],
       borderRadius: BORDER_RADIUS.sm,
-      padding: "2px"
+      padding: getSpacingPx(SPACING.micro)
     },
     ".actions button svg": {
       fontSize: "1.5em"

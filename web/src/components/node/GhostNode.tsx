@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { memo, useMemo } from "react";
 
-import { BORDER_RADIUS } from "../ui_primitives";
+import { BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 interface GhostNodeProps {
   position: { x: number; y: number };
   label: string | null;
@@ -34,7 +34,7 @@ const GhostNode = memo(function GhostNode({
         display: "flex",
         flexDirection: "column" as const,
         alignItems: "center",
-        gap: "6px",
+        gap: getSpacingPx(SPACING.sm),
         zIndex: 4000,
         color: theme.textColor,
         textShadow: "0 6px 20px rgba(15, 23, 42, 0.35)"
@@ -55,7 +55,7 @@ const GhostNode = memo(function GhostNode({
         color: theme.accentColor
       },
       labelContainer: {
-        padding: "6px 12px",
+        padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`,
         borderRadius: BORDER_RADIUS.xl,
         background: theme.labelBackground,
         boxShadow: "0 12px 32px rgba(15, 23, 42, 0.25)",

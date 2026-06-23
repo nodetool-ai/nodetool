@@ -8,7 +8,7 @@ import useOnboardingStore, {
   type OnboardingStepId
 } from "../../stores/OnboardingStore";
 import { wrapStyles } from "./dashboardChrome";
-import { BORDER_RADIUS, MOTION } from "../ui_primitives";
+import { BORDER_RADIUS, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -19,7 +19,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: 10,
       flexWrap: "wrap",
-      padding: "10px 0"
+      padding: `${getSpacingPx(SPACING.lg)} 0` // was 10px 0
     },
     ".checklist-label": {
       fontFamily: theme.fontFamily2,
@@ -34,7 +34,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: 7,
       height: 30,
-      padding: "0 12px",
+      padding: `0 ${getSpacingPx(SPACING.lg)}`,
       borderRadius: BORDER_RADIUS.pill,
       border: `1px solid ${theme.vars.palette.divider}`,
       background: "transparent",
@@ -72,7 +72,7 @@ const styles = (theme: Theme) =>
       marginLeft: "auto",
       background: "none",
       border: "none",
-      padding: "4px 8px",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.md,
       fontSize: 12,
       color: theme.vars.palette.text.disabled,

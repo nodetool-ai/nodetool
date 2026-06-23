@@ -31,7 +31,9 @@ import {
   ToolbarIconButton,
   TruncatedText,
   Tooltip,
-  MOTION
+  MOTION,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
@@ -74,7 +76,7 @@ const styles = (theme: Theme) =>
     },
     ".date-header-row": {
       width: "100%",
-      padding: "0 12px 4px 0",
+      padding: `0 ${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xs)} 0`,
       display: "flex",
       alignItems: "flex-end",
       borderBottom: "1px solid var(--palette-divider)"
@@ -105,8 +107,8 @@ function createTimelineDragImage(name: string): HTMLElement {
     border-radius: 8px;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 8px;
+    gap: ${getSpacingPx(SPACING.lg)};
+    padding: ${getSpacingPx(SPACING.md)};
     box-sizing: border-box;
     box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     color: var(--palette-text-primary);

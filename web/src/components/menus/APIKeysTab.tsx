@@ -28,7 +28,9 @@ import {
   Box,
   EmptyState,
   BORDER_RADIUS,
-  MOTION
+  MOTION,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 import { ToolbarIconButton } from "../ui_primitives/ToolbarIconButton";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
@@ -500,7 +502,7 @@ const ProviderCard = memo(function ProviderCard({
       </FlexRow>
 
       {/* Info */}
-      <FlexColumn sx={{ flex: 1, minWidth: 0, gap: "2px", justifyContent: "center" }}>
+      <FlexColumn sx={{ flex: 1, minWidth: 0, gap: getSpacingPx(SPACING.micro), justifyContent: "center" }}>
         <FlexRow align="center" gap={0.5}>
           <Text size="small" weight={600}>
             {meta.name}

@@ -73,7 +73,7 @@ import {
 } from "./ScriptLane";
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 import { ToolToggle } from "../ToolToggle";
-import { FlexRow, FONT_SIZE_MONO, FONT_WEIGHT, BORDER_RADIUS } from "../../ui_primitives";
+import { FlexRow, FONT_SIZE_MONO, FONT_WEIGHT, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
 import { useHasScript } from "../../../hooks/timeline/useHasScript";
 import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport";
 import { deserializeDragData } from "../../../lib/dragdrop";
@@ -104,7 +104,7 @@ const toolbarStyles = (theme: Theme) =>
   css({
     height: 36,
     flexShrink: 0,
-    padding: "0 12px 0 8px",
+    padding: `0 ${getSpacingPx(SPACING.lg)} 0 ${getSpacingPx(SPACING.md)}`,
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     backgroundColor: theme.vars.palette.background.paper
   });
@@ -116,8 +116,8 @@ const tracksSectionHeaderStyles = (theme: Theme) =>
     flexShrink: 0,
     display: "flex",
     alignItems: "center",
-    gap: 6,
-    padding: "0 12px",
+    gap: getSpacingPx(SPACING.sm),
+    padding: `0 ${getSpacingPx(SPACING.lg)}`,
     backgroundColor: theme.vars.palette.background.paper,
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     color: theme.vars.palette.text.secondary,
