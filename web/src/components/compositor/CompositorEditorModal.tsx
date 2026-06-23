@@ -6,7 +6,7 @@
  * is no separate save step: closing simply dismisses the modal.
  */
 
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import ReactDOM from "react-dom";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
@@ -54,10 +54,11 @@ const CompositorEditorModalInner: React.FC<CompositorEditorModalProps> = ({
   ...editorProps
 }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   if (!open) return null;
 
   return ReactDOM.createPortal(
-    <div css={styles(theme)} className="compositor-modal">
+    <div css={cssStyles} className="compositor-modal">
       <div className="compositor-modal-header">
         <Text sx={{ fontWeight: 500, mr: "auto" }}>{title}</Text>
         <CloseButton onClick={onClose} tooltip="Close compositor editor" />

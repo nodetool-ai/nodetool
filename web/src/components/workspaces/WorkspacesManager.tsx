@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { List, ListItem, ListItemSecondaryAction } from "@mui/material";
-import React, { useCallback, memo } from "react";
+import React, { useCallback, memo, useMemo } from "react";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import FolderIcon from "@mui/icons-material/Folder";
@@ -101,6 +101,7 @@ function nameFromPath(path: string): string {
 
 const WorkspacesManager: React.FC = () => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const queryClient = useQueryClient();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
@@ -225,7 +226,7 @@ const WorkspacesManager: React.FC = () => {
 
   return (
     <>
-      <FlexColumn css={styles(theme)} sx={{ flex: 1, minHeight: 0 }}>
+      <FlexColumn css={cssStyles} sx={{ flex: 1, minHeight: 0 }}>
         <div className="workspaces-manager">
           {isLoading ? (
             <FlexRow justify="center" align="center" sx={{ py: 4 }}>
