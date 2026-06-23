@@ -52,10 +52,11 @@ describe("resolveWorkflowId", () => {
     );
   });
 
-  it("calls setCurrentWorkflowId when explicit id differs from current", () => {
+  it("does not switch the active tab when explicit id differs from current", () => {
     const state = createMockState({ currentWorkflowId: "old-wf" });
-    resolveWorkflowId(state, "new-wf");
-    expect(state.setCurrentWorkflowId).toHaveBeenCalledWith("new-wf");
+    const result = resolveWorkflowId(state, "new-wf");
+    expect(result).toBe("new-wf");
+    expect(state.setCurrentWorkflowId).not.toHaveBeenCalled();
   });
 
   it("does not call setCurrentWorkflowId when explicit id matches current", () => {

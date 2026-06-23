@@ -21,7 +21,7 @@ import {
 import { LlmAgentSdkProvider } from "./llm-agent.js";
 import {
   getLocalMcpServerUrl,
-  setMcpFrontendTransport,
+  setActiveMcpFrontendRenderer,
 } from "../mcp-server.js";
 import type { AgentTransport } from "./transport.js";
 import type {
@@ -219,9 +219,10 @@ class AgentRuntime {
 
     log.info(`Sending message to agent session ${sessionId} (streaming)`);
 
-    // Frontend UI tools are proxied through the shared /mcp endpoint using
-    // whichever renderer transport is currently active.
-    setMcpFrontendTransport(transport);
+    // Frontend UI tools are proxied through the shared /mcp endpoint. The
+    // renderer registers itself on connect; sending a message marks it as the
+    // active default for MCP clients that don't name a specific renderer.
+    setActiveMcpFrontendRenderer(transport);
     const mcpServerUrl = getLocalMcpServerUrl();
 
     let frontendTools: FrontendToolManifest[] = [];
