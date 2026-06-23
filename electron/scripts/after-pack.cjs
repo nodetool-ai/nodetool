@@ -6,6 +6,7 @@ const { spawnSync } = require("child_process");
 const {
   NODE_RUNTIME_VERSION,
   nodeBinaryName,
+  NPM_RUNTIME_DIR,
   ALL_DAWN_FILES,
   dawnKeepFiles,
 } = require("./node-runtime.constants.cjs");
@@ -106,33 +107,41 @@ function resolveArch(context) {
 
 const ELECTRON_DIR = path.dirname(__dirname);
 
-/** Copy the build target's bundled Node binary into backend/runtime/. */
+/** Copy the build target's bundled Node binary + npm into backend/runtime/. */
 async function placeNodeRuntime(context, cacheRoot) {
   const platform = context.electronPlatformName;
   const arch = resolveArch(context);
   const binName = nodeBinaryName(platform);
-  const src = path.join(cacheRoot, `${platform}-${arch}`, binName);
-  if (!fs.existsSync(src)) {
+  const srcDir = path.join(cacheRoot, `${platform}-${arch}`);
+  const src = path.join(srcDir, binName);
+  const srcNpm = path.join(srcDir, NPM_RUNTIME_DIR);
+  if (!fs.existsSync(src) || !fs.existsSync(srcNpm)) {
     // Self-heal: the release pipeline invokes electron-builder directly (not
     // `npm run build`), so the fetch step may not have run. Fetch this exact
     // target now — fetch-node-runtime is idempotent and caches by arch.
-    console.info(`Bundled Node missing; fetching ${platform}-${arch}...`);
+    console.info(`Bundled Node/npm missing; fetching ${platform}-${arch}...`);
     const fetchScript = path.join(ELECTRON_DIR, "scripts", "fetch-node-runtime.mjs");
     const r = spawnSync(process.execPath, [fetchScript, `${platform}-${arch}`], {
       stdio: "inherit",
     });
-    if (r.status !== 0 || !fs.existsSync(src)) {
+    if (r.status !== 0 || !fs.existsSync(src) || !fs.existsSync(srcNpm)) {
       throw new Error(
-        `Bundled Node binary not found and fetch failed: ${src} (fetch exit ${r.status})`
+        `Bundled Node runtime not found and fetch failed: ${srcDir} (fetch exit ${r.status})`
       );
     }
   }
   const runtimeDir = path.join(resolveResourcesDir(context), "backend", "runtime");
   await fsp.mkdir(runtimeDir, { recursive: true });
+
   const dest = path.join(runtimeDir, binName);
   await fsp.copyFile(src, dest);
   if (platform !== "win32") await fsp.chmod(dest, 0o755);
-  console.info(`Placed bundled Node (${platform}-${arch}) at ${dest}`);
+
+  const destNpm = path.join(runtimeDir, NPM_RUNTIME_DIR);
+  await fsp.rm(destNpm, { recursive: true, force: true });
+  await fsp.cp(srcNpm, destNpm, { recursive: true });
+
+  console.info(`Placed bundled Node + npm (${platform}-${arch}) at ${runtimeDir}`);
 }
 
 /** Delete dawn.node binaries that don't belong to this build's platform. */

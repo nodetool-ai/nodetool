@@ -123,11 +123,15 @@ describe("placeNodeRuntime", () => {
     await fs.promises.rm(tempDir, { recursive: true, force: true });
   });
 
-  it("copies the matching-arch node binary into backend/runtime", async () => {
+  it("copies the matching-arch node binary + npm into backend/runtime", async () => {
     const cacheRoot = path.join(tempDir, "cache");
     const srcDir = path.join(cacheRoot, "darwin-arm64");
-    await fs.promises.mkdir(srcDir, { recursive: true });
+    await fs.promises.mkdir(path.join(srcDir, "npm", "bin"), { recursive: true });
     await fs.promises.writeFile(path.join(srcDir, "node"), "#!fake-node\n");
+    await fs.promises.writeFile(
+      path.join(srcDir, "npm", "bin", "npm-cli.js"),
+      "// fake npm\n"
+    );
 
     const appOutDir = path.join(tempDir, "dist");
     const context = {
@@ -139,14 +143,18 @@ describe("placeNodeRuntime", () => {
 
     await afterPackExtra.placeNodeRuntime(context, cacheRoot);
 
-    const placed = path.join(
+    const runtimeDir = path.join(
       afterPackExtra.resolveResourcesDir(context),
       "backend",
-      "runtime",
-      "node"
+      "runtime"
     );
+    const placed = path.join(runtimeDir, "node");
     expect(fs.existsSync(placed)).toBe(true);
     expect((fs.statSync(placed).mode & 0o111) !== 0).toBe(true); // executable
+    // npm CLI ships next to the bundled node so installs stay self-contained.
+    expect(
+      fs.existsSync(path.join(runtimeDir, "npm", "bin", "npm-cli.js"))
+    ).toBe(true);
   });
 });
 

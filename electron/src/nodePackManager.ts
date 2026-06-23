@@ -8,13 +8,13 @@
  * server restart.
  */
 
-import { spawn, spawnSync } from "child_process";
+import { spawn } from "child_process";
 import * as path from "path";
 import * as fsp from "fs/promises";
 import { app } from "electron";
 
 import { logMessage } from "./logger";
-import { getProcessEnv } from "./config";
+import { getProcessEnv, resolveNpmInvocation } from "./config";
 import type { NodePackActionResult, NodePackInfo } from "./types";
 
 // ── Path helpers ─────────────────────────────────────────────────────────
@@ -51,24 +51,6 @@ function assertValidName(name: string): void {
 
 // ── npm runner ───────────────────────────────────────────────────────────
 
-function resolveNpm(): string {
-  const candidates = process.platform === "win32" ? ["npm.cmd", "npm"] : ["npm"];
-  for (const candidate of candidates) {
-    try {
-      const result = spawnSync(candidate, ["--version"], {
-        stdio: "ignore",
-        shell: process.platform === "win32"
-      });
-      if (result.status === 0) return candidate;
-    } catch {
-      // continue
-    }
-  }
-  throw new Error(
-    "npm not found in PATH. Install Node.js (which includes npm) to manage node packs."
-  );
-}
-
 async function ensureInstallRoot(): Promise<void> {
   const root = getNodePackInstallRoot();
   await fsp.mkdir(root, { recursive: true });
@@ -85,20 +67,26 @@ async function ensureInstallRoot(): Promise<void> {
 }
 
 async function runNpm(args: string[]): Promise<void> {
-  const npm = resolveNpm();
+  const npm = resolveNpmInvocation();
+  if (!npm) {
+    throw new Error(
+      "npm not found. Reinstall the NodeTool environment to restore the bundled Node.js/npm runtime."
+    );
+  }
   await ensureInstallRoot();
   await fsp.mkdir(npmCacheDir(), { recursive: true });
   const fullArgs = [
+    ...npm.baseArgs,
     ...args,
     "--prefix",
     getNodePackInstallRoot(),
     "--cache",
     npmCacheDir()
   ];
-  logMessage(`Running: ${npm} ${fullArgs.join(" ")}`);
+  logMessage(`Running: ${npm.command} ${fullArgs.join(" ")}`);
 
   await new Promise<void>((resolve, reject) => {
-    const child = spawn(npm, fullArgs, {
+    const child = spawn(npm.command, fullArgs, {
       env: getProcessEnv(),
       stdio: "pipe",
       windowsHide: true

@@ -4,6 +4,8 @@
 // tests all agree on versions, archive names, and which dawn.node binaries to
 // keep per target.
 
+const path = require("path");
+
 // Pinned to .nvmrc. The backend runs on this exact Node; better-sqlite3 is
 // rebuilt against its ABI, so bumping this requires re-fetching binaries and
 // rebuilding native modules.
@@ -27,6 +29,24 @@ function nodeArchive(platform, arch) {
   return { dir, archive: `${dir}.${ext}`, ext, binaryInArchive, plat };
 }
 
+/**
+ * Path (within an extracted node archive `dir`) to the npm package directory.
+ * The official Node distributions ship npm under lib/node_modules on POSIX and
+ * node_modules at the root on Windows.
+ */
+function npmDirInArchive(platform, dir) {
+  return platform === "win32"
+    ? `${dir}/node_modules/npm`
+    : `${dir}/lib/node_modules/npm`;
+}
+
+// Directory name (under backend/runtime/) where the bundled npm package lives,
+// and the relative path to its CLI entry. npm is invoked as
+// `node <runtime>/npm/bin/npm-cli.js` so it never depends on a system npm or
+// on shims/symlinks that don't survive zip extraction on Windows.
+const NPM_RUNTIME_DIR = "npm";
+const NPM_CLI_RUNTIME_PATH = path.join(NPM_RUNTIME_DIR, "bin", "npm-cli.js");
+
 // Every binary the `webgpu` package ships in dist/. After staging we keep only
 // the ones for the build's platform (see dawnKeepFiles) and delete the rest.
 const ALL_DAWN_FILES = [
@@ -49,6 +69,9 @@ module.exports = {
   NODE_RUNTIME_VERSION,
   nodeBinaryName,
   nodeArchive,
+  npmDirInArchive,
+  NPM_RUNTIME_DIR,
+  NPM_CLI_RUNTIME_PATH,
   ALL_DAWN_FILES,
   dawnKeepFiles,
 };

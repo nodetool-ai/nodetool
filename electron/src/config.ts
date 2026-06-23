@@ -1,5 +1,6 @@
 import * as path from "path";
 import * as os from "os";
+import { spawnSync } from "child_process";
 import { app } from "electron";
 import { logMessage } from "./logger";
 import * as fs from "fs";
@@ -311,6 +312,80 @@ const getProcessEnv = (): ProcessEnv => {
   };
 };
 
+/** How to invoke npm: the executable plus any args that must precede the npm subcommand. */
+export interface NpmInvocation {
+  command: string;
+  baseArgs: string[];
+}
+
+/** Bundled Node binary that ships next to the backend (packaged app only). */
+const getBundledNodeBinary = (): string | null => {
+  if (!app.isPackaged) return null;
+  const bin = path.join(
+    process.resourcesPath,
+    "backend",
+    "runtime",
+    process.platform === "win32" ? "node.exe" : "node"
+  );
+  try {
+    fs.accessSync(bin, fs.constants.X_OK);
+    return bin;
+  } catch {
+    return null;
+  }
+};
+
+/** npm CLI bundled next to the backend's Node runtime (packaged app only). */
+const getBundledNpmCli = (): string | null => {
+  if (!app.isPackaged) return null;
+  // Mirrors NPM_CLI_RUNTIME_PATH in scripts/node-runtime.constants.cjs.
+  const cli = path.join(
+    process.resourcesPath,
+    "backend",
+    "runtime",
+    "npm",
+    "bin",
+    "npm-cli.js"
+  );
+  try {
+    fs.accessSync(cli);
+    return cli;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Resolve how to invoke npm. Prefers the npm bundled with the backend's Node
+ * runtime — running `node npm-cli.js …` keeps JavaScript package installs
+ * inside the NodeTool environment instead of depending on a system Node/npm on
+ * a (GUI-stripped) PATH. Falls back to a system npm on PATH for dev/unpackaged
+ * runs. Returns null when no npm can be found.
+ */
+const resolveNpmInvocation = (): NpmInvocation | null => {
+  const node = getBundledNodeBinary();
+  const cli = getBundledNpmCli();
+  if (node && cli) {
+    return { command: node, baseArgs: [cli] };
+  }
+
+  const candidates =
+    process.platform === "win32" ? ["npm.cmd", "npm"] : ["npm"];
+  for (const candidate of candidates) {
+    try {
+      const result = spawnSync(candidate, ["--version"], {
+        stdio: "ignore",
+        env: getProcessEnv(),
+        shell: process.platform === "win32",
+      });
+      if (result.status === 0) return { command: candidate, baseArgs: [] };
+    } catch {
+      // continue
+    }
+  }
+  return null;
+};
+
 /**
  * Resets the cached conda env path. Intended for use in tests only so that
  * each test case starts with a clean slate.
@@ -326,6 +401,7 @@ export {
   getUVPath,
   getLlamaServerPath,
   getProcessEnv,
+  resolveNpmInvocation,
   getSystemDataPath,
   getDefaultAssetsPath,
   getOptionalNodeModulesPath,
