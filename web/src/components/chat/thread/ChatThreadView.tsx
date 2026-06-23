@@ -73,6 +73,16 @@ function formatElapsed(seconds: number): string {
   return `${m}m ${s}s`;
 }
 
+/** Jump an element to its bottom. Guards `scrollTo` (absent in jsdom). */
+function scrollElementToBottom(el: HTMLElement | null): void {
+  if (!el) return;
+  if (typeof el.scrollTo === "function") {
+    el.scrollTo({ top: el.scrollHeight });
+  } else {
+    el.scrollTop = el.scrollHeight;
+  }
+}
+
 interface StatusFooterProps {
   status: ChatThreadViewProps["status"];
   progress: number;
@@ -391,11 +401,59 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   const scrollToBottom = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    el.scrollTo({ top: el.scrollHeight });
+    scrollElementToBottom(el);
     lastScrollTopRef.current = el.scrollTop;
     userHasScrolledUpRef.current = false;
     setShowScrollToBottomButton(false);
   }, []);
+
+  // Reset follow state whenever the visible thread changes, so a previously
+  // "scrolled up" thread doesn't carry that state onto the next one.
+  useEffect(() => {
+    userHasScrolledUpRef.current = false;
+    setShowScrollToBottomButton(false);
+  }, [currentThreadId]);
+
+  // Land on the latest message when a thread first becomes visible — on mount,
+  // thread switch, or once its messages finish loading. Without this the
+  // virtualizer starts at the top, forcing a manual scroll to the end of an
+  // existing conversation. Runs before the incremental new-message effect (and
+  // syncs the count it reads) so the two don't fight over the scroll position.
+  const landedThreadRef = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (!scrollHost || filteredMessages.length === 0) return;
+    if (landedThreadRef.current === currentThreadId) return;
+    landedThreadRef.current = currentThreadId;
+    previousMessageCountRef.current = messages.length;
+    userHasScrolledUpRef.current = false;
+
+    const land = () => {
+      virtualizer.scrollToIndex(filteredMessages.length - 1, { align: "end" });
+      const el = scrollRef.current;
+      if (el) {
+        scrollElementToBottom(el);
+        lastScrollTopRef.current = el.scrollTop;
+      }
+      setShowScrollToBottomButton(false);
+    };
+    // Two frames: the first lands on the estimated bottom, the second settles
+    // on the true bottom after the virtualizer measures real item heights.
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      land();
+      raf2 = requestAnimationFrame(land);
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [
+    scrollHost,
+    currentThreadId,
+    filteredMessages.length,
+    messages.length,
+    virtualizer
+  ]);
 
   // On new user message → scroll that message to top.
   // On other new messages → follow to bottom if user hasn't scrolled up.
@@ -419,7 +477,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     if (status !== "streaming" && !userHasScrolledUpRef.current) {
       const el = scrollRef.current;
       if (el) {
-        el.scrollTo({ top: el.scrollHeight });
+        scrollElementToBottom(el);
         lastScrollTopRef.current = el.scrollTop;
       }
     }
