@@ -51,7 +51,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       gap: theme.spacing(1),
       padding: isMobile
         ? theme.spacing(0.5, 1, 1, 1)
-        : theme.spacing(1.5, 1.5, 1, 1.5)
+        : theme.spacing(1.5, 3, 1, 3)
     },
     ".nl-title": {
       fontSize: "var(--fontSizeNormal)",
@@ -75,7 +75,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(1),
-      margin: theme.spacing(0, isMobile ? 1 : 1.5, 1, isMobile ? 1 : 1.5),
+      margin: theme.spacing(0, isMobile ? 1 : 3, 1, isMobile ? 1 : 3),
       padding: theme.spacing(1, 1),
       borderRadius: BORDER_RADIUS.md,
       backgroundColor: theme.vars.palette.background.paper,
@@ -177,7 +177,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       display: "flex",
       flexDirection: "column",
       gap: "2px",
-      padding: theme.spacing(1, 1),
+      padding: theme.spacing(1, 1, 1, isMobile ? 1 : 3),
       overflowY: "auto",
       borderRight: `1px solid ${theme.vars.palette.divider}`,
       ...thinScrollbarStyles(theme)
@@ -244,7 +244,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       flex: 1,
       minWidth: 0,
       overflowY: "auto",
-      padding: theme.spacing(1, 1),
+      padding: theme.spacing(1, isMobile ? 1 : 3, 1, 1),
       ...thinScrollbarStyles(theme)
     },
     ".nl-empty": {
@@ -262,7 +262,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      padding: theme.spacing(1, 1.5),
+      padding: theme.spacing(1, isMobile ? 1.5 : 3),
       borderTop: `1px solid ${theme.vars.palette.divider}`,
       color: theme.vars.palette.text.secondary,
       fontSize: "var(--fontSizeSmall)"
