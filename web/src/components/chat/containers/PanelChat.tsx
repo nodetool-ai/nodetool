@@ -2,12 +2,12 @@
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import ChatView from "./ChatView";
+import ChatErrorBanner from "./ChatErrorBanner";
 import useGlobalChatStore, {
   useThreadsQuery
 } from "../../../stores/GlobalChatStore";
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
 import {
-  AlertBanner,
   Caption,
   FlexColumn,
   FlexRow,
@@ -243,9 +243,7 @@ const PanelChat: React.FC = () => {
       }}
     >
       {error && (
-        <AlertBanner severity="error" sx={{ m: 1, flexShrink: 0 }}>
-          {error}
-        </AlertBanner>
+        <ChatErrorBanner error={error} sx={{ m: 1, flexShrink: 0 }} />
       )}
       <FlexRow
         fullWidth
