@@ -37,15 +37,16 @@ const styles = (theme: Theme) =>
     "input[type='text']": {
       border: 0,
       outline: "none",
-      padding: "0 2.5em 0 3em",
+      padding: "0 2.2em 0 2.6em",
       margin: "0",
-      height: "36px",
+      height: "32px",
+      fontSize: "var(--fontSizeSmall)",
       WebkitAppearance: "none",
       MozAppearance: "none",
       appearance: "none",
       color: "var(--palette-text-primary)",
       backgroundColor: "var(--palette-grey-800)",
-      borderRadius: BORDER_RADIUS.lg,
+      borderRadius: BORDER_RADIUS.md,
       transition: MOTION.all
     },
     "input[type='text']:focus": {

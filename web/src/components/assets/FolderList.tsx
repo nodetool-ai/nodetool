@@ -178,6 +178,10 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
   const selectedFolderIds = useAssetGridStore(
     (state) => state.selectedFolderIds
   );
+  const workflowFilter = useAssetGridStore((state) => state.workflowFilter);
+  const setWorkflowFilter = useAssetGridStore(
+    (state) => state.setWorkflowFilter
+  );
 
   // Control which folders are expanded; disable single-click expansion
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(
@@ -231,12 +235,14 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
   }, [selectedFolderIds, folderTree, currentUser?.id, parentMap]);
 
   const handleSelect = useCallback((folder: Asset | RootFolder) => {
+    // Clicking a folder switches to folder scope, leaving any active workflow scope.
+    setWorkflowFilter(null);
     if ((folder as Asset).user_id !== undefined) {
       navigateToFolder(folder as Asset);
     } else {
       navigateToFolderId(folder.id);
     }
-  }, [navigateToFolder, navigateToFolderId]);
+  }, [navigateToFolder, navigateToFolderId, setWorkflowFilter]);
 
   const hasChildNodes = useCallback(
     (folder: FolderNode | RootFolder): folder is FolderNode & { children: FolderNode[] } => {
@@ -336,7 +342,7 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
               <FolderItem
                 folder={folder as Asset}
                 onSelect={() => handleFolderSelect(folder)}
-                isSelected={selectedFolderIds.includes(folder.id)}
+                isSelected={!workflowFilter && selectedFolderIds.includes(folder.id)}
               >
                 {!isRoot && (
                   <span
@@ -378,18 +384,18 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
             <FolderItem
               folder={folder as Asset}
               onSelect={() => handleFolderSelect(folder)}
-              isSelected={selectedFolderIds.includes(folder.id)}
+              isSelected={!workflowFilter && selectedFolderIds.includes(folder.id)}
             />
           </div>
         </Box>
       );
     },
-    [expandedFolderIds, selectedFolderIds, handleRowDoubleClick, handleFolderSelect, handleFolderClick, handleExpandFolder, noop, hasChildNodes]
+    [workflowFilter, expandedFolderIds, selectedFolderIds, handleRowDoubleClick, handleFolderSelect, handleFolderClick, handleExpandFolder, noop, hasChildNodes]
   );
 
   const rootFolder: RootFolder = useMemo(() => ({
     id: currentUser?.id ?? "root",
-    name: "ASSETS",
+    name: "FOLDERS",
     content_type: "folder",
     children: (Object.values(folderTree || {}) as FolderNode[]) || [],
     parent_id: currentUser?.id || ""

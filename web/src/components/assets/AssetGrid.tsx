@@ -27,9 +27,9 @@ import { Asset } from "../../stores/ApiTypes";
 import AssetViewer from "./AssetViewer";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useShallow } from "zustand/react/shallow";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useAuth from "../../stores/useAuth";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import StorageAnalytics from "./StorageAnalytics";
 import {
   DockviewApi,
   DockviewReact,
@@ -46,9 +46,9 @@ import PanelErrorBoundary from "../common/PanelErrorBoundary";
 import { formatFileSize } from "../../utils/formatUtils";
 
 const panelComponents = {
-  "asset-folders": () => (
+  "asset-folders": (props: IDockviewPanelProps) => (
     <PanelErrorBoundary>
-      <AssetFoldersPanel />
+      <AssetFoldersPanel {...props} />
     </PanelErrorBoundary>
   ),
   "asset-files": (props: IDockviewPanelProps) => (
@@ -118,6 +118,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   isHorizontal,
   sortedAssets,
   isFullscreenAssets,
+  initialFoldersPanelWidth = FOLDERS_PANEL_WIDTH,
   isMobile = false
 }) => {
   const { error, folderFilesFiltered, folderTree } = useAssets();
@@ -125,27 +126,38 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     setOpenAsset,
     setSelectedAssetIds,
     setRenameDialogOpen,
+    setWorkflowFilter,
     openAsset,
     selectedAssetIds,
     selectedFolderId,
     currentAudioAsset,
     currentFolderId,
-    currentFolder,
     foldersVisible
   } = useAssetGridStore(
     useShallow((state) => ({
       setOpenAsset: state.setOpenAsset,
       setSelectedAssetIds: state.setSelectedAssetIds,
       setRenameDialogOpen: state.setRenameDialogOpen,
+      setWorkflowFilter: state.setWorkflowFilter,
       openAsset: state.openAsset,
       selectedAssetIds: state.selectedAssetIds,
       selectedFolderId: state.selectedFolderId,
       currentAudioAsset: state.currentAudioAsset,
       currentFolderId: state.currentFolderId,
-      currentFolder: state.currentFolder,
       foldersVisible: state.foldersVisible
     }))
   );
+  const currentWorkflowId = useWorkflowManager(
+    (state) => state.currentWorkflowId
+  );
+
+  // Default asset scope per surface: the in-editor sidebar follows the current
+  // workflow (re-asserted whenever the open workflow changes), while the
+  // fullscreen page opens on the global/all-assets view. A manual pick (a
+  // folder or another workflow) holds until one of these inputs changes.
+  useEffect(() => {
+    setWorkflowFilter(isFullscreenAssets ? null : currentWorkflowId ?? null);
+  }, [isFullscreenAssets, currentWorkflowId, setWorkflowFilter]);
   const openMenuType = useContextMenuStore((state) => state.openMenuType);
 
   const theme = useTheme();
@@ -234,6 +246,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         id: "asset-folders",
         component: "asset-folders",
         title: "Folders",
+        params: { isFullscreenAssets: Boolean(isFullscreenAssets) },
         position: api.getPanel("asset-files")
           ? {
               referencePanel: "asset-files",
@@ -241,20 +254,20 @@ const AssetGrid: React.FC<AssetGridProps> = ({
             }
           : undefined,
         ...(isFullscreenAssets
-          ? { initialWidth: FOLDERS_PANEL_WIDTH }
+          ? { initialWidth: initialFoldersPanelWidth }
           : { initialHeight: FOLDERS_PANEL_HEIGHT })
       });
 
       const groupApi = foldersPanel?.group?.api ?? foldersPanel?.group;
       if (groupApi && typeof groupApi.setSize === "function") {
         if (isFullscreenAssets) {
-          groupApi.setSize({ width: FOLDERS_PANEL_WIDTH });
+          groupApi.setSize({ width: initialFoldersPanelWidth });
         } else {
           groupApi.setSize({ height: FOLDERS_PANEL_HEIGHT });
         }
       }
     },
-    [isFullscreenAssets]
+    [isFullscreenAssets, initialFoldersPanelWidth]
   );
 
   useEffect(() => {
@@ -319,12 +332,6 @@ const AssetGrid: React.FC<AssetGridProps> = ({
           maxItemSize={maxItemSize}
           onUploadFiles={uploadFiles}
           isFullscreenAssets={isFullscreenAssets}
-        />
-      )}
-      {!isMobile && (
-        <StorageAnalytics
-          assets={sortedAssets || folderFilesFiltered || []}
-          currentFolder={currentFolder}
         />
       )}
       {!isMobile && (

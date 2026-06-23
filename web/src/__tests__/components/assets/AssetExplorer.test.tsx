@@ -1,5 +1,6 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import ThemeNodetool from "../../../components/themes/ThemeNodetool";
 import AssetExplorer from "../../../components/assets/AssetExplorer";
@@ -29,9 +30,11 @@ jest.mock("react-router-dom", () => ({
 describe("AssetExplorer", () => {
   it("renders AssetGrid with provided assets", () => {
     render(
-      <ThemeProvider theme={ThemeNodetool}>
-        <AssetExplorer />
-      </ThemeProvider>
+      <MemoryRouter>
+        <ThemeProvider theme={ThemeNodetool}>
+          <AssetExplorer />
+        </ThemeProvider>
+      </MemoryRouter>
     );
     const grid = screen.getByTestId("asset-grid");
     expect(grid).toHaveTextContent("asset-grid:2");
