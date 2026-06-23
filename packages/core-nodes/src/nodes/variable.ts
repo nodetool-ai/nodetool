@@ -79,7 +79,6 @@ export class GetVariableNode extends BaseNode {
   static readonly inlineFields: string[] = [];
   static readonly inputFields = ["trigger"];
 
-  static readonly isStreamingOutput = true;
   static readonly outputCorrelation: Record<string, OutputCorrelation> = {
     output: { kind: "iteration", source: "__execution__", group: "channel" }
   };
