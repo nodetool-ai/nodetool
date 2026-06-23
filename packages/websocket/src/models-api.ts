@@ -14,6 +14,7 @@ import {
   type EmbeddingModel,
   type ImageModel,
   type LanguageModel,
+  type MusicModel,
   type ProviderId,
   type RecommendedUnifiedModel,
   type TTSModel,
@@ -295,6 +296,7 @@ function toUnifiedModel(
     | VideoModel
     | TTSModel
     | ASRModel
+    | MusicModel
     | EmbeddingModel,
   type: string
 ): UnifiedModel {
@@ -442,6 +444,21 @@ async function getTtsModelsByProvider(
     return await withProvider(
       provider,
       (instance) => instance.getAvailableTTSModels(),
+      userId
+    );
+  } catch {
+    return [];
+  }
+}
+
+async function getMusicModelsByProvider(
+  provider: ProviderId,
+  userId = "1"
+): Promise<MusicModel[]> {
+  try {
+    return await withProvider(
+      provider,
+      (instance) => instance.getAvailableMusicModels(),
       userId
     );
   } catch {
@@ -801,6 +818,12 @@ export async function handleModelsApiRequest(
     return jsonResponse(selectRecommended("tts"));
   }
 
+  if (path === "/recommended/music") {
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
+    return jsonResponse(selectRecommended("music"));
+  }
+
   if (path === "/recommended/video/text-to-video") {
     if (request.method !== "GET")
       return errorResponse(405, "Method not allowed");
@@ -931,6 +954,23 @@ export async function handleModelsApiRequest(
     if (request.method !== "GET")
       return errorResponse(405, "Method not allowed");
     return jsonResponse(await getTtsModelsByProvider(ttsProvider, userId));
+  }
+
+  if (path === "/music") {
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
+    const availableIds = await getAvailableProviderIds(userId);
+    const providers = await Promise.all(
+      availableIds.map((provider) => getMusicModelsByProvider(provider, userId))
+    );
+    return jsonResponse(providers.flat());
+  }
+
+  const musicProvider = parseProvider(path, "/music/");
+  if (musicProvider) {
+    if (request.method !== "GET")
+      return errorResponse(405, "Method not allowed");
+    return jsonResponse(await getMusicModelsByProvider(musicProvider, userId));
   }
 
   const asrProvider = parseProvider(path, "/asr/");

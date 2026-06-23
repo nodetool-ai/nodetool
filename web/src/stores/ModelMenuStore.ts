@@ -6,6 +6,7 @@ import type {
   EmbeddingModel,
   TTSModel,
   ASRModel,
+  MusicModel,
   VideoModel
 } from "./ApiTypes";
 import useModelPreferencesStore from "./ModelPreferencesStore";
@@ -246,6 +247,7 @@ export const useLanguageModelMenuStore = createModelMenuStore<LanguageModel>();
 export const useImageModelMenuStore = createModelMenuStore<ImageModel>();
 export const useTTSModelMenuStore = createModelMenuStore<TTSModel>();
 export const useASRModelMenuStore = createModelMenuStore<ASRModel>();
+export const useMusicModelMenuStore = createModelMenuStore<MusicModel>();
 export const useVideoModelMenuStore = createModelMenuStore<VideoModel>();
 export const useHuggingFaceImageModelMenuStore = createModelMenuStore<ImageModel>();
 export const useTransformersJsModelMenuStore = createModelMenuStore<ImageModel>();

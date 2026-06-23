@@ -10,10 +10,12 @@ import type {
   LipSyncParams,
   Message,
   Model3D,
+  MusicModel,
   ProviderId,
   ProviderStreamItem,
   ProviderTool,
   EncodedAudioResult,
+  TextToMusicParams,
   RelightImageParams,
   RemoveBackgroundParams,
   StreamingAudioChunk,
@@ -68,6 +70,7 @@ export type ProviderCapability =
   | "video_to_video"
   | "lip_sync"
   | "text_to_speech"
+  | "text_to_music"
   | "automatic_speech_recognition"
   | "generate_embedding"
   | "text_to_3d"
@@ -132,6 +135,12 @@ export function providerCapabilities(
     BaseProvider.prototype.getAvailableTTSModels
   ) {
     capabilities.push("text_to_speech");
+  }
+  if (
+    instance.getAvailableMusicModels !==
+    BaseProvider.prototype.getAvailableMusicModels
+  ) {
+    capabilities.push("text_to_music");
   }
   if (
     instance.getAvailableASRModels !==
@@ -348,6 +357,16 @@ export abstract class BaseProvider {
   }
 
   async getAvailableASRModels(): Promise<ASRModel[]> {
+    return [];
+  }
+
+  /**
+   * Music **generation** models exposed by this provider (e.g. MusicGen,
+   * Stable Audio, Suno, MiniMax Music). Override on providers that can
+   * synthesize music from a text prompt; the base returns none so the
+   * `text_to_music` capability is advertised only when overridden.
+   */
+  async getAvailableMusicModels(): Promise<MusicModel[]> {
     return [];
   }
 
@@ -825,6 +844,16 @@ export abstract class BaseProvider {
     return this.textToSpeech !== BaseProvider.prototype.textToSpeech;
   }
 
+  /**
+   * Generate music / instrumental audio from a text prompt. Music providers
+   * return a fully-encoded audio file (mp3/wav/flac), so this resolves to an
+   * {@link EncodedAudioResult} rather than streaming raw PCM. Providers that
+   * expose music models via {@link getAvailableMusicModels} must override this.
+   */
+  async textToMusic(_params: TextToMusicParams): Promise<EncodedAudioResult> {
+    throw new Error(`${this.provider} does not support textToMusic`);
+  }
+
   async automaticSpeechRecognition(_args: {
     audio: Uint8Array;
     model: string;
@@ -1019,6 +1048,7 @@ const MODALITY_PROMISE_METHODS = [
   "relightImage",
   "vectorizeImage",
   "textToSpeechEncoded",
+  "textToMusic",
   "automaticSpeechRecognition",
   "textToVideo",
   "imageToVideo",

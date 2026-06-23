@@ -41,6 +41,14 @@ export interface TTSModel {
   voices?: string[];
 }
 
+export interface MusicModel {
+  id: string;
+  name: string;
+  provider: ProviderId;
+  /** Capability hints, e.g. `["text_to_music"]`. */
+  supportedTasks?: string[];
+}
+
 export interface ASRModel {
   id: string;
   name: string;
@@ -194,6 +202,27 @@ export interface RelightImageParams {
 /** Convert a raster image into a vector (SVG) representation. */
 export interface VectorizeImageParams {
   model: ImageModel;
+}
+
+/**
+ * Generate music / instrumental audio from a text prompt. Mirrors the
+ * `TextTo<Media>Params` pattern. Music providers return a fully-encoded audio
+ * file (mp3/wav/flac), so {@link BaseProvider.textToMusic} resolves to an
+ * {@link EncodedAudioResult} rather than raw PCM samples.
+ */
+export interface TextToMusicParams {
+  model: MusicModel;
+  /** Free-text description of the desired music (style, mood, instruments). */
+  prompt: string;
+  /** Optional song lyrics for vocal models (e.g. Suno, ACE-Step, MiniMax). */
+  lyrics?: string | null;
+  /** Requested duration in seconds (providers clamp to their own limits). */
+  durationSeconds?: number | null;
+  seed?: number | null;
+  /** Requested output container hint (e.g. "mp3", "wav"). */
+  audioFormat?: string | null;
+  /** Per-call timeout. Providers translate this into a max polling window. */
+  timeoutSeconds?: number | null;
 }
 
 export interface TextToVideoParams {

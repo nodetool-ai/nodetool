@@ -6,6 +6,7 @@ import type {
   ImageModel,
   TTSModel,
   ASRModel,
+  MusicModel,
   VideoModel,
   UnifiedModel
 } from "../stores/ApiTypes";
@@ -14,6 +15,7 @@ import {
   useImageModelProviders,
   useTTSProviders,
   useASRProviders,
+  useMusicProviders,
   useVideoProviders
 } from "./useProviders";
 import { useWorkers } from "./useWorkers";
@@ -326,6 +328,63 @@ export const useASRModelsByProvider = (): ModelsByProviderResult<ASRModel> => {
         return {
           provider: providerValue,
           models: (data || []) as ASRModel[]
+        };
+      },
+      enabled: !providersLoading && providers.length > 0,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnWindowFocus: false
+    }))
+  });
+
+  const isLoading = providersLoading || queries.some((q) => q.isLoading);
+  const isFetching = queries.some((q) => q.isFetching);
+  const error = queries.find((q) => q.error)?.error;
+
+  const allModels = useMemo(
+    () => queries.filter((q) => q.data).flatMap((q) => q.data?.models ?? []),
+    [queries]
+  );
+
+  const refetch = useMemo(
+    () => async () => {
+      await Promise.all(queries.map((q) => q.refetch()));
+    },
+    [queries]
+  );
+
+  const providerNames = useMemo(
+    () => providers.map((p) => p.provider),
+    [providers]
+  );
+
+  return {
+    models: allModels || [],
+    providers: providerNames,
+    isLoading,
+    isFetching,
+    error,
+    refetch
+  };
+};
+
+/**
+ * Hook to fetch music models from all providers that support music generation.
+ * Queries each provider in parallel for better performance.
+ */
+export const useMusicModelsByProvider = (): ModelsByProviderResult<MusicModel> => {
+  const { providers, isLoading: providersLoading } = useMusicProviders();
+
+  const queries = useQueries({
+    queries: providers.map((provider) => ({
+      queryKey: ["music-models", provider.provider],
+      queryFn: async () => {
+        const providerValue = provider.provider;
+        const data = await trpc.models.musicByProvider.query({
+          provider: providerValue
+        });
+        return {
+          provider: providerValue,
+          models: (data || []) as MusicModel[]
         };
       },
       enabled: !providersLoading && providers.length > 0,
