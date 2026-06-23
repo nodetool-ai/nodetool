@@ -70,7 +70,7 @@ const styles = (theme: Theme) =>
       gap: 4,
       padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.pill,
-      background: "rgba(255,255,255,0.04)",
+      background: theme.vars.palette.c_overlay_subtle,
       color: theme.vars.palette.text.secondary,
       fontSize: FONT_SIZE_SANS.caption,
       "& svg": { fontSize: 14, opacity: 0.75 }

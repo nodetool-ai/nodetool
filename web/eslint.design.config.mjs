@@ -56,6 +56,10 @@ export default [
       // Spacing is fully migrated (zero violations) — locked in as an error so
       // any new raw-px padding/margin/gap fails the gate. See docs/DESIGN.md §2.
       "design-tokens/spacing-tokens": "error",
+      // Font size and color are fully migrated (zero violations) — locked in as
+      // errors. See docs/DESIGN.md §1 (font size) and §3 (color).
+      "design-tokens/font-size-tokens": "error",
+      "design-tokens/color-tokens": "error",
     },
   },
 ];

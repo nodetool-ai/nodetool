@@ -89,7 +89,7 @@ export const assetGridStyles = (theme: Theme) => {
       verticalAlign: "middle"
     },
     ".folder-item.selected": {
-      backgroundColor: "rgba(255,255,255,0.08)",
+      backgroundColor: theme.vars.palette.c_overlay,
       "& .folder-name": {
         color: theme.vars.palette.grey[0],
         fontWeight: 500

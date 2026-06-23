@@ -32,6 +32,39 @@ export const designTokenIgnores = [
   "src/components/textEditor/codeHighlightStyles.ts",
   "src/constants/colors.ts",
   "src/config/data_types.ts",
+  // Color-picker + sketch tooling: every literal here is a *swatch / default
+  // paint color* the user manipulates — color-as-data, not chrome styling.
+  "src/components/color_picker/**",
+  "src/components/sketch/tools/**",
+  "src/components/sketch/types/**",
+  "src/components/sketch/state/**",
+  "src/components/sketch/ColorFieldPicker.tsx",
+  "src/components/sketch/ColorPickerPopover.tsx",
+  // 3D environment presets are literal scene colors fed to three.js.
+  "src/components/asset_viewer/Model3DViewer.tsx",
+  "src/components/model_editor/Model3DEditor.tsx",
+  // Standalone debug surface + pre-theme bootstrap app render before the MUI
+  // theme/vars exist, so they legitimately carry their own literal colors.
+  "src/components/CodeEditorDebug.tsx",
+  "src/GraphViewerApp.tsx",
+  // Template-category accent colors are catalog data, not component styling.
+  "src/utils/templateCategories.ts",
+  // Prism/JSON syntax-highlight token colors — a fixed editor color scheme,
+  // same category as textEditor/codeHighlightStyles.ts.
+  "src/components/node/output/JSONRenderer.tsx",
+  "src/components/node/output/ToolCallRenderer.tsx",
+  // Canvas / WebGL / xterm surfaces consume *literal* colors (a CSS var() can't
+  // be read by a 2D/GL/terminal renderer), so their color config stays literal.
+  "src/components/node/NodeTerminal.tsx",
+  "src/components/timeline/preview/PreviewCompositor.tsx",
+  // Provider brand-identity colors in an onboarding data array.
+  "src/components/portal/PortalSetupFlow.tsx",
+  // "Add Black/White/Gray layer" swatch buttons — the button color *is* the
+  // paint value it creates (color-as-data).
+  "src/components/sketch/SketchLayersPanel.tsx",
+  // Decorative multi-hue @keyframes "running" status pulse — a rainbow animation,
+  // not semantic chrome.
+  "src/components/miniapps/StandaloneMiniApp.tsx",
 ];
 
 const muiPrimitiveMessage =
@@ -111,14 +144,10 @@ export const noRestrictedSyntax = [
     message:
       "Use a BORDER_RADIUS constant (or theme.rounded.*) instead of a raw var(--rounded-*) string in TSX. See docs/DESIGN.md §4.",
   },
-  {
-    // fontSize: "14px" / "0.85rem" → use a TYPOGRAPHY / FONT_SIZE token
-    // (or var(--fontSize*)). Icon sizing should use a token too.
-    selector:
-      "Property[key.name='fontSize'] > Literal[value=/^[0-9.]+(px|rem|em)$/]",
-    message:
-      "Use a TYPOGRAPHY/FONT_SIZE token or var(--fontSize*) instead of a hardcoded font size. See ui_primitives/tokens.ts and docs/DESIGN.md.",
-  },
+  // NOTE: Font size is NOT handled here. The `design-tokens/font-size-tokens`
+  // custom rule below covers object props AND px/rem inside `styled`/`css`
+  // template literals, and (per DESIGN.md §1) deliberately allows `em` for icon
+  // glyph scaling. See eslint.design.mjs → fontSizeTokensRule and docs/DESIGN.md §1.
   // NOTE: Spacing (padding/margin/gap) is NOT handled here. A `no-restricted-syntax`
   // selector can only see object-literal `Property > Literal` nodes, which misses
   // (a) shorthand strings ("8px 12px"), (b) MUI sx short props (p/px/mt/…), and
@@ -139,16 +168,11 @@ export const noRestrictedSyntax = [
     message:
       "Use FONT_WEIGHT.normal/medium/semibold (400/500/600). 700/bold/300 are not sanctioned weights. See docs/DESIGN.md §1.",
   },
-  {
-    // color/background/border: "#abc" / "rgb(…)" → theme.vars.palette.*.
-    // Scoped to text/background/border color props; fill/stroke (SVG & canvas)
-    // and boxShadow (rgba shadows) are excluded as commonly legitimate
-    // literal-color surfaces.
-    selector:
-      "Property[key.name=/^(color|background|backgroundColor|borderColor|borderTopColor|borderRightColor|borderBottomColor|borderLeftColor|outlineColor|textDecorationColor|caretColor|columnRuleColor)$/] > Literal[value=/#[0-9a-fA-F]+|rgba?\\(/]",
-    message:
-      "Use a theme.vars.palette.* token instead of a hardcoded hex/rgb color. New colors go in paletteDark.ts + paletteLight.ts as c_*. See docs/DESIGN.md §3.",
-  },
+  // NOTE: Color is NOT handled here. The `design-tokens/color-tokens` custom
+  // rule below covers object props AND hex/rgb inside `styled`/`css` template
+  // literals, and skips values that already reference a CSS var (e.g.
+  // `rgba(var(--palette-primary-main-channel) / 0.1)`), which are theme-driven.
+  // See eslint.design.mjs → colorTokensRule and docs/DESIGN.md §3.
 ];
 
 // ---------------------------------------------------------------------------
@@ -278,7 +302,165 @@ export const spacingTokensRule = {
   },
 };
 
-// Local plugin exposing the spacing rule for the design gate config.
+// ---------------------------------------------------------------------------
+// Font-size custom rule (DESIGN.md §1 — four sanctioned sizes).
+//
+// `no-restricted-syntax` only sees object-literal `Property > Literal` nodes, so
+// it misses px/rem embedded in `styled`/`css` template literals. This rule
+// covers both. Per DESIGN.md §1, `em` is the sanctioned icon-glyph scaling unit
+// and is deliberately NOT flagged; only px/rem font sizes must become a token
+// (var(--fontSize*) / FONT_SIZE_*). `0`/`inherit`/`%` are not font sizes here.
+// ---------------------------------------------------------------------------
+
+// px/rem font size as a standalone object-property value (e.g. "14px", "0.85rem").
+const FONT_SIZE_PX_REM = /^[0-9]*\.?[0-9]+(?:px|rem)$/i;
+// A `font-size: <n>px|rem` declaration inside template-literal CSS.
+const CSS_FONT_SIZE_DECL = /font-size\s*:\s*[^;{}]*?[0-9]*\.?[0-9]+(?:px|rem)/i;
+
+const FONT_SIZE_MESSAGE =
+  "Use a font-size token (var(--fontSizeBig/Normal/Small/Smaller), a FONT_SIZE_* token, or spread TYPOGRAPHY.*) instead of a raw px/rem font size. `em` is allowed for icon scaling only. See ui_primitives/tokens.ts and docs/DESIGN.md §1.";
+
+export const fontSizeTokensRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description:
+        "Enforce font-size tokens (var(--fontSize*) / TYPOGRAPHY) for raw px/rem font sizes (DESIGN.md §1).",
+    },
+    schema: [],
+    messages: { raw: FONT_SIZE_MESSAGE },
+  },
+  create(context) {
+    return {
+      Property(node) {
+        const key = node.key;
+        const name =
+          key?.type === "Identifier"
+            ? key.name
+            : key?.type === "Literal"
+              ? String(key.value)
+              : null;
+        if (name !== "fontSize") return;
+        const value = node.value;
+        if (
+          value.type === "Literal" &&
+          typeof value.value === "string" &&
+          FONT_SIZE_PX_REM.test(value.value.trim())
+        ) {
+          context.report({ node: value, messageId: "raw" });
+        }
+      },
+      TemplateElement(node) {
+        if (CSS_FONT_SIZE_DECL.test(node.value.raw)) {
+          context.report({ node, messageId: "raw" });
+        }
+      },
+    };
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Color custom rule (DESIGN.md §3 — theme.vars.palette.* only).
+//
+// Covers object props AND color declarations inside `styled`/`css` template
+// literals. A value is reported only when it carries a raw hex / rgb()/rgba()
+// literal AND does NOT reference a CSS var: a value like
+// `rgba(var(--palette-primary-main-channel) / 0.12)` is already theme-driven and
+// is intentionally allowed. fill/stroke (SVG & canvas) and boxShadow (rgba
+// elevation shadows) remain out of scope as legitimate literal-color surfaces.
+// ---------------------------------------------------------------------------
+
+// Object-style color property keys (camelCase, MUI sx + emotion objects).
+const COLOR_PROP_KEYS = new Set([
+  "color",
+  "background",
+  "backgroundColor",
+  "border",
+  "borderTop",
+  "borderRight",
+  "borderBottom",
+  "borderLeft",
+  "borderColor",
+  "borderTopColor",
+  "borderRightColor",
+  "borderBottomColor",
+  "borderLeftColor",
+  "outline",
+  "outlineColor",
+  "textDecorationColor",
+  "caretColor",
+  "columnRuleColor",
+]);
+
+// CSS (kebab-case) color properties for scanning template-literal CSS text.
+const CSS_COLOR_PROP =
+  "(?:color|background|background-color|border|border-top|border-right|border-bottom|border-left|border-color|border-top-color|border-right-color|border-bottom-color|border-left-color|outline|outline-color|text-decoration-color|caret-color|column-rule-color)";
+const CSS_COLOR_DECL = new RegExp(
+  `(?:^|[;{}\\n])\\s*${CSS_COLOR_PROP}\\s*:\\s*([^;{}]*)`,
+  "gi"
+);
+
+// A raw hex or rgb()/rgba() color literal.
+const RAW_COLOR = /#[0-9a-fA-F]{3,8}\b|rgba?\(/;
+
+// True when the value carries a raw color literal that is NOT routed through a
+// CSS var. `var(--…)` (incl. `rgba(var(--…channel) / a)`) is theme-driven and OK.
+const hasRawColor = (value) =>
+  RAW_COLOR.test(value) && !/var\(\s*--/.test(value);
+
+const COLOR_MESSAGE =
+  "Use a theme.vars.palette.* token instead of a hardcoded hex/rgb color. New colors go in paletteDark.ts + paletteLight.ts as c_*. Values already routed through a CSS var (e.g. rgba(var(--palette-…-channel) / a)) are fine. See docs/DESIGN.md §3.";
+
+export const colorTokensRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description:
+        "Enforce theme.vars.palette.* tokens for color/background/border (DESIGN.md §3).",
+    },
+    schema: [],
+    messages: { raw: COLOR_MESSAGE },
+  },
+  create(context) {
+    return {
+      Property(node) {
+        const key = node.key;
+        const name =
+          key?.type === "Identifier"
+            ? key.name
+            : key?.type === "Literal"
+              ? String(key.value)
+              : null;
+        if (!name || !COLOR_PROP_KEYS.has(name)) return;
+        const value = node.value;
+        if (
+          value.type === "Literal" &&
+          typeof value.value === "string" &&
+          hasRawColor(value.value)
+        ) {
+          context.report({ node: value, messageId: "raw" });
+        }
+      },
+      TemplateElement(node) {
+        const raw = node.value.raw;
+        CSS_COLOR_DECL.lastIndex = 0;
+        let m;
+        while ((m = CSS_COLOR_DECL.exec(raw)) !== null) {
+          if (hasRawColor(m[1])) {
+            context.report({ node, messageId: "raw" });
+            return;
+          }
+        }
+      },
+    };
+  },
+};
+
+// Local plugin exposing the design-token rules for the gate config.
 export const designTokensPlugin = {
-  rules: { "spacing-tokens": spacingTokensRule },
+  rules: {
+    "spacing-tokens": spacingTokensRule,
+    "font-size-tokens": fontSizeTokensRule,
+    "color-tokens": colorTokensRule,
+  },
 };

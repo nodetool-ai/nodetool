@@ -361,7 +361,7 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
           <div className="code-actions">
             <ToolbarIconButton
               tooltip="Open Editor"
-              icon={<OpenInFullIcon sx={{ fontSize: "0.875rem" }} />}
+              icon={<OpenInFullIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
               onClick={toggleExpand}
               size="small"
             />

@@ -56,7 +56,7 @@ const progressStyles = (theme: Theme) =>
     height: "4px",
     borderRadius: BORDER_RADIUS.pill,
     overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.07)",
+    backgroundColor: theme.vars.palette.c_overlay,
     "&::after": {
       content: '""',
       position: "absolute",
@@ -85,7 +85,7 @@ const useJobName = (job: Job): string => {
 
 const cardSx: SxProps<Theme> = {
   backgroundColor: "grey.800",
-  border: "1px solid rgba(255,255,255,0.05)",
+  border: "1px solid var(--palette-c_overlay)",
   borderRadius: BORDER_RADIUS.lg,
   px: 1.5,
   py: 1
@@ -353,7 +353,7 @@ const overlayStyles = (theme: Theme) =>
     backgroundColor: theme.vars.palette.grey[900],
     border: `1px solid ${theme.vars.palette.grey[800]}`,
     borderRadius: BORDER_RADIUS.xl,
-    boxShadow: "0 8px 24px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04)",
+    boxShadow: `0 8px 24px ${theme.vars.palette.c_scrim}, 0 0 0 1px ${theme.vars.palette.c_overlay_subtle}`,
     overflow: "hidden",
     transformOrigin: "top left",
     '&[data-state="open"]': {

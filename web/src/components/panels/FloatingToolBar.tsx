@@ -114,7 +114,7 @@ const actionStyles = (theme: Theme) =>
       gap: getSpacingPx(SPACING.xs),
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.primary.contrastText,
-      "& svg": { fontSize: "20px" },
+      "& svg": { fontSize: "var(--fontSizeBig)" },
       "&:hover": { backgroundColor: theme.vars.palette.primary.light },
       "&.running": {
         backgroundColor: theme.vars.palette.grey[800],
@@ -146,7 +146,7 @@ const actionStyles = (theme: Theme) =>
       height: "32px",
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[400],
-      "& svg": { fontSize: "18px" },
+      "& svg": { fontSize: "var(--fontSizeBig)" },
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[800],
         color: theme.vars.palette.warning.main
@@ -158,7 +158,7 @@ const actionStyles = (theme: Theme) =>
       height: "32px",
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[400],
-      "& svg": { fontSize: "20px" },
+      "& svg": { fontSize: "var(--fontSizeBig)" },
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[800],
         color: theme.vars.palette.grey[100]
@@ -175,7 +175,7 @@ const actionStyles = (theme: Theme) =>
       height: "32px",
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[400],
-      "& svg": { fontSize: "19px" },
+      "& svg": { fontSize: "var(--fontSizeBig)" },
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[800],
         color: theme.vars.palette.grey[100]

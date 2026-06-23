@@ -137,7 +137,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
         border: 0,
         padding: 0,
         margin: 0,
-        color: "#ffffff",
+        color: theme.vars.palette.common.white,
         textShadow: "0 1px 2px rgba(0, 0, 0, 0.4)",
         fontFamily: theme.fontFamily1,
         fontSize: "var(--fontSizeNormal)",
@@ -163,15 +163,15 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       pointerEvents: "auto",
       ".bypass-button, .menu-button": {
         border: "none !important",
-        backgroundColor: "rgba(255, 255, 255, 0.10) !important",
+        backgroundColor: `${theme.vars.palette.c_overlay} !important`,
         borderRadius: "var(--rounded-circle) !important",
-        color: "rgba(255, 255, 255, 0.9) !important",
+        color: `${theme.vars.palette.common.white} !important`,
         width: "28px !important",
         height: "28px !important",
         padding: "0 !important",
         "&:hover": {
-          backgroundColor: "rgba(255, 255, 255, 0.18) !important",
-          color: "#ffffff !important"
+          backgroundColor: `${theme.vars.palette.c_overlay_strong} !important`,
+          color: `${theme.vars.palette.common.white} !important`
         },
         "& svg": {
           fontSize: 20

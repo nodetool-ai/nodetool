@@ -175,7 +175,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         display: "flex",
         flexDirection: "column",
         gap: theme.spacing(1),
-        boxShadow: "0 4px 12px rgba(0,0,0,0.3)"
+        boxShadow: `0 4px 12px ${theme.vars.palette.c_scrim_soft}`
       },
       ".io-row": {
         display: "flex",
@@ -493,7 +493,10 @@ const SearchResultItem = memo(
                       </span>
                     ))}
                     {node.properties.length > 6 && (
-                      <span className="io-item" style={{ borderColor: "#666" }}>
+                      <span
+                        className="io-item"
+                        style={{ borderColor: "var(--palette-grey-500)" }}
+                      >
                         +{node.properties.length - 6}
                       </span>
                     )}

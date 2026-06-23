@@ -184,7 +184,7 @@ function GraphInner() {
           alignItems: "center",
           justifyContent: "center",
           background: bgColor,
-          color: "#ef4444",
+          color: "var(--palette-error-main)",
           fontFamily: "monospace",
           fontSize: 18
         }}
@@ -224,7 +224,7 @@ function GraphInner() {
         <Background
           gap={100}
           size={8}
-          color="rgba(255,255,255,0.05)"
+          color="var(--palette-c_overlay)"
           lineWidth={1}
           variant={BackgroundVariant.Cross}
         />

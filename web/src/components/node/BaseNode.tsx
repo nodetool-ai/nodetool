@@ -673,7 +673,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         ".tool-call-container": {
           margin: "0.5em 1em",
           padding: "0.5em",
-          background: "rgba(33, 150, 243, 0.1)",
+          background: `rgba(${theme.vars.palette.info.mainChannel} / 0.1)`,
           borderRadius: BORDER_RADIUS.sm,
           border: `1px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.2)`,
           fontSize: "0.75em",

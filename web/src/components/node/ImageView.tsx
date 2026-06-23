@@ -222,11 +222,11 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
     width: 24,
     height: 24,
     padding: getSpacingPx(SPACING.xs),
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    backgroundColor: "var(--palette-c_scrim)",
     color: "var(--palette-grey-0)",
     borderRadius: BORDER_RADIUS.sm,
     "&:hover": {
-      backgroundColor: "rgba(0, 0, 0, 0.85)"
+      backgroundColor: "var(--palette-c_scrim_strong)"
     },
     "& svg": {
       fontSize: 14

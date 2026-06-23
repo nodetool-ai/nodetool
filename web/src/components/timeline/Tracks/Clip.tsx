@@ -106,7 +106,7 @@ const clipStyles = (
       ? `1.5px solid ${theme.vars.palette.secondary.main}`
       : `1px solid ${clipBorderTint(theme, mediaType)}`,
     boxShadow: selected
-      ? `0 0 0 3px rgba(232, 121, 249, 0.18), 0 4px 12px rgba(0, 0, 0, 0.35)`
+      ? `0 0 0 3px rgba(var(--palette-secondary-mainChannel) / 0.18), 0 4px 12px ${theme.vars.palette.c_scrim_soft}`
       : "none",
     cursor: locked ? "not-allowed" : "grab",
     "&:active": {
@@ -138,7 +138,7 @@ const clipDotStyles = (accent: string) =>
     height: 6,
     borderRadius: BORDER_RADIUS.circle,
     backgroundColor: accent,
-    boxShadow: `0 0 0 1px rgba(0, 0, 0, 0.45)`,
+    boxShadow: `0 0 0 1px var(--palette-c_scrim)`,
     flexShrink: 0
   });
 
@@ -153,7 +153,7 @@ const clipNameStyles = (theme: Theme) =>
     textOverflow: "ellipsis",
     pointerEvents: "none",
     lineHeight: 1.4,
-    textShadow: "0 1px 2px rgba(0, 0, 0, 0.7)",
+    textShadow: `0 1px 2px ${theme.vars.palette.c_scrim}`,
     flex: "1 1 auto",
     minWidth: 0
   });
@@ -167,7 +167,7 @@ const clipDurationStyles = (theme: Theme) =>
     fontWeight: 500,
     color: theme.vars.palette.text.secondary,
     letterSpacing: "0",
-    textShadow: "0 1px 2px rgba(0, 0, 0, 0.7)"
+    textShadow: `0 1px 2px ${theme.vars.palette.c_scrim}`
   });
 
 const filmstripStyles = css({
@@ -396,9 +396,9 @@ const trimHandleStyles = (
     width: TRIM_HANDLE_WIDTH_PX,
     [edge === "start" ? "left" : "right"]: 0,
     cursor: locked ? "not-allowed" : "ew-resize",
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "var(--palette-c_overlay_strong)",
     "&:hover": {
-      backgroundColor: locked ? undefined : "rgba(255,255,255,0.4)"
+      backgroundColor: locked ? undefined : "var(--palette-c_overlay_strong)"
     },
     zIndex: 2
   });

@@ -149,7 +149,7 @@ const PropertyDropzone = ({
         opacity: 1
       },
       ".asset-action-button": {
-        backgroundColor: "rgba(0, 0, 0, 0.7)",
+        backgroundColor: theme.vars.palette.c_scrim,
         color: theme.vars.palette.grey[100],
         padding: getSpacingPx(SPACING.xs),
         width: "28px",
@@ -499,11 +499,11 @@ const PropertyDropzone = ({
                     url={uri}
                     className="asset-action-button"
                     sx={{
-                      backgroundColor: "rgba(0, 0, 0, 0.7)",
+                      backgroundColor: "var(--palette-c_scrim)",
                       width: "28px",
                       height: "28px",
                       "&:hover": {
-                        backgroundColor: "rgba(0, 0, 0, 0.85)"
+                        backgroundColor: "var(--palette-c_scrim_strong)"
                       }
                     }}
                   />

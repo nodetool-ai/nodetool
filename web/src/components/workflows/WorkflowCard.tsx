@@ -56,7 +56,7 @@ const cardStyles = (theme: Theme) =>
     "&:hover": {
       transform: "translateY(-2px)",
       borderColor: theme.vars.palette.primary.main,
-      boxShadow: "0 8px 24px rgba(0, 0, 0, 0.3)"
+      boxShadow: `0 8px 24px ${theme.vars.palette.c_scrim_soft}`
     },
     "&:hover .matched-nodes": {
       display: "flex"
@@ -72,7 +72,7 @@ const cardStyles = (theme: Theme) =>
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: "rgba(0, 0, 0, 0.75)",
+      backgroundColor: theme.vars.palette.c_scrim_strong,
       backdropFilter: "blur(4px)",
       zIndex: 10,
       borderRadius: BORDER_RADIUS.lg
@@ -117,7 +117,7 @@ const cardStyles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       letterSpacing: "0.5px",
-      backgroundColor: "rgba(0, 0, 0, 0.6)",
+      backgroundColor: theme.vars.palette.c_scrim,
       backdropFilter: "blur(4px)",
       color: theme.vars.palette.grey[200],
       padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
@@ -287,7 +287,7 @@ const WorkflowCard = ({
             padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`, // was 10px 14px
             maxWidth: 300,
             borderRadius: BORDER_RADIUS.lg,
-            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.3)"
+            boxShadow: `0 4px 20px ${theme.vars.palette.c_scrim_soft}`
           }
         },
         arrow: {

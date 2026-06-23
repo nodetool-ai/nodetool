@@ -89,7 +89,7 @@ const tileStyles = (theme: Theme) =>
         borderRadius: "inherit",
         // Soft gradient overlay
         background:
-          "linear-gradient(180deg, rgba(255,255,255,0.06), transparent 80%)",
+          `linear-gradient(180deg, ${theme.vars.palette.c_overlay}, transparent 80%)`,
         opacity: 0,
         transition: `opacity ${MOTION.slow}`,
         pointerEvents: "none"
@@ -140,7 +140,7 @@ const tileStyles = (theme: Theme) =>
       "& svg": {
         fontSize: "var(--fontSizeBig)",
         filter: theme.palette.mode === "dark"
-          ? "drop-shadow(0 3px 5px rgba(0,0,0,0.35))"
+          ? `drop-shadow(0 3px 5px ${theme.vars.palette.c_scrim_soft})`
           : "none"
       }
     },

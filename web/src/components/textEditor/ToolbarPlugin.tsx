@@ -21,7 +21,7 @@ import { INSERT_HORIZONTAL_RULE_COMMAND } from "./horizontalRuleCommand";
 const toolbarStyles = css`
   display: flex;
   gap: ${getSpacingPx(SPACING.xs)};
-  background-color: rgba(240, 240, 240, 0.5);
+  background-color: var(--palette-c_overlay_strong);
   padding: ${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)};
   border-radius: 3px;
   button {
@@ -36,10 +36,10 @@ const toolbarStyles = css`
     cursor: pointer;
 
     &.active {
-      background-color: rgba(0, 0, 0, 0.1);
+      background-color: var(--palette-c_scrim_soft);
     }
     &:hover {
-      background-color: rgba(0, 0, 0, 0.05);
+      background-color: var(--palette-c_scrim_soft);
     }
   }
 `;

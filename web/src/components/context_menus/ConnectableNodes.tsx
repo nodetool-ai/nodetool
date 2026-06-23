@@ -69,7 +69,7 @@ const scrollableContentStyles = (theme: Theme) =>
         }
       },
       ".icon-bg": {
-        backgroundColor: "rgba(255,255,255,0.05) !important",
+        backgroundColor: `${theme.vars.palette.c_overlay} !important`,
         borderRadius: BORDER_RADIUS.sm,
         padding: getSpacingPx(SPACING.micro),
         display: "flex",

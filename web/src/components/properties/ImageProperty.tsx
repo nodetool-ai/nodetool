@@ -16,16 +16,16 @@ const connectedPreviewStyles = css({
   width: "100%",
   borderRadius: BORDER_RADIUS.md,
   overflow: "hidden",
-  border: "1px solid rgba(255,255,255,0.1)",
+  border: "1px solid var(--palette-c_overlay_strong)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   minHeight: "80px",
-  backgroundColor: "rgba(0,0,0,0.15)"
+  backgroundColor: "var(--palette-c_scrim_soft)"
 });
 
 const awaitingStyles = css({
-  color: "rgba(255,255,255,0.3)",
+  color: "var(--palette-text-disabled)",
   fontSize: "var(--fontSizeSmall)",
   textAlign: "center",
   padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)}`

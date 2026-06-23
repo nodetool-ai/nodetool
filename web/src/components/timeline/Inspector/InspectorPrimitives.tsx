@@ -290,7 +290,7 @@ const pillWrapStyles = (theme: Theme, disabled: boolean, focused: boolean) =>
     padding: theme.spacing(0, 3),
     backgroundColor: theme.vars.palette.background.default,
     border: `1px solid ${
-      focused ? theme.vars.palette.primary.main : "rgba(255, 255, 255, 0.05)"
+      focused ? theme.vars.palette.primary.main : theme.vars.palette.c_overlay
     }`,
     borderRadius: BORDER_RADIUS.md,
     minWidth: 92,
@@ -429,7 +429,7 @@ const toggleSwitchSx = {
     transitionDuration: "180ms",
     "&.Mui-checked": {
       transform: "translateX(16px)",
-      color: "#fff",
+      color: "var(--palette-primary-contrastText)",
       "& + .MuiSwitch-track": {
         backgroundColor: "var(--palette-primary-main)",
         opacity: 1,
@@ -441,11 +441,11 @@ const toggleSwitchSx = {
     boxSizing: "border-box",
     width: 16,
     height: 16,
-    boxShadow: "0 1px 2px rgba(0,0,0,0.4)"
+    boxShadow: "0 1px 2px var(--palette-c_scrim)"
   },
   "& .MuiSwitch-track": {
     borderRadius: BORDER_RADIUS.pill,
-    backgroundColor: "rgba(255,255,255,0.18)",
+    backgroundColor: "var(--palette-c_overlay_strong)",
     opacity: 1
   }
 } as const;

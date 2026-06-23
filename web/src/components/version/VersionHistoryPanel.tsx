@@ -347,7 +347,7 @@ export const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
       {isCompareMode && !compareVersionId && (
         <div style={{
           padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`,
-          backgroundColor: "rgba(2, 136, 209, 0.08)"
+          backgroundColor: "rgba(var(--palette-info-mainChannel) / 0.08)"
         }}>
           <Caption size="tiny" color="primary">
             {!selectedVersionId

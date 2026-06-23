@@ -70,7 +70,7 @@ const styles = (theme: Theme) =>
         bottom: theme.spacing(0.5),
         right: theme.spacing(0.5),
         padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
-        background: "rgba(0,0,0,0.6)",
+        background: theme.vars.palette.c_scrim,
         color: theme.vars.palette.common.white,
         fontFamily: theme.fontFamily2,
         fontSize: theme.fontSizeSmaller,

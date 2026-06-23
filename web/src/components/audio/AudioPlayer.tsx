@@ -82,11 +82,11 @@ const styles = (theme: Theme) =>
       padding: getSpacingPx(SPACING.lg), // was 10px
       transition: "border",
       backgroundColor: "transparent",
-      border: "1px solid rgba(70, 70, 70, 0.3)",
+      border: `1px solid ${theme.vars.palette.c_overlay}`,
       marginLeft: "0",
       "&:hover": {
         backgroundColor: "transparent",
-        border: "1px solid rgba(90, 90, 90, 0.4)"
+        border: `1px solid ${theme.vars.palette.c_overlay}`
       }
     },
     ".tiny": {

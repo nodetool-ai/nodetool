@@ -46,7 +46,7 @@ const styles = (theme: Theme) =>
     "& .realtime-visualizer": {
       borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
-      background: "rgba(0, 0, 0, 0.4)"
+      background: theme.vars.palette.c_scrim
     },
     "& .realtime-idle": {
       height: "140px",
@@ -54,16 +54,16 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       borderRadius: BORDER_RADIUS.sm,
-      background: "rgba(0, 0, 0, 0.2)",
-      border: "1px dashed rgba(255, 255, 255, 0.15)",
-      color: "rgba(255, 255, 255, 0.4)",
+      background: theme.vars.palette.c_scrim_soft,
+      border: `1px dashed ${theme.vars.palette.c_overlay_strong}`,
+      color: theme.vars.palette.text.disabled,
       fontSize: "0.85em",
       cursor: "pointer",
       transition: `all ${MOTION.fast}`,
       "&:hover": {
-        background: "rgba(0, 0, 0, 0.3)",
-        borderColor: "rgba(255, 255, 255, 0.3)",
-        color: "rgba(255, 255, 255, 0.6)"
+        background: theme.vars.palette.c_scrim_soft,
+        borderColor: theme.vars.palette.c_overlay_strong,
+        color: theme.vars.palette.text.secondary
       }
     }
   });

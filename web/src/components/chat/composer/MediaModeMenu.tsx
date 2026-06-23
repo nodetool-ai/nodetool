@@ -131,10 +131,10 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[100],
       transition: MOTION.background,
       "&:hover": {
-        backgroundColor: "rgba(255,255,255,0.06)"
+        backgroundColor: theme.vars.palette.c_overlay
       },
       "&.selected": {
-        backgroundColor: "rgba(255,255,255,0.08)"
+        backgroundColor: theme.vars.palette.c_overlay
       },
       "&.disabled": {
         opacity: 0.45,
@@ -180,7 +180,7 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
         backgroundColor: theme.vars.palette.grey[900],
         border: `1px solid ${theme.vars.palette.grey[800]}`,
         borderRadius: BORDER_RADIUS.sm,
-        boxShadow: "0 12px 40px rgba(0,0,0,0.45)"
+        boxShadow: `0 12px 40px ${theme.vars.palette.c_scrim}`
       }}
     >
       <div css={cssStyles} role="menu" aria-label="Generation mode">

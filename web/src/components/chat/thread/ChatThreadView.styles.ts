@@ -270,7 +270,7 @@ export const createStyles = (theme: Theme) => ({
         color: theme.vars.palette.error.contrastText
       },
       "& code": {
-        backgroundColor: "rgba(0,0,0,0.3)",
+        backgroundColor: theme.vars.palette.c_scrim_soft,
         color: theme.vars.palette.error.contrastText
       }
     },

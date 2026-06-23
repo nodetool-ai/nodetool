@@ -11,14 +11,14 @@ export const createStyles = (theme: Theme) =>
     minHeight: "44px",
     ".compose-message": {
       width: "100%",
-      backgroundColor: "rgba(255, 255, 255, 0.03)",
+      backgroundColor: theme.vars.palette.c_overlay_subtle,
       backdropFilter: "blur(10px)",
-      border: "1px solid rgba(255, 255, 255, 0.08)",
+      border: `1px solid ${theme.vars.palette.c_overlay}`,
       display: "flex",
       flexDirection: "column",
       alignItems: "stretch",
       borderRadius: BORDER_RADIUS.pill,
-      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+      boxShadow: `0 4px 12px ${theme.vars.palette.c_scrim_soft}`,
       padding: `${theme.spacing(1)} ${theme.spacing(1.5)}`,
       minHeight: "44px",
       boxSizing: "border-box",
@@ -27,9 +27,9 @@ export const createStyles = (theme: Theme) =>
       transition: MOTION.all,
 
       "&:focus-within": {
-        backgroundColor: "rgba(255, 255, 255, 0.05)",
-        borderColor: "rgba(255, 255, 255, 0.15)",
-        boxShadow: "0 4px 16px rgba(0,0,0,0.2)"
+        backgroundColor: theme.vars.palette.c_overlay,
+        borderColor: theme.vars.palette.c_overlay_strong,
+        boxShadow: `0 4px 16px ${theme.vars.palette.c_scrim_soft}`
       },
 
       "&.dragging": {

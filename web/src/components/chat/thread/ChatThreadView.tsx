@@ -191,7 +191,7 @@ const StatusFooter = memo<StatusFooterProps>(
                   fontSize: FONT_SIZE_SANS.label,
                   padding: "0.5rem 0.75rem",
                   borderRadius: BORDER_RADIUS.md,
-                  backgroundColor: "rgba(30, 35, 40, 0.4)",
+                  backgroundColor: theme.vars.palette.c_scrim,
                   border: `1px solid ${theme.vars.palette.action.disabledBackground}`,
                   color:
                     currentLogUpdate.severity === "error"

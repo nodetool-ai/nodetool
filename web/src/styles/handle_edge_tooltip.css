@@ -256,8 +256,8 @@
 .react-flow__node .react-flow__handle.control-handle {
   width: 14px;
   height: 8px;
-  background: #f59e0b;
-  border: 1px solid #d97706;
+  background: var(--palette-warning-main);
+  border: 1px solid var(--palette-warning-dark);
   z-index: 1000;
   left: 50%;
   transform: translateX(-50%);
@@ -594,7 +594,7 @@ ul.multi-outputs li::marker {
   opacity: 0.9;
   margin-top: 0.4em;
   padding-top: 0.3em;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-top: 1px solid var(--palette-c_overlay_strong);
   max-width: 200px;
   text-align: center;
   line-height: 1.3;
