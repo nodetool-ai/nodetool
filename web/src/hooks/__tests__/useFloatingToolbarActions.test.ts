@@ -241,27 +241,7 @@ describe("useFloatingToolbarActions", () => {
       expect(mockRun).toHaveBeenCalled();
     });
 
-    it("triggers autosave before running if enabled", async () => {
-      mockUseSettingsStore.mockImplementation((selector) => {
-        const mockSettingsState = {
-          settings: {
-            autosave: {
-              saveBeforeRun: true,
-              maxVersionsPerWorkflow: 10
-            }
-          }
-        };
-        if (typeof selector === 'function') {
-          return selector(mockSettingsState as any);
-        }
-        return {
-          autosave: {
-            saveBeforeRun: true,
-            maxVersionsPerWorkflow: 10
-          }
-        } as any;
-      });
-
+    it("does not create an autosave version when running", async () => {
       mockGetWorkflow.mockReturnValue({
         ...mockWorkflow,
         graph: { nodes: [{ id: "node-1" }], edges: [] }
@@ -273,16 +253,8 @@ describe("useFloatingToolbarActions", () => {
         await result.current.handleRun();
       });
 
-      expect(mockTriggerAutosave).toHaveBeenCalledWith(
-        "workflow-123",
-        expect.any(Object),
-        "checkpoint",
-        expect.objectContaining({
-          description: "Before execution",
-          force: true,
-          maxVersions: 10
-        })
-      );
+      expect(mockTriggerAutosave).not.toHaveBeenCalled();
+      expect(mockRun).toHaveBeenCalled();
     });
 
     it("saves workflow after execution", async () => {

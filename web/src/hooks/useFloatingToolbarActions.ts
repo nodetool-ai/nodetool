@@ -5,7 +5,6 @@ import { useRunningJobs } from "./useRunningJobs";
 import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useSettingsStore } from "../stores/SettingsStore";
-import { triggerAutosaveForWorkflow } from "./useAutosave";
 import useMetadataStore from "../stores/MetadataStore";
 import { useRunWarningStore } from "../stores/RunWarningStore";
 import { useModelCalloutStore } from "../stores/ModelCalloutStore";
@@ -80,7 +79,6 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
   const getWorkflowById = useWorkflowManager((state) => state.getWorkflow);
   const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
 
-  const autosave = useSettingsStore((state) => state.settings.autosave);
   const confirmLargeRun = useSettingsStore(
     (state) => state.settings.confirmLargeRun
   );
@@ -108,18 +106,6 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
 
   const handleRun = useCallback(async () => {
     const doRun = async () => {
-      // Create a checkpoint version before execution if enabled
-      if (autosave?.saveBeforeRun) {
-        const w = getWorkflowById(workflow.id);
-        if (w?.graph?.nodes && w.graph.nodes.length > 0) {
-          await triggerAutosaveForWorkflow(workflow.id, w.graph, "checkpoint", {
-            description: "Before execution",
-            force: true,
-            maxVersions: autosave.maxVersionsPerWorkflow
-          });
-        }
-      }
-
       // Access current state directly to avoid re-renders on every node drag
       const { nodes, edges } = nodeStore.getState();
       run({}, workflow, nodes, edges, undefined, undefined, true);
@@ -200,7 +186,6 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     nodeStore,
     getWorkflowById,
     saveWorkflow,
-    autosave,
     confirmLargeRun,
     largeRunThreshold,
     requestRunConfirmation,
