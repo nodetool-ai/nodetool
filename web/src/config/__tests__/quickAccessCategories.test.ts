@@ -31,7 +31,7 @@ const idsIn = (category: NodeCategoryId, all: NodeMetadata[]): string[] =>
   );
 
 describe("quickAccessCategories", () => {
-  it("ships nine top-level views in order", () => {
+  it("ships eight top-level views in order", () => {
     const ids = LEFT_PANEL_TOP_LEVEL.map((c) => c.id);
     expect(ids).toEqual([
       "nodes",
@@ -41,8 +41,7 @@ describe("quickAccessCategories", () => {
       "settings",
       "history",
       "favorites",
-      "assets",
-      "agent"
+      "assets"
     ]);
   });
 

@@ -160,6 +160,10 @@ export interface MediaChatComposerProps {
   /** Extra actions rendered at the end of the footer chip row (e.g. the
    *  canvas Run button + workflow menu). Empty in the chat panel. */
   trailingActions?: React.ReactNode;
+  /** Extra actions rendered at the start of the footer chip row (e.g. the
+   *  canvas dock drag handle). Empty in the chat panel. Stays visible even
+   *  while the composer is minimized. */
+  leadingActions?: React.ReactNode;
   /** Override the auto-generated, mode-aware textarea placeholder. */
   placeholder?: string;
 }
@@ -195,6 +199,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   requireToolSupport,
   autoFocus = true,
   trailingActions,
+  leadingActions,
   placeholder: placeholderOverride,
   collapsible = false
 }) => {
@@ -925,6 +930,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         )}
 
         <div className="media-chip-row">
+          {/* Leading actions (e.g. the canvas dock drag handle). Stays visible
+              even while the composer is minimized. */}
+          {leadingActions}
           {/* Collapsible cluster: mode/model chips + primary action. Hidden
               while the composer is minimized (idle + empty); the trailing
               run actions below stay visible so the workflow can still run. */}

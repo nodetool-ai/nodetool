@@ -8,7 +8,7 @@ import type { LeftPanelView } from "../../stores/PanelStore";
 interface QuickAccessSidebarProps {
   activeCategory: LeftPanelView | "";
   onCategoryClick: (id: LeftPanelView) => void;
-  /** Top-level views to omit from the rail (e.g. hide "agent" on /chat). */
+  /** Top-level views to omit from the rail (e.g. show only Assets on /chat). */
   hiddenViews?: readonly LeftPanelView[];
 }
 

@@ -17,7 +17,6 @@ import WorkflowForm from "../workflows/WorkflowForm";
 import CreateWorkflowButton from "../workflows/CreateWorkflowButton";
 import TimelineListPanel, { CreateTimelineButton } from "../timeline/TimelineListPanel";
 import SketchListPanel, { CreateSketchButton } from "../sketch/SketchListPanel";
-import PanelChat from "../chat/containers/PanelChat";
 import HistoryTilesPanel from "../node_menu/HistoryTilesPanel";
 import FavoritesTiles from "../node_menu/FavoritesTiles";
 import QuickAccessSidebar from "../node_menu/QuickAccessSidebar";
@@ -52,7 +51,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import CodeIcon from "@mui/icons-material/Code";
 import GridViewIcon from "@mui/icons-material/GridView";
 
-import { Fullscreen, OpenInFull } from "@mui/icons-material";
+import { Fullscreen } from "@mui/icons-material";
 
 const HEADER_HEIGHT = 77;
 const HEADER_HEIGHT_MOBILE = 40;
@@ -275,10 +274,6 @@ const PanelContent = memo(function PanelContent({
     handlePanelToggle("assets");
   }, [navigate, handlePanelToggle]);
 
-  const handleOpenChatRoute = useCallback(() => {
-    navigate("/chat");
-  }, [navigate]);
-
   if (activeView === "nodes") {
     return (
       <NodeLibrary
@@ -415,33 +410,6 @@ const PanelContent = memo(function PanelContent({
           <ScrollArea fullHeight>
             <WorkflowForm workflow={currentWorkflow} onClose={closePanel} />
           </ScrollArea>
-        </FlexColumn>
-      )}
-      {activeView === "agent" && (
-        <FlexColumn
-          className="agent-panel-container"
-          fullWidth
-          fullHeight
-          sx={{
-            overflow: "hidden"
-          }}
-        >
-          {!isMobile && (
-            <PanelHeadline
-              title="Agent"
-              actions={
-                <Tooltip title="Open in full chat" placement="right-start">
-                  <ToolbarIconButton
-                    onClick={handleOpenChatRoute}
-                    tabIndex={-1}
-                    ariaLabel="Open in full chat"
-                    icon={<OpenInFull />}
-                  />
-                </Tooltip>
-              }
-            />
-          )}
-          <PanelChat />
         </FlexColumn>
       )}
     </>

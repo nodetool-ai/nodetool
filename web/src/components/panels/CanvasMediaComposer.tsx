@@ -22,10 +22,14 @@ export interface CanvasMediaComposerProps {
    *  footer. Supplied by FloatingToolBar; kept here so the canvas composer
    *  stays a thin wrapper over MediaChatComposer. */
   trailingActions?: React.ReactNode;
+  /** Leading footer content (the dock drag handle), supplied by
+   *  FloatingToolBar. */
+  leadingActions?: React.ReactNode;
 }
 
 const CanvasMediaComposer: React.FC<CanvasMediaComposerProps> = ({
-  trailingActions
+  trailingActions,
+  leadingActions
 }) => {
   const {
     status,
@@ -103,6 +107,7 @@ const CanvasMediaComposer: React.FC<CanvasMediaComposerProps> = ({
       onMemoryToggle={setMemoryEnabled}
       autoFocus={false}
       collapsible
+      leadingActions={leadingActions}
       trailingActions={trailingActions}
     />
   );

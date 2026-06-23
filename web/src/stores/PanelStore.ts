@@ -18,8 +18,7 @@ export type LeftPanelView =
   | "history"
   | "favorites"
   | "assets"
-  | "nodes"
-  | "agent";
+  | "nodes";
 export type PanelView = LeftPanelView;
 
 export type NodeCategoryId =
@@ -73,8 +72,7 @@ const VALID_VIEWS: LeftPanelView[] = [
   "history",
   "favorites",
   "assets",
-  "nodes",
-  "agent"
+  "nodes"
 ];
 
 const VALID_NODE_CATEGORIES: NodeCategoryId[] = [
