@@ -8,7 +8,12 @@
  */
 
 import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
-import type { ImageModel, TTSModel, VideoModel } from "./types.js";
+import type {
+  ImageModel,
+  MusicModel,
+  TTSModel,
+  VideoModel
+} from "./types.js";
 
 // Stryker disable next-line StringLiteral: logger name is diagnostic, not asserted.
 const log = createLogger("nodetool.runtime.providers.manifest-models");
@@ -453,6 +458,81 @@ export function buildTTSModels(
       name: nodeName(n),
       provider: provider as TTSModel["provider"],
       ...(voices ? { voices } : {})
+    });
+  }
+
+  return [...seen.values()];
+}
+
+// Music-generation engine names and signal words. Used to tell music endpoints
+// apart from speech / sound-effect audio nodes (the `outputType === "audio"`
+// guard plus the `!isTTSNode` check already exclude TTS).
+const MUSIC_KEYWORDS = [
+  "music",
+  "song",
+  "lyric",
+  "vocal",
+  "instrumental",
+  "soundtrack",
+  "melody",
+  "remix",
+  "cover",
+  "musicgen",
+  "audiogen",
+  "stable-audio",
+  "stable_audio",
+  "suno",
+  "ace-step",
+  "acestep",
+  "diffrhythm",
+  "lyria",
+  "sonauto",
+  "cassette",
+  "beatoven",
+  "jukebox",
+  "flux-music"
+];
+
+/**
+ * Is this manifest entry a music-generation model? Music endpoints emit audio
+ * but are neither speech (TTS) nor speech-to-text. FAL groups them under
+ * `moduleName: "text_to_audio"`; other manifests have no grouping, so fall back
+ * to an explicit `text_to_music` task or a music keyword in the id/name. The
+ * `outputType === "audio"` and `!isTTSNode` guards keep speech models out.
+ */
+export function isMusicNode(n: ManifestNode): boolean {
+  if (n.outputType !== "audio") return false;
+  if (isTTSNode(n)) return false;
+  if (n.moduleName === "text_to_audio") return true;
+  if (explicitTasks(n)?.includes("text_to_music")) return true;
+  const hay = `${nodeId(n)} ${nodeName(n)}`.toLowerCase();
+  return matchesAny(hay, ...MUSIC_KEYWORDS);
+}
+
+export function loadMusicModels(
+  packageName: string,
+  exportPath: string,
+  provider: string
+): MusicModel[] {
+  return buildMusicModels(loadManifest(packageName, exportPath), provider);
+}
+
+/** Pure transform: manifest nodes → deduplicated text-to-music models. */
+export function buildMusicModels(
+  manifest: ManifestNode[],
+  provider: string
+): MusicModel[] {
+  const seen = new Map<string, MusicModel>();
+
+  for (const n of manifest) {
+    if (!isMusicNode(n)) continue;
+    const id = nodeId(n);
+    if (!id || seen.has(id)) continue;
+    seen.set(id, {
+      id,
+      name: nodeName(n),
+      provider: provider as MusicModel["provider"],
+      supportedTasks: ["text_to_music"]
     });
   }
 

@@ -9,7 +9,7 @@ import type { UnifiedModel } from "@nodetool-ai/protocol";
 import type { ProviderId } from "./providers/index.js";
 
 export interface RecommendedUnifiedModel extends UnifiedModel {
-  modality: "language" | "image" | "tts" | "asr" | "video";
+  modality: "language" | "image" | "tts" | "asr" | "video" | "music";
   task?:
     | "text_generation"
     | "embedding"
@@ -152,5 +152,25 @@ export const RECOMMENDED_MODELS: RecommendedUnifiedModel[] = [
     modality: "video",
     task: "image_to_video",
     provider: "openai"
+  },
+  {
+    id: "meta/musicgen",
+    type: "music_model",
+    name: "MusicGen",
+    repo_id: null,
+    path: null,
+    downloaded: false,
+    modality: "music",
+    provider: "replicate"
+  },
+  {
+    id: "music-2.6",
+    type: "music_model",
+    name: "MiniMax Music 2.6",
+    repo_id: null,
+    path: null,
+    downloaded: false,
+    modality: "music",
+    provider: "minimax"
   }
 ];

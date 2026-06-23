@@ -83,6 +83,13 @@ export const useASRProviders = (): UseProvidersResult => {
 };
 
 /**
+ * Get providers that support music generation.
+ */
+export const useMusicProviders = (): UseProvidersResult => {
+  return useProvidersByCapability("text_to_music");
+};
+
+/**
  * Get providers that support video generation.
  */
 export const useVideoProviders = (): UseProvidersResult => {

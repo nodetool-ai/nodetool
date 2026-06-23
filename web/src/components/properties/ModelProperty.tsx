@@ -11,6 +11,7 @@ import LanguageModelSelect from "./LanguageModelSelect";
 import EmbeddingModelSelect from "./EmbeddingModelSelect";
 import ImageModelSelect from "./ImageModelSelect";
 import TTSModelSelect from "./TTSModelSelect";
+import MusicModelSelect from "./MusicModelSelect";
 import ASRModelSelect from "./ASRModelSelect";
 import VideoModelSelect from "./VideoModelSelect";
 import Model3DModelSelect from "./Model3DModelSelect";
@@ -154,6 +155,15 @@ const ModelProperty = (props: PropertyProps) => {
     } else if (modelType === "tts_model") {
       return (
         <TTSModelSelect
+          onChange={props.onChange}
+          value={props.value || ""}
+          recommendedModels={recommendedModels}
+          modelPacks={modelPacks}
+        />
+      );
+    } else if (modelType === "music_model") {
+      return (
+        <MusicModelSelect
           onChange={props.onChange}
           value={props.value || ""}
           recommendedModels={recommendedModels}
