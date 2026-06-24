@@ -64,6 +64,14 @@ jest.mock("../../../../components/inputs/NumberInput", () => ({
 HTMLCanvasElement.prototype.setPointerCapture = jest.fn();
 HTMLCanvasElement.prototype.releasePointerCapture = jest.fn();
 
+// jsdom has no real canvas backend, so toDataURL throws and snapshotMask()
+// returns "" — which makes pushUndoSnapshot a no-op and undo never enables.
+// Return a non-empty data URL so history behaves the way it does in a browser
+// (and in CI, where the native canvas module is present).
+HTMLCanvasElement.prototype.toDataURL = jest.fn(
+  () => "data:image/png;base64,iVBORw0KGgo="
+);
+
 const renderWithTheme = (component: React.ReactNode) =>
   render(<ThemeProvider theme={mockTheme}>{component}</ThemeProvider>);
 
