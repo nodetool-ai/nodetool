@@ -9,6 +9,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import { useShallow } from "zustand/react/shallow";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
 import { HomeNamespaceIcon } from "./NamespaceIcon";
+import OptionalPacksSection from "./OptionalPacksSection";
 
 interface NamespacePanelProps {
   namespaceTree: NamespaceTree;
@@ -291,6 +292,7 @@ const NamespacePanel: React.FC<NamespacePanelProps> = ({ namespaceTree }) => {
             </div>
           </>
         )}
+        <OptionalPacksSection />
       </ListGroup>
     </div>
   );

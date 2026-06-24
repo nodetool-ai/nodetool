@@ -1,7 +1,9 @@
 import { useCallback, useMemo } from "react";
 import { isProduction } from "../lib/env";
 import useMetadataStore from "../stores/MetadataStore";
+import useOptionalNodePacksStore from "../stores/OptionalNodePacksStore";
 import { useSecrets } from "./useSecrets";
+import { isNamespaceHiddenByOptionalPacks } from "../config/optionalNodePacks";
 import {
   getProviderKindForNamespace,
   getRequiredSecretKeyForNamespace,
@@ -77,7 +79,17 @@ export interface NamespaceTree {
  */
 const useNamespaceTree = (): NamespaceTree => {
   const metadata = useMetadataStore((state) => state.metadata);
+  const enabledPackIds = useOptionalNodePacksStore(
+    (state) => state.enabledPackIds
+  );
   const { isApiKeySet } = useSecrets();
+
+  // Namespaces belonging to optional packs the user hasn't turned on are kept
+  // out of the browsable tree. Search and direct node usage are unaffected.
+  const enabledPacks = useMemo(
+    () => new Set(enabledPackIds),
+    [enabledPackIds]
+  );
 
   // Check if a namespace should be disabled
   const isNamespaceDisabled = useCallback(
@@ -98,6 +110,10 @@ const useNamespaceTree = (): NamespaceTree => {
       .map((node) => node.namespace)
       .filter((namespace) => namespace !== "default")
       .filter(
+        (namespace) =>
+          !isNamespaceHiddenByOptionalPacks(namespace, enabledPacks)
+      )
+      .filter(
         (value, index, self) => index === self.findIndex((t) => t === value)
       );
 
@@ -109,7 +125,7 @@ const useNamespaceTree = (): NamespaceTree => {
       }
       return aDisabled ? 1 : -1;
     });
-  }, [metadata, isNamespaceDisabled]);
+  }, [metadata, isNamespaceDisabled, enabledPacks]);
 
   // Build the tree structure
   return useMemo(() => {

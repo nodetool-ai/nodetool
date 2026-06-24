@@ -1,6 +1,7 @@
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { isProduction } from "../../lib/env";
 import useMetadataStore from "../../stores/MetadataStore";
+import useOptionalNodePacksStore from "../../stores/OptionalNodePacksStore";
 import { useSecrets } from "../useSecrets";
 import useNamespaceTree from "../useNamespaceTree";
 
@@ -211,6 +212,49 @@ describe("useNamespaceTree", () => {
       const openai = result.current["openai"];
       expect(openai.children["chat"].disabled).toBe(openai.disabled);
       expect(openai.children["embedding"].disabled).toBe(openai.disabled);
+    });
+  });
+
+  describe("optional node packs", () => {
+    const metadataWithOptional = {
+      core: { namespace: "nodetool.text", type: "nodetool.text.Concat" },
+      optional: { namespace: "lib.pdf", type: "lib.pdf.ReadPdf" }
+    };
+
+    beforeEach(() => {
+      (useMetadataStore as unknown as jest.Mock).mockImplementation(
+        (selector?: any) => {
+          const state = { metadata: metadataWithOptional };
+          return selector ? selector(state) : state;
+        }
+      );
+      (useSecrets as jest.Mock).mockReturnValue({
+        isApiKeySet: jest.fn(() => true)
+      });
+      act(() => {
+        useOptionalNodePacksStore.setState({ enabledPackIds: [] });
+      });
+    });
+
+    afterEach(() => {
+      act(() => {
+        useOptionalNodePacksStore.setState({ enabledPackIds: [] });
+      });
+    });
+
+    it("hides optional-pack namespaces by default", () => {
+      const { result } = renderHook(() => useNamespaceTree());
+      expect(result.current["nodetool"]).toBeDefined();
+      expect(result.current["lib"]).toBeUndefined();
+    });
+
+    it("reveals an optional-pack namespace once its pack is enabled", () => {
+      act(() => {
+        useOptionalNodePacksStore.setState({ enabledPackIds: ["documents"] });
+      });
+      const { result } = renderHook(() => useNamespaceTree());
+      expect(result.current["lib"]).toBeDefined();
+      expect(result.current["lib"].children["pdf"]).toBeDefined();
     });
   });
 
