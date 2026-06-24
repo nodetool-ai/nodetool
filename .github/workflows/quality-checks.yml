@@ -44,28 +44,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
-
-      - name: Install system libraries (keytar + CPU Vulkan driver)
+      - name: Set up Node, install deps
         # mesa-vulkan-drivers ships lavapipe (CPU Vulkan ICD) at
         # /usr/share/vulkan/icd.d/lvp_icd.x86_64.json so Dawn can acquire a
         # WebGPU adapter on GPU-less CI runners. Without it, the shader-backed
         # base-nodes tests fail with "No WebGPU adapter available (Node/Dawn)".
         # We can't rely on Electron's bundled vk_swiftshader_icd.json here
-        # because ELECTRON_SKIP_BINARY_DOWNLOAD=1 is set below.
-        run: sudo apt-get update && sudo apt-get install -y libsecret-1-0 mesa-vulkan-drivers
-
-      - name: Install all workspace dependencies
-        run: npm ci
-        env:
-          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
-
-      - name: Rebuild native modules
-        run: npm rebuild better-sqlite3
+        # because ELECTRON_SKIP_BINARY_DOWNLOAD=1 is set by the action.
+        # build-packages is deferred so the dependency/circular-dep checks
+        # below run against source before the backend packages are built.
+        uses: ./.github/actions/setup-build
+        with:
+          extra-apt: mesa-vulkan-drivers
+          build-packages: "false"
 
       - name: Run npm audit (advisory)
         # Advisory only (continue-on-error) so a pre-existing vulnerability

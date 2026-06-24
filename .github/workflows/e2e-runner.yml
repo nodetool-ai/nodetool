@@ -48,25 +48,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - name: Set up Node, install deps, build packages
+        # mesa-vulkan-drivers ships lavapipe (CPU Vulkan ICD) so headless
+        # Chromium can acquire a WebGPU adapter on GPU-less CI runners.
+        uses: ./.github/actions/setup-build
         with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
-
-      - name: Install system libraries (keytar + CPU Vulkan driver)
-        run: sudo apt-get update && sudo apt-get install -y libsecret-1-0 mesa-vulkan-drivers
-
-      - name: Install all workspace dependencies
-        run: npm ci
-        env:
-          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
-
-      - name: Rebuild native modules
-        run: npm rebuild better-sqlite3
-
-      - name: Build backend packages
-        run: npm run build:packages
+          extra-apt: mesa-vulkan-drivers
 
       - name: Cache Playwright browsers
         uses: actions/cache@v5
