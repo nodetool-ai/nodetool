@@ -8,7 +8,7 @@
  *   - Height resize handle at the bottom edge
  */
 
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import React, { memo, useCallback, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -25,9 +25,9 @@ import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import type { TimelineTrack } from "@nodetool-ai/timeline";
 import {
   useTimelineStore,
-  useTimelineStoreApi,
-  timelineTemporalOf
+  useTimelineStoreApi
 } from "../../../stores/timeline/TimelineStore";
+import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
 import {
   useTimelineUIStore,
   useTimelineUIStoreApi
@@ -315,20 +315,12 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
   // pointerdown started the gesture (not when another drag passes over it).
   const isResizingRef = useRef(false);
 
-  // Undo batching: record the pre-resize state with the first mutation, then
-  // pause history so the whole resize collapses into one undo entry.
   const timelineStoreApi = useTimelineStoreApi();
-  const historyPausedRef = useRef(false);
 
-  const resumeHistory = useCallback(() => {
-    if (historyPausedRef.current) {
-      historyPausedRef.current = false;
-      timelineTemporalOf(timelineStoreApi).resume();
-    }
-  }, [timelineStoreApi]);
-
-  // Safety net: never leave history paused if the header unmounts mid-resize.
-  useEffect(() => resumeHistory, [resumeHistory]);
+  // Undo batching: begin on pointerdown, mark() after each mutation (pauses
+  // history once the pre-resize state is checkpointed), end() on pointerup, so
+  // the whole resize collapses into one undo entry.
+  const history = useTimelineHistoryBatch();
 
   const handleResizePointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -338,8 +330,9 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
       dragStartYRef.current = e.clientY;
       dragStartHeightRef.current = heightPx;
       isResizingRef.current = true;
+      history.begin();
     },
-    [heightPx]
+    [heightPx, history]
   );
 
   const handleResizePointerMove = useCallback(
@@ -353,19 +346,16 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
         Math.max(MIN_TRACK_HEIGHT_PX, dragStartHeightRef.current + deltaY)
       );
       setTrackHeight(track.id, newHeight);
-      // First mutation recorded the pre-resize state; batch the rest.
-      if (!historyPausedRef.current) {
-        timelineTemporalOf(timelineStoreApi).pause();
-        historyPausedRef.current = true;
-      }
+      // First effective mutation recorded the pre-resize state; batch the rest.
+      history.mark();
     },
-    [setTrackHeight, track.id, timelineStoreApi]
+    [setTrackHeight, track.id, history]
   );
 
   const handleResizePointerEnd = useCallback(() => {
     isResizingRef.current = false;
-    resumeHistory();
-  }, [resumeHistory]);
+    history.end();
+  }, [history]);
 
   const isAudioTrack = track.type === "audio";
   const supportsEffects =
