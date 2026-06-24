@@ -438,6 +438,14 @@ export abstract class BaseProvider {
      * and send only the delta; stateless providers ignore it.
      */
     providerSession?: ProviderSession | null;
+    /**
+     * Lazily fetch the full conversation. When a session-based provider is
+     * handed only the new delta in `messages` (to avoid reloading the whole
+     * thread), it calls this to recover the complete history if it must prime
+     * context — i.e. when a resume fails or the system prompt changed. Absent
+     * when `messages` already holds the full history.
+     */
+    loadFullHistory?: () => Promise<Message[]>;
     /** Optional callback for native tool execution (used by providers with in-process MCP). */
     onToolCall?: (
       name: string,

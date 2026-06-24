@@ -440,6 +440,129 @@ describe("ClaudeAgentProvider", () => {
     expect(sessionOf(items)?.session.token).toBe("sess-new");
   });
 
+  it("does NOT load full history on a successful resume", async () => {
+    const { fn, calls } = fakeQuery([
+      sysInit("sess-1"),
+      textDelta("ok"),
+      successResult()
+    ]);
+    const provider = new ClaudeAgentProvider({}, { queryFn: fn });
+    let loadCalled = 0;
+    await collect(
+      provider.generateMessages({
+        messages: [sysMsg("Be terse."), userMsg("second")],
+        model: "haiku",
+        threadId: "t1",
+        providerSession: {
+          providerId: "claude_agent_sdk",
+          model: "haiku",
+          token: "sess-1",
+          checkpoint: 1 // relative: only the trimmed delta is sent
+        },
+        loadFullHistory: async () => {
+          loadCalled += 1;
+          return [];
+        }
+      })
+    );
+    expect(calls[0].options?.resume).toBe("sess-1");
+    expect(calls[0].prompt).toBe("second");
+    expect(loadCalled).toBe(0); // the SDK already holds the history
+  });
+
+  it("primes from loadFullHistory when a trimmed resume fails", async () => {
+    let call = 0;
+    const calls: QueryCall[] = [];
+    const fn: ClaudeQueryFn = (params) => {
+      calls.push({ prompt: params.prompt, options: params.options });
+      call += 1;
+      if (call === 1) {
+        return (async function* () {
+          throw new Error("session not found");
+        })();
+      }
+      return (async function* () {
+        yield sysInit("sess-new");
+        yield textDelta("recovered");
+        yield successResult();
+      })();
+    };
+    const provider = new ClaudeAgentProvider({}, { queryFn: fn });
+    const full = [
+      sysMsg("Be terse."),
+      userMsg("first"),
+      asstMsg("first-answer"),
+      userMsg("second")
+    ];
+    let loadCalled = 0;
+    const items = await collect(
+      provider.generateMessages({
+        // Only the delta is handed in; the full thread is behind the loader.
+        messages: [sysMsg("Be terse."), userMsg("second")],
+        model: "haiku",
+        threadId: "t1",
+        providerSession: {
+          providerId: "claude_agent_sdk",
+          model: "haiku",
+          token: "sess-old",
+          checkpoint: 1
+        },
+        loadFullHistory: async () => {
+          loadCalled += 1;
+          return full;
+        }
+      })
+    );
+    expect(calls).toHaveLength(2);
+    expect(calls[0].options?.resume).toBe("sess-old");
+    expect(calls[0].prompt).toBe("second"); // resume attempt sent the delta
+    expect(loadCalled).toBe(1);
+    // The fresh fallback primed from the FULL history, not just the delta.
+    expect(calls[1].options?.resume).toBeUndefined();
+    expect(calls[1].prompt).toContain("<conversation_so_far>");
+    expect(calls[1].prompt).toContain("first");
+    expect(chunksOf(items).find((c) => c.content === "recovered")).toBeTruthy();
+  });
+
+  it("primes from loadFullHistory when the system prompt changed", async () => {
+    const { fn, calls } = fakeQuery([
+      sysInit("sess-new"),
+      textDelta("ok"),
+      successResult()
+    ]);
+    const provider = new ClaudeAgentProvider({}, { queryFn: fn });
+    const full = [
+      sysMsg("Be terse."),
+      userMsg("first"),
+      asstMsg("first-answer"),
+      userMsg("second")
+    ];
+    let loadCalled = 0;
+    await collect(
+      provider.generateMessages({
+        messages: [sysMsg("Be terse."), userMsg("second")],
+        model: "haiku",
+        threadId: "t1",
+        providerSession: {
+          providerId: "claude_agent_sdk",
+          model: "haiku",
+          token: "sess-old",
+          checkpoint: 1,
+          systemHash: "stale-hash" // no longer matches → cannot resume
+        },
+        loadFullHistory: async () => {
+          loadCalled += 1;
+          return full;
+        }
+      })
+    );
+    // No resume attempt at all — straight to a fresh, fully-primed turn.
+    expect(calls).toHaveLength(1);
+    expect(calls[0].options?.resume).toBeUndefined();
+    expect(loadCalled).toBe(1);
+    expect(calls[0].prompt).toContain("first");
+  });
+
   it("strips nested-session env vars from the SDK subprocess env", async () => {
     const prev = { ...process.env };
     process.env.CLAUDECODE = "1";

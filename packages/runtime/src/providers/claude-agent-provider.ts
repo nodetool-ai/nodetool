@@ -158,6 +158,7 @@ export class ClaudeAgentProvider extends BaseProvider {
     audio?: Record<string, unknown>;
     threadId?: string | null;
     providerSession?: ProviderSession | null;
+    loadFullHistory?: () => Promise<Message[]>;
     onToolCall?: (
       name: string,
       args: Record<string, unknown>
@@ -181,6 +182,12 @@ export class ClaudeAgentProvider extends BaseProvider {
       (prior.systemHash == null || prior.systemHash === systemHash) &&
       args.messages.length > prior.checkpoint;
 
+    // Cache the session in-process only when the caller doesn't thread a token
+    // in (the CLI path). When it does (the websocket path), the DB is
+    // authoritative and the emitted checkpoint may be relative to a trimmed
+    // view, so caching it would corrupt a later cache-based resume.
+    const cacheSession = args.providerSession == null;
+
     // RESUME is best-effort: a session file may have been pruned/expired. If the
     // resume query fails *before* any content reached the consumer, fall back to
     // a fresh session; if it fails mid-stream we surface the error instead.
@@ -194,7 +201,8 @@ export class ClaudeAgentProvider extends BaseProvider {
           systemPrompt,
           systemHash,
           threadId,
-          emitted
+          emitted,
+          cacheSession
         });
         return;
       } catch (err) {
@@ -205,13 +213,21 @@ export class ClaudeAgentProvider extends BaseProvider {
       }
     }
 
+    // Fresh / fallback. When the caller handed us only the delta (a trimmed
+    // `messages` view) plus a loader, prime from the full conversation so prior
+    // context isn't lost — the session may have expired or the system prompt
+    // changed. Otherwise `messages` already holds the full history.
+    const freshMessages = args.loadFullHistory
+      ? await args.loadFullHistory()
+      : args.messages;
     yield* this.runTurn(args, {
-      prompt: buildFreshPrompt(args.messages),
+      prompt: buildFreshPrompt(freshMessages),
       resume: undefined,
       systemPrompt,
       systemHash,
       threadId,
-      emitted
+      emitted,
+      cacheSession
     });
   }
 
@@ -230,6 +246,14 @@ export class ClaudeAgentProvider extends BaseProvider {
       systemHash: string;
       threadId: string | null;
       emitted: { content: boolean };
+      /**
+       * Whether to update the in-process session cache. Only true when the
+       * caller doesn't manage the token itself (the CLI path): then the cache
+       * is the sole continuity. When the caller threads a token in, the DB is
+       * authoritative and the emitted checkpoint may be relative to a trimmed
+       * `messages`, so caching it would be unsafe.
+       */
+      cacheSession: boolean;
     }
   ): AsyncGenerator<ProviderStreamItem> {
     const queryFn = await this.loadQuery();
@@ -296,7 +320,7 @@ export class ClaudeAgentProvider extends BaseProvider {
               checkpoint: args.messages.length,
               systemHash: plan.systemHash
             };
-            this.sessions.set(plan.threadId, session);
+            if (plan.cacheSession) this.sessions.set(plan.threadId, session);
             yield { type: "session", session };
           }
           continue;

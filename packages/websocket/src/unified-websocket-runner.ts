@@ -120,6 +120,14 @@ function getMaxWsMessageBytes(): number {
 }
 
 /**
+ * How many recent messages to scan when probing for a resumable session before
+ * deciding whether the full thread needs loading. Large enough to clear the
+ * occasional errored turn between sessioned assistant replies, tiny next to a
+ * full thread load.
+ */
+const SESSION_PROBE_WINDOW = 50;
+
+/**
  * Find the continuation token to resume this thread with: the `provider_session`
  * of the most recent assistant message, but only if it was produced by the same
  * `provider` and `model` as the incoming request (a session is bound to both).
@@ -2757,24 +2765,6 @@ export class UnifiedWebSocketRunner {
       return;
     }
 
-    // Load history from DB, filter out agent_execution — matches Python's get_chat_history_from_db
-    const [dbMessages] = await Message.paginate(threadId, { limit: 1000 });
-    const chatHistory: ProviderMessage[] = [];
-    for (const m of dbMessages) {
-      const pm = this.dbMessageToProviderMessage(m);
-      if (pm) chatHistory.push(pm);
-    }
-
-    // Continuation token for session-based providers: read it off the most
-    // recent assistant message of this thread, but only resume when it was
-    // produced by the SAME provider+model (a session is bound to both). The DB
-    // column is authoritative; the provider also keeps an in-process cache.
-    const priorSession = lastMatchingProviderSession(
-      dbMessages,
-      providerId,
-      model
-    );
-
     const provider = await this.resolveProvider(providerId, userId);
 
     // Permission mode for this turn. Governs whether gated tool calls run,
@@ -2785,6 +2775,100 @@ export class UnifiedWebSocketRunner {
       data.permission_mode === "default"
         ? data.permission_mode
         : "default";
+
+    // Long-term memory mines the whole conversation, so it needs the full
+    // history; the resume fast path below is skipped when it is enabled.
+    const memoryEnabled =
+      data.memory_enabled === true || data.memory_enabled === "true";
+
+    // History load. Session-based providers (e.g. claude_agent) keep the
+    // conversation upstream, so when a resumable session exists for this
+    // provider+model we do NOT reload the whole thread: we probe a bounded
+    // recent window, send only the turns since the session, and hand the
+    // provider a `loadFullHistory` thunk it calls only if it must prime context
+    // (resume failed / system prompt changed). Otherwise we load the full
+    // history and use the standard slice-based resume. The DB column is the
+    // source of truth; the provider also keeps an in-process cache.
+    const systemChatMessage = (): ProviderMessage => ({
+      role: "system",
+      content: buildChatAgentSystemPrompt(permissionMode),
+      toolCallId: null,
+      toolCalls: null,
+      threadId: null
+    });
+    const convertDbMessages = (rows: Message[]): ProviderMessage[] => {
+      const out: ProviderMessage[] = [];
+      for (const m of rows) {
+        const pm = this.dbMessageToProviderMessage(m);
+        if (pm) out.push(pm);
+      }
+      return out;
+    };
+
+    let chatHistory: ProviderMessage[];
+    let priorSession: ProviderSession | null = null;
+    // The provider calls this only on a priming fallback; null on the full path.
+    let loadFullHistory: (() => Promise<ProviderMessage[]>) | null = null;
+    // Absolute checkpoint to persist on the assistant message when the fast path
+    // sent only a delta (so the stored value matches the full-load path); null
+    // when the provider's own checkpoint is already absolute.
+    let sessionCheckpointOverride: number | null = null;
+    {
+      const [recent] = await Message.paginate(threadId, {
+        reverse: true,
+        limit: SESSION_PROBE_WINDOW
+      });
+      const probeHasWholeThread = recent.length < SESSION_PROBE_WINDOW;
+      // `recent` is newest-first. Walk to the most recent assistant carrying a
+      // session token — that message is the resume boundary.
+      let probeSession: ProviderSession | null = null;
+      const sinceSessionNewestFirst: Message[] = [];
+      for (const m of recent) {
+        if (m.role === "assistant" && m.provider_session) {
+          const s = m.provider_session;
+          if (s.providerId === providerId && s.model === model) probeSession = s;
+          break;
+        }
+        sinceSessionNewestFirst.push(m);
+      }
+
+      if (probeSession && !memoryEnabled) {
+        // RESUME fast path: the SDK already holds the prior turns, so send only
+        // the messages since the session — no full-thread load.
+        const newTurns = convertDbMessages(sinceSessionNewestFirst.reverse());
+        chatHistory = newTurns;
+        // The single system message prepended below sits at index 0, so the new
+        // turns begin at index 1 (the provider's relative resume checkpoint).
+        priorSession = {
+          providerId,
+          model,
+          token: probeSession.token,
+          systemHash: probeSession.systemHash,
+          checkpoint: 1
+        };
+        // Absolute position to persist: prior prefix + the prior assistant + the
+        // new turns — identical to what the full-load path would store.
+        sessionCheckpointOverride =
+          probeSession.checkpoint + 1 + newTurns.length;
+        loadFullHistory = async () => {
+          const [rows] = await Message.paginate(threadId, { limit: 1000 });
+          const full = convertDbMessages(rows);
+          full.unshift(systemChatMessage());
+          return full;
+        };
+      } else if (probeHasWholeThread) {
+        // The whole thread fit in the probe window — reuse it, no second query.
+        const rows = [...recent].reverse();
+        chatHistory = convertDbMessages(rows);
+        priorSession = lastMatchingProviderSession(rows, providerId, model);
+      } else {
+        // Long thread without a resumable session in the recent window: load it
+        // all (a far-back session still resumes via the slice path).
+        const [rows] = await Message.paginate(threadId, { limit: 1000 });
+        chatHistory = convertDbMessages(rows);
+        priorSession = lastMatchingProviderSession(rows, providerId, model);
+      }
+    }
 
     // Expose the read-only `run_search` fan-out primitive by default. A client
     // can opt out by sending `enable_read_only_search: false`.
@@ -2953,8 +3037,7 @@ export class UnifiedWebSocketRunner {
     // helper is default-off; we only build it when the wire flag is true so
     // a missing/false flag matches the legacy behaviour exactly. Failures
     // are logged and swallowed — a memory hiccup must not break the turn.
-    const memoryEnabled =
-      data.memory_enabled === true || data.memory_enabled === "true";
+    // (`memoryEnabled` is computed earlier, before the history load.)
     let longTermMemory: LongTermMemory | null = null;
     if (memoryEnabled) {
       try {
@@ -2993,6 +3076,13 @@ export class UnifiedWebSocketRunner {
     // prior turn's token (so a session-based provider resumes) and is refreshed
     // whenever the provider emits a new ProviderSessionUpdate this turn.
     let capturedSession: ProviderSession | null = priorSession;
+    // What to persist onto the assistant message: the provider's token, but with
+    // the absolute checkpoint when the fast path sent only a delta (the
+    // provider's emitted checkpoint is relative to the trimmed view).
+    const sessionForPersist = (): ProviderSession | null =>
+      sessionCheckpointOverride != null && capturedSession
+        ? { ...capturedSession, checkpoint: sessionCheckpointOverride }
+        : capturedSession;
 
     // Tool execution loop — mirrors Python's RegularChatProcessor.process()
     const MAX_TOOL_ROUNDS = 10;
@@ -3027,6 +3117,7 @@ export class UnifiedWebSocketRunner {
               : undefined,
           threadId,
           providerSession: capturedSession,
+          loadFullHistory: loadFullHistory ?? undefined,
           onToolCall:
             shouldIncludeTools && providerToolSchemas.length > 0
               ? async (name: string, args: Record<string, unknown>) => {
@@ -3120,7 +3211,7 @@ export class UnifiedWebSocketRunner {
             workflow_id: workflowId,
             provider: providerId,
             model,
-            provider_session: capturedSession
+            provider_session: sessionForPersist()
           };
           await this.saveMessageToDb(assistantMsgData);
           await this.sendMessage(assistantMsgData);
@@ -3268,7 +3359,7 @@ export class UnifiedWebSocketRunner {
         workflow_id: workflowId,
         provider: providerId,
         model,
-        provider_session: capturedSession
+        provider_session: sessionForPersist()
       };
       await this.saveMessageToDb(finalMsgData);
       await this.sendMessage(finalMsgData);
