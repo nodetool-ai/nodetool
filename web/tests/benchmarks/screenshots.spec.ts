@@ -804,6 +804,31 @@ if (process.env.JEST_WORKER_ID) {
       await saveScreenshot(page, "editor-node-menu.png");
     });
 
+    test("Editor – optional node packs", async ({ page }) => {
+      test.skip(shouldSkip("node-menu-optional-packs.png"), "Already captured");
+      await openEditorWithNodes(page);
+      // Anchor the node menu at the canvas centre.
+      const canvas = page.locator(".react-flow").first();
+      const box = await canvas.boundingBox();
+      if (box) {
+        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      }
+      await page.keyboard.press(" ").catch(() => {});
+      const trigger = page.locator(".optional-packs-trigger").first();
+      await trigger
+        .waitFor({ state: "visible", timeout: 8000 })
+        .catch(() => {});
+      // Open the Optional packs popover (Categories + Providers).
+      await trigger.click().catch(() => {});
+      await page
+        .getByText("Optional node packs")
+        .first()
+        .waitFor({ state: "visible", timeout: 5000 })
+        .catch(() => {});
+      await waitForAnimation(page, 500);
+      await saveScreenshot(page, "node-menu-optional-packs.png");
+    });
+
     test("Editor – find in workflow (Ctrl/Cmd+F)", async ({ page }) => {
       test.skip(
         shouldSkip("editor-find-in-workflow.png"),

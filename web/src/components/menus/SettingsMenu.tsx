@@ -43,7 +43,7 @@ import { getAboutSidebarSections } from "./aboutSidebarUtils";
 import DefaultModelsMenu from "./DefaultModelsMenu";
 import MCPSettingsMenu from "./MCPSettingsMenu";
 import BrowserExtensionSettingsMenu from "./BrowserExtensionSettingsMenu";
-import PackagesMenu from "./PackagesMenu";
+import PackageManager from "../packages/PackageManager";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState, useCallback, useEffect, useRef } from "react";
 import SettingsSidebar from "./SettingsSidebar";
@@ -582,7 +582,10 @@ function SettingsPage() {
                 <Tab label="API Keys" id="settings-tab-1" />
                 <Tab label="Integrations" id="settings-tab-2" />
                 <Tab label="About" id={`settings-tab-${aboutTabIndex}`} />
-                <Tab label="Packages" id={`settings-tab-${packagesTabIndex}`} />
+                <Tab
+                  label="Package Manager"
+                  id={`settings-tab-${packagesTabIndex}`}
+                />
               </Tabs>
             </div>
 
@@ -1205,9 +1208,9 @@ function SettingsPage() {
                   <AboutMenu />
                 </TabPanel>
 
-                {/* Packages */}
+                {/* Package Manager */}
                 <TabPanel value={settingsTab} index={packagesTabIndex}>
-                  <PackagesMenu />
+                  <PackageManager />
                 </TabPanel>
               </div>
 

@@ -40,6 +40,7 @@ import NodeInfoPanel from "./NodeInfoPanel";
 import { useInspectedNodeStore } from "../../stores/InspectedNodeStore";
 import { useNodes } from "../../contexts/NodeContext";
 import { useWorkflowRuntimeCheck } from "../../hooks/useWorkflowRuntimeCheck";
+import { useAutoEnableNodePacks } from "../../hooks/useAutoEnableNodePacks";
 import { useRightPanelStore } from "../../stores/RightPanelStore";
 
 declare global {
@@ -73,6 +74,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   } = useNodeEditorShortcuts(active, () => setShowShortcuts((v) => !v));
 
   useWorkflowRuntimeCheck(workflowId);
+
+  // Enable provider packs whose API key is set, and packs used by the loaded
+  // workflow, so their nodes register without a manual step.
+  useAutoEnableNodePacks(active);
 
   // Subscribe only to undo/redo functions to prevent re-renders on history changes
   const undo = useTemporalNodes((state) => state.undo);

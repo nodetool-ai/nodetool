@@ -1,6 +1,7 @@
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { isProduction } from "../../lib/env";
 import useMetadataStore from "../../stores/MetadataStore";
+import useOptionalNodePacksStore from "../../stores/OptionalNodePacksStore";
 import { useSecrets } from "../useSecrets";
 import useNamespaceTree from "../useNamespaceTree";
 
@@ -45,6 +46,11 @@ describe("useNamespaceTree", () => {
 
   describe("tree structure building", () => {
     it("builds correct hierarchical tree structure", () => {
+      // All provider keys present so every keyed namespace is visible.
+      (useSecrets as jest.Mock).mockReturnValue({
+        isApiKeySet: jest.fn(() => true)
+      });
+
       const { result } = renderHook(() => useNamespaceTree());
       
       const tree = result.current;
@@ -100,38 +106,49 @@ describe("useNamespaceTree", () => {
       expect(treeKeys).toEqual(alphabeticalOrder);
     });
 
-    it("places enabled namespaces before disabled namespaces", () => {
+    it("keeps keyed providers with a key ahead of local namespaces", () => {
       (useSecrets as jest.Mock).mockReturnValue({
-        isApiKeySet: jest.fn((key: string) => {
-          return key === "OPENAI_API_KEY";
-        })
+        isApiKeySet: jest.fn(() => true)
       });
-      
+
       const { result } = renderHook(() => useNamespaceTree());
-      
+
       const keys = Object.keys(result.current);
-      const openaiIndex = keys.indexOf("openai");
-      const anthropicIndex = keys.indexOf("anthropic");
-      
-      expect(openaiIndex).toBeLessThan(anthropicIndex);
+      // Local namespaces sort before API providers; openai (api) comes after
+      // huggingface (local) once both are visible.
+      expect(keys.indexOf("huggingface")).toBeLessThan(keys.indexOf("openai"));
+    });
+  });
+
+  describe("API key gating (source of truth)", () => {
+    it("hides keyed providers until their API key is set", () => {
+      (useSecrets as jest.Mock).mockReturnValue({
+        isApiKeySet: jest.fn((key: string) => key === "OPENAI_API_KEY")
+      });
+
+      const { result } = renderHook(() => useNamespaceTree());
+
+      // openai has its key → visible; anthropic and replicate do not → hidden.
+      expect(result.current["openai"]).toBeDefined();
+      expect(result.current["anthropic"]).toBeUndefined();
+      expect(result.current["replicate"]).toBeUndefined();
+    });
+
+    it("never gates locally-run namespaces (e.g. huggingface)", () => {
+      (useSecrets as jest.Mock).mockReturnValue({
+        isApiKeySet: jest.fn(() => false)
+      });
+
+      const { result } = renderHook(() => useNamespaceTree());
+
+      // No keys at all: every API provider is hidden, huggingface stays.
+      expect(result.current["huggingface"]).toBeDefined();
+      expect(result.current["openai"]).toBeUndefined();
+      expect(result.current["anthropic"]).toBeUndefined();
     });
   });
 
   describe("API key validation", () => {
-    it("marks namespaces as disabled when API key is missing (non-production)", () => {
-      (useSecrets as jest.Mock).mockReturnValue({
-        isApiKeySet: jest.fn(() => false)
-      });
-      
-      const { result } = renderHook(() => useNamespaceTree());
-      
-      expect(result.current["anthropic"].disabled).toBe(true);
-      expect(result.current["anthropic"].requiredKey).toBe("Anthropic API Key");
-      
-      expect(result.current["replicate"].disabled).toBe(true);
-      expect(result.current["replicate"].requiredKey).toBe("Replicate API Token");
-    });
-
     it("marks namespaces as enabled when API key is present", () => {
       (useSecrets as jest.Mock).mockReturnValue({
         isApiKeySet: jest.fn((key: string) => {
@@ -147,39 +164,6 @@ describe("useNamespaceTree", () => {
 
     it("checks isProduction flag", () => {
       expect(typeof isProduction).toBe("boolean");
-    });
-  });
-
-  describe("first disabled tracking", () => {
-    it("marks first disabled root namespace with firstDisabled flag", () => {
-      (useSecrets as jest.Mock).mockReturnValue({
-        isApiKeySet: jest.fn(() => false)
-      });
-      
-      const { result } = renderHook(() => useNamespaceTree());
-      
-      const keys = Object.keys(result.current);
-      const firstDisabledIndex = keys.findIndex(key => result.current[key].disabled === true);
-      const firstDisabledKey = keys[firstDisabledIndex];
-      
-      expect(result.current[firstDisabledKey].firstDisabled).toBe(true);
-    });
-
-    it("only first disabled namespace has firstDisabled flag", () => {
-      (useSecrets as jest.Mock).mockReturnValue({
-        isApiKeySet: jest.fn(() => false)
-      });
-      
-      const { result } = renderHook(() => useNamespaceTree());
-      
-      const keys = Object.keys(result.current);
-      const disabledKeys = keys.filter(key => result.current[key].disabled === true);
-      
-      const firstDisabledCount = disabledKeys.filter(
-        key => result.current[key].firstDisabled === true
-      ).length;
-      
-      expect(firstDisabledCount).toBe(1);
     });
   });
 
@@ -201,16 +185,48 @@ describe("useNamespaceTree", () => {
       expect(result.current["provider"].children["category"].children["subcategory"]).toBeDefined();
     });
 
-    it("propagates disabled status through nested namespaces", () => {
+  });
+
+  describe("optional node packs", () => {
+    const metadataWithOptional = {
+      core: { namespace: "nodetool.text", type: "nodetool.text.Concat" },
+      optional: { namespace: "lib.pdf", type: "lib.pdf.ReadPdf" }
+    };
+
+    beforeEach(() => {
+      (useMetadataStore as unknown as jest.Mock).mockImplementation(
+        (selector?: any) => {
+          const state = { metadata: metadataWithOptional };
+          return selector ? selector(state) : state;
+        }
+      );
       (useSecrets as jest.Mock).mockReturnValue({
-        isApiKeySet: jest.fn(() => false)
+        isApiKeySet: jest.fn(() => true)
       });
-      
+      act(() => {
+        useOptionalNodePacksStore.setState({ enabledPackIds: [] });
+      });
+    });
+
+    afterEach(() => {
+      act(() => {
+        useOptionalNodePacksStore.setState({ enabledPackIds: [] });
+      });
+    });
+
+    it("hides optional-pack namespaces by default", () => {
       const { result } = renderHook(() => useNamespaceTree());
-      
-      const openai = result.current["openai"];
-      expect(openai.children["chat"].disabled).toBe(openai.disabled);
-      expect(openai.children["embedding"].disabled).toBe(openai.disabled);
+      expect(result.current["nodetool"]).toBeDefined();
+      expect(result.current["lib"]).toBeUndefined();
+    });
+
+    it("reveals an optional-pack namespace once its pack is enabled", () => {
+      act(() => {
+        useOptionalNodePacksStore.setState({ enabledPackIds: ["documents"] });
+      });
+      const { result } = renderHook(() => useNamespaceTree());
+      expect(result.current["lib"]).toBeDefined();
+      expect(result.current["lib"].children["pdf"]).toBeDefined();
     });
   });
 

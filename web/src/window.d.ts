@@ -453,9 +453,20 @@ declare global {
           packageId: string,
           installLocation?: string
         ) => Promise<{ success: boolean; message: string }>;
+        uninstallRuntime: (
+          packageId: string
+        ) => Promise<{ success: boolean; message: string }>;
         getInstallLocation: () => Promise<string>;
         selectInstallLocation: () => Promise<string | null>;
         showManager?: () => void;
+      };
+
+      // Backend server lifecycle + log streaming (available in Electron only)
+      server?: {
+        /** Restart the backend server. */
+        restart: () => Promise<void>;
+        /** Subscribe to streamed server log lines (conda/uv/npm stdout). */
+        onLog: (callback: (message: string) => void) => () => void;
       };
 
       // Low-level IPC methods for registering handlers (available in Electron only)
