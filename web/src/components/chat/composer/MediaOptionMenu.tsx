@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -10,7 +10,9 @@ import {
   Popover,
   Text,
   MOTION,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
 } from "../../ui_primitives";
 
 export interface MediaOption<T extends string | number> {
@@ -34,9 +36,9 @@ interface MediaOptionMenuProps<T extends string | number> {
 
 const styles = (theme: Theme) =>
   css({
-    padding: "8px 0",
+    padding: `${getSpacingPx(SPACING.md)} 0`,
     ".option-menu-header": {
-      padding: "8px 16px 4px",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xs)}`,
       color: theme.vars.palette.grey[400],
       textTransform: "uppercase",
       letterSpacing: 1
@@ -50,10 +52,10 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[100],
       transition: MOTION.background,
       "&:hover:not(.disabled)": {
-        backgroundColor: "rgba(255,255,255,0.06)"
+        backgroundColor: theme.vars.palette.c_overlay
       },
       "&.selected": {
-        backgroundColor: "rgba(255,255,255,0.04)"
+        backgroundColor: theme.vars.palette.c_overlay_subtle
       },
       "&.disabled": {
         opacity: 0.45,
@@ -87,6 +89,7 @@ function MediaOptionMenuInternal<T extends string | number>({
   minWidth = 200
 }: MediaOptionMenuProps<T>) {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   return (
     <Popover
       open={open}
@@ -98,10 +101,10 @@ function MediaOptionMenuInternal<T extends string | number>({
         border: `1px solid ${theme.vars.palette.grey[800]}`,
         borderRadius: BORDER_RADIUS.sm,
         minWidth,
-        boxShadow: "0 12px 40px rgba(0,0,0,0.45)"
+        boxShadow: `0 12px 40px ${theme.vars.palette.c_scrim}`
       }}
     >
-      <div css={styles(theme)} role="menu">
+      <div css={cssStyles} role="menu">
         {header && (
           <Caption className="option-menu-header" size="small">
             {header}

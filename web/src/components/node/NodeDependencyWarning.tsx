@@ -3,7 +3,7 @@ import { memo, useCallback, useEffect, useState, type FC } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { BORDER_RADIUS } from "../ui_primitives";
+import { BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import isEqual from "fast-deep-equal";
 import { getIsElectronDetails } from "../../utils/browser";
@@ -21,7 +21,7 @@ const warningStyles = (theme: Theme) =>
     padding: `${theme.spacing(2)} ${theme.spacing(3)}`,
     display: "flex",
     flexDirection: "column",
-    gap: "4px",
+    gap: getSpacingPx(SPACING.xs),
     width: "100%",
     maxWidth: "100%",
 
@@ -32,7 +32,7 @@ const warningStyles = (theme: Theme) =>
       fontWeight: 600,
       display: "flex",
       alignItems: "center",
-      gap: "6px",
+      gap: getSpacingPx(SPACING.sm),
     },
 
     ".warning-text": {
@@ -65,7 +65,7 @@ const warningStyles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.sm,
       padding: `${theme.spacing(1)} ${theme.spacing(3)}`,
       cursor: "pointer",
-      marginTop: "2px",
+      marginTop: getSpacingPx(SPACING.micro),
       "&:hover": {
         backgroundColor: theme.vars.palette.primary.dark,
       },

@@ -70,8 +70,8 @@ const CLOSE_BEHAVIOR_OPTIONS = [
 ] as const;
 
 const PAN_CONTROLS_OPTIONS = [
-  { value: "LMB", label: "Pan with LMB" },
-  { value: "RMB", label: "Pan with RMB" }
+  { value: "LMB", label: "Pan canvas" },
+  { value: "RMB", label: "Select nodes (box)" }
 ] as const;
 
 const SELECTION_MODE_OPTIONS = [
@@ -859,10 +859,10 @@ function SettingsPage() {
                       </Text>
                       <SearchItem
                         search={generalSearch}
-                        keywords="canvas navigation pan controls mouse"
+                        keywords="canvas navigation pan controls mouse select left click drag"
                       >
                         <SelectField
-                          label="Pan Controls"
+                          label="Left-Click Drag"
                           value={settings.panControls}
                           variant="standard"
                           onChange={handlePanControlsChange}
@@ -870,12 +870,15 @@ function SettingsPage() {
                         />
                         <div className="description">
                           <Text>
-                            Move the canvas by dragging with the left or right
-                            mouse button.
+                            What dragging with the left mouse button does on
+                            empty canvas.
                           </Text>
                           <Text>
-                            With RMB selected, you can also pan with the Middle
-                            Mouse Button.
+                            <b>Pan canvas:</b> left-drag moves the view.
+                            <br />
+                            <b>Select nodes:</b> left-drag draws a selection box;
+                            pan with the right or middle mouse button (and
+                            two-finger scroll on a trackpad).
                           </Text>
                         </div>
                       </SearchItem>

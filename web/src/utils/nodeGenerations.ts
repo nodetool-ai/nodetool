@@ -11,21 +11,19 @@ export const assetToOutputValue = (asset: Asset): Record<string, unknown> => {
   if (ct.startsWith("video/")) return { type: "video", uri };
   if (ct.startsWith("audio/")) return { type: "audio", uri };
   if (ct.startsWith("text/")) {
-    // Text generations carry the (capped) text inline in metadata so the
-    // preview renders without a fetch; the full text lives in the asset bytes.
-    const meta = asset.metadata as { text?: unknown } | null | undefined;
+    // Capped text inline in metadata for fetch-free preview; full text in asset bytes.
+    const text = asset.metadata?.text;
     return {
       type: "text",
-      text: typeof meta?.text === "string" ? meta.text : "",
+      text: typeof text === "string" ? text : "",
       uri
     };
   }
   if (ct.includes("json")) {
-    // Structured (generator) generations carry their full output value inline
-    // in metadata.json for fetch-free reload; the bytes hold the full copy.
-    const meta = asset.metadata as { json?: unknown } | null | undefined;
-    if (meta && meta.json !== undefined) {
-      return { type: "json", value: meta.json, uri } as Record<string, unknown>;
+    // Full output value inline in metadata.json for fetch-free reload.
+    const json = asset.metadata?.json;
+    if (json !== undefined) {
+      return { type: "json", value: json, uri };
     }
     return { type: "json", uri };
   }
@@ -48,8 +46,7 @@ const jsonGenerationOutputs = (
 ): Record<string, unknown> | undefined => {
   const ct = asset.content_type ?? "";
   if (!ct.includes("json")) return undefined;
-  const meta = asset.metadata as { json?: unknown } | null | undefined;
-  const json = meta?.json;
+  const json = asset.metadata?.json;
   if (json && typeof json === "object" && !Array.isArray(json)) {
     return json as Record<string, unknown>;
   }
@@ -189,16 +186,6 @@ export const getCurrentGeneration = (
   return generations[generations.length - 1];
 };
 
-/** Resolve the current generation's value for an edge's source handle. */
-export const getCurrentOutput = (
-  generations: Generation[],
-  selectedId: string | undefined,
-  handle?: string
-): unknown => {
-  const current = getCurrentGeneration(generations, selectedId);
-  return current ? outputOf(current, handle) : undefined;
-};
-
 /**
  * A group of generations that belong to one workflow run. A regular generator
  * driven by a stream/list is executed once per item; every execution emits a
@@ -279,20 +266,41 @@ export const getCurrentRun = (
 };
 
 /**
- * Flatten a run to its display values: one value per variant via outputOf,
- * with a single array-valued variant (the live num_images=N shape, one
- * completed update whose outputs resolve to an array) spread so it counts as N
- * values. Mirrors resolvePreviewValue's flatten in ContentCardBody so the
- * streaming case (N variants, scalar each) and the single-array case render
- * identically as N tiles. `null`/`undefined` values are dropped.
+ * The generations matching `selectedIds`, in the STORED pick order (not timeline
+ * order). Ids absent from `generations` are dropped; all statuses are kept (the
+ * UI badges running members too). Returns [] when nothing is selected.
  */
-export const runVariantValues = (
-  run: RunGroup,
+const getSelectedGenerations = (
+  generations: Generation[],
+  selectedIds: string[] | undefined
+): Generation[] => {
+  if (!selectedIds || selectedIds.length === 0) return [];
+  const byId = new Map(generations.map((g) => [g.id, g]));
+  const result: Generation[] = [];
+  for (const id of selectedIds) {
+    const found = byId.get(id);
+    if (found) result.push(found);
+  }
+  return result;
+};
+
+/**
+ * The downstream LIST value for one edge handle from a multi-select set: the
+ * selected (pick-ordered) generations, filtered to completed, mapped through
+ * outputOf(g, handle) with array-valued results (the live num_images=N shape)
+ * spread one level, and null/undefined dropped. Returns [] when nothing
+ * qualifies. Mirrors the run-variant flatten so a streamed multi-variant set
+ * and a single array-valued generation resolve to the same flat list.
+ */
+export const selectedOutputValues = (
+  generations: Generation[],
+  selectedIds: string[] | undefined,
   handle?: string
 ): unknown[] =>
-  run.variants
-    .flatMap((v) => {
-      const value = outputOf(v, handle);
+  getSelectedGenerations(generations, selectedIds)
+    .filter((g) => g.status === "completed")
+    .flatMap((g) => {
+      const value = outputOf(g, handle);
       return Array.isArray(value) ? value : [value];
     })
     .filter((value) => value !== undefined && value !== null);

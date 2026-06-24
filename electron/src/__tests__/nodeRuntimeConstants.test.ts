@@ -1,3 +1,5 @@
+import * as path from "path";
+
 const c = require("../../scripts/node-runtime.constants.cjs") as {
   NODE_RUNTIME_VERSION: string;
   nodeBinaryName: (platform: string) => string;
@@ -5,6 +7,9 @@ const c = require("../../scripts/node-runtime.constants.cjs") as {
     platform: string,
     arch: string
   ) => { dir: string; archive: string; binaryInArchive: string };
+  npmDirInArchive: (platform: string, dir: string) => string;
+  NPM_RUNTIME_DIR: string;
+  NPM_CLI_RUNTIME_PATH: string;
   dawnKeepFiles: (platform: string, arch: string) => string[];
   ALL_DAWN_FILES: string[];
 };
@@ -30,6 +35,23 @@ describe("node-runtime.constants", () => {
     expect(win.dir).toBe("node-v22.22.1-win-x64");
     expect(win.archive).toBe("node-v22.22.1-win-x64.zip");
     expect(win.binaryInArchive).toBe("node-v22.22.1-win-x64/node.exe");
+  });
+
+  it("locates the npm package inside each archive layout", () => {
+    expect(c.npmDirInArchive("darwin", "node-v22.22.1-darwin-arm64")).toBe(
+      "node-v22.22.1-darwin-arm64/lib/node_modules/npm"
+    );
+    expect(c.npmDirInArchive("linux", "node-v22.22.1-linux-x64")).toBe(
+      "node-v22.22.1-linux-x64/lib/node_modules/npm"
+    );
+    expect(c.npmDirInArchive("win32", "node-v22.22.1-win-x64")).toBe(
+      "node-v22.22.1-win-x64/node_modules/npm"
+    );
+  });
+
+  it("pins where the bundled npm CLI lives under backend/runtime", () => {
+    expect(c.NPM_RUNTIME_DIR).toBe("npm");
+    expect(c.NPM_CLI_RUNTIME_PATH).toBe(path.join("npm", "bin", "npm-cli.js"));
   });
 
   it("keeps only the target platform's dawn.node binaries", () => {

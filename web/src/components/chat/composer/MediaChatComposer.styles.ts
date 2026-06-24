@@ -29,8 +29,8 @@ export const createMediaComposerStyles = (theme: Theme) =>
       }`,
       boxShadow:
         theme.palette.mode === "light"
-          ? "0 1px 2px rgba(26,23,21,0.04), 0 8px 24px rgba(26,23,21,0.08)"
-          : "0 10px 40px rgba(0,0,0,0.45)",
+          ? `0 1px 2px ${theme.vars.palette.c_scrim_soft}, 0 8px 24px ${theme.vars.palette.c_scrim_soft}`
+          : `0 10px 40px ${theme.vars.palette.c_scrim}`,
       display: "flex",
       flexDirection: "column",
       gap: theme.spacing(2),
@@ -42,8 +42,8 @@ export const createMediaComposerStyles = (theme: Theme) =>
             : theme.vars.palette.action.focus,
         boxShadow:
           theme.palette.mode === "light"
-            ? "0 1px 2px rgba(26,23,21,0.05), 0 8px 24px rgba(26,23,21,0.10)"
-            : "0 10px 40px rgba(0,0,0,0.45)"
+            ? `0 1px 2px ${theme.vars.palette.c_scrim_soft}, 0 8px 24px ${theme.vars.palette.c_scrim_soft}`
+            : `0 10px 40px ${theme.vars.palette.c_scrim}`
       },
       "&.dragging": {
         borderColor: theme.vars.palette.primary.main
@@ -148,7 +148,7 @@ export const createMediaComposerStyles = (theme: Theme) =>
       backgroundColor: "transparent !important",
       boxShadow: "none",
       "&:hover": {
-        backgroundColor: "rgba(255,255,255,0.10) !important",
+        backgroundColor: `${theme.vars.palette.c_overlay} !important`,
         color: `${theme.vars.palette.grey[100]} !important`
       },
       "&.active": {
@@ -186,10 +186,10 @@ export const createMediaComposerStyles = (theme: Theme) =>
       fontWeight: 600,
       letterSpacing: 0.25,
       transition: `${MOTION.transform}, ${MOTION.shadow}, ${MOTION.opacity}`,
-      boxShadow: "0 4px 14px rgba(74, 123, 255, 0.35)",
+      boxShadow: "0 4px 14px rgba(var(--palette-primary-mainChannel) / 0.35)",
       "&:hover:not(:disabled)": {
         transform: "translateY(-1px)",
-        boxShadow: "0 6px 18px rgba(74, 123, 255, 0.45)"
+        boxShadow: "0 6px 18px rgba(var(--palette-primary-mainChannel) / 0.45)"
       },
       "&:disabled": {
         opacity: 0.5,

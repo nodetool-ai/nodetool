@@ -17,6 +17,8 @@ export type NodeUIProperties = {
   endpoint_id?: string;
   /** Persisted id of the generation chosen to feed downstream (asset id for media). */
   selected_generation?: string;
+  /** Ordered ids of generations chosen to feed downstream as a list. <=1 -> single-selection behavior. */
+  selected_generations?: string[];
 };
 
 export const DEFAULT_NODE_WIDTH = 280;

@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { useState, useCallback, memo } from "react";
-import { FlexRow, FlexColumn, ToolbarIconButton, Text, ScrollArea, SearchInput, NavButton, MOTION, BORDER_RADIUS, reducedMotion } from "../../ui_primitives";
+import { FlexRow, FlexColumn, ToolbarIconButton, Text, ScrollArea, SearchInput, NavButton, MOTION, BORDER_RADIUS, reducedMotion, Z_INDEX, SPACING, getSpacingPx } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import MenuIcon from "@mui/icons-material/Menu";
 import AddIcon from "@mui/icons-material/Add";
@@ -88,14 +88,14 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     position: "absolute",
                     top: 18,
                     left: 18,
-                    zIndex: 100,
+                    zIndex: Z_INDEX.overlay,
                     display: isOpen ? "none" : "flex",
                     p: 0.75,
                     borderRadius: BORDER_RADIUS.md,
                     backgroundColor: `rgb(${theme.vars.palette.background.paperChannel} / 0.86)`,
                     backdropFilter: "blur(16px)",
                     border: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.08)`,
-                    boxShadow: "0 14px 30px rgb(0 0 0 / 0.18)",
+                    boxShadow: `0 14px 30px ${theme.vars.palette.c_scrim_soft}`,
                     transition: `all ${MOTION.slow}`
                 }}
             >
@@ -133,7 +133,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     top: 0,
                     left: 0,
                     width: SIDEBAR_WIDTH,
-                    zIndex: 100,
+                    zIndex: Z_INDEX.overlay,
                     backgroundColor: theme.vars.palette.grey[1000],
                     borderRight: "none",
                     boxShadow: "none",
@@ -149,7 +149,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         position: "absolute",
                         inset: 0,
                         pointerEvents: "none",
-                        background: "linear-gradient(180deg, rgb(255 255 255 / 0.025), transparent 22%)"
+                        background: "linear-gradient(180deg, var(--palette-c_overlay_subtle), transparent 22%)"
                     }}
                 />
                 {/* Header with collapse button */}
@@ -212,13 +212,13 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                                 paddingRight: 0.5
                             },
                             "& .search-input .MuiInputBase-input": {
-                                paddingTop: "4px",
-                                paddingBottom: "4px",
+                                paddingTop: getSpacingPx(SPACING.xs),
+                                paddingBottom: getSpacingPx(SPACING.xs),
                                 paddingRight: 8,
                                 height: "20px"
                             },
                             "& .search-input .MuiInputAdornment-root": {
-                                marginRight: "4px"
+                                marginRight: getSpacingPx(SPACING.xs)
                             },
                             "& .search-input .search-icon": {
                                 fontSize: "var(--fontSizeNormal)"

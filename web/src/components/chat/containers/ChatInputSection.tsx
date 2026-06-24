@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import MediaChatComposer from "../composer/MediaChatComposer";
 import ChatComposer from "../composer/ChatComposer";
 import { LanguageModel, MessageContent } from "../../../stores/ApiTypes";
@@ -86,8 +86,9 @@ const ChatInputSection = ({
   const isLoading = status === "loading";
   const isStreaming = status === "streaming";
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   return (
-    <div className="chat-input-section" css={styles(theme)}>
+    <div className="chat-input-section" css={cssStyles}>
       <div className="chat-composer-wrapper">
         {variant === "simple" ? (
           <ChatComposer

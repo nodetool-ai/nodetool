@@ -22,7 +22,7 @@ import React, {
   useEffect
 } from "react";
 import { Handle, NodeProps, NodeToolbar, Position } from "@xyflow/react";
-import { Box, Text, MOTION } from "../../ui_primitives";
+import { Box, Text, MOTION, SPACING, getSpacingPx } from "../../ui_primitives";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -212,17 +212,17 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       bottom: 0,
       display: "flex",
       flexDirection: "column",
-      gap: "4px",
+      gap: getSpacingPx(SPACING.xs),
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: "rgba(0,0,0,0.45)",
+      backgroundColor: theme.vars.palette.c_scrim,
       opacity: 0,
       transition: `opacity ${MOTION.normal}`
     },
     ".edit-overlay-label": {
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 500,
-      color: "rgba(255,255,255,0.85)",
+      color: theme.vars.palette.c_white,
       letterSpacing: "0.02em"
     },
     ".hint": {
@@ -658,6 +658,11 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
           `${props.data.workflow_id}:${connection.sourceId}`
         ] ?? [];
       const generations = mergeGenerations(persisted, live);
+      // Layer slots are single-image inputs, so they intentionally honor only
+      // the upstream's single focused `selected_generation` — NOT the
+      // multi-select `selected_generations` export set (a list would not feed one
+      // layer). `isListTargetHandle` returns false for these scalar slots, so the
+      // run paths agree: a multi-select upstream feeds this layer its single value.
       const selectedId = findNode(connection.sourceId)?.data
         ?.selected_generation;
       const current = getCurrentGeneration(generations, selectedId);

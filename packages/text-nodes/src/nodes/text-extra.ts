@@ -5,6 +5,7 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   tagAsServer,
   renderTemplate,
+  referencedVariables,
   base64ToBytes
 } from "@nodetool-ai/nodes-utils";
 import {
@@ -2540,9 +2541,31 @@ export class PromptNode extends BaseNode {
   })
   declare prompt: any;
 
-  async process(): Promise<Record<string, unknown>> {
-    const props: Record<string, unknown> = Object.fromEntries(this.dynamicProps);
-    return { output: renderTemplate(String(this.prompt ?? ""), props) };
+  async process(
+    context?: ProcessingContext
+  ): Promise<Record<string, unknown>> {
+    const template = String(this.prompt ?? "");
+    const props: Record<string, unknown> = Object.fromEntries(
+      this.dynamicProps
+    );
+
+    // Resolve `{{ name }}` references against variable channels: wait for the
+    // first value published by a Set Variable node anywhere in the graph. Only
+    // names with a registered writer are awaited (others are left intact), and
+    // the node's own dynamic inputs take precedence on conflict.
+    if (context) {
+      const pending = referencedVariables(template)
+        .filter((name) => !(name in props) && context.hasChannelWriters(name))
+        .map(async (name) => {
+          const value = await context.getChannel(name).first();
+          if (value !== undefined) {
+            props[name] = value;
+          }
+        });
+      await Promise.all(pending);
+    }
+
+    return { output: renderTemplate(template, props) };
   }
 }
 

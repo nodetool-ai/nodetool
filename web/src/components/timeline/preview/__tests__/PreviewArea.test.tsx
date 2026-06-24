@@ -38,6 +38,9 @@ const mockPlay = jest.fn();
 const mockPause = jest.fn();
 const mockStop = jest.fn();
 const mockSetCurrentTimeMs = jest.fn();
+const mockSeek = jest.fn();
+const mockSetTimeMs = jest.fn();
+const mockSubscribeTime = jest.fn(() => () => {});
 
 let mockCurrentTimeMs = 0;
 let mockIsPlaying = false;
@@ -49,7 +52,12 @@ jest.mock("../../../../stores/timeline/TimelinePlaybackStore", () => {
     play: mockPlay,
     pause: mockPause,
     stop: mockStop,
-    setCurrentTimeMs: mockSetCurrentTimeMs
+    setCurrentTimeMs: mockSetCurrentTimeMs,
+    seek: mockSeek,
+    seekNonce: 0,
+    setTimeMs: mockSetTimeMs,
+    getTimeMs: () => mockCurrentTimeMs,
+    subscribeTime: mockSubscribeTime
   });
   const useTimelinePlaybackStore = (selector: (s: unknown) => unknown) => {
     const state = getState();

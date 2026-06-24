@@ -4,7 +4,10 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { buildRunSubgraph } from "../../utils/runSubgraph";
-import { getNodeGenerations } from "../../stores/nodeGenerationAccessor";
+import {
+  getNodeGenerations,
+  getNodeSelectedOutputs
+} from "../../stores/nodeGenerationAccessor";
 import { getCurrentGeneration } from "../../utils/nodeGenerations";
 import { useNodeStoreRef } from "../../contexts/NodeContext";
 
@@ -62,6 +65,16 @@ export function useRunSingleNode(nodeId: string): UseRunSingleNodeReturn {
         );
         return current?.outputs;
       },
+      // Multi-select: the source's chosen generations stream into the target via
+      // an injected ForEach replay node (input_list = the selected values), and
+      // the source is pruned. No list-type gate — see buildRunSubgraph.
+      getSelectedOutputs: (wf, sourceId, sourceHandle) =>
+        getNodeSelectedOutputs(
+          wf,
+          sourceId,
+          sourceHandle,
+          findNode(sourceId)?.data?.selected_generations
+        ),
       getMetadata: useMetadataStore.getState().getMetadata
     });
 

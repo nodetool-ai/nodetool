@@ -4,7 +4,13 @@ import { memo, useCallback, useMemo, useState } from "react";
 import { useNodes } from "../../contexts/NodeContext";
 import { useTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
-import { MOTION, BORDER_RADIUS, reducedMotion } from "../ui_primitives";
+import {
+  MOTION,
+  BORDER_RADIUS,
+  reducedMotion,
+  SPACING,
+  getSpacingPx
+} from "../ui_primitives";
 
 interface EditableTitleProps {
   nodeId: string;
@@ -77,7 +83,7 @@ const EditableTitle = memo(function EditableTitle({
     background: theme.vars.palette.c_bg_comment,
     display: "inline-flex",
     alignItems: "center",
-    padding: "6px 12px",
+    padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`,
     gap: 0,
     border: `1px solid ${theme.vars.palette.divider}`,
     boxShadow: `0 1px 2px ${theme.vars.palette.c_black}33`,
@@ -149,7 +155,7 @@ const EditableTitle = memo(function EditableTitle({
       flexShrink: 0,
       width: "16px",
       height: "16px",
-      marginRight: "6px",
+      marginRight: getSpacingPx(SPACING.sm),
       borderRadius: BORDER_RADIUS.circle,
       background: theme.vars.palette.grey[700],
       color: theme.vars.palette.grey[100],
@@ -173,7 +179,7 @@ const EditableTitle = memo(function EditableTitle({
       flexShrink: 0,
       width: "18px",
       height: "18px",
-      marginLeft: "8px",
+      marginLeft: getSpacingPx(SPACING.md),
       color: theme.vars.palette.grey[500],
       backgroundColor: "transparent",
       border: "none",

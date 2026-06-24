@@ -20,8 +20,10 @@ import type {
   ImageToImageParams,
   ImageToVideoParams,
   LanguageModel,
+  MusicModel,
   StreamingAudioChunk,
   TextToImageParams,
+  TextToMusicParams,
   TextToVideoParams,
   TTSModel,
   VideoModel
@@ -329,6 +331,71 @@ export class MinimaxProvider extends OpenAIProvider {
         voices: MINIMAX_VOICES
       }
     ];
+  }
+
+  override async getAvailableMusicModels(): Promise<MusicModel[]> {
+    return [
+      { id: "music-2.6", name: "MiniMax Music 2.6", provider: "minimax" },
+      { id: "music-1.5", name: "MiniMax Music 1.5", provider: "minimax" },
+      { id: "music-01", name: "MiniMax Music 01", provider: "minimax" }
+    ];
+  }
+
+  /**
+   * Generate a full song from a style prompt and lyrics — POST
+   * /v1/music_generation. Returns the encoded audio file (mp3/wav). MiniMax
+   * music requires lyrics; when none are supplied an instrumental marker is
+   * used so the capability stays usable with a prompt alone.
+   */
+  override async textToMusic(
+    params: TextToMusicParams
+  ): Promise<EncodedAudioResult> {
+    if (!params.prompt) throw new Error("prompt must not be empty");
+
+    const fmt = (params.audioFormat ?? "mp3").toLowerCase() === "wav"
+      ? "wav"
+      : "mp3";
+    const body: Record<string, unknown> = {
+      model: params.model.id || "music-2.6",
+      prompt: params.prompt,
+      lyrics: params.lyrics?.trim() || "[Instrumental]",
+      audio_setting: {
+        sample_rate: 44100,
+        bitrate: 256000,
+        format: fmt
+      },
+      output_format: "hex"
+    };
+
+    log.debug("MiniMax textToMusic", { model: body.model, format: fmt });
+
+    const res = await this._minimaxFetch(
+      `${MINIMAX_BASE_URL}/v1/music_generation`,
+      {
+        method: "POST",
+        headers: this.headers(),
+        body: JSON.stringify(body)
+      }
+    );
+    if (!res.ok) {
+      throw new Error(
+        `MiniMax music_generation failed: ${res.status} ${await res.text()}`
+      );
+    }
+    const data = (await res.json()) as Record<string, unknown>;
+    assertBaseResp(data, "music_generation");
+
+    const payload = data.data as Record<string, unknown> | undefined;
+    const audioHex = payload?.audio as string | undefined;
+    if (!audioHex) {
+      throw new Error(
+        `MiniMax music_generation returned no audio data: ${JSON.stringify(data)}`
+      );
+    }
+    return {
+      data: hexToUint8(audioHex),
+      mimeType: fmt === "wav" ? "audio/wav" : "audio/mpeg"
+    };
   }
 
   /** MiniMax does not expose a public ASR endpoint we support here. */

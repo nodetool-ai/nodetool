@@ -119,6 +119,7 @@ export const formatGenericProviderName = (provider?: string): string => {
     {return "Llama.cpp";}
   if (providerLower === "google") {return "Gemini";}
   if (providerLower === "fal_ai" || providerLower === "fal-ai" || providerLower === "falai") {return "FAL AI";}
+  if (providerLower === "elevenlabs" || providerLower === "eleven_labs" || providerLower === "eleven-labs") {return "ElevenLabs";}
   if (providerLower === "zai-org" || providerLower === "zai_org" || providerLower === "zai") {return "Z.AI";}
   if (providerLower === "moonshot" || providerLower === "kimi") {return "Moonshot AI";}
   if (providerLower === "minimax") {return "MiniMax";}
@@ -205,6 +206,7 @@ export const getProviderUrl = (provider?: string): string | null => {
   if (providerLower.includes("anthropic")) {return "https://console.anthropic.com";}
   if (providerLower.includes("gemini") || providerLower.includes("google"))
     {return "https://ai.google.dev";}
+  if (providerLower.includes("elevenlabs")) {return "https://elevenlabs.io";}
   if (providerLower.includes("fal")) {return "https://fal.ai";}
   if (providerLower.includes("replicate")) {return "https://replicate.com";}
   if (providerLower.includes("aime")) {return "https://www.aime.info/en/";}

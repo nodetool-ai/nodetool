@@ -14,7 +14,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 
-import { Text, thinScrollbarStyles, MOTION, FONT_WEIGHT, BORDER_RADIUS } from "../ui_primitives";
+import { Text, thinScrollbarStyles, MOTION, FONT_WEIGHT, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import NodeLibraryRow from "./NodeLibraryRow";
 import NodeInfo from "./NodeInfo";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -50,8 +50,8 @@ const styles = (theme: Theme, isMobile: boolean) =>
       alignItems: "center",
       gap: theme.spacing(1),
       padding: isMobile
-        ? theme.spacing(0.5, 1, 1, 1)
-        : theme.spacing(1.5, 1.5, 1, 1.5)
+        ? theme.spacing(SPACING.micro, SPACING.xs, SPACING.xs, SPACING.xs)
+        : theme.spacing(SPACING.sm, SPACING.lg, SPACING.xs, SPACING.lg)
     },
     ".nl-title": {
       fontSize: "var(--fontSizeNormal)",
@@ -62,7 +62,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
     ".nl-count": {
       display: "inline-flex",
       alignItems: "center",
-      padding: "1px 8px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`, // was 1px 8px
       borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.action.selected,
       color: theme.vars.palette.text.secondary,
@@ -75,7 +75,12 @@ const styles = (theme: Theme, isMobile: boolean) =>
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(1),
-      margin: theme.spacing(0, isMobile ? 1 : 1.5, 1, isMobile ? 1 : 1.5),
+      margin: theme.spacing(
+        SPACING.none,
+        isMobile ? SPACING.xs : SPACING.lg,
+        SPACING.xs,
+        isMobile ? SPACING.xs : SPACING.lg
+      ),
       padding: theme.spacing(1, 1),
       borderRadius: BORDER_RADIUS.md,
       backgroundColor: theme.vars.palette.background.paper,
@@ -118,7 +123,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
-      padding: "1px 6px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`, // was 1px 6px
       height: "18px",
       borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.action.hover,
@@ -176,8 +181,13 @@ const styles = (theme: Theme, isMobile: boolean) =>
       flexShrink: 0,
       display: "flex",
       flexDirection: "column",
-      gap: "2px",
-      padding: theme.spacing(1, 1),
+      gap: getSpacingPx(SPACING.micro),
+      padding: theme.spacing(
+        SPACING.xs,
+        SPACING.xs,
+        SPACING.xs,
+        isMobile ? SPACING.xs : SPACING.lg
+      ),
       overflowY: "auto",
       borderRight: `1px solid ${theme.vars.palette.divider}`,
       ...thinScrollbarStyles(theme)
@@ -244,7 +254,12 @@ const styles = (theme: Theme, isMobile: boolean) =>
       flex: 1,
       minWidth: 0,
       overflowY: "auto",
-      padding: theme.spacing(1, 1),
+      padding: theme.spacing(
+        SPACING.xs,
+        isMobile ? SPACING.xs : SPACING.lg,
+        SPACING.xs,
+        SPACING.xs
+      ),
       ...thinScrollbarStyles(theme)
     },
     ".nl-empty": {
@@ -262,7 +277,7 @@ const styles = (theme: Theme, isMobile: boolean) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      padding: theme.spacing(1, 1.5),
+      padding: theme.spacing(SPACING.xs, isMobile ? SPACING.sm : SPACING.lg),
       borderTop: `1px solid ${theme.vars.palette.divider}`,
       color: theme.vars.palette.text.secondary,
       fontSize: "var(--fontSizeSmall)"

@@ -5,7 +5,7 @@ import {
   ToolbarIconButton,
   NodeSlider,
   SelectField,
-  Box, BORDER_RADIUS } from "../../ui_primitives";
+  Box, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import SearchInput from "../../search/SearchInput";
@@ -167,7 +167,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
                 alignItems: "center",
                 minHeight: 0,
                 boxSizing: "border-box",
-                padding: "0 30px 0 12px",
+                padding: `0 ${getSpacingPx(SPACING.xxxl)} 0 ${getSpacingPx(SPACING.lg)}`, // was 0 30px 0 12px
                 lineHeight: 1
               },
               "& .MuiOutlinedInput-notchedOutline": {
@@ -228,7 +228,7 @@ const ModelListHeader: React.FC<ModelListHeaderProps> = ({
           <Box
             sx={{
               width: 124,
-              px: "6px",
+              px: getSpacingPx(SPACING.sm),
               boxSizing: "border-box",
               display: "flex",
               alignItems: "center"

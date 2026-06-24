@@ -11,6 +11,7 @@ import LanguageModelSelect from "./LanguageModelSelect";
 import EmbeddingModelSelect from "./EmbeddingModelSelect";
 import ImageModelSelect from "./ImageModelSelect";
 import TTSModelSelect from "./TTSModelSelect";
+import MusicModelSelect from "./MusicModelSelect";
 import ASRModelSelect from "./ASRModelSelect";
 import VideoModelSelect from "./VideoModelSelect";
 import Model3DModelSelect from "./Model3DModelSelect";
@@ -20,12 +21,13 @@ import { useRecommendedModelsForNode } from "../../hooks/useRecommendedModelsFor
 import ConnectedBadge from "./ConnectedBadge";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { SPACING, getSpacingPx } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
     // Model selects that use the custom `Select` component need slightly tighter density.
     "& .select-container .options-list": {
-      padding: "2px 0",
+      padding: `${getSpacingPx(SPACING.micro)} 0`,
       backgroundColor: theme.vars.palette.background.paper,
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: theme.rounded.buttonSmall,
@@ -34,7 +36,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmaller,
       borderTop: `1px solid ${theme.vars.palette.divider}`,
       color: theme.vars.palette.text.primary,
-      padding: "4px 8px"
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`
     },
     "& .select-container .option:first-of-type": {
       borderTop: "none"
@@ -48,7 +50,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.primary
     },
     "& .select-container .select-header": {
-      padding: "0 4px",
+      padding: `0 ${getSpacingPx(SPACING.xs)}`,
       minHeight: "28px",
       borderRadius: theme.rounded.buttonSmall,
       border: `1px solid ${theme.vars.palette.divider}`,
@@ -154,6 +156,15 @@ const ModelProperty = (props: PropertyProps) => {
     } else if (modelType === "tts_model") {
       return (
         <TTSModelSelect
+          onChange={props.onChange}
+          value={props.value || ""}
+          recommendedModels={recommendedModels}
+          modelPacks={modelPacks}
+        />
+      );
+    } else if (modelType === "music_model") {
+      return (
+        <MusicModelSelect
           onChange={props.onChange}
           value={props.value || ""}
           recommendedModels={recommendedModels}

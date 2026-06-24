@@ -28,7 +28,7 @@ import {
   MenuItem,
   FormControl
 } from "@mui/material";
-import { FlexColumn, FlexRow, Box, Tooltip, Divider, Text, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { FlexColumn, FlexRow, Box, Tooltip, Divider, Text, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
@@ -149,7 +149,7 @@ function quickCycleDirectionForArrowKey(key: string): -1 | 1 | null {
 const OPS_ICON_SX = {
   width: 30,
   height: 30,
-  padding: "4px",
+  padding: getSpacingPx(SPACING.xs),
   borderRadius: BORDER_RADIUS.lg,
   color: "grey.400",
   transition: `${MOTION.background}, color ${MOTION.fast}`,
@@ -305,7 +305,7 @@ const styles = (theme: Theme) =>
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       borderRadius: BORDER_RADIUS.xs,
       "& .MuiIconButton-root": {
-        padding: "2px"
+        padding: getSpacingPx(SPACING.micro)
       }
     },
     "& .layer-item:hover:not(.active) .layer-visibility-cell": {
@@ -1109,7 +1109,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
       <FlexColumn
         className="sketch-layers-panel__layer-list-scroll"
         sx={{
-          gap: "4px",
+          gap: getSpacingPx(SPACING.xs),
           minHeight: 0,
           maxHeight: "50vh",
           overflowY: "auto"
@@ -1319,7 +1319,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           <FormControl
             className="sketch-layers-panel__blend-mode"
             size="small"
-            sx={{ px: "6px" }}
+            sx={{ px: getSpacingPx(SPACING.sm) }}
           >
             <Select
               value={coerceBlendMode(activeLayer.blendMode)}
@@ -1350,7 +1350,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           {activeLayer.imageReference ? (
             <Box
               className="sketch-layers-panel__active-layer-ref"
-              sx={{ px: "6px", pt: "4px" }}
+              sx={{ px: getSpacingPx(SPACING.sm), pt: getSpacingPx(SPACING.xs) }}
             >
               <Text
                 sx={{
@@ -1483,7 +1483,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
           handleLayerCtxClose();
         };
 
-        const menuItemSx = { fontSize: "var(--fontSizeSmall)", py: "4px", minHeight: 0 };
+        const menuItemSx = { fontSize: "var(--fontSizeSmall)", py: getSpacingPx(SPACING.xs), minHeight: 0 };
 
         return (
           <Menu
@@ -1501,7 +1501,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               {allOutputHidden ? "Show Output" : "Hide Output"}
             </MenuItem>
 
-            <Divider sx={{ my: "4px" }} />
+            <Divider sx={{ my: getSpacingPx(SPACING.xs) }} />
 
             <MenuItem sx={menuItemSx} onClick={handleCtxVisibility}>
               {ctxLayer?.visible === false ? "Show Layer" : "Hide Layer"}
@@ -1517,7 +1517,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               Remove
             </MenuItem>
 
-            <Divider sx={{ my: "4px" }} />
+            <Divider sx={{ my: getSpacingPx(SPACING.xs) }} />
 
             <MenuItem
               sx={menuItemSx}
@@ -1560,7 +1560,7 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
               Flatten Visible
             </MenuItem>
 
-            <Divider sx={{ my: "4px" }} />
+            <Divider sx={{ my: getSpacingPx(SPACING.xs) }} />
 
             <MenuItem
               sx={menuItemSx}

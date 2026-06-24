@@ -17,7 +17,6 @@ import HistoryIcon from "@mui/icons-material/History";
 import GridViewIcon from "@mui/icons-material/GridView";
 import SettingsIcon from "@mui/icons-material/Settings";
 import StarIcon from "@mui/icons-material/Star";
-import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import ImageIcon from "@mui/icons-material/Image";
 import MovieIcon from "@mui/icons-material/Movie";
 import BrushOutlinedIcon from "@mui/icons-material/BrushOutlined";
@@ -28,7 +27,7 @@ import SmartToyIcon from "@mui/icons-material/SmartToy";
 import LoginIcon from "@mui/icons-material/Login";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import HubIcon from "@mui/icons-material/Hub";
-import { IconForType } from "./IconForType";
+import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 
 import type { NodeMetadata } from "../stores/ApiTypes";
 import {
@@ -87,12 +86,7 @@ export const LEFT_PANEL_TOP_LEVEL: readonly LeftPanelTopLevelCategory[] = [
   { id: "settings", label: "Settings", icon: <SettingsIcon /> },
   { id: "history", label: "History", icon: <HistoryIcon /> },
   { id: "favorites", label: "Favorites", icon: <StarIcon /> },
-  {
-    id: "assets",
-    label: "Assets",
-    icon: <IconForType iconName="asset" showTooltip={false} iconSize="small" />
-  },
-  { id: "agent", label: "Agent", icon: <SmartToyOutlinedIcon /> }
+  { id: "assets", label: "Assets", icon: <PermMediaOutlinedIcon /> }
 ];
 
 /**

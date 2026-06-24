@@ -28,7 +28,8 @@ import {
   MobileBottomSheet,
   FlexColumn,
   MOTION,
-  reducedMotion
+  reducedMotion,
+  Z_INDEX
 } from "../ui_primitives";
 
 const HEADER_AREA_HEIGHT = 77;
@@ -43,7 +44,7 @@ const styles = (theme: Theme, bottomOffset: number, isVisible: boolean) =>
     height: `calc(100vh - var(--workspace-header-height, ${HEADER_AREA_HEIGHT}px) - ${bottomOffset}px)`,
     display: "flex",
     flexDirection: "row",
-    zIndex: 1100,
+    zIndex: theme.zIndex.appBar,
     // Slide off the right edge when hidden; the panel overlays (position:
     // fixed) so this is a purely visual transform, no layout reflow.
     transform: isVisible ? "translateX(0)" : "translateX(100%)",
@@ -71,7 +72,7 @@ const styles = (theme: Theme, bottomOffset: number, isVisible: boolean) =>
       border: 0,
       borderRadius: 0,
       cursor: "ew-resize",
-      zIndex: 10,
+      zIndex: Z_INDEX.dropdown,
       transition: MOTION.all,
 
       "&:hover": {

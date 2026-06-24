@@ -6,7 +6,7 @@
  */
 
 import type { SxProps, Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 
 // ─── Color Tokens ─────────────────────────────────────────────────────────────
 // Semantic names tied to MUI's grey palette (dark theme).
@@ -25,7 +25,8 @@ export const SKETCH_COLORS = {
 // Checkerboard transparency pattern used for thumbnails and color swatches.
 // Two shades that are visually distinct but subtle on dark backgrounds.
 export const SKETCH_CHECKERBOARD = {
-  backgroundImage: "repeating-conic-gradient(#3a3a3a 0% 25%, #2a2a2a 0% 50%)",
+  backgroundImage:
+    "repeating-conic-gradient(var(--palette-grey-800) 0% 25%, var(--palette-grey-900) 0% 50%)",
   backgroundSize: "8px 8px"
 } as const;
 
@@ -155,7 +156,7 @@ export const colorSwatchSx = {
   overflow: "hidden",
   cursor: "pointer",
   flexShrink: 0,
-  border: "1px solid rgba(255,255,255,0.2)",
+  border: "1px solid var(--palette-c_overlay_strong)",
 } as const;
 
 /**
@@ -193,8 +194,8 @@ export const settingRowChildrenSx = (t: Theme) => ({
       minWidth: "80px",
       // Minimal clearance — the thumb may touch label/value at the
       // extremes but the wider gap looked airy and disconnected.
-      marginLeft: "2px",
-      marginRight: "2px",
+      marginLeft: getSpacingPx(SPACING.micro),
+      marginRight: getSpacingPx(SPACING.micro),
     },
   },
   // Opt-in wider slider for the primary "Size" control. Doubling its
@@ -230,10 +231,10 @@ export const settingRowChildrenSx = (t: Theme) => ({
  * and opacity sliders in `ColorPickerPopover`.
  */
 export const colorPickerSliderThumbSx = {
-  border: "2px solid #fff",
-  boxShadow: "0 0 0 1px rgba(0,0,0,0.4)",
+  border: "2px solid var(--palette-grey-0)",
+  boxShadow: "0 0 0 1px var(--palette-c_scrim)",
   "&:hover, &.Mui-focusVisible": {
-    boxShadow: "0 0 0 2px rgba(255,255,255,0.3)",
+    boxShadow: "0 0 0 2px var(--palette-c_overlay_strong)",
   },
 } as const;
 
@@ -259,8 +260,8 @@ export const sketchToolSettingsContainerSx: SxProps<Theme> = (theme) => {
         minWidth: "60px",
         width: "100%",
         maxWidth: "100%",
-        marginLeft: "2px",
-        marginRight: "2px",
+        marginLeft: getSpacingPx(SPACING.micro),
+        marginRight: getSpacingPx(SPACING.micro),
       },
       "& .setting-label": {
         fontSize: SKETCH_FONT.sm,

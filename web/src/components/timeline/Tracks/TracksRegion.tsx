@@ -73,7 +73,7 @@ import {
 } from "./ScriptLane";
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
 import { ToolToggle } from "../ToolToggle";
-import { FlexRow, FONT_SIZE_MONO, FONT_WEIGHT, BORDER_RADIUS } from "../../ui_primitives";
+import { FlexRow, FONT_SIZE_MONO, FONT_WEIGHT, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
 import { useHasScript } from "../../../hooks/timeline/useHasScript";
 import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport";
 import { deserializeDragData } from "../../../lib/dragdrop";
@@ -104,7 +104,7 @@ const toolbarStyles = (theme: Theme) =>
   css({
     height: 36,
     flexShrink: 0,
-    padding: "0 12px 0 8px",
+    padding: `0 ${getSpacingPx(SPACING.lg)} 0 ${getSpacingPx(SPACING.md)}`,
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     backgroundColor: theme.vars.palette.background.paper
   });
@@ -116,8 +116,8 @@ const tracksSectionHeaderStyles = (theme: Theme) =>
     flexShrink: 0,
     display: "flex",
     alignItems: "center",
-    gap: 6,
-    padding: "0 12px",
+    gap: getSpacingPx(SPACING.sm),
+    padding: `0 ${getSpacingPx(SPACING.lg)}`,
     backgroundColor: theme.vars.palette.background.paper,
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     color: theme.vars.palette.text.secondary,
@@ -190,14 +190,31 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     // `durationMs` is not recomputed when clips are added or moved, so it can
     // lag far behind the actual clips (it stays 0 for a freshly built
     // timeline). Derive the real end from the clips so the scroll width — and
-    // thus the scrollbar — tracks zoom and content. The selector returns a
-    // single number, so this only re-renders when the max end changes.
+    // thus the scrollbar — tracks zoom and content.
+    //
+    // The selector returns a single number, so Zustand already bails out of
+    // re-rendering when the max end is unchanged. To also avoid the O(n) scan
+    // on every unrelated store change, we cache the result keyed on the
+    // `clips` array + `durationMs` identity and only recompute when either
+    // actually changes (clips is replaced immutably on every edit).
+    const contentEndCacheRef = useRef<{
+      clips: unknown;
+      durationMs: number;
+      value: number;
+    }>({ clips: null, durationMs: -1, value: 0 });
     const contentEndMs = useTimelineStore((s) => {
+      const cache = contentEndCacheRef.current;
+      if (cache.clips === s.clips && cache.durationMs === s.durationMs) {
+        return cache.value;
+      }
       let maxEnd = s.durationMs;
       for (const c of s.clips) {
         const end = c.startMs + c.durationMs;
         if (end > maxEnd) maxEnd = end;
       }
+      cache.clips = s.clips;
+      cache.durationMs = s.durationMs;
+      cache.value = maxEnd;
       return maxEnd;
     });
     const hasScript = useHasScript();

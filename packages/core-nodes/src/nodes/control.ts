@@ -100,6 +100,47 @@ export class ForEachNode extends BaseNode {
   }
 }
 
+export class AssetCollectionNode extends BaseNode {
+  static readonly nodeType = "nodetool.control.Collection";
+  static readonly title = "Asset Collection";
+  static readonly description =
+    "A curated collection of assets of a single type. Streams each item one at a time for downstream processing.\n    collection, gallery, assets, curate, pick, winners, iterator, stream, batch\n\n    Use cases:\n    - Hand-pick the best generations and feed them to the next step\n    - Gather assets dropped from the asset panel, files, or generation history\n    - Drive a downstream pipeline with a fixed set of media";
+  static readonly metadataOutputTypes = {
+    output: "any",
+    index: "int"
+  };
+  static readonly inlineFields = [];
+  static readonly inputFields = [];
+
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    output: { kind: "iteration", source: "__execution__", group: "items" },
+    index: { kind: "iteration", source: "__execution__", group: "items" }
+  };
+
+  @prop({
+    type: "list[any]",
+    default: [],
+    title: "Items",
+    description:
+      "The curated items, all of a single asset type. Emitted one at a time, " +
+      "in order. Usually populated by drag-and-drop in the editor."
+  })
+  declare items: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return {};
+  }
+
+  async *genProcess(): AsyncGenerator<Record<string, unknown>> {
+    const values = (this.items ?? []) as unknown[];
+    const list = Array.isArray(values) ? values : [values];
+    for (const [index, item] of list.entries()) {
+      yield { output: item, index };
+    }
+  }
+}
+
 export class RepeatCountNode extends BaseNode {
   static readonly nodeType = "nodetool.control.RepeatCount";
   static readonly title = "Repeat Count";
@@ -1356,6 +1397,7 @@ export class CrossNode extends BaseNode {
 export const CONTROL_NODES = tagAsUniversal([
   IfNode,
   ForEachNode,
+  AssetCollectionNode,
   RepeatCountNode,
   RepeatValueStreamNode,
   TakeNode,

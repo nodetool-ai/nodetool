@@ -7,7 +7,9 @@ import {
   EditorButton,
   LoadingSpinner,
   Tooltip,
-  Box
+  Box,
+  SPACING,
+  getSpacingPx
 } from "../../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 
@@ -85,7 +87,7 @@ export const ModelListItemActions: React.FC<ModelListItemActionsProps> = ({
             display: "inline-flex",
             alignItems: "center",
             gap: "0.5em",
-            padding: "2px 8px",
+            padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
             borderRadius: BORDER_RADIUS.pill,
             border: "1px solid",
             borderColor: "divider",

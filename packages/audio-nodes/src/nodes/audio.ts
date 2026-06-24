@@ -130,11 +130,17 @@ function hasProviderSupport(
   streamProviderPrediction: (
     req: Record<string, unknown>
   ) => AsyncGenerator<unknown>;
+  providerSupportsStreamingTTS: (providerId: string) => Promise<boolean>;
+  textToSpeechEncoded: (
+    req: Record<string, unknown>
+  ) => Promise<{ data: Uint8Array; mimeType: string } | null>;
 } {
   return (
     !!context &&
     typeof context.runProviderPrediction === "function" &&
     typeof context.streamProviderPrediction === "function" &&
+    typeof context.providerSupportsStreamingTTS === "function" &&
+    typeof context.textToSpeechEncoded === "function" &&
     !!providerId &&
     !!modelId
   );
@@ -1511,39 +1517,161 @@ export class TextToSpeechNode extends BaseNode {
       : [];
     const voice = explicitVoice || voiceList[0] || "";
     if (hasProviderSupport(context, providerId, modelId)) {
-      const chunks: Uint8Array[] = [];
-      let sampleRate = 24000;
-      for await (const item of context.streamProviderPrediction({
+      const params = { text, voice, speed: this.speed };
+      // Providers that stream raw PCM (OpenAI, Together, Replicate, ElevenLabs…)
+      // are wrapped into a WAV. Providers that return an encoded audio file
+      // (FAL, KIE) are consumed via the encoded path below.
+      if (await context.providerSupportsStreamingTTS(providerId)) {
+        const chunks: Uint8Array[] = [];
+        let sampleRate = 24000;
+        for await (const item of context.streamProviderPrediction({
+          provider: providerId,
+          capability: "text_to_speech",
+          model: modelId,
+          params
+        })) {
+          const piece = item as { samples?: Int16Array; sampleRate?: number };
+          if (typeof piece.sampleRate === "number" && piece.sampleRate > 0) {
+            sampleRate = piece.sampleRate;
+          }
+          if (piece.samples instanceof Int16Array) {
+            chunks.push(
+              new Uint8Array(
+                piece.samples.buffer.slice(
+                  piece.samples.byteOffset,
+                  piece.samples.byteOffset + piece.samples.byteLength
+                )
+              )
+            );
+          }
+        }
+        const wav = encodePcm16Wav(concatBytes(chunks), sampleRate, 1);
+        return { audio: audioRefFromWav(wav) };
+      }
+
+      const encoded = await context.textToSpeechEncoded({
         provider: providerId,
         capability: "text_to_speech",
         model: modelId,
-        params: {
-          text,
-          voice,
-          speed: this.speed
-        }
-      })) {
-        const piece = item as { samples?: Int16Array; sampleRate?: number };
-        if (typeof piece.sampleRate === "number" && piece.sampleRate > 0) {
-          sampleRate = piece.sampleRate;
-        }
-        if (piece.samples instanceof Int16Array) {
-          chunks.push(
-            new Uint8Array(
-              piece.samples.buffer.slice(
-                piece.samples.byteOffset,
-                piece.samples.byteOffset + piece.samples.byteLength
-              )
-            )
-          );
-        }
+        params
+      });
+      if (encoded?.data && encoded.data.length > 0) {
+        return { audio: audioRefFromBytes(encoded.data) };
       }
-      const wav = encodePcm16Wav(concatBytes(chunks), sampleRate, 1);
-      return { audio: audioRefFromWav(wav) };
+      throw new Error(
+        `Text To Speech produced no audio for provider "${providerId}" / ` +
+          `model "${modelId}".`
+      );
     }
     throw new Error(
       `Text To Speech requires a TTS provider; no provider available for ` +
         `provider "${providerId}" / model "${modelId}".`
+    );
+  }
+}
+
+function hasMusicProviderSupport(
+  context: ProcessingContext | undefined,
+  providerId: string,
+  modelId: string
+): context is ProcessingContext & {
+  textToMusic: (
+    req: Record<string, unknown>
+  ) => Promise<{ data: Uint8Array; mimeType: string }>;
+} {
+  return (
+    !!context &&
+    typeof (context as { textToMusic?: unknown }).textToMusic === "function" &&
+    !!providerId &&
+    !!modelId
+  );
+}
+
+export class TextToMusicNode extends BaseNode {
+  static readonly nodeType = "nodetool.audio.TextToMusic";
+  static readonly body = "content_card";
+  static readonly title = "Text To Music";
+  static readonly description =
+    "Generate music from a text prompt using any supported music provider (FAL, Replicate, KIE/Suno, MiniMax). Optionally supply lyrics for vocal models.\n    audio, generation, AI, text-to-music, music, song";
+  static readonly metadataOutputTypes = {
+    audio: "audio"
+  };
+  static readonly inlineFields: string[] = ["prompt"];
+  static readonly inputFields: string[] = ["prompt", "lyrics"];
+  static readonly autoSaveAsset = true;
+
+  static readonly inputMode: InputMode = "buffered";
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    audio: { kind: "single", source: "__execution__" }
+  };
+
+  @prop({
+    type: "music_model",
+    default: {
+      type: "music_model",
+      provider: "replicate",
+      id: "meta/musicgen",
+      name: "MusicGen",
+      path: null
+    },
+    title: "Model",
+    description: "The text-to-music model to use"
+  })
+  declare model: any;
+
+  @prop({
+    type: "str",
+    default: "An upbeat electronic track with a catchy melody and driving beat",
+    title: "Prompt",
+    description: "Describe the style, mood, genre, and instrumentation"
+  })
+  declare prompt: any;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Lyrics",
+    description:
+      "Optional song lyrics for vocal models (e.g. Suno, MiniMax). Leave empty for instrumental."
+  })
+  declare lyrics: any;
+
+  @prop({
+    type: "float",
+    default: 8,
+    title: "Duration",
+    description: "Requested duration in seconds (providers clamp to their limits).",
+    min: 1,
+    max: 300
+  })
+  declare duration: any;
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    const prompt = String(this.prompt ?? "");
+    const lyrics = String(this.lyrics ?? "");
+    const { providerId, modelId } = getModelConfig(this.serialize());
+    if (!hasMusicProviderSupport(context, providerId, modelId)) {
+      throw new Error(
+        `Text To Music requires a music provider; no provider available for ` +
+          `provider "${providerId}" / model "${modelId}".`
+      );
+    }
+    const encoded = await context.textToMusic({
+      provider: providerId,
+      capability: "text_to_music",
+      model: modelId,
+      params: {
+        prompt,
+        lyrics: lyrics || undefined,
+        duration_seconds: Number(this.duration) || undefined
+      }
+    });
+    if (encoded?.data && encoded.data.length > 0) {
+      return { audio: audioRefFromBytes(encoded.data) };
+    }
+    throw new Error(
+      `Text To Music produced no audio for provider "${providerId}" / ` +
+        `model "${modelId}".`
     );
   }
 }
@@ -1720,7 +1848,8 @@ const AUDIO_SERVER_NODES = tagAsServer([
   LoadAudioFolderNode,
   SaveAudioNode,
   SaveAudioFileNode,
-  TextToSpeechNode
+  TextToSpeechNode,
+  TextToMusicNode
 ]);
 
 export const AUDIO_NODES = [...AUDIO_TRANSFORM_NODES, ...AUDIO_SERVER_NODES];

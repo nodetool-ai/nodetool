@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import React, { useEffect, useState, useRef, createRef, memo, useCallback } from "react";
 import type { AlertColor } from "@mui/material";
-import { AlertBanner, EditorButton } from "../ui_primitives";
+import { AlertBanner, EditorButton, SPACING, getSpacingPx } from "../ui_primitives";
 import { TransitionGroup, CSSTransition } from "react-transition-group";
 
 import {
@@ -43,18 +43,18 @@ const styles = () =>
     zIndex: "var(--zIndex-popover)",
     display: "flex",
     flexDirection: "column",
-    gap: "2px",
+    gap: getSpacingPx(SPACING.micro),
     alignItems: "flex-end",
     ".MuiAlert-root": {
       minHeight: "unset",
-      paddingTop: "6px",
-      paddingBottom: "6px",
-      paddingLeft: "12px",
-      paddingRight: "8px",
+      paddingTop: getSpacingPx(SPACING.sm),
+      paddingBottom: getSpacingPx(SPACING.sm),
+      paddingLeft: getSpacingPx(SPACING.lg),
+      paddingRight: getSpacingPx(SPACING.md),
       alignItems: "flex-start",
       "& .MuiAlert-icon": {
-        marginRight: "8px",
-        paddingTop: "2px",
+        marginRight: getSpacingPx(SPACING.md),
+        paddingTop: getSpacingPx(SPACING.micro),
         opacity: 0.92,
         "& svg": {
           fontSize: "var(--fontSizeBig)"
@@ -62,10 +62,10 @@ const styles = () =>
       },
       "& .MuiAlert-action": {
         paddingTop: 0,
-        marginRight: "-4px",
+        marginRight: `-${getSpacingPx(SPACING.xs)}`,
         alignItems: "flex-start",
         "& .MuiIconButton-root": {
-          padding: "4px"
+          padding: getSpacingPx(SPACING.xs)
         }
       }
     },

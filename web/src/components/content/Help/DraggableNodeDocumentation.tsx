@@ -3,7 +3,7 @@ import React, { useMemo, useRef, useCallback } from "react";
 import NodeInfo from "../../node_menu/NodeInfo";
 import { css } from "@emotion/react";
 import Draggable from "react-draggable";
-import { EditorButton } from "../../ui_primitives";
+import { EditorButton, SPACING, getSpacingPx } from "../../ui_primitives";
 import { useReactFlow } from "@xyflow/react";
 import useNodeMenuStore from "../../../stores/NodeMenuStore";
 import { useTheme } from "@mui/material/styles";
@@ -20,7 +20,7 @@ const styles = (theme: Theme) => css`
   border: 1px solid ${theme.vars.palette.divider};
   border-radius: 4px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  padding: 0px;
+  padding: 0;
   max-width: 400px;
   min-width: 300px;
 
@@ -33,22 +33,22 @@ const styles = (theme: Theme) => css`
   }
 
   h1 {
-    font-size: 1.5rem;
+    font-size: var(--fontSizeBig);
     margin-bottom: 1rem;
     color: ${theme.vars.palette.primary.main};
   }
 
   .loading {
-    font-size: 1rem;
+    font-size: var(--fontSizeNormal);
     color: ${theme.vars.palette.text.secondary};
   }
 
   .warning {
-    font-size: 1rem;
+    font-size: var(--fontSizeNormal);
     color: ${theme.vars.palette.warning.main};
   }
   .content {
-    padding: 10px;
+    padding: ${getSpacingPx(SPACING.lg)}; /* was 10px */
   }
 
   .close-button {
@@ -57,15 +57,15 @@ const styles = (theme: Theme) => css`
     right: 5px;
     background: none;
     border: none;
-    font-size: 1.2rem;
+    font-size: var(--fontSizeBig);
     cursor: pointer;
     color: ${theme.vars.palette.text.secondary};
   }
 
   .open-node-menu-button {
     color: ${"var(--palette-primary-main)"};
-    margin-top: 10px;
-    margin-right: 10px;
+    margin-top: ${getSpacingPx(SPACING.lg)}; /* was 10px */
+    margin-right: ${getSpacingPx(SPACING.lg)}; /* was 10px */
   }
 `;
 
@@ -92,6 +92,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const panelSize = usePanelStore((state) => state.panel.panelSize);
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const handleAddNode = useCallback(() => {
     if (nodeMetadata && nodeRef.current) {
       const rect = nodeRef.current.getBoundingClientRect();
@@ -130,7 +131,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
             density="compact"
             className="open-node-menu-button"
             onClick={handleOpenNodeMenu}
-            sx={{ marginTop: "10px" }}
+            sx={{ marginTop: getSpacingPx(SPACING.lg) }} // was 10px
           >
             Search for similar nodes
           </EditorButton>
@@ -143,7 +144,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
           variant="contained"
           density="normal"
           onClick={handleAddNode}
-          sx={{ marginTop: "10px", marginRight: "10px" }}
+          sx={{ marginTop: getSpacingPx(SPACING.lg), marginRight: getSpacingPx(SPACING.lg) }} // was 10px
         >
           Add Node
         </EditorButton>
@@ -159,7 +160,7 @@ const DraggableNodeDocumentation: React.FC<DraggableNodeDocumentationProps> = ({
 
   return (
     <Draggable handle=".handle" defaultPosition={position} nodeRef={nodeRef}>
-      <div css={styles(theme)} ref={nodeRef}>
+      <div css={cssStyles} ref={nodeRef}>
         <div className="handle"></div>
         <button type="button" className="close-button" onClick={onClose}>
           ×

@@ -2,8 +2,8 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useCallback, memo } from "react";
-import { Tooltip, Text } from "../../ui_primitives";
+import React, { useCallback, memo, useMemo } from "react";
+import { Tooltip, Text, SPACING, getSpacingPx } from "../../ui_primitives";
 import { SendMessageButton } from "./SendMessageButton";
 import { StopGenerationButton } from "./StopGenerationButton";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
@@ -25,7 +25,7 @@ const styles = (_theme: Theme) =>
     display: "flex",
     alignItems: "center",
     gap: 8,
-    padding: "6px",
+    padding: getSpacingPx(SPACING.sm),
     "& .button-wrapper": {
       display: "inline-flex",
       alignItems: "center"
@@ -43,6 +43,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = memo(({
   // Show stop button ONLY when generation is actively running
   const showStopButton = (isLoading || isStreaming) && onStop;
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
 
   // Memoize stop handler to prevent unnecessary re-renders
   const handleStop = useCallback(() => {
@@ -50,7 +51,7 @@ export const ActionButtons: React.FC<ActionButtonsProps> = memo(({
   }, [onStop]);
 
   return (
-    <div className="chat-action-buttons" css={styles(theme)}>
+    <div className="chat-action-buttons" css={cssStyles}>
       {showStopButton && (
         <Tooltip delay={TOOLTIP_ENTER_DELAY} title="Stop Generation">
           <span className="button-wrapper">

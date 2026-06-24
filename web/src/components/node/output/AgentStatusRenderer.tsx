@@ -11,7 +11,7 @@ import {
 } from "@mui/icons-material";
 import { Chunk } from "../../../stores/ApiTypes";
 
-import { BORDER_RADIUS } from "../../ui_primitives";
+import { BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
 type Props = {
   chunk: Chunk;
 };
@@ -87,8 +87,8 @@ export const AgentStatusRenderer: React.FC<Props> = memo(({ chunk }) => {
         display: "flex",
         alignItems: "flex-start",
         gap: 8,
-        padding: "6px 12px",
-        margin: "2px 8px",
+        padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`,
+        margin: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
         borderLeft: `2px solid ${color}`,
         background: `${color}14`,
         borderRadius: BORDER_RADIUS.sm,

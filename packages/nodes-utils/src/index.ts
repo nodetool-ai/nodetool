@@ -33,6 +33,6 @@ export {
   loadNodeUrl
 } from "./node-only-modules.js";
 
-export { renderTemplate } from "./template.js";
+export { renderTemplate, referencedVariables } from "./template.js";
 
 export { base64ToBytes, bytesToBase64 } from "./base64.js";

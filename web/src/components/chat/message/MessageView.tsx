@@ -27,7 +27,9 @@ import {
   FlexColumn,
   ToolbarIconButton,
   LoadingSpinner,
-  Collapse
+  Collapse,
+  SPACING,
+  getSpacingPx
 } from "../../ui_primitives";
 import ErrorIcon from "@mui/icons-material/Error";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -216,7 +218,7 @@ const ToolCallCard: React.FC<{
         </FlexRow>
       </FlexRow>
       <Collapse in={open} timeout="auto" unmountOnExit>
-        <FlexColumn gap={0.5} sx={{ marginTop: "4px" }}>
+        <FlexColumn gap={0.5} sx={{ marginTop: getSpacingPx(SPACING.xs) }}>
           {isSubtask && subtaskInstructions && (
             <FlexColumn gap={0.5}>
               <Caption className="tool-section-title">Instructions</Caption>

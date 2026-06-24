@@ -1,14 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
-import React, { useCallback, memo } from "react";
+import React, { useCallback, useMemo, memo } from "react";
 import {
   oneDark,
   oneLight
 } from "react-syntax-highlighter/dist/esm/styles/prism";
 import SyntaxHighlighter from "react-syntax-highlighter/dist/esm/prism";
-import { CopyButton, BORDER_RADIUS, FONT_SIZE_SANS } from "../../../ui_primitives";
+import { CopyButton, BORDER_RADIUS, FONT_SIZE_SANS, SPACING, getSpacingPx } from "../../../ui_primitives";
 import { useIsDarkMode } from "../../../../hooks/useIsDarkMode";
 import isEqual from "fast-deep-equal";
 
@@ -22,12 +20,24 @@ interface CodeBlockProps {
   [key: string]: unknown;
 }
 
-const styles = (_theme: Theme) =>
-  css({
-    ".code-block-header": {
-      padding: ".5em 1em"
-    }
-  });
+const cssStyles = css({
+  ".code-block-header": {
+    padding: ".5em 1em"
+  }
+});
+
+const customBlockStyle: React.CSSProperties = {
+  fontFamily: '"JetBrains Mono", monospace',
+  marginTop: 0,
+  padding: "1em",
+  margin: 0,
+  border: "2px solid var(--palette-grey-800)",
+  boxSizing: "border-box",
+  borderTopLeftRadius: 0,
+  borderTopRightRadius: 0,
+  borderBottomLeftRadius: BORDER_RADIUS.sm,
+  borderBottomRightRadius: BORDER_RADIUS.sm
+};
 
 export const CodeBlock: React.FC<CodeBlockProps> = memo(({
   node: _node,
@@ -38,7 +48,6 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
   onInsert,
   ...props
 }) => {
-  const _theme = useTheme();
   const codeContent = String(children).trimEnd();
   const match = /language-(\w+)/.exec(className || "");
   const isDarkMode = useIsDarkMode();
@@ -64,10 +73,10 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
   }
   // If inline === true (Markdown `inline code`), renderAsBlock remains false.
 
-  if (renderAsBlock) {
-    const language = match ? match[1] : "plaintext";
+  const language = match ? match[1] : "plaintext";
+  const customizedTheme = useMemo(() => {
     const codeTheme = isDarkMode ? oneDark : oneLight;
-    const customizedTheme = {
+    return {
       ...codeTheme,
       'pre[class*="language-"]': {
         ...codeTheme['pre[class*="language-"]'],
@@ -75,12 +84,14 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
         borderRadius: 0
       }
     };
+  }, [isDarkMode]);
 
+  if (renderAsBlock) {
     return (
-      <div css={styles(_theme)} className="code-block-container">
+      <div css={cssStyles} className="code-block-container">
         <div className="code-block-header">
           <span className="code-block-language">{match ? match[1] : ""}</span>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: getSpacingPx(SPACING.md), alignItems: "center" }}>
             {typeof onInsert === "function" && (
               <button
                 type="button"
@@ -88,7 +99,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
                 onClick={handleInsert}
                 title="Insert into editor"
                 style={{
-                  padding: _theme.spacing(1.5, 3),
+                  padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xxl)}`,
                   fontSize: FONT_SIZE_SANS.caption,
                   borderRadius: BORDER_RADIUS.xs,
                   border: "1px solid var(--palette-grey-700)",
@@ -108,18 +119,7 @@ export const CodeBlock: React.FC<CodeBlockProps> = memo(({
           style={customizedTheme}
           language={language}
           PreTag="div"
-          customStyle={{
-            fontFamily: '"JetBrains Mono", monospace',
-            marginTop: 0,
-            padding: "1em",
-            margin: 0,
-            border: "2px solid var(--palette-grey-800)",
-            boxSizing: "border-box",
-            borderTopLeftRadius: 0,
-            borderTopRightRadius: 0,
-            borderBottomLeftRadius: BORDER_RADIUS.sm,
-            borderBottomRightRadius: BORDER_RADIUS.sm
-          }}
+          customStyle={customBlockStyle}
           {...props}
         >
           {codeContent}

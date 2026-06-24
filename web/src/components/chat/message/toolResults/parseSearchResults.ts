@@ -43,8 +43,8 @@ function normalizeSource(
 ): string | undefined {
   const raw = obj.source;
   if (typeof raw === "string" && raw.trim().length > 0) return raw.trim();
-  if (raw && typeof raw === "object") {
-    const name = (raw as Record<string, unknown>).name;
+  if (raw && typeof raw === "object" && "name" in raw) {
+    const name = raw.name;
     if (typeof name === "string" && name.trim().length > 0) return name.trim();
   }
   return url ? domainFromUrl(url) : undefined;
@@ -64,11 +64,14 @@ function itemFromObject(obj: Record<string, unknown>): SearchResultItem | null {
   };
 }
 
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === "object" && v !== null && !Array.isArray(v);
+
 function normalizeArray(arr: unknown[]): SearchResultItem[] {
   const items: SearchResultItem[] = [];
   for (const entry of arr) {
-    if (entry && typeof entry === "object" && !Array.isArray(entry)) {
-      const item = itemFromObject(entry as Record<string, unknown>);
+    if (isRecord(entry)) {
+      const item = itemFromObject(entry);
       if (item) items.push(item);
     }
   }
@@ -139,12 +142,11 @@ export function normalizeSearchResults(content: unknown): SearchResultItem[] | n
     return items.length > 0 ? items : null;
   }
 
-  if (typeof content === "object") {
-    const obj = content as Record<string, unknown>;
+  if (isRecord(content)) {
     const arr =
-      (Array.isArray(obj.results) && obj.results) ||
-      (Array.isArray(obj.organic_results) && obj.organic_results) ||
-      (Array.isArray(obj.items) && obj.items) ||
+      (Array.isArray(content.results) && content.results) ||
+      (Array.isArray(content.organic_results) && content.organic_results) ||
+      (Array.isArray(content.items) && content.items) ||
       null;
     if (arr) {
       const items = normalizeArray(arr);

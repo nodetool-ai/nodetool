@@ -6,7 +6,7 @@ import {
   Tab
 } from "@mui/material";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import { CloseButton, Text, Tooltip, Box, MOTION, BORDER_RADIUS } from "../../ui_primitives";
+import { CloseButton, Text, Tooltip, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
 import { useAppHeaderStore } from "../../../stores/AppHeaderStore";
 import DataTypesList from "./DataTypesList";
 import { useTheme } from "@mui/material/styles";
@@ -100,13 +100,13 @@ const helpStyles = (theme: Theme) =>
     ".docs-button": {
       display: "flex",
       alignItems: "center",
-      gap: "10px",
+      gap: getSpacingPx(SPACING.lg), // was 10px
       color: theme.vars.palette.secondary.contrastText,
       backgroundColor: theme.vars.palette.secondary.main,
       textDecoration: "none",
       fontSize: "var(--fontSizeNormal)",
       fontWeight: 500,
-      padding: "8px 14px",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`, // was 8px 14px
       borderRadius: BORDER_RADIUS.lg,
       transition: MOTION.all,
       flexShrink: 0,
@@ -162,10 +162,11 @@ const helpStyles = (theme: Theme) =>
         minWidth: "240px"
       },
       button: {
-        marginTop: "2px",
+        marginTop: getSpacingPx(SPACING.micro),
         color: theme.vars.palette.grey[200],
         border: `1px solid ${theme.vars.palette.grey[600]}`,
-        padding: "1px 6px",
+        padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`, // was 1px 6px
+
         textAlign: "left",
         lineHeight: "1.3em",
         minWidth: "unset",

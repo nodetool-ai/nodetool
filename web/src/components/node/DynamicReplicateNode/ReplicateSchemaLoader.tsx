@@ -1,5 +1,5 @@
 import React, { useCallback, useState, memo } from "react";
-import { Tooltip, Caption, LoadingSpinner, ToolbarIconButton, Box } from "../../ui_primitives";
+import { Tooltip, Caption, LoadingSpinner, ToolbarIconButton, Box, SPACING, getSpacingPx } from "../../ui_primitives";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { useNodes } from "../../../contexts/NodeContext";
 import { BASE_URL } from "../../../stores/BASE_URL";
@@ -155,7 +155,7 @@ export const ReplicateSchemaLoader: React.FC<ReplicateSchemaLoaderProps> = memo(
             disabled={loading}
             onClick={() => void handleLoad(true)}
             sx={{
-              padding: "4px",
+              padding: getSpacingPx(SPACING.xs),
               color: "var(--palette-text-secondary)",
               "&:hover": {
                 color: "var(--palette-text-primary)",

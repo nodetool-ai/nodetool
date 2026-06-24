@@ -18,12 +18,12 @@ export const extractTextValue = (value: unknown): string => {
     return value;
   }
   if (value && typeof value === "object") {
-    const v = value as Record<string, unknown>;
-    if (typeof v.value === "string") return v.value;
-    if (typeof v.text === "string") return v.text;
-    if (typeof v.data === "string") return v.data;
-    if (typeof v.content === "string") return v.content;
-    if (v.output !== undefined) return extractTextValue(v.output);
+    if ("value" in value && typeof value.value === "string") return value.value;
+    if ("text" in value && typeof value.text === "string") return value.text;
+    if ("data" in value && typeof value.data === "string") return value.data;
+    if ("content" in value && typeof value.content === "string")
+      return value.content;
+    if ("output" in value) return extractTextValue(value.output);
   }
   return "";
 };

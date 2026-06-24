@@ -160,6 +160,10 @@ export function useSelectionEvents({
 
   const handleSelectionStart = useCallback(
     (event: ReactMouseEvent) => {
+      // Suppress native browser text selection while box-selecting nodes.
+      // The marquee drag starts on the pane and extends over nodes, which
+      // otherwise highlights their text. Cleared in handleSelectionEnd.
+      document.body.classList.add("is-marquee-selecting");
       const flowPoint = projectMouseEventToFlow(event);
       selectionStartRef.current = flowPoint;
       selectionEndRef.current = flowPoint;
@@ -170,6 +174,7 @@ export function useSelectionEvents({
 
   const handleSelectionEnd = useCallback(
     (event: ReactMouseEvent) => {
+      document.body.classList.remove("is-marquee-selecting");
       onSelectionEndBase(event);
       selectionEndRef.current = projectMouseEventToFlow(event);
       const includeMarqueeEdges = event.shiftKey;

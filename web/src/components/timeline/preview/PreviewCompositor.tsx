@@ -165,8 +165,20 @@ function isClipUpcoming(clip: TimelineClip, currentTimeMs: number): boolean {
 export const PreviewCompositor: React.FC = memo(() => {
   const theme = useTheme();
 
-  const currentTimeMs = useTimelinePlaybackStore((s) => s.currentTimeMs);
+  // Reactive position — now updated only on discrete events (seek/scrub/
+  // pause/stop), never per playback frame. Drives the scene at rest.
+  const reactiveTimeMs = useTimelinePlaybackStore((s) => s.currentTimeMs);
   const isPlaying = useTimelinePlaybackStore((s) => s.isPlaying);
+  const getTimeMs = useTimelinePlaybackStore((s) => s.getTimeMs);
+
+  // The time the React scene (active-layer set, placeholders, gizmo, badges)
+  // is computed at. While paused it tracks the reactive position. While
+  // playing it is advanced from the transient playhead by the rAF loop below,
+  // but only when the *set of active clips* actually changes — so crossing a
+  // clip boundary re-binds the pool, yet steady frames within a clip do NOT
+  // re-render React.
+  const [sceneTimeMs, setSceneTimeMs] = useState(reactiveTimeMs);
+  const currentTimeMs = sceneTimeMs;
 
   const { tracks, clips, sequenceWidth, sequenceHeight } = useTimelineStore(
     useShallow((s) => ({
@@ -368,9 +380,38 @@ export const PreviewCompositor: React.FC = memo(() => {
     compositorRef.current?.setReferenceSize(sequenceWidth, sequenceHeight);
   }, [gpuReady, sequenceWidth, sequenceHeight]);
 
+  // While paused (and on every discrete seek/scrub/stop) follow the reactive
+  // position exactly so scrubbing repaints the right frame.
+  useEffect(() => {
+    if (isPlaying) return;
+    setSceneTimeMs(reactiveTimeMs);
+  }, [reactiveTimeMs, isPlaying]);
+
   const clipById = useMemo(
     () => new Map(clips.map((c) => [c.id, c])),
     [clips]
+  );
+
+  // Signature of the visible scene at a given time: the ordered active layer
+  // ids plus, for captions, which word is currently spoken (so a highlight
+  // change inside one clip still bumps the scene during playback). Used to
+  // decide when the rAF loop must re-render React / re-composite.
+  const sceneSignature = useCallback(
+    (timeMs: number): string => {
+      const layers = computeActiveLayers(tracks, clips, timeMs, {
+        maxVideoLayers: HOT_POOL_SIZE
+      });
+      let sig = "";
+      for (const l of layers) {
+        sig += `${l.kind}:${l.clipId}`;
+        if (l.kind === "caption" && l.caption) {
+          sig += `#${l.caption.words.findIndex((w) => w.active)}`;
+        }
+        sig += "|";
+      }
+      return sig;
+    },
+    [tracks, clips]
   );
 
   const {
@@ -628,11 +669,16 @@ export const PreviewCompositor: React.FC = memo(() => {
   const ensureImageElement = useCallback(
     (url: string): HTMLImageElement | null => {
       if (!url) return null;
-      const cached = imageElementCache.current.get(url);
+      const cache = imageElementCache.current;
+      const cached = cache.get(url);
       if (cached) {
-        // Touch as most-recent for LRU ordering.
-        imageElementCache.current.delete(url);
-        imageElementCache.current.set(url, cached);
+        // LRU touch (delete+reinsert) is only needed when eviction is
+        // imminent. While the cache has spare capacity nothing is ever
+        // evicted, so skip the churn on this per-layer, per-frame hot path.
+        if (cache.size >= IMAGE_CACHE_MAX) {
+          cache.delete(url);
+          cache.set(url, cached);
+        }
         return cached.complete && cached.naturalWidth > 0 ? cached : null;
       }
       const img = new Image();
@@ -760,17 +806,63 @@ export const PreviewCompositor: React.FC = memo(() => {
     };
   }, [poolReady, renderFrame]);
 
-  // While playing, drive a rAF render loop so video frame textures stay fresh
-  // between AudioContext-clock store updates.
+  // Stable refs so the playback rAF loop reads the latest closures without
+  // re-subscribing (which would tear down + restart the loop every render).
+  const sceneSignatureRef = useRef(sceneSignature);
+  sceneSignatureRef.current = sceneSignature;
+  const getTimeMsRef = useRef(getTimeMs);
+  getTimeMsRef.current = getTimeMs;
+
+  // While playing, drive a rAF loop off the TRANSIENT playhead (`getTimeMs`),
+  // not React state. It (a) bumps the React scene only when the active clip
+  // set changes — so we re-bind the video pool / placeholders at boundaries
+  // without re-rendering on every steady frame, and (b) re-composites with a
+  // dirty flag so a static (image/caption only) scene doesn't burn GPU work.
   useEffect(() => {
     if (!gpuReady || !isPlaying) return;
     const compositor = compositorRef.current;
     if (!compositor) return;
 
     let raf = 0;
+    // Seed with the current scene so the first playing frame doesn't trigger a
+    // spurious scene bump.
+    let lastSignature = sceneSignatureRef.current(getTimeMsRef.current());
+    // Force a composite on the very first frame after play starts so any
+    // pending texture uploads flush even before a video reports as playing.
+    let forceRender = true;
+
     const tick = () => {
-      compositor.setLayers(buildLayersRef.current());
-      compositor.render();
+      const liveMs = getTimeMsRef.current();
+
+      // Re-derive the active set; only push it into React when it changed.
+      const signature = sceneSignatureRef.current(liveMs);
+      const setChanged = signature !== lastSignature;
+      if (setChanged) {
+        lastSignature = signature;
+        setSceneTimeMs(liveMs);
+      }
+
+      // A frame needs re-compositing when the active set just changed, or when
+      // any active video is decoding new pixels (i.e. actually playing). Pure
+      // image/caption scenes are static between boundary changes, so skip the
+      // redundant clear+blit.
+      let dirty = setChanged || forceRender;
+      forceRender = false;
+      if (!dirty) {
+        const pool = videoRefs.current;
+        for (const idx of clipSlotMap.current.values()) {
+          const el = pool[idx];
+          if (el && !el.paused && !el.ended && el.videoWidth > 0) {
+            dirty = true;
+            break;
+          }
+        }
+      }
+
+      if (dirty) {
+        compositor.setLayers(buildLayersRef.current());
+        compositor.render();
+      }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);

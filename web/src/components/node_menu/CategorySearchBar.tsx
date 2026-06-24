@@ -2,7 +2,14 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { forwardRef, memo, useCallback } from "react";
+import {
+  forwardRef,
+  memo,
+  useCallback,
+  useImperativeHandle,
+  useRef
+} from "react";
+import type { KeyboardEvent } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 
@@ -54,22 +61,41 @@ const CategorySearchBar = memo(
   forwardRef<HTMLInputElement, CategorySearchBarProps>(
     ({ value, onChange, placeholder = "Filter..." }, ref) => {
       const theme = useTheme();
-      const handleClear = useCallback(() => onChange(""), [onChange]);
+      const inputRef = useRef<HTMLInputElement>(null);
+      useImperativeHandle(ref, () => inputRef.current as HTMLInputElement, []);
+
+      const handleClear = useCallback(() => {
+        onChange("");
+        // Keep the cursor in the field so users can keep typing after clearing.
+        inputRef.current?.focus();
+      }, [onChange]);
+
+      const handleKeyDown = useCallback(
+        (e: KeyboardEvent<HTMLInputElement>) => {
+          if (e.key === "Escape" && value) {
+            e.stopPropagation();
+            onChange("");
+          }
+        },
+        [value, onChange]
+      );
 
       return (
         <div css={styles(theme)} className="qa-search">
           <SearchIcon className="search-glyph" />
           <input
-            ref={ref}
+            ref={inputRef}
             type="text"
             value={value}
             onChange={(e) => onChange(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder={placeholder}
             aria-label="Filter category"
           />
           {value && (
             <ToolbarIconButton
               tabIndex={-1}
+              tooltip="Clear filter"
               ariaLabel="Clear filter"
               onClick={handleClear}
               icon={<ClearIcon />}

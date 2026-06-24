@@ -1,6 +1,7 @@
 let rafCallback: (() => void) | null = null;
 let rafId = 1;
 
+const mockSetTimeMs = jest.fn();
 const mockSetCurrentTimeMs = jest.fn();
 const mockPause = jest.fn();
 
@@ -19,6 +20,7 @@ jest.mock("../../../../stores/timeline/TimelinePlaybackStore", () => ({
   useTimelinePlaybackStore: {
     getState: () => ({
       isPlaying: mockIsPlaying,
+      setTimeMs: mockSetTimeMs,
       setCurrentTimeMs: mockSetCurrentTimeMs,
       pause: mockPause
     })
@@ -59,13 +61,15 @@ describe("PlaybackClock", () => {
     expect(global.requestAnimationFrame).toHaveBeenCalledTimes(1);
   });
 
-  it("writes currentTimeMs to the store on each tick", () => {
+  it("pushes the live time via the transient channel on each tick", () => {
     clock.start(0, 1);
     nowSpy.mockReturnValue(1000); // advance wall clock by 1s
     flushRAF();
-    expect(mockSetCurrentTimeMs).toHaveBeenCalledWith(
+    expect(mockSetTimeMs).toHaveBeenCalledWith(
       expect.closeTo(1000, 5) // ~1000ms
     );
+    // Steady frames must NOT write reactive state (no 60×/s re-renders).
+    expect(mockSetCurrentTimeMs).not.toHaveBeenCalled();
   });
 
   it("applies playback rate to wall-clock elapsed time", () => {
@@ -73,7 +77,7 @@ describe("PlaybackClock", () => {
     nowSpy.mockReturnValue(500); // 0.5s wall time
     flushRAF();
     // 2× → expect ~1000ms
-    expect(mockSetCurrentTimeMs).toHaveBeenCalledWith(
+    expect(mockSetTimeMs).toHaveBeenCalledWith(
       expect.closeTo(1000, 5)
     );
   });
@@ -82,7 +86,7 @@ describe("PlaybackClock", () => {
     clock.start(5000, 1); // start at 5s
     nowSpy.mockReturnValue(1000); // 1s wall elapsed
     flushRAF();
-    expect(mockSetCurrentTimeMs).toHaveBeenCalledWith(
+    expect(mockSetTimeMs).toHaveBeenCalledWith(
       expect.closeTo(6000, 5)
     );
   });
@@ -99,6 +103,7 @@ describe("PlaybackClock", () => {
     nowSpy.mockReturnValue(3000); // past end
     flushRAF();
     expect(mockPause).toHaveBeenCalled();
+    // The boundary case writes the reactive snapshot so it is correct at rest.
     expect(mockSetCurrentTimeMs).toHaveBeenCalledWith(2000);
     expect(rafCallback).toBeNull(); // no next RAF scheduled
   });
@@ -113,7 +118,7 @@ describe("PlaybackClock", () => {
     clock.start(1000, 1);
     nowSpy.mockReturnValue(-500); // clamp negative
     flushRAF();
-    const arg = (mockSetCurrentTimeMs.mock.calls[0][0] as number);
+    const arg = (mockSetTimeMs.mock.calls[0][0] as number);
     expect(arg).toBeGreaterThanOrEqual(0);
   });
 
@@ -130,7 +135,7 @@ describe("PlaybackClock", () => {
     flushRAF();
 
     // Elapsed = 7 - 5 = 2s → 2000ms
-    expect(mockSetCurrentTimeMs).toHaveBeenCalledWith(
+    expect(mockSetTimeMs).toHaveBeenCalledWith(
       expect.closeTo(2000, 5)
     );
   });
@@ -146,7 +151,7 @@ describe("PlaybackClock", () => {
     flushRAF();
 
     // Should use wall clock, not AudioContext
-    expect(mockSetCurrentTimeMs).toHaveBeenCalledWith(
+    expect(mockSetTimeMs).toHaveBeenCalledWith(
       expect.closeTo(2000, 5)
     );
   });

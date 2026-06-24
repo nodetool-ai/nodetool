@@ -33,7 +33,7 @@ npx --package=@nodetool-ai/cli nodetool-chat --agent
 
 ## Global Options
 
-These flags work on any `nodetool` command and control [OpenTelemetry tracing](AGENTS.md):
+These flags work on any `nodetool` command and control [OpenTelemetry tracing](https://github.com/nodetool-ai/nodetool/blob/main/docs/AGENTS.md):
 
 - `--trace-file <path>` — append every LLM/agent/workflow span to `<path>` as JSONL (analyzer-friendly).
 - `--trace-stdout [format]` — stream spans to stdout: `pretty` (default) or `json`.

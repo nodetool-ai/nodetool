@@ -876,6 +876,7 @@ export const PROVIDER_IDS = {
   REPLICATE: "replicate",
   FAL_AI: "fal_ai",
   KIE: "kie",
+  ELEVENLABS: "elevenlabs",
   TOPAZ: "topaz",
   REVE: "reve",
   ATLASCLOUD: "atlascloud",
@@ -1022,6 +1023,15 @@ export interface ASRModel {
   name: string;
   provider: Provider;
   path?: string | null;
+}
+
+export interface MusicModel {
+  type: string;
+  id: string;
+  name: string;
+  provider: Provider;
+  path?: string | null;
+  supported_tasks?: string[];
 }
 
 export interface VideoModel {

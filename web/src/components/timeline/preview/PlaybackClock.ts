@@ -36,7 +36,7 @@ export class PlaybackClock {
   }
 
   private tick(): void {
-    const { isPlaying, setCurrentTimeMs, pause } =
+    const { isPlaying, setTimeMs, setCurrentTimeMs, pause } =
       useTimelinePlaybackStore.getState();
 
     if (!isPlaying) {
@@ -58,7 +58,9 @@ export class PlaybackClock {
       currentTimeMs = this.startPositionMs + wallElapsedMs * this.rate;
     }
 
-    // Clamp to sequence boundaries.
+    // Clamp to sequence boundaries. On the boundary case we write the
+    // *reactive* snapshot (setCurrentTimeMs) before pausing so subscribers
+    // see the correct final position; pause() also syncs to the live value.
     if (currentTimeMs >= this.durationMs) {
       setCurrentTimeMs(this.durationMs);
       pause();
@@ -66,7 +68,10 @@ export class PlaybackClock {
       return;
     }
 
-    setCurrentTimeMs(Math.max(0, currentTimeMs));
+    // Steady per-frame advance flows through the TRANSIENT channel: it
+    // notifies imperative subscribers (compositor rAF, playhead) without
+    // writing reactive state, so playback no longer re-renders the tree 60×/s.
+    setTimeMs(Math.max(0, currentTimeMs));
     this.rafId = requestAnimationFrame(() => this.tick());
   }
 }

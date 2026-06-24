@@ -784,6 +784,74 @@ describe("UnifiedWebSocketRunner", () => {
       else process.env.MAX_CONCURRENT_RUNS_PER_WORKFLOW = prev;
     }
   });
+
+  it("persists cancellation and emits job_update when cancelling an active job", async () => {
+    // The toolbar Stop button sends a `cancel_job` command over the websocket.
+    // For an active (running) job this must mark the persisted row cancelled and
+    // emit a cancelled job_update right away — the runner's own cleanup can lag,
+    // so without this jobs.list (the Queue panel's source) keeps reporting the
+    // job as running until that slow cleanup lands. Regression for "toolbar Stop
+    // leaves the running-jobs panel showing the job as running".
+    await initTestDb();
+    let release!: () => void;
+    const gate = new Promise<void>((r2) => {
+      release = r2;
+    });
+    const r = new UnifiedWebSocketRunner({
+      resolveExecutor: () => ({
+        async process() {
+          await gate;
+          return {};
+        }
+      })
+    });
+    try {
+      await r.connect(ws);
+      const graph = {
+        nodes: [
+          {
+            id: "n1",
+            type: "nodetool.constant.String",
+            name: "nodetool.constant.String",
+            properties: { value: "x" }
+          }
+        ],
+        edges: []
+      };
+      await Job.create({
+        id: "RUN_ACTIVE",
+        workflow_id: "wf-active",
+        user_id: "1",
+        status: "scheduled"
+      });
+
+      await r.runJob({ job_id: "RUN_ACTIVE", workflow_id: "wf-active", graph });
+      // Let the job reach the active map before cancelling.
+      await new Promise((res) => setTimeout(res, 20));
+
+      await r.handleCommand({
+        command: "cancel_job",
+        data: { job_id: "RUN_ACTIVE", workflow_id: "wf-active" }
+      });
+
+      // The persisted row is cancelled immediately, not after runner cleanup.
+      const job = await Job.get<Job>("RUN_ACTIVE");
+      expect(job?.status).toBe("cancelled");
+
+      // A cancelled job_update was announced so clients refetch the job list.
+      const updates = ws.sentBytes
+        .map((b) => unpack(b) as Record<string, unknown>)
+        .filter(
+          (m) => m.type === "job_update" && m.job_id === "RUN_ACTIVE"
+        );
+      expect(
+        updates.some((m) => m.status === "cancelled")
+      ).toBe(true);
+    } finally {
+      release();
+      await r.disconnect();
+    }
+  });
 });
 
 describe("UnifiedWebSocketRunner binary frame size guard", () => {

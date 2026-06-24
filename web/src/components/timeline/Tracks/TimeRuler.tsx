@@ -20,6 +20,7 @@ import { css } from "@emotion/react";
 import { useColorScheme, useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
+import type { TimelineMarker } from "@nodetool-ai/timeline";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
@@ -123,6 +124,87 @@ const canvasStyles = css({
   height: "100%"
 });
 
+/**
+ * Marker overlay.
+ *
+ * Each marker flag is positioned in CONTENT space (left = timeMs / msPerPx) and
+ * the whole overlay is shifted by the scroll offset via a single `translateX`.
+ * This means a scroll event only mutates one inline transform on the wrapper —
+ * the per-marker DOM (and the React tree below `MarkerOverlay`) is reconciled
+ * only when the marker set or zoom actually changes, not on every scroll.
+ */
+interface MarkerOverlayProps {
+  markers: TimelineMarker[];
+  msPerPx: number;
+  scrollLeftPx: number;
+  totalWidthPx: number;
+  headerWidthPx: number;
+  onSeek: (timeMs: number) => void;
+  onRemove: (id: string) => void;
+}
+
+const MarkerOverlayInner: React.FC<MarkerOverlayProps> = ({
+  markers,
+  msPerPx,
+  scrollLeftPx,
+  totalWidthPx,
+  headerWidthPx,
+  onSeek,
+  onRemove
+}) => {
+  const theme = useTheme();
+  return (
+    <div
+      css={markerLayerStyles}
+      style={{
+        left: headerWidthPx,
+        transform: `translateX(${-scrollLeftPx}px)`
+      }}
+    >
+      {markers.map((m) => {
+        const contentPx = m.timeMs / msPerPx;
+        // Cull markers outside the currently visible window.
+        const viewportPx = contentPx - scrollLeftPx;
+        if (viewportPx < 0 || viewportPx > totalWidthPx) {
+          return null;
+        }
+        return (
+          <div
+            key={m.id}
+            css={markerFlagStyles(theme)}
+            style={{ left: contentPx, backgroundColor: m.color || undefined }}
+            title={`${m.label || "Marker"} — click to seek`}
+            data-testid="timeline-marker"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSeek(m.timeMs);
+            }}
+          >
+            <span className="marker-label">{m.label || "Marker"}</span>
+            <button
+              type="button"
+              className="marker-delete"
+              data-testid="marker-delete"
+              aria-label={`Delete marker ${m.label || ""}`.trim()}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemove(m.id);
+              }}
+            >
+              ×
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+const MarkerOverlay = memo(MarkerOverlayInner);
+MarkerOverlay.displayName = "MarkerOverlay";
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 /** Returns the best major/minor tick interval (in ms) given the zoom level. */
@@ -203,12 +285,38 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
     }, []);
 
     // ── Draw ────────────────────────────────────────────────────────────────
+    //
+    // The draw inputs (scrollLeftPx especially) change on every scroll event,
+    // so we coalesce redraws into a single requestAnimationFrame: the effect
+    // schedules a draw and dedupes (if one is already pending we don't queue
+    // another), then performs the actual canvas work in the frame callback.
 
-    useEffect(() => {
+    // Keep the latest draw inputs in a ref so the scheduled frame always reads
+    // current values without re-creating the draw function.
+    const drawInputsRef = useRef({
+      msPerPx,
+      scrollLeftPx,
+      theme,
+      activeMode,
+      markers
+    });
+    drawInputsRef.current = { msPerPx, scrollLeftPx, theme, activeMode, markers };
+
+    const rafIdRef = useRef<number | null>(null);
+
+    const draw = useCallback(() => {
       const canvas = canvasRef.current;
       if (!canvas) {
         return;
       }
+
+      const {
+        msPerPx: mpp,
+        scrollLeftPx: scrollLeft,
+        theme: th,
+        activeMode: mode,
+        markers: marks
+      } = drawInputsRef.current;
 
       const dpr = window.devicePixelRatio || 1;
       const w = canvas.offsetWidth;
@@ -229,26 +337,25 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
       ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, w, h);
 
-      const colors = pickRulerColors(theme, activeMode === "light" ? "light" : "dark");
+      const colors = pickRulerColors(th, mode === "light" ? "light" : "dark");
       ctx.fillStyle = colors.bg;
       ctx.fillRect(0, 0, w, h);
 
       const textColor = colors.text;
       const tickColor = colors.tick;
 
-      const { majorMs, minorMs } = computeTickIntervals(msPerPx);
+      const { majorMs, minorMs } = computeTickIntervals(mpp);
 
       // The canvas is already offset by the CSS paddingLeft (headerWidthPx),
       // so its x=0 aligns with the scrollable lanes' left edge. We work in the
       // canvas's own coordinate space here — no further header offset.
-      const visibleStartMs = scrollLeftPx * msPerPx;
-      const visibleEndMs = visibleStartMs + w * msPerPx;
+      const visibleStartMs = scrollLeft * mpp;
+      const visibleEndMs = visibleStartMs + w * mpp;
 
       // First tick time (floor to minorMs boundary)
-      const firstTickMs =
-        Math.floor(visibleStartMs / minorMs) * minorMs;
+      const firstTickMs = Math.floor(visibleStartMs / minorMs) * minorMs;
 
-      ctx.font = `10px ${theme.typography.fontFamily ?? "sans-serif"}`;
+      ctx.font = `10px ${th.typography.fontFamily ?? "sans-serif"}`;
       ctx.textBaseline = "top";
       ctx.textAlign = "left";
 
@@ -257,7 +364,7 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
         tMs <= visibleEndMs + minorMs;
         tMs += minorMs
       ) {
-        const px = tMs / msPerPx - scrollLeftPx;
+        const px = tMs / mpp - scrollLeft;
 
         if (px < 0 || px > w) {
           continue;
@@ -280,8 +387,8 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
 
       // Scene markers — a full-height guide line on the canvas; the interactive
       // flag (label + delete) is a DOM overlay layered on top (see below).
-      for (const m of markers) {
-        const px = m.timeMs / msPerPx - scrollLeftPx;
+      for (const m of marks) {
+        const px = m.timeMs / mpp - scrollLeft;
         if (px < 0 || px > w) {
           continue;
         }
@@ -292,7 +399,37 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
         ctx.lineTo(px + 0.5, h);
         ctx.stroke();
       }
-    }, [msPerPx, scrollLeftPx, totalWidthPx, theme, headerWidthPx, activeMode, markers, resizeTick]);
+    }, []);
+
+    const scheduleDraw = useCallback(() => {
+      if (rafIdRef.current !== null) {
+        return;
+      }
+      rafIdRef.current = requestAnimationFrame(() => {
+        rafIdRef.current = null;
+        draw();
+      });
+    }, [draw]);
+
+    useEffect(() => {
+      scheduleDraw();
+      return () => {
+        if (rafIdRef.current !== null) {
+          cancelAnimationFrame(rafIdRef.current);
+          rafIdRef.current = null;
+        }
+      };
+    }, [
+      msPerPx,
+      scrollLeftPx,
+      totalWidthPx,
+      theme,
+      headerWidthPx,
+      activeMode,
+      markers,
+      resizeTick,
+      scheduleDraw
+    ]);
 
     // ── Pointer interaction ─────────────────────────────────────────────────
 
@@ -344,43 +481,15 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
           aria-valuemin={0}
           aria-valuenow={Math.round(currentTimeMs)}
         />
-        <div css={markerLayerStyles} style={{ left: headerWidthPx }}>
-          {markers.map((m) => {
-            const px = m.timeMs / msPerPx - scrollLeftPx;
-            if (px < 0 || px > totalWidthPx) {
-              return null;
-            }
-            return (
-              <div
-                key={m.id}
-                css={markerFlagStyles(theme)}
-                style={{ left: px, backgroundColor: m.color || undefined }}
-                title={`${m.label || "Marker"} — click to seek`}
-                data-testid="timeline-marker"
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  seek(m.timeMs);
-                }}
-              >
-                <span className="marker-label">{m.label || "Marker"}</span>
-                <button
-                  type="button"
-                  className="marker-delete"
-                  data-testid="marker-delete"
-                  aria-label={`Delete marker ${m.label || ""}`.trim()}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeScene(m.id);
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            );
-          })}
-        </div>
+        <MarkerOverlay
+          markers={markers}
+          msPerPx={msPerPx}
+          scrollLeftPx={scrollLeftPx}
+          totalWidthPx={totalWidthPx}
+          headerWidthPx={headerWidthPx}
+          onSeek={seek}
+          onRemove={removeScene}
+        />
       </div>
     );
   }

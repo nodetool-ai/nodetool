@@ -887,6 +887,7 @@ const KIND_TO_MODALITY: Record<ModelSearchKind, RecommendedUnifiedModel["modalit
   text_to_image: "image",
   image_to_image: "image",
   text_to_speech: "tts",
+  text_to_music: "music",
   speech_to_text: "asr",
   text_to_video: "video",
   image_to_video: "video"
@@ -937,6 +938,11 @@ async function collectProviderModelsForKind(
             for (const m of models) out.push(toUnifiedModel(m, "tts_model"));
             return;
           }
+          case "text_to_music": {
+            const models = await instance.getAvailableMusicModels();
+            for (const m of models) out.push(toUnifiedModel(m, "music_model"));
+            return;
+          }
           case "speech_to_text": {
             const models = await instance.getAvailableASRModels();
             for (const m of models) out.push(toUnifiedModel(m, "asr_model"));
@@ -962,10 +968,12 @@ async function collectProviderModelsForKind(
 function curatedForKind(kind: ModelSearchKind): UnifiedModel[] {
   const modality = KIND_TO_MODALITY[kind];
   // For text_generation/embedding/image/video, RECOMMENDED_MODELS entries are
-  // tagged with the specific task. TTS and ASR entries have no task field —
-  // modality alone is enough.
+  // tagged with the specific task. TTS, ASR and music entries have no task
+  // field — modality alone is enough.
   const taskRequired =
-    kind !== "text_to_speech" && kind !== "speech_to_text";
+    kind !== "text_to_speech" &&
+    kind !== "speech_to_text" &&
+    kind !== "text_to_music";
   return RECOMMENDED_MODELS.filter(
     (r) => r.modality === modality && (!taskRequired || r.task === kind)
   );
@@ -1049,6 +1057,12 @@ export const modelsRouter = router({
    */
   recommendedTts: protectedProcedure
     .query(() => selectRecommended("tts")),
+
+  /**
+   * Recommended music-generation models.
+   */
+  recommendedMusic: protectedProcedure
+    .query(() => selectRecommended("music")),
 
   /**
    * Recommended text-to-video models.
@@ -1435,6 +1449,52 @@ export const modelsRouter = router({
           if (!instance) return [];
           const models = await instance.getAvailableTTSModels();
           return models.map((m) => toUnifiedModel(m, "tts_model"));
+        },
+        []
+      )
+    ),
+
+  /**
+   * All music-generation models across all providers.
+   */
+  music: protectedProcedure.query(async ({ ctx }) => {
+    const availableIds = await getAvailableProviderIds(ctx.userId);
+    const results = await Promise.all(
+      availableIds.map((providerId) =>
+        safeProviderCall(
+          "music (aggregate)",
+          { provider: providerId, userId: ctx.userId },
+          async () => {
+            const instance = await instantiateProvider(providerId, ctx.userId);
+            if (!instance) return [] as UnifiedModel[];
+            const models = await instance.getAvailableMusicModels();
+            return models.map((m) => toUnifiedModel(m, "music_model"));
+          },
+          [] as UnifiedModel[]
+        )
+      )
+    );
+    return results.flat();
+  }),
+
+  /**
+   * Music-generation models by provider.
+   */
+  musicByProvider: protectedProcedure
+    .input(providerInput)
+    .output(modelsListOutput)
+    .query(async ({ ctx, input }) =>
+      safeProviderCall(
+        "musicByProvider",
+        { provider: input.provider, userId: ctx.userId },
+        async () => {
+          const instance = await instantiateProvider(
+            input.provider as ProviderId,
+            ctx.userId
+          );
+          if (!instance) return [];
+          const models = await instance.getAvailableMusicModels();
+          return models.map((m) => toUnifiedModel(m, "music_model"));
         },
         []
       )

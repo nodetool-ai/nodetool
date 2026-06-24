@@ -69,7 +69,7 @@ import {
   useTimelineUIStoreApi,
   useTimelinePlaybackStoreApi
 } from "../../../stores/timeline/TimelineInstance";
-import { MOTION, FONT_SIZE_SANS, BORDER_RADIUS } from "../../ui_primitives";
+import { MOTION, FONT_SIZE_SANS, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
 import type { TimelineClip, TimelineMarker } from "@nodetool-ai/timeline";
 
 type EditorMode = "script" | "write";
@@ -310,32 +310,48 @@ const CaretSeekPlugin: React.FC = () => {
   return null;
 };
 
-/** Highlights (and scrolls to) the word under the playhead during playback. */
+/**
+ * Highlights (and scrolls to) the word under the playhead during playback.
+ *
+ * The playhead advances ~60×/s during playback through the transient time
+ * channel, so this subscribes to {@link subscribeTime} and toggles the
+ * `.is-active` class imperatively — never via React state, so it costs zero
+ * re-renders per frame. The subscription also fires on discrete seek/scrub/stop
+ * (they all emit on the same channel), and we apply once on mount / when the
+ * word DOM changes (load / generate / reseed) so the highlight is correct at
+ * rest too.
+ */
 const ActiveWordPlugin: React.FC = () => {
   const [editor] = useLexicalComposerContext();
-  const currentTimeMs = useTimelinePlaybackStore((s) => s.currentTimeMs);
+  const playbackApi = useTimelinePlaybackStoreApi();
+  const clips = useTimelineStore((s) => s.clips);
   const lastActive = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    const root = editor.getRootElement();
-    if (!root) return;
-    let next: HTMLElement | null = null;
-    for (const el of root.querySelectorAll<HTMLElement>(".transcript-word")) {
-      const start = Number(el.dataset.start);
-      const end = Number(el.dataset.end);
-      if (currentTimeMs >= start && currentTimeMs < end) {
-        next = el;
-        break;
+    const apply = (timeMs: number): void => {
+      const root = editor.getRootElement();
+      if (!root) return;
+      let next: HTMLElement | null = null;
+      for (const el of root.querySelectorAll<HTMLElement>(".transcript-word")) {
+        const start = Number(el.dataset.start);
+        const end = Number(el.dataset.end);
+        if (timeMs >= start && timeMs < end) {
+          next = el;
+          break;
+        }
       }
-    }
-    if (next === lastActive.current) return;
-    lastActive.current?.classList.remove("is-active");
-    if (next) {
-      next.classList.add("is-active");
-      next.scrollIntoView?.({ block: "nearest", inline: "nearest" });
-    }
-    lastActive.current = next;
-  }, [editor, currentTimeMs]);
+      if (next === lastActive.current) return;
+      lastActive.current?.classList.remove("is-active");
+      if (next) {
+        next.classList.add("is-active");
+        next.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+      }
+      lastActive.current = next;
+    };
+
+    apply(playbackApi.getState().getTimeMs());
+    return playbackApi.getState().subscribeTime(apply);
+  }, [editor, playbackApi, clips]);
 
   return null;
 };
@@ -350,7 +366,7 @@ const ActiveWordPlugin: React.FC = () => {
  */
 const ScriptCaretPlugin: React.FC<{ visible: boolean }> = ({ visible }) => {
   const [editor] = useLexicalComposerContext();
-  const currentTimeMs = useTimelinePlaybackStore((s) => s.currentTimeMs);
+  const playbackApi = useTimelinePlaybackStoreApi();
   // Re-run when the projected words change (load / generate / reseed), not just
   // when the playhead moves — otherwise the caret wouldn't appear until a seek.
   const clips = useTimelineStore((s) => s.clips);
@@ -359,50 +375,59 @@ const ScriptCaretPlugin: React.FC<{ visible: boolean }> = ({ visible }) => {
   useEffect(() => {
     const caret = caretRef.current;
     if (!caret) return;
-    const root = editor.getRootElement();
-    if (!visible || !root) {
-      caret.style.display = "none";
-      return;
-    }
 
-    const words = [
-      ...root.querySelectorAll<HTMLElement>(".transcript-word")
-    ];
-    if (words.length === 0) {
-      caret.style.display = "none";
-      return;
-    }
-
-    let target: HTMLElement | null = null;
-    let fraction = 0;
-    for (const el of words) {
-      const start = Number(el.dataset.start);
-      const end = Number(el.dataset.end);
-      if (currentTimeMs >= start && currentTimeMs < end) {
-        target = el;
-        fraction = end > start ? (currentTimeMs - start) / (end - start) : 0;
-        break;
-      }
-    }
-    // Between words / paused: sit at the next word's start, else after the last.
-    if (!target) {
-      target =
-        words.find((el) => Number(el.dataset.start) >= currentTimeMs) ?? null;
-      if (!target) {
-        const last = words[words.length - 1];
-        caret.style.display = "block";
-        caret.style.left = `${last.offsetLeft + last.offsetWidth}px`;
-        caret.style.top = `${last.offsetTop}px`;
-        caret.style.height = `${last.offsetHeight}px`;
+    // Sweep the caret across the active word as the playhead advances. Driven
+    // imperatively off the transient time channel (~60×/s during playback) and
+    // off discrete seek/scrub — no React state, so zero per-frame re-renders.
+    const apply = (timeMs: number): void => {
+      const root = editor.getRootElement();
+      if (!visible || !root) {
+        caret.style.display = "none";
         return;
       }
-    }
 
-    caret.style.display = "block";
-    caret.style.left = `${target.offsetLeft + fraction * target.offsetWidth}px`;
-    caret.style.top = `${target.offsetTop}px`;
-    caret.style.height = `${target.offsetHeight}px`;
-  }, [editor, currentTimeMs, visible, clips]);
+      const words = [...root.querySelectorAll<HTMLElement>(".transcript-word")];
+      if (words.length === 0) {
+        caret.style.display = "none";
+        return;
+      }
+
+      let target: HTMLElement | null = null;
+      let fraction = 0;
+      for (const el of words) {
+        const start = Number(el.dataset.start);
+        const end = Number(el.dataset.end);
+        if (timeMs >= start && timeMs < end) {
+          target = el;
+          // The enclosing check guarantees start <= timeMs < end, so end > start
+          // and the denominator is always positive.
+          fraction = (timeMs - start) / (end - start);
+          break;
+        }
+      }
+      // Between words / paused: sit at the next word's start, else after the last.
+      if (!target) {
+        target =
+          words.find((el) => Number(el.dataset.start) >= timeMs) ?? null;
+        if (!target) {
+          const last = words[words.length - 1];
+          caret.style.display = "block";
+          caret.style.left = `${last.offsetLeft + last.offsetWidth}px`;
+          caret.style.top = `${last.offsetTop}px`;
+          caret.style.height = `${last.offsetHeight}px`;
+          return;
+        }
+      }
+
+      caret.style.display = "block";
+      caret.style.left = `${target.offsetLeft + fraction * target.offsetWidth}px`;
+      caret.style.top = `${target.offsetTop}px`;
+      caret.style.height = `${target.offsetHeight}px`;
+    };
+
+    apply(playbackApi.getState().getTimeMs());
+    return playbackApi.getState().subscribeTime(apply);
+  }, [editor, playbackApi, visible, clips]);
 
   return <div ref={caretRef} className="script-caret" aria-hidden="true" />;
 };
@@ -463,7 +488,7 @@ const EditorSurface = styled("div")(({ theme }) => ({
   "& .script-caret": {
     position: "absolute",
     width: 2,
-    marginLeft: -1,
+    marginLeft: `-${getSpacingPx(SPACING.micro)}`, // was -1px
     background: theme.vars.palette.primary.main,
     borderRadius: BORDER_RADIUS.xs,
     pointerEvents: "none",
@@ -474,7 +499,7 @@ const EditorSurface = styled("div")(({ theme }) => ({
     "0%, 100%": { opacity: 1 },
     "50%": { opacity: 0 }
   },
-  "& p": { margin: "0 0 8px" },
+  "& p": { margin: `0 0 ${getSpacingPx(SPACING.md)}` },
   "& p:last-child": { marginBottom: 0 },
   "& .transcript-word": {
     borderRadius: BORDER_RADIUS.xs,

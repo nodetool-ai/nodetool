@@ -3,7 +3,7 @@ import { memo, useCallback, forwardRef, useState, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Box, Collapse, MOTION, BORDER_RADIUS, FONT_WEIGHT } from "../ui_primitives";
+import { Text, Box, Collapse, MOTION, BORDER_RADIUS, FONT_WEIGHT, Z_INDEX, SPACING, getSpacingPx } from "../ui_primitives";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
@@ -49,7 +49,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
       border: "1px solid transparent",
       backgroundColor: "transparent",
       position: "relative",
-      zIndex: 1,
+      zIndex: Z_INDEX.raised,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
         border: `1px solid ${theme.vars.palette.divider}`
@@ -57,7 +57,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
       "&.expanded": {
         backgroundColor: theme.vars.palette.action.hover,
         border: `1px solid ${theme.vars.palette.divider}`,
-        zIndex: 10
+        zIndex: Z_INDEX.dropdown
       },
       "&.keyboard-selected": {
         backgroundColor: "rgba(var(--palette-primary-mainChannel) / 0.15)",
@@ -164,7 +164,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         left: 0,
         right: 0,
         top: "100%",
-        zIndex: 100,
+        zIndex: Z_INDEX.overlay,
         padding: theme.spacing(0, 3, 3, 3)
       },
       ".io-info": {
@@ -175,7 +175,7 @@ const searchResultStyles = (theme: Theme, compact: boolean) =>
         display: "flex",
         flexDirection: "column",
         gap: theme.spacing(1),
-        boxShadow: "0 4px 12px rgba(0,0,0,0.3)"
+        boxShadow: `0 4px 12px ${theme.vars.palette.c_scrim_soft}`
       },
       ".io-row": {
         display: "flex",
@@ -318,7 +318,7 @@ const SearchResultItem = memo(
                 width: "18px",
                 height: "18px",
                 margin: 0,
-                padding: "1px",
+                padding: getSpacingPx(SPACING.micro), // was 1px
                 borderRadius: BORDER_RADIUS.sm
               }}
               svgProps={{ width: "14px", height: "14px" }}
@@ -393,7 +393,7 @@ const SearchResultItem = memo(
                     backgroundColor: theme.vars.palette.action.hover,
                     border: `1px solid ${theme.vars.palette.divider}`,
                     margin: "0",
-                    padding: "4px",
+                    padding: getSpacingPx(SPACING.xs),
                     borderRadius: BORDER_RADIUS.md,
                     width: "28px",
                     height: "28px"
@@ -493,7 +493,10 @@ const SearchResultItem = memo(
                       </span>
                     ))}
                     {node.properties.length > 6 && (
-                      <span className="io-item" style={{ borderColor: "#666" }}>
+                      <span
+                        className="io-item"
+                        style={{ borderColor: "var(--palette-grey-500)" }}
+                      >
                         +{node.properties.length - 6}
                       </span>
                     )}

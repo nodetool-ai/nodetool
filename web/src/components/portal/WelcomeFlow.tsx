@@ -3,7 +3,7 @@ import { css, keyframes } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, type CSSProperties } from "react";
-import { MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
@@ -53,7 +53,7 @@ const styles = (theme: Theme, fullWidth: boolean) =>
       animation: `${pulse} 2.4s ease-in-out infinite`
     },
     ".welcome-heading": {
-      margin: "6px 0 12px",
+      margin: `${getSpacingPx(SPACING.sm)} 0 ${getSpacingPx(SPACING.lg)}`,
       maxWidth: 720,
       fontSize: "clamp(2rem, 4vw, 2.75rem)",
       fontWeight: 500,
@@ -65,7 +65,7 @@ const styles = (theme: Theme, fullWidth: boolean) =>
     ".welcome-sub": {
       color: theme.vars.palette.text.secondary,
       maxWidth: 560,
-      margin: "0 0 32px",
+      margin: `0 0 ${getSpacingPx(SPACING.xxxl)}`,
       fontSize: 15,
       lineHeight: 1.45,
       animation: `${rise} 600ms 240ms backwards`

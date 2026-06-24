@@ -262,6 +262,74 @@ describe("MinimaxProvider", () => {
     expect(body.audio_setting.format).toBe("mp3");
   });
 
+  it("advertises text_to_music and lists music models", async () => {
+    const provider = new MinimaxProvider(
+      { MINIMAX_API_KEY: "k" },
+      { client: {} as any, fetchFn: vi.fn() as any }
+    );
+    expect(provider.getCapabilities()).toContain("text_to_music");
+    const models = await provider.getAvailableMusicModels();
+    expect(models.map((m) => m.id)).toContain("music-2.6");
+    expect(models.every((m) => m.provider === "minimax")).toBe(true);
+  });
+
+  it("generates music via the music_generation endpoint", async () => {
+    const audioHex = "0a0b0c";
+    const mockFetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: { audio: audioHex },
+        base_resp: { status_code: 0 }
+      })
+    });
+
+    const provider = new MinimaxProvider(
+      { MINIMAX_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+
+    const encoded = await provider.textToMusic({
+      model: { id: "music-2.6", name: "MiniMax Music 2.6", provider: "minimax" },
+      prompt: "an upbeat pop song",
+      lyrics: "[Verse]\nHello world"
+    });
+
+    expect(encoded.mimeType).toBe("audio/mpeg");
+    expect(Array.from(encoded.data)).toEqual([10, 11, 12]);
+
+    const url = mockFetch.mock.calls[0][0] as string;
+    expect(url).toContain("/v1/music_generation");
+    const body = JSON.parse(
+      (mockFetch.mock.calls[0][1] as { body: string }).body
+    );
+    expect(body.model).toBe("music-2.6");
+    expect(body.prompt).toBe("an upbeat pop song");
+    expect(body.lyrics).toBe("[Verse]\nHello world");
+    expect(body.output_format).toBe("hex");
+  });
+
+  it("defaults missing lyrics to an instrumental marker", async () => {
+    const mockFetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: { audio: "00" },
+        base_resp: { status_code: 0 }
+      })
+    });
+    const provider = new MinimaxProvider(
+      { MINIMAX_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+    await provider.textToMusic({
+      model: { id: "music-2.6", name: "MiniMax Music 2.6", provider: "minimax" },
+      prompt: "lofi beats"
+    });
+    const body = JSON.parse(
+      (mockFetch.mock.calls[0][1] as { body: string }).body
+    );
+    expect(body.lyrics).toBe("[Instrumental]");
+  });
+
   it("generates a chat completion via the inherited OpenAI path", async () => {
     const create = vi.fn().mockResolvedValue({
       choices: [{ message: { content: "hi", tool_calls: null } }]

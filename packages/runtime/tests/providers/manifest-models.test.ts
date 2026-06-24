@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
+  buildMusicModels,
+  buildTTSModels,
   loadImageModels,
+  loadMusicModels,
+  loadTTSModels,
   loadVideoModels
 } from "../../src/providers/manifest-models.js";
 
@@ -123,3 +127,136 @@ describe("manifest-models task inference (FAL manifest)", () => {
     for (const m of v2v) expect(m.supportedTasks).toEqual(["video_to_video"]);
   });
 });
+
+describe("manifest-models TTS discovery", () => {
+  const tts = loadTTSModels(FAL_PKG, FAL_MANIFEST, "fal_ai");
+  const byId = (id: string) => tts.find((m) => m.id === id);
+
+  it("discovers the FAL text-to-speech catalog", () => {
+    expect(tts.length).toBeGreaterThan(10);
+    expect(byId("fal-ai/dia-tts")).toBeTruthy();
+    expect(tts.every((m) => m.provider === "fal_ai")).toBe(true);
+  });
+
+  it("extracts a preset voice list from an enumerated voice field", () => {
+    const vibe = byId("fal-ai/vibevoice/0.5b");
+    expect(vibe?.voices ?? []).toContain("Emma");
+  });
+
+  it("pure buildTTSModels: matches by moduleName, task, or id; excludes other audio", () => {
+    const models = buildTTSModels(
+      [
+        // FAL-style: tagged by module
+        {
+          endpointId: "vendor/speak",
+          className: "Speak",
+          outputType: "audio",
+          moduleName: "text_to_speech",
+          inputFields: [
+            { name: "voice", propType: "str", enumValues: ["Ann", "Bob"] }
+          ]
+        },
+        // KIE-style: no module, identified by id keyword
+        {
+          modelId: "elevenlabs/text-to-speech-multilingual-v2",
+          title: "ElevenLabs Multilingual",
+          outputType: "audio"
+        },
+        // Explicit task
+        {
+          endpointId: "vendor/tts2",
+          outputType: "audio",
+          supportedTasks: ["text_to_speech"]
+        },
+        // Not TTS — a music model with audio output must be excluded
+        {
+          endpointId: "vendor/music",
+          className: "MakeMusic",
+          outputType: "audio"
+        }
+      ],
+      "fal_ai"
+    );
+    expect(models.map((m) => m.id).sort()).toEqual([
+      "elevenlabs/text-to-speech-multilingual-v2",
+      "vendor/speak",
+      "vendor/tts2"
+    ]);
+    expect(byIdIn(models, "vendor/speak")?.voices).toEqual(["Ann", "Bob"]);
+    expect(byIdIn(models, "vendor/tts2")?.voices).toBeUndefined();
+  });
+});
+
+describe("manifest-models music discovery", () => {
+  const music = loadMusicModels(FAL_PKG, FAL_MANIFEST, "fal_ai");
+
+  it("discovers the FAL text-to-music catalog and tags it", () => {
+    expect(music.length).toBeGreaterThan(3);
+    expect(music.every((m) => m.provider === "fal_ai")).toBe(true);
+    expect(
+      music.every((m) => m.supportedTasks?.includes("text_to_music"))
+    ).toBe(true);
+    // A well-known FAL music endpoint is present.
+    expect(music.some((m) => /music|stable-audio|ace-step/i.test(m.id))).toBe(
+      true
+    );
+  });
+
+  it("does not surface any text-to-speech model under music", () => {
+    const tts = new Set(
+      loadTTSModels(FAL_PKG, FAL_MANIFEST, "fal_ai").map((m) => m.id)
+    );
+    expect(music.some((m) => tts.has(m.id))).toBe(false);
+  });
+
+  it("pure buildMusicModels: matches by module/task/keyword; excludes TTS", () => {
+    const models = buildMusicModels(
+      [
+        // FAL-style: tagged by the text_to_audio module
+        {
+          endpointId: "vendor/compose",
+          className: "Compose",
+          outputType: "audio",
+          moduleName: "text_to_audio"
+        },
+        // Identified by id keyword
+        {
+          modelId: "meta/musicgen",
+          title: "MusicGen",
+          outputType: "audio"
+        },
+        // Explicit task
+        {
+          endpointId: "vendor/song",
+          outputType: "audio",
+          supportedTasks: ["text_to_music"]
+        },
+        // TTS — must be excluded even though it outputs audio
+        {
+          endpointId: "vendor/speak",
+          outputType: "audio",
+          moduleName: "text_to_speech"
+        },
+        // Non-audio output — excluded
+        {
+          endpointId: "vendor/video",
+          outputType: "video",
+          className: "MusicVideo"
+        }
+      ],
+      "replicate"
+    );
+    expect(models.map((m) => m.id).sort()).toEqual([
+      "meta/musicgen",
+      "vendor/compose",
+      "vendor/song"
+    ]);
+    expect(
+      models.every((m) => m.supportedTasks?.includes("text_to_music"))
+    ).toBe(true);
+  });
+});
+
+function byIdIn<T extends { id: string }>(list: T[], id: string): T | undefined {
+  return list.find((m) => m.id === id);
+}

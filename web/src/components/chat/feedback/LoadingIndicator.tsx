@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css, keyframes } from "@emotion/react";
 import React from "react";
+import { SPACING, getSpacingPx } from "../../ui_primitives";
 
 const rotate = keyframes`
   0% { transform: rotate(0deg); }
@@ -38,7 +39,7 @@ const styles = {
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    padding: 8px 0;
+    padding: ${getSpacingPx(SPACING.md)} 0;
     min-width: 32px;
     min-height: 32px;
   `,
@@ -64,8 +65,8 @@ const styles = {
     left: 50%;
     width: 6px;
     height: 6px;
-    margin-left: -3px;
-    margin-top: -3px;
+    margin-left: -${getSpacingPx(SPACING.xs)}; /* was -3px */
+    margin-top: -${getSpacingPx(SPACING.xs)}; /* was -3px */
     border-radius: 50%;
     background: currentColor;
     animation: ${pulse} 1.55s cubic-bezier(0.42, 0, 0.28, 1) infinite;

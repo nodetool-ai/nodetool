@@ -62,6 +62,14 @@ Browse, search, organize, and tag every file used in your workflows. Opens the f
 
 Docs: [Asset Management](asset-management.md) · [Image Editor](image-editor.md)
 
+### Video Editor — `/timeline/:sequenceId`
+
+A generation-aware timeline editor. Sequence video, audio, and image clips across multiple tracks — clips can be imported media or live workflow outputs that regenerate when you change their parameters. Composite a preview in real time and export the whole timeline to MP4.
+
+![Video Editor](assets/screenshots/video-editor-timeline.png)
+
+Docs: [Video Editor](video-editor.md)
+
 ### Collections — `/collections`
 
 Group related documents into indexable collections for RAG workflows.

@@ -12,6 +12,7 @@ import { Slugify, isCollectType } from "../../utils/TypeHandler";
 import { useKeyPressedStore } from "../../stores/KeyPressedStore";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import isEqual from "fast-deep-equal";
+import { isFieldRelevantDataEqual } from "./propertyFieldEquality";
 import { isConnectableCached } from "../node_menu/typeFilterUtils";
 import HandleTooltip from "../HandleTooltip";
 import { NodeData } from "../../stores/NodeData";
@@ -273,4 +274,31 @@ const PropertyField: React.FC<PropertyFieldProps> = ({
   );
 };
 
-export default memo(PropertyField, isEqual);
+export default memo(PropertyField, (prev, next) => {
+  if (
+    prev.id !== next.id ||
+    prev.nodeType !== next.nodeType ||
+    prev.layout !== next.layout ||
+    prev.propertyIndex !== next.propertyIndex ||
+    prev.showFields !== next.showFields ||
+    prev.showHandle !== next.showHandle ||
+    prev.isInspector !== next.isInspector ||
+    prev.tabIndex !== next.tabIndex ||
+    prev.isDynamicProperty !== next.isDynamicProperty ||
+    prev.hideActionIcons !== next.hideActionIcons ||
+    prev.isConnected !== next.isConnected ||
+    prev.onValueChange !== next.onValueChange
+  ) {
+    return false;
+  }
+  if (!isEqual(prev.inspectorBatchNodeIds, next.inspectorBatchNodeIds)) {
+    return false;
+  }
+  if (!isFieldRelevantDataEqual(prev.data, next.data, prev.isDynamicProperty)) {
+    return false;
+  }
+  if (!isEqual(prev.value, next.value)) {
+    return false;
+  }
+  return isEqual(prev.property, next.property);
+});

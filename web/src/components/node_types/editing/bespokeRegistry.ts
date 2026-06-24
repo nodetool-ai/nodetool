@@ -21,6 +21,7 @@ import CanvasResizeBody, {
 } from "./CanvasResizeBody";
 import ChannelsBody, { CHANNELS_NODE_TYPE } from "./ChannelsBody";
 import ChromaKeyBody, { CHROMA_KEY_NODE_TYPE } from "./ChromaKeyBody";
+import CollectionBody, { COLLECTION_NODE_TYPE } from "./CollectionBody";
 import ColorOverlayBody, {
   COLOR_OVERLAY_NODE_TYPE
 } from "./ColorOverlayBody";
@@ -39,6 +40,7 @@ import ExtractVideoFrameBody, {
 } from "./ExtractVideoFrameBody";
 import FitBody, { FIT_NODE_TYPE } from "./FitBody";
 import GeneratorBody, { GENERATOR_NODE_TYPES } from "./GeneratorBody";
+import GetVariableBody, { GET_VARIABLE_NODE_TYPE } from "./GetVariableBody";
 import HSLAdjustBody, { HSL_ADJUST_NODE_TYPE } from "./HSLAdjustBody";
 import LevelsBody, { LEVELS_NODE_TYPE } from "./LevelsBody";
 import ListGeneratorBody, {
@@ -92,6 +94,7 @@ export const BESPOKE_BODY_REGISTRY: Readonly<
   [CANVAS_RESIZE_NODE_TYPE]: CanvasResizeBody,
   [CHANNELS_NODE_TYPE]: ChannelsBody,
   [CHROMA_KEY_NODE_TYPE]: ChromaKeyBody,
+  [COLLECTION_NODE_TYPE]: CollectionBody,
   [COLOR_OVERLAY_NODE_TYPE]: ColorOverlayBody,
   [COMPOSITOR_NODE_TYPE]: CompositorBody,
   [CONSTANT_SKETCH_NODE_TYPE]: ConstantSketchBody,
@@ -101,6 +104,7 @@ export const BESPOKE_BODY_REGISTRY: Readonly<
   [DROP_SHADOW_NODE_TYPE]: DropShadowBody,
   [EXTRACT_VIDEO_FRAME_NODE_TYPE]: ExtractVideoFrameBody,
   [FIT_NODE_TYPE]: FitBody,
+  [GET_VARIABLE_NODE_TYPE]: GetVariableBody,
   [HSL_ADJUST_NODE_TYPE]: HSLAdjustBody,
   [LEVELS_NODE_TYPE]: LevelsBody,
   [LIST_GENERATOR_NODE_TYPE]: ListGeneratorBody,
@@ -142,6 +146,8 @@ export const BESPOKE_BODY_REGISTRY: Readonly<
  * saved height yet, so user resizes are preserved.
  */
 export const BESPOKE_DEFAULT_HEIGHTS: Readonly<Record<string, number>> = {
+  // Collection: a curation grid needs room to show several thumbnails at once.
+  [COLLECTION_NODE_TYPE]: 320,
   [CONSTANT_SKETCH_NODE_TYPE]: 300,
   [CONSTANT_TIMELINE_NODE_TYPE]: 300,
   [CURVES_NODE_TYPE]: 520,

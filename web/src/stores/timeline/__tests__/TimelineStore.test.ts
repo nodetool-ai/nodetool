@@ -565,6 +565,42 @@ describe("TimelineStore — addClip / patchClip", () => {
     expect(store.getState().clips[0].name).toBe("renamed");
     expect(store.getState().clips[0].durationMs).toBe(2000);
   });
+
+  it("patchClip preserves identity of unchanged clips", () => {
+    const store = mkStore();
+    const track = makeTrack({ type: "video" });
+    const a = makeClip({ trackId: track.id, name: "a" });
+    const b = makeClip({ trackId: track.id, name: "b" });
+    store.setState({ tracks: [track], clips: [a, b] });
+    store.getState().patchClip(a.id, { name: "a2" });
+    // The untouched clip keeps its object reference.
+    expect(store.getState().clips[1]).toBe(b);
+  });
+
+  it("patchClip is a no-op (same state ref) when the clip is missing", () => {
+    const store = mkStore();
+    addTrackAndClip(store, {});
+    const before = store.getState().clips;
+    store.getState().patchClip("does-not-exist", { name: "x" });
+    expect(store.getState().clips).toBe(before);
+  });
+
+  it("patchClip is a no-op (same array ref) when the patch is value-identical", () => {
+    const store = mkStore();
+    const { clip } = addTrackAndClip(store, { name: "same" });
+    const before = store.getState().clips;
+    store.getState().patchClip(clip.id, { name: "same" });
+    expect(store.getState().clips).toBe(before);
+  });
+
+  it("patchClip no-op does not push an undo entry", () => {
+    const store = mkStore();
+    const { clip } = addTrackAndClip(store, { name: "same" });
+    const temporal = timelineTemporalOf(store);
+    const pastBefore = temporal.pastStates.length;
+    store.getState().patchClip(clip.id, { name: "same" });
+    expect(timelineTemporalOf(store).pastStates.length).toBe(pastBefore);
+  });
 });
 
 describe("TimelineStore — addImportedClip", () => {

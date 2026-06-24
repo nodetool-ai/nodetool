@@ -6,7 +6,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { Asset } from "../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Tooltip, CloseButton, MOTION, SPACING, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, CloseButton, MOTION, SPACING, BORDER_RADIUS, getSpacingPx } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
 import { useAssetUpload } from "../../serverState/useAssetUpload";
 import ImageDimensions from "../node/ImageDimensions";
@@ -24,7 +24,7 @@ const styles = (theme: Theme) =>
   css({
     ".image-list-property": {
       width: "100%",
-      marginBottom: "8px"
+      marginBottom: getSpacingPx(SPACING.md)
     },
     ".property-label": {
       marginBottom: theme.spacing(SPACING.sm)
@@ -32,14 +32,14 @@ const styles = (theme: Theme) =>
     ".image-grid": {
       display: "grid",
       gridTemplateColumns: "repeat(auto-fill, minmax(80px, 1fr))",
-      gap: "8px",
-      marginTop: "8px"
+      gap: getSpacingPx(SPACING.md),
+      marginTop: getSpacingPx(SPACING.md)
     },
     ".image-item": {
       position: "relative",
       width: "100%",
       paddingTop: "100%", // 1:1 aspect ratio
-      backgroundColor: `rgba(0, 0, 0, 0.2)`,
+      backgroundColor: theme.vars.palette.c_scrim_soft,
       borderRadius: BORDER_RADIUS.md,
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
@@ -77,9 +77,9 @@ const styles = (theme: Theme) =>
       right: "2px",
       opacity: 0,
       transition: `opacity ${MOTION.normal}`,
-      backgroundColor: `rgba(0, 0, 0, 0.7)`,
+      backgroundColor: theme.vars.palette.c_scrim,
       color: theme.vars.palette.grey[100],
-      padding: "2px",
+      padding: getSpacingPx(SPACING.micro),
       width: "20px",
       height: "20px",
       zIndex: 2,
@@ -101,7 +101,7 @@ const styles = (theme: Theme) =>
       transition: MOTION.all,
       outline: `1px dashed ${theme.vars.palette.grey[600]}`,
       margin: `${theme.spacing(SPACING.sm)} 0`,
-      backgroundColor: `rgba(0, 0, 0, 0.2)`,
+      backgroundColor: theme.vars.palette.c_scrim_soft,
       borderRadius: BORDER_RADIUS.md,
       display: "flex",
       alignItems: "center",
@@ -109,7 +109,7 @@ const styles = (theme: Theme) =>
       cursor: "pointer",
       "&:hover": {
         outline: `1px dashed ${theme.vars.palette.grey[400]}`,
-        backgroundColor: `rgba(0, 0, 0, 0.3)`
+        backgroundColor: theme.vars.palette.c_scrim_soft
       },
       "&.drag-over": {
         backgroundColor: theme.vars.palette.grey[600],
@@ -494,11 +494,11 @@ const ImageListProperty = (props: PropertyProps) => {
         ) : (
           <div
             css={css({
-              color: "rgba(255,255,255,0.3)",
+              color: theme.vars.palette.text.disabled,
               fontSize: "var(--fontSizeSmall)",
               textAlign: "center",
-              padding: "16px 8px",
-              outline: "1px dashed rgba(255,255,255,0.1)",
+              padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)}`,
+              outline: `1px dashed ${theme.vars.palette.c_overlay_strong}`,
               borderRadius: BORDER_RADIUS.md,
               margin: `${theme.spacing(SPACING.sm)} 0`
             })}

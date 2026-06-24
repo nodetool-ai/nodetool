@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -21,7 +21,9 @@ import {
   Popover,
   Text,
   MOTION,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
 } from "../../ui_primitives";
 import type { MediaMode } from "../../../stores/MediaGenerationStore";
 
@@ -112,10 +114,10 @@ const MODES: ModeItem[] = [
 
 const styles = (theme: Theme) =>
   css({
-    padding: "8px 0",
+    padding: `${getSpacingPx(SPACING.md)} 0`,
     minWidth: 240,
     ".mode-menu-header": {
-      padding: "8px 16px 4px",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xs)}`,
       color: theme.vars.palette.grey[400],
       textTransform: "uppercase",
       letterSpacing: 1
@@ -129,10 +131,10 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[100],
       transition: MOTION.background,
       "&:hover": {
-        backgroundColor: "rgba(255,255,255,0.06)"
+        backgroundColor: theme.vars.palette.c_overlay
       },
       "&.selected": {
-        backgroundColor: "rgba(255,255,255,0.08)"
+        backgroundColor: theme.vars.palette.c_overlay
       },
       "&.disabled": {
         opacity: 0.45,
@@ -167,6 +169,7 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
   onSelectPi
 }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   return (
     <Popover
       open={open}
@@ -177,10 +180,10 @@ const MediaModeMenu: React.FC<MediaModeMenuProps> = ({
         backgroundColor: theme.vars.palette.grey[900],
         border: `1px solid ${theme.vars.palette.grey[800]}`,
         borderRadius: BORDER_RADIUS.sm,
-        boxShadow: "0 12px 40px rgba(0,0,0,0.45)"
+        boxShadow: `0 12px 40px ${theme.vars.palette.c_scrim}`
       }}
     >
-      <div css={styles(theme)} role="menu" aria-label="Generation mode">
+      <div css={cssStyles} role="menu" aria-label="Generation mode">
         <Caption className="mode-menu-header" size="small">
           Mode
         </Caption>

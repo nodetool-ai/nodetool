@@ -160,9 +160,9 @@ const ListTable: React.FC<ListTableProps> = ({
   );
 
   const onChangeRows = useCallback(
-    (newData: ListCellValue[]) => {
-      if (onDataChange) {
-        onDataChange(newData);
+    (newData: TableData) => {
+      if (onDataChange && Array.isArray(newData)) {
+        onDataChange(newData as ListCellValue[]);
       }
     },
     [onDataChange]
@@ -205,9 +205,9 @@ const ListTable: React.FC<ListTableProps> = ({
     <div className="listtable nowheel nodrag" css={tableStyles(theme)}>
       <TableActions
         tabulator={tabulator}
-        data={data as unknown as TableData}
+        data={data}
         selectedRows={selectedRows}
-        onChangeRows={onChangeRows as unknown as (newData: TableData) => void}
+        onChangeRows={onChangeRows}
         showSelect={showSelect}
         setShowSelect={setShowSelect}
         editable={editable}

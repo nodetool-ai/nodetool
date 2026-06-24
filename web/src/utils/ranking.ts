@@ -51,7 +51,7 @@ const DEFAULT_BOOSTED_BONUS = 6;
 const isReadonlyMap = (
   value: ReadonlyMap<string, number> | Record<string, number>
 ): value is ReadonlyMap<string, number> =>
-  typeof (value as ReadonlyMap<string, number>).get === "function";
+  "get" in value && typeof value.get === "function";
 
 const getCandidateBoost = (
   source: ReadonlyMap<string, number> | Record<string, number> | undefined,

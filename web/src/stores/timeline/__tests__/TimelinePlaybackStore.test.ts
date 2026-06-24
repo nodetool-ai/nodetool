@@ -100,4 +100,47 @@ describe("TimelinePlaybackStore", () => {
       expect(useTimelinePlaybackStore.getState().isPlaying).toBe(false);
     });
   });
+
+  describe("transient time channel", () => {
+    it("setTimeMs updates the live value without touching reactive state", () => {
+      const store = useTimelinePlaybackStore.getState();
+      act(() => {
+        store.setCurrentTimeMs(0);
+      });
+      act(() => {
+        store.setTimeMs(4200);
+      });
+      // Live value advanced …
+      expect(useTimelinePlaybackStore.getState().getTimeMs()).toBe(4200);
+      // … but the reactive snapshot did NOT (no re-render path).
+      expect(useTimelinePlaybackStore.getState().currentTimeMs).toBe(0);
+    });
+
+    it("notifies transient subscribers on setTimeMs and seek", () => {
+      const seen: number[] = [];
+      const unsub = useTimelinePlaybackStore.getState().subscribeTime((ms) =>
+        seen.push(ms)
+      );
+      act(() => {
+        useTimelinePlaybackStore.getState().setTimeMs(100);
+        useTimelinePlaybackStore.getState().seek(250);
+      });
+      expect(seen).toEqual([100, 250]);
+      unsub();
+      act(() => {
+        useTimelinePlaybackStore.getState().setTimeMs(999);
+      });
+      expect(seen).toEqual([100, 250]);
+    });
+
+    it("pause syncs reactive currentTimeMs to the live position", () => {
+      act(() => {
+        useTimelinePlaybackStore.getState().setCurrentTimeMs(0);
+        useTimelinePlaybackStore.getState().play();
+        useTimelinePlaybackStore.getState().setTimeMs(7777);
+        useTimelinePlaybackStore.getState().pause();
+      });
+      expect(useTimelinePlaybackStore.getState().currentTimeMs).toBe(7777);
+    });
+  });
 });

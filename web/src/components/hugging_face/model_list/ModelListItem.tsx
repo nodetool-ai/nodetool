@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 
 import React, { useMemo, useState, useCallback, memo } from "react";
-import { Chip, FlexRow, Tooltip, Text, Box, TextLink } from "../../ui_primitives";
+import { Chip, FlexRow, Tooltip, Text, Box, TextLink, SPACING, getSpacingPx } from "../../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { ModelComponentProps } from "../ModelUtils";
@@ -236,7 +236,7 @@ const ModelListItem: React.FC<
                     },
                     "& .MuiChip-icon": {
                       color: "inherit",
-                      marginLeft: "4px"
+                      marginLeft: getSpacingPx(SPACING.xs)
                     }
                   }}
                 />

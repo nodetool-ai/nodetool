@@ -363,6 +363,7 @@ export class LlamaProvider extends BaseProvider {
       request.tools = this.formatTools(tools);
     }
 
+    this.recordRequestPayload(request);
     const stream = (await this.getClient().chat.completions.create(
       request as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming
     )) as AsyncIterable<any> & { close?: () => Promise<void> };
@@ -462,6 +463,7 @@ export class LlamaProvider extends BaseProvider {
       request.tools = this.formatTools(tools);
     }
 
+    this.recordRequestPayload(request);
     const completion = await this.getClient().chat.completions.create(
       request as unknown as OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming
     );

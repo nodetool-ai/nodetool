@@ -1053,21 +1053,6 @@ export function buildVisibleLayerTree(layers: Layer[]): Array<{ layer: Layer; de
   return result;
 }
 
-function layerHiddenByCollapsedAncestor(
-  layers: Layer[],
-  layer: Layer,
-  collapsedGroupIds: Set<string>
-): boolean {
-  let current: Layer | undefined = layer;
-  while (current?.parentId) {
-    if (collapsedGroupIds.has(current.parentId)) {
-      return true;
-    }
-    current = layers.find((l) => l.id === current!.parentId);
-  }
-  return false;
-}
-
 /**
  * Layer panel order: composite top → bottom, with each group row immediately above
  * its children (children indented one level deeper). Respects collapsed groups.

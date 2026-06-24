@@ -14,9 +14,13 @@ const _nodeModule = await importNodeBuiltin<typeof import("node:module")>(
 import type {
   ImageModel,
   VideoModel,
+  TTSModel,
+  MusicModel,
+  EncodedAudioResult,
   Message,
   ProviderStreamItem,
   TextToImageParams,
+  TextToMusicParams,
   ImageToImageParams,
   InpaintingParams,
   TextToVideoParams,
@@ -28,7 +32,13 @@ import type {
   VideoToVideoParams,
   LipSyncParams
 } from "./types.js";
-import { loadImageModels, loadVideoModels } from "./manifest-models.js";
+import {
+  loadImageModels,
+  loadMusicModels,
+  loadTTSModels,
+  loadVideoModels
+} from "./manifest-models.js";
+import { sniffAudioMime } from "./audio-mime.js";
 import { safeFetch } from "./safe-url.js";
 
 const log = createLogger("nodetool.runtime.providers.fal");
@@ -393,6 +403,113 @@ if (update.status === "IN_PROGRESS") {
 
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
     return loadVideoModels(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, "fal_ai");
+  }
+
+  override async getAvailableTTSModels(): Promise<TTSModel[]> {
+    return loadTTSModels(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, "fal_ai");
+  }
+
+  override async getAvailableMusicModels(): Promise<MusicModel[]> {
+    return loadMusicModels(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, "fal_ai");
+  }
+
+  /**
+   * Generate music as an encoded audio file. FAL music endpoints (Stable Audio,
+   * MiniMax Music, ACE-Step, DiffRhythm, …) return a file URL, so this mirrors
+   * {@link textToSpeechEncoded}: shape the request from the manifest, run it,
+   * and download the resulting audio bytes.
+   */
+  override async textToMusic(
+    params: TextToMusicParams
+  ): Promise<EncodedAudioResult> {
+    if (!params.prompt) throw new Error("prompt must not be empty");
+    const client = await this.getClient();
+    const modelId = params.model.id;
+    const input = this.buildTextToMusicArgs(modelId, params);
+    log.debug("FAL textToMusic", { model: modelId });
+    const result = await client.subscribe(modelId, {
+      input,
+      logs: true,
+      onQueueUpdate: this.makeQueueUpdateHandler()
+    });
+    const data = (result.data ?? result) as Record<string, unknown>;
+    const bytes = await downloadBytes(extractAudioUrl(data));
+    return { data: bytes, mimeType: sniffAudioMime(bytes) };
+  }
+
+  /**
+   * Shape music inputs for whatever the endpoint declares. The text prompt
+   * lands in `prompt`; lyrics (for vocal models) and duration land in whichever
+   * of the heterogeneous duration/lyrics fields the endpoint accepts.
+   * {@link FalArgsBuilder.set} drops keys the endpoint doesn't declare.
+   */
+  private buildTextToMusicArgs(
+    modelId: string,
+    params: TextToMusicParams
+  ): Record<string, unknown> {
+    const b = new FalArgsBuilder(modelId);
+    b.force("prompt", params.prompt)
+      .set("style_prompt", params.prompt)
+      .set("lyrics", params.lyrics)
+      .set("lyrics_prompt", params.lyrics);
+    if (params.durationSeconds != null) {
+      b.set("duration", params.durationSeconds)
+        .set("seconds_total", params.durationSeconds)
+        .set("music_duration", params.durationSeconds);
+    }
+    if (params.seed != null && params.seed !== -1) b.set("seed", params.seed);
+    return b.args;
+  }
+
+  /**
+   * Generate speech as an encoded audio file (mp3/wav, depending on the
+   * endpoint). FAL TTS endpoints return a file URL rather than raw PCM, so the
+   * unified TTS node consumes this encoded path instead of streaming samples.
+   */
+  override async textToSpeechEncoded(args: {
+    text: string;
+    model: string;
+    voice?: string;
+    speed?: number;
+    audioFormat?: string;
+  }): Promise<EncodedAudioResult | null> {
+    if (!args.text) throw new Error("text must not be empty");
+    const client = await this.getClient();
+    const input = this.buildTextToSpeechArgs(args.model, args);
+    log.debug("FAL textToSpeech", { model: args.model });
+    const result = await client.subscribe(args.model, {
+      input,
+      logs: true,
+      onQueueUpdate: this.makeQueueUpdateHandler()
+    });
+    const data = (result.data ?? result) as Record<string, unknown>;
+    const bytes = await downloadBytes(extractAudioUrl(data));
+    return { data: bytes, mimeType: sniffAudioMime(bytes) };
+  }
+
+  /**
+   * Shape TTS inputs for whatever the endpoint declares. The spoken text lands
+   * in the first text-like field the endpoint accepts; the voice lands in
+   * `voice` / `speaker` when enumerated. {@link FalArgsBuilder.set} drops keys
+   * the endpoint doesn't declare, so this works across the heterogeneous TTS
+   * catalog.
+   */
+  private buildTextToSpeechArgs(
+    modelId: string,
+    params: { text: string; voice?: string; speed?: number }
+  ): Record<string, unknown> {
+    const b = new FalArgsBuilder(modelId);
+    if (b.has("text")) {
+      b.set("text", params.text);
+    } else {
+      b.set("prompt", params.text)
+        .set("script", params.text)
+        .set("gen_text", params.text)
+        .set("input", params.text);
+    }
+    b.set("voice", params.voice).set("speaker", params.voice);
+    if (params.speed != null) b.set("speed", params.speed);
+    return b.args;
   }
 
   async generateMessage(
@@ -827,6 +944,19 @@ function extractVideoUrl(result: Record<string, unknown>): string {
     if (url) return url;
   }
   throw new Error(`Unexpected FAL video response: ${JSON.stringify(result)}`);
+}
+
+function extractAudioUrl(result: Record<string, unknown>): string {
+  // FAL TTS endpoints return { audio: { url } } or { audio: "url" } or
+  // { audio_url } or a bare { url }.
+  const audio = result.audio as Record<string, unknown> | string | undefined;
+  if (audio && typeof audio === "object" && typeof audio.url === "string") {
+    return audio.url;
+  }
+  if (typeof audio === "string") return audio;
+  if (typeof result.audio_url === "string") return result.audio_url;
+  if (typeof result.url === "string") return result.url;
+  throw new Error(`Unexpected FAL audio response: ${JSON.stringify(result)}`);
 }
 
 async function downloadBytes(url: string): Promise<Uint8Array> {

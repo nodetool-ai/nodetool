@@ -38,6 +38,7 @@ describe("useSelectionEvents", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    document.body.classList.remove("is-marquee-selecting");
     mockReactFlowInstance.getNodes = jest.fn().mockReturnValue([]);
     mockReactFlowInstance.getEdges = jest.fn().mockReturnValue([]);
     mockedUseContextMenu.mockReturnValue({
@@ -143,6 +144,28 @@ describe("useSelectionEvents", () => {
       expect(result.current.selectionEndRef.current).toEqual({ x: 100, y: 200 });
       expect(mockOnSelectionStart).toHaveBeenCalledWith(mockEvent);
     });
+
+    it("adds the marquee-selecting class to suppress text selection", () => {
+      const { result } = renderHook(() =>
+        useSelectionEvents({
+          reactFlowInstance: mockReactFlowInstance,
+          onSelectionStartBase: mockOnSelectionStart,
+          onSelectionEndBase: mockOnSelectionEnd,
+          onSelectionDragStartBase: mockOnSelectionDragStart,
+          onSelectionDragStopBase: mockOnSelectionDragStop,
+          setSuppressNodeDrivenEdgeSelection: mockSetSuppressNodeDrivenEdgeSelection
+        })
+      );
+
+      result.current.handleSelectionStart({
+        clientX: 150,
+        clientY: 200
+      } as unknown as ReactMouseEvent);
+
+      expect(
+        document.body.classList.contains("is-marquee-selecting")
+      ).toBe(true);
+    });
   });
 
   describe("handleSelectionEnd", () => {
@@ -167,6 +190,30 @@ describe("useSelectionEvents", () => {
 
       expect(mockScreenToFlowPosition).toHaveBeenCalledWith({ x: 250, y: 300 });
       expect(mockOnSelectionEnd).toHaveBeenCalledWith(mockEvent);
+    });
+
+    it("removes the marquee-selecting class to restore text selection", () => {
+      document.body.classList.add("is-marquee-selecting");
+
+      const { result } = renderHook(() =>
+        useSelectionEvents({
+          reactFlowInstance: mockReactFlowInstance,
+          onSelectionStartBase: mockOnSelectionStart,
+          onSelectionEndBase: mockOnSelectionEnd,
+          onSelectionDragStartBase: mockOnSelectionDragStart,
+          onSelectionDragStopBase: mockOnSelectionDragStop,
+          setSuppressNodeDrivenEdgeSelection: mockSetSuppressNodeDrivenEdgeSelection
+        })
+      );
+
+      result.current.handleSelectionEnd({
+        clientX: 250,
+        clientY: 300
+      } as unknown as ReactMouseEvent);
+
+      expect(
+        document.body.classList.contains("is-marquee-selecting")
+      ).toBe(false);
     });
 
     it("selects edges inside the marquee rectangle", () => {

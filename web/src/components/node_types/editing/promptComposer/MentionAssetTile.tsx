@@ -22,7 +22,7 @@ import FolderIcon from "@mui/icons-material/Folder";
 import EditIcon from "@mui/icons-material/Edit";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 
-import { BORDER_RADIUS, MOTION, reducedMotion } from "../../../ui_primitives";
+import { BORDER_RADIUS, MOTION, reducedMotion, SPACING, getSpacingPx } from "../../../ui_primitives";
 import type { Asset } from "../../../../stores/ApiTypes";
 
 const TILE_WIDTH = 112;
@@ -187,7 +187,7 @@ const styles = (theme: Theme) =>
       minWidth: 0,
       width: "100%",
       boxSizing: "border-box",
-      padding: "2px 4px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`,
       borderRadius: BORDER_RADIUS.sm,
       border: `1px solid ${theme.vars.palette.primary.main}`,
       background: theme.vars.palette.background.paper,

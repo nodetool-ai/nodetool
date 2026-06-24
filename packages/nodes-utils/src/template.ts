@@ -44,6 +44,28 @@ function applyFilters(value: string, filters: string[]): string {
 }
 
 /**
+ * Names of the variables a template references via `{{ name }}` /
+ * `{{ name|filter }}` / `{name}`. De-duplicated, in first-seen order. Used by
+ * the Prompt node to know which variable channels to await before rendering.
+ */
+export function referencedVariables(template: string): string[] {
+  const names = new Set<string>();
+  // {{ name|filter... }} — leading identifier before any filter.
+  for (const match of template.matchAll(/\{\{([^{}]+?)\}\}/g)) {
+    const name = match[1].split("|")[0].trim();
+    if (name) names.add(name);
+  }
+  // {name} — single brace, not adjacent to another brace.
+  for (const match of template.matchAll(/(?<!\{)\{([^{}]+?)\}(?!\})/g)) {
+    const name = match[1].trim();
+    // Skip anything that looks like a filter expression; single-brace refs are
+    // bare names only.
+    if (name && !name.includes("|")) names.add(name);
+  }
+  return [...names];
+}
+
+/**
  * Substitute `{{ variable }}` / `{variable}` placeholders in `template` with
  * values from `vars`. Unknown placeholders are left intact.
  */

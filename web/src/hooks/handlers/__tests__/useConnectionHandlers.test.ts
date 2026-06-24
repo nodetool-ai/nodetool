@@ -1323,5 +1323,99 @@ describe("useConnectionHandlers", () => {
         className: "str"
       });
     });
+
+    it("creates a dynamic input named after the upstream node when dropping on the Add-another button", () => {
+      const mockedConnectionStore = useConnectionStore as unknown as jest.Mock & {
+        getState?: jest.Mock;
+      };
+      mockedConnectionStore.getState = jest.fn(() => ({
+        connectDirection: "source",
+        connectNodeId: "sourceNode",
+        connectHandleId: "output",
+        connectType: {
+          type: "str",
+          optional: false,
+          values: null,
+          type_args: [],
+          type_name: null
+        }
+      }));
+
+      const sourceNode = createMockNode("sourceNode", "test.node");
+      sourceNode.data.title = "My Text";
+      const dynamicNode = createMockNode("dynamicNode", "test.dynamic");
+
+      mockFindNode.mockImplementation((id: string) => {
+        if (id === "sourceNode") {
+          return sourceNode;
+        }
+        if (id === "dynamicNode") {
+          return dynamicNode;
+        }
+        return undefined;
+      });
+
+      // updateNodeData writes to the store synchronously in the real app, so the
+      // subsequent handleOnConnect sees the new dynamic property. Mirror that.
+      mockUpdateNodeData.mockImplementation((id: string, update: Partial<NodeData>) => {
+        if (id === "dynamicNode" && update.dynamic_properties) {
+          dynamicNode.data.dynamic_properties = update.dynamic_properties;
+        }
+      });
+
+      mockGetMetadata.mockImplementation((type: string) =>
+        type === "test.dynamic" ? mockDynamicNodeMetadata : mockNodeMetadata
+      );
+
+      mockFindOutputHandle.mockReturnValue({
+        name: "output",
+        type: mockNodeMetadata.outputs[0].type,
+        stream: false,
+        isDynamic: false
+      });
+      // Dynamic property has no static input handle.
+      mockFindInputHandle.mockReturnValue(undefined);
+
+      const mockNodeElement = { dataset: { id: "dynamicNode" } };
+      const mockEvent = {
+        target: {
+          classList: {
+            contains: jest.fn(() => false)
+          },
+          closest: jest.fn((selector: string) => {
+            if (selector === ".react-flow__node") {
+              return mockNodeElement;
+            }
+            if (selector === ".dynamic-input-button") {
+              return { className: "dynamic-input-button" };
+            }
+            return null;
+          }),
+          parentElement: null
+        },
+        clientX: 0,
+        clientY: 0
+      };
+
+      const { result } = renderHook(() => useConnectionHandlers());
+
+      result.current.onConnectEnd(mockEvent as any, {} as any);
+
+      // New dynamic input is named after the upstream node's title.
+      expect(mockUpdateNodeData).toHaveBeenCalledWith("dynamicNode", {
+        dynamic_properties: { "My Text": "" }
+      });
+      // The dropped edge connects to the freshly-created input handle.
+      expect(mockOnConnect).toHaveBeenCalledWith({
+        source: "sourceNode",
+        sourceHandle: "output",
+        target: "dynamicNode",
+        targetHandle: "My Text",
+        className: "str"
+      });
+      // No auto-binding to an existing input — a fresh variable is created.
+      expect(mockOpenContextMenu).not.toHaveBeenCalled();
+      expect(mockEndConnecting).toHaveBeenCalled();
+    });
   });
 });

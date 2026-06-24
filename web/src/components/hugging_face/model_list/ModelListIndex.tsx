@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { FlexColumn, FlexRow, Box, MOTION, BORDER_RADIUS } from "../../ui_primitives";
+import { FlexColumn, FlexRow, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
 import { LoadingSpinner, Text } from "../../ui_primitives";
 import SearchOffIcon from "@mui/icons-material/SearchOff";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -59,7 +59,7 @@ const styles = (theme: Theme) =>
       background: theme.vars.palette.action.hover
     },
     ".model-list": {
-      paddingBottom: "250px"
+      paddingBottom: `calc(${getSpacingPx(SPACING.micro)} * 125)` // was 250px
     },
     ".model-list-header": {
       display: "flex",

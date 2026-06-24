@@ -9,18 +9,29 @@
  * - Click-and-drag uses a "jump-and-grab" pattern.
  * - Keyboard: ArrowLeft/Right nudge ±1 frame; Shift +/- 10 frames;
  *   Home / End jump to the bounds.
+ *
+ * Performance: the playhead position is driven imperatively. During playback
+ * the live time advances ~60×/s through the playback store's TRANSIENT channel
+ * (`subscribeTime`), which bypasses React. We subscribe once and set the DOM
+ * `left` / pill text directly on refs — the component itself never re-renders
+ * per frame. Reactive `currentTimeMs` is only read for the initial/resting
+ * position (seek/scrub/pause), and zoom/scroll changes reposition via the same
+ * imperative path.
  */
 
-import React, { memo, useCallback, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
+import {
+  useTimelinePlaybackStore,
+  useTimelinePlaybackStoreApi
+} from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { formatTimecode } from "../Inspector/InspectorPrimitives.helpers";
-import { MOTION } from "../../ui_primitives";
+import { MOTION, Z_INDEX, SPACING, getSpacingPx } from "../../ui_primitives";
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -45,7 +56,7 @@ const hitAreaStyles = (theme: Theme, dragging: boolean) =>
     cursor: dragging ? "grabbing" : "ew-resize",
     touchAction: "none",
     pointerEvents: "auto",
-    zIndex: 10,
+    zIndex: Z_INDEX.dropdown,
     "&::before": {
       content: '""',
       position: "absolute",
@@ -71,13 +82,13 @@ const pillStyles = (theme: Theme, dragging: boolean, hovered: boolean) =>
     left: "50%",
     transform: "translateX(-50%)",
     height: PILL_HEIGHT_PX,
-    padding: "0 8px",
+    padding: `0 ${getSpacingPx(SPACING.md)}`,
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
     borderRadius: PILL_HEIGHT_PX / 2,
     backgroundColor: theme.vars.palette.secondary.main,
-    color: "rgba(8, 9, 10, 0.92)",
+    color: theme.vars.palette.secondary.contrastText,
     fontFamily:
       "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
     fontSize: theme.fontSizeSmaller,
@@ -86,8 +97,8 @@ const pillStyles = (theme: Theme, dragging: boolean, hovered: boolean) =>
     whiteSpace: "nowrap",
     boxShadow:
       dragging || hovered
-        ? `0 0 0 3px ${theme.vars.palette.secondary.main}33, 0 4px 12px rgba(0,0,0,0.4)`
-        : "0 2px 6px rgba(0,0,0,0.35)",
+        ? `0 0 0 3px ${theme.vars.palette.secondary.main}33, 0 4px 12px ${theme.vars.palette.c_scrim}`
+        : `0 2px 6px ${theme.vars.palette.c_scrim_soft}`,
     transition: `box-shadow ${MOTION.fast}`,
     pointerEvents: "none"
   });
@@ -107,23 +118,71 @@ export const Playhead: React.FC<PlayheadProps> = memo(
   ({ trackAreaOffsetPx = 0, heightPx }) => {
     const theme = useTheme();
 
-    const currentTimeMs = useTimelinePlaybackStore((s) => s.currentTimeMs);
+    // Geometry inputs that DO change reactively (zoom/scroll). We keep them in
+    // refs so the imperative subscription always reads the latest values
+    // without re-subscribing, and reposition the element when they change.
     const msPerPx = useTimelineUIStore((s) => s.msPerPx);
     const scrollLeftPx = useTimelineUIStore((s) => s.scrollLeftPx);
+
     const setCurrentTimeMs = useTimelinePlaybackStore(
       (s) => s.setCurrentTimeMs
     );
     const fps = useTimelineStore((s) => s.fps);
     const durationMs = useTimelineStore((s) => s.durationMs);
 
+    const playbackStoreApi = useTimelinePlaybackStoreApi();
+
     const [hovered, setHovered] = useState(false);
     const [dragging, setDragging] = useState(false);
 
-    const leftPx =
-      trackAreaOffsetPx + currentTimeMs / msPerPx - scrollLeftPx;
+    const hitAreaRef = useRef<HTMLDivElement | null>(null);
+    const pillRef = useRef<HTMLDivElement | null>(null);
 
-    // Drag baseline: where the pointer started and what currentTimeMs was
-    // at that moment.
+    // Latest geometry, read inside the (stable) imperative subscription.
+    const msPerPxRef = useRef(msPerPx);
+    const scrollLeftRef = useRef(scrollLeftPx);
+    const trackAreaOffsetRef = useRef(trackAreaOffsetPx);
+    const fpsRef = useRef(fps);
+    msPerPxRef.current = msPerPx;
+    scrollLeftRef.current = scrollLeftPx;
+    trackAreaOffsetRef.current = trackAreaOffsetPx;
+    fpsRef.current = fps;
+
+    // Imperatively position the element + pill text from a time in ms.
+    const applyTimeMs = useCallback((timeMs: number) => {
+      const leftPx =
+        trackAreaOffsetRef.current +
+        timeMs / msPerPxRef.current -
+        scrollLeftRef.current;
+      const el = hitAreaRef.current;
+      if (el) {
+        el.style.left = `${leftPx}px`;
+        el.setAttribute("aria-valuenow", String(Math.round(timeMs)));
+      }
+      const pill = pillRef.current;
+      if (pill) {
+        pill.textContent = formatTimecode(timeMs, fpsRef.current);
+      }
+    }, []);
+
+    // Subscribe once to the transient playhead channel. Updates the DOM
+    // directly — no React re-render per frame. Also initialise from the live
+    // position on mount and reposition when zoom/scroll change.
+    useEffect(() => {
+      const api = playbackStoreApi;
+      applyTimeMs(api.getState().getTimeMs());
+      const unsubscribe = api.getState().subscribeTime(applyTimeMs);
+      return unsubscribe;
+    }, [playbackStoreApi, applyTimeMs]);
+
+    // Reposition imperatively when geometry (zoom/scroll) changes — read the
+    // live position so a paused or playing playhead lands correctly.
+    useEffect(() => {
+      applyTimeMs(playbackStoreApi.getState().getTimeMs());
+    }, [msPerPx, scrollLeftPx, trackAreaOffsetPx, fps, applyTimeMs, playbackStoreApi]);
+
+    // Drag baseline: where the pointer started and what the playhead position
+    // was at that moment.
     const dragStartXRef = useRef(0);
     const dragStartMsRef = useRef(0);
 
@@ -132,10 +191,10 @@ export const Playhead: React.FC<PlayheadProps> = memo(
         e.preventDefault();
         e.currentTarget.setPointerCapture(e.pointerId);
         dragStartXRef.current = e.clientX;
-        dragStartMsRef.current = currentTimeMs;
+        dragStartMsRef.current = playbackStoreApi.getState().getTimeMs();
         setDragging(true);
       },
-      [currentTimeMs]
+      [playbackStoreApi]
     );
 
     const handlePointerMove = useCallback(
@@ -145,13 +204,13 @@ export const Playhead: React.FC<PlayheadProps> = memo(
         if (!dragging) return;
         if (e.buttons !== 1) return;
         const deltaPx = e.clientX - dragStartXRef.current;
-        const deltaMs = deltaPx * msPerPx;
+        const deltaMs = deltaPx * msPerPxRef.current;
         const cap = durationMs > 0 ? durationMs : Number.MAX_SAFE_INTEGER;
         setCurrentTimeMs(
           Math.max(0, Math.min(cap, dragStartMsRef.current + deltaMs))
         );
       },
-      [dragging, msPerPx, durationMs, setCurrentTimeMs]
+      [dragging, durationMs, setCurrentTimeMs]
     );
 
     const handlePointerUp = useCallback(() => {
@@ -162,6 +221,7 @@ export const Playhead: React.FC<PlayheadProps> = memo(
       (e: React.KeyboardEvent<HTMLDivElement>) => {
         const frameMs = 1000 / Math.max(1, fps);
         const cap = durationMs > 0 ? durationMs : Number.MAX_SAFE_INTEGER;
+        const currentTimeMs = playbackStoreApi.getState().getTimeMs();
         let next: number | null = null;
         if (e.key === "ArrowLeft") {
           next = currentTimeMs - frameMs * (e.shiftKey ? 10 : 1);
@@ -177,18 +237,18 @@ export const Playhead: React.FC<PlayheadProps> = memo(
           setCurrentTimeMs(Math.max(0, Math.min(cap, next)));
         }
       },
-      [currentTimeMs, durationMs, fps, setCurrentTimeMs]
+      [durationMs, fps, setCurrentTimeMs, playbackStoreApi]
     );
 
     return (
       <div
+        ref={hitAreaRef}
         css={hitAreaStyles(theme, dragging)}
-        style={{ left: leftPx, height: heightPx }}
+        style={{ height: heightPx }}
         data-testid="playhead"
         role="slider"
         tabIndex={0}
         aria-label="Playhead"
-        aria-valuenow={Math.round(currentTimeMs)}
         aria-valuemin={0}
         aria-valuemax={Math.round(durationMs)}
         onPointerEnter={() => setHovered(true)}
@@ -200,12 +260,11 @@ export const Playhead: React.FC<PlayheadProps> = memo(
         onKeyDown={handleKeyDown}
       >
         <div
+          ref={pillRef}
           css={pillStyles(theme, dragging, hovered)}
           aria-hidden
           data-testid="playhead-pill"
-        >
-          {formatTimecode(currentTimeMs, fps)}
-        </div>
+        />
       </div>
     );
   }

@@ -12,7 +12,7 @@ import { IconForType } from "../../config/IconForType";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import { OpenInNew } from "@mui/icons-material";
 import { NodeLogsDialog } from "./NodeLogs";
-import { BORDER_RADIUS, FlexRow, Tooltip, ToolbarIconButton, MOTION } from "../ui_primitives";
+import { BORDER_RADIUS, FlexRow, Tooltip, ToolbarIconButton, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
 
 export interface NodeHeaderProps {
   id: string;
@@ -112,8 +112,8 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
         ".header-right": {
           display: "flex",
           alignItems: "center",
-          gap: "4px",
-          padding: "2px 2px",
+          gap: getSpacingPx(SPACING.xs),
+          padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.micro)}`,
           flexShrink: 0
         },
         ".node-icon": {
@@ -123,7 +123,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           borderRadius: BORDER_RADIUS.sm,
           display: "grid",
           placeItems: "center",
-          marginRight: "4px",
+          marginRight: getSpacingPx(SPACING.xs),
           flexShrink: 0,
           opacity: 0.65,
           // Hit target must be this div (not nested SVG), otherwise React Flow / d3-drag may not
@@ -139,7 +139,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           display: "inline-flex",
           flexDirection: "row",
           alignItems: "center",
-          gap: "6px",
+          gap: getSpacingPx(SPACING.sm),
           flexGrow: 1,
           minWidth: 0,
           textAlign: "left",
@@ -148,7 +148,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           fontSize: "var(--fontSizeSmall)",
           fontWeight: 400,
           letterSpacing: "0.01em",
-          padding: "2px 0",
+          padding: `${getSpacingPx(SPACING.micro)} 0`,
           color: "var(--palette-text-secondary)"
         },
         ".node-title-text": {
@@ -168,8 +168,8 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
           fontWeight: 600,
           letterSpacing: "0.02em",
           color: "var(--palette-text-primary)",
-          backgroundColor: "rgba(255, 255, 255, 0.12)",
-          border: "1px solid rgba(255, 255, 255, 0.12)",
+          backgroundColor: "var(--palette-c_overlay_strong)",
+          border: "1px solid var(--palette-c_overlay_strong)",
           flexShrink: 0
         },
         ".node-title-input": {
@@ -354,12 +354,12 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
               window.open(externalLink, "_blank", "noopener,noreferrer");
             }}
             sx={{
-              padding: "2px",
-              marginLeft: "2px",
-              color: "rgba(255, 255, 255, 0.4)",
+              padding: getSpacingPx(SPACING.micro),
+              marginLeft: getSpacingPx(SPACING.micro),
+              color: "text.disabled",
               "&:hover": {
                 color: "primary.light",
-                backgroundColor: "rgba(255, 255, 255, 0.05)"
+                backgroundColor: "var(--palette-c_overlay)"
               }
             }}
           >
@@ -374,7 +374,7 @@ export const NodeHeader: React.FC<NodeHeaderProps> = ({
             title={`${logCount} logs`}
             size="small"
             onClick={handleOpenLogsDialog}
-            sx={{ padding: "4px" }}
+            sx={{ padding: getSpacingPx(SPACING.xs) }}
           >
             <ListAltIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
           </ToolbarIconButton>

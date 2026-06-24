@@ -254,7 +254,7 @@ export const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
   let binary = "";
   for (let i = 0; i < bytes.length; i += chunkSize) {
     const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
-    binary += String.fromCharCode.apply(null, chunk as unknown as number[]);
+    binary += String.fromCharCode(...Array.from(chunk));
   }
   return btoa(binary);
 };

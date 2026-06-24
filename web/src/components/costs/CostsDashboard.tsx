@@ -27,7 +27,9 @@ import {
   Popover,
   LoadingSpinner,
   MOTION,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 import { CostStatCard } from "./CostStatCard";
 import { SpendOverTimeChart } from "./SpendOverTimeChart";
@@ -60,8 +62,8 @@ const segmentedSx = (theme: Theme): SxProps<Theme> => ({
   backgroundColor: theme.vars.palette.action.hover,
   border: `1px solid ${theme.vars.palette.divider}`,
   borderRadius: BORDER_RADIUS.lg,
-  padding: "3px",
-  gap: "2px",
+  padding: getSpacingPx(SPACING.xs), // was 3px
+  gap: getSpacingPx(SPACING.micro),
   "& .MuiToggleButton-root": {
     border: "none",
     borderRadius: "var(--rounded-md) !important",
@@ -70,7 +72,7 @@ const segmentedSx = (theme: Theme): SxProps<Theme> => ({
     fontSize: "var(--fontSizeSmall)",
     fontWeight: 500,
     lineHeight: 1,
-    padding: "6px 12px",
+    padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`,
     "&:hover": {
       backgroundColor: theme.vars.palette.action.selected,
       color: theme.vars.palette.text.primary
@@ -209,7 +211,17 @@ const CostsDashboard: React.FC = () => {
         backgroundColor: theme.vars.palette.background.default
       }}
     >
-      <Box sx={{ maxWidth: 1480, margin: "0 auto", padding: "24px 40px 72px" }}>
+      <Box
+        sx={{
+          maxWidth: 1480,
+          margin: "0 auto",
+          padding: `${getSpacingPx(SPACING.xxl)} calc(${getSpacingPx(
+            SPACING.xxxl
+          )} + ${getSpacingPx(SPACING.md)}) calc(${getSpacingPx(
+            SPACING.xxxl
+          )} + ${getSpacingPx(SPACING.xxxl)} + ${getSpacingPx(SPACING.md)})` // was 24px 40px 72px
+        }}
+      >
         {/* back to editor */}
         <Box
           component="button"
@@ -218,7 +230,7 @@ const CostsDashboard: React.FC = () => {
           sx={{
             display: "inline-flex",
             alignItems: "center",
-            gap: "6px",
+            gap: getSpacingPx(SPACING.sm),
             mb: 2,
             padding: 0,
             border: "none",
@@ -347,9 +359,9 @@ const CostsDashboard: React.FC = () => {
                   sx={{
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: "8px",
+                    gap: getSpacingPx(SPACING.md),
                     height: 38,
-                    padding: "0 16px",
+                    padding: `0 ${getSpacingPx(SPACING.xl)}`,
                     borderRadius: BORDER_RADIUS.lg,
                     border: "none",
                     cursor: "pointer",
@@ -461,7 +473,9 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
                 gap={0.5}
                 align="center"
                 sx={{
-                  padding: "1px 6px",
+                  padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(
+                    SPACING.sm
+                  )}`, // was 1px 6px
                   borderRadius: BORDER_RADIUS.md,
                   backgroundColor: `${deltaColor}1F`
                 }}
@@ -632,9 +646,9 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
         sx={{
           display: "inline-flex",
           alignItems: "center",
-          gap: "8px",
+          gap: getSpacingPx(SPACING.md),
           height: 38,
-          padding: "0 12px",
+          padding: `0 ${getSpacingPx(SPACING.lg)}`,
           borderRadius: BORDER_RADIUS.lg,
           cursor: "pointer",
           fontFamily: "inherit",
@@ -690,7 +704,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
           backgroundImage: "none"
         }}
       >
-        <FlexColumn sx={{ padding: "8px", minWidth: 200 }}>
+        <FlexColumn sx={{ padding: getSpacingPx(SPACING.md), minWidth: 200 }}>
           <FlexRow
             justify="space-between"
             align="center"

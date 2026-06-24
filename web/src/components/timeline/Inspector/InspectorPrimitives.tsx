@@ -21,7 +21,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import Switch from "@mui/material/Switch";
 
-import { NodeSlider, Tooltip, MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT } from "../../ui_primitives";
+import { NodeSlider, Tooltip, MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT, SPACING, getSpacingPx } from "../../ui_primitives";
 
 // ── Header ─────────────────────────────────────────────────────────────────
 
@@ -30,7 +30,7 @@ const headerStyles = css({
   alignItems: "center",
   gap: 8,
   height: 36,
-  padding: "0 4px 0 4px"
+  padding: `0 ${getSpacingPx(SPACING.xs)} 0 ${getSpacingPx(SPACING.xs)}`
 });
 
 const eyebrowStyles = (theme: Theme) =>
@@ -204,7 +204,7 @@ const rowStyles = css({
   alignItems: "center",
   gap: 8,
   minHeight: 32,
-  padding: "0 4px"
+  padding: `0 ${getSpacingPx(SPACING.xs)}`
 });
 
 const rowLabelStyles = (theme: Theme) =>
@@ -290,7 +290,7 @@ const pillWrapStyles = (theme: Theme, disabled: boolean, focused: boolean) =>
     padding: theme.spacing(0, 3),
     backgroundColor: theme.vars.palette.background.default,
     border: `1px solid ${
-      focused ? theme.vars.palette.primary.main : "rgba(255, 255, 255, 0.05)"
+      focused ? theme.vars.palette.primary.main : theme.vars.palette.c_overlay
     }`,
     borderRadius: BORDER_RADIUS.md,
     minWidth: 92,
@@ -425,11 +425,11 @@ const toggleSwitchSx = {
   padding: 0,
   "& .MuiSwitch-switchBase": {
     padding: 0,
-    margin: "2px",
+    margin: getSpacingPx(SPACING.micro),
     transitionDuration: "180ms",
     "&.Mui-checked": {
       transform: "translateX(16px)",
-      color: "#fff",
+      color: "var(--palette-primary-contrastText)",
       "& + .MuiSwitch-track": {
         backgroundColor: "var(--palette-primary-main)",
         opacity: 1,
@@ -441,11 +441,11 @@ const toggleSwitchSx = {
     boxSizing: "border-box",
     width: 16,
     height: 16,
-    boxShadow: "0 1px 2px rgba(0,0,0,0.4)"
+    boxShadow: "0 1px 2px var(--palette-c_scrim)"
   },
   "& .MuiSwitch-track": {
     borderRadius: BORDER_RADIUS.pill,
-    backgroundColor: "rgba(255,255,255,0.18)",
+    backgroundColor: "var(--palette-c_overlay_strong)",
     opacity: 1
   }
 } as const;
@@ -484,7 +484,7 @@ const sliderRowStyles = (theme: Theme) =>
     alignItems: "center",
     gap: theme.spacing(3),
     minHeight: 32,
-    padding: "0 4px"
+    padding: `0 ${getSpacingPx(SPACING.xs)}`
   });
 
 const sliderLabelStyles = (theme: Theme) =>
@@ -607,7 +607,7 @@ export const InspectorDivider: React.FC = memo(() => {
       style={{
         height: 1,
         backgroundColor: theme.vars.palette.divider,
-        margin: "4px 0"
+        margin: `${getSpacingPx(SPACING.xs)} 0`
       }}
       role="separator"
     />

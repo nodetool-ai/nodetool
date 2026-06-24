@@ -15,6 +15,7 @@ import { BaseProvider } from "./base-provider.js";
 import { safeFetch } from "./safe-url.js";
 import { createLogger } from "@nodetool-ai/config";
 import type {
+  EncodedAudioResult,
   ImageModel,
   ImageToImageParams,
   InpaintingParams,
@@ -24,20 +25,26 @@ import type {
   MessageContent,
   MessageImageContent,
   MessageTextContent,
+  MusicModel,
   ProviderStreamItem,
   ProviderTool,
   TextToImageParams,
+  TextToMusicParams,
   TextToVideoParams,
   ToolCall,
+  TTSModel,
   VideoModel
 } from "./types.js";
 import {
   loadVideoModels,
   loadImageModels,
+  loadMusicModels,
+  loadTTSModels,
   getModelImageInputs,
   selectPrimaryImageInput,
   selectMaskImageInput
 } from "./manifest-models.js";
+import { sniffAudioMime } from "./audio-mime.js";
 import { OpenAIProvider } from "./openai-provider.js";
 import { AnthropicProvider } from "./anthropic-provider.js";
 
@@ -451,6 +458,7 @@ export class KieProvider extends BaseProvider {
       request.tool_choice = this.responseToolChoice(args.toolChoice) ?? "auto";
     }
 
+    this.recordRequestPayload(request);
     const response = (await (client.responses.create as unknown as (
       body: Record<string, unknown>,
       options?: { signal?: AbortSignal }
@@ -494,6 +502,7 @@ export class KieProvider extends BaseProvider {
       request.tool_choice = this.responseToolChoice(args.toolChoice) ?? "auto";
     }
 
+    this.recordRequestPayload(request);
     const stream = (await (client.responses.create as unknown as (
       body: Record<string, unknown>,
       options?: { signal?: AbortSignal }
@@ -596,6 +605,63 @@ export class KieProvider extends BaseProvider {
 
   override async getAvailableImageModels(): Promise<ImageModel[]> {
     return loadImageModels(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, "kie");
+  }
+
+  override async getAvailableTTSModels(): Promise<TTSModel[]> {
+    return loadTTSModels(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, "kie");
+  }
+
+  override async getAvailableMusicModels(): Promise<MusicModel[]> {
+    return loadMusicModels(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, "kie");
+  }
+
+  /**
+   * Generate music as an encoded audio file. KIE runs music generation (Suno)
+   * as an async job and returns a result URL, so this mirrors the TTS / video
+   * path: submit the task, poll until done, then download the audio bytes.
+   */
+  override async textToMusic(
+    params: TextToMusicParams
+  ): Promise<EncodedAudioResult> {
+    if (!params.prompt) throw new Error("Prompt is required");
+    const input: Record<string, unknown> = { prompt: params.prompt };
+    if (params.lyrics) input.lyrics = params.lyrics;
+    if (params.durationSeconds != null) {
+      input.duration = Math.round(params.durationSeconds);
+    }
+
+    const modelId = params.model.id;
+    log.debug("Kie textToMusic", { model: modelId });
+    const apiKey = this.requireApiKey();
+    const taskId = await submitTask(apiKey, modelId, input);
+    await pollUntilDone(apiKey, taskId);
+    const bytes = await downloadResultBytes(apiKey, taskId);
+    return { data: bytes, mimeType: sniffAudioMime(bytes) };
+  }
+
+  /**
+   * Generate speech as an encoded audio file. KIE runs TTS as an async job and
+   * returns a result URL (mp3); the unified TTS node consumes this encoded path
+   * rather than streaming PCM samples.
+   */
+  override async textToSpeechEncoded(args: {
+    text: string;
+    model: string;
+    voice?: string;
+    speed?: number;
+    audioFormat?: string;
+  }): Promise<EncodedAudioResult | null> {
+    if (!args.text) throw new Error("text must not be empty");
+    const input: Record<string, unknown> = { text: args.text };
+    if (args.voice) input.voice = args.voice;
+    if (args.speed != null) input.speed = args.speed;
+
+    log.debug("Kie textToSpeech", { model: args.model });
+    const apiKey = this.requireApiKey();
+    const taskId = await submitTask(apiKey, args.model, input);
+    await pollUntilDone(apiKey, taskId);
+    const bytes = await downloadResultBytes(apiKey, taskId);
+    return { data: bytes, mimeType: sniffAudioMime(bytes) };
   }
 
   override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {

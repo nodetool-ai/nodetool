@@ -593,6 +593,18 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     icon: "model"
   },
   {
+    value: "music_model",
+    label: "Music model",
+    description:
+      "Reference to a text-to-music model for music generation pipelines.",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "model"
+  },
+  {
     value: "video_model",
     label: "Video model",
     description:

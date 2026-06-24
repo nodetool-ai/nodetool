@@ -13,29 +13,22 @@ import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
 import type {
+  CellValue,
   DictTableRow,
-  DataframeCellValue,
-  TableDataChange
+  DataframeCellValue
 } from "./DataTable";
 
-/**
- * Union type for list table cell values (from ListTable.tsx)
- */
-export type ListCellValue = string | number | boolean | Date | null | undefined;
-
-/**
- * Union type for dict table cell values (from DictTable.tsx)
- */
-export type DictCellValue = string | number | boolean | Date | null | undefined;
+export type ListCellValue = CellValue;
+export type DictCellValue = CellValue;
 
 /**
  * Union type for all possible table data formats
  */
 export type TableData =
-  | DictTableRow[]              // DataTable format
-  | Record<string, DictTableRow> // DataTable dict format
-  | ListCellValue[]             // ListTable format
-  | Record<string, DictCellValue>; // DictTable format
+  | DictTableRow[]
+  | Record<string, DictTableRow>
+  | CellValue[]
+  | Record<string, CellValue>;
 
 /**
  * RowComponent type from Tabulator - exported for use in other components
@@ -52,7 +45,7 @@ interface TableActionsProps {
   setShowRowNumbers?: (show: boolean) => void;
   editable?: boolean;
   dataframeColumns?: ColumnDef[];
-  onChangeRows: (newData: TableDataChange) => void;
+  onChangeRows: (newData: TableData) => void;
   isListTable?: boolean;
   showResetSortingButton?: boolean;
   showRowNumbersButton?: boolean;
@@ -143,38 +136,37 @@ const TableActions: React.FC<TableActionsProps> = memo(({
               defaultValue = "";
           }
         }
-        (onChangeRows as (newData: unknown) => void)([...data as ListCellValue[], defaultValue]);
+        onChangeRows([...(data as CellValue[]), defaultValue]);
       } else {
         const newKey = `new_key_${Object.keys(data).length}`;
-        (onChangeRows as (newData: unknown) => void)({ ...data, [newKey]: "" });
+        onChangeRows({ ...(data as Record<string, CellValue>), [newKey]: "" });
       }
     } else {
       if (Array.isArray(data) && dataframeColumns) {
         const newRow = defaultRow(dataframeColumns, data.length);
-        (onChangeRows as (newData: unknown) => void)([...data as DictTableRow[], newRow]);
+        onChangeRows([...(data as DictTableRow[]), newRow]);
       } else if (!Array.isArray(data)) {
         const newKey = `new_key_${Object.keys(data).length}`;
-        (onChangeRows as (newData: unknown) => void)({ ...data, [newKey]: "" });
+        onChangeRows({ ...(data as Record<string, CellValue>), [newKey]: "" });
       }
     }
   };
 
   const handleDeleteRows = useCallback(() => {
     if (Array.isArray(data)) {
-      (onChangeRows as (newData: unknown) => void)(
-        (data as unknown[]).filter((_, index) => {
-          return !selectedRows.some(
-            (selectedRow) => selectedRow.getData().rownum === index
-          );
-        })
-      );
+      const filtered = (data as CellValue[]).filter((_, index) => {
+        return !selectedRows.some(
+          (selectedRow) => selectedRow.getData().rownum === index
+        );
+      });
+      onChangeRows(filtered);
     } else {
-      const newData = { ...data } as Record<string, unknown>;
+      const newData = { ...(data as Record<string, CellValue>) };
       selectedRows.forEach((row) => {
         const key = row.getData().key;
         delete newData[key];
       });
-      (onChangeRows as (newData: unknown) => void)(newData);
+      onChangeRows(newData);
     }
   }, [data, selectedRows, onChangeRows]);
 
@@ -223,7 +215,7 @@ const TableActions: React.FC<TableActionsProps> = memo(({
     } else {
         reindexedData = (newData as DictTableRow[]).map((row, index) => ({ ...row, rownum: index }));
     }
-    (onChangeRows as (newData: unknown) => void)(reindexedData);
+    onChangeRows(reindexedData as TableData);
 
     addNotification({
       content: `Duplicated ${duplicatedRows.length} row(s)`,

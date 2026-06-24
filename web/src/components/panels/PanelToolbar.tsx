@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo } from "react";
-import { FlexRow, Text } from "../ui_primitives";
+import { FlexRow, Text, SPACING, getSpacingPx } from "../ui_primitives";
 
 const PANEL_TOOLBAR_HEIGHT = 36;
 
@@ -22,7 +22,7 @@ const styles = (theme: Theme) =>
     height: PANEL_TOOLBAR_HEIGHT,
     minHeight: PANEL_TOOLBAR_HEIGHT,
     flexShrink: 0,
-    padding: "0 8px 0 12px",
+    padding: `0 ${getSpacingPx(SPACING.md)} 0 ${getSpacingPx(SPACING.lg)}`,
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     userSelect: "none",
     ".toolbar-title": {

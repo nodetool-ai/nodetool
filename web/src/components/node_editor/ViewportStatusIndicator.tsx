@@ -3,7 +3,7 @@ import {
   ListItemButton,
   ListItemText
 } from "@mui/material";
-import { Tooltip, ToolbarIconButton, Text, FlexRow, Box, Popover, ListGroup, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, Text, FlexRow, Box, Popover, ListGroup, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { useViewport, useReactFlow } from "@xyflow/react";
 import { useTheme } from "@mui/material/styles";
 import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
@@ -114,7 +114,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
 
   const zoomButtonSx = useMemo(
     () => ({
-      padding: "2px",
+      padding: getSpacingPx(SPACING.micro),
       color: theme.vars.palette.text.secondary,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
@@ -137,7 +137,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
         : theme.vars.palette.text.secondary,
       minWidth: "48px",
       textAlign: "center" as const,
-      padding: "2px 6px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
       borderRadius: BORDER_RADIUS.sm,
       transition: `all ${MOTION.fast}`,
       "&:hover": {
@@ -161,7 +161,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
       backdropFilter: "blur(8px)",
       borderRadius: BORDER_RADIUS.lg,
       border: `1px solid ${theme.vars.palette.divider}`,
-      padding: "4px 8px",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       boxShadow: theme.shadows[4],
       userSelect: "none" as const,
       pointerEvents: shouldShowPanel ? ("auto" as const) : ("none" as const),

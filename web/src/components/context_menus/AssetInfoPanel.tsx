@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { memo, useMemo } from "react";
-import { Text, Box, BORDER_RADIUS } from "../ui_primitives";
+import { Text, Box, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import type { Asset } from "../../stores/ApiTypes";
@@ -18,7 +18,7 @@ const styles = (theme: Theme) =>
     "& .info-row": {
       display: "flex",
       gap: "0.5em",
-      padding: "2px 0",
+      padding: `${getSpacingPx(SPACING.micro)} 0`,
       alignItems: "baseline",
       lineHeight: 1.4
     },

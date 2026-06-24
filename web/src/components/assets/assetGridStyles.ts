@@ -1,13 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 
 export const assetGridStyles = (theme: Theme) => {
   return css({
     "&": {
       display: "flex",
-      marginTop: "16px",
+      marginTop: getSpacingPx(SPACING.xl),
       flexDirection: "column",
       justifyContent: "flex-start",
       height: "100%",
@@ -73,7 +73,7 @@ export const assetGridStyles = (theme: Theme) => {
     ".folder-item": {
       position: "relative",
       alignItems: "center",
-      padding: "2px 6px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
       marginLeft: 0,
       borderRadius: 5
     },
@@ -89,7 +89,7 @@ export const assetGridStyles = (theme: Theme) => {
       verticalAlign: "middle"
     },
     ".folder-item.selected": {
-      backgroundColor: "rgba(255,255,255,0.08)",
+      backgroundColor: theme.vars.palette.c_overlay,
       "& .folder-name": {
         color: theme.vars.palette.grey[0],
         fontWeight: 500
@@ -99,7 +99,7 @@ export const assetGridStyles = (theme: Theme) => {
       }
     },
     ".root-folder": {
-      paddingLeft: "4px"
+      paddingLeft: getSpacingPx(SPACING.xs)
     },
     ".root-folder .folder-name": {
       fontSize: theme.fontSizeSmall,

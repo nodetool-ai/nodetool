@@ -66,7 +66,6 @@ export type NodeClass = {
   requiredSettings?: string[];
   requiredRuntimes?: string[];
   isStreamingInput: boolean;
-  isStreamingOutput: boolean;
   alwaysEmitOutputUpdates?: boolean;
   inputMode?: InputMode;
   outputCorrelation?: Record<string, OutputCorrelation>;
@@ -132,56 +131,20 @@ export type NodeProps<T extends BaseNode> = Partial<
 >;
 
 /**
- * Marks the BaseNode root class. The explicit-flag walk below must stop at
- * BaseNode, but an identity check (`current !== BaseNode`) breaks when two
- * copies of this module are loaded in one process (vitest's vite graph +
- * node's ESM cache for workspace symlinks): a node class may extend the
- * *other* copy's BaseNode, whose own `isStreamingOutput = false` default
- * would then read as an explicit opt-out. `Symbol.for` is process-global,
- * so every copy of BaseNode carries the same recognizable marker.
- */
-const BASE_NODE_MARKER = Symbol.for("nodetool.node-sdk.base-node");
-
-/**
- * Find an `isStreamingOutput` declared explicitly on `cls` or one of its
- * ancestors below BaseNode. BaseNode's own `false` default is "unset" —
- * only a subclass's own declaration counts, so `static isStreamingOutput =
- * false` is a real opt-out rather than indistinguishable from the default.
- */
-const explicitStreamingOutputFlag = (cls: NodeClass): boolean | undefined => {
-  let current: unknown = cls;
-  while (
-    typeof current === "function" &&
-    !Object.prototype.hasOwnProperty.call(current, BASE_NODE_MARKER)
-  ) {
-    if (Object.prototype.hasOwnProperty.call(current, "isStreamingOutput")) {
-      return (current as NodeClass).isStreamingOutput;
-    }
-    current = Object.getPrototypeOf(current);
-  }
-  return undefined;
-};
-
-/**
- * True if a class is a streaming-output node. Resolution order:
+ * True if a class is a streaming-output node. Streaming is purely structural:
  *
- *   1. Explicit static `isStreamingOutput` flag wins (rare opt-in/out).
- *      Only a flag declared on the class (or an ancestor below BaseNode)
- *      counts — `false` declared explicitly suppresses the inference below.
- *   2. Subclass overrides `genProcess` → it yields multiple values.
- *   3. Any output handle declares `forward`, `iteration`, or `chunk`
+ *   1. Subclass overrides `genProcess` → it yields multiple values.
+ *   2. Any output handle declares `forward`, `iteration`, or `chunk`
  *      correlation → the node emits per-input or per-iteration. `single`
  *      and `aggregate` correlations indicate one value per execution.
  *
  * This lets pure-`process()` filter/reroute/forward nodes (IfNode, Output,
- * FilterNone, etc.) declare streaming via correlation alone — no flag, no
- * generator needed.
+ * FilterNone, etc.) declare streaming via correlation alone, and generator
+ * nodes (ForEach, Collection, GetVariable) via the `genProcess` override —
+ * no flag needed. Mirrors the Python side, which derives the same boolean
+ * solely from whether `gen_process` is overridden.
  */
 export const hasStreamingOutput = (cls: NodeClass): boolean => {
-  const explicit = explicitStreamingOutputFlag(cls);
-  if (explicit !== undefined) {
-    return explicit;
-  }
   const proto = (cls as unknown as { prototype?: { genProcess?: unknown } })
     .prototype;
   if (
@@ -221,7 +184,6 @@ export abstract class BaseNode {
   static readonly requiredSettings: string[] | undefined = undefined;
   static readonly requiredRuntimes: string[] | undefined = undefined;
   static readonly isStreamingInput: boolean = false;
-  static readonly isStreamingOutput: boolean = false;
   /**
    * Emit output_update for this node's handles even when they are connected
    * onward. The runner suppresses output_update for connected handles by
@@ -599,9 +561,3 @@ export abstract class BaseNode {
     return desc;
   }
 }
-
-// Own (non-inherited) property on the BaseNode root only — subclasses see it
-// through the chain but never carry it themselves, so the explicit-flag walk
-// stops exactly here. Assigned outside the class body because TS declaration
-// emit rejects computed statics keyed by non-unique symbols.
-Object.defineProperty(BaseNode, BASE_NODE_MARKER, { value: true });

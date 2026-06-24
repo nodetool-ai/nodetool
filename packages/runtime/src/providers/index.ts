@@ -35,6 +35,7 @@ import { PythonProvider } from "./python-provider.js";
 import { ReplicateProvider } from "./replicate-provider.js";
 import { FalProvider } from "./fal-provider.js";
 import { KieProvider } from "./kie-provider.js";
+import { ElevenLabsProvider } from "./elevenlabs-provider.js";
 import { TopazProvider } from "./topaz-provider.js";
 import { ReveProvider } from "./reve-provider.js";
 import { AtlasCloudProvider } from "./atlascloud-provider.js";
@@ -72,6 +73,7 @@ export { PythonProvider };
 export { ReplicateProvider };
 export { FalProvider };
 export { KieProvider };
+export { ElevenLabsProvider };
 export { TopazProvider };
 export { ReveProvider };
 export { AtlasCloudProvider };
@@ -139,6 +141,7 @@ export type {
   VideoModel,
   TTSModel,
   ASRModel,
+  MusicModel,
   EmbeddingModel,
   ToolCall,
   ProviderTool,
@@ -151,6 +154,7 @@ export type {
   TextTo3DParams,
   ImageTo3DParams,
   TextToImageParams,
+  TextToMusicParams,
   ImageToImageParams,
   InpaintingParams,
   TextToVideoParams,
@@ -187,6 +191,7 @@ registerBuiltinProvider(PROVIDER_IDS.MINIMAX, MinimaxProvider, { MINIMAX_API_KEY
 registerBuiltinProvider(PROVIDER_IDS.REPLICATE, ReplicateProvider, { REPLICATE_API_TOKEN: "" });
 registerBuiltinProvider(PROVIDER_IDS.FAL_AI, FalProvider, { FAL_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.KIE, KieProvider, { KIE_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.ELEVENLABS, ElevenLabsProvider, { ELEVENLABS_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.TOPAZ, TopazProvider, { TOPAZ_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.REVE, ReveProvider, { REVE_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.ATLASCLOUD, AtlasCloudProvider, { ATLASCLOUD_API_KEY: "" });

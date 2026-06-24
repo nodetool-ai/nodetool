@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import { SPACING, BORDER_RADIUS } from "../ui_primitives";
+import { SPACING, BORDER_RADIUS, getSpacingPx } from "../ui_primitives";
 import { useAsset } from "../../serverState/useAsset";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
@@ -16,19 +16,19 @@ const connectedPreviewStyles = css({
   width: "100%",
   borderRadius: BORDER_RADIUS.md,
   overflow: "hidden",
-  border: "1px solid rgba(255,255,255,0.1)",
+  border: "1px solid var(--palette-c_overlay_strong)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   minHeight: "80px",
-  backgroundColor: "rgba(0,0,0,0.15)"
+  backgroundColor: "var(--palette-c_scrim_soft)"
 });
 
 const awaitingStyles = css({
-  color: "rgba(255,255,255,0.3)",
+  color: "var(--palette-text-disabled)",
   fontSize: "var(--fontSizeSmall)",
   textAlign: "center",
-  padding: "16px 8px"
+  padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)}`
 });
 
 const ImageProperty = (props: PropertyProps) => {

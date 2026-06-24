@@ -21,6 +21,11 @@ import {
   type NodeContentProps
 } from "./NodeContent.helpers";
 
+const FLEX_COLUMN_SX = {
+  position: "relative" as const,
+  minHeight: 0
+};
+
 const NodeContent: React.FC<NodeContentProps> = ({
   id,
   nodeType,
@@ -59,10 +64,7 @@ const NodeContent: React.FC<NodeContentProps> = ({
       <FlexColumn
         fullWidth
         fullHeight
-        sx={{
-          position: "relative",
-          minHeight: 0
-        }}
+        sx={FLEX_COLUMN_SX}
       >
         <BespokeBody
           id={id}
@@ -114,10 +116,7 @@ const NodeContent: React.FC<NodeContentProps> = ({
     <FlexColumn
       fullWidth
       fullHeight
-      sx={{
-        position: "relative",
-        minHeight: 0
-      }}
+      sx={FLEX_COLUMN_SX}
     >
       <HandleColumn
         id={id}

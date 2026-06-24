@@ -10,10 +10,12 @@ import type {
   LipSyncParams,
   Message,
   Model3D,
+  MusicModel,
   ProviderId,
   ProviderStreamItem,
   ProviderTool,
   EncodedAudioResult,
+  TextToMusicParams,
   RelightImageParams,
   RemoveBackgroundParams,
   StreamingAudioChunk,
@@ -32,12 +34,16 @@ import type { UsageInfo } from "./cost-calculator.js";
 import { getTracer } from "../telemetry.js";
 import {
   withUsageCapture,
+  withModalityCapture,
   setLastUsage,
+  setLastRequest,
   consumeLastUsage,
   peekLastUsage,
+  peekLastRequest,
   createUsageSlot,
   type LlmUsage
 } from "../tracing-helpers.js";
+import { logProviderRequestFailure } from "./provider-request-log.js";
 import type { Span } from "@opentelemetry/api";
 import { SpanStatusCode } from "@opentelemetry/api";
 import { createLogger, getAssetFilePath } from "@nodetool-ai/config";
@@ -64,6 +70,7 @@ export type ProviderCapability =
   | "video_to_video"
   | "lip_sync"
   | "text_to_speech"
+  | "text_to_music"
   | "automatic_speech_recognition"
   | "generate_embedding"
   | "text_to_3d"
@@ -130,6 +137,12 @@ export function providerCapabilities(
     capabilities.push("text_to_speech");
   }
   if (
+    instance.getAvailableMusicModels !==
+    BaseProvider.prototype.getAvailableMusicModels
+  ) {
+    capabilities.push("text_to_music");
+  }
+  if (
     instance.getAvailableASRModels !==
     BaseProvider.prototype.getAvailableASRModels
   ) {
@@ -165,8 +178,70 @@ export abstract class BaseProvider {
     if (this._emitMessage) this._emitMessage(msg);
   }
 
+  /**
+   * Record the exact payload this provider is about to send to the upstream
+   * API. Call this right before the network request in `generateMessage` /
+   * `generateMessages`. On failure, the traced wrappers log precisely what was
+   * sent (secrets redacted, large fields truncated). Safe to call even outside
+   * a traced call — it is a no-op when no capture slot is active.
+   */
+  protected recordRequestPayload(payload: unknown): void {
+    setLastRequest(payload);
+  }
+
   protected constructor(provider: ProviderId) {
     this.provider = provider;
+    this.installModalityFailureLogging();
+  }
+
+  /**
+   * Chat already records what it sent and logs it on failure through
+   * {@link generateMessageTraced} / {@link generateMessagesTraced}. The
+   * non-chat modalities (image/video/audio/3D/embedding) are called directly,
+   * so wrap every one a concrete provider actually overrides with the same
+   * central failure logging.
+   *
+   * We replace methods on the instance (not the prototype), and only the ones
+   * that differ from the base — so an unsupported modality keeps its base
+   * "does not support" throw and never logs a spurious failure. Providers may
+   * additionally call {@link recordRequestPayload} to log the exact wire body;
+   * otherwise the call arguments are logged (binary buffers reduced to size
+   * markers, secrets redacted).
+   */
+  private installModalityFailureLogging(): void {
+    const proto = BaseProvider.prototype as unknown as Record<string, unknown>;
+    const self = this as unknown as Record<string, unknown>;
+
+    for (const name of MODALITY_PROMISE_METHODS) {
+      const fn = self[name];
+      if (typeof fn !== "function" || fn === proto[name]) continue;
+      const original = fn as (...args: unknown[]) => Promise<unknown>;
+      self[name] = (...args: unknown[]): Promise<unknown> =>
+        withModalityCapture(async (alreadyActive) => {
+          try {
+            return await original.apply(this, args);
+          } catch (err) {
+            if (!alreadyActive) {
+              logProviderRequestFailure({
+                provider: this.provider,
+                model: extractModelId(args),
+                request: peekLastRequest(),
+                nodetoolArgs: args,
+                error: err
+              });
+            }
+            throw err;
+          }
+        });
+    }
+
+    for (const name of MODALITY_GENERATOR_METHODS) {
+      const fn = self[name];
+      if (typeof fn !== "function" || fn === proto[name]) continue;
+      const original = fn as (...args: unknown[]) => AsyncGenerator<unknown>;
+      self[name] = (...args: unknown[]): AsyncGenerator<unknown> =>
+        wrapModalityGenerator(this, original, args);
+    }
   }
 
   static requiredSecrets(): string[] {
@@ -285,6 +360,16 @@ export abstract class BaseProvider {
     return [];
   }
 
+  /**
+   * Music **generation** models exposed by this provider (e.g. MusicGen,
+   * Stable Audio, Suno, MiniMax Music). Override on providers that can
+   * synthesize music from a text prompt; the base returns none so the
+   * `text_to_music` capability is advertised only when overridden.
+   */
+  async getAvailableMusicModels(): Promise<MusicModel[]> {
+    return [];
+  }
+
   async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
     return [];
   }
@@ -393,17 +478,30 @@ export abstract class BaseProvider {
     let result: Message | undefined;
     let error: string | undefined;
     let usage: LlmUsage | null = null;
+    let requestPayload: unknown = null;
     try {
       // withUsageCapture creates a per-call AsyncLocalStorage slot so
       // trackUsage() in the provider hands its numbers back to us.
       result = await withUsageCapture(async () => {
-        const r = await doCall();
-        usage = consumeLastUsage();
-        return r;
+        try {
+          const r = await doCall();
+          usage = consumeLastUsage();
+          return r;
+        } finally {
+          // Read the recorded wire payload while still inside the capture slot.
+          requestPayload = peekLastRequest();
+        }
       });
       return result;
     } catch (err) {
       error = String(err);
+      logProviderRequestFailure({
+        provider: this.provider,
+        model: args.model,
+        request: requestPayload,
+        nodetoolArgs: { model: args.model, messages: args.messages, tools: args.tools },
+        error: err
+      });
       throw err;
     } finally {
       this.emitMessage({
@@ -481,7 +579,7 @@ export abstract class BaseProvider {
 
     // Per-call usage slot survives across the generator's yields by wrapping
     // each `next()` call in `runInSlot`.
-    const { runInSlot, getUsage } = createUsageSlot();
+    const { runInSlot, getUsage, getRequest } = createUsageSlot();
     const tracer = getTracer();
     const source = tracer
       ? this._tracedStream(args, tracer)
@@ -516,6 +614,17 @@ export abstract class BaseProvider {
       });
     } catch (err) {
       error = String(err);
+      logProviderRequestFailure({
+        provider: this.provider,
+        model: args.model,
+        request: getRequest(),
+        nodetoolArgs: {
+          model: args.model,
+          messages: args.messages,
+          tools: (args as Record<string, unknown>).tools
+        },
+        error: err
+      });
       throw err;
     } finally {
       // If the consumer cancelled early (broke out of for-await, threw, or
@@ -726,6 +835,25 @@ export abstract class BaseProvider {
     return null;
   }
 
+  /**
+   * True when this provider streams raw PCM via {@link textToSpeech}. Providers
+   * that only return encoded audio files (e.g. FAL/KIE) leave the base method in
+   * place and are consumed via {@link textToSpeechEncoded} instead.
+   */
+  supportsStreamingTextToSpeech(): boolean {
+    return this.textToSpeech !== BaseProvider.prototype.textToSpeech;
+  }
+
+  /**
+   * Generate music / instrumental audio from a text prompt. Music providers
+   * return a fully-encoded audio file (mp3/wav/flac), so this resolves to an
+   * {@link EncodedAudioResult} rather than streaming raw PCM. Providers that
+   * expose music models via {@link getAvailableMusicModels} must override this.
+   */
+  async textToMusic(_params: TextToMusicParams): Promise<EncodedAudioResult> {
+    throw new Error(`${this.provider} does not support textToMusic`);
+  }
+
   async automaticSpeechRecognition(_args: {
     audio: Uint8Array;
     model: string;
@@ -900,6 +1028,101 @@ export abstract class BaseProvider {
     }
 
     return uri;
+  }
+}
+
+/**
+ * Promise-returning non-chat modality methods wrapped with central failure
+ * logging. Batch helpers are included; nested delegation to their singular
+ * method is logged once (see {@link withModalityCapture}).
+ */
+const MODALITY_PROMISE_METHODS = [
+  "textToImage",
+  "textToImages",
+  "imageToImage",
+  "imageToImages",
+  "inpaint",
+  "inpaintImages",
+  "upscaleImage",
+  "removeBackground",
+  "relightImage",
+  "vectorizeImage",
+  "textToSpeechEncoded",
+  "textToMusic",
+  "automaticSpeechRecognition",
+  "textToVideo",
+  "imageToVideo",
+  "videoToVideo",
+  "lipSync",
+  "textTo3D",
+  "imageTo3D",
+  "generateEmbedding"
+] as const;
+
+/** Async-generator non-chat modality methods wrapped with failure logging. */
+const MODALITY_GENERATOR_METHODS = ["textToSpeech"] as const;
+
+/**
+ * Best-effort model id for failure logging. Modality params carry the model
+ * either as a plain string (ASR, embeddings) or as a model object with an `id`
+ * (image/video tasks). Returns "unknown" when neither is present.
+ */
+function extractModelId(args: unknown[]): string {
+  for (const arg of args) {
+    if (!arg || typeof arg !== "object") continue;
+    const model = (arg as { model?: unknown }).model;
+    if (typeof model === "string") return model;
+    if (model && typeof model === "object") {
+      const id = (model as { id?: unknown }).id;
+      if (typeof id === "string") return id;
+    }
+  }
+  return "unknown";
+}
+
+/**
+ * Drive a provider's async-generator modality method (e.g. textToSpeech)
+ * through a per-call slot — so `recordRequestPayload` is visible across yields —
+ * and log centrally if it throws. The slot is wrapped around each `next()`
+ * because AsyncLocalStorage does not persist across generator suspension.
+ */
+async function* wrapModalityGenerator(
+  provider: BaseProvider,
+  original: (...args: unknown[]) => AsyncGenerator<unknown>,
+  args: unknown[]
+): AsyncGenerator<unknown> {
+  const { runInSlot, getRequest } = createUsageSlot();
+  const source = original.apply(provider, args);
+  let exhausted = false;
+  try {
+    while (true) {
+      const result = await runInSlot(() => source.next());
+      if (result.done) {
+        exhausted = true;
+        return result.value;
+      }
+      yield result.value;
+    }
+  } catch (err) {
+    logProviderRequestFailure({
+      provider: provider.provider,
+      model: extractModelId(args),
+      request: getRequest(),
+      nodetoolArgs: args,
+      error: err
+    });
+    throw err;
+  } finally {
+    if (!exhausted) {
+      await runInSlot(
+        () =>
+          source.return?.(undefined as never) ??
+          Promise.resolve({
+            done: true,
+            value: undefined
+          } as IteratorResult<unknown>)
+      ).catch(() => {});
+    }
   }
 }
 

@@ -30,6 +30,11 @@ export {
   LIST_NODES
 } from "@nodetool-ai/core-nodes/nodes/list";
 export {
+  SetVariableNode,
+  GetVariableNode,
+  VARIABLE_NODES
+} from "@nodetool-ai/core-nodes/nodes/variable";
+export {
   SplitTextNode,
   ExtractTextNode,
   ChunkTextNode,
@@ -720,6 +725,7 @@ export {
 } from "@nodetool-ai/text-nodes/nodes/lib-nlp";
 import { CONTROL_NODES } from "@nodetool-ai/core-nodes/nodes/control";
 import { LIST_NODES } from "@nodetool-ai/core-nodes/nodes/list";
+import { VARIABLE_NODES } from "@nodetool-ai/core-nodes/nodes/variable";
 import { TEXT_EXTRA_NODES } from "@nodetool-ai/text-nodes/nodes/text-extra";
 import { CONSTANT_NODES } from "@nodetool-ai/core-nodes/nodes/constant";
 import { EXTENDED_PLACEHOLDER_NODES } from "@nodetool-ai/core-nodes/nodes/extended-placeholders";
@@ -804,6 +810,7 @@ import { LIB_IMAGE_COLOR_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-
 export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...CONTROL_NODES,
   ...LIST_NODES,
+  ...VARIABLE_NODES,
   ...TEXT_EXTRA_NODES,
   ...CONSTANT_NODES,
   ...EXTENDED_PLACEHOLDER_NODES,

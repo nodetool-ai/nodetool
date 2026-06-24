@@ -11,7 +11,7 @@ import BlurOnOutlinedIcon from "@mui/icons-material/BlurOnOutlined";
 
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
-import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
+import { useTimelinePlaybackStoreApi } from "../../../stores/timeline/TimelineInstance";
 import { usePersistedFold } from "./usePersistedFold";
 import type {
   BlendMode,
@@ -33,7 +33,9 @@ import {
   NodeMenuItem,
   Panel,
   Text,
-  Toast
+  Toast,
+  SPACING,
+  getSpacingPx
 } from "../../ui_primitives";
 import { trackTypeAccent } from "../Tracks/trackVisuals";
 import {
@@ -63,7 +65,7 @@ const containerStyles = css({
   minWidth: 0,
   maxWidth: "100%",
   boxSizing: "border-box",
-  padding: "8px 12px 24px",
+  padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xxl)}`,
   overflow: "auto"
 });
 
@@ -155,7 +157,10 @@ export const TimelineInspector: React.FC = memo(() => {
   const duplicateSelected = useTimelineStore((s) => s.duplicateSelected);
   const splitClipAtTime = useTimelineStore((s) => s.splitClipAtTime);
   const patchClip = useTimelineStore((s) => s.patchClip);
-  const currentTimeMs = useTimelinePlaybackStore((s) => s.currentTimeMs);
+  // The playhead is read imperatively only when splitting (a click). Subscribing
+  // reactively would re-render this large panel on every seek/scrub for no
+  // visible benefit.
+  const playbackApi = useTimelinePlaybackStoreApi();
   const setSelection = useTimelineUIStore((s) => s.setSelection);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -184,13 +189,13 @@ export const TimelineInspector: React.FC = memo(() => {
 
   const handleSplitAtPlayhead = useCallback(() => {
     if (!clip) return;
-    const at = currentTimeMs;
+    const at = playbackApi.getState().getTimeMs();
     if (at > clip.startMs && at < clip.startMs + clip.durationMs) {
       splitClipAtTime(clip.id, at);
     } else {
       setToast("Move the playhead inside the clip to split it.");
     }
-  }, [clip, currentTimeMs, splitClipAtTime]);
+  }, [clip, playbackApi, splitClipAtTime]);
 
   const handleDelete = useCallback(() => {
     if (!clipId) return;

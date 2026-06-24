@@ -28,7 +28,8 @@ function fakeRegistry(
   return {
     resolve,
     createNodeValidator: () => () => [],
-    getClass: () => undefined
+    getClass: () => undefined,
+    resolveMetadata: () => undefined
   } as unknown as NodeRegistry;
 }
 
@@ -158,7 +159,8 @@ describe("runWorkflow", () => {
       resolve: () => passthrough(),
       createNodeValidator: () => propValidator,
       createPlatformValidator: () => platformValidator,
-      getClass: () => undefined
+      getClass: () => undefined,
+      resolveMetadata: () => undefined
     } as unknown as NodeRegistry;
 
     const gen = runWorkflow({

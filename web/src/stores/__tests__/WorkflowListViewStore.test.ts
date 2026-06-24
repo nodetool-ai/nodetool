@@ -10,27 +10,27 @@ describe("WorkflowListViewStore", () => {
     localStorage.clear();
   });
 
-  it("should have default showGraphPreview as true", () => {
+  it("should have default showGraphPreview as false (simple list view)", () => {
     const { result } = renderHook(() => useShowGraphPreview());
-    expect(result.current).toBe(true);
+    expect(result.current).toBe(false);
   });
 
   it("should toggle graph preview", () => {
     const { result: showResult } = renderHook(() => useShowGraphPreview());
 
-    expect(showResult.current).toBe(true);
-
-    act(() => {
-      useWorkflowListViewStore.getState().actions.toggleGraphPreview();
-    });
-
-    expect(useWorkflowListViewStore.getState().showGraphPreview).toBe(false);
+    expect(showResult.current).toBe(false);
 
     act(() => {
       useWorkflowListViewStore.getState().actions.toggleGraphPreview();
     });
 
     expect(useWorkflowListViewStore.getState().showGraphPreview).toBe(true);
+
+    act(() => {
+      useWorkflowListViewStore.getState().actions.toggleGraphPreview();
+    });
+
+    expect(useWorkflowListViewStore.getState().showGraphPreview).toBe(false);
   });
 
   it("should set graph preview to specific value", () => {

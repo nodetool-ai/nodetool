@@ -28,7 +28,9 @@ import {
   Box,
   EmptyState,
   BORDER_RADIUS,
-  MOTION
+  MOTION,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 import { ToolbarIconButton } from "../ui_primitives/ToolbarIconButton";
 import ConfirmDialog from "../dialogs/ConfirmDialog";
@@ -500,7 +502,7 @@ const ProviderCard = memo(function ProviderCard({
       </FlexRow>
 
       {/* Info */}
-      <FlexColumn sx={{ flex: 1, minWidth: 0, gap: "2px", justifyContent: "center" }}>
+      <FlexColumn sx={{ flex: 1, minWidth: 0, gap: getSpacingPx(SPACING.micro), justifyContent: "center" }}>
         <FlexRow align="center" gap={0.5}>
           <Text size="small" weight={600}>
             {meta.name}
@@ -790,12 +792,23 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     return results;
   }, [safeSecrets, lowerSearch]);
 
+  // Connected providers float to their own section at the top.
+  const connected = useMemo(
+    () => matchedProviders.filter((p) => p.secret.is_configured),
+    [matchedProviders]
+  );
   const recommended = useMemo(
-    () => matchedProviders.filter((p) => p.meta.category === "recommended"),
+    () =>
+      matchedProviders.filter(
+        (p) => p.meta.category === "recommended" && !p.secret.is_configured
+      ),
     [matchedProviders]
   );
   const others = useMemo(
-    () => matchedProviders.filter((p) => p.meta.category === "other"),
+    () =>
+      matchedProviders.filter(
+        (p) => p.meta.category === "other" && !p.secret.is_configured
+      ),
     [matchedProviders]
   );
 
@@ -929,7 +942,8 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     [others, unconfiguredOthers]
   );
 
-  const hasContent = allRecommended.length > 0 || allOthers.length > 0;
+  const hasContent =
+    connected.length > 0 || allRecommended.length > 0 || allOthers.length > 0;
 
   return (
     <FlexColumn sx={{ gap: "1.5rem" }}>
@@ -941,6 +955,28 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
           title="No providers found"
           description={`No providers match "${searchTerm}"`}
         />
+      )}
+
+      {connected.length > 0 && (
+        <div>
+          <SectionTitle
+            title="Connected Providers"
+            count={connected.length}
+            theme={theme}
+          />
+          <FlexColumn sx={{ gap: theme.spacing(2) }}>
+            {connected.map(({ secret, meta }) => (
+              <ProviderCard
+                key={meta.key}
+                secret={secret}
+                meta={meta}
+                onConnect={handleConnect}
+                onManage={handleManage}
+                onDelete={handleDelete}
+              />
+            ))}
+          </FlexColumn>
+        </div>
       )}
 
       {allRecommended.length > 0 && (

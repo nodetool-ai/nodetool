@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { useState, useCallback, useRef, useMemo } from "react";
-import { ToolbarIconButton, BORDER_RADIUS } from "../ui_primitives";
+import { ToolbarIconButton, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
 import { alphaSurfaceBg } from "../../styles/AlphaSurface";
@@ -64,7 +64,7 @@ const styles = (theme: Theme) =>
     ".divider-line": {
       position: "absolute",
       backgroundColor: theme.vars.palette.common.white,
-      boxShadow: "0 0 4px rgba(0,0,0,0.5)",
+      boxShadow: `0 0 4px ${theme.vars.palette.c_scrim}`,
       zIndex: 10,
       pointerEvents: "none"
     },
@@ -80,11 +80,11 @@ const styles = (theme: Theme) =>
     },
     ".label": {
       position: "absolute",
-      padding: "4px 8px",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       fontSize: theme.fontSizeSmaller,
       fontWeight: 600,
       color: theme.vars.palette.common.white,
-      backgroundColor: "rgba(0, 0, 0, 0.6)",
+      backgroundColor: theme.vars.palette.c_scrim,
       borderRadius: BORDER_RADIUS.sm,
       zIndex: 15,
       pointerEvents: "none"
@@ -107,10 +107,10 @@ const styles = (theme: Theme) =>
     },
     ".metadata": {
       position: "absolute",
-      padding: "4px 8px",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       fontSize: theme.fontSizeTiny,
       color: theme.vars.palette.grey[300],
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      backgroundColor: theme.vars.palette.c_scrim,
       borderRadius: BORDER_RADIUS.sm,
       zIndex: 15,
       pointerEvents: "none"
@@ -136,11 +136,11 @@ const styles = (theme: Theme) =>
       bottom: "8px",
       right: "24px",
       zIndex: 50,
-      backgroundColor: "rgba(0, 0, 0, 0.6)",
+      backgroundColor: theme.vars.palette.c_scrim,
       color: theme.vars.palette.common.white,
-      padding: "4px",
+      padding: getSpacingPx(SPACING.xs),
       "&:hover": {
-        backgroundColor: "rgba(0, 0, 0, 0.8)"
+        backgroundColor: theme.vars.palette.c_scrim_strong
       }
     }
   });

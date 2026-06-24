@@ -24,7 +24,7 @@ import TextDecreaseIcon from "@mui/icons-material/TextDecrease";
 import TextIncreaseIcon from "@mui/icons-material/TextIncrease";
 import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import ChatBubbleIcon from "@mui/icons-material/ChatBubble";
-import { Tooltip, LoadingSpinner, MOTION, BORDER_RADIUS, SPACING } from "../ui_primitives";
+import { Tooltip, LoadingSpinner, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { CodeHighlightNode, CodeNode } from "@lexical/code";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { ListItemNode, ListNode } from "@lexical/list";
@@ -589,7 +589,7 @@ const styles = (theme: Theme) =>
           flex: 1
         },
         ".chat-thread-container": {
-          paddingBottom: "8px"
+          paddingBottom: getSpacingPx(SPACING.md)
         },
         ".chat-input-section": {
           width: "100% !important",
@@ -631,7 +631,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".button-close": {
-      marginLeft: "3px",
+      marginLeft: getSpacingPx(SPACING.xs), // was 3px
       border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.08)`,
       "&:hover": {
         backgroundColor: theme.vars.palette.error.main,
@@ -642,7 +642,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".button-ghost": {
-      padding: "4px",
+      padding: getSpacingPx(SPACING.xs),
       cursor: "pointer",
       color: theme.vars.palette.grey[400],
       fontSize: "var(--fontSizeNormal)",

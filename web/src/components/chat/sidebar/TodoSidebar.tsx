@@ -2,11 +2,11 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
-import { FlexColumn, FlexRow, Text, ScrollArea, MOTION, BORDER_RADIUS } from "../../ui_primitives";
+import { FlexColumn, FlexRow, Text, ScrollArea, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
 import type { TodoItem } from "../../../stores/ApiTypes";
 
 export const TODO_SIDEBAR_WIDTH = 280;
@@ -36,10 +36,10 @@ const styles = (theme: Theme) =>
     ".todo-list": {
       flex: 1,
       minHeight: 0,
-      padding: "8px 4px"
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xs)}`
     },
     ".todo-item": {
-      padding: "8px 12px",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,
       borderRadius: BORDER_RADIUS.md,
       display: "flex",
       alignItems: "flex-start",
@@ -90,6 +90,7 @@ const STATUS_ICONS = {
 
 export const TodoSidebar: React.FC<TodoSidebarProps> = memo(({ todos }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const counts = todos.reduce(
     (acc, t) => {
       acc[t.status] += 1;
@@ -99,7 +100,7 @@ export const TodoSidebar: React.FC<TodoSidebarProps> = memo(({ todos }) => {
   );
 
   return (
-    <aside className="todo-sidebar" css={styles(theme)}>
+    <aside className="todo-sidebar" css={cssStyles}>
       <FlexRow className="todo-header" align="baseline" justify="space-between">
         <Text
           size="small"

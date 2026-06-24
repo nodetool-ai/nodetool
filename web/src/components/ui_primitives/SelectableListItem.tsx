@@ -23,8 +23,8 @@ export interface SelectableListItemProps extends Omit<BoxProps, "onClick"> {
   secondary?: boolean;
   /** Whether the row is disabled / in-progress (reduces opacity, no hover). */
   disabled?: boolean;
-  /** Click handler */
-  onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
+  /** Click / keyboard-activation handler */
+  onClick?: (event: React.MouseEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>) => void;
   /** Additional horizontal padding (theme units). Default: 1 */
   paddingX?: number;
   /** Additional vertical padding (theme units). Default: 0.5 */
@@ -96,9 +96,7 @@ export const SelectableListItem = memo(
         }
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          // Forward as a synthetic MouseEvent-like by reusing the keyboard
-          // event target; consumers typically ignore MouseEvent specifics.
-          onClick(event as unknown as React.MouseEvent<HTMLDivElement>);
+          onClick(event);
         }
       },
       [interactive, onClick]

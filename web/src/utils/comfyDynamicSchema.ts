@@ -18,6 +18,15 @@ type ComfyPromptNode = {
   inputs: Record<string, unknown>;
   _meta?: { title?: string };
 };
+
+function isComfyPromptNode(value: unknown): value is ComfyPromptNode {
+  return (
+    value != null &&
+    typeof value === "object" &&
+    typeof (value as Record<string, unknown>).class_type === "string" &&
+    typeof (value as Record<string, unknown>).inputs === "object"
+  );
+}
 export type ComfyPrompt = Record<string, ComfyPromptNode>;
 
 export type ComfyDynInput = TypeMetadata & {
@@ -170,12 +179,7 @@ export function normalizeComfyPrompt(parsed: unknown): ComfyPrompt {
     throw new Error("Workflow is empty.");
   }
   for (const [id, node] of entries) {
-    if (
-      !node ||
-      typeof node !== "object" ||
-      typeof (node as ComfyPromptNode).class_type !== "string" ||
-      typeof (node as ComfyPromptNode).inputs !== "object"
-    ) {
+    if (!isComfyPromptNode(node)) {
       throw new Error(
         `Node "${id}" is not in API format (expected { class_type, inputs }).`
       );

@@ -17,6 +17,29 @@ Single reference for every design token and visual rule in NodeTool. All fronten
 - Theme: [`web/src/components/themes/ThemeNodetool.tsx`](../web/src/components/themes/ThemeNodetool.tsx)
 - Palettes: [`paletteDark.ts`](../web/src/components/themes/paletteDark.ts) / [`paletteLight.ts`](../web/src/components/themes/paletteLight.ts)
 
+**Enforcement:** Most of these rules are linted. The default `npm run lint`
+(oxlint) can't express the design-token AST checks, so they run through ESLint
+as a dedicated gate: `web/eslint.design.config.mjs` (rules shared from
+`web/eslint.design.mjs`) is invoked by `npm run lint:design` and chained into
+the root `npm run lint`. `lint:design` also runs `web/scripts/lint-spacing-css.mjs`
+and `web/scripts/lint-font-color-css.mjs`, which extend the spacing, font-size,
+and color rules to plain `.css` files (ESLint only parses `.ts`/`.tsx`).
+**Spacing** (`padding`/`margin`/`gap`), **`fontWeight`**, **font size**
+(`design-tokens/font-size-tokens`), and **color** (`design-tokens/color-tokens`)
+have reached zero violations and are promoted to **`error`** to lock them in —
+new raw px/rem font sizes or raw hex/rgb colors fail the gate. The remaining
+categories (`borderRadius`, `zIndex`, `transition`/`MOTION`, raw-MUI imports) are
+still **warnings**; promote each to `error` the same way as it reaches zero.
+
+The font-size and color rules are custom (like spacing) so they catch raw values
+inside `styled`/`css` template literals, not just object literals. The color rule
+deliberately allows values already routed through a CSS var
+(`rgba(var(--palette-primary-mainChannel) / 0.1)` is theme-driven and fine), and
+excludes `fill`/`stroke` (SVG/canvas) and `boxShadow`. Genuinely literal
+color-as-data modules (syntax-highlight themes, color pickers, sketch swatch
+tools, 3D/canvas/terminal color config, provider brand colors) are listed in
+`designTokenIgnores`.
+
 ---
 
 ## 1. Typography
@@ -184,15 +207,65 @@ const px = getSpacingPx(3); // → "12px"
 const p = createPadding(theme, 2, 3); // "8px 12px"
 ```
 
-### Raw CSS Pixel Grid
+### TSX: tokens only — no raw px
 
-When writing plain CSS or `sx` pixel values directly (rare), only these pixels are allowed:
+In `.ts`/`.tsx`, `padding` / `margin` / `gap` must use a token, never a raw px
+literal — not even a grid-aligned one. This holds across **every** context:
 
-`0 · 2 · 4 · 6 · 8 · 12 · 16 · 24 · 32`
+```tsx
+// MUI sx — numeric theme-unit token, or getSpacingPx
+<Box sx={{ padding: SPACING.md }} />
+<Box sx={{ p: SPACING.md, gap: SPACING.xs }} />
+
+// emotion css() / styled() objects / CSSProperties — getSpacingPx (returns "8px")
+css({ padding: getSpacingPx(SPACING.md) })
+css({ padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}` })  // shorthand
+
+// styled / css template literals — interpolate getSpacingPx
+styled.div`padding: ${getSpacingPx(SPACING.md)};`
+
+// multi-value with theme in scope
+createPadding(theme, SPACING.xs, SPACING.md)  // "4px 8px"
+```
+
+A handful of structural offsets exceed the scale (max `xxxl` = 32px). Express
+those exactly via `getSpacingPx(units)` (e.g. `getSpacingPx(18)` → 72px) rather
+than snapping down and changing the layout — the value stays token-derived and
+the linter accepts it.
+
+### .css files: use `--spacing-*` vars
+
+Plain `.css` files can't import the TS tokens, so they use the matching CSS
+custom properties from [`vars.css`](../web/src/styles/vars.css):
+
+```css
+padding: var(--spacing-md);                 /* 8px */
+padding: var(--spacing-xs) var(--spacing-md);
+margin-left: calc(-1 * var(--spacing-md));  /* negative */
+```
+
+`--spacing-none · micro · xs · sm · md · lg · xl · xxl · xxxl` mirror
+`SPACING_PX`. `0` stays `0`.
+
+### Enforcement (spacing is fully linted)
+
+Spacing is enforced end-to-end and is currently at **zero** violations:
+
+- **TSX** — the `design-tokens/spacing-tokens` ESLint rule
+  ([`eslint.design.mjs`](../web/eslint.design.mjs)) flags raw px on
+  `padding`/`margin`/`gap` (incl. logical props, MUI `sx` short props like
+  `p`/`mt`, shorthand strings, and px inside `styled`/`css` template literals).
+- **CSS** — [`scripts/lint-spacing-css.mjs`](../web/scripts/lint-spacing-css.mjs)
+  flags raw px in `.css` spacing declarations.
+
+Both run in `npm run lint:design`. Because spacing is clean, keep it that way:
+new raw-px spacing will fail the gate.
 
 ### Forbidden
 
-`5px`, `7px`, `10px`, `13px`, `20px` and any theme unit not in `[0, 0.5, 1, 1.5, 2, 3, 4, 6, 8]`.
+`5px`, `7px`, `10px`, `13px`, `20px` and any theme unit not in
+`[0, 0.5, 1, 1.5, 2, 3, 4, 6, 8]`. In TSX, **any** raw px on a spacing prop —
+even an on-grid one like `"8px"` — is forbidden; use a token.
 
 **Not spacing:** ReactFlow `fitView({ padding })`, viewport ratios, `opacity`, `scale`, `flex` shrink/grow, `zIndex` — these are not layout spacing and are excluded from the rule.
 
@@ -282,6 +355,26 @@ Semantic grey aliases (`c_gray0` … `c_gray6`) map to the same scale.
 | `c_provider_api` | API provider badge | `#93C5FD` | `#2C415A` |
 | `c_provider_local` | Local provider badge | `#86EFAC` | `#2E5B4E` |
 | `c_provider_hf` | HuggingFace badge | `#C4B5FD` | `#6D4B6F` |
+
+### Scrims & Surface Overlays
+
+Translucent overlays for the patterns that used to be written as raw
+`rgba(0,0,0,a)` / `rgba(255,255,255,a)`. **Scrims** (dark veils over media,
+dialogs, hover thumbnails) are intentionally *theme-invariant* — they stay dark
+in light mode. **Surface overlays** (subtle raised/inset tints) invert: they
+lighten on dark and darken on light.
+
+| Token | Use | Dark | Light |
+|---|---|---|---|
+| `c_scrim_soft` | Light media/hover veil | `rgba(0,0,0,0.3)` | `rgba(0,0,0,0.3)` |
+| `c_scrim` | Standard scrim (media, dialogs) | `rgba(0,0,0,0.6)` | `rgba(0,0,0,0.6)` |
+| `c_scrim_strong` | Heavy scrim / letterbox | `rgba(0,0,0,0.85)` | `rgba(0,0,0,0.85)` |
+| `c_overlay_subtle` | Faint surface tint | `rgba(255,255,255,0.03)` | `rgba(0,0,0,0.03)` |
+| `c_overlay` | Raised-surface tint | `rgba(255,255,255,0.06)` | `rgba(0,0,0,0.05)` |
+| `c_overlay_strong` | Strong tint / hairline border | `rgba(255,255,255,0.15)` | `rgba(0,0,0,0.1)` |
+
+For a translucent **brand** tint (a primary/warning/info wash), don't add a
+token — use the channel form `rgba(var(--palette-<sem>-mainChannel) / <alpha>)`.
 
 ### Rules
 

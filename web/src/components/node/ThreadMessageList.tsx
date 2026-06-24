@@ -68,7 +68,7 @@ const styles = (theme: Theme) =>
       zIndex: 1
     },
     ".messages li .tool-call__message pre": {
-      backgroundColor: "rgba(0 0 0 / 0.35)",
+      backgroundColor: theme.vars.palette.c_scrim_soft,
       borderRadius: BORDER_RADIUS.lg,
       padding: "0.75em",
       marginTop: "0.8em",

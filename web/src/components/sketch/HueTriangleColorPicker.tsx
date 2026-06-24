@@ -17,7 +17,7 @@ import React, {
   useEffect,
   useState
 } from "react";
-import { FlexColumn, FlexRow, Box } from "../ui_primitives";
+import { FlexColumn, FlexRow, Box, SPACING, getSpacingPx } from "../ui_primitives";
 import {
   parseColorToRgba,
   rgbToHsv,
@@ -607,7 +607,7 @@ const HueTriangleColorPicker: React.FC<HueTriangleColorPickerProps> = ({
         justify="center"
         fullWidth
         sx={{
-          py: "4px",
+          py: getSpacingPx(SPACING.xs),
           position: "relative"
         }}
       >

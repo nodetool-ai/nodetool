@@ -2,10 +2,12 @@ import Replicate from "replicate";
 import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
 import { safeFetch } from "./safe-url.js";
+import { sniffAudioMime } from "./audio-mime.js";
 import type { Chunk } from "@nodetool-ai/protocol";
 import type {
   ASRModel,
   EmbeddingModel,
+  EncodedAudioResult,
   ImageModel,
   ImageToImageParams,
   InpaintingParams,
@@ -13,9 +15,11 @@ import type {
   LanguageModel,
   Message,
   MessageTextContent,
+  MusicModel,
   ProviderStreamItem,
   ProviderTool,
   TextToImageParams,
+  TextToMusicParams,
   TTSModel,
   VideoModel,
   TextToVideoParams,
@@ -29,6 +33,7 @@ import type {
 import {
   getModelImageInputs,
   loadImageModels,
+  loadMusicModels,
   loadVideoModels,
   selectMaskImageInput,
   selectPrimaryImageInput
@@ -347,6 +352,14 @@ export class ReplicateProvider extends BaseProvider {
       },
       { id: "x-lance/f5-tts", name: "F5 TTS", provider: "replicate" }
     ];
+  }
+
+  async getAvailableMusicModels(): Promise<MusicModel[]> {
+    return loadMusicModels(
+      "@nodetool-ai/replicate-nodes",
+      "replicate-manifest.json",
+      "replicate"
+    );
   }
 
   async getAvailableASRModels(): Promise<ASRModel[]> {
@@ -755,5 +768,31 @@ export class ReplicateProvider extends BaseProvider {
         bytes.byteLength / 2
       )
     };
+  }
+
+  /**
+   * Generate music as an encoded audio file. Replicate music models (MusicGen,
+   * MiniMax Music, ElevenLabs Music, …) return a file URL / FileOutput, so this
+   * runs the model and downloads the encoded audio bytes.
+   */
+  override async textToMusic(
+    params: TextToMusicParams
+  ): Promise<EncodedAudioResult> {
+    if (!params.prompt) throw new Error("Prompt is required");
+
+    const input: Record<string, unknown> = { prompt: params.prompt };
+    if (params.lyrics) input.lyrics = params.lyrics;
+    if (params.durationSeconds != null) {
+      input.duration = Math.round(params.durationSeconds);
+    }
+    if (params.seed != null) input.seed = params.seed;
+
+    log.debug("textToMusic", { model: params.model.id });
+    const output = await this._client.run(
+      params.model.id as `${string}/${string}`,
+      { input }
+    );
+    const bytes = await this._fetchOutputBytes(output);
+    return { data: bytes, mimeType: sniffAudioMime(bytes) };
   }
 }

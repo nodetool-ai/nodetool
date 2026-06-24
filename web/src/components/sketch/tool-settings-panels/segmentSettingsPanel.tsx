@@ -18,7 +18,7 @@ import {
   LOCAL_SAM3_CAPABILITIES,
   LOCAL_SAM3_MODEL_ID
 } from "../sam";
-import { FlexRow, TextInput, Box, Text } from "../../ui_primitives";
+import { FlexRow, TextInput, Box, Text, SPACING, getSpacingPx } from "../../ui_primitives";
 import { EditorButton } from "../../editor_ui";
 import {
   sketchButtonSmallSx,
@@ -197,7 +197,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
 
   return (
     <>
-      <Box className="setting-row" sx={{ gap: "4px" }}>
+      <Box className="setting-row" sx={{ gap: getSpacingPx(SPACING.xs) }}>
         <Text className="setting-label">Backend</Text>
         <SketchModeToggle
           value={settings.backend}
@@ -219,7 +219,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
       </Box>
 
       {modelInfo && (
-        <Box sx={{ mb: "4px" }}>
+        <Box sx={{ mb: getSpacingPx(SPACING.xs) }}>
           <Text
             sx={{
               fontSize: SKETCH_FONT.xs,
@@ -253,7 +253,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
             onChange({ promptMode: v as SegmentPromptMode });
           }
         }}
-        sx={{ mb: "4px" }}
+        sx={{ mb: getSpacingPx(SPACING.xs) }}
       >
         {visiblePromptModes.includes("point") && (
           <SketchModeOption value="point">Point</SketchModeOption>
@@ -325,7 +325,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         </Text>
       </Box>
 
-      <Box className="setting-row" sx={{ gap: "4px" }}>
+      <Box className="setting-row" sx={{ gap: getSpacingPx(SPACING.xs) }}>
         <Text className="setting-label">Source Layer</Text>
         <SketchModeToggle
           value={settings.sourceLayerAction}
@@ -354,12 +354,12 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
             {settings.outputCutouts ? "Cutout layers" : "Mask layers"}
           </Text>
         }
-        sx={{ mt: "2px", ml: 0 }}
+        sx={{ mt: getSpacingPx(SPACING.micro), ml: 0 }}
       />
 
       {supportsTextPrompts && (
         <Box className="setting-row" sx={{ alignItems: "flex-start" }}>
-          <Text className="setting-label" sx={{ pt: "6px" }}>
+          <Text className="setting-label" sx={{ pt: getSpacingPx(SPACING.sm) }}>
             Concept
           </Text>
           <TextInput
@@ -421,7 +421,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
         </>
       )}
 
-      <FlexRow wrap gap={0.5} sx={{ mt: "4px" }}>
+      <FlexRow wrap gap={0.5} sx={{ mt: getSpacingPx(SPACING.xs) }}>
         {!isRunning && !isPreviewing && (
           <>
             {canDownloadLocalSam3 && (
@@ -524,7 +524,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
           color: SKETCH_COLORS.textFaint,
           lineHeight: 1.3,
           maxWidth: 320,
-          mt: "4px"
+          mt: getSpacingPx(SPACING.xs)
         }}
       >
         {supportsPointPrompts || supportsBoxPrompts || supportsTextPrompts
@@ -538,7 +538,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
             fontSize: SKETCH_FONT.xs,
             color: SKETCH_COLORS.textFaint,
             lineHeight: 1.3,
-            mt: "2px"
+            mt: getSpacingPx(SPACING.micro)
           }}
         >
           Select exactly one raster layer to split.
@@ -551,7 +551,7 @@ export const SegmentSettingsPanel = memo(function SegmentSettingsPanel({
             fontSize: SKETCH_FONT.xs,
             color: "error.main",
             lineHeight: 1.3,
-            mt: "2px"
+            mt: getSpacingPx(SPACING.micro)
           }}
         >
           Segmentation failed. Check model availability and try again.

@@ -16,7 +16,6 @@
 import React, {
   memo,
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState
@@ -48,7 +47,6 @@ import type { NodeMetadata, Property } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
 import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropertyWriter";
 import { useDynamicProperty } from "../../../hooks/nodes/useDynamicProperty";
-import { debounce } from "../../../utils/lodashAlternatives";
 
 import { AssetMentionNode } from "./promptComposer/AssetMentionNode";
 import { VariableNode, $createVariableNode } from "./promptComposer/VariableNode";
@@ -60,6 +58,7 @@ import {
 } from "./promptComposer/promptEditorState";
 import { variablesInPrompt } from "./promptComposer/promptTokens";
 import { PromptComposerContext } from "./promptComposer/promptComposerContext";
+import { useGraphVariableNames } from "./useGraphVariables";
 import { PROMPT_NODE_TYPE } from "../../../constants/nodeTypes";
 
 const styles = (theme: Theme) =>
@@ -138,6 +137,12 @@ const styles = (theme: Theme) =>
       lineHeight: 1.4,
       "&:hover": { borderColor: theme.vars.palette.primary.main }
     },
+    // Variables defined by a Set Variable node: accent the border so they read
+    // as "comes from elsewhere in the graph" rather than a local input.
+    ".variable-insert-chip--graph": {
+      borderColor: theme.vars.palette.info.main,
+      color: theme.vars.palette.info.main
+    },
     ".dynamic-inputs": { flex: "0 0 auto" },
     ".outputs-row": { flex: "0 0 auto" }
   });
@@ -146,12 +151,23 @@ const composerTheme = {
   paragraph: "composer-paragraph"
 };
 
-/** Quick-insert bar: one chip per dynamic input + the add-variable button. */
+/** A variable offered in the insert bar, tagged by where it resolves from. */
+interface InsertableVariable {
+  name: string;
+  /** "input" → the node's own dynamic input; "graph" → a Set Variable node. */
+  source: "input" | "graph";
+}
+
+/**
+ * Quick-insert bar: one chip per available variable (dynamic inputs first,
+ * then variables defined by Set Variable nodes anywhere in the workflow) + the
+ * add-variable button.
+ */
 const VariableInsertBar: React.FC<{
-  variableNames: string[];
+  variables: InsertableVariable[];
   showLabel: boolean;
   onAdd: () => void;
-}> = ({ variableNames, showLabel, onAdd }) => {
+}> = ({ variables, showLabel, onAdd }) => {
   const [editor] = useLexicalComposerContext();
   const insertVariable = useCallback(
     (name: string) => {
@@ -164,13 +180,24 @@ const VariableInsertBar: React.FC<{
   return (
     <div className="variable-bar">
       {showLabel && <span className="variable-bar-label">Variables</span>}
-      {variableNames.map((name) => (
+      {variables.map(({ name, source }) => (
         <button
           key={name}
           type="button"
-          className="variable-insert-chip nodrag"
+          className={`variable-insert-chip nodrag${
+            source === "graph" ? " variable-insert-chip--graph" : ""
+          }`}
           onClick={() => insertVariable(name)}
-          aria-label={`Insert variable ${name}`}
+          aria-label={
+            source === "graph"
+              ? `Insert variable ${name} set by a Set Variable node`
+              : `Insert variable ${name}`
+          }
+          title={
+            source === "graph"
+              ? `Set by a Set Variable node`
+              : undefined
+          }
         >
           {`{{ ${name} }}`}
         </button>
@@ -202,7 +229,7 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
 
-  const { setProperties, setPropertyComplete } = useBespokePropertyWriter({
+  const { setProperties } = useBespokePropertyWriter({
     nodeId: id,
     nodeType
   });
@@ -219,9 +246,32 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
     () => new Set(variableNames),
     [variableNames]
   );
+
+  // Variables defined by Set Variable nodes anywhere in the workflow. They
+  // resolve at runtime from the shared processing context, so they're offered
+  // as insertable chips and treated as "known" even without a dynamic input.
+  const graphVariableNames = useGraphVariableNames();
+  const graphVariables = useMemo(
+    () => new Set(graphVariableNames),
+    [graphVariableNames]
+  );
   const promptComposerContextValue = useMemo(
-    () => ({ knownVariables }),
-    [knownVariables]
+    () => ({ knownVariables, graphVariables }),
+    [knownVariables, graphVariables]
+  );
+
+  // Insert-bar entries: the node's own inputs first, then variables defined by
+  // Set Variable nodes that aren't already covered by an input of the same name.
+  const insertableVariables = useMemo(
+    () => [
+      ...variableNames.map(
+        (name) => ({ name, source: "input" as const })
+      ),
+      ...graphVariableNames
+        .filter((name) => !knownVariables.has(name))
+        .map((name) => ({ name, source: "graph" as const }))
+    ],
+    [variableNames, graphVariableNames, knownVariables]
   );
 
   const { handleAddProperty, handleDeleteProperty, handleUpdatePropertyName } =
@@ -268,34 +318,34 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
     []
   );
 
-  const writePrompt = useMemo(
-    () =>
-      debounce((text: string) => {
-        if (text === lastWrittenRef.current) {
-          return;
-        }
-        lastWrittenRef.current = text;
-        setProperties({ prompt: text });
-        setPropertyComplete();
-      }, 400),
-    [setProperties, setPropertyComplete]
+  // Commit the serialized prompt to the store on every edit. Writing
+  // synchronously — rather than behind a debounce — guarantees a run (manual or
+  // auto) always reads the current text. A debounced write let a run fired
+  // within the debounce window send the node's *previous* prompt downstream,
+  // producing the intermittent stale-value bug. The equality guard skips
+  // redundant writes from selection-only editor changes (Lexical's
+  // OnChangePlugin fires for those too); auto-run is still coalesced downstream
+  // by useNodeAutoRun's own debounce.
+  const commitPrompt = useCallback(
+    (text: string) => {
+      if (text === lastWrittenRef.current) {
+        return;
+      }
+      lastWrittenRef.current = text;
+      setProperties({ prompt: text });
+    },
+    [setProperties]
   );
-
-  useEffect(() => {
-    return () => {
-      writePrompt.cancel();
-    };
-  }, [writePrompt]);
 
   const handleEditorChange = useCallback(
     (editorState: EditorState) => {
       editorState.read(() => {
         const serialized = $serializePrompt();
         setPromptText(serialized);
-        writePrompt(serialized);
+        commitPrompt(serialized);
       });
     },
-    [writePrompt]
+    [commitPrompt]
   );
 
   const promptProperties = useMemo<Property[]>(() => [], []);
@@ -328,7 +378,7 @@ const PromptComposerBodyInner: React.FC<PromptComposerBodyProps> = ({
           </div>
 
           <VariableInsertBar
-            variableNames={variableNames}
+            variables={insertableVariables}
             showLabel={promptReferencesVariable}
             onAdd={handleAddVariable}
           />

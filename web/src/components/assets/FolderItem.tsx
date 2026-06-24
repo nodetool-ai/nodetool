@@ -6,7 +6,7 @@ import FolderIcon from "@mui/icons-material/Folder";
 import NorthWest from "@mui/icons-material/NorthWest";
 import { Asset } from "../../stores/ApiTypes";
 import { useAssetActions } from "./useAssetActions";
-import { DeleteButton, Text, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { DeleteButton, Text, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
@@ -40,7 +40,7 @@ const styles = (theme: Theme) =>
     ".folder-icon": {
       width: "20px",
       height: "20px",
-      marginLeft: "2px",
+      marginLeft: getSpacingPx(SPACING.micro),
       left: 0,
       color: theme.vars.palette.grey[500],
       flexShrink: 0

@@ -17,7 +17,11 @@ jest.mock("../../../stores/WorkflowRunner", () => ({
 // (durable assets merged with the live buffer). Mock the sync accessor so a
 // test can hand a node a cached generation.
 jest.mock("../../../stores/nodeGenerationAccessor", () => ({
-  getNodeGenerations: jest.fn()
+  getNodeGenerations: jest.fn(),
+  // Single-selection paths never select 2+ generations, so this returns
+  // undefined; mocked here so buildDownstreamRunGraph's per-edge list gate is a
+  // no-op in these tests.
+  getNodeSelectedOutputs: jest.fn(() => undefined)
 }));
 
 jest.mock("../../../core/graph", () => ({

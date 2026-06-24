@@ -14,15 +14,15 @@ import {
   removeClassNamesFromElement
 } from "@lexical/utils";
 import { $patchStyleText } from "@lexical/selection";
-import { getSpacingPx } from "../ui_primitives/spacing";
+import { getSpacingPx, SPACING } from "../ui_primitives/spacing";
 import { copyAsMarkdown } from "./exportMarkdown";
 import { INSERT_HORIZONTAL_RULE_COMMAND } from "./horizontalRuleCommand";
 
 const toolbarStyles = css`
   display: flex;
-  gap: 4px;
-  background-color: rgba(240, 240, 240, 0.5);
-  padding: 4px 8px;
+  gap: ${getSpacingPx(SPACING.xs)};
+  background-color: var(--palette-c_overlay_strong);
+  padding: ${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)};
   border-radius: 3px;
   button {
     padding: ${getSpacingPx(0.5)} ${getSpacingPx(1.5)};
@@ -36,10 +36,10 @@ const toolbarStyles = css`
     cursor: pointer;
 
     &.active {
-      background-color: rgba(0, 0, 0, 0.1);
+      background-color: var(--palette-c_scrim_soft);
     }
     &:hover {
-      background-color: rgba(0, 0, 0, 0.05);
+      background-color: var(--palette-c_scrim_soft);
     }
   }
 `;

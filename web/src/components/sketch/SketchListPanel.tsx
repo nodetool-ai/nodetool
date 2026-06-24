@@ -4,7 +4,15 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import BrushOutlinedIcon from "@mui/icons-material/BrushOutlined";
-import { Fragment, memo, useCallback, useMemo, useState } from "react";
+import {
+  Fragment,
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import type { DragEvent, KeyboardEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -23,7 +31,9 @@ import {
   ToolbarIconButton,
   TruncatedText,
   Tooltip,
-  MOTION
+  MOTION,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
@@ -66,7 +76,7 @@ const styles = (theme: Theme) =>
     },
     ".date-header-row": {
       width: "100%",
-      padding: "0 12px 4px 0",
+      padding: `0 ${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xs)} 0`,
       display: "flex",
       alignItems: "flex-end",
       borderBottom: "1px solid var(--palette-divider)"
@@ -97,8 +107,8 @@ function createSketchDragImage(name: string): HTMLElement {
     border-radius: 8px;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 8px;
+    gap: ${getSpacingPx(SPACING.lg)};
+    padding: ${getSpacingPx(SPACING.md)};
     box-sizing: border-box;
     box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     color: var(--palette-text-primary);
@@ -270,6 +280,13 @@ export const CreateSketchButton = memo(function CreateSketchButton() {
 const SketchListPanel = () => {
   const theme = useTheme();
   const [filterValue, setFilterValue] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // Focus the filter on open so users can immediately type to search,
+  // matching the workflows list panel.
+  useEffect(() => {
+    searchRef.current?.focus();
+  }, []);
   const { data, isLoading, isError, error } = trpc.sketch.list.useQuery(
     {},
     { staleTime: 30_000 }
@@ -318,6 +335,7 @@ const SketchListPanel = () => {
     <FlexColumn fullHeight fullWidth gap={0} css={styles(theme)}>
       <div className="sketch-search">
         <CategorySearchBar
+          ref={searchRef}
           value={filterValue}
           onChange={setFilterValue}
           placeholder="Search sketches..."

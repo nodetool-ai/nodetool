@@ -17,6 +17,7 @@ import type {
   EmbeddingModel,
   ImageModel,
   LanguageModel,
+  MusicModel,
   ProcessingContext,
   ProviderCapability,
   TTSModel,
@@ -32,6 +33,7 @@ const SUPPORTED_CAPABILITIES = [
   "text_to_video",
   "image_to_video",
   "text_to_speech",
+  "text_to_music",
   "automatic_speech_recognition",
   "generate_embedding",
   "generate_message"
@@ -154,6 +156,8 @@ function capabilityToRecommendedModalities(
       return new Set(["video"]);
     case "text_to_speech":
       return new Set(["tts"]);
+    case "text_to_music":
+      return new Set(["music"]);
     case "automatic_speech_recognition":
       return new Set(["asr"]);
     case "generate_embedding":
@@ -175,6 +179,8 @@ async function fetchModelsForCapability(
       return (await provider.getAvailableVideoModels()) as VideoModel[];
     case "text_to_speech":
       return (await provider.getAvailableTTSModels()) as TTSModel[];
+    case "text_to_music":
+      return (await provider.getAvailableMusicModels()) as MusicModel[];
     case "automatic_speech_recognition":
       return (await provider.getAvailableASRModels()) as ASRModel[];
     case "generate_embedding":

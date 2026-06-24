@@ -737,12 +737,14 @@ describe("getNodeMetadata – outputTypes support", () => {
     expect(messageOut!.type.type).toBe("str");
   });
 
-  it("marks outputs as streaming when isStreamingOutput is true", () => {
+  it("marks outputs as streaming when an output declares streaming correlation", () => {
     class StreamingOutputNode extends BaseNode {
       static readonly nodeType = "nodetool.test.StreamingOutput";
       static readonly title = "Streaming Output";
       static readonly description = "";
-      static readonly isStreamingOutput = true;
+      static readonly outputCorrelation = {
+        value: { kind: "iteration" as const, source: "__execution__" }
+      };
       static readonly outputTypes = {
         value: "int"
       };

@@ -136,6 +136,16 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
   const rbStartRef = useRef({ x: 0, y: 0 });
   /** Selection snapshot taken at pointerdown when Shift is held (union mode). */
   const rbBaseSelectionRef = useRef<Set<string> | null>(null);
+  /** This track's clips snapshotted at pointerdown — the clip list doesn't
+   *  change during a rubber-band gesture, so we avoid filtering the full clip
+   *  array twice on every pointermove. */
+  const rbTrackClipsRef = useRef<
+    Array<{ id: string; startMs: number; durationMs: number }>
+  >([]);
+  /** Coalesces selection updates to one per animation frame. */
+  const rbLastAppliedRef = useRef<{ startMs: number; endMs: number } | null>(
+    null
+  );
   const [rubberBand, setRubberBand] = React.useState<RubberBandRect | null>(
     null
   );
@@ -163,7 +173,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
     null
   );
 
-  // Clear any pending warning timer on unmount
+  // Clear any pending warning timer / scheduled selection frame on unmount
   useEffect(() => {
     return () => {
       if (warningTimerRef.current !== null) {
@@ -320,6 +330,18 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
         );
       }
 
+      // Snapshot this track's clips once — they don't move during the band
+      // gesture, so the hit-test on pointermove reads from this list instead of
+      // re-filtering the global clip array each frame.
+      rbTrackClipsRef.current = useTimelineStore
+        .getState()
+        .clips.filter((c) => c.trackId === track.id)
+        .map((c) => ({
+          id: c.id,
+          startMs: c.startMs,
+          durationMs: c.durationMs
+        }));
+
       e.currentTarget.setPointerCapture(e.pointerId);
       const rect = e.currentTarget.getBoundingClientRect();
       const localX = e.clientX - rect.left;
@@ -334,7 +356,34 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       const timeMs = Math.round(localX * msPerPx);
       seek(timeMs);
     },
-    [clearSelection, msPerPx, seek]
+    [clearSelection, msPerPx, seek, track.id]
+  );
+
+  // Apply the rubber-band selection for the given content-space range. Deduped
+  // by range: pointer events that don't change the band (sub-pixel jitter, the
+  // browser already coalesces moves to ~one per frame) skip the O(n) overlap
+  // filter and the setSelection call entirely.
+  const applyRubberBandSelection = useCallback(
+    (startMs: number, endMs: number) => {
+      const last = rbLastAppliedRef.current;
+      if (last && last.startMs === startMs && last.endMs === endMs) {
+        return;
+      }
+      rbLastAppliedRef.current = { startMs, endMs };
+
+      const selected = rbTrackClipsRef.current
+        .filter((c) => {
+          const clipEnd = c.startMs + c.durationMs;
+          return clipEnd > startMs && c.startMs < endMs;
+        })
+        .map((c) => c.id);
+
+      // Shift+band unions with the selection snapshotted at pointerdown;
+      // a plain band replaces the selection.
+      const base = rbBaseSelectionRef.current;
+      setSelection(base ? [...new Set([...base, ...selected])] : selected);
+    },
+    [setSelection]
   );
 
   const handleLanePointerMove = useCallback(
@@ -357,31 +406,16 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       // the scrolling lanes container, so lane-local coordinates are already
       // content-space — no scroll offset.
       const rbStartMs = left * msPerPx;
-      const rbEndMs = rbStartMs + width * msPerPx;
-
-      // Read clips lazily to avoid subscribing to the full array in render
-      const clips = useTimelineStore.getState().clips.filter(
-        (c) => c.trackId === track.id
-      );
-      const selected = clips
-        .filter((c) => {
-          const clipStart = c.startMs;
-          const clipEnd = c.startMs + c.durationMs;
-          return clipEnd > rbStartMs && clipStart < rbEndMs;
-        })
-        .map((c) => c.id);
-
-      // Shift+band unions with the selection snapshotted at pointerdown;
-      // a plain band replaces the selection.
-      const base = rbBaseSelectionRef.current;
-      setSelection(base ? [...new Set([...base, ...selected])] : selected);
+      applyRubberBandSelection(rbStartMs, rbStartMs + width * msPerPx);
     },
-    [msPerPx, track.id, setSelection]
+    [msPerPx, applyRubberBandSelection]
   );
 
   const handleLanePointerUp = useCallback(() => {
     isRubberBandingRef.current = false;
     rbBaseSelectionRef.current = null;
+    rbLastAppliedRef.current = null;
+    rbTrackClipsRef.current = [];
     setRubberBand(null);
   }, []);
 

@@ -18,6 +18,8 @@ import {
   CopyButton,
   MOTION,
   BORDER_RADIUS,
+  SPACING,
+  getSpacingPx,
   ScrollArea,
   Text,
   Tooltip,
@@ -109,7 +111,7 @@ const styles = (theme: Theme) =>
     ".inspector-namespace": {
       display: "inline-flex",
       alignItems: "center",
-      gap: "2px",
+      gap: getSpacingPx(SPACING.micro),
       minWidth: 0,
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,
@@ -142,7 +144,7 @@ const styles = (theme: Theme) =>
       "& svg": { fontSize: "var(--fontSizeSmall)" }
     },
     ".inspector-head-close": {
-      paddingTop: "2px"
+      paddingTop: getSpacingPx(SPACING.micro)
     },
 
     /* ---------- Tabs ---------- */
@@ -169,7 +171,7 @@ const styles = (theme: Theme) =>
       lineHeight: 1.2,
       display: "inline-flex",
       alignItems: "baseline",
-      gap: "6px",
+      gap: getSpacingPx(SPACING.sm),
       transition: `color ${MOTION.fast}`,
       "&:hover": { color: theme.vars.palette.text.primary },
       "&:focus-visible": {
@@ -256,7 +258,7 @@ const styles = (theme: Theme) =>
       letterSpacing: "0.08em",
       textTransform: "uppercase",
       color: theme.vars.palette.text.disabled,
-      padding: "0 4px",
+      padding: `0 ${getSpacingPx(SPACING.xs)}`,
       userSelect: "none"
     },
     ".property-required-badge.is-required": {
@@ -356,7 +358,7 @@ const styles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmaller)",
       letterSpacing: "0.02em",
       color: theme.vars.palette.text.secondary,
-      padding: "2px 6px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
       borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.action.hover
     },
@@ -384,7 +386,7 @@ const styles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmaller)",
       letterSpacing: "0.02em",
       color: theme.vars.palette.text.secondary,
-      padding: "2px 8px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.pill,
       backgroundColor: theme.vars.palette.action.hover,
       border: `1px solid ${theme.vars.palette.divider}`
@@ -566,16 +568,23 @@ const Inspector: React.FC = () => {
       return [];
     }
     const [first, ...rest] = nodesWithMetadata;
+    const signatureCache = new Map<object, string>();
+    const typeSignatureOf = (type: object): string => {
+      let sig = signatureCache.get(type);
+      if (sig === undefined) {
+        sig = JSON.stringify(type);
+        signatureCache.set(type, sig);
+      }
+      return sig;
+    };
     const otherPropertySignatures = new Set<string>();
     for (const { metadata } of rest) {
       for (const prop of metadata.properties) {
-        const typeSignature = JSON.stringify(prop.type);
-        otherPropertySignatures.add(`${prop.name}:${typeSignature}`);
+        otherPropertySignatures.add(`${prop.name}:${typeSignatureOf(prop.type)}`);
       }
     }
     return first.metadata.properties.filter((property) => {
-      const typeSignature = JSON.stringify(property.type);
-      return otherPropertySignatures.has(`${property.name}:${typeSignature}`);
+      return otherPropertySignatures.has(`${property.name}:${typeSignatureOf(property.type)}`);
     });
   }, [isMultiSelect, nodesWithMetadata]);
 

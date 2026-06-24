@@ -345,3 +345,126 @@ describe("FalProvider", () => {
     vi.unstubAllGlobals();
   });
 });
+
+describe("FalProvider — TTS", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("discovers TTS models from the manifest", async () => {
+    const p = createProvider();
+    const models = await p.getAvailableTTSModels();
+    expect(models.length).toBeGreaterThan(0);
+    expect(models.every((m) => m.provider === "fal_ai")).toBe(true);
+    expect(models.map((m) => m.id)).toContain("fal-ai/dia-tts");
+  });
+
+  it("does not stream PCM (uses the encoded path)", () => {
+    expect(createProvider().supportsStreamingTextToSpeech()).toBe(false);
+  });
+
+  it("textToSpeechEncoded subscribes, downloads, and sniffs the mime", async () => {
+    const subscribeMock = vi.fn().mockResolvedValue({
+      data: { audio: { url: "https://fal.ai/out.mp3" } }
+    });
+    const mp3 = new Uint8Array([0xff, 0xfb, 0x90, 0x00]);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: new Headers(),
+        arrayBuffer: () => Promise.resolve(mp3.buffer)
+      })
+    );
+
+    const p = createProvider("key");
+    (p as any)._client = { subscribe: subscribeMock };
+
+    const result = await p.textToSpeechEncoded({
+      text: "hello world",
+      model: "fal-ai/dia-tts"
+    });
+    expect(result?.mimeType).toBe("audio/mpeg");
+    expect(result?.data).toEqual(mp3);
+    expect(subscribeMock.mock.calls[0][1].input.text).toBe("hello world");
+
+    vi.unstubAllGlobals();
+  });
+
+  it("routes the voice to the endpoint's enumerated speaker field", async () => {
+    const subscribeMock = vi.fn().mockResolvedValue({
+      data: { audio: { url: "https://fal.ai/out.mp3" } }
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: new Headers(),
+        arrayBuffer: () => Promise.resolve(new Uint8Array([0xff, 0xfb]).buffer)
+      })
+    );
+    const p = createProvider("key");
+    (p as any)._client = { subscribe: subscribeMock };
+
+    await p.textToSpeechEncoded({
+      text: "hi",
+      model: "fal-ai/vibevoice/0.5b",
+      voice: "Emma"
+    });
+    const input = subscribeMock.mock.calls[0][1].input;
+    expect(input.speaker).toBe("Emma");
+    expect(input.script).toBe("hi");
+
+    vi.unstubAllGlobals();
+  });
+});
+
+describe("FalProvider — music", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("advertises text_to_music and discovers music models", async () => {
+    const p = createProvider();
+    expect(p.getCapabilities()).toContain("text_to_music");
+    const models = await p.getAvailableMusicModels();
+    expect(models.length).toBeGreaterThan(0);
+    expect(models.every((m) => m.provider === "fal_ai")).toBe(true);
+    expect(
+      models.every((m) => m.supportedTasks?.includes("text_to_music"))
+    ).toBe(true);
+  });
+
+  it("textToMusic subscribes with the prompt and downloads the audio", async () => {
+    const subscribeMock = vi.fn().mockResolvedValue({
+      data: { audio: { url: "https://fal.ai/song.mp3" } }
+    });
+    const mp3 = new Uint8Array([0xff, 0xfb, 0x90, 0x00]);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: new Headers(),
+        arrayBuffer: () => Promise.resolve(mp3.buffer)
+      })
+    );
+
+    const p = createProvider("key");
+    (p as any)._client = { subscribe: subscribeMock };
+
+    const result = await p.textToMusic({
+      model: {
+        id: "cassetteai/music-generator",
+        name: "Cassette",
+        provider: "fal_ai"
+      },
+      prompt: "upbeat synthwave",
+      durationSeconds: 12
+    });
+    expect(result.mimeType).toBe("audio/mpeg");
+    expect(result.data).toEqual(mp3);
+    expect(subscribeMock.mock.calls[0][1].input.prompt).toBe("upbeat synthwave");
+
+    vi.unstubAllGlobals();
+  });
+});

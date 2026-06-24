@@ -33,6 +33,14 @@ declare module "@mui/material/styles" {
     c_editor_grid_color?: string;
     c_editor_axis_color?: string;
     c_selection_rect?: string;
+    // Translucent media/dialog scrims (theme-invariant — stay dark in light mode)
+    c_scrim_soft?: string;
+    c_scrim?: string;
+    c_scrim_strong?: string;
+    // Subtle surface tints (lighten on dark, darken on light)
+    c_overlay_subtle?: string;
+    c_overlay?: string;
+    c_overlay_strong?: string;
     c_provider_api?: string;
     c_provider_local?: string;
     c_provider_hf?: string;
@@ -104,6 +112,14 @@ declare module "@mui/material/styles" {
     c_editor_grid_color?: string;
     c_editor_axis_color?: string;
     c_selection_rect?: string;
+    // Translucent media/dialog scrims (theme-invariant — stay dark in light mode)
+    c_scrim_soft?: string;
+    c_scrim?: string;
+    c_scrim_strong?: string;
+    // Subtle surface tints (lighten on dark, darken on light)
+    c_overlay_subtle?: string;
+    c_overlay?: string;
+    c_overlay_strong?: string;
     c_provider_api?: string;
     c_provider_local?: string;
     c_provider_hf?: string;
@@ -214,6 +230,14 @@ export const paletteDark: PaletteOptions = {
   c_editor_grid_color: "#1F2126",
   c_editor_axis_color: "#17181B",
   c_selection_rect: "#cdcdcd33",
+  // Media/dialog scrims — intentionally dark in both schemes
+  c_scrim_soft: "rgba(0, 0, 0, 0.3)",
+  c_scrim: "rgba(0, 0, 0, 0.6)",
+  c_scrim_strong: "rgba(0, 0, 0, 0.85)",
+  // Subtle raised-surface tints (white-on-dark)
+  c_overlay_subtle: "rgba(255, 255, 255, 0.03)",
+  c_overlay: "rgba(255, 255, 255, 0.06)",
+  c_overlay_strong: "rgba(255, 255, 255, 0.15)",
   c_provider_api: "#93C5FD",
   c_provider_local: "#86EFAC",
   c_provider_hf: "#C4B5FD",

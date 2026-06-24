@@ -27,9 +27,9 @@ import { Asset } from "../../stores/ApiTypes";
 import AssetViewer from "./AssetViewer";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useShallow } from "zustand/react/shallow";
+import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useAuth from "../../stores/useAuth";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import StorageAnalytics from "./StorageAnalytics";
 import {
   DockviewApi,
   DockviewReact,
@@ -46,9 +46,9 @@ import PanelErrorBoundary from "../common/PanelErrorBoundary";
 import { formatFileSize } from "../../utils/formatUtils";
 
 const panelComponents = {
-  "asset-folders": () => (
+  "asset-folders": (props: IDockviewPanelProps) => (
     <PanelErrorBoundary>
-      <AssetFoldersPanel />
+      <AssetFoldersPanel {...props} />
     </PanelErrorBoundary>
   ),
   "asset-files": (props: IDockviewPanelProps) => (
@@ -118,37 +118,59 @@ const AssetGrid: React.FC<AssetGridProps> = ({
   isHorizontal,
   sortedAssets,
   isFullscreenAssets,
+  initialFoldersPanelWidth = FOLDERS_PANEL_WIDTH,
   isMobile = false
 }) => {
-  const { error, folderFilesFiltered } = useAssets();
+  const { error, folderFilesFiltered, folderTree } = useAssets();
   const {
     setOpenAsset,
     setSelectedAssetIds,
     setRenameDialogOpen,
+    setWorkflowFilter,
     openAsset,
     selectedAssetIds,
     selectedFolderId,
     currentAudioAsset,
     currentFolderId,
-    currentFolder,
     foldersVisible
   } = useAssetGridStore(
     useShallow((state) => ({
       setOpenAsset: state.setOpenAsset,
       setSelectedAssetIds: state.setSelectedAssetIds,
       setRenameDialogOpen: state.setRenameDialogOpen,
+      setWorkflowFilter: state.setWorkflowFilter,
       openAsset: state.openAsset,
       selectedAssetIds: state.selectedAssetIds,
       selectedFolderId: state.selectedFolderId,
       currentAudioAsset: state.currentAudioAsset,
       currentFolderId: state.currentFolderId,
-      currentFolder: state.currentFolder,
       foldersVisible: state.foldersVisible
     }))
   );
+  const currentWorkflowId = useWorkflowManager(
+    (state) => state.currentWorkflowId
+  );
+
+  // Default asset scope per surface: the in-editor sidebar follows the current
+  // workflow (re-asserted whenever the open workflow changes), while the
+  // fullscreen page opens on the global/all-assets view. A manual pick (a
+  // folder or another workflow) holds until one of these inputs changes.
+  useEffect(() => {
+    setWorkflowFilter(isFullscreenAssets ? null : currentWorkflowId ?? null);
+  }, [isFullscreenAssets, currentWorkflowId, setWorkflowFilter]);
   const openMenuType = useContextMenuStore((state) => state.openMenuType);
 
   const theme = useTheme();
+
+  // Folders are always shown in fullscreen; in the sidebar they follow the
+  // user's toggle. Either way, hide the tree entirely when there are no
+  // folders to show.
+  const hasFolders = useMemo(
+    () => !!folderTree && Object.keys(folderTree).length > 0,
+    [folderTree]
+  );
+  const effectiveFoldersVisible =
+    hasFolders && (Boolean(isFullscreenAssets) || foldersVisible);
 
   // Dockview panel components are defined below; handlers for files live inside the Files panel
 
@@ -224,6 +246,7 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         id: "asset-folders",
         component: "asset-folders",
         title: "Folders",
+        params: { isFullscreenAssets: Boolean(isFullscreenAssets) },
         position: api.getPanel("asset-files")
           ? {
               referencePanel: "asset-files",
@@ -231,86 +254,52 @@ const AssetGrid: React.FC<AssetGridProps> = ({
             }
           : undefined,
         ...(isFullscreenAssets
-          ? { initialWidth: FOLDERS_PANEL_WIDTH }
+          ? { initialWidth: initialFoldersPanelWidth }
           : { initialHeight: FOLDERS_PANEL_HEIGHT })
       });
 
       const groupApi = foldersPanel?.group?.api ?? foldersPanel?.group;
       if (groupApi && typeof groupApi.setSize === "function") {
         if (isFullscreenAssets) {
-          groupApi.setSize({ width: FOLDERS_PANEL_WIDTH });
+          groupApi.setSize({ width: initialFoldersPanelWidth });
         } else {
           groupApi.setSize({ height: FOLDERS_PANEL_HEIGHT });
         }
       }
     },
-    [isFullscreenAssets]
+    [isFullscreenAssets, initialFoldersPanelWidth]
   );
 
   useEffect(() => {
     const api = dockviewApiRef.current;
     if (!api || isMobile) return;
     const existing = api.getPanel("asset-folders");
-    if (foldersVisible && !existing) {
+    if (effectiveFoldersVisible && !existing) {
       addFoldersPanel(api);
-    } else if (!foldersVisible && existing) {
+    } else if (!effectiveFoldersVisible && existing) {
       api.removePanel(existing);
     }
-  }, [foldersVisible, isMobile, addFoldersPanel]);
+  }, [effectiveFoldersVisible, isMobile, addFoldersPanel]);
 
   const onReady = useCallback(
     (event: DockviewReadyEvent) => {
       const { api } = event;
       dockviewApiRef.current = api;
 
-      if (isMobile) {
-        // On mobile, skip the folders panel — just show files with breadcrumb nav
-        api.addPanel({
-          id: "asset-files",
-          component: "asset-files",
-          title: "Files",
-          params: { isHorizontal, itemSpacing }
-        });
-        return;
-      }
-
-      // Add folders panel first with an initial size
-      const foldersPanel: IDockviewPanelWithGroup = api.addPanel({
-        id: "asset-folders",
-        component: "asset-folders",
-        title: "Folders",
-        ...(isFullscreenAssets
-          ? { initialWidth: FOLDERS_PANEL_WIDTH }
-          : { initialHeight: FOLDERS_PANEL_HEIGHT })
-      });
-
-      // Add files panel positioned relative to folders
+      // The files panel is always present; the folders panel is added next to
+      // it (and kept in sync) by addFoldersPanel / the effect above.
       api.addPanel({
         id: "asset-files",
         component: "asset-files",
         title: "Files",
-        params: { isHorizontal, itemSpacing },
-        position: {
-          referencePanel: "asset-folders",
-          direction: isFullscreenAssets ? "right" : "below"
-        }
+        params: { isHorizontal, itemSpacing }
       });
 
-      // Enforce initial size
-      const applyInitialSize = () => {
-        const groupApi =
-          foldersPanel?.group?.api ?? foldersPanel?.group;
-        if (groupApi && typeof groupApi.setSize === "function") {
-          if (isFullscreenAssets) {
-            groupApi.setSize({ width: FOLDERS_PANEL_WIDTH });
-          } else {
-            groupApi.setSize({ height: FOLDERS_PANEL_HEIGHT });
-          }
-        }
-      };
-      applyInitialSize();
+      if (!isMobile && effectiveFoldersVisible) {
+        addFoldersPanel(api);
+      }
     },
-    [isFullscreenAssets, isHorizontal, itemSpacing, isMobile]
+    [isHorizontal, itemSpacing, isMobile, effectiveFoldersVisible, addFoldersPanel]
   );
 
   return (
@@ -339,12 +328,10 @@ const AssetGrid: React.FC<AssetGridProps> = ({
         />
       )}
       {!isMobile && (
-        <AssetActionsMenu maxItemSize={maxItemSize} onUploadFiles={uploadFiles} />
-      )}
-      {!isMobile && (
-        <StorageAnalytics
-          assets={sortedAssets || folderFilesFiltered || []}
-          currentFolder={currentFolder}
+        <AssetActionsMenu
+          maxItemSize={maxItemSize}
+          onUploadFiles={uploadFiles}
+          isFullscreenAssets={isFullscreenAssets}
         />
       )}
       {!isMobile && (

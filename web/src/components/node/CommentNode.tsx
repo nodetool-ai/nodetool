@@ -96,7 +96,7 @@ const styles = (theme: Theme) =>
       width: "100%",
       justifyContent: "center",
       alignItems: "center",
-      backgroundColor: "rgba(240, 240, 240, 0.08)",
+      backgroundColor: theme.vars.palette.c_overlay_strong,
       borderRadius: BORDER_RADIUS.sm,
       padding: "0.25em 0.5em",
       zIndex: 1,

@@ -39,7 +39,7 @@ import { useAssetStore } from "../../../stores/AssetStore";
 import { getAssetUrl } from "../../../utils/assetHelpers";
 import useErrorStore, { hasNodeError, nodeErrorToDisplayString } from "../../../stores/ErrorStore";
 import { type NodeKey } from "../../../stores/nodeKey";
-import { StatusIndicator, BORDER_RADIUS } from "../../ui_primitives";
+import { StatusIndicator, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
 import type { StatusType } from "../../ui_primitives/StatusIndicator";
 import { deriveClipStatus } from "../status/clipStatusReducer";
 import type { ClipGenerationState, ClipErrorState } from "../status/clipStatusReducer";
@@ -106,7 +106,7 @@ const clipStyles = (
       ? `1.5px solid ${theme.vars.palette.secondary.main}`
       : `1px solid ${clipBorderTint(theme, mediaType)}`,
     boxShadow: selected
-      ? `0 0 0 3px rgba(232, 121, 249, 0.18), 0 4px 12px rgba(0, 0, 0, 0.35)`
+      ? `0 0 0 3px rgba(var(--palette-secondary-mainChannel) / 0.18), 0 4px 12px ${theme.vars.palette.c_scrim_soft}`
       : "none",
     cursor: locked ? "not-allowed" : "grab",
     "&:active": {
@@ -126,8 +126,8 @@ const clipHeaderRowStyles = css({
   height: 18,
   display: "flex",
   alignItems: "center",
-  gap: 6,
-  padding: "0 8px",
+  gap: getSpacingPx(SPACING.sm),
+  padding: `0 ${getSpacingPx(SPACING.md)}`,
   pointerEvents: "none",
   zIndex: 4
 });
@@ -138,7 +138,7 @@ const clipDotStyles = (accent: string) =>
     height: 6,
     borderRadius: BORDER_RADIUS.circle,
     backgroundColor: accent,
-    boxShadow: `0 0 0 1px rgba(0, 0, 0, 0.45)`,
+    boxShadow: `0 0 0 1px var(--palette-c_scrim)`,
     flexShrink: 0
   });
 
@@ -153,7 +153,7 @@ const clipNameStyles = (theme: Theme) =>
     textOverflow: "ellipsis",
     pointerEvents: "none",
     lineHeight: 1.4,
-    textShadow: "0 1px 2px rgba(0, 0, 0, 0.7)",
+    textShadow: `0 1px 2px ${theme.vars.palette.c_scrim}`,
     flex: "1 1 auto",
     minWidth: 0
   });
@@ -167,7 +167,7 @@ const clipDurationStyles = (theme: Theme) =>
     fontWeight: 500,
     color: theme.vars.palette.text.secondary,
     letterSpacing: "0",
-    textShadow: "0 1px 2px rgba(0, 0, 0, 0.7)"
+    textShadow: `0 1px 2px ${theme.vars.palette.c_scrim}`
   });
 
 const filmstripStyles = css({
@@ -177,7 +177,7 @@ const filmstripStyles = css({
   top: 20,
   bottom: 6,
   display: "flex",
-  gap: 1,
+  gap: getSpacingPx(SPACING.micro), // was 1px
   pointerEvents: "none",
   zIndex: 0,
   borderRadius: BORDER_RADIUS.xs,
@@ -267,11 +267,46 @@ const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
   const { peaks, durationMs } = useAudioPeaks(url);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  useEffect(() => {
+  // Coalesce redraws into a single animation frame. During a drag/resize the
+  // clip's widthPx changes on every pointermove (~60×/s); without this each
+  // change forced a synchronous canvas re-render. We also skip redraws when the
+  // width hasn't moved by at least a pixel, so sub-pixel jitter is a no-op.
+  const rafIdRef = useRef<number | null>(null);
+  const lastDrawnWidthRef = useRef<number>(-1);
+  const lastInputsKeyRef = useRef<string>("");
+
+  // Latest draw inputs, read inside the scheduled frame so it never goes stale.
+  const drawInputsRef = useRef({
+    peaks,
+    durationMs,
+    inPointMs,
+    outPointMs,
+    widthPx,
+    successColor: theme.vars.palette.success.main
+  });
+  drawInputsRef.current = {
+    peaks,
+    durationMs,
+    inPointMs,
+    outPointMs,
+    widthPx,
+    successColor: theme.vars.palette.success.main
+  };
+
+  const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const {
+      peaks: pk,
+      durationMs: dur,
+      inPointMs: inMs,
+      outPointMs: outMs,
+      widthPx: wPx,
+      successColor
+    } = drawInputsRef.current;
+
     const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
-    const cssWidth = Math.max(1, Math.floor(widthPx));
+    const cssWidth = Math.max(1, Math.floor(wPx));
     const cssHeight = canvas.clientHeight || 32;
     canvas.width = cssWidth * dpr;
     canvas.height = cssHeight * dpr;
@@ -280,27 +315,27 @@ const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, cssWidth, cssHeight);
 
-    if (!peaks || !durationMs) return;
+    if (!pk || !dur) return;
 
     // Visible audio window is the intersection of [inPointMs, outPointMs]
     // with the source [0, durationMs]. Anything beyond the source renders
     // as empty space rather than stretching the waveform.
-    const visibleInMs = Math.max(0, Math.min(durationMs, inPointMs));
-    const visibleOutMs = Math.max(visibleInMs, Math.min(durationMs, outPointMs));
-    const clipSpanMs = Math.max(1, outPointMs - inPointMs);
+    const visibleInMs = Math.max(0, Math.min(dur, inMs));
+    const visibleOutMs = Math.max(visibleInMs, Math.min(dur, outMs));
+    const clipSpanMs = Math.max(1, outMs - inMs);
     const visibleSpanMs = visibleOutMs - visibleInMs;
     const visibleWidthPx = cssWidth * (visibleSpanMs / clipSpanMs);
 
     const barCount = Math.max(1, Math.floor(visibleWidthPx / 2));
     const slice = samplePeaksWindow(
-      peaks,
-      durationMs,
+      pk,
+      dur,
       visibleInMs,
       visibleOutMs,
       barCount
     );
     const mid = cssHeight / 2;
-    ctx.fillStyle = theme.vars.palette.success.main;
+    ctx.fillStyle = successColor;
     for (let i = 0; i < slice.length; i += 1) {
       const amp = slice[i];
       const h = Math.max(1, amp * (cssHeight - 2));
@@ -308,7 +343,32 @@ const WaveformCanvas: React.FC<WaveformCanvasProps> = ({
       const w = Math.max(1, visibleWidthPx / slice.length - 0.5);
       ctx.fillRect(x, mid - h / 2, w, h);
     }
-  }, [peaks, durationMs, inPointMs, outPointMs, widthPx, theme]);
+  }, []);
+
+  useEffect(() => {
+    // Decide whether anything beyond a sub-pixel width change actually
+    // happened. Width changes during a drag are gated to whole pixels (the
+    // canvas can't show finer detail); other inputs force a redraw.
+    const inputsKey = `${durationMs}|${inPointMs}|${outPointMs}|${peaks ? peaks.length : 0}`;
+    const otherInputsChanged = inputsKey !== lastInputsKeyRef.current;
+    const widthChanged =
+      Math.abs(Math.floor(widthPx) - lastDrawnWidthRef.current) >= 1;
+    if (!otherInputsChanged && !widthChanged) return;
+
+    if (rafIdRef.current !== null) return;
+    rafIdRef.current = requestAnimationFrame(() => {
+      rafIdRef.current = null;
+      lastDrawnWidthRef.current = Math.floor(widthPx);
+      lastInputsKeyRef.current = inputsKey;
+      draw();
+    });
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+    };
+  }, [peaks, durationMs, inPointMs, outPointMs, widthPx, draw]);
 
   return <canvas ref={canvasRef} css={waveformStyles} aria-hidden />;
 };
@@ -336,9 +396,9 @@ const trimHandleStyles = (
     width: TRIM_HANDLE_WIDTH_PX,
     [edge === "start" ? "left" : "right"]: 0,
     cursor: locked ? "not-allowed" : "ew-resize",
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "var(--palette-c_overlay_strong)",
     "&:hover": {
-      backgroundColor: locked ? undefined : "rgba(255,255,255,0.4)"
+      backgroundColor: locked ? undefined : "var(--palette-c_overlay_strong)"
     },
     zIndex: 2
   });
@@ -543,6 +603,70 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       dragStartMsRef.current = clip.startMs;
       isDraggingRef.current = false;
 
+      // Snapshot the snap candidates ONCE at gesture start. The set of clip
+      // edges + second/playhead gridlines doesn't change during a drag (only
+      // the dragged clip moves, and it's excluded), so rebuilding the Set on
+      // every pointermove was pure waste. Captured here as a stable array.
+      const dragStartState = useTimelineStore.getState();
+      const dragStartPlayheadMs = useTimelinePlaybackStore
+        .getState()
+        .getTimeMs();
+      const snapCandidatesSet = new Set<number>();
+      snapCandidatesSet.add(dragStartPlayheadMs);
+      for (let t = 0; t <= dragStartState.durationMs + 1000; t += 1000) {
+        snapCandidatesSet.add(t);
+      }
+      for (const c of dragStartState.clips) {
+        if (c.id !== clipId) {
+          snapCandidatesSet.add(c.startMs);
+          snapCandidatesSet.add(c.startMs + c.durationMs);
+        }
+      }
+      const snapCandidates = Array.from(snapCandidatesSet);
+
+      // Cross-track hit-test is sampled at most once per animation frame.
+      // document.elementsFromPoint forces layout/style work, so calling it on
+      // every pointermove (~60–120×/s) is costly; we coalesce to one sample
+      // per frame using the latest pointer coordinates.
+      let crossTrackTargetId: string | undefined;
+      let lastPointer = { x: e.clientX, y: e.clientY };
+      let hitTestRafId: number | null = null;
+      const sampleCrossTrack = () => {
+        hitTestRafId = null;
+        const freshClip = useTimelineStore
+          .getState()
+          .clips.find((c) => c.id === clipId);
+        if (!freshClip) return;
+        const elements = document.elementsFromPoint(
+          lastPointer.x,
+          lastPointer.y
+        );
+        let foundLaneId: string | null = null;
+        for (const el of elements) {
+          if (!(el instanceof HTMLElement)) continue;
+          const lane = el.closest<HTMLElement>("[data-testid^='track-lane-']");
+          if (lane) {
+            foundLaneId =
+              lane.dataset.testid?.slice("track-lane-".length) ?? null;
+            break;
+          }
+        }
+        if (foundLaneId && foundLaneId !== freshClip.trackId) {
+          const targetTrack = useTimelineStore
+            .getState()
+            .tracks.find((t) => t.id === foundLaneId);
+          if (
+            targetTrack &&
+            !targetTrack.locked &&
+            isClipCompatibleWithTrack(freshClip.mediaType, targetTrack.type)
+          ) {
+            crossTrackTargetId = targetTrack.id;
+            return;
+          }
+        }
+        crossTrackTargetId = undefined;
+      };
+
       const onMove = (ev: PointerEvent) => {
         if (ev.buttons !== 1) return;
         const freshClip = useTimelineStore
@@ -557,21 +681,6 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         isDraggingRef.current = true;
         const disableSnap = ev.altKey;
 
-        const { clips: allClips, durationMs } = useTimelineStore.getState();
-        const { currentTimeMs } = useTimelinePlaybackStore.getState();
-        const snapCandidatesSet = new Set<number>();
-        snapCandidatesSet.add(currentTimeMs);
-        for (let t = 0; t <= durationMs + 1000; t += 1000) {
-          snapCandidatesSet.add(t);
-        }
-        for (const c of allClips) {
-          if (c.id !== freshClip.id) {
-            snapCandidatesSet.add(c.startMs);
-            snapCandidatesSet.add(c.startMs + c.durationMs);
-          }
-        }
-        const snapCandidates = Array.from(snapCandidatesSet);
-
         const pointerMs = deltaPx * msPerPx;
         const alreadyAppliedMs = freshClip.startMs - dragStartMsRef.current;
         const adjustedDeltaMs = pointerMs - alreadyAppliedMs;
@@ -579,38 +688,6 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         const { selectedClipIds } = useTimelineUIStore.getState();
         const isMulti =
           selectedClipIds.has(freshClip.id) && selectedClipIds.size > 1;
-
-        // Cross-track hit-test (single-clip drags only). Commit the track
-        // change immediately so the clip visually follows the cursor into
-        // the new lane.
-        let crossTrackTargetId: string | undefined;
-        if (!isMulti) {
-          const elements = document.elementsFromPoint(ev.clientX, ev.clientY);
-          let foundLaneId: string | null = null;
-          for (const el of elements) {
-            if (!(el instanceof HTMLElement)) continue;
-            const lane = el.closest<HTMLElement>(
-              "[data-testid^='track-lane-']"
-            );
-            if (lane) {
-              foundLaneId =
-                lane.dataset.testid?.slice("track-lane-".length) ?? null;
-              break;
-            }
-          }
-          if (foundLaneId && foundLaneId !== freshClip.trackId) {
-            const targetTrack = useTimelineStore
-              .getState()
-              .tracks.find((t) => t.id === foundLaneId);
-            if (
-              targetTrack &&
-              !targetTrack.locked &&
-              isClipCompatibleWithTrack(freshClip.mediaType, targetTrack.type)
-            ) {
-              crossTrackTargetId = targetTrack.id;
-            }
-          }
-        }
 
         if (isMulti) {
           moveSelectedClips(
@@ -623,6 +700,13 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
             disableSnap
           );
         } else {
+          // Cross-track hit-test (single-clip drags only). Sampled at most once
+          // per frame; we apply the latest known target immediately so the clip
+          // still follows the cursor into a new lane.
+          lastPointer = { x: ev.clientX, y: ev.clientY };
+          if (hitTestRafId === null) {
+            hitTestRafId = requestAnimationFrame(sampleCrossTrack);
+          }
           moveClip(
             freshClip.id,
             adjustedDeltaMs,
@@ -640,6 +724,10 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUpOrCancel);
         window.removeEventListener("pointercancel", onUpOrCancel);
+        if (hitTestRafId !== null) {
+          cancelAnimationFrame(hitTestRafId);
+          hitTestRafId = null;
+        }
         resumeHistory();
         // Defer dragging flag reset so the synthetic click that follows
         // pointerup is still suppressed by handleClick.
@@ -687,6 +775,15 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       setContextMenuPos({ x: e.clientX, y: e.clientY });
     },
     [clip]
+  );
+
+  // Stable handler props for the memoized ClipBody — inline arrows here would
+  // create a fresh function each render and defeat the React.memo on ClipBody.
+  const handleCloseContextMenu = useCallback(() => setContextMenuPos(null), []);
+  const handleUnlink = useCallback(() => unlinkClip(clipId), [unlinkClip, clipId]);
+  const handleDelete = useCallback(
+    () => deleteSelected(new Set([clipId])),
+    [deleteSelected, clipId]
   );
 
   // ── Click (selection) ───────────────────────────────────────────────────
@@ -862,9 +959,9 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       handleTrimPointerEnd={handleTrimPointerEnd}
       cutMode={activeTool === "cut"}
       contextMenuPos={contextMenuPos}
-      onCloseContextMenu={() => setContextMenuPos(null)}
-      onUnlink={() => unlinkClip(clip.id)}
-      onDelete={() => deleteSelected(new Set([clip.id]))}
+      onCloseContextMenu={handleCloseContextMenu}
+      onUnlink={handleUnlink}
+      onDelete={handleDelete}
     />
   );
 });
@@ -892,7 +989,7 @@ interface ClipBodyProps {
   onDelete: () => void;
 }
 
-const ClipBody: React.FC<ClipBodyProps> = ({
+const ClipBody: React.FC<ClipBodyProps> = memo(({
   clip,
   leftPx,
   widthPx,
@@ -1021,10 +1118,32 @@ const ClipBody: React.FC<ClipBodyProps> = ({
   const showDuration = widthPx >= COMPACT_THRESHOLD_PX;
   const durationLabel = formatClipDuration(clip.durationMs);
 
+  const positionStyle = useMemo(
+    () => ({
+      left: leftPx,
+      width: widthPx,
+      cursor: cutMode ? ("crosshair" as const) : undefined
+    }),
+    [leftPx, widthPx, cutMode]
+  );
+
+  const imageStyle = useMemo(
+    () =>
+      imageUrl
+        ? {
+            backgroundImage: `url(${imageUrl})`,
+            backgroundSize: "cover" as const,
+            backgroundPosition: "center" as const,
+            opacity: 0.78
+          }
+        : undefined,
+    [imageUrl]
+  );
+
   return (
     <div
       css={clipStyles(theme, isSelected, clip.locked, clip.mediaType)}
-      style={{ left: leftPx, width: widthPx, cursor: cutMode ? "crosshair" : undefined }}
+      style={positionStyle}
       onPointerDown={handleDragPointerDown}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
@@ -1043,17 +1162,7 @@ const ClipBody: React.FC<ClipBodyProps> = ({
         </div>
       )}
 
-      {imageUrl && (
-        <div
-          css={filmstripStyles}
-          style={{
-            backgroundImage: `url(${imageUrl})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            opacity: 0.78
-          }}
-        />
-      )}
+      {imageUrl && <div css={filmstripStyles} style={imageStyle} />}
 
       {clip.mediaType === "audio" && (
         <WaveformCanvas
@@ -1135,7 +1244,8 @@ const ClipBody: React.FC<ClipBodyProps> = ({
       )}
     </div>
   );
-};
+});
+ClipBody.displayName = "ClipBody";
 
 /** "4.6s" for sub-minute, "1:23" for ≥1 min. Shown when clip width ≥ compact threshold. */
 function formatClipDuration(durationMs: number): string {

@@ -156,7 +156,7 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
     ".side-panel-backdrop": {
       position: "fixed",
       inset: 0,
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      backgroundColor: theme.vars.palette.c_scrim,
       zIndex: 1040,
       opacity: isOpen ? 1 : 0,
       pointerEvents: isOpen ? "auto" : "none",

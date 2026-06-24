@@ -53,6 +53,34 @@ import type { TimelineSequence } from "@nodetool-ai/timeline";
 /** In-flight raw straight-alpha RGBA image format (see protocol RAW_RGBA_MIME). */
 const RAW_RGBA_MIME = "image/x-raw-rgba";
 
+const FULL_SIZE_STYLE: React.CSSProperties = { width: "100%", height: "100%" };
+const AUDIO_WRAPPER_STYLE: React.CSSProperties = { padding: "1em" };
+const IFRAME_STYLE: React.CSSProperties = { width: "100%", height: "100%", minHeight: 320, border: "none" };
+const IFRAME_PDF_STYLE: React.CSSProperties = { width: "100%", height: "100%", minHeight: 360, border: "none" };
+const DOCUMENT_LINK_STYLE: React.CSSProperties = { padding: "0.75em" };
+const MODEL_3D_WRAPPER_STYLE: React.CSSProperties = {
+  width: "100%",
+  height: "100%",
+  minHeight: 0,
+  display: "flex",
+  flex: 1
+};
+const SCROLL_CONTAINER_STYLE: React.CSSProperties = {
+  height: "100%",
+  overflow: "auto",
+  cursor: "grab",
+  userSelect: "none"
+};
+const TRUNCATION_STYLE: React.CSSProperties = {
+  margin: "0.5em 0.75em",
+  padding: "0.4em 0.6em",
+  borderRadius: BORDER_RADIUS.lg,
+  background: "rgba(var(--palette-warning-mainChannel) / 0.12)",
+  border: "1px solid rgba(var(--palette-warning-mainChannel) / 0.35)",
+  color: "var(--palette-text-primary)",
+  fontSize: "0.85em"
+};
+
 import { isBitmapImage } from "@nodetool-ai/protocol";
 
 // Encodes the raw-RGBA in-flight format to a PNG data URL. Shared with the
@@ -549,7 +577,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
         }
 
         return (
-          <div className="audio" style={{ padding: "1em" }}>
+          <div className="audio" style={AUDIO_WRAPPER_STYLE}>
             <AudioPlayer
               source={audioSource}
               mimeType={mimeType}
@@ -569,7 +597,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             <iframe
               src={uri}
               sandbox=""
-              style={{ width: "100%", height: "100%", minHeight: 320, border: "none" }}
+              style={IFRAME_STYLE}
               title="HTML output"
             />
           );
@@ -592,7 +620,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           <iframe
             srcDoc={html}
             sandbox=""
-            style={{ width: "100%", height: "100%", minHeight: 320, border: "none" }}
+            style={IFRAME_STYLE}
             title="HTML output"
           />
         );
@@ -614,7 +642,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
           return (
             <iframe
               src={uri}
-              style={{ width: "100%", height: "100%", minHeight: 360, border: "none" }}
+              style={IFRAME_PDF_STYLE}
               title="PDF output"
             />
           );
@@ -622,7 +650,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
 
         if (uri) {
           return (
-            <div className="output value" style={{ padding: "0.75em" }}>
+            <div className="output value" style={DOCUMENT_LINK_STYLE}>
               <a href={uri} target="_blank" rel="noreferrer">
                 Open document
               </a>
@@ -641,7 +669,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
             // the native controls (scrub, volume) get the mouse events.
             className="nodrag nopan"
             aria-label="Video output"
-            style={{ width: "100%", height: "100%" }}
+            style={FULL_SIZE_STYLE}
           />
         );
       case "model_3d": {
@@ -659,13 +687,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
 
         return (
           <div
-            style={{
-              width: "100%",
-              height: "100%",
-              minHeight: 0,
-              display: "flex",
-              flex: 1
-            }}
+            style={MODEL_3D_WRAPPER_STYLE}
           >
             <LazyModel3DViewer
               url={url}
@@ -802,12 +824,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                 ref={scrollRef}
                 onMouseDown={handleMouseDown}
                 className="nodrag"
-                style={{
-                  height: "100%",
-                  overflow: "auto",
-                  cursor: "grab",
-                  userSelect: "none"
-                }}
+                style={SCROLL_CONTAINER_STYLE}
               >
                 <List sx={{ p: 1 }}>
                   {(arr as string[]).map((item) => (
@@ -940,17 +957,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
                       return (
                         <div key={`text:${idx}:${hashStringBounded(text)}`}>
                           {truncated && (
-                            <div
-                              style={{
-                                margin: "0.5em 0.75em",
-                                padding: "0.4em 0.6em",
-                                borderRadius: BORDER_RADIUS.lg,
-                                background: "rgba(255, 193, 7, 0.12)",
-                                border: "1px solid rgba(255, 193, 7, 0.35)",
-                                color: "rgba(255, 255, 255, 0.85)",
-                                fontSize: "0.85em"
-                              }}
-                            >
+                            <div style={TRUNCATION_STYLE}>
                               Output truncated (showing first{" "}
                               {MAX_RENDERED_TEXT_CHARS.toLocaleString()} chars
                               of {totalChunks.toLocaleString()} chunks).
@@ -1130,7 +1137,7 @@ const OutputRenderer: React.FC<OutputRendererProps> = ({
   }
 
   return (
-    <div style={{ height: "100%", width: "100%" }}>
+    <div style={FULL_SIZE_STYLE}>
       {openAsset && (
         <AssetViewer
           asset={openAsset}

@@ -9,7 +9,10 @@ import { runInlineGraphJob } from "../../lib/workflow/runInlineGraphJob";
 import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
 import { reactFlowEdgeToGraphEdge } from "../../stores/reactFlowEdgeToGraphEdge";
 import { buildRunSubgraph } from "../../utils/runSubgraph";
-import { getNodeGenerations } from "../../stores/nodeGenerationAccessor";
+import {
+  getNodeGenerations,
+  getNodeSelectedOutputs
+} from "../../stores/nodeGenerationAccessor";
 import { getCurrentGeneration } from "../../utils/nodeGenerations";
 
 interface UseRunFromHereReturn {
@@ -81,6 +84,16 @@ export function useRunFromHere(
         );
         return current?.outputs;
       },
+      // Multi-select: the source's chosen generations stream into the target via
+      // an injected ForEach replay node (input_list = the selected values), and
+      // the source is pruned. No list-type gate — see buildRunSubgraph.
+      getSelectedOutputs: (wf, sourceId, sourceHandle) =>
+        getNodeSelectedOutputs(
+          wf,
+          sourceId,
+          sourceHandle,
+          findNode(sourceId)?.data?.selected_generations
+        ),
       getMetadata: useMetadataStore.getState().getMetadata
     });
 

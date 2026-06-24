@@ -4,7 +4,7 @@ import {
   FormControlLabel,
   Slider
 } from "@mui/material";
-import { Box, Text } from "../../ui_primitives";
+import { Box, Text, SPACING, getSpacingPx } from "../../ui_primitives";
 import {
   BlurSettings,
   CloneStampSampling,
@@ -72,7 +72,7 @@ export const ShapeSettingsPanel = memo(function ShapeSettingsPanel({
             onChange({ shapeType: v as ShapeToolType });
           }
         }}
-        sx={{ mb: "4px" }}
+        sx={{ mb: getSpacingPx(SPACING.xs) }}
       >
         {SHAPE_TYPES.map(({ value, label }) => (
           <SketchModeOption key={value} value={value}>

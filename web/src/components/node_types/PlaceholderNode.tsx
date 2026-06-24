@@ -25,7 +25,9 @@ import {
   Text,
   Tooltip,
   BORDER_RADIUS,
-  FONT_WEIGHT
+  FONT_WEIGHT,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 
 const humanizeType = (type: string) => {
@@ -80,7 +82,7 @@ const styles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmaller)",
       lineHeight: "1.1em",
       minWidth: "unset",
-      padding: "6px 12px",
+      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`,
       borderRadius: BORDER_RADIUS.md,
       color:
         theme.vars?.palette?.primary?.contrastText ||
@@ -88,7 +90,7 @@ const styles = (theme: Theme) =>
       backgroundImage: `linear-gradient(135deg, ${theme.vars.palette.primary.main}, ${theme.vars.palette.secondary.main})`,
       backgroundSize: "200% 200%",
       border: `1px solid ${theme.vars.palette.action.selected}`,
-      boxShadow: "0 6px 18px rgba(0,0,0,0.25)",
+      boxShadow: `0 6px 18px ${theme.vars.palette.c_scrim_soft}`,
       transition: `${MOTION.transform}, ${MOTION.shadow}, background-position ${MOTION.slow}`,
       overflow: "hidden",
       "&::before": {
@@ -99,13 +101,13 @@ const styles = (theme: Theme) =>
         width: "50%",
         height: "100%",
         background:
-          "linear-gradient(120deg, rgba(255,255,255,0), rgba(255,255,255,0.35), rgba(255,255,255,0))",
+          `linear-gradient(120deg, transparent, ${theme.vars.palette.c_overlay_strong}, transparent)`,
         transform: "skewX(-20deg)",
         transition: `left ${MOTION.slow}`
       },
       "&:hover": {
         transform: "translateY(-1px)",
-        boxShadow: "0 10px 24px rgba(0,0,0,0.32)",
+        boxShadow: `0 10px 24px ${theme.vars.palette.c_scrim_soft}`,
         backgroundPosition: "100% 0"
       },
       "&:hover::before": {
@@ -337,7 +339,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
         </Text>
       </Tooltip>
 
-      <FlexColumn gap={1} align="center" className="node-actions" sx={{ margin: "8px 0" }}>
+      <FlexColumn gap={1} align="center" className="node-actions" sx={{ margin: `${getSpacingPx(SPACING.md)} 0` }}>
         {disabledPack ? (
           <Tooltip
             title={`This node is part of the ${disabledPack.name} pack, which is currently disabled. Enable it to load the node.`}

@@ -15,6 +15,7 @@ export const GROUP_NODE_TYPE = "nodetool.workflows.base_node.Group";
 export const COMMENT_NODE_TYPE = "nodetool.workflows.base_node.Comment";
 export const PREVIEW_NODE_TYPE = "nodetool.workflows.base_node.Preview";
 export const REROUTE_NODE_TYPE = "nodetool.control.Reroute";
+export const COLLECTION_NODE_TYPE = "nodetool.control.Collection";
 export const WORKFLOW_NODE_TYPE = "nodetool.workflows.workflow_node.Workflow";
 export const SUBGRAPH_NODE_TYPE = "nodetool.workflows.subgraph.Subgraph";
 
@@ -24,6 +25,10 @@ export const CODE_NODE_TYPE = "nodetool.code.Code";
 export const STRING_NODE_TYPE = "nodetool.constant.String";
 export const CONSTANT_IMAGE_NODE_TYPE = "nodetool.constant.Image";
 export const CONSTANT_VIDEO_NODE_TYPE = "nodetool.constant.Video";
+
+// --- Variable nodes --------------------------------------------------------
+export const SET_VARIABLE_NODE_TYPE = "nodetool.variable.SetVariable";
+export const GET_VARIABLE_NODE_TYPE = "nodetool.variable.GetVariable";
 
 // --- Dynamic-schema nodes --------------------------------------------------
 export const DYNAMIC_FAL_NODE_TYPE = "fal.DynamicFal";

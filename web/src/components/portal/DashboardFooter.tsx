@@ -4,6 +4,7 @@ import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo } from "react";
 import { wrapStyles } from "./dashboardChrome";
+import { SPACING, getSpacingPx } from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -16,10 +17,12 @@ const styles = (theme: Theme) =>
       gap: 8,
       flexWrap: "wrap",
       minHeight: 46,
-      padding: "10px 40px",
+      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(10)}`, // was 10px 40px
       fontSize: 12,
       color: theme.vars.palette.text.disabled,
-      [theme.breakpoints.down("sm")]: { padding: "10px 18px" }
+      [theme.breakpoints.down("sm")]: {
+        padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}` // was 10px 18px
+      }
     },
     ".foot-links button": {
       background: "none",
@@ -30,7 +33,10 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       "&:hover": { color: theme.vars.palette.primary.main }
     },
-    ".foot-sep": { color: theme.vars.palette.divider, margin: "0 8px" },
+    ".foot-sep": {
+      color: theme.vars.palette.divider,
+      margin: `0 ${getSpacingPx(SPACING.md)}`
+    },
     ".foot-stat": { fontFamily: theme.fontFamily2 }
   });
 

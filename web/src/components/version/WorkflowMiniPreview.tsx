@@ -1,13 +1,19 @@
 /**
  * Workflow Mini Preview Component
  *
- * Displays a compact visual representation of a workflow graph.
+ * Displays a compact schematic of a workflow graph — a node-editor "minimap".
  * Used in version history to show what a workflow looked like at a glance,
  * and in the workflow list sidebar to show workflow structure.
+ *
+ * The layout is a left-to-right layered flow (longest-path layering) so nodes
+ * never overlap and the data flow reads at a glance, even for large graphs.
+ * Nodes are flat colour-coded chips (no per-node text, which is illegible once
+ * the SVG scales down); identity comes from the row label and tooltip instead.
  */
 
 import React, { useMemo } from "react";
-import { Caption, FlexColumn, Surface, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { useTheme } from "@mui/material/styles";
+import { Caption, FlexColumn, Surface, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { Graph } from "../../stores/ApiTypes";
 
 // Data structure that has graph - can be WorkflowVersion or Workflow
@@ -41,12 +47,14 @@ interface PreviewEdge {
   target: string;
 }
 
-const NODE_WIDTH = 60;
-const NODE_HEIGHT = 24;
-const PADDING = 10;
-const MIN_X = 20;
-const MIN_Y = 20;
-const EDGE_CONTROL_POINT_OFFSET = 30; // Maximum offset for bezier curve control points
+const NODE_WIDTH = 26;
+const NODE_HEIGHT = 11;
+const NODE_RADIUS = 3;
+const X_GAP = 22;
+const Y_GAP = 9;
+const PADDING = 12;
+const GRID_SIZE = 12;
+const EDGE_CONTROL_POINT_OFFSET = 18; // Maximum offset for bezier curve control points
 
 /**
  * NodeColors palette for mini preview - aligned with SpectraNode from data_types.tsx
@@ -90,105 +98,93 @@ const getNodeColor = (nodeType: string): string => {
   return NodeColors.default;
 };
 
-const extractNodeName = (nodeType: string): string => {
-  const parts = nodeType.split(".");
-  const lastPart = parts[parts.length - 1];
-  return lastPart
-    .replace(/([A-Z])/g, " $1")
-    .trim()
-    .substring(0, 8)
-    .toLowerCase();
-};
-
 interface CalculatedGraph {
   nodes: PreviewNode[];
   edges: PreviewEdge[];
 }
 
+/**
+ * Layered left-to-right layout. Each node's column is its longest path from a
+ * source node, so edges flow forward and nodes in the same column stack
+ * vertically without overlapping. Columns are centred so the schematic stays
+ * balanced regardless of how lopsided the graph is.
+ */
 const calculateNodePositions = (graph: Graph): CalculatedGraph => {
   const nodes = graph.nodes || [];
   const edges = graph.edges || [];
 
   if (nodes.length === 0) { return { nodes: [], edges: [] }; }
 
-  const nodeMap = new Map<string, PreviewNode>();
-  const visited = new Set<string>();
-  const queue: string[] = [];
-  const positions = new Map<string, { x: number; y: number }>();
+  const nodeIds = new Set(nodes.map((n) => n.id));
+  const validEdges = edges.filter(
+    (e) => nodeIds.has(e.source) && nodeIds.has(e.target)
+  );
 
-  // Optimize O(N*E) filters into O(N+E) map lookups
-  const outgoingEdgesMap = new Map<string, typeof edges[0][]>();
-  const targetNodeIds = new Set<string>();
+  const incoming = new Map<string, string[]>();
+  for (const id of nodeIds) { incoming.set(id, []); }
+  for (const e of validEdges) { incoming.get(e.target)?.push(e.source); }
 
-  edges.forEach((edge) => {
-    targetNodeIds.add(edge.target);
-    const outs = outgoingEdgesMap.get(edge.source);
-
-    if (outs) {
-      outs.push(edge);
-    } else {
-      outgoingEdgesMap.set(edge.source, [edge]);
+  // Longest-path layering, memoised. The stack guard keeps cycles from
+  // recursing forever (a back-edge just resolves to column 0).
+  const layer = new Map<string, number>();
+  const computeLayer = (id: string, stack: Set<string>): number => {
+    const cached = layer.get(id);
+    if (cached !== undefined) { return cached; }
+    if (stack.has(id)) { return 0; }
+    stack.add(id);
+    let l = 0;
+    for (const src of incoming.get(id) || []) {
+      l = Math.max(l, computeLayer(src, stack) + 1);
     }
-  });
+    stack.delete(id);
+    layer.set(id, l);
+    return l;
+  };
+  for (const node of nodes) { computeLayer(node.id, new Set()); }
 
-  const startNodes = nodes.filter((n) => !targetNodeIds.has(n.id));
-  startNodes.forEach((node, index) => {
-    positions.set(node.id, { x: MIN_X, y: MIN_Y + index * (NODE_HEIGHT + PADDING) });
-    queue.push(node.id);
-  });
+  // Group nodes by column, preserving their original order within a column.
+  const columns = new Map<number, string[]>();
+  for (const node of nodes) {
+    const l = layer.get(node.id) ?? 0;
+    const col = columns.get(l);
+    if (col) { col.push(node.id); } else { columns.set(l, [node.id]); }
+  }
 
-  const xOffset = NODE_WIDTH + PADDING * 2;
-  const yOffset = NODE_HEIGHT + PADDING;
+  let tallest = 0;
+  for (const ids of columns.values()) { tallest = Math.max(tallest, ids.length); }
 
-  while (queue.length > 0) {
-    const currentId = queue.shift();
-    if (!currentId || visited.has(currentId)) { continue; }
-    visited.add(currentId);
-
-    const currentPos = positions.get(currentId);
-    if (!currentPos) { continue; }
-
-    const outgoingEdges = outgoingEdgesMap.get(currentId) || [];
-
-    outgoingEdges.forEach((edge, index) => {
-      if (!positions.has(edge.target)) {
-        positions.set(edge.target, {
-          x: currentPos.x + xOffset,
-          y: Math.max(MIN_Y, currentPos.y - (outgoingEdges.length - 1) * yOffset / 2 + index * yOffset)
-        });
-      }
-      if (!visited.has(edge.target)) {
-        queue.push(edge.target);
-      }
+  const xStep = NODE_WIDTH + X_GAP;
+  const yStep = NODE_HEIGHT + Y_GAP;
+  const positions = new Map<string, { x: number; y: number }>();
+  for (const [col, ids] of columns) {
+    const centerOffset = ((tallest - ids.length) * yStep) / 2;
+    ids.forEach((id, index) => {
+      positions.set(id, {
+        x: PADDING + col * xStep,
+        y: PADDING + centerOffset + index * yStep
+      });
     });
   }
 
-  nodes.forEach((node) => {
-    const pos = positions.get(node.id) || { x: MIN_X, y: MIN_Y };
-    nodeMap.set(node.id, {
+  const previewNodes: PreviewNode[] = nodes.map((node) => {
+    const pos = positions.get(node.id) || { x: PADDING, y: PADDING };
+    return {
       id: node.id,
       type: node.type,
       x: pos.x,
       y: pos.y,
       width: NODE_WIDTH,
       height: NODE_HEIGHT
-    });
+    };
   });
 
-  // Process edges - only include edges where both source and target nodes exist
-  // Use index to ensure unique keys when multiple edges connect the same nodes
-  const previewEdges: PreviewEdge[] = edges
-    .filter((e) => nodeMap.has(e.source) && nodeMap.has(e.target))
-    .map((e, index) => ({
-      id: e.id || `${e.source}-${e.target}-${index}`,
-      source: e.source,
-      target: e.target
-    }));
+  const previewEdges: PreviewEdge[] = validEdges.map((e, index) => ({
+    id: e.id || `${e.source}-${e.target}-${index}`,
+    source: e.source,
+    target: e.target
+  }));
 
-  return {
-    nodes: Array.from(nodeMap.values()),
-    edges: previewEdges
-  };
+  return { nodes: previewNodes, edges: previewEdges };
 };
 
 export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
@@ -196,11 +192,13 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
   width = 200,
   height = 120
 }) => {
+  const theme = useTheme();
+
   const graph = useMemo(() => {
     if (!workflow.graph) {
       return { nodes: [], edges: [] };
     }
-    
+
     const graphObj = workflow.graph as Graph;
     return {
       nodes: graphObj.nodes || [],
@@ -230,8 +228,8 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
       if (bottom > mY) mY = bottom;
     }
     return {
-      viewBoxWidth: mX + PADDING * 2,
-      viewBoxHeight: mY + PADDING * 2
+      viewBoxWidth: mX + PADDING,
+      viewBoxHeight: mY + PADDING
     };
   }, [previewNodes]);
 
@@ -243,32 +241,23 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
         sx={{
           width,
           height,
-          background: "linear-gradient(135deg, rgba(30,30,30,0.95) 0%, rgba(45,45,45,0.9) 100%)",
+          backgroundColor: theme.vars.palette.background.paper,
           border: "1px solid",
-          borderColor: "rgba(255,255,255,0.08)",
-          borderRadius: BORDER_RADIUS.xs,
-          transition: MOTION.all,
-          "&:hover": {
-            borderColor: "rgba(255,255,255,0.15)",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.3)"
-          }
+          borderColor: theme.vars.palette.divider,
+          borderRadius: BORDER_RADIUS.sm,
+          transition: MOTION.all
         }}
       >
-        <FlexColumn
-          fullWidth
-          fullHeight
-          align="center"
-          justify="center"
-        >
+        <FlexColumn fullWidth fullHeight align="center" justify="center">
           <Caption
             sx={{
-              color: "rgba(255,255,255,0.4)",
+              color: theme.vars.palette.text.disabled,
               fontFamily: "var(--fontFamily2)",
               textAlign: "center",
               fontSize: "var(--fontSizeSmaller)",
               lineHeight: "1.2",
               textTransform: "uppercase",
-              letterSpacing: "0.1em"
+              letterSpacing: "0.08em"
             }}
           >
             Empty workflow
@@ -283,132 +272,120 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
       sx={{
         width,
         height,
-        background: "linear-gradient(135deg, rgba(20,22,28,0.98) 0%, rgba(35,37,42,0.95) 100%)",
+        backgroundColor: theme.vars.palette.background.paper,
         border: "1px solid",
-        borderColor: "rgba(255,255,255,0.08)",
-        borderRadius: BORDER_RADIUS.xs,
+        borderColor: theme.vars.palette.divider,
+        borderRadius: BORDER_RADIUS.sm,
         overflow: "hidden",
         position: "relative",
         transition: MOTION.all,
         "&:hover": {
-          borderColor: "rgba(96,165,250,0.3)",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(96,165,250,0.1)"
+          borderColor: theme.vars.palette.action.disabled
         }
       }}
     >
-      <FlexColumn
-        fullWidth
-        fullHeight
-        align="stretch"
-        justify="center"
-        sx={{ position: "relative" }}
+      <svg
+        width="100%"
+        height="100%"
+        viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
+        preserveAspectRatio="xMidYMid meet"
+        style={{ display: "block" }}
       >
-        {/* Subtle gradient overlay */}
-        <Box
-          sx={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: "radial-gradient(ellipse at 30% 20%, rgba(96,165,250,0.03) 0%, transparent 50%)",
-            pointerEvents: "none"
-          }}
+        <defs>
+          {/* Faint dot grid — gives the schematic a node-editor minimap feel */}
+          <pattern
+            id="miniPreviewGrid"
+            width={GRID_SIZE}
+            height={GRID_SIZE}
+            patternUnits="userSpaceOnUse"
+          >
+            <circle
+              cx={1}
+              cy={1}
+              r={0.6}
+              fill={theme.vars.palette.text.primary}
+              opacity={0.06}
+            />
+          </pattern>
+        </defs>
+
+        <rect
+          x={0}
+          y={0}
+          width={viewBoxWidth}
+          height={viewBoxHeight}
+          fill="url(#miniPreviewGrid)"
         />
-        <svg
-          width="100%"
-          height="100%"
-          viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
-          preserveAspectRatio="xMidYMid meet"
-          style={{ display: "block", position: "relative", zIndex: 1 }}
-        >
-          {/* Define gradients for edges */}
-          <defs>
-            <linearGradient id="edgeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.3)" />
-              <stop offset="100%" stopColor="rgba(255,255,255,0.1)" />
-            </linearGradient>
-          </defs>
 
-          {/* Render edges first (behind nodes) */}
-          {previewEdges.map((edge) => {
-            const sourceNode = nodeMap.get(edge.source);
-            const targetNode = nodeMap.get(edge.target);
-            if (!sourceNode || !targetNode) { return null; }
+        {/* Render edges first (behind nodes) */}
+        {previewEdges.map((edge) => {
+          const sourceNode = nodeMap.get(edge.source);
+          const targetNode = nodeMap.get(edge.target);
+          if (!sourceNode || !targetNode) { return null; }
 
-            // Calculate edge path - from right side of source to left side of target
-            const startX = sourceNode.x + sourceNode.width;
-            const startY = sourceNode.y + sourceNode.height / 2;
-            const endX = targetNode.x;
-            const endY = targetNode.y + targetNode.height / 2;
+          // From the right side of the source to the left side of the target
+          const startX = sourceNode.x + sourceNode.width;
+          const startY = sourceNode.y + sourceNode.height / 2;
+          const endX = targetNode.x;
+          const endY = targetNode.y + targetNode.height / 2;
 
-            // Create a smooth bezier curve
-            const controlPointOffset = Math.min(EDGE_CONTROL_POINT_OFFSET, Math.abs(endX - startX) / 2);
-            const path = `M ${startX} ${startY} C ${startX + controlPointOffset} ${startY}, ${endX - controlPointOffset} ${endY}, ${endX} ${endY}`;
+          const controlPointOffset = Math.max(
+            6,
+            Math.min(EDGE_CONTROL_POINT_OFFSET, Math.abs(endX - startX) / 2)
+          );
+          const path = `M ${startX} ${startY} C ${startX + controlPointOffset} ${startY}, ${endX - controlPointOffset} ${endY}, ${endX} ${endY}`;
 
-            return (
-              <path
-                key={edge.id}
-                d={path}
-                fill="none"
-                stroke="url(#edgeGradient)"
-                strokeWidth={1.5}
-                strokeLinecap="round"
-                opacity={0.6}
-              />
-            );
-          })}
+          return (
+            <path
+              key={edge.id}
+              d={path}
+              fill="none"
+              stroke={theme.vars.palette.text.secondary}
+              strokeWidth={1}
+              strokeLinecap="round"
+              opacity={0.35}
+            />
+          );
+        })}
 
-          {/* Render nodes */}
-          {previewNodes.map((node) => {
-            const color = getNodeColor(node.type);
-            return (
-              <g
-                key={node.id}
-                transform={`translate(${node.x}, ${node.y})`}
-              >
-                {/* Node shadow */}
-                <rect
-                  x={1}
-                  y={2}
-                  width={NODE_WIDTH}
-                  height={NODE_HEIGHT}
-                  rx={4}
-                  fill="rgba(0,0,0,0.3)"
-                />
-                {/* Node background with gradient */}
-                <rect
-                  width={NODE_WIDTH}
-                  height={NODE_HEIGHT}
-                  rx={4}
-                  fill={color}
-                  opacity={0.9}
-                />
-                {/* Subtle highlight at top */}
-                <rect
-                  width={NODE_WIDTH}
-                  height={NODE_HEIGHT / 3}
-                  rx={4}
-                  fill="rgba(255,255,255,0.15)"
-                />
-                {/* Node text */}
-                <text
-                  x={NODE_WIDTH / 2}
-                  y={NODE_HEIGHT / 2 + 3}
-                  textAnchor="middle"
-                  fill="white"
-                  fontSize={9}
-                  fontFamily="Inter, sans-serif"
-                  fontWeight={500}
-                  style={{ textShadow: "0 1px 2px rgba(0,0,0,0.5)" }}
-                >
-                  {extractNodeName(node.type)}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-      </FlexColumn>
+        {/* Render nodes */}
+        {previewNodes.map((node) => {
+          const color = getNodeColor(node.type);
+          return (
+            <rect
+              key={node.id}
+              x={node.x}
+              y={node.y}
+              width={NODE_WIDTH}
+              height={NODE_HEIGHT}
+              rx={NODE_RADIUS}
+              fill={color}
+              stroke="rgba(255,255,255,0.18)"
+              strokeWidth={0.5}
+            />
+          );
+        })}
+      </svg>
+
+      {/* Node count — gives a sense of scale for large graphs */}
+      <Caption
+        sx={{
+          position: "absolute",
+          bottom: 4,
+          right: 6,
+          color: theme.vars.palette.text.secondary,
+          backgroundColor: `rgb(${theme.vars.palette.background.paperChannel} / 0.7)`,
+          borderRadius: BORDER_RADIUS.xs,
+          padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`, // was 1px 5px
+          fontFamily: "var(--fontFamily2)",
+          fontSize: "var(--fontSizeSmaller)",
+          lineHeight: 1.3,
+          letterSpacing: "0.02em",
+          pointerEvents: "none"
+        }}
+      >
+        {nodeCount} {nodeCount === 1 ? "node" : "nodes"}
+      </Caption>
     </Surface>
   );
 };

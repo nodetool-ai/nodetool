@@ -4,7 +4,7 @@ import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { InputAdornment } from "@mui/material";
-import { TextInput, BORDER_RADIUS } from "../ui_primitives";
+import { TextInput, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { Box } from "../ui_primitives";
 import { useColorConversion } from "../../hooks/useColorConversion";
 import type { ColorMode } from "../../hooks/useColorConversion";
@@ -14,11 +14,11 @@ const styles = (theme: Theme) =>
     "&": {
       display: "flex",
       flexDirection: "column",
-      gap: "8px"
+      gap: getSpacingPx(SPACING.md)
     },
     ".color-input-row": {
       display: "flex",
-      gap: "8px",
+      gap: getSpacingPx(SPACING.md),
       alignItems: "center"
     },
     ".color-input": {
@@ -28,7 +28,7 @@ const styles = (theme: Theme) =>
         fontSize: "var(--fontSizeSmall)"
       },
       "& .MuiInputBase-input": {
-        padding: "8px",
+        padding: getSpacingPx(SPACING.md),
         textAlign: "center"
       },
       "& .MuiInputAdornment-root": {

@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import CheckIcon from "@mui/icons-material/Check";
-import { Caption, FlexColumn, Popover, Text, MOTION, BORDER_RADIUS } from "../../ui_primitives";
+import { Caption, FlexColumn, Popover, Text, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
 import MediaControlChip from "./MediaControlChip";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import type { PermissionMode } from "../../../stores/ApiTypes";
@@ -46,10 +46,10 @@ const dotColor = (theme: Theme, tone: ModeItem["tone"]): string => {
 
 const menuStyles = (theme: Theme) =>
   css({
-    padding: "8px 0",
+    padding: `${getSpacingPx(SPACING.md)} 0`,
     minWidth: 260,
     ".permission-menu-header": {
-      padding: "8px 16px 4px",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xs)}`,
       color: theme.vars.palette.grey[400],
       textTransform: "uppercase",
       letterSpacing: 1
@@ -63,10 +63,10 @@ const menuStyles = (theme: Theme) =>
       color: theme.vars.palette.grey[100],
       transition: MOTION.background,
       "&:hover": {
-        backgroundColor: "rgba(255,255,255,0.06)"
+        backgroundColor: theme.vars.palette.c_overlay
       },
       "&.selected": {
-        backgroundColor: "rgba(255,255,255,0.08)"
+        backgroundColor: theme.vars.palette.c_overlay
       }
     },
     ".permission-menu-dot": {
@@ -141,7 +141,7 @@ const PermissionSelector: React.FC = () => {
           backgroundColor: theme.vars.palette.grey[900],
           border: `1px solid ${theme.vars.palette.grey[800]}`,
           borderRadius: BORDER_RADIUS.sm,
-          boxShadow: "0 12px 40px rgba(0,0,0,0.45)"
+          boxShadow: `0 12px 40px ${theme.vars.palette.c_scrim}`
         }}
       >
         <div

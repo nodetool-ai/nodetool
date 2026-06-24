@@ -5,7 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Caption, Tooltip, FlexRow, FlexColumn, EditorButton, TabGroup, BORDER_RADIUS } from "../ui_primitives";
+import { Text, Caption, Tooltip, FlexRow, FlexColumn, EditorButton, TabGroup, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import type { TabItem } from "../ui_primitives";
 import { CloseButton } from "../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
@@ -55,7 +55,7 @@ const styles = (theme: Theme) =>
     },
     ".modal-header": {
       justifyContent: "space-between",
-      padding: "12px 16px",
+      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
       borderBottom: `1px solid ${theme.vars.palette.grey[800]}`,
       backgroundColor: theme.vars.palette.grey[900]
     },
@@ -65,7 +65,7 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.primary
     },
     ".header-actions": {
-      gap: "8px"
+      gap: getSpacingPx(SPACING.md)
     },
     ".modal-body": {
       flex: 1,
@@ -73,8 +73,8 @@ const styles = (theme: Theme) =>
     },
     ".picker-section": {
       flex: "0 0 320px",
-      padding: "16px",
-      gap: "16px",
+      padding: getSpacingPx(SPACING.xl),
+      gap: getSpacingPx(SPACING.xl),
       borderRight: `1px solid ${theme.vars.palette.grey[800]}`,
       overflow: "auto"
     },
@@ -84,12 +84,12 @@ const styles = (theme: Theme) =>
     },
     ".tab-content": {
       flex: 1,
-      padding: "16px",
+      padding: getSpacingPx(SPACING.xl),
       overflow: "auto"
     },
     ".color-preview": {
-      gap: "8px",
-      marginTop: "8px"
+      gap: getSpacingPx(SPACING.md),
+      marginTop: getSpacingPx(SPACING.md)
     },
     ".preview-swatch": {
       flex: 1,
@@ -136,19 +136,19 @@ const styles = (theme: Theme) =>
       transform: "translate(-50%, -50%)",
       backgroundColor: "rgba(0,0,0,0.7)",
       borderRadius: BORDER_RADIUS.sm,
-      padding: "4px 8px",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       color: "white",
       fontSize: "var(--fontSizeSmaller)",
-      gap: "4px"
+      gap: getSpacingPx(SPACING.xs)
     },
     ".modal-footer": {
       justifyContent: "space-between",
-      padding: "12px 16px",
+      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
       borderTop: `1px solid ${theme.vars.palette.grey[800]}`,
       backgroundColor: theme.vars.palette.grey[900]
     },
     ".footer-actions": {
-      gap: "8px"
+      gap: getSpacingPx(SPACING.md)
     }
   });
 

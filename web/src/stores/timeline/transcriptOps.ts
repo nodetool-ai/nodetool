@@ -408,9 +408,21 @@ export function relabelWord(
   wordIndex: number,
   text: string
 ): TimelineClip[] {
+  const target = clips.find((c) => c.id === clipId);
+  // Nothing to relabel (clip gone, no caption, out-of-range index, or the
+  // text is already what's stored) → return the same array so the commit is a
+  // no-op and avoids a needless full-array allocation + re-render.
+  if (
+    !target ||
+    !target.caption ||
+    wordIndex < 0 ||
+    wordIndex >= target.caption.words.length ||
+    target.caption.words[wordIndex].word === text
+  ) {
+    return clips;
+  }
   return clips.map((c) => {
     if (c.id !== clipId || !c.caption) return c;
-    if (wordIndex < 0 || wordIndex >= c.caption.words.length) return c;
     const words = c.caption.words.map((w, i) =>
       i === wordIndex ? { ...w, word: text } : w
     );

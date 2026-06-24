@@ -11,7 +11,9 @@ import {
   LoadingSpinner,
   AlertBanner,
   EditorButton,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 import PanelToolbar from "../panels/PanelToolbar";
 import { trpc } from "../../trpc/client";
@@ -44,7 +46,7 @@ const panelStyles = css({
     flex: 1,
     overflowY: "auto",
     overflowX: "hidden",
-    padding: "8px 12px 12px"
+    padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.lg)}`
   }
 });
 

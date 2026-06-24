@@ -177,9 +177,14 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       stop,
       setCurrentTimeMs,
       seek,
-      seekNonce
+      seekNonce,
+      subscribeTime,
+      getTimeMs
     } = useTimelinePlaybackStore(
       useShallow((s) => ({
+        // Reactive position is now discrete-only (seek/scrub/pause/stop). The
+        // live playback readout is driven imperatively from `subscribeTime`
+        // below so playback never re-renders this control bar 60×/s.
         currentTimeMs: s.currentTimeMs,
         isPlaying: s.isPlaying,
         play: s.play,
@@ -187,7 +192,9 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         stop: s.stop,
         setCurrentTimeMs: s.setCurrentTimeMs,
         seek: s.seek,
-        seekNonce: s.seekNonce
+        seekNonce: s.seekNonce,
+        subscribeTime: s.subscribeTime,
+        getTimeMs: s.getTimeMs
       }))
     );
 
@@ -378,26 +385,42 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
     }, [clips, durationMs]);
 
     const jumpToPrevBoundary = useCallback(() => {
-      const prev = clipBoundaries
-        .filter((t) => t < currentTimeMs - 1)
-        .at(-1);
+      // Read the live playhead: while playing, `currentTimeMs` is frozen at the
+      // last discrete event, so jumps must use the transient position.
+      const from = isPlaying ? getTimeMs() : currentTimeMs;
+      const prev = clipBoundaries.filter((t) => t < from - 1).at(-1);
       if (prev !== undefined) {
         if (isPlaying) {
           handleStop();
         }
         setCurrentTimeMs(prev);
       }
-    }, [clipBoundaries, currentTimeMs, isPlaying, handleStop, setCurrentTimeMs]);
+    }, [
+      clipBoundaries,
+      currentTimeMs,
+      isPlaying,
+      handleStop,
+      setCurrentTimeMs,
+      getTimeMs
+    ]);
 
     const jumpToNextBoundary = useCallback(() => {
-      const next = clipBoundaries.find((t) => t > currentTimeMs + 1);
+      const from = isPlaying ? getTimeMs() : currentTimeMs;
+      const next = clipBoundaries.find((t) => t > from + 1);
       if (next !== undefined) {
         if (isPlaying) {
           handleStop();
         }
         setCurrentTimeMs(next);
       }
-    }, [clipBoundaries, currentTimeMs, isPlaying, handleStop, setCurrentTimeMs]);
+    }, [
+      clipBoundaries,
+      currentTimeMs,
+      isPlaying,
+      handleStop,
+      setCurrentTimeMs,
+      getTimeMs
+    ]);
 
     const containerRef = useRef<HTMLDivElement>(null);
     const [isFullscreen, setIsFullscreen] = useState(false);
@@ -426,6 +449,19 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
     const scrubMax = Math.max(1, durationMs || 0);
     const scrubValue = Math.min(scrubMax, scrubMs ?? currentTimeMs);
+
+    // Live timecode without per-frame React renders: while playing, subscribe
+    // to the transient playhead and write the readout straight to the DOM.
+    const timecodeRef = useRef<HTMLElement>(null);
+    useEffect(() => {
+      if (!isPlaying) return;
+      const node = timecodeRef.current;
+      if (!node) return;
+      const unsubscribe = subscribeTime((ms) => {
+        node.textContent = formatTimecode(ms, fps);
+      });
+      return unsubscribe;
+    }, [isPlaying, subscribeTime, fps]);
 
     const handleScrubChange = useCallback(
       (_event: Event, value: number | number[]) => {
@@ -569,7 +605,9 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
           />
 
           <div css={dividerStyles(theme)} className="timeline-preview__secondary-control" />
-          <Text css={timecodeStyles(theme)}>{timecode}</Text>
+          <Text ref={timecodeRef} css={timecodeStyles(theme)}>
+            {timecode}
+          </Text>
           <div css={scrubberStyles}>
             <NodeSlider
               aria-label="Scrub timeline"

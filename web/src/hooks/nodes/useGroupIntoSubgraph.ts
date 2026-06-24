@@ -106,7 +106,7 @@ function buildPlan(
             description: ""
           },
           ui_properties: { position: inputXY() }
-        } as unknown as ApiNode);
+        });
         innerEdges.push({
           id: generateId(),
           source: inputNodeId,
@@ -145,7 +145,7 @@ function buildPlan(
             description: ""
           },
           ui_properties: { position: outputXY() }
-        } as unknown as ApiNode);
+        });
         innerEdges.push({
           id: generateId(),
           source: edge.source,

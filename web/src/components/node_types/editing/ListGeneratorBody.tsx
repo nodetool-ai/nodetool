@@ -30,7 +30,17 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
-import { CopyButton, FlexColumn, FlexRow, LoadingSpinner, BORDER_RADIUS, MOTION, FONT_WEIGHT } from "../../ui_primitives";
+import {
+  CopyButton,
+  FlexColumn,
+  FlexRow,
+  LoadingSpinner,
+  BORDER_RADIUS,
+  MOTION,
+  FONT_WEIGHT,
+  SPACING,
+  thinScrollbarStyles
+} from "../../ui_primitives";
 import MarkdownRenderer from "../../../utils/MarkdownRenderer";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import HandleColumn from "../../node/HandleColumn";
@@ -82,6 +92,9 @@ const previewOf = (item: string): string => {
     .trim();
 };
 
+/** Fixed size of the circular index badge (px). The expanded body aligns to it. */
+const INDEX_BADGE = 18;
+
 const styles = (theme: Theme) =>
   css({
     position: "relative",
@@ -90,36 +103,35 @@ const styles = (theme: Theme) =>
     width: "100%",
     display: "flex",
     flexDirection: "column",
-    gap: 6,
-    padding: 8,
+    gap: theme.spacing(SPACING.sm),
+    padding: theme.spacing(SPACING.md),
 
     ".list-header": {
       display: "flex",
       alignItems: "center",
-      gap: 6,
+      gap: theme.spacing(SPACING.sm),
       color: theme.vars.palette.text.secondary,
       fontSize: theme.fontSizeSmaller
     },
+    // One flat, divided list — the node frame is already the card, so wrapping
+    // each item in its own bordered box would be nested cards.
     ".list-scroll": {
       flex: "1 1 auto",
       minHeight: 0,
       overflowY: "auto",
       overflowX: "hidden",
-      display: "flex",
-      flexDirection: "column",
-      gap: 4
+      ...thinScrollbarStyles(theme)
     },
-    ".list-section": {
-      borderRadius: BORDER_RADIUS.sm,
-      backgroundColor: theme.vars.palette.background.paper,
-      border: `1px solid ${theme.vars.palette.divider}`,
-      overflow: "hidden"
+    ".list-item": {
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
+      "&:last-of-type": { borderBottom: "none" }
     },
     ".list-head": {
       display: "flex",
       alignItems: "center",
-      gap: 8,
-      padding: `${theme.spacing(1.5)} ${theme.spacing(2)}`,
+      gap: theme.spacing(SPACING.md),
+      padding: `${theme.spacing(SPACING.sm)} ${theme.spacing(SPACING.xs)}`,
+      borderRadius: BORDER_RADIUS.sm,
       cursor: "pointer",
       userSelect: "none",
       transition: MOTION.background,
@@ -129,8 +141,8 @@ const styles = (theme: Theme) =>
     },
     ".list-index": {
       flexShrink: 0,
-      minWidth: 18,
-      height: 18,
+      minWidth: INDEX_BADGE,
+      height: INDEX_BADGE,
       borderRadius: BORDER_RADIUS.pill,
       backgroundColor: `rgba(var(--palette-primary-mainChannel) / 0.18)`,
       color: theme.vars.palette.primary.main,
@@ -139,7 +151,7 @@ const styles = (theme: Theme) =>
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
-      padding: `0 ${theme.spacing(1.5)}`
+      padding: `0 ${theme.spacing(SPACING.sm)}`
     },
     ".list-preview": {
       flex: 1,
@@ -162,15 +174,19 @@ const styles = (theme: Theme) =>
     },
     ".list-chevron": {
       flexShrink: 0,
-      fontSize: 16,
+      fontSize: theme.fontSizeNormal,
       color: theme.vars.palette.text.secondary,
       transition: MOTION.transform
     },
     ".list-chevron.expanded": {
       transform: "rotate(90deg)"
     },
+    // Hang the expanded body under the preview text, past the badge + gap.
     ".list-full": {
-      padding: "0 4px 4px 4px",
+      paddingTop: 0,
+      paddingRight: theme.spacing(SPACING.xs),
+      paddingBottom: theme.spacing(SPACING.sm),
+      paddingLeft: `calc(${INDEX_BADGE}px + ${theme.spacing(SPACING.md)} + ${theme.spacing(SPACING.xs)})`,
       fontSize: theme.fontSizeSmall,
       color: theme.vars.palette.text.primary
     },
@@ -182,7 +198,7 @@ const styles = (theme: Theme) =>
       textAlign: "center",
       color: theme.vars.palette.text.disabled,
       fontSize: theme.fontSizeSmaller,
-      padding: 12
+      padding: theme.spacing(SPACING.lg)
     }
   });
 
@@ -243,7 +259,7 @@ const ListGeneratorBodyInner: React.FC<BespokeBodyProps> = ({
         <HandleColumn id={id} properties={inputProperties} layout="stacked" />
       )}
       <div className="list-header">
-        <FormatListNumberedRoundedIcon sx={{ fontSize: 14 }} />
+        <FormatListNumberedRoundedIcon sx={{ fontSize: "var(--fontSizeSmall)" }} />
         <span>
           {items.length === 0
             ? isRunning
@@ -263,7 +279,7 @@ const ListGeneratorBodyInner: React.FC<BespokeBodyProps> = ({
           {items.map((item, i) => {
             const isOpen = expanded.has(i);
             return (
-              <div className="list-section" key={`${i}-${item.slice(0, 24)}`}>
+              <div className="list-item" key={`${i}-${item.slice(0, 24)}`}>
                 <div
                   className="list-head"
                   role="button"
