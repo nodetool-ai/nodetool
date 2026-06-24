@@ -78,8 +78,8 @@ export default function ModelManagerSection() {
               <Image
                 src="/screen_model_manager.png"
                 alt="Model manager interface showing Hugging Face integration"
-                width={1400}
-                height={900}
+                width={2000}
+                height={1361}
                 className="w-full h-auto opacity-90 transition-opacity group-hover:opacity-100"
                 loading="lazy"
               />
