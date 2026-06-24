@@ -33,6 +33,7 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     outputs:
       typecheck-passed: ${{ steps.set-outputs.outputs.typecheck-passed }}
       lint-passed: ${{ steps.set-outputs.outputs.lint-passed }}

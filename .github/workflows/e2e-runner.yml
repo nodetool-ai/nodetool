@@ -43,6 +43,7 @@ jobs:
   e2e-workflow-runner:
     name: Run workflow suite in browser
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
       - name: Checkout code
