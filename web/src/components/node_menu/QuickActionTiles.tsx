@@ -34,7 +34,7 @@ const tileStyles = (theme: Theme) =>
       boxSizing: "border-box"
     },
     ".tiles-header": {
-      marginBottom: "0.5em",
+      marginBottom: "0.25em",
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
@@ -51,20 +51,20 @@ const tileStyles = (theme: Theme) =>
     },
     ".tiles-container": {
       display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+      gridTemplateColumns: "repeat(auto-fill, minmax(116px, 1fr))",
       gridAutoRows: "1fr",
-      gap: getSpacingPx(SPACING.md),
+      gap: getSpacingPx(SPACING.sm),
       alignContent: "start",
       overflow: "visible",
       padding: getSpacingPx(SPACING.micro)
     },
     ".constants-container": {
       display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))",
+      gridTemplateColumns: "repeat(auto-fill, minmax(84px, 1fr))",
       gridAutoRows: "1fr",
-      gap: getSpacingPx(SPACING.md),
+      gap: getSpacingPx(SPACING.sm),
       alignContent: "start",
-      marginTop: getSpacingPx(SPACING.lg),
+      marginTop: getSpacingPx(SPACING.md),
       padding: getSpacingPx(SPACING.micro),
       ...thinScrollbarStyles(theme)
     },
@@ -73,7 +73,7 @@ const tileStyles = (theme: Theme) =>
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.md)}`,
+      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.sm)}`,
       borderRadius: BORDER_RADIUS.xl,
       cursor: "pointer",
       position: "relative",
@@ -135,7 +135,7 @@ const tileStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      marginBottom: getSpacingPx(SPACING.sm),
+      marginBottom: getSpacingPx(SPACING.xs),
       transition: `transform ${MOTION.slow}`,
       "& svg": {
         fontSize: "var(--fontSizeBig)",

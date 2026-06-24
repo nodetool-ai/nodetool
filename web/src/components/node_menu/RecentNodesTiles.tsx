@@ -35,7 +35,7 @@ const tileStyles = (theme: Theme) =>
       boxSizing: "border-box"
     },
     ".tiles-header": {
-      marginBottom: "0.5em",
+      marginBottom: "0.25em",
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
@@ -55,9 +55,9 @@ const tileStyles = (theme: Theme) =>
     },
     ".tiles-container": {
       display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+      gridTemplateColumns: "repeat(auto-fill, minmax(116px, 1fr))",
       gridAutoRows: "1fr",
-      gap: getSpacingPx(SPACING.md),
+      gap: getSpacingPx(SPACING.sm),
       alignContent: "start",
       overflowY: "auto",
       padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.micro)}`,
@@ -68,14 +68,14 @@ const tileStyles = (theme: Theme) =>
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.md)}`,
+      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.sm)}`,
       borderRadius: BORDER_RADIUS.xl,
       cursor: "pointer",
       position: "relative",
       overflow: "hidden",
       border: `1px solid ${theme.vars.palette.divider}`,
       transition: `all ${MOTION.slow}`,
-      minHeight: "64px",
+      minHeight: "46px",
       background: theme.vars.palette.background.paper,
       "&::before": {
         content: '""',
@@ -112,7 +112,7 @@ const tileStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      marginBottom: getSpacingPx(SPACING.sm),
+      marginBottom: getSpacingPx(SPACING.xs),
       transition: `transform ${MOTION.slow}`,
       "& svg": {
         fontSize: "var(--fontSizeBig)",
@@ -122,7 +122,7 @@ const tileStyles = (theme: Theme) =>
       }
     },
     ".tile-label": {
-      fontSize: "var(--fontSizeNormal)",
+      fontSize: "var(--fontSizeSmall)",
       fontWeight: 500,
       textAlign: "center",
       lineHeight: 1.3,
@@ -357,7 +357,7 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
                   <IconForType
                     iconName={outputType}
                     showTooltip={false}
-                    iconSize="normal"
+                    iconSize="small"
                     svgProps={{ style: { color: iconColor } }}
                   />
                 </div>

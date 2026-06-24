@@ -114,7 +114,9 @@ export const useNodeEditorShortcuts = (
 
   const nodeMenuStore = useNodeMenuStore(
     useShallow((state) => ({
-      openNodeMenu: state.openNodeMenu
+      openNodeMenu: state.openNodeMenu,
+      closeNodeMenu: state.closeNodeMenu,
+      isMenuOpen: state.isMenuOpen
     }))
   );
   const handleFitView = useFitView();
@@ -137,10 +139,17 @@ export const useNodeEditorShortcuts = (
   });
 
   const { handleCopy, handlePaste, handleCut } = copyPaste;
-  const { openNodeMenu } = nodeMenuStore;
+  const { openNodeMenu, closeNodeMenu, isMenuOpen } = nodeMenuStore;
 
   // All useCallback hooks
   const handleOpenNodeMenu = useCallback(() => {
+    // Space toggles: close when already open. (When the menu is open its search
+    // input usually has focus, so the close-on-space-in-empty-search path in
+    // SearchInput handles that case; this covers a focused canvas.)
+    if (isMenuOpen) {
+      closeNodeMenu();
+      return;
+    }
     if (!active || isTextInputActive()) {
       return;
     }
@@ -151,7 +160,7 @@ export const useNodeEditorShortcuts = (
       y: mousePos.y,
       centerOnScreen: true
     });
-  }, [active, openNodeMenu]);
+  }, [active, isMenuOpen, openNodeMenu, closeNodeMenu]);
 
   const handleGroup = useCallback(() => {
     const selectedNodes = nodeStore.getState().getSelectedNodes();

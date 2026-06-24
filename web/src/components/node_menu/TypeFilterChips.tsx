@@ -62,7 +62,7 @@ const typeFilterChipsStyles = (theme: Theme) =>
     ".quick-filters": {
       display: "flex",
       alignItems: "center",
-      gap: theme.spacing(1.5),
+      gap: theme.spacing(1),
       minWidth: 0,
       flex: "0 1 auto",
       marginLeft: "auto",
@@ -72,8 +72,7 @@ const typeFilterChipsStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: theme.spacing(0.5),
-      marginRight: theme.spacing(0.5),
-      paddingRight: theme.spacing(1.5),
+      paddingRight: theme.spacing(1),
       borderRight: `1px solid ${theme.vars.palette.divider}`
     },
     ".provider-quick-chip": {
@@ -101,7 +100,6 @@ const typeFilterChipsStyles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary,
       textTransform: "uppercase",
       letterSpacing: "0.5px",
-      marginInline: theme.spacing(0, 0.5),
       whiteSpace: "nowrap",
       fontWeight: FONT_WEIGHT.medium
     },

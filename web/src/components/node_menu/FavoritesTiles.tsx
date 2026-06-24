@@ -30,10 +30,11 @@ const tileStyles = (theme: Theme) =>
       flexDirection: "column",
       width: "100%",
       height: "fit-content",
+      padding: "0.5em 1em 0.5em 0.5em",
       boxSizing: "border-box"
     },
     ".tiles-header": {
-      marginBottom: "0.5em",
+      marginBottom: "0.25em",
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
@@ -41,9 +42,9 @@ const tileStyles = (theme: Theme) =>
     },
     ".tiles-container": {
       display: "grid",
-      gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+      gridTemplateColumns: "repeat(auto-fill, minmax(116px, 1fr))",
       gridAutoRows: "1fr",
-      gap: getSpacingPx(SPACING.md),
+      gap: getSpacingPx(SPACING.sm),
       alignContent: "start",
       overflowY: "auto",
       padding: getSpacingPx(SPACING.micro),
@@ -54,7 +55,7 @@ const tileStyles = (theme: Theme) =>
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.md)}`,
+      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.sm)}`,
       borderRadius: BORDER_RADIUS.md,
       cursor: "pointer",
       position: "relative",

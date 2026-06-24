@@ -106,6 +106,12 @@ interface SearchInputProps {
   onPressArrowDown?: () => void;
   onPressArrowUp?: () => void;
   onPressEnter?: () => void;
+  /**
+   * Called when Space is pressed while the input is focused and empty. Lets a
+   * host (e.g. the node menu) make Space a toggle without breaking multi-word
+   * search — once there's text, Space types normally.
+   */
+  onPressSpaceWhenEmpty?: () => void;
   focusSearchInput?: boolean;
   focusOnTyping?: boolean;
   placeholder?: string;
@@ -122,6 +128,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
   onPressArrowDown,
   onPressArrowUp,
   onPressEnter,
+  onPressSpaceWhenEmpty,
   focusSearchInput = true,
   focusOnTyping = false,
   placeholder = "Search...",
@@ -219,6 +226,20 @@ const SearchInput: React.FC<SearchInputProps> = ({
         return;
       }
 
+      // Space on an empty, focused search toggles the host closed (e.g. the node
+      // menu). Once there's text, Space falls through and types normally so
+      // multi-word searches still work.
+      if (
+        onPressSpaceWhenEmpty &&
+        event.key === " " &&
+        document.activeElement === inputRef.current &&
+        (inputRef.current?.value ?? "").length === 0
+      ) {
+        event.preventDefault();
+        onPressSpaceWhenEmpty();
+        return;
+      }
+
       if (focusOnTyping) {
         if (isControlOrMetaPressed) { return; }
         if (event.key.length === 1 && /[a-zA-Z0-9]/.test(event.key)) {
@@ -237,6 +258,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
   }, [
     focusOnTyping,
     isControlOrMetaPressed,
+    onPressSpaceWhenEmpty,
     onPressEscape,
     onPressArrowDown,
     onPressArrowUp,

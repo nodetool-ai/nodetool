@@ -47,6 +47,9 @@ export type NodeMenuStore = {
   menuWidth: number;
   menuHeight: number;
   setMenuSize: (width: number, height: number) => void;
+  /** User-resized menu dimensions (px); null means use the responsive default. */
+  menuUserSize: { width: number; height: number } | null;
+  setMenuUserSize: (size: { width: number; height: number } | null) => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   selectedInputType: string;
@@ -205,6 +208,8 @@ export const createNodeMenuStore = () =>
       menuHeight: 0,
       setMenuSize: (width, height) =>
         set({ menuWidth: width, menuHeight: height }),
+      menuUserSize: null,
+      setMenuUserSize: (size) => set({ menuUserSize: size }),
       searchTerm: "",
       setSearchTerm: (term) => {
         // Only update searchTerm - avoid unnecessary state changes
