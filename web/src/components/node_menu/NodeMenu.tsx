@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useMemo, useRef, useEffect, useState, useCallback } from "react";
+import { memo, useMemo, useEffect, useState, useCallback } from "react";
 
 // mui
 
@@ -11,16 +11,27 @@ import TypeFilterChips from "./TypeFilterChips";
 import NamespaceList from "./NamespaceList";
 // store
 import { useStoreWithEqualityFn } from "zustand/traditional";
-import useNodeMenuStore, { type NodeMenuStore } from "../../stores/NodeMenuStore";
+import useNodeMenuStore, {
+  type NodeMenuStore
+} from "../../stores/NodeMenuStore";
 
 // utils
-import Draggable from "react-draggable";
+import { useDraggable } from "../../hooks/useDraggable";
+import { useResizable } from "../../hooks/useResizable";
 // theme
 import useNamespaceTree from "../../hooks/useNamespaceTree";
 import SearchInput from "../search/SearchInput";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useCreateNode } from "../../hooks/useCreateNode";
-import { FlexColumn, FlexRow, Box, BORDER_RADIUS, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
+import {
+  FlexColumn,
+  FlexRow,
+  Box,
+  BORDER_RADIUS,
+  MOTION,
+  SPACING,
+  getSpacingPx
+} from "../ui_primitives";
 import { useShallow } from "zustand/react/shallow";
 
 const treeStyles = (theme: Theme) =>
@@ -57,6 +68,33 @@ const treeStyles = (theme: Theme) =>
     },
     ".draggable-header:active": {
       cursor: "grabbing"
+    },
+    // Resize handles (top-left anchored): right edge, bottom edge, corner.
+    ".nm-resize": {
+      position: "absolute",
+      zIndex: 30,
+      touchAction: "none"
+    },
+    ".nm-resize-right": {
+      top: "40px",
+      bottom: "12px",
+      right: 0,
+      width: "7px",
+      cursor: "ew-resize"
+    },
+    ".nm-resize-bottom": {
+      left: 0,
+      right: "12px",
+      bottom: 0,
+      height: "7px",
+      cursor: "ns-resize"
+    },
+    ".nm-resize-corner": {
+      right: 0,
+      bottom: 0,
+      width: "16px",
+      height: "16px",
+      cursor: "nwse-resize"
     },
     ".node-menu-container": {
       borderRadius: `0 0 ${BORDER_RADIUS.xxl} ${BORDER_RADIUS.xxl}`,
@@ -105,7 +143,6 @@ type NodeMenuProps = {
 };
 
 const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
-  const nodeRef = useRef<HTMLDivElement>(null);
   const [bounds, setBounds] = useState({
     left: 0,
     right: 0,
@@ -133,6 +170,8 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     setSelectedOutputType,
     setSearchTerm,
     setMenuSize,
+    menuUserSize,
+    setMenuUserSize,
     moveSelectionUp,
     moveSelectionDown,
     getSelectedNode
@@ -140,6 +179,8 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
     useShallow((state) => ({
       menuHeight: state.menuHeight,
       menuPosition: state.menuPosition,
+      menuUserSize: state.menuUserSize,
+      setMenuUserSize: state.setMenuUserSize,
       searchResults: state.searchResults,
       selectedInputType: state.selectedInputType,
       selectedOutputType: state.selectedOutputType,
@@ -154,6 +195,25 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
       getSelectedNode: state.getSelectedNode
     }))
   );
+
+  // Draggable menu via its header. `useDraggable` owns the transform and clamps
+  // to the viewport bounds; the drag position is intentionally not persisted
+  // (the menu reopens at `menuPosition`).
+  const nodeRef = useDraggable<HTMLDivElement>({
+    handle: ".draggable-header",
+    bounds,
+    defaultPosition: { x: menuPosition.x, y: menuPosition.y }
+  });
+
+  // Resize from the right / bottom / corner (top-left stays anchored). The
+  // final size is persisted so it sticks across reopens within the session.
+  const startResize = useResizable(nodeRef, {
+    minWidth: 560,
+    minHeight: 360,
+    maxHeight:
+      typeof window !== "undefined" ? window.innerHeight * 0.9 : undefined,
+    onResizeEnd: setMenuUserSize
+  });
 
   const namespaceTree = useNamespaceTree();
   const theme = useTheme();
@@ -253,75 +313,91 @@ const NodeMenu = ({ focusSearchInput = false }: NodeMenuProps) => {
   }
 
   return (
-    <Draggable
-      bounds={bounds}
-      nodeRef={nodeRef}
-      defaultPosition={{ x: menuPosition.x, y: menuPosition.y }}
-      handle=".draggable-header"
+    <FlexColumn
+      ref={nodeRef}
+      sx={{
+        width: menuUserSize?.width ?? 980,
+        minWidth: 0,
+        height: menuUserSize?.height,
+        maxHeight: menuUserSize ? undefined : menuHeight
+      }}
+      className="floating-node-menu"
+      css={memoizedStyles}
     >
-      <FlexColumn
-        ref={nodeRef}
-        sx={{ minWidth: "980px", maxHeight: menuHeight }}
-        className="floating-node-menu"
-        css={memoizedStyles}
-      >
-        <FlexRow
-          className="draggable-header"
-          align="center"
-          justify="flex-end"
-        ></FlexRow>
-        <Box className="node-menu-container">
-          <div className="main-content">
-            <FlexColumn
-              gap={1}
-              className="search-toolbar"
-              sx={{
-                flexGrow: 0,
-                overflow: "visible",
-                width: "100%",
-                margin: 0,
-                padding: "0 1em 0 0.5em"
-              }}
+      <FlexRow
+        className="draggable-header"
+        align="center"
+        justify="flex-end"
+      ></FlexRow>
+      <Box className="node-menu-container">
+        <div className="main-content">
+          <FlexColumn
+            gap={1}
+            className="search-toolbar"
+            sx={{
+              flexGrow: 0,
+              overflow: "visible",
+              width: "100%",
+              margin: 0,
+              padding: "0 1em 0 0.5em"
+            }}
+          >
+            <FlexRow
+              gap={1.5}
+              align="center"
+              className="search-row"
+              sx={{ marginLeft: `-${getSpacingPx(SPACING.xs)}`, width: "100%" }} // was -3px
             >
-              <FlexRow
-                gap={1.5}
-                align="center"
-                className="search-row"
-                sx={{ marginLeft: `-${getSpacingPx(SPACING.xs)}`, width: "100%" }} // was -3px
+              <SearchInput
+                focusSearchInput={focusSearchInput}
+                focusOnTyping={false}
+                placeholder="Search for nodes..."
+                debounceTime={80}
+                width={300}
+                maxWidth={"300px"}
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                onPressEscape={closeNodeMenu}
+                onPressSpaceWhenEmpty={closeNodeMenu}
+                onPressArrowDown={handleArrowDown}
+                onPressArrowUp={handleArrowUp}
+                onPressEnter={handleEnter}
+                searchResults={searchResults}
+              />
+              <div
+                style={{ marginLeft: "0.75em", flex: "1 1 auto", minWidth: 0 }}
               >
-                <SearchInput
-                  focusSearchInput={focusSearchInput}
-                  focusOnTyping={false}
-                  placeholder="Search for nodes..."
-                  debounceTime={80}
-                  width={300}
-                  maxWidth={"300px"}
-                  searchTerm={searchTerm}
-                  onSearchChange={setSearchTerm}
-                  onPressEscape={closeNodeMenu}
-                  onPressArrowDown={handleArrowDown}
-                  onPressArrowUp={handleArrowUp}
-                  onPressEnter={handleEnter}
-                  searchResults={searchResults}
+                <TypeFilterChips
+                  selectedInputType={selectedInputType}
+                  selectedOutputType={selectedOutputType}
+                  setSelectedInputType={setSelectedInputType}
+                  setSelectedOutputType={setSelectedOutputType}
                 />
-                <div style={{ marginLeft: "0.75em", flex: "1 1 auto", minWidth: 0 }}>
-                  <TypeFilterChips
-                    selectedInputType={selectedInputType}
-                    selectedOutputType={selectedOutputType}
-                    setSelectedInputType={setSelectedInputType}
-                    setSelectedOutputType={setSelectedOutputType}
-                  />
-                </div>
-              </FlexRow>
-            </FlexColumn>
-            <NamespaceList
-              namespaceTree={namespaceTree}
-              metadata={searchResults}
-            />
-          </div>
-        </Box>
-      </FlexColumn>
-    </Draggable>
+              </div>
+            </FlexRow>
+          </FlexColumn>
+          <NamespaceList
+            namespaceTree={namespaceTree}
+            metadata={searchResults}
+          />
+        </div>
+      </Box>
+      <div
+        className="nm-resize nm-resize-right"
+        onPointerDown={startResize("right")}
+        aria-hidden
+      />
+      <div
+        className="nm-resize nm-resize-bottom"
+        onPointerDown={startResize("bottom")}
+        aria-hidden
+      />
+      <div
+        className="nm-resize nm-resize-corner"
+        onPointerDown={startResize("bottom-right")}
+        aria-hidden
+      />
+    </FlexColumn>
   );
 };
 

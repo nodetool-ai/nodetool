@@ -2,9 +2,8 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect } from "react";
 import { useMediaQuery } from "@mui/material";
-import Draggable, { type DraggableData } from "react-draggable";
 import { EditorMenu } from "../ui_primitives";
 import { Tooltip, AlertBanner, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
@@ -35,6 +34,7 @@ import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { getShortcutTooltip } from "../../config/shortcuts";
 import { cn } from "../editor_ui/editorUtils";
 import { MenuItemPrimitive } from "../ui_primitives/MenuItemPrimitive";
+import { useDraggable } from "../../hooks/useDraggable";
 import { useFloatingToolbarState } from "../../hooks/useFloatingToolbarState";
 import { useFloatingToolbarActions } from "../../hooks/useFloatingToolbarActions";
 import { useFloatingToolbarPosition } from "../../hooks/useFloatingToolbarPosition";
@@ -101,8 +101,8 @@ const dockStyles = (theme: Theme) =>
     pointerEvents: "auto",
 
     // Grab affordance the user drags to move the whole dock. Rendered as a
-    // span (not a button) so react-draggable's `cancel="button"` doesn't
-    // exclude it while still excluding the real action buttons around it.
+    // span (not a button) so the drag hook's `cancel="button"` doesn't exclude
+    // it while still excluding the real action buttons around it.
     ".composer-drag-handle": {
       display: "inline-flex",
       alignItems: "center",
@@ -351,39 +351,34 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   // overlay reaches the thread (even empty), the thread list, and full chat.
   const conversationOpen = !conversationCollapsed;
 
-  // Draggable dock position. Kept in local state during the gesture for smooth
-  // movement, persisted to the store (clamped on-screen) when the drag ends.
-  const dockRef = useRef<HTMLDivElement>(null);
-  const [dragPos, setDragPos] = useState<DockPosition>(storePosition);
-  useEffect(() => {
-    setDragPos(storePosition);
-  }, [storePosition]);
-
-  const clampToViewport = useCallback((pos: DockPosition): DockPosition => {
-    const node = dockRef.current;
-    if (!node || typeof window === "undefined") {
-      return pos;
-    }
-    const rect = node.getBoundingClientRect();
-    const margin = 8;
-    let { x, y } = pos;
-    if (rect.left < margin) x += margin - rect.left;
-    if (rect.right > window.innerWidth - margin)
-      x -= rect.right - (window.innerWidth - margin);
-    if (rect.top < margin) y += margin - rect.top;
-    if (rect.bottom > window.innerHeight - margin)
-      y -= rect.bottom - (window.innerHeight - margin);
-    return { x, y };
-  }, []);
-
-  const handleDragStop = useCallback(
-    (_e: unknown, data: DraggableData) => {
-      const next = clampToViewport({ x: data.x, y: data.y });
-      setDragPos(next);
-      setStorePosition(next);
+  // Draggable dock. `useDraggable` owns the dock's transform; we persist the
+  // final (on-screen clamped) offset to the store on release so it survives
+  // reloads. The store value flows back in as the controlled `position`.
+  const clampToViewport = useCallback(
+    (node: HTMLElement | null, pos: DockPosition): DockPosition => {
+      if (!node || typeof window === "undefined") {
+        return pos;
+      }
+      const rect = node.getBoundingClientRect();
+      const margin = 8;
+      let { x, y } = pos;
+      if (rect.left < margin) x += margin - rect.left;
+      if (rect.right > window.innerWidth - margin)
+        x -= rect.right - (window.innerWidth - margin);
+      if (rect.top < margin) y += margin - rect.top;
+      if (rect.bottom > window.innerHeight - margin)
+        y -= rect.bottom - (window.innerHeight - margin);
+      return { x, y };
     },
-    [clampToViewport, setStorePosition]
+    []
   );
+
+  const dockRef = useDraggable<HTMLDivElement>({
+    handle: ".dock-drag-handle",
+    cancel: "button, input, textarea, .dock-no-drag",
+    position: storePosition,
+    onStop: (pos) => setStorePosition(clampToViewport(dockRef.current, pos))
+  });
 
   // Keep the dock on-screen when the viewport shrinks (e.g. window resize).
   useEffect(() => {
@@ -391,15 +386,16 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
       return;
     }
     const onResize = () => {
-      const clamped = clampToViewport(
-        useCanvasChatDockStore.getState().position
+      setStorePosition(
+        clampToViewport(
+          dockRef.current,
+          useCanvasChatDockStore.getState().position
+        )
       );
-      setDragPos(clamped);
-      setStorePosition(clamped);
     };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
-  }, [clampToViewport, setStorePosition]);
+  }, [clampToViewport, setStorePosition, dockRef]);
 
   const dockWidthCss =
     dockWidth != null
@@ -586,41 +582,32 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   return (
     <>
       <div css={dockLayerStyles(theme)} style={toolbarPosition}>
-        <Draggable
-          nodeRef={dockRef as React.RefObject<HTMLElement>}
-          handle=".dock-drag-handle"
-          cancel="button, input, textarea, .dock-no-drag"
-          position={dragPos}
-          onDrag={(_e, data) => setDragPos({ x: data.x, y: data.y })}
-          onStop={handleDragStop}
+        <div
+          ref={dockRef}
+          css={dockStyles(theme)}
+          className="floating-toolbar canvas-chat-dock"
+          style={{ width: dockWidthCss }}
         >
-          <div
-            ref={dockRef}
-            css={dockStyles(theme)}
-            className="floating-toolbar canvas-chat-dock"
-            style={{ width: dockWidthCss }}
-          >
-            {conversationOpen && (
-              <ConversationOverlay
-                onCollapse={() => setConversationCollapsed(true)}
-              />
-            )}
-            {chatError && (
-              <AlertBanner
-                severity="error"
-                compact
-                onClose={clearChatError}
-                sx={{ borderRadius: BORDER_RADIUS.xl }}
-              >
-                {chatError}
-              </AlertBanner>
-            )}
-            <CanvasMediaComposer
-              leadingActions={dragHandle}
-              trailingActions={workflowActions}
+          {conversationOpen && (
+            <ConversationOverlay
+              onCollapse={() => setConversationCollapsed(true)}
             />
-          </div>
-        </Draggable>
+          )}
+          {chatError && (
+            <AlertBanner
+              severity="error"
+              compact
+              onClose={clearChatError}
+              sx={{ borderRadius: BORDER_RADIUS.xl }}
+            >
+              {chatError}
+            </AlertBanner>
+          )}
+          <CanvasMediaComposer
+            leadingActions={dragHandle}
+            trailingActions={workflowActions}
+          />
+        </div>
       </div>
 
       <EditorMenu
