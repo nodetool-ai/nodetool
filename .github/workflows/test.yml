@@ -19,6 +19,7 @@ on:
       - ".nvmrc"
       - ".github/workflows/test.yml"
       - ".github/workflows/quality-checks.yml"
+      - ".github/actions/setup-build/**"
   pull_request:
     branches:
       - main
@@ -34,7 +35,11 @@ jobs:
     name: Quality Gate (npm run check)
     uses: ./.github/workflows/quality-checks.yml
     with:
-      fail-fast: true
+      # false → every check leg (deps/typecheck/lint/tests) runs to completion
+      # so each reports its own red/green instead of the first failure masking
+      # the rest. The required check is the reusable workflow's `quality` gate
+      # job, surfaced unchanged as "Quality Gate (npm run check) / quality".
+      fail-fast: false
       skip-tests: false
 
   integration:

@@ -4,73 +4,91 @@ on:
   workflow_call:
     inputs:
       fail-fast:
-        description: 'Whether to fail fast on first error'
+        description: >-
+          Matrix fail-fast. When false (the default) every check leg runs to
+          completion so each reports its own independent red/green signal. When
+          true, the first failing leg cancels the others (saves runner minutes
+          at the cost of partial signal).
         required: false
         type: boolean
-        default: true
+        default: false
       skip-tests:
-        description: 'Whether to skip running tests'
+        description: 'Whether to skip the package + app test legs (keeps deps/typecheck/lint).'
         required: false
         type: boolean
         default: false
     outputs:
-      typecheck-passed:
-        description: 'Whether typecheck passed'
-        value: ${{ jobs.quality.outputs.typecheck-passed }}
-      lint-passed:
-        description: 'Whether lint passed'
-        value: ${{ jobs.quality.outputs.lint-passed }}
-      test-passed:
-        description: 'Whether app tests passed'
-        value: ${{ jobs.quality.outputs.test-passed }}
-      packages-test-passed:
-        description: 'Whether package tests passed'
-        value: ${{ jobs.quality.outputs.packages-test-passed }}
       all-passed:
-        description: 'Whether all checks passed'
+        description: 'Whether every quality check leg passed.'
         value: ${{ jobs.quality.outputs.all-passed }}
 
 jobs:
-  quality:
+  # One job per check, run in parallel. Each leg does only the setup it needs:
+  # lint/deps skip `build:packages`; only the package-test leg needs the CPU
+  # Vulkan driver; only typecheck/test-app need the mobile dependency tree.
+  # Wall-clock drops from sum(checks) to max(checks) + a trivial gate, and each
+  # leg surfaces its own status check (e.g. "Quality Gate (npm run check) / lint").
+  checks:
+    name: ${{ matrix.check }}
     runs-on: ubuntu-latest
-    outputs:
-      typecheck-passed: ${{ steps.set-outputs.outputs.typecheck-passed }}
-      lint-passed: ${{ steps.set-outputs.outputs.lint-passed }}
-      test-passed: ${{ steps.set-outputs.outputs.test-passed }}
-      packages-test-passed: ${{ steps.set-outputs.outputs.packages-test-passed }}
-      all-passed: ${{ steps.set-outputs.outputs.all-passed }}
-
+    strategy:
+      fail-fast: ${{ inputs.fail-fast }}
+      matrix:
+        include:
+          # Workspace + circular dependency guards (run on source, no build).
+          - check: deps
+            command: node scripts/check-workspace-deps.mjs && node scripts/check-circular-deps.mjs
+            build-packages: "false"
+            mobile-deps: "false"
+            extra-apt: ""
+            is-test: "false"
+          - check: typecheck
+            command: npm run typecheck
+            build-packages: "true"
+            mobile-deps: "true"
+            extra-apt: ""
+            is-test: "false"
+          - check: lint
+            command: npm run lint
+            build-packages: "false"
+            mobile-deps: "false"
+            extra-apt: ""
+            is-test: "false"
+          # mesa-vulkan-drivers ships lavapipe (CPU Vulkan ICD) so Dawn can
+          # acquire a WebGPU adapter on GPU-less runners — without it the
+          # shader-backed base-nodes tests fail with "No WebGPU adapter
+          # available (Node/Dawn)".
+          - check: test-packages
+            command: npm run test:packages
+            build-packages: "true"
+            mobile-deps: "false"
+            extra-apt: "mesa-vulkan-drivers"
+            is-test: "true"
+          - check: test-app
+            command: npm run test
+            build-packages: "true"
+            mobile-deps: "true"
+            extra-apt: ""
+            is-test: "true"
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - name: Set up Node, install deps, build packages
+        uses: ./.github/actions/setup-build
         with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
+          extra-apt: ${{ matrix.extra-apt }}
+          build-packages: ${{ matrix.build-packages }}
 
-      - name: Install system libraries (keytar + CPU Vulkan driver)
-        # mesa-vulkan-drivers ships lavapipe (CPU Vulkan ICD) at
-        # /usr/share/vulkan/icd.d/lvp_icd.x86_64.json so Dawn can acquire a
-        # WebGPU adapter on GPU-less CI runners. Without it, the shader-backed
-        # base-nodes tests fail with "No WebGPU adapter available (Node/Dawn)".
-        # We can't rely on Electron's bundled vk_swiftshader_icd.json here
-        # because ELECTRON_SKIP_BINARY_DOWNLOAD=1 is set below.
-        run: sudo apt-get update && sudo apt-get install -y libsecret-1-0 mesa-vulkan-drivers
-
-      - name: Install all workspace dependencies
-        run: npm ci
-        env:
-          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
-
-      - name: Rebuild native modules
-        run: npm rebuild better-sqlite3
+      - name: Install mobile dependencies
+        if: matrix.mobile-deps == 'true'
+        run: cd mobile && npm ci
 
       - name: Run npm audit (advisory)
         # Advisory only (continue-on-error) so a pre-existing vulnerability
         # backlog doesn't block every PR, but high/critical issues in the
         # production dependency closure are surfaced in the job summary.
+        if: matrix.check == 'deps'
         continue-on-error: true
         run: |
           echo "::group::npm audit (production deps, high+)"
@@ -80,120 +98,39 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "::endgroup::"
 
-      - name: Check workspace dependency declarations
-        # Fails fast if a production-closure package imports a @nodetool-ai/*
-        # workspace package it does not declare in `dependencies`. Such imports
-        # resolve via hoisting locally but break under the Docker prod prune
-        # (npm ci --omit=dev), crashing the server with ERR_MODULE_NOT_FOUND.
-        run: node scripts/check-workspace-deps.mjs
-
-      - name: Check for circular dependencies
-        # Circular imports among @nodetool-ai/* workspace packages cause
-        # esbuild to wrap `export const` values in __esm lazy initializers.
-        # If a module's top-level code runs before the cycle resolves, those
-        # constants are still `undefined` — the failure mode behind the
-        # "BROWSER_ACTION_SPECS is not iterable" production crash.
-        run: node scripts/check-circular-deps.mjs
-
-      - name: Build backend packages
-        run: npm run build:packages
-
-      - name: Install mobile dependencies
-        run: cd mobile && npm ci
-
-      - name: Run TypeScript type check
-        id: typecheck
-        continue-on-error: ${{ !inputs.fail-fast }}
+      - name: Run ${{ matrix.check }}
+        # skip-tests drops the package + app test legs without touching the
+        # static checks. The leg still spins up but does no work, so it stays
+        # green (a skipped leg must not block the gate).
+        if: ${{ !(inputs.skip-tests && matrix.is-test == 'true') }}
         run: |
-          echo "::group::TypeScript Type Check"
-          npm run typecheck
+          echo "::group::${{ matrix.check }}"
+          ${{ matrix.command }}
           echo "::endgroup::"
 
-      - name: Run ESLint
-        id: lint
-        continue-on-error: ${{ !inputs.fail-fast }}
+  # Aggregating gate. Kept as job id `quality` (no custom name) so the surfaced
+  # status check stays "Quality Gate (npm run check) / quality" — the existing
+  # REQUIRED check, so branch protection needs no change. Fails iff any leg failed.
+  quality:
+    name: quality
+    needs: [checks]
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      all-passed: ${{ steps.gate.outputs.all-passed }}
+    steps:
+      - name: Aggregate check results
+        id: gate
         run: |
-          echo "::group::ESLint Check"
-          npm run lint
-          echo "::endgroup::"
-
-      - name: Run Package Tests
-        id: test-packages
-        if: ${{ !inputs.skip-tests }}
-        continue-on-error: ${{ !inputs.fail-fast }}
-        run: |
-          echo "::group::Package Test Suite"
-          npm run test:packages
-          echo "::endgroup::"
-
-      - name: Run App Tests
-        id: test
-        if: ${{ !inputs.skip-tests }}
-        continue-on-error: ${{ !inputs.fail-fast }}
-        run: |
-          echo "::group::App Test Suite"
-          npm run test
-          echo "::endgroup::"
-
-      - name: Set outputs
-        id: set-outputs
-        if: always()
-        run: |
-          echo "typecheck-passed=${{ steps.typecheck.outcome == 'success' }}" >> $GITHUB_OUTPUT
-          echo "lint-passed=${{ steps.lint.outcome == 'success' }}" >> $GITHUB_OUTPUT
-          echo "test-passed=${{ steps.test.outcome == 'success' || inputs.skip-tests }}" >> $GITHUB_OUTPUT
-          echo "packages-test-passed=${{ steps.test-packages.outcome == 'success' || inputs.skip-tests }}" >> $GITHUB_OUTPUT
-
-          if [ "${{ steps.typecheck.outcome }}" == "success" ] && \
-             [ "${{ steps.lint.outcome }}" == "success" ] && \
-             ( [ "${{ steps.test.outcome }}" == "success" ] || [ "${{ inputs.skip-tests }}" == "true" ] ) && \
-             ( [ "${{ steps.test-packages.outcome }}" == "success" ] || [ "${{ inputs.skip-tests }}" == "true" ] ); then
+          result="${{ needs.checks.result }}"
+          echo "## Quality Gate" >> $GITHUB_STEP_SUMMARY
+          if [ "$result" == "success" ]; then
             echo "all-passed=true" >> $GITHUB_OUTPUT
+            echo "✅ **All quality checks passed.**" >> $GITHUB_STEP_SUMMARY
           else
             echo "all-passed=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Generate quality report
-        if: always()
-        run: |
-          echo "## Quality Check Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          if [ "${{ steps.typecheck.outcome }}" == "success" ]; then
-            echo "✅ **TypeScript Type Check**: Passed" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ **TypeScript Type Check**: Failed" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          if [ "${{ steps.lint.outcome }}" == "success" ]; then
-            echo "✅ **ESLint**: Passed" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ **ESLint**: Failed" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          if [ "${{ inputs.skip-tests }}" == "true" ]; then
-            echo "⏭️ **Package Tests**: Skipped" >> $GITHUB_STEP_SUMMARY
-            echo "⏭️ **App Tests**: Skipped" >> $GITHUB_STEP_SUMMARY
-          else
-            if [ "${{ steps.test-packages.outcome }}" == "success" ]; then
-              echo "✅ **Package Tests**: Passed" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "❌ **Package Tests**: Failed" >> $GITHUB_STEP_SUMMARY
-            fi
-            if [ "${{ steps.test.outcome }}" == "success" ]; then
-              echo "✅ **App Tests**: Passed" >> $GITHUB_STEP_SUMMARY
-            else
-              echo "❌ **App Tests**: Failed" >> $GITHUB_STEP_SUMMARY
-            fi
-          fi
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          if [ "${{ steps.typecheck.outcome }}" == "success" ] && \
-             [ "${{ steps.lint.outcome }}" == "success" ] && \
-             ( [ "${{ steps.test.outcome }}" == "success" ] || [ "${{ inputs.skip-tests }}" == "true" ] ) && \
-             ( [ "${{ steps.test-packages.outcome }}" == "success" ] || [ "${{ inputs.skip-tests }}" == "true" ] ); then
-            echo "✅ **Overall**: All quality checks passed!" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ **Overall**: Some quality checks failed. Please review the logs above." >> $GITHUB_STEP_SUMMARY
+            echo "❌ **One or more quality checks failed** (matrix result: \`$result\`)." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "See the individual check legs above to find which one." >> $GITHUB_STEP_SUMMARY
+            exit 1
           fi
