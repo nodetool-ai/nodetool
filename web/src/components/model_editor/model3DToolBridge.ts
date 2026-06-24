@@ -45,6 +45,11 @@ export interface Model3DToolHandler {
   renameObject: (idOrName: string, name: string) => Model3DSceneNode;
   setMaterialColor: (idOrName: string, color: string) => Model3DSceneNode;
   frameScene: () => void;
+  /**
+   * Render the current viewport and return it as a PNG `data:` URL, so a
+   * vision-capable agent can visually inspect the scene.
+   */
+  captureView: () => string;
 }
 
 let handler: Model3DToolHandler | null = null;

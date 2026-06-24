@@ -32,7 +32,8 @@ const createMockHandler = (): jest.Mocked<Model3DToolHandler> => ({
   setVisibility: jest.fn(),
   renameObject: jest.fn(),
   setMaterialColor: jest.fn(),
-  frameScene: jest.fn()
+  frameScene: jest.fn(),
+  captureView: jest.fn()
 });
 
 // The 3D tools never touch the workflow state, so a bare stub satisfies the ctx.
@@ -55,7 +56,8 @@ describe("ui_3d_* tools", () => {
         "ui_3d_set_visibility",
         "ui_3d_rename_object",
         "ui_3d_set_material_color",
-        "ui_3d_frame_scene"
+        "ui_3d_frame_scene",
+        "ui_3d_capture_view"
       ])
     );
   });
@@ -143,5 +145,32 @@ describe("ui_3d_* tools", () => {
     );
 
     expect(handler.setMaterialColor).toHaveBeenCalledWith("Box", "#ff8800");
+  });
+
+  it("captures the viewport and returns image_content the backend can route", async () => {
+    const handler = createMockHandler();
+    handler.captureView.mockReturnValue(
+      "data:image/png;base64,QUJDMTIz"
+    );
+    setModel3DToolHandler(handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_3d_capture_view",
+      {},
+      "tc-7",
+      ctx
+    )) as {
+      ok: boolean;
+      note: string;
+      image_content: { data: string; mimeType: string };
+    };
+
+    expect(handler.captureView).toHaveBeenCalled();
+    expect(result.ok).toBe(true);
+    // The "data:image/png;base64," prefix is stripped to raw base64.
+    expect(result.image_content).toEqual({
+      data: "QUJDMTIz",
+      mimeType: "image/png"
+    });
   });
 });

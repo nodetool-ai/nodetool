@@ -2505,9 +2505,54 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
-   * Add context as a system message before the last user message.
-   * Mirrors Python's RegularChatProcessor._add_collection_context().
+   * Detect a frontend tool result that carries a viewable image (e.g.
+   * `ui_3d_capture_view`, which returns `{ image_content: { data, mimeType } }`)
+   * and convert it into MessageContent blocks so vision-capable providers can
+   * actually see it. Returns null for ordinary results, which continue to be
+   * JSON-stringified as before.
    */
+  private extractToolResultImageContent(
+    toolResult: unknown
+  ): MessageContent[] | null {
+    if (!toolResult || typeof toolResult !== "object") return null;
+    const record = toolResult as Record<string, unknown>;
+    const image = record.image_content;
+    if (!image || typeof image !== "object") return null;
+    const imageRecord = image as Record<string, unknown>;
+    const data =
+      typeof imageRecord.data === "string" ? imageRecord.data : undefined;
+    const uri =
+      typeof imageRecord.uri === "string" ? imageRecord.uri : undefined;
+    if (!data && !uri) return null;
+    const mimeType =
+      typeof imageRecord.mimeType === "string"
+        ? imageRecord.mimeType
+        : "image/png";
+    const note =
+      typeof record.note === "string" ? record.note : "Captured image:";
+    return [
+      { type: "text", text: note },
+      { type: "image_url", image: { data, uri, mimeType } }
+    ];
+  }
+
+  /**
+   * The displayable text for a tool result that may be image content. Used for
+   * the persisted/echoed tool message so chat history stays a light note
+   * instead of a base64 blob (the image only rides the in-flight provider
+   * message for the turn that captured it).
+   */
+  private toolResultDisplayText(content: MessageContent[]): string {
+    const text = content
+      .filter((c): c is MessageContent & { type: "text"; text: string } =>
+        c.type === "text"
+      )
+      .map((c) => c.text)
+      .join("\n");
+    return text || "[image result]";
+  }
+
+
   private addCollectionContext(
     messages: ProviderMessage[],
     collectionContext: string
@@ -3099,10 +3144,14 @@ export class UnifiedWebSocketRunner {
       memoryContext = "";
     }
 
-    // Run one tool call and return the result text to feed back to the model.
-    // Owns server/client tool routing, side effects (client round-trips via the
+    // Run one tool call and return the result to feed back to the model. Owns
+    // server/client tool routing, side effects (client round-trips via the
     // ToolBridge), and asset materialization; the provider's loop orchestrates.
-    const executeTool = async (toolCall: ProviderToolCall): Promise<string> => {
+    // Image results (e.g. ui_3d_capture_view) return MessageContent blocks so
+    // vision providers can see them; everything else returns result text.
+    const executeTool = async (
+      toolCall: ProviderToolCall
+    ): Promise<string | MessageContent[]> => {
       let toolResult: unknown;
       const serverTool = serverToolMap.get(toolCall.name);
       if (serverTool) {
@@ -3134,6 +3183,8 @@ export class UnifiedWebSocketRunner {
       } else {
         toolResult = { error: `Tool "${toolCall.name}" not available` };
       }
+      const imageContent = this.extractToolResultImageContent(toolResult);
+      if (imageContent) return imageContent;
       const processed = await this.processToolResult(toolResult, ctx);
       return typeof processed === "string"
         ? processed
@@ -3190,12 +3241,20 @@ export class UnifiedWebSocketRunner {
             await this.saveMessageToDb(assistantMsgData);
             await this.sendMessage(assistantMsgData);
           } else if (m.role === "tool") {
+            // Image tool results carry MessageContent blocks; persist/echo only
+            // their note text so chat history stays light (the base64 rode the
+            // in-flight provider message, never the DB).
+            const toolContent = Array.isArray(m.content)
+              ? this.toolResultDisplayText(m.content)
+              : typeof m.content === "string"
+                ? m.content
+                : "";
             const toolMsgData: Record<string, unknown> = {
               type: "message",
               role: "tool",
               tool_call_id: m.toolCallId ?? null,
               name: m.toolCallId ? toolNames.get(m.toolCallId) ?? null : null,
-              content: typeof m.content === "string" ? m.content : "",
+              content: toolContent,
               thread_id: threadId,
               workflow_id: workflowId,
               provider: providerId,

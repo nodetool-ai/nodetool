@@ -9,6 +9,7 @@ import type {
   LanguageModel,
   LipSyncParams,
   Message,
+  MessageContent,
   Model3D,
   MusicModel,
   ProviderId,
@@ -51,6 +52,23 @@ import { SpanStatusCode } from "@opentelemetry/api";
 import { createLogger, getAssetFilePath } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.runtime.provider");
+
+/**
+ * Collapse a tool result to plain text. Used by string-only tool channels (the
+ * legacy inline callback, the Claude Agent SDK's MCP tools) when a tool returns
+ * {@link MessageContent} blocks they can't render — keep the text, drop images.
+ */
+export function toolResultToText(result: string | MessageContent[]): string {
+  if (typeof result === "string") return result;
+  const text = result
+    .filter(
+      (c): c is MessageContent & { type: "text"; text: string } =>
+        c.type === "text"
+    )
+    .map((c) => c.text)
+    .join("\n");
+  return text || "[image result]";
+}
 
 /**
  * Capability names a provider can expose. These correspond to the `capability`
@@ -700,11 +718,13 @@ export abstract class BaseProvider {
   async *generateLoop(
     args: Parameters<this["generateMessages"]>[0] & {
       /**
-       * Execute one tool call and return the result text to feed back to the
-       * model (and to store in the tool message). The harness owns tool
-       * resolution, gating, and side effects; the provider only orchestrates.
+       * Execute one tool call and return the result to feed back to the model
+       * (and to store in the tool message). Usually result text; a tool may
+       * instead return {@link MessageContent} blocks (e.g. an image) for
+       * vision-capable providers. The harness owns tool resolution, gating, and
+       * side effects; the provider only orchestrates.
        */
-      executeTool?: (toolCall: ToolCall) => Promise<string>;
+      executeTool?: (toolCall: ToolCall) => Promise<string | MessageContent[]>;
       /** Cap on tool-calling rounds before stopping. Defaults to 25. */
       maxIterations?: number;
     }
@@ -715,11 +735,18 @@ export abstract class BaseProvider {
 
     // Bridge to the legacy inline tool callback for any provider that executes
     // tools mid-stream instead of yielding ToolCall items. Real providers yield
-    // ToolCall (handled below); this keeps the inline path working too.
+    // ToolCall (handled below); this keeps the inline path working too. That
+    // channel is string-only, so image results collapse to their text.
     let toolCallSeq = 0;
     const onToolCall = executeTool
-      ? (name: string, toolArgs: Record<string, unknown>) =>
-          executeTool({ id: `call_${++toolCallSeq}`, name, args: toolArgs })
+      ? async (name: string, toolArgs: Record<string, unknown>) => {
+          const result = await executeTool({
+            id: `call_${++toolCallSeq}`,
+            name,
+            args: toolArgs
+          });
+          return typeof result === "string" ? result : toolResultToText(result);
+        }
       : turnArgs.onToolCall;
 
     for (let iteration = 0; iteration < maxIterations; iteration++) {

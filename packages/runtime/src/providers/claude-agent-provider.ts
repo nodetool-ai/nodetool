@@ -43,12 +43,13 @@ import type {
   SDKUserMessage
 } from "@anthropic-ai/claude-agent-sdk";
 import { z, type ZodTypeAny } from "zod";
-import { BaseProvider } from "./base-provider.js";
+import { BaseProvider, toolResultToText } from "./base-provider.js";
 import {
   isProviderMessageEvent,
   isProviderSessionUpdate,
   type LanguageModel,
   type Message,
+  type MessageContent,
   type MessageTextContent,
   type ProviderSession,
   type ProviderStreamItem,
@@ -218,7 +219,7 @@ export class ClaudeAgentProvider extends BaseProvider {
    */
   override async *generateLoop(
     args: Parameters<ClaudeAgentProvider["generateMessages"]>[0] & {
-      executeTool?: (toolCall: ToolCall) => Promise<string>;
+      executeTool?: (toolCall: ToolCall) => Promise<string | MessageContent[]>;
       maxIterations?: number;
     }
   ): AsyncGenerator<ProviderStreamItem> {
@@ -228,9 +229,17 @@ export class ClaudeAgentProvider extends BaseProvider {
     if (tools.length > 0 && args.executeTool) {
       const createServer = await this.loadCreateMcpServer();
       const executeTool = args.executeTool;
+      // The SDK's MCP tool results are text-only, so collapse image content to
+      // its text (vision tools degrade gracefully on the agent-SDK path).
       const defs = tools.map((t) =>
         toolDefinition(t, async (name, toolArgs) =>
-          executeTool({ id: `call_${name}_${Date.now()}`, name, args: toolArgs })
+          toolResultToText(
+            await executeTool({
+              id: `call_${name}_${Date.now()}`,
+              name,
+              args: toolArgs
+            })
+          )
         )
       );
       const server = createServer({

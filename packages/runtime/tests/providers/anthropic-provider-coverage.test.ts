@@ -200,6 +200,39 @@ describe("AnthropicProvider – convertMessage branches", () => {
     });
     expect((result as any).content[0].content).toBe("result text");
   });
+
+  it("converts tool message with text + image content into blocks", async () => {
+    const base64 = Buffer.from("png-bytes").toString("base64");
+    const result = await provider.convertMessage({
+      role: "tool",
+      toolCallId: "tc-img",
+      content: [
+        { type: "text", text: "Rendered viewport:" },
+        { type: "image_url", image: { data: base64, mimeType: "image/png" } }
+      ]
+    });
+    const toolResult = (result as any).content[0];
+    expect(toolResult.type).toBe("tool_result");
+    expect(toolResult.tool_use_id).toBe("tc-img");
+    expect(toolResult.content).toEqual([
+      { type: "text", text: "Rendered viewport:" },
+      {
+        type: "image",
+        source: { type: "base64", media_type: "image/png", data: base64 }
+      }
+    ]);
+  });
+
+  it("stringifies tool message array content with no convertible blocks", async () => {
+    const result = await provider.convertMessage({
+      role: "tool",
+      toolCallId: "tc-empty",
+      content: [{ type: "audio", audio: { uri: "x" } }] as any
+    });
+    expect((result as any).content[0].content).toBe(
+      JSON.stringify([{ type: "audio", audio: { uri: "x" } }])
+    );
+  });
 });
 
 describe("AnthropicProvider – prepareJsonSchema via formatTools", () => {

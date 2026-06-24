@@ -6,7 +6,8 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState
+  useState,
+  type MutableRefObject
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -226,6 +227,31 @@ const FitCamera = ({ root, trigger }: FitCameraProps) => {
   return null;
 };
 
+interface CaptureHandles {
+  gl: THREE.WebGLRenderer;
+  scene: THREE.Scene;
+  camera: THREE.Camera;
+}
+
+interface CaptureBridgeProps {
+  targetRef: MutableRefObject<CaptureHandles | null>;
+}
+
+/**
+ * Publishes the live renderer/scene/camera (from inside the Canvas) to a ref the
+ * editor owns, so `captureView` can render a screenshot for the agent on demand.
+ */
+const CaptureBridge = ({ targetRef }: CaptureBridgeProps) => {
+  const { gl, scene, camera } = useThree();
+  useEffect(() => {
+    targetRef.current = { gl, scene, camera };
+    return () => {
+      targetRef.current = null;
+    };
+  }, [gl, scene, camera, targetRef]);
+  return null;
+};
+
 interface AddMenuProps {
   onAdd: (kind: PrimitiveKind) => void;
 }
@@ -325,6 +351,18 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
   useEffect(() => {
     selectedUuidRef.current = selectedUuid;
   }, [selectedUuid]);
+
+  // Live render handles published by <CaptureBridge> for screenshot capture.
+  const captureRef = useRef<CaptureHandles | null>(null);
+  const captureView = useCallback((): string => {
+    const capture = captureRef.current;
+    if (!capture) {
+      throw new Error("3D viewport is not ready to capture yet.");
+    }
+    const { gl, scene, camera } = capture;
+    gl.render(scene, camera);
+    return gl.domElement.toDataURL("image/png");
+  }, []);
 
   // Load the GLB/GLTF into the editor root once per URL.
   useEffect(() => {
@@ -629,12 +667,13 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
       },
       frameScene: () => {
         setFitTrigger((t) => t + 1);
-      }
+      },
+      captureView
     };
 
     setModel3DToolHandler(handler);
     return () => setModel3DToolHandler(null);
-  }, [root, findObject, toNode, addPrimitiveObject, bump]);
+  }, [root, findObject, toNode, addPrimitiveObject, bump, captureView]);
 
   // Delete key removes the selected object.
   useEffect(() => {
@@ -787,6 +826,7 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
             )}
             <OrbitControls makeDefault enableDamping={false} />
             <FitCamera root={root} trigger={fitTrigger} />
+            <CaptureBridge targetRef={captureRef} />
           </Canvas>
         </div>
 

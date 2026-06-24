@@ -143,3 +143,22 @@ FrontendToolRegistry.register({
     return { ok: true };
   }
 });
+
+FrontendToolRegistry.register({
+  name: "ui_3d_capture_view",
+  description:
+    "Capture a screenshot of the current 3D editor viewport (what the camera sees) and return it as an image you can visually inspect. Use it to verify a change looks right, judge composition/colors, or understand a model you didn't build. Tip: call ui_3d_frame_scene first to fit everything in view.",
+  parameters: z.object({}),
+  async execute() {
+    const dataUrl = getModel3DToolHandler().captureView();
+    const commaIndex = dataUrl.indexOf(",");
+    const base64 = commaIndex >= 0 ? dataUrl.slice(commaIndex + 1) : dataUrl;
+    return {
+      ok: true,
+      note: "Rendered view of the 3D editor viewport (PNG).",
+      // Recognized by the server, which routes this to vision-capable
+      // providers as a real image content block (see extractToolResultImageContent).
+      image_content: { data: base64, mimeType: "image/png" }
+    };
+  }
+});
