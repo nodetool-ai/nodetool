@@ -37,6 +37,27 @@ const formatDuration = (ms: number): string => {
   return `${minutes}m ${remainderSeconds}s`;
 };
 
+const DURATION_SPAN_SX = {
+  fontFamily: "monospace",
+  fontWeight: 600,
+  marginLeft: getSpacingPx(SPACING.xs)
+};
+
+const ROW_SX_BASE = {
+  position: "absolute" as const,
+  top: -20,
+  right: 4,
+  padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
+  borderRadius: BORDER_RADIUS.xs,
+  zIndex: 1000,
+  boxShadow: 1
+};
+
+const ROW_SX_SUCCESS = { ...ROW_SX_BASE, backgroundColor: "success.dark" };
+const ROW_SX_ERROR = { ...ROW_SX_BASE, backgroundColor: "error.dark" };
+const TEXT_SX_SUCCESS = { color: "success.contrastText", whiteSpace: "nowrap" };
+const TEXT_SX_ERROR = { color: "error.contrastText", whiteSpace: "nowrap" };
+
 const NodeExecutionTime: React.FC<NodeExecutionTimeProps> = ({
   nodeId,
   workflowId,
@@ -60,33 +81,17 @@ const NodeExecutionTime: React.FC<NodeExecutionTimeProps> = ({
       className="node-execution-indicator"
       align="center"
       gap={0.5}
-      sx={{
-        position: "absolute",
-        top: -20,
-        right: 4,
-        padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
-        backgroundColor: isError ? "error.dark" : "success.dark",
-        borderRadius: BORDER_RADIUS.xs,
-        zIndex: 1000,
-        boxShadow: 1
-      }}
+      sx={isError ? ROW_SX_ERROR : ROW_SX_SUCCESS}
     >
       <Text
         size="smaller"
         weight={500}
-        sx={{
-          color: isError ? "error.contrastText" : "success.contrastText",
-          whiteSpace: "nowrap"
-        }}
+        sx={isError ? TEXT_SX_ERROR : TEXT_SX_SUCCESS}
       >
         {isError ? "Failed in" : "Completed in"}
         <Box
           component="span"
-          sx={{
-            fontFamily: "monospace",
-            fontWeight: 600,
-            marginLeft: getSpacingPx(SPACING.xs)
-          }}
+          sx={DURATION_SPAN_SX}
         >
           {formatDuration(duration)}
         </Box>

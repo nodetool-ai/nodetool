@@ -54,6 +54,10 @@ const actionButtonSx = {
   }
 } as const;
 
+const DIVIDER_SX = { mx: 0.5, my: 0.5 } as const;
+const CAPTION_SX = { textTransform: "uppercase", letterSpacing: "0.08em" } as const;
+const ARRANGE_BUTTON_SX = { ...actionButtonSx, width: "auto", px: 0.5 } as const;
+
 // getShortcutTooltip returns the raw slug when no shortcut is registered for it
 // (e.g. runSelected, distributeVertical). Fall back to the human-readable label
 // so a tooltip never surfaces an internal slug like "runSelected".
@@ -283,16 +287,16 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
           tooltipPlacement="top"
           aria-haspopup="true"
           aria-expanded={arrangeOpen}
-          sx={{ ...actionButtonSx, width: "auto", px: 0.5 }}
+          sx={ARRANGE_BUTTON_SX}
         />
 
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5 }} />
+        <Divider orientation="vertical" flexItem sx={DIVIDER_SX} />
 
         {primaryActions.map((button) => (
           <ActionButton key={button.slug} button={button} />
         ))}
 
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5 }} />
+        <Divider orientation="vertical" flexItem sx={DIVIDER_SX} />
 
         <ActionButton button={deleteAction} />
 
@@ -307,7 +311,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
             <Caption
               size="smaller"
               color="muted"
-              sx={{ textTransform: "uppercase", letterSpacing: "0.08em" }}
+              sx={CAPTION_SX}
             >
               Align
             </Caption>
@@ -322,7 +326,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
               <Divider
                 orientation="vertical"
                 flexItem
-                sx={{ mx: 0.5, my: 0.5 }}
+                sx={DIVIDER_SX}
               />
               {verticalAlign.map((button) => (
                 <ActionButton
@@ -336,7 +340,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
             <Caption
               size="smaller"
               color="muted"
-              sx={{ textTransform: "uppercase", letterSpacing: "0.08em" }}
+              sx={CAPTION_SX}
             >
               Distribute
             </Caption>
