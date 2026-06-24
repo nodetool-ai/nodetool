@@ -21,6 +21,7 @@ import {
   FlexColumn,
   FlexRow,
   LabeledSwitch,
+  MOTION,
   Popover,
   Text,
   TextLink
@@ -50,7 +51,7 @@ const styles = (theme: Theme) =>
       fontFamily: theme.fontFamily1,
       fontSize: theme.fontSizeSmall,
       textAlign: "left",
-      transition: "background-color 0.15s ease",
+      transition: MOTION.background,
       "&:hover": {
         backgroundColor: theme.vars.palette.action.hover,
         color: theme.vars.palette.text.primary
