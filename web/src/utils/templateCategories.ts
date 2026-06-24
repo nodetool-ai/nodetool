@@ -48,8 +48,6 @@ export const TOP_CATEGORIES: TemplateCategory[] = [
   }
 ];
 
-const HIDDEN_TAGS = new Set(["start", "getting-started", "example"]);
-
 const GETTING_STARTED_TAGS = ["getting-started", "start"];
 
 export const isGettingStarted = (workflow: Workflow): boolean => {

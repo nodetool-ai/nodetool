@@ -12,16 +12,6 @@ import type { TreeViewBaseItem } from "@mui/x-tree-view/models";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
-import FolderIcon from "@mui/icons-material/Folder";
-import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
-import ImageIcon from "@mui/icons-material/Image";
-import CodeIcon from "@mui/icons-material/Code";
-import DataObjectIcon from "@mui/icons-material/DataObject";
-import DescriptionIcon from "@mui/icons-material/Description";
-import AudioFileIcon from "@mui/icons-material/AudioFile";
-import VideoFileIcon from "@mui/icons-material/VideoFile";
-import TerminalIcon from "@mui/icons-material/Terminal";
-import StorageIcon from "@mui/icons-material/Storage";
 import AddIcon from "@mui/icons-material/Add";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import { RefreshButton, SettingsButton } from "../ui_primitives";
@@ -198,108 +188,6 @@ const treeViewStyles = (theme: Theme) => ({
   }
 });
 
-// File icon mapping
-const IMAGE_EXTENSIONS = new Set([
-  "png",
-  "jpg",
-  "jpeg",
-  "gif",
-  "svg",
-  "webp",
-  "bmp",
-  "ico"
-]);
-const CODE_EXTENSIONS = new Set([
-  "ts",
-  "tsx",
-  "js",
-  "jsx",
-  "py",
-  "rb",
-  "go",
-  "rs",
-  "java",
-  "c",
-  "cpp",
-  "h",
-  "hpp",
-  "cs",
-  "swift",
-  "kt",
-  "vue",
-  "svelte"
-]);
-const DATA_EXTENSIONS = new Set([
-  "json",
-  "yaml",
-  "yml",
-  "xml",
-  "toml",
-  "csv",
-  "tsv"
-]);
-const DOC_EXTENSIONS = new Set([
-  "md",
-  "txt",
-  "pdf",
-  "doc",
-  "docx",
-  "rtf",
-  "tex"
-]);
-const AUDIO_EXTENSIONS = new Set([
-  "mp3",
-  "wav",
-  "ogg",
-  "flac",
-  "aac",
-  "m4a"
-]);
-const VIDEO_EXTENSIONS = new Set([
-  "mp4",
-  "webm",
-  "avi",
-  "mov",
-  "mkv",
-  "flv"
-]);
-const SCRIPT_EXTENSIONS = new Set(["sh", "bash", "zsh", "bat", "ps1", "cmd"]);
-const DB_EXTENSIONS = new Set(["db", "sqlite", "sqlite3", "sql"]);
-
-const getFileIcon = (fileName: string, isDir: boolean): React.ReactNode => {
-  if (isDir) {
-    return <FolderIcon sx={{ fontSize: 16, color: "primary.light" }} />;
-  }
-  const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
-  if (IMAGE_EXTENSIONS.has(ext)) {
-    return <ImageIcon sx={{ fontSize: 16, color: "success.light" }} />;
-  }
-  if (CODE_EXTENSIONS.has(ext)) {
-    return <CodeIcon sx={{ fontSize: 16, color: "info.light" }} />;
-  }
-  if (DATA_EXTENSIONS.has(ext)) {
-    return <DataObjectIcon sx={{ fontSize: 16, color: "warning.light" }} />;
-  }
-  if (DOC_EXTENSIONS.has(ext)) {
-    return <DescriptionIcon sx={{ fontSize: 16, color: "text.secondary" }} />;
-  }
-  if (AUDIO_EXTENSIONS.has(ext)) {
-    return <AudioFileIcon sx={{ fontSize: 16, color: "secondary.light" }} />;
-  }
-  if (VIDEO_EXTENSIONS.has(ext)) {
-    return <VideoFileIcon sx={{ fontSize: 16, color: "secondary.main" }} />;
-  }
-  if (SCRIPT_EXTENSIONS.has(ext)) {
-    return <TerminalIcon sx={{ fontSize: 16, color: "warning.main" }} />;
-  }
-  if (DB_EXTENSIONS.has(ext)) {
-    return <StorageIcon sx={{ fontSize: 16, color: "info.main" }} />;
-  }
-  return (
-    <InsertDriveFileIcon sx={{ fontSize: 16, color: "text.secondary" }} />
-  );
-};
-
 // Utils
 const createErrorItem = (itemId: string): TreeViewItem => ({
   id: `${itemId}/error`,
@@ -307,22 +195,6 @@ const createErrorItem = (itemId: string): TreeViewItem => ({
   children: undefined,
   className: "error-item"
 });
-
-const FileLabel: React.FC<{ name: string; isDir: boolean }> = ({
-  name,
-  isDir
-}) => (
-  <span
-    style={{
-      display: "inline-flex",
-      alignItems: "center",
-      gap: getSpacingPx(SPACING.sm)
-    }}
-  >
-    {getFileIcon(name, isDir)}
-    {name}
-  </span>
-);
 
 const fileToTreeItem = (file: FileInfo): TreeViewItem => {
   const item: TreeViewItem = {

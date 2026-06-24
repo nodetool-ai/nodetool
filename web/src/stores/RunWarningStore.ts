@@ -13,7 +13,7 @@ import { create } from "zustand";
  * Not persisted: `suppressedThisSession` resets on reload, which is exactly
  * the "don't ask again for this session" semantics.
  */
-export type RunWarningKind = "heavy" | "concurrent";
+type RunWarningKind = "heavy" | "concurrent";
 
 interface RunWarningState {
   /** True while the confirmation dialog is open. */
