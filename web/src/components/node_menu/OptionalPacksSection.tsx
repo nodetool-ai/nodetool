@@ -3,25 +3,26 @@
  * OptionalPacksSection
  *
  * Lives at the bottom of the node-menu namespace panel. Educates the user that
- * advanced / niche nodes are tucked into optional packs to keep the menu
- * focused, and lets them reveal more nodes in one place:
+ * nodes are organized into optional packs to keep the menu focused, and gathers
+ * the ways to reveal more nodes in one place:
  *
  *  - **Categories** are a pure menu-visibility grouping of niche namespaces
  *    that ship in the always-loaded base pack (see config/optionalNodePacks).
  *    Toggling one updates {@link useOptionalNodePacksStore}; nodes stay
  *    registered, only the browsable tree changes.
- *  - **Providers** are the first-party opt-in builtin packs (ElevenLabs,
- *    MiniMax, Topaz, …). When disabled their nodes aren't registered at all, so
- *    they never appear in the menu — this is the only in-editor place to
- *    discover and enable them. Toggling calls the server via
- *    {@link usePacksStore}, which reloads metadata so nodes appear without a
- *    restart.
+ *  - **Providers** are the first-party provider packs. The API key is the
+ *    source of truth: a keyed provider's nodes appear once its key is set
+ *    (setting the key enables the pack automatically — see
+ *    useAutoEnableNodePacks). Keyless local packs (Transformers.js, Hugging
+ *    Face) keep a manual toggle.
  */
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState, type MouseEvent } from "react";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import { useNavigate } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
 
 import {
@@ -31,13 +32,17 @@ import {
   FlexRow,
   LabeledSwitch,
   MOTION,
-  Popover,
   Text,
-  TextLink
+  TextLink,
+  Popover
 } from "../ui_primitives";
 import { OPTIONAL_NODE_PACKS } from "../../config/optionalNodePacks";
 import useOptionalNodePacksStore from "../../stores/OptionalNodePacksStore";
 import usePacksStore from "../../stores/PacksStore";
+import useNodeMenuStore from "../../stores/NodeMenuStore";
+import { useSecrets } from "../../hooks/useSecrets";
+import { getRequiredKeyForBuiltinPack } from "../../utils/providerPacks";
+import { getSecretDisplayName } from "../../utils/nodeProvider";
 import { isElectron } from "../../lib/env";
 
 const styles = (theme: Theme) =>
@@ -87,20 +92,40 @@ const styles = (theme: Theme) =>
     }
   });
 
-const popoverStyles = () =>
+const popoverStyles = (theme: Theme) =>
   css({
     padding: "1em",
     "& .pack-row": {
       padding: "0.35em 0"
+    },
+    "& .provider-row .provider-name": {
+      minWidth: 0,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    },
+    "& .provider-row .key-set": {
+      flexShrink: 0,
+      display: "flex",
+      alignItems: "center",
+      gap: "0.3em",
+      color: theme.vars.palette.success.main
+    },
+    "& .provider-row .key-set svg": {
+      fontSize: "1em"
     }
   });
 
 const OptionalPacksSection = () => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-  const [pendingProviderIds, setPendingProviderIds] = useState<Set<string>>(
+  const [pendingPackIds, setPendingPackIds] = useState<Set<string>>(
     () => new Set()
   );
+
+  const { isApiKeySet } = useSecrets();
+  const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
 
   const { enabledPackIds, setPackEnabled, enableAll, disableAll } =
     useOptionalNodePacksStore(
@@ -120,12 +145,23 @@ const OptionalPacksSection = () => {
     }))
   );
 
-  // Required packs (the base nodes) are always loaded — only opt-in provider
-  // packs are toggleable here.
-  const providerPacks = useMemo(
-    () => builtins.filter((pack) => !pack.required),
-    [builtins]
-  );
+  // Required packs (the base nodes) are always loaded; split the rest into
+  // key-gated providers (the key is the switch) and keyless local packs (a
+  // manual toggle is the only way to turn them on).
+  const { keyedProviders, localPacks } = useMemo(() => {
+    const keyed: { id: string; name: string; requiredKey: string }[] = [];
+    const local: typeof builtins = [];
+    for (const pack of builtins) {
+      if (pack.required) continue;
+      const requiredKey = getRequiredKeyForBuiltinPack(pack.id);
+      if (requiredKey) {
+        keyed.push({ id: pack.id, name: pack.name, requiredKey });
+      } else {
+        local.push(pack);
+      }
+    }
+    return { keyedProviders: keyed, localPacks: local };
+  }, [builtins]);
 
   const enabledCount = enabledPackIds.length;
   const total = OPTIONAL_NODE_PACKS.length;
@@ -141,13 +177,13 @@ const OptionalPacksSection = () => {
   );
   const handleClose = useCallback(() => setAnchorEl(null), []);
 
-  const handleToggleProvider = useCallback(
+  const handleToggleLocalPack = useCallback(
     async (id: string, enabled: boolean) => {
-      setPendingProviderIds((prev) => new Set(prev).add(id));
+      setPendingPackIds((prev) => new Set(prev).add(id));
       try {
         await setBuiltinEnabled(id, enabled);
       } finally {
-        setPendingProviderIds((prev) => {
+        setPendingPackIds((prev) => {
           const next = new Set(prev);
           next.delete(id);
           return next;
@@ -156,6 +192,12 @@ const OptionalPacksSection = () => {
     },
     [setBuiltinEnabled]
   );
+
+  const openApiKeys = useCallback(() => {
+    setAnchorEl(null);
+    closeNodeMenu();
+    navigate("/settings?tab=1");
+  }, [navigate, closeNodeMenu]);
 
   const handleManagePacks = useCallback(() => {
     window.api?.showPackageManager?.();
@@ -186,7 +228,7 @@ const OptionalPacksSection = () => {
         maxWidth={340}
         maxHeight="70vh"
       >
-        <div css={popoverStyles()}>
+        <div css={popoverStyles(theme)}>
           <FlexColumn gap={1}>
             <Text size="normal" weight={600}>
               Optional node packs
@@ -228,7 +270,7 @@ const OptionalPacksSection = () => {
               ))}
             </FlexColumn>
 
-            {providerPacks.length > 0 && (
+            {keyedProviders.length > 0 && (
               <>
                 <Divider />
                 <FlexColumn gap={0.25}>
@@ -236,21 +278,71 @@ const OptionalPacksSection = () => {
                     Providers
                   </Text>
                   <Text size="small" color="secondary">
-                    Enabling a provider registers its nodes instantly — no
-                    restart needed.
+                    Provider nodes appear once you add their API key — setting a
+                    key enables the pack automatically.
                   </Text>
                 </FlexColumn>
                 <FlexColumn gap={0.25}>
-                  {providerPacks.map((pack) => (
+                  {keyedProviders.map((provider) => {
+                    const hasKey = isApiKeySet(provider.requiredKey);
+                    return (
+                      <FlexRow
+                        key={provider.id}
+                        className="provider-row pack-row"
+                        align="center"
+                        justify="space-between"
+                        gap={1}
+                      >
+                        <Text size="small" className="provider-name">
+                          {provider.name}
+                        </Text>
+                        {hasKey ? (
+                          <span className="key-set">
+                            <CheckCircleOutlineIcon />
+                            <Text size="small" color="inherit">
+                              Key set
+                            </Text>
+                          </span>
+                        ) : (
+                          <TextLink
+                            asButton
+                            onClick={openApiKeys}
+                            title={`Add ${getSecretDisplayName(
+                              provider.requiredKey
+                            )}`}
+                          >
+                            Add API key
+                          </TextLink>
+                        )}
+                      </FlexRow>
+                    );
+                  })}
+                </FlexColumn>
+              </>
+            )}
+
+            {localPacks.length > 0 && (
+              <>
+                <Divider />
+                <FlexColumn gap={0.25}>
+                  <Text size="small" weight={600}>
+                    Local packs
+                  </Text>
+                  <Text size="small" color="secondary">
+                    Run locally — no API key required.
+                  </Text>
+                </FlexColumn>
+                <FlexColumn gap={0.25}>
+                  {localPacks.map((pack) => (
                     <div className="pack-row" key={pack.id}>
                       <LabeledSwitch
                         size="small"
                         label={pack.name}
                         description={pack.description}
                         checked={pack.enabled}
-                        disabled={pendingProviderIds.has(pack.id)}
+                        disabled={pendingPackIds.has(pack.id)}
                         onChange={(checked) =>
-                          void handleToggleProvider(pack.id, checked)
+                          void handleToggleLocalPack(pack.id, checked)
                         }
                       />
                     </div>

@@ -4,6 +4,7 @@ import useMetadataStore from "../stores/MetadataStore";
 import useOptionalNodePacksStore from "../stores/OptionalNodePacksStore";
 import { useSecrets } from "./useSecrets";
 import { isNamespaceHiddenByOptionalPacks } from "../config/optionalNodePacks";
+import { getKeyGateForNamespace } from "../utils/providerPacks";
 import {
   getProviderKindForNamespace,
   getRequiredSecretKeyForNamespace,
@@ -113,6 +114,12 @@ const useNamespaceTree = (): NamespaceTree => {
         (namespace) =>
           !isNamespaceHiddenByOptionalPacks(namespace, enabledPacks)
       )
+      // API key is the source of truth for providers: hide a key-gated
+      // namespace until its key is set. Locally-run packs are never gated.
+      .filter((namespace) => {
+        const requiredKey = getKeyGateForNamespace(namespace);
+        return requiredKey === null || isApiKeySet(requiredKey);
+      })
       .filter(
         (value, index, self) => index === self.findIndex((t) => t === value)
       );
@@ -125,7 +132,7 @@ const useNamespaceTree = (): NamespaceTree => {
       }
       return aDisabled ? 1 : -1;
     });
-  }, [metadata, isNamespaceDisabled, enabledPacks]);
+  }, [metadata, isNamespaceDisabled, isApiKeySet, enabledPacks]);
 
   // Build the tree structure
   return useMemo(() => {
