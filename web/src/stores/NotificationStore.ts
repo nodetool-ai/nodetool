@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { v4 as uuidv4 } from "uuid";
 import { sanitizeDisplayText } from "../utils/sanitizeDisplayText";
 import {
   NOTIFICATION_TIMEOUT_DEFAULT,
@@ -114,7 +113,7 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
           ...base,
           {
             ...sanitizedNotification,
-            id: uuidv4(),
+            id: crypto.randomUUID(),
             timestamp: now,
             timeout: sanitizedNotification.timeout ?? calculateReadingTimeout(sanitizedNotification.content)
           }

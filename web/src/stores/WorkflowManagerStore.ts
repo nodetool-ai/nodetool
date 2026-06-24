@@ -19,7 +19,6 @@ import { createErrorMessage } from "../utils/errorHandling";
 import { fetchLiveFalPricing } from "../utils/fetchLiveFalPricing";
 import { fetchLiveKiePricing } from "../utils/fetchLiveKiePricing";
 import useMetadataStore from "./MetadataStore";
-import { v4 as uuidv4 } from "uuid";
 import { QueryClient } from "@tanstack/react-query";
 import {
   fetchWorkflowById,
@@ -297,7 +296,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         const lastUsedWorkspaceId =
           useCurrentWorkspaceStore.getState().lastUsedWorkspaceId;
         const data: Workflow = {
-          id: uuidv4(),
+          id: crypto.randomUUID(),
           name: "New Workflow",
           description: "",
           access: "private",
@@ -559,7 +558,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           throw new Error("Workflow not found");
         }
         const copiedWorkflow = {
-          id: uuidv4(),
+          id: crypto.randomUUID(),
           name: workflow.name,
           description: workflow.description,
           thumbnail: workflow.thumbnail,

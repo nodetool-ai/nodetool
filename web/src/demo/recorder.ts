@@ -15,8 +15,6 @@
  * and listed in the manifest; run `scripts/pin-cast-assets.ts` once to download
  * the bytes so the cast replays with no backend and no further generations.
  */
-import { v4 as uuidv4 } from "uuid";
-
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import type { WebSocketMessage } from "../lib/websocket/GlobalWebSocketManager";
 import type { NodeMetadata, Workflow } from "../stores/ApiTypes";
@@ -121,7 +119,7 @@ export class CastRecorder {
 
     const cast: DemoCast = {
       version: CAST_VERSION,
-      id: uuidv4(),
+      id: crypto.randomUUID(),
       name: opts.name,
       description: opts.description,
       createdAt: new Date().toISOString(),

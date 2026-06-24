@@ -1,7 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, loggerLink } from "@trpc/client";
-import superjson from "superjson";
 import { trpc } from "./client";
 import { isLocalhost } from "../lib/env";
 import { supabase } from "../lib/supabaseClient";
@@ -27,7 +26,6 @@ export function TRPCProvider({ children }: { children: ReactNode }) {
         }),
         httpBatchLink({
           url: `${BASE_URL}/trpc`,
-          transformer: superjson,
           async headers() {
             return authHeaders();
           }

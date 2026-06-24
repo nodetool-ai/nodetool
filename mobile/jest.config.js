@@ -14,7 +14,6 @@ module.exports = {
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   moduleNameMapper: {
     '^expo-clipboard$': '<rootDir>/__mocks__/expo-clipboard.js',
-    '^superjson$': '<rootDir>/__mocks__/superjson.js',
   },
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',

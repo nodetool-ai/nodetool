@@ -12,7 +12,7 @@
 import { existsSync, readdirSync, statSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import JSZip from "jszip";
+import { zipSync } from "fflate";
 
 export interface ExtensionDistInfo {
   /** Absolute path to the extension `dist` dir (may not exist). */
@@ -48,15 +48,15 @@ export function resolveExtensionDist(): ExtensionDistInfo {
   return { path: env ?? "", exists: false };
 }
 
-/** Recursively add a directory's files to a JSZip folder. */
-function addDir(zip: JSZip, dir: string, rel: string): void {
+/** Recursively collect a directory's files into a flat path → bytes map. */
+function addDir(files: Record<string, Uint8Array>, dir: string, rel: string): void {
   for (const entry of readdirSync(dir)) {
     const full = path.join(dir, entry);
     const relPath = rel ? `${rel}/${entry}` : entry;
     if (statSync(full).isDirectory()) {
-      addDir(zip, full, relPath);
+      addDir(files, full, relPath);
     } else {
-      zip.file(relPath, readFileSync(full));
+      files[relPath] = new Uint8Array(readFileSync(full));
     }
   }
 }
@@ -70,7 +70,7 @@ export async function zipExtensionDist(): Promise<Buffer> {
   if (!dist.exists) {
     throw new Error("Extension build not found");
   }
-  const zip = new JSZip();
-  addDir(zip, dist.path, "");
-  return zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
+  const files: Record<string, Uint8Array> = {};
+  addDir(files, dist.path, "");
+  return Buffer.from(zipSync(files, { level: 6 }));
 }

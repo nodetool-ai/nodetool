@@ -1,6 +1,5 @@
 import { Edge } from "@xyflow/react";
 import { Edge as GraphEdge } from "./ApiTypes";
-import { v4 as uuidv4 } from "uuid";
 
 export const CONTROL_HANDLE_ID = "__control__";
 
@@ -16,7 +15,7 @@ export const isAgentNodeType = (nodeType: string | undefined): boolean => {
 export const graphEdgeToReactFlowEdge = (edge: GraphEdge): Edge => {
   const isControl = edge.edge_type === "control";
   return {
-    id: edge.id || uuidv4(),
+    id: edge.id || crypto.randomUUID(),
     source: edge.source,
     sourceHandle: edge.sourceHandle || null,
     target: edge.target,

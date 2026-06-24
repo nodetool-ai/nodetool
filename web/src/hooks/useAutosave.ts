@@ -14,7 +14,6 @@ import { useSettingsStore } from "../stores/SettingsStore";
 import { useVersionHistoryStore } from "../stores/VersionHistoryStore";
 import { useNotificationStore } from "../stores/NotificationStore";
 import { Node, Edge, Workflow } from "../stores/ApiTypes";
-import { v4 as uuidv4 } from "uuid";
 import { trpcClient } from "../trpc/client";
 
 export interface UseAutosaveOptions {
@@ -84,7 +83,7 @@ export const useAutosave = (options: UseAutosaveOptions): UseAutosaveReturn => {
 
   const isSavingRef = useRef(false);
   const [lastAutosaveTime, setLastAutosaveTime] = useState(0);
-  const clientIdRef = useRef<string>(uuidv4());
+  const clientIdRef = useRef<string>(crypto.randomUUID());
 
   // Ref to store latest triggerAutosave function to avoid resetting interval on callback changes
   const triggerAutosaveRef = useRef<() => Promise<void>>(() =>

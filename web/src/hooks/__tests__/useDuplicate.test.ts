@@ -8,9 +8,13 @@ jest.mock("../../contexts/NodeContext");
 jest.mock("../../config/constants", () => ({
   DUPLICATE_SPACING: 20,
 }));
-jest.mock("uuid", () => ({
-  v4: jest.fn(() => "mock-uuid-1234"),
-}));
+// useDuplicate generates edge ids via crypto.randomUUID(); stub it for stable
+// assertions (jsdom may not provide a native randomUUID).
+if (typeof globalThis.crypto === "undefined") {
+  (globalThis as { crypto: Crypto }).crypto = {} as Crypto;
+}
+(globalThis.crypto as { randomUUID: () => string }).randomUUID = () =>
+  "mock-uuid-1234";
 
 describe("useDuplicateNodes", () => {
   const mockSetNodes = jest.fn();

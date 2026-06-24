@@ -22,7 +22,6 @@
  */
 import { useCallback, useEffect, useRef } from "react";
 import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
-import { v4 as uuidv4 } from "uuid";
 import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
 import { reactFlowEdgeToGraphEdge } from "../../stores/reactFlowEdgeToGraphEdge";
 import {
@@ -80,7 +79,7 @@ export const useLiveSliderWriter = ({
   // generation rather than appending a new one per frame.
   const previewJobIdRef = useRef<string>("");
   if (previewJobIdRef.current === "") {
-    previewJobIdRef.current = uuidv4();
+    previewJobIdRef.current = crypto.randomUUID();
   }
   const inFlightRef = useRef(false);
   const pendingRef = useRef(false);

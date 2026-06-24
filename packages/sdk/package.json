@@ -25,8 +25,7 @@
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/websocket": "*",
     "@trpc/client": "^11.17.0",
-    "msgpackr": "^1.10.2",
-    "superjson": "^2.2.2"
+    "msgpackr": "^1.10.2"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

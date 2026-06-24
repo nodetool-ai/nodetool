@@ -107,9 +107,9 @@ async function trpcQuery(
   };
   if (userId) headers["x-user-id"] = userId;
 
-  // tRPC with superjson transformer expects {json: <value>} envelope
+  // Default (JSON) transformer: input is the raw value, urlencoded.
   const params = input !== undefined
-    ? `?input=${encodeURIComponent(JSON.stringify({ json: input }))}`
+    ? `?input=${encodeURIComponent(JSON.stringify(input))}`
     : "";
   return fetch(`${trpcUrl(procedure)}${params}`, { headers });
 }
@@ -126,7 +126,7 @@ async function trpcMutation(
   return fetch(trpcUrl(procedure), {
     method: "POST",
     headers,
-    body: JSON.stringify({ json: input })
+    body: JSON.stringify(input)
   });
 }
 
@@ -137,8 +137,8 @@ describe("tRPC HTTP smoke tests", () => {
     it("returns ok: true", async () => {
       const res = await trpcQuery("healthz");
       expect(res.status).toBe(200);
-      const body = await res.json() as { result: { data: { json: unknown } } };
-      expect(body.result.data.json).toEqual({ ok: true });
+      const body = await res.json() as { result: { data: unknown } };
+      expect(body.result.data).toEqual({ ok: true });
     });
   });
 
@@ -146,8 +146,8 @@ describe("tRPC HTTP smoke tests", () => {
     it("returns 200 with configured: false when no token", async () => {
       const res = await trpcQuery("nodes.replicateStatus");
       expect(res.status).toBe(200);
-      const body = await res.json() as { result: { data: { json: unknown } } };
-      const data = body.result.data.json as { configured: boolean };
+      const body = await res.json() as { result: { data: unknown } };
+      const data = body.result.data as { configured: boolean };
       expect(data.configured).toBe(false);
     });
   });
@@ -165,8 +165,8 @@ describe("tRPC HTTP smoke tests", () => {
         AUTH_USER_ID
       );
       expect(res.status).toBe(200);
-      const body = await res.json() as { result: { data: { json: unknown } } };
-      const data = body.result.data.json as { valid: boolean; available: boolean };
+      const body = await res.json() as { result: { data: unknown } };
+      const data = body.result.data as { valid: boolean; available: boolean };
       expect(data.valid).toBe(true);
       expect(data.available).toBe(true);
     });
@@ -181,8 +181,8 @@ describe("tRPC HTTP smoke tests", () => {
     it("returns the dummy asset shape with auth", async () => {
       const res = await trpcQuery("nodes.dummy", undefined, AUTH_USER_ID);
       expect(res.status).toBe(200);
-      const body = await res.json() as { result: { data: { json: unknown } } };
-      const data = body.result.data.json as Record<string, unknown>;
+      const body = await res.json() as { result: { data: unknown } };
+      const data = body.result.data as Record<string, unknown>;
       expect(data.type).toBe("asset");
       expect(data.uri).toBe("");
       expect(data.asset_id).toBeNull();
@@ -202,8 +202,8 @@ describe("tRPC HTTP smoke tests", () => {
         AUTH_USER_ID
       );
       expect(res.status).toBe(200);
-      const body = await res.json() as { result: { data: { json: unknown[] } } };
-      const models = body.result.data.json;
+      const body = await res.json() as { result: { data: unknown[] } };
+      const models = body.result.data;
       expect(Array.isArray(models)).toBe(true);
       expect(models.length).toBeGreaterThan(0);
     });
@@ -218,8 +218,8 @@ describe("tRPC HTTP smoke tests", () => {
     it("returns an array (empty when no providers configured) with auth", async () => {
       const res = await trpcQuery("models.providers", undefined, AUTH_USER_ID);
       expect(res.status).toBe(200);
-      const body = await res.json() as { result: { data: { json: unknown } } };
-      expect(Array.isArray(body.result.data.json)).toBe(true);
+      const body = await res.json() as { result: { data: unknown } };
+      expect(Array.isArray(body.result.data)).toBe(true);
     });
   });
 
@@ -231,8 +231,8 @@ describe("tRPC HTTP smoke tests", () => {
         AUTH_USER_ID
       );
       expect(res.status).toBe(200);
-      const body = await res.json() as { result: { data: { json: unknown } } };
-      const data = body.result.data.json as { status: string };
+      const body = await res.json() as { result: { data: unknown } };
+      const data = body.result.data as { status: string };
       expect(data.status).toBe("unavailable");
     });
   });

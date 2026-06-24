@@ -1,5 +1,4 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
-import * as cheerio from "cheerio";
 import { convert } from "html-to-text";
 import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
@@ -78,7 +77,7 @@ export class ExtractLinksLibNode extends BaseNode {
   private _extractLinks(): Array<{ href: string; text: string; type: string }> {
     const html = String(this.html ?? "");
     const baseUrl = String(this.base_url ?? "");
-    const $ = cheerio.load(html);
+    const { document } = parseHTML(html);
     const results: Array<{ href: string; text: string; type: string }> = [];
 
     const isInternal = (href: string): boolean => {
@@ -95,15 +94,15 @@ export class ExtractLinksLibNode extends BaseNode {
       return !/^[a-z][a-z0-9+.-]*:|^\/\//i.test(href);
     };
 
-    $("a[href]").each((_, el) => {
-      const href = $(el).attr("href") ?? "";
-      const text = $(el).text().trim();
+    for (const el of document.querySelectorAll("a[href]")) {
+      const href = el.getAttribute("href") ?? "";
+      const text = (el.textContent ?? "").trim();
       results.push({
         href,
         text,
         type: isInternal(href) ? "internal" : "external"
       });
-    });
+    }
 
     return results;
   }
@@ -161,13 +160,13 @@ export class ExtractImagesLibNode extends BaseNode {
   private _extractImages(): Array<{ uri: string; type: string }> {
     const html = String(this.html ?? "");
     const baseUrl = String(this.base_url ?? "");
-    const $ = cheerio.load(html);
+    const { document } = parseHTML(html);
     const images: Array<{ uri: string; type: string }> = [];
 
-    $("img[src]").each((_, el) => {
-      const src = $(el).attr("src") ?? "";
+    for (const el of document.querySelectorAll("img[src]")) {
+      const src = el.getAttribute("src") ?? "";
       images.push({ uri: resolveUrl(src, baseUrl), type: "image" });
-    });
+    }
 
     return images;
   }
@@ -223,15 +222,15 @@ export class ExtractAudioLibNode extends BaseNode {
   private _extractAudio(): Array<{ uri: string; type: string }> {
     const html = String(this.html ?? "");
     const baseUrl = String(this.base_url ?? "");
-    const $ = cheerio.load(html);
+    const { document } = parseHTML(html);
     const audioList: Array<{ uri: string; type: string }> = [];
 
-    $("audio, audio source").each((_, el) => {
-      const src = $(el).attr("src");
+    for (const el of document.querySelectorAll("audio, audio source")) {
+      const src = el.getAttribute("src");
       if (src) {
         audioList.push({ uri: resolveUrl(src, baseUrl), type: "audio" });
       }
-    });
+    }
 
     return audioList;
   }
@@ -287,15 +286,15 @@ export class ExtractVideosLibNode extends BaseNode {
   private _extractVideos(): Array<{ uri: string; type: string }> {
     const html = String(this.html ?? "");
     const baseUrl = String(this.base_url ?? "");
-    const $ = cheerio.load(html);
+    const { document } = parseHTML(html);
     const videos: Array<{ uri: string; type: string }> = [];
 
-    $("video, video source, iframe").each((_, el) => {
-      const src = $(el).attr("src");
+    for (const el of document.querySelectorAll("video, video source, iframe")) {
+      const src = el.getAttribute("src");
       if (src) {
         videos.push({ uri: resolveUrl(src, baseUrl), type: "video" });
       }
-    });
+    }
 
     return videos;
   }
@@ -342,11 +341,15 @@ export class ExtractMetadataLibNode extends BaseNode {
 
   async process(): Promise<Record<string, unknown>> {
     const html = String(this.html ?? "");
-    const $ = cheerio.load(html);
+    const { document } = parseHTML(html);
 
-    const title = $("title").first().text() || null;
-    const description = $('meta[name="description"]').attr("content") ?? null;
-    const keywords = $('meta[name="keywords"]').attr("content") ?? null;
+    const title = (document.querySelector("title")?.textContent ?? "") || null;
+    const description =
+      document.querySelector('meta[name="description"]')?.getAttribute("content") ??
+      null;
+    const keywords =
+      document.querySelector('meta[name="keywords"]')?.getAttribute("content") ??
+      null;
 
     return { title, description, keywords };
   }
@@ -413,7 +416,7 @@ export class WebsiteContentExtractorLibNode extends BaseNode {
     try {
       const { document } = parseHTML(htmlContent);
       // linkedom's document is mostly compatible with Readability but may
-      // fail on some inputs — fall through to cheerio fallback on error.
+      // fail on some inputs — fall through to the manual fallback on error.
       const reader = new Readability(document as unknown as Document);
       article = reader.parse();
     } catch {
@@ -427,15 +430,20 @@ export class WebsiteContentExtractorLibNode extends BaseNode {
     }
 
     // Fallback: strip tags manually like the Python version
-    const $ = cheerio.load(htmlContent);
-    $("script, style, nav, aside, footer, header").remove();
+    const { document } = parseHTML(htmlContent);
+    for (const el of document.querySelectorAll(
+      "script, style, nav, aside, footer, header"
+    )) {
+      el.remove();
+    }
 
     const main =
-      $("article").first().text() ||
-      $("main").first().text() ||
-      $('[id*="content"]').first().text() ||
-      $('[class*="content"]').first().text() ||
-      $("body").text();
+      document.querySelector("article")?.textContent ||
+      document.querySelector("main")?.textContent ||
+      document.querySelector('[id*="content"]')?.textContent ||
+      document.querySelector('[class*="content"]')?.textContent ||
+      document.querySelector("body")?.textContent ||
+      "";
 
     return {
       output: (main || "No main content found").replace(/\s+/g, " ").trim()

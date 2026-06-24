@@ -35,7 +35,7 @@ describe("tRPC Fastify mount", () => {
     const res = await app.inject({ method: "GET", url: "/trpc/healthz" });
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
-    // tRPC v11 returns { result: { data: { json: ..., meta: ... } } } when superjson is active.
+    // tRPC v11 (default JSON transformer) returns { result: { data: ... } }.
     const data = body.result?.data?.json ?? body.result?.data;
     expect(data).toEqual({ ok: true });
     await app.close();
@@ -52,7 +52,7 @@ describe("tRPC /trpc/costs.list over Fastify", () => {
     const res = await app.inject({
       method: "GET",
       url: `/trpc/costs.list?input=${encodeURIComponent(
-        JSON.stringify({ json: { limit: 10 } })
+        JSON.stringify({ limit: 10 })
       )}`,
       headers: { "content-type": "application/json" }
     });
@@ -161,7 +161,7 @@ describe("tRPC /trpc/workspace.list over Fastify", () => {
     const res = await app.inject({
       method: "GET",
       url: `/trpc/workspace.list?input=${encodeURIComponent(
-        JSON.stringify({ json: { limit: 10 } })
+        JSON.stringify({ limit: 10 })
       )}`
     });
     expect(res.statusCode).toBe(200);
@@ -204,7 +204,7 @@ describe("tRPC /trpc/messages.list over Fastify", () => {
     const res = await app.inject({
       method: "GET",
       url: `/trpc/messages.list?input=${encodeURIComponent(
-        JSON.stringify({ json: { thread_id: "t1", limit: 50 } })
+        JSON.stringify({ thread_id: "t1", limit: 50 })
       )}`
     });
     expect(res.statusCode).toBe(200);
@@ -225,7 +225,7 @@ describe("tRPC /trpc/threads.list over Fastify", () => {
     const res = await app.inject({
       method: "GET",
       url: `/trpc/threads.list?input=${encodeURIComponent(
-        JSON.stringify({ json: { limit: 10 } })
+        JSON.stringify({ limit: 10 })
       )}`
     });
     expect(res.statusCode).toBe(200);
@@ -246,7 +246,7 @@ describe("tRPC /trpc/jobs.list over Fastify", () => {
     const res = await app.inject({
       method: "GET",
       url: `/trpc/jobs.list?input=${encodeURIComponent(
-        JSON.stringify({ json: { limit: 10 } })
+        JSON.stringify({ limit: 10 })
       )}`
     });
     expect(res.statusCode).toBe(200);
@@ -267,7 +267,7 @@ describe("tRPC /trpc/assets.list over Fastify", () => {
     const res = await app.inject({
       method: "GET",
       url: `/trpc/assets.list?input=${encodeURIComponent(
-        JSON.stringify({ json: { parent_id: "test-user" } })
+        JSON.stringify({ parent_id: "test-user" })
       )}`
     });
     expect(res.statusCode).toBe(200);
@@ -285,7 +285,7 @@ describe("tRPC /trpc/files.list over Fastify", () => {
     const res = await app.inject({
       method: "GET",
       url: `/trpc/files.list?input=${encodeURIComponent(
-        JSON.stringify({ json: { path: "." } })
+        JSON.stringify({ path: "." })
       )}`
     });
     expect(res.statusCode).toBe(200);
@@ -309,7 +309,7 @@ describe("tRPC /trpc/storage.list over Fastify", () => {
     const res = await app.inject({
       method: "GET",
       url: `/trpc/storage.list?input=${encodeURIComponent(
-        JSON.stringify({ json: {} })
+        JSON.stringify({})
       )}`
     });
     expect(res.statusCode).toBe(200);

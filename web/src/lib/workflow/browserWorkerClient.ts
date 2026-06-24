@@ -11,7 +11,6 @@ import {
   globalWebSocketManager,
   type WebSocketMessage
 } from "../websocket/GlobalWebSocketManager";
-import { v4 as uuidv4 } from "uuid";
 import { normalizeWorkerStreamMessage } from "./browserRunnerRelay";
 import type {
   BrowserGraphJobOptions,
@@ -118,7 +117,7 @@ export function runBrowserGraphJobInWorker(
     return Promise.resolve({ success: false, outputs: {}, error: "Aborted" });
   }
   const { worker: w } = spawn();
-  const jobId = options.jobId ?? uuidv4();
+  const jobId = options.jobId ?? crypto.randomUUID();
 
   const nodeTypes = (graph.nodes ?? [])
     .map((n) => (n as { type?: string }).type)

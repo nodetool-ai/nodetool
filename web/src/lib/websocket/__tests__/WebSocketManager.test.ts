@@ -1,9 +1,9 @@
 import { WebSocketManager } from "../WebSocketManager";
 import type { ConnectionState, WebSocketConfig } from "../WebSocketManager";
 
-jest.mock("@msgpack/msgpack", () => ({
-  encode: jest.fn((msg: unknown) => new Uint8Array([1])),
-  decode: jest.fn((buf: Uint8Array) => ({ type: "test" }))
+jest.mock("msgpackr", () => ({
+  pack: jest.fn((msg: unknown) => new Uint8Array([1])),
+  unpack: jest.fn((buf: Uint8Array) => ({ type: "test" }))
 }));
 
 const createManager = (

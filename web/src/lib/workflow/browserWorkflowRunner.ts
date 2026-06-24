@@ -23,7 +23,6 @@ import {
   globalWebSocketManager,
   type WebSocketMessage
 } from "../websocket/GlobalWebSocketManager";
-import { v4 as uuidv4 } from "uuid";
 import { materializeBrowserOutputs } from "./materializeBrowserOutputs";
 import { stampGenerationIndex } from "./browserRunnerRelay";
 import {
@@ -373,7 +372,7 @@ async function runBrowserGraphJobLocal(
     return { success: false, outputs: {}, error: "Browser runner unavailable" };
   }
 
-  const jobId = options.jobId ?? uuidv4();
+  const jobId = options.jobId ?? crypto.randomUUID();
   const outputs: Record<string, unknown> = {};
   let nodeError: string | undefined;
   // Per-node arrival counter for generation_complete.index. This run is one

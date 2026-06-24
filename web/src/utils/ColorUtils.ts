@@ -1,4 +1,13 @@
-import chroma from "chroma-js";
+import {
+  parse,
+  alpha,
+  darken,
+  brighten,
+  setHslSaturationMultiplier,
+  mix,
+  rgba,
+  toHex
+} from "./colorMath";
 import { GROUP_NODE_TYPE, COMMENT_NODE_TYPE } from "../constants/nodeTypes";
 
 // Utility to detect CSS variable references (e.g. "var(--palette-primary-main)")
@@ -6,7 +15,7 @@ function isCssVar(color: string): boolean {
   return color.trim().startsWith("var(");
 }
 
-export function hexToRgba(hex: string, alpha: number): string {
+export function hexToRgba(hex: string, alphaValue: number): string {
   // Return transparent if the color is empty or undefined
   if (!hex) {
     return "transparent";
@@ -17,14 +26,14 @@ export function hexToRgba(hex: string, alpha: number): string {
   // we return a CSS `rgb()` function that preserves the variable and embeds
   // the requested alpha value using the modern slash syntax: `rgb(var(--foo) / a)`.
   if (isCssVar(hex)) {
-    return `rgb(${hex} / ${alpha})`;
+    return `rgb(${hex} / ${alphaValue})`;
   }
 
   try {
-    const rgba = chroma(hex).alpha(alpha).rgba();
-    return `rgba(${rgba[0]}, ${rgba[1]}, ${rgba[2]}, ${rgba[3]})`;
+    const [r, g, b, a] = rgba(alpha(parse(hex), alphaValue));
+    return `rgba(${r}, ${g}, ${b}, ${a})`;
   } catch (err) {
-    // Fallback: if chroma cannot parse the color, just return the original
+    // Fallback: if the color cannot be parsed, just return the original
     // string unchanged to avoid runtime errors.
     console.error("hexToRgba: unable to parse color", hex, err);
     return hex;
@@ -34,25 +43,19 @@ export function hexToRgba(hex: string, alpha: number): string {
 export function darkenHexColor(hex: string, amount: number): string {
   if (isCssVar(hex)) {return hex;}
 
-  return chroma(hex)
-    .darken(amount / 100)
-    .hex();
+  return toHex(darken(parse(hex), amount / 100));
 }
 
 function lightenHexColor(hex: string, amount: number): string {
   if (isCssVar(hex)) {return hex;}
 
-  return chroma(hex)
-    .brighten(amount / 100)
-    .hex();
+  return toHex(brighten(parse(hex), amount / 100));
 }
 
 export function adjustSaturation(hex: string, amount: number): string {
   if (isCssVar(hex)) {return hex;}
 
-  return chroma(hex)
-    .set("hsl.s", `*${1 + amount / 100}`)
-    .hex();
+  return toHex(setHslSaturationMultiplier(parse(hex), 1 + amount / 100));
 }
 
 type GradientDirection =
@@ -96,7 +99,7 @@ export function createLinearGradient(
 
 export function simulateOpacity(
   hexColor: string,
-  alpha: number,
+  alphaValue: number,
   backgroundColor: string = "#fff"
 ): string {
   // If either color is provided as a CSS variable token, we cannot blend
@@ -106,12 +109,12 @@ export function simulateOpacity(
     return hexColor;
   }
 
-  const foregroundColor = chroma(hexColor);
-  const bgColor = chroma(backgroundColor);
+  const foregroundColor = parse(hexColor);
+  const bgColor = parse(backgroundColor);
 
-  const blendedColor = chroma.mix(bgColor, foregroundColor, alpha, "rgb");
+  const blendedColor = mix(bgColor, foregroundColor, alphaValue);
 
-  return blendedColor.hex();
+  return toHex(blendedColor);
 }
 
 // ---------------------------------------------------------------------

@@ -9,7 +9,7 @@
  *   node manual-test-resource-updates.js
  */
 
-const { encode } = require("@msgpack/msgpack");
+const { pack } = require("msgpackr");
 
 // Sample resource change messages for different scenarios
 const testMessages = [
@@ -165,7 +165,7 @@ testMessages.forEach((test, index) => {
   console.log();
   
   // Output msgpack-encoded version
-  const encoded = encode(test.message);
+  const encoded = pack(test.message);
   console.log("MsgPack (hex):", Buffer.from(encoded).toString("hex"));
   console.log();
 });

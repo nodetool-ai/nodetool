@@ -1,4 +1,4 @@
-import JSZip from "jszip";
+import { zipSync } from "fflate";
 import { createAssetFile } from "./createAssetFile";
 import { resolveAssetUri } from "../components/node/output/hooks";
 
@@ -99,11 +99,17 @@ export const downloadPreviewAssets = async ({
     return;
   }
 
-  const zip = new JSZip();
-  assetFiles.forEach(({ file, filename }) => {
-    zip.file(filename, file);
-  });
-  const zipContent = await zip.generateAsync({ type: "arraybuffer" });
+  const files: Record<string, Uint8Array> = {};
+  for (const { file, filename } of assetFiles) {
+    files[filename] = new Uint8Array(await file.arrayBuffer());
+  }
+  const zipped = zipSync(files);
+  // Copy into a standalone ArrayBuffer (fflate may return a Uint8Array that is a
+  // view into a larger pooled buffer; saveFile/Blob expect the exact bytes).
+  const zipContent = zipped.buffer.slice(
+    zipped.byteOffset,
+    zipped.byteOffset + zipped.byteLength
+  ) as ArrayBuffer;
   const zipName = `preview_${nodeId}.zip`;
 
   if (electronApi?.saveFile) {

@@ -1,5 +1,4 @@
 import { useCallback } from "react";
-import { v4 as uuidv4 } from "uuid";
 import { useNodes, useNodeStoreRef } from "../contexts/NodeContext";
 import { useSurroundWithGroup } from "./nodes/useSurroundWithGroup";
 
@@ -337,7 +336,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
 
     const nodeIdMap: Record<string, string> = {};
     const newNodes = selectedNodes.map((node) => {
-      const newId = uuidv4();
+      const newId = crypto.randomUUID();
       nodeIdMap[node.id] = newId;
 
       return {
@@ -365,7 +364,7 @@ export const useSelectionActions = (): SelectionActionsReturn => {
       )
       .map((edge) => ({
         ...edge,
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         source: nodeIdMap[edge.source],
         target: nodeIdMap[edge.target],
         selected: true

@@ -21,13 +21,10 @@
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
-    "@types/natural": "^5.1.5",
-    "cheerio": "^1.2.0",
     "compromise": "^14.15.0",
     "html-to-text": "^9.0.5",
     "js-tiktoken": "^1.0.21",
     "linkedom": "^0.18.9",
-    "natural": "^8.1.1",
     "turndown": "^7.2.2"
   },
   "devDependencies": {
@@ -35,7 +32,9 @@
     "@types/node": "^22.0.0",
     "@types/turndown": "^5.0.6",
     "typescript": "^5.7.2",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.2",
+    "natural": "^8.1.1",
+    "@types/natural": "^5.1.5"
   },
   "exports": {
     ".": {

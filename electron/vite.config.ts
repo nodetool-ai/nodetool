@@ -64,7 +64,7 @@ const vite8MainOutput = { codeSplitting: false } satisfies Record<string, unknow
 export default defineConfig({
   base: "./",
   optimizeDeps: {
-    include: ["superjson", "@trpc/client"]
+    include: ["@trpc/client"]
   },
   plugins: [
     react(),

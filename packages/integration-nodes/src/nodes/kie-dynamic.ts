@@ -1,7 +1,7 @@
 /**
  * Dynamic Kie.ai node that creates inputs/outputs from pasted API documentation.
  */
-import { parse as parseYaml } from "yaml";
+import yaml from "js-yaml";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import {
   getApiKey,
@@ -165,7 +165,7 @@ function extractOpenApiModelId(text: string): string | null {
 function extractOpenApi(text: string): JsonRecord | null {
   const match = text.match(/```ya?ml\s*([\s\S]*?)```/i);
   if (!match) return null;
-  const parsed = parseYaml(match[1]) as unknown;
+  const parsed = yaml.load(match[1]) as unknown;
   return asRecord(parsed) ?? null;
 }
 

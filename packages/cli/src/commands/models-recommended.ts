@@ -8,7 +8,6 @@
 
 import type { Command } from "commander";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
-import superjson from "superjson";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import {
   RECOMMENDED_MODELS,
@@ -159,8 +158,7 @@ export function registerRecommendedCommand(models: Command): void {
             const client = createTRPCClient<AppRouter>({
               links: [
                 httpBatchLink({
-                  url: `${opts.apiUrl}/trpc`,
-                  transformer: superjson
+                  url: `${opts.apiUrl}/trpc`
                 })
               ]
             });

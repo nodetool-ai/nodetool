@@ -25,7 +25,15 @@ import {
 import { NodeData } from "../../stores/NodeData";
 import { debounce } from "../../utils/lodashAlternatives";
 import isEqual from "fast-deep-equal";
-import chroma from "chroma-js";
+import {
+  parse,
+  alpha,
+  darken,
+  brighten,
+  desaturate,
+  luminance,
+  toHex
+} from "../../utils/colorMath";
 import { hexToRgba } from "../../utils/ColorUtils";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
@@ -70,7 +78,7 @@ const POPOVER_ROW_STYLE: React.CSSProperties = {
 const resolveGroupHex = (raw: string | null | undefined): string => {
   if (!raw || raw.trim().startsWith("var(")) {return DEFAULT_GROUP_HEX;}
   try {
-    return chroma(raw).alpha(1).hex();
+    return toHex(alpha(parse(raw), 1));
   } catch {
     return DEFAULT_GROUP_HEX;
   }
@@ -482,16 +490,16 @@ const GroupNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
   // alpha — heavy desaturation made pastels collapse to indistinguishable
   // grays once mixed with the dark canvas. Preserve the original hue/chroma
   // so picker colors still read as themselves on the group.
-  const bodyTintHex = chroma(effectiveColor).desaturate(1.4).darken(0.3).hex();
+  const bodyTintHex = toHex(darken(desaturate(parse(effectiveColor), 1.4), 0.3));
   const bodyBg = hexToRgba(bodyTintHex, GROUP_BG_OPACITY);
   const subtleBorder = `1px solid ${hexToRgba(bodyTintHex, GROUP_BORDER_OPACITY)}`;
   // Label: same hue family as the body tint, with a small saturation +
   // brightness lift so the header reads as a subtle, related variant rather
   // than a contrasting pill.
-  const labelBg = chroma(bodyTintHex).desaturate(0.4).brighten(0.25).hex();
+  const labelBg = toHex(brighten(desaturate(parse(bodyTintHex), 0.4), 0.25));
   // Pick black or white text based on label background luminance so the title
   // stays legible whether the group color is dark or near-white.
-  const labelTextColor = chroma(labelBg).luminance() > 0.55 ? "#000000" : "#ffffff";
+  const labelTextColor = luminance(labelBg) > 0.55 ? "#000000" : "#ffffff";
 
   return (
     <div

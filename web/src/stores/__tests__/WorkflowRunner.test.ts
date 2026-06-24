@@ -1,7 +1,6 @@
 import { createWorkflowRunnerStore, deriveJobTitle } from "../WorkflowRunner";
 import useMetadataStore from "../MetadataStore";
 import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
-import { v4 as uuidv4 } from "uuid";
 import type { WorkflowAttributes } from "../ApiTypes";
 
 jest.mock("../../contexts/EditorInsertionContext", () => ({
@@ -79,9 +78,14 @@ jest.mock("../../queryClient", () => ({
   },
 }));
 
-jest.mock("uuid", () => ({
-  v4: jest.fn().mockReturnValue("test-job-id-123"),
-}));
+// WorkflowRunner generates job ids via crypto.randomUUID(); stub it with a jest
+// mock for stable, per-test assertions (jsdom may not provide a native randomUUID).
+const randomUUIDMock = jest.fn(() => "test-job-id-123");
+if (typeof globalThis.crypto === "undefined") {
+  (globalThis as { crypto: Crypto }).crypto = {} as Crypto;
+}
+(globalThis.crypto as { randomUUID: () => string }).randomUUID =
+  randomUUIDMock as unknown as Crypto["randomUUID"];
 
 describe("WorkflowRunner", () => {
   let store: ReturnType<typeof createWorkflowRunnerStore>;
@@ -395,7 +399,7 @@ describe("WorkflowRunner", () => {
         job_id: "job-server",
         isBrowserRun: false
       });
-      (uuidv4 as jest.Mock).mockReturnValueOnce("job-recovered");
+      randomUUIDMock.mockReturnValueOnce("job-recovered");
 
       const jobId = await store.getState().run({}, testWorkflow, [], []);
 
@@ -416,7 +420,7 @@ describe("WorkflowRunner", () => {
 
   describe("run() return value", () => {
     it("returns the job_id it created for a fresh run", async () => {
-      (uuidv4 as jest.Mock).mockReturnValueOnce("job-fresh");
+      randomUUIDMock.mockReturnValueOnce("job-fresh");
 
       const jobId = await store.getState().run({}, testWorkflow, [], []);
 
@@ -431,7 +435,7 @@ describe("WorkflowRunner", () => {
       // back to runnerStore.job_id — the *previous* run's id — which stranded
       // the queued job's updates and left its layer stuck "running".
       store.setState({ state: "running", job_id: "job-active" });
-      (uuidv4 as jest.Mock).mockReturnValueOnce("job-queued");
+      randomUUIDMock.mockReturnValueOnce("job-queued");
 
       const jobId = await store.getState().run({}, testWorkflow, [], []);
 
@@ -448,7 +452,7 @@ describe("WorkflowRunner", () => {
     });
 
     it("passes the concurrent flag into the run_job payload when requested", async () => {
-      (uuidv4 as jest.Mock).mockReturnValueOnce("job-c");
+      randomUUIDMock.mockReturnValueOnce("job-c");
       await store.getState().run({}, testWorkflow, [], [], undefined, undefined, true);
       expect(globalWebSocketManager.send).toHaveBeenCalledWith(
         expect.objectContaining({

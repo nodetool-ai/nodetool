@@ -36,7 +36,6 @@ import { DEFAULT_MODEL } from "../config/constants";
 import { ConnectionState } from "../lib/websocket/WebSocketManager";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
 import { FrontendToolRegistry } from "../lib/tools/frontendTools";
-import { v4 as uuidv4 } from "uuid";
 import { createChatPiSlice, type ChatPiSlice } from "./chatPi";
 import {
   handleChatWebSocketMessage,
@@ -837,7 +836,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         const safeTitle = typeof title === "string" ? title : undefined;
 
         // Create thread locally; server will auto-create on first message
-        const id = uuidv4();
+        const id = crypto.randomUUID();
         const now = new Date().toISOString();
         const localThread: Thread = {
           id,

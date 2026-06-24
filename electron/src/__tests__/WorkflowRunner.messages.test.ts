@@ -1,4 +1,4 @@
-import { encode } from '@msgpack/msgpack';
+import { pack } from 'msgpackr';
 import { EventEmitter } from 'events';
 import * as zustandVanilla from 'zustand/vanilla';
 
@@ -36,7 +36,7 @@ async function connectRunner() {
 }
 
 function sendMessage(socket: any, data: Record<string, unknown>) {
-  socket.emit('message', Buffer.from(encode(data)));
+  socket.emit('message', Buffer.from(pack(data)));
 }
 
 describe('WorkflowRunner message handling', () => {

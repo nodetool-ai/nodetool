@@ -91,9 +91,9 @@ export class PptxExtractSlidesLibNode extends BaseNode {
       (this.pptx ?? {}) as DocumentRefLike,
       context
     );
-    const { default: JSZip } = await import("jszip");
-    const zip = await JSZip.loadAsync(buffer);
-    const slidePaths = Object.keys(zip.files)
+    const { strFromU8, unzipSync } = await import("fflate");
+    const entries = unzipSync(new Uint8Array(buffer));
+    const slidePaths = Object.keys(entries)
       .filter((name) => /^ppt\/slides\/slide\d+\.xml$/.test(name))
       .sort((a, b) => {
         const na = Number(a.match(/slide(\d+)\.xml$/)?.[1] ?? 0);
@@ -103,9 +103,9 @@ export class PptxExtractSlidesLibNode extends BaseNode {
 
     const slides: Array<Record<string, unknown>> = [];
     for (let i = 0; i < slidePaths.length; i++) {
-      const file = zip.file(slidePaths[i]);
-      if (!file) continue;
-      const xml = await file.async("string");
+      const bytes = entries[slidePaths[i]];
+      if (!bytes) continue;
+      const xml = strFromU8(bytes);
       const text = extractSlideText(xml);
       slides.push({
         index: i,

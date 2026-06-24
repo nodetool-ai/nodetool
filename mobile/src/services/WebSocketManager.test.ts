@@ -9,9 +9,9 @@
 import { WebSocketManager } from './WebSocketManager';
 
 // Mock msgpack
-jest.mock('@msgpack/msgpack', () => ({
-  encode: jest.fn((data) => JSON.stringify(data)),
-  decode: jest.fn((data) => {
+jest.mock('msgpackr', () => ({
+  pack: jest.fn((data) => JSON.stringify(data)),
+  unpack: jest.fn((data) => {
     if (typeof data === 'string') {
       return JSON.parse(data);
     }

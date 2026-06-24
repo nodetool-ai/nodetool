@@ -22,9 +22,10 @@
     "@types/node": "^22.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.7.2",
-    "vitest": "^4.1.2"
+    "vitest": "^4.1.2",
+    "@types/js-yaml": "^4.0.9"
   },
   "dependencies": {
-    "yaml": "^2.9.0"
+    "js-yaml": "^4.1.0"
   }
 }

@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/document-nodes",
   "version": "0.7.0-rc.23",
-  "description": "NodeTool document nodes \u2014 DOCX, EPUB, PPTX, PDF, generic document I/O",
+  "description": "NodeTool document nodes — DOCX, EPUB, PPTX, PDF, generic document I/O",
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <23.0.0"
@@ -23,11 +23,11 @@
     "@nodetool-ai/runtime": "*",
     "docx": "^9.6.0",
     "epub2": "^3.0.2",
-    "jszip": "^3.10.1",
     "mammoth": "^1.11.0",
     "office-text-extractor": "^4.0.0",
     "sharp": "^0.34.5",
-    "turndown": "^7.2.2"
+    "turndown": "^7.2.2",
+    "fflate": "^0.8.2"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

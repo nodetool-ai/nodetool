@@ -1,7 +1,6 @@
 import { globalWebSocketManager } from "../websocket/GlobalWebSocketManager";
 import { isLocalhost } from "../env";
 import { supabase } from "../supabaseClient";
-import { v4 as uuidv4 } from "uuid";
 import { BASE_URL } from "../../stores/BASE_URL";
 import useMetadataStore from "../../stores/MetadataStore";
 import type { Edge, Node, WorkflowGraph } from "../../stores/ApiTypes";
@@ -91,7 +90,7 @@ export async function runInlineGraphJob(
     unknown
   >;
 
-  const jobId = uuidv4();
+  const jobId = crypto.randomUUID();
 
   let auth_token = "local_token";
   let user_id = "1";

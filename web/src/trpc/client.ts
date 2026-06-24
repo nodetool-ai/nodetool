@@ -5,7 +5,6 @@ import {
   loggerLink,
   type TRPCClient
 } from "@trpc/client";
-import superjson from "superjson";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { BASE_URL } from "../stores/BASE_URL";
 import { isLocalhost } from "../lib/env";
@@ -33,7 +32,6 @@ export function createTRPCHttpClient(): Readonly<TRPCClient<AppRouter>> {
       }),
       httpBatchLink({
         url: `${BASE_URL}/trpc`,
-        transformer: superjson,
         async headers() {
           return authHeaders();
         }
