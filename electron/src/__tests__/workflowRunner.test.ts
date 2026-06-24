@@ -1,4 +1,4 @@
-import { decode } from '@msgpack/msgpack';
+import { unpack } from 'msgpackr';
 import { EventEmitter } from 'events';
 import * as zustandVanilla from 'zustand/vanilla';
 
@@ -70,7 +70,7 @@ describe('WorkflowRunner', () => {
     expect(socket.send).toHaveBeenCalledTimes(1);
 
     const encoded = socket.send.mock.calls[0][0];
-    const decoded: any = decode(encoded);
+    const decoded: any = unpack(encoded);
     expect(decoded.command).toBe('run_job');
     expect(decoded.data.workflow_id).toBe('123');
 

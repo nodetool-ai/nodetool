@@ -2,7 +2,6 @@
 
 import { getMousePosition } from "../../utils/MousePosition";
 import { useReactFlow, Edge, Node } from "@xyflow/react";
-import { v4 as uuidv4 } from "uuid";
 import { NodeData } from "../../stores/NodeData";
 import { useCallback } from "react";
 import { useShallow } from "zustand/react/shallow";
@@ -306,7 +305,7 @@ export const useCopyPaste = (): UseCopyPasteResult => {
       if (newSource && newTarget) {
         newEdges.push({
           ...edge,
-          id: uuidv4(), // Edge IDs can still be UUIDs
+          id: crypto.randomUUID(), // Edge IDs can still be UUIDs
           source: newSource,
           target: newTarget,
           selected: false // Edges should not be selected

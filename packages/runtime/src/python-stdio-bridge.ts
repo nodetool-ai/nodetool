@@ -13,7 +13,7 @@
  * supplies the stdio transport (subprocess spawn + length-prefixed framing).
  */
 
-import * as msgpack from "@msgpack/msgpack";
+import { pack, unpack } from "msgpackr";
 import { importNodeBuiltin } from "@nodetool-ai/config";
 
 // Python bridge is fundamentally Node-only (subprocess + raw FDs).
@@ -284,7 +284,7 @@ export class PythonStdioBridge extends PythonBridgeBase {
       const payload = this._readBuffer.subarray(4, 4 + length);
       this._readBuffer = this._readBuffer.subarray(4 + length);
       try {
-        const msg = msgpack.decode(payload) as Record<string, unknown>;
+        const msg = unpack(payload) as Record<string, unknown>;
         this._handleMessage(msg);
       } catch (err) {
         this._failProtocol(
@@ -307,7 +307,7 @@ export class PythonStdioBridge extends PythonBridgeBase {
     if (!this._process?.stdin || !this._connected) {
       throw new Error("Not connected to Python worker");
     }
-    const payload = Buffer.from(msgpack.encode(msg));
+    const payload = Buffer.from(pack(msg));
     if (payload.length > MAX_BRIDGE_FRAME_SIZE) {
       throw new Error(
         `Outgoing Python bridge frame exceeds max size (${payload.length} > ${MAX_BRIDGE_FRAME_SIZE})`

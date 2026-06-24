@@ -61,7 +61,7 @@ import fastifyWebSocket from "@fastify/websocket";
 import fastifyCors from "@fastify/cors";
 import fastifyRateLimit from "@fastify/rate-limit";
 import fastifyStatic from "@fastify/static";
-import { encode } from "@msgpack/msgpack";
+import { pack } from "msgpackr";
 import { SupabaseAuthProvider, LocalAuthProvider } from "@nodetool-ai/auth";
 import {
   fastifyTRPCPlugin,
@@ -172,7 +172,7 @@ async function broadcastResourceChange(
     resource: Record<string, unknown>;
   }
 ): Promise<void> {
-  const message = encode({
+  const message = pack({
     type: "resource_change",
     ...change
   });

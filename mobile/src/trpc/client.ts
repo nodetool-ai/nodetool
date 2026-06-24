@@ -13,7 +13,6 @@
 
 import { createTRPCClient, httpBatchLink, type TRPCClient, type TRPCLink } from '@trpc/client';
 import { createTRPCReact } from '@trpc/react-query';
-import superjson from 'superjson';
 import type { AppRouter } from '@nodetool-ai/websocket/trpc';
 
 import { getApiHost } from '../services/apiHost';
@@ -59,7 +58,6 @@ export function createTrpcLinks(): TRPCLink<AppRouter>[] {
   return [
     httpBatchLink({
       url: `${getApiHost()}/trpc`,
-      transformer: superjson,
       headers: authHeaders,
       fetch: hostRewriteFetch,
     }),

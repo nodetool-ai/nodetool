@@ -8,7 +8,7 @@
  * - Compatible with msgpack encoding
  */
 
-import { encode, decode } from '@msgpack/msgpack';
+import { pack, unpack } from 'msgpackr';
 import { 
   ConnectionState, 
   WebSocketConfig,
@@ -159,7 +159,7 @@ export class WebSocketManager {
 
     try {
       console.log('[WS Send]', message);
-      const encoded = encode(message);
+      const encoded = pack(message);
       this.ws!.send(encoded);
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -204,7 +204,7 @@ export class WebSocketManager {
       let data: unknown;
 
       if (event.data instanceof ArrayBuffer) {
-        data = decode(new Uint8Array(event.data));
+        data = unpack(new Uint8Array(event.data));
       } else if (typeof event.data === 'string') {
         // Try to parse as JSON string
         try {
@@ -215,7 +215,7 @@ export class WebSocketManager {
       } else {
         // Handle Blob (common in React Native)
         const buffer = await this.blobToArrayBuffer(event.data);
-        data = decode(new Uint8Array(buffer));
+        data = unpack(new Uint8Array(buffer));
       }
 
       console.log('[WS Receive]', data);

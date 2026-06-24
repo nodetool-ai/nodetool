@@ -1,5 +1,4 @@
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
-import superjson from "superjson";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { Workflow } from "./types";
 import { logMessage } from "./logger";
@@ -9,8 +8,7 @@ function createApiClient() {
   return createTRPCClient<AppRouter>({
     links: [
       httpBatchLink({
-        url: getServerUrl("/trpc"),
-        transformer: superjson
+        url: getServerUrl("/trpc")
       })
     ]
   });

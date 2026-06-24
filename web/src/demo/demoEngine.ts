@@ -12,7 +12,6 @@
  * The engine deliberately does NOT import any React node components, so it can
  * be unit-tested in isolation. Node-type → component wiring lives in the player.
  */
-import { v4 as uuidv4 } from "uuid";
 import { create } from "zustand";
 import type { Edge, Node } from "@xyflow/react";
 
@@ -177,7 +176,7 @@ function remapJobIds(events: CastEvent[]): CastEvent[] {
     if (typeof job !== "string") return e;
     let fresh = map.get(job);
     if (!fresh) {
-      fresh = uuidv4();
+      fresh = crypto.randomUUID();
       map.set(job, fresh);
     }
     return { t: e.t, message: { ...e.message, job_id: fresh } };

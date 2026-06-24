@@ -84,7 +84,6 @@ vi.mock("@trpc/client", () => ({
   createTRPCClient: vi.fn(),
   httpBatchLink: vi.fn()
 }));
-vi.mock("superjson", () => ({ default: {} }));
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 

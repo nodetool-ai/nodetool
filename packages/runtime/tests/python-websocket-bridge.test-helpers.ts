@@ -8,7 +8,7 @@
 
 import { WebSocketServer, type WebSocket as WsServerSocket } from "ws";
 import { AddressInfo } from "node:net";
-import * as msgpack from "@msgpack/msgpack";
+import { pack, unpack } from "msgpackr";
 
 import { BRIDGE_PROTOCOL_VERSION } from "@nodetool-ai/protocol/bridge-protocol";
 
@@ -135,14 +135,14 @@ export function startFakeWorker(
     ws.binaryType = "nodebuffer";
     ws.on("close", () => sockets.delete(ws));
     ws.on("message", (raw: Buffer) => {
-      const msg = msgpack.decode(raw as Uint8Array) as Record<string, unknown>;
+      const msg = unpack(raw as Uint8Array) as Record<string, unknown>;
       const type = msg.type as string;
       const requestId = msg.request_id as string;
       const list = receivedByType.get(type) ?? [];
       list.push(msg);
       receivedByType.set(type, list);
       const send = (m: Record<string, unknown>) => {
-        ws.send(msgpack.encode(m));
+        ws.send(pack(m));
       };
 
       switch (type) {

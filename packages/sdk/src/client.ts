@@ -3,7 +3,6 @@ import {
   httpBatchLink,
   type CreateTRPCClient
 } from "@trpc/client";
-import superjson from "superjson";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { ChatSocket, type WebSocketCtor } from "./chat.js";
 
@@ -81,7 +80,6 @@ export function createNodetoolClient(
     links: [
       httpBatchLink({
         url: `${baseUrl}/trpc`,
-        transformer: superjson,
         fetch: fetchImpl as typeof fetch,
         headers() {
           return authToken ? { Authorization: `Bearer ${authToken}` } : {};

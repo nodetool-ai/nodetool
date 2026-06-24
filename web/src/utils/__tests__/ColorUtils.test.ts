@@ -60,7 +60,8 @@ describe("ColorUtils", () => {
   describe("darkenHexColor", () => {
     it("should darken hex colors by specified amount", () => {
       expect(darkenHexColor("#ff0000", 50)).toBe("#e00000");
-      expect(darkenHexColor("#ffffff", 10)).toBe("#e6e6e6");
+      // darken(0.1) subtracts ~1.8 from Lab L (100 → 98.2): a slight dim.
+      expect(darkenHexColor("#ffffff", 10)).toBe("#fafafa");
     });
 
     it("should preserve CSS variables", () => {
@@ -79,10 +80,14 @@ describe("ColorUtils", () => {
     it("should adjust saturation of hex colors", () => {
       // Red with 50% more saturation stays red (already fully saturated)
       expect(adjustSaturation("#ff0000", 50)).toBe("#ff0000");
-      
-      // Gray becomes more colorful when saturation is increased
-      const result = adjustSaturation("#808080", 100);
-      expect(result).not.toBe("#808080");
+
+      // A partially saturated color becomes more colorful when saturation is
+      // increased (HSL saturation multiplier on a non-gray hue).
+      const result = adjustSaturation("#bf4040", 100);
+      expect(result).not.toBe("#bf4040");
+
+      // Gray has zero HSL saturation, so scaling it leaves it gray.
+      expect(adjustSaturation("#808080", 100)).toBe("#808080");
     });
 
     it("should preserve CSS variables", () => {

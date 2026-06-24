@@ -12,7 +12,6 @@ import {
   httpBatchLink,
   type TRPCClient
 } from "@trpc/client";
-import superjson from "superjson";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 
 // ============================================================================
@@ -72,7 +71,6 @@ export class APIUserManager {
       links: [
         httpBatchLink({
           url: `${this.serverUrl}/trpc`,
-          transformer: superjson,
           headers: {
             Authorization: `Bearer ${this.adminToken}`
           }

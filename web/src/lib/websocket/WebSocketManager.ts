@@ -7,7 +7,7 @@
  * valid transitions to avoid double-connect/disconnect races.
  */
 import { EventEmitter } from "../EventEmitter";
-import { encode, decode } from "@msgpack/msgpack";
+import { pack, unpack } from "msgpackr";
 
 export type ConnectionState =
   | "disconnected"
@@ -189,7 +189,7 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
     }
 
     try {
-      const encoded = encode(message);
+      const encoded = pack(message);
       this.ws!.send(encoded);
       this.emit("messageSent", message);
     } catch (error) {
@@ -239,14 +239,14 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
 
       if (this.config.binaryType === "arraybuffer") {
         if (event.data instanceof ArrayBuffer) {
-          const decoded = decode(new Uint8Array(event.data));
+          const decoded = unpack(new Uint8Array(event.data));
           data = decoded;
         } else if (
           event.data instanceof Blob ||
           (event.data && typeof (event.data as Blob).arrayBuffer === "function")
         ) {
           const buf = await (event.data as Blob).arrayBuffer();
-          data = decode(new Uint8Array(buf));
+          data = unpack(new Uint8Array(buf));
         } else if (typeof event.data === "string") {
           data = JSON.parse(event.data);
         } else {

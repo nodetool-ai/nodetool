@@ -15,7 +15,6 @@ export default {
     '^@nodetool-ai/protocol/bridge-protocol$': '<rootDir>/../packages/protocol/src/bridge-protocol.ts',
     '^@nodetool-ai/protocol/builtin-packs$': '<rootDir>/../packages/protocol/src/builtin-packs.ts',
     '^@nodetool-ai/websocket/trpc$': '<rootDir>/src/__mocks__/websocket-trpc.ts',
-    '^superjson$': '<rootDir>/src/__mocks__/superjson.ts',
     '^@nodetool-ai/config$': '<rootDir>/../packages/config/src/index.ts',
     '^@nodetool-ai/config/(.*)$': '<rootDir>/../packages/config/src/$1',
     // Strip .js extensions from TypeScript ESM imports

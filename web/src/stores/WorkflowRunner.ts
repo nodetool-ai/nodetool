@@ -25,7 +25,6 @@ import {
   runBrowserGraphJob,
   updateBrowserJobNodeProperties
 } from "../lib/workflow/browserWorkflowRunner";
-import { v4 as uuidv4 } from "uuid";
 import { useNotificationStore, Notification } from "./NotificationStore";
 import useOnboardingStore from "./OnboardingStore";
 import useMetadataStore from "./MetadataStore";
@@ -417,7 +416,7 @@ export const createWorkflowRunnerStore = (
         currentState !== "connecting" &&
         (!currentJobId || (!wsConnected && !get().isBrowserRun));
 
-      const jobId = uuidv4();
+      const jobId = crypto.randomUUID();
       const queueRun = busy && !stuck;
 
       if (!queueRun) {
@@ -628,7 +627,7 @@ export const createWorkflowRunnerStore = (
       useNotificationStore.getState().addNotification(notification);
       const nextNotifications = [
         ...get().notifications,
-        { ...notification, id: uuidv4(), timestamp: new Date() }
+        { ...notification, id: crypto.randomUUID(), timestamp: new Date() }
       ];
       set({
         notifications:

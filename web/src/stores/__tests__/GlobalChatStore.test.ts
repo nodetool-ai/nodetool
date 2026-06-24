@@ -60,7 +60,7 @@ jest.mock("../../lib/websocket/GlobalWebSocketManager", () => ({
   globalWebSocketManager: mockGlobalWebSocketManager
 }));
 
-import { encode } from "@msgpack/msgpack";
+import { pack } from "msgpackr";
 import { Server } from "mock-socket";
 import useGlobalChatStore from "../GlobalChatStore";
 import {
@@ -74,8 +74,20 @@ import {
 } from "../ApiTypes";
 import { supabase } from "../../lib/supabaseClient";
 
+// GlobalChatStore generates thread ids via crypto.randomUUID(). Drive it with a
+// deterministic counter so the id assertions below ("id-0", "id-1", …) are
+// stable. Assigned directly (rather than jest.spyOn) so it works even when the
+// jsdom global lacks a native randomUUID, and re-applied in beforeEach because
+// jest.clearAllMocks() resets the implementation.
 let uuidCounter = 0;
-jest.mock("uuid", () => ({ v4: () => `id-${uuidCounter++}` }));
+const installUuidStub = (): void => {
+  if (typeof globalThis.crypto === "undefined") {
+    (globalThis as { crypto: Crypto }).crypto = {} as Crypto;
+  }
+  (globalThis.crypto as { randomUUID: () => `${string}-${string}-${string}-${string}-${string}` }).randomUUID =
+    () => `id-${uuidCounter++}` as `${string}-${string}-${string}-${string}-${string}`;
+};
+installUuidStub();
 
 // Helper function to simulate server sending a message with proper data format
 const simulateServerMessage = (
@@ -89,7 +101,7 @@ const simulateServerMessage = (
     resolvedThreadId && !("thread_id" in data)
       ? { ...data, thread_id: resolvedThreadId }
       : data;
-  const encoded = encode(payload);
+  const encoded = new Uint8Array(pack(payload));
 
   // Create a Blob which has arrayBuffer() method
   const blob = new Blob([encoded]);
@@ -117,6 +129,7 @@ describe("GlobalChatStore", () => {
     jest.clearAllMocks();
     jest.setTimeout(60000);
     uuidCounter = 0;
+    installUuidStub();
     (supabase.auth.getSession as jest.Mock).mockResolvedValue({
       data: { session: null }
     });
@@ -1048,10 +1061,12 @@ describe("GlobalChatStore", () => {
     });
 
     it("handles malformed message data", async () => {
-      const unknownTypeMessage = encode({
-        type: "completely_unknown_type",
-        data: "test"
-      });
+      const unknownTypeMessage = new Uint8Array(
+        pack({
+          type: "completely_unknown_type",
+          data: "test"
+        })
+      );
 
       const blob = new Blob([unknownTypeMessage]);
       Object.defineProperty(blob, "arrayBuffer", {

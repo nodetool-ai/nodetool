@@ -20,7 +20,6 @@ import { dirname, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
-import superjson from "superjson";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { workflowToDsl } from "@nodetool-ai/dsl";
 import { initDb, Workflow, Secret, getSecret } from "@nodetool-ai/models";
@@ -86,8 +85,7 @@ function createApiClient(apiUrl: string) {
   return createTRPCClient<AppRouter>({
     links: [
       httpBatchLink({
-        url: `${apiUrl}/trpc`,
-        transformer: superjson
+        url: `${apiUrl}/trpc`
       })
     ]
   });

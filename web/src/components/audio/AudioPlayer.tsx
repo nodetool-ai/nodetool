@@ -13,7 +13,6 @@ import React, {
   useCallback,
   useMemo
 } from "react";
-import { v4 as uuidv4 } from "uuid";
 import { throttle } from "../../utils/lodashAlternatives";
 import AudioControls from "./AudioControls";
 
@@ -162,7 +161,7 @@ const AudioPlayer: React.FC<WaveSurferProps> = (incomingProps) => {
   const [mute, setMute] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [fitsContainer, setFitsContainer] = useState(true);
-  const minimapId = useMemo(() => `minimap-${uuidv4()}`, []);
+  const minimapId = useMemo(() => `minimap-${crypto.randomUUID()}`, []);
   const [displayTime, setDisplayTime] = useState(0);
   const handlePlayPause = useCallback(() => {
     try {

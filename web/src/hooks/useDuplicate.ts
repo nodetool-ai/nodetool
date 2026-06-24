@@ -1,5 +1,4 @@
 import { useCallback } from "react";
-import { v4 as uuidv4 } from "uuid";
 import { Node, Edge, useReactFlow } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 import { DUPLICATE_SPACING } from "../config/constants";
@@ -117,7 +116,7 @@ export const useDuplicateNodes = (
         if (!newSource || !newTarget) {continue;}
         newEdges.push({
           ...edge,
-          id: uuidv4(),
+          id: crypto.randomUUID(),
           source: newSource,
           target: newTarget,
           selected: false
@@ -131,7 +130,7 @@ export const useDuplicateNodes = (
         if (!newTarget) {continue;}
         newEdges.push({
           ...edge,
-          id: uuidv4(),
+          id: crypto.randomUUID(),
           source: edge.source,
           target: newTarget,
           selected: false

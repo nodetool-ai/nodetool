@@ -1,4 +1,4 @@
-import { encode, decode } from "@msgpack/msgpack";
+import { pack, unpack } from "msgpackr";
 import { create } from "zustand";
 import WebSocket from "ws";
 import { Notification } from "electron";
@@ -139,7 +139,7 @@ export const createWorkflowRunner = () =>
             // Handle other types
             buffer = new Uint8Array(0);
           }
-          const decoded = decode(buffer);
+          const decoded = unpack(buffer);
           if (!isWebSocketMessage(decoded)) return;
           const data = decoded;
 
@@ -263,7 +263,7 @@ export const createWorkflowRunner = () =>
       }
 
       socket.send(
-        encode({
+        pack({
           command: "run_job",
           data: request,
         })
@@ -297,7 +297,7 @@ export const createWorkflowRunner = () =>
       }
 
       socket.send(
-        encode({
+        pack({
           command: "resume_job",
           data: {
             job_id: jobId,

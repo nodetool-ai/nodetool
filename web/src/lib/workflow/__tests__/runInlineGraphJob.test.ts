@@ -21,7 +21,12 @@ jest.mock("../../env", () => ({ isLocalhost: true }));
 jest.mock("../../supabaseClient", () => ({
   supabase: { auth: { getSession: jest.fn() } }
 }));
-jest.mock("uuid", () => ({ v4: () => "job-x" }));
+// runInlineGraphJob generates the job id via crypto.randomUUID(); stub it for
+// stable assertions (jsdom may not provide a native randomUUID).
+if (typeof globalThis.crypto === "undefined") {
+  (globalThis as { crypto: Crypto }).crypto = {} as Crypto;
+}
+(globalThis.crypto as { randomUUID: () => string }).randomUUID = () => "job-x";
 jest.mock("../../../stores/BASE_URL", () => ({ BASE_URL: "http://localhost" }));
 jest.mock("../../../stores/MetadataStore", () => ({
   __esModule: true,

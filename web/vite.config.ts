@@ -173,7 +173,6 @@ export default defineConfig(async ({ mode }) => {
     },
     optimizeDeps: {
       include: [
-        "superjson",
         "@trpc/client",
         "@trpc/react-query",
         "@trpc/server",
@@ -290,7 +289,7 @@ export default defineConfig(async ({ mode }) => {
                     return "vendor-flow";
                   // Server state + RPC stack (must stay together — shared runtime)
                   if (
-                    /[\\/]node_modules[\\/](@tanstack|@trpc|superjson|@msgpack)[\\/]/.test(
+                    /[\\/]node_modules[\\/](@tanstack|@trpc|@msgpack)[\\/]/.test(
                       id
                     )
                   )

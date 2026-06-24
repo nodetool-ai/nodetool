@@ -62,9 +62,13 @@ jest.mock("../../../lib/workflow/browserWorkflowRunner", () => ({
   preloadBrowserRunner: jest.fn()
 }));
 
-jest.mock("uuid", () => ({
-  v4: () => "preview-job-1"
-}));
+// useLiveSliderWriter generates preview job ids via crypto.randomUUID(); stub
+// it for stable assertions (jsdom may not provide a native randomUUID).
+if (typeof globalThis.crypto === "undefined") {
+  (globalThis as { crypto: Crypto }).crypto = {} as Crypto;
+}
+(globalThis.crypto as { randomUUID: () => string }).randomUUID = () =>
+  "preview-job-1";
 
 jest.mock("../../../stores/LiveRunStore", () => ({
   useLiveRunStore: (selector: (s: unknown) => unknown) =>
