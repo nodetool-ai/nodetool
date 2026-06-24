@@ -34,6 +34,11 @@ on:
 permissions:
   contents: read
 
+# Cancel superseded runs for the same branch/PR; the latest push is what matters.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   e2e-workflow-runner:
     name: Run workflow suite in browser
