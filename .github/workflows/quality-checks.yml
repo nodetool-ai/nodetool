@@ -22,6 +22,12 @@ on:
         description: 'Whether every quality check leg passed.'
         value: ${{ jobs.quality.outputs.all-passed }}
 
+# Least privilege: every leg only checks out the repo and runs checks — none
+# write to it. An explicit read-only token also satisfies CodeQL's
+# "workflow does not contain permissions" rule.
+permissions:
+  contents: read
+
 jobs:
   # One job per check, run in parallel. Each leg does only the setup it needs:
   # lint/deps skip `build:packages`; only the package-test leg needs the CPU
@@ -31,6 +37,7 @@ jobs:
   checks:
     name: ${{ matrix.check }}
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     strategy:
       fail-fast: ${{ inputs.fail-fast }}
       matrix:
@@ -116,6 +123,7 @@ jobs:
     needs: [checks]
     if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       all-passed: ${{ steps.gate.outputs.all-passed }}
     steps:
