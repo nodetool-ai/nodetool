@@ -17,6 +17,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { unpack } from "msgpackr";
 import { initTestDb, Thread, Message, Workflow, Job } from "@nodetool-ai/models";
+import { BaseProvider } from "@nodetool-ai/runtime";
 import {
   UnifiedWebSocketRunner,
   type WebSocketConnection,
@@ -125,7 +126,8 @@ function mockProvider() {
       getAvailableTTSModels: async () => [],
       getAvailableASRModels: async () => [],
       getAvailableEmbeddingModels: async () => [],
-      getContainerEnv: () => ({})
+      getContainerEnv: () => ({}),
+        generateLoop: BaseProvider.prototype.generateLoop
     }) as any;
 }
 

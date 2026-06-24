@@ -58,7 +58,8 @@ import {
   ProcessingContext as RuntimeProcessingContext,
   encodeRawRgbaToPng,
   getCostReconciler,
-  isProviderSessionUpdate
+  isProviderSessionUpdate,
+  isProviderMessageEvent
 } from "@nodetool-ai/runtime";
 import { isRawRgbaImage } from "@nodetool-ai/protocol";
 import type {
@@ -3070,8 +3071,9 @@ export class UnifiedWebSocketRunner {
       }
     }
 
+    // Final assistant text, for the memory snapshot below. Updated as the
+    // provider emits assistant messages; the last one wins.
     let content = "";
-    let unprocessedMessages: ProviderMessage[] = [];
     // The session token to persist onto the assistant message. Seeds from the
     // prior turn's token (so a session-based provider resumes) and is refreshed
     // whenever the provider emits a new ProviderSessionUpdate this turn.
@@ -3084,216 +3086,116 @@ export class UnifiedWebSocketRunner {
         ? { ...capturedSession, checkpoint: sessionCheckpointOverride }
         : capturedSession;
 
-    // Tool execution loop — mirrors Python's RegularChatProcessor.process()
+    // Cap on tool-calling rounds before the loop stops.
     const MAX_TOOL_ROUNDS = 10;
-    let toolRound = 0;
-    const shouldIncludeTools = true;
+    const useTools = providerToolSchemas.length > 0;
+
+    // The wire messages: chat history + the ephemeral memory block (which goes
+    // to the provider but is never persisted). The provider's generateLoop owns
+    // the tool-calling rounds and message assembly from here.
+    let messagesToSend = [...chatHistory];
+    if (memoryContext) {
+      messagesToSend = this.addCollectionContext(messagesToSend, memoryContext);
+      memoryContext = "";
+    }
+
+    // Run one tool call and return the result text to feed back to the model.
+    // Owns server/client tool routing, side effects (client round-trips via the
+    // ToolBridge), and asset materialization; the provider's loop orchestrates.
+    const executeTool = async (toolCall: ProviderToolCall): Promise<string> => {
+      let toolResult: unknown;
+      const serverTool = serverToolMap.get(toolCall.name);
+      if (serverTool) {
+        try {
+          toolResult = await serverTool.process(ctx, toolCall.args);
+        } catch (err) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          log.error("Tool execution failed", {
+            tool: toolCall.name,
+            error: errMsg
+          });
+          toolResult = { error: errMsg };
+        }
+      } else if (this.clientToolsManifest[toolCall.name]) {
+        // Client-side tool — round-trip through the UI via the ToolBridge.
+        await this.sendMessage({
+          type: "tool_call",
+          thread_id: threadId,
+          tool_call_id: toolCall.id,
+          name: toolCall.name,
+          args: toolCall.args
+        });
+        const clientResult = await this.toolBridge.createWaiter(
+          toolCall.id,
+          300_000
+        );
+        toolResult =
+          clientResult.result ?? clientResult.content ?? clientResult;
+      } else {
+        toolResult = { error: `Tool "${toolCall.name}" not available` };
+      }
+      const processed = await this.processToolResult(toolResult, ctx);
+      return typeof processed === "string"
+        ? processed
+        : JSON.stringify(processed);
+    };
+
+    // Tool name by call id, so persisted tool messages keep their name (the
+    // provider Message carries only the id).
+    const toolNames = new Map<string, string>();
+
     try {
-      while (true) {
+      for await (const item of provider.generateLoop({
+        messages: messagesToSend,
+        model,
+        tools: useTools ? providerToolSchemas : undefined,
+        threadId,
+        providerSession: capturedSession,
+        loadFullHistory: loadFullHistory ?? undefined,
+        executeTool: useTools ? executeTool : undefined,
+        maxIterations: MAX_TOOL_ROUNDS
+      })) {
         if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
           return;
 
-        let messagesToSend = [...chatHistory, ...unprocessedMessages];
-        unprocessedMessages = [];
-
-        // Long-term memory recall is injected on the first iteration only.
-        // Like the collection context, the recalled block is ephemeral —
-        // it goes on the wire to the provider but is NOT persisted into
-        // the chat history (the persisted snapshot was captured above).
-        if (memoryContext) {
-          messagesToSend = this.addCollectionContext(
-            messagesToSend,
-            memoryContext
-          );
-          memoryContext = "";
+        if (isProviderSessionUpdate(item)) {
+          // Internal continuity token — capture for persistence, never wired.
+          capturedSession = item.session;
+          continue;
         }
 
-        const stream = provider.generateMessagesTraced({
-          messages: messagesToSend,
-          model,
-          tools:
-            shouldIncludeTools && providerToolSchemas.length > 0
-              ? providerToolSchemas
-              : undefined,
-          threadId,
-          providerSession: capturedSession,
-          loadFullHistory: loadFullHistory ?? undefined,
-          onToolCall:
-            shouldIncludeTools && providerToolSchemas.length > 0
-              ? async (name: string, args: Record<string, unknown>) => {
-                  let toolResult: unknown;
-                  const serverTool = serverToolMap.get(name);
-                  if (serverTool) {
-                    try {
-                      toolResult = await serverTool.process(ctx, args);
-                    } catch (err) {
-                      const errMsg =
-                        err instanceof Error ? err.message : String(err);
-                      toolResult = { error: errMsg };
-                    }
-                  } else if (this.clientToolsManifest[name]) {
-                    // Client-side tool — send to UI via ToolBridge
-                    const callId = `call_${Date.now()}`;
-                    await this.sendMessage({
-                      type: "tool_call",
-                      thread_id: threadId,
-                      tool_call_id: callId,
-                      name,
-                      args
-                    });
-                    const clientResult = await this.toolBridge.createWaiter(
-                      callId,
-                      300_000
-                    );
-                    toolResult =
-                      clientResult.result ?? clientResult.content ?? clientResult;
-                  } else {
-                    toolResult = { error: `Tool "${name}" not available` };
-                  }
-                  const processed = await this.processToolResult(
-                    toolResult,
-                    ctx
-                  );
-                  return typeof processed === "string"
-                    ? processed
-                    : JSON.stringify(processed);
-                }
-              : undefined
-        });
-
-        // Phase 1: Stream chunks and collect tool calls
-        interface PendingToolCall {
-          tc: ProviderToolCall;
-        }
-        const pendingToolCalls: PendingToolCall[] = [];
-
-        for await (const item of stream) {
-          if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
-            return;
-
-          if (isProviderSessionUpdate(item)) {
-            // Internal continuity token — capture for persistence, never wire it
-            // to the client.
-            capturedSession = item.session;
-            continue;
-          }
-
-          if ("type" in item && (item as Chunk).type === "chunk") {
-            // --- Text chunk --- forward to client (not persisted)
-            const chunk = item as Chunk;
-            const text = chunk.content ?? "";
-            content += text;
-            // Set thread_id if not already set — matches Python
-            if (!chunk.thread_id) chunk.thread_id = threadId;
-            await this.sendMessage({ ...chunk });
-          } else if ("name" in item && "id" in item) {
-            // --- Tool call from provider (collect, don't execute yet) ---
-            const tc = item as ProviderToolCall;
-            log.info("Tool call", { tool: tc.name, args: tc.args });
-            pendingToolCalls.push({ tc });
-          }
-        }
-
-        // Build ONE assistant message with ALL tool calls (OpenAI requires this)
-        if (pendingToolCalls.length > 0) {
-          const allToolCalls = pendingToolCalls.map(({ tc }) => ({
-            id: tc.id,
-            name: tc.name,
-            args: tc.args,
-            result: null
-          }));
-          const assistantMsgData: Record<string, unknown> = {
-            type: "message",
-            role: "assistant",
-            content: content || null,
-            tool_calls: allToolCalls,
-            thread_id: threadId,
-            workflow_id: workflowId,
-            provider: providerId,
-            model,
-            provider_session: sessionForPersist()
-          };
-          await this.saveMessageToDb(assistantMsgData);
-          await this.sendMessage(assistantMsgData);
-
-          unprocessedMessages.push({
-            role: "assistant",
-            content: content || null,
-            toolCalls: pendingToolCalls.map(({ tc }) => ({
-              id: tc.id,
-              name: tc.name,
-              args: tc.args
-            })),
-            toolCallId: null,
-            threadId
-          });
-        }
-
-        // Phase 2: Execute all collected tool calls in parallel
-        if (pendingToolCalls.length > 0) {
-          const executeOne = async ({ tc }: PendingToolCall) => {
-            try {
-              let toolResult: unknown;
-              const serverTool = serverToolMap.get(tc.name);
-              if (serverTool) {
-                try {
-                  toolResult = await serverTool.process(ctx, tc.args);
-                } catch (err) {
-                  const errMsg =
-                    err instanceof Error ? err.message : String(err);
-                  log.error("Tool execution failed", {
-                    tool: tc.name,
-                    error: errMsg
-                  });
-                  toolResult = { error: errMsg };
-                }
-              } else if (this.clientToolsManifest[tc.name]) {
-                // Client-side tool via ToolBridge
-                await this.sendMessage({
-                  type: "tool_call",
-                  thread_id: threadId,
-                  tool_call_id: tc.id,
+        if (isProviderMessageEvent(item)) {
+          const m = item.message;
+          if (m.role === "assistant") {
+            if (typeof m.content === "string") content = m.content;
+            const toolCalls = Array.isArray(m.toolCalls)
+              ? m.toolCalls.map((tc) => ({
+                  id: tc.id,
                   name: tc.name,
-                  args: tc.args
-                });
-                const clientResult = await this.toolBridge.createWaiter(
-                  tc.id,
-                  300_000
-                );
-                toolResult =
-                  clientResult.result ?? clientResult.content ?? clientResult;
-              } else {
-                toolResult = { error: `Tool "${tc.name}" not available` };
-              }
-
-              // Process tool result — handle asset-like objects, dates, etc.
-              const processedResult = await this.processToolResult(
-                toolResult,
-                ctx
-              );
-              const toolResultJson = JSON.stringify(processedResult);
-
-              return { tc, toolResultJson };
-            } catch (err) {
-              const errMsg = err instanceof Error ? err.message : String(err);
-              log.error("Tool executeOne failed", {
-                tool: tc.name,
-                error: errMsg
-              });
-              return { tc, toolResultJson: JSON.stringify({ error: errMsg }) };
-            }
-          };
-
-          const results = await Promise.all(pendingToolCalls.map(executeOne));
-
-          for (const { tc, toolResultJson } of results) {
-            // Build tool result Message
+                  args: tc.args,
+                  result: null
+                }))
+              : null;
+            const assistantMsgData: Record<string, unknown> = {
+              type: "message",
+              role: "assistant",
+              content: m.content ?? null,
+              ...(toolCalls ? { tool_calls: toolCalls } : {}),
+              thread_id: threadId,
+              workflow_id: workflowId,
+              provider: providerId,
+              model,
+              provider_session: sessionForPersist()
+            };
+            await this.saveMessageToDb(assistantMsgData);
+            await this.sendMessage(assistantMsgData);
+          } else if (m.role === "tool") {
             const toolMsgData: Record<string, unknown> = {
               type: "message",
               role: "tool",
-              tool_call_id: tc.id,
-              name: tc.name,
-              content: toolResultJson,
+              tool_call_id: m.toolCallId ?? null,
+              name: m.toolCallId ? toolNames.get(m.toolCallId) ?? null : null,
+              content: typeof m.content === "string" ? m.content : "",
               thread_id: threadId,
               workflow_id: workflowId,
               provider: providerId,
@@ -3301,36 +3203,22 @@ export class UnifiedWebSocketRunner {
             };
             await this.saveMessageToDb(toolMsgData);
             await this.sendMessage(toolMsgData);
-
-            // Add tool result to unprocessed for next provider round
-            unprocessedMessages.push({
-              role: "tool",
-              content: toolResultJson,
-              toolCallId: tc.id,
-              toolCalls: null,
-              threadId
-            });
           }
+          continue;
         }
 
-        // If no unprocessed messages, generation is complete — matches Python's break condition
-        if (unprocessedMessages.length === 0) {
-          break;
+        if ("type" in item && (item as Chunk).type === "chunk") {
+          // --- Text chunk --- forward to client (not persisted)
+          const chunk = item as Chunk;
+          if (!chunk.thread_id) chunk.thread_id = threadId;
+          await this.sendMessage({ ...chunk });
+        } else if ("name" in item && "id" in item) {
+          // --- Tool call from the provider (informational; executed by the
+          // loop via executeTool) ---
+          const tc = item as ProviderToolCall;
+          toolNames.set(tc.id, tc.name);
+          log.info("Tool call", { tool: tc.name, args: tc.args });
         }
-        // Reset content for next tool round so the final message only contains
-        // text from the last generation pass (prior rounds were already streamed).
-        content = "";
-        toolRound++;
-        if (toolRound >= MAX_TOOL_ROUNDS) {
-          log.warn("Max tool rounds reached, stopping tool loop", {
-            rounds: toolRound
-          });
-          break;
-        }
-        log.debug("Unprocessed messages", {
-          count: unprocessedMessages.length,
-          round: toolRound
-        });
       }
 
       // Log provider call for cost tracking — matches Python's _log_provider_call()
@@ -3342,27 +3230,13 @@ export class UnifiedWebSocketRunner {
         workflowId
       );
 
-      // Signal completion — matches Python's done chunk + final assistant Message
+      // Signal completion — matches Python's done chunk.
       await this.sendMessage({
         type: "chunk",
         content: "",
         done: true,
         thread_id: threadId
       });
-
-      // Final assistant message — persisted and forwarded (type: "message")
-      const finalMsgData: Record<string, unknown> = {
-        type: "message",
-        role: "assistant",
-        content: content || null,
-        thread_id: threadId,
-        workflow_id: workflowId,
-        provider: providerId,
-        model,
-        provider_session: sessionForPersist()
-      };
-      await this.saveMessageToDb(finalMsgData);
-      await this.sendMessage(finalMsgData);
 
       // Mine the completed turn for new long-term memories. Fire-and-forget
       // so a slow extraction call never blocks the renderer; failures are
