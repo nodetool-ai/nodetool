@@ -3,15 +3,24 @@
  * OptionalPacksSection
  *
  * Lives at the bottom of the node-menu namespace panel. Educates the user that
- * advanced / niche namespaces are tucked into optional packs to keep the menu
- * focused, and lets them reveal packs one at a time. Toggling a pack updates
- * {@link useOptionalNodePacksStore}, which the namespace tree reads to decide
- * what to show.
+ * advanced / niche nodes are tucked into optional packs to keep the menu
+ * focused, and lets them reveal more nodes in one place:
+ *
+ *  - **Categories** are a pure menu-visibility grouping of niche namespaces
+ *    that ship in the always-loaded base pack (see config/optionalNodePacks).
+ *    Toggling one updates {@link useOptionalNodePacksStore}; nodes stay
+ *    registered, only the browsable tree changes.
+ *  - **Providers** are the first-party opt-in builtin packs (ElevenLabs,
+ *    MiniMax, Topaz, …). When disabled their nodes aren't registered at all, so
+ *    they never appear in the menu — this is the only in-editor place to
+ *    discover and enable them. Toggling calls the server via
+ *    {@link usePacksStore}, which reloads metadata so nodes appear without a
+ *    restart.
  */
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useCallback, useState, type MouseEvent } from "react";
+import { memo, useCallback, useMemo, useState, type MouseEvent } from "react";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import { useShallow } from "zustand/react/shallow";
 
@@ -28,6 +37,7 @@ import {
 } from "../ui_primitives";
 import { OPTIONAL_NODE_PACKS } from "../../config/optionalNodePacks";
 import useOptionalNodePacksStore from "../../stores/OptionalNodePacksStore";
+import usePacksStore from "../../stores/PacksStore";
 import { isElectron } from "../../lib/env";
 
 const styles = (theme: Theme) =>
@@ -88,6 +98,9 @@ const popoverStyles = () =>
 const OptionalPacksSection = () => {
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [pendingProviderIds, setPendingProviderIds] = useState<Set<string>>(
+    () => new Set()
+  );
 
   const { enabledPackIds, setPackEnabled, enableAll, disableAll } =
     useOptionalNodePacksStore(
@@ -99,13 +112,50 @@ const OptionalPacksSection = () => {
       }))
     );
 
+  const { builtins, fetchBuiltins, setBuiltinEnabled } = usePacksStore(
+    useShallow((state) => ({
+      builtins: state.builtins,
+      fetchBuiltins: state.fetchBuiltins,
+      setBuiltinEnabled: state.setBuiltinEnabled
+    }))
+  );
+
+  // Required packs (the base nodes) are always loaded — only opt-in provider
+  // packs are toggleable here.
+  const providerPacks = useMemo(
+    () => builtins.filter((pack) => !pack.required),
+    [builtins]
+  );
+
   const enabledCount = enabledPackIds.length;
   const total = OPTIONAL_NODE_PACKS.length;
 
-  const handleOpen = useCallback((e: MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(e.currentTarget);
-  }, []);
+  const handleOpen = useCallback(
+    (e: MouseEvent<HTMLButtonElement>) => {
+      setAnchorEl(e.currentTarget);
+      // Lazily load the builtin pack list the first time the panel opens (and
+      // retry while empty, e.g. if the server wasn't reachable yet).
+      if (builtins.length === 0) void fetchBuiltins();
+    },
+    [builtins.length, fetchBuiltins]
+  );
   const handleClose = useCallback(() => setAnchorEl(null), []);
+
+  const handleToggleProvider = useCallback(
+    async (id: string, enabled: boolean) => {
+      setPendingProviderIds((prev) => new Set(prev).add(id));
+      try {
+        await setBuiltinEnabled(id, enabled);
+      } finally {
+        setPendingProviderIds((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      }
+    },
+    [setBuiltinEnabled]
+  );
 
   const handleManagePacks = useCallback(() => {
     window.api?.showPackageManager?.();
@@ -150,6 +200,20 @@ const OptionalPacksSection = () => {
 
             <Divider />
 
+            <FlexRow align="center" justify="space-between">
+              <Text size="small" weight={600}>
+                Categories
+              </Text>
+              <FlexRow gap={1.5} align="center">
+                <TextLink asButton onClick={() => enableAll()}>
+                  Show all
+                </TextLink>
+                <TextLink asButton onClick={() => disableAll()}>
+                  Hide all
+                </TextLink>
+              </FlexRow>
+            </FlexRow>
+
             <FlexColumn gap={0.25}>
               {OPTIONAL_NODE_PACKS.map((pack) => (
                 <div className="pack-row" key={pack.id}>
@@ -164,23 +228,47 @@ const OptionalPacksSection = () => {
               ))}
             </FlexColumn>
 
-            <Divider />
+            {providerPacks.length > 0 && (
+              <>
+                <Divider />
+                <FlexColumn gap={0.25}>
+                  <Text size="small" weight={600}>
+                    Providers
+                  </Text>
+                  <Text size="small" color="secondary">
+                    Enabling a provider registers its nodes instantly — no
+                    restart needed.
+                  </Text>
+                </FlexColumn>
+                <FlexColumn gap={0.25}>
+                  {providerPacks.map((pack) => (
+                    <div className="pack-row" key={pack.id}>
+                      <LabeledSwitch
+                        size="small"
+                        label={pack.name}
+                        description={pack.description}
+                        checked={pack.enabled}
+                        disabled={pendingProviderIds.has(pack.id)}
+                        onChange={(checked) =>
+                          void handleToggleProvider(pack.id, checked)
+                        }
+                      />
+                    </div>
+                  ))}
+                </FlexColumn>
+              </>
+            )}
 
-            <FlexRow gap={1.5} align="center" justify="space-between">
-              <FlexRow gap={1.5} align="center">
-                <TextLink asButton onClick={() => enableAll()}>
-                  Show all
-                </TextLink>
-                <TextLink asButton onClick={() => disableAll()}>
-                  Hide all
-                </TextLink>
-              </FlexRow>
-              {isElectron && (
-                <TextLink asButton onClick={handleManagePacks}>
-                  More packs…
-                </TextLink>
-              )}
-            </FlexRow>
+            {isElectron && (
+              <>
+                <Divider />
+                <FlexRow justify="flex-end">
+                  <TextLink asButton onClick={handleManagePacks}>
+                    More packs…
+                  </TextLink>
+                </FlexRow>
+              </>
+            )}
           </FlexColumn>
         </div>
       </Popover>
