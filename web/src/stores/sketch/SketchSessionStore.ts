@@ -123,6 +123,8 @@ export interface SketchSessionState {
     response: Pick<SketchDocumentResponse, "id" | "name" | "updatedAt">,
     serverHash: string
   ) => void;
+  /** Update the in-memory document name (kept in sync with the workspace tab). */
+  setName: (name: string) => void;
   /** Record that the editor has seeded the global store from this document. */
   markHydrated: (documentId: string) => void;
   markSaving: () => void;
@@ -250,6 +252,7 @@ export const createSketchSessionStore = (): SketchSessionStoreApi =>
       saveState: "idle",
       hasConflict: false
     }),
+  setName: (name) => set((state) => (state.name === name ? state : { name })),
   markHydrated: (documentId) => set({ hydratedDocumentId: documentId }),
   markSaving: () => set({ saveState: "saving", hasConflict: false }),
   markSaved: (updatedAt, serverHash) =>

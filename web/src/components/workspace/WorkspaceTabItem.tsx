@@ -23,6 +23,7 @@ export interface WorkspaceTabItemProps {
   tab: WorkspaceTab;
   isActive: boolean;
   isEditing: boolean;
+  canRename: boolean;
   dropPosition: "left" | "right" | null;
   typeColor: string;
   typeGlyph: string;
@@ -43,6 +44,7 @@ const WorkspaceTabItem = ({
   tab,
   isActive,
   isEditing,
+  canRename,
   dropPosition,
   typeColor,
   typeGlyph,
@@ -129,7 +131,7 @@ const WorkspaceTabItem = ({
         onKeyDown={handleTabKeyDown}
         onContextMenu={handleContextMenu}
         onDoubleClick={() => {
-          if (tab.type === "workflow") {
+          if (canRename) {
             onBeginRename(tab);
           }
         }}
@@ -147,7 +149,7 @@ const WorkspaceTabItem = ({
           <input
             type="text"
             className="tab-input"
-            aria-label="Workflow name"
+            aria-label="Tab name"
             defaultValue={tab.title}
             autoFocus
             onClick={(event) => event.stopPropagation()}
