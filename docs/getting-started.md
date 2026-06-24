@@ -74,6 +74,19 @@ Open a template from the Dashboard.
 2. Change inputs, re-run.
 3. Click a node to inspect it. Hover an edge to see the data flowing through. Press `Space`, search "Preview", drop one anywhere on the canvas.
 
+### Optional node packs
+
+NodeTool ships hundreds of nodes. To keep the node menu focused, advanced and niche namespaces — file system, databases, document conversion, web scraping, code execution, and more — are grouped into **optional packs**, and provider nodes follow your API keys.
+
+Press `Space` to open the node menu, then click **Optional packs** at the bottom of the namespace list.
+
+![Optional node packs](assets/screenshots/node-menu-optional-packs.png)
+
+- **Categories** — turn on a group (Documents, Image & Graphics, Web & Scraping, …) to reveal its nodes in the menu. Search always finds every node, even when its pack is off — so hiding a pack only declutters browsing, it never hides a node from search.
+- **Providers** — a provider's nodes appear once you add its API key. The key is the switch: set it in **Settings → API Keys** (or use **Add API key** right here) and the provider's pack enables automatically, no restart. Locally-run packs like Transformers.js need no key, so they keep a manual toggle.
+
+Opening a workflow that uses a node from a disabled pack enables that pack for you, so shared workflows just work.
+
 ---
 
 ## Step 4 — Ship as a Mini-App
