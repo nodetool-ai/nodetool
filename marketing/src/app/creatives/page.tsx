@@ -8,6 +8,7 @@ import {
   Video,
   Music,
   Layers,
+  Brush,
   Wand2,
   ArrowRight,
   Check,
@@ -273,6 +274,92 @@ export default function CreativesPage() {
                   description:
                     "Render the whole sequence to a single video — the edit happens where you generate, not in another app.",
                   icon: Download,
+                },
+              ].map((highlight, index) => (
+                <motion.div
+                  key={highlight.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  className="rounded-2xl border border-white/10 bg-[#0a0a14]/70 backdrop-blur-sm p-6"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center mb-4">
+                    <highlight.icon className="w-6 h-6 text-amber-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">
+                    {highlight.title}
+                  </h3>
+                  <p className="text-slate-400 leading-relaxed text-[0.95rem]">
+                    {highlight.description}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Sketch Editor Section — sibling to the timeline editor */}
+        <section className="py-20 relative">
+          <div className="mx-auto max-w-7xl px-6 lg:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-12 max-w-3xl mx-auto"
+            >
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-300/80 mb-3">
+                Built-in sketch editor
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 tracking-tight">
+                Paint and generate on the same canvas.
+              </h2>
+              <p className="text-lg text-slate-400 leading-relaxed">
+                A full layer-based image editor lives inside Studio. Paint with real
+                brushes, stack layers and blend modes, then prompt a model to create or
+                refine any layer — and export a finished PNG without ever leaving the
+                canvas.
+              </p>
+            </motion.div>
+
+            <motion.figure
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="relative"
+            >
+              <div className="relative rounded-2xl border border-white/10 bg-slate-900/50 backdrop-blur overflow-hidden shadow-2xl shadow-rose-500/10">
+                <Image
+                  src="/screen_sketch_editor.webp"
+                  alt="NodeTool's built-in sketch editor: a layered canvas holding an AI-generated 'Kung Fu' movie poster, with a brush toolbar and brush settings across the top, a color picker and a layers panel with text-to-image layers on the right, and a 'Describe the image' generate bar with a Flux Schnell model selector and an Export PNG button"
+                  width={2000}
+                  height={1377}
+                  className="w-full h-auto"
+                  loading="lazy"
+                />
+              </div>
+            </motion.figure>
+
+            <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[
+                {
+                  title: "A real brush engine",
+                  description:
+                    "Round, soft, airbrush, and spray brushes with size, opacity, hardness, and angle. Pick any color and paint straight onto the canvas.",
+                  icon: Brush,
+                },
+                {
+                  title: "Layers & blend modes",
+                  description:
+                    "Stack layers, set opacity and blend modes, reorder and mask — the same controls you reach for in a pro image editor.",
+                  icon: Layers,
+                },
+                {
+                  title: "Generate onto a layer",
+                  description:
+                    "Describe an image and it lands on its own layer. Mix hand-painted strokes with text-to-image and image-to-image right where you draw.",
+                  icon: Sparkles,
                 },
               ].map((highlight, index) => (
                 <motion.div

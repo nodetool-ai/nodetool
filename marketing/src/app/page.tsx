@@ -13,6 +13,7 @@ import ModelSupportSection from "../components/ModelSupportSection";
 import ModelManagerSection from "../components/ModelManagerSection";
 import CostDashboardSection from "../components/CostDashboardSection";
 import TimelineEditorSection from "../components/TimelineEditorSection";
+import SketchEditorSection from "../components/SketchEditorSection";
 import FeaturesSection from "../components/FeaturesSection";
 import NodeMenuSection from "../components/NodeMenuSection";
 import ChatUISection from "../components/ChatUISection";
@@ -362,6 +363,9 @@ export default function Home() {
 
         {/* Assemble the generated clips — built-in timeline editor */}
         <TimelineEditorSection />
+
+        {/* Paint and generate on one canvas — built-in sketch editor (sibling to the timeline editor) */}
+        <SketchEditorSection />
 
         {/* Asset Manager — companion to the canvas story */}
         <AssetManagerSection />
