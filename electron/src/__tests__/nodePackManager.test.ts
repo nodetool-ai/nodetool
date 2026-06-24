@@ -10,7 +10,10 @@ jest.mock("electron", () => ({
   }
 }));
 jest.mock("../config", () => ({
-  getProcessEnv: jest.fn().mockReturnValue({ PATH: "/mock/path" })
+  getProcessEnv: jest.fn().mockReturnValue({ PATH: "/mock/path" }),
+  resolveNpmInvocation: jest
+    .fn()
+    .mockReturnValue({ command: "npm", baseArgs: [] })
 }));
 jest.mock("../logger", () => ({ logMessage: jest.fn() }));
 jest.mock("fs/promises", () => ({

@@ -295,9 +295,9 @@ const EQ_GRAPH_HEIGHT = 160;
 type Band = "low" | "mid" | "high";
 
 const BAND_COLORS: Record<Band, string> = {
-  low: "#4ea3ff",
-  mid: "#7be08a",
-  high: "#ffb24a"
+  low: "var(--palette-info-main)",
+  mid: "var(--palette-success-main)",
+  high: "var(--palette-warning-main)"
 };
 
 const BAND_RANGES: Record<Band, { fMin: number; fMax: number }> = {
@@ -404,7 +404,7 @@ const eqCurveStyles = (theme: Theme) =>
     height: EQ_GRAPH_HEIGHT,
     border: `1px solid ${theme.vars.palette.divider}`,
     borderRadius: BORDER_RADIUS.sm,
-    background: `linear-gradient(to bottom, ${theme.vars.palette.background.paper} 0%, rgba(0,0,0,0.25) 100%)`,
+    background: `linear-gradient(to bottom, ${theme.vars.palette.background.paper} 0%, ${theme.vars.palette.c_scrim_soft} 100%)`,
     display: "block",
     touchAction: "none",
     userSelect: "none"
@@ -855,7 +855,7 @@ const compGraphStyles = (theme: Theme) =>
     height: COMP_GRAPH_SIZE,
     border: `1px solid ${theme.vars.palette.divider}`,
     borderRadius: BORDER_RADIUS.sm,
-    background: `linear-gradient(135deg, ${theme.vars.palette.background.paper} 0%, rgba(0,0,0,0.3) 100%)`,
+    background: `linear-gradient(135deg, ${theme.vars.palette.background.paper} 0%, ${theme.vars.palette.c_scrim_soft} 100%)`,
     display: "block",
     flexShrink: 0,
     touchAction: "none",
@@ -899,8 +899,8 @@ const compTileValueStyles = (theme: Theme) =>
     fontWeight: 500
   });
 
-const COMP_ACCENT = "#ff7a59";
-const COMP_THRESH_COLOR = "#ffd24a";
+const COMP_ACCENT = "var(--palette-warning-main)";
+const COMP_THRESH_COLOR = "var(--palette-warning-light)";
 
 type CompDrag = "threshold" | "ratio" | null;
 
@@ -1395,8 +1395,7 @@ const previewBoxStyles = (theme: Theme) =>
     borderRadius: BORDER_RADIUS.sm,
     overflow: "hidden",
     position: "relative",
-    background:
-      "linear-gradient(135deg, #243b53 0%, #486581 35%, #9fb3c8 100%)"
+    background: `linear-gradient(135deg, ${theme.vars.palette.grey[800]} 0%, ${theme.vars.palette.grey[600]} 35%, ${theme.vars.palette.grey[400]} 100%)`
   });
 
 const VideoBlurEditor: React.FC<
@@ -1411,7 +1410,7 @@ const VideoBlurEditor: React.FC<
             position: "absolute",
             inset: 0,
             backgroundImage:
-              "radial-gradient(circle at 30% 40%, rgba(255,255,255,0.35), transparent 40%), radial-gradient(circle at 75% 65%, rgba(255,80,80,0.4), transparent 35%)",
+              "radial-gradient(circle at 30% 40%, var(--palette-c_overlay_strong), transparent 40%), radial-gradient(circle at 75% 65%, rgba(var(--palette-error-mainChannel) / 0.4), transparent 35%)",
             filter: `blur(${effect.radius}px)`,
             opacity: disabled ? 0.4 : 1
           }}

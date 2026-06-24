@@ -18,6 +18,13 @@ import type { AgentMessage, FrontendToolManifest } from "./types.js";
 
 export interface AgentTransport {
   /**
+   * Stable identifier for this renderer connection. Used to key per-renderer
+   * routing so multiple open editors can be addressed independently over the
+   * shared `/mcp` endpoint.
+   */
+  readonly id: string;
+
+  /**
    * Push a streaming message for `sessionId` to the renderer.
    * `done=true` signals the end of a turn so the renderer can flush state.
    */

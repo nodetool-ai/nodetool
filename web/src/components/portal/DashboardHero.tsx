@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, type ReactNode } from "react";
-import { MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import WelcomeFlow from "./WelcomeFlow";
 import { wrapStyles } from "./dashboardChrome";
 import type { WelcomeTrackId } from "./welcomeTracks";
@@ -37,7 +37,7 @@ const heroStyles = (theme: Theme) =>
       }
     },
     ".hero-composer": {
-      margin: "26px auto 0",
+      margin: `${getSpacingPx(7)} auto 0`, // was 26px auto 0
       maxWidth: 720
     },
     ".hero-foot": {
@@ -79,7 +79,10 @@ const heroStyles = (theme: Theme) =>
       font: "inherit",
       "&:hover": { color: theme.vars.palette.primary.main }
     },
-    ".hero-hint .sep": { color: theme.vars.palette.divider, margin: "0 4px" }
+    ".hero-hint .sep": {
+      color: theme.vars.palette.divider,
+      margin: `0 ${getSpacingPx(SPACING.xs)}`
+    }
   });
 
 interface DashboardHeroProps {

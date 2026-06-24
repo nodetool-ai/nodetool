@@ -10,7 +10,7 @@ import {
   Restore as RestoreIcon,
   Compare as CompareIcon
 } from "@mui/icons-material";
-import { Caption, Chip, DeleteButton, LoadingSpinner, Text, Tooltip, ToolbarIconButton, MOTION } from "../ui_primitives";
+import { Caption, Chip, DeleteButton, LoadingSpinner, Text, Tooltip, ToolbarIconButton, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
 import { SaveType } from "../../stores/VersionHistoryStore";
 import { formatDistanceToNow, format } from "date-fns";
 import { WorkflowVersion } from "../../stores/ApiTypes";
@@ -114,8 +114,8 @@ const VersionListItem = React.memo(function VersionListItem({
       style={{
         display: "flex",
         alignItems: "center",
-        gap: "8px",
-        padding: "4px 8px",
+        gap: getSpacingPx(SPACING.md),
+        padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
         cursor: "pointer",
         borderLeft: isSelected
           ? "3px solid var(--palette-primary-main)"
@@ -152,7 +152,7 @@ const VersionListItem = React.memo(function VersionListItem({
 
       {/* Version info */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: getSpacingPx(SPACING.sm) }}>
           <Text size="small" weight={600}>
             v{version.version}
           </Text>
@@ -169,7 +169,7 @@ const VersionListItem = React.memo(function VersionListItem({
             }}
           />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: getSpacingPx(SPACING.xs) }}>
           <Tooltip title={fullDate}>
             <span>
               <Caption size="tiny" color="muted">{timeAgo}</Caption>
@@ -201,7 +201,7 @@ const VersionListItem = React.memo(function VersionListItem({
         className="version-item-actions"
         style={{
           display: "flex",
-          gap: "2px",
+          gap: getSpacingPx(SPACING.micro),
           flexShrink: 0
         }}
       >
@@ -211,7 +211,7 @@ const VersionListItem = React.memo(function VersionListItem({
             onClick={handleClick}
             tooltip="Select for comparison"
             icon={<CompareIcon sx={{ fontSize: 14 }} />}
-            sx={{ padding: "2px" }}
+            sx={{ padding: getSpacingPx(SPACING.micro) }}
             nodrag={false}
           />
         ) : isRestoring ? (
@@ -223,13 +223,13 @@ const VersionListItem = React.memo(function VersionListItem({
               onClick={handleRestore}
               tooltip="Restore this version"
               icon={<RestoreIcon sx={{ fontSize: 14 }} />}
-              sx={{ padding: "2px" }}
+              sx={{ padding: getSpacingPx(SPACING.micro) }}
               nodrag={false}
             />
             <DeleteButton
               onClick={handleDelete}
               tooltip="Delete version"
-              sx={{ padding: "2px", "& .MuiSvgIcon-root": { fontSize: 14 } }}
+              sx={{ padding: getSpacingPx(SPACING.micro), "& .MuiSvgIcon-root": { fontSize: 14 } }}
             />
           </>
         )}

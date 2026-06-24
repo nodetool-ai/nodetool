@@ -16,7 +16,7 @@ import {
   ListItemText,
   ListItemIcon
 } from "@mui/material";
-import { Text, ToolbarIconButton, FlexRow, Popover, BORDER_RADIUS } from "../ui_primitives";
+import { Text, ToolbarIconButton, FlexRow, Popover, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import PaletteIcon from "@mui/icons-material/Palette";
 import LegendToggleIcon from "@mui/icons-material/LegendToggle";
 import CheckIcon from "@mui/icons-material/Check";
@@ -182,7 +182,7 @@ const MiniMapNavigator: React.FC = () => {
                 size="small"
                 onClick={handleOpenLegend}
                 sx={{
-                  padding: "2px",
+                  padding: getSpacingPx(SPACING.micro),
                   backgroundColor: theme.vars.palette.background.paper,
                   border: `1px solid ${borderColor}`,
                   borderRadius: BORDER_RADIUS.sm,
@@ -199,7 +199,7 @@ const MiniMapNavigator: React.FC = () => {
               size="small"
               onClick={handleOpenSettings}
               sx={{
-                padding: "2px",
+                padding: getSpacingPx(SPACING.micro),
                 backgroundColor: theme.vars.palette.background.paper,
                 border: `1px solid ${borderColor}`,
                 borderRadius: BORDER_RADIUS.sm,

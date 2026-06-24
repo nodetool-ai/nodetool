@@ -76,8 +76,37 @@ function absolutize(value: unknown, baseUrl?: string): unknown {
 
 const log = createLogger("nodetool.websocket.mcp-server");
 
-const GLOBAL_FRONTEND_SESSION_ID = "global-mcp";
-let activeFrontendTransport: AgentTransport | null = null;
+/**
+ * Renderer transports keyed by `transport.id`. Each connected NodeTool editor
+ * registers here on connect (see the agent WebSocket route), so the shared
+ * `/mcp` endpoint can route `ui_*` tool calls to a specific live editor.
+ * `activeFrontendRendererId` tracks the most-recently-active renderer, used
+ * when an MCP client doesn't name one.
+ */
+const frontendTransports = new Map<string, AgentTransport>();
+let activeFrontendRendererId: string | null = null;
+
+function resolveFrontendTransport(
+  rendererId?: string | null
+): AgentTransport | null {
+  if (rendererId) {
+    const target = frontendTransports.get(rendererId);
+    return target && target.isAlive ? target : null;
+  }
+  if (activeFrontendRendererId) {
+    const active = frontendTransports.get(activeFrontendRendererId);
+    if (active && active.isAlive) return active;
+  }
+  // Fall back to any live renderer so single-editor setups need no id.
+  const alive = [...frontendTransports.values()].filter((t) => t.isAlive);
+  return alive[alive.length - 1] ?? null;
+}
+
+function listFrontendRenderers(): { renderer_id: string; active: boolean }[] {
+  return [...frontendTransports.values()]
+    .filter((t) => t.isAlive)
+    .map((t) => ({ renderer_id: t.id, active: t.id === activeFrontendRendererId }));
+}
 
 let runtimeEnvironmentPromise: Promise<RuntimeEnvironment> | null = null;
 
@@ -280,55 +309,87 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     version: "1.0.0"
   });
 
-  for (const [toolName, schema] of Object.entries(uiToolSchemas)) {
-    server.tool(toolName, schema.description, schema.parameters, async (args) => {
-      const transport = activeFrontendTransport;
-      if (!transport || !transport.isAlive) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({
-                error:
-                  "No active NodeTool renderer is connected for frontend UI tools."
-              })
-            }
-          ],
-          isError: true
-        };
-      }
+  const rendererIdParam = {
+    renderer_id: z
+      .string()
+      .optional()
+      .describe(
+        "Target a specific connected NodeTool editor. Omit to use the most-recently-active one. List ids via `list_renderers`."
+      )
+  };
 
-      try {
-        const result = await transport.executeTool(
-          GLOBAL_FRONTEND_SESSION_ID,
-          `mcp-ui-${toolName}-${crypto.randomUUID()}`,
-          toolName,
-          args
-        );
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text:
-                typeof result === "string"
-                  ? result
-                  : JSON.stringify(result ?? null)
-            }
-          ]
-        };
-      } catch (err: unknown) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: JSON.stringify({ error: String(err) })
-            }
-          ],
-          isError: true
-        };
+  for (const [toolName, schema] of Object.entries(uiToolSchemas)) {
+    server.tool(
+      toolName,
+      schema.description,
+      { ...schema.parameters, ...rendererIdParam },
+      async (args) => {
+        const { renderer_id, ...toolArgs } = args as Record<string, unknown>;
+        const rendererId =
+          typeof renderer_id === "string" ? renderer_id : undefined;
+        const transport = resolveFrontendTransport(rendererId);
+        if (!transport || !transport.isAlive) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify({
+                  error: rendererId
+                    ? `No connected NodeTool renderer with id "${rendererId}".`
+                    : "No active NodeTool renderer is connected for frontend UI tools."
+                })
+              }
+            ],
+            isError: true
+          };
+        }
+
+        try {
+          const result = await transport.executeTool(
+            transport.id,
+            `mcp-ui-${toolName}-${crypto.randomUUID()}`,
+            toolName,
+            toolArgs
+          );
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text:
+                  typeof result === "string"
+                    ? result
+                    : JSON.stringify(result ?? null)
+              }
+            ]
+          };
+        } catch (err: unknown) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify({ error: String(err) })
+              }
+            ],
+            isError: true
+          };
+        }
       }
-    });
+    );
   }
+
+  server.tool(
+    "list_renderers",
+    "List connected NodeTool editor renderers that can execute ui_* tools. Pass a returned renderer_id to a ui_* tool to target that editor; omit it to use the active one.",
+    {},
+    async () => ({
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify({ renderers: listFrontendRenderers() })
+        }
+      ]
+    })
+  );
 
   // ── Workflow tools ──────────────────────────────────────────────
 
@@ -1295,13 +1356,29 @@ const sessionTransports = new Map<
   WebStandardStreamableHTTPServerTransport
 >();
 
-export function setMcpFrontendTransport(transport: AgentTransport): void {
-  activeFrontendTransport = transport;
+/**
+ * Register a renderer as available for `ui_*` tool routing and mark it active.
+ * Called when an editor's agent WebSocket connects, so frontend UI tools work
+ * over the shared `/mcp` endpoint without first priming an in-app agent turn.
+ */
+export function registerMcpFrontendTransport(transport: AgentTransport): void {
+  frontendTransports.set(transport.id, transport);
+  activeFrontendRendererId = transport.id;
 }
 
-export function clearMcpFrontendTransport(transport: AgentTransport): void {
-  if (activeFrontendTransport === transport) {
-    activeFrontendTransport = null;
+/** Promote an already-registered renderer to be the active default. */
+export function setActiveMcpFrontendRenderer(transport: AgentTransport): void {
+  if (frontendTransports.has(transport.id)) {
+    activeFrontendRendererId = transport.id;
+  }
+}
+
+/** Drop a renderer on disconnect, promoting another if it was the active one. */
+export function unregisterMcpFrontendTransport(transport: AgentTransport): void {
+  frontendTransports.delete(transport.id);
+  if (activeFrontendRendererId === transport.id) {
+    const remaining = [...frontendTransports.keys()];
+    activeFrontendRendererId = remaining[remaining.length - 1] ?? null;
   }
 }
 

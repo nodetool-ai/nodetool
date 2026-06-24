@@ -4,7 +4,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState, useRef, ChangeEvent } from "react";
 import { Asset } from "../../stores/ApiTypes";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
-import { Tooltip, ToolbarIconButton, MOTION, SPACING, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, MOTION, SPACING, BORDER_RADIUS, getSpacingPx } from "../ui_primitives";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import ImageDimensions from "../node/ImageDimensions";
 import { useTheme } from "@mui/material/styles";
@@ -58,7 +58,7 @@ const PropertyDropzone = ({
       ".drop-container": {
         position: "relative",
         width: "100%",
-        marginTop: "-3px",
+        marginTop: `-${getSpacingPx(SPACING.xs)}`, // was -3px
         display: "flex",
         flexDirection: "column",
         alignItems: "normal",
@@ -93,7 +93,7 @@ const PropertyDropzone = ({
         maxWidth: "none",
         outline: `1px solid ${theme.vars.palette.divider}`,
         backgroundColor: "transparent",
-        padding: "4px"
+        padding: getSpacingPx(SPACING.xs)
       },
       ".dropzone p": {
         textAlign: "left"
@@ -140,7 +140,7 @@ const PropertyDropzone = ({
         top: "4px",
         right: "4px",
         display: "flex",
-        gap: "4px",
+        gap: getSpacingPx(SPACING.xs),
         opacity: 0,
         transition: `opacity ${MOTION.normal}`,
         zIndex: 10
@@ -149,9 +149,9 @@ const PropertyDropzone = ({
         opacity: 1
       },
       ".asset-action-button": {
-        backgroundColor: "rgba(0, 0, 0, 0.7)",
+        backgroundColor: theme.vars.palette.c_scrim,
         color: theme.vars.palette.grey[100],
-        padding: "4px",
+        padding: getSpacingPx(SPACING.xs),
         width: "28px",
         height: "28px",
         "&:hover": {
@@ -499,11 +499,11 @@ const PropertyDropzone = ({
                     url={uri}
                     className="asset-action-button"
                     sx={{
-                      backgroundColor: "rgba(0, 0, 0, 0.7)",
+                      backgroundColor: "var(--palette-c_scrim)",
                       width: "28px",
                       height: "28px",
                       "&:hover": {
-                        backgroundColor: "rgba(0, 0, 0, 0.85)"
+                        backgroundColor: "var(--palette-c_scrim_strong)"
                       }
                     }}
                   />

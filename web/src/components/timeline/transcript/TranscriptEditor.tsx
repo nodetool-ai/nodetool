@@ -69,7 +69,7 @@ import {
   useTimelineUIStoreApi,
   useTimelinePlaybackStoreApi
 } from "../../../stores/timeline/TimelineInstance";
-import { MOTION, FONT_SIZE_SANS, BORDER_RADIUS } from "../../ui_primitives";
+import { MOTION, FONT_SIZE_SANS, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
 import type { TimelineClip, TimelineMarker } from "@nodetool-ai/timeline";
 
 type EditorMode = "script" | "write";
@@ -488,7 +488,7 @@ const EditorSurface = styled("div")(({ theme }) => ({
   "& .script-caret": {
     position: "absolute",
     width: 2,
-    marginLeft: -1,
+    marginLeft: `-${getSpacingPx(SPACING.micro)}`, // was -1px
     background: theme.vars.palette.primary.main,
     borderRadius: BORDER_RADIUS.xs,
     pointerEvents: "none",
@@ -499,7 +499,7 @@ const EditorSurface = styled("div")(({ theme }) => ({
     "0%, 100%": { opacity: 1 },
     "50%": { opacity: 0 }
   },
-  "& p": { margin: "0 0 8px" },
+  "& p": { margin: `0 0 ${getSpacingPx(SPACING.md)}` },
   "& p:last-child": { marginBottom: 0 },
   "& .transcript-word": {
     borderRadius: BORDER_RADIUS.xs,

@@ -11,7 +11,7 @@ import {
 import useLogsStore, { nodeLogKey } from "../../stores/LogStore";
 import { useNodeError } from "../../hooks/nodes/useNodeExecState";
 import isEqual from "fast-deep-equal";
-import { CopyButton, ExternalLink, Tooltip, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { CopyButton, ExternalLink, Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { VERSION } from "../../config/constants";
 import { extractKieTaskId, KIE_LOGS_URL } from "../../utils/kieTaskId";
 
@@ -113,13 +113,13 @@ const errorStyles = (theme: Theme) =>
       }
     },
     ".error-task-link": {
-      marginTop: "6px",
-      paddingRight: "72px",
+      marginTop: getSpacingPx(SPACING.sm),
+      paddingRight: getSpacingPx(18), // was 72px
     },
     ".error-actions": {
       display: "flex",
       alignItems: "center",
-      gap: "4px",
+      gap: getSpacingPx(SPACING.xs),
       position: "absolute",
       top: 10,
       right: 10,
@@ -127,8 +127,8 @@ const errorStyles = (theme: Theme) =>
     ".report-button": {
       display: "inline-flex",
       alignItems: "center",
-      gap: "4px",
-      padding: "2px 8px",
+      gap: getSpacingPx(SPACING.xs),
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.sm,
       border: `1px solid ${theme.vars.palette.grey[1000]}44`,
       backgroundColor: "transparent",

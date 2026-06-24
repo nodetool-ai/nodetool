@@ -10,7 +10,7 @@ import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import TableRowsIcon from "@mui/icons-material/TableRows";
 import SearchIcon from "@mui/icons-material/Search";
 import { InputAdornment } from "@mui/material";
-import { Tooltip, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
 import Markdown from "react-markdown";
 
@@ -76,8 +76,7 @@ const styles = (theme: Theme) =>
       position: "relative",
       border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.08)`,
       borderRadius: theme.vars.rounded.dialog,
-      boxShadow:
-        "0 40px 80px -20px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255,255,255,0.05) inset",
+      boxShadow: `0 40px 80px -20px ${theme.vars.palette.c_scrim}, 0 0 0 1px ${theme.vars.palette.c_overlay} inset`,
       overflow: "hidden",
       transition: MOTION.all
     },
@@ -110,7 +109,7 @@ const styles = (theme: Theme) =>
         background: `linear-gradient(to right, ${theme.vars.palette.text.primary}, ${theme.vars.palette.grey[400]})`,
         WebkitBackgroundClip: "text",
         WebkitTextFillColor: "transparent",
-        filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))"
+        filter: `drop-shadow(0 2px 4px ${theme.vars.palette.c_scrim_soft})`
       }
     },
     ".title-and-description": {
@@ -135,7 +134,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: "0.5em",
       backgroundColor: `rgba(${theme.vars.palette.background.paperChannel} / 0.4)`,
-      padding: "4px 8px",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.lg,
       border: `1px solid rgba(${theme.vars.palette.common.whiteChannel} / 0.04)`,
       "& + .toolbar-group": {
@@ -295,10 +294,10 @@ const styles = (theme: Theme) =>
       },
       // Softer row contrast - less difference between odd/even
       "& .tabulator-row": {
-        backgroundColor: "#2a2a2a"
+        backgroundColor: theme.vars.palette.background.paper
       },
       "& .tabulator-row-even": {
-        backgroundColor: "#303030"
+        backgroundColor: theme.vars.palette.background.paper
       },
       "& .tabulator-row:hover": {
         backgroundColor: theme.vars.palette.grey[700]
@@ -409,7 +408,7 @@ const styles = (theme: Theme) =>
         width: "100%",
         maxWidth: "none",
         borderRight: "none",
-        borderBottom: `1px solid rgba(255, 255, 255, 0.06)`,
+        borderBottom: `1px solid ${theme.vars.palette.c_overlay}`,
         paddingRight: 0,
         paddingBottom: "1em",
         overflow: "visible"

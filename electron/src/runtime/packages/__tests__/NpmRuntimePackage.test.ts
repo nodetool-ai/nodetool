@@ -4,7 +4,10 @@ jest.mock("../../../utils", () => ({ fileExists: jest.fn() }));
 jest.mock("../../../logger", () => ({ logMessage: jest.fn() }));
 jest.mock("../../../events", () => ({ emitServerLog: jest.fn() }));
 jest.mock("../../../config", () => ({
-  getProcessEnv: jest.fn().mockReturnValue({})
+  getProcessEnv: jest.fn().mockReturnValue({}),
+  resolveNpmInvocation: jest
+    .fn()
+    .mockReturnValue({ command: "npm", baseArgs: [] })
 }));
 jest.mock("fs/promises", () => ({
   readFile: jest.fn(),

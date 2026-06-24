@@ -2,7 +2,7 @@
 import React, { useCallback, useMemo, memo, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
-import { Text, Caption, Chip, FlexColumn, Box } from "../ui_primitives";
+import { Text, Caption, Chip, FlexColumn, Box, SPACING, getSpacingPx } from "../ui_primitives";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import { Message, Workflow } from "../../stores/ApiTypes";
 import { useVibeCodingStore } from "../../stores/VibeCodingStore";
@@ -22,7 +22,7 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.palette.background.paper
     },
     ".chat-header": {
-      padding: "12px 16px",
+      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
       borderBottom: `1px solid ${theme.palette.divider}`,
       display: "flex",
       alignItems: "center",
@@ -31,12 +31,12 @@ const createStyles = (theme: Theme) =>
     ".chat-title": {
       display: "flex",
       alignItems: "center",
-      gap: "8px"
+      gap: getSpacingPx(SPACING.md)
     },
     ".template-chips": {
       display: "flex",
-      gap: "8px",
-      padding: "8px 16px",
+      gap: getSpacingPx(SPACING.md),
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`,
       borderBottom: `1px solid ${theme.palette.divider}`,
       flexWrap: "wrap"
     },

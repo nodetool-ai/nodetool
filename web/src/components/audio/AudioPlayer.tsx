@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import WaveSurfer from "wavesurfer.js";
 import Minimap from "wavesurfer.js/dist/plugins/minimap";
-import { Text, MOTION } from "../ui_primitives";
+import { Text, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
 
 import React, {
   useEffect,
@@ -79,14 +79,14 @@ const styles = (theme: Theme) =>
     button: {
       width: "25px !important",
       height: "25px !important",
-      padding: "10px",
+      padding: getSpacingPx(SPACING.lg), // was 10px
       transition: "border",
       backgroundColor: "transparent",
-      border: "1px solid rgba(70, 70, 70, 0.3)",
+      border: `1px solid ${theme.vars.palette.c_overlay}`,
       marginLeft: "0",
       "&:hover": {
         backgroundColor: "transparent",
-        border: "1px solid rgba(90, 90, 90, 0.4)"
+        border: `1px solid ${theme.vars.palette.c_overlay}`
       }
     },
     ".tiny": {
@@ -107,7 +107,7 @@ const styles = (theme: Theme) =>
     ".minimap": {
       width: "100%",
       maxWidth: "99% !important",
-      marginTop: "2px",
+      marginTop: getSpacingPx(SPACING.micro),
       cursor: "pointer",
       opacity: "0",
       transition: `opacity ${MOTION.slow}`

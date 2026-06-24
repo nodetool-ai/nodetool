@@ -8,7 +8,7 @@ import {
   ListItemText,
   ListItemIcon
 } from "@mui/material";
-import { FlexRow, Tooltip, EmptyState, Box, Text, BORDER_RADIUS } from "../ui_primitives";
+import { FlexRow, Tooltip, EmptyState, Box, Text, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import DownloadIcon from "@mui/icons-material/Download";
 import FavoriteStar from "./FavoriteStar";
 import DefaultModelPin from "./DefaultModelPin";
@@ -182,7 +182,7 @@ function ModelList<TModel extends ModelSelectorModel>({
 
   const badgeStyle = useMemo<React.CSSProperties>(() => ({
     flex: "0 0 auto",
-    padding: "0px 6px",
+    padding: `0 ${getSpacingPx(SPACING.sm)}`,
     fontSize: "var(--fontSizeSmaller)",
     lineHeight: 1.4,
     borderRadius: BORDER_RADIUS.xs,

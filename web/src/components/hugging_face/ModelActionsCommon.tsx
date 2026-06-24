@@ -1,5 +1,5 @@
 import React from "react";
-import { Tooltip, EditorButton } from "../ui_primitives";
+import { Tooltip, EditorButton, SPACING, getSpacingPx } from "../ui_primitives";
 import FolderIcon from "@mui/icons-material/Folder";
 import {
   TOOLTIP_ENTER_DELAY,
@@ -21,7 +21,7 @@ export const ModelShowInExplorerButton: React.FC<{
         density="compact"
         onClick={onClick}
         disabled={disabled}
-        sx={{ minWidth: "auto", padding: "6px" }}
+        sx={{ minWidth: "auto", padding: getSpacingPx(SPACING.sm) }}
       >
         <FolderIcon />
       </EditorButton>

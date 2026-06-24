@@ -12,7 +12,14 @@ import { isFieldRelevantDataEqual } from "./propertyFieldEquality";
 import Close from "@mui/icons-material/Close";
 import Edit from "@mui/icons-material/Edit";
 import SettingsBackupRestoreIcon from "@mui/icons-material/SettingsBackupRestore";
-import { Tooltip, ToolbarIconButton, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import {
+  Tooltip,
+  ToolbarIconButton,
+  MOTION,
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
+} from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useNodes } from "../../contexts/NodeContext";
@@ -78,7 +85,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
       zIndex: 1,
       background: theme.vars.palette.background.paper,
       borderRadius: BORDER_RADIUS.sm,
-      padding: "4px 6px",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.sm)}`,
       boxShadow: `0 1px 4px ${theme.vars.palette.action.focus}`,
     },
 
@@ -116,7 +123,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
       transition: MOTION.opacity,
       zIndex: 2,
       cursor: "pointer",
-      padding: "1px",
+      padding: getSpacingPx(SPACING.micro), // was 1px
       borderRadius: BORDER_RADIUS.sm,
       color: theme.vars.palette.text.secondary,
       "&:hover": {
@@ -133,7 +140,7 @@ const propertyInputContainerStyles = (theme: Theme) =>
     },
 
     ".property-input-form input": {
-      padding: "2px 4px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`,
       border: `1px solid ${theme.vars.palette.grey[500]}`,
       borderRadius: BORDER_RADIUS.sm,
       background: "transparent",

@@ -1,5 +1,6 @@
 import type { Components, Theme } from "@mui/material/styles";
 import { editorUiClasses } from "../../../constants/editorUiClasses";
+import { SPACING, getSpacingPx } from "../../ui_primitives";
 
 /**
  * Editor controls theme slice
@@ -98,7 +99,7 @@ export const editorControlsComponents: Components<Theme> = {
           [`.${editorUiClasses.control} &`]: {
             width: "100%",
             padding: `${editor.padYNode} ${editor.padXNode}`,
-            paddingRight: "24px",
+            paddingRight: getSpacingPx(SPACING.xxl),
             fontSize: theme.fontSizeTiny,
             backgroundColor: theme.vars.palette.Paper.overlay,
             borderRadius: editor.controlRadius,
@@ -179,7 +180,7 @@ export const editorControlsComponents: Components<Theme> = {
         [`&.${editorUiClasses.menuItem}`]: {
           fontWeight: 400,
           fontSize: theme.fontSizeTiny,
-          padding: "4px 8px",
+          padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
           transition: theme.transitions.create(["background-color"], {
             duration: theme.transitions.duration.shortest
           }),

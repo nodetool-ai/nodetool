@@ -3,6 +3,7 @@ import ListTable, { ListDataType } from "../node/DataTable/ListTable";
 import { memo, useCallback, useState, useMemo } from "react";
 import Select from "../inputs/Select";
 import PropertyLabel from "../node/PropertyLabel";
+import { SPACING, getSpacingPx } from "../ui_primitives";
 import isEqual from "fast-deep-equal";
 
 const detectTypeFromList = (list: unknown[]) => {
@@ -48,7 +49,7 @@ const ListProperty = (props: PropertyProps) => {
     [dataTypes]
   );
 
-  const containerStyle = useMemo(() => ({ marginBottom: "8px" }), []);
+  const containerStyle = useMemo(() => ({ marginBottom: getSpacingPx(SPACING.md) }), []);
 
   if (props.nodeType === "nodetool.constant.List") {
     return (

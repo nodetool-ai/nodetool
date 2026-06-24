@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 
 /**
  * Styles for the Select component.
@@ -29,8 +29,8 @@ export const selectStyles = (theme: Theme) =>
       minWidth: "200px",
       maxHeight: "300px",
       overflowY: "auto",
-      padding: "4px",
-      marginTop: "4px",
+      padding: getSpacingPx(SPACING.xs),
+      marginTop: getSpacingPx(SPACING.xs),
       listStyle: "none",
       backgroundColor: "var(--palette-Paper-overlay)",
       backdropFilter: "blur(10px)",
@@ -45,14 +45,14 @@ export const selectStyles = (theme: Theme) =>
     },
 
     ".option": {
-      padding: "6px 12px",
+      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`,
       cursor: "pointer",
       fontSize: theme.fontSizeSmall,
       color: "var(--text-primary)",
       transition: `all ${MOTION.fast}`,
       whiteSpace: "nowrap",
       borderRadius: BORDER_RADIUS.sm,
-      marginBottom: "2px"
+      marginBottom: getSpacingPx(SPACING.micro)
     },
 
     ".option:last-child": {
@@ -84,7 +84,7 @@ export const selectStyles = (theme: Theme) =>
       position: "relative",
       width: "100%",
       height: "28px",
-      padding: "0 8px",
+      padding: `0 ${getSpacingPx(SPACING.md)}`,
       margin: 0,
       border: `1px solid ${theme.vars.palette.divider}`,
       backgroundColor: theme.vars.palette.grey[900],
@@ -117,7 +117,7 @@ export const selectStyles = (theme: Theme) =>
       color: theme.vars.palette.grey[400],
       transform: "rotate(0deg)",
       flexShrink: 0,
-      marginLeft: "8px"
+      marginLeft: getSpacingPx(SPACING.md)
     },
 
     ".chevron.open": {
@@ -128,7 +128,7 @@ export const selectStyles = (theme: Theme) =>
     ".search-input": {
       width: "100%",
       height: "28px",
-      padding: "0 8px",
+      padding: `0 ${getSpacingPx(SPACING.md)}`,
       backgroundColor: theme.vars.palette.grey[900],
       border: `1px solid ${theme.vars.palette.primary.main}`,
       borderRadius: BORDER_RADIUS.md,
@@ -150,7 +150,7 @@ export const portalOptionsStyles = (theme: Theme) =>
       minWidth: "200px",
       maxHeight: "300px",
       overflowY: "auto",
-      padding: "4px",
+      padding: getSpacingPx(SPACING.xs),
       margin: 0,
       listStyle: "none",
       backgroundColor: "var(--palette-Paper-overlay)",
@@ -166,14 +166,14 @@ export const portalOptionsStyles = (theme: Theme) =>
     },
 
     ".option": {
-      padding: "6px 12px",
+      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`,
       cursor: "pointer",
       fontSize: theme.fontSizeSmall,
       color: "var(--text-primary)",
       transition: `all ${MOTION.fast}`,
       whiteSpace: "nowrap",
       borderRadius: BORDER_RADIUS.sm,
-      marginBottom: "2px"
+      marginBottom: getSpacingPx(SPACING.micro)
     },
 
     ".option:last-child": {

@@ -16,7 +16,9 @@ import {
   TabGroup,
   TabPanel,
   type TabItem,
-  NodeSlider
+  NodeSlider,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 import ColorPicker from "../inputs/ColorPicker";
 import {
@@ -33,11 +35,11 @@ const styles = (theme: Theme) =>
       textTransform: "uppercase",
       letterSpacing: "0.06em",
       color: theme.vars.palette.text.secondary,
-      margin: "12px 8px 4px"
+      margin: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xs)}`
     },
     ".field-row": {
-      padding: "2px 8px",
-      gap: "6px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
+      gap: getSpacingPx(SPACING.sm),
       alignItems: "center"
     },
     ".field-label": {
@@ -46,30 +48,30 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.secondary
     },
     ".num-field .MuiInputBase-input": {
-      padding: "4px 6px",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.sm)}`,
       fontSize: theme.fontSizeSmall
     },
     ".num-cell": { flex: 1, minWidth: 0 },
-    ".slider": { flex: 1, margin: "0 8px", minWidth: 0 },
+    ".slider": { flex: 1, margin: `0 ${getSpacingPx(SPACING.md)}`, minWidth: 0 },
     ".slider-value": {
       width: "52px",
       flexShrink: 0,
       ".num-field": { width: "52px" }
     },
     ".color-row": {
-      padding: "4px 8px",
-      gap: "8px",
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
+      gap: getSpacingPx(SPACING.md),
       alignItems: "center"
     },
     ".select-field": {
       flex: 1,
       ".MuiSelect-select": {
-        padding: "4px 6px",
+        padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.sm)}`,
         fontSize: theme.fontSizeSmall
       },
       ".MuiSvgIcon-root": { fontSize: "var(--fontSizeNormal)" }
     },
-    ".empty": { padding: "16px 8px" }
+    ".empty": { padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.md)}` }
   });
 
 const roundTo = (value: number, digits = 4): number => {
@@ -450,7 +452,7 @@ const PropertiesPanel = ({ object, tick, onChanged }: PropertiesPanelProps) => {
               onChange={handleNameChange}
             />
           </FlexRow>
-          <Text size="tiny" color="secondary" sx={{ padding: "0 8px" }}>
+          <Text size="tiny" color="secondary" sx={{ padding: `0 ${getSpacingPx(SPACING.md)}` }}>
             {object.type}
           </Text>
           <CheckboxRow
@@ -563,7 +565,7 @@ const PropertiesPanel = ({ object, tick, onChanged }: PropertiesPanelProps) => {
           <TabPanel value="geometry" activeValue={effectiveTab}>
           {mesh && geometryParams && isEditableGeometryType(geometryType) && (
             <>
-              <Text size="tiny" color="secondary" sx={{ padding: "0 8px 4px" }}>
+              <Text size="tiny" color="secondary" sx={{ padding: `0 ${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xs)}` }}>
                 {geometryType}
               </Text>
               {GEOMETRY_PARAM_SPECS[geometryType].map((spec) => {
@@ -591,7 +593,7 @@ const PropertiesPanel = ({ object, tick, onChanged }: PropertiesPanelProps) => {
           <TabPanel value="material" activeValue={effectiveTab}>
           {material && (
             <>
-              <Text size="tiny" color="secondary" sx={{ padding: "0 8px 4px" }}>
+              <Text size="tiny" color="secondary" sx={{ padding: `0 ${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xs)}` }}>
                 {material.type}
               </Text>
 

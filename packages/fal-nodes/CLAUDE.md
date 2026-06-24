@@ -34,8 +34,6 @@ The `defaultForPropType()` function in `fal-factory.ts` handles this. Reference 
 
 All nodes with asset outputs MUST set `metadataOutputTypes` (not `outputTypes`) for image, audio, video, and model_3d output types. This enables the UI to render previews correctly.
 
-Image output nodes also set `isStreamingOutput: true` for genProcess() streaming.
-
 ## Data Conversion Flow
 
 ### Input: AssetRef -> API URL
@@ -52,4 +50,3 @@ Image output nodes also set `isStreamingOutput: true` for genProcess() streaming
 - Never default asset inputs to `""` - always use proper AssetRef objects
 - Audio/video outputs must use `metadataOutputTypes`, not `outputTypes`
 - `outputTypes: { output: "dict" }` is wrong for audio/video - they need metadata types
-- The `isStreamingOutput` flag enables genProcess() for image nodes

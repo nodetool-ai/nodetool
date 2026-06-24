@@ -241,6 +241,7 @@ export type ProviderCapability =
   | "video_to_video"
   | "lip_sync"
   | "text_to_speech"
+  | "text_to_music"
   | "automatic_speech_recognition"
   | "generate_embedding";
 
@@ -2451,6 +2452,16 @@ export class ProcessingContext {
           audio: params.audio as Uint8Array,
           seed: params.seed as number | undefined
         });
+      case "text_to_music":
+        return provider.textToMusic({
+          prompt: String(params.prompt ?? ""),
+          model: { id: req.model, name: req.model, provider: req.provider },
+          lyrics: params.lyrics as string | undefined,
+          durationSeconds: params.duration_seconds as number | undefined,
+          seed: params.seed as number | undefined,
+          audioFormat: params.audioFormat as string | undefined,
+          timeoutSeconds: params.timeout_seconds as number | undefined
+        });
       case "automatic_speech_recognition":
         return provider.automaticSpeechRecognition({
           audio: params.audio as Uint8Array,
@@ -2520,6 +2531,38 @@ export class ProcessingContext {
         voice: params.voice as string | undefined,
         speed: params.speed as number | undefined,
         audioFormat: params.audioFormat as string | undefined
+      });
+      this.emitPrediction("completed", req, id, null, undefined, startedAt);
+      return result;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.emitPrediction("failed", req, id, null, message, startedAt);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate music as an encoded audio file (mp3/wav/flac). Mirrors
+   * {@link textToSpeechEncoded} for the `text_to_music` capability — the
+   * provider returns a fully-encoded audio file rather than streaming PCM.
+   */
+  async textToMusic(
+    req: ProviderPredictionRequest
+  ): Promise<EncodedAudioResult> {
+    const id = randomUUID();
+    const startedAt = Date.now();
+    this.emitPrediction("running", req, id, null, undefined, startedAt);
+    try {
+      const provider = await this.getProvider(req.provider);
+      const params = req.params ?? {};
+      const result = await provider.textToMusic({
+        prompt: String(params.prompt ?? ""),
+        model: { id: req.model, name: req.model, provider: req.provider },
+        lyrics: params.lyrics as string | undefined,
+        durationSeconds: params.duration_seconds as number | undefined,
+        seed: params.seed as number | undefined,
+        audioFormat: params.audioFormat as string | undefined,
+        timeoutSeconds: params.timeout_seconds as number | undefined
       });
       this.emitPrediction("completed", req, id, null, undefined, startedAt);
       return result;

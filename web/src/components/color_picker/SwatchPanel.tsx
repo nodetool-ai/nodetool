@@ -13,7 +13,9 @@ import {
   Box,
   EditorMenu,
   EditorMenuItem,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -28,10 +30,10 @@ import {
 const styles = (theme: Theme) =>
   css({
     "&": {
-      gap: "16px"
+      gap: getSpacingPx(SPACING.xl)
     },
     ".section": {
-      gap: "8px"
+      gap: getSpacingPx(SPACING.md)
     },
     ".section-header": {
       alignItems: "center",
@@ -44,7 +46,7 @@ const styles = (theme: Theme) =>
       textTransform: "uppercase"
     },
     ".color-grid": {
-      gap: "4px"
+      gap: getSpacingPx(SPACING.xs)
     },
     ".add-swatch-button": {
       width: "24px",
@@ -59,8 +61,8 @@ const styles = (theme: Theme) =>
       }
     },
     ".palette-section": {
-      gap: "8px",
-      padding: "8px",
+      gap: getSpacingPx(SPACING.md),
+      padding: getSpacingPx(SPACING.md),
       backgroundColor: theme.vars.palette.grey[900],
       borderRadius: BORDER_RADIUS.md
     },
@@ -77,7 +79,7 @@ const styles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.grey[600],
       fontStyle: "italic",
-      padding: "8px"
+      padding: getSpacingPx(SPACING.md)
     }
   });
 

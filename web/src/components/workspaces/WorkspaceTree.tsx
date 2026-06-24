@@ -6,22 +6,12 @@ import isEqual from "fast-deep-equal";
 import { useQuery } from "@tanstack/react-query";
 import { FileInfo } from "../../stores/ApiTypes";
 import { trpcClient } from "../../trpc/client";
-import { Text, Caption, Box, EditorButton, Skeleton, BORDER_RADIUS, MOTION } from "../ui_primitives";
+import { Text, Caption, Box, EditorButton, Skeleton, BORDER_RADIUS, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
 import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
 import type { TreeViewBaseItem } from "@mui/x-tree-view/models";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
-import FolderIcon from "@mui/icons-material/Folder";
-import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
-import ImageIcon from "@mui/icons-material/Image";
-import CodeIcon from "@mui/icons-material/Code";
-import DataObjectIcon from "@mui/icons-material/DataObject";
-import DescriptionIcon from "@mui/icons-material/Description";
-import AudioFileIcon from "@mui/icons-material/AudioFile";
-import VideoFileIcon from "@mui/icons-material/VideoFile";
-import TerminalIcon from "@mui/icons-material/Terminal";
-import StorageIcon from "@mui/icons-material/Storage";
 import AddIcon from "@mui/icons-material/Add";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import { RefreshButton, SettingsButton } from "../ui_primitives";
@@ -48,15 +38,15 @@ const workspaceTreeStyles = (theme: Theme) =>
     display: "flex",
     flexDirection: "column",
     height: "100%",
-    padding: "12px",
+    padding: getSpacingPx(SPACING.lg),
     overflow: "hidden",
-    gap: "12px",
+    gap: getSpacingPx(SPACING.lg),
 
     ".workspace-header": {
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
-      paddingBottom: "4px",
+      paddingBottom: getSpacingPx(SPACING.xs),
       borderBottom: `1px solid ${theme.vars.palette.grey[700]}`
     },
 
@@ -71,7 +61,7 @@ const workspaceTreeStyles = (theme: Theme) =>
     ".workspace-selector": {
       display: "flex",
       alignItems: "center",
-      gap: "8px"
+      gap: getSpacingPx(SPACING.md)
     },
 
     ".settings-button": {
@@ -87,13 +77,13 @@ const workspaceTreeStyles = (theme: Theme) =>
       overflowY: "auto",
       border: `1px solid ${theme.vars.palette.grey[700]}`,
       borderRadius: BORDER_RADIUS.md,
-      padding: "8px",
+      padding: getSpacingPx(SPACING.md),
       backgroundColor: theme.vars.palette.grey[900]
     },
 
     ".tree-actions": {
       display: "flex",
-      gap: "8px"
+      gap: getSpacingPx(SPACING.md)
     },
 
     ".open-folder-button": {
@@ -110,8 +100,8 @@ const workspaceTreeStyles = (theme: Theme) =>
     ".breadcrumb": {
       display: "flex",
       alignItems: "center",
-      gap: "2px",
-      padding: "4px 8px",
+      gap: getSpacingPx(SPACING.micro),
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       backgroundColor: theme.vars.palette.grey[800],
@@ -122,7 +112,7 @@ const workspaceTreeStyles = (theme: Theme) =>
 
     ".breadcrumb-segment": {
       cursor: "pointer",
-      padding: "1px 4px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`, // was 1px 4px
       borderRadius: BORDER_RADIUS.sm,
       transition: `color ${MOTION.fast}, background-color ${MOTION.fast}`,
       overflow: "hidden",
@@ -144,23 +134,23 @@ const workspaceTreeStyles = (theme: Theme) =>
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      gap: "8px",
-      padding: "24px 16px",
+      gap: getSpacingPx(SPACING.md),
+      padding: `${getSpacingPx(SPACING.xxl)} ${getSpacingPx(SPACING.xl)}`,
       textAlign: "center"
     },
 
     ".skeleton-tree": {
       display: "flex",
       flexDirection: "column",
-      gap: "6px",
-      padding: "4px 0"
+      gap: getSpacingPx(SPACING.sm),
+      padding: `${getSpacingPx(SPACING.xs)} 0`
     }
   });
 
 const treeViewStyles = (theme: Theme) => ({
   ".MuiTreeItem-content": {
     borderRadius: BORDER_RADIUS.xs,
-    padding: "4px 8px",
+    padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
     userSelect: "none",
     cursor: "pointer"
   },
@@ -198,108 +188,6 @@ const treeViewStyles = (theme: Theme) => ({
   }
 });
 
-// File icon mapping
-const IMAGE_EXTENSIONS = new Set([
-  "png",
-  "jpg",
-  "jpeg",
-  "gif",
-  "svg",
-  "webp",
-  "bmp",
-  "ico"
-]);
-const CODE_EXTENSIONS = new Set([
-  "ts",
-  "tsx",
-  "js",
-  "jsx",
-  "py",
-  "rb",
-  "go",
-  "rs",
-  "java",
-  "c",
-  "cpp",
-  "h",
-  "hpp",
-  "cs",
-  "swift",
-  "kt",
-  "vue",
-  "svelte"
-]);
-const DATA_EXTENSIONS = new Set([
-  "json",
-  "yaml",
-  "yml",
-  "xml",
-  "toml",
-  "csv",
-  "tsv"
-]);
-const DOC_EXTENSIONS = new Set([
-  "md",
-  "txt",
-  "pdf",
-  "doc",
-  "docx",
-  "rtf",
-  "tex"
-]);
-const AUDIO_EXTENSIONS = new Set([
-  "mp3",
-  "wav",
-  "ogg",
-  "flac",
-  "aac",
-  "m4a"
-]);
-const VIDEO_EXTENSIONS = new Set([
-  "mp4",
-  "webm",
-  "avi",
-  "mov",
-  "mkv",
-  "flv"
-]);
-const SCRIPT_EXTENSIONS = new Set(["sh", "bash", "zsh", "bat", "ps1", "cmd"]);
-const DB_EXTENSIONS = new Set(["db", "sqlite", "sqlite3", "sql"]);
-
-const getFileIcon = (fileName: string, isDir: boolean): React.ReactNode => {
-  if (isDir) {
-    return <FolderIcon sx={{ fontSize: 16, color: "primary.light" }} />;
-  }
-  const ext = fileName.split(".").pop()?.toLowerCase() ?? "";
-  if (IMAGE_EXTENSIONS.has(ext)) {
-    return <ImageIcon sx={{ fontSize: 16, color: "success.light" }} />;
-  }
-  if (CODE_EXTENSIONS.has(ext)) {
-    return <CodeIcon sx={{ fontSize: 16, color: "info.light" }} />;
-  }
-  if (DATA_EXTENSIONS.has(ext)) {
-    return <DataObjectIcon sx={{ fontSize: 16, color: "warning.light" }} />;
-  }
-  if (DOC_EXTENSIONS.has(ext)) {
-    return <DescriptionIcon sx={{ fontSize: 16, color: "text.secondary" }} />;
-  }
-  if (AUDIO_EXTENSIONS.has(ext)) {
-    return <AudioFileIcon sx={{ fontSize: 16, color: "secondary.light" }} />;
-  }
-  if (VIDEO_EXTENSIONS.has(ext)) {
-    return <VideoFileIcon sx={{ fontSize: 16, color: "secondary.main" }} />;
-  }
-  if (SCRIPT_EXTENSIONS.has(ext)) {
-    return <TerminalIcon sx={{ fontSize: 16, color: "warning.main" }} />;
-  }
-  if (DB_EXTENSIONS.has(ext)) {
-    return <StorageIcon sx={{ fontSize: 16, color: "info.main" }} />;
-  }
-  return (
-    <InsertDriveFileIcon sx={{ fontSize: 16, color: "text.secondary" }} />
-  );
-};
-
 // Utils
 const createErrorItem = (itemId: string): TreeViewItem => ({
   id: `${itemId}/error`,
@@ -307,22 +195,6 @@ const createErrorItem = (itemId: string): TreeViewItem => ({
   children: undefined,
   className: "error-item"
 });
-
-const FileLabel: React.FC<{ name: string; isDir: boolean }> = ({
-  name,
-  isDir
-}) => (
-  <span
-    style={{
-      display: "inline-flex",
-      alignItems: "center",
-      gap: "6px"
-    }}
-  >
-    {getFileIcon(name, isDir)}
-    {name}
-  </span>
-);
 
 const fileToTreeItem = (file: FileInfo): TreeViewItem => {
   const item: TreeViewItem = {

@@ -44,9 +44,9 @@ export const FilePreview: React.FC<FilePreviewProps> = React.memo(({ file, onRem
         right: -6,
         width: 18,
         height: 18,
-        backgroundColor: "rgba(0, 0, 0, 0.7)",
+        backgroundColor: "var(--palette-c_scrim)",
         "&:hover": {
-          backgroundColor: "rgba(0, 0, 0, 0.9)"
+          backgroundColor: "var(--palette-c_scrim_strong)"
         },
         "& .MuiSvgIcon-root": {
           fontSize: 14

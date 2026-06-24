@@ -22,7 +22,7 @@ import DashboardWorkflows from "./DashboardWorkflows";
 import DashboardFooter from "./DashboardFooter";
 import { useCreateStarterWorkflow } from "../../hooks/useCreateStarterWorkflow";
 import { WELCOME_TRACKS, type WelcomeTrackId } from "./welcomeTracks";
-import { Box } from "../ui_primitives";
+import { Box, SPACING, getSpacingPx } from "../ui_primitives";
 
 // Secret keys the runtime providers actually read (see
 // packages/runtime/src/providers — e.g. GeminiProvider requires
@@ -63,12 +63,12 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      padding: "0 24px",
+      padding: `0 ${getSpacingPx(SPACING.xxl)}`,
       paddingTop: 8
     },
     ".portal-setup-message": {
       maxWidth: 480,
-      padding: "16px 20px"
+      padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xxl)}` // was 16px 20px
     }
   });
 

@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { keyframes } from "@emotion/react";
 
 import React, { useCallback, useMemo, useState, useEffect, memo } from "react";
-import { Tooltip, Text, Caption, EditorButton, LoadingSpinner, Chip, CloseButton, FlexRow, FlexColumn, CopyButton, Box, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, Text, Caption, EditorButton, LoadingSpinner, Chip, CloseButton, FlexRow, FlexColumn, CopyButton, Box, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { ProgressBar } from "../ui_primitives/ProgressBar";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
@@ -343,7 +343,7 @@ export const DownloadProgress: React.FC<{
             tooltip="Copy full message"
             buttonSize="small"
             nodrag={false}
-            sx={{ flexShrink: 0, mt: "-2px" }}
+            sx={{ flexShrink: 0, mt: `-${getSpacingPx(SPACING.micro)}` }}
           />
         </FlexRow>
       )}
@@ -418,7 +418,7 @@ export const DownloadProgress: React.FC<{
                       sx={{
                         ml: 1,
                         minWidth: "auto",
-                        padding: "2px 8px",
+                        padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
                         fontSize: "var(--fontSizeSmall)"
                       }}
                     >

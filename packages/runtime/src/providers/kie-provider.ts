@@ -25,9 +25,11 @@ import type {
   MessageContent,
   MessageImageContent,
   MessageTextContent,
+  MusicModel,
   ProviderStreamItem,
   ProviderTool,
   TextToImageParams,
+  TextToMusicParams,
   TextToVideoParams,
   ToolCall,
   TTSModel,
@@ -36,6 +38,7 @@ import type {
 import {
   loadVideoModels,
   loadImageModels,
+  loadMusicModels,
   loadTTSModels,
   getModelImageInputs,
   selectPrimaryImageInput,
@@ -606,6 +609,34 @@ export class KieProvider extends BaseProvider {
 
   override async getAvailableTTSModels(): Promise<TTSModel[]> {
     return loadTTSModels(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, "kie");
+  }
+
+  override async getAvailableMusicModels(): Promise<MusicModel[]> {
+    return loadMusicModels(KIE_MANIFEST_PKG, KIE_MANIFEST_PATH, "kie");
+  }
+
+  /**
+   * Generate music as an encoded audio file. KIE runs music generation (Suno)
+   * as an async job and returns a result URL, so this mirrors the TTS / video
+   * path: submit the task, poll until done, then download the audio bytes.
+   */
+  override async textToMusic(
+    params: TextToMusicParams
+  ): Promise<EncodedAudioResult> {
+    if (!params.prompt) throw new Error("Prompt is required");
+    const input: Record<string, unknown> = { prompt: params.prompt };
+    if (params.lyrics) input.lyrics = params.lyrics;
+    if (params.durationSeconds != null) {
+      input.duration = Math.round(params.durationSeconds);
+    }
+
+    const modelId = params.model.id;
+    log.debug("Kie textToMusic", { model: modelId });
+    const apiKey = this.requireApiKey();
+    const taskId = await submitTask(apiKey, modelId, input);
+    await pollUntilDone(apiKey, taskId);
+    const bytes = await downloadResultBytes(apiKey, taskId);
+    return { data: bytes, mimeType: sniffAudioMime(bytes) };
   }
 
   /**

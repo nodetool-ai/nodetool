@@ -52,7 +52,7 @@ const styles = (theme: Theme) =>
     ".stepper-control .MuiButtonBase-root": {
       borderRadius: BORDER_RADIUS.sm,
       "&:hover": {
-        backgroundColor: "rgba(255,255,255,0.06)"
+        backgroundColor: theme.vars.palette.c_overlay
       }
     },
     ".stepper-value": {

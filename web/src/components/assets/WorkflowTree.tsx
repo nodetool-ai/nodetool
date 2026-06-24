@@ -15,7 +15,9 @@ import {
   Box,
   Collapse,
   MOTION,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -42,7 +44,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: ".4em",
       height: ROW_HEIGHT,
-      paddingLeft: "2px",
+      paddingLeft: getSpacingPx(SPACING.micro),
       cursor: "pointer",
       userSelect: "none",
       borderRadius: BORDER_RADIUS.md,

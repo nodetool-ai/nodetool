@@ -362,7 +362,7 @@
   max-height: none !important;
   object-fit: contain !important;
   border-radius: 0 !important;
-  background: #000;
+  background: var(--palette-c_scrim_strong);
 }
 
 /* Hide filename caption to maximize video area */

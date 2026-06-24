@@ -7,6 +7,7 @@ import type {
 import { supportsPlatform } from "@nodetool-ai/protocol";
 import type { NodeExecutor, ResolvedNodeType } from "@nodetool-ai/kernel";
 import type { NodeClass } from "./base-node.js";
+import { hasStreamingOutput } from "./base-node.js";
 import type {
   NodeMetadata,
   PythonMetadataLoadOptions,
@@ -283,37 +284,62 @@ function typeMetadataToString(
 }
 
 /**
- * Stamp streaming/control flags from the registry's node classes onto graph
- * descriptors. Graphs arriving from a client carry only `type` and
- * `properties`, and the kernel actor trusts `node.is_streaming_input` to
- * pick run() over a one-shot process() — without this every streaming node
- * "completes" instantly with empty outputs. The full-fat equivalent (which
- * also resolves property/output types and drops unknown node types) is
- * `Graph.loadFromDict` with `createGraphNodeTypeResolver`; this is the
- * lightweight synchronous version for runners that only need correct
- * execution semantics. Node types the registry doesn't know keep their own
- * flags, defaulted to false (resolveExecutor reports unknown types loudly).
+ * Stamp streaming/control flags from the registry onto graph descriptors.
+ * Graphs arriving from a client carry only `type` and `properties`, and the
+ * kernel actor trusts `node.is_streaming_input` to pick run() over a one-shot
+ * process() — without this every streaming node "completes" instantly with
+ * empty outputs. The full-fat equivalent (which also resolves property/output
+ * types and drops unknown node types) is `Graph.loadFromDict` with
+ * `createGraphNodeTypeResolver`; this is the lightweight synchronous version
+ * for runners that only need correct execution semantics.
+ *
+ * Flags are resolved from the node's registered TS class when present, else
+ * from its loaded metadata (Python nodes have no TS class — they live only as
+ * metadata loaded from the worker's `package_metadata`, so `getClass` returns
+ * undefined and we must consult `resolveMetadata` or a streaming Python node
+ * read from a saved graph silently runs one-shot). This mirrors
+ * `Graph.loadFromDict`, which already reads the Python flag from metadata.
+ * `is_streaming_output` is derived from a TS class via `hasStreamingOutput`
+ * (purely structural: a `genProcess` override or iteration/forward/chunk
+ * correlation — ForEach, Collection, RepeatCount), and from the metadata's
+ * already-resolved boolean otherwise. Node types the registry doesn't know at
+ * all keep their own flags, defaulted to false (resolveExecutor reports
+ * unknown types loudly).
  */
 export function hydrateGraphNodeFlags(
   graph: GraphData,
-  registry: Pick<NodeRegistry, "getClass">
+  registry: Pick<NodeRegistry, "getClass" | "resolveMetadata">
 ): HydratedGraphData {
   const nodes = graph.nodes.map((node) => {
     const cls = registry.getClass(node.type);
+    // Fall back to loaded metadata only for class-less (Python) nodes.
+    const meta = cls ? undefined : registry.resolveMetadata(node.type);
     return {
       ...node,
       is_streaming_input:
-        cls?.isStreamingInput || node.is_streaming_input || false,
+        (cls ? cls.isStreamingInput : meta?.is_streaming_input) ||
+        node.is_streaming_input ||
+        false,
       is_streaming_output:
-        cls?.isStreamingOutput || node.is_streaming_output || false,
-      is_controlled: cls?.isControlled || node.is_controlled || false,
-      is_join_node: cls?.isJoinNode || node.is_join_node || false,
+        (cls ? hasStreamingOutput(cls) : meta?.is_streaming_output) ||
+        node.is_streaming_output ||
+        false,
+      is_controlled:
+        (cls ? cls.isControlled : meta?.is_controlled) ||
+        node.is_controlled ||
+        false,
+      is_join_node:
+        (cls ? cls.isJoinNode : meta?.is_join_node) ||
+        node.is_join_node ||
+        false,
       always_emit_output_updates:
-        cls?.alwaysEmitOutputUpdates ||
+        (cls ? cls.alwaysEmitOutputUpdates : meta?.always_emit_output_updates) ||
         node.always_emit_output_updates ||
         false,
-      input_mode: cls?.inputMode ?? node.input_mode,
-      output_correlation: cls?.outputCorrelation ?? node.output_correlation
+      input_mode: (cls ? cls.inputMode : meta?.input_mode) ?? node.input_mode,
+      output_correlation:
+        (cls ? cls.outputCorrelation : meta?.output_correlation) ??
+        node.output_correlation
     };
   });
   return { nodes, edges: [...graph.edges] };

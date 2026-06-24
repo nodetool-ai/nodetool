@@ -1,10 +1,10 @@
-import { spawn, spawnSync } from "child_process";
+import { spawn } from "child_process";
 import * as path from "path";
 import * as fsp from "fs/promises";
 import { fileExists } from "../../utils";
 import { logMessage } from "../../logger";
 import { emitServerLog } from "../../events";
-import { getProcessEnv } from "../../config";
+import { getProcessEnv, resolveNpmInvocation } from "../../config";
 import {
   RuntimePackage,
   RuntimeContext,
@@ -28,23 +28,6 @@ export interface NpmRuntimePackageOptions {
   homepage?: string;
   platforms?: NodeJS.Platform[];
   dependsOn?: string[];
-}
-
-function resolveNpmExecutable(): string {
-  const candidates =
-    process.platform === "win32" ? ["npm.cmd", "npm"] : ["npm"];
-  for (const candidate of candidates) {
-    try {
-      const result = spawnSync(candidate, ["--version"], {
-        stdio: "ignore",
-        shell: process.platform === "win32",
-      });
-      if (result.status === 0) return candidate;
-    } catch {
-      // continue
-    }
-  }
-  return "";
 }
 
 /**
@@ -155,17 +138,25 @@ export class NpmRuntimePackage implements RuntimePackage {
     signal: AbortSignal,
     onLog: (level: "info" | "warn", line: string) => void,
   ): Promise<void> {
-    const npmPath = resolveNpmExecutable();
-    if (!npmPath) {
+    const npm = resolveNpmInvocation();
+    if (!npm) {
       throw new Error(
-        "npm not found in PATH. Install Node.js (which includes npm) to install JavaScript packages."
+        "npm not found. Reinstall the NodeTool environment to restore the bundled Node.js/npm runtime."
       );
     }
     await this.ensureRoot(ctx);
     const cacheDir = path.join(ctx.userDataDir, "npm-cache");
     await fsp.mkdir(cacheDir, { recursive: true });
 
-    const command = [npmPath, ...args, "--prefix", ctx.optionalNodeRoot, "--cache", cacheDir];
+    const command = [
+      npm.command,
+      ...npm.baseArgs,
+      ...args,
+      "--prefix",
+      ctx.optionalNodeRoot,
+      "--cache",
+      cacheDir,
+    ];
     return new Promise<void>((resolve, reject) => {
       logMessage(`Running npm command: ${command.join(" ")}`);
       const child = spawn(command[0], command.slice(1), {
@@ -255,15 +246,23 @@ export class NpmRuntimePackage implements RuntimePackage {
   }
 
   async uninstall(ctx: RuntimeContext): Promise<void> {
-    const npmPath = resolveNpmExecutable();
-    if (!npmPath) {
-      throw new Error("npm not found in PATH.");
+    const npm = resolveNpmInvocation();
+    if (!npm) {
+      throw new Error("npm not found.");
     }
     await this.ensureRoot(ctx);
     const cacheDir = path.join(ctx.userDataDir, "npm-cache");
-    const args = ["uninstall", ...this.packageNames, "--prefix", ctx.optionalNodeRoot, "--cache", cacheDir];
+    const args = [
+      ...npm.baseArgs,
+      "uninstall",
+      ...this.packageNames,
+      "--prefix",
+      ctx.optionalNodeRoot,
+      "--cache",
+      cacheDir,
+    ];
     await new Promise<void>((resolve, reject) => {
-      const child = spawn(npmPath, args, {
+      const child = spawn(npm.command, args, {
         env: getProcessEnv(),
         stdio: "pipe",
         windowsHide: true,

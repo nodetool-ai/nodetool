@@ -105,7 +105,7 @@ span.tooltip-small {
 .tooltip-key {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--spacing-xs);
   background-color: transparent;
   color: var(--palette-grey-50);
   word-spacing: 1em;
@@ -175,7 +175,7 @@ kbd {
 
 .status-message {
   display: inline-block;
-  padding: 4px 8px;
+  padding: var(--spacing-xs) var(--spacing-md);
   text-shadow: 0 1px 2px var(--palette-grey-1000);
 }
 

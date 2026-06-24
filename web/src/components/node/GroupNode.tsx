@@ -37,7 +37,7 @@ import { useKeyPressed } from "../../stores/KeyPressedStore";
 import RunGroupButton from "./RunGroupButton";
 import BypassGroupButton from "./BypassGroupButton";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import { Tooltip, ToolbarIconButton, Popover, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, ToolbarIconButton, Popover, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 
 // constants
 const MIN_WIDTH = 200;
@@ -51,14 +51,14 @@ const DEFAULT_GROUP_HEX = "#9ca3af";
 const POPOVER_COLUMN_STYLE: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: "12px",
-  padding: "12px"
+  gap: getSpacingPx(SPACING.lg),
+  padding: getSpacingPx(SPACING.lg)
 };
 const POPOVER_ROW_STYLE: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  gap: "12px"
+  gap: getSpacingPx(SPACING.lg)
 };
 
 // Returns an opaque 6-digit hex. Catches three failure modes from saved data:
@@ -110,7 +110,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       height: `${HEADER_HEIGHT}px`,
       display: "flex",
       alignItems: "center",
-      padding: "0 8px",
+      padding: `0 ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.sm,
       color: theme.vars.palette.common.white,
       ".title-sizer": {
@@ -137,7 +137,7 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
         border: 0,
         padding: 0,
         margin: 0,
-        color: "#ffffff",
+        color: theme.vars.palette.c_white,
         textShadow: "0 1px 2px rgba(0, 0, 0, 0.4)",
         fontFamily: theme.fontFamily1,
         fontSize: "var(--fontSizeNormal)",
@@ -156,22 +156,22 @@ const styles = (theme: Theme, minWidth: number, minHeight: number) =>
       height: `${HEADER_HEIGHT}px`,
       display: "flex",
       alignItems: "center",
-      gap: "6px",
-      padding: "0 6px",
+      gap: getSpacingPx(SPACING.sm),
+      padding: `0 ${getSpacingPx(SPACING.sm)}`,
       transformOrigin: "bottom right",
       zIndex: 10,
       pointerEvents: "auto",
       ".bypass-button, .menu-button": {
         border: "none !important",
-        backgroundColor: "rgba(255, 255, 255, 0.10) !important",
+        backgroundColor: `${theme.vars.palette.c_overlay} !important`,
         borderRadius: "var(--rounded-circle) !important",
-        color: "rgba(255, 255, 255, 0.9) !important",
+        color: `${theme.vars.palette.c_white} !important`,
         width: "28px !important",
         height: "28px !important",
         padding: "0 !important",
         "&:hover": {
-          backgroundColor: "rgba(255, 255, 255, 0.18) !important",
-          color: "#ffffff !important"
+          backgroundColor: `${theme.vars.palette.c_overlay_strong} !important`,
+          color: `${theme.vars.palette.c_white} !important`
         },
         "& svg": {
           fontSize: 20

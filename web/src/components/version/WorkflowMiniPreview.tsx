@@ -13,7 +13,7 @@
 
 import React, { useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
-import { Caption, FlexColumn, Surface, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Caption, FlexColumn, Surface, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { Graph } from "../../stores/ApiTypes";
 
 // Data structure that has graph - can be WorkflowVersion or Workflow
@@ -376,7 +376,7 @@ export const WorkflowMiniPreview: React.FC<WorkflowMiniPreviewProps> = ({
           color: theme.vars.palette.text.secondary,
           backgroundColor: `rgb(${theme.vars.palette.background.paperChannel} / 0.7)`,
           borderRadius: BORDER_RADIUS.xs,
-          padding: "1px 5px",
+          padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`, // was 1px 5px
           fontFamily: "var(--fontFamily2)",
           fontSize: "var(--fontSizeSmaller)",
           lineHeight: 1.3,

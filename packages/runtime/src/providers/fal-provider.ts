@@ -15,10 +15,12 @@ import type {
   ImageModel,
   VideoModel,
   TTSModel,
+  MusicModel,
   EncodedAudioResult,
   Message,
   ProviderStreamItem,
   TextToImageParams,
+  TextToMusicParams,
   ImageToImageParams,
   InpaintingParams,
   TextToVideoParams,
@@ -32,6 +34,7 @@ import type {
 } from "./types.js";
 import {
   loadImageModels,
+  loadMusicModels,
   loadTTSModels,
   loadVideoModels
 } from "./manifest-models.js";
@@ -404,6 +407,58 @@ if (update.status === "IN_PROGRESS") {
 
   override async getAvailableTTSModels(): Promise<TTSModel[]> {
     return loadTTSModels(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, "fal_ai");
+  }
+
+  override async getAvailableMusicModels(): Promise<MusicModel[]> {
+    return loadMusicModels(FAL_MANIFEST_PKG, FAL_MANIFEST_PATH, "fal_ai");
+  }
+
+  /**
+   * Generate music as an encoded audio file. FAL music endpoints (Stable Audio,
+   * MiniMax Music, ACE-Step, DiffRhythm, …) return a file URL, so this mirrors
+   * {@link textToSpeechEncoded}: shape the request from the manifest, run it,
+   * and download the resulting audio bytes.
+   */
+  override async textToMusic(
+    params: TextToMusicParams
+  ): Promise<EncodedAudioResult> {
+    if (!params.prompt) throw new Error("prompt must not be empty");
+    const client = await this.getClient();
+    const modelId = params.model.id;
+    const input = this.buildTextToMusicArgs(modelId, params);
+    log.debug("FAL textToMusic", { model: modelId });
+    const result = await client.subscribe(modelId, {
+      input,
+      logs: true,
+      onQueueUpdate: this.makeQueueUpdateHandler()
+    });
+    const data = (result.data ?? result) as Record<string, unknown>;
+    const bytes = await downloadBytes(extractAudioUrl(data));
+    return { data: bytes, mimeType: sniffAudioMime(bytes) };
+  }
+
+  /**
+   * Shape music inputs for whatever the endpoint declares. The text prompt
+   * lands in `prompt`; lyrics (for vocal models) and duration land in whichever
+   * of the heterogeneous duration/lyrics fields the endpoint accepts.
+   * {@link FalArgsBuilder.set} drops keys the endpoint doesn't declare.
+   */
+  private buildTextToMusicArgs(
+    modelId: string,
+    params: TextToMusicParams
+  ): Record<string, unknown> {
+    const b = new FalArgsBuilder(modelId);
+    b.force("prompt", params.prompt)
+      .set("style_prompt", params.prompt)
+      .set("lyrics", params.lyrics)
+      .set("lyrics_prompt", params.lyrics);
+    if (params.durationSeconds != null) {
+      b.set("duration", params.durationSeconds)
+        .set("seconds_total", params.durationSeconds)
+        .set("music_duration", params.durationSeconds);
+    }
+    if (params.seed != null && params.seed !== -1) b.set("seed", params.seed);
+    return b.args;
   }
 
   /**

@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { Drawer } from "@mui/material";
-import { Tooltip, Box, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { useResizeBottomPanel } from "../../hooks/handlers/useResizeBottomPanel";
 import {
   BOTTOM_PANEL_GROUPS,
@@ -241,8 +241,8 @@ const styles = (theme: Theme) =>
       "& .status-cluster": {
         display: "inline-flex",
         alignItems: "center",
-        gap: "8px",
-        padding: "0 14px",
+        gap: getSpacingPx(SPACING.md),
+        padding: `0 ${getSpacingPx(SPACING.xl)}`, // was 0 14px
         flexShrink: 0,
         whiteSpace: "nowrap"
       },
@@ -262,7 +262,7 @@ const styles = (theme: Theme) =>
 
       "& .sep": {
         color: theme.vars.palette.text.disabled,
-        margin: "0 2px"
+        margin: `0 ${getSpacingPx(SPACING.micro)}`
       },
 
       "& .tab-rail": {
@@ -280,7 +280,7 @@ const styles = (theme: Theme) =>
 
       "& .tab-button": {
         height: "100%",
-        padding: "0 12px",
+        padding: `0 ${getSpacingPx(SPACING.lg)}`,
         color: theme.vars.palette.text.secondary,
         fontSize: "var(--fontSizeSmall)",
         lineHeight: 1,
@@ -289,7 +289,7 @@ const styles = (theme: Theme) =>
         minWidth: "auto",
         display: "inline-flex",
         alignItems: "center",
-        gap: "8px",
+        gap: getSpacingPx(SPACING.md),
         cursor: "pointer",
         backgroundColor: "transparent",
         border: "none",
@@ -300,13 +300,13 @@ const styles = (theme: Theme) =>
           color: theme.vars.palette.text.disabled
         },
         "&:hover": {
-          backgroundColor: "rgba(255,255,255,0.03)",
+          backgroundColor: theme.vars.palette.c_overlay_subtle,
           color: theme.vars.palette.text.primary,
           "& svg": { color: theme.vars.palette.text.secondary }
         },
         "&.active": {
           color: theme.vars.palette.text.primary,
-          backgroundColor: "rgba(255,255,255,0.04)",
+          backgroundColor: theme.vars.palette.c_overlay_subtle,
           "& svg": { color: theme.vars.palette.primary.main },
           "&::before": {
             content: '""',
@@ -331,8 +331,8 @@ const styles = (theme: Theme) =>
         marginLeft: "auto",
         display: "inline-flex",
         alignItems: "center",
-        gap: "12px",
-        padding: "0 12px 0 16px",
+        gap: getSpacingPx(SPACING.lg),
+        padding: `0 ${getSpacingPx(SPACING.lg)} 0 ${getSpacingPx(SPACING.xl)}`,
         flexShrink: 0,
         whiteSpace: "nowrap",
         fontVariantNumeric: "tabular-nums"
@@ -341,7 +341,7 @@ const styles = (theme: Theme) =>
       "& .meta-pair": {
         display: "inline-flex",
         alignItems: "center",
-        gap: "6px"
+        gap: getSpacingPx(SPACING.sm)
       },
 
       "& .meta-key": {
@@ -571,7 +571,9 @@ const PanelBottom: React.FC = () => {
             width: "100%",
             borderTop: `1px solid ${theme.vars.palette.divider}`,
             backgroundColor: theme.vars.palette.background.default,
-            boxShadow: isVisible ? "0 -4px 10px rgba(0, 0, 0, 0.3)" : "none",
+            boxShadow: isVisible
+              ? `0 -4px 10px ${theme.vars.palette.c_scrim_soft}`
+              : "none",
             overflow: "hidden",
             transition: `height ${MOTION.normal}`
           }

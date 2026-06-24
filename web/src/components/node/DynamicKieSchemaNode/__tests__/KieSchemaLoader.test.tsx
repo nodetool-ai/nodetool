@@ -7,6 +7,7 @@ const mockUpdateNodeData = jest.fn();
 const mockResolveKieSchemaClient = jest.fn();
 
 jest.mock("../../../ui_primitives", () => ({
+  ...jest.requireActual("../../../ui_primitives/spacing"),
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   Caption: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   LoadingSpinner: () => <span data-testid="loading-spinner" />,

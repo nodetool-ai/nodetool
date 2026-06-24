@@ -3,6 +3,7 @@ import { UnifiedModel } from "../stores/ApiTypes";
 import { formatByteSize } from "./formatUtils";
 import ModelIcon from "../icons/data_types/nodetool/model.svg";
 import PetsIcon from "@mui/icons-material/Pets";
+import { SPACING, getSpacingPx } from "../components/ui_primitives";
 
 export const prettifyModelType = (type: string): JSX.Element | string => {
   if (type === "All") {return type;}
@@ -15,7 +16,7 @@ export const prettifyModelType = (type: string): JSX.Element | string => {
           alt="Ollama"
           style={{
             width: "16px",
-            marginRight: "8px",
+            marginRight: getSpacingPx(SPACING.md),
             filter: "invert(1)"
           }}
         />
@@ -41,7 +42,7 @@ export const prettifyModelType = (type: string): JSX.Element | string => {
         <img
           src="https://huggingface.co/front/assets/huggingface_logo-noborder.svg"
           alt="Hugging Face"
-          style={{ width: "20px", marginRight: "8px" }}
+          style={{ width: "20px", marginRight: getSpacingPx(SPACING.md) }}
         />
         {parts
           .map((part) =>
@@ -62,7 +63,7 @@ export const prettifyModelType = (type: string): JSX.Element | string => {
         alt="Model"
         style={{
           width: "20px",
-          marginRight: "8px",
+          marginRight: getSpacingPx(SPACING.md),
           filter: "invert(1)"
         }}
       />

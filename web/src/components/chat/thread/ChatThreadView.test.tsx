@@ -6,6 +6,8 @@ import ChatThreadView from "./ChatThreadView";
 import mockTheme from "../../../__mocks__/themeMock";
 import { Message } from "../../../stores/ApiTypes";
 
+const mockScrollToIndex = jest.fn();
+
 // Bypass virtualization in tests: render every item synchronously.
 // jsdom has no layout engine, so @tanstack/react-virtual's measurements
 // would return zero and no items would appear.
@@ -22,7 +24,7 @@ jest.mock("@tanstack/react-virtual", () => ({
       })),
     getTotalSize: () => count * 200,
     measureElement: () => {},
-    scrollToIndex: () => {}
+    scrollToIndex: mockScrollToIndex
   })
 }));
 
@@ -127,6 +129,24 @@ describe("ChatThreadView", () => {
     renderWithTheme(<ChatThreadView {...defaultProps} />);
     expect(screen.getByTestId("message-1")).toHaveTextContent("Hello");
     expect(screen.getByTestId("message-2")).toHaveTextContent("Hi there");
+  });
+
+  it("lands on the latest message when a thread is first shown", () => {
+    const rafSpy = jest
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation((cb) => {
+        cb(0);
+        return 0;
+      });
+    mockScrollToIndex.mockClear();
+
+    renderWithTheme(<ChatThreadView {...defaultProps} />);
+
+    // Two mock messages → the last (index 1) is aligned to the bottom, so the
+    // user doesn't have to scroll down to the end of an existing conversation.
+    expect(mockScrollToIndex).toHaveBeenCalledWith(1, { align: "end" });
+
+    rafSpy.mockRestore();
   });
 
   it("renders loading indicator when status is loading", () => {

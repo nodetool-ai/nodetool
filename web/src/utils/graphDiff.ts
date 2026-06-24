@@ -7,6 +7,9 @@
 
 import { Graph, Node, Edge } from "../stores/ApiTypes";
 
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === "object" && v !== null && !Array.isArray(v);
+
 export interface PropertyChange {
   key: string;
   oldValue: unknown;
@@ -59,16 +62,17 @@ const isEqual = (a: unknown, b: unknown): boolean => {
     return false;
   }
 
-  const aObj = a as Record<string, unknown>;
-  const bObj = b as Record<string, unknown>;
-  const aKeys = Object.keys(aObj);
-  const bKeys = Object.keys(bObj);
+  if (!isRecord(a) || !isRecord(b)) {
+    return false;
+  }
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
 
   if (aKeys.length !== bKeys.length) {
     return false;
   }
 
-  return aKeys.every((key) => isEqual(aObj[key], bObj[key]));
+  return aKeys.every((key) => isEqual(a[key], b[key]));
 };
 
 /**
@@ -81,9 +85,7 @@ const findNodePropertyChanges = (
   const changes: PropertyChange[] = [];
 
   const toRecord = (v: unknown): Record<string, unknown> =>
-    typeof v === "object" && v !== null && !Array.isArray(v)
-      ? (v as Record<string, unknown>)
-      : {};
+    isRecord(v) ? v : {};
   const oldData = toRecord(oldNode.data);
   const newData = toRecord(newNode.data);
 

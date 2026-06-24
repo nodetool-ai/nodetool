@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import CodeIcon from "@mui/icons-material/Code";
-import { RefreshButton, LoadingSpinner, Text, ToolbarIconButton, Box, BORDER_RADIUS } from "../ui_primitives";
+import { RefreshButton, LoadingSpinner, Text, ToolbarIconButton, Box, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { BASE_URL, UNIFIED_WS_URL } from "../../stores/BASE_URL";
 import { injectRuntimeConfig } from "./utils/extractHtml";
 import type { Theme } from "@mui/material/styles";
@@ -23,7 +23,7 @@ const createStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      padding: "8px 12px",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,
       borderBottom: `1px solid ${theme.palette.divider}`,
       backgroundColor: theme.palette.background.paper
     },
@@ -34,7 +34,7 @@ const createStyles = (theme: Theme) =>
     },
     ".preview-actions": {
       display: "flex",
-      gap: "4px"
+      gap: getSpacingPx(SPACING.xs)
     },
     ".preview-frame-container": {
       flex: 1,
@@ -54,11 +54,11 @@ const createStyles = (theme: Theme) =>
       height: "100%",
       color: theme.palette.text.secondary,
       textAlign: "center",
-      padding: "24px"
+      padding: getSpacingPx(SPACING.xxl)
     },
     ".preview-empty-icon": {
       fontSize: "var(--fontSizeBig)",
-      marginBottom: "16px",
+      marginBottom: getSpacingPx(SPACING.xl),
       opacity: 0.5
     },
     ".preview-loading": {

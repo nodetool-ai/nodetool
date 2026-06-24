@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useCallback, memo } from "react";
+import { useCallback, useMemo, memo } from "react";
 import {
   Node,
   Edge,
@@ -14,6 +14,7 @@ import {
   LanguageModel,
   TodoItem
 } from "../../../stores/ApiTypes";
+import { SPACING, getSpacingPx } from "../../ui_primitives";
 import ChatThreadView from "../thread/ChatThreadView";
 import { ConversationHeader } from "./ConversationHeader";
 import ChatInputSection, { type ChatComposerVariant } from "./ChatInputSection";
@@ -64,12 +65,12 @@ const styles = (theme: Theme) =>
       alignSelf: "center"
     },
     ".chat-controls": {
-      padding: "0 16px 0 0",
+      padding: `0 ${getSpacingPx(SPACING.xl)} 0 0`,
       marginTop: "auto",
       zIndex: 10,
       display: "flex",
       alignItems: "center",
-      gap: "8px"
+      gap: getSpacingPx(SPACING.md)
     },
     ".chat-composer-wrapper": {
       flex: 1,
@@ -194,6 +195,7 @@ const ChatView = ({
   showConversationHeader = false
 }: ChatViewProps) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const handleSendMessage = useCallback(
     async (
       content: MessageContent[],
@@ -239,7 +241,7 @@ const ChatView = ({
   const showTodoSidebar = todos.length > 0;
 
   return (
-    <div className="chat-view" css={styles(theme)}>
+    <div className="chat-view" css={cssStyles}>
       <div className="chat-main">
         <div className="chat-thread-container">
           {showConversationHeader && (

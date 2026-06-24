@@ -21,7 +21,7 @@ import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import Help from "../content/Help/Help";
 import Logo from "../Logo";
-import { Popover, MenuItemPrimitive, Tooltip, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Popover, MenuItemPrimitive, Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 
 const workspacesEnabled = !isProduction;
 
@@ -53,7 +53,7 @@ const logoButtonStyles = (theme: Theme) =>
 const menuStyles = () =>
   css({
     minWidth: "208px",
-    padding: "4px 0"
+    padding: `${getSpacingPx(SPACING.xs)} 0`
   });
 
 /**

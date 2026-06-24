@@ -7,7 +7,7 @@ import { useShallow } from "zustand/react/shallow";
 import DownloadingIcon from "@mui/icons-material/Downloading";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
 import { wrapStyles } from "./dashboardChrome";
-import { MOTION } from "../ui_primitives";
+import { MOTION, SPACING, getSpacingPx } from "../ui_primitives";
 
 const ACTIVE_STATUSES = new Set(["pending", "running", "start", "progress"]);
 
@@ -19,8 +19,8 @@ const styles = (theme: Theme) =>
     ".downloads-inner": {
       display: "flex",
       alignItems: "center",
-      gap: 10,
-      padding: "8px 0",
+      gap: getSpacingPx(SPACING.lg), // was 10px
+      padding: `${getSpacingPx(SPACING.md)} 0`,
       fontSize: 13,
       color: theme.vars.palette.text.secondary,
       "& svg": {

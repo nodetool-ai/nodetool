@@ -4,7 +4,7 @@ import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, useState, useCallback, useMemo } from "react";
-import { TextInput, EditorButton, LoadingSpinner, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { TextInput, EditorButton, LoadingSpinner, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import useSecretsStore from "../../stores/SecretsStore";
 import type { WelcomeTrackId } from "./welcomeTracks";
 
@@ -62,7 +62,7 @@ const styles = (theme: Theme) =>
       fontWeight: 600,
       textTransform: "uppercase" as const,
       letterSpacing: "0.05em",
-      padding: "1px 6px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`, // was 1px 6px
       borderRadius: BORDER_RADIUS.pill,
       background: `color-mix(in srgb, ${theme.palette.primary.main} 18%, transparent)`,
       color: theme.palette.primary.main,
@@ -98,10 +98,10 @@ const styles = (theme: Theme) =>
     },
     ".portal-setup-back": {
       display: "block",
-      margin: "16px auto 0",
+      margin: `${getSpacingPx(SPACING.xl)} auto 0`,
       background: "none",
       border: "none",
-      padding: "6px 10px",
+      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`, // was 6px 10px
       borderRadius: BORDER_RADIUS.md,
       fontSize: 12,
       color: theme.vars.palette.c_gray5,

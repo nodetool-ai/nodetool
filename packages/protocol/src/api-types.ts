@@ -1025,6 +1025,15 @@ export interface ASRModel {
   path?: string | null;
 }
 
+export interface MusicModel {
+  type: string;
+  id: string;
+  name: string;
+  provider: Provider;
+  path?: string | null;
+  supported_tasks?: string[];
+}
+
 export interface VideoModel {
   type: string;
   id: string;

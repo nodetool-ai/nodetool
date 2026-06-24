@@ -47,6 +47,7 @@ import {
   MessageVideoContent,
   Model3DRef,
   ModelPack,
+  MusicModel,
   Node,
   NodeMetadata as BaseNodeMetadataFromProtocol,
   NodeProgress,
@@ -217,6 +218,7 @@ export type { ToolCall };
 export type { ToolCallUpdate };
 export type { ToolResultUpdate };
 export type { TTSModel };
+export type { MusicModel };
 export type { VideoModel };
 export type { VideoRef };
 export type { Workflow };
@@ -406,6 +408,13 @@ export interface TTSModelValue {
   name: string;
   voices: string[];
   selected_voice: string;
+}
+
+export interface MusicModelValue {
+  type: "music_model";
+  id: string;
+  provider: Provider;
+  name: string;
 }
 
 export interface HuggingFaceModelValue {

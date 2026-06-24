@@ -17,7 +17,13 @@ import {
   ResizeParams
 } from "@xyflow/react";
 import isEqual from "fast-deep-equal";
-import { Container, BORDER_RADIUS, MOTION } from "../ui_primitives";
+import {
+  Container,
+  BORDER_RADIUS,
+  MOTION,
+  SPACING,
+  getSpacingPx
+} from "../ui_primitives";
 import FalPricingFooter from "./FalPricingFooter";
 import KieCreditsFooter from "./KieCreditsFooter";
 import { NodeData } from "../../stores/NodeData";
@@ -204,7 +210,7 @@ const getAmbientBadgeStyle = (theme: Theme): React.CSSProperties => ({
   minWidth: 16,
   height: 16,
   boxSizing: "border-box",
-  padding: "0 4px",
+  padding: `0 ${getSpacingPx(SPACING.xs)}`,
   display: "grid",
   placeItems: "center",
   borderRadius: BORDER_RADIUS.lg,
@@ -414,7 +420,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
       transform: "translateX(-50%)",
       backgroundColor: theme.vars.palette.warning.main,
       color: theme.vars.palette.warning.contrastText,
-      padding: "2px 8px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.sm,
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
@@ -667,7 +673,7 @@ const BaseNode: React.FC<NodeProps<Node<NodeData>>> = (props) => {
         ".tool-call-container": {
           margin: "0.5em 1em",
           padding: "0.5em",
-          background: "rgba(33, 150, 243, 0.1)",
+          background: `rgba(${theme.vars.palette.info.mainChannel} / 0.1)`,
           borderRadius: BORDER_RADIUS.sm,
           border: `1px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.2)`,
           fontSize: "0.75em",

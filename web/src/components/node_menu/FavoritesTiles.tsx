@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
 import type { CSSProperties, DragEvent as ReactDragEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
-import { EmptyState, Tooltip, Text, ToolbarIconButton, thinScrollbarStyles, Box, MOTION, BORDER_RADIUS, FONT_WEIGHT } from "../ui_primitives";
+import { EmptyState, Tooltip, Text, ToolbarIconButton, thinScrollbarStyles, Box, MOTION, BORDER_RADIUS, FONT_WEIGHT, SPACING, getSpacingPx } from "../ui_primitives";
 import CloseIcon from "@mui/icons-material/Close";
 import ClearIcon from "@mui/icons-material/Clear";
 import { TOOLTIP_ENTER_DELAY, NOTIFICATION_TIMEOUT_MEDIUM, NOTIFICATION_TIMEOUT_SHORT } from "../../config/constants";
@@ -20,7 +20,7 @@ import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
 const tooltipHintStyle: CSSProperties = {
   fontSize: "var(--fontSizeSmaller)",
   opacity: 0.75,
-  marginTop: "4px"
+  marginTop: getSpacingPx(SPACING.xs)
 };
 
 const tileStyles = (theme: Theme) =>
@@ -37,16 +37,16 @@ const tileStyles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
-      padding: "0 4px"
+      padding: `0 ${getSpacingPx(SPACING.xs)}`
     },
     ".tiles-container": {
       display: "grid",
       gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
       gridAutoRows: "1fr",
-      gap: "8px",
+      gap: getSpacingPx(SPACING.md),
       alignContent: "start",
       overflowY: "auto",
-      padding: "2px",
+      padding: getSpacingPx(SPACING.micro),
       ...thinScrollbarStyles(theme),
     },
     ".favorite-tile": {
@@ -54,7 +54,7 @@ const tileStyles = (theme: Theme) =>
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      padding: "12px 8px",
+      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.md,
       cursor: "pointer",
       position: "relative",
@@ -98,7 +98,7 @@ const tileStyles = (theme: Theme) =>
       WebkitBoxOrient: "vertical"
     },
     ".clear-button": {
-      padding: "4px",
+      padding: getSpacingPx(SPACING.xs),
       minWidth: 0,
       color: theme.vars.palette.text.secondary,
       "&:hover": {
@@ -110,7 +110,7 @@ const tileStyles = (theme: Theme) =>
       position: "absolute",
       top: "4px",
       right: "4px",
-      padding: "2px",
+      padding: getSpacingPx(SPACING.micro),
       minWidth: 0,
       opacity: 0,
       transition: `opacity ${MOTION.normal}`,

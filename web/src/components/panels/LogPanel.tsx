@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { useMemo, useState, useCallback, memo } from "react";
-import { ToggleGroup, ToggleOption, ToolbarIconButton, Box } from "../ui_primitives";
+import { ToggleGroup, ToggleOption, ToolbarIconButton, Box, SPACING, getSpacingPx } from "../ui_primitives";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import { useTheme } from "@mui/material/styles";
@@ -30,7 +30,7 @@ const containerStyles = (theme: Theme) =>
       flexDirection: "column",
       flex: 1,
       minHeight: 0,
-      padding: "8px 12px 12px"
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.lg)}`
     }
   });
 

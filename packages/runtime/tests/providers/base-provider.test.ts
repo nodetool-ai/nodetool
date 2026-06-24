@@ -304,6 +304,19 @@ describe("BaseProvider – getCapabilities", () => {
     expect(caps).toContain("image_to_image");
   });
 
+  it("advertises text_to_music when getAvailableMusicModels is overridden", () => {
+    class MusicProvider extends TestProvider {
+      override async getAvailableMusicModels() {
+        return [];
+      }
+    }
+    const caps = new MusicProvider().getCapabilities();
+    expect(caps).toContain("text_to_music");
+    // Music override must not imply TTS / video.
+    expect(caps).not.toContain("text_to_speech");
+    expect(caps).not.toContain("text_to_video");
+  });
+
   it("honors an explicit capability declaration (override seam)", () => {
     class ExplicitProvider extends TestProvider {
       protected override declaredCapabilities() {

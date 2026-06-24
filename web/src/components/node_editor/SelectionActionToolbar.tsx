@@ -7,7 +7,9 @@ import {
   FlexRow,
   Popover,
   ToolbarIconButton,
-  Z_INDEX
+  Z_INDEX,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 import {
   AlignHorizontalCenter,
@@ -51,6 +53,10 @@ const actionButtonSx = {
     opacity: 0.4
   }
 } as const;
+
+const DIVIDER_SX = { mx: 0.5, my: 0.5 } as const;
+const CAPTION_SX = { textTransform: "uppercase", letterSpacing: "0.08em" } as const;
+const ARRANGE_BUTTON_SX = { ...actionButtonSx, width: "auto", px: 0.5 } as const;
 
 // getShortcutTooltip returns the raw slug when no shortcut is registered for it
 // (e.g. runSelected, distributeVertical). Fall back to the human-readable label
@@ -257,7 +263,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
           left: "50%",
           transform: "translateX(-50%)",
           zIndex: Z_INDEX.dropdown,
-          padding: "6px 8px",
+          padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`,
           backgroundColor: "var(--palette-grey-800)",
           borderRadius: BORDER_RADIUS.md,
           boxShadow: 1
@@ -281,16 +287,16 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
           tooltipPlacement="top"
           aria-haspopup="true"
           aria-expanded={arrangeOpen}
-          sx={{ ...actionButtonSx, width: "auto", px: 0.5 }}
+          sx={ARRANGE_BUTTON_SX}
         />
 
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5 }} />
+        <Divider orientation="vertical" flexItem sx={DIVIDER_SX} />
 
         {primaryActions.map((button) => (
           <ActionButton key={button.slug} button={button} />
         ))}
 
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.5, my: 0.5 }} />
+        <Divider orientation="vertical" flexItem sx={DIVIDER_SX} />
 
         <ActionButton button={deleteAction} />
 
@@ -305,7 +311,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
             <Caption
               size="smaller"
               color="muted"
-              sx={{ textTransform: "uppercase", letterSpacing: "0.08em" }}
+              sx={CAPTION_SX}
             >
               Align
             </Caption>
@@ -320,7 +326,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
               <Divider
                 orientation="vertical"
                 flexItem
-                sx={{ mx: 0.5, my: 0.5 }}
+                sx={DIVIDER_SX}
               />
               {verticalAlign.map((button) => (
                 <ActionButton
@@ -334,7 +340,7 @@ const SelectionActionToolbar: React.FC<SelectionActionToolbarProps> = memo(
             <Caption
               size="smaller"
               color="muted"
-              sx={{ textTransform: "uppercase", letterSpacing: "0.08em" }}
+              sx={CAPTION_SX}
             >
               Distribute
             </Caption>

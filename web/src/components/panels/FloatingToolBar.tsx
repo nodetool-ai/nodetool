@@ -4,12 +4,14 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useMediaQuery } from "@mui/material";
+import Draggable, { type DraggableData } from "react-draggable";
 import { EditorMenu } from "../ui_primitives";
-import { Tooltip, Box, AlertBanner, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, AlertBanner, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PlayArrow from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
+import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import PlayCircleIcon from "@mui/icons-material/PlayCircle";
 import BoltIcon from "@mui/icons-material/Bolt";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
@@ -39,6 +41,11 @@ import { useFloatingToolbarPosition } from "../../hooks/useFloatingToolbarPositi
 import { useRunningTime } from "../../hooks/useRunningTime";
 import { formatRunningTime } from "../../utils/timeFormat";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
+import useCanvasChatDockStore, {
+  MAX_DOCK_WIDTH,
+  MIN_DOCK_WIDTH,
+  type DockPosition
+} from "../../stores/CanvasChatDockStore";
 import CanvasMediaComposer from "./CanvasMediaComposer";
 import ConversationOverlay from "./ConversationOverlay";
 
@@ -68,20 +75,51 @@ const RunningTime: React.FC<{ isRunning: boolean; timerKey?: string }> = memo(
   }
 );
 
-// The toolbar is now just the media composer, centered at the bottom. The
-// workflow controls live inside the composer footer (Run button + a ⋮ menu).
-const containerStyles = (theme: Theme) =>
+// The chat dock is the media composer (+ optional conversation overlay above
+// it), floating over the canvas. The workflow controls live inside the
+// composer footer (Run button + a ⋮ menu). The dock is draggable and the
+// overlay resizable; this layer just centres it at the bottom by default and
+// lets clicks fall through to the canvas everywhere the dock isn't.
+const dockLayerStyles = (theme: Theme) =>
   css({
     position: "fixed",
+    left: 0,
+    right: 0,
     bottom: "20px",
-    left: "50%",
-    transform: "translateX(-50%)",
     zIndex: theme.zIndex.drawer,
-    width: "min(820px, calc(100vw - 32px))",
+    display: "flex",
+    justifyContent: "center",
+    pointerEvents: "none"
+  });
+
+const dockStyles = (theme: Theme) =>
+  css({
     display: "flex",
     flexDirection: "column",
     alignItems: "stretch",
-    gap: `${theme.spacing(1)}`
+    gap: `${theme.spacing(1)}`,
+    pointerEvents: "auto",
+
+    // Grab affordance the user drags to move the whole dock. Rendered as a
+    // span (not a button) so react-draggable's `cancel="button"` doesn't
+    // exclude it while still excluding the real action buttons around it.
+    ".composer-drag-handle": {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "28px",
+      height: "28px",
+      borderRadius: BORDER_RADIUS.pill,
+      color: theme.vars.palette.grey[500],
+      cursor: "grab",
+      transition: `${MOTION.background}, color ${MOTION.fast}`,
+      "& svg": { fontSize: "var(--fontSizeBig)" },
+      "&:hover": {
+        backgroundColor: theme.vars.palette.grey[800],
+        color: theme.vars.palette.grey[200]
+      },
+      "&:active": { cursor: "grabbing" }
+    }
   });
 
 // Workflow controls embedded in the composer footer: an always-visible Run
@@ -91,9 +129,9 @@ const actionStyles = (theme: Theme) =>
   css({
     display: "inline-flex",
     alignItems: "center",
-    gap: "4px",
-    marginLeft: "6px",
-    paddingLeft: "8px",
+    gap: getSpacingPx(SPACING.xs),
+    marginLeft: getSpacingPx(SPACING.sm),
+    paddingLeft: getSpacingPx(SPACING.md),
     borderLeft: `1px solid ${theme.vars.palette.divider}`,
 
     "& button": {
@@ -110,11 +148,11 @@ const actionStyles = (theme: Theme) =>
       position: "relative",
       minWidth: "36px",
       height: "36px",
-      padding: "0 10px",
-      gap: "4px",
+      padding: `0 ${getSpacingPx(SPACING.lg)}`, // was 0 10px
+      gap: getSpacingPx(SPACING.xs),
       backgroundColor: theme.vars.palette.primary.main,
       color: theme.vars.palette.primary.contrastText,
-      "& svg": { fontSize: "20px" },
+      "& svg": { fontSize: "var(--fontSizeBig)" },
       "&:hover": { backgroundColor: theme.vars.palette.primary.light },
       "&.running": {
         backgroundColor: theme.vars.palette.grey[800],
@@ -126,7 +164,7 @@ const actionStyles = (theme: Theme) =>
         right: "-3px",
         minWidth: "16px",
         height: "16px",
-        padding: "0 4px",
+        padding: `0 ${getSpacingPx(SPACING.xs)}`,
         boxSizing: "border-box",
         borderRadius: BORDER_RADIUS.pill,
         backgroundColor: theme.vars.palette.primary.main,
@@ -146,7 +184,7 @@ const actionStyles = (theme: Theme) =>
       height: "32px",
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[400],
-      "& svg": { fontSize: "18px" },
+      "& svg": { fontSize: "var(--fontSizeBig)" },
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[800],
         color: theme.vars.palette.warning.main
@@ -158,7 +196,7 @@ const actionStyles = (theme: Theme) =>
       height: "32px",
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[400],
-      "& svg": { fontSize: "20px" },
+      "& svg": { fontSize: "var(--fontSizeBig)" },
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[800],
         color: theme.vars.palette.grey[100]
@@ -175,7 +213,7 @@ const actionStyles = (theme: Theme) =>
       height: "32px",
       backgroundColor: "transparent",
       color: theme.vars.palette.grey[400],
-      "& svg": { fontSize: "19px" },
+      "& svg": { fontSize: "var(--fontSizeBig)" },
       "&:hover": {
         backgroundColor: theme.vars.palette.grey[800],
         color: theme.vars.palette.grey[100]
@@ -190,7 +228,7 @@ const actionStyles = (theme: Theme) =>
         right: "-2px",
         minWidth: "15px",
         height: "15px",
-        padding: "0 3px",
+        padding: `0 ${getSpacingPx(SPACING.xs)}`, // was 0 3px
         boxSizing: "border-box",
         borderRadius: BORDER_RADIUS.pill,
         backgroundColor: theme.vars.palette.grey[600],
@@ -282,16 +320,109 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     );
   // Start collapsed so opening a workflow with existing conversation history
   // doesn't pop the overlay. It auto-reveals only when chat becomes busy in
-  // this session (the user sent a message / a generation is streaming).
-  const [conversationCollapsed, setConversationCollapsed] = useState(true);
+  // this session (the user sent a message / a generation is streaming). The
+  // collapse flag lives in the dock store so the keyboard shortcut ("o") and
+  // command menu can toggle it too.
+  const {
+    conversationCollapsed,
+    setConversationCollapsed,
+    dockWidth,
+    storePosition,
+    setStorePosition,
+    resetPosition
+  } = useCanvasChatDockStore(
+    useShallow((state) => ({
+      conversationCollapsed: state.conversationCollapsed,
+      setConversationCollapsed: state.setConversationCollapsed,
+      dockWidth: state.dockWidth,
+      storePosition: state.position,
+      setStorePosition: state.setPosition,
+      resetPosition: state.resetPosition
+    }))
+  );
   useEffect(() => {
     if (chatBusy) {
       setConversationCollapsed(false);
     }
-  }, [chatBusy]);
+  }, [chatBusy, setConversationCollapsed]);
 
-  const hasConversation = conversationCount > 0 || chatBusy;
-  const conversationOpen = hasConversation && !conversationCollapsed;
+  // The composer is the canvas chat entry point now that the left chat panel
+  // is gone, so the conversation toggle is always available — opening the
+  // overlay reaches the thread (even empty), the thread list, and full chat.
+  const conversationOpen = !conversationCollapsed;
+
+  // Draggable dock position. Kept in local state during the gesture for smooth
+  // movement, persisted to the store (clamped on-screen) when the drag ends.
+  const dockRef = useRef<HTMLDivElement>(null);
+  const [dragPos, setDragPos] = useState<DockPosition>(storePosition);
+  useEffect(() => {
+    setDragPos(storePosition);
+  }, [storePosition]);
+
+  const clampToViewport = useCallback((pos: DockPosition): DockPosition => {
+    const node = dockRef.current;
+    if (!node || typeof window === "undefined") {
+      return pos;
+    }
+    const rect = node.getBoundingClientRect();
+    const margin = 8;
+    let { x, y } = pos;
+    if (rect.left < margin) x += margin - rect.left;
+    if (rect.right > window.innerWidth - margin)
+      x -= rect.right - (window.innerWidth - margin);
+    if (rect.top < margin) y += margin - rect.top;
+    if (rect.bottom > window.innerHeight - margin)
+      y -= rect.bottom - (window.innerHeight - margin);
+    return { x, y };
+  }, []);
+
+  const handleDragStop = useCallback(
+    (_e: unknown, data: DraggableData) => {
+      const next = clampToViewport({ x: data.x, y: data.y });
+      setDragPos(next);
+      setStorePosition(next);
+    },
+    [clampToViewport, setStorePosition]
+  );
+
+  // Keep the dock on-screen when the viewport shrinks (e.g. window resize).
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const onResize = () => {
+      const clamped = clampToViewport(
+        useCanvasChatDockStore.getState().position
+      );
+      setDragPos(clamped);
+      setStorePosition(clamped);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [clampToViewport, setStorePosition]);
+
+  const dockWidthCss =
+    dockWidth != null
+      ? `clamp(${MIN_DOCK_WIDTH}px, ${dockWidth}px, min(${MAX_DOCK_WIDTH}px, calc(100vw - 32px)))`
+      : "min(820px, calc(100vw - 32px))";
+
+  const dragHandle = (
+    <Tooltip
+      title="Drag to move • double-click to reset"
+      placement="top"
+      delay={TOOLTIP_ENTER_DELAY}
+    >
+      <span
+        role="button"
+        tabIndex={-1}
+        aria-label="Move chat dock"
+        className="dock-drag-handle composer-drag-handle"
+        onDoubleClick={resetPosition}
+      >
+        <DragIndicatorIcon />
+      </span>
+    </Tooltip>
+  );
 
   // Keyboard shortcuts: Ctrl/Cmd+Enter runs (queues while running), Escape stops.
   useCombo(["control", "enter"], handleRun, true);
@@ -347,28 +478,26 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         </Tooltip>
       )}
 
-      {hasConversation && (
-        <Tooltip
-          title={conversationOpen ? "Hide conversation" : "Show conversation"}
-          placement="top"
-          delay={TOOLTIP_ENTER_DELAY}
+      <Tooltip
+        title={conversationOpen ? "Hide conversation" : "Show conversation"}
+        placement="top"
+        delay={TOOLTIP_ENTER_DELAY}
+      >
+        <button
+          type="button"
+          className={cn("composer-convo", conversationOpen && "active")}
+          onClick={() => setConversationCollapsed(!conversationCollapsed)}
+          aria-label="Toggle conversation"
+          aria-pressed={conversationOpen}
         >
-          <button
-            type="button"
-            className={cn("composer-convo", conversationOpen && "active")}
-            onClick={() => setConversationCollapsed((v) => !v)}
-            aria-label="Toggle conversation"
-            aria-pressed={conversationOpen}
-          >
-            <ForumOutlinedIcon />
-            {conversationCount > 0 && (
-              <span className="convo-badge" aria-hidden>
-                {conversationCount}
-              </span>
-            )}
-          </button>
-        </Tooltip>
-      )}
+          <ForumOutlinedIcon />
+          {conversationCount > 0 && (
+            <span className="convo-badge" aria-hidden>
+              {conversationCount}
+            </span>
+          )}
+        </button>
+      </Tooltip>
 
       {isRunningish && (
         <Tooltip
@@ -456,28 +585,43 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
   return (
     <>
-      <Box
-        css={containerStyles(theme)}
-        className="floating-toolbar"
-        style={toolbarPosition}
-      >
-        {conversationOpen && (
-          <ConversationOverlay
-            onCollapse={() => setConversationCollapsed(true)}
-          />
-        )}
-        {chatError && (
-          <AlertBanner
-            severity="error"
-            compact
-            onClose={clearChatError}
-            sx={{ borderRadius: BORDER_RADIUS.xl }}
+      <div css={dockLayerStyles(theme)} style={toolbarPosition}>
+        <Draggable
+          nodeRef={dockRef as React.RefObject<HTMLElement>}
+          handle=".dock-drag-handle"
+          cancel="button, input, textarea, .dock-no-drag"
+          position={dragPos}
+          onDrag={(_e, data) => setDragPos({ x: data.x, y: data.y })}
+          onStop={handleDragStop}
+        >
+          <div
+            ref={dockRef}
+            css={dockStyles(theme)}
+            className="floating-toolbar canvas-chat-dock"
+            style={{ width: dockWidthCss }}
           >
-            {chatError}
-          </AlertBanner>
-        )}
-        <CanvasMediaComposer trailingActions={workflowActions} />
-      </Box>
+            {conversationOpen && (
+              <ConversationOverlay
+                onCollapse={() => setConversationCollapsed(true)}
+              />
+            )}
+            {chatError && (
+              <AlertBanner
+                severity="error"
+                compact
+                onClose={clearChatError}
+                sx={{ borderRadius: BORDER_RADIUS.xl }}
+              >
+                {chatError}
+              </AlertBanner>
+            )}
+            <CanvasMediaComposer
+              leadingActions={dragHandle}
+              trailingActions={workflowActions}
+            />
+          </div>
+        </Draggable>
+      </div>
 
       <EditorMenu
         anchorEl={actionsMenuAnchor}

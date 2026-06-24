@@ -22,6 +22,12 @@ export const FAKE_NODE = {
 };
 
 export interface FakeWorkerOptions {
+  /**
+   * When true, the first WebSocket upgrade is held until releaseUpgrade() is
+   * called on the handle. Used to reproduce in-flight handshake races where
+   * a late-resolving connect() could clobber a subsequent setTarget().
+   */
+  gateUpgrade?: boolean;
   /** When false, discover requests are silently ignored (no reply). */
   answerDiscover?: boolean;
   /** When false, worker.status requests are silently ignored (no reply). */
@@ -75,6 +81,11 @@ export interface FakeWorkerHandle {
   setOptions: (opts: FakeWorkerOptions) => void;
   /** The raw frames received for a given message type (for assertion). */
   received: (type: string) => Array<Record<string, unknown>>;
+  /**
+   * Release the pending WebSocket upgrade held by gateUpgrade: true.
+   * No-op when gateUpgrade was false or after the upgrade was already released.
+   */
+  releaseUpgrade: () => void;
 }
 
 /**
@@ -85,7 +96,22 @@ export function startFakeWorker(
   port = 0,
   initialOptions: FakeWorkerOptions = {}
 ): Promise<FakeWorkerHandle> {
-  const wss = new WebSocketServer({ port });
+  // When gateUpgrade: true, the first WS upgrade is held until releaseUpgrade()
+  // is called. Captured via verifyClient's async callback form.
+  let pendingRelease: (() => void) | null = null;
+  const verifyClient = initialOptions.gateUpgrade
+    ? (
+        _info: Record<string, unknown>,
+        cb: (res: boolean) => void
+      ) => {
+        pendingRelease = () => {
+          pendingRelease = null;
+          cb(true);
+        };
+      }
+    : undefined;
+
+  const wss = new WebSocketServer({ port, verifyClient });
   const sockets = new Set<WsServerSocket>();
   const authHeaders: Array<string | undefined> = [];
   const receivedByType = new Map<string, Array<Record<string, unknown>>>();
@@ -338,7 +364,10 @@ export function startFakeWorker(
         setOptions: (next: FakeWorkerOptions) => {
           Object.assign(opts, next);
         },
-        received: (t: string) => receivedByType.get(t) ?? []
+        received: (t: string) => receivedByType.get(t) ?? [],
+        releaseUpgrade: () => {
+          pendingRelease?.();
+        }
       });
     });
   });

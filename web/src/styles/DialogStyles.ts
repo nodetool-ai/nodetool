@@ -1,6 +1,6 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { MOTION } from "../components/ui_primitives";
+import { MOTION, SPACING, getSpacingPx } from "../components/ui_primitives";
 
 const dialogStyles = (theme: Theme) =>
   css({
@@ -37,13 +37,13 @@ const dialogStyles = (theme: Theme) =>
       padding: ".5em 1em"
     },
     ".input-field": {
-      padding: "8px 8px",
-      marginBottom: "16px",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.md)}`,
+      marginBottom: getSpacingPx(SPACING.xl),
       width: "100%"
     },
     ".input-field input": {
       fontFamily: theme.fontFamily1,
-      padding: "8px 12px",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,
       transition: MOTION.border
     },
     ".input-field:hover fieldset": {

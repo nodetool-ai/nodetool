@@ -15,6 +15,7 @@ export const GROUP_NODE_TYPE = "nodetool.workflows.base_node.Group";
 export const COMMENT_NODE_TYPE = "nodetool.workflows.base_node.Comment";
 export const PREVIEW_NODE_TYPE = "nodetool.workflows.base_node.Preview";
 export const REROUTE_NODE_TYPE = "nodetool.control.Reroute";
+export const COLLECTION_NODE_TYPE = "nodetool.control.Collection";
 export const WORKFLOW_NODE_TYPE = "nodetool.workflows.workflow_node.Workflow";
 export const SUBGRAPH_NODE_TYPE = "nodetool.workflows.subgraph.Subgraph";
 

@@ -111,7 +111,7 @@ const styles = (theme: Theme) =>
       inset: 0,
       pointerEvents: "none",
       ".darken": {
-        fill: "rgba(0,0,0,0.55)",
+        fill: theme.vars.palette.c_scrim,
         fillRule: "evenodd",
         pointerEvents: "none"
       },
@@ -123,7 +123,7 @@ const styles = (theme: Theme) =>
         cursor: "move"
       },
       ".grid-line": {
-        stroke: "rgba(255,255,255,0.35)",
+        stroke: theme.vars.palette.c_overlay_strong,
         strokeWidth: 0.5,
         pointerEvents: "none"
       },
@@ -139,7 +139,7 @@ const styles = (theme: Theme) =>
       top: theme.spacing(0.5),
       left: theme.spacing(0.5),
       padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
-      background: "rgba(0,0,0,0.6)",
+      background: theme.vars.palette.c_scrim,
       color: theme.vars.palette.common.white,
       fontFamily: theme.fontFamily2,
       fontSize: theme.fontSizeSmaller,

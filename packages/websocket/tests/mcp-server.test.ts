@@ -3,7 +3,13 @@ import os from "node:os";
 import path from "node:path";
 import { describe, it, expect, beforeEach } from "vitest";
 import { initTestDb, Workflow, Job, Asset } from "@nodetool-ai/models";
-import { createMcpServer, createMcpStdioTransport } from "../src/mcp-server.js";
+import {
+  createMcpServer,
+  createMcpStdioTransport,
+  registerMcpFrontendTransport,
+  unregisterMcpFrontendTransport
+} from "../src/mcp-server.js";
+import type { AgentTransport } from "../src/agent/transport.js";
 
 function makeMetadataRoot(): string {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "mcp-test-"));
@@ -303,5 +309,94 @@ describe("MCP Server", () => {
     };
     expect(jobs.jobs).toHaveLength(1);
     expect(jobs.jobs[0]?.workflow_id).toBe(workflow.id);
+  });
+});
+
+describe("MCP frontend renderer routing", () => {
+  function makeFakeTransport(
+    id: string,
+    executeTool: AgentTransport["executeTool"] = async () => ({ ok: true })
+  ): AgentTransport {
+    return {
+      id,
+      isAlive: true,
+      streamMessage: () => {},
+      requestToolManifest: async () => [],
+      executeTool,
+      abortTools: () => {}
+    };
+  }
+
+  it("errors when no renderer is connected for a ui_ tool", async () => {
+    const server = createMcpServer();
+    const response = await callTool(server, "ui_get_graph", {});
+    expect(response.isError).toBe(true);
+    expect(response.content[0].text).toContain(
+      "No active NodeTool renderer is connected"
+    );
+  });
+
+  it("routes ui_ tools to the connected renderer and strips renderer_id", async () => {
+    let received: { name?: string; args?: unknown } = {};
+    const transport = makeFakeTransport("r-1", async (_s, _c, name, args) => {
+      received = { name, args };
+      return { ok: true };
+    });
+    registerMcpFrontendTransport(transport);
+    try {
+      const server = createMcpServer();
+      const response = await callTool(server, "ui_add_node", {
+        id: "n1",
+        type: "test.TestNode",
+        position: { x: 0, y: 0 },
+        renderer_id: "r-1"
+      });
+      expect(response.isError).not.toBe(true);
+      expect(received.name).toBe("ui_add_node");
+      expect(received.args).not.toHaveProperty("renderer_id");
+      expect(received.args).toMatchObject({ id: "n1" });
+    } finally {
+      unregisterMcpFrontendTransport(transport);
+    }
+  });
+
+  it("errors when a named renderer_id is not connected", async () => {
+    const transport = makeFakeTransport("r-1");
+    registerMcpFrontendTransport(transport);
+    try {
+      const server = createMcpServer();
+      const response = await callTool(server, "ui_get_graph", {
+        renderer_id: "missing"
+      });
+      expect(response.isError).toBe(true);
+      const body = JSON.parse(response.content[0].text) as { error: string };
+      expect(body.error).toContain('renderer with id "missing"');
+    } finally {
+      unregisterMcpFrontendTransport(transport);
+    }
+  });
+
+  it("list_renderers reports connected renderers", async () => {
+    const a = makeFakeTransport("r-a");
+    const b = makeFakeTransport("r-b");
+    registerMcpFrontendTransport(a);
+    registerMcpFrontendTransport(b);
+    try {
+      const server = createMcpServer();
+      const response = await callTool(server, "list_renderers", {});
+      const body = JSON.parse(response.content[0].text) as {
+        renderers: Array<{ renderer_id: string; active: boolean }>;
+      };
+      const ids = body.renderers.map((r) => r.renderer_id);
+      expect(ids).toContain("r-a");
+      expect(ids).toContain("r-b");
+      // Most-recently-registered renderer is the active default.
+      expect(body.renderers.find((r) => r.renderer_id === "r-b")?.active).toBe(
+        true
+      );
+    } finally {
+      unregisterMcpFrontendTransport(a);
+      unregisterMcpFrontendTransport(b);
+    }
   });
 });

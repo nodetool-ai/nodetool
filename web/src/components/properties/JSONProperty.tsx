@@ -6,7 +6,7 @@ import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
 import isEqual from "fast-deep-equal";
 import { useTheme } from "@mui/material/styles";
-import { CopyButton, LoadingSpinner, ToolbarIconButton, SPACING, BORDER_RADIUS } from "../ui_primitives";
+import { CopyButton, LoadingSpinner, ToolbarIconButton, SPACING, BORDER_RADIUS, getSpacingPx } from "../ui_primitives";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import TextEditorModal from "./TextEditorModal";
 import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
@@ -147,7 +147,7 @@ const JSONProperty = (props: PropertyProps) => {
         ".property-row": {
           display: "flex",
           flexDirection: "column",
-          gap: "4px"
+          gap: getSpacingPx(SPACING.xs)
         },
         ".value-container": {
           width: "100%",
@@ -186,12 +186,12 @@ const JSONProperty = (props: PropertyProps) => {
           color: "var(--palette-text-secondary)"
         },
         ".editor-placeholder": {
-          padding: "0 8px",
+          padding: `0 ${getSpacingPx(SPACING.md)}`,
           fontFamily: "monospace",
           whiteSpace: "pre-wrap",
           overflow: "hidden",
           alignItems: "flex-start",
-          paddingTop: "6px",
+          paddingTop: getSpacingPx(SPACING.sm),
           cursor: "text"
         },
         ".error-message": {

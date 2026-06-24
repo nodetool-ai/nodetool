@@ -28,6 +28,8 @@ import type { Asset } from "../../stores/ApiTypes";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { useNodes } from "../../contexts/NodeContext";
 import { useShallow } from "zustand/react/shallow";
+import { serializeDragData } from "../../lib/dragdrop/serialization";
+import { useDragDropStore } from "../../lib/dragdrop/store";
 import {
   CopyButton,
   Dialog,
@@ -36,7 +38,9 @@ import {
   MOTION,
   BORDER_RADIUS,
   TYPOGRAPHY,
-  Z_INDEX
+  Z_INDEX,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 import type { StatusType } from "../ui_primitives";
 import { relativeTime } from "../../utils/formatDateAndTime";
@@ -115,9 +119,9 @@ const styles = (theme: Theme) =>
       display: "inline-flex",
       alignItems: "center",
       gap: 4,
-      padding: "2px 4px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`,
       borderRadius: BORDER_RADIUS.sm,
-      backgroundColor: "rgba(0, 0, 0, 0.55)",
+      backgroundColor: theme.vars.palette.c_scrim,
       color: theme.vars.palette.common.white
     },
     ".overlay-top-left": {
@@ -177,7 +181,7 @@ const styles = (theme: Theme) =>
       display: "flex",
       alignItems: "center",
       gap: 6,
-      padding: "0 2px",
+      padding: `0 ${getSpacingPx(SPACING.micro)}`,
       color: theme.vars.palette.text.secondary,
       ...TYPOGRAPHY.sans.caption
     },
@@ -198,7 +202,7 @@ const styles = (theme: Theme) =>
     ".thumb": {
       position: "relative",
       aspectRatio: "1 / 1",
-      backgroundColor: "rgba(0, 0, 0, 0.2)",
+      backgroundColor: theme.vars.palette.c_scrim_soft,
       borderRadius: BORDER_RADIUS.sm,
       overflow: "hidden",
       cursor: "pointer",
@@ -252,7 +256,7 @@ const styles = (theme: Theme) =>
       left: 2,
       minWidth: 16,
       height: 16,
-      padding: "0 4px",
+      padding: `0 ${getSpacingPx(SPACING.xs)}`,
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
@@ -273,7 +277,7 @@ const styles = (theme: Theme) =>
     },
     ".downstream-caption .caption-pill": {
       display: "inline-block",
-      padding: "2px 6px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
       borderRadius: BORDER_RADIUS.sm,
       backgroundColor: theme.vars.palette.secondary.main,
       color: theme.vars.palette.secondary.contrastText
@@ -703,6 +707,20 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
     // runtime won't deliver. Kept in lockstep with the run paths, which prune the
     // source and inject the synthetic ForEach replay only when wired downstream.
     const inSet = hasDownstream && pick !== undefined;
+    // A completed, persisted generation can be dragged out as its asset — e.g.
+    // onto a Collection node to curate it for further processing.
+    const dragProps = asset
+      ? {
+          draggable: true,
+          onDragStart: (e: React.DragEvent) => {
+            const data = { type: "asset" as const, payload: asset };
+            serializeDragData(data, e.dataTransfer);
+            e.dataTransfer.effectAllowed = "move";
+            useDragDropStore.getState().setActiveDrag(data);
+          },
+          onDragEnd: () => useDragDropStore.getState().clearDrag()
+        }
+      : {};
     return (
       <div
         key={gen.id}
@@ -713,14 +731,15 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
         tabIndex={gen.id === activeGenId ? 0 : -1}
         aria-selected={hasDownstream ? inSet : selected}
         data-gen-id={gen.id}
+        {...dragProps}
       >
         {kind === "image" && imgUrl ? (
-          <img src={imgUrl} alt={alt} />
+          <img src={imgUrl} alt={alt} draggable={false} />
         ) : kind === "image" && previewBitmap ? (
           <BitmapCanvas bitmap={previewBitmap} aria-label={alt} />
         ) : kind === "video" && (videoThumb || videoUrl) ? (
           videoThumb ? (
-            <img src={videoThumb} alt={alt} />
+            <img src={videoThumb} alt={alt} draggable={false} />
           ) : (
             <video
               src={`${videoUrl}#t=0.1`}
@@ -728,6 +747,7 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
               muted
               playsInline
               aria-label={alt}
+              draggable={false}
             />
           )
         ) : (
@@ -870,9 +890,9 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
       {showInfoBadge && infoText ? (
         <div className="node-history-overlay overlay-bottom-left">
           <span style={{
-            padding: "2px 6px",
+            padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
             borderRadius: BORDER_RADIUS.sm,
-            backgroundColor: "rgba(0, 0, 0, 0.55)"
+            backgroundColor: "var(--palette-c_scrim)"
           }}>
             {infoText}
           </span>

@@ -11,7 +11,10 @@ import type { WebSocket } from "@fastify/websocket";
 import { randomUUID } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
 import { getAgentRuntime } from "./agent-runtime.js";
-import { clearMcpFrontendTransport } from "../mcp-server.js";
+import {
+  registerMcpFrontendTransport,
+  unregisterMcpFrontendTransport,
+} from "../mcp-server.js";
 import type { AgentTransport } from "./transport.js";
 import type {
   AgentClientMessage,
@@ -32,6 +35,7 @@ interface PendingRendererRequest<T> {
 }
 
 class AgentSocketTransport implements AgentTransport {
+  readonly id = randomUUID();
   private alive = true;
   private readonly pendingManifest = new Map<
     string,
@@ -182,6 +186,11 @@ const agentSocketRoute: FastifyPluginAsync = async (app) => {
     const transport = new AgentSocketTransport(socket);
     const runtime = getAgentRuntime();
 
+    // Make this renderer addressable over the shared /mcp endpoint as soon as
+    // it connects, so external MCP clients can drive its canvas without first
+    // priming an in-app agent turn.
+    registerMcpFrontendTransport(transport);
+
     log.info(`Agent WebSocket client connected (user ${userId})`);
 
     const sendResponse = (
@@ -331,7 +340,7 @@ const agentSocketRoute: FastifyPluginAsync = async (app) => {
     socket.on("close", () => {
       log.info("Agent WebSocket client disconnected");
       transport.dispose();
-      clearMcpFrontendTransport(transport);
+      unregisterMcpFrontendTransport(transport);
     });
 
     socket.on("error", (error: Error) => {

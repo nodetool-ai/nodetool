@@ -22,7 +22,7 @@ import {
 } from "../../../stores/sketch/SketchSessionStore";
 import { useSketchStore } from "../state/useSketchStore";
 import { useGenerateLayer } from "../../../hooks/sketch/useGenerateLayer";
-import { ToolbarIconButton, FlexRow, Toast, Tooltip, MOTION, BORDER_RADIUS } from "../../ui_primitives";
+import { ToolbarIconButton, FlexRow, Toast, Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
 import { cn } from "../../editor_ui/editorUtils";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 
@@ -89,7 +89,7 @@ const runButtonStyles = (theme: Theme) =>
         position: "absolute",
         inset: "-3px",
         borderRadius: "inherit",
-        padding: "3px",
+        padding: getSpacingPx(SPACING.xs), // was 3px
         background: `conic-gradient(from 0deg, transparent 40%, ${theme.vars.palette.primary.main} 95%, ${theme.vars.palette.primary.main})`,
         WebkitMask:
           "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",

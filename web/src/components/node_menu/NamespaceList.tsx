@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo } from "react";
-import { Text, EditorButton, BORDER_RADIUS, Box, ListGroup, MOTION } from "../ui_primitives";
+import { Text, EditorButton, BORDER_RADIUS, Box, ListGroup, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import NamespacePanel from "./NamespacePanel";
 import RenderNodes from "./RenderNodes";
@@ -30,7 +30,7 @@ const namespaceStyles = (theme: Theme) =>
       height: "60vh",
       display: "flex",
       flexDirection: "column",
-      marginTop: "20px",
+      marginTop: getSpacingPx(SPACING.xxl), // was 20px
       overflow: "auto"
     },
     "& h4": {
@@ -203,14 +203,14 @@ const namespaceStyles = (theme: Theme) =>
     ".node": {
       display: "flex",
       alignItems: "center",
-      margin: "2px 0",
+      margin: `${getSpacingPx(SPACING.micro)} 0`,
       padding: "0",
       borderRadius: BORDER_RADIUS.lg,
       cursor: "pointer",
       transition: MOTION.all,
       border: "1px solid transparent",
       ".node-button": {
-        padding: "2px 4px",
+        padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.xs)}`,
         flexGrow: 1,
         borderRadius: BORDER_RADIUS.md,
         minHeight: "24px",
@@ -368,7 +368,7 @@ const NoSelectionContent = memo(function NoSelectionContent({
             marginBottom: "0.5em",
             textTransform: "none",
             lineHeight: "1.5",
-            padding: "16px"
+            padding: getSpacingPx(SPACING.xl)
           }}
         >
           Install additional node packs

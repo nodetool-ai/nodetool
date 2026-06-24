@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useCallback, useEffect, useMemo, useRef, memo } from "react";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
-import { EditorButton } from "../ui_primitives";
+import { EditorButton, SPACING, getSpacingPx } from "../ui_primitives";
 
 interface ChunkDisplayProps {
   chunk: string;
@@ -44,7 +44,7 @@ const ChunkDisplay: React.FC<ChunkDisplayProps> = memo(({ chunk }) => {
       overflowY: "scroll" as const,
       maxHeight: "200px",
       flexGrow: 1,
-      marginRight: "8px",
+      marginRight: getSpacingPx(SPACING.md),
     }),
     []
   );
@@ -53,7 +53,7 @@ const ChunkDisplay: React.FC<ChunkDisplayProps> = memo(({ chunk }) => {
     () => ({
       display: "flex",
       flexDirection: "column" as const,
-      gap: "4px",
+      gap: getSpacingPx(SPACING.xs),
     }),
     []
   );

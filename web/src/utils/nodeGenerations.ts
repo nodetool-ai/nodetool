@@ -186,16 +186,6 @@ export const getCurrentGeneration = (
   return generations[generations.length - 1];
 };
 
-/** Resolve the current generation's value for an edge's source handle. */
-export const getCurrentOutput = (
-  generations: Generation[],
-  selectedId: string | undefined,
-  handle?: string
-): unknown => {
-  const current = getCurrentGeneration(generations, selectedId);
-  return current ? outputOf(current, handle) : undefined;
-};
-
 /**
  * A group of generations that belong to one workflow run. A regular generator
  * driven by a stream/list is executed once per item; every execution emits a
@@ -276,30 +266,11 @@ export const getCurrentRun = (
 };
 
 /**
- * Flatten a run to its display values: one value per variant via outputOf,
- * with a single array-valued variant (the live num_images=N shape, one
- * completed update whose outputs resolve to an array) spread so it counts as N
- * values. Mirrors resolvePreviewValue's flatten in ContentCardBody so the
- * streaming case (N variants, scalar each) and the single-array case render
- * identically as N tiles. `null`/`undefined` values are dropped.
- */
-export const runVariantValues = (
-  run: RunGroup,
-  handle?: string
-): unknown[] =>
-  run.variants
-    .flatMap((v) => {
-      const value = outputOf(v, handle);
-      return Array.isArray(value) ? value : [value];
-    })
-    .filter((value) => value !== undefined && value !== null);
-
-/**
  * The generations matching `selectedIds`, in the STORED pick order (not timeline
  * order). Ids absent from `generations` are dropped; all statuses are kept (the
  * UI badges running members too). Returns [] when nothing is selected.
  */
-export const getSelectedGenerations = (
+const getSelectedGenerations = (
   generations: Generation[],
   selectedIds: string[] | undefined
 ): Generation[] => {
@@ -318,7 +289,7 @@ export const getSelectedGenerations = (
  * selected (pick-ordered) generations, filtered to completed, mapped through
  * outputOf(g, handle) with array-valued results (the live num_images=N shape)
  * spread one level, and null/undefined dropped. Returns [] when nothing
- * qualifies. Mirrors runVariantValues' flatten so a streamed multi-variant set
+ * qualifies. Mirrors the run-variant flatten so a streamed multi-variant set
  * and a single array-valued generation resolve to the same flat list.
  */
 export const selectedOutputValues = (

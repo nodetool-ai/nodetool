@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo, useMemo, useState } from "react";
-import { MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { BASE_URL } from "../../stores/BASE_URL";
 import { WorkflowMiniPreview } from "../version/WorkflowMiniPreview";
@@ -49,10 +49,10 @@ const styles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.secondary,
       padding: `${theme.spacing(0.25)} ${theme.spacing(0.875)}`,
-      background: "rgba(8,9,10,0.7)",
+      background: theme.vars.palette.c_scrim,
       borderRadius: `${theme.spacing(0.5)}`
     },
-    ".rmeta": { padding: "0 2px" },
+    ".rmeta": { padding: `0 ${getSpacingPx(SPACING.micro)}` },
     ".rname": {
       fontSize: "var(--fontSizeNormal)",
       color: theme.vars.palette.text.primary,

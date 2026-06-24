@@ -34,7 +34,9 @@ import {
   Text,
   Tooltip,
   Box,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  SPACING,
+  getSpacingPx
 } from "../ui_primitives";
 import type { LayerStatus } from "@nodetool-ai/image-editor";
 import { LAYER_STATUS_MAP } from "./Inspector/layerStatusMapping";
@@ -47,7 +49,7 @@ const DEPTH_INDENT = 20;
 
 /** Group rows: override MUI IconButton default min touch target so rows stay compact. */
 const GROUP_LAYER_ICON_BUTTON_SX = {
-  padding: "2px",
+  padding: getSpacingPx(SPACING.micro),
   minWidth: 26,
   minHeight: 26,
   flexShrink: 0
@@ -235,7 +237,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
                 fontSize: "var(--fontSizeNormal)",
                 color: isPaintTarget ? "primary.contrastText" : "grey.500",
                 flexShrink: 0,
-                mr: "2px",
+                mr: getSpacingPx(SPACING.micro),
                 opacity: isPaintTarget ? 1 : 0.9
               }}
             />
@@ -245,7 +247,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
                 fontSize: "var(--fontSizeNormal)",
                 color: isPaintTarget ? "primary.contrastText" : "grey.400",
                 flexShrink: 0,
-                mr: "2px",
+                mr: getSpacingPx(SPACING.micro),
                 opacity: isPaintTarget ? 1 : 0.95
               }}
             />
@@ -322,7 +324,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
               color: "inherit",
               fontSize: "inherit",
               outline: "none",
-              padding: "0 2px"
+              padding: `0 ${getSpacingPx(SPACING.micro)}`
             }}
           />
         ) : (
@@ -413,7 +415,7 @@ const LayerItem: React.FC<LayerItemProps> = ({
               gap: 1,
               flexShrink: 0,
               width: 10,
-              ml: "2px"
+              ml: getSpacingPx(SPACING.micro)
             }}
           >
             <Tooltip

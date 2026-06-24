@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo } from "react";
 
-import { Caption, Text, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Caption, Text, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import FavoriteButton from "../ui_primitives/FavoriteButton";
 import { IconForType } from "../../config/IconForType";
 import { colorForType } from "../../config/data_types";
@@ -116,7 +116,7 @@ const NodeLibraryRow = memo<NodeLibraryRowProps>(
         flexShrink: 0 as const,
         width: "22px",
         height: "22px",
-        margin: "0 2px"
+        margin: `0 ${getSpacingPx(SPACING.micro)}`
       }),
       [tileColor]
     );
@@ -164,7 +164,7 @@ const NodeLibraryRow = memo<NodeLibraryRowProps>(
         <Text className="nl-row-title" component="div">
           {node.title}
           {node.deprecated && (
-            <Caption component="span" sx={{ marginLeft: "6px", color: "warning.main" }}>
+            <Caption component="span" sx={{ marginLeft: getSpacingPx(SPACING.sm), color: "warning.main" }}>
               Deprecated
             </Caption>
           )}

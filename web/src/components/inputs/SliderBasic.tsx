@@ -2,13 +2,13 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import { Slider, SliderProps } from "@mui/material";
-import { Tooltip } from "../ui_primitives";
+import { Tooltip, SPACING, getSpacingPx } from "../ui_primitives";
 import type { Theme } from "@mui/material/styles";
 
 const sliderBasicStyles = (theme: Theme) =>
   css({
     "&": {
-      marginTop: "3px",
+      marginTop: getSpacingPx(SPACING.xs), // was 3px
       padding: "0"
     },
     ".MuiSlider-rail": {

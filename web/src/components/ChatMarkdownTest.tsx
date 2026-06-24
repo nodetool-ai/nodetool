@@ -163,7 +163,7 @@ const ChatMarkdownTest: React.FC = () => {
       <div css={chatStyles.chatMessagesList} className="chat-messages-list">
         <div
           className={`chat-message ${role}`}
-          style={{ border: "1px dashed rgba(255,255,255,0.1)" }}
+          style={{ border: "1px dashed var(--palette-c_overlay)" }}
         >
           <div className="message-content">
             <ChatMarkdown content={content} />

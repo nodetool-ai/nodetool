@@ -13,7 +13,7 @@
 import React, { useMemo } from "react";
 import { styled } from "@mui/material/styles";
 import GraphicEqIcon from "@mui/icons-material/GraphicEq";
-import { MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT } from "../../ui_primitives";
+import { MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT, SPACING, getSpacingPx } from "../../ui_primitives";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
@@ -42,7 +42,7 @@ const PhraseChip = styled("button")(({ theme }) => ({
   top: 7,
   height: SCRIPT_LANE_HEIGHT_PX - 16,
   margin: 0,
-  padding: "0 8px",
+  padding: `0 ${getSpacingPx(SPACING.md)}`,
   display: "inline-flex",
   alignItems: "center",
   border: `1px solid ${theme.vars.palette.divider}`,
@@ -75,7 +75,7 @@ const PhraseChip = styled("button")(({ theme }) => ({
   "&.is-draft": { fontStyle: "italic" },
   "& .w-active": {
     borderRadius: BORDER_RADIUS.xs,
-    padding: "0 1px",
+    padding: `0 ${getSpacingPx(SPACING.micro)}`, // was 0 1px
     background: theme.vars.palette.primary.main,
     color: theme.vars.palette.primary.contrastText
   }
@@ -100,8 +100,8 @@ const HeaderCell = styled("div")(({ theme }) => ({
   flexShrink: 0,
   display: "flex",
   alignItems: "center",
-  gap: 6,
-  padding: "0 12px",
+  gap: getSpacingPx(SPACING.sm),
+  padding: `0 ${getSpacingPx(SPACING.lg)}`,
   borderBottom: `1px solid ${theme.vars.palette.divider}`,
   background: theme.vars.palette.background.paper,
   color: theme.vars.palette.text.secondary,

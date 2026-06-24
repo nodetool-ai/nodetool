@@ -68,7 +68,7 @@ const styles = (
       padding: 2,
       zIndex: 2,
       borderRadius: BORDER_RADIUS.md,
-      backgroundColor: "rgba(0,0,0,0.35)",
+      backgroundColor: theme.vars.palette.c_scrim_soft,
       backdropFilter: "blur(6px)"
     }
   });

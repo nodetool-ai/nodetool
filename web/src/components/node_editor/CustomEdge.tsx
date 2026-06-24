@@ -11,7 +11,7 @@ import {
   getBezierPath,
   type EdgeProps
 } from "@xyflow/react";
-import { Tooltip, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { memo, useMemo } from "react";
 
 export function CustomEdge({
@@ -70,7 +70,7 @@ export function CustomEdge({
       cursor: "default" as const,
       background: "var(--palette-background-default)",
       color: "var(--palette-text-primary)",
-      padding: "2px 8px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.pill,
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,

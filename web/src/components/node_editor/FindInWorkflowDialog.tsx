@@ -4,7 +4,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useEffect, useRef, useCallback } from "react";
 import { ListItem, ListItemButton } from "@mui/material";
-import { Text, Caption, Box, ListGroup, BORDER_RADIUS, MOTION } from "../ui_primitives";
+import { Text, Caption, Box, ListGroup, BORDER_RADIUS, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
 import SearchIcon from "@mui/icons-material/Search";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
@@ -37,7 +37,7 @@ const styles = (theme: Theme) =>
     "& .find-header": {
       display: "flex",
       alignItems: "center",
-      padding: "12px 16px",
+      padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}`,
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       backgroundColor: theme.vars.palette.action.hover
     },
@@ -46,7 +46,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       color: theme.vars.palette.text.secondary,
-      marginRight: "12px"
+      marginRight: getSpacingPx(SPACING.lg)
     },
     "& .search-input-wrapper": {
       flex: 1,
@@ -54,7 +54,7 @@ const styles = (theme: Theme) =>
     },
     "& .search-input": {
       width: "100%",
-      padding: "8px 12px",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,
       fontSize: "var(--fontSizeNormal)",
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.lg,
@@ -77,7 +77,7 @@ const styles = (theme: Theme) =>
       border: "none",
       cursor: "pointer",
       color: theme.vars.palette.text.disabled,
-      padding: "4px",
+      padding: getSpacingPx(SPACING.xs),
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -86,7 +86,7 @@ const styles = (theme: Theme) =>
       }
     },
     "& .results-count": {
-      padding: "8px 16px",
+      padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xl)}`,
       fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       backgroundColor: theme.vars.palette.action.hover,
@@ -128,7 +128,7 @@ const styles = (theme: Theme) =>
     "& .result-type": {
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.secondary,
-      marginLeft: "8px",
+      marginLeft: getSpacingPx(SPACING.md),
       maxWidth: "100px",
       overflow: "hidden",
       textOverflow: "ellipsis",
@@ -136,11 +136,11 @@ const styles = (theme: Theme) =>
     },
     "& .navigation-buttons": {
       display: "flex",
-      gap: "4px",
-      marginLeft: "8px"
+      gap: getSpacingPx(SPACING.xs),
+      marginLeft: getSpacingPx(SPACING.md)
     },
     "& .nav-button": {
-      padding: "4px",
+      padding: getSpacingPx(SPACING.xs),
       minWidth: "28px",
       height: "28px",
       border: `1px solid ${theme.vars.palette.divider}`,
@@ -165,13 +165,13 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      padding: "32px 16px",
+      padding: `${getSpacingPx(SPACING.xxxl)} ${getSpacingPx(SPACING.xl)}`,
       color: theme.vars.palette.text.secondary,
       textAlign: "center"
     },
     "& .empty-icon": {
       fontSize: "var(--fontSizeBig)",
-      marginBottom: "8px",
+      marginBottom: getSpacingPx(SPACING.md),
       opacity: 0.5
     },
     "& .empty-text": {
@@ -378,7 +378,7 @@ const FindInWorkflowDialog: React.FC<FindInWorkflowDialogProps> = memo(
             tooltip="Close (Escape)"
             buttonSize="small"
             nodrag={false}
-            sx={{ marginLeft: "8px" }}
+            sx={{ marginLeft: getSpacingPx(SPACING.md) }}
           />
         </Box>
 

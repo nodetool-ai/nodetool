@@ -53,9 +53,9 @@ const createStyles = (theme: Theme, size: "sm" | "md", emphasis: "default" | "pr
     borderRadius: BORDER_RADIUS.pill,
     border: "1px solid transparent",
     backgroundColor: active
-      ? "rgba(255,255,255,0.12)"
+      ? theme.vars.palette.c_overlay_strong
       : emphasis === "primary"
-        ? "rgba(255,255,255,0.08)"
+        ? theme.vars.palette.c_overlay
         : "transparent",
     color: theme.vars.palette.grey[100],
     fontFamily: theme.fontFamily1,
@@ -70,7 +70,7 @@ const createStyles = (theme: Theme, size: "sm" | "md", emphasis: "default" | "pr
     maxWidth: truncate ? 200 : undefined,
     overflow: truncate ? "hidden" : undefined,
     "&:hover:not(:disabled)": {
-      backgroundColor: "rgba(255,255,255,0.10)"
+      backgroundColor: theme.vars.palette.c_overlay
     },
     "&:focus-visible": {
       borderColor: theme.vars.palette.primary.main

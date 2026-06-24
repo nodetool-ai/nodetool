@@ -9,7 +9,7 @@ import { Workflow, WorkflowList as WorkflowListType } from "../../stores/ApiType
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { trpcClient } from "../../trpc/client";
-import { MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import RecentWorkflowCard from "./RecentWorkflowCard";
 import WorkflowListView from "../workflows/WorkflowListView";
 import WorkflowDeleteDialog from "../workflows/WorkflowDeleteDialog";
@@ -104,11 +104,11 @@ const styles = (theme: Theme) =>
       height: 420,
       border: `1px solid ${theme.vars.palette.divider}`,
       borderRadius: BORDER_RADIUS.lg,
-      padding: "6px 10px",
+      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`, // was 6px 10px
       background: `rgba(${theme.vars.palette.common.whiteChannel} / 0.012)`
     },
     ".rec-empty": {
-      padding: "40px 0",
+      padding: `${getSpacingPx(10)} 0`, // was 40px 0
       textAlign: "center",
       color: theme.vars.palette.text.secondary,
       fontSize: 14,

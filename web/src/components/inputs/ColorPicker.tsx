@@ -2,9 +2,9 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { useCallback, useState, useRef } from "react";
+import React, { useCallback, useState, useRef, useMemo } from "react";
 import { Popover, Button } from "@mui/material";
-import { Tooltip, MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import { colorPickerColors } from "../../constants/colors";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { ColorPickerModal } from "../color_picker";
@@ -54,7 +54,7 @@ const colorMatrixStyle = (theme: Theme) =>
     },
     ".custom-button": {
       width: "100%",
-      marginTop: "8px",
+      marginTop: getSpacingPx(SPACING.md),
       fontSize: "var(--fontSizeSmaller)",
       textTransform: "none"
     }
@@ -77,6 +77,8 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   buttonSize = 20
 }) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
+  const cssColorMatrix = useMemo(() => colorMatrixStyle(theme), [theme]);
   const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
   const [showModal, setShowModal] = useState(false);
   const currentColorRef = useRef(color || "#ffffff");
@@ -137,7 +139,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
   );
 
   return (
-    <div className="color-picker" css={styles(theme)}>
+    <div className="color-picker" css={cssStyles}>
       <Tooltip
         title="Set color"
         placement="bottom"
@@ -170,7 +172,7 @@ const ColorPicker: React.FC<ColorPickerProps> = ({
           horizontal: "center"
         }}
       >
-        <div css={colorMatrixStyle(theme)}>
+        <div css={cssColorMatrix}>
           {colorPickerColors.map((cellColor) => (
             <Button
               key={String(cellColor)}
