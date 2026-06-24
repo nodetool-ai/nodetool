@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react';
+import { renderWithTheme } from '../../../test-utils/renderWithTheme';
 import ConnectionLine from '../ConnectionLine';
 import useConnectionStore from '../../../stores/ConnectionStore';
 import { ConnectionLineType } from '@xyflow/react';
@@ -24,7 +24,7 @@ jest.mock('@xyflow/react', () => ({
 
 describe('ConnectionLine', () => {
   it('renders bezier path and class', () => {
-    const { container } = render(
+    const { container } = renderWithTheme(
       <ConnectionLine
         {...({
           fromX: 0,

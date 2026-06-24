@@ -8,7 +8,8 @@
  * accessor, not the legacy across-runs result resolver).
  */
 import React from "react";
-import { render, waitFor } from "@testing-library/react";
+import { waitFor } from "@testing-library/react";
+import { renderWithTheme } from "../../../../test-utils/renderWithTheme";
 
 // ─── Heavy children / chrome → inert stubs ──────────────────────────────────
 jest.mock("../../NodeHeader", () => ({
@@ -47,40 +48,9 @@ jest.mock("@xyflow/react", () => ({
 jest.mock("react-router-dom", () => ({
   useNavigate: () => jest.fn()
 }));
-jest.mock("@mui/material/styles", () => ({
-  ...jest.requireActual("@mui/material/styles"),
-  useTheme: () => ({
-    spacing: (n: number) => `${n * 8}px`,
-    rounded: {
-      xs: "2px",
-      sm: "4px",
-      md: "6px",
-      lg: "8px",
-      xl: "12px",
-      xxl: "16px",
-      pill: "9999px",
-      circle: "50%",
-      dialog: "20px",
-      node: "8px",
-      buttonSmall: "4px",
-      buttonLarge: "6px"
-    },
-    vars: {
-      palette: {
-        grey: { 0: "#fff", 100: "#eee", 400: "#aaa", 500: "#888", 900: "#000" },
-        primary: { main: "#08f" },
-        secondary: { main: "#80f" },
-        success: { main: "#0f0" },
-        warning: { main: "#fa0" },
-        error: { main: "#f00" },
-        info: { main: "#0ff" },
-        text: { primary: "#fff", secondary: "#999", disabled: "#666" },
-        c_node_bg: "#111",
-        glass: { blur: "blur(8px)" }
-      }
-    }
-  })
-}));
+// `useTheme()` resolves from the ThemeProvider in `renderWithTheme`, which is
+// backed by the complete mock theme (incl. `vars.palette.common.white`). No
+// partial inline theme mock — those drift from the real theme shape.
 
 // ─── Hooks / stores ─────────────────────────────────────────────────────────
 jest.mock("../../../../contexts/NodeContext", () => ({
@@ -213,7 +183,7 @@ describe("SketchNode layer inputs via generations", () => {
 
   it("loads the source's current-generation image into the exposed input layer", async () => {
     seedSourceGeneration("http://x/from-generation.png");
-    render(<SketchNode {...props} />);
+    renderWithTheme(<SketchNode {...props} />);
 
     await waitFor(() => {
       expect(loadImageWithDimensions).toHaveBeenCalledWith(
@@ -223,7 +193,7 @@ describe("SketchNode layer inputs via generations", () => {
   });
 
   it("does not load any layer image when the source has no generation", () => {
-    render(<SketchNode {...props} />);
+    renderWithTheme(<SketchNode {...props} />);
     expect(loadImageWithDimensions).not.toHaveBeenCalled();
   });
 });
