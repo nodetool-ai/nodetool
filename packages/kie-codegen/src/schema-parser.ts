@@ -1,4 +1,4 @@
-import { parse as parseYaml } from "yaml";
+import yaml from "js-yaml";
 import type { FieldDef, NodeConfig, ModuleConfig } from "./types.js";
 import type { KieDocsEntry } from "./schema-fetcher.js";
 
@@ -387,7 +387,7 @@ function extractOpenApi(markdown: string): JsonRecord | null {
   if (!match) {
     return null;
   }
-  const parsed = parseYaml(match[1]) as unknown;
+  const parsed = yaml.load(match[1]) as unknown;
   return asRecord(parsed) ?? null;
 }
 

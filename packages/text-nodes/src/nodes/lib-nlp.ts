@@ -1,11 +1,26 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import { tagAsUniversal } from "@nodetool-ai/nodes-utils";
 
+import {
+  WordTokenizer,
+  SentenceTokenizer,
+  PorterStemmer,
+  PorterStemmerEs,
+  PorterStemmerFr,
+  LancasterStemmer,
+  SentimentAnalyzer,
+  TfIdf,
+  BayesClassifier,
+  SoundEx,
+  Metaphone,
+  DoubleMetaphone
+} from "./nlp/index.js";
+
 export class SentimentAnalysisLibNode extends BaseNode {
   static readonly nodeType = "lib.nlp.SentimentAnalysis";
   static readonly title = "Sentiment Analysis";
   static readonly description =
-    "Analyzes sentiment of text using natural's SentimentAnalyzer.\n    sentiment, opinion, polarity, text analysis, NLP\n\n    Use cases:\n    - Determine positive or negative tone of text\n    - Analyze customer feedback sentiment\n    - Score product reviews\n    - Monitor social media sentiment";
+    "Analyzes sentiment of text using an AFINN-based analyzer.\n    sentiment, opinion, polarity, text analysis, NLP\n\n    Use cases:\n    - Determine positive or negative tone of text\n    - Analyze customer feedback sentiment\n    - Score product reviews\n    - Monitor social media sentiment";
   static readonly inlineFields = ["text", "language"];
   static readonly inputFields = [];
   static readonly metadataOutputTypes = {
@@ -33,7 +48,6 @@ export class SentimentAnalysisLibNode extends BaseNode {
   declare language: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const natural = (await import("natural")).default;
     const text = String(this.text ?? "");
     const language = String(this.language ?? "English");
 
@@ -41,26 +55,22 @@ export class SentimentAnalysisLibNode extends BaseNode {
       return { score: 0, comparative: 0, positive_words: [], negative_words: [] };
     }
 
-    const tokenizer = new natural.WordTokenizer();
+    const tokenizer = new WordTokenizer();
     const tokens = tokenizer.tokenize(text) ?? [];
-    // natural only ships "afinn" vocabularies for English/Spanish; French
-    // sentiment requires the "pattern" vocabulary. Stemmers must match the
-    // language because the analyzer stems its vocabulary at construction.
+    // We only ship "afinn" vocabularies for English/Spanish; French sentiment
+    // requires the "pattern" vocabulary. Stemmers must match the language
+    // because the analyzer stems its vocabulary at construction.
     const stemmer =
       language === "Spanish"
-        ? natural.PorterStemmerEs
+        ? PorterStemmerEs
         : language === "French"
-          ? natural.PorterStemmerFr
-          : natural.PorterStemmer;
+          ? PorterStemmerFr
+          : PorterStemmer;
     const vocabularyType = language === "French" ? "pattern" : "afinn";
-    const analyzer = new natural.SentimentAnalyzer(
-      language,
-      stemmer,
-      vocabularyType
-    );
+    const analyzer = new SentimentAnalyzer(language, stemmer, vocabularyType);
 
     const comparative = analyzer.getSentiment(tokens);
-    const vocabulary = (analyzer as unknown as { vocabulary: Record<string, number> }).vocabulary;
+    const vocabulary = analyzer.vocabulary as Record<string, number | string>;
 
     const positiveWords: string[] = [];
     const negativeWords: string[] = [];
@@ -121,7 +131,6 @@ export class TokenizeLibNode extends BaseNode {
   declare mode: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const natural = (await import("natural")).default;
     const text = String(this.text ?? "");
     const mode = String(this.mode ?? "word");
 
@@ -131,10 +140,10 @@ export class TokenizeLibNode extends BaseNode {
 
     let tokens: string[];
     if (mode === "sentence") {
-      const tokenizer = new natural.SentenceTokenizer([]);
+      const tokenizer = new SentenceTokenizer([]);
       tokens = tokenizer.tokenize(text) ?? [];
     } else {
-      const tokenizer = new natural.WordTokenizer();
+      const tokenizer = new WordTokenizer();
       tokens = tokenizer.tokenize(text) ?? [];
     }
 
@@ -172,7 +181,6 @@ export class StemLibNode extends BaseNode {
   declare algorithm: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const natural = (await import("natural")).default;
     const text = String(this.text ?? "");
     const algorithm = String(this.algorithm ?? "porter");
 
@@ -180,13 +188,10 @@ export class StemLibNode extends BaseNode {
       return { output: "", tokens: [] };
     }
 
-    const tokenizer = new natural.WordTokenizer();
+    const tokenizer = new WordTokenizer();
     const tokens = tokenizer.tokenize(text) ?? [];
 
-    const stemmer =
-      algorithm === "lancaster"
-        ? natural.LancasterStemmer
-        : natural.PorterStemmer;
+    const stemmer = algorithm === "lancaster" ? LancasterStemmer : PorterStemmer;
 
     const stemmedTokens = tokens.map((token: string) => stemmer.stem(token));
     const output = stemmedTokens.join(" ");
@@ -223,7 +228,6 @@ export class TfIdfLibNode extends BaseNode {
   declare query: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const natural = (await import("natural")).default;
     const documents = Array.isArray(this.documents) ? this.documents : [];
     const query = String(this.query ?? "");
 
@@ -231,7 +235,7 @@ export class TfIdfLibNode extends BaseNode {
       return { output: [] };
     }
 
-    const tfidf = new natural.TfIdf();
+    const tfidf = new TfIdf();
     for (const doc of documents) {
       tfidf.addDocument(String(doc));
     }
@@ -274,7 +278,6 @@ export class ClassifyTextLibNode extends BaseNode {
   declare training_data: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const natural = (await import("natural")).default;
     const text = String(this.text ?? "");
     const trainingData = Array.isArray(this.training_data)
       ? this.training_data
@@ -284,7 +287,7 @@ export class ClassifyTextLibNode extends BaseNode {
       return { output: "", classifications: [] };
     }
 
-    const classifier = new natural.BayesClassifier();
+    const classifier = new BayesClassifier();
 
     for (const item of trainingData) {
       const itemText = String(
@@ -399,7 +402,6 @@ export class PhoneticMatchLibNode extends BaseNode {
   declare algorithm: any;
 
   async process(): Promise<Record<string, unknown>> {
-    const natural = (await import("natural")).default;
     const text = String(this.text ?? "");
     const algorithm = String(this.algorithm ?? "metaphone");
 
@@ -407,28 +409,25 @@ export class PhoneticMatchLibNode extends BaseNode {
       return { output: "", tokens: [] };
     }
 
-    const tokenizer = new natural.WordTokenizer();
+    const tokenizer = new WordTokenizer();
     const words = tokenizer.tokenize(text) ?? [];
 
     const phoneticTokens: Array<{ word: string; code: string | string[] }> = [];
 
     if (algorithm === "soundex") {
-      const encoder = new natural.SoundEx();
+      const encoder = new SoundEx();
       for (const word of words) {
-        phoneticTokens.push({ word, code: encoder.process(word) as string });
+        phoneticTokens.push({ word, code: encoder.process(word) });
       }
     } else if (algorithm === "double_metaphone") {
-      const encoder = new natural.DoubleMetaphone();
+      const encoder = new DoubleMetaphone();
       for (const word of words) {
-        phoneticTokens.push({
-          word,
-          code: encoder.process(word) as string[]
-        });
+        phoneticTokens.push({ word, code: encoder.process(word) });
       }
     } else {
-      const encoder = new natural.Metaphone();
+      const encoder = new Metaphone();
       for (const word of words) {
-        phoneticTokens.push({ word, code: encoder.process(word) as string });
+        phoneticTokens.push({ word, code: encoder.process(word) });
       }
     }
 
