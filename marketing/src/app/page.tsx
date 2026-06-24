@@ -11,6 +11,7 @@ import BuildRunDeploy from "../components/BuildRunDeploy";
 import OwnershipSection from "../components/OwnershipSection";
 import ModelSupportSection from "../components/ModelSupportSection";
 import ModelManagerSection from "../components/ModelManagerSection";
+import CostDashboardSection from "../components/CostDashboardSection";
 import TimelineEditorSection from "../components/TimelineEditorSection";
 import FeaturesSection from "../components/FeaturesSection";
 import NodeMenuSection from "../components/NodeMenuSection";
@@ -375,6 +376,9 @@ export default function Home() {
         <OwnershipSection reducedMotion={reducedMotion} />
         <ModelSupportSection reducedMotion={reducedMotion} />
         <ModelManagerSection />
+
+        {/* Cost transparency — the payoff of BYOK: pay providers directly, see every node's real cost */}
+        <CostDashboardSection />
 
         {/* Templates Gallery */}
         {/* <ExamplesGrid /> */}
