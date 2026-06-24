@@ -160,11 +160,14 @@ export type {
   TextToVideoParams,
   ImageToVideoParams,
   ProviderStreamItem,
+  ProviderSession,
+  ProviderSessionUpdate,
   StreamingAudioChunk,
   EncodedAudioResult,
   AudioChunk,
   ASRResult
 } from "./types.js";
+export { isProviderSessionUpdate } from "./types.js";
 
 // Register hosted providers with the secret key NAME each one needs but no
 // pre-resolved value. Pre-baking `process.env[KEY]` here at module-load time

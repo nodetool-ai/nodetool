@@ -12,6 +12,7 @@ import type {
   Model3D,
   MusicModel,
   ProviderId,
+  ProviderSession,
   ProviderStreamItem,
   ProviderTool,
   EncodedAudioResult,
@@ -396,6 +397,12 @@ export abstract class BaseProvider {
     frequencyPenalty?: number;
     /** Optional thread/conversation identifier for session-based providers. */
     threadId?: string | null;
+    /**
+     * Opaque continuation token from a prior turn (read off the last assistant
+     * message). Providers that support server/SDK-side sessions resume from it
+     * and send only the delta; stateless providers ignore it.
+     */
+    providerSession?: ProviderSession | null;
     /** Optional callback for native tool execution (used by providers with in-process MCP). */
     onToolCall?: (
       name: string,
@@ -425,6 +432,12 @@ export abstract class BaseProvider {
     audio?: Record<string, unknown>;
     /** Optional thread/conversation identifier for session-based providers. */
     threadId?: string | null;
+    /**
+     * Opaque continuation token from a prior turn (read off the last assistant
+     * message). Providers that support server/SDK-side sessions resume from it
+     * and send only the delta; stateless providers ignore it.
+     */
+    providerSession?: ProviderSession | null;
     /** Optional callback for native tool execution (used by providers with in-process MCP). */
     onToolCall?: (
       name: string,

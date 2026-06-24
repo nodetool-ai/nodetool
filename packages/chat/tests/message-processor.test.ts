@@ -555,6 +555,39 @@ describe("processChat", () => {
     expect(lastMsg.content).toBe("done");
   });
 
+  it("fires onProviderSession when the provider emits a session item", async () => {
+    const session = {
+      providerId: "claude_agent_sdk",
+      model: "haiku",
+      token: "sess-1",
+      checkpoint: 2
+    };
+    const provider = createMockProvider([
+      [
+        { type: "session", session } as unknown as ProviderStreamItem,
+        chunk("hi there")
+      ]
+    ]);
+
+    const onProviderSession = vi.fn();
+    const onChunk = vi.fn();
+    const result = await processChat({
+      userInput: "Hello",
+      messages: [],
+      model: "haiku",
+      provider,
+      context: createMockContext(),
+      callbacks: { onProviderSession, onChunk }
+    });
+
+    expect(onProviderSession).toHaveBeenCalledTimes(1);
+    expect(onProviderSession).toHaveBeenCalledWith(session);
+    // The session item is internal and never becomes visible assistant text.
+    expect(onChunk).toHaveBeenCalledWith("hi there");
+    const assistantMsg = result.find((m) => m.role === "assistant");
+    expect(assistantMsg?.content).toBe("hi there");
+  });
+
   it("returns empty assistant message when only thinking chunks are present", async () => {
     const provider = createMockProvider([
       [thinkingChunk("only thinking, no visible output")]

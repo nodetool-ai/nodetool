@@ -44,6 +44,7 @@ import type {
   MessageContent,
   BaseProvider,
   ProcessingContext,
+  ProviderSession,
   ToolCall as ProviderToolCall,
   ImageModel as ProviderImageModel,
   VideoModel as ProviderVideoModel,
@@ -56,7 +57,8 @@ import type {
 import {
   ProcessingContext as RuntimeProcessingContext,
   encodeRawRgbaToPng,
-  getCostReconciler
+  getCostReconciler,
+  isProviderSessionUpdate
 } from "@nodetool-ai/runtime";
 import { isRawRgbaImage } from "@nodetool-ai/protocol";
 import type {
@@ -115,6 +117,29 @@ function getMaxWsMessageBytes(): number {
     "NODETOOL_WS_MAX_MESSAGE_BYTES",
     DEFAULT_MAX_WS_MESSAGE_BYTES
   );
+}
+
+/**
+ * Find the continuation token to resume this thread with: the `provider_session`
+ * of the most recent assistant message, but only if it was produced by the same
+ * `provider` and `model` as the incoming request (a session is bound to both).
+ * Returns null when there is nothing to resume, so the provider starts fresh.
+ */
+function lastMatchingProviderSession(
+  dbMessages: Message[],
+  providerId: string,
+  model: string
+): ProviderSession | null {
+  for (let i = dbMessages.length - 1; i >= 0; i--) {
+    const m = dbMessages[i];
+    if (m.role !== "assistant") continue;
+    const session = m.provider_session;
+    if (!session) continue;
+    return session.providerId === providerId && session.model === model
+      ? session
+      : null;
+  }
+  return null;
 }
 
 /**
@@ -2740,6 +2765,16 @@ export class UnifiedWebSocketRunner {
       if (pm) chatHistory.push(pm);
     }
 
+    // Continuation token for session-based providers: read it off the most
+    // recent assistant message of this thread, but only resume when it was
+    // produced by the SAME provider+model (a session is bound to both). The DB
+    // column is authoritative; the provider also keeps an in-process cache.
+    const priorSession = lastMatchingProviderSession(
+      dbMessages,
+      providerId,
+      model
+    );
+
     const provider = await this.resolveProvider(providerId, userId);
 
     // Permission mode for this turn. Governs whether gated tool calls run,
@@ -2954,6 +2989,10 @@ export class UnifiedWebSocketRunner {
 
     let content = "";
     let unprocessedMessages: ProviderMessage[] = [];
+    // The session token to persist onto the assistant message. Seeds from the
+    // prior turn's token (so a session-based provider resumes) and is refreshed
+    // whenever the provider emits a new ProviderSessionUpdate this turn.
+    let capturedSession: ProviderSession | null = priorSession;
 
     // Tool execution loop — mirrors Python's RegularChatProcessor.process()
     const MAX_TOOL_ROUNDS = 10;
@@ -2987,6 +3026,7 @@ export class UnifiedWebSocketRunner {
               ? providerToolSchemas
               : undefined,
           threadId,
+          providerSession: capturedSession,
           onToolCall:
             shouldIncludeTools && providerToolSchemas.length > 0
               ? async (name: string, args: Record<string, unknown>) => {
@@ -3040,6 +3080,13 @@ export class UnifiedWebSocketRunner {
           if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
             return;
 
+          if (isProviderSessionUpdate(item)) {
+            // Internal continuity token — capture for persistence, never wire it
+            // to the client.
+            capturedSession = item.session;
+            continue;
+          }
+
           if ("type" in item && (item as Chunk).type === "chunk") {
             // --- Text chunk --- forward to client (not persisted)
             const chunk = item as Chunk;
@@ -3072,7 +3119,8 @@ export class UnifiedWebSocketRunner {
             thread_id: threadId,
             workflow_id: workflowId,
             provider: providerId,
-            model
+            model,
+            provider_session: capturedSession
           };
           await this.saveMessageToDb(assistantMsgData);
           await this.sendMessage(assistantMsgData);
@@ -3219,7 +3267,8 @@ export class UnifiedWebSocketRunner {
         thread_id: threadId,
         workflow_id: workflowId,
         provider: providerId,
-        model
+        model,
+        provider_session: capturedSession
       };
       await this.saveMessageToDb(finalMsgData);
       await this.sendMessage(finalMsgData);

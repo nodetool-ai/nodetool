@@ -37,6 +37,7 @@ import type {
   TextToImageParams,
   ToolCall
 } from "./types.js";
+import { isProviderSessionUpdate } from "./types.js";
 
 const log = createLogger("nodetool.runtime.codex");
 
@@ -457,7 +458,7 @@ export class CodexProvider extends OpenAIProvider {
     event: Record<string, unknown>,
     pending: Map<string, PendingCall>,
     model: string
-  ): Generator<ProviderStreamItem> {
+  ): Generator<Chunk | ToolCall> {
     const type = typeof event.type === "string" ? event.type : "";
 
     switch (type) {
@@ -563,6 +564,7 @@ export class CodexProvider extends OpenAIProvider {
     let content = "";
     const toolCalls: ToolCall[] = [];
     for await (const item of this.generateMessages(args)) {
+      if (isProviderSessionUpdate(item)) continue;
       if ("args" in item) {
         toolCalls.push(item);
       } else if (!item.thinking && typeof item.content === "string") {

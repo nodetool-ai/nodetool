@@ -5,6 +5,7 @@
  */
 
 import { eq, desc, asc } from "drizzle-orm";
+import type { ProviderSession } from "@nodetool-ai/protocol";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { messages } from "./schema/messages.js";
@@ -35,6 +36,8 @@ export class Message extends DBModel {
   declare execution_event_type: string | null;
   declare workflow_target: string | null;
   declare media_generation: Record<string, unknown> | null;
+  /** Provider session continuation token (state after this turn). */
+  declare provider_session: ProviderSession | null;
   declare created_at: string;
 
   constructor(data: Record<string, unknown>) {
@@ -59,6 +62,7 @@ export class Message extends DBModel {
     this.execution_event_type ??= null;
     this.workflow_target ??= null;
     this.media_generation ??= null;
+    this.provider_session ??= null;
     this.created_at ??= now;
 
     // Drizzle handles JSON<->text via jsonText custom type, but handle

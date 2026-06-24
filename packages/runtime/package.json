@@ -16,7 +16,8 @@
   },
   "dependencies": {
     "@aki-io/aki-io": "^1.0.1",
-    "@anthropic-ai/sdk": "^0.36.2",
+    "@anthropic-ai/claude-agent-sdk": "^0.3.190",
+    "@anthropic-ai/sdk": "^0.105.0",
     "@nodetool-ai/config": "*",
     "@nodetool-ai/protocol": "*",
     "@opentelemetry/api": "^1.9.0",

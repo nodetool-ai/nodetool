@@ -5,7 +5,13 @@
  */
 
 import type { BaseProvider } from "@nodetool-ai/runtime";
-import type { Message, ToolCall, ProviderStreamItem } from "@nodetool-ai/runtime";
+import type {
+  Message,
+  ToolCall,
+  ProviderStreamItem,
+  ProviderSession
+} from "@nodetool-ai/runtime";
+import { isProviderSessionUpdate } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { Chunk } from "@nodetool-ai/protocol";
 import { Tool, truncateToolResult } from "@nodetool-ai/agents";
@@ -29,6 +35,11 @@ export interface ChatCallbacks {
   onToolCall?: (toolCall: ToolCall) => void;
   /** Called after a tool has been executed. */
   onToolResult?: (toolCall: ToolCall, result: unknown) => void;
+  /**
+   * Called when the provider emits a session-continuity update. The caller
+   * persists the token onto the assistant message so the next turn can resume.
+   */
+  onProviderSession?: (session: ProviderSession) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -100,6 +111,12 @@ export async function processChat(opts: {
   tools?: Tool[];
   callbacks?: ChatCallbacks;
   threadId?: string;
+  /**
+   * Opaque continuation token from a prior turn (read off the last assistant
+   * message). Threaded straight through to the provider, which resumes from it
+   * and sends only the new turn; stateless providers ignore it.
+   */
+  providerSession?: ProviderSession | null;
   signal?: AbortSignal;
   /**
    * Cap on tool-calling rounds before we stop and let the user intervene.
@@ -126,6 +143,7 @@ export async function processChat(opts: {
     tools = [],
     callbacks,
     threadId,
+    providerSession,
     signal,
     maxIterations = 25,
     longTermMemory
@@ -175,6 +193,7 @@ export async function processChat(opts: {
       model,
       tools: providerTools,
       threadId,
+      providerSession,
       onToolCall:
         tools.length > 0
           ? async (name, args) => {
@@ -202,6 +221,12 @@ export async function processChat(opts: {
 
     for await (const item of stream) {
       if (signal?.aborted) break;
+
+      // --- Session continuity update (internal; never surfaced to clients) ---
+      if (isProviderSessionUpdate(item)) {
+        callbacks?.onProviderSession?.(item.session);
+        continue;
+      }
 
       // --- Text chunk ---
       if (isChunk(item)) {

@@ -1,10 +1,15 @@
-import type { Chunk, ProviderId } from "@nodetool-ai/protocol";
+import type { Chunk, ProviderId, ProviderSession } from "@nodetool-ai/protocol";
 
 // Provider identifiers are owned by @nodetool-ai/protocol (the base dependency
 // for the whole monorepo). Re-exported here so existing runtime importers keep
 // resolving `ProviderId`/`PROVIDER_IDS` from `./types.js`.
 export { PROVIDER_IDS } from "@nodetool-ai/protocol";
 export type { ProviderId };
+// `ProviderSession` is the cross-provider continuation token. It lives in
+// @nodetool-ai/protocol so the persistence layer (@nodetool-ai/models) can
+// import it without taking a dependency on runtime; re-exported here for
+// providers and the chat pipeline.
+export type { ProviderSession };
 
 export interface LanguageModel {
   id: string;
@@ -284,7 +289,34 @@ export interface LipSyncParams {
   seed?: number | null;
 }
 
-export type ProviderStreamItem = Chunk | ToolCall;
+/**
+ * Internal-only stream item carrying a session-continuity update. It is NOT a
+ * wire message — the chat pipeline consumes it to persist the continuation
+ * token onto the assistant message, and never forwards it to clients. A
+ * provider emits one per turn once it has captured/refreshed its session.
+ */
+export interface ProviderSessionUpdate {
+  type: "session";
+  session: ProviderSession;
+}
+
+export type ProviderStreamItem = Chunk | ToolCall | ProviderSessionUpdate;
+
+/**
+ * Narrow a stream item to a {@link ProviderSessionUpdate}. `Chunk` carries
+ * `type: "chunk"` and `ToolCall` has no `type`, so a `type === "session"` check
+ * is unambiguous. Existing loops that only switch on chunk/tool-call ignore it.
+ */
+export function isProviderSessionUpdate(
+  item: ProviderStreamItem
+): item is ProviderSessionUpdate {
+  return (
+    typeof item === "object" &&
+    item !== null &&
+    "type" in item &&
+    (item as { type?: unknown }).type === "session"
+  );
+}
 
 export interface StreamingAudioChunk {
   samples: Int16Array;

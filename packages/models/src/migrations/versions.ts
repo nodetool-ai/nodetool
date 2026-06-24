@@ -1633,5 +1633,28 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_worker_profiles_name");
       await db.execute("DROP TABLE IF EXISTS worker_profiles");
     }
+  },
+
+  // ── Add provider_session to messages ───────────────────────────────
+  // Durable per-message continuation token (ProviderSession) so session-based
+  // providers (Claude Agent SDK, future OpenAI Responses) resume an upstream
+  // conversation across turns instead of replaying the whole transcript.
+  // Dialect-agnostic: runs for both SQLite and Postgres via the runner.
+  {
+    version: "20260624_000000",
+    name: "add_provider_session_to_messages",
+    createsTables: [],
+    modifiesTables: ["nodetool_messages"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_messages"))) return;
+      if (!(await db.columnExists("nodetool_messages", "provider_session"))) {
+        await db.execute(
+          "ALTER TABLE nodetool_messages ADD COLUMN provider_session TEXT"
+        );
+      }
+    },
+    async down() {
+      // no-op: dropping columns is unsafe across dialects and versions
+    }
   }
 ];

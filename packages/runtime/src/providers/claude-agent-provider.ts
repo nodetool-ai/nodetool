@@ -1,94 +1,108 @@
 /**
- * ClaudeAgentProvider — Claude reached through the local `claude` CLI (the
- * Claude Agent SDK transport) instead of an API key.
+ * ClaudeAgentProvider — Claude reached through the official
+ * `@anthropic-ai/claude-agent-sdk` instead of an API key.
  *
  * Unlike {@link AnthropicProvider}, this provider sends no `ANTHROPIC_API_KEY`:
- * it spawns the `claude` executable in non-interactive print mode
- * (`-p --output-format stream-json`) and lets the CLI authenticate with the
- * machine's logged-in Claude subscription (the credentials stored under
- * `~/.claude`). The CLI streams newline-delimited JSON messages on stdout,
- * which we translate into the cross-provider {@link ProviderStreamItem} stream.
+ * the SDK drives the bundled `claude` binary (shipped as an optional platform
+ * dependency, so there is nothing to install on PATH) and lets it authenticate
+ * with the machine's logged-in Claude subscription (the credentials stored
+ * under `~/.claude`). The SDK streams `SDKMessage`s, which we translate into the
+ * cross-provider {@link ProviderStreamItem} stream.
  *
- * It is a *pure LLM* provider: the Claude Code agent loop is collapsed to a
- * single turn with every built-in tool disabled (`--allowedTools ""`) and the
- * coding-agent system prompt fully replaced (`--system-prompt`), so the model
- * behaves like a plain chat completion — text in, text (and thinking) out.
+ * It is a *pure LLM* provider: the agentic tool loop is collapsed to a single
+ * turn with every built-in tool disabled (`allowedTools: []`), filesystem
+ * settings/skills disabled (`settingSources: []`), permission prompts neutered
+ * (`permissionMode: "dontAsk"`), and the default agent system prompt fully
+ * replaced (`systemPrompt`), so the model behaves like a plain chat completion —
+ * text in, text (and thinking) out.
  *
- * Nested-session hygiene: when NodeTool itself runs under Claude Code (e.g.
- * Claude Code on the web), the inherited `CLAUDECODE` / `CLAUDE_CODE_*` /
- * `CLAUDE_SESSION_*` / `CLAUDE_ENABLE_*` / `CLAUDE_AFTER_*` / `CLAUDE_AUTO_*`
- * env vars are stripped from the child so the spawned CLI starts clean.
- * `ANTHROPIC_BASE_URL` and the `HTTP_PROXY` / `HTTPS_PROXY` vars are preserved
- * so API routing keeps working.
+ * Session continuity: when a `threadId` is supplied the provider routes the
+ * thread through a single upstream session and, on subsequent turns, resumes it
+ * (`options.resume`) and sends only the new user delta. The continuation token
+ * ({@link ProviderSession}) is surfaced as a {@link ProviderSessionUpdate} and
+ * persisted by the chat layer onto the assistant message; the in-memory map
+ * below is only a within-process cache (the DB column is authoritative).
  */
 
-import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
+import { createLogger } from "@nodetool-ai/config";
 import { PROVIDER_IDS, type Chunk } from "@nodetool-ai/protocol";
-import { BaseProvider } from "./base-provider.js";
 import type {
-  LanguageModel,
-  Message,
-  MessageTextContent,
-  ProviderStreamItem,
-  ProviderTool,
-  ToolCall
+  Options,
+  SDKAssistantMessage,
+  SDKMessage,
+  SDKPartialAssistantMessage,
+  SDKResultMessage
+} from "@anthropic-ai/claude-agent-sdk";
+import { BaseProvider } from "./base-provider.js";
+import {
+  isProviderSessionUpdate,
+  type LanguageModel,
+  type Message,
+  type MessageTextContent,
+  type ProviderSession,
+  type ProviderStreamItem,
+  type ProviderTool,
+  type ToolCall
 } from "./types.js";
 
 const log = createLogger("nodetool.runtime.providers.claude-agent");
-
-// Subprocess + raw stdio: Node-only. Lazy-load so the module graph still loads
-// in the browser worker bundle (this barrel is pulled in there); the binding
-// only resolves on Node, and generateMessages throws clearly off-Node.
-const nodeCp = await importNodeBuiltin<typeof import("node:child_process")>(
-  "node:child_process"
-);
-
-/** Default executable name; resolved from PATH unless overridden. */
-const DEFAULT_CLAUDE_EXECUTABLE = "claude";
-
-/** Env var holding an explicit path to the `claude` binary. */
-const CLAUDE_EXECUTABLE_ENV = "CLAUDE_CODE_EXECUTABLE";
 
 /** Replacement system prompt used when the caller supplies none. */
 const DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant.";
 
 /**
- * Env vars a nested Claude Code session leaks into its children. Stripping them
- * keeps the spawned CLI from inheriting our own session's wiring. Mirrors the
- * pattern in `@nodetool-ai/code-nodes`' claude-code-tmux node.
+ * Env vars a nested Claude subscription session leaks into its children. The
+ * SDK spawns the bundled CLI as a subprocess; left in place these would make it
+ * believe it is itself nested. We strip them via `options.env` rather than any
+ * raw `child_process` plumbing.
  */
 const NESTED_SESSION_ENV =
   /^(CLAUDECODE|CLAUDE_(CODE|SESSION|ENABLE|AFTER|AUTO)_[A-Za-z0-9_]*)$/;
 
-type SpawnFn = typeof import("node:child_process").spawn;
+/**
+ * The subset of the SDK `query` signature this provider depends on. We only
+ * ever pass a string prompt and consume the result as an async iterable, so the
+ * real `query` (which also accepts an async-iterable prompt and returns the
+ * richer `Query`) is assignable to this. Injectable for tests.
+ */
+export type ClaudeQueryFn = (params: {
+  prompt: string;
+  options?: Options;
+}) => AsyncIterable<SDKMessage>;
 
 interface ClaudeAgentProviderOptions {
-  /** Override the `claude` executable path (else env, else PATH). */
-  executablePath?: string;
-  /** Inject the subprocess spawner (tests). Defaults to node:child_process. */
-  spawnFn?: SpawnFn;
+  /**
+   * Inject the SDK `query` (tests). Defaults to the real `query`, lazily
+   * imported on first use so the browser worker bundle that pulls in this
+   * barrel never tries to bundle the Node-only SDK.
+   */
+  queryFn?: ClaudeQueryFn;
 }
 
 export class ClaudeAgentProvider extends BaseProvider {
   static requiredSecrets(): string[] {
-    // Auth lives in the CLI's own credential store (~/.claude), not in an env
+    // Auth lives in the SDK's own credential store (~/.claude), not in an env
     // secret — there is nothing for the registry to resolve.
     return [];
   }
 
-  private readonly executablePath: string;
-  private readonly spawnFn: SpawnFn | null;
+  private readonly injectedQueryFn: ClaudeQueryFn | null;
+  /**
+   * Within-process cache of the active session per thread. The persisted
+   * `provider_session` column is the source of truth; this only spares a DB
+   * round-trip for back-to-back turns in the same process.
+   */
+  private readonly sessions = new Map<string, ProviderSession>();
 
-  constructor(_secrets: Record<string, unknown> = {}, options: ClaudeAgentProviderOptions = {}) {
+  constructor(
+    _secrets: Record<string, unknown> = {},
+    options: ClaudeAgentProviderOptions = {}
+  ) {
     super(PROVIDER_IDS.CLAUDE_AGENT_SDK);
-    this.executablePath =
-      options.executablePath ||
-      (typeof process !== "undefined" && process.env?.[CLAUDE_EXECUTABLE_ENV]) ||
-      DEFAULT_CLAUDE_EXECUTABLE;
-    this.spawnFn = options.spawnFn ?? nodeCp?.spawn ?? null;
+    this.injectedQueryFn = options.queryFn ?? null;
   }
 
-  /** The subscription token is the CLI's business — never hand it to a sandbox. */
+  /** The subscription token is the SDK's business — never hand it to a sandbox. */
   override getContainerEnv(): Record<string, string> {
     return {};
   }
@@ -103,9 +117,9 @@ export class ClaudeAgentProvider extends BaseProvider {
   }
 
   /**
-   * Stable model aliases the `claude` CLI resolves to the latest dated model.
-   * Aliases avoid pinning a version that ages out; the concrete model id the
-   * CLI selects is captured from the stream for accurate cost attribution.
+   * Stable model aliases the SDK resolves to the latest dated model. Aliases
+   * avoid pinning a version that ages out; the concrete model id the SDK
+   * selects is captured from the stream for accurate cost attribution.
    */
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
     const provider = PROVIDER_IDS.CLAUDE_AGENT_SDK;
@@ -116,36 +130,18 @@ export class ClaudeAgentProvider extends BaseProvider {
     ];
   }
 
-  /** Build the child environment, stripping nested-session leakage. */
-  private buildEnv(): Record<string, string> {
-    const env: Record<string, string> = {};
-    const source = typeof process !== "undefined" ? process.env : {};
-    for (const [key, value] of Object.entries(source)) {
-      if (value === undefined) continue;
-      if (NESTED_SESSION_ENV.test(key)) continue;
-      env[key] = value;
+  /** Resolve the SDK `query`, lazily importing it off the Node-only package. */
+  private async loadQuery(): Promise<ClaudeQueryFn> {
+    if (this.injectedQueryFn) return this.injectedQueryFn;
+    try {
+      const mod = await import("@anthropic-ai/claude-agent-sdk");
+      return mod.query as unknown as ClaudeQueryFn;
+    } catch (err) {
+      throw new Error(
+        "ClaudeAgentProvider requires Node — @anthropic-ai/claude-agent-sdk " +
+          `could not be loaded: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
-    return env;
-  }
-
-  /** CLI args for a single-turn, tool-free print invocation. */
-  private buildArgs(model: string, systemPrompt: string): string[] {
-    const args = [
-      "-p",
-      "--output-format",
-      "stream-json",
-      "--verbose",
-      "--include-partial-messages",
-      // An explicit empty allowlist permits no tools — pure LLM behaviour.
-      "--allowedTools",
-      "",
-      "--max-turns",
-      "1",
-      "--system-prompt",
-      systemPrompt
-    ];
-    if (model) args.push("--model", model);
-    return args;
   }
 
   override async *generateMessages(args: {
@@ -161,176 +157,217 @@ export class ClaudeAgentProvider extends BaseProvider {
     frequencyPenalty?: number;
     audio?: Record<string, unknown>;
     threadId?: string | null;
+    providerSession?: ProviderSession | null;
     onToolCall?: (
       name: string,
       args: Record<string, unknown>
     ) => Promise<string>;
     signal?: AbortSignal;
   }): AsyncGenerator<ProviderStreamItem> {
-    if (!this.spawnFn) {
-      throw new Error(
-        "ClaudeAgentProvider requires Node — node:child_process is unavailable"
-      );
+    const systemPrompt = extractSystemPrompt(args.messages);
+    const systemHash = hashSystemPrompt(systemPrompt);
+    const threadId = args.threadId ?? null;
+
+    // Source of truth is the token threaded in from the persisted assistant
+    // message; the in-memory cache is a fallback for same-process turns.
+    const prior =
+      args.providerSession ??
+      (threadId ? this.sessions.get(threadId) ?? null : null);
+
+    const canResume =
+      prior != null &&
+      prior.providerId === this.provider &&
+      prior.model === args.model &&
+      (prior.systemHash == null || prior.systemHash === systemHash) &&
+      args.messages.length > prior.checkpoint;
+
+    // RESUME is best-effort: a session file may have been pruned/expired. If the
+    // resume query fails *before* any content reached the consumer, fall back to
+    // a fresh session; if it fails mid-stream we surface the error instead.
+    const emitted = { content: false };
+    if (canResume && prior) {
+      const delta = buildResumeDelta(args.messages, prior.checkpoint);
+      try {
+        yield* this.runTurn(args, {
+          prompt: delta,
+          resume: prior.token,
+          systemPrompt,
+          systemHash,
+          threadId,
+          emitted
+        });
+        return;
+      } catch (err) {
+        if (emitted.content) throw err;
+        log.warn("Claude session resume failed; starting fresh", {
+          error: err instanceof Error ? err.message : String(err)
+        });
+      }
     }
 
-    const systemPrompt = extractSystemPrompt(args.messages);
-    const prompt = buildPrompt(args.messages);
-    const cliArgs = this.buildArgs(args.model, systemPrompt);
-
-    log.debug("Claude CLI request", {
-      executable: this.executablePath,
-      model: args.model
-    });
-
-    this.recordRequestPayload({
-      executable: this.executablePath,
-      args: cliArgs,
-      model: args.model,
+    yield* this.runTurn(args, {
+      prompt: buildFreshPrompt(args.messages),
+      resume: undefined,
       systemPrompt,
-      prompt
+      systemHash,
+      threadId,
+      emitted
     });
-    const child = this.spawnFn(this.executablePath, cliArgs, {
-      env: this.buildEnv(),
-      stdio: ["pipe", "pipe", "pipe"]
-    });
+  }
 
-    const onAbort = () => child.kill("SIGTERM");
+  /** Drive one SDK `query` turn and translate its messages into stream items. */
+  private async *runTurn(
+    args: {
+      model: string;
+      messages: Message[];
+      maxTurns?: number;
+      signal?: AbortSignal;
+    },
+    plan: {
+      prompt: string;
+      resume: string | undefined;
+      systemPrompt: string;
+      systemHash: string;
+      threadId: string | null;
+      emitted: { content: boolean };
+    }
+  ): AsyncGenerator<ProviderStreamItem> {
+    const queryFn = await this.loadQuery();
+
+    // Cancellation: the SDK stops the underlying query when its AbortController
+    // fires. Bridge the caller's signal onto a fresh controller per turn.
+    const abortController = new AbortController();
+    const onAbort = () => abortController.abort();
     if (args.signal) {
-      if (args.signal.aborted) onAbort();
+      if (args.signal.aborted) abortController.abort();
       else args.signal.addEventListener("abort", onAbort, { once: true });
     }
 
-    // A spawn failure (e.g. `claude` not installed) surfaces as an 'error'
-    // event; capture it so we can throw a clear message after the stream ends.
-    let spawnError: Error | null = null;
-    child.on("error", (err: NodeJS.ErrnoException) => {
-      spawnError =
-        err.code === "ENOENT"
-          ? new Error(
-              `claude CLI not found (looked for "${this.executablePath}"). ` +
-                `Install @anthropic-ai/claude-code or set ${CLAUDE_EXECUTABLE_ENV}.`
-            )
-          : err;
+    const options: Options = {
+      systemPrompt: plan.systemPrompt,
+      // Pass aliases ("sonnet"/"opus"/"haiku") straight through to the SDK.
+      model: args.model || undefined,
+      maxTurns: args.maxTurns ?? 1,
+      // Pure LLM, parity with the previous CLI invocation.
+      allowedTools: [],
+      // Do NOT load repo .claude / CLAUDE.md / skills.
+      settingSources: [],
+      // Never block on an interactive permission prompt.
+      permissionMode: "dontAsk",
+      includePartialMessages: true,
+      // Setting env REPLACES the child env, so spread process.env minus the
+      // nested-session leakage. Preserves PATH/HOME/ANTHROPIC_BASE_URL/proxies.
+      env: buildChildEnv(),
+      abortController,
+      ...(plan.resume ? { resume: plan.resume } : {})
+    };
+
+    // Log the exact wire body (sans the non-serializable AbortController and the
+    // full env, which can carry secrets) so the request-log UI shows what was
+    // sent without leaking the environment.
+    this.recordRequestPayload({
+      prompt: plan.prompt,
+      resume: plan.resume ?? null,
+      options: { ...options, abortController: undefined, env: undefined }
     });
 
-    child.stdin.end(prompt);
-
-    let stderr = "";
-    child.stderr.setEncoding("utf8");
-    child.stderr.on("data", (d: string) => {
-      stderr += d;
+    log.debug("Claude Agent SDK request", {
+      model: args.model,
+      resume: Boolean(plan.resume)
     });
 
-    const exit = new Promise<number | null>((resolve) => {
-      child.on("close", (code) => resolve(code));
-    });
+    let resolvedModel = args.model;
+    // When partial deltas stream, we render from them and skip the final
+    // assistant message to avoid duplication; if a build omits partials we fall
+    // back to the final message's content blocks.
+    let streamedFromPartials = false;
 
     try {
-      let resolvedModel = args.model;
-      let buffer = "";
-      child.stdout.setEncoding("utf8");
-
-      for await (const text of child.stdout as AsyncIterable<string>) {
-        buffer += text;
-        let nl: number;
-        while ((nl = buffer.indexOf("\n")) !== -1) {
-          const line = buffer.slice(0, nl);
-          buffer = buffer.slice(nl + 1);
-          for (const item of this.consumeLine(line, resolvedModel, (m) => {
-            resolvedModel = m;
-          })) {
-            yield item;
+      for await (const msg of queryFn({ prompt: plan.prompt, options })) {
+        if (msg.type === "system" && msg.subtype === "init") {
+          // Capture the session and surface it immediately so a streaming
+          // consumer can persist it onto the assistant message it creates.
+          if (typeof msg.model === "string" && msg.model) resolvedModel = msg.model;
+          if (plan.threadId) {
+            const session: ProviderSession = {
+              providerId: this.provider,
+              model: args.model,
+              token: msg.session_id,
+              checkpoint: args.messages.length,
+              systemHash: plan.systemHash
+            };
+            this.sessions.set(plan.threadId, session);
+            yield { type: "session", session };
           }
+          continue;
+        }
+
+        if (msg.type === "stream_event") {
+          const captured = capturedModelFromPartial(msg);
+          if (captured) resolvedModel = captured;
+          const delta = partialDelta(msg);
+          if (delta?.text != null) {
+            streamedFromPartials = true;
+            plan.emitted.content = true;
+            yield { type: "chunk", content: delta.text, done: false } as Chunk;
+          } else if (delta?.thinking != null) {
+            streamedFromPartials = true;
+            plan.emitted.content = true;
+            yield {
+              type: "chunk",
+              content: delta.thinking,
+              done: false,
+              thinking: true
+            } as Chunk;
+          }
+          continue;
+        }
+
+        if (msg.type === "assistant") {
+          const m = (msg as SDKAssistantMessage).message;
+          if (m && typeof m.model === "string" && m.model) resolvedModel = m.model;
+          // Fallback only: no partials arrived, so render text/thinking from the
+          // final content blocks — kept strictly separate, never merged.
+          if (!streamedFromPartials) {
+            for (const block of finalBlocks(msg)) {
+              plan.emitted.content = true;
+              yield block.thinking
+                ? {
+                    type: "chunk",
+                    content: block.content,
+                    done: false,
+                    thinking: true
+                  }
+                : { type: "chunk", content: block.content, done: false };
+            }
+          }
+          continue;
+        }
+
+        if (msg.type === "result") {
+          if (msg.subtype === "success") {
+            this.trackResultUsage(msg, resolvedModel);
+            yield { type: "chunk", content: "", done: true } as Chunk;
+          } else {
+            throw resultError(msg);
+          }
+          continue;
         }
       }
-      // Flush any trailing line the stream didn't newline-terminate.
-      for (const item of this.consumeLine(buffer, resolvedModel, (m) => {
-        resolvedModel = m;
-      })) {
-        yield item;
-      }
-
-      const code = await exit;
-      if (spawnError) throw spawnError;
-      if (code !== 0 && code !== null) {
-        throw new Error(
-          `claude CLI exited with code ${code}${stderr ? `: ${stderr.slice(0, 500)}` : ""}`
-        );
-      }
+    } catch (err) {
+      // The query can reject (auth failure, missing session, spawn error). Never
+      // collapse to a generic string — surface the real message.
+      if (args.signal?.aborted) return;
+      throw err instanceof Error ? err : new Error(String(err));
     } finally {
       if (args.signal) args.signal.removeEventListener("abort", onAbort);
-      if (child.exitCode === null) child.kill("SIGTERM");
     }
   }
 
-  /** Parse one JSON line and translate it, updating the resolved model id. */
-  private *consumeLine(
-    line: string,
-    model: string,
-    setModel: (m: string) => void
-  ): Generator<ProviderStreamItem> {
-    if (!line.trim()) return;
-    let event: Record<string, unknown>;
-    try {
-      event = JSON.parse(line) as Record<string, unknown>;
-    } catch {
-      return;
-    }
-    const captured = captureResolvedModel(event);
-    if (captured) setModel(captured);
-    yield* this.handleEvent(event, captured ?? model);
-  }
-
-  /** Map one parsed CLI message to zero or more cross-provider stream items. */
-  private *handleEvent(
-    event: Record<string, unknown>,
-    model: string
-  ): Generator<ProviderStreamItem> {
-    const type = typeof event.type === "string" ? event.type : "";
-
-    if (type === "stream_event") {
-      const inner = event.event as Record<string, unknown> | undefined;
-      const innerType = typeof inner?.type === "string" ? inner.type : "";
-      if (innerType === "content_block_delta") {
-        const delta = inner?.delta as Record<string, unknown> | undefined;
-        const deltaType = typeof delta?.type === "string" ? delta.type : "";
-        if (deltaType === "text_delta" && typeof delta?.text === "string") {
-          yield { type: "chunk", content: delta.text, done: false } as Chunk;
-        } else if (
-          deltaType === "thinking_delta" &&
-          typeof delta?.thinking === "string"
-        ) {
-          yield {
-            type: "chunk",
-            content: delta.thinking,
-            done: false,
-            thinking: true
-          } as Chunk;
-        }
-      }
-      return;
-    }
-
-    if (type === "result") {
-      if (event.is_error) {
-        const detail =
-          (typeof event.result === "string" && event.result) ||
-          (event.api_error_status != null
-            ? `api status ${String(event.api_error_status)}`
-            : "claude CLI reported an error");
-        throw new Error(detail);
-      }
-      this.trackResultUsage(event, model);
-      yield { type: "chunk", content: "", done: true } as Chunk;
-    }
-  }
-
-  /** Record token usage from the terminal `result` message. */
-  private trackResultUsage(
-    event: Record<string, unknown>,
-    model: string
-  ): void {
-    const usage = event.usage as Record<string, unknown> | undefined;
+  /** Record token usage from the terminal success `result` message. */
+  private trackResultUsage(msg: SDKResultMessage, model: string): void {
+    if (msg.subtype !== "success") return;
+    const usage = msg.usage;
     if (!usage) return;
     const input = num(usage.input_tokens);
     const cacheRead = num(usage.cache_read_input_tokens);
@@ -356,6 +393,7 @@ export class ClaudeAgentProvider extends BaseProvider {
     presencePenalty?: number;
     frequencyPenalty?: number;
     threadId?: string | null;
+    providerSession?: ProviderSession | null;
     onToolCall?: (
       name: string,
       args: Record<string, unknown>
@@ -365,6 +403,7 @@ export class ClaudeAgentProvider extends BaseProvider {
     let content = "";
     const toolCalls: ToolCall[] = [];
     for await (const item of this.generateMessages(args)) {
+      if (isProviderSessionUpdate(item)) continue;
       if ("args" in item) {
         toolCalls.push(item);
       } else if (!item.thinking && typeof item.content === "string") {
@@ -384,22 +423,92 @@ function num(value: unknown): number {
 }
 
 /**
- * The first `message_start` (or any assistant message) carries the concrete
- * dated model id the CLI resolved an alias to — use it for cost attribution.
+ * A copy of the current environment with nested-session leakage stripped, for
+ * the SDK's `options.env`. `ANTHROPIC_BASE_URL` and the `HTTP(S)_PROXY` vars are
+ * preserved (they are not matched by {@link NESTED_SESSION_ENV}) so API routing
+ * keeps working.
  */
-function captureResolvedModel(event: Record<string, unknown>): string | null {
-  if (event.type === "stream_event") {
-    const inner = event.event as Record<string, unknown> | undefined;
-    if (inner?.type === "message_start") {
-      const message = inner.message as Record<string, unknown> | undefined;
-      const m = message?.model;
-      if (typeof m === "string" && m && m !== "<synthetic>") return m;
-    }
+function buildChildEnv(): Record<string, string> {
+  const env: Record<string, string> = {};
+  const source = typeof process !== "undefined" ? process.env : {};
+  for (const [key, value] of Object.entries(source)) {
+    if (value === undefined) continue;
+    if (NESTED_SESSION_ENV.test(key)) continue;
+    env[key] = value;
   }
+  return env;
+}
+
+/** Stable, dependency-free 32-bit hash (FNV-1a) of the system prompt. */
+function hashSystemPrompt(prompt: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < prompt.length; i++) {
+    h ^= prompt.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16);
+}
+
+/** Pull a text/thinking delta out of a partial `stream_event`, if any. */
+function partialDelta(
+  msg: SDKPartialAssistantMessage
+): { text?: string; thinking?: string } | null {
+  const event = msg.event;
+  if (event.type !== "content_block_delta") return null;
+  const delta = event.delta;
+  if (delta.type === "text_delta") return { text: delta.text };
+  if (delta.type === "thinking_delta") return { thinking: delta.thinking };
   return null;
 }
 
-/** Flatten a message's content to plain text. */
+/** The concrete dated model id, captured from a partial `message_start`. */
+function capturedModelFromPartial(
+  msg: SDKPartialAssistantMessage
+): string | null {
+  const event = msg.event;
+  if (event.type !== "message_start") return null;
+  const model = event.message?.model;
+  return typeof model === "string" && model && model !== "<synthetic>"
+    ? model
+    : null;
+}
+
+/** Text/thinking blocks of a final assistant message, kept separate. */
+function finalBlocks(
+  msg: SDKAssistantMessage
+): Array<{ content: string; thinking: boolean }> {
+  const content = msg.message?.content;
+  if (!Array.isArray(content)) return [];
+  const out: Array<{ content: string; thinking: boolean }> = [];
+  for (const block of content) {
+    if (block.type === "text" && typeof block.text === "string") {
+      out.push({ content: block.text, thinking: false });
+    } else if (block.type === "thinking" && typeof block.thinking === "string") {
+      out.push({ content: block.thinking, thinking: true });
+    }
+  }
+  return out;
+}
+
+/** Build a descriptive Error from a non-success `result` message. */
+function resultError(msg: Extract<SDKResultMessage, { subtype: string }>): Error {
+  const parts: string[] = [`Claude Agent SDK query failed (${msg.subtype})`];
+  if ("errors" in msg && Array.isArray(msg.errors) && msg.errors.length) {
+    parts.push(msg.errors.join("; "));
+  } else if ("result" in msg && typeof msg.result === "string" && msg.result) {
+    parts.push(msg.result);
+  }
+  const denials = (msg as { permission_denials?: Array<{ tool_name?: string }> })
+    .permission_denials;
+  if (Array.isArray(denials) && denials.length) {
+    parts.push(
+      `permission denied: ${denials.map((d) => d.tool_name ?? "?").join(", ")}`
+    );
+  }
+  return new Error(parts.join(": "));
+}
+
+/** Flatten a message's content to plain text (text blocks only). */
 function textOf(content: Message["content"]): string {
   if (content == null) return "";
   if (typeof content === "string") return content;
@@ -420,21 +529,51 @@ function extractSystemPrompt(messages: Message[]): string {
 }
 
 /**
- * Render the non-system conversation as the CLI prompt. A lone user turn is
- * sent verbatim; multi-turn history is labelled so the model reads it as a
- * transcript.
+ * The new turn(s) to send when resuming: only the user messages added since the
+ * session's checkpoint. Assistant messages in the slice were produced by the
+ * resumed session itself, so they are already known to it and must not be
+ * replayed (re-feeding them would present the model its own prior answer as
+ * user input).
  */
-function buildPrompt(messages: Message[]): string {
+function buildResumeDelta(messages: Message[], checkpoint: number): string {
+  return messages
+    .slice(checkpoint)
+    .filter((m) => m.role === "user")
+    .map((m) => textOf(m.content))
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+/**
+ * The prompt for a fresh session. A lone user turn is sent verbatim. When there
+ * is pre-existing FOREIGN history (a cold thread, a model switch, or an
+ * edited/branched conversation) we prime context ONCE with a single delimited
+ * user message instead of rebuilding a `Human:/Assistant:` transcript — the SDK
+ * cannot import external assistant turns, so this is deliberate context priming,
+ * not a faithful reconstruction. Only final assistant TEXT is included
+ * (thinking is stripped by {@link textOf}).
+ */
+function buildFreshPrompt(messages: Message[]): string {
   const convo = messages.filter((m) => m.role !== "system");
+  if (convo.length === 0) return "";
   if (convo.length === 1 && convo[0].role === "user") {
     return textOf(convo[0].content);
   }
-  return convo
+
+  const last = convo[convo.length - 1];
+  const newTurn = last.role === "user" ? textOf(last.content) : "";
+  const prior = last.role === "user" ? convo.slice(0, -1) : convo;
+  const transcript = prior
     .map((m) => {
-      const label = m.role === "assistant" ? "Assistant" : "Human";
       const text = textOf(m.content);
-      return text ? `${label}: ${text}` : "";
+      if (!text) return "";
+      return `${m.role === "assistant" ? "Assistant" : "User"}: ${text}`;
     })
     .filter(Boolean)
     .join("\n\n");
+
+  const primed = transcript
+    ? `<conversation_so_far>\n${transcript}\n</conversation_so_far>`
+    : "";
+  return [primed, newTurn].filter(Boolean).join("\n\n");
 }
