@@ -57,8 +57,8 @@ type CreateAssetFileOptions = {
 
 function isDataFrame(value: unknown): value is DataFrame {
   if (value === null || typeof value !== "object") return false;
-  const obj = value as Record<string, unknown>;
-  return Array.isArray(obj.columns) && Array.isArray(obj.data);
+  return "columns" in value && Array.isArray(value.columns) &&
+    "data" in value && Array.isArray(value.data);
 }
 
 function isTypedOutput(output: unknown): output is TypedOutput {
@@ -184,23 +184,24 @@ const toUint8Array = (input: unknown): Uint8Array => {
     return new Uint8Array(input);
   }
   if (typeof input === "object") {
-    const record = input as Record<string, unknown>;
-    if (record.data instanceof Uint8Array) return record.data;
-    if (record.data instanceof ArrayBuffer) return new Uint8Array(record.data);
-    if (ArrayBuffer.isView(record.data)) {
-      return new Uint8Array(
-        record.data.buffer.slice(record.data.byteOffset, record.data.byteOffset + record.data.byteLength)
-      );
+    if ("data" in input) {
+      if (input.data instanceof Uint8Array) return input.data;
+      if (input.data instanceof ArrayBuffer) return new Uint8Array(input.data);
+      if (ArrayBuffer.isView(input.data)) {
+        return new Uint8Array(
+          input.data.buffer.slice(input.data.byteOffset, input.data.byteOffset + input.data.byteLength)
+        );
+      }
     }
-    if ("content" in record) {
-      return toUint8Array(record.content);
+    if ("content" in input) {
+      return toUint8Array(input.content);
     }
     // Fallback: treat as a sparse byte map. Only safe when all values are
     // numbers; otherwise we'd silently produce garbage (e.g. for `ExtData`
     // wrappers that hold a non-binary `.data`).
-    const values = Object.values(record);
-    if (values.length > 0 && values.every((v) => typeof v === "number")) {
-      return new Uint8Array(values as number[]);
+    const values = Object.values(input as Record<string, unknown>);
+    if (values.length > 0 && values.every((v): v is number => typeof v === "number")) {
+      return new Uint8Array(values);
     }
     return new Uint8Array();
   }
@@ -619,11 +620,10 @@ const unwrapNamedOutputs = (output: AssetOutput): AssetOutput | AssetOutput[] =>
   if (!output || typeof output !== "object" || Array.isArray(output)) {
     return output;
   }
-  const record = output as Record<string, unknown>;
-  if ("type" in record) {
-    return output; // already a typed output
+  if ("type" in output) {
+    return output;
   }
-  const values = Object.values(record);
+  const values = Object.values(output as Record<string, unknown>);
   if (values.length === 0) {
     return output;
   }

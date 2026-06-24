@@ -54,7 +54,7 @@ export const outputValueToItem = (
   const type = typeof value.type === "string" ? value.type : undefined;
   if (!type) return null;
   return {
-    ...(value as Record<string, unknown>),
+    ...value,
     type,
     ...(assetId ? { asset_id: assetId } : {})
   } as CollectionItem;
