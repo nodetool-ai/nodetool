@@ -37,7 +37,10 @@ import type {
   TextToImageParams,
   ToolCall
 } from "./types.js";
-import { isProviderSessionUpdate } from "./types.js";
+import {
+  isProviderSessionUpdate,
+  isProviderMessageEvent
+} from "./types.js";
 
 const log = createLogger("nodetool.runtime.codex");
 
@@ -564,7 +567,7 @@ export class CodexProvider extends OpenAIProvider {
     let content = "";
     const toolCalls: ToolCall[] = [];
     for await (const item of this.generateMessages(args)) {
-      if (isProviderSessionUpdate(item)) continue;
+      if (isProviderSessionUpdate(item) || isProviderMessageEvent(item)) continue;
       if ("args" in item) {
         toolCalls.push(item);
       } else if (!item.thinking && typeof item.content === "string") {

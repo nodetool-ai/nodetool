@@ -300,7 +300,22 @@ export interface ProviderSessionUpdate {
   session: ProviderSession;
 }
 
-export type ProviderStreamItem = Chunk | ToolCall | ProviderSessionUpdate;
+/**
+ * A finalized conversation message produced during an agentic loop
+ * ({@link BaseProvider.generateLoop}) — an assistant turn (text + tool calls) or
+ * a tool result. The harness persists/collects these; live text still arrives
+ * as {@link Chunk}s for incremental display. Not a wire message.
+ */
+export interface ProviderMessageEvent {
+  type: "message";
+  message: Message;
+}
+
+export type ProviderStreamItem =
+  | Chunk
+  | ToolCall
+  | ProviderSessionUpdate
+  | ProviderMessageEvent;
 
 /**
  * Narrow a stream item to a {@link ProviderSessionUpdate}. `Chunk` carries
@@ -315,6 +330,18 @@ export function isProviderSessionUpdate(
     item !== null &&
     "type" in item &&
     (item as { type?: unknown }).type === "session"
+  );
+}
+
+/** Narrow a stream item to a {@link ProviderMessageEvent}. */
+export function isProviderMessageEvent(
+  item: ProviderStreamItem
+): item is ProviderMessageEvent {
+  return (
+    typeof item === "object" &&
+    item !== null &&
+    "type" in item &&
+    (item as { type?: unknown }).type === "message"
   );
 }
 

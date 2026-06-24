@@ -4,6 +4,7 @@ import {
   runTool,
   defaultSerializer
 } from "../src/message-processor.js";
+import { BaseProvider } from "@nodetool-ai/runtime";
 import type {
   Message,
   ToolCall,
@@ -73,6 +74,8 @@ function createMockProvider(sequences: ProviderStreamItem[][]) {
     async *generateMessagesTraced(...args: any[]) {
       yield* (this as any).generateMessages(...args);
     },
+    // Exercise the real default agent loop against the scripted turns.
+    generateLoop: BaseProvider.prototype.generateLoop,
     async generateMessageTraced(...args: any[]) {
       return (this as any).generateMessage(...args);
     },

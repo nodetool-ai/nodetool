@@ -35,6 +35,7 @@ import type {
 } from "@anthropic-ai/claude-agent-sdk";
 import { BaseProvider } from "./base-provider.js";
 import {
+  isProviderMessageEvent,
   isProviderSessionUpdate,
   type LanguageModel,
   type Message,
@@ -427,7 +428,7 @@ export class ClaudeAgentProvider extends BaseProvider {
     let content = "";
     const toolCalls: ToolCall[] = [];
     for await (const item of this.generateMessages(args)) {
-      if (isProviderSessionUpdate(item)) continue;
+      if (isProviderSessionUpdate(item) || isProviderMessageEvent(item)) continue;
       if ("args" in item) {
         toolCalls.push(item);
       } else if (!item.thinking && typeof item.content === "string") {
