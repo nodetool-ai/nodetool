@@ -24,9 +24,9 @@ export const getOutputFromResult = (result: unknown): unknown => {
         item &&
         typeof item === "object" &&
         "output" in item &&
-        (item as Record<string, unknown>).output !== undefined
+        item.output !== undefined
       ) {
-        return (item as Record<string, unknown>).output;
+        return item.output;
       }
       return item;
     });
@@ -42,9 +42,9 @@ export const getOutputFromResult = (result: unknown): unknown => {
   if (
     typeof result === "object" &&
     "output" in result &&
-    (result as Record<string, unknown>).output !== undefined
+    result.output !== undefined
   ) {
-    return (result as Record<string, unknown>).output;
+    return result.output;
   }
 
   return result;
@@ -73,26 +73,27 @@ export const getCopySource = (value: unknown): unknown => {
   if (
     typeof value === "object" &&
     "type" in value &&
-    (value as Record<string, unknown>).type === "text" &&
-    typeof (value as Record<string, unknown>).data === "string"
+    value.type === "text" &&
+    "data" in value &&
+    typeof value.data === "string"
   ) {
-    return (value as Record<string, unknown>).data;
+    return value.data;
   }
 
   if (
     typeof value === "object" &&
     "output" in value &&
-    (value as Record<string, unknown>).output !== undefined
+    value.output !== undefined
   ) {
-    return getCopySource((value as Record<string, unknown>).output);
+    return getCopySource(value.output);
   }
 
   if (
     typeof value === "object" &&
     "value" in value &&
-    (value as Record<string, unknown>).value !== undefined
+    value.value !== undefined
   ) {
-    return getCopySource((value as Record<string, unknown>).value);
+    return getCopySource(value.value);
   }
 
   return value;
