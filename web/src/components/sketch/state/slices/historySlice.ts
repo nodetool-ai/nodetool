@@ -53,6 +53,23 @@ export function resolveLayerData(
 }
 
 /**
+ * Resolve the layer structure at a given history index. Selection-only
+ * entries don't capture structure (`layerStructure: []`) and never change
+ * it, so walk backward to the nearest entry that did capture one.
+ */
+function resolveLayerStructure(
+  history: HistoryEntry[],
+  upToIndex: number
+): LayerStructureSnapshot[] {
+  for (let i = upToIndex; i >= 0; i--) {
+    if (history[i].layerStructure.length > 0) {
+      return history[i].layerStructure;
+    }
+  }
+  return [];
+}
+
+/**
  * Build a LayerStructureSnapshot array from current document layers.
  */
 function captureLayerStructure(layers: readonly Layer[]): LayerStructureSnapshot[] {
@@ -81,6 +98,87 @@ function captureDocumentCanvas(
   canvas: SketchDocument["canvas"]
 ): SketchDocument["canvas"] {
   return { ...canvas };
+}
+
+/**
+ * Whether the live document is *ahead* of the snapshot stored at `index` —
+ * i.e. there are uncommitted edits since that checkpoint.
+ *
+ * `pushHistory` is called with two conventions across the editor:
+ *  - push-after-mutate (layer ops): the entry already reflects the live state.
+ *  - push-before-mutate (strokes, transforms): the entry holds the *pre*-edit
+ *    state and the live document is one edit ahead.
+ *
+ * `undo` uses this to decide whether it must first append a "current state"
+ * tip entry (so redo can return to the uncommitted edit) and step back from
+ * that tip, versus simply stepping back one checkpoint. Comparing the actual
+ * state — not a convention flag — keeps undo correct regardless of how the
+ * caller pushed. Short-circuits on the first difference; the common stroke
+ * case is caught immediately by the layer-data check.
+ */
+function isLiveStateAhead(
+  document: SketchDocument,
+  history: HistoryEntry[],
+  index: number
+): boolean {
+  const entry = history[index];
+  const canvas = document.canvas;
+  const ec = entry.documentCanvas;
+  if (
+    ec &&
+    (canvas.width !== ec.width ||
+      canvas.height !== ec.height ||
+      canvas.backgroundColor !== ec.backgroundColor)
+  ) {
+    return true;
+  }
+  if (document.activeLayerId !== entry.activeLayerId) {
+    return true;
+  }
+  if ((document.maskLayerId ?? null) !== (entry.maskLayerId ?? null)) {
+    return true;
+  }
+
+  // Raster data — the common case for strokes/fills/paste.
+  for (const layer of document.layers) {
+    const stored = resolveLayerData(history, index, layer.id);
+    if ((layer.data ?? null) !== (stored ?? null)) {
+      return true;
+    }
+  }
+
+  // Layer structure (order + metadata) — the case for transforms, opacity,
+  // visibility, etc. Selection isn't compared: selection edits always commit
+  // via a push, so they never leave an uncommitted tip.
+  const storedStructure = resolveLayerStructure(history, index);
+  const liveStructure = captureLayerStructure(document.layers);
+  if (storedStructure.length !== liveStructure.length) {
+    return true;
+  }
+  return JSON.stringify(liveStructure) !== JSON.stringify(storedStructure);
+}
+
+/**
+ * Trim `history` (mutated in place) to `MAX_HISTORY_SIZE`, merging the dropped
+ * baseline's layer data forward so reconstruction stays correct. Returns the
+ * number of entries dropped from the front (0 or 1) so callers can adjust the
+ * active index.
+ */
+function trimHistoryInPlace(history: HistoryEntry[]): number {
+  if (history.length <= MAX_HISTORY_SIZE) {
+    return 0;
+  }
+  const dropped = history.shift()!;
+  const oldest = history[0];
+  // The dropped entry (former baseline) may hold data for layers absent from
+  // the new oldest — e.g. layers removed between the two. Spread to avoid
+  // mutating the existing entry (Zustand state must be immutable).
+  history[0] = {
+    ...oldest,
+    layerSnapshots: { ...dropped.layerSnapshots, ...oldest.layerSnapshots },
+    changedLayerIds: undefined
+  };
+  return 1;
 }
 
 export interface HistorySlice {
@@ -170,21 +268,7 @@ export const createHistorySlice: StateCreator<
         })();
 
     newHistory.push(entry);
-
-    // Trim to max size — merge dropped entry's data into the new oldest
-    if (newHistory.length > MAX_HISTORY_SIZE) {
-      const dropped = newHistory.shift()!;
-      const oldest = newHistory[0];
-      // Always merge dropped data forward to maintain the baseline invariant.
-      // The dropped entry (former baseline) may have data for layers not in
-      // the new oldest — e.g. layers that were removed between the two entries.
-      // Spread to avoid mutating the existing entry (Zustand state must be immutable).
-      newHistory[0] = {
-        ...oldest,
-        layerSnapshots: { ...dropped.layerSnapshots, ...oldest.layerSnapshots },
-        changedLayerIds: undefined
-      };
-    }
+    trimHistoryInPlace(newHistory);
 
     set({
       history: newHistory,
@@ -194,14 +278,25 @@ export const createHistorySlice: StateCreator<
 
   undo: (layerCanvasSnapshots?: Record<string, HTMLCanvasElement | null>) => {
     const state = get();
-    if (state.historyIndex <= 0) {
+    if (state.historyIndex < 0) {
       return null;
     }
 
-    // When undoing from the tip of history, append a full snapshot of
-    // the current state so that redo can restore it later.
+    // Detect an uncommitted edit ahead of the current checkpoint. This happens
+    // with push-before-mutate callers (strokes, transforms): `historyIndex`
+    // points at the pre-edit snapshot while the live document is one edit
+    // ahead. Only the tip can be dirty — undo/redo and push-after callers
+    // always leave the live state equal to the entry at `historyIndex`.
+    const dirtyTip =
+      state.historyIndex === state.history.length - 1 &&
+      isLiveStateAhead(state.document, state.history, state.historyIndex);
+
     let history = state.history;
-    if (state.historyIndex === state.history.length - 1) {
+    let newIndex: number;
+    if (dirtyTip) {
+      // Append a full snapshot of the live state so redo can return to it,
+      // then step back from that tip to the current checkpoint (a single
+      // step back from the live edit — not two).
       const tipSnapshot: Record<string, string | null> = {};
       for (const layer of state.document.layers) {
         tipSnapshot[layer.id] = layer.data;
@@ -219,9 +314,16 @@ export const createHistorySlice: StateCreator<
         timestamp: Date.now()
       };
       history = [...state.history, tipEntry];
+      const dropped = trimHistoryInPlace(history);
+      newIndex = state.historyIndex - dropped;
+    } else {
+      // Live state already matches the tip — step back one checkpoint.
+      if (state.historyIndex <= 0) {
+        return null;
+      }
+      newIndex = state.historyIndex - 1;
     }
 
-    const newIndex = state.historyIndex - 1;
     const entry = history[newIndex];
     if (!entry) {
       return null;
@@ -324,6 +426,18 @@ export const createHistorySlice: StateCreator<
     return resolvedEntry;
   },
 
-  canUndo: () => get().historyIndex > 0,
+  canUndo: () => {
+    const state = get();
+    if (state.historyIndex > 0) {
+      return true;
+    }
+    // A single checkpoint with an uncommitted edit ahead of it (e.g. the first
+    // stroke on a fresh document) is still undoable — back to that checkpoint.
+    return (
+      state.historyIndex === 0 &&
+      state.historyIndex === state.history.length - 1 &&
+      isLiveStateAhead(state.document, state.history, 0)
+    );
+  },
   canRedo: () => get().historyIndex < get().history.length - 1
 });

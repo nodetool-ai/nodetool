@@ -5,6 +5,7 @@
 
 import { act } from "@testing-library/react";
 import { useSketchStore } from "../state/useSketchStore";
+import { MAX_HISTORY_SIZE } from "../types";
 
 beforeEach(() => {
   act(() => {
@@ -18,11 +19,12 @@ describe("Phase 2 Fixes", () => {
   //    snapshot so redo can restore it.
   // ---------------------------------------------------------------
   describe("history redo fix (tip-entry append on undo)", () => {
-    it("redo restores the most-recent state after undo from the tip", () => {
+    it("undo from the tip steps back exactly one and redo returns to the live edit", () => {
       const layerId = useSketchStore.getState().document.layers[0].id;
 
-      // Push two history entries with different layer data.
-      // pushHistory snapshots the CURRENT state, then we mutate.
+      // Push-before-mutate (stroke convention): pushHistory snapshots the
+      // CURRENT state, then we mutate — so the live document is one edit ahead
+      // of the last checkpoint.
       act(() => {
         useSketchStore.getState().pushHistory("action1");
         useSketchStore
@@ -34,36 +36,26 @@ describe("Phase 2 Fixes", () => {
           .updateLayerData(layerId, "data:image/png;base64,action2pixels");
       });
 
-      // Verify baseline: 2 entries, index at 1, layer has action2 data
+      // Verify baseline: 2 entries, index at 1, layer has action2 (live) data
       expect(useSketchStore.getState().history).toHaveLength(2);
       expect(useSketchStore.getState().historyIndex).toBe(1);
       expect(useSketchStore.getState().document.layers[0].data).toBe(
         "data:image/png;base64,action2pixels"
       );
 
-      // Undo from the tip – should append a tip entry
+      // Undo from the dirty tip → appends a "current state" tip so redo can
+      // return, and steps back EXACTLY one edit to action1pixels (not two).
       act(() => {
         useSketchStore.getState().undo();
       });
-
       expect(useSketchStore.getState().history).toHaveLength(3);
-      expect(useSketchStore.getState().historyIndex).toBe(0);
-
-      // The appended tip entry should be labelled "current state"
-      expect(useSketchStore.getState().history[2].action).toBe(
-        "current state"
-      );
-
-      // First redo → restores entry at index 1 (action2 snapshot captured action1 data)
-      act(() => {
-        useSketchStore.getState().redo();
-      });
       expect(useSketchStore.getState().historyIndex).toBe(1);
+      expect(useSketchStore.getState().history[2].action).toBe("current state");
       expect(useSketchStore.getState().document.layers[0].data).toBe(
         "data:image/png;base64,action1pixels"
       );
 
-      // Second redo → restores the tip entry (action2 live state)
+      // Redo → returns to the live edit (action2pixels)
       act(() => {
         useSketchStore.getState().redo();
       });
@@ -105,10 +97,10 @@ describe("Phase 2 Fixes", () => {
       act(() => {
         useSketchStore.getState().undo();
       });
-      // undo from tip when historyIndex === history.length - 1 → appends another tip entry
-      // However the tip data hasn't changed so it still works
+      // The tip now matches the live state (redo restored it), so this undo is
+      // a clean step back — it does NOT append another tip entry.
       const histLen = useSketchStore.getState().history.length;
-      expect(histLen).toBeGreaterThanOrEqual(3);
+      expect(histLen).toBe(3);
 
       // Redo all the way back
       while (useSketchStore.getState().canRedo()) {
@@ -121,29 +113,30 @@ describe("Phase 2 Fixes", () => {
       );
     });
 
-    it("undo from a non-tip position does not add an extra tip entry", () => {
+    it("undo over clean checkpoints does not append tip entries", () => {
+      // Three checkpoints with no uncommitted edit ahead of the live document
+      // (no data mutations between pushes). Each undo steps back one without
+      // growing history — no "current state" tips are appended.
       act(() => {
         useSketchStore.getState().pushHistory("x");
         useSketchStore.getState().pushHistory("y");
         useSketchStore.getState().pushHistory("z");
       });
 
-      // First undo from tip – adds tip entry (3 → 4)
       act(() => {
         useSketchStore.getState().undo();
       });
-      expect(useSketchStore.getState().history).toHaveLength(4);
+      expect(useSketchStore.getState().history).toHaveLength(3);
       expect(useSketchStore.getState().historyIndex).toBe(1);
 
-      // Second undo from index 1 (non-tip, since length=4) – should NOT add another entry
       act(() => {
         useSketchStore.getState().undo();
       });
-      expect(useSketchStore.getState().history).toHaveLength(4);
+      expect(useSketchStore.getState().history).toHaveLength(3);
       expect(useSketchStore.getState().historyIndex).toBe(0);
     });
 
-    it("new action after undo truncates the tip entry", () => {
+    it("new action after undo truncates the redo tip", () => {
       const layerId = useSketchStore.getState().document.layers[0].id;
 
       act(() => {
@@ -157,21 +150,22 @@ describe("Phase 2 Fixes", () => {
           .updateLayerData(layerId, "data:image/png;base64,second");
       });
 
-      // Undo from tip → appends tip entry (length 2 → 3)
+      // Undo from the dirty tip → appends "current state" (length 2 → 3) and
+      // lands at index 1 ("second" checkpoint = "first" pixels).
       act(() => {
         useSketchStore.getState().undo();
       });
       expect(useSketchStore.getState().history).toHaveLength(3);
+      expect(useSketchStore.getState().historyIndex).toBe(1);
 
-      // Push a new action – should truncate everything after current index (0)
+      // A new action truncates everything after the current index, dropping
+      // the "current state" redo tip.
       act(() => {
         useSketchStore.getState().pushHistory("branch");
       });
-
-      // History should now be [entry0, branchEntry], tip entry gone
-      expect(useSketchStore.getState().history).toHaveLength(2);
-      expect(useSketchStore.getState().history[1].action).toBe("branch");
-      expect(useSketchStore.getState().historyIndex).toBe(1);
+      expect(useSketchStore.getState().history).toHaveLength(3);
+      expect(useSketchStore.getState().history[2].action).toBe("branch");
+      expect(useSketchStore.getState().historyIndex).toBe(2);
     });
   });
 
@@ -244,6 +238,113 @@ describe("Phase 2 Fixes", () => {
         useSketchStore.getState().setActiveTool("fill");
       });
       expect(useSketchStore.getState().backgroundColor).toBe(originalBg);
+    });
+  });
+
+  // ---------------------------------------------------------------
+  // 4. Push-before-mutate (stroke) undo correctness — regressions for the
+  //    off-by-one, the un-undoable first stroke, and unbounded growth.
+  // ---------------------------------------------------------------
+  describe("stroke-convention undo (push-before-mutate)", () => {
+    // Mirrors handleStrokeStart: push the pre-stroke snapshot, then the stroke
+    // commits new pixels to the live layer.
+    const stroke = (layerId: string, label: string, data: string) => {
+      useSketchStore.getState().pushHistory(label);
+      useSketchStore.getState().updateLayerData(layerId, data);
+    };
+
+    it("the first stroke on a fresh document can be undone", () => {
+      const layerId = useSketchStore.getState().document.layers[0].id;
+      const blank = useSketchStore.getState().document.layers[0].data;
+
+      act(() => stroke(layerId, "s1", "data:image/png;base64,S1"));
+
+      // A single checkpoint with an uncommitted stroke ahead of it is undoable.
+      expect(useSketchStore.getState().historyIndex).toBe(0);
+      expect(useSketchStore.getState().canUndo()).toBe(true);
+
+      act(() => {
+        useSketchStore.getState().undo();
+      });
+      expect(useSketchStore.getState().document.layers[0].data).toBe(blank);
+
+      act(() => {
+        useSketchStore.getState().redo();
+      });
+      expect(useSketchStore.getState().document.layers[0].data).toBe(
+        "data:image/png;base64,S1"
+      );
+    });
+
+    it("each undo steps back exactly one stroke (no skipping)", () => {
+      const layerId = useSketchStore.getState().document.layers[0].id;
+      const blank = useSketchStore.getState().document.layers[0].data;
+
+      act(() => {
+        stroke(layerId, "s1", "data:image/png;base64,S1");
+        stroke(layerId, "s2", "data:image/png;base64,S2");
+        stroke(layerId, "s3", "data:image/png;base64,S3");
+      });
+      expect(useSketchStore.getState().document.layers[0].data).toBe(
+        "data:image/png;base64,S3"
+      );
+
+      const seen: (string | null)[] = [];
+      act(() => {
+        while (useSketchStore.getState().canUndo()) {
+          useSketchStore.getState().undo();
+          seen.push(useSketchStore.getState().document.layers[0].data);
+        }
+      });
+
+      // Three strokes → three undos, hitting every intermediate state in order.
+      expect(seen).toEqual([
+        "data:image/png;base64,S2",
+        "data:image/png;base64,S1",
+        blank
+      ]);
+
+      // Redo walks back up through the same ladder to the live edit.
+      act(() => {
+        while (useSketchStore.getState().canRedo()) {
+          useSketchStore.getState().redo();
+        }
+      });
+      expect(useSketchStore.getState().document.layers[0].data).toBe(
+        "data:image/png;base64,S3"
+      );
+    });
+
+    it("redo-to-tip then undo cycling does not grow history past the cap", () => {
+      const layerId = useSketchStore.getState().document.layers[0].id;
+      act(() => {
+        stroke(layerId, "s1", "data:image/png;base64,S1");
+        stroke(layerId, "s2", "data:image/png;base64,S2");
+      });
+
+      act(() => {
+        for (let i = 0; i < 60; i++) {
+          while (useSketchStore.getState().canRedo()) {
+            useSketchStore.getState().redo();
+          }
+          useSketchStore.getState().undo();
+        }
+      });
+
+      // The clean-tip check means redo-restored tips are not re-appended, so
+      // history stays bounded by the cap rather than growing per cycle.
+      expect(
+        useSketchStore.getState().history.length
+      ).toBeLessThanOrEqual(MAX_HISTORY_SIZE);
+
+      act(() => {
+        while (useSketchStore.getState().canRedo()) {
+          useSketchStore.getState().redo();
+        }
+      });
+      expect(useSketchStore.getState().document.layers[0].data).toBe(
+        "data:image/png;base64,S2"
+      );
     });
   });
 });
