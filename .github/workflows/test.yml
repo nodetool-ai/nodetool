@@ -46,6 +46,7 @@ jobs:
     name: Workflow Integration Tests
     needs: quality
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
       - name: Checkout code
@@ -61,6 +62,7 @@ jobs:
     name: Workflow Runner Browser E2E
     needs: quality
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
       - name: Checkout code
