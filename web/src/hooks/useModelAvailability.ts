@@ -6,7 +6,7 @@ import {
   ModelSelectorModel
 } from "../stores/ModelMenuStore";
 
-export interface ModelAvailability {
+interface ModelAvailability {
   /** Provider is enabled and (if required) its API key is configured. */
   available: boolean;
   providerEnabled: boolean;

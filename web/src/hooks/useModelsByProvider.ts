@@ -45,7 +45,7 @@ export interface ModelsByProviderResult<T> {
   refetch: () => Promise<void>;
 }
 
-export interface LanguageModelsByProviderResult extends ModelsByProviderResult<LanguageModel> {
+interface LanguageModelsByProviderResult extends ModelsByProviderResult<LanguageModel> {
   providerErrors: Array<{ provider: string; error: unknown }>;
   loadingProgress: { total: number; loaded: number; loading: number };
   allowedProviders: string[] | undefined;

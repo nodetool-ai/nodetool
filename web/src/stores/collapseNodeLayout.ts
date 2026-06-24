@@ -79,7 +79,7 @@ function readNodeWidthPx(node: Node<NodeData>): number | undefined {
   return undefined;
 }
 
-export type CollapseTogglePatches = {
+type CollapseTogglePatches = {
   data: Partial<NodeData>;
   node: Partial<Node<NodeData>>;
 };
