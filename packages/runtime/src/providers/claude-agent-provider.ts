@@ -27,12 +27,16 @@
 import { createLogger } from "@nodetool-ai/config";
 import { PROVIDER_IDS, type Chunk } from "@nodetool-ai/protocol";
 import type {
+  McpSdkServerConfigWithInstance,
   Options,
+  SdkMcpToolDefinition,
   SDKAssistantMessage,
   SDKMessage,
   SDKPartialAssistantMessage,
-  SDKResultMessage
+  SDKResultMessage,
+  SDKUserMessage
 } from "@anthropic-ai/claude-agent-sdk";
+import { z, type ZodTypeAny } from "zod";
 import { BaseProvider } from "./base-provider.js";
 import {
   isProviderMessageEvent,
@@ -71,6 +75,33 @@ export type ClaudeQueryFn = (params: {
   options?: Options;
 }) => AsyncIterable<SDKMessage>;
 
+/** The SDK `createSdkMcpServer` factory. Injectable for tests. */
+export type ClaudeCreateMcpServerFn = (opts: {
+  name: string;
+  version?: string;
+  tools: Array<SdkMcpToolDefinition<never>>;
+}) => McpSdkServerConfigWithInstance;
+
+/** MCP server name under which NodeTool's tools are exposed to the SDK. */
+const TOOL_SERVER_NAME = "nodetool_tools";
+const TOOL_PREFIX = `mcp__${TOOL_SERVER_NAME}__`;
+/** Default cap on internal agent turns when tools are in play. */
+const DEFAULT_TOOL_TURNS = 16;
+
+/** Per-turn behaviour selected by {@link ClaudeAgentProvider}'s two entry points. */
+interface TurnConfig {
+  /**
+   * Emit a {@link ProviderMessageEvent} for each finalized assistant/tool
+   * message (the loop) in addition to live chunks. False for the single-turn
+   * primitive, which only streams chunks.
+   */
+  emitMessages: boolean;
+  /** `maxTurns` passed to the SDK (1 for a single turn; higher with tools). */
+  maxTurns: number;
+  /** The in-process MCP tool server + allow-list, or null when tool-free. */
+  mcp: { mcpServers: Options["mcpServers"]; allowedTools: string[] } | null;
+}
+
 interface ClaudeAgentProviderOptions {
   /**
    * Inject the SDK `query` (tests). Defaults to the real `query`, lazily
@@ -78,6 +109,8 @@ interface ClaudeAgentProviderOptions {
    * barrel never tries to bundle the Node-only SDK.
    */
   queryFn?: ClaudeQueryFn;
+  /** Inject the SDK `createSdkMcpServer` (tests). Defaults to the real one. */
+  createMcpServerFn?: ClaudeCreateMcpServerFn;
 }
 
 export class ClaudeAgentProvider extends BaseProvider {
@@ -88,6 +121,7 @@ export class ClaudeAgentProvider extends BaseProvider {
   }
 
   private readonly injectedQueryFn: ClaudeQueryFn | null;
+  private readonly injectedCreateMcpServerFn: ClaudeCreateMcpServerFn | null;
   /**
    * Within-process cache of the active session per thread. The persisted
    * `provider_session` column is the source of truth; this only spares a DB
@@ -101,6 +135,7 @@ export class ClaudeAgentProvider extends BaseProvider {
   ) {
     super(PROVIDER_IDS.CLAUDE_AGENT_SDK);
     this.injectedQueryFn = options.queryFn ?? null;
+    this.injectedCreateMcpServerFn = options.createMcpServerFn ?? null;
   }
 
   /** The subscription token is the SDK's business — never hand it to a sandbox. */
@@ -109,12 +144,13 @@ export class ClaudeAgentProvider extends BaseProvider {
   }
 
   /**
-   * Pure LLM: the agentic tool loop is disabled, so there is no tool support to
-   * advertise. The caller drives any tool-calling loop with a provider that
-   * returns `tool_use` blocks (e.g. {@link AnthropicProvider}).
+   * Tools run inside the SDK's own agent loop ({@link generateLoop}): NodeTool's
+   * tools are exposed as an in-process MCP server whose handlers call back into
+   * the harness's tool executor. The single-turn {@link generateMessages} stays
+   * tool-free.
    */
   override async hasToolSupport(): Promise<boolean> {
-    return false;
+    return true;
   }
 
   /**
@@ -145,6 +181,54 @@ export class ClaudeAgentProvider extends BaseProvider {
     }
   }
 
+  /** Resolve the SDK `createSdkMcpServer`, lazily importing the Node-only pkg. */
+  private async loadCreateMcpServer(): Promise<ClaudeCreateMcpServerFn> {
+    if (this.injectedCreateMcpServerFn) return this.injectedCreateMcpServerFn;
+    const mod = await import("@anthropic-ai/claude-agent-sdk");
+    return mod.createSdkMcpServer as unknown as ClaudeCreateMcpServerFn;
+  }
+
+  /**
+   * Run the SDK's own agent loop. Tool-free turns behave exactly like
+   * {@link generateMessages}; with `tools` we expose them as an in-process MCP
+   * server whose handlers call `executeTool`, let the SDK loop (`maxTurns > 1`),
+   * and translate its `tool_use`/`tool_result` stream into ToolCall items and
+   * persistable {@link ProviderMessageEvent}s.
+   */
+  override async *generateLoop(
+    args: Parameters<ClaudeAgentProvider["generateMessages"]>[0] & {
+      executeTool?: (toolCall: ToolCall) => Promise<string>;
+      maxIterations?: number;
+    }
+  ): AsyncGenerator<ProviderStreamItem> {
+    const tools = args.tools ?? [];
+    let mcp: { mcpServers: Options["mcpServers"]; allowedTools: string[] } | null =
+      null;
+    if (tools.length > 0 && args.executeTool) {
+      const createServer = await this.loadCreateMcpServer();
+      const executeTool = args.executeTool;
+      const defs = tools.map((t) =>
+        toolDefinition(t, async (name, toolArgs) =>
+          executeTool({ id: `call_${name}_${Date.now()}`, name, args: toolArgs })
+        )
+      );
+      const server = createServer({
+        name: TOOL_SERVER_NAME,
+        version: "1.0.0",
+        tools: defs
+      });
+      mcp = {
+        mcpServers: { [TOOL_SERVER_NAME]: server },
+        allowedTools: tools.map((t) => `${TOOL_PREFIX}${t.name}`)
+      };
+    }
+    yield* this.runWithSession(args, {
+      emitMessages: true,
+      maxTurns: mcp ? args.maxIterations ?? DEFAULT_TOOL_TURNS : 1,
+      mcp
+    });
+  }
+
   override async *generateMessages(args: {
     messages: Message[];
     model: string;
@@ -166,6 +250,32 @@ export class ClaudeAgentProvider extends BaseProvider {
     ) => Promise<string>;
     signal?: AbortSignal;
   }): AsyncGenerator<ProviderStreamItem> {
+    // Single-turn, tool-free primitive. The agent loop lives in generateLoop.
+    yield* this.runWithSession(args, {
+      emitMessages: false,
+      maxTurns: args.maxTurns ?? 1,
+      mcp: null
+    });
+  }
+
+  /**
+   * Shared session machinery for {@link generateMessages} and
+   * {@link generateLoop}: decide resume vs fresh (best-effort, with a
+   * full-history priming fallback), then drive one SDK turn via {@link runTurn}.
+   * `config` selects single-turn streaming vs the tool/message-emitting loop.
+   */
+  private async *runWithSession(
+    args: {
+      messages: Message[];
+      model: string;
+      maxTurns?: number;
+      threadId?: string | null;
+      providerSession?: ProviderSession | null;
+      loadFullHistory?: () => Promise<Message[]>;
+      signal?: AbortSignal;
+    },
+    config: TurnConfig
+  ): AsyncGenerator<ProviderStreamItem> {
     const systemPrompt = extractSystemPrompt(args.messages);
     const systemHash = hashSystemPrompt(systemPrompt);
     const threadId = args.threadId ?? null;
@@ -203,7 +313,8 @@ export class ClaudeAgentProvider extends BaseProvider {
           systemHash,
           threadId,
           emitted,
-          cacheSession
+          cacheSession,
+          config
         });
         return;
       } catch (err) {
@@ -228,7 +339,8 @@ export class ClaudeAgentProvider extends BaseProvider {
       systemHash,
       threadId,
       emitted,
-      cacheSession
+      cacheSession,
+      config
     });
   }
 
@@ -255,6 +367,7 @@ export class ClaudeAgentProvider extends BaseProvider {
        * `messages`, so caching it would be unsafe.
        */
       cacheSession: boolean;
+      config: TurnConfig;
     }
   ): AsyncGenerator<ProviderStreamItem> {
     const queryFn = await this.loadQuery();
@@ -272,9 +385,10 @@ export class ClaudeAgentProvider extends BaseProvider {
       systemPrompt: plan.systemPrompt,
       // Pass aliases ("sonnet"/"opus"/"haiku") straight through to the SDK.
       model: args.model || undefined,
-      maxTurns: args.maxTurns ?? 1,
-      // Pure LLM, parity with the previous CLI invocation.
-      allowedTools: [],
+      // 1 for a single turn; higher when tools may drive multiple rounds.
+      maxTurns: plan.config.maxTurns,
+      // Only NodeTool's MCP tools are allowed; empty (pure LLM) when tool-free.
+      allowedTools: plan.config.mcp?.allowedTools ?? [],
       // Do NOT load repo .claude / CLAUDE.md / skills.
       settingSources: [],
       // Never block on an interactive permission prompt.
@@ -284,16 +398,22 @@ export class ClaudeAgentProvider extends BaseProvider {
       // nested-session leakage. Preserves PATH/HOME/ANTHROPIC_BASE_URL/proxies.
       env: buildChildEnv(),
       abortController,
+      ...(plan.config.mcp ? { mcpServers: plan.config.mcp.mcpServers } : {}),
       ...(plan.resume ? { resume: plan.resume } : {})
     };
 
-    // Log the exact wire body (sans the non-serializable AbortController and the
-    // full env, which can carry secrets) so the request-log UI shows what was
-    // sent without leaking the environment.
+    // Log the exact wire body (sans the non-serializable AbortController, MCP
+    // server instances, and the full env, which can carry secrets) so the
+    // request-log UI shows what was sent without leaking the environment.
     this.recordRequestPayload({
       prompt: plan.prompt,
       resume: plan.resume ?? null,
-      options: { ...options, abortController: undefined, env: undefined }
+      options: {
+        ...options,
+        abortController: undefined,
+        env: undefined,
+        mcpServers: plan.config.mcp ? Object.keys(plan.config.mcp.mcpServers ?? {}) : undefined
+      }
     });
 
     log.debug("Claude Agent SDK request", {
@@ -364,6 +484,38 @@ export class ClaudeAgentProvider extends BaseProvider {
                     thinking: true
                   }
                 : { type: "chunk", content: block.content, done: false };
+            }
+          }
+          // The loop needs each assistant turn (text + any tool calls) as a
+          // persistable message, and a ToolCall item per call for live display.
+          if (plan.config.emitMessages) {
+            const { text, toolCalls } = assistantParts(msg as SDKAssistantMessage);
+            for (const tc of toolCalls) yield tc;
+            yield {
+              type: "message",
+              message: {
+                role: "assistant",
+                content: text || null,
+                toolCalls: toolCalls.length ? toolCalls : null
+              }
+            };
+          }
+          continue;
+        }
+
+        // Tool results come back as a user message; surface them as tool
+        // messages so the harness can persist them.
+        if (msg.type === "user") {
+          if (plan.config.emitMessages) {
+            for (const tr of toolResultsFromUser(msg as SDKUserMessage)) {
+              yield {
+                type: "message",
+                message: {
+                  role: "tool",
+                  toolCallId: tr.toolCallId,
+                  content: tr.content
+                }
+              };
             }
           }
           continue;
@@ -513,6 +665,150 @@ function finalBlocks(
     }
   }
   return out;
+}
+
+/** Drop the `mcp__<server>__` prefix the SDK adds to in-process MCP tool names. */
+function stripToolPrefix(name: unknown): string {
+  const n = typeof name === "string" ? name : "";
+  return n.startsWith(TOOL_PREFIX) ? n.slice(TOOL_PREFIX.length) : n;
+}
+
+/** Split a final assistant message into its text and its tool calls. */
+function assistantParts(msg: SDKAssistantMessage): {
+  text: string;
+  toolCalls: ToolCall[];
+} {
+  const content = msg.message?.content;
+  let text = "";
+  const toolCalls: ToolCall[] = [];
+  if (Array.isArray(content)) {
+    for (const raw of content) {
+      const b = raw as {
+        type?: string;
+        text?: string;
+        id?: string;
+        name?: string;
+        input?: unknown;
+      };
+      if (b.type === "text" && typeof b.text === "string") {
+        text += b.text;
+      } else if (b.type === "tool_use") {
+        toolCalls.push({
+          id: typeof b.id === "string" ? b.id : `call_${toolCalls.length}`,
+          name: stripToolPrefix(b.name),
+          args:
+            b.input && typeof b.input === "object"
+              ? (b.input as Record<string, unknown>)
+              : {}
+        });
+      }
+    }
+  }
+  return { text, toolCalls };
+}
+
+/** Extract `tool_result` blocks from a user message the SDK emitted. */
+function toolResultsFromUser(
+  msg: SDKUserMessage
+): Array<{ toolCallId: string; content: string }> {
+  const content = (msg.message as { content?: unknown } | undefined)?.content;
+  const out: Array<{ toolCallId: string; content: string }> = [];
+  if (Array.isArray(content)) {
+    for (const raw of content) {
+      const b = raw as {
+        type?: string;
+        tool_use_id?: string;
+        content?: unknown;
+      };
+      if (b.type === "tool_result" && typeof b.tool_use_id === "string") {
+        out.push({
+          toolCallId: b.tool_use_id,
+          content: toolResultText(b.content)
+        });
+      }
+    }
+  }
+  return out;
+}
+
+/** Flatten an MCP tool-result content payload to text. */
+function toolResultText(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return content
+      .map((c) => {
+        const cc = c as { type?: string; text?: string };
+        return cc.type === "text" && typeof cc.text === "string" ? cc.text : "";
+      })
+      .join("");
+  }
+  return "";
+}
+
+/**
+ * Build an in-process MCP tool definition that bridges a NodeTool
+ * {@link ProviderTool} to the harness's tool executor. The JSON-Schema input is
+ * shimmed to the Zod raw shape the SDK expects.
+ */
+function toolDefinition(
+  tool: ProviderTool,
+  run: (name: string, args: Record<string, unknown>) => Promise<string>
+): SdkMcpToolDefinition<never> {
+  return {
+    name: tool.name,
+    description: tool.description ?? "",
+    inputSchema: jsonSchemaToZodShape(tool.inputSchema) as never,
+    handler: async (toolArgs: Record<string, unknown>) => {
+      const text = await run(tool.name, toolArgs ?? {});
+      return { content: [{ type: "text" as const, text }] };
+    }
+  } as unknown as SdkMcpToolDefinition<never>;
+}
+
+/** Convert a JSON-Schema object's properties to a Zod raw shape. */
+function jsonSchemaToZodShape(
+  schema: Record<string, unknown> | undefined
+): Record<string, ZodTypeAny> {
+  const props = (schema?.properties as Record<string, unknown>) ?? {};
+  const required = new Set((schema?.required as string[]) ?? []);
+  const shape: Record<string, ZodTypeAny> = {};
+  for (const [key, raw] of Object.entries(props)) {
+    let zt = jsonPropToZod(raw as Record<string, unknown>);
+    if (!required.has(key)) zt = zt.optional();
+    shape[key] = zt;
+  }
+  return shape;
+}
+
+/** Convert one JSON-Schema property to a Zod type (the subset NodeTool uses). */
+function jsonPropToZod(prop: Record<string, unknown>): ZodTypeAny {
+  const desc = typeof prop?.description === "string" ? prop.description : undefined;
+  let zt: ZodTypeAny;
+  switch (prop?.type) {
+    case "string":
+      zt = z.string();
+      break;
+    case "number":
+    case "integer":
+      zt = z.number();
+      break;
+    case "boolean":
+      zt = z.boolean();
+      break;
+    case "array":
+      zt = z.array(
+        prop.items
+          ? jsonPropToZod(prop.items as Record<string, unknown>)
+          : z.unknown()
+      );
+      break;
+    case "object":
+      zt = z.object(jsonSchemaToZodShape(prop));
+      break;
+    default:
+      zt = z.unknown();
+  }
+  return desc ? zt.describe(desc) : zt;
 }
 
 /** Build a descriptive Error from a non-success `result` message. */

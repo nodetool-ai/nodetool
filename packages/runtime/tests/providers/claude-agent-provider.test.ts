@@ -153,10 +153,10 @@ describe("ClaudeAgentProvider", () => {
     expect(provider.getContainerEnv()).toEqual({});
   });
 
-  it("needs no secret and is a pure LLM (no tool support)", async () => {
+  it("needs no secret and supports tools (via the SDK agent loop)", async () => {
     expect(ClaudeAgentProvider.requiredSecrets()).toEqual([]);
     const provider = new ClaudeAgentProvider();
-    await expect(provider.hasToolSupport()).resolves.toBe(false);
+    await expect(provider.hasToolSupport()).resolves.toBe(true);
   });
 
   it("lists subscription model aliases", async () => {
@@ -584,6 +584,162 @@ describe("ClaudeAgentProvider", () => {
     } finally {
       process.env = prev;
     }
+  });
+
+  // -------------------------------------------------------------------------
+  // generateLoop (agent loop) + tool calling
+  // -------------------------------------------------------------------------
+
+  const assistantTextMsg = (text: string): SDKMessage =>
+    ({
+      type: "assistant",
+      session_id: "s",
+      parent_tool_use_id: null,
+      uuid: "u-asst",
+      message: { model: "claude-haiku-4-5", content: [{ type: "text", text }] }
+    }) as unknown as SDKMessage;
+
+  const assistantToolUse = (
+    id: string,
+    name: string,
+    input: Record<string, unknown>
+  ): SDKMessage =>
+    ({
+      type: "assistant",
+      session_id: "s",
+      parent_tool_use_id: null,
+      uuid: "u-asst-tool",
+      message: {
+        model: "claude-haiku-4-5",
+        content: [{ type: "tool_use", id, name, input }]
+      }
+    }) as unknown as SDKMessage;
+
+  const userToolResult = (toolUseId: string, text: string): SDKMessage =>
+    ({
+      type: "user",
+      session_id: "s",
+      parent_tool_use_id: null,
+      uuid: "u-user",
+      message: {
+        content: [{ type: "tool_result", tool_use_id: toolUseId, content: text }]
+      }
+    }) as unknown as SDKMessage;
+
+  type MsgItem = Extract<ProviderStreamItem, { type: "message" }>;
+  const messagesOf = (items: ProviderStreamItem[]): MsgItem["message"][] =>
+    items
+      .filter((i): i is MsgItem => "type" in i && i.type === "message")
+      .map((i) => i.message);
+
+  function fakeCreateMcpServer() {
+    const captured: { defs: Array<{ handler: (a: unknown) => Promise<unknown> }> } =
+      { defs: [] };
+    const fn = ((opts: { name: string; tools: typeof captured.defs }) => {
+      captured.defs = opts.tools;
+      return { type: "sdk", name: opts.name, instance: {} };
+    }) as unknown as ConstructorParameters<
+      typeof ClaudeAgentProvider
+    >[1]["createMcpServerFn"];
+    return { fn, captured };
+  }
+
+  it("generateLoop without tools emits one assistant message + live chunks", async () => {
+    const { fn, calls } = fakeQuery([
+      sysInit("sess-loop"),
+      textDelta("hello"),
+      assistantTextMsg("hello"),
+      successResult()
+    ]);
+    const provider = new ClaudeAgentProvider({}, { queryFn: fn });
+    const items = await collect(
+      provider.generateLoop({
+        messages: [sysMsg("Be terse."), userMsg("hi")],
+        model: "haiku",
+        threadId: "t1"
+      })
+    );
+    expect((calls[0].options as Options).maxTurns).toBe(1);
+    expect((calls[0].options as Options).mcpServers).toBeUndefined();
+    const msgs = messagesOf(items);
+    expect(msgs).toHaveLength(1);
+    expect(msgs[0]).toMatchObject({ role: "assistant", content: "hello" });
+    // Live text still streams as a chunk.
+    expect(chunksOf(items).find((c) => c.content === "hello")).toBeTruthy();
+  });
+
+  it("generateLoop runs tools through the SDK loop, bridging to executeTool", async () => {
+    const { fn, calls } = fakeQuery([
+      sysInit("sess-tool"),
+      assistantToolUse("tu_1", "mcp__nodetool_tools__echo", { text: "hi" }),
+      userToolResult("tu_1", "echoed: hi"),
+      assistantTextMsg("all done"),
+      successResult()
+    ]);
+    const mcp = fakeCreateMcpServer();
+    const provider = new ClaudeAgentProvider(
+      {},
+      { queryFn: fn, createMcpServerFn: mcp.fn }
+    );
+    const executed: ToolCall[] = [];
+    const executeTool = async (tc: ToolCall): Promise<string> => {
+      executed.push(tc);
+      return `result-for-${tc.name}`;
+    };
+    const items = await collect(
+      provider.generateLoop({
+        messages: [sysMsg("Be terse."), userMsg("echo hi")],
+        model: "haiku",
+        threadId: "t1",
+        tools: [
+          {
+            name: "echo",
+            description: "Echo the input",
+            inputSchema: {
+              type: "object",
+              properties: { text: { type: "string" } },
+              required: ["text"]
+            }
+          }
+        ],
+        executeTool
+      })
+    );
+
+    // Tools were registered with the SDK and the loop was allowed to iterate.
+    const opts = calls[0].options as Options;
+    expect(opts.allowedTools).toContain("mcp__nodetool_tools__echo");
+    expect(opts.maxTurns).toBeGreaterThan(1);
+    expect(opts.mcpServers).toBeTruthy();
+
+    // The tool_use surfaced as a ToolCall (name stripped of the MCP prefix).
+    const toolCallItems = items.filter(
+      (i): i is ToolCall => "name" in i && "id" in i && !("type" in i)
+    );
+    expect(toolCallItems[0]).toMatchObject({
+      id: "tu_1",
+      name: "echo",
+      args: { text: "hi" }
+    });
+
+    // Persistable messages: assistant(with tool calls), tool result, final text.
+    const msgs = messagesOf(items);
+    const asstWithCalls = msgs.find(
+      (m) => m.role === "assistant" && m.toolCalls?.length
+    );
+    expect(asstWithCalls?.toolCalls?.[0]).toMatchObject({ name: "echo" });
+    const toolMsg = msgs.find((m) => m.role === "tool");
+    expect(toolMsg).toMatchObject({ toolCallId: "tu_1", content: "echoed: hi" });
+    expect(msgs.filter((m) => m.role === "assistant").at(-1)?.content).toBe(
+      "all done"
+    );
+
+    // The MCP handler bridges to executeTool and wraps the result for the SDK.
+    const handlerResult = await mcp.captured.defs[0].handler({ text: "hi" });
+    expect(handlerResult).toEqual({
+      content: [{ type: "text", text: "result-for-echo" }]
+    });
+    expect(executed[0]).toMatchObject({ name: "echo", args: { text: "hi" } });
   });
 
   it("cancels the query when the abort signal fires", async () => {

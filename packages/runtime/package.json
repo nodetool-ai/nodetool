@@ -32,7 +32,8 @@
     "replicate": "^1.4.0",
     "sharp": "^0.34.5",
     "ws": "^8.19.0",
-    "msgpackr": "^1.11.2"
+    "msgpackr": "^1.11.2",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
