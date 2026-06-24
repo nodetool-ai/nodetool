@@ -423,7 +423,7 @@ describe("MigrationRunner", () => {
 // ── Built-in migrations smoke test ───────────────────────────────────
 
 describe("Built-in migrations", () => {
-  const EXPECTED_BUILT_IN_MIGRATION_COUNT = 40;
+  const EXPECTED_BUILT_IN_MIGRATION_COUNT = 41;
 
   it("should have correct count of migrations", () => {
     expect(migrations.length).toBe(EXPECTED_BUILT_IN_MIGRATION_COUNT);
@@ -468,6 +468,11 @@ describe("Built-in migrations", () => {
     expect(await adapter.tableExists("image_documents")).toBe(true);
     expect(await adapter.tableExists("worker_profiles")).toBe(true);
     expect(await adapter.tableExists("worker_instances")).toBe(true);
+
+    // The provider_session continuation token column is added by migration.
+    expect(
+      await adapter.columnExists("nodetool_messages", "provider_session")
+    ).toBe(true);
   });
 
   it("should be idempotent (running twice produces same result)", async () => {

@@ -13,6 +13,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { unpack } from "msgpackr";
 import { initTestDb, Thread, Message } from "@nodetool-ai/models";
+import { BaseProvider } from "@nodetool-ai/runtime";
 import {
   UnifiedWebSocketRunner,
   type WebSocketConnection,
@@ -75,7 +76,8 @@ function mockProvider(...items: unknown[]) {
       getAvailableTTSModels: async () => [],
       getAvailableASRModels: async () => [],
       getAvailableEmbeddingModels: async () => [],
-      getContainerEnv: () => ({})
+      getContainerEnv: () => ({}),
+        generateLoop: BaseProvider.prototype.generateLoop
     }) as any;
 }
 
@@ -117,7 +119,8 @@ describe("handleChatMessage: system prompt", () => {
         getAvailableTTSModels: async () => [],
         getAvailableASRModels: async () => [],
         getAvailableEmbeddingModels: async () => [],
-        getContainerEnv: () => ({})
+        getContainerEnv: () => ({}),
+        generateLoop: BaseProvider.prototype.generateLoop
       }) as any;
 
     const runner = new UnifiedWebSocketRunner({
@@ -243,7 +246,8 @@ describe("handleChatMessage: tool call loop", () => {
         getAvailableTTSModels: async () => [],
         getAvailableASRModels: async () => [],
         getAvailableEmbeddingModels: async () => [],
-        getContainerEnv: () => ({})
+        getContainerEnv: () => ({}),
+        generateLoop: BaseProvider.prototype.generateLoop
       }) as any;
 
     const runner = new UnifiedWebSocketRunner({
@@ -319,7 +323,8 @@ describe("handleChatMessage: error handling", () => {
         getAvailableTTSModels: async () => [],
         getAvailableASRModels: async () => [],
         getAvailableEmbeddingModels: async () => [],
-        getContainerEnv: () => ({})
+        getContainerEnv: () => ({}),
+        generateLoop: BaseProvider.prototype.generateLoop
       }) as any;
 
     const runner = new UnifiedWebSocketRunner({
@@ -408,7 +413,8 @@ describe("permission gate", () => {
         getAvailableTTSModels: async () => [],
         getAvailableASRModels: async () => [],
         getAvailableEmbeddingModels: async () => [],
-        getContainerEnv: () => ({})
+        getContainerEnv: () => ({}),
+        generateLoop: BaseProvider.prototype.generateLoop
       }) as any;
 
     const runner = new UnifiedWebSocketRunner({
@@ -493,7 +499,8 @@ describe("dbMessageToProviderMessage filtering", () => {
         getAvailableTTSModels: async () => [],
         getAvailableASRModels: async () => [],
         getAvailableEmbeddingModels: async () => [],
-        getContainerEnv: () => ({})
+        getContainerEnv: () => ({}),
+        generateLoop: BaseProvider.prototype.generateLoop
       }) as any;
 
     const runner = new UnifiedWebSocketRunner({
@@ -599,7 +606,8 @@ describe("handleChatMessage: request sequence cancellation", () => {
         getAvailableTTSModels: async () => [],
         getAvailableASRModels: async () => [],
         getAvailableEmbeddingModels: async () => [],
-        getContainerEnv: () => ({})
+        getContainerEnv: () => ({}),
+        generateLoop: BaseProvider.prototype.generateLoop
       }) as any;
 
     const runner = new UnifiedWebSocketRunner({

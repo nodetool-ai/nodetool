@@ -5,7 +5,16 @@
  */
 
 import type { BaseProvider } from "@nodetool-ai/runtime";
-import type { Message, ToolCall, ProviderStreamItem } from "@nodetool-ai/runtime";
+import type {
+  Message,
+  ToolCall,
+  ProviderStreamItem,
+  ProviderSession
+} from "@nodetool-ai/runtime";
+import {
+  isProviderSessionUpdate,
+  isProviderMessageEvent
+} from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { Chunk } from "@nodetool-ai/protocol";
 import { Tool, truncateToolResult } from "@nodetool-ai/agents";
@@ -29,6 +38,11 @@ export interface ChatCallbacks {
   onToolCall?: (toolCall: ToolCall) => void;
   /** Called after a tool has been executed. */
   onToolResult?: (toolCall: ToolCall, result: unknown) => void;
+  /**
+   * Called when the provider emits a session-continuity update. The caller
+   * persists the token onto the assistant message so the next turn can resume.
+   */
+  onProviderSession?: (session: ProviderSession) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -100,6 +114,12 @@ export async function processChat(opts: {
   tools?: Tool[];
   callbacks?: ChatCallbacks;
   threadId?: string;
+  /**
+   * Opaque continuation token from a prior turn (read off the last assistant
+   * message). Threaded straight through to the provider, which resumes from it
+   * and sends only the new turn; stateless providers ignore it.
+   */
+  providerSession?: ProviderSession | null;
   signal?: AbortSignal;
   /**
    * Cap on tool-calling rounds before we stop and let the user intervene.
@@ -126,6 +146,7 @@ export async function processChat(opts: {
     tools = [],
     callbacks,
     threadId,
+    providerSession,
     signal,
     maxIterations = 25,
     longTermMemory
@@ -164,126 +185,55 @@ export async function processChat(opts: {
     return [...messages.slice(0, i), ...memoryPrefix, ...messages.slice(i)];
   };
 
-  let messagesToSend: Message[] = buildMessagesToSend();
+  const messagesToSend: Message[] = buildMessagesToSend();
 
-  for (let iteration = 0; iteration < maxIterations; iteration++) {
-    const toolCallResults: Array<ToolCall & { result: unknown }> = [];
-    let assistantText = "";
+  // Run one tool call and return the result text to feed back to the model.
+  // Owns tool resolution + the onToolResult callback; the provider's loop
+  // orchestrates the rounds and assembles the messages.
+  const executeTool = async (toolCall: ToolCall): Promise<string> => {
+    const executed = (await runTool(context, toolCall, tools)) as ToolCall & {
+      result: unknown;
+    };
+    callbacks?.onToolResult?.(toolCall, executed.result);
+    return truncateToolResult(
+      JSON.stringify(executed.result, defaultSerializer) ?? ""
+    );
+  };
 
-    const stream = provider.generateMessagesTraced({
-      messages: messagesToSend,
-      model,
-      tools: providerTools,
-      threadId,
-      onToolCall:
-        tools.length > 0
-          ? async (name, args) => {
-              const toolCall: ToolCall = {
-                id: `call_${Date.now()}`,
-                name,
-                args
-              };
-              callbacks?.onToolCall?.(toolCall);
-              const executed = await runTool(context, toolCall, tools);
-              const result = (executed as ToolCall & { result: unknown }).result;
-              callbacks?.onToolResult?.(toolCall, result);
-              return truncateToolResult(
-                (typeof result === "string"
-                  ? result
-                  : JSON.stringify(result, null, 2)) ?? ""
-              );
-            }
-          : undefined,
-      signal
-    });
-
-    // Phase 1: Stream chunks and collect tool calls
-    const pendingToolCalls: ToolCall[] = [];
-
-    for await (const item of stream) {
-      if (signal?.aborted) break;
-
-      // --- Text chunk ---
-      if (isChunk(item)) {
-        // Skip thinking chunks — they must not appear in user-visible text output.
-        if (item.thinking) continue;
-        // Audio chunks carry binary payloads (native Float32Array or base64);
-        // they aren't assistant text.
-        if (typeof item.content !== "string") continue;
-
-        const text = item.content ?? "";
-        callbacks?.onChunk?.(text);
-        assistantText += text;
-
-        const last = messages[messages.length - 1];
-        if (
-          last &&
-          last.role === "assistant" &&
-          typeof last.content === "string" &&
-          !last.toolCalls?.length
-        ) {
-          last.content += text;
-        } else if (
-          !last ||
-          last.role !== "assistant" ||
-          last.toolCalls?.length
-        ) {
-          messages.push({ role: "assistant", content: text });
-        }
-      }
-
-      // --- Tool call (collect, don't execute yet) ---
-      if (isToolCall(item)) {
-        callbacks?.onToolCall?.(item);
-        pendingToolCalls.push(item);
-      }
+  // The provider owns the agent loop now. `messagesToSend` (which may carry the
+  // ephemeral memory prefix) is the loop's input; it runs on its own copy, so
+  // we collect the finalized assistant/tool messages it emits into `messages`
+  // — keeping the memory prefix out of the returned, persisted history.
+  for await (const item of provider.generateLoop({
+    messages: messagesToSend,
+    model,
+    tools: providerTools,
+    threadId,
+    providerSession,
+    executeTool: tools.length > 0 ? executeTool : undefined,
+    maxIterations,
+    signal
+  })) {
+    if (signal?.aborted) break;
+    if (isProviderSessionUpdate(item)) {
+      callbacks?.onProviderSession?.(item.session);
+      continue;
     }
-
-    // Phase 2: Execute all collected tool calls in parallel
-    if (pendingToolCalls.length > 0) {
-      const results = await Promise.all(
-        pendingToolCalls.map(async (tc) => {
-          const toolResult = await runTool(context, tc, tools);
-          callbacks?.onToolResult?.(
-            tc,
-            (toolResult as ToolCall & { result: unknown }).result
-          );
-          return toolResult as ToolCall & { result: unknown };
-        })
-      );
-      toolCallResults.push(...results);
+    if (isProviderMessageEvent(item)) {
+      const m = item.message;
+      // Drop a contentless, tool-less assistant turn (e.g. thinking-only).
+      if (m.role === "assistant" && !m.content && !m.toolCalls?.length) continue;
+      messages.push(m);
+      continue;
     }
-
-    // If tool calls were processed, consolidate into a single assistant message + tool results
-    if (toolCallResults.length > 0) {
-      // Remove the streaming text-only assistant message (if any) — we'll replace it
-      // with a consolidated assistant message that includes both text and tool calls.
-      const last = messages[messages.length - 1];
-      if (last && last.role === "assistant" && !last.toolCalls?.length) {
-        messages.pop();
-      }
-
-      // One assistant message with all tool calls (and any accumulated text)
-      messages.push({
-        role: "assistant",
-        content: assistantText || undefined,
-        toolCalls: toolCallResults
-      });
-
-      // One tool-result message per tool call
-      for (const tc of toolCallResults) {
-        messages.push({
-          role: "tool",
-          toolCallId: tc.id,
-          content: truncateToolResult(
-            JSON.stringify(tc.result, defaultSerializer) ?? ""
-          )
-        });
-      }
-
-      messagesToSend = buildMessagesToSend();
-    } else {
-      break;
+    if (isToolCall(item)) {
+      callbacks?.onToolCall?.(item);
+      continue;
+    }
+    if (isChunk(item)) {
+      if (item.thinking) continue;
+      if (typeof item.content !== "string") continue;
+      callbacks?.onChunk?.(item.content);
     }
   }
 

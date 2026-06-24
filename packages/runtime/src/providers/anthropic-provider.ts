@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type {
   MessageCreateParamsNonStreaming,
-  MessageStreamParams
+  MessageCreateParamsStreaming
 } from "@anthropic-ai/sdk/resources/messages/messages.js";
 import type { Chunk } from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
@@ -516,7 +516,7 @@ export class AnthropicProvider extends BaseProvider {
     log.debug("Anthropic request", { model: args.model });
 
     const streamRequest = {
-      ...(request as unknown as MessageStreamParams),
+      ...(request as unknown as MessageCreateParamsStreaming),
       stream: true as const
     };
     this.recordRequestPayload(streamRequest);

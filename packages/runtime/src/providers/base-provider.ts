@@ -12,6 +12,7 @@ import type {
   Model3D,
   MusicModel,
   ProviderId,
+  ProviderSession,
   ProviderStreamItem,
   ProviderTool,
   EncodedAudioResult,
@@ -29,6 +30,7 @@ import type {
   VideoModel,
   VideoToVideoParams
 } from "./types.js";
+import { isProviderSessionUpdate, isProviderMessageEvent } from "./types.js";
 import { CostCalculator } from "./cost-calculator.js";
 import type { UsageInfo } from "./cost-calculator.js";
 import { getTracer } from "../telemetry.js";
@@ -396,6 +398,12 @@ export abstract class BaseProvider {
     frequencyPenalty?: number;
     /** Optional thread/conversation identifier for session-based providers. */
     threadId?: string | null;
+    /**
+     * Opaque continuation token from a prior turn (read off the last assistant
+     * message). Providers that support server/SDK-side sessions resume from it
+     * and send only the delta; stateless providers ignore it.
+     */
+    providerSession?: ProviderSession | null;
     /** Optional callback for native tool execution (used by providers with in-process MCP). */
     onToolCall?: (
       name: string,
@@ -425,6 +433,20 @@ export abstract class BaseProvider {
     audio?: Record<string, unknown>;
     /** Optional thread/conversation identifier for session-based providers. */
     threadId?: string | null;
+    /**
+     * Opaque continuation token from a prior turn (read off the last assistant
+     * message). Providers that support server/SDK-side sessions resume from it
+     * and send only the delta; stateless providers ignore it.
+     */
+    providerSession?: ProviderSession | null;
+    /**
+     * Lazily fetch the full conversation. When a session-based provider is
+     * handed only the new delta in `messages` (to avoid reloading the whole
+     * thread), it calls this to recover the complete history if it must prime
+     * context — i.e. when a resume fails or the system prompt changed. Absent
+     * when `messages` already holds the full history.
+     */
+    loadFullHistory?: () => Promise<Message[]>;
     /** Optional callback for native tool execution (used by providers with in-process MCP). */
     onToolCall?: (
       name: string,
@@ -654,6 +676,116 @@ export abstract class BaseProvider {
         error: error ?? null,
         timestamp: new Date(startTime).toISOString()
       });
+    }
+  }
+
+  /**
+   * Run the agentic tool-calling loop and stream its events. This is the entry
+   * point an agent harness calls; the harness no longer implements the loop
+   * itself. The default implementation drives the standard external loop:
+   * stream one {@link generateMessages} turn, collect any tool calls, run them
+   * via the harness-supplied {@link executeTool}, append the results, and repeat
+   * until the model stops calling tools (or `maxIterations` is hit).
+   *
+   * It yields the same {@link Chunk}/{@link ToolCall}/{@link ProviderSessionUpdate}
+   * items a single turn does — for live display — plus a
+   * {@link ProviderMessageEvent} for every finalized message (assistant turns
+   * and tool results) so the harness can persist/collect them without
+   * reassembling them from chunks.
+   *
+   * Providers whose backend runs its own agent loop (e.g. the Claude Agent SDK)
+   * override this to drive that loop instead, while still emitting the same
+   * stream items. `generateMessages` remains the single-turn primitive.
+   */
+  async *generateLoop(
+    args: Parameters<this["generateMessages"]>[0] & {
+      /**
+       * Execute one tool call and return the result text to feed back to the
+       * model (and to store in the tool message). The harness owns tool
+       * resolution, gating, and side effects; the provider only orchestrates.
+       */
+      executeTool?: (toolCall: ToolCall) => Promise<string>;
+      /** Cap on tool-calling rounds before stopping. Defaults to 25. */
+      maxIterations?: number;
+    }
+  ): AsyncGenerator<ProviderStreamItem> {
+    const maxIterations = args.maxIterations ?? 25;
+    const { executeTool, maxIterations: _omitMax, ...turnArgs } = args;
+    const messages = [...args.messages];
+
+    // Bridge to the legacy inline tool callback for any provider that executes
+    // tools mid-stream instead of yielding ToolCall items. Real providers yield
+    // ToolCall (handled below); this keeps the inline path working too.
+    let toolCallSeq = 0;
+    const onToolCall = executeTool
+      ? (name: string, toolArgs: Record<string, unknown>) =>
+          executeTool({ id: `call_${++toolCallSeq}`, name, args: toolArgs })
+      : turnArgs.onToolCall;
+
+    for (let iteration = 0; iteration < maxIterations; iteration++) {
+      if (turnArgs.signal?.aborted) return;
+      let assistantText = "";
+      const pending: ToolCall[] = [];
+
+      for await (const item of this.generateMessagesTraced({
+        ...turnArgs,
+        messages,
+        onToolCall
+      })) {
+        if (turnArgs.signal?.aborted) break;
+        if (isProviderSessionUpdate(item) || isProviderMessageEvent(item)) {
+          yield item;
+          continue;
+        }
+        if ("id" in item && "name" in item && "args" in item) {
+          pending.push(item);
+          yield item;
+          continue;
+        }
+        const chunk = item as { content?: unknown; thinking?: boolean };
+        if (typeof chunk.content === "string" && !chunk.thinking) {
+          assistantText += chunk.content;
+        }
+        yield item;
+      }
+
+      if (pending.length === 0) {
+        const assistantMsg: Message = {
+          role: "assistant",
+          content: assistantText || null
+        };
+        messages.push(assistantMsg);
+        yield { type: "message", message: assistantMsg };
+        return;
+      }
+
+      // The assistant turn requested tools — emit it (with the calls), run them,
+      // then loop with the results appended.
+      const assistantMsg: Message = {
+        role: "assistant",
+        content: assistantText || null,
+        toolCalls: pending
+      };
+      messages.push(assistantMsg);
+      yield { type: "message", message: assistantMsg };
+
+      const results = await Promise.all(
+        pending.map(async (tc) => ({
+          tc,
+          content: executeTool
+            ? await executeTool(tc)
+            : `Tool "${tc.name}" is not available`
+        }))
+      );
+      for (const { tc, content } of results) {
+        const toolMsg: Message = {
+          role: "tool",
+          toolCallId: tc.id,
+          content
+        };
+        messages.push(toolMsg);
+        yield { type: "message", message: toolMsg };
+      }
     }
   }
 

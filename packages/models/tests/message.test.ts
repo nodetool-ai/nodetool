@@ -55,6 +55,7 @@ describe("Message model", () => {
     expect(msg.collections).toBeNull();
     expect(msg.agent_mode).toBeNull();
     expect(msg.help_mode).toBeNull();
+    expect(msg.provider_session).toBeNull();
     expect(msg.created_at).toBeTruthy();
   });
 
@@ -168,5 +169,34 @@ describe("Message model", () => {
     expect(loaded!.model).toBe("claude-3");
     expect(loaded!.cost).toBe(0.01);
     expect(loaded!.agent_mode).toBe(true);
+  });
+
+  // ── provider_session round-trip ───────────────────────────────────
+
+  it("round-trips the provider_session continuation token", async () => {
+    const session = {
+      providerId: "claude_agent_sdk",
+      model: "haiku",
+      token: "sess-abc",
+      checkpoint: 4,
+      systemHash: "deadbeef"
+    };
+    const msg = await createMessage("u1", "t1", {
+      role: "assistant",
+      content: "Hi",
+      provider: "claude_agent_sdk",
+      model: "haiku",
+      provider_session: session
+    });
+
+    const loaded = await Message.get<Message>(msg.id);
+    expect(loaded).not.toBeNull();
+    expect(loaded!.provider_session).toEqual(session);
+  });
+
+  it("defaults provider_session to null when absent", async () => {
+    const msg = await createMessage("u1", "t1", { content: "no session" });
+    const loaded = await Message.get<Message>(msg.id);
+    expect(loaded!.provider_session).toBeNull();
   });
 });

@@ -298,6 +298,7 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
     execution_event_type: "text",
     workflow_target: "text",
     media_generation: "text",
+    provider_session: "text",
     created_at: "text"
   },
   nodetool_threads: {
@@ -584,6 +585,7 @@ function getCreateSchemaSql(): string {
       "execution_event_type" text,
       "workflow_target" text,
       "media_generation" text,
+      "provider_session" text,
       "created_at" text NOT NULL
     );
     CREATE INDEX IF NOT EXISTS "idx_messages_thread_id" ON "nodetool_messages" ("thread_id");

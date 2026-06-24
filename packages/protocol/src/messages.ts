@@ -402,6 +402,43 @@ export interface Chunk {
   subtask_depth?: number | null;
 }
 
+/**
+ * Opaque, provider-agnostic continuation token for resuming an upstream
+ * conversation session across turns. Persisted on the ASSISTANT message that
+ * concluded the turn (it records the state *after* this turn). On the next turn
+ * a provider that supports server/SDK-side sessions resumes from this token and
+ * sends only the new user delta instead of replaying the whole transcript;
+ * stateless providers ignore it.
+ *
+ * Provider-agnostic by design. For the Claude Agent SDK, `token` is the SDK
+ * `session_id`. An OpenAI Responses provider reuses this exact shape: store the
+ * Responses `previous_response_id` as `token`, send the request with
+ * `store: true`, then on each subsequent turn pass `previous_response_id =
+ * token` and submit only the delta — reading and writing the token on the same
+ * `provider_session` message column. The semantics are identical and
+ * best-effort: a token may have expired or been pruned (Responses state lapses
+ * after ~30 days; the Agent SDK's session JSONL can be deleted), so a failed
+ * resume must fall back to a fresh session rather than erroring.
+ */
+export interface ProviderSession {
+  /** Provider that owns the token (e.g. `PROVIDER_IDS.CLAUDE_AGENT_SDK`). */
+  providerId: string;
+  /** Model the session was created with; a mismatch forces a fresh session. */
+  model: string;
+  /**
+   * The opaque continuation token: the Agent SDK `session_id` here;
+   * `previous_response_id` for an OpenAI Responses provider.
+   */
+  token: string;
+  /**
+   * Count of conversation messages already absorbed by this session — the
+   * resume cut point. The next turn sends only `messages.slice(checkpoint)`.
+   */
+  checkpoint: number;
+  /** Optional hash of the system prompt; a mismatch invalidates the session. */
+  systemHash?: string;
+}
+
 export type TodoStatus = "pending" | "in_progress" | "completed";
 
 export interface TodoItem {

@@ -4,6 +4,7 @@ import {
   runTool,
   defaultSerializer
 } from "../src/message-processor.js";
+import { BaseProvider } from "@nodetool-ai/runtime";
 import type {
   Message,
   ToolCall,
@@ -73,6 +74,8 @@ function createMockProvider(sequences: ProviderStreamItem[][]) {
     async *generateMessagesTraced(...args: any[]) {
       yield* (this as any).generateMessages(...args);
     },
+    // Exercise the real default agent loop against the scripted turns.
+    generateLoop: BaseProvider.prototype.generateLoop,
     async generateMessageTraced(...args: any[]) {
       return (this as any).generateMessage(...args);
     },
@@ -553,6 +556,39 @@ describe("processChat", () => {
     const lastMsg = result[result.length - 1];
     expect(lastMsg.role).toBe("assistant");
     expect(lastMsg.content).toBe("done");
+  });
+
+  it("fires onProviderSession when the provider emits a session item", async () => {
+    const session = {
+      providerId: "claude_agent_sdk",
+      model: "haiku",
+      token: "sess-1",
+      checkpoint: 2
+    };
+    const provider = createMockProvider([
+      [
+        { type: "session", session } as unknown as ProviderStreamItem,
+        chunk("hi there")
+      ]
+    ]);
+
+    const onProviderSession = vi.fn();
+    const onChunk = vi.fn();
+    const result = await processChat({
+      userInput: "Hello",
+      messages: [],
+      model: "haiku",
+      provider,
+      context: createMockContext(),
+      callbacks: { onProviderSession, onChunk }
+    });
+
+    expect(onProviderSession).toHaveBeenCalledTimes(1);
+    expect(onProviderSession).toHaveBeenCalledWith(session);
+    // The session item is internal and never becomes visible assistant text.
+    expect(onChunk).toHaveBeenCalledWith("hi there");
+    const assistantMsg = result.find((m) => m.role === "assistant");
+    expect(assistantMsg?.content).toBe("hi there");
   });
 
   it("returns empty assistant message when only thinking chunks are present", async () => {

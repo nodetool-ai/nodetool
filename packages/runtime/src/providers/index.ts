@@ -160,10 +160,17 @@ export type {
   TextToVideoParams,
   ImageToVideoParams,
   ProviderStreamItem,
+  ProviderSession,
+  ProviderSessionUpdate,
+  ProviderMessageEvent,
   StreamingAudioChunk,
   EncodedAudioResult,
   AudioChunk,
   ASRResult
+} from "./types.js";
+export {
+  isProviderSessionUpdate,
+  isProviderMessageEvent
 } from "./types.js";
 
 // Register hosted providers with the secret key NAME each one needs but no
