@@ -133,6 +133,11 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, displayName }) => {
     output.name
   ]);
 
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => outputContextMenu(e, id, output),
+    [outputContextMenu, id, output]
+  );
+
   return (
     <div className="output-handle-container">
       <HandleTooltip
@@ -148,7 +153,7 @@ const NodeOutput: React.FC<NodeOutputProps> = ({ id, output, displayName }) => {
           id={output.name}
           position={Position.Right}
           isConnectable={isConnectable}
-          onContextMenu={(e) => outputContextMenu(e, id, output)}
+          onContextMenu={handleContextMenu}
           className={`${classConnectable} ${Slugify(output.type.type)}`}
         />
       </HandleTooltip>

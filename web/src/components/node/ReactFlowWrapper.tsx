@@ -297,7 +297,18 @@ const ReactFlowWrapper = ({
     nodeLayoutSigRef.current.clear();
   }, [workflowId]);
 
+  const sortedKeysCache = useRef(new WeakMap<object, string>());
   useEffect(() => {
+    const cache = sortedKeysCache.current;
+    const sortedKeys = (obj: object | null | undefined): string => {
+      if (!obj) return "";
+      const cached = cache.get(obj);
+      if (cached !== undefined) return cached;
+      const result = Object.keys(obj).sort().join(",");
+      cache.set(obj, result);
+      return result;
+    };
+
     const next = new Map<string, string>();
     for (const n of nodes) {
       const sh = n.style?.height;
@@ -307,26 +318,14 @@ const ReactFlowWrapper = ({
           : typeof sh === "string"
             ? sh.trim()
             : "";
-      // Handles can be added/removed without changing node height:
-      //   - exposedInputs: inspector "show as input" toggle promotes a static property
-      //   - dynamic_properties / dynamic_inputs / dynamic_outputs: dynamic nodes
-      // ReactFlow caches handle bounds, so we must signal a refresh whenever
-      // the set of handles can change, or new handles stay un-draggable until
-      // some other event (e.g. a connection drag) forces a refresh.
       const exposedPart = [
         ...(n.data.exposedInputs ?? []),
         ...(n.data.exposedInputsLabeled ?? []),
         ...(n.data.exposedInputsHidden ?? [])
       ].join(",");
-      const dynPropsPart = Object.keys(n.data.dynamic_properties ?? {})
-        .sort()
-        .join(",");
-      const dynInputsPart = Object.keys(n.data.dynamic_inputs ?? {})
-        .sort()
-        .join(",");
-      const dynOutputsPart = Object.keys(n.data.dynamic_outputs ?? {})
-        .sort()
-        .join(",");
+      const dynPropsPart = sortedKeys(n.data.dynamic_properties);
+      const dynInputsPart = sortedKeys(n.data.dynamic_inputs);
+      const dynOutputsPart = sortedKeys(n.data.dynamic_outputs);
       next.set(
         n.id,
         `${typeof n.height === "number" ? n.height : ""}:${stylePart}:${Boolean(n.data.collapsed)}:${exposedPart}:${dynPropsPart}:${dynInputsPart}:${dynOutputsPart}`
