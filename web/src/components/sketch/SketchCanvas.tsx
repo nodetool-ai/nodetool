@@ -43,6 +43,7 @@ import {
 import { clientToDocumentCanvas } from "./tools/transform/handleGeometry";
 import type { StrokeEndOptions } from "./tools/types";
 import SketchCanvasPresentation from "./SketchCanvasPresentation";
+import GeneratingLayerOverlay from "./GeneratingLayerOverlay";
 import { getToolHandler } from "./tools";
 import { TransformTool } from "./tools/TransformTool";
 
@@ -529,6 +530,7 @@ const SketchCanvas = forwardRef<SketchCanvasRef, SketchCanvasProps>(
         onCanvasResizeStart={onCanvasResizeStart}
         onCanvasResize={onCanvasResize}
         className={rootClassName}
+        docOverlay={<GeneratingLayerOverlay />}
       />
     );
   }

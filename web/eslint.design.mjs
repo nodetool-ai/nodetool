@@ -65,6 +65,10 @@ export const designTokenIgnores = [
   // Decorative multi-hue @keyframes "running" status pulse — a rainbow animation,
   // not semantic chrome.
   "src/components/miniapps/StandaloneMiniApp.tsx",
+  // Decorative multi-hue @keyframes "generating" wash + shimmer + aura — a
+  // rainbow animation overlay, not semantic chrome.
+  "src/components/sketch/GeneratingLayerOverlay.tsx",
+  "src/components/sketch/MagicGenerationFill.tsx",
 ];
 
 const muiPrimitiveMessage =

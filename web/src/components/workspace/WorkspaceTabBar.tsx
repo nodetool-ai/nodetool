@@ -16,6 +16,8 @@ import {
   type WorkspaceTabType
 } from "../../stores/WorkspaceTabsStore";
 import { useWorkflowManager, useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
+import { useAssetStore } from "../../stores/AssetStore";
+import { trpcClient } from "../../trpc/client";
 import { colorForType } from "../../config/data_types";
 import { TOOLBAR_WIDTH } from "../../config/constants";
 import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
@@ -33,6 +35,14 @@ const SUPPORTS_BOTH_MODES: Record<WorkspaceTabType, boolean> = {
   text: true,
   audio: true
 };
+
+/** Tab types whose title can be renamed in place by double-clicking. */
+const RENAMEABLE_TYPES = new Set<WorkspaceTabType>([
+  "workflow",
+  "sketch",
+  "timeline",
+  "model3d"
+]);
 
 const TYPE_GLYPH: Record<WorkspaceTabType, string> = {
   workflow: "⬡",
@@ -246,6 +256,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   const closeTab = useWorkspaceTabsStore((state) => state.closeTab);
   const closeOthers = useWorkspaceTabsStore((state) => state.closeOthers);
   const setMode = useWorkspaceTabsStore((state) => state.setMode);
+  const setTitle = useWorkspaceTabsStore((state) => state.setTitle);
   const moveTab = useWorkspaceTabsStore((state) => state.moveTab);
 
   const removeWorkflow = useWorkflowManager((state) => state.removeWorkflow);
@@ -341,28 +352,61 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
     [dropTarget, moveTab, syncWorkflowOrderFromTabs]
   );
 
-  const commitWorkflowRename = useCallback(
+  const commitRename = useCallback(
     async (tab: WorkspaceTab, newName: string) => {
       const trimmed = newName.trim();
       setEditingTabId(null);
-      if (tab.type !== "workflow" || trimmed.length === 0) {
+      if (trimmed.length === 0 || trimmed === tab.title) {
         return;
       }
 
-      const workflow = getWorkflow(tab.ref);
-      if (!workflow || workflow.name === trimmed) {
+      // Workflows carry their name in the workflow store; the tab title is
+      // synced from there by WorkspaceShell, so update + save the workflow.
+      if (tab.type === "workflow") {
+        const workflow = getWorkflow(tab.ref);
+        if (!workflow || workflow.name === trimmed) {
+          return;
+        }
+        const updatedWorkflow = { ...workflow, name: trimmed };
+        updateWorkflow(updatedWorkflow);
+        try {
+          await saveWorkflow(updatedWorkflow);
+        } catch {
+          updateWorkflow(workflow);
+        }
         return;
       }
 
-      const updatedWorkflow = { ...workflow, name: trimmed };
-      updateWorkflow(updatedWorkflow);
+      // Other document types own no store→tab sync: update the tab title
+      // optimistically, persist the rename to the backing document keyed by
+      // ref, and roll the title back if the server write fails.
+      const previousTitle = tab.title;
+      setTitle(tab.ref, tab.type, trimmed);
       try {
-        await saveWorkflow(updatedWorkflow);
+        switch (tab.type) {
+          case "sketch":
+            await trpcClient.sketch.update.mutate({
+              id: tab.ref,
+              name: trimmed
+            });
+            break;
+          case "timeline":
+            await trpcClient.timeline.update.mutate({
+              id: tab.ref,
+              name: trimmed
+            });
+            break;
+          case "model3d":
+            await useAssetStore.getState().update({ id: tab.ref, name: trimmed });
+            break;
+          default:
+            break;
+        }
       } catch {
-        updateWorkflow(workflow);
+        setTitle(tab.ref, tab.type, previousTitle);
       }
     },
-    [getWorkflow, updateWorkflow, saveWorkflow]
+    [getWorkflow, updateWorkflow, saveWorkflow, setTitle]
   );
 
   const handleClose = useCallback(
@@ -433,6 +477,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
             tab={tab}
             isActive={tab.id === activeTabId}
             isEditing={editingTabId === tab.id}
+            canRename={RENAMEABLE_TYPES.has(tab.type)}
             dropPosition={dropTarget?.id === tab.id ? dropTarget.position : null}
             typeColor={TYPE_COLOR[tab.type]}
             typeGlyph={TYPE_GLYPH[tab.type]}
@@ -445,7 +490,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            onCommitRename={commitWorkflowRename}
+            onCommitRename={commitRename}
             onCancelRename={handleCancelRename}
           />
         ))}
