@@ -311,7 +311,7 @@ export const CopyAssetButton = memo<CopyAssetButtonProps>(
           timeoutRef.current = setTimeout(() => setState("idle"), FEEDBACK_TIMEOUT);
         } catch (error) {
           setState("error");
-          onCopyError?.(error as Error);
+          onCopyError?.(error instanceof Error ? error : new Error(String(error)));
           console.error("Failed to copy to clipboard:", error);
           timeoutRef.current = setTimeout(() => setState("idle"), FEEDBACK_TIMEOUT);
         }

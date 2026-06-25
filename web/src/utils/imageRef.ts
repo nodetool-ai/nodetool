@@ -64,9 +64,10 @@ export const unwrapOutput = (
       : undefined;
   }
   if (!value || typeof value !== "object") return value;
-  if (handle && handle in value) {
-    return (value as Record<string, unknown>)[handle];
+  const record = value as Record<string, unknown>;
+  if (handle && handle in record) {
+    return record[handle];
   }
-  if ("output" in value) return value.output;
+  if ("output" in record) return record.output;
   return value;
 };

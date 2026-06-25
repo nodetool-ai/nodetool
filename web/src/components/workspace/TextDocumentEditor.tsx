@@ -167,7 +167,7 @@ const TextDocumentEditor = ({ asset }: TextDocumentEditorProps) => {
       addNotification({
         type: "error",
         alert: true,
-        content: `Failed to save ${asset.name}: ${(error as Error).message}`,
+        content: `Failed to save ${asset.name}: ${error.message}`,
         dismissable: false
       });
     }
