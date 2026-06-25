@@ -23,11 +23,8 @@ import type { Theme } from "@mui/material/styles";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 
 import type { TimelineClip, TimelineTrack, ClipStatus } from "@nodetool-ai/timeline";
-import {
-  useTimelineStore,
-  useTimelineStoreApi,
-  timelineTemporalOf
-} from "../../../stores/timeline/TimelineStore";
+import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
 import {
   useTimelineUIStore,
   useIsClipSelected
@@ -540,32 +537,11 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   // ── Undo batching ───────────────────────────────────────────────────────
   //
   // Drag/trim gestures mutate the store on every pointermove. To collapse a
-  // whole gesture into a single undo entry we let the *first* mutation of the
-  // gesture be recorded normally (zundo pushes the pre-gesture state onto the
-  // undo stack inside that set call), then pause history tracking for the
-  // rest of the gesture and resume on gesture end. While paused, zundo
-  // records nothing — so one undo step reverts the entire drag.
-
-  const timelineStoreApi = useTimelineStoreApi();
-  const historyPausedRef = useRef(false);
-
-  const pauseHistoryAfterFirstMutation = useCallback(() => {
-    if (!historyPausedRef.current) {
-      timelineTemporalOf(timelineStoreApi).pause();
-      historyPausedRef.current = true;
-    }
-  }, [timelineStoreApi]);
-
-  const resumeHistory = useCallback(() => {
-    if (historyPausedRef.current) {
-      historyPausedRef.current = false;
-      timelineTemporalOf(timelineStoreApi).resume();
-    }
-  }, [timelineStoreApi]);
-
-  // Safety net: never leave history tracking paused if the clip unmounts
-  // mid-gesture (e.g. the store changes underneath us).
-  useEffect(() => resumeHistory, [resumeHistory]);
+  // whole gesture into a single undo entry we begin a batch on pointerdown,
+  // mark() after each mutation (which pauses history once the pre-gesture
+  // state has actually been checkpointed), and end() on pointerup. While
+  // paused, zundo records nothing — so one undo step reverts the entire drag.
+  const history = useTimelineHistoryBatch();
 
   // ── Drag (move) ─────────────────────────────────────────────────────────
 
@@ -602,6 +578,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       dragStartXRef.current = e.clientX;
       dragStartMsRef.current = clip.startMs;
       isDraggingRef.current = false;
+      history.begin();
 
       // Snapshot the snap candidates ONCE at gesture start. The set of clip
       // edges + second/playhead gridlines doesn't change during a drag (only
@@ -716,8 +693,8 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
             disableSnap
           );
         }
-        // First mutation recorded the pre-drag state; batch the rest.
-        pauseHistoryAfterFirstMutation();
+        // First effective mutation recorded the pre-drag state; batch the rest.
+        history.mark();
       };
 
       const onUpOrCancel = () => {
@@ -728,7 +705,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
           cancelAnimationFrame(hitTestRafId);
           hitTestRafId = null;
         }
-        resumeHistory();
+        history.end();
         // Defer dragging flag reset so the synthetic click that follows
         // pointerup is still suppressed by handleClick.
         const wasDragging = isDraggingRef.current;
@@ -753,8 +730,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       clipId,
       moveClip,
       moveSelectedClips,
-      pauseHistoryAfterFirstMutation,
-      resumeHistory
+      history
     ]
   );
 
@@ -840,8 +816,9 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       e.currentTarget.setPointerCapture(e.pointerId);
       trimStartRef.current = { startX: e.clientX, startMs: clip.startMs };
       isTrimmingStartRef.current = true;
+      history.begin();
     },
-    [clip, activeTool]
+    [clip, activeTool, history]
   );
 
   const handleTrimStartPointerMove = useCallback(
@@ -866,10 +843,10 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       // So: pointer moving right (+deltaPx) should shrink the clip from the start.
       // We negate so that dragging the handle right correctly shrinks the clip start.
       trimClipStart(clip.id, -deltaMs);
-      pauseHistoryAfterFirstMutation();
+      history.mark();
       trimStartRef.current.startX = e.clientX;
     },
-    [clip, msPerPx, trimClipStart, pauseHistoryAfterFirstMutation]
+    [clip, msPerPx, trimClipStart, history]
   );
 
   // ── Trim end ────────────────────────────────────────────────────────────
@@ -894,8 +871,9 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
         startDuration: clip.durationMs
       };
       isTrimmingEndRef.current = true;
+      history.begin();
     },
-    [clip, activeTool]
+    [clip, activeTool, history]
   );
 
   const handleTrimEndPointerMove = useCallback(
@@ -915,10 +893,10 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       const deltaPx = e.clientX - trimEndRef.current.startX;
       const deltaMs = deltaPx * msPerPx;
       trimClipEnd(clip.id, deltaMs, audioSourceDurationMs);
-      pauseHistoryAfterFirstMutation();
+      history.mark();
       trimEndRef.current.startX = e.clientX;
     },
-    [clip, msPerPx, trimClipEnd, audioSourceDurationMs, pauseHistoryAfterFirstMutation]
+    [clip, msPerPx, trimClipEnd, audioSourceDurationMs, history]
   );
 
   // Shared end-of-trim handler (pointerup AND pointercancel): release the
@@ -926,8 +904,8 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   const handleTrimPointerEnd = useCallback(() => {
     isTrimmingStartRef.current = false;
     isTrimmingEndRef.current = false;
-    resumeHistory();
-  }, [resumeHistory]);
+    history.end();
+  }, [history]);
 
   if (!clip) {
     return null;
