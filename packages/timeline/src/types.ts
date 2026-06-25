@@ -339,6 +339,10 @@ export interface TimelineClip {
   linkId?: string;
   width?: number;
   height?: number;
+  /** Direct-gen video: target aspect ratio, e.g. "16:9". */
+  aspectRatio?: string;
+  /** Direct-gen video: target resolution tier, e.g. "720p". */
+  resolution?: string;
   strength?: number;
   numInferenceSteps?: number;
   seed?: number;

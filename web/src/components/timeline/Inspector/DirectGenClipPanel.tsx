@@ -27,6 +27,9 @@ import type {
   ImageModelValue,
   TTSModelValue
 } from "../../../stores/ApiTypes";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import StopRoundedIcon from "@mui/icons-material/StopRounded";
+
 import {
   Caption,
   CollapsibleSection,
@@ -35,11 +38,12 @@ import {
   FlexRow,
   Panel,
   SelectField,
-  Text,
   TextInput
 } from "../../ui_primitives";
-import { GeneratedClipHeader } from "./GeneratedClipHeader";
-import { ClipActions } from "./ClipActions";
+import { GeneratedClipTopBar } from "./GeneratedClipTopBar";
+import { InspectorSectionTitle } from "./InspectorPrimitives";
+import { ClipAdjustments } from "./ClipAdjustments";
+import { ClipVersionHistory } from "./ClipVersionHistory";
 
 interface VideoModelChange {
   type: "video_model";
@@ -83,7 +87,8 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
     generateClip,
     cancelClipGeneration,
     isActive,
-    isFailed
+    isFailed,
+    canGenerate
   } = useGenerateClip(clipId);
 
   const kind: "image" | "video" | "audio" =
@@ -179,13 +184,6 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
     return null;
   }
 
-  const canGenerate =
-    !!clip.provider &&
-    !!clip.model &&
-    (clip.prompt ?? "").trim().length > 0 &&
-    (!isImageToImage || !!clip.sourceClipId) &&
-    (kind !== "audio" || !!clip.voice);
-
   const promptPlaceholder =
     kind === "video"
       ? "Describe the video…"
@@ -198,9 +196,17 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
   return (
     <Panel sx={panelSx}>
       <FlexColumn gap={0}>
-        <GeneratedClipHeader clip={clip} />
+        <GeneratedClipTopBar clip={clip} />
 
-        <CollapsibleSection title="Prompt" defaultOpen>
+        <CollapsibleSection
+          title={
+            <InspectorSectionTitle
+              title="Prompt"
+              icon={<AutoAwesomeOutlinedIcon />}
+            />
+          }
+          defaultOpen
+        >
           <FlexColumn gap={1} css={sectionStyles(theme)}>
             {kind === "image" && (
               <FlexRow gap={0.5}>
@@ -262,7 +268,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
               onChange={handlePromptChange}
               placeholder={promptPlaceholder}
               multiline
-              minRows={3}
+              minRows={2}
               maxRows={10}
               compact
               fullWidth
@@ -288,32 +294,30 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
               )
             )}
 
-            <FlexRow gap={1} align="center" justify="space-between">
-              <EditorButton
-                size="small"
-                variant={isActive ? "outlined" : "contained"}
-                color={isActive ? "warning" : "primary"}
-                disabled={!isActive && !canGenerate}
-                onClick={handleGenerateClick}
-                data-testid="direct-gen-generate"
-              >
-                {isActive ? "Cancel" : generateLabel}
-              </EditorButton>
-              {isFailed && (
-                <Text
-                  size="small"
-                  sx={{ color: theme.vars.palette.error.main }}
-                >
-                  Generation failed.
-                </Text>
-              )}
-            </FlexRow>
+            <EditorButton
+              fullWidth
+              variant={isActive ? "outlined" : "contained"}
+              color={isActive ? "warning" : "primary"}
+              startIcon={
+                isActive ? <StopRoundedIcon /> : <AutoAwesomeOutlinedIcon />
+              }
+              disabled={!isActive && !canGenerate}
+              onClick={handleGenerateClick}
+              data-testid="direct-gen-generate"
+            >
+              {isActive ? "Cancel" : generateLabel}
+            </EditorButton>
+            {isFailed && (
+              <Caption sx={{ color: "error.main", textAlign: "center" }}>
+                Generation failed.
+              </Caption>
+            )}
           </FlexColumn>
         </CollapsibleSection>
 
-        <CollapsibleSection title="Actions" defaultOpen>
-          <ClipActions clipId={clipId} />
-        </CollapsibleSection>
+        <ClipVersionHistory clipId={clipId} />
+
+        <ClipAdjustments clip={clip} />
       </FlexColumn>
     </Panel>
   );

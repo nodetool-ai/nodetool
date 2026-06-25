@@ -14,6 +14,7 @@ import React, {
   useCallback,
   useEffect,
   useId,
+  useMemo,
   useState
 } from "react";
 import { css } from "@emotion/react";
@@ -21,7 +22,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import Switch from "@mui/material/Switch";
 
-import { NodeSlider, Tooltip, MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT, SPACING, getSpacingPx } from "../../ui_primitives";
+import { NodeSlider, Tooltip, MOTION, BORDER_RADIUS, FONT_SIZE_SANS, FONT_SIZE_MONO, FONT_WEIGHT, SPACING, getSpacingPx, reducedMotion } from "../../ui_primitives";
 
 // ── Header ─────────────────────────────────────────────────────────────────
 
@@ -519,6 +520,64 @@ const sliderValueStyles = (theme: Theme) =>
     fontVariantNumeric: "tabular-nums"
   });
 
+/**
+ * Precision slider styling, Lightroom/Premiere register: a thin rail, a small
+ * round handle, and a filled segment that originates from the neutral value
+ * (driven by the `--fill-*` CSS vars set on the wrapper) rather than always
+ * from the left edge. `track={false}` suppresses MUI's own left-anchored fill;
+ * the rail's gradient draws the bipolar fill instead, and a faint tick marks
+ * the neutral point.
+ */
+const precisionSliderSx = (theme: Theme) => {
+  const rail = "rgba(255, 255, 255, 0.14)";
+  const accent = theme.vars.palette.primary.main;
+  const ring = theme.vars.palette.primary.mainChannel;
+  return {
+    marginTop: 0,
+    padding: `${getSpacingPx(SPACING.md)} 0`,
+    height: 16,
+    "&.Mui-disabled": { opacity: 0.45 },
+    "& .MuiSlider-rail": {
+      height: 3,
+      borderRadius: BORDER_RADIUS.pill,
+      opacity: 1,
+      background: `linear-gradient(to right, ${rail} 0, ${rail} var(--fill-lo, 0%), ${accent} var(--fill-lo, 0%), ${accent} var(--fill-hi, 0%), ${rail} var(--fill-hi, 0%), ${rail} 100%)`,
+      // Neutral-point tick (shown only for bipolar sliders via --fill-show-tick).
+      "&::before": {
+        content: '""',
+        position: "absolute",
+        left: "var(--fill-origin, 0%)",
+        top: "50%",
+        width: 2,
+        height: 8,
+        transform: "translate(-50%, -50%)",
+        borderRadius: BORDER_RADIUS.pill,
+        backgroundColor: theme.vars.palette.text.disabled,
+        opacity: "var(--fill-show-tick, 0)",
+        pointerEvents: "none"
+      }
+    },
+    "& .MuiSlider-thumb": {
+      width: 12,
+      height: 12,
+      borderRadius: BORDER_RADIUS.circle,
+      backgroundColor: theme.vars.palette.text.primary,
+      border: `1px solid rgba(${theme.vars.palette.common.blackChannel} / 0.28)`,
+      boxShadow: "0 1px 2px rgba(0, 0, 0, 0.45)",
+      transition: MOTION.shadow,
+      "&:hover": {
+        boxShadow: `0 1px 2px rgba(0, 0, 0, 0.45), 0 0 0 4px rgba(${ring} / 0.18)`
+      },
+      "&.Mui-focusVisible, &.Mui-active": {
+        boxShadow: `0 1px 2px rgba(0, 0, 0, 0.45), 0 0 0 5px rgba(${ring} / 0.3)`
+      },
+      // Suppress MUI's value-label ripple pseudo-elements.
+      "&::before, &::after": { display: "none" }
+    },
+    ...reducedMotion({ "& .MuiSlider-thumb": { transition: MOTION.none } })
+  };
+};
+
 export interface InspectorSliderRowProps {
   label: string;
   value: number;
@@ -529,25 +588,58 @@ export interface InspectorSliderRowProps {
   step: number;
   disabled?: boolean;
   onChange: (value: number) => void;
+  /**
+   * Neutral/default value. When set, the filled portion of the rail originates
+   * here instead of the left edge (bipolar, Lightroom-style), a tick marks the
+   * neutral point, and double-clicking the rail resets the value to it.
+   */
+  origin?: number;
 }
 
-/** Label + full-width slider + mono value readout. */
+/** Label + full-width precision slider + mono value readout. */
 export const InspectorSliderRow: React.FC<InspectorSliderRowProps> = memo(
-  ({ label, value, display, min, max, step, disabled, onChange }) => {
+  ({ label, value, display, min, max, step, disabled, onChange, origin }) => {
     const theme = useTheme();
+    const sliderSx = useMemo(() => precisionSliderSx(theme), [theme]);
+
+    const span = max - min || 1;
+    const toPct = (v: number) =>
+      ((Math.min(max, Math.max(min, v)) - min) / span) * 100;
+    const valuePct = toPct(value);
+    const originPct = toPct(origin ?? min);
+    const showTick =
+      origin !== undefined && origin > min && origin < max;
+
+    const fillVars = {
+      "--fill-lo": `${Math.min(originPct, valuePct)}%`,
+      "--fill-hi": `${Math.max(originPct, valuePct)}%`,
+      "--fill-origin": `${originPct}%`,
+      "--fill-show-tick": showTick ? 1 : 0
+    } as React.CSSProperties;
+
+    const handleReset = useCallback(() => {
+      if (origin !== undefined) onChange(origin);
+    }, [origin, onChange]);
+
     return (
       <div css={sliderRowStyles(theme)}>
         <span css={sliderLabelStyles(theme)} title={label}>
           {label}
         </span>
-        <div css={sliderTrackStyles}>
+        <div
+          css={sliderTrackStyles}
+          style={fillVars}
+          onDoubleClick={origin !== undefined ? handleReset : undefined}
+        >
           <NodeSlider
             min={min}
             max={max}
             step={step}
             value={value}
             disabled={disabled}
+            track={false}
             aria-label={label}
+            sx={sliderSx}
             onChange={(_e, next) =>
               onChange(Array.isArray(next) ? next[0] : next)
             }
