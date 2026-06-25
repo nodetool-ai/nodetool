@@ -3,16 +3,14 @@ import React, { memo, useMemo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { createStyles } from "./ThreadList.styles";
-import {
-  ThreadItem,
-  EmptyThreadList,
-  ThreadListProps
-} from "./";
+import { ThreadItem } from "./ThreadItem";
+import { EmptyThreadList } from "./EmptyThreadList";
+import type { ThreadListProps } from "../types/thread.types";
 import { ThreadInfo } from "../types/thread.types";
 import { sortThreadsByDate } from "../utils/threadUtils";
 import { groupByDate } from "../../../utils/groupByDate";
 
-export type { ThreadInfo } from "./";
+export type { ThreadInfo } from "../types/thread.types";
 
 function formatGroupDate(dateStr: string): string {
   const date = new Date(dateStr);
