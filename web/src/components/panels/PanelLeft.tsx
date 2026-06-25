@@ -92,8 +92,13 @@ const styles = (
     display: "flex",
     flexDirection: "row",
     zIndex: theme.zIndex.appBar,
+    // The container is a full-height positioning shell. Its transparent box
+    // overlaps the tab bar's empty strip above the drawer (the drawer's 40px
+    // marginTop), so it must not capture clicks — only its real children do.
+    pointerEvents: "none",
 
     ".drawer-content": {
+      pointerEvents: "auto",
       marginTop: getSpacingPx(10), // 40px
       height: "calc(100% - 40px)",
       backgroundColor: theme.vars.palette.background.default,
@@ -130,6 +135,7 @@ const styles = (
     },
 
     ".vertical-toolbar": {
+      pointerEvents: "auto",
       width: `${TOOLBAR_WIDTH}px`,
       flexShrink: 0,
       display: "flex",

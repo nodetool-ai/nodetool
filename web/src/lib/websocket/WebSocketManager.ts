@@ -241,11 +241,16 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
         if (event.data instanceof ArrayBuffer) {
           const decoded = unpack(new Uint8Array(event.data));
           data = decoded;
+        } else if (event.data instanceof Blob) {
+          const buf = await event.data.arrayBuffer();
+          data = unpack(new Uint8Array(buf));
         } else if (
-          event.data instanceof Blob ||
-          (event.data && typeof (event.data as Blob).arrayBuffer === "function")
+          event.data &&
+          typeof event.data === "object" &&
+          "arrayBuffer" in event.data &&
+          typeof event.data.arrayBuffer === "function"
         ) {
-          const buf = await (event.data as Blob).arrayBuffer();
+          const buf = await (event.data.arrayBuffer as () => Promise<ArrayBuffer>)();
           data = unpack(new Uint8Array(buf));
         } else if (typeof event.data === "string") {
           data = JSON.parse(event.data);
@@ -400,8 +405,9 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
         this.setupEventHandlers();
         this.startConnectionTimeout();
       } catch (error) {
-        this.handleConnectionError(error as Error);
-        reject(error);
+        const err = error instanceof Error ? error : new Error(String(error));
+        this.handleConnectionError(err);
+        reject(err);
       }
     });
   }

@@ -750,6 +750,7 @@ import { AGENT_NODES } from "@nodetool-ai/llm-nodes/nodes/agents";
 import { GENERATOR_NODES } from "@nodetool-ai/llm-nodes/nodes/generators";
 import { MODEL3D_NODES } from "@nodetool-ai/video-nodes/nodes/model3d";
 import { LIB_OS_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-os";
+import { LIB_APPLE_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-apple";
 import { LIB_MARKDOWN_NODES } from "@nodetool-ai/text-nodes/nodes/lib-markdown";
 import { LIB_SECRET_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-secret";
 import { LIB_PANDOC_NODES } from "@nodetool-ai/document-nodes/nodes/lib-doc-transform";
@@ -837,6 +838,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...GENERATOR_NODES,
   ...MODEL3D_NODES,
   ...LIB_OS_NODES,
+  ...(process.platform === "darwin" ? LIB_APPLE_NODES : []),
   ...LIB_MARKDOWN_NODES,
   ...LIB_SECRET_NODES,
   ...LIB_PANDOC_NODES,

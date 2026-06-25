@@ -64,7 +64,7 @@ const JSONProperty = (props: PropertyProps) => {
         JSON.parse(code);
         setError(null);
       } catch (e) {
-        const errorMessage = (e as Error).message;
+        const errorMessage = e instanceof Error ? e.message : String(e);
         const lineMatch = errorMessage.match(/line (\d+)/);
         const lineNumber = lineMatch ? parseInt(lineMatch[1], 10) : 1;
         setError({ message: errorMessage, line: lineNumber });

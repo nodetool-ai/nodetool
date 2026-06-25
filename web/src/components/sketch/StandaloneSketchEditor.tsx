@@ -33,7 +33,14 @@ import SketchEditor, { type SketchEditorHandle } from "./SketchEditor";
 import { trpc } from "../../trpc/client";
 import type { SketchDocument } from "./types";
 import { useStandaloneSketchDocument } from "../../stores/sketch/SketchSessionStore";
-import { SketchProvider } from "../../stores/sketch/SketchInstance";
+import {
+  SketchProvider,
+  useSketchSessionStoreApi
+} from "../../stores/sketch/SketchInstance";
+import {
+  useWorkspaceTabsStore,
+  tabId
+} from "../../stores/WorkspaceTabsStore";
 import { useSaveSketchDocument } from "../../hooks/sketch/useSaveSketchDocument";
 
 const containerStyles = (theme: Theme) =>
@@ -98,6 +105,20 @@ const StandaloneSketchEditorBody: React.FC<
       setSeed({ id: documentId, document: initialEditorState.document });
     }, [documentId, initialEditorState, seed?.id]);
 
+    // Mirror the workspace tab title into the session name. Renaming the tab
+    // persists immediately to the server, but the content autosave also writes
+    // `session.name`; without this it would later revert the rename.
+    const sessionStore = useSketchSessionStoreApi();
+    const tabTitle = useWorkspaceTabsStore(
+      (state) =>
+        state.tabs.find((t) => t.id === tabId("sketch", documentId))?.title
+    );
+    useEffect(() => {
+      if (tabTitle && tabTitle !== sessionStore.getState().name) {
+        sessionStore.getState().setName(tabTitle);
+      }
+    }, [tabTitle, sessionStore]);
+
     const handleSave = useCallback(() => {
       void save();
     }, [save]);
@@ -123,7 +144,7 @@ const StandaloneSketchEditorBody: React.FC<
     };
 
     const documentActions = (
-      <FlexRow gap={0.5} align="center" sx={{ flexShrink: 0 }}>
+      <FlexRow gap={2} align="center" sx={{ flexShrink: 0 }}>
         <EditorButton
           size="small"
           variant="outlined"
@@ -131,6 +152,7 @@ const StandaloneSketchEditorBody: React.FC<
           disabled={saving}
           startIcon={<SaveOutlinedIcon fontSize="small" />}
           data-testid="sketch-save-document"
+          sx={{ height: 34 }}
         >
           {saving ? "Saving…" : "Save"}
         </EditorButton>
@@ -140,6 +162,7 @@ const StandaloneSketchEditorBody: React.FC<
           onClick={handleExportPng}
           startIcon={<FileDownloadOutlinedIcon fontSize="small" />}
           data-testid="sketch-export-png"
+          sx={{ height: 34 }}
         >
           Export PNG
         </EditorButton>

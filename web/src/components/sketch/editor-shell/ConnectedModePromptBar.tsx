@@ -12,25 +12,57 @@
  * sketch modal has no session, same gate as SelectionActionBar).
  */
 
-import React, { memo, useCallback, useState } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import AspectRatioIcon from "@mui/icons-material/CropOriginal";
+import ResolutionIcon from "@mui/icons-material/Tv";
 
 import {
-  Chip,
   EditorButton,
   FlexRow,
   LoadingSpinner,
-  Text,
+  SPACING,
   TextInput,
   Toast
 } from "../../ui_primitives";
 import ImageModelSelect from "../../properties/ImageModelSelect";
+import MediaControlChip from "../../chat/composer/MediaControlChip";
+import MediaAspectRatioMenu from "../../chat/composer/MediaAspectRatioMenu";
+import MediaOptionMenu from "../../chat/composer/MediaOptionMenu";
 import type { ImageModelValue } from "../../../stores/ApiTypes";
+import {
+  IMAGE_ASPECT_RATIOS,
+  IMAGE_RESOLUTIONS,
+  resolveImageSize,
+  type ImageResolution
+} from "../../../stores/MediaGenerationStore";
 import { useSketchStore } from "../state/useSketchStore";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import { useDirectGenJob } from "../../../hooks/sketch/useDirectGenJob";
-import { SKETCH_FONT, SKETCH_SPACING } from "../sketchStyles";
+import { SKETCH_SPACING } from "../sketchStyles";
+
+/** Nearest aspect-ratio + resolution preset for an existing canvas size, so the
+ *  controls reflect the artboard on open instead of a fixed default. */
+function deriveSizePreset(
+  width: number,
+  height: number
+): { aspectRatio: string; resolution: ImageResolution } {
+  const ratio = width / height;
+  let aspectRatio = IMAGE_ASPECT_RATIOS[0].id;
+  let bestDiff = Infinity;
+  for (const a of IMAGE_ASPECT_RATIOS) {
+    const diff = Math.abs(a.width / a.height - ratio);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      aspectRatio = a.id;
+    }
+  }
+  const shortEdge = Math.min(width, height);
+  const resolution: ImageResolution =
+    shortEdge >= 3072 ? "4K" : shortEdge >= 1536 ? "2K" : "1K";
+  return { aspectRatio, resolution };
+}
 
 /** Most recent direct-gen binding's model, to seed the bar's picker. */
 function seedModelFromBindings(): { model: string; provider: string } {
@@ -66,9 +98,9 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
   const panelsHidden = useSketchStore((s) => s.panelsHidden);
   const docW = useSketchStore((s) => s.document.canvas.width);
   const docH = useSketchStore((s) => s.document.canvas.height);
+  const resizeCanvas = useSketchStore((s) => s.resizeCanvas);
 
   const documentId = useSketchSessionStore((s) => s.documentId);
-  const name = useSketchSessionStore((s) => s.name);
 
   const { start } = useDirectGenJob();
 
@@ -78,6 +110,41 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
   const [provider, setProvider] = useState(seed.provider);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Output size — aspect ratio + resolution, mirroring the media composer.
+  // Changing either resizes the artboard so the generated layer matches.
+  const [sizeSeed] = useState(() => deriveSizePreset(docW, docH));
+  const [aspectRatio, setAspectRatio] = useState(sizeSeed.aspectRatio);
+  const [resolution, setResolution] = useState<ImageResolution>(
+    sizeSeed.resolution
+  );
+  const [aspectAnchor, setAspectAnchor] = useState<HTMLElement | null>(null);
+  const [resolutionAnchor, setResolutionAnchor] = useState<HTMLElement | null>(
+    null
+  );
+
+  const resolutionOptions = useMemo(
+    () => IMAGE_RESOLUTIONS.map((r) => ({ id: r, label: r })),
+    []
+  );
+
+  const handleResolutionChange = useCallback(
+    (r: ImageResolution) => {
+      setResolution(r);
+      const { width, height } = resolveImageSize(r, aspectRatio);
+      resizeCanvas(width, height);
+    },
+    [aspectRatio, resizeCanvas]
+  );
+
+  const handleAspectChange = useCallback(
+    (a: string) => {
+      setAspectRatio(a);
+      const { width, height } = resolveImageSize(resolution, a);
+      resizeCanvas(width, height);
+    },
+    [resolution, resizeCanvas]
+  );
 
   const handleModelChange = useCallback((v: ImageModelValue) => {
     setModel(v.id);
@@ -90,12 +157,15 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
       const layerId = useSketchStore
         .getState()
         .addLayer(uniqueLayerName("Text-to-Image"));
+      const { width, height } = resolveImageSize(resolution, aspectRatio);
       useSketchSessionStore.getState().upsertBinding({
         layerId,
         kind: "text-to-image",
         prompt: prompt.trim(),
         provider,
         model,
+        width,
+        height,
         sourceLayerId: null,
         status: "draft",
         versions: []
@@ -108,7 +178,7 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
     } finally {
       setGenerating(false);
     }
-  }, [model, prompt, provider, start]);
+  }, [model, prompt, provider, resolution, aspectRatio, start]);
 
   const actionDisabled = generating || !prompt.trim() || !model;
 
@@ -124,7 +194,7 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
         className="sketch-mode-prompt-bar"
         data-testid="sketch-mode-prompt-bar"
         align="center"
-        gap={1}
+        gap={SPACING.xl}
         sx={{
           flexShrink: 0,
           width: "100%",
@@ -137,27 +207,40 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
           borderBottom: `1px solid ${theme.vars.palette.grey[800]}`
         }}
       >
-        {/* Document name + dimensions */}
-        <FlexRow align="center" gap={1} sx={{ flexShrink: 0, minWidth: 0 }}>
-          <Text
-            size="small"
-            sx={{
-              fontWeight: 600,
-              maxWidth: 160,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap"
-            }}
-            title={name}
-          >
-            {name || "Untitled"}
-          </Text>
-          <Chip
-            compact
-            label={`${docW} × ${docH} · sRGB`}
-            sx={{ fontFamily: SKETCH_FONT.familyMono }}
-          />
-        </FlexRow>
+        {/* Resolution */}
+        <MediaControlChip
+          icon={<ResolutionIcon fontSize="small" />}
+          label={resolution}
+          active={!!resolutionAnchor}
+          onClick={(e) => setResolutionAnchor(e.currentTarget)}
+          showChevron={false}
+        />
+        <MediaOptionMenu
+          anchorEl={resolutionAnchor}
+          open={!!resolutionAnchor}
+          onClose={() => setResolutionAnchor(null)}
+          header="Resolution"
+          value={resolution}
+          options={resolutionOptions}
+          onChange={handleResolutionChange}
+        />
+
+        {/* Aspect ratio */}
+        <MediaControlChip
+          icon={<AspectRatioIcon fontSize="small" />}
+          label={aspectRatio}
+          active={!!aspectAnchor}
+          onClick={(e) => setAspectAnchor(e.currentTarget)}
+          showChevron={false}
+        />
+        <MediaAspectRatioMenu
+          anchorEl={aspectAnchor}
+          open={!!aspectAnchor}
+          onClose={() => setAspectAnchor(null)}
+          value={aspectRatio}
+          options={IMAGE_ASPECT_RATIOS}
+          onChange={handleAspectChange}
+        />
 
         {/* Prompt */}
         <TextInput
@@ -184,7 +267,12 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
               )
             }
           }}
-          sx={{ flex: 1, minWidth: 120 }}
+          sx={{
+            flex: 1,
+            minWidth: 120,
+            // Match the control/button height so the row aligns.
+            "& .MuiOutlinedInput-root": { height: 34 }
+          }}
         />
 
         {/* Model selector */}
@@ -210,7 +298,7 @@ const ConnectedModePromptBarInner: React.FC<ConnectedModePromptBarProps> = ({
             )
           }
           data-testid="sketch-gen-submit"
-          sx={{ flexShrink: 0 }}
+          sx={{ flexShrink: 0, height: 34 }}
         >
           Generate
         </EditorButton>

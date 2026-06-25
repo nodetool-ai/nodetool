@@ -39,6 +39,8 @@ const RESET_BUTTON_OFFSET_CSS = css({
   "--property-reset-button-offset": "40px"
 });
 
+const INLINE_FLEX_STYLE: React.CSSProperties = { display: "inline-flex" };
+
 const propertyInputContainerStyles = (theme: Theme) =>
   css({
     "&.property-input-container": {
@@ -373,6 +375,16 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     updateNodeProperties
   ]);
 
+  const handleResetKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        handleResetToDefault();
+      }
+    },
+    [handleResetToDefault]
+  );
+
   const onContextMenu = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {
       event.preventDefault();
@@ -497,7 +509,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
             role={isChanged ? "button" : undefined}
             tabIndex={isChanged ? 0 : undefined}
             onClick={isChanged ? handleResetToDefault : undefined}
-            onKeyDown={isChanged ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleResetToDefault(); } } : undefined}
+            onKeyDown={isChanged ? handleResetKeyDown : undefined}
             aria-hidden={!isChanged}
           >
             <SettingsBackupRestoreIcon />
@@ -506,27 +518,31 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
       </Tooltip>
     ) : null;
 
+  const inspectorResetSx = useMemo(
+    () =>
+      isChanged
+        ? { color: theme.vars.palette.common.white }
+        : {
+            color: theme.vars.palette.text.disabled,
+            "&.Mui-disabled": {
+              opacity: 0.5,
+              color: theme.vars.palette.text.disabled
+            }
+          },
+    [isChanged, theme]
+  );
+
   const inspectorResetButton =
     isInspector && hasResetDefault ? (
       <Tooltip title="Reset to default" placement="top" disableInteractive>
-        <span className="inspector-reset-tooltip" style={{ display: "inline-flex" }}>
+        <span className="inspector-reset-tooltip" style={INLINE_FLEX_STYLE}>
           <ToolbarIconButton
             className={`inspector-reset-button${isChanged ? " is-changed" : ""}`}
             onClick={handleResetToDefault}
             disabled={!isChanged}
             size="small"
             icon={<SettingsBackupRestoreIcon />}
-            sx={
-              isChanged
-                ? { color: theme.vars.palette.common.white }
-                : {
-                    color: theme.vars.palette.text.disabled,
-                    "&.Mui-disabled": {
-                      opacity: 0.5,
-                      color: theme.vars.palette.text.disabled
-                    }
-                  }
-            }
+            sx={inspectorResetSx}
           />
         </span>
       </Tooltip>

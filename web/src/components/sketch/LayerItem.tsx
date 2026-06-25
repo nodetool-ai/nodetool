@@ -40,6 +40,7 @@ import {
 } from "../ui_primitives";
 import type { LayerStatus } from "@nodetool-ai/image-editor";
 import { LAYER_STATUS_MAP } from "./Inspector/layerStatusMapping";
+import MagicGenerationFill from "./MagicGenerationFill";
 
 /** Base left padding for the layer row (px). 0 so the thumbnail sits flush
  *  with the row's left edge — the row background should not stick out past it. */
@@ -148,6 +149,8 @@ const LayerItem: React.FC<LayerItemProps> = ({
   // blocked by the page CSP when set directly as an <img src>.
   const layerImage = isGroup ? null : getLayerDataImageUrl(layer.data);
   const thumbnailSrc = layerImage ? resolveAssetUri(layerImage) : null;
+  const isLayerGenerating =
+    bindingStatus === "queued" || bindingStatus === "generating";
 
   // Mockup-style sub-label under the name: blend mode + opacity (or MASK).
   const opacityPct = Math.round(layer.opacity * 100);
@@ -252,24 +255,45 @@ const LayerItem: React.FC<LayerItemProps> = ({
               }}
             />
           )
-        ) : thumbnailSrc ? (
-          <img
-            className="layer-thumbnail"
-            src={thumbnailSrc}
-            alt={layer.name}
-            draggable={false}
-            onClick={(e) => {
-              if (e.ctrlKey || e.metaKey) {
-                e.stopPropagation();
-                onThumbnailCtrlClick?.(
-                  layer.id,
-                  e.shiftKey ? "add" : "replace"
-                );
-              }
-            }}
-          />
         ) : (
-          <Box className="layer-thumbnail-empty" />
+          <Box
+            className="layer-thumbnail-wrapper"
+            sx={{ position: "relative", display: "flex", flexShrink: 0 }}
+          >
+            {thumbnailSrc ? (
+              <img
+                className="layer-thumbnail"
+                src={thumbnailSrc}
+                alt={layer.name}
+                draggable={false}
+                onClick={(e) => {
+                  if (e.ctrlKey || e.metaKey) {
+                    e.stopPropagation();
+                    onThumbnailCtrlClick?.(
+                      layer.id,
+                      e.shiftKey ? "add" : "replace"
+                    );
+                  }
+                }}
+              />
+            ) : (
+              <Box className="layer-thumbnail-empty" />
+            )}
+            {isLayerGenerating && (
+              <Box
+                aria-hidden
+                sx={{
+                  position: "absolute",
+                  inset: 0,
+                  borderRadius: BORDER_RADIUS.xs,
+                  overflow: "hidden",
+                  pointerEvents: "none"
+                }}
+              >
+                <MagicGenerationFill />
+              </Box>
+            )}
+          </Box>
         )}
 
         {!isGroup && (

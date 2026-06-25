@@ -4,12 +4,11 @@ import kieUnitPricingCatalog from "@nodetool/kie-unit-pricing-catalog";
 
 function isKieUnitPricing(value: unknown): value is KieUnitPricing {
   if (value == null || typeof value !== "object") return false;
-  const v = value as Record<string, unknown>;
   return (
-    typeof v.model_id === "string" &&
-    typeof v.unit_price === "number" &&
-    typeof v.billing_unit === "string" &&
-    v.currency === "credits"
+    "model_id" in value && typeof value.model_id === "string" &&
+    "unit_price" in value && typeof value.unit_price === "number" &&
+    "billing_unit" in value && typeof value.billing_unit === "string" &&
+    "currency" in value && value.currency === "credits"
   );
 }
 
@@ -17,11 +16,9 @@ function readStringField(obj: unknown, key: string): string | undefined {
   if (obj == null || typeof obj !== "object") {
     return undefined;
   }
+  if (!(key in obj)) return undefined;
   const v = (obj as Record<string, unknown>)[key];
-  if (typeof v === "string" && v.trim() !== "") {
-    return v;
-  }
-  return undefined;
+  return typeof v === "string" && v.trim() !== "" ? v : undefined;
 }
 
 function pricingCatalogWrittenAt(): string | undefined {

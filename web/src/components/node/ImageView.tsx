@@ -44,7 +44,7 @@ interface ImageViewProps {
 const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
   const [openViewer, setOpenViewer] = React.useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
-  const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
+  const [imgNaturalDimensions, setImgNaturalDimensions] = useState<{ width: number; height: number } | null>(null);
   const { suppressed: overlaySuppressed, onRequestOpenViewer } =
     useMediaOverlay();
 
@@ -178,7 +178,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
 
   const handleImageLoad = useCallback(() => {
     if (imageRef.current) {
-      setImageDimensions({
+      setImgNaturalDimensions({
         width: imageRef.current.naturalWidth,
         height: imageRef.current.naturalHeight
       });
@@ -186,12 +186,16 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
   }, []);
 
   useEffect(() => {
-    if (bitmap) {
-      setImageDimensions({ width: bitmap.width, height: bitmap.height });
-      return;
+    if (!bitmap) {
+      setImgNaturalDimensions(null);
     }
-    setImageDimensions(null);
   }, [bitmap, imageUrl]);
+
+  // Bitmap dimensions are known synchronously — skip the extra render
+  // cycle that useEffect+setState would cause on every bitmap update.
+  const imageDimensions = bitmap
+    ? { width: bitmap.width, height: bitmap.height }
+    : imgNaturalDimensions;
 
   // Memoize style objects to prevent recreation on every render
   const containerStyle = useMemo(() => ({

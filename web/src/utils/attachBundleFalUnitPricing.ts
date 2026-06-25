@@ -4,12 +4,11 @@ import falUnitPricingCatalog from "@nodetool/fal-unit-pricing-catalog";
 
 function isFalUnitPricing(value: unknown): value is FalUnitPricing {
   if (value == null || typeof value !== "object") return false;
-  const v = value as Record<string, unknown>;
   return (
-    typeof v.endpoint_id === "string" &&
-    typeof v.unit_price === "number" &&
-    typeof v.billing_unit === "string" &&
-    typeof v.currency === "string"
+    "endpoint_id" in value && typeof value.endpoint_id === "string" &&
+    "unit_price" in value && typeof value.unit_price === "number" &&
+    "billing_unit" in value && typeof value.billing_unit === "string" &&
+    "currency" in value && typeof value.currency === "string"
   );
 }
 
@@ -17,11 +16,9 @@ function readStringField(obj: unknown, key: string): string | undefined {
   if (obj == null || typeof obj !== "object") {
     return undefined;
   }
+  if (!(key in obj)) return undefined;
   const v = (obj as Record<string, unknown>)[key];
-  if (typeof v === "string" && v.trim() !== "") {
-    return v;
-  }
-  return undefined;
+  return typeof v === "string" && v.trim() !== "" ? v : undefined;
 }
 
 /** `writtenAt` from codegen `fal-unit-pricing.json` (FAL /v1/models/pricing snapshot). */

@@ -120,6 +120,12 @@ export interface SketchCanvasPresentationProps {
     options?: { translateLayers?: Point; resizeFromCenter?: boolean }
   ) => void;
   className?: string;
+  /**
+   * Document-space chrome rendered above the layer pixels and below the
+   * selection/cursor/gizmo canvases. Positioned children use raw document
+   * coordinates — the shared pan/zoom transform maps them onto the artboard.
+   */
+  docOverlay?: React.ReactNode;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -156,7 +162,8 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
       onDrop,
       onCanvasResizeStart,
       onCanvasResize,
-      className: rootClassName
+      className: rootClassName,
+      docOverlay
     } = props;
 
     const theme = useTheme();
@@ -216,6 +223,25 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
               imageRendering: "auto"
             }}
           />
+          {/* Document-space DOM overlay (e.g. generation effects). Shares the
+              canvas transform so its children position in document pixels. */}
+          {docOverlay && (
+            <div
+              className="sketch-canvas__doc-overlay"
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                width: canvasWidth,
+                height: canvasHeight,
+                transform: canvasStyle.transform,
+                transformOrigin: "center center",
+                pointerEvents: "none"
+              }}
+            >
+              {docOverlay}
+            </div>
+          )}
         </div>
         {/* Screen-resolution canvas for selection marching ants. */}
         <canvas

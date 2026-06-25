@@ -755,7 +755,7 @@ const ReactFlowWrapper = ({
     return (
       <div className="loading-overlay">
         <Text color="error">
-          {(error as Error).message}
+          {error.message}
         </Text>
       </div>
     );
