@@ -9,6 +9,12 @@
  * under `~/.claude`). The SDK streams `SDKMessage`s, which we translate into the
  * cross-provider {@link ProviderStreamItem} stream.
  *
+ * `@anthropic-ai/claude-agent-sdk` is a *soft* (optional peer) dependency: it is
+ * not installed by default and must be added with the package manager before
+ * this provider can run. It is loaded lazily via {@link loadSdk}, so a missing
+ * package surfaces as a clear install hint only when the provider is actually
+ * used — the rest of the runtime, and the browser worker bundle, never need it.
+ *
  * It is a *pure LLM* provider: the agentic tool loop is collapsed to a single
  * turn with every built-in tool disabled (`allowedTools: []`), filesystem
  * settings/skills disabled (`settingSources: []`), permission prompts neutered
@@ -113,6 +119,28 @@ interface ClaudeAgentProviderOptions {
   createMcpServerFn?: ClaudeCreateMcpServerFn;
 }
 
+/**
+ * Lazily import the optional `@anthropic-ai/claude-agent-sdk`. The SDK is a soft
+ * (peer) dependency — it is not installed by default and must be added with the
+ * package manager (e.g. `npm install @anthropic-ai/claude-agent-sdk`) before the
+ * Claude Agent provider can be used. The specifier is held in a variable so
+ * bundlers (and tsc's emit) don't try to resolve the Node-only package at build
+ * time, and a missing package surfaces as a clear, actionable error at call time.
+ */
+async function loadSdk(): Promise<typeof import("@anthropic-ai/claude-agent-sdk")> {
+  const spec = "@anthropic-ai/claude-agent-sdk";
+  try {
+    return (await import(/* @vite-ignore */ spec)) as typeof import("@anthropic-ai/claude-agent-sdk");
+  } catch (err) {
+    throw new Error(
+      "The Claude Agent provider requires the optional " +
+        "'@anthropic-ai/claude-agent-sdk' package, which is not installed. " +
+        "Install it with `npm install @anthropic-ai/claude-agent-sdk`.",
+      { cause: err as Error }
+    );
+  }
+}
+
 export class ClaudeAgentProvider extends BaseProvider {
   static requiredSecrets(): string[] {
     // Auth lives in the SDK's own credential store (~/.claude), not in an env
@@ -170,21 +198,14 @@ export class ClaudeAgentProvider extends BaseProvider {
   /** Resolve the SDK `query`, lazily importing it off the Node-only package. */
   private async loadQuery(): Promise<ClaudeQueryFn> {
     if (this.injectedQueryFn) return this.injectedQueryFn;
-    try {
-      const mod = await import("@anthropic-ai/claude-agent-sdk");
-      return mod.query as unknown as ClaudeQueryFn;
-    } catch (err) {
-      throw new Error(
-        "ClaudeAgentProvider requires Node — @anthropic-ai/claude-agent-sdk " +
-          `could not be loaded: ${err instanceof Error ? err.message : String(err)}`
-      );
-    }
+    const mod = await loadSdk();
+    return mod.query as unknown as ClaudeQueryFn;
   }
 
   /** Resolve the SDK `createSdkMcpServer`, lazily importing the Node-only pkg. */
   private async loadCreateMcpServer(): Promise<ClaudeCreateMcpServerFn> {
     if (this.injectedCreateMcpServerFn) return this.injectedCreateMcpServerFn;
-    const mod = await import("@anthropic-ai/claude-agent-sdk");
+    const mod = await loadSdk();
     return mod.createSdkMcpServer as unknown as ClaudeCreateMcpServerFn;
   }
 

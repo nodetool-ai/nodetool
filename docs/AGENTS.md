@@ -448,6 +448,13 @@ profile since it needs a local executable. Token usage is attributed to the
 concrete dated model the CLI resolves an alias to (captured from the
 `message_start` event) so cost maps onto Anthropic pricing.
 
+**Soft dependency.** `@anthropic-ai/claude-agent-sdk` is an *optional peer
+dependency* of `@nodetool-ai/runtime` — it is not installed by default and must
+be added with the package manager (`npm install @anthropic-ai/claude-agent-sdk`)
+before this provider can run. The package is imported lazily, so its absence
+only surfaces — as a clear install hint — when the provider is actually used;
+the rest of the runtime and the browser worker bundle never pull it in.
+
 ### Executable resolution & nested sessions
 
 The binary is resolved from `CLAUDE_CODE_EXECUTABLE` (explicit path) and

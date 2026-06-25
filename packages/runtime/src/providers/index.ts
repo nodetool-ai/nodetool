@@ -186,9 +186,10 @@ registerBuiltinProvider(PROVIDER_IDS.CODEX, CodexProvider, { CODEX_ACCESS_TOKEN:
 registerBuiltinProvider(PROVIDER_IDS.ANTHROPIC, AnthropicProvider, { ANTHROPIC_API_KEY: "" });
 // Claude Agent SDK: Claude via the logged-in `claude` CLI subscription (no API
 // key). Registered with no credential kwargs — auth lives in the CLI's own
-// store, so the provider is always "configured"; a missing CLI surfaces at call
-// time. Pruned from the cloud profile (not in CLOUD_PROVIDER_IDS) since it needs
-// a local executable and subscription.
+// store, so the provider is always "configured"; a missing CLI or a missing
+// optional `@anthropic-ai/claude-agent-sdk` package (a soft dependency the user
+// installs themselves) surfaces at call time. Pruned from the cloud profile
+// (not in CLOUD_PROVIDER_IDS) since it needs a local executable and subscription.
 registerBuiltinProvider(PROVIDER_IDS.CLAUDE_AGENT_SDK, ClaudeAgentProvider, {});
 registerBuiltinProvider(PROVIDER_IDS.GEMINI, GeminiProvider, { GEMINI_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.GROQ, GroqProvider, { GROQ_API_KEY: "" });
