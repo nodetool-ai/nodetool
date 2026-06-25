@@ -18,7 +18,8 @@ import {
   LabeledSwitch,
   Text,
   TextInput,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  MOTION
 } from "../ui_primitives";
 import { isElectron } from "../../lib/env";
 import usePacksStore, {
@@ -77,30 +78,36 @@ const PackRow = memo(function PackRow({
   return (
     <FlexColumn
       gap={0.5}
-      sx={{
-        p: 1.5,
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: BORDER_RADIUS.xs
-      }}
+      sx={(theme) => ({
+        px: 2.25,
+        py: 1.75,
+        borderRadius: BORDER_RADIUS.xl,
+        border: `1px solid ${theme.vars.palette.divider}`,
+        backgroundColor: theme.vars.palette.background.paper,
+        transition: `border-color ${MOTION.fast}`,
+        "&:hover": { borderColor: theme.vars.palette.action.focus }
+      })}
     >
-      <FlexRow gap={1.5} align="center" justify="space-between" sx={{ flexWrap: "wrap" }}>
-        <FlexRow gap={1} align="center" sx={{ minWidth: 0, flex: 1 }}>
-          <Text size="normal" weight={600} truncate>
-            {pack.name}
-          </Text>
-          {pack.version && (
+      <FlexRow gap={3} align="center" sx={{ flexWrap: "wrap" }}>
+        <FlexColumn gap={0.5} sx={{ minWidth: 0, flex: 1 }}>
+          <FlexRow gap={1} align="center" sx={{ flexWrap: "wrap" }}>
+            <Text size="normal" weight={600} truncate>
+              {pack.name}
+            </Text>
+            {pack.version && (
+              <Text size="small" color="secondary" family="secondary">
+                v{pack.version}
+              </Text>
+            )}
+            <Chip label={statusLabel(pack)} color={statusColor(pack)} compact />
+          </FlexRow>
+          {pack.reason && (
             <Text size="small" color="secondary">
-              v{pack.version}
+              {pack.reason}
             </Text>
           )}
-          <Chip
-            label={statusLabel(pack)}
-            color={statusColor(pack)}
-            compact
-          />
-        </FlexRow>
-        <FlexRow gap={1.5} align="center">
+        </FlexColumn>
+        <FlexRow gap={1.5} align="center" sx={{ flexShrink: 0 }}>
           <LabeledSwitch
             label="Trusted"
             checked={trusted}
@@ -118,12 +125,6 @@ const PackRow = memo(function PackRow({
           )}
         </FlexRow>
       </FlexRow>
-
-      {pack.reason && (
-        <Text size="small" color="secondary">
-          {pack.reason}
-        </Text>
-      )}
 
       {expanded && (
         <FlexColumn gap={1} sx={{ mt: 1 }}>
@@ -288,71 +289,90 @@ function PackagesMenu() {
     trust.allowlist.includes("*") || trustedSet.has(name);
 
   return (
-    <FlexColumn gap={2} sx={{ p: 2, maxWidth: 900 }}>
-      <FlexColumn gap={0.5}>
-        <Text size="normal" weight={600}>
-          Third-party packs
-        </Text>
-        <Text size="small" color="secondary">
-          Third-party packs run in-process as the server user. Only trust packs
-          you know.
-        </Text>
-      </FlexColumn>
-
-      <FlexColumn
-        gap={1}
-        sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: BORDER_RADIUS.xs }}
-      >
+    <FlexColumn gap={3.5} sx={{ maxWidth: 880 }}>
+      <FlexColumn gap={1.75}>
         <Text size="normal" weight={600}>
           Trust defaults
         </Text>
-        <LabeledSwitch
-          label="Load packs that are not on the allowlist"
-          checked={trust.allowUnlisted}
-          onChange={(v) => void setAllowUnlisted(v)}
-          description="Off in production by default. When off, only packs you've explicitly trusted will load."
-        />
+        <FlexRow
+          gap={3}
+          align="center"
+          sx={(theme) => ({
+            px: 2.25,
+            py: 2,
+            borderRadius: BORDER_RADIUS.xl,
+            border: `1px solid rgba(${theme.vars.palette.warning.mainChannel} / 0.18)`,
+            backgroundColor: `rgba(${theme.vars.palette.warning.mainChannel} / 0.04)`
+          })}
+        >
+          <FlexColumn gap={0.5} sx={{ flex: 1, minWidth: 0 }}>
+            <Text size="normal" weight={500}>
+              Load packs that are not on the allowlist
+            </Text>
+            <Text size="small" color="secondary">
+              Off in production by default. When off, only packs you&apos;ve
+              explicitly trusted will load.
+            </Text>
+          </FlexColumn>
+          <LabeledSwitch
+            label=""
+            checked={trust.allowUnlisted}
+            onChange={(v) => void setAllowUnlisted(v)}
+          />
+        </FlexRow>
       </FlexColumn>
 
       {isElectron && <InstallPanel onInstalled={() => void reload()} />}
 
-      <FlexRow gap={1} align="center" justify="space-between">
-        <Text size="normal" weight={600}>
-          Discovered packs ({packs.length})
-        </Text>
-        <EditorButton
-          variant="outlined"
-          density="compact"
-          onClick={() => void reload()}
-          disabled={isLoading}
-        >
-          {isLoading ? "Reloading…" : "Reload"}
-        </EditorButton>
-      </FlexRow>
+      <FlexColumn gap={1.75}>
+        <FlexRow gap={1} align="center" justify="space-between">
+          <Text size="normal" weight={600}>
+            Discovered packs ({packs.length})
+          </Text>
+          <EditorButton
+            variant="outlined"
+            density="compact"
+            onClick={() => void reload()}
+            disabled={isLoading}
+          >
+            {isLoading ? "Reloading…" : "Reload"}
+          </EditorButton>
+        </FlexRow>
 
-      {error && (
-        <AlertBanner severity="error" compact>
-          {error}
-        </AlertBanner>
-      )}
+        {error && (
+          <AlertBanner severity="error" compact>
+            {error}
+          </AlertBanner>
+        )}
 
-      {!isLoading && packs.length === 0 && (
-        <Text size="small" color="secondary">
-          No node packs discovered. Install one with{" "}
-          <code>npm install &lt;pack&gt;</code>
-          {isElectron ? " or via the field above." : "."}
-        </Text>
-      )}
-
-      <FlexColumn gap={1}>
-        {packs.map((pack) => (
-          <PackRow
-            key={pack.name}
-            pack={pack}
-            trusted={isTrusted(pack.name)}
-            onTrustChange={(trusted) => void setTrusted(pack.name, trusted)}
-          />
-        ))}
+        {!isLoading && packs.length === 0 ? (
+          <FlexRow
+            sx={(theme) => ({
+              px: 2.75,
+              py: 2.75,
+              borderRadius: BORDER_RADIUS.xl,
+              border: `1px dashed ${theme.vars.palette.divider}`,
+              backgroundColor: theme.vars.palette.background.default
+            })}
+          >
+            <Text size="small" color="secondary">
+              No node packs discovered. Install one with{" "}
+              <code>npm install &lt;pack&gt;</code>
+              {isElectron ? " or via the field above." : "."}
+            </Text>
+          </FlexRow>
+        ) : (
+          <FlexColumn gap={1.25}>
+            {packs.map((pack) => (
+              <PackRow
+                key={pack.name}
+                pack={pack}
+                trusted={isTrusted(pack.name)}
+                onTrustChange={(trusted) => void setTrusted(pack.name, trusted)}
+              />
+            ))}
+          </FlexColumn>
+        )}
       </FlexColumn>
     </FlexColumn>
   );

@@ -43,20 +43,18 @@ import { getAboutSidebarSections } from "./aboutSidebarUtils";
 import DefaultModelsMenu from "./DefaultModelsMenu";
 import MCPSettingsMenu from "./MCPSettingsMenu";
 import BrowserExtensionSettingsMenu from "./BrowserExtensionSettingsMenu";
-import PackageManager from "../packages/PackageManager";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState, useCallback, useEffect, useRef } from "react";
 import SettingsSidebar from "./SettingsSidebar";
 import useSecretsStore from "../../stores/SecretsStore";
 import { settingsStyles } from "./settingsMenuStyles";
 
-// Tab indices. Models, Collections, and Workspaces now live as standalone
-// full-screen pages reachable from the logo menu.
+// Tab indices. Models, Collections, Workspaces, and the Package Manager now
+// live as standalone full-screen pages reachable from the logo menu.
 const TAB_GENERAL = 0;
 const TAB_API_KEYS = 1;
 const TAB_INTEGRATIONS = 2;
 const aboutTabIndex = 3;
-const packagesTabIndex = 4;
 
 const UPDATE_CHANNEL_OPTIONS = [
   { value: "latest", label: "Stable" },
@@ -169,9 +167,6 @@ function SettingsPage() {
       case TAB_INTEGRATIONS:
         return "Service endpoints, MCP servers, storage, and the Nodetool API.";
       default:
-        if (tab === packagesTabIndex) {
-          return "Discover, trust, and install third-party node packs.";
-        }
         return "Manage API keys, providers, and editor preferences.";
     }
   };
@@ -179,7 +174,7 @@ function SettingsPage() {
   const settingsTab = useMemo(() => {
     const raw = Number(searchParams.get("tab") ?? 0);
     if (Number.isNaN(raw)) return 0;
-    return Math.min(packagesTabIndex, Math.max(0, raw));
+    return Math.min(aboutTabIndex, Math.max(0, raw));
   }, [searchParams]);
 
   const setGridSnap = useSettingsStore((state) => state.setGridSnap);
@@ -582,10 +577,6 @@ function SettingsPage() {
                 <Tab label="API Keys" id="settings-tab-1" />
                 <Tab label="Integrations" id="settings-tab-2" />
                 <Tab label="About" id={`settings-tab-${aboutTabIndex}`} />
-                <Tab
-                  label="Package Manager"
-                  id={`settings-tab-${packagesTabIndex}`}
-                />
               </Tabs>
             </div>
 
@@ -611,11 +602,7 @@ function SettingsPage() {
                 )}
 
               <div
-                className={`settings-content${
-                  settingsTab === packagesTabIndex
-                    ? " settings-content--full"
-                    : ""
-                }${settingsTab === TAB_API_KEYS ? " settings-content--api-keys" : ""}`}
+                className={`settings-content${settingsTab === TAB_API_KEYS ? " settings-content--api-keys" : ""}`}
                 ref={settingsContentRef}
               >
                 {/* Tab 0: General */}
@@ -1206,11 +1193,6 @@ function SettingsPage() {
                 {/* About */}
                 <TabPanel value={settingsTab} index={aboutTabIndex}>
                   <AboutMenu />
-                </TabPanel>
-
-                {/* Package Manager */}
-                <TabPanel value={settingsTab} index={packagesTabIndex}>
-                  <PackageManager />
                 </TabPanel>
               </div>
 

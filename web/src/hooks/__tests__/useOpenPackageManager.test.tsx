@@ -12,10 +12,10 @@ describe("useOpenPackageManager", () => {
     navigate.mockClear();
   });
 
-  it("navigates to the Package Manager settings tab", () => {
+  it("navigates to the Package Manager route", () => {
     const { result } = renderHook(() => useOpenPackageManager());
     result.current();
-    expect(navigate).toHaveBeenCalledWith("/settings?tab=4");
+    expect(navigate).toHaveBeenCalledWith("/packages");
   });
 
   it("returns a stable callback across renders", () => {

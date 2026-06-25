@@ -202,7 +202,7 @@ const OptionalPacksSection = () => {
   const handleManagePacks = useCallback(() => {
     setAnchorEl(null);
     closeNodeMenu();
-    navigate("/settings?tab=4");
+    navigate("/packages");
   }, [navigate, closeNodeMenu]);
 
   return (
