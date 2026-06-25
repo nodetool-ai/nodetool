@@ -96,6 +96,10 @@ const containerStyles = (theme: Theme) =>
     position: "relative",
     width: "100%",
     height: "100%",
+    // Fixed-height panel: never let the flex column shrink it to make room for
+    // sibling content (e.g. a tall inspector). Its height is owned solely by
+    // the `heightPx` prop, which only the drag handle changes.
+    flexShrink: 0,
     overflow: "hidden",
     backgroundColor: theme.vars.palette.background.default
   });

@@ -38,6 +38,7 @@ import {
 import { trpc, trpcClient } from "../../trpc/client";
 import { useNotificationStore } from "../NotificationStore";
 import { useAssetStore } from "../AssetStore";
+import { useLastModelStore, modelKindForBinding } from "../lastModelStore";
 import {
   computeLayerDependencyHash,
   type LayerDependencyHashInput
@@ -290,7 +291,7 @@ export const createSketchSessionStore = (): SketchSessionStoreApi =>
       return { bindings: nextBindings, extras: nextExtras };
     }),
 
-  upsertBinding: (binding) =>
+  upsertBinding: (binding) => {
     set((state) => {
       const extras = getExtras(state.extras, binding.layerId);
       const nextBinding = recomputeBinding(binding, extras);
@@ -304,7 +305,16 @@ export const createSketchSessionStore = (): SketchSessionStoreApi =>
           ? state.extras
           : { ...state.extras, [binding.layerId]: { ...EMPTY_EXTRAS } }
       };
-    }),
+    });
+    if (binding.provider && binding.model) {
+      const kind = modelKindForBinding(binding.kind);
+      if (kind) {
+        useLastModelStore
+          .getState()
+          .remember(kind, { provider: binding.provider, model: binding.model });
+      }
+    }
+  },
 
   removeBinding: (layerId) =>
     set((state) => {
@@ -335,7 +345,7 @@ export const createSketchSessionStore = (): SketchSessionStoreApi =>
       return { bindings: { ...state.bindings, [layerId]: updated } };
     }),
 
-  patchBinding: (layerId, patch) =>
+  patchBinding: (layerId, patch) => {
     set((state) => {
       const binding = state.bindings[layerId];
       if (!binding) return state;
@@ -345,7 +355,16 @@ export const createSketchSessionStore = (): SketchSessionStoreApi =>
         getExtras(state.extras, layerId)
       );
       return { bindings: { ...state.bindings, [layerId]: updated } };
-    }),
+    });
+    if (patch.provider && patch.model) {
+      const kind = modelKindForBinding(get().bindings[layerId]?.kind);
+      if (kind) {
+        useLastModelStore
+          .getState()
+          .remember(kind, { provider: patch.provider, model: patch.model });
+      }
+    }
+  },
 
   setSelectedOutputNodeId: (layerId, selectedOutputNodeId) =>
     set((state) => {

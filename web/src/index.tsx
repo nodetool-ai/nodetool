@@ -79,6 +79,9 @@ const ModelsPage = React.lazy(
 const WorkspacesPage = React.lazy(
   () => import("./components/workspaces/WorkspacesPage")
 );
+const PackagesPage = React.lazy(
+  () => import("./components/packages/PackagesPage")
+);
 const WorkflowGraphView = React.lazy(
   () => import("./components/graph_view/WorkflowGraphView")
 );
@@ -330,6 +333,14 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <ModelsPage />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "packages",
+      element: (
+        <ProtectedRoute>
+          <PackagesPage />
         </ProtectedRoute>
       )
     },

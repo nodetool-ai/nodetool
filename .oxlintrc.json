@@ -7,6 +7,7 @@
   "rules": {
     "no-empty": ["error", { "allowEmptyCatch": true }],
     "prefer-const": "error",
+    "no-control-regex": "warn",
     "no-useless-assignment": "warn",
     "require-yield": "warn",
     "no-constant-binary-expression": "warn",

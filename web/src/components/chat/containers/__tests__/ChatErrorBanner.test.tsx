@@ -2,6 +2,7 @@ import React from "react";
 import "@testing-library/jest-dom";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
+import { MemoryRouter } from "react-router-dom";
 import mockTheme from "../../../../__mocks__/themeMock";
 import ChatErrorBanner, { isClaudeCodeMissingError } from "../ChatErrorBanner";
 
@@ -15,9 +16,11 @@ const CLAUDE_MISSING_ERROR =
 
 const renderBanner = (props: Partial<React.ComponentProps<typeof ChatErrorBanner>> = {}) =>
   render(
-    <ThemeProvider theme={mockTheme}>
-      <ChatErrorBanner error={CLAUDE_MISSING_ERROR} {...props} />
-    </ThemeProvider>
+    <MemoryRouter>
+      <ThemeProvider theme={mockTheme}>
+        <ChatErrorBanner error={CLAUDE_MISSING_ERROR} {...props} />
+      </ThemeProvider>
+    </MemoryRouter>
   );
 
 describe("isClaudeCodeMissingError", () => {

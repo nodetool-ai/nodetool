@@ -1,7 +1,7 @@
 import { Menu, shell, dialog, clipboard } from "electron";
 import { IpcChannels } from "./types.d";
 import { getMainWindow } from "./state";
-import { createPackageManagerWindow, createLogViewerWindow, createSettingsWindow } from "./window";
+import { createLogViewerWindow, createSettingsWindow } from "./window";
 import { createChatWindow } from "./workflowWindow";
 import { getSystemInfo } from "./systemInfo";
 import { openPerformanceMonitorWindow } from "./perfMonitor";
@@ -227,10 +227,6 @@ const buildMenu = () => {
         {
           label: "Chat",
           click: () => createChatWindow(),
-        },
-        {
-          label: "Package Manager",
-          click: () => createPackageManagerWindow(),
         },
         {
           label: "Log Viewer",

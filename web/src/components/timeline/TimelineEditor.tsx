@@ -462,10 +462,15 @@ const TimelineEditorBody: React.FC<Omit<TimelineEditorProps, "active">> = memo((
       />
 
       {/* ── Middle: assets + preview + inspector ──────────────────── */}
+      {/* Basis 0 (not `auto`): the middle row absorbs all leftover height via
+       *  flex-grow, but its *content* never contributes to the column's size.
+       *  With `auto`, a tall inspector (clip selected) inflated this row's
+       *  basis and stole height from the tracks panel below — so the tracks
+       *  height appeared to change on its own. Now only the divider moves it. */}
       <FlexRow
         fullWidth
         css={middleAreaStyles(theme)}
-        sx={{ flex: "1 1 auto", minHeight: 0, overflow: "hidden" }}
+        sx={{ flex: "1 1 0", minHeight: 0, overflow: "hidden" }}
       >
         <TranscriptRegion />
         <PreviewRegion

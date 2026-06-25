@@ -248,7 +248,7 @@ export async function promptHidden(message: string): Promise<string> {
           resolve(value);
           return;
         }
-        if (ch === "") {
+        if (ch === "\x03") {
           stdin.setRawMode(wasRaw ?? false);
           stdin.pause();
           process.exit(130);

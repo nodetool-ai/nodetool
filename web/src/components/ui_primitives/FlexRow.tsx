@@ -68,18 +68,23 @@ export const FlexRow = forwardRef<HTMLDivElement, FlexRowProps>(({
   return (
     <Box
       ref={ref}
-      sx={{
-        display: "flex",
-        flexDirection: "row",
-        gap: theme.spacing(gap),
-        padding: typeof padding === "number" ? theme.spacing(padding) : padding,
-        alignItems: align,
-        justifyContent: justify,
-        flexWrap: wrap ? "wrap" : "nowrap",
-        width: fullWidth ? "100%" : undefined,
-        height: fullHeight ? "100%" : undefined,
-        ...sx
-      }}
+      sx={[
+        {
+          display: "flex",
+          flexDirection: "row",
+          gap: theme.spacing(gap),
+          padding:
+            typeof padding === "number" ? theme.spacing(padding) : padding,
+          alignItems: align,
+          justifyContent: justify,
+          flexWrap: wrap ? "wrap" : "nowrap",
+          width: fullWidth ? "100%" : undefined,
+          height: fullHeight ? "100%" : undefined
+        },
+        // Compose caller sx as an array entry so the function form `(theme) =>
+        // ({...})` is honored — spreading `...sx` silently dropped callbacks.
+        ...(Array.isArray(sx) ? sx : [sx])
+      ]}
       {...props}
     >
       {children}

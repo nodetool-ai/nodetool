@@ -2,8 +2,9 @@
 /**
  * GeneratedClipHeader
  *
- * Displays the clip's name, media type, status badge, duration info,
- * and created/modified timestamps sourced from the latest ClipVersion.
+ * Compact identity row for a generated clip: the clip name, a status badge,
+ * and a single dotted metadata line (type · duration · when). Timestamps come
+ * from the latest ClipVersion.
  *
  * PRD §5.4 (Generated clip selected → GeneratedClipPanel) and §5.5 (status mapping).
  */
@@ -12,7 +13,15 @@ import React, { memo } from "react";
 import type { ClipStatus, TimelineClip } from "@nodetool-ai/timeline";
 
 import type { StatusType } from "../../ui_primitives/StatusIndicator";
-import { FlexColumn, FlexRow, Label, Caption, StatusIndicator } from "../../ui_primitives";
+import {
+  FlexColumn,
+  FlexRow,
+  Text,
+  Caption,
+  StatusIndicator,
+  FONT_WEIGHT
+} from "../../ui_primitives";
+import { relativeTime } from "../../../utils/formatDateAndTime";
 
 // ── Status mapping (PRD §5.5) ─────────────────────────────────────────────
 
@@ -39,16 +48,8 @@ function formatDuration(ms: number): string {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
-function formatTimestamp(isoString: string): string {
-  try {
-    return new Date(isoString).toLocaleString(undefined, {
-      dateStyle: "short",
-      timeStyle: "short"
-    });
-  } catch {
-    return isoString;
-  }
-}
+const capitalize = (s: string): string =>
+  s.charAt(0).toUpperCase() + s.slice(1);
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -62,27 +63,46 @@ export const GeneratedClipHeader: React.FC<GeneratedClipHeaderProps> = memo(
   ({ clip }) => {
     const statusInfo = CLIP_STATUS_MAP[clip.status];
 
-    // Latest version for timestamps
     const latestVersion = clip.versions[clip.versions.length - 1] ?? null;
-    const createdAt = latestVersion?.createdAt ?? null;
 
-    // Duration: timeline duration vs generated duration
     const timelineDurationMs = clip.durationMs;
     const generatedDurationMs = latestVersion?.durationMs ?? null;
     const speedMultiplier = clip.speedMultiplier ?? 1;
     const speedBaked = clip.speedBaked ?? false;
     const showBothDurations =
-      generatedDurationMs !== null &&
-      speedMultiplier !== 1 &&
-      !speedBaked;
+      generatedDurationMs !== null && speedMultiplier !== 1 && !speedBaked;
+
+    // One dotted meta line: type · duration · when. The status badge already
+    // says "Generated", so the metadata never repeats it.
+    const metaParts: string[] = [capitalize(clip.mediaType)];
+    if (showBothDurations && generatedDurationMs !== null) {
+      metaParts.push(
+        `${formatDuration(timelineDurationMs)} (src ${formatDuration(
+          generatedDurationMs
+        )} ×${speedMultiplier.toFixed(2)})`
+      );
+    } else {
+      metaParts.push(formatDuration(timelineDurationMs));
+    }
+    if (latestVersion?.createdAt) {
+      metaParts.push(relativeTime(latestVersion.createdAt));
+    }
 
     return (
-      <FlexColumn gap={1} sx={{ px: 1, pt: 0.5, pb: 0.5 }}>
-        {/* Name + status */}
+      <FlexColumn gap={0.5} sx={{ px: 1, pt: 1, pb: 0.5 }}>
         <FlexRow align="center" gap={1}>
-          <Label sx={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <Text
+            sx={{
+              flex: 1,
+              fontWeight: FONT_WEIGHT.medium,
+              color: "text.primary",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap"
+            }}
+          >
             {clip.name}
-          </Label>
+          </Text>
           <StatusIndicator
             status={statusInfo.status}
             label={statusInfo.label}
@@ -91,37 +111,7 @@ export const GeneratedClipHeader: React.FC<GeneratedClipHeaderProps> = memo(
           />
         </FlexRow>
 
-        {/* Type */}
-        <Caption color="secondary">
-          {clip.mediaType.charAt(0).toUpperCase() + clip.mediaType.slice(1)} · Generated
-        </Caption>
-
-        {/* Duration */}
-        {showBothDurations && generatedDurationMs !== null ? (
-          <FlexRow gap={0.5}>
-            <Caption color="secondary">
-              Timeline: {formatDuration(timelineDurationMs)}
-            </Caption>
-            <Caption color="secondary">·</Caption>
-            <Caption color="secondary">
-              Generated: {formatDuration(generatedDurationMs)}
-            </Caption>
-            <Caption color="secondary">
-              (×{speedMultiplier.toFixed(2)})
-            </Caption>
-          </FlexRow>
-        ) : (
-          <Caption color="secondary">
-            Duration: {formatDuration(timelineDurationMs)}
-          </Caption>
-        )}
-
-        {/* Timestamps */}
-        {createdAt && (
-          <Caption color="secondary">
-            Generated: {formatTimestamp(createdAt)}
-          </Caption>
-        )}
+        <Caption color="secondary">{metaParts.join(" · ")}</Caption>
       </FlexColumn>
     );
   }

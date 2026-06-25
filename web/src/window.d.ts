@@ -1,4 +1,9 @@
 import type { Workflow } from "./stores/ApiTypes";
+import type {
+  InstalledPackage,
+  PackageActionResult,
+  PackageInfo
+} from "./stores/NodePacksStore";
 
 interface WindowControls {
   minimize: () => void;
@@ -204,7 +209,6 @@ declare global {
       onCreateWorkflow: (workflow: Workflow) => Promise<void>;
       onUpdateWorkflow: (workflow: Workflow) => Promise<void>;
       onDeleteWorkflow: (workflow: Workflow) => Promise<void>;
-      showPackageManager: (nodeSearch?: string) => Promise<void>;
       restartLlamaServer?: () => Promise<void>;
       windowControls: WindowControls;
       platform: string;
@@ -440,6 +444,22 @@ declare global {
 
       // Package manager operations (available in Electron only)
       packages?: {
+        /** Python node packs offered by the nodetool registry. */
+        listAvailable?: () => Promise<{
+          packages: PackageInfo[];
+          count?: number;
+        }>;
+        /** Python node packs currently installed in the desktop environment. */
+        listInstalled?: () => Promise<{
+          packages: InstalledPackage[];
+          count?: number;
+        }>;
+        /** Install a registry pack by repo id (e.g. `nodetool-ai/nodetool-base`). */
+        install?: (repoId: string) => Promise<PackageActionResult>;
+        /** Uninstall an installed registry pack by repo id. */
+        uninstall?: (repoId: string) => Promise<PackageActionResult>;
+        /** Update an installed registry pack to the latest version. */
+        update?: (repoId: string) => Promise<PackageActionResult>;
         getRuntimeStatuses: () => Promise<
           Array<{
             id: string;
@@ -458,7 +478,6 @@ declare global {
         ) => Promise<{ success: boolean; message: string }>;
         getInstallLocation: () => Promise<string>;
         selectInstallLocation: () => Promise<string | null>;
-        showManager?: () => void;
       };
 
       // Backend server lifecycle + log streaming (available in Electron only)

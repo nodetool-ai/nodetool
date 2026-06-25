@@ -216,34 +216,6 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
       background: theme.vars.palette.action.disabled
     }
   },
-  ".settings-content--full": {
-    padding: 0,
-    overflow: "hidden",
-    display: "flex",
-    flexDirection: "column",
-    "& .tab-panel": {
-      display: "none",
-      flex: 1,
-      minHeight: 0
-    },
-    "& .tab-panel:not([hidden])": {
-      display: "flex"
-    },
-    "& .tab-panel-content": {
-      flex: 1,
-      minHeight: 0,
-      paddingBottom: 0,
-      display: "flex",
-      flexDirection: "column"
-    },
-    "& .settings-panel-padded": {
-      flex: 1,
-      minHeight: 0,
-      display: "flex",
-      flexDirection: "column",
-      padding: "1.25rem 1.75rem"
-    }
-  },
   // When a search hides every row in a General section, collapse the whole
   // section (its heading lives inside it) so only matching rows remain. Scoped
   // to direct children so nested component sections (e.g. DefaultModelsMenu,

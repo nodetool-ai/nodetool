@@ -1,6 +1,6 @@
 import { BrowserWindow, dialog, session } from 'electron';
 import path from 'path';
-import { createWindow, createPackageManagerWindow, handleActivation, forceQuit, _resetPermissionHandlersForTesting } from '../window';
+import { createWindow, handleActivation, forceQuit, _resetPermissionHandlersForTesting } from '../window';
 import { setMainWindow, getMainWindow } from '../state';
 import { isAppQuitting } from '../main';
 import { logMessage } from '../logger';
@@ -282,68 +282,6 @@ describe('Window Module', () => {
       expect(dialog.showErrorBox).toHaveBeenCalledWith('Critical Error', 'fatal');
       expect(exitSpy).toHaveBeenCalledWith(1);
       exitSpy.mockRestore();
-    });
-  });
-
-  describe('createPackageManagerWindow', () => {
-    it('should create a package manager window without search query', () => {
-      const result = createPackageManagerWindow();
-      
-      expect(BrowserWindow).toHaveBeenCalledWith({
-        width: 1200,
-        height: 900,
-        webPreferences: {
-          preload: expect.stringMatching(/.*[\\/]+src[\\/]+preload\.js$/),
-          contextIsolation: true,
-          nodeIntegration: false,
-          sandbox: true,
-          devTools: true,
-          webSecurity: true,
-        },
-      });
-      
-      expect(mockWindow.setBackgroundColor).toHaveBeenCalledWith('#111111');
-      expect(mockWindow.loadFile).toHaveBeenCalledWith('dist-web/pages/packages.html');
-      expect(mockWindow.webContents.on).toHaveBeenCalledWith('before-input-event', expect.any(Function));
-      expect(result).toBe(mockWindow);
-    });
-
-    it('should create a package manager window with search query', () => {
-      const searchQuery = 'test-node';
-      
-      const result = createPackageManagerWindow(searchQuery);
-      
-      expect(mockWindow.loadFile).toHaveBeenCalledWith('dist-web/pages/packages.html', {
-        query: { nodeSearch: searchQuery }
-      });
-      expect(result).toBe(mockWindow);
-    });
-
-    it('should set up devtools shortcut for package manager window', () => {
-      createPackageManagerWindow();
-      
-      // Get the before-input-event handler
-      const beforeInputCall = mockWindow.webContents.on.mock.calls.find(
-(call: any) => call[0] === 'before-input-event'
-      );
-      expect(beforeInputCall).toBeDefined();
-      
-      const handler = beforeInputCall![1];
-      
-      // Mock devtools is closed
-      mockWindow.webContents.isDevToolsOpened.mockReturnValue(false);
-      
-      // Test Ctrl+Shift+I (Windows/Linux)
-      handler({}, { control: true, shift: true, key: 'I' });
-      expect(mockWindow.webContents.openDevTools).toHaveBeenCalled();
-      
-      // Mock devtools is open
-      mockWindow.webContents.isDevToolsOpened.mockReturnValue(true);
-      mockWindow.webContents.openDevTools.mockClear();
-      
-      // Test Cmd+Shift+I (macOS)
-      handler({}, { meta: true, shift: true, key: 'i' });
-      expect(mockWindow.webContents.closeDevTools).toHaveBeenCalled();
     });
   });
 

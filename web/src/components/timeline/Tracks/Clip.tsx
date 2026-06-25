@@ -17,7 +17,7 @@
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { css, keyframes } from "@emotion/react";
+import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
@@ -30,7 +30,6 @@ import {
   useIsClipSelected
 } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
-import { useTimelineGenerationStore } from "../../../stores/timeline/TimelineGenerationStore";
 import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { getAssetUrl } from "../../../utils/assetHelpers";
@@ -39,13 +38,14 @@ import { type NodeKey } from "../../../stores/nodeKey";
 import { StatusIndicator, BORDER_RADIUS, SPACING, getSpacingPx } from "../../ui_primitives";
 import type { StatusType } from "../../ui_primitives/StatusIndicator";
 import { deriveClipStatus } from "../status/clipStatusReducer";
-import type { ClipGenerationState, ClipErrorState } from "../status/clipStatusReducer";
+import type { ClipErrorState } from "../status/clipStatusReducer";
 import { useClipThumbnails } from "./useClipThumbnails";
 import { useAudioPeaks } from "./useAudioPeaks";
 import { samplePeaksWindow } from "./audioPeaks";
 import { isCompatibleWithTrack } from "../dnd/assetToClipAdapter";
 import { clipSurfaceTint, clipBorderTint } from "./trackVisuals";
 import { ClipContextMenu } from "./ClipContextMenu";
+import MagicGenerationFill from "../../sketch/MagicGenerationFill";
 
 /** Clip-side wrapper: TimelineClip.mediaType also includes "overlay";
  *  treat those as video-track-compatible. */
@@ -191,60 +191,18 @@ const waveformStyles = css({
   height: "100%"
 });
 
-// Travelling-shimmer overlay for clips that are queued or actively
-// generating. A bright diagonal highlight sweeps across the clip body; a
-// soft outline pulse reinforces that the clip is "alive" even on very
-// narrow widths where the shimmer is hard to see.
-const shimmerSweep = keyframes`
-  0%   { transform: translateX(-120%); }
-  100% { transform: translateX(220%); }
-`;
-
-const outlinePulse = keyframes`
-  0%, 100% { opacity: 0.35; }
-  50%      { opacity: 0.9; }
-`;
-
-const generatingOverlayStyles = (theme: Theme) =>
-  css({
-    position: "absolute",
-    inset: 0,
-    pointerEvents: "none",
-    zIndex: 3,
-    overflow: "hidden",
-    borderRadius: CLIP_RADIUS_PX,
-    "&::before": {
-      content: '""',
-      position: "absolute",
-      top: 0,
-      bottom: 0,
-      left: 0,
-      width: "60%",
-      background: `linear-gradient(
-        100deg,
-        transparent 0%,
-        ${theme.vars.palette.secondary.light} 50%,
-        transparent 100%
-      )`,
-      opacity: 0.75,
-      mixBlendMode: "screen",
-      filter: "blur(2px)",
-      animation: `${shimmerSweep} 1.2s linear infinite`,
-      willChange: "transform"
-    },
-    "&::after": {
-      content: '""',
-      position: "absolute",
-      inset: 0,
-      borderRadius: "inherit",
-      boxShadow: `inset 0 0 0 1.5px ${theme.vars.palette.secondary.light}`,
-      animation: `${outlinePulse} 1.4s ease-in-out infinite`
-    },
-    "@media (prefers-reduced-motion: reduce)": {
-      "&::before": { animation: "none", opacity: 0.25 },
-      "&::after": { animation: "none", opacity: 0.5 }
-    }
-  });
+// Generating overlay for clips that are queued or actively generating —
+// the shared "magic" wash + shimmer reused from the sketch editor, so a
+// generating clip in the timeline reads identically to a generating layer
+// on the canvas. Clips to the clip's rounded body.
+const generatingOverlayStyles = css({
+  position: "absolute",
+  inset: 0,
+  pointerEvents: "none",
+  zIndex: 3,
+  overflow: "hidden",
+  borderRadius: CLIP_RADIUS_PX
+});
 
 interface WaveformCanvasProps {
   url: string | undefined;
@@ -487,17 +445,6 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
 
   // ── Derived status (PRD §5.5) ────────────────────────────────────────────
 
-  // Generation state from TimelineGenerationStore (queued/running/failed job).
-  const rawJobState = useTimelineGenerationStore(
-    (s) => s.clipJobs[clipId] ?? null
-  );
-  const generationState: ClipGenerationState | null = useMemo(() => {
-    if (!rawJobState || rawJobState.status === "completed") {
-      return null;
-    }
-    return { status: rawJobState.status as ClipGenerationState["status"] };
-  }, [rawJobState]);
-
   // Node-level errors from ErrorStore. Error keys are now scoped per run
   // (`${wf}:${jobId}:${node}`), so restrict the scan to the workflow's focused
   // run; with no focused run there's no error to surface.
@@ -531,8 +478,8 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     if (!clip) {
       return "draft";
     }
-    return deriveClipStatus(clip, generationState, errorState, true);
-  }, [clip, generationState, errorState]);
+    return deriveClipStatus(clip, errorState, true);
+  }, [clip, errorState]);
 
   // ── Undo batching ───────────────────────────────────────────────────────
   //
@@ -1188,10 +1135,12 @@ const ClipBody: React.FC<ClipBodyProps> = memo(({
 
       {(derivedStatus === "queued" || derivedStatus === "generating") && (
         <div
-          css={generatingOverlayStyles(theme)}
+          css={generatingOverlayStyles}
           aria-hidden
           data-testid={`clip-generating-${clipId}`}
-        />
+        >
+          <MagicGenerationFill />
+        </div>
       )}
 
       {/* The badge surfaces lifecycle state for generated clips. Once a
