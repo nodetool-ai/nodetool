@@ -23,8 +23,8 @@ function isComfyPromptNode(value: unknown): value is ComfyPromptNode {
   return (
     value != null &&
     typeof value === "object" &&
-    typeof (value as Record<string, unknown>).class_type === "string" &&
-    typeof (value as Record<string, unknown>).inputs === "object"
+    "class_type" in value && typeof value.class_type === "string" &&
+    "inputs" in value && typeof value.inputs === "object"
   );
 }
 export type ComfyPrompt = Record<string, ComfyPromptNode>;
@@ -163,7 +163,7 @@ function inferScalarType(value: unknown): string {
  */
 export function normalizeComfyPrompt(parsed: unknown): ComfyPrompt {
   if (parsed && typeof parsed === "object" && "prompt" in parsed) {
-    const inner = (parsed as { prompt: unknown }).prompt;
+    const inner = parsed.prompt;
     if (inner && typeof inner === "object") return normalizeComfyPrompt(inner);
   }
   if (parsed && typeof parsed === "object" && "nodes" in parsed) {

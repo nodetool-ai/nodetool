@@ -22,8 +22,8 @@ function isImportBundleResponse(data: unknown): data is ImportBundleResponse {
   return (
     data != null &&
     typeof data === "object" &&
-    Array.isArray((data as Record<string, unknown>).workflows) &&
-    typeof (data as Record<string, unknown>).imported === "number"
+    "workflows" in data && Array.isArray(data.workflows) &&
+    "imported" in data && typeof data.imported === "number"
   );
 }
 
@@ -112,7 +112,7 @@ export async function importWorkflowBundle(
   if (!res.ok) {
     const detail =
       data && typeof data === "object" && "detail" in data
-        ? String((data as { detail: unknown }).detail)
+        ? String(data.detail)
         : `Import failed (${res.status})`;
     throw new Error(detail);
   }

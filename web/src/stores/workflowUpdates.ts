@@ -377,7 +377,7 @@ export const handleUpdate = (
   data: MsgpackData,
   runnerStore: WorkflowRunnerStore,
   getNodeStore: (workflowId: string) => NodeStore | undefined
-) => {
+): void => {
   const runner = runnerStore.getState();
   const setProviderCost = useResultsStore.getState().setProviderCost;
   const upsertLiveGeneration = useResultsStore.getState().upsertLiveGeneration;
