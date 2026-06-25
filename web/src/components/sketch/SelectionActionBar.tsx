@@ -45,6 +45,7 @@ import type { ImageModelValue } from "../../stores/ApiTypes";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useSketchStore } from "./state";
 import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
+import { getRememberedModel } from "../../stores/lastModelStore";
 import { useSketchCanvasRefStore } from "../../stores/sketch/SketchCanvasRefStore";
 import {
   useInpaintHere,
@@ -86,7 +87,12 @@ function seedModelFromBindings(): { model: string; provider: string } {
         b.kind === "inpaint"
     )
     .pop();
-  return { model: last?.model ?? "", provider: last?.provider ?? "" };
+  // Fall back to the cross-session remembered image model.
+  const remembered = getRememberedModel("image");
+  return {
+    model: last?.model ?? remembered?.model ?? "",
+    provider: last?.provider ?? remembered?.provider ?? ""
+  };
 }
 
 /** Document-space point → container CSS px (mirrors TransformGizmo.docToCss). */

@@ -361,6 +361,13 @@ interface UseGenerateClipResult {
   isGenerating: boolean;
   isQueued: boolean;
   isFailed: boolean;
+  /**
+   * Whether the clip has everything it needs to start a generation — a bound
+   * workflow for workflow clips, or a valid prompt/model (plus source/voice
+   * where required) for direct-gen clips. The single source of truth for both
+   * the prompt panel's primary button and the action toolbar's generate icon.
+   */
+  canGenerate: boolean;
   currentJobId?: string;
 }
 
@@ -383,6 +390,16 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
   const isDirectGenActive =
     isDirectGen && (clip?.status === "queued" || clip?.status === "generating");
   const isDirectGenFailed = isDirectGen && clip?.status === "failed";
+
+  const canGenerate = !clip
+    ? false
+    : isDirectGen
+      ? !!clip.provider &&
+        !!clip.model &&
+        (clip.prompt ?? "").trim().length > 0 &&
+        (clip.bindingKind !== "image-to-image" || !!clip.sourceClipId) &&
+        (clip.bindingKind !== "text-to-audio" || !!clip.voice)
+      : !!clip.workflowId;
 
   const generateClip = useCallback(async () => {
     if (!clip) {
@@ -493,6 +510,7 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
       isGenerating: clip?.status === "generating",
       isQueued: clip?.status === "queued",
       isFailed: isDirectGenFailed,
+      canGenerate,
       currentJobId: undefined
     };
   }
@@ -504,6 +522,7 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
     isGenerating: jobState?.status === "running",
     isQueued: jobState?.status === "queued",
     isFailed: jobState?.status === "failed",
+    canGenerate,
     currentJobId: jobState?.jobId
   };
 };

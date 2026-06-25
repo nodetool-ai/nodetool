@@ -18,6 +18,7 @@
  */
 import { useShallow } from "zustand/react/shallow";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
+import { useLastModelStore } from "../../stores/lastModelStore";
 
 export interface LastDirectGenModel {
   provider: string | undefined;
@@ -41,9 +42,9 @@ const matchesKind = (
 
 export const useLastDirectGenModel = (
   kind: DirectGenMediaKind = "image"
-): LastDirectGenModel =>
-  useTimelineStore(
-    useShallow((state) => {
+): LastDirectGenModel => {
+  const inDoc = useTimelineStore(
+    useShallow((state): LastDirectGenModel => {
       for (let i = state.clips.length - 1; i >= 0; i--) {
         const c = state.clips[i];
         if (matchesKind(c.bindingKind, kind) && c.provider && c.model) {
@@ -57,3 +58,17 @@ export const useLastDirectGenModel = (
       return { provider: undefined, model: undefined, voice: undefined };
     })
   );
+
+  // Fall back to the cross-session remembered model so a fresh sequence (no
+  // matching clip yet) still preselects the model you last used.
+  const remembered = useLastModelStore((s) => s.byKind[kind]);
+
+  if (inDoc.model) {
+    return inDoc;
+  }
+  return {
+    provider: remembered?.provider,
+    model: remembered?.model,
+    voice: kind === "audio" ? remembered?.voice : undefined
+  };
+};

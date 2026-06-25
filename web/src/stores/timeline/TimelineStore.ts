@@ -48,6 +48,7 @@ import type {
 } from "@nodetool-ai/timeline";
 import type { Asset } from "../ApiTypes";
 import { assetToClip } from "../../components/timeline/dnd/assetToClipAdapter";
+import { useLastModelStore, modelKindForBinding } from "../lastModelStore";
 import { trpcClient } from "../../trpc/client";
 import {
   migrateTranscriptToClips,
@@ -317,6 +318,8 @@ export interface TimelineStoreState {
     sourceClipId?: string | null;
     width?: number;
     height?: number;
+    aspectRatio?: string;
+    resolution?: string;
     strength?: number;
     numInferenceSteps?: number;
     name?: string;
@@ -1440,6 +1443,8 @@ export const createTimelineStore = (
             sourceClipId: opts.sourceClipId ?? null,
             width: opts.width,
             height: opts.height,
+            aspectRatio: opts.aspectRatio,
+            resolution: opts.resolution,
             strength: opts.strength,
             numInferenceSteps: opts.numInferenceSteps,
             status: "draft",
@@ -1448,6 +1453,14 @@ export const createTimelineStore = (
           });
 
           set((state) => ({ clips: [...state.clips, clip] }));
+          const addedKind = modelKindForBinding(bindingKind);
+          if (addedKind && opts.provider && opts.model) {
+            useLastModelStore.getState().remember(addedKind, {
+              provider: opts.provider,
+              model: opts.model,
+              voice: opts.voice
+            });
+          }
           return clip.id;
         },
 
@@ -1462,7 +1475,7 @@ export const createTimelineStore = (
             })
           })),
 
-        setClipDirectGenModel: (clipId, provider, model) =>
+        setClipDirectGenModel: (clipId, provider, model) => {
           set((state) => ({
             clips: state.clips.map((c) => {
               if (c.id !== clipId) return c;
@@ -1470,9 +1483,17 @@ export const createTimelineStore = (
                 c.lastGeneratedHash || c.currentAssetId ? "stale" : c.status;
               return { ...c, provider, model, status };
             })
-          })),
+          }));
+          const clip = get().clips.find((c) => c.id === clipId);
+          const kind = modelKindForBinding(clip?.bindingKind);
+          if (kind) {
+            useLastModelStore
+              .getState()
+              .remember(kind, { provider, model, voice: clip?.voice });
+          }
+        },
 
-        patchClipBinding: (clipId, patch) =>
+        patchClipBinding: (clipId, patch) => {
           set((state) => ({
             clips: state.clips.map((c) => {
               if (c.id !== clipId) return c;
@@ -1480,7 +1501,19 @@ export const createTimelineStore = (
                 c.lastGeneratedHash || c.currentAssetId ? "stale" : c.status;
               return { ...c, ...patch, status };
             })
-          })),
+          }));
+          if (patch.provider && patch.model) {
+            const clip = get().clips.find((c) => c.id === clipId);
+            const kind = modelKindForBinding(clip?.bindingKind);
+            if (kind) {
+              useLastModelStore.getState().remember(kind, {
+                provider: patch.provider,
+                model: patch.model,
+                voice: patch.voice ?? clip?.voice
+              });
+            }
+          }
+        },
 
         regenerateAsCopy: (clipId, deltaMs = 0) => {
           let newId: string | undefined;

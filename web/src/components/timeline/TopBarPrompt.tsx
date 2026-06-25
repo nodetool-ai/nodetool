@@ -24,7 +24,13 @@ import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineDirectGenJob } from "../../hooks/timeline/useTimelineDirectGenJob";
 import { useLastDirectGenModel } from "../../hooks/timeline/useLastDirectGenModel";
-import { FlexRow, TextInput, Toast } from "../ui_primitives";
+import {
+  FlexRow,
+  TextInput,
+  Toast,
+  NodeSelect,
+  NodeMenuItem
+} from "../ui_primitives";
 import VideoModelSelect from "../properties/VideoModelSelect";
 
 interface VideoModelChange {
@@ -33,6 +39,16 @@ interface VideoModelChange {
   provider: string;
   name: string;
 }
+
+// ── Generation presets ───────────────────────────────────────────────────
+
+const ASPECT_RATIOS: string[] = ["16:9", "1:1", "9:16", "4:3", "3:4"];
+
+/** Short-edge resolution tiers, expressed as the strings video models expect. */
+const RESOLUTIONS: string[] = ["480p", "720p", "1080p"];
+
+/** Selectable clip durations in seconds. */
+const DURATIONS_SEC: number[] = [4, 6, 8];
 
 const promptInputStyles = (theme: Theme) =>
   css({
@@ -50,6 +66,11 @@ const modelSelectStyles = (theme: Theme) =>
       width: 120
     }
   });
+
+const settingSelectStyles = css({
+  width: 84,
+  flexShrink: 0
+});
 
 const accentIconStyles = (theme: Theme) =>
   css({
@@ -87,6 +108,9 @@ export const TopBarPrompt: React.FC = memo(() => {
   const [userPicked, setUserPicked] = useState(false);
   const [provider, setProvider] = useState<string | undefined>(undefined);
   const [model, setModel] = useState<string | undefined>(undefined);
+  const [aspect, setAspect] = useState("16:9");
+  const [resolution, setResolution] = useState("720p");
+  const [durationSec, setDurationSec] = useState("4");
   const lastModel = useLastDirectGenModel("video");
 
   // Sync provider/model from the most recent direct-gen clip until the user
@@ -120,11 +144,14 @@ export const TopBarPrompt: React.FC = memo(() => {
       const clipId = addDirectGenClip({
         trackId,
         startMs,
+        durationMs: Number(durationSec) * 1000,
         mediaType: "video",
         bindingKind: "text-to-video",
         prompt: prompt.trim(),
         provider,
-        model
+        model,
+        aspectRatio: aspect,
+        resolution
       });
       selectClip(clipId);
       await directGen.start(clipId);
@@ -140,6 +167,9 @@ export const TopBarPrompt: React.FC = memo(() => {
     prompt,
     provider,
     model,
+    aspect,
+    resolution,
+    durationSec,
     selectClip,
     directGen
   ]);
@@ -185,6 +215,48 @@ export const TopBarPrompt: React.FC = memo(() => {
             task="text_to_video"
             onChange={handleVideoModelChange}
           />
+        </div>
+        <div css={settingSelectStyles}>
+          <NodeSelect
+            value={aspect}
+            onChange={(e) => setAspect(e.target.value as string)}
+            aria-label="Aspect ratio"
+            fullWidth
+          >
+            {ASPECT_RATIOS.map((r) => (
+              <NodeMenuItem key={r} value={r}>
+                {r}
+              </NodeMenuItem>
+            ))}
+          </NodeSelect>
+        </div>
+        <div css={settingSelectStyles}>
+          <NodeSelect
+            value={resolution}
+            onChange={(e) => setResolution(e.target.value as string)}
+            aria-label="Resolution"
+            fullWidth
+          >
+            {RESOLUTIONS.map((r) => (
+              <NodeMenuItem key={r} value={r}>
+                {r}
+              </NodeMenuItem>
+            ))}
+          </NodeSelect>
+        </div>
+        <div css={settingSelectStyles}>
+          <NodeSelect
+            value={durationSec}
+            onChange={(e) => setDurationSec(e.target.value as string)}
+            aria-label="Duration"
+            fullWidth
+          >
+            {DURATIONS_SEC.map((s) => (
+              <NodeMenuItem key={s} value={String(s)}>
+                {s}s
+              </NodeMenuItem>
+            ))}
+          </NodeSelect>
         </div>
       </FlexRow>
       <Toast

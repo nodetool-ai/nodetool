@@ -39,6 +39,7 @@ import {
 } from "./sceneModel";
 import type { ResolvedCaption } from "./sceneModel";
 import { CaptionRasterizer } from "./captionRender";
+import MagicGenerationFill from "../../sketch/MagicGenerationFill";
 
 interface PlaceholderLayer {
   clipId: string;
@@ -115,6 +116,18 @@ const placeholderLayerStyles = (theme: Theme) =>
     userSelect: "none",
     pointerEvents: "none"
   });
+
+// The shared "magic" wash + shimmer, reused from the sketch editor, washed
+// over the whole preview frame while a generating clip is live at the
+// playhead — so the preview animates in lockstep with its track clip. Sits
+// below the corner status badges (zIndex 9999).
+const previewMagicOverlayStyles = css({
+  position: "absolute",
+  inset: 0,
+  zIndex: 9998,
+  overflow: "hidden",
+  pointerEvents: "none"
+});
 
 interface ActiveVideoSlot {
   clipId: string;
@@ -785,12 +798,16 @@ export const PreviewCompositor: React.FC = memo(() => {
   const buildLayersRef = useRef(buildLayers);
   buildLayersRef.current = buildLayers;
 
-  // One-shot render whenever scene state changes (paused mode + scrubbing).
-  // While playing the rAF loop owns rendering — skip the redundant pass.
+  // One-shot render whenever scene state changes (paused mode + scrubbing +
+  // inspector edits). `buildLayers` is the dep that matters: its identity
+  // changes whenever the active-layer set does — a clip's effects (colour
+  // sliders), transform, opacity, or the layer set itself — so editing a
+  // property while paused re-composites the preview in realtime. While
+  // playing the rAF loop owns rendering, so skip this redundant pass.
   useEffect(() => {
     if (isPlaying) return;
     renderFrame();
-  }, [renderFrame, isPlaying]);
+  }, [renderFrame, isPlaying, buildLayers]);
 
   // A paused scrub sets el.currentTime, which decodes the target frame
   // asynchronously — so the one-shot render above runs before the frame is
@@ -874,6 +891,10 @@ export const PreviewCompositor: React.FC = memo(() => {
     activeImageLayers.length > 0 ||
     placeholderLayers.length > 0;
 
+  const generatingClips = clips.filter(
+    (c) => c.status === "generating" && isClipActive(c, currentTimeMs)
+  );
+
   return (
     <div ref={containerRef} css={compositorStyles} data-testid="preview-compositor">
       <div ref={frameRef} css={frameStyles}>
@@ -941,19 +962,21 @@ export const PreviewCompositor: React.FC = memo(() => {
             </div>
           ))}
 
-        {clips
-          .filter(
-            (c) => c.status === "generating" && isClipActive(c, currentTimeMs)
-          )
-          .map((c) => (
-            <div
-              key={`gen-${c.id}`}
-              css={overlayBadgeStyles(theme, "#0055aa")}
-              style={{ zIndex: 9999 }}
-            >
-              generating…
-            </div>
-          ))}
+        {generatingClips.length > 0 && (
+          <div css={previewMagicOverlayStyles} aria-hidden>
+            <MagicGenerationFill />
+          </div>
+        )}
+
+        {generatingClips.map((c) => (
+          <div
+            key={`gen-${c.id}`}
+            css={overlayBadgeStyles(theme, "#0055aa")}
+            style={{ zIndex: 9999 }}
+          >
+            generating…
+          </div>
+        ))}
 
         {gpuFailed && (
           <div

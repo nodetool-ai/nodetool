@@ -60,6 +60,7 @@ import {
 import LayerItem from "./LayerItem";
 import type { DropPosition } from "./LayerItem";
 import { useSketchSessionStore } from "../../stores/sketch/SketchSessionStore";
+import { getRememberedModel } from "../../stores/lastModelStore";
 import { useSketchStore } from "./state/useSketchStore";
 import HueTriangleColorPicker from "./HueTriangleColorPicker";
 import { getMergeSelectedLayersPlan } from "./layerMergeSelection";
@@ -510,12 +511,15 @@ const SketchLayersPanel: React.FC<SketchLayersPanelProps> = ({
         kind === "image-to-image"
           ? layers.find((l) => l.id !== layerId)?.id ?? null
           : null;
+      // Fall back to the cross-session remembered image model so the first
+      // generated layer in a fresh document still preselects a model.
+      const remembered = getRememberedModel("image");
       upsertBinding({
         layerId,
         kind,
         prompt: "",
-        provider: lastDirectGen?.provider ?? "",
-        model: lastDirectGen?.model ?? "",
+        provider: lastDirectGen?.provider ?? remembered?.provider ?? "",
+        model: lastDirectGen?.model ?? remembered?.model ?? "",
         sourceLayerId,
         status: "draft",
         versions: []

@@ -13,12 +13,6 @@ import type { ClipStatus, TimelineClip } from "@nodetool-ai/timeline";
 
 // ── Input shapes ───────────────────────────────────────────────────────────
 
-/** Per-clip generation-job state sourced from TimelineGenerationStore. */
-export interface ClipGenerationState {
-  /** "queued" = job submitted; "running" = node execution started. */
-  status: "queued" | "running" | "failed";
-}
-
 /**
  * Clip-level error state synthesised from ErrorStore node entries for the
  * clip's bound workflow.
@@ -38,9 +32,9 @@ export interface ClipErrorState {
 // | Condition                                             | Status        |
 // |-------------------------------------------------------|---------------|
 // | clip.locked                                           | "locked"      |
-// | generationState.status == "queued"                    | "queued"      |
-// | generationState.status == "running"                   | "generating"  |
-// | generationState.status == "failed"                    | "failed"      |
+// | clip.status == "queued"                               | "queued"      |
+// | clip.status == "generating"                           | "generating"  |
+// | clip.status == "failed"                               | "failed"      |
 // | errorState has clip-relevant error                    | "failed"      |
 // | clip.currentAssetId set, asset missing in AssetStore  | "missing"     |
 // | sourceType == "generated" && !currentAssetId          | "draft"       |
@@ -50,25 +44,30 @@ export interface ClipErrorState {
 /**
  * Derive the visible clip status badge.
  *
- * @param clip           Relevant clip fields from TimelineStore.
- * @param generationState Active job state from TimelineGenerationStore, or
- *                        `null` when no job is in flight.
- * @param errorState     Aggregated error state for the clip's workflow nodes,
- *                       or `null` when there are no errors.
- * @param assetExists    Whether `clip.currentAssetId` resolves to a known
- *                       asset.  Pass `true` when `currentAssetId` is unset.
+ * `clip.status` is the single source of truth for generation lifecycle. Both
+ * generation paths write it: the workflow path mirrors its
+ * TimelineGenerationStore job into it, and the direct-gen path (text-to-image /
+ * image-to-image / text-to-video / text-to-audio) writes it straight. So a
+ * clip that is queued, generating, or failed reads identically here regardless
+ * of which path produced it.
+ *
+ * @param clip        Relevant clip fields from TimelineStore.
+ * @param errorState  Aggregated error state for the clip's workflow nodes, or
+ *                    `null` when there are no errors.
+ * @param assetExists Whether `clip.currentAssetId` resolves to a known asset.
+ *                    Pass `true` when `currentAssetId` is unset.
  * @returns The derived ClipStatus.
  */
 export function deriveClipStatus(
   clip: Pick<
     TimelineClip,
     | "locked"
+    | "status"
     | "currentAssetId"
     | "sourceType"
     | "dependencyHash"
     | "lastGeneratedHash"
   >,
-  generationState: ClipGenerationState | null,
   errorState: ClipErrorState | null,
   assetExists: boolean
 ): ClipStatus {
@@ -77,33 +76,33 @@ export function deriveClipStatus(
     return "locked";
   }
 
-  // 2–4. Active-job states take priority over persisted clip.status.
-  if (generationState?.status === "queued") {
+  // 2. In-flight / failed lifecycle, straight off the single source of truth.
+  if (clip.status === "queued") {
     return "queued";
   }
-  if (generationState?.status === "running") {
+  if (clip.status === "generating") {
     return "generating";
   }
-  if (generationState?.status === "failed") {
+  if (clip.status === "failed") {
     return "failed";
   }
 
-  // 5. Node-level error in the bound workflow → treat as failed.
+  // 3. Node-level error in the bound workflow → treat as failed.
   if (errorState?.hasError) {
     return "failed";
   }
 
-  // 6. Asset was assigned but has since been deleted.
+  // 4. Asset was assigned but has since been deleted.
   if (clip.currentAssetId && !assetExists) {
     return "missing";
   }
 
-  // 7. Generated clip with no output yet.
+  // 5. Generated clip with no output yet.
   if (clip.sourceType === "generated" && !clip.currentAssetId) {
     return "draft";
   }
 
-  // 8. Param or dependency change since last successful generation.
+  // 6. Param or dependency change since last successful generation.
   if (
     clip.dependencyHash !== undefined &&
     clip.lastGeneratedHash !== undefined &&
@@ -112,6 +111,6 @@ export function deriveClipStatus(
     return "stale";
   }
 
-  // 9. Default: clip has been successfully generated and is up to date.
+  // 7. Default: clip has been successfully generated and is up to date.
   return "generated";
 }
