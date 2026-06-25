@@ -931,6 +931,66 @@ export class PasteNode extends TransformImageNode {
   }
 }
 
+/**
+ * Compare — a before/after viewing node. Holds two images side by side so a
+ * vertical wipe slider in the editor can reveal one over the other (see
+ * `ImageCompareBody`). The graph value is a passthrough of `image_a`, so the
+ * node can sit inline between a generation step and whatever consumes it.
+ */
+export class CompareImageNode extends BaseNode {
+  static readonly nodeType = "nodetool.image.Compare";
+  static readonly title = "Compare";
+  static readonly description =
+    "Compare two images with a before/after wipe slider.\n    compare, before, after, diff, ab, slider";
+  static readonly metadataOutputTypes = {
+    output: "image"
+  };
+  static readonly inlineFields = [];
+  static readonly inputFields = ["image_a", "image_b"];
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image A",
+    description: "The first image (revealed on the left of the wipe)."
+  })
+  declare image_a: any;
+
+  @prop({
+    type: "image",
+    default: {
+      type: "image",
+      uri: "",
+      asset_id: null,
+      data: null,
+      metadata: null
+    },
+    title: "Image B",
+    description: "The second image (revealed on the right of the wipe)."
+  })
+  declare image_b: any;
+
+  @prop({
+    type: "float",
+    default: 0.5,
+    title: "Split",
+    description: "Wipe position from 0 (all B) to 1 (all A).",
+    min: 0,
+    max: 1
+  })
+  declare split: any;
+
+  async process(): Promise<Record<string, unknown>> {
+    return { output: this.image_a };
+  }
+}
+
 const RESIZE_IMAGE_NODE_TYPE = "nodetool.image.ResizeImage";
 
 function deprecatedResizeDescription(body: string): string {
@@ -2881,6 +2941,7 @@ export class VectorizeImageNode extends BaseNode {
 const IMAGE_TRANSFORM_NODES = tagAsContentCard(
   tagAsBrowserGpu([
     PasteNode,
+    CompareImageNode,
     ScaleNode,
     ResizeNode,
     CanvasResizeNode,

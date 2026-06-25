@@ -26,6 +26,7 @@ import ColorOverlayBody, {
   COLOR_OVERLAY_NODE_TYPE
 } from "./ColorOverlayBody";
 import CompositorBody, { COMPOSITOR_NODE_TYPE } from "./CompositorBody";
+import ImageCompareBody, { COMPARE_NODE_TYPE } from "./ImageCompareBody";
 import ConstantSketchBody, {
   CONSTANT_SKETCH_NODE_TYPE
 } from "./ConstantSketchBody";
@@ -96,6 +97,7 @@ export const BESPOKE_BODY_REGISTRY: Readonly<
   [CHROMA_KEY_NODE_TYPE]: ChromaKeyBody,
   [COLLECTION_NODE_TYPE]: CollectionBody,
   [COLOR_OVERLAY_NODE_TYPE]: ColorOverlayBody,
+  [COMPARE_NODE_TYPE]: ImageCompareBody,
   [COMPOSITOR_NODE_TYPE]: CompositorBody,
   [CONSTANT_SKETCH_NODE_TYPE]: ConstantSketchBody,
   [CONSTANT_TIMELINE_NODE_TYPE]: ConstantTimelineBody,
@@ -148,6 +150,8 @@ export const BESPOKE_BODY_REGISTRY: Readonly<
 export const BESPOKE_DEFAULT_HEIGHTS: Readonly<Record<string, number>> = {
   // Collection: a curation grid needs room to show several thumbnails at once.
   [COLLECTION_NODE_TYPE]: 320,
+  // Compare: the wipe preview needs room to read both images at once.
+  [COMPARE_NODE_TYPE]: 320,
   [CONSTANT_SKETCH_NODE_TYPE]: 300,
   [CONSTANT_TIMELINE_NODE_TYPE]: 300,
   [CURVES_NODE_TYPE]: 520,

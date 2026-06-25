@@ -44,6 +44,7 @@ export const LOCAL_SAM3_NODE_TYPE =
 // --- Image-editing node bodies ---------------------------------------------
 export const BLUR_NODE_TYPE = "nodetool.image.Blur";
 export const CHANNELS_NODE_TYPE = "nodetool.image.Channels";
+export const COMPARE_NODE_TYPE = "nodetool.image.Compare";
 export const COMPOSITOR_NODE_TYPE = "nodetool.image.Compositor";
 export const CROP_NODE_TYPE = "nodetool.image.Crop";
 export const CURVES_NODE_TYPE = "lib.image.color_grading.Curves";

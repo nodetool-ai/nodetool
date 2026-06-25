@@ -5,6 +5,7 @@ import {
 import BlurBody from "./BlurBody";
 import ChannelsBody from "./ChannelsBody";
 import CompositorBody from "./CompositorBody";
+import ImageCompareBody from "./ImageCompareBody";
 import CropBody from "./CropBody";
 import CurvesBody from "./CurvesBody";
 import AdjustmentBody from "./AdjustmentBody";
@@ -39,6 +40,14 @@ describe("bespokeRegistry", () => {
     const m = meta("nodetool.image.Blur");
     expect(getBespokeBody(m)).toBe(BlurBody);
     expect(BESPOKE_BODY_REGISTRY["nodetool.image.Blur"]).toBe(BlurBody);
+  });
+
+  it("maps nodetool.image.Compare → ImageCompareBody", () => {
+    const m = meta("nodetool.image.Compare");
+    expect(getBespokeBody(m)).toBe(ImageCompareBody);
+    expect(BESPOKE_BODY_REGISTRY["nodetool.image.Compare"]).toBe(
+      ImageCompareBody
+    );
   });
 
   it("maps nodetool.image.Channels → ChannelsBody", () => {
