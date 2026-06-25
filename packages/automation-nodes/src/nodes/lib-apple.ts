@@ -97,6 +97,7 @@ function escAS(input: string): string {
     .replace(/\n/g, "\\n")
     // Strip remaining ASCII control characters (0x00-0x1F except \n (0x0A) and
     // \r (0x0D) which are escaped above, plus 0x7F DEL).
+    // eslint-disable-next-line no-control-regex -- intentionally matching control chars to strip them
     .replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/g, "");
 }
 
