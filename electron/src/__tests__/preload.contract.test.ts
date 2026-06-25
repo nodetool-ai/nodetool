@@ -33,7 +33,6 @@ const IpcChannels = {
   SERVER_STARTED: "server-started",
   SERVER_LOG: "server-log",
   SERVER_ERROR: "server-error",
-  SHOW_PACKAGE_MANAGER: "show-package-manager",
   WINDOW_CLOSE: "window-close",
   WINDOW_MINIMIZE: "window-minimize",
   WINDOW_MAXIMIZE: "window-maximize",

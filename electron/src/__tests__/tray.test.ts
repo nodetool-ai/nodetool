@@ -23,7 +23,6 @@ jest.mock("../state", () => ({
 }));
 
 jest.mock("../window", () => ({
-  createPackageManagerWindow: jest.fn(),
   createWindow: jest.fn(),
   createLogViewerWindow: jest.fn(),
   createSettingsWindow: jest.fn(),

@@ -1,0 +1,74 @@
+/** @jsxImportSource @emotion/react */
+/**
+ * ConsolePanel — collapsible log view shared by the Package Manager sections.
+ *
+ * Shows the live conda/uv/npm output streamed from the desktop app during
+ * install/uninstall, with a show/hide toggle and a clear action.
+ */
+import { css } from "@emotion/react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
+import { memo, useState } from "react";
+
+import {
+  BORDER_RADIUS,
+  EditorButton,
+  FlexColumn,
+  FlexRow
+} from "../ui_primitives";
+
+const consoleStyles = (theme: Theme) =>
+  css({
+    fontFamily: theme.fontFamily2,
+    fontSize: theme.fontSizeSmaller,
+    color: theme.vars.palette.text.secondary,
+    backgroundColor: theme.vars.palette.action.hover,
+    border: `1px solid ${theme.vars.palette.divider}`,
+    borderRadius: BORDER_RADIUS.xs,
+    padding: "0.75em",
+    margin: 0,
+    maxHeight: "220px",
+    overflow: "auto",
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word"
+  });
+
+interface ConsolePanelProps {
+  lines: string[];
+  onClear: () => void;
+}
+
+const ConsolePanel = ({ lines, onClear }: ConsolePanelProps) => {
+  const theme = useTheme();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <FlexColumn gap={1}>
+      <FlexRow gap={1.5} align="center" justify="space-between">
+        <EditorButton
+          variant="text"
+          density="compact"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+        >
+          {open ? "Hide console" : "Show console"}
+          {lines.length > 0 ? ` (${lines.length})` : ""}
+        </EditorButton>
+        {open && lines.length > 0 && (
+          <EditorButton variant="text" density="compact" onClick={onClear}>
+            Clear
+          </EditorButton>
+        )}
+      </FlexRow>
+      {open && (
+        <pre css={consoleStyles(theme)}>
+          {lines.length > 0
+            ? lines.join("\n")
+            : "No output yet. Logs appear here during install."}
+        </pre>
+      )}
+    </FlexColumn>
+  );
+};
+
+export default memo(ConsolePanel);

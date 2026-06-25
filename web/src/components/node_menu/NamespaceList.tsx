@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useCallback, useMemo } from "react";
+import React, { memo, useMemo } from "react";
 import { Text, EditorButton, BORDER_RADIUS, Box, ListGroup, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import NamespacePanel from "./NamespacePanel";
@@ -17,6 +17,7 @@ import isEqual from "fast-deep-equal";
 import useMetadataStore from "../../stores/MetadataStore";
 import { AddCircleOutline } from "@mui/icons-material";
 import { NamespaceTree } from "../../hooks/useNamespaceTree";
+import { useOpenPackageManager } from "../../hooks/useOpenPackageManager";
 
 interface NamespaceListProps {
   namespaceTree: NamespaceTree;
@@ -318,9 +319,7 @@ const NoSelectionContent = memo(function NoSelectionContent({
   selectedPathString: string;
   minSearchTermLength: number;
 }) {
-  const openPacksPanel = useCallback(() => {
-    window.api.showPackageManager();
-  }, []);
+  const openPacksPanel = useOpenPackageManager();
 
   return (
     <div className="no-selection">

@@ -7,6 +7,7 @@ import { BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import isEqual from "fast-deep-equal";
 import { getIsElectronDetails } from "../../utils/browser";
+import { useOpenPackageManager } from "../../hooks/useOpenPackageManager";
 import {
   RUNTIME_LABELS,
   RUNTIME_TO_PACKAGE_ID,
@@ -88,6 +89,7 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
   const [loading, setLoading] = useState(true);
   const [installing, setInstalling] = useState(false);
   const { isElectron } = getIsElectronDetails();
+  const openPackageManager = useOpenPackageManager();
 
   const checkRuntimes = useCallback(async (forceRefresh = false) => {
     if (!isElectron) {
@@ -139,12 +141,12 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
       }
       await checkRuntimes(true);
     } catch {
-      // fall back to package manager on error
-      api.packages?.showManager?.();
+      // fall back to the package manager on error
+      openPackageManager();
     } finally {
       setInstalling(false);
     }
-  }, [missingRuntimes, checkRuntimes]);
+  }, [missingRuntimes, checkRuntimes, openPackageManager]);
 
   if (loading || missingRuntimes.length === 0) {
     return null;

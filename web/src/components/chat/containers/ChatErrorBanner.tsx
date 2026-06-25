@@ -3,6 +3,7 @@ import { memo, useCallback, useState, type FC } from "react";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { AlertBanner, Text, FlexRow, EditorButton } from "../../ui_primitives";
 import { getIsElectronDetails } from "../../../utils/browser";
+import { useOpenPackageManager } from "../../../hooks/useOpenPackageManager";
 
 /**
  * Detect the cryptic "claude CLI not found" error thrown by the Claude Agent
@@ -40,11 +41,12 @@ const ClaudeCodeInstallPrompt: FC<{ onInstalled?: () => void }> = ({
   const [installing, setInstalling] = useState(false);
   const [installError, setInstallError] = useState<string | null>(null);
   const [installed, setInstalled] = useState(false);
+  const openPackageManager = useOpenPackageManager();
 
   const handleInstall = useCallback(async () => {
     const api = window.api;
     if (!api?.packages?.installRuntime) {
-      api?.packages?.showManager?.();
+      openPackageManager();
       return;
     }
     setInstalling(true);
@@ -62,11 +64,11 @@ const ClaudeCodeInstallPrompt: FC<{ onInstalled?: () => void }> = ({
         err instanceof Error ? err.message : "Installation failed."
       );
       // Fall back to the package manager UI so the user can retry manually.
-      api.packages?.showManager?.();
+      openPackageManager();
     } finally {
       setInstalling(false);
     }
-  }, [onInstalled]);
+  }, [onInstalled, openPackageManager]);
 
   if (installed) {
     return (

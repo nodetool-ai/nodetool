@@ -12,6 +12,7 @@ import SpaceDashboardOutlinedIcon from "@mui/icons-material/SpaceDashboardOutlin
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import PaidOutlinedIcon from "@mui/icons-material/PaidOutlined";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
+import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
 import FolderSpecialOutlinedIcon from "@mui/icons-material/FolderSpecialOutlined";
 
@@ -108,6 +109,11 @@ const RailAppMenu: React.FC = () => {
     close();
   }, [navigate, close]);
 
+  const goPackages = useCallback(() => {
+    navigate("/packages");
+    close();
+  }, [navigate, close]);
+
   const goCollections = useCallback(() => {
     navigate("/collections");
     close();
@@ -201,6 +207,11 @@ const RailAppMenu: React.FC = () => {
             label="Model Manager"
             icon={<ViewInArOutlinedIcon />}
             onClick={goModels}
+          />
+          <MenuItemPrimitive
+            label="Package Manager"
+            icon={<Inventory2OutlinedIcon />}
+            onClick={goPackages}
           />
           <MenuItemPrimitive
             label="Collections"

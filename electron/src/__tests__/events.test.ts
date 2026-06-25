@@ -34,7 +34,6 @@ jest.mock('../types.d', () => ({
     SERVER_LOG: 'server-log',
     UPDATE_PROGRESS: 'update-progress',
     SERVER_ERROR: 'server-error',
-    SHOW_PACKAGE_MANAGER: 'show-package-manager',
   },
 }));
 

@@ -200,8 +200,10 @@ const OptionalPacksSection = () => {
   }, [navigate, closeNodeMenu]);
 
   const handleManagePacks = useCallback(() => {
-    window.api?.showPackageManager?.();
-  }, []);
+    setAnchorEl(null);
+    closeNodeMenu();
+    navigate("/packages");
+  }, [navigate, closeNodeMenu]);
 
   return (
     <div css={styles(theme)} className="optional-packs-section">
