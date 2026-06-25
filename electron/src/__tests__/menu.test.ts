@@ -37,7 +37,8 @@ describe('buildMenu', () => {
     }));
 
     jest.doMock('../window', () => ({
-      createPackageManagerWindow: jest.fn(),
+      createLogViewerWindow: jest.fn(),
+      createSettingsWindow: jest.fn(),
     }));
 
     const menuModule = await import('../menu');
@@ -51,7 +52,6 @@ describe('buildMenu', () => {
     mockIpcChannels();
 
     const sendMock = jest.fn();
-    const createPackageManagerWindowMock = jest.fn();
 
     const buildFromTemplateMock = jest
       .fn()
@@ -82,7 +82,8 @@ describe('buildMenu', () => {
     }));
 
     jest.doMock('../window', () => ({
-      createPackageManagerWindow: createPackageManagerWindowMock,
+      createLogViewerWindow: jest.fn(),
+      createSettingsWindow: jest.fn(),
     }));
 
     const menuModule = await import('../menu');
@@ -96,14 +97,6 @@ describe('buildMenu', () => {
     const saveItem = fileMenu?.submenu?.find((item: any) => item.label === 'Save');
     saveItem?.click();
     expect(sendMock).toHaveBeenCalledWith('menu-event', { type: 'saveWorkflow' });
-
-    // Trigger package manager command
-    const toolsMenu = template.find((item) => item.label === 'Tools');
-    const packageManagerItem = toolsMenu?.submenu?.find(
-      (item: any) => item.label === 'Package Manager',
-    );
-    packageManagerItem?.click();
-    expect(createPackageManagerWindowMock).toHaveBeenCalled();
 
     // Trigger help command
     const helpMenu = template.find((item) => item.role === 'help');

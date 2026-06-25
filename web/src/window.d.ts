@@ -209,7 +209,6 @@ declare global {
       onCreateWorkflow: (workflow: Workflow) => Promise<void>;
       onUpdateWorkflow: (workflow: Workflow) => Promise<void>;
       onDeleteWorkflow: (workflow: Workflow) => Promise<void>;
-      showPackageManager: (nodeSearch?: string) => Promise<void>;
       restartLlamaServer?: () => Promise<void>;
       windowControls: WindowControls;
       platform: string;
@@ -479,7 +478,6 @@ declare global {
         ) => Promise<{ success: boolean; message: string }>;
         getInstallLocation: () => Promise<string>;
         selectInstallLocation: () => Promise<string | null>;
-        showManager?: () => void;
       };
 
       // Backend server lifecycle + log streaming (available in Electron only)

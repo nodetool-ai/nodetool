@@ -4,7 +4,6 @@ import type { PackageUpdateInfo } from "../types";
 interface PackageUpdatesNotificationProps {
   updates: PackageUpdateInfo[];
   onDismiss: () => void;
-  onManagePackages: () => void;
 }
 
 const containerStyle: React.CSSProperties = {
@@ -56,27 +55,16 @@ const listStyle: React.CSSProperties = {
   lineHeight: 1.4,
 };
 
-const buttonStyle: React.CSSProperties = {
-  alignSelf: "flex-start",
-  padding: "6px 12px",
-  fontSize: "13px",
-  borderRadius: "6px",
-  border: "1px solid #2563eb",
-  background: "#2563eb",
-  color: "white",
-  cursor: "pointer",
+const hintStyle: React.CSSProperties = {
+  margin: 0,
+  fontSize: "12px",
+  color: "#9ca3af",
 };
 
 const PackageUpdatesNotification: React.FC<PackageUpdatesNotificationProps> = ({
   updates,
   onDismiss,
-  onManagePackages,
 }) => {
-  const handleManageClick = () => {
-    onManagePackages();
-    onDismiss();
-  };
-
   return (
     <div style={containerStyle}>
       <div style={headerStyle}>
@@ -100,9 +88,7 @@ const PackageUpdatesNotification: React.FC<PackageUpdatesNotificationProps> = ({
           </li>
         ))}
       </ul>
-      <button type="button" style={buttonStyle} onClick={handleManageClick}>
-        Open Package Manager
-      </button>
+      <p style={hintStyle}>Update them in Settings → Package Manager.</p>
     </div>
   );
 };

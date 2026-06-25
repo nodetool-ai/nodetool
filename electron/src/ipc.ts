@@ -36,7 +36,7 @@ import {
   normalizeUpdateChannel,
   setUpdateChannel,
 } from "./settings";
-import { createPackageManagerWindow, createSettingsWindow } from "./window";
+import { createSettingsWindow } from "./window";
 import { IpcRequest } from "./types.d";
 import { registerWorkflowShortcut, setupWorkflowShortcuts } from "./shortcuts";
 import { emitWorkflowsChanged, emitServerStateChanged } from "./tray";
@@ -719,19 +719,6 @@ export function initializeIpcHandlers(): void {
     logMessage(`Running app with workflow ID: ${workflowId}`);
     await runApp(workflowId);
   });
-
-  // Show Package Manager window
-  createIpcMainHandler(
-    IpcChannels.SHOW_PACKAGE_MANAGER,
-    async (_event, nodeSearch) => {
-      logMessage(
-        `Opening Package Manager window${
-          nodeSearch ? ` with search: ${nodeSearch}` : ""
-        }`,
-      );
-      createPackageManagerWindow(nodeSearch);
-    },
-  );
 
   createIpcMainHandler(IpcChannels.INSTALL_UPDATE, async () => {
     const { autoUpdater } = await import("electron-updater");

@@ -3,7 +3,7 @@ import path from "path";
 import { promises as fs } from "fs";
 import { logMessage, LOG_FILE } from "./logger";
 import { getMainWindow } from "./state";
-import { createPackageManagerWindow, createWindow, createLogViewerWindow, createSettingsWindow, handleActivation } from "./window";
+import { createWindow, createLogViewerWindow, createSettingsWindow, handleActivation } from "./window";
 import { execSync } from "child_process";
 import {
   stopServer,
@@ -502,10 +502,6 @@ async function updateTrayMenu(): Promise<void> {
       label: "Mini Apps",
       enabled: connected && workflows.length > 0,
       submenu: buildWorkflowsSubmenu(workflows),
-    },
-    {
-      label: "Package Manager",
-      click: () => createPackageManagerWindow(),
     },
     { type: "separator" },
     {

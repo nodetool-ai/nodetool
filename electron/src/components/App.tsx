@@ -3,7 +3,6 @@ import BootMessage from "./BootMessage";
 import LogContainer from "./LogContainer";
 import UpdateNotification from "./UpdateNotification";
 import "./index.css";
-import PackageManager from "./PackageManager";
 import PackageUpdatesNotification from "./PackageUpdatesNotification";
 import type {
   PackageUpdateInfo,
@@ -13,11 +12,9 @@ import type {
 } from "../types";
 
 const App: React.FC = () => {
-  const showPackageManager = window.location.search.includes("package-manager");
-
   const [logs, setLogs] = useState<string[]>([]);
   const [bootMessage, setBootMessage] = useState<string>("");
-  const [showBootMessage, setShowBootMessage] = useState(!showPackageManager);
+  const [showBootMessage, setShowBootMessage] = useState(true);
   const [showUpdateSteps, setShowUpdateSteps] = useState(false);
   const [showUpdateNotification, setShowUpdateNotification] = useState(false);
   const [showPackageUpdates, setShowPackageUpdates] = useState(false);
@@ -31,7 +28,6 @@ const App: React.FC = () => {
   const [serverStatus, setServerStatus] =
     useState<ServerState["status"]>("idle");
   const [serverError, setServerError] = useState<string | null>(null);
-  // showPackageManager is declared above to allow conditional initial state
 
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [packageUpdates, setPackageUpdates] = useState<
@@ -98,10 +94,8 @@ const App: React.FC = () => {
   const handleServerStarted = useCallback(() => {
     setServerStatus("started");
     setServerError(null);
-    if (!showPackageManager) {
-      initializeApp();
-    }
-  }, [initializeApp, showPackageManager]);
+    initializeApp();
+  }, [initializeApp]);
 
   const handleBootMessage = useCallback(
     (message: string) => {
@@ -199,10 +193,8 @@ const App: React.FC = () => {
     unsubs.push(window.api.packages.onUpdatesAvailable(handlePackageUpdatesAvailable));
     unsubs.push(window.api.menu.onEvent(handleMenuEvent));
 
-    // Initialize app after listeners are in place (skip when showing package manager)
-    if (!showPackageManager) {
-      initializeApp();
-    }
+    // Initialize app after listeners are in place
+    initializeApp();
 
     // Cleanup on unmount
     return () => {
@@ -218,7 +210,6 @@ const App: React.FC = () => {
     handleUpdateAvailable,
     handlePackageUpdatesAvailable,
     handleMenuEvent,
-    showPackageManager,
   ]);
 
   const handleRetryStart = useCallback(() => {
@@ -240,30 +231,8 @@ const App: React.FC = () => {
     window.api.system.openLogFile();
   }, []);
 
-  const handleReinstallEnvironment = useCallback(() => {
-    window.api.packages.showManager?.(undefined);
-  }, []);
-
-  const handleSkipPackageManager = useCallback(() => {
-    setShowBootMessage(true);
-    setBootMessage("Starting server...");
-    setServerStatus("starting");
-    setServerError(null);
-    void window.api.server.start().catch((error: unknown) => {
-      const message = error instanceof Error ? error.message : "Failed to start backend server.";
-      setServerStatus("error");
-      setServerError(message);
-      setBootMessage(message);
-      setShowLogs(true);
-    });
-  }, []);
-
   return (
     <div className="app">
-      {showPackageManager && (
-        <PackageManager onSkip={handleSkipPackageManager} />
-      )}
-
       {showBootMessage && (
         <BootMessage
           message={bootMessage}
@@ -273,7 +242,6 @@ const App: React.FC = () => {
           errorMessage={serverError ?? undefined}
           onRetry={handleRetryStart}
           onOpenLogs={handleOpenLogs}
-          onReinstall={handleReinstallEnvironment}
         />
       )}
 
@@ -295,7 +263,6 @@ const App: React.FC = () => {
         <PackageUpdatesNotification
           updates={packageUpdates}
           onDismiss={() => setShowPackageUpdates(false)}
-          onManagePackages={() => window.api.packages.showManager?.(undefined)}
         />
       )}
     </div>

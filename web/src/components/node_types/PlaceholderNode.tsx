@@ -17,6 +17,7 @@ import type { Edge } from "@xyflow/react";
 import type { NodeStoreState } from "../../stores/NodeStore";
 import { findBuiltinPackForNodeType } from "@nodetool-ai/protocol";
 import usePacksStore from "../../stores/PacksStore";
+import { useOpenPackageManager } from "../../hooks/useOpenPackageManager";
 import {
   Box,
   EditorButton,
@@ -223,19 +224,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
     }
   }, [disabledPack, setBuiltinEnabled]);
 
-  const installPackage = useCallback(() => {
-    // Pass the node type to the package manager to pre-fill the search
-    const nodeTypeToSearch = nodeData?.originalType || nodeType || "";
-    if (window.api?.showPackageManager) {
-      // Use the Electron API with node search if available
-      (window.api.showPackageManager as (nodeSearch?: string) => void)(
-        nodeTypeToSearch
-      );
-    } else {
-      // Fallback for non-Electron environments
-      window.api?.showPackageManager?.();
-    }
-  }, [nodeData, nodeType]);
+  const openPackageManager = useOpenPackageManager();
 
   const mockProperties = useMemo(() => {
     const safeProperties =
@@ -363,7 +352,7 @@ const PlaceholderNode = (props: NodeProps<PlaceholderNodeData>) => {
               variant="contained"
               density="compact"
               className="install-button"
-              onClick={installPackage}
+              onClick={openPackageManager}
               startIcon={<CloudDownloadIcon />}
             >
               Search Package Manager

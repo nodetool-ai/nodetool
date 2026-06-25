@@ -23,7 +23,6 @@ jest.mock('../types.d', () => ({
     START_SERVER: 'start-server',
     RESTART_SERVER: 'restart-server',
     RESTART_LLAMA_SERVER: 'restart-llama-server',
-    SHOW_PACKAGE_MANAGER: 'show-package-manager',
     PACKAGE_LIST_AVAILABLE: 'package-list-available',
     PACKAGE_LIST_INSTALLED: 'package-list-installed',
     PACKAGE_INSTALL: 'package-install',
@@ -63,7 +62,7 @@ jest.mock('../tray', () => ({
 }));
 
 jest.mock('../window', () => ({
-  createPackageManagerWindow: jest.fn(),
+  createSettingsWindow: jest.fn(),
 }));
 
 jest.mock('../packageManager', () => ({
@@ -117,7 +116,6 @@ import { getServerState, openLogFile, runApp, showItemInFolder, initializeBacken
 import { logMessage } from '../logger';
 import { registerWorkflowShortcut, setupWorkflowShortcuts } from '../shortcuts';
 import { updateTrayMenu, emitWorkflowsChanged } from '../tray';
-import { createPackageManagerWindow } from '../window';
 import {
   fetchAvailablePackages,
   listInstalledPackages,
@@ -155,7 +153,6 @@ const Channels = {
   START_SERVER: 'start-server',
   RESTART_SERVER: 'restart-server',
   RESTART_LLAMA_SERVER: 'restart-llama-server',
-  SHOW_PACKAGE_MANAGER: 'show-package-manager',
   PACKAGE_LIST_AVAILABLE: 'package-list-available',
   PACKAGE_LIST_INSTALLED: 'package-list-installed',
   PACKAGE_INSTALL: 'package-install',
@@ -202,7 +199,6 @@ const registerWorkflowShortcutMock = registerWorkflowShortcut as jest.MockedFunc
 const setupWorkflowShortcutsMock = setupWorkflowShortcuts as jest.MockedFunction<typeof setupWorkflowShortcuts>;
 const updateTrayMenuMock = updateTrayMenu as jest.MockedFunction<typeof updateTrayMenu>;
 const emitWorkflowsChangedMock = emitWorkflowsChanged as jest.MockedFunction<typeof emitWorkflowsChanged>;
-const createPackageManagerWindowMock = createPackageManagerWindow as jest.MockedFunction<typeof createPackageManagerWindow>;
 const shellMock = shell as jest.Mocked<typeof shell>;
 
 beforeEach(() => {
@@ -402,18 +398,6 @@ describe('initializeIpcHandlers', () => {
 
       await restartLlamaServerHandler({});
       expect(serverMock.restartLlamaServer).toHaveBeenCalled();
-    });
-
-    it('should handle SHOW_PACKAGE_MANAGER', async () => {
-      const showPackageManagerHandler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.SHOW_PACKAGE_MANAGER
-      )?.[1] as any;
-
-      await showPackageManagerHandler({}, 'search-term');
-      expect(createPackageManagerWindowMock).toHaveBeenCalledWith('search-term');
-
-      await showPackageManagerHandler({}, undefined);
-      expect(createPackageManagerWindowMock).toHaveBeenCalledWith(undefined);
     });
 
     it('should handle PACKAGE_LIST_AVAILABLE', async () => {

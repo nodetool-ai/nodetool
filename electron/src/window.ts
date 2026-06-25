@@ -93,35 +93,6 @@ function createWindow(): BrowserWindow {
 }
 
 /**
- * Creates a window that opens the app in Package Manager mode
- * @param {string} nodeSearch - Optional search query to prefill node search
- * @returns {BrowserWindow} The created window instance
- */
-function createPackageManagerWindow(nodeSearch?: string): BrowserWindow {
-  const window = new BrowserWindow({
-    width: 1200,
-    height: 900,
-    webPreferences: { ...secureWebPreferences },
-  });
-
-  window.setBackgroundColor("#111111");
-
-  if (nodeSearch) {
-    window.loadFile(path.join("dist-web", "pages", "packages.html"), {
-      query: { nodeSearch }
-    });
-  } else {
-    window.loadFile(path.join("dist-web", "pages", "packages.html"));
-  }
-
-  registerDevToolsShortcut(window);
-  hardenWebContents(window.webContents);
-  initializePermissionHandlers();
-
-  return window;
-}
-
-/**
  * Creates a window that opens the Log Viewer
  * @returns {BrowserWindow} The created window instance
  */
@@ -348,7 +319,6 @@ function _resetPermissionHandlersForTesting(): void {
 
 export {
   createWindow,
-  createPackageManagerWindow,
   createLogViewerWindow,
   createSettingsWindow,
   forceQuit,

@@ -188,10 +188,6 @@ const api = {
   onDeleteWorkflow: (workflow: Workflow) =>
     ipcRenderer.invoke(IpcChannels.ON_DELETE_WORKFLOW, workflow),
 
-  /** Package manager (legacy name) */
-  showPackageManager: (nodeSearch?: string) =>
-    ipcRenderer.invoke(IpcChannels.SHOW_PACKAGE_MANAGER, nodeSearch),
-
   /** Server (legacy names) */
   restartServer: () => ipcRenderer.invoke(IpcChannels.RESTART_SERVER),
   onServerLog: createEventSubscription(IpcChannels.SERVER_LOG),
@@ -306,10 +302,6 @@ const api = {
     /** Search for nodes across packages */
     searchNodes: (query: string) =>
       ipcRenderer.invoke(IpcChannels.PACKAGE_SEARCH_NODES, query),
-
-    /** Open the package manager window */
-    showManager: (nodeSearch?: string) =>
-      ipcRenderer.invoke(IpcChannels.SHOW_PACKAGE_MANAGER, nodeSearch),
 
     /** Subscribe to package updates available event */
     onUpdatesAvailable: createEventSubscription(

@@ -27,8 +27,6 @@ declare global {
       onUpdateWorkflow: (workflow: Workflow) => Promise<void>;
       onDeleteWorkflow: (workflow: Workflow) => Promise<void>;
 
-      showPackageManager: (nodeSearch?: string) => Promise<void>;
-
       restartServer: () => Promise<void>;
       onServerLog: (callback: (message: string) => void) => () => void;
 
@@ -74,7 +72,6 @@ declare global {
         uninstall: (repoId: string) => Promise<PackageResponse>;
         update: (repoId: string) => Promise<PackageResponse>;
         searchNodes: (query: string) => Promise<PackageNode[]>;
-        showManager: (nodeSearch?: string) => void;
         onUpdatesAvailable: (
           callback: (packages: PackageUpdateInfo[]) => void,
         ) => () => void;
@@ -504,7 +501,6 @@ export enum IpcChannels {
   UPDATE_PROGRESS = "update-progress",
   UPDATE_AVAILABLE = "update-available",
   INSTALL_LOCATION_PROMPT = "install-location-prompt",
-  SHOW_PACKAGE_MANAGER = "show-package-manager",
   INSTALL_UPDATE = "install-update",
   WINDOW_CLOSE = "window-close",
   WINDOW_MINIMIZE = "window-minimize",
@@ -654,7 +650,6 @@ export interface IpcRequest {
   [IpcChannels.RESTART_SERVER]: void;
   [IpcChannels.RESTART_LLAMA_SERVER]: void;
   [IpcChannels.RUN_APP]: string;
-  [IpcChannels.SHOW_PACKAGE_MANAGER]: string | undefined;
   [IpcChannels.INSTALL_UPDATE]: void;
   [IpcChannels.WINDOW_CLOSE]: void;
   [IpcChannels.WINDOW_MINIMIZE]: void;
@@ -777,7 +772,6 @@ export interface IpcResponse {
   [IpcChannels.RESTART_SERVER]: void;
   [IpcChannels.RESTART_LLAMA_SERVER]: void;
   [IpcChannels.RUN_APP]: void;
-  [IpcChannels.SHOW_PACKAGE_MANAGER]: void;
   [IpcChannels.INSTALL_UPDATE]: void;
   [IpcChannels.WINDOW_CLOSE]: void;
   [IpcChannels.WINDOW_MINIMIZE]: void;
@@ -868,7 +862,6 @@ export interface IpcEvents {
   [IpcChannels.UPDATE_PROGRESS]: UpdateProgressData;
   [IpcChannels.UPDATE_AVAILABLE]: UpdateInfo;
   [IpcChannels.INSTALL_LOCATION_PROMPT]: InstallLocationData;
-  [IpcChannels.SHOW_PACKAGE_MANAGER]: void;
   [IpcChannels.MENU_EVENT]: MenuEventData;
   [IpcChannels.PACKAGE_UPDATES_AVAILABLE]: PackageUpdateInfo[];
   [IpcChannels.LOCALHOST_PROXY_WS_EVENT]: LocalhostProxyWsEvent;
