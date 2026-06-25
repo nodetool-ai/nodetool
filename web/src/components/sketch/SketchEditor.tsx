@@ -407,7 +407,7 @@ const SketchEditor = forwardRef<SketchEditorHandle, SketchEditorProps>(
               <CollapsibleSection
                 className="sketch-editor__color-section"
                 title={<ColorSectionHeader />}
-                defaultOpen
+                defaultOpen={false}
                 compact
                 sx={{
                   fontSize: theme.fontSizeSmall,

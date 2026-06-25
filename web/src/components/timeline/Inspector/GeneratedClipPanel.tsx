@@ -20,7 +20,9 @@ import { NodeContext } from "../../../contexts/NodeContext";
 import { createNodeStore, type NodeStore } from "../../../stores/NodeStore";
 import type { Node } from "../../../stores/ApiTypes";
 import {
+  Caption,
   CollapsibleSection,
+  EditorButton,
   EmptyState,
   FlexColumn,
   LoadingSpinner,
@@ -33,8 +35,14 @@ import type {
   MiniAppInputDefinition
 } from "../../miniapps/types";
 import { getInputKind } from "../../miniapps/utils";
-import { GeneratedClipHeader } from "./GeneratedClipHeader";
-import { ClipActions } from "./ClipActions";
+import { useGenerateClip } from "../../../hooks/timeline/useGenerateClip";
+import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import StopRoundedIcon from "@mui/icons-material/StopRounded";
+import { GeneratedClipTopBar } from "./GeneratedClipTopBar";
+import { InspectorSectionTitle } from "./InspectorPrimitives";
+import { ClipAdjustments } from "./ClipAdjustments";
+import { ClipVersionHistory } from "./ClipVersionHistory";
 
 export interface GeneratedClipPanelProps {
   clipId: string;
@@ -135,16 +143,25 @@ export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
       [clipId, setParamOverride]
     );
 
+    const { generateClip, cancelClipGeneration, isActive, isFailed, canGenerate } =
+      useGenerateClip(clipId);
+    const handleGenerateClick = useCallback(() => {
+      const action = isActive ? cancelClipGeneration() : generateClip();
+      // Errors surface via the clip's status badge / generation store.
+      action.catch(() => undefined);
+    }, [isActive, cancelClipGeneration, generateClip]);
+
     if (!clip) {
       return null;
     }
 
     const paramOverrides = clip.paramOverrides ?? {};
+    const generateLabel = clip.currentAssetId ? "Regenerate" : "Generate";
 
     return (
       <Panel sx={panelSx}>
         <FlexColumn gap={0}>
-          <GeneratedClipHeader clip={clip} />
+          <GeneratedClipTopBar clip={clip} />
 
           {!workflowId && (
             <EmptyState
@@ -155,7 +172,15 @@ export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
           )}
 
           {workflowId && (
-            <CollapsibleSection title="Inputs" defaultOpen>
+            <CollapsibleSection
+              title={
+                <InspectorSectionTitle
+                  title="Inputs"
+                  icon={<TuneOutlinedIcon />}
+                />
+              }
+              defaultOpen
+            >
               {isLoading && <LoadingSpinner size="small" />}
               {isError && (
                 <EmptyState
@@ -191,9 +216,32 @@ export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
             </CollapsibleSection>
           )}
 
-          <CollapsibleSection title="Actions" defaultOpen>
-            <ClipActions clipId={clipId} />
-          </CollapsibleSection>
+          {workflowId && (
+            <FlexColumn gap={0.5} sx={{ px: 1, pb: 1 }}>
+              <EditorButton
+                fullWidth
+                variant={isActive ? "outlined" : "contained"}
+                color={isActive ? "warning" : "primary"}
+                startIcon={
+                  isActive ? <StopRoundedIcon /> : <AutoAwesomeOutlinedIcon />
+                }
+                disabled={!isActive && !canGenerate}
+                onClick={handleGenerateClick}
+                data-testid="generated-clip-generate"
+              >
+                {isActive ? "Cancel" : generateLabel}
+              </EditorButton>
+              {isFailed && (
+                <Caption sx={{ color: "error.main", textAlign: "center" }}>
+                  Generation failed.
+                </Caption>
+              )}
+            </FlexColumn>
+          )}
+
+          <ClipVersionHistory clipId={clipId} />
+
+          <ClipAdjustments clip={clip} />
         </FlexColumn>
       </Panel>
     );

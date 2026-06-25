@@ -201,7 +201,18 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
           strength: clip.strength,
           num_inference_steps: clip.numInferenceSteps,
           variations: 1,
-          voice: kind === "text-to-audio" ? clip.voice : undefined
+          voice: kind === "text-to-audio" ? clip.voice : undefined,
+          // Video models take aspect ratio / resolution / duration natively
+          // (width & height are ignored for video); pass them through when set.
+          ...(kind === "text-to-video"
+            ? {
+                aspect_ratio: clip.aspectRatio,
+                resolution: clip.resolution,
+                duration: clip.durationMs
+                  ? Math.round(clip.durationMs / 1000)
+                  : undefined
+              }
+            : {})
         }
       });
     } catch {

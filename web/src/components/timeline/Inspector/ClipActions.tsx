@@ -10,13 +10,10 @@ import LockIcon from "@mui/icons-material/Lock";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import ImageIcon from "@mui/icons-material/Image";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import StopIcon from "@mui/icons-material/Stop";
 import AutoAwesomeMotionIcon from "@mui/icons-material/AutoAwesomeMotion";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
-import { useGenerateClip } from "../../../hooks/timeline/useGenerateClip";
 import { ToolbarIconButton, FlexRow, Text, Dialog, TextInput, Toast } from "../../ui_primitives";
 
 // ── Styles ─────────────────────────────────────────────────────────────────
@@ -27,14 +24,6 @@ const actionsRowStyles = (theme: Theme) =>
     gap: theme.spacing(0.5),
     flexWrap: "wrap",
     alignItems: "center"
-  });
-
-const sectionLabelStyles = (theme: Theme) =>
-  css({
-    fontSize: theme.fontSizeSmaller,
-    color: theme.vars.palette.text.secondary,
-    userSelect: "none",
-    paddingRight: theme.spacing(0.5)
   });
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -59,13 +48,10 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
     const selectClip = useTimelineUIStore((s) => s.selectClip);
     const setClipLocked = useTimelineStore((s) => s.setClipLocked);
     const replaceClipOutput = useTimelineStore((s) => s.replaceClipOutput);
-    const { generateClip, cancelClipGeneration, isActive, isGenerating } =
-      useGenerateClip(clipId);
 
     const duplicateBusyRef = useRef(false);
     const [duplicateBusy, setDuplicateBusy] = useState(false);
     const [duplicateError, setDuplicateError] = useState<string | null>(null);
-    const [generationError, setGenerationError] = useState<string | null>(null);
     const [replaceOpen, setReplaceOpen] = useState(false);
     const [assetIdInput, setAssetIdInput] = useState("");
 
@@ -131,28 +117,6 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
       setReplaceOpen(false);
     }, []);
 
-    // ── Generate / Cancel ───────────────────────────────────────────────────
-
-    const handleGenerate = useCallback(async () => {
-      try {
-        await generateClip();
-      } catch (err) {
-        setGenerationError(
-          err instanceof Error ? err.message : "Failed to start clip generation"
-        );
-      }
-    }, [generateClip]);
-
-    const handleCancelGeneration = useCallback(async () => {
-      try {
-        await cancelClipGeneration();
-      } catch (err) {
-        setGenerationError(
-          err instanceof Error ? err.message : "Failed to cancel generation"
-        );
-      }
-    }, [cancelClipGeneration]);
-
     // ── Open in Node Editor ────────────────────────────────────────────────
 
     const handleOpenInNodeEditor = useCallback(() => {
@@ -171,28 +135,8 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
     return (
       <>
         <FlexRow css={actionsRowStyles(theme)}>
-          <span css={sectionLabelStyles(theme)}>Clip</span>
-
-          <ToolbarIconButton
-            icon={
-              isActive ? (
-                <StopIcon fontSize="small" />
-              ) : (
-                <PlayArrowIcon fontSize="small" />
-              )
-            }
-            tooltip={
-              isActive
-                ? "Cancel generation"
-                : "Generate clip from the bound workflow and overrides"
-            }
-            onClick={isActive ? () => void handleCancelGeneration() : () => void handleGenerate()}
-            active={isGenerating}
-            aria-label={isActive ? "Cancel clip generation" : "Generate clip"}
-            disabled={!clip.workflowId}
-            data-testid="clip-action-generate"
-          />
-
+          {/* Generation has its own primary button in the prompt / inputs
+              panel; this toolbar is for clip operations only. */}
           <ToolbarIconButton
             icon={<ContentCopyIcon fontSize="small" />}
             tooltip="Duplicate — copies overrides; tweak params for a variation"
@@ -280,15 +224,6 @@ export const ClipActions: React.FC<ClipActionsProps> = memo(
           message={duplicateError ?? ""}
           severity="error"
           onClose={() => setDuplicateError(null)}
-          vertical="top"
-          horizontal="center"
-        />
-
-        <Toast
-          open={generationError !== null}
-          message={generationError ?? ""}
-          severity="error"
-          onClose={() => setGenerationError(null)}
           vertical="top"
           horizontal="center"
         />
