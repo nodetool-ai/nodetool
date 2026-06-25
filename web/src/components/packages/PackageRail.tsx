@@ -16,7 +16,8 @@ import {
   ToggleGroup,
   ToggleOption,
   BORDER_RADIUS,
-  MOTION
+  MOTION,
+  SPACING
 } from "../ui_primitives";
 import type { PMTab, PMCount } from "./usePackageManager";
 
@@ -91,7 +92,7 @@ const PackageRail = ({
             gap: 1.25,
             width: "100%",
             textAlign: "left",
-            padding: "9px 12px 9px 15px",
+            padding: theme.spacing(SPACING.md, SPACING.lg, SPACING.md, SPACING.xl),
             borderRadius: BORDER_RADIUS.lg,
             border: "none",
             cursor: "pointer",
@@ -138,7 +139,8 @@ const PackageRail = ({
               fontWeight: 500,
               color: theme.vars.palette.text.secondary,
               backgroundColor: theme.vars.palette.action.selected,
-              padding: "1px 7px",
+              py: SPACING.micro,
+              px: SPACING.md,
               borderRadius: BORDER_RADIUS.sm
             })}
           >

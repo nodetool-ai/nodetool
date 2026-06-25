@@ -21,7 +21,8 @@ import {
   LabeledSwitch,
   SearchInput,
   Text,
-  BORDER_RADIUS
+  BORDER_RADIUS,
+  SPACING
 } from "../ui_primitives";
 import PackageRail from "./PackageRail";
 import PackageRow from "./PackageRow";
@@ -208,7 +209,8 @@ function PackageManager() {
                     fontWeight: 500,
                     color: theme.vars.palette.text.secondary,
                     backgroundColor: theme.vars.palette.action.selected,
-                    padding: "2px 9px",
+                    py: SPACING.micro,
+                    px: SPACING.md,
                     borderRadius: BORDER_RADIUS.md
                   })}
                 >
