@@ -1,4 +1,9 @@
 import type { Workflow } from "./stores/ApiTypes";
+import type {
+  InstalledPackage,
+  PackageActionResult,
+  PackageInfo
+} from "./stores/NodePacksStore";
 
 interface WindowControls {
   minimize: () => void;
@@ -440,6 +445,22 @@ declare global {
 
       // Package manager operations (available in Electron only)
       packages?: {
+        /** Python node packs offered by the nodetool registry. */
+        listAvailable?: () => Promise<{
+          packages: PackageInfo[];
+          count?: number;
+        }>;
+        /** Python node packs currently installed in the desktop environment. */
+        listInstalled?: () => Promise<{
+          packages: InstalledPackage[];
+          count?: number;
+        }>;
+        /** Install a registry pack by repo id (e.g. `nodetool-ai/nodetool-base`). */
+        install?: (repoId: string) => Promise<PackageActionResult>;
+        /** Uninstall an installed registry pack by repo id. */
+        uninstall?: (repoId: string) => Promise<PackageActionResult>;
+        /** Update an installed registry pack to the latest version. */
+        update?: (repoId: string) => Promise<PackageActionResult>;
         getRuntimeStatuses: () => Promise<
           Array<{
             id: string;

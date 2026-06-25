@@ -1,4 +1,3 @@
-/** @jsxImportSource @emotion/react */
 /**
  * RuntimePackagesSection — the "Software" tab of the unified Package Manager.
  *
@@ -7,10 +6,7 @@
  * `window.api.packages` IPC, streaming the conda/uv/npm console live. Runtime
  * installation is desktop-only, so in the browser this renders a notice.
  */
-import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import {
@@ -23,28 +19,10 @@ import {
   FlexRow,
   Text
 } from "../ui_primitives";
+import ConsolePanel from "./ConsolePanel";
 import useRuntimePackagesStore from "../../stores/RuntimePackagesStore";
 
-const consoleStyles = (theme: Theme) =>
-  css({
-    fontFamily: theme.fontFamily2,
-    fontSize: theme.fontSizeSmaller,
-    color: theme.vars.palette.text.secondary,
-    backgroundColor: theme.vars.palette.action.hover,
-    border: `1px solid ${theme.vars.palette.divider}`,
-    borderRadius: BORDER_RADIUS.xs,
-    padding: "0.75em",
-    margin: 0,
-    maxHeight: "220px",
-    overflow: "auto",
-    whiteSpace: "pre-wrap",
-    wordBreak: "break-word"
-  });
-
 const RuntimePackagesSection = () => {
-  const theme = useTheme();
-  const [consoleOpen, setConsoleOpen] = useState(false);
-
   const {
     available,
     statuses,
@@ -185,35 +163,7 @@ const RuntimePackagesSection = () => {
 
       <Divider />
 
-      <FlexColumn gap={1}>
-        <FlexRow gap={1.5} align="center" justify="space-between">
-          <EditorButton
-            variant="text"
-            density="compact"
-            onClick={() => setConsoleOpen((v) => !v)}
-            aria-expanded={consoleOpen}
-          >
-            {consoleOpen ? "Hide console" : "Show console"}
-            {consoleLines.length > 0 ? ` (${consoleLines.length})` : ""}
-          </EditorButton>
-          {consoleOpen && consoleLines.length > 0 && (
-            <EditorButton
-              variant="text"
-              density="compact"
-              onClick={() => clearConsole()}
-            >
-              Clear
-            </EditorButton>
-          )}
-        </FlexRow>
-        {consoleOpen && (
-          <pre css={consoleStyles(theme)}>
-            {consoleLines.length > 0
-              ? consoleLines.join("\n")
-              : "No output yet. Install a runtime to see logs."}
-          </pre>
-        )}
-      </FlexColumn>
+      <ConsolePanel lines={consoleLines} onClear={clearConsole} />
     </FlexColumn>
   );
 };

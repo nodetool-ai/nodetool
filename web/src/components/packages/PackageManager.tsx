@@ -4,8 +4,9 @@
  * Brings the three install domains under one roof:
  *  - **Software** — system runtimes (Python, FFmpeg, …) via Electron IPC
  *    ({@link RuntimePackagesSection}).
- *  - **Node Packs** — first-party builtins, third-party npm packs, and trust
- *    ({@link PackagesMenu}).
+ *  - **Node Packs** — first-party builtins ({@link BuiltinPacksSection}),
+ *    registry Python packs ({@link PythonPackagesSection}), and third-party
+ *    npm packs with trust ({@link PackagesMenu}).
  *  - **Models** — AI model downloads, managed in the Model Manager.
  *
  * Replaces the old standalone Packages tab in Settings.
@@ -19,12 +20,29 @@ import {
   Text,
   EditorButton,
   ToggleGroup,
-  ToggleOption
+  ToggleOption,
+  Divider
 } from "../ui_primitives";
 import RuntimePackagesSection from "./RuntimePackagesSection";
+import BuiltinPacksSection from "./BuiltinPacksSection";
+import PythonPackagesSection from "./PythonPackagesSection";
 import PackagesMenu from "../menus/PackagesMenu";
 
 type Section = "software" | "packs" | "models";
+
+const NodePacksSection = memo(function NodePacksSection() {
+  return (
+    <FlexColumn gap={2}>
+      <FlexColumn gap={2} sx={{ p: 2, pt: 0 }}>
+        <BuiltinPacksSection />
+        <Divider />
+        <PythonPackagesSection />
+      </FlexColumn>
+      <Divider />
+      <PackagesMenu />
+    </FlexColumn>
+  );
+});
 
 const ModelsSection = memo(function ModelsSection() {
   const navigate = useNavigate();
@@ -70,7 +88,7 @@ function PackageManager() {
       </FlexColumn>
 
       {section === "packs" ? (
-        <PackagesMenu />
+        <NodePacksSection />
       ) : (
         <FlexColumn sx={{ p: 2, pt: 0 }}>
           {section === "software" ? <RuntimePackagesSection /> : <ModelsSection />}

@@ -290,8 +290,8 @@ function PackagesMenu() {
   return (
     <FlexColumn gap={2} sx={{ p: 2, maxWidth: 900 }}>
       <FlexColumn gap={0.5}>
-        <Text size="big" weight={600}>
-          Node Packs
+        <Text size="normal" weight={600}>
+          Third-party packs
         </Text>
         <Text size="small" color="secondary">
           Third-party packs run in-process as the server user. Only trust packs
