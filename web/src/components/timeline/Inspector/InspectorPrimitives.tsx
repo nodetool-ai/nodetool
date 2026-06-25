@@ -534,7 +534,7 @@ const precisionSliderSx = (theme: Theme) => {
   const ring = theme.vars.palette.primary.mainChannel;
   return {
     marginTop: 0,
-    padding: "7px 0",
+    padding: `${getSpacingPx(SPACING.md)} 0`,
     height: 16,
     "&.Mui-disabled": { opacity: 0.45 },
     "& .MuiSlider-rail": {
@@ -562,7 +562,7 @@ const precisionSliderSx = (theme: Theme) => {
       height: 12,
       borderRadius: BORDER_RADIUS.circle,
       backgroundColor: theme.vars.palette.text.primary,
-      border: "1px solid rgba(0, 0, 0, 0.28)",
+      border: `1px solid rgba(${theme.vars.palette.common.blackChannel} / 0.28)`,
       boxShadow: "0 1px 2px rgba(0, 0, 0, 0.45)",
       transition: MOTION.shadow,
       "&:hover": {
