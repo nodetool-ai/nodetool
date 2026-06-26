@@ -36,7 +36,7 @@ import {
   normalizeUpdateChannel,
   setUpdateChannel,
 } from "./settings";
-import { createSettingsWindow } from "./window";
+import { openSettingsInMainWindow } from "./window";
 import { IpcRequest } from "./types.d";
 import { registerWorkflowShortcut, setupWorkflowShortcuts } from "./shortcuts";
 import { emitWorkflowsChanged, emitServerStateChanged } from "./tray";
@@ -1333,10 +1333,10 @@ export function initializeIpcHandlers(): void {
     },
   );
 
-  // Show settings window
+  // Open the in-app settings page (in the main window)
   createIpcMainHandler(IpcChannels.SHOW_SETTINGS, async () => {
-    logMessage("Opening Settings window");
-    createSettingsWindow();
+    logMessage("Opening Settings in main window");
+    openSettingsInMainWindow();
   });
 
   createIpcMainHandler(IpcChannels.GET_SYSTEM_INFO, async () => {

@@ -38,7 +38,7 @@ describe('buildMenu', () => {
 
     jest.doMock('../window', () => ({
       createLogViewerWindow: jest.fn(),
-      createSettingsWindow: jest.fn(),
+      openSettingsInMainWindow: jest.fn(),
     }));
 
     const menuModule = await import('../menu');
@@ -83,7 +83,7 @@ describe('buildMenu', () => {
 
     jest.doMock('../window', () => ({
       createLogViewerWindow: jest.fn(),
-      createSettingsWindow: jest.fn(),
+      openSettingsInMainWindow: jest.fn(),
     }));
 
     const menuModule = await import('../menu');

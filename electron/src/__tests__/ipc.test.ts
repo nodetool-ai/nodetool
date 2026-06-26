@@ -62,7 +62,7 @@ jest.mock('../tray', () => ({
 }));
 
 jest.mock('../window', () => ({
-  createSettingsWindow: jest.fn(),
+  openSettingsInMainWindow: jest.fn(),
 }));
 
 jest.mock('../packageManager', () => ({

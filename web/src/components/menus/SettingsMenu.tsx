@@ -220,6 +220,7 @@ function SettingsPage() {
   >("ask");
   const [autoUpdatesEnabled, setAutoUpdatesEnabled] = useState(false);
   const [updateChannel, setUpdateChannel] = useState<"latest" | "nightly">("latest");
+  const [startLlamaCppOnStartup, setStartLlamaCppOnStartup] = useState(false);
   const desktopUpdateSettingsApi = useMemo(() => {
     // `isElectron` and `window.api` are static for the lifetime of the renderer session.
     if (!isElectron) {
@@ -252,6 +253,32 @@ function SettingsPage() {
   }, []);
   const supportsDesktopUpdateSettings = desktopUpdateSettingsApi !== null;
 
+  const desktopModelServicesApi = useMemo(() => {
+    // `isElectron` and `window.api` are static for the lifetime of the renderer session.
+    if (!isElectron) {
+      return null;
+    }
+
+    const api = window.api?.settings;
+    if (
+      !api ||
+      typeof api.getModelServicesStartup !== "function" ||
+      typeof api.setModelServicesStartup !== "function"
+    ) {
+      return null;
+    }
+
+    const getModelServicesStartup = api.getModelServicesStartup;
+    const setModelServicesStartup = api.setModelServicesStartup;
+
+    return {
+      get: () => getModelServicesStartup(),
+      set: (update: { startLlamaCppOnStartup?: boolean }) =>
+        setModelServicesStartup(update)
+    };
+  }, []);
+  const supportsDesktopModelServices = desktopModelServicesApi !== null;
+
   // Load close behavior setting on mount (Electron only)
   useEffect(() => {
     if (isElectron && window.api?.settings?.getCloseBehavior) {
@@ -276,6 +303,50 @@ function SettingsPage() {
         });
     }
   }, [desktopUpdateSettingsApi, supportsDesktopUpdateSettings]);
+
+  // Load managed local model service startup settings on mount (Electron only)
+  useEffect(() => {
+    if (!supportsDesktopModelServices) {
+      return;
+    }
+    desktopModelServicesApi
+      .get()
+      .then((startup) =>
+        setStartLlamaCppOnStartup(startup.startLlamaCppOnStartup)
+      )
+      .catch((error: unknown) => {
+        console.error(
+          "Failed to load model services startup setting:",
+          error
+        );
+      });
+  }, [desktopModelServicesApi, supportsDesktopModelServices]);
+
+  const handleStartLlamaCppOnStartupChange = useCallback(
+    (checked: boolean) => {
+      if (!supportsDesktopModelServices) {
+        return;
+      }
+      const previousValue = startLlamaCppOnStartup;
+      setStartLlamaCppOnStartup(checked);
+      void desktopModelServicesApi
+        .set({ startLlamaCppOnStartup: checked })
+        .then((next) => setStartLlamaCppOnStartup(next.startLlamaCppOnStartup))
+        .catch((error: unknown) => {
+          setStartLlamaCppOnStartup(previousValue);
+          console.error(
+            "Failed to update model services startup setting:",
+            error
+          );
+          addNotification({
+            type: "error",
+            alert: true,
+            content: "Failed to save Llama.cpp startup preference."
+          });
+        });
+    },
+    [addNotification, desktopModelServicesApi, startLlamaCppOnStartup, supportsDesktopModelServices]
+  );
 
   const handleCloseBehaviorChange = useCallback(
     (action: "ask" | "quit" | "background") => {
@@ -725,6 +796,20 @@ function SettingsPage() {
                             <b>Background:</b> Keeps the app running in the system
                             tray.
                           </Text>
+                        </SearchItem>
+                      )}
+
+                      {supportsDesktopModelServices && (
+                        <SearchItem
+                          search={generalSearch}
+                          keywords="editor workspace local model services llama llama.cpp startup launch"
+                        >
+                          <LabeledSwitch
+                            label="Start Llama.cpp on Startup"
+                            checked={startLlamaCppOnStartup}
+                            onChange={handleStartLlamaCppOnStartupChange}
+                            description="Start or attach to the local llama-server when the desktop app launches."
+                          />
                         </SearchItem>
                       )}
                     </div>
