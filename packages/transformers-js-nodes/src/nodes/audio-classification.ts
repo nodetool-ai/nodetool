@@ -23,6 +23,8 @@ const DEFAULT_SAMPLING_RATE = 16000;
 
 export class AudioClassificationNode extends BaseNode {
   static readonly nodeType = "transformers.AudioClassification";
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields = ["audio"];
   static readonly title = "Audio Classification";
   static readonly description =
     "Classify an audio clip using a Transformers.js audio-classification pipeline.\n" +

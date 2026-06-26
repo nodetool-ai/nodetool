@@ -24,6 +24,8 @@ type FillMaskResult = {
 
 export class FillMaskNode extends BaseNode {
   static readonly nodeType = "transformers.FillMask";
+  static readonly inlineFields = ["text"];
+  static readonly inputFields: string[] = [];
   static readonly title = "Fill Mask";
   static readonly description =
     "Predict masked tokens in a sentence using a Transformers.js fill-mask pipeline.\n" +
