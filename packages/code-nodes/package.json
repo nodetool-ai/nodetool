@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/code-nodes",
-  "version": "0.7.0-rc.23",
-  "description": "NodeTool code-execution nodes \u2014 JS code, sandboxed code, agent tool wrappers",
+  "version": "0.7.0-rc.25",
+  "description": "NodeTool code-execution nodes — JS code, sandboxed code, agent tool wrappers",
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <23.0.0"

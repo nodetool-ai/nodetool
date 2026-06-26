@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0 <23.0.0"
   },
-  "version": "0.7.0-rc.23",
+  "version": "0.7.0-rc.25",
   "description": "Workflow kernel: Graph model, NodeInbox, and Actor runtime",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
