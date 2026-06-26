@@ -1197,6 +1197,17 @@ blockquote {
   box-shadow: 0 4px 20px rgba(102, 144, 212, 0.08);
 }
 
+.page-content video {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  margin: var(--spacing-lg) 0;
+  background: #0f0f17;
+  box-shadow: 0 4px 20px rgba(102, 144, 212, 0.08);
+}
+
 .page-content ul,
 .page-content ol {
   margin-left: var(--spacing-lg);
