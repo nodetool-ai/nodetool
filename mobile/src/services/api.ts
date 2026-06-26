@@ -140,15 +140,15 @@ export interface WorkflowGraphInput {
   }>;
 }
 
-export function normalizeWorkflow(workflow: Record<string, unknown>): AppWorkflow {
+export function normalizeWorkflow(workflow: AppWorkflow): AppWorkflow {
   return {
     ...workflow,
-    description: (workflow.description as string | null | undefined) ?? '',
-  } as AppWorkflow;
+    description: workflow.description ?? '',
+  };
 }
 
 export function normalizeModels<T extends { id: string; name: string }>(
-  models: Array<Record<string, unknown>>,
+  models: ReadonlyArray<Record<string, unknown>>,
   provider: string
 ): T[] {
   return models.map((model) => ({

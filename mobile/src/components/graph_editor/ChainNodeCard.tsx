@@ -65,9 +65,9 @@ function getOutputFromResult(result: unknown): unknown {
   if (
     typeof result === "object" &&
     !Array.isArray(result) &&
-    "output" in (result as Record<string, unknown>)
+    "output" in result
   ) {
-    return (result as Record<string, unknown>).output;
+    return result.output;
   }
   return result;
 }
@@ -91,7 +91,7 @@ function useNodeExecState(workflowId: string | null, nodeId: string) {
     if (!workflowId) {return undefined;}
     const nodeResult = s.nodeResults[nodeId];
     if (nodeResult !== undefined) {return nodeResult;}
-    const results = s.results as Record<string, unknown> | null | undefined;
+    const results = s.results;
     if (results && typeof results === "object" && !Array.isArray(results)) {
       return (results as Record<string, unknown>)[nodeId];
     }

@@ -178,19 +178,16 @@ export const createWorkflowRunnerStore = (
       const edges = workflow.graph?.edges || [];
       const bypassedIds = new Set<string>();
       for (const node of nodes) {
-        const nodeAny = node as unknown as Record<string, unknown>;
-        if (nodeAny.data && (nodeAny.data as Record<string, unknown>).bypassed) {
-          bypassedIds.add(nodeAny.id as string);
+        const data = node.data;
+        if (data && typeof data === "object" && "bypassed" in data && data.bypassed) {
+          bypassedIds.add(node.id);
         }
       }
       const activeNodes = bypassedIds.size > 0
-        ? nodes.filter((n) => !bypassedIds.has((n as unknown as Record<string, unknown>).id as string))
+        ? nodes.filter((n) => !bypassedIds.has(n.id))
         : nodes;
       const activeEdges = bypassedIds.size > 0
-        ? edges.filter((e) => {
-            const ea = e as unknown as Record<string, unknown>;
-            return !bypassedIds.has(ea.source as string) && !bypassedIds.has(ea.target as string);
-          })
+        ? edges.filter((e) => !bypassedIds.has(e.source) && !bypassedIds.has(e.target))
         : edges;
 
       const req: RunJobRequest = {
@@ -290,7 +287,7 @@ function handleMessage(
         case "timed_out":
           set({
             state: "error",
-            statusMessage: `Failed: ${(message as Record<string, unknown>).error_message || job.error || "Unknown error"}`,
+            statusMessage: `Failed: ${message.error_message || job.error || "Unknown error"}`,
           });
           break;
         case "cancelled":
@@ -299,7 +296,7 @@ function handleMessage(
         case "running":
           set({
             state: "running",
-            statusMessage: (message as Record<string, unknown>).message as string || "Running...",
+            statusMessage: (message.message as string) || "Running...",
           });
           break;
         case "queued":
@@ -311,7 +308,7 @@ function handleMessage(
         case "suspended":
           set({
             state: "suspended",
-            statusMessage: `Suspended: ${(message as Record<string, unknown>).suspension_reason || "Waiting for input"}`,
+            statusMessage: `Suspended: ${message.suspension_reason || "Waiting for input"}`,
           });
           break;
         case "paused":
