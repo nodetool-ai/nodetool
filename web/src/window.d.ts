@@ -297,6 +297,12 @@ declare global {
         }>;
       };
 
+      // Local file helpers (available in Electron only)
+      files?: {
+        /** Resolve the absolute disk path of a dropped/selected File. */
+        getPathForFile: (file: File) => string;
+      };
+
       // Dialog module - Native file/folder dialogs
       dialog?: {
         openFile: (options?: {
