@@ -4,7 +4,7 @@ import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo } from "react";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
-import { MOTION, BORDER_RADIUS } from "../ui_primitives";
+import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import type { Tutorial } from "./tutorialsData";
 
 const styles = (theme: Theme, accent: string, active: boolean) =>
@@ -76,12 +76,12 @@ const styles = (theme: Theme, accent: string, active: boolean) =>
       position: "absolute",
       right: 8,
       bottom: 8,
-      padding: "2px 7px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
       borderRadius: BORDER_RADIUS.sm,
       fontFamily: theme.fontFamily2,
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.common.white,
-      background: "rgba(0,0,0,0.6)",
+      background: `rgba(${theme.vars.palette.common.blackChannel || "0, 0, 0"}, 0.6)`,
       fontVariantNumeric: "tabular-nums"
     },
     ".body": {

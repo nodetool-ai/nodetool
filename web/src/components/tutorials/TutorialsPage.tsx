@@ -111,7 +111,7 @@ const styles = (theme: Theme) =>
       fontWeight: 600,
       letterSpacing: "0.04em",
       textTransform: "uppercase",
-      padding: "3px 9px",
+      padding: `${getSpacingPx(0.5)} ${getSpacingPx(2)}`,
       borderRadius: BORDER_RADIUS.pill,
       color: theme.vars.palette.common.white
     },
