@@ -250,7 +250,7 @@ ToolCallCard.displayName = "ToolCallCard";
 
 interface MessageViewProps {
   message: Message;
-  expandedThoughts: { [key: string]: boolean };
+  isThoughtExpanded: (key: string) => boolean;
   onToggleThought: (key: string) => void;
   onInsertCode?: (text: string, language?: string) => void;
   toolResultsByCallId?: Record<
@@ -270,7 +270,7 @@ export const MessageView: React.FC<
   MessageViewProps & { componentStyles?: Record<string, unknown> }
 > = React.memo(({
   message,
-  expandedThoughts,
+  isThoughtExpanded,
   onToggleThought,
   onInsertCode,
   toolResultsByCallId,
@@ -363,7 +363,7 @@ export const MessageView: React.FC<
 
                 if (parsedThought) {
                   const key = `thought-${index}-${i}`;
-                  const isExpanded = expandedThoughts[key];
+                  const isExpanded = isThoughtExpanded(key);
 
                   return (
                     <ThoughtSection
@@ -405,7 +405,7 @@ export const MessageView: React.FC<
 
       if (parsedThought) {
         const key = `thought-${index}`;
-        const isExpanded = expandedThoughts[key];
+        const isExpanded = isThoughtExpanded(key);
 
         return (
           <ThoughtSection

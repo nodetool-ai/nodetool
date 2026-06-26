@@ -251,6 +251,19 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
     [getMetadata, setHoveredNode]
   );
 
+  const handleTileKeyDown = useCallback(
+    (e: ReactKeyboardEvent<HTMLDivElement>) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        const nodeTypeKey = e.currentTarget.dataset.nodeType;
+        if (!nodeTypeKey) return;
+        const meta = getMetadata(nodeTypeKey);
+        if (meta) requestCreate(meta);
+      }
+    },
+    [getMetadata, requestCreate]
+  );
+
   const handleClearRecent = useCallback(() => {
     clearRecentNodes();
   }, [clearRecentNodes]);
@@ -341,15 +354,7 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 onClick={handleTileClick}
-                onKeyDown={(e: ReactKeyboardEvent<HTMLDivElement>) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    const nodeTypeKey = e.currentTarget.dataset.nodeType;
-                    if (!nodeTypeKey) return;
-                    const meta = getMetadata(nodeTypeKey);
-                    if (meta) requestCreate(meta);
-                  }
-                }}
+                onKeyDown={handleTileKeyDown}
                 onMouseEnter={handleTileMouseEnter}
                 data-node-type={nodeType}
               >
