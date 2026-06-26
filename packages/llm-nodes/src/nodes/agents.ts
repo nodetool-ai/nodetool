@@ -59,6 +59,27 @@ const CLASSIFIER_SYSTEM_PROMPT = [
 ].join(" ");
 const SUMMARIZER_SYSTEM_PROMPT =
   "You are an expert summarizer. Produce a concise, accurate summary.";
+const ENHANCE_PROMPT_SYSTEM_PROMPT = [
+  "You are an expert prompt engineer.",
+  "Rewrite the user's draft into a single, clear, detailed prompt that gets better results.",
+  "Preserve the original intent, add useful specificity, and remove ambiguity.",
+  "Return only the improved prompt with no preamble, explanation, or surrounding quotation marks."
+].join(" ");
+// Per-target guidance appended to the user message so the rewrite is tuned to
+// what the prompt will ultimately drive (an LLM, an image model, etc.).
+const ENHANCE_PROMPT_GUIDANCE: Record<string, string> = {
+  general:
+    "Make it specific and unambiguous. State the goal, relevant context, the desired output format, and any constraints.",
+  text: "Optimize for a text/LLM model: state the task, audience, tone, length, output structure, and any constraints.",
+  image:
+    "Optimize for an image generation model: describe the subject, setting, composition, lighting, color, art style, mood, and quality descriptors in vivid, concrete detail.",
+  video:
+    "Optimize for a video generation model: describe the subject and action, camera movement, shot framing, pacing, setting, lighting, and visual style.",
+  audio:
+    "Optimize for an audio/music generation model: describe the genre, mood, instruments, tempo, vocals, and production style.",
+  code: "Optimize for a coding model: specify the language, the precise task, inputs and outputs, edge cases, and any libraries or constraints to use."
+};
+const ENHANCE_PROMPT_MAX_TOKENS = 1024;
 function asText(value: unknown): string {
   if (typeof value === "string") return value;
   if (typeof value === "number" || typeof value === "boolean")
@@ -1507,6 +1528,180 @@ export class SummarizerNode extends BaseNode {
       },
       text: summary,
       output: summary
+    };
+  }
+
+  async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
+    let text = "";
+    for await (const item of this.genProcess(context)) {
+      if (typeof item.text === "string") text = item.text;
+    }
+    return { text, output: text };
+  }
+}
+
+export class EnhancePromptNode extends BaseNode {
+  static readonly nodeType = "nodetool.agents.EnhancePrompt";
+  static readonly body = "content_card";
+  // Persist the improved prompt as a generation so the node keeps a
+  // reload-surviving, browsable history like the other content-card nodes.
+  static readonly autoSaveAsset = true;
+  static readonly title = "Enhance Prompt";
+  static readonly description =
+    "Rewrite a rough draft into a clearer, more detailed prompt using an LLM, with streaming output.\n    text, prompt, prompt-engineering, llm, rewrite, streaming\n\n    Turn a short or vague idea into an effective prompt:\n    - Add specificity, structure, and missing detail\n    - Tune the result for the target model (text, image, video, audio, code)\n    - Preserve the original intent while removing ambiguity\n    - Stream the improved prompt as it is written";
+  static readonly metadataOutputTypes = {
+    text: "str",
+    chunk: "chunk"
+  };
+  static readonly inlineFields = ["prompt"];
+  static readonly inputFields = ["target", "system_prompt"];
+  // Streamed output: each provider piece is emitted as a `chunk` iteration,
+  // and the final improved prompt is the `text` single output.
+  static readonly outputCorrelation: Record<string, OutputCorrelation> = {
+    text: { kind: "single", source: "__execution__" },
+    chunk: { kind: "iteration", source: "__execution__", group: "stream" }
+  };
+  static readonly recommendedModels = [
+    {
+      id: "llama3.2:3b",
+      type: "llama_model",
+      name: "Llama 3.2 - 3B",
+      repo_id: "llama3.2:3b",
+      description:
+        "Compact Llama variant that rewrites prompts with strong instruction following on modest hardware.",
+      size_on_disk: 2040109465
+    },
+    {
+      id: "qwen3:4b",
+      type: "llama_model",
+      name: "Qwen3 - 4B",
+      repo_id: "qwen3:4b",
+      description:
+        "Qwen3 4B produces tight, well-structured prompt rewrites across languages.",
+      size_on_disk: 2684354560
+    },
+    {
+      id: "mistral-small:latest",
+      type: "llama_model",
+      name: "Mistral Small",
+      repo_id: "mistral-small:latest",
+      description:
+        "Efficient model that expands terse prompts into detailed, usable instructions with low latency.",
+      size_on_disk: 7730941132
+    },
+    {
+      ...GEMMA_3_4B_IT_GGUF_BASE,
+      description: "Efficient Gemma 3 for prompt enhancement via llama.cpp."
+    }
+  ];
+
+  @prop({
+    type: "str",
+    default: ENHANCE_PROMPT_SYSTEM_PROMPT,
+    title: "System Prompt",
+    description: "The system prompt that guides how prompts are enhanced"
+  })
+  declare system_prompt: string;
+
+  @prop({
+    type: "language_model",
+    default: {
+      type: "language_model",
+      provider: "empty",
+      id: "",
+      name: "",
+      path: null,
+      supported_tasks: []
+    },
+    title: "Model",
+    description: "Model to use for enhancing the prompt"
+  })
+  declare model: LanguageModel;
+
+  @prop({
+    type: "str",
+    default: "",
+    title: "Prompt",
+    description: "The draft prompt to enhance"
+  })
+  declare prompt: string;
+
+  @prop({
+    type: "enum",
+    default: "general",
+    title: "Target",
+    description:
+      "What the enhanced prompt is for. Tailors the rewrite to the target model: general purpose, a text/LLM model, or an image, video, audio, or code generation model.",
+    values: ["general", "text", "image", "video", "audio", "code"]
+  })
+  declare target: string;
+
+  private _target(): string {
+    const raw = typeof this.target === "string" ? this.target.trim() : "";
+    return raw in ENHANCE_PROMPT_GUIDANCE ? raw : "general";
+  }
+
+  async *genProcess(
+    context?: ProcessingContext
+  ): AsyncGenerator<Record<string, unknown>> {
+    const prompt = asText(this.prompt ?? "").trim();
+    const target = this._target();
+    const systemPrompt =
+      asText(this.system_prompt ?? "").trim() || ENHANCE_PROMPT_SYSTEM_PROMPT;
+    const { providerId, modelId } = getModelConfig(this.serialize());
+
+    if (!prompt) {
+      yield { chunk: null, text: "", output: "" };
+      return;
+    }
+
+    if (hasProviderSupport(context, providerId, modelId)) {
+      const provider = await context.getProvider(providerId);
+      const guidance =
+        ENHANCE_PROMPT_GUIDANCE[target] ?? ENHANCE_PROMPT_GUIDANCE.general;
+      let full = "";
+      for await (const item of streamProviderMessages(provider, {
+        messages: [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content: `${guidance}\n\nImprove this prompt and return only the improved version:\n\n${prompt}`
+          }
+        ],
+        model: modelId,
+        maxTokens: ENHANCE_PROMPT_MAX_TOKENS
+      })) {
+        if (isChunkItem(item) && !item.thinking) {
+          const piece = item.content ?? "";
+          if (piece) {
+            full += piece;
+            yield {
+              chunk: {
+                type: "chunk",
+                content: piece,
+                content_type: "text",
+                done: false
+              },
+              text: null
+            };
+          }
+        }
+      }
+      const enhanced = full.trim() || prompt;
+      yield { chunk: null, text: enhanced, output: enhanced };
+      return;
+    }
+
+    // No provider available — pass the original prompt through unchanged.
+    yield {
+      chunk: {
+        type: "chunk",
+        content: prompt,
+        content_type: "text",
+        done: true
+      },
+      text: prompt,
+      output: prompt
     };
   }
 
@@ -3219,6 +3414,7 @@ export class AgentStepNode extends BaseNode {
 
 export const AGENT_NODES = tagAsServer([
   SummarizerNode,
+  EnhancePromptNode,
   CreateThreadNode,
   ExtractorNode,
   ClassifierNode,
