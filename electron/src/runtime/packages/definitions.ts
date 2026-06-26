@@ -157,12 +157,24 @@ export const RUNTIME_PACKAGES: Record<RuntimePackageId, RuntimePackage> = {
     id: "claude",
     name: "Claude Code CLI",
     description:
-      "Anthropic's Claude Code CLI for autonomous AI coding tasks. Required by the Claude Code agent node and the Claude Agent SDK LLM provider (subscription-based, no API key).",
+      "Anthropic's Claude Code CLI for autonomous AI coding tasks. Required by the Claude Code agent node.",
     category: "tool",
     versionRange: "*",
     npmPackages: ["@anthropic-ai/claude-code"],
     packageNames: ["@anthropic-ai/claude-code"],
     approxSizeMB: 230,
+  }),
+
+  "claude-agent-sdk": new NpmRuntimePackage({
+    id: "claude-agent-sdk",
+    name: "Claude Agent SDK",
+    description:
+      "Anthropic's Claude Agent SDK. Powers the Claude Agent LLM provider, which talks to Claude through your logged-in Claude subscription (no API key). Bundles its own claude binary.",
+    category: "library",
+    versionRange: "0.3.x",
+    npmPackages: ["@anthropic-ai/claude-agent-sdk@0.3.190"],
+    packageNames: ["@anthropic-ai/claude-agent-sdk"],
+    approxSizeMB: 211,
   }),
 
   "tensorflow-js": new NpmRuntimePackage({
