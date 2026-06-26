@@ -5,9 +5,12 @@
  * These primitives follow semantic design principles and are theme-driven.
  */
 
-// Export slider component
+// Export slider components
 export { NodeSlider } from "./NodeSlider";
 export type { NodeSliderProps } from "./NodeSlider";
+
+export { Slider } from "./Slider";
+export type { SliderProps } from "./Slider";
 
 // Export dialog primitives
 export { Dialog } from "./Dialog";
