@@ -111,7 +111,7 @@ export interface PackageManagerModel {
   /** Desktop-only notice when the active install surface needs Electron. */
   notice: string | null;
   error: string | null;
-  console: { lines: string[]; onClear: () => void } | null;
+  console: { lines: string[]; onClear: () => void; busy: boolean } | null;
   thirdPartyCount: number;
 }
 
@@ -468,11 +468,15 @@ export function usePackageManager(params: {
 
     const consoleModel = isSoftware
       ? rtAvailable
-        ? { lines: rtConsole, onClear: rtClear }
+        ? {
+            lines: rtConsole,
+            onClear: rtClear,
+            busy: rtBusy.length > 0 || statuses.some((s) => s.installing)
+          }
         : null
       : cat === "python"
         ? pyAvailable
-          ? { lines: pyConsole, onClear: pyClear }
+          ? { lines: pyConsole, onClear: pyClear, busy: pyBusy.length > 0 }
           : null
         : null;
 

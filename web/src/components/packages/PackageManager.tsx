@@ -9,6 +9,7 @@
  * full-screen by {@link PackagesPage} (title/back live in the page hero).
  */
 import { memo, useCallback, useState } from "react";
+import { useTheme } from "@mui/material/styles";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 
 import {
@@ -39,19 +40,48 @@ const DEFAULT_CAT: Record<PMTab, string> = {
   packs: "included"
 };
 
+/**
+ * Soft, borderless status badges — a faint tint of the status color with
+ * matching text, quieter than an outlined pill (esp. the ubiquitous
+ * "Installed"). "Always on" / "Not installed" stay neutral.
+ */
 const BadgeChip = ({ badge }: { badge: PMRow["badge"] }) => {
-  switch (badge) {
-    case "alwaysOn":
-      return <Chip label="Always on" compact />;
-    case "installed":
-      return <Chip label="Installed" color="success" compact />;
-    case "update":
-      return <Chip label="Update available" color="warning" compact />;
-    case "notInstalled":
-      return <Chip label="Not installed" compact />;
-    default:
-      return null;
-  }
+  const theme = useTheme();
+  if (!badge) return null;
+  const styles: Record<
+    Exclude<PMRow["badge"], null>,
+    { label: string; bg: string; fg: string }
+  > = {
+    alwaysOn: {
+      label: "Always on",
+      bg: theme.vars.palette.action.selected,
+      fg: theme.vars.palette.text.secondary
+    },
+    installed: {
+      label: "Installed",
+      bg: `rgba(${theme.vars.palette.success.mainChannel} / 0.14)`,
+      fg: theme.vars.palette.success.main
+    },
+    update: {
+      label: "Update available",
+      bg: `rgba(${theme.vars.palette.warning.mainChannel} / 0.16)`,
+      fg: theme.vars.palette.warning.main
+    },
+    notInstalled: {
+      label: "Not installed",
+      bg: theme.vars.palette.action.hover,
+      fg: theme.vars.palette.text.secondary
+    }
+  };
+  const s = styles[badge];
+  return (
+    <Chip
+      label={s.label}
+      compact
+      variant="filled"
+      sx={{ backgroundColor: s.bg, color: s.fg, fontWeight: 500 }}
+    />
+  );
 };
 
 const RowActions = ({ row }: { row: PMRow }) => {
@@ -273,7 +303,7 @@ function PackageManager() {
           ) : model.isThirdParty ? (
             <PackagesMenu />
           ) : model.rows.length > 0 ? (
-            <FlexColumn gap={1.25}>
+            <FlexColumn gap={1.75}>
               {model.rows.map((row) => (
                 <PackageRowItem key={row.key} row={row} />
               ))}
@@ -314,6 +344,7 @@ function PackageManager() {
             <ConsolePanel
               lines={model.console.lines}
               onClear={model.console.onClear}
+              busy={model.console.busy}
             />
           )}
         </FlexColumn>

@@ -8,7 +8,7 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { memo, useState } from "react";
+import { memo, useEffect, useState } from "react";
 
 import {
   BORDER_RADIUS,
@@ -36,11 +36,19 @@ const consoleStyles = (theme: Theme) =>
 interface ConsolePanelProps {
   lines: string[];
   onClear: () => void;
+  /** Reveal the console when an install/uninstall is in flight. */
+  busy?: boolean;
 }
 
-const ConsolePanel = ({ lines, onClear }: ConsolePanelProps) => {
+const ConsolePanel = ({ lines, onClear, busy = false }: ConsolePanelProps) => {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
+
+  // Auto-open when an operation begins so its live output is visible without a
+  // manual toggle; the user can still hide it mid-run.
+  useEffect(() => {
+    if (busy) setOpen(true);
+  }, [busy]);
 
   return (
     <FlexColumn gap={1}>
