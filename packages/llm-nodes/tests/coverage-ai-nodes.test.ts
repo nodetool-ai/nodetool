@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { getNodeMetadata, hasStreamingOutput } from "@nodetool-ai/node-sdk";
 import {
   SummarizerNode,
+  EnhancePromptNode,
   CreateThreadNode,
   ExtractorNode,
   ClassifierNode,
@@ -35,6 +36,7 @@ describe("text agents persist generations", () => {
   // giving them a reload-surviving, browsable history like media nodes.
   it.each([
     [SummarizerNode, "text"],
+    [EnhancePromptNode, "text"],
     [ClassifierNode, "output"],
     [AgentNode, "text"]
   ])("%p saves its primary str output as a generation", (NodeCls, primary) => {
@@ -51,9 +53,10 @@ describe("text agents persist generations", () => {
 // ---------------------------------------------------------------------------
 
 describe("AGENT_NODES export", () => {
-  it("contains all 6 agent node classes", () => {
-    expect(AGENT_NODES).toHaveLength(6);
+  it("contains all 7 agent node classes", () => {
+    expect(AGENT_NODES).toHaveLength(7);
     expect(AGENT_NODES).toContain(SummarizerNode);
+    expect(AGENT_NODES).toContain(EnhancePromptNode);
     expect(AGENT_NODES).toContain(CreateThreadNode);
     expect(AGENT_NODES).toContain(ExtractorNode);
     expect(AGENT_NODES).toContain(ClassifierNode);
@@ -240,6 +243,119 @@ describe("SummarizerNode", () => {
     n.assign({ text: "From props. Second.", max_sentences: 1 });
     const result = await n.process();
     expect(result.text).toBe("From props.");
+  });
+});
+
+// ---- EnhancePromptNode ----
+describe("EnhancePromptNode", () => {
+  it("has correct static metadata", () => {
+    expect(EnhancePromptNode.nodeType).toBe("nodetool.agents.EnhancePrompt");
+    expect(EnhancePromptNode.title).toBe("Enhance Prompt");
+  });
+
+  it("defaults", () => {
+    expectMetadataDefaults(EnhancePromptNode);
+  });
+
+  it("declares a target enum with the expected options", () => {
+    const meta = getNodeMetadata(EnhancePromptNode as any);
+    const target = meta.properties.find((p) => p.name === "target");
+    expect(target?.values).toEqual([
+      "general",
+      "text",
+      "image",
+      "video",
+      "audio",
+      "code"
+    ]);
+    expect(target?.default).toBe("general");
+  });
+
+  it("passes the draft prompt through unchanged when no provider is connected", async () => {
+    const n = new (EnhancePromptNode as any)();
+    n.assign({ prompt: "  a short idea  " });
+    const result = await n.process();
+    expect(result.text).toBe("a short idea");
+    expect(result.output).toBe(result.text);
+  });
+
+  it("returns empty string for empty prompt", async () => {
+    const n = new (EnhancePromptNode as any)();
+    n.assign({ prompt: "   " });
+    const result = await n.process();
+    expect(result.text).toBe("");
+  });
+
+  it("uses the provider to rewrite the prompt, tailored to the target", async () => {
+    const n = new (EnhancePromptNode as any)();
+    const mockProvider = {
+      generateMessage: async ({ messages }: any) => ({
+        content: `ENHANCED: ${messages[1].content}`
+      }),
+      async generateMessageTraced(...a: any[]) {
+        return (this as any).generateMessage(...a);
+      }
+    };
+    const mockContext = { getProvider: async () => mockProvider };
+    n.assign({
+      prompt: "a cat",
+      target: "image",
+      model: { provider: "test", id: "m1" }
+    });
+    const result = await n.process(mockContext as any);
+    expect(result.text).toContain("ENHANCED");
+    expect(result.text).toContain("a cat");
+    // The image-target guidance is folded into the user message.
+    expect(result.text).toContain("image generation model");
+  });
+
+  it("streams improved-prompt chunks then a final text output", async () => {
+    const n = new (EnhancePromptNode as any)();
+    const mockProvider = {
+      async *generateMessages() {
+        yield {
+          type: "chunk",
+          content: "better ",
+          content_type: "text",
+          done: false
+        };
+        yield {
+          type: "chunk",
+          content: "prompt",
+          content_type: "text",
+          done: false
+        };
+      }
+    };
+    const mockContext = { getProvider: async () => mockProvider };
+    n.assign({ prompt: "x", model: { provider: "test", id: "m1" } });
+    const chunks: string[] = [];
+    let finalText = "";
+    for await (const item of n.genProcess(mockContext as any)) {
+      if (item.chunk) chunks.push((item.chunk as any).content);
+      if (typeof item.text === "string") finalText = item.text;
+    }
+    expect(chunks.join("")).toBe("better prompt");
+    expect(finalText).toBe("better prompt");
+  });
+
+  it("ignores thinking chunks and falls back to the original prompt when the model emits no content", async () => {
+    const n = new (EnhancePromptNode as any)();
+    const mockProvider = {
+      async *generateMessages() {
+        yield {
+          type: "chunk",
+          content: "internal reasoning",
+          content_type: "text",
+          thinking: true,
+          done: false
+        };
+      }
+    };
+    const mockContext = { getProvider: async () => mockProvider };
+    n.assign({ prompt: "keep me", model: { provider: "test", id: "m1" } });
+    const result = await n.process(mockContext as any);
+    expect(result.text).toBe("keep me");
   });
 });
 
