@@ -24,6 +24,8 @@ const WHISPER_SAMPLING_RATE = 16000;
 
 export class AutomaticSpeechRecognitionNode extends BaseNode {
   static readonly nodeType = "transformers.AutomaticSpeechRecognition";
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields = ["audio"];
   static readonly title = "Automatic Speech Recognition";
   static readonly description =
     "Transcribe audio into text using a Transformers.js automatic-speech-recognition pipeline (e.g. Whisper).\n" +

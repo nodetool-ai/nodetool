@@ -19,6 +19,8 @@ type ClassificationResult = { label: string; score: number };
 
 export class TextClassificationNode extends BaseNode {
   static readonly nodeType = "transformers.TextClassification";
+  static readonly inlineFields = ["text"];
+  static readonly inputFields: string[] = [];
   static readonly title = "Text Classification";
   static readonly description =
     "Classify text using a Transformers.js text-classification pipeline (e.g. sentiment analysis).\n" +

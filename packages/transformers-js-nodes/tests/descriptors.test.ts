@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
+import type { NodeClass } from "@nodetool-ai/node-sdk";
 import { TextClassificationNode } from "../src/nodes/text-classification.js";
 import { ImageClassificationNode } from "../src/nodes/image-classification.js";
 import { AutomaticSpeechRecognitionNode } from "../src/nodes/automatic-speech-recognition.js";
 import { TextToSpeechNode } from "../src/nodes/text-to-speech.js";
 import { FeatureExtractionNode } from "../src/nodes/feature-extraction.js";
+import { TRANSFORMERS_JS_NODES } from "../src/index.js";
 
 describe("Transformers.js node descriptors", () => {
   it("declares string text input for text classification", () => {
@@ -36,5 +38,36 @@ describe("Transformers.js node descriptors", () => {
       embedding: "list",
       dim: "int"
     });
+  });
+
+  it("exposes the primary text field as an inline body editor", () => {
+    expect(TextClassificationNode.inlineFields).toEqual(["text"]);
+    expect(TextClassificationNode.inputFields).toEqual([]);
+  });
+
+  it("exposes media inputs as handle-only body ports", () => {
+    expect(ImageClassificationNode.inputFields).toEqual(["image"]);
+    expect(AutomaticSpeechRecognitionNode.inputFields).toEqual(["audio"]);
+  });
+
+  it("every node exposes at least one body input field that maps to a real property", () => {
+    for (const cls of TRANSFORMERS_JS_NODES as readonly NodeClass[]) {
+      const inline = cls.inlineFields ?? [];
+      const input = cls.inputFields ?? [];
+      // Regression guard: a node with neither set renders an empty body
+      // (no handles, no inline editors) — see field-classification + NodeContent.
+      expect(
+        inline.length + input.length,
+        `${cls.nodeType} has no body input fields`
+      ).toBeGreaterThan(0);
+
+      const propertyTypes = cls.toDescriptor().propertyTypes ?? {};
+      for (const name of [...inline, ...input]) {
+        expect(
+          propertyTypes,
+          `${cls.nodeType} body field "${name}" is not a declared property`
+        ).toHaveProperty(name);
+      }
+    }
   });
 });

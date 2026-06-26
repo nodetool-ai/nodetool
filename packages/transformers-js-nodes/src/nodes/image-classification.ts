@@ -21,6 +21,8 @@ type ImageClassificationResult = { label: string; score: number };
 
 export class ImageClassificationNode extends BaseNode {
   static readonly nodeType = "transformers.ImageClassification";
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields = ["image"];
   static readonly title = "Image Classification";
   static readonly description =
     "Classify an image using a Transformers.js image-classification pipeline.\n" +
