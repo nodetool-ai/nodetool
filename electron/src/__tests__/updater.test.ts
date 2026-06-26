@@ -544,4 +544,94 @@ describe("Auto-updater Module", () => {
       );
     });
   });
+
+  describe("checkForUpdatesManually", () => {
+    const loadManualCheck = (): (() => Promise<unknown>) => {
+      let fn: (() => Promise<unknown>) | undefined;
+      jest.isolateModules(() => {
+        jest.doMock("electron", () => ({
+          app: {
+            isPackaged: true,
+            getVersion: jest.fn().mockReturnValue("1.0.0"),
+          },
+        }));
+        jest.doMock("../settings", () => ({
+          readSettings: mockReadSettings,
+          readSettingsAsync: mockReadSettingsAsync,
+          getUpdateChannel: mockGetUpdateChannel,
+        }));
+        fn = require("../updater").checkForUpdatesManually;
+      });
+      if (!fn) {
+        throw new Error("checkForUpdatesManually not exported");
+      }
+      return fn;
+    };
+
+    it("returns dev status and does not check when not packaged", async () => {
+      let fn: (() => Promise<unknown>) | undefined;
+      jest.isolateModules(() => {
+        jest.doMock("electron", () => ({
+          app: { isPackaged: false },
+        }));
+        fn = require("../updater").checkForUpdatesManually;
+      });
+
+      const result = await fn!();
+
+      expect(result).toEqual({ status: "dev" });
+      expect(mockAutoUpdater.checkForUpdates).not.toHaveBeenCalled();
+      expect(mockAutoUpdater.setFeedURL).not.toHaveBeenCalled();
+    });
+
+    it("returns unsupported status when app-update.yml is missing", async () => {
+      mockExistsSync.mockReturnValue(false);
+
+      const result = await loadManualCheck()();
+
+      expect(result).toEqual({ status: "unsupported" });
+      expect(mockAutoUpdater.checkForUpdates).not.toHaveBeenCalled();
+    });
+
+    it("checks for updates even when auto-updates are disabled (opt-in bypass)", async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReadSettingsAsync.mockResolvedValue({ autoUpdatesEnabled: false });
+      mockGetUpdateChannel.mockReturnValue("latest");
+      mockAutoUpdater.checkForUpdates.mockResolvedValue({
+        isUpdateAvailable: false,
+        updateInfo: { version: "1.0.0" },
+      });
+
+      const result = await loadManualCheck()();
+
+      expect(mockAutoUpdater.setFeedURL).toHaveBeenCalled();
+      expect(mockAutoUpdater.checkForUpdates).toHaveBeenCalled();
+      expect(result).toEqual({ status: "up-to-date" });
+    });
+
+    it("reports an available update with its version", async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReadSettingsAsync.mockResolvedValue({ autoUpdatesEnabled: false });
+      mockAutoUpdater.checkForUpdates.mockResolvedValue({
+        isUpdateAvailable: true,
+        updateInfo: { version: "2.5.0" },
+      });
+
+      const result = await loadManualCheck()();
+
+      expect(result).toEqual({ status: "available", version: "2.5.0" });
+    });
+
+    it("returns an error status when the check throws", async () => {
+      mockExistsSync.mockReturnValue(true);
+      mockReadSettingsAsync.mockResolvedValue({ autoUpdatesEnabled: true });
+      mockAutoUpdater.checkForUpdates.mockRejectedValue(
+        new Error("Network down")
+      );
+
+      const result = await loadManualCheck()();
+
+      expect(result).toEqual({ status: "error", message: "Network down" });
+    });
+  });
 });

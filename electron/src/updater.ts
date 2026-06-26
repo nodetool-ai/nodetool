@@ -5,8 +5,14 @@ import path from "path";
 import fs from "fs";
 import { logMessage } from "./logger";
 import { getMainWindow } from "./state";
-import { IpcChannels } from "./types.d";
+import { IpcChannels, UpdateCheckResult } from "./types.d";
 import { getUpdateChannel, readSettingsAsync } from "./settings";
+
+type AppSettings = Awaited<ReturnType<typeof readSettingsAsync>>;
+
+// Guards against binding the autoUpdater event handlers more than once when
+// both startup auto-check and a manual check run in the same session.
+let eventsBound = false;
 
 /**
  * Auto-updater Module
@@ -99,7 +105,33 @@ async function isAutoUpdatesEnabledAsync(): Promise<boolean> {
 }
 
 /**
- * Sets up the auto-updater
+ * Configures the autoUpdater feed URL, channel, and logger from settings.
+ * Shared by the startup auto-check and the manual "Check for Updates" flow.
+ */
+function configureUpdater(settings: AppSettings): void {
+  const updateChannel = getUpdateChannel(settings, app.getVersion());
+  const allowPrerelease = updateChannel === "nightly";
+
+  autoUpdater.channel = updateChannel;
+  autoUpdater.allowPrerelease = allowPrerelease;
+  autoUpdater.allowDowngrade = true;
+  autoUpdater.setFeedURL({
+    provider: "github",
+    owner: "nodetool-ai",
+    repo: "nodetool",
+    updaterCacheDirName: "nodetool-updater",
+    ...(updateChannel === "nightly" ? { channel: "nightly" } : {}),
+  });
+  autoUpdater.logger = log;
+
+  logMessage(
+    `Auto-updater using ${updateChannel} channel (allowPrerelease=${allowPrerelease})`
+  );
+}
+
+/**
+ * Sets up the auto-updater on startup. Runs only when the app is packaged,
+ * auto-updates are enabled (opt-in), and app-update.yml is present.
  */
 async function setupAutoUpdater(): Promise<void> {
   // Skip auto-update in development mode
@@ -130,24 +162,7 @@ async function setupAutoUpdater(): Promise<void> {
 
   try {
     const settings = await readSettingsAsync();
-    const updateChannel = getUpdateChannel(settings, app.getVersion());
-    const allowPrerelease = updateChannel === "nightly";
-
-    autoUpdater.channel = updateChannel;
-    autoUpdater.allowPrerelease = allowPrerelease;
-    autoUpdater.allowDowngrade = true;
-    autoUpdater.setFeedURL({
-      provider: "github",
-      owner: "nodetool-ai",
-      repo: "nodetool",
-      updaterCacheDirName: "nodetool-updater",
-      ...(updateChannel === "nightly" ? { channel: "nightly" } : {}),
-    });
-
-    logMessage(
-      `Auto-updater using ${updateChannel} channel (allowPrerelease=${allowPrerelease})`
-    );
-    autoUpdater.logger = log;
+    configureUpdater(settings);
 
     autoUpdater.checkForUpdates().catch((err: Error) => {
       // Handle specific error for missing app-update.yml more gracefully
@@ -173,9 +188,58 @@ async function setupAutoUpdater(): Promise<void> {
 }
 
 /**
+ * Checks for updates in response to an explicit user request (e.g. a
+ * "Check for Updates" button). Unlike the startup check, this ignores the
+ * auto-updates opt-in — clicking the button IS the opt-in for this check.
+ * It still requires a packaged build with app-update.yml present.
+ *
+ * If an update is found, electron-updater downloads it in the background and
+ * the existing event handlers prompt the user to restart, exactly like the
+ * automatic flow.
+ */
+async function checkForUpdatesManually(): Promise<UpdateCheckResult> {
+  if (!app.isPackaged) {
+    logMessage("Manual update check skipped: development mode");
+    return { status: "dev" };
+  }
+
+  if (!isAppUpdateConfigPresent()) {
+    logMessage(
+      "Manual update check unavailable: app-update.yml is missing. " +
+      "Please reinstall from GitHub releases to enable updates.",
+      "warn"
+    );
+    return { status: "unsupported" };
+  }
+
+  try {
+    const settings = await readSettingsAsync();
+    configureUpdater(settings);
+    setupAutoUpdaterEvents();
+
+    logMessage("Manually checking for updates...");
+    const result = await autoUpdater.checkForUpdates();
+
+    if (result?.isUpdateAvailable) {
+      return { status: "available", version: result.updateInfo.version };
+    }
+    return { status: "up-to-date" };
+  } catch (err) {
+    const message = (err as Error).message;
+    logMessage(`Manual update check failed: ${message}`, "warn");
+    return { status: "error", message };
+  }
+}
+
+/**
  * Sets up the auto-updater events
  */
 function setupAutoUpdaterEvents(): void {
+  if (eventsBound) {
+    return;
+  }
+  eventsBound = true;
+
   autoUpdater.on("checking-for-update", () => {
     logMessage("Checking for updates...");
   });
@@ -305,4 +369,4 @@ function setupAutoUpdaterEvents(): void {
   });
 }
 
-export { setupAutoUpdater };
+export { setupAutoUpdater, checkForUpdatesManually };

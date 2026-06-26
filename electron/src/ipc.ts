@@ -726,6 +726,12 @@ export function initializeIpcHandlers(): void {
     autoUpdater.quitAndInstall();
   });
 
+  createIpcMainHandler(IpcChannels.CHECK_FOR_UPDATES, async () => {
+    const { checkForUpdatesManually } = await import("./updater");
+    logMessage("User requested a manual update check");
+    return checkForUpdatesManually();
+  });
+
   // Window control handlers
   ipcMain.on(IpcChannels.WINDOW_CLOSE, (event) => {
     try {

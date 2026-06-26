@@ -567,6 +567,10 @@ const api = {
     /** Restart and install the downloaded update */
     restartAndInstall: () =>
       ipcRenderer.invoke(IpcChannels.INSTALL_UPDATE),
+
+    /** Manually check for updates (ignores the auto-update opt-in) */
+    checkForUpdates: () =>
+      ipcRenderer.invoke(IpcChannels.CHECK_FOR_UPDATES),
   },
 
   // ============================================================================

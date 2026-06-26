@@ -183,6 +183,7 @@ declare global {
       updates: {
         onAvailable: (callback: (info: UpdateInfo) => void) => () => void;
         restartAndInstall: () => Promise<void>;
+        checkForUpdates: () => Promise<UpdateCheckResult>;
       };
 
       // Menu events
@@ -503,6 +504,7 @@ export enum IpcChannels {
   UPDATE_AVAILABLE = "update-available",
   INSTALL_LOCATION_PROMPT = "install-location-prompt",
   INSTALL_UPDATE = "install-update",
+  CHECK_FOR_UPDATES = "check-for-updates",
   WINDOW_CLOSE = "window-close",
   WINDOW_MINIMIZE = "window-minimize",
   WINDOW_MAXIMIZE = "window-maximize",
@@ -652,6 +654,7 @@ export interface IpcRequest {
   [IpcChannels.RESTART_LLAMA_SERVER]: void;
   [IpcChannels.RUN_APP]: string;
   [IpcChannels.INSTALL_UPDATE]: void;
+  [IpcChannels.CHECK_FOR_UPDATES]: void;
   [IpcChannels.WINDOW_CLOSE]: void;
   [IpcChannels.WINDOW_MINIMIZE]: void;
   [IpcChannels.WINDOW_MAXIMIZE]: void;
@@ -774,6 +777,7 @@ export interface IpcResponse {
   [IpcChannels.RESTART_LLAMA_SERVER]: void;
   [IpcChannels.RUN_APP]: void;
   [IpcChannels.INSTALL_UPDATE]: void;
+  [IpcChannels.CHECK_FOR_UPDATES]: UpdateCheckResult;
   [IpcChannels.WINDOW_CLOSE]: void;
   [IpcChannels.WINDOW_MINIMIZE]: void;
   [IpcChannels.WINDOW_MAXIMIZE]: void;
@@ -882,6 +886,21 @@ export interface UpdateInfo {
   releaseUrl: string;
   downloaded?: boolean;
 }
+
+/**
+ * Result of a manual "Check for Updates" request.
+ * - available: a newer version was found (and is downloading in the background)
+ * - up-to-date: no newer version is available
+ * - dev: running unpackaged, no update mechanism
+ * - unsupported: packaged but app-update.yml is missing (e.g. old install)
+ * - error: the check failed (network, feed, etc.)
+ */
+export type UpdateCheckResult =
+  | { status: "available"; version: string }
+  | { status: "up-to-date" }
+  | { status: "dev" }
+  | { status: "unsupported" }
+  | { status: "error"; message: string };
 
 export interface InstallLocationData {
   defaultPath: string;

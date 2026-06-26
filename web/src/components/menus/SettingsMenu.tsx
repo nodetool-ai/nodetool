@@ -253,6 +253,24 @@ function SettingsPage() {
   }, []);
   const supportsDesktopUpdateSettings = desktopUpdateSettingsApi !== null;
 
+  const checkForUpdatesApi = useMemo(() => {
+    // `isElectron` and `window.api` are static for the lifetime of the renderer session.
+    if (!isElectron) {
+      return null;
+    }
+    const api = window.api?.updates;
+    if (!api || typeof api.checkForUpdates !== "function") {
+      return null;
+    }
+    const checkForUpdates = api.checkForUpdates;
+    return { checkForUpdates: () => checkForUpdates() };
+  }, []);
+  const supportsManualUpdateCheck = checkForUpdatesApi !== null;
+  const [updateCheckState, setUpdateCheckState] = useState<{
+    checking: boolean;
+    message: string | null;
+  }>({ checking: false, message: null });
+
   const desktopModelServicesApi = useMemo(() => {
     // `isElectron` and `window.api` are static for the lifetime of the renderer session.
     if (!isElectron) {
@@ -394,6 +412,38 @@ function SettingsPage() {
         });
       });
   }, [addNotification, desktopUpdateSettingsApi, supportsDesktopUpdateSettings, updateChannel]);
+
+  const handleCheckForUpdates = useCallback(async () => {
+    if (!checkForUpdatesApi) {
+      return;
+    }
+    setUpdateCheckState({ checking: true, message: "Checking for updates…" });
+    try {
+      const result = await checkForUpdatesApi.checkForUpdates();
+      const message = (() => {
+        switch (result.status) {
+          case "available":
+            return `Update ${result.version} available — downloading in the background.`;
+          case "up-to-date":
+            return "You're on the latest version.";
+          case "unsupported":
+            return "Updates aren't available for this install. Reinstall from GitHub releases to enable them.";
+          case "dev":
+            return "Updates are disabled in development builds.";
+          case "error":
+          default:
+            return "Update check failed. Please try again later.";
+        }
+      })();
+      setUpdateCheckState({ checking: false, message });
+    } catch (error) {
+      console.error("Manual update check failed:", error);
+      setUpdateCheckState({
+        checking: false,
+        message: "Update check failed. Please try again later."
+      });
+    }
+  }, [checkForUpdatesApi]);
 
   // Subscribe to secrets store changes to update sidebar when secrets are modified
   useEffect(() => {
@@ -767,6 +817,30 @@ function SettingsPage() {
                             Stable follows full releases. Nightly follows prerelease nightly builds.
                             Nightly builds default to the Nightly channel.
                           </Text>
+                        </SearchItem>
+                      )}
+
+                      {supportsManualUpdateCheck && (
+                        <SearchItem
+                          search={generalSearch}
+                          keywords="editor workspace check for updates manual now desktop"
+                        >
+                          <EditorButton
+                            density="compact"
+                            variant="outlined"
+                            size="small"
+                            onClick={handleCheckForUpdates}
+                            disabled={updateCheckState.checking}
+                          >
+                            {updateCheckState.checking
+                              ? "Checking…"
+                              : "Check for Updates"}
+                          </EditorButton>
+                          {updateCheckState.message && (
+                            <Text className="description">
+                              {updateCheckState.message}
+                            </Text>
+                          )}
                         </SearchItem>
                       )}
 

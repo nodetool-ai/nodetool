@@ -294,6 +294,18 @@ declare global {
         }) => Promise<{ startLlamaCppOnStartup: boolean }>;
       };
 
+      // Updates module - Desktop app updates
+      updates?: {
+        /** Manually check for updates (ignores the auto-update opt-in). */
+        checkForUpdates: () => Promise<
+          | { status: "available"; version: string }
+          | { status: "up-to-date" }
+          | { status: "dev" }
+          | { status: "unsupported" }
+          | { status: "error"; message: string }
+        >;
+      };
+
       // Debug module - Debug bundle export
       debug?: {
         exportBundle: (request: {
