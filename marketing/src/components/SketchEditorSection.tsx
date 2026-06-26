@@ -84,7 +84,7 @@ export default function SketchEditorSection() {
               src="/screen_sketch_editor.webp"
               alt="NodeTool's built-in sketch editor: a layered canvas holding an AI-generated 'Kung Fu' movie poster, with a brush toolbar and brush settings across the top, a color picker and a layers panel with text-to-image layers on the right, and a 'Describe the image' generate bar with a Flux Schnell model selector and an Export PNG button"
               width={2000}
-              height={1377}
+              height={1300}
               className="h-auto w-full"
               loading="lazy"
             />

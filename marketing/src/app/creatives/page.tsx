@@ -246,9 +246,9 @@ export default function CreativesPage() {
               <div className="relative rounded-2xl border border-white/10 bg-slate-900/50 backdrop-blur overflow-hidden shadow-2xl shadow-cyan-500/10">
                 <Image
                   src="/creatives_timeline.png"
-                  alt="NodeTool's built-in timeline editor: a preview player above a multi-track timeline with AI-generated video clips on three video tracks and an audio waveform, plus a 'Generate a video at the playhead' prompt bar with a model selector and an Export button"
+                  alt="NodeTool's built-in timeline editor: a video preview with a clip inspector panel (Transform and Color controls) on the right, a multi-track timeline with AI-generated video clips on a video track and an audio waveform below, plus a 'Generate a video at the playhead' prompt bar with a model selector and an Export button"
                   width={2000}
-                  height={1220}
+                  height={1304}
                   className="w-full h-auto"
                   loading="lazy"
                 />
@@ -334,7 +334,7 @@ export default function CreativesPage() {
                   src="/screen_sketch_editor.webp"
                   alt="NodeTool's built-in sketch editor: a layered canvas holding an AI-generated 'Kung Fu' movie poster, with a brush toolbar and brush settings across the top, a color picker and a layers panel with text-to-image layers on the right, and a 'Describe the image' generate bar with a Flux Schnell model selector and an Export PNG button"
                   width={2000}
-                  height={1377}
+                  height={1300}
                   className="w-full h-auto"
                   loading="lazy"
                 />
