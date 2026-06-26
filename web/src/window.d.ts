@@ -126,7 +126,8 @@ export type MenuEventType =
   | "zoomOut"
   | "prevTab"
   | "nextTab"
-  | "switchToTab";
+  | "switchToTab"
+  | "openSettings";
 
 export interface MenuEventData {
   type: MenuEventType;
@@ -285,6 +286,12 @@ declare global {
         setAutoUpdates?: (enabled: boolean) => Promise<void>;
         getUpdateChannel?: () => Promise<"latest" | "nightly">;
         setUpdateChannel?: (channel: "latest" | "nightly") => Promise<"latest" | "nightly">;
+        getModelServicesStartup?: () => Promise<{
+          startLlamaCppOnStartup: boolean;
+        }>;
+        setModelServicesStartup?: (update: {
+          startLlamaCppOnStartup?: boolean;
+        }) => Promise<{ startLlamaCppOnStartup: boolean }>;
       };
 
       // Debug module - Debug bundle export

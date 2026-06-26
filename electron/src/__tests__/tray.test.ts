@@ -25,7 +25,7 @@ jest.mock("../state", () => ({
 jest.mock("../window", () => ({
   createWindow: jest.fn(),
   createLogViewerWindow: jest.fn(),
-  createSettingsWindow: jest.fn(),
+  openSettingsInMainWindow: jest.fn(),
   handleActivation: jest.fn(),
 }));
 

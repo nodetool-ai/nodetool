@@ -1,5 +1,6 @@
 import { app, BrowserWindow, session, dialog, WebContents } from "electron";
 import { setMainWindow, getMainWindow, serverState } from "./state";
+import { IpcChannels } from "./types.d";
 import path from "path";
 import { logMessage } from "./logger";
 import { isAppQuitting } from "./main";
@@ -114,24 +115,30 @@ function createLogViewerWindow(): BrowserWindow {
 }
 
 /**
- * Creates a window that opens the Settings page
- * @returns {BrowserWindow} The created window instance
+ * Opens the Settings page inside the main application window.
+ *
+ * Settings now live in the main app (the web UI's `/settings` route) rather
+ * than a separate window. This shows/focuses the main window and asks the
+ * renderer to navigate there via an `openSettings` menu event. If the main
+ * window was closed (e.g. "keep running in background"), it is recreated and
+ * the event is sent once its contents finish loading.
  */
-function createSettingsWindow(): BrowserWindow {
-  const window = new BrowserWindow({
-    width: 600,
-    height: 500,
-    webPreferences: { ...secureWebPreferences },
+function openSettingsInMainWindow(): void {
+  const existing = getMainWindow();
+  if (existing && !existing.isDestroyed()) {
+    if (existing.isMinimized()) {
+      existing.restore();
+    }
+    existing.show();
+    existing.focus();
+    existing.webContents.send(IpcChannels.MENU_EVENT, { type: "openSettings" });
+    return;
+  }
+
+  const window = createWindow();
+  window.webContents.once("did-finish-load", () => {
+    window.webContents.send(IpcChannels.MENU_EVENT, { type: "openSettings" });
   });
-
-  window.setBackgroundColor("#111111");
-  window.loadFile(path.join("dist-web", "pages", "settings.html"));
-
-  registerDevToolsShortcut(window);
-  hardenWebContents(window.webContents);
-  initializePermissionHandlers();
-
-  return window;
 }
 
 /**
@@ -320,7 +327,7 @@ function _resetPermissionHandlersForTesting(): void {
 export {
   createWindow,
   createLogViewerWindow,
-  createSettingsWindow,
+  openSettingsInMainWindow,
   forceQuit,
   handleActivation,
   _resetPermissionHandlersForTesting,

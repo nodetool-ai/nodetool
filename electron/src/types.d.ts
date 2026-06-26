@@ -400,7 +400,8 @@ export interface MenuEventData {
     | "undo"
     | "redo"
     | "close"
-    | "fitView";
+    | "fitView"
+    | "openSettings";
 }
 
 export type ModelDirectory = "huggingface" | "ollama";
