@@ -8,8 +8,8 @@ import { createWorkflowWindow } from "./workflowWindow";
 
 /** Retrieves nodes of a specific input type from the workflow */
 function getInputNodes(workflow: Workflow, type: string): Node[] {
-  return workflow.graph.nodes.filter((node) =>
-    node.type.startsWith(`nodetool.input.${type}`)
+  return workflow.graph.nodes.filter(
+    (node) => node.type === `nodetool.input.${type}`
   );
 }
 

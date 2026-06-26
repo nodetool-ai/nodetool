@@ -42,9 +42,10 @@ jobs:
       fail-fast: ${{ inputs.fail-fast }}
       matrix:
         include:
-          # Workspace + circular dependency guards (run on source, no build).
+          # Workspace, circular-dependency, key-boundary, and coupled-dependency
+          # guards (run on source, no build).
           - check: deps
-            command: node scripts/check-workspace-deps.mjs && node scripts/check-circular-deps.mjs
+            command: node scripts/check-workspace-deps.mjs && node scripts/check-circular-deps.mjs && node scripts/check-key-boundaries.mjs && node scripts/check-coupled-deps.mjs
             build-packages: "false"
             mobile-deps: "false"
             extra-apt: ""
@@ -58,6 +59,17 @@ jobs:
           - check: lint
             command: npm run lint
             build-packages: "false"
+            mobile-deps: "false"
+            extra-apt: ""
+            is-test: "false"
+          # base-nodes parity/contract suite (Python-parity + example-workflow
+          # contracts). is-test:false keeps it non-skippable — these tests encode
+          # intentional behavior contracts (see the revert in commit 2c0fd8fad),
+          # so they stay a required gate even when skip-tests drops the bulk test
+          # legs. (lint:design is likewise required via the `lint` leg above.)
+          - check: parity
+            command: npm run lint:design --workspace=web && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows
+            build-packages: "true"
             mobile-deps: "false"
             extra-apt: ""
             is-test: "false"
