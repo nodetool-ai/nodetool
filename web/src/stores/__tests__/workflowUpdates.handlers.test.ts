@@ -8,6 +8,7 @@ import type {
   WorkflowAttributes
 } from "../ApiTypes";
 import useResultsStore from "../ResultsStore";
+import { nodeKey } from "../nodeKey";
 import useStatusStore from "../StatusStore";
 import useLogsStore from "../LogStore";
 import useErrorStore from "../ErrorStore";
@@ -67,7 +68,7 @@ describe("handleUpdate", () => {
 
     const terminal = useResultsStore
       .getState()
-      .getTerminal("workflow-1", "job-1", "n1");
+      .terminals[nodeKey("workflow-1", "job-1", "n1")];
     expect(terminal?.buffer).toBe("\x1b[2J$ claude\r\n");
     expect(terminal?.cols).toBe(120);
     expect(terminal?.rows).toBe(36);

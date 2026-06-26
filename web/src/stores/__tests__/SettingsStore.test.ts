@@ -1,7 +1,5 @@
 import {
-  useSettingsStore,
-  defaultSettings,
-  defaultAutosaveSettings
+  useSettingsStore
 } from "../SettingsStore";
 
 describe("SettingsStore", () => {
@@ -79,16 +77,6 @@ describe("SettingsStore", () => {
   });
 
   describe("Order Settings", () => {
-    test("setWorkflowOrder updates to date", () => {
-      useSettingsStore.getState().setWorkflowOrder("date");
-      expect(useSettingsStore.getState().settings.workflowOrder).toBe("date");
-    });
-
-    test("setWorkflowOrder defaults to name when falsy value passed", () => {
-      useSettingsStore.getState().setWorkflowOrder("" as "name" | "date");
-      expect(useSettingsStore.getState().settings.workflowOrder).toBe("name");
-    });
-
     test("setAssetsOrder updates to date", () => {
       useSettingsStore.getState().setAssetsOrder("date");
       expect(useSettingsStore.getState().settings.assetsOrder).toBe("date");
@@ -125,17 +113,6 @@ describe("SettingsStore", () => {
   });
 
   describe("Behavior Settings", () => {
-    test("setAlertBeforeTabClose toggles value", () => {
-      useSettingsStore.getState().setAlertBeforeTabClose(false);
-      expect(useSettingsStore.getState().settings.alertBeforeTabClose).toBe(
-        false
-      );
-      useSettingsStore.getState().setAlertBeforeTabClose(true);
-      expect(useSettingsStore.getState().settings.alertBeforeTabClose).toBe(
-        true
-      );
-    });
-
     test("setSelectNodesOnDrag toggles value", () => {
       useSettingsStore.getState().setSelectNodesOnDrag(true);
       expect(useSettingsStore.getState().settings.selectNodesOnDrag).toBe(true);
@@ -208,43 +185,17 @@ describe("SettingsStore", () => {
     });
   });
 
-  describe("resetSettings", () => {
-    test("resetSettings restores all defaults", () => {
-      useSettingsStore.getState().setGridSnap(3);
-      useSettingsStore.getState().setPanControls("RMB");
-      useSettingsStore.getState().setSelectionMode("full");
-      useSettingsStore.getState().setSoundNotifications(false);
-      useSettingsStore.getState().setInstantUpdate(true);
-
-      useSettingsStore.getState().resetSettings();
-
-      expect(useSettingsStore.getState().settings).toEqual(defaultSettings);
-    });
-  });
-
   describe("Autosave Settings", () => {
     test("default autosave settings are present", () => {
       const settings = useSettingsStore.getState().settings;
       expect(settings.autosave).toBeDefined();
-      expect(settings.autosave.enabled).toBe(defaultAutosaveSettings.enabled);
-      expect(settings.autosave.intervalMinutes).toBe(
-        defaultAutosaveSettings.intervalMinutes
-      );
-      expect(settings.autosave.saveBeforeRun).toBe(
-        defaultAutosaveSettings.saveBeforeRun
-      );
-      expect(settings.autosave.saveOnClose).toBe(
-        defaultAutosaveSettings.saveOnClose
-      );
-      expect(settings.autosave.maxVersionsPerWorkflow).toBe(
-        defaultAutosaveSettings.maxVersionsPerWorkflow
-      );
-      expect(settings.autosave.keepManualVersionsDays).toBe(
-        defaultAutosaveSettings.keepManualVersionsDays
-      );
-      expect(settings.autosave.keepAutosaveVersionsDays).toBe(
-        defaultAutosaveSettings.keepAutosaveVersionsDays
-      );
+      expect(settings.autosave.enabled).toBe(true);
+      expect(settings.autosave.intervalMinutes).toBe(10);
+      expect(settings.autosave.saveBeforeRun).toBe(true);
+      expect(settings.autosave.saveOnClose).toBe(true);
+      expect(settings.autosave.maxVersionsPerWorkflow).toBe(50);
+      expect(settings.autosave.keepManualVersionsDays).toBe(90);
+      expect(settings.autosave.keepAutosaveVersionsDays).toBe(7);
     });
 
     test("updateAutosaveSettings updates only autosave properties", () => {
@@ -254,9 +205,7 @@ describe("SettingsStore", () => {
       const settings = useSettingsStore.getState().settings;
       expect(settings.autosave.enabled).toBe(false);
       expect(settings.autosave.intervalMinutes).toBe(5);
-      expect(settings.autosave.saveBeforeRun).toBe(
-        defaultAutosaveSettings.saveBeforeRun
-      );
+      expect(settings.autosave.saveBeforeRun).toBe(true);
     });
 
     test("updateAutosaveSettings preserves other settings", () => {
@@ -289,31 +238,22 @@ describe("SettingsStore", () => {
   });
 
   describe("Default Values", () => {
-    test("defaultSettings has correct structure", () => {
-      expect(defaultSettings.gridSnap).toBeDefined();
-      expect(defaultSettings.connectionSnap).toBeDefined();
-      expect(defaultSettings.panControls).toBeDefined();
-      expect(defaultSettings.selectionMode).toBeDefined();
-      expect(defaultSettings.workflowOrder).toBeDefined();
-      expect(defaultSettings.assetsOrder).toBeDefined();
-      expect(defaultSettings.assetItemSize).toBeDefined();
-      expect(defaultSettings.timeFormat).toBeDefined();
-      expect(defaultSettings.alertBeforeTabClose).toBeDefined();
-      expect(defaultSettings.selectNodesOnDrag).toBeDefined();
-      expect(defaultSettings.showWelcomeOnStartup).toBeDefined();
-      expect(defaultSettings.soundNotifications).toBeDefined();
-      expect(defaultSettings.instantUpdate).toBeDefined();
-      expect(defaultSettings.autosave).toBeDefined();
-    });
-
-    test("defaultAutosaveSettings has correct structure", () => {
-      expect(defaultAutosaveSettings.enabled).toBe(true);
-      expect(defaultAutosaveSettings.intervalMinutes).toBe(10);
-      expect(defaultAutosaveSettings.saveBeforeRun).toBe(true);
-      expect(defaultAutosaveSettings.saveOnClose).toBe(true);
-      expect(defaultAutosaveSettings.maxVersionsPerWorkflow).toBe(50);
-      expect(defaultAutosaveSettings.keepManualVersionsDays).toBe(90);
-      expect(defaultAutosaveSettings.keepAutosaveVersionsDays).toBe(7);
+    test("store has correct default settings structure", () => {
+      const settings = useSettingsStore.getState().settings;
+      expect(settings.gridSnap).toBeDefined();
+      expect(settings.connectionSnap).toBeDefined();
+      expect(settings.panControls).toBeDefined();
+      expect(settings.selectionMode).toBeDefined();
+      expect(settings.workflowOrder).toBeDefined();
+      expect(settings.assetsOrder).toBeDefined();
+      expect(settings.assetItemSize).toBeDefined();
+      expect(settings.timeFormat).toBeDefined();
+      expect(settings.alertBeforeTabClose).toBeDefined();
+      expect(settings.selectNodesOnDrag).toBeDefined();
+      expect(settings.showWelcomeOnStartup).toBeDefined();
+      expect(settings.soundNotifications).toBeDefined();
+      expect(settings.instantUpdate).toBeDefined();
+      expect(settings.autosave).toBeDefined();
     });
   });
 });

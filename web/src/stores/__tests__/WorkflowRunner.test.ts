@@ -128,19 +128,6 @@ describe("WorkflowRunner", () => {
     });
   });
 
-  describe("setStatusMessage", () => {
-    it("updates the status message", () => {
-      store.getState().setStatusMessage("Running workflow...");
-      expect(store.getState().statusMessage).toBe("Running workflow...");
-    });
-
-    it("clears status message when null is passed", () => {
-      store.getState().setStatusMessage("Test message");
-      store.getState().setStatusMessage(null);
-      expect(store.getState().statusMessage).toBeNull();
-    });
-  });
-
   describe("addNotification", () => {
     it("adds a notification with timestamp", () => {
       store.getState().addNotification({
@@ -202,19 +189,12 @@ describe("WorkflowRunner", () => {
       expect(store.getState().state).toBe("error");
     });
 
-    it("transitions to running state on reconnect", async () => {
-      await store.getState().ensureConnection();
-      await store.getState().reconnect("job-123");
-
-      expect(store.getState().state).toBe("running");
-      expect(store.getState().job_id).toBe("job-123");
-    });
   });
 
   describe("streaming methods", () => {
     beforeEach(async () => {
       await store.getState().ensureConnection();
-      await store.getState().reconnect("job-123");
+      store.setState({ job_id: "job-123", state: "running" });
     });
 
     it("streams input to running job", async () => {

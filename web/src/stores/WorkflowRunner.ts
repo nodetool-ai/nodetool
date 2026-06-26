@@ -163,7 +163,6 @@ export type WorkflowRunner = {
     | "error"
     | "cancelled";
   statusMessage: string | null;
-  setStatusMessage: (message: string | null) => void;
   notifications: Notification[];
   messageHandler: MessageHandler;
   setMessageHandler: (handler: MessageHandler) => void;
@@ -198,11 +197,6 @@ export type WorkflowRunner = {
     subgraphNodeIds?: Set<string>,
     concurrent?: boolean
   ) => Promise<string>;
-  reconnect: (jobId: string) => Promise<void>;
-  reconnectWithWorkflow: (
-    jobId: string,
-    workflow: WorkflowAttributes
-  ) => Promise<void>;
   ensureConnection: () => Promise<void>;
   cleanup: () => void;
   // Streaming inputs
@@ -232,9 +226,6 @@ export const createWorkflowRunnerStore = (
     },
     setMessageHandler: (handler: MessageHandler) => {
       set({ messageHandler: handler });
-    },
-    setStatusMessage: (message: string | null) => {
-      set({ statusMessage: message });
     },
     notifications: [],
 
@@ -269,59 +260,6 @@ export const createWorkflowRunnerStore = (
         workflow: null,
         nodes: [],
         edges: []
-      });
-    },
-
-    /**
-     * Reconnect to an existing job by job_id.
-     */
-    reconnect: async (jobId: string) => {
-      console.info(`WorkflowRunner[${workflowId}]: Reconnecting to job`, {
-        jobId
-      });
-
-      await get().ensureConnection();
-
-      set({ job_id: jobId, state: "running" });
-
-      await globalWebSocketManager.send({
-        type: "reconnect_job",
-        command: "reconnect_job",
-        data: {
-          job_id: jobId,
-          workflow_id: workflowId
-        }
-      });
-    },
-
-    /**
-     * Reconnect to an existing job with workflow context.
-     */
-    reconnectWithWorkflow: async (
-      jobId: string,
-      workflow: WorkflowAttributes
-    ) => {
-      console.info(`WorkflowRunner[${workflowId}]: Reconnecting with workflow`, {
-        jobId,
-        workflowId: workflow.id
-      });
-
-      await get().ensureConnection();
-
-      set({
-        workflow,
-        job_id: jobId,
-        state: "connecting",
-        statusMessage: "Reconnecting to running job..."
-      });
-
-      await globalWebSocketManager.send({
-        type: "reconnect_job",
-        command: "reconnect_job",
-        data: {
-          job_id: jobId,
-          workflow_id: workflow.id
-        }
       });
     },
 
@@ -818,7 +756,6 @@ const defaultWorkflowRunner: WorkflowRunner = {
   unsubscribe: null,
   state: "idle",
   statusMessage: null,
-  setStatusMessage: () => {},
   notifications: [],
   messageHandler: () => {},
   setMessageHandler: () => {},
@@ -828,8 +765,6 @@ const defaultWorkflowRunner: WorkflowRunner = {
   resume: async () => {},
   updateRunningNodeProperties: () => {},
   run: async () => "",
-  reconnect: async () => {},
-  reconnectWithWorkflow: async () => {},
   ensureConnection: async () => {},
   cleanup: () => {},
   streamInput: () => {},

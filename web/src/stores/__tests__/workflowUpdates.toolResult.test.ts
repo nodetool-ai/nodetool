@@ -1,5 +1,6 @@
 import type { ToolResultUpdate, WorkflowAttributes } from "../ApiTypes";
 import useResultsStore from "../ResultsStore";
+import { nodeKey } from "../nodeKey";
 import { handleUpdate } from "../workflowUpdates";
 
 const mockRunnerStore = {
@@ -55,7 +56,7 @@ describe("handleUpdate tool_result_update → artifact channel", () => {
 
     const results = useResultsStore
       .getState()
-      .getToolResults("workflow-1", "job-1", "agent-1");
+      .toolResults[nodeKey("workflow-1", "job-1", "agent-1")] ?? [];
     expect(results).toEqual([{ a: 1 }, { b: 2 }]);
   });
 

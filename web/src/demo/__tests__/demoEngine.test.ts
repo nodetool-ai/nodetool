@@ -6,6 +6,7 @@ import { DemoEngine } from "../demoEngine";
 import { sampleCast } from "../sampleCast";
 import useStatusStore from "../../stores/StatusStore";
 import useResultsStore from "../../stores/ResultsStore";
+import { nodeKey } from "../../stores/nodeKey";
 import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 
 const WF = "wf-demo-sample";
@@ -37,7 +38,7 @@ describe("DemoEngine", () => {
 
   it("accumulates streamed text chunks on the node", () => {
     engine.seekToTime(1600);
-    const chunk = useResultsStore.getState().getChunk(WF, focused(), "gen");
+    const chunk = useResultsStore.getState().chunks[nodeKey(WF, focused(), "gen")];
     expect(chunk).toContain("mountain lake");
   });
 

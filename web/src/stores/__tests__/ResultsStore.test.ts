@@ -1,5 +1,6 @@
 import useResultsStore from "../ResultsStore";
 import { PlanningUpdate, ProviderCost, Task, ToolCallUpdate } from "../ApiTypes";
+import { nodeKey, edgeKey } from "../nodeKey";
 
 describe("ResultsStore", () => {
   const workflowId1 = "workflow-1";
@@ -82,14 +83,14 @@ describe("ResultsStore", () => {
     it("should set edge status", () => {
       useResultsStore.getState().setEdge(workflowId1, jobId1, edgeId1, "running");
 
-      const edge = useResultsStore.getState().getEdge(workflowId1, jobId1, edgeId1);
+      const edge = useResultsStore.getState().edges[edgeKey(workflowId1, jobId1, edgeId1)];
       expect(edge).toEqual({ status: "running" });
     });
 
     it("should set edge with counter", () => {
       useResultsStore.getState().setEdge(workflowId1, jobId1, edgeId1, "running", 5);
 
-      const edge = useResultsStore.getState().getEdge(workflowId1, jobId1, edgeId1);
+      const edge = useResultsStore.getState().edges[edgeKey(workflowId1, jobId1, edgeId1)];
       expect(edge).toEqual({ status: "running", counter: 5 });
     });
 
@@ -97,7 +98,7 @@ describe("ResultsStore", () => {
       useResultsStore.getState().setEdge(workflowId1, jobId1, edgeId1, "running", 5);
       useResultsStore.getState().setEdge(workflowId1, jobId1, edgeId1, "completed");
 
-      const edge = useResultsStore.getState().getEdge(workflowId1, jobId1, edgeId1);
+      const edge = useResultsStore.getState().edges[edgeKey(workflowId1, jobId1, edgeId1)];
       expect(edge).toEqual({ status: "completed", counter: 5 });
     });
 
@@ -107,8 +108,8 @@ describe("ResultsStore", () => {
 
       useResultsStore.getState().clearEdges(workflowId1);
 
-      expect(useResultsStore.getState().getEdge(workflowId1, jobId1, edgeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getEdge(workflowId2, jobId1, edgeId1)).toBeDefined();
+      expect(useResultsStore.getState().edges[edgeKey(workflowId1, jobId1, edgeId1)]).toBeUndefined();
+      expect(useResultsStore.getState().edges[edgeKey(workflowId2, jobId1, edgeId1)]).toBeDefined();
     });
   });
 
@@ -117,17 +118,17 @@ describe("ResultsStore", () => {
       useResultsStore.getState().addChunk(workflowId1, jobId1, nodeId1, "part1");
       useResultsStore.getState().addChunk(workflowId1, jobId1, nodeId1, "part2");
 
-      expect(useResultsStore.getState().getChunk(workflowId1, jobId1, nodeId1)).toBe("part1part2");
+      expect(useResultsStore.getState().chunks[nodeKey(workflowId1, jobId1, nodeId1)]).toBe("part1part2");
     });
 
     it("should get chunk for a node", () => {
       useResultsStore.getState().addChunk(workflowId1, jobId1, nodeId1, "test chunk");
 
-      expect(useResultsStore.getState().getChunk(workflowId1, jobId1, nodeId1)).toBe("test chunk");
+      expect(useResultsStore.getState().chunks[nodeKey(workflowId1, jobId1, nodeId1)]).toBe("test chunk");
     });
 
     it("should return undefined for non-existent chunk", () => {
-      expect(useResultsStore.getState().getChunk(workflowId1, jobId1, nodeId1)).toBeUndefined();
+      expect(useResultsStore.getState().chunks[nodeKey(workflowId1, jobId1, nodeId1)]).toBeUndefined();
     });
 
     it("should clear chunks for a workflow", () => {
@@ -136,8 +137,8 @@ describe("ResultsStore", () => {
 
       useResultsStore.getState().clearChunks(workflowId1);
 
-      expect(useResultsStore.getState().getChunk(workflowId1, jobId1, nodeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getChunk(workflowId2, jobId1, nodeId1)).toBe("chunk2");
+      expect(useResultsStore.getState().chunks[nodeKey(workflowId1, jobId1, nodeId1)]).toBeUndefined();
+      expect(useResultsStore.getState().chunks[nodeKey(workflowId2, jobId1, nodeId1)]).toBe("chunk2");
     });
   });
 
@@ -153,11 +154,11 @@ describe("ResultsStore", () => {
     it("should set task for a node", () => {
       useResultsStore.getState().setTask(workflowId1, jobId1, nodeId1, mockTask);
 
-      expect(useResultsStore.getState().getTask(workflowId1, jobId1, nodeId1)).toEqual(mockTask);
+      expect(useResultsStore.getState().tasks[nodeKey(workflowId1, jobId1, nodeId1)]).toEqual(mockTask);
     });
 
     it("should return undefined for non-existent task", () => {
-      expect(useResultsStore.getState().getTask(workflowId1, jobId1, nodeId1)).toBeUndefined();
+      expect(useResultsStore.getState().tasks[nodeKey(workflowId1, jobId1, nodeId1)]).toBeUndefined();
     });
 
     it("should clear tasks for a workflow", () => {
@@ -166,8 +167,8 @@ describe("ResultsStore", () => {
 
       useResultsStore.getState().clearTasks(workflowId1);
 
-      expect(useResultsStore.getState().getTask(workflowId1, jobId1, nodeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getTask(workflowId2, jobId1, nodeId1)).toEqual(mockTask);
+      expect(useResultsStore.getState().tasks[nodeKey(workflowId1, jobId1, nodeId1)]).toBeUndefined();
+      expect(useResultsStore.getState().tasks[nodeKey(workflowId2, jobId1, nodeId1)]).toEqual(mockTask);
     });
   });
 
@@ -182,11 +183,11 @@ describe("ResultsStore", () => {
     it("should set tool call for a node", () => {
       useResultsStore.getState().setToolCall(workflowId1, jobId1, nodeId1, mockToolCall);
 
-      expect(useResultsStore.getState().getToolCall(workflowId1, jobId1, nodeId1)).toEqual(mockToolCall);
+      expect(useResultsStore.getState().toolCalls[nodeKey(workflowId1, jobId1, nodeId1)]).toEqual(mockToolCall);
     });
 
     it("should return undefined for non-existent tool call", () => {
-      expect(useResultsStore.getState().getToolCall(workflowId1, jobId1, nodeId1)).toBeUndefined();
+      expect(useResultsStore.getState().toolCalls[nodeKey(workflowId1, jobId1, nodeId1)]).toBeUndefined();
     });
 
     it("should clear tool calls for a workflow", () => {
@@ -195,8 +196,8 @@ describe("ResultsStore", () => {
 
       useResultsStore.getState().clearToolCalls(workflowId1);
 
-      expect(useResultsStore.getState().getToolCall(workflowId1, jobId1, nodeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getToolCall(workflowId2, jobId1, nodeId1)).toEqual(mockToolCall);
+      expect(useResultsStore.getState().toolCalls[nodeKey(workflowId1, jobId1, nodeId1)]).toBeUndefined();
+      expect(useResultsStore.getState().toolCalls[nodeKey(workflowId2, jobId1, nodeId1)]).toEqual(mockToolCall);
     });
   });
 
@@ -211,11 +212,11 @@ describe("ResultsStore", () => {
     it("should set planning update for a node", () => {
       useResultsStore.getState().setPlanningUpdate(workflowId1, jobId1, nodeId1, mockPlanningUpdate);
 
-      expect(useResultsStore.getState().getPlanningUpdate(workflowId1, jobId1, nodeId1)).toEqual(mockPlanningUpdate);
+      expect(useResultsStore.getState().planningUpdates[nodeKey(workflowId1, jobId1, nodeId1)]).toEqual(mockPlanningUpdate);
     });
 
     it("should return undefined for non-existent planning update", () => {
-      expect(useResultsStore.getState().getPlanningUpdate(workflowId1, jobId1, nodeId1)).toBeUndefined();
+      expect(useResultsStore.getState().planningUpdates[nodeKey(workflowId1, jobId1, nodeId1)]).toBeUndefined();
     });
 
     it("should clear planning updates for a workflow", () => {
@@ -224,8 +225,8 @@ describe("ResultsStore", () => {
 
       useResultsStore.getState().clearPlanningUpdates(workflowId1);
 
-      expect(useResultsStore.getState().getPlanningUpdate(workflowId1, jobId1, nodeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getPlanningUpdate(workflowId2, jobId1, nodeId1)).toEqual(mockPlanningUpdate);
+      expect(useResultsStore.getState().planningUpdates[nodeKey(workflowId1, jobId1, nodeId1)]).toBeUndefined();
+      expect(useResultsStore.getState().planningUpdates[nodeKey(workflowId2, jobId1, nodeId1)]).toEqual(mockPlanningUpdate);
     });
   });
 
@@ -274,8 +275,8 @@ describe("ResultsStore", () => {
 
       useResultsStore.getState().clearEdges(workflowId1, new Set([edgeId1]));
 
-      expect(useResultsStore.getState().getEdge(workflowId1, jobId1, edgeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getEdge(workflowId1, jobId1, "edge-2")).toEqual({ status: "inactive", counter: undefined });
+      expect(useResultsStore.getState().edges[edgeKey(workflowId1, jobId1, edgeId1)]).toBeUndefined();
+      expect(useResultsStore.getState().edges[edgeKey(workflowId1, jobId1, "edge-2")]).toEqual({ status: "inactive", counter: undefined });
     });
 
     it("should clear chunks only for specified nodes", () => {
@@ -284,8 +285,8 @@ describe("ResultsStore", () => {
 
       useResultsStore.getState().clearChunks(workflowId1, new Set([nodeId1]));
 
-      expect(useResultsStore.getState().getChunk(workflowId1, jobId1, nodeId1)).toBeUndefined();
-      expect(useResultsStore.getState().getChunk(workflowId1, jobId1, nodeId2)).toBe("chunk-2");
+      expect(useResultsStore.getState().chunks[nodeKey(workflowId1, jobId1, nodeId1)]).toBeUndefined();
+      expect(useResultsStore.getState().chunks[nodeKey(workflowId1, jobId1, nodeId2)]).toBe("chunk-2");
     });
 
     it("should clear all provider costs for a workflow when nodeIds is not provided", () => {
@@ -350,11 +351,11 @@ describe("ResultsStore", () => {
       expect(state.getProviderCost(workflowId1, jobId1, nodeId1)).toBeUndefined();
       expect(state.getOutputResult(workflowId1, jobId1, nodeId1)).toBeUndefined();
       expect(state.getProgress(workflowId1, jobId1, nodeId1)).toBeUndefined();
-      expect(state.getChunk(workflowId1, jobId1, nodeId1)).toBeUndefined();
-      expect(state.getTask(workflowId1, jobId1, nodeId1)).toBeUndefined();
-      expect(state.getToolCall(workflowId1, jobId1, nodeId1)).toBeUndefined();
-      expect(state.getToolResults(workflowId1, jobId1, nodeId1)).toEqual([]);
-      expect(state.getPlanningUpdate(workflowId1, jobId1, nodeId1)).toBeUndefined();
+      expect(state.chunks[nodeKey(workflowId1, jobId1, nodeId1)]).toBeUndefined();
+      expect(state.tasks[nodeKey(workflowId1, jobId1, nodeId1)]).toBeUndefined();
+      expect(state.toolCalls[nodeKey(workflowId1, jobId1, nodeId1)]).toBeUndefined();
+      expect(state.toolResults[nodeKey(workflowId1, jobId1, nodeId1)] ?? []).toEqual([]);
+      expect(state.planningUpdates[nodeKey(workflowId1, jobId1, nodeId1)]).toBeUndefined();
       expect(state.getLiveGenerations(workflowId1, nodeId1)).toEqual([]);
       expect(state.getOutputResult(workflowId2, jobId1, nodeId1)).toBe("other-out");
     });

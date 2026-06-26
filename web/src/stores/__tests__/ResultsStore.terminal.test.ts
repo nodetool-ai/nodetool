@@ -1,5 +1,6 @@
 import useResultsStore from "../ResultsStore";
 import type { TerminalUpdate } from "../ApiTypes";
+import { nodeKey } from "../nodeKey";
 
 const update = (overrides: Partial<TerminalUpdate> = {}): TerminalUpdate => ({
   type: "terminal_update",
@@ -22,7 +23,7 @@ describe("ResultsStore terminal buffers", () => {
     store.addTerminal(wf, job, node, update({ content: "$ ls\r\n", cols: 120, rows: 36 }));
     store.addTerminal(wf, job, node, update({ content: "file.txt\r\n" }));
 
-    const terminal = useResultsStore.getState().getTerminal(wf, job, node);
+    const terminal = useResultsStore.getState().terminals[nodeKey(wf, job, node)];
     expect(terminal?.buffer).toBe("$ ls\r\nfile.txt\r\n");
     expect(terminal?.cols).toBe(120);
     expect(terminal?.rows).toBe(36);
@@ -34,7 +35,7 @@ describe("ResultsStore terminal buffers", () => {
     store.addTerminal(wf, job, node, update({ content: "old output" }));
     store.addTerminal(wf, job, node, update({ content: "fresh screen", reset: true }));
 
-    const terminal = useResultsStore.getState().getTerminal(wf, job, node);
+    const terminal = useResultsStore.getState().terminals[nodeKey(wf, job, node)];
     expect(terminal?.buffer).toBe("fresh screen");
     expect(terminal?.version).toBe(1);
   });
@@ -44,7 +45,7 @@ describe("ResultsStore terminal buffers", () => {
     const big = "x".repeat(600 * 1024);
     store.addTerminal(wf, job, node, update({ content: big }));
 
-    const terminal = useResultsStore.getState().getTerminal(wf, job, node);
+    const terminal = useResultsStore.getState().terminals[nodeKey(wf, job, node)];
     expect(terminal?.buffer.length).toBe(256 * 1024);
     expect(terminal?.version).toBe(1);
   });
@@ -54,8 +55,8 @@ describe("ResultsStore terminal buffers", () => {
     store.addTerminal(wf, job, node, update({ content: "a" }));
     store.addTerminal(wf, "job-2", node, update({ content: "b" }));
 
-    expect(useResultsStore.getState().getTerminal(wf, job, node)?.buffer).toBe("a");
-    expect(useResultsStore.getState().getTerminal(wf, "job-2", node)?.buffer).toBe("b");
+    expect(useResultsStore.getState().terminals[nodeKey(wf, job, node)]?.buffer).toBe("a");
+    expect(useResultsStore.getState().terminals[nodeKey(wf, "job-2", node)]?.buffer).toBe("b");
   });
 
   it("is cleared by clearResults", () => {
@@ -64,7 +65,7 @@ describe("ResultsStore terminal buffers", () => {
     store.addTerminal("workflow-2", job, node, update({ content: "b" }));
     store.clearResults(wf);
 
-    expect(useResultsStore.getState().getTerminal(wf, job, node)).toBeUndefined();
-    expect(useResultsStore.getState().getTerminal("workflow-2", job, node)?.buffer).toBe("b");
+    expect(useResultsStore.getState().terminals[nodeKey(wf, job, node)]).toBeUndefined();
+    expect(useResultsStore.getState().terminals[nodeKey("workflow-2", job, node)]?.buffer).toBe("b");
   });
 });

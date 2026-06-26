@@ -12,7 +12,7 @@ interface AutosaveSettings {
   keepAutosaveVersionsDays: number; // default 7
 }
 
-export const defaultAutosaveSettings: AutosaveSettings = {
+const defaultAutosaveSettings: AutosaveSettings = {
   enabled: true,
   intervalMinutes: 10,
   saveBeforeRun: true,
@@ -74,23 +74,19 @@ interface SettingsStore {
   setConnectionSnap: (value: number) => void;
   setPanControls: (value: string) => void;
   updateSettings: (newSettings: Partial<Settings>) => void;
-  resetSettings: () => void;
   setSelectionMode: (value: string) => void;
-  setWorkflowOrder: (value: "name" | "date") => void;
   setAssetsOrder: (value: "name" | "date" | "size") => void;
   setAssetItemSize: (value: number) => void;
   setTimeFormat: (value: "12h" | "24h") => void;
-  setAlertBeforeTabClose: (value: boolean) => void;
   setSelectNodesOnDrag: (value: boolean) => void;
   setShowWelcomeOnStartup: (value: boolean) => void;
   setSoundNotifications: (value: boolean) => void;
   setInstantUpdate: (value: boolean) => void;
   setEditorViewMode: (value: "graph" | "chain") => void;
-  setImageEditorOpenMode: (value: "modal" | "standalone") => void;
   updateAutosaveSettings: (newSettings: Partial<AutosaveSettings>) => void;
 }
 
-export const defaultSettings: Settings = {
+const defaultSettings: Settings = {
   gridSnap: 1,
   connectionSnap: 20,
   // On Mac the trackpad already pans (two-finger scroll) and zooms (pinch), so
@@ -152,14 +148,6 @@ export const useSettingsStore = create<SettingsStore>()(
           }
         })),
 
-      setWorkflowOrder: (value: "name" | "date") =>
-        set((state) => ({
-          settings: {
-            ...state.settings,
-            workflowOrder: value || defaultSettings.workflowOrder
-          }
-        })),
-
       setAssetsOrder: (value: "name" | "date" | "size") =>
         set((state) => ({
           settings: {
@@ -189,15 +177,6 @@ export const useSettingsStore = create<SettingsStore>()(
           settings: { ...state.settings, ...newSettings }
         })),
 
-      resetSettings: () => set({ settings: { ...defaultSettings } }),
-
-      setAlertBeforeTabClose: (value: boolean) =>
-        set((state) => ({
-          settings: {
-            ...state.settings,
-            alertBeforeTabClose: value
-          }
-        })),
       setSelectNodesOnDrag: (value: boolean) =>
         set((state) => ({
           settings: {
@@ -231,13 +210,6 @@ export const useSettingsStore = create<SettingsStore>()(
           settings: {
             ...state.settings,
             editorViewMode: value
-          }
-        })),
-      setImageEditorOpenMode: (value: "modal" | "standalone") =>
-        set((state) => ({
-          settings: {
-            ...state.settings,
-            imageEditorOpenMode: value
           }
         })),
       updateAutosaveSettings: (newSettings: Partial<AutosaveSettings>) =>

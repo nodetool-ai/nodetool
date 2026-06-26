@@ -62,7 +62,6 @@ type ResultsStore = {
   outputResults: Record<NodeKey, unknown>;
   liveGenerations: Record<string, Generation[]>;
   providerCosts: Record<NodeKey, ProviderCost>;
-  resultsVersion: number;
   progress: Record<NodeKey, { progress: number; total: number; chunk?: string }>;
   edges: Record<EdgeKey, { status: string; counter?: number }>;
   chunks: Record<NodeKey, string>;
@@ -87,11 +86,6 @@ type ResultsStore = {
     status: string,
     counter?: number
   ) => void;
-  getEdge: (
-    workflowId: string,
-    jobId: string,
-    edgeId: string
-  ) => { status: string; counter?: number } | undefined;
   upsertLiveGeneration: (
     workflowId: string,
     nodeId: string,
@@ -134,55 +128,30 @@ type ResultsStore = {
     nodeId: string,
     task: Task
   ) => void;
-  getTask: (
-    workflowId: string,
-    jobId: string,
-    nodeId: string
-  ) => Task | undefined;
   addChunk: (
     workflowId: string,
     jobId: string,
     nodeId: string,
     chunk: string
   ) => void;
-  getChunk: (
-    workflowId: string,
-    jobId: string,
-    nodeId: string
-  ) => string | undefined;
   addTerminal: (
     workflowId: string,
     jobId: string,
     nodeId: string,
     update: TerminalUpdate
   ) => void;
-  getTerminal: (
-    workflowId: string,
-    jobId: string,
-    nodeId: string
-  ) => TerminalBuffer | undefined;
   setToolCall: (
     workflowId: string,
     jobId: string,
     nodeId: string,
     toolCall: ToolCallUpdate
   ) => void;
-  getToolCall: (
-    workflowId: string,
-    jobId: string,
-    nodeId: string
-  ) => ToolCallUpdate | undefined;
   appendToolResult: (
     workflowId: string,
     jobId: string,
     nodeId: string,
     result: unknown
   ) => void;
-  getToolResults: (
-    workflowId: string,
-    jobId: string,
-    nodeId: string
-  ) => unknown[];
   setProgress: (
     workflowId: string,
     jobId: string,
@@ -196,11 +165,6 @@ type ResultsStore = {
     jobId: string,
     nodeId: string
   ) => { progress: number; total: number; chunk?: string } | undefined;
-  getPlanningUpdate: (
-    workflowId: string,
-    jobId: string,
-    nodeId: string
-  ) => PlanningUpdate | undefined;
   setPlanningUpdate: (
     workflowId: string,
     jobId: string,
@@ -254,7 +218,6 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
   outputResults: {},
   liveGenerations: {},
   providerCosts: {},
-  resultsVersion: 0,
   progress: {},
   chunks: {},
   terminals: {},
@@ -289,8 +252,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     };
     set((state) => ({
       edges: dropJobKeys(state.edges),
-      progress: dropJobKeys(state.progress),
-      resultsVersion: state.resultsVersion + 1
+      progress: dropJobKeys(state.progress)
     }));
   },
   /**
@@ -309,13 +271,6 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
         [nodeKey(workflowId, jobId, nodeId)]: planningUpdate
       }
     }));
-  },
-  /**
-   * Get the planning update for a node.
-   * The planning update is stored in the planningUpdates map.
-   */
-  getPlanningUpdate: (workflowId: string, jobId: string, nodeId: string) => {
-    return get().planningUpdates[nodeKey(workflowId, jobId, nodeId)];
   },
   /**
    * Set the status for an edge.
@@ -340,13 +295,6 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     }));
   },
   /**
-   * Get the status for an edge.
-   * The edge is stored in the edges map.
-   */
-  getEdge: (workflowId: string, jobId: string, edgeId: string) => {
-    return get().edges[edgeKey(workflowId, jobId, edgeId)];
-  },
-  /**
    * Set the tool call for a node.
    * The tool call is stored in the toolCalls map.
    */
@@ -362,13 +310,6 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
         [nodeKey(workflowId, jobId, nodeId)]: toolCall
       }
     }));
-  },
-  /**
-   * Get the tool call for a node.
-   * The tool call is stored in the toolCalls map.
-   */
-  getToolCall: (workflowId: string, jobId: string, nodeId: string) => {
-    return get().toolCalls[nodeKey(workflowId, jobId, nodeId)];
   },
   /**
    * Append a tool result for a node.
@@ -390,12 +331,6 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     }));
   },
   /**
-   * Get the accumulated tool results for a node.
-   */
-  getToolResults: (workflowId: string, jobId: string, nodeId: string) => {
-    return get().toolResults[nodeKey(workflowId, jobId, nodeId)] ?? [];
-  },
-  /**
    * Set the task for a node.
    * The task is stored in the tasks map.
    */
@@ -403,13 +338,6 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     set((state) => ({
       tasks: { ...state.tasks, [nodeKey(workflowId, jobId, nodeId)]: task }
     }));
-  },
-  /**
-   * Get the task for a node.
-   * The task is stored in the tasks map.
-   */
-  getTask: (workflowId: string, jobId: string, nodeId: string) => {
-    return get().tasks[nodeKey(workflowId, jobId, nodeId)];
   },
   /**
    * Clear all per-node results for a workflow (or for specific nodes of it):
@@ -428,8 +356,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
       terminals: filterRecord(state.terminals, workflowId, nodeIds),
       tasks: filterRecord(state.tasks, workflowId, nodeIds),
       toolCalls: filterRecord(state.toolCalls, workflowId, nodeIds),
-      planningUpdates: filterRecord(state.planningUpdates, workflowId, nodeIds),
-      resultsVersion: state.resultsVersion + 1
+      planningUpdates: filterRecord(state.planningUpdates, workflowId, nodeIds)
     }));
   },
   clearOutputResults: (workflowId: string, nodeIds?: Set<string>) => {
@@ -613,11 +540,9 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
     const key = nodeKey(workflowId, jobId, nodeId);
     set((state) => {
       const currentResult = state.outputResults[key];
-      const nextVersion = state.resultsVersion + 1;
       if (currentResult === undefined || !append) {
         return {
-          outputResults: { ...state.outputResults, [key]: result },
-          resultsVersion: nextVersion
+          outputResults: { ...state.outputResults, [key]: result }
         };
       } else {
         if (Array.isArray(currentResult)) {
@@ -637,16 +562,14 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
             outputResults: {
               ...state.outputResults,
               [key]: appended
-            },
-            resultsVersion: nextVersion
+            }
           };
         } else {
           return {
             outputResults: {
               ...state.outputResults,
               [key]: [currentResult, result]
-            },
-            resultsVersion: nextVersion
+            }
           };
         }
       }
@@ -684,8 +607,7 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
         appended = appended.slice(appended.length - MAX_AUDIO_STREAM_CHUNKS);
       }
       return {
-        outputResults: { ...state.outputResults, [key]: appended },
-        resultsVersion: state.resultsVersion + 1
+        outputResults: { ...state.outputResults, [key]: appended }
       };
     });
   },
@@ -747,10 +669,6 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
       return { chunks: { ...state.chunks, [key]: currentChunk + chunk } };
     });
   },
-  getChunk: (workflowId: string, jobId: string, nodeId: string) => {
-    const key = nodeKey(workflowId, jobId, nodeId);
-    return get().chunks[key];
-  },
   /**
    * Append a terminal_update to a node's terminal buffer. A `reset` update
    * (full-screen snapshot) replaces the buffer instead of appending.
@@ -786,9 +704,6 @@ const useResultsStore = create<ResultsStore>((set, get) => ({
       };
     });
   },
-  getTerminal: (workflowId: string, jobId: string, nodeId: string) => {
-    return get().terminals[nodeKey(workflowId, jobId, nodeId)];
-  }
 }));
 
 export default useResultsStore;

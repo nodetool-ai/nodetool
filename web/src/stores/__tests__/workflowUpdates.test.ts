@@ -1,6 +1,7 @@
 import { normalizeOutputUpdateValue } from "../outputUpdateValue";
 import type { Chunk, OutputUpdate, WorkflowAttributes } from "../ApiTypes";
 import useResultsStore from "../ResultsStore";
+import { nodeKey } from "../nodeKey";
 import { handleUpdate, mergeNodeUpdateProperties } from "../workflowUpdates";
 
 const mockRunnerStore = {
@@ -101,7 +102,7 @@ describe("handleUpdate", () => {
     );
 
     expect(
-      useResultsStore.getState().getChunk("workflow-1", "job-1", "node-1")
+      useResultsStore.getState().chunks[nodeKey("workflow-1", "job-1", "node-1")]
     ).toBe("hello");
   });
 
@@ -123,7 +124,7 @@ describe("handleUpdate", () => {
     );
 
     expect(
-      useResultsStore.getState().getChunk("workflow-1", "job-1", "node-1")
+      useResultsStore.getState().chunks[nodeKey("workflow-1", "job-1", "node-1")]
     ).toBeUndefined();
   });
 });

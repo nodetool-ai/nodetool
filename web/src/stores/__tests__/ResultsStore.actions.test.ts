@@ -1,5 +1,6 @@
 import useResultsStore from "../ResultsStore";
 import type { TerminalUpdate } from "../ApiTypes";
+import { nodeKey, edgeKey } from "../nodeKey";
 
 const WF = "wf-1";
 const JOB = "job-1";
@@ -17,7 +18,6 @@ const resetStore = () =>
     outputResults: {},
     liveGenerations: {},
     providerCosts: {},
-    resultsVersion: 0,
     progress: {},
     chunks: {},
     terminals: {},
@@ -80,24 +80,17 @@ describe("ResultsStore — output results", () => {
   });
 
   it("appendOutputResults with empty array is a no-op", () => {
-    const v0 = useResultsStore.getState().resultsVersion;
+    const ref = useResultsStore.getState().outputResults;
     useResultsStore.getState().appendOutputResults(WF, JOB, NODE, []);
-    expect(useResultsStore.getState().resultsVersion).toBe(v0);
-  });
-
-  it("increments resultsVersion on each set", () => {
-    const s = useResultsStore.getState();
-    const v0 = s.resultsVersion;
-    useResultsStore.getState().setOutputResult(WF, JOB, NODE, "a");
-    expect(useResultsStore.getState().resultsVersion).toBe(v0 + 1);
+    expect(useResultsStore.getState().outputResults).toBe(ref);
   });
 });
 
 describe("ResultsStore — edges", () => {
-  it("setEdge stores and getEdge retrieves", () => {
+  it("setEdge stores and direct map retrieves", () => {
     const s = useResultsStore.getState();
     s.setEdge(WF, JOB, "e1", "active", 1);
-    expect(useResultsStore.getState().getEdge(WF, JOB, "e1")).toEqual({
+    expect(useResultsStore.getState().edges[edgeKey(WF, JOB, "e1")]).toEqual({
       status: "active",
       counter: 1
     });
@@ -116,9 +109,9 @@ describe("ResultsStore — edges", () => {
     s.setEdge(WF, JOB, "e1", "active");
     s.setEdge("wf-other", JOB, "e2", "active");
     useResultsStore.getState().clearEdges(WF);
-    expect(useResultsStore.getState().getEdge(WF, JOB, "e1")).toBeUndefined();
+    expect(useResultsStore.getState().edges[edgeKey(WF, JOB, "e1")]).toBeUndefined();
     expect(
-      useResultsStore.getState().getEdge("wf-other", JOB, "e2")
+      useResultsStore.getState().edges[edgeKey("wf-other", JOB, "e2")]
     ).toBeDefined();
   });
 });
@@ -144,12 +137,12 @@ describe("ResultsStore — chunks", () => {
     const s = useResultsStore.getState();
     s.addChunk(WF, JOB, NODE, "foo");
     s.addChunk(WF, JOB, NODE, "bar");
-    expect(useResultsStore.getState().getChunk(WF, JOB, NODE)).toBe("foobar");
+    expect(useResultsStore.getState().chunks[nodeKey(WF, JOB, NODE)]).toBe("foobar");
   });
 
   it("getChunk returns undefined for unknown key", () => {
     expect(
-      useResultsStore.getState().getChunk(WF, JOB, "none")
+      useResultsStore.getState().chunks[nodeKey(WF, JOB, "none")]
     ).toBeUndefined();
   });
 });
@@ -159,7 +152,7 @@ describe("ResultsStore — terminal", () => {
     const s = useResultsStore.getState();
     s.addTerminal(WF, JOB, NODE, term({ content: "line1\n", cols: 80, rows: 24 }));
     s.addTerminal(WF, JOB, NODE, term({ content: "line2\n" }));
-    const t = useResultsStore.getState().getTerminal(WF, JOB, NODE);
+    const t = useResultsStore.getState().terminals[nodeKey(WF, JOB, NODE)];
     expect(t?.buffer).toBe("line1\nline2\n");
     expect(t?.version).toBe(0);
   });
@@ -168,14 +161,14 @@ describe("ResultsStore — terminal", () => {
     const s = useResultsStore.getState();
     s.addTerminal(WF, JOB, NODE, term({ content: "old" }));
     s.addTerminal(WF, JOB, NODE, term({ content: "new-snapshot", reset: true }));
-    const t = useResultsStore.getState().getTerminal(WF, JOB, NODE);
+    const t = useResultsStore.getState().terminals[nodeKey(WF, JOB, NODE)];
     expect(t?.buffer).toBe("new-snapshot");
     expect(t?.version).toBe(1);
   });
 
   it("addTerminal uses default cols/rows when not provided", () => {
     useResultsStore.getState().addTerminal(WF, JOB, NODE, term({ content: "x" }));
-    const t = useResultsStore.getState().getTerminal(WF, JOB, NODE);
+    const t = useResultsStore.getState().terminals[nodeKey(WF, JOB, NODE)];
     expect(t?.cols).toBe(80);
     expect(t?.rows).toBe(24);
   });
@@ -186,7 +179,7 @@ describe("ResultsStore — tool calls and results", () => {
     const tc = { name: "tool1", args: { x: 1 } };
     useResultsStore.getState().setToolCall(WF, JOB, NODE, tc as never);
     expect(
-      useResultsStore.getState().getToolCall(WF, JOB, NODE)
+      useResultsStore.getState().toolCalls[nodeKey(WF, JOB, NODE)]
     ).toMatchObject(tc);
   });
 
@@ -194,7 +187,7 @@ describe("ResultsStore — tool calls and results", () => {
     const s = useResultsStore.getState();
     s.appendToolResult(WF, JOB, NODE, "result1");
     s.appendToolResult(WF, JOB, NODE, "result2");
-    expect(useResultsStore.getState().getToolResults(WF, JOB, NODE)).toEqual([
+    expect(useResultsStore.getState().toolResults[nodeKey(WF, JOB, NODE)] ?? []).toEqual([
       "result1",
       "result2"
     ]);
@@ -202,7 +195,7 @@ describe("ResultsStore — tool calls and results", () => {
 
   it("getToolResults returns empty array for unknown key", () => {
     expect(
-      useResultsStore.getState().getToolResults(WF, JOB, "none")
+      useResultsStore.getState().toolResults[nodeKey(WF, JOB, "none")] ?? []
     ).toEqual([]);
   });
 });
@@ -220,8 +213,8 @@ describe("ResultsStore — clearResults", () => {
     const after = useResultsStore.getState();
     expect(after.getOutputResult(WF, JOB, NODE)).toBeUndefined();
     expect(after.getProgress(WF, JOB, NODE)).toBeUndefined();
-    expect(after.getChunk(WF, JOB, NODE)).toBeUndefined();
-    expect(after.getTask(WF, JOB, NODE)).toBeUndefined();
+    expect(after.chunks[nodeKey(WF, JOB, NODE)]).toBeUndefined();
+    expect(after.tasks[nodeKey(WF, JOB, NODE)]).toBeUndefined();
   });
 
   it("clearResults with nodeIds only clears specified nodes", () => {
@@ -259,7 +252,7 @@ describe("ResultsStore — clearJobRunVisuals", () => {
     useResultsStore.getState().clearJobRunVisuals(WF, JOB);
 
     const after = useResultsStore.getState();
-    expect(after.getEdge(WF, JOB, "e1")).toBeUndefined();
+    expect(after.edges[edgeKey(WF, JOB, "e1")]).toBeUndefined();
     expect(after.getProgress(WF, JOB, NODE)).toBeUndefined();
     expect(after.getOutputResult(WF, JOB, NODE)).toBe("result");
   });
