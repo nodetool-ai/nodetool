@@ -309,6 +309,15 @@ These three areas have full sections in the central standards doc:
 - Never `--no-verify`. Never rewrite published history.
 - PRs are small (target <400 LOC), self-reviewed, and CI-green before review.
 
+## Writing & Docs
+
+> Full guide: [docs/WRITING_STYLE.md](docs/WRITING_STYLE.md). Comment/README rules: [DEVELOPMENT_STANDARDS §19](docs/DEVELOPMENT_STANDARDS.md#19-documentation--comments).
+
+- Write prose — docs, READMEs, this file, PR descriptions, comments — concise and concrete. Cut any sentence that survives deletion without losing meaning.
+- **No AI slop.** Forbidden: `leverage`, `utilize`, `seamless`, `robust`, `powerful`, `comprehensive`, `cutting-edge`, `unlock`, `empower`, `streamline`, `it's worth noting`, `dive into`, rule-of-three padding, "it's not just X, it's Y", emoji decoration, and the rest of the [forbidden list](docs/WRITING_STYLE.md#forbidden-expressions).
+- Bold-label bullets must add information beyond the label. Claims are concrete: numbers, names, paths — not adjectives.
+- When you edit a Markdown file, fix slop you pass in the same change. For code, use the `unslop` skill.
+
 ## Technologies
 
 ### TypeScript Backend (`packages/`)

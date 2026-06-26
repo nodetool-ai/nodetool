@@ -4,7 +4,7 @@ title: "Custom Nodes Guide (TypeScript)"
 description: "How to author, package, register, and distribute custom NodeTool nodes in a TypeScript pack."
 ---
 
-This is the comprehensive guide to writing **TypeScript** custom nodes for NodeTool — the in-process counterpart to the Python node guides ([Node Examples](node-examples.md), [Node Patterns](node-patterns.md), [Node Reference](node-reference.md)).
+This is the full guide to writing **TypeScript** custom nodes for NodeTool — the in-process counterpart to the Python node guides ([Node Examples](node-examples.md), [Node Patterns](node-patterns.md), [Node Reference](node-reference.md)).
 
 A custom node lives in a standalone npm package — a **pack** — that the server discovers and loads at startup. There is nothing to register by hand: drop a `nodetool` field in `package.json`, install the package, and the loader does the rest.
 
