@@ -20,6 +20,24 @@ Bring your own keys to FAL, KIE, Atlas, OpenAI, Anthropic, Gemini, Replicate, El
 
 ![NodeTool Interface](screen_canvas.png)
 
+## Contents
+
+- [Two ways to run it](#two-ways-to-run-it)
+- [Why NodeTool](#why-nodetool)
+- [What's in the box](#whats-in-the-box)
+- [What people build with it](#what-people-build-with-it)
+- [Video editor](#video-editor)
+- [Models](#models)
+- [How NodeTool compares](#how-nodetool-compares)
+- [Get NodeTool](#get-nodetool)
+- [Documentation](#documentation)
+- [CLI & Server (npm)](#cli--server-npm)
+- [Architecture](#architecture)
+- [Development Setup](#development-setup)
+- [Testing](#testing)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## Two ways to run it
 
 Same code, same workflows, same nodes. Pick whichever fits how you want to work — workflows are portable between both, and there is no separate "pro" or closed-source version.
@@ -251,7 +269,7 @@ cd mobile && npm install && npm start
 
 See [mobile/README.md](mobile/README.md) for full setup.
 
-### Make Commands
+### Common Commands
 
 | Command | Description |
 | :--- | :--- |
@@ -295,7 +313,7 @@ Please open an issue before starting major work so we can coordinate.
 
 ## License
 
-[AGPL-3.0](https://github.com/nodetool-ai/nodetool/blob/main/LICENSE)
+[AGPL-3.0](https://github.com/nodetool-ai/nodetool/blob/main/LICENSE.txt)
 
 ## Get in Touch
 
