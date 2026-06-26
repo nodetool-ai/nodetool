@@ -1,0 +1,347 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-06-25T12:00:00.000Z",
+  "updated_at": "2026-06-25T12:00:00.000Z",
+  "name": "Hook & Thumbnail Factory",
+  "tool_name": null,
+  "description": "Turn a video topic into scroll-stopping hook ideas and a matching AI thumbnail for each \u2014 a faceless short-form content starter kit in one run.",
+  "tags": [
+    "image",
+    "content",
+    "social",
+    "video",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "0373f51d-ff16-457c-8871-7b28c2a4cb15",
+        "source": "input_topic",
+        "sourceHandle": "output",
+        "target": "hook_brief",
+        "targetHandle": "topic",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e631105c-8b57-4304-bbd6-790378f7807d",
+        "source": "input_audience",
+        "sourceHandle": "output",
+        "target": "hook_brief",
+        "targetHandle": "audience",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "5f7839de-32fd-43f1-b2ab-93de5cdc91c4",
+        "source": "hook_brief",
+        "sourceHandle": "output",
+        "target": "hooks",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "6d86d394-8a74-4f7a-aeed-5f7d7f55bbc5",
+        "source": "hooks",
+        "sourceHandle": "item",
+        "target": "thumb_brief",
+        "targetHandle": "hook",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "5c7c4403-f00a-46e8-b68f-9a21a9a2227e",
+        "source": "input_topic",
+        "sourceHandle": "output",
+        "target": "thumb_brief",
+        "targetHandle": "topic",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "2082cf18-f8b9-455e-9c37-ffddc4fefd7d",
+        "source": "hooks",
+        "sourceHandle": "item",
+        "target": "preview_hooks",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "b4d3e81f-2221-45da-a93b-ee2143c19f74",
+        "source": "thumb_brief",
+        "sourceHandle": "output",
+        "target": "thumbnail",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "2806e15a-b3d8-4526-9170-137ca0f9b746",
+        "source": "thumbnail",
+        "sourceHandle": "output",
+        "target": "preview_thumb",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "image"
+        },
+        "edge_type": "data"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "comment-intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# \ud83c\udfac Hook & Thumbnail Factory\n\nGive a video topic and audience. The graph writes scroll-stopping hook ideas and, for each one, generates a matching thumbnail image \u2014 a full faceless-content starter kit.\n\n**Pipeline:** Topic + audience \u2192 hook brief \u2192 List Generator (streams hooks) \u2192 thumbnail prompt \u2192 Text-to-Image\n\n**Try this:** change the topic or audience, ask for more hooks, or tweak the thumbnail style. Pick a text model on the list generator and an image model on Text-to-Image first."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": -560,
+            "y": 40
+          },
+          "zIndex": 0,
+          "width": 500,
+          "height": 260,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "input_topic",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "Video Topic",
+          "description": "What the short-form video is about.",
+          "value": "How compound interest quietly builds wealth"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 40,
+            "y": 60
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "1\ufe0f\u20e3 Video topic",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "input_audience",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "Target Audience",
+          "description": "Who you are making it for.",
+          "value": "Gen Z just starting to invest"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 40,
+            "y": 360
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "2\ufe0f\u20e3 Target audience",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "hook_brief",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "Write 5 scroll-stopping hook ideas for a short-form video.\n\nTOPIC: {{ topic }}\nAUDIENCE: {{ audience }}\n\nRules:\n- Each hook is one line, said in the first 2 seconds.\n- Use curiosity, a bold claim, or a relatable pain.\n- No clickbait that the video can't pay off.\n- Return the hooks as a plain list, one per line."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 420,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 340,
+          "height": 460,
+          "title": "3\ufe0f\u20e3 Build hook brief",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "topic": null,
+          "audience": null
+        },
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "hooks",
+        "type": "nodetool.generators.ListGenerator",
+        "data": {
+          "model": {},
+          "max_tokens": 100000
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 800,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 360,
+          "height": 420,
+          "title": "4\ufe0f\u20e3 Generate hooks",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "thumb_brief",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "Design a bold, high-contrast YouTube/Shorts thumbnail for a video.\n\nVIDEO TOPIC: {{ topic }}\nHOOK ON SCREEN: {{ hook }}\n\nDescribe a single eye-catching image: clear focal subject, punchy colors, dramatic lighting, lots of negative space for big bold text, mobile-legible at thumbnail size. No tiny details, no real logos."
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1200,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 340,
+          "height": 460,
+          "title": "5\ufe0f\u20e3 Build thumbnail prompt",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "topic": null,
+          "hook": null
+        },
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "thumbnail",
+        "type": "nodetool.image.TextToImage",
+        "data": {
+          "model": {},
+          "negative_prompt": "blurry, low contrast, watermark, tiny text, clutter",
+          "aspect_ratio": "16:9",
+          "resolution": "2K",
+          "timeout_seconds": 0
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1580,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 320,
+          "height": 360,
+          "title": "6\ufe0f\u20e3 Generate thumbnail",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "preview_hooks",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "hooks"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 800,
+            "y": 600
+          },
+          "zIndex": 0,
+          "width": 360,
+          "height": 300,
+          "title": "\ud83e\ude9d Hook ideas",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "preview_thumb",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "thumbnail"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 1580,
+            "y": 540
+          },
+          "zIndex": 0,
+          "width": 360,
+          "height": 320,
+          "title": "\ud83d\uddbc\ufe0f Thumbnail",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ]
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "Video Topic": {
+        "type": "string",
+        "label": ""
+      },
+      "Target Audience": {
+        "type": "string",
+        "label": ""
+      }
+    },
+    "required": [
+      "Video Topic"
+    ]
+  },
+  "output_schema": null,
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null
+}

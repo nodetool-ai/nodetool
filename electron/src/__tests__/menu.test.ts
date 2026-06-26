@@ -38,7 +38,7 @@ describe('buildMenu', () => {
 
     jest.doMock('../window', () => ({
       createLogViewerWindow: jest.fn(),
-      createSettingsWindow: jest.fn(),
+      openSettingsInMainWindow: jest.fn(),
     }));
 
     const menuModule = await import('../menu');
@@ -83,7 +83,7 @@ describe('buildMenu', () => {
 
     jest.doMock('../window', () => ({
       createLogViewerWindow: jest.fn(),
-      createSettingsWindow: jest.fn(),
+      openSettingsInMainWindow: jest.fn(),
     }));
 
     const menuModule = await import('../menu');
@@ -137,10 +137,10 @@ describe('buildMenu', () => {
       }),
     }));
 
-    const createSettingsWindowMock = jest.fn();
+    const openSettingsInMainWindowMock = jest.fn();
     jest.doMock('../window', () => ({
       createLogViewerWindow: jest.fn(),
-      createSettingsWindow: createSettingsWindowMock,
+      openSettingsInMainWindow: openSettingsInMainWindowMock,
     }));
 
     jest.doMock('../vaults', () => ({
@@ -172,10 +172,10 @@ describe('buildMenu', () => {
     expect(defaultItem?.checked).toBe(true);
     expect(workItem?.checked).toBe(false);
 
-    // "Manage Vaults…" opens the settings window.
+    // "Manage Vaults…" opens settings in the main window.
     const manageItem = submenu.find((item) => item.label === 'Manage Vaults…');
     manageItem?.click();
-    expect(createSettingsWindowMock).toHaveBeenCalledTimes(1);
+    expect(openSettingsInMainWindowMock).toHaveBeenCalledTimes(1);
 
     // Clicking the already-active vault is a no-op.
     defaultItem?.click();

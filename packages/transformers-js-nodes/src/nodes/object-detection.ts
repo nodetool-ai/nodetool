@@ -30,6 +30,8 @@ type ObjectBox = {
 
 export class ObjectDetectionNode extends BaseNode {
   static readonly nodeType = "transformers.ObjectDetection";
+  static readonly inlineFields: string[] = [];
+  static readonly inputFields = ["image"];
   static readonly title = "Object Detection";
   static readonly description =
     "Detect objects and their bounding boxes in an image using a Transformers.js object-detection pipeline.\n" +

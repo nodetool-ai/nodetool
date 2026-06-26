@@ -27,6 +27,8 @@ type TtsResult = {
 
 export class TextToSpeechNode extends BaseNode {
   static readonly nodeType = "transformers.TextToSpeech";
+  static readonly inlineFields = ["text"];
+  static readonly inputFields: string[] = [];
   static readonly body = "content_card";
   static readonly title = "Text to Speech";
   static readonly description =

@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/nodes-utils",
-  "version": "0.7.0-rc.23",
+  "version": "0.7.0-rc.25",
   "description": "Shared helpers for node packages: platform tags and lazy Node-only module loaders",
   "type": "module",
   "engines": {
@@ -40,5 +40,8 @@
   "publishConfig": {
     "access": "public"
   },
-  "files": ["dist", "README.md"]
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

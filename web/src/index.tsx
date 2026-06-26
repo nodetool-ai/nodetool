@@ -8,8 +8,10 @@ import type {} from "./window";
 // Early polyfills / globals must come before other imports.
 import "./prismGlobal";
 
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useMenuHandler } from "./hooks/useIpcRenderer";
+import type { MenuEventData } from "./window";
 import ReactDOM from "react-dom/client";
 
 import {
@@ -489,6 +491,21 @@ const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement
 );
 
+/**
+ * Routes Electron menu/tray "Settings" actions to the in-app settings page.
+ * The desktop shell sends an `openSettings` menu event (instead of opening a
+ * separate window); navigating via the router singleton works from any route.
+ */
+const MenuNavigationBridge = () => {
+  const handleMenuEvent = useCallback((data: MenuEventData) => {
+    if (data.type === "openSettings") {
+      void router.navigate("/settings");
+    }
+  }, []);
+  useMenuHandler(handleMenuEvent);
+  return null;
+};
+
 const AppWrapper = () => {
   const [status, setStatus] = useState<string>("pending");
   const authState = useAuth((s) => s.state);
@@ -536,6 +553,7 @@ const AppWrapper = () => {
           <CssBaseline />
           <MobileClassProvider>
             <MenuProvider>
+              <MenuNavigationBridge />
               <WorkflowManagerProvider queryClient={queryClient}>
                 <KeyboardProvider active={true}>
                   {status === "pending" && !isDevTestRoute && (

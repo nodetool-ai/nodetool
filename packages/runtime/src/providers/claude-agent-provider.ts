@@ -30,7 +30,7 @@
  * below is only a within-process cache (the DB column is authoritative).
  */
 
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger, importOptionalModule } from "@nodetool-ai/config";
 import { PROVIDER_IDS, type Chunk } from "@nodetool-ai/protocol";
 import type {
   McpSdkServerConfigWithInstance,
@@ -121,21 +121,25 @@ interface ClaudeAgentProviderOptions {
 
 /**
  * Lazily import the optional `@anthropic-ai/claude-agent-sdk`. The SDK is a soft
- * (peer) dependency — it is not installed by default and must be added with the
- * package manager (e.g. `npm install @anthropic-ai/claude-agent-sdk`) before the
- * Claude Agent provider can be used. The specifier is held in a variable so
- * bundlers (and tsc's emit) don't try to resolve the Node-only package at build
- * time, and a missing package surfaces as a clear, actionable error at call time.
+ * (peer) dependency — it is not bundled with the app and must be installed at
+ * runtime from the Package Manager (Software → Claude Agent SDK), which drops it
+ * into the user-managed optional-node `node_modules`. {@link importOptionalModule}
+ * hides the specifier from bundlers (so the browser/worker bundle never pulls in
+ * the Node-only SDK) and falls back to resolving it from that optional root via
+ * `NODETOOL_OPTIONAL_NODE_MODULES`, so a plain ESM `import` (which ignores
+ * NODE_PATH) still finds a Package-Manager install. A missing package surfaces
+ * as a clear, actionable error at call time.
  */
 async function loadSdk(): Promise<typeof import("@anthropic-ai/claude-agent-sdk")> {
-  const spec = "@anthropic-ai/claude-agent-sdk";
   try {
-    return (await import(/* @vite-ignore */ spec)) as typeof import("@anthropic-ai/claude-agent-sdk");
+    return await importOptionalModule<
+      typeof import("@anthropic-ai/claude-agent-sdk")
+    >("@anthropic-ai/claude-agent-sdk");
   } catch (err) {
     throw new Error(
       "The Claude Agent provider requires the optional " +
         "'@anthropic-ai/claude-agent-sdk' package, which is not installed. " +
-        "Install it with `npm install @anthropic-ai/claude-agent-sdk`.",
+        "Install it from the Package Manager (Software → Claude Agent SDK).",
       { cause: err as Error }
     );
   }

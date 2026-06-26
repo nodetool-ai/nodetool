@@ -409,7 +409,8 @@ export interface MenuEventData {
     | "undo"
     | "redo"
     | "close"
-    | "fitView";
+    | "fitView"
+    | "openSettings";
 }
 
 /**
@@ -1031,7 +1032,8 @@ export type RuntimePackageId =
   | "transformers-js"
   | "tensorflow-js"
   | "tmux"
-  | "claude";
+  | "claude"
+  | "claude-agent-sdk";
 
 export interface RuntimePackageStatus {
   id: RuntimePackageId;

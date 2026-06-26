@@ -2,7 +2,7 @@ import { Menu, shell, dialog, clipboard } from "electron";
 import type { MenuItemConstructorOptions } from "electron";
 import { IpcChannels } from "./types.d";
 import { getMainWindow } from "./state";
-import { createLogViewerWindow, createSettingsWindow } from "./window";
+import { createLogViewerWindow, openSettingsInMainWindow } from "./window";
 import { createChatWindow } from "./workflowWindow";
 import { getSystemInfo } from "./systemInfo";
 import { openPerformanceMonitorWindow } from "./perfMonitor";
@@ -55,7 +55,7 @@ const buildVaultSubmenu = (): MenuItemConstructorOptions[] => {
     { type: "separator" },
     {
       label: "Manage Vaults…",
-      click: () => createSettingsWindow(),
+      click: () => openSettingsInMainWindow(),
     },
   ];
 };
@@ -293,7 +293,7 @@ const buildMenu = () => {
         { type: "separator" },
         {
           label: "Settings",
-          click: () => createSettingsWindow(),
+          click: () => openSettingsInMainWindow(),
         },
       ],
     },

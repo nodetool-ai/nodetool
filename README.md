@@ -20,31 +20,23 @@ Bring your own keys to FAL, KIE, Atlas, OpenAI, Anthropic, Gemini, Replicate, El
 
 ![NodeTool Interface](screen_canvas.png)
 
-## Two ways to run it
+## Contents
 
-Same code, same workflows, same nodes. Pick whichever fits how you want to work — workflows are portable between both, and there is no separate "pro" or closed-source version.
-
-- **NodeTool Studio** — desktop app for macOS, Windows, and Linux. Runs Ollama, MLX, and GGUF models on your machine. Works offline.
-- **NodeTool Cloud** — open in any browser. No install, no GPU. BYOK to every provider.
-
-Both are AGPL-3.0, both built from this repository.
-
-|   | **NodeTool Studio** (desktop) | **NodeTool Cloud** (hosted) |
-| :--- | :--- | :--- |
-| **Where it runs** | Your machine | Managed servers, in any browser |
-| **Install** | Desktop app + ~20GB for local models | None — sign in and start |
-| **Local models** (Ollama, MLX, GGUF) | ✅ Yes — runs on your hardware | ❌ Not available — cloud APIs only |
-| **BYOK cloud providers** | ✅ All providers (keys stored on disk) | ✅ All providers (keys encrypted at rest) |
-| **Works offline** | ✅ Yes, fully offline with local models | ❌ Needs an internet connection |
-| **Where your data lives** | On your disk only | Managed storage (encrypted) |
-| **GPU required** | Recommended for local models | None |
-| **Updates** | You install new releases | Always on the latest version |
-| **Cost** | Free; pay only the providers you call | Subscription + your own API spend (BYOK) |
-| **Source code** | AGPL-3.0 (this repo) | AGPL-3.0 (this repo) — self-host any time |
-
-**Pick Studio if** you want to run open-weight models for free, work offline, keep data on your disk, or have a capable GPU / Apple Silicon machine.
-
-**Pick Cloud if** you want zero setup, work across multiple devices, or don't want to manage local model files and GPU drivers.
+- [Why NodeTool](#why-nodetool)
+- [What's in the box](#whats-in-the-box)
+- [What people build with it](#what-people-build-with-it)
+- [Video editor](#video-editor)
+- [Sketch editor](#sketch-editor)
+- [Models](#models)
+- [How NodeTool compares](#how-nodetool-compares)
+- [Get NodeTool](#get-nodetool)
+- [Documentation](#documentation)
+- [CLI & Server (npm)](#cli--server-npm)
+- [Architecture](#architecture)
+- [Development Setup](#development-setup)
+- [Testing](#testing)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Why NodeTool
 
@@ -56,7 +48,7 @@ That's what vendor neutrality buys you:
 
 - **Every model.** OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, ElevenLabs, HuggingFace. Local with Ollama, MLX, and GGUF.
 - **Your keys.** Pay providers directly at provider prices. No credit markup, no proprietary tokens.
-- **Your canvas.** Workflows, files, and keys belong to you. Run on your machine or in the browser — your choice.
+- **Your canvas.** Workflows, files, and keys belong to you. Everything runs on your machine.
 - **Open source.** AGPL-3.0. Self-host any time. No acquisition risk.
 
 ## What's in the box
@@ -67,13 +59,14 @@ That's what vendor neutrality buys you:
 | **Image, video, audio, text** | Unified workflows across every modality |
 | **Editing tools as nodes** | Mask, inpaint, outpaint, relight, upscale, layers, compositing |
 | **Video editor** | Multi-track timeline — sequence, composite, and AI-generate clips, then export to MP4 |
+| **Sketch editor** | Layered paint canvas — draw, mask, and generate AI imagery onto layers, then feed the result downstream |
 | **Runs on your machine** | Ollama, MLX (Apple Silicon), and GGUF for local inference |
 | **BYOK everywhere** | OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, ElevenLabs, HuggingFace |
 | **Document search** | Built-in vector store for indexing and querying your files |
 | **Real-time previews** | Live output at every node as the workflow runs |
 | **Custom nodes** | Extend in TypeScript or Python |
 | **Deploy & scale** | Self-host with Docker; rent GPU workers (RunPod, Vast) |
-| **Cross-platform** | Desktop, web, CLI, and mobile |
+| **Cross-platform** | macOS, Windows, and Linux |
 
 ## What people build with it
 
@@ -93,6 +86,12 @@ A generation-aware, multi-track timeline lives right next to the canvas. Drop in
 ![NodeTool Video Editor](screen_video_editor.png)
 
 See the [Video Editor guide](https://docs.nodetool.ai/video-editor) for the full tour.
+
+## Sketch editor
+
+A layered paint canvas built into the node graph. Draw and paint with real brushes, build up a composition in layers with blend modes and masks, then bind a layer to a model or one of your own workflows and generate image content right where you're painting. Change a prompt or an upstream input and the layer flags itself stale; regenerate in place and keep working on top. When you're done, the node hands the rest of your workflow a flattened image, a mask, and per-layer outputs — no export/import round-trip. It pairs naturally with the editing nodes (mask, inpaint, outpaint, compositing) for sketch-then-generate pipelines.
+
+See the [Sketch Editor guide](https://docs.nodetool.ai/sketch-editor) for tools, layers, AI generation, and keyboard shortcuts.
 
 ## Models
 
@@ -124,7 +123,7 @@ Use `TextToVideo`, `ImageToVideo`, or `TextToImage` nodes and select your provid
 
 ## Get NodeTool
 
-### NodeTool Studio (desktop)
+Download the desktop app, install, and start building — runs fully on your machine.
 
 | Platform | Get It | Requirements |
 | :--- | :--- | :--- |
@@ -134,16 +133,13 @@ Use `TextToVideo`, `ImageToVideo`, or `TextToImage` nodes and select your provid
 
 [Flatpak CI Builds](https://github.com/nodetool-ai/nodetool/actions/workflows/flatpak-ci.yml) are available for Linux.
 
-### NodeTool Cloud (browser)
-
-Open [nodetool.ai/cloud](https://nodetool.ai/cloud) and sign in. Bring your own keys for every provider.
-
 ______________________________________________________________________
 
 ## Documentation
 
 - **[Getting Started](https://docs.nodetool.ai/getting-started)** — Build your first workflow
 - **[Video Editor](https://docs.nodetool.ai/video-editor)** — Sequence and AI-generate clips on a timeline
+- **[Sketch Editor](https://docs.nodetool.ai/sketch-editor)** — Draw, mask, and AI-generate on a layered canvas
 - **[Node Packs](https://docs.nodetool.ai/packs)** — Available nodes and integrations
 - **[Custom Nodes](https://docs.nodetool.ai/developer/custom-nodes-guide)** — Extend NodeTool
 - **[Deployment](https://docs.nodetool.ai/deployment)** — Share your work
@@ -251,7 +247,7 @@ cd mobile && npm install && npm start
 
 See [mobile/README.md](mobile/README.md) for full setup.
 
-### Make Commands
+### Common Commands
 
 | Command | Description |
 | :--- | :--- |
@@ -295,7 +291,7 @@ Please open an issue before starting major work so we can coordinate.
 
 ## License
 
-[AGPL-3.0](https://github.com/nodetool-ai/nodetool/blob/main/LICENSE)
+[AGPL-3.0](https://github.com/nodetool-ai/nodetool/blob/main/LICENSE.txt)
 
 ## Get in Touch
 

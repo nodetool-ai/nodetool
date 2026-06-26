@@ -691,6 +691,17 @@ const Inspector: React.FC = () => {
     );
   }, [edges, selectedNode]);
 
+  const connectedEdgeByHandle = useMemo(() => {
+    if (!selectedNode) return new Map<string, (typeof edges)[number]>();
+    const map = new Map<string, (typeof edges)[number]>();
+    for (const edge of edges) {
+      if (edge.target === selectedNode.id && edge.targetHandle) {
+        map.set(edge.targetHandle, edge);
+      }
+    }
+    return map;
+  }, [edges, selectedNode]);
+
   const visibleProperties = useMemo(() => {
     if (!metadata) return [];
     return metadata.properties.filter(
@@ -972,11 +983,7 @@ const Inspector: React.FC = () => {
 
                 {Object.entries(selectedNode.data.dynamic_properties || {}).map(
                   ([name, value], index) => {
-                    const incoming = edges.find(
-                      (edge) =>
-                        edge.target === selectedNode.id &&
-                        edge.targetHandle === name
-                    );
+                    const incoming = connectedEdgeByHandle.get(name);
 
                     const dynamicInputMeta =
                       selectedNode.data.dynamic_inputs?.[name];

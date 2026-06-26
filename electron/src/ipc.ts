@@ -36,7 +36,7 @@ import {
   normalizeUpdateChannel,
   setUpdateChannel,
 } from "./settings";
-import { createSettingsWindow } from "./window";
+import { openSettingsInMainWindow } from "./window";
 import {
   createVault,
   renameVault,
@@ -1340,10 +1340,10 @@ export function initializeIpcHandlers(): void {
     },
   );
 
-  // Show settings window
+  // Open the in-app settings page (in the main window)
   createIpcMainHandler(IpcChannels.SHOW_SETTINGS, async () => {
-    logMessage("Opening Settings window");
-    createSettingsWindow();
+    logMessage("Opening Settings in main window");
+    openSettingsInMainWindow();
   });
 
   // Vault handlers (switchable, isolated data stores).

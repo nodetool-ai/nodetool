@@ -90,9 +90,10 @@ directory for file tools); vaults sit one level above the database.
   backend (so it opens the new database) → re-register shortcuts → reload the
   main window. Restarting the process is intentional: the backend holds its
   SQLite connection in a singleton, so a clean restart beats a live swap.
-- UI: a native **Vaults** menu (quick switch + "Manage Vaults…") and a Vaults
-  section in the Settings window (`pages/SettingsPage.tsx`) for create / rename /
-  delete / switch, over `window.api.vaults.*` (IPC `VAULT_*`).
+- UI: a native **Vaults** menu (quick switch + "Manage Vaults…", which opens
+  the in-app settings) and a Vaults section in the web settings
+  (`web/src/components/menus/VaultsSettings.tsx`) for create / rename / delete /
+  switch, over `window.api.vaults.*` (IPC `VAULT_*`).
 
 ## Rules
 

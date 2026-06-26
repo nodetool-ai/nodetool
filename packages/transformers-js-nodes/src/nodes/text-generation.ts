@@ -28,6 +28,8 @@ function extractText(value: unknown): string {
 
 export class TextGenerationNode extends BaseNode {
   static readonly nodeType = "transformers.TextGeneration";
+  static readonly inlineFields = ["prompt"];
+  static readonly inputFields: string[] = [];
   static readonly title = "Text Generation";
   static readonly description =
     "Generate text completions using a Transformers.js text-generation pipeline.\n" +

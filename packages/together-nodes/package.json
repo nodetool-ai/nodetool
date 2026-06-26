@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0 <23.0.0"
   },
-  "version": "0.7.0-rc.23",
+  "version": "0.7.0-rc.25",
   "description": "Together AI nodes for NodeTool — serverless image (FLUX / Imagen / Ideogram / Seedream), video (Veo / Sora / Kling / Seedance / MiniMax), text-to-speech (Orpheus / Kokoro / Cartesia) and transcription (Whisper / Voxtral / Parakeet)",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

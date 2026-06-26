@@ -15,7 +15,7 @@ The **agent memory system** is the single source of truth for everything that fl
 - `memory_read` — fetch full values for specific keys
 - `memory_write` — publish a value under the `shared:` namespace
 
-This page is the comprehensive reference. For a quick orientation, jump to [Quick Reference](#quick-reference) or [Examples](#examples).
+This page is the full reference. For a quick orientation, jump to [Quick Reference](#quick-reference) or [Examples](#examples).
 
 ---
 

@@ -25,8 +25,8 @@ const PackageRow = ({ name, meta, description, actions }: PackageRowProps) => (
     gap={3}
     align="center"
     sx={(theme) => ({
-      px: 2.25,
-      py: 1.75,
+      px: 3,
+      py: 2.5,
       borderRadius: BORDER_RADIUS.xl,
       backgroundColor: theme.vars.palette.background.paper,
       border: `1px solid ${theme.vars.palette.divider}`,
@@ -38,7 +38,7 @@ const PackageRow = ({ name, meta, description, actions }: PackageRowProps) => (
       }
     })}
   >
-    <FlexColumn gap={0.75} sx={{ minWidth: 0, flex: 1 }}>
+    <FlexColumn gap={1} sx={{ minWidth: 0, flex: 1 }}>
       <FlexRow gap={1} align="center" sx={{ flexWrap: "wrap" }}>
         <Text size="normal" weight={600} truncate>
           {name}
