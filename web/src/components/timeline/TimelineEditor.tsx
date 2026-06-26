@@ -450,10 +450,6 @@ const TimelineEditorBody: React.FC<Omit<TimelineEditorProps, "active">> = memo((
     <FlexColumn fullWidth fullHeight css={editorStyles(theme)}>
       {/* ── Top bar ───────────────────────────────────────────────── */}
       <TopBar
-        sequenceName={
-          sequence?.name ??
-          (sequenceUnavailable ? sequenceId : undefined)
-        }
         onExportVideo={sequenceUnavailable ? undefined : handleExportVideo}
         isExporting={isExporting}
         onSave={sequenceUnavailable ? undefined : handleSave}

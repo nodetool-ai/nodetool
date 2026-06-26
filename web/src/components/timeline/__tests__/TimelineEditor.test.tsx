@@ -163,7 +163,6 @@ describe("TimelineEditor", () => {
 
       expect(screen.getByText("Sequence not found")).toBeInTheDocument();
       expect(screen.getByTestId("tracks-region")).toBeInTheDocument();
-      expect(screen.getByText("seq-1")).toBeInTheDocument();
     });
 
     it("shows EmptyState when the query returns an error", () => {
@@ -233,7 +232,6 @@ describe("TimelineEditor", () => {
     it("renders all five regions", () => {
       renderEditor();
 
-      expect(screen.getByText("My Sequence")).toBeInTheDocument();
       expect(screen.getByText("Preview")).toBeInTheDocument();
       expect(screen.getByText("Inspector")).toBeInTheDocument();
       expect(screen.getByText("Tracks")).toBeInTheDocument();
