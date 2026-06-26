@@ -37,18 +37,16 @@ export const TUTORIALS: TutorialEntry[] = [
     castId: "intro-tutorial",
     title: "Build your first workflow",
     subtitle: "NodeTool · visual AI, no code",
-    replayWindowMs: 24000,
+    replayWindowMs: 18000,
     steps: [
       { atMs: 1300, label: "Text input", focus: "input", zoom: 1.9 },
       { atMs: 3400, label: "Enhance with an LLM", focus: "enhance", zoom: 1.7 },
-      { atMs: 10600, label: "Generate an image", focus: "generate", zoom: 1.6 },
-      { atMs: 20400, label: "Preview the result", focus: "preview", zoom: 1.45 },
+      { atMs: 10600, label: "Generate the image", focus: "generate", zoom: 1.45 },
     ],
     captions: [
       { fromMs: 1500, toMs: 3300, text: "Start with a Text Input — type the prompt your workflow will run on." },
       { fromMs: 3500, toMs: 9400, text: "An LLM node rewrites it into a richer, more detailed prompt — streaming as it thinks." },
-      { fromMs: 11000, toMs: 18800, text: "That prompt feeds an image model. The bar shows it rendering, step by step." },
-      { fromMs: 20800, toMs: 23800, text: "The finished image previews right here on the canvas — no code needed." },
+      { fromMs: 10800, toMs: 16400, text: "Feed that into an image model — the picture renders right inside the node." },
     ],
     outroTitle: "Your turn",
     outroPoints: [

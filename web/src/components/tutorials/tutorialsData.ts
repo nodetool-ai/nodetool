@@ -30,9 +30,9 @@ export const TUTORIALS: Tutorial[] = [
   {
     id: "first-workflow",
     title: "Build your first workflow",
-    tagline: "Text → enhance → image → preview, end to end",
+    tagline: "Text → enhance → image, end to end",
     description:
-      "Watch a complete AI pipeline run on the canvas: a prompt is enhanced by an LLM, turned into an image, and previewed — all from connected nodes, no code.",
+      "Watch a complete AI pipeline run on the canvas: a prompt is enhanced by an LLM, then turned into an image — all from connected nodes, no code.",
     level: "Beginner",
     durationLabel: "0:23",
     video: "/tutorials/first-workflow.mp4",

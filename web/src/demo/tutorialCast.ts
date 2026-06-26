@@ -11,7 +11,6 @@
  * chapter cards and captions that teach the core flow: add nodes, connect them,
  * run, watch outputs appear live.
  */
-import { PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
 import { CAST_VERSION, type CastEvent, type DemoCast } from "./castTypes";
 import { castMessages, edge, meta, node, out, prop } from "./castHelpers";
 import { EXAMPLE_IMAGE_DATA_URI } from "./assets/exampleImage";
@@ -47,7 +46,7 @@ const workflow = {
   id: WF,
   name: "Image Pipeline",
   access: "private",
-  description: "Tutorial pipeline: prompt → enhance → generate image → preview.",
+  description: "Tutorial pipeline: prompt → enhance → generate image.",
   thumbnail: "",
   tags: [],
   run_mode: "workflow",
@@ -58,19 +57,18 @@ const workflow = {
     nodes: [
       node("input", INPUT_TYPE, 0, 140, 250, "Text Input", { name: "prompt", text: PROMPT }),
       node("enhance", ENHANCE_TYPE, 360, 140, 280, "Enhance Prompt", { prompt: "" }),
-      node("generate", IMAGE_TYPE, 740, 140, 280, "Generate Image", { prompt: "" }),
-      node("preview", PREVIEW_NODE_TYPE, 1120, 140, 320, "Preview", {}),
+      node("generate", IMAGE_TYPE, 740, 140, 300, "Generate Image", { prompt: "" }),
     ],
     edges: [
       edge("e1", "input", "text", "enhance", "prompt"),
       edge("e2", "enhance", "text", "generate", "prompt"),
-      edge("e3", "generate", "image", "preview", "value"),
     ],
   },
 } as unknown as Workflow;
 
 // Paced slowly on purpose: each node holds long enough for the camera to settle
 // and the viewer to read its fields, the streamed prompt, and the progress bar.
+// The Generate Image node displays the result itself — no separate preview.
 const events: CastEvent[] = [
   m.jobUpdate(0, "running"),
 
@@ -86,19 +84,12 @@ const events: CastEvent[] = [
   m.edgeUpdate(9800, "e1", "completed"),
   m.edgeUpdate(10000, "e2", "active"),
 
-  // 3) Generate Image runs with a visible progress bar, then emits the image.
+  // 3) Generate Image runs a short progress, then shows the image in the node.
   m.nodeUpdate(10600, "generate", "Generate Image", IMAGE_TYPE, "running"),
-  ...m.progress("generate", 30, 11000, 8000),
-  m.nodeUpdate(19600, "generate", "Generate Image", IMAGE_TYPE, "completed", { image }),
-  m.edgeUpdate(19800, "e2", "completed"),
-  m.edgeUpdate(20000, "e3", "active"),
-
-  // 4) Preview renders the final image right on the canvas.
-  m.nodeUpdate(20600, "preview", "Preview", PREVIEW_NODE_TYPE, "running"),
-  m.output(21200, "preview", "Preview", "value", image, "image"),
-  m.nodeUpdate(21800, "preview", "Preview", PREVIEW_NODE_TYPE, "completed", { value: image }),
-  m.edgeUpdate(22000, "e3", "completed"),
-  m.jobUpdate(22300, "completed", { outputs: { value: image } }),
+  ...m.progress("generate", 12, 11000, 4000),
+  m.nodeUpdate(15500, "generate", "Generate Image", IMAGE_TYPE, "completed", { image }),
+  m.edgeUpdate(15700, "e2", "completed"),
+  m.jobUpdate(16000, "completed", { outputs: { image } }),
 ];
 
 export const tutorialCast: DemoCast = {
@@ -106,9 +97,9 @@ export const tutorialCast: DemoCast = {
   id: "intro-tutorial",
   name: "Intro Tutorial",
   description:
-    "How to use NodeTool: a four-node AI pipeline — text input → enhance → generate image → preview.",
+    "How to use NodeTool: a three-node AI pipeline — text input → enhance → generate image.",
   createdAt: new Date(0).toISOString(),
-  durationMs: 26000,
+  durationMs: 18000,
   fps: 30,
   workflow,
   metadata: {
@@ -134,15 +125,9 @@ export const tutorialCast: DemoCast = {
       outputs: [out("image", "image")],
       inline_fields: ["prompt"],
     }),
-    [PREVIEW_NODE_TYPE]: meta({
-      node_type: PREVIEW_NODE_TYPE,
-      title: "Preview",
-      properties: [prop("value", "any")],
-      outputs: [out("output", "any")],
-    }),
   },
   events,
   assets: [],
-  // Frames the four-node row (graph bbox ~x[0,1440] y[140,420]) in 1920×1080.
-  viewport: { x: 250, y: 260, zoom: 0.95 },
+  // Frames the three-node row (graph bbox ~x[0,1040] y[140,420]) in 1920×1080.
+  viewport: { x: 420, y: 250, zoom: 1.05 },
 };
