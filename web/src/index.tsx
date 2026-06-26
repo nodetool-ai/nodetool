@@ -96,6 +96,9 @@ const CollectionsExplorer = React.lazy(
 const ExamplesPage = React.lazy(
   () => import("./components/portal/ExamplesPage")
 );
+const TutorialsPage = React.lazy(
+  () => import("./components/tutorials/TutorialsPage")
+);
 const ChainEditorPage = React.lazy(
   () => import("./components/chain_editor/ChainEditorPage")
 );
@@ -319,6 +322,25 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <ExamplesPage />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "tutorials",
+      element: (
+        <ProtectedRoute>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              height: "100%"
+            }}
+          >
+            <React.Suspense fallback={<LoadingSpinner />}>
+              <TutorialsPage />
+            </React.Suspense>
+          </div>
         </ProtectedRoute>
       )
     },
