@@ -2,28 +2,13 @@ import React from "react";
 import { Composition } from "remotion";
 
 import { WorkflowDemo, type WorkflowDemoProps } from "./WorkflowDemo";
-import {
-  Tutorial,
-  type TutorialProps,
-  DEFAULT_TUTORIAL_STEPS,
-  DEFAULT_TUTORIAL_CAPTIONS,
-} from "./Tutorial";
-import { DEFAULT_CAST, getCast, listCasts } from "./casts/registry";
+import { Tutorial } from "./Tutorial";
+import { TUTORIALS, tutorialFrames } from "./tutorials";
+import { DEFAULT_CAST, listCasts } from "./casts/registry";
 import type { DemoCast } from "@web-demo";
 
 const WIDTH = 1920;
 const HEIGHT = 1080;
-
-const TUTORIAL_CAST_ID = "intro-tutorial";
-const TUTORIAL_INTRO_S = 2.5;
-const TUTORIAL_OUTRO_S = 4;
-const TUTORIAL_REPLAY_WINDOW_MS = 16500;
-
-function tutorialFrames(fps: number): number {
-  return Math.round(
-    (TUTORIAL_INTRO_S + TUTORIAL_REPLAY_WINDOW_MS / 1000 + TUTORIAL_OUTRO_S) * fps
-  );
-}
 
 /** Turn a cast id into a valid, readable Remotion composition id. */
 function compositionId(castId: string): string {
@@ -53,28 +38,20 @@ export const Root: React.FC = () => {
     ],
   };
 
-  const tutorialCast = getCast(TUTORIAL_CAST_ID);
-  const tutorialFps = tutorialCast.fps ?? 30;
-  const tutorialProps: TutorialProps = {
-    castId: TUTORIAL_CAST_ID,
-    introSeconds: TUTORIAL_INTRO_S,
-    outroSeconds: TUTORIAL_OUTRO_S,
-    replayWindowMs: TUTORIAL_REPLAY_WINDOW_MS,
-    steps: DEFAULT_TUTORIAL_STEPS,
-    captions: DEFAULT_TUTORIAL_CAPTIONS,
-  };
-
   return (
     <>
-      <Composition
-        id="Tutorial"
-        component={Tutorial}
-        defaultProps={tutorialProps}
-        fps={tutorialFps}
-        width={WIDTH}
-        height={HEIGHT}
-        durationInFrames={tutorialFrames(tutorialFps)}
-      />
+      {TUTORIALS.map((tut) => (
+        <Composition
+          key={tut.compositionId}
+          id={tut.compositionId}
+          component={Tutorial}
+          defaultProps={tut.props}
+          fps={tut.fps}
+          width={WIDTH}
+          height={HEIGHT}
+          durationInFrames={tutorialFrames(tut)}
+        />
+      ))}
 
       <Composition
         id="WorkflowDemo"

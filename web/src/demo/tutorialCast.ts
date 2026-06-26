@@ -1,72 +1,28 @@
 /**
- * Tutorial cast — the "How to use NodeTool" intro.
+ * "First workflow" tutorial cast — the flagship intro.
  *
  * A self-contained, backend-free demo of a real four-node AI pipeline:
  *
  *   Text Input  →  Enhance Prompt (LLM, streaming)  →  Generate Image  →  Preview
  *
- * It is fully synthetic (fabricated-but-well-formed node metadata and an inline
- * SVG data URI for the generated image), so it renders with no recording, no
- * pinned asset files, and no backend — the same approach as `sampleCast`, just
- * a longer, narratable timeline. The Remotion `Tutorial` composition
- * (demo/src/Tutorial.tsx) replays it underneath chapter cards and captions that
- * teach the core flow: add nodes, connect them, run, watch outputs appear live.
+ * Fully synthetic (fabricated-but-well-formed node metadata and an inline SVG
+ * data URI for the generated image), so it renders with no recording, no pinned
+ * assets, and no backend. The Remotion `Tutorial` composition replays it under
+ * chapter cards and captions that teach the core flow: add nodes, connect them,
+ * run, watch outputs appear live.
  */
-import type {
-  NodeMetadata,
-  OutputSlot,
-  Property,
-  PropertyTypeMetadata,
-  Workflow,
-} from "../stores/ApiTypes";
 import { PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
 import { CAST_VERSION, type CastEvent, type DemoCast } from "./castTypes";
-
-const t = (type: string): PropertyTypeMetadata => ({
-  type,
-  optional: false,
-  type_args: [],
-});
-
-const prop = (name: string, type: string): Property => ({
-  name,
-  type: t(type),
-  default: undefined,
-  title: name,
-  description: null,
-  min: null,
-  max: null,
-  json_schema_extra: null,
-  required: false,
-});
-
-const out = (name: string, type: string, stream = false): OutputSlot => ({
-  name,
-  type: t(type),
-  stream,
-});
-
-const meta = (
-  partial: Partial<NodeMetadata> & Pick<NodeMetadata, "node_type">
-): NodeMetadata => ({
-  title: partial.node_type.split(".").pop() ?? partial.node_type,
-  description: "",
-  namespace: partial.node_type.split(".").slice(0, -1).join("."),
-  layout: "default",
-  properties: [],
-  outputs: [],
-  recommended_models: [],
-  inline_fields: [],
-  required_settings: [],
-  supports_dynamic_inputs: false,
-  is_streaming_output: false,
-  supports_dynamic_outputs: false,
-  ...partial,
-});
+import { castMessages, edge, meta, node, out, prop } from "./castHelpers";
+import type { Workflow } from "../stores/ApiTypes";
 
 const INPUT_TYPE = "nodetool.input.TextInput";
 const ENHANCE_TYPE = "nodetool.llm.Enhance";
 const IMAGE_TYPE = "nodetool.image.Generate";
+
+const WF = "wf-tutorial";
+const JOB = "tutorial-job";
+const m = castMessages(WF, JOB);
 
 const PROMPT = "a serene mountain lake at golden hour";
 const ENHANCED =
@@ -109,39 +65,7 @@ const SVG_IMAGE =
     </svg>`
   );
 
-const WF = "wf-tutorial";
-const JOB = "tutorial-job";
-
-const node = (
-  id: string,
-  type: string,
-  x: number,
-  y: number,
-  width: number,
-  title: string,
-  data: Record<string, unknown> = {}
-) => ({
-  id,
-  type,
-  data,
-  ui_properties: {
-    position: { x, y },
-    zIndex: 0,
-    width,
-    selectable: true,
-    title,
-  },
-  dynamic_properties: {},
-  dynamic_outputs: {},
-});
-
-const edge = (
-  id: string,
-  source: string,
-  sourceHandle: string,
-  target: string,
-  targetHandle: string
-) => ({ id, source, sourceHandle, target, targetHandle });
+const image = { type: "image", uri: SVG_IMAGE };
 
 const workflow = {
   id: WF,
@@ -156,16 +80,9 @@ const workflow = {
   created_at: new Date(0).toISOString(),
   graph: {
     nodes: [
-      node("input", INPUT_TYPE, 0, 140, 250, "Text Input", {
-        name: "prompt",
-        text: PROMPT,
-      }),
-      node("enhance", ENHANCE_TYPE, 360, 140, 280, "Enhance Prompt", {
-        prompt: "",
-      }),
-      node("generate", IMAGE_TYPE, 740, 140, 280, "Generate Image", {
-        prompt: "",
-      }),
+      node("input", INPUT_TYPE, 0, 140, 250, "Text Input", { name: "prompt", text: PROMPT }),
+      node("enhance", ENHANCE_TYPE, 360, 140, 280, "Enhance Prompt", { prompt: "" }),
+      node("generate", IMAGE_TYPE, 740, 140, 280, "Generate Image", { prompt: "" }),
       node("preview", PREVIEW_NODE_TYPE, 1120, 140, 320, "Preview", {}),
     ],
     edges: [
@@ -176,122 +93,34 @@ const workflow = {
   },
 } as unknown as Workflow;
 
-const nodeUpdate = (
-  t: number,
-  node_id: string,
-  node_name: string,
-  node_type: string,
-  status: "running" | "completed",
-  result?: Record<string, unknown>
-): CastEvent => ({
-  t,
-  message: {
-    type: "node_update",
-    status,
-    node_id,
-    node_name,
-    node_type,
-    ...(result ? { result } : {}),
-    workflow_id: WF,
-    job_id: JOB,
-  },
-});
-
-function streamEvents(): CastEvent[] {
-  const events: CastEvent[] = [];
-  let time = 1300;
-  for (const token of TOKENS) {
-    events.push({
-      t: time,
-      message: {
-        type: "chunk",
-        node_id: "enhance",
-        content_type: "text",
-        content: token,
-        workflow_id: WF,
-        job_id: JOB,
-      },
-    });
-    time += 480;
-  }
-  return events;
-}
-
-function progressEvents(): CastEvent[] {
-  const events: CastEvent[] = [];
-  const total = 30;
-  const start = 6300;
-  const span = 7400; // ~7.4s of visible image generation
-  for (let step = 1; step <= total; step++) {
-    events.push({
-      t: Math.round(start + (span * step) / total),
-      message: {
-        type: "node_progress",
-        node_id: "generate",
-        progress: step,
-        total,
-        workflow_id: WF,
-        job_id: JOB,
-      },
-    });
-  }
-  return events;
-}
-
 const events: CastEvent[] = [
-  { t: 0, message: { type: "job_update", status: "running", job_id: JOB, workflow_id: WF } },
+  m.jobUpdate(0, "running"),
 
   // 1) Text Input hands its prompt downstream.
-  nodeUpdate(150, "input", "Text Input", INPUT_TYPE, "running"),
-  nodeUpdate(600, "input", "Text Input", INPUT_TYPE, "completed", { text: PROMPT }),
-  { t: 700, message: { type: "edge_update", edge_id: "e1", status: "active", workflow_id: WF, job_id: JOB } },
+  m.nodeUpdate(150, "input", "Text Input", INPUT_TYPE, "running"),
+  m.nodeUpdate(600, "input", "Text Input", INPUT_TYPE, "completed", { text: PROMPT }),
+  m.edgeUpdate(700, "e1", "active"),
 
   // 2) Enhance Prompt streams an expanded prompt token by token.
-  nodeUpdate(900, "enhance", "Enhance Prompt", ENHANCE_TYPE, "running"),
-  ...streamEvents(),
-  nodeUpdate(5300, "enhance", "Enhance Prompt", ENHANCE_TYPE, "completed", { text: ENHANCED }),
-  { t: 5450, message: { type: "edge_update", edge_id: "e1", status: "completed", workflow_id: WF, job_id: JOB } },
-  { t: 5600, message: { type: "edge_update", edge_id: "e2", status: "active", workflow_id: WF, job_id: JOB } },
+  m.nodeUpdate(900, "enhance", "Enhance Prompt", ENHANCE_TYPE, "running"),
+  ...m.stream("enhance", TOKENS, 1300, 3840),
+  m.nodeUpdate(5300, "enhance", "Enhance Prompt", ENHANCE_TYPE, "completed", { text: ENHANCED }),
+  m.edgeUpdate(5450, "e1", "completed"),
+  m.edgeUpdate(5600, "e2", "active"),
 
   // 3) Generate Image runs with a visible progress bar, then emits the image.
-  nodeUpdate(6000, "generate", "Generate Image", IMAGE_TYPE, "running"),
-  ...progressEvents(),
-  nodeUpdate(14100, "generate", "Generate Image", IMAGE_TYPE, "completed", {
-    image: { type: "image", uri: SVG_IMAGE },
-  }),
-  { t: 14250, message: { type: "edge_update", edge_id: "e2", status: "completed", workflow_id: WF, job_id: JOB } },
-  { t: 14400, message: { type: "edge_update", edge_id: "e3", status: "active", workflow_id: WF, job_id: JOB } },
+  m.nodeUpdate(6000, "generate", "Generate Image", IMAGE_TYPE, "running"),
+  ...m.progress("generate", 30, 6300, 7400),
+  m.nodeUpdate(14100, "generate", "Generate Image", IMAGE_TYPE, "completed", { image }),
+  m.edgeUpdate(14250, "e2", "completed"),
+  m.edgeUpdate(14400, "e3", "active"),
 
   // 4) Preview renders the final image right on the canvas.
-  nodeUpdate(14700, "preview", "Preview", PREVIEW_NODE_TYPE, "running"),
-  {
-    t: 15000,
-    message: {
-      type: "output_update",
-      node_id: "preview",
-      node_name: "Preview",
-      output_name: "value",
-      value: { type: "image", uri: SVG_IMAGE },
-      output_type: "image",
-      metadata: {},
-      workflow_id: WF,
-      job_id: JOB,
-    },
-  },
-  nodeUpdate(15400, "preview", "Preview", PREVIEW_NODE_TYPE, "completed", {
-    value: { type: "image", uri: SVG_IMAGE },
-  }),
-  { t: 15600, message: { type: "edge_update", edge_id: "e3", status: "completed", workflow_id: WF, job_id: JOB } },
-  {
-    t: 15900,
-    message: {
-      type: "job_update",
-      status: "completed",
-      job_id: JOB,
-      workflow_id: WF,
-      result: { outputs: { value: { type: "image", uri: SVG_IMAGE } } },
-    },
-  },
+  m.nodeUpdate(14700, "preview", "Preview", PREVIEW_NODE_TYPE, "running"),
+  m.output(15000, "preview", "Preview", "value", image, "image"),
+  m.nodeUpdate(15400, "preview", "Preview", PREVIEW_NODE_TYPE, "completed", { value: image }),
+  m.edgeUpdate(15600, "e3", "completed"),
+  m.jobUpdate(15900, "completed", { outputs: { value: image } }),
 ];
 
 export const tutorialCast: DemoCast = {

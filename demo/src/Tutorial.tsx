@@ -20,6 +20,10 @@ import type { CaptionCue } from "./WorkflowDemo";
 export type TutorialProps = {
   /** Which cast to replay under the narration (see casts/registry). */
   castId: string;
+  /** Opening title-card heading. */
+  title: string;
+  /** Opening title-card subheading. */
+  subtitle: string;
   /** Seconds the opening title card holds before the replay begins. */
   introSeconds: number;
   /** Seconds the closing call-to-action card holds after the replay. */
@@ -33,6 +37,10 @@ export type TutorialProps = {
   steps: TutorialStep[];
   /** Timed lower-third narration (replay-relative ms). */
   captions: CaptionCue[];
+  /** Closing call-to-action heading. */
+  outroTitle: string;
+  /** Closing call-to-action bullet lines. */
+  outroPoints: string[];
 };
 
 /**
@@ -50,11 +58,15 @@ export type TutorialProps = {
  */
 export const Tutorial: React.FC<TutorialProps> = ({
   castId,
+  title,
+  subtitle,
   introSeconds,
   outroSeconds,
   replayWindowMs,
   steps,
   captions,
+  outroTitle,
+  outroPoints,
 }) => {
   const cast = getCast(castId);
   const frame = useCurrentFrame();
@@ -92,35 +104,12 @@ export const Tutorial: React.FC<TutorialProps> = ({
       })}
 
       <Sequence from={0} durationInFrames={introFrames}>
-        <TitleCard title="NodeTool" subtitle="Build AI workflows visually — no code" />
+        <TitleCard title={title} subtitle={subtitle} />
       </Sequence>
 
       <Sequence from={introFrames + replayFrames} durationInFrames={outroFrames}>
-        <OutroCard
-          title="Your turn"
-          points={[
-            "Drag in a node, wire it to the next",
-            "Hit Run — watch every node light up",
-            "Outputs preview right on the canvas",
-          ]}
-          footer="github.com/nodetool-ai/nodetool"
-        />
+        <OutroCard title={outroTitle} points={outroPoints} footer="nodetool.ai" />
       </Sequence>
     </AbsoluteFill>
   );
 };
-
-/** Default narration for the bundled `intro-tutorial` cast. */
-export const DEFAULT_TUTORIAL_STEPS: TutorialStep[] = [
-  { atMs: 0, label: "Text input" },
-  { atMs: 900, label: "Enhance with an LLM" },
-  { atMs: 5600, label: "Generate an image" },
-  { atMs: 14400, label: "Preview the result" },
-];
-
-export const DEFAULT_TUTORIAL_CAPTIONS: CaptionCue[] = [
-  { fromMs: 200, toMs: 2200, text: "Each node does one task — wire its output into the next node's input." },
-  { fromMs: 2400, toMs: 5400, text: "An LLM node rewrites the prompt, streaming its answer live." },
-  { fromMs: 5600, toMs: 13800, text: "The next node turns that prompt into an image, step by step." },
-  { fromMs: 14000, toMs: 16400, text: "Outputs render right on the canvas. No code, no glue." },
-];

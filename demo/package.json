@@ -7,7 +7,10 @@
   "scripts": {
     "studio": "remotion studio src/index.ts",
     "render": "remotion render src/index.ts WorkflowDemo out/workflow-demo.mp4",
-    "render:tutorial": "remotion render src/index.ts Tutorial out/nodetool-tutorial.mp4",
+    "render:tutorials": "npm run render:tutorial:first && npm run render:tutorial:connect && npm run render:tutorial:list",
+    "render:tutorial:first": "remotion render src/index.ts Tutorial-first-workflow ../web/public/tutorials/first-workflow.mp4",
+    "render:tutorial:connect": "remotion render src/index.ts Tutorial-connect-run ../web/public/tutorials/connect-run.mp4",
+    "render:tutorial:list": "remotion render src/index.ts Tutorial-list-generator ../web/public/tutorials/list-generator.mp4",
     "still": "remotion still src/index.ts WorkflowDemo out/frame.png --frame=60",
     "pin-assets": "tsx scripts/pin-cast-assets.ts",
     "typecheck": "tsc --noEmit"

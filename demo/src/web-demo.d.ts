@@ -44,4 +44,6 @@ declare module "@web-demo" {
   export const DemoPlayer: React.FC<DemoPlayerProps>;
   export const sampleCast: DemoCast;
   export const tutorialCast: DemoCast;
+  export const connectRunCast: DemoCast;
+  export const listGeneratorCast: DemoCast;
 }
