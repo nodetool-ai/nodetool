@@ -18,6 +18,8 @@ import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
 import { useTimelineUIStoreApi } from "../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStoreApi } from "../../stores/timeline/TimelinePlaybackStore";
 import { getRememberedModel, type ModelKind } from "../../stores/lastModelStore";
+import { useAssetStore } from "../../stores/AssetStore";
+import { getAssetUrl } from "../../utils/assetHelpers";
 import { useTimelineDirectGenJob } from "./useTimelineDirectGenJob";
 import {
   getTimelineAgentHandler,
@@ -25,10 +27,12 @@ import {
   setTimelineAgentHandler,
   type TimelineAgentHandler,
   type TimelineClipNode,
+  type TimelineClipFrameNode,
   type TimelineGenerateKind,
   type TimelineSnapshot,
   type TimelineTrackNode
 } from "../../components/timeline/timelineAgentBridge";
+import { extractVideoFrames } from "../../components/timeline/Tracks/clipThumbnails";
 
 const KIND_TO_MODEL_KIND: Record<TimelineGenerateKind, ModelKind> = {
   "text-to-video": "video",
@@ -44,6 +48,41 @@ const KIND_TO_MEDIA_TYPE: Record<
   "text-to-image": "image",
   "text-to-audio": "audio"
 };
+
+const DEFAULT_FRAME_COUNT = 3;
+const MAX_FRAME_COUNT = 8;
+const DEFAULT_FRAME_WIDTH = 512;
+const MAX_FRAME_WIDTH = 1024;
+
+function clampNumber(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function sampleClipTimelineTimes(
+  clip: TimelineClip,
+  count: number
+): number[] {
+  const n = clampNumber(Math.round(count), 1, MAX_FRAME_COUNT);
+  const start = clip.startMs;
+  const end = Math.max(start, start + clip.durationMs - 1);
+  if (n === 1 || end <= start) return [start];
+  return Array.from({ length: n }, (_, i) =>
+    Math.round(start + (i / (n - 1)) * (end - start))
+  );
+}
+
+function sourceTimeForTimelineTime(clip: TimelineClip, timelineTimeMs: number): number {
+  const clipStart = clip.startMs;
+  const clipEnd = clip.startMs + clip.durationMs;
+  if (timelineTimeMs < clipStart || timelineTimeMs > clipEnd) {
+    throw new Error(
+      `Frame time ${timelineTimeMs}ms is outside clip "${clip.name}" (${clipStart}–${clipEnd}ms).`
+    );
+  }
+  const speed = clip.speedMultiplier ?? 1;
+  const inPointMs = clip.inPointMs ?? 0;
+  return Math.max(0, inPointMs + (timelineTimeMs - clipStart) * speed);
+}
 
 /** Serialize a clip to the agent-facing shape. */
 function toClipNode(
@@ -399,6 +438,52 @@ export const useTimelineAgentBridge = (active: boolean): void => {
           await startDirectGen(clip.id);
         }
         return clipNode(reReadClip(clip.id));
+      },
+
+      async getClipFrames(target, opts) {
+        const clip = requireClip(target);
+        if (clip.mediaType !== "video" && clip.mediaType !== "overlay") {
+          throw new Error(
+            `Clip "${clip.name}" is ${clip.mediaType}; frame inspection requires a video clip.`
+          );
+        }
+        if (!clip.currentAssetId) {
+          throw new Error(`Clip "${clip.name}" has no rendered video asset.`);
+        }
+
+        const asset = await useAssetStore.getState().get(clip.currentAssetId);
+        const url = getAssetUrl(asset);
+        if (!url) {
+          throw new Error(`Could not resolve video URL for clip "${clip.name}".`);
+        }
+
+        const timelineTimes =
+          opts.timesMs && opts.timesMs.length > 0
+            ? opts.timesMs.slice(0, MAX_FRAME_COUNT).map((time) => Math.round(time))
+            : sampleClipTimelineTimes(clip, opts.count ?? DEFAULT_FRAME_COUNT);
+        const sourceTimes = timelineTimes.map((time) =>
+          sourceTimeForTimelineTime(clip, time)
+        );
+        const width = clampNumber(
+          Math.round(opts.width ?? DEFAULT_FRAME_WIDTH),
+          1,
+          MAX_FRAME_WIDTH
+        );
+        const frames = await extractVideoFrames(
+          url,
+          sourceTimes.map((time) => time / 1000),
+          width
+        );
+        const frameNodes: TimelineClipFrameNode[] = frames.map((frame, i) => ({
+          clipId: clip.id,
+          clipName: clip.name,
+          timelineTimeMs: timelineTimes[i],
+          sourceTimeMs: Math.round(frame.time * 1000),
+          width: frame.width,
+          height: frame.height,
+          dataUrl: frame.dataUrl
+        }));
+        return { clip: clipNode(clip), frames: frameNodes };
       },
 
       selectClip(target) {

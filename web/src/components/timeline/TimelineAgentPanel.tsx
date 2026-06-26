@@ -10,6 +10,7 @@ import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import { FlexColumn, Text, SPACING, getSpacingPx } from "../ui_primitives";
 import ChatView from "../chat/containers/ChatView";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 
 const styles = (_theme: Theme) =>
   css({
@@ -45,6 +46,14 @@ const styles = (_theme: Theme) =>
 const TimelineAgentPanel = () => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
+
+  // Bind the open sequence as the chat's `workflow_id`. The server only
+  // forwards client `ui_*` tools to the model when a turn carries a
+  // workflow_id (unified-websocket-runner gates on it), so without this the
+  // assistant never sees the editor's ui_timeline_* tools. The id is editor
+  // context, not a routing signal — we don't set `workflow_target`, so the
+  // turn stays a normal chat turn and the sequence is never run as a workflow.
+  const sequenceId = useTimelineStore((s) => s.sequenceId);
 
   const { status, statusMessage, progress } = useGlobalChatStore(
     useShallow((state) => ({
@@ -137,6 +146,7 @@ const TimelineAgentPanel = () => {
       <ChatView
         status={chatStatus}
         messages={messages}
+        workflowId={sequenceId}
         sendMessage={sendMessage}
         progress={progress.current}
         total={progress.total}

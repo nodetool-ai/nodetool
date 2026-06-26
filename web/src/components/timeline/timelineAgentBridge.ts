@@ -166,6 +166,32 @@ export interface TimelineMovePatch {
   trackId?: string;
 }
 
+export interface TimelineClipFramesOptions {
+  /** Absolute timeline timestamps to sample. Defaults to evenly spaced samples. */
+  timesMs?: number[];
+  /** Number of evenly spaced samples when `timesMs` is omitted. */
+  count?: number;
+  /** Output JPEG width in pixels. */
+  width?: number;
+}
+
+export interface TimelineClipFrameNode {
+  clipId: string;
+  clipName: string;
+  /** Requested absolute timeline timestamp in milliseconds. */
+  timelineTimeMs: number;
+  /** Source-media timestamp in milliseconds after trim/speed mapping. */
+  sourceTimeMs: number;
+  width: number;
+  height: number;
+  dataUrl: string;
+}
+
+export interface TimelineClipFramesResult {
+  clip: TimelineClipNode;
+  frames: TimelineClipFrameNode[];
+}
+
 /**
  * Operations the live {@link TimelineEditor} exposes to the agent tooling
  * layer. Clips and tracks are addressed by id or by (case-insensitive) name;
@@ -195,6 +221,10 @@ export interface TimelineAgentHandler {
     target: string,
     patch: TimelineClipBindingPatch
   ) => Promise<TimelineClipNode>;
+  getClipFrames: (
+    target: string,
+    opts: TimelineClipFramesOptions
+  ) => Promise<TimelineClipFramesResult>;
   selectClip: (target: string | null) => TimelineClipNode | null;
   /** Move the playhead and return the resulting position (ms). */
   seek: (timeMs: number) => number;

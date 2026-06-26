@@ -43,7 +43,7 @@ import type {
   SDKUserMessage
 } from "@anthropic-ai/claude-agent-sdk";
 import { z, type ZodTypeAny } from "zod";
-import { BaseProvider, toolResultToText } from "./base-provider.js";
+import { BaseProvider } from "./base-provider.js";
 import {
   isProviderMessageEvent,
   isProviderSessionUpdate,
@@ -233,17 +233,16 @@ export class ClaudeAgentProvider extends BaseProvider {
     if (tools.length > 0 && args.executeTool) {
       const createServer = await this.loadCreateMcpServer();
       const executeTool = args.executeTool;
-      // The SDK's MCP tool results are text-only, so collapse image content to
-      // its text (vision tools degrade gracefully on the agent-SDK path).
+      // MCP tool results carry typed content blocks, so image-bearing results
+      // (view_image) are returned as real image blocks the SDK hands to Claude —
+      // no flattening to text on the agent-SDK path.
       const defs = tools.map((t) =>
-        toolDefinition(t, async (name, toolArgs) =>
-          toolResultToText(
-            await executeTool({
-              id: `call_${name}_${Date.now()}`,
-              name,
-              args: toolArgs
-            })
-          )
+        toolDefinition(t, (name, toolArgs) =>
+          executeTool({
+            id: `call_${name}_${Date.now()}`,
+            name,
+            args: toolArgs
+          })
         )
       );
       const server = createServer({
@@ -786,17 +785,88 @@ function toolResultText(content: unknown): string {
  */
 function toolDefinition(
   tool: ProviderTool,
-  run: (name: string, args: Record<string, unknown>) => Promise<string>
+  run: (
+    name: string,
+    args: Record<string, unknown>
+  ) => Promise<string | MessageContent[]>
 ): SdkMcpToolDefinition<never> {
   return {
     name: tool.name,
     description: tool.description ?? "",
     inputSchema: jsonSchemaToZodShape(tool.inputSchema) as never,
     handler: async (toolArgs: Record<string, unknown>) => {
-      const text = await run(tool.name, toolArgs ?? {});
-      return { content: [{ type: "text" as const, text }] };
+      const result = await run(tool.name, toolArgs ?? {});
+      return { content: toolResultToMcpContent(result) };
     }
   } as unknown as SdkMcpToolDefinition<never>;
+}
+
+type McpContentBlock =
+  | { type: "text"; text: string }
+  | { type: "image"; data: string; mimeType: string };
+
+/**
+ * Decode a NodeTool image content part into an MCP image block (raw base64 +
+ * mimeType). Returns null for a remote URL we cannot inline — MCP image content
+ * is base64-only, so the caller degrades it to a text reference.
+ */
+function toMcpImageBlock(image: {
+  uri?: string;
+  data?: Uint8Array | string;
+  mimeType?: string;
+}): { type: "image"; data: string; mimeType: string } | null {
+  let base64: string | undefined;
+  let mimeType = image.mimeType;
+
+  const fromDataUri = (uri: string): void => {
+    const match = /^data:([^;,]+)?(;base64)?,([\s\S]*)$/.exec(uri);
+    if (!match) return;
+    mimeType = mimeType ?? match[1] ?? "image/png";
+    base64 = match[2]
+      ? (match[3] ?? "")
+      : Buffer.from(decodeURIComponent(match[3] ?? "")).toString("base64");
+  };
+
+  if (typeof image.data === "string") {
+    if (image.data.startsWith("data:")) fromDataUri(image.data);
+    else base64 = image.data;
+  } else if (image.data instanceof Uint8Array) {
+    base64 = Buffer.from(image.data).toString("base64");
+  }
+  if (!base64 && typeof image.uri === "string" && image.uri.startsWith("data:")) {
+    fromDataUri(image.uri);
+  }
+  if (!base64) return null;
+  return { type: "image", data: base64, mimeType: mimeType ?? "image/png" };
+}
+
+/**
+ * Convert a tool result into MCP content blocks. Text passes through; image
+ * parts become MCP image blocks (the SDK forwards them to Claude as real
+ * images). A remote-URL image that can't be inlined degrades to a text note.
+ */
+export function toolResultToMcpContent(
+  result: string | MessageContent[]
+): McpContentBlock[] {
+  if (typeof result === "string") {
+    return [{ type: "text", text: result }];
+  }
+  const blocks: McpContentBlock[] = [];
+  for (const part of result) {
+    if (part.type === "text") {
+      blocks.push({ type: "text", text: part.text });
+    } else if (part.type === "image_url") {
+      const img = toMcpImageBlock(part.image);
+      if (img) blocks.push(img);
+      else if (typeof part.image.uri === "string") {
+        blocks.push({ type: "text", text: `[image at ${part.image.uri}]` });
+      }
+    }
+  }
+  if (blocks.length === 0) {
+    blocks.push({ type: "text", text: "[no content]" });
+  }
+  return blocks;
 }
 
 /** Convert a JSON-Schema object's properties to a Zod raw shape. */

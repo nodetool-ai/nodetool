@@ -12,10 +12,24 @@
  * how to `install` it — and a rejected load attempt is never cached.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { encodeRawRgbaToPng, encodeRawImageRef } from "../src/image-codec.js";
+import {
+  encodeRawRgbaToPng,
+  encodeRawImageRef,
+  extractImageRegion
+} from "../src/image-codec.js";
 import { RAW_RGBA_MIME, type ImageRef } from "@nodetool-ai/protocol";
 
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+
+/** Encode `w`x`h` opaque-red raw RGBA to PNG bytes for region tests. */
+async function redPng(w: number, h: number): Promise<Uint8Array> {
+  const px = new Uint8Array(w * h * 4);
+  for (let i = 0; i < px.length; i += 4) {
+    px[i] = 255;
+    px[i + 3] = 255;
+  }
+  return encodeRawRgbaToPng(px, w, h);
+}
 
 function rawPixel(): Uint8Array {
   // one opaque red pixel, straight-alpha RGBA8
@@ -64,6 +78,40 @@ describe("encodeRawImageRef", () => {
   it("returns a non-image value unchanged", async () => {
     expect(await encodeRawImageRef("not-a-ref")).toBe("not-a-ref");
     expect(await encodeRawImageRef(null)).toBe(null);
+  });
+});
+
+describe("extractImageRegion", () => {
+  it("returns a PNG with the source dimensions when no region/maxSide", async () => {
+    const out = await extractImageRegion(await redPng(40, 30));
+    expect(out.mimeType).toBe("image/png");
+    expect(out.width).toBe(40);
+    expect(out.height).toBe(30);
+    expect(Array.from(out.data.slice(0, 8))).toEqual(PNG_SIGNATURE);
+  });
+
+  it("crops to the requested region", async () => {
+    const out = await extractImageRegion(await redPng(40, 30), {
+      region: { x: 5, y: 5, width: 10, height: 8 }
+    });
+    expect(out.width).toBe(10);
+    expect(out.height).toBe(8);
+  });
+
+  it("clamps an over-large region to the image bounds", async () => {
+    const out = await extractImageRegion(await redPng(40, 30), {
+      region: { x: 30, y: 20, width: 100, height: 100 }
+    });
+    expect(out.width).toBe(10);
+    expect(out.height).toBe(10);
+  });
+
+  it("downscales the longest side to maxSide", async () => {
+    const out = await extractImageRegion(await redPng(400, 200), {
+      maxSide: 100
+    });
+    expect(out.width).toBe(100);
+    expect(out.height).toBe(50);
   });
 });
 

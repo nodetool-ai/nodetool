@@ -75,6 +75,7 @@ import {
   GrepTool
 } from "./edit-search-tools.js";
 import { TodoWriteTool } from "./todo-tools.js";
+import { ViewImageTool, ListImagesTool } from "./view-image-tool.js";
 
 export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   // Filesystem (workspace-relative)
@@ -87,6 +88,10 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
 
   // Task tracking
   TodoWriteTool,
+
+  // Vision (lazy image loading: handles → pixels on demand)
+  ListImagesTool,
+  ViewImageTool,
 
   // Search
   // GoogleSearchTool,

@@ -6,6 +6,7 @@ import type { FrontendToolState } from "../frontendTools";
 import {
   setTimelineAgentHandler,
   type TimelineAgentHandler,
+  type TimelineClipFrameNode,
   type TimelineClipNode,
   type TimelineSnapshot,
   type TimelineTrackNode
@@ -71,6 +72,7 @@ const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => ({
   duplicateClip: jest.fn(),
   setClipParams: jest.fn(),
   setClipBinding: jest.fn(),
+  getClipFrames: jest.fn(),
   selectClip: jest.fn(),
   seek: jest.fn()
 });
@@ -97,10 +99,29 @@ describe("ui_timeline_* tools", () => {
         "ui_timeline_duplicate_clip",
         "ui_timeline_set_clip_params",
         "ui_timeline_set_clip_binding",
+        "ui_timeline_get_clip_frames",
         "ui_timeline_select_clip",
         "ui_timeline_seek"
       ])
     );
+  });
+
+  it("exposes split_clip's parameter schema with target required", () => {
+    // The model only learns `target` is required from this schema. If the
+    // manifest ships an empty schema (or the server reads the wrong field), the
+    // model calls split with no target and the tool rejects with a Zod error.
+    const splitTool = FrontendToolRegistry.getManifest().find(
+      (t) => t.name === "ui_timeline_split_clip"
+    );
+    expect(splitTool).toBeDefined();
+    const schema = splitTool?.parameters as {
+      type?: string;
+      properties?: Record<string, unknown>;
+      required?: string[];
+    };
+    expect(schema.type).toBe("object");
+    expect(schema.properties).toHaveProperty("target");
+    expect(schema.required).toContain("target");
   });
 
   it("rejects with a descriptive error when no editor is open", async () => {
@@ -207,6 +228,39 @@ describe("ui_timeline_* tools", () => {
       opacity: 0.5,
       fadeOutMs: 500
     });
+  });
+
+  it("gets video frames through the handler", async () => {
+    const handler = createMockHandler();
+    const frame: TimelineClipFrameNode = {
+      clipId: "clip-1",
+      clipName: "Clip 1",
+      timelineTimeMs: 1000,
+      sourceTimeMs: 1000,
+      width: 512,
+      height: 288,
+      dataUrl: "data:image/jpeg;base64,abc"
+    };
+    handler.getClipFrames.mockResolvedValue({
+      clip: clipNode({ hasRender: true }),
+      frames: [frame]
+    });
+    setTimelineAgentHandler(handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_timeline_get_clip_frames",
+      { target: "Clip 1", timesMs: [1000], width: 512 },
+      "tc-frames",
+      ctx
+    )) as { ok: boolean; frames: TimelineClipFrameNode[] };
+
+    expect(handler.getClipFrames).toHaveBeenCalledWith("Clip 1", {
+      timesMs: [1000],
+      count: undefined,
+      width: 512
+    });
+    expect(result.ok).toBe(true);
+    expect(result.frames[0].dataUrl).toBe("data:image/jpeg;base64,abc");
   });
 
   it("moves a clip to a new start and track", async () => {

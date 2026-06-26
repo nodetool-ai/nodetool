@@ -42,6 +42,20 @@ export {
   clearThreadTodos
 } from "./tools/todo-tools.js";
 export { MiniJSAgentTool } from "./tools/js-code-tool.js";
+export { ViewImageTool, ListImagesTool } from "./tools/view-image-tool.js";
+export {
+  IMAGE_CONTENT_FIELD,
+  IMAGE_CONTENTS_FIELD,
+  OMITTED_IMAGE_NOTE,
+  extractInjectableImages,
+  stripImagePayload,
+  buildImageInjectionMessage,
+  downgradeInjectedImageMessage
+} from "./tools/image-injection.js";
+export type {
+  InjectableImage,
+  ExtractedImages
+} from "./tools/image-injection.js";
 export {
   GoogleSearchTool,
   GoogleNewsTool,

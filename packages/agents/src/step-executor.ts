@@ -31,6 +31,13 @@ import {
 } from "@nodetool-ai/protocol";
 import type { Step, Task } from "./types.js";
 import { Tool } from "./tools/base-tool.js";
+import {
+  extractInjectableImages,
+  stripImagePayload,
+  buildImageInjectionMessage,
+  downgradeInjectedImageMessage,
+  type ExtractedImages
+} from "./tools/image-injection.js";
 import { ControlNodeTool } from "./tools/control-tool.js";
 import { FinishStepTool } from "./tools/finish-step-tool.js";
 import { getMemoryTools } from "./tools/memory-tools.js";
@@ -338,6 +345,8 @@ export interface StepExecutorOptions {
 
 export class StepExecutor {
   private history: Message[] = [];
+  /** Injected image messages still carrying pixels (downgraded on the next view). */
+  private readonly liveInjectedImageMessages = new Set<Message>();
   private step: Step;
   private task: Task;
   private tools: Tool[];
@@ -1170,7 +1179,10 @@ export class StepExecutor {
             })
           );
 
-          // Add tool results to history
+          // Add tool results to history. All tool messages must stay contiguous
+          // after the assistant turn (providers reject a stray message between
+          // them), so injected image messages are buffered and flushed below.
+          const pendingImageInjections: ExtractedImages[] = [];
           for (let i = 0; i < regularToolCalls.length; i++) {
             const tc = regularToolCalls[i];
             const settledResult = toolResults[i];
@@ -1182,6 +1194,15 @@ export class StepExecutor {
               toolResult = {
                 error: `Tool execution failed: ${settledResult.reason}`
               };
+            }
+
+            // A view-image-style result carries pixels the model asked for. Pull
+            // them out so they ride a dedicated user message for the next turn;
+            // the tool-result message stays a light note (never a base64 blob).
+            const injected = extractInjectableImages(toolResult);
+            if (injected) {
+              pendingImageInjections.push(injected);
+              toolResult = stripImagePayload(toolResult);
             }
 
             // Save base64 binary artifacts (images, audio) to workspace files
@@ -1211,6 +1232,21 @@ export class StepExecutor {
               toolCallId: tc.id,
               content: resultStr
             });
+          }
+
+          // Inject demanded pixels for the next model turn (after every tool
+          // result, so the tool messages stay contiguous). A fresh view retires
+          // the pixels of earlier views — only the latest set rides forward.
+          if (pendingImageInjections.length > 0) {
+            for (const old of this.liveInjectedImageMessages) {
+              downgradeInjectedImageMessage(old);
+            }
+            this.liveInjectedImageMessages.clear();
+            for (const injected of pendingImageInjections) {
+              const message = buildImageInjectionMessage(injected);
+              this.history.push(message);
+              this.liveInjectedImageMessages.add(message);
+            }
           }
 
           yield {

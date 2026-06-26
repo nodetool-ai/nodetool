@@ -100,8 +100,10 @@ export {
 } from "@nodetool-ai/protocol/bridge-protocol";
 export {
   encodeRawRgbaToPng,
-  encodeRawImageRef
+  encodeRawImageRef,
+  extractImageRegion
 } from "./image-codec.js";
+export type { ImageRegion } from "./image-codec.js";
 export { PythonNodeExecutor } from "./python-node-executor.js";
 export {
   connectPythonBridgeForGraph,
