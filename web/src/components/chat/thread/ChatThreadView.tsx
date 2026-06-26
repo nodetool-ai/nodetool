@@ -253,9 +253,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollHost, setScrollHost] = useState<HTMLDivElement | null>(null);
-  const [expandedThoughts, setExpandedThoughts] = useState<
-    Record<string, boolean>
-  >({});
+  const expandedThoughtsRef = useRef<Record<string, boolean>>({});
   const [showScrollToBottomButton, setShowScrollToBottomButton] =
     useState(false);
   const userHasScrolledUpRef = useRef(false);
@@ -524,8 +522,15 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     };
   }, [status]);
 
+  const isThoughtExpanded = useCallback(
+    (key: string) => expandedThoughtsRef.current[key] ?? false,
+    []
+  );
   const handleToggleThought = useCallback((key: string) => {
-    setExpandedThoughts((prev) => ({ ...prev, [key]: !prev[key] }));
+    expandedThoughtsRef.current = {
+      ...expandedThoughtsRef.current,
+      [key]: !expandedThoughtsRef.current[key]
+    };
   }, []);
 
   const virtualItems = virtualizer.getVirtualItems();
@@ -580,7 +585,7 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
                   <MessageView
                     key={messageKey}
                     message={msg}
-                    expandedThoughts={expandedThoughts}
+                    isThoughtExpanded={isThoughtExpanded}
                     onToggleThought={handleToggleThought}
                     onInsertCode={onInsertCode}
                     toolResultsByCallId={toolResultsByCallId}
