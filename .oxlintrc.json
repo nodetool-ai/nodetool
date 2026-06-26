@@ -1,12 +1,14 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "oxc"],
+  "plugins": ["typescript", "oxc", "react"],
   "categories": {
     "correctness": "error"
   },
   "rules": {
     "no-empty": ["error", { "allowEmptyCatch": true }],
     "prefer-const": "error",
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "warn",
     "no-control-regex": "warn",
     "no-useless-assignment": "warn",
     "require-yield": "warn",
