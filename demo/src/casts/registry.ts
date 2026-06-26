@@ -8,9 +8,9 @@
  *   import myDemo from "../../casts/my-demo.cast.json";
  *   const casts: DemoCast[] = [sampleCast, myDemo as DemoCast];
  */
-import { sampleCast, type DemoCast } from "@web-demo";
+import { sampleCast, tutorialCast, type DemoCast } from "@web-demo";
 
-const casts: DemoCast[] = [sampleCast];
+const casts: DemoCast[] = [sampleCast, tutorialCast];
 
 /** The cast bound to the canonical `WorkflowDemo` composition id. */
 export const DEFAULT_CAST: DemoCast = sampleCast;

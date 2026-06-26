@@ -7,6 +7,7 @@
   "scripts": {
     "studio": "remotion studio src/index.ts",
     "render": "remotion render src/index.ts WorkflowDemo out/workflow-demo.mp4",
+    "render:tutorial": "remotion render src/index.ts Tutorial out/nodetool-tutorial.mp4",
     "still": "remotion still src/index.ts WorkflowDemo out/frame.png --frame=60",
     "pin-assets": "tsx scripts/pin-cast-assets.ts",
     "typecheck": "tsc --noEmit"
