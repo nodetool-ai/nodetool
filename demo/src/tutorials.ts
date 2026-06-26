@@ -41,7 +41,7 @@ export const TUTORIALS: TutorialEntry[] = [
     steps: [
       { atMs: 1300, label: "Text input", focus: "input", zoom: 1.9 },
       { atMs: 3400, label: "Enhance with an LLM", focus: "enhance", zoom: 1.7 },
-      { atMs: 10600, label: "Generate the image", focus: "generate", zoom: 1.45 },
+      { atMs: 10600, label: "Text to Image", focus: "generate", zoom: 1.45 },
     ],
     captions: [
       { fromMs: 1500, toMs: 3300, text: "Start with a Text Input — type the prompt your workflow will run on." },

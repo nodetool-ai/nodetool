@@ -18,7 +18,7 @@ import type { Workflow } from "../stores/ApiTypes";
 
 const INPUT_TYPE = "nodetool.input.TextInput";
 const ENHANCE_TYPE = "nodetool.llm.Enhance";
-const IMAGE_TYPE = "nodetool.image.Generate";
+const IMAGE_TYPE = "nodetool.image.TextToImage";
 
 const WF = "wf-tutorial";
 const JOB = "tutorial-job";
@@ -57,7 +57,7 @@ const workflow = {
     nodes: [
       node("input", INPUT_TYPE, 0, 140, 250, "Text Input", { name: "prompt", text: PROMPT }),
       node("enhance", ENHANCE_TYPE, 360, 140, 280, "Enhance Prompt", { prompt: "" }),
-      node("generate", IMAGE_TYPE, 740, 140, 300, "Generate Image", { prompt: "" }),
+      node("generate", IMAGE_TYPE, 740, 140, 300, "Text To Image", { prompt: "" }),
     ],
     edges: [
       edge("e1", "input", "text", "enhance", "prompt"),
@@ -85,9 +85,9 @@ const events: CastEvent[] = [
   m.edgeUpdate(10000, "e2", "active"),
 
   // 3) Generate Image runs a short progress, then shows the image in the node.
-  m.nodeUpdate(10600, "generate", "Generate Image", IMAGE_TYPE, "running"),
+  m.nodeUpdate(10600, "generate", "Text To Image", IMAGE_TYPE, "running"),
   ...m.progress("generate", 12, 11000, 4000),
-  m.nodeUpdate(15500, "generate", "Generate Image", IMAGE_TYPE, "completed", { image }),
+  m.nodeUpdate(15500, "generate", "Text To Image", IMAGE_TYPE, "completed", { image }),
   m.edgeUpdate(15700, "e2", "completed"),
   m.jobUpdate(16000, "completed", { outputs: { image } }),
 ];
@@ -120,7 +120,7 @@ export const tutorialCast: DemoCast = {
     }),
     [IMAGE_TYPE]: meta({
       node_type: IMAGE_TYPE,
-      title: "Generate Image",
+      title: "Text To Image",
       properties: [prop("prompt", "str")],
       outputs: [out("image", "image")],
       inline_fields: ["prompt"],
