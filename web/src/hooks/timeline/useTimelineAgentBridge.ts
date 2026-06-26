@@ -187,10 +187,12 @@ export const useTimelineAgentBridge = (active: boolean): void => {
         const kind = opts.kind;
         const store = doc.getState();
 
-        // Resolve the target track for the media kind.
-        let trackId = opts.trackId;
-        if (trackId) {
-          requireTrack(trackId);
+        // Resolve the target track for the media kind. Resolve a passed
+        // id/name to the real track id — keeping the raw string would forward
+        // a track *name* into addDirectGenClip/trackEndMs and orphan the clip.
+        let trackId: string;
+        if (opts.trackId) {
+          trackId = requireTrack(opts.trackId).id;
         } else if (kind === "text-to-audio") {
           trackId = store.getOrCreateAudioTrack();
         } else {
@@ -204,7 +206,9 @@ export const useTimelineAgentBridge = (active: boolean): void => {
           }
         }
 
-        const startMs = opts.startMs ?? trackEndMs(trackId);
+        // Clamp start to >= 0 so an agent-supplied negative can't create a
+        // clip with invalid timing.
+        const startMs = Math.max(0, opts.startMs ?? trackEndMs(trackId));
 
         // Resolve provider/model: explicit args, else the last-used model.
         const remembered = getRememberedModel(KIND_TO_MODEL_KIND[kind]);
@@ -218,7 +222,13 @@ export const useTimelineAgentBridge = (active: boolean): void => {
         const clipId = doc.getState().addDirectGenClip({
           trackId,
           startMs,
-          durationMs: opts.durationMs,
+          // Clamp to a positive duration; addDirectGenClip only falls back to
+          // its default when durationMs is undefined, so a negative/zero from
+          // an agent would otherwise create an invalid clip.
+          durationMs:
+            opts.durationMs === undefined
+              ? undefined
+              : Math.max(1, opts.durationMs),
           mediaType: KIND_TO_MEDIA_TYPE[kind],
           bindingKind: kind,
           prompt: opts.prompt,
