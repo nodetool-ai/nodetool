@@ -27,7 +27,7 @@ import {
   FlexRow,
   Text,
   Caption,
-  NodeSlider,
+  Slider,
   ToolbarIconButton
 } from "../../ui_primitives";
 
@@ -447,7 +447,19 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       }
     }, []);
 
-    const scrubMax = Math.max(1, durationMs || 0);
+    // `durationMs` is set only on load and is NOT recomputed when clips are
+    // added/moved (see TracksRegion, which derives its own content extent).
+    // For a new/unsaved sequence it stays 0, which would pin the scrubber's
+    // range to [0, 1] (max ≤ step → every drag snaps to the end). Derive the
+    // max from the actual clip extent, matching the ruler.
+    const contentEndMs = useMemo(() => {
+      let end = durationMs || 0;
+      for (const c of clips) {
+        end = Math.max(end, c.startMs + c.durationMs);
+      }
+      return end;
+    }, [clips, durationMs]);
+    const scrubMax = Math.max(1, contentEndMs);
     const scrubValue = Math.min(scrubMax, scrubMs ?? currentTimeMs);
 
     // Live timecode without per-frame React renders: while playing, subscribe
@@ -609,7 +621,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
             {timecode}
           </Text>
           <div css={scrubberStyles}>
-            <NodeSlider
+            <Slider
               aria-label="Scrub timeline"
               min={0}
               max={scrubMax}

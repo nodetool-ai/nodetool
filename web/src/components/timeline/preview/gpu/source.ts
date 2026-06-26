@@ -15,6 +15,21 @@ export function isSourceReady(source: CompositeSource): boolean {
   return source.width > 0;
 }
 
+/**
+ * Whether to present the frame just composited. A scene that *has* layers but
+ * drew none of them means every source is mid-decode — e.g. the incoming clip
+ * at a cut is still seeking. Presenting then would flash opaque black (both
+ * compositors seed the frame black), so we skip the present and the canvas
+ * holds its last frame instead. An empty scene (no layers) still presents:
+ * that's a genuine gap and should clear to black.
+ */
+export function shouldPresentFrame(
+  layerCount: number,
+  drawnCount: number
+): boolean {
+  return layerCount === 0 || drawnCount > 0;
+}
+
 /** Intrinsic pixel dimensions of a composite source. */
 export function sourceDimensions(source: CompositeSource): {
   width: number;
