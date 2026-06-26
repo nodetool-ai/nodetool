@@ -122,7 +122,7 @@ In Agent Mode, you can ask the agent to create or modify workflows. The agent us
 
 ## Available Tools
 
-Global Chat agents have access to a comprehensive tool suite:
+Global Chat agents have access to these tools:
 
 ### Built-in Tools
 

@@ -4,17 +4,14 @@ title: "VibeCoding"
 description: "Design custom workflow UIs with AI assistance"
 ---
 
-VibeCoding is NodeTool's AI-powered tool for designing custom user interfaces for your workflows. Describe what you want in natural language, and VibeCoding generates a fully functional HTML app that runs your workflow.
+VibeCoding designs custom UIs for your workflows. Describe the interface you want, and it generates an HTML app that runs the workflow over the API.
 
-## Overview
+## What it does
 
-VibeCoding provides:
-
-- **AI-Powered Design**: Describe your desired UI in natural language
-- **Live Preview**: See changes in real-time as HTML is generated
-- **Seamless Integration**: Generated apps run your workflow with full API access
-- **No Coding Required**: Create professional interfaces without writing code
-- **Instant Deployment**: Save and share your custom app immediately
+- Generates a self-contained HTML app from a natural-language description.
+- Streams the HTML into a live preview as it writes.
+- Wires the app to run your workflow over the API, including assets.
+- Saves to the workflow's `html_app` field and serves it in Mini App mode.
 
 ## Getting Started
 
@@ -50,11 +47,11 @@ In the chat panel, describe what you want your app to look like. Be as specific 
 
 ### Step 2: Review the Preview
 
-As the AI generates HTML, the preview panel updates in real-time. You can:
+The preview updates as the HTML streams in. You can:
 
-- **Watch generation**: See the interface build as HTML streams in
-- **Test interactivity**: The preview is fully functional
-- **Iterate quickly**: Ask for changes and see immediate results
+- Watch the interface build as HTML streams in.
+- Interact with the preview — it's the running app.
+- Ask for changes and see them applied.
 
 ### Step 3: Refine Your Design
 
@@ -76,8 +73,6 @@ When you're happy with the design:
 
 ## Preview Controls
 
-The preview panel includes several helpful controls:
-
 | Button | Action |
 |--------|--------|
 | **Refresh** | Force a complete refresh of the preview |
@@ -86,10 +81,7 @@ The preview panel includes several helpful controls:
 
 ## Templates
 
-VibeCoding may show template chips at the start of a conversation. These are pre-built prompts for common UI patterns:
-
-- Click a template to instantly send that prompt
-- Templates help you get started quickly with proven designs
+At the start of a conversation, VibeCoding may show template chips — prebuilt prompts for common UI patterns. Click one to send that prompt.
 
 ## Managing Custom Apps
 
@@ -119,12 +111,12 @@ If your workflow already has a custom app:
 
 ### Generated App Features
 
-VibeCoding generates self-contained HTML apps that include:
+Generated apps are self-contained HTML and include:
 
-- **Runtime Configuration**: Automatic injection of API and WebSocket URLs
-- **Workflow Integration**: Full access to run your workflow via API
-- **Asset Support**: Load and display assets from your workflow
-- **Responsive Design**: Apps work on various screen sizes
+- **Runtime config**: API and WebSocket URLs injected at load.
+- **Workflow calls**: run the workflow over the API.
+- **Assets**: load and display assets the workflow produces.
+- **Responsive layout**: adapt to different screen sizes.
 
 ### Security
 

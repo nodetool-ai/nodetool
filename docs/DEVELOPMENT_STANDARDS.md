@@ -499,6 +499,10 @@ We use **OpenTelemetry** for tracing across agents and workflows (`workflow.run`
 - **READMEs** are short. Anything longer than a screen lives in `docs/`. Per-package READMEs describe purpose, install, and link to `docs/`.
 - **AGENTS.md files** describe enforceable rules for agents and contributors. They are not architecture docs — those live in `docs/architecture.md` and friends.
 
+### Prose style (anti-slop)
+
+All prose — docs, READMEs, AGENTS.md files, PR descriptions, comments — follows [WRITING_STYLE.md](WRITING_STYLE.md): concise, concrete, no AI filler. It carries the forbidden-expressions list (no `leverage`, `seamless`, `robust`, `comprehensive`, `it's worth noting`, rule-of-three padding, etc.). Agents editing a Markdown file fix violations they pass.
+
 ### target
 
 - Every exported function in `@nodetool-ai/agents`, `@nodetool-ai/kernel`, `@nodetool-ai/runtime`, `@nodetool-ai/node-sdk` has JSDoc.
