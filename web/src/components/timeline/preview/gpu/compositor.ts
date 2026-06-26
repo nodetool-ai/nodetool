@@ -15,7 +15,7 @@ import type {
   CompositorInitResult,
   TimelineCompositor
 } from "./types";
-import { isSourceReady, sourceDimensions } from "./source";
+import { isSourceReady, shouldPresentFrame, sourceDimensions } from "./source";
 
 interface SourceTexture {
   texture: GPUTexture;
@@ -221,9 +221,11 @@ export class WebGPUCompositor implements TimelineCompositor {
     }
 
     this.core.beginFrame();
+    let drawnCount = 0;
     for (const layer of this.layers) {
       const src = this.uploadSource(layer);
       if (!src) continue;
+      drawnCount++;
 
       const clipEffectsList = layer.effects ?? [];
       const trackEffectsList = layer.trackEffects ?? [];
@@ -281,6 +283,14 @@ export class WebGPUCompositor implements TimelineCompositor {
       const tmp = readTex;
       readTex = writeTex;
       writeTex = tmp;
+    }
+
+    // Every active clip was mid-decode (e.g. the incoming clip at a cut is
+    // still seeking). Skip the present so the swap chain keeps showing the last
+    // frame instead of flashing the opaque-black seed. `getCurrentTexture()` is
+    // never called, so nothing replaces what's on screen.
+    if (!shouldPresentFrame(this.layers.length, drawnCount)) {
+      return;
     }
 
     this.core.blit(
