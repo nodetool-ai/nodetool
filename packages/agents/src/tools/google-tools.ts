@@ -26,7 +26,7 @@ export class GoogleGroundedSearchTool extends Tool {
   readonly name = "google_grounded_search";
   readonly description =
     "Search the web using Google's Gemini API with grounding capabilities";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       query: {
@@ -144,7 +144,7 @@ export class GoogleImageGenerationTool extends Tool {
     "embed pointing at a UI-fetchable URL. When narrating the result to the " +
     "user, include `display_markdown` verbatim; never construct your own " +
     "markdown from `output_file` (a workspace key, not a URL).";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       prompt: {

@@ -40,7 +40,7 @@ export class CreateTaskPlanTool extends Tool {
   readonly description =
     "Create an executable task with steps. " +
     "Steps form a DAG via depends_on for parallel execution within the task.";
-  readonly inputSchema: Record<string, unknown> = CREATE_TASK_INPUT_SCHEMA;
+  readonly jsonSchema: Record<string, unknown> = CREATE_TASK_INPUT_SCHEMA;
 
   /** Captured validated task, or null if not yet created. */
   private _task: Task | null = null;

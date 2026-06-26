@@ -62,7 +62,7 @@ export class CreatePlanTool extends Tool {
   readonly description =
     "Create a parallel execution plan with multiple independent tasks. " +
     "Each task runs as its own sub-agent. Tasks form a DAG via depends_on.";
-  readonly inputSchema: Record<string, unknown> = CREATE_PLAN_INPUT_SCHEMA;
+  readonly jsonSchema: Record<string, unknown> = CREATE_PLAN_INPUT_SCHEMA;
 
   /** Captured validated plan, or null if not yet created. */
   private _plan: TaskPlan | null = null;

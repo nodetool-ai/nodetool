@@ -360,7 +360,7 @@ function makeSandboxActionToolClass(def: ActionDef): new () => Tool {
   return class extends Tool {
     readonly name = def.toolName;
     readonly description = def.description;
-    readonly inputSchema = def.inputSchema;
+    protected readonly jsonSchema = def.inputSchema;
 
     async process(
       ctx: ProcessingContext,

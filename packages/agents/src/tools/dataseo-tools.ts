@@ -129,7 +129,7 @@ export class DataForSEOSearchTool extends Tool {
   readonly name = "dataforseo_search";
   readonly description =
     "Search Google via DataForSEO to retrieve organic search results.";
-  readonly inputSchema: Record<string, unknown> = {
+  readonly jsonSchema: Record<string, unknown> = {
     type: "object",
     properties: {
       keyword: {
@@ -215,7 +215,7 @@ export class DataForSEONewsTool extends Tool {
   readonly name = "dataforseo_news";
   readonly description =
     "Search Google News via DataForSEO to retrieve live news articles.";
-  readonly inputSchema: Record<string, unknown> = {
+  readonly jsonSchema: Record<string, unknown> = {
     type: "object",
     properties: {
       keyword: {
@@ -307,7 +307,7 @@ export class DataForSEOImagesTool extends Tool {
   readonly name = "dataforseo_images";
   readonly description =
     "Search Google Images via DataForSEO to retrieve image results.";
-  readonly inputSchema: Record<string, unknown> = {
+  readonly jsonSchema: Record<string, unknown> = {
     type: "object",
     properties: {
       keyword: {

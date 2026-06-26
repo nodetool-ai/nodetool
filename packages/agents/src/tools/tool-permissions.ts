@@ -11,6 +11,7 @@
  */
 
 import type { ProcessingContext, ProviderTool } from "@nodetool-ai/runtime";
+import type { ZodType } from "zod";
 import { Tool } from "./base-tool.js";
 // Type-only import: keeps tool-permissions.ts free of provider/LLM runtime
 // deps and avoids any value-level import cycle with security-monitor.ts.
@@ -235,6 +236,10 @@ class GatedTool extends Tool {
 
   get description(): string {
     return this.inner.description;
+  }
+
+  get schema(): ZodType | undefined {
+    return this.inner.schema;
   }
 
   get inputSchema(): Record<string, unknown> {

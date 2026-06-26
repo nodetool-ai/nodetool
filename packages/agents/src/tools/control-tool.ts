@@ -57,7 +57,7 @@ export interface ControlNodeInfo {
 export class ControlNodeTool extends Tool {
   readonly name: string;
   readonly description: string;
-  readonly inputSchema: Record<string, unknown>;
+  readonly jsonSchema: Record<string, unknown>;
   readonly targetNodeId: string;
   readonly nodeInfo: ControlNodeInfo;
 
@@ -80,7 +80,7 @@ export class ControlNodeTool extends Tool {
       }
     }
 
-    this.inputSchema = {
+    this.jsonSchema = {
       type: "object",
       properties,
       required: []

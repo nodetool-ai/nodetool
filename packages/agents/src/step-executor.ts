@@ -34,7 +34,6 @@ import { Tool } from "./tools/base-tool.js";
 import { ControlNodeTool } from "./tools/control-tool.js";
 import { FinishStepTool } from "./tools/finish-step-tool.js";
 import { getMemoryTools } from "./tools/memory-tools.js";
-import { TOOL_CALL_ID_FIELD } from "./tools/subtask-fields.js";
 import { DEFAULT_TOKEN_LIMIT, MAX_TOOL_RESULT_CHARS } from "./constants.js";
 import {
   ContextCompactor,
@@ -1151,9 +1150,6 @@ export class StepExecutor {
               const tool = this.tools.find((t) => t.name === tc.name);
               if (!tool) return { error: `Unknown tool: ${tc.name}` };
               const cleanArgs = Tool.stripMessage(tc.args ?? {});
-              if (tool.needsToolCallId) {
-                cleanArgs[TOOL_CALL_ID_FIELD] = tc.id;
-              }
               // Intercept ControlNodeTool: create event instead of calling process()
               if (tool instanceof ControlNodeTool) {
                 const event = tool.createControlEvent(cleanArgs);
@@ -1164,7 +1160,9 @@ export class StepExecutor {
                 return Tool.resolveMessage(tool, tc.args);
               }
               try {
-                const result = await tool.process(this.context, cleanArgs);
+                const result = await Tool.executeTool(tool, this.context, tc.args, {
+                  toolCallId: tc.id
+                });
                 return result;
               } catch (e) {
                 return { error: String(e) };

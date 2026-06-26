@@ -52,6 +52,13 @@ export {
   type LlmUsage
 } from "./tracing-helpers.js";
 export { packContext, type PackedContext } from "./context-packer.js";
+export {
+  isZodSchema,
+  parseWithTypeCoercion,
+  zodToJsonSchema,
+  type JsonSchema,
+  type ZodOrJsonSchema
+} from "./zod-schema.js";
 export { VariableChannel } from "./variable-channel.js";
 export { countTokens, truncateToTokens } from "./token-counter.js";
 export {

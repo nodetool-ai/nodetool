@@ -992,7 +992,7 @@ function buildControlTools(controlContext: unknown): ControlToolLike[] {
 class ToolLikeAdapter extends AgentTool {
   readonly name: string;
   readonly description: string;
-  readonly inputSchema: Record<string, unknown>;
+  protected readonly jsonSchema: Record<string, unknown>;
   private readonly _process: (
     context: ProcessingContext,
     params: Record<string, unknown>
@@ -1002,7 +1002,7 @@ class ToolLikeAdapter extends AgentTool {
     super();
     this.name = toolLike.name;
     this.description = toolLike.description ?? "";
-    this.inputSchema = toolLike.inputSchema ?? {
+    this.jsonSchema = toolLike.inputSchema ?? {
       type: "object",
       properties: {}
     };

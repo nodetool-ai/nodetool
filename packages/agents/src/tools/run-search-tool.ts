@@ -92,7 +92,7 @@ export class RunSearchTool extends Tool {
   readonly name = "run_search";
   readonly description = READ_ONLY_SEARCH_DESCRIPTION;
   readonly needsToolCallId = true;
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object",
     properties: {
       query: {

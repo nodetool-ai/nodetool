@@ -33,7 +33,7 @@ export class LocalGetNodeInfoTool extends Tool {
   readonly description =
     "Get detailed metadata for a node type including all inputs, outputs, types, and defaults. " +
     "Use this before add_node to verify exact property names and types.";
-  readonly inputSchema: Record<string, unknown> = GET_NODE_INFO_INPUT_SCHEMA;
+  readonly jsonSchema: Record<string, unknown> = GET_NODE_INFO_INPUT_SCHEMA;
 
   constructor(private readonly registry: NodeRegistry) {
     super();

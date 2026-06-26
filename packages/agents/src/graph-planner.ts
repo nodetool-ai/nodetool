@@ -392,9 +392,10 @@ export class GraphPlanner {
         }
 
         const toolStartedAt = Date.now();
-        const result = await tool.process(
+        const result = await Tool.executeTool(
+          tool,
           {} as ProcessingContext,
-          Tool.stripMessage(tc.args)
+          tc.args
         );
         const resultStr =
           typeof result === "string" ? result : JSON.stringify(result);

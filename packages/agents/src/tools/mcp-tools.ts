@@ -88,7 +88,7 @@ export class ListWorkflowsTool extends Tool {
   readonly name = "list_workflows";
   readonly description =
     "List workflows with flexible filtering and search options. Returns user workflows, example workflows, or both.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       workflow_type: {
@@ -142,7 +142,7 @@ export class GetWorkflowTool extends Tool {
   readonly name = "get_workflow";
   readonly description =
     "Get detailed information about a specific workflow including its graph structure.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       workflow_id: {
@@ -169,7 +169,7 @@ export class CreateWorkflowTool extends Tool {
   readonly name = "create_workflow";
   readonly description =
     "Create a new workflow with a name, graph structure, and optional metadata.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       name: { type: "string" as const, description: "The workflow name" },
@@ -217,7 +217,7 @@ export class RunWorkflowTool extends Tool {
   readonly name = "run_workflow";
   readonly description =
     "Execute a workflow with given parameters and return results.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       workflow_id: {
@@ -270,7 +270,7 @@ export class DebugWorkflowTool extends Tool {
     "Run a workflow end-to-end and return a consolidated debug report: final " +
     "status, outputs, error, job logs, and the workflow graph overview. Use this " +
     "to troubleshoot a failing or misbehaving workflow and iterate on a fix.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       workflow_id: {
@@ -327,7 +327,7 @@ export class ValidateWorkflowTool extends Tool {
   readonly name = "validate_workflow";
   readonly description =
     "Validate a workflow's structure, connectivity, and type compatibility.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       workflow_id: {
@@ -355,7 +355,7 @@ export class GetExampleWorkflowTool extends Tool {
   readonly name = "get_example_workflow";
   readonly description =
     "Load a specific example workflow from a package by name.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       package_name: {
@@ -389,7 +389,7 @@ export class ExportWorkflowDigraphTool extends Tool {
   readonly name = "export_workflow_digraph";
   readonly description =
     "Export a workflow as a Graphviz Digraph (DOT format) for visualization.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       workflow_id: {
@@ -428,7 +428,7 @@ export class ListNodesTool extends Tool {
   readonly name = "list_nodes";
   readonly description =
     "List available nodes from installed packages. Use this to discover nodes for building workflows.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       namespace: {
@@ -463,7 +463,7 @@ export class ListNodesTool extends Tool {
 export class SearchNodesTool extends Tool {
   readonly name = "search_nodes";
   readonly description = "Search for nodes by name, description, or tags.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       query: {
@@ -509,7 +509,7 @@ export class GetNodeInfoTool extends Tool {
   readonly name = "get_node_info";
   readonly description =
     "Get detailed metadata for a node type including its properties, inputs, and outputs.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       node_type: {
@@ -542,7 +542,7 @@ export class ListJobsTool extends Tool {
   readonly name = "list_jobs";
   readonly description =
     "List jobs (workflow executions) with optional filtering.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       workflow_id: {
@@ -578,7 +578,7 @@ export class GetJobTool extends Tool {
   readonly name = "get_job";
   readonly description =
     "Get details about a specific job including status, timing, and error info.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       job_id: {
@@ -604,7 +604,7 @@ export class GetJobTool extends Tool {
 export class GetJobLogsTool extends Tool {
   readonly name = "get_job_logs";
   readonly description = "Get logs for a job to debug workflow executions.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       job_id: {
@@ -638,7 +638,7 @@ export class StartBackgroundJobTool extends Tool {
   readonly name = "start_background_job";
   readonly description =
     "Start a workflow running in the background and return a job ID for tracking.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       workflow_id: {
@@ -676,7 +676,7 @@ export class ListAssetsTool extends Tool {
   readonly name = "list_assets";
   readonly description =
     "List or search assets with flexible filtering options.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       source: {
@@ -738,7 +738,7 @@ export class ListAssetsTool extends Tool {
 export class GetAssetTool extends Tool {
   readonly name = "get_asset";
   readonly description = "Get detailed information about a specific asset.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       asset_id: {
@@ -769,7 +769,7 @@ export class ListModelsTool extends Tool {
   readonly name = "list_models";
   readonly description =
     "List available AI models with flexible filtering options.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       provider: {

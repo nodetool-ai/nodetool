@@ -43,7 +43,7 @@ export class FinishTool extends Tool {
   readonly name = "finish_task";
   readonly description =
     "Finish the task by providing the final result value and metadata.";
-  readonly inputSchema: Record<string, unknown>;
+  readonly jsonSchema: Record<string, unknown>;
 
   constructor(
     outputType: string,
@@ -52,7 +52,7 @@ export class FinishTool extends Tool {
     super();
     const resultSchema = outputSchema ?? jsonSchemaForOutputType(outputType);
 
-    this.inputSchema = {
+    this.jsonSchema = {
       type: "object",
       properties: {
         result: resultSchema,

@@ -332,7 +332,7 @@ export class AddTaskTool extends Tool {
     "Add one task to the plan being built. Validated immediately. " +
     "On validation failure the task is NOT added and errors are returned; " +
     "call add_task again with a corrected task.";
-  readonly inputSchema: Record<string, unknown> = ADD_TASK_INPUT_SCHEMA;
+  readonly jsonSchema: Record<string, unknown> = ADD_TASK_INPUT_SCHEMA;
 
   constructor(private readonly builder: PlanBuilder) {
     super();
@@ -374,7 +374,7 @@ export class RemoveTaskTool extends Tool {
   readonly description =
     "Remove a previously added task. Use to correct mistakes " +
     "(e.g. when finish_plan reports a cross-task cycle).";
-  readonly inputSchema: Record<string, unknown> = REMOVE_TASK_INPUT_SCHEMA;
+  readonly jsonSchema: Record<string, unknown> = REMOVE_TASK_INPUT_SCHEMA;
 
   constructor(private readonly builder: PlanBuilder) {
     super();
@@ -412,7 +412,7 @@ export class FinishPlanTool extends Tool {
     "Commit the plan after all tasks have been added. Runs full-plan " +
     "validation. On validation failure, call add_task or remove_task and then " +
     "call finish_plan again.";
-  readonly inputSchema: Record<string, unknown> = FINISH_PLAN_INPUT_SCHEMA;
+  readonly jsonSchema: Record<string, unknown> = FINISH_PLAN_INPUT_SCHEMA;
 
   constructor(private readonly builder: PlanBuilder) {
     super();
