@@ -24,14 +24,8 @@ export async function applyVaultSwitch(id: string): Promise<void> {
   setActiveVaultId(id);
   logMessage(`Switching active vault to ${id}; restarting backend`);
 
-  try {
-    await stopServer();
-  } catch (error) {
-    logMessage(
-      `Error while stopping server for vault switch: ${(error as Error).message}`,
-      "warn"
-    );
-  }
+  // stopServer() handles and logs its own shutdown errors and does not throw.
+  await stopServer();
 
   // Small delay so the OS releases the port and database file lock before
   // the backend restarts (mirrors the manual server-restart path).

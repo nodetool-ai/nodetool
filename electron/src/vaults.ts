@@ -88,19 +88,22 @@ function readVaults(): Vault[] {
     }
   }
 
-  const defaultVault = vaults.find((vault) => vault.id === DEFAULT_VAULT_ID);
-  if (!defaultVault) {
-    vaults.unshift(createDefaultVault());
-  } else {
-    // The default vault must always map onto the backend defaults; a
-    // hand-edited settings file could have set paths on it. Normalize it.
-    defaultVault.name = defaultVault.name || DEFAULT_VAULT_NAME;
-    defaultVault.dbPath = null;
-    defaultVault.assetPath = null;
-    defaultVault.vectorPath = null;
-  }
+  // The default vault is always present, normalized to the backend defaults
+  // (a hand-edited settings file could have given it paths or placed it later
+  // in the list), and pinned to the front so default-first ordering holds.
+  const existingDefault = vaults.find((vault) => vault.id === DEFAULT_VAULT_ID);
+  const defaultVault: Vault = existingDefault
+    ? {
+        id: DEFAULT_VAULT_ID,
+        name: existingDefault.name || DEFAULT_VAULT_NAME,
+        dbPath: null,
+        assetPath: null,
+        vectorPath: null,
+      }
+    : createDefaultVault();
+  const others = vaults.filter((vault) => vault.id !== DEFAULT_VAULT_ID);
 
-  return vaults;
+  return [defaultVault, ...others];
 }
 
 function persistVaults(vaults: Vault[]): void {

@@ -155,6 +155,26 @@ describe("vaults module", () => {
     expect(defaultVault?.dbPath).toBeNull();
   });
 
+  test("the default vault is pinned to the front even when listed later", async () => {
+    const settingsDir = path.join(tempDir, ".config", "nodetool");
+    fs.mkdirSync(settingsDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(settingsDir, "settings.yaml"),
+      yaml.dump({
+        vaults: [
+          { id: "work", name: "Work", dbPath: "/x/work.sqlite3" },
+          { id: "default", name: "Default" },
+        ],
+      }),
+      "utf8",
+    );
+
+    const { listVaults, DEFAULT_VAULT_ID } = await import("../vaults");
+    const vaults = listVaults();
+    expect(vaults[0].id).toBe(DEFAULT_VAULT_ID);
+    expect(vaults.map((v) => v.id)).toEqual(["default", "work"]);
+  });
+
   test("getVaultList returns both the list and the active id", async () => {
     const { createVault, setActiveVaultId, getVaultList } = await import("../vaults");
     const vault = createVault("Work");
