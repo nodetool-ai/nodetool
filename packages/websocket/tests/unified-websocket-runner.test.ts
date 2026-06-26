@@ -918,3 +918,43 @@ describe("UnifiedWebSocketRunner binary frame size guard", () => {
     expect(msg?.type).toBe("ping");
   });
 });
+
+describe("UnifiedWebSocketRunner image tool results", () => {
+  const runner = new UnifiedWebSocketRunner({ resolveExecutor });
+  // extractToolResultImageContent is private; exercise it directly.
+  const extract = (result: unknown) =>
+    (
+      runner as unknown as {
+        extractToolResultImageContent: (r: unknown) => unknown;
+      }
+    ).extractToolResultImageContent(result);
+
+  it("converts an image_content result into text + image blocks", () => {
+    const content = extract({
+      ok: true,
+      note: "Rendered viewport (PNG).",
+      image_content: { data: "QUJD", mimeType: "image/png" }
+    });
+    expect(content).toEqual([
+      { type: "text", text: "Rendered viewport (PNG)." },
+      { type: "image_url", image: { data: "QUJD", uri: undefined, mimeType: "image/png" } }
+    ]);
+  });
+
+  it("defaults the mime type and note when omitted", () => {
+    const content = extract({ image_content: { data: "QUJD" } }) as Array<{
+      type: string;
+      text?: string;
+      image?: { mimeType?: string };
+    }>;
+    expect(content[0]).toEqual({ type: "text", text: "Captured image:" });
+    expect(content[1].image?.mimeType).toBe("image/png");
+  });
+
+  it("returns null for ordinary (non-image) results", () => {
+    expect(extract({ ok: true, count: 3 })).toBeNull();
+    expect(extract("plain string")).toBeNull();
+    expect(extract(null)).toBeNull();
+    expect(extract({ image_content: { mimeType: "image/png" } })).toBeNull();
+  });
+});

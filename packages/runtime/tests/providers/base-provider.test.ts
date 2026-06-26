@@ -3,9 +3,14 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { BaseProvider } from "../../src/providers/base-provider.js";
+import {
+  BaseProvider,
+  toolResultToText
+} from "../../src/providers/base-provider.js";
+import { isProviderMessageEvent } from "../../src/providers/types.js";
 import type {
   Message,
+  MessageContent,
   ProviderStreamItem,
   ProviderTool,
   ToolCall
@@ -336,5 +341,69 @@ describe("BaseProvider – close lifecycle", () => {
     const provider = new TestProvider();
     await expect(provider.close()).resolves.toBeUndefined();
     await expect(provider.close()).resolves.toBeUndefined();
+  });
+});
+
+describe("toolResultToText", () => {
+  it("passes strings through", () => {
+    expect(toolResultToText("hi")).toBe("hi");
+  });
+
+  it("joins text blocks and drops images", () => {
+    const content: MessageContent[] = [
+      { type: "text", text: "a shot" },
+      { type: "image_url", image: { data: "QUJD", mimeType: "image/png" } }
+    ];
+    expect(toolResultToText(content)).toBe("a shot");
+  });
+
+  it("falls back to a placeholder when only images are present", () => {
+    expect(
+      toolResultToText([
+        { type: "image_url", image: { data: "QUJD", mimeType: "image/png" } }
+      ])
+    ).toBe("[image result]");
+  });
+});
+
+describe("BaseProvider.generateLoop – image tool results", () => {
+  // Yields one tool call on the first turn, then finishes — the "real provider"
+  // path that emits ToolCall items (vs. the inline onToolCall callback).
+  class ToolOnceProvider extends BaseProvider {
+    private called = false;
+    constructor() {
+      super("test");
+    }
+    async *generateMessages(): AsyncGenerator<ProviderStreamItem> {
+      if (!this.called) {
+        this.called = true;
+        yield { id: "call_1", name: "snap", args: {} } as ToolCall;
+        return;
+      }
+      yield { type: "chunk", content: "done", done: true };
+    }
+  }
+
+  it("feeds MessageContent[] from executeTool into the tool message", async () => {
+    const provider = new ToolOnceProvider();
+    const image: MessageContent[] = [
+      { type: "text", text: "viewport" },
+      { type: "image_url", image: { data: "QUJD", mimeType: "image/png" } }
+    ];
+    const events: ProviderStreamItem[] = [];
+    for await (const item of provider.generateLoop({
+      messages: [{ role: "user", content: "look" }],
+      model: "m",
+      executeTool: async () => image
+    })) {
+      events.push(item);
+    }
+    const toolEvent = events.find(
+      (e) => isProviderMessageEvent(e) && e.message.role === "tool"
+    );
+    expect(toolEvent).toBeTruthy();
+    expect(
+      isProviderMessageEvent(toolEvent!) && toolEvent!.message.content
+    ).toEqual(image);
   });
 });
