@@ -6,6 +6,10 @@ export interface TutorialStep {
   atMs: number;
   /** Short label, e.g. "Enhance (LLM)". */
   label: string;
+  /** Node id to zoom the camera onto for this step. Omit to stay wide. */
+  focus?: string;
+  /** Zoom level for the focus (graph→screen scale). Defaults to ~1.8. */
+  zoom?: number;
 }
 
 export interface StepIndicatorProps {

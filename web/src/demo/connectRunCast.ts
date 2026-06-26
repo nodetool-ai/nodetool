@@ -44,26 +44,27 @@ const workflow = {
   },
 } as unknown as Workflow;
 
+// Slow, deliberate pacing so a first-timer can follow each beat.
 const events: CastEvent[] = [
   m.jobUpdate(0, "running"),
 
   // 1) A constant node holds a value.
-  m.nodeUpdate(150, "text", "Text", TEXT_TYPE, "running"),
-  m.nodeUpdate(550, "text", "Text", TEXT_TYPE, "completed", { value: INPUT }),
-  m.edgeUpdate(700, "e1", "active"),
+  m.nodeUpdate(300, "text", "Text", TEXT_TYPE, "running"),
+  m.nodeUpdate(1300, "text", "Text", TEXT_TYPE, "completed", { value: INPUT }),
+  m.edgeUpdate(1700, "e1", "active"),
 
   // 2) The transform runs and produces a result.
-  m.nodeUpdate(1000, "upper", "Uppercase", UPPER_TYPE, "running"),
-  m.nodeUpdate(2300, "upper", "Uppercase", UPPER_TYPE, "completed", { text: OUTPUT }),
-  m.edgeUpdate(2450, "e1", "completed"),
-  m.edgeUpdate(2600, "e2", "active"),
+  m.nodeUpdate(2600, "upper", "Uppercase", UPPER_TYPE, "running"),
+  m.nodeUpdate(4200, "upper", "Uppercase", UPPER_TYPE, "completed", { text: OUTPUT }),
+  m.edgeUpdate(4400, "e1", "completed"),
+  m.edgeUpdate(4700, "e2", "active"),
 
   // 3) Preview shows the output.
-  m.nodeUpdate(2900, "preview", "Preview", PREVIEW_NODE_TYPE, "running"),
-  m.output(3200, "preview", "Preview", "value", OUTPUT, "string"),
-  m.nodeUpdate(3600, "preview", "Preview", PREVIEW_NODE_TYPE, "completed", { value: OUTPUT }),
-  m.edgeUpdate(3800, "e2", "completed"),
-  m.jobUpdate(4000, "completed", { outputs: { value: OUTPUT } }),
+  m.nodeUpdate(5400, "preview", "Preview", PREVIEW_NODE_TYPE, "running"),
+  m.output(6000, "preview", "Preview", "value", OUTPUT, "string"),
+  m.nodeUpdate(6600, "preview", "Preview", PREVIEW_NODE_TYPE, "completed", { value: OUTPUT }),
+  m.edgeUpdate(6900, "e2", "completed"),
+  m.jobUpdate(7200, "completed", { outputs: { value: OUTPUT } }),
 ];
 
 export const connectRunCast: DemoCast = {
@@ -72,7 +73,7 @@ export const connectRunCast: DemoCast = {
   name: "Connect & Run",
   description: "The basics: add nodes, connect a handle, hit Run, read the output.",
   createdAt: new Date(0).toISOString(),
-  durationMs: 6500,
+  durationMs: 10000,
   fps: 30,
   workflow,
   metadata: {

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   AbsoluteFill,
   Sequence,
@@ -13,6 +13,7 @@ import { TitleCard } from "./components/TitleCard";
 import { Caption } from "./components/Caption";
 import { OutroCard } from "./components/OutroCard";
 import { StepIndicator, type TutorialStep } from "./components/StepIndicator";
+import { buildCameraKeys, cameraAt, type CameraCast } from "./camera";
 import type { CaptionCue } from "./WorkflowDemo";
 
 // A `type` alias so its implicit index signature satisfies Remotion's
@@ -81,9 +82,21 @@ export const Tutorial: React.FC<TutorialProps> = ({
 
   const resolveAssetUrl = (file: string) => staticFile(`casts/${cast.id}/${file}`);
 
+  // Animated camera: zoom/pan onto each step's focus node, then pull back.
+  const cameraKeys = useMemo(
+    () => buildCameraKeys(cast as CameraCast, steps, replayWindowMs),
+    [cast, steps, replayWindowMs]
+  );
+  const viewport = cameraAt(cameraKeys, timeMs);
+
   return (
     <AbsoluteFill style={{ background: "#0f0f17" }}>
-      <DemoPlayer cast={cast} timeMs={timeMs} resolveAssetUrl={resolveAssetUrl} />
+      <DemoPlayer
+        cast={cast}
+        timeMs={timeMs}
+        resolveAssetUrl={resolveAssetUrl}
+        viewport={viewport}
+      />
 
       {/* Step indicator + captions only during the replay beat. */}
       <Sequence from={introFrames} durationInFrames={replayFrames}>

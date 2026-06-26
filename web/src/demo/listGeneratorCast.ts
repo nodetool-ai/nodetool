@@ -51,27 +51,28 @@ const workflow = {
   },
 } as unknown as Workflow;
 
+// Slowed down so each streamed item is readable as it arrives.
 const events: CastEvent[] = [
   m.jobUpdate(0, "running"),
 
   // 1) A topic feeds the generator.
-  m.nodeUpdate(150, "topic", "Topic", INPUT_TYPE, "running"),
-  m.nodeUpdate(600, "topic", "Topic", INPUT_TYPE, "completed", { text: TOPIC }),
-  m.edgeUpdate(700, "e1", "active"),
+  m.nodeUpdate(300, "topic", "Topic", INPUT_TYPE, "running"),
+  m.nodeUpdate(1400, "topic", "Topic", INPUT_TYPE, "completed", { text: TOPIC }),
+  m.edgeUpdate(1700, "e1", "active"),
 
   // 2) The LLM streams a numbered list, item by item.
-  m.nodeUpdate(1000, "list", "Generate List", LIST_TYPE, "running"),
-  ...m.stream("list", ITEMS, 1300, 6700),
-  m.nodeUpdate(8300, "list", "Generate List", LIST_TYPE, "completed", { text: LIST }),
-  m.edgeUpdate(8450, "e1", "completed"),
-  m.edgeUpdate(8600, "e2", "active"),
+  m.nodeUpdate(2400, "list", "Generate List", LIST_TYPE, "running"),
+  ...m.stream("list", ITEMS, 2900, 7200),
+  m.nodeUpdate(10800, "list", "Generate List", LIST_TYPE, "completed", { text: LIST }),
+  m.edgeUpdate(11000, "e1", "completed"),
+  m.edgeUpdate(11200, "e2", "active"),
 
   // 3) Preview shows the finished list.
-  m.nodeUpdate(8900, "preview", "Preview", PREVIEW_NODE_TYPE, "running"),
-  m.output(9200, "preview", "Preview", "value", LIST, "string"),
-  m.nodeUpdate(9600, "preview", "Preview", PREVIEW_NODE_TYPE, "completed", { value: LIST }),
-  m.edgeUpdate(9800, "e2", "completed"),
-  m.jobUpdate(10000, "completed", { outputs: { value: LIST } }),
+  m.nodeUpdate(11900, "preview", "Preview", PREVIEW_NODE_TYPE, "running"),
+  m.output(12500, "preview", "Preview", "value", LIST, "string"),
+  m.nodeUpdate(13100, "preview", "Preview", PREVIEW_NODE_TYPE, "completed", { value: LIST }),
+  m.edgeUpdate(13300, "e2", "completed"),
+  m.jobUpdate(13600, "completed", { outputs: { value: LIST } }),
 ];
 
 export const listGeneratorCast: DemoCast = {
@@ -80,7 +81,7 @@ export const listGeneratorCast: DemoCast = {
   name: "List Generator",
   description: "Turn one topic into a structured list with a single LLM node.",
   createdAt: new Date(0).toISOString(),
-  durationMs: 13000,
+  durationMs: 16000,
   fps: 30,
   workflow,
   metadata: {
