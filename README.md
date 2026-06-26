@@ -26,6 +26,7 @@ Bring your own keys to FAL, KIE, Atlas, OpenAI, Anthropic, Gemini, Replicate, El
 - [What's in the box](#whats-in-the-box)
 - [What people build with it](#what-people-build-with-it)
 - [Video editor](#video-editor)
+- [Sketch editor](#sketch-editor)
 - [Models](#models)
 - [How NodeTool compares](#how-nodetool-compares)
 - [Get NodeTool](#get-nodetool)
@@ -58,6 +59,7 @@ That's what vendor neutrality buys you:
 | **Image, video, audio, text** | Unified workflows across every modality |
 | **Editing tools as nodes** | Mask, inpaint, outpaint, relight, upscale, layers, compositing |
 | **Video editor** | Multi-track timeline — sequence, composite, and AI-generate clips, then export to MP4 |
+| **Sketch editor** | Layered paint canvas — draw, mask, and generate AI imagery onto layers, then feed the result downstream |
 | **Runs on your machine** | Ollama, MLX (Apple Silicon), and GGUF for local inference |
 | **BYOK everywhere** | OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, ElevenLabs, HuggingFace |
 | **Document search** | Built-in vector store for indexing and querying your files |
@@ -84,6 +86,12 @@ A generation-aware, multi-track timeline lives right next to the canvas. Drop in
 ![NodeTool Video Editor](screen_video_editor.png)
 
 See the [Video Editor guide](https://docs.nodetool.ai/video-editor) for the full tour.
+
+## Sketch editor
+
+A layered paint canvas built into the node graph. Draw and paint with real brushes, build up a composition in layers with blend modes and masks, then bind a layer to a model or one of your own workflows and generate image content right where you're painting. Change a prompt or an upstream input and the layer flags itself stale; regenerate in place and keep working on top. When you're done, the node hands the rest of your workflow a flattened image, a mask, and per-layer outputs — no export/import round-trip. It pairs naturally with the editing nodes (mask, inpaint, outpaint, compositing) for sketch-then-generate pipelines.
+
+See the [Sketch Editor guide](https://docs.nodetool.ai/sketch-editor) for tools, layers, AI generation, and keyboard shortcuts.
 
 ## Models
 
@@ -131,6 +139,7 @@ ______________________________________________________________________
 
 - **[Getting Started](https://docs.nodetool.ai/getting-started)** — Build your first workflow
 - **[Video Editor](https://docs.nodetool.ai/video-editor)** — Sequence and AI-generate clips on a timeline
+- **[Sketch Editor](https://docs.nodetool.ai/sketch-editor)** — Draw, mask, and AI-generate on a layered canvas
 - **[Node Packs](https://docs.nodetool.ai/packs)** — Available nodes and integrations
 - **[Custom Nodes](https://docs.nodetool.ai/developer/custom-nodes-guide)** — Extend NodeTool
 - **[Deployment](https://docs.nodetool.ai/deployment)** — Share your work
