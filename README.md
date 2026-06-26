@@ -22,7 +22,6 @@ Bring your own keys to FAL, KIE, Atlas, OpenAI, Anthropic, Gemini, Replicate, El
 
 ## Contents
 
-- [Two ways to run it](#two-ways-to-run-it)
 - [Why NodeTool](#why-nodetool)
 - [What's in the box](#whats-in-the-box)
 - [What people build with it](#what-people-build-with-it)
@@ -38,32 +37,6 @@ Bring your own keys to FAL, KIE, Atlas, OpenAI, Anthropic, Gemini, Replicate, El
 - [Contributing](#contributing)
 - [License](#license)
 
-## Two ways to run it
-
-Same code, same workflows, same nodes. Pick whichever fits how you want to work — workflows are portable between both, and there is no separate "pro" or closed-source version.
-
-- **NodeTool Studio** — desktop app for macOS, Windows, and Linux. Runs Ollama, MLX, and GGUF models on your machine. Works offline.
-- **NodeTool Cloud** — open in any browser. No install, no GPU. BYOK to every provider.
-
-Both are AGPL-3.0, both built from this repository.
-
-|   | **NodeTool Studio** (desktop) | **NodeTool Cloud** (hosted) |
-| :--- | :--- | :--- |
-| **Where it runs** | Your machine | Managed servers, in any browser |
-| **Install** | Desktop app + ~20GB for local models | None — sign in and start |
-| **Local models** (Ollama, MLX, GGUF) | ✅ Yes — runs on your hardware | ❌ Not available — cloud APIs only |
-| **BYOK cloud providers** | ✅ All providers (keys stored on disk) | ✅ All providers (keys encrypted at rest) |
-| **Works offline** | ✅ Yes, fully offline with local models | ❌ Needs an internet connection |
-| **Where your data lives** | On your disk only | Managed storage (encrypted) |
-| **GPU required** | Recommended for local models | None |
-| **Updates** | You install new releases | Always on the latest version |
-| **Cost** | Free; pay only the providers you call | Subscription + your own API spend (BYOK) |
-| **Source code** | AGPL-3.0 (this repo) | AGPL-3.0 (this repo) — self-host any time |
-
-**Pick Studio if** you want to run open-weight models for free, work offline, keep data on your disk, or have a capable GPU / Apple Silicon machine.
-
-**Pick Cloud if** you want zero setup, work across multiple devices, or don't want to manage local model files and GPU drivers.
-
 ## Why NodeTool
 
 The best model for the job changes every month. NodeTool keeps up.
@@ -74,7 +47,7 @@ That's what vendor neutrality buys you:
 
 - **Every model.** OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, ElevenLabs, HuggingFace. Local with Ollama, MLX, and GGUF.
 - **Your keys.** Pay providers directly at provider prices. No credit markup, no proprietary tokens.
-- **Your canvas.** Workflows, files, and keys belong to you. Run on your machine or in the browser — your choice.
+- **Your canvas.** Workflows, files, and keys belong to you. Everything runs on your machine.
 - **Open source.** AGPL-3.0. Self-host any time. No acquisition risk.
 
 ## What's in the box
@@ -91,7 +64,7 @@ That's what vendor neutrality buys you:
 | **Real-time previews** | Live output at every node as the workflow runs |
 | **Custom nodes** | Extend in TypeScript or Python |
 | **Deploy & scale** | Self-host with Docker; rent GPU workers (RunPod, Vast) |
-| **Cross-platform** | Desktop, web, CLI, and mobile |
+| **Cross-platform** | macOS, Windows, and Linux |
 
 ## What people build with it
 
@@ -142,7 +115,7 @@ Use `TextToVideo`, `ImageToVideo`, or `TextToImage` nodes and select your provid
 
 ## Get NodeTool
 
-### NodeTool Studio (desktop)
+Download the desktop app, install, and start building — runs fully on your machine.
 
 | Platform | Get It | Requirements |
 | :--- | :--- | :--- |
@@ -151,10 +124,6 @@ Use `TextToVideo`, `ImageToVideo`, or `TextToImage` nodes and select your provid
 | **Linux** | [Download](https://nodetool.ai/studio) | NVIDIA GPU recommended, 4GB+ VRAM (local models) |
 
 [Flatpak CI Builds](https://github.com/nodetool-ai/nodetool/actions/workflows/flatpak-ci.yml) are available for Linux.
-
-### NodeTool Cloud (browser)
-
-Open [nodetool.ai/cloud](https://nodetool.ai/cloud) and sign in. Bring your own keys for every provider.
 
 ______________________________________________________________________
 
