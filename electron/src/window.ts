@@ -278,6 +278,26 @@ function initializePermissionHandlers(): void {
 }
 
 /**
+ * Reload the main window so the web UI reconnects to the (possibly restarted)
+ * backend. Used after switching vaults, when the backend has been restarted
+ * against a different database and may be on a new port. In dev mode the UI is
+ * served by the Vite dev server; in production it loads directly from the
+ * backend's URL.
+ */
+function reloadMainWindow(): void {
+  const window = getMainWindow();
+  if (!window || window.isDestroyed()) {
+    return;
+  }
+  const timestamp = Date.now();
+  const target = isElectronDevMode()
+    ? `${getWebDevServerUrl()}/?nocache=${timestamp}`
+    : `${serverState.initialURL}/?nocache=${timestamp}`;
+  logMessage(`Reloading main window at ${target}`);
+  window.loadURL(target);
+}
+
+/**
  * Force quit the application with error message.
  */
 function forceQuit(errorMessage: string): never {
@@ -321,6 +341,7 @@ export {
   createWindow,
   createLogViewerWindow,
   createSettingsWindow,
+  reloadMainWindow,
   forceQuit,
   handleActivation,
   _resetPermissionHandlersForTesting,

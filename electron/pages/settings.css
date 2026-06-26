@@ -296,6 +296,70 @@ h1 {
   border-color: #555;
 }
 
+.btn-danger {
+  background-color: transparent;
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: var(--danger);
+  color: #fff;
+}
+
+/* Vaults */
+.vault-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--success);
+  background-color: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 999px;
+  vertical-align: middle;
+}
+
+.vault-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.vault-create {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.vault-input {
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--text-main);
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  min-width: 180px;
+}
+
+.vault-input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.vault-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.vault-error {
+  font-size: 13px;
+  color: var(--danger);
+  padding: 4px 4px 0;
+}
+
 /* Info Section */
 .info-section {
   display: flex;

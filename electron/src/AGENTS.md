@@ -71,6 +71,29 @@ electron/src/
 
 **Process model**: Main process (Node.js) ↔ Preload script (contextBridge) ↔ Renderer process (React).
 
+### Vaults (multiple databases)
+
+A **vault** is a switchable, isolated data store — its own SQLite database plus
+its own assets and vector-store directories. It lets a user keep separate sets
+of workflows/data apart and switch between them from the desktop app. This is
+distinct from the in-database `nodetool_workspaces` concept (a per-user working
+directory for file tools); vaults sit one level above the database.
+
+- `vaults.ts` — source of truth: the vault list + active id are persisted in
+  `settings.yaml` (`vaults`, `activeVaultId`). The built-in **Default** vault
+  has `null` paths, meaning "use the backend defaults", so existing installs are
+  untouched. `getActiveVaultEnv()` returns `DB_PATH`/`ASSET_FOLDER`/
+  `VECTORSTORE_DB_PATH` overrides for the active vault.
+- `server.ts` merges those overrides into the backend's environment at startup
+  (skipped when an external `DATABASE_URL` is set — vaults are SQLite-only).
+- `vaultSwitch.ts` — `applyVaultSwitch(id)`: persist active id → restart the
+  backend (so it opens the new database) → re-register shortcuts → reload the
+  main window. Restarting the process is intentional: the backend holds its
+  SQLite connection in a singleton, so a clean restart beats a live swap.
+- UI: a native **Vaults** menu (quick switch + "Manage Vaults…") and a Vaults
+  section in the Settings window (`pages/SettingsPage.tsx`) for create / rename /
+  delete / switch, over `window.api.vaults.*` (IPC `VAULT_*`).
+
 ## Rules
 
 ### Security (Critical — non-negotiable)

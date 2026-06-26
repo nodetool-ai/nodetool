@@ -40,6 +40,11 @@ import { createWorkflowWindow } from "./workflowWindow";
 import { Watchdog } from "./watchdog";
 import { getModelServiceStartupSettings, readSettingsAsync } from "./settings";
 import { probeHttpOk, waitForHttpOk } from "./httpProbe";
+import {
+  ensureActiveVaultDirs,
+  getActiveVault,
+  getActiveVaultEnv,
+} from "./vaults";
 
 let backendWatchdog: Watchdog | null = null;
 let llamaWatchdog: Watchdog | null = null;
@@ -439,6 +444,27 @@ async function startServer(): Promise<void> {
     NODE_PATH: backendNodePath,
     NODETOOL_OPTIONAL_NODE_MODULES: optionalNodeModules,
   };
+
+  // Point the backend at the active vault's database/assets/vector store.
+  // Vaults are SQLite-only, so skip this when an external DATABASE_URL
+  // (e.g. PostgreSQL) is configured. The default vault contributes no
+  // overrides, preserving the original single-database behaviour.
+  if (!backendEnv.DATABASE_URL) {
+    try {
+      ensureActiveVaultDirs();
+      Object.assign(backendEnv, getActiveVaultEnv());
+      const activeVault = getActiveVault();
+      logMessage(
+        `Active vault: "${activeVault.name}" (${activeVault.id})` +
+          (activeVault.dbPath ? ` db=${activeVault.dbPath}` : " (default data store)")
+      );
+    } catch (error) {
+      logMessage(
+        `Failed to apply active vault environment, using default database: ${(error as Error).message}`,
+        "warn"
+      );
+    }
+  }
 
   // Log database configuration for debugging
   const dbConfig = backendEnv.DB_PATH || backendEnv.DATABASE_URL;

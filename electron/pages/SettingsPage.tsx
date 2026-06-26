@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import "./settings.css";
-import { UpdateInfo } from "../src/types";
+import { UpdateInfo, Vault } from "../src/types";
+
+const DEFAULT_VAULT_ID = "default";
 
 const Settings: React.FC = () => {
   const [autoUpdatesEnabled, setAutoUpdatesEnabled] = useState(false);
@@ -10,6 +12,13 @@ const Settings: React.FC = () => {
   const [serviceSaving, setServiceSaving] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [isInstalling, setIsInstalling] = useState(false);
+
+  // Vaults: switchable, isolated data stores (each its own SQLite database).
+  const [vaults, setVaults] = useState<Vault[]>([]);
+  const [activeVaultId, setActiveVaultId] = useState<string>(DEFAULT_VAULT_ID);
+  const [newVaultName, setNewVaultName] = useState("");
+  const [vaultBusy, setVaultBusy] = useState(false);
+  const [vaultError, setVaultError] = useState<string | null>(null);
 
   useEffect(() => {
     initialize();
@@ -37,10 +46,87 @@ const Settings: React.FC = () => {
         const startup = await window.api.settings.getModelServicesStartup();
         setStartLlamaCppOnStartup(startup.startLlamaCppOnStartup);
       }
+      if (window.api?.vaults?.list) {
+        const result = await window.api.vaults.list();
+        setVaults(result.vaults);
+        setActiveVaultId(result.activeVaultId);
+      }
     } catch (error) {
       console.error("Failed to load settings:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateVault = async () => {
+    const name = newVaultName.trim();
+    if (!name || vaultBusy || !window.api?.vaults?.create) return;
+    setVaultBusy(true);
+    setVaultError(null);
+    try {
+      const result = await window.api.vaults.create(name);
+      setVaults(result.vaults);
+      setActiveVaultId(result.activeVaultId);
+      setNewVaultName("");
+    } catch (error) {
+      setVaultError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setVaultBusy(false);
+    }
+  };
+
+  const handleSwitchVault = async (id: string) => {
+    if (id === activeVaultId || vaultBusy || !window.api?.vaults?.switch) return;
+    setVaultBusy(true);
+    setVaultError(null);
+    try {
+      // Switching restarts the backend and reloads the main window; the
+      // settings window stays open and reflects the new active vault.
+      const result = await window.api.vaults.switch(id);
+      setVaults(result.vaults);
+      setActiveVaultId(result.activeVaultId);
+    } catch (error) {
+      setVaultError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setVaultBusy(false);
+    }
+  };
+
+  const handleRenameVault = async (id: string, currentName: string) => {
+    if (vaultBusy || !window.api?.vaults?.rename) return;
+    const next = window.prompt("Rename vault", currentName);
+    if (next === null) return;
+    const name = next.trim();
+    if (!name || name === currentName) return;
+    setVaultBusy(true);
+    setVaultError(null);
+    try {
+      const result = await window.api.vaults.rename(id, name);
+      setVaults(result.vaults);
+      setActiveVaultId(result.activeVaultId);
+    } catch (error) {
+      setVaultError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setVaultBusy(false);
+    }
+  };
+
+  const handleDeleteVault = async (id: string, name: string) => {
+    if (vaultBusy || !window.api?.vaults?.delete) return;
+    const confirmed = window.confirm(
+      `Remove the vault "${name}" from the list?\n\nIts database files are left on disk and can be re-added or deleted manually.`
+    );
+    if (!confirmed) return;
+    setVaultBusy(true);
+    setVaultError(null);
+    try {
+      const result = await window.api.vaults.delete(id);
+      setVaults(result.vaults);
+      setActiveVaultId(result.activeVaultId);
+    } catch (error) {
+      setVaultError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setVaultBusy(false);
     }
   };
 
@@ -235,6 +321,104 @@ const Settings: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Vaults Section */}
+        <div className="settings-section">
+          <div className="settings-section-header">
+            <h2>Vaults</h2>
+            <p className="settings-section-description">
+              A vault is a separate, isolated data store with its own database,
+              assets, and RAG collections. Switch vaults to keep different sets
+              of workflows and data apart. Switching restarts the backend and
+              reloads the app.
+            </p>
+          </div>
+
+          <div className="settings-card">
+            {vaults.map((vault) => {
+              const isActive = vault.id === activeVaultId;
+              const isDefault = vault.id === DEFAULT_VAULT_ID;
+              return (
+                <div className="setting-row" key={vault.id}>
+                  <div className="setting-info">
+                    <div className="setting-label">
+                      {vault.name}
+                      {isActive && (
+                        <span className="vault-badge">Active</span>
+                      )}
+                    </div>
+                    <div className="setting-description">
+                      {isDefault
+                        ? "The original data store."
+                        : vault.dbPath ?? ""}
+                    </div>
+                  </div>
+                  <div className="setting-control vault-actions">
+                    {!isActive && (
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => void handleSwitchVault(vault.id)}
+                        disabled={vaultBusy}
+                      >
+                        Switch
+                      </button>
+                    )}
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() =>
+                        void handleRenameVault(vault.id, vault.name)
+                      }
+                      disabled={vaultBusy || isDefault}
+                    >
+                      Rename
+                    </button>
+                    <button
+                      className="btn btn-danger"
+                      onClick={() => void handleDeleteVault(vault.id, vault.name)}
+                      disabled={vaultBusy || isDefault || isActive}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+
+            <div className="setting-row">
+              <div className="setting-info">
+                <div className="setting-label">Create a new vault</div>
+                <div className="setting-description">
+                  Starts an empty database in its own folder.
+                </div>
+              </div>
+              <div className="setting-control vault-create">
+                <input
+                  className="vault-input"
+                  type="text"
+                  placeholder="Vault name"
+                  value={newVaultName}
+                  maxLength={100}
+                  onChange={(event) => setNewVaultName(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      void handleCreateVault();
+                    }
+                  }}
+                  disabled={vaultBusy}
+                />
+                <button
+                  className="btn btn-primary"
+                  onClick={() => void handleCreateVault()}
+                  disabled={vaultBusy || newVaultName.trim().length === 0}
+                >
+                  Create
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {vaultError && <div className="vault-error">{vaultError}</div>}
         </div>
 
         {/* Info Section */}
