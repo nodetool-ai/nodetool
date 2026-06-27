@@ -8,11 +8,8 @@ import { runInlineGraphJob } from "../../lib/workflow/runInlineGraphJob";
 import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
 import { reactFlowEdgeToGraphEdge } from "../../stores/reactFlowEdgeToGraphEdge";
 import { buildRunSubgraph } from "../../utils/runSubgraph";
-import {
-  getNodeGenerations,
-  getNodeSelectedOutputs
-} from "../../stores/nodeGenerationAccessor";
-import { getCurrentGeneration } from "../../utils/nodeGenerations";
+import { getNodeGenerations } from "../../stores/nodeGenerationAccessor";
+import { computeRunSignatures } from "../../utils/computeRunSignatures";
 
 interface UseRunFromHereReturn {
   /** Run just this node as its own job (the "Run Node" action). */
@@ -30,13 +27,14 @@ interface UseRunFromHereReturn {
  * Run a single node as its own job (the "Run Node" action).
  *
  * Upstream inputs are resolved into the smallest runnable subgraph (see
- * {@link buildRunSubgraph}): cached results and constant/input values are
- * inlined as overrides, deterministic upstream nodes are submitted alongside
- * the target so they run and feed it, and uncached *generative* upstreams
- * (auto-saving asset nodes) block the run with a message telling the user to
- * run them first. Cached values are read from the focused run's output and
- * result buckets — the same precedence the node bodies use to display them, so
- * a reopened workflow's hydrated assets are picked up.
+ * {@link buildRunSubgraph}): constant/input nodes inline their current value,
+ * cached *generative* upstreams (auto-saving asset nodes) inline their cached
+ * output, deterministic upstream nodes are submitted alongside the target so
+ * they re-run and feed it (their cache is ignored, so edits are always picked
+ * up), and uncached generative upstreams block the run with a message telling
+ * the user to run them first. Generative caches are read from the focused run's
+ * output and result buckets — the same precedence the node bodies use to
+ * display them, so a reopened workflow's hydrated assets are picked up.
  *
  * The run is dispatched as an independent job (not the shared per-workflow
  * runner), so different nodes run in tandem. The backend caps concurrency per
@@ -61,8 +59,6 @@ export function useRunFromHere(
     }
 
     const targetNode = findNode(node.id) ?? node;
-    const findCurrentNode = (id: string): Node<NodeData> | undefined =>
-      findNode(id) ?? nodes.find((n) => n.id === id);
     const targetMetadata = targetNode.type
       ? useMetadataStore.getState().getMetadata(targetNode.type)
       : undefined;
@@ -72,27 +68,11 @@ export function useRunFromHere(
       nodes,
       edges,
       workflowId: workflow.id,
-      // Seed inputs from each upstream's selected generation (durable assets
-      // merged with the live buffer); resolveExternalEdgeValue unwraps the
-      // returned outputs record by source handle.
-      getResult: (wf, sourceId) => {
-        const current = getCurrentGeneration(
-          getNodeGenerations(wf, sourceId),
-          findCurrentNode(sourceId)?.data?.selected_generation
-        );
-        return current?.outputs;
-      },
-      // Multi-select: the source's chosen generations stream into the target via
-      // an injected ForEach replay node (input_list = the selected values), and
-      // the source is pruned. No list-type gate — see buildRunSubgraph.
-      getSelectedOutputs: (wf, sourceId, sourceHandle) =>
-        getNodeSelectedOutputs(
-          wf,
-          sourceId,
-          sourceHandle,
-          findCurrentNode(sourceId)?.data?.selected_generations
-        ),
-      getMetadata: useMetadataStore.getState().getMetadata
+      getMetadata: useMetadataStore.getState().getMetadata,
+      // Merged generation history (durable assets + live buffer) per upstream:
+      // the resolver classifies/caches/blocks each external input from it.
+      getGenerations: getNodeGenerations,
+      now: Date.now()
     });
 
     if (subgraph.blocked.length > 0) {
@@ -114,6 +94,17 @@ export function useRunFromHere(
       edges: subgraph.edges.map(reactFlowEdgeToGraphEdge)
     };
 
+    // Stamp registry (spec §3.4): signatures for the submitted nodes, computed
+    // against the FULL live graph (not the pruned subgraph), so a produced
+    // generation can be tagged with the same key a later resolve() looks up.
+    const inputSignatures = computeRunSignatures(subgraph.nodeIds, {
+      nodes,
+      edges,
+      workflowId: workflow.id,
+      getMetadata: useMetadataStore.getState().getMetadata,
+      getGenerations: getNodeGenerations
+    });
+
     // Independent job; the backend runs it immediately when under the
     // per-client concurrency cap (MAX_CONCURRENT_JOBS), otherwise queues it.
     const jobName =
@@ -121,7 +112,12 @@ export function useRunFromHere(
       targetMetadata?.title ||
       targetNode.type ||
       undefined;
-    void runInlineGraphJob({ graph, workflowId: workflow.id, jobName });
+    void runInlineGraphJob({
+      graph,
+      workflowId: workflow.id,
+      jobName,
+      inputSignatures
+    });
 
     addNotification({
       type: "info",

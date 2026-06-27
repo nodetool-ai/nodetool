@@ -41,6 +41,7 @@ import { NodeStore } from "./NodeStore";
 import { DYNAMIC_KIE_NODE_TYPE } from "../components/node/DynamicKieSchemaNode";
 import { normalizeOutputUpdateValue } from "./outputUpdateValue";
 import { publishRealtimeAudioChunk } from "../lib/audio/realtimeAudioChunkBus";
+import { getRunSignature, clearRunSignatures } from "./runSignatures";
 
 /**
  * Pending audio-chunk store appends, coalesced per node and flushed on a
@@ -584,7 +585,11 @@ export const handleUpdate = (
       upsertLiveGeneration(workflow.id, data.node_id, jobId, {
         index: slot,
         status: "completed",
-        outputs: data.outputs
+        outputs: data.outputs,
+        // Stamp the dispatch-time signature so a later resolve/buildRunSubgraph
+        // can reuse this cached output (Computed cache key, spec §3.4). Absent
+        // for partial runs of computed nodes → simply not cached.
+        inputSignature: getRunSignature(jobId, data.node_id)
       });
     }
   }
@@ -631,6 +636,9 @@ export const handleUpdate = (
       // never finalize between frames.
       if (job.job_id && !silentJob) {
         clearSawGenerationCompleteFor(job.job_id);
+        // The run is finished: drop its dispatch-time signature map so the
+        // registry doesn't leak entries across runs (spec §3.4).
+        clearRunSignatures(job.job_id);
       }
     }
     // The per-workflow runner represents the single full run. Concurrent
@@ -1063,7 +1071,11 @@ export const handleUpdate = (
             upsertLiveGeneration(workflow.id, update.node_id, jobId, {
               status: "completed",
               outputs,
-              cost: update.provider_cost ?? undefined
+              cost: update.provider_cost ?? undefined,
+              // Stamp the dispatch-time signature so this synthesized output can
+              // serve a later Computed cache hit (spec §3.4). Undefined when the
+              // run didn't record one → not cached, which is fine.
+              inputSignature: getRunSignature(jobId, update.node_id)
             });
           }
           appendTrace(

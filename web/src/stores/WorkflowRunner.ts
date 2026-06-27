@@ -41,6 +41,9 @@ import { getNodeStore, MsgpackData } from "./workflowUpdates";
 import useStatusStore from "./StatusStore";
 import useResultsStore from "./ResultsStore";
 import { queryClient } from "../queryClient";
+import { recordRunSignatures } from "./runSignatures";
+import { computeRunSignatures } from "../utils/computeRunSignatures";
+import { getNodeGenerations } from "./nodeGenerationAccessor";
 
 export type MessageHandler = (
   workflow: WorkflowAttributes,
@@ -196,7 +199,8 @@ export type WorkflowRunner = {
     edges: Edge[],
     resource_limits?: Record<string, unknown>,
     subgraphNodeIds?: Set<string>,
-    concurrent?: boolean
+    concurrent?: boolean,
+    inputSignatures?: Record<string, string>
   ) => Promise<string>;
   reconnect: (jobId: string) => Promise<void>;
   reconnectWithWorkflow: (
@@ -380,7 +384,8 @@ export const createWorkflowRunnerStore = (
       edges: Edge[],
       resource_limits?: Record<string, unknown>,
       subgraphNodeIds?: Set<string>,
-      concurrent?: boolean
+      concurrent?: boolean,
+      inputSignatures?: Record<string, string>
     ) => {
       useOnboardingStore.getState().markStep("run-workflow");
       const activeNodeTypes = nodes
@@ -418,6 +423,30 @@ export const createWorkflowRunnerStore = (
 
       const jobId = crypto.randomUUID();
       const queueRun = busy && !stuck;
+
+      // Stamp registry (spec §3.4): record each active node's input signature —
+      // computed against the FULL live graph — under this run's jobId so
+      // handleUpdate can stamp the generations it produces. Single-node callers
+      // (useRunSingleNode) pass a full-graph map explicitly because their
+      // `nodes`/`edges` are a pruned subgraph; full-workflow runs receive the
+      // full graph here, so compute it. handleUpdate clears the map on the job's
+      // terminal update, so the full-run path records but never clears. Computed
+      // synchronously, before any await, so a produced generation can always
+      // find its stamp.
+      recordRunSignatures(
+        jobId,
+        inputSignatures ??
+          computeRunSignatures(
+            nodes.filter((n) => !n.data?.bypassed).map((n) => n.id),
+            {
+              nodes,
+              edges,
+              workflowId: workflow.id,
+              getMetadata: useMetadataStore.getState().getMetadata,
+              getGenerations: getNodeGenerations
+            }
+          )
+      );
 
       if (!queueRun) {
         if (stuck) {

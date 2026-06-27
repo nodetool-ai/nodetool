@@ -63,6 +63,14 @@ export interface Generation {
   error?: string;
   assetId?: string;
   /**
+   * The node's input signature at the time this generation was produced (the
+   * Computed cache key; the Generative staleness-badge key). Stamped at dispatch
+   * against the live full graph; reuse resolution (see runResolve.ts) matches a
+   * Computed node's current `inputSignature` against this. Absent on persisted
+   * generations reconstructed from assets (live-session-only for now, spec §3.4).
+   */
+  inputSignature?: string;
+  /**
    * Per-(jobId) variant position, recovered at read time (no DB column); never
    * a stored field on persisted gens. Persisted gens: derived from (createdAt,
    * id) order within the job — `mergeGenerations` computes that order for its
@@ -185,6 +193,47 @@ export const getCurrentGeneration = (
   }
   return generations[generations.length - 1];
 };
+
+/** The newest completed generation, or undefined (history is oldest→newest). */
+export const newestCompletedGeneration = (
+  generations: Generation[]
+): Generation | undefined => {
+  for (let i = generations.length - 1; i >= 0; i--) {
+    if (generations[i].status === "completed") return generations[i];
+  }
+  return undefined;
+};
+
+/**
+ * The newest completed generation whose stamped `inputSignature` matches — the
+ * Computed cache key (spec §3.4). undefined when none match.
+ */
+export const newestCompletedGenerationForSignature = (
+  generations: Generation[],
+  signature: string
+): Generation | undefined => {
+  for (let i = generations.length - 1; i >= 0; i--) {
+    const g = generations[i];
+    if (g.status === "completed" && g.inputSignature === signature) return g;
+  }
+  return undefined;
+};
+
+const hasOutputs = (outputs: Record<string, unknown>): boolean =>
+  isRecord(outputs) && Object.keys(outputs).length > 0;
+
+/**
+ * Generations to SHOW in a node's history / current preview. A failed run
+ * settles its in-progress generation to status "error" with no outputs (an
+ * empty placeholder); that blank tile is dropped here — the failure is surfaced
+ * via the node's status/error, not as an empty result. Running placeholders
+ * (the spinner) and any generation that carries outputs — including an error
+ * that still produced something — are kept.
+ */
+export const displayableGenerations = (
+  generations: Generation[]
+): Generation[] =>
+  generations.filter((g) => g.status !== "error" || hasOutputs(g.outputs));
 
 /**
  * A group of generations that belong to one workflow run. A regular generator

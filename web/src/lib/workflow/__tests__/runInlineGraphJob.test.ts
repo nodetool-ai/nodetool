@@ -1,5 +1,6 @@
 import { runInlineGraphJob } from "../runInlineGraphJob";
 import { globalWebSocketManager } from "../../websocket/GlobalWebSocketManager";
+import { getRunSignature } from "../../../stores/runSignatures";
 
 jest.mock("../../websocket/GlobalWebSocketManager", () => {
   let captured: ((m: Record<string, unknown>) => void) | undefined;
@@ -65,5 +66,41 @@ describe("runInlineGraphJob", () => {
       result: { outputs: {} }
     });
     await done;
+  });
+
+  it("records inputSignatures under the dispatched jobId and clears them on finish", async () => {
+    const graph = {
+      nodes: [{ id: "n1", type: "x.Y", data: {} }],
+      edges: []
+    } as never;
+
+    const done = runInlineGraphJob({
+      graph,
+      workflowId: "wf",
+      inputSignatures: { n1: "sig-n1" }
+    });
+    // Let ensureConnection + send resolve so the job id is generated and the
+    // signatures are recorded before sending.
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // Stamped under the dispatched jobId (crypto.randomUUID stubbed → "job-x").
+    expect(getRunSignature("job-x", "n1")).toBe("sig-n1");
+
+    (
+      globalWebSocketManager as unknown as {
+        __emit: (m: Record<string, unknown>) => void;
+      }
+    ).__emit({
+      type: "job_update",
+      status: "completed",
+      job_id: "job-x",
+      workflow_id: "wf",
+      result: { outputs: {} }
+    });
+    await done;
+
+    // finish() drops the entry once the run settles.
+    expect(getRunSignature("job-x", "n1")).toBeUndefined();
   });
 });

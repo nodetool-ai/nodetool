@@ -7,6 +7,7 @@ import {
   groupByRun,
   getCurrentRun,
   selectedOutputValues,
+  displayableGenerations,
   type Generation
 } from "../nodeGenerations";
 import type { Asset } from "../../stores/ApiTypes";
@@ -504,6 +505,37 @@ describe("selectedOutputValues", () => {
     expect(selectedOutputValues(gens, ["a", "b"], "image")).toEqual([
       "imgA",
       "imgB"
+    ]);
+  });
+});
+
+describe("displayableGenerations", () => {
+  const g = (
+    id: string,
+    status: Generation["status"],
+    outputs: Record<string, unknown> = {}
+  ): Generation => ({ id, jobId: "j1", createdAt: 1, outputs, status });
+
+  it("drops an errored generation with no outputs (a failed run's empty placeholder)", () => {
+    const list = [g("ok", "completed", { output: "img" }), g("failed", "error")];
+    expect(displayableGenerations(list).map((x) => x.id)).toEqual(["ok"]);
+  });
+
+  it("keeps running placeholders (spinner) and completed results", () => {
+    const list = [
+      g("done", "completed", { output: "img" }),
+      g("inflight", "running")
+    ];
+    expect(displayableGenerations(list).map((x) => x.id)).toEqual([
+      "done",
+      "inflight"
+    ]);
+  });
+
+  it("keeps an errored generation that still carries outputs (don't hide a real result)", () => {
+    const list = [g("err-with-output", "error", { output: "partial" })];
+    expect(displayableGenerations(list).map((x) => x.id)).toEqual([
+      "err-with-output"
     ]);
   });
 });

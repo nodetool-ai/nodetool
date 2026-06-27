@@ -177,7 +177,10 @@ describe("useRunFromHere (Run Node)", () => {
     expect(mockRunInline).not.toHaveBeenCalled();
   });
 
-  it("inlines the upstream's current generation output and sends only the clicked node", () => {
+  it("inlines a cached GENERATIVE upstream's output and sends only the clicked node", () => {
+    // Only generative (auto-save) upstreams are reused from cache; mark node-a
+    // generative so its cached generation is inlined rather than re-run.
+    mockGetMetadata.mockReturnValue({ auto_save_asset: true, title: "Chat" });
     seedGeneration("node-a", { output: "cached" });
     const { result } = renderHook(() => useRunFromHere(nodeB as never));
 
@@ -251,6 +254,55 @@ describe("useRunFromHere (Run Node)", () => {
     );
   });
 
+  it("re-runs an edited Prompt upstream even when it has a stale cached generation", () => {
+    // The reported bug: Prompt -> Agent, run the Agent once (Prompt now cached),
+    // edit the Prompt, Run Node again. The Prompt is non-generative, so its
+    // stale cache must NOT be inlined — it is included and re-run with the
+    // edited text.
+    const promptNode: TestNode = {
+      id: "prompt",
+      type: "nodetool.text.Prompt",
+      data: { properties: { prompt: "Say C" } }
+    };
+    const agentNode: TestNode = {
+      id: "agent",
+      type: "nodetool.agents.Agent",
+      data: { properties: {} }
+    };
+    nodeStoreState = {
+      edges: [
+        {
+          id: "prompt-to-agent",
+          source: "prompt",
+          target: "agent",
+          sourceHandle: "output",
+          targetHandle: "prompt"
+        }
+      ],
+      nodes: [promptNode, agentNode],
+      workflow,
+      findNode: (id: string) => nodeStoreState.nodes.find((n) => n.id === id)
+    };
+    // Stale generation left over from a prior run with the old prompt text.
+    seedGeneration("prompt", { output: "Say B" });
+
+    const { result } = renderHook(() => useRunFromHere(agentNode as never));
+
+    act(() => {
+      result.current.runFromHere();
+    });
+
+    // Prompt is submitted (re-run) carrying its edited text; the stale "Say B"
+    // is never inlined onto the agent.
+    expect(graphArg().nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "prompt", data: { prompt: "Say C" } })
+      ])
+    );
+    const agent = graphArg().nodes.find((n: { id: string }) => n.id === "agent");
+    expect(agent.data.prompt).toBeUndefined();
+  });
+
   it("blocks and warns when an uncached generative upstream feeds the node", () => {
     // node-a has no generation yet and is flagged as a generative node.
     mockGetMetadata.mockReturnValue({
@@ -289,5 +341,41 @@ describe("useRunFromHere (Run Node)", () => {
   it("reports isWorkflowRunning as false (independent jobs are never gated)", () => {
     const { result } = renderHook(() => useRunFromHere(nodeA as never));
     expect(result.current.isWorkflowRunning).toBe(false);
+  });
+
+  it("records a full-graph input signature for the single submitted node", () => {
+    const { result } = renderHook(() => useRunFromHere(nodeA as never));
+
+    act(() => {
+      result.current.runFromHere();
+    });
+
+    const opts = mockRunInline.mock.calls[0][0];
+    // One entry per submitted node, keyed by node id.
+    expect(Object.keys(opts.inputSignatures)).toEqual(["node-a"]);
+    expect(typeof opts.inputSignatures["node-a"]).toBe("string");
+    expect(opts.inputSignatures["node-a"].length).toBeGreaterThan(0);
+  });
+
+  it("records signatures for every submitted node, including re-run upstreams", () => {
+    // Run from node-b; node-a is a non-generative upstream, so it is submitted
+    // (re-run) alongside the target — each node gets a signature keyed by id.
+    const { result } = renderHook(() => useRunFromHere(nodeB as never));
+
+    act(() => {
+      result.current.runFromHere();
+    });
+
+    const opts = mockRunInline.mock.calls[0][0];
+    const submittedIds = opts.graph.nodes.map((n: { id: string }) => n.id);
+    expect(submittedIds).toEqual(expect.arrayContaining(["node-a", "node-b"]));
+    // The signature map covers exactly the submitted nodes.
+    expect(Object.keys(opts.inputSignatures).sort()).toEqual(
+      [...submittedIds].sort()
+    );
+    for (const id of submittedIds) {
+      expect(typeof opts.inputSignatures[id]).toBe("string");
+      expect(opts.inputSignatures[id].length).toBeGreaterThan(0);
+    }
   });
 });

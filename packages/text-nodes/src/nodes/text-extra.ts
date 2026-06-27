@@ -107,6 +107,7 @@ function modelConfig(props: Record<string, unknown>): {
 
 export class SplitTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Split";
+  static readonly cacheTtl = "forever";
   static readonly title = "Split Text";
   static readonly description =
     "Separates text into a list of strings based on a specified delimiter.\n    text, split, tokenize";
@@ -131,6 +132,7 @@ export class SplitTextNode extends BaseNode {
 
 export class ExtractTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Extract";
+  static readonly cacheTtl = "forever";
   static readonly title = "Extract Text";
   static readonly description =
     "Extracts a substring from input text.\n    text, extract, substring";
@@ -160,6 +162,7 @@ export class ExtractTextNode extends BaseNode {
 
 export class ChunkTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Chunk";
+  static readonly cacheTtl = "forever";
   static readonly title = "Split Text into Chunks";
   static readonly description =
     "Splits text into chunks of specified word length.\n    text, chunk, split";
@@ -203,6 +206,7 @@ export class ChunkTextNode extends BaseNode {
 
 export class ExtractRegexNode extends BaseNode {
   static readonly nodeType = "nodetool.text.ExtractRegex";
+  static readonly cacheTtl = "forever";
   static readonly title = "Extract Regex Groups";
   static readonly description =
     "Extracts substrings matching regex groups from text.\n    text, regex, extract\n\n    Use cases:\n    - Extracting structured data (e.g., dates, emails) from unstructured text\n    - Parsing specific patterns in log files or documents\n    - Isolating relevant information from complex text formats";
@@ -246,6 +250,7 @@ export class ExtractRegexNode extends BaseNode {
 
 export class FindAllRegexNode extends BaseNode {
   static readonly nodeType = "nodetool.text.FindAllRegex";
+  static readonly cacheTtl = "forever";
   static readonly title = "Find All Regex Matches";
   static readonly description =
     "Finds all regex matches in text as separate substrings.\n    text, regex, find";
@@ -288,6 +293,7 @@ export class FindAllRegexNode extends BaseNode {
 
 export class TextParseJSONNode extends BaseNode {
   static readonly nodeType = "nodetool.text.ParseJSON";
+  static readonly cacheTtl = "forever";
   static readonly title = "Parse JSON String";
   static readonly description =
     "Parses a JSON string into a Python object.\n    json, parse, convert";
@@ -352,6 +358,7 @@ function jsonPathFind(path: string, root: unknown): unknown[] {
 
 export class ExtractJSONNode extends BaseNode {
   static readonly nodeType = "nodetool.text.ExtractJSON";
+  static readonly cacheTtl = "forever";
   static readonly title = "Extract JSON";
   static readonly description =
     "Extracts data from JSON using JSONPath expressions.\n    json, extract, jsonpath";
@@ -389,6 +396,7 @@ export class ExtractJSONNode extends BaseNode {
 
 export class RegexMatchNode extends BaseNode {
   static readonly nodeType = "nodetool.text.RegexMatch";
+  static readonly cacheTtl = "forever";
   static readonly title = "Find Regex Matches";
   static readonly description =
     "Find all matches of a regex pattern in text.\n    regex, search, pattern, match\n\n    Use cases:\n    - Extract specific patterns from text\n    - Validate text against patterns\n    - Find all occurrences of a pattern";
@@ -443,6 +451,7 @@ export class RegexMatchNode extends BaseNode {
 
 export class RegexReplaceNode extends BaseNode {
   static readonly nodeType = "nodetool.text.RegexReplace";
+  static readonly cacheTtl = "forever";
   static readonly title = "Replace with Regex";
   static readonly description =
     "Replace text matching a regex pattern.\n    regex, replace, substitute\n\n    Use cases:\n    - Clean or standardize text\n    - Remove unwanted patterns\n    - Transform text formats";
@@ -517,6 +526,7 @@ export class RegexReplaceNode extends BaseNode {
 
 export class RegexSplitNode extends BaseNode {
   static readonly nodeType = "nodetool.text.RegexSplit";
+  static readonly cacheTtl = "forever";
   static readonly title = "Split with Regex";
   static readonly description =
     "Split text using a regex pattern as delimiter.\n    regex, split, tokenize\n\n    Use cases:\n    - Parse structured text\n    - Extract fields from formatted strings\n    - Tokenize text";
@@ -577,6 +587,7 @@ export class RegexSplitNode extends BaseNode {
 
 export class RegexValidateNode extends BaseNode {
   static readonly nodeType = "nodetool.text.RegexValidate";
+  static readonly cacheTtl = "forever";
   static readonly title = "Validate with Regex";
   static readonly description =
     "Check if text matches a regex pattern.\n    regex, validate, check\n\n    Use cases:\n    - Validate input formats (email, phone, etc)\n    - Check text structure\n    - Filter text based on patterns";
@@ -613,6 +624,7 @@ export class RegexValidateNode extends BaseNode {
 
 export class CompareTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Compare";
+  static readonly cacheTtl = "forever";
   static readonly title = "Compare Text";
   static readonly description =
     "Compares two text values and reports ordering.\n    text, compare, equality, sort, equals, =\n\n    Use cases:\n    - Checking if two strings are identical before branching\n    - Determining lexical order for sorting or deduplication\n    - Normalizing casing/spacing before compares";
@@ -674,6 +686,7 @@ export class CompareTextNode extends BaseNode {
 
 export class EqualsTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Equals";
+  static readonly cacheTtl = "forever";
   static readonly title = "Equals";
   static readonly description =
     "Checks if two text inputs are equal.\n    text, compare, equals, match, =";
@@ -718,6 +731,7 @@ export class EqualsTextNode extends BaseNode {
 
 export class ToUppercaseNode extends BaseNode {
   static readonly nodeType = "nodetool.text.ToUppercase";
+  static readonly cacheTtl = "forever";
   static readonly title = "To Uppercase";
   static readonly description =
     "Converts text to uppercase.\n    text, transform, uppercase, format";
@@ -737,6 +751,7 @@ export class ToUppercaseNode extends BaseNode {
 
 export class ToLowercaseNode extends BaseNode {
   static readonly nodeType = "nodetool.text.ToLowercase";
+  static readonly cacheTtl = "forever";
   static readonly title = "To Lowercase";
   static readonly description =
     "Converts text to lowercase.\n    text, transform, lowercase, format";
@@ -756,6 +771,7 @@ export class ToLowercaseNode extends BaseNode {
 
 export class ToTitlecaseNode extends BaseNode {
   static readonly nodeType = "nodetool.text.ToTitlecase";
+  static readonly cacheTtl = "forever";
   static readonly title = "To Title Case";
   static readonly description =
     "Converts text to title case.\n    text, transform, titlecase, format\n\n    Use cases:\n    - Cleaning user provided titles before display\n    - Normalizing headings in generated documents\n    - Making list entries easier to scan";
@@ -775,6 +791,7 @@ export class ToTitlecaseNode extends BaseNode {
 
 export class CapitalizeTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.CapitalizeText";
+  static readonly cacheTtl = "forever";
   static readonly title = "Capitalize Text";
   static readonly description =
     "Capitalizes only the first character.\n    text, transform, capitalize, format\n\n    Use cases:\n    - Formatting short labels or sentences\n    - Cleaning up LLM output before UI rendering\n    - Quickly fixing lowercase starts after concatenation";
@@ -800,6 +817,7 @@ export class CapitalizeTextNode extends BaseNode {
 
 export class SliceTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Slice";
+  static readonly cacheTtl = "forever";
   static readonly title = "Slice Text";
   static readonly description =
     "Slices text using Python's slice notation (start:stop:step).\n    text, slice, substring\n\n    Use cases:\n    - Extracting specific portions of text with flexible indexing\n    - Reversing text using negative step\n    - Taking every nth character with step parameter\n\n    Examples:\n    - start=0, stop=5: first 5 characters\n    - start=-5: last 5 characters\n    - step=2: every second character\n    - step=-1: reverse the text";
@@ -878,6 +896,7 @@ export class SliceTextNode extends BaseNode {
 
 export class StartsWithTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.StartsWith";
+  static readonly cacheTtl = "forever";
   static readonly title = "Starts With";
   static readonly description =
     "Checks if text starts with a specified prefix.\n    text, check, prefix, compare, validate, substring, string\n\n    Use cases:\n    - Validating string prefixes\n    - Filtering text based on starting content\n    - Checking file name patterns";
@@ -902,6 +921,7 @@ export class StartsWithTextNode extends BaseNode {
 
 export class EndsWithTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.EndsWith";
+  static readonly cacheTtl = "forever";
   static readonly title = "Ends With";
   static readonly description =
     "Checks if text ends with a specified suffix.\n    text, check, suffix, compare, validate, substring, string\n\n    Use cases:\n    - Validating file extensions\n    - Checking string endings\n    - Filtering text based on ending content";
@@ -926,6 +946,7 @@ export class EndsWithTextNode extends BaseNode {
 
 export class ContainsTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Contains";
+  static readonly cacheTtl = "forever";
   static readonly title = "Contains Text";
   static readonly description =
     "Checks if text contains a specified substring.\n    text, compare, validate, substring, string";
@@ -998,6 +1019,7 @@ export class ContainsTextNode extends BaseNode {
 
 export class TrimWhitespaceNode extends BaseNode {
   static readonly nodeType = "nodetool.text.TrimWhitespace";
+  static readonly cacheTtl = "forever";
   static readonly title = "Trim Whitespace";
   static readonly description =
     "Trims whitespace from the start and/or end of text.\n    text, whitespace, clean, remove";
@@ -1036,6 +1058,7 @@ export class TrimWhitespaceNode extends BaseNode {
 
 export class CollapseWhitespaceNode extends BaseNode {
   static readonly nodeType = "nodetool.text.CollapseWhitespace";
+  static readonly cacheTtl = "forever";
   static readonly title = "Collapse Whitespace";
   static readonly description =
     "Collapses consecutive whitespace into single separators.\n    text, whitespace, normalize, clean, remove";
@@ -1090,6 +1113,7 @@ export class CollapseWhitespaceNode extends BaseNode {
 
 export class IsEmptyTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.IsEmpty";
+  static readonly cacheTtl = "forever";
   static readonly title = "Is Empty";
   static readonly description =
     "Checks if text is empty or contains only whitespace.\n    text, check, empty, compare, validate, whitespace, string";
@@ -1116,6 +1140,7 @@ export class IsEmptyTextNode extends BaseNode {
 
 export class RemovePunctuationNode extends BaseNode {
   static readonly nodeType = "nodetool.text.RemovePunctuation";
+  static readonly cacheTtl = "forever";
   static readonly title = "Remove Punctuation";
   static readonly description =
     "Removes punctuation characters from text.\n    text, cleanup, punctuation, normalize";
@@ -1162,6 +1187,7 @@ export class RemovePunctuationNode extends BaseNode {
 
 export class StripAccentsNode extends BaseNode {
   static readonly nodeType = "nodetool.text.StripAccents";
+  static readonly cacheTtl = "forever";
   static readonly title = "Strip Accents";
   static readonly description =
     "Removes accent marks while keeping base characters.\n    text, cleanup, accents, normalize";
@@ -1199,6 +1225,7 @@ export class StripAccentsNode extends BaseNode {
 
 export class SlugifyNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Slugify";
+  static readonly cacheTtl = "forever";
   static readonly title = "Slugify";
   static readonly description =
     "Converts text into a slug suitable for URLs or IDs.\n    text, slug, normalize, id";
@@ -1249,6 +1276,7 @@ export class SlugifyNode extends BaseNode {
 
 export class HasLengthTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.HasLength";
+  static readonly cacheTtl = "forever";
   static readonly title = "Check Length";
   static readonly description =
     "Checks if text length meets specified conditions.\n    text, check, length, compare, validate, whitespace, string";
@@ -1294,6 +1322,7 @@ export class HasLengthTextNode extends BaseNode {
 
 export class TruncateTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.TruncateText";
+  static readonly cacheTtl = "forever";
   static readonly title = "Truncate Text";
   static readonly description =
     "Truncates text to a maximum length.\n    text, truncate, length, clip";
@@ -1341,6 +1370,7 @@ export class TruncateTextNode extends BaseNode {
 
 export class PadTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.PadText";
+  static readonly cacheTtl = "forever";
   static readonly title = "Pad Text";
   static readonly description =
     "Pads text to a target length.\n    text, pad, length, format";
@@ -1405,6 +1435,7 @@ export class PadTextNode extends BaseNode {
 
 export class LengthTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Length";
+  static readonly cacheTtl = "forever";
   static readonly title = "Measure Length";
   static readonly description =
     "Measures text length as characters, words, or lines.\n    text, analyze, length, count";
@@ -1461,6 +1492,7 @@ export class LengthTextNode extends BaseNode {
 
 export class IndexOfTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.IndexOf";
+  static readonly cacheTtl = "forever";
   static readonly title = "Index Of";
   static readonly description =
     "Finds the position of a substring in text.\n    text, search, find, substring";
@@ -1540,6 +1572,7 @@ export class IndexOfTextNode extends BaseNode {
 
 export class SurroundWithTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.SurroundWith";
+  static readonly cacheTtl = "forever";
   static readonly title = "Surround With";
   static readonly description =
     "Wraps text with the provided prefix and suffix.\n    text, format, surround, decorate";
@@ -1583,6 +1616,7 @@ export class SurroundWithTextNode extends BaseNode {
 
 export class CountTokensNode extends BaseNode {
   static readonly nodeType = "nodetool.text.CountTokens";
+  static readonly cacheTtl = "forever";
   static readonly title = "Count Tokens";
   static readonly description =
     "Counts the number of tokens in text using tiktoken.\n    text, tokens, count, encoding";
@@ -1621,6 +1655,7 @@ export class CountTokensNode extends BaseNode {
 
 export class HtmlToTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.HtmlToText";
+  static readonly cacheTtl = "forever";
   static readonly title = "HTML to Text";
   static readonly description =
     "Converts HTML content to plain text using html2text.\n    html, convert, text, parse, extract";
@@ -2434,6 +2469,7 @@ export class FilterRegexStringNode extends BaseNode {
 
 export class ConcatTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Concat";
+  static readonly cacheTtl = "forever";
   static readonly body = "content_card";
   static readonly title = "Concat";
   static readonly description =
@@ -2460,6 +2496,7 @@ export class ConcatTextNode extends BaseNode {
 
 export class JoinTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Join";
+  static readonly cacheTtl = "forever";
   static readonly title = "Join";
   static readonly description =
     "Joins a list of strings into a single string using a specified separator.\n    text, join, combine, concatenate, merge, list";
@@ -2521,6 +2558,7 @@ export class CollectTextNode extends BaseNode {
 
 export class PromptNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Prompt";
+  static readonly cacheTtl = "forever";
   static readonly title = "Prompt";
   static readonly description =
     "Compose a prompt string with named variables. Add variables via the Add Variable button; reference them in the prompt as {{ variable }} (or {variable}). Supports filters: {{ var|upper }}, {{ var|lower }}, {{ var|capitalize }}, {{ var|title }}, {{ var|trim }}, {{ var|truncate(n) }}, {{ var|default(val) }}.\n    prompt, text, template, variable, llm, agent";
@@ -2571,6 +2609,7 @@ export class PromptNode extends BaseNode {
 
 export class TemplateTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Template";
+  static readonly cacheTtl = "forever";
   static readonly title = "Template";
   static readonly description =
     "Uses template syntax to format strings with variables. Supports {{ variable }} and {variable} patterns.\n    text, template, formatting, format, combine, concatenate, variable, replace\n\n    Use cases:\n    - Generating personalized messages\n    - Creating parameterized queries\n    - Formatting text with variable inputs";
@@ -2606,6 +2645,7 @@ export class TemplateTextNode extends BaseNode {
 
 export class ReplaceTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Replace";
+  static readonly cacheTtl = "forever";
   static readonly title = "Replace Text";
   static readonly description =
     "Replaces a substring in a text with another substring.\n    text, replace, substitute\n\n    Use cases:\n    - Correcting or updating specific text patterns\n    - Sanitizing or normalizing text data\n    - Implementing simple text transformations";
@@ -2636,6 +2676,7 @@ export class ReplaceTextNode extends BaseNode {
 
 export class ToStringNode extends BaseNode {
   static readonly nodeType = "nodetool.text.ToString";
+  static readonly cacheTtl = "forever";
   static readonly title = "To String";
   static readonly description =
     "Converts any input value to its string representation.\n    text, string, convert, repr, str, cast";
