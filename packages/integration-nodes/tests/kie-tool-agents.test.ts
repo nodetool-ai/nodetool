@@ -1,5 +1,6 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import { getNodeMetadata } from "@nodetool-ai/node-sdk";
+import { BaseProvider } from "@nodetool-ai/runtime";
 import {
   ShellAgentNode,
   BrowserAgentNode,
@@ -380,14 +381,32 @@ describe("ToolAgentNode requires processing context", () => {
 
 // ── Runtime provider path ────────────────────────────────────────────────
 
+// runAgentLoop drives providers through `generateLoop` (the
+// agents-provider-tool-loop refactor), not a one-shot `generateMessage`. Build
+// a minimal provider that streams a single assistant chunk and delegates the
+// tool-calling loop to BaseProvider's real implementation.
+function makeStreamProvider(content: unknown) {
+  return {
+    provider: "mock",
+    async *generateMessages() {
+      yield { type: "chunk" as const, content, done: true };
+    },
+    async *generateMessagesTraced(...args: any[]) {
+      yield* (this as any).generateMessages(...args);
+    },
+    generateLoop(loopArgs: unknown) {
+      return (
+        BaseProvider.prototype as { generateLoop: (a: unknown) => unknown }
+      ).generateLoop.call(this, loopArgs);
+    }
+  };
+}
+
 describe("ToolAgentNode runtime provider path", () => {
   it("uses context.getProvider when available", async () => {
     const node = new ShellAgentNode();
-    const mockProvider = {
-      generateMessage: vi.fn().mockResolvedValue({ content: "from provider" })
-    };
     const context = {
-      getProvider: vi.fn().mockResolvedValue(mockProvider)
+      getProvider: vi.fn().mockResolvedValue(makeStreamProvider("from provider"))
     };
 
     node.assign({
@@ -400,13 +419,10 @@ describe("ToolAgentNode runtime provider path", () => {
     expect(context.getProvider).toHaveBeenCalledWith("openai");
   });
 
-  it("handles non-string content from provider", async () => {
+  it("drops non-string assistant content from text", async () => {
     const node = new ShellAgentNode();
-    const mockProvider = {
-      generateMessage: vi.fn().mockResolvedValue({ content: { key: "val" } })
-    };
     const context = {
-      getProvider: vi.fn().mockResolvedValue(mockProvider)
+      getProvider: vi.fn().mockResolvedValue(makeStreamProvider({ key: "val" }))
     };
 
     node.assign({
@@ -414,17 +430,16 @@ describe("ToolAgentNode runtime provider path", () => {
       model: { provider: "openai", id: "gpt-4" }
     });
 
+    // Only string text chunks feed the returned text; structured content does
+    // not leak in as JSON.
     const result = await node.process(context as any);
-    expect(result.text).toBe('{"key":"val"}');
+    expect(result.text).toBe("");
   });
 
   it("handles null content from provider", async () => {
     const node = new ShellAgentNode();
-    const mockProvider = {
-      generateMessage: vi.fn().mockResolvedValue({ content: null })
-    };
     const context = {
-      getProvider: vi.fn().mockResolvedValue(mockProvider)
+      getProvider: vi.fn().mockResolvedValue(makeStreamProvider(null))
     };
 
     node.assign({
