@@ -53,6 +53,27 @@ const jsonGenerationOutputs = (
   return undefined;
 };
 
+/**
+ * The output dict a text generation persisted, or undefined. A generative text
+ * node (Agent, Summarizer, Classifier, …) emits the RAW `process()` string under
+ * its output handle during a live run; autosave then writes that string as a
+ * `text/*` asset with a (capped) copy inline in `metadata.text`. Reloading it as
+ * a bare string — rather than the `{ type: "text", … }` display wrapper
+ * `assetToOutputValue` builds — makes a reconstructed generation mirror the live
+ * run, so per-handle replay (`outputOf`) feeds downstream a string of the
+ * handle's declared type and the preview renders text (not raw JSON). The full
+ * text lives in the asset bytes; `metadata.text` is capped, so replay of a text
+ * output longer than the cap reuses the truncated copy (the only fidelity loss).
+ */
+const textGenerationOutputs = (
+  asset: Asset
+): Record<string, unknown> | undefined => {
+  const ct = asset.content_type ?? "";
+  if (!ct.startsWith("text/")) return undefined;
+  const text = asset.metadata?.text;
+  return { output: typeof text === "string" ? text : "" };
+};
+
 export interface Generation {
   id: string;
   jobId: string | null;
@@ -103,9 +124,13 @@ export const assetToGeneration = (asset: Asset): Generation => ({
   id: asset.id,
   jobId: asset.job_id ?? null,
   createdAt: asset.created_at ? Date.parse(asset.created_at) : 0,
-  // A structured (JSON) generation reloads its whole output dict so per-handle
-  // reads mirror a live run; media/text assets stay a single `output` value.
-  outputs: jsonGenerationOutputs(asset) ?? { output: assetToOutputValue(asset) },
+  // A structured (JSON) generation reloads its whole output dict and a text
+  // generation reloads its bare string, so per-handle reads mirror a live run;
+  // media assets stay a single `output` value carrying the `{ type, uri }` ref.
+  outputs:
+    jsonGenerationOutputs(asset) ??
+    textGenerationOutputs(asset) ??
+    { output: assetToOutputValue(asset) },
   status: "completed",
   assetId: asset.id
 });

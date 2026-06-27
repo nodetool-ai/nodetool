@@ -137,6 +137,40 @@ describe("assetToGeneration", () => {
     const g = assetToGeneration(jsonAsset);
     expect(g.outputs.output).toEqual({ type: "json", uri: "http://x/jg2.json" });
   });
+
+  it("reloads a text generation as a plain string so it mirrors a live run", () => {
+    const textAsset = {
+      id: "tg",
+      job_id: "j7",
+      node_id: "n1",
+      content_type: "text/plain",
+      get_url: "http://x/tg.txt",
+      metadata: { text: "hello world" },
+      created_at: "2026-01-01T00:00:00Z"
+    } as unknown as Asset;
+    const g = assetToGeneration(textAsset);
+    expect(g.assetId).toBe("tg");
+    // A live text run emits the raw process() string under its output handle;
+    // a reloaded generation must match that shape so replay feeds downstream a
+    // string, not a { type: "text", … } display wrapper.
+    expect(g.outputs).toEqual({ output: "hello world" });
+    expect(outputOf(g)).toBe("hello world");
+    expect(typeof outputOf(g)).toBe("string");
+  });
+
+  it("reloads a text generation with no inline text as an empty string", () => {
+    const textAsset = {
+      id: "tg2",
+      job_id: "j7",
+      node_id: "n1",
+      content_type: "text/plain",
+      get_url: "http://x/tg2.txt",
+      created_at: "2026-01-01T00:00:00Z"
+    } as unknown as Asset;
+    const g = assetToGeneration(textAsset);
+    expect(g.outputs).toEqual({ output: "" });
+    expect(outputOf(g)).toBe("");
+  });
 });
 
 describe("mergeGenerations", () => {
