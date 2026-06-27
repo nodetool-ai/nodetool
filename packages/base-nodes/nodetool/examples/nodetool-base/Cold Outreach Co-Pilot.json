@@ -1,11 +1,11 @@
 {
-  "id": "",
-  "access": "private",
-  "created_at": "2026-06-25T12:00:00.000Z",
-  "updated_at": "2026-06-25T12:00:00.000Z",
+  "id": "cold_outreach_co_pilot",
+  "access": "public",
+  "created_at": "2026-06-27T13:51:16.189Z",
+  "updated_at": "2026-06-27T23:00:04.049Z",
   "name": "Cold Outreach Co-Pilot",
   "tool_name": null,
-  "description": "An autonomous agent researches a prospect on the web and writes a personalized cold email \u2014 opening with a real, specific detail \u2014 plus a follow-up. Personalization at scale without the copy-paste.",
+  "description": "An autonomous agent researches a prospect on the web and writes a personalized cold email — opening with a real, specific detail — plus a follow-up. Personalization at scale without the copy-paste.",
   "tags": [
     "agents",
     "sales",
@@ -13,7 +13,7 @@
     "marketing",
     "example"
   ],
-  "thumbnail": null,
+  "thumbnail": "Cold Outreach Co-Pilot.jpg",
   "thumbnail_url": null,
   "graph": {
     "edges": [
@@ -84,13 +84,13 @@
         "edge_type": "data"
       },
       {
-        "id": "a125560d-4103-4992-80e2-2f8b3cfcec78",
+        "id": "1d282b59-132b-4050-80b3-95ea635c9f64",
         "source": "agent",
-        "sourceHandle": "follow_up",
-        "target": "preview_follow",
+        "sourceHandle": "chunk",
+        "target": "2b621362-7cda-402f-b266-11b3f6089c5f",
         "targetHandle": "value",
         "ui_properties": {
-          "className": "str"
+          "className": "chunk"
         },
         "edge_type": "data"
       }
@@ -100,13 +100,12 @@
         "id": "comment-intro",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# \ud83c\udfaf Cold Outreach Co-Pilot\n\nName a prospect or company and an autonomous agent researches them on the web, then writes a personalized cold email that opens with a real, specific detail \u2014 plus a follow-up.\n\n**Pipeline:** Prospect + your offer \u2192 build objective \u2192 Research agent (search + browse) \u2192 email + follow-up\n\n**Try this:** change the prospect, paste your real offer, or tell the agent the tone to use. Pick a model on the agent first."
+          "comment": "# 🎯 Cold Outreach Co-Pilot\n\nName a prospect or company and an autonomous agent researches them on the web, then writes a personalized cold email that opens with a real, specific detail — plus a follow-up.\n\n**Pipeline:** Prospect + your offer → build objective → Research agent (search + browse) → email + follow-up\n\n**Try this:** change the prospect, paste your real offer, or tell the agent the tone to use. Pick a model on the agent first."
         },
         "ui_properties": {
-          "selected": false,
           "position": {
             "x": -540,
-            "y": 40
+            "y": -262
           },
           "zIndex": 0,
           "width": 480,
@@ -123,17 +122,17 @@
         "data": {
           "name": "Prospect / Company",
           "description": "The person or company to research and reach out to.",
-          "value": "Acme Robotics (Series B warehouse automation startup)"
+          "value": "AtlasCloud"
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 40,
-            "y": 60
+            "x": 50,
+            "y": 403
           },
           "zIndex": 0,
           "width": 280,
-          "title": "1\ufe0f\u20e3 Prospect",
+          "title": "1️⃣ Prospect",
           "selectable": true,
           "bypassed": false
         },
@@ -146,17 +145,16 @@
         "data": {
           "name": "Your Offer",
           "description": "What you sell and the outcome it drives.",
-          "value": "We cut cloud GPU bills 30\u201350% for ML teams by auto-scheduling training jobs onto spot capacity \u2014 no code changes."
+          "value": "We build NodeTool - a Creative AI workspace."
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 40,
-            "y": 360
+            "x": 50,
+            "y": 649
           },
           "zIndex": 0,
           "width": 280,
-          "title": "2\ufe0f\u20e3 Your offer",
+          "title": "2️⃣ Your offer",
           "selectable": true,
           "bypassed": false
         },
@@ -167,18 +165,17 @@
         "id": "objective",
         "type": "nodetool.text.Prompt",
         "data": {
-          "prompt": "Research the prospect and write outreach.\n\nPROSPECT:\n{{ prospect }}\n\nMY OFFER:\n{{ offer }}\n\nSteps:\n1. Use google_search and browser to learn what the prospect does, their stage, and anything recent (a launch, hire, funding, or post).\n2. Identify 2\u20134 pain points my offer plausibly solves for them.\n3. Write a cold email under 120 words that OPENS with a specific researched detail, ties it to one pain point, and ends with a low-friction ask.\n4. Write one short follow-up for no-reply.\n\nReturn JSON:\n{\n  \"company_summary\": \"<2\u20133 sentences on what they do + recent signal>\",\n  \"pain_points\": [\"<pain 1>\", \"<pain 2>\", ...],\n  \"personalized_email\": \"<subject line + body>\",\n  \"follow_up\": \"<short nudge>\"\n}"
+          "prompt": "Research the prospect and write outreach.\n\nPROSPECT:\n{{ prospect }}\n\nMY OFFER:\n{{ offer }}\n\nSteps:\n1. Use google_search and browser to learn what the prospect does, their stage, and anything recent (a launch, hire, funding, or post).\n2. Identify 2–4 pain points my offer plausibly solves for them.\n3. Write a cold email under 120 words that OPENS with a specific researched detail, ties it to one pain point, and ends with a low-friction ask.\n4. Write one short follow-up for no-reply.\n\nReturn JSON:\n{\n  \"company_summary\": \"<2–3 sentences on what they do + recent signal>\",\n  \"pain_points\": [\"<pain 1>\", \"<pain 2>\", ...],\n  \"personalized_email\": \"<subject line + body>\",\n  \"follow_up\": \"<short nudge>\"\n}"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 420,
-            "y": 120
+            "x": 390,
+            "y": 332
           },
           "zIndex": 0,
           "width": 340,
           "height": 460,
-          "title": "3\ufe0f\u20e3 Build research objective",
+          "title": "3️⃣ Build research objective",
           "selectable": true,
           "bypassed": false
         },
@@ -192,7 +189,12 @@
         "id": "agent",
         "type": "nodetool.agents.Agent",
         "data": {
-          "model": {},
+          "model": {
+            "type": "language_model",
+            "id": "sonnet",
+            "provider": "claude_agent_sdk",
+            "name": "Claude Sonnet (subscription)"
+          },
           "tools": [
             {
               "type": "tool_name",
@@ -205,18 +207,18 @@
           ],
           "max_tokens": 100000,
           "system": "You are a B2B research assistant and senior cold-outreach copywriter.\n\nGoal\n- Research the given prospect/company using the tools, then write outreach that references something specific and true about them.\n\nTools Available\n- google_search: Search the web for information\n- browser: Open URLs and read content\n\nWorkflow\n1. Search for the prospect/company; identify what they do and recent news.\n2. Browse their site or a recent post to find concrete, current details.\n3. Map their likely pain points to the offer.\n4. Write a short, human, non-salesy email plus one follow-up.\n\nOutput Format\n- Return a single JSON object matching the defined output schema.\n- The email must open with a specific, researched detail (never \"I hope this finds you well\").\n- Keep the email under 120 words. Cite sources where useful.\n",
-          "mode": "plan"
+          "mode": "loop"
         },
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 800,
-            "y": 120
+            "x": 760,
+            "y": 329
           },
           "zIndex": 0,
-          "width": 320,
-          "height": 460,
-          "title": "4\ufe0f\u20e3 Research + write outreach",
+          "width": 316,
+          "height": 465,
+          "title": "4️⃣ Research + write outreach",
           "selectable": true,
           "bypassed": false
         },
@@ -259,13 +261,13 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1180,
-            "y": 0
+            "x": 1146,
+            "y": 400
           },
           "zIndex": 0,
-          "width": 300,
-          "height": 300,
-          "title": "\ud83c\udfe2 Company summary",
+          "width": 403,
+          "height": 225,
+          "title": "🏢 Company summary",
           "selectable": true,
           "bypassed": false
         },
@@ -279,15 +281,14 @@
           "name": "pain_points"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 1180,
-            "y": 320
+            "x": 1146,
+            "y": 715
           },
           "zIndex": 0,
-          "width": 300,
-          "height": 300,
-          "title": "\ud83e\ude79 Pain points",
+          "width": 565,
+          "height": 360,
+          "title": "🩹 Pain points",
           "selectable": true,
           "bypassed": false
         },
@@ -303,13 +304,13 @@
         "ui_properties": {
           "selected": false,
           "position": {
-            "x": 1180,
-            "y": 640
+            "x": 1146,
+            "y": 1165
           },
           "zIndex": 0,
-          "width": 300,
-          "height": 300,
-          "title": "\u2709\ufe0f Personalized email",
+          "width": 530,
+          "height": 341,
+          "title": "✉️ Personalized email",
           "selectable": true,
           "bypassed": false
         },
@@ -317,21 +318,19 @@
         "dynamic_outputs": {}
       },
       {
-        "id": "preview_follow",
+        "id": "2b621362-7cda-402f-b266-11b3f6089c5f",
         "type": "nodetool.workflows.base_node.Preview",
         "data": {
-          "name": "follow_up"
+          "name": "chunk"
         },
         "ui_properties": {
-          "selected": false,
           "position": {
-            "x": 1180,
-            "y": 960
+            "x": 1146,
+            "y": 50
           },
           "zIndex": 0,
-          "width": 300,
+          "width": 400,
           "height": 300,
-          "title": "\ud83d\udd01 Follow-up",
           "selectable": true,
           "bypassed": false
         },
@@ -340,22 +339,7 @@
       }
     ]
   },
-  "input_schema": {
-    "type": "object",
-    "properties": {
-      "Prospect / Company": {
-        "type": "string",
-        "label": ""
-      },
-      "Your Offer": {
-        "type": "string",
-        "label": ""
-      }
-    },
-    "required": [
-      "Prospect / Company"
-    ]
-  },
+  "input_schema": null,
   "output_schema": null,
   "settings": {},
   "package_name": "nodetool-base",
