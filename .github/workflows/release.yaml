@@ -304,6 +304,38 @@ jobs:
           echo "APP_EXE=${APP_EXE}" >> "${GITHUB_ENV}"
           echo "INSTALLER_PATH=${INSTALLER_PATH}" >> "${GITHUB_ENV}"
 
+      - name: Verify Windows app-update.yml
+        if: matrix.os == 'windows-latest'
+        shell: bash -l {0}
+        run: |
+          set -euo pipefail
+          APP_UPDATE_YML="${WIN_UNPACKED_DIR}/resources/app-update.yml"
+          if [ ! -f "${APP_UPDATE_YML}" ]; then
+            echo "Expected app-update.yml not found at ${APP_UPDATE_YML}"
+            find "${WIN_UNPACKED_DIR}/resources" -maxdepth 2 -type f | sort | sed -n '1,120p' || true
+            exit 1
+          fi
+          node - <<'NODE'
+          const fs = require("fs");
+          const yaml = require("js-yaml");
+
+          const file = `${process.env.WIN_UNPACKED_DIR}/resources/app-update.yml`;
+          const doc = yaml.load(fs.readFileSync(file, "utf8")) || {};
+          for (const [key, expected] of Object.entries({
+            provider: "github",
+            owner: "nodetool-ai",
+            repo: "nodetool",
+          })) {
+            if (doc[key] !== expected) {
+              throw new Error(`${file} has ${key}=${doc[key] ?? "<missing>"}; expected ${expected}`);
+            }
+          }
+          if (doc.updaterCacheDirName !== "nodetool-updater") {
+            throw new Error(`${file} has updaterCacheDirName=${doc.updaterCacheDirName ?? "<missing>"}`);
+          }
+          console.log(`Verified ${file}`);
+          NODE
+
       - name: Create Windows unpacked archive
         if: matrix.os == 'windows-latest'
         shell: bash -l {0}
