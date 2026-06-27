@@ -130,8 +130,18 @@ export const createRunResolver = ({
     findNode,
     inboundEdges,
     getMetadata,
-    currentGenerationId: (id) =>
-      getCurrentGeneration(generationsOf(id), selectedGenerationId(id))?.id
+    // Mirror reuseValue below EXACTLY: current generation if completed, else the
+    // latest completed one — never a running placeholder. The dispatch-time
+    // stamp (computeRunSignatures) uses the same rule, so a stamp made there
+    // matches a resolve lookup made here.
+    currentGenerationId: (id) => {
+      const gens = generationsOf(id);
+      const current = getCurrentGeneration(gens, selectedGenerationId(id));
+      return (current && current.status === "completed"
+        ? current
+        : newestCompletedGeneration(gens)
+      )?.id;
+    }
   });
 
   const resolveCtx: ResolveContext = {

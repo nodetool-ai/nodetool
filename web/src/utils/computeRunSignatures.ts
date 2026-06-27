@@ -2,7 +2,11 @@ import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
 import { NodeMetadata } from "../stores/ApiTypes";
 import { computeInputSignatures } from "./nodeHash";
-import { getCurrentGeneration, type Generation } from "./nodeGenerations";
+import {
+  getCurrentGeneration,
+  newestCompletedGeneration,
+  type Generation
+} from "./nodeGenerations";
 
 /**
  * Compute each node's `inputSignature` against the FULL live graph for stamping
@@ -49,10 +53,20 @@ export const computeRunSignatures = (
     findNode,
     inboundEdges: (id) => edgesByTarget.get(id) ?? [],
     getMetadata,
-    currentGenerationId: (id) =>
-      getCurrentGeneration(
-        generationsOf(id),
+    // Mirror runResolver.reuseValue EXACTLY: a generative emits its current
+    // generation if completed, else the latest completed one. Hashing a running
+    // placeholder's id here would key the stamp to a generation that reuse never
+    // emits, so after it completes the stale stamp would match (see runResolver).
+    currentGenerationId: (id) => {
+      const gens = generationsOf(id);
+      const current = getCurrentGeneration(
+        gens,
         findNode(id)?.data?.selected_generation
-      )?.id
+      );
+      return (current && current.status === "completed"
+        ? current
+        : newestCompletedGeneration(gens)
+      )?.id;
+    }
   });
 };

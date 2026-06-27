@@ -194,6 +194,29 @@ describe("nodeHash — inputSignature / outputIdentity", () => {
     expect(sig([withBitmapA], [], "c")).not.toBe(sig([otherUri], [], "c"));
   });
 
+  it("H16: a JSON constant's inline data is part of its identity (empty-uri values are not asset refs)", () => {
+    // nodetool.constant.JSON values are { type: "json", uri: "", asset_id: null,
+    // data: <value> }. An empty uri must NOT collapse to an asset ref — the
+    // inline `data` is the real content, so editing it must change the identity
+    // (otherwise a downstream computed cache silently reuses stale output).
+    const jsonRef = (data: unknown) => ({
+      type: "json",
+      uri: "",
+      asset_id: null,
+      data,
+      metadata: null
+    });
+    const cA = node("c", "nodetool.constant.JSON", { value: jsonRef({ k: 1 }) });
+    const cB = node("c", "nodetool.constant.JSON", { value: jsonRef({ k: 2 }) });
+    expect(hasher([cA]).outputIdentity("c")).not.toBe(
+      hasher([cB]).outputIdentity("c")
+    );
+    // …and the change must propagate to a downstream computed node's signature.
+    const m = node("m", "proc.M");
+    const edges = [edge("e", "c", "m", "x")];
+    expect(sig([m, cA], edges, "m")).not.toBe(sig([m, cB], edges, "m"));
+  });
+
   it("H14: editing a leaf changes its descendants' signatures but not its siblings'", () => {
     // c -> m -> t ; s -> t (s is a sibling branch, unaffected by editing c)
     const t = node("t", "proc.T");
