@@ -107,6 +107,14 @@ const GEMINI_UNSUPPORTED_SCHEMA_KEYS = new Set([
   "dependentRequired"
 ]);
 
+function isArraySchemaType(type: unknown): boolean {
+  if (typeof type === "string") return type.toLowerCase() === "array";
+  if (Array.isArray(type)) {
+    return type.some((t) => typeof t === "string" && t.toLowerCase() === "array");
+  }
+  return false;
+}
+
 function sanitizeGeminiSchema(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map(sanitizeGeminiSchema);
@@ -116,6 +124,11 @@ function sanitizeGeminiSchema(value: unknown): unknown {
     for (const [k, v] of Object.entries(value)) {
       if (GEMINI_UNSUPPORTED_SCHEMA_KEYS.has(k)) continue;
       out[k] = sanitizeGeminiSchema(v);
+    }
+    // Gemini rejects an array schema that omits `items` ("items: missing
+    // field"). JSON Schema allows it, so backfill a permissive default.
+    if (isArraySchemaType(out.type) && out.items === undefined) {
+      out.items = { type: "string" };
     }
     return out;
   }

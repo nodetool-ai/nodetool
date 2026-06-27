@@ -82,7 +82,6 @@ interface AgentYaml {
   model?: ModelBlock;
   planning_agent?: { enabled?: boolean; model?: ModelBlock };
   tools?: string[];
-  max_tokens?: number;
   max_iterations?: number;
   max_steps?: number;
   temperature?: number;
@@ -474,7 +473,6 @@ async function runAgentCommand(file: string, opts: RunOptions): Promise<void> {
     model: modelId,
     tools,
     systemPrompt: effectiveSystemPrompt,
-    maxTokenLimit: cfg.max_tokens,
     maxSteps: cfg.max_steps,
     planningModel
   });

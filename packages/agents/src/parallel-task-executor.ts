@@ -28,8 +28,6 @@ import { TaskUpdateEvent } from "@nodetool-ai/protocol";
 import { TaskExecutor } from "./task-executor.js";
 import type { Tool } from "./tools/base-tool.js";
 import type { Task, TaskPlan } from "./types.js";
-import { DEFAULT_TOKEN_LIMIT } from "./constants.js";
-import type { CompactionOptions } from "./context-compactor.js";
 
 const log = createLogger("nodetool.agents.parallel-task-executor");
 
@@ -48,13 +46,6 @@ export interface ParallelTaskExecutorOptions {
   maxIterations?: number;
   /** Maximum iterations per step within a task. */
   maxStepIterations?: number;
-  maxTokenLimit?: number;
-  /**
-   * Opt-in context compaction, forwarded to every TaskExecutor (and thus
-   * every StepExecutor). No behavioral change when undefined.
-   * See {@link CompactionOptions}.
-   */
-  compaction?: CompactionOptions;
 }
 
 export class ParallelTaskExecutor {
@@ -67,8 +58,6 @@ export class ParallelTaskExecutor {
   private readonly systemPrompt: string | undefined;
   private readonly maxIterations: number;
   private readonly maxStepIterations: number;
-  private readonly maxTokenLimit: number;
-  private readonly compaction?: CompactionOptions;
 
   constructor(opts: ParallelTaskExecutorOptions) {
     this.provider = opts.provider;
@@ -81,8 +70,6 @@ export class ParallelTaskExecutor {
     this.maxIterations = opts.maxIterations ?? DEFAULT_MAX_TASK_ITERATIONS;
     this.maxStepIterations =
       opts.maxStepIterations ?? DEFAULT_MAX_STEP_ITERATIONS;
-    this.maxTokenLimit = opts.maxTokenLimit ?? DEFAULT_TOKEN_LIMIT;
-    this.compaction = opts.compaction;
   }
 
   /**
@@ -216,10 +203,8 @@ export class ParallelTaskExecutor {
       inputs: this.inputs,
       maxSteps: task.steps.length + 5, // Allow some slack
       maxStepIterations: this.maxStepIterations,
-      maxTokenLimit: this.maxTokenLimit,
       parallelExecution: true, // Enable parallel step execution within each task
-      upstreamMemoryKeys,
-      compaction: this.compaction
+      upstreamMemoryKeys
     });
 
     let taskResult: unknown = null;

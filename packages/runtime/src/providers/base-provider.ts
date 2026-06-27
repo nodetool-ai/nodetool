@@ -762,11 +762,31 @@ export abstract class BaseProvider {
       executeTool?: (toolCall: ToolCall) => Promise<string | MessageContent[]>;
       /** Cap on tool-calling rounds before stopping. Defaults to 25. */
       maxIterations?: number;
+      /**
+       * Run a turn's tool calls one at a time (in array order) instead of in
+       * parallel. Required by consumers whose tools mutate shared state per call
+       * and read it back before the next (e.g. the planner's plan builder), and
+       * by consumers that abort the loop from inside a terminal tool. Defaults to
+       * false (parallel) to keep chat's concurrent tool execution fast.
+       */
+      sequentialTools?: boolean;
     }
   ): AsyncGenerator<ProviderStreamItem> {
     const maxIterations = args.maxIterations ?? 25;
-    const { executeTool, maxIterations: _omitMax, ...turnArgs } = args;
+    const {
+      executeTool,
+      maxIterations: _omitMax,
+      sequentialTools,
+      ...turnArgs
+    } = args;
     const messages = [...args.messages];
+
+    // Tools may carry their own `execute` (provider-dispatched) and/or a
+    // `terminal` flag (end the loop after they run). Index by name so the
+    // tool-execution section can look up the matching ProviderTool per call.
+    const toolMap = new Map<string, ProviderTool>(
+      (args.tools ?? []).map((t) => [t.name, t])
+    );
 
     // Bridge to the legacy inline tool callback for any provider that executes
     // tools mid-stream instead of yielding ToolCall items. Real providers yield
@@ -828,18 +848,35 @@ export abstract class BaseProvider {
         content: assistantText || null,
         toolCalls: pending
       };
+      // Carry Gemini thought-signature parts forward so multi-turn function
+      // calling keeps working — the loop owns the message now, so a tool call
+      // that arrived with raw parts can't stash them on the message itself.
+      const rawParts = pending.find((tc) => tc._rawGeminiParts)?._rawGeminiParts;
+      if (rawParts) {
+        assistantMsg._rawGeminiParts = rawParts;
+      }
       messages.push(assistantMsg);
       yield { type: "message", message: assistantMsg };
 
-      const results = await Promise.all(
-        pending.map(async (tc) => ({
-          tc,
-          content: executeTool
-            ? await executeTool(tc)
-            : `Tool "${tc.name}" is not available`
-        }))
-      );
-      for (const { tc, content } of results) {
+      // Dispatch order: a tool's own `execute` (provider-driven) wins; else the
+      // harness-supplied `executeTool` callback; else the tool is unavailable.
+      const runTool = async (
+        tc: ToolCall
+      ): Promise<string | MessageContent[]> => {
+        const tool = toolMap.get(tc.name);
+        if (tool?.execute) return tool.execute(tc.args ?? {}, tc.id);
+        if (executeTool) return executeTool(tc);
+        return `Tool "${tc.name}" is not available`;
+      };
+
+      // A tool flagged `terminal` ends the loop once its turn's results are
+      // emitted (e.g. a finish/submit tool).
+      let terminated = false;
+
+      const emitToolResult = function* (
+        tc: ToolCall,
+        content: string | MessageContent[]
+      ): Generator<ProviderStreamItem> {
         const { toolContent, imageMessage } = splitToolResultImages(content);
         const toolMsg: Message = {
           role: "tool",
@@ -855,7 +892,31 @@ export abstract class BaseProvider {
           // so it is never persisted or echoed, keeping saved history cheap.
           messages.push(imageMessage);
         }
+      };
+
+      if (sequentialTools) {
+        // One at a time so a tool can read the state a prior tool wrote, and so
+        // a terminal tool can abort the loop mid-turn (skipping the rest).
+        for (const tc of pending) {
+          if (turnArgs.signal?.aborted) break;
+          yield* emitToolResult(tc, await runTool(tc));
+          if (toolMap.get(tc.name)?.terminal) {
+            terminated = true;
+            break;
+          }
+        }
+      } else {
+        const results = await Promise.all(
+          pending.map(async (tc) => ({ tc, content: await runTool(tc) }))
+        );
+        for (const { tc, content } of results) {
+          yield* emitToolResult(tc, content);
+          if (toolMap.get(tc.name)?.terminal) terminated = true;
+        }
       }
+
+      // A terminal tool ran this turn — stop after emitting its results.
+      if (terminated) return;
     }
   }
 

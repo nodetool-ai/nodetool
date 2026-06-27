@@ -24,8 +24,6 @@ const log = createLogger("nodetool.agents.task-executor");
 import { StepExecutor } from "./step-executor.js";
 import type { Tool } from "./tools/base-tool.js";
 import type { Step, Task } from "./types.js";
-import { DEFAULT_TOKEN_LIMIT } from "./constants.js";
-import type { CompactionOptions } from "./context-compactor.js";
 
 const DEFAULT_MAX_STEPS = 50;
 const DEFAULT_MAX_STEP_ITERATIONS = 10;
@@ -40,7 +38,6 @@ export interface TaskExecutorOptions {
   inputs?: Record<string, unknown>;
   maxSteps?: number;
   maxStepIterations?: number;
-  maxTokenLimit?: number;
   /** ID of the final aggregation step (will use useFinishTask=true). */
   finalStepId?: string;
   /** Execute independent steps in parallel (default: false). */
@@ -51,11 +48,6 @@ export interface TaskExecutorOptions {
    * upstream context. Forwarded to {@link StepExecutor.upstreamMemoryKeys}.
    */
   upstreamMemoryKeys?: string[];
-  /**
-   * Opt-in context compaction, forwarded verbatim to every StepExecutor.
-   * No behavioral change when undefined. See {@link CompactionOptions}.
-   */
-  compaction?: CompactionOptions;
 }
 
 export class TaskExecutor {
@@ -68,11 +60,9 @@ export class TaskExecutor {
   private systemPrompt: string | undefined;
   private maxSteps: number;
   private maxStepIterations: number;
-  private maxTokenLimit: number;
   private finalStepId: string | undefined;
   private parallelExecution: boolean;
   private upstreamMemoryKeys: string[];
-  private compaction?: CompactionOptions;
   private _finishStepId: string | undefined;
 
   constructor(opts: TaskExecutorOptions) {
@@ -86,11 +76,9 @@ export class TaskExecutor {
     this.maxSteps = opts.maxSteps ?? DEFAULT_MAX_STEPS;
     this.maxStepIterations =
       opts.maxStepIterations ?? DEFAULT_MAX_STEP_ITERATIONS;
-    this.maxTokenLimit = opts.maxTokenLimit ?? DEFAULT_TOKEN_LIMIT;
     this.finalStepId = opts.finalStepId;
     this.parallelExecution = opts.parallelExecution ?? false;
     this.upstreamMemoryKeys = opts.upstreamMemoryKeys ?? [];
-    this.compaction = opts.compaction;
   }
 
   /**
@@ -167,11 +155,9 @@ export class TaskExecutor {
           model: this.model,
           tools: [...this.tools],
           systemPrompt: this.systemPrompt,
-          maxTokenLimit: this.maxTokenLimit,
           maxIterations: this.maxStepIterations,
           useFinishTask: this.isFinishStep(step),
-          upstreamMemoryKeys: this.upstreamMemoryKeys,
-          compaction: this.compaction
+          upstreamMemoryKeys: this.upstreamMemoryKeys
         });
         return executor.execute();
       });
@@ -302,11 +288,9 @@ export class TaskExecutor {
         model: this.model,
         tools: [...this.tools],
         systemPrompt: this.systemPrompt,
-        maxTokenLimit: this.maxTokenLimit,
         maxIterations: this.maxStepIterations,
         useFinishTask: false,
-        upstreamMemoryKeys: this.upstreamMemoryKeys,
-        compaction: this.compaction
+        upstreamMemoryKeys: this.upstreamMemoryKeys
       });
       return executor.execute();
     });

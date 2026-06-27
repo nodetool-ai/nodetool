@@ -26,7 +26,6 @@ export interface AgentStepExecutorOptions {
   model: string;
   tools: Tool[];
   systemPrompt?: string;
-  maxTokenLimit?: number;
   maxIterations?: number;
 }
 
@@ -129,7 +128,6 @@ export class AgentStepExecutor implements NodeExecutor {
       model: this.opts.model,
       tools,
       systemPrompt: this.opts.systemPrompt,
-      maxTokenLimit: this.opts.maxTokenLimit,
       maxIterations: this.opts.maxIterations
     });
 

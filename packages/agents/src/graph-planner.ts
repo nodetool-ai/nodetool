@@ -9,7 +9,8 @@
 import type {
   BaseProvider,
   ProcessingContext,
-  Message
+  Message,
+  ToolCall
 } from "@nodetool-ai/runtime";
 import { withAgentSpanGen } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
@@ -267,141 +268,38 @@ export class GraphPlanner {
       allTools.unshift(new FindModelTool(this.providers));
     }
 
-    const providerTools = allTools.map((t) => t.toProviderTool());
-    const toolMap = new Map(allTools.map((t) => [t.name, t]));
-
     let totalToolCalls = 0;
-    let turn = 0;
 
-    // Multi-turn loop: LLM may need multiple turns to search, inspect, then build
-    while (totalToolCalls < MAX_TOOL_CALLS_PER_TURN) {
-      turn++;
-      let content = "";
-      const pendingToolCalls: Array<{
-        name: string;
-        args: Record<string, unknown>;
-        id: string;
-      }> = [];
+    // The provider drives the tool loop, so backends that run their own agent
+    // loop (e.g. the Claude Agent SDK) work. Each graph tool carries its own
+    // `execute` closure that mutates the shared builder; `finish_graph` is
+    // `terminal`, so the loop ends once it runs. The AbortController only
+    // short-circuits the loop when the per-turn tool-call budget is spent (an
+    // early-stop that is not a terminal tool).
+    const abort = new AbortController();
+    let exhausted = false;
 
-      const turnStartedAt = Date.now();
-      log.info("GraphPlanner LLM turn starting", {
-        turn,
-        totalToolCallsSoFar: totalToolCalls,
-        messageCount: messages.length,
-        nodesAdded: builder.nodeCount,
-        edgesAdded: builder.edgeCount
-      });
-
-      const stream = this.provider.generateMessagesTraced({
-        messages: [...messages],
-        model: this.model,
-        tools: providerTools,
-        threadId: this.threadId
-      });
-
-      for await (const item of stream) {
-        if (
-          "type" in item &&
-          (item as unknown as Record<string, unknown>)["type"] === "chunk"
-        ) {
-          const chunk = item as { content?: string };
-          if (typeof chunk.content === "string") {
-            content += chunk.content;
-            yield {
-              type: "chunk",
-              content: chunk.content,
-              done: false
-            } satisfies Chunk;
-          }
-        }
-        if ("name" in item && typeof item.name === "string") {
-          pendingToolCalls.push({
-            name: item.name,
-            args: (item.args as Record<string, unknown>) ?? {},
-            id: (item as { id?: string }).id ?? randomUUID()
-          });
-        }
-      }
-
-      log.info("GraphPlanner LLM turn done", {
-        turn,
-        durationMs: Date.now() - turnStartedAt,
-        contentLength: content.length,
-        toolCalls: pendingToolCalls.length,
-        toolNames: pendingToolCalls.map((t) => t.name)
-      });
-
-      // No tool calls — LLM finished without calling finish_graph
-      if (pendingToolCalls.length === 0) {
-        if (finishGraphTool.graph) {
-          log.info("GraphPlanner finished with graph (no further tool calls)");
-          return { graph: finishGraphTool.graph };
-        }
-        log.warn("GraphPlanner stopped without finish_graph", {
-          turn,
-          contentPreview: content.slice(0, 200),
-          nodesBuilt: builder.nodeCount,
-          edgesBuilt: builder.edgeCount
-        });
-        return {
-          error:
-            "LLM stopped without calling finish_graph. Please build the graph and call finish_graph."
-        };
-      }
-
-      // Execute tool calls and build message history
-      const toolCalls = pendingToolCalls.map((tc) => ({
-        id: tc.id,
-        name: tc.name,
-        args: tc.args
-      }));
-      messages.push({
-        role: "assistant",
-        content: content ?? "",
-        toolCalls
-      });
-
-      for (const tc of pendingToolCalls) {
+    const makeExecute =
+      (tool: Tool) =>
+      async (args: Record<string, unknown>): Promise<string> => {
         totalToolCalls++;
         log.info("GraphPlanner tool call", {
-          turn,
           totalToolCalls,
-          name: tc.name,
-          args: tc.args
+          name: tool.name,
+          args
         });
-
-        yield {
-          type: "tool_call_update",
-          tool_call_id: tc.id,
-          name: tc.name,
-          args: tc.args,
-          message:
-            Tool.extractMessage(tc.args) ??
-            this.formatToolCallMessage(tc.name, tc.args),
-          node_id: "graph_planner"
-        } satisfies ToolCallUpdate;
-
-        const tool = toolMap.get(tc.name);
-        if (!tool) {
-          messages.push({
-            role: "tool",
-            toolCallId: tc.id,
-            content: JSON.stringify({ error: `Unknown tool: ${tc.name}` })
-          });
-          continue;
-        }
 
         const toolStartedAt = Date.now();
         const result = await Tool.executeTool(
           tool,
           {} as ProcessingContext,
-          tc.args
+          args ?? {}
         );
         const resultStr =
           typeof result === "string" ? result : JSON.stringify(result);
 
         log.info("GraphPlanner tool result", {
-          name: tc.name,
+          name: tool.name,
           durationMs: Date.now() - toolStartedAt,
           resultLength: resultStr.length,
           resultPreview: resultStr.slice(0, 240),
@@ -409,35 +307,96 @@ export class GraphPlanner {
           edgesBuilt: builder.edgeCount
         });
 
-        messages.push({
-          role: "tool",
-          toolCallId: tc.id,
-          content: resultStr
-        });
-
-        // Check if finish_graph succeeded
-        if (tc.name === "finish_graph" && finishGraphTool.graph) {
+        if (tool.name === "finish_graph" && finishGraphTool.graph) {
           log.info("GraphPlanner finish_graph succeeded", {
             nodes: finishGraphTool.graph.nodes.length,
             edges: finishGraphTool.graph.edges.length
           });
-          return { graph: finishGraphTool.graph };
+        } else if (totalToolCalls >= MAX_TOOL_CALLS_PER_TURN) {
+          exhausted = true;
+          abort.abort();
         }
 
-        // If finish_graph failed with validation errors, continue the loop
-        // so the LLM can fix them
+        return resultStr;
+      };
+
+    const providerTools = allTools.map((tool) => {
+      if (tool === finishGraphTool) {
+        return {
+          ...tool.toProviderTool(),
+          execute: makeExecute(tool),
+          terminal: true
+        };
+      }
+      return { ...tool.toProviderTool(), execute: makeExecute(tool) };
+    });
+
+    const stream = this.provider.generateLoop({
+      messages,
+      model: this.model,
+      tools: providerTools,
+      threadId: this.threadId,
+      maxIterations: MAX_TOOL_CALLS_PER_TURN,
+      sequentialTools: true,
+      signal: abort.signal
+    });
+
+    for await (const item of stream) {
+      if ("id" in item && "name" in item && "args" in item) {
+        const tc = item as ToolCall;
+        const args = (tc.args as Record<string, unknown>) ?? {};
+        yield {
+          type: "tool_call_update",
+          tool_call_id: tc.id,
+          name: tc.name,
+          args,
+          message:
+            Tool.extractMessage(args) ??
+            this.formatToolCallMessage(tc.name, args),
+          node_id: "graph_planner"
+        } satisfies ToolCallUpdate;
+        continue;
+      }
+      if ("type" in item && (item as { type?: string }).type === "chunk") {
+        const chunk = item as { content?: string; done?: boolean };
+        if (
+          typeof chunk.content === "string" &&
+          chunk.content.length > 0 &&
+          !chunk.done
+        ) {
+          yield {
+            type: "chunk",
+            content: chunk.content,
+            done: false
+          } satisfies Chunk;
+        }
+        continue;
       }
     }
 
-    log.warn("GraphPlanner hit MAX_TOOL_CALLS_PER_TURN", {
-      totalToolCalls,
-      max: MAX_TOOL_CALLS_PER_TURN,
+    if (finishGraphTool.graph) {
+      return { graph: finishGraphTool.graph };
+    }
+
+    if (exhausted) {
+      log.warn("GraphPlanner hit MAX_TOOL_CALLS_PER_TURN", {
+        totalToolCalls,
+        max: MAX_TOOL_CALLS_PER_TURN,
+        nodesBuilt: builder.nodeCount,
+        edgesBuilt: builder.edgeCount
+      });
+      return {
+        error: `Exceeded maximum tool calls (${MAX_TOOL_CALLS_PER_TURN})`
+      };
+    }
+
+    log.warn("GraphPlanner stopped without finish_graph", {
       nodesBuilt: builder.nodeCount,
       edgesBuilt: builder.edgeCount
     });
-
     return {
-      error: `Exceeded maximum tool calls (${MAX_TOOL_CALLS_PER_TURN})`
+      error:
+        "LLM stopped without calling finish_graph. Please build the graph and call finish_graph."
     };
   }
 
@@ -493,6 +452,4 @@ export class GraphPlanner {
   }
 }
 
-function randomUUID(): string {
-  return crypto.randomUUID();
-}
+

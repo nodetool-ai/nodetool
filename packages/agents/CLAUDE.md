@@ -368,12 +368,10 @@ const agent = new Agent({
 });
 ```
 
-### Token Budgeting
+### Tool Result Truncation
 
-- Default token limit: 128,000 per step
-- At 90% usage, oldest tool-result messages are evicted from history (their values remain in `context.memory` and can be re-read via `memory_read`)
-- Tool results truncated to 20,000 chars
-- Configure via `maxTokenLimit` option
+- Tool results are truncated to 20,000 chars (`MAX_TOOL_RESULT_CHARS`) before being added to history.
+- Step executors delegate the tool-calling loop to `provider.generateLoop`, so each provider manages its own context window (the Claude Agent SDK compacts internally; stateless providers send the full transcript). There is no NodeTool-side per-step token budget, compaction, or eviction.
 
 ### Plan Validation
 

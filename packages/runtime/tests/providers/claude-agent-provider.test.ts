@@ -230,7 +230,8 @@ describe("ClaudeAgentProvider", () => {
     expect(opts.maxTurns).toBe(1);
     expect(opts.allowedTools).toEqual([]);
     expect(opts.settingSources).toEqual([]);
-    expect(opts.permissionMode).toBe("dontAsk");
+    expect(opts.permissionMode).toBe("bypassPermissions");
+    expect(opts.allowDangerouslySkipPermissions).toBe(true);
     expect(opts.includePartialMessages).toBe(true);
     expect(opts.resume).toBeUndefined();
   });

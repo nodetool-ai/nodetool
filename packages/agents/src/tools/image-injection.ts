@@ -101,38 +101,3 @@ export function stripImagePayload(result: unknown): unknown {
   }
   return clone;
 }
-
-/**
- * Build the `user` message that carries pixels into the model's next turn.
- * Vision-capable providers resolve `image.uri` (including data: URIs) and
- * `image.data` (base64 or bytes) into their native image blocks.
- */
-export function buildImageInjectionMessage(extracted: ExtractedImages): Message {
-  const content: MessageContent[] = [
-    { type: "text", text: extracted.text },
-    ...extracted.images
-  ];
-  return { role: "user", content };
-}
-
-/** Placeholder left in place of a viewed image once it has served its turn. */
-export const OMITTED_IMAGE_NOTE =
-  "[earlier image omitted to save context — call view_image again to re-load it]";
-
-/**
- * Strip the pixels out of a previously-injected image message in place, leaving
- * its text plus a short note. Lets a viewed image ride only until the next view
- * (or the agent re-requests it), instead of bloating every later turn — the
- * tool-result eviction path doesn't touch these user messages, so the loop
- * downgrades them itself.
- */
-export function downgradeInjectedImageMessage(message: Message): void {
-  if (!Array.isArray(message.content)) return;
-  const kept = message.content.filter((c) => c.type !== "image_url");
-  const hasNote = kept.some(
-    (c) => c.type === "text" && c.text === OMITTED_IMAGE_NOTE
-  );
-  message.content = hasNote
-    ? kept
-    : [...kept, { type: "text", text: OMITTED_IMAGE_NOTE }];
-}
