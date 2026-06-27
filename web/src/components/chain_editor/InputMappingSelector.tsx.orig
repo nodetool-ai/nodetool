@@ -103,11 +103,6 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
     return options;
   }, [activeInput, properties, previousNodes]);
 
-  // O(1) lookup map for previous nodes
-  const previousNodesMap = useMemo(() => {
-    return new Map(previousNodes.map((n) => [n.id, n]));
-  }, [previousNodes]);
-
   if (properties.length === 0) return null;
 
   return (
@@ -129,7 +124,7 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
         {properties.map((prop) => {
           const mapping = inputMappings[prop.name];
           const sourceNode = mapping
-            ? previousNodesMap.get(mapping.sourceNodeId)
+            ? previousNodes.find((n) => n.id === mapping.sourceNodeId)
             : null;
 
           return (

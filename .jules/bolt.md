@@ -34,3 +34,6 @@
 ## 2026-05-25 - O(N*M) lookup bottleneck in workflowUpdates.ts
 **Learning:** Found an $O(N \times M)$ performance bottleneck in `web/src/stores/workflowUpdates.ts` where `runsStore.getRuns(workflow.id).some(r => r.jobId === job.job_id)` was called on every node update. For workflows with thousands of jobs, this iteration causes noticeable CPU stalling.
 **Action:** Implemented a new `hasRun(workflowId, jobId)` method in `WorkflowRunsStore` that uses an O(1) property lookup (`runs[wf]?.[jobId] !== undefined`). Replace `.some()` array iterations with dictionary/map lookups when processing high-frequency updates.
+## 2026-05-25 - O(M*N) Node Filtering Bottleneck
+**Learning:** In `web/src/components/chain_editor/InputMappingSelector.tsx`, an O(N) array `.find()` loop inside an O(M) `properties.map()` loop created an O(M*N) time complexity issue when looking up previous nodes.
+**Action:** Replaced `.find()` with an $O(1)$ `.get()` from a `previousNodesMap` lookup map, constructed dynamically in a `useMemo` block. This reduces time complexity to $O(N + M)$ with O(1) lookups.
