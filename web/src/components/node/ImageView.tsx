@@ -7,6 +7,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import AssetViewer from "../assets/AssetViewer";
 import { createImageUrl } from "../../utils/imageUtils";
+import { useFileUriDataUrl } from "../../utils/localFile";
 import BitmapCanvas from "./BitmapCanvas";
 import ImageDimensions from "./ImageDimensions";
 import { CopyAssetButton } from "../common/CopyAssetButton";
@@ -57,6 +58,14 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
   const nextBlobRef = useRef<string | null>(null);
   const [displayedUrl, setDisplayedUrl] = useState<string>();
 
+  // Local-mode `file://` sources can't be loaded by the renderer directly;
+  // resolve them to a data URL via the Electron bridge. Returns null for any
+  // other source, in which case the original `source` is used unchanged.
+  const fileDataUrl = useFileUriDataUrl(
+    typeof source === "string" ? source : null
+  );
+  const effectiveSource = fileDataUrl !== null ? fileDataUrl : source;
+
   const nextUrl = useMemo(() => {
     // A newer source arrived before the previous preload committed — drop the
     // superseded blob.
@@ -64,10 +73,10 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
       URL.revokeObjectURL(nextBlobRef.current);
       nextBlobRef.current = null;
     }
-    const result = createImageUrl(source, null);
+    const result = createImageUrl(effectiveSource, null);
     nextBlobRef.current = result.blobUrl;
     return result.url || undefined;
-  }, [source]);
+  }, [effectiveSource]);
 
   const promote = useCallback((url: string) => {
     if (
