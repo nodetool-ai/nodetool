@@ -1,7 +1,9 @@
 import { renderHook, act } from "@testing-library/react";
 import { useRunFromHere } from "../useRunFromHere";
 
-jest.mock("../../../contexts/NodeContext", () => ({ useNodes: jest.fn() }));
+jest.mock("../../../contexts/NodeContext", () => ({
+  useNodeStoreRef: jest.fn()
+}));
 // The run getter now resolves each upstream's selected generation from the
 // live-generation buffer (ResultsStore) merged with persisted workflow assets
 // (WorkflowAssetStore); seed those instead of a focused-job result getter.
@@ -23,7 +25,7 @@ jest.mock("../../../lib/workflow/runInlineGraphJob", () => ({
   runInlineGraphJob: jest.fn(() => Promise.resolve({ success: true, outputs: {} }))
 }));
 
-import { useNodes } from "../../../contexts/NodeContext";
+import { useNodeStoreRef } from "../../../contexts/NodeContext";
 import useResultsStore from "../../../stores/ResultsStore";
 import { useWorkflowAssetStore } from "../../../stores/WorkflowAssetStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
@@ -31,7 +33,7 @@ import useMetadataStore from "../../../stores/MetadataStore";
 import { runInlineGraphJob } from "../../../lib/workflow/runInlineGraphJob";
 import type { Generation } from "../../../utils/nodeGenerations";
 
-const mockUseNodes = useNodes as jest.Mock;
+const mockUseNodeStoreRef = useNodeStoreRef as jest.Mock;
 const mockResultsGetState = (useResultsStore as unknown as { getState: jest.Mock })
   .getState;
 const mockAssetsGetState = (
@@ -47,6 +49,17 @@ const mockRunInline = runInlineGraphJob as unknown as jest.Mock;
 const graphArg = (call = 0) => mockRunInline.mock.calls[call][0].graph;
 
 describe("useRunFromHere (Run Node)", () => {
+  type TestNode = {
+    id: string;
+    type: string;
+    data: {
+      properties: Record<string, unknown>;
+      title?: string;
+      selected_generation?: string;
+      selected_generations?: string[];
+    };
+  };
+
   // Live generations keyed by `${workflowId}:${nodeId}`, the same key
   // getNodeGenerations reads from ResultsStore.
   const liveGenerations: Record<string, Generation[]> = {};
@@ -72,12 +85,12 @@ describe("useRunFromHere (Run Node)", () => {
   // Source-node classification; default non-generative.
   const mockGetMetadata = jest.fn(() => ({ title: "Chat" }) as unknown);
 
-  const nodeA = {
+  const nodeA: TestNode = {
     id: "node-a",
     type: "nodetool.llm.Chat",
     data: { properties: {} }
   };
-  const nodeB = {
+  const nodeB: TestNode = {
     id: "node-b",
     type: "nodetool.output.TextOutput",
     data: { properties: {} }
@@ -92,6 +105,12 @@ describe("useRunFromHere (Run Node)", () => {
     }
   ];
   const workflow = { id: "workflow-1", name: "WF" };
+  let nodeStoreState: {
+    edges: typeof edges;
+    nodes: TestNode[];
+    workflow: typeof workflow | null;
+    findNode: (id: string) => TestNode | undefined;
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -103,9 +122,15 @@ describe("useRunFromHere (Run Node)", () => {
     mockRunInline.mockImplementation(() =>
       Promise.resolve({ success: true, outputs: {} })
     );
-    mockUseNodes.mockImplementation((selector) =>
-      selector({ edges, nodes: [nodeA, nodeB], workflow })
-    );
+    nodeStoreState = {
+      edges,
+      nodes: [nodeA, nodeB],
+      workflow,
+      findNode: (id: string) => nodeStoreState.nodes.find((n) => n.id === id)
+    };
+    mockUseNodeStoreRef.mockReturnValue({
+      getState: () => nodeStoreState
+    });
     mockResultsGetState.mockReturnValue({
       getLiveGenerations: mockGetLiveGenerations
     });
@@ -170,6 +195,60 @@ describe("useRunFromHere (Run Node)", () => {
     // generation's outputs record and resolveExternalEdgeValue extracts the
     // "output" handle, writing it to the inbound edge's "value" target handle.
     expect(graphArg().nodes[0].data).toEqual({ value: "cached" });
+  });
+
+  it("serializes the latest upstream prompt from the store when React has not re-rendered yet", () => {
+    const stalePromptNode: TestNode = {
+      id: "prompt",
+      type: "nodetool.text.Prompt",
+      data: { properties: { prompt: "previous prompt" } }
+    };
+    const freshPromptNode: TestNode = {
+      ...stalePromptNode,
+      data: { properties: { prompt: "fresh prompt" } }
+    };
+    const consumerNode: TestNode = {
+      id: "consumer",
+      type: "nodetool.output.TextOutput",
+      data: { properties: {} }
+    };
+    nodeStoreState = {
+      edges: [
+        {
+          id: "prompt-to-consumer",
+          source: "prompt",
+          target: "consumer",
+          sourceHandle: "output",
+          targetHandle: "value"
+        }
+      ],
+      nodes: [freshPromptNode, consumerNode],
+      workflow,
+      findNode: (id: string) => nodeStoreState.nodes.find((n) => n.id === id)
+    };
+
+    const { result } = renderHook(() => useRunFromHere(consumerNode as never));
+
+    act(() => {
+      result.current.runFromHere();
+    });
+
+    expect(graphArg().nodes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "prompt",
+          data: { prompt: "fresh prompt" }
+        })
+      ])
+    );
+    expect(graphArg().nodes).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "prompt",
+          data: { prompt: "previous prompt" }
+        })
+      ])
+    );
   });
 
   it("blocks and warns when an uncached generative upstream feeds the node", () => {

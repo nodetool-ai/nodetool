@@ -3,8 +3,7 @@ import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useMetadataStore from "../../stores/MetadataStore";
-import { useNodes } from "../../contexts/NodeContext";
-import { shallow } from "zustand/shallow";
+import { useNodeStoreRef } from "../../contexts/NodeContext";
 import { runInlineGraphJob } from "../../lib/workflow/runInlineGraphJob";
 import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
 import { reactFlowEdgeToGraphEdge } from "../../stores/reactFlowEdgeToGraphEdge";
@@ -46,31 +45,30 @@ interface UseRunFromHereReturn {
 export function useRunFromHere(
   node: Node<NodeData> | null | undefined
 ): UseRunFromHereReturn {
-  const { edges, nodes, workflow } = useNodes(
-    (state) => ({
-      edges: state.edges,
-      nodes: state.nodes,
-      workflow: state.workflow
-    }),
-    shallow
-  );
-  const metadata = useMetadataStore((state) =>
-    state.getMetadata(node?.type ?? "")
-  );
+  const nodeStore = useNodeStoreRef();
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
 
   const runFromHere = useCallback(() => {
-    if (!node || !workflow) {
+    if (!node) {
       return;
     }
 
-    const findNode = (id: string): Node<NodeData> | undefined =>
-      nodes.find((n) => n.id === id);
+    const { edges, nodes, workflow, findNode } = nodeStore.getState();
+    if (!workflow) {
+      return;
+    }
+
+    const targetNode = findNode(node.id) ?? node;
+    const findCurrentNode = (id: string): Node<NodeData> | undefined =>
+      findNode(id) ?? nodes.find((n) => n.id === id);
+    const targetMetadata = targetNode.type
+      ? useMetadataStore.getState().getMetadata(targetNode.type)
+      : undefined;
 
     const subgraph = buildRunSubgraph({
-      targetId: node.id,
+      targetId: targetNode.id,
       nodes,
       edges,
       workflowId: workflow.id,
@@ -80,7 +78,7 @@ export function useRunFromHere(
       getResult: (wf, sourceId) => {
         const current = getCurrentGeneration(
           getNodeGenerations(wf, sourceId),
-          findNode(sourceId)?.data?.selected_generation
+          findCurrentNode(sourceId)?.data?.selected_generation
         );
         return current?.outputs;
       },
@@ -92,7 +90,7 @@ export function useRunFromHere(
           wf,
           sourceId,
           sourceHandle,
-          findNode(sourceId)?.data?.selected_generations
+          findCurrentNode(sourceId)?.data?.selected_generations
         ),
       getMetadata: useMetadataStore.getState().getMetadata
     });
@@ -119,15 +117,18 @@ export function useRunFromHere(
     // Independent job; the backend runs it immediately when under the
     // per-client concurrency cap (MAX_CONCURRENT_JOBS), otherwise queues it.
     const jobName =
-      node.data?.title?.trim() || metadata?.title || node.type || undefined;
+      targetNode.data?.title?.trim() ||
+      targetMetadata?.title ||
+      targetNode.type ||
+      undefined;
     void runInlineGraphJob({ graph, workflowId: workflow.id, jobName });
 
     addNotification({
       type: "info",
       alert: false,
-      content: `Running ${metadata?.title || node.type || "node"}`
+      content: `Running ${targetMetadata?.title || targetNode.type || "node"}`
     });
-  }, [node, edges, nodes, workflow, metadata, addNotification]);
+  }, [node, nodeStore, addNotification]);
 
   return { runFromHere, isWorkflowRunning: false };
 }
