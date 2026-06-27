@@ -308,6 +308,30 @@ const ASSET_MEDIA_TYPES = new Set(["image", "audio", "video"]);
 /** Byte cap for inline-preview text stored in a text generation's asset metadata. */
 const TEXT_GENERATION_PREVIEW_CAP = 200_000;
 
+/** Char cap for the prompt stored in a media asset's metadata. */
+const PROMPT_METADATA_CAP = 8_000;
+
+/**
+ * Lift the prompt out of a generation's scalar input properties into asset
+ * metadata. Returns `{ prompt }` when a non-empty `prompt` string is present
+ * (capped), else an empty object. Other generation params are intentionally
+ * left out — the prompt is the field the asset viewer surfaces.
+ */
+function promptMetadata(
+  properties: Record<string, unknown> | undefined
+): Record<string, unknown> {
+  const prompt = properties?.prompt;
+  if (typeof prompt !== "string") return {};
+  const trimmed = prompt.trim();
+  if (trimmed.length === 0) return {};
+  return {
+    prompt:
+      trimmed.length > PROMPT_METADATA_CAP
+        ? trimmed.slice(0, PROMPT_METADATA_CAP)
+        : trimmed
+  };
+}
+
 /**
  * Resolve a node's primary output name when it is a text/str type, so its value
  * can be persisted as a text generation. Mirrors the frontend's
@@ -546,8 +570,18 @@ async function autoSaveAssets(
      * several rows for ONE arrival index).
      */
     generationIndex?: number;
+    /**
+     * Scalar input properties from the `generation_complete` event (the actor's
+     * resolved declared/dynamic/edge inputs, filtered to scalars). The `prompt`
+     * is persisted into each saved media asset's `metadata.prompt` so the asset
+     * viewer can show what produced the image/audio/video.
+     */
+    properties?: Record<string, unknown>;
   }
 ): Promise<void> {
+  // Generation params lifted into each media asset's metadata. Just the prompt
+  // today — the field the asset viewer surfaces as "what produced this".
+  const promptMeta = promptMetadata(opts.properties);
   const queue: Record<string, unknown>[] = [];
 
   // Collect all asset-like values from the result (may be nested)
@@ -620,8 +654,12 @@ async function autoSaveAssets(
       content_type: contentType,
       parent_id: null
     });
+    const mediaMeta: Record<string, unknown> = { ...promptMeta };
     if (typeof opts.generationIndex === "number") {
-      asset.metadata = { generation_index: opts.generationIndex };
+      mediaMeta.generation_index = opts.generationIndex;
+    }
+    if (Object.keys(mediaMeta).length > 0) {
+      asset.metadata = mediaMeta;
     }
 
     const fileName = `${asset.id}.${ext}`;
@@ -2171,7 +2209,12 @@ export class UnifiedWebSocketRunner {
                       jobId: active.jobId,
                       nodeId,
                       textOutputName: primaryTextOutputName(meta),
-                      generationIndex: arrivalIndex
+                      generationIndex: arrivalIndex,
+                      properties:
+                        (outbound.properties as Record<
+                          string,
+                          unknown
+                        > | null) ?? undefined
                     }
                   );
                 } catch (err) {

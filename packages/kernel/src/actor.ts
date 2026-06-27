@@ -138,6 +138,31 @@ export interface ActorResult {
   };
 }
 
+/**
+ * Pick the scalar input properties (string/number/boolean) from a resolved
+ * input dict. Drops nested objects, arrays, and binary refs so the
+ * `generation_complete` event stays small and carries only persistable
+ * generation params (prompt, seed, model, …). Reserved keys (`_control_context`
+ * and other `_`-prefixed internals) are stripped. Returns `null` when nothing
+ * scalar remains.
+ */
+function scalarInputProperties(
+  inputs: Record<string, unknown>
+): Record<string, unknown> | null {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(inputs)) {
+    if (key.startsWith("_")) continue;
+    if (
+      typeof value === "string" ||
+      typeof value === "number" ||
+      typeof value === "boolean"
+    ) {
+      out[key] = value;
+    }
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
+
 // ---------------------------------------------------------------------------
 // NodeActor
 // ---------------------------------------------------------------------------
@@ -1001,7 +1026,7 @@ export class NodeActor {
       // output_update (chunks); multi-artifact-per-output-slot streaming is OUT
       // OF SCOPE (RFC §5 invariant / Decision 1 corollary). Under correlation
       // this branch runs once per ready key → one generation_complete per key.
-      this._emitGenerationComplete(this._latestResult);
+      this._emitGenerationComplete(this._latestResult, inputs);
     } else {
       const outputs = await this._executor.process(
         inputs,
@@ -1015,7 +1040,7 @@ export class NodeActor {
       );
       // Site #1 (RFC §5): correlated process() — one per ready key, so N/run
       // for a generator (the primary 6×-collapse fix).
-      this._emitGenerationComplete(outputs);
+      this._emitGenerationComplete(outputs, inputs);
     }
   }
 
@@ -1406,7 +1431,10 @@ export class NodeActor {
    * generation. List-valued results are carried as-is — no per-element
    * fan-out happens in the actor (RFC Decision 1).
    */
-  private _emitGenerationComplete(outputs: Record<string, unknown>): void {
+  private _emitGenerationComplete(
+    outputs: Record<string, unknown>,
+    inputs?: Record<string, unknown>
+  ): void {
     if (
       this.node.type.startsWith("nodetool.constant.") ||
       this.node.type.startsWith("nodetool.input.")
@@ -1418,7 +1446,11 @@ export class NodeActor {
       node_id: this.node.id,
       node_name: this.node.name ?? this.node.type,
       node_type: this.node.type,
-      outputs
+      outputs,
+      // Resolved scalar inputs (prompt, seed, model, …) ride along so the relay
+      // can persist them into auto-saved asset metadata. Filtered to scalars to
+      // keep the event small — binary refs and nested objects are dropped.
+      properties: inputs ? scalarInputProperties(inputs) : null
       // NO job_id, NO index — the runner relay stamps them downstream.
     });
   }
