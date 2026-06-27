@@ -34,7 +34,7 @@ export class AddEdgeTool extends Tool {
   readonly name = "add_edge";
   readonly description =
     "Connect two nodes by creating an edge from a source output to a target input.";
-  readonly inputSchema: Record<string, unknown> = ADD_EDGE_INPUT_SCHEMA;
+  readonly jsonSchema: Record<string, unknown> = ADD_EDGE_INPUT_SCHEMA;
 
   constructor(
     private readonly builder: GraphBuilder,

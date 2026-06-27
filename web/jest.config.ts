@@ -19,6 +19,8 @@ export default {
     "^typegpu/data$": "<rootDir>/src/__mocks__/typegpuData.ts",
     "^@nodetool-ai/protocol$": "<rootDir>/../packages/protocol/src/index.ts",
     "^@nodetool-ai/protocol/(.*)$": "<rootDir>/../packages/protocol/src/$1",
+    "^@nodetool-ai/runtime/zod-schema$":
+      "<rootDir>/../packages/runtime/src/zod-schema.ts",
     "^@nodetool-ai/timeline$": "<rootDir>/../packages/timeline/src/index.ts",
     // image-editor ships ESM-only dist; map to src so Jest transforms it
     // (used by useInpaintHere → SelectionActionBar). Mirrors protocol/gpu.

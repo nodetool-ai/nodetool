@@ -26,7 +26,7 @@ async function getOpenAIClient(context?: ProcessingContext) {
 export class OpenAIWebSearchTool extends Tool {
   readonly name = "openai_web_search";
   readonly description = "Search the web using OpenAI's web search API";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       query: {
@@ -79,7 +79,7 @@ export class OpenAIImageGenerationTool extends Tool {
     "embed pointing at a UI-fetchable URL. When narrating the result to the " +
     "user, include `display_markdown` verbatim; never construct your own " +
     "markdown from `output_file` (a workspace key, not a URL).";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       prompt: {
@@ -152,7 +152,7 @@ export class OpenAITextToSpeechTool extends Tool {
     "`display_markdown` — a ready-to-paste audio embed pointing at a " +
     "UI-fetchable URL. Include `display_markdown` verbatim when narrating " +
     "the result; never construct your own markup from `output_file`.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       input: {

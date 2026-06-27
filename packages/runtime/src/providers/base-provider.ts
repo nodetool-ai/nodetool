@@ -71,6 +71,41 @@ export function toolResultToText(result: string | MessageContent[]): string {
 }
 
 /**
+ * Split a tool result into the text that belongs in the `role:"tool"` message
+ * and, when the result carries images, a follow-up `role:"user"` message that
+ * actually carries the pixels.
+ *
+ * Most providers cannot render an image inside a tool-result message — OpenAI
+ * stringifies it to a base64 *text* blob (massive token blowup, and the model
+ * never sees an image). An image content block is only honored on a user (or
+ * assistant) message, so image-bearing tool results must ride a user message.
+ * Returns `imageMessage: null` for plain (text/no-image) results.
+ */
+export function splitToolResultImages(result: string | MessageContent[]): {
+  toolContent: string | MessageContent[];
+  imageMessage: Message | null;
+} {
+  if (typeof result === "string") {
+    return { toolContent: result, imageMessage: null };
+  }
+  const images = result.filter((c) => c.type === "image_url");
+  if (images.length === 0) {
+    return { toolContent: result, imageMessage: null };
+  }
+  const texts = result.filter(
+    (c): c is MessageContent & { type: "text"; text: string } =>
+      c.type === "text"
+  );
+  const note =
+    texts.map((c) => c.text).join("\n") ||
+    "Returned an image, shown in the next message.";
+  return {
+    toolContent: note,
+    imageMessage: { role: "user", content: [...texts, ...images] }
+  };
+}
+
+/**
  * Capability names a provider can expose. These correspond to the `capability`
  * strings consumed by client-side filters like `useImageModelProviders`,
  * `useTTSProviders`, etc.
@@ -805,13 +840,21 @@ export abstract class BaseProvider {
         }))
       );
       for (const { tc, content } of results) {
+        const { toolContent, imageMessage } = splitToolResultImages(content);
         const toolMsg: Message = {
           role: "tool",
           toolCallId: tc.id,
-          content
+          content: toolContent
         };
         messages.push(toolMsg);
         yield { type: "message", message: toolMsg };
+        if (imageMessage) {
+          // The pixels ride a user message for the next model turn (most
+          // providers can't render an image in a tool-result message). It is
+          // in-flight only — pushed to the loop's messages but never yielded,
+          // so it is never persisted or echoed, keeping saved history cheap.
+          messages.push(imageMessage);
+        }
       }
     }
   }

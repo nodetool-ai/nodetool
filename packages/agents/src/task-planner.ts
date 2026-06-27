@@ -449,9 +449,10 @@ export class TaskPlanner {
           message: Tool.resolveMessage(tool, args)
         } satisfies ToolCallUpdate;
 
-        const result = (await tool.process(
+        const result = (await Tool.executeTool(
+          tool,
           {} as ProcessingContext,
-          Tool.stripMessage(args)
+          args
         )) as Record<string, unknown>;
         messages.push({
           role: "tool",
@@ -626,9 +627,10 @@ export class TaskPlanner {
       };
     }
 
-    const result = await planningTool.process(
+    const result = await Tool.executeTool(
+      planningTool,
       {} as ProcessingContext,
-      Tool.stripMessage(toolCallArgs)
+      toolCallArgs
     );
 
     if (

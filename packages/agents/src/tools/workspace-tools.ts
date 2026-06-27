@@ -12,6 +12,7 @@
  */
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { StorageAdapter } from "@nodetool-ai/storage";
+import { z } from "zod";
 import { Tool } from "./base-tool.js";
 
 function getStorage(context: ProcessingContext): StorageAdapter | null {
@@ -23,19 +24,32 @@ const NO_WORKSPACE_ERROR = {
   error: "No workspace storage configured for this context."
 } as const;
 
+const WORKSPACE_READ_SCHEMA = z
+  .object({
+    path: z.string().describe("File path (storage key) relative to workspace")
+  })
+  .loose();
+
+const WORKSPACE_WRITE_SCHEMA = z
+  .object({
+    path: z.string().describe("File path (storage key) relative to workspace"),
+    content: z.string().describe("Content to write")
+  })
+  .loose();
+
+const WORKSPACE_LIST_SCHEMA = z
+  .object({
+    path: z.string().describe("Directory path (storage key prefix)")
+  })
+  .loose();
+
 export class WorkspaceReadTool extends Tool {
   readonly name = "workspace_read";
   readonly description = "Read a file relative to the agent workspace.";
-  readonly inputSchema = {
-    type: "object" as const,
-    properties: {
-      path: {
-        type: "string" as const,
-        description: "File path (storage key) relative to workspace"
-      }
-    },
-    required: ["path"]
-  };
+
+  override get schema() {
+    return WORKSPACE_READ_SCHEMA;
+  }
 
   // Kept for API compat; no longer consulted.
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -72,17 +86,10 @@ export class WorkspaceReadTool extends Tool {
 export class WorkspaceWriteTool extends Tool {
   readonly name = "workspace_write";
   readonly description = "Write a file relative to the agent workspace.";
-  readonly inputSchema = {
-    type: "object" as const,
-    properties: {
-      path: {
-        type: "string" as const,
-        description: "File path (storage key) relative to workspace"
-      },
-      content: { type: "string" as const, description: "Content to write" }
-    },
-    required: ["path", "content"]
-  };
+
+  override get schema() {
+    return WORKSPACE_WRITE_SCHEMA;
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   constructor(_workspaceRoot?: string) {
@@ -125,16 +132,10 @@ export class WorkspaceListTool extends Tool {
   readonly name = "workspace_list";
   readonly description =
     "List directory contents relative to the agent workspace.";
-  readonly inputSchema = {
-    type: "object" as const,
-    properties: {
-      path: {
-        type: "string" as const,
-        description: "Directory path (storage key prefix)"
-      }
-    },
-    required: ["path"]
-  };
+
+  override get schema() {
+    return WORKSPACE_LIST_SCHEMA;
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   constructor(_workspaceRoot?: string) {

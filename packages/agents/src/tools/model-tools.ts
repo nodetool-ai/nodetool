@@ -9,7 +9,7 @@ import { Tool } from "./base-tool.js";
 export class ListProviderModelsTool extends Tool {
   readonly name = "list_provider_models";
   readonly description = "List available language models from a provider.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       provider: {

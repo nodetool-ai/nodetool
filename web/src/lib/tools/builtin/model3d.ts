@@ -156,8 +156,8 @@ FrontendToolRegistry.register({
     return {
       ok: true,
       note: "Rendered view of the 3D editor viewport (PNG).",
-      // Recognized by the server, which routes this to vision-capable
-      // providers as a real image content block (see extractToolResultImageContent).
+      // The server persists this as a temp image asset and hands the model a
+      // handle; the model calls view_image to actually see it.
       image_content: { data: base64, mimeType: "image/png" }
     };
   }

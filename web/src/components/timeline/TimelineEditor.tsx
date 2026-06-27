@@ -30,9 +30,12 @@ import {
   FlexRow,
   LoadingSpinner,
   ProgressBar,
+  TabGroup,
   Text,
   MOTION
 } from "../ui_primitives";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 
 import { TopBar } from "./TopBar";
 import { BottomStatusBar } from "./BottomStatusBar";
@@ -46,6 +49,8 @@ import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 import { TimelineProvider } from "../../stores/timeline/TimelineInstance";
 import { PreviewArea } from "./preview/PreviewArea";
 import { TimelineInspector } from "./Inspector/TimelineInspector";
+import TimelineAgentPanel from "./TimelineAgentPanel";
+import { useTimelineAgentBridge } from "../../hooks/timeline/useTimelineAgentBridge";
 import { TranscriptPanel } from "./TranscriptPanel";
 import { useHasScript } from "../../hooks/timeline/useHasScript";
 import { ActivityIndicator } from "./ActivityIndicator";
@@ -223,8 +228,11 @@ const PreviewRegion: React.FC<{
   );
 };
 
+type InspectorTab = "inspector" | "agent";
+
 const InspectorRegion: React.FC = () => {
   const theme = useTheme();
+  const [tab, setTab] = useState<InspectorTab>("inspector");
 
   return (
     <FlexColumn
@@ -232,7 +240,23 @@ const InspectorRegion: React.FC = () => {
       fullHeight
       sx={{ flex: "0 1 45%", minWidth: 0, minHeight: 0, width: 0 }}
     >
-      <TimelineInspector />
+      <TabGroup
+        tabs={[
+          { value: "inspector", label: "Inspector", icon: <TuneOutlinedIcon /> },
+          { value: "agent", label: "Assistant", icon: <AutoAwesomeIcon /> }
+        ]}
+        value={tab}
+        onChange={(value) => setTab(value as InspectorTab)}
+        size="small"
+        fullWidth
+        sx={{
+          flexShrink: 0,
+          borderBottom: `1px solid ${theme.vars.palette.divider}`
+        }}
+      />
+      <FlexColumn fullWidth sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+        {tab === "inspector" ? <TimelineInspector /> : <TimelineAgentPanel />}
+      </FlexColumn>
     </FlexColumn>
   );
 };
@@ -272,14 +296,18 @@ interface TimelineEditorProps {
   active?: boolean;
 }
 
-const TimelineEditorBody: React.FC<Omit<TimelineEditorProps, "active">> = memo(({
-  sequenceId: sequenceIdProp
+const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
+  sequenceId: sequenceIdProp,
+  active = true
 }) => {
   const { sequenceId: sequenceIdParam } = useParams<{ sequenceId: string }>();
   const sequenceId = sequenceIdProp ?? sequenceIdParam;
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const theme = useTheme();
+
+  // Register the ui_timeline_* agent tools against this instance while focused.
+  useTimelineAgentBridge(active);
 
   // Data fetching ─────────────────────────────────────────────────────────
   const { data: sequence, isLoading, isError, refetch } =
@@ -561,7 +589,7 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
   ...bodyProps
 }) => (
   <TimelineProvider active={active}>
-    <TimelineEditorBody {...bodyProps} />
+    <TimelineEditorBody active={active} {...bodyProps} />
   </TimelineProvider>
 );
 

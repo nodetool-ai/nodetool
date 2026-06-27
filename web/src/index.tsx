@@ -147,7 +147,8 @@ const registerFrontendTools = () => {
     import("./lib/tools/builtin/searchModels"),
     import("./lib/tools/builtin/deleteNode"),
     import("./lib/tools/builtin/deleteEdge"),
-    import("./lib/tools/builtin/model3d")
+    import("./lib/tools/builtin/model3d"),
+    import("./lib/tools/builtin/timeline")
   ]).catch((error) => {
     console.error("Failed to register frontend tools:", error);
   });

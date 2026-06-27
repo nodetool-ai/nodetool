@@ -17,6 +17,13 @@ import type {
 import type { Chunk } from "@nodetool-ai/protocol";
 import { Tool } from "./tools/base-tool.js";
 import {
+  extractInjectableImages,
+  stripImagePayload,
+  buildImageInjectionMessage,
+  downgradeInjectedImageMessage,
+  type ExtractedImages
+} from "./tools/image-injection.js";
+import {
   FinishTool,
   jsonSchemaForOutputType
 } from "./tools/finish-task-tool.js";
@@ -49,6 +56,8 @@ export class AgentExecutor {
   private readonly systemPrompt: string;
   private readonly threadId?: string;
   private history: Message[];
+  /** Injected image messages still carrying pixels (downgraded on the next view). */
+  private readonly liveInjectedImageMessages = new Set<Message>();
   private iterations = 0;
   private completed = false;
   private _result: unknown = null;
@@ -148,21 +157,31 @@ export class AgentExecutor {
       this.history.push(assistantMessage);
 
       if (response.toolCalls) {
+        // Tool messages must stay contiguous after the assistant turn, so any
+        // demanded pixels are buffered and injected as user messages afterward.
+        const pendingImageInjections: ExtractedImages[] = [];
         for (const toolCall of response.toolCalls) {
           yield toolCall;
 
           const result = await this.handleToolCall(toolCall);
 
+          // A view-image-style result carries pixels the model asked for; pull
+          // them out so the tool message stays a light note and the image rides
+          // a dedicated user message into the next turn.
+          const injected = extractInjectableImages(result);
+          const summary = injected ? stripImagePayload(result) : result;
+          if (injected) pendingImageInjections.push(injected);
+
           let serialized: string;
-          if (result == null) {
+          if (summary == null) {
             serialized = "Tool returned no output.";
           } else {
             try {
-              serialized = JSON.stringify(result);
+              serialized = JSON.stringify(summary);
             } catch {
               serialized = JSON.stringify({
                 error: "Failed to serialize tool result",
-                result_repr: String(result)
+                result_repr: String(summary)
               });
             }
           }
@@ -179,6 +198,20 @@ export class AgentExecutor {
             this._metadata =
               (toolCall.args.metadata as Record<string, unknown>) ?? null;
             break;
+          }
+        }
+
+        if (pendingImageInjections.length > 0) {
+          // A fresh view retires the pixels of earlier views — only the latest
+          // set rides forward, keeping the standing context cheap.
+          for (const old of this.liveInjectedImageMessages) {
+            downgradeInjectedImageMessage(old);
+          }
+          this.liveInjectedImageMessages.clear();
+          for (const injected of pendingImageInjections) {
+            const message = buildImageInjectionMessage(injected);
+            this.history.push(message);
+            this.liveInjectedImageMessages.add(message);
           }
         }
       }
@@ -202,10 +235,7 @@ export class AgentExecutor {
     }
 
     try {
-      return await tool.process(
-        this.context,
-        Tool.stripMessage(toolCall.args)
-      );
+      return await Tool.executeTool(tool, this.context, toolCall.args);
     } catch (e: unknown) {
       return { error: String(e) };
     }

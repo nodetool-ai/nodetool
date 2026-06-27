@@ -360,10 +360,7 @@ export class CompilerAgent {
             message: Tool.resolveMessage(tool, tc.args)
           } satisfies ToolCallUpdate;
           try {
-            const result = await tool.process(
-              this.context,
-              Tool.stripMessage(tc.args)
-            );
+            const result = await Tool.executeTool(tool, this.context, tc.args);
             serialized =
               typeof result === "string" ? result : JSON.stringify(result);
             if (serialized.length > MAX_TOOL_RESULT_CHARS) {

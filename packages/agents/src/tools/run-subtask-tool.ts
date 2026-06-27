@@ -68,7 +68,7 @@ export class RunSubtaskTool extends Tool {
   readonly name = "run_subtask";
   readonly description = RUN_SUBTASK_DESCRIPTION;
   readonly needsToolCallId = true;
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object",
     properties: {
       description: {

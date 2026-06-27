@@ -37,7 +37,7 @@ export class LocalListNodesTool extends Tool {
   readonly description =
     "List available node types, optionally filtered by namespace. " +
     "Use this to browse what deterministic nodes are available.";
-  readonly inputSchema: Record<string, unknown> = LIST_NODES_INPUT_SCHEMA;
+  readonly jsonSchema: Record<string, unknown> = LIST_NODES_INPUT_SCHEMA;
 
   constructor(private readonly registry: NodeRegistry) {
     super();

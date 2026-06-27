@@ -95,7 +95,7 @@ const LLM_AGENT_MARKER = "llm-agent";
 class UiBridgeTool extends Tool {
   readonly name: string;
   readonly description: string;
-  readonly inputSchema: Record<string, unknown>;
+  protected readonly jsonSchema: Record<string, unknown>;
 
   constructor(
     private readonly transport: AgentTransport,
@@ -107,7 +107,7 @@ class UiBridgeTool extends Tool {
     this.description = manifest.description;
     // Manifest parameters are already JSON Schema (see toolSchemas.ts and the
     // renderer's frontend tool registration). Pass through unchanged.
-    this.inputSchema =
+    this.jsonSchema =
       (manifest.parameters as Record<string, unknown>) ?? {
         type: "object",
         properties: {},
@@ -217,7 +217,8 @@ class GraphPlannerUiTool extends Tool {
   readonly name = "plan_workflow_graph";
   readonly description =
     "Build a complete NodeTool workflow graph from an objective using the backend GraphPlanner, stream planner updates to the UI, and optionally apply the final graph to the canvas in one bulk operation.";
-  readonly inputSchema: Record<string, unknown> = PLAN_WORKFLOW_GRAPH_SCHEMA;
+  protected readonly jsonSchema: Record<string, unknown> =
+    PLAN_WORKFLOW_GRAPH_SCHEMA;
 
   constructor(
     private readonly opts: {

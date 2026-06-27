@@ -18,7 +18,7 @@ export class SaveAssetTool extends Tool {
   readonly name = "save_asset";
   readonly description =
     "Save content as an asset. Use this for any artifact you want to surface in the chat (text reports, JSON, manifests, images, audio). Pass `content_base64` for binary data and `content` for text. Returns an asset_id and asset:// URI you can reference in later steps.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       name: {
@@ -140,7 +140,7 @@ export class SaveAssetTool extends Tool {
 export class ReadAssetTool extends Tool {
   readonly name = "read_asset";
   readonly description = "Read an asset file";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       name: {

@@ -38,7 +38,7 @@ async function extractPdfPages(buffer: Buffer): Promise<PdfExtraction> {
 export class ExtractPDFTextTool extends Tool {
   readonly name = "extract_pdf_text";
   readonly description = "Extract plain text from a PDF document";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       path: {
@@ -93,7 +93,7 @@ export class ExtractPDFTextTool extends Tool {
 export class ExtractPDFTablesTool extends Tool {
   readonly name = "extract_pdf_tables";
   readonly description = "Extract tables from a PDF document to a JSON file";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       path: {
@@ -193,7 +193,7 @@ export class ExtractPDFTablesTool extends Tool {
 export class ConvertPDFToMarkdownTool extends Tool {
   readonly name = "convert_pdf_to_markdown";
   readonly description = "Convert PDF to Markdown format";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       input_file: {
@@ -267,7 +267,7 @@ export class ConvertPDFToMarkdownTool extends Tool {
 export class ConvertMarkdownToPDFTool extends Tool {
   readonly name = "convert_markdown_to_pdf";
   readonly description = "Convert Markdown to PDF using Pandoc.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       input_file: {
@@ -327,7 +327,7 @@ export class ConvertDocumentTool extends Tool {
   readonly name = "convert_document";
   readonly description =
     "Convert between document formats using Pandoc, supports markdown, docx, rst, pdf, html, etc.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       input_file: {

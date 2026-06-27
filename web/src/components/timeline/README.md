@@ -86,3 +86,46 @@ are approximated with `ctx.filter`; the GPU-only effects (chroma key, vignette,
 sharpen) are skipped in the fallback. This keeps the timeline preview rendering
 and documentation screenshots capturing real frames without a GPU. The heavier
 WebGPU/typegpu bundle is dynamically imported only when `navigator.gpu` exists.
+
+## AI Assistant (agent editing)
+
+The Inspector panel has two tabs: **Inspector** (clip properties) and
+**Assistant**. The Assistant is a chat agent that edits the open sequence on
+your behalf — cutting, arranging, generating, and tweaking clips like a real
+editor. It mirrors the 3D editor's agent: the open editor registers a handler
+on the timeline agent bridge, and the agent drives it through `ui_timeline_*`
+frontend tools.
+
+- `timelineAgentBridge.ts` — the bridge: serializable node types
+  (`TimelineSnapshot`, `TimelineClipNode`, `TimelineTrackNode`), the
+  `TimelineAgentHandler` interface, and `set/get/hasTimelineAgentHandler`.
+- `hooks/timeline/useTimelineAgentBridge.ts` — builds the handler from the
+  surrounding instance's stores (document, UI, playback) plus the direct-gen
+  job runner and registers it while the editor is the active surface, so with
+  several timeline tabs open the tools target the focused one.
+- `lib/tools/builtin/timeline.ts` — the `ui_timeline_*` tool definitions.
+- `TimelineAgentPanel.tsx` — the chat surface, reusing `ChatView` wired to the
+  shared `GlobalChatStore` (the same chat the rest of the app uses).
+
+### Tools
+
+| Tool | What it does |
+|------|--------------|
+| `ui_timeline_get_state` | Read tracks, clips, selection, playhead, resolution, fps, duration. Call first. |
+| `ui_timeline_add_track` | Add a video / audio / overlay / subtitle track. |
+| `ui_timeline_generate_clip` | Generate a clip from a prompt (text-to-video / -image / -audio) and start generation. |
+| `ui_timeline_split_clip` | Cut a clip in two (razor) at a time or the playhead. |
+| `ui_timeline_trim_clip` | Set on-timeline duration and/or source in/out points. |
+| `ui_timeline_move_clip` | Move a clip to a start time and/or another track. |
+| `ui_timeline_delete_clip` | Remove a clip. |
+| `ui_timeline_duplicate_clip` | Duplicate a clip (keeps its generation binding for variations). |
+| `ui_timeline_set_clip_params` | Change render/audio params (opacity, speed, volume, fades, blend, …). |
+| `ui_timeline_set_clip_binding` | Edit a generated clip's prompt / provider / model / voice and optionally regenerate. |
+| `ui_timeline_select_clip` | Select a clip (drives the inspector). |
+| `ui_timeline_seek` | Move the playhead. |
+
+Clips and tracks are addressed by id, by case-insensitive name, or — for the
+selected clip — the literal `"selected"`. Times are milliseconds on the
+sequence timeline. Generation reuses the last-used model for the media kind
+when `provider`/`model` are omitted; the agent can discover valid models with
+the model-search tool.

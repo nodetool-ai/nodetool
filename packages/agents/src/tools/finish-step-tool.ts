@@ -14,7 +14,7 @@ export class FinishStepTool extends Tool {
     "This is the ONLY way to properly signal step completion. Do not output raw JSON blocks. " +
     "The result must conform to the step's declared output schema.";
 
-  readonly inputSchema: Record<string, unknown>;
+  readonly jsonSchema: Record<string, unknown>;
 
   constructor(outputSchema?: Record<string, unknown>) {
     super();
@@ -41,7 +41,7 @@ export class FinishStepTool extends Tool {
       ) {
         resultSchema["additionalProperties"] = false;
       }
-      this.inputSchema = {
+      this.jsonSchema = {
         type: "object",
         properties: {
           result: resultSchema
@@ -50,7 +50,7 @@ export class FinishStepTool extends Tool {
         additionalProperties: false
       };
     } else {
-      this.inputSchema = {
+      this.jsonSchema = {
         type: "object",
         properties: {
           result: {

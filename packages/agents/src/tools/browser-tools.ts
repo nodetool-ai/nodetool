@@ -104,7 +104,7 @@ export class BrowserTool extends Tool {
     "Fetches a web page and returns its readable text content (HTML " +
     "stripped). Returns plain text. Errors include a short reason. Search " +
     "engine result pages are blocked — use `google_search` instead.";
-  readonly inputSchema: Record<string, unknown> = {
+  readonly jsonSchema: Record<string, unknown> = {
     type: "object",
     properties: {
       url: {
@@ -172,7 +172,7 @@ export class ScreenshotTool extends Tool {
   readonly name = "take_screenshot";
   readonly description =
     "Take a screenshot of a web page. Requires a remote browser service (BROWSER_URL).";
-  readonly inputSchema: Record<string, unknown> = {
+  readonly jsonSchema: Record<string, unknown> = {
     type: "object",
     properties: {
       url: {

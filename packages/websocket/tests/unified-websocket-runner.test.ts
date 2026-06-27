@@ -921,40 +921,102 @@ describe("UnifiedWebSocketRunner binary frame size guard", () => {
 
 describe("UnifiedWebSocketRunner image tool results", () => {
   const runner = new UnifiedWebSocketRunner({ resolveExecutor });
-  // extractToolResultImageContent is private; exercise it directly.
-  const extract = (result: unknown) =>
+
+  function makeCtx() {
+    const stored: Array<{ key: string; bytes: Uint8Array; mimeType: string }> =
+      [];
+    const ctx = {
+      storage: {
+        store: async (key: string, bytes: Uint8Array, mimeType: string) => {
+          stored.push({ key, bytes, mimeType });
+          return `mem://${key}`;
+        }
+      }
+    };
+    return { ctx, stored };
+  }
+
+  // materializeToolResultImages is private; exercise it directly.
+  const materialize = (result: unknown, ctx: unknown) =>
     (
       runner as unknown as {
-        extractToolResultImageContent: (r: unknown) => unknown;
+        materializeToolResultImages: (r: unknown, c: unknown) => Promise<unknown>;
       }
-    ).extractToolResultImageContent(result);
+    ).materializeToolResultImages(result, ctx);
 
-  it("converts an image_content result into text + image blocks", () => {
-    const content = extract({
+  it("stores an image_content blob as a temp asset and returns a handle", async () => {
+    const { ctx, stored } = makeCtx();
+    const out = (await materialize(
+      {
+        ok: true,
+        note: "Rendered viewport (PNG).",
+        image_content: { data: "QUJD", mimeType: "image/png" }
+      },
+      ctx
+    )) as Record<string, any>;
+
+    expect(stored).toHaveLength(1);
+    expect(stored[0].key).toMatch(/\.png$/);
+    expect(out.image_content).toBeUndefined();
+    expect(out.image_id).toBe(stored[0].key);
+    expect(out.note).toContain("view_image");
+    // The base64 pixels never reach the serialized tool message.
+    expect(JSON.stringify(out)).not.toContain("QUJD");
+  });
+
+  it("stores each timeline frame as a temp asset handle", async () => {
+    const { ctx, stored } = makeCtx();
+    const out = (await materialize(
+      {
+        ok: true,
+        clip: { name: "Shot 4" },
+        frames: [
+          {
+            timelineTimeMs: 1200,
+            sourceTimeMs: 500,
+            dataUrl: "data:image/jpeg;base64,QUJD"
+          },
+          {
+            timelineTimeMs: 2400,
+            sourceTimeMs: 1700,
+            dataUrl: "data:image/jpeg;base64,REVG"
+          }
+        ]
+      },
+      ctx
+    )) as Record<string, any>;
+
+    expect(stored).toHaveLength(2);
+    expect(stored[0].key).toMatch(/\.jpg$/);
+    const frames = out.frames as Array<Record<string, unknown>>;
+    expect(frames[0].dataUrl).toBeUndefined();
+    expect(frames[0].image_id).toBe(stored[0].key);
+    expect(frames[0].timelineTimeMs).toBe(1200);
+    expect(out.note).toContain("view_image");
+    expect(JSON.stringify(out)).not.toContain("QUJD");
+  });
+
+  it("passes a remote image URL through as a handle without storing", async () => {
+    const { ctx, stored } = makeCtx();
+    const out = (await materialize(
+      {
+        ok: true,
+        image_content: { uri: "https://example.com/cap.png", mimeType: "image/png" }
+      },
+      ctx
+    )) as Record<string, any>;
+    expect(stored).toHaveLength(0);
+    expect(out.image_id).toBe("https://example.com/cap.png");
+    expect(out.image_content).toBeUndefined();
+  });
+
+  it("leaves ordinary (non-image) results untouched", async () => {
+    const { ctx } = makeCtx();
+    expect(await materialize({ ok: true, count: 3 }, ctx)).toEqual({
       ok: true,
-      note: "Rendered viewport (PNG).",
-      image_content: { data: "QUJD", mimeType: "image/png" }
+      count: 3
     });
-    expect(content).toEqual([
-      { type: "text", text: "Rendered viewport (PNG)." },
-      { type: "image_url", image: { data: "QUJD", uri: undefined, mimeType: "image/png" } }
-    ]);
-  });
-
-  it("defaults the mime type and note when omitted", () => {
-    const content = extract({ image_content: { data: "QUJD" } }) as Array<{
-      type: string;
-      text?: string;
-      image?: { mimeType?: string };
-    }>;
-    expect(content[0]).toEqual({ type: "text", text: "Captured image:" });
-    expect(content[1].image?.mimeType).toBe("image/png");
-  });
-
-  it("returns null for ordinary (non-image) results", () => {
-    expect(extract({ ok: true, count: 3 })).toBeNull();
-    expect(extract("plain string")).toBeNull();
-    expect(extract(null)).toBeNull();
-    expect(extract({ image_content: { mimeType: "image/png" } })).toBeNull();
+    expect(await materialize("plain string", ctx)).toBe("plain string");
+    expect(await materialize(null, ctx)).toBeNull();
   });
 });
