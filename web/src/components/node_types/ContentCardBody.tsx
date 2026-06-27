@@ -34,9 +34,11 @@ import LayersIcon from "@mui/icons-material/Layers";
 import {
   CheckerDropzone,
   DynamicInputButton,
+  FlexColumn,
   FlexRow,
   VideoPlayer, BORDER_RADIUS } from "../ui_primitives";
 import { NodeInputs } from "../node/NodeInputs";
+import AddDynamicOutputButton from "../node/AddDynamicOutputButton";
 import HandleColumn from "../node/HandleColumn";
 import ImageView from "../node/ImageView";
 import OutputRenderer from "../node/OutputRenderer";
@@ -585,6 +587,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
     (isMediaVariant && hasGallery) || variant === "text";
 
   const isDynamic = !!nodeMetadata.supports_dynamic_inputs;
+  const supportsDynamicOutputs = !!nodeMetadata.supports_dynamic_outputs;
   const hasDynamicProps =
     Object.keys(data.dynamic_properties ?? {}).length > 0;
 
@@ -734,13 +737,21 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
         </div>
       )}
 
-      {isDynamic && (
-        <FlexRow className="footer-strip" align="center" justify="flex-start">
-          <DynamicInputButton
-            itemLabel={getDynamicInputLabel(nodeMetadata)}
-            onAdd={handleAddDynamicInput}
-          />
-        </FlexRow>
+      {(isDynamic || supportsDynamicOutputs) && (
+        <FlexColumn className="footer-strip" align="flex-start" gap={0.5}>
+          {isDynamic && (
+            <DynamicInputButton
+              itemLabel={getDynamicInputLabel(nodeMetadata)}
+              onAdd={handleAddDynamicInput}
+            />
+          )}
+          {supportsDynamicOutputs && (
+            <AddDynamicOutputButton
+              id={id}
+              dynamicOutputs={data.dynamic_outputs ?? {}}
+            />
+          )}
+        </FlexColumn>
       )}
 
       {status === "running" && <NodeProgress id={id} workflowId={workflowId} />}

@@ -350,56 +350,28 @@ describe("ContentCardBody results", () => {
   });
 });
 
-describe("ContentCardBody dynamic inputs", () => {
-  const dynamicMetadata = (): NodeMetadata =>
+describe("ContentCardBody dynamic outputs", () => {
+  const outputMetadata = (supportsDynamicOutputs: boolean): NodeMetadata =>
     ({
       ...metadataForOutput("str"),
-      node_type: "nodetool.text.Concat",
-      title: "Concatenate Text",
-      inline_fields: [],
-      input_fields: [],
-      supports_dynamic_inputs: true
+      node_type: "nodetool.agents.Agent",
+      title: "Agent",
+      supports_dynamic_inputs: false,
+      supports_dynamic_outputs: supportsDynamicOutputs
     }) as unknown as NodeMetadata;
 
-  const renderDynamicCard = (dynamicProperties: Record<string, unknown>) =>
-    render(
-      <ThemeProvider theme={mockTheme}>
-        <ContentCardBody
-          id={nodeId}
-          nodeType="nodetool.text.Concat"
-          nodeMetadata={dynamicMetadata()}
-          data={
-            {
-              ...nodeData,
-              dynamic_properties: dynamicProperties
-            } as NodeData
-          }
-          workflowId={workflowId}
-          isOutputNode={true}
-        />
-      </ThemeProvider>
-    );
-
-  it("renders a handle-bearing input row for each user-added dynamic input", () => {
-    const { container } = renderDynamicCard({ input_1: "" });
-
-    const dynamicBlock = container.querySelector(".dynamic-inputs");
-    expect(dynamicBlock).not.toBeNull();
-    const nodeInputs = dynamicBlock!.querySelector(
-      '[data-testid="node-inputs"]'
-    );
-    // Dynamic inputs render (so each gets a handle) and are editable so the
-    // user can rename/delete them.
-    expect(nodeInputs).toHaveAttribute("data-show-dynamic", "true");
-    expect(nodeInputs).toHaveAttribute("data-editable-dynamic", "true");
-    // Unconnected inputs fall back to the node's primary-output type (str
-    // here) so they get a real editor instead of the uneditable `any`.
-    expect(nodeInputs).toHaveAttribute("data-default-type", "str");
+  it("shows the Add output button when the node supports dynamic outputs", () => {
+    renderContentCard(outputMetadata(true));
+    expect(
+      screen.getByRole("button", { name: "Add output" })
+    ).toBeInTheDocument();
   });
 
-  it("omits the dynamic input block when nothing has been added", () => {
-    const { container } = renderDynamicCard({});
-    expect(container.querySelector(".dynamic-inputs")).toBeNull();
+  it("hides the Add output button when the node has no dynamic outputs", () => {
+    renderContentCard(outputMetadata(false));
+    expect(
+      screen.queryByRole("button", { name: "Add output" })
+    ).not.toBeInTheDocument();
   });
 });
 
