@@ -14,52 +14,11 @@ import { TextInput, Text } from "../ui_primitives";
 import ExternalLink from "../common/ExternalLink";
 import type { SettingWithValue } from "../../stores/RemoteSettingStore";
 import { useTheme } from "@mui/material/styles";
-
-// Provider configurations
-interface ProviderConfig {
-  id: string;
-  label: string;
-  description: string;
-  credentialFields: string[];
-  getApiKeyUrl: string;
-  getApiKeyLabel: string;
-}
-
-const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
-  serpapi: {
-    id: "serpapi",
-    label: "SerpAPI",
-    description:
-      "Fast and reliable search API with Google, Bing, and other engines",
-    credentialFields: ["SERPAPI_API_KEY"],
-    getApiKeyUrl: "https://serpapi.com/manage-api-key",
-    getApiKeyLabel: "Get SerpAPI Key"
-  },
-  dataforseo: {
-    id: "dataforseo",
-    label: "DataForSEO",
-    description: "Professional SEO and search intelligence platform",
-    credentialFields: ["DATA_FOR_SEO_LOGIN", "DATA_FOR_SEO_PASSWORD"],
-    getApiKeyUrl: "https://app.dataforseo.com/register",
-    getApiKeyLabel: "Get DataForSEO Credentials"
-  },
-  brave: {
-    id: "brave",
-    label: "Brave Search",
-    description: "Privacy-focused search engine with fast, accurate results",
-    credentialFields: ["BRAVE_API_KEY"],
-    getApiKeyUrl: "https://api-dashboard.search.brave.com/",
-    getApiKeyLabel: "Get Brave API Key"
-  },
-  apify: {
-    id: "apify",
-    label: "Apify",
-    description: "Reliable Google search scraping via Apify actors",
-    credentialFields: ["APIFY_API_KEY"],
-    getApiKeyUrl: "https://console.apify.com/account/integrations",
-    getApiKeyLabel: "Get Apify API Key"
-  }
-};
+import {
+  SEARCH_PROVIDER_CONFIGS as PROVIDER_CONFIGS,
+  DEFAULT_SERP_PROVIDER,
+  type SerpProviderId
+} from "../../utils/searchProviders";
 
 interface SearchProviderSectionProps {
   allSettings: SettingWithValue[];
@@ -73,7 +32,8 @@ const SearchProviderSection = memo(function SearchProviderSection({
   onChange
 }: SearchProviderSectionProps) {
   const theme = useTheme();
-  const selectedProvider = settingValues["SERP_PROVIDER"] || "serpapi";
+  const selectedProvider = (settingValues["SERP_PROVIDER"] ||
+    DEFAULT_SERP_PROVIDER) as SerpProviderId;
   const config = PROVIDER_CONFIGS[selectedProvider];
 
   // Get credential fields for all providers
