@@ -14,6 +14,7 @@ import type { Theme } from "@mui/material/styles";
 import { FlexRow, EditorButton } from "../ui_primitives";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import SaveIcon from "@mui/icons-material/Save";
+import TuneIcon from "@mui/icons-material/Tune";
 
 import { TopBarPrompt } from "./TopBarPrompt";
 
@@ -35,6 +36,8 @@ export interface TopBarProps {
   onSave?: () => void;
   /** True while a manual save is in flight. */
   isSaving?: boolean;
+  /** Called when the user opens the project settings (canvas size + fps). */
+  onOpenSettings?: () => void;
   /** Optional slot for an activity indicator (NOD-311) */
   activitySlot?: React.ReactNode;
 }
@@ -45,6 +48,7 @@ export const TopBar: React.FC<TopBarProps> = memo(
     isExporting = false,
     onSave,
     isSaving = false,
+    onOpenSettings,
     activitySlot
   }) => {
     const theme = useTheme();
@@ -54,8 +58,20 @@ export const TopBar: React.FC<TopBarProps> = memo(
         {/* Quick-prompt generation bar — grows to fill */}
         <TopBarPrompt />
 
-        {/* Right: activity slot + save / export */}
+        {/* Right: activity slot + settings / save / export */}
         {activitySlot}
+
+        {onOpenSettings && (
+          <EditorButton
+            variant="outlined"
+            onClick={onOpenSettings}
+            startIcon={<TuneIcon />}
+            size="small"
+            aria-label="Project settings"
+          >
+            Settings
+          </EditorButton>
+        )}
 
         {onSave && (
           <EditorButton

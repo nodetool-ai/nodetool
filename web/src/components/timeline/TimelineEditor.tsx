@@ -17,6 +17,7 @@
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useShallow } from "zustand/react/shallow";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -39,6 +40,7 @@ import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 
 import { TopBar } from "./TopBar";
 import { BottomStatusBar } from "./BottomStatusBar";
+import { ProjectSettingsDialog } from "./ProjectSettingsDialog";
 import {
   useCreateTimeline,
   useTimeline,
@@ -46,6 +48,7 @@ import {
 } from "../../hooks/useTimelineSequence";
 import { TracksRegion } from "./Tracks/TracksRegion";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
+import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import { TimelineProvider } from "../../stores/timeline/TimelineInstance";
 import { PreviewArea } from "./preview/PreviewArea";
 import { TimelineInspector } from "./Inspector/TimelineInspector";
@@ -151,7 +154,6 @@ function exportPhaseLabel(
 
 const PreviewRegion: React.FC<{
   isLoading: boolean;
-  sequence?: { fps?: number; width?: number; height?: number };
   sequenceUnavailable: boolean;
   onRetryFetch?: () => void;
   onCreateNewSequence?: () => void;
@@ -159,7 +161,6 @@ const PreviewRegion: React.FC<{
   createSequenceErrorMessage?: string | null;
 }> = ({
   isLoading,
-  sequence,
   sequenceUnavailable,
   onRetryFetch,
   onCreateNewSequence,
@@ -167,6 +168,12 @@ const PreviewRegion: React.FC<{
   createSequenceErrorMessage
 }) => {
   const theme = useTheme();
+  // Canvas size + fps come from the store — the single source of truth the
+  // compositor and the export already read — so Project settings changes show
+  // up in the preview immediately, without waiting on a query refetch.
+  const { fps, width, height } = useTimelineStore(
+    useShallow((s) => ({ fps: s.fps, width: s.width, height: s.height }))
+  );
   return (
     <FlexColumn
       css={previewRegionStyles(theme)}
@@ -219,9 +226,9 @@ const PreviewRegion: React.FC<{
         </FlexColumn>
       ) : (
         <PreviewArea
-          fps={sequence?.fps ?? 30}
-          sequenceWidth={sequence?.width ?? 1920}
-          sequenceHeight={sequence?.height ?? 1080}
+          fps={fps}
+          sequenceWidth={width}
+          sequenceHeight={height}
         />
       )}
     </FlexColumn>
@@ -354,6 +361,9 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
     void exportVideo(sequence?.name);
   }, [exportVideo, sequence?.name]);
 
+  // Project settings dialog (canvas size + fps) ────────────────────────────
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
   // Tracks resize ─────────────────────────────────────────────────────────
   const [tracksHeight, setTracksHeight] = useState(DEFAULT_TRACKS_HEIGHT_PX);
   const [isDragging, setIsDragging] = useState(false);
@@ -482,6 +492,9 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
         isExporting={isExporting}
         onSave={sequenceUnavailable ? undefined : handleSave}
         isSaving={isSaving}
+        onOpenSettings={
+          sequenceUnavailable ? undefined : () => setSettingsOpen(true)
+        }
         activitySlot={<ActivityIndicator />}
       />
 
@@ -499,7 +512,6 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
         <TranscriptRegion />
         <PreviewRegion
           isLoading={isLoading}
-          sequence={sequence}
           sequenceUnavailable={sequenceUnavailable}
           onRetryFetch={sequenceUnavailable ? handleRetrySequence : undefined}
           onCreateNewSequence={
@@ -536,6 +548,12 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
         onZoomChange={handleZoomChange}
         generatingCount={generatingCount}
         failedCount={failedCount}
+      />
+
+      {/* ── Project settings dialog (canvas size + fps) ───────────── */}
+      <ProjectSettingsDialog
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
       />
 
       {/* ── Export progress / error dialog ────────────────────────── */}
