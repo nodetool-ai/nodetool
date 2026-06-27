@@ -1,5 +1,9 @@
 import { Edge, Node } from "@xyflow/react";
-import { computeRunSignatures } from "../computeRunSignatures";
+import {
+  computeRunSignatures,
+  computeStampSignature
+} from "../computeRunSignatures";
+import { createNodeHasher } from "../nodeHash";
 import { NodeData } from "../../stores/NodeData";
 import { NodeMetadata } from "../../stores/ApiTypes";
 import type { Generation } from "../nodeGenerations";
@@ -12,7 +16,11 @@ const getMetadata = (type: string): NodeMetadata =>
     properties: []
   }) as unknown as NodeMetadata;
 
-const node = (id: string, type: string): Node<NodeData> => ({
+const node = (
+  id: string,
+  type: string,
+  extraData: Partial<NodeData> = {}
+): Node<NodeData> => ({
   id,
   type,
   position: { x: 0, y: 0 },
@@ -20,7 +28,8 @@ const node = (id: string, type: string): Node<NodeData> => ({
     properties: {},
     dynamic_properties: {},
     selectable: true,
-    workflow_id: "wf"
+    workflow_id: "wf",
+    ...extraData
   } as NodeData
 });
 
@@ -38,6 +47,15 @@ const generation = (
   status: Generation["status"],
   createdAt: number
 ): Generation => ({ id, jobId: id, createdAt, outputs: {}, status });
+
+// A generation whose jobId differs from its id (the realistic case: the live
+// id is `${jobId}` for slot 0, but persisted/older variants carry their own).
+const genInJob = (
+  id: string,
+  jobId: string,
+  status: Generation["status"],
+  createdAt: number
+): Generation => ({ id, jobId, createdAt, outputs: {}, status });
 
 describe("computeRunSignatures — generative upstream stamping", () => {
   // A computed node `t` reads a generative `g`. The dispatch-time stamp folds
@@ -72,5 +90,44 @@ describe("computeRunSignatures — generative upstream stamping", () => {
     const withNewCompleted = stampForGenerations([Y, Xdone]);
     // reuse now emits X → stamp must change (guards against over-collapsing).
     expect(withNewCompleted).not.toBe(onlyCompleted);
+  });
+});
+
+describe("computeStampSignature — generation actually consumed this job", () => {
+  // G (generative, pinned to an OLD generation) → C (computed). A run produces
+  // G's NEW generation, which C actually consumes. The dispatch stamp folds the
+  // OLD pinned generation (the new one doesn't exist at dispatch); the
+  // completion stamp must instead fold the generation produced THIS job, so C's
+  // cache is keyed to what it consumed — not to the stale pin.
+  const nodes = [
+    node("g", "gen.Image", { selected_generation: "g_old" }),
+    node("c", "proc.compute")
+  ];
+  const edges = [edge("e", "g", "c")];
+  const gens: Generation[] = [
+    genInJob("g_old", "old-job", "completed", 1),
+    genInJob("g_new", "new-job", "completed", 2)
+  ];
+  const args = {
+    nodes,
+    edges,
+    workflowId: "wf",
+    getMetadata,
+    getGenerations: (_wf: string, id: string) => (id === "g" ? gens : [])
+  };
+
+  // Reference: C's signature folding a specific generation id for G.
+  const sigFolding = (genId: string): string =>
+    createNodeHasher({
+      findNode: (id) => nodes.find((n) => n.id === id),
+      inboundEdges: (id) => edges.filter((e) => e.target === id),
+      getMetadata,
+      currentGenerationId: (id) => (id === "g" ? genId : undefined)
+    }).inputSignature("c");
+
+  it("folds the generation produced this job, not the stale pinned one", () => {
+    const stamped = computeStampSignature("new-job", "c", args);
+    expect(stamped).toBe(sigFolding("g_new"));
+    expect(stamped).not.toBe(sigFolding("g_old"));
   });
 });

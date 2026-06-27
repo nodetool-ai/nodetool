@@ -33,6 +33,7 @@ import { Edge, Node } from "@xyflow/react";
 import type { NodeMetadata, NodeUpdate, WorkflowAttributes } from "../ApiTypes";
 import { NodeData } from "../NodeData";
 import useResultsStore from "../ResultsStore";
+import useMetadataStore from "../MetadataStore";
 import { handleUpdate } from "../workflowUpdates";
 import {
   recordRunSignatures,
@@ -40,6 +41,7 @@ import {
   clearRunSignatures
 } from "../runSignatures";
 import { computeRunSignatures } from "../../utils/computeRunSignatures";
+import { createNodeHasher } from "../../utils/nodeHash";
 import { getNodeGenerations } from "../nodeGenerationAccessor";
 import { buildRunSubgraph } from "../../utils/runSubgraph";
 
@@ -149,6 +151,18 @@ const propsOf = (sub: ReturnType<typeof build>, id: string) =>
 
 beforeEach(() => {
   useResultsStore.setState({ liveGenerations: {} } as never);
+  // The completion re-stamp (workflowUpdates) classifies nodes via the global
+  // MetadataStore. Seed it with the fixture types so `gen.*` classifies as
+  // generative there exactly as in dispatch — production loads metadata at
+  // startup before any run completes.
+  useMetadataStore.getState().setMetadata({
+    "gen.Image": getMetadata("gen.Image"),
+    "pure.Format": getMetadata("pure.Format"),
+    "pure.Leaf": getMetadata("pure.Leaf"),
+    "proc.Plain": getMetadata("proc.Plain"),
+    "proc.Step": getMetadata("proc.Step"),
+    "nodetool.constant.String": getMetadata("nodetool.constant.String")
+  });
   mockRunnerStore.setState.mockClear();
   mockAddNotification.mockClear();
 });
@@ -327,6 +341,101 @@ describe("Computed caching — end-to-end activation (dispatch → stamp → reu
     expect(sub.nodeIds).toEqual(new Set(["target"]));
     expect(sub.edges).toEqual([]);
     expect(propsOf(sub, "target").input).toBe("U");
+  });
+
+  it("FIX (P2): a computed descendant is stamped with the generation its generative upstream produced THIS job, so re-selecting the OLD generation re-runs it", () => {
+    // g (generative, pinned to an OLD generation) → c (cacheable computed) →
+    // target. A full run produces g's NEW generation, which c consumes. The
+    // dispatch stamp folds g_old (g_new doesn't exist yet); the completion
+    // re-stamp must instead fold g_new so c's cache is keyed to what it
+    // consumed. Re-selecting g_old later must then MISS (c re-runs), not reuse
+    // the g_new-derived output.
+    const target = node("target", "proc.Plain");
+    const g = node("g", "gen.Image", {}, { selected_generation: "g_old" });
+    const c = node("c", "pure.Format");
+    const nodes = [target, g, c];
+    const edges = [edge("e1", "c", "target"), edge("e2", "g", "c", "x")];
+    const jobId = "new-job";
+
+    // A prior generation g_old already sits in the live buffer.
+    useResultsStore.setState({
+      liveGenerations: {
+        [`${WF}:g`]: [
+          {
+            id: "g_old",
+            jobId: "old-job",
+            createdAt: NOW - 1000,
+            outputs: { output: "OLD" },
+            status: "completed"
+          }
+        ]
+      }
+    } as never);
+
+    // A real NodeStore exposing nodes/edges so the completion re-stamp runs the
+    // recompute path (not the no-store fallback).
+    const byId = new Map(nodes.map((n) => [n.id, n]));
+    const nodeStore = {
+      getState: () => ({
+        nodes,
+        edges,
+        findNode: (id: string) => byId.get(id),
+        updateNodeData: (id: string, data: Partial<NodeData>) => {
+          const n = byId.get(id);
+          if (n) n.data = { ...n.data, ...data };
+        }
+      })
+    };
+    const dispatchWithStore = (data: unknown) =>
+      handleUpdate(
+        mockWorkflow,
+        data as never,
+        mockRunnerStore as never,
+        () => nodeStore as never
+      );
+
+    // DISPATCH over the pre-run graph (g still resolves to g_old).
+    const signatures = computeRunSignatures(["g", "c", "target"], {
+      nodes,
+      edges,
+      workflowId: WF,
+      getMetadata,
+      getGenerations: liveGetGenerations
+    });
+    recordRunSignatures(jobId, signatures);
+
+    // RUN: g produces a NEW generation (live id === jobId for slot 0)…
+    dispatchWithStore({
+      type: "generation_complete",
+      node_id: "g",
+      job_id: jobId,
+      index: 0,
+      outputs: { output: "NEW" }
+    });
+    // …then c completes, having consumed g's new output.
+    dispatchWithStore(
+      nodeUpdate("completed", jobId, "c", { result: { output: "C-FROM-NEW" } })
+    );
+    clearRunSignatures(jobId);
+
+    // c is stamped with the signature folding g_new (id === jobId), NOT g_old.
+    const sigFolding = (genId: string): string =>
+      createNodeHasher({
+        findNode: (id) => byId.get(id),
+        inboundEdges: (id) => edges.filter((e) => e.target === id),
+        getMetadata,
+        currentGenerationId: (id) => (id === "g" ? genId : undefined)
+      }).inputSignature("c");
+    const cGen = useResultsStore.getState().getLiveGenerations(WF, "c").at(-1)!;
+    expect(cGen.inputSignature).toBe(sigFolding(jobId));
+    expect(cGen.inputSignature).not.toBe(sigFolding("g_old"));
+
+    // Re-select g_old: a later partial run of target must RE-RUN c (its cache is
+    // keyed to g_new, but g now feeds g_old) — no stale reuse.
+    byId.get("g")!.data.selected_generation = "g_old";
+    const sub = build("target", nodes, edges);
+    expect(sub.nodeIds.has("c")).toBe(true);
+    expect(propsOf(sub, "target").input).toBeUndefined();
   });
 
   it("REGRESSION (P1): the post-run properties echo-back of an inlined edge value does NOT self-invalidate the cache", () => {
