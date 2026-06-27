@@ -91,6 +91,79 @@ describe("XAIProvider", () => {
     expect(models).toEqual([]);
   });
 
+  function mixedModelsFetch() {
+    return vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: [
+          { id: "grok-4", name: "Grok 4", output_modalities: ["text"] },
+          { id: "grok-3-mini" },
+          {
+            id: "grok-imagine-image-quality",
+            name: "Grok Imagine Image",
+            output_modalities: ["image"]
+          },
+          { id: "grok-imagine-video", name: "Grok Imagine Video" }
+        ]
+      })
+    });
+  }
+
+  it("classifies image and video models out of the language list", async () => {
+    const provider = new XAIProvider(
+      { XAI_API_KEY: "k" },
+      { client: {} as any, fetchFn: mixedModelsFetch() as any }
+    );
+
+    const language = await provider.getAvailableLanguageModels();
+    expect(language.map((m) => m.id)).toEqual(["grok-4", "grok-3-mini"]);
+  });
+
+  it("exposes Grok Imagine image models as image models", async () => {
+    const provider = new XAIProvider(
+      { XAI_API_KEY: "k" },
+      { client: {} as any, fetchFn: mixedModelsFetch() as any }
+    );
+
+    const images = await provider.getAvailableImageModels();
+    expect(images).toEqual([
+      {
+        id: "grok-imagine-image-quality",
+        name: "Grok Imagine Image",
+        provider: "xai",
+        supportedTasks: ["text_to_image", "image_to_image"]
+      }
+    ]);
+  });
+
+  it("exposes Grok Imagine video models as video models", async () => {
+    const provider = new XAIProvider(
+      { XAI_API_KEY: "k" },
+      { client: {} as any, fetchFn: mixedModelsFetch() as any }
+    );
+
+    const videos = await provider.getAvailableVideoModels();
+    expect(videos).toEqual([
+      {
+        id: "grok-imagine-video",
+        name: "Grok Imagine Video",
+        provider: "xai",
+        supportedTasks: ["text_to_video", "image_to_video"]
+      }
+    ]);
+  });
+
+  it("returns empty image and video lists when model fetch fails", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ ok: false });
+    const provider = new XAIProvider(
+      { XAI_API_KEY: "k" },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+
+    expect(await provider.getAvailableImageModels()).toEqual([]);
+    expect(await provider.getAvailableVideoModels()).toEqual([]);
+  });
+
   it("generates non-streaming message via inherited OpenAI logic", async () => {
     const create = vi.fn().mockResolvedValue({
       choices: [

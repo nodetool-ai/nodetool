@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { OpenAIProvider } from "./openai-provider.js";
-import type { LanguageModel } from "./types.js";
+import type { ImageModel, LanguageModel, VideoModel } from "./types.js";
 
 const XAI_BASE_URL = "https://api.x.ai/v1";
 
@@ -8,6 +8,44 @@ interface XAIProviderOptions {
   client?: OpenAI;
   clientFactory?: (apiKey: string) => OpenAI;
   fetchFn?: typeof fetch;
+}
+
+/** Raw row from xAI's `/v1/models` listing. */
+interface XAIModelRow {
+  id: string;
+  name?: string;
+  input_modalities?: string[];
+  output_modalities?: string[];
+}
+
+type ModelModality = "language" | "image" | "video";
+
+/**
+ * Classify an xAI model by its modality. xAI returns every model (chat,
+ * Grok Imagine image, Grok Imagine video) from a single `/v1/models` listing,
+ * so we have to sort them ourselves. Prefer the `output_modalities` array when
+ * present; otherwise fall back to the model id (e.g. `grok-imagine-video`).
+ */
+function classifyModel(row: XAIModelRow): ModelModality {
+  const out = (row.output_modalities ?? []).map((m) => m.toLowerCase());
+  if (out.includes("video")) {
+    return "video";
+  }
+  if (out.includes("image")) {
+    return "image";
+  }
+  if (out.includes("text")) {
+    return "language";
+  }
+
+  const id = row.id.toLowerCase();
+  if (id.includes("video")) {
+    return "video";
+  }
+  if (id.includes("image")) {
+    return "image";
+  }
+  return "language";
 }
 
 /**
@@ -59,7 +97,8 @@ export class XAIProvider extends OpenAIProvider {
     return true;
   }
 
-  override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
+  /** Fetch and validate the rows from xAI's `/v1/models` listing. */
+  private async fetchModelRows(): Promise<XAIModelRow[]> {
     const response = await this._xaiFetch(`${XAI_BASE_URL}/models`, {
       headers: {
         Authorization: `Bearer ${this.apiKey}`
@@ -71,19 +110,48 @@ export class XAIProvider extends OpenAIProvider {
     }
 
     const payload = (await response.json()) as {
-      data?: Array<{ id?: string; name?: string }>;
+      data?: Array<XAIModelRow | undefined>;
     };
     // Stryker disable next-line ArrayDeclaration: the fallback is filtered downstream (rows need a string id), so [] vs any array is observably identical.
     const rows = payload.data ?? [];
+    return rows.filter(
+      (row): row is XAIModelRow =>
+        typeof row?.id === "string" && row.id.length > 0
+    );
+  }
+
+  override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
+    const rows = await this.fetchModelRows();
     return rows
-      .filter(
-        (row): row is { id: string; name?: string } =>
-          typeof row.id === "string" && row.id.length > 0
-      )
+      .filter((row) => classifyModel(row) === "language")
       .map((row) => ({
         id: row.id,
         name: row.name ?? row.id,
-        provider: "xai"
+        provider: "xai" as const
+      }));
+  }
+
+  override async getAvailableImageModels(): Promise<ImageModel[]> {
+    const rows = await this.fetchModelRows();
+    return rows
+      .filter((row) => classifyModel(row) === "image")
+      .map((row) => ({
+        id: row.id,
+        name: row.name ?? row.id,
+        provider: "xai" as const,
+        supportedTasks: ["text_to_image", "image_to_image"]
+      }));
+  }
+
+  override async getAvailableVideoModels(): Promise<VideoModel[]> {
+    const rows = await this.fetchModelRows();
+    return rows
+      .filter((row) => classifyModel(row) === "video")
+      .map((row) => ({
+        id: row.id,
+        name: row.name ?? row.id,
+        provider: "xai" as const,
+        supportedTasks: ["text_to_video", "image_to_video"]
       }));
   }
 }
