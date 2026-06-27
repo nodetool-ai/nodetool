@@ -45,9 +45,15 @@ describe("cli settings and provider helpers", () => {
 
     const { availableProviders } = await import("../src/providers.js");
 
+    // `mlx` is appended only on Apple Silicon (after the env-backed providers,
+    // before the keyless ones), so the expectation tracks the host platform.
+    const onAppleSilicon =
+      process.platform === "darwin" && process.arch === "arm64";
+
     expect(availableProviders()).toEqual([
       "anthropic",
       "gemini",
+      ...(onAppleSilicon ? ["mlx"] : []),
       "claude_agent_sdk",
       "lmstudio",
       "ollama"
