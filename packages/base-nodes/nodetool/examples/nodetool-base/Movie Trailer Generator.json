@@ -5,7 +5,7 @@
   "updated_at": "2026-06-27T13:33:47.316Z",
   "name": "Movie Trailer Generator",
   "tool_name": null,
-  "description": "Type a single logline and get back a narrated cinematic teaser. Prompt nodes template the inputs into a treatment, turn each generated shot into full cinematic key art, and write the voiceover; the keyframes are cut into a trailer with AI narration.",
+  "description": "Type a single logline and get back a cinematic teaser. Prompt nodes template the inputs into a treatment and turn each shot into full cinematic key art; the shots are animated and cut together into the final trailer.",
   "tags": [
     "video",
     "generation",
@@ -130,17 +130,6 @@
         "edge_type": "data"
       },
       {
-        "id": "1ff71f38-8b25-43d5-98a2-8b9cae6b99fb",
-        "source": "trailer",
-        "sourceHandle": "output",
-        "target": "5e65a47a-2986-441e-b57f-7666cebdf732",
-        "targetHandle": "value",
-        "ui_properties": {
-          "className": "video"
-        },
-        "edge_type": "data"
-      },
-      {
         "id": "1889e486-1dfe-467c-bafd-88fa3de7eb18",
         "source": "keyframe",
         "sourceHandle": "output",
@@ -174,17 +163,6 @@
         "edge_type": "data"
       },
       {
-        "id": "41414d0d-5801-4089-ba02-02961f78d891",
-        "source": "b8622937-e6d7-445f-bb19-e254b49a23ef",
-        "sourceHandle": "output",
-        "target": "trailer",
-        "targetHandle": "video",
-        "ui_properties": {
-          "className": "video"
-        },
-        "edge_type": "data"
-      },
-      {
         "id": "849b832f-8c49-488e-b21a-71c7367a2465",
         "source": "style",
         "sourceHandle": "output",
@@ -201,7 +179,7 @@
         "id": "comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🎬 Movie Trailer Generator\n\nType one logline and the canvas builds a narrated teaser. Prompt nodes do the work: one templates the inputs into a trailer treatment, one turns each generated shot into full cinematic key art, and one writes the voiceover.\n\n**Pipeline:** Logline → Treatment prompt → Shot prompts → Keyframe prompt → Text-to-Image → Cut + AI narration\n\n**Try this:** change the visual style or shot count, swap the image/voice model. For full motion, replace Frames-to-Video with per-shot Image-to-Video + Concat."
+          "comment": "# 🎬 Movie Trailer Generator\n\nType one logline and the canvas builds a cinematic teaser. Prompt nodes do the work: one templates the inputs into a trailer treatment, one turns each shot into full cinematic key art.\n\n**Pipeline:** Logline → Treatment → Shot prompts → Keyframes → Image-to-Video → Concat\n\n**Try this:** change the visual style or shot count, or swap the image / video model."
         },
         "ui_properties": {
           "position": {
@@ -444,51 +422,6 @@
         "dynamic_outputs": {}
       },
       {
-        "id": "trailer",
-        "type": "nodetool.video.AddAudio",
-        "data": {
-          "volume": 1,
-          "mix": false,
-          "audio": {}
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 3499,
-            "y": 553
-          },
-          "zIndex": 0,
-          "width": 150,
-          "height": 150,
-          "title": "🎬 Final trailer",
-          "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
-        "id": "5e65a47a-2986-441e-b57f-7666cebdf732",
-        "type": "nodetool.workflows.base_node.Preview",
-        "data": {
-          "name": "output"
-        },
-        "ui_properties": {
-          "selected": false,
-          "position": {
-            "x": 3679,
-            "y": 478
-          },
-          "zIndex": 0,
-          "width": 606,
-          "height": 365,
-          "selectable": true,
-          "bypassed": false
-        },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
-      },
-      {
         "id": "e3c7d2b6-dc63-46a0-8e90-3998601e0faf",
         "type": "nodetool.video.ImageToVideo",
         "data": {
@@ -539,8 +472,9 @@
             "y": 534
           },
           "zIndex": 0,
-          "width": 284,
-          "height": 254,
+          "width": 320,
+          "height": 280,
+          "title": "🎬 Final trailer",
           "selectable": true,
           "bypassed": false
         },

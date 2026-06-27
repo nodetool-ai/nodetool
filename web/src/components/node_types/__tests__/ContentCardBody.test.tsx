@@ -90,6 +90,39 @@ jest.mock("../../../stores/WorkflowRunner", () => ({
     selector({ state: mockRunnerState })
 }));
 
+// VideoPreview drives a real <video> off a resolved src; stub the resolver so a
+// video value yields a stable src without signed-URL/blob plumbing.
+jest.mock("../../../hooks/nodes/useMediaSrc", () => ({
+  __esModule: true,
+  useMediaSrc: () => "blob:video-src",
+  default: () => "blob:video-src"
+}));
+
+// VideoPreview's "save to assets" / "download" actions delegate to these.
+const mockCreateAsset = jest.fn().mockResolvedValue({});
+jest.mock("../../../stores/AssetStore", () => ({
+  useAssetStore: (selector: (s: { createAsset: unknown }) => unknown) =>
+    selector({ createAsset: mockCreateAsset })
+}));
+
+const mockAddNotification = jest.fn();
+jest.mock("../../../stores/NotificationStore", () => ({
+  useNotificationStore: (
+    selector: (s: { addNotification: unknown }) => unknown
+  ) => selector({ addNotification: mockAddNotification })
+}));
+
+const mockCreateAssetFile = jest.fn();
+jest.mock("../../../utils/createAssetFile", () => ({
+  createAssetFile: (...args: unknown[]) => mockCreateAssetFile(...args)
+}));
+
+const mockDownloadPreviewAssets = jest.fn().mockResolvedValue(undefined);
+jest.mock("../../../utils/downloadPreviewAssets", () => ({
+  downloadPreviewAssets: (...args: unknown[]) =>
+    mockDownloadPreviewAssets(...args)
+}));
+
 // NodeInputs renders ReactFlow Handles, which need a ReactFlow context not
 // present in these unit tests. Mock it to a probe that surfaces the props
 // that decide whether dynamic inputs (and thus handles) get rendered.
@@ -138,6 +171,15 @@ const transformMetadata = (): NodeMetadata =>
     ...metadataForOutput("image"),
     node_type: "lib.image.color_grading.Curves",
     namespace: "lib.image.color_grading",
+    auto_save_asset: false
+  }) as unknown as NodeMetadata;
+
+/** A video transform (e.g. Concat): outputs video, doesn't auto-save. */
+const videoTransformMetadata = (): NodeMetadata =>
+  ({
+    ...metadataForOutput("video"),
+    node_type: "nodetool.video.Concat",
+    namespace: "nodetool.video",
     auto_save_asset: false
   }) as unknown as NodeMetadata;
 
@@ -346,6 +388,70 @@ describe("ContentCardBody results", () => {
     expect(screen.getByText("2 / 2")).toBeInTheDocument();
     expect(screen.getByLabelText("Generated text")).toHaveTextContent(
       "second gen"
+    );
+  });
+});
+
+describe("ContentCardBody video actions", () => {
+  beforeEach(() => {
+    mockAssetHistory = [];
+    mockLastJobAssets = [];
+    mockRunnerState = "idle";
+    mockCreateAsset.mockClear();
+    mockAddNotification.mockClear();
+    mockCreateAssetFile.mockClear();
+    mockDownloadPreviewAssets.mockClear();
+    useResultsStore.setState({ liveGenerations: {} } as never);
+    useWorkflowAssetStore.setState({ assetsByWorkflow: {} } as never);
+  });
+
+  it("shows download and save-to-assets buttons over the video player", () => {
+    seedLiveGeneration("j1", {
+      output: { type: "video", uri: "trailer.mp4" }
+    });
+
+    renderContentCard(videoTransformMetadata());
+
+    expect(screen.getByLabelText("Download video")).toBeInTheDocument();
+    expect(screen.getByLabelText("Save video to assets")).toBeInTheDocument();
+  });
+
+  it("downloads the video via the preview-asset helper", async () => {
+    seedLiveGeneration("j1", {
+      output: { type: "video", uri: "trailer.mp4" }
+    });
+
+    renderContentCard(videoTransformMetadata());
+
+    await userEvent.click(screen.getByLabelText("Download video"));
+
+    expect(mockDownloadPreviewAssets).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nodeId,
+        previewValue: { type: "video", uri: "trailer.mp4" }
+      })
+    );
+  });
+
+  it("saves the video to assets and notifies on success", async () => {
+    mockCreateAssetFile.mockResolvedValue([
+      { file: new File([], "trailer.mp4"), filename: "trailer.mp4", type: "video/mp4" }
+    ]);
+    seedLiveGeneration("j1", {
+      output: { type: "video", uri: "trailer.mp4" }
+    });
+
+    renderContentCard(videoTransformMetadata());
+
+    await userEvent.click(screen.getByLabelText("Save video to assets"));
+
+    expect(mockCreateAssetFile).toHaveBeenCalledWith(
+      { type: "video", uri: "trailer.mp4" },
+      nodeId
+    );
+    expect(mockCreateAsset).toHaveBeenCalledTimes(1);
+    expect(mockAddNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "success" })
     );
   });
 });

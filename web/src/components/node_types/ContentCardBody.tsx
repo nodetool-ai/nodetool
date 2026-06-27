@@ -31,12 +31,19 @@ import AudiotrackIcon from "@mui/icons-material/Audiotrack";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
 import ViewInArIcon from "@mui/icons-material/ViewInAr";
 import LayersIcon from "@mui/icons-material/Layers";
+import DownloadIcon from "@mui/icons-material/Download";
+import AddIcon from "@mui/icons-material/Add";
 import {
   CheckerDropzone,
   DynamicInputButton,
   FlexColumn,
   FlexRow,
-  VideoPlayer, BORDER_RADIUS } from "../ui_primitives";
+  ToolbarIconButton,
+  VideoPlayer,
+  BORDER_RADIUS,
+  MOTION,
+  Z_INDEX
+} from "../ui_primitives";
 import { NodeInputs } from "../node/NodeInputs";
 import AddDynamicOutputButton from "../node/AddDynamicOutputButton";
 import HandleColumn from "../node/HandleColumn";
@@ -48,6 +55,11 @@ import { getMimeTypeFromUri } from "../node/output";
 import { useMediaSrc } from "../../hooks/nodes/useMediaSrc";
 import { TextRenderer } from "../node/output/TextRenderer";
 import AudioPlayer from "../audio/AudioPlayer";
+import { useMediaOverlay } from "../node/MediaOverlayContext";
+import { useAssetStore } from "../../stores/AssetStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
+import { createAssetFile } from "../../utils/createAssetFile";
+import { downloadPreviewAssets } from "../../utils/downloadPreviewAssets";
 
 import type { NodeMetadata } from "../../stores/ApiTypes";
 import { RAW_RGBA_MIME } from "@nodetool-ai/protocol";
@@ -123,6 +135,40 @@ const styles = (theme: Theme) =>
         top: 0,
         bottom: 0,
         left: `calc(${theme.spacing(0)})`
+      },
+      // Video preview fills the area; its action overlay (download / save to
+      // assets) reveals on hover, top-right, clear of the player's bottom bar.
+      ".video-preview": {
+        position: "relative",
+        width: "100%",
+        height: "100%"
+      },
+      ".video-preview-actions": {
+        position: "absolute",
+        top: theme.spacing(0.5),
+        right: theme.spacing(0.5),
+        zIndex: Z_INDEX.dropdown,
+        display: "flex",
+        gap: theme.spacing(0.5),
+        opacity: 0,
+        transition: MOTION.opacity
+      },
+      ".video-preview:hover .video-preview-actions": {
+        opacity: 1
+      },
+      ".video-preview-actions button": {
+        width: 24,
+        height: 24,
+        padding: theme.spacing(0.25),
+        backgroundColor: theme.vars.palette.c_scrim,
+        color: theme.vars.palette.grey[0],
+        borderRadius: BORDER_RADIUS.sm,
+        "&:hover": {
+          backgroundColor: theme.vars.palette.c_scrim_strong
+        },
+        "& svg": {
+          fontSize: 14
+        }
       },
       ".image-grid-preview": {
         width: "100%",
@@ -401,13 +447,80 @@ const ImagePreview: React.FC<{ value: unknown }> = ({ value }) => {
   return <OutputRenderer value={value} showTextActions={false} />;
 };
 
-const VideoPreview: React.FC<{ value: unknown }> = ({ value }) => {
+const VideoPreview: React.FC<{ value: unknown; nodeId: string }> = ({
+  value,
+  nodeId
+}) => {
   const src = useMediaSrc(value, "video");
+  // Inside NodeHistoryViewer the unified overlay already owns download — only
+  // add our actions on the direct (non-gallery) path, where the video isn't
+  // auto-saved and there's nothing to download/save it with otherwise.
+  const { suppressed } = useMediaOverlay();
+  const createAsset = useAssetStore((s) => s.createAsset);
+  const addNotification = useNotificationStore((s) => s.addNotification);
+
+  const handleDownload = useCallback(async () => {
+    try {
+      await downloadPreviewAssets({
+        nodeId,
+        previewValue: value,
+        rawResult: value
+      });
+    } catch (error) {
+      console.error("VideoPreview: download failed", error);
+      addNotification({ type: "error", content: "Failed to start download" });
+    }
+  }, [nodeId, value, addNotification]);
+
+  const handleAddToAssets = useCallback(async () => {
+    try {
+      const assetFiles = await createAssetFile(
+        value as Parameters<typeof createAssetFile>[0],
+        nodeId
+      );
+      await Promise.all(assetFiles.map(({ file }) => createAsset(file)));
+      addNotification({
+        type: "success",
+        content: `${assetFiles.length} file(s) added to assets`
+      });
+    } catch (error) {
+      console.error("VideoPreview: add to assets failed", error);
+      addNotification({
+        type: "error",
+        content: "Failed to add video to assets"
+      });
+    }
+  }, [value, nodeId, createAsset, addNotification]);
+
   if (!src) {
     return <OutputRenderer value={value} showTextActions={false} />;
   }
   // nodrag/nopan keep ReactFlow from hijacking click-to-play and seek drag.
-  return <VideoPlayer src={src} className="nodrag nopan" />;
+  return (
+    <div className="video-preview nodrag nopan">
+      <VideoPlayer src={src} />
+      {!suppressed && (
+        <div className="video-preview-actions">
+          <ToolbarIconButton
+            title="Download"
+            size="small"
+            onClick={handleDownload}
+            aria-label="Download video"
+          >
+            <DownloadIcon />
+          </ToolbarIconButton>
+          <ToolbarIconButton
+            title="Save to Assets"
+            size="small"
+            onClick={handleAddToAssets}
+            aria-label="Save video to assets"
+          >
+            <AddIcon />
+          </ToolbarIconButton>
+        </div>
+      )}
+    </div>
+  );
 };
 
 const AudioPreview: React.FC<{ value: unknown }> = ({ value }) => {
@@ -477,7 +590,8 @@ const Model3DPreview: React.FC<{ value: unknown }> = ({ value }) => {
 const PreviewArea: React.FC<{
   variant: ContentCardVariant;
   value: unknown;
-}> = ({ variant, value }) => {
+  nodeId: string;
+}> = ({ variant, value, nodeId }) => {
   // Empty state — variant-specific empty surface.
   if (value === undefined || value === null) {
     if (variant === "image_mask") {
@@ -514,7 +628,7 @@ const PreviewArea: React.FC<{
         </div>
       );
     case "video":
-      return <VideoPreview value={value} />;
+      return <VideoPreview value={value} nodeId={nodeId} />;
     case "audio":
       return <AudioPreview value={value} />;
     case "text":
@@ -651,8 +765,10 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
   }, [data.dynamic_properties, id, updateNodeData]);
 
   const renderSingle = useCallback(
-    (value: unknown) => <PreviewArea variant={variant} value={value} />,
-    [variant]
+    (value: unknown) => (
+      <PreviewArea variant={variant} value={value} nodeId={id} />
+    ),
+    [variant, id]
   );
 
   return (
@@ -672,7 +788,11 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
             renderSingle={renderSingle}
           />
         ) : (
-          <PreviewArea variant={variant} value={fallbackPreviewValue} />
+          <PreviewArea
+            variant={variant}
+            value={fallbackPreviewValue}
+            nodeId={id}
+          />
         )}
         {/* Handle column lives inside the preview so its vertical extent
             is bounded by the preview — keeps `exposedInputs` handles from
