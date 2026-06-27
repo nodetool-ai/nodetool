@@ -96,6 +96,19 @@ export interface TimelineStoreState {
   /** Show or hide the script feature (non-destructive; does not touch clips). */
   setScriptEnabled: (enabled: boolean) => void;
 
+  /**
+   * Patch the project settings — canvas resolution (`width`/`height`) and frame
+   * rate (`fps`). These drive the preview compositor's reference size and the
+   * export render dimensions/frame stepping. Persisted via the
+   * `timeline.update` top-level fields (not the document), so they are not part
+   * of the undo history. A patch that changes nothing is a no-op.
+   */
+  setProjectSettings: (patch: {
+    fps?: number;
+    width?: number;
+    height?: number;
+  }) => void;
+
   // ── Track mutations ──────────────────────────────────────────────────────
 
   addTrack: (type: TimelineTrack["type"], name?: string) => void;
@@ -752,6 +765,24 @@ export const createTimelineStore = (
         setBaseUpdatedAt: (updatedAt) => set({ baseUpdatedAt: updatedAt }),
 
         setScriptEnabled: (enabled) => set({ scriptEnabled: enabled }),
+
+        setProjectSettings: (patch) =>
+          set((state) => {
+            const next: Partial<TimelineStoreState> = {};
+            if (typeof patch.fps === "number" && patch.fps !== state.fps) {
+              next.fps = patch.fps;
+            }
+            if (typeof patch.width === "number" && patch.width !== state.width) {
+              next.width = patch.width;
+            }
+            if (
+              typeof patch.height === "number" &&
+              patch.height !== state.height
+            ) {
+              next.height = patch.height;
+            }
+            return next;
+          }),
 
         // ── Tracks ──────────────────────────────────────────────────────────
 
