@@ -1,8 +1,9 @@
 name: Setup and build backend
 description: >-
-  Set up Node (with npm cache), install system libraries, run npm ci, rebuild
-  native modules, and (optionally) build the backend packages. The calling job
-  must check out the repository first, since this is a local composite action.
+  Set up Node (with npm cache), install system libraries, restore the cached
+  node_modules (running npm ci + native rebuild only on a miss), restore Turbo's
+  build cache, and (optionally) build the backend packages. The calling job must
+  check out the repository first, since this is a local composite action.
 
 inputs:
   extra-apt:
@@ -27,15 +28,45 @@ runs:
       shell: bash
       run: sudo apt-get update && sudo apt-get install -y libsecret-1-0 ${{ inputs.extra-apt }}
 
+    # Cache the installed workspace node_modules keyed on the lockfile (and Node
+    # version). On a hit we skip `npm ci` and the native rebuild entirely — the
+    # restored tree already has better-sqlite3 built for this runner. setup-node's
+    # `cache: npm` only caches the download tarballs; this caches the linked tree.
+    - name: Cache node_modules
+      id: node-modules-cache
+      uses: actions/cache@v5
+      with:
+        path: |
+          node_modules
+          packages/*/node_modules
+          web/node_modules
+          electron/node_modules
+          demo/node_modules
+          examples/*/node_modules
+        key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json', '.nvmrc') }}
+
     - name: Install all workspace dependencies
+      if: steps.node-modules-cache.outputs.cache-hit != 'true'
       shell: bash
       run: npm ci
       env:
         ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
 
     - name: Rebuild native modules
+      if: steps.node-modules-cache.outputs.cache-hit != 'true'
       shell: bash
       run: npm rebuild better-sqlite3
+
+    # Persist Turbo's local cache so `build:packages`/`test:packages` restore
+    # prior task outputs instead of rebuilding ~55 packages from scratch in every
+    # job. Keyed by commit with a prefix fallback to the latest available cache.
+    - name: Cache Turbo build outputs
+      uses: actions/cache@v5
+      with:
+        path: .turbo/cache
+        key: ${{ runner.os }}-turbo-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-turbo-
 
     - name: Build backend packages
       if: inputs.build-packages == 'true'

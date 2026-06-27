@@ -50,18 +50,21 @@ jobs:
             mobile-deps: "false"
             extra-apt: ""
             is-test: "false"
+            fetch-depth: "1"
           - check: typecheck
             command: npm run typecheck
             build-packages: "true"
             mobile-deps: "true"
             extra-apt: ""
             is-test: "false"
+            fetch-depth: "1"
           - check: lint
             command: npm run lint
             build-packages: "false"
             mobile-deps: "false"
             extra-apt: ""
             is-test: "false"
+            fetch-depth: "1"
           # base-nodes parity/contract suite (Python-parity + example-workflow
           # contracts). is-test:false keeps it non-skippable — these tests encode
           # intentional behavior contracts (see the revert in commit 2c0fd8fad),
@@ -73,25 +76,37 @@ jobs:
             mobile-deps: "false"
             extra-apt: ""
             is-test: "false"
+            fetch-depth: "1"
           # mesa-vulkan-drivers ships lavapipe (CPU Vulkan ICD) so Dawn can
           # acquire a WebGPU adapter on GPU-less runners — without it the
           # shader-backed base-nodes tests fail with "No WebGPU adapter
           # available (Node/Dawn)".
           - check: test-packages
-            command: npm run test:packages
+            # On PRs, `--affected` prunes the Turbo graph to packages changed
+            # since the base commit plus their dependents, so unaffected backend
+            # tests are skipped entirely (not just cache-restored). On push to
+            # main (no base sha) the full suite runs. Needs fetch-depth: 0 for
+            # the SCM diff and TURBO_SCM_BASE (set on the Run step below).
+            command: npm run test:packages${{ github.event_name == 'pull_request' && ' -- --affected' || '' }}
             build-packages: "true"
             mobile-deps: "false"
             extra-apt: "mesa-vulkan-drivers"
             is-test: "true"
+            fetch-depth: "0"
           - check: test-app
             command: npm run test
             build-packages: "true"
             mobile-deps: "true"
             extra-apt: ""
             is-test: "true"
+            fetch-depth: "1"
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          # Most legs only need the tip; the test-packages leg needs full history
+          # so Turbo's `--affected` can diff against the PR base commit.
+          fetch-depth: ${{ matrix.fetch-depth }}
 
       - name: Set up Node, install deps, build packages
         uses: ./.github/actions/setup-build
@@ -99,8 +114,18 @@ jobs:
           extra-apt: ${{ matrix.extra-apt }}
           build-packages: ${{ matrix.build-packages }}
 
-      - name: Install mobile dependencies
+      # mobile is NOT a root workspace (separate dependency tree), so its
+      # node_modules is cached on its own lockfile and `npm ci` is skipped on hit.
+      - name: Cache mobile node_modules
         if: matrix.mobile-deps == 'true'
+        id: mobile-node-modules
+        uses: actions/cache@v5
+        with:
+          path: mobile/node_modules
+          key: ${{ runner.os }}-mobile-node-modules-${{ hashFiles('mobile/package-lock.json') }}
+
+      - name: Install mobile dependencies
+        if: matrix.mobile-deps == 'true' && steps.mobile-node-modules.outputs.cache-hit != 'true'
         run: cd mobile && npm ci
 
       - name: Run npm audit (advisory)
@@ -122,6 +147,10 @@ jobs:
         # static checks. The leg still spins up but does no work, so it stays
         # green (a skipped leg must not block the gate).
         if: ${{ !(inputs.skip-tests && matrix.is-test == 'true') }}
+        env:
+          # Base commit for Turbo's `--affected` diff (test-packages leg on PRs).
+          # Empty on push, where the test-packages command omits `--affected`.
+          TURBO_SCM_BASE: ${{ github.event.pull_request.base.sha }}
         run: |
           echo "::group::${{ matrix.check }}"
           ${{ matrix.command }}
