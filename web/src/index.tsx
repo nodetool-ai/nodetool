@@ -61,6 +61,9 @@ const DownloadManagerDialog = React.lazy(
 const RunWarningDialog = React.lazy(
   () => import("./components/dialogs/RunWarningDialog")
 );
+const SearchProviderSetupDialog = React.lazy(
+  () => import("./components/dialogs/SearchProviderSetupDialog")
+);
 
 import { installIpcLogBridge } from "./logging/ipcLogBridge";
 import MobileClassProvider from "./components/MobileClassProvider";
@@ -675,6 +678,7 @@ const AppWrapper = () => {
                       </Suspense>
                       <DownloadManagerDialog />
                       <RunWarningDialog />
+                      <SearchProviderSetupDialog />
                     </>
                   )}
                 </KeyboardProvider>
