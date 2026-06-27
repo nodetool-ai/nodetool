@@ -9,6 +9,10 @@ import {
   runBrowserGraphJob
 } from "./browserWorkflowRunner";
 import { materializeBitmapRefs } from "./materializeBrowserOutputs";
+import {
+  recordRunSignatures,
+  clearRunSignatures
+} from "../../stores/runSignatures";
 
 export type GraphNode = Node;
 export type GraphEdge = Edge;
@@ -21,6 +25,14 @@ interface InlineGraphJobOptions {
   workflowId: string;
   /** Run title shown in the queue. Defaults to a single-node graph's name. */
   jobName?: string;
+  /**
+   * Per-node input signatures (nodeId → signature) computed against the FULL
+   * live graph at dispatch (spec §3.4). When present they are stamped under this
+   * run's jobId so handleUpdate can tag the generations it produces, and cleared
+   * when the run settles. Callers (run-from-here / single-node) compute these
+   * over the full graph because the submitted `graph` is a pruned subgraph.
+   */
+  inputSignatures?: Record<string, string>;
 }
 
 /**
@@ -92,6 +104,14 @@ export async function runInlineGraphJob(
 
   const jobId = crypto.randomUUID();
 
+  // Stamp registry (spec §3.4): record the dispatch-time signatures under this
+  // run's jobId so handleUpdate can tag the generations it produces. This path
+  // owns its own subscription (it does not route through the runner's
+  // handleUpdate job-terminal cleanup), so finish() clears the entry.
+  if (options.inputSignatures) {
+    recordRunSignatures(jobId, options.inputSignatures);
+  }
+
   let auth_token = "local_token";
   let user_id = "1";
   if (!isLocalhost) {
@@ -118,6 +138,7 @@ export async function runInlineGraphJob(
     signal?.removeEventListener("abort", onAbort);
     unsubWs();
     unsubJob();
+    clearRunSignatures(jobId);
     resolvePromise(result);
   };
 

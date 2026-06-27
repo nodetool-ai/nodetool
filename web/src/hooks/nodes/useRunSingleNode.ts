@@ -4,11 +4,8 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useWebsocketRunner } from "../../stores/WorkflowRunner";
 import { buildRunSubgraph } from "../../utils/runSubgraph";
-import {
-  getNodeGenerations,
-  getNodeSelectedOutputs
-} from "../../stores/nodeGenerationAccessor";
-import { getCurrentGeneration } from "../../utils/nodeGenerations";
+import { getNodeGenerations } from "../../stores/nodeGenerationAccessor";
+import { computeRunSignatures } from "../../utils/computeRunSignatures";
 import { useNodeStoreRef } from "../../contexts/NodeContext";
 
 interface UseRunSingleNodeReturn {
@@ -18,11 +15,12 @@ interface UseRunSingleNodeReturn {
 
 /**
  * Run a single node by id. The node's upstream closure is resolved into the
- * smallest runnable subgraph (see {@link buildRunSubgraph}): cached results and
- * constant/input values are injected as overrides, deterministic upstream nodes
- * are submitted alongside the target so they run and feed it, and uncached
- * *generative* upstreams (auto-saving asset nodes) block the run with a message
- * telling the user to execute them first.
+ * smallest runnable subgraph (see {@link buildRunSubgraph}): constant/input
+ * values and cached *generative* outputs are injected as overrides, deterministic
+ * upstream nodes are submitted alongside the target so they re-run and feed it
+ * (their cache is ignored, so edits are picked up), and uncached generative
+ * upstreams (auto-saving asset nodes) block the run with a message telling the
+ * user to execute them first.
  *
  * Used by bespoke editing bodies (e.g. MasksExtractorBody) that expose a
  * "Recalculate" action without requiring the user to select the node first.
@@ -55,27 +53,11 @@ export function useRunSingleNode(nodeId: string): UseRunSingleNodeReturn {
       nodes,
       edges,
       workflowId: workflow.id,
-      // Seed inputs from each upstream's selected generation (durable assets
-      // merged with the live buffer); resolveExternalEdgeValue unwraps the
-      // returned outputs record by source handle.
-      getResult: (wf, sourceId) => {
-        const current = getCurrentGeneration(
-          getNodeGenerations(wf, sourceId),
-          findNode(sourceId)?.data?.selected_generation
-        );
-        return current?.outputs;
-      },
-      // Multi-select: the source's chosen generations stream into the target via
-      // an injected ForEach replay node (input_list = the selected values), and
-      // the source is pruned. No list-type gate — see buildRunSubgraph.
-      getSelectedOutputs: (wf, sourceId, sourceHandle) =>
-        getNodeSelectedOutputs(
-          wf,
-          sourceId,
-          sourceHandle,
-          findNode(sourceId)?.data?.selected_generations
-        ),
-      getMetadata: useMetadataStore.getState().getMetadata
+      getMetadata: useMetadataStore.getState().getMetadata,
+      // Merged generation history (durable assets + live buffer) per upstream:
+      // the resolver classifies/caches/blocks each external input from it.
+      getGenerations: getNodeGenerations,
+      now: Date.now()
     });
 
     if (subgraph.blocked.length > 0) {
@@ -92,6 +74,19 @@ export function useRunSingleNode(nodeId: string): UseRunSingleNodeReturn {
       return;
     }
 
+    // Stamp registry (spec §3.4): signatures for the submitted nodes, computed
+    // against the FULL live graph (not the pruned subgraph that run() receives),
+    // so a produced generation can be tagged with the same key a later
+    // resolve() looks up. Passed through run() because run() keys them by the
+    // jobId it generates.
+    const inputSignatures = computeRunSignatures(subgraph.nodeIds, {
+      nodes,
+      edges,
+      workflowId: workflow.id,
+      getMetadata: useMetadataStore.getState().getMetadata,
+      getGenerations: getNodeGenerations
+    });
+
     run(
       {},
       workflow,
@@ -99,7 +94,8 @@ export function useRunSingleNode(nodeId: string): UseRunSingleNodeReturn {
       subgraph.edges,
       undefined,
       subgraph.nodeIds,
-      true
+      true,
+      inputSignatures
     );
 
     addNotification({

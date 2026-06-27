@@ -295,7 +295,7 @@ describe("useInputNodeAutoRun", () => {
     );
   });
 
-  it("injects cached values for all external dependencies in subgraph when instantUpdate is enabled", () => {
+  it("inlines a CONSTANT external dependency's LIVE value (not its stale cached generation) when instantUpdate is enabled", () => {
     // Enable instantUpdate
     mockUseSettingsStore.mockImplementation((selector) => {
       const state = { settings: { instantUpdate: true } };
@@ -363,7 +363,9 @@ describe("useInputNodeAutoRun", () => {
       edges: [complexEdges[0], complexEdges[1], complexEdges[2]]
     });
 
-    // external-1 has a cached generation whose output feeds downstream.
+    // external-1 (a constant) has a STALE cached generation, but its live
+    // property value is the source of truth — the preview must inline the live
+    // value, never the cache.
     mockGetNodeGenerations.mockImplementation(
       (_workflowId: string, nodeId: string) => {
         if (nodeId === "external-1") {
@@ -403,31 +405,33 @@ describe("useInputNodeAutoRun", () => {
       (n: { id: string }) => n.id === "downstream-1"
     );
 
-    // It should have the cached value from external-1 injected into its "context" property
-    expect(downstream1.data.properties.context).toBe("cached external value");
+    // The constant's LIVE property value ("external") is inlined into "context",
+    // not the stale cached generation ("cached external value").
+    expect(downstream1.data.properties.context).toBe("external");
   });
 
-  it("handles multiple external dependencies to different nodes in subgraph when instantUpdate is enabled", () => {
+  it("reuses cached outputs of computed external dependencies across the subgraph when instantUpdate is enabled", () => {
     // Enable instantUpdate
     mockUseSettingsStore.mockImplementation((selector) => {
       const state = { settings: { instantUpdate: true } };
       return selector(state);
     });
 
-    // Setup:
+    // Setup (external-1/-2 are COMPUTED nodes, so their last cached generation
+    // is reused — the cache-first preview path stays live and never re-runs them):
     // external-1 -> downstream-1 (context)
     // external-2 -> downstream-2 (input)
     // input-1 -> downstream-1 -> downstream-2
     const multiExternalNodes = [
       {
         id: "external-1",
-        type: "nodetool.constant.String",
-        data: { properties: { value: "ext1" } }
+        type: "nodetool.llm.Chat",
+        data: { properties: {} }
       },
       {
         id: "external-2",
-        type: "nodetool.constant.Integer",
-        data: { properties: { value: 42 } }
+        type: "nodetool.math.Add",
+        data: { properties: {} }
       },
       {
         id: "input-1",

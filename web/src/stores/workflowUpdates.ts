@@ -41,6 +41,10 @@ import { NodeStore } from "./NodeStore";
 import { DYNAMIC_KIE_NODE_TYPE } from "../components/node/DynamicKieSchemaNode";
 import { normalizeOutputUpdateValue } from "./outputUpdateValue";
 import { publishRealtimeAudioChunk } from "../lib/audio/realtimeAudioChunkBus";
+import { getRunSignature, clearRunSignatures } from "./runSignatures";
+import { computeStampSignature } from "../utils/computeRunSignatures";
+import { getNodeGenerations } from "./nodeGenerationAccessor";
+import useMetadataStore from "./MetadataStore";
 
 /**
  * Pending audio-chunk store appends, coalesced per node and flushed on a
@@ -238,6 +242,38 @@ export const getNodeStore = (workflowId: string): NodeStore | undefined => {
   return getNodeStoreImpl(workflowId);
 };
 
+/**
+ * The `inputSignature` to stamp on a node's completed generation. Recomputes the
+ * signature against the LIVE graph at completion so a computed descendant of a
+ * generative that ran THIS job is keyed to the generation it actually consumed —
+ * the dispatch-time stamp predates that generation (see `computeStampSignature`).
+ * Preserves the dispatch gate: a node the run didn't stamp stays uncached
+ * (returns undefined). Falls back to the dispatch value when the live graph is
+ * unavailable (e.g. unit tests with no NodeStore), and never throws into the
+ * completion path.
+ */
+const stampSignatureForCompletion = (
+  getStore: (workflowId: string) => NodeStore | undefined,
+  workflowId: string,
+  jobId: string,
+  nodeId: string
+): string | undefined => {
+  const dispatched = getRunSignature(jobId, nodeId);
+  if (dispatched === undefined) return undefined;
+  const state = getStore(workflowId)?.getState();
+  if (!state) return dispatched;
+  try {
+    return computeStampSignature(jobId, nodeId, {
+      nodes: state.nodes,
+      edges: state.edges,
+      workflowId,
+      getMetadata: useMetadataStore.getState().getMetadata,
+      getGenerations: getNodeGenerations
+    });
+  } catch {
+    return dispatched;
+  }
+};
 
 export const subscribeToWorkflowUpdates = (
   workflowId: string,
@@ -584,7 +620,18 @@ export const handleUpdate = (
       upsertLiveGeneration(workflow.id, data.node_id, jobId, {
         index: slot,
         status: "completed",
-        outputs: data.outputs
+        outputs: data.outputs,
+        // Stamp the signature so a later resolve/buildRunSubgraph can reuse this
+        // cached output (Computed cache key, spec §3.4). Recomputed at completion
+        // so a descendant of a generative that ran this job is keyed to the
+        // generation it consumed, not the dispatch-time pin. Absent for partial
+        // runs of computed nodes → simply not cached.
+        inputSignature: stampSignatureForCompletion(
+          getNodeStore,
+          workflow.id,
+          jobId,
+          data.node_id
+        )
       });
     }
   }
@@ -631,6 +678,9 @@ export const handleUpdate = (
       // never finalize between frames.
       if (job.job_id && !silentJob) {
         clearSawGenerationCompleteFor(job.job_id);
+        // The run is finished: drop its dispatch-time signature map so the
+        // registry doesn't leak entries across runs (spec §3.4).
+        clearRunSignatures(job.job_id);
       }
     }
     // The per-workflow runner represents the single full run. Concurrent
@@ -1063,7 +1113,18 @@ export const handleUpdate = (
             upsertLiveGeneration(workflow.id, update.node_id, jobId, {
               status: "completed",
               outputs,
-              cost: update.provider_cost ?? undefined
+              cost: update.provider_cost ?? undefined,
+              // Stamp the signature so this synthesized output can serve a later
+              // Computed cache hit (spec §3.4). Recomputed at completion so a
+              // descendant of a generative that ran this job is keyed to the
+              // generation it consumed. Undefined when the run didn't record one
+              // → not cached, which is fine.
+              inputSignature: stampSignatureForCompletion(
+                getNodeStore,
+                workflow.id,
+                jobId,
+                update.node_id
+              )
             });
           }
           appendTrace(

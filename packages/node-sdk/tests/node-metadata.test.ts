@@ -802,4 +802,57 @@ describe("getNodeMetadata – outputTypes support", () => {
     );
     expect(meta.is_streaming_output).toBe(false);
   });
+
+  it("flows a 'forever' cacheTtl to metadata.cache_ttl", () => {
+    class PureNode extends BaseNode {
+      static readonly nodeType = "nodetool.test.Pure";
+      static readonly title = "Pure";
+      static readonly description = "";
+      static readonly cacheTtl = "forever";
+
+      async process() {
+        return {};
+      }
+    }
+
+    const meta = getNodeMetadata(
+      PureNode as unknown as import("../src/base-node.js").NodeClass
+    );
+    expect(meta.cache_ttl).toBe("forever");
+  });
+
+  it("flows a finite cacheTtl to metadata.cache_ttl", () => {
+    class FetchNode extends BaseNode {
+      static readonly nodeType = "nodetool.test.Fetch";
+      static readonly title = "Fetch";
+      static readonly description = "";
+      static readonly cacheTtl = 3600;
+
+      async process() {
+        return {};
+      }
+    }
+
+    const meta = getNodeMetadata(
+      FetchNode as unknown as import("../src/base-node.js").NodeClass
+    );
+    expect(meta.cache_ttl).toBe(3600);
+  });
+
+  it("leaves cache_ttl undefined when the node does not opt in", () => {
+    class VolatileNode extends BaseNode {
+      static readonly nodeType = "nodetool.test.Volatile";
+      static readonly title = "Volatile";
+      static readonly description = "";
+
+      async process() {
+        return {};
+      }
+    }
+
+    const meta = getNodeMetadata(
+      VolatileNode as unknown as import("../src/base-node.js").NodeClass
+    );
+    expect(meta.cache_ttl).toBeUndefined();
+  });
 });

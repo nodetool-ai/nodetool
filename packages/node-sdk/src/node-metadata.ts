@@ -292,6 +292,7 @@ export function getNodeMetadata(
     supports_dynamic_inputs: nodeClass.supportsDynamicInputs || false,
     supports_dynamic_outputs: nodeClass.supportsDynamicOutputs,
     auto_save_asset: nodeClass.autoSaveAsset || undefined,
+    cache_ttl: nodeClass.cacheTtl,
     primary_output: nodeClass.primaryOutput || undefined,
     model_packs: nodeClass.modelPacks,
     platforms: normalizePlatforms(nodeClass.platforms),

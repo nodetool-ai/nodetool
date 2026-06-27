@@ -103,6 +103,13 @@ export interface NodeMetadata {
   supports_dynamic_outputs?: boolean;
   auto_save_asset?: boolean;
   /**
+   * Per-type cache lifetime for partial runs (seconds, or the `"forever"`
+   * sentinel — never `Infinity`, which is not JSON-safe). Only consulted for
+   * Computed nodes. Unset / `0` = never reuse. See `BaseNode.cacheTtl` and
+   * docs/superpowers/specs/2026-06-27-run-subgraph-caching.md §4.
+   */
+  cache_ttl?: number | "forever";
+  /**
    * Names the output slot carrying the node's primary generation (persisted
    * value + content-card preview). Absent falls back to the first output.
    */
