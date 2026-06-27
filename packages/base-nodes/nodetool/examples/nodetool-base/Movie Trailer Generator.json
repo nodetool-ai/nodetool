@@ -1,0 +1,584 @@
+{
+  "id": "movie_trailer_generator",
+  "access": "public",
+  "created_at": "2026-06-21T00:00:00.000000",
+  "updated_at": "2026-06-27T13:33:47.316Z",
+  "name": "Movie Trailer Generator",
+  "tool_name": null,
+  "description": "Type a single logline and get back a narrated cinematic teaser. Prompt nodes template the inputs into a treatment, turn each generated shot into full cinematic key art, and write the voiceover; the keyframes are cut into a trailer with AI narration.",
+  "tags": [
+    "video",
+    "generation",
+    "ai",
+    "storytelling",
+    "creative",
+    "trailer",
+    "example"
+  ],
+  "thumbnail": "Movie Trailer Generator.jpg",
+  "thumbnail_url": null,
+  "graph": {
+    "edges": [
+      {
+        "id": "e1",
+        "source": "logline",
+        "sourceHandle": "output",
+        "target": "treatment_prompt",
+        "targetHandle": "LOGLINE",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e2",
+        "source": "style",
+        "sourceHandle": "output",
+        "target": "treatment_prompt",
+        "targetHandle": "STYLE",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e3",
+        "source": "shot_count",
+        "sourceHandle": "output",
+        "target": "treatment_prompt",
+        "targetHandle": "COUNT",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e4",
+        "source": "treatment_prompt",
+        "sourceHandle": "output",
+        "target": "showrunner",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e5",
+        "source": "showrunner",
+        "sourceHandle": "text",
+        "target": "shotlist_prompt",
+        "targetHandle": "TREATMENT",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e6",
+        "source": "style",
+        "sourceHandle": "output",
+        "target": "shotlist_prompt",
+        "targetHandle": "STYLE",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e7",
+        "source": "shot_count",
+        "sourceHandle": "output",
+        "target": "shotlist_prompt",
+        "targetHandle": "COUNT",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e8",
+        "source": "shotlist_prompt",
+        "sourceHandle": "output",
+        "target": "shot_list",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "e12",
+        "source": "keyframe_prompt",
+        "sourceHandle": "output",
+        "target": "keyframe",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "102da298-35fb-4e11-b9c1-09c61e246260",
+        "source": "shot_list",
+        "sourceHandle": "item",
+        "target": "keyframe_prompt",
+        "targetHandle": "SHOT",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "1ff71f38-8b25-43d5-98a2-8b9cae6b99fb",
+        "source": "trailer",
+        "sourceHandle": "output",
+        "target": "5e65a47a-2986-441e-b57f-7666cebdf732",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "video"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "1889e486-1dfe-467c-bafd-88fa3de7eb18",
+        "source": "keyframe",
+        "sourceHandle": "output",
+        "target": "e3c7d2b6-dc63-46a0-8e90-3998601e0faf",
+        "targetHandle": "image",
+        "ui_properties": {
+          "className": "image"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "c43efef4-548f-4176-8485-4bae2d5f7949",
+        "source": "e3c7d2b6-dc63-46a0-8e90-3998601e0faf",
+        "sourceHandle": "output",
+        "target": "403bb36a-0635-487b-ad4c-02b33ea1ff87",
+        "targetHandle": "input_item",
+        "ui_properties": {
+          "className": "video"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "dec0ec9d-0ea3-4b4c-b8e2-1ec1f9927fee",
+        "source": "403bb36a-0635-487b-ad4c-02b33ea1ff87",
+        "sourceHandle": "output",
+        "target": "b8622937-e6d7-445f-bb19-e254b49a23ef",
+        "targetHandle": "ImageToVideo",
+        "ui_properties": {
+          "className": "list"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "41414d0d-5801-4089-ba02-02961f78d891",
+        "source": "b8622937-e6d7-445f-bb19-e254b49a23ef",
+        "sourceHandle": "output",
+        "target": "trailer",
+        "targetHandle": "video",
+        "ui_properties": {
+          "className": "video"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "849b832f-8c49-488e-b21a-71c7367a2465",
+        "source": "style",
+        "sourceHandle": "output",
+        "target": "keyframe_prompt",
+        "targetHandle": "STYLE",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "comment",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# 🎬 Movie Trailer Generator\n\nType one logline and the canvas builds a narrated teaser. Prompt nodes do the work: one templates the inputs into a trailer treatment, one turns each generated shot into full cinematic key art, and one writes the voiceover.\n\n**Pipeline:** Logline → Treatment prompt → Shot prompts → Keyframe prompt → Text-to-Image → Cut + AI narration\n\n**Try this:** change the visual style or shot count, swap the image/voice model. For full motion, replace Frames-to-Video with per-shot Image-to-Video + Concat."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 40,
+            "y": -210
+          },
+          "zIndex": 0,
+          "width": 460,
+          "height": 190,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "logline",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "Logline",
+          "value": "A getaway driver speeds onto a bridge as it starts to collapse — and the only way out is to outrun the gap."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 69
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "1️⃣ Logline",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "style",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "Visual Style",
+          "value": "high-contrast daylight, dust and sparks, handheld telephoto, motion blur, hard sun, blown-out sky, gritty"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 373
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "2️⃣ Visual style",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "shot_count",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "Shot Count",
+          "value": "6"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 50,
+            "y": 619
+          },
+          "zIndex": 0,
+          "width": 280,
+          "title": "3️⃣ Shot count",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "treatment_prompt",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "You are a trailer director. Turn this logline into a teaser treatment.\n\nLogline: {{ LOGLINE }}\nVisual style: {{ STYLE }}\nShots: {{ COUNT }}\n\nReturn Markdown, no commentary:\n\nTone: 1-2 lines on the feeling the teaser must land.\nArc: {{ COUNT }} escalating beats, each one vivid sentence, building to a final reveal.\nMotifs: 2-3 recurring visual motifs to carry across every shot.\nPalette: 3-5 colors as Name + mood."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 410,
+            "y": 50
+          },
+          "zIndex": 0,
+          "width": 300,
+          "height": 420,
+          "title": "Build treatment prompt",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "LOGLINE": "A getaway driver speeds onto a bridge as it starts to collapse — and the only way out is to outrun the gap.",
+          "STYLE": "high-contrast daylight, dust and sparks, handheld telephoto, motion blur, hard sun, blown-out sky, gritty",
+          "COUNT": "6"
+        },
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "showrunner",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "id": "",
+            "provider": "",
+            "name": ""
+          },
+          "system": "You are a film trailer director and editor. You write tight, cinematic teaser treatments. Every line is visual and concrete. No fluff, no meta commentary.",
+          "max_tokens": 100000
+        },
+        "ui_properties": {
+          "position": {
+            "x": 740,
+            "y": 83
+          },
+          "zIndex": 0,
+          "width": 332,
+          "height": 353,
+          "title": "4️⃣ Write the treatment",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "shotlist_prompt",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "From this treatment, write exactly {{ COUNT }} cinematic shot descriptions for the teaser, one per line, no numbering or labels. Each line is a single concrete image: subject, setting, camera and lens, lighting, motion. Carry the treatment's motifs and palette through every shot.\n\nVisual style: {{ STYLE }}\n\nTreatment:\n{{ TREATMENT }}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1132,
+            "y": 323
+          },
+          "zIndex": 0,
+          "width": 340,
+          "height": 360,
+          "title": "Build shot-list prompt",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "COUNT": "6",
+          "STYLE": "high-contrast daylight, dust and sparks, handheld telephoto, motion blur, hard sun, blown-out sky, gritty",
+          "TREATMENT": ""
+        },
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "shot_list",
+        "type": "nodetool.generators.ListGenerator",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "id": "",
+            "provider": "",
+            "name": ""
+          },
+          "max_tokens": 100000
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1502,
+            "y": 380
+          },
+          "zIndex": 0,
+          "width": 331,
+          "height": 245,
+          "title": "5️⃣ Generate shot prompts",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "keyframe_prompt",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "Cinematic film still, theatrical key art quality, 16:9.\n\nShot: {{ SHOT }}\n\nVisual style: {{ STYLE }}. Anamorphic framing, dramatic volumetric lighting, rich cinematic color grading, fine film grain, atmospheric depth, photoreal detail. No on-screen text, no titles, no logos, no watermark, no distorted anatomy."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1893,
+            "y": 428
+          },
+          "zIndex": 0,
+          "width": 360,
+          "height": 420,
+          "title": "Build keyframe prompt",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "SHOT": "",
+          "STYLE": "high-contrast daylight, dust and sparks, handheld telephoto, motion blur, hard sun, blown-out sky, gritty"
+        },
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "keyframe",
+        "type": "nodetool.image.TextToImage",
+        "data": {
+          "model": {
+            "type": "image_model",
+            "id": "",
+            "provider": "",
+            "name": "",
+            "path": ""
+          },
+          "negative_prompt": "",
+          "aspect_ratio": "16:9",
+          "resolution": "2K",
+          "timeout_seconds": 0
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 2283,
+            "y": 467
+          },
+          "zIndex": 0,
+          "width": 320,
+          "height": 342,
+          "title": "6️⃣ Render keyframes",
+          "selectable": true,
+          "bypassed": false,
+          "selected_generation": "133f0bef77d34f2bbb3cbc49a97b592b",
+          "selected_generations": []
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "trailer",
+        "type": "nodetool.video.AddAudio",
+        "data": {
+          "volume": 1,
+          "mix": false,
+          "audio": {}
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 3499,
+            "y": 553
+          },
+          "zIndex": 0,
+          "width": 150,
+          "height": 150,
+          "title": "🎬 Final trailer",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "5e65a47a-2986-441e-b57f-7666cebdf732",
+        "type": "nodetool.workflows.base_node.Preview",
+        "data": {
+          "name": "output"
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 3679,
+            "y": 478
+          },
+          "zIndex": 0,
+          "width": 606,
+          "height": 365,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "e3c7d2b6-dc63-46a0-8e90-3998601e0faf",
+        "type": "nodetool.video.ImageToVideo",
+        "data": {
+          "model": {
+            "type": "video_model",
+            "id": "",
+            "provider": "",
+            "name": ""
+          },
+          "negative_prompt": "",
+          "aspect_ratio": "16:9",
+          "resolution": "720p",
+          "duration": 4,
+          "timeout_seconds": 0
+        },
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 2633,
+            "y": 550
+          },
+          "zIndex": 0,
+          "width": 331,
+          "height": 222,
+          "selectable": true,
+          "bypassed": false,
+          "selected_generation": "8fb0f284a8e54876858f8155aff3dd5d",
+          "selected_generations": [
+            "8fb0f284a8e54876858f8155aff3dd5d",
+            "ee5b6e88d06243f1acc6154584369fac",
+            "7fe4a651a1aa4c65992da46808885a12",
+            "6de4e617560d42c58cb8e49e7b1a13a7",
+            "15c4876b28d1451cb48af44286b75ba7",
+            "ea3868954aef4f3cbce3548c436db0cb"
+          ]
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "b8622937-e6d7-445f-bb19-e254b49a23ef",
+        "type": "nodetool.video.Concat",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 3185,
+            "y": 534
+          },
+          "zIndex": 0,
+          "width": 284,
+          "height": 254,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "ImageToVideo": ""
+        },
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "403bb36a-0635-487b-ad4c-02b33ea1ff87",
+        "type": "nodetool.control.Collect",
+        "data": {},
+        "ui_properties": {
+          "selected": false,
+          "position": {
+            "x": 2994,
+            "y": 586
+          },
+          "zIndex": 0,
+          "width": 161,
+          "height": 150,
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": {},
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": "workflow",
+  "workspace_id": null,
+  "required_providers": null,
+  "required_models": null,
+  "html_app": null,
+  "etag": "3304e8bd39421697cc5bd574c6428dee"
+}
