@@ -435,6 +435,61 @@ describe("BaseProvider.generateLoop – image tool results", () => {
     });
   });
 
+  it("dispatches a ProviderTool.execute and ends on terminal:true (no executeTool)", async () => {
+    // Provider yields a tool call on the first turn, then a final chunk.
+    class ToolThenDoneProvider extends BaseProvider {
+      public turns = 0;
+      constructor() {
+        super("test");
+      }
+      async generateMessage(): Promise<Message> {
+        return { role: "assistant", content: "ok" };
+      }
+      async *generateMessages(): AsyncGenerator<ProviderStreamItem> {
+        this.turns++;
+        if (this.turns === 1) {
+          yield { id: "call_1", name: "finish", args: { value: 42 } } as ToolCall;
+          return;
+        }
+        // Should never run — the terminal tool ends the loop after turn 1.
+        yield { type: "chunk", content: "second turn", done: true };
+      }
+    }
+
+    const provider = new ToolThenDoneProvider();
+    let executed: Record<string, unknown> | null = null;
+    const tool: ProviderTool = {
+      name: "finish",
+      terminal: true,
+      execute: async (a) => {
+        executed = a;
+        return "finished";
+      }
+    };
+
+    const events: ProviderStreamItem[] = [];
+    for await (const item of provider.generateLoop({
+      messages: [{ role: "user", content: "go" }],
+      model: "m",
+      tools: [tool]
+      // NOTE: no executeTool callback — the tool's own execute drives it.
+    })) {
+      events.push(item);
+    }
+
+    // The provider-supplied execute ran with the tool-call args.
+    expect(executed).toEqual({ value: 42 });
+    // The loop stopped after the terminal tool — generateMessages ran once.
+    expect(provider.turns).toBe(1);
+    // Its result landed in a tool message.
+    const toolEvent = events.find(
+      (e) => isProviderMessageEvent(e) && e.message.role === "tool"
+    );
+    expect(
+      isProviderMessageEvent(toolEvent!) && toolEvent!.message.content
+    ).toBe("finished");
+  });
+
   it("leaves plain string tool results in the tool message", async () => {
     const provider = new ToolOnceProvider();
     const events: ProviderStreamItem[] = [];

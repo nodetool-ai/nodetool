@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { BaseProvider } from "@nodetool-ai/runtime";
 import {
   registerBaseNodes,
   IfNode,
@@ -438,13 +439,25 @@ describe("input/output/workspace nodes", () => {
 
   it("AgentNode uses runtime provider when model is connected", async () => {
     const agent = new AgentNode();
+    // AgentNode drives the provider through generateLoop; stream a single
+    // assistant chunk and delegate the loop to BaseProvider's implementation.
     const context = {
       getProvider: async () => ({
-        generateMessage: async () => ({
-          content: "provider-response"
-        }),
-        async generateMessageTraced(...a: any[]) {
-          return (this as any).generateMessage(...a);
+        async *generateMessages() {
+          yield {
+            type: "chunk",
+            content: "provider-response",
+            content_type: "text",
+            done: true
+          };
+        },
+        async *generateMessagesTraced(...a: any[]) {
+          yield* (this as any).generateMessages(...a);
+        },
+        generateLoop(loopArgs: unknown) {
+          return (
+            BaseProvider.prototype as { generateLoop: (a: unknown) => unknown }
+          ).generateLoop.call(this, loopArgs);
         }
       })
     } as unknown as ProcessingContext;

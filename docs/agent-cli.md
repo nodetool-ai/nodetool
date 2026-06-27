@@ -138,7 +138,6 @@ workspace:
 - **model** — Primary model: `provider` and `id` are required; `name` is optional. The provider can be overridden with `--provider`, the model with `--model`.
 - **planning_agent** — Optional. When `enabled: false`, planning uses the main model instead of a separate planning model. When set with a `model`, that model is used for the planning phase. There is no requirement that planning be enabled.
 - **tools** — List of tool names (see below). Unknown names are ignored with a warning.
-- **max_tokens** — Per-step **context** token budget, passed as `maxTokenLimit` (default `128000`). This is not a cap on response length.
 - **max_steps** — Maximum number of steps in the planned task.
 - **preferred_providers** — Provider ids to prefer when `find_model` ranks results. The first entry becomes the default provider hint when the LLM omits one. Also surfaced in the system prompt.
 - **preferred_models** — Map of capability (e.g. `image`, `tts`) to preferred model id(s). Injected as the `model_hint` for matching `find_model` calls.

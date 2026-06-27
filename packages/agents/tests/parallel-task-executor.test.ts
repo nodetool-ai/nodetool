@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { ParallelTaskExecutor } from "../src/parallel-task-executor.js";
 import type { TaskPlan } from "../src/types.js";
 import type { ProcessingMessage, StepResult } from "@nodetool-ai/protocol";
-import { memoryKeys } from "@nodetool-ai/runtime";
+import { memoryKeys, BaseProvider } from "@nodetool-ai/runtime";
 import { createMockContext } from "./_helpers/mock-context.js";
 
 function createMockProvider(delayMs = 0) {
@@ -26,6 +26,11 @@ function createMockProvider(delayMs = 0) {
           ReturnType<typeof createMockProvider>["generateMessages"]
         >)
       );
+    },
+    generateLoop(args: unknown) {
+      return (
+        BaseProvider.prototype as { generateLoop: (a: unknown) => unknown }
+      ).generateLoop.call(this, args);
     },
     async generateMessageTraced(...args: unknown[]) {
       return (

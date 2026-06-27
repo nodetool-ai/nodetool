@@ -1,13 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
 import { Buffer } from "node:buffer";
-import { AgentExecutor } from "../src/agent-executor.js";
 import { ViewImageTool, ListImagesTool } from "../src/tools/view-image-tool.js";
 import {
   extractInjectableImages,
   stripImagePayload,
-  buildImageInjectionMessage,
-  downgradeInjectedImageMessage,
-  OMITTED_IMAGE_NOTE,
   IMAGE_CONTENT_FIELD
 } from "../src/tools/image-injection.js";
 import {
@@ -97,40 +93,6 @@ describe("image-injection helpers", () => {
     expect(stripped.ok).toBe(true);
     expect(stripped.width).toBe(10);
     expect(typeof stripped.note).toBe("string");
-  });
-
-  it("builds a user message carrying the pixels", () => {
-    const msg = buildImageInjectionMessage({
-      text: "see this",
-      images: [
-        { type: "image_url", image: { uri: TINY_PNG_DATA_URI, mimeType: "image/png" } }
-      ]
-    });
-    expect(msg.role).toBe("user");
-    const content = msg.content as MessageContent[];
-    expect(content[0]).toEqual({ type: "text", text: "see this" });
-    expect(content[1].type).toBe("image_url");
-  });
-
-  it("downgrades an injected image message to text in place", () => {
-    const msg = buildImageInjectionMessage({
-      text: "the chart",
-      images: [
-        { type: "image_url", image: { uri: TINY_PNG_DATA_URI, mimeType: "image/png" } }
-      ]
-    });
-    downgradeInjectedImageMessage(msg);
-    const content = msg.content as MessageContent[];
-    expect(content.some((c) => c.type === "image_url")).toBe(false);
-    expect(content.some((c) => c.type === "text" && c.text === "the chart")).toBe(true);
-    expect(content.some((c) => c.type === "text" && c.text === OMITTED_IMAGE_NOTE)).toBe(true);
-
-    // Idempotent: a second downgrade does not stack notes.
-    downgradeInjectedImageMessage(msg);
-    const notes = (msg.content as MessageContent[]).filter(
-      (c) => c.type === "text" && c.text === OMITTED_IMAGE_NOTE
-    );
-    expect(notes).toHaveLength(1);
   });
 });
 
@@ -234,168 +196,5 @@ describe("builtin registration", () => {
     expect(names).toContain("list_images");
     expect(resolveTool("view_image")).toBeInstanceOf(ViewImageTool);
     expect(resolveTool("list_images")).toBeInstanceOf(ListImagesTool);
-  });
-});
-
-describe("AgentExecutor image injection", () => {
-  it("injects demanded pixels as a user message on the next turn", async () => {
-    const viewImage = {
-      name: "view_image",
-      description: "View an image",
-      inputSchema: { type: "object", properties: {} },
-      process: vi.fn().mockResolvedValue({
-        ok: true,
-        note: "Here is the screenshot",
-        image_content: { uri: TINY_PNG_DATA_URI, mimeType: "image/png" }
-      }),
-      toProviderTool: () => ({
-        name: "view_image",
-        description: "View an image",
-        inputSchema: { type: "object", properties: {} }
-      }),
-      userMessage: () => "Viewing image"
-    };
-
-    let callCount = 0;
-    const provider = {
-      ...createMockProvider(),
-      generateMessage: vi.fn().mockImplementation(() => {
-        callCount++;
-        if (callCount === 1) {
-          return {
-            role: "assistant",
-            content: "Let me look.",
-            toolCalls: [{ id: "tc_view", name: "view_image", args: { image_id: "img_1" } }]
-          };
-        }
-        return {
-          role: "assistant",
-          content: "Done.",
-          toolCalls: [
-            {
-              id: "tc_finish",
-              name: "finish_task",
-              args: { result: "ok", metadata: { title: "T", description: "D" } }
-            }
-          ]
-        };
-      })
-    };
-
-    const executor = new AgentExecutor({
-      provider: provider as any,
-      model: "test-model",
-      context: imageContext(null),
-      tools: [viewImage as any],
-      outputType: "string"
-    });
-
-    for await (const _ of executor.execute("Inspect the screenshot")) {
-      void _;
-    }
-
-    expect(viewImage.process).toHaveBeenCalled();
-
-    // The history handed to the 2nd model call (same array reference) must
-    // contain the injected user image message, after the tool result.
-    const messages = (provider.generateMessage.mock.calls.at(-1)?.[0]?.messages ??
-      []) as Array<{ role: string; content: unknown }>;
-
-    const toolMsg = messages.find((m) => m.role === "tool");
-    expect(toolMsg).toBeDefined();
-    // Tool message stays a light note — no base64 blob.
-    expect(JSON.stringify(toolMsg!.content)).not.toContain("iVBORw0KGgo");
-
-    const injected = messages.find(
-      (m) =>
-        m.role === "user" &&
-        Array.isArray(m.content) &&
-        (m.content as MessageContent[]).some((c) => c.type === "image_url")
-    );
-    expect(injected).toBeDefined();
-    const imagePart = (injected!.content as MessageContent[]).find(
-      (c) => c.type === "image_url"
-    );
-    expect(imagePart).toMatchObject({
-      type: "image_url",
-      image: { uri: TINY_PNG_DATA_URI }
-    });
-  });
-
-  it("retires an earlier view's pixels when a newer view arrives", async () => {
-    const URI_A = "data:image/png;base64,AAAA";
-    const URI_B = "data:image/png;base64,BBBB";
-    const viewImage = {
-      name: "view_image",
-      description: "View an image",
-      inputSchema: { type: "object", properties: {} },
-      process: vi.fn(async (_ctx: unknown, params: Record<string, unknown>) => ({
-        ok: true,
-        note: `viewing ${String(params["image_id"])}`,
-        image_content: {
-          uri: params["image_id"] === "img_1" ? URI_A : URI_B,
-          mimeType: "image/png"
-        }
-      })),
-      toProviderTool: () => ({
-        name: "view_image",
-        description: "View an image",
-        inputSchema: { type: "object", properties: {} }
-      }),
-      userMessage: () => "Viewing image"
-    };
-
-    let callCount = 0;
-    const provider = {
-      ...createMockProvider(),
-      generateMessage: vi.fn().mockImplementation(() => {
-        callCount++;
-        if (callCount <= 2) {
-          return {
-            role: "assistant",
-            content: "Look.",
-            toolCalls: [
-              {
-                id: `tc_view_${callCount}`,
-                name: "view_image",
-                args: { image_id: callCount === 1 ? "img_1" : "img_2" }
-              }
-            ]
-          };
-        }
-        return {
-          role: "assistant",
-          content: "Done.",
-          toolCalls: [
-            {
-              id: "tc_finish",
-              name: "finish_task",
-              args: { result: "ok", metadata: { title: "T", description: "D" } }
-            }
-          ]
-        };
-      })
-    };
-
-    const executor = new AgentExecutor({
-      provider: provider as any,
-      model: "test-model",
-      context: imageContext(null),
-      tools: [viewImage as any],
-      outputType: "string"
-    });
-
-    for await (const _ of executor.execute("Compare two images")) {
-      void _;
-    }
-
-    const messages = (provider.generateMessage.mock.calls.at(-1)?.[0]?.messages ??
-      []) as Array<{ role: string; content: unknown }>;
-    const dump = JSON.stringify(messages);
-
-    // The first view's pixels were retired; the second view's are still live.
-    expect(dump).not.toContain("AAAA");
-    expect(dump).toContain("BBBB");
-    expect(dump).toContain(OMITTED_IMAGE_NOTE);
   });
 });

@@ -228,22 +228,45 @@ export class ClaudeAgentProvider extends BaseProvider {
     }
   ): AsyncGenerator<ProviderStreamItem> {
     const tools = args.tools ?? [];
+    const executeTool = args.executeTool;
+    // A tool dispatches either through its own `execute` or the harness
+    // `executeTool`; build the MCP server when at least one route exists.
+    const hasToolExecute = tools.some((t) => t.execute);
+
+    // The SDK loop is stopped by aborting this controller — a terminal tool
+    // fires it after running. Bridge the caller's signal into it too, and pass
+    // its signal (overriding args.signal) down so runTurn cancels on either.
+    const abortController = new AbortController();
+    const onExternalAbort = () => abortController.abort();
+    if (args.signal) {
+      if (args.signal.aborted) abortController.abort();
+      else
+        args.signal.addEventListener("abort", onExternalAbort, { once: true });
+    }
+
     let mcp: { mcpServers: Options["mcpServers"]; allowedTools: string[] } | null =
       null;
-    if (tools.length > 0 && args.executeTool) {
+    if (tools.length > 0 && (executeTool || hasToolExecute)) {
       const createServer = await this.loadCreateMcpServer();
-      const executeTool = args.executeTool;
       // MCP tool results carry typed content blocks, so image-bearing results
       // (view_image) are returned as real image blocks the SDK hands to Claude —
       // no flattening to text on the agent-SDK path.
       const defs = tools.map((t) =>
-        toolDefinition(t, (name, toolArgs) =>
-          executeTool({
-            id: `call_${name}_${Date.now()}`,
-            name,
-            args: toolArgs
-          })
-        )
+        toolDefinition(t, async (name, toolArgs) => {
+          const toolCallId = `call_${name}_${Date.now()}`;
+          const result = t.execute
+            ? await t.execute(toolArgs, toolCallId)
+            : executeTool
+              ? await executeTool({
+                  id: toolCallId,
+                  name,
+                  args: toolArgs
+                })
+              : `Tool "${name}" is not available`;
+          // A terminal tool ends the SDK loop after its result is delivered.
+          if (t.terminal) abortController.abort();
+          return result;
+        })
       );
       const server = createServer({
         name: TOOL_SERVER_NAME,
@@ -255,11 +278,18 @@ export class ClaudeAgentProvider extends BaseProvider {
         allowedTools: tools.map((t) => `${TOOL_PREFIX}${t.name}`)
       };
     }
-    yield* this.runWithSession(args, {
-      emitMessages: true,
-      maxTurns: mcp ? args.maxIterations ?? DEFAULT_TOOL_TURNS : 1,
-      mcp
-    });
+    try {
+      yield* this.runWithSession(
+        { ...args, signal: abortController.signal },
+        {
+          emitMessages: true,
+          maxTurns: mcp ? args.maxIterations ?? DEFAULT_TOOL_TURNS : 1,
+          mcp
+        }
+      );
+    } finally {
+      if (args.signal) args.signal.removeEventListener("abort", onExternalAbort);
+    }
   }
 
   override async *generateMessages(args: {
@@ -420,12 +450,17 @@ export class ClaudeAgentProvider extends BaseProvider {
       model: args.model || undefined,
       // 1 for a single turn; higher when tools may drive multiple rounds.
       maxTurns: plan.config.maxTurns,
-      // Only NodeTool's MCP tools are allowed; empty (pure LLM) when tool-free.
+      // Auto-approve NodeTool's MCP tools (this is the no-prompt allowlist, not
+      // an availability restriction). Empty (pure LLM) when tool-free.
       allowedTools: plan.config.mcp?.allowedTools ?? [],
       // Do NOT load repo .claude / CLAUDE.md / skills.
       settingSources: [],
-      // Never block on an interactive permission prompt.
-      permissionMode: "dontAsk",
+      // Run without asking for permissions: never prompt AND never deny. This
+      // lets the SDK agent use its built-in tools (WebSearch/WebFetch/Bash/…)
+      // alongside NodeTool's MCP tools. bypassPermissions requires the explicit
+      // safety flag below.
+      permissionMode: "bypassPermissions",
+      allowDangerouslySkipPermissions: true,
       includePartialMessages: true,
       // Setting env REPLACES the child env, so spread process.env minus the
       // nested-session leakage. Preserves PATH/HOME/ANTHROPIC_BASE_URL/proxies.

@@ -20,7 +20,7 @@ import { Agent } from "../src/agent.js";
 import { TaskExecutor } from "../src/task-executor.js";
 import { StepExecutor } from "../src/step-executor.js";
 import { ParallelTaskExecutor } from "../src/parallel-task-executor.js";
-import { memoryKeys } from "@nodetool-ai/runtime";
+import { memoryKeys, BaseProvider } from "@nodetool-ai/runtime";
 import type { Task, TaskPlan } from "../src/types.js";
 import { createMockContext } from "./_helpers/mock-context.js";
 
@@ -68,6 +68,11 @@ function createRecordingProvider(
     },
     async *generateMessagesTraced(...args: any[]) {
       yield* (this as any).generateMessages(...args);
+    },
+    // The planner delegates its tool loop to the provider; reuse the real base
+    // loop (it only needs generateMessagesTraced, which this mock has).
+    generateLoop(args: any) {
+      return (BaseProvider.prototype as any).generateLoop.call(this, args);
     },
     async generateMessageTraced(...args: any[]) {
       return (this as any).generateMessage(...args);

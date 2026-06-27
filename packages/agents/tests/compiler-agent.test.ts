@@ -13,7 +13,7 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import { memoryKeys } from "@nodetool-ai/runtime";
+import { memoryKeys, BaseProvider } from "@nodetool-ai/runtime";
 import { CompilerAgent } from "../src/compiler-agent.js";
 import { createMockContext } from "./_helpers/mock-context.js";
 
@@ -33,6 +33,10 @@ function createScriptedProvider(responses: ProviderResponse[]) {
         yield { type: "chunk" as const, content: next.text, done: false };
       }
       for (const tc of next.toolCalls ?? []) yield tc;
+    },
+    generateLoop(args: unknown) {
+      return (BaseProvider.prototype as { generateLoop: (a: unknown) => unknown })
+        .generateLoop.call(this, args);
     },
     generateMessageTraced: vi.fn(),
     generateMessage: vi.fn(),
@@ -199,6 +203,11 @@ describe("CompilerAgent", () => {
           name: "finish_step",
           args: { result: { ok: true } }
         };
+      },
+      generateLoop(args: unknown) {
+        return (
+          BaseProvider.prototype as { generateLoop: (a: unknown) => unknown }
+        ).generateLoop.call(this, args);
       },
       generateMessageTraced: vi.fn(),
       generateMessage: vi.fn(),

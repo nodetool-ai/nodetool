@@ -9,6 +9,7 @@ import type {
   MessageImageContent,
   ProcessingContext,
   ProviderStreamItem,
+  ProviderTool,
   ToolCall
 } from "@nodetool-ai/runtime";
 import { findAssetRefs } from "@nodetool-ai/runtime";
@@ -1134,95 +1135,88 @@ export async function runAgentLoop(
     }
   }
 
-  const providerTools =
-    resolvedTools.length > 0 ? toProviderTools(resolvedTools) : undefined;
+  // The provider drives the tool-calling loop via generateLoop. This is what
+  // makes the Claude Agent SDK provider work: it registers `providerTools` as
+  // an in-process MCP server and runs the SDK's own loop, while normal
+  // providers run the standard completion loop. Each provider tool carries its
+  // own `execute` (generateLoop dispatches to it), so there is no harness-level
+  // executeTool callback. The stream surfaces text chunks (for onText),
+  // tool-call announcements (for onToolCall), and finalized message events
+  // (assistant turns + tool results) that we collect into the returned
+  // conversation. There is no terminal tool here — the loop ends when the model
+  // stops calling tools.
+  const providerTools: ProviderTool[] | undefined =
+    resolvedTools.length > 0
+      ? toProviderTools(resolvedTools).map((pt, i) => {
+          const tool = resolvedTools[i];
+          return {
+            ...pt,
+            execute: async (
+              args: Record<string, unknown>
+            ): Promise<string | MessageContent[]> => {
+              if (typeof tool.process !== "function") {
+                return JSON.stringify({ error: `Unknown tool: ${tool.name}` });
+              }
+              const result = await tool.process(context, args);
+              return JSON.stringify(serializeToolResult(result));
+            }
+          };
+        })
+      : undefined;
   const provider = await context.getProvider(providerId);
+
+  // generateLoop owns its own copy of the message array internally, so rebuild
+  // the full returned conversation locally from the message events it streams.
+  const outMessages: Message[] = [...messages];
   let lastAssistantText = "";
+  let currentTurnText = "";
 
-  let iteration = 0;
-  let shouldContinue = true;
-
-  while (shouldContinue && iteration < maxIterations) {
-    shouldContinue = false;
-    iteration++;
-
-    const assistantToolCalls: ToolCall[] = [];
-    let assistantText = "";
-
-    for await (const item of streamProviderMessages(provider, {
-      messages,
-      model: modelId,
-      tools: providerTools,
-      maxTokens,
-      threadId: options.threadId
-    })) {
-      if (isChunkItem(item)) {
-        // Only genuine text accumulates into the returned text / onText stream.
-        // Providers may stream tool calls as `tool_call` chunks (and audio,
-        // agent_status, etc.) — those must not leak into the text output.
-        // (Tool execution uses the structured ToolCall items below.)
-        if (!item.thinking && item.content_type === "text") {
-          const delta = typeof item.content === "string" ? item.content : "";
-          assistantText += delta;
-          if (delta) options.onText?.(delta);
+  for await (const raw of provider.generateLoop({
+    messages,
+    model: modelId,
+    tools: providerTools,
+    maxTokens,
+    threadId: options.threadId,
+    maxIterations
+  })) {
+    const item = normalizeProviderStreamItem(raw);
+    if (isToolCallItem(item)) {
+      options.onToolCall?.(toolCallChunk(item));
+      continue;
+    }
+    if (isChunkItem(item)) {
+      // Only genuine text feeds the returned text / onText stream. Tool-call
+      // chunks (and audio, agent_status, etc.) carry content_type !== "text"
+      // and must not leak into the text output.
+      if (!item.thinking && item.content_type === "text") {
+        const delta = typeof item.content === "string" ? item.content : "";
+        if (delta) {
+          currentTurnText += delta;
+          options.onText?.(delta);
         }
       }
-      if (isToolCallItem(item)) {
-        assistantToolCalls.push(item);
-      }
+      continue;
     }
-
-    if (assistantText) {
-      lastAssistantText = assistantText;
-    }
-
-    if (assistantText || assistantToolCalls.length > 0) {
-      const assistantMsg: Message = {
-        role: "assistant",
-        content: [{ type: "text", text: assistantText }],
-        toolCalls: assistantToolCalls.length > 0 ? assistantToolCalls : null
-      };
-      // Propagate raw Gemini parts for thought signature replay
-      const rawParts = assistantToolCalls.find(
-        (tc) => tc._rawGeminiParts
-      )?._rawGeminiParts;
-      if (rawParts) {
-        assistantMsg._rawGeminiParts = rawParts as unknown[];
+    // A finalized message event (assistant turn or tool result). Append it to
+    // the returned trail; an assistant turn also closes the current text run so
+    // `text` reflects the model's last assistant message, not a concatenation.
+    if ("type" in item && (item as { type?: string }).type === "message") {
+      const message = (item as { message?: Message }).message;
+      if (message) {
+        outMessages.push(message);
+        if (message.role === "assistant") {
+          if (currentTurnText) lastAssistantText = currentTurnText;
+          currentTurnText = "";
+        }
       }
-      messages.push(assistantMsg);
-    }
-
-    for (const toolCall of assistantToolCalls) {
-      options.onToolCall?.(toolCallChunk(toolCall));
-      const tool = resolvedTools.find((t) => t.name === toolCall.name);
-      if (!tool || typeof tool.process !== "function") {
-        messages.push({
-          role: "tool",
-          toolCallId: toolCall.id,
-          content: JSON.stringify({ error: `Unknown tool: ${toolCall.name}` })
-        });
-        shouldContinue = true;
-        continue;
-      }
-      const result = await tool.process(context, toolCall.args);
-      messages.push({
-        role: "tool",
-        toolCallId: toolCall.id,
-        content: JSON.stringify(serializeToolResult(result))
-      });
-      shouldContinue = true;
     }
   }
 
-  if (iteration >= maxIterations) {
-    log.warn("runAgentLoop reached max iterations", {
-      maxIterations,
-      providerId,
-      modelId
-    });
-  }
+  // A provider that runs its own loop may stream final text without a trailing
+  // assistant message event — keep that text.
+  if (currentTurnText) lastAssistantText = currentTurnText;
 
-  return { text: lastAssistantText, messages };
+  return { text: lastAssistantText, messages: outMessages };
 }
 
 function getStructuredOutputSchema(
@@ -2689,7 +2683,7 @@ export class AgentNode extends BaseNode {
     default: AGENT_DEFAULT_MAX_TOKENS,
     title: "Max Tokens",
     description:
-      "Upper bound on generated tokens per response, including visible output and any reasoning/thinking tokens used by reasoning models. Higher values allow longer answers and more thinking headroom but cost more and take longer; very low values may truncate reasoning or the final answer. This is also the maxTokenLimit passed to plan and multi-agent executors. Typical values: 1024 for short answers, 8192–16384 for normal agent use, 32k+ for long-form or heavy reasoning. Must be within the chosen model's context window.",
+      "Upper bound on generated tokens per response, including visible output and any reasoning/thinking tokens used by reasoning models. Higher values allow longer answers and more thinking headroom but cost more and take longer; very low values may truncate reasoning or the final answer. Typical values: 1024 for short answers, 8192–16384 for normal agent use, 32k+ for long-form or heavy reasoning. Must be within the chosen model's context window.",
     min: 1,
     max: 100000
   })
@@ -2843,111 +2837,127 @@ export class AgentNode extends BaseNode {
       messages.splice(0, messages.length, ...resolved);
     }
 
-    let lastTextOutput: string | null = null;
-    const providerTools = tools.length > 0 ? toProviderTools(tools) : undefined;
+    // Held in an object so the nested finalizeAssistantTurn closure can update
+    // it without tripping control-flow narrowing at the read sites below.
+    const finalText: { value: string | null } = { value: null };
+
+    // Each provider tool carries its own `execute` (generateLoop dispatches to
+    // it directly) instead of a harness-level executeTool callback. Control
+    // tools route through sendControlEvent; regular tools call tool.process;
+    // submit_result (the structured tool) is marked `terminal` so generateLoop
+    // ends the loop after it runs — its process populates structuredResult.
+    const providerTools: ProviderTool[] | undefined =
+      tools.length > 0
+        ? toProviderTools(tools).map((pt, i) => {
+            const tool = tools[i];
+            const isStructured =
+              structuredToolName != null && tool.name === structuredToolName;
+            return {
+              ...pt,
+              terminal: isStructured,
+              execute: async (
+                args: Record<string, unknown>
+              ): Promise<string | MessageContent[]> => {
+                if (typeof tool.process !== "function") {
+                  log.warn("AgentNode tool call had no matching executable tool", {
+                    nodeId: this.__node_id ?? null,
+                    toolName: tool.name,
+                    availableTools: tools.map((candidate) => candidate.name)
+                  });
+                  return JSON.stringify({
+                    status: "error",
+                    error: `Unknown or non-executable tool: ${tool.name}`
+                  });
+                }
+
+                let result: unknown;
+
+                if (isControlTool(tool)) {
+                  const callArgs = args ?? {};
+                  log.info("AgentNode dispatching control tool", {
+                    nodeId: this.__node_id ?? null,
+                    toolName: tool.name,
+                    targetNodeId: tool.targetNodeId,
+                    argKeys: Object.keys(callArgs)
+                  });
+
+                  if (context.hasControlEventSupport) {
+                    try {
+                      const controlResult = await context.sendControlEvent(
+                        tool.targetNodeId,
+                        callArgs
+                      );
+                      result = {
+                        status: "completed",
+                        target_node_id: tool.targetNodeId,
+                        result: controlResult
+                      };
+                    } catch (err) {
+                      result = {
+                        status: "error",
+                        target_node_id: tool.targetNodeId,
+                        error: err instanceof Error ? err.message : String(err)
+                      };
+                    }
+                  } else {
+                    result = {
+                      status: "error",
+                      target_node_id: tool.targetNodeId,
+                      error:
+                        "Control event dispatch is not available in this execution context"
+                    };
+                  }
+                } else {
+                  log.info("AgentNode executing tool", {
+                    nodeId: this.__node_id ?? null,
+                    toolName: tool.name
+                  });
+                  try {
+                    result = await tool.process(context, args);
+                  } catch (err) {
+                    const message =
+                      err instanceof Error ? err.message : String(err);
+                    log.warn("AgentNode tool execution failed", {
+                      nodeId: this.__node_id ?? null,
+                      toolName: tool.name,
+                      error: message
+                    });
+                    result = { status: "error", error: message };
+                  }
+                }
+
+                return JSON.stringify(serializeToolResult(result));
+              }
+            };
+          })
+        : undefined;
     const provider = await context.getProvider(providerId);
 
     {
-      let shouldContinue = false;
-      let firstIteration = true;
-      let turn = 0;
+      // The provider drives the tool-calling loop via generateLoop. This is the
+      // headline fix: on the Claude Agent SDK provider, generateLoop registers
+      // `providerTools` (including submit_result) with the SDK agent and calls
+      // back into `executeTool` per call — the tool-free generateMessages
+      // primitive never saw them. Other providers run the standard completion
+      // loop and call back the same way. generateLoop owns the message array and
+      // streams: text/thinking/audio chunks, ToolCall announcements (before
+      // execution), and `{ type: "message" }` events for each finalized
+      // assistant turn and tool result (which we mirror to thread persistence).
+      // Tool execution and loop termination are driven by the provider tools'
+      // own `execute`/`terminal` (built above), not a harness callback.
+      let assistantText = "";
+      let streamedRedactedThinking = false;
+      let thinkSplitter = new RedactedThinkingStreamSplitter();
 
-      while ((firstIteration || shouldContinue) && turn < maxTurns) {
-        firstIteration = false;
-        shouldContinue = false;
-        turn += 1;
-        log.info("AgentNode provider iteration starting", {
-          nodeId: this.__node_id ?? null,
-          providerId,
-          modelId,
-          threadId: threadId || null,
-          messageCount: messages.length,
-          turn,
-          maxTurns
-        });
-        const assistantToolCalls: ToolCall[] = [];
-        let assistantText = "";
-        let chunkCount = 0;
-        let thinkingCount = 0;
-        let audioChunkCount = 0;
-        const thinkSplitter = new RedactedThinkingStreamSplitter();
-        let streamedRedactedThinking = false;
-
-        for await (const item of streamProviderMessages(provider, {
-          messages,
-          model: modelId,
-          tools: providerTools,
-          maxTokens,
-          maxTurns,
-          threadId: threadId || undefined
-        })) {
-          if (isChunkItem(item)) {
-            chunkCount += 1;
-            if (item.thinking) {
-              thinkingCount += 1;
-              yield { chunk: null, thinking: item, text: null, audio: null };
-              continue;
-            }
-            if (item.content_type === "audio") {
-              audioChunkCount += 1;
-              yield { chunk: item, thinking: null, text: null, audio: null };
-              const audioBytes =
-                typeof item.content === "string" && item.content
-                  ? Buffer.from(item.content, "base64")
-                  : item.content instanceof Float32Array
-                    ? Buffer.from(
-                        item.content.buffer,
-                        item.content.byteOffset,
-                        item.content.byteLength
-                      )
-                    : Buffer.alloc(0);
-              yield {
-                chunk: null,
-                thinking: null,
-                text: null,
-                audio: { data: new Uint8Array(audioBytes) }
-              };
-            } else {
-              const rawPiece =
-                typeof item.content === "string" ? item.content : "";
-              assistantText += rawPiece;
-              for (const y of yieldSplitThinkChunks(item, rawPiece, thinkSplitter)) {
-                if (y.thinking != null) streamedRedactedThinking = true;
-                yield y;
-              }
-            }
-            continue;
-          }
-          if (isToolCallItem(item)) {
-            assistantToolCalls.push(item);
-            log.info("AgentNode received tool call", {
-              nodeId: this.__node_id ?? null,
-              providerId,
-              modelId,
-              toolCallId: item.id,
-              toolName: item.name,
-              argKeys: Object.keys(item.args ?? {})
-            });
-            yield {
-              chunk: toolCallChunk(item),
-              thinking: null,
-              text: null,
-              audio: null
-            };
-          }
-        }
-
-        log.info("AgentNode provider iteration completed", {
-          nodeId: this.__node_id ?? null,
-          providerId,
-          modelId,
-          chunkCount,
-          thinkingCount,
-          audioChunkCount,
-          toolCallCount: assistantToolCalls.length,
-          assistantTextLength: assistantText.length
-        });
-
+      // Finalize one assistant turn: flush any buffered think-split remainder,
+      // then emit the cleaned final text (and any non-streamed thinking) and
+      // update lastTextOutput. Resets the per-turn accumulators so the next turn
+      // starts clean. Driven off the assistant `message` events generateLoop
+      // emits — one per assistant turn — plus a final call after the stream for
+      // providers that finish without a trailing assistant message event.
+      const finalizeAssistantTurn = function* (): Generator<
+        Record<string, unknown>
+      > {
         for (const part of thinkSplitter.flush()) {
           if (part.kind === "thinking" && part.content.length > 0) {
             streamedRedactedThinking = true;
@@ -2977,7 +2987,7 @@ export class AgentNode extends BaseNode {
             extractThinkTags(assistantText);
           const trimmed = cleanText.trim();
           if (trimmed) {
-            lastTextOutput = trimmed;
+            finalText.value = trimmed;
           }
           if (thinkingText && !streamedRedactedThinking) {
             yield {
@@ -2995,124 +3005,113 @@ export class AgentNode extends BaseNode {
           };
         }
 
-        if (assistantText || assistantToolCalls.length > 0) {
-          const assistantMessage: Message = {
-            role: "assistant",
-            content: [{ type: "text", text: assistantText }],
-            toolCalls: assistantToolCalls.length > 0 ? assistantToolCalls : null
+        assistantText = "";
+        streamedRedactedThinking = false;
+        thinkSplitter = new RedactedThinkingStreamSplitter();
+      };
+
+      for await (const raw of provider.generateLoop({
+        messages,
+        model: modelId,
+        tools: providerTools,
+        maxTokens,
+        maxIterations: maxTurns,
+        sequentialTools: true,
+        threadId: threadId || undefined
+      })) {
+        const item = normalizeProviderStreamItem(raw);
+
+        if (isToolCallItem(item)) {
+          log.info("AgentNode received tool call", {
+            nodeId: this.__node_id ?? null,
+            providerId,
+            modelId,
+            toolCallId: item.id,
+            toolName: item.name,
+            argKeys: Object.keys(item.args ?? {})
+          });
+          yield {
+            chunk: toolCallChunk(item),
+            thinking: null,
+            text: null,
+            audio: null
           };
-          const rawParts = assistantToolCalls.find(
-            (tc) => tc._rawGeminiParts
-          )?._rawGeminiParts;
-          if (rawParts) {
-            assistantMessage._rawGeminiParts = rawParts as unknown[];
-          }
-          messages.push(assistantMessage);
-          await saveThreadMessage(context, threadId, assistantMessage);
+          continue;
         }
 
-        for (const toolCall of assistantToolCalls) {
-          const tool = tools.find(
-            (candidate) => candidate.name === toolCall.name
-          );
-          if (!tool || typeof tool.process !== "function") {
-            const message = `Unknown or non-executable tool: ${toolCall.name}`;
-            log.warn("AgentNode tool call had no matching executable tool", {
-              nodeId: this.__node_id ?? null,
-              toolCallId: toolCall.id,
-              toolName: toolCall.name,
-              availableTools: tools.map((candidate) => candidate.name)
-            });
-            const toolMessage: Message = {
-              role: "tool",
-              toolCallId: toolCall.id,
-              content: JSON.stringify({ status: "error", error: message })
-            };
-            messages.push(toolMessage);
-            await saveThreadMessage(context, threadId, toolMessage);
-            shouldContinue = true;
+        if (isChunkItem(item)) {
+          if (item.thinking) {
+            yield { chunk: null, thinking: item, text: null, audio: null };
             continue;
           }
-
-          let result: unknown;
-
-          if (isControlTool(tool)) {
-            const callArgs = toolCall.args ?? {};
-            log.info("AgentNode dispatching control tool", {
-              nodeId: this.__node_id ?? null,
-              toolCallId: toolCall.id,
-              toolName: toolCall.name,
-              targetNodeId: tool.targetNodeId,
-              argKeys: Object.keys(callArgs)
-            });
-
-            if (context.hasControlEventSupport) {
-              try {
-                const controlResult = await context.sendControlEvent(
-                  tool.targetNodeId,
-                  callArgs
-                );
-                result = {
-                  status: "completed",
-                  target_node_id: tool.targetNodeId,
-                  result: controlResult
-                };
-              } catch (err) {
-                result = {
-                  status: "error",
-                  target_node_id: tool.targetNodeId,
-                  error: err instanceof Error ? err.message : String(err)
-                };
-              }
-            } else {
-              result = {
-                status: "error",
-                target_node_id: tool.targetNodeId,
-                error:
-                  "Control event dispatch is not available in this execution context"
-              };
-            }
-          } else {
-            log.info("AgentNode executing tool", {
-              nodeId: this.__node_id ?? null,
-              toolCallId: toolCall.id,
-              toolName: toolCall.name
-            });
-            try {
-              result = await tool.process(context, toolCall.args);
-            } catch (err) {
-              const message = err instanceof Error ? err.message : String(err);
-              log.warn("AgentNode tool execution failed", {
-                nodeId: this.__node_id ?? null,
-                toolCallId: toolCall.id,
-                toolName: toolCall.name,
-                error: message
-              });
-              result = { status: "error", error: message };
-            }
+          if (item.content_type === "audio") {
+            yield { chunk: item, thinking: null, text: null, audio: null };
+            const audioBytes =
+              typeof item.content === "string" && item.content
+                ? Buffer.from(item.content, "base64")
+                : item.content instanceof Float32Array
+                  ? Buffer.from(
+                      item.content.buffer,
+                      item.content.byteOffset,
+                      item.content.byteLength
+                    )
+                  : Buffer.alloc(0);
+            yield {
+              chunk: null,
+              thinking: null,
+              text: null,
+              audio: { data: new Uint8Array(audioBytes) }
+            };
+            continue;
           }
-
-          const toolMessage: Message = {
-            role: "tool",
-            toolCallId: toolCall.id,
-            content: JSON.stringify(serializeToolResult(result))
-          };
-          messages.push(toolMessage);
-          await saveThreadMessage(context, threadId, toolMessage);
-          if (structuredToolName && toolCall.name === structuredToolName) {
-            shouldContinue = false;
-            break;
+          const rawPiece = typeof item.content === "string" ? item.content : "";
+          assistantText += rawPiece;
+          for (const y of yieldSplitThinkChunks(item, rawPiece, thinkSplitter)) {
+            if (y.thinking != null) streamedRedactedThinking = true;
+            yield y;
           }
-          shouldContinue = true;
+          continue;
+        }
+
+        // A finalized message event (assistant turn or tool result). generateLoop
+        // owns the message array; we mirror the old per-turn finalization +
+        // thread persistence off these. Each assistant event closes a turn.
+        if (
+          item &&
+          typeof item === "object" &&
+          "type" in item &&
+          (item as { type?: string }).type === "message"
+        ) {
+          const message = (item as { message?: Message }).message;
+          if (!message) continue;
+          if (message.role === "assistant") {
+            // Rebuild the persisted assistant message from our own accumulated
+            // text (which excludes audio chunks) so saved history keeps its old
+            // array shape; carry tool calls / Gemini thought-signature parts from
+            // the event since generateLoop now owns the live message.
+            const hadToolCalls = (message.toolCalls?.length ?? 0) > 0;
+            const persistMessage: Message = {
+              role: "assistant",
+              content: [{ type: "text", text: assistantText }],
+              toolCalls: message.toolCalls ?? null
+            };
+            if (message._rawGeminiParts) {
+              persistMessage._rawGeminiParts = message._rawGeminiParts;
+            }
+            const shouldPersist = Boolean(assistantText) || hadToolCalls;
+            yield* finalizeAssistantTurn();
+            if (threadId && shouldPersist) {
+              await saveThreadMessage(context, threadId, persistMessage);
+            }
+          } else if (threadId) {
+            await saveThreadMessage(context, threadId, message);
+          }
         }
       }
-      if (shouldContinue && turn >= maxTurns) {
-        log.warn("AgentNode hit max_turns cap with pending tool calls", {
-          nodeId: this.__node_id ?? null,
-          turn,
-          maxTurns
-        });
-      }
+
+      // Flush any trailing turn for providers that stream final text without a
+      // closing assistant message event (no-op once a turn has been finalized).
+      yield* finalizeAssistantTurn();
     }
 
     if (structuredSchema && structuredResult) {
@@ -3127,7 +3126,7 @@ export class AgentNode extends BaseNode {
       nodeId: this.__node_id ?? null,
       providerId,
       modelId,
-      finalTextLength: lastTextOutput?.length ?? 0,
+      finalTextLength: finalText.value?.length ?? 0,
       returnedStructured: Boolean(structuredResult)
     });
   }
@@ -3210,7 +3209,6 @@ export class AgentNode extends BaseNode {
       model: modelId,
       tools: agentTools,
       systemPrompt: system,
-      maxTokenLimit: Number(this.max_tokens ?? AGENT_DEFAULT_MAX_TOKENS),
       outputSchema: structuredSchema ?? undefined,
       planningModel: modelId,
       maxSteps: 10,
