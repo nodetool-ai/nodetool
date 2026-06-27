@@ -4,7 +4,7 @@
   "engines": {
     "node": ">=22.0.0 <23.0.0"
   },
-  "version": "0.7.0-rc.25",
+  "version": "0.7.0-rc.26",
   "description": "Host-side sandbox provisioning: Docker-backed isolated Linux computers for agents, with shell, file, browser, and desktop tools",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
