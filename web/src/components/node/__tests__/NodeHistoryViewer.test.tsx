@@ -451,6 +451,30 @@ describe("NodeHistoryViewer", () => {
     expect(screen.getByTestId("single-body")).toBeInTheDocument();
   });
 
+  it("does not bubble grid clicks to the node (no node select/deselect)", () => {
+    // Picking a generation in the grid must not toggle the enclosing ReactFlow
+    // node's selection — the click is stopped before it reaches the node.
+    setGenerations([makeGen("a1", 1), makeGen("a2", 2), makeGen("a3", 3)]);
+    const onParentClick = jest.fn();
+
+    renderWithProviders(
+      <div onClick={onParentClick}>
+        <NodeHistoryViewer
+          workflowId="wf1"
+          nodeId="node-a"
+          liveResult={null}
+          renderSingle={renderSingle}
+        />
+      </div>
+    );
+
+    fireEvent.click(screen.getByLabelText("Toggle view"));
+    // Isolate the tile (item) click — the reported case.
+    onParentClick.mockClear();
+    fireEvent.click(screen.getAllByRole("option")[0]);
+    expect(onParentClick).not.toHaveBeenCalled();
+  });
+
   it("opens the AssetViewer for the current generation's asset", () => {
     setGenerations([makeGen("a1", 1)]);
     mockUseNodeResultHistory.mockReturnValue({
