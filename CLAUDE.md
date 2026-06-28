@@ -232,7 +232,13 @@ npm run dev:nodetool -- debug <workflow_id> --json
 npm run dev:nodetool -- debug <id> --no-server --browser   # browser only
 npm run dev:nodetool -- debug <id> --out ./mydebug         # custom bundle dir
 npm run dev:nodetool -- debug <id> --timeout 60000         # per-surface timeout (ms)
+npm run dev:nodetool -- debug workflow.json --watch        # re-run on file change, print a verdict diff
 ```
+
+The `--watch` flag (file targets only) re-runs after every save and prints just
+what changed since the last run — verdict ok/fail transitions, newly-appeared
+and resolved issues, and token/cost movement — so the edit→verify loop is a live
+diff instead of a fresh full report each time.
 
 The bundle (`nodetool-debug/<id>-<ts>/` by default) contains:
 
@@ -253,6 +259,52 @@ tool (runs the workflow + returns status, outputs, errors, job logs, and the
 graph overview in one call). The browser surface is exposed in `web/` as
 `npm run test:debug-harness` (env: `NODETOOL_DEBUG_GRAPH`, `NODETOOL_DEBUG_OUT`,
 `NODETOOL_DEBUG_PARAMS`).
+
+### nodetool validate (Static Workflow Check)
+
+Checks a workflow against the node registry **without running it** — unknown
+node types, missing required properties, unselected models, dangling and
+mis-typed edges. Returns in well under a second, so it's the cheap pre-flight
+before an expensive `debug` run. Accepts a workflow id, JSON file, or DSL `.ts`
+file. File/DSL targets need no database.
+
+```bash
+npm run dev:nodetool -- validate <workflow_id>
+npm run dev:nodetool -- validate workflow.json
+npm run dev:nodetool -- validate workflow.json --json            # machine-readable report
+npm run dev:nodetool -- validate <id> --warnings-as-errors        # exit non-zero on warnings too
+```
+
+The same check is exposed to agents through the **`validate_workflow`** tool:
+pass an inline `graph` ({nodes, edges}) to check a graph being built, or a
+`workflow_id` to fetch and validate a saved one. The validator core is
+`validateGraph` in `@nodetool-ai/node-sdk`.
+
+### nodetool node run (Single-Node Harness)
+
+Runs one node in isolation — instantiate it, feed it a property bag, print what
+it emits — without authoring a whole workflow. `--no-secrets` skips the DB for a
+hermetic run.
+
+```bash
+npm run dev:nodetool -- node run nodetool.text.Concat --props '{"a":"hi ","b":"there"}'
+npm run dev:nodetool -- node run <type> --props '{...}' --no-secrets   # hermetic, no DB
+npm run dev:nodetool -- node run <type> --props '{...}' --json
+```
+
+### nodetool affected (Changed-File → Workspace Mapping)
+
+Maps changed files (or the git working tree) to the minimal set of workspaces to
+rebuild/test: the owning package plus its downstream dependents, and a
+`build:packages` only when a decorator package (loads from `dist/`) is affected.
+Avoids reflexively running the full 1–2 min build.
+
+```bash
+npm run dev:nodetool -- affected                       # uses git working-tree changes
+npm run dev:nodetool -- affected --base main           # diff against a ref
+npm run dev:nodetool -- affected packages/cli/src/x.ts # explicit files
+npm run dev:nodetool -- affected --json
+```
 
 ### nodetool workflows
 
