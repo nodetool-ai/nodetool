@@ -24,7 +24,7 @@
     "@nodetool-ai/runtime": "*",
     "@supabase/supabase-js": "^2.98.0",
     "nodemailer": "^8.0.7",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.3.0"
   },
   "devDependencies": {
     "@nodetool-ai/core-nodes": "*",
