@@ -63,7 +63,6 @@ Export a `register(registry)` function from your package and NodeTool discovers 
 ### Programmatic Workflows
 
 - [TypeScript DSL Guide](ts-dsl-guide.md) -- Type-safe workflow definitions with auto-generated factory functions
-- [Gradio Conversion Guide](gradio-conversion.md) -- Convert NodeTool workflows to Gradio applications
 
 ### API Integration
 
