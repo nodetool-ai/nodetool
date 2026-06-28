@@ -5,7 +5,7 @@ permalink: /long-term-memory
 description: "Per-user, per-thread durable memory for chat and agents in NodeTool — opt-in, vector-backed, with built-in secret redaction."
 ---
 
-**Navigation**: [Root AGENTS.md](../AGENTS.md) | [Chat](chat.md) | [Agent Memory (in-run)](agent-memory.md)
+**Navigation**: [Root AGENTS.md](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md) | [Chat](chat.md) | [Agent Memory (in-run)](agent-memory.md)
 
 NodeTool's **long-term memory (LTM)** persists durable facts across chat sessions: stable user preferences, identity facts, project context, decisions made, and notable events. Recalled items are folded into the system prompt before each LLM call, and new memories are mined from the conversation after the turn completes.
 
