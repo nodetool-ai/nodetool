@@ -286,4 +286,4 @@ All seven were wired into `index.ts` in that same commit. To see the full diff: 
 - Repository: <https://github.com/nodetool-ai/nodetool>
 - Discord: <https://discord.gg/WmQTWZRcYE>
 - Run `npm run check` (typecheck + lint + tests) before opening a PR. PRs that break any of the three will not merge.
-- Follow [docs/WRITING_STYLE.md](../../WRITING_STYLE.md) for any Markdown you touch.
+- Follow [docs/WRITING_STYLE.md](https://github.com/nodetool-ai/nodetool/blob/main/docs/WRITING_STYLE.md) for any Markdown you touch.

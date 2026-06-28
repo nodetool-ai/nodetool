@@ -18,7 +18,51 @@ Guidelines for working with code in this repository. These are linter-like rules
 - **[Electron](electron/src/AGENTS.md)** — Desktop app
 - **[Mobile](mobile/README.md)** — React Native mobile app
 - **[Agent System](docs/AGENTS.md)** — Agent architecture, tools, skills, workflow nodes
+- **[Agent Harnesses & Tooling](#agent-harnesses--tooling)** — Validate, debug, run, single-node, browser, deploy, trace (the tools that close the build→verify loop)
 - **[Scripts](scripts/AGENTS.md)** — Build and release scripts
+
+---
+
+## Agent Harnesses & Tooling
+
+The repo ships harnesses built for the agent edit→verify loop: check a workflow
+before running it, run it and read everything it emitted, run a single node in
+isolation, drive the real browser, deploy, and trace token/cost. Reach for these
+before hand-rolling a script. Every CLI command runs from source with
+`npm run dev:nodetool -- <cmd>` (no build) or from `dist` with
+`npm run nodetool -- <cmd>` after `npm run build:packages`. The full flag
+reference lives in [CLAUDE.md](CLAUDE.md) and [docs/cli.md](docs/cli.md).
+
+| Need | CLI harness | Agent/MCP tool | Speed |
+|---|---|---|---|
+| Static pre-flight (unknown nodes, missing props, bad edges) — **run this first** | `nodetool validate <id\|file.json\|file.ts>` | `validate_workflow` (inline `graph` or `workflow_id`) | < 1 s, no DB for file targets |
+| Run a workflow end-to-end and read every message/log/output/error | `nodetool debug <id\|file>` (server surface, default) | `debug_workflow` (status + outputs + errors + job logs + graph in one call) | seconds |
+| Real-browser surface (Playwright + Chromium canvas), trace, per-stage shots | `nodetool debug <id> --browser --trace --stages` | — | tens of seconds (opt-in) |
+| Tight edit→verify loop on a file target | `nodetool debug file.ts --watch` (prints a verdict **diff** per save) | — | per-save |
+| Run one node in isolation with a prop bag | `nodetool node run <type> --props '{…}' [--no-secrets]` | — | sub-second hermetic |
+| Run a workflow (id, JSON, or DSL `.ts`) | `nodetool run <file>` / `nodetool workflows run <id> [--params …]` | `run_workflow`, `start_background_job` | varies |
+| Map changed files → minimal workspaces to rebuild/test | `nodetool affected [--base main]` | — | instant |
+| Author/inspect a graph against the live registry | — | `create_workflow`, `search_nodes`, `list_nodes`, `get_node_info`, `get_example_workflow`, `export_workflow_digraph` | — |
+| Jobs & assets | `nodetool jobs …` / `nodetool assets …` | `list_jobs`, `get_job`, `get_job_logs`, `list_assets`, `get_asset` | — |
+| Agent/chat REPL (loop \| plan \| graph \| multi-agent) | `nodetool-chat --agent` (`npm run dev:chat`) | — | — |
+| Deploy + remote ops (Docker/SSH/RunPod/GCP/Supabase) | `nodetool deploy <init\|plan\|apply\|status\|logs\|destroy>`; `deploy workflows <sync\|run>`, `deploy database`, `deploy collections` | — | — |
+| Trace tokens/cost/timing (OTel span tree) | `--trace-file <f.jsonl>` / `--trace-stdout pretty\|json` on any CLI run | — | — |
+
+The **agent/MCP tools** above are the `@nodetool-ai/agents` MCP tools
+(`packages/agents/src/tools/mcp-tools.ts`), exposed to in-product agents and over
+the websocket MCP server — use them instead of shelling out when you are already
+inside an agent context.
+
+**Browser workflow harness.** The in-browser graph harness runs whole workflows
+against the real backend and renders the actual ReactFlow canvas, recording IO,
+traces, and screenshots — see [In-Browser Workflow Harness](#in-browser-workflow-harness)
+below and [web/src/e2e_runner/README.md](web/src/e2e_runner/README.md). The same
+surface backs `nodetool debug --browser` and `web`'s `npm run test:debug-harness`.
+
+**Suggested loop:** `validate` (cheap, catches structural bugs) → `node run` to
+isolate a suspect node → `debug` to run the whole graph and read messages →
+`debug --browser` only when a bug is browser-specific → `--trace` when chasing
+token/cost/latency.
 
 ---
 

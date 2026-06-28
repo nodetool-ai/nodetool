@@ -144,9 +144,30 @@ Base classes and registry for building workflow nodes:
 - `NodeRegistry` — registers and resolves node types
 - Type system for node inputs/outputs (connections enforce compatible types)
 
-### `@nodetool-ai/cli` — CLI
+### `@nodetool-ai/cli` — CLI & Agent Harnesses
 
-The `nodetool` command-line interface. See [CLI documentation](../docs/cli.md).
+The `nodetool` command-line interface (`packages/cli/src/commands/`). Beyond
+server/jobs/assets/secrets management, it ships the harnesses an agent uses to
+close the build→verify loop. Run from source with `npm run dev:nodetool -- <cmd>`
+(no build) or from `dist` with `npm run nodetool -- <cmd>`. Full flags in
+[CLI documentation](../docs/cli.md) and [CLAUDE.md](../CLAUDE.md).
+
+| Command | Harness | When |
+|---|---|---|
+| `validate <id\|file>` (`validate.ts`) | Static graph check — unknown nodes, missing props, unselected models, dangling/mis-typed edges | **Cheap pre-flight before any run.** Sub-second; no DB for file/DSL targets. Core: `validateGraph` in `node-sdk` |
+| `debug <id\|file>` (`debug.ts`) | Run a workflow end-to-end on the headless kernel and bundle every message/log/output/error/trace; `--browser` adds a real Playwright surface, `--stages` per-stage shots, `--watch` a per-save verdict diff | Run-and-inspect; iterative troubleshooting |
+| `node run <type> --props '{…}'` (`node.ts`) | Single-node harness — instantiate one node, feed a prop bag, print what it emits; `--no-secrets` skips the DB | Isolate one node without authoring a graph |
+| `run <file>` / `workflows run <id>` | Execute a workflow (id, JSON, or DSL `.ts`) | Quick run by id/file |
+| `affected [--base main]` (`affected.ts`) | Map changed files → minimal workspaces to rebuild/test (owning package + downstream + `build:packages` only if a decorator package is hit) | Before reflexively running the full 1–2 min build |
+| `deploy …` (`deploy.ts`) | Docker/SSH/RunPod/GCP/Supabase deployments + remote workflow sync/run, DB rows, vector collections | Self-host / cloud ops |
+| `--trace-file` / `--trace-stdout` | OTel span tree (timing, tokens, cost) on any run | Profiling agents/workflows |
+
+The same `validate`/`debug` capabilities are exposed to in-product agents as the
+`validate_workflow` / `debug_workflow` MCP tools in
+`packages/agents/src/tools/mcp-tools.ts` (alongside `run_workflow`,
+`create_workflow`, `search_nodes`, `get_node_info`, job/asset tools). See the
+[root harness index](../AGENTS.md#agent-harnesses--tooling) and
+[docs/AGENTS.md](../docs/AGENTS.md).
 
 ## Rules
 
