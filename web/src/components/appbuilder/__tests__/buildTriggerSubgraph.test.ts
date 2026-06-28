@@ -72,4 +72,11 @@ describe("buildTriggerSubgraph", () => {
     browserSupports = undefined;
     expect(buildTriggerSubgraph(makeWorkflow(), io, { hue: 42 }, "hue")).toBeNull();
   });
+
+  it("returns null when the browser prefix reaches no output node", () => {
+    // Server-only compute (no output node browser-eligible) should fall back to
+    // a full run rather than running a trivial input-only subgraph.
+    const ioNoOutputs = { ...io, outputs: [] };
+    expect(buildTriggerSubgraph(makeWorkflow(), ioNoOutputs, { hue: 42 }, "hue")).toBeNull();
+  });
 });

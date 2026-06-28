@@ -92,6 +92,14 @@ export const buildTriggerSubgraph = (
   );
   if (prefix.nodes.length === 0) return null;
 
+  // The prefix must actually reach an output node, or there's nothing to show.
+  // A graph whose compute is server-only (e.g. NLP nodes) trims down to just
+  // the input node — return null so the caller falls back to a full run.
+  const outputNodeIds = new Set(io.outputs.map((output) => output.nodeId));
+  const prefixIds = new Set(prefix.nodes.map((node) => node.id));
+  const reachesOutput = [...prefixIds].some((id) => outputNodeIds.has(id));
+  if (!reachesOutput) return null;
+
   return {
     graph: {
       nodes: prefix.nodes.map(reactFlowNodeToGraphNode),

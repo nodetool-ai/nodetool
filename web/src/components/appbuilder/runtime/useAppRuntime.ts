@@ -269,6 +269,13 @@ export const useAppRuntime = (
   const reactiveInFlightRef = useRef(false);
   const reactivePendingRef = useRef<string | null>(null);
   const reactiveRunRef = useRef<(triggerInput: string) => void>(() => {});
+  // The first trigger runs the whole graph, so computed upstreams (a generated
+  // image, a constant) populate their caches. Later triggers reuse those caches
+  // and only recompute the downstream subgraph.
+  const hasRunFullRef = useRef(false);
+  useEffect(() => {
+    hasRunFullRef.current = false;
+  }, [workflowId]);
 
   const reactiveRun = useCallback(
     (triggerInput: string) => {
@@ -291,6 +298,14 @@ export const useAppRuntime = (
         return;
       }
 
+      // First interaction: run the whole graph so every output renders and
+      // computed upstreams cache their results for later subgraph runs.
+      if (!hasRunFullRef.current) {
+        hasRunFullRef.current = true;
+        void run();
+        return;
+      }
+
       if (reactiveInFlightRef.current) {
         reactivePendingRef.current = triggerInput;
         return;
@@ -301,8 +316,8 @@ export const useAppRuntime = (
         store.getState().values,
         triggerInput
       );
-      // No browser-runnable subgraph (unknown input, or a server tail at the
-      // root) — fall back to a full authoritative run.
+      // No browser-runnable subgraph that reaches an output (unknown input, a
+      // server-only compute tail) — fall back to a full authoritative run.
       if (!sub) {
         void run();
         return;
