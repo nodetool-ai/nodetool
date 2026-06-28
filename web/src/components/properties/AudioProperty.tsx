@@ -5,7 +5,7 @@ import { useAsset } from "../../serverState/useAsset";
 import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyDropzone from "./PropertyDropzone";
-import { memo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import isEqual from "fast-deep-equal";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -70,6 +70,7 @@ const styles = (theme: Theme) =>
 
 const AudioProperty = (props: PropertyProps) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const id = `audio-${props.property.name}-${props.propertyIndex}`;
   const { asset, uri } = useAsset({ audio: props.value });
   const showRecorder =
@@ -88,7 +89,7 @@ const AudioProperty = (props: PropertyProps) => {
 
   if (isRealtime) {
     return (
-      <div className="audio-property" css={styles(theme)}>
+      <div className="audio-property" css={cssStyles}>
         <div className="realtime-audio-controls">
           {isStreaming ? (
             <div
@@ -142,7 +143,7 @@ const AudioProperty = (props: PropertyProps) => {
   }
 
   return (
-    <div className="audio-property" css={styles(theme)}>
+    <div className="audio-property" css={cssStyles}>
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}

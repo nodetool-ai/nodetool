@@ -43,6 +43,7 @@ import { getAboutSidebarSections } from "./aboutSidebarUtils";
 import DefaultModelsMenu from "./DefaultModelsMenu";
 import MCPSettingsMenu from "./MCPSettingsMenu";
 import BrowserExtensionSettingsMenu from "./BrowserExtensionSettingsMenu";
+import VaultsSettings from "./VaultsSettings";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useState, useCallback, useEffect, useRef } from "react";
 import SettingsSidebar from "./SettingsSidebar";
@@ -534,7 +535,8 @@ function SettingsPage() {
       category: "Workspace",
       items: [
         { id: "editor", label: "Editor" },
-        ...(isElectron ? [{ id: "updates", label: "Updates" }] : [])
+        ...(isElectron ? [{ id: "updates", label: "Updates" }] : []),
+        ...(isElectron ? [{ id: "vaults", label: "Vaults" }] : [])
       ]
     },
     {
@@ -813,6 +815,8 @@ function SettingsPage() {
                         </SearchItem>
                       )}
                     </div>
+
+                    {isElectron && <VaultsSettings />}
 
                     <div className="settings-section">
                       <Text

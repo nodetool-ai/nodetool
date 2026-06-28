@@ -250,6 +250,15 @@ declare global {
           options?: DialogOpenFolderRequest,
         ) => Promise<DialogOpenResult>;
       };
+
+      // Vaults: switchable, isolated data stores (each its own SQLite database)
+      vaults: {
+        list: () => Promise<VaultListResult>;
+        create: (name: string) => Promise<VaultListResult>;
+        rename: (id: string, name: string) => Promise<VaultListResult>;
+        delete: (id: string) => Promise<VaultListResult>;
+        switch: (id: string) => Promise<VaultListResult>;
+      };
     };
 
     // Alias exposed by preload for legacy pages.
@@ -402,6 +411,26 @@ export interface MenuEventData {
     | "close"
     | "fitView"
     | "openSettings";
+}
+
+/**
+ * A vault: a self-contained, switchable data store (its own SQLite database,
+ * assets folder, and vector-store database). `null` paths mean "use the backend
+ * default" — that is how the built-in default vault maps onto the original
+ * single-database install.
+ */
+export interface Vault {
+  id: string;
+  name: string;
+  dbPath: string | null;
+  assetPath: string | null;
+  vectorPath: string | null;
+}
+
+/** The vault list plus which one is currently active. */
+export interface VaultListResult {
+  vaults: Vault[];
+  activeVaultId: string;
 }
 
 export type ModelDirectory = "huggingface" | "ollama";
@@ -569,6 +598,12 @@ export enum IpcChannels {
   SETTINGS_GET_MODEL_SERVICES_STARTUP = "settings-get-model-services-startup",
   SETTINGS_SET_MODEL_SERVICES_STARTUP = "settings-set-model-services-startup",
   SHOW_SETTINGS = "show-settings",
+  // Vault channels (switchable, isolated data stores)
+  VAULT_LIST = "vault-list",
+  VAULT_CREATE = "vault-create",
+  VAULT_RENAME = "vault-rename",
+  VAULT_DELETE = "vault-delete",
+  VAULT_SWITCH = "vault-switch",
   // System directory channels
   FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY = "file-explorer-open-system-directory",
   // System info channel
@@ -731,6 +766,12 @@ export interface IpcRequest {
   [IpcChannels.SETTINGS_GET_MODEL_SERVICES_STARTUP]: void;
   [IpcChannels.SETTINGS_SET_MODEL_SERVICES_STARTUP]: ModelServicesStartupSettingsUpdate;
   [IpcChannels.SHOW_SETTINGS]: void;
+  // Vaults
+  [IpcChannels.VAULT_LIST]: void;
+  [IpcChannels.VAULT_CREATE]: string; // vault name
+  [IpcChannels.VAULT_RENAME]: { id: string; name: string };
+  [IpcChannels.VAULT_DELETE]: string; // vault id
+  [IpcChannels.VAULT_SWITCH]: string; // vault id
   // System directory
   [IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY]: SystemDirectory;
   // System info
@@ -835,6 +876,12 @@ export interface IpcResponse {
   [IpcChannels.SETTINGS_GET_MODEL_SERVICES_STARTUP]: ModelServicesStartupSettings;
   [IpcChannels.SETTINGS_SET_MODEL_SERVICES_STARTUP]: ModelServicesStartupSettings;
   [IpcChannels.SHOW_SETTINGS]: void;
+  // Vaults
+  [IpcChannels.VAULT_LIST]: VaultListResult;
+  [IpcChannels.VAULT_CREATE]: VaultListResult;
+  [IpcChannels.VAULT_RENAME]: VaultListResult;
+  [IpcChannels.VAULT_DELETE]: VaultListResult;
+  [IpcChannels.VAULT_SWITCH]: VaultListResult;
   // System directory
   [IpcChannels.FILE_EXPLORER_OPEN_SYSTEM_DIRECTORY]: FileExplorerResult;
   // System info

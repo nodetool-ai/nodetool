@@ -30,7 +30,7 @@ const SelectProperty: React.FC<PropertyProps> = ({
   const options = useMemo(() => {
     const nodeOptions = node?.data?.properties?.options;
     if (Array.isArray(nodeOptions)) {
-      return nodeOptions as string[];
+      return nodeOptions.filter((opt): opt is string => typeof opt === "string");
     }
     return [];
   }, [node?.data?.properties?.options]);

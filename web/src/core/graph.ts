@@ -145,7 +145,7 @@ export function subgraph(
 
 const isControlEdge = (edge: Edge): boolean =>
   edge.type === "control" ||
-  (edge.data as { edge_type?: string } | undefined)?.edge_type === "control";
+  (edge.data != null && "edge_type" in edge.data && edge.data.edge_type === "control");
 
 /**
  * Compute a layer index per node using data edges (target ≥ source + 1) and

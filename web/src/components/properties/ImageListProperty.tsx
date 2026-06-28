@@ -160,6 +160,7 @@ const flattenImageItems = (items: unknown): ImageItem[] => {
 
 const ImageListProperty = (props: PropertyProps) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const id = `image-list-${props.property.name}-${props.propertyIndex}`;
   const { uploadAsset } = useAssetUpload();
 
@@ -471,7 +472,7 @@ const ImageListProperty = (props: PropertyProps) => {
 
   if (props.isConnected) {
     return (
-      <div className="image-list-property" css={styles(theme)}>
+      <div className="image-list-property" css={cssStyles}>
         <PropertyLabel
           name={props.property.name}
           description={props.property.description}
@@ -511,7 +512,7 @@ const ImageListProperty = (props: PropertyProps) => {
   }
 
   return (
-    <div className="image-list-property" css={styles(theme)}>
+    <div className="image-list-property" css={cssStyles}>
       {/* Hidden file input for browser fallback */}
       <input
         ref={fileInputRef}

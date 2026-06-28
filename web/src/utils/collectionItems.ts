@@ -89,10 +89,13 @@ export const appendItems = (
   return { ok: true, items: next, added };
 };
 
+const isCollectionItem = (v: unknown): v is CollectionItem =>
+  isRecord(v) && typeof v.type === "string";
+
 /** Read the items array off a node's persisted properties, defensively. */
 export const readItems = (value: unknown): CollectionItem[] => {
   if (!Array.isArray(value)) return [];
-  return value.filter(isRecord) as CollectionItem[];
+  return value.filter(isCollectionItem);
 };
 
 /**

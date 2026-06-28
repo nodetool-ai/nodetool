@@ -18,6 +18,8 @@ import { getModelUrl } from "../../../utils/providerDisplay";
 import type { ModelCompatibilityResult } from "./useModelCompatibility";
 import ModelCompatibilityDialog from "./ModelCompatibilityDialog";
 
+const IMPORTANT_TAGS = new Set(["gguf", "mlx"]);
+
 const ModelListItem: React.FC<
   ModelComponentProps & {
     showModelStats?: boolean;
@@ -43,8 +45,11 @@ const ModelListItem: React.FC<
     return model.path ? `${baseId}/${model.path}` : baseId;
   }, [model.id, model.path, model.repo_id]);
   const theme = useTheme();
-  const importantTags = ["gguf", "mlx"];
-  const tags = (model.tags || []).filter((tag) => importantTags.includes(tag));
+  const cssStyles = useMemo(() => modelListItemStyles(theme), [theme]);
+  const tags = useMemo(
+    () => (model.tags || []).filter((tag) => IMPORTANT_TAGS.has(tag)),
+    [model.tags]
+  );
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleOpenDialog = useCallback(() => {
@@ -77,7 +82,7 @@ const ModelListItem: React.FC<
   if (downloadId && downloads[downloadId]) {
     return (
       <Box
-        css={modelListItemStyles(theme)}
+        css={cssStyles}
         className={`model-list-item ${compactView ? "compact" : ""}`}
       >
         <div className="model-content">
@@ -89,7 +94,7 @@ const ModelListItem: React.FC<
   const selectable = !!onSelect && !!model.downloaded;
   return (
     <Box
-      css={modelListItemStyles(theme)}
+      css={cssStyles}
       className={`model-list-item ${compactView ? "compact " : ""} ${
         model.downloaded ? "downloaded " : ""
       }${selectable ? "selectable" : ""}`}

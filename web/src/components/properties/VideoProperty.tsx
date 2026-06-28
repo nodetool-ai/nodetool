@@ -8,7 +8,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyDropzone from "./PropertyDropzone";
 import isEqual from "fast-deep-equal";
-import { memo } from "react";
+import { memo, useMemo } from "react";
 
 const styles = (theme: Theme) =>
   css({
@@ -19,13 +19,14 @@ const styles = (theme: Theme) =>
 
 const VideoProperty = (props: PropertyProps) => {
   const theme = useTheme();
+  const cssStyles = useMemo(() => styles(theme), [theme]);
   const id = `video-${props.property.name}-${props.propertyIndex}`;
   const { asset, uri } = useAsset({ video: props.value });
   const showRecorder =
     props.nodeType === "nodetool.input.VideoInput" ||
     props.nodeType === "nodetool.constant.Video";
   return (
-    <div className="video-property" css={styles(theme)}>
+    <div className="video-property" css={cssStyles}>
       <PropertyLabel
         name={props.property.name}
         description={props.property.description}

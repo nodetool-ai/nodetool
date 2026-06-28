@@ -1,10 +1,64 @@
 import { Menu, shell, dialog, clipboard } from "electron";
+import type { MenuItemConstructorOptions } from "electron";
 import { IpcChannels } from "./types.d";
 import { getMainWindow } from "./state";
 import { createLogViewerWindow, openSettingsInMainWindow } from "./window";
 import { createChatWindow } from "./workflowWindow";
 import { getSystemInfo } from "./systemInfo";
 import { openPerformanceMonitorWindow } from "./perfMonitor";
+import { logMessage } from "./logger";
+import { listVaults, getActiveVaultId } from "./vaults";
+
+/**
+ * Builds the "Vaults" menu: a radio list of vaults (active one checked) for
+ * quick switching, plus an entry to open the Settings window where vaults are
+ * created/renamed/deleted. Falls back gracefully if the vault list can't be
+ * read so a settings problem never breaks the whole menu.
+ */
+const buildVaultSubmenu = (): MenuItemConstructorOptions[] => {
+  let vaults: ReturnType<typeof listVaults> = [];
+  let activeId = "";
+  try {
+    vaults = listVaults();
+    activeId = getActiveVaultId();
+  } catch (error) {
+    logMessage(`Failed to read vaults for menu: ${String(error)}`, "warn");
+  }
+
+  const vaultItems: MenuItemConstructorOptions[] = vaults.map((vault) => ({
+    label: vault.name,
+    type: "radio",
+    checked: vault.id === activeId,
+    click: () => {
+      if (vault.id === activeId) {
+        return;
+      }
+      // Dynamically import the switch orchestrator so the (heavy) server
+      // restart chain isn't pulled into the menu module at load time.
+      void import("./vaultSwitch")
+        .then(({ applyVaultSwitch }) => applyVaultSwitch(vault.id))
+        .then(() => buildMenu())
+        .catch((error) => {
+          logMessage(`Failed to switch vault: ${String(error)}`, "error");
+          dialog.showErrorBox(
+            "Switch Vault",
+            `Could not switch vault: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        });
+    },
+  }));
+
+  return [
+    ...vaultItems,
+    { type: "separator" },
+    {
+      label: "Manage Vaults…",
+      click: () => openSettingsInMainWindow(),
+    },
+  ];
+};
 
 /**
  * Builds the application menu
@@ -242,6 +296,10 @@ const buildMenu = () => {
           click: () => openSettingsInMainWindow(),
         },
       ],
+    },
+    {
+      label: "Vaults",
+      submenu: buildVaultSubmenu(),
     },
     {
       label: "Window",
