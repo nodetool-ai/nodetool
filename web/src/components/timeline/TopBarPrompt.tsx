@@ -1,23 +1,25 @@
-/** @jsxImportSource @emotion/react */
 /**
  * TopBarPrompt
  *
- * Always-visible quick prompt input embedded in the timeline TopBar. Type a
- * prompt, press Enter, and a text-to-video direct-gen clip is dropped onto the
- * first unlocked video track at the current playhead — and generation starts
- * immediately. If the sequence has no video track yet (e.g. a Studio sequence
- * with only voiceover + caption tracks), one is created first.
+ * The timeline editor's quick text-to-video generation bar. Type a prompt,
+ * pick a model + output settings, and Generate drops a text-to-video direct-gen
+ * clip onto the first unlocked video track at the playhead (creating a video
+ * track if the sequence has none). Generation starts immediately.
  *
- * The video model selection is remembered across submissions for the lifetime
- * of the session by reading the most recent direct-gen clip in the sequence
- * (mirrors `AddClipMenu`).
+ * Layout mirrors the image editor's prompt bar (`ConnectedModePromptBar`) and
+ * the media chat composer: a prompt that grows to fill, then the model + setting
+ * chips, then the primary Generate action. The model / duration / resolution /
+ * aspect controls are the shared `MediaControlChip` + option menus, so options
+ * track the selected model's manifest.
  */
 
-import React, { memo, useCallback, useEffect, useState } from "react";
-import { css } from "@emotion/react";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import MovieIcon from "@mui/icons-material/Movie";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import AspectRatioIcon from "@mui/icons-material/CropOriginal";
+import TvIcon from "@mui/icons-material/Tv";
 
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
@@ -25,59 +27,26 @@ import { useTimelinePlaybackStore } from "../../stores/timeline/TimelinePlayback
 import { useTimelineDirectGenJob } from "../../hooks/timeline/useTimelineDirectGenJob";
 import { useLastDirectGenModel } from "../../hooks/timeline/useLastDirectGenModel";
 import {
+  EditorButton,
   FlexRow,
+  LoadingSpinner,
   TextInput,
-  Toast,
-  NodeSelect,
-  NodeMenuItem
+  Toast
 } from "../ui_primitives";
-import VideoModelSelect from "../properties/VideoModelSelect";
-
-interface VideoModelChange {
-  type: "video_model";
-  id: string;
-  provider: string;
-  name: string;
-}
-
-// ── Generation presets ───────────────────────────────────────────────────
-
-const ASPECT_RATIOS: string[] = ["16:9", "1:1", "9:16", "4:3", "3:4"];
-
-/** Short-edge resolution tiers, expressed as the strings video models expect. */
-const RESOLUTIONS: string[] = ["480p", "720p", "1080p"];
-
-/** Selectable clip durations in seconds. */
-const DURATIONS_SEC: number[] = [4, 6, 8];
-
-const promptInputStyles = (theme: Theme) =>
-  css({
-    width: 480,
-    [theme.breakpoints.down("md")]: {
-      width: 300
-    }
-  });
-
-const modelSelectStyles = (theme: Theme) =>
-  css({
-    width: 150,
-    flexShrink: 0,
-    [theme.breakpoints.down("md")]: {
-      width: 120
-    }
-  });
-
-const settingSelectStyles = css({
-  width: 84,
-  flexShrink: 0
-});
-
-const accentIconStyles = (theme: Theme) =>
-  css({
-    fontSize: 18,
-    color: theme.vars.palette.primary.main,
-    flexShrink: 0
-  });
+import MediaControlChip from "../chat/composer/MediaControlChip";
+import MediaOptionMenu from "../chat/composer/MediaOptionMenu";
+import MediaAspectRatioMenu from "../chat/composer/MediaAspectRatioMenu";
+import VideoModelMenuDialog from "../model_menu/VideoModelMenuDialog";
+import {
+  buildVideoModelOptions,
+  clampToAllowed,
+  normalizeVideoModel
+} from "../chat/composer/videoModelOptions";
+import type {
+  VideoModelSelection,
+  VideoResolution
+} from "../../stores/MediaGenerationStore";
+import type { VideoModel } from "../../stores/ApiTypes";
 
 /**
  * Resolve the video track to drop the clip onto: the first unlocked video
@@ -102,34 +71,58 @@ export const TopBarPrompt: React.FC = memo(() => {
   const [prompt, setPrompt] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  // User-picked provider+model wins over the auto-derived default. We track
-  // whether the user has explicitly chosen something so the picker stops
-  // following the "last used" default once they engage with it.
+  // User-picked model wins over the auto-derived default. We track whether the
+  // user has explicitly chosen something so the picker stops following the
+  // "last used" default once they engage with it.
   const [userPicked, setUserPicked] = useState(false);
-  const [provider, setProvider] = useState<string | undefined>(undefined);
-  const [model, setModel] = useState<string | undefined>(undefined);
+  const [selectedModel, setSelectedModel] = useState<
+    VideoModelSelection | undefined
+  >(undefined);
   const [aspect, setAspect] = useState("16:9");
-  const [resolution, setResolution] = useState("720p");
-  const [durationSec, setDurationSec] = useState("4");
+  const [resolution, setResolution] = useState<VideoResolution>("720p");
+  const [duration, setDuration] = useState(4);
   const lastModel = useLastDirectGenModel("video");
 
-  // Sync provider/model from the most recent direct-gen clip until the user
-  // picks something themselves. This keeps "type → generate" fluid across
-  // sequence loads without forcing a re-pick.
+  // Chip popover anchors.
+  const videoModelAnchorRef = useRef<HTMLButtonElement>(null);
+  const [videoModelOpen, setVideoModelOpen] = useState(false);
+  const [durationAnchor, setDurationAnchor] = useState<HTMLElement | null>(null);
+  const [resolutionAnchor, setResolutionAnchor] = useState<HTMLElement | null>(
+    null
+  );
+  const [aspectAnchor, setAspectAnchor] = useState<HTMLElement | null>(null);
+
+  const { durationOptions, resolutionOptions, aspectOptions } = useMemo(
+    () => buildVideoModelOptions(selectedModel),
+    [selectedModel]
+  );
+
+  // Sync the model from the most recent direct-gen clip until the user picks
+  // one themselves, so "type → generate" stays fluid across sequence loads.
+  // The remembered default carries no manifest constraints, so the full option
+  // sets show until a model is picked through the dialog.
   useEffect(() => {
     if (userPicked) return;
-    setProvider(lastModel.provider);
-    setModel(lastModel.model);
+    if (lastModel.provider && lastModel.model) {
+      setSelectedModel({
+        type: "video_model",
+        id: lastModel.model,
+        provider: lastModel.provider,
+        name: lastModel.model
+      });
+    } else {
+      setSelectedModel(undefined);
+    }
   }, [lastModel.provider, lastModel.model, userPicked]);
 
   const addDirectGenClip = useTimelineStore((s) => s.addDirectGenClip);
   const selectClip = useTimelineUIStore((s) => s.selectClip);
   const directGen = useTimelineDirectGenJob();
 
-  const canSubmit = prompt.trim().length > 0 && !!provider && !!model && !busy;
+  const canSubmit = prompt.trim().length > 0 && !!selectedModel?.id && !busy;
 
   const handleSubmit = useCallback(async () => {
-    if (!canSubmit) return;
+    if (!canSubmit || !selectedModel) return;
     // Clear any prior failure toast before we attempt again — otherwise a
     // successful retry leaves the previous error visible.
     setError(null);
@@ -144,12 +137,12 @@ export const TopBarPrompt: React.FC = memo(() => {
       const clipId = addDirectGenClip({
         trackId,
         startMs,
-        durationMs: Number(durationSec) * 1000,
+        durationMs: duration * 1000,
         mediaType: "video",
         bindingKind: "text-to-video",
         prompt: prompt.trim(),
-        provider,
-        model,
+        provider: selectedModel.provider,
+        model: selectedModel.id,
         aspectRatio: aspect,
         resolution
       });
@@ -165,11 +158,10 @@ export const TopBarPrompt: React.FC = memo(() => {
     canSubmit,
     addDirectGenClip,
     prompt,
-    provider,
-    model,
+    selectedModel,
     aspect,
     resolution,
-    durationSec,
+    duration,
     selectClip,
     directGen
   ]);
@@ -184,80 +176,140 @@ export const TopBarPrompt: React.FC = memo(() => {
     [handleSubmit]
   );
 
-  const handleVideoModelChange = useCallback((v: VideoModelChange) => {
+  const handlePickVideoModel = useCallback((model: VideoModel) => {
+    const normalized = normalizeVideoModel(model);
     setUserPicked(true);
-    setProvider(v.provider);
-    setModel(v.id);
+    setSelectedModel(normalized);
+    // Snap current settings to what the picked model allows.
+    setAspect((a) => clampToAllowed(a, normalized.aspectRatios));
+    setResolution((r) => clampToAllowed(r, normalized.resolutions));
+    setDuration((d) => clampToAllowed(d, normalized.durations));
+    setVideoModelOpen(false);
   }, []);
 
   return (
     <>
-      <FlexRow gap={0.5} align="center" data-testid="topbar-prompt">
-        <AutoAwesomeIcon css={accentIconStyles(theme)} aria-hidden />
-        <div css={promptInputStyles(theme)}>
-          <TextInput
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Generate a video at the playhead…"
-            compact
-            fullWidth
-            disabled={busy}
-            inputProps={{
-              "aria-label": "Quick text-to-video prompt",
-              "data-testid": "topbar-prompt-input"
-            }}
-          />
-        </div>
-        <div css={modelSelectStyles(theme)}>
-          <VideoModelSelect
-            value={model ?? ""}
+      <FlexRow
+        gap={1}
+        align="center"
+        data-testid="topbar-prompt"
+        sx={{ flex: 1, minWidth: 0 }}
+      >
+        <TextInput
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Generate a video at the playhead…"
+          compact
+          fullWidth
+          disabled={busy}
+          inputProps={{
+            "aria-label": "Quick text-to-video prompt",
+            "data-testid": "topbar-prompt-input"
+          }}
+          slotProps={{
+            input: {
+              startAdornment: (
+                <AutoAwesomeIcon
+                  fontSize="small"
+                  sx={{ mr: 0.5, color: theme.vars.palette.primary.main }}
+                />
+              )
+            }
+          }}
+          sx={{
+            flex: 1,
+            minWidth: 160,
+            "& .MuiOutlinedInput-root": { height: 34 }
+          }}
+        />
+
+        <MediaControlChip
+          ref={videoModelAnchorRef}
+          icon={<MovieIcon fontSize="small" />}
+          label={selectedModel?.name || "Select Model"}
+          active={videoModelOpen}
+          onClick={() => setVideoModelOpen(true)}
+          truncate
+          showChevron={false}
+        />
+        {videoModelOpen && (
+          <VideoModelMenuDialog
+            open
+            anchorEl={videoModelAnchorRef.current}
+            onClose={() => setVideoModelOpen(false)}
+            onModelChange={handlePickVideoModel}
             task="text_to_video"
-            onChange={handleVideoModelChange}
           />
-        </div>
-        <div css={settingSelectStyles}>
-          <NodeSelect
-            value={aspect}
-            onChange={(e) => setAspect(e.target.value as string)}
-            aria-label="Aspect ratio"
-            fullWidth
-          >
-            {ASPECT_RATIOS.map((r) => (
-              <NodeMenuItem key={r} value={r}>
-                {r}
-              </NodeMenuItem>
-            ))}
-          </NodeSelect>
-        </div>
-        <div css={settingSelectStyles}>
-          <NodeSelect
-            value={resolution}
-            onChange={(e) => setResolution(e.target.value as string)}
-            aria-label="Resolution"
-            fullWidth
-          >
-            {RESOLUTIONS.map((r) => (
-              <NodeMenuItem key={r} value={r}>
-                {r}
-              </NodeMenuItem>
-            ))}
-          </NodeSelect>
-        </div>
-        <div css={settingSelectStyles}>
-          <NodeSelect
-            value={durationSec}
-            onChange={(e) => setDurationSec(e.target.value as string)}
-            aria-label="Duration"
-            fullWidth
-          >
-            {DURATIONS_SEC.map((s) => (
-              <NodeMenuItem key={s} value={String(s)}>
-                {s}s
-              </NodeMenuItem>
-            ))}
-          </NodeSelect>
-        </div>
+        )}
+
+        <MediaControlChip
+          icon={<AccessTimeIcon fontSize="small" />}
+          label={`${duration} Sec`}
+          active={!!durationAnchor}
+          onClick={(e) => setDurationAnchor(e.currentTarget)}
+          showChevron={false}
+        />
+        <MediaOptionMenu
+          anchorEl={durationAnchor}
+          open={!!durationAnchor}
+          onClose={() => setDurationAnchor(null)}
+          header="Duration"
+          value={duration}
+          options={durationOptions}
+          onChange={(d) => setDuration(d)}
+        />
+
+        <MediaControlChip
+          icon={<TvIcon fontSize="small" />}
+          label={resolution}
+          active={!!resolutionAnchor}
+          onClick={(e) => setResolutionAnchor(e.currentTarget)}
+          showChevron={false}
+        />
+        <MediaOptionMenu
+          anchorEl={resolutionAnchor}
+          open={!!resolutionAnchor}
+          onClose={() => setResolutionAnchor(null)}
+          header="Video Resolution"
+          value={resolution}
+          options={resolutionOptions}
+          onChange={(r) => setResolution(r)}
+        />
+
+        <MediaControlChip
+          icon={<AspectRatioIcon fontSize="small" />}
+          label={aspect}
+          active={!!aspectAnchor}
+          onClick={(e) => setAspectAnchor(e.currentTarget)}
+          showChevron={false}
+        />
+        <MediaAspectRatioMenu
+          anchorEl={aspectAnchor}
+          open={!!aspectAnchor}
+          onClose={() => setAspectAnchor(null)}
+          value={aspect}
+          options={aspectOptions}
+          onChange={(v) => setAspect(v)}
+        />
+
+        <EditorButton
+          variant="contained"
+          size="small"
+          disabled={!canSubmit}
+          onClick={() => void handleSubmit()}
+          startIcon={
+            busy ? (
+              <LoadingSpinner inline size={14} color="inherit" />
+            ) : (
+              <AutoAwesomeIcon fontSize="small" />
+            )
+          }
+          data-testid="topbar-generate"
+          sx={{ flexShrink: 0, height: 34 }}
+        >
+          Generate
+        </EditorButton>
       </FlexRow>
       <Toast
         open={error !== null}

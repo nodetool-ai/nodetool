@@ -100,3 +100,69 @@ export async function encodeRawImageRef(ref: unknown): Promise<unknown> {
   const png = await encodeRawRgbaToPng(ref.data, ref.width, ref.height);
   return { ...(ref as ImageRef), data: png, mimeType: "image/png" };
 }
+
+/** A crop box in source-image pixels. */
+export interface ImageRegion {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Decode encoded image bytes (PNG/JPEG/WebP/…), optionally crop to a pixel
+ * `region` and/or downscale so the longest side fits `maxSide`, then re-encode
+ * to PNG. Used by the `view_image` tool to load only the pixels an agent asks
+ * for — a region crop and a "low" detail downscale both cut the token cost of
+ * the image the model actually sees.
+ *
+ * Coordinates are clamped to the image bounds, so an over-large or partly
+ * out-of-frame region yields the overlapping area rather than an error. When
+ * `sharp` is unavailable (off Node, or a broken native addon) the original
+ * bytes are returned unchanged with `width`/`height` 0 — the caller still gets
+ * a viewable full image, just uncropped.
+ */
+export async function extractImageRegion(
+  bytes: Uint8Array,
+  opts: { region?: ImageRegion; maxSide?: number } = {}
+): Promise<{ data: Uint8Array; mimeType: string; width: number; height: number }> {
+  const sharp = await loadSharp();
+  if (!sharp) {
+    return { data: bytes, mimeType: "image/png", width: 0, height: 0 };
+  }
+
+  let pipeline = sharp(Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength), {
+    failOn: "none"
+  });
+  const meta = await pipeline.metadata();
+  const srcW = meta.width ?? 0;
+  const srcH = meta.height ?? 0;
+
+  const region = opts.region;
+  if (region) {
+    const left = Math.max(0, Math.min(Math.floor(region.x), Math.max(0, srcW - 1)));
+    const top = Math.max(0, Math.min(Math.floor(region.y), Math.max(0, srcH - 1)));
+    const maxW = srcW ? srcW - left : Math.floor(region.width);
+    const maxH = srcH ? srcH - top : Math.floor(region.height);
+    const width = Math.max(1, Math.min(Math.floor(region.width), maxW));
+    const height = Math.max(1, Math.min(Math.floor(region.height), maxH));
+    pipeline = pipeline.extract({ left, top, width, height });
+  }
+
+  if (opts.maxSide && opts.maxSide > 0) {
+    pipeline = pipeline.resize({
+      width: opts.maxSide,
+      height: opts.maxSide,
+      fit: "inside",
+      withoutEnlargement: true
+    });
+  }
+
+  const { data, info } = await pipeline.png().toBuffer({ resolveWithObject: true });
+  return {
+    data: new Uint8Array(data),
+    mimeType: "image/png",
+    width: info.width,
+    height: info.height
+  };
+}

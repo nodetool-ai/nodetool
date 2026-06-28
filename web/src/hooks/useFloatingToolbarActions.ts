@@ -9,8 +9,12 @@ import { triggerAutosaveForWorkflow } from "./useAutosave";
 import useMetadataStore from "../stores/MetadataStore";
 import { useRunWarningStore } from "../stores/RunWarningStore";
 import { useModelCalloutStore } from "../stores/ModelCalloutStore";
+import { useSearchProviderCalloutStore } from "../stores/SearchProviderCalloutStore";
 import { usePropertyHighlightStore } from "../stores/PropertyHighlightStore";
 import { findMissingModelNodes } from "../utils/findMissingModelNodes";
+import { findSearchToolNodes } from "../utils/findSearchToolNodes";
+import { isSearchProviderConfigured } from "../utils/searchProviders";
+import useRemoteSettingsStore from "../stores/RemoteSettingStore";
 import { countHeavyNodes } from "../utils/heavyNodes";
 import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useBottomPanelStore } from "../stores/BottomPanelStore";
@@ -91,6 +95,9 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     (state) => state.requestConfirmation
   );
   const showModelCallout = useModelCalloutStore((state) => state.show);
+  const showSearchProviderDialog = useSearchProviderCalloutStore(
+    (state) => state.show
+  );
 
   const openNodeMenu = useNodeMenuStore((state) => state.openNodeMenu);
   const closeNodeMenu = useNodeMenuStore((state) => state.closeNodeMenu);
@@ -158,6 +165,42 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
         }
         return;
       }
+
+      // Catch agents that search the web with no search provider configured —
+      // the run would otherwise fail server-side. Offer inline setup (Brave is
+      // free) instead of sending the user to Settings.
+      const searchNodes = findSearchToolNodes(
+        nodes,
+        useMetadataStore.getState().getMetadata
+      );
+      if (searchNodes.length > 0) {
+        const settingsStore = useRemoteSettingsStore.getState();
+        let settings = settingsStore.settings;
+        if (settings.length === 0) {
+          try {
+            settings = await settingsStore.fetchSettings();
+          } catch {
+            settings = [];
+          }
+        }
+        const getValue = (envVar: string): string | undefined => {
+          const found = settings.find((s) => s.env_var === envVar);
+          return found?.value != null ? String(found.value) : undefined;
+        };
+        // If settings never loaded we can't tell — don't block the run.
+        if (settings.length > 0 && !isSearchProviderConfigured(getValue)) {
+          const first = searchNodes[0];
+          showSearchProviderDialog(searchNodes);
+          const target = nodeStore
+            .getState()
+            .nodes.find((n) => n.id === first.nodeId);
+          if (target) {
+            nodeStore.getState().setSelectedNodes([target]);
+            nodeStore.getState().setShouldFitToScreen(true, [first.nodeId]);
+          }
+          return;
+        }
+      }
     }
 
     // Clicking Run while a run is in progress starts a second run alongside
@@ -205,6 +248,7 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     largeRunThreshold,
     requestRunConfirmation,
     showModelCallout,
+    showSearchProviderDialog,
     isWorkflowRunning,
     isPaused,
     isSuspended

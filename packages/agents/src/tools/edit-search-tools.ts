@@ -32,7 +32,7 @@ export class EditFileTool extends Tool {
     "(including whitespace and indentation). Use replace_all to change every occurrence. " +
     "Prefer this over write_file when modifying existing files — it only sends the diff. " +
     "To create a new file, pass an empty old_string and the full file contents as new_string.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       path: {
@@ -285,7 +285,7 @@ export class GlobTool extends Tool {
     "Find files matching a glob pattern within the workspace. " +
     'Supports patterns like "**/*.ts", "src/**/*.js", "*.{ts,tsx}". ' +
     "Returns matching file paths sorted alphabetically.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       pattern: {
@@ -385,7 +385,7 @@ export class GrepTool extends Tool {
     "Search file contents for lines matching a regex pattern within the workspace. " +
     "Returns matching lines with file paths, line numbers, and optional context lines. " +
     'Use the include parameter to filter files (e.g. "*.ts", "*.{js,jsx}").';
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       pattern: {

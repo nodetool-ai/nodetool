@@ -91,6 +91,25 @@ export interface ProviderTool {
   description?: string;
   inputSchema?: Record<string, unknown>;
   type?: "function" | "code_interpreter";
+  /**
+   * Optional self-contained executor for this tool. When present,
+   * {@link BaseProvider.generateLoop} (and the Claude Agent SDK MCP handlers)
+   * dispatch the tool call to `execute` directly, instead of routing it through
+   * the harness-supplied `executeTool` callback. Returns the result fed back to
+   * the model — plain text, or {@link MessageContent} blocks for results that
+   * carry images. Tools without `execute` still flow through `executeTool`.
+   */
+  execute?: (
+    args: Record<string, unknown>,
+    toolCallId?: string
+  ) => Promise<string | MessageContent[]>;
+  /**
+   * When `true`, the agentic loop ends after this tool runs: `generateLoop`
+   * finishes emitting the current turn's results, then stops iterating (and the
+   * Claude Agent SDK loop is aborted). Use for tools that signal completion
+   * (e.g. a `finish`/`submit` tool). Defaults to falsy (loop continues).
+   */
+  terminal?: boolean;
 }
 
 export interface MessageTextContent {

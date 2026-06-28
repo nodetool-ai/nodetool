@@ -6,7 +6,8 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState
+  useState,
+  type MutableRefObject
 } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -34,9 +35,13 @@ import {
   ToggleOption,
   EditorButton,
   CloseButton,
-  DownloadButton, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+  DownloadButton,
+  TabGroup,
+  BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import type { TabItem } from "../ui_primitives";
 import SceneOutliner from "./SceneOutliner";
 import PropertiesPanel from "./PropertiesPanel";
+import Model3DChatPanel from "./Model3DChatPanel";
 import { buildSceneTree } from "./sceneTree";
 import { disposeObject } from "./sceneTree";
 import {
@@ -45,10 +50,24 @@ import {
   type PrimitiveKind
 } from "./objectFactory";
 import { exportSceneToGlb } from "./exportGltf";
+import {
+  setModel3DToolHandler,
+  type Model3DSceneNode,
+  type Model3DToolHandler,
+  type Model3DTransformPatch
+} from "./model3DToolBridge";
 
 type GizmoMode = "translate" | "rotate" | "scale";
+type LeftTab = "scene" | "chat";
 
 const PANEL_WIDTH = 240;
+// The left panel hosts both the scene tree and the chat, so it gets more room.
+const LEFT_PANEL_WIDTH = 320;
+
+const LEFT_TABS: TabItem[] = [
+  { value: "scene", label: "Scene" },
+  { value: "chat", label: "Chat" }
+];
 
 const styles = (theme: Theme) =>
   css({
@@ -84,6 +103,9 @@ const styles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.background.paper,
       borderRight: `1px solid ${theme.vars.palette.divider}`
     },
+    ".side-panel.left": {
+      width: `${LEFT_PANEL_WIDTH}px`
+    },
     ".side-panel.right": {
       borderRight: "none",
       borderLeft: `1px solid ${theme.vars.palette.divider}`
@@ -92,6 +114,21 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(2, 3),
       borderBottom: `1px solid ${theme.vars.palette.divider}`,
       flexShrink: 0
+    },
+    ".panel-tabs": {
+      flexShrink: 0,
+      borderBottom: `1px solid ${theme.vars.palette.divider}`
+    },
+    ".left-panel-body": {
+      flex: 1,
+      minHeight: 0,
+      display: "flex"
+    },
+    ".left-panel-pane": {
+      width: "100%",
+      minWidth: 0,
+      minHeight: 0,
+      flexDirection: "column"
     },
     ".canvas-wrap": {
       flex: 1,
@@ -190,6 +227,31 @@ const FitCamera = ({ root, trigger }: FitCameraProps) => {
   return null;
 };
 
+interface CaptureHandles {
+  gl: THREE.WebGLRenderer;
+  scene: THREE.Scene;
+  camera: THREE.Camera;
+}
+
+interface CaptureBridgeProps {
+  targetRef: MutableRefObject<CaptureHandles | null>;
+}
+
+/**
+ * Publishes the live renderer/scene/camera (from inside the Canvas) to a ref the
+ * editor owns, so `captureView` can render a screenshot for the agent on demand.
+ */
+const CaptureBridge = ({ targetRef }: CaptureBridgeProps) => {
+  const { gl, scene, camera } = useThree();
+  useEffect(() => {
+    targetRef.current = { gl, scene, camera };
+    return () => {
+      targetRef.current = null;
+    };
+  }, [gl, scene, camera, targetRef]);
+  return null;
+};
+
 interface AddMenuProps {
   onAdd: (kind: PrimitiveKind) => void;
 }
@@ -279,8 +341,28 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [fitTrigger, setFitTrigger] = useState(0);
+  const [leftTab, setLeftTab] = useState<LeftTab>("scene");
 
   const bump = useCallback(() => setTick((t) => t + 1), []);
+
+  // Mirror of selectedUuid for the tool-bridge handler, which is registered once
+  // with stable callbacks and must read the latest selection without re-registering.
+  const selectedUuidRef = useRef<string | null>(null);
+  useEffect(() => {
+    selectedUuidRef.current = selectedUuid;
+  }, [selectedUuid]);
+
+  // Live render handles published by <CaptureBridge> for screenshot capture.
+  const captureRef = useRef<CaptureHandles | null>(null);
+  const captureView = useCallback((): string => {
+    const capture = captureRef.current;
+    if (!capture) {
+      throw new Error("3D viewport is not ready to capture yet.");
+    }
+    const { gl, scene, camera } = capture;
+    gl.render(scene, camera);
+    return gl.domElement.toDataURL("image/png");
+  }, []);
 
   // Load the GLB/GLTF into the editor root once per URL.
   useEffect(() => {
@@ -358,24 +440,84 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
     [root, bump]
   );
 
-  const handleAdd = useCallback(
-    (kind: PrimitiveKind) => {
-      const obj = createPrimitive(kind);
-      let counter = 1;
-      const base = PRIMITIVE_LABELS[kind];
+  // Find an object by uuid, then by exact name, then by case-insensitive name.
+  const findObject = useCallback(
+    (idOrName: string): THREE.Object3D | null => {
+      const byUuid = root.getObjectByProperty("uuid", idOrName);
+      if (byUuid) {
+        return byUuid;
+      }
+      const byName = root.getObjectByName(idOrName);
+      if (byName) {
+        return byName;
+      }
+      const lower = idOrName.trim().toLowerCase();
+      let match: THREE.Object3D | null = null;
+      root.traverse((child) => {
+        if (!match && child !== root && child.name.toLowerCase() === lower) {
+          match = child;
+        }
+      });
+      return match;
+    },
+    [root]
+  );
+
+  const toNode = useCallback(
+    (obj: THREE.Object3D): Model3DSceneNode => ({
+      uuid: obj.uuid,
+      name: obj.name || obj.type,
+      type: obj.type,
+      visible: obj.visible,
+      position: [obj.position.x, obj.position.y, obj.position.z],
+      rotation: [
+        THREE.MathUtils.radToDeg(obj.rotation.x),
+        THREE.MathUtils.radToDeg(obj.rotation.y),
+        THREE.MathUtils.radToDeg(obj.rotation.z)
+      ],
+      scale: [obj.scale.x, obj.scale.y, obj.scale.z],
+      parentUuid:
+        obj.parent && obj.parent !== root ? obj.parent.uuid : null
+    }),
+    [root]
+  );
+
+  // Pick a unique name in the scene, suffixing "<base> 2", "<base> 3", … on collision.
+  const uniqueName = useCallback(
+    (base: string): string => {
       const existing = new Set<string>();
-      root.traverse((c) => existing.add(c.name));
-      let candidate = base;
+      root.traverse((child) => existing.add(child.name));
+      if (!existing.has(base)) {
+        return base;
+      }
+      let counter = 2;
+      let candidate = `${base} ${counter}`;
       while (existing.has(candidate)) {
         counter += 1;
         candidate = `${base} ${counter}`;
       }
-      obj.name = candidate;
+      return candidate;
+    },
+    [root]
+  );
+
+  const addPrimitiveObject = useCallback(
+    (kind: PrimitiveKind, name?: string): THREE.Object3D => {
+      const obj = createPrimitive(kind);
+      obj.name = uniqueName(name?.trim() || PRIMITIVE_LABELS[kind]);
       root.add(obj);
       setSelectedUuid(obj.uuid);
       bump();
+      return obj;
     },
-    [root, bump]
+    [root, uniqueName, bump]
+  );
+
+  const handleAdd = useCallback(
+    (kind: PrimitiveKind) => {
+      addPrimitiveObject(kind);
+    },
+    [addPrimitiveObject]
   );
 
   const handleDelete = useCallback(() => {
@@ -407,6 +549,131 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
       setIsSaving(false);
     }
   }, [root, onSave]);
+
+  // Expose scene operations to the agent tooling layer (ui_3d_* tools) while
+  // this editor is mounted. Built from stable callbacks so it registers once.
+  useEffect(() => {
+    const requireObject = (idOrName: string): THREE.Object3D => {
+      const obj = findObject(idOrName);
+      if (!obj) {
+        throw new Error(`Object not found in scene: ${idOrName}`);
+      }
+      return obj;
+    };
+
+    const handler: Model3DToolHandler = {
+      listScene: () => {
+        const nodes: Model3DSceneNode[] = [];
+        root.traverse((child) => {
+          if (child !== root) {
+            nodes.push(toNode(child));
+          }
+        });
+        return nodes;
+      },
+      getSelected: () => {
+        const id = selectedUuidRef.current;
+        if (!id) {
+          return null;
+        }
+        const obj = root.getObjectByProperty("uuid", id);
+        return obj ? toNode(obj) : null;
+      },
+      addPrimitive: (kind, name) => toNode(addPrimitiveObject(kind, name)),
+      selectObject: (idOrName) => {
+        if (!idOrName) {
+          setSelectedUuid(null);
+          return null;
+        }
+        const obj = requireObject(idOrName);
+        setSelectedUuid(obj.uuid);
+        return toNode(obj);
+      },
+      deleteObject: (idOrName) => {
+        const obj = requireObject(idOrName);
+        if (obj === root) {
+          throw new Error("Cannot delete the scene root.");
+        }
+        const node = toNode(obj);
+        obj.parent?.remove(obj);
+        disposeObject(obj);
+        if (selectedUuidRef.current === obj.uuid) {
+          setSelectedUuid(null);
+        }
+        bump();
+        return node;
+      },
+      setTransform: (idOrName, patch: Model3DTransformPatch) => {
+        const obj = requireObject(idOrName);
+        if (patch.position) {
+          obj.position.set(
+            patch.position[0],
+            patch.position[1],
+            patch.position[2]
+          );
+        }
+        if (patch.rotation) {
+          obj.rotation.set(
+            THREE.MathUtils.degToRad(patch.rotation[0]),
+            THREE.MathUtils.degToRad(patch.rotation[1]),
+            THREE.MathUtils.degToRad(patch.rotation[2])
+          );
+        }
+        if (patch.scale) {
+          obj.scale.set(patch.scale[0], patch.scale[1], patch.scale[2]);
+        }
+        obj.updateMatrixWorld();
+        bump();
+        return toNode(obj);
+      },
+      setVisibility: (idOrName, visible) => {
+        const obj = requireObject(idOrName);
+        obj.visible = visible;
+        bump();
+        return toNode(obj);
+      },
+      renameObject: (idOrName, name) => {
+        const obj = requireObject(idOrName);
+        const trimmed = name.trim();
+        if (!trimmed) {
+          throw new Error("Object name cannot be empty.");
+        }
+        obj.name = trimmed;
+        bump();
+        return toNode(obj);
+      },
+      setMaterialColor: (idOrName, color) => {
+        const obj = requireObject(idOrName);
+        if (!(obj instanceof THREE.Mesh)) {
+          throw new Error(
+            `Object is not a mesh and has no material: ${idOrName}`
+          );
+        }
+        const applyColor = (material: THREE.Material) => {
+          const colored = material as THREE.Material & { color?: THREE.Color };
+          if (!colored.color) {
+            throw new Error("Material has no color channel.");
+          }
+          colored.color.set(color);
+          material.needsUpdate = true;
+        };
+        if (Array.isArray(obj.material)) {
+          obj.material.forEach(applyColor);
+        } else {
+          applyColor(obj.material);
+        }
+        bump();
+        return toNode(obj);
+      },
+      frameScene: () => {
+        setFitTrigger((t) => t + 1);
+      },
+      captureView
+    };
+
+    setModel3DToolHandler(handler);
+    return () => setModel3DToolHandler(null);
+  }, [root, findObject, toNode, addPrimitiveObject, bump, captureView]);
 
   // Delete key removes the selected object.
   useEffect(() => {
@@ -487,17 +754,35 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
 
       <FlexRow className="editor-body" fullWidth>
         <FlexColumn className="side-panel left" fullHeight>
-          <FlexRow className="panel-header">
-            <Text size="small" weight={600}>
-              Scene
-            </Text>
-          </FlexRow>
-          <SceneOutliner
-            nodes={treeNodes}
-            selectedUuid={selectedUuid}
-            onSelect={setSelectedUuid}
-            onToggleVisible={handleToggleVisible}
+          <TabGroup
+            className="panel-tabs"
+            size="small"
+            fullWidth
+            tabs={LEFT_TABS}
+            value={leftTab}
+            onChange={(value) => setLeftTab(value as LeftTab)}
           />
+          <div className="left-panel-body">
+            {/* Both panes stay mounted (toggled via display) so the chat
+                connection and scroll state survive tab switches. */}
+            <div
+              className="left-panel-pane"
+              style={{ display: leftTab === "scene" ? "flex" : "none" }}
+            >
+              <SceneOutliner
+                nodes={treeNodes}
+                selectedUuid={selectedUuid}
+                onSelect={setSelectedUuid}
+                onToggleVisible={handleToggleVisible}
+              />
+            </div>
+            <div
+              className="left-panel-pane"
+              style={{ display: leftTab === "chat" ? "flex" : "none" }}
+            >
+              <Model3DChatPanel />
+            </div>
+          </div>
         </FlexColumn>
 
         <div className="canvas-wrap">
@@ -541,6 +826,7 @@ const Model3DEditor = ({ url, name, onSave, onClose }: Model3DEditorProps) => {
             )}
             <OrbitControls makeDefault enableDamping={false} />
             <FitCamera root={root} trigger={fitTrigger} />
+            <CaptureBridge targetRef={captureRef} />
           </Canvas>
         </div>
 

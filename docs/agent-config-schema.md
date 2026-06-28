@@ -265,25 +265,6 @@ tools:
 
 ---
 
-### max_tokens (optional)
-
-**Type:** `integer`
-
-**Description:** The per-step **context** token budget, passed to the executor as `maxTokenLimit`. As the conversation
-approaches this budget, the executor enters a conclusion stage and summarizes older messages. This is **not** a cap on
-how many tokens a single response generates.
-
-**Default:** `128000`
-
-**Examples:**
-```yaml
-max_tokens: 64000    # Smaller context budget
-max_tokens: 128000   # Default
-max_tokens: 200000   # Large context (Claude)
-```
-
----
-
 ### max_steps (optional)
 
 **Type:** `integer`

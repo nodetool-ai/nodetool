@@ -57,7 +57,7 @@ jobs:
 
           # Internal/engineering pages must be excluded from the build.
           for f in STUDIO_PRD STUDIO_MVP_PROMPT DEVELOPMENT_STANDARDS DESIGN \
-                   AGENTS THEME CLOUD_NODE_CURATION image-editor-prd \
+                   AGENTS THEME WRITING_STYLE CLOUD_NODE_CURATION image-editor-prd \
                    timeline-editor-prd correlation-design runtime-package-interface; do
             if [ -e "$site/$f.html" ]; then
               echo "::error::Internal doc leaked into the site: $f.html"

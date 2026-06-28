@@ -457,7 +457,7 @@ function makeLocalToolClass(spec: BrowserActionSpec): ToolCtor {
   return class extends Tool {
     readonly name = `browser_${spec.key}`;
     readonly description = spec.description;
-    readonly inputSchema = spec.inputSchema;
+    protected readonly jsonSchema = spec.inputSchema;
 
     async process(
       ctx: ProcessingContext,
@@ -493,7 +493,7 @@ function makeSandboxToolClass(
   return class extends Tool {
     readonly name = `sandbox_browser_${spec.key}`;
     readonly description = `${spec.description} Runs inside the per-workflow sandbox container.`;
-    readonly inputSchema = spec.inputSchema;
+    protected readonly jsonSchema = spec.inputSchema;
 
     async process(
       ctx: ProcessingContext,

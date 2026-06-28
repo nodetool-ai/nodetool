@@ -61,6 +61,9 @@ const DownloadManagerDialog = React.lazy(
 const RunWarningDialog = React.lazy(
   () => import("./components/dialogs/RunWarningDialog")
 );
+const SearchProviderSetupDialog = React.lazy(
+  () => import("./components/dialogs/SearchProviderSetupDialog")
+);
 
 import { installIpcLogBridge } from "./logging/ipcLogBridge";
 import MobileClassProvider from "./components/MobileClassProvider";
@@ -95,6 +98,9 @@ const CollectionsExplorer = React.lazy(
 );
 const ExamplesPage = React.lazy(
   () => import("./components/portal/ExamplesPage")
+);
+const TutorialsPage = React.lazy(
+  () => import("./components/tutorials/TutorialsPage")
 );
 const ChainEditorPage = React.lazy(
   () => import("./components/chain_editor/ChainEditorPage")
@@ -143,7 +149,9 @@ const registerFrontendTools = () => {
     import("./lib/tools/builtin/searchNodes"),
     import("./lib/tools/builtin/searchModels"),
     import("./lib/tools/builtin/deleteNode"),
-    import("./lib/tools/builtin/deleteEdge")
+    import("./lib/tools/builtin/deleteEdge"),
+    import("./lib/tools/builtin/model3d"),
+    import("./lib/tools/builtin/timeline")
   ]).catch((error) => {
     console.error("Failed to register frontend tools:", error);
   });
@@ -318,6 +326,25 @@ function getRoutes() {
       element: (
         <ProtectedRoute>
           <ExamplesPage />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: "tutorials",
+      element: (
+        <ProtectedRoute>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              height: "100%"
+            }}
+          >
+            <React.Suspense fallback={<LoadingSpinner />}>
+              <TutorialsPage />
+            </React.Suspense>
+          </div>
         </ProtectedRoute>
       )
     },
@@ -651,6 +678,7 @@ const AppWrapper = () => {
                       </Suspense>
                       <DownloadManagerDialog />
                       <RunWarningDialog />
+                      <SearchProviderSetupDialog />
                     </>
                   )}
                 </KeyboardProvider>

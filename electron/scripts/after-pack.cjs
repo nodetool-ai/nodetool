@@ -2,6 +2,7 @@ const fs = require("fs");
 const fsp = fs.promises;
 const path = require("path");
 const { spawnSync } = require("child_process");
+const yaml = require("js-yaml");
 
 const {
   NODE_RUNTIME_VERSION,
@@ -107,6 +108,35 @@ function resolveArch(context) {
 
 const ELECTRON_DIR = path.dirname(__dirname);
 
+function firstPublishConfig(context) {
+  const publish = context?.packager?.config?.publish;
+  const configs = Array.isArray(publish) ? publish : publish ? [publish] : [];
+  return configs.find((entry) => entry && typeof entry === "object") ?? null;
+}
+
+async function ensureAppUpdateConfig(context) {
+  const publishConfig = firstPublishConfig(context);
+  if (!publishConfig) {
+    throw new Error("Cannot write app-update.yml: electron-builder publish config is missing");
+  }
+
+  const resourcesDir = resolveResourcesDir(context);
+  const appUpdateConfigPath = path.join(resourcesDir, "app-update.yml");
+  // Must match the runtime updater's cache dir (electron/src/updater.ts) so
+  // electron-updater reads and writes the same directory. Do NOT derive this
+  // from appInfo.updaterCacheDirName: electron-builder defaults it to
+  // "<package name>-updater" → "nodetool-electron-updater", which diverges from
+  // the runtime value and fails the release verify gate.
+  const config = {
+    ...publishConfig,
+    updaterCacheDirName: "nodetool-updater",
+  };
+
+  await fsp.mkdir(resourcesDir, { recursive: true });
+  await fsp.writeFile(appUpdateConfigPath, yaml.dump(config), "utf8");
+  console.info(`Wrote app update config to ${appUpdateConfigPath}`);
+}
+
 /** Copy the build target's bundled Node binary + npm into backend/runtime/. */
 async function placeNodeRuntime(context, cacheRoot) {
   const platform = context.electronPlatformName;
@@ -210,6 +240,7 @@ async function rebuildNativeModulesForBackend(context) {
 
 module.exports = async function afterPack(context) {
   try {
+    await ensureAppUpdateConfig(context);
     await promoteBackendNodeModules(context);
     await placeNodeRuntime(
       context,
@@ -230,5 +261,6 @@ module.exports = async function afterPack(context) {
 module.exports.promoteBackendNodeModules = promoteBackendNodeModules;
 module.exports.resolveResourcesDir = resolveResourcesDir;
 module.exports.findNativeModuleNames = findNativeModuleNames;
+module.exports.ensureAppUpdateConfig = ensureAppUpdateConfig;
 module.exports.placeNodeRuntime = placeNodeRuntime;
 module.exports.pruneDawnBinaries = pruneDawnBinaries;

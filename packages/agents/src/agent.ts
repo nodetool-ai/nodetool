@@ -38,7 +38,6 @@ import {
   createSecurityMonitorConsult
 } from "./security-monitor.js";
 import type { Task, TaskPlan } from "./types.js";
-import { DEFAULT_TOKEN_LIMIT } from "./constants.js";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   type AgentOutputFormat,
@@ -48,7 +47,6 @@ import {
   formatMemoryForPrompt,
   type LongTermMemory
 } from "./long-term-memory.js";
-import type { CompactionOptions } from "./context-compactor.js";
 
 // ---------------------------------------------------------------------------
 // Skill types and helpers
@@ -203,7 +201,6 @@ export interface AgentOptions {
   tools?: Tool[];
   inputs?: Record<string, unknown>;
   systemPrompt?: string;
-  maxTokenLimit?: number;
   workspace?: string;
   maxSteps?: number;
   maxStepIterations?: number;
@@ -263,15 +260,6 @@ export interface AgentOptions {
    */
   providers?: Record<string, BaseProvider>;
   /**
-   * Context compaction for the step-execution tool-calling loop. Default ON:
-   * the older transcript is summarized once the running token estimate crosses
-   * the threshold (~70% of the step budget), keeping the system prompt + recent
-   * tail. Pass `{ enabled: false }` to fall back to the lossless tool-result
-   * eviction path only. Threads through TaskExecutor / ParallelTaskExecutor to
-   * every StepExecutor. See {@link CompactionOptions}.
-   */
-  compaction?: CompactionOptions;
-  /**
    * Opt-in autonomous security monitor. **Default DISABLED.**
    *
    * When `{ enabled: true }`, the agent builds an LLM judge (from its own
@@ -296,7 +284,6 @@ export class Agent {
   readonly tools: Tool[];
   readonly inputs: Record<string, unknown>;
   readonly systemPrompt: string;
-  readonly maxTokenLimit: number;
   results: unknown = null;
   task: Task | null = null;
 
@@ -317,7 +304,6 @@ export class Agent {
   private readonly useGraphPlanner: boolean;
   private readonly registry?: NodeRegistry;
   private readonly providers?: Record<string, BaseProvider>;
-  private readonly compaction?: CompactionOptions;
   private readonly securityMonitorEnabled: boolean;
   /** The multi-task plan, set after planning. */
   taskPlan: TaskPlan | null = null;
@@ -330,7 +316,6 @@ export class Agent {
     this.tools = opts.tools ?? [];
     this.inputs = opts.inputs ?? {};
     this.systemPrompt = opts.systemPrompt ?? "";
-    this.maxTokenLimit = opts.maxTokenLimit ?? DEFAULT_TOKEN_LIMIT;
     this.description = opts.description ?? "";
     this.planningModel = opts.planningModel ?? opts.model;
     this.reasoningModel = opts.reasoningModel ?? opts.model;
@@ -350,7 +335,6 @@ export class Agent {
     this.useGraphPlanner = opts.useGraphPlanner === true;
     this.registry = opts.registry;
     this.providers = opts.providers;
-    this.compaction = opts.compaction;
     this.securityMonitorEnabled = opts.securityMonitor?.enabled === true;
     if (opts.task) {
       this.task = opts.task;
@@ -709,9 +693,7 @@ export class Agent {
       taskPlan,
       systemPrompt: mergedSystemPrompt,
       inputs: this.inputs,
-      maxStepIterations: this.maxStepIterations,
-      maxTokenLimit: this.maxTokenLimit,
-      compaction: this.compaction
+      maxStepIterations: this.maxStepIterations
     });
 
     for await (const item of executor.execute()) {
@@ -820,7 +802,6 @@ export class Agent {
       tools: this.buildExecutorTools(),
       context,
       systemPrompt,
-      maxTokenLimit: this.maxTokenLimit,
       maxStepIterations: this.maxStepIterations,
       inputs: this.inputs
     });
@@ -873,9 +854,7 @@ export class Agent {
       inputs: this.inputs,
       maxSteps: this.maxSteps,
       maxStepIterations: this.maxStepIterations,
-      maxTokenLimit: this.maxTokenLimit,
-      parallelExecution: true,
-      compaction: this.compaction
+      parallelExecution: true
     });
 
     for await (const item of executor.executeTasks()) {

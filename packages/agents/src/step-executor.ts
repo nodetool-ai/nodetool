@@ -15,10 +15,11 @@ import type {
   BaseProvider,
   ProcessingContext,
   Message,
+  MessageContent,
   ToolCall,
   ProviderStreamItem
 } from "@nodetool-ai/runtime";
-import { memoryKeys, withAgentSpanGen, countTokens } from "@nodetool-ai/runtime";
+import { memoryKeys, withAgentSpanGen } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
 import {
   TaskUpdateEvent,
@@ -26,22 +27,18 @@ import {
   type Chunk,
   type ToolCallUpdate,
   type StepResult,
-  type TaskUpdate,
-  type LogUpdate
+  type TaskUpdate
 } from "@nodetool-ai/protocol";
 import type { Step, Task } from "./types.js";
 import { Tool } from "./tools/base-tool.js";
+import {
+  extractInjectableImages,
+  stripImagePayload
+} from "./tools/image-injection.js";
 import { ControlNodeTool } from "./tools/control-tool.js";
 import { FinishStepTool } from "./tools/finish-step-tool.js";
 import { getMemoryTools } from "./tools/memory-tools.js";
-import { TOOL_CALL_ID_FIELD } from "./tools/subtask-fields.js";
-import { DEFAULT_TOKEN_LIMIT, MAX_TOOL_RESULT_CHARS } from "./constants.js";
-import {
-  ContextCompactor,
-  COMPACTION_THRESHOLD_RATIO,
-  DEFAULT_COMPACTION_KEEP_RECENT,
-  type CompactionOptions
-} from "./context-compactor.js";
+import { MAX_TOOL_RESULT_CHARS } from "./constants.js";
 
 const log = createLogger("nodetool.agents.step-executor");
 
@@ -314,7 +311,6 @@ export interface StepExecutorOptions {
   model: string;
   tools?: Tool[];
   systemPrompt?: string;
-  maxTokenLimit?: number;
   maxIterations?: number;
   useFinishTask?: boolean;
   threadId?: string;
@@ -327,14 +323,6 @@ export interface StepExecutorOptions {
    * `step:<id>` keys — callers should not duplicate them here.
    */
   upstreamMemoryKeys?: string[];
-  /**
-   * Context compaction. On by default: the older portion of the transcript is
-   * summarized via one LLM call once the running token estimate crosses the
-   * threshold, with the lossless tool-result eviction staying as the always-on
-   * fallback. Pass `{ enabled: false }` to disable summarization and rely on
-   * lossless eviction only. See {@link CompactionOptions}.
-   */
-  compaction?: CompactionOptions;
 }
 
 export class StepExecutor {
@@ -346,7 +334,6 @@ export class StepExecutor {
   private model: string;
   private context: ProcessingContext;
   private systemPrompt: string;
-  private maxTokenLimit: number;
   private maxIterations: number;
   private useFinishTask: boolean;
   private result: unknown = null;
@@ -356,15 +343,12 @@ export class StepExecutor {
   private generationFailures = 0;
   private sources: string[] = [];
   private sourcesSet = new Set<string>();
-  private inputTokensTotal = 0;
-  private outputTokensTotal = 0;
   private _controlEvents: Array<{
     targetNodeId: string;
     event: import("@nodetool-ai/protocol").ControlEvent;
   }> = [];
   private threadId?: string;
   private upstreamMemoryKeys: string[];
-  private compactor: ContextCompactor | null = null;
 
   constructor(opts: StepExecutorOptions) {
     this.task = opts.task;
@@ -373,30 +357,10 @@ export class StepExecutor {
     this.provider = opts.provider;
     this.model = opts.model;
     this.tools = opts.tools ? [...opts.tools] : [];
-    this.maxTokenLimit = opts.maxTokenLimit ?? DEFAULT_TOKEN_LIMIT;
     this.maxIterations = opts.maxIterations ?? DEFAULT_MAX_ITERATIONS;
     this.useFinishTask = opts.useFinishTask ?? false;
     this.threadId = opts.threadId;
     this.upstreamMemoryKeys = opts.upstreamMemoryKeys ?? [];
-
-    // Context compaction is on by default. Only skip the compactor when the
-    // caller explicitly disables it (`{ enabled: false }`); then it stays null
-    // and the lossless tool-result eviction remains the only trimming path.
-    if (opts.compaction?.enabled !== false) {
-      this.compactor = new ContextCompactor({
-        provider: this.provider,
-        model: this.model,
-        threadId: this.threadId,
-        options: {
-          enabled: true,
-          thresholdTokens:
-            opts.compaction?.thresholdTokens ??
-            Math.floor(this.maxTokenLimit * COMPACTION_THRESHOLD_RATIO),
-          keepRecent:
-            opts.compaction?.keepRecent ?? DEFAULT_COMPACTION_KEEP_RECENT
-        }
-      });
-    }
 
     // Load and sanitize the output schema
     this.resultSchema = this.loadResultSchema();
@@ -418,13 +382,6 @@ export class StepExecutor {
 
     // Build the system prompt from templates
     this.systemPrompt = this.buildSystemPrompt(opts.systemPrompt);
-  }
-
-  /**
-   * Token count of the serialized history via js-tiktoken (cl100k_base).
-   */
-  private estimateTokens(): number {
-    return countTokens(JSON.stringify(this.history));
   }
 
   /**
@@ -603,30 +560,6 @@ export class StepExecutor {
     if (this.resultSchema !== null) return [false, null];
     if (message.toolCalls && message.toolCalls.length > 0) return [false, null];
     return [true, message.content];
-  }
-
-  /**
-   * Drop oldest tool-result messages from history when over budget. Their
-   * content lives in `context.memory` under `step:` / `task:` keys, so
-   * eviction is lossless — the model can re-read what it needs via
-   * `memory_read`.
-   */
-  private evictOldToolResultsIfOverBudget(): void {
-    while (this.estimateTokens() > this.maxTokenLimit * 0.9) {
-      // Evict the oldest assistant tool-call turn together with ALL of its
-      // tool results. Removing a tool result on its own leaves the assistant
-      // message with a dangling tool call, which providers reject.
-      const idx = this.history.findIndex(
-        (m, i) =>
-          i > 0 && m.role === "assistant" && (m.toolCalls?.length ?? 0) > 0
-      );
-      if (idx === -1) return;
-      let end = idx + 1;
-      while (end < this.history.length && this.history[end].role === "tool") {
-        end++;
-      }
-      this.history.splice(idx, end - idx);
-    }
   }
 
   /**
@@ -926,59 +859,162 @@ export class StepExecutor {
       event: TaskUpdateEvent.StepStarted
     } satisfies TaskUpdate;
 
-    // --- Standard multi-iteration loop ---
-    while (!this.step.completed && this.iterations < this.maxIterations) {
-      this.iterations++;
+    // The provider drives the tool loop, so backends that run their own agent
+    // loop (e.g. the Claude Agent SDK) work. Each tool carries its own `execute`
+    // closure — running the tool, persisting artifacts, tracking sources — and
+    // buffers the completion events; the stream consumer surfaces chunks and
+    // tool-call updates.
+    //
+    // `finish_step` is only *conditionally* terminal: it ends the loop when it
+    // captures a schema-valid result, but on an invalid result it returns the
+    // error so the model can retry within the iteration budget. The static
+    // `terminal` flag can't express that, so the AbortController stops the loop
+    // on a valid completion instead.
+    const abort = new AbortController();
+    const uiEvents: ProcessingMessage[] = [];
+    let lastAssistant: Message | null = null;
 
-      // Opt-in context compaction (lossy-but-summarized). When enabled and over
-      // threshold, fold the older transcript into a single summary message
-      // first. Runs before the always-on lossless eviction below, which then
-      // catches anything compaction left over budget.
-      if (this.compactor && this.compactor.shouldCompact(this.history)) {
-        yield {
-          type: "log_update",
-          node_id: this.step.id,
-          node_name: `Step: ${this.step.id}`,
-          content: "Compacting earlier context to stay within the token budget…",
-          severity: "info"
-        } satisfies LogUpdate;
-        this.history = await this.compactor.compact(this.history);
+    const emitCompletion = (normalizedResult: unknown): void => {
+      this.storeCompletionResult(normalizedResult);
+      uiEvents.push({
+        type: "task_update",
+        node_id: this.step.id,
+        task: { id: this.task.id, title: this.task.title },
+        step: { id: this.step.id, instructions: this.step.instructions },
+        event: TaskUpdateEvent.StepCompleted
+      } satisfies TaskUpdate);
+      uiEvents.push({
+        type: "step_result",
+        step: { id: this.step.id, instructions: this.step.instructions },
+        result: normalizedResult,
+        is_task_result: this.useFinishTask
+      } satisfies StepResult);
+    };
+
+    // finish_step is the only completion path for schema'd steps.
+    const finishStepExecute = async (
+      args: Record<string, unknown>
+    ): Promise<string | MessageContent[]> => {
+      const resultPayload = args?.["result"] ?? args;
+      if (resultPayload === undefined || resultPayload === null) {
+        return '{"error": "Missing result in finish_step call"}';
+      }
+      const [isValid, errorDetail, normalizedResult] =
+        this.validateResultPayload(resultPayload);
+      if (
+        isValid &&
+        normalizedResult !== null &&
+        normalizedResult !== undefined
+      ) {
+        emitCompletion(normalizedResult);
+        abort.abort();
+        return '{"status": "completed"}';
+      }
+      return JSON.stringify({
+        error: `Result validation failed: ${
+          errorDetail ?? "Result failed schema validation."
+        }`
+      });
+    };
+
+    const runTool = async (
+      tool: Tool,
+      args: Record<string, unknown>,
+      toolCallId?: string
+    ): Promise<string | MessageContent[]> => {
+      const cleanArgs = Tool.stripMessage(args ?? {});
+      // ControlNodeTool: emit a control event instead of calling process().
+      if (tool instanceof ControlNodeTool) {
+        const event = tool.createControlEvent(cleanArgs);
+        this._controlEvents.push({ targetNodeId: tool.targetNodeId, event });
+        return Tool.resolveMessage(tool, args);
       }
 
-      // Drop oldest tool-result messages from history when over budget. Their
-      // content is already in `context.memory`, so eviction is lossless and
-      // the model can `memory_read` what it needs.
-      this.evictOldToolResultsIfOverBudget();
-
-      const providerTools = this.tools.map((t) => t.toProviderTool());
-
-      yield {
-        type: "log_update",
-        node_id: this.step.id,
-        node_name: `Step: ${this.step.id}`,
-        content: "Generating next steps...",
-        severity: "info"
-      } satisfies LogUpdate;
-
-      // Track input tokens
-      this.inputTokensTotal += this.estimateTokens();
-
-      // Call LLM
-      let content = "";
-      const toolCalls: ToolCall[] = [];
-      let message: Message | null;
-
+      let toolResult: unknown;
       try {
-        const stream = this.provider.generateMessagesTraced({
-          messages: [...this.history],
-          model: this.model,
-          tools: providerTools.length > 0 ? providerTools : undefined,
-          threadId: this.threadId
+        toolResult = await Tool.executeTool(tool, this.context, args, {
+          toolCallId
         });
+      } catch (e) {
+        return JSON.stringify({ error: String(e) });
+      }
 
-        for await (const item of stream) {
-          if (isChunk(item)) {
-            content += item.content ?? "";
+      // A view-image-style result carries pixels the model asked for. Forward
+      // them as a user image message (generateLoop splits a MessageContent[]
+      // result into a light tool note + the image); the note stays in history.
+      const injected = extractInjectableImages(toolResult);
+      if (injected) {
+        toolResult = stripImagePayload(toolResult);
+      }
+
+      toolResult = await this.handleBinaryArtifact(toolResult);
+      toolResult = await this.capturePersistentSandboxOutputs(
+        tool.name,
+        args,
+        toolResult
+      );
+
+      // Track browser URLs for source lineage.
+      if (tool.name === "browser" && args?.["url"]) {
+        const url = String(args["url"]);
+        if (!this.sourcesSet.has(url)) {
+          this.sources.push(url);
+          this.sourcesSet.add(url);
+        }
+      }
+      this.trackToolSideEffects(tool.name, toolResult);
+
+      const resultStr = this.serializeToolResultForHistory(
+        toolResult,
+        tool.name
+      );
+      if (injected) {
+        return [{ type: "text", text: resultStr }, ...injected.images];
+      }
+      return resultStr;
+    };
+
+    const providerTools = this.tools.map((tool) => {
+      if (tool === this.finishStepTool) {
+        return { ...tool.toProviderTool(), execute: finishStepExecute };
+      }
+      return {
+        ...tool.toProviderTool(),
+        execute: (args: Record<string, unknown>, toolCallId?: string) =>
+          runTool(tool, args, toolCallId)
+      };
+    });
+
+    const drainUi = function* (): Generator<ProcessingMessage> {
+      while (uiEvents.length > 0) yield uiEvents.shift() as ProcessingMessage;
+    };
+
+    try {
+      const stream = this.provider.generateLoop({
+        messages: this.history,
+        model: this.model,
+        tools: providerTools.length > 0 ? providerTools : undefined,
+        threadId: this.threadId,
+        maxIterations: this.maxIterations,
+        sequentialTools: true,
+        signal: abort.signal
+      });
+
+      for await (const item of stream) {
+        if (isToolCall(item)) {
+          yield {
+            type: "tool_call_update",
+            node_id: this.step.id,
+            tool_call_id: item.id,
+            name: item.name,
+            args: item.args,
+            message: this.generateToolCallMessage(item)
+          } satisfies ToolCallUpdate;
+          yield* drainUi();
+          continue;
+        }
+        if (isChunk(item)) {
+          if (typeof item.content === "string" && item.content.length > 0) {
             yield {
               type: "chunk",
               node_id: this.step.id,
@@ -986,272 +1022,36 @@ export class StepExecutor {
               done: false
             } satisfies Chunk;
           }
-          if (isToolCall(item)) {
-            log.debug("Tool call", { name: item.name });
-            toolCalls.push(item);
+          yield* drainUi();
+          continue;
+        }
+        if ("type" in item && (item as { type?: string }).type === "message") {
+          const m = (item as { message?: Message }).message;
+          if (m && m.role === "assistant") {
+            lastAssistant =
+              typeof m.content === "string"
+                ? { ...m, content: removeThinkTags(m.content) }
+                : m;
           }
         }
-
-        // Clean think tags from content
-        content = removeThinkTags(content);
-
-        message = { role: "assistant", content: content ?? "" };
-        if (toolCalls.length > 0) {
-          message.toolCalls = toolCalls;
-        }
-
-        // Count output tokens
-        this.outputTokensTotal += countTokens(
-          content + JSON.stringify(toolCalls)
-        );
-      } catch (e) {
-        log.error("Step failed", { stepId: this.step.id, error: String(e) });
-        this.generationFailures++;
-        if (this.generationFailures >= 3) throw e;
-        message = {
-          role: "assistant",
-          content: `Error generating message: ${e}`
-        };
+        yield* drainUi();
       }
+    } catch (e) {
+      log.error("Step generation failed", {
+        stepId: this.step.id,
+        error: String(e)
+      });
+    }
 
-      const filteredToolCalls = message.toolCalls ?? [];
-      message.toolCalls =
-        filteredToolCalls.length > 0 ? filteredToolCalls : undefined;
+    yield* drainUi();
 
-      // Add assistant message to history
-      this.history.push(message);
-
-      // Process tool calls
-      if (filteredToolCalls.length > 0) {
-        // Check for finish_step tool call first
-        const finishStepCall = filteredToolCalls.find(
-          (tc) => tc.name === "finish_step"
-        );
-
-        if (finishStepCall && this.finishStepTool) {
-          // Yield tool call update
-          yield {
-            type: "tool_call_update",
-            node_id: this.step.id,
-            name: finishStepCall.name,
-            args: finishStepCall.args,
-            message: this.generateToolCallMessage(finishStepCall)
-          } satisfies ToolCallUpdate;
-
-          // Every tool call in the assistant message needs a tool result —
-          // even the siblings we don't execute. If finish_step validation
-          // fails below and the loop continues, a dangling tool call makes
-          // the provider reject the next request.
-          for (const tc of filteredToolCalls) {
-            if (tc === finishStepCall) continue;
-            this.history.push({
-              role: "tool",
-              toolCallId: tc.id,
-              content:
-                '{"status": "skipped", "reason": "finish_step was called in the same turn"}'
-            });
-          }
-
-          // Extract and validate result
-          const resultPayload =
-            finishStepCall.args?.["result"] ?? finishStepCall.args;
-          if (resultPayload !== undefined && resultPayload !== null) {
-            const [isValid, errorDetail, normalizedResult] =
-              this.validateResultPayload(resultPayload);
-
-            if (
-              isValid &&
-              normalizedResult !== null &&
-              normalizedResult !== undefined
-            ) {
-              // Add tool result to history
-              this.history.push({
-                role: "tool",
-                toolCallId: finishStepCall.id,
-                content: '{"status": "completed"}'
-              });
-
-              this.storeCompletionResult(normalizedResult);
-              log.debug("Step completed", { stepId: this.step.id });
-
-              yield {
-                type: "task_update",
-                node_id: this.step.id,
-                task: { id: this.task.id, title: this.task.title },
-                step: {
-                  id: this.step.id,
-                  instructions: this.step.instructions
-                },
-                event: TaskUpdateEvent.StepCompleted
-              } satisfies TaskUpdate;
-
-              yield {
-                type: "step_result",
-                step: {
-                  id: this.step.id,
-                  instructions: this.step.instructions
-                },
-                result: normalizedResult,
-                is_task_result: this.useFinishTask
-              } satisfies StepResult;
-              break;
-            } else {
-              // Invalid result - add feedback and continue loop
-              this.history.push({
-                role: "tool",
-                toolCallId: finishStepCall.id,
-                content: JSON.stringify({
-                  error: `Result validation failed: ${errorDetail}`
-                })
-              });
-              this.appendCompletionFeedback(
-                errorDetail ?? "Result failed schema validation.",
-                resultPayload
-              );
-            }
-          } else {
-            this.history.push({
-              role: "tool",
-              toolCallId: finishStepCall.id,
-              content: '{"error": "Missing result in finish_step call"}'
-            });
-          }
-        } else {
-          // Process non-finish_step tool calls
-          const regularToolCalls = filteredToolCalls.filter(
-            (tc) => tc.name !== "finish_step"
-          );
-
-          // Yield tool call updates
-          for (const tc of regularToolCalls) {
-            yield {
-              type: "tool_call_update",
-              node_id: this.step.id,
-              tool_call_id: tc.id,
-              name: tc.name,
-              args: tc.args,
-              message: this.generateToolCallMessage(tc)
-            } satisfies ToolCallUpdate;
-          }
-
-          const toolNamesStr = regularToolCalls.map((tc) => tc.name).join(", ");
-
-          // Standard execution path: run tools ourselves and add results to history
-          yield {
-            type: "log_update",
-            node_id: this.step.id,
-            node_name: `Step: ${this.step.id}`,
-            content: `Executing tools: ${toolNamesStr}...`,
-            severity: "info"
-          } satisfies LogUpdate;
-
-          // Execute tool calls in parallel
-          const toolResults = await Promise.allSettled(
-            regularToolCalls.map(async (tc) => {
-              const tool = this.tools.find((t) => t.name === tc.name);
-              if (!tool) return { error: `Unknown tool: ${tc.name}` };
-              const cleanArgs = Tool.stripMessage(tc.args ?? {});
-              if (tool.needsToolCallId) {
-                cleanArgs[TOOL_CALL_ID_FIELD] = tc.id;
-              }
-              // Intercept ControlNodeTool: create event instead of calling process()
-              if (tool instanceof ControlNodeTool) {
-                const event = tool.createControlEvent(cleanArgs);
-                this._controlEvents.push({
-                  targetNodeId: tool.targetNodeId,
-                  event
-                });
-                return Tool.resolveMessage(tool, tc.args);
-              }
-              try {
-                const result = await tool.process(this.context, cleanArgs);
-                return result;
-              } catch (e) {
-                return { error: String(e) };
-              }
-            })
-          );
-
-          // Add tool results to history
-          for (let i = 0; i < regularToolCalls.length; i++) {
-            const tc = regularToolCalls[i];
-            const settledResult = toolResults[i];
-            let toolResult: unknown;
-
-            if (settledResult.status === "fulfilled") {
-              toolResult = settledResult.value;
-            } else {
-              toolResult = {
-                error: `Tool execution failed: ${settledResult.reason}`
-              };
-            }
-
-            // Save base64 binary artifacts (images, audio) to workspace files
-            toolResult = await this.handleBinaryArtifact(toolResult);
-            toolResult = await this.capturePersistentSandboxOutputs(
-              tc.name,
-              tc.args,
-              toolResult
-            );
-
-            // Track browser URLs for source lineage (from args and results)
-            if (tc.name === "browser" && tc.args?.["url"]) {
-              const url = String(tc.args["url"]);
-              if (!this.sourcesSet.has(url)) {
-                this.sources.push(url);
-                this.sourcesSet.add(url);
-              }
-            }
-            this.trackToolSideEffects(tc.name, toolResult);
-
-            const resultStr = this.serializeToolResultForHistory(
-              toolResult,
-              tc.name
-            );
-            this.history.push({
-              role: "tool",
-              toolCallId: tc.id,
-              content: resultStr
-            });
-          }
-
-          yield {
-            type: "log_update",
-            node_id: this.step.id,
-            node_name: `Step: ${this.step.id}`,
-            content: `Completed tool execution: ${toolNamesStr}.`,
-            severity: "info"
-          } satisfies LogUpdate;
-        }
-      }
-
-      // Try to finalize from message content (inline JSON completion).
-      if (!this.step.completed) {
-        const [completed, normalizedResult] =
-          this.maybeFinalizeFromMessage(message);
-        if (
-          completed &&
-          normalizedResult !== null &&
-          normalizedResult !== undefined
-        ) {
-          this.storeCompletionResult(normalizedResult);
-
-          yield {
-            type: "task_update",
-            node_id: this.step.id,
-            task: { id: this.task.id, title: this.task.title },
-            step: { id: this.step.id, instructions: this.step.instructions },
-            event: TaskUpdateEvent.StepCompleted
-          } satisfies TaskUpdate;
-
-          yield {
-            type: "step_result",
-            step: { id: this.step.id, instructions: this.step.instructions },
-            result: normalizedResult,
-            is_task_result: this.useFinishTask
-          } satisfies StepResult;
-          break;
-        }
+    // Unstructured steps finalize from the final assistant text (no finish_step).
+    if (!this.step.completed) {
+      const [done, normalizedResult] =
+        this.maybeFinalizeFromMessage(lastAssistant);
+      if (done && normalizedResult !== null && normalizedResult !== undefined) {
+        emitCompletion(normalizedResult);
+        yield* drainUi();
       }
     }
 
@@ -1302,16 +1102,6 @@ export class StepExecutor {
    */
   getSources(): string[] {
     return [...this.sources];
-  }
-
-  /**
-   * Get token usage statistics.
-   */
-  getTokenUsage(): { inputTokensTotal: number; outputTokensTotal: number } {
-    return {
-      inputTokensTotal: this.inputTokensTotal,
-      outputTokensTotal: this.outputTokensTotal
-    };
   }
 
   /**

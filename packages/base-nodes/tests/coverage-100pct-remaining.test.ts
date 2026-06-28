@@ -8,6 +8,24 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { BaseProvider } from "@nodetool-ai/runtime";
+
+// AgentNode drives the provider through generateLoop (the
+// agents-provider-tool-loop refactor). Wrap a bare provider mock so its
+// generateMessages generator runs under BaseProvider's real tool-calling loop.
+function asLoopProvider(p: any): any {
+  return {
+    ...p,
+    async *generateMessagesTraced(...a: any[]) {
+      yield* (this as any).generateMessages(...a);
+    },
+    generateLoop(loopArgs: unknown) {
+      return (
+        BaseProvider.prototype as { generateLoop: (a: unknown) => unknown }
+      ).generateLoop.call(this, loopArgs);
+    }
+  };
+}
 
 // ============================================================================
 // 2. WORKSPACE NODES
@@ -343,22 +361,24 @@ describe("agents nodes", () => {
         model: { provider: "openai", id: "gpt-4" }
       });
       const result = await node.process({
-        getProvider: vi.fn().mockResolvedValue({
-          async *generateMessages() {
-            yield {
-              type: "chunk",
-              content: "AI",
-              content_type: "text",
-              done: false
-            };
-            yield {
-              type: "chunk",
-              content: " response",
-              content_type: "text",
-              done: true
-            };
-          }
-        })
+        getProvider: vi.fn().mockResolvedValue(
+          asLoopProvider({
+            async *generateMessages() {
+              yield {
+                type: "chunk",
+                content: "AI",
+                content_type: "text",
+                done: false
+              };
+              yield {
+                type: "chunk",
+                content: " response",
+                content_type: "text",
+                done: true
+              };
+            }
+          })
+        )
       } as any);
       expect(result.text).toBe("AI response");
     });
@@ -375,7 +395,7 @@ describe("agents nodes", () => {
         })
       };
       const mockContext = {
-        getProvider: vi.fn().mockResolvedValue(mockProvider)
+        getProvider: vi.fn().mockResolvedValue(asLoopProvider(mockProvider))
       };
       const node = new AgentNode();
       node.assign({
@@ -411,7 +431,7 @@ describe("agents nodes", () => {
         })
       };
       const mockContext = {
-        getProvider: vi.fn().mockResolvedValue(mockProvider),
+        getProvider: vi.fn().mockResolvedValue(asLoopProvider(mockProvider)),
         getThreadMessages: vi.fn().mockResolvedValue({
           messages: [{ role: "user", content: "persisted-user" }],
           next: null
@@ -454,7 +474,7 @@ describe("agents nodes", () => {
         model: { provider: "test", id: "model" }
       });
       await node.process({
-        getProvider: vi.fn().mockResolvedValue(mockProvider)
+        getProvider: vi.fn().mockResolvedValue(asLoopProvider(mockProvider))
       } as any);
       const secondProvider = {
         generateMessages: vi.fn(async function* ({ messages }: any) {
@@ -484,7 +504,7 @@ describe("agents nodes", () => {
         model: { provider: "test", id: "model" }
       });
       const result = await node.process({
-        getProvider: vi.fn().mockResolvedValue(secondProvider)
+        getProvider: vi.fn().mockResolvedValue(asLoopProvider(secondProvider))
       } as any);
       expect(result.text).toBe("reply-2");
     });

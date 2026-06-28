@@ -407,7 +407,6 @@ const { emails } = agent.getResults() as { emails: string[] };
 | `reasoningModel` | same as `model` | Alternative model for reasoning-heavy steps |
 | `tools` | `[]` | Array of `Tool` instances |
 | `systemPrompt` | `""` | Custom system instructions |
-| `maxTokenLimit` | `128000` | Token budget per step |
 | `maxSteps` | `10` | Maximum number of steps in a task |
 | `maxStepIterations` | `15` | Maximum LLM round-trips per step |
 | `outputSchema` | — | JSON schema for the final result |

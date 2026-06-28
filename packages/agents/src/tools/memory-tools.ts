@@ -79,7 +79,7 @@ export class MemoryListTool extends Tool {
     "only — call `memory_read` to fetch full values. Use this when you need " +
     "context from upstream work but don't yet know which entry holds it.";
 
-  readonly inputSchema: Record<string, unknown> = {
+  readonly jsonSchema: Record<string, unknown> = {
     type: "object",
     properties: {
       kind: {
@@ -162,7 +162,7 @@ export class MemoryReadTool extends Tool {
     "by `memory_list`. Returns each requested entry with its value, kind, " +
     "title, and source. Missing keys are reported in `missing`.";
 
-  readonly inputSchema: Record<string, unknown> = {
+  readonly jsonSchema: Record<string, unknown> = {
     type: "object",
     properties: {
       keys: {
@@ -224,7 +224,7 @@ export class MemoryWriteTool extends Tool {
     "fetch it via `memory_read`. Use this to broadcast facts, intermediate " +
     "findings, or coordination signals to the rest of the team.";
 
-  readonly inputSchema: Record<string, unknown> = {
+  readonly jsonSchema: Record<string, unknown> = {
     type: "object",
     properties: {
       key: {

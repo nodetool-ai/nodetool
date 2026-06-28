@@ -200,7 +200,7 @@ export class FindModelTool extends Tool {
   readonly name = "find_model";
   readonly description =
     "Find a real {provider, model_id} for a generic AI node by capability. Returns models from providers the user has configured, ranked by recommended/downloaded/preferences. Call this before adding any generic AI node (TextToImage, TextToVideo, TextToSpeech, etc.).";
-  readonly inputSchema: Record<string, unknown> = FIND_MODEL_INPUT_SCHEMA;
+  readonly jsonSchema: Record<string, unknown> = FIND_MODEL_INPUT_SCHEMA;
 
   constructor(private readonly providers: Record<string, BaseProvider>) {
     super();

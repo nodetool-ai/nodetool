@@ -20,7 +20,7 @@ export class FinishGraphTool extends Tool {
   readonly name = "finish_graph";
   readonly description =
     "Validate and finalize the workflow graph. Call this when you are done adding nodes and edges.";
-  readonly inputSchema: Record<string, unknown> = FINISH_GRAPH_INPUT_SCHEMA;
+  readonly jsonSchema: Record<string, unknown> = FINISH_GRAPH_INPUT_SCHEMA;
 
   /** The finalized graph, available after a successful call. */
   private _graph: GraphData | null = null;

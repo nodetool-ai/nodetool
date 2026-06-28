@@ -72,7 +72,7 @@ export class TodoWriteTool extends Tool {
     "concise (one short sentence each). Mark exactly one item as `in_progress` " +
     "at a time; move it to `completed` before starting the next.";
 
-  readonly inputSchema: Record<string, unknown> = {
+  readonly jsonSchema: Record<string, unknown> = {
     type: "object",
     properties: {
       todos: {

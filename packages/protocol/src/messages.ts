@@ -199,6 +199,14 @@ export interface GenerationComplete {
   index?: number;
   /** The complete result dict for this artifact (same shape as a process() return). */
   outputs: Record<string, unknown>;
+  /**
+   * Scalar input properties resolved for this run — declared props, user-typed
+   * dynamic props, and edge inputs, filtered to strings/numbers/booleans. The
+   * actor stamps these so the relay can persist generation params (notably the
+   * `prompt` that produced an image) into auto-saved asset metadata. Absent when
+   * the node has no scalar inputs.
+   */
+  properties?: Record<string, unknown> | null;
   /** Stamped downstream by the runner relay, NOT by the actor. */
   job_id?: string | null;
   workflow_id?: string | null;

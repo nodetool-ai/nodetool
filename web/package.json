@@ -1,6 +1,6 @@
 {
   "name": "nodetool",
-  "version": "0.7.0-rc.25",
+  "version": "0.7.0-rc.26",
   "private": true,
   "type": "module",
   "dependencies": {
@@ -26,6 +26,7 @@
     "@nodetool-ai/gpu": "*",
     "@nodetool-ai/image-editor": "*",
     "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/runtime": "*",
     "@nodetool-ai/timeline": "*",
     "@nodetool-ai/workflow-runner": "*",
     "@react-three/drei": "^10.7.7",

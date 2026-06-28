@@ -19,7 +19,7 @@ export class ListCollectionsTool extends Tool {
   readonly description =
     "List the available knowledge collections (vector stores) the user has. " +
     "Use this to discover what you can search before calling query_collection.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {},
     required: [] as string[]
@@ -52,7 +52,7 @@ export class QueryCollectionTool extends Tool {
     "Semantic search within a named knowledge collection. Returns the most " +
     "relevant document chunks. Call list_collections first if you don't know " +
     "the collection name.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       collection: {

@@ -71,7 +71,7 @@ export class GenerateImageTool extends Tool {
   readonly name = "generate_image";
   readonly description =
     "Generate an image from a text prompt using a provider+model selected via find_model (capability=text_to_image). The result is saved as an asset (asset:// URI returned); pass `output_file` to also write a workspace copy.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       provider: { type: "string" as const, description: "Provider id from find_model." },
@@ -136,7 +136,7 @@ export class EditImageTool extends Tool {
   readonly name = "edit_image";
   readonly description =
     "Transform a source image with a text prompt using a provider+model selected via find_model (capability=image_to_image). Source can be an asset URI (asset://...) or a workspace path. Result is saved as an asset.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       provider: { type: "string" as const, description: "Provider id from find_model." },
@@ -213,7 +213,7 @@ export class GenerateVideoTool extends Tool {
   readonly name = "generate_video";
   readonly description =
     "Generate a video from a text prompt using a provider+model selected via find_model (capability=text_to_video). Result is saved as an asset (asset:// URI returned).";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       provider: { type: "string" as const },
@@ -277,7 +277,7 @@ export class AnimateImageTool extends Tool {
   readonly name = "animate_image";
   readonly description =
     "Animate a source image into a video using a provider+model selected via find_model (capability=image_to_video). Source can be a workspace path or asset URI; result is saved as an asset.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       provider: { type: "string" as const },
@@ -429,7 +429,7 @@ export class GenerateSpeechTool extends Tool {
   readonly name = "generate_speech";
   readonly description =
     "Synthesize speech audio from text using a provider+model selected via find_model (capability=text_to_speech). Result is saved as an asset (asset:// URI returned).";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       provider: { type: "string" as const },
@@ -561,7 +561,7 @@ export class TranscribeAudioTool extends Tool {
   readonly name = "transcribe_audio";
   readonly description =
     "Transcribe an audio file to text using a provider+model selected via find_model (capability=automatic_speech_recognition). Source can be a workspace path or asset:// URI.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       provider: { type: "string" as const },
@@ -635,7 +635,7 @@ export class EmbedTextTool extends Tool {
   readonly name = "embed_text";
   readonly description =
     "Compute embedding vector(s) for a text or list of texts using a provider+model selected via find_model (capability=generate_embedding).";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       provider: { type: "string" as const },

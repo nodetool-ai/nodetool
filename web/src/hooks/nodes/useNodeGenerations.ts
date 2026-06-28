@@ -6,6 +6,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import {
   assetToGeneration,
   mergeGenerations,
+  displayableGenerations,
   getCurrentGeneration,
   groupByRun,
   getCurrentRun,
@@ -47,7 +48,10 @@ export const useNodeGenerations = (workflowId: string, nodeId: string) => {
   const updateNodeData = useNodes((s) => s.updateNodeData);
 
   const generations = useMemo<Generation[]>(
-    () => mergeGenerations(assets.map(assetToGeneration), live),
+    () =>
+      displayableGenerations(
+        mergeGenerations(assets.map(assetToGeneration), live)
+      ),
     [assets, live]
   );
   const current = useMemo(

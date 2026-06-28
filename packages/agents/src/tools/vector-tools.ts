@@ -45,7 +45,7 @@ export class VecTextSearchTool extends Tool {
   readonly name = "vector_text_search";
   readonly description =
     "Search all vector database collections for similar text using semantic search";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object",
     properties: {
       text: { type: "string", description: "The text to search for" },
@@ -95,7 +95,7 @@ export class VecTextSearchTool extends Tool {
 export class VecIndexTool extends Tool {
   readonly name = "vector_index";
   readonly description = "Index a text chunk into a vector database collection";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object",
     properties: {
       text: { type: "string", description: "The text content to index" },
@@ -162,7 +162,7 @@ export class VecHybridSearchTool extends Tool {
   readonly name = "vector_hybrid_search";
   readonly description =
     "Search all vector database collections using both semantic and keyword-based search";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object",
     properties: {
       text: { type: "string", description: "The text to search for" },
@@ -380,7 +380,7 @@ export class VecRecursiveSplitAndIndexTool extends Tool {
   readonly name = "vector_recursive_split_and_index";
   readonly description =
     "Split text into chunks recursively and index them into a vector database collection";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object",
     properties: {
       text: {
@@ -506,7 +506,7 @@ export class VecMarkdownSplitAndIndexTool extends Tool {
   readonly name = "vector_markdown_split_and_index";
   readonly description =
     "Split markdown text into chunks based on headers and index them into a vector database collection";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object",
     properties: {
       file_path: {
@@ -608,7 +608,7 @@ export class VecBatchIndexTool extends Tool {
   readonly name = "vector_batch_index";
   readonly description =
     "Index a batch of text chunks into a vector database collection";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object",
     properties: {
       chunks: {

@@ -21,7 +21,7 @@ export class RunCodeTool extends Tool {
   readonly name = "run_code";
   readonly description =
     "Execute JavaScript code in a sandboxed QuickJS environment. Only javascript is supported.";
-  readonly inputSchema: Record<string, unknown> = {
+  readonly jsonSchema: Record<string, unknown> = {
     type: "object",
     properties: {
       language: {

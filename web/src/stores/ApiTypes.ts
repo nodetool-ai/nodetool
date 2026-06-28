@@ -326,6 +326,12 @@ export interface NodeMetadata extends BaseNodeMetadata {
    * elevenlabs, gemini, openai image/audio nodes, etc.).
    */
   auto_save_asset?: boolean;
+  /**
+   * Per-type cache lifetime for partial runs (seconds, or the `"forever"`
+   * sentinel — never `Infinity`, which is not JSON-safe). Only consulted for
+   * Computed nodes; unset / `0` means never reuse.
+   */
+  cache_ttl?: number | "forever";
 }
 
 /** TypeMetadata — re-declared locally because @nodetool-ai/protocol exports a

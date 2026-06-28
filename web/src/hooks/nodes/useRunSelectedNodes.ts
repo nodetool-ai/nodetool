@@ -6,15 +6,12 @@ import {
   getWorkflowRunnerStore,
   useWebsocketRunner
 } from "../../stores/WorkflowRunner";
-import { resolveExternalEdgeValue } from "../../utils/edgeValue";
-import {
-  getNodeGenerations,
-  getNodeSelectedOutputs
-} from "../../stores/nodeGenerationAccessor";
-import { getCurrentGeneration } from "../../utils/nodeGenerations";
+import { getNodeGenerations } from "../../stores/nodeGenerationAccessor";
 import { useNodeStoreRef } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import { buildReplayForEach } from "../../utils/replayStream";
+import { createRunResolver } from "../../utils/runResolver";
+import { computeRunSignatures } from "../../utils/computeRunSignatures";
 import {
   EdgeOverrideCollector,
   applyNodeOverrides
@@ -62,7 +59,7 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
 
       const totalRuns = Math.max(MIN_RUNS, Math.min(MAX_RUNS, Math.floor(runs)));
 
-      const { edges, workflow, findNode, getSelectedNodes } =
+      const { nodes, edges, workflow, findNode, getSelectedNodes } =
         nodeStore.getState();
 
       const selectedNodes = getSelectedNodes();
@@ -86,54 +83,59 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
           selectedNodeIds.has(edge.target) && !selectedNodeIds.has(edge.source)
       );
 
-      // Seed external inputs from each upstream's selected generation (durable
-      // assets merged with the live buffer); resolveExternalEdgeValue unwraps
-      // the returned outputs record by source handle.
-      const getResultForFocusedJob = (
-        wf: string,
-        sourceId: string
-      ): unknown => {
-        const current = getCurrentGeneration(
-          getNodeGenerations(wf, sourceId),
-          findNode(sourceId)?.data?.selected_generation
-        );
-        return current?.outputs;
-      };
+      // The shared run-resolver over the LIVE FULL graph: it classifies each
+      // external source (constant/generative/computed), checks cache freshness
+      // and multi-select state, and decides reuse / replay / run / block —
+      // identically to "Run Node" / "Run from here".
+      const getMetadata = useMetadataStore.getState().getMetadata;
+      const resolver = createRunResolver({
+        nodes,
+        edges,
+        workflowId: workflow.id,
+        getMetadata,
+        // Merged generation history (durable assets + live buffer) per upstream.
+        getGenerations: getNodeGenerations,
+        now: Date.now()
+      });
 
       // Seed each selected node's inputs from its external (non-selected)
       // upstreams. The collector aggregates multiple edges into one list/collect
       // handle — see EdgeOverrideCollector — so two images wired to a single
       // list[image] handle aren't collapsed to one (last-write-wins).
-      const getMetadata = useMetadataStore.getState().getMetadata;
       const collector = new EdgeOverrideCollector();
       // Synthetic ForEach replay nodes (and edges) injected for multi-select
       // external sources; appended to the run graph below. Keyed by id to dedup.
       const replayNodesById = new Map<string, Node<NodeData>>();
       const replayEdges: Edge[] = [];
+      // External sources that cannot satisfy an input without first running.
+      // Deliberate difference from "Run Node": "Run selected" runs exactly the
+      // selected set — it does NOT recurse into or include external
+      // deterministic upstreams. So any external input that resolves to "run"
+      // (cache-missed / stale computed) or "block" (uncached generative) blocks
+      // the run instead of pulling the upstream in. Dedup by source id.
+      const blocked: { nodeId: string; title: string }[] = [];
+      const blockedSeen = new Set<string>();
+
       for (const edge of externalInputEdges) {
         const targetHandle = edge.targetHandle;
         if (!targetHandle) {
           continue;
         }
 
-        // Multi-select STREAM: when the upstream source has 2+ generations
-        // selected, prune it and inject a ForEach replay node (input_list = the
+        const source = edge.source;
+        const decision = resolver.decide(source);
+
+        // Multi-select STREAM: a generative source with 2+ selected generations
+        // is pruned and replaced by a ForEach replay node (input_list = the
         // selected values) that streams the N values into this target handle as
-        // N iteration-correlated emissions — identical to a live generation. No
-        // list-type gate.
-        const selected = getNodeSelectedOutputs(
-          workflow.id,
-          edge.source,
-          edge.sourceHandle,
-          findNode(edge.source)?.data?.selected_generations
-        );
-        if (selected && selected.length > 0) {
+        // N iteration-correlated emissions — identical to a live generation.
+        if (decision === "replay") {
           const { node, edge: replayEdge } = buildReplayForEach({
-            sourceId: edge.source,
+            sourceId: source,
             sourceHandle: edge.sourceHandle,
             targetId: edge.target,
             targetHandle,
-            values: selected,
+            values: resolver.replayValues(source, edge.sourceHandle),
             workflowId: workflow.id
           });
           if (!replayNodesById.has(node.id)) {
@@ -143,17 +145,37 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
           continue;
         }
 
-        const { value, hasValue } = resolveExternalEdgeValue(
-          edge,
-          workflow.id,
-          getResultForFocusedJob,
-          findNode
-        );
-        if (!hasValue) {
-          continue;
+        if (decision === "reuse") {
+          const { value, hasValue } = resolver.reuseValue(source, edge);
+          if (hasValue) {
+            collector.add(edge.target, targetHandle, value);
+            continue;
+          }
+          // Constant with an undefined live value: not satisfiable without
+          // running it, and we don't pull external upstreams in → block.
         }
 
-        collector.add(edge.target, targetHandle, value);
+        // "run", "block", or a reuse with no value: the external input is not
+        // satisfiable without running an upstream that "Run selected" won't
+        // include → record the source as blocked.
+        if (!blockedSeen.has(source)) {
+          blockedSeen.add(source);
+          blocked.push({ nodeId: source, title: resolver.nodeTitle(source) });
+        }
+      }
+
+      if (blocked.length > 0) {
+        const names = blocked.map((b) => `"${b.title}"`).join(", ");
+        addNotification({
+          type: "warning",
+          alert: true,
+          content: `Run ${names} first — the selection depends on ${
+            blocked.length > 1 ? "nodes" : "a node"
+          } outside it that ${
+            blocked.length > 1 ? "have" : "has"
+          } no reusable output yet.`
+        });
+        return;
       }
 
       const nodePropertyOverrides = collector.resolve(findNode, getMetadata);
@@ -212,6 +234,17 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
           });
         });
 
+      // Stamp generations with the FULL-graph signature (not the pruned subgraph
+      // run() would otherwise hash) so Run-selected outputs are reusable by later
+      // runs — mirrors useRunSingleNode / useRunFromHere. Stable across the loop.
+      const inputSignatures = computeRunSignatures(selectedNodeIds, {
+        nodes,
+        edges,
+        workflowId: workflow.id,
+        getMetadata,
+        getGenerations: getNodeGenerations
+      });
+
       const myToken = ++sequenceTokenRef.current;
 
       try {
@@ -227,7 +260,8 @@ export function useRunSelectedNodes(): UseRunSelectedNodesReturn {
             edgesForRun,
             undefined,
             selectedNodeIds,
-            true
+            true,
+            inputSignatures
           );
 
           if (i < totalRuns) {

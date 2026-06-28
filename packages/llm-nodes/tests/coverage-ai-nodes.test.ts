@@ -1,20 +1,52 @@
 import { describe, it, expect } from "vitest";
 import { getNodeMetadata, hasStreamingOutput } from "@nodetool-ai/node-sdk";
+import { BaseProvider } from "@nodetool-ai/runtime";
+// Import from source (not the package's stale dist) so these tests exercise the
+// current AgentNode, which now drives its tool loop through provider.generateLoop.
+// AGENT_NODES and CreateThreadNode must come from the same source module so class
+// identity and the module-level thread store are shared with AgentNode.
 import {
   SummarizerNode,
+  EnhancePromptNode,
   CreateThreadNode,
   ExtractorNode,
   ClassifierNode,
   AgentNode,
   AgentStepNode,
-  AGENT_NODES,
+  AGENT_NODES
+} from "../src/nodes/agents.js";
+import {
   StructuredOutputGeneratorNode,
   DataGeneratorNode,
   ListGeneratorNode,
   ChartGeneratorNode,
   SVGGeneratorNode,
   GENERATOR_NODES
-} from "@nodetool-ai/llm-nodes";
+} from "../src/nodes/generators.js";
+
+// Delegate to the real base loop so completion-style mocks (which only implement
+// generateMessages) drive AgentNode's generateLoop-based tool loop. The agent SDK
+// style mock overrides generateLoop itself instead.
+function delegateGenerateLoop(this: any, args: unknown) {
+  return (
+    BaseProvider.prototype as { generateLoop: (a: unknown) => unknown }
+  ).generateLoop.call(this, args);
+}
+
+// Wrap a completion-style mock provider (only generateMessages) so the base
+// generateLoop can drive it: add a traced alias it calls per turn plus the loop.
+function withAgentLoop<T extends Record<string, any>>(provider: T): T {
+  const traced =
+    provider.generateMessagesTraced ??
+    async function* (this: any, ...args: any[]) {
+      yield* this.generateMessages(...args);
+    };
+  return {
+    ...provider,
+    generateMessagesTraced: traced,
+    generateLoop: delegateGenerateLoop
+  };
+}
 
 function metadataDefaults(NodeCls: any) {
   const metadata = getNodeMetadata(NodeCls);
@@ -35,6 +67,7 @@ describe("text agents persist generations", () => {
   // giving them a reload-surviving, browsable history like media nodes.
   it.each([
     [SummarizerNode, "text"],
+    [EnhancePromptNode, "text"],
     [ClassifierNode, "output"],
     [AgentNode, "text"]
   ])("%p saves its primary str output as a generation", (NodeCls, primary) => {
@@ -51,9 +84,10 @@ describe("text agents persist generations", () => {
 // ---------------------------------------------------------------------------
 
 describe("AGENT_NODES export", () => {
-  it("contains all 6 agent node classes", () => {
-    expect(AGENT_NODES).toHaveLength(6);
+  it("contains all 7 agent node classes", () => {
+    expect(AGENT_NODES).toHaveLength(7);
     expect(AGENT_NODES).toContain(SummarizerNode);
+    expect(AGENT_NODES).toContain(EnhancePromptNode);
     expect(AGENT_NODES).toContain(CreateThreadNode);
     expect(AGENT_NODES).toContain(ExtractorNode);
     expect(AGENT_NODES).toContain(ClassifierNode);
@@ -240,6 +274,119 @@ describe("SummarizerNode", () => {
     n.assign({ text: "From props. Second.", max_sentences: 1 });
     const result = await n.process();
     expect(result.text).toBe("From props.");
+  });
+});
+
+// ---- EnhancePromptNode ----
+describe("EnhancePromptNode", () => {
+  it("has correct static metadata", () => {
+    expect(EnhancePromptNode.nodeType).toBe("nodetool.agents.EnhancePrompt");
+    expect(EnhancePromptNode.title).toBe("Enhance Prompt");
+  });
+
+  it("defaults", () => {
+    expectMetadataDefaults(EnhancePromptNode);
+  });
+
+  it("declares a target enum with the expected options", () => {
+    const meta = getNodeMetadata(EnhancePromptNode as any);
+    const target = meta.properties.find((p) => p.name === "target");
+    expect(target?.values).toEqual([
+      "general",
+      "text",
+      "image",
+      "video",
+      "audio",
+      "code"
+    ]);
+    expect(target?.default).toBe("general");
+  });
+
+  it("passes the draft prompt through unchanged when no provider is connected", async () => {
+    const n = new (EnhancePromptNode as any)();
+    n.assign({ prompt: "  a short idea  " });
+    const result = await n.process();
+    expect(result.text).toBe("a short idea");
+    expect(result.output).toBe(result.text);
+  });
+
+  it("returns empty string for empty prompt", async () => {
+    const n = new (EnhancePromptNode as any)();
+    n.assign({ prompt: "   " });
+    const result = await n.process();
+    expect(result.text).toBe("");
+  });
+
+  it("uses the provider to rewrite the prompt, tailored to the target", async () => {
+    const n = new (EnhancePromptNode as any)();
+    const mockProvider = {
+      generateMessage: async ({ messages }: any) => ({
+        content: `ENHANCED: ${messages[1].content}`
+      }),
+      async generateMessageTraced(...a: any[]) {
+        return (this as any).generateMessage(...a);
+      }
+    };
+    const mockContext = { getProvider: async () => mockProvider };
+    n.assign({
+      prompt: "a cat",
+      target: "image",
+      model: { provider: "test", id: "m1" }
+    });
+    const result = await n.process(mockContext as any);
+    expect(result.text).toContain("ENHANCED");
+    expect(result.text).toContain("a cat");
+    // The image-target guidance is folded into the user message.
+    expect(result.text).toContain("image generation model");
+  });
+
+  it("streams improved-prompt chunks then a final text output", async () => {
+    const n = new (EnhancePromptNode as any)();
+    const mockProvider = {
+      async *generateMessages() {
+        yield {
+          type: "chunk",
+          content: "better ",
+          content_type: "text",
+          done: false
+        };
+        yield {
+          type: "chunk",
+          content: "prompt",
+          content_type: "text",
+          done: false
+        };
+      }
+    };
+    const mockContext = { getProvider: async () => mockProvider };
+    n.assign({ prompt: "x", model: { provider: "test", id: "m1" } });
+    const chunks: string[] = [];
+    let finalText = "";
+    for await (const item of n.genProcess(mockContext as any)) {
+      if (item.chunk) chunks.push((item.chunk as any).content);
+      if (typeof item.text === "string") finalText = item.text;
+    }
+    expect(chunks.join("")).toBe("better prompt");
+    expect(finalText).toBe("better prompt");
+  });
+
+  it("ignores thinking chunks and falls back to the original prompt when the model emits no content", async () => {
+    const n = new (EnhancePromptNode as any)();
+    const mockProvider = {
+      async *generateMessages() {
+        yield {
+          type: "chunk",
+          content: "internal reasoning",
+          content_type: "text",
+          thinking: true,
+          done: false
+        };
+      }
+    };
+    const mockContext = { getProvider: async () => mockProvider };
+    n.assign({ prompt: "keep me", model: { provider: "test", id: "m1" } });
+    const result = await n.process(mockContext as any);
+    expect(result.text).toBe("keep me");
   });
 });
 
@@ -473,7 +620,7 @@ describe("AgentNode", () => {
 
   it("streams text chunks and final text from the provider", async () => {
     const n = new (AgentNode as any)();
-    const mockProvider = {
+    const mockProvider = withAgentLoop({
       async *generateMessages(): AsyncGenerator<Record<string, unknown>> {
         yield {
           type: "chunk",
@@ -488,7 +635,7 @@ describe("AgentNode", () => {
           done: true
         };
       }
-    };
+    });
     n.assign({
       prompt: "Test prompt",
       model: { provider: "openai", id: "gpt-4", name: "GPT-4" },
@@ -521,11 +668,14 @@ describe("AgentNode", () => {
   it("does not accept dynamic input variables", async () => {
     const n = new (AgentNode as any)();
     let capturedMessages: any[] = [];
-    const mockProvider = {
+    const mockProvider = withAgentLoop({
       async *generateMessages({
         messages
       }: any): AsyncGenerator<Record<string, unknown>> {
-        capturedMessages = messages;
+        // Snapshot the turn's input. generateLoop seeds its working array from
+        // these and appends the assistant turn to it afterward, so a live
+        // reference would no longer end at the prepared user message.
+        capturedMessages = [...messages];
         yield {
           type: "chunk",
           content: "ok",
@@ -533,7 +683,7 @@ describe("AgentNode", () => {
           done: true
         };
       }
-    };
+    });
     n.assign({
       system: "Tone: {{ tone|upper }}.",
       prompt: "Hello {{ name }}!",
@@ -556,11 +706,14 @@ describe("AgentNode", () => {
   it("prepares python-style messages including thread history, history, image, and audio", async () => {
     const n = new (AgentNode as any)();
     let capturedMessages: any[] = [];
-    const mockProvider = {
+    const mockProvider = withAgentLoop({
       async *generateMessages({
         messages
       }: any): AsyncGenerator<Record<string, unknown>> {
-        capturedMessages = messages;
+        // Snapshot the turn's input. generateLoop seeds its working array from
+        // these and appends the assistant turn to it afterward, so a live
+        // reference would no longer end at the prepared user message.
+        capturedMessages = [...messages];
         yield {
           type: "chunk",
           content: "ok",
@@ -568,7 +721,7 @@ describe("AgentNode", () => {
           done: true
         };
       }
-    };
+    });
     const mockContext = {
       getProvider: async () => mockProvider,
       getThreadMessages: async () => ({
@@ -637,11 +790,14 @@ describe("AgentNode", () => {
   it("attaches a list of images and audio as separate content blocks", async () => {
     const n = new (AgentNode as any)();
     let capturedMessages: any[] = [];
-    const mockProvider = {
+    const mockProvider = withAgentLoop({
       async *generateMessages({
         messages
       }: any): AsyncGenerator<Record<string, unknown>> {
-        capturedMessages = messages;
+        // Snapshot the turn's input. generateLoop seeds its working array from
+        // these and appends the assistant turn to it afterward, so a live
+        // reference would no longer end at the prepared user message.
+        capturedMessages = [...messages];
         yield {
           type: "chunk",
           content: "ok",
@@ -649,7 +805,7 @@ describe("AgentNode", () => {
           done: true
         };
       }
-    };
+    });
     n.assign({
       prompt: "Describe these",
       image: [{ uri: "file://a.png" }, { uri: "file://b.png" }],
@@ -675,7 +831,7 @@ describe("AgentNode", () => {
   it("persists the user and assistant messages through context thread APIs", async () => {
     const n = new (AgentNode as any)();
     const created: any[] = [];
-    const mockProvider = {
+    const mockProvider = withAgentLoop({
       async *generateMessages(): AsyncGenerator<Record<string, unknown>> {
         yield {
           type: "chunk",
@@ -684,7 +840,7 @@ describe("AgentNode", () => {
           done: true
         };
       }
-    };
+    });
     const mockContext = {
       getProvider: async () => mockProvider,
       createMessage: async (req: any) => {
@@ -709,7 +865,7 @@ describe("AgentNode", () => {
 
   it("emits thinking and audio updates from provider chunks", async () => {
     const n = new (AgentNode as any)();
-    const mockProvider = {
+    const mockProvider = withAgentLoop({
       async *generateMessages(): AsyncGenerator<Record<string, unknown>> {
         yield {
           type: "chunk",
@@ -725,7 +881,7 @@ describe("AgentNode", () => {
           done: true
         };
       }
-    };
+    });
     n.assign({
       model: { provider: "test", id: "m1" },
       prompt: "Listen"
@@ -745,7 +901,7 @@ describe("AgentNode", () => {
 
   it("normalizes provider text chunks to include content_type", async () => {
     const n = new (AgentNode as any)();
-    const mockProvider = {
+    const mockProvider = withAgentLoop({
       async *generateMessages(): AsyncGenerator<Record<string, unknown>> {
         yield {
           type: "chunk",
@@ -758,7 +914,7 @@ describe("AgentNode", () => {
           done: true
         };
       }
-    };
+    });
     n.assign({
       model: { provider: "test", id: "m1" },
       prompt: "Hi"
@@ -788,7 +944,7 @@ describe("AgentNode", () => {
       answer: { type: "str" },
       score: { type: "int" }
     };
-    const mockProvider = {
+    const mockProvider = withAgentLoop({
       async *generateMessages(args: {
         tools?: Array<{ name: string }>;
       }): AsyncGenerator<Record<string, unknown>> {
@@ -801,7 +957,7 @@ describe("AgentNode", () => {
           args: { answer: "ready", score: 7 }
         };
       }
-    };
+    });
     n.assign({
       model: { provider: "test", id: "m1" },
       prompt: "Return JSON"
@@ -830,7 +986,7 @@ describe("AgentNode", () => {
     });
 
     let calls = 0;
-    const mockProvider = {
+    const mockProvider = withAgentLoop({
       async *generateMessages(args: {
         tools?: Array<{ name: string }>;
       }): AsyncGenerator<Record<string, unknown>> {
@@ -852,7 +1008,7 @@ describe("AgentNode", () => {
           args: { answer: "done" }
         };
       }
-    };
+    });
 
     const streamed: any[] = [];
     for await (const item of n.genProcess({
@@ -876,16 +1032,17 @@ describe("AgentNode", () => {
       model: { provider: "test", id: "m1" }
     });
     await n.process({
-      getProvider: async () => ({
-        async *generateMessages(): AsyncGenerator<Record<string, unknown>> {
-          yield {
-            type: "chunk",
-            content: "first-reply",
-            content_type: "text",
-            done: true
-          };
-        }
-      })
+      getProvider: async () =>
+        withAgentLoop({
+          async *generateMessages(): AsyncGenerator<Record<string, unknown>> {
+            yield {
+              type: "chunk",
+              content: "first-reply",
+              content_type: "text",
+              done: true
+            };
+          }
+        })
     } as any);
 
     const secondCalls: any[] = [];
@@ -895,19 +1052,20 @@ describe("AgentNode", () => {
       model: { provider: "test", id: "m1" }
     });
     await n.process({
-      getProvider: async () => ({
-        async *generateMessages({
-          messages
-        }: any): AsyncGenerator<Record<string, unknown>> {
-          secondCalls.push(messages);
-          yield {
-            type: "chunk",
-            content: "second-reply",
-            content_type: "text",
-            done: true
-          };
-        }
-      })
+      getProvider: async () =>
+        withAgentLoop({
+          async *generateMessages({
+            messages
+          }: any): AsyncGenerator<Record<string, unknown>> {
+            secondCalls.push(messages);
+            yield {
+              type: "chunk",
+              content: "second-reply",
+              content_type: "text",
+              done: true
+            };
+          }
+        })
     } as any);
     const replayed = secondCalls[0];
     expect(
@@ -927,11 +1085,11 @@ describe("AgentNode", () => {
 
   it("returns empty text when the provider returns no text content", async () => {
     const n = new (AgentNode as any)();
-    const mockProvider = {
+    const mockProvider = withAgentLoop({
       async *generateMessages(): AsyncGenerator<Record<string, unknown>> {
         yield { type: "chunk", content: "", content_type: "text", done: true };
       }
-    };
+    });
     n.assign({
       prompt: "Hi",
       model: { provider: "test", id: "m1" }
@@ -964,7 +1122,7 @@ describe("AgentNode", () => {
 
     let callCount = 0;
     let capturedTools: any[] = [];
-    const mockProvider = {
+    const mockProvider = withAgentLoop({
       async *generateMessages(args: any): AsyncGenerator<Record<string, unknown>> {
         callCount += 1;
         capturedTools = args.tools ?? [];
@@ -978,7 +1136,7 @@ describe("AgentNode", () => {
         }
         yield { type: "chunk", content: "done", content_type: "text", done: true };
       }
-    };
+    });
 
     const sentEvents: any[] = [];
     const mockContext = {
@@ -1001,6 +1159,75 @@ describe("AgentNode", () => {
     expect(sentEvents).toHaveLength(1);
     expect(sentEvents[0].targetNodeId).toBe("node-ctrl-1");
     expect(sentEvents[0].args).toEqual({ message: "hello" });
+  });
+
+  it("submits the structured result when the provider runs its OWN loop (agent SDK style)", async () => {
+    // The Claude Agent SDK provider's generateMessages is tool-free (mcp: null):
+    // submit_result only reaches the model through the provider's own
+    // generateLoop. This mock mirrors that — the single-turn primitives surface
+    // no tool call, but the generateLoop override drives the scripted
+    // submit_result call by dispatching to the provider tool's own `execute`
+    // (the new mechanism, matching the real Claude Agent SDK provider) and emits
+    // the matching ToolCall + tool-result/assistant message events. The
+    // structured result must still come through, which the pre-migration loop
+    // could not do.
+    const n = new (AgentNode as any)();
+    n._dynamic_outputs = { answer: { type: "str" } };
+    n.assign({
+      model: { provider: "test", id: "m1" },
+      prompt: "Answer with the structured tool"
+    });
+
+    let executedToolFree = false;
+    const sdkProvider = {
+      provider: "sdk_loop",
+      // Tool-free single-turn primitives — never surface the submit_result call.
+      async *generateMessages() {
+        executedToolFree = true;
+        yield { type: "chunk", content: "", content_type: "text", done: true };
+      },
+      async *generateMessagesTraced() {
+        executedToolFree = true;
+        yield { type: "chunk", content: "", content_type: "text", done: true };
+      },
+      async *generateLoop(args: any) {
+        const submitTool = (args.tools ?? []).find((t: any) =>
+          t.name.startsWith("submit_result")
+        );
+        const call = {
+          id: "tc_submit",
+          name: submitTool?.name ?? "submit_result",
+          args: { answer: "from-sdk-loop" }
+        };
+        yield call;
+        const content = submitTool?.execute
+          ? await submitTool.execute(call.args)
+          : args.executeTool
+            ? await args.executeTool(call)
+            : "";
+        yield {
+          type: "message",
+          message: { role: "tool", toolCallId: call.id, content }
+        };
+        yield {
+          type: "message",
+          message: { role: "assistant", content: "Submitted." }
+        };
+      }
+    };
+
+    const streamed: any[] = [];
+    for await (const item of n.genProcess({
+      getProvider: async () => sdkProvider
+    } as any)) {
+      streamed.push(item);
+    }
+
+    // The structured result reached the node even though generateMessages never
+    // emitted the tool call — it was driven through the provider tool's execute.
+    const last = streamed[streamed.length - 1];
+    expect(last.answer).toBe("from-sdk-loop");
+    expect(executedToolFree).toBe(false);
   });
 });
 

@@ -147,7 +147,7 @@ interface ImageGenerationParams {
   variations: number;
 }
 
-interface VideoModelSelection {
+export interface VideoModelSelection {
   type: "video_model";
   id: string;
   provider: string;

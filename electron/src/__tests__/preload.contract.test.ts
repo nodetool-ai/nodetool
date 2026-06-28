@@ -125,6 +125,7 @@ describe("preload contract", () => {
       "nodePacks",
       "settings",
       "dialog",
+      "files",
       "logging",
       "windowControls",
       "localhostProxy",

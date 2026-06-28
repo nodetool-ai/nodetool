@@ -81,9 +81,9 @@ export default function TimelineEditorSection() {
           <div className="relative rounded-2xl border border-slate-700/60 bg-slate-900/80 overflow-hidden shadow-2xl shadow-sky-900/20 ring-1 ring-white/5 backdrop-blur-sm">
             <Image
               src="/creatives_timeline.png"
-              alt="NodeTool's built-in timeline editor: a preview player above a multi-track timeline with AI-generated video clips on three video tracks and an audio waveform, plus a 'Generate a video at the playhead' prompt bar with a model selector and an Export button"
+              alt="NodeTool's built-in timeline editor: a video preview with a clip inspector panel (Transform and Color controls) on the right, a multi-track timeline with AI-generated video clips on a video track and an audio waveform below, plus a 'Generate a video at the playhead' prompt bar with a model selector and an Export button"
               width={2000}
-              height={1220}
+              height={1304}
               className="h-auto w-full"
               loading="lazy"
             />

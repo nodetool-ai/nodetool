@@ -185,7 +185,6 @@ export class CompilerAgent {
       ? [memoryList, memoryRead, finishStepTool]
       : [memoryList, memoryRead];
     const toolsByName = new Map(tools.map((t) => [t.name, t]));
-    const providerTools = tools.map((t) => t.toProviderTool());
 
     const snapshot = this.context.memory.list();
     const inventory = snapshot.length
@@ -241,146 +240,153 @@ export class CompilerAgent {
       severity: "info"
     } satisfies LogUpdate;
 
-    for (let round = 0; round < this.maxRounds; round++) {
-      const toolCalls: ToolCall[] = [];
-      let assistantText = "";
+    // Delegate the tool loop to the provider so backends that run their own
+    // agent loop (e.g. the Claude Agent SDK) work. Each tool carries its own
+    // `execute` closure: the read-only memory tools return their serialized
+    // result, and `finish_step` (marked `terminal`) captures the final result
+    // and ends the loop. The stream consumer surfaces chunks + tool updates.
+    const uiEvents: ProcessingMessage[] = [];
+    let finished = false;
+    let finalResult: unknown = undefined;
+    let lastAssistantText = "";
 
-      const stream = this.provider.generateMessagesTraced({
-        messages: [...messages],
-        model: this.model,
-        tools: providerTools,
-        threadId: this.threadId
-      });
-
-      for await (const item of stream as AsyncGenerator<ProviderStreamItem>) {
-        if (isChunk(item)) {
-          assistantText += item.content ?? "";
-          yield {
-            type: "chunk",
-            node_id: "compiler",
-            content: item.content ?? "",
-            done: false
-          } satisfies Chunk;
-        }
-        if (isToolCall(item)) {
-          toolCalls.push(item);
-        }
+    const finishStepExecute = async (
+      args: Record<string, unknown>
+    ): Promise<string> => {
+      const resultPayload = (args?.["result"] as unknown) ?? args;
+      if (resultPayload === undefined || resultPayload === null) {
+        return '{"error": "Missing result in finish_step call"}';
       }
+      finalResult = resultPayload;
+      finished = true;
+      log.info("Compiler finished", { entries: snapshot.length });
+      uiEvents.push({
+        type: "planning_update",
+        node_id: "compiler",
+        phase: "compile",
+        status: "completed",
+        content: "Final result produced."
+      } satisfies PlanningUpdate);
+      uiEvents.push({
+        type: "step_result",
+        step: { id: "compiler", instructions: this.objective },
+        result: resultPayload,
+        is_task_result: true
+      } satisfies StepResult);
+      return '{"status": "completed"}';
+    };
 
-      messages.push({
-        role: "assistant",
-        content: assistantText,
-        toolCalls: toolCalls.length > 0 ? toolCalls : undefined
-      });
-
-      if (toolCalls.length === 0) {
-        // Prose mode: a no-tool-call response is the final answer.
-        if (!finishStepTool) {
-          const text = assistantText.trim();
-          log.info("Compiler finished (prose)", {
-            entries: snapshot.length,
-            chars: text.length
-          });
-          yield {
-            type: "planning_update",
-            node_id: "compiler",
-            phase: "compile",
-            status: "completed",
-            content: "Final answer composed."
-          } satisfies PlanningUpdate;
-          yield {
-            type: "step_result",
-            step: { id: "compiler", instructions: this.objective },
-            result: text,
-            is_task_result: true
-          } satisfies StepResult;
-          return text;
+    const runMemoryTool = async (
+      tool: Tool,
+      args: Record<string, unknown>
+    ): Promise<string> => {
+      try {
+        const result = await Tool.executeTool(tool, this.context, args);
+        let serialized =
+          typeof result === "string" ? result : JSON.stringify(result);
+        if (serialized.length > MAX_TOOL_RESULT_CHARS) {
+          serialized =
+            serialized.slice(0, MAX_TOOL_RESULT_CHARS) + "... [truncated]";
         }
-        // Structured mode: nudge once, then stop wasting rounds.
-        messages.push({
-          role: "user",
-          content:
-            "You did not call any tool. Call `memory_read` for the keys you need, " +
-            "then call `finish_step` exactly once with the final result."
-        });
-        continue;
+        return serialized;
+      } catch (e) {
+        return JSON.stringify({ error: String(e) });
       }
+    };
 
-      // Find finish_step in this batch — that ends the loop.
-      const finishCall = toolCalls.find((tc) => tc.name === "finish_step");
-      if (finishCall) {
+    const providerTools = tools.map((tool) => {
+      if (finishStepTool && tool === finishStepTool) {
+        return {
+          ...tool.toProviderTool(),
+          execute: finishStepExecute,
+          terminal: true
+        };
+      }
+      return {
+        ...tool.toProviderTool(),
+        execute: (args: Record<string, unknown>) => runMemoryTool(tool, args)
+      };
+    });
+
+    const drainUi = function* (): Generator<ProcessingMessage> {
+      while (uiEvents.length > 0) yield uiEvents.shift() as ProcessingMessage;
+    };
+
+    const stream = this.provider.generateLoop({
+      messages,
+      model: this.model,
+      tools: providerTools,
+      threadId: this.threadId,
+      maxIterations: this.maxRounds,
+      sequentialTools: true
+    });
+
+    for await (const item of stream as AsyncGenerator<ProviderStreamItem>) {
+      if (isToolCall(item)) {
+        const tool = toolsByName.get(item.name);
+        const message =
+          item.name === "finish_step"
+            ? (Tool.extractMessage(item.args) ?? "Finalizing result")
+            : tool
+              ? Tool.resolveMessage(tool, item.args)
+              : "";
         yield {
           type: "tool_call_update",
           node_id: "compiler",
-          name: finishCall.name,
-          args: finishCall.args,
-          message: Tool.extractMessage(finishCall.args) ?? "Finalizing result"
+          name: item.name,
+          args: item.args,
+          message
         } satisfies ToolCallUpdate;
-
-        const resultPayload =
-          (finishCall.args?.["result"] as unknown) ?? finishCall.args;
-        if (resultPayload === undefined || resultPayload === null) {
-          messages.push({
-            role: "tool",
-            toolCallId: finishCall.id,
-            content: '{"error": "Missing result in finish_step call"}'
-          });
-          continue;
-        }
-
-        log.info("Compiler finished", { entries: snapshot.length });
+        yield* drainUi();
+        continue;
+      }
+      if (isChunk(item)) {
         yield {
-          type: "planning_update",
+          type: "chunk",
           node_id: "compiler",
-          phase: "compile",
-          status: "completed",
-          content: "Final result produced."
-        } satisfies PlanningUpdate;
-        yield {
-          type: "step_result",
-          step: { id: "compiler", instructions: this.objective },
-          result: resultPayload,
-          is_task_result: true
-        } satisfies StepResult;
-        return resultPayload;
+          content: item.content ?? "",
+          done: false
+        } satisfies Chunk;
+        yield* drainUi();
+        continue;
       }
-
-      // Otherwise dispatch the read-only memory tools.
-      for (const tc of toolCalls) {
-        const tool = toolsByName.get(tc.name);
-        let serialized: string;
-        if (!tool) {
-          serialized = JSON.stringify({ error: `Unknown tool: ${tc.name}` });
-        } else {
-          yield {
-            type: "tool_call_update",
-            node_id: "compiler",
-            name: tc.name,
-            args: tc.args,
-            message: Tool.resolveMessage(tool, tc.args)
-          } satisfies ToolCallUpdate;
-          try {
-            const result = await tool.process(
-              this.context,
-              Tool.stripMessage(tc.args)
-            );
-            serialized =
-              typeof result === "string" ? result : JSON.stringify(result);
-            if (serialized.length > MAX_TOOL_RESULT_CHARS) {
-              serialized =
-                serialized.slice(0, MAX_TOOL_RESULT_CHARS) +
-                "... [truncated]";
-            }
-          } catch (e) {
-            serialized = JSON.stringify({ error: String(e) });
-          }
+      // Track each assistant turn's text so prose mode can return the last one.
+      if ("type" in item && (item as { type?: string }).type === "message") {
+        const m = (item as { message?: { role?: string; content?: unknown } })
+          .message;
+        if (m?.role === "assistant" && typeof m.content === "string") {
+          lastAssistantText = m.content;
         }
-        messages.push({
-          role: "tool",
-          toolCallId: tc.id,
-          content: serialized
-        });
       }
+      yield* drainUi();
+    }
+
+    yield* drainUi();
+
+    if (finished) return finalResult;
+
+    // Prose mode: a no-tool-call turn ended the loop; the last assistant text is
+    // the final answer.
+    if (!finishStepTool) {
+      const text = lastAssistantText.trim();
+      log.info("Compiler finished (prose)", {
+        entries: snapshot.length,
+        chars: text.length
+      });
+      yield {
+        type: "planning_update",
+        node_id: "compiler",
+        phase: "compile",
+        status: "completed",
+        content: "Final answer composed."
+      } satisfies PlanningUpdate;
+      yield {
+        type: "step_result",
+        step: { id: "compiler", instructions: this.objective },
+        result: text,
+        is_task_result: true
+      } satisfies StepResult;
+      return text;
     }
 
     log.warn("Compiler exhausted round budget without finishing", {

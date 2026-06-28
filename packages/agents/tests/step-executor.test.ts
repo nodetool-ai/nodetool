@@ -2,8 +2,8 @@ import { describe, it, expect, vi } from "vitest";
 import { StepExecutor } from "../src/step-executor.js";
 import type { Step, Task } from "../src/types.js";
 import type { ProcessingMessage, TaskUpdate } from "@nodetool-ai/protocol";
-import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
-import { AgentMemory } from "@nodetool-ai/runtime";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { AgentMemory, BaseProvider } from "@nodetool-ai/runtime";
 import type { Tool } from "../src/tools/base-tool.js";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
@@ -48,6 +48,13 @@ function createMockProvider(toolCallArgs?: Record<string, unknown>): BaseProvide
       args: Parameters<BaseProvider["generateMessages"]>[0]
     ) {
       yield* this.generateMessages(args);
+    },
+    // The executor delegates its tool loop to the provider; reuse the real base
+    // loop (it only needs generateMessagesTraced, which this mock has).
+    generateLoop(args: unknown) {
+      return (
+        BaseProvider.prototype as { generateLoop: (a: unknown) => unknown }
+      ).generateLoop.call(this, args);
     },
     async generateMessageTraced(
       args: Parameters<BaseProvider["generateMessage"]>[0]
@@ -520,74 +527,6 @@ describe("StepExecutor", () => {
     expect(step.completed).toBe(true);
   });
 
-  it("evicts old tool results from history when over the soft token-budget threshold", async () => {
-    const step: Step = {
-      id: "step_conclude",
-      instructions: "Do something",
-      completed: false,
-      dependsOn: [],
-      outputSchema: JSON.stringify({
-        type: "object",
-        properties: { done: { type: "boolean" } }
-      }),
-      logs: []
-    };
-
-    const task: Task = {
-      id: "task_conclude",
-      title: "Conclusion Test",
-      steps: [step]
-    };
-
-    // Provider that first returns a regular tool call (to build up tokens),
-    // then on the second call (conclusion stage) returns finish_step.
-    let callCount = 0;
-    const provider = {
-      ...createMockProvider(),
-      generateMessages: async function* () {
-        callCount++;
-        if (callCount === 1) {
-          // First call: return a long text chunk to inflate token count
-          yield {
-            type: "chunk" as const,
-            content: "A".repeat(300),
-            done: false
-          };
-          // No tool call, no finish_step — loop continues
-        } else {
-          // Second call (conclusion stage): finish_step
-          yield { type: "chunk" as const, content: "Finishing", done: false };
-          yield {
-            id: "tc_finish",
-            name: "finish_step",
-            args: { result: { done: true } }
-          };
-        }
-      }
-    } as unknown as BaseProvider;
-
-    const context = createMockContext();
-
-    const executor = new StepExecutor({
-      task,
-      step,
-      context,
-      provider,
-      model: "test-model",
-      maxTokenLimit: 50 // Very low limit to trigger conclusion stage
-    });
-
-    const messages: ProcessingMessage[] = [];
-    for await (const msg of executor.execute()) {
-      messages.push(msg);
-    }
-
-    expect(step.completed).toBe(true);
-    expect(executor.getResult()).toEqual({ done: true });
-    // Conclusion stage should have been triggered (callCount > 1)
-    expect(callCount).toBeGreaterThanOrEqual(2);
-  });
-
   it("includes dependency results in user message", async () => {
     const step: Step = {
       id: "step_with_deps",
@@ -729,53 +668,6 @@ describe("StepExecutor", () => {
     expect(result).not.toEqual({ answer: "plain" });
     expect(typeof result === "object" && result !== null && "error" in result)
       .toBe(true);
-  });
-
-  it("loops past the soft token-budget threshold without yanking tools", async () => {
-    const step: Step = {
-      id: "step_conclude_no_tool",
-      instructions: "Do something",
-      completed: false,
-      dependsOn: [],
-      // No outputSchema = unstructured mode, text accepted as result
-      logs: []
-    };
-
-    const task: Task = {
-      id: "task_conclude_no_tool",
-      title: "Conclusion Without FinishStep",
-      steps: [step]
-    };
-
-    let callCount = 0;
-    const provider = {
-      ...createMockProvider(),
-      generateMessages: async function* () {
-        callCount++;
-        // Return text (no tool calls) - in unstructured mode this completes on first iteration
-        yield { type: "chunk" as const, content: "A".repeat(300), done: false };
-      }
-    } as unknown as BaseProvider;
-
-    const context = createMockContext();
-    const executor = new StepExecutor({
-      task,
-      step,
-      context,
-      provider,
-      model: "test-model",
-      maxTokenLimit: 50,
-      maxIterations: 3
-    });
-
-    const messages: ProcessingMessage[] = [];
-    for await (const msg of executor.execute()) {
-      messages.push(msg);
-    }
-
-    // Unstructured mode: text content is accepted as result on first iteration
-    expect(step.completed).toBe(true);
-    expect(callCount).toBeGreaterThanOrEqual(1);
   });
 
   it("handles finish_step with null args gracefully", async () => {
@@ -1368,31 +1260,6 @@ describe("StepExecutor", () => {
     expect(executor.getSources()).toEqual([]);
   });
 
-  it("getTokenUsage returns zero initially", () => {
-    const step: Step = {
-      id: "step_tokens",
-      instructions: "Test tokens",
-      completed: false,
-      dependsOn: [],
-      logs: []
-    };
-    const task: Task = {
-      id: "task_tokens",
-      title: "Tokens Test",
-      steps: [step]
-    };
-    const executor = new StepExecutor({
-      task,
-      step,
-      context: createMockContext(),
-      provider: createMockProvider(),
-      model: "test-model"
-    });
-    const usage = executor.getTokenUsage();
-    expect(usage.inputTokensTotal).toBe(0);
-    expect(usage.outputTokensTotal).toBe(0);
-  });
-
   it("yields StepFailed when step exhausts iterations without completing", async () => {
     const step: Step = {
       id: "step_fail",
@@ -1450,270 +1317,5 @@ describe("StepExecutor", () => {
       (m) => m.type === "task_update" && (m as TaskUpdate).event === "step_failed"
     );
     expect(failedUpdates).toHaveLength(1);
-  });
-
-  it("does not compact or emit compaction logs when explicitly disabled, even under a tiny threshold", async () => {
-    const step: Step = {
-      id: "step_no_compaction",
-      instructions: "Use a tool across iterations then finish",
-      completed: false,
-      dependsOn: [],
-      outputSchema: JSON.stringify({
-        type: "object",
-        properties: { v: { type: "string" } }
-      }),
-      logs: []
-    };
-
-    const task: Task = {
-      id: "task_no_compaction",
-      title: "Default-OFF Test",
-      steps: [step]
-    };
-
-    // Multi-iteration scripted run: two tool calls, then finish.
-    let callCount = 0;
-    const summarySpy = vi.fn();
-    const provider = {
-      ...createMockProvider(),
-      generateMessageTraced: summarySpy.mockResolvedValue({
-        role: "assistant",
-        content: "summary"
-      }),
-      generateMessages: async function* () {
-        callCount++;
-        if (callCount <= 2) {
-          yield { id: `tc_${callCount}`, name: "noop_tool", args: {} };
-        } else {
-          yield {
-            id: "tc_finish",
-            name: "finish_step",
-            args: { result: { v: "done" } }
-          };
-        }
-      }
-    } as unknown as BaseProvider;
-
-    const noopTool = {
-      name: "noop_tool",
-      description: "noop",
-      inputSchema: { type: "object" as const, properties: {}, required: [] },
-      process: vi.fn().mockResolvedValue({ ok: true }),
-      userMessage: () => "Using noop_tool",
-      toProviderTool: () => ({
-        name: "noop_tool",
-        description: "noop",
-        inputSchema: { type: "object", properties: {}, required: [] }
-      })
-    };
-
-    const context = createMockContext();
-    const executor = new StepExecutor({
-      task,
-      step,
-      context,
-      provider,
-      model: "test-model",
-      tools: [noopTool as unknown as Tool],
-      // Explicitly disabled. The tiny threshold would trip compaction if it
-      // were on (or merely left at the default), so a clean run proves the
-      // opt-out actually suppresses the compactor.
-      compaction: { enabled: false, thresholdTokens: 1, keepRecent: 2 }
-    });
-
-    const messages: ProcessingMessage[] = [];
-    for await (const msg of executor.execute()) {
-      messages.push(msg);
-    }
-
-    expect(step.completed).toBe(true);
-    expect(executor.getResult()).toEqual({ v: "done" });
-
-    // No compaction summary call was made.
-    expect(summarySpy).not.toHaveBeenCalled();
-
-    // No compaction-related log_update was emitted.
-    const compactionLogs = messages.filter(
-      (m) =>
-        m.type === "log_update" &&
-        typeof (m as { content?: string }).content === "string" &&
-        (m as { content: string }).content.includes("Compacting earlier context")
-    );
-    expect(compactionLogs).toHaveLength(0);
-  });
-
-  it("compacts mid-run when enabled with a tiny threshold and bounds history growth", async () => {
-    const step: Step = {
-      id: "step_compaction_on",
-      instructions: "Loop with tools, compaction enabled",
-      completed: false,
-      dependsOn: [],
-      outputSchema: JSON.stringify({
-        type: "object",
-        properties: { v: { type: "string" } }
-      }),
-      logs: []
-    };
-
-    const task: Task = {
-      id: "task_compaction_on",
-      title: "Compaction-ON Test",
-      steps: [step]
-    };
-
-    // Several tool-call iterations to grow history, then finish.
-    const TOOL_ITERATIONS = 5;
-    let callCount = 0;
-    const summarySpy = vi.fn().mockResolvedValue({
-      role: "assistant",
-      content: "SCRIPTED COMPACTION SUMMARY"
-    });
-    const provider = {
-      ...createMockProvider(),
-      generateMessageTraced: summarySpy,
-      generateMessages: async function* () {
-        callCount++;
-        if (callCount <= TOOL_ITERATIONS) {
-          yield {
-            id: `tc_${callCount}`,
-            name: "bulky_tool",
-            args: { n: callCount }
-          };
-        } else {
-          yield {
-            id: "tc_finish",
-            name: "finish_step",
-            args: { result: { v: "done" } }
-          };
-        }
-      }
-    } as unknown as BaseProvider;
-
-    // Tool returns a chunky payload so the running token estimate climbs.
-    const bulkyTool = {
-      name: "bulky_tool",
-      description: "Returns bulky output",
-      inputSchema: { type: "object" as const, properties: {}, required: [] },
-      process: vi.fn().mockResolvedValue({ data: "x".repeat(400) }),
-      userMessage: () => "Using bulky_tool",
-      toProviderTool: () => ({
-        name: "bulky_tool",
-        description: "Returns bulky output",
-        inputSchema: { type: "object", properties: {}, required: [] }
-      })
-    };
-
-    const context = createMockContext();
-    const executor = new StepExecutor({
-      task,
-      step,
-      context,
-      provider,
-      model: "test-model",
-      tools: [bulkyTool as unknown as Tool],
-      maxIterations: 12,
-      // Tiny threshold so compaction trips as soon as a prefix exists.
-      compaction: { enabled: true, thresholdTokens: 1, keepRecent: 2 }
-    });
-
-    const messages: ProcessingMessage[] = [];
-    for await (const msg of executor.execute()) {
-      messages.push(msg);
-    }
-
-    expect(step.completed).toBe(true);
-    expect(executor.getResult()).toEqual({ v: "done" });
-
-    // The compaction summary call ran at least once.
-    expect(summarySpy).toHaveBeenCalled();
-    // It was called with NO tools (forces a plain text reply).
-    const summaryArgs = summarySpy.mock.calls[0]?.[0] as Record<string, unknown>;
-    expect(summaryArgs.tools).toBeUndefined();
-
-    // A compaction log_update was emitted.
-    const compactionLogs = messages.filter(
-      (m) =>
-        m.type === "log_update" &&
-        typeof (m as { content?: string }).content === "string" &&
-        (m as { content: string }).content.includes("Compacting earlier context")
-    );
-    expect(compactionLogs.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it("compacts by default when `enabled` is omitted and the threshold trips", async () => {
-    const step: Step = {
-      id: "step_compaction_default",
-      instructions: "Loop with tools, compaction left at its default",
-      completed: false,
-      dependsOn: [],
-      outputSchema: JSON.stringify({
-        type: "object",
-        properties: { v: { type: "string" } }
-      }),
-      logs: []
-    };
-
-    const task: Task = {
-      id: "task_compaction_default",
-      title: "Compaction-default Test",
-      steps: [step]
-    };
-
-    let callCount = 0;
-    const summarySpy = vi.fn().mockResolvedValue({
-      role: "assistant",
-      content: "SCRIPTED DEFAULT SUMMARY"
-    });
-    const provider = {
-      ...createMockProvider(),
-      generateMessageTraced: summarySpy,
-      generateMessages: async function* () {
-        callCount++;
-        if (callCount <= 3) {
-          yield { id: `tc_${callCount}`, name: "bulky_tool", args: {} };
-        } else {
-          yield {
-            id: "tc_finish",
-            name: "finish_step",
-            args: { result: { v: "done" } }
-          };
-        }
-      }
-    } as unknown as BaseProvider;
-
-    const bulkyTool = {
-      name: "bulky_tool",
-      description: "Returns bulky output",
-      inputSchema: { type: "object" as const, properties: {}, required: [] },
-      process: vi.fn().mockResolvedValue({ data: "x".repeat(400) }),
-      userMessage: () => "Using bulky_tool",
-      toProviderTool: () => ({
-        name: "bulky_tool",
-        description: "Returns bulky output",
-        inputSchema: { type: "object", properties: {}, required: [] }
-      })
-    };
-
-    const context = createMockContext();
-    const executor = new StepExecutor({
-      task,
-      step,
-      context,
-      provider,
-      model: "test-model",
-      tools: [bulkyTool as unknown as Tool],
-      maxIterations: 12,
-      // `enabled` omitted on purpose: compaction is on by default, so the tiny
-      // threshold should still trip it without anyone flipping a switch.
-      compaction: { thresholdTokens: 1, keepRecent: 2 }
-    });
-
-    const messages: ProcessingMessage[] = [];
-    for await (const msg of executor.execute()) {
-      messages.push(msg);
-    }
-
-    expect(step.completed).toBe(true);
-    expect(summarySpy).toHaveBeenCalled();
   });
 });

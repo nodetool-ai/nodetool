@@ -261,6 +261,65 @@ export class AnthropicProvider extends BaseProvider {
     return obj;
   }
 
+  /**
+   * Convert a {@link MessageImageContent} part into an Anthropic image block
+   * (`{ type: "image", source: { type: "base64", ... } }`), resolving data
+   * URIs, raw base64, and remote/storage URIs (which are fetched and encoded).
+   */
+  private async convertImagePart(
+    part: MessageImageContent
+  ): Promise<Record<string, unknown>> {
+    const rawData = bytesToBase64(part.image.data);
+    const uri = part.image.uri ?? "";
+
+    let mediaType = part.image.mimeType ?? "image/png";
+    let base64: string;
+
+    if (rawData) {
+      if (rawData.startsWith("data:")) {
+        const parsed = parseDataUri(rawData);
+        base64 = parsed.base64;
+        mediaType = part.image.mimeType ?? parsed.mime;
+      } else {
+        base64 = rawData;
+      }
+    } else if (uri.startsWith("data:")) {
+      const parsed = parseDataUri(uri);
+      base64 = parsed.base64;
+      mediaType = part.image.mimeType ?? parsed.mime;
+    } else if (uri) {
+      const resolved = await this.resolveUri(uri);
+      if (resolved.startsWith("data:")) {
+        const parsed = parseDataUri(resolved);
+        base64 = parsed.base64;
+        mediaType = part.image.mimeType ?? parsed.mime;
+      } else {
+        const response = await this._fetch(resolved);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch URI: ${response.status}`);
+        }
+        mediaType =
+          part.image.mimeType ??
+          response.headers.get("content-type") ??
+          "image/png";
+        base64 = Buffer.from(
+          new Uint8Array(await response.arrayBuffer())
+        ).toString("base64");
+      }
+    } else {
+      throw new Error("Invalid image reference with no uri or data");
+    }
+
+    return {
+      type: "image",
+      source: {
+        type: "base64",
+        media_type: mediaType,
+        data: base64
+      }
+    };
+  }
+
   async convertMessage(
     message: Message
   ): Promise<Record<string, unknown> | null> {
@@ -269,10 +328,27 @@ export class AnthropicProvider extends BaseProvider {
         throw new Error("Tool call ID must not be None");
       }
 
-      const contentValue =
-        typeof message.content === "string"
-          ? message.content
-          : JSON.stringify(message.content ?? null);
+      // Anthropic tool_result content may be a string or an array of blocks
+      // (text + image). Structured content (e.g. ui_3d_capture_view's
+      // screenshot) is converted to blocks so vision models can see it; plain
+      // results stay stringified as before.
+      let resultContent: unknown;
+      if (typeof message.content === "string") {
+        resultContent = message.content;
+      } else if (Array.isArray(message.content)) {
+        const blocks: Array<Record<string, unknown>> = [];
+        for (const part of message.content) {
+          if (isTextContent(part)) {
+            blocks.push({ type: "text", text: part.text });
+          } else if (isImageContent(part)) {
+            blocks.push(await this.convertImagePart(part));
+          }
+        }
+        resultContent =
+          blocks.length > 0 ? blocks : JSON.stringify(message.content);
+      } else {
+        resultContent = JSON.stringify(message.content ?? null);
+      }
 
       return {
         role: "user",
@@ -280,7 +356,7 @@ export class AnthropicProvider extends BaseProvider {
           {
             type: "tool_result",
             tool_use_id: message.toolCallId,
-            content: contentValue
+            content: resultContent
           }
         ]
       };
@@ -316,55 +392,7 @@ export class AnthropicProvider extends BaseProvider {
           continue;
         }
         if (isImageContent(part)) {
-          const rawData = bytesToBase64(part.image.data);
-          const uri = part.image.uri ?? "";
-
-          let mediaType = part.image.mimeType ?? "image/png";
-          let base64: string;
-
-          if (rawData) {
-            if (rawData.startsWith("data:")) {
-              const parsed = parseDataUri(rawData);
-              base64 = parsed.base64;
-              mediaType = part.image.mimeType ?? parsed.mime;
-            } else {
-              base64 = rawData;
-            }
-          } else if (uri.startsWith("data:")) {
-            const parsed = parseDataUri(uri);
-            base64 = parsed.base64;
-            mediaType = part.image.mimeType ?? parsed.mime;
-          } else if (uri) {
-            const resolved = await this.resolveUri(uri);
-            if (resolved.startsWith("data:")) {
-              const parsed = parseDataUri(resolved);
-              base64 = parsed.base64;
-              mediaType = part.image.mimeType ?? parsed.mime;
-            } else {
-              const response = await this._fetch(resolved);
-              if (!response.ok) {
-                throw new Error(`Failed to fetch URI: ${response.status}`);
-              }
-              mediaType =
-                part.image.mimeType ??
-                response.headers.get("content-type") ??
-                "image/png";
-              base64 = Buffer.from(
-                new Uint8Array(await response.arrayBuffer())
-              ).toString("base64");
-            }
-          } else {
-            throw new Error("Invalid image reference with no uri or data");
-          }
-
-          content.push({
-            type: "image",
-            source: {
-              type: "base64",
-              media_type: mediaType,
-              data: base64
-            }
-          });
+          content.push(await this.convertImagePart(part));
         }
       }
 

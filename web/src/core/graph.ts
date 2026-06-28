@@ -145,7 +145,7 @@ export function subgraph(
 
 const isControlEdge = (edge: Edge): boolean =>
   edge.type === "control" ||
-  (edge.data as { edge_type?: string } | undefined)?.edge_type === "control";
+  (edge.data != null && "edge_type" in edge.data && edge.data.edge_type === "control");
 
 /**
  * Compute a layer index per node using data edges (target ≥ source + 1) and
@@ -239,6 +239,30 @@ export const autoLayout = async (
     return el.offsetHeight + 12; // 12px = top offset gap
   };
 
+  // Read the top-to-bottom order of a node's output handles from the DOM so
+  // downstream nodes can be placed in the same order as the source handles
+  // that feed them. Output handles render in a single flex column in handle
+  // order, so DOM order equals vertical order. Returns handleId → index.
+  const sourceHandleOrderCache = new Map<string, Map<string, number>>();
+  const getSourceHandleOrder = (nodeId: string): Map<string, number> => {
+    const cached = sourceHandleOrderCache.get(nodeId);
+    if (cached) return cached;
+    const order = new Map<string, number>();
+    if (typeof document !== "undefined") {
+      const handles = document.querySelectorAll(
+        `.react-flow__node[data-id="${CSS.escape(nodeId)}"] .react-flow__handle.source`
+      );
+      handles.forEach((el) => {
+        const handleId = el.getAttribute("data-handleid");
+        if (handleId != null && !order.has(handleId)) {
+          order.set(handleId, order.size);
+        }
+      });
+    }
+    sourceHandleOrderCache.set(nodeId, order);
+    return order;
+  };
+
   // Helper function to create ELK node structure
   const createElkNode = (node: Node<NodeData>, children?: ElkNode[]): ElkNode => ({
     id: node.id,
@@ -285,6 +309,77 @@ export const autoLayout = async (
     return ordered;
   };
 
+  // Order nodes within each layer so a node sits in the same top-to-bottom
+  // position as the upstream output handle that feeds it: siblings sharing a
+  // source are sorted by that source's handle order, and a node is otherwise
+  // kept near its predecessors (barycenter). ELK honors the resulting model
+  // order via forceNodeModelOrder.
+  const orderByUpstreamHandles = (
+    groupNodes: Node<NodeData>[],
+    groupEdges: Edge[]
+  ): Node<NodeData>[] => {
+    const dataEdges = groupEdges.filter((edge) => !isControlEdge(edge));
+    const origIndex = new Map(groupNodes.map((n, i) => [n.id, i]));
+
+    const incoming = new Map<string, Edge[]>();
+    for (const edge of dataEdges) {
+      if (!incoming.has(edge.target)) incoming.set(edge.target, []);
+      incoming.get(edge.target)!.push(edge);
+    }
+
+    const byLayer = new Map<number, Node<NodeData>[]>();
+    for (const node of groupNodes) {
+      const layer = layerPartitions.get(node.id) ?? 0;
+      if (!byLayer.has(layer)) byLayer.set(layer, []);
+      byLayer.get(layer)!.push(node);
+    }
+    const layers = [...byLayer.keys()].sort((a, b) => a - b);
+
+    const orderIndex = new Map<string, number>();
+    const ordered: Node<NodeData>[] = [];
+
+    layers.forEach((layer, layerIdx) => {
+      const layerNodes = byLayer.get(layer)!;
+      if (layerIdx === 0) {
+        // Sources keep their existing relative order.
+        layerNodes.sort((a, b) => origIndex.get(a.id)! - origIndex.get(b.id)!);
+      } else {
+        const sortKey = new Map<string, number>();
+        for (const node of layerNodes) {
+          const preds = (incoming.get(node.id) ?? []).filter((edge) =>
+            orderIndex.has(edge.source)
+          );
+          if (preds.length === 0) {
+            sortKey.set(node.id, origIndex.get(node.id)!);
+            continue;
+          }
+          // Barycenter of predecessor positions, refined by the source handle
+          // index so siblings on the same source keep its handle order
+          // (handlePos < 1 keeps the predecessor position dominant).
+          let sum = 0;
+          for (const edge of preds) {
+            const predPos = orderIndex.get(edge.source)!;
+            const handlePos =
+              getSourceHandleOrder(edge.source).get(edge.sourceHandle ?? "") ??
+              0;
+            sum += predPos + handlePos / 1000;
+          }
+          sortKey.set(node.id, sum / preds.length);
+        }
+        layerNodes.sort((a, b) => {
+          const ka = sortKey.get(a.id)!;
+          const kb = sortKey.get(b.id)!;
+          if (ka !== kb) return ka - kb;
+          return origIndex.get(a.id)! - origIndex.get(b.id)!;
+        });
+      }
+      layerNodes.forEach((node, i) => orderIndex.set(node.id, i));
+      ordered.push(...layerNodes);
+    });
+
+    return ordered;
+  };
+
   // Helper function to create ELK graph for a group of nodes.
   // Control edges are excluded from ELK input so they don't pull the
   // controlled node into a later layer; partitioning keeps controller and
@@ -295,7 +390,8 @@ export const autoLayout = async (
     groupEdges: Edge[],
     isRoot = false
   ) => {
-    const orderedNodes = orderForControlPlacement(groupNodes, groupEdges);
+    const handleOrdered = orderByUpstreamHandles(groupNodes, groupEdges);
+    const orderedNodes = orderForControlPlacement(handleOrdered, groupEdges);
     return {
       id: isRoot ? "root" : groupNodes[0].parentId || "root",
       layoutOptions: {

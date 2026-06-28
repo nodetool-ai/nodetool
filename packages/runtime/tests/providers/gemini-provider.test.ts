@@ -199,6 +199,57 @@ describe("GeminiProvider", () => {
     expect(nameMap.get("valid_name")).toBe("valid_name");
   });
 
+  it("adds default items to array schemas missing them (Gemini requires items)", () => {
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
+
+    const { geminiTools } = provider.formatTools([
+      {
+        name: "finish_step",
+        description: "Finish",
+        inputSchema: {
+          type: "object",
+          properties: {
+            result: {
+              type: "object",
+              properties: {
+                pain_points: { type: "array" },
+                tags: { type: ["array", "null"] }
+              }
+            }
+          }
+        }
+      }
+    ]);
+
+    const params = geminiTools[0].functionDeclarations[0].parameters as any;
+    expect(params.properties.result.properties.pain_points.items).toEqual({
+      type: "string"
+    });
+    expect(params.properties.result.properties.tags.items).toEqual({
+      type: "string"
+    });
+  });
+
+  it("preserves existing array items", () => {
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
+
+    const { geminiTools } = provider.formatTools([
+      {
+        name: "tool",
+        description: "",
+        inputSchema: {
+          type: "object",
+          properties: {
+            ids: { type: "array", items: { type: "number" } }
+          }
+        }
+      }
+    ]);
+
+    const params = geminiTools[0].functionDeclarations[0].parameters as any;
+    expect(params.properties.ids.items).toEqual({ type: "number" });
+  });
+
   it("fetches available language models", async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       makeFetchResponse({

@@ -11,7 +11,7 @@
  * - Input validation at the trust boundary
  */
 
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, webUtils } from "electron";
 
 import {
   IpcChannels,
@@ -753,6 +753,25 @@ const api = {
 
     /** Switch the active vault — restarts the backend and reloads the UI. */
     switch: (id: string) => ipcRenderer.invoke(IpcChannels.VAULT_SWITCH, id),
+  },
+
+  // ============================================================================
+  // files: Local file helpers
+  // ============================================================================
+  files: {
+    /**
+     * Resolve the absolute disk path of a dropped or selected `File`. Electron
+     * strips `File.path` for security, so the renderer must round-trip the
+     * `File` object through `webUtils.getPathForFile` here in the preload.
+     * Returns "" when no path is available (e.g. an in-memory `File`).
+     */
+    getPathForFile: (file: File): string => {
+      try {
+        return webUtils.getPathForFile(file) || "";
+      } catch {
+        return "";
+      }
+    },
   },
 
   // The agent runtime moved out of the Electron main process and now lives

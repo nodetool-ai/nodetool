@@ -122,7 +122,7 @@ export class ReadFileTool extends Tool {
     "window. Cannot read binary files. Paths are workspace-relative storage " +
     "keys; the workspace adapter handles backend resolution (local FS, S3, " +
     "Supabase).";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       file_path: {
@@ -237,7 +237,7 @@ export class WriteFileTool extends Tool {
     "first in this session so you know what you're about to replace. New " +
     "files don't require a prior read. Paths are workspace-relative storage " +
     "keys.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       file_path: {
@@ -319,7 +319,7 @@ export class ListDirectoryTool extends Tool {
     "Lists files and subdirectories in a workspace directory. Returns one " +
     "entry per line: directories end with `/`, files show their size in " +
     "bytes after the name. Use `path: \".\"` to list the workspace root.";
-  readonly inputSchema = {
+  readonly jsonSchema = {
     type: "object" as const,
     properties: {
       path: {

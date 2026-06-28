@@ -17,7 +17,10 @@ import {
 } from "../../stores/nodeGenerationAccessor";
 import { getCurrentGeneration } from "../../utils/nodeGenerations";
 import { NodeData } from "../../stores/NodeData";
-import { resolveExternalEdgeValue } from "../../utils/edgeValue";
+import {
+  isLiteralSourceNode,
+  resolveExternalEdgeValue
+} from "../../utils/edgeValue";
 import { buildReplayForEach } from "../../utils/replayStream";
 
 /**
@@ -45,6 +48,15 @@ export const collectCachedValuesForSubgraph = (
 ): Map<string, Record<string, unknown>> => {
   const nodePropertyOverrides = new Map<string, Record<string, unknown>>();
 
+  // Deny the cache for CONSTANT/INPUT sources so resolveExternalEdgeValue falls
+  // through to the source node's CURRENT live property value instead of a stale
+  // cached generation — the same Phase-0 constant fix as buildRunSubgraph
+  // (runResolver's `noCachedResult`). Computed/generative sources keep the
+  // cache-first getResult: previews reuse their last output and never re-run an
+  // expensive upstream mid-scrub.
+  const getResultDenyingConstants = (wf: string, src: string): unknown =>
+    isLiteralSourceNode(findNode(src)?.type) ? undefined : getResult(wf, src);
+
   for (const edge of externalEdges) {
     const targetNodeId = edge.target;
     const targetHandle = edge.targetHandle;
@@ -56,7 +68,7 @@ export const collectCachedValuesForSubgraph = (
     const { value, hasValue } = resolveExternalEdgeValue(
       edge,
       workflowId,
-      getResult,
+      getResultDenyingConstants,
       findNode
     );
 

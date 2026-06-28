@@ -1,14 +1,63 @@
 import { describe, it, expect, vi } from "vitest";
 import {
   ClaudeAgentProvider,
+  toolResultToMcpContent,
   type ClaudeQueryFn
 } from "../../src/providers/claude-agent-provider.js";
 import type {
   Message,
+  MessageContent,
   ProviderSession,
   ProviderStreamItem
 } from "../../src/providers/types.js";
 import type { Options, SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+
+describe("toolResultToMcpContent", () => {
+  it("wraps a plain string in a text block", () => {
+    expect(toolResultToMcpContent("hello")).toEqual([
+      { type: "text", text: "hello" }
+    ]);
+  });
+
+  it("returns image parts as MCP image blocks (data: URI)", () => {
+    const result: MessageContent[] = [
+      { type: "text", text: "Viewing the chart" },
+      {
+        type: "image_url",
+        image: { uri: "data:image/png;base64,QUJD", mimeType: "image/png" }
+      }
+    ];
+    expect(toolResultToMcpContent(result)).toEqual([
+      { type: "text", text: "Viewing the chart" },
+      { type: "image", data: "QUJD", mimeType: "image/png" }
+    ]);
+  });
+
+  it("encodes raw base64 and Uint8Array image data", () => {
+    expect(
+      toolResultToMcpContent([
+        { type: "image_url", image: { data: "QUJD", mimeType: "image/jpeg" } }
+      ])
+    ).toEqual([{ type: "image", data: "QUJD", mimeType: "image/jpeg" }]);
+
+    const bytes = new Uint8Array([1, 2, 3]);
+    expect(
+      toolResultToMcpContent([
+        { type: "image_url", image: { data: bytes, mimeType: "image/png" } }
+      ])
+    ).toEqual([
+      { type: "image", data: Buffer.from(bytes).toString("base64"), mimeType: "image/png" }
+    ]);
+  });
+
+  it("degrades a remote-URL image to a text reference", () => {
+    expect(
+      toolResultToMcpContent([
+        { type: "image_url", image: { uri: "https://example.com/c.png" } }
+      ])
+    ).toEqual([{ type: "text", text: "[image at https://example.com/c.png]" }]);
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Scripted SDKMessage builders (minimal shapes, cast to the SDK union)
@@ -181,7 +230,8 @@ describe("ClaudeAgentProvider", () => {
     expect(opts.maxTurns).toBe(1);
     expect(opts.allowedTools).toEqual([]);
     expect(opts.settingSources).toEqual([]);
-    expect(opts.permissionMode).toBe("dontAsk");
+    expect(opts.permissionMode).toBe("bypassPermissions");
+    expect(opts.allowDangerouslySkipPermissions).toBe(true);
     expect(opts.includePartialMessages).toBe(true);
     expect(opts.resume).toBeUndefined();
   });

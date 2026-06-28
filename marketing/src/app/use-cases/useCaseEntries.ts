@@ -20,6 +20,17 @@ export type UseCaseEntry = {
 
 export const useCaseEntries: UseCaseEntry[] = [
   {
+    slug: "movie-trailer",
+    title: "Movie Trailer Generator",
+    category: "Film",
+    teaser:
+      "Type one logline and the canvas builds a cinematic teaser. A showrunner agent writes the treatment, a list generator breaks it into shots, each shot is rendered as key art, animated, and cut into a finished trailer.",
+    pipeline: ["Logline", "Treatment", "Shots", "Key art", "Trailer"],
+    video: "/movie_trailer_example.mp4",
+    poster: "/trailer-shot-1.png",
+    accent: "amber",
+  },
+  {
     slug: "product-video",
     title: "Product Video Generator",
     category: "Marketing",

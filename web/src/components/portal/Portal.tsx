@@ -18,6 +18,7 @@ import DashboardHero from "./DashboardHero";
 import DashboardDownloads from "./DashboardDownloads";
 import GettingStartedChecklist from "./GettingStartedChecklist";
 import DashboardTemplates from "./DashboardTemplates";
+import DashboardTutorials from "./DashboardTutorials";
 import DashboardWorkflows from "./DashboardWorkflows";
 import DashboardFooter from "./DashboardFooter";
 import { useCreateStarterWorkflow } from "../../hooks/useCreateStarterWorkflow";
@@ -258,6 +259,7 @@ const Portal: React.FC = () => {
             onOpenTemplates={handleGettingStarted}
             onCreateWorkflow={handleCreateNewWorkflow}
           />
+          <DashboardTutorials />
           <DashboardTemplates />
           <DashboardWorkflows
             workflows={sortedWorkflows}

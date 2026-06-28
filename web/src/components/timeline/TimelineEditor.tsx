@@ -17,6 +17,7 @@
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useShallow } from "zustand/react/shallow";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -30,12 +31,16 @@ import {
   FlexRow,
   LoadingSpinner,
   ProgressBar,
+  TabGroup,
   Text,
   MOTION
 } from "../ui_primitives";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 
 import { TopBar } from "./TopBar";
 import { BottomStatusBar } from "./BottomStatusBar";
+import { ProjectSettingsDialog } from "./ProjectSettingsDialog";
 import {
   useCreateTimeline,
   useTimeline,
@@ -43,9 +48,12 @@ import {
 } from "../../hooks/useTimelineSequence";
 import { TracksRegion } from "./Tracks/TracksRegion";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
+import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import { TimelineProvider } from "../../stores/timeline/TimelineInstance";
 import { PreviewArea } from "./preview/PreviewArea";
 import { TimelineInspector } from "./Inspector/TimelineInspector";
+import TimelineAgentPanel from "./TimelineAgentPanel";
+import { useTimelineAgentBridge } from "../../hooks/timeline/useTimelineAgentBridge";
 import { TranscriptPanel } from "./TranscriptPanel";
 import { useHasScript } from "../../hooks/timeline/useHasScript";
 import { ActivityIndicator } from "./ActivityIndicator";
@@ -146,7 +154,6 @@ function exportPhaseLabel(
 
 const PreviewRegion: React.FC<{
   isLoading: boolean;
-  sequence?: { fps?: number; width?: number; height?: number };
   sequenceUnavailable: boolean;
   onRetryFetch?: () => void;
   onCreateNewSequence?: () => void;
@@ -154,7 +161,6 @@ const PreviewRegion: React.FC<{
   createSequenceErrorMessage?: string | null;
 }> = ({
   isLoading,
-  sequence,
   sequenceUnavailable,
   onRetryFetch,
   onCreateNewSequence,
@@ -162,6 +168,12 @@ const PreviewRegion: React.FC<{
   createSequenceErrorMessage
 }) => {
   const theme = useTheme();
+  // Canvas size + fps come from the store — the single source of truth the
+  // compositor and the export already read — so Project settings changes show
+  // up in the preview immediately, without waiting on a query refetch.
+  const { fps, width, height } = useTimelineStore(
+    useShallow((s) => ({ fps: s.fps, width: s.width, height: s.height }))
+  );
   return (
     <FlexColumn
       css={previewRegionStyles(theme)}
@@ -214,17 +226,20 @@ const PreviewRegion: React.FC<{
         </FlexColumn>
       ) : (
         <PreviewArea
-          fps={sequence?.fps ?? 30}
-          sequenceWidth={sequence?.width ?? 1920}
-          sequenceHeight={sequence?.height ?? 1080}
+          fps={fps}
+          sequenceWidth={width}
+          sequenceHeight={height}
         />
       )}
     </FlexColumn>
   );
 };
 
+type InspectorTab = "inspector" | "agent";
+
 const InspectorRegion: React.FC = () => {
   const theme = useTheme();
+  const [tab, setTab] = useState<InspectorTab>("inspector");
 
   return (
     <FlexColumn
@@ -232,7 +247,23 @@ const InspectorRegion: React.FC = () => {
       fullHeight
       sx={{ flex: "0 1 45%", minWidth: 0, minHeight: 0, width: 0 }}
     >
-      <TimelineInspector />
+      <TabGroup
+        tabs={[
+          { value: "inspector", label: "Inspector", icon: <TuneOutlinedIcon /> },
+          { value: "agent", label: "Assistant", icon: <AutoAwesomeIcon /> }
+        ]}
+        value={tab}
+        onChange={(value) => setTab(value as InspectorTab)}
+        size="small"
+        fullWidth
+        sx={{
+          flexShrink: 0,
+          borderBottom: `1px solid ${theme.vars.palette.divider}`
+        }}
+      />
+      <FlexColumn fullWidth sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
+        {tab === "inspector" ? <TimelineInspector /> : <TimelineAgentPanel />}
+      </FlexColumn>
     </FlexColumn>
   );
 };
@@ -272,14 +303,18 @@ interface TimelineEditorProps {
   active?: boolean;
 }
 
-const TimelineEditorBody: React.FC<Omit<TimelineEditorProps, "active">> = memo(({
-  sequenceId: sequenceIdProp
+const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
+  sequenceId: sequenceIdProp,
+  active = true
 }) => {
   const { sequenceId: sequenceIdParam } = useParams<{ sequenceId: string }>();
   const sequenceId = sequenceIdProp ?? sequenceIdParam;
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const theme = useTheme();
+
+  // Register the ui_timeline_* agent tools against this instance while focused.
+  useTimelineAgentBridge(active);
 
   // Data fetching ─────────────────────────────────────────────────────────
   const { data: sequence, isLoading, isError, refetch } =
@@ -325,6 +360,9 @@ const TimelineEditorBody: React.FC<Omit<TimelineEditorProps, "active">> = memo((
   const handleExportVideo = useCallback(() => {
     void exportVideo(sequence?.name);
   }, [exportVideo, sequence?.name]);
+
+  // Project settings dialog (canvas size + fps) ────────────────────────────
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Tracks resize ─────────────────────────────────────────────────────────
   const [tracksHeight, setTracksHeight] = useState(DEFAULT_TRACKS_HEIGHT_PX);
@@ -450,14 +488,13 @@ const TimelineEditorBody: React.FC<Omit<TimelineEditorProps, "active">> = memo((
     <FlexColumn fullWidth fullHeight css={editorStyles(theme)}>
       {/* ── Top bar ───────────────────────────────────────────────── */}
       <TopBar
-        sequenceName={
-          sequence?.name ??
-          (sequenceUnavailable ? sequenceId : undefined)
-        }
         onExportVideo={sequenceUnavailable ? undefined : handleExportVideo}
         isExporting={isExporting}
         onSave={sequenceUnavailable ? undefined : handleSave}
         isSaving={isSaving}
+        onOpenSettings={
+          sequenceUnavailable ? undefined : () => setSettingsOpen(true)
+        }
         activitySlot={<ActivityIndicator />}
       />
 
@@ -475,7 +512,6 @@ const TimelineEditorBody: React.FC<Omit<TimelineEditorProps, "active">> = memo((
         <TranscriptRegion />
         <PreviewRegion
           isLoading={isLoading}
-          sequence={sequence}
           sequenceUnavailable={sequenceUnavailable}
           onRetryFetch={sequenceUnavailable ? handleRetrySequence : undefined}
           onCreateNewSequence={
@@ -512,6 +548,12 @@ const TimelineEditorBody: React.FC<Omit<TimelineEditorProps, "active">> = memo((
         onZoomChange={handleZoomChange}
         generatingCount={generatingCount}
         failedCount={failedCount}
+      />
+
+      {/* ── Project settings dialog (canvas size + fps) ───────────── */}
+      <ProjectSettingsDialog
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
       />
 
       {/* ── Export progress / error dialog ────────────────────────── */}
@@ -565,7 +607,7 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
   ...bodyProps
 }) => (
   <TimelineProvider active={active}>
-    <TimelineEditorBody {...bodyProps} />
+    <TimelineEditorBody active={active} {...bodyProps} />
   </TimelineProvider>
 );
 

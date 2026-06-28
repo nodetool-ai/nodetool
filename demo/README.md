@@ -43,6 +43,25 @@ The sample cast (`web/src/demo/sampleCast.ts`) is fully synthetic (inline assets
 no backend) — a two-node "stream text → image preview" demo. Use it to validate
 the pipeline before recording your own.
 
+## Intro tutorial (no backend)
+
+A ready-to-render "How to use NodeTool" walkthrough ships alongside the sample:
+
+```bash
+cd demo
+npm run studio                 # open Studio, pick the "Tutorial" composition
+npm run render:tutorial        # → demo/out/nodetool-tutorial.mp4
+```
+
+It replays a synthetic four-node pipeline — **Text Input → Enhance Prompt (LLM,
+streaming) → Generate Image → Preview** (`web/src/demo/tutorialCast.ts`, inline
+assets, no backend) — under a title card, a step indicator that tracks the active
+node, lower-third captions, and a closing call-to-action (`demo/src/Tutorial.tsx`).
+Edit the `DEFAULT_TUTORIAL_STEPS` / `DEFAULT_TUTORIAL_CAPTIONS` in `Tutorial.tsx`
+to retime or reword the narration; the timeline itself lives in `tutorialCast.ts`.
+To narrate a real recorded run instead, point the `Tutorial` composition at your
+own cast id in `demo/src/Root.tsx`.
+
 ## Recording a real demo
 
 1. **Record.** From the editor (dev build), capture one real run:

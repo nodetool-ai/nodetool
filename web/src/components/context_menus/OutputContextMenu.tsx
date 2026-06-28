@@ -13,8 +13,10 @@ import AltRouteIcon from "@mui/icons-material/AltRoute";
 import SaveAltIcon from "@mui/icons-material/SaveAlt";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 //store
 import useContextMenuStore from "../../stores/ContextMenuStore";
+import { useDynamicOutput } from "../../hooks/nodes/useDynamicOutput";
 import { useReactFlow } from "@xyflow/react";
 import useMetadataStore from "../../stores/MetadataStore";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -47,18 +49,57 @@ const OutputContextMenu: React.FC = () => {
   }), shallow);
   // Combine multiple useNodes subscriptions into a single selector with shallow equality
   // to reduce unnecessary re-renders when other parts of the node state change
-  const { createNode, addNode, addEdge, generateEdgeId } = useNodes(
-    (state) => ({
-      createNode: state.createNode,
-      addNode: state.addNode,
-      addEdge: state.addEdge,
-      generateEdgeId: state.generateEdgeId
-    }),
-    shallow
-  );
+  const { createNode, addNode, addEdge, generateEdgeId, findNode, deleteEdges, edges } =
+    useNodes(
+      (state) => ({
+        createNode: state.createNode,
+        addNode: state.addNode,
+        addEdge: state.addEdge,
+        generateEdgeId: state.generateEdgeId,
+        findNode: state.findNode,
+        deleteEdges: state.deleteEdges,
+        edges: state.edges
+      }),
+      shallow
+    );
   const reactFlowInstance = useReactFlow();
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const allMetadata = useMetadataStore((state) => state.metadata);
+
+  // A dynamic output (user-added via "Add output") can be deleted from here.
+  // Static outputs declared by the node have no entry in `dynamic_outputs`.
+  const dynamicOutputs = useMemo(
+    () => (nodeId ? findNode(nodeId)?.data?.dynamic_outputs ?? {} : {}),
+    [findNode, nodeId]
+  );
+  const isDynamicOutput = !!(sourceHandle && dynamicOutputs[sourceHandle]);
+  const { handleDeleteOutput } = useDynamicOutput(nodeId ?? "", dynamicOutputs);
+
+  const handleDeleteDynamicOutput = useCallback(
+    (event?: React.MouseEvent<HTMLElement>) => {
+      event?.preventDefault();
+      event?.stopPropagation();
+      if (nodeId && sourceHandle) {
+        const edgeIds = edges
+          .filter((e) => e.source === nodeId && e.sourceHandle === sourceHandle)
+          .map((e) => e.id);
+        if (edgeIds.length > 0) {
+          deleteEdges(edgeIds);
+        }
+        handleDeleteOutput(sourceHandle);
+      }
+      closeContextMenu();
+    },
+    [
+      nodeId,
+      sourceHandle,
+      edges,
+      deleteEdges,
+      handleDeleteOutput,
+      closeContextMenu
+    ]
+  );
+
   const [searchTerm, setSearchTerm] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -523,6 +564,25 @@ const OutputContextMenu: React.FC = () => {
             }}
           />
         </Box>
+        {showStaticActions && isDynamicOutput && (
+          <>
+            <Box sx={{ px: 1, py: 0.5 }}>
+              <Box
+                component="button"
+                type="button"
+                className="delete-output"
+                onClick={handleDeleteDynamicOutput}
+                sx={actionRowStyles}
+              >
+                <span className="icon-bg">
+                  <DeleteOutlineIcon />
+                </span>
+                <Text size="small">Delete output</Text>
+              </Box>
+            </Box>
+            <Divider />
+          </>
+        )}
         {showStaticActions && (
           <Box sx={{ px: 1, py: 0.5 }}>
             <Box

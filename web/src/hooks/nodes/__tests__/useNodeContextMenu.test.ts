@@ -54,7 +54,7 @@ jest.mock("@xyflow/react", () => ({
 import { renderHook, act } from "@testing-library/react";
 import { useNodeContextMenu } from "../useNodeContextMenu";
 import useContextMenuStore from "../../../stores/ContextMenuStore";
-import { useNodes } from "../../../contexts/NodeContext";
+import { useNodeStoreRef, useNodes } from "../../../contexts/NodeContext";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import useResultsStore from "../../../stores/ResultsStore";
 import { useWebsocketRunner } from "../../../stores/WorkflowRunner";
@@ -70,6 +70,7 @@ import { useReactFlow } from "@xyflow/react";
 
 const mockedUseContextMenuStore = useContextMenuStore as jest.Mock;
 const mockedUseNodes = useNodes as jest.Mock;
+const mockedUseNodeStoreRef = useNodeStoreRef as jest.Mock;
 const mockedUseNotificationStore = useNotificationStore as unknown as jest.Mock;
 const mockedUseResultsStore = useResultsStore as unknown as jest.Mock;
 const mockedUseWebsocketRunner = useWebsocketRunner as jest.Mock;
@@ -117,6 +118,19 @@ describe("useNodeContextMenu", () => {
   const mockWorkflow = { id: "workflow-1", name: "Test Workflow" };
   const mockEdges = [{ source: "node-1", target: "node-2" }];
   const mockNodes = [mockNode, { id: "node-2", type: "test", data: {} }];
+  let nodeContextState: {
+    updateNodeData: typeof mockUpdateNodeData;
+    updateNode: typeof mockUpdateNode;
+    selectNodesByType: typeof mockSelectNodesByType;
+    deleteNode: typeof mockDeleteNode;
+    getSelectedNodes: typeof mockGetSelectedNodes;
+    toggleBypass: typeof mockToggleBypass;
+    nodes: typeof mockNodes;
+    edges: typeof mockEdges;
+    workflow: typeof mockWorkflow;
+    findNode: (id: string) => (typeof mockNodes)[number] | undefined;
+    setSelectedNodes: typeof mockSetSelectedNodes;
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -140,21 +154,22 @@ describe("useNodeContextMenu", () => {
       getEdges: jest.fn(() => mockEdges)
     }));
 
-    mockedUseNodes.mockImplementation((selector) => {
-      const state = {
-        updateNodeData: mockUpdateNodeData,
-        updateNode: mockUpdateNode,
-        selectNodesByType: mockSelectNodesByType,
-        deleteNode: mockDeleteNode,
-        getSelectedNodes: mockGetSelectedNodes,
-        toggleBypass: mockToggleBypass,
-        nodes: mockNodes,
-        edges: mockEdges,
-        workflow: mockWorkflow,
-        findNode: mockFindNode,
-        setSelectedNodes: mockSetSelectedNodes
-      };
-      return selector(state);
+    nodeContextState = {
+      updateNodeData: mockUpdateNodeData,
+      updateNode: mockUpdateNode,
+      selectNodesByType: mockSelectNodesByType,
+      deleteNode: mockDeleteNode,
+      getSelectedNodes: mockGetSelectedNodes,
+      toggleBypass: mockToggleBypass,
+      nodes: mockNodes,
+      edges: mockEdges,
+      workflow: mockWorkflow,
+      findNode: mockFindNode,
+      setSelectedNodes: mockSetSelectedNodes
+    };
+    mockedUseNodes.mockImplementation((selector) => selector(nodeContextState));
+    mockedUseNodeStoreRef.mockReturnValue({
+      getState: () => nodeContextState
     });
 
     mockedUseDuplicateNodes.mockImplementation((vertical: boolean) => {
@@ -527,21 +542,13 @@ describe("useNodeContextMenu", () => {
 
       const allNodes = [mockNode, downstreamNode];
 
-      mockedUseNodes.mockImplementation((selector) => {
-        const state = {
-          updateNodeData: mockUpdateNodeData,
-          updateNode: mockUpdateNode,
-          selectNodesByType: mockSelectNodesByType,
-          deleteNode: mockDeleteNode,
-          getSelectedNodes: mockGetSelectedNodes,
-          toggleBypass: mockToggleBypass,
-          nodes: allNodes,
-          edges: [edgeFromOutside],
-          workflow: mockWorkflow,
-          findNode: (id: string) => allNodes.find((n) => n.id === id)
-        };
-        return selector(state);
-      });
+      nodeContextState = {
+        ...nodeContextState,
+        nodes: allNodes,
+        edges: [edgeFromOutside],
+        findNode: (id: string) => allNodes.find((n) => n.id === id)
+      };
+      mockedUseNodes.mockImplementation((selector) => selector(nodeContextState));
 
       mockedUseReactFlow.mockImplementation(() => ({
         getNode: jest.fn((id) => allNodes.find((n) => n.id === id) || null),

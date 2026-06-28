@@ -96,6 +96,7 @@ exclude:
   - AGENTS.md
   - DESIGN.md
   - DEVELOPMENT_STANDARDS.md
+  - WRITING_STYLE.md
   - THEME.md
   - CLOUD_NODE_CURATION.md
   - AGENT_CLI_QUICKREF.md

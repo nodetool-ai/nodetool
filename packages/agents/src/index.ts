@@ -8,10 +8,6 @@ export type { Step, Task, TaskPlan } from "./types.js";
 // Tools
 export { Tool } from "./tools/base-tool.js";
 export { FinishStepTool } from "./tools/finish-step-tool.js";
-export {
-  FinishTool,
-  jsonSchemaForOutputType
-} from "./tools/finish-task-tool.js";
 export { CalculatorTool } from "./tools/calculator-tool.js";
 export {
   StatisticsTool,
@@ -42,6 +38,17 @@ export {
   clearThreadTodos
 } from "./tools/todo-tools.js";
 export { MiniJSAgentTool } from "./tools/js-code-tool.js";
+export { ViewImageTool, ListImagesTool } from "./tools/view-image-tool.js";
+export {
+  IMAGE_CONTENT_FIELD,
+  IMAGE_CONTENTS_FIELD,
+  extractInjectableImages,
+  stripImagePayload
+} from "./tools/image-injection.js";
+export type {
+  InjectableImage,
+  ExtractedImages
+} from "./tools/image-injection.js";
 export {
   GoogleSearchTool,
   GoogleNewsTool,
@@ -253,11 +260,7 @@ export { buildSandbox, runInSandbox, serializeResult } from "./js-sandbox.js";
 export type { RunSandboxOptions, RunSandboxResult } from "./js-sandbox.js";
 
 // Constants
-export {
-  DEFAULT_TOKEN_LIMIT,
-  MAX_TOOL_RESULT_CHARS,
-  truncateToolResult
-} from "./constants.js";
+export { MAX_TOOL_RESULT_CHARS, truncateToolResult } from "./constants.js";
 
 // Utilities
 export { extractJSON } from "./utils/json-parser.js";
@@ -267,18 +270,6 @@ export { wrapGeneratorsParallel } from "./utils/wrap-generators-parallel.js";
 // Core execution
 export { StepExecutor } from "./step-executor.js";
 export type { StepExecutorOptions } from "./step-executor.js";
-
-// Context compaction (opt-in, default OFF)
-export {
-  ContextCompactor,
-  estimateMessageTokens,
-  COMPACTION_THRESHOLD_RATIO,
-  DEFAULT_COMPACTION_KEEP_RECENT
-} from "./context-compactor.js";
-export type { CompactionOptions } from "./context-compactor.js";
-export { COMPACTION_SYSTEM_PROMPT } from "./prompts/compaction-prompt.js";
-export { AgentExecutor } from "./agent-executor.js";
-export type { AgentExecutorOptions } from "./agent-executor.js";
 
 // Agents
 export { Agent, loadSkillsFromDirectory } from "./agent.js";

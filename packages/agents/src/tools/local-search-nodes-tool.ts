@@ -92,7 +92,7 @@ export class LocalSearchNodesTool extends Tool {
   readonly name = "search_nodes";
   readonly description =
     "Search for available nodes by keyword. Provider-specific nodes are hidden by default — set include_provider_nodes:true only when the user named a provider. Use namespace to scope to e.g. 'nodetool.control'.";
-  readonly inputSchema: Record<string, unknown> = SEARCH_NODES_INPUT_SCHEMA;
+  readonly jsonSchema: Record<string, unknown> = SEARCH_NODES_INPUT_SCHEMA;
 
   constructor(private readonly registry: NodeRegistry) {
     super();

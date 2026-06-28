@@ -4,8 +4,7 @@ import {
   TextField,
   DialogTitle,
   DialogContent,
-  DialogActions,
-  MenuItem
+  DialogActions
 } from "@mui/material";
 import { FlexRow, EditorButton, Dialog, BORDER_RADIUS } from "../ui_primitives";
 import { Add } from "@mui/icons-material";
@@ -15,6 +14,7 @@ import isEqual from "fast-deep-equal";
 import { useDynamicOutput } from "../../hooks/nodes/useDynamicOutput";
 import { TypeMetadata } from "../../stores/ApiTypes";
 import { validateIdentifierName } from "../../utils/identifierValidation";
+import AddDynamicOutputDialog from "./AddDynamicOutputDialog";
 
 interface NodePropertyFormProps {
   id: string;
@@ -37,32 +37,9 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
   const theme = useTheme();
   const { handleAddOutput } = useDynamicOutput(id, dynamicOutputs);
   const [showOutputDialog, setShowOutputDialog] = useState(false);
-  const [newOutputName, setNewOutputName] = useState("");
-  const [newOutputType, setNewOutputType] = useState("string");
   const [showInputDialog, setShowInputDialog] = useState(false);
   const [newInputName, setNewInputName] = useState("");
   const [inputNameError, setInputNameError] = useState<string | undefined>();
-  const [outputNameError, setOutputNameError] = useState<string | undefined>();
-
-  const onSubmitAdd = useCallback(() => {
-    const name = newOutputName.trim();
-    const validation = validateIdentifierName(name);
-
-    if (!validation.isValid) {
-      setOutputNameError(validation.error);
-      return;
-    }
-
-    handleAddOutput(name, {
-      type: newOutputType,
-      type_args: [],
-      optional: false
-    });
-    setNewOutputName("");
-    setNewOutputType("string");
-    setOutputNameError(undefined);
-    setShowOutputDialog(false);
-  }, [newOutputName, newOutputType, handleAddOutput]);
 
   const handleShowInputDialog = useCallback(() => {
     setShowInputDialog(true);
@@ -148,69 +125,11 @@ const NodePropertyForm: React.FC<NodePropertyFormProps> = ({
             </EditorButton>
           </FlexRow>
 
-          <Dialog
+          <AddDynamicOutputDialog
             open={showOutputDialog}
             onClose={handleHideOutputDialog}
-            maxWidth="xs"
-            fullWidth
-          >
-            <DialogTitle>Add Output</DialogTitle>
-            <DialogContent>
-              <FlexRow css={css({ gap: 8, marginTop: 8 })}>
-                <TextField
-                  autoFocus
-                  label="Name"
-                  size="small"
-                  value={newOutputName}
-                  onChange={(e) => {
-                    setNewOutputName(e.target.value);
-                    if (outputNameError) {
-                      setOutputNameError(undefined);
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") { onSubmitAdd(); }
-                  }}
-                  error={!!outputNameError}
-                  helperText={
-                    outputNameError || "Cannot start with a number"
-                  }
-                  sx={{ flex: 1 }}
-                />
-                <TextField
-                  select
-                  label="Type"
-                  size="small"
-                  value={newOutputType}
-                  onChange={(e) => setNewOutputType(e.target.value)}
-                  sx={{ width: 140 }}
-                >
-                  {[
-                    { label: "bool", value: "bool" },
-                    { label: "int", value: "int" },
-                    { label: "float", value: "float" },
-                    { label: "string", value: "str" }
-                  ].map((opt) => (
-                    <MenuItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </FlexRow>
-            </DialogContent>
-            <DialogActions>
-              <EditorButton
-                onClick={handleHideOutputDialog}
-                variant="text"
-                size="small"
-              >
-                Cancel
-              </EditorButton>
-              <EditorButton onClick={onSubmitAdd} variant="contained" size="small">
-                Add
-              </EditorButton>
-            </DialogActions>
-          </Dialog>
+            onAdd={handleAddOutput}
+          />
         </>
       )}
 

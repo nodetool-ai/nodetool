@@ -39,8 +39,13 @@ declare module "@web-demo" {
     /** Maps a pinned asset file name to a host URL. */
     resolveAssetUrl: (file: string) => string;
     style?: React.CSSProperties;
+    /** Controlled, animatable camera (overrides the cast's recorded viewport). */
+    viewport?: { x: number; y: number; zoom: number };
   }
 
   export const DemoPlayer: React.FC<DemoPlayerProps>;
   export const sampleCast: DemoCast;
+  export const tutorialCast: DemoCast;
+  export const connectRunCast: DemoCast;
+  export const listGeneratorCast: DemoCast;
 }

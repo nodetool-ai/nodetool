@@ -369,6 +369,7 @@ export {
 } from "@nodetool-ai/video-nodes/nodes/timeline";
 export {
   SummarizerNode,
+  EnhancePromptNode,
   CreateThreadNode,
   ExtractorNode,
   ClassifierNode,
