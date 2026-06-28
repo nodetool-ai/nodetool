@@ -34,3 +34,6 @@
 ## 2026-05-25 - O(N*M) lookup bottleneck in workflowUpdates.ts
 **Learning:** Found an $O(N \times M)$ performance bottleneck in `web/src/stores/workflowUpdates.ts` where `runsStore.getRuns(workflow.id).some(r => r.jobId === job.job_id)` was called on every node update. For workflows with thousands of jobs, this iteration causes noticeable CPU stalling.
 **Action:** Implemented a new `hasRun(workflowId, jobId)` method in `WorkflowRunsStore` that uses an O(1) property lookup (`runs[wf]?.[jobId] !== undefined`). Replace `.some()` array iterations with dictionary/map lookups when processing high-frequency updates.
+## 2026-05-25 - O(N*M) Edge Filtering Bottleneck
+**Learning:** Found multiple $O(N \times M)$ performance bottlenecks across the codebase where array operations like `.map` or `.filter` contained nested array lookups via `.find` or `.includes`. These nested loops caused significant performance degradation when processing large arrays such as node graphs or workflow layouts.
+**Action:** Always precompute a `Map` or a `Set` before running iteration methods that perform lookups, reducing the lookup time inside the loop to $O(1)$ and lowering overall time complexity to $O(N+M)$.

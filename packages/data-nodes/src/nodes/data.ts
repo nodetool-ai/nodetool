@@ -1549,10 +1549,11 @@ export class AggregateNode extends BaseNode {
     }
 
     const output: Row[] = [];
+    const groupColsSet = new Set(groupCols);
     for (const [key, items] of groups) {
       const base = JSON.parse(key) as Row;
       const numericCols = [...new Set(items.flatMap((r) => Object.keys(r)))]
-        .filter((c) => !groupCols.includes(c))
+        .filter((c) => !groupColsSet.has(c))
         .filter((c) => items.some((r) => Number.isFinite(toNumber(r[c]))));
       for (const col of numericCols) {
         const values = items

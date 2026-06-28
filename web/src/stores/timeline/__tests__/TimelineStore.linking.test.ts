@@ -232,7 +232,8 @@ describe("duplicate remaps linkId (FIX 3)", () => {
     const newIds = store.getState().duplicateSelected(new Set([videoId, audioId]));
     expect(newIds).toHaveLength(2);
     const clips = store.getState().clips;
-    const copies = newIds.map((id) => clips.find((c) => c.id === id)!);
+    const clipsMap = new Map(clips.map(c => [c.id, c]));
+    const copies = newIds.map((id) => clipsMap.get(id)!);
     const copyLink = copies[0].linkId;
     expect(copyLink).toBeDefined();
     // Both copies share one link id.

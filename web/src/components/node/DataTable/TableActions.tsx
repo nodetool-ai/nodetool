@@ -291,7 +291,8 @@ const TableActions: React.FC<TableActionsProps> = memo(({
         
         // Check if first row is a header row (matches column names)
         const firstRow = rows[0].map((c) => c.toLowerCase().replace(/^"|"$/g, ""));
-        const matchingHeaders = firstRow.filter((h) => colNames.includes(h));
+        const colNamesSet = new Set(colNames);
+        const matchingHeaders = firstRow.filter((h) => colNamesSet.has(h));
         const hasHeaderRow = matchingHeaders.length >= Math.min(2, dataframeColumns.length);
         
         // Build column index mapping

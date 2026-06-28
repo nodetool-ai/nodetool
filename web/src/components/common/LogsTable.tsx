@@ -378,9 +378,11 @@ export const LogsTable: React.FC<LogsTableProps> = ({
 
   // Optimization: Memoize filteredRows to prevent recalculation on every render
   const filteredRows = useMemo(() => {
-    return Array.isArray(severities) && severities.length > 0
-      ? rows.filter((r) => severities.includes(r.severity))
-      : rows;
+    if (Array.isArray(severities) && severities.length > 0) {
+      const severitiesSet = new Set(severities);
+      return rows.filter((r) => severitiesSet.has(r.severity));
+    }
+    return rows;
   }, [rows, severities]);
 
   const rowKeys = useMemo(
