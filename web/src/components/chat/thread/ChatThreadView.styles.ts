@@ -345,6 +345,35 @@ export const createStyles = (theme: Theme) => ({
       marginBottom: 0
     },
 
+    // A message with several tool calls collapses them behind one
+    // "N tools called" line that unfolds to reveal each card.
+    ".tool-call-group-header": {
+      cursor: "pointer",
+      userSelect: "none",
+      borderRadius: BORDER_RADIUS.sm,
+      padding: theme.spacing(0.25, 0.5),
+      margin: theme.spacing(0, -0.5),
+      "&:hover": {
+        background: theme.vars.palette.action.hover
+      },
+      "&:focus-visible": {
+        outline: `2px solid ${theme.vars.palette.primary.main}`,
+        outlineOffset: 1
+      }
+    },
+
+    ".tool-call-group-label": {
+      color: theme.vars.palette.text.secondary
+    },
+
+    ".tool-call-group-body": {
+      paddingLeft: theme.spacing(1)
+    },
+
+    ".tool-call-group-body .tool-call-card + .tool-call-card": {
+      marginTop: "0.05em"
+    },
+
     ".tool-call-card.running .tool-call-name": {
       color: theme.vars.palette.info.main
     },

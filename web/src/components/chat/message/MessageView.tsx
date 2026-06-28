@@ -248,6 +248,103 @@ const ToolCallCard: React.FC<{
 });
 ToolCallCard.displayName = "ToolCallCard";
 
+type ToolResultLookup = Record<
+  string,
+  { name?: string | null; content: unknown; createdAt?: string | null }
+>;
+
+/**
+ * ToolCallGroup - Collapses a message's tool calls behind a single
+ * "N tools called" line that unfolds to reveal each ToolCallCard. A lone
+ * tool call renders directly with no extra chrome.
+ */
+const ToolCallGroup: React.FC<{
+  toolCalls: ToolCall[];
+  toolResultsByCallId?: ToolResultLookup;
+  messageCreatedAt?: string | null;
+}> = React.memo(({ toolCalls, toolResultsByCallId, messageCreatedAt }) => {
+  const [open, setOpen] = useState(false);
+  const runningToolCallId = useGlobalChatStore((s) => s.currentRunningToolCallId);
+  const handleToggleOpen = useCallback(() => setOpen((v) => !v), []);
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setOpen((v) => !v);
+    }
+  }, []);
+
+  const renderCard = useCallback(
+    (tc: ToolCall, i: number) => {
+      const toolResult =
+        tc.id && toolResultsByCallId
+          ? toolResultsByCallId[String(tc.id)]
+          : undefined;
+      const durationMs =
+        toolResult?.createdAt && messageCreatedAt
+          ? new Date(toolResult.createdAt).getTime() -
+            new Date(messageCreatedAt).getTime()
+          : null;
+      return (
+        <ToolCallCard
+          key={tc.id || i}
+          tc={tc}
+          result={toolResult}
+          durationMs={durationMs}
+        />
+      );
+    },
+    [toolResultsByCallId, messageCreatedAt]
+  );
+
+  // A single tool call keeps the original inline card — no group wrapper.
+  if (toolCalls.length <= 1) {
+    return <>{toolCalls.map(renderCard)}</>;
+  }
+
+  const isRunning = toolCalls.some(
+    (tc) => tc.id && runningToolCallId === tc.id
+  );
+
+  return (
+    <div className="tool-call-group">
+      <FlexRow
+        className="tool-call-group-header"
+        align="center"
+        gap={0.5}
+        role="button"
+        tabIndex={0}
+        aria-expanded={open}
+        onClick={handleToggleOpen}
+        onKeyDown={handleKeyDown}
+      >
+        <Text
+          component="span"
+          size="small"
+          weight={500}
+          className="tool-call-group-label"
+        >
+          {toolCalls.length} tools called
+        </Text>
+        {isRunning && <LoadingSpinner size="small" />}
+        <ExpandMoreIcon
+          className={`expand-icon${open ? " expanded" : ""}`}
+          aria-hidden
+        />
+      </FlexRow>
+      <Collapse in={open} timeout="auto" unmountOnExit>
+        <FlexColumn
+          className="tool-call-group-body"
+          gap={0.1}
+          sx={{ marginTop: getSpacingPx(SPACING.xs) }}
+        >
+          {toolCalls.map(renderCard)}
+        </FlexColumn>
+      </Collapse>
+    </div>
+  );
+});
+ToolCallGroup.displayName = "ToolCallGroup";
+
 interface MessageViewProps {
   message: Message;
   isThoughtExpanded: (key: string) => boolean;
@@ -450,26 +547,13 @@ export const MessageView: React.FC<
         <div className="message-content">
           {message.role === "assistant" &&
             Array.isArray(message.tool_calls) &&
-            !message.agent_execution_id && // Don't render tool cards for agent tasks here (they are in AgentExecutionView)
-            (message.tool_calls as ToolCall[]).map((tc, i) => {
-              const toolResult =
-                tc.id && toolResultsByCallId
-                  ? toolResultsByCallId[String(tc.id)]
-                  : undefined;
-              const durationMs =
-                toolResult?.createdAt && message.created_at
-                  ? new Date(toolResult.createdAt).getTime() -
-                    new Date(message.created_at).getTime()
-                  : null;
-              return (
-                <ToolCallCard
-                  key={tc.id || i}
-                  tc={tc}
-                  result={toolResult}
-                  durationMs={durationMs}
-                />
-              );
-            })}
+            !message.agent_execution_id && ( // Don't render tool cards for agent tasks here (they are in AgentExecutionView)
+              <ToolCallGroup
+                toolCalls={message.tool_calls as ToolCall[]}
+                toolResultsByCallId={toolResultsByCallId}
+                messageCreatedAt={message.created_at}
+              />
+            )}
           {(message.role === "assistant" || message.role === "user") && (
             <>
               {typeof message.content === "string" &&
