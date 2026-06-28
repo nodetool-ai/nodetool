@@ -27,6 +27,9 @@ import MiniAppResults from "./components/MiniAppResults";
 import MiniAppInputsForm from "./components/MiniAppInputsForm";
 import MiniAppSidePanel from "./components/MiniAppSidePanel";
 import VibeCodingPreview from "../vibecoding/VibeCodingPreview";
+import AppRuntimeView from "../appbuilder/AppRuntimeView";
+import { loadAppSpec } from "../appbuilder/persistence";
+import { isRenderableAppSpec } from "../appbuilder/appSchema";
 import { useMiniAppInputs } from "./hooks/useMiniAppInputs";
 import { useMiniAppRunner } from "./hooks/useMiniAppRunner";
 import { clampNumber } from "./utils";
@@ -184,6 +187,10 @@ const MiniAppPage: React.FC<MiniAppPageProps> = ({
   const panelSize = usePanelStore((state) => state.panel.panelSize);
   const leftOffset = embedded ? 0 : isVisible ? panelSize : TOOLBAR_WIDTH;
 
+  // Check for a WYSIWYG app spec (takes priority over the default form UI).
+  const appSpec = useMemo(() => loadAppSpec(workflow), [workflow]);
+  const hasAppSpec = isRenderableAppSpec(appSpec);
+
   // Check for custom HTML app
   const hasCustomApp = Boolean(workflow?.html_app);
 
@@ -242,8 +249,15 @@ const MiniAppPage: React.FC<MiniAppPageProps> = ({
           />
         )}
 
+        {/* WYSIWYG App - reactive, event-driven UI built in the App Builder */}
+        {hasAppSpec && appSpec && workflow && (
+          <Box sx={{ height: "100%", width: "100%", flex: 1 }}>
+            <AppRuntimeView workflow={workflow} spec={appSpec} />
+          </Box>
+        )}
+
         {/* Custom HTML App - Full Width */}
-        {hasCustomApp && workflow && (
+        {!hasAppSpec && hasCustomApp && workflow && (
           <Box sx={{ height: "100%", width: "100%", flex: 1 }}>
             <VibeCodingPreview
               html={workflow.html_app!}
@@ -253,7 +267,7 @@ const MiniAppPage: React.FC<MiniAppPageProps> = ({
         )}
 
         {/* Default UI - Centered Container */}
-        {!hasCustomApp && (
+        {!hasAppSpec && !hasCustomApp && (
           <div className="layout-container">
             {/* Loading State */}
             {isLoading && (

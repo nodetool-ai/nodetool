@@ -6,10 +6,13 @@ import { ToolbarIconButton, EditorButton, Box, Collapse, MOTION, Caption, CloseB
 import MenuIcon from "@mui/icons-material/Menu";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
+import DashboardCustomizeIcon from "@mui/icons-material/DashboardCustomize";
 
 import ThemeToggle from "../../ui/ThemeToggle";
 import MiniWorkflowGraph from "./MiniWorkflowGraph";
 import VibeCodingModal from "../../vibecoding/VibeCodingModal";
+import AppBuilderModal from "../../appbuilder/AppBuilderModal";
+import { hasAppSpec } from "../../appbuilder/persistence";
 import { Workflow } from "../../../stores/ApiTypes";
 
 interface MiniAppSidePanelProps {
@@ -25,6 +28,8 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
   const [isOpen, setIsOpen] = useState(false);
   const [showGraph, setShowGraph] = useState(true);
   const [vibeCodingOpen, setVibeCodingOpen] = useState(false);
+  const [appBuilderOpen, setAppBuilderOpen] = useState(false);
+  const workflowHasAppSpec = hasAppSpec(workflow);
 
   const handleOpenPanel = useCallback(() => {
     setIsOpen(true);
@@ -44,6 +49,14 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
 
   const handleCloseVibeCoding = useCallback(() => {
     setVibeCodingOpen(false);
+  }, []);
+
+  const handleOpenAppBuilder = useCallback(() => {
+    setAppBuilderOpen(true);
+  }, []);
+
+  const handleCloseAppBuilder = useCallback(() => {
+    setAppBuilderOpen(false);
   }, []);
 
   const panelWidth = 360;
@@ -238,8 +251,30 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
             </Collapse>
           </div>
 
-          {/* VibeCoding Button */}
+          {/* App Builder Button */}
           <div className="panel-section" style={vibeCodingSectionMarginStyle}>
+            <EditorButton
+              variant="outlined"
+              startIcon={<DashboardCustomizeIcon />}
+              onClick={handleOpenAppBuilder}
+              fullWidth
+              sx={{
+                justifyContent: "flex-start",
+                textTransform: "none",
+                py: 1
+              }}
+            >
+              App Builder
+            </EditorButton>
+            {workflowHasAppSpec && (
+              <Caption color="secondary" sx={{ mt: 0.5 }}>
+                This workflow has a WYSIWYG app
+              </Caption>
+            )}
+          </div>
+
+          {/* VibeCoding Button */}
+          <div className="panel-section">
             <EditorButton
               variant="outlined"
               startIcon={<AutoFixHighIcon />}
@@ -251,14 +286,14 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
                 py: 1
               }}
             >
-              Design App UI
+              Design App UI (HTML)
             </EditorButton>
             {workflow.html_app && (
               <Caption
                 color="secondary"
                 sx={{ mt: 0.5 }}
               >
-                This workflow has a custom app UI
+                This workflow has a custom HTML app UI
               </Caption>
             )}
           </div>
@@ -275,6 +310,13 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
           </div>
         </div>
       </div>
+
+      {/* App Builder Modal */}
+      <AppBuilderModal
+        open={appBuilderOpen}
+        workflow={workflow}
+        onClose={handleCloseAppBuilder}
+      />
 
       {/* VibeCoding Modal */}
       <VibeCodingModal
