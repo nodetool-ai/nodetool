@@ -25,6 +25,7 @@ function nodetoolStubPlugin(): Plugin {
     "@nodetool-ai/models",
     "@nodetool-ai/chat",
     "@nodetool-ai/agents",
+    "@nodetool-ai/agents/js-sandbox",
     "@nodetool-ai/kernel",
     "@nodetool-ai/node-sdk",
     "@nodetool-ai/base-nodes",

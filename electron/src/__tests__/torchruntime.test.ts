@@ -1,4 +1,4 @@
-import { detectTorchPlatform, normalizePlatform } from "../torchruntime";
+import { detectTorchPlatform } from "../torchruntime";
 import { getPythonPath } from "../config";
 import { spawn } from "child_process";
 import type { ChildProcessWithoutNullStreams } from "child_process";
@@ -15,27 +15,6 @@ describe("torchruntime", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetPythonPath.mockReturnValue("/fake/python");
-  });
-
-  describe("normalizePlatform", () => {
-    it("should normalize valid platform strings", () => {
-      expect(normalizePlatform("cu129")).toBe("cu129");
-      expect(normalizePlatform("CU129")).toBe("cu129");
-      expect(normalizePlatform("  rocm6.2  ")).toBe("rocm6.2");
-      expect(normalizePlatform("cpu")).toBe("cpu");
-      expect(normalizePlatform("mps")).toBe("mps");
-    });
-
-    it("should return null for invalid platform strings", () => {
-      expect(normalizePlatform("invalid")).toBeNull();
-      expect(normalizePlatform("")).toBeNull();
-      expect(normalizePlatform(undefined)).toBeNull();
-    });
-
-    it("should reject directml and xpu platforms", () => {
-      expect(normalizePlatform("directml")).toBeNull();
-      expect(normalizePlatform("xpu")).toBeNull();
-    });
   });
 
   describe("detectTorchPlatform", () => {
