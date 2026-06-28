@@ -161,6 +161,10 @@ export interface ScoredNode<T extends NodeMetadata = NodeMetadata> {
  * Score and rank a list of node metadata against search terms.
  * Returns nodes with score > 0, sorted by score descending; ties broken
  * alphabetically on `node_type` for deterministic output.
+ *
+ * For repeated searches over a stable node set, build a {@link NodeSearchIndex}
+ * once and call its `rank` method instead — this function rebuilds the
+ * per-field lowercasing/tokenization on every call.
  */
 export function rankNodeMetadata<T extends NodeMetadata>(
   nodes: readonly T[],
@@ -177,4 +181,128 @@ export function rankNodeMetadata<T extends NodeMetadata>(
     return a.meta.node_type.localeCompare(b.meta.node_type);
   });
   return scored;
+}
+
+/**
+ * The four scored fields, paired with their weight, in the order they are
+ * indexed. Kept parallel to {@link FIELD_WEIGHTS} so the indexed scorer and
+ * {@link scoreNodeMetadata} stay in lockstep.
+ */
+const INDEXED_FIELDS = [
+  FIELD_WEIGHTS.title,
+  FIELD_WEIGHTS.nodeType,
+  FIELD_WEIGHTS.namespace,
+  FIELD_WEIGHTS.description
+] as const;
+
+interface IndexedField {
+  /** Lowercased field text — `""` when the field is absent. */
+  readonly lower: string;
+  /** Lowercased whole-word/segment tokens, for the exact-token bonus. */
+  readonly tokens: ReadonlySet<string>;
+}
+
+interface IndexedNode<T extends NodeMetadata> {
+  readonly meta: T;
+  readonly cls: NamespaceClass;
+  readonly namespace: string;
+  /** Parallel to {@link INDEXED_FIELDS}: title, node_type, namespace, description. */
+  readonly fields: readonly IndexedField[];
+}
+
+function indexField(value: string | undefined): IndexedField {
+  const lower = (value ?? "").toLowerCase();
+  // Mirrors fieldScore's tokenization so exact-token bonuses match exactly.
+  const tokens = new Set(lower.split(/[\s._\-/]+/).filter(Boolean));
+  return { lower, tokens };
+}
+
+/**
+ * Precomputed search index over a fixed set of node metadata.
+ *
+ * Building the index lowercases and tokenizes each node's title, node_type,
+ * namespace, and description once; `rank` then reuses that work across every
+ * query. The ranking is identical to {@link rankNodeMetadata} — same field
+ * weights, exact-token bonus, core multiplier, and tie-break — so the indexed
+ * path is a drop-in for the inner loop of repeated node searches (e.g. the
+ * graph planner, which searches the same registry many times per build).
+ */
+export class NodeSearchIndex<T extends NodeMetadata = NodeMetadata> {
+  private readonly entries: readonly IndexedNode<T>[];
+
+  constructor(nodes: readonly T[]) {
+    this.entries = nodes.map((meta) => ({
+      meta,
+      cls: namespaceClass(meta.namespace),
+      namespace: meta.namespace ?? "",
+      fields: [
+        indexField(meta.title),
+        indexField(meta.node_type),
+        indexField(meta.namespace),
+        indexField(meta.description)
+      ]
+    }));
+  }
+
+  /** Number of nodes covered by this index. */
+  get size(): number {
+    return this.entries.length;
+  }
+
+  /**
+   * Rank the indexed nodes against `terms`. Equivalent to
+   * `rankNodeMetadata(nodes, terms, options)` but without rebuilding the
+   * per-field projections on each call.
+   */
+  rank(terms: readonly string[], options: ScoreOptions = {}): ScoredNode<T>[] {
+    if (terms.length === 0) return [];
+    const lowered: string[] = [];
+    for (const term of terms) {
+      const lower = term.toLowerCase();
+      if (lower) lowered.push(lower);
+    }
+    if (lowered.length === 0) return [];
+
+    const { namespacePrefix } = options;
+    const includeProviderNodes = options.includeProviderNodes ?? false;
+
+    const scored: ScoredNode<T>[] = [];
+    for (const entry of this.entries) {
+      if (namespacePrefix && !entry.namespace.startsWith(namespacePrefix)) {
+        continue;
+      }
+      // A namespacePrefix is an explicit request for whatever lives under that
+      // prefix, so it overrides the default provider-node exclusion.
+      if (
+        entry.cls === "provider" &&
+        !includeProviderNodes &&
+        !namespacePrefix
+      ) {
+        continue;
+      }
+
+      let raw = 0;
+      for (let f = 0; f < INDEXED_FIELDS.length; f++) {
+        const field = entry.fields[f];
+        const weight = INDEXED_FIELDS[f];
+        for (const term of lowered) {
+          if (!field.lower.includes(term)) continue;
+          raw += weight;
+          if (field.tokens.has(term)) raw += weight * EXACT_TOKEN_BONUS;
+        }
+      }
+
+      if (raw === 0) continue;
+      scored.push({
+        meta: entry.meta,
+        score: entry.cls === "core" ? raw * CORE_MULTIPLIER : raw
+      });
+    }
+
+    scored.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.meta.node_type.localeCompare(b.meta.node_type);
+    });
+    return scored;
+  }
 }
