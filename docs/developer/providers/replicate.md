@@ -4,7 +4,7 @@ title: "Replicate: Add Models & Nodes"
 description: "How to add a new Replicate model as a NodeTool node using the codegen pipeline."
 ---
 
-> **Audience:** Coding agents and contributors adding Replicate models to NodeTool. This guide assumes familiarity with the monorepo structure described in [CLAUDE.md](../../../CLAUDE.md).
+> **Audience:** Coding agents and contributors adding Replicate models to NodeTool. This guide assumes familiarity with the monorepo structure described in [CLAUDE.md](https://github.com/nodetool-ai/nodetool/blob/main/CLAUDE.md).
 
 ## TL;DR
 

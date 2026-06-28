@@ -252,4 +252,4 @@ To see the full diff: `git show d1491abf`.
 - Repository: <https://github.com/nodetool-ai/nodetool>
 - Discord: <https://discord.gg/WmQTWZRcYE>
 - Before opening a PR, run `npm run check` (typecheck + lint + tests). PRs that break any of the three will not merge.
-- Follow the writing style in [docs/WRITING_STYLE.md](../../WRITING_STYLE.md) for any Markdown you touch.
+- Follow the writing style in [docs/WRITING_STYLE.md](https://github.com/nodetool-ai/nodetool/blob/main/docs/WRITING_STYLE.md) for any Markdown you touch.
