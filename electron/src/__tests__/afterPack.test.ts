@@ -87,8 +87,11 @@ describe("ensureAppUpdateConfig", () => {
             },
           ],
         },
+        // electron-builder derives this from the package name (nodetool-electron)
+        // → "nodetool-electron-updater". The written value must ignore it and
+        // pin the canonical "nodetool-updater" used by the runtime updater.
         appInfo: {
-          updaterCacheDirName: "nodetool-updater",
+          updaterCacheDirName: "nodetool-electron-updater",
         },
       },
     });
@@ -101,6 +104,7 @@ describe("ensureAppUpdateConfig", () => {
     expect(config).toContain("owner: nodetool-ai");
     expect(config).toContain("repo: nodetool");
     expect(config).toContain("updaterCacheDirName: nodetool-updater");
+    expect(config).not.toContain("nodetool-electron-updater");
   });
 
   it("preserves nightly channel fields in app-update.yml", async () => {

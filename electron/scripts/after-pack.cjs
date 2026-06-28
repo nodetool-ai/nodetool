@@ -122,11 +122,14 @@ async function ensureAppUpdateConfig(context) {
 
   const resourcesDir = resolveResourcesDir(context);
   const appUpdateConfigPath = path.join(resourcesDir, "app-update.yml");
-  const updaterCacheDirName =
-    context?.packager?.appInfo?.updaterCacheDirName ?? "nodetool-updater";
+  // Must match the runtime updater's cache dir (electron/src/updater.ts) so
+  // electron-updater reads and writes the same directory. Do NOT derive this
+  // from appInfo.updaterCacheDirName: electron-builder defaults it to
+  // "<package name>-updater" → "nodetool-electron-updater", which diverges from
+  // the runtime value and fails the release verify gate.
   const config = {
     ...publishConfig,
-    updaterCacheDirName,
+    updaterCacheDirName: "nodetool-updater",
   };
 
   await fsp.mkdir(resourcesDir, { recursive: true });
