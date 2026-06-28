@@ -273,6 +273,24 @@ export const useAppRuntime = (
   const reactiveRun = useCallback(
     (triggerInput: string) => {
       if (!workflow || designMode) return;
+
+      // A graph is already running (a long-lived / streaming workflow): feed the
+      // new value into the live job instead of starting a fresh subgraph run.
+      // Its streaming input re-propagates downstream without a restart.
+      const runner = runnerStore.getState();
+      if (
+        runner.job_id &&
+        (runner.state === "running" ||
+          runner.state === "connecting" ||
+          runner.state === "connected")
+      ) {
+        void runner.streamInput(
+          triggerInput,
+          store.getState().values[triggerInput]
+        );
+        return;
+      }
+
       if (reactiveInFlightRef.current) {
         reactivePendingRef.current = triggerInput;
         return;
@@ -311,7 +329,7 @@ export const useAppRuntime = (
           }
         });
     },
-    [designMode, io, run, store, workflow]
+    [designMode, io, run, runnerStore, store, workflow]
   );
   reactiveRunRef.current = reactiveRun;
 
