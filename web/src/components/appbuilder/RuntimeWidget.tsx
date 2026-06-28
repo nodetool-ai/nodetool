@@ -20,10 +20,17 @@ interface RuntimeWidgetProps {
 
 const RuntimeWidget: React.FC<RuntimeWidgetProps> = ({ widget }) => {
   const { designMode, dispatch, setValue } = useAppRuntimeContext();
-  const value = useRuntimeValue(widget.binding);
-  const runnerState = useRuntimeSelector((s) => s.runnerState);
-
   const definition = getWidgetDefinition(widget.type);
+
+  // Input widgets are controlled, so they need a state key to write to or they
+  // can't be typed into. When the user hasn't bound one to a workflow input,
+  // fall back to the widget's own id so it still holds its value as a local UI
+  // variable. Display widgets keep binding-only reads (no binding → static prop).
+  const stateKey =
+    widget.binding ??
+    (definition?.bindingMode === "write" ? widget.id : undefined);
+  const value = useRuntimeValue(stateKey);
+  const runnerState = useRuntimeSelector((s) => s.runnerState);
 
   const emit = useCallback(
     (trigger: EventTrigger) => {
@@ -38,9 +45,9 @@ const RuntimeWidget: React.FC<RuntimeWidgetProps> = ({ widget }) => {
 
   const writeValue = useCallback(
     (next: unknown) => {
-      if (widget.binding) setValue(widget.binding, next);
+      if (stateKey) setValue(stateKey, next);
     },
-    [setValue, widget.binding]
+    [setValue, stateKey]
   );
 
   const ctx = useMemo<WidgetRenderContext>(

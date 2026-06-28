@@ -1,5 +1,5 @@
 export { default as AppBuilder } from "./AppBuilder";
-export { default as AppBuilderModal } from "./AppBuilderModal";
+export { default as AppBuilderPage } from "./AppBuilderPage";
 export { default as AppRuntimeView } from "./AppRuntimeView";
 export {
   type AppSpec,

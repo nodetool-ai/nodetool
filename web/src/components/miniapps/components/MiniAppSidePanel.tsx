@@ -8,10 +8,11 @@ import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
 import DashboardCustomizeIcon from "@mui/icons-material/DashboardCustomize";
 
+import { useNavigate } from "react-router-dom";
+
 import ThemeToggle from "../../ui/ThemeToggle";
 import MiniWorkflowGraph from "./MiniWorkflowGraph";
 import VibeCodingModal from "../../vibecoding/VibeCodingModal";
-import AppBuilderModal from "../../appbuilder/AppBuilderModal";
 import { hasAppSpec } from "../../appbuilder/persistence";
 import { Workflow } from "../../../stores/ApiTypes";
 
@@ -25,10 +26,10 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
   isRunning = false
 }) => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [showGraph, setShowGraph] = useState(true);
   const [vibeCodingOpen, setVibeCodingOpen] = useState(false);
-  const [appBuilderOpen, setAppBuilderOpen] = useState(false);
   const workflowHasAppSpec = hasAppSpec(workflow);
 
   const handleOpenPanel = useCallback(() => {
@@ -52,12 +53,8 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
   }, []);
 
   const handleOpenAppBuilder = useCallback(() => {
-    setAppBuilderOpen(true);
-  }, []);
-
-  const handleCloseAppBuilder = useCallback(() => {
-    setAppBuilderOpen(false);
-  }, []);
+    navigate(`/app-builder/${workflow.id}`);
+  }, [navigate, workflow.id]);
 
   const panelWidth = 360;
 
@@ -310,13 +307,6 @@ const MiniAppSidePanel: React.FC<MiniAppSidePanelProps> = memo(({
           </div>
         </div>
       </div>
-
-      {/* App Builder Modal */}
-      <AppBuilderModal
-        open={appBuilderOpen}
-        workflow={workflow}
-        onClose={handleCloseAppBuilder}
-      />
 
       {/* VibeCoding Modal */}
       <VibeCodingModal

@@ -34,12 +34,12 @@ the existing worker path — no server round-trip.
 - `widgets/` — `WidgetDefinition` interface, the registry, and the widget library.
 - `RuntimeWidget.tsx` / `AppRuntimeView.tsx` — render a spec live and reactively.
 - `editor/` — the WYSIWYG surface: palette, drag/resize grid canvas, inspector
-  (props / binding / events). `AppBuilder.tsx` is the shell; `AppBuilderModal.tsx`
-  hosts it and saves.
+  (props / binding / events). `AppBuilder.tsx` is the shell; `AppBuilderPage.tsx`
+  is the route that fetches the workflow, hosts it, and saves.
 - `../../stores/AppBuilderStore.ts` — editor state with undo/redo.
 
 ## Where it shows up
 
 `MiniAppPage` renders `AppRuntimeView` when the workflow has a spec (priority:
-app spec → `html_app` → default form). Open the builder from the app-mode side
-panel ("App Builder").
+app spec → `html_app` → default form). The builder lives at its own route,
+`/app-builder/:workflowId`; open it from the app-mode side panel ("App Builder").

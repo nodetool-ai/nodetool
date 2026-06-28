@@ -1,5 +1,6 @@
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../__mocks__/themeMock";
@@ -59,6 +60,30 @@ describe("AppRuntimeView", () => {
   it("renders widgets from the spec", () => {
     renderView();
     expect(screen.getByText("Reactive App")).toBeInTheDocument();
+  });
+
+  it("lets the user type into an input that isn't bound to a workflow input", async () => {
+    const inputSpec: AppSpec = {
+      ...createEmptyAppSpec("Inputs"),
+      widgets: [
+        {
+          id: "ti1",
+          type: "textInput",
+          layout: { x: 0, y: 0, w: 12, h: 1 },
+          props: { label: "Name", placeholder: "", multiline: false }
+        }
+      ]
+    };
+
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <AppRuntimeView workflow={workflow} spec={inputSpec} />
+      </ThemeProvider>
+    );
+
+    const field = screen.getByLabelText("Name");
+    await userEvent.type(field, "hello");
+    await waitFor(() => expect(field).toHaveValue("hello"));
   });
 
   it("reactively updates a bound widget when a streamed output arrives", async () => {
