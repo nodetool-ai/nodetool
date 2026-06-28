@@ -55,13 +55,17 @@ export const useWidgetRuntime = ({
     [setStateValue, stateKey]
   );
 
+  // A write widget's binding is the workflow input it drives; pass it as the
+  // trigger origin so a `run` recomputes only that input's downstream subgraph.
+  const triggerInput = bindingMode === "write" ? binding : undefined;
+
   const emit = useCallback(
     (trigger: EventTrigger) => {
       for (const event of events ?? []) {
-        if (event.trigger === trigger) dispatch(eventToAction(event));
+        if (event.trigger === trigger) dispatch(eventToAction(event, triggerInput));
       }
     },
-    [dispatch, events]
+    [dispatch, events, triggerInput]
   );
 
   return { value, setValue, emit, designMode, runnerState };

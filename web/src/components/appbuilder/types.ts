@@ -11,7 +11,7 @@ export type EventTrigger = "click" | "change";
 
 /** Action dispatched by the reactive engine. */
 export type AppAction =
-  | { kind: "run" }
+  | { kind: "run"; from?: string }
   | { kind: "cancel" }
   | { kind: "setState"; key: string; value: WidgetPropValue }
   | { kind: "toggleState"; key: string };
@@ -31,7 +31,13 @@ export interface AppEvent {
   value?: string;
 }
 
-export const eventToAction = (event: AppEvent): AppAction => {
+/**
+ * Convert a stored widget event into an action. `from` is the triggering
+ * widget's write binding (a workflow input name): a `run` from a bound input
+ * recomputes only that input's downstream subgraph; an unbound `run` (e.g. a
+ * button) runs the whole workflow.
+ */
+export const eventToAction = (event: AppEvent, from?: string): AppAction => {
   switch (event.kind) {
     case "setState":
       return { kind: "setState", key: event.key ?? "", value: event.value ?? "" };
@@ -41,6 +47,6 @@ export const eventToAction = (event: AppEvent): AppAction => {
       return { kind: "cancel" };
     case "run":
     default:
-      return { kind: "run" };
+      return { kind: "run", from };
   }
 };

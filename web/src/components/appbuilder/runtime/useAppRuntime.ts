@@ -18,8 +18,10 @@ import {
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 import { graphNodeToReactFlowNode } from "../../../stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "../../../stores/graphEdgeToReactFlowEdge";
+import { runBrowserGraphJob } from "../../../lib/workflow/browserWorkflowRunner";
 import { AppAction } from "../types";
 import { extractWorkflowIO } from "../workflowIO";
+import { buildTriggerSubgraph } from "./buildTriggerSubgraph";
 import { createAppRuntimeStore, AppRuntimeStore } from "./appRuntimeStore";
 import { AppRuntimeContextValue } from "./AppRuntimeContext";
 
@@ -254,12 +256,74 @@ export const useAppRuntime = (
     store.getState().setProgress(null);
   }, [runnerStore, store]);
 
+  // Reactive trigger: recompute only the subgraph downstream of a bound input.
+  // Runs are coalesced — one in flight, latest value wins — and reuse a single
+  // job id so a scrub upserts one live result instead of flooding new ones. The
+  // run streams through the same deliverLocal pipeline as a full run, so bound
+  // display widgets update identically. No runner-state toggling: a slider
+  // scrub is a live update, not a "run", so the UI never flashes "Running…".
+  const reactiveJobIdRef = useRef<string>("");
+  if (reactiveJobIdRef.current === "") {
+    reactiveJobIdRef.current = crypto.randomUUID();
+  }
+  const reactiveInFlightRef = useRef(false);
+  const reactivePendingRef = useRef<string | null>(null);
+  const reactiveRunRef = useRef<(triggerInput: string) => void>(() => {});
+
+  const reactiveRun = useCallback(
+    (triggerInput: string) => {
+      if (!workflow || designMode) return;
+      if (reactiveInFlightRef.current) {
+        reactivePendingRef.current = triggerInput;
+        return;
+      }
+      const sub = buildTriggerSubgraph(
+        workflow,
+        io,
+        store.getState().values,
+        triggerInput
+      );
+      // No browser-runnable subgraph (unknown input, or a server tail at the
+      // root) — fall back to a full authoritative run.
+      if (!sub) {
+        void run();
+        return;
+      }
+      reactiveInFlightRef.current = true;
+      store.getState().setError(null);
+      void runBrowserGraphJob({
+        graph: sub.graph,
+        workflowId: workflow.id,
+        jobId: reactiveJobIdRef.current
+      })
+        .catch((error) => {
+          store
+            .getState()
+            .setError(error instanceof Error ? error.message : "Run failed");
+        })
+        .finally(() => {
+          reactiveInFlightRef.current = false;
+          const pending = reactivePendingRef.current;
+          if (pending !== null) {
+            reactivePendingRef.current = null;
+            // Re-run from fresh store values — the slider has moved on.
+            reactiveRunRef.current(pending);
+          }
+        });
+    },
+    [designMode, io, run, store, workflow]
+  );
+  reactiveRunRef.current = reactiveRun;
+
   const dispatch = useCallback(
     (action: AppAction) => {
       if (designMode) return;
       switch (action.kind) {
         case "run":
-          void run();
+          // A run triggered from a bound input recomputes just its downstream
+          // subgraph; an unbound run (a button) runs the whole workflow.
+          if (action.from) reactiveRun(action.from);
+          else void run();
           break;
         case "cancel":
           void cancel();
@@ -274,7 +338,7 @@ export const useAppRuntime = (
           break;
       }
     },
-    [cancel, designMode, run, store]
+    [cancel, designMode, reactiveRun, run, store]
   );
 
   const setValue = useCallback(
