@@ -20,7 +20,42 @@
   {%- comment -%} Load Mermaid once, and only on pages that contain a diagram. {%- endcomment -%}
   {% if content contains 'class="mermaid"' %}
   <script src="{{ site.mermaid.src }}"></script>
-  <script>mermaid.initialize({ startOnLoad: true, theme: 'dark' });</script>
+  <script>
+    // Theme Mermaid to match the NodeTool editor canvas (the look of the
+    // workflow graphs on the marketing site): dark node chrome, Inter type,
+    // smooth bezier edges. The dotted-grid canvas and node shadow live in CSS
+    // (.mermaid in main.scss); these variables set the fills, fonts, and colors.
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      themeVariables: {
+        fontFamily: 'Inter, sans-serif',
+        fontSize: '14px',
+        background: '#08090A',        // canvas (c_editor_bg_color)
+        primaryColor: '#1B1D21',      // node body (c_node_bg)
+        primaryBorderColor: 'rgba(255,255,255,0.10)',
+        primaryTextColor: '#D4D6DB',  // node label
+        secondaryColor: '#17181B',
+        tertiaryColor: '#101113',
+        mainBkg: '#1B1D21',
+        nodeBorder: 'rgba(255,255,255,0.10)',
+        clusterBkg: '#101113',
+        clusterBorder: 'rgba(255,255,255,0.08)',
+        lineColor: '#6690d4',         // edges (accent blue)
+        arrowheadColor: '#6690d4',
+        edgeLabelBackground: '#101113',
+        textColor: '#D4D6DB'
+      },
+      flowchart: {
+        curve: 'basis',               // bezier-like edges, as on the canvas
+        htmlLabels: true,
+        padding: 14,
+        nodeSpacing: 48,
+        rankSpacing: 64,
+        useMaxWidth: true
+      }
+    });
+  </script>
   {% endif %}
 
   <!-- Privacy-friendly analytics by Plausible -->

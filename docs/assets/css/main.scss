@@ -1811,6 +1811,95 @@ pre:hover .copy-button,
   margin-bottom: 0;
 }
 
+/* === Mermaid Workflow Graphs === */
+/* Restyle Mermaid diagrams to match the NodeTool editor canvas — the same
+   look the workflow graphs have on the marketing site. The theme variables
+   (fills, fonts, edge color) are set in _layouts/default.html; the canvas
+   grid, node chrome, and edge polish live here. */
+.mermaid {
+  /* The editor canvas: dark fill with the dotted grid (NodeCanvas). */
+  background-color: #08090A;
+  background-image: radial-gradient(circle, #1F2126 1px, transparent 1px);
+  background-size: 16px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: var(--spacing-xl) var(--spacing-lg);
+  margin: var(--spacing-xl) 0;
+  text-align: center;
+  overflow-x: auto;
+}
+
+.mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Node chrome: dark body, rounded corners, soft drop shadow, faint edge —
+   the NodeTool node card. */
+.mermaid .node rect,
+.mermaid .node polygon,
+.mermaid .node circle,
+.mermaid .node ellipse,
+.mermaid .node path {
+  rx: 8px;
+  ry: 8px;
+  fill: var(--color-bg-tertiary) !important;
+  stroke: rgba(255, 255, 255, 0.10) !important;
+  stroke-width: 1px !important;
+  filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.16));
+}
+
+.mermaid .node .label,
+.mermaid .nodeLabel,
+.mermaid .node text {
+  fill: var(--color-text-secondary) !important;
+  color: var(--color-text-secondary) !important;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+/* Edges: smooth accent-blue connectors with rounded caps, like the canvas. */
+.mermaid .edgePath .path,
+.mermaid .flowchart-link {
+  stroke: var(--color-accent-blue) !important;
+  stroke-width: 1.6px !important;
+  stroke-opacity: 0.95;
+  stroke-linecap: round;
+  fill: none !important;
+}
+
+.mermaid .arrowheadPath,
+.mermaid marker path {
+  fill: var(--color-accent-blue) !important;
+  stroke: none !important;
+}
+
+/* Edge labels sit on a small dark chip so they read over the grid. */
+.mermaid .edgeLabel,
+.mermaid .edgeLabel p {
+  background-color: var(--color-bg-secondary) !important;
+  color: var(--color-text-muted) !important;
+  fill: var(--color-text-muted) !important;
+  font-size: 12px;
+  border-radius: 4px;
+}
+
+/* Subgraph containers, when a graph uses them. */
+.mermaid .cluster rect {
+  fill: rgba(16, 17, 19, 0.6) !important;
+  stroke: var(--color-border) !important;
+  rx: 10px;
+  ry: 10px;
+}
+
+.mermaid .cluster .label,
+.mermaid .cluster text {
+  fill: var(--color-text-muted) !important;
+  color: var(--color-text-muted) !important;
+}
+
 /* === Print Styles === */
 @media print {
 
