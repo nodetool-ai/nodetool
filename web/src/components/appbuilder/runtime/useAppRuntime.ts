@@ -18,7 +18,7 @@ import {
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 import { graphNodeToReactFlowNode } from "../../../stores/graphNodeToReactFlowNode";
 import { graphEdgeToReactFlowEdge } from "../../../stores/graphEdgeToReactFlowEdge";
-import { AppAction } from "../appSchema";
+import { AppAction } from "../types";
 import { extractWorkflowIO } from "../workflowIO";
 import { createAppRuntimeStore, AppRuntimeStore } from "./appRuntimeStore";
 import { AppRuntimeContextValue } from "./AppRuntimeContext";

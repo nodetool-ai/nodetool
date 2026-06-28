@@ -6,7 +6,7 @@
 import { createContext, useContext } from "react";
 import { useStore } from "zustand";
 
-import { AppAction } from "../appSchema";
+import { AppAction } from "../types";
 import { WorkflowIO } from "../workflowIO";
 import { AppRuntimeStore, AppRuntimeState } from "./appRuntimeStore";
 

@@ -2,31 +2,31 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { Data } from "@puckeditor/core";
 
 import { Box, FlexColumn, LoadingSpinner, Text } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
-import { useAppBuilderStore } from "../../stores/AppBuilderStore";
-import { createEmptyAppSpec } from "./appSchema";
-import { loadAppSpec, withAppSpec } from "./persistence";
-import AppBuilder from "./AppBuilder";
+import { APP_DATA_VERSION, createEmptyData } from "./appData";
+import { loadAppData, withAppDocument } from "./persistence";
+import PuckAppEditor from "./puck/PuckAppEditor";
 
 /**
  * Full-page route for the WYSIWYG app builder (`/app-builder/:workflowId`).
- * Fetches the workflow, loads its spec into the editor store, and persists
- * edits back onto `workflow.settings`. Closing returns to the previous view.
+ * Fetches the workflow, hands its Puck document to the editor, and persists
+ * edits back onto `workflow.settings` on publish.
  */
 const AppBuilderPage: React.FC = () => {
   const { workflowId } = useParams<{ workflowId?: string }>();
   const navigate = useNavigate();
-  const [saving, setSaving] = useState(false);
 
   const fetchWorkflow = useWorkflowManager((s) => s.fetchWorkflow);
   const saveWorkflow = useWorkflowManager((s) => s.saveWorkflow);
-  const loadSpec = useAppBuilderStore((s) => s.loadSpec);
   const addNotification = useNotificationStore((s) => s.addNotification);
   const queryClient = useQueryClient();
+
+  const [data, setData] = useState<Data | null>(null);
 
   const {
     data: workflow,
@@ -41,42 +41,44 @@ const AppBuilderPage: React.FC = () => {
     retry: false
   });
 
-  // Load the workflow's spec into the editor once it's fetched.
+  // Seed the editor once the workflow is fetched.
   useEffect(() => {
     if (!workflow) return;
-    loadSpec(loadAppSpec(workflow) ?? createEmptyAppSpec(workflow.name));
-  }, [workflow, loadSpec]);
+    setData(loadAppData(workflow) ?? createEmptyData());
+  }, [workflow]);
 
   const handleClose = useCallback(() => {
     navigate(-1);
   }, [navigate]);
 
-  const handleSave = useCallback(async () => {
-    if (!workflow) return;
-    setSaving(true);
-    try {
-      const spec = useAppBuilderStore.getState().spec;
-      const next: Workflow = {
-        ...workflow,
-        settings: withAppSpec(workflow.settings, spec)
-      };
-      await saveWorkflow(next);
-      queryClient.setQueryData(["workflow", workflow.id], next);
-      void queryClient.invalidateQueries({
-        queryKey: ["workflow", workflow.id]
-      });
-      addNotification({ type: "success", content: "App saved" });
-    } catch (err) {
-      addNotification({
-        type: "error",
-        content: err instanceof Error ? err.message : "Failed to save app"
-      });
-    } finally {
-      setSaving(false);
-    }
-  }, [addNotification, queryClient, saveWorkflow, workflow]);
+  const handlePublish = useCallback(
+    async (nextData: Data) => {
+      if (!workflow) return;
+      try {
+        const next: Workflow = {
+          ...workflow,
+          settings: withAppDocument(workflow.settings, {
+            version: APP_DATA_VERSION,
+            data: nextData
+          })
+        };
+        await saveWorkflow(next);
+        queryClient.setQueryData(["workflow", workflow.id], next);
+        void queryClient.invalidateQueries({
+          queryKey: ["workflow", workflow.id]
+        });
+        addNotification({ type: "success", content: "App saved" });
+      } catch (err) {
+        addNotification({
+          type: "error",
+          content: err instanceof Error ? err.message : "Failed to save app"
+        });
+      }
+    },
+    [addNotification, queryClient, saveWorkflow, workflow]
+  );
 
-  if (isLoading) {
+  if (isLoading || (workflow && !data)) {
     return (
       <FlexColumn
         align="center"
@@ -88,7 +90,7 @@ const AppBuilderPage: React.FC = () => {
     );
   }
 
-  if (error || !workflow) {
+  if (error || !workflow || !data) {
     return (
       <FlexColumn
         align="center"
@@ -106,11 +108,11 @@ const AppBuilderPage: React.FC = () => {
 
   return (
     <Box sx={{ width: "100%", height: "100%" }}>
-      <AppBuilder
+      <PuckAppEditor
         workflow={workflow}
+        data={data}
+        onPublish={handlePublish}
         onClose={handleClose}
-        onSave={handleSave}
-        saving={saving}
       />
     </Box>
   );

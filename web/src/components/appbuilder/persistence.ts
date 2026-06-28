@@ -1,47 +1,53 @@
 /**
- * Loads and saves an AppSpec on a workflow.
+ * Loads and saves an app's Puck document on a workflow.
  *
- * The spec rides along in `workflow.settings` under a reserved key, serialized
- * as a JSON string. `settings` already round-trips through the workflow
- * create/update API (it accepts arbitrary JSON), so no backend/migration work
- * is needed to ship the app builder.
+ * The document rides along in `workflow.settings` under a reserved key,
+ * serialized as JSON. `settings` round-trips through the workflow create/update
+ * API (it accepts arbitrary JSON), so shipping the builder needs no
+ * backend/migration work.
  */
+import type { Data } from "@puckeditor/core";
 import { Workflow } from "../../stores/ApiTypes";
 import {
-  AppSpec,
-  APP_SPEC_SETTINGS_KEY,
-  parseAppSpec
-} from "./appSchema";
+  AppDocument,
+  APP_DATA_SETTINGS_KEY,
+  parseAppDocument
+} from "./appData";
 
 type WorkflowSettings = Workflow["settings"];
 
-export const loadAppSpec = (workflow?: Workflow | null): AppSpec | null => {
-  const raw = (workflow?.settings as Record<string, unknown> | null | undefined)?.[
-    APP_SPEC_SETTINGS_KEY
-  ];
+export const loadAppDocument = (
+  workflow?: Workflow | null
+): AppDocument | null => {
+  const raw = (
+    workflow?.settings as Record<string, unknown> | null | undefined
+  )?.[APP_DATA_SETTINGS_KEY];
   if (typeof raw !== "string") return null;
   try {
-    return parseAppSpec(JSON.parse(raw));
+    return parseAppDocument(JSON.parse(raw));
   } catch {
     return null;
   }
 };
 
+export const loadAppData = (workflow?: Workflow | null): Data | null =>
+  loadAppDocument(workflow)?.data ?? null;
+
 export const hasAppSpec = (workflow?: Workflow | null): boolean => {
-  const spec = loadAppSpec(workflow);
-  return Boolean(spec && spec.widgets.length > 0);
+  const data = loadAppData(workflow);
+  return Boolean(data && data.content.length > 0);
 };
 
-/** Returns a new settings object with the spec embedded (or removed when null). */
-export const withAppSpec = (
+/** Returns new settings with the document embedded (or removed when null). */
+export const withAppDocument = (
   settings: WorkflowSettings,
-  spec: AppSpec | null
+  doc: AppDocument | null
 ): WorkflowSettings => {
   const next: Record<string, unknown> = { ...(settings ?? {}) };
-  if (spec === null) {
-    delete next[APP_SPEC_SETTINGS_KEY];
+  if (doc === null) {
+    delete next[APP_DATA_SETTINGS_KEY];
   } else {
-    next[APP_SPEC_SETTINGS_KEY] = JSON.stringify(spec);
+    next[APP_DATA_SETTINGS_KEY] = JSON.stringify(doc);
   }
   return next as WorkflowSettings;
 };

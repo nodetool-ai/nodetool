@@ -1,9 +1,14 @@
-import { loadAppSpec, hasAppSpec, withAppSpec } from "../persistence";
 import {
-  createEmptyAppSpec,
-  APP_SPEC_SETTINGS_KEY,
-  AppSpec
-} from "../appSchema";
+  loadAppData,
+  loadAppDocument,
+  hasAppSpec,
+  withAppDocument
+} from "../persistence";
+import {
+  APP_DATA_SETTINGS_KEY,
+  AppDocument,
+  APP_DATA_VERSION
+} from "../appData";
 import { Workflow } from "../../../stores/ApiTypes";
 
 const makeWorkflow = (settings: Workflow["settings"]): Workflow =>
@@ -15,49 +20,48 @@ const makeWorkflow = (settings: Workflow["settings"]): Workflow =>
     settings
   }) as unknown as Workflow;
 
-const sampleSpec = (): AppSpec => ({
-  ...createEmptyAppSpec("App"),
-  widgets: [
-    { id: "a", type: "button", layout: { x: 0, y: 0, w: 3, h: 1 }, props: { label: "Go" } }
-  ]
+const sampleDoc = (): AppDocument => ({
+  version: APP_DATA_VERSION,
+  data: {
+    root: { props: { title: "App" } },
+    content: [{ type: "Button", props: { id: "b1", label: "Go" } }],
+    zones: {}
+  }
 });
 
 describe("appbuilder persistence", () => {
-  it("round-trips a spec through settings", () => {
-    const spec = sampleSpec();
-    const settings = withAppSpec(null, spec);
-    const stored = (settings as Record<string, unknown>)[APP_SPEC_SETTINGS_KEY];
+  it("round-trips a Puck document through settings", () => {
+    const settings = withAppDocument(null, sampleDoc());
+    const stored = (settings as Record<string, unknown>)[APP_DATA_SETTINGS_KEY];
     expect(typeof stored).toBe("string");
 
     const workflow = makeWorkflow(settings);
-    const loaded = loadAppSpec(workflow);
-    expect(loaded).not.toBeNull();
-    expect(loaded!.widgets).toHaveLength(1);
-    expect(loaded!.widgets[0].props.label).toBe("Go");
+    const doc = loadAppDocument(workflow);
+    expect(doc).not.toBeNull();
+    expect(doc!.data.content).toHaveLength(1);
+
+    const data = loadAppData(workflow);
+    expect(data!.content[0].props.label).toBe("Go");
+    expect(hasAppSpec(workflow)).toBe(true);
   });
 
-  it("returns null when there is no spec", () => {
-    expect(loadAppSpec(makeWorkflow(null))).toBeNull();
-    expect(loadAppSpec(makeWorkflow({ other: "x" }))).toBeNull();
+  it("returns null when there is no document", () => {
+    expect(loadAppData(makeWorkflow(null))).toBeNull();
+    expect(loadAppData(makeWorkflow({ other: "x" }))).toBeNull();
     expect(hasAppSpec(makeWorkflow(null))).toBe(false);
   });
 
   it("returns null on malformed JSON", () => {
-    const workflow = makeWorkflow({ [APP_SPEC_SETTINGS_KEY]: "{not json" });
-    expect(loadAppSpec(workflow)).toBeNull();
+    const workflow = makeWorkflow({ [APP_DATA_SETTINGS_KEY]: "{bad" });
+    expect(loadAppData(workflow)).toBeNull();
   });
 
-  it("removes the spec when passed null while preserving other settings", () => {
-    const withSpec = withAppSpec({ keep: "yes" }, sampleSpec());
-    const without = withAppSpec(withSpec, null);
-    expect((without as Record<string, unknown>)[APP_SPEC_SETTINGS_KEY]).toBeUndefined();
+  it("removes the document when passed null and keeps other settings", () => {
+    const withDoc = withAppDocument({ keep: "yes" }, sampleDoc());
+    const without = withAppDocument(withDoc, null);
+    expect(
+      (without as Record<string, unknown>)[APP_DATA_SETTINGS_KEY]
+    ).toBeUndefined();
     expect((without as Record<string, unknown>).keep).toBe("yes");
-  });
-
-  it("hasAppSpec is true only with renderable widgets", () => {
-    const empty = makeWorkflow(withAppSpec(null, createEmptyAppSpec()));
-    expect(hasAppSpec(empty)).toBe(false);
-    const populated = makeWorkflow(withAppSpec(null, sampleSpec()));
-    expect(hasAppSpec(populated)).toBe(true);
   });
 });
