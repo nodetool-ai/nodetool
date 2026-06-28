@@ -61,7 +61,7 @@ describe("buildTriggerSubgraph", () => {
   it("injects the live UI value onto the trigger input node", () => {
     const sub = buildTriggerSubgraph(makeWorkflow(), io, { hue: 42 }, "hue");
     const hueNode = sub!.graph.nodes.find((n) => n.id === "hue");
-    expect(hueNode?.data?.value).toBe(42);
+    expect((hueNode?.data as Record<string, unknown>)?.value).toBe(42);
   });
 
   it("returns null for an unknown trigger input", () => {
