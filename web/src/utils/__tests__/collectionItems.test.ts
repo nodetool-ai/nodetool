@@ -3,7 +3,6 @@ import {
   assetToItem,
   collectionElementType,
   collectionType,
-  outputValueToItem,
   readItems,
   type CollectionItem
 } from "../collectionItems";
@@ -42,19 +41,6 @@ describe("collectionItems", () => {
         asset({ content_type: "video/mp4", get_url: "http://x/v.mp4" })
       );
       expect(item?.type).toBe("video");
-    });
-  });
-
-  describe("outputValueToItem", () => {
-    it("coerces a generation value and attaches the asset id", () => {
-      expect(
-        outputValueToItem({ type: "image", uri: "u" }, "gen-asset")
-      ).toEqual({ type: "image", uri: "u", asset_id: "gen-asset" });
-    });
-
-    it("rejects values without a type", () => {
-      expect(outputValueToItem({ uri: "u" })).toBeNull();
-      expect(outputValueToItem("nope")).toBeNull();
     });
   });
 

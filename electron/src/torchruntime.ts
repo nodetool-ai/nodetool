@@ -252,22 +252,3 @@ export async function detectTorchPlatform(): Promise<TorchruntimeDetectionResult
   }
 }
 
-export function normalizePlatform(platformStr: string | undefined): TorchPlatform | null {
-  if (!platformStr) {
-    return null;
-  }
-
-  const normalized = platformStr.toLowerCase().trim();
-  const validPlatforms: TorchPlatform[] = [
-    "cu118", "cu124", "cu128", "cu129",
-    "rocm5.2", "rocm5.7", "rocm6.2", "rocm6.4",
-    "mps", "cpu"
-  ];
-
-  if (validPlatforms.includes(normalized as TorchPlatform)) {
-    return normalized as TorchPlatform;
-  }
-
-  logMessage(`Invalid platform string '${platformStr}', ignoring`, "warn");
-  return null;
-}

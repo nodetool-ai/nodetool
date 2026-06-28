@@ -97,26 +97,6 @@ export function createLinearGradient(
   return `linear-gradient(${direction}, ${rgbaColor}, ${rgbaModifiedColor})`;
 }
 
-export function simulateOpacity(
-  hexColor: string,
-  alphaValue: number,
-  backgroundColor: string = "#fff"
-): string {
-  // If either color is provided as a CSS variable token, we cannot blend
-  // it numerically. Just return the foreground color unchanged – the browser
-  // will resolve the variable at paint‐time.
-  if (isCssVar(hexColor) || isCssVar(backgroundColor)) {
-    return hexColor;
-  }
-
-  const foregroundColor = parse(hexColor);
-  const bgColor = parse(backgroundColor);
-
-  const blendedColor = mix(bgColor, foregroundColor, alphaValue);
-
-  return toHex(blendedColor);
-}
-
 // ---------------------------------------------------------------------
 // NODE TYPE COLORS FOR MINIMAP
 // ---------------------------------------------------------------------

@@ -45,21 +45,6 @@ export const assetToItem = (asset: Asset): CollectionItem | null => {
   };
 };
 
-/** Coerce a generation / output value (`{ type, uri, … }`) into a collection item. */
-export const outputValueToItem = (
-  value: unknown,
-  assetId?: string
-): CollectionItem | null => {
-  if (!isRecord(value)) return null;
-  const type = typeof value.type === "string" ? value.type : undefined;
-  if (!type) return null;
-  return {
-    ...value,
-    type,
-    ...(assetId ? { asset_id: assetId } : {})
-  } as CollectionItem;
-};
-
 export type AppendResult =
   | { ok: true; items: CollectionItem[]; added: number }
   | { ok: false; reason: "type-mismatch" | "duplicate" | "empty"; expected?: string };

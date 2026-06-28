@@ -63,10 +63,6 @@ export function setModel3DToolHandler(next: Model3DToolHandler | null): void {
   handler = next;
 }
 
-export function hasModel3DToolHandler(): boolean {
-  return handler !== null;
-}
-
 export function getModel3DToolHandler(): Model3DToolHandler {
   if (!handler) {
     throw new Error(

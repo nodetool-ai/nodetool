@@ -6,7 +6,6 @@ import {
   darkenHexColor,
   adjustSaturation,
   createLinearGradient,
-  simulateOpacity,
   NodeTypeCategory,
   getNodeCategoryColor,
   createMinimapNodeColorFn
@@ -161,55 +160,6 @@ describe("ColorUtils", () => {
     it("should handle CSS variables", () => {
       const gradient = createLinearGradient("var(--color-primary)", 50);
       expect(gradient).toContain("var(--color-primary)");
-    });
-  });
-
-  describe("simulateOpacity", () => {
-    it("should simulate opacity by blending with background", () => {
-      // Red at 50% opacity on white background
-      const result = simulateOpacity("#ff0000", 0.5, "#ffffff");
-      expect(result).toBe("#ff8080");
-    });
-
-    it("should blend with default white background", () => {
-      const result = simulateOpacity("#000000", 0.5);
-      expect(result).toBe("#808080"); // Black at 50% on white = gray
-    });
-
-    it("should handle full opacity", () => {
-      expect(simulateOpacity("#ff0000", 1, "#ffffff")).toBe("#ff0000");
-    });
-
-    it("should handle zero opacity", () => {
-      expect(simulateOpacity("#ff0000", 0, "#ffffff")).toBe("#ffffff");
-    });
-
-    it("should preserve CSS variables in foreground", () => {
-      expect(simulateOpacity("var(--color-fg)", 0.5, "#ffffff")).toBe(
-        "var(--color-fg)"
-      );
-    });
-
-    it("should preserve CSS variables in background", () => {
-      expect(simulateOpacity("#ff0000", 0.5, "var(--color-bg)")).toBe(
-        "#ff0000"
-      );
-    });
-
-    it("should blend different colors correctly", () => {
-      // Blue on red background at 50%
-      const result = simulateOpacity("#0000ff", 0.5, "#ff0000");
-      expect(result).toBe("#800080"); // Should be purple
-    });
-
-    it("should handle rgb format", () => {
-      const result = simulateOpacity("rgb(255, 0, 0)", 0.5, "rgb(255, 255, 255)");
-      expect(result).toBe("#ff8080");
-    });
-
-    it("should handle named colors", () => {
-      const result = simulateOpacity("red", 0.5, "white");
-      expect(result).toBe("#ff8080");
     });
   });
 
