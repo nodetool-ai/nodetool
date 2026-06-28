@@ -104,7 +104,6 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [Node Patterns]({{ site.url }}/developer/node-patterns): process / genProcess / streaming.
 - [Node Reference]({{ site.url }}/developer/node-reference): @prop, types, decorators.
 - [TypeScript DSL]({{ site.url }}/developer/ts-dsl-guide): Define workflows in TS.
-- [Gradio Conversion]({{ site.url }}/developer/gradio-conversion): Convert Gradio apps to nodes.
 - [Node Packs]({{ site.url }}/node-packs): Distribute nodes as installable packs.
 
 ## Apps
