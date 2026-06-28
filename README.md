@@ -14,9 +14,11 @@
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows-blue)](https://nodetool.ai)
 [![Platform: Linux](https://img.shields.io/badge/platform-Linux-orange)](https://nodetool.ai)
 
-NodeTool is the open-source creative AI workspace — every major model from every major provider, called with your own keys, wired into one node-based canvas you run on your machine.
+NodeTool is an open-source creative AI suite that runs entirely on your local machine. It combines a node-based canvas, a multi-track video timeline, and a layered sketch editor into a unified workspace. Wire every major AI model—cloud or local—directly into the professional production tools you already rely on.
 
-Bring your own keys to FAL, KIE, Atlas, OpenAI, Anthropic, Gemini, Replicate, ElevenLabs, HuggingFace. Pay providers directly at provider prices. Switch the moment a better model ships. Wire it all into one canvas with the editing tools you rely on — masks, inpaint, outpaint, relight, upscale, layers, compositing.
+* **Pay Provider Prices:** Plug in your own API keys and pay cloud providers directly at cost. 
+* **Zero Lock-In:** Swap foundational models, media APIs, or local LLMs across text, image, video, and audio whenever you want.
+* **Three Ways to Work:** Seamlessly fluid between node-based workflows, multi-track video generation, and layer-based painting and masking.
 
 ![NodeTool Interface](screen_canvas.png)
 
@@ -24,11 +26,9 @@ Bring your own keys to FAL, KIE, Atlas, OpenAI, Anthropic, Gemini, Replicate, El
 
 - [Why NodeTool](#why-nodetool)
 - [What's in the box](#whats-in-the-box)
-- [What people build with it](#what-people-build-with-it)
 - [Node editor](#node-editor)
 - [Video editor](#video-editor)
 - [Sketch editor](#sketch-editor)
-- [Models](#models)
 - [How NodeTool compares](#how-nodetool-compares)
 - [Get NodeTool](#get-nodetool)
 - [Documentation](#documentation)
@@ -41,16 +41,15 @@ Bring your own keys to FAL, KIE, Atlas, OpenAI, Anthropic, Gemini, Replicate, El
 
 ## Why NodeTool
 
-The best model for the job changes every month. NodeTool keeps up.
+Closed platforms lock you into their ecosystem. NodeTool is built for complete creative independence.
 
-> Seedance is the best video model right now. It's available on FAL, Replicate, and KIE at different price points. NodeTool lets you pick the cheapest. When Veo 4 ships, you swap one node and you're on it the same day.
+**Own your AI.**
 
-That's what vendor neutrality buys you:
+*   **Independent Pricing:** Pay providers directly at cost with your own API keys, or run local models for free.
+*   **Independent Data:** Workflows, keys, and files stay on your machine.
+*   **Independent Software:** Open-source (AGPL-3.0).
 
-- **Every model.** OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, ElevenLabs, HuggingFace. Local with Ollama, MLX, and GGUF.
-- **Your keys.** Pay providers directly at provider prices. No credit markup, no proprietary tokens.
-- **Your canvas.** Workflows, files, and keys belong to you. Everything runs on your machine.
-- **Open source.** AGPL-3.0. Self-host any time. No acquisition risk.
+> **Infrastructure Freedom:** If a provider raises prices or deprecates a model, just swap the backend node. Your creative workflow stays exactly the same.
 
 ## What's in the box
 
@@ -71,15 +70,13 @@ That's what vendor neutrality buys you:
 
 ## Node editor
 
-The canvas is the core of NodeTool. You build a workflow by dropping nodes and wiring their outputs to inputs — each node is one step (load an image, call a model, mask, composite, write a file), and the connections are the data flowing between them.
+The node canvas lets you build visual workflows by chaining steps together—like loading an image, calling a model, and applying a mask.
 
-- **Add nodes fast.** Open the node menu to browse the library by namespace or search by name, double-click the canvas to drop a node, or drag a connection into empty space to get a filtered list of nodes that accept that output's type.
-- **Type-safe connections.** Handles are colored by type. The editor only lets you connect compatible inputs and outputs, so a workflow won't wire an image into a text field by accident.
-- **Live previews.** Every node shows its output as the workflow runs — images, video, audio, text, and tables render in place, so you see results at each step instead of only at the end.
-- **Edit in context.** Node properties are editable on the node itself or in the inspector. Group nodes to organize a graph, drop comment nodes for notes, and bypass nodes to test variations without deleting them.
-- **Navigate large graphs.** Pan, zoom, and a minimap keep big workflows manageable; find-in-workflow jumps to any node by name.
-
-Right-click anywhere — canvas, node, edge, or selection — for the relevant actions. When a workflow is ready, run it from the canvas and watch execution flow through the graph.
+*   **Fast creation:** Double-click to search and add nodes, or drag a connection into empty space to see compatible next steps.
+*   **Type-safe routing:** Connector handles are color-coded. The editor prevents mistakes like wiring an image into a text field.
+*   **Live previews:** Every node renders its output (images, video, text) in real time as the workflow executes.
+*   **In-context editing:** Tweak properties directly on the node, group them to stay organized, or bypass a node to test a variation.
+*   **Easy navigation:** Pan, zoom, use the minimap, or search by name to jump straight to any node in a large graph.
 
 ## Video editor
 
