@@ -303,6 +303,21 @@ export {
   getLongTermMemory
 } from "./tools/ltm-tools.js";
 
+// Plan cache + checkpoint store (opt-in planning/execution persistence)
+export {
+  hashPlanKey,
+  InMemoryPlanCache,
+  FilePlanCache,
+  InMemoryCheckpointStore,
+  FileCheckpointStore
+} from "./checkpoint-store.js";
+export type {
+  PlanCache,
+  CheckpointStore,
+  Checkpoint,
+  PlanKeyInput
+} from "./checkpoint-store.js";
+
 // Planning & orchestration
 export { TaskPlanner } from "./task-planner.js";
 export type { TaskPlannerOptions } from "./task-planner.js";
