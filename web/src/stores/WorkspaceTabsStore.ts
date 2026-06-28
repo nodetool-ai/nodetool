@@ -105,7 +105,7 @@ const readLegacyOpenWorkflows = (): string[] => {
     }
     const parsed: unknown = JSON.parse(raw);
     return Array.isArray(parsed)
-      ? (parsed.filter((id) => typeof id === "string") as string[])
+      ? parsed.filter((id): id is string => typeof id === "string")
       : [];
   } catch {
     return [];

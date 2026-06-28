@@ -37,13 +37,13 @@ function getTextContent(content: Message['content']): string {
   if (Array.isArray(content)) {
     return content
       .filter((c: MessageContent) => c?.type === 'text')
-      .map((c: MessageContent) => (c as unknown as Record<string, unknown>)?.text || '')
+      .map((c: MessageContent) => c.type === 'text' ? c.text : '')
       .join('\n');
   }
 
   if (typeof content === 'object' && 'type' in content) {
     if (content.type === 'text' && 'text' in content) {
-      return (content as Record<string, unknown>).text as string || '';
+      return String(content.text ?? '');
     }
   }
 
@@ -54,7 +54,7 @@ function getTextContent(content: Message['content']): string {
  * Type guard: checks whether a plain object looks like a valid MessageContent item.
  */
 function isMessageContent(obj: unknown): obj is MessageContent {
-  return typeof obj === 'object' && obj !== null && 'type' in obj && typeof (obj as Record<string, unknown>)['type'] === 'string';
+  return typeof obj === 'object' && obj !== null && 'type' in obj && typeof obj.type === 'string';
 }
 
 /**

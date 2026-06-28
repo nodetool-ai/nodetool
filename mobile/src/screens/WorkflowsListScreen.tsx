@@ -41,9 +41,7 @@ export default function WorkflowsListScreen({ navigation }: WorkflowsListScreenP
     { limit: 100 },
     {
       select: (data) =>
-        data.workflows.map((w) =>
-          normalizeWorkflow(w as unknown as Record<string, unknown>)
-        ),
+        data.workflows.map((w) => normalizeWorkflow(w)),
     }
   );
   const loadError = error ? error.message || 'Network Error' : null;
