@@ -16,10 +16,27 @@ import {
   Divider,
   ProgressBar,
   Caption,
-  BORDER_RADIUS
+  SectionHeader,
+  BORDER_RADIUS,
+  SPACING,
+  SPACING_PX
 } from "../../ui_primitives";
 import { AppEvent } from "../types";
 import { useWidgetRuntime, WidgetBindingMode } from "./useWidgetRuntime";
+
+/** Vertical stack styling for a Puck slot's drop zone (spaces its children). */
+const slotStack: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: `${SPACING_PX.lg}px`,
+  width: "100%"
+};
+
+/** A Puck slot — a render function that accepts drop-zone styling props. */
+type SlotComponent = (props?: {
+  style?: React.CSSProperties;
+  className?: string;
+}) => React.ReactNode;
 
 const str = (v: unknown): string =>
   typeof v === "string" ? v : v == null ? "" : String(v);
@@ -89,7 +106,7 @@ export const MarkdownWidget: React.FC<WidgetCommon & { text?: string }> = (
   const { value } = useBinding(props, "read");
   const text = value != null ? str(value) : props.text ?? "";
   return (
-    <Box sx={{ width: "100%", fontSize: "0.95rem" }}>
+    <Box className="appbuilder-markdown" sx={{ width: "100%" }}>
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
     </Box>
   );
@@ -113,7 +130,7 @@ export const ImageWidget: React.FC<WidgetCommon & {
           height,
           border: "1px dashed",
           borderColor: "divider",
-          borderRadius: BORDER_RADIUS.sm,
+          borderRadius: BORDER_RADIUS.md,
           color: "text.secondary"
         }}
       >
@@ -130,7 +147,7 @@ export const ImageWidget: React.FC<WidgetCommon & {
         width: "100%",
         height,
         objectFit: props.fit === "cover" ? "cover" : "contain",
-        borderRadius: BORDER_RADIUS.sm
+        borderRadius: BORDER_RADIUS.md
       }}
     />
   );
@@ -152,10 +169,10 @@ export const JsonWidget: React.FC<WidgetCommon> = (props) => {
         width: "100%",
         overflow: "auto",
         fontFamily: "var(--fontFamily2, monospace)",
-        fontSize: "0.8rem",
+        fontSize: "var(--fontSizeSmaller)",
         backgroundColor: "action.hover",
-        borderRadius: BORDER_RADIUS.sm,
-        p: 1
+        borderRadius: BORDER_RADIUS.md,
+        p: SPACING.md
       }}
     >
       {formatted}
@@ -171,7 +188,7 @@ export const ProgressWidget: React.FC<WidgetCommon & { label?: string }> = (
   const bound = numOr(value, NaN);
   const hasValue = Number.isFinite(bound);
   return (
-    <FlexColumn gap={0.5} fullWidth>
+    <FlexColumn gap={SPACING.micro} fullWidth>
       {props.label ? <Caption color="secondary">{props.label}</Caption> : null}
       <ProgressBar
         value={hasValue ? bound : 0}
@@ -244,7 +261,7 @@ export const SliderWidget: React.FC<WidgetCommon & {
   const { value, setValue, emit } = useBinding(props, "write");
   const min = numOr(props.min, 0);
   return (
-    <FlexColumn gap={0.5} fullWidth>
+    <FlexColumn gap={SPACING.micro} fullWidth>
       <Caption color="secondary">
         {props.label ?? ""}: {numOr(value, min)}
       </Caption>
@@ -326,19 +343,24 @@ export const ButtonWidget: React.FC<WidgetCommon & {
 
 // ── Layout widgets ──────────────────────────────────────────────────────────
 
-type SlotComponent = React.ComponentType<Record<string, never>>;
-
 export const ContainerWidget: React.FC<{
   title?: string;
   content?: SlotComponent;
 }> = ({ title, content: Content }) => (
-  <Card variant="outlined" padding="normal" sx={{ width: "100%" }}>
+  <Card
+    variant="outlined"
+    padding="none"
+    sx={{ width: "100%", p: SPACING.xl, borderRadius: BORDER_RADIUS.md }}
+  >
     {title ? (
-      <Text size="small" weight={600} sx={{ mb: 1, display: "block" }}>
-        {title}
-      </Text>
+      <SectionHeader
+        title={title}
+        size="small"
+        uppercase
+        sx={{ mb: SPACING.lg }}
+      />
     ) : null}
-    {Content ? <Content /> : null}
+    {Content ? <Content style={slotStack} /> : null}
   </Card>
 );
 
@@ -351,17 +373,17 @@ export const ColumnsWidget: React.FC<{
     sx={{
       display: "grid",
       gridTemplateColumns: "1fr 1fr",
-      gap: numOr(gap, 16) / 8,
+      gap: `${numOr(gap, SPACING_PX.xl)}px`,
       width: "100%"
     }}
   >
-    <Box>{Left ? <Left /> : null}</Box>
-    <Box>{Right ? <Right /> : null}</Box>
+    {Left ? <Left style={slotStack} /> : null}
+    {Right ? <Right style={slotStack} /> : null}
   </Box>
 );
 
 export const DividerWidget: React.FC = () => (
-  <Box sx={{ width: "100%", py: 1 }}>
+  <Box sx={{ width: "100%", py: SPACING.xs }}>
     <Divider />
   </Box>
 );

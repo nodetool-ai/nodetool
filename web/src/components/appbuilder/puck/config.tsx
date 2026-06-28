@@ -2,7 +2,7 @@
 import React from "react";
 import type { Config, ArrayField } from "@puckeditor/core";
 
-import { Box, Text, FlexColumn } from "../../ui_primitives";
+import { Box, Text, FlexColumn, SPACING } from "../../ui_primitives";
 import { bindingField, variableField } from "./fields";
 import {
   HeadingWidget,
@@ -65,9 +65,9 @@ export const appConfig: Config = {
       title?: string;
     }) => (
       <FlexColumn
-        gap={2}
+        gap={SPACING.lg}
         sx={{
-          p: 2,
+          p: SPACING.xl,
           width: "100%",
           minHeight: "100%",
           backgroundColor: "background.default",
@@ -79,7 +79,16 @@ export const appConfig: Config = {
             {title}
           </Text>
         ) : null}
-        <Box sx={{ width: "100%" }}>{children}</Box>
+        <Box
+          sx={{
+            width: "100%",
+            display: "flex",
+            flexDirection: "column",
+            gap: SPACING.lg
+          }}
+        >
+          {children}
+        </Box>
       </FlexColumn>
     )
   },
