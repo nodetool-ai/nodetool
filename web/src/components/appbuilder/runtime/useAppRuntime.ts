@@ -107,11 +107,11 @@ export const useAppRuntime = (
             msg.node_name ??
             msg.output_name;
           if (!key) break;
-          if (msg.disposition === "append") {
+          // Only string outputs accumulate (streamed text); structured values
+          // like an ImageRef replace, so they aren't coerced to "[object Object]".
+          if (msg.disposition === "append" && typeof msg.value === "string") {
             const prev = store.getState().values[key];
-            store
-              .getState()
-              .setValue(key, asString(prev) + asString(msg.value));
+            store.getState().setValue(key, asString(prev) + msg.value);
           } else {
             store.getState().setValue(key, msg.value);
           }

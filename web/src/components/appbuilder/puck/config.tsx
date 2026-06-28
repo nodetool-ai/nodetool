@@ -64,7 +64,16 @@ export const appConfig: Config = {
       children?: React.ReactNode;
       title?: string;
     }) => (
-      <FlexColumn gap={2} sx={{ p: 2, width: "100%", minHeight: "100%" }}>
+      <FlexColumn
+        gap={2}
+        sx={{
+          p: 2,
+          width: "100%",
+          minHeight: "100%",
+          backgroundColor: "background.default",
+          color: "text.primary"
+        }}
+      >
         {title ? (
           <Text size="bigger" weight={600}>
             {title}

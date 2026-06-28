@@ -2,6 +2,7 @@
 import React, { useMemo } from "react";
 import { Puck, type Data, type Overrides } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
+import "./puckDarkTheme.css";
 import CloseIcon from "@mui/icons-material/Close";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 
