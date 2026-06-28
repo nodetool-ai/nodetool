@@ -3,6 +3,7 @@ import React, { useMemo } from "react";
 import { Puck, type Data, type Overrides } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
 import CloseIcon from "@mui/icons-material/Close";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 
 import { Workflow } from "../../../stores/ApiTypes";
 import { extractWorkflowState } from "../workflowState";
@@ -10,6 +11,7 @@ import { useAppRuntime } from "../runtime/useAppRuntime";
 import { AppRuntimeContext } from "../runtime/AppRuntimeContext";
 import { BuilderWorkflowProvider } from "./BuilderWorkflowContext";
 import { appConfig } from "./config";
+import PuckAgentBinder from "./PuckAgentBinder";
 import { Box, EditorButton } from "../../ui_primitives";
 
 interface PuckAppEditorProps {
@@ -18,6 +20,8 @@ interface PuckAppEditorProps {
   onPublish: (data: Data) => void;
   onChange?: (data: Data) => void;
   onClose: () => void;
+  agentOpen?: boolean;
+  onToggleAgent?: () => void;
 }
 
 /**
@@ -30,7 +34,9 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
   data,
   onPublish,
   onChange,
-  onClose
+  onClose,
+  agentOpen = false,
+  onToggleAgent
 }) => {
   const workflowState = useMemo(
     () => extractWorkflowState(workflow),
@@ -42,6 +48,19 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
     () => ({
       headerActions: ({ children }) => (
         <>
+          {/* Lets the agent's ui_app_* tools drive this editor. Renders nothing. */}
+          <PuckAgentBinder config={appConfig} />
+          {onToggleAgent && (
+            <EditorButton
+              size="small"
+              variant={agentOpen ? "contained" : "text"}
+              color="primary"
+              startIcon={<AutoAwesomeIcon sx={{ fontSize: 16 }} />}
+              onClick={onToggleAgent}
+            >
+              Agent
+            </EditorButton>
+          )}
           <EditorButton
             size="small"
             variant="text"
@@ -54,7 +73,7 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
         </>
       )
     }),
-    [onClose]
+    [onClose, onToggleAgent, agentOpen]
   );
 
   return (

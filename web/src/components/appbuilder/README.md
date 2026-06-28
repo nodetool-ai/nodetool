@@ -49,6 +49,24 @@ the existing worker path.
 - `AppRuntimeView.tsx` — the live `<Render>` wrapper (used by app mode).
 - `AppBuilderPage.tsx` — the `/app-builder/:workflowId` route: fetch, edit, save.
 
+## Agent
+
+The builder embeds the same agent chat the other editors use (`AppBuilderAgentPanel`
+→ `ChatView` + `GlobalChatStore`), bound to the workflow's thread. The agent has
+**both** tool sets at once because frontend tools are a global registry:
+
+- `ui_app_*` (this folder's `puck/puckAgentBridge.ts` + `lib/tools/builtin/puck.ts`)
+  read and edit the open Puck document — add/update/remove/select widgets, set the
+  title. The open editor registers a handler (`PuckAgentBinder`, via `usePuck`
+  dispatch) that the tools drive.
+- `ui_*` (existing workflow tools) edit the graph. `FrontendToolRuntimeSync`
+  (shared with the editor's right panel) is mounted here and the page sets the
+  current workflow, so adding Input/Output/SetVariable nodes works — which is what
+  bindings reference.
+
+So one conversation can add an Input node and bind a control to it, or add a Set
+Variable node and wire app state to it.
+
 ## Where it shows up
 
 `MiniAppPage` renders `AppRuntimeView` when the workflow has a document

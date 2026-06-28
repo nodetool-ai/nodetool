@@ -4,13 +4,15 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Data } from "@puckeditor/core";
 
-import { Box, FlexColumn, LoadingSpinner, Text } from "../ui_primitives";
+import { Box, FlexRow, FlexColumn, LoadingSpinner, Text } from "../ui_primitives";
 import { Workflow } from "../../stores/ApiTypes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useNotificationStore } from "../../stores/NotificationStore";
+import FrontendToolRuntimeSync from "../panels/FrontendToolRuntimeSync";
 import { APP_DATA_VERSION, createEmptyData } from "./appData";
 import { loadAppData, withAppDocument } from "./persistence";
 import PuckAppEditor from "./puck/PuckAppEditor";
+import AppBuilderAgentPanel from "./AppBuilderAgentPanel";
 
 /**
  * Full-page route for the WYSIWYG app builder (`/app-builder/:workflowId`).
@@ -23,10 +25,13 @@ const AppBuilderPage: React.FC = () => {
 
   const fetchWorkflow = useWorkflowManager((s) => s.fetchWorkflow);
   const saveWorkflow = useWorkflowManager((s) => s.saveWorkflow);
+  const setCurrentWorkflowId = useWorkflowManager((s) => s.setCurrentWorkflowId);
   const addNotification = useNotificationStore((s) => s.addNotification);
   const queryClient = useQueryClient();
 
   const [data, setData] = useState<Data | null>(null);
+  const [agentOpen, setAgentOpen] = useState(true);
+  const toggleAgent = useCallback(() => setAgentOpen((open) => !open), []);
 
   const {
     data: workflow,
@@ -41,11 +46,13 @@ const AppBuilderPage: React.FC = () => {
     retry: false
   });
 
-  // Seed the editor once the workflow is fetched.
+  // Seed the editor once the workflow is fetched, and make it the current
+  // workflow so the agent's workflow tools target it.
   useEffect(() => {
     if (!workflow) return;
     setData(loadAppData(workflow) ?? createEmptyData());
-  }, [workflow]);
+    setCurrentWorkflowId(workflow.id);
+  }, [workflow, setCurrentWorkflowId]);
 
   const handleClose = useCallback(() => {
     navigate(-1);
@@ -107,14 +114,33 @@ const AppBuilderPage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ width: "100%", height: "100%" }}>
-      <PuckAppEditor
-        workflow={workflow}
-        data={data}
-        onPublish={handlePublish}
-        onClose={handleClose}
-      />
-    </Box>
+    <FlexRow gap={0} sx={{ width: "100%", height: "100%", minHeight: 0 }}>
+      {/* Syncs workflow tools to this workflow so the agent can edit the graph. */}
+      <FrontendToolRuntimeSync />
+      <Box sx={{ flex: 1, minWidth: 0, height: "100%" }}>
+        <PuckAppEditor
+          workflow={workflow}
+          data={data}
+          onPublish={handlePublish}
+          onClose={handleClose}
+          agentOpen={agentOpen}
+          onToggleAgent={toggleAgent}
+        />
+      </Box>
+      {agentOpen && (
+        <Box
+          sx={{
+            width: 400,
+            flexShrink: 0,
+            height: "100%",
+            borderLeft: "1px solid",
+            borderColor: "divider"
+          }}
+        >
+          <AppBuilderAgentPanel workflowId={workflow.id} />
+        </Box>
+      )}
+    </FlexRow>
   );
 };
 
