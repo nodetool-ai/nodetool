@@ -941,9 +941,18 @@ function jsonPropToZod(prop: Record<string, unknown>): ZodTypeAny {
           : z.unknown()
       );
       break;
-    case "object":
-      zt = z.object(jsonSchemaToZodShape(prop));
+    case "object": {
+      const shape = jsonSchemaToZodShape(prop);
+      // Free-form objects (no declared sub-properties — e.g. add_node's
+      // `node_properties`) must keep arbitrary keys. `z.object({})` strips
+      // every key, silently dropping all node configuration on the SDK tool
+      // bridge; passthrough preserves the nested values.
+      zt =
+        Object.keys(shape).length > 0
+          ? z.object(shape)
+          : z.object({}).passthrough();
       break;
+    }
     default:
       zt = z.unknown();
   }

@@ -792,6 +792,41 @@ describe("ClaudeAgentProvider", () => {
     expect(executed[0]).toMatchObject({ name: "echo", args: { text: "hi" } });
   });
 
+  it("preserves keys of a free-form object param (no z.object({}) stripping)", async () => {
+    // Regression: a tool param declared as a free-form object (e.g. add_node's
+    // `node_properties`) was converted to z.object({}), which strips every
+    // nested key — silently dropping all node configuration on the SDK bridge.
+    const { fn } = fakeQuery([sysInit("sess-ff"), assistantTextMsg("ok"), successResult()]);
+    const mcp = fakeCreateMcpServer();
+    const provider = new ClaudeAgentProvider(
+      {},
+      { queryFn: fn, createMcpServerFn: mcp.fn }
+    );
+    await collect(
+      provider.generateLoop({
+        messages: [sysMsg("x"), userMsg("y")],
+        model: "haiku",
+        tools: [
+          {
+            name: "add_node",
+            description: "add",
+            inputSchema: {
+              type: "object",
+              properties: { node_properties: { type: "object" } },
+              required: []
+            }
+          }
+        ],
+        executeTool: async () => "ok"
+      })
+    );
+    const shape = (mcp.captured.defs[0] as unknown as {
+      inputSchema: Record<string, { parse: (v: unknown) => unknown }>;
+    }).inputSchema;
+    const parsed = shape.node_properties.parse({ prompt: "a red fox", bits: 2 });
+    expect(parsed).toEqual({ prompt: "a red fox", bits: 2 });
+  });
+
   it("cancels the query when the abort signal fires", async () => {
     const calls: QueryCall[] = [];
     const fn: ClaudeQueryFn = (params) => {

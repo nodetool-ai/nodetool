@@ -16,6 +16,8 @@ import type {
 import { loadPythonPackageMetadata } from "./metadata.js";
 import { getNodeMetadata } from "./node-metadata.js";
 import type { NodePropertyValidationIssue } from "./validation.js";
+import type { ScoredNode, ScoreOptions } from "./search.js";
+import { NodeSearchIndex } from "./search.js";
 
 export interface NodeRegistryOptions {
   metadataByType?: Map<string, NodeMetadata>;
@@ -38,6 +40,14 @@ export class NodeRegistry {
   private _loadedMetadataByType = new Map<string, NodeMetadata>();
   private _registeredMetadataByType = new Map<string, NodeMetadata>();
   private _strictMetadata: boolean;
+
+  // Memoized derived views of the metadata maps above. Both are O(n) to build,
+  // and `listMetadata`/`searchMetadata` are called many times per graph build
+  // (the planner searches the same registry 5–10× per attempt). They are
+  // rebuilt lazily and invalidated by every mutation (`register`, `unregister`,
+  // `clear`, `loadMetadata`, `loadPythonMetadata`).
+  private _mergedMetadataCache: NodeMetadata[] | null = null;
+  private _searchIndexCache: NodeSearchIndex | null = null;
 
   constructor(options: NodeRegistryOptions = {}) {
     // Stryker disable next-line LogicalOperator,BooleanLiteral: _strictMetadata only gated the (unreachable) strict-throw branch, so its value has no observable effect — the default is inert (equivalent).
@@ -79,6 +89,38 @@ export class NodeRegistry {
     }
     // Stryker restore ConditionalExpression,BlockStatement,StringLiteral
     this._classes.set(nodeClass.nodeType, nodeClass);
+    this.invalidateMetadataCaches();
+  }
+
+  /**
+   * Drop the memoized metadata array and search index. Called by every
+   * mutation so the next read rebuilds from the current maps.
+   */
+  private invalidateMetadataCaches(): void {
+    this._mergedMetadataCache = null;
+    this._searchIndexCache = null;
+  }
+
+  /**
+   * Merged metadata for every node (loaded Python metadata first, registered TS
+   * metadata last so a TS class wins on a node_type collision). Built once and
+   * memoized; callers that mutate the result must copy it first.
+   */
+  private mergedMetadata(): NodeMetadata[] {
+    if (this._mergedMetadataCache === null) {
+      const merged = new Map<string, NodeMetadata>();
+      for (const [nodeType, metadata] of this._loadedMetadataByType.entries()) {
+        merged.set(nodeType, metadata);
+      }
+      for (const [
+        nodeType,
+        metadata
+      ] of this._registeredMetadataByType.entries()) {
+        merged.set(nodeType, metadata);
+      }
+      this._mergedMetadataCache = [...merged.values()];
+    }
+    return this._mergedMetadataCache;
   }
 
   /**
@@ -216,17 +258,26 @@ export class NodeRegistry {
   }
 
   listMetadata(): NodeMetadata[] {
-    const merged = new Map<string, NodeMetadata>();
-    for (const [nodeType, metadata] of this._loadedMetadataByType.entries()) {
-      merged.set(nodeType, metadata);
+    // Fresh copy each call: some callers (http-api, tRPC nodes router) sort the
+    // result in place, which must not reorder the shared cache.
+    return [...this.mergedMetadata()];
+  }
+
+  /**
+   * Rank registered nodes against `terms` using a memoized search index.
+   *
+   * Equivalent to `rankNodeMetadata(this.listMetadata(), terms, options)` but
+   * reuses a precomputed index across calls — the planner's inner loop. The
+   * index is invalidated whenever the registry changes.
+   */
+  searchMetadata(
+    terms: readonly string[],
+    options: ScoreOptions = {}
+  ): ScoredNode[] {
+    if (this._searchIndexCache === null) {
+      this._searchIndexCache = new NodeSearchIndex(this.mergedMetadata());
     }
-    for (const [
-      nodeType,
-      metadata
-    ] of this._registeredMetadataByType.entries()) {
-      merged.set(nodeType, metadata);
-    }
-    return [...merged.values()];
+    return this._searchIndexCache.rank(terms, options);
   }
 
   listRegisteredNodeTypesWithoutMetadata(): string[] {
@@ -237,6 +288,7 @@ export class NodeRegistry {
   /** Add or replace metadata for a node type (e.g. from Python bridge). */
   loadMetadata(nodeType: string, metadata: NodeMetadata): void {
     this._loadedMetadataByType.set(nodeType, metadata);
+    this.invalidateMetadataCaches();
   }
 
   loadPythonMetadata(
@@ -246,6 +298,7 @@ export class NodeRegistry {
     for (const [nodeType, metadata] of loaded.nodesByType.entries()) {
       this._loadedMetadataByType.set(nodeType, metadata);
     }
+    this.invalidateMetadataCaches();
     return loaded;
   }
 
@@ -257,6 +310,7 @@ export class NodeRegistry {
     const hadClass = this._classes.delete(nodeType);
     this._loadedMetadataByType.delete(nodeType);
     this._registeredMetadataByType.delete(nodeType);
+    this.invalidateMetadataCaches();
     return hadClass;
   }
 
@@ -264,6 +318,7 @@ export class NodeRegistry {
     this._classes.clear();
     this._loadedMetadataByType.clear();
     this._registeredMetadataByType.clear();
+    this.invalidateMetadataCaches();
   }
 
   static readonly global = new NodeRegistry();

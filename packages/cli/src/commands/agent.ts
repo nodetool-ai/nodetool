@@ -63,6 +63,13 @@ import {
 import { initDb, getSecret } from "@nodetool-ai/models";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
 import { createProvider, buildConfiguredProviders } from "../providers.js";
+import {
+  diagnoseRun,
+  renderDiagnosis,
+  type DiagnoseInputs,
+  type DiagnoseJob,
+  type TraceSpanLite
+} from "../diagnose.js";
 
 // ---------------------------------------------------------------------------
 // YAML schema (loose — we accept what the existing example files use)
@@ -616,6 +623,150 @@ async function listAgentsCommand(dir: string): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// diagnose subcommand — aggregate a failed run into one report
+// ---------------------------------------------------------------------------
+
+interface DiagnoseOptions {
+  json?: boolean;
+  traceFile?: string;
+  apiUrl?: string;
+}
+
+/** Parse a JSONL file into one parsed object per non-blank line. */
+async function readJsonl(file: string): Promise<Record<string, unknown>[]> {
+  const text = await fsp.readFile(file, "utf-8");
+  const out: Record<string, unknown>[] = [];
+  for (const line of text.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    try {
+      out.push(JSON.parse(trimmed) as Record<string, unknown>);
+    } catch {
+      // Skip partial/corrupt lines (e.g. a crash mid-write).
+    }
+  }
+  return out;
+}
+
+/** First existing path among the candidates, or null. */
+function firstExisting(candidates: string[]): string | null {
+  for (const p of candidates) {
+    try {
+      if (fs.statSync(p).isFile()) return p;
+    } catch {
+      // Not a readable file — try the next candidate.
+    }
+  }
+  return null;
+}
+
+/**
+ * Locate a debug bundle directory for a job id. The `debug` command writes
+ * bundles to `nodetool-debug/<id>-<timestamp>/`; we pick the most recent dir
+ * whose name starts with the id, relative to cwd.
+ */
+function findDebugBundle(jobId: string): string | null {
+  const root = path.join(process.cwd(), "nodetool-debug");
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(root, { withFileTypes: true });
+  } catch {
+    return null;
+  }
+  const matches = entries
+    .filter((e) => e.isDirectory() && e.name.startsWith(jobId))
+    .map((e) => path.join(root, e.name))
+    .sort();
+  return matches.length > 0 ? matches[matches.length - 1]! : null;
+}
+
+/** Fetch a job record over the tRPC API; null when unreachable/not found. */
+async function fetchJob(
+  apiUrl: string,
+  jobId: string
+): Promise<DiagnoseJob | null> {
+  try {
+    const { createTRPCClient, httpBatchLink } = await import("@trpc/client");
+    type Router = import("@nodetool-ai/websocket/trpc").AppRouter;
+    const client = createTRPCClient<Router>({
+      links: [httpBatchLink({ url: `${apiUrl}/trpc` })]
+    });
+    const data = (await client.jobs.get.query({ id: jobId })) as Record<
+      string,
+      unknown
+    >;
+    return {
+      id: typeof data["id"] === "string" ? (data["id"] as string) : jobId,
+      status: typeof data["status"] === "string" ? (data["status"] as string) : undefined,
+      error:
+        typeof data["error"] === "string" ? (data["error"] as string) : null,
+      workflowId:
+        typeof data["workflow_id"] === "string"
+          ? (data["workflow_id"] as string)
+          : null
+    };
+  } catch {
+    // Server unreachable or job missing — diagnose degrades on a null job.
+    return null;
+  }
+}
+
+async function diagnoseCommand(
+  jobId: string,
+  opts: DiagnoseOptions
+): Promise<void> {
+  const apiUrl =
+    opts.apiUrl ?? process.env["NODETOOL_API_URL"] ?? "http://localhost:7777";
+
+  const inputs: DiagnoseInputs = {};
+
+  // Job record (best-effort over the API).
+  const job = await fetchJob(apiUrl, jobId);
+  if (job) inputs.job = job;
+  else inputs.job = { id: jobId };
+
+  // Messages + trace from a debug bundle (when one exists for this job).
+  const bundle = findDebugBundle(jobId);
+  if (bundle) {
+    const messagesPath = firstExisting([
+      path.join(bundle, "server", "messages.jsonl")
+    ]);
+    if (messagesPath) {
+      try {
+        inputs.messages = await readJsonl(messagesPath);
+      } catch {
+        // Unreadable — leave messages unset so the report flags it missing.
+      }
+    }
+  }
+
+  // Trace spans: --trace-file > NODETOOL_TRACE_FILE > the bundle's trace.jsonl.
+  const tracePath = firstExisting(
+    [
+      opts.traceFile,
+      process.env["NODETOOL_TRACE_FILE"],
+      bundle ? path.join(bundle, "server", "trace.jsonl") : undefined
+    ].filter((p): p is string => typeof p === "string")
+  );
+  if (tracePath) {
+    try {
+      inputs.spans = (await readJsonl(tracePath)) as unknown as TraceSpanLite[];
+    } catch {
+      // Unreadable — report flags trace as missing.
+    }
+  }
+
+  const report = diagnoseRun(inputs);
+
+  if (opts.json) {
+    process.stdout.write(JSON.stringify(report, null, 2) + "\n");
+  } else {
+    process.stdout.write(renderDiagnosis(report) + "\n");
+  }
+  process.exit(report.ok ? 0 : 1);
+}
+
+// ---------------------------------------------------------------------------
 // Registration
 // ---------------------------------------------------------------------------
 
@@ -658,6 +809,26 @@ export function registerAgentCommands(program: Command): void {
     .action(async (dir: string) => {
       try {
         await listAgentsCommand(dir);
+      } catch (e) {
+        process.stderr.write(chalk.red(`error: ${String(e)}\n`));
+        process.exit(1);
+      }
+    });
+
+  agent
+    .command("diagnose <job_id>")
+    .description(
+      "Aggregate a failed run (failing node/step, error, last LLM call, memory) into one report"
+    )
+    .option("--json", "Emit the DiagnosisReport as JSON")
+    .option(
+      "--trace-file <path>",
+      "Trace JSONL to read the last llm.chat span from (else NODETOOL_TRACE_FILE or the debug bundle)"
+    )
+    .option("--api-url <url>", "API base URL for the job lookup")
+    .action(async (jobId: string, opts: DiagnoseOptions) => {
+      try {
+        await diagnoseCommand(jobId, opts);
       } catch (e) {
         process.stderr.write(chalk.red(`error: ${String(e)}\n`));
         process.exit(1);

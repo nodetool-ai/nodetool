@@ -27,6 +27,8 @@ import {
 
 const log = createLogger("nodetool.agents.planner");
 import type { Task, TaskPlan, Step } from "./types.js";
+import type { PlanCache } from "./checkpoint-store.js";
+import { hashPlanKey } from "./checkpoint-store.js";
 import { Tool } from "./tools/base-tool.js";
 import { CreateTaskPlanTool } from "./tools/create-task-tool.js";
 import {
@@ -165,6 +167,14 @@ export interface TaskPlannerOptions {
   inputs?: Record<string, unknown>;
   maxRetries?: number;
   threadId?: string;
+  /**
+   * Optional plan cache. When supplied, {@link TaskPlanner.planMultiTask}
+   * checks the cache (keyed by objective + sorted tool names + model) before
+   * planning and reuses a hit instead of re-running the LLM loop. After a
+   * successful plan it stores the result. Omit to keep the original behavior
+   * (no caching). A `planMultiTask` argument overrides this.
+   */
+  planCache?: PlanCache;
 }
 
 export class TaskPlanner {
@@ -177,6 +187,7 @@ export class TaskPlanner {
   private inputs: Record<string, unknown>;
   private maxRetries: number;
   private threadId?: string;
+  private planCache?: PlanCache;
 
   constructor(opts: TaskPlannerOptions) {
     this.provider = opts.provider;
@@ -188,6 +199,16 @@ export class TaskPlanner {
     this.inputs = opts.inputs ?? {};
     this.maxRetries = opts.maxRetries ?? MAX_RETRIES;
     this.threadId = opts.threadId;
+    this.planCache = opts.planCache;
+  }
+
+  /** Build the stable plan-cache key for the given objective. */
+  private buildPlanKey(objective: string): string {
+    return hashPlanKey({
+      objective,
+      tools: this.tools.map((t) => t.name),
+      model: this.model
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -317,7 +338,8 @@ export class TaskPlanner {
 
   async *planMultiTask(
     objective: string,
-    context: ProcessingContext
+    context: ProcessingContext,
+    planCache?: PlanCache
   ): AsyncGenerator<ProcessingMessage, TaskPlan | null> {
     return yield* withAgentSpanGen(
       "plan",
@@ -328,14 +350,33 @@ export class TaskPlanner {
         toolsCount: this.tools.length,
         extra: { "agent.plan.kind": "multi" }
       },
-      () => this._planMultiTaskImpl(objective, context)
+      () => this._planMultiTaskImpl(objective, context, planCache)
     );
   }
 
   private async *_planMultiTaskImpl(
     objective: string,
-    context: ProcessingContext
+    context: ProcessingContext,
+    planCacheArg?: PlanCache
   ): AsyncGenerator<ProcessingMessage, TaskPlan | null> {
+    // Plan cache (opt-in): on a hit, skip the LLM planning + validation-retry
+    // loop entirely and return the cached plan. No cache ⇒ unchanged behavior.
+    const planCache = planCacheArg ?? this.planCache;
+    const planKey = planCache ? this.buildPlanKey(objective) : undefined;
+    if (planCache && planKey) {
+      const cached = planCache.get(planKey);
+      if (cached) {
+        log.info("Multi-task plan cache hit", { title: cached.title });
+        yield {
+          type: "planning_update",
+          phase: "complete",
+          status: "success",
+          content: `Plan cache hit: ${cached.title} (${cached.tasks.length} tasks)`
+        } satisfies PlanningUpdate;
+        return cached;
+      }
+    }
+
     const toolsInfo = this.formatToolsInfo();
 
     const userPrompt = PLAN_CREATION_PROMPT_TEMPLATE
@@ -552,7 +593,13 @@ export class TaskPlanner {
 
     yield* drainUi();
 
-    if (finished) return builder.plan;
+    if (finished) {
+      // Persist a successful plan so an identical objective + tool set reuses it.
+      if (planCache && planKey && builder.plan) {
+        planCache.set(planKey, builder.plan);
+      }
+      return builder.plan;
+    }
 
     if (abortedReason) {
       yield {

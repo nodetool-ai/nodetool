@@ -5,6 +5,7 @@
  * Centralized here so the prompt's table and the runtime catalog can't drift.
  */
 
+import type { NodeMetadata } from "@nodetool-ai/node-sdk";
 import { PROVIDER_NAMESPACES } from "@nodetool-ai/node-sdk";
 
 export type GenericNodeCapability =
@@ -125,6 +126,58 @@ export const CORE_BASELINE_NAMESPACES: readonly string[] = [
 
 export { PROVIDER_NAMESPACES };
 
+/**
+ * Minimal registry surface needed to check which generic AI nodes exist.
+ * Structural so stubs/mocks (and the real `NodeRegistry`) both satisfy it.
+ */
+export interface GenericNodeLookup {
+  getMetadata?: (nodeType: string) => NodeMetadata | undefined;
+  resolveMetadata?: (nodeType: string) => NodeMetadata | undefined;
+}
+
+export interface GenericNodeAvailability {
+  /** Catalog entries whose node_type resolves in the registry. */
+  available: GenericAINode[];
+  /** node_types from the catalog the registry doesn't know — drift to fix. */
+  missing: string[];
+}
+
+/**
+ * Partition {@link GENERIC_AI_NODES} into nodes the registry actually has and
+ * nodes it doesn't. The curated table is hand-maintained (capability → node
+ * isn't encoded in node metadata), so this keeps it honest at runtime: a node
+ * that gets renamed or removed shows up in `missing` instead of being silently
+ * advertised to the agent.
+ *
+ * When the registry can't be introspected (a stub) or knows none of the
+ * generic nodes (not yet populated with base-nodes / platform-filtered), the
+ * full catalog is returned with no `missing` — better a complete prompt than a
+ * blank one.
+ */
+export function resolveAvailableGenericNodes(
+  registry: GenericNodeLookup,
+  catalog: readonly GenericAINode[] = GENERIC_AI_NODES
+): GenericNodeAvailability {
+  const lookup =
+    typeof registry?.resolveMetadata === "function"
+      ? (type: string) => registry.resolveMetadata!(type)
+      : typeof registry?.getMetadata === "function"
+        ? (type: string) => registry.getMetadata!(type)
+        : null;
+
+  if (!lookup) return { available: [...catalog], missing: [] };
+
+  const available: GenericAINode[] = [];
+  const missing: string[] = [];
+  for (const node of catalog) {
+    if (lookup(node.type) != null) available.push(node);
+    else missing.push(node.type);
+  }
+
+  if (available.length === 0) return { available: [...catalog], missing: [] };
+  return { available, missing };
+}
+
 export interface BuildPromptOptions {
   /**
    * Whether `find_model` is available. When false (no providers configured),
@@ -132,12 +185,18 @@ export interface BuildPromptOptions {
    * toward AgentStep for any AI work.
    */
   hasFindModel?: boolean;
+  /**
+   * Generic AI nodes to advertise in the prompt. Defaults to the full
+   * {@link GENERIC_AI_NODES} catalog; pass the output of
+   * {@link resolveAvailableGenericNodes} to drop nodes the registry lacks.
+   */
+  genericNodes?: readonly GenericAINode[];
 }
 
-function renderGenericNodeTable(): string {
+function renderGenericNodeTable(nodes: readonly GenericAINode[]): string {
   const header = "| Task | node_type | Capability |";
   const sep = "|---|---|---|";
-  const rows = GENERIC_AI_NODES.map(
+  const rows = nodes.map(
     (n) => `| ${n.task} | \`${n.type}\` | \`${n.capability}\` |`
   );
   return [header, sep, ...rows].join("\n");
@@ -156,6 +215,7 @@ export function buildGraphPlannerSystemPrompt(
   options: BuildPromptOptions = {}
 ): string {
   const hasFindModel = options.hasFindModel ?? true;
+  const genericNodes = options.genericNodes ?? GENERIC_AI_NODES;
 
   const tools = [
     hasFindModel
@@ -185,7 +245,7 @@ Provider-specific nodes are hidden from search results by default; only set
 
 ## Generic AI nodes — pick one of these for ANY AI generation/transform
 
-${renderGenericNodeTable()}
+${renderGenericNodeTable(genericNodes)}
 
 These nodes accept a \`model\` property (a \`{provider, id}\` object) — except
 AgentStep, which uses the workflow's configured model. Do NOT guess model IDs;
@@ -248,6 +308,16 @@ node auto-saves its result as an asset. Example: \`nodetool.image.TextToImage\`
 \`AgentStep (instructions) → AgentStep (instructions) → Output\`. Chain
 \`nodetool.agents.AgentStep\` nodes for multi-stage reasoning. Each step
 inherits the workflow's configured model — do NOT set a \`model\` property.
+
+## Branch / Conditional
+\`Input → comparison → If → (both branches) → Output\`. Produce a **boolean**
+with a comparison node (e.g. \`nodetool.text.Equals\`, which outputs \`bool\` —
+NOT \`nodetool.text.Compare\`, which outputs the string "equal"/"greater"/"less"
+and is never a valid \`condition\`). Wire it into \`nodetool.control.If.condition\`
+and the value to switch on into \`If.value\`. \`If\` has TWO outputs —
+\`if_true\` and \`if_false\` — wire BOTH to their destinations so each case is
+handled. Do not fake the else-branch with \`TryCatch\`; \`If\` already gives you
+both paths.
 
 ## Multi-Modal Chain
 \`Audio → Speech-to-Text → AgentStep → Text-to-Image → Output\`, or any

@@ -38,6 +38,7 @@ import {
   createSecurityMonitorConsult
 } from "./security-monitor.js";
 import type { Task, TaskPlan } from "./types.js";
+import type { PlanCache, CheckpointStore } from "./checkpoint-store.js";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   type AgentOutputFormat,
@@ -274,6 +275,20 @@ export interface AgentOptions {
    * call when enabled. The disabled path is unaffected.
    */
   securityMonitor?: { enabled: boolean };
+  /**
+   * Opt-in plan cache. When supplied, the multi-task planner reuses a cached
+   * {@link TaskPlan} for an identical objective + tool set + model instead of
+   * re-running the LLM planning loop. Omit to keep the original behavior.
+   */
+  planCache?: PlanCache;
+  /**
+   * Opt-in checkpoint store. When supplied together with {@link runId}, the
+   * {@link ParallelTaskExecutor} resumes a re-run from the last completed task
+   * and persists progress as tasks finish. Omit to keep the original behavior.
+   */
+  checkpointStore?: CheckpointStore;
+  /** Run identifier the checkpoint is keyed by. Required for checkpointing. */
+  runId?: string;
 }
 
 export class Agent {
@@ -305,6 +320,9 @@ export class Agent {
   private readonly registry?: NodeRegistry;
   private readonly providers?: Record<string, BaseProvider>;
   private readonly securityMonitorEnabled: boolean;
+  private readonly planCache?: PlanCache;
+  private readonly checkpointStore?: CheckpointStore;
+  private readonly runId?: string;
   /** The multi-task plan, set after planning. */
   taskPlan: TaskPlan | null = null;
 
@@ -336,6 +354,9 @@ export class Agent {
     this.registry = opts.registry;
     this.providers = opts.providers;
     this.securityMonitorEnabled = opts.securityMonitor?.enabled === true;
+    this.planCache = opts.planCache;
+    this.checkpointStore = opts.checkpointStore;
+    this.runId = opts.runId;
     if (opts.task) {
       this.task = opts.task;
     }
@@ -632,7 +653,8 @@ export class Agent {
       tools: this.tools,
       systemPrompt: mergedSystemPrompt,
       outputSchema: this.outputSchema,
-      inputs: this.inputs
+      inputs: this.inputs,
+      planCache: this.planCache
     });
 
     const planGen = planner.planMultiTask(effectiveObjective, context);
@@ -693,7 +715,10 @@ export class Agent {
       taskPlan,
       systemPrompt: mergedSystemPrompt,
       inputs: this.inputs,
-      maxStepIterations: this.maxStepIterations
+      maxStepIterations: this.maxStepIterations,
+      checkpointStore: this.checkpointStore,
+      runId: this.runId,
+      planTools: this.tools.map((t) => t.name)
     });
 
     for await (const item of executor.execute()) {
