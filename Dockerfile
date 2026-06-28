@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+# syntax=docker/dockerfile:1-labs
 
 FROM node:22-slim AS deps
 
@@ -13,61 +13,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Copy package manifests first for better dependency-layer caching.
+# --parents preserves the packages/<name>/ structure so npm resolves the whole
+# workspace graph without hand-listing every package.json. Adding/removing a
+# package needs no Dockerfile change. (Requires the dockerfile:1-labs frontend.)
 COPY package.json package-lock.json ./
-COPY packages/protocol/package.json packages/protocol/
-COPY packages/config/package.json packages/config/
-COPY packages/security/package.json packages/security/
-COPY packages/huggingface/package.json packages/huggingface/
-COPY packages/vectorstore/package.json packages/vectorstore/
-COPY packages/auth/package.json packages/auth/
-COPY packages/storage/package.json packages/storage/
-COPY packages/runtime/package.json packages/runtime/
-COPY packages/kernel/package.json packages/kernel/
-COPY packages/node-sdk/package.json packages/node-sdk/
-COPY packages/models/package.json packages/models/
-COPY packages/code-runners/package.json packages/code-runners/
-COPY packages/fal-codegen/package.json packages/fal-codegen/
-COPY packages/fal-nodes/package.json packages/fal-nodes/
-COPY packages/replicate-codegen/package.json packages/replicate-codegen/
-COPY packages/replicate-nodes/package.json packages/replicate-nodes/
-COPY packages/elevenlabs-nodes/package.json packages/elevenlabs-nodes/
-COPY packages/minimax-nodes/package.json packages/minimax-nodes/
-COPY packages/kie-codegen/package.json packages/kie-codegen/
-COPY packages/kie-nodes/package.json packages/kie-nodes/
-COPY packages/agents/package.json packages/agents/
-COPY packages/base-nodes/package.json packages/base-nodes/
-COPY packages/dsl/package.json packages/dsl/
-COPY packages/chat/package.json packages/chat/
-COPY packages/websocket/package.json packages/websocket/
-COPY packages/cli/package.json packages/cli/
-COPY packages/deploy/package.json packages/deploy/
-COPY packages/sandbox/package.json packages/sandbox/
-COPY packages/sandbox-agent/package.json packages/sandbox-agent/
-COPY packages/sandbox-tools/package.json packages/sandbox-tools/
-COPY packages/gpu/package.json packages/gpu/
-COPY packages/timeline/package.json packages/timeline/
-COPY packages/image-editor/package.json packages/image-editor/
-COPY packages/sdk/package.json packages/sdk/
-COPY packages/huggingface-nodes/package.json packages/huggingface-nodes/
-COPY packages/transformers-js-nodes/package.json packages/transformers-js-nodes/
-COPY packages/transformers-js-provider/package.json packages/transformers-js-provider/
-COPY packages/topaz-nodes/package.json packages/topaz-nodes/
-COPY packages/reve-nodes/package.json packages/reve-nodes/
-COPY packages/atlascloud-nodes/package.json packages/atlascloud-nodes/
-COPY packages/together-nodes/package.json packages/together-nodes/
-COPY packages/workflow-runner/package.json packages/workflow-runner/
-COPY packages/nodes-utils/package.json packages/nodes-utils/
-COPY packages/core-nodes/package.json packages/core-nodes/
-COPY packages/text-nodes/package.json packages/text-nodes/
-COPY packages/llm-nodes/package.json packages/llm-nodes/
-COPY packages/data-nodes/package.json packages/data-nodes/
-COPY packages/document-nodes/package.json packages/document-nodes/
-COPY packages/image-nodes/package.json packages/image-nodes/
-COPY packages/audio-nodes/package.json packages/audio-nodes/
-COPY packages/video-nodes/package.json packages/video-nodes/
-COPY packages/integration-nodes/package.json packages/integration-nodes/
-COPY packages/code-nodes/package.json packages/code-nodes/
-COPY packages/automation-nodes/package.json packages/automation-nodes/
+COPY --parents packages/*/package.json ./
 COPY web/package.json web/
 
 RUN npm ci
@@ -154,6 +104,10 @@ COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
 COPY --from=prod-deps --chown=node:node /app/packages ./packages
 COPY --from=build --chown=node:node /runtime/ ./
 
+# Startup migration runner (Postgres). Depends only on @nodetool-ai/models +
+# postgres, both already present above — no CLI bundle needed.
+COPY --chown=node:node scripts/db-migrate.mjs ./scripts/db-migrate.mjs
+
 # If neither a master key nor AWS Secrets Manager is configured, persist a
 # generated 32-byte base64 key next to the SQLite database so encrypted secrets
 # survive restarts when /workspace is mounted as a volume. For production, pass
@@ -173,6 +127,10 @@ RUN printf '%s\n' \
     '    node -e "process.stdout.write(require(\"crypto\").randomBytes(32).toString(\"base64\"))" > "$KEY_FILE"' \
     '  fi' \
     '  export SECRETS_MASTER_KEY="$(cat "$KEY_FILE")"' \
+    'fi' \
+    'if [ -n "${DATABASE_URL:-}" ]; then' \
+    '  echo "Applying database migrations..."' \
+    '  node /app/scripts/db-migrate.mjs' \
     'fi' \
     'exec "$@"' \
     > /usr/local/bin/docker-entrypoint.sh \
