@@ -80,7 +80,5 @@ export const TUTORIALS: Tutorial[] = [
   },
 ];
 
-export const DEFAULT_TUTORIAL_ID = TUTORIALS[0].id;
-
 export const getTutorial = (id: string | null | undefined): Tutorial =>
   TUTORIALS.find((t) => t.id === id) ?? TUTORIALS[0];

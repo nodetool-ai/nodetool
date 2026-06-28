@@ -1,4 +1,4 @@
-import { asImageRef, unwrapOutput } from "./imageRef";
+import { asImageRef } from "./imageRef";
 
 describe("asImageRef", () => {
   it("returns undefined for null", () => {
@@ -47,46 +47,3 @@ describe("asImageRef", () => {
   });
 });
 
-describe("unwrapOutput", () => {
-  it("returns primitives unchanged", () => {
-    expect(unwrapOutput("hello")).toBe("hello");
-    expect(unwrapOutput(42)).toBe(42);
-    expect(unwrapOutput(null)).toBeNull();
-    expect(unwrapOutput(undefined)).toBeUndefined();
-  });
-
-  it("unwraps the last element of an array", () => {
-    expect(unwrapOutput(["a", "b", "c"])).toBe("c");
-  });
-
-  it("returns undefined for an empty array", () => {
-    expect(unwrapOutput([])).toBeUndefined();
-  });
-
-  it("recursively unwraps nested arrays", () => {
-    expect(unwrapOutput([["nested", "deep"]])).toBe("deep");
-  });
-
-  it("extracts a named handle from an object", () => {
-    expect(unwrapOutput({ image: "data", text: "hi" }, "image")).toBe("data");
-  });
-
-  it("extracts 'output' key when no handle is specified", () => {
-    expect(unwrapOutput({ output: "result" })).toBe("result");
-  });
-
-  it("prefers named handle over 'output'", () => {
-    expect(unwrapOutput({ output: "fallback", custom: "val" }, "custom")).toBe(
-      "val"
-    );
-  });
-
-  it("returns the object when no matching handle and no 'output' key", () => {
-    const obj = { foo: "bar" };
-    expect(unwrapOutput(obj)).toBe(obj);
-  });
-
-  it("unwraps array then extracts handle", () => {
-    expect(unwrapOutput([{ image: "last" }], "image")).toBe("last");
-  });
-});

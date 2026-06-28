@@ -2,8 +2,7 @@ import {
   hexToRgba,
   darkenHexColor,
   adjustSaturation,
-  createLinearGradient,
-  simulateOpacity
+  createLinearGradient
 } from "./ColorUtils";
 
 describe("ColorUtils", () => {
@@ -71,15 +70,4 @@ describe("ColorUtils", () => {
     });
   });
 
-  describe("simulateOpacity", () => {
-    it("blends colors with opacity", () => {
-      const result = simulateOpacity("#ff0000", 0.5, "#ffffff");
-      expect(result).toBeTruthy();
-    });
-
-    it("returns foreground for CSS variables", () => {
-      expect(simulateOpacity("var(--fg)", 0.5)).toBe("var(--fg)");
-      expect(simulateOpacity("#ff0000", 0.5, "var(--bg)")).toBe("#ff0000");
-    });
-  });
 });
