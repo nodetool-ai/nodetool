@@ -8,7 +8,12 @@
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import type { NodeRegistry, NodeMetadata } from "@nodetool-ai/node-sdk";
+import type {
+  NodeRegistry,
+  NodeMetadata,
+  ScoredNode,
+  ScoreOptions
+} from "@nodetool-ai/node-sdk";
 import { rankNodeMetadata } from "@nodetool-ai/node-sdk";
 import { Tool } from "./base-tool.js";
 
@@ -114,11 +119,22 @@ export class LocalSearchNodesTool extends Tool {
       return { status: "error", errors: ["query must be a non-empty array"] };
     }
 
-    const allMetadata = this.registry.listMetadata();
-    let ranked = rankNodeMetadata(allMetadata, queryArr, {
+    const scoreOptions: ScoreOptions = {
       includeProviderNodes,
       namespacePrefix: namespace
-    });
+    };
+    // Prefer the registry's memoized index; fall back to a one-shot rank for
+    // structural mocks that only implement `listMetadata`.
+    const indexed = this.registry as {
+      searchMetadata?: (
+        terms: readonly string[],
+        options?: ScoreOptions
+      ) => ScoredNode[];
+    };
+    let ranked: ScoredNode[] =
+      typeof indexed.searchMetadata === "function"
+        ? indexed.searchMetadata(queryArr, scoreOptions)
+        : rankNodeMetadata(this.registry.listMetadata(), queryArr, scoreOptions);
 
     if (inputType) {
       ranked = ranked.filter(({ meta }) =>

@@ -32,7 +32,10 @@ import { LocalSearchNodesTool } from "./tools/local-search-nodes-tool.js";
 import { LocalGetNodeInfoTool } from "./tools/local-get-node-info-tool.js";
 import { LocalListNodesTool } from "./tools/local-list-nodes-tool.js";
 import { FindModelTool } from "./tools/find-model-tool.js";
-import { buildGraphPlannerSystemPrompt } from "./prompts/graph-planner-prompt.js";
+import {
+  buildGraphPlannerSystemPrompt,
+  resolveAvailableGenericNodes
+} from "./prompts/graph-planner-prompt.js";
 
 const log = createLogger("nodetool.agents.graph-planner");
 
@@ -88,8 +91,7 @@ export class GraphPlanner {
     this.providers = opts.providers;
     this.hasFindModel = !!opts.providers && Object.keys(opts.providers).length > 0;
     this.systemPrompt =
-      opts.systemPrompt ??
-      buildGraphPlannerSystemPrompt({ hasFindModel: this.hasFindModel });
+      opts.systemPrompt ?? this.buildDefaultSystemPrompt();
     this.outputSchema = opts.outputSchema;
     this.inputs = opts.inputs ?? {};
     this.maxRetries = opts.maxRetries ?? MAX_RETRIES;
@@ -100,6 +102,26 @@ export class GraphPlanner {
         "GraphPlanner constructed without configured providers — `find_model` tool will not be registered. The agent will fall back to AgentStep for AI work."
       );
     }
+  }
+
+  /**
+   * Build the default planner prompt, advertising only the generic AI nodes
+   * the registry actually has. A renamed/removed catalog entry is logged
+   * rather than offered to the agent (which would waste a build attempt on an
+   * unknown node type).
+   */
+  private buildDefaultSystemPrompt(): string {
+    const { available, missing } = resolveAvailableGenericNodes(this.registry);
+    if (missing.length > 0) {
+      log.warn(
+        "GraphPlanner: GENERIC_AI_NODES entries missing from the registry; omitting them from the planner prompt",
+        { missing }
+      );
+    }
+    return buildGraphPlannerSystemPrompt({
+      hasFindModel: this.hasFindModel,
+      genericNodes: available
+    });
   }
 
   /**

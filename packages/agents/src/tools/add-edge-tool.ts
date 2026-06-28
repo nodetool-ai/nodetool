@@ -3,9 +3,40 @@
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { NodeRegistry, NodeMetadata } from "@nodetool-ai/node-sdk";
+import { TypeMetadata } from "@nodetool-ai/protocol";
 import { Tool } from "./base-tool.js";
 import { AGENT_STEP_NODE_TYPE, type GraphBuilder } from "../graph-builder.js";
+
+/** Render a node's TypeMetadata into the string form TypeMetadata.fromString parses. */
+function typeMetaToString(
+  tm: NodeMetadata["properties"][number]["type"] | undefined
+): string | undefined {
+  if (!tm || !tm.type) return undefined;
+  const args = (tm.type_args ?? []).map(typeMetaToString).filter(Boolean);
+  return args.length > 0 ? `${tm.type}[${args.join(", ")}]` : tm.type;
+}
+
+/**
+ * Loose data-edge type compatibility, identical to the kernel's
+ * `validateEdgeTypes` (Graph): compatible types, "any", numeric widening,
+ * unions, list element types, and scalar-into-list aggregation. Returns true
+ * when either side's type is unknown so we never block on missing metadata.
+ */
+function edgeTypesCompatible(
+  sourceType: string | undefined,
+  targetType: string | undefined
+): boolean {
+  if (!sourceType || !targetType) return true;
+  const sourceMeta = TypeMetadata.fromString(sourceType);
+  const targetMeta = TypeMetadata.fromString(targetType);
+  const elementCompatible =
+    targetMeta.isListType() &&
+    !sourceMeta.isListType() &&
+    (targetMeta.args.length === 0 ||
+      sourceMeta.isCompatibleWith(targetMeta.args[0]));
+  return sourceMeta.isCompatibleWith(targetMeta) || elementCompatible;
+}
 
 const ADD_EDGE_INPUT_SCHEMA = {
   type: "object" as const,
@@ -64,15 +95,22 @@ export class AddEdgeTool extends Tool {
     // Validate handles against registry metadata for deterministic nodes
     const validationErrors: string[] = [];
 
+    let sourceType: string | undefined;
+    let targetType: string | undefined;
+
     const sourceNode = this.builder.getNode(source);
     if (sourceNode && sourceNode.type !== AGENT_STEP_NODE_TYPE) {
       const meta = this.registry.getMetadata(sourceNode.type);
       if (meta) {
-        const outputNames = meta.outputs.map((o: { name: string }) => o.name);
-        if (outputNames.length > 0 && !outputNames.includes(sourceHandle)) {
+        const output = meta.outputs.find(
+          (o: NodeMetadata["outputs"][number]) => o.name === sourceHandle
+        );
+        if (meta.outputs.length > 0 && !output) {
           validationErrors.push(
-            `Source node '${source}' (${sourceNode.type}) has no output '${sourceHandle}'. Available: ${outputNames.join(", ")}`
+            `Source node '${source}' (${sourceNode.type}) has no output '${sourceHandle}'. Available: ${meta.outputs.map((o: { name: string }) => o.name).join(", ")}`
           );
+        } else if (output) {
+          sourceType = typeMetaToString(output.type);
         }
       }
     }
@@ -81,13 +119,32 @@ export class AddEdgeTool extends Tool {
     if (targetNode && targetNode.type !== AGENT_STEP_NODE_TYPE) {
       const meta = this.registry.getMetadata(targetNode.type);
       if (meta) {
-        const inputNames = meta.properties.map((p: { name: string }) => p.name);
-        if (inputNames.length > 0 && !inputNames.includes(targetHandle)) {
+        const input = meta.properties.find(
+          (p: NodeMetadata["properties"][number]) => p.name === targetHandle
+        );
+        if (meta.properties.length > 0 && !input) {
           validationErrors.push(
-            `Target node '${target}' (${targetNode.type}) has no input '${targetHandle}'. Available: ${inputNames.join(", ")}`
+            `Target node '${target}' (${targetNode.type}) has no input '${targetHandle}'. Available: ${meta.properties.map((p: { name: string }) => p.name).join(", ")}`
           );
+        } else if (input) {
+          targetType = typeMetaToString(input.type);
         }
       }
+    }
+
+    // Type compatibility: catch e.g. a string output wired into a boolean
+    // condition during planning, instead of only at runtime where the agent
+    // can no longer self-correct. Skips unknown/any types and dynamic
+    // (AgentStep) endpoints, so it never blocks on missing metadata.
+    if (
+      validationErrors.length === 0 &&
+      !edgeTypesCompatible(sourceType, targetType)
+    ) {
+      validationErrors.push(
+        `Type mismatch: ${source}.${sourceHandle} outputs "${sourceType}" but ` +
+          `${target}.${targetHandle} expects "${targetType}". Pick a node whose ` +
+          `output type matches, or insert a converter.`
+      );
     }
 
     if (validationErrors.length > 0) {

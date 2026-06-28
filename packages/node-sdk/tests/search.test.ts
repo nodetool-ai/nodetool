@@ -68,6 +68,18 @@ describe("scoreNodeMetadata", () => {
     ).toBeGreaterThan(0);
   });
 
+  it("matches a multi-word query term word-by-word (not as one substring)", () => {
+    // Agents often pass a phrase as a single term, e.g. ["uppercase text
+    // transform"]. It must still match a node titled "To Uppercase"; matching
+    // the whole phrase as one substring would score 0.
+    const m = meta({
+      node_type: "nodetool.text.ToUppercase",
+      title: "To Uppercase",
+      description: "Converts text to uppercase."
+    });
+    expect(scoreNodeMetadata(m, ["uppercase text transform"])).toBeGreaterThan(0);
+  });
+
   it("ranks title matches above description-only matches", () => {
     const titleHit = meta({
       node_type: "nodetool.image.TextToImage",

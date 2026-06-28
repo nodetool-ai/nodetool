@@ -28,6 +28,8 @@ import { TaskUpdateEvent } from "@nodetool-ai/protocol";
 import { TaskExecutor } from "./task-executor.js";
 import type { Tool } from "./tools/base-tool.js";
 import type { Task, TaskPlan } from "./types.js";
+import type { Checkpoint, CheckpointStore } from "./checkpoint-store.js";
+import { hashPlanKey } from "./checkpoint-store.js";
 
 const log = createLogger("nodetool.agents.parallel-task-executor");
 
@@ -46,6 +48,23 @@ export interface ParallelTaskExecutorOptions {
   maxIterations?: number;
   /** Maximum iterations per step within a task. */
   maxStepIterations?: number;
+  /**
+   * Opt-in checkpoint store. When supplied with a {@link runId}, the executor
+   * loads any checkpoint whose `planHash` matches this plan, marks its
+   * completed tasks as done (seeding their results into memory), and resumes
+   * from the remaining tasks. After each task completes it persists an updated
+   * checkpoint. Omit to keep the original behavior (no resume, no persistence).
+   */
+  checkpointStore?: CheckpointStore;
+  /** Run identifier the checkpoint is keyed by. Required for checkpointing. */
+  runId?: string;
+  /**
+   * Tool names used to compute this plan's hash for checkpoint matching. When
+   * omitted, the hash is derived from the executor's own tool array. Pass the
+   * planning tool set when it differs from the execution tool set so the hash
+   * lines up with the plan cache key.
+   */
+  planTools?: string[];
 }
 
 export class ParallelTaskExecutor {
@@ -58,6 +77,9 @@ export class ParallelTaskExecutor {
   private readonly systemPrompt: string | undefined;
   private readonly maxIterations: number;
   private readonly maxStepIterations: number;
+  private readonly checkpointStore?: CheckpointStore;
+  private readonly runId?: string;
+  private readonly planTools?: string[];
 
   constructor(opts: ParallelTaskExecutorOptions) {
     this.provider = opts.provider;
@@ -70,6 +92,39 @@ export class ParallelTaskExecutor {
     this.maxIterations = opts.maxIterations ?? DEFAULT_MAX_TASK_ITERATIONS;
     this.maxStepIterations =
       opts.maxStepIterations ?? DEFAULT_MAX_STEP_ITERATIONS;
+    this.checkpointStore = opts.checkpointStore;
+    this.runId = opts.runId;
+    this.planTools = opts.planTools;
+  }
+
+  /**
+   * Stable hash for this plan, used to match a saved checkpoint to the current
+   * plan. Built from the plan title + task IDs + the tool names so a checkpoint
+   * never resumes a structurally different plan. Reuses {@link hashPlanKey}.
+   */
+  private planHash(): string {
+    const toolNames = this.planTools ?? this.tools.map((t) => t.name);
+    return hashPlanKey({
+      objective: `${this.taskPlan.title}\n${this.taskPlan.tasks
+        .map((t) => t.id)
+        .join(",")}`,
+      tools: toolNames
+    });
+  }
+
+  /** Persist the current execution progress under {@link runId} (idempotent). */
+  private persistCheckpoint(planHash: string = this.planHash()): void {
+    if (!this.checkpointStore || !this.runId) return;
+    const completedTaskIds = this.taskPlan.tasks
+      .filter((t) => t.completed)
+      .map((t) => t.id);
+    const taskResults: Record<string, unknown> = {};
+    for (const id of completedTaskIds) {
+      const value = this.context.memory.getValue(memoryKeys.task(id));
+      if (value !== undefined) taskResults[id] = value;
+    }
+    const checkpoint: Checkpoint = { planHash, completedTaskIds, taskResults };
+    this.checkpointStore.save(this.runId, checkpoint);
   }
 
   /**
@@ -85,6 +140,50 @@ export class ParallelTaskExecutor {
         value,
         title: key
       });
+    }
+
+    // Checkpoint resume (opt-in): a matching saved checkpoint marks already-done
+    // tasks as complete and seeds their results so they are skipped below and
+    // their outputs remain available to dependents.
+    const planHash = this.checkpointStore && this.runId ? this.planHash() : "";
+    if (this.checkpointStore && this.runId) {
+      const checkpoint = this.checkpointStore.load(this.runId);
+      if (checkpoint && checkpoint.planHash === planHash) {
+        const completed = new Set(checkpoint.completedTaskIds);
+        let resumed = 0;
+        for (const task of this.taskPlan.tasks) {
+          if (!completed.has(task.id)) continue;
+          task.completed = true;
+          resumed++;
+          const result = checkpoint.taskResults?.[task.id];
+          if (
+            result !== undefined &&
+            !this.context.memory.has(memoryKeys.task(task.id))
+          ) {
+            this.context.memory.set({
+              key: memoryKeys.task(task.id),
+              kind: "task_result",
+              value: result,
+              source: task.id,
+              title: task.title,
+              description: task.description
+            });
+          }
+        }
+        if (resumed > 0) {
+          log.info("Resumed from checkpoint", {
+            runId: this.runId,
+            resumedTasks: resumed
+          });
+          yield {
+            type: "log_update",
+            node_id: "parallel_task_executor",
+            node_name: "ParallelTaskExecutor",
+            content: `Resuming from checkpoint: ${resumed} task(s) already complete.`,
+            severity: "info"
+          } satisfies LogUpdate;
+        }
+      }
     }
 
     const totalTasks = this.taskPlan.tasks.length;
@@ -248,6 +347,10 @@ export class ParallelTaskExecutor {
     }
 
     task.completed = true;
+
+    // Persist progress so a re-run resumes past this task (no-op without a
+    // checkpoint store + runId).
+    this.persistCheckpoint();
 
     yield {
       type: "task_update",

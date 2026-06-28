@@ -7,8 +7,12 @@ export default defineConfig({
       "@nodetool-ai/kernel": resolve(__dirname, "../kernel/src/index.ts"),
       "@nodetool-ai/protocol": resolve(__dirname, "../protocol/src"),
       "@nodetool-ai/node-sdk": resolve(__dirname, "../node-sdk/src/index.ts"),
-      "@nodetool-ai/agents": resolve(__dirname, "../agents/src/index.ts"),
       // Subpaths before the root alias (Vite alias is prefix-based).
+      "@nodetool-ai/agents/js-sandbox": resolve(
+        __dirname,
+        "../agents/src/js-sandbox.ts"
+      ),
+      "@nodetool-ai/agents": resolve(__dirname, "../agents/src/index.ts"),
       "@nodetool-ai/runtime/tracing": resolve(
         __dirname,
         "../runtime/src/tracing-helpers.ts"

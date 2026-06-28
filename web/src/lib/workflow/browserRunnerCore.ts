@@ -126,6 +126,7 @@ export async function loadBrowserModules(): Promise<LoadedModules> {
     placeholders,
     subgraph,
     workflow,
+    codeNode,
     imageColorGrading,
     imageColor,
     imageEffects,
@@ -158,6 +159,11 @@ export async function loadBrowserModules(): Promise<LoadedModules> {
     import("@nodetool-ai/core-nodes/nodes/extended-placeholders"),
     import("@nodetool-ai/core-nodes/nodes/subgraph"),
     import("@nodetool-ai/core-nodes/nodes/workflow"),
+    // The universal Code node (nodetool.code.Code) runs vanilla JS in a QuickJS
+    // WebAssembly sandbox — no Node `vm`, no subprocess — so it runs client-side.
+    // Imported via its own subpath (not the code-nodes index, which pulls
+    // code-runners → Docker/ssh2); its only heavy dep is the QuickJS wasm chunk.
+    import("@nodetool-ai/code-nodes/nodes/code-node"),
     import("@nodetool-ai/image-nodes/nodes/lib-image-color-grading"),
     import("@nodetool-ai/image-nodes/nodes/lib-image-color"),
     import("@nodetool-ai/image-nodes/nodes/lib-image-effects"),
@@ -204,6 +210,7 @@ export async function loadBrowserModules(): Promise<LoadedModules> {
     ["extended-placeholders", placeholders],
     ["subgraph", subgraph],
     ["workflow", workflow],
+    ["code-node", codeNode],
     ["lib-image-color-grading", imageColorGrading],
     ["lib-image-color", imageColor],
     ["lib-image-effects", imageEffects],

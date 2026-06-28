@@ -16,7 +16,7 @@
 
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { runInSandbox } from "@nodetool-ai/agents";
+import { runInSandbox } from "@nodetool-ai/agents/js-sandbox";
 import { ALL_PLATFORMS } from "@nodetool-ai/protocol";
 
 /** JS keywords that cannot be used as variable names. */

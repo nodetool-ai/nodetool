@@ -92,6 +92,23 @@ export {
 } from "./fake-provider.js";
 export type { FakeProviderOptions } from "./fake-provider.js";
 export {
+  CassetteProvider,
+  CassetteStore,
+  createEmptyCassette,
+  stableStringify,
+  hashString,
+  normalizeRequest,
+  hashRequest
+} from "./cassette-provider.js";
+export type {
+  CassetteMode,
+  CassetteMethod,
+  CassetteRequest,
+  CassetteInteraction,
+  Cassette,
+  CassetteProviderOptions
+} from "./cassette-provider.js";
+export {
   ScriptedProvider,
   planScript,
   multiTaskPlanScript,

@@ -140,11 +140,15 @@ export interface WorkflowGraphInput {
   }>;
 }
 
-export function normalizeWorkflow(workflow: AppWorkflow): AppWorkflow {
+// The tRPC `workflowResponse` shape is looser than `Workflow` (nullable/optional
+// `description`, `graph`, and `*_schema` fields), so callers pass that wire shape
+// here. Accept it structurally and coerce `description` to the non-null string the
+// app's `Workflow` type guarantees.
+export function normalizeWorkflow(workflow: Record<string, unknown>): AppWorkflow {
   return {
     ...workflow,
-    description: workflow.description ?? '',
-  };
+    description: (workflow.description as string | null | undefined) ?? '',
+  } as AppWorkflow;
 }
 
 export function normalizeModels<T extends { id: string; name: string }>(
