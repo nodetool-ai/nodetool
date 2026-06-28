@@ -29,6 +29,7 @@ const quickJsVariant = (quickJsVariantModule as unknown as {
   default: Parameters<typeof loadQuickJs>[0];
 }).default;
 import { Scope } from "quickjs-emscripten-core";
+import { importNodeBuiltin } from "@nodetool-ai/config";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 // ---------------------------------------------------------------------------
@@ -130,6 +131,32 @@ function neverReject<Args extends unknown[], R>(
 export function truncate(text: string, max: number): string {
   if (text.length <= max) return text;
   return text.slice(0, max) + "\n...[truncated]";
+}
+
+/**
+ * Load `node:fs/promises` via a bundler-hidden import so a browser/edge bundle
+ * never tries to resolve it. The `workspace.*` bridge is wired only when a
+ * `ProcessingContext` is present, and these loaders run only when guest code
+ * actually calls `workspace.read/write/list` — off-Node that path throws
+ * (`importNodeBuiltin` resolves `null`), which `neverReject` surfaces to the
+ * guest as a normal error.
+ */
+async function loadFsPromises(): Promise<typeof import("node:fs/promises")> {
+  const fs = await importNodeBuiltin<typeof import("node:fs/promises")>(
+    "node:fs/promises"
+  );
+  if (!fs) throw new Error("workspace file access requires a Node.js runtime");
+  return fs;
+}
+
+async function loadNodePath(): Promise<typeof import("node:path")> {
+  const nodePath = await importNodeBuiltin<typeof import("node:path")>(
+    "node:path"
+  );
+  if (!nodePath) {
+    throw new Error("workspace file access requires a Node.js runtime");
+  }
+  return nodePath;
 }
 
 function formatArg(arg: unknown): string {
@@ -364,20 +391,20 @@ export function buildSandbox(context?: ProcessingContext): SandboxResult {
     ? {
         read: async (path: string): Promise<string> => {
           const fullPath = context.resolveWorkspacePath(path);
-          const { readFile } = await import("node:fs/promises");
-          return readFile(fullPath, "utf-8");
+          const fs = await loadFsPromises();
+          return fs.readFile(fullPath, "utf-8");
         },
         write: async (path: string, content: string): Promise<void> => {
           const fullPath = context.resolveWorkspacePath(path);
-          const { writeFile, mkdir } = await import("node:fs/promises");
-          const { dirname } = await import("node:path");
-          await mkdir(dirname(fullPath), { recursive: true });
-          await writeFile(fullPath, content, "utf-8");
+          const fs = await loadFsPromises();
+          const nodePath = await loadNodePath();
+          await fs.mkdir(nodePath.dirname(fullPath), { recursive: true });
+          await fs.writeFile(fullPath, content, "utf-8");
         },
         list: async (path: string): Promise<string[]> => {
           const fullPath = context.resolveWorkspacePath(path);
-          const { readdir } = await import("node:fs/promises");
-          return readdir(fullPath);
+          const fs = await loadFsPromises();
+          return fs.readdir(fullPath);
         }
       }
     : {
