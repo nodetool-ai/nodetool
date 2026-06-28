@@ -37,6 +37,13 @@ import {
   setUpdateChannel,
 } from "./settings";
 import { openSettingsInMainWindow } from "./window";
+import {
+  createVault,
+  renameVault,
+  deleteVault,
+  getVaultList,
+} from "./vaults";
+import { applyVaultSwitch } from "./vaultSwitch";
 import { IpcRequest } from "./types.d";
 import { registerWorkflowShortcut, setupWorkflowShortcuts } from "./shortcuts";
 import { emitWorkflowsChanged, emitServerStateChanged } from "./tray";
@@ -1337,6 +1344,51 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(IpcChannels.SHOW_SETTINGS, async () => {
     logMessage("Opening Settings in main window");
     openSettingsInMainWindow();
+  });
+
+  // Vault handlers (switchable, isolated data stores).
+  // Rebuild the native menu after mutations so the active-vault checkmark and
+  // labels stay in sync. The menu module is imported dynamically to avoid
+  // pulling its electron-Menu chain into this module at load time.
+  const refreshAppMenu = async (): Promise<void> => {
+    try {
+      const { buildMenu } = await import("./menu");
+      buildMenu();
+    } catch (error) {
+      logMessage(`Failed to rebuild menu after vault change: ${String(error)}`, "warn");
+    }
+  };
+
+  createIpcMainHandler(IpcChannels.VAULT_LIST, async () => {
+    return getVaultList();
+  });
+
+  createIpcMainHandler(IpcChannels.VAULT_CREATE, async (_event, name) => {
+    logMessage(`Creating vault: ${name}`);
+    createVault(name);
+    await refreshAppMenu();
+    return getVaultList();
+  });
+
+  createIpcMainHandler(IpcChannels.VAULT_RENAME, async (_event, request) => {
+    logMessage(`Renaming vault ${request.id} to ${request.name}`);
+    renameVault(request.id, request.name);
+    await refreshAppMenu();
+    return getVaultList();
+  });
+
+  createIpcMainHandler(IpcChannels.VAULT_DELETE, async (_event, id) => {
+    logMessage(`Deleting vault ${id}`);
+    deleteVault(id);
+    await refreshAppMenu();
+    return getVaultList();
+  });
+
+  createIpcMainHandler(IpcChannels.VAULT_SWITCH, async (_event, id) => {
+    logMessage(`Switching to vault ${id}`);
+    await applyVaultSwitch(id);
+    await refreshAppMenu();
+    return getVaultList();
   });
 
   createIpcMainHandler(IpcChannels.GET_SYSTEM_INFO, async () => {

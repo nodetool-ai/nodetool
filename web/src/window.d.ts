@@ -146,6 +146,19 @@ interface ClipboardContentInfo {
   platform: "darwin" | "win32" | "linux";
 }
 
+interface Vault {
+  id: string;
+  name: string;
+  dbPath: string | null;
+  assetPath: string | null;
+  vectorPath: string | null;
+}
+
+interface VaultListResult {
+  vaults: Vault[];
+  activeVaultId: string;
+}
+
 declare global {
   interface Window {
     api: {
@@ -292,6 +305,16 @@ declare global {
         setModelServicesStartup?: (update: {
           startLlamaCppOnStartup?: boolean;
         }) => Promise<{ startLlamaCppOnStartup: boolean }>;
+      };
+
+      // Vaults module - switchable, isolated data stores (each its own SQLite
+      // database). Electron-only.
+      vaults?: {
+        list: () => Promise<VaultListResult>;
+        create: (name: string) => Promise<VaultListResult>;
+        rename: (id: string, name: string) => Promise<VaultListResult>;
+        delete: (id: string) => Promise<VaultListResult>;
+        switch: (id: string) => Promise<VaultListResult>;
       };
 
       // Debug module - Debug bundle export
