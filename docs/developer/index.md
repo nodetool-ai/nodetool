@@ -38,6 +38,10 @@ Export a `register(registry)` function from your package and NodeTool discovers 
 
 ## Guides
 
+### Provider & Model Guides
+
+- **[Provider Guides](providers/index.md)** -- **Add models & nodes to any provider.** Per-provider runbooks (OpenAI, Anthropic, Gemini, xAI, FAL, Replicate, KIE, Together, AtlasCloud, Topaz, MiniMax, Reve, ElevenLabs, HuggingFace, Ollama, local inference, OpenAI-compatible) with exact files, commands, and how past PRs did it. Written for coding agents and contributors.
+
 ### Custom Node Development (TypeScript)
 
 - **[Custom Nodes Guide](custom-nodes-guide.md)** -- **Start here!** End-to-end guide for authoring, packaging, and distributing TypeScript node packs.

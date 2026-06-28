@@ -14,9 +14,11 @@
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows-blue)](https://nodetool.ai)
 [![Platform: Linux](https://img.shields.io/badge/platform-Linux-orange)](https://nodetool.ai)
 
-NodeTool is the open-source creative AI workspace — every major model from every major provider, called with your own keys, wired into one node-based canvas you run on your machine.
+NodeTool is an open-source creative AI suite that runs entirely on your local machine. It combines a node-based canvas, a multi-track video timeline, and a layered sketch editor into a unified workspace. Wire every major AI model—cloud or local—directly into the professional production tools you already rely on.
 
-Bring your own keys to FAL, KIE, Atlas, OpenAI, Anthropic, Gemini, Replicate, ElevenLabs, HuggingFace. Pay providers directly at provider prices. Switch the moment a better model ships. Wire it all into one canvas with the editing tools you rely on — masks, inpaint, outpaint, relight, upscale, layers, compositing.
+* **Pay Provider Prices:** Plug in your own API keys and pay cloud providers directly at cost. 
+* **Zero Lock-In:** Swap foundational models, media APIs, or local LLMs across text, image, video, and audio whenever you want.
+* **Three Ways to Work:** Seamlessly fluid between node-based workflows, multi-track video generation, and layer-based painting and masking.
 
 ![NodeTool Interface](screen_canvas.png)
 
@@ -24,10 +26,9 @@ Bring your own keys to FAL, KIE, Atlas, OpenAI, Anthropic, Gemini, Replicate, El
 
 - [Why NodeTool](#why-nodetool)
 - [What's in the box](#whats-in-the-box)
-- [What people build with it](#what-people-build-with-it)
+- [Node editor](#node-editor)
 - [Video editor](#video-editor)
 - [Sketch editor](#sketch-editor)
-- [Models](#models)
 - [How NodeTool compares](#how-nodetool-compares)
 - [Get NodeTool](#get-nodetool)
 - [Documentation](#documentation)
@@ -40,16 +41,15 @@ Bring your own keys to FAL, KIE, Atlas, OpenAI, Anthropic, Gemini, Replicate, El
 
 ## Why NodeTool
 
-The best model for the job changes every month. NodeTool keeps up.
+Closed platforms lock you into their ecosystem. NodeTool is built for complete creative independence.
 
-> Seedance is the best video model right now. It's available on FAL, Replicate, and KIE at different price points. NodeTool lets you pick the cheapest. When Veo 4 ships, you swap one node and you're on it the same day.
+**Own your AI.**
 
-That's what vendor neutrality buys you:
+*   **Independent Pricing:** Pay providers directly at cost with your own API keys, or run local models for free.
+*   **Independent Data:** Workflows, keys, and files stay on your machine.
+*   **Independent Software:** Open-source (AGPL-3.0).
 
-- **Every model.** OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, ElevenLabs, HuggingFace. Local with Ollama, MLX, and GGUF.
-- **Your keys.** Pay providers directly at provider prices. No credit markup, no proprietary tokens.
-- **Your canvas.** Workflows, files, and keys belong to you. Everything runs on your machine.
-- **Open source.** AGPL-3.0. Self-host any time. No acquisition risk.
+> **Infrastructure Freedom:** If a provider raises prices or deprecates a model, just swap the backend node. Your creative workflow stays exactly the same.
 
 ## What's in the box
 
@@ -68,16 +68,15 @@ That's what vendor neutrality buys you:
 | **Deploy & scale** | Self-host with Docker; rent GPU workers (RunPod, Vast) |
 | **Cross-platform** | macOS, Windows, and Linux |
 
-## What people build with it
+## Node editor
 
-The workspace is a canvas, not a wizard. A few of the patterns we see most often:
+The node canvas lets you build visual workflows by chaining steps together—like loading an image, calling a model, and applying a mask.
 
-- **Image generation and editing** — FLUX.2, Nano Banana Pro, GPT-Image 3, plus mask, inpaint, outpaint, relight, and upscale as first-class nodes.
-- **Video** — Seedance, Sora 2 Pro, Veo 3.1, Wan 2.6, Hailuo 2.3, Kling 2.6. Text-to-video, image-to-video, and video-to-video pipelines, cut together on a multi-track timeline.
-- **Voice and audio** — Whisper for transcription, ElevenLabs and OpenAI TTS for speech, audio analysis and editing as nodes.
-- **Document search** — point a workflow at a folder, embed it, query it. RAG without writing the plumbing.
-- **Multi-step agents** — agents are a capability inside the workspace, not a separate product. Wire one into a graph when a step needs to plan, decide, or call tools.
-- **Mini-apps** — share a workflow as an interactive web app others can run.
+*   **Fast creation:** Double-click to search and add nodes, or drag a connection into empty space to see compatible next steps.
+*   **Type-safe routing:** Connector handles are color-coded. The editor prevents mistakes like wiring an image into a text field.
+*   **Live previews:** Every node renders its output (images, video, text) in real time as the workflow executes.
+*   **In-context editing:** Tweak properties directly on the node, group them to stay organized, or bypass a node to test a variation.
+*   **Easy navigation:** Pan, zoom, use the minimap, or search by name to jump straight to any node in a large graph.
 
 ## Video editor
 
@@ -92,19 +91,6 @@ See the [Video Editor guide](https://docs.nodetool.ai/video-editor) for the full
 A layered paint canvas built into the node graph. Draw and paint with real brushes, build up a composition in layers with blend modes and masks, then bind a layer to a model or one of your own workflows and generate image content right where you're painting. Change a prompt or an upstream input and the layer flags itself stale; regenerate in place and keep working on top. When you're done, the node hands the rest of your workflow a flattened image, a mask, and per-layer outputs — no export/import round-trip. It pairs naturally with the editing nodes (mask, inpaint, outpaint, compositing) for sketch-then-generate pipelines.
 
 See the [Sketch Editor guide](https://docs.nodetool.ai/sketch-editor) for tools, layers, AI generation, and keyboard shortcuts.
-
-## Models
-
-Pick a provider per node. Switch by changing one field.
-
-| Type | Models |
-| :--- | :--- |
-| **Video** | Seedance, OpenAI Sora 2 Pro, Google Veo 3.1, xAI Grok Imagine, Alibaba Wan 2.6, MiniMax Hailuo 2.3, Kling 2.6 |
-| **Image** | Flux, Black Forest Labs FLUX.2, Google Nano Banana Pro, GPT-Image 3 |
-| **Audio** | OpenAI Whisper, OpenAI TTS, ElevenLabs |
-| **Text** | GPT-4, Claude, Gemini, Llama, Mistral — local on your machine, or BYOK to the cloud |
-
-Use `TextToVideo`, `ImageToVideo`, or `TextToImage` nodes and select your provider and model. Some models route through [kie.ai](https://kie.ai/), which combines providers and is often the cheapest path.
 
 ## How NodeTool compares
 
@@ -142,6 +128,7 @@ ______________________________________________________________________
 - **[Sketch Editor](https://docs.nodetool.ai/sketch-editor)** — Draw, mask, and AI-generate on a layered canvas
 - **[Node Packs](https://docs.nodetool.ai/packs)** — Available nodes and integrations
 - **[Custom Nodes](https://docs.nodetool.ai/developer/custom-nodes-guide)** — Extend NodeTool
+- **[Provider Guides](https://docs.nodetool.ai/developer/providers/)** — Add new models & nodes for any provider
 - **[Deployment](https://docs.nodetool.ai/deployment)** — Share your work
 - **[API Reference](https://docs.nodetool.ai/api)** — Programmatic access
 

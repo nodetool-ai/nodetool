@@ -271,6 +271,8 @@ The node-level 3D keys (`HUNYUAN3D_API_KEY`, `TRELLIS_API_KEY`, `TRIPO_API_KEY`,
 
 ## Provider Development
 
+> **Adding models or nodes to an existing provider?** See the per-provider runbooks in **[Provider Guides](developer/providers/index.md)** — one guide each for OpenAI, Anthropic, Gemini, xAI, FAL, Replicate, KIE, Together, AtlasCloud, Topaz, MiniMax, Reve, ElevenLabs, HuggingFace, Ollama, local inference, and the OpenAI-compatible providers. They cover whether a new model needs zero code, a manifest entry, or a codegen run.
+
 To add a new provider:
 
 1. **Create provider class** in `packages/runtime/src/providers/`
