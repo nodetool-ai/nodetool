@@ -185,7 +185,29 @@ abstract class Tool {
 | **Email** | `SearchEmailTool`, `ArchiveEmailTool`, `AddLabelToEmailTool` | `email-tools.ts` |
 | **Workspace** | `WorkspaceReadTool`, `WorkspaceWriteTool`, `WorkspaceListTool` | `workspace-tools.ts` |
 | **Assets** | `SaveAssetTool`, `ReadAssetTool` | `asset-tools.ts` |
-| **MCP** | `ListWorkflowsTool`, `RunWorkflowTool`, `SearchNodesTool`, and more | `mcp-tools.ts` |
+| **Workflow / MCP** | `ValidateWorkflowTool`, `DebugWorkflowTool`, `RunWorkflowTool`, `StartBackgroundJobTool`, `CreateWorkflowTool`, `ListWorkflowsTool`, `GetWorkflowTool`, `GetExampleWorkflowTool`, `ExportWorkflowDigraphTool`, `SearchNodesTool`, `ListNodesTool`, `GetNodeInfoTool`, `ListJobsTool`, `GetJobTool`, `GetJobLogsTool`, `ListAssetsTool`, `GetAssetTool`, `ListModelsTool` | `mcp-tools.ts` |
+
+### Workflow Harness Tools
+
+`ValidateWorkflowTool` and `DebugWorkflowTool` (in `mcp-tools.ts`) are the
+agent-facing front ends to the same harnesses the CLI exposes as
+`nodetool validate` and `nodetool debug` — use them to author and verify graphs
+from inside an agent:
+
+- **`validate_workflow`** — static check of an inline `graph` ({nodes, edges})
+  being built or a saved `workflow_id`: unknown node types, missing required
+  props, unselected models, dangling/mis-typed edges. Sub-second. Run it before
+  the expensive `debug`.
+- **`debug_workflow`** — run a workflow and return status, outputs, errors, job
+  logs, and a graph overview in one call.
+- **`run_workflow`** / **`start_background_job`** — execute synchronously or as a
+  background job (poll with `get_job` / `get_job_logs`).
+- **`create_workflow`**, **`search_nodes`**, **`list_nodes`**, **`get_node_info`**,
+  **`get_example_workflow`**, **`export_workflow_digraph`** — build and inspect
+  graphs against the live node registry.
+
+The full harness index — CLI commands, the browser surface, single-node runs,
+deploy, and tracing — is in the [root AGENTS.md](../AGENTS.md#agent-harnesses--tooling).
 
 ### JavaScript Sandbox
 
