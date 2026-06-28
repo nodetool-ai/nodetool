@@ -155,6 +155,7 @@ ______________________________________________________________________
 - **[Sketch Editor](https://docs.nodetool.ai/sketch-editor)** — Draw, mask, and AI-generate on a layered canvas
 - **[Node Packs](https://docs.nodetool.ai/packs)** — Available nodes and integrations
 - **[Custom Nodes](https://docs.nodetool.ai/developer/custom-nodes-guide)** — Extend NodeTool
+- **[Provider Guides](https://docs.nodetool.ai/developer/providers/)** — Add new models & nodes for any provider
 - **[Deployment](https://docs.nodetool.ai/deployment)** — Share your work
 - **[API Reference](https://docs.nodetool.ai/api)** — Programmatic access
 
